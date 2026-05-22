@@ -1,0 +1,135 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime
+
+from app.calculations.panchangam import calculate_daily_panchangam
+from app.schemas.panchangam import (
+    PanchangamAbhijit,
+    PanchangamDailyQuery,
+    PanchangamDailyResponse,
+    PanchangamDailyResponseData,
+    PanchangamHoraEntry,
+    PanchangamKalam,
+    PanchangamKarana,
+    PanchangamLocation,
+    PanchangamMeta,
+    PanchangamNakshatra,
+    PanchangamSlot,
+    PanchangamTithi,
+    PanchangamVara,
+    PanchangamYoga,
+    PanchangamTimingsData,
+    PanchangamTimingsResponse,
+)
+
+
+def calculate_panchangam(query: PanchangamDailyQuery) -> PanchangamDailyResponse:
+    snapshot = calculate_daily_panchangam(query.date, query.lat, query.lng, query.timezone)
+
+    return PanchangamDailyResponse(
+        data=PanchangamDailyResponseData(
+            date_local=snapshot.date_local,
+            location=PanchangamLocation(lat=snapshot.latitude, lng=snapshot.longitude, timezone=snapshot.timezone_name),
+            sunrise=snapshot.sunrise,
+            sunset=snapshot.sunset,
+            solar_noon=snapshot.solar_noon,
+            vara=PanchangamVara(weekday=snapshot.weekday, lord=snapshot.weekday_lord),
+            tithi=PanchangamTithi(
+                number=snapshot.tithi_number,
+                name=snapshot.tithi_name,
+                paksha=snapshot.tithi_paksha,
+                ends_at=snapshot.tithi_ends_at,
+            ),
+            nakshatra=PanchangamNakshatra(
+                name=snapshot.nakshatra_name,
+                pada=snapshot.nakshatra_pada,
+                ends_at=snapshot.nakshatra_ends_at,
+            ),
+            yoga=PanchangamYoga(number=snapshot.yoga_number, name=snapshot.yoga_name),
+            karana=PanchangamKarana(name=snapshot.karana_name),
+            kalam=PanchangamKalam(
+                rahu_kalam=PanchangamSlot(
+                    start=snapshot.rahu_kalam.start.strftime("%H:%M"),
+                    end=snapshot.rahu_kalam.end.strftime("%H:%M"),
+                    slot=snapshot.rahu_kalam.slot,
+                ),
+                yamagandam=PanchangamSlot(
+                    start=snapshot.yamagandam.start.strftime("%H:%M"),
+                    end=snapshot.yamagandam.end.strftime("%H:%M"),
+                    slot=snapshot.yamagandam.slot,
+                ),
+                kuligai=PanchangamSlot(
+                    start=snapshot.kuligai.start.strftime("%H:%M"),
+                    end=snapshot.kuligai.end.strftime("%H:%M"),
+                    slot=snapshot.kuligai.slot,
+                ),
+            ),
+            abhijit=PanchangamAbhijit(
+                start=snapshot.abhijit_start.strftime("%H:%M"),
+                end=snapshot.abhijit_end.strftime("%H:%M"),
+                is_restricted_by_weekday=snapshot.abhijit_restricted,
+            ),
+            hora=[
+                PanchangamHoraEntry(
+                    index=entry.index,
+                    lord=entry.lord,
+                    start=entry.start.strftime("%H:%M"),
+                    end=entry.end.strftime("%H:%M"),
+                )
+                for entry in snapshot.hora
+            ],
+        ),
+        meta=PanchangamMeta(
+            calculation_version="thirukanitham-2026-v1",
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )
+
+
+def calculate_panchangam_timings(query: PanchangamDailyQuery) -> PanchangamTimingsResponse:
+    snapshot = calculate_daily_panchangam(query.date, query.lat, query.lng, query.timezone)
+
+    return PanchangamTimingsResponse(
+        data=PanchangamTimingsData(
+            date_local=snapshot.date_local,
+            location=PanchangamLocation(lat=snapshot.latitude, lng=snapshot.longitude, timezone=snapshot.timezone_name),
+            sunrise=snapshot.sunrise,
+            sunset=snapshot.sunset,
+            solar_noon=snapshot.solar_noon,
+            kalam=PanchangamKalam(
+                rahu_kalam=PanchangamSlot(
+                    start=snapshot.rahu_kalam.start.strftime("%H:%M"),
+                    end=snapshot.rahu_kalam.end.strftime("%H:%M"),
+                    slot=snapshot.rahu_kalam.slot,
+                ),
+                yamagandam=PanchangamSlot(
+                    start=snapshot.yamagandam.start.strftime("%H:%M"),
+                    end=snapshot.yamagandam.end.strftime("%H:%M"),
+                    slot=snapshot.yamagandam.slot,
+                ),
+                kuligai=PanchangamSlot(
+                    start=snapshot.kuligai.start.strftime("%H:%M"),
+                    end=snapshot.kuligai.end.strftime("%H:%M"),
+                    slot=snapshot.kuligai.slot,
+                ),
+            ),
+            abhijit=PanchangamAbhijit(
+                start=snapshot.abhijit_start.strftime("%H:%M"),
+                end=snapshot.abhijit_end.strftime("%H:%M"),
+                is_restricted_by_weekday=snapshot.abhijit_restricted,
+            ),
+            hora=[
+                PanchangamHoraEntry(
+                    index=entry.index,
+                    lord=entry.lord,
+                    start=entry.start.strftime("%H:%M"),
+                    end=entry.end.strftime("%H:%M"),
+                )
+                for entry in snapshot.hora
+            ],
+        ),
+        meta=PanchangamMeta(
+            calculation_version="thirukanitham-2026-v1",
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )

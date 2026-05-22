@@ -1,0 +1,99 @@
+Metadata-Version: 2.4
+Name: jothidam-ai
+Version: 0.1.0
+Summary: Jothidam.AI MVP 1 backend foundation
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi<1.0,>=0.115
+Requires-Dist: sqlalchemy<3.0,>=2.0
+Requires-Dist: alembic<2.0,>=1.13
+Requires-Dist: uvicorn[standard]<1.0,>=0.30
+Requires-Dist: pydantic-settings<3.0,>=2.6
+Requires-Dist: pyswisseph>=2.10.3.2; python_version < "3.14"
+Requires-Dist: swisseph-ffi>=1.0.0; python_version >= "3.14"
+Provides-Extra: dev
+Requires-Dist: httpx<1.0,>=0.27; extra == "dev"
+Requires-Dist: pytest<9.0,>=8.0; extra == "dev"
+
+# Jothidam.AI Backend Foundation
+
+Sprint 0 backend starter for Jothidam.AI MVP 1.
+
+## What is included
+
+- FastAPI app entrypoint
+- `/health` health check
+- Environment-based settings
+- Pytest setup
+- Starter package layout for future calculation work
+
+## Local setup
+
+1. Create and activate a virtual environment.
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+2. Install the backend dependencies.
+
+```powershell
+pip install -e .[dev]
+```
+
+3. Create or refresh the database schema.
+
+```powershell
+python -m alembic upgrade head
+```
+
+4. Run the API locally.
+
+```powershell
+uvicorn app.main:app --reload
+```
+
+5. Run the tests.
+
+```powershell
+pytest
+```
+
+## Environment variables
+
+The starter app reads settings from environment variables or a local `.env` file.
+
+All variables use the `JOTHIDAM_` prefix to avoid collisions with system settings.
+
+- `JOTHIDAM_APP_NAME`
+- `JOTHIDAM_APP_VERSION`
+- `JOTHIDAM_ENVIRONMENT`
+- `JOTHIDAM_DEBUG`
+- `JOTHIDAM_HOST`
+- `JOTHIDAM_PORT`
+- `JOTHIDAM_API_V1_PREFIX`
+- `JOTHIDAM_DATABASE_URL`
+- `JOTHIDAM_DEBUG`
+
+## Notes
+
+- Astrology calculation modules are intentionally not implemented yet.
+- The backend structure is prepared for the MVP 1 calculation engine work.
+
+## Web MVP
+
+The Sprint 8 frontend lives in `web/`.
+
+```powershell
+cd web
+npm install
+npm run dev
+```
+
+For a production check:
+
+```powershell
+cd web
+npm run build
+```

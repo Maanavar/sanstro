@@ -1,0 +1,49 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\senth\\\\OneDrive\\\\문서\\\\GitHub\\\\sanstro\" -Recurse -File)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)",
+      "Bash(python -m pytest tests/test_calculations.py tests/test_panchangam.py tests/test_transits_calculations.py tests/test_dasha.py tests/test_ephemeris.py -v)",
+      "Bash(python -m pytest tests/ -v)",
+      "Bash(python -c \"from app.calculations.transits import is_gandanta; print\\(is_gandanta\\(0.5\\), is_gandanta\\(357.0\\), is_gandanta\\(117.0\\), is_gandanta\\(240.5\\), is_gandanta\\(30.0\\), is_gandanta\\(120.0\\), is_gandanta\\(240.0\\)\\)\")",
+      "Bash(.venv/Scripts/python.exe -m alembic stamp 83645c701aad)",
+      "Bash(.venv\\\\Scripts\\\\python.exe -m alembic current)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\senth\\\\OneDrive\\\\문서\\\\GitHub\\\\sanstro\" -Recurse -Directory)",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)",
+      "Bash(find \"c:\\\\\\\\Users\\\\\\\\senth\\\\\\\\OneDrive\\\\\\\\문서\\\\\\\\GitHub\\\\\\\\sanstro\" -type d)",
+      "Bash(python -m pytest tests/ -x -q)",
+      "WebSearch",
+      "WebFetch(domain:latitude.to)",
+      "WebFetch(domain:www.mapsofindia.com)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\senth\\\\OneDrive\\\\문서\\\\GitHub\\\\sanstro\" -Force | Select-Object Name, @{Name=\"Type\"; Expression={if\\($_.PSIsContainer\\){\"Directory\"}else{\"File\"}}})",
+      "Bash(find /mnt/c/Users/senth/OneDrive/문서/GitHub/sanstro/docs -type f)",
+      "Read(//mnt/c/Users/senth/OneDrive/문서/GitHub/sanstro/**)",
+      "Bash(xargs grep -l \"label\\\\|title\")",
+      "Bash(xargs grep -l \"[ஂ-ௌ]\")",
+      "Bash(grep -Eo '\"[^\"]*\"' web/components/dashboard-workspace.tsx | sort | uniq > /tmp/all_strings.txt && echo \"Total unique strings: $\\(wc -l < /tmp/all_strings.txt\\)\" && echo \"Tamil strings:\" && grep '[ஂ-ௌ]' /tmp/all_strings.txt | wc -l && echo \"English UI strings:\" && grep -E '^\"[A-Z][a-z]' /tmp/all_strings.txt | wc -l)",
+      "Bash(xargs grep -l \"ta\\\\|tamil\\\\|english\\\\|language\")",
+      "Bash(xargs grep -l \"useContext\\\\|createContext\\\\|Context\")",
+      "Bash(xargs grep -l \"useContext\\\\|createContext\")",
+      "Bash(grep -v \"//\\\\|i18n\\\\|STRINGS\\\\|\\\\\\\\.ts\")",
+      "Bash(python -c \"import app.main; print\\('backend ok'\\)\")",
+      "Bash(python -m pytest tests/ -q --tb=no)",
+      "Bash(python -m pytest tests/ -q --tb=short)",
+      "Bash(python -c ' *)",
+      "Bash(python -m pytest tests/test_golden_validation.py -v --tb=short)",
+      "Bash(python -c \"from app.models.family_daily_score import FamilyDailyScore; print\\(FamilyDailyScore.__tablename__\\)\")",
+      "Bash(python -c \"from app.models.family_daily_score import FamilyDailyScore; print\\([c.key for c in FamilyDailyScore.__table__.columns]\\)\")",
+      "Bash(python -c \"from app.main import app; print\\('App OK, routes:', len\\(app.routes\\)\\)\")",
+      "Bash(pip install *)",
+      "Bash(python -m pytest tests/test_auth.py::test_valid_token_accepted_and_provisions_user tests/test_auth.py::test_admin_stats_requires_admin_key -q --tb=long)",
+      "Bash(python -m pytest tests/test_auth.py::test_valid_token_accepted_and_provisions_user -q --tb=short)",
+      "Bash(python -m pytest tests/test_family_vaults_api.py::test_family_vault_member_and_aggregate_flow -q --tb=long -s)",
+      "Bash(python -m alembic current)",
+      "Bash(python -m alembic heads)"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
+    ]
+  }
+}

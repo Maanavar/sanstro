@@ -1,0 +1,324 @@
+openapi: 3.0.3
+info:
+  title: Jothidam.AI API
+  version: 1.0.0
+  description: MVP API for Thirukanitham Tamil astrology companion with Family Aggregate Fortune in MVP 1.
+servers:
+  - url: https://api.jothidam.ai/api/v1
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ErrorEnvelope:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object }
+    SuccessEnvelope:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        data: { type: object }
+        meta: { type: object }
+paths:
+  /birth-profiles:
+    post:
+      summary: Create birth profile for self or family member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [displayName, birthDateLocal, birthPlace, birthLatitude, birthLongitude, birthTimezone]
+              properties:
+                ownerUserId: { type: string, format: uuid }
+                familyVaultId: { type: string, format: uuid, nullable: true }
+                relationshipToOwner: { type: string, enum: [self, spouse, child, parent, sibling, grandparent, other] }
+                displayName: { type: string }
+                birthDateLocal: { type: string, format: date }
+                birthTimeLocal: { type: string, example: '06:30:00', nullable: true }
+                birthPlace: { type: string }
+                birthLatitude: { type: number }
+                birthLongitude: { type: number }
+                birthTimezone: { type: string, example: Asia/Kolkata }
+                birthTimeConfidenceMinutes: { type: integer }
+                calculateNow: { type: boolean, default: true }
+      responses:
+        '200': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/SuccessEnvelope' } } } }
+  /birth-profiles/{birthProfileId}:
+    get:
+      summary: Get birth profile
+      parameters:
+        - in: path
+          name: birthProfileId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Birth profile }
+  /charts/calculate:
+    post:
+      summary: Calculate D1/D9 and core chart snapshot
+      responses:
+        '200': { description: Chart calculated }
+  /charts/{chartId}/summary:
+    get:
+      summary: Get chart summary
+      parameters:
+        - in: path
+          name: chartId
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: language
+          schema: { type: string, enum: [ta, en, ta-en] }
+      responses:
+        '200': { description: Chart summary }
+  /panchangam/daily:
+    get:
+      summary: Get city-specific daily Panchangam
+      parameters:
+        - in: query
+          name: date
+          required: true
+          schema: { type: string, format: date }
+        - in: query
+          name: lat
+          required: true
+          schema: { type: number }
+        - in: query
+          name: lng
+          required: true
+          schema: { type: number }
+        - in: query
+          name: timezone
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Panchangam }
+  /panchangam/timings:
+    get:
+      summary: Get Panchangam timing windows
+      parameters:
+        - in: query
+          name: date
+          required: true
+          schema: { type: string, format: date }
+        - in: query
+          name: lat
+          required: true
+          schema: { type: number }
+        - in: query
+          name: lng
+          required: true
+          schema: { type: number }
+        - in: query
+          name: timezone
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Panchangam timing windows }
+  /charts/{chartId}/dasha:
+    get:
+      summary: Get Dasha timeline and active period
+      parameters:
+        - in: path
+          name: chartId
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: level
+          schema: { type: string, enum: [maha, antar, pratyantar, sookshma, prana] }
+        - in: query
+          name: asOf
+          schema: { type: string, format: date }
+      responses:
+        '200': { description: Dasha timeline }
+  /charts/{chartId}/gochar/current:
+    get:
+      summary: Get current transits from Moon and Lagna
+      parameters:
+        - in: path
+          name: chartId
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: datetime
+          schema: { type: string, format: date-time }
+        - in: query
+          name: date
+          schema: { type: string, format: date }
+      responses:
+        '200': { description: Current Gochar }
+  /charts/{chartId}/sani-cycle:
+    get:
+      summary: Get current Saturn cycle status
+      parameters:
+        - in: path
+          name: chartId
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: date
+          schema: { type: string, format: date }
+      responses:
+        '200': { description: Sani cycle }
+  /charts/{chartId}/daily-guidance:
+    get:
+      summary: Get individual daily 0-100 guidance score
+      parameters:
+        - in: path
+          name: chartId
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: date
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        '200': { description: Daily guidance }
+  /daily-guidance/range:
+    get:
+      summary: Get daily guidance range by birth profile
+      parameters:
+        - in: query
+          name: profileId
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: from
+          required: true
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        '200': { description: Daily guidance range }
+  /family-vaults:
+    get:
+      summary: List family vaults for an owner
+      parameters:
+        - in: query
+          name: ownerUserId
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0, minimum: 0 }
+      responses:
+        '200': { description: Family vault list }
+    post:
+      summary: Create family vault
+      responses:
+        '200': { description: Family vault created }
+  /family-vaults/{familyVaultId}:
+    get:
+      summary: Get family vault metadata
+      parameters:
+        - in: path
+          name: familyVaultId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Family vault metadata }
+  /family-vaults/{familyVaultId}/members:
+    post:
+      summary: Add family member with birth profile
+      parameters:
+        - in: path
+          name: familyVaultId
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [displayName, birthDateLocal, birthPlace, birthLatitude, birthLongitude, birthTimezone]
+              properties:
+                ownerUserId: { type: string, format: uuid }
+                familyVaultId: { type: string, format: uuid, nullable: true }
+                relationshipToOwner: { type: string, enum: [self, spouse, child, parent, sibling, grandparent, other] }
+                displayName: { type: string }
+                birthDateLocal: { type: string, format: date }
+                birthTimeLocal: { type: string, example: '06:30:00' }
+                birthPlace: { type: string }
+                birthLatitude: { type: number }
+                birthLongitude: { type: number }
+                birthTimezone: { type: string, example: Asia/Kolkata }
+                birthTimeConfidenceMinutes: { type: integer }
+                calculateNow: { type: boolean, default: true }
+                memberWeight: { type: number, default: 1.0 }
+      responses:
+        '200': { description: Family member created }
+  /family-vaults/{familyVaultId}/daily-aggregate:
+    get:
+      summary: Get Family Aggregate Fortune dashboard for a date
+      parameters:
+        - in: path
+          name: familyVaultId
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: date
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        '200': { description: Family aggregate fortune }
+  /family-vaults/{familyVaultId}/summary:
+    get:
+      summary: Get family summary card for a date
+      parameters:
+        - in: path
+          name: familyVaultId
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: date
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        '200': { description: Family summary card }
+  /family-vaults/{familyVaultId}/calendar:
+    get:
+      summary: Get family aggregate fortune calendar
+      parameters:
+        - in: path
+          name: familyVaultId
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: from
+          required: true
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        '200': { description: Family aggregate calendar }
+  /notifications/preview:
+    post:
+      summary: Preview notification triggers for a date
+      responses:
+        '200': { description: Notification preview }
+  /qa/validate-golden-case:
+    post:
+      summary: Validate engine against a golden case
+      responses:
+        '200': { description: QA result }

@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# SQLite and local data
+*.db
+*.sqlite
+
+# Node / Next
+node_modules/
+.next/
+out/
+coverage/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
