@@ -1,5 +1,13 @@
 from app.calculations.astro import house_from_reference
-from app.calculations.transits import classify_kandaka_cycle, classify_sani_cycle, is_gandanta
+from app.calculations.ephemeris import EphemerisBody, EphemerisSnapshot
+from app.calculations.transits import (
+    classify_kandaka_cycle,
+    classify_sani_cycle,
+    get_jupiter_aspects,
+    get_saturn_aspects,
+    is_gandanta,
+    planets_transited_by,
+)
 
 
 def test_sani_cycle_mapping_uses_expected_house_numbers():
@@ -59,12 +67,12 @@ def test_gandanta_uses_three_degrees_twenty_minutes():
     assert is_gandanta(30.0) is False
 
 
-# T050 — Chandrashtama: Moon in Kumbam(11), Katakam(4) Moon is affected
-def test_chandrashtama_kumbam_moon_affects_katakam_janma():
+# T050 — house_from_reference: Kumbam(11) is 8th house from Katakam(4)
+def test_house_from_reference_kumbam_is_8th_from_katakam():
     current_moon_rasi = 11  # Kumbam
     janma_rasi = 4           # Katakam / Kadagam
     position = house_from_reference(janma_rasi, current_moon_rasi)
-    assert position == 8     # 8th house = chandrashtama
+    assert position == 8
 
 
 # T060 — additional Gandanta boundary tests from QA spec
@@ -76,4 +84,37 @@ def test_gandanta_at_fire_water_junctions():
     assert is_gandanta(239.0) is True   # Vrichigam end
     assert is_gandanta(241.0) is True   # Dhanusu start
     assert is_gandanta(150.0) is False  # unrelated zone
+
+
+def test_jupiter_special_aspects():
+    assert get_jupiter_aspects(1) == [5, 7, 9]
+    assert get_jupiter_aspects(11) == [3, 5, 7]
+
+
+def test_saturn_special_aspects():
+    assert get_saturn_aspects(1) == [3, 7, 10]
+    assert get_saturn_aspects(12) == [2, 6, 9]
+
+
+def test_planets_transited_by_same_rasi_detection():
+    snapshot = EphemerisSnapshot(
+        jd_ut=0.0,
+        backend="test",
+        ayanamsa="LAHIRI",
+        ayanamsa_value_degrees=0.0,
+        bodies={
+            "SUN": EphemerisBody("SUN", 5.0, 1.0, 1, 5.0, False, False),
+            "JUPITER": EphemerisBody("JUPITER", 35.0, 1.0, 2, 5.0, False, False),
+            "SATURN": EphemerisBody("SATURN", 65.0, 1.0, 3, 5.0, False, False),
+        },
+    )
+    natal = {
+        "MOON": {"rasi": 2},
+        "VENUS": {"rasi": 1},
+        "MARS": {"rasi": 12},
+    }
+    transited = planets_transited_by(snapshot, natal)
+    assert transited["MOON"] == ["JUPITER"]
+    assert transited["VENUS"] == ["SUN"]
+    assert transited["MARS"] == []
 

@@ -1,5 +1,8 @@
 import pytest
 
+from app.db.session import SessionLocal
+from app.models import FamilyVault
+
 
 def _family_vault_payload(name: str = "Arjun Family"):
     return {
@@ -292,3 +295,25 @@ def test_family_calendar_range_is_capped(client):
 
     assert response.status_code == 422
     assert "90 days" in response.json()["detail"]
+
+
+def test_delete_family_vault_soft_deletes_row(client):
+    vault = client.post("/api/v1/family-vaults", json=_family_vault_payload("Soft Delete Vault"))
+    assert vault.status_code == 200
+    vault_id = vault.json()["data"]["familyVaultId"]
+
+    delete_response = client.delete(f"/api/v1/family-vaults/{vault_id}")
+    assert delete_response.status_code == 204
+
+    list_response = client.get("/api/v1/family-vaults")
+    assert list_response.status_code == 200
+    ids = {item["familyVaultId"] for item in list_response.json()["data"]["items"]}
+    assert vault_id not in ids
+
+    detail_response = client.get(f"/api/v1/family-vaults/{vault_id}")
+    assert detail_response.status_code == 404
+
+    with SessionLocal() as session:
+        row = session.get(FamilyVault, vault_id)
+        assert row is not None
+        assert row.deleted_at is not None

@@ -5,8 +5,12 @@ If any calculation changes break a case, this file catches the regression.
 """
 from __future__ import annotations
 
+from datetime import datetime
+
 import pytest
 
+from app.calculations.astro import local_datetime_to_utc, utc_datetime_to_julian_day
+from app.calculations.ephemeris import calculate_sidereal_planets
 from app.services.qa_service import run_golden_validation
 
 
@@ -145,3 +149,27 @@ def test_zero_failures(golden_result):
                 if not c.passed:
                     lines.append(f"  [{mod.module}/{c.test_id}] {c.description}: expected={c.expected!r}, actual={c.actual!r}")
         pytest.fail(f"{golden_result.total_failed} golden case(s) failed:\n" + "\n".join(lines))
+
+
+def test_t003_cross_verify_reference_chart_all_9_planets_within_point1_degree():
+    dt_utc = local_datetime_to_utc(datetime(1993, 3, 15, 8, 15), "Asia/Kolkata")
+    jd = utc_datetime_to_julian_day(dt_utc)
+    snap = calculate_sidereal_planets(jd)
+
+    expected = {
+        "SUN": 330.76342508,
+        "MOON": 240.01137891,
+        "MARS": 79.07542605,
+        "MERCURY": 319.35056099,
+        "JUPITER": 167.96021694,
+        "VENUS": 355.97203864,
+        "SATURN": 301.07930470,
+        "RAHU": 232.78702194,
+        "KETU": 52.78702194,
+    }
+
+    for planet, expected_longitude in expected.items():
+        actual = snap.bodies[planet].absolute_longitude
+        assert actual == pytest.approx(expected_longitude, abs=0.1), (
+            f"{planet} mismatch: expected {expected_longitude}, actual {actual}"
+        )

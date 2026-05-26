@@ -1,11 +1,12 @@
-"""Auth layer tests — JWT validation and protected endpoint enforcement."""
+"""Auth layer tests - JWT validation and protected endpoint enforcement."""
 from __future__ import annotations
 
 from datetime import timedelta
 
-from app.core.auth import create_access_token
+from jose import jwt
 
-# ── Token creation / decode ───────────────────────────────────────────────────
+from app.core.auth import create_access_token
+from app.core.config import get_settings
 
 
 def test_create_access_token_is_string():
@@ -19,21 +20,28 @@ def test_create_access_token_with_custom_expiry():
     assert isinstance(token, str)
 
 
-# ── Protected endpoint: no token → 403 ────────────────────────────────────────
+def test_create_access_token_default_expiry_is_one_day():
+    settings = get_settings()
+    token = create_access_token(subject="user@test.com")
+    payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+    assert 86390 <= payload["exp"] - payload["iat"] <= 86410
 
 
 def test_birth_profiles_post_requires_auth(raw_client):
-    resp = raw_client.post("/api/v1/birth-profiles", json={
-        "ownerUserId": "11111111-1111-1111-1111-111111111111",
-        "displayName": "Test",
-        "birthDateLocal": "1990-01-01",
-        "birthTimeLocal": "06:00:00",
-        "birthPlace": "Chennai, Tamil Nadu, India",
-        "birthLatitude": 13.0827,
-        "birthLongitude": 80.2707,
-        "birthTimezone": "Asia/Kolkata",
-        "calculateNow": False,
-    })
+    resp = raw_client.post(
+        "/api/v1/birth-profiles",
+        json={
+            "ownerUserId": "11111111-1111-1111-1111-111111111111",
+            "displayName": "Test",
+            "birthDateLocal": "1990-01-01",
+            "birthTimeLocal": "06:00:00",
+            "birthPlace": "Chennai, Tamil Nadu, India",
+            "birthLatitude": 13.0827,
+            "birthLongitude": 80.2707,
+            "birthTimezone": "Asia/Kolkata",
+            "calculateNow": False,
+        },
+    )
     assert resp.status_code in (401, 403)
 
 
@@ -43,13 +51,11 @@ def test_family_vaults_requires_auth(raw_client):
 
 
 def test_panchangam_requires_auth(raw_client):
-    resp = raw_client.get("/api/v1/panchangam/daily", params={
-        "date": "2025-05-20", "lat": 13.08, "lng": 80.27, "tz": "Asia/Kolkata",
-    })
+    resp = raw_client.get(
+        "/api/v1/panchangam/daily",
+        params={"date": "2025-05-20", "lat": 13.08, "lng": 80.27, "tz": "Asia/Kolkata"},
+    )
     assert resp.status_code in (401, 403)
-
-
-# ── Invalid token → 401 ───────────────────────────────────────────────────────
 
 
 def test_invalid_token_rejected(raw_client):
@@ -63,36 +69,49 @@ def test_expired_token_rejected(raw_client):
     assert resp.status_code == 401
 
 
-# ── Valid token → auto-provision user, request succeeds ──────────────────────
-
-
-def test_valid_token_accepted_and_provisions_user(raw_client):
+def test_valid_token_rejected_when_user_does_not_exist(raw_client):
     token = create_access_token(subject="newuser@jothidam.test")
     resp = raw_client.get("/api/v1/family-vaults", headers={"Authorization": f"Bearer {token}"})
-    # 200 because the user is provisioned on first hit and has no vaults yet
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["data"]["totalCount"] == 0
+    assert resp.status_code == 401
 
 
-def test_valid_uuid_subject_token(raw_client):
+def test_valid_uuid_subject_token_rejected_when_user_does_not_exist(raw_client):
     token = create_access_token(subject="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
     resp = raw_client.get("/api/v1/family-vaults", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 401
+
+
+def test_valid_uuid_subject_token_accepted_for_existing_user(raw_client):
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "tokenuser@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    user_id = register.json()["userId"]
+
+    token = create_access_token(subject=user_id)
+    resp = raw_client.get("/api/v1/family-vaults", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200
-
-
-# ── Admin endpoint requires admin key ─────────────────────────────────────────
 
 
 def test_admin_stats_requires_admin_key(raw_client):
-    token = create_access_token(subject="user@test.com")
-    # Valid JWT but no X-Admin-Key header
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "adminprobe@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    token = create_access_token(subject=register.json()["userId"])
     resp = raw_client.get("/api/v1/admin/stats", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 403
 
 
 def test_admin_stats_wrong_key_rejected(raw_client):
-    token = create_access_token(subject="user@test.com")
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "adminkeyprobe@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    token = create_access_token(subject=register.json()["userId"])
     resp = raw_client.get(
         "/api/v1/admin/stats",
         headers={"Authorization": f"Bearer {token}", "X-Admin-Key": "wrong_key"},

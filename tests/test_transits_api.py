@@ -37,7 +37,7 @@ def test_gochar_current_returns_transit_snapshot(client):
 
     response = client.get(
         f"/api/v1/charts/{chart_id}/gochar/current",
-        params={"datetime": "2026-05-21T05:00:00Z"},
+        params={"datetime": "2026-05-13T00:00:00Z"},
     )
 
     assert response.status_code == 200
@@ -54,7 +54,7 @@ def test_gochar_current_returns_transit_snapshot(client):
     assert transits["SANI"]["isRetrograde"] is False
     assert transits["RAHU"]["isRetrograde"] is True
     assert transits["KETU"]["isRetrograde"] is True
-    assert transits["MOON"]["houseFromMoon"] == 8
+    assert transits["MOON"]["houseFromMoon"] == 4
     assert transits["MOON"]["isSandhi"] in {True, False}
     assert transits["SUN"]["isGandanta"] in {True, False}
 
@@ -101,3 +101,35 @@ def test_major_transits_endpoint_filters_to_major_grahas(client):
 
     transits = [item["graha"] for item in body["data"]["transits"]]
     assert transits == ["GURU", "SANI", "RAHU", "KETU"]
+
+
+def test_peyarchi_endpoint_returns_upcoming_events(client):
+    chart_id = _create_chart(client)
+
+    response = client.get(
+        f"/api/v1/charts/{chart_id}/peyarchi",
+        params={"as_of": "2026-05-22"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["success"] is True
+    assert len(body["data"]) == 4
+    assert [event["planet"] for event in body["data"]] == ["JUPITER", "RAHU", "KETU", "SATURN"]
+    assert all(event["daysFromToday"] > 0 for event in body["data"])
+    assert body["data"][3]["saniCycleAfter"] in {"EZHARAI_SANI_PHASE_1", "JANMA_SANI", "EZHARAI_SANI_PHASE_3", "ARDHASHTAMA_SANI", "KANTAKA_SANI", "ASHTAMA_SANI", None}
+
+
+def test_peyarchi_upcoming_filters_to_window(client):
+    chart_id = _create_chart(client)
+
+    response = client.get(
+        f"/api/v1/charts/{chart_id}/peyarchi/upcoming",
+        params={"as_of": "2026-05-22", "window_days": 30},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["success"] is True
+    events = body["data"]
+    assert events
+    assert "JUPITER" in [event["planet"] for event in events]
+    assert all(0 <= event["daysFromToday"] <= 30 for event in events)

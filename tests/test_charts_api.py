@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import pytest
 
 from app.calculations.astro import navamsa_rasi_from_degree
@@ -49,6 +51,13 @@ def test_chart_calculate_endpoint_uses_persisted_birth_profile(client):
     assert body["data"]["ephemerisBackend"] in {"pyswisseph", "swisseph-ffi"}
     assert body["data"]["ayanamsa"]["type"] == "LAHIRI"
     assert body["data"]["ayanamsa"]["valueDegrees"] == pytest.approx(23.76211742, abs=0.01)
+    assert "yogas" in body["data"]
+    assert "doshams" in body["data"]
+    assert len(body["data"]["yogas"]) >= 1
+    assert len(body["data"]["doshams"]) >= 1
+    assert all("dashaActivated" in item for item in body["data"]["yogas"])
+    assert all(item["descriptionTa"] and item["descriptionEn"] for item in body["data"]["yogas"])
+    assert all(item["descriptionTa"] and item["descriptionEn"] for item in body["data"]["doshams"])
 
     planets = {planet["graha"]: planet for planet in body["data"]["planets"]}
     assert len(planets) == 9
@@ -93,9 +102,17 @@ def test_chart_summary_endpoint_returns_dashboard_payload(client):
     body = response.json()["data"]
     assert body["chartId"] == chart_id
     assert body["displayName"] == "Arjun Kumar"
+    today = datetime.now(tz=UTC).date()
+    expected_age = today.year - 1993 - (1 if (today.month, today.day) < (3, 15) else 0)
+    assert body["currentAge"] == expected_age
     assert body["primaryLanguageText"]["en"]
     assert body["currentMahadasha"]
     assert body["currentAntardasha"]
+    assert "functionalNature" in body
+    assert "JUPITER" in body["functionalNature"]
+    assert "ashtakavarga" in body
+    assert "SUN" in body["ashtakavarga"]
+    assert len(body["ashtakavarga"]["SUN"]) == 12
 
 
 def test_dasha_endpoint_honours_level_parameter(client):
@@ -116,3 +133,51 @@ def test_dasha_endpoint_honours_level_parameter(client):
     body = response.json()["data"]
     assert body["timeline"]
     assert all(item["level"] == "maha" for item in body["timeline"])
+
+
+def test_jadhagam_report_endpoint_returns_structured_payload(client):
+    created = client.post("/api/v1/birth-profiles", json=_birth_profile_payload()).json()
+    birth_profile_id = created["data"]["birthProfileId"]
+    chart_id = client.post(
+        "/api/v1/charts/calculate",
+        json={
+            "birthProfileId": birth_profile_id,
+            "calculationVersion": "thirukanitham-2026-v1",
+            "forceRecalculate": False,
+        },
+    ).json()["data"]["chartId"]
+
+    response = client.get(f"/api/v1/charts/{chart_id}/jadhagam-report")
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["chartId"] == chart_id
+    assert "birthProfile" in body
+    assert "coreIdentity" in body
+    assert "functionalNatureTable" in body
+    assert "JUPITER" in body["functionalNatureTable"]
+    assert "planetaryStrengthSummary" in body
+    assert "executiveSummary" in body
+
+
+def test_chart_calculate_rejects_inline_birth_profile(client):
+    response = client.post(
+        "/api/v1/charts/calculate",
+        json={
+            "birthProfile": {
+                "ownerUserId": "11111111-1111-1111-1111-111111111111",
+                "displayName": "Arjun Kumar",
+                "birthDateLocal": "1991-07-22",
+                "birthTimeLocal": "06:30:00",
+                "birthPlace": "Chennai, Tamil Nadu, India",
+                "birthLatitude": 13.0827,
+                "birthLongitude": 80.2707,
+                "birthTimezone": "Asia/Kolkata",
+                "calculateNow": True,
+            },
+            "calculationVersion": "thirukanitham-2026-v1",
+            "forceRecalculate": False,
+        },
+    )
+
+    assert response.status_code == 422

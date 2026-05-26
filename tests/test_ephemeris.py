@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 
 from app.calculations.astro import local_datetime_to_utc, utc_datetime_to_julian_day
-from app.calculations.ephemeris import calculate_sidereal_planets
+from app.calculations.ephemeris import calculate_lagna_degree, calculate_sidereal_planets
 
 
 def test_sidereal_planets_from_documented_birth_datetime():
@@ -36,3 +36,22 @@ def test_sidereal_planets_from_documented_birth_datetime():
         (snapshot.bodies["RAHU"].absolute_longitude + 180.0) % 360.0,
         abs=1e-9,
     )
+
+
+def test_t020_lagna_changes_once_within_two_hour_window_for_chennai():
+    latitude = 13.0827
+    longitude = 80.2707
+    times = [(8, 0), (8, 30), (9, 0), (9, 30), (10, 0)]
+
+    lagna_rasis: list[int] = []
+    for hour, minute in times:
+        birth_datetime_utc = local_datetime_to_utc(
+            datetime(1993, 3, 16, hour, minute),
+            "Asia/Kolkata",
+        )
+        jd_ut = utc_datetime_to_julian_day(birth_datetime_utc)
+        lagna_degree = calculate_lagna_degree(jd_ut, latitude, longitude)
+        lagna_rasis.append(int((lagna_degree % 360) // 30) + 1)
+
+    changes = sum(1 for i in range(1, len(lagna_rasis)) if lagna_rasis[i] != lagna_rasis[i - 1])
+    assert changes == 1
