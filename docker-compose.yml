@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: slw-postgres
+    environment:
+      POSTGRES_DB: vinaadi_dev
+      POSTGRES_USER: slw_admin
+      POSTGRES_PASSWORD: slw_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - slw_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slw_admin -d vinaadi_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres_test:
+    image: postgres:16-alpine
+    container_name: slw-postgres-test
+    environment:
+      POSTGRES_DB: vinaadi_test
+      POSTGRES_USER: slw_admin
+      POSTGRES_PASSWORD: slw_dev_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - slw_postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slw_admin -d vinaadi_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  adminer:
+    image: adminer:4
+    container_name: slw-adminer
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgres
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: slw-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    restart: unless-stopped
+
+volumes:
+  slw_postgres_data:
+    external: true
+    name: slw_slw_postgres_data
+  slw_postgres_test_data:
+    external: false

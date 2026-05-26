@@ -72,12 +72,12 @@ Legend: ✅ PASS | ⚠️ PARTIAL | ❌ FAIL | 🔲 NOT FOUND
 | Raja Yoga | ✅ Implemented |
 | Dhana Yoga | ✅ Implemented |
 | Neecha Bhanga Raja Yoga | ✅ Implemented (2 of 5 cancellation rules) |
-| Pancha Mahapurusha Yogas | 🔲 NOT FOUND |
-| Budha Aditya Yoga | 🔲 NOT FOUND |
-| Vipareetha Raja Yoga | 🔲 NOT FOUND |
-| Parivartana Yoga | 🔲 NOT FOUND |
-| Chandra Mangala Yoga | 🔲 NOT FOUND |
-| Nakshatra dosham cautions (Moola/Ayilyam/Kettai) | 🔲 NOT FOUND |
+| Pancha Mahapurusha Yogas | ✅ Implemented (Ruchaka/Bhadra/Hamsa/Malavya/Sasa) |
+| Budha Aditya Yoga | ✅ Implemented (partial label when combust) |
+| Vipareetha Raja Yoga | ✅ Implemented (6/8/12 lord in other dusthana) |
+| Parivartana Yoga | ✅ Implemented (Maha/Dainya/Kahala sub-types, feeds Raja Yoga) |
+| Chandra Mangala Yoga | ✅ Implemented (same rasi or mutual 7th) |
+| Nakshatra dosham cautions (Moola/Ayilyam/Kettai) | ✅ Implemented (non-catastrophic framing) |
 
 ### Transits
 - ✅ Jupiter/Saturn/Rahu/Ketu/Mars/Moon transit, Vedha table, Sani cycles, Chandrashtama, Ashtakavarga bindu modifier
@@ -136,14 +136,14 @@ Swiss Ephemeris Lahiri sidereal, mean-node Rahu/Ketu, whole-sign houses, Julian 
 [ ] Verify Kala Sarpa is output in its own separate field, not merged into RAHU_KETU_DOSHAM
 ```
 
-### Sprint 2 — Missing yogas
+### Sprint 2 — Missing yogas ✅ DONE
 ```
-[ ] Pancha Mahapurusha (Ruchaka/Bhadra/Hamsa/Malavya/Sasa) — import MOOLATRIKONA_ZONE from chart_strength.py, do NOT redefine
-[ ] Budha Aditya Yoga (Mercury + Sun, not combust; partial label when combust)
-[ ] Vipareetha Raja Yoga (6th/8th/12th lord in OTHER dusthana — NOT plain malefic in dusthana)
-[ ] Parivartana Yoga (mutual sign exchange; Maha vs Dainya sub-types; feed into detect_raja_yoga as connection type)
-[ ] Chandra Mangala Yoga (Moon + Mars same rasi OR mutual 7th aspect)
-[ ] Nakshatra cautions (Moola=19, Ayilyam=9, Kettai=18) — new nakshatra_cautions list, non-catastrophic framing
+[x] Pancha Mahapurusha (Ruchaka/Bhadra/Hamsa/Malavya/Sasa) — imports MOOLATRIKONA_ZONE from chart_strength.py
+[x] Budha Aditya Yoga (Mercury + Sun, not combust; partial label when combust)
+[x] Vipareetha Raja Yoga (6th/8th/12th lord in OTHER dusthana — NOT plain malefic in dusthana)
+[x] Parivartana Yoga (mutual sign exchange; Maha vs Dainya sub-types; feeds detect_raja_yoga as connection type)
+[x] Chandra Mangala Yoga (Moon + Mars same rasi OR mutual 7th aspect)
+[x] Nakshatra cautions (Moola=19, Ayilyam=9, Kettai=18) — nakshatra_cautions list, non-catastrophic framing
 ```
 
 ### Sprint 3 — Deepen existing engine
