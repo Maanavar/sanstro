@@ -45,7 +45,7 @@ COMBUST_ORBS = {
     "MOON": {"direct": 12.0, "retrograde": 12.0},
 }
 
-# Gandanta zones: last 3°20' of water signs (Kadagam, Vrichigam, Meenam) and
+# Gandanta zones: last 3°20' of water signs (Kadagam, Viruchigam, Meenam) and
 # first 3°20' of fire signs (Simmam, Dhanusu, Mesham). Six zones total.
 # Meenam end (356°40'–360°) and Mesham start (0°–3°20') are kept separate because
 # normalize_longitude returns [0, 360) and 360.0 is never produced.
@@ -54,7 +54,7 @@ GANDANTA_RANGES = (
     (0.0, 3.3333333333),       # Mesham start
     (116.6666666667, 120.0),   # Kadagam end
     (120.0, 123.3333333333),   # Simmam start
-    (236.6666666667, 240.0),   # Vrichigam end
+    (236.6666666667, 240.0),   # Viruchigam end
     (240.0, 243.3333333333),   # Dhanusu start
 )
 

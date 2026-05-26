@@ -1519,7 +1519,7 @@ def get_journal_correlations(
             label = guidance.data.label
             if label in score_buckets and hasattr(entry, "mood_rating") and entry.mood_rating is not None:
                 score_buckets[label].append(float(entry.mood_rating))
-            if guidance.data.caution_suggestion.ta.startswith("சந்திராஷ்டமம்"):
+            if guidance.data.is_chandrashtama:
                 if hasattr(entry, "mood_rating") and entry.mood_rating is not None:
                     chandrashtama_entries.append(float(entry.mood_rating))
             else:
