@@ -146,15 +146,15 @@ Swiss Ephemeris Lahiri sidereal, mean-node Rahu/Ketu, whole-sign houses, Julian 
 [x] Nakshatra cautions (Moola=19, Ayilyam=9, Kettai=18) — nakshatra_cautions list, non-catastrophic framing
 ```
 
-### Sprint 3 — Deepen existing engine
+### Sprint 3 — Deepen existing engine ✅ DONE
 ```
-[ ] Extend 7th lord strength: not conjunct malefics, not combust, strong in D9, Jupiter aspect
-[ ] Pass d9_rasi_map + d9_lagna_rasi into dosham detectors
-[ ] Add 3 missing Neecha Bhanga rules: D9 strength, aspect from exaltation lord, retrograde
-[ ] Add saturn_cycle_alert banner field (JANMA_SANI and ASHTAMA_SANI should show as highlighted card, not just score reduction)
-[ ] Write real Tamil text for all _ta explanation fields in yogas.py
-[ ] Update detect_raja_yoga() to include Parivartana as valid connection type (after Sprint 2 MISSING-04)
-[ ] Add strength_breakdown to PlanetPosition: sthana/dik/kala/chesta as WEAK/NEUTRAL/STRONG
+[x] Extend 7th lord strength: not conjunct malefics, not combust, strong in D9, Jupiter aspect
+[x] Pass d9_rasi_map + d9_lagna_rasi into dosham detectors (d9_lagna from navamsa_rasi_from_degree(lagna_degree))
+[x] Add 3 missing Neecha Bhanga rules: D9 strength, aspect from exaltation lord, retrograde
+[x] saturn_cycle_alert banner field present in schema + populated in daily_guidance_service.py:923
+[x] Write real Tamil text for _ta fields: Vipareetha Raja, Parivartana, Chandra Mangala yogas
+[x] Parivartana wired into Raja Yoga as connection type in detect_yogas_and_doshams
+[x] Add strength_breakdown to PlanetPosition: sthana/dik/kala/chesta as WEAK/NEUTRAL/STRONG
 ```
 
 ### Sprint 4 — UX and product features

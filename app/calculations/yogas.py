@@ -1100,7 +1100,7 @@ def detect_vipareetha_raja(
         conditions_met=conditions,
         cancellation_factors=[],
         dasha_activated=_is_active(active, *[_house_lord(lagna_rasi, h) for h in dusthana]),
-        description_ta="விபரீத ராஜ யோகம்",
+        description_ta="விபரீத ராஜ யோகம் — 6, 8, 12 அதிபதி வேறொரு துஷ்டான வீட்டில் இருந்தால் இந்த யோகம் உருவாகும்.",
         description_en="Vipareetha Raja Yoga — lord of a dusthana (6/8/12) placed in another dusthana.",
     )
 
@@ -1161,7 +1161,7 @@ def _parivartana_as_yogas(
             conditions_met=pv.conditions_met,
             cancellation_factors=[],
             dasha_activated=_is_active(active_lords, pv.planet_a, pv.planet_b),
-            description_ta="பரிவர்தன யோகம்",
+            description_ta=f"பரிவர்தன யோகம் ({pv.sub_type}) — {pv.planet_a} மற்றும் {pv.planet_b} கிரகங்கள் ராசி மாற்றம் செய்கின்றன.",
             description_en=f"Parivartana Yoga ({pv.sub_type}) — {pv.planet_a} and {pv.planet_b} exchange signs.",
         ))
     return results
@@ -1192,7 +1192,7 @@ def detect_chandra_mangala(
         conditions_met=conditions,
         cancellation_factors=[],
         dasha_activated=_is_active(active, "MOON", "MARS"),
-        description_ta="சந்திர மங்கள யோகம்",
+        description_ta="சந்திர மங்கள யோகம் — சந்திரனும் செவ்வாயும் ஒரே ராசியில் அல்லது ஏழாம் பார்வையில் இருந்தால் இந்த யோகம் ஏற்படும்.",
         description_en="Chandra Mangala Yoga — Moon and Mars in same rasi or mutual 7th aspect.",
     )
 
@@ -1355,7 +1355,7 @@ def detect_yogas_and_doshams(
             conditions_met=[],
             cancellation_factors=[],
             dasha_activated=False,
-            description_ta="பரிவர்தன யோகம் இல்லை.",
+            description_ta="பரிவர்தன யோகம் — இரண்டு கிரகங்கள் ஒருவருக்கொருவர் ஆட்சி ராசியில் இல்லை.",
             description_en="No Parivartana Yoga present.",
         ))
 

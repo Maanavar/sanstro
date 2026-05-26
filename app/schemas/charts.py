@@ -52,6 +52,10 @@ class PlanetPosition(BaseModel):
     d9_rasi: int = Field(alias="d9Rasi")
     is_vargottama: bool = Field(alias="isVargottama")
     show_retrograde_badge: bool = Field(alias="showRetrogradeBadge")
+    strength_breakdown: dict[str, str] = Field(
+        default_factory=lambda: {"sthana": "NEUTRAL", "dik": "NEUTRAL", "kala": "NEUTRAL", "chesta": "NEUTRAL"},
+        alias="strengthBreakdown",
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 

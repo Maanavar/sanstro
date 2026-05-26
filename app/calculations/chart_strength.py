@@ -134,6 +134,54 @@ def _avastha_multiplier(natal_longitude: float) -> float:
     return 0.25       # Mrita (dead — weakened)
 
 
+def compute_strength_breakdown(
+    planet: str,
+    natal_rasi: int,
+    natal_longitude: float,
+    natal_lagna_rasi: int,
+    is_retrograde: bool,
+    is_vargottama: bool = False,
+    d9_rasi: int | None = None,
+) -> dict[str, str]:
+    """Returns sthana/dik/kala/chesta breakdown labels (WEAK/NEUTRAL/STRONG)."""
+    dignity = _dignity_score(planet, natal_rasi, natal_longitude)
+    if dignity >= 80:
+        sthana = "STRONG"
+    elif dignity >= 50:
+        sthana = "NEUTRAL"
+    else:
+        sthana = "WEAK"
+
+    # Dik Bala — directional strength by planet and house
+    DIK_BALA_HOUSE: dict[str, int] = {
+        "SUN": 10, "MARS": 10, "JUPITER": 1, "MERCURY": 1,
+        "MOON": 4, "VENUS": 4, "SATURN": 7,
+    }
+    house = house_from_reference(natal_lagna_rasi, natal_rasi)
+    peak = DIK_BALA_HOUSE.get(planet)
+    if peak is not None:
+        dist = min(abs(house - peak), 12 - abs(house - peak))
+        dik = "STRONG" if dist <= 1 else ("NEUTRAL" if dist <= 3 else "WEAK")
+    else:
+        dik = "NEUTRAL"
+
+    # Kala Bala — Vargottama and D9 dignity as proxy for temporal strength
+    if is_vargottama or (d9_rasi is not None and _has_d9_dignity(planet, d9_rasi)):
+        kala = "STRONG"
+    elif d9_rasi is not None:
+        kala = "NEUTRAL"
+    else:
+        kala = "NEUTRAL"
+
+    # Chesta Bala — motional strength (retrograde = strong)
+    if planet not in {"SUN", "MOON", "RAHU", "KETU"}:
+        chesta = "STRONG" if is_retrograde else "WEAK"
+    else:
+        chesta = "NEUTRAL"
+
+    return {"sthana": sthana, "dik": dik, "kala": kala, "chesta": chesta}
+
+
 def compute_natal_planet_score(
     planet: str,
     natal_rasi: int,

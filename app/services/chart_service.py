@@ -23,9 +23,10 @@ from app.calculations.panchangam import NAKSHATRA_NAMES
 from app.calculations.ephemeris import calculate_lagna_degree, calculate_sidereal_planets
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga
-from app.calculations.chart_strength import compute_natal_planet_score
+from app.calculations.chart_strength import compute_natal_planet_score, compute_strength_breakdown
 from app.calculations.functional_nature import get_functional_nature
 from app.calculations.yogas import NakshatraCautionResult, detect_yogas_and_doshams
+from app.calculations.d9_chart import calculate_d9_chart
 from app.core.encryption import encrypt_bytes
 from app.models import BirthProfile, Chart, ChartPlanet, User
 from app.schemas.birth_profiles import BirthProfileCreate, BirthProfileResponse
@@ -131,6 +132,15 @@ def _planet_position_from_snapshot(
         d9_rasi=navamsa_rasi_from_degree(body.absolute_longitude),
         is_vargottama=body.rasi == navamsa_rasi_from_degree(body.absolute_longitude),
         show_retrograde_badge=body.show_retrograde_badge and body.graha not in {"RAHU", "KETU"},
+        strength_breakdown=compute_strength_breakdown(
+            body.graha,
+            body.rasi,
+            body.absolute_longitude,
+            lagna_rasi,
+            body.is_retrograde,
+            is_vargottama=body.rasi == navamsa_rasi_from_degree(body.absolute_longitude),
+            d9_rasi=navamsa_rasi_from_degree(body.absolute_longitude),
+        ),
     )
 
 
@@ -154,6 +164,7 @@ def _build_yoga_dosham_insights(
     moon_rasi: int,
     birth_jd: float,
     gender: str | None = None,
+    d9_lagna_rasi: int | None = None,
 ) -> tuple[list[ChartYogaInsight], list[ChartDoshamInsight], list[ChartNakshatraCaution]]:
     planet_map: dict[str, int] = {planet.graha: planet.rasi for planet in planets}
     active_lords = _active_dasha_lords(birth_jd, next(planet.absolute_longitude for planet in planets if planet.graha == "MOON"))
@@ -162,7 +173,6 @@ def _build_yoga_dosham_insights(
     moon_planet = next((p for p in planets if p.graha == "MOON"), None)
     janma_nakshatra = moon_planet.nakshatra if moon_planet else None
     d9_rasi_map: dict[str, int] = {p.graha: p.d9_rasi for p in planets if isinstance(p.d9_rasi, int)}
-    d9_lagna_rasi: int | None = None
     yogas, doshams, nakshatra_cautions = detect_yogas_and_doshams(
         planet_map,
         lagna_rasi=lagna_rasi,
@@ -307,12 +317,14 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             planet.is_retrograde,
         )
     moon_rasi = next(planet.rasi for planet in planet_positions if planet.graha == "MOON")
+    d9_lagna_rasi_val = navamsa_rasi_from_degree(float(chart.lagna_longitude))
     yogas, doshams, nakshatra_cautions = _build_yoga_dosham_insights(
         planet_positions,
         lagna_rasi=lagna_rasi,
         moon_rasi=moon_rasi,
         birth_jd=float(chart.julian_day),
         gender=_value(birth_profile, "gender_for_traditional_rules"),
+        d9_lagna_rasi=d9_lagna_rasi_val,
     )
 
     return ChartCalculateResponse(
@@ -423,6 +435,7 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
         moon_rasi=moon_rasi,
         birth_jd=julian_day,
         gender=_value(profile, "gender_for_traditional_rules"),
+        d9_lagna_rasi=navamsa_rasi_from_degree(lagna_degree),
     )
 
     birth_profile_response = _birth_profile_response(
