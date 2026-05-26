@@ -6,10 +6,23 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class DashaInterpretation(BaseModel):
+    activated_houses: list[int] = Field(default_factory=list, alias="activatedHouses")
+    house_text_ta: str = Field(default="", alias="houseTextTa")
+    house_text_en: str = Field(default="", alias="houseTextEn")
+    natural_domain_ta: str = Field(default="", alias="naturalDomainTa")
+    natural_domain_en: str = Field(default="", alias="naturalDomainEn")
+    relationship_to_maha_ta: str = Field(default="", alias="relationshipToMahaTa")
+    relationship_to_maha_en: str = Field(default="", alias="relationshipToMahaEn")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class DashaPeriodWindow(BaseModel):
     lord: str
     start_date: date = Field(alias="startDate")
     end_date: date = Field(alias="endDate")
+    interpretation: DashaInterpretation | None = Field(default=None)
 
     model_config = ConfigDict(populate_by_name=True)
 

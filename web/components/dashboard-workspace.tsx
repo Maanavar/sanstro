@@ -86,6 +86,8 @@ type BirthFormState = {
   calculateNow: boolean;
   maritalStatus: string;
   employmentType: string;
+  birthTimeSource: string;
+  birthTimeConfidenceMinutes: string;
 };
 
 type VaultFormState = {
@@ -145,6 +147,7 @@ const defaultBirthForm: BirthFormState = {
   birthPlace: "", birthLatitude: "", birthLongitude: "", birthTimezone: "",
   relationshipToOwner: "self", calculateNow: true,
   maritalStatus: "", employmentType: "",
+  birthTimeSource: "unknown", birthTimeConfidenceMinutes: "0",
 };
 
 const defaultVaultForm: VaultFormState = {
@@ -782,6 +785,8 @@ export function DashboardWorkspace() {
           calculateNow: birthForm.calculateNow,
           maritalStatus: birthForm.maritalStatus || undefined,
           employmentType: birthForm.employmentType || undefined,
+          birthTimeSource: birthForm.birthTimeSource || undefined,
+          birthTimeConfidenceMinutes: birthForm.birthTimeConfidenceMinutes ? parseInt(birthForm.birthTimeConfidenceMinutes, 10) : undefined,
         }),
       });
       setBirthProfileId(response.data.birthProfileId);

@@ -26,6 +26,8 @@ export type BirthFormState = {
   calculateNow: boolean;
   maritalStatus: string;
   employmentType: string;
+  birthTimeSource: string;
+  birthTimeConfidenceMinutes: string;
 };
 
 export type VaultFormState = {
@@ -216,6 +218,20 @@ export function DashboardSetupTab({
                 <Field label={t("field_birth_time", lang)} helper={t("field_time_optional", lang)}>
                   <input className="input" type="time" step="1" value={birthForm.birthTimeLocal}
                     onChange={(e) => onBirthFormChange({ ...birthForm, birthTimeLocal: e.target.value })} />
+                </Field>
+                <Field label={lang === "ta" ? "பிறந்த நேர மூலம்" : "Birth Time Source"}>
+                  <select className="select" value={birthForm.birthTimeSource}
+                    onChange={(e) => {
+                      const src = e.target.value;
+                      const conf = src === "hospital_record" ? "5" : src === "family_memory" ? "15" : src === "elder_told" ? "30" : src === "approximate" ? "60" : "0";
+                      onBirthFormChange({ ...birthForm, birthTimeSource: src, birthTimeConfidenceMinutes: conf });
+                    }}>
+                    <option value="unknown">{lang === "ta" ? "தெரியாது" : "Unknown"}</option>
+                    <option value="hospital_record">{lang === "ta" ? "மருத்துவமனை பதிவு" : "Hospital Record (±5 min)"}</option>
+                    <option value="family_memory">{lang === "ta" ? "குடும்ப நினைவு" : "Family Memory (±15 min)"}</option>
+                    <option value="elder_told">{lang === "ta" ? "பெரியவர் சொன்னது" : "Elder's Account (±30 min)"}</option>
+                    <option value="approximate">{lang === "ta" ? "தோராயம்" : "Approximate (±1 hr)"}</option>
+                  </select>
                 </Field>
                 <Field label={t("field_birth_place", lang)} helper={t("field_place_helper", lang)}>
                   <PlaceCombobox value={birthForm.birthPlace}

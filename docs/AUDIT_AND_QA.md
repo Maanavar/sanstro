@@ -157,8 +157,24 @@ Swiss Ephemeris Lahiri sidereal, mean-node Rahu/Ketu, whole-sign houses, Julian 
 [x] Add strength_breakdown to PlanetPosition: sthana/dik/kala/chesta as WEAK/NEUTRAL/STRONG
 ```
 
-### Sprint 4 — UX and product features
-See `IMPLEMENTATION_GUIDE.md` §PRES items.
+### Sprint 4 — UX and product features ✅ DONE (backend) / ✅ DONE (UI selectors)
+```
+[x] PRES-01: South Indian Rasi Chakra SVG — already implemented as RasiChart in dashboard-charts.tsx
+[x] PRES-02: City geocoding — already wired via PlaceCombobox in dashboard-setup-tab.tsx
+[x] PRES-07: Birth time source selector (Hospital/Family/Elder/Approximate/Unknown → confidence_minutes)
+      Added to BirthFormState + UI select in dashboard-setup-tab.tsx + API body in dashboard-workspace.tsx
+[x] PRES-08: assess_activity_timing() — already called in daily_guidance_service.py
+[x] PRES-09: House-aware Dasha text — dasha_service.py now builds DashaInterpretation per lord:
+      activated_houses, house_text_ta/en, natural_domain_ta/en
+[x] PRES-10: Antardasha explanation — relationship_to_maha_ta/en added to DashaInterpretation
+      (natural domain of maha lord + functional nature context)
+[ ] PRES-03: Porutham (10-point marriage matching) — not yet built
+[ ] PRES-04: Chart context prompt builder for Q&A — qa_service.py partially exists
+[ ] PRES-05: Daily 7 AM push notification — FCM service exists, dispatch cron not yet wired
+[ ] PRES-06: Jadhagam PDF export — not yet built
+[ ] PRES-11: Life event prediction windows (next 5 years) — not yet built
+[ ] PRES-12: Family vault joint muhurtha + composite Peyarchi — partial
+```
 
 ---
 
