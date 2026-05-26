@@ -28,6 +28,22 @@ def validate_golden_cases(_: User = Depends(get_admin_user)) -> QAValidationResp
     Failed cases are automatically recorded in the regression store so they
     can be inspected later via GET /qa/regressions.
     """
+    result = _run_and_store_validation()
+    return result
+
+
+@router.post(
+    "/validate-golden-case",
+    response_model=QAValidationResponse,
+    summary="Compatibility route: run internal golden test suite",
+)
+def validate_golden_case_post(_: User = Depends(get_admin_user)) -> QAValidationResponse:
+    """Backward-compatible POST route kept for older clients/docs."""
+    result = _run_and_store_validation()
+    return result
+
+
+def _run_and_store_validation() -> QAValidationResponse:
     result = run_golden_validation()
     now = datetime.now(UTC)
 
@@ -50,7 +66,6 @@ def validate_golden_cases(_: User = Depends(get_admin_user)) -> QAValidationResp
                         first_seen=now,
                         last_seen=now,
                     )
-
     return result
 
 

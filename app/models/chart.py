@@ -43,3 +43,6 @@ class Chart(TimestampMixin, Base):
 
     birth_profile = relationship("BirthProfile", back_populates="charts")
     planets = relationship("ChartPlanet", back_populates="chart", cascade="all, delete-orphan", lazy="selectin")
+    contexts = relationship("UserContext")
+    journal_entries = relationship("JournalEntry", back_populates="chart")
+    retrospectives = relationship("RetrospectiveEntry", back_populates="chart")

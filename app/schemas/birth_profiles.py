@@ -27,6 +27,16 @@ class BirthProfileCreate(BaseModel):
     calculate_now: bool = Field(default=True, alias="calculateNow")
     language_preference: str = Field(default="ta-en", alias="languagePreference")
     gender_for_traditional_rules: str | None = Field(default=None, alias="genderForTraditionalRules")
+    marital_status: str | None = Field(
+        default=None,
+        alias="maritalStatus",
+        description="single | married | divorced | widowed",
+    )
+    employment_type: str | None = Field(
+        default=None,
+        alias="employmentType",
+        description="employed_salaried | self_employed | business_owner | student | unemployed | retired | homemaker",
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 

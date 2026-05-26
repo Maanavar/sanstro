@@ -11,7 +11,7 @@ from app.db.session import get_db
 from app.models import BirthProfile
 from app.models.user import User
 from app.schemas.birth_profiles import BirthProfileCreate, BirthProfileCreateResponse, BirthProfileResponseMeta, BirthProfileGetResponse
-from app.services.birth_profile_service import create_birth_profile, get_birth_profile
+from app.services.birth_profile_service import create_birth_profile, get_birth_profile, get_latest_birth_profile_for_owner
 
 router = APIRouter()
 
@@ -24,15 +24,14 @@ def create_birth_profile_endpoint(
 ) -> BirthProfileCreateResponse:
     # Ensure the profile is created under the authenticated user's identity
     payload = payload.model_copy(update={"owner_user_id": current_user.user_id})
-    with session.begin():
-        result = create_birth_profile(session, payload, calculation_version="thirukanitham-2026-v1")
-        return BirthProfileCreateResponse(
-            data=result,
-            meta=BirthProfileResponseMeta(
-                calculation_version="thirukanitham-2026-v1",
-                generated_at=datetime.now(tz=UTC),
-            ),
-        )
+    result = create_birth_profile(session, payload, calculation_version="thirukanitham-2026-v1")
+    return BirthProfileCreateResponse(
+        data=result,
+        meta=BirthProfileResponseMeta(
+            calculation_version="thirukanitham-2026-v1",
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )
 
 
 @router.get("/birth-profiles/{birth_profile_id}", response_model=BirthProfileGetResponse, tags=["birth-profiles"])
@@ -41,13 +40,24 @@ def get_birth_profile_endpoint(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> BirthProfileGetResponse:
-    with session.begin():
-        profile = session.get(BirthProfile, birth_profile_id)
-        if profile is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
-        if profile.owner_user_id != current_user.user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
-        return get_birth_profile(session, birth_profile_id, calculation_version="thirukanitham-2026-v1")
+    profile = session.get(BirthProfile, birth_profile_id)
+    if profile is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
+    if profile.owner_user_id != current_user.user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+    return get_birth_profile(session, birth_profile_id, calculation_version="thirukanitham-2026-v1")
+
+
+@router.get("/birth-profiles/me/latest", response_model=BirthProfileGetResponse, tags=["birth-profiles"])
+def get_latest_birth_profile_for_current_user_endpoint(
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> BirthProfileGetResponse:
+    return get_latest_birth_profile_for_owner(
+        session,
+        current_user.user_id,
+        calculation_version="thirukanitham-2026-v1",
+    )
 
 
 @router.delete(
@@ -62,11 +72,10 @@ def delete_birth_profile_endpoint(
     current_user: User = Depends(get_current_user),
 ) -> Response:
     """Permanently delete a birth profile and all calculated chart records."""
-    with session.begin():
-        profile = session.get(BirthProfile, birth_profile_id)
-        if profile is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
-        if profile.owner_user_id != current_user.user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
-        session.delete(profile)
+    profile = session.get(BirthProfile, birth_profile_id)
+    if profile is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
+    if profile.owner_user_id != current_user.user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+    session.delete(profile)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

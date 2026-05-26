@@ -5,8 +5,11 @@ import logging
 from datetime import UTC, datetime
 from typing import Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
+
+from app.core.auth import get_admin_user
+from app.models.user import User
 
 logger = logging.getLogger("jothidam.feedback")
 
@@ -67,7 +70,7 @@ def submit_feedback(payload: FeedbackPayload) -> FeedbackResponse:
     response_model=FeedbackListResponse,
     summary="List all received feedback (admin only)",
 )
-def list_feedback() -> FeedbackListResponse:
+def list_feedback(_: User = Depends(get_admin_user)) -> FeedbackListResponse:
     """Return all feedback collected since last server restart.
 
     Protect this endpoint with admin auth before exposing publicly.

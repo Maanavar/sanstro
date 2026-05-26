@@ -20,5 +20,6 @@ class FamilyVault(TimestampMixin, Base):
     )
 
     owner_user = relationship("User", back_populates="family_vaults")
-    family_members = relationship("FamilyMember", back_populates="family_vault")
+    family_members = relationship("FamilyMember", back_populates="family_vault", cascade="all, delete-orphan")
     family_daily_scores = relationship("FamilyDailyScore", back_populates="family_vault")
+    relationship_alerts = relationship("RelationshipAlert", back_populates="vault")

@@ -1,4 +1,4 @@
-# Jothidam.AI QA Golden Test Cases v1
+# Vinaadi AI QA Golden Test Cases v1
 
 **Purpose:** Developer test cases for the Formula Engine Specification v1.  
 Every engine implementation must pass these tests before prediction features are enabled.
@@ -98,7 +98,7 @@ Expected Vara lord: Mars
 ```text
 Rahu Kalam slot: 7
 Yamagandam slot: 3
-Kuligai slot: 6
+Kuligai slot: 5
 ```
 
 ### T032 - Wednesday Kalam slots

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
@@ -22,6 +22,7 @@ from app.schemas.family_vaults import (
     FamilyVaultCreate,
     FamilyVaultCreateResponse,
     FamilyVaultListResponse,
+    FamilyVaultTodayResponse,
     FamilySummaryResponse,
 )
 from app.services.family_vault_service import (
@@ -33,6 +34,7 @@ from app.services.family_vault_service import (
     get_family_member,
     get_family_summary,
     get_family_vault_detail,
+    get_family_vault_today,
     list_family_members,
     list_family_vaults,
     update_family_member,
@@ -43,7 +45,7 @@ router = APIRouter()
 
 def _assert_vault_owner(session: Session, family_vault_id: UUID, current_user: User) -> FamilyVault:
     vault = session.get(FamilyVault, family_vault_id)
-    if vault is None:
+    if vault is None or vault.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Family vault not found.")
     if vault.owner_user_id != current_user.user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
@@ -57,8 +59,7 @@ def create_family_vault_endpoint(
     current_user: User = Depends(get_current_user),
 ) -> FamilyVaultCreateResponse:
     payload = payload.model_copy(update={"owner_user_id": current_user.user_id})
-    with session.begin():
-        return create_family_vault(session, payload)
+    return create_family_vault(session, payload)
 
 
 @router.get("/family-vaults", response_model=FamilyVaultListResponse, tags=["family-vaults"])
@@ -68,8 +69,7 @@ def family_vault_list_endpoint(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> FamilyVaultListResponse:
-    with session.begin():
-        return list_family_vaults(session, current_user.user_id, limit=limit, offset=offset)
+    return list_family_vaults(session, current_user.user_id, limit=limit, offset=offset)
 
 
 @router.get("/family-vaults/{family_vault_id}", response_model=FamilyVaultDetailResponse, tags=["family-vaults"])
@@ -78,9 +78,8 @@ def family_vault_detail_endpoint(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> FamilyVaultDetailResponse:
-    with session.begin():
-        _assert_vault_owner(session, family_vault_id, current_user)
-        return get_family_vault_detail(session, family_vault_id)
+    _assert_vault_owner(session, family_vault_id, current_user)
+    return get_family_vault_detail(session, family_vault_id)
 
 
 @router.get(
@@ -94,9 +93,8 @@ def list_family_members_endpoint(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> FamilyMemberListResponse:
-    with session.begin():
-        _assert_vault_owner(session, family_vault_id, current_user)
-        return list_family_members(session, family_vault_id)
+    _assert_vault_owner(session, family_vault_id, current_user)
+    return list_family_members(session, family_vault_id)
 
 
 @router.post(
@@ -111,9 +109,8 @@ def add_family_member_endpoint(
     current_user: User = Depends(get_current_user),
 ) -> FamilyMemberCreateResponse:
     payload = payload.model_copy(update={"owner_user_id": current_user.user_id})
-    with session.begin():
-        _assert_vault_owner(session, family_vault_id, current_user)
-        return add_family_member(session, family_vault_id, payload)
+    _assert_vault_owner(session, family_vault_id, current_user)
+    return add_family_member(session, family_vault_id, payload)
 
 
 @router.get(
@@ -128,9 +125,8 @@ def get_family_member_endpoint(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> FamilyMemberResponse:
-    with session.begin():
-        _assert_vault_owner(session, family_vault_id, current_user)
-        return get_family_member(session, family_vault_id, family_member_id)
+    _assert_vault_owner(session, family_vault_id, current_user)
+    return get_family_member(session, family_vault_id, family_member_id)
 
 
 @router.patch(
@@ -146,9 +142,8 @@ def update_family_member_endpoint(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> FamilyMemberResponse:
-    with session.begin():
-        _assert_vault_owner(session, family_vault_id, current_user)
-        return update_family_member(session, family_vault_id, family_member_id, payload)
+    _assert_vault_owner(session, family_vault_id, current_user)
+    return update_family_member(session, family_vault_id, family_member_id, payload)
 
 
 @router.delete(
@@ -163,9 +158,8 @@ def delete_family_member_endpoint(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Response:
-    with session.begin():
-        _assert_vault_owner(session, family_vault_id, current_user)
-        delete_family_member(session, family_vault_id, family_member_id)
+    _assert_vault_owner(session, family_vault_id, current_user)
+    delete_family_member(session, family_vault_id, family_member_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -180,9 +174,8 @@ def family_daily_aggregate_endpoint(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> FamilyAggregateResponse:
-    with session.begin():
-        _assert_vault_owner(session, family_vault_id, current_user)
-        return get_family_daily_aggregate(session, family_vault_id, date)
+    _assert_vault_owner(session, family_vault_id, current_user)
+    return get_family_daily_aggregate(session, family_vault_id, date)
 
 
 @router.get(
@@ -196,9 +189,24 @@ def family_summary_endpoint(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> FamilySummaryResponse:
-    with session.begin():
-        _assert_vault_owner(session, family_vault_id, current_user)
-        return get_family_summary(session, family_vault_id, date)
+    _assert_vault_owner(session, family_vault_id, current_user)
+    return get_family_summary(session, family_vault_id, date)
+
+
+@router.get(
+    "/family-vaults/{family_vault_id}/today",
+    response_model=FamilyVaultTodayResponse,
+    tags=["family-vaults"],
+    summary="Today's score and key info for every member in the vault",
+)
+def family_vault_today_endpoint(
+    family_vault_id: UUID,
+    date: date = Query(alias="date"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> FamilyVaultTodayResponse:
+    _assert_vault_owner(session, family_vault_id, current_user)
+    return get_family_vault_today(session, family_vault_id, date)
 
 
 @router.get("/family-vaults/{family_vault_id}/calendar", response_model=FamilyCalendarResponse, tags=["family-vaults"])
@@ -209,9 +217,8 @@ def family_calendar_endpoint(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> FamilyCalendarResponse:
-    with session.begin():
-        _assert_vault_owner(session, family_vault_id, current_user)
-        return get_family_calendar(session, family_vault_id, from_date, to_date)
+    _assert_vault_owner(session, family_vault_id, current_user)
+    return get_family_calendar(session, family_vault_id, from_date, to_date)
 
 
 @router.delete(
@@ -225,8 +232,7 @@ def delete_family_vault_endpoint(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Response:
-    """Permanently delete a family vault and all its members."""
-    with session.begin():
-        vault = _assert_vault_owner(session, family_vault_id, current_user)
-        session.delete(vault)
+    """Soft-delete a family vault."""
+    vault = _assert_vault_owner(session, family_vault_id, current_user)
+    vault.deleted_at = datetime.now(UTC)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

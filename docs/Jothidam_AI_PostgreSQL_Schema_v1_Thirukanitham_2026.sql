@@ -1,4 +1,4 @@
--- Jothidam.AI PostgreSQL Schema v1
+-- Vinaadi AI PostgreSQL Schema v1
 -- Thirukanitham 2026 MVP with Family Aggregate Fortune in MVP 1
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

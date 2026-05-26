@@ -38,3 +38,4 @@ class FamilyMember(TimestampMixin, Base):
     owner_user = relationship("User", back_populates="family_members", foreign_keys=[owner_user_id])
     managed_by_user = relationship("User", foreign_keys=[managed_by_user_id])
     birth_profiles = relationship("BirthProfile", back_populates="family_member")
+    relationship_alerts = relationship("RelationshipAlert", back_populates="member")

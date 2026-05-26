@@ -38,7 +38,7 @@ JULIAN_YEAR_DAYS: Final[float] = 365.25
 
 @dataclass(frozen=True, slots=True)
 class DashaPeriod:
-    level: Literal["maha", "antar", "pratyantar"]
+    level: Literal["maha", "antar", "pratyantar", "sookshma", "prana"]
     lord: str
     start_jd: float
     end_jd: float
@@ -56,6 +56,8 @@ class VimshottariTimeline:
     current_mahadasha: DashaPeriod
     current_antardasha: DashaPeriod
     current_pratyantardasha: DashaPeriod
+    current_sookshmadasha: DashaPeriod
+    current_pranadasha: DashaPeriod
 
 
 def _sequence_from(start_lord: str) -> list[str]:
@@ -92,7 +94,7 @@ def _build_periods(start_jd: float, sequence_start_lord: str, first_duration_yea
     return tuple(periods)
 
 
-def _build_subperiods(parent: DashaPeriod, level: Literal["antar", "pratyantar"]) -> tuple[DashaPeriod, ...]:
+def _build_subperiods(parent: DashaPeriod, level: Literal["antar", "pratyantar", "sookshma", "prana"]) -> tuple[DashaPeriod, ...]:
     periods: list[DashaPeriod] = []
     sequence = _sequence_from(parent.lord)
     parent_years = (parent.end_jd - parent.start_jd) / JULIAN_YEAR_DAYS
@@ -151,6 +153,10 @@ def calculate_vimshottari_timeline(birth_jd: float, moon_longitude: float, as_of
     current_antardasha = _find_period(antardashas, as_of_jd)
     pratyantardashas = _build_subperiods(current_antardasha, "pratyantar")
     current_pratyantardasha = _find_period(pratyantardashas, as_of_jd)
+    sookshmadashas = _build_subperiods(current_pratyantardasha, "sookshma")
+    current_sookshmadasha = _find_period(sookshmadashas, as_of_jd)
+    pranadashas = _build_subperiods(current_sookshmadasha, "prana")
+    current_pranadasha = _find_period(pranadashas, as_of_jd)
 
     return VimshottariTimeline(
         opening_lord=opening_lord,
@@ -160,4 +166,6 @@ def calculate_vimshottari_timeline(birth_jd: float, moon_longitude: float, as_of
         current_mahadasha=current_mahadasha,
         current_antardasha=current_antardasha,
         current_pratyantardasha=current_pratyantardasha,
+        current_sookshmadasha=current_sookshmadasha,
+        current_pranadasha=current_pranadasha,
     )

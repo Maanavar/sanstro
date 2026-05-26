@@ -1,4 +1,4 @@
-"""JWT authentication layer for Jothidam.AI.
+"""JWT authentication layer for Vinaadi AI.
 
 Design:
 - Stateless HS256 JWTs; secret lives in JOTHIDAM_JWT_SECRET env var.
@@ -6,28 +6,26 @@ Design:
   (or auto-creates) the User row so every downstream handler gets a real UUID.
 - `get_admin_user` additionally checks X-Admin-Key header against
   JOTHIDAM_ADMIN_API_KEY for the /admin/* endpoints.
-- Supabase compatibility: Supabase issues HS256 JWTs signed with the project
-  JWT secret. Set JOTHIDAM_JWT_SECRET to the Supabase JWT secret and tokens
-  issued by Supabase will pass validation unchanged.
 - Token creation helper `create_access_token` is provided for tests and for
   a future /auth/token endpoint.
 """
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from hmac import compare_digest
 from typing import Annotated
-from uuid import UUID, uuid4
+from uuid import UUID
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Cookie, Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.db.session import SessionLocal, get_db
+from app.db.session import get_db
 from app.models.user import User
 
-_bearer = HTTPBearer(auto_error=True)
+_bearer = HTTPBearer(auto_error=False)
 
 
 # ── Token helpers ─────────────────────────────────────────────────────────────
@@ -59,21 +57,31 @@ def decode_token(token: str) -> dict:
 
 
 def get_current_user(
-    credentials: Annotated[HTTPAuthorizationCredentials, Depends(_bearer)],
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+    vinaadi_token: Annotated[str | None, Cookie()] = None,
+    db: Session = Depends(get_db),
 ) -> User:
-    """Validate Bearer JWT and return the corresponding User row.
+    """Validate JWT and return the corresponding User row.
+
+    Supports either:
+    - Authorization header Bearer token
+    - `vinaadi_token` httpOnly cookie
 
     The JWT `sub` claim may be:
     - A UUID string  → looked up directly as user_id.
-    - An email string → looked up by email; row created on first login.
-
-    This allows Supabase tokens (sub = UUID) and simple test tokens (sub = email)
-    to both work without code changes.
-
-    Uses its own short-lived session so it never contaminates the endpoint's
-    transaction (which uses the `get_db`-provided session).
+    - An email string → looked up by email.
     """
-    payload = decode_token(credentials.credentials)
+    token: str | None = credentials.credentials if credentials is not None else None
+    if token is None:
+        token = vinaadi_token
+    if token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    payload = decode_token(token)
     sub: str | None = payload.get("sub")
     if not sub:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token missing subject.")
@@ -83,23 +91,18 @@ def get_current_user(
         uid = UUID(sub)
         email: str | None = None
     except ValueError:
-        uid = uuid4()
+        uid = None
         email = sub if "@" in sub else None
 
-    with SessionLocal() as session:
-        with session.begin():
-            # Look up by UUID
-            user: User | None = session.get(User, uid)
-            if user is None and email:
-                user = session.query(User).filter(User.email == email).first()
-                if user is not None:
-                    uid = user.user_id  # use the existing row's UUID
-            if user is None:
-                # Auto-provision on first login
-                user = User(user_id=uid, email=email)
-                session.add(user)
-            # Expunge so the object can be used outside this session
-            session.expunge(user)
+    user: User | None = None
+
+    if uid is not None:
+        user = db.get(User, uid)
+    elif email:
+        user = db.query(User).filter(User.email == email).first()
+
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not resolve user.")
 
     return user
 
@@ -110,7 +113,7 @@ def get_admin_user(
 ) -> User:
     """Require a valid JWT **and** the X-Admin-Key header for admin endpoints."""
     settings = get_settings()
-    if x_admin_key != settings.admin_api_key:
+    if x_admin_key is None or not compare_digest(x_admin_key, settings.admin_api_key):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin key required.",

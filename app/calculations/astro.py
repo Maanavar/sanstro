@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta, timezone
 from math import floor
-from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 EPSILON_DEGREES = 1e-9
@@ -12,12 +11,12 @@ PADA_SIZE_DEGREES = 10 / 3
 RASI_NAMES = {
     1: "Mesham",
     2: "Rishabam",
-    3: "Midhunam",
+    3: "Mithunam",
     4: "Kadagam",
     5: "Simmam",
     6: "Kanni",
-    7: "Thulaam",
-    8: "Vrichigam",
+    7: "Thulam",
+    8: "Viruchigam",
     9: "Dhanusu",
     10: "Magaram",
     11: "Kumbam",
@@ -25,6 +24,47 @@ RASI_NAMES = {
 }
 
 RASI_NAME_TO_NUMBER = {name.lower(): number for number, name in RASI_NAMES.items()}
+RASI_NAME_TO_NUMBER.update(
+    {
+        # Backward-compatible aliases retained for legacy data and tests.
+        "midhunam": 3,
+        "thulaam": 7,
+        "vrichigam": 8,
+    }
+)
+NAKSHATRA_NAMES = (
+    "ASWINI",
+    "BHARANI",
+    "KARTHIGAI",
+    "ROHINI",
+    "MIRUGASEERIDAM",
+    "THIRUVATHIRAI",
+    "PUNARPOOSAM",
+    "POOSAM",
+    "AYILYAM",
+    "MAGAM",
+    "POORAM",
+    "UTHIRAM",
+    "HASTHAM",
+    "CHITHIRAI",
+    "SWATHI",
+    "VISAKAM",
+    "ANUSHAM",
+    "KETTAI",
+    "MOOLAM",
+    "POORADAM",
+    "UTHIRADAM",
+    "THIRUVONAM",
+    "AVITTAM",
+    "SADAYAM",
+    "POORATTATHI",
+    "UTHIRATTATHI",
+    "REVATHI",
+)
+NAKSHATRA_NAME_TO_NUMBER = {
+    "".join(char for char in name.lower() if char.isalnum()): index + 1
+    for index, name in enumerate(NAKSHATRA_NAMES)
+}
 
 
 def normalize_longitude(longitude: float) -> float:
@@ -74,7 +114,26 @@ def house_from_reference(reference_rasi: int | str, target_rasi: int | str) -> i
 def local_datetime_to_utc(local_datetime: datetime, timezone_name: str) -> datetime:
     timezone_obj = resolve_timezone(timezone_name)
     if local_datetime.tzinfo is None:
-        localized = local_datetime.replace(tzinfo=timezone_obj)
+        if isinstance(timezone_obj, ZoneInfo):
+            fold0 = local_datetime.replace(tzinfo=timezone_obj, fold=0)
+            fold1 = local_datetime.replace(tzinfo=timezone_obj, fold=1)
+            roundtrip0 = fold0.astimezone(UTC).astimezone(timezone_obj).replace(tzinfo=None)
+            roundtrip1 = fold1.astimezone(UTC).astimezone(timezone_obj).replace(tzinfo=None)
+            valid0 = roundtrip0 == local_datetime
+            valid1 = roundtrip1 == local_datetime
+
+            if valid0 and valid1 and fold0.utcoffset() != fold1.utcoffset():
+                localized = fold1
+            elif valid0:
+                localized = fold0
+            elif valid1:
+                localized = fold1
+            else:
+                raise ValueError(
+                    f"Non-existent local datetime due to DST transition: {local_datetime.isoformat()} {timezone_name}"
+                )
+        else:
+            localized = local_datetime.replace(tzinfo=timezone_obj)
     else:
         localized = local_datetime.astimezone(timezone_obj)
     return localized.astimezone(UTC)
@@ -148,26 +207,22 @@ def navamsa_rasi_from_degree(degree: float) -> int:
 
 
 def navamsa_rasi_from_nakshatra_pada(nakshatra: int | str, pada: int) -> int:
-    """Temporary lookup helper for nakshatra-pada-based regression checks.
-
-    Sprint 1 only needs the known QA cases for navamsa regression coverage.
-    """
     if isinstance(nakshatra, str):
-        normalized = nakshatra.strip().lower()
-        if normalized != "uthiradam":
-            raise ValueError(f"Unsupported nakshatra name for lookup: {nakshatra}")
-        nakshatra_key = normalized
+        normalized = "".join(char for char in nakshatra.strip().lower() if char.isalnum())
+        nakshatra_number = NAKSHATRA_NAME_TO_NUMBER.get(normalized)
+        if nakshatra_number is None:
+            raise ValueError(f"Unknown nakshatra name: {nakshatra}")
     else:
-        nakshatra_key = nakshatra
+        nakshatra_number = nakshatra
 
+    if not 1 <= nakshatra_number <= 27:
+        raise ValueError("Nakshatra number must be between 1 and 27.")
     if pada not in {1, 2, 3, 4}:
         raise ValueError("Pada must be between 1 and 4.")
 
-    overrides: dict[tuple[Any, int], int] = {
-        ("uthiradam", 3): resolve_rasi("Kumbam"),
-    }
-
-    if (nakshatra_key, pada) in overrides:
-        return overrides[(nakshatra_key, pada)]
-
-    raise ValueError("Navamsa lookup is only implemented for the required regression cases in Sprint 1.")
+    degree = (
+        (nakshatra_number - 1) * NAKSHATRA_SIZE_DEGREES
+        + (pada - 1) * PADA_SIZE_DEGREES
+        + (PADA_SIZE_DEGREES / 2.0)
+    )
+    return navamsa_rasi_from_degree(degree)

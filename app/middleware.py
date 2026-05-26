@@ -22,6 +22,16 @@ SECURITY_HEADERS = {
     "X-XSS-Protection": "1; mode=block",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "geolocation=(), microphone=()",
+    "Content-Security-Policy": (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "font-src 'self'; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'"
+    ),
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
 }
 
 
@@ -30,6 +40,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response: Response = await call_next(request)
         for header, value in SECURITY_HEADERS.items():
             response.headers[header] = value
+        # Ensure Tamil/Unicode text is never mis-decoded as Latin-1
+        ct = response.headers.get("content-type", "")
+        if "application/json" in ct and "charset" not in ct:
+            response.headers["content-type"] = "application/json; charset=utf-8"
         return response
 
 

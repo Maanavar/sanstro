@@ -1,6 +1,6 @@
-# Jothidam.AI Backend Foundation
+# Vinaadi AI Backend Foundation
 
-Sprint 0 backend starter for Jothidam.AI MVP 1.
+Sprint 0 backend starter for Vinaadi AI MVP 1.
 
 ## What is included
 
@@ -37,11 +37,32 @@ python -m alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
+
+run the script
+.\dev.ps1
+
 5. Run the tests.
 
 ```powershell
-pytest
+.\run-tests-safe.ps1 -StartTestDb
 ```
+
+Important: tests reset the database schema (drop + recreate tables). Always run them on a dedicated test database.
+The repository now enforces two safety checks before any reset:
+- DB name must include `test` (example: `vinaadi_test`)
+- `JOTHIDAM_TEST_DB_RESET_ACK` must be set to `I_UNDERSTAND_THIS_WIPES_TEST_DB`
+- DB must be exactly `vinaadi_test` on `localhost:5433`
+
+By default, `run-tests-safe.ps1` also creates a backup of `vinaadi_dev` before tests run.
+It also provisions a dedicated `slw_test_runner` role inside the test DB and runs tests through that role.
+
+Restore dev data from a backup file:
+
+```powershell
+.\restore-dev-db.ps1 -BackupFile .\backups\vinaadi_dev_YYYYMMDD_HHMMSS.sql
+```
+
+Do not run `pytest` directly against your dev DB.
 
 ## Environment variables
 

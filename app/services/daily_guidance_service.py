@@ -1,20 +1,32 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, time, timedelta
+from collections import Counter
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.calculations.activity_timing_rules import ActivityType, assess_activity_timing
 from app.calculations.astro import house_from_reference, nakshatra_from_degree, resolve_timezone, utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.panchangam import calculate_daily_panchangam
-from app.calculations.transits import RASI_NAMES, classify_sani_cycle, is_combust
-from app.models import BirthProfile, Chart
+from app.calculations.ashtakavarga import compute_bhinnashtakavarga, get_av_bindu
+from app.calculations.chart_strength import compute_natal_planet_score
+from app.calculations.functional_nature import get_dasha_modifier, get_transit_modifier
+from app.calculations.transits import RASI_NAMES, check_vedha, classify_kandaka_cycle, classify_sani_cycle, is_combust
+from app.models import BirthProfile, Chart, DailyScore, JournalEntry
 from app.schemas.daily_guidance import (
+    ActivityTimingData,
+    ActivityTimingDayResult,
+    ActivityTimingResponse,
     DailyGuidanceData,
+    DailyGuidanceEmotionalWeather,
+    DailyGuidanceJournalInsight,
+    DailyGuidanceJournalSignal,
+    DailyGuidanceReasons,
     DailyGuidanceResponse,
     DailyGuidanceRangeData,
     DailyGuidanceRangeResponse,
@@ -22,9 +34,26 @@ from app.schemas.daily_guidance import (
     DailyGuidanceSuggestion,
     DailyGuidanceText,
     DailyGuidanceWindow,
+    DashaStoryData,
+    DashaStoryPeriod,
+    DashaStoryResponse,
+    JournalCorrelationData,
+    JournalCorrelationItem,
+    JournalCorrelationResponse,
+    PeyarchiReportData,
+    PeyarchiReportPeriod,
+    PeyarchiReportResponse,
+    WeekAheadData,
+    WeekAheadDayItem,
+    WeekAheadResponse,
 )
 from app.schemas.dasha import ResponseMeta
 from app.services.chart_service import load_persisted_chart_response
+from app.services.context_service import get_context_row, should_surface_proactively
+from app.services.emotional_weather import TransitPoint, compute_emotional_weather
+from app.services.goals_service import get_active_goals_for_chart
+from app.services.nakshatra_content import build_nakshatra_perspective
+from app.services.narrative_engine import build_score_reasons, tithi_content_card
 
 SIGN_LORDS = {
     1: "MARS",
@@ -77,22 +106,29 @@ PLANET_PERIOD_SCORE = {
     "KETU": 42,
 }
 
-GRAHA_RELATIONSHIP_SCORE = {
-    ("SUN", "MOON"): 70,
-    ("SUN", "MARS"): 72,
-    ("SUN", "JUPITER"): 70,
-    ("SUN", "MERCURY"): 62,
-    ("SUN", "VENUS"): 42,
-    ("SUN", "SATURN"): 38,
-    ("SUN", "RAHU"): 40,
-    ("SUN", "KETU"): 40,
-    ("MOON", "MERCURY"): 65,
-    ("MOON", "MARS"): 58,
-    ("MOON", "JUPITER"): 55,
-    ("MOON", "VENUS"): 58,
-    ("MOON", "SATURN"): 48,
-    ("MOON", "RAHU"): 46,
-    ("MOON", "KETU"): 46,
+# Classical Thirukanitham natural friendship table (Parashari doctrine).
+# Covers all 9×9 pairs. See CONFLICT-04 in the enhancement doc for derivation.
+_NATURAL_FRIENDS: dict[str, frozenset[str]] = {
+    "SUN":     frozenset({"MOON", "MARS", "JUPITER"}),
+    "MOON":    frozenset({"SUN", "MERCURY"}),
+    "MARS":    frozenset({"SUN", "MOON", "JUPITER"}),
+    "MERCURY": frozenset({"SUN", "VENUS"}),
+    "JUPITER": frozenset({"SUN", "MOON", "MARS"}),
+    "VENUS":   frozenset({"MERCURY", "SATURN"}),
+    "SATURN":  frozenset({"MERCURY", "VENUS"}),
+    "RAHU":    frozenset({"VENUS", "SATURN"}),
+    "KETU":    frozenset({"MARS", "VENUS"}),
+}
+_NATURAL_ENEMIES: dict[str, frozenset[str]] = {
+    "SUN":     frozenset({"VENUS", "SATURN", "RAHU", "KETU"}),
+    "MOON":    frozenset({"RAHU", "KETU"}),
+    "MARS":    frozenset({"MERCURY", "RAHU"}),
+    "MERCURY": frozenset({"MOON"}),
+    "JUPITER": frozenset({"MERCURY", "VENUS", "RAHU", "KETU"}),
+    "VENUS":   frozenset({"SUN", "MOON", "RAHU", "KETU"}),
+    "SATURN":  frozenset({"SUN", "MOON", "MARS"}),
+    "RAHU":    frozenset({"SUN", "MOON", "MARS", "JUPITER"}),
+    "KETU":    frozenset({"SUN", "MOON", "JUPITER", "RAHU"}),
 }
 
 
@@ -150,16 +186,14 @@ def _planet_period_score(lord: str) -> int:
 
 
 def _graha_relationship_score(maha_lord: str, antar_lord: str) -> int:
+    """Relationship score from classical natural friendship table. Covers all 9×9 pairs."""
     if maha_lord == antar_lord:
         return 72
-
-    pair = (maha_lord, antar_lord)
-    reverse_pair = (antar_lord, maha_lord)
-    if pair in GRAHA_RELATIONSHIP_SCORE:
-        return GRAHA_RELATIONSHIP_SCORE[pair]
-    if reverse_pair in GRAHA_RELATIONSHIP_SCORE:
-        return GRAHA_RELATIONSHIP_SCORE[reverse_pair]
-    return 52
+    if antar_lord in _NATURAL_FRIENDS.get(maha_lord, frozenset()):
+        return 70   # Natural friends
+    if antar_lord in _NATURAL_ENEMIES.get(maha_lord, frozenset()):
+        return 38   # Natural enemies
+    return 55       # Natural neutrals
 
 
 def _money_hora_name(lord: str) -> str:
@@ -174,6 +208,8 @@ def _money_hora_name(lord: str) -> str:
     }[lord]
 
 
+_NATURAL_BENEFIC_LORDS = {"JUPITER", "VENUS", "MERCURY", "MOON"}
+
 def _best_hours(panchangam, current_maha_lord: str) -> list[DailyGuidanceWindow]:
     windows: list[DailyGuidanceWindow] = []
     if not panchangam.abhijit_restricted:
@@ -185,15 +221,18 @@ def _best_hours(panchangam, current_maha_lord: str) -> list[DailyGuidanceWindow]
             )
         )
 
-    supportive_lords = {
-        _normalize_graha_name(panchangam.weekday_lord),
-        current_maha_lord,
-        "JUPITER",
-        "VENUS",
-        "MERCURY",
-        "MOON",
-        "SUN",
-    }
+    # Only genuinely benefic lords qualify as a supportive hora window.
+    # Weekday lord and maha lord are added only if they are also natural benefics
+    # or SUN (functional benefic for confidence). SATURN, MARS, RAHU excluded.
+    supportive_lords = set(_NATURAL_BENEFIC_LORDS)
+    supportive_lords.add("SUN")
+    normalized_weekday = _normalize_graha_name(panchangam.weekday_lord)
+    normalized_maha = _normalize_graha_name(current_maha_lord)
+    if normalized_weekday in supportive_lords:
+        supportive_lords.add(normalized_weekday)
+    if normalized_maha in supportive_lords:
+        supportive_lords.add(normalized_maha)
+
     for entry in panchangam.hora[:12]:
         if _normalize_graha_name(_money_hora_name(entry.lord)) in supportive_lords:
             windows.append(
@@ -251,18 +290,257 @@ def _build_text(score: int, label: str, best_windows: list[DailyGuidanceWindow],
     )
 
 
+_GOAL_DASHA_AFFINITY: dict[str, set[str]] = {
+    "job_change":     {"SUN", "SATURN", "MARS", "JUPITER"},
+    "business_start": {"MERCURY", "JUPITER", "SATURN"},
+    "marriage":       {"VENUS", "JUPITER", "MOON"},
+    "education":      {"MERCURY", "JUPITER"},
+    "property":       {"SATURN", "MARS", "MOON"},
+    "health":         {"SUN", "MARS", "JUPITER"},
+    "travel_abroad":  {"RAHU", "JUPITER"},
+    "spiritual":      {"JUPITER", "KETU"},
+    "family_harmony": {"MOON", "JUPITER"},
+    "money":          {"JUPITER", "VENUS", "MERCURY"},
+    "child_birth":    {"JUPITER", "MOON"},
+    "other":          {"JUPITER", "SUN"},
+}
+
+_GOAL_LABEL_TA = {
+    "job_change":     "வேலை மாற்றம்",
+    "business_start": "தொழில் தொடக்கம்",
+    "marriage":       "திருமணம்",
+    "education":      "கல்வி",
+    "property":       "சொத்து",
+    "health":         "உடல்நலம்",
+    "travel_abroad":  "வெளிநாடு பயணம்",
+    "spiritual":      "ஆன்மீகம்",
+    "family_harmony": "குடும்ப நலம்",
+    "money":          "பண வரவு",
+    "child_birth":    "குழந்தை பாக்கியம்",
+    "other":          "உங்கள் இலக்கு",
+}
+_GOAL_LABEL_EN = {
+    "job_change":     "job change",
+    "business_start": "starting a business",
+    "marriage":       "marriage",
+    "education":      "education",
+    "property":       "property",
+    "health":         "health",
+    "travel_abroad":  "travel abroad",
+    "spiritual":      "spiritual growth",
+    "family_harmony": "family harmony",
+    "money":          "financial growth",
+    "child_birth":    "child birth",
+    "other":          "your goal",
+}
+
+_PLANET_TA = {
+    "SUN": "சூரியன்", "MOON": "சந்திரன்", "MARS": "செவ்வாய்",
+    "MERCURY": "புதன்", "JUPITER": "குரு", "VENUS": "சுக்கிரன்",
+    "SATURN": "சனி", "RAHU": "ராகு", "KETU": "கேது",
+}
+_PLANET_EN = {
+    "SUN": "Suryan", "MOON": "Chandran", "MARS": "Chevvai",
+    "MERCURY": "Budhan", "JUPITER": "Guru", "VENUS": "Sukran",
+    "SATURN": "Sani", "RAHU": "Rahu", "KETU": "Ketu",
+}
+
+_JOURNAL_INSIGHT_LOOKBACK_DAYS = 30
+
+
+def _load_daily_score_cache(
+    session: Session,
+    *,
+    birth_profile_id: UUID,
+    score_date: date,
+    calculation_version: str,
+) -> DailyGuidanceResponse | None:
+    row = session.execute(
+        select(DailyScore).where(
+            DailyScore.birth_profile_id == birth_profile_id,
+            DailyScore.score_date == score_date,
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        return None
+    return DailyGuidanceResponse(
+        data=DailyGuidanceData.model_validate(row.data),
+        meta=ResponseMeta(
+            calculation_version=calculation_version,
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )
+
+
+def _store_daily_score_cache(
+    session: Session,
+    *,
+    birth_profile_id: UUID,
+    score_date: date,
+    response: DailyGuidanceResponse,
+) -> None:
+    row = session.execute(
+        select(DailyScore).where(
+            DailyScore.birth_profile_id == birth_profile_id,
+            DailyScore.score_date == score_date,
+        )
+    ).scalar_one_or_none()
+    payload = response.data.model_dump(mode="json", by_alias=True)
+    if row is None:
+        session.add(
+            DailyScore(
+                birth_profile_id=birth_profile_id,
+                score_date=score_date,
+                score=response.data.score,
+                label=response.data.label,
+                data=payload,
+            )
+        )
+        return
+    row.score = response.data.score
+    row.label = response.data.label
+    row.data = payload
+    row.created_at = datetime.now(tz=UTC)
+
+
+def _enrich_action_with_goals(
+    action: DailyGuidanceSuggestion,
+    active_goals: list,
+    maha_lord: str,
+    label: str,
+    *,
+    tithi_number: int,
+    paksha: str,
+    weekday_lord: str,
+) -> DailyGuidanceSuggestion:
+    """Append a goal-relevant context sentence to the action suggestion.
+
+    Checks Thirukanitham timing rules (tithi/paksha/weekday) for the active goal
+    type first. If timing is CAUTION for the goal, that overrides a positive dasha
+    match — a Rikta tithi during Theipirai on a Saturday cannot be softened just
+    because the dasha lord is supportive.
+    """
+    if not active_goals:
+        return action
+
+    goal_type = active_goals[0].goal_type
+    affinity_lords = _GOAL_DASHA_AFFINITY.get(goal_type, set())
+    goal_ta = _GOAL_LABEL_TA.get(goal_type, "உங்கள் இலக்கு")
+    goal_en = _GOAL_LABEL_EN.get(goal_type, "your goal")
+    planet_ta = _PLANET_TA.get(maha_lord, maha_lord)
+    planet_en = _PLANET_EN.get(maha_lord, maha_lord)
+
+    # Assess Thirukanitham timing for this specific goal.
+    timing = assess_activity_timing(
+        activity=goal_type if goal_type in (
+            "job_change", "business_start", "marriage", "education",
+            "property", "health", "travel_abroad", "spiritual",
+            "family_harmony", "money", "child_birth",
+        ) else "other",
+        tithi_number=tithi_number,
+        paksha=paksha,
+        weekday_lord=weekday_lord,
+    )
+
+    if timing.combined_alignment == "CAUTION":
+        # Timing caution overrides positive dasha — do not encourage action today.
+        suffix_ta = f" {goal_ta} சம்பந்தமான முக்கிய முடிவுகளை இன்று ஒத்திவையுங்கள். {timing.combined_ta}"
+        suffix_en = f" Defer major {goal_en} decisions today. {timing.combined_en}"
+        return DailyGuidanceSuggestion(ta=action.ta + suffix_ta, en=action.en + suffix_en)
+
+    if timing.combined_alignment == "SUPPORTS" and maha_lord in affinity_lords and label in ("STRONG_SUPPORT", "GOOD"):
+        suffix_ta = (
+            f" {goal_ta} குறித்த முயற்சிகளுக்கு இன்று {planet_ta} தசையும் பஞ்சாங்கமும் ஆதரவளிக்கின்றன. {timing.combined_ta}"
+        )
+        suffix_en = (
+            f" {planet_en} dasa and today's Panchangam both support {goal_en} efforts. {timing.combined_en}"
+        )
+        return DailyGuidanceSuggestion(ta=action.ta + suffix_ta, en=action.en + suffix_en)
+
+    if maha_lord in affinity_lords and label in ("STRONG_SUPPORT", "GOOD"):
+        suffix_ta = f" {goal_ta} குறித்த முயற்சிகளுக்கு இன்று {planet_ta} தசை ஆதரவளிக்கிறது."
+        suffix_en = f" {planet_en} dasa is supportive for {goal_en} efforts today."
+        return DailyGuidanceSuggestion(ta=action.ta + suffix_ta, en=action.en + suffix_en)
+
+    if label in ("CAUTION", "RESTORATIVE"):
+        suffix_ta = f" {goal_ta} சம்பந்தமான முக்கிய முடிவுகளை இன்று ஒத்திவையுங்கள்."
+        suffix_en = f" Postpone major decisions related to {goal_en} today."
+        return DailyGuidanceSuggestion(ta=action.ta + suffix_ta, en=action.en + suffix_en)
+
+    return action
+
+
+def _build_journal_insight(
+    session: Session,
+    *,
+    owner_user_id: UUID,
+    chart_id: UUID,
+    on_date: date,
+) -> DailyGuidanceJournalInsight | None:
+    from_date = on_date - timedelta(days=_JOURNAL_INSIGHT_LOOKBACK_DAYS)
+    rows = session.execute(
+        select(JournalEntry).where(
+            JournalEntry.owner_user_id == owner_user_id,
+            JournalEntry.chart_id == chart_id,
+            JournalEntry.deleted_at.is_(None),
+            JournalEntry.entry_date >= from_date,
+            JournalEntry.entry_date <= on_date,
+        )
+    ).scalars().all()
+    if not rows:
+        return None
+
+    life_area_counts = Counter(row.life_area for row in rows)
+    tag_counts = Counter(tag for row in rows for tag in (row.tags or []))
+    dominant_life_area, _ = life_area_counts.most_common(1)[0]
+    top_tags = [tag for tag, _ in tag_counts.most_common(3)]
+    signals = [
+        DailyGuidanceJournalSignal(lifeArea=area, count=count)
+        for area, count in life_area_counts.most_common(3)
+    ]
+
+    return DailyGuidanceJournalInsight(
+        lookbackDays=_JOURNAL_INSIGHT_LOOKBACK_DAYS,
+        entryCount=len(rows),
+        dominantLifeArea=dominant_life_area,
+        topTags=top_tags,
+        text=DailyGuidanceText(
+            ta=(
+                f"கடந்த {_JOURNAL_INSIGHT_LOOKBACK_DAYS} நாட்களில் உங்கள் குறிப்புகளில் "
+                f"'{dominant_life_area}' தலைவிரிப்பு அதிகம். இன்று சிறு, அமைதியான முன்னேற்ற அடிகள் பயனுள்ளது."
+            ),
+            en=(
+                f"Your recent journal pattern over the last {_JOURNAL_INSIGHT_LOOKBACK_DAYS} days is centered on "
+                f"'{dominant_life_area}'. Today favors small, calm progress steps in that area."
+            ),
+        ),
+        signals=signals,
+    )
+
+
 def build_daily_guidance_response(
     chart_snapshot,
     on_date: date,
     language: str = "ta-en",
     *,
+    session: Session | None = None,
     panchangam=None,
     transit_snapshot=None,
+    active_goals: list | None = None,
+    context_row=None,
+    journal_insight: DailyGuidanceJournalInsight | None = None,
 ) -> DailyGuidanceResponse:
     chart_id = chart_snapshot.data.chart_id
     natal_moon = next(planet for planet in chart_snapshot.data.planets if planet.graha == "MOON")
+    natal_venus = next(planet for planet in chart_snapshot.data.planets if planet.graha == "VENUS")
     natal_lagna = chart_snapshot.data.lagna.rasi
     birth_jd = chart_snapshot.data.julian_day
+
+    # Build natal Rasi map for Ashtakavarga (BUG-05)
+    natal_rasi_map: dict[str, int] = {"LAGNA": natal_lagna}
+    for _p in chart_snapshot.data.planets:
+        natal_rasi_map[_p.graha] = _p.rasi
+    _bav = compute_bhinnashtakavarga(natal_rasi_map)
 
     birth_profile = chart_snapshot.data.birth_profile
     if panchangam is None:
@@ -271,6 +549,7 @@ def build_daily_guidance_response(
             float(birth_profile.birth_latitude),
             float(birth_profile.birth_longitude),
             birth_profile.birth_timezone,
+            session=session,
         )
     solar_noon_utc = panchangam.solar_noon.astimezone(UTC)
     current_jd = utc_datetime_to_julian_day(solar_noon_utc)
@@ -293,45 +572,112 @@ def build_daily_guidance_response(
         moon_score -= 15
     if current_nakshatra == ((janma_nakshatra + 17 - 1) % 27) + 1:
         moon_score -= 15
-    chandrashtama = house_from_reference(natal_moon.rasi, moon.rasi) == 8
+    # Chandrashtama = Moon in the 8th Rasi from natal Janma Rasi (per spec §4.11)
+    # NOT the 8th Nakshatra — Nakshatra and Rasi boundaries do not align
+    chandrashtama_rasi = ((natal_moon.rasi - 1 + 7) % 12) + 1
+    chandrashtama = moon.rasi == chandrashtama_rasi
     if chandrashtama:
         moon_score -= 25
     if current_nakshatra in AUSPICIOUS_DAILY_NAKSHATRAS:
         moon_score += 10
     moon_score = max(0, min(100, moon_score))
 
-    # av_multiplier uses Ashtakavarga bindu lookup per spec section 10.3.
-    # Ashtakavarga engine is deferred (Sprint 9); default bindu=4 maps to multiplier 1.0.
     AV_MULTIPLIER = {0: 0.5, 1: 0.6, 2: 0.75, 3: 0.9, 4: 1.0, 5: 1.1, 6: 1.2, 7: 1.3, 8: 1.4}
-    DEFAULT_AV_BINDU = 4
+
+    _transit_bodies = {
+        "JUPITER": jupiter,
+        "SATURN":  saturn,
+        "RAHU":    rahu,
+        "KETU":    ketu,
+        "MARS":    mars,
+        "MOON":    moon,
+    }
+
+    # Pre-compute house from Moon for all transit bodies (needed for Vedha check)
+    _all_transit_houses: dict[str, int] = {
+        g: house_from_reference(natal_moon.rasi, b.rasi)
+        for g, b in _transit_bodies.items()
+    }
 
     transit_score = 50.0
-    for graha, body in {
-        "JUPITER": jupiter,
-        "SATURN": saturn,
-        "RAHU": rahu,
-        "KETU": ketu,
-        "MARS": mars,
-        "MOON": moon,
-    }.items():
-        house_from_moon = house_from_reference(natal_moon.rasi, body.rasi)
-        base = TRANSIT_BASE_SCORE[graha][house_from_moon]
-        av_multiplier = AV_MULTIPLIER[DEFAULT_AV_BINDU]
-        transit_score += (base - 50) * PLANET_DAILY_WEIGHT[graha] * av_multiplier
+    for graha, body in _transit_bodies.items():
+        house_from_moon = _all_transit_houses[graha]
+        base        = TRANSIT_BASE_SCORE[graha][house_from_moon]
+        av_bindu    = get_av_bindu(_bav, graha, body.rasi)   # real per-user bindu (BUG-05)
+        av_mult     = AV_MULTIPLIER[av_bindu]
+        fn_mult     = get_transit_modifier(natal_lagna, graha)  # Lagna-specific (BUG-10)
+        contribution = (base - 50) * PLANET_DAILY_WEIGHT[graha] * av_mult * fn_mult
+        # Vedha Vichara: if blocking planet in Vedha house, transit benefit is cancelled (BUG-08)
+        if check_vedha(graha, house_from_moon, _all_transit_houses):
+            contribution *= 0.25
+        transit_score += contribution
     transit_score = max(0, min(100, transit_score))
+
+    # Secondary Lagna dimension — spec §6.1 (BUG-07)
+    # Jupiter and Saturn's position from Lagna provides a material-impact modifier
+    jupiter_house_from_lagna = house_from_reference(natal_lagna, jupiter.rasi)
+    saturn_house_from_lagna  = house_from_reference(natal_lagna, saturn.rasi)
+    lagna_modifier = 0.0
+    if jupiter_house_from_lagna in {1, 4, 5, 7, 9, 10}:
+        lagna_modifier += 3.0
+    elif jupiter_house_from_lagna in {6, 8, 12}:
+        lagna_modifier -= 3.0
+    if saturn_house_from_lagna in {1, 4, 7, 10}:
+        lagna_modifier -= 4.0
+    elif saturn_house_from_lagna in {3, 6, 11}:
+        lagna_modifier += 2.0
+    transit_score = max(0, min(100, transit_score + lagna_modifier))
 
     timeline = calculate_vimshottari_timeline(birth_jd, natal_moon.absolute_longitude, current_jd)
     maha_lord = timeline.current_mahadasha.lord
     antar_lord = timeline.current_antardasha.lord
-    maha_score = _planet_period_score(maha_lord)
-    antar_score = _planet_period_score(antar_lord)
+
+    # Natal planet strength for dasha score (BUG-06): use actual chart placement, not generic scores
+    natal_sun_data = next((p for p in chart_snapshot.data.planets if p.graha == "SUN"), None)
+    natal_maha_data = next((p for p in chart_snapshot.data.planets if p.graha == maha_lord), None)
+    natal_antar_data = next((p for p in chart_snapshot.data.planets if p.graha == antar_lord), None)
+    sun_lon = float(natal_sun_data.absolute_longitude) if natal_sun_data else 0.0
+
+    if natal_maha_data:
+        maha_score = compute_natal_planet_score(
+            planet=maha_lord,
+            natal_rasi=natal_maha_data.rasi,
+            natal_longitude=float(natal_maha_data.absolute_longitude),
+            natal_lagna_rasi=natal_lagna,
+            sun_longitude=sun_lon,
+            is_retrograde=natal_maha_data.is_retrograde,
+            is_vargottama=bool(natal_maha_data.is_vargottama),
+            d9_rasi=natal_maha_data.d9_rasi,
+        )
+    else:
+        maha_score = PLANET_PERIOD_SCORE.get(maha_lord, 50)
+
+    if natal_antar_data:
+        antar_score = compute_natal_planet_score(
+            planet=antar_lord,
+            natal_rasi=natal_antar_data.rasi,
+            natal_longitude=float(natal_antar_data.absolute_longitude),
+            natal_lagna_rasi=natal_lagna,
+            sun_longitude=sun_lon,
+            is_retrograde=natal_antar_data.is_retrograde,
+            is_vargottama=bool(natal_antar_data.is_vargottama),
+            d9_rasi=natal_antar_data.d9_rasi,
+        )
+    else:
+        antar_score = PLANET_PERIOD_SCORE.get(antar_lord, 50)
+
+    # Apply Lagna-based functional nature modifier on top of natal strength (BUG-10)
+    maha_score  = max(10, min(95, round(maha_score  * get_dasha_modifier(natal_lagna, maha_lord))))
+    antar_score = max(10, min(95, round(antar_score * get_dasha_modifier(natal_lagna, antar_lord))))
     relationship_score = _graha_relationship_score(maha_lord, antar_lord)
     dasha_score = max(0, min(100, round(maha_score * 0.55 + antar_score * 0.35 + relationship_score * 0.10)))
 
     panchangam_score = 70
     if panchangam.tithi_number in [4, 9, 14, 19, 24, 29]:
         panchangam_score -= 15
-    if panchangam.tithi_number in [8, 23, 30]:
+    # Ashtami (8th tithi in both pakshas) — mild caution
+    # Amavasai (30) is NOT penalised: it is a sacred Pitru Tarpan day, not an inauspicious one
+    if panchangam.tithi_number in {8, 23}:
         panchangam_score -= 10
     if panchangam.yoga_number in CAUTION_YOGAS:
         panchangam_score -= 10
@@ -341,14 +687,43 @@ def build_daily_guidance_response(
         panchangam_score += 8
     if panchangam.weekday_lord == maha_lord:
         panchangam_score += 5
+
+    # Activity-specific timing adjustment: when a goal is active, check
+    # Thirukanitham timing rules and modulate panchangam score accordingly.
+    if active_goals:
+        _goal_type = active_goals[0].goal_type
+        _activity = _goal_type if _goal_type in (
+            "job_change", "business_start", "marriage", "education",
+            "property", "health", "travel_abroad", "spiritual",
+            "family_harmony", "money", "child_birth",
+        ) else "other"
+        _timing = assess_activity_timing(
+            activity=_activity,
+            tithi_number=panchangam.tithi_number,
+            paksha=panchangam.tithi_paksha,
+            weekday_lord=panchangam.weekday_lord,
+        )
+        if _timing.combined_alignment == "SUPPORTS":
+            panchangam_score += 5
+        elif _timing.combined_alignment == "CAUTION":
+            panchangam_score -= 8
+
     panchangam_score = max(0, min(100, panchangam_score))
 
+    # Ezhara Sani / Ashtama Sani from natal Moon (primary Saturn cycle)
     saturn_cycle = classify_sani_cycle(house_from_reference(natal_moon.rasi, saturn.rasi))
+    # Kantaka Sani from natal Lagna (independent cycle per spec §6.3)
+    kantaka_sani = classify_kandaka_cycle(house_from_reference(natal_lagna, saturn.rasi))
+
     personal_safety_score = 60
     if chandrashtama:
         personal_safety_score -= 15
     if saturn_cycle.is_active and saturn_cycle.type in {"JANMA_SANI", "ARDHASHTAMA_SANI", "ASHTAMA_SANI", "KANTAKA_SANI"}:
         personal_safety_score -= 10
+    # Kantaka from Lagna: independent penalty only when Ezhara/Ashtama is not already active
+    # to avoid double-counting when both cycles overlap on the same person
+    if kantaka_sani.is_active and not saturn_cycle.is_active:
+        personal_safety_score -= 7
     if panchangam.abhijit_restricted:
         personal_safety_score -= 5
     if is_combust(
@@ -360,21 +735,129 @@ def build_daily_guidance_response(
         personal_safety_score -= 3
     personal_safety_score = max(0, min(100, personal_safety_score))
 
+    best_windows = _best_hours(panchangam, maha_lord)
+    caution_windows = _caution_windows(panchangam)
+    remedial_support = 6 if best_windows else 0
+
     score = round(
         moon_score * 0.30
         + transit_score * 0.25
         + dasha_score * 0.20
         + panchangam_score * 0.15
         + personal_safety_score * 0.10
+        + remedial_support
     )
-
-    best_windows = _best_hours(panchangam, maha_lord)
-    caution_windows = _caution_windows(panchangam)
-    remedial_support = 6 if best_windows else 0
-
-    score = max(0, min(100, score + remedial_support))
+    score = max(0, min(100, score))
     label = _score_label(score)
     text, action, caution = _build_text(score, label, best_windows, caution_windows)
+    nakshatra_perspective = build_nakshatra_perspective(janma_nakshatra, label)
+    emotional_weather = compute_emotional_weather(
+        natal_moon_longitude=natal_moon.absolute_longitude,
+        natal_venus_longitude=natal_venus.absolute_longitude,
+        lagna_rasi=natal_lagna,
+        transits={
+            "SATURN": TransitPoint(
+                absolute_longitude=saturn.absolute_longitude,
+                rasi=saturn.rasi,
+            ),
+            "JUPITER": TransitPoint(
+                absolute_longitude=jupiter.absolute_longitude,
+                rasi=jupiter.rasi,
+            ),
+            "MARS": TransitPoint(
+                absolute_longitude=mars.absolute_longitude,
+                rasi=mars.rasi,
+            ),
+            "VENUS": TransitPoint(
+                absolute_longitude=transit_snapshot.bodies["VENUS"].absolute_longitude,
+                rasi=transit_snapshot.bodies["VENUS"].rasi,
+            ),
+            "RAHU": TransitPoint(
+                absolute_longitude=rahu.absolute_longitude,
+                rasi=rahu.rasi,
+            ),
+            "SUN": TransitPoint(
+                absolute_longitude=sun.absolute_longitude,
+                rasi=sun.rasi,
+            ),
+        },
+    )
+
+    best_start = best_windows[0].start if best_windows else None
+    best_end = best_windows[0].end if best_windows else None
+    best_label = f"{best_windows[0].start}–{best_windows[0].end}" if best_windows else None
+    rahu_start = caution_windows[0].start if caution_windows else "00:00"
+    rahu_end = caution_windows[0].end if caution_windows else "00:00"
+
+    jupiter_house = house_from_reference(natal_moon.rasi, jupiter.rasi)
+    saturn_house = house_from_reference(natal_moon.rasi, saturn.rasi)
+    mercury_combust = is_combust(
+        "MERCURY",
+        transit_snapshot.bodies["MERCURY"].absolute_longitude,
+        sun.absolute_longitude,
+        transit_snapshot.bodies["MERCURY"].is_retrograde,
+    )
+
+    reasons = build_score_reasons(
+        score=score,
+        current_nakshatra=current_nakshatra,
+        janma_nakshatra=janma_nakshatra,
+        chandrashtama=chandrashtama,
+        current_moon_rasi=moon.rasi,
+        janma_rasi=natal_moon.rasi,
+        moon_score=moon_score,
+        maha_lord=maha_lord,
+        antar_lord=antar_lord,
+        dasha_score=dasha_score,
+        tithi_number=panchangam.tithi_number,
+        yoga_number=panchangam.yoga_number,
+        karana_name=panchangam.karana_name,
+        weekday_lord=panchangam.weekday_lord,
+        panchangam_score=panchangam_score,
+        panchangam_nakshatra=panchangam.nakshatra_number,
+        jupiter_house_from_moon=jupiter_house,
+        saturn_house_from_moon=saturn_house,
+        sani_cycle_type=saturn_cycle.type if saturn_cycle.is_active else None,
+        sani_cycle_active=saturn_cycle.is_active,
+        kantaka_sani_active=kantaka_sani.is_active,
+        transit_score=round(transit_score),
+        mercury_combust=mercury_combust,
+        abhijit_restricted=panchangam.abhijit_restricted,
+        personal_score=personal_safety_score,
+        best_window_start=best_start,
+        best_window_end=best_end,
+        best_window_label=best_label,
+        rahu_kalam_start=rahu_start,
+        rahu_kalam_end=rahu_end,
+    )
+
+    action_suggestion = DailyGuidanceSuggestion(ta=reasons.action.ta, en=reasons.action.en)
+    action_suggestion = _enrich_action_with_goals(
+        action_suggestion,
+        active_goals or [],
+        maha_lord,
+        label,
+        tithi_number=panchangam.tithi_number,
+        paksha=panchangam.tithi_paksha,
+        weekday_lord=panchangam.weekday_lord,
+    )
+    context_surface = should_surface_proactively(
+        context_row,
+        for_date=on_date,
+        score_label=label,
+        saturn_house_from_moon=saturn_house,
+    )
+    context_insight = (
+        DailyGuidanceText(ta=context_surface.ta or "", en=context_surface.en or "")
+        if context_surface.should_surface
+        else None
+    )
+
+    def _build_tithi_card(tithi_number: int) -> DailyGuidanceText | None:
+        card = tithi_content_card(tithi_number)
+        if card is None:
+            return None
+        return DailyGuidanceText(ta=card.ta, en=card.en)
 
     return DailyGuidanceResponse(
         data=DailyGuidanceData(
@@ -392,9 +875,52 @@ def build_daily_guidance_response(
             ),
             bestWindows=best_windows,
             cautionWindows=caution_windows,
-            text=text,
-            actionSuggestion=action,
-            cautionSuggestion=caution,
+            text=DailyGuidanceText(ta=reasons.summary.ta, en=reasons.summary.en),
+            nakshatraPerspective=DailyGuidanceText(
+                ta=nakshatra_perspective.ta,
+                en=nakshatra_perspective.en,
+            ),
+            emotionalWeather=DailyGuidanceEmotionalWeather(
+                tone=emotional_weather.tone,
+                physicalTendency=emotional_weather.physical_tendency,
+                bestUseOfDay=emotional_weather.best_use_of_day,
+                avoidBefore=(
+                    DailyGuidanceText(
+                        ta=emotional_weather.avoid_before.ta,
+                        en=emotional_weather.avoid_before.en,
+                    )
+                    if emotional_weather.avoid_before is not None
+                    else None
+                ),
+                toneText=DailyGuidanceText(
+                    ta=emotional_weather.tone_text.ta,
+                    en=emotional_weather.tone_text.en,
+                ),
+                physicalTendencyText=DailyGuidanceText(
+                    ta=emotional_weather.physical_tendency_text.ta,
+                    en=emotional_weather.physical_tendency_text.en,
+                ),
+                bestUseOfDayText=DailyGuidanceText(
+                    ta=emotional_weather.best_use_of_day_text.ta,
+                    en=emotional_weather.best_use_of_day_text.en,
+                ),
+            ),
+            contextInsight=context_insight,
+            journalInsight=journal_insight,
+            actionSuggestion=action_suggestion,
+            cautionSuggestion=DailyGuidanceSuggestion(ta=reasons.caution.ta, en=reasons.caution.en),
+            reasons=DailyGuidanceReasons(
+                moonTransit=DailyGuidanceText(ta=reasons.moon_transit.ta, en=reasons.moon_transit.en),
+                dashaSupport=DailyGuidanceText(ta=reasons.dasha_support.ta, en=reasons.dasha_support.en),
+                panchangam=DailyGuidanceText(ta=reasons.panchangam.ta, en=reasons.panchangam.en),
+                gochar=DailyGuidanceText(ta=reasons.gochar.ta, en=reasons.gochar.en),
+                personalCaution=DailyGuidanceText(ta=reasons.personal_caution.ta, en=reasons.personal_caution.en),
+                summary=DailyGuidanceText(ta=reasons.summary.ta, en=reasons.summary.en),
+            ),
+            remedy=DailyGuidanceText(ta=reasons.remedy.ta, en=reasons.remedy.en),
+            tithiCard=_build_tithi_card(panchangam.tithi_number),
+            isChandrashtama=chandrashtama,
+            saturnCycleAlert=saturn_cycle.type if saturn_cycle.is_active and saturn_cycle.type in {"JANMA_SANI", "ASHTAMA_SANI"} else None,
         ),
         meta=ResponseMeta(
             calculation_version=chart_snapshot.meta.calculation_version,
@@ -405,7 +931,44 @@ def build_daily_guidance_response(
 
 def get_daily_guidance(session: Session, chart_id: UUID, on_date: date, language: str = "ta-en") -> DailyGuidanceResponse:
     chart_snapshot = load_persisted_chart_response(session, chart_id)
-    return build_daily_guidance_response(chart_snapshot, on_date, language)
+    active_goals = get_active_goals_for_chart(session, chart_id)
+    owner_user_id = chart_snapshot.data.birth_profile.owner_user_id
+    context_row = get_context_row(session, owner_user_id, chart_id)
+    journal_insight = _build_journal_insight(
+        session,
+        owner_user_id=owner_user_id,
+        chart_id=chart_id,
+        on_date=on_date,
+    )
+    can_use_cache = not active_goals and context_row is None and journal_insight is None
+    birth_profile_id = chart_snapshot.data.birth_profile.birth_profile_id
+    if can_use_cache:
+        cached = _load_daily_score_cache(
+            session,
+            birth_profile_id=birth_profile_id,
+            score_date=on_date,
+            calculation_version=chart_snapshot.meta.calculation_version,
+        )
+        if cached is not None:
+            return cached
+
+    response = build_daily_guidance_response(
+        chart_snapshot,
+        on_date,
+        language,
+        session=session,
+        active_goals=active_goals,
+        context_row=context_row,
+        journal_insight=journal_insight,
+    )
+    if can_use_cache:
+        _store_daily_score_cache(
+            session,
+            birth_profile_id=birth_profile_id,
+            score_date=on_date,
+            response=response,
+        )
+    return response
 
 
 def get_daily_guidance_range(
@@ -422,6 +985,7 @@ def get_daily_guidance_range(
         select(Chart)
         .where(Chart.birth_profile_id == profile_id, Chart.status == "completed")
         .order_by(Chart.created_at.desc())
+        .limit(1)
     ).scalar_one_or_none()
     if chart is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chart not found.")
@@ -442,6 +1006,581 @@ def get_daily_guidance_range(
         ),
         meta=ResponseMeta(
             calculation_version=chart.calculation_version,
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )
+
+
+_MAHADASHA_THEMES: dict[str, dict[str, str]] = {
+    "KETU":    {"ta": "ஆன்மீகம், விலகல், மறைந்த விஷயங்கள்",   "en": "Spirituality, detachment, hidden matters"},
+    "VENUS":   {"ta": "உறவுகள், கலை, ஐஸ்வர்யம், வாகனம்",     "en": "Relationships, arts, luxury, vehicles"},
+    "SUN":     {"ta": "தொழில், அதிகாரம், தந்தை, உடல்நலம்",    "en": "Career, authority, father, vitality"},
+    "MOON":    {"ta": "மனம், தாய், உணர்வு, பயணம்",            "en": "Mind, mother, emotions, travel"},
+    "MARS":    {"ta": "ஆற்றல், உடன்பிறப்பு, சொத்து",          "en": "Energy, siblings, property, courage"},
+    "RAHU":    {"ta": "லட்சியம், வெளிநாடு, திடீர் மாற்றம்",   "en": "Ambition, foreign connections, sudden changes"},
+    "JUPITER": {"ta": "அறிவு, குழந்தை, செல்வம், விரிவாக்கம்", "en": "Knowledge, children, wealth, expansion"},
+    "SATURN":  {"ta": "ஒழுக்கம், பொறுப்பு, சேவை, ஆயுள்",    "en": "Discipline, responsibility, service, longevity"},
+    "MERCURY": {"ta": "தொடர்பு, வியாபாரம், கல்வி",            "en": "Communication, business, education"},
+}
+
+_SPECIAL_TITHI: dict[int, str] = {
+    30: "AMAVASAI",
+    15: "POURNAMI",
+    13: "PRADOSHAM",
+    28: "PRADOSHAM",
+    11: "EKADASI",
+    26: "EKADASI",
+}
+
+
+def get_week_ahead(
+    session: Session,
+    profile_id: UUID,
+    week_start: date,
+    language: str = "ta-en",
+    calculation_version: str = "thirukanitham-2026-v1",
+) -> WeekAheadResponse:
+    """
+    FEATURE-07: Weekly digest endpoint.
+    Returns a 7-day summary using the existing daily guidance engine.
+    """
+    week_end = week_start + timedelta(days=6)
+    range_response = get_daily_guidance_range(session, profile_id, week_start, week_end, language)
+    chart_id = range_response.data.chart_id
+
+    # Find the chart to get dasha info
+    chart = session.execute(
+        select(Chart)
+        .where(Chart.birth_profile_id == profile_id, Chart.status == "completed")
+        .order_by(Chart.created_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    birth_profile = session.execute(
+        select(BirthProfile).where(BirthProfile.birth_profile_id == profile_id)
+    ).scalar_one_or_none()
+
+    # Build per-day items
+    day_items: list[WeekAheadDayItem] = []
+    best_score = -1
+    best_day = week_start
+    chandrashtama_days: list[date] = []
+    special_tithi_days: list[date] = []
+
+    for day_data in range_response.data.items:
+        tithi_num = 0
+        nakshatra_num = 0
+        if birth_profile is not None:
+            panchangam = calculate_daily_panchangam(
+                day_data.date_local,
+                float(birth_profile.birth_latitude),
+                float(birth_profile.birth_longitude),
+                birth_profile.birth_timezone,
+            )
+            tithi_num = panchangam.tithi_number
+            nakshatra_num = panchangam.nakshatra_number
+        special = _SPECIAL_TITHI.get(tithi_num)
+        if special is not None:
+            special_tithi_days.append(day_data.date_local)
+        is_chandrashtama = day_data.is_chandrashtama
+        if is_chandrashtama:
+            chandrashtama_days.append(day_data.date_local)
+
+        if day_data.score > best_score:
+            best_score = day_data.score
+            best_day = day_data.date_local
+
+        best_win_start: str | None = day_data.best_windows[0].start if day_data.best_windows else None
+
+        day_items.append(WeekAheadDayItem(
+            dateLocal=day_data.date_local,
+            score=day_data.score,
+            label=day_data.label,
+            nakshatraNumber=nakshatra_num,
+            tithiNumber=tithi_num,
+            isChandrashtama=is_chandrashtama,
+            specialTithi=special,
+            bestWindowStart=best_win_start,
+        ))
+
+    # Dasha theme from current maha lord
+    dasha_theme_ta = "—"
+    dasha_theme_en = "—"
+    if chart is not None:
+        try:
+            chart_snapshot = load_persisted_chart_response(session, chart.chart_id)
+            if birth_profile and chart_snapshot:
+                from app.calculations.astro import utc_datetime_to_julian_day, resolve_timezone
+                local_noon = datetime.combine(week_start, time(12, 0), tzinfo=resolve_timezone(birth_profile.birth_timezone))
+                jd = utc_datetime_to_julian_day(local_noon.astimezone(UTC))
+                natal_moon = next(p for p in chart_snapshot.data.planets if p.graha == "MOON")
+                if birth_profile.birth_time_local is None:
+                    birth_jd_val = float(chart_snapshot.data.julian_day)
+                else:
+                    birth_jd_val = utc_datetime_to_julian_day(
+                        datetime.combine(birth_profile.birth_date_local, birth_profile.birth_time_local, tzinfo=resolve_timezone(birth_profile.birth_timezone)).astimezone(UTC)
+                    )
+                timeline = calculate_vimshottari_timeline(birth_jd_val, float(natal_moon.absolute_longitude), jd)
+                maha_lord = timeline.current_mahadasha.lord
+                theme = _MAHADASHA_THEMES.get(maha_lord, {"ta": maha_lord, "en": maha_lord})
+                dasha_theme_ta = theme["ta"]
+                dasha_theme_en = theme["en"]
+        except Exception:
+            pass
+
+    return WeekAheadResponse(
+        data=WeekAheadData(
+            profileId=profile_id,
+            chartId=chart_id,
+            weekStart=week_start,
+            weekEnd=week_end,
+            bestDay=best_day,
+            bestDayScore=best_score,
+            chandrashtamaDays=chandrashtama_days,
+            specialTithiDays=special_tithi_days,
+            dashaThemeTa=dasha_theme_ta,
+            dashaThemeEn=dasha_theme_en,
+            days=day_items,
+        ),
+        meta=ResponseMeta(
+            calculation_version=calculation_version,
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )
+
+
+def get_week_ahead_by_chart(
+    session: Session,
+    chart_id: UUID,
+    week_start: date,
+    language: str = "ta-en",
+    calculation_version: str = "thirukanitham-2026-v1",
+) -> WeekAheadResponse:
+    chart = session.get(Chart, chart_id)
+    if chart is None:
+        raise HTTPException(status_code=404, detail="Chart not found.")
+    return get_week_ahead(session, chart.birth_profile_id, week_start, language, calculation_version)
+
+
+def get_activity_timing(
+    session: Session,
+    chart_id: UUID,
+    activity: str,
+    month: str,
+    calculation_version: str = "thirukanitham-2026-v1",
+) -> ActivityTimingResponse:
+    """
+    FEATURE-08: Returns top 5 dates in the given month ranked by activity alignment.
+    month format: YYYY-MM
+    """
+    chart = session.get(Chart, chart_id)
+    if chart is None:
+        raise HTTPException(status_code=404, detail="Chart not found.")
+
+    birth_profile = session.execute(
+        select(BirthProfile).where(BirthProfile.birth_profile_id == chart.birth_profile_id)
+    ).scalar_one_or_none()
+    if birth_profile is None:
+        raise HTTPException(status_code=404, detail="Birth profile not found.")
+
+    year, mon = int(month[:4]), int(month[5:7])
+    from calendar import monthrange
+    _, days_in_month = monthrange(year, mon)
+
+    chart_snapshot = load_persisted_chart_response(session, chart_id)
+    active_goals = get_active_goals_for_chart(session, chart_id)
+    owner_user_id = chart_snapshot.data.birth_profile.owner_user_id
+    context_row = get_context_row(session, owner_user_id, chart_id)
+    birth_profile_id = chart_snapshot.data.birth_profile.birth_profile_id
+    base_cache_eligible = not active_goals and context_row is None
+
+    results: list[tuple[int, ActivityTimingDayResult]] = []
+    alignment_rank = {"SUPPORTS": 2, "NEUTRAL": 1, "CAUTION": 0}
+
+    for day_num in range(1, days_in_month + 1):
+        d = date(year, mon, day_num)
+        try:
+            panchang = calculate_daily_panchangam(
+                d,
+                float(birth_profile.birth_latitude),
+                float(birth_profile.birth_longitude),
+                birth_profile.birth_timezone,
+            )
+            result = assess_activity_timing(
+                activity=activity,  # type: ignore[arg-type]
+                tithi_number=panchang.tithi_number,
+                paksha=panchang.tithi_paksha,
+                weekday_lord=panchang.weekday_lord,
+            )
+            journal_insight = _build_journal_insight(
+                session,
+                owner_user_id=owner_user_id,
+                chart_id=chart_id,
+                on_date=d,
+            )
+            can_use_cache = base_cache_eligible and journal_insight is None
+
+            cached_score: int | None = None
+            if can_use_cache:
+                cached_response = _load_daily_score_cache(
+                    session,
+                    birth_profile_id=birth_profile_id,
+                    score_date=d,
+                    calculation_version=chart_snapshot.meta.calculation_version,
+                )
+                if cached_response is not None:
+                    cached_score = cached_response.data.score
+
+            if cached_score is not None:
+                score = cached_score
+            else:
+                current_jd = utc_datetime_to_julian_day(panchang.solar_noon.astimezone(UTC))
+                transit_snapshot = calculate_sidereal_planets(current_jd)
+                daily_response = build_daily_guidance_response(
+                    chart_snapshot,
+                    d,
+                    session=session,
+                    panchangam=panchang,
+                    transit_snapshot=transit_snapshot,
+                    active_goals=active_goals,
+                    context_row=context_row,
+                    journal_insight=journal_insight,
+                )
+                if can_use_cache:
+                    _store_daily_score_cache(
+                        session,
+                        birth_profile_id=birth_profile_id,
+                        score_date=d,
+                        response=daily_response,
+                    )
+                score = daily_response.data.score
+
+            rank = alignment_rank.get(result.combined_alignment, 0) * 100 + score
+            results.append((rank, ActivityTimingDayResult(
+                dateLocal=d,
+                score=score,
+                label=_score_label(score),
+                alignment=result.combined_alignment,
+                reasonTa=result.combined_ta,
+                reasonEn=result.combined_en,
+            )))
+        except Exception:
+            continue
+
+    results.sort(key=lambda x: x[0], reverse=True)
+    top_dates = [item for _, item in results[:5]]
+
+    return ActivityTimingResponse(
+        data=ActivityTimingData(
+            chartId=chart_id,
+            activity=activity,
+            month=month,
+            topDates=top_dates,
+        ),
+        meta=ResponseMeta(
+            calculation_version=calculation_version,
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )
+
+def get_dasha_story(
+    session: Session,
+    chart_id: UUID,
+    as_of: date,
+    calculation_version: str = "thirukanitham-2026-v1",
+) -> DashaStoryResponse:
+    """
+    FEATURE-09: Returns all Mahadasha periods from birth through ~120 years with themes.
+    """
+    from app.models import BirthProfile
+
+    chart = session.get(Chart, chart_id)
+    if chart is None:
+        raise HTTPException(status_code=404, detail="Chart not found.")
+
+    birth_profile = session.execute(
+        select(BirthProfile).where(BirthProfile.birth_profile_id == chart.birth_profile_id)
+    ).scalar_one_or_none()
+    if birth_profile is None:
+        raise HTTPException(status_code=404, detail="Birth profile not found.")
+
+    chart_snapshot = load_persisted_chart_response(session, chart_id)
+    natal_moon = next((p for p in chart_snapshot.data.planets if p.graha == "MOON"), None)
+    if natal_moon is None:
+        raise HTTPException(status_code=422, detail="Moon data not available in chart.")
+
+    tz = resolve_timezone(birth_profile.birth_timezone)
+    if birth_profile.birth_time_local is None:
+        raise HTTPException(status_code=422, detail="Birth time is required for Dasha story.")
+    birth_dt = datetime.combine(birth_profile.birth_date_local, birth_profile.birth_time_local, tzinfo=tz).astimezone(UTC)
+    birth_jd = utc_datetime_to_julian_day(birth_dt)
+    current_jd = utc_datetime_to_julian_day(datetime.combine(as_of, time(12, 0), tzinfo=tz).astimezone(UTC))
+
+    timeline = calculate_vimshottari_timeline(birth_jd, float(natal_moon.absolute_longitude), current_jd)
+    birth_year = birth_profile.birth_date_local.year
+
+    periods: list[DashaStoryPeriod] = []
+    for maha in timeline.mahadashas:
+        theme = _MAHADASHA_THEMES.get(maha.lord, {"ta": maha.lord, "en": maha.lord})
+        age_start = maha.start_date.year - birth_year
+        age_end = maha.end_date.year - birth_year
+        is_current = (maha.start_date <= as_of <= maha.end_date)
+        periods.append(DashaStoryPeriod(
+            lord=maha.lord,
+            startDate=maha.start_date,
+            endDate=maha.end_date,
+            ageStart=max(0, age_start),
+            ageEnd=max(0, age_end),
+            themeTa=theme["ta"],
+            themeEn=theme["en"],
+            isCurrent=is_current,
+        ))
+
+    return DashaStoryResponse(
+        data=DashaStoryData(
+            chartId=chart_id,
+            openingLord=timeline.opening_lord,
+            periods=periods,
+        ),
+        meta=ResponseMeta(
+            calculation_version=calculation_version,
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )
+
+
+_PEYARCHI_OUTLOOK: dict[str, dict[int, dict[str, str]]] = {
+    "JUPITER": {
+        2:  {"ta": "கஜகேசரி யோகம் சாத்தியம். தன, குடும்ப விஷயங்கள் மேம்படலாம்.", "en": "Gajakesari yoga possible. Wealth and family matters may improve."},
+        5:  {"ta": "புத்திர, கல்வி, ஆன்மீக வளர்ச்சி. நல்ல காலம்.", "en": "Good period for children, education, and spiritual growth."},
+        7:  {"ta": "கல்யாண யோகம். கூட்டுறவு, வியாபாரம் சாதகம்.", "en": "Marriage and partnership prospects improve."},
+        9:  {"ta": "பாக்ய ஸ்தானம். அதிர்ஷ்டம், ஆசீர்வாதம், வெற்றி.", "en": "Fortune house transit. Luck, blessings, and success."},
+        11: {"ta": "லாப ஸ்தானம். வருமானம், சேர்க்கை, நண்பர்கள் ஆதரவு.", "en": "Gains house. Income, accumulation, and friend support."},
+        4:  {"ta": "கேந்திர குரு — கட்டமைப்பு மாற்றம், வீடு விஷயங்கள்.", "en": "Kendra Jupiter — structural changes, home matters."},
+        8:  {"ta": "கஷ்டமான குரு காலம். பொறுமையும் கவனமும் தேவை.", "en": "Challenging Jupiter transit. Patience and caution needed."},
+        12: {"ta": "வெளிநாடு, ஆன்மீகம், செலவு அதிகமாகலாம்.", "en": "Possible travel, spirituality, and increased expenses."},
+    },
+    "SATURN": {
+        3:  {"ta": "மூன்றாம் சனி — தைரியம், உடன்பிறப்பு, போட்டி வெற்றி.", "en": "3rd Saturn — courage, sibling support, competition wins."},
+        6:  {"ta": "ஆறாம் சனி — எதிரிகளை வெல்லலாம், உடல்நல முன்னேற்றம்.", "en": "6th Saturn — overcome obstacles, health improves."},
+        11: {"ta": "லாப சனி — நீண்ட நாள் முயற்சியின் பலன், வருமான வளர்ச்சி.", "en": "11th Saturn — long-term efforts pay off, income grows."},
+        1:  {"ta": "ஜன்ம சனி — மாற்றம், புதுத்துவக்கம், சுய மதிப்பீடு.", "en": "Janma Sani — transformation, new beginnings, self-review."},
+        4:  {"ta": "கண்டக சனி — குடும்பம், வீடு, தொழில் விஷயங்களில் மந்தம்.", "en": "Kantaka Sani — slowdown in home, family, and career matters."},
+        7:  {"ta": "கண்டக சனி — உறவுகள், கூட்டுறவில் கவனம் தேவை.", "en": "Kantaka Sani — attention needed in relationships and partnerships."},
+        8:  {"ta": "அஷ்டம சனி — திடீர் மாற்றங்கள். பொறுமை மிக முக்கியம்.", "en": "Ashtama Sani — sudden changes. Patience is essential."},
+        10: {"ta": "கண்டக சனி — தொழில், அதிகாரம் விஷயங்களில் சிக்கல்கள்.", "en": "Kantaka Sani — challenges in career and authority matters."},
+    },
+}
+
+
+def get_peyarchi_report(
+    session: Session,
+    chart_id: UUID,
+    planet: str,
+    as_of: date,
+    calculation_version: str = "thirukanitham-2026-v1",
+) -> PeyarchiReportResponse:
+    """
+    FEATURE-11: Personalised Peyarchi (Rasi transit) report for Jupiter or Saturn.
+    """
+    from app.models import BirthProfile
+    from app.calculations.astro import house_from_reference
+    from app.services.peyarchi_service import find_next_rasi_change
+
+    if planet not in ("JUPITER", "SATURN"):
+        raise HTTPException(status_code=422, detail="Only JUPITER and SATURN are supported for peyarchi reports.")
+
+    chart = session.get(Chart, chart_id)
+    if chart is None:
+        raise HTTPException(status_code=404, detail="Chart not found.")
+
+    birth_profile = session.execute(
+        select(BirthProfile).where(BirthProfile.birth_profile_id == chart.birth_profile_id)
+    ).scalar_one_or_none()
+    if birth_profile is None:
+        raise HTTPException(status_code=404, detail="Birth profile not found.")
+
+    chart_snapshot = load_persisted_chart_response(session, chart_id)
+    natal_moon = next((p for p in chart_snapshot.data.planets if p.graha == "MOON"), None)
+    natal_lagna = chart_snapshot.data.lagna.rasi
+
+    tz = resolve_timezone(birth_profile.birth_timezone)
+    from_dt = datetime.combine(as_of, time(12, 0), tzinfo=tz).astimezone(UTC)
+    from_jd = utc_datetime_to_julian_day(from_dt)
+
+    current_snapshot = calculate_sidereal_planets(from_jd)
+    current_rasi = current_snapshot.bodies[planet].rasi
+
+    events: list[PeyarchiReportPeriod] = []
+    scan_jd = from_jd
+
+    for _ in range(5):
+        try:
+            transit_dt, next_rasi = find_next_rasi_change(planet, scan_jd)
+        except Exception:
+            break
+
+        transit_date = transit_dt.date()
+        house_moon = house_from_reference(natal_moon.rasi if natal_moon else 1, next_rasi)
+        house_lagna = house_from_reference(natal_lagna, next_rasi)
+
+        outlook = _PEYARCHI_OUTLOOK.get(planet, {}).get(house_moon, {
+            "ta": f"கோசார {planet.capitalize()} {house_moon}ஆம் இடத்தில் — மிதமான காலம்.",
+            "en": f"Transit {planet.capitalize()} in house {house_moon} — moderate period.",
+        })
+
+        events.append(PeyarchiReportPeriod(
+            planet=planet,
+            fromRasi=current_rasi,
+            toRasi=next_rasi,
+            transitDate=transit_date,
+            houseFromMoon=house_moon,
+            houseFromLagna=house_lagna,
+            outlookTa=outlook["ta"],
+            outlookEn=outlook["en"],
+        ))
+        current_rasi = next_rasi
+        scan_jd = utc_datetime_to_julian_day(transit_dt) + 10
+
+    return PeyarchiReportResponse(
+        data=PeyarchiReportData(
+            chartId=chart_id,
+            planet=planet,
+            events=events,
+        ),
+        meta=ResponseMeta(
+            calculation_version=calculation_version,
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )
+
+
+_MIN_JOURNAL_ENTRIES = 30
+
+
+def get_journal_correlations(
+    session: Session,
+    chart_id: UUID,
+    lookback_days: int = 90,
+    calculation_version: str = "thirukanitham-2026-v1",
+) -> JournalCorrelationResponse:
+    """
+    FEATURE-12: Correlates journal mood ratings with astrological conditions.
+    Requires at least 30 journal entries.
+    """
+    from app.models import BirthProfile
+
+    chart = session.get(Chart, chart_id)
+    if chart is None:
+        raise HTTPException(status_code=404, detail="Chart not found.")
+
+    birth_profile = session.execute(
+        select(BirthProfile).where(BirthProfile.birth_profile_id == chart.birth_profile_id)
+    ).scalar_one_or_none()
+    if birth_profile is None:
+        raise HTTPException(status_code=404, detail="Birth profile not found.")
+
+    cutoff = date.today() - timedelta(days=lookback_days)
+    entries = session.execute(
+        select(JournalEntry)
+        .where(
+            JournalEntry.chart_id == chart_id,
+            JournalEntry.entry_date >= cutoff,
+        )
+        .order_by(JournalEntry.entry_date.desc())
+    ).scalars().all()
+
+    entry_count = len(entries)
+    has_data = entry_count >= _MIN_JOURNAL_ENTRIES
+
+    if not has_data:
+        return JournalCorrelationResponse(
+            data=JournalCorrelationData(
+                chartId=chart_id,
+                entryCount=entry_count,
+                lookbackDays=lookback_days,
+                correlations=[],
+                minimumEntriesRequired=_MIN_JOURNAL_ENTRIES,
+                hasSufficientData=False,
+            ),
+            meta=ResponseMeta(
+                calculation_version=calculation_version,
+                generated_at=datetime.now(tz=UTC),
+            ),
+        )
+
+    # Group entries by daily guidance label (proxy via score stored in context or default)
+    chandrashtama_entries = []
+    non_chandrashtama_entries = []
+    score_buckets: dict[str, list[float]] = {"STRONG_SUPPORT": [], "GOOD": [], "BALANCED": [], "CAUTION": [], "RESTORATIVE": []}
+
+    for entry in entries:
+        try:
+            guidance = get_daily_guidance(session, chart_id, entry.entry_date)
+            label = guidance.data.label
+            if label in score_buckets and hasattr(entry, "mood_rating") and entry.mood_rating is not None:
+                score_buckets[label].append(float(entry.mood_rating))
+            if guidance.data.caution_suggestion.ta.startswith("சந்திராஷ்டமம்"):
+                if hasattr(entry, "mood_rating") and entry.mood_rating is not None:
+                    chandrashtama_entries.append(float(entry.mood_rating))
+            else:
+                if hasattr(entry, "mood_rating") and entry.mood_rating is not None:
+                    non_chandrashtama_entries.append(float(entry.mood_rating))
+        except Exception:
+            continue
+
+    correlations: list[JournalCorrelationItem] = []
+
+    # Score label correlations
+    label_desc = {
+        "STRONG_SUPPORT": ("வலுவான ஆதரவு நாட்களில்", "On strong support days"),
+        "GOOD":           ("நல்ல நாட்களில்",           "On good days"),
+        "BALANCED":       ("நிலையான நாட்களில்",        "On balanced days"),
+        "CAUTION":        ("கவன நாட்களில்",            "On caution days"),
+        "RESTORATIVE":    ("ஓய்வு நாட்களில்",          "On restorative days"),
+    }
+    for label, moods in score_buckets.items():
+        if len(moods) >= 3:
+            avg = sum(moods) / len(moods)
+            ta_desc, en_desc = label_desc[label]
+            correlations.append(JournalCorrelationItem(
+                condition=label,
+                sampleCount=len(moods),
+                avgMood=round(avg, 2),
+                descriptionTa=f"{ta_desc} உங்கள் சராசரி மனோநிலை மதிப்பெண்: {avg:.1f}/10.",
+                descriptionEn=f"{en_desc}, your average mood rating was {avg:.1f}/10.",
+            ))
+
+    # Chandrashtama correlation
+    if len(chandrashtama_entries) >= 3 and len(non_chandrashtama_entries) >= 3:
+        avg_chan = sum(chandrashtama_entries) / len(chandrashtama_entries)
+        avg_non = sum(non_chandrashtama_entries) / len(non_chandrashtama_entries)
+        correlations.append(JournalCorrelationItem(
+            condition="CHANDRASHTAMA",
+            sampleCount=len(chandrashtama_entries),
+            avgMood=round(avg_chan, 2),
+            descriptionTa=(
+                f"சந்திராஷ்டமம் நாட்களில் உங்கள் சராசரி மனோநிலை: {avg_chan:.1f}/10 "
+                f"(மற்ற நாட்களில் {avg_non:.1f}/10)."
+            ),
+            descriptionEn=(
+                f"On Chandrashtama days, your average mood was {avg_chan:.1f}/10 "
+                f"(vs {avg_non:.1f}/10 on other days)."
+            ),
+        ))
+
+    correlations.sort(key=lambda c: c.sample_count, reverse=True)
+
+    return JournalCorrelationResponse(
+        data=JournalCorrelationData(
+            chartId=chart_id,
+            entryCount=entry_count,
+            lookbackDays=lookback_days,
+            correlations=correlations,
+            minimumEntriesRequired=_MIN_JOURNAL_ENTRIES,
+            hasSufficientData=True,
+        ),
+        meta=ResponseMeta(
+            calculation_version=calculation_version,
             generated_at=datetime.now(tz=UTC),
         ),
     )

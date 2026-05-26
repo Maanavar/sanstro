@@ -1,1 +1,1 @@
-"""API routers for Jothidam.AI."""
+"""API routers for Vinaadi AI."""

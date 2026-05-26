@@ -10,7 +10,9 @@ from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
 from app.models.user import User
+from app.schemas.peyarchi import PeyarchiSummaryResponse
 from app.schemas.transits import SaniCycleResponse, TransitSnapshotResponse
+from app.services.peyarchi_service import get_peyarchi_summary
 from app.services.transit_service import get_gochar_current, get_major_transits, get_sani_cycle
 
 router = APIRouter()
@@ -33,12 +35,11 @@ def gochar_current(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> TransitSnapshotResponse:
-    with session.begin():
-        as_of = datetime_value if datetime_value is not None else date_value
-        if as_of is None:
-            raise HTTPException(status_code=422, detail="Either datetime or date must be provided.")
-        _assert_chart_owner(session, chart_id, current_user)
-        return get_gochar_current(session, chart_id, as_of)
+    as_of = datetime_value if datetime_value is not None else date_value
+    if as_of is None:
+        raise HTTPException(status_code=422, detail="Either datetime or date must be provided.")
+    _assert_chart_owner(session, chart_id, current_user)
+    return get_gochar_current(session, chart_id, as_of)
 
 
 @router.get("/charts/{chart_id}/sani-cycle", response_model=SaniCycleResponse, tags=["transits"])
@@ -48,9 +49,8 @@ def sani_cycle(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> SaniCycleResponse:
-    with session.begin():
-        _assert_chart_owner(session, chart_id, current_user)
-        return get_sani_cycle(session, chart_id, date)
+    _assert_chart_owner(session, chart_id, current_user)
+    return get_sani_cycle(session, chart_id, date)
 
 
 @router.get("/charts/{chart_id}/transits/major", response_model=TransitSnapshotResponse, tags=["transits"])
@@ -60,6 +60,28 @@ def major_transits(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> TransitSnapshotResponse:
-    with session.begin():
-        _assert_chart_owner(session, chart_id, current_user)
-        return get_major_transits(session, chart_id, datetime)
+    _assert_chart_owner(session, chart_id, current_user)
+    return get_major_transits(session, chart_id, datetime)
+
+
+@router.get("/charts/{chart_id}/peyarchi", response_model=PeyarchiSummaryResponse, tags=["transits"])
+def peyarchi_summary(
+    chart_id: UUID,
+    as_of: date = Query(alias="as_of"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> PeyarchiSummaryResponse:
+    _assert_chart_owner(session, chart_id, current_user)
+    return get_peyarchi_summary(session, chart_id, as_of=as_of)
+
+
+@router.get("/charts/{chart_id}/peyarchi/upcoming", response_model=PeyarchiSummaryResponse, tags=["transits"])
+def peyarchi_upcoming(
+    chart_id: UUID,
+    as_of: date = Query(alias="as_of"),
+    window_days: int = Query(default=30, alias="window_days", ge=1, le=120),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> PeyarchiSummaryResponse:
+    _assert_chart_owner(session, chart_id, current_user)
+    return get_peyarchi_summary(session, chart_id, as_of=as_of, window_days=window_days)

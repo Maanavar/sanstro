@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "jothidam-ai"
 version = "0.1.0"
-description = "Jothidam.AI MVP 1 backend foundation"
+description = "Vinaadi AI MVP 1 backend foundation"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -17,7 +17,11 @@ dependencies = [
   "pyswisseph>=2.10.3.2; python_version < '3.14'",
   "swisseph-ffi>=1.0.0; python_version >= '3.14'",
   "python-jose[cryptography]>=3.3,<4.0",
-  "passlib[bcrypt]>=1.7,<2.0"
+  "cryptography>=42.0",
+  "bcrypt>=4.1",
+  "passlib[bcrypt]>=1.7,<2.0",
+  "psycopg2-binary>=2.9,<3.0",
+  "apscheduler>=3.10,<4.0"
 ]
 
 [project.optional-dependencies]

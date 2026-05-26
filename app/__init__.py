@@ -1,1 +1,1 @@
-"""Jothidam.AI backend application package."""
+"""Vinaadi AI backend application package."""

@@ -30,6 +30,7 @@ from app.calculations.dasha import (
     calculate_opening_dasha,
     calculate_vimshottari_timeline,
 )
+from app.calculations.d9_chart import D9Body, D9Snapshot, calculate_d9_chart
 from app.calculations.transits import (
     GRAHA_LABELS,
     MAJOR_GRAHAS,
@@ -44,8 +45,11 @@ from app.calculations.transits import (
 __all__ = [
     "EphemerisBody",
     "EphemerisSnapshot",
+    "D9Body",
+    "D9Snapshot",
     "calculate_sidereal_planets",
     "calculate_lagna_degree",
+    "calculate_d9_chart",
     "calculate_rise_transit_jd",
     "calculate_opening_dasha",
     "calculate_vimshottari_timeline",

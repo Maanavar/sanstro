@@ -13,14 +13,16 @@ router = APIRouter()
 @router.get("/panchangam/daily", response_model=PanchangamDailyResponse, tags=["panchangam"])
 def get_daily_panchangam(
     query: PanchangamDailyQuery = Depends(),
+    session: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> PanchangamDailyResponse:
-    return calculate_panchangam(query)
+    return calculate_panchangam(query, session)
 
 
 @router.get("/panchangam/timings", response_model=PanchangamTimingsResponse, tags=["panchangam"])
 def get_panchangam_timings(
     query: PanchangamDailyQuery = Depends(),
+    session: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> PanchangamTimingsResponse:
-    return calculate_panchangam_timings(query)
+    return calculate_panchangam_timings(query, session)

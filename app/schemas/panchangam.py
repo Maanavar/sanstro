@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -32,7 +32,7 @@ class PanchangamTithi(BaseModel):
     number: int
     name: str
     paksha: Literal["SHUKLA", "KRISHNA"]
-    ends_at: datetime = Field(alias="endsAt")
+    ends_at: str = Field(alias="endsAt")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -40,7 +40,7 @@ class PanchangamTithi(BaseModel):
 class PanchangamNakshatra(BaseModel):
     name: str
     pada: int
-    ends_at: datetime = Field(alias="endsAt")
+    ends_at: str = Field(alias="endsAt")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -64,6 +64,7 @@ class PanchangamKalam(BaseModel):
     rahu_kalam: PanchangamSlot = Field(alias="rahuKalam")
     yamagandam: PanchangamSlot
     kuligai: PanchangamSlot
+    nalla_neram: PanchangamSlot = Field(alias="nallaNeram")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -86,9 +87,9 @@ class PanchangamHoraEntry(BaseModel):
 class PanchangamDailyResponseData(BaseModel):
     date_local: date = Field(alias="dateLocal")
     location: PanchangamLocation
-    sunrise: datetime
-    sunset: datetime
-    solar_noon: datetime = Field(alias="solarNoon")
+    sunrise: str
+    sunset: str
+    solar_noon: str = Field(alias="solarNoon")
     vara: PanchangamVara
     tithi: PanchangamTithi
     nakshatra: PanchangamNakshatra
@@ -119,9 +120,9 @@ class PanchangamDailyResponse(BaseModel):
 class PanchangamTimingsData(BaseModel):
     date_local: date = Field(alias="dateLocal")
     location: PanchangamLocation
-    sunrise: datetime
-    sunset: datetime
-    solar_noon: datetime = Field(alias="solarNoon")
+    sunrise: str
+    sunset: str
+    solar_noon: str = Field(alias="solarNoon")
     kalam: PanchangamKalam
     abhijit: PanchangamAbhijit
     hora: list[PanchangamHoraEntry]

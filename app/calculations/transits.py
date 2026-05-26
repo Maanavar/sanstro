@@ -1,18 +1,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any, Mapping
+
+from app.calculations.ephemeris import EphemerisSnapshot
 
 from app.calculations.astro import degree_in_rasi, house_from_reference, normalize_longitude
 
 RASI_NAMES = {
     1: "MESHAM",
     2: "RISHABAM",
-    3: "MIDHUNAM",
+    3: "MITHUNAM",
     4: "KADAGAM",
     5: "SIMMAM",
     6: "KANNI",
-    7: "THULAAM",
-    8: "VRICHIGAM",
+    7: "THULAM",
+    8: "VIRUCHIGAM",
     9: "DHANUSU",
     10: "MAGARAM",
     11: "KUMBAM",
@@ -144,8 +147,77 @@ def classify_kandaka_cycle(position_from_lagna: int) -> CycleAssessment:
     return CycleAssessment(type=None, is_active=False)
 
 
+# Spec §6.5 — Vedha table: for a planet in the good_house key, the value is the blocking house.
+# When another planet simultaneously occupies the blocking house, the transit benefit is cancelled.
+VEDHA_TABLE: dict[str, dict[int, int]] = {
+    "SUN":     {3: 9, 6: 12, 10: 4, 11: 5},
+    "MOON":    {1: 5, 3: 9, 6: 12, 7: 2, 10: 4, 11: 8},
+    "JUPITER": {2: 12, 5: 4, 7: 3, 9: 10, 11: 8},
+    "SATURN":  {3: 12, 6: 9, 11: 5},
+}
+
+
+def check_vedha(
+    planet: str,
+    house_from_moon: int,
+    all_transit_houses: dict[str, int],
+) -> bool:
+    """
+    Returns True if any other transiting planet occupies the Vedha (blocking) house
+    for this planet's current position, per spec §6.5.
+    """
+    vedha_house = VEDHA_TABLE.get(planet, {}).get(house_from_moon)
+    if vedha_house is None:
+        return False
+    for other_planet, other_house in all_transit_houses.items():
+        if other_planet != planet and other_house == vedha_house:
+            return True
+    return False
+
+
 def transit_interpretation_key(graha: str, house_from_moon: int) -> str:
     return f"{graha}_FROM_MOON_{house_from_moon}"
+
+
+def get_jupiter_aspects(transit_rasi: int) -> list[int]:
+    return [
+        ((transit_rasi - 1 + 4) % 12) + 1,
+        ((transit_rasi - 1 + 6) % 12) + 1,
+        ((transit_rasi - 1 + 8) % 12) + 1,
+    ]
+
+
+def get_saturn_aspects(transit_rasi: int) -> list[int]:
+    return [
+        ((transit_rasi - 1 + 2) % 12) + 1,
+        ((transit_rasi - 1 + 6) % 12) + 1,
+        ((transit_rasi - 1 + 9) % 12) + 1,
+    ]
+
+
+def _extract_natal_rasi(natal_position: Any) -> int:
+    if isinstance(natal_position, Mapping):
+        if "rasi" in natal_position:
+            return int(natal_position["rasi"])
+    if hasattr(natal_position, "rasi"):
+        return int(natal_position.rasi)
+    raise ValueError("natal position must expose 'rasi'")
+
+
+def planets_transited_by(
+    transit_snapshot: EphemerisSnapshot,
+    natal_planets: Mapping[str, Any],
+) -> dict[str, list[str]]:
+    transited: dict[str, list[str]] = {}
+    for natal_name, natal_position in natal_planets.items():
+        natal_rasi = _extract_natal_rasi(natal_position)
+        transiting_grahas = [
+            graha
+            for graha, body in transit_snapshot.bodies.items()
+            if body.rasi == natal_rasi
+        ]
+        transited[natal_name] = transiting_grahas
+    return transited
 
 
 def build_transit_position(

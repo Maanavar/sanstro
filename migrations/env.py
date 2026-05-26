@@ -1,7 +1,7 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import create_engine, engine_from_config, pool
 
 from app.core.config import get_settings
 from app.db.base import Base
@@ -12,7 +12,12 @@ import app.models  # noqa: F401  # Ensure model tables are registered on Base.me
 config = context.config
 
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# Set URL only for offline mode / logging — online mode creates the engine directly
+# to avoid configparser percent-encoding issues with special chars in passwords.
+try:
+    config.set_main_option("sqlalchemy.url", settings.database_url)
+except ValueError:
+    pass
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -58,11 +63,7 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    connectable = create_engine(settings.database_url, poolclass=pool.NullPool)
 
     with connectable.connect() as connection:
         context.configure(

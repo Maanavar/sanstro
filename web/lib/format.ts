@@ -23,7 +23,17 @@ export function formatDateLabel(isoDate: string): string {
 }
 
 export function formatClockLabel(value: string): string {
-  return value.slice(0, 5);
+  // Accept "HH:MM", "HH:MM:SS", or ISO datetime and normalize to "HH:MM" (24-hour).
+  const timePart = value.includes("T") ? value.split("T")[1] : value;
+  const [hhStr = "", mmStr = "00"] = timePart.split(":");
+  const hh = Number.parseInt(hhStr, 10);
+  const mm = Number.parseInt(mmStr, 10);
+  if (!Number.isFinite(hh) || !Number.isFinite(mm)) {
+    return value.slice(0, 5);
+  }
+  const normalizedHour = ((hh % 24) + 24) % 24;
+  const normalizedMinute = ((mm % 60) + 60) % 60;
+  return `${String(normalizedHour).padStart(2, "0")}:${String(normalizedMinute).padStart(2, "0")}`;
 }
 
 export function getScoreBand(score: number): ScoreBand {
@@ -41,4 +51,3 @@ export function getScoreBand(score: number): ScoreBand {
   }
   return { label: "restorative", tone: "rest" };
 }
-

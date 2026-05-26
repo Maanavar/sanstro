@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Jothidam.AI API
+  title: Vinaadi AI API
   version: 1.0.0
   description: MVP API for Thirukanitham Tamil astrology companion with Family Aggregate Fortune in MVP 1.
 servers:
@@ -315,6 +315,8 @@ paths:
   /notifications/preview:
     post:
       summary: Preview notification triggers for a date
+      x-status: deferred
+      description: Deferred in MVP 1. Keep path reserved for MVP 2 notification simulation.
       responses:
         '200': { description: Notification preview }
   /qa/validate-golden-case:
@@ -322,3 +324,225 @@ paths:
       summary: Validate engine against a golden case
       responses:
         '200': { description: QA result }
+  /health:
+    get:
+      summary: Service health check
+      responses:
+        '200': { description: Health status }
+  /auth/register:
+    post:
+      summary: Register a user and create auth cookie session
+      responses:
+        '200': { description: User registered }
+  /auth/login:
+    post:
+      summary: Login and create auth cookie session
+      responses:
+        '200': { description: Login success }
+  /auth/logout:
+    post:
+      summary: Logout and clear auth cookie session
+      responses:
+        '204': { description: Logged out }
+  /auth/me:
+    get:
+      summary: Get current authenticated user session
+      responses:
+        '200': { description: Current user }
+  /auth/forgot-password:
+    post:
+      summary: Request password reset email
+      responses:
+        '200': { description: Reset request accepted }
+  /context:
+    post:
+      summary: Save current user context signal for daily guidance
+      responses:
+        '200': { description: Context saved }
+    get:
+      summary: Fetch current active context signal
+      responses:
+        '200': { description: Context data }
+  /decisions/brief:
+    post:
+      summary: Decision support brief using triple-confirmation logic
+      responses:
+        '200': { description: Decision brief }
+  /feedback:
+    post:
+      summary: Submit in-app feedback
+      responses:
+        '200': { description: Feedback received }
+    get:
+      summary: List submitted feedback (admin)
+      responses:
+        '200': { description: Feedback list }
+  /journal:
+    post:
+      summary: Create journal entry
+      responses:
+        '200': { description: Journal entry created }
+    get:
+      summary: List journal entries
+      responses:
+        '200': { description: Journal entries }
+  /journal/{journalId}:
+    patch:
+      summary: Update journal entry
+      parameters:
+        - in: path
+          name: journalId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Journal entry updated }
+    delete:
+      summary: Soft-delete journal entry
+      parameters:
+        - in: path
+          name: journalId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Journal entry deleted }
+  /journal/retention/apply:
+    post:
+      summary: Apply journal retention policy now
+      responses:
+        '200': { description: Retention applied }
+  /journal/prompts:
+    get:
+      summary: Fetch contextual journal prompts
+      responses:
+        '200': { description: Prompts response }
+  /journal/export:
+    get:
+      summary: Export journal entries
+      responses:
+        '200': { description: Journal export }
+  /goals:
+    post:
+      summary: Add an active user goal
+      responses:
+        '200': { description: Goal added }
+    get:
+      summary: List active goals for chart
+      responses:
+        '200': { description: Goal list }
+  /goals/{goalId}:
+    delete:
+      summary: Deactivate an active goal
+      parameters:
+        - in: path
+          name: goalId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Goal deactivated }
+  /charts/{chartId}/life-areas:
+    get:
+      summary: Get life-area scores and narrative
+      parameters:
+        - in: path
+          name: chartId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Life area response }
+  /whatif:
+    post:
+      summary: Run what-if simulation for a target date and scenario
+      responses:
+        '200': { description: What-if response }
+  /relationships/alerts:
+    get:
+      summary: List relationship-based ambient alerts for a family vault
+      responses:
+        '200': { description: Relationship alerts }
+  /relationships/{memberId}/synastry:
+    get:
+      summary: Compute synastry snapshot with selected member
+      parameters:
+        - in: path
+          name: memberId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Synastry response }
+  /retrospective:
+    post:
+      summary: Create retrospective entry from past event
+      responses:
+        '200': { description: Retrospective created }
+    get:
+      summary: List retrospectives for chart
+      responses:
+        '200': { description: Retrospective list }
+  /retrospective/{retrospectiveId}:
+    get:
+      summary: Get retrospective by id
+      parameters:
+        - in: path
+          name: retrospectiveId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Retrospective response }
+  /settings/journal:
+    get:
+      summary: Get journal retention settings
+      responses:
+        '200': { description: Journal settings }
+    patch:
+      summary: Update journal retention settings
+      responses:
+        '200': { description: Journal settings updated }
+  /alerts/ambient:
+    get:
+      summary: List ambient alerts (Peyarchi and relationship)
+      responses:
+        '200': { description: Ambient alerts }
+  /charts/{chartId}/peyarchi:
+    get:
+      summary: Get upcoming peyarchi events for chart
+      parameters:
+        - in: path
+          name: chartId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Peyarchi events }
+  /charts/{chartId}/peyarchi/upcoming:
+    get:
+      summary: Get peyarchi events within request window
+      parameters:
+        - in: path
+          name: chartId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Upcoming peyarchi events }
+  /qa/validate:
+    get:
+      summary: Run full internal golden regression suite
+      responses:
+        '200': { description: QA validation report }
+  /qa/regressions:
+    get:
+      summary: List stored regression failures
+      responses:
+        '200': { description: Regression report }
+    delete:
+      summary: Clear all stored regression failures
+      responses:
+        '200': { description: Regression store cleared }
+  /qa/regressions/{testId}:
+    delete:
+      summary: Clear one stored regression failure
+      parameters:
+        - in: path
+          name: testId
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Regression cleared }

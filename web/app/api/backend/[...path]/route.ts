@@ -20,12 +20,23 @@ async function proxyRequest(request: NextRequest, method: string, path: string[]
     init.body = await request.text();
   }
 
-  const response = await fetch(target, init);
+  let response: Response;
+  try {
+    response = await fetch(target, init);
+  } catch {
+    return new NextResponse(JSON.stringify({ detail: "Backend unreachable" }), {
+      status: 502,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
   const responseBody = await response.arrayBuffer();
-  const responseHeaders = new Headers();
-  const contentType = response.headers.get("content-type");
-  if (contentType) {
-    responseHeaders.set("content-type", contentType);
+  const responseHeaders = new Headers(response.headers);
+
+  // Ensure Tamil/Unicode text is never mis-decoded as Latin-1 by the browser
+  const ct = responseHeaders.get("content-type") ?? "";
+  if (ct.includes("application/json") && !ct.includes("charset")) {
+    responseHeaders.set("content-type", "application/json; charset=utf-8");
   }
 
   return new NextResponse(responseBody, {

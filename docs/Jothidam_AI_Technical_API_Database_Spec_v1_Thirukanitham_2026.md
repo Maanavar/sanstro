@@ -1,5 +1,5 @@
 
-# Jothidam.AI Technical API & Database Specification
+# Vinaadi AI Technical API & Database Specification
 
 **Version:** v1.0  
 **Date:** May 21, 2026  
@@ -673,7 +673,7 @@ This is included in MVP 1.
         "type": "MORNING_PANCHANGAM",
         "priority": 50,
         "sendAtLocal": "2026-05-21T06:00:00+05:30",
-        "title": "Today’s Jothidam Guide",
+        "title": "Today’s Vinaadi Guide",
         "body": "Your family day is supportive but mixed. Best window: 11:49–12:37."
       }
     ],

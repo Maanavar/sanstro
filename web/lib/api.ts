@@ -1,28 +1,5 @@
 const BACKEND_PREFIX = "/api/backend";
 
-// ── Token store ───────────────────────────────────────────────────────────────
-// Token is written by the auth flow (sign-in page / Supabase callback) and
-// read here so every API call is automatically authenticated.
-
-const TOKEN_KEY = "jothidam_access_token";
-
-export function setAuthToken(token: string): void {
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(TOKEN_KEY, token);
-  }
-}
-
-export function getAuthToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(TOKEN_KEY);
-}
-
-export function clearAuthToken(): void {
-  if (typeof window !== "undefined") {
-    window.localStorage.removeItem(TOKEN_KEY);
-  }
-}
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 export function toQuery(params: Record<string, string | number | boolean | undefined | null>) {
@@ -38,18 +15,13 @@ export function toQuery(params: Record<string, string | number | boolean | undef
 }
 
 export async function apiFetchJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getAuthToken();
-  const authHeaders: Record<string, string> = token
-    ? { Authorization: `Bearer ${token}` }
-    : {};
-
   let response: Response;
   try {
     response = await fetch(`${BACKEND_PREFIX}${path}`, {
       ...init,
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        ...authHeaders,
         ...(init?.headers ?? {}),
       },
     });

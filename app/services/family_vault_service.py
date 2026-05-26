@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
@@ -27,6 +27,7 @@ from app.schemas.family_vaults import (
     FamilyMemberCreateResponse,
     FamilyMemberCreateResult,
     FamilyMemberData,
+    FamilyMemberDayView,
     FamilyMemberListData,
     FamilyMemberListResponse,
     FamilyMemberResponse,
@@ -39,6 +40,8 @@ from app.schemas.family_vaults import (
     FamilyVaultListData,
     FamilyVaultListItem,
     FamilyVaultListResponse,
+    FamilyVaultTodayData,
+    FamilyVaultTodayResponse,
     FamilySummaryData,
     FamilySummaryResponse,
 )
@@ -47,7 +50,7 @@ from app.services.chart_service import load_persisted_chart_response
 from app.services.daily_guidance_service import build_daily_guidance_response
 from app.services.transit_service import build_sani_cycle_response, build_transit_snapshot
 
-DEFAULT_CALCULATION_VERSION = "thirukanitham-2026-v1"
+DEFAULT_CALCULATION_VERSION = "jothidam-formula-engine-v1.1-2026"
 MAJOR_SANI_TAGS = {"JANMA_SANI", "ARDHASHTAMA_SANI", "ASHTAMA_SANI", "KANTAKA_SANI", "KANDAKA_SANI"}
 SUPPORTIVE_HORA_TAGS = {"JUPITER_HORA", "VENUS_HORA", "MERCURY_HORA"}
 
@@ -65,8 +68,10 @@ class _MemberSnapshot:
 
 def _ensure_user(session: Session, owner_user_id: UUID) -> None:
     if session.get(User, owner_user_id) is None:
-        session.add(User(user_id=owner_user_id, email=None))
-        session.flush()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Owner account not found for this session.",
+        )
 
 
 def _load_family_vault(session: Session, family_vault_id: UUID) -> FamilyVault:
@@ -80,14 +85,15 @@ def _member_weight(member: FamilyMember) -> float:
     if member.member_weight is not None:
         return float(member.member_weight)
 
-    # Default weights per Sprint 7 specification.
-    if member.relationship_to_owner in {"self", "spouse"}:
-        return 1.0
-    if member.relationship_to_owner == "child":
-        return 0.75
-    if member.relationship_to_owner in {"parent", "grandparent"}:
-        return 1.15
-    return 1.0
+    weights = {
+        "self": 1.0,
+        "spouse": 1.0,
+        "child": 0.75,
+        "parent": 1.15,
+        "grandparent": 1.15,
+        "sibling": 0.75,
+    }
+    return weights.get(member.relationship_to_owner, 1.0)
 
 
 def _latest_birth_profile(session: Session, member: FamilyMember) -> BirthProfile:
@@ -112,6 +118,7 @@ def _latest_chart(session: Session, birth_profile: BirthProfile) -> Chart:
         select(Chart)
         .where(Chart.birth_profile_id == birth_profile.birth_profile_id, Chart.status == "completed")
         .order_by(Chart.created_at.desc())
+        .limit(1)
     ).scalar_one_or_none()
     if chart is not None:
         return chart
@@ -158,6 +165,7 @@ def _member_snapshot(session: Session, member: FamilyMember, on_date: date) -> _
         float(birth_profile.birth_latitude),
         float(birth_profile.birth_longitude),
         birth_profile.birth_timezone,
+        session=session,
     )
     solar_noon_utc = panchangam.solar_noon.astimezone(UTC)
     current_jd = utc_datetime_to_julian_day(solar_noon_utc)
@@ -185,6 +193,21 @@ def _member_snapshot(session: Session, member: FamilyMember, on_date: date) -> _
         sani_cycle=sani_cycle,
         panchangam=panchangam,
     )
+
+
+def _cached_member_snapshot(
+    session: Session,
+    member: FamilyMember,
+    on_date: date,
+    snapshot_cache: dict[tuple[UUID, date], _MemberSnapshot],
+) -> _MemberSnapshot:
+    key = (member.family_member_id, on_date)
+    cached = snapshot_cache.get(key)
+    if cached is not None:
+        return cached
+    snapshot = _member_snapshot(session, member, on_date)
+    snapshot_cache[key] = snapshot
+    return snapshot
 
 
 def _member_active_tags(snapshot: _MemberSnapshot) -> list[str]:
@@ -476,7 +499,12 @@ def _persist_family_daily_score(
 
 
 def create_family_vault(session: Session, payload: FamilyVaultCreate, *, calculation_version: str = DEFAULT_CALCULATION_VERSION) -> FamilyVaultCreateResponse:
-    owner_user_id = payload.owner_user_id or uuid4()
+    owner_user_id = payload.owner_user_id
+    if owner_user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="ownerUserId is required for family vault creation.",
+        )
     _ensure_user(session, owner_user_id)
     now = datetime.now(tz=UTC)
 
@@ -704,6 +732,7 @@ def get_family_daily_aggregate(
     on_date: date,
     *,
     calculation_version: str = DEFAULT_CALCULATION_VERSION,
+    snapshot_cache: dict[tuple[UUID, date], _MemberSnapshot] | None = None,
 ) -> FamilyAggregateResponse:
     family_vault = _load_family_vault(session, family_vault_id)
     family_members = session.execute(
@@ -717,7 +746,11 @@ def get_family_daily_aggregate(
     if not family_members:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Family vault has no members.")
 
-    member_snapshots = [_member_snapshot(session, member, on_date) for member in family_members]
+    request_cache = snapshot_cache if snapshot_cache is not None else {}
+    member_snapshots = [
+        _cached_member_snapshot(session, member, on_date, request_cache)
+        for member in family_members
+    ]
     member_summaries = [_member_response(snapshot) for snapshot in member_snapshots]
     best_family_windows = _family_best_windows(member_snapshots)
     avoid_for_family_decisions = _family_avoid_windows(member_snapshots)
@@ -776,6 +809,7 @@ def get_family_summary(
         family_vault_id,
         on_date,
         calculation_version=calculation_version,
+        snapshot_cache={},
     )
     return FamilySummaryResponse(
         data=FamilySummaryData(
@@ -814,6 +848,7 @@ def get_family_calendar(
     _load_family_vault(session, family_vault_id)
 
     items: list[FamilyCalendarItem] = []
+    snapshot_cache: dict[tuple[UUID, date], _MemberSnapshot] = {}
     current = start_date
     while current <= end_date:
         aggregate = get_family_daily_aggregate(
@@ -821,6 +856,7 @@ def get_family_calendar(
             family_vault_id,
             current,
             calculation_version=calculation_version,
+            snapshot_cache=snapshot_cache,
         )
         items.append(
             FamilyCalendarItem(
@@ -1037,3 +1073,110 @@ def delete_family_member(
     for profile in profiles:
         profile.deleted_at = now
     session.flush()
+
+
+_SCORE_HIGHLIGHT: dict[str, dict[str, str]] = {
+    "STRONG_SUPPORT": {
+        "ta": "இன்று வலுவான நாள் — திட்டமிட்ட காரியங்களுக்கு ஏற்றது.",
+        "en": "Strong support day — ideal for planned tasks.",
+    },
+    "GOOD": {
+        "ta": "நல்ல ஆதரவு நாள் — திட்டமிட்டதை முன்னெடுக்கலாம்.",
+        "en": "Good day — move ahead with planned activities.",
+    },
+    "BALANCED": {
+        "ta": "நிலையான நாள் — படிப்படியாக செல்லுங்கள்.",
+        "en": "Steady day — proceed step by step.",
+    },
+    "CAUTION": {
+        "ta": "கவனம் தேவை — வழக்கமான பணிகளில் கவனம் செலுத்துங்கள்.",
+        "en": "Quieter day — focus on routine tasks.",
+    },
+    "RESTORATIVE": {
+        "ta": "ஓய்வு நாள் — புதிய முயற்சிகளை நாளை தொடங்குங்கள்.",
+        "en": "Restorative day — start fresh tomorrow.",
+    },
+}
+
+
+def get_family_vault_today(
+    session: Session,
+    family_vault_id: UUID,
+    on_date: date,
+    *,
+    calculation_version: str = DEFAULT_CALCULATION_VERSION,
+) -> FamilyVaultTodayResponse:
+    """
+    FEATURE-04: Combined today view for all members in a family vault.
+    Calls the existing score engine for each member and assembles a concise per-member card.
+    """
+    _load_family_vault(session, family_vault_id)
+
+    members = session.execute(
+        select(FamilyMember)
+        .where(
+            FamilyMember.family_vault_id == family_vault_id,
+            FamilyMember.deleted_at.is_(None),
+        )
+        .order_by(FamilyMember.created_at.asc())
+    ).scalars().all()
+
+    day_views: list[FamilyMemberDayView] = []
+    for member in members:
+        try:
+            snapshot = _member_snapshot(session, member, on_date)
+        except HTTPException:
+            continue
+
+        guidance = snapshot.daily_guidance
+        panchangam = snapshot.panchangam
+        sani = snapshot.sani_cycle
+        gochar = snapshot.gochar
+
+        score = guidance.data.score
+        label = guidance.data.label
+        highlight = _SCORE_HIGHLIGHT.get(label, _SCORE_HIGHLIGHT["BALANCED"])
+        sani_active = sani.data.moon_based_cycle.is_active or sani.data.lagna_based_cycle.is_active
+        sani_type = (
+            sani.data.moon_based_cycle.type
+            if sani.data.moon_based_cycle.is_active
+            else (sani.data.lagna_based_cycle.type if sani.data.lagna_based_cycle.is_active else None)
+        )
+
+        nalla_neram_start = "N/A"
+        if guidance.data.best_windows:
+            nalla_neram_start = guidance.data.best_windows[0].start
+
+        rahu_start = panchangam.rahu_kalam.start.strftime("%H:%M")
+        rahu_end = panchangam.rahu_kalam.end.strftime("%H:%M")
+
+        birth_profile = _latest_birth_profile(session, member)
+
+        day_views.append(FamilyMemberDayView(
+            profileId=birth_profile.birth_profile_id,
+            chartId=snapshot.chart_id,
+            name=member.display_name,
+            relationship=member.relationship_to_owner,
+            score=score,
+            label=label,
+            highlightTa=highlight["ta"],
+            highlightEn=highlight["en"],
+            chandrashtama=gochar.data.is_chandrashtama,
+            saniCycleActive=sani_active,
+            saniCycleType=sani_type,
+            nallaNeramStart=nalla_neram_start,
+            rahuKalamStart=rahu_start,
+            rahuKalamEnd=rahu_end,
+        ))
+
+    return FamilyVaultTodayResponse(
+        data=FamilyVaultTodayData(
+            vaultId=family_vault_id,
+            dateLocal=on_date,
+            members=day_views,
+        ),
+        meta=ResponseMeta(
+            calculation_version=calculation_version,
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )

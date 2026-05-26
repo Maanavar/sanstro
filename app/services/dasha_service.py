@@ -4,6 +4,7 @@ from datetime import UTC, date, datetime, time
 from typing import Literal
 from uuid import UUID
 
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import utc_datetime_to_julian_day, resolve_timezone
@@ -39,7 +40,25 @@ def _timeline_for_level(timeline, level: Literal["maha", "antar", "pratyantar", 
         return [_serialize_period(period) for period in timeline.mahadashas]
     if level == "antar":
         return [_serialize_period(period) for period in _build_subperiods(timeline.current_mahadasha, "antar")]
-    return [_serialize_period(period) for period in _build_subperiods(timeline.current_antardasha, "pratyantar")]
+    if level == "pratyantar":
+        return [_serialize_period(period) for period in _build_subperiods(timeline.current_antardasha, "pratyantar")]
+    if level == "sookshma":
+        return [_serialize_period(period) for period in _build_subperiods(timeline.current_pratyantardasha, "sookshma")]
+    if level == "prana":
+        return [_serialize_period(period) for period in _build_subperiods(timeline.current_sookshmadasha, "prana")]
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        detail={
+            "ta": (
+                f"'{level}' என்பது செல்லுபடியாகும் தசா நிலை அல்ல. "
+                "சரியான தேர்வுகள்: maha, antar, pratyantar, sookshma, prana."
+            ),
+            "en": (
+                f"Unknown dasha level '{level}'. "
+                "Valid: maha, antar, pratyantar, sookshma, prana."
+            ),
+        },
+    )
 
 
 def get_chart_dasha(

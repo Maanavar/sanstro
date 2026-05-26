@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Jothidam.AI",
+  title: "Vinaadi | Your Cosmic Copilot",
   description: "Tamil astrology daily companion for personal and family planning.",
 };
 

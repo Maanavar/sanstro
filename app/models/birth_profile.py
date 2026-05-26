@@ -38,7 +38,9 @@ class BirthProfile(TimestampMixin, Base):
     )
     privacy_mode: Mapped[str] = mapped_column(String(32), nullable=False, default="cloud", server_default=text("'cloud'"))
     encrypted_birth_payload: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    marital_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    employment_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     owner_user = relationship("User", back_populates="birth_profiles")
     family_member = relationship("FamilyMember", back_populates="birth_profiles")
-    charts = relationship("Chart", back_populates="birth_profile")
+    charts = relationship("Chart", back_populates="birth_profile", cascade="all, delete-orphan")

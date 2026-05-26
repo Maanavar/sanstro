@@ -20,9 +20,11 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_admin_user
+from app.core.config import get_settings
 from app.db.session import get_db
 from app.models import BirthProfile, Chart, FamilyMember, FamilyVault, User
 from app.models.family_daily_score import FamilyDailyScore
+from app.services.peyarchi_alert_service import daily_peyarchi_refresh
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -49,7 +51,22 @@ class AdminStats(BaseModel):
     as_of: str
 
 
+class PeyarchiRefreshResult(BaseModel):
+    charts_refreshed: int
+    notifications_marked: int
+    run_at_utc: str
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
+
+def _assert_admin_delete_enabled() -> None:
+    settings = get_settings()
+    if not settings.enable_admin_data_delete:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin data deletion is disabled. Set JOTHIDAM_ENABLE_ADMIN_DATA_DELETE=1 to enable.",
+        )
 
 
 @router.delete(
@@ -70,64 +87,65 @@ def delete_user_data(
     foreign-key references in audit logs. Only calculation and personal
     data is erased.
     """
-    with session.begin():
-        # Verify the user exists
-        user = session.get(User, owner_user_id)
-        if user is None:
-            raise HTTPException(status_code=404, detail=f"User '{owner_user_id}' not found.")
+    _assert_admin_delete_enabled()
 
-        # Count and delete family daily scores tied to vaults owned by this user
-        vault_ids = [
-            row[0]
-            for row in session.execute(
-                select(FamilyVault.family_vault_id).where(FamilyVault.owner_user_id == owner_user_id)
-            ).all()
-        ]
-        fds_deleted = 0
-        for vid in vault_ids:
-            rows = session.execute(
-                select(FamilyDailyScore).where(FamilyDailyScore.family_vault_id == vid)
-            ).scalars().all()
-            for row in rows:
-                session.delete(row)
-            fds_deleted += len(rows)
+    # Verify the user exists
+    user = session.get(User, owner_user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail=f"User '{owner_user_id}' not found.")
 
-        # Delete family members
-        members = session.execute(
-            select(FamilyMember).where(FamilyMember.owner_user_id == owner_user_id)
+    # Count and delete family daily scores tied to vaults owned by this user
+    vault_ids = [
+        row[0]
+        for row in session.execute(
+            select(FamilyVault.family_vault_id).where(FamilyVault.owner_user_id == owner_user_id)
+        ).all()
+    ]
+    fds_deleted = 0
+    for vid in vault_ids:
+        rows = session.execute(
+            select(FamilyDailyScore).where(FamilyDailyScore.family_vault_id == vid)
         ).scalars().all()
-        for m in members:
-            session.delete(m)
+        for row in rows:
+            session.delete(row)
+        fds_deleted += len(rows)
 
-        # Delete family vaults
-        vaults = session.execute(
-            select(FamilyVault).where(FamilyVault.owner_user_id == owner_user_id)
+    # Delete family members
+    members = session.execute(
+        select(FamilyMember).where(FamilyMember.owner_user_id == owner_user_id)
+    ).scalars().all()
+    for m in members:
+        session.delete(m)
+
+    # Delete family vaults
+    vaults = session.execute(
+        select(FamilyVault).where(FamilyVault.owner_user_id == owner_user_id)
+    ).scalars().all()
+    for v in vaults:
+        session.delete(v)
+
+    # Delete charts linked to user's birth profiles
+    profile_ids = [
+        row[0]
+        for row in session.execute(
+            select(BirthProfile.birth_profile_id).where(BirthProfile.owner_user_id == owner_user_id)
+        ).all()
+    ]
+    charts_deleted = 0
+    for pid in profile_ids:
+        charts = session.execute(
+            select(Chart).where(Chart.birth_profile_id == pid)
         ).scalars().all()
-        for v in vaults:
-            session.delete(v)
+        for c in charts:
+            session.delete(c)
+        charts_deleted += len(charts)
 
-        # Delete charts linked to user's birth profiles
-        profile_ids = [
-            row[0]
-            for row in session.execute(
-                select(BirthProfile.birth_profile_id).where(BirthProfile.owner_user_id == owner_user_id)
-            ).all()
-        ]
-        charts_deleted = 0
-        for pid in profile_ids:
-            charts = session.execute(
-                select(Chart).where(Chart.birth_profile_id == pid)
-            ).scalars().all()
-            for c in charts:
-                session.delete(c)
-            charts_deleted += len(charts)
-
-        # Delete birth profiles
-        profiles = session.execute(
-            select(BirthProfile).where(BirthProfile.owner_user_id == owner_user_id)
-        ).scalars().all()
-        for p in profiles:
-            session.delete(p)
+    # Delete birth profiles
+    profiles = session.execute(
+        select(BirthProfile).where(BirthProfile.owner_user_id == owner_user_id)
+    ).scalars().all()
+    for p in profiles:
+        session.delete(p)
 
     return DataDeletionResult(
         owner_user_id=str(owner_user_id),
@@ -160,4 +178,19 @@ def get_admin_stats(session: Session = Depends(get_db), _: User = Depends(get_ad
         total_family_vaults=count(FamilyVault),
         total_family_members=count(FamilyMember),
         as_of=datetime.now(UTC).isoformat(),
+    )
+
+
+@router.post(
+    "/run-peyarchi-refresh",
+    response_model=PeyarchiRefreshResult,
+    summary="Run peyarchi alert refresh and notification marking now",
+)
+def run_peyarchi_refresh_now(_: User = Depends(get_admin_user)) -> PeyarchiRefreshResult:
+    run_at = datetime.now(UTC)
+    result = daily_peyarchi_refresh(run_at_utc=run_at)
+    return PeyarchiRefreshResult(
+        charts_refreshed=result["charts_refreshed"],
+        notifications_marked=result["notifications_marked"],
+        run_at_utc=run_at.isoformat(),
     )

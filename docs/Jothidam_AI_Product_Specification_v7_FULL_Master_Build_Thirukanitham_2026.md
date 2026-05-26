@@ -1,6 +1,6 @@
-# Jothidam.AI Product Specification v7.0 — Full Master Build 2026
+# Vinaadi AI Product Specification v7.0 — Full Master Build 2026
 
-| JOTHIDAM.AI Tamil Astrology Personal Life Companion Powered by Thirukanitham / Drik Ganita \| Astronomically precise. Tamil-first. Lifelong. |
+| VINAADI AI Tamil Astrology Personal Life Companion Powered by Thirukanitham / Drik Ganita \| Astronomically precise. Tamil-first. Lifelong. |
 | --- |
 
 | 20 Modules | Live Data | 0-100 Life Guide | Tamil Astrology |
@@ -21,7 +21,7 @@ Version 7 additions: complete calculation manual attached; QA cases attached; co
 
 ## 1. Product Vision
 
-| Core Mission Jothidam.AI is a lifelong Tamil astrology companion — not a prediction engine, not a fear tool. It is a calm, knowledgeable personal guide rooted exclusively in Thirukanitham (Thirukanitham / Drik Ganita Tamil Jyothidam) that accompanies every person from birth to old age, giving them timely, relevant, and rational guidance based on the movement of planets and the individual's unique chart. |
+| Core Mission Vinaadi AI is a lifelong Tamil astrology companion — not a prediction engine, not a fear tool. It is a calm, knowledgeable personal guide rooted exclusively in Thirukanitham (Thirukanitham / Drik Ganita Tamil Jyothidam) that accompanies every person from birth to old age, giving them timely, relevant, and rational guidance based on the movement of planets and the individual's unique chart. |
 | --- |
 
 ### 1.1 The Problem We Solve
@@ -1263,7 +1263,7 @@ Local-only privacy mode
 
 ## What Makes This Different
 
-| Feature | Typical Apps | Jothidam.AI |
+| Feature | Typical Apps | Vinaadi AI |
 | --- | --- | --- |
 | Astrology System | Mixed / Generic Vedic | Thirukanitham-only — no mixing |
 | Tone & Philosophy | Fear-based, fatalistic | Astronomically precise, supportive, preventive |
@@ -1357,12 +1357,12 @@ Total: approximately 2,500+ base interpretation entries — all Tamil-first
 | M19 | Tamil Calendar | All major festivals with personal chart significance mapped |
 | M20 | Shadbala Engine | 6-factor planetary strength — drives worship + Dasha quality |
 
-| The Promise of Jothidam.AI A person born today will open this app as a child (guided by parents), use it as a student (course guidance), navigate career and marriage with it, raise their family through it, and find reflective wisdom in elder years — all guided by the same system, the same chart, in their own language. Thirukanitham. Tamil. Lifelong. Astronomically precise. |
+| The Promise of Vinaadi AI A person born today will open this app as a child (guided by parents), use it as a student (course guidance), navigate career and marriage with it, raise their family through it, and find reflective wisdom in elder years — all guided by the same system, the same chart, in their own language. Thirukanitham. Tamil. Lifelong. Astronomically precise. |
 | --- |
 
 — END OF SPECIFICATION —
 
-Jothidam.AI  |  Final Product Specification v3.0
+Vinaadi AI  |  Final Product Specification v3.0
 
 | PART 8 — CALCULATION METHODOLOGY ADDENDUM |
 | --- |
@@ -3352,10 +3352,10 @@ No user-facing prediction should be implemented from prose alone.
 
 # PART 9 — FORMULA ENGINE SPECIFICATION v1
 
-**Project:** Jothidam.AI - Tamil Astrology Personal Life Companion  
+**Project:** Vinaadi AI - Tamil Astrology Personal Life Companion  
 **Version:** v1.0 - Thirukanitham / Drik Ganita Calculation Manual  
 **Prepared for:** 2026 product build  
-**Purpose:** Developer-ready formulas, algorithms, scoring rules, data contracts, and QA requirements for the Jothidam.AI engine.
+**Purpose:** Developer-ready formulas, algorithms, scoring rules, data contracts, and QA requirements for the Vinaadi AI engine.
 
 ---
 
@@ -3571,7 +3571,7 @@ lagna_degree = ascmc[0] % 360
 lagna_rasi = rasi_from_degree(lagna_degree)
 ```
 
-Important: even if the library uses a house system to return cusps, Jothidam.AI uses the ascendant degree only. Production D1 houses are whole-sign:
+Important: even if the library uses a house system to return cusps, Vinaadi AI uses the ascendant degree only. Production D1 houses are whole-sign:
 
 ```python
 planet_house = house_from(lagna_rasi, planet_rasi)
@@ -4011,13 +4011,13 @@ slot_end = slot_start + slot_size
 
 | Day | Rahu | Yama | Kuligai |
 |---|---:|---:|---:|
-| Sunday | 8 | 5 | 3 |
-| Monday | 2 | 4 | 1 |
-| Tuesday | 7 | 3 | 6 |
+| Sunday | 8 | 5 | 7 |
+| Monday | 2 | 4 | 6 |
+| Tuesday | 7 | 3 | 5 |
 | Wednesday | 5 | 2 | 4 |
-| Thursday | 6 | 1 | 7 |
-| Friday | 4 | 7 | 5 |
-| Saturday | 3 | 6 | 2 |
+| Thursday | 6 | 1 | 3 |
+| Friday | 4 | 7 | 2 |
+| Saturday | 3 | 6 | 1 |
 
 ### 4.9 Abhijit Muhurtham
 
@@ -5125,7 +5125,7 @@ The platform must never hide uncertainty. If a value depends on approximate birt
 
 **Correct output style:**
 
-> This result is calculated using Lahiri sidereal positions and the Jothidam.AI Formula Engine v1.0. Birth time confidence is +/- 15 minutes, so Lagna-sensitive results should be treated as moderate confidence.
+> This result is calculated using Lahiri sidereal positions and the Vinaadi AI Formula Engine v1.0. Birth time confidence is +/- 15 minutes, so Lagna-sensitive results should be treated as moderate confidence.
 
 ---
 
@@ -5611,4 +5611,4 @@ For product engineering, this v7 specification is authoritative for architecture
 
 # END OF V7 MASTER BUILD
 
-Jothidam.AI | Product Specification v7.0 | Full Master Build 2026 | Thirukanitham / Drik Ganita | Tamil Jyothidam
+Vinaadi AI | Product Specification v7.0 | Full Master Build 2026 | Thirukanitham / Drik Ganita | Tamil Jyothidam

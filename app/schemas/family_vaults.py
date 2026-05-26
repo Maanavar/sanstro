@@ -280,3 +280,38 @@ class FamilyCalendarResponse(BaseModel):
     meta: ResponseMeta
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class FamilyMemberDayView(BaseModel):
+    profile_id: UUID = Field(alias="profileId")
+    chart_id: UUID = Field(alias="chartId")
+    name: str
+    relationship: str
+    score: int
+    label: str
+    highlight_ta: str = Field(alias="highlightTa")
+    highlight_en: str = Field(alias="highlightEn")
+    chandrashtama: bool
+    sani_cycle_active: bool = Field(alias="saniCycleActive")
+    sani_cycle_type: str | None = Field(default=None, alias="saniCycleType")
+    nalla_neram_start: str = Field(alias="nallaNeramStart")
+    rahu_kalam_start: str = Field(alias="rahuKalamStart")
+    rahu_kalam_end: str = Field(alias="rahuKalamEnd")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class FamilyVaultTodayData(BaseModel):
+    vault_id: UUID = Field(alias="vaultId")
+    date_local: date = Field(alias="dateLocal")
+    members: list[FamilyMemberDayView]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class FamilyVaultTodayResponse(BaseModel):
+    success: bool = True
+    data: FamilyVaultTodayData
+    meta: ResponseMeta
+
+    model_config = ConfigDict(populate_by_name=True)

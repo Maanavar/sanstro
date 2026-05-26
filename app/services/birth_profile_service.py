@@ -4,9 +4,10 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from sqlalchemy import case, select
 from sqlalchemy.orm import Session
 
-from app.models import BirthProfile
+from app.models import BirthProfile, FamilyMember
 from app.schemas.birth_profiles import BirthProfileCreate, BirthProfileCreateResult, BirthProfileGetResponse, BirthProfileResponse, BirthProfileResponseMeta
 from app.services.chart_service import calculate_chart_for_persisted_profile, create_birth_profile_record, _warning_messages
 
@@ -38,7 +39,7 @@ def create_birth_profile(session: Session, payload: BirthProfileCreate, *, calcu
 
 def get_birth_profile(session: Session, birth_profile_id: UUID, *, calculation_version: str) -> BirthProfileGetResponse:
     birth_profile = session.get(BirthProfile, birth_profile_id)
-    if birth_profile is None:
+    if birth_profile is None or birth_profile.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
 
     family_member = birth_profile.family_member
@@ -65,6 +66,8 @@ def get_birth_profile(session: Session, birth_profile_id: UUID, *, calculation_v
             calculate_now=False,
             language_preference="ta-en",
             gender_for_traditional_rules=None,
+            marital_status=birth_profile.marital_status,
+            employment_type=birth_profile.employment_type,
             birth_datetime_utc=birth_profile.birth_datetime_utc,
             calculation_status="completed" if birth_profile.birth_datetime_utc is not None else "pending",
             warnings=_warning_messages(birth_profile),
@@ -74,3 +77,39 @@ def get_birth_profile(session: Session, birth_profile_id: UUID, *, calculation_v
             generated_at=datetime.now(tz=UTC),
         ),
     )
+
+
+def get_latest_birth_profile_for_owner(
+    session: Session,
+    owner_user_id: UUID,
+    *,
+    calculation_version: str,
+) -> BirthProfileGetResponse:
+    """Return the owner's best personal profile candidate for dashboard restore.
+
+    Ordering preference:
+    1) Direct personal profile (not attached to a family member)
+    2) Family member profile where relationship is `self`
+    3) Any other owned profile
+    """
+    birth_profile = session.execute(
+        select(BirthProfile)
+        .outerjoin(FamilyMember, BirthProfile.family_member_id == FamilyMember.family_member_id)
+        .where(
+            BirthProfile.owner_user_id == owner_user_id,
+            BirthProfile.deleted_at.is_(None),
+        )
+        .order_by(
+            case(
+                (BirthProfile.family_member_id.is_(None), 0),
+                (FamilyMember.relationship_to_owner == "self", 1),
+                else_=2,
+            ),
+            BirthProfile.created_at.desc(),
+        )
+    ).scalars().first()
+
+    if birth_profile is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No birth profile found for the current user.")
+
+    return get_birth_profile(session, birth_profile.birth_profile_id, calculation_version=calculation_version)
