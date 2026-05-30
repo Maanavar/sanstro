@@ -30,7 +30,7 @@ const W = {
   ink: "#1A1612",
   inkMid: "#3D352B",
   muted: "#7A6F5E",
-  mutedLt: "#A89D89",
+  mutedLt: "var(--color-faint)",
   border: "#D4C8AE",
   borderLt: "#E4DBC8",
   surface: "#FAF5EA",
@@ -69,10 +69,10 @@ export function DashboardShadowPrompts({ lang, mode = "BALANCED", chartId }: Das
       <div className="surface__body">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
           <div>
-            <p style={{ margin: 0, fontSize: "0.72rem", fontWeight: 700, color: W.mutedLt, letterSpacing: "0.07em", textTransform: "uppercase" }}>
+            <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt, letterSpacing: "0.07em", textTransform: "uppercase" }}>
               {lang === "ta" ? "????? ???????" : "Shadow Work"}
             </p>
-            <p style={{ margin: "4px 0 0 0", fontSize: "0.8rem", color: W.muted, lineHeight: 1.5 }}>
+            <p style={{ margin: "4px 0 0 0", fontSize: "0.875rem", color: W.muted, lineHeight: 1.5 }}>
               {lang === "ta" ? "?????? 8??? ??????? 12??? ?? ??????????? ???????????? ????? ?????????" : "Deep reflective prompts based on your 8th and 12th house placements"}
             </p>
           </div>
@@ -85,7 +85,7 @@ export function DashboardShadowPrompts({ lang, mode = "BALANCED", chartId }: Das
               border: `1px solid ${open ? W.ink : W.border}`,
               background: open ? W.ink : "transparent",
               color: open ? W.surfaceMd : W.inkMid,
-              fontSize: "0.82rem",
+              fontSize: "0.875rem",
               cursor: "pointer",
               fontWeight: 600,
               whiteSpace: "nowrap",
@@ -98,7 +98,7 @@ export function DashboardShadowPrompts({ lang, mode = "BALANCED", chartId }: Das
 
         {open && (
           <div style={{ marginTop: "14px" }}>
-            {loading && <p style={{ fontSize: "0.82rem", color: W.muted }}>{lang === "ta" ? "??????????�" : "Loading..."}</p>}
+            {loading && <p style={{ fontSize: "0.875rem", color: W.muted }}>{lang === "ta" ? "??????????�" : "Loading..."}</p>}
 
             {!loading && prompts && prompts.length > 0 && (
               <div>
@@ -108,14 +108,14 @@ export function DashboardShadowPrompts({ lang, mode = "BALANCED", chartId }: Das
                 {prompts.map((p, i) => (
                   <div key={p.promptId} style={{ padding: "12px 14px", borderRadius: "10px", border: `1px solid ${W.borderLt}`, marginBottom: "8px", background: W.card, display: "flex", gap: "10px", alignItems: "flex-start" }}>
                     <span style={{ fontSize: "1rem", marginTop: "1px" }}>{["??", "??", "??"][i] ?? "?"}</span>
-                    <p style={{ margin: 0, fontSize: "0.88rem", lineHeight: 1.55, color: W.inkMid }}>{lang === "ta" ? p.text.ta : p.text.en}</p>
+                    <p style={{ margin: 0, fontSize: "0.875rem", lineHeight: 1.55, color: W.inkMid }}>{lang === "ta" ? p.text.ta : p.text.en}</p>
                   </div>
                 ))}
               </div>
             )}
 
             {!loading && prompts && prompts.length === 0 && (
-              <p style={{ fontSize: "0.82rem", color: W.muted }}>{lang === "ta" ? "??????? ????????? ?????????????." : "No prompts available at the moment."}</p>
+              <p style={{ fontSize: "0.875rem", color: W.muted }}>{lang === "ta" ? "??????? ????????? ?????????????." : "No prompts available at the moment."}</p>
             )}
           </div>
         )}

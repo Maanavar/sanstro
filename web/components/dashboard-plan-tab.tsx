@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 
@@ -84,7 +84,7 @@ const W = {
   ink: "#1A1612",
   inkMid: "#3D352B",
   muted: "#7A6F5E",
-  mutedLt: "#A89D89",
+  mutedLt: "var(--color-faint)",
   border: "#D4C8AE",
   borderLt: "#E4DBC8",
   surface: "#FAF5EA",
@@ -94,12 +94,12 @@ const W = {
 } as const;
 
 const fieldStyle: React.CSSProperties = {
-  borderRadius: "10px",
+  borderRadius: "var(--radius-md)",
   border: `1.5px solid ${W.borderLt}`,
   background: W.card,
   color: W.inkMid,
-  fontSize: "0.82rem",
-  padding: "8px 10px",
+  fontSize: "0.875rem",
+  padding: "var(--space-2) var(--space-2_5)",
   fontFamily: "inherit",
 };
 
@@ -143,7 +143,7 @@ export function DashboardPlanTab({
 
   if (!hasBirthProfile) {
     return (
-      <div style={{ padding: "16px", borderRadius: "14px", border: `1px dashed ${W.border}`, background: W.surface, color: W.muted, fontSize: "0.84rem" }}>
+      <div style={{ padding: "var(--space-4)", borderRadius: "var(--radius-md)", border: `1px dashed ${W.border}`, background: W.surface, color: W.muted, fontSize: "0.875rem" }}>
         {lang === "ta" ? "முதலில் உங்கள் ஜாதக விவரங்களை சேர்க்கவும்." : "Add your birth profile first to use planning tools."}
       </div>
     );
@@ -155,26 +155,26 @@ export function DashboardPlanTab({
   const strengthKey = (s: string) => (s === "STRONG" ? "strength_strong" : s === "WEAK" ? "strength_weak" : "strength_moderate");
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "18px", color: W.inkMid, fontFamily: "'Noto Sans Tamil','Inter',system-ui,sans-serif" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4_5)", color: W.inkMid, fontFamily: "var(--font-body)" }}>
       <div
         style={{
-          borderRadius: "20px",
+          borderRadius: "var(--radius-lg)",
           border: `1px solid ${W.borderLt}`,
           background: `linear-gradient(135deg, ${W.surface} 0%, ${W.card} 70%)`,
-          padding: "20px 22px",
+          padding: "var(--space-5) var(--space-5_5)",
           display: "flex",
           flexDirection: "column",
-          gap: "12px",
+          gap: "var(--space-3)",
         }}
       >
         <div>
-          <p style={{ margin: "0 0 6px", fontSize: "0.66rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: W.terracotta }}>
+          <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: W.terracotta }}>
             {t("tab_plan", lang)}
           </p>
-          <h2 style={{ margin: "0 0 6px", fontFamily: "'Fraunces', Georgia, serif", fontSize: "clamp(1.75rem, 3.2vw, 2.5rem)", letterSpacing: "-0.02em", color: W.ink }}>
+          <h2 style={{ margin: "0 0 var(--space-1_5)", fontFamily: "var(--font-display)", fontSize: "clamp(1.75rem, 3.2vw, 2.5rem)", letterSpacing: "-0.02em", color: W.ink }}>
             {lang === "ta" ? "திட்டமிடு" : "Plan with confidence"}
           </h2>
-          <p style={{ margin: 0, fontSize: "0.84rem", color: W.muted, lineHeight: 1.55, maxWidth: "62ch" }}>
+          <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted, lineHeight: 1.55, maxWidth: "62ch" }}>
             {lang === "ta"
               ? "உங்கள் இலக்குகளை அமைக்கவும், முடிவுகளை பரிசோதிக்கவும், சிறந்த தேதிகளை கண்டறியவும்."
               : "Set goals, simulate outcomes, and pick high-support dates for important moves."}
@@ -182,12 +182,12 @@ export function DashboardPlanTab({
         </div>
 
         {goals.length > 0 && (
-          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
-            <span style={{ fontSize: "0.68rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap", alignItems: "center" }}>
+            <span style={{ fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.06em" }}>
               {lang === "ta" ? "உங்கள் இலக்கு:" : "Focus"}
             </span>
             {goals.map((g) => (
-              <span key={g.goalId} style={{ fontSize: "0.72rem", padding: "3px 10px", borderRadius: "999px", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.28)", color: "#8C3E18", fontWeight: 600 }}>
+              <span key={g.goalId} style={{ fontSize: "0.75rem", padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.28)", color: "#8C3E18", fontWeight: 600 }}>
                 {GOAL_OPTIONS.find(([v]) => v === g.goalType)?.[1] ? t(GOAL_OPTIONS.find(([v]) => v === g.goalType)![1], lang) : g.goalType}
               </span>
             ))}
@@ -195,16 +195,16 @@ export function DashboardPlanTab({
         )}
       </div>
 
-      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
         {PLAN_SUB_TABS.map(({ key, label }) => (
           <button
             key={key}
             type="button"
             onClick={() => setPlanSubTab(key)}
             style={{
-              padding: "6px 14px",
-              borderRadius: "999px",
-              fontSize: "0.74rem",
+              padding: "var(--space-1_5) var(--space-3_5)",
+              borderRadius: "var(--radius-pill)",
+              fontSize: "0.75rem",
               fontWeight: 600,
               cursor: "pointer",
               border: `1.5px solid ${planSubTab === key ? W.ink : W.border}`,
@@ -222,18 +222,18 @@ export function DashboardPlanTab({
       {planSubTab === "goals" && (
         <Surface title={t("goals_panel_title", lang)}>
           <div className="surface__body">
-            <p style={{ margin: "0 0 12px", fontSize: "0.8rem", color: W.muted, lineHeight: 1.5 }}>{t("goals_panel_desc", lang)}</p>
+            <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.875rem", color: W.muted, lineHeight: 1.5 }}>{t("goals_panel_desc", lang)}</p>
 
             {goals.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "14px" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", marginBottom: "var(--space-3_5)" }}>
                 {goals.map((g) => (
-                  <div key={g.goalId} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "5px 10px", borderRadius: "999px", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.35)", fontSize: "0.78rem", color: "#8C3E18", fontWeight: 600 }}>
+                  <div key={g.goalId} style={{ display: "flex", alignItems: "center", gap: "var(--space-1_5)", padding: "var(--space-1) var(--space-2_5)", borderRadius: "var(--radius-pill)", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.35)", fontSize: "0.875rem", color: "#8C3E18", fontWeight: 600 }}>
                     <span>{GOAL_OPTIONS.find(([v]) => v === g.goalType)?.[1] ? t(GOAL_OPTIONS.find(([v]) => v === g.goalType)![1], lang) : g.goalType}</span>
                     <button
                       type="button"
                       onClick={() => onRemoveGoal(g.goalId)}
                       disabled={removingGoalId === g.goalId}
-                      style={{ background: "none", border: "none", cursor: "pointer", color: W.muted, padding: "0 0 0 2px", fontSize: "0.75rem", lineHeight: 1 }}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: W.muted, padding: "0 0 0 var(--space-0_5)", fontSize: "0.75rem", lineHeight: 1 }}
                     >
                       {removingGoalId === g.goalId ? "..." : "x"}
                     </button>
@@ -242,10 +242,10 @@ export function DashboardPlanTab({
               </div>
             )}
 
-            {goals.length === 0 && <p style={{ margin: "0 0 12px", fontSize: "0.76rem", color: W.muted }}>{t("goals_empty", lang)}</p>}
+            {goals.length === 0 && <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.75rem", color: W.muted }}>{t("goals_empty", lang)}</p>}
 
             {goals.length < 3 && (
-              <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center", flexWrap: "wrap" }}>
                 <select style={{ ...fieldStyle, flex: "1 1 180px", maxWidth: "260px" }} value={addingGoalType || "job_change"} onChange={(e) => onAddingGoalTypeChange(e.target.value)}>
                   {GOAL_OPTIONS.map(([val, key]) => (
                     <option key={val} value={val}>
@@ -265,11 +265,11 @@ export function DashboardPlanTab({
       {planSubTab === "whatif" && (
         <Surface title={t("whatif_panel_title", lang)}>
           <div className="surface__body">
-            <p style={{ margin: "0 0 14px", fontSize: "0.8rem", color: W.muted, lineHeight: 1.5 }}>{t("whatif_panel_desc", lang)}</p>
+            <p style={{ margin: "0 0 var(--space-3_5)", fontSize: "0.875rem", color: W.muted, lineHeight: 1.5 }}>{t("whatif_panel_desc", lang)}</p>
 
-            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "flex-end", marginBottom: "14px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: W.mutedLt }}>{t("whatif_scenario", lang)}</span>
+            <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap", alignItems: "flex-end", marginBottom: "var(--space-3_5)" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("whatif_scenario", lang)}</span>
                 <select style={{ ...fieldStyle, minWidth: "220px" }} value={whatIfScenario} onChange={(e) => onWhatIfScenarioChange(e.target.value)}>
                   {WHATIF_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -279,8 +279,8 @@ export function DashboardPlanTab({
                 </select>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: W.mutedLt }}>{t("whatif_date", lang)}</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("whatif_date", lang)}</span>
                 <input style={fieldStyle} type="date" value={whatIfDate} onChange={(e) => onWhatIfDateChange(e.target.value)} />
               </div>
 
@@ -289,27 +289,27 @@ export function DashboardPlanTab({
               </Button>
             </div>
 
-            {whatIfError && <p style={{ margin: "0 0 10px", fontSize: "0.78rem", color: "#A8482F" }}>{whatIfError}</p>}
+            {whatIfError && <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.875rem", color: "#A8482F" }}>{whatIfError}</p>}
 
             {whatIfResult && (() => {
               const r = whatIfResult;
               const vc = verdictColor(r.verdict);
               return (
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <div style={{ display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                  <div style={{ display: "flex", gap: "var(--space-4)", alignItems: "center", flexWrap: "wrap" }}>
                     <div style={{ textAlign: "center" }}>
-                      <p style={{ margin: "0 0 2px", fontSize: "2.2rem", fontWeight: 900, color: vc, lineHeight: 1 }}>{r.overallScore}</p>
-                      <p style={{ margin: 0, fontSize: "0.65rem", color: W.mutedLt, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>/100</p>
+                      <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "2.2rem", fontWeight: 900, color: vc, lineHeight: 1 }}>{r.overallScore}</p>
+                      <p style={{ margin: 0, fontSize: "0.625rem", color: W.mutedLt, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>/100</p>
                     </div>
-                    <div style={{ padding: "6px 14px", borderRadius: "8px", background: `${vc}18`, border: `1px solid ${vc}55` }}>
-                      <p style={{ margin: 0, fontSize: "0.9rem", fontWeight: 800, color: vc }}>{t(verdictKey(r.verdict) as Parameters<typeof t>[0], lang)}</p>
+                    <div style={{ padding: "var(--space-1_5) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: `${vc}18`, border: `1px solid ${vc}55` }}>
+                      <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 800, color: vc }}>{t(verdictKey(r.verdict) as Parameters<typeof t>[0], lang)}</p>
                     </div>
                   </div>
 
-                  <p style={{ margin: 0, fontSize: "0.82rem", color: W.inkMid, lineHeight: 1.6 }}>{lang === "ta" ? r.summary.ta : r.summary.en}</p>
+                  <p style={{ margin: 0, fontSize: "0.875rem", color: W.inkMid, lineHeight: 1.6 }}>{lang === "ta" ? r.summary.ta : r.summary.en}</p>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <p style={{ margin: "0 0 4px", fontSize: "0.7rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                    <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                       {t("whatif_result_title", lang)}
                     </p>
                     {([
@@ -317,34 +317,34 @@ export function DashboardPlanTab({
                       [t("whatif_dasha", lang), r.tripleConfirmation.dashaSupport, r.tripleConfirmation.dashaSupportStrength],
                       [t("whatif_gochar", lang), r.tripleConfirmation.gocharSupport, r.tripleConfirmation.gocharSupportStrength],
                     ] as [string, string, string][]).map(([label, text, strength]) => (
-                      <div key={label} style={{ padding: "10px 12px", borderRadius: "8px", background: W.card, border: `1px solid ${W.borderLt}` }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                          <span style={{ fontSize: "0.7rem", fontWeight: 700, color: W.mutedLt }}>{label}</span>
-                          <span style={{ fontSize: "0.68rem", fontWeight: 700, color: strengthColor(strength) }}>
+                      <div key={label} style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: W.card, border: `1px solid ${W.borderLt}` }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "var(--space-1)" }}>
+                          <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{label}</span>
+                          <span style={{ fontSize: "0.625rem", fontWeight: 700, color: strengthColor(strength) }}>
                             {t(strengthKey(strength) as Parameters<typeof t>[0], lang)}
                           </span>
                         </div>
-                        <p style={{ margin: 0, fontSize: "0.76rem", color: W.inkMid, lineHeight: 1.5 }}>{text}</p>
+                        <p style={{ margin: 0, fontSize: "0.75rem", color: W.inkMid, lineHeight: 1.5 }}>{text}</p>
                       </div>
                     ))}
                   </div>
 
-                  <div style={{ padding: "10px 12px", borderRadius: "8px", background: "#EEF6EA", border: "1px solid rgba(92,118,84,0.2)" }}>
-                    <p style={{ margin: "0 0 3px", fontSize: "0.68rem", fontWeight: 700, color: "#5C7654" }}>{t("whatif_best_period", lang)}</p>
-                    <p style={{ margin: 0, fontSize: "0.76rem", color: W.inkMid, lineHeight: 1.5 }}>{lang === "ta" ? r.bestPeriodInWindow.ta : r.bestPeriodInWindow.en}</p>
+                  <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#EEF6EA", border: "1px solid rgba(92,118,84,0.2)" }}>
+                    <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, color: "#5C7654" }}>{t("whatif_best_period", lang)}</p>
+                    <p style={{ margin: 0, fontSize: "0.75rem", color: W.inkMid, lineHeight: 1.5 }}>{lang === "ta" ? r.bestPeriodInWindow.ta : r.bestPeriodInWindow.en}</p>
                   </div>
 
-                  <div style={{ padding: "10px 12px", borderRadius: "8px", background: "#F6EFE2", border: "1px solid rgba(184,90,44,0.2)" }}>
-                    <p style={{ margin: "0 0 3px", fontSize: "0.68rem", fontWeight: 700, color: "#B85A2C" }}>{t("whatif_caution", lang)}</p>
-                    <p style={{ margin: 0, fontSize: "0.76rem", color: W.inkMid, lineHeight: 1.5 }}>{lang === "ta" ? r.cautionNote.ta : r.cautionNote.en}</p>
+                  <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#F6EFE2", border: "1px solid rgba(184,90,44,0.2)" }}>
+                    <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, color: "#B85A2C" }}>{t("whatif_caution", lang)}</p>
+                    <p style={{ margin: 0, fontSize: "0.75rem", color: W.inkMid, lineHeight: 1.5 }}>{lang === "ta" ? r.cautionNote.ta : r.cautionNote.en}</p>
                   </div>
 
-                  <div style={{ padding: "10px 12px", borderRadius: "8px", background: "#F6EFE2", border: "1px solid rgba(184,90,44,0.25)" }}>
-                    <p style={{ margin: "0 0 3px", fontSize: "0.68rem", fontWeight: 700, color: "#B85A2C" }}>{t("whatif_remedy", lang)}</p>
-                    <p style={{ margin: 0, fontSize: "0.76rem", color: W.inkMid, lineHeight: 1.5 }}>{lang === "ta" ? r.remedy.ta : r.remedy.en}</p>
+                  <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#F6EFE2", border: "1px solid rgba(184,90,44,0.25)" }}>
+                    <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, color: "#B85A2C" }}>{t("whatif_remedy", lang)}</p>
+                    <p style={{ margin: 0, fontSize: "0.75rem", color: W.inkMid, lineHeight: 1.5 }}>{lang === "ta" ? r.remedy.ta : r.remedy.en}</p>
                   </div>
 
-                  <p style={{ margin: 0, fontSize: "0.72rem", color: W.muted, lineHeight: 1.5, fontStyle: "italic" }}>
+                  <p style={{ margin: 0, fontSize: "0.75rem", color: W.muted, lineHeight: 1.5, fontStyle: "italic" }}>
                     {t("whatif_disclaimer", lang)}: {lang === "ta" ? r.disclaimer.ta : r.disclaimer.en}
                   </p>
                 </div>
@@ -357,9 +357,9 @@ export function DashboardPlanTab({
       {planSubTab === "timing" && (
         <Surface title={t("activity_timing_label", lang)}>
           <div className="surface__body">
-            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "flex-end", marginBottom: "14px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: W.mutedLt }}>{t("activity_label", lang)}</span>
+            <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap", alignItems: "flex-end", marginBottom: "var(--space-3_5)" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("activity_label", lang)}</span>
                 <select style={{ ...fieldStyle, minWidth: "240px" }} value={activityType} onChange={(e) => setActivityType(e.target.value)}>
                   {ACTIVITY_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -369,8 +369,8 @@ export function DashboardPlanTab({
                 </select>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <span style={{ fontSize: "0.7rem", fontWeight: 700, color: W.mutedLt }}>{t("activity_month_label", lang)}</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("activity_month_label", lang)}</span>
                 <input style={{ ...fieldStyle, minWidth: "140px" }} type="month" value={activityMonth} onChange={(e) => setActivityMonth(e.target.value)} />
               </div>
 
@@ -387,12 +387,12 @@ export function DashboardPlanTab({
                     .finally(() => setActivityTimingBusy(false));
                 }}
                 style={{
-                  padding: "8px 18px",
-                  borderRadius: "10px",
+                  padding: "var(--space-2) var(--space-4_5)",
+                  borderRadius: "var(--radius-md)",
                   border: `1px solid ${W.ink}`,
                   cursor: activityTimingBusy ? "not-allowed" : "pointer",
                   fontWeight: 700,
-                  fontSize: "0.8rem",
+                  fontSize: "0.875rem",
                   background: activityTimingBusy ? W.borderLt : W.ink,
                   color: activityTimingBusy ? W.mutedLt : W.surfaceMd,
                   fontFamily: "inherit",
@@ -403,17 +403,17 @@ export function DashboardPlanTab({
             </div>
 
             {activityTimingResult && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                 {activityTimingResult.topDates.map((item, i) => (
-                  <div key={item.dateLocal} style={{ padding: "8px 12px", borderRadius: "8px", background: W.card, border: `1px solid ${W.borderLt}`, display: "flex", gap: "10px", alignItems: "flex-start" }}>
-                    <span style={{ fontSize: "0.72rem", fontWeight: 700, color: W.mutedLt, minWidth: "16px" }}>{i + 1}.</span>
+                  <div key={item.dateLocal} style={{ padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: W.card, border: `1px solid ${W.borderLt}`, display: "flex", gap: "var(--space-2_5)", alignItems: "flex-start" }}>
+                    <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt, minWidth: "16px" }}>{i + 1}.</span>
                     <div>
-                      <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "3px", flexWrap: "wrap" }}>
-                        <span style={{ fontSize: "0.8rem", fontWeight: 700, color: W.inkMid }}>{item.dateLocal}</span>
+                      <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center", marginBottom: "var(--space-0_75)", flexWrap: "wrap" }}>
+                        <span style={{ fontSize: "0.875rem", fontWeight: 700, color: W.inkMid }}>{item.dateLocal}</span>
                         <Chip tone={item.score >= 70 ? "success" : item.score >= 50 ? "neutral" : "warning"}>{item.score}/100</Chip>
-                        <span style={{ fontSize: "0.7rem", color: W.muted }}>{item.alignment}</span>
+                        <span style={{ fontSize: "0.75rem", color: W.muted }}>{item.alignment}</span>
                       </div>
-                      <p style={{ margin: 0, fontSize: "0.73rem", color: W.muted, lineHeight: 1.4, fontStyle: "italic" }}>{lang === "ta" ? item.reasonTa : item.reasonEn}</p>
+                      <p style={{ margin: 0, fontSize: "0.75rem", color: W.muted, lineHeight: 1.4, fontStyle: "italic" }}>{lang === "ta" ? item.reasonTa : item.reasonEn}</p>
                     </div>
                   </div>
                 ))}
@@ -426,12 +426,12 @@ export function DashboardPlanTab({
       {planSubTab === "decisions" && mode !== "BEGINNER" && (
         <Surface title={t("decision_panel_title", lang)}>
           <div className="surface__body">
-            <div style={{ margin: "0 0 14px", padding: "10px 14px", borderRadius: "8px", background: "#EEF1F8", border: "1px solid rgba(122,111,94,0.2)" }}>
-              <p style={{ margin: "0 0 6px", fontSize: "0.72rem", fontWeight: 700, color: W.inkMid, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            <div style={{ margin: "0 0 var(--space-3_5)", padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: "#EEF1F8", border: "1px solid rgba(122,111,94,0.2)" }}>
+              <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.75rem", fontWeight: 700, color: W.inkMid, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                 {t("decision_support_what_label", lang)}
               </p>
-              <p style={{ margin: "0 0 8px", fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.5 }}>{t("decision_support_explainer", lang)}</p>
-              <p style={{ margin: 0, fontSize: "0.72rem", color: W.muted, lineHeight: 1.45, borderTop: `1px solid ${W.borderLt}`, paddingTop: "8px" }}>
+              <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.875rem", color: W.inkMid, lineHeight: 1.5 }}>{t("decision_support_explainer", lang)}</p>
+              <p style={{ margin: 0, fontSize: "0.75rem", color: W.muted, lineHeight: 1.45, borderTop: `1px solid ${W.borderLt}`, paddingTop: "var(--space-2)" }}>
                 <strong style={{ color: W.inkMid }}>{t("decision_vs_whatif_label", lang)}</strong> {t("decision_vs_whatif_body", lang)}
               </p>
             </div>

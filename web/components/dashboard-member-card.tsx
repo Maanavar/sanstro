@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 
 
@@ -169,7 +169,7 @@ export function MemberCard({
           <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
 
 
-            <p style={{ margin: 0, fontWeight: 600, fontSize: "0.95rem" }}>{member.displayName}</p>
+            <p style={{ margin: 0, fontWeight: 600, fontSize: "1rem" }}>{member.displayName}</p>
 
 
             {isChandrashtama && (
@@ -178,19 +178,19 @@ export function MemberCard({
               <span style={{
 
 
-                fontSize: "0.7rem", fontWeight: 700, padding: "2px 8px", borderRadius: "999px",
+                fontSize: "0.75rem", fontWeight: 700, padding: "2px 8px", borderRadius: "999px",
 
 
-                background: "rgba(239,68,68,0.2)", color: "#f87171",
+                background: "#F2D8CC", color: "var(--color-accent-strong, #A8482F)",
 
 
-                border: "1px solid rgba(248,113,113,0.4)", animation: "pulse 2s infinite",
+                border: "1px solid rgba(168,72,47,0.4)", animation: "pulse 2s infinite",
 
 
               }}>
 
 
-                ⚠ {t("label_chandrashtamam", lang)}
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}><svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: "11px", height: "11px" }}><path d="M12 3l9 17H3L12 3z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /><path d="M12 9v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><circle cx="12" cy="17" r="1.2" fill="currentColor" /></svg> {t("label_chandrashtamam", lang)}</span>
 
 
               </span>
@@ -202,7 +202,7 @@ export function MemberCard({
           </div>
 
 
-          <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "rgba(255,255,255,0.45)" }}>
+          <p style={{ margin: "2px 0 0", fontSize: "0.875rem", color: "rgba(255,255,255,0.45)" }}>
 
 
             {member.individualScore}/100 · weight {member.memberWeight.toFixed(2)}
@@ -228,7 +228,7 @@ export function MemberCard({
           <button type="button" className="button button--ghost"
 
 
-            style={{ fontSize: "0.72rem", padding: "3px 10px" }}
+            style={{ fontSize: "0.75rem", padding: "3px 10px" }}
 
 
             onClick={() => onEdit(member)} title="Edit member">
@@ -243,7 +243,7 @@ export function MemberCard({
           <button type="button" className="button button--ghost"
 
 
-            style={{ fontSize: "0.72rem", padding: "3px 10px", opacity: 0.6, color: "#f87171" }}
+            style={{ fontSize: "0.75rem", padding: "3px 10px", opacity: 0.6, color: "var(--color-accent-strong, #A8482F)" }}
 
 
             disabled={deletingId === member.familyMemberId}
@@ -285,7 +285,7 @@ export function MemberCard({
         {memberChart?.dailyGuidance?.scoreBreakdown && (
 
 
-          <span style={{ fontSize: "0.68rem", padding: "2px 8px", borderRadius: "999px", background: "rgba(251,191,36,0.12)", border: "1px solid rgba(251,191,36,0.3)", color: "#fbbf24", fontWeight: 600 }}>
+          <span style={{ fontSize: "0.625rem", padding: "2px 8px", borderRadius: "var(--radius-pill)", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.3)", color: "var(--color-accent, #B85A2C)", fontWeight: 600 }}>
 
 
             {t("dasha_word", lang)} {memberChart.dailyGuidance.scoreBreakdown.dashaSupport}/100
@@ -333,7 +333,7 @@ export function MemberCard({
       ) : (
 
 
-        <p style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.3)", margin: 0 }}>
+        <p style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.3)", margin: 0 }}>
 
 
           {t("chart_loading", lang)}
@@ -354,7 +354,7 @@ export function MemberCard({
       {memberChart?.summary ? (
 
 
-        <p style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.55)", margin: 0 }}>
+        <p style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.55)", margin: 0 }}>
 
 
           {memberChart.summary.lagnaRasi} {t("label_lagnam", lang)} · {memberChart.summary.moonRasi} {t("identity_janma", lang)} · {memberChart.summary.janmaNakshatra}
@@ -378,13 +378,13 @@ export function MemberCard({
         const d = memberChart.dasha;
 
 
-        const dashaColor = DASHA_COLORS[d.current.mahadasha.lord] ?? "#94a3b8";
+        const dashaColor = DASHA_COLORS[d.current.mahadasha.lord] ?? "var(--color-faint)";
 
 
-        const bhuktiColor = DASHA_COLORS[d.current.antardasha.lord] ?? "#94a3b8";
+        const bhuktiColor = DASHA_COLORS[d.current.antardasha.lord] ?? "var(--color-faint)";
 
 
-        const antaramColor = DASHA_COLORS[d.current.pratyantardasha.lord] ?? "#94a3b8";
+        const antaramColor = DASHA_COLORS[d.current.pratyantardasha.lord] ?? "var(--color-faint)";
 
 
         return (
@@ -405,7 +405,7 @@ export function MemberCard({
           }}>
 
 
-            <p style={{ margin: 0, fontSize: "0.7rem", color: "rgba(255,255,255,0.35)", fontWeight: 600, letterSpacing: "0.05em" }}>
+            <p style={{ margin: 0, fontSize: "0.75rem", color: "rgba(255,255,255,0.35)", fontWeight: 600, letterSpacing: "0.05em" }}>
 
 
               {t("dasha_bhukti_antaram", lang)}
@@ -423,7 +423,7 @@ export function MemberCard({
               <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: dashaColor, flexShrink: 0 }} />
 
 
-              <span style={{ fontSize: "0.82rem", fontWeight: 700, color: dashaColor, minWidth: "90px" }}>
+              <span style={{ fontSize: "0.875rem", fontWeight: 700, color: dashaColor, minWidth: "90px" }}>
 
 
                 {tPlanetLord(d.current.mahadasha.lord, lang)} {t("dasha_word", lang)}
@@ -432,7 +432,7 @@ export function MemberCard({
               </span>
 
 
-              <span style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.35)" }}>
+              <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.35)" }}>
 
 
                 {d.current.mahadasha.startDate} → {d.current.mahadasha.endDate}
@@ -453,7 +453,7 @@ export function MemberCard({
               <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: bhuktiColor, flexShrink: 0 }} />
 
 
-              <span style={{ fontSize: "0.77rem", fontWeight: 600, color: bhuktiColor, minWidth: "82px" }}>
+              <span style={{ fontSize: "0.75rem", fontWeight: 600, color: bhuktiColor, minWidth: "82px" }}>
 
 
                 {tPlanetLord(d.current.antardasha.lord, lang)} {t("bhukti_word", lang)}
@@ -462,7 +462,7 @@ export function MemberCard({
               </span>
 
 
-              <span style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.3)" }}>
+              <span style={{ fontSize: "0.625rem", color: "rgba(255,255,255,0.3)" }}>
 
 
                 {d.current.antardasha.startDate} → {d.current.antardasha.endDate}
@@ -483,7 +483,7 @@ export function MemberCard({
               <div style={{ width: "4px", height: "4px", borderRadius: "50%", background: antaramColor, flexShrink: 0 }} />
 
 
-              <span style={{ fontSize: "0.72rem", fontWeight: 500, color: antaramColor, minWidth: "74px" }}>
+              <span style={{ fontSize: "0.75rem", fontWeight: 500, color: antaramColor, minWidth: "74px" }}>
 
 
                 {tPlanetLord(d.current.pratyantardasha.lord, lang)} {t("antaram_word", lang)}
@@ -492,7 +492,7 @@ export function MemberCard({
               </span>
 
 
-              <span style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.25)" }}>
+              <span style={{ fontSize: "0.625rem", color: "rgba(255,255,255,0.25)" }}>
 
 
                 {d.current.pratyantardasha.startDate} → {d.current.pratyantardasha.endDate}
@@ -513,7 +513,7 @@ export function MemberCard({
               <div style={{ marginTop: "4px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "6px", display: "flex", flexDirection: "column", gap: "2px" }}>
 
 
-                <p style={{ margin: "0 0 4px", fontSize: "0.65rem", color: "rgba(255,255,255,0.3)", letterSpacing: "0.04em" }}>
+                <p style={{ margin: "0 0 4px", fontSize: "0.625rem", color: "rgba(255,255,255,0.3)", letterSpacing: "0.04em" }}>
 
 
                   {tPlanetLord(d.current.mahadasha.lord, lang)} {t("dasha_word", lang)} — {t("dasha_all_bhukti", lang)}
@@ -531,7 +531,7 @@ export function MemberCard({
                   const isRunning = bh.lord === d.current.antardasha.lord && bst === "active";
 
 
-                  const bc = DASHA_COLORS[bh.lord] ?? "#94a3b8";
+                  const bc = DASHA_COLORS[bh.lord] ?? "var(--color-faint)";
 
 
                   return (
@@ -564,7 +564,7 @@ export function MemberCard({
                       <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: bc, flexShrink: 0 }} />
 
 
-                      <span style={{ fontSize: "0.7rem", fontWeight: isRunning ? 700 : 400, color: isRunning ? bc : "rgba(255,255,255,0.5)", minWidth: "70px" }}>
+                      <span style={{ fontSize: "0.75rem", fontWeight: isRunning ? 700 : 400, color: isRunning ? bc : "rgba(255,255,255,0.5)", minWidth: "70px" }}>
 
 
                         {tPlanetLord(bh.lord, lang)} {t("bhukti_word", lang)}
@@ -573,7 +573,7 @@ export function MemberCard({
                       </span>
 
 
-                      <span style={{ fontSize: "0.63rem", color: "rgba(255,255,255,0.25)", flex: 1 }}>
+                      <span style={{ fontSize: "0.625rem", color: "rgba(255,255,255,0.25)", flex: 1 }}>
 
 
                         {String(bh.startDate)} → {String(bh.endDate)}
@@ -585,7 +585,7 @@ export function MemberCard({
                       <span style={{
 
 
-                        fontSize: "0.6rem", fontWeight: 600, padding: "1px 5px", borderRadius: "999px",
+                        fontSize: "0.625rem", fontWeight: 600, padding: "1px 5px", borderRadius: "999px",
 
 
                         background: isRunning ? `${bc}33` : bst === "past" ? "rgba(255,255,255,0.04)" : "transparent",

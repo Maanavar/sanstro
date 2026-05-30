@@ -29,12 +29,12 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack }: Dashboar
           border: "none",
           borderRadius: "999px",
           padding: "12px 16px",
-          background: "rgba(99,102,241,0.92)",
+          background: "var(--color-accent, #B85A2C)",
           color: "var(--color-on-accent, #fff)",
           fontWeight: 700,
-          fontSize: "0.82rem",
+          fontSize: "0.875rem",
           cursor: "pointer",
-          boxShadow: "0 8px 24px rgba(99,102,241,0.35)",
+          boxShadow: "0 8px 24px rgba(184,90,44,0.35)",
         }}
       >
         {lang === "ta" ? "கேள் வினாடி" : "Ask Vinaadi"}
@@ -51,9 +51,9 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack }: Dashboar
             overflowY: "auto",
             zIndex: 170,
             borderRadius: "14px",
-            background: "rgba(10,14,24,0.98)",
-            border: "1px solid rgba(99,102,241,0.35)",
-            boxShadow: "0 16px 48px rgba(0,0,0,0.45)",
+            background: "var(--color-surface, #FFFFFF)",
+            border: "1px solid var(--color-border, #E4DBC8)",
+            boxShadow: "0 16px 48px rgba(61,53,43,0.24)",
             padding: "10px",
           }}
         >
@@ -64,12 +64,12 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack }: Dashboar
               style={{
                 border: "none",
                 background: "transparent",
-                color: "rgba(255,255,255,0.7)",
+                color: "var(--color-muted, #675b4b)",
                 fontSize: "1rem",
                 cursor: "pointer",
               }}
             >
-              ✕
+              ×
             </button>
           </div>
           <DashboardAskVinaadi lang={lang} chartId={chartId} goalTrack={goalTrack} />

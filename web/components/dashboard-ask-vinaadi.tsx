@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useRef, useState } from "react";
 import { apiFetchJson } from "@/lib/api";
@@ -38,15 +38,15 @@ const SUGGESTED_QUESTIONS: Record<NonNullable<GoalTrack> | "DEFAULT", { ta: stri
 };
 
 function SignalChip({ signal }: { signal: string }) {
-  return <span style={{ display: "inline-block", fontSize: "11px", padding: "2px 8px", borderRadius: "12px", background: "rgba(99,102,241,0.15)", color: "#a5b4fc", margin: "2px 3px", fontFamily: "monospace", letterSpacing: "0.02em" }}>{signal}</span>;
+  return <span style={{ display: "inline-block", fontSize: "11px", padding: "2px 8px", borderRadius: "12px", background: "rgba(184,90,44,0.12)", color: "var(--color-accent, #B85A2C)", margin: "2px 3px", fontFamily: "var(--font-mono)", letterSpacing: "0.02em" }}>{signal}</span>;
 }
 
 function QuotaBar({ used, limit, lang }: { used: number; limit: number; lang: Lang }) {
   const pct = Math.min(100, (used / limit) * 100);
-  const color = pct >= 90 ? "#f87171" : pct >= 60 ? "#facc15" : "#4ade80";
+  const color = pct >= 90 ? "var(--color-score-low, #A8482F)" : pct >= 60 ? "var(--color-score-mid, #B85A2C)" : "var(--color-score-high, #5C7654)";
   return (
     <div style={{ marginTop: "8px" }}>
-      <div style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "4px", display: "flex", justifyContent: "space-between" }}>
+      <div style={{ fontSize: "12px", color: "var(--color-faint)", marginBottom: "4px", display: "flex", justifyContent: "space-between" }}>
         <span>{lang === "ta" ? `இன்று ${used} / ${limit} கேள்விகள் பயன்படுத்தப்பட்டன` : `${used} of ${limit} questions used today`}</span>
       </div>
       <div style={{ height: "4px", borderRadius: "2px", background: "rgba(255,255,255,0.1)", overflow: "hidden" }}>
@@ -61,11 +61,11 @@ function AnswerCard({ entry, lang }: { entry: { question: string; data: AskVinaa
   return (
     <div style={{ borderRadius: "12px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", padding: "16px", marginBottom: "12px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "10px" }}>
-        <p style={{ fontSize: "13px", color: "#94a3b8", margin: 0, fontStyle: "italic" }}>{question}</p>
+        <p style={{ fontSize: "13px", color: "var(--color-faint)", margin: 0, fontStyle: "italic" }}>{question}</p>
         <ConfidenceBadge level={data.confidence as ConfidenceTier} reason={{ ta: "", en: data.confidence }} lang={lang} />
       </div>
-      <p style={{ fontSize: "15px", lineHeight: "1.65", margin: "0 0 10px 0", color: "#e2e8f0" }}>{lang === "ta" ? data.answer.ta : data.answer.en}</p>
-      {data.caveat && <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 10px 0", padding: "8px 10px", borderLeft: "3px solid #334155", borderRadius: "0 4px 4px 0" }}>⚠ {lang === "ta" ? data.caveat.ta : data.caveat.en}</p>}
+      <p style={{ fontSize: "15px", lineHeight: "1.65", margin: "0 0 10px 0", color: "var(--color-text, #3D352B)" }}>{lang === "ta" ? data.answer.ta : data.answer.en}</p>
+      {data.caveat && <p style={{ fontSize: "12px", color: "var(--color-muted, #675b4b)", margin: "0 0 10px 0", padding: "8px 10px", borderLeft: "3px solid var(--color-score-low, #A8482F)", borderRadius: "0 4px 4px 0" }}>⚠ {lang === "ta" ? data.caveat.ta : data.caveat.en}</p>}
       <div style={{ marginTop: "8px" }}>{data.signalsUsed.map((s) => <SignalChip key={s} signal={s} />)}</div>
     </div>
   );
@@ -112,21 +112,21 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack }: DashboardAskVi
   if (!chartId) return null;
 
   return (
-    <div style={{ borderRadius: "16px", background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.2)", padding: "20px", marginTop: "24px" }}>
+    <div style={{ borderRadius: "16px", background: "var(--color-surface, #FFFFFF)", border: "1px solid var(--color-border, #E4DBC8)", padding: "20px", marginTop: "24px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
         <span style={{ fontSize: "20px" }}>✨</span>
         <div>
-          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "#e2e8f0" }}>{lang === "ta" ? "வினாடி கேளுங்கள்" : "Ask Vinaadi"}</h3>
-          <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>{lang === "ta" ? "உங்கள் ஜாதகம் சார்ந்த கேள்விகளை கேளுங்கள்" : "Ask natural-language questions about your chart"}</p>
+          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "var(--color-text, #3D352B)" }}>{lang === "ta" ? "வினாடி கேளுங்கள்" : "Ask Vinaadi"}</h3>
+          <p style={{ margin: 0, fontSize: "12px", color: "var(--color-muted, #675b4b)" }}>{lang === "ta" ? "உங்கள் ஜாதகம் சார்ந்த கேள்விகளை கேளுங்கள்" : "Ask natural-language questions about your chart"}</p>
         </div>
       </div>
 
       {history.length === 0 && (
         <div style={{ marginBottom: "14px" }}>
-          <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "8px" }}>{lang === "ta" ? "பரிந்துரைக்கப்பட்ட கேள்விகள்:" : "Suggested questions:"}</p>
+          <p style={{ fontSize: "12px", color: "var(--color-muted, #675b4b)", marginBottom: "8px" }}>{lang === "ta" ? "பரிந்துரைக்கப்பட்ட கேள்விகள்:" : "Suggested questions:"}</p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
             {suggestions.map((s, i) => (
-              <button key={i} onClick={() => { setQuestion(lang === "ta" ? s.ta : s.en); setTimeout(() => inputRef.current?.focus(), 50); }} style={{ fontSize: "12px", padding: "5px 10px", borderRadius: "20px", border: "1px solid rgba(99,102,241,0.3)", background: "rgba(99,102,241,0.1)", color: "#a5b4fc", cursor: "pointer" }}>
+              <button key={i} onClick={() => { setQuestion(lang === "ta" ? s.ta : s.en); setTimeout(() => inputRef.current?.focus(), 50); }} style={{ fontSize: "12px", padding: "5px 10px", borderRadius: "20px", border: "1px solid rgba(184,90,44,0.3)", background: "rgba(184,90,44,0.1)", color: "var(--color-accent, #B85A2C)", cursor: "pointer" }}>
                 {lang === "ta" ? s.ta : s.en}
               </button>
             ))}
@@ -149,15 +149,15 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack }: DashboardAskVi
           disabled={loading || (quota !== null && quota.used >= quota.limit)}
           rows={2}
           maxLength={500}
-          style={{ width: "100%", boxSizing: "border-box", padding: "10px 80px 10px 14px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.05)", color: "#e2e8f0", fontSize: "14px", resize: "vertical", outline: "none", fontFamily: "inherit" }}
+          style={{ width: "100%", boxSizing: "border-box", padding: "10px 80px 10px 14px", borderRadius: "10px", border: "1px solid var(--color-border, #E4DBC8)", background: "var(--color-surface-soft, #FAF5EA)", color: "var(--color-text, #3D352B)", fontSize: "14px", resize: "vertical", outline: "none", fontFamily: "inherit" }}
         />
-        <button onClick={() => void submit(question)} disabled={loading || !question.trim() || (quota !== null && quota.used >= quota.limit)} style={{ position: "absolute", right: "8px", bottom: "8px", padding: "6px 14px", borderRadius: "8px", border: "none", background: loading ? "#334155" : "rgba(99,102,241,0.8)", color: "var(--color-on-accent, #fff)", fontSize: "13px", cursor: loading ? "wait" : "pointer" }}>
+        <button onClick={() => void submit(question)} disabled={loading || !question.trim() || (quota !== null && quota.used >= quota.limit)} style={{ position: "absolute", right: "8px", bottom: "8px", padding: "6px 14px", borderRadius: "8px", border: "none", background: loading ? "var(--color-faint, #7A6F5E)" : "var(--color-accent, #B85A2C)", color: "var(--color-on-accent, #fff)", fontSize: "13px", cursor: loading ? "wait" : "pointer" }}>
           {loading ? "…" : (lang === "ta" ? "கேள்" : "Ask")}
         </button>
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
-        <span style={{ fontSize: "11px", color: "#475569" }}>{question.length}/500</span>
+        <span style={{ fontSize: "11px", color: "var(--color-faint, #7A6F5E)" }}>{question.length}/500</span>
         {quota && <QuotaBar used={quota.used} limit={quota.limit} lang={lang} />}
       </div>
 

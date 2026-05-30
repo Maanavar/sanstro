@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { t } from "@/lib/i18n";
@@ -337,7 +337,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
   const color = yoga.isPresent
     ? yoga.strength === "STRONG" ? "#5C7654"
     : yoga.strength === "PARTIAL" ? "#B85A2C"
-    : "#A89D89"
+    : "var(--color-faint)"
     : "#D4C8AE";
 
   const whyText = buildWhyText(
@@ -365,68 +365,68 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
     : "#E4DBC8";
 
   return (
-    <div style={{ borderRadius: "14px", border: `1px solid ${cardBorder}`, background: "#FFFFFF", overflow: "hidden", fontFamily: "'Noto Sans Tamil','Inter',system-ui,sans-serif" }}>
+    <div style={{ borderRadius: "var(--radius-md)", border: `1px solid ${cardBorder}`, background: "#FFFFFF", overflow: "hidden", fontFamily: "var(--font-body)" }}>
       <button
         onClick={() => setOpen((v) => !v)}
-        style={{ width: "100%", padding: "16px 20px", background: cardBg, border: "none", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}
+        style={{ width: "100%", padding: "var(--space-4) var(--space-5)", background: cardBg, border: "none", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-2_5)" }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
-          <span style={{ fontSize: "0.8rem", color }}>{yoga.isPresent ? "★" : "○"}</span>
-          <span style={{ fontSize: "0.84rem", fontWeight: 600, color: yoga.isPresent ? "#1A1612" : "#A89D89" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flex: 1 }}>
+          <span style={{ fontSize: "0.875rem", color }}>{yoga.isPresent ? "★" : "○"}</span>
+          <span style={{ fontSize: "0.875rem", fontWeight: 600, color: yoga.isPresent ? "#1A1612" : "var(--color-faint)" }}>
             {displayName(yoga.name, lang)}
           </span>
           {yoga.isPresent && yoga.dashaActivated && (
-            <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#B85A2C", border: "1px solid rgba(184,90,44,0.4)", borderRadius: "999px", padding: "2px 7px" }}>
+            <span style={{ fontSize: "0.625rem", fontWeight: 700, color: "#B85A2C", border: "1px solid rgba(184,90,44,0.4)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
               {t("yoga_dasha_activated", lang)}
             </span>
           )}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1_5)", flexShrink: 0 }}>
           {yoga.isPresent ? (
-            <span style={{ fontSize: "0.68rem", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px" }}>
+            <span style={{ fontSize: "0.625rem", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2_5)" }}>
               {strengthBand(yoga.strength, yoga.isPresent, lang)}
             </span>
           ) : (
-            <span style={{ fontSize: "0.68rem", color: "#A89D89" }}>{t("yoga_absent", lang)}</span>
+            <span style={{ fontSize: "0.625rem", color: "var(--color-faint)" }}>{t("yoga_absent", lang)}</span>
           )}
-          <span style={{ fontSize: "0.65rem", color: "#A89D89" }}>{open ? "▲" : "▼"}</span>
+          <span style={{ color: "var(--color-faint)" }} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" width="12" height="12" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms ease" }}><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
         </div>
       </button>
 
       {open && (
-        <div style={{ padding: "16px 20px", borderTop: `1px solid ${cardBorder}`, display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div style={{ padding: "var(--space-4) var(--space-5)", borderTop: `1px solid ${cardBorder}`, display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
 
           <div>
-            <p style={{ margin: "0 0 4px", fontSize: "0.6rem", fontWeight: 700, color: "#A89D89", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
               {lang === "ta" ? "இது என்ன" : "What This Is"}
             </p>
-            <p style={{ margin: 0, fontSize: "0.78rem", color: "#3D352B", lineHeight: 1.55 }}>
+            <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
               {getWhat(yoga.name, true, lang)}
             </p>
           </div>
 
           <div>
-            <p style={{ margin: "0 0 4px", fontSize: "0.6rem", fontWeight: 700, color: "#A89D89", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
               {lang === "ta" ? "உங்கள் ஜாதகத்தில் ஏன்" : "Why Your Chart Has This"}
             </p>
-            <p style={{ margin: 0, fontSize: "0.78rem", color: "#3D352B", lineHeight: 1.55 }}>
+            <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
               {whyText}
             </p>
             {yoga.isPresent && yoga.conditionsMet.length > 0 && (
-              <ul style={{ margin: "8px 0 0", padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: "3px" }}>
+              <ul style={{ margin: "var(--space-2) 0 0", padding: "0 0 0 var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
                 {yoga.conditionsMet.map((c, i) => (
-                  <li key={i} style={{ fontSize: "0.73rem", color: "#5a4f42", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
+                  <li key={i} style={{ fontSize: "0.75rem", color: "#5a4f42", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
                 ))}
               </ul>
             )}
           </div>
 
           {yoga.isPresent && powerText && (
-            <div style={{ padding: "12px 14px", borderRadius: "10px", background: cardBg, border: `1px solid ${cardBorder}` }}>
-              <p style={{ margin: "0 0 4px", fontSize: "0.6rem", fontWeight: 700, color, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: cardBg, border: `1px solid ${cardBorder}` }}>
+              <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color, textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 {lang === "ta" ? "இப்போது என்ன செய்யலாம்" : "What It Can Do Now"}
               </p>
-              <p style={{ margin: 0, fontSize: "0.78rem", color: "#1A1612", lineHeight: 1.55 }}>
+              <p style={{ margin: 0, fontSize: "0.875rem", color: "#1A1612", lineHeight: 1.55 }}>
                 {powerText}
               </p>
             </div>
@@ -442,7 +442,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
 function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }) {
   const [open, setOpen] = useState(false);
   const isActiveAndPresent = dosham.isPresent && !dosham.isCancelled;
-  const color = isActiveAndPresent ? "#A8482F" : dosham.isCancelled ? "#5C7654" : "#A89D89";
+  const color = isActiveAndPresent ? "#A8482F" : dosham.isCancelled ? "#5C7654" : "var(--color-faint)";
 
   const statusLabel =
     !dosham.isPresent
@@ -471,91 +471,96 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
   const cardBorder = isActiveAndPresent ? "rgba(168,72,47,0.35)" : dosham.isCancelled ? "rgba(92,118,84,0.35)" : "#E4DBC8";
 
   return (
-    <div style={{ borderRadius: "14px", border: `1px solid ${cardBorder}`, background: "#FFFFFF", overflow: "hidden", fontFamily: "'Noto Sans Tamil','Inter',system-ui,sans-serif" }}>
+    <div style={{ borderRadius: "var(--radius-md)", border: `1px solid ${cardBorder}`, background: "#FFFFFF", overflow: "hidden", fontFamily: "var(--font-body)" }}>
       <button
         onClick={() => setOpen((v) => !v)}
-        style={{ width: "100%", padding: "16px 20px", background: cardBg, border: "none", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}
+        style={{ width: "100%", padding: "var(--space-4) var(--space-5)", background: cardBg, border: "none", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-2_5)" }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
-          <span style={{ fontSize: "0.8rem", color }}>
-            {isActiveAndPresent ? "⚠" : dosham.isCancelled ? "✓" : "○"}
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flex: 1 }}>
+          <span style={{ color }} aria-hidden="true">
+            {isActiveAndPresent
+              ? <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M12 3L21 20H3L12 3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M12 9V13.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
+              : dosham.isCancelled
+              ? <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M5.5 12.5L10 17L18.5 8.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              : <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2"/></svg>
+            }
           </span>
-          <span style={{ fontSize: "0.84rem", fontWeight: 600, color: dosham.isPresent ? "#1A1612" : "#A89D89" }}>
+          <span style={{ fontSize: "0.875rem", fontWeight: 600, color: dosham.isPresent ? "#1A1612" : "var(--color-faint)" }}>
             {displayName(dosham.name, lang)}
           </span>
           {dosham.isPresent && dosham.dashaActivated && (
-            <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#B85A2C", border: "1px solid rgba(184,90,44,0.4)", borderRadius: "999px", padding: "2px 7px" }}>
+            <span style={{ fontSize: "0.625rem", fontWeight: 700, color: "#B85A2C", border: "1px solid rgba(184,90,44,0.4)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
               {t("yoga_dasha_activated", lang)}
             </span>
           )}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
-          <span style={{ fontSize: "0.68rem", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1_5)", flexShrink: 0 }}>
+          <span style={{ fontSize: "0.625rem", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2_5)" }}>
             {statusLabel}
           </span>
-          <span style={{ fontSize: "0.65rem", color: "#A89D89" }}>{open ? "▲" : "▼"}</span>
+          <span style={{ color: "var(--color-faint)" }} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" width="12" height="12" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms ease" }}><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
         </div>
       </button>
 
       {open && (
-        <div style={{ padding: "16px 20px", borderTop: `1px solid ${cardBorder}`, display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div style={{ padding: "var(--space-4) var(--space-5)", borderTop: `1px solid ${cardBorder}`, display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
 
           <div>
-            <p style={{ margin: "0 0 4px", fontSize: "0.6rem", fontWeight: 700, color: "#A89D89", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
               {lang === "ta" ? "இது என்ன" : "What This Is"}
             </p>
-            <p style={{ margin: 0, fontSize: "0.78rem", color: "#3D352B", lineHeight: 1.55 }}>
+            <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
               {getWhat(dosham.name, false, lang)}
             </p>
           </div>
 
           <div>
-            <p style={{ margin: "0 0 4px", fontSize: "0.6rem", fontWeight: 700, color: "#A89D89", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
               {lang === "ta" ? "உங்கள் ஜாதகத்தில் ஏன்" : "Why Your Chart Has This"}
             </p>
-            <p style={{ margin: 0, fontSize: "0.78rem", color: "#3D352B", lineHeight: 1.55 }}>{whyText}</p>
+            <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>{whyText}</p>
 
             {triggerBullets.length > 0 && (
-              <div style={{ marginTop: "10px" }}>
-                <p style={{ margin: "0 0 4px", fontSize: "0.6rem", fontWeight: 700, color: "#A8482F", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <div style={{ marginTop: "var(--space-2_5)" }}>
+                <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#A8482F", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                   {lang === "ta" ? "கிரக நிலைகள்" : "Planet Positions"}
                 </p>
-                <ul style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: "3px" }}>
+                <ul style={{ margin: 0, padding: "0 0 0 var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
                   {triggerBullets.map((c, i) => (
-                    <li key={i} style={{ fontSize: "0.73rem", color: "#5a4f42", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
+                    <li key={i} style={{ fontSize: "0.75rem", color: "#5a4f42", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
                   ))}
                 </ul>
               </div>
             )}
 
             {dosham.cancellationFactors.length > 0 && (
-              <div style={{ marginTop: "10px" }}>
-                <p style={{ margin: "0 0 4px", fontSize: "0.6rem", fontWeight: 700, color: "#5C7654", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <div style={{ marginTop: "var(--space-2_5)" }}>
+                <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#5C7654", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                   {lang === "ta" ? "பாதுகாப்பு காரணங்கள்" : "Protective Factors"}
                 </p>
-                <ul style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: "3px" }}>
+                <ul style={{ margin: 0, padding: "0 0 0 var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
                   {dosham.cancellationFactors.map((c, i) => (
-                    <li key={i} style={{ fontSize: "0.73rem", color: "#5a4f42", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
+                    <li key={i} style={{ fontSize: "0.75rem", color: "#5a4f42", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
                   ))}
                 </ul>
               </div>
             )}
 
             {attentionBullets.length > 0 && (
-              <div style={{ marginTop: "10px" }}>
-                <p style={{ margin: "0 0 4px", fontSize: "0.6rem", fontWeight: 700, color: "#B85A2C", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <div style={{ marginTop: "var(--space-2_5)" }}>
+                <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#B85A2C", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                   {lang === "ta" ? "கவன குறிப்பு" : "Attention Note"}
                 </p>
-                <ul style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: "3px" }}>
+                <ul style={{ margin: 0, padding: "0 0 0 var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
                   {attentionBullets.map((c, i) => (
-                    <li key={i} style={{ fontSize: "0.73rem", color: "#5a4f42", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
+                    <li key={i} style={{ fontSize: "0.75rem", color: "#5a4f42", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
                   ))}
                 </ul>
               </div>
             )}
 
             {dosham.missingData && dosham.missingData.length > 0 && (
-              <p style={{ margin: "10px 0 0", fontSize: "0.7rem", color: "#B85A2C", lineHeight: 1.4 }}>
+              <p style={{ margin: "var(--space-2_5) 0 0", fontSize: "0.75rem", color: "#B85A2C", lineHeight: 1.4 }}>
                 {lang === "ta"
                   ? `குறிப்பு: ${dosham.missingData.join(", ")} தரவு இல்லாததால் முழு முடிவு தரமுடியாது.`
                   : `Note: A complete verdict requires ${dosham.missingData.join(", ")} data which is not yet available.`}
@@ -563,11 +568,11 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
             )}
           </div>
 
-          <div style={{ padding: "12px 14px", borderRadius: "10px", background: cardBg, border: `1px solid ${cardBorder}` }}>
-            <p style={{ margin: "0 0 4px", fontSize: "0.6rem", fontWeight: 700, color, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: cardBg, border: `1px solid ${cardBorder}` }}>
+            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color, textTransform: "uppercase", letterSpacing: "0.08em" }}>
               {lang === "ta" ? "இப்போது என்ன பொருள்" : "What This Means For You Now"}
             </p>
-            <p style={{ margin: 0, fontSize: "0.78rem", color: "#1A1612", lineHeight: 1.55 }}>{powerText}</p>
+            <p style={{ margin: 0, fontSize: "0.875rem", color: "#1A1612", lineHeight: 1.55 }}>{powerText}</p>
           </div>
         </div>
       )}
@@ -586,7 +591,7 @@ type Props = {
 export function YogaDoshamPanel({ lang, yogas, doshams }: Props) {
   if (yogas.length === 0 && doshams.length === 0) {
     return (
-      <p style={{ margin: 0, fontSize: "0.88rem", color: "#A89D89", fontFamily: "'Inter',system-ui,sans-serif" }}>
+      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>
         {t("yogas_empty", lang)}
       </p>
     );
@@ -596,20 +601,20 @@ export function YogaDoshamPanel({ lang, yogas, doshams }: Props) {
   const absentYogas  = yogas.filter((y) => !y.isPresent);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "28px", fontFamily: "'Noto Sans Tamil','Inter',system-ui,sans-serif" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-7)", fontFamily: "var(--font-body)" }}>
       {yogas.length > 0 && (
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-            <p style={{ margin: 0, fontFamily: "'Fraunces', Georgia, serif", fontSize: "1.2rem", fontWeight: 500, color: "#1A1612" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)", marginBottom: "var(--space-3)" }}>
+            <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 500, color: "#1A1612" }}>
               {t("yogas_title", lang)}
             </p>
             {presentYogas.length > 0 && (
-              <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#5C7654", background: "#DCE4D2", border: "1px solid rgba(92,118,84,0.35)", borderRadius: "999px", padding: "2px 9px" }}>
+              <span style={{ fontSize: "0.625rem", fontWeight: 700, color: "#5C7654", background: "#DCE4D2", border: "1px solid rgba(92,118,84,0.35)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
                 {presentYogas.length} {t("yoga_present", lang)}
               </span>
             )}
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
             {presentYogas.map((y, i) => <YogaCard key={`present-${y.name}-${i}`} yoga={y} lang={lang} />)}
             {absentYogas.map((y, i)  => <YogaCard key={`absent-${y.name}-${i}`}  yoga={y} lang={lang} />)}
           </div>
@@ -618,10 +623,10 @@ export function YogaDoshamPanel({ lang, yogas, doshams }: Props) {
 
       {doshams.length > 0 && (
         <div>
-          <p style={{ margin: "0 0 12px", fontFamily: "'Fraunces', Georgia, serif", fontSize: "1.2rem", fontWeight: 500, color: "#1A1612" }}>
+          <p style={{ margin: "0 0 var(--space-3)", fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 500, color: "#1A1612" }}>
             {t("doshams_title", lang)}
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
             {doshams.map((d) => <DoshamCard key={d.name} dosham={d} lang={lang} />)}
           </div>
         </div>

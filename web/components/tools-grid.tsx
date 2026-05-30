@@ -28,10 +28,10 @@ export function ToolsGrid({
 
   return (
     <div style={{ padding: "24px 0" }}>
-      <h2 style={{ margin: "0 0 4px", fontSize: "1.3rem", fontWeight: 700, color: "var(--color-text)" }}>
+      <h2 style={{ margin: "0 0 4px", fontSize: "1.25rem", fontWeight: 700, color: "var(--color-text)" }}>
         {t("tools_heading", lang)}
       </h2>
-      <p style={{ margin: "0 0 24px", fontSize: "0.85rem", color: "var(--color-muted)" }}>
+      <p style={{ margin: "0 0 24px", fontSize: "0.875rem", color: "var(--color-muted)" }}>
         {t("tools_subtitle", lang)}
       </p>
       <div className="tool-grid">

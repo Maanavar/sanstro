@@ -24,7 +24,7 @@ const W = {
   ink: "#1A1612",
   inkMid: "#3D352B",
   muted: "#7A6F5E",
-  mutedLt: "#A89D89",
+  mutedLt: "var(--color-faint)",
   border: "#D4C8AE",
   borderLt: "#E4DBC8",
   surface: "#FAF5EA",
@@ -39,7 +39,7 @@ const fieldStyle: React.CSSProperties = {
   border: `1.5px solid ${W.borderLt}`,
   background: W.card,
   color: W.inkMid,
-  fontSize: "0.85rem",
+  fontSize: "0.875rem",
   fontFamily: "inherit",
 };
 
@@ -58,15 +58,15 @@ function MuhurtaCard({ slot, lang }: { slot: MuhurtaSlot; lang: Lang }) {
     <div style={{ border: `1px solid ${W.borderLt}`, borderRadius: "10px", padding: "14px 16px", marginBottom: "10px", background: W.card }}>
       <div style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer" }} onClick={() => setExpanded((v) => !v)}>
         <div style={{ textAlign: "center", minWidth: "48px" }}>
-          <div style={{ fontSize: "1.2rem", fontWeight: 700, color: scoreColor }}>{Math.round(slot.score)}</div>
+          <div style={{ fontSize: "1.25rem", fontWeight: 700, color: scoreColor }}>{Math.round(slot.score)}</div>
           <div style={{ fontSize: "10px", color: W.muted }}>{t("muhurta_score", lang)}</div>
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 600, fontSize: "0.92rem", color: W.inkMid }}>{formatDateLabel(slot.date)}</div>
-          <div style={{ fontSize: "0.83rem", color: W.muted }}>{formatClockLabel(slot.timeStart)} - {formatClockLabel(slot.timeEnd)}</div>
+          <div style={{ fontWeight: 600, fontSize: "0.875rem", color: W.inkMid }}>{formatDateLabel(slot.date)}</div>
+          <div style={{ fontSize: "0.875rem", color: W.muted }}>{formatClockLabel(slot.timeStart)} - {formatClockLabel(slot.timeEnd)}</div>
         </div>
-        <div style={{ fontSize: "0.78rem", color: W.muted, maxWidth: "160px", textAlign: "right" }}>{lang === "ta" ? slot.panchangamSupport.ta : slot.panchangamSupport.en}</div>
-        <span style={{ color: W.muted, fontSize: "0.7rem" }}>{expanded ? "?" : "?"}</span>
+        <div style={{ fontSize: "0.875rem", color: W.muted, maxWidth: "160px", textAlign: "right" }}>{lang === "ta" ? slot.panchangamSupport.ta : slot.panchangamSupport.en}</div>
+        <span style={{ color: W.muted, fontSize: "0.75rem" }}>{expanded ? "?" : "?"}</span>
       </div>
 
       {expanded && (
@@ -75,7 +75,7 @@ function MuhurtaCard({ slot, lang }: { slot: MuhurtaSlot; lang: Lang }) {
             <span style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", color: W.mutedLt, letterSpacing: "0.05em" }}>
               {lang === "ta" ? "??? ?????" : "Dasha support"}
             </span>
-            <p style={{ fontSize: "0.82rem", marginTop: "2px", color: W.inkMid }}>{lang === "ta" ? slot.dashaSupport.ta : slot.dashaSupport.en}</p>
+            <p style={{ fontSize: "0.875rem", marginTop: "2px", color: W.inkMid }}>{lang === "ta" ? slot.dashaSupport.ta : slot.dashaSupport.en}</p>
           </div>
 
           {slot.cautions.length > 0 && (
@@ -85,7 +85,7 @@ function MuhurtaCard({ slot, lang }: { slot: MuhurtaSlot; lang: Lang }) {
               </span>
               <ul style={{ margin: "4px 0 0 0", padding: "0 0 0 16px" }}>
                 {slot.cautions.map((c, i) => (
-                  <li key={i} style={{ fontSize: "0.8rem", color: W.muted, marginBottom: "2px" }}>
+                  <li key={i} style={{ fontSize: "0.875rem", color: W.muted, marginBottom: "2px" }}>
                     {lang === "ta" ? c.ta : c.en}
                   </li>
                 ))}
@@ -171,7 +171,7 @@ export function DashboardMuhurtaPicker({ lang, chartId }: DashboardMuhurtaPicker
               background: !chartId || !activity || loading ? W.borderLt : W.ink,
               color: !chartId || !activity || loading ? W.mutedLt : W.surfaceMd,
               fontWeight: 700,
-              fontSize: "0.85rem",
+              fontSize: "0.875rem",
               cursor: !chartId || !activity || loading ? "not-allowed" : "pointer",
               alignSelf: "flex-end",
             }}
@@ -180,13 +180,13 @@ export function DashboardMuhurtaPicker({ lang, chartId }: DashboardMuhurtaPicker
           </button>
         </div>
 
-        {!result && !loading && !error && <p style={{ fontSize: "0.82rem", color: W.muted, textAlign: "center", padding: "16px 0" }}>{t("muhurta_empty", lang)}</p>}
+        {!result && !loading && !error && <p style={{ fontSize: "0.875rem", color: W.muted, textAlign: "center", padding: "16px 0" }}>{t("muhurta_empty", lang)}</p>}
 
-        {error && <p style={{ fontSize: "0.82rem", color: "#A8482F", padding: "8px 0" }}>{error}</p>}
+        {error && <p style={{ fontSize: "0.875rem", color: "#A8482F", padding: "8px 0" }}>{error}</p>}
 
         {result && result.slots.length > 0 && (
           <div>
-            <p style={{ fontSize: "0.82rem", fontWeight: 600, marginBottom: "10px", color: W.inkMid }}>
+            <p style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "10px", color: W.inkMid }}>
               {t("muhurta_results", lang)} {selectedActivity && <span style={{ color: W.muted, fontWeight: 400 }}>� {lang === "ta" ? selectedActivity.ta : selectedActivity.en}</span>}
             </p>
             {result.slots.map((slot, i) => (
@@ -196,7 +196,7 @@ export function DashboardMuhurtaPicker({ lang, chartId }: DashboardMuhurtaPicker
         )}
 
         {result && result.slots.length === 0 && (
-          <p style={{ fontSize: "0.82rem", color: W.muted, textAlign: "center", padding: "16px 0" }}>
+          <p style={{ fontSize: "0.875rem", color: W.muted, textAlign: "center", padding: "16px 0" }}>
             {lang === "ta" ? "??????? ???????? ??? ????? ?????????????." : "No auspicious slots found in this range. Try a wider date range."}
           </p>
         )}

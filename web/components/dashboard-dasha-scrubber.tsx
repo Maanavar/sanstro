@@ -21,14 +21,14 @@ const LORD_COLOR: Record<string, string> = {
   MARS:    "#ef4444",
   RAHU:    "#6366f1",
   JUPITER: "#eab308",
-  SATURN:  "#64748b",
+  SATURN:  "#7A6F5E",
   MERCURY: "#22c55e",
   KETU:    "#e879f9",
   VENUS:   "#ec4899",
 };
 
 function lordColor(lord: string): string {
-  return LORD_COLOR[lord.toUpperCase()] ?? "#94a3b8";
+  return LORD_COLOR[lord.toUpperCase()] ?? "var(--color-faint)";
 }
 
 function yearsBetween(start: string, end: string): number {
@@ -67,21 +67,21 @@ export function DashboardDashaScrubber({
   return (
     <div
       style={{
-        border: "1px solid var(--color-border, #e2e8f0)",
-        borderRadius: "12px",
-        padding: "16px",
+        border: "1px solid var(--color-border, #E4DBC8)",
+        borderRadius: "var(--radius-md)",
+        padding: "var(--space-4)",
         background: "var(--color-surface)",
-        marginBottom: "16px",
+        marginBottom: "var(--space-4)",
       }}
     >
       <p
         style={{
-          fontSize: "11px",
+          fontSize: "0.625rem",
           fontWeight: 600,
           textTransform: "uppercase",
           letterSpacing: "0.08em",
-          color: "var(--color-muted, #94a3b8)",
-          marginBottom: "12px",
+          color: "var(--color-muted, #675b4b)",
+          marginBottom: "var(--space-3)",
         }}
       >
         {lang === "ta" ? "தசை காலரேகை" : "Dasha Timeline"}
@@ -92,7 +92,7 @@ export function DashboardDashaScrubber({
         ref={scrollRef}
         style={{
           overflowX: "auto",
-          paddingBottom: "6px",
+          paddingBottom: "var(--space-2)",
           cursor: "grab",
         }}
       >
@@ -100,8 +100,8 @@ export function DashboardDashaScrubber({
           style={{
             display: "flex",
             minWidth: "max-content",
-            height: "48px",
-            borderRadius: "8px",
+            height: "var(--space-12)",
+            borderRadius: "var(--radius-sm)",
             overflow: "hidden",
             position: "relative",
           }}
@@ -138,9 +138,9 @@ export function DashboardDashaScrubber({
                 {/* Lord name */}
                 <span
                   style={{
-                    fontSize: "10px",
+                    fontSize: "0.625rem",
                     fontWeight: 700,
-                    color: past ? "var(--color-muted, #64748b)" : "var(--color-on-accent, #fff)",
+                    color: past ? "var(--color-muted, #675b4b)" : "var(--color-on-accent, #fff)",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -154,8 +154,8 @@ export function DashboardDashaScrubber({
                 {/* Years */}
                 <span
                   style={{
-                    fontSize: "9px",
-                    color: past ? "var(--color-muted, #94a3b8)" : "rgba(255,255,255,0.8)",
+                    fontSize: "0.625rem",
+                    color: past ? "var(--color-muted, #675b4b)" : "rgba(255,255,255,0.8)",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -186,8 +186,7 @@ export function DashboardDashaScrubber({
 
       {/* You are here label */}
       {currentItem && (
-        <p style={{ fontSize: "0.75rem", color: "var(--color-muted, #94a3b8)", marginTop: "10px", textAlign: "center" }}>
-          ▲ {t("dasha_you_are_here", lang)} — {mode === "BEGINNER" ? plainLangDashaLord(currentItem.lord, "BEGINNER", lang) : currentItem.lord} (
+        <p style={{ fontSize: "0.75rem", color: "var(--color-muted, #675b4b)", marginTop: "var(--space-2)", textAlign: "center" }}> Now: {t("dasha_you_are_here", lang)} — {mode === "BEGINNER" ? plainLangDashaLord(currentItem.lord, "BEGINNER", lang) : currentItem.lord} (
           {formatYear(currentItem.startDate)}–{formatYear(currentItem.endDate)})
         </p>
       )}
@@ -207,42 +206,42 @@ export function DashboardDashaScrubber({
         return (
           <div
             style={{
-              marginTop: "14px",
-              padding: "12px 14px",
-              borderRadius: "10px",
+              marginTop: "var(--space-3)",
+              padding: "var(--space-3) var(--space-4)",
+              borderRadius: "var(--radius-md)",
               border: `1px solid ${color}44`,
               background: `${color}0a`,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-2)" }}>
               <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: color }} />
-              <strong style={{ fontSize: "0.9rem" }}>
+              <strong style={{ fontSize: "0.875rem" }}>
                 {mode === "BEGINNER"
                   ? plainLangDashaLord(item.lord, "BEGINNER", lang)
                   : item.lord.charAt(0) + item.lord.slice(1).toLowerCase()}{" "}
                 {lang === "ta" ? "தசை" : "Dasha"}{" "}
-                <span style={{ fontWeight: 400, color: "var(--color-muted, #64748b)" }}>
+                <span style={{ fontWeight: 400, color: "var(--color-muted, #675b4b)" }}>
                   {formatYear(item.startDate)}–{formatYear(item.endDate)}
                 </span>
               </strong>
               {current && (
-                <span style={{ fontSize: "10px", background: color, color: "var(--color-on-accent, #fff)", padding: "2px 8px", borderRadius: "10px", fontWeight: 600 }}>
+                <span style={{ fontSize: "0.625rem", background: color, color: "var(--color-on-accent, #fff)", padding: "var(--space-1) var(--space-2)", borderRadius: "var(--radius-md)", fontWeight: 600 }}>
                   {t("dasha_you_are_here", lang)}
                 </span>
               )}
               {past && (
-                <span style={{ fontSize: "10px", color: "var(--color-muted, #94a3b8)" }}>
+                <span style={{ fontSize: "0.625rem", color: "var(--color-muted, #675b4b)" }}>
                   {t("dasha_past_era", lang)}
                 </span>
               )}
               {!past && !current && (
-                <span style={{ fontSize: "10px", color: "var(--color-muted, #64748b)" }}>
+                <span style={{ fontSize: "0.625rem", color: "var(--color-muted, #675b4b)" }}>
                   {t("dasha_future_era", lang)}
                 </span>
               )}
             </div>
 
-            <p style={{ fontSize: "0.8rem", color: "var(--color-muted, #64748b)", marginBottom: antars.length > 0 ? "10px" : "0" }}>
+            <p style={{ fontSize: "0.875rem", color: "var(--color-muted, #675b4b)", marginBottom: antars.length > 0 ? "var(--space-2)" : "0" }}>
               {Math.round(yearsBetween(item.startDate, item.endDate))}{" "}
               {lang === "ta" ? "ஆண்டுகள் நீடிக்கும்" : "year period"}
             </p>
@@ -250,10 +249,10 @@ export function DashboardDashaScrubber({
             {/* Antar periods */}
             {antars.length > 0 && (
               <div>
-                <p style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-muted, #94a3b8)", marginBottom: "6px" }}>
+                <p style={{ fontSize: "0.625rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-muted, #675b4b)", marginBottom: "var(--space-2)" }}>
                   {lang === "ta" ? "அந்தர்தசைகள்" : "Sub-periods"}
                 </p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
                   {antars.slice(0, 9).map((a, ai) => {
                     const aCurrent = isCurrent(a, todayDate);
                     const aColor = lordColor(a.lord);
@@ -261,11 +260,11 @@ export function DashboardDashaScrubber({
                       <div
                         key={ai}
                         style={{
-                          padding: "3px 10px",
-                          borderRadius: "12px",
+                          padding: "var(--space-1) var(--space-3)",
+                          borderRadius: "var(--radius-md)",
                           background: aCurrent ? aColor : `${aColor}20`,
                           color: aCurrent ? "var(--color-on-accent, #fff)" : "var(--color-text, #1e293b)",
-                          fontSize: "11px",
+                          fontSize: "0.625rem",
                           fontWeight: aCurrent ? 700 : 400,
                           border: `1px solid ${aColor}44`,
                         }}

@@ -89,7 +89,7 @@ export function PeyarchiBanner({ events, lang, peyarchiReport }: PeyarchiBannerP
           background,
         }}
       >
-        <p style={{ margin: 0, color: textColor, fontSize: "0.84rem", lineHeight: 1.45, flex: 1 }}>
+        <p style={{ margin: 0, color: textColor, fontSize: "0.875rem", lineHeight: 1.45, flex: 1 }}>
           {lang === "ta" ? messageTa : messageEn}
         </p>
         <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
@@ -104,7 +104,7 @@ export function PeyarchiBanner({ events, lang, peyarchiReport }: PeyarchiBannerP
                 borderRadius: "6px",
                 padding: "3px 8px",
                 cursor: "pointer",
-                fontSize: "0.72rem",
+                fontSize: "0.75rem",
                 fontWeight: 600,
               }}
             >
@@ -126,11 +126,11 @@ export function PeyarchiBanner({ events, lang, peyarchiReport }: PeyarchiBannerP
               width: "24px",
               height: "24px",
               cursor: "pointer",
-              fontSize: "0.7rem",
+              fontSize: "0.75rem",
               fontWeight: 600,
             }}
           >
-            ✕
+            <svg viewBox="0 0 24 24" fill="none" width="14" height="14" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
           </button>
         </div>
       </div>
@@ -138,7 +138,7 @@ export function PeyarchiBanner({ events, lang, peyarchiReport }: PeyarchiBannerP
       {/* FEATURE-11: Peyarchi report outlook panel */}
       {outlookExpanded && peyarchiReport && peyarchiReport.events.length > 0 && (
         <div style={{ padding: "12px 14px", borderRadius: "8px", background: "#FAF5EA", border: "1px solid #D4C8AE" }}>
-          <p style={{ margin: "0 0 8px", fontSize: "0.68rem", fontWeight: 700, color: "#7A6F5E", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <p style={{ margin: "0 0 8px", fontSize: "0.625rem", fontWeight: 700, color: "#7A6F5E", textTransform: "uppercase", letterSpacing: "0.06em" }}>
             🪐 {t("peyarchi_outlook_label", lang)}
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -147,10 +147,10 @@ export function PeyarchiBanner({ events, lang, peyarchiReport }: PeyarchiBannerP
               const evPalette = tonePalette(evTone);
               return (
               <div key={`${ev.planet}-${ev.transitDate}-${i}`} style={{ padding: "8px 10px", borderRadius: "6px", background: evPalette.background, border: `1px solid ${evPalette.border}` }}>
-                <p style={{ margin: "0 0 3px", fontSize: "0.7rem", color: evPalette.mutedText, fontWeight: 600 }}>
+                <p style={{ margin: "0 0 3px", fontSize: "0.75rem", color: evPalette.mutedText, fontWeight: 600 }}>
                   {tPlanetLord(ev.planet, lang)} · {ev.transitDate} · {lang === "ta" ? "சந்திர ராசியிலிருந்து" : "House"} {ev.houseFromMoon} {lang === "ta" ? "வீடு" : "from Moon"}
                 </p>
-                <p style={{ margin: 0, fontSize: "0.76rem", color: evPalette.text, lineHeight: 1.45 }}>
+                <p style={{ margin: 0, fontSize: "0.75rem", color: evPalette.text, lineHeight: 1.45 }}>
                   {lang === "ta" ? ev.outlookTa : ev.outlookEn}
                 </p>
               </div>

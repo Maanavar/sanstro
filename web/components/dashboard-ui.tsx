@@ -65,9 +65,9 @@ const CONFIDENCE_DOTS: Record<ConfidenceTier, string> = {
   LOW:    "●○○",
 };
 const CONFIDENCE_COLORS: Record<ConfidenceTier, string> = {
-  HIGH:   "#4ade80",
-  MEDIUM: "#facc15",
-  LOW:    "#94a3b8",
+  HIGH:   "var(--color-score-high, #5C7654)",
+  MEDIUM: "var(--color-score-mid, #B85A2C)",
+  LOW:    "var(--color-faint, #7A6F5E)",
 };
 
 export function ConfidenceBadge({
@@ -119,7 +119,7 @@ export function PlaceCombobox({ value, onChange }: { value: string; onChange: (c
         style={{
           width: "100%", padding: "9px 12px", borderRadius: "10px",
           border: "1.5px solid #E4DBC8", background: "#FFFFFF",
-          color: "#3D352B", fontSize: "0.84rem", fontFamily: "inherit", outline: "none",
+          color: "#3D352B", fontSize: "0.875rem", fontFamily: "inherit", outline: "none",
         }}
       />
       {open && filtered.length > 0 && (
@@ -132,7 +132,7 @@ export function PlaceCombobox({ value, onChange }: { value: string; onChange: (c
         }}>
           {filtered.slice(0, 40).map((city) => (
             <li key={city.name} onMouseDown={() => select(city)}
-              style={{ padding: "9px 14px", cursor: "pointer", fontSize: "0.84rem", color: "#3D352B", fontFamily: "inherit" }}
+              style={{ padding: "9px 14px", cursor: "pointer", fontSize: "0.875rem", color: "#3D352B", fontFamily: "inherit" }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#F4EEE2"; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}>
               {city.name}

@@ -93,18 +93,31 @@ export function GuestChartModal({ lang, onClose }: GuestChartModalProps) {
 
   return (
     <div
-      style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
+      style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(26,22,18,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--space-4)" }}
       onClick={(e) => { if (e.target === e.currentTarget) void handleClose(); }}
     >
-      <div className="card" style={{ width: "min(520px, 100%)", maxHeight: "90vh", overflowY: "auto", padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+      <div style={{
+        width: "min(520px, 100%)", maxHeight: "90vh", overflowY: "auto",
+        background: "var(--color-surface)", border: "1px solid var(--color-border)",
+        borderRadius: "var(--radius-lg)", padding: "var(--space-6)",
+        display: "flex", flexDirection: "column", gap: "var(--space-4)",
+        boxShadow: "0 24px 64px rgba(26,22,18,0.18)",
+      }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3 style={{ margin: 0, fontSize: "1rem" }}>
+          <h3 style={{ margin: 0, fontSize: "1rem", color: "var(--color-text-strong)", fontFamily: "var(--font-display)", fontWeight: 500 }}>
             {lang === "ta" ? "யாரின் ஜாதகமும் காண்க" : "Generate Anyone's Chart"}
           </h3>
-          <button type="button" className="button button--ghost" onClick={() => void handleClose()}>✕</button>
+          <button
+            type="button"
+            onClick={() => void handleClose()}
+            aria-label="Close"
+            style={{ width: "32px", height: "32px", borderRadius: "50%", border: "1px solid var(--color-border)", background: "transparent", color: "var(--color-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" width="14" height="14" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+          </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
           <div style={{ gridColumn: "1 / -1" }}>
             <Field label={lang === "ta" ? "பெயர்" : "Name"}>
               <input className="input" value={form.displayName}
@@ -143,7 +156,7 @@ export function GuestChartModal({ lang, onClose }: GuestChartModalProps) {
               onChange={(e) => setForm((f) => ({ ...f, birthTimezone: e.target.value }))} />
           </Field>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", gridColumn: "1 / -1" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-2)", gridColumn: "1 / -1" }}>
             <Field label={t("field_latitude", lang)}>
               <input className="input" inputMode="decimal" value={form.birthLatitude}
                 onChange={(e) => setForm((f) => ({ ...f, birthLatitude: e.target.value }))} />
@@ -155,33 +168,39 @@ export function GuestChartModal({ lang, onClose }: GuestChartModalProps) {
           </div>
         </div>
 
-        {error && <p style={{ margin: 0, color: "#f87171", fontSize: "0.78rem" }}>{error}</p>}
+        {error && <p style={{ margin: 0, color: "var(--color-score-low)", fontSize: "0.875rem" }}>{error}</p>}
 
         <button
           type="button"
-          className="button button--primary"
+          style={{
+            alignSelf: "flex-start", padding: "var(--space-2) var(--space-5)",
+            borderRadius: "var(--radius-pill)", border: "none",
+            background: "var(--color-text-strong)", color: "var(--color-bg)",
+            fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+            opacity: loading ? 0.6 : 1,
+          }}
           onClick={() => void handleGenerate()}
           disabled={loading}
-          style={{ alignSelf: "flex-start" }}
         >
           {loading ? (lang === "ta" ? "கணக்கிடுகிறது…" : "Calculating…") : (lang === "ta" ? "ஜாதகம் காண்க" : "Generate Chart")}
         </button>
 
         {chart && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div style={{ padding: "10px 14px", borderRadius: "8px", background: "rgba(229,184,77,0.08)", border: "1px solid rgba(229,184,77,0.2)" }}>
-              <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: "#e5b84d" }}>{chart.birthProfile.displayName}</p>
-              <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "rgba(255,255,255,0.5)" }}>{chart.birthProfile.birthDateLocal}</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+            <div style={{ padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)" }}>
+              <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-accent)", fontFamily: "var(--font-display)" }}>{chart.birthProfile.displayName}</p>
+              <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "0.75rem", color: "var(--color-faint)" }}>{chart.birthProfile.birthDateLocal}</p>
             </div>
 
-            <div style={{ display: "flex", gap: "6px" }}>
+            <div style={{ display: "flex", gap: "var(--space-1_5)" }}>
               {(["D1", "D9"] as const).map((v) => (
                 <button key={v} type="button" onClick={() => setView(v)}
                   style={{
-                    padding: "4px 12px", borderRadius: "14px", fontSize: "0.72rem", fontWeight: 700, cursor: "pointer",
-                    border: view === v ? "1px solid rgba(229,184,77,0.45)" : "1px solid rgba(255,255,255,0.12)",
-                    background: view === v ? "rgba(229,184,77,0.12)" : "transparent",
-                    color: view === v ? "#e5b84d" : "rgba(255,255,255,0.5)",
+                    padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)",
+                    fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                    border: view === v ? "1.5px solid var(--color-accent)" : "1px solid var(--color-border)",
+                    background: view === v ? "#F0D9C4" : "transparent",
+                    color: view === v ? "var(--color-accent)" : "var(--color-faint)",
                   }}
                 >
                   {v === "D1" ? t("label_d1", lang) : t("label_d9", lang)}
@@ -194,7 +213,7 @@ export function GuestChartModal({ lang, onClose }: GuestChartModalProps) {
               : <NavamsaChart chart={chart} label={t("label_d9", lang)} lang={lang} showExplain={false} />
             }
 
-            <p style={{ margin: 0, fontSize: "0.68rem", color: "rgba(255,255,255,0.28)", fontStyle: "italic" }}>
+            <p style={{ margin: 0, fontSize: "0.625rem", color: "var(--color-faint)", fontStyle: "italic" }}>
               {lang === "ta"
                 ? "இந்த ஜாதகம் தற்காலிகமானது. மூடியதும் தானாக நீக்கப்படும்."
                 : "Temporary chart — auto-deleted when you close."}

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { apiFetchJson } from "@/lib/api";
@@ -9,7 +9,7 @@ import { ShareCardButton } from "./dashboard-share-card";
 const W = {
   inkMid: "#3D352B",
   muted: "#7A6F5E",
-  mutedLt: "#A89D89",
+  mutedLt: "var(--color-faint)",
   border: "#D4C8AE",
   borderLt: "#E4DBC8",
   surface: "#FAF5EA",
@@ -72,7 +72,7 @@ function SlideCard({ slide, lang, total, index }: {
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "3px", borderRadius: "16px 16px 0 0", background: accent }} />
 
       {/* Slide counter */}
-      <span style={{ position: "absolute", top: "14px", right: "16px", fontSize: "0.65rem", color: W.mutedLt, fontVariantNumeric: "tabular-nums" }}>
+      <span style={{ position: "absolute", top: "14px", right: "16px", fontSize: "0.625rem", color: W.mutedLt, fontVariantNumeric: "tabular-nums" }}>
         {index + 1}/{total}
       </span>
 
@@ -85,13 +85,13 @@ function SlideCard({ slide, lang, total, index }: {
       </div>
 
       {/* Body */}
-      <p style={{ margin: 0, fontSize: "0.82rem", color: W.inkMid, lineHeight: 1.6 }}>
+      <p style={{ margin: 0, fontSize: "0.875rem", color: W.inkMid, lineHeight: 1.6 }}>
         {body}
       </p>
 
       {/* Stat badge */}
       {slide.stat && (
-        <div style={{ alignSelf: "flex-start", padding: "5px 14px", borderRadius: "20px", background: `${accent}22`, border: `1px solid ${accent}44`, fontSize: "0.88rem", fontWeight: 700, color: accent }}>
+        <div style={{ alignSelf: "flex-start", padding: "5px 14px", borderRadius: "20px", background: `${accent}22`, border: `1px solid ${accent}44`, fontSize: "0.875rem", fontWeight: 700, color: accent }}>
           {slide.stat}
         </div>
       )}
@@ -118,8 +118,8 @@ function StatsSummary({ data, lang }: { data: AnnualWrappedData; lang: Lang }) {
           background: W.card,
           border: `1px solid ${W.borderLt}`,
         }}>
-          <p style={{ margin: "0 0 3px", fontSize: "0.65rem", color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.04em" }}>{s.label}</p>
-          <p style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: s.color ?? W.terracotta }}>{s.value}</p>
+          <p style={{ margin: "0 0 3px", fontSize: "0.625rem", color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.04em" }}>{s.label}</p>
+          <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: s.color ?? W.terracotta }}>{s.value}</p>
         </div>
       ))}
     </div>
@@ -196,10 +196,10 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
         flexWrap: "wrap",
       }}>
         <div>
-          <p style={{ margin: "0 0 2px", fontSize: "0.82rem", fontWeight: 700, color: W.terracotta }}>
+          <p style={{ margin: "0 0 2px", fontSize: "0.875rem", fontWeight: 700, color: W.terracotta }}>
             {title}
           </p>
-          <p style={{ margin: 0, fontSize: "0.72rem", color: W.muted }}>{subtitle}</p>
+          <p style={{ margin: 0, fontSize: "0.75rem", color: W.muted }}>{subtitle}</p>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -211,7 +211,7 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
                 type="button"
                 onClick={() => setSelectedYear(y)}
                 style={{
-                  padding: "4px 10px", borderRadius: "6px", fontSize: "0.72rem", fontWeight: 600,
+                  padding: "4px 10px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: 600,
                   border: `1px solid ${W.border}`,
                   background: selectedYear === y ? "#F8E4D2" : W.card,
                   color: selectedYear === y ? W.terracotta : W.muted,
@@ -228,7 +228,7 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
             onClick={() => void load()}
             disabled={loading}
             style={{
-              padding: "6px 16px", borderRadius: "8px", fontSize: "0.76rem", fontWeight: 700,
+              padding: "6px 16px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 700,
               background: "#F8E4D2", border: `1px solid ${W.terracotta}66`,
               color: W.terracotta, cursor: loading ? "wait" : "pointer",
               opacity: loading ? 0.6 : 1,
@@ -241,7 +241,7 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
 
       {/* Error */}
       {error && (
-        <p style={{ margin: "6px 0 0", fontSize: "0.72rem", color: W.rust, padding: "0 4px" }}>
+        <p style={{ margin: "6px 0 0", fontSize: "0.75rem", color: W.rust, padding: "0 4px" }}>
           {error}
         </p>
       )}
@@ -263,10 +263,10 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
             borderBottom: `1px solid ${W.border}`,
           }}>
             <div>
-              <p style={{ margin: 0, fontSize: "0.78rem", fontWeight: 700, color: W.terracotta }}>
+              <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: W.terracotta }}>
                 {data.year} - {title}
               </p>
-              <p style={{ margin: 0, fontSize: "0.65rem", color: W.mutedLt }}>
+              <p style={{ margin: 0, fontSize: "0.625rem", color: W.mutedLt }}>
                 {data.totalDaysScored} {lang === "ta" ? "à®¨à®¾à®Ÿà¯à®•à®³à¯" : "days"} - {data.slides.length} {lang === "ta" ? "à®šà¯à®³à¯ˆà®•à®³à¯" : "slides"}
               </p>
             </div>
@@ -276,7 +276,7 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
               style={{
                 background: W.card, border: `1px solid ${W.border}`,
                 color: W.muted, borderRadius: "8px",
-                padding: "6px 14px", fontSize: "0.76rem", cursor: "pointer",
+                padding: "6px 14px", fontSize: "0.75rem", cursor: "pointer",
               }}
             >
               {lang === "ta" ? "à®®à¯‚à®Ÿà¯" : "Close"}
@@ -323,7 +323,7 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
                 onClick={() => setSlideIndex((i) => Math.max(0, i - 1))}
                 disabled={slideIndex === 0}
                 style={{
-                  flex: 1, padding: "10px", borderRadius: "10px", fontSize: "0.8rem", fontWeight: 600,
+                  flex: 1, padding: "10px", borderRadius: "10px", fontSize: "0.875rem", fontWeight: 600,
                   background: W.card, border: `1px solid ${W.border}`,
                   color: slideIndex === 0 ? W.mutedLt : W.inkMid,
                   cursor: slideIndex === 0 ? "default" : "pointer",
@@ -336,7 +336,7 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
                 onClick={() => setSlideIndex((i) => Math.min(data.slides.length - 1, i + 1))}
                 disabled={slideIndex === data.slides.length - 1}
                 style={{
-                  flex: 1, padding: "10px", borderRadius: "10px", fontSize: "0.8rem", fontWeight: 600,
+                  flex: 1, padding: "10px", borderRadius: "10px", fontSize: "0.875rem", fontWeight: 600,
                   background: W.card, border: `1px solid ${W.border}`,
                   color: slideIndex === data.slides.length - 1 ? W.mutedLt : W.inkMid,
                   cursor: slideIndex === data.slides.length - 1 ? "default" : "pointer",

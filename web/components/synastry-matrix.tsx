@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
@@ -56,9 +56,9 @@ export function SynastryMatrix({ lang, ownerChartId, members }: SynastryMatrixPr
   if (members.length === 0) return null;
 
   return (
-    <div style={{ fontFamily: "'Noto Sans Tamil','Inter',system-ui,sans-serif" }}>
+    <div style={{ fontFamily: "var(--font-body)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-        <p style={{ margin: 0, fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#A89D89" }}>
+        <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
           {lang === "ta" ? "பொருத்த சுருக்கம்" : "COMPATIBILITY OVERVIEW"}
         </p>
         {!loaded && (
@@ -68,7 +68,7 @@ export function SynastryMatrix({ lang, ownerChartId, members }: SynastryMatrixPr
             style={{
               padding: "4px 14px", borderRadius: "999px",
               border: "1.5px solid #D4C8AE", background: "transparent",
-              color: "#3D352B", fontSize: "0.76rem", fontWeight: 600,
+              color: "#3D352B", fontSize: "0.75rem", fontWeight: 600,
               cursor: "pointer", fontFamily: "inherit",
             }}
           >
@@ -78,7 +78,7 @@ export function SynastryMatrix({ lang, ownerChartId, members }: SynastryMatrixPr
       </div>
 
       {error && (
-        <p style={{ margin: "0 0 8px", fontSize: "0.78rem", color: "#A8482F" }}>{error}</p>
+        <p style={{ margin: "0 0 8px", fontSize: "0.75rem", color: "#A8482F" }}>{error}</p>
       )}
 
       {loaded && (
@@ -86,7 +86,7 @@ export function SynastryMatrix({ lang, ownerChartId, members }: SynastryMatrixPr
           {members.map((m) => {
             const score = scores[m.memberId] ?? null;
             const busy  = loading[m.memberId] ?? false;
-            const tone  = score !== null ? scoreTone(score) : { color: "#A89D89", bg: "#FAF5EA", border: "#E4DBC8" };
+            const tone  = score !== null ? scoreTone(score) : { color: "var(--color-faint)", bg: "#FAF5EA", border: "#E4DBC8" };
             return (
               <div
                 key={m.memberId}
@@ -99,18 +99,18 @@ export function SynastryMatrix({ lang, ownerChartId, members }: SynastryMatrixPr
                   textAlign: "center",
                 }}
               >
-                <p style={{ margin: "0 0 5px", fontSize: "0.74rem", color: "#3D352B", fontWeight: 600 }}>
+                <p style={{ margin: "0 0 5px", fontSize: "0.75rem", color: "#3D352B", fontWeight: 600 }}>
                   {m.displayName}
                 </p>
                 {busy ? (
-                  <p style={{ margin: 0, fontSize: "0.78rem", color: "#A89D89" }}>…</p>
+                  <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)" }}>…</p>
                 ) : score !== null ? (
-                  <p style={{ margin: 0, fontFamily: "'Fraunces',Georgia,serif", fontSize: "1.6rem", fontWeight: 500, color: tone.color, lineHeight: 1 }}>
+                  <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.6rem", fontWeight: 500, color: tone.color, lineHeight: 1 }}>
                     {score}
-                    <span style={{ fontSize: "0.7rem", color: "#A89D89", fontFamily: "'Inter',system-ui,sans-serif", fontWeight: 400 }}>/100</span>
+                    <span style={{ fontSize: "0.75rem", color: "var(--color-faint)", fontFamily: "var(--font-body)", fontWeight: 400 }}>/100</span>
                   </p>
                 ) : (
-                  <p style={{ margin: 0, fontSize: "0.78rem", color: "#A89D89" }}>—</p>
+                  <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)" }}>—</p>
                 )}
               </div>
             );

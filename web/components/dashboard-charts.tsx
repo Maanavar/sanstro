@@ -53,10 +53,10 @@ function ExplainPanel({
       width: "100%",
       maxWidth: "296px",
     }}>
-      <p style={{ margin: 0, fontSize: "0.7rem", color: "#7A6F5E", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+      <p style={{ margin: 0, fontSize: "0.75rem", color: "#7A6F5E", textTransform: "uppercase", letterSpacing: "0.06em" }}>
         {title}
       </p>
-      <p style={{ margin: "3px 0 0", fontSize: "0.82rem", color: "#1A1612", fontWeight: 600 }}>
+      <p style={{ margin: "3px 0 0", fontSize: "0.875rem", color: "#1A1612", fontWeight: 600 }}>
         {detail.rasiName} (Rasi {detail.rasi}) {detail.isLagna ? "• Lagna" : ""}
       </p>
       <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "#5a4f42" }}>
@@ -64,11 +64,11 @@ function ExplainPanel({
       </p>
       <div style={{ marginTop: "8px", display: "flex", gap: "6px", flexWrap: "wrap" }}>
         {detail.occupants.length === 0 ? (
-          <span style={{ fontSize: "0.74rem", color: "#A89D89" }}>{emptyText}</span>
+          <span style={{ fontSize: "0.75rem", color: "var(--color-faint)" }}>{emptyText}</span>
         ) : (
           detail.occupants.map((occ) => (
             <span key={occ.key} style={{
-              fontSize: "0.72rem",
+              fontSize: "0.75rem",
               border: "1px solid #D4C8AE",
               borderRadius: "999px",
               padding: "3px 8px",
@@ -103,7 +103,7 @@ export function RasiChart({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
-      {label ? <p style={{ fontSize: "0.78rem", color: "#7A6F5E", margin: 0 }}>{label}</p> : null}
+      {label ? <p style={{ fontSize: "0.875rem", color: "#7A6F5E", margin: 0 }}>{label}</p> : null}
       <div style={{
         display: "grid",
         gridTemplateColumns: `repeat(4, ${cellSize}px)`,
@@ -145,13 +145,13 @@ export function RasiChart({
                 cursor: "pointer",
               }}
             >
-              <span style={{ fontSize: "0.6rem", color: "#A89D89", lineHeight: 1, display: "block" }}>
+              <span style={{ fontSize: "0.625rem", color: "var(--color-faint)", lineHeight: 1, display: "block" }}>
                 {RASI_NAMES[rasi]}
               </span>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "2px", alignItems: "flex-end" }}>
                 {detail.occupants.map((occ) => (
                   <span key={occ.key} style={{
-                    fontSize: "0.66rem",
+                    fontSize: "0.625rem",
                     fontWeight: 700,
                     lineHeight: 1,
                     color: occupantColor(occ.abbr),
@@ -160,7 +160,7 @@ export function RasiChart({
                     background: "#FAF5EA",
                     border: "1px solid #E4DBC8",
                   }}>
-                    {occ.abbr}{occ.isRetrograde ? <sup style={{ fontSize: "0.5rem", color: "#B85A2C" }}>R</sup> : null}
+                    {occ.abbr}{occ.isRetrograde ? <sup style={{ fontSize: "0.625rem", color: "#B85A2C" }}>R</sup> : null}
                   </span>
                 ))}
               </div>
@@ -176,9 +176,9 @@ export function RasiChart({
           alignItems: "center",
           justifyContent: "center",
         }}>
-          <span style={{ fontSize: "0.7rem", color: "#5a4f42", textAlign: "center", padding: "4px", lineHeight: 1.4 }}>
+          <span style={{ fontSize: "0.75rem", color: "#5a4f42", textAlign: "center", padding: "4px", lineHeight: 1.4 }}>
             {chart.birthProfile.displayName}<br />
-            <span style={{ fontSize: "0.6rem", color: "#A89D89" }}>
+            <span style={{ fontSize: "0.625rem", color: "var(--color-faint)" }}>
               {RASI_NAMES[chart.lagna.rasi]} La
             </span>
           </span>
@@ -216,7 +216,7 @@ export function NavamsaChart({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
-      {label ? <p style={{ fontSize: "0.78rem", color: "#7A6F5E", margin: 0 }}>{label}</p> : null}
+      {label ? <p style={{ fontSize: "0.875rem", color: "#7A6F5E", margin: 0 }}>{label}</p> : null}
       <div style={{
         display: "grid",
         gridTemplateColumns: `repeat(4, ${cellSize}px)`,
@@ -257,13 +257,13 @@ export function NavamsaChart({
                 textAlign: "left",
               }}
             >
-              <span style={{ fontSize: "0.6rem", color: "#A89D89", lineHeight: 1, display: "block" }}>
+              <span style={{ fontSize: "0.625rem", color: "var(--color-faint)", lineHeight: 1, display: "block" }}>
                 {RASI_NAMES[rasi]}
               </span>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "2px", alignItems: "flex-end" }}>
                 {detail.occupants.map((occ) => (
                   <span key={occ.key} style={{
-                    fontSize: "0.66rem",
+                    fontSize: "0.625rem",
                     fontWeight: 700,
                     lineHeight: 1,
                     color: occupantColor(occ.abbr),
@@ -288,9 +288,9 @@ export function NavamsaChart({
           alignItems: "center",
           justifyContent: "center",
         }}>
-          <span style={{ fontSize: "0.7rem", color: "#5a4f42", textAlign: "center", padding: "4px", lineHeight: 1.4 }}>
+          <span style={{ fontSize: "0.75rem", color: "#5a4f42", textAlign: "center", padding: "4px", lineHeight: 1.4 }}>
             {chart.birthProfile.displayName}<br />
-            <span style={{ fontSize: "0.6rem", color: "#A89D89" }}>
+            <span style={{ fontSize: "0.625rem", color: "var(--color-faint)" }}>
               Navamsam · {RASI_NAMES[d9LagnaRasi]} La
             </span>
           </span>
@@ -324,7 +324,7 @@ export function JathagamKattam({
         <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 700, color: "#1A1612", letterSpacing: "0.02em" }}>
           {t("label_jathagam_kattam", lang)}
         </p>
-        <p style={{ margin: "3px 0 0", fontSize: "0.7rem", color: "#7A6F5E", lineHeight: 1.35 }}>
+        <p style={{ margin: "3px 0 0", fontSize: "0.75rem", color: "#7A6F5E", lineHeight: 1.35 }}>
           {t("jathagam_kattam_hint", lang)}
         </p>
       </div>
@@ -336,7 +336,7 @@ export function JathagamKattam({
           style={{
             padding: "5px 14px",
             borderRadius: "999px",
-            fontSize: "0.72rem",
+            fontSize: "0.75rem",
             fontWeight: 600,
             cursor: "pointer",
             border: view === "D1" ? "1.5px solid #B85A2C" : "1px solid #D4C8AE",
@@ -352,7 +352,7 @@ export function JathagamKattam({
           style={{
             padding: "5px 14px",
             borderRadius: "999px",
-            fontSize: "0.72rem",
+            fontSize: "0.75rem",
             fontWeight: 600,
             cursor: "pointer",
             border: view === "D9" ? "1.5px solid #5C7654" : "1px solid #D4C8AE",

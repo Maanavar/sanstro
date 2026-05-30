@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { getScoreBand } from "@/lib/format";
 import type { WeekAheadDayItem } from "@/lib/types";
@@ -10,7 +10,16 @@ interface DayStripProps {
 }
 
 const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const SHORT_DAYS_TA = ["ஞா", "தி", "செ", "பு", "வி", "வெ", "ச"];
+
+function WarningGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: "10px", height: "10px" }}>
+      <path d="M12 3l9 17H3L12 3z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      <path d="M12 9v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="12" cy="17" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
 
 export function DayStrip({ days, selectedDate, onSelectDate }: DayStripProps) {
   return (
@@ -48,7 +57,9 @@ export function DayStrip({ days, selectedDate, onSelectDate }: DayStripProps) {
             <span className="day-strip__score">{day.score}</span>
             <span className={dotClass} />
             {isChandrashtama && (
-              <span style={{ fontSize: "0.55rem", color: "var(--color-alert-critical)" }} aria-label="Chandrashtama">⚠</span>
+              <span style={{ color: "var(--color-alert-critical)", display: "inline-flex", alignItems: "center" }} aria-label="Chandrashtama">
+                <WarningGlyph />
+              </span>
             )}
           </button>
         );

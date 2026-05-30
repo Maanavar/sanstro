@@ -16,11 +16,11 @@ export function ScoreGauge({ score, size = 160 }: ScoreGaugeProps) {
   const filled = arcLength * (score / 100);
   const gap = arcLength - filled;
 
-  const trackColor = "rgba(255,255,255,0.08)";
+  const trackColor = "var(--color-border, #E4DBC8)";
   const fillColor =
-    band.tone === "high" ? "#4ade80"
-    : band.tone === "low" ? "#f87171"
-    : "#e5b84d";
+    band.tone === "high" ? "var(--color-score-high, #5C7654)"
+    : band.tone === "low" ? "var(--color-score-low, #A8482F)"
+    : "var(--color-score-mid, #B85A2C)";
 
   const cx = size / 2;
   const cy = size / 2;

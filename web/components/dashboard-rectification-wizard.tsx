@@ -142,7 +142,7 @@ export function RectificationWizard({ lang, birthProfileId, onApply, onClose }: 
   return (
     <div className="rectification-wizard-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="rectification-wizard-modal">
-        <button className="rectification-wizard-close" onClick={onClose}>✕</button>
+        <button className="rectification-wizard-close" onClick={onClose} aria-label="Close"><svg viewBox="0 0 24 24" fill="none" width="16" height="16" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
 
         <h2 className="rectification-wizard-title">
           {lang === "ta" ? "பிறந்த நேரம் கண்டுபிடி" : "Find Your Birth Time"}

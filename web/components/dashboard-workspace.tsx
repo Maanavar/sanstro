@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
@@ -42,6 +42,7 @@ import { RetrospectivePanel } from "./dashboard-retrospective-panel";
 import { RectificationWizard } from "./dashboard-rectification-wizard";
 
 const STORAGE_KEY = "jothidam-ai-dashboard-state";
+const ENABLE_QA_TAB = process.env.NODE_ENV !== "production";
 
 type Tab = "onboarding" | "personal" | "tools" | "transits" | "plan" | "life-areas" | "family" | "calendar" | "journal" | "settings" | "qa";
 type SettingsSubTab = "setup" | "session";
@@ -169,6 +170,12 @@ export function DashboardWorkspace() {
 
   const [onboardingDone, setOnboardingDone] = useState(false);
 
+  useEffect(() => {
+    if (!ENABLE_QA_TAB && activeTab === "qa") {
+      setActiveTab("personal");
+    }
+  }, [activeTab]);
+
   // â”€â”€ Domain hooks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const session = useSession({
@@ -226,6 +233,8 @@ export function DashboardWorkspace() {
             // decides whether to show settings based on profile existence.
             // Restoring "settings" here causes newly-onboarded users to land
             // back on the setup tab even after they have a birth profile.
+          } else if (parsed.activeTab === "qa" && !ENABLE_QA_TAB) {
+            setActiveTab("personal");
           } else if (parsed.activeTab) {
             setActiveTab(parsed.activeTab);
           }
@@ -768,6 +777,7 @@ export function DashboardWorkspace() {
           session.setShowUserMenu(false);
           session.signOut();
         }}
+        onToastDismiss={() => setToast(null)}
       />
 
       {/* Edit member modal */}
@@ -1118,7 +1128,7 @@ export function DashboardWorkspace() {
           />
         )}
 
-        {activeTab === "qa" && (
+        {ENABLE_QA_TAB && activeTab === "qa" && (
           <QATab lang={lang} />
         )}
 

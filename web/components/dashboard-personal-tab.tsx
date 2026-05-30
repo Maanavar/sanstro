@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { formatClockLabel, formatDateLabel, getScoreBand } from "@/lib/format";
 import { t, tLang, tTithi, tNakshatra, tWeekday, tPlanetLord } from "@/lib/i18n";
@@ -65,12 +65,22 @@ type DashboardPersonalTabProps = {
   onGoToFamily?: () => void;
 };
 
+const SCORE_HIGH = "var(--color-score-high, #5C7654)";
+const SCORE_MID = "var(--color-score-mid, #B85A2C)";
+const SCORE_LOW = "var(--color-score-low, #A8482F)";
+
+function scoreColor(score: number) {
+  if (score >= 65) return SCORE_HIGH;
+  if (score >= 45) return SCORE_MID;
+  return SCORE_LOW;
+}
+
 /* ── Score ring SVG ─────────────────────────────────────── */
 function ScoreRing({ score }: { score: number }) {
   const r = 44;
   const circ = 2 * Math.PI * r;
   const filled = (score / 100) * circ;
-  const color = score >= 65 ? "#5C7654" : score >= 45 ? "#B85A2C" : "#A8482F";
+  const color = scoreColor(score);
   return (
     <svg width="110" height="110" viewBox="0 0 110 110" style={{ display: "block" }}>
       <circle cx="55" cy="55" r={r} fill="none" stroke="#E4DBC8" strokeWidth="8" />
@@ -120,7 +130,7 @@ function DayTimeline({
   const sunY = 82 - 2 * t * (1 - t) * 64;
 
   return (
-    <div style={{ marginTop: "8px" }}>
+    <div style={{ marginTop: "var(--space-2)" }}>
       <svg viewBox="0 0 320 110" style={{ width: "100%", height: "auto", display: "block" }} preserveAspectRatio="xMidYMid meet">
         {/* Arc */}
         <path d="M20,82 Q160,18 300,82" fill="none" stroke="#D4C8AE" strokeWidth="1.5" strokeLinecap="round" />
@@ -128,22 +138,22 @@ function DayTimeline({
         <rect x="20" y="79" width="280" height="5" rx="2.5" fill="#E4DBC8" />
         {/* Best window */}
         {bx1 !== null && bx2 !== null && (
-          <rect x={bx1} y="78" width={Math.max(bx2 - bx1, 6)} height="7" rx="3.5" fill="#5C7654" />
+          <rect x={bx1} y="78" width={Math.max(bx2 - bx1, 6)} height="7" rx="3.5" fill={SCORE_HIGH} />
         )}
         {/* Hold window */}
         {hx1 !== null && hx2 !== null && (
-          <rect x={hx1} y="78" width={Math.max(hx2 - hx1, 6)} height="7" rx="3.5" fill="#A8482F" />
+          <rect x={hx1} y="78" width={Math.max(hx2 - hx1, 6)} height="7" rx="3.5" fill={SCORE_LOW} />
         )}
         {/* Tick marks */}
         {[20, 90, 160, 230, 300].map((x) => (
-          <line key={x} x1={x} y1="86" x2={x} y2="93" stroke="#A89D89" strokeWidth="1.5" strokeLinecap="round" />
+          <line key={x} x1={x} y1="86" x2={x} y2="93" stroke="var(--color-faint)" strokeWidth="1.5" strokeLinecap="round" />
         ))}
         {/* Sun dot */}
-        <circle cx={sunX} cy={sunY} r="6" fill="#B85A2C" />
+        <circle cx={sunX} cy={sunY} r="6" fill={SCORE_MID} />
       </svg>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", padding: "0 calc(20/320*100%)", marginTop: "2px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", padding: "0 calc(20/320*100%)", marginTop: "var(--space-0_5)" }}>
         {["6a", "9a", "12p", "3p", "6p"].map((h) => (
-          <span key={h} style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.6rem", color: "#A89D89", textAlign: "center" }}>{h}</span>
+          <span key={h} style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--color-faint)", textAlign: "center" }}>{h}</span>
         ))}
       </div>
     </div>
@@ -209,25 +219,38 @@ export function DashboardPersonalTab({
     ? `${personalChartSummary.currentAntardasha} ${t("bhukti_word", lang)}`
     : null;
 
+  if (busyPersonal && !personalDailyGuidance && !personalChart) {
+    return (
+      <div style={{ display: "grid", gap: "var(--space-4)" }}>
+        <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-6)", display: "grid", gap: "var(--space-3)" }}>
+          <div className="cd-skeleton" style={{ height: "14px", width: "28%", borderRadius: "var(--radius-sm)" }} />
+          <div className="cd-skeleton" style={{ height: "44px", width: "72%", borderRadius: "var(--radius-sm)" }} />
+          <div className="cd-skeleton" style={{ height: "12px", width: "86%", borderRadius: "var(--radius-sm)" }} />
+          <div className="cd-skeleton" style={{ height: "12px", width: "64%", borderRadius: "var(--radius-sm)" }} />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px", fontFamily: "'Noto Sans Tamil','Inter',system-ui,sans-serif", color: "#3D352B" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "#3D352B" }}>
 
       {/* ── Panchangam drop (above alerts) ── */}
       {panchangam && (
-        <div style={{ padding: "14px 18px", borderRadius: "12px", border: "1px solid #E4DBC8", background: "#FAF5EA" }}>
+        <div style={{ padding: "var(--space-3_5) var(--space-4_5)", borderRadius: "var(--radius-md)", border: "1px solid #E4DBC8", background: "#FAF5EA" }}>
           <CollapsibleSection
             title={
-              <span style={{ fontSize: "0.88rem", color: "#3D352B" }}>
+              <span style={{ fontSize: "0.875rem", color: "#3D352B" }}>
                 {t("today_panchangam", lang)}
                 {" — "}
-                <span style={{ color: "#7A6F5E", fontWeight: 400, fontSize: "0.8rem" }}>
+                <span style={{ color: "#7A6F5E", fontWeight: 400, fontSize: "0.875rem" }}>
                   {tWeekday(panchangam.vara.weekday, lang)} · {tNakshatra(panchangam.nakshatra.name, lang)} · {tTithi(panchangam.tithi.name, lang)}
                 </span>
               </span>
             }
             defaultOpen={false}
           >
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px", paddingTop: "12px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", paddingTop: "var(--space-3)" }}>
               <div className="chip-row">
                 <Chip tone="accent">{t("label_rahu_kalam", lang)} {formatClockLabel(panchangam.kalam.rahuKalam.start)}–{formatClockLabel(panchangam.kalam.rahuKalam.end)}</Chip>
                 <Chip tone="warning">{t("label_yamagandam", lang)} {formatClockLabel(panchangam.kalam.yamagandam.start)}–{formatClockLabel(panchangam.kalam.yamagandam.end)}</Chip>
@@ -240,7 +263,7 @@ export function DashboardPersonalTab({
                   <Chip tone="success">{t("label_abhijit", lang)} {formatClockLabel(panchangam.abhijit.start)}–{formatClockLabel(panchangam.abhijit.end)}</Chip>
                 )}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "8px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "var(--space-2)" }}>
                 {[
                   { label: t("label_tithi", lang), value: `${panchangam.tithi.number} ${tTithi(panchangam.tithi.name, lang)}`, hint: `${t("label_ends_at", lang)} ${formatClockLabel(panchangam.tithi.endsAt)}` },
                   { label: t("label_nakshatra", lang), value: `${tNakshatra(panchangam.nakshatra.name, lang)} ${t("label_padam", lang)} ${panchangam.nakshatra.pada}`, hint: formatClockLabel(panchangam.nakshatra.endsAt) },
@@ -248,8 +271,8 @@ export function DashboardPersonalTab({
                   { label: t("label_sunset", lang), value: formatClockLabel(panchangam.sunset), hint: "" },
                 ].map((row) => (
                   <div key={row.label}>
-                    <p style={{ margin: "0 0 2px", fontSize: "0.62rem", color: "#A89D89", textTransform: "uppercase", letterSpacing: "0.08em" }}>{row.label}</p>
-                    <p style={{ margin: 0, fontSize: "0.84rem", color: "#1A1612" }}>{row.value}{row.hint && <span style={{ color: "#A89D89", fontSize: "0.72rem" }}> {row.hint}</span>}</p>
+                    <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{row.label}</p>
+                    <p style={{ margin: 0, fontSize: "0.875rem", color: "#1A1612" }}>{row.value}{row.hint && <span style={{ color: "var(--color-faint)", fontSize: "0.75rem" }}> {row.hint}</span>}</p>
                   </div>
                 ))}
               </div>
@@ -260,7 +283,7 @@ export function DashboardPersonalTab({
 
       {/* ── Alerts ── */}
       {(isChandrashtama || ambientAlerts.length > 0 || peyarchiUpcoming.length > 0) && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           {isChandrashtama && (
             <AlertBanner variant="critical" message={t("chandrashtama_warning", lang)} dismissible={false} />
           )}
@@ -274,16 +297,16 @@ export function DashboardPersonalTab({
 
       {/* ── Member switcher (if family members exist) ── */}
       {memberCharts.length > 0 && (
-        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
           <button
             type="button"
             onClick={() => onSelectPersonalView(null)}
             style={{
-              padding: "5px 14px", borderRadius: "999px", border: "1.5px solid",
+              padding: "var(--space-1) var(--space-3_5)", borderRadius: "var(--radius-pill)", border: "1.5px solid",
               borderColor: personalViewId === null ? "#1A1612" : "#D4C8AE",
               background: personalViewId === null ? "#1A1612" : "transparent",
               color: personalViewId === null ? "#F4EEE2" : "#7A6F5E",
-              fontSize: "0.8rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+              fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
             }}
           >
             {birthDisplayName || t("personal_you", lang)}
@@ -294,11 +317,11 @@ export function DashboardPersonalTab({
               type="button"
               onClick={() => onSelectPersonalView(mc.memberId)}
               style={{
-                padding: "5px 14px", borderRadius: "999px", border: "1.5px solid",
+                padding: "var(--space-1) var(--space-3_5)", borderRadius: "var(--radius-pill)", border: "1.5px solid",
                 borderColor: personalViewId === mc.memberId ? "#1A1612" : "#D4C8AE",
                 background: personalViewId === mc.memberId ? "#1A1612" : "transparent",
                 color: personalViewId === mc.memberId ? "#F4EEE2" : "#7A6F5E",
-                fontSize: "0.8rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
               }}
             >
               {mc.displayName}
@@ -310,9 +333,9 @@ export function DashboardPersonalTab({
               onClick={() => onRefreshPersonal()}
               disabled={!birthProfileId || busyPersonal}
               style={{
-                marginLeft: "auto", padding: "5px 12px", borderRadius: "999px",
+                marginLeft: "auto", padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)",
                 border: "1px solid #D4C8AE", background: "transparent",
-                color: "#7A6F5E", fontSize: "0.78rem", cursor: "pointer", fontFamily: "inherit",
+                color: "#7A6F5E", fontSize: "0.875rem", cursor: "pointer", fontFamily: "inherit",
               }}
             >
               {busyPersonal ? t("btn_refreshing", lang) : t("btn_refresh", lang)}
@@ -322,19 +345,19 @@ export function DashboardPersonalTab({
       )}
 
       {/* ── HERO: Left headline + Right score card ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr minmax(280px,420px)", gap: "28px", alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr minmax(280px,420px)", gap: "var(--space-7)", alignItems: "start" }}>
 
         {/* Left: Big headline */}
         <div>
-          <p style={{ margin: "0 0 6px", fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#B85A2C" }}>
+          <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#B85A2C" }}>
             {dateLabel}
           </p>
 
           {personalDailyGuidance ? (
             <>
               <h1 style={{
-                margin: "0 0 16px",
-                fontFamily: "'Fraunces', Georgia, serif",
+                margin: "0 0 var(--space-4)",
+                fontFamily: "var(--font-display)",
                 fontSize: "clamp(2.2rem, 4vw, 3.2rem)",
                 fontWeight: 500,
                 letterSpacing: "-0.03em",
@@ -349,14 +372,14 @@ export function DashboardPersonalTab({
                 {guidanceHeadline && !guidanceHeadline.includes("Today") ? guidanceHeadline : "Move step by step."}
               </h1>
 
-              <p style={{ margin: "0 0 20px", fontSize: "0.95rem", lineHeight: 1.7, color: "#3D352B", maxWidth: "52ch" }}>
+              <p style={{ margin: "0 0 var(--space-5)", fontSize: "1rem", lineHeight: 1.7, color: "#3D352B", maxWidth: "52ch" }}>
                 {tLang(personalDailyGuidance.text, lang)}
               </p>
             </>
           ) : (
             <h1 style={{
-              margin: "0 0 16px",
-              fontFamily: "'Fraunces', Georgia, serif",
+              margin: "0 0 var(--space-4)",
+              fontFamily: "var(--font-display)",
               fontSize: "clamp(2.2rem, 4vw, 3.2rem)",
               fontWeight: 500,
               letterSpacing: "-0.03em",
@@ -382,30 +405,30 @@ export function DashboardPersonalTab({
           <div style={{
             background: "#FFFFFF",
             border: "1px solid #E4DBC8",
-            borderRadius: "20px",
-            padding: "24px",
+            borderRadius: "var(--radius-lg)",
+            padding: "var(--space-6)",
             boxShadow: "0 4px 24px rgba(60,40,20,0.1)",
             display: "flex",
             flexDirection: "column",
-            gap: "16px",
+            gap: "var(--space-4)",
           }}>
             {/* TODAY label */}
-            <p style={{ margin: 0, fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#A89D89" }}>
+            <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-faint)" }}>
               {t("personal_today", lang)}
             </p>
 
             {/* Score + ring */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-3)" }}>
               <div>
-                <p style={{ margin: 0, fontFamily: "'Fraunces', Georgia, serif", fontSize: "3.5rem", fontWeight: 500, lineHeight: 1, color: "#1A1612" }}>
+                <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "3.5rem", fontWeight: 500, lineHeight: 1, color: "#1A1612" }}>
                   {score}
-                  <span style={{ fontSize: "1.2rem", color: "#A89D89", fontFamily: "'Inter',system-ui,sans-serif" }}>/100</span>
+                  <span style={{ fontSize: "1.25rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>/100</span>
                 </p>
                 <span style={{
-                  display: "inline-block", marginTop: "8px",
-                  padding: "3px 10px", borderRadius: "999px",
+                  display: "inline-block", marginTop: "var(--space-2)",
+                  padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)",
                   background: score !== null && score >= 65 ? "#DCE4D2" : score !== null && score >= 45 ? "#F0D9C4" : "#F2D8CC",
-                  color: score !== null && score >= 65 ? "#5C7654" : score !== null && score >= 45 ? "#B85A2C" : "#A8482F",
+                  color: score !== null ? scoreColor(score) : SCORE_MID,
                   fontSize: "0.75rem", fontWeight: 600,
                 }}>
                   {personalDailyGuidance.label}
@@ -415,8 +438,8 @@ export function DashboardPersonalTab({
                 <ScoreRing score={score ?? 0} />
                 <div style={{
                   position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                  fontFamily: "'Fraunces', Georgia, serif", fontSize: "1.4rem", fontWeight: 500,
-                  color: score !== null && score >= 65 ? "#5C7654" : score !== null && score >= 45 ? "#B85A2C" : "#A8482F",
+                  fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 500,
+                  color: score !== null ? scoreColor(score) : SCORE_MID,
                 }}>
                   {score}
                 </div>
@@ -424,54 +447,54 @@ export function DashboardPersonalTab({
             </div>
 
             {/* Nalla Neram / Rahu Kalam windows */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-2_5)" }}>
               {/* Nalla Neram (best window) */}
               <div style={{
-                borderRadius: "12px",
+                borderRadius: "var(--radius-md)",
                 border: `1.5px solid #E4DBC8`,
-                padding: "12px",
+                padding: "var(--space-3)",
               }}>
-                <p style={{ margin: "0 0 3px", fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#A89D89" }}>
+                <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
                   {lang === "ta" ? "நல்ல நேரம்" : "Nalla Neram"}
                 </p>
                 {panchangam?.kalam?.nallaNeram?.[0] ? (
-                  <p style={{ margin: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: "1rem", fontWeight: 500, color: "#1A1612" }}>
+                  <p style={{ margin: 0, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 500, color: "#1A1612" }}>
                     {formatClockLabel(panchangam.kalam.nallaNeram[0].start)} – {formatClockLabel(panchangam.kalam.nallaNeram[0].end)}
                   </p>
                 ) : bestWindow ? (
-                  <p style={{ margin: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: "1rem", fontWeight: 500, color: "#1A1612" }}>
+                  <p style={{ margin: 0, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 500, color: "#1A1612" }}>
                     {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)}
                   </p>
-                ) : <p style={{ margin: 0, color: "#A89D89", fontSize: "0.85rem" }}>—</p>}
+                ) : <p style={{ margin: 0, color: "var(--color-faint)", fontSize: "0.875rem" }}>—</p>}
               </div>
 
               {/* Yamagandam */}
               <div style={{
-                borderRadius: "12px",
+                borderRadius: "var(--radius-md)",
                 border: "1.5px solid #E4DBC8",
-                padding: "12px",
+                padding: "var(--space-3)",
               }}>
-                <p style={{ margin: "0 0 3px", fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#A89D89" }}>
+                <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
                   {lang === "ta" ? "யமகண்டம்" : "Yamagandam"}
                 </p>
                 {panchangam?.kalam?.yamagandam ? (
-                  <p style={{ margin: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: "1rem", fontWeight: 500, color: "#1A1612" }}>
+                  <p style={{ margin: 0, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 500, color: "#1A1612" }}>
                     {formatClockLabel(panchangam.kalam.yamagandam.start)} – {formatClockLabel(panchangam.kalam.yamagandam.end)}
                   </p>
-                ) : <p style={{ margin: 0, color: "#A89D89", fontSize: "0.85rem" }}>—</p>}
+                ) : <p style={{ margin: 0, color: "var(--color-faint)", fontSize: "0.875rem" }}>—</p>}
               </div>
 
               {/* Best Window */}
               <div style={{
-                borderRadius: "12px",
+                borderRadius: "var(--radius-md)",
                 background: "#DCE4D2",
                 border: "1px solid rgba(92,118,84,0.3)",
-                padding: "12px",
+                padding: "var(--space-3)",
               }}>
-                <p style={{ margin: "0 0 3px", fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#5C7654" }}>
+                <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: SCORE_HIGH }}>
                   {panchangam?.kalam?.kuligai ? (lang === "ta" ? "குளிகை" : "Kuligai") : t("action_best_window", lang)}
                 </p>
-                <p style={{ margin: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: "1rem", fontWeight: 500, color: "#3a6b40" }}>
+                <p style={{ margin: 0, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 500, color: SCORE_HIGH }}>
                   {panchangam?.kalam?.kuligai
                     ? `${formatClockLabel(panchangam.kalam.kuligai.start)} – ${formatClockLabel(panchangam.kalam.kuligai.end)}`
                     : bestWindow
@@ -482,15 +505,15 @@ export function DashboardPersonalTab({
 
               {/* Rahu Kalam */}
               <div style={{
-                borderRadius: "12px",
+                borderRadius: "var(--radius-md)",
                 background: "#F2D8CC",
                 border: "1px solid rgba(168,72,47,0.3)",
-                padding: "12px",
+                padding: "var(--space-3)",
               }}>
-                <p style={{ margin: "0 0 3px", fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#A8482F" }}>
+                <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: SCORE_LOW }}>
                   {lang === "ta" ? "ராகு காலம்" : "Rahu Kalam"}
                 </p>
-                <p style={{ margin: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: "1rem", fontWeight: 500, color: "#A8482F" }}>
+                <p style={{ margin: 0, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 500, color: SCORE_LOW }}>
                   {panchangam?.kalam?.rahuKalam
                     ? `${formatClockLabel(panchangam.kalam.rahuKalam.start)} – ${formatClockLabel(panchangam.kalam.rahuKalam.end)}`
                     : avoidWindow
@@ -502,11 +525,11 @@ export function DashboardPersonalTab({
 
             {/* Lagna / Nakshatra / D9 footer */}
             {personalChartSummary && (
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "10px", borderTop: "1px solid #E4DBC8", flexWrap: "wrap", gap: "6px" }}>
-                <span style={{ fontSize: "0.72rem", color: "#7A6F5E" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "var(--space-2_5)", borderTop: "1px solid #E4DBC8", flexWrap: "wrap", gap: "var(--space-1_5)" }}>
+                <span style={{ fontSize: "0.75rem", color: "#7A6F5E" }}>
                   {personalChartSummary.lagnaRasi} {t("label_lagnam", lang)} · {personalChartSummary.janmaNakshatra} ☉ {personalChartSummary.moonRasi}
                 </span>
-                <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "#A89D89" }}>D1 · D9 ready</span>
+                <span style={{ fontSize: "0.625rem", fontWeight: 600, color: "var(--color-faint)" }}>D1 · D9 ready</span>
               </div>
             )}
           </div>
@@ -514,38 +537,38 @@ export function DashboardPersonalTab({
       </div>
 
       {/* ── Three info cards: Dasa | Nakshatra | Week Ahead ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: "16px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: "var(--space-4)" }}>
 
         {/* Dasa card */}
-        <div style={{ background: "#FFFFFF", border: "1px solid #E4DBC8", borderRadius: "16px", padding: "20px" }}>
-          <p style={{ margin: "0 0 4px", fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#A89D89" }}>
+        <div style={{ background: "#FFFFFF", border: "1px solid #E4DBC8", borderRadius: "var(--radius-md)", padding: "var(--space-5)" }}>
+          <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-faint)" }}>
             {lang === "ta" ? "தசை" : "Dasa"}
           </p>
-          <p style={{ margin: "0 0 2px", fontFamily: "'Fraunces', Georgia, serif", fontSize: "1.5rem", fontWeight: 500, color: "#1A1612", lineHeight: 1.1 }}>
+          <p style={{ margin: "0 0 var(--space-0_5)", fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 500, color: "#1A1612", lineHeight: 1.1 }}>
             {dashaText ?? "—"}
           </p>
           {dashaBhuktiText && (
-            <p style={{ margin: "0 0 8px", fontSize: "0.8rem", color: "#7A6F5E" }}>
+            <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.875rem", color: "#7A6F5E" }}>
               {dashaBhuktiText}
             </p>
           )}
           {personalDailyGuidance?.scoreBreakdown && (
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #E4DBC8" }}>
-              <span style={{ fontSize: "0.68rem", color: "#A89D89" }}>
+            <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", marginTop: "var(--space-2)", paddingTop: "var(--space-2)", borderTop: "1px solid #E4DBC8" }}>
+              <span style={{ fontSize: "0.625rem", color: "var(--color-faint)" }}>
                 {lang === "ta" ? "கருப்பொருள்" : "Theme"}
               </span>
               {personalDailyGuidance.emotionalWeather?.bestUseOfDay && (
-                <span style={{ fontSize: "0.78rem", color: "#3D352B", fontWeight: 500 }}>
+                <span style={{ fontSize: "0.875rem", color: "#3D352B", fontWeight: 500 }}>
                   {personalDailyGuidance.emotionalWeather.bestUseOfDay}
                 </span>
               )}
             </div>
           )}
           {personalDailyGuidance?.scoreBreakdown && (
-            <div style={{ display: "flex", gap: "4px", marginTop: "8px" }}>
+            <div style={{ display: "flex", gap: "var(--space-1)", marginTop: "var(--space-2)" }}>
               {(["moonTransit", "dashaSupport", "panchangam"] as const).map((k) => (
                 <span key={k} style={{
-                  padding: "2px 8px", borderRadius: "999px", fontSize: "0.68rem",
+                  padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", fontSize: "0.625rem",
                   background: "#FAF5EA", border: "1px solid #E4DBC8", color: "#7A6F5E",
                 }}>
                   {t(`reason_${k}` as Parameters<typeof t>[0], lang)}: {personalDailyGuidance.scoreBreakdown[k]}
@@ -556,37 +579,37 @@ export function DashboardPersonalTab({
         </div>
 
         {/* Nakshatra card */}
-        <div style={{ background: "#FFFFFF", border: "1px solid #E4DBC8", borderRadius: "16px", padding: "20px" }}>
-          <p style={{ margin: "0 0 4px", fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#A89D89" }}>
+        <div style={{ background: "#FFFFFF", border: "1px solid #E4DBC8", borderRadius: "var(--radius-md)", padding: "var(--space-5)" }}>
+          <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-faint)" }}>
             {lang === "ta" ? "நட்சத்திரம்" : "Nakshatra"}
           </p>
-          <p style={{ margin: "0 0 4px", fontFamily: "'Fraunces', Georgia, serif", fontSize: "1.5rem", fontWeight: 500, color: "#1A1612", lineHeight: 1.1 }}>
+          <p style={{ margin: "0 0 var(--space-1)", fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 500, color: "#1A1612", lineHeight: 1.1 }}>
             {panchangam ? tNakshatra(panchangam.nakshatra.name, lang) : (nakshatraCard ? (lang === "ta" ? nakshatraCard.nameTa : nakshatraCard.nameEn) : "—")}
             {panchangam && (
-              <span style={{ fontFamily: "'Inter',system-ui,sans-serif", fontSize: "0.78rem", color: "#A89D89", fontWeight: 400, marginLeft: "6px" }}>
+              <span style={{ fontFamily: "var(--font-body)", fontSize: "0.875rem", color: "var(--color-faint)", fontWeight: 400, marginLeft: "var(--space-1_5)" }}>
                 · {lang === "ta" ? "பாதம்" : "root"} · {lang === "ta" ? "பாதம் தகவல்" : "pAdham info"}
               </span>
             )}
           </p>
           {nakshatraCard && (
-            <p style={{ margin: "0 0 8px", fontSize: "0.82rem", color: "#3D352B", lineHeight: 1.5 }}>
+            <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.5 }}>
               {lang === "ta" ? nakshatraCard.profile.ta : nakshatraCard.profile.en}
             </p>
           )}
           {nakshatraCard && (
-            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
               {nakshatraCard.strengths.slice(0, 2).map((s) => (
-                <span key={s.en} style={{ padding: "2px 9px", borderRadius: "999px", fontSize: "0.72rem", background: "#DCE4D2", border: "1px solid rgba(92,118,84,0.3)", color: "#5C7654" }}>
+                <span key={s.en} style={{ padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", background: "#DCE4D2", border: "1px solid rgba(92,118,84,0.3)", color: "#5C7654" }}>
                   {lang === "ta" ? s.ta : s.en}
                 </span>
               ))}
               {nakshatraCard.cautions.slice(0, 1).map((c) => (
-                <span key={c.en} style={{ padding: "2px 9px", borderRadius: "999px", fontSize: "0.72rem", background: "#FAF5EA", border: "1px solid #E4DBC8", color: "#7A6F5E" }}>
+                <span key={c.en} style={{ padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", background: "#FAF5EA", border: "1px solid #E4DBC8", color: "#7A6F5E" }}>
                   {lang === "ta" ? c.ta : c.en}
                 </span>
               ))}
               {nakshatraCard.rulingPlanet && (
-                <span style={{ padding: "2px 9px", borderRadius: "999px", fontSize: "0.72rem", background: "#FAF5EA", border: "1px solid #E4DBC8", color: "#7A6F5E" }}>
+                <span style={{ padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", background: "#FAF5EA", border: "1px solid #E4DBC8", color: "#7A6F5E" }}>
                   {tPlanetLord(nakshatraCard.rulingPlanet, lang)} {lang === "ta" ? "ஆளும்" : "ruled"}
                 </span>
               )}
@@ -595,14 +618,14 @@ export function DashboardPersonalTab({
         </div>
 
         {/* Week ahead card */}
-        <div style={{ background: "#FFFFFF", border: "1px solid #E4DBC8", borderRadius: "16px", padding: "20px" }}>
-          <p style={{ margin: "0 0 12px", fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#A89D89" }}>
+        <div style={{ background: "#FFFFFF", border: "1px solid #E4DBC8", borderRadius: "var(--radius-md)", padding: "var(--space-5)" }}>
+          <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-faint)" }}>
             {t("today_week_ahead", lang)}
           </p>
           {weekAhead && weekAhead.days.length > 0 ? (
             <>
               {/* Mini spark line */}
-              <svg viewBox={`0 0 ${weekAhead.days.length * 32} 40`} style={{ width: "100%", height: "40px", display: "block", marginBottom: "6px" }}>
+              <svg viewBox={`0 0 ${weekAhead.days.length * 32} 40`} style={{ width: "100%", height: "40px", display: "block", marginBottom: "var(--space-1_5)" }}>
                 {weekAhead.days.map((day, i) => {
                   const x = i * 32 + 16;
                   const y = 36 - (day.score / 100) * 30;
@@ -617,7 +640,7 @@ export function DashboardPersonalTab({
                       )}
                       <circle
                         cx={x} cy={y} r={isToday ? 5 : 3.5}
-                        fill={day.score >= 65 ? "#5C7654" : day.score >= 45 ? "#B85A2C" : "#A8482F"}
+                        fill={scoreColor(day.score)}
                         stroke={isToday ? "#1A1612" : "none"}
                         strokeWidth={isToday ? 1.5 : 0}
                       />
@@ -628,7 +651,7 @@ export function DashboardPersonalTab({
               {/* Day labels */}
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 {weekAhead.days.map((day) => (
-                  <span key={day.dateLocal} style={{ fontSize: "0.62rem", color: "#A89D89", textAlign: "center", flex: 1 }}>
+                  <span key={day.dateLocal} style={{ fontSize: "0.625rem", color: "var(--color-faint)", textAlign: "center", flex: 1 }}>
                     {new Date(day.dateLocal + "T12:00:00").toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { weekday: "short" })}
                   </span>
                 ))}
@@ -640,9 +663,9 @@ export function DashboardPersonalTab({
                 const easiest = sorted[sorted.length - 1];
                 const label = (d: typeof best) => new Date(d.dateLocal + "T12:00:00").toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { weekday: "short" });
                 return (
-                  <p style={{ margin: "8px 0 0", fontSize: "0.75rem", color: "#3D352B", lineHeight: 1.4 }}>
+                  <p style={{ margin: "var(--space-2) 0 0", fontSize: "0.75rem", color: "#3D352B", lineHeight: 1.4 }}>
                     {lang === "ta" ? "சிறந்த நாள்" : "Best day"}{" "}
-                    <strong style={{ color: "#5C7654" }}>{label(best)}</strong>
+                    <strong style={{ color: SCORE_HIGH }}>{label(best)}</strong>
                     {" · "}
                     {lang === "ta" ? "எளிமையான மாலை" : "Easiest evening"}{" "}
                     <strong style={{ color: "#7A6F5E" }}>{label(easiest)}</strong>
@@ -651,7 +674,7 @@ export function DashboardPersonalTab({
               })()}
             </>
           ) : (
-            <p style={{ margin: 0, color: "#A89D89", fontSize: "0.82rem" }}>{t("guidance_empty", lang)}</p>
+            <p style={{ margin: 0, color: "var(--color-faint)", fontSize: "0.875rem" }}>{t("guidance_empty", lang)}</p>
           )}
         </div>
       </div>
@@ -659,29 +682,29 @@ export function DashboardPersonalTab({
       {/* ── Remedy strip ── */}
       {personalDailyGuidance?.remedy && (
         <div style={{
-          padding: "18px 24px",
-          borderRadius: "14px",
+          padding: "var(--space-4_5) var(--space-6)",
+          borderRadius: "var(--radius-md)",
           background: "#F0D9C4",
           border: "1px solid rgba(184,90,44,0.2)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: "16px",
+          gap: "var(--space-4)",
           flexWrap: "wrap",
         }}>
           <div>
-            <p style={{ margin: "0 0 3px", fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#B85A2C" }}>
+            <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#B85A2C" }}>
               {lang === "ta" ? "பரிகாரம் · இன்று" : "Remedy · Today"}
             </p>
-            <p style={{ margin: 0, fontSize: "1rem", color: "#1A1612", fontFamily: "'Fraunces', Georgia, serif", fontWeight: 500 }}>
+            <p style={{ margin: 0, fontSize: "1rem", color: "#1A1612", fontFamily: "var(--font-display)", fontWeight: 500 }}>
               {tLang(personalDailyGuidance.remedy, lang)}
             </p>
           </div>
           <button
             type="button"
             style={{
-              padding: "9px 20px", borderRadius: "999px", border: "1.5px solid #1A1612",
-              background: "#FFFFFF", color: "#1A1612", fontSize: "0.84rem", fontWeight: 600,
+              padding: "var(--space-2) var(--space-5)", borderRadius: "var(--radius-pill)", border: "1.5px solid #1A1612",
+              background: "#FFFFFF", color: "#1A1612", fontSize: "0.875rem", fontWeight: 600,
               cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
               transition: "background 150ms ease",
             }}
@@ -747,20 +770,20 @@ export function DashboardPersonalTab({
           )}
         </Surface>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           <Surface title={t("surface_guidance", lang)}>
             {personalDailyGuidance ? (
               <div className="surface__body">
                 {personalDailyGuidance.tithiCard && (
-                  <div style={{ marginBottom: "10px", padding: "10px 12px", borderRadius: "8px", background: "rgba(245,158,11,0.07)", border: "1px solid rgba(251,191,36,0.22)" }}>
-                    <p style={{ margin: "0 0 3px", fontSize: "0.65rem", fontWeight: 700, color: "#f59e0b", textTransform: "uppercase", letterSpacing: "0.06em" }}>🕉 {t("tithi_card_label", lang)}</p>
-                    <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--color-text)", lineHeight: 1.5 }}>{tLang(personalDailyGuidance.tithiCard, lang)}</p>
+                  <div style={{ marginBottom: "var(--space-2_5)", padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "rgba(245,158,11,0.07)", border: "1px solid rgba(251,191,36,0.22)" }}>
+                    <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, color: "#f59e0b", textTransform: "uppercase", letterSpacing: "0.06em" }}>🕉 {t("tithi_card_label", lang)}</p>
+                    <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-text)", lineHeight: 1.5 }}>{tLang(personalDailyGuidance.tithiCard, lang)}</p>
                   </div>
                 )}
                 {personalDailyGuidance.contextInsight && (
-                  <div style={{ marginBottom: "10px", padding: "10px 12px", borderRadius: "8px", background: "rgba(139,92,246,0.08)", border: "1px solid rgba(167,139,250,0.25)" }}>
-                    <p style={{ margin: "0 0 3px", fontSize: "0.65rem", fontWeight: 700, color: "#a78bfa", textTransform: "uppercase", letterSpacing: "0.06em" }}>📋 {t("context_insight_label", lang)}</p>
-                    <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--color-text)", lineHeight: 1.5 }}>{tLang(personalDailyGuidance.contextInsight, lang)}</p>
+                  <div style={{ marginBottom: "var(--space-2_5)", padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "rgba(139,92,246,0.08)", border: "1px solid rgba(167,139,250,0.25)" }}>
+                    <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, color: "#a78bfa", textTransform: "uppercase", letterSpacing: "0.06em" }}>📋 {t("context_insight_label", lang)}</p>
+                    <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-text)", lineHeight: 1.5 }}>{tLang(personalDailyGuidance.contextInsight, lang)}</p>
                   </div>
                 )}
                 <div className="surface__headline">
@@ -774,19 +797,19 @@ export function DashboardPersonalTab({
                   <Metric label={t("label_moon_transit", lang)} value={`${personalDailyGuidance.scoreBreakdown.moonTransit}`} hint={`${t("dasha_word", lang)} ${personalDailyGuidance.scoreBreakdown.dashaSupport}`} />
                 </div>
                 {personalDailyGuidance.reasons && (
-                  <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-                    <p className="surface__subhead" style={{ marginBottom: "6px" }}>{t("why_this_prediction", lang)}</p>
+                  <div style={{ marginTop: "var(--space-2_5)", paddingTop: "var(--space-2_5)", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                    <p className="surface__subhead" style={{ marginBottom: "var(--space-1_5)" }}>{t("why_this_prediction", lang)}</p>
                     {(["moonTransit", "dashaSupport", "panchangam", "gochar", "personalCaution"] as const).map((key) => (
-                      <div key={key} style={{ display: "flex", gap: "8px", marginBottom: "5px", alignItems: "flex-start" }}>
-                        <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--color-muted)", minWidth: "84px", paddingTop: "2px" }}>{t(`reason_${key}` as Parameters<typeof t>[0], lang)}</span>
+                      <div key={key} style={{ display: "flex", gap: "var(--space-2)", marginBottom: "var(--space-1)", alignItems: "flex-start" }}>
+                        <span style={{ fontSize: "0.625rem", fontWeight: 700, color: "var(--color-muted)", minWidth: "84px", paddingTop: "var(--space-0_5)" }}>{t(`reason_${key}` as Parameters<typeof t>[0], lang)}</span>
                         <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.4 }}>{tLang(personalDailyGuidance.reasons[key], lang)}</p>
                       </div>
                     ))}
                   </div>
                 )}
                 {!personalViewId && dailyGuidanceRange && (
-                  <div style={{ marginTop: "10px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-                    <p className="surface__subhead" style={{ marginBottom: "6px" }}>{t("label_next_3_days", lang)}</p>
+                  <div style={{ marginTop: "var(--space-2_5)", paddingTop: "var(--space-2)", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                    <p className="surface__subhead" style={{ marginBottom: "var(--space-1_5)" }}>{t("label_next_3_days", lang)}</p>
                     <div className="chip-row">
                       {dailyGuidanceRange.items.map((item) => {
                         const band = getScoreBand(item.score);
@@ -846,7 +869,7 @@ export function DashboardPersonalTab({
               <tbody>
                 {personalChart.planets.map((planet) => (
                   <tr key={planet.graha}>
-                    <td style={{ fontWeight: 600 }}><span style={{ color: DASHA_COLORS[planet.graha] ?? "#93c5fd", marginRight: "4px" }}>{GRAHA_ABBR[planet.graha] ?? planet.graha.slice(0, 2)}</span>{planet.graha}</td>
+                    <td style={{ fontWeight: 600 }}><span style={{ color: DASHA_COLORS[planet.graha] ?? "#93c5fd", marginRight: "var(--space-1)" }}>{GRAHA_ABBR[planet.graha] ?? planet.graha.slice(0, 2)}</span>{planet.graha}</td>
                     <td>{planet.rasiName}</td>
                     <td>{planet.degreeInRasi.toFixed(2)}°</td>
                     <td>{planet.nakshatraName}</td>
@@ -861,7 +884,7 @@ export function DashboardPersonalTab({
                   </tr>
                 ))}
                 <tr style={{ borderTop: "1px solid rgba(255,255,255,0.12)", opacity: 0.75 }}>
-                  <td style={{ fontWeight: 600 }}><span style={{ color: "#e5b84d", marginRight: "4px" }}>ல</span>{t("label_lagnam", lang)}</td>
+                  <td style={{ fontWeight: 600 }}><span style={{ color: "#e5b84d", marginRight: "var(--space-1)" }}>ல</span>{t("label_lagnam", lang)}</td>
                   <td>{personalChart.lagna.rasiName}</td>
                   <td>{personalChart.lagna.degreeInRasi.toFixed(2)}°</td>
                   <td>{personalChart.lagna.nakshatraName}</td>
@@ -883,20 +906,20 @@ export function DashboardPersonalTab({
               <span>{lang === "ta" ? nakshatraCard.nameTa : nakshatraCard.nameEn}</span>
               <Chip tone="accent">{t("nakshatra_ruling_planet", lang)}: {tPlanetLord(nakshatraCard.rulingPlanet, lang)}</Chip>
             </div>
-            <p style={{ margin: "0 0 6px", fontSize: "0.72rem", color: "var(--color-muted)" }}>
-              <span style={{ marginRight: "12px" }}>{t("nakshatra_deity", lang)}: <strong style={{ color: "var(--color-text)" }}>{lang === "ta" ? nakshatraCard.deityTa : nakshatraCard.deityEn}</strong></span>
+            <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.75rem", color: "var(--color-muted)" }}>
+              <span style={{ marginRight: "var(--space-3)" }}>{t("nakshatra_deity", lang)}: <strong style={{ color: "var(--color-text)" }}>{lang === "ta" ? nakshatraCard.deityTa : nakshatraCard.deityEn}</strong></span>
               <span>{t("nakshatra_symbol", lang)}: <strong style={{ color: "var(--color-text)" }}>{lang === "ta" ? nakshatraCard.symbolTa : nakshatraCard.symbolEn}</strong></span>
             </p>
             <p className="surface__text">{lang === "ta" ? nakshatraCard.profile.ta : nakshatraCard.profile.en}</p>
             {nakshatraCard.strengths.length > 0 && (
-              <div style={{ marginBottom: "8px" }}>
-                <p style={{ margin: "0 0 5px", fontSize: "0.68rem", fontWeight: 700, color: "#5C7654", textTransform: "uppercase", letterSpacing: "0.05em" }}>{t("nakshatra_strengths", lang)}</p>
+              <div style={{ marginBottom: "var(--space-2)" }}>
+                <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#5C7654", textTransform: "uppercase", letterSpacing: "0.05em" }}>{t("nakshatra_strengths", lang)}</p>
                 <div className="chip-row">{nakshatraCard.strengths.map((s) => <Chip key={s.en} tone="success">{lang === "ta" ? s.ta : s.en}</Chip>)}</div>
               </div>
             )}
             {nakshatraCard.cautions.length > 0 && (
               <div>
-                <p style={{ margin: "0 0 5px", fontSize: "0.68rem", fontWeight: 700, color: "#B85A2C", textTransform: "uppercase", letterSpacing: "0.05em" }}>{t("nakshatra_cautions", lang)}</p>
+                <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#B85A2C", textTransform: "uppercase", letterSpacing: "0.05em" }}>{t("nakshatra_cautions", lang)}</p>
                 <div className="chip-row">{nakshatraCard.cautions.map((c) => <Chip key={c.en} tone="warning">{lang === "ta" ? c.ta : c.en}</Chip>)}</div>
               </div>
             )}

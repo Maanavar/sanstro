@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 
@@ -42,7 +42,7 @@ const W = {
   ink:       "#1A1612",
   inkMid:    "#3D352B",
   muted:     "#7A6F5E",
-  mutedLt:   "#A89D89",
+  mutedLt:   "var(--color-faint)",
   border:    "#D4C8AE",
   borderLt:  "#E4DBC8",
   surface:   "#FAF5EA",
@@ -63,9 +63,9 @@ function PillBtn({
       type="button"
       onClick={onClick}
       style={{
-        padding: "6px 16px",
-        borderRadius: "999px",
-        fontSize: "0.8rem",
+        padding: "var(--space-1_5) var(--space-4)",
+        borderRadius: "var(--radius-pill)",
+        fontSize: "0.875rem",
         fontWeight: 600,
         cursor: "pointer",
         border: "1.5px solid",
@@ -87,11 +87,11 @@ function SettingsCard({ children }: { children: React.ReactNode }) {
     <div style={{
       background: W.surface,
       border: `1px solid ${W.borderLt}`,
-      borderRadius: "16px",
-      padding: "24px",
+      borderRadius: "var(--radius-md)",
+      padding: "var(--space-6)",
       display: "flex",
       flexDirection: "column",
-      gap: "20px",
+      gap: "var(--space-5)",
     }}>
       {children}
     </div>
@@ -103,7 +103,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p style={{
       margin: 0,
-      fontSize: "0.68rem",
+      fontSize: "0.625rem",
       fontWeight: 700,
       letterSpacing: "0.1em",
       textTransform: "uppercase",
@@ -117,10 +117,10 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 /* ── Field row ── */
 function FieldRow({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-      <label style={{ fontSize: "0.78rem", fontWeight: 600, color: W.inkMid }}>{label}</label>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+      <label style={{ fontSize: "0.875rem", fontWeight: 600, color: W.inkMid }}>{label}</label>
       {children}
-      {hint && <span style={{ fontSize: "0.72rem", color: W.mutedLt, lineHeight: 1.4 }}>{hint}</span>}
+      {hint && <span style={{ fontSize: "0.75rem", color: W.mutedLt, lineHeight: 1.4 }}>{hint}</span>}
     </div>
   );
 }
@@ -132,12 +132,12 @@ function WarmInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
       {...props}
       style={{
         width: "100%",
-        padding: "8px 12px",
-        borderRadius: "10px",
+        padding: "var(--space-2) var(--space-3)",
+        borderRadius: "var(--radius-md)",
         border: `1.5px solid ${W.borderLt}`,
         background: W.card,
         color: W.inkMid,
-        fontSize: "0.84rem",
+        fontSize: "0.875rem",
         fontFamily: "inherit",
         outline: "none",
         ...(props.style ?? {}),
@@ -153,12 +153,12 @@ function WarmSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
       {...props}
       style={{
         width: "100%",
-        padding: "8px 12px",
-        borderRadius: "10px",
+        padding: "var(--space-2) var(--space-3)",
+        borderRadius: "var(--radius-md)",
         border: `1.5px solid ${W.borderLt}`,
         background: W.card,
         color: W.inkMid,
-        fontSize: "0.84rem",
+        fontSize: "0.875rem",
         fontFamily: "inherit",
         outline: "none",
         ...(props.style ?? {}),
@@ -189,9 +189,9 @@ function ActionBtn({
       onClick={onClick}
       disabled={disabled}
       style={{
-        padding: "8px 20px",
-        borderRadius: "10px",
-        fontSize: "0.82rem",
+        padding: "var(--space-2) var(--space-5)",
+        borderRadius: "var(--radius-md)",
+        fontSize: "0.875rem",
         fontWeight: 600,
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.5 : 1,
@@ -210,11 +210,11 @@ function ToggleRow({
   checked, onChange, children,
 }: { checked: boolean; onChange: (v: boolean) => void; children: React.ReactNode }) {
   return (
-    <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
+    <label style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)", cursor: "pointer" }}>
       <span style={{
         display: "inline-flex",
         width: "36px", height: "20px",
-        borderRadius: "999px",
+        borderRadius: "var(--radius-pill)",
         border: `1.5px solid ${checked ? W.terracota : W.border}`,
         background: checked ? W.terracota : W.surfaceMd,
         position: "relative",
@@ -232,7 +232,7 @@ function ToggleRow({
           transition: "left 0.15s",
         }} />
       </span>
-      <span style={{ fontSize: "0.82rem", color: W.inkMid, lineHeight: 1.4 }}>{children}</span>
+      <span style={{ fontSize: "0.875rem", color: W.inkMid, lineHeight: 1.4 }}>{children}</span>
     </label>
   );
 }
@@ -348,14 +348,14 @@ export function DashboardSettingsSessionTab({
     <div style={{
       display: "flex",
       flexDirection: "column",
-      gap: "32px",
-      fontFamily: "'Noto Sans Tamil','Inter',system-ui,sans-serif",
+      gap: "var(--space-8)",
+      fontFamily: "var(--font-body)",
       color: W.ink,
       maxWidth: "760px",
     }}>
 
       {/* ── Settings sub-tab switcher ── */}
-      <div style={{ display: "flex", gap: "6px" }}>
+      <div style={{ display: "flex", gap: "var(--space-1_5)" }}>
         {([
           { key: "setup",   label: lang === "ta" ? "ஆரம்ப நிலை" : "Onboarding" },
           { key: "session", label: lang === "ta" ? "அமைப்புகள்" : "Settings" },
@@ -365,7 +365,7 @@ export function DashboardSettingsSessionTab({
             type="button"
             onClick={() => onSettingsSubTabChange(key)}
             style={{
-              padding: "7px 18px", borderRadius: "999px", fontSize: "0.8rem", fontWeight: 600,
+              padding: "var(--space-2) var(--space-4_5)", borderRadius: "var(--radius-pill)", fontSize: "0.875rem", fontWeight: 600,
               cursor: "pointer", fontFamily: "inherit",
               border: "1.5px solid",
               borderColor: key === "session" ? W.ink : W.border,
@@ -381,12 +381,12 @@ export function DashboardSettingsSessionTab({
 
       {/* ── Hero ── */}
       <div>
-        <p style={{ margin: "0 0 6px", fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: W.terracota }}>
+        <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: W.terracota }}>
           {t("settings_kicker", lang)}
         </p>
         <h1 style={{
-          margin: "0 0 10px",
-          fontFamily: "'Fraunces', Georgia, serif",
+          margin: "0 0 var(--space-2_5)",
+          fontFamily: "var(--font-display)",
           fontSize: "clamp(2rem, 4vw, 2.8rem)",
           fontWeight: 500,
           letterSpacing: "-0.03em",
@@ -399,7 +399,7 @@ export function DashboardSettingsSessionTab({
             {lang === "ta" ? "& விருப்பத்தேர்வுகள்." : "& preferences."}
           </em>
         </h1>
-        <p style={{ margin: 0, fontSize: "0.9rem", color: W.muted, lineHeight: 1.6 }}>
+        <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted, lineHeight: 1.6 }}>
           {t("settings_desc", lang)}
         </p>
       </div>
@@ -407,7 +407,7 @@ export function DashboardSettingsSessionTab({
       {/* ── Session info ── */}
       <SettingsCard>
         <SectionLabel>{lang === "ta" ? "அமர்வு" : "Session"}</SectionLabel>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--space-4)" }}>
           <FieldRow label={t("settings_owner", lang)} hint={t("settings_owner_hint", lang)}>
             <WarmInput value={ownerUserId} onChange={(e) => onOwnerUserIdChange(e.target.value)} />
           </FieldRow>
@@ -426,11 +426,11 @@ export function DashboardSettingsSessionTab({
         </div>
 
         {/* Quick actions */}
-        <div style={{ paddingTop: "4px", borderTop: `1px solid ${W.borderLt}` }}>
-          <p style={{ margin: "0 0 10px", fontSize: "0.75rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        <div style={{ paddingTop: "var(--space-1)", borderTop: `1px solid ${W.borderLt}` }}>
+          <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.75rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
             {t("settings_quick", lang)}
           </p>
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
             <ActionBtn onClick={onRefreshPersonal} disabled={!birthProfileId || busyPersonal} variant="ghost">
               {busyPersonal ? t("btn_refreshing", lang) : t("btn_refresh_personal", lang)}
             </ActionBtn>
@@ -452,8 +452,8 @@ export function DashboardSettingsSessionTab({
         <SectionLabel>{lang === "ta" ? "அனுபவ அமைப்பு" : "Experience mode"}</SectionLabel>
 
         <div>
-          <p style={{ margin: "0 0 10px", fontSize: "0.78rem", color: W.muted }}>{t("mode_label", lang)}</p>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.875rem", color: W.muted }}>{t("mode_label", lang)}</p>
+          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
             {(["BEGINNER", "BALANCED", "TRADITIONAL"] as const).map((m) => (
               <PillBtn key={m} active={modeDraft === m} onClick={() => setModeDraft(m)}>
                 {t(m === "BEGINNER" ? "mode_beginner" : m === "BALANCED" ? "mode_balanced" : "mode_traditional", lang)}
@@ -463,8 +463,8 @@ export function DashboardSettingsSessionTab({
         </div>
 
         <div>
-          <p style={{ margin: "0 0 10px", fontSize: "0.78rem", color: W.muted }}>{t("track_label", lang)}</p>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.875rem", color: W.muted }}>{t("track_label", lang)}</p>
+          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
             <PillBtn active={trackDraft === ""} onClick={() => setTrackDraft("")}>
               {t("track_none", lang)}
             </PillBtn>
@@ -476,13 +476,14 @@ export function DashboardSettingsSessionTab({
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
           <ActionBtn onClick={() => void handleSaveUserSettings()} disabled={userSettingsSaving}>
             {userSettingsSaving ? t("notif_saving", lang) : lang === "ta" ? "சேமி" : "Save preferences"}
           </ActionBtn>
           {userSettingsSaved && (
-            <span style={{ fontSize: "0.78rem", color: W.sage, fontWeight: 600 }}>
-              {lang === "ta" ? "✔ சேமிக்கப்பட்டது" : "✔ Saved"}
+            <span style={{ fontSize: "0.875rem", color: W.sage, fontWeight: 600 }}>
+              <svg viewBox="0 0 24 24" fill="none" width="14" height="14" aria-hidden="true" style={{ flexShrink: 0 }}><path d="M5.5 12.5L10 17L18.5 8.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              {lang === "ta" ? "சேமிக்கப்பட்டது" : "Saved"}
             </span>
           )}
         </div>
@@ -491,11 +492,11 @@ export function DashboardSettingsSessionTab({
       {/* ── Journal retention ── */}
       <SettingsCard>
         <SectionLabel>{lang === "ta" ? "குறிப்பேடு தக்கவைப்பு" : "Journal retention"}</SectionLabel>
-        <p style={{ margin: 0, fontSize: "0.84rem", color: W.muted, lineHeight: 1.55 }}>
+        <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted, lineHeight: 1.55 }}>
           {t("settings_retention_desc", lang)}
         </p>
 
-        <div style={{ display: "flex", gap: "12px", alignItems: "flex-end", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-end", flexWrap: "wrap" }}>
           <FieldRow label={t("settings_retention_days", lang)} hint={t("settings_retention_hint", lang)}>
             <WarmInput
               type="number"
@@ -513,14 +514,14 @@ export function DashboardSettingsSessionTab({
 
         <p style={{
           margin: 0,
-          fontSize: "0.8rem",
+          fontSize: "0.875rem",
           color: retentionDraft <= 30 ? W.terracota : W.muted,
           lineHeight: 1.5,
         }}>
           {retentionNotice}
         </p>
 
-        <div style={{ display: "grid", gap: "4px", fontSize: "0.78rem", color: W.mutedLt }}>
+        <div style={{ display: "grid", gap: "var(--space-1)", fontSize: "0.875rem", color: W.mutedLt }}>
           <p style={{ margin: 0 }}>{t("settings_retention_last_updated", lang)}: {fmt(journalLastUpdatedAt)}</p>
           <p style={{ margin: 0 }}>{t("settings_retention_last_reviewed", lang)}: {fmt(journalLastRetentionReviewedAt)}</p>
           <p style={{ margin: 0 }}>{t("settings_retention_next_review", lang)}: {fmtDate(journalNextRecommendedReviewDate)}</p>
@@ -546,7 +547,7 @@ export function DashboardSettingsSessionTab({
           </WarmSelect>
         </FieldRow>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3_5)" }}>
           <ToggleRow checked={notifMorning} onChange={setNotifMorning}>
             {t("notif_morning_alert", lang)}
             {notifMorning && (
@@ -554,7 +555,7 @@ export function DashboardSettingsSessionTab({
                 type="time"
                 value={notifMorningTime}
                 onChange={(e) => setNotifMorningTime(e.target.value)}
-                style={{ maxWidth: "100px", marginLeft: "8px", display: "inline-block" }}
+                style={{ maxWidth: "100px", marginLeft: "var(--space-2)", display: "inline-block" }}
               />
             )}
           </ToggleRow>
@@ -570,17 +571,17 @@ export function DashboardSettingsSessionTab({
         </div>
 
         {notificationPrefs && (
-          <p style={{ margin: 0, fontSize: "0.73rem", color: notificationPrefs.fcmTokenRegistered ? W.sage : W.mutedLt }}>
+          <p style={{ margin: 0, fontSize: "0.75rem", color: notificationPrefs.fcmTokenRegistered ? W.sage : W.mutedLt }}>
             {notificationPrefs.fcmTokenRegistered ? t("notif_fcm_registered", lang) : t("notif_fcm_not_registered", lang)}
           </p>
         )}
 
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
           <ActionBtn onClick={handleSaveNotifications} disabled={notifSaving}>
             {notifSaving ? t("notif_saving", lang) : t("btn_save_notifications", lang)}
           </ActionBtn>
           {notifSaved && (
-            <span style={{ fontSize: "0.78rem", color: W.sage, fontWeight: 600 }}>
+            <span style={{ fontSize: "0.875rem", color: W.sage, fontWeight: 600 }}>
               {t("notif_saved", lang)}
             </span>
           )}
@@ -590,7 +591,7 @@ export function DashboardSettingsSessionTab({
       {/* ── Help & Feedback ── */}
       <SettingsCard>
         <SectionLabel>{lang === "ta" ? "உதவி & கருத்து" : "Help & feedback"}</SectionLabel>
-        <p style={{ margin: 0, fontSize: "0.84rem", color: W.muted, lineHeight: 1.55 }}>
+        <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted, lineHeight: 1.55 }}>
           {lang === "ta"
             ? "கேள்விகள் அல்லது பரிந்துரைகள் இருந்தால் தொடர்பு கொள்ளவும்."
             : "Have questions or suggestions? We're here to help."}
@@ -604,28 +605,28 @@ export function DashboardSettingsSessionTab({
 
       {/* ── Privacy footer ── */}
       <div style={{
-        borderRadius: "12px",
+        borderRadius: "var(--radius-md)",
         border: `1px solid ${W.borderLt}`,
         background: W.surfaceMd,
-        padding: "16px 20px",
+        padding: "var(--space-4) var(--space-5)",
         display: "flex",
         flexDirection: "column",
-        gap: "8px",
+        gap: "var(--space-2)",
       }}>
-        <p style={{ margin: 0, fontSize: "0.73rem", color: W.mutedLt, lineHeight: 1.6 }}>
+        <p style={{ margin: 0, fontSize: "0.75rem", color: W.mutedLt, lineHeight: 1.6 }}>
           {t("disclaimer_astro", lang)}
         </p>
-        <p style={{ margin: 0, fontSize: "0.72rem", color: W.mutedLt, lineHeight: 1.5 }}>
+        <p style={{ margin: 0, fontSize: "0.75rem", color: W.mutedLt, lineHeight: 1.5 }}>
           {t("disclaimer_no_doom", lang)}
         </p>
-        <p style={{ margin: 0, fontSize: "0.72rem", color: W.mutedLt, lineHeight: 1.5 }}>
+        <p style={{ margin: 0, fontSize: "0.75rem", color: W.mutedLt, lineHeight: 1.5 }}>
           {t("disclaimer_data", lang)}
         </p>
-        <div style={{ display: "flex", gap: "16px", marginTop: "4px" }}>
-          <span style={{ fontSize: "0.7rem", color: W.muted, textDecoration: "underline", cursor: "pointer" }}>
+        <div style={{ display: "flex", gap: "var(--space-4)", marginTop: "var(--space-1)" }}>
+          <span style={{ fontSize: "0.75rem", color: W.muted, textDecoration: "underline", cursor: "pointer" }}>
             {t("privacy_link", lang)}
           </span>
-          <span style={{ fontSize: "0.7rem", color: W.muted, textDecoration: "underline", cursor: "pointer" }}>
+          <span style={{ fontSize: "0.75rem", color: W.muted, textDecoration: "underline", cursor: "pointer" }}>
             {t("terms_link", lang)}
           </span>
         </div>

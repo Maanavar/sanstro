@@ -98,7 +98,7 @@ const W = {
   ink: "#1A1612",
   inkMid: "#3D352B",
   muted: "#7A6F5E",
-  mutedLt: "#A89D89",
+  mutedLt: "var(--color-faint)",
   border: "#D4C8AE",
   borderLt: "#E4DBC8",
   surface: "#FAF5EA",
@@ -123,13 +123,13 @@ function EventCard({ item, lang }: { item: LifeEventLogItem; lang: Lang }) {
   return (
     <div style={{ border: `1px solid ${W.borderLt}`, borderRadius: "10px", padding: "12px 14px", marginBottom: "10px", background: W.card }}>
       <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: item.correlation ? "pointer" : "default" }} onClick={() => item.correlation && setExpanded((v) => !v)}>
-        <span style={{ fontSize: "1.2rem" }}>{EVENT_ICON[item.eventType] ?? "?"}</span>
+        <span style={{ fontSize: "1.25rem" }}>{EVENT_ICON[item.eventType] ?? "?"}</span>
         <div style={{ flex: 1 }}>
-          <p style={{ margin: 0, fontWeight: 600, fontSize: "0.88rem", color: W.inkMid }}>{eventLabel(item.eventType)}</p>
-          <p style={{ margin: "2px 0 0 0", fontSize: "0.78rem", color: W.muted }}>{formatDateLabel(item.eventDate)}</p>
-          {item.description && <p style={{ margin: "4px 0 0 0", fontSize: "0.8rem", color: W.muted }}>{item.description}</p>}
+          <p style={{ margin: 0, fontWeight: 600, fontSize: "0.875rem", color: W.inkMid }}>{eventLabel(item.eventType)}</p>
+          <p style={{ margin: "2px 0 0 0", fontSize: "0.875rem", color: W.muted }}>{formatDateLabel(item.eventDate)}</p>
+          {item.description && <p style={{ margin: "4px 0 0 0", fontSize: "0.875rem", color: W.muted }}>{item.description}</p>}
         </div>
-        {item.correlation && <span style={{ fontSize: "0.7rem", color: W.muted }}>{expanded ? "?" : "?"}</span>}
+        {item.correlation && <span style={{ fontSize: "0.75rem", color: W.muted }}>{expanded ? "?" : "?"}</span>}
       </div>
 
       {expanded && item.correlation && (
@@ -137,7 +137,7 @@ function EventCard({ item, lang }: { item: LifeEventLogItem; lang: Lang }) {
           <p style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: W.mutedLt, marginBottom: "4px" }}>
             {lang === "ta" ? "???? ?????" : "Planetary context"}
           </p>
-          <p style={{ fontSize: "0.82rem", color: W.muted, lineHeight: 1.5 }}>{lang === "ta" ? item.correlation.narrative.ta : item.correlation.narrative.en}</p>
+          <p style={{ fontSize: "0.875rem", color: W.muted, lineHeight: 1.5 }}>{lang === "ta" ? item.correlation.narrative.ta : item.correlation.narrative.en}</p>
           <div style={{ display: "flex", gap: "6px", marginTop: "8px", flexWrap: "wrap" }}>
             <span style={{ padding: "2px 8px", background: W.surfaceMd, borderRadius: "10px", fontSize: "11px", color: W.inkMid }}>
               {lang === "ta" ? "??????" : "Mahadasha"}: {item.correlation.mahaLord}
@@ -209,7 +209,7 @@ export function DashboardLifeEventLog({ lang, chartId, onError }: DashboardLifeE
     <Surface title={lang === "ta" ? "???????? ??????????" : "Life Event Log"}>
       <div className="surface__body">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-          <p style={{ margin: 0, fontSize: "0.72rem", fontWeight: 700, color: W.mutedLt, letterSpacing: "0.07em", textTransform: "uppercase" }}>
+          <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt, letterSpacing: "0.07em", textTransform: "uppercase" }}>
             {lang === "ta" ? "???????? ??????????" : "Life Event Log"}
           </p>
           <button
@@ -221,7 +221,7 @@ export function DashboardLifeEventLog({ lang, chartId, onError }: DashboardLifeE
               border: `1px solid ${showForm ? W.ink : W.border}`,
               background: showForm ? W.ink : "transparent",
               color: showForm ? W.surfaceMd : W.inkMid,
-              fontSize: "0.8rem",
+              fontSize: "0.875rem",
               cursor: "pointer",
               fontWeight: 600,
               fontFamily: "inherit",
@@ -232,7 +232,7 @@ export function DashboardLifeEventLog({ lang, chartId, onError }: DashboardLifeE
         </div>
 
         {loadError && (
-          <p style={{ fontSize: "0.8rem", color: W.rust, margin: "0 0 12px" }}>
+          <p style={{ fontSize: "0.875rem", color: W.rust, margin: "0 0 12px" }}>
             {lang === "ta" ? "?????????? ???? ???????????." : "Could not load events."} {loadError}
           </p>
         )}
@@ -244,7 +244,7 @@ export function DashboardLifeEventLog({ lang, chartId, onError }: DashboardLifeE
                 <label style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: W.mutedLt, display: "block", marginBottom: "4px" }}>
                   {lang === "ta" ? "??????? ???" : "Event type"}
                 </label>
-                <select value={eventType} onChange={(e) => setEventType(e.target.value)} style={{ width: "100%", padding: "7px 10px", borderRadius: "10px", border: `1.5px solid ${W.borderLt}`, background: W.card, color: W.inkMid, fontSize: "0.85rem", fontFamily: "inherit" }}>
+                <select value={eventType} onChange={(e) => setEventType(e.target.value)} style={{ width: "100%", padding: "7px 10px", borderRadius: "10px", border: `1.5px solid ${W.borderLt}`, background: W.card, color: W.inkMid, fontSize: "0.875rem", fontFamily: "inherit" }}>
                   <option value="">{lang === "ta" ? "� ?????? �" : "� Select �"}</option>
                   {EVENT_TYPES.map((e) => (
                     <option key={e.id} value={e.id}>
@@ -257,7 +257,7 @@ export function DashboardLifeEventLog({ lang, chartId, onError }: DashboardLifeE
                 <label style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: W.mutedLt, display: "block", marginBottom: "4px" }}>
                   {lang === "ta" ? "??????? ????" : "Date"}
                 </label>
-                <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} style={{ width: "100%", padding: "7px 10px", borderRadius: "10px", border: `1.5px solid ${W.borderLt}`, background: W.card, color: W.inkMid, fontSize: "0.85rem", fontFamily: "inherit" }} />
+                <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} style={{ width: "100%", padding: "7px 10px", borderRadius: "10px", border: `1.5px solid ${W.borderLt}`, background: W.card, color: W.inkMid, fontSize: "0.875rem", fontFamily: "inherit" }} />
               </div>
             </div>
             <div style={{ marginBottom: "10px" }}>
@@ -269,7 +269,7 @@ export function DashboardLifeEventLog({ lang, chartId, onError }: DashboardLifeE
                 onChange={(e) => setDescription(e.target.value)}
                 rows={2}
                 placeholder={lang === "ta" ? "?????????? ????????�" : "Brief note..."}
-                style={{ width: "100%", padding: "7px 10px", borderRadius: "10px", border: `1.5px solid ${W.borderLt}`, background: W.card, color: W.inkMid, fontSize: "0.85rem", resize: "none", boxSizing: "border-box", fontFamily: "inherit" }}
+                style={{ width: "100%", padding: "7px 10px", borderRadius: "10px", border: `1.5px solid ${W.borderLt}`, background: W.card, color: W.inkMid, fontSize: "0.875rem", resize: "none", boxSizing: "border-box", fontFamily: "inherit" }}
               />
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
@@ -284,22 +284,22 @@ export function DashboardLifeEventLog({ lang, chartId, onError }: DashboardLifeE
                   background: !eventType || !eventDate || submitting ? W.borderLt : W.ink,
                   color: !eventType || !eventDate || submitting ? W.mutedLt : W.surfaceMd,
                   fontWeight: 700,
-                  fontSize: "0.85rem",
+                  fontSize: "0.875rem",
                   cursor: !eventType || !eventDate || submitting ? "not-allowed" : "pointer",
                   fontFamily: "inherit",
                 }}
               >
                 {submitting ? (lang === "ta" ? "???????????�" : "Saving...") : lang === "ta" ? "????" : "Save"}
               </button>
-              {saveError && <p style={{ margin: 0, fontSize: "0.76rem", color: W.rust }}>{saveError}</p>}
+              {saveError && <p style={{ margin: 0, fontSize: "0.75rem", color: W.rust }}>{saveError}</p>}
             </div>
           </div>
         )}
 
-        {loading && <p style={{ fontSize: "0.82rem", color: W.muted, textAlign: "center", padding: "16px 0" }}>{lang === "ta" ? "??????????�" : "Loading..."}</p>}
+        {loading && <p style={{ fontSize: "0.875rem", color: W.muted, textAlign: "center", padding: "16px 0" }}>{lang === "ta" ? "??????????�" : "Loading..."}</p>}
 
         {!loading && items.length === 0 && !showForm && (
-          <p style={{ fontSize: "0.82rem", color: W.muted, textAlign: "center", padding: "16px 0" }}>
+          <p style={{ fontSize: "0.875rem", color: W.muted, textAlign: "center", padding: "16px 0" }}>
             {lang === "ta" ? "??????? ??????? ?????????????. + ??????? ???? ??????????." : "No events logged yet. Tap + Log event to add your first."}
           </p>
         )}

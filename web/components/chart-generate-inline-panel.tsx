@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
@@ -35,7 +35,7 @@ const EMPTY_FORM: BirthForm = {
 const W = {
   inkMid: "#3D352B",
   muted: "#7A6F5E",
-  mutedLt: "#A89D89",
+  mutedLt: "var(--color-faint)",
   border: "#D4C8AE",
   borderLt: "#E4DBC8",
   surface: "#FAF5EA",
@@ -51,7 +51,7 @@ const fieldStyle: React.CSSProperties = {
   border: `1.5px solid ${W.borderLt}`,
   background: W.card,
   color: W.inkMid,
-  fontSize: "0.82rem",
+  fontSize: "0.875rem",
   padding: "8px 10px",
   fontFamily: "inherit",
 };
@@ -505,7 +505,7 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
       {/* SCREEN: interactive panel */}
       <div className="cgp-no-print" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
 
-        <p style={{ margin: 0, fontSize: "0.8rem", color: W.muted }}>
+        <p style={{ margin: 0, fontSize: "0.75rem", color: W.muted }}>
           {lang === "ta"
             ? "à®¤à®±à¯à®•à®¾à®²à®¿à®• à®œà®¾à®¤à®•à®®à¯. à®¤à®³à®¤à¯à®¤à¯ˆ à®®à¯‚à®Ÿà®¿à®¯à®¤à¯à®®à¯ à®¤à®¾à®©à®¾à®• à®¨à¯€à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®®à¯."
             : "Temporary chart â€” auto-deleted when you leave this session."}
@@ -556,7 +556,7 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
             </Field>
           </div>
 
-          {error && <p style={{ margin: 0, color: W.rust, fontSize: "0.78rem" }}>{error}</p>}
+          {error && <p style={{ margin: 0, color: W.rust, fontSize: "0.75rem" }}>{error}</p>}
 
           <button type="button" className="button button--primary" style={{ background: "#F8E4D2", border: `1px solid ${W.terracotta}66`, color: W.terracotta }}
             onClick={() => void handleGenerate()} disabled={loading}>
@@ -572,8 +572,8 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
 
             {/* Person header */}
             <div style={{ padding: "12px 14px", borderRadius: "10px", background: W.surface, border: `1px solid ${W.border}` }}>
-              <p style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: W.terracotta }}>{chart.birthProfile.displayName}</p>
-              <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: W.muted }}>{chart.birthProfile.birthDateLocal}</p>
+              <p style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: W.terracotta }}>{chart.birthProfile.displayName}</p>
+              <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: W.muted }}>{chart.birthProfile.birthDateLocal}</p>
             </div>
 
             {/* Action buttons: Print Jathagam (prominent) + D1/D9 toggle */}
@@ -581,19 +581,19 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
               <button type="button" onClick={handlePrint}
                 style={{
                   display: "flex", alignItems: "center", gap: "6px",
-                  padding: "8px 18px", borderRadius: "10px", fontSize: "0.8rem", fontWeight: 700,
+                  padding: "8px 18px", borderRadius: "10px", fontSize: "0.75rem", fontWeight: 700,
                   cursor: "pointer", border: `1.5px solid ${W.border}`,
                   background: W.surface, color: W.inkMid,
                   letterSpacing: "0.02em",
                 }}>
-                <span style={{ fontSize: "0.9rem", fontWeight: 800 }}>PR</span>
+                <span style={{ fontSize: "0.875rem", fontWeight: 800 }}>PR</span>
                 {lang === "ta" ? "à®œà®¾à®¤à®•à®®à¯ à®…à®šà¯à®šà®¿à®Ÿà¯" : "Print Jathagam"}
               </button>
 
               {(["D1", "D9"] as const).map((v) => (
                 <button key={v} type="button" onClick={() => setView(v)}
                   style={{
-                    padding: "5px 14px", borderRadius: "14px", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer",
+                    padding: "5px 14px", borderRadius: "14px", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer",
                     border: view === v ? `1px solid ${W.terracotta}66` : `1px solid ${W.border}`,
                     background: view === v ? "#F8E4D2" : W.card,
                     color: view === v ? W.terracotta : W.muted,
@@ -607,19 +607,19 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px" }}>
               {detailRows.map((row) => (
                 <div key={row.label} style={{ borderRadius: "10px", border: `1px solid ${W.borderLt}`, padding: "10px 12px" }}>
-                  <p style={{ margin: 0, fontSize: "0.7rem", letterSpacing: "0.05em", textTransform: "uppercase", color: W.mutedLt }}>{row.label}</p>
-                  <p style={{ margin: "5px 0 0", fontSize: "0.9rem", fontWeight: 700, color: W.inkMid }}>{row.value}</p>
+                  <p style={{ margin: 0, fontSize: "0.75rem", letterSpacing: "0.05em", textTransform: "uppercase", color: W.mutedLt }}>{row.label}</p>
+                  <p style={{ margin: "5px 0 0", fontSize: "0.875rem", fontWeight: 700, color: W.inkMid }}>{row.value}</p>
                 </div>
               ))}
             </div>
 
             {/* Calculation method */}
             <div style={{ borderRadius: "10px", border: `1px solid ${W.border}`, background: W.surface, padding: "12px 14px" }}>
-              <p style={{ margin: 0, fontSize: "0.76rem", letterSpacing: "0.05em", textTransform: "uppercase", color: W.terracotta }}>Calculation Method</p>
-              <p style={{ margin: "6px 0 0", fontSize: "0.86rem" }}>
+              <p style={{ margin: 0, fontSize: "0.75rem", letterSpacing: "0.05em", textTransform: "uppercase", color: W.terracotta }}>Calculation Method</p>
+              <p style={{ margin: "6px 0 0", fontSize: "0.875rem" }}>
                 Version: <strong>{chart.calculationVersion}</strong> | Ayanamsa: <strong>{chart.ayanamsa.type}</strong> | Ephemeris: <strong>{chart.ephemerisBackend}</strong>
               </p>
-              <p style={{ margin: "6px 0 0", fontSize: "0.8rem", color: W.muted }}>
+              <p style={{ margin: "6px 0 0", fontSize: "0.75rem", color: W.muted }}>
                 House style: Whole-sign from Lagna. Dasha system: Vimshottari from Moon longitude.
               </p>
             </div>

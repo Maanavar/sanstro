@@ -55,7 +55,9 @@ function LifeEventCard({ window: w, lang }: { window: LifeEventWindow; lang: Lan
           reason={w.headline}
           lang={lang}
         />
-        <span className="life-event-expand-toggle">{expanded ? "▲" : "▼"}</span>
+        <span className="life-event-expand-toggle" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" width="12" height="12" style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms ease" }}><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </span>
       </div>
 
       {expanded && (

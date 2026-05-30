@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { t } from "@/lib/i18n";
@@ -98,16 +98,16 @@ export function DashboardLifeAreasTab({
     : "";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px", fontFamily: "'Noto Sans Tamil','Inter',system-ui,sans-serif" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)", fontFamily: "var(--font-body)" }}>
 
       {/* ── Hero ── */}
       <div>
-        <p style={{ margin: "0 0 6px", fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#B85A2C" }}>
+        <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#B85A2C" }}>
           {t("tab_life_areas", lang)}{currentAge !== null ? ` · ${lang === "ta" ? "வயது" : "AGE"} ${currentAge}` : ""}
         </p>
         <h1 style={{
-          margin: "0 0 12px",
-          fontFamily: "'Fraunces', Georgia, serif",
+          margin: "0 0 var(--space-3)",
+          fontFamily: "var(--font-display)",
           fontSize: "clamp(2rem, 4vw, 3rem)",
           fontWeight: 500,
           letterSpacing: "-0.03em",
@@ -120,7 +120,7 @@ export function DashboardLifeAreasTab({
             {lang === "ta" ? "துறை வாரியாக." : "area by area."}
           </em>
         </h1>
-        <p style={{ margin: 0, fontSize: "0.9rem", color: "#5a4f42", lineHeight: 1.6, maxWidth: "56ch" }}>
+        <p style={{ margin: 0, fontSize: "0.875rem", color: "#5a4f42", lineHeight: 1.6, maxWidth: "56ch" }}>
           {lang === "ta"
             ? "ஒவ்வொரு மதிப்பெண்ணும் உங்கள் தற்போதைய மாதசை மற்றும் கோசார நிலையை அடிப்படையாகக் கொண்டது."
             : `Each score reads support under your current Moon Dasa and active transits. ${phaseTheme}`}
@@ -128,21 +128,21 @@ export function DashboardLifeAreasTab({
       </div>
 
       {/* ── Member selector + Sub-tab nav row ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--space-3)" }}>
 
         {/* Member pills */}
-        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
           <button
             type="button"
             onClick={() => onSelectMember(null)}
             style={{
-              padding: "5px 16px", borderRadius: "999px", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer",
+              padding: "var(--space-1) var(--space-4)", borderRadius: "var(--radius-pill)", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer",
               border: "1.5px solid",
               borderColor: selectedMemberId === null ? "#B85A2C" : "#D4C8AE",
               background: selectedMemberId === null ? "#F0D9C4" : "transparent",
               color: selectedMemberId === null ? "#8c3e18" : "#7A6F5E",
               fontFamily: "inherit",
-              display: "flex", alignItems: "center", gap: "6px",
+              display: "flex", alignItems: "center", gap: "var(--space-1_5)",
             }}
           >
             {selectedMemberId === null && (
@@ -156,7 +156,7 @@ export function DashboardLifeAreasTab({
               type="button"
               onClick={() => onSelectMember(mc.memberId)}
               style={{
-                padding: "5px 16px", borderRadius: "999px", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer",
+                padding: "var(--space-1) var(--space-4)", borderRadius: "var(--radius-pill)", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer",
                 border: "1.5px solid",
                 borderColor: selectedMemberId === mc.memberId ? "#1A1612" : "#D4C8AE",
                 background: selectedMemberId === mc.memberId ? "#1A1612" : "transparent",
@@ -170,16 +170,16 @@ export function DashboardLifeAreasTab({
         </div>
 
         {/* Sub-tab pills — right side */}
-        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--space-1)", flexWrap: "wrap" }}>
           {SUB_TABS.map(({ key, label }) => (
             <button
               key={key}
               type="button"
               onClick={() => setSubTab(key)}
               style={{
-                padding: "6px 16px",
-                borderRadius: "999px",
-                fontSize: "0.74rem",
+                padding: "var(--space-1_5) var(--space-4)",
+                borderRadius: "var(--radius-pill)",
+                fontSize: "0.75rem",
                 fontWeight: 600,
                 cursor: "pointer",
                 border: "1.5px solid",
@@ -200,10 +200,10 @@ export function DashboardLifeAreasTab({
       {subTab === "scores" && (
         <>
           {!lifeAreas ? (
-            <p style={{ margin: 0, color: "#A89D89", fontSize: "0.88rem" }}>{t("life_areas_empty", lang)}</p>
+            <p style={{ margin: 0, color: "var(--color-faint)", fontSize: "0.875rem" }}>{t("life_areas_empty", lang)}</p>
           ) : (
             <>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "var(--space-4)" }}>
                 {lifeAreas.areas.map((area: LifeAreaData) => {
                   const ageRelevant = currentAge === null || isAreaRelevantForAge(area.area, currentAge);
                   return (

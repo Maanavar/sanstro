@@ -41,7 +41,7 @@ const W = {
   ink:      "#1A1612",
   inkMid:   "#3D352B",
   muted:    "#7A6F5E",
-  mutedLt:  "#A89D89",
+  mutedLt:  "var(--color-faint)",
   border:   "#D4C8AE",
   borderLt: "#E4DBC8",
   surface:  "#FAF5EA",
@@ -55,7 +55,7 @@ const W = {
 function WField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-      <label style={{ fontSize: "0.7rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</label>
+      <label style={{ fontSize: "0.75rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</label>
       {children}
     </div>
   );
@@ -69,7 +69,7 @@ function WInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
         width: "100%", padding: "9px 12px", borderRadius: "10px",
         border: `1.5px solid ${W.borderLt}`,
         background: W.card, color: W.inkMid,
-        fontSize: "0.84rem", fontFamily: "inherit", outline: "none",
+        fontSize: "0.875rem", fontFamily: "inherit", outline: "none",
         ...(props.style ?? {}),
       }}
     />
@@ -84,7 +84,7 @@ function WSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
         width: "100%", padding: "9px 12px", borderRadius: "10px",
         border: `1.5px solid ${W.borderLt}`,
         background: W.card, color: W.inkMid,
-        fontSize: "0.84rem", fontFamily: "inherit", outline: "none",
+        fontSize: "0.875rem", fontFamily: "inherit", outline: "none",
         ...(props.style ?? {}),
       }}
     />
@@ -118,11 +118,11 @@ export function EditProfileModal({
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
-            <p style={{ margin: "0 0 2px", fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: W.terracota }}>
+            <p style={{ margin: "0 0 2px", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: W.terracota }}>
               {lang === "ta" ? "திருத்து" : "Edit"}
             </p>
-            <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: W.ink }}>{t("modal_edit_profile_title", lang)}</h3>
-            <p style={{ margin: "3px 0 0", fontSize: "0.76rem", color: W.muted }}>{t("modal_edit_profile_sub", lang)}</p>
+            <h3 style={{ margin: 0, fontSize: "1.125rem", fontWeight: 700, color: W.ink }}>{t("modal_edit_profile_title", lang)}</h3>
+            <p style={{ margin: "3px 0 0", fontSize: "0.75rem", color: W.muted }}>{t("modal_edit_profile_sub", lang)}</p>
           </div>
           <button
             type="button"
@@ -133,7 +133,7 @@ export function EditProfileModal({
               color: W.muted, fontSize: "1rem", cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}
-          >✕</button>
+          aria-label="Close"><svg viewBox="0 0 24 24" fill="none" width="14" height="14" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
         </div>
 
         {/* Form */}
@@ -168,7 +168,7 @@ export function EditProfileModal({
                   onClick={() => { onClose(); onOpenRectification(); }}
                   style={{
                     background: "none", border: "none", padding: 0,
-                    fontSize: "0.72rem", color: W.terracota,
+                    fontSize: "0.75rem", color: W.terracota,
                     textDecoration: "underline", cursor: "pointer",
                     fontFamily: "inherit", marginTop: "2px", textAlign: "left",
                   }}
@@ -236,7 +236,7 @@ export function EditProfileModal({
                 marginRight: "auto", background: "transparent",
                 border: `1.5px solid rgba(168,72,47,0.4)`,
                 color: W.error, borderRadius: "8px",
-                padding: "7px 14px", fontSize: "0.78rem",
+                padding: "7px 14px", fontSize: "0.875rem",
                 cursor: "pointer", fontFamily: "inherit",
                 opacity: busySaving ? 0.5 : 1,
               }}
@@ -250,7 +250,7 @@ export function EditProfileModal({
             style={{
               padding: "8px 18px", borderRadius: "10px",
               border: `1.5px solid ${W.border}`, background: "transparent",
-              color: W.muted, fontSize: "0.82rem", fontWeight: 600,
+              color: W.muted, fontSize: "0.875rem", fontWeight: 600,
               cursor: "pointer", fontFamily: "inherit",
             }}
           >
@@ -263,7 +263,7 @@ export function EditProfileModal({
             style={{
               padding: "8px 20px", borderRadius: "10px",
               border: `1.5px solid ${W.ink}`, background: W.ink,
-              color: W.surfaceMd, fontSize: "0.82rem", fontWeight: 700,
+              color: W.surfaceMd, fontSize: "0.875rem", fontWeight: 700,
               cursor: busySaving ? "not-allowed" : "pointer",
               opacity: busySaving ? 0.6 : 1, fontFamily: "inherit",
             }}

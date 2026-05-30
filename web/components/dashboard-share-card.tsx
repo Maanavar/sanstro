@@ -16,7 +16,7 @@ const BAND_COLORS: Record<string, { bg: string; accent: string; text: string }> 
 
 const DASHA_COLORS: Record<string, string> = {
   SUN: "#f59e0b", MOON: "#93c5fd", MARS: "#f87171", MERCURY: "#34d399",
-  JUPITER: "#fbbf24", VENUS: "#f0abfc", SATURN: "#94a3b8", RAHU: "#a78bfa", KETU: "#6b7280",
+  JUPITER: "#fbbf24", VENUS: "#f0abfc", SATURN: "var(--color-faint)", RAHU: "#a78bfa", KETU: "#6b7280",
 };
 
 // ── Canvas drawing ────────────────────────────────────────────────────────────
@@ -293,14 +293,14 @@ export function ShareCardButton({ chartId, cardType, lang, date, label }: ShareC
         disabled={loading}
         style={{
           display: "inline-flex", alignItems: "center", gap: "5px",
-          padding: "4px 11px", borderRadius: "8px", fontSize: "0.72rem", fontWeight: 600,
+          padding: "4px 11px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 600,
           border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)",
           color: "rgba(255,255,255,0.65)", cursor: loading ? "wait" : "pointer",
           transition: "opacity 0.15s",
           opacity: loading ? 0.6 : 1,
         }}
       >
-        <span style={{ fontSize: "0.85rem" }}>↑</span>
+        <span style={{ fontSize: "0.875rem" }}>↑</span>
         {loading
           ? (lang === "ta" ? "…" : "…")
           : (label ?? (lang === "ta" ? "பகிர்" : "Share"))}
@@ -327,7 +327,7 @@ export function ShareCardButton({ chartId, cardType, lang, date, label }: ShareC
                 download={`vinaadi-${cardType.toLowerCase()}.png`}
                 style={{
                   padding: "8px 20px", borderRadius: "8px", background: "#e5b84d", color: "#0d1117",
-                  fontWeight: 700, fontSize: "0.82rem", textDecoration: "none",
+                  fontWeight: 700, fontSize: "0.875rem", textDecoration: "none",
                 }}
               >
                 {lang === "ta" ? "பதிவிறக்கம்" : "Download PNG"}
@@ -338,7 +338,7 @@ export function ShareCardButton({ chartId, cardType, lang, date, label }: ShareC
                 style={{
                   padding: "8px 20px", borderRadius: "8px",
                   border: "1px solid rgba(255,255,255,0.2)", background: "transparent",
-                  color: "rgba(255,255,255,0.65)", fontSize: "0.82rem", cursor: "pointer",
+                  color: "rgba(255,255,255,0.65)", fontSize: "0.875rem", cursor: "pointer",
                 }}
               >
                 {lang === "ta" ? "மூடு" : "Close"}

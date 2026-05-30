@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { getScoreBand, formatClockLabel } from "@/lib/format";
@@ -63,16 +63,36 @@ type DashboardFamilyTabProps = {
   onEditMember: (member: FamilyAggregateMember) => void;
 };
 
+const SCORE_HIGH = "var(--color-score-high, #5C7654)";
+const SCORE_MID = "var(--color-score-mid, #B85A2C)";
+const SCORE_LOW = "var(--color-score-low, #A8482F)";
+
+function scoreColor(score: number): string {
+  if (score >= 65) return SCORE_HIGH;
+  if (score >= 45) return SCORE_MID;
+  return SCORE_LOW;
+}
+
+function AlertGlyph() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 3L21 20H3L12 3Z" stroke={SCORE_MID} strokeWidth="2" strokeLinejoin="round" />
+      <path d="M12 9V13.8" stroke={SCORE_MID} strokeWidth="2" strokeLinecap="round" />
+      <circle cx="12" cy="17.2" r="1.2" fill={SCORE_MID} />
+    </svg>
+  );
+}
+
 /* ── Score ring ─────────────────────────────────────────── */
 function ScoreRing({ score, size = 72 }: { score: number; size?: number }) {
   const r = size / 2 - 6;
   const circ = 2 * Math.PI * r;
   const filled = (score / 100) * circ;
-  const color = score >= 65 ? "#5C7654" : score >= 45 ? "#B85A2C" : "#A8482F";
+  const color = scoreColor(score);
   const cx = size / 2;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: "block", flexShrink: 0 }}>
-      <circle cx={cx} cy={cx} r={r} fill="none" stroke="#E4DBC8" strokeWidth="6" />
+      <circle cx={cx} cy={cx} r={r} fill="none" stroke="var(--color-border)" strokeWidth="6" />
       <circle
         cx={cx} cy={cx} r={r}
         fill="none" stroke={color} strokeWidth="6" strokeLinecap="round"
@@ -80,8 +100,8 @@ function ScoreRing({ score, size = 72 }: { score: number; size?: number }) {
         transform={`rotate(-90 ${cx} ${cx})`}
       />
       <text x={cx} y={cx + 1} textAnchor="middle" dominantBaseline="middle"
-        fontFamily="'Fraunces',Georgia,serif"
-        fontSize={size <= 56 ? "0.95rem" : size <= 72 ? "1.1rem" : "1.5rem"}
+        fontFamily="var(--font-display)"
+        fontSize={size <= 56 ? "1rem" : size <= 72 ? "1.125rem" : "1.5rem"}
         fontWeight="500" fill={color}
       >
         {score}
@@ -94,21 +114,21 @@ function ScoreRing({ score, size = 72 }: { score: number; size?: number }) {
 function SevenDayBars({ scores, labels }: { scores: number[]; labels: string[] }) {
   return (
     <div>
-      <p style={{ margin: "0 0 8px", fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#A89D89" }}>
+      <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
         7-DAY OUTLOOK
       </p>
       {/* score numbers above bars */}
-      <div style={{ display: "flex", gap: "5px", marginBottom: "3px" }}>
+      <div style={{ display: "flex", gap: "var(--space-1)", marginBottom: "var(--space-0_75)" }}>
         {scores.map((s, i) => (
-          <span key={i} style={{ flex: 1, textAlign: "center", fontSize: "0.58rem", color: "#A89D89", fontFamily: "'JetBrains Mono',monospace" }}>
+          <span key={i} style={{ flex: 1, textAlign: "center", fontSize: "0.625rem", color: "var(--color-faint)", fontFamily: "var(--font-mono)" }}>
             {s}
           </span>
         ))}
       </div>
-      <div style={{ display: "flex", gap: "5px", alignItems: "flex-end", height: "40px" }}>
+      <div style={{ display: "flex", gap: "var(--space-1)", alignItems: "flex-end", height: "40px" }}>
         {scores.map((s, i) => {
           const h = Math.max(6, (s / 100) * 36);
-          const color = s >= 65 ? "#5C7654" : s >= 45 ? "#B85A2C" : "#A8482F";
+          const color = scoreColor(s);
           return (
             <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
               <div style={{ width: "100%", height: `${h}px`, borderRadius: "3px 3px 0 0", background: color }} />
@@ -117,9 +137,9 @@ function SevenDayBars({ scores, labels }: { scores: number[]; labels: string[] }
         })}
       </div>
       {/* day labels below bars */}
-      <div style={{ display: "flex", gap: "5px", marginTop: "4px" }}>
+      <div style={{ display: "flex", gap: "var(--space-1)", marginTop: "var(--space-1)" }}>
         {labels.map((l, i) => (
-          <span key={i} style={{ flex: 1, textAlign: "center", fontSize: "0.57rem", color: "#C4B99A" }}>{l}</span>
+          <span key={i} style={{ flex: 1, textAlign: "center", fontSize: "0.625rem", color: "var(--color-faint)" }}>{l}</span>
         ))}
       </div>
     </div>
@@ -143,7 +163,7 @@ function MemberRowCard({
   lang: Lang;
 }) {
   const band = getScoreBand(member.individualScore);
-  const scoreColor = band.tone === "high" ? "#5C7654" : band.tone === "low" ? "#A8482F" : "#B85A2C";
+  const toneColor = scoreColor(member.individualScore);
   const scoreBg   = band.tone === "high" ? "#DCE4D2" : band.tone === "low" ? "#F2D8CC" : "#F0D9C4";
   const isChandrashtama = memberChart?.transit?.isChandrashtama ?? false;
 
@@ -165,27 +185,27 @@ function MemberRowCard({
 
   return (
     <div style={{
-      background: "#FFFFFF",
-      border: `1px solid ${isChandrashtama ? "rgba(168,72,47,0.35)" : "#E4DBC8"}`,
-      borderRadius: "16px",
-      padding: "20px 24px",
+      background: "var(--color-surface)",
+      border: `1px solid ${isChandrashtama ? "rgba(168,72,47,0.35)" : "var(--color-border)"}`,
+      borderRadius: "var(--radius-md)",
+      padding: "var(--space-5) var(--space-6)",
       display: "flex",
       flexDirection: "column",
-      gap: "10px",
+      gap: "var(--space-2_5)",
     }}>
       {/* Top row: label + name + ring */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-3)" }}>
         <div style={{ flex: 1 }}>
           {relLabel && (
-            <p style={{ margin: "0 0 3px", fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#A89D89" }}>
+            <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
               {relLabel}
             </p>
           )}
-          <p style={{ margin: "0 0 3px", fontFamily: "'Fraunces',Georgia,serif", fontSize: "1.25rem", fontWeight: 500, color: "#1A1612", lineHeight: 1.1 }}>
+          <p style={{ margin: "0 0 var(--space-0_75)", fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 500, color: "var(--color-text-strong)", lineHeight: 1.1 }}>
             {member.displayName}
           </p>
           {identityParts.length > 0 && (
-            <p style={{ margin: 0, fontSize: "0.74rem", color: "#7A6F5E" }}>
+            <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)" }}>
               {identityParts.join(" · ")}
             </p>
           )}
@@ -194,23 +214,23 @@ function MemberRowCard({
       </div>
 
       {/* Status chips row */}
-      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-        <span style={{ padding: "3px 10px", borderRadius: "999px", fontSize: "0.72rem", fontWeight: 600, background: scoreBg, color: scoreColor, border: `1px solid ${scoreColor}44` }}>
+      <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
+        <span style={{ padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 600, background: scoreBg, color: toneColor, border: `1px solid ${toneColor}44` }}>
           {lang === "ta" ? "இன்று" : "Today"} {band.label.toLowerCase()}
         </span>
         {bestW && (
-          <span style={{ padding: "3px 10px", borderRadius: "999px", fontSize: "0.72rem", fontWeight: 600, background: "#FAF5EA", border: "1px solid #E4DBC8", color: "#3D352B" }}>
+          <span style={{ padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 600, background: "#FAF5EA", border: "1px solid var(--color-border)", color: "var(--color-text)" }}>
             {lang === "ta" ? "சிறந்த" : "Best"} {formatClockLabel(bestW.start)} – {formatClockLabel(bestW.end)}
           </span>
         )}
         {avoidW && (
-          <span style={{ padding: "3px 10px", borderRadius: "999px", fontSize: "0.72rem", fontWeight: 600, background: "#F2D8CC", border: "1px solid rgba(168,72,47,0.3)", color: "#A8482F" }}>
+          <span style={{ padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 600, background: "#F2D8CC", border: "1px solid rgba(168,72,47,0.3)", color: SCORE_LOW }}>
             {lang === "ta" ? "தவிர்" : "Avoid"} {formatClockLabel(avoidW.start)} – {formatClockLabel(avoidW.end)}
           </span>
         )}
         {isChandrashtama && (
-          <span style={{ padding: "3px 10px", borderRadius: "999px", fontSize: "0.72rem", fontWeight: 700, background: "#F2D8CC", color: "#A8482F", border: "1px solid rgba(168,72,47,0.4)" }}>
-            ⚠ {t("label_chandrashtamam", lang)}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 700, background: "#F2D8CC", color: SCORE_LOW, border: "1px solid rgba(168,72,47,0.4)" }}>
+            <AlertGlyph /> {t("label_chandrashtamam", lang)}
           </span>
         )}
       </div>
@@ -237,7 +257,7 @@ function MemberDetailExpanded({
   lang: Lang;
 }) {
   const band = getScoreBand(member.individualScore);
-  const scoreColor = band.tone === "high" ? "#5C7654" : band.tone === "low" ? "#A8482F" : "#B85A2C";
+  const toneColor = scoreColor(member.individualScore);
   const scoreBg   = band.tone === "high" ? "#DCE4D2" : band.tone === "low" ? "#F2D8CC" : "#F0D9C4";
   const isChandrashtama = memberChart?.transit?.isChandrashtama ?? false;
 
@@ -250,9 +270,9 @@ function MemberDetailExpanded({
   const bestW = guidance?.bestWindows[0];
   const avoidW = guidance?.cautionWindows[0];
   const dasha = memberChart?.dasha;
-  const dashaColor   = dasha ? (DASHA_COLORS[dasha.current.mahadasha.lord]    ?? "#94a3b8") : "#94a3b8";
-  const bhuktiColor  = dasha ? (DASHA_COLORS[dasha.current.antardasha.lord]   ?? "#94a3b8") : "#94a3b8";
-  const antaramColor = dasha ? (DASHA_COLORS[dasha.current.pratyantardasha.lord] ?? "#94a3b8") : "#94a3b8";
+  const dashaColor   = dasha ? (DASHA_COLORS[dasha.current.mahadasha.lord]    ?? "var(--color-faint, #7A6F5E)") : "var(--color-faint)";
+  const bhuktiColor  = dasha ? (DASHA_COLORS[dasha.current.antardasha.lord]   ?? "var(--color-faint, #7A6F5E)") : "var(--color-faint)";
+  const antaramColor = dasha ? (DASHA_COLORS[dasha.current.pratyantardasha.lord] ?? "var(--color-faint, #7A6F5E)") : "var(--color-faint)";
 
   const identityParts: string[] = [];
   if (summary?.lagnaRasi) identityParts.push(`${summary.lagnaRasi} ${t("label_lagnam", lang)}`);
@@ -261,31 +281,31 @@ function MemberDetailExpanded({
 
   return (
     <div style={{
-      background: "#FFFFFF",
-      border: `1px solid ${isChandrashtama ? "rgba(168,72,47,0.4)" : "#E4DBC8"}`,
-      borderRadius: "20px",
-      padding: "28px",
+      background: "var(--color-surface)",
+      border: `1px solid ${isChandrashtama ? "rgba(168,72,47,0.4)" : "var(--color-border)"}`,
+      borderRadius: "var(--radius-lg)",
+      padding: "var(--space-7)",
       display: "flex",
       flexDirection: "column",
-      gap: "20px",
+      gap: "var(--space-5)",
     }}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-3)" }}>
         <div style={{ flex: 1 }}>
           {relLabel && (
-            <p style={{ margin: "0 0 4px", fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#A89D89" }}>
+            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-faint)" }}>
               {relLabel}
             </p>
           )}
           {/* Name + Edit/Remove inline */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "5px" }}>
-            <h3 style={{ margin: 0, fontFamily: "'Fraunces',Georgia,serif", fontSize: "1.6rem", fontWeight: 500, color: "#1A1612", lineHeight: 1.1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)", flexWrap: "wrap", marginBottom: "var(--space-1)" }}>
+            <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.6rem", fontWeight: 500, color: "var(--color-text-strong)", lineHeight: 1.1 }}>
               {member.displayName}
             </h3>
             <button
               type="button"
               onClick={() => onEdit(member)}
-              style={{ padding: "3px 12px", borderRadius: "999px", border: "1.5px solid #D4C8AE", background: "transparent", color: "#7A6F5E", fontSize: "0.74rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+              style={{ padding: "var(--space-0_75) var(--space-3)", borderRadius: "var(--radius-pill)", border: "1.5px solid var(--color-border-strong)", background: "transparent", color: "var(--color-muted)", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
             >
               {lang === "ta" ? "திருத்து" : "Edit"}
             </button>
@@ -293,58 +313,58 @@ function MemberDetailExpanded({
               type="button"
               disabled={deletingId === member.familyMemberId}
               onClick={() => onDelete(member.familyMemberId, member.displayName)}
-              style={{ padding: "3px 12px", borderRadius: "999px", border: "1.5px solid rgba(168,72,47,0.3)", background: "transparent", color: "#A8482F", fontSize: "0.74rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: deletingId === member.familyMemberId ? 0.5 : 1 }}
+              style={{ padding: "var(--space-0_75) var(--space-3)", borderRadius: "var(--radius-pill)", border: "1.5px solid rgba(168,72,47,0.3)", background: "transparent", color: SCORE_LOW, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: deletingId === member.familyMemberId ? 0.5 : 1 }}
             >
               {deletingId === member.familyMemberId ? "…" : (lang === "ta" ? "நீக்கு" : "Remove")}
             </button>
           </div>
           {identityParts.length > 0 && (
-            <p style={{ margin: 0, fontSize: "0.78rem", color: "#7A6F5E" }}>
+            <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)" }}>
               {identityParts.join(" · ")}
             </p>
           )}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", flexShrink: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-1)", flexShrink: 0 }}>
           <ScoreRing score={member.individualScore} size={88} />
-          <span style={{ padding: "3px 10px", borderRadius: "999px", fontSize: "0.7rem", fontWeight: 600, background: scoreBg, color: scoreColor, border: `1px solid ${scoreColor}44` }}>
+          <span style={{ padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 600, background: scoreBg, color: toneColor, border: `1px solid ${toneColor}44` }}>
             {band.label}
           </span>
         </div>
       </div>
 
       {/* Status chips */}
-      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
         {bestW && (
-          <span style={{ padding: "4px 12px", borderRadius: "999px", fontSize: "0.75rem", fontWeight: 600, background: "#FAF5EA", border: "1px solid #E4DBC8", color: "#3D352B" }}>
+          <span style={{ padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 600, background: "#FAF5EA", border: "1px solid var(--color-border)", color: "var(--color-text)" }}>
             {lang === "ta" ? "சிறந்த நேரம்" : "Best"} {formatClockLabel(bestW.start)} – {formatClockLabel(bestW.end)}
           </span>
         )}
         {avoidW && (
-          <span style={{ padding: "4px 12px", borderRadius: "999px", fontSize: "0.75rem", fontWeight: 600, background: "#F2D8CC", border: "1px solid rgba(168,72,47,0.3)", color: "#A8482F" }}>
+          <span style={{ padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 600, background: "#F2D8CC", border: "1px solid rgba(168,72,47,0.3)", color: SCORE_LOW }}>
             {lang === "ta" ? "தவிர்க்கவும்" : "Avoid"} {formatClockLabel(avoidW.start)} – {formatClockLabel(avoidW.end)}
           </span>
         )}
         {member.activeCycleTags.map((tag) => (
-          <span key={tag} style={{ padding: "4px 10px", borderRadius: "999px", fontSize: "0.7rem", background: "#FAF5EA", border: "1px solid #E4DBC8", color: "#7A6F5E" }}>
+          <span key={tag} style={{ padding: "var(--space-1) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", background: "#FAF5EA", border: "1px solid var(--color-border)", color: "var(--color-muted)" }}>
             {tag}
           </span>
         ))}
         {isChandrashtama && (
-          <span style={{ padding: "4px 12px", borderRadius: "999px", fontSize: "0.72rem", fontWeight: 700, background: "#F2D8CC", color: "#A8482F", border: "1px solid rgba(168,72,47,0.4)" }}>
-            ⚠ {t("label_chandrashtamam", lang)}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 700, background: "#F2D8CC", color: SCORE_LOW, border: "1px solid rgba(168,72,47,0.4)" }}>
+            <AlertGlyph /> {t("label_chandrashtamam", lang)}
           </span>
         )}
       </div>
 
       {/* Score breakdown grid */}
       {guidance?.scoreBreakdown && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "10px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "var(--space-2_5)" }}>
           {(["moonTransit", "dashaSupport", "panchangam"] as const).map((k) => (
-            <div key={k} style={{ padding: "12px", borderRadius: "12px", background: "#FAF5EA", border: "1px solid #E4DBC8" }}>
-              <p style={{ margin: "0 0 3px", fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#A89D89" }}>
+            <div key={k} style={{ padding: "var(--space-3)", borderRadius: "var(--radius-md)", background: "#FAF5EA", border: "1px solid var(--color-border)" }}>
+              <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>
                 {t(`reason_${k}` as Parameters<typeof t>[0], lang)}
               </p>
-              <p style={{ margin: 0, fontFamily: "'JetBrains Mono',monospace", fontSize: "1.05rem", fontWeight: 600, color: "#1A1612" }}>
+              <p style={{ margin: 0, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 600, color: "var(--color-text-strong)" }}>
                 {guidance.scoreBreakdown[k]}
               </p>
             </div>
@@ -354,7 +374,7 @@ function MemberDetailExpanded({
 
       {/* Charts row */}
       {memberChart?.chart && (
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", justifyContent: "center" }}>
+        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", justifyContent: "center" }}>
           <RasiChart chart={memberChart.chart} label={t("label_d1", lang)} lang={lang} />
           <NavamsaChart chart={memberChart.chart} label={t("label_d9", lang)} lang={lang} />
         </div>
@@ -362,22 +382,22 @@ function MemberDetailExpanded({
 
       {/* Dasha · Bhukti · Antaram */}
       {dasha && (
-        <div style={{ borderRadius: "14px", border: `1px solid ${dashaColor}44`, background: `${dashaColor}0d`, padding: "14px 16px" }}>
-          <p style={{ margin: "0 0 10px", fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#A89D89" }}>
+        <div style={{ borderRadius: "var(--radius-md)", border: `1px solid ${dashaColor}44`, background: `${dashaColor}0d`, padding: "var(--space-3_5) var(--space-4)" }}>
+          <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
             {lang === "ta" ? "தசை · புக்தி · அந்தரம்" : "Dasa · Bhukti · Antaram"}
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
             {[
               { color: dashaColor,   lord: dasha.current.mahadasha.lord,       word: t("dasha_word", lang),   start: dasha.current.mahadasha.startDate,       end: dasha.current.mahadasha.endDate,       indent: 0 },
               { color: bhuktiColor,  lord: dasha.current.antardasha.lord,      word: t("bhukti_word", lang),  start: dasha.current.antardasha.startDate,      end: dasha.current.antardasha.endDate,      indent: 16 },
               { color: antaramColor, lord: dasha.current.pratyantardasha.lord, word: t("antaram_word", lang), start: dasha.current.pratyantardasha.startDate, end: dasha.current.pratyantardasha.endDate, indent: 32 },
             ].map((row, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: `${row.indent}px` }}>
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginLeft: `${row.indent}px` }}>
                 <div style={{ width: `${8 - i * 2}px`, height: `${8 - i * 2}px`, borderRadius: "50%", background: row.color, flexShrink: 0 }} />
                 <span style={{ fontSize: `${0.84 - i * 0.04}rem`, fontWeight: 600, color: row.color, minWidth: "88px" }}>
                   {tPlanetLord(row.lord, lang)} {row.word}
                 </span>
-                <span style={{ fontSize: "0.66rem", color: "#A89D89" }}>
+                <span style={{ fontSize: "0.625rem", color: "var(--color-faint)" }}>
                   {String(row.start)} → {String(row.end)}
                 </span>
               </div>
@@ -385,35 +405,35 @@ function MemberDetailExpanded({
           </div>
 
           {memberChart?.dashaAntar && memberChart.dashaAntar.length > 0 && (
-            <div style={{ marginTop: "10px", borderTop: "1px solid #E4DBC8", paddingTop: "10px", display: "flex", flexDirection: "column", gap: "3px" }}>
-              <p style={{ margin: "0 0 6px", fontSize: "0.6rem", color: "#A89D89", letterSpacing: "0.04em" }}>
+            <div style={{ marginTop: "var(--space-2_5)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-2_5)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
+              <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", color: "var(--color-faint)", letterSpacing: "0.04em" }}>
                 {tPlanetLord(dasha.current.mahadasha.lord, lang)} {t("dasha_word", lang)} — {t("dasha_all_bhukti", lang)}
               </p>
               {memberChart.dashaAntar.map((bh) => {
                 const bst = dashaStatus(String(bh.startDate), String(bh.endDate), today);
                 const isRunning = bh.lord === dasha.current.antardasha.lord && bst === "active";
-                const bc = DASHA_COLORS[bh.lord] ?? "#94a3b8";
+                const bc = DASHA_COLORS[bh.lord] ?? "var(--color-faint, #7A6F5E)";
                 return (
                   <div key={`${bh.lord}-${bh.startDate}`} style={{
-                    display: "flex", alignItems: "center", gap: "6px",
+                    display: "flex", alignItems: "center", gap: "var(--space-1_5)",
                     padding: isRunning ? "3px 8px" : "2px 4px",
-                    borderRadius: "6px",
+                    borderRadius: "var(--radius-xs)",
                     background: isRunning ? `${bc}14` : "transparent",
                     border: isRunning ? `1px solid ${bc}44` : "1px solid transparent",
                     opacity: bst === "past" ? 0.45 : 1,
                   }}>
                     <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: bc, flexShrink: 0 }} />
-                    <span style={{ fontSize: "0.7rem", fontWeight: isRunning ? 700 : 400, color: isRunning ? bc : "#7A6F5E", minWidth: "70px" }}>
+                    <span style={{ fontSize: "0.75rem", fontWeight: isRunning ? 700 : 400, color: isRunning ? bc : "var(--color-muted)", minWidth: "70px" }}>
                       {tPlanetLord(bh.lord, lang)} {t("bhukti_word", lang)}
                     </span>
-                    <span style={{ fontSize: "0.63rem", color: "#A89D89", flex: 1 }}>
+                    <span style={{ fontSize: "0.625rem", color: "var(--color-faint)", flex: 1 }}>
                       {String(bh.startDate)} → {String(bh.endDate)}
                     </span>
                     <span style={{
-                      fontSize: "0.6rem", fontWeight: 600, padding: "1px 6px", borderRadius: "999px",
+                      fontSize: "0.625rem", fontWeight: 600, padding: "1px var(--space-1_5)", borderRadius: "var(--radius-pill)",
                       background: isRunning ? `${bc}22` : "#FAF5EA",
-                      color: isRunning ? bc : "#A89D89",
-                      border: `1px solid ${isRunning ? bc + "55" : "#E4DBC8"}`,
+                      color: isRunning ? bc : "var(--color-faint)",
+                      border: `1px solid ${isRunning ? bc + "55" : "var(--color-border)"}`,
                     }}>
                       {isRunning ? t("status_active", lang) : bst === "past" ? t("status_past", lang) : t("status_upcoming", lang)}
                     </span>
@@ -473,7 +493,7 @@ export function DashboardFamilyTab({
   /* Format raw enum label e.g. "SUPPORTIVE_MIXED" → "supportive mixed" */
   const familyLabel = familyLabelRaw.toLowerCase().replace(/_/g, " ");
   const scoreBand   = getScoreBand(familyScore);
-  const scoreColor  = scoreBand.tone === "high" ? "#5C7654" : scoreBand.tone === "low" ? "#A8482F" : "#B85A2C";
+  const familyScoreColor = scoreColor(familyScore);
   const scoreBg     = scoreBand.tone === "high" ? "#DCE4D2" : scoreBand.tone === "low" ? "#F2D8CC" : "#F0D9C4";
 
   const bestWindow  = familyAggregate?.bestFamilyWindows[0] ?? null;
@@ -499,112 +519,112 @@ export function DashboardFamilyTab({
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "28px", fontFamily: "'Noto Sans Tamil','Inter',system-ui,sans-serif", color: "#3D352B" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-7, 28px)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
 
       {/* ── ROW 1: Full-width header — kicker + heading + desc LEFT, buttons RIGHT ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "20px", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "var(--space-5)", flexWrap: "wrap" }}>
         <div>
-          <p style={{ margin: "0 0 4px", fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#B85A2C" }}>
+          <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)" }}>
             {vaultName
               ? `${vaultName.toUpperCase()} · ${memberCount} ${memberCount === 1 ? t("members_label", lang).toUpperCase() : t("members_label_pl", lang).toUpperCase()}`
               : t("family_kicker", lang)}
           </p>
           <h1 style={{
-            margin: "0 0 6px",
-            fontFamily: "'Fraunces',Georgia,serif",
+            margin: "0 0 var(--space-1_5)",
+            fontFamily: "var(--font-display)",
             fontSize: "clamp(1.8rem,3vw,2.8rem)",
-            fontWeight: 500, letterSpacing: "-0.03em", lineHeight: 1.05, color: "#1A1612",
+            fontWeight: 500, letterSpacing: "-0.03em", lineHeight: 1.05, color: "var(--color-text-strong)",
           }}>
             {familyAggregate
-              ? <>A shared, <em style={{ fontStyle: "italic", color: "#7A6F5E" }}>{familyLabel}.</em></>
+              ? <>A shared, <em style={{ fontStyle: "italic", color: "var(--color-muted)" }}>{familyLabel}.</em></>
               : t("family_title", lang)}
           </h1>
-          <p style={{ margin: 0, fontSize: "0.88rem", lineHeight: 1.6, color: "#5a4f42" }}>
+          <p style={{ margin: 0, fontSize: "0.875rem", lineHeight: 1.6, color: "#5a4f42" }}>
             {lang === "ta"
               ? "குடும்ப மதிப்பெண், உறுப்பினர் ஜாதகங்கள், பகிர்ந்த சிறந்த நேர சாளரங்கள்."
               : "Family score, member charts, shared best windows."}
           </p>
         </div>
-        <div style={{ display: "flex", gap: "8px", flexShrink: 0, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "var(--space-2)", flexShrink: 0, alignItems: "center" }}>
           {/* Multiple vault switcher */}
           {vaults.length > 1 && vaults.map((v) => (
             <button key={v.familyVaultId} type="button" onClick={() => onSelectVault(v)}
               style={{
-                padding: "8px 16px", borderRadius: "999px", border: "1.5px solid",
-                borderColor: v.familyVaultId === selectedVaultId ? "#1A1612" : "#D4C8AE",
-                background: v.familyVaultId === selectedVaultId ? "#1A1612" : "transparent",
-                color: v.familyVaultId === selectedVaultId ? "#F4EEE2" : "#7A6F5E",
-                fontSize: "0.82rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                padding: "var(--space-2) var(--space-4)", borderRadius: "var(--radius-pill)", border: "1.5px solid",
+                borderColor: v.familyVaultId === selectedVaultId ? "var(--color-text-strong)" : "var(--color-border-strong)",
+                background: v.familyVaultId === selectedVaultId ? "var(--color-text-strong)" : "transparent",
+                color: v.familyVaultId === selectedVaultId ? "var(--color-bg)" : "var(--color-muted)",
+                fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
               }}>
               {v.name}
             </button>
           ))}
           <button type="button" onClick={onRefreshFamily} disabled={!selectedVaultId || busy.family}
-            style={{ padding: "8px 18px", borderRadius: "999px", border: "1.5px solid #D4C8AE", background: "#FFFFFF", color: "#3D352B", fontSize: "0.82rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            style={{ padding: "var(--space-2) var(--space-4_5)", borderRadius: "var(--radius-pill)", border: "1.5px solid var(--color-border-strong)", background: "var(--color-surface)", color: "var(--color-text)", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
             {busy.family ? t("btn_refreshing", lang) : t("btn_refresh_family", lang)}
           </button>
           <button type="button" onClick={onOpenSetup}
-            style={{ padding: "8px 20px", borderRadius: "999px", border: "none", background: "#1A1612", color: "#F4EEE2", fontSize: "0.82rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            style={{ padding: "var(--space-2) var(--space-5)", borderRadius: "var(--radius-pill)", border: "none", background: "var(--color-text-strong)", color: "var(--color-bg)", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
             + {t("btn_add_member", lang)}
           </button>
         </div>
       </div>
 
       {/* ── ROW 2: 50/50 — Left = Family Today card · Right = member tiles stacked ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 3fr", gap: "16px", alignItems: "stretch" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 3fr", gap: "var(--space-4)", alignItems: "stretch" }}>
 
         {/* LEFT: Family Today score card — stretches to full row height */}
         <div style={{
-          background: "#FFFFFF", border: "1px solid #E4DBC8", borderRadius: "20px",
-          padding: "24px", boxShadow: "0 2px 16px rgba(60,40,20,0.07)",
-          display: "flex", flexDirection: "column", gap: "16px",
+          background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)",
+          padding: "var(--space-6)", boxShadow: "0 2px 16px rgba(60,40,20,0.07)",
+          display: "flex", flexDirection: "column", gap: "var(--space-4)",
         }}>
-          <p style={{ margin: 0, fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#A89D89" }}>
+          <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-faint)" }}>
             {lang === "ta" ? "குடும்பம் இன்று" : "FAMILY TODAY"}
           </p>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-3)" }}>
             <div>
-              <p style={{ margin: 0, fontFamily: "'Fraunces',Georgia,serif", fontSize: "3.4rem", fontWeight: 500, lineHeight: 1, color: "#1A1612" }}>
+              <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "3.4rem", fontWeight: 500, lineHeight: 1, color: "var(--color-text-strong)" }}>
                 {familyScore || "—"}
-                {familyScore > 0 && <span style={{ fontSize: "1.1rem", color: "#A89D89", fontFamily: "'Inter',system-ui,sans-serif" }}>/100</span>}
+                {familyScore > 0 && <span style={{ fontSize: "1.125rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>/100</span>}
               </p>
-              <span style={{ display: "inline-block", marginTop: "8px", padding: "3px 11px", borderRadius: "999px", background: scoreBg, color: scoreColor, fontSize: "0.75rem", fontWeight: 600, textTransform: "capitalize" }}>
+              <span style={{ display: "inline-block", marginTop: "var(--space-2)", padding: "var(--space-0_75) var(--space-3)", borderRadius: "var(--radius-pill)", background: scoreBg, color: familyScoreColor, fontSize: "0.75rem", fontWeight: 600, textTransform: "capitalize" }}>
                 {familyLabel || (busy.family ? "Loading…" : "—")}
               </span>
             </div>
             {familyScore > 0 && <ScoreRing score={familyScore} size={88} />}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-            <div style={{ borderRadius: "12px", background: "#DCE4D2", border: "1px solid rgba(92,118,84,0.3)", padding: "12px" }}>
-              <p style={{ margin: "0 0 3px", fontSize: "0.57rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#5C7654" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-2_5)" }}>
+            <div style={{ borderRadius: "var(--radius-md)", background: "#DCE4D2", border: "1px solid rgba(92,118,84,0.3)", padding: "var(--space-3)" }}>
+              <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: SCORE_HIGH }}>
                 {lang === "ta" ? "பகிர்ந்த சிறந்த நேரம்" : "BEST SHARED"}
               </p>
-              <p style={{ margin: 0, fontFamily: "'JetBrains Mono',monospace", fontSize: "0.9rem", fontWeight: 600, color: "#3a6b40" }}>
+              <p style={{ margin: 0, fontFamily: "var(--font-mono)", fontSize: "0.875rem", fontWeight: 600, color: SCORE_HIGH }}>
                 {bestWindow ? `${formatClockLabel(bestWindow.start)} – ${formatClockLabel(bestWindow.end)}` : "—"}
               </p>
             </div>
-            <div style={{ borderRadius: "12px", background: "#F2D8CC", border: "1px solid rgba(168,72,47,0.3)", padding: "12px" }}>
-              <p style={{ margin: "0 0 3px", fontSize: "0.57rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#A8482F" }}>
+            <div style={{ borderRadius: "var(--radius-md)", background: "#F2D8CC", border: "1px solid rgba(168,72,47,0.3)", padding: "var(--space-3)" }}>
+              <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: SCORE_LOW }}>
                 {lang === "ta" ? "தவிர்க்கவும்" : "AVOID"}
               </p>
-              <p style={{ margin: 0, fontFamily: "'JetBrains Mono',monospace", fontSize: "0.9rem", fontWeight: 600, color: "#A8482F" }}>
+              <p style={{ margin: 0, fontFamily: "var(--font-mono)", fontSize: "0.875rem", fontWeight: 600, color: SCORE_LOW }}>
                 {avoidWindow ? `${formatClockLabel(avoidWindow.start)} – ${formatClockLabel(avoidWindow.end)}` : "—"}
               </p>
             </div>
           </div>
           <SevenDayBars scores={weekScores} labels={weekDayLabels} />
           {familyAggregate && familyAggregate.aggregateBreakdown.chandrashtamaCount > 0 && (
-            <div style={{ padding: "8px 12px", borderRadius: "10px", background: "#F2D8CC", border: "1px solid rgba(168,72,47,0.3)" }}>
-              <p style={{ margin: 0, fontSize: "0.78rem", color: "#A8482F", fontWeight: 600 }}>
-                ⚠ {familyAggregate.aggregateBreakdown.chandrashtamaCount} {t("member_chandrashtamam", lang)}
+            <div style={{ padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", background: "#F2D8CC", border: "1px solid rgba(168,72,47,0.3)" }}>
+              <p style={{ margin: 0, fontSize: "0.875rem", color: SCORE_LOW, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
+                <AlertGlyph /> {familyAggregate.aggregateBreakdown.chandrashtamaCount} {t("member_chandrashtamam", lang)}
               </p>
             </div>
           )}
           {!selectedVaultId && !busy.vaults && vaults.length === 0 && (
-            <div style={{ textAlign: "center", paddingTop: "8px" }}>
-              <p style={{ margin: "0 0 12px", color: "#A89D89", fontSize: "0.85rem" }}>{t("vaults_empty", lang)}</p>
+            <div style={{ textAlign: "center", paddingTop: "var(--space-2)" }}>
+              <p style={{ margin: "0 0 var(--space-3)", color: "var(--color-faint)", fontSize: "0.875rem" }}>{t("vaults_empty", lang)}</p>
               <button type="button" onClick={onOpenSetup}
-                style={{ padding: "8px 20px", borderRadius: "999px", background: "#1A1612", color: "#F4EEE2", border: "none", fontSize: "0.82rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                style={{ padding: "var(--space-2) var(--space-5)", borderRadius: "var(--radius-pill)", background: "var(--color-text-strong)", color: "var(--color-bg)", border: "none", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                 + {t("btn_add_first_member", lang)}
               </button>
             </div>
@@ -612,14 +632,18 @@ export function DashboardFamilyTab({
         </div>
 
         {/* RIGHT: Member tiles — vertical stack, full 50% width */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
           {busy.family && members.length === 0 ? (
-            <p style={{ color: "#A89D89", fontSize: "0.85rem", padding: "16px 0" }}>{t("members_loading", lang)}</p>
+            <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-5)", display: "grid", gap: "var(--space-3)" }}>
+              <div className="cd-skeleton" style={{ height: "14px", width: "40%", borderRadius: "var(--radius-sm)" }} />
+              <div className="cd-skeleton" style={{ height: "10px", width: "80%", borderRadius: "var(--radius-sm)" }} />
+              <div className="cd-skeleton" style={{ height: "10px", width: "70%", borderRadius: "var(--radius-sm)" }} />
+            </div>
           ) : members.length === 0 && selectedVaultId ? (
-            <div style={{ background: "#FFFFFF", border: "1px solid #E4DBC8", borderRadius: "16px", padding: "28px 24px", textAlign: "center" }}>
-              <p style={{ margin: "0 0 14px", color: "#A89D89", fontSize: "0.88rem" }}>{t("no_members_yet", lang)}</p>
+            <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-7) var(--space-6)", textAlign: "center" }}>
+              <p style={{ margin: "0 0 var(--space-3_5)", color: "var(--color-faint)", fontSize: "0.875rem" }}>{t("no_members_yet", lang)}</p>
               <button type="button" onClick={onOpenSetup}
-                style={{ padding: "8px 20px", borderRadius: "999px", background: "#1A1612", color: "#F4EEE2", border: "none", fontSize: "0.82rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                style={{ padding: "var(--space-2) var(--space-5)", borderRadius: "var(--radius-pill)", background: "var(--color-text-strong)", color: "var(--color-bg)", border: "none", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                 + {t("btn_add_first_member", lang)}
               </button>
             </div>
@@ -638,21 +662,21 @@ export function DashboardFamilyTab({
 
       {/* ── Name selector + individual detail (below hero) ── */}
       {members.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           {/* Selector row: name pills + synastry toggle */}
-          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
-            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", flex: 1 }}>
+          <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap", flex: 1 }}>
               {members.map((m) => {
                 const isActive = activeMemberId === m.familyMemberId;
                 return (
                   <button key={m.familyMemberId} type="button"
                     onClick={() => { setSelectedMemberId(m.familyMemberId); setSubTab("members"); }}
                     style={{
-                      padding: "6px 16px", borderRadius: "999px", border: "1.5px solid",
-                      borderColor: isActive && subTab === "members" ? "#1A1612" : "#D4C8AE",
-                      background: isActive && subTab === "members" ? "#1A1612" : "transparent",
-                      color: isActive && subTab === "members" ? "#F4EEE2" : "#7A6F5E",
-                      fontSize: "0.82rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                      padding: "var(--space-1_5) var(--space-4)", borderRadius: "var(--radius-pill)", border: "1.5px solid",
+                      borderColor: isActive && subTab === "members" ? "var(--color-text-strong)" : "var(--color-border-strong)",
+                      background: isActive && subTab === "members" ? "var(--color-text-strong)" : "transparent",
+                      color: isActive && subTab === "members" ? "var(--color-bg)" : "var(--color-muted)",
+                      fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                       transition: "all 150ms ease",
                     }}>
                     {m.displayName}
@@ -664,11 +688,11 @@ export function DashboardFamilyTab({
               <button type="button"
                 onClick={() => setSubTab(subTab === "synastry" ? "members" : "synastry")}
                 style={{
-                  padding: "6px 16px", borderRadius: "999px", border: "1.5px solid",
-                  borderColor: subTab === "synastry" ? "#1A1612" : "#D4C8AE",
-                  background: subTab === "synastry" ? "#1A1612" : "transparent",
-                  color: subTab === "synastry" ? "#F4EEE2" : "#7A6F5E",
-                  fontSize: "0.82rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                  padding: "var(--space-1_5) var(--space-4)", borderRadius: "var(--radius-pill)", border: "1.5px solid",
+                  borderColor: subTab === "synastry" ? "var(--color-text-strong)" : "var(--color-border-strong)",
+                  background: subTab === "synastry" ? "var(--color-text-strong)" : "transparent",
+                  color: subTab === "synastry" ? "var(--color-bg)" : "var(--color-muted)",
+                  fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                 }}>
                 {lang === "ta" ? "பொருத்தம்" : "Compatibility"}
               </button>
@@ -690,7 +714,7 @@ export function DashboardFamilyTab({
 
           {/* Synastry */}
           {subTab === "synastry" && (
-            <div style={{ background: "#FFFFFF", border: "1px solid #E4DBC8", borderRadius: "20px", padding: "24px", display: "flex", flexDirection: "column", gap: "20px" }}>
+            <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
               {ownerChartId && memberCharts.length > 0 && (
                 <SynastryMatrix
                   lang={lang}

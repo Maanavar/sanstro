@@ -85,7 +85,7 @@ const W = {
   ink: "#1A1612",
   inkMid: "#3D352B",
   muted: "#7A6F5E",
-  mutedLt: "#A89D89",
+  mutedLt: "var(--color-faint)",
   border: "#D4C8AE",
   borderLt: "#E4DBC8",
   surface: "#FAF5EA",
@@ -98,12 +98,12 @@ const W = {
 
 const fieldStyle: React.CSSProperties = {
   width: "100%",
-  padding: "8px 10px",
-  borderRadius: "10px",
+  padding: "var(--space-2) var(--space-2_5)",
+  borderRadius: "var(--radius-md)",
   border: `1.5px solid ${W.borderLt}`,
   background: W.card,
   color: W.inkMid,
-  fontSize: "0.82rem",
+  fontSize: "0.875rem",
   fontFamily: "inherit",
 };
 
@@ -165,25 +165,25 @@ export function DecisionPanel({ lang, chartId }: Props) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
       <div>
-        <p style={{ margin: "0 0 4px", fontSize: "0.68rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.06em" }}>
           {t("decision_panel_title", lang)}
         </p>
-        <p style={{ margin: 0, fontSize: "0.78rem", color: W.muted }}>{t("decision_panel_desc", lang)}</p>
+        <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>{t("decision_panel_desc", lang)}</p>
       </div>
 
-      <div style={{ padding: "12px 14px", borderRadius: "10px", border: `1px solid ${W.borderLt}`, background: "#EEF1F8" }}>
-        <p style={{ margin: "0 0 8px", fontSize: "0.68rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+      <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", border: `1px solid ${W.borderLt}`, background: "#EEF1F8" }}>
+        <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.06em" }}>
           {lang === "ta" ? "எதை எப்போது பயன்படுத்துவது?" : "When to use which tool?"}
         </p>
-        <p style={{ margin: "0 0 6px", fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.5 }}>
+        <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.875rem", color: W.inkMid, lineHeight: 1.5 }}>
           <strong>{lang === "ta" ? "Decision Support:" : "Decision Support:"}</strong>{" "}
           {lang === "ta"
             ? "A vs B போன்ற இரண்டு விருப்பங்களை ஒப்பிட்டு, இப்போது எது சிறந்தது என்பதை தெரிந்துகொள்ள."
             : "Compare Option A vs Option B when you need a recommendation for a specific decision date."}
         </p>
-        <p style={{ margin: 0, fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.5 }}>
+        <p style={{ margin: 0, fontSize: "0.875rem", color: W.inkMid, lineHeight: 1.5 }}>
           <strong>{lang === "ta" ? "What-If:" : "What-If:"}</strong>{" "}
           {lang === "ta"
             ? "ஒரே முடிவிற்கு வேறு தேதிகளை முயன்று, எந்த காலம் சிறந்தது என்பதை பார்க்க (Planning tab)."
@@ -191,10 +191,10 @@ export function DecisionPanel({ lang, chartId }: Props) {
         </p>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "14px 16px", borderRadius: "10px", background: W.surface, border: `1px solid ${W.borderLt}` }}>
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)", padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)", background: W.surface, border: `1px solid ${W.borderLt}` }}>
+        <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: "160px" }}>
-            <label style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, marginBottom: "4px", textTransform: "uppercase" }}>
+            <label style={{ display: "block", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, marginBottom: "var(--space-1)", textTransform: "uppercase" }}>
               {t("decision_scenario", lang)}
             </label>
             <select
@@ -221,16 +221,16 @@ export function DecisionPanel({ lang, chartId }: Props) {
             </select>
           </div>
           <div style={{ flex: 1, minWidth: "160px" }}>
-            <label style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, marginBottom: "4px", textTransform: "uppercase" }}>
+            <label style={{ display: "block", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, marginBottom: "var(--space-1)", textTransform: "uppercase" }}>
               {t("decision_target_date", lang)} *
             </label>
             <input style={fieldStyle} type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} />
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: "220px" }}>
-            <label style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, marginBottom: "4px", textTransform: "uppercase" }}>
+            <label style={{ display: "block", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, marginBottom: "var(--space-1)", textTransform: "uppercase" }}>
               {t("decision_option_a", lang)}
             </label>
             <input
@@ -241,7 +241,7 @@ export function DecisionPanel({ lang, chartId }: Props) {
               placeholder={lang === "ta" ? "விருப்பம் A தலைப்பு" : "Option A label"}
             />
             <textarea
-              style={{ ...fieldStyle, marginTop: "6px", resize: "vertical" }}
+              style={{ ...fieldStyle, marginTop: "var(--space-1_5)", resize: "vertical" }}
               value={optionADescription}
               onChange={(e) => setOptionADescription(e.target.value)}
               rows={2}
@@ -250,7 +250,7 @@ export function DecisionPanel({ lang, chartId }: Props) {
           </div>
 
           <div style={{ flex: 1, minWidth: "220px" }}>
-            <label style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, marginBottom: "4px", textTransform: "uppercase" }}>
+            <label style={{ display: "block", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, marginBottom: "var(--space-1)", textTransform: "uppercase" }}>
               {t("decision_option_b", lang)}
             </label>
             <input
@@ -261,7 +261,7 @@ export function DecisionPanel({ lang, chartId }: Props) {
               placeholder={lang === "ta" ? "விருப்பம் B தலைப்பு" : "Option B label"}
             />
             <textarea
-              style={{ ...fieldStyle, marginTop: "6px", resize: "vertical" }}
+              style={{ ...fieldStyle, marginTop: "var(--space-1_5)", resize: "vertical" }}
               value={optionBDescription}
               onChange={(e) => setOptionBDescription(e.target.value)}
               rows={2}
@@ -276,11 +276,11 @@ export function DecisionPanel({ lang, chartId }: Props) {
           disabled={loading || !isFormValid}
           style={{
             alignSelf: "flex-start",
-            padding: "8px 18px",
-            borderRadius: "10px",
+            padding: "var(--space-2) var(--space-4_5)",
+            borderRadius: "var(--radius-md)",
             border: `1px solid ${W.ink}`,
             cursor: loading || !isFormValid ? "not-allowed" : "pointer",
-            fontSize: "0.8rem",
+            fontSize: "0.875rem",
             fontWeight: 700,
             background: loading || !isFormValid ? W.borderLt : W.ink,
             color: loading || !isFormValid ? W.mutedLt : W.surfaceMd,
@@ -288,40 +288,40 @@ export function DecisionPanel({ lang, chartId }: Props) {
         >
           {loading ? t("decision_analysing", lang) : t("decision_analyse", lang)}
         </button>
-        {error && <p style={{ margin: 0, fontSize: "0.76rem", color: W.rust }}>{error}</p>}
+        {error && <p style={{ margin: 0, fontSize: "0.75rem", color: W.rust }}>{error}</p>}
       </div>
 
       {result && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
           <div
             style={{
-              padding: "16px 20px",
-              borderRadius: "12px",
+              padding: "var(--space-4) var(--space-5)",
+              borderRadius: "var(--radius-md)",
               background: W.card,
               border: `1px solid ${W.borderLt}`,
               display: "flex",
-              gap: "20px",
+              gap: "var(--space-5)",
               flexWrap: "wrap",
               alignItems: "center",
             }}
           >
             <div>
-              <p style={{ margin: "0 0 4px", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>{t("decision_recommended", lang)}</p>
+              <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>{t("decision_recommended", lang)}</p>
               <p style={{ margin: 0, fontSize: "1.8rem", fontWeight: 900, lineHeight: 1, color: verdictColor(result.recommended) }}>
                 {result.recommended === "DEFER" ? t("decision_defer", lang) : result.recommended}
               </p>
             </div>
             <div>
-              <p style={{ margin: "0 0 4px", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>{t("decision_confidence", lang)}</p>
-              <p style={{ margin: 0, fontSize: "1.4rem", fontWeight: 700, color: verdictColor(result.recommended) }}>{result.confidence}%</p>
+              <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>{t("decision_confidence", lang)}</p>
+              <p style={{ margin: 0, fontSize: "1.5rem", fontWeight: 700, color: verdictColor(result.recommended) }}>{result.confidence}%</p>
             </div>
             <div style={{ flex: 1, minWidth: "200px" }}>
-              <p style={{ margin: "0 0 4px", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>{t("decision_reasoning", lang)}</p>
-              <p style={{ margin: 0, fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.5 }}>{tLang(result.reasoning, lang)}</p>
+              <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>{t("decision_reasoning", lang)}</p>
+              <p style={{ margin: 0, fontSize: "0.875rem", color: W.inkMid, lineHeight: 1.5 }}>{tLang(result.reasoning, lang)}</p>
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
             {[
               { key: "A" as const, data: result.optionA, isRecommended: result.recommended === "A" },
               { key: "B" as const, data: result.optionB, isRecommended: result.recommended === "B" },
@@ -331,22 +331,22 @@ export function DecisionPanel({ lang, chartId }: Props) {
               const bgColor = isRecommended ? "#EEF6EA" : isDefer ? W.surface : "#F9ECE7";
               const borderColor = isRecommended ? "rgba(92,118,84,0.3)" : isDefer ? W.borderLt : "rgba(168,72,47,0.2)";
               return (
-                <div key={key} style={{ padding: "14px 16px", borderRadius: "10px", background: bgColor, border: `1px solid ${borderColor}` }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                <div key={key} style={{ padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)", background: bgColor, border: `1px solid ${borderColor}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "var(--space-2)" }}>
                     <div>
-                      <p style={{ margin: "0 0 2px", fontSize: "0.68rem", fontWeight: 700, color: accentColor, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                      <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: accentColor, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                         {t(`decision_option_${key.toLowerCase()}` as Parameters<typeof t>[0], lang)}
                       </p>
-                      <p style={{ margin: 0, fontSize: "0.76rem", fontWeight: 600, color: W.inkMid }}>{data.label}</p>
+                      <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 600, color: W.inkMid }}>{data.label}</p>
                     </div>
-                    <div style={{ textAlign: "right", flexShrink: 0, marginLeft: "8px" }}>
-                      <div style={{ fontSize: "1.4rem", fontWeight: 900, color: accentColor, lineHeight: 1 }}>{data.score}</div>
-                      <div style={{ fontSize: "0.62rem", color: W.muted, marginTop: "2px" }}>/100</div>
+                    <div style={{ textAlign: "right", flexShrink: 0, marginLeft: "var(--space-2)" }}>
+                      <div style={{ fontSize: "1.5rem", fontWeight: 900, color: accentColor, lineHeight: 1 }}>{data.score}</div>
+                      <div style={{ fontSize: "0.625rem", color: W.muted, marginTop: "var(--space-0_5)" }}>/100</div>
                     </div>
                   </div>
 
-                  <div style={{ marginBottom: "10px" }}>
-                    <span style={{ fontSize: "0.7rem", fontWeight: 700, padding: "3px 10px", borderRadius: "999px", background: `${accentColor}18`, border: `1px solid ${accentColor}44`, color: accentColor }}>
+                  <div style={{ marginBottom: "var(--space-2_5)" }}>
+                    <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", background: `${accentColor}18`, border: `1px solid ${accentColor}44`, color: accentColor }}>
                       {isRecommended
                         ? lang === "ta"
                           ? "Recommended"
@@ -362,13 +362,13 @@ export function DecisionPanel({ lang, chartId }: Props) {
                   </div>
 
                   {data.alignmentNotes.length > 0 && (
-                    <div style={{ marginBottom: "8px" }}>
-                      <p style={{ margin: "0 0 4px", fontSize: "0.62rem", fontWeight: 700, color: isRecommended ? W.sage : W.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    <div style={{ marginBottom: "var(--space-2)" }}>
+                      <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: isRecommended ? W.sage : W.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                         {lang === "ta" ? (isRecommended ? "Why this is stronger" : "Limiting factors") : isRecommended ? "Why this is stronger" : "Limiting factors"}
                       </p>
-                      <ul style={{ margin: 0, padding: "0 0 0 14px" }}>
+                      <ul style={{ margin: 0, padding: "0 0 0 var(--space-3_5)" }}>
                         {data.alignmentNotes.map((note) => (
-                          <li key={note} style={{ fontSize: "0.72rem", color: isRecommended ? W.inkMid : W.muted, lineHeight: 1.4, marginBottom: "2px" }}>
+                          <li key={note} style={{ fontSize: "0.75rem", color: isRecommended ? W.inkMid : W.muted, lineHeight: 1.4, marginBottom: "var(--space-0_5)" }}>
                             {note}
                           </li>
                         ))}
@@ -377,12 +377,12 @@ export function DecisionPanel({ lang, chartId }: Props) {
                   )}
 
                   {data.riskFactors.length > 0 && (
-                    <div style={{ padding: "6px 8px", borderRadius: "5px", background: "#F9ECE7", border: "1px solid rgba(168,72,47,0.2)", marginBottom: "6px" }}>
-                      <p style={{ margin: "0 0 3px", fontSize: "0.62rem", fontWeight: 700, color: W.rust, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    <div style={{ padding: "var(--space-1_5) var(--space-2)", borderRadius: "5px", background: "#F9ECE7", border: "1px solid rgba(168,72,47,0.2)", marginBottom: "var(--space-1_5)" }}>
+                      <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, color: W.rust, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                         {lang === "ta" ? "Watch out for" : "Watch out for"}
                       </p>
                       {data.riskFactors.map((rf, i) => (
-                        <p key={rf} style={{ margin: i > 0 ? "2px 0 0" : 0, fontSize: "0.7rem", color: W.rust, lineHeight: 1.4 }}>
+                        <p key={rf} style={{ margin: i > 0 ? "2px 0 0" : 0, fontSize: "0.75rem", color: W.rust, lineHeight: 1.4 }}>
                           ! {rf}
                         </p>
                       ))}
@@ -390,7 +390,7 @@ export function DecisionPanel({ lang, chartId }: Props) {
                   )}
 
                   {data.optimalWindow && (
-                    <p style={{ margin: "4px 0 0", fontSize: "0.7rem", color: W.terracotta }}>
+                    <p style={{ margin: "var(--space-1) 0 0", fontSize: "0.75rem", color: W.terracotta }}>
                       {t("decision_optimal_window", lang)}: {data.optimalWindow}
                     </p>
                   )}
@@ -400,15 +400,15 @@ export function DecisionPanel({ lang, chartId }: Props) {
           </div>
 
           {result.caution && (
-            <div style={{ padding: "10px 14px", borderRadius: "8px", background: "#F9ECE7", border: "1px solid rgba(168,72,47,0.22)" }}>
-              <p style={{ margin: "0 0 4px", fontSize: "0.65rem", fontWeight: 700, color: W.rust, textTransform: "uppercase" }}>{t("decision_caution", lang)}</p>
-              <p style={{ margin: 0, fontSize: "0.76rem", color: W.inkMid, lineHeight: 1.5 }}>{tLang(result.caution, lang)}</p>
+            <div style={{ padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: "#F9ECE7", border: "1px solid rgba(168,72,47,0.22)" }}>
+              <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: W.rust, textTransform: "uppercase" }}>{t("decision_caution", lang)}</p>
+              <p style={{ margin: 0, fontSize: "0.75rem", color: W.inkMid, lineHeight: 1.5 }}>{tLang(result.caution, lang)}</p>
             </div>
           )}
         </div>
       )}
 
-      {!result && !loading && <p style={{ margin: 0, fontSize: "0.78rem", color: W.muted }}>{t("decision_empty", lang)}</p>}
+      {!result && !loading && <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>{t("decision_empty", lang)}</p>}
     </div>
   );
 }
