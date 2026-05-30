@@ -552,16 +552,60 @@ export function DashboardPersonalTab({
               {dashaBhuktiText}
             </p>
           )}
-          {personalDailyGuidance?.scoreBreakdown && (
-            <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", marginTop: "var(--space-2)", paddingTop: "var(--space-2)", borderTop: "1px solid #E4DBC8" }}>
-              <span style={{ fontSize: "0.625rem", color: "var(--color-faint)" }}>
-                {lang === "ta" ? "கருப்பொருள்" : "Theme"}
-              </span>
-              {personalDailyGuidance.emotionalWeather?.bestUseOfDay && (
-                <span style={{ fontSize: "0.875rem", color: "#3D352B", fontWeight: 500 }}>
-                  {personalDailyGuidance.emotionalWeather.bestUseOfDay}
-                </span>
-              )}
+          {personalDailyGuidance?.emotionalWeather && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "var(--space-2)", marginTop: "var(--space-2_5)" }}>
+              {[
+                {
+                  labelTa: "உணர்வு நிலை",
+                  labelEn: "Emotional tone",
+                  value: lang === "ta"
+                    ? personalDailyGuidance.emotionalWeather.toneText?.ta
+                    : personalDailyGuidance.emotionalWeather.toneText?.en,
+                },
+                {
+                  labelTa: "உடல் போக்கு",
+                  labelEn: "Physical tendency",
+                  value: lang === "ta"
+                    ? personalDailyGuidance.emotionalWeather.physicalTendencyText?.ta
+                    : personalDailyGuidance.emotionalWeather.physicalTendencyText?.en,
+                },
+                {
+                  labelTa: "சிறந்த பயன்பாடு",
+                  labelEn: "Best use of day",
+                  value: lang === "ta"
+                    ? personalDailyGuidance.emotionalWeather.bestUseOfDayText?.ta
+                    : personalDailyGuidance.emotionalWeather.bestUseOfDayText?.en,
+                },
+              ].filter((row) => row.value).map((row) => (
+                <div key={row.labelEn} style={{
+                  padding: "var(--space-2_5) var(--space-3)",
+                  borderRadius: "var(--radius-md)",
+                  background: "var(--color-surface-soft)",
+                  border: "1px solid var(--color-border)",
+                }}>
+                  <p style={{
+                    margin: "0 0 var(--space-0_5)",
+                    fontSize: "0.625rem",
+                    fontWeight: 700,
+                    color: "var(--color-faint)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    fontFamily: "var(--font-body)",
+                  }}>
+                    {lang === "ta" ? row.labelTa : row.labelEn}
+                  </p>
+                  <p style={{
+                    margin: 0,
+                    fontSize: "0.875rem",
+                    color: "var(--color-text-strong)",
+                    fontWeight: 600,
+                    fontFamily: "var(--font-body)",
+                    lineHeight: 1.4,
+                  }}>
+                    {row.value}
+                  </p>
+                </div>
+              ))}
             </div>
           )}
           {personalDailyGuidance?.scoreBreakdown && (
@@ -791,6 +835,41 @@ export function DashboardPersonalTab({
                   <Chip tone={personalScoreBand?.tone === "high" ? "success" : personalScoreBand?.tone === "low" ? "warning" : "neutral"}>{personalDailyGuidance.label}</Chip>
                 </div>
                 <p className="surface__text">{tLang(personalDailyGuidance.text, lang)}</p>
+                {personalDailyGuidance.currentHoraLord && (
+                  <div
+                    style={{
+                      marginTop: "var(--space-1_5)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "var(--space-1_5)",
+                      padding: "var(--space-1) var(--space-2_5)",
+                      borderRadius: "var(--radius-pill)",
+                      border: "1px solid var(--color-border)",
+                      background: "var(--color-surface-soft)",
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    <span style={{ color: "var(--color-faint)" }}>{lang === "ta" ? "தற்போதைய ஹோரா" : "Current hora"}</span>
+                    <strong style={{ color: DASHA_COLORS[personalDailyGuidance.currentHoraLord] ?? "var(--color-accent)" }}>
+                      {tPlanetLord(personalDailyGuidance.currentHoraLord, lang)}
+                    </strong>
+                  </div>
+                )}
+                {personalDailyGuidance.pratyantarNarrative && (
+                  <div style={{ marginTop: "var(--space-2)", padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
+                    <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      {lang === "ta" ? "பிரத்யந்தர தசை" : "Pratyantar signal"}
+                    </p>
+                    <p style={{ margin: 0, fontSize: "0.75rem", lineHeight: 1.45, color: "var(--color-text)" }}>
+                      {tLang(personalDailyGuidance.pratyantarNarrative, lang)}
+                    </p>
+                  </div>
+                )}
+                {personalDailyGuidance.nakshatraPerspective && (
+                  <p style={{ margin: "var(--space-2) 0 0", fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                    {tLang(personalDailyGuidance.nakshatraPerspective, lang)}
+                  </p>
+                )}
                 <div className="surface__metrics">
                   <Metric label={t("label_best_time", lang)} value={bestWindow ? formatClockLabel(bestWindow.start) : ""} hint={bestWindow ? formatClockLabel(bestWindow.end) : ""} tone="high" />
                   <Metric label={t("label_caution_time", lang)} value={avoidWindow ? formatClockLabel(avoidWindow.start) : ""} hint={avoidWindow ? formatClockLabel(avoidWindow.end) : ""} tone="low" />
