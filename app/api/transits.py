@@ -23,7 +23,9 @@ def _assert_chart_owner(session: Session, chart_id: UUID, current_user: User) ->
     if chart is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chart not found.")
     profile = session.get(BirthProfile, chart.birth_profile_id)
-    if profile is None or profile.owner_user_id != current_user.user_id:
+    if profile is None or profile.deleted_at is not None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
+    if profile.owner_user_id != current_user.user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
 
 

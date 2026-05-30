@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import date
 from uuid import UUID
@@ -20,20 +20,26 @@ class LifeAreaDriver(BaseModel):
 
 
 class LifeAreaData(BaseModel):
-    area: str                                  # CAREER, MONEY, HEALTH, etc.
-    label: LifeAreaText                        # Display name
-    score: int                                 # 0–100
-    trend: str                                 # UP / DOWN / STABLE
-    confidence: str = "MEDIUM"                 # HIGH / MEDIUM / LOW
+    area: str
+    label: LifeAreaText
+    score: int
+    trend: str
+    confidence: str = "MEDIUM"
     confidence_reason: LifeAreaText = Field(
         default_factory=lambda: LifeAreaText(ta="இரண்டு சமிக்ஞைகள் சீரமைக்கப்பட்டுள்ளன", en="Two signals aligned"),
         alias="confidenceReason",
     )
-    driver: LifeAreaDriver                     # Primary planet behind the score
-    narrative: LifeAreaText                    # 1–2 sentence explanation
-    remedy: LifeAreaText                       # Specific remedy for this area
+    primary_house_strength: str = Field(default="NEUTRAL", alias="primaryHouseStrength")
+    karaka_status: str = Field(default="MODERATE", alias="karakaStatus")
+    dasha_activation: bool = Field(default=False, alias="dashaActivation")
+    transit_support: int = Field(default=50, alias="transitSupport")
+    supporting_factors: list[str] = Field(default_factory=list, alias="supportingFactors")
+    blocking_factors: list[str] = Field(default_factory=list, alias="blockingFactors")
+    driver: LifeAreaDriver
+    narrative: LifeAreaText
+    remedy: LifeAreaText
     next_30_day_outlook: LifeAreaText = Field(alias="next30DayOutlook")
-    caution: LifeAreaText | None = None        # Optional caution note
+    caution: LifeAreaText | None = None
 
     model_config = ConfigDict(populate_by_name=True)
 

@@ -15,7 +15,7 @@ class HealthAssessmentInput:
     planets_rasi: dict[str, int]
     active_dasha_lords: set[str]
     age: int
-    life_stage: str
+    life_stage: str = "young_adult"
     lagna_strength_score: int = 50
     pitru_dosham_label: str | None = None
     rahu_ketu_label: str | None = None

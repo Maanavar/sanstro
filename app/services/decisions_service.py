@@ -150,10 +150,11 @@ def _build_option_analysis(
         f"Natal promise: {strength_label.get(natal_strength, natal_strength)} — {primary_karaka} & {secondary_karaka} placement in your birth chart",
         f"Dasha timing: {strength_label.get(dasha_strength, dasha_strength)} — current Mahadasha/Antardasha alignment with {primary_karaka}",
         f"Gochar support: {strength_label.get(gochar_strength, gochar_strength)} — transit {primary_karaka} position relative to your Moon sign",
-        f"Panchangam: {strength_label.get(panchangam_quality, panchangam_quality)} — tithi, nakshatra, and yoga quality on target date",
     ]
 
     risk_factors = list(factors)
+    if panchangam_quality == "WEAK":
+        risk_factors.append("Panchangam quality for the target date is weak; choose a better muhurta window if possible.")
     if verdict == "CAUTION":
         risk_factors.append("Current planetary timing calls for patience; consider phased or delayed execution.")
     if natal_strength == "WEAK":

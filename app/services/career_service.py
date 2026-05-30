@@ -17,7 +17,7 @@ class CareerAssessmentInput:
     active_dasha_lords: set[str]
     transit_saturn_rasi: int
     age: int
-    life_stage: str
+    life_stage: str = "young_adult"
     employment_type: str | None = None
     career_track: str = "general"
 

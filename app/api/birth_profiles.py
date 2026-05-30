@@ -41,7 +41,7 @@ def get_birth_profile_endpoint(
     current_user: User = Depends(get_current_user),
 ) -> BirthProfileGetResponse:
     profile = session.get(BirthProfile, birth_profile_id)
-    if profile is None:
+    if profile is None or profile.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
     if profile.owner_user_id != current_user.user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
@@ -68,7 +68,7 @@ def update_birth_profile_endpoint(
     current_user: User = Depends(get_current_user),
 ) -> BirthProfileGetResponse:
     profile = session.get(BirthProfile, birth_profile_id)
-    if profile is None:
+    if profile is None or profile.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
     if profile.owner_user_id != current_user.user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
@@ -86,11 +86,11 @@ def delete_birth_profile_endpoint(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Response:
-    """Permanently delete a birth profile and all calculated chart records."""
+    """Soft-delete a birth profile."""
     profile = session.get(BirthProfile, birth_profile_id)
-    if profile is None:
+    if profile is None or profile.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
     if profile.owner_user_id != current_user.user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
-    session.delete(profile)
+    profile.deleted_at = datetime.now(tz=UTC)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

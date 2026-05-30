@@ -18,7 +18,7 @@ class MarriageAssessmentInput:
     transit_jupiter_rasi: int
     transit_venus_rasi: int
     age: int
-    life_stage: str
+    life_stage: str = "young_adult"
     marital_status: str | None = None
     venus_combust: bool = False
     sevvai_dosham_cancelled: bool = False

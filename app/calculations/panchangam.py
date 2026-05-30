@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from math import ceil, floor
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -159,7 +159,7 @@ SUBHA_NAKSHATRAS = {
 }
 PANCHANGAM_CACHE_TTL_HOURS = 24
 DEFAULT_AYANAMSA_TYPE = "LAHIRI"
-PANCHANGAM_CACHE_DATA_VERSION = 5
+PANCHANGAM_CACHE_DATA_VERSION = 4
 
 
 @dataclass(frozen=True, slots=True)
@@ -562,6 +562,14 @@ def _load_cached_snapshot(
     return _deserialize_snapshot(row.data)
 
 
+def purge_expired_panchangam_cache(session: Session) -> int:
+    result = session.execute(
+        delete(PanchangamCache).where(PanchangamCache.expires_at < datetime.now(tz=UTC))
+    )
+    session.commit()
+    return int(result.rowcount or 0)
+
+
 def _store_cached_snapshot(
     session: Session,
     snapshot: PanchangamSnapshot,
@@ -581,7 +589,11 @@ def _store_cached_snapshot(
         )
         .on_conflict_do_update(
             constraint="uq_panchangam_cache_key",
-            set_={"data": payload, "created_at": datetime.now(tz=UTC)},
+            set_={
+                "data": payload,
+                "created_at": datetime.now(tz=UTC),
+                "expires_at": datetime.now(tz=UTC) + timedelta(days=90),
+            },
         )
     )
 
@@ -596,6 +608,7 @@ def calculate_daily_panchangam(
     use_cache: bool = True,
 ) -> PanchangamSnapshot:
     if use_cache and session is not None:
+        purge_expired_panchangam_cache(session)
         cached = _load_cached_snapshot(session, date_local, latitude, longitude, DEFAULT_AYANAMSA_TYPE)
         if cached is not None:
             return cached

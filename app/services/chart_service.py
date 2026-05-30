@@ -27,6 +27,7 @@ from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga
 from app.calculations.chart_strength import compute_natal_planet_score, compute_strength_breakdown
 from app.calculations.functional_nature import get_functional_nature
+from app.calculations.yoga_activation import yoga_activation_score
 from app.calculations.yogas import NakshatraCautionResult, detect_yogas_and_doshams
 from app.calculations.d9_chart import calculate_d9_chart
 from app.core.encryption import encrypt_bytes
@@ -81,6 +82,12 @@ PLANET_ORDER = {
     "MANDHI": 9,
 }
 
+
+def _public_planets(planets: list[PlanetPosition]) -> list[PlanetPosition]:
+    """Return the API planet set while keeping Mandhi internal-only."""
+    return [planet for planet in planets if planet.graha != "MANDHI"]
+
+
 # Maandhi (Mandhi) slot rules for chart longitude computation.
 # Day birth: Sun=7, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6 (traditional Tamil Panchangam Maandi order)
 MANDHI_DAY_SLOT = {6: 7, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6}
@@ -89,6 +96,91 @@ MANDHI_DAY_SLOT = {6: 7, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6}
 MANDHI_NIGHT_SLOT = {6: 3, 0: 5, 1: 6, 2: 7, 3: 8, 4: 1, 5: 2}
 
 DEFAULT_CALCULATION_VERSION = "jothidam-formula-engine-v1.1-2026"
+_PLANET_MEAN_DAILY_SPEED: dict[str, float] = {
+    "MOON": 13.176,
+    "MERCURY": 1.20,
+    "VENUS": 1.20,
+    "SUN": 0.9856,
+    "MARS": 0.524,
+    "JUPITER": 0.083,
+    "SATURN": 0.033,
+    "RAHU": 0.053,
+    "KETU": 0.053,
+}
+_NATAL_GRAHAS = frozenset({"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"})
+
+_ASPECT_OFFSETS: dict[str, frozenset[int]] = {
+    "MARS": frozenset({4, 7, 8}),
+    "JUPITER": frozenset({5, 7, 9}),
+    "SATURN": frozenset({3, 7, 10}),
+    "RAHU": frozenset({5, 7, 9}),
+    "KETU": frozenset({5, 7, 9}),
+}
+
+
+def _speed_ratio(graha: str, speed_deg_per_day: float) -> float | None:
+    mean = _PLANET_MEAN_DAILY_SPEED.get(graha)
+    if mean is None or mean <= 0:
+        return None
+    return abs(speed_deg_per_day) / mean
+
+
+def _house_distance(from_rasi: int, to_rasi: int) -> int:
+    return ((to_rasi - from_rasi) % 12) + 1
+
+
+def _does_aspect(source_graha: str, source_rasi: int, target_rasi: int) -> bool:
+    offsets = _ASPECT_OFFSETS.get(source_graha, frozenset({7}))
+    return _house_distance(source_rasi, target_rasi) in offsets
+
+
+def _aspect_counts(
+    target_graha: str,
+    planet_rasi_map: dict[str, int],
+    combust_planets: set[str],
+    *,
+    paksha_is_shukla: bool,
+) -> tuple[int, int]:
+    target_rasi = planet_rasi_map.get(target_graha)
+    if target_rasi is None:
+        return 0, 0
+
+    benefics = {"JUPITER", "VENUS"}
+    malefics = {"SUN", "MARS", "SATURN", "RAHU", "KETU"}
+    if paksha_is_shukla:
+        benefics.add("MOON")
+    else:
+        malefics.add("MOON")
+    if "MERCURY" in combust_planets:
+        malefics.add("MERCURY")
+    else:
+        benefics.add("MERCURY")
+
+    benefic_count = 0
+    malefic_count = 0
+    for source_graha, source_rasi in planet_rasi_map.items():
+        if source_graha == target_graha:
+            continue
+        if source_graha not in _NATAL_GRAHAS:
+            continue
+        if not _does_aspect(source_graha, source_rasi, target_rasi):
+            continue
+        if source_graha in benefics:
+            benefic_count += 1
+        elif source_graha in malefics:
+            malefic_count += 1
+    return benefic_count, malefic_count
+
+
+def _is_daytime_birth(birth_time_local: time | None) -> bool:
+    if birth_time_local is None:
+        return True
+    return 6 <= birth_time_local.hour < 18
+
+
+def _paksha_is_shukla(moon_longitude: float, sun_longitude: float) -> bool:
+    phase = (moon_longitude - sun_longitude) % 360.0
+    return phase < 180.0
 
 
 def _mandhi_longitude(
@@ -156,7 +248,15 @@ def _mandhi_planet_position(longitude: float, lagna_rasi: int) -> PlanetPosition
         d9_rasi=d9_rasi,
         is_vargottama=rasi == d9_rasi,
         show_retrograde_badge=False,
-        strength_breakdown={"sthana": "NEUTRAL", "dik": "NEUTRAL", "kala": "NEUTRAL", "chesta": "NEUTRAL"},
+        strength_score=0,
+        strength_breakdown={
+            "sthana": "NEUTRAL",
+            "dik": "NEUTRAL",
+            "kala": "NEUTRAL",
+            "chesta": "NEUTRAL",
+            "naisargika": "NEUTRAL",
+            "drik": "NEUTRAL",
+        },
     )
 
 
@@ -192,9 +292,31 @@ def _planet_position_from_snapshot(
     *,
     lagna_rasi: int,
     sun_degree: float,
+    is_daytime: bool,
+    paksha_is_shukla: bool,
+    benefic_aspect_count: int = 0,
+    malefic_aspect_count: int = 0,
 ) -> PlanetPosition:
     rasi_name = RASI_NAMES[body.rasi]
     nakshatra_number = nakshatra_from_degree(body.absolute_longitude)
+    d9_rasi = navamsa_rasi_from_degree(body.absolute_longitude)
+    is_vargottama = body.rasi == d9_rasi
+    speed_ratio = _speed_ratio(body.graha, body.speed_deg_per_day)
+    strength_score = compute_natal_planet_score(
+        body.graha,
+        body.rasi,
+        body.absolute_longitude,
+        lagna_rasi,
+        sun_degree,
+        body.is_retrograde,
+        is_vargottama=is_vargottama,
+        d9_rasi=d9_rasi,
+        is_daytime=is_daytime,
+        paksha_is_shukla=paksha_is_shukla,
+        speed_ratio=speed_ratio,
+        benefic_aspect_count=benefic_aspect_count,
+        malefic_aspect_count=malefic_aspect_count,
+    )
     return PlanetPosition(
         graha=body.graha,
         rasi_name=rasi_name,
@@ -208,17 +330,23 @@ def _planet_position_from_snapshot(
         speed_deg_per_day=body.speed_deg_per_day,
         is_retrograde=body.is_retrograde,
         is_combust=is_combust(body.graha, body.absolute_longitude, sun_degree, body.is_retrograde),
-        d9_rasi=navamsa_rasi_from_degree(body.absolute_longitude),
-        is_vargottama=body.rasi == navamsa_rasi_from_degree(body.absolute_longitude),
+        d9_rasi=d9_rasi,
+        is_vargottama=is_vargottama,
         show_retrograde_badge=body.show_retrograde_badge and body.graha not in {"RAHU", "KETU"},
+        strength_score=strength_score,
         strength_breakdown=compute_strength_breakdown(
             body.graha,
             body.rasi,
             body.absolute_longitude,
             lagna_rasi,
             body.is_retrograde,
-            is_vargottama=body.rasi == navamsa_rasi_from_degree(body.absolute_longitude),
-            d9_rasi=navamsa_rasi_from_degree(body.absolute_longitude),
+            is_vargottama=is_vargottama,
+            d9_rasi=d9_rasi,
+            is_daytime=is_daytime,
+            paksha_is_shukla=paksha_is_shukla,
+            benefic_aspect_count=benefic_aspect_count,
+            malefic_aspect_count=malefic_aspect_count,
+            speed_ratio=speed_ratio,
         ),
     )
 
@@ -236,6 +364,15 @@ def _active_dasha_lords(birth_jd: float, moon_longitude: float) -> set[str]:
     }
 
 
+def _current_dasha_lords(birth_jd: float, moon_longitude: float) -> tuple[str, str]:
+    timeline = calculate_vimshottari_timeline(
+        birth_jd,
+        moon_longitude,
+        utc_datetime_to_julian_day(datetime.now(tz=UTC)),
+    )
+    return timeline.current_mahadasha.lord, timeline.current_antardasha.lord
+
+
 def _build_yoga_dosham_insights(
     planets: list[PlanetPosition],
     *,
@@ -247,6 +384,11 @@ def _build_yoga_dosham_insights(
 ) -> tuple[list[ChartYogaInsight], list[ChartDoshamInsight], list[ChartNakshatraCaution]]:
     planet_map: dict[str, int] = {planet.graha: planet.rasi for planet in planets}
     active_lords = _active_dasha_lords(birth_jd, next(planet.absolute_longitude for planet in planets if planet.graha == "MOON"))
+    mahadasha_lord, antardasha_lord = _current_dasha_lords(
+        birth_jd,
+        next(planet.absolute_longitude for planet in planets if planet.graha == "MOON"),
+    )
+    planet_scores = {p.graha: p.strength_score for p in planets}
     combust_set = frozenset(p.graha for p in planets if p.is_combust)
     retrograde_set = frozenset(p.graha for p in planets if p.is_retrograde)
     moon_planet = next((p for p in planets if p.graha == "MOON"), None)
@@ -273,6 +415,15 @@ def _build_yoga_dosham_insights(
             conditionsMet=item.conditions_met,
             cancellationFactors=item.cancellation_factors,
             dashaActivated=item.dasha_activated,
+            activationScore=yoga_activation_score(
+                yoga_name=item.name,
+                yoga_is_present=item.is_present,
+                yoga_strength=item.strength,
+                mahadasha_lord=mahadasha_lord,
+                antardasha_lord=antardasha_lord,
+                planet_scores=planet_scores,
+            ),
+            isCurrentlyActive=item.dasha_activated,
             descriptionTa=item.description_ta,
             descriptionEn=item.description_en,
         )
@@ -388,12 +539,59 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
     ]
 
     sun_degree = next(planet.absolute_longitude for planet in planet_positions if planet.graha == "SUN")
+    moon_degree = next(planet.absolute_longitude for planet in planet_positions if planet.graha == "MOON")
+    is_daytime = _is_daytime_birth(_value(birth_profile, "birth_time_local"))
+    paksha_is_shukla = _paksha_is_shukla(moon_degree, sun_degree)
+    planet_rasi_map = {p.graha: p.rasi for p in planet_positions if p.graha in _NATAL_GRAHAS}
+    combust_planets = {
+        p.graha
+        for p in planet_positions
+        if p.graha in _NATAL_GRAHAS and is_combust(p.graha, p.absolute_longitude, sun_degree, p.is_retrograde)
+    }
     for planet in planet_positions:
         planet.is_combust = is_combust(
             planet.graha,
             planet.absolute_longitude,
             sun_degree,
             planet.is_retrograde,
+        )
+        if planet.graha == "MANDHI":
+            continue
+        benefic_aspects, malefic_aspects = _aspect_counts(
+            planet.graha,
+            planet_rasi_map,
+            combust_planets,
+            paksha_is_shukla=paksha_is_shukla,
+        )
+        speed_ratio = _speed_ratio(planet.graha, float(planet.speed_deg_per_day))
+        planet.strength_score = compute_natal_planet_score(
+            planet=planet.graha,
+            natal_rasi=planet.rasi,
+            natal_longitude=planet.absolute_longitude,
+            natal_lagna_rasi=lagna_rasi,
+            sun_longitude=sun_degree,
+            is_retrograde=planet.is_retrograde,
+            is_vargottama=planet.is_vargottama,
+            d9_rasi=planet.d9_rasi,
+            is_daytime=is_daytime,
+            paksha_is_shukla=paksha_is_shukla,
+            speed_ratio=speed_ratio,
+            benefic_aspect_count=benefic_aspects,
+            malefic_aspect_count=malefic_aspects,
+        )
+        planet.strength_breakdown = compute_strength_breakdown(
+            planet=planet.graha,
+            natal_rasi=planet.rasi,
+            natal_longitude=planet.absolute_longitude,
+            natal_lagna_rasi=lagna_rasi,
+            is_retrograde=planet.is_retrograde,
+            is_vargottama=planet.is_vargottama,
+            d9_rasi=planet.d9_rasi,
+            is_daytime=is_daytime,
+            paksha_is_shukla=paksha_is_shukla,
+            benefic_aspect_count=benefic_aspects,
+            malefic_aspect_count=malefic_aspects,
+            speed_ratio=speed_ratio,
         )
     moon_rasi = next(planet.rasi for planet in planet_positions if planet.graha == "MOON")
     d9_lagna_rasi_val = navamsa_rasi_from_degree(float(chart.lagna_longitude))
@@ -405,6 +603,7 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
         gender=_value(birth_profile, "gender_for_traditional_rules"),
         d9_lagna_rasi=d9_lagna_rasi_val,
     )
+    public_planet_positions = _public_planets(planet_positions)
 
     return ChartCalculateResponse(
         data=ChartCalculateResponseData(
@@ -414,7 +613,7 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             julian_day=float(chart.julian_day),
             ayanamsa=AyanamsaInfo(value_degrees=float(chart.ayanamsa_value_degrees or 0.0)),
             lagna=lagna,
-            planets=planet_positions,
+            planets=public_planet_positions,
             yogas=yogas,
             doshams=doshams,
             nakshatra_cautions=nakshatra_cautions,
@@ -435,9 +634,7 @@ def load_persisted_chart_response(session: Session, chart_id: UUID) -> ChartCalc
     if chart is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chart not found.")
 
-    birth_profile = session.get(BirthProfile, chart.birth_profile_id)
-    if birth_profile is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
+    birth_profile = _require_active_birth_profile(session, chart.birth_profile_id)
 
     chart.birth_profile = birth_profile
     if chart.planets:
@@ -505,8 +702,34 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
 
     planet_positions = []
     sun_degree = snapshot.bodies["SUN"].absolute_longitude
+    moon_degree = snapshot.bodies["MOON"].absolute_longitude
+    birth_time_local = _value(profile, "birth_time_local")
+    is_daytime = _is_daytime_birth(birth_time_local)
+    paksha_is_shukla = _paksha_is_shukla(moon_degree, sun_degree)
+    snapshot_rasi_map = {body.graha: body.rasi for body in snapshot.bodies.values() if body.graha in _NATAL_GRAHAS}
+    snapshot_combust = {
+        body.graha
+        for body in snapshot.bodies.values()
+        if body.graha in _NATAL_GRAHAS and is_combust(body.graha, body.absolute_longitude, sun_degree, body.is_retrograde)
+    }
     for body in snapshot.bodies.values():
-        planet_positions.append(_planet_position_from_snapshot(body, lagna_rasi=lagna_rasi, sun_degree=sun_degree))
+        benefic_aspects, malefic_aspects = _aspect_counts(
+            body.graha,
+            snapshot_rasi_map,
+            snapshot_combust,
+            paksha_is_shukla=paksha_is_shukla,
+        )
+        planet_positions.append(
+            _planet_position_from_snapshot(
+                body,
+                lagna_rasi=lagna_rasi,
+                sun_degree=sun_degree,
+                is_daytime=is_daytime,
+                paksha_is_shukla=paksha_is_shukla,
+                benefic_aspect_count=benefic_aspects,
+                malefic_aspect_count=malefic_aspects,
+            )
+        )
 
     # Mandhi (Maandi) upagraha — lagna degree at start of Mandhi kalam on birth date
     mandhi_lng = _mandhi_longitude(
@@ -528,6 +751,7 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
         gender=_value(profile, "gender_for_traditional_rules"),
         d9_lagna_rasi=navamsa_rasi_from_degree(lagna_degree),
     )
+    public_planet_positions = _public_planets(planet_positions)
 
     birth_profile_response = _birth_profile_response(
         profile=profile,
@@ -545,7 +769,7 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
             julian_day=julian_day,
             ayanamsa=AyanamsaInfo(value_degrees=snapshot.ayanamsa_value_degrees),
             lagna=lagna,
-            planets=planet_positions,
+            planets=public_planet_positions,
             yogas=yogas,
             doshams=doshams,
             nakshatra_cautions=nakshatra_cautions,
@@ -567,6 +791,13 @@ def _ensure_user(session: Session, owner_user_id: UUID) -> None:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Owner account not found for this session.",
         )
+
+
+def _require_active_birth_profile(session: Session, birth_profile_id: UUID) -> BirthProfile:
+    birth_profile = session.get(BirthProfile, birth_profile_id)
+    if birth_profile is None or birth_profile.deleted_at is not None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
+    return birth_profile
 
 
 def create_birth_profile_record(
@@ -683,9 +914,7 @@ def calculate_chart(payload: ChartCalculateRequest, session: Session | None = No
             detail="Database session is required when calculating from birthProfileId.",
         )
 
-    birth_profile = session.get(BirthProfile, payload.birth_profile_id)
-    if birth_profile is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
+    birth_profile = _require_active_birth_profile(session, payload.birth_profile_id)
     return calculate_chart_for_persisted_profile(
         session,
         birth_profile,
@@ -731,11 +960,10 @@ def get_chart_summary(session: Session, chart_id: UUID, *, language: str = "ta-e
     chart = session.get(Chart, chart_id)
     if chart is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chart not found.")
-    birth_profile = session.get(BirthProfile, chart.birth_profile_id)
-    if birth_profile is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
+    birth_profile = _require_active_birth_profile(session, chart.birth_profile_id)
 
     moon = next(planet for planet in chart_response.data.planets if planet.graha == "MOON")
+    d9_lagna_rasi = navamsa_rasi_from_degree(chart_response.data.lagna.absolute_longitude)
     timeline = calculate_vimshottari_timeline(
         chart_response.data.julian_day,
         moon.absolute_longitude,
@@ -750,12 +978,16 @@ def get_chart_summary(session: Session, chart_id: UUID, *, language: str = "ta-e
             current_age=_current_age(birth_profile.birth_date_local, today),
             lagna_rasi=chart_response.data.lagna.rasi_name,
             moon_rasi=moon.rasi_name,
+            d9_lagna_rasi=RASI_NAMES[d9_lagna_rasi],
+            d9_moon_rasi=RASI_NAMES[moon.d9_rasi] if isinstance(moon.d9_rasi, int) else None,
             janma_nakshatra=moon.nakshatra_name,
             janma_pada=moon.pada,
             current_mahadasha=timeline.current_mahadasha.lord,
             current_antardasha=timeline.current_antardasha.lord,
             functional_nature=_functional_nature_table(chart_response.data.lagna.rasi),
             ashtakavarga=_ashtakavarga_table(chart_response),
+            planets=chart_response.data.planets,
+            yogas=chart_response.data.yogas,
             primary_language_text=_summary_text(language),
         ),
         meta=ResponseMeta(
@@ -770,9 +1002,7 @@ def get_jadhagam_report(session: Session, chart_id: UUID) -> JadhagamReportRespo
     chart = session.get(Chart, chart_id)
     if chart is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chart not found.")
-    birth_profile = session.get(BirthProfile, chart.birth_profile_id)
-    if birth_profile is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
+    birth_profile = _require_active_birth_profile(session, chart.birth_profile_id)
 
     moon = next(planet for planet in chart_response.data.planets if planet.graha == "MOON")
     timeline = calculate_vimshottari_timeline(
@@ -785,8 +1015,25 @@ def get_jadhagam_report(session: Session, chart_id: UUID) -> JadhagamReportRespo
     functional_nature = _functional_nature_table(chart_response.data.lagna.rasi)
 
     sun_lon = next(planet.absolute_longitude for planet in chart_response.data.planets if planet.graha == "SUN")
+    moon_lon = next(planet.absolute_longitude for planet in chart_response.data.planets if planet.graha == "MOON")
+    is_daytime = _is_daytime_birth(_value(birth_profile, "birth_time_local"))
+    paksha_is_shukla = _paksha_is_shukla(moon_lon, sun_lon)
+    report_rasi_map = {p.graha: p.rasi for p in chart_response.data.planets if p.graha in _NATAL_GRAHAS}
+    report_combust = {
+        p.graha
+        for p in chart_response.data.planets
+        if p.graha in _NATAL_GRAHAS and is_combust(p.graha, p.absolute_longitude, sun_lon, p.is_retrograde)
+    }
     strength_items: list[JadhagamReportPlanetStrengthItem] = []
     for planet in chart_response.data.planets:
+        if planet.graha == "MANDHI":
+            continue
+        benefic_aspects, malefic_aspects = _aspect_counts(
+            planet.graha,
+            report_rasi_map,
+            report_combust,
+            paksha_is_shukla=paksha_is_shukla,
+        )
         score = compute_natal_planet_score(
             planet=planet.graha,
             natal_rasi=planet.rasi,
@@ -796,6 +1043,11 @@ def get_jadhagam_report(session: Session, chart_id: UUID) -> JadhagamReportRespo
             is_retrograde=planet.is_retrograde,
             is_vargottama=planet.is_vargottama,
             d9_rasi=planet.d9_rasi,
+            is_daytime=is_daytime,
+            paksha_is_shukla=paksha_is_shukla,
+            speed_ratio=_speed_ratio(planet.graha, float(planet.speed_deg_per_day)),
+            benefic_aspect_count=benefic_aspects,
+            malefic_aspect_count=malefic_aspects,
         )
         strength_items.append(JadhagamReportPlanetStrengthItem(planet=planet.graha, score=score))
 

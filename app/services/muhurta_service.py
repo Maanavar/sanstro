@@ -21,7 +21,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import RASI_NAME_TO_NUMBER, resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.astro import resolve_rasi, resolve_timezone, utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.panchangam import (
     SUBHA_NAKSHATRAS,
@@ -198,11 +198,14 @@ def find_best_muhurta_slots(
     if bp is None:
         raise HTTPException(status_code=404, detail="Birth profile not found")
 
-    lat = float(bp.latitude)
-    lon = float(bp.longitude)
-    tz_name = str(bp.timezone_name)
+    lat = float(bp.birth_latitude)
+    lon = float(bp.birth_longitude)
+    tz_name = str(bp.birth_timezone)
     lagna_rasi = chart_snapshot.data.lagna.rasi
-    moon_rasi = RASI_NAME_TO_NUMBER.get(str(chart_row.moon_rasi).lower(), 1)
+    try:
+        moon_rasi = resolve_rasi(str(chart_row.moon_rasi))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid Moon rasi in chart data: {chart_row.moon_rasi}") from exc
 
     natal_moon = next(p for p in chart_snapshot.data.planets if p.graha == "MOON")
     birth_jd = chart_snapshot.data.julian_day

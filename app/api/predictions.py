@@ -106,7 +106,9 @@ def _load_chart_context(session: Session, chart_id: UUID, current_user: User, as
     if chart is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chart not found.")
     profile = session.get(BirthProfile, chart.birth_profile_id)
-    if profile is None or profile.owner_user_id != current_user.user_id:
+    if profile is None or profile.deleted_at is not None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
+    if profile.owner_user_id != current_user.user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
 
     snapshot = load_persisted_chart_response(session, chart_id)
@@ -265,19 +267,9 @@ def get_health_prediction(
         session, chart_id, current_user, on_date
     )
 
-    # Use lagna strength from chart strength calculation
-    from app.calculations.chart_strength import compute_natal_planet_score
+    # Use already-computed natal strength scores from chart response.
     lagna_scores = [
-        compute_natal_planet_score(
-            planet=p.graha,
-            natal_rasi=p.rasi,
-            natal_longitude=p.absolute_longitude,
-            natal_lagna_rasi=snapshot.data.lagna.rasi,
-            sun_longitude=next(x.absolute_longitude for x in snapshot.data.planets if x.graha == "SUN"),
-            is_retrograde=p.is_retrograde,
-            is_vargottama=p.is_vargottama,
-            d9_rasi=p.d9_rasi,
-        )
+        int(getattr(p, "strength_score", 0) or 50)
         for p in snapshot.data.planets
         if p.graha not in ("RAHU", "KETU")
     ]

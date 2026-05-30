@@ -99,6 +99,7 @@ class DailyGuidanceData(BaseModel):
     caution_suggestion: DailyGuidanceSuggestion = Field(alias="cautionSuggestion")
     reasons: DailyGuidanceReasons
     remedy: DailyGuidanceText
+    pratyantar_narrative: DailyGuidanceText | None = Field(default=None, alias="pratyantarNarrative")
     tithi_card: DailyGuidanceText | None = Field(default=None, alias="tithiCard")
     is_chandrashtama: bool = Field(default=False, alias="isChandrashtama")
     saturn_cycle_alert: str | None = Field(default=None, alias="saturnCycleAlert")

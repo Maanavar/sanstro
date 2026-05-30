@@ -580,6 +580,13 @@ def detect_rahu_ketu_dosham(
             cancellation_factors.append("seventh_lord_strong_d9")
         if jup_aspect_7l_rk:
             cancellation_factors.append("jupiter_aspects_seventh_lord")
+    # Additional D9 cancellation: D9 7th lord strong from D9 lagna.
+    if d9_rasi_map and d9_lagna_rasi:
+        d9_7th_lord = SIGN_LORD[((d9_lagna_rasi + 5) % 12) + 1]
+        if d9_7th_lord in d9_rasi_map:
+            d9_7th_lord_house = house_from_reference(d9_lagna_rasi, d9_rasi_map[d9_7th_lord])
+            if d9_7th_lord_house in KENDRA_HOUSES | TRIKONA_HOUSES:
+                conditions_met.append("d9_seventh_lord_strong")
 
     # Spec §13.3 — strong Venus not conjunct node
     if _planet_is_strong(planets, "VENUS", lagna_rasi) and venus_rasi not in {rahu_rasi, ketu_rasi}:
@@ -902,16 +909,18 @@ def detect_neecha_bhanga(
             conditions.append("debilitation_sign_lord_in_kendra")
 
         # Rule 2 ✓ — planet exalted in that sign is in kendra
-        exalter_planet = exalter_of_sign[debilitation_rasi]
-        exalter_rasi = _planet_rasi(planets, exalter_planet)
-        if _is_kendra_from(lagna_rasi, exalter_rasi) or _is_kendra_from(moon_rasi, exalter_rasi):
-            conditions.append("exalter_of_debilitation_sign_in_kendra")
+        exalter_planet = exalter_of_sign.get(debilitation_rasi)
+        if exalter_planet is not None:
+            exalter_rasi = _planet_rasi(planets, exalter_planet)
+            if _is_kendra_from(lagna_rasi, exalter_rasi) or _is_kendra_from(moon_rasi, exalter_rasi):
+                conditions.append("exalter_of_debilitation_sign_in_kendra")
 
         # Rule 3 (was already: exaltation sign lord aspects) — keep it
-        exaltation_sign_lord = exaltation_owner_by_planet[planet]
-        exaltation_sign_lord_rasi = _planet_rasi(planets, exaltation_sign_lord)
-        if _is_seventh_aspect(exaltation_sign_lord_rasi, planet_rasi):
-            conditions.append("exaltation_sign_lord_aspects_debilitated")
+        exaltation_sign_lord = exaltation_owner_by_planet.get(planet)
+        if exaltation_sign_lord is not None:
+            exaltation_sign_lord_rasi = _planet_rasi(planets, exaltation_sign_lord)
+            if _is_seventh_aspect(exaltation_sign_lord_rasi, planet_rasi):
+                conditions.append("exaltation_sign_lord_aspects_debilitated")
 
         # Rule 4 — debilitated planet strong in Navamsa D9
         if d9_rasi_map and d9_lagna_rasi and planet in d9_rasi_map:

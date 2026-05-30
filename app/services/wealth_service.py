@@ -18,7 +18,7 @@ class WealthAssessmentInput:
     transit_jupiter_rasi: int
     has_dhana_yoga: bool
     age: int
-    life_stage: str
+    life_stage: str = "young_adult"
     ashtakavarga_11th_bindu: int | None = None
     pitru_dosham_label: str | None = None
     rahu_ketu_label: str | None = None

@@ -525,8 +525,6 @@ def _compute_panchangam_score(
     except Exception:
         return 70
 
-    from app.calculations.astro import _rasi_lord  # type: ignore[attr-defined]
-
     score = 70
     if panchang.tithi_number in {4, 9, 14, 19, 24, 29}:
         score -= 15

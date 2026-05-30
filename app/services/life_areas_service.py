@@ -23,9 +23,12 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.calculations.ashtakavarga import compute_bhinnashtakavarga, compute_sarvashtakavarga
 from app.calculations.astro import house_from_reference, resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
+from app.calculations.karaka_chains import LIFE_AREA_KARAKA
 from app.calculations.transits import classify_kandaka_cycle, classify_sani_cycle
 from app.schemas.dasha import ResponseMeta
 from app.schemas.life_areas import (
@@ -687,8 +690,146 @@ def _assert_chart_owner(session: Session, chart_id: UUID, owner_user_id: UUID) -
     if chart is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chart not found.")
     profile = session.get(BirthProfile, chart.birth_profile_id)
-    if profile is None or profile.owner_user_id != owner_user_id:
+    if profile is None or profile.deleted_at is not None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
+    if profile.owner_user_id != owner_user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+
+
+_AREA_TO_CHAIN_KEY: dict[str, str] = {
+    "CAREER": "CAREER",
+    "MONEY": "FINANCE",
+    "HEALTH": "HEALTH",
+    "RELATIONSHIPS": "MARRIAGE",
+    "EDUCATION": "CHILDREN",
+    "SPIRITUAL": "SPIRITUAL",
+    "FAMILY_HARMONY": "PROPERTY",
+}
+
+
+def _karaka_chain_score(
+    area_key: str,
+    lagna_rasi: int,
+    moon_rasi: int,
+    planet_scores: dict[str, int],
+    planet_rasis: dict[str, int],
+    current_mahadasha_lord: str,
+    current_antardasha_lord: str,
+    transit_planet_rasis: dict[str, int],
+    native_age: int,
+    sarvashtakavarga: dict[int, int] | None = None,
+) -> dict:
+    chain = LIFE_AREA_KARAKA.get(area_key)
+    if chain is None:
+        return {
+            "score": 50,
+            "primary_house_strength": "NEUTRAL",
+            "karaka_status": "UNKNOWN",
+            "dasha_activation": False,
+            "transit_support": 50,
+            "blocking_factors": [],
+            "supporting_factors": [],
+        }
+
+    age_min = chain.get("age_min")
+    age_max = chain.get("age_max")
+    if age_min is not None and native_age < age_min:
+        return {
+            "score": 30,
+            "primary_house_strength": "N/A",
+            "karaka_status": "NOT_APPLICABLE_FOR_AGE",
+            "dasha_activation": False,
+            "transit_support": 30,
+            "blocking_factors": ["too_young"],
+            "supporting_factors": [],
+        }
+    if age_max is not None and native_age > age_max:
+        return {
+            "score": 30,
+            "primary_house_strength": "N/A",
+            "karaka_status": "NOT_APPLICABLE_FOR_AGE",
+            "dasha_activation": False,
+            "transit_support": 30,
+            "blocking_factors": ["age_limit"],
+            "supporting_factors": [],
+        }
+
+    primary_house = chain["primary_house"]
+    karaka_planets = chain["karaka_planets"]
+    supporting_factors: list[str] = []
+    blocking_factors: list[str] = []
+
+    primary_house_rasi = ((lagna_rasi + primary_house - 2) % 12) + 1
+    house_lord = SIGN_LORD.get(primary_house_rasi, "SUN")
+    lord_score = planet_scores.get(house_lord, 50)
+    if lord_score >= 65:
+        supporting_factors.append(f"{house_lord}_lord_strong")
+    elif lord_score <= 35:
+        blocking_factors.append(f"{house_lord}_lord_weak")
+
+    karaka_score_avg = 0
+    for karaka in karaka_planets:
+        ks = planet_scores.get(karaka, 50)
+        karaka_score_avg += ks
+        if ks >= 65:
+            supporting_factors.append(f"{karaka}_karaka_strong")
+        elif ks <= 35:
+            blocking_factors.append(f"{karaka}_karaka_weak")
+    karaka_score_avg = karaka_score_avg // max(1, len(karaka_planets))
+
+    dasha_lords = {current_mahadasha_lord, current_antardasha_lord}
+    dasha_activation = bool(dasha_lords & ({house_lord} | set(karaka_planets)))
+    if dasha_activation:
+        supporting_factors.append("dasha_activates_area")
+
+    transit_support = 50
+    for karaka in karaka_planets:
+        t_rasi = transit_planet_rasis.get(karaka)
+        if t_rasi is None:
+            continue
+        t_house = house_from_reference(lagna_rasi, t_rasi)
+        if t_house in {1, 5, 9, 11, primary_house}:
+            transit_support += 8
+            supporting_factors.append(f"{karaka}_transit_supportive")
+        elif t_house in {6, 8, 12}:
+            transit_support -= 8
+            blocking_factors.append(f"{karaka}_transit_difficult")
+    transit_support = max(20, min(80, transit_support))
+
+    if sarvashtakavarga is not None:
+        sarva = sarvashtakavarga.get(primary_house_rasi, 25)
+        if sarva >= 28:
+            supporting_factors.append("house_av_strong")
+        elif sarva <= 22:
+            blocking_factors.append("house_av_weak")
+
+    score = (
+        lord_score * 0.35
+        + karaka_score_avg * 0.30
+        + transit_support * 0.20
+        + (15 if dasha_activation else 0)
+    )
+    score = max(10, min(95, round(score)))
+
+    lord_house = house_from_reference(lagna_rasi, planet_rasis.get(house_lord, lagna_rasi))
+    if lord_house in {1, 4, 7, 10, 5, 9}:
+        primary_house_strength = "STRONG"
+    elif lord_house in {6, 8, 12}:
+        primary_house_strength = "WEAK"
+    else:
+        primary_house_strength = "NEUTRAL"
+
+    karaka_status = "STRONG" if karaka_score_avg >= 65 else ("WEAK" if karaka_score_avg <= 35 else "MODERATE")
+
+    return {
+        "score": score,
+        "primary_house_strength": primary_house_strength,
+        "karaka_status": karaka_status,
+        "dasha_activation": dasha_activation,
+        "transit_support": transit_support,
+        "blocking_factors": blocking_factors,
+        "supporting_factors": supporting_factors,
+    }
 
 
 def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_user_id: UUID) -> LifeAreasResponse:
@@ -724,6 +865,15 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
 
     sani_cycle = classify_sani_cycle(saturn_house_from_moon)
     kandaka_cycle = classify_kandaka_cycle(saturn_house_from_lagna)
+    natal_planet_scores = {
+        p.graha: (p.strength_score if getattr(p, "strength_score", 0) > 0 else 50)
+        for p in chart_snapshot.data.planets
+    }
+    natal_planet_rasis = {p.graha: p.rasi for p in chart_snapshot.data.planets}
+    transit_planet_rasis = {g: b.rasi for g, b in transit.bodies.items()}
+    natal_rasi_map = {p.graha: p.rasi for p in chart_snapshot.data.planets if p.graha != "MANDHI"}
+    natal_rasi_map["LAGNA"] = natal_lagna_rasi
+    sarvashtakavarga = compute_sarvashtakavarga(compute_bhinnashtakavarga(natal_rasi_map))
 
     # Label overrides based on life stage
     _retired = (getattr(birth_profile, "employment_type", None) or "").lower() == "retired"
@@ -785,6 +935,20 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             kandaka_cycle.is_active,
             chandrashtama,
         )
+        chain_key = _AREA_TO_CHAIN_KEY.get(area, area)
+        chain_result = _karaka_chain_score(
+            area_key=chain_key,
+            lagna_rasi=natal_lagna_rasi,
+            moon_rasi=natal_moon.rasi,
+            planet_scores=natal_planet_scores,
+            planet_rasis=natal_planet_rasis,
+            current_mahadasha_lord=maha_lord,
+            current_antardasha_lord=antar_lord,
+            transit_planet_rasis=transit_planet_rasis,
+            native_age=current_age,
+            sarvashtakavarga=sarvashtakavarga,
+        )
+        score = max(0, min(100, round(score * 0.35 + chain_result["score"] * 0.65)))
 
         karakas = _AREA_KARAKA[area]
         primary_karaka = karakas[0]
@@ -868,6 +1032,12 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             trend=_trend(score, dasha_score),
             confidence=_area_confidence,
             confidenceReason=_area_conf_reason,
+            primaryHouseStrength=chain_result["primary_house_strength"],
+            karakaStatus=chain_result["karaka_status"],
+            dashaActivation=chain_result["dasha_activation"],
+            transitSupport=chain_result["transit_support"],
+            supportingFactors=chain_result["supporting_factors"],
+            blockingFactors=chain_result["blocking_factors"],
             driver=LifeAreaDriver(planet=primary_karaka, reason=driver_reason),
             narrative=bundle.narrative,
             remedy=bundle.remedy,

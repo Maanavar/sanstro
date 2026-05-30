@@ -52,8 +52,16 @@ class PlanetPosition(BaseModel):
     d9_rasi: int = Field(alias="d9Rasi")
     is_vargottama: bool = Field(alias="isVargottama")
     show_retrograde_badge: bool = Field(alias="showRetrogradeBadge")
+    strength_score: int = Field(default=0, alias="strengthScore")
     strength_breakdown: dict[str, str] = Field(
-        default_factory=lambda: {"sthana": "NEUTRAL", "dik": "NEUTRAL", "kala": "NEUTRAL", "chesta": "NEUTRAL"},
+        default_factory=lambda: {
+            "sthana": "NEUTRAL",
+            "dik": "NEUTRAL",
+            "kala": "NEUTRAL",
+            "chesta": "NEUTRAL",
+            "naisargika": "NEUTRAL",
+            "drik": "NEUTRAL",
+        },
         alias="strengthBreakdown",
     )
 
@@ -67,6 +75,8 @@ class ChartYogaInsight(BaseModel):
     conditions_met: list[str] = Field(alias="conditionsMet")
     cancellation_factors: list[str] = Field(alias="cancellationFactors")
     dasha_activated: bool = Field(alias="dashaActivated")
+    activation_score: int = Field(default=0, alias="activationScore")
+    is_currently_active: bool = Field(default=False, alias="isCurrentlyActive")
     description_ta: str = Field(alias="descriptionTa")
     description_en: str = Field(alias="descriptionEn")
 
@@ -150,12 +160,16 @@ class ChartSummaryData(BaseModel):
     current_age: int = Field(alias="currentAge")
     lagna_rasi: str = Field(alias="lagnaRasi")
     moon_rasi: str = Field(alias="moonRasi")
+    d9_lagna_rasi: str | None = Field(default=None, alias="d9LagnaRasi")
+    d9_moon_rasi: str | None = Field(default=None, alias="d9MoonRasi")
     janma_nakshatra: str = Field(alias="janmaNakshatra")
     janma_pada: int = Field(alias="janmaPada")
     current_mahadasha: str = Field(alias="currentMahadasha")
     current_antardasha: str = Field(alias="currentAntardasha")
     functional_nature: dict[str, str] = Field(alias="functionalNature")
     ashtakavarga: dict[str, dict[int, int]] = Field(alias="ashtakavarga")
+    planets: list[PlanetPosition] = Field(default_factory=list)
+    yogas: list[ChartYogaInsight] = Field(default_factory=list)
     primary_language_text: ChartSummaryText = Field(alias="primaryLanguageText")
 
     model_config = ConfigDict(populate_by_name=True)
