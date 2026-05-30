@@ -42,6 +42,22 @@ _SCENARIO_KEYWORDS = {
 _RISK_MARKERS = {"quit", "resign", "loan", "startup", "relocate", "abroad", "new city", "new country"}
 _STABILITY_MARKERS = {"stay", "current", "continue", "existing", "same role", "same city"}
 
+# Karaka planets associated with each scenario (for human-readable alignment notes)
+_SCENARIO_KARAKAS = {
+    "job_change":     ("Saturn", "Sun"),
+    "business_start": ("Saturn", "Mercury"),
+    "marriage":       ("Venus", "Jupiter"),
+    "education":      ("Mercury", "Jupiter"),
+    "property":       ("Saturn", "Mars"),
+    "health":         ("Sun", "Mars"),
+    "travel_abroad":  ("Rahu", "Jupiter"),
+    "spiritual":      ("Jupiter", "Ketu"),
+    "family_harmony": ("Moon", "Jupiter"),
+    "money":          ("Jupiter", "Venus"),
+    "child_birth":    ("Jupiter", "Moon"),
+    "other":          ("Jupiter", "Sun"),
+}
+
 
 def _meta() -> ResponseMeta:
     return ResponseMeta(calculationVersion=_CALC_VERSION, generatedAt=datetime.now(tz=UTC))
@@ -115,26 +131,33 @@ def _build_option_analysis(
     natal_strength: str,
     dasha_strength: str,
     gochar_strength: str,
+    panchangam_quality: str = "MODERATE",
     option_scenario: str | None = None,
     shared_scenario: str | None = None,
 ) -> OptionAnalysis:
     adjustment, factors = _score_adjustment(option)
-    # If this option resolves to a different scenario than the shared one,
-    # apply a scenario-divergence signal (±5) so the two options can differ
-    # on astrological grounds, not just keyword presence.
+    # Scenario-divergence signal: if this option maps to a different scenario than the
+    # shared base, its karaka planets may be better or worse placed → differentiate score.
+    eff_scenario = option_scenario or shared_scenario or "other"
     if option_scenario and shared_scenario and option_scenario != shared_scenario:
         adjustment += 5 if option_scenario in ("education", "spiritual", "family_harmony") else -5
     score = max(0, min(100, base_score + adjustment))
 
+    # Specific alignment notes — name the actual planets governing this scenario
+    primary_karaka, secondary_karaka = _SCENARIO_KARAKAS.get(eff_scenario, ("Jupiter", "Sun"))
+    strength_label = {"STRONG": "strong", "MODERATE": "moderate", "WEAK": "weak"}
     alignment = [
-        f"Natal promise: {natal_strength}",
-        f"Dasha timing: {dasha_strength}",
-        f"Gochar support: {gochar_strength}",
+        f"Natal promise: {strength_label.get(natal_strength, natal_strength)} — {primary_karaka} & {secondary_karaka} placement in your birth chart",
+        f"Dasha timing: {strength_label.get(dasha_strength, dasha_strength)} — current Mahadasha/Antardasha alignment with {primary_karaka}",
+        f"Gochar support: {strength_label.get(gochar_strength, gochar_strength)} — transit {primary_karaka} position relative to your Moon sign",
+        f"Panchangam: {strength_label.get(panchangam_quality, panchangam_quality)} — tithi, nakshatra, and yoga quality on target date",
     ]
 
     risk_factors = list(factors)
     if verdict == "CAUTION":
-        risk_factors.append("Base timing verdict is caution; consider phased execution.")
+        risk_factors.append("Current planetary timing calls for patience; consider phased or delayed execution.")
+    if natal_strength == "WEAK":
+        risk_factors.append(f"Natal {primary_karaka} placement is not strongly supporting this path — foundation work recommended first.")
 
     return OptionAnalysis(
         label=option.label,
@@ -163,37 +186,42 @@ def _reasoning(
     option_b: OptionAnalysis,
     scenario: str,
 ) -> tuple[DecisionBiText, DecisionBiText | None]:
+    delta = abs(option_a.score - option_b.score)
+    primary_karaka, _ = _SCENARIO_KARAKAS.get(scenario, ("Jupiter", "Sun"))
+
     if recommended == "DEFER":
         return (
             DecisionBiText(
                 ta=(
-                    f"Irendu therivugalukkum score idaiyveli kuraivaga ulladhu "
-                    f"(A: {option_a.score}, B: {option_b.score}). "
-                    f"{scenario} thodarpana mudivai kurippitta nerathil meendum parisaalikka vendum."
+                    f"இரண்டு விருப்பங்களும் கிட்டத்தட்ட சமம் "
+                    f"(A: {option_a.score}, B: {option_b.score} — வித்தியாசம் {delta}). "
+                    f"தற்போதைய {primary_karaka} நிலை இரண்டையும் ஒரே மாதிரி பாதிக்கிறது. "
+                    f"சற்று காத்திருந்து கிரக நிலை மாற்றம் ஆனதும் மீண்டும் பார்க்கவும்."
                 ),
                 en=(
-                    f"Score gap is narrow between both options (A: {option_a.score}, B: {option_b.score}). "
-                    f"For this {scenario} decision, a short defer-and-reassess approach is preferable."
+                    f"Score gap is narrow (A: {option_a.score}, B: {option_b.score} — delta: {delta}). "
+                    f"Current {primary_karaka} position affects both options similarly. "
+                    f"A short defer-and-reassess allows planetary conditions to shift before committing."
                 ),
             ),
             DecisionBiText(
-                ta="Idhu nirakaram alla; idhu neram-thittam refinement-kku oru supportive pause.",
-                en="This is not a rejection; it is a supportive timing pause for refinement.",
+                ta="இது நிராகரிப்பு அல்ல — சரியான நேரம் தேர்ந்தெடுக்க உதவும் ஒரு சிறு இடைவெளி.",
+                en="This is not a rejection; it is a supportive timing pause — reassess when transit conditions shift.",
             ),
         )
 
     chosen = option_a if recommended == "A" else option_b
     other = option_b if recommended == "A" else option_a
+    margin_label = "clearly" if delta > 10 else "narrowly"
     return (
         DecisionBiText(
             ta=(
-                f"Therndhedukkappatta option ({chosen.label}) score {chosen.score}, "
-                f"matra option ({other.label}) score {other.score}. "
-                f"Dasha-gochar timing intha therivukku thunaiyaga irukkiradhu."
+                f"'{chosen.label}' ({chosen.score}) '{other.label}' ({other.score}) ஐ விட {margin_label} முன்னணியில் உள்ளது. "
+                f"{primary_karaka} தசை-கோசர நிலை இந்த விருப்பத்திற்கு சற்று சாதகமாக உள்ளது."
             ),
             en=(
-                f"Recommended option ({chosen.label}) scores {chosen.score} versus "
-                f"{other.score} for the alternative. Dasha-transit timing is relatively more aligned here."
+                f"'{chosen.label}' ({chosen.score}) leads '{other.label}' ({other.score}) {margin_label} (delta: {delta}). "
+                f"The {primary_karaka}-related natal promise and transit alignment is relatively more supportive for this option."
             ),
         ),
         None,
@@ -216,35 +244,42 @@ def build_decision_brief(
         tz = chart_snapshot.data.birth_profile.birth_timezone
         target_date = datetime.now(tz=UTC).astimezone(ZoneInfo(tz)).date()
 
-    scenario = _pick_scenario(priority, option_a, option_b)
-    base = evaluate_whatif(session, owner_user_id=owner_user_id, chart_id=chart_id, scenario=scenario, target_date=target_date)
-    triple = base.data.triple_confirmation
+    shared_scenario = _pick_scenario(priority, option_a, option_b)
+    scenario_a = _scenario_from_option(option_a) or shared_scenario
+    scenario_b = _scenario_from_option(option_b) or shared_scenario
 
-    scenario_a = _scenario_from_option(option_a)
-    scenario_b = _scenario_from_option(option_b)
+    # Evaluate each option against its own best-fit scenario for differentiated scoring
+    eval_a = evaluate_whatif(session, owner_user_id=owner_user_id, chart_id=chart_id, scenario=scenario_a, target_date=target_date)
+    eval_b = evaluate_whatif(session, owner_user_id=owner_user_id, chart_id=chart_id, scenario=scenario_b, target_date=target_date)
+    triple_a = eval_a.data.triple_confirmation
+    triple_b = eval_b.data.triple_confirmation
 
     analysis_a = _build_option_analysis(
         option_a,
-        base_score=base.data.overall_score,
-        verdict=base.data.verdict,
+        base_score=eval_a.data.overall_score,
+        verdict=eval_a.data.verdict,
         target_date=target_date,
-        natal_strength=triple.natal_promise_strength,
-        dasha_strength=triple.dasha_support_strength,
-        gochar_strength=triple.gochar_support_strength,
+        natal_strength=triple_a.natal_promise_strength,
+        dasha_strength=triple_a.dasha_support_strength,
+        gochar_strength=triple_a.gochar_support_strength,
+        panchangam_quality=triple_a.panchangam_quality,
         option_scenario=scenario_a,
-        shared_scenario=scenario,
+        shared_scenario=shared_scenario,
     )
     analysis_b = _build_option_analysis(
         option_b,
-        base_score=base.data.overall_score,
-        verdict=base.data.verdict,
+        base_score=eval_b.data.overall_score,
+        verdict=eval_b.data.verdict,
         target_date=target_date,
-        natal_strength=triple.natal_promise_strength,
-        dasha_strength=triple.dasha_support_strength,
-        gochar_strength=triple.gochar_support_strength,
+        natal_strength=triple_b.natal_promise_strength,
+        dasha_strength=triple_b.dasha_support_strength,
+        gochar_strength=triple_b.gochar_support_strength,
+        panchangam_quality=triple_b.panchangam_quality,
         option_scenario=scenario_b,
-        shared_scenario=scenario,
+        shared_scenario=shared_scenario,
     )
+    # Use the shared scenario label for response metadata
+    scenario = shared_scenario
 
     recommended, confidence = _recommend(analysis_a.score, analysis_b.score)
     reasoning, caution = _reasoning(recommended, analysis_a, analysis_b, scenario)

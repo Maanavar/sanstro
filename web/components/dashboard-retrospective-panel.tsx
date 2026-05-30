@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
-import { t, tLang } from "@/lib/i18n";
+import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, RetrospectiveData, RetrospectiveListData } from "@/lib/types";
 
@@ -16,6 +16,34 @@ type Props = {
   chartId: string;
 };
 
+const W = {
+  ink: "#1A1612",
+  inkMid: "#3D352B",
+  muted: "#7A6F5E",
+  mutedLt: "#A89D89",
+  border: "#D4C8AE",
+  borderLt: "#E4DBC8",
+  surface: "#FAF5EA",
+  surfaceMd: "#F4EEE2",
+  card: "#FFFFFF",
+  terracotta: "#B85A2C",
+  rust: "#A8482F",
+  sage: "#5C7654",
+} as const;
+
+const fieldStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "8px 10px",
+  borderRadius: "10px",
+  background: W.card,
+  border: `1.5px solid ${W.borderLt}`,
+  color: W.inkMid,
+  fontSize: "0.82rem",
+  outline: "none",
+  boxSizing: "border-box",
+  fontFamily: "inherit",
+};
+
 function intensityLabel(intensity: string, lang: Lang): string {
   if (intensity === "similar") return t("retro_intensity_similar", lang);
   if (intensity === "milder") return t("retro_intensity_milder", lang);
@@ -23,9 +51,9 @@ function intensityLabel(intensity: string, lang: Lang): string {
 }
 
 function intensityColor(intensity: string): string {
-  if (intensity === "stronger") return "#f87171";
-  if (intensity === "similar") return "#fbbf24";
-  return "#4ade80";
+  if (intensity === "stronger") return W.rust;
+  if (intensity === "similar") return W.terracotta;
+  return W.sage;
 }
 
 export function RetrospectivePanel({ lang, chartId }: Props) {
@@ -79,36 +107,36 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       <div>
-        <p style={{ margin: "0 0 4px", fontSize: "0.68rem", fontWeight: 700, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <p style={{ margin: "0 0 4px", fontSize: "0.68rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.06em" }}>
           {t("retro_panel_title", lang)}
         </p>
-        <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(255,255,255,0.5)" }}>
+        <p style={{ margin: 0, fontSize: "0.78rem", color: W.muted }}>
           {t("retro_panel_desc", lang)}
         </p>
       </div>
 
       {/* Input form */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "14px 16px", borderRadius: "10px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.09)" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "14px 16px", borderRadius: "12px", background: W.card, border: `1px solid ${W.borderLt}` }}>
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: "160px" }}>
-            <label style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", marginBottom: "4px", textTransform: "uppercase" }}>
+            <label style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, marginBottom: "4px", textTransform: "uppercase" }}>
               {t("retro_event_date", lang)} *
             </label>
             <input
               type="date"
               value={eventDate}
               onChange={(e) => setEventDate(e.target.value)}
-              style={{ width: "100%", padding: "6px 10px", borderRadius: "6px", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: "0.82rem", outline: "none", boxSizing: "border-box" }}
+              style={fieldStyle}
             />
           </div>
           <div style={{ flex: 1, minWidth: "140px" }}>
-            <label style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", marginBottom: "4px", textTransform: "uppercase" }}>
+            <label style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, marginBottom: "4px", textTransform: "uppercase" }}>
               {t("retro_event_type", lang)}
             </label>
             <select
               value={eventType}
               onChange={(e) => setEventType(e.target.value as EventType)}
-              style={{ width: "100%", padding: "6px 10px", borderRadius: "6px", background: "rgba(30,30,40,0.9)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: "0.82rem", outline: "none", boxSizing: "border-box" }}
+              style={fieldStyle}
             >
               {EVENT_TYPES.map((et) => (
                 <option key={et} value={et}>
@@ -119,15 +147,15 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
           </div>
         </div>
         <div>
-          <label style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", marginBottom: "4px", textTransform: "uppercase" }}>
+          <label style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, marginBottom: "4px", textTransform: "uppercase" }}>
             {t("retro_event_desc", lang)}
           </label>
           <textarea
             value={eventDesc}
             onChange={(e) => setEventDesc(e.target.value)}
             rows={2}
-            placeholder={lang === "ta" ? "உதாரணம்: வேலை கிடைத்தது, திருமணம்…" : "e.g. Got a job offer, had an accident…"}
-            style={{ width: "100%", padding: "6px 10px", borderRadius: "6px", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: "0.82rem", outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }}
+            placeholder={lang === "ta" ? "à®‰à®¤à®¾à®°à®£à®®à¯: à®µà¯‡à®²à¯ˆ à®•à®¿à®Ÿà¯ˆà®¤à¯à®¤à®¤à¯, à®¤à®¿à®°à¯à®®à®£à®®à¯â€¦" : "e.g. Got a job offer, had an accidentâ€¦"}
+            style={{ ...fieldStyle, resize: "vertical" }}
           />
         </div>
         <div style={{ display: "flex", gap: "8px" }}>
@@ -136,10 +164,11 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
             onClick={() => void analyse()}
             disabled={loading || !chartId || !eventDate || !eventDesc.trim()}
             style={{
-              padding: "8px 18px", borderRadius: "8px", border: "none", cursor: "pointer",
+              padding: "8px 18px", borderRadius: "8px", cursor: "pointer",
               fontSize: "0.8rem", fontWeight: 700,
-              background: loading || !chartId || !eventDate || !eventDesc.trim() ? "rgba(255,255,255,0.08)" : "rgba(229,184,77,0.85)",
-              color: loading || !chartId || !eventDate || !eventDesc.trim() ? "rgba(255,255,255,0.3)" : "#0a0800",
+              background: loading || !chartId || !eventDate || !eventDesc.trim() ? W.surfaceMd : "#F8E4D2",
+              border: `1px solid ${W.terracotta}55`,
+              color: loading || !chartId || !eventDate || !eventDesc.trim() ? W.mutedLt : W.terracotta,
             }}
           >
             {loading ? t("retro_analysing", lang) : t("retro_analyse", lang)}
@@ -147,12 +176,12 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
           <button
             type="button"
             onClick={() => void loadHistory()}
-            style={{ padding: "8px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)", cursor: "pointer", fontSize: "0.76rem", background: "transparent", color: "rgba(255,255,255,0.5)" }}
+            style={{ padding: "8px 14px", borderRadius: "8px", border: `1px solid ${W.border}`, cursor: "pointer", fontSize: "0.76rem", background: W.card, color: W.muted }}
           >
-            {lang === "ta" ? "வரலாறு" : "History"}
+            {lang === "ta" ? "à®µà®°à®²à®¾à®±à¯" : "History"}
           </button>
         </div>
-        {error && <p style={{ margin: 0, fontSize: "0.76rem", color: "#f87171" }}>{error}</p>}
+        {error && <p style={{ margin: 0, fontSize: "0.76rem", color: W.rust }}>{error}</p>}
       </div>
 
       {/* Result */}
@@ -160,19 +189,19 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {/* Active dasha */}
           <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.35)", textTransform: "uppercase" }}>
+            <span style={{ fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>
               {t("retro_active_dasha", lang)}:
             </span>
-            <span style={{ fontSize: "0.78rem", color: "#e5b84d", fontWeight: 700 }}>{result.activeDasha}</span>
-            <span style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.35)" }}>{result.eventDate}</span>
+            <span style={{ fontSize: "0.78rem", color: W.terracotta, fontWeight: 700 }}>{result.activeDasha}</span>
+            <span style={{ fontSize: "0.68rem", color: W.mutedLt }}>{result.eventDate}</span>
           </div>
 
           {/* Correlation explanation */}
-          <div style={{ padding: "12px 14px", borderRadius: "8px", background: "rgba(139,92,246,0.07)", border: "1px solid rgba(167,139,250,0.22)" }}>
-            <p style={{ margin: "0 0 6px", fontSize: "0.65rem", fontWeight: 700, color: "#a78bfa", textTransform: "uppercase" }}>
+          <div style={{ padding: "12px 14px", borderRadius: "8px", background: W.surface, border: `1px solid ${W.border}` }}>
+            <p style={{ margin: "0 0 6px", fontSize: "0.65rem", fontWeight: 700, color: W.terracotta, textTransform: "uppercase" }}>
               {t("retro_correlation", lang)}
             </p>
-            <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(255,255,255,0.7)", lineHeight: 1.5 }}>
+            <p style={{ margin: 0, fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.5 }}>
               {tLang(result.correlationExplanation, lang)}
             </p>
           </div>
@@ -180,14 +209,14 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
           {/* Key transits */}
           {result.keyTransits.length > 0 && (
             <div>
-              <p style={{ margin: "0 0 6px", fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.35)", textTransform: "uppercase" }}>
+              <p style={{ margin: "0 0 6px", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>
                 {t("retro_key_transits", lang)}
               </p>
               <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                 {result.keyTransits.map((kt, i) => (
-                  <span key={i} style={{ fontSize: "0.72rem", padding: "3px 10px", borderRadius: "999px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.65)" }}>
-                    {kt.planet} H{kt.houseFromMoon}L{kt.houseFromLagna}
-                    {kt.notableAspect && <span style={{ color: "#fbbf24", marginLeft: "4px" }}>{kt.notableAspect}</span>}
+                  <span key={i} style={{ fontSize: "0.72rem", padding: "3px 10px", borderRadius: "999px", background: W.surface, border: `1px solid ${W.border}`, color: W.muted }}>
+                    {tPlanetLord(kt.planet, lang)} H{kt.houseFromMoon}L{kt.houseFromLagna}
+                    {kt.notableAspect && <span style={{ color: W.terracotta, marginLeft: "4px" }}>{kt.notableAspect}</span>}
                   </span>
                 ))}
               </div>
@@ -196,8 +225,8 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
 
           {/* Future recurrences */}
           {result.futureRecurrences.length > 0 && (
-            <div style={{ padding: "12px 14px", borderRadius: "8px", background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.18)" }}>
-              <p style={{ margin: "0 0 8px", fontSize: "0.65rem", fontWeight: 700, color: "#fbbf24", textTransform: "uppercase" }}>
+          <div style={{ padding: "12px 14px", borderRadius: "8px", background: "#FFF7EB", border: `1px solid ${W.border}` }}>
+              <p style={{ margin: "0 0 8px", fontSize: "0.65rem", fontWeight: 700, color: W.terracotta, textTransform: "uppercase" }}>
                 {t("retro_future_recurrence", lang)}
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -207,8 +236,8 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
                       {intensityLabel(fr.intensity, lang)}
                     </span>
                     <div>
-                      <p style={{ margin: "0 0 2px", fontSize: "0.74rem", color: "rgba(255,255,255,0.65)" }}>{fr.approximateDate}</p>
-                      <p style={{ margin: 0, fontSize: "0.72rem", color: "rgba(255,255,255,0.5)", lineHeight: 1.4 }}>{fr.signatureDescription}</p>
+                      <p style={{ margin: "0 0 2px", fontSize: "0.74rem", color: W.inkMid }}>{fr.approximateDate}</p>
+                      <p style={{ margin: 0, fontSize: "0.72rem", color: W.muted, lineHeight: 1.4 }}>{fr.signatureDescription}</p>
                     </div>
                   </div>
                 ))}
@@ -218,11 +247,11 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
 
           {/* Caution */}
           {result.caution && (
-            <div style={{ padding: "10px 14px", borderRadius: "8px", background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.22)" }}>
-              <p style={{ margin: "0 0 4px", fontSize: "0.65rem", fontWeight: 700, color: "#f87171", textTransform: "uppercase" }}>
-                ⚠ {t("retro_caution", lang)}
+          <div style={{ padding: "10px 14px", borderRadius: "8px", background: "#FCE7E2", border: `1px solid ${W.rust}44` }}>
+              <p style={{ margin: "0 0 4px", fontSize: "0.65rem", fontWeight: 700, color: W.rust, textTransform: "uppercase" }}>
+                âš  {t("retro_caution", lang)}
               </p>
-              <p style={{ margin: 0, fontSize: "0.76rem", color: "#fca5a5", lineHeight: 1.5 }}>
+              <p style={{ margin: 0, fontSize: "0.76rem", color: W.rust, lineHeight: 1.5 }}>
                 {tLang(result.caution, lang)}
               </p>
             </div>
@@ -233,8 +262,8 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
       {/* History list */}
       {showHistory && history.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <p style={{ margin: "0 0 4px", fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.35)", textTransform: "uppercase" }}>
-            {lang === "ta" ? "முந்தைய ஆய்வுகள்" : "Past analyses"}
+          <p style={{ margin: "0 0 4px", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>
+            {lang === "ta" ? "à®®à¯à®¨à¯à®¤à¯ˆà®¯ à®†à®¯à¯à®µà¯à®•à®³à¯" : "Past analyses"}
           </p>
           {history.map((h) => (
             <button
@@ -243,14 +272,14 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
               onClick={() => setResult(h)}
               style={{
                 padding: "10px 14px", borderRadius: "8px", textAlign: "left", cursor: "pointer",
-                background: result?.retrospectiveId === h.retrospectiveId ? "rgba(229,184,77,0.1)" : "rgba(255,255,255,0.03)",
-                border: result?.retrospectiveId === h.retrospectiveId ? "1px solid rgba(229,184,77,0.35)" : "1px solid rgba(255,255,255,0.08)",
+                background: result?.retrospectiveId === h.retrospectiveId ? "#F8E4D2" : W.card,
+                border: result?.retrospectiveId === h.retrospectiveId ? `1px solid ${W.terracotta}55` : `1px solid ${W.borderLt}`,
               }}
             >
-              <p style={{ margin: "0 0 2px", fontSize: "0.75rem", fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>
-                {h.eventDate} — {h.eventType}
+              <p style={{ margin: "0 0 2px", fontSize: "0.75rem", fontWeight: 600, color: W.inkMid }}>
+                {h.eventDate} - {h.eventType}
               </p>
-              <p style={{ margin: 0, fontSize: "0.7rem", color: "rgba(255,255,255,0.45)" }}>{h.eventDescription.slice(0, 80)}{h.eventDescription.length > 80 ? "…" : ""}</p>
+              <p style={{ margin: 0, fontSize: "0.7rem", color: W.muted }}>{h.eventDescription.slice(0, 80)}{h.eventDescription.length > 80 ? "..." : ""}</p>
             </button>
           ))}
         </div>
@@ -258,3 +287,4 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
     </div>
   );
 }
+

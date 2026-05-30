@@ -282,18 +282,18 @@ PanchangamDailyResponseData {
 
 ## 7. WHAT IS NOT IN THE FRONTEND YET
 
-These backend features are fully implemented and tested but have **no frontend component**. They are the next build priorities.
+Status updated 2026-05-27 per VINAADI_ENHANCEMENT_ROADMAP_v1.md Section 0A.
 
-| ID | Backend endpoint | What it returns | Where to build UI |
+| ID | Backend endpoint | What it returns | Frontend status |
 |---|---|---|---|
-| FEATURE-05 | Inside `daily-guidance` response | Tithi special content (Amavasai/Pournami/Ekadasi card) | Personal tab, above score, conditional on special tithi |
-| FEATURE-07 | `GET /api/v1/daily-guidance/week-ahead` | 7-day score digest, best day, Chandrashtama flags | New "Week" surface in Calendar tab |
-| FEATURE-08 | `GET /api/v1/activity-timing?chartId=&activity=&month=` | Top 5 dates for activity type in a month | Personal tab, below What-If simulator |
-| FEATURE-09 | `GET /api/v1/charts/{id}/dasha/timeline?asOf=` | Dasha story narrative from birth | Personal tab, Dasha surface, expand button |
-| FEATURE-10 | `GET /api/v1/content/nakshatra/{1-27}` | Static nakshatra personality card | Personal tab, Chart context surface, "Your Nakshatra" accordion |
-| FEATURE-11 | `GET /api/v1/transits/peyarchi-report/{id}?planet=&asOf=` | Guru/Saturn peyarchi outlook | Personal tab, click-through from PeyarchiBanner |
-| FEATURE-12 | `GET /api/v1/journal/{id}/correlations?lookbackDays=` | Journal mood pattern correlations | Settings tab or Life Areas tab (requires 30+ entries) |
-| ARCH-02 | `GET/PATCH /api/v1/settings/notifications` | Notification channel, morning alert time, smart silence | Settings tab, new "Notifications" section |
+| FEATURE-05 | Inside `daily-guidance` response | Tithi special content (Amavasai/Pournami/Ekadasi card) | **Done** — rendered in Personal tab |
+| FEATURE-07 | `GET /api/v1/daily-guidance/week-ahead` | 7-day score digest, best day, Chandrashtama flags | **Done** — Calendar tab week surface |
+| FEATURE-08 | `GET /api/v1/activity-timing?chartId=&activity=&month=` | Top 5 dates for activity type in a month | **Partial** — Plan tab only; Personal tab placement TBD |
+| FEATURE-09 | `GET /api/v1/charts/{id}/dasha/timeline?asOf=` | Dasha story narrative from birth | **Done** — expand/collapse wired |
+| FEATURE-10 | `GET /api/v1/content/nakshatra/{1-27}` | Static nakshatra personality card | **Done** — Nakshatra card + endpoint live |
+| FEATURE-11 | `GET /api/v1/transits/peyarchi-report/{id}?planet=&asOf=` | Guru/Saturn peyarchi outlook | **Done** — Peyarchi report fetch + banner click-through wired |
+| FEATURE-12 | `GET /api/v1/journal/{id}/correlations?lookbackDays=` | Journal mood pattern correlations | **Done** — rendered with 30+ entries guard |
+| ARCH-02 | `GET/PATCH /api/v1/settings/notifications` | Notification channel, morning alert time, smart silence | **Done** — Settings session tab |
 
 ---
 
@@ -496,25 +496,19 @@ Run one: `.\.venv\Scripts\python.exe -m pytest tests/test_panchangam_api.py -x -
 - Kalam times fixed to Thirukanitham 90-min fixed slots — backend
 
 ### Done — backend only, no frontend yet
-- FEATURE-05: Tithi content cards (Amavasai, Ekadasi, Pradosham, Pournami)
-- FEATURE-07: Week-ahead digest (`/daily-guidance/week-ahead`)
-- FEATURE-08: Activity timing tool (`/activity-timing`)
-- FEATURE-09: Dasha story timeline (`/charts/{id}/dasha/timeline`)
-- FEATURE-10: Nakshatra personality cards (`/content/nakshatra/{1-27}`)
-- FEATURE-11: Peyarchi report (`/transits/peyarchi-report/{id}`)
-- FEATURE-12: Journal correlations (`/journal/{id}/correlations`)
-- ARCH-02: Notification preferences API (`/settings/notifications`)
-- Context event registration (`/context`)
-- Journal prompts, export, family journal
 - Synastry charts, relationship alerts
 - Decision brief
+- Journal export (CSV/JSON download)
 
 ### Next priorities (suggested order)
-1. **FEATURE-10** — Nakshatra personality card in Personal tab (smallest, high value, static content)
-2. **ARCH-02** — Notification preferences form in Settings tab (user-visible, ARCH complete)
-3. **FEATURE-05** — Tithi special content cards (Amavasai/Ekadasi etc. — data already in daily-guidance response)
-4. **FEATURE-11** — Peyarchi report click-through from existing PeyarchiBanner
-5. **FEATURE-07** — Week-ahead view in Calendar tab
-6. **FEATURE-08** — Activity timing tool below What-If
-7. **FEATURE-09** — Dasha story narrative (expand from Dasha surface)
-8. **FEATURE-12** — Journal correlations (needs 30+ entries to show)
+1. **Decision brief** — `/decisions/brief` endpoint, wired into Personal tab below What-If
+2. **Synastry panel** — Family tab, member compatibility view (backend already at `/relationships/{id}/synastry`)
+3. **Journal export download** — Settings tab, trigger `/journal/export` and download JSON/CSV
+
+### Journal tab (NEW — 2026-05-26)
+A dedicated Journal tab (✏) was added to the nav. It contains:
+- **Context events panel** — users register upcoming events (job change, marriage, etc.) so `contextInsight` fires in daily guidance (`POST /context`)
+- **Write panel** — AI-prompted journal entry form with life area picker and date (`POST /journal`)
+- **Entries list** — last 50 entries with archive action (`GET /journal`, `DELETE /journal/{id}`)
+
+The journal tab loads entries and context data lazily when the user clicks the tab, and reloads after each save/archive. i18n keys are in `web/lib/i18n.ts` under `// ── Journal tab`. Types are in `web/lib/types.ts` under `JournalEntryData`, `JournalListData`, `JournalPromptsData`, `ContextData`.

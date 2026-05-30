@@ -3,12 +3,14 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from sqlalchemy.orm import Session
 
+from app.calculations.festivals import get_festivals_for_date
 from app.calculations.panchangam import calculate_daily_panchangam
 from app.schemas.panchangam import (
     PanchangamAbhijit,
     PanchangamDailyQuery,
     PanchangamDailyResponse,
     PanchangamDailyResponseData,
+    PanchangamFestival,
     PanchangamHoraEntry,
     PanchangamKalam,
     PanchangamKarana,
@@ -16,12 +18,66 @@ from app.schemas.panchangam import (
     PanchangamMeta,
     PanchangamNakshatra,
     PanchangamSlot,
+    PanchangamSubhaMuhurtham,
     PanchangamTithi,
     PanchangamVara,
     PanchangamYoga,
     PanchangamTimingsData,
     PanchangamTimingsResponse,
 )
+
+
+def _build_kalam(snapshot) -> PanchangamKalam:
+    return PanchangamKalam(
+        rahu_kalam=PanchangamSlot(
+            start=snapshot.rahu_kalam.start.strftime("%H:%M"),
+            end=snapshot.rahu_kalam.end.strftime("%H:%M"),
+            slot=snapshot.rahu_kalam.slot,
+        ),
+        yamagandam=PanchangamSlot(
+            start=snapshot.yamagandam.start.strftime("%H:%M"),
+            end=snapshot.yamagandam.end.strftime("%H:%M"),
+            slot=snapshot.yamagandam.slot,
+        ),
+        kuligai=PanchangamSlot(
+            start=snapshot.kuligai.start.strftime("%H:%M"),
+            end=snapshot.kuligai.end.strftime("%H:%M"),
+            slot=snapshot.kuligai.slot,
+        ),
+        mandhi=PanchangamSlot(
+            start=snapshot.mandhi.start.strftime("%H:%M"),
+            end=snapshot.mandhi.end.strftime("%H:%M"),
+            slot=snapshot.mandhi.slot,
+        ),
+        nalla_neram=[
+            PanchangamSlot(
+                start=w.start.strftime("%H:%M"),
+                end=w.end.strftime("%H:%M"),
+                slot=w.slot,
+            )
+            for w in snapshot.nalla_neram
+        ],
+        gowri_nalla_neram=[
+            PanchangamSlot(
+                start=w.start.strftime("%H:%M"),
+                end=w.end.strftime("%H:%M"),
+                slot=w.slot,
+            )
+            for w in snapshot.gowri_nalla_neram
+        ],
+    )
+
+
+def _build_festivals(snapshot) -> list[PanchangamFestival]:
+    return [
+        PanchangamFestival(name=f["name"], category=f["category"])
+        for f in get_festivals_for_date(
+            snapshot.date_local,
+            snapshot.tithi_number,
+            snapshot.tithi_paksha,
+            snapshot.nakshatra_name,
+        )
+    ]
 
 
 def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = None) -> PanchangamDailyResponse:
@@ -48,33 +104,17 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
             ),
             yoga=PanchangamYoga(number=snapshot.yoga_number, name=snapshot.yoga_name),
             karana=PanchangamKarana(name=snapshot.karana_name),
-            kalam=PanchangamKalam(
-                rahu_kalam=PanchangamSlot(
-                    start=snapshot.rahu_kalam.start.strftime("%H:%M"),
-                    end=snapshot.rahu_kalam.end.strftime("%H:%M"),
-                    slot=snapshot.rahu_kalam.slot,
-                ),
-                yamagandam=PanchangamSlot(
-                    start=snapshot.yamagandam.start.strftime("%H:%M"),
-                    end=snapshot.yamagandam.end.strftime("%H:%M"),
-                    slot=snapshot.yamagandam.slot,
-                ),
-                kuligai=PanchangamSlot(
-                    start=snapshot.kuligai.start.strftime("%H:%M"),
-                    end=snapshot.kuligai.end.strftime("%H:%M"),
-                    slot=snapshot.kuligai.slot,
-                ),
-                nalla_neram=PanchangamSlot(
-                    start=snapshot.nalla_neram.start.strftime("%H:%M"),
-                    end=snapshot.nalla_neram.end.strftime("%H:%M"),
-                    slot=snapshot.nalla_neram.slot,
-                ),
-            ),
+            kalam=_build_kalam(snapshot),
             abhijit=PanchangamAbhijit(
                 start=snapshot.abhijit_start.strftime("%H:%M"),
                 end=snapshot.abhijit_end.strftime("%H:%M"),
                 is_restricted_by_weekday=snapshot.abhijit_restricted,
             ),
+            subha_muhurtham=PanchangamSubhaMuhurtham(
+                is_subha=snapshot.is_subha_muhurtham,
+                reason=snapshot.subha_muhurtham_reason,
+            ),
+            festivals=_build_festivals(snapshot),
             hora=[
                 PanchangamHoraEntry(
                     index=entry.index,
@@ -102,33 +142,17 @@ def calculate_panchangam_timings(query: PanchangamDailyQuery, session: Session |
             sunrise=snapshot.sunrise.strftime("%H:%M"),
             sunset=snapshot.sunset.strftime("%H:%M"),
             solar_noon=snapshot.solar_noon.strftime("%H:%M"),
-            kalam=PanchangamKalam(
-                rahu_kalam=PanchangamSlot(
-                    start=snapshot.rahu_kalam.start.strftime("%H:%M"),
-                    end=snapshot.rahu_kalam.end.strftime("%H:%M"),
-                    slot=snapshot.rahu_kalam.slot,
-                ),
-                yamagandam=PanchangamSlot(
-                    start=snapshot.yamagandam.start.strftime("%H:%M"),
-                    end=snapshot.yamagandam.end.strftime("%H:%M"),
-                    slot=snapshot.yamagandam.slot,
-                ),
-                kuligai=PanchangamSlot(
-                    start=snapshot.kuligai.start.strftime("%H:%M"),
-                    end=snapshot.kuligai.end.strftime("%H:%M"),
-                    slot=snapshot.kuligai.slot,
-                ),
-                nalla_neram=PanchangamSlot(
-                    start=snapshot.nalla_neram.start.strftime("%H:%M"),
-                    end=snapshot.nalla_neram.end.strftime("%H:%M"),
-                    slot=snapshot.nalla_neram.slot,
-                ),
-            ),
+            kalam=_build_kalam(snapshot),
             abhijit=PanchangamAbhijit(
                 start=snapshot.abhijit_start.strftime("%H:%M"),
                 end=snapshot.abhijit_end.strftime("%H:%M"),
                 is_restricted_by_weekday=snapshot.abhijit_restricted,
             ),
+            subha_muhurtham=PanchangamSubhaMuhurtham(
+                is_subha=snapshot.is_subha_muhurtham,
+                reason=snapshot.subha_muhurtham_reason,
+            ),
+            festivals=_build_festivals(snapshot),
             hora=[
                 PanchangamHoraEntry(
                     index=entry.index,

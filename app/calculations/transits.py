@@ -42,7 +42,7 @@ COMBUST_ORBS = {
     "MARS": {"direct": 17.0, "retrograde": 17.0},
     "JUPITER": {"direct": 11.0, "retrograde": 11.0},
     "SATURN": {"direct": 15.0, "retrograde": 15.0},
-    "MOON": {"direct": 12.0, "retrograde": 12.0},
+    # Moon near Sun = Amavasai (New Moon), not combustion in Vedic/Tamil Jyothidam.
 }
 
 # Gandanta zones: last 3°20' of water signs (Kadagam, Viruchigam, Meenam) and
@@ -98,7 +98,7 @@ def is_combust(graha: str, degree: float, sun_degree: float, is_retrograde: bool
 
 def is_gandanta(degree: float) -> bool:
     normalized = normalize_longitude(degree)
-    return any(start <= normalized <= end for start, end in GANDANTA_RANGES)
+    return any(start <= normalized < end for start, end in GANDANTA_RANGES)
 
 
 def classify_sani_cycle(position_from_moon: int) -> CycleAssessment:
@@ -106,27 +106,22 @@ def classify_sani_cycle(position_from_moon: int) -> CycleAssessment:
         12: CycleAssessment(
             type="EZHARAI_SANI_PHASE_1",
             is_active=True,
-            supportive_label="Expenditure, release, and discipline cycle",
+            supportive_label="Sade Sati beginning: discipline, expenses, and spiritual reset",
         ),
         1: CycleAssessment(
             type="JANMA_SANI",
             is_active=True,
-            supportive_label="Self, routine, and resilience alignment cycle",
+            supportive_label="Sade Sati peak: major life restructuring with resilience growth",
         ),
         2: CycleAssessment(
             type="EZHARAI_SANI_PHASE_3",
             is_active=True,
-            supportive_label="Family, speech, and resource balancing cycle",
+            supportive_label="Sade Sati ending: financial caution with consolidation",
         ),
         4: CycleAssessment(
             type="ARDHASHTAMA_SANI",
             is_active=True,
             supportive_label="Home and inner stability refinement cycle",
-        ),
-        7: CycleAssessment(
-            type="KANTAKA_SANI",
-            is_active=True,
-            supportive_label="Relationships and partnership caution cycle",
         ),
         8: CycleAssessment(
             type="ASHTAMA_SANI",

@@ -15,7 +15,15 @@ from app.calculations.transits import angular_distance
 from app.db.session import SessionLocal
 from app.models import BirthProfile, Chart, FamilyMember, FamilyVault, RelationshipAlert
 from app.schemas.dasha import ResponseMeta
+from app.calculations.astro import NAKSHATRA_NAMES
+from app.calculations.porutham import compute_porutham
 from app.schemas.relationships import (
+    DirectCompareRequest,
+    DirectPoruthamData,
+    DirectPoruthamResponse,
+    KutaResult,
+    PorutthamData,
+    PorutthamResponse,
     RelationshipAlertData,
     RelationshipAlertsListData,
     RelationshipAlertsResponse,
@@ -126,6 +134,7 @@ def _owner_chart_for_vault(session: Session, family_vault_id: UUID, owner_user_i
             BirthProfile.deleted_at.is_(None),
         )
         .order_by(BirthProfile.created_at.desc())
+        .limit(1)
     ).scalar_one_or_none()
     if profile is None:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Owner birth profile not found for synastry.")
@@ -410,6 +419,158 @@ def refresh_relationship_alerts(session: Session, *, as_of_date: date) -> int:
                 )
                 created += 1
     return created
+
+
+_CONTEXT_NOTE: dict[str, dict[str, str]] = {
+    "MARRIAGE": {
+        "ta": "திருமண பொருத்தம்: ஸ்தீர கூடம் (நிலைத்த தன்மை) மற்றும் ராஜ்ஜு தோஷம் முக்கியம்.",
+        "en": "Marriage context: Sthira kuta (stability) and Rajju dosha are most significant.",
+    },
+    "FRIENDSHIP": {
+        "ta": "நட்பு பொருத்தம்: நடி கூடம் (இயற்கை நட்பு) மற்றும் தினம் கூடம் கவனிக்கப்படுகின்றன.",
+        "en": "Friendship context: Nadi kuta (natural affinity) and Dina kuta are most relevant.",
+    },
+    "BUSINESS": {
+        "ta": "தொழில் பொருத்தம்: மஹேந்திர கூடம் (நீண்ட கால வளர்ச்சி) மற்றும் வேதா தோஷம் கவனிக்கப்படுகின்றன.",
+        "en": "Business context: Mahendra kuta (long-term growth) and Vedha dosha are most relevant.",
+    },
+    "FAMILY": {
+        "ta": "குடும்ப பொருத்தம்: யோனி கூடம் (இயல்பு பொருத்தம்) மற்றும் கோத்திரம் கவனிக்கப்படுகின்றன.",
+        "en": "Family context: Yoni kuta (temperament match) and Gotra are most relevant.",
+    },
+    "GENERAL": {
+        "ta": "பொதுவான பொருத்தம் — அனைத்து 10 கூடங்களும் சம முக்கியத்துவம் பெறுகின்றன.",
+        "en": "General compatibility — all 10 kutas are weighted equally.",
+    },
+}
+
+
+def get_porutham_for_member(
+    session: Session,
+    owner_user_id: UUID,
+    family_vault_id: UUID,
+    member_id: UUID,
+    *,
+    compatibility_context: str = "GENERAL",
+) -> PorutthamResponse:
+    _assert_vault_owner(session, family_vault_id, owner_user_id)
+    member = _member_in_vault(session, family_vault_id, member_id)
+    if compatibility_context == "MARRIAGE" and member.relationship_to_owner in {"parent", "child", "sibling", "grandparent"}:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Marriage compatibility analysis is not applicable for this relationship type.",
+        )
+    owner_chart = _owner_chart_for_vault(session, family_vault_id, owner_user_id)
+    member_chart = _latest_chart(session, _latest_birth_profile(session, member))
+
+    owner_snap = load_persisted_chart_response(session, owner_chart.chart_id)
+    member_snap = load_persisted_chart_response(session, member_chart.chart_id)
+
+    owner_moon = _planet(owner_snap, "MOON")
+    member_moon = _planet(member_snap, "MOON")
+
+    # Convention: owner=boy, member=girl for the kuta direction
+    result = compute_porutham(
+        boy_nakshatra=owner_moon.nakshatra,
+        girl_nakshatra=member_moon.nakshatra,
+        boy_rasi=owner_moon.rasi,
+        girl_rasi=member_moon.rasi,
+    )
+
+    kutas = [
+        KutaResult(
+            name=k.name,
+            name_ta=k.name_ta,
+            score=k.score,
+            max_score=k.max_score,
+            label=k.label,
+        )
+        for k in result.kutas
+    ]
+
+    _note_raw = _CONTEXT_NOTE.get(compatibility_context, _CONTEXT_NOTE["GENERAL"])
+    data = PorutthamData(
+        family_vault_id=family_vault_id,
+        member_id=member_id,
+        boy_nakshatra=owner_moon.nakshatra,
+        boy_nakshatra_name=NAKSHATRA_NAMES[owner_moon.nakshatra - 1],
+        girl_nakshatra=member_moon.nakshatra,
+        girl_nakshatra_name=NAKSHATRA_NAMES[member_moon.nakshatra - 1],
+        kutas=kutas,
+        total_score=result.total_score,
+        max_score=result.max_score,
+        percentage=result.percentage,
+        label=result.label,
+        rajju_dosha=result.rajju_dosha,
+        vedha_dosha=result.vedha_dosha,
+        summary=RelationshipBiText(ta=result.summary_ta, en=result.summary_en),
+        compatibility_context=compatibility_context,
+        context_note=RelationshipBiText(ta=_note_raw["ta"], en=_note_raw["en"]),
+    )
+    return PorutthamResponse(data=data, meta=_meta())
+
+
+def compare_charts_direct(
+    session: Session,
+    owner_user_id: UUID,
+    chart_id_a: UUID,
+    chart_id_b: UUID,
+    *,
+    compatibility_context: str = "GENERAL",
+) -> DirectPoruthamResponse:
+    """Compute Porutham for any two charts owned by the current user."""
+    from app.models import Chart
+
+    def _assert_owned(cid: UUID) -> Chart:
+        chart = session.get(Chart, cid)
+        if chart is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Chart {cid} not found.")
+        profile = session.get(BirthProfile, chart.birth_profile_id)
+        if profile is None or profile.owner_user_id != owner_user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+        return chart
+
+    chart_a = _assert_owned(chart_id_a)
+    chart_b = _assert_owned(chart_id_b)
+
+    snap_a = load_persisted_chart_response(session, chart_a.chart_id)
+    snap_b = load_persisted_chart_response(session, chart_b.chart_id)
+
+    moon_a = _planet(snap_a, "MOON")
+    moon_b = _planet(snap_b, "MOON")
+
+    result = compute_porutham(
+        boy_nakshatra=moon_a.nakshatra,
+        girl_nakshatra=moon_b.nakshatra,
+        boy_rasi=moon_a.rasi,
+        girl_rasi=moon_b.rasi,
+    )
+
+    kutas = [
+        KutaResult(name=k.name, name_ta=k.name_ta, score=k.score, max_score=k.max_score, label=k.label)
+        for k in result.kutas
+    ]
+
+    _note_raw = _CONTEXT_NOTE.get(compatibility_context, _CONTEXT_NOTE["GENERAL"])
+    data = DirectPoruthamData(
+        chart_id_a=chart_id_a,
+        chart_id_b=chart_id_b,
+        boy_nakshatra=moon_a.nakshatra,
+        boy_nakshatra_name=NAKSHATRA_NAMES[moon_a.nakshatra - 1],
+        girl_nakshatra=moon_b.nakshatra,
+        girl_nakshatra_name=NAKSHATRA_NAMES[moon_b.nakshatra - 1],
+        kutas=kutas,
+        total_score=result.total_score,
+        max_score=result.max_score,
+        percentage=result.percentage,
+        label=result.label,
+        rajju_dosha=result.rajju_dosha,
+        vedha_dosha=result.vedha_dosha,
+        summary=RelationshipBiText(ta=result.summary_ta, en=result.summary_en),
+        compatibility_context=compatibility_context,
+        context_note=RelationshipBiText(ta=_note_raw["ta"], en=_note_raw["en"]),
+    )
+    return DirectPoruthamResponse(data=data, meta=_meta())
 
 
 def daily_relationship_alert_refresh(run_at_utc: datetime | None = None) -> dict[str, int]:

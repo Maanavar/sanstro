@@ -84,7 +84,14 @@
       "Bash(node -e ' *)",
       "Bash(Get-ChildItem -Recurse -Force)",
       "Bash(Select-Object FullName, Length)",
-      "PowerShell(cd \"C:\\\\Users\\\\senth\\\\OneDrive\\\\문서\\\\GitHub\\\\sanstro\"; dir -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.PSIsContainer -eq $false -and $_.Name.EndsWith\\('.md'\\)} | Select-Object FullName, Length)"
+      "PowerShell(cd \"C:\\\\Users\\\\senth\\\\OneDrive\\\\문서\\\\GitHub\\\\sanstro\"; dir -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.PSIsContainer -eq $false -and $_.Name.EndsWith\\('.md'\\)} | Select-Object FullName, Length)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "PowerShell($env:PYTHONIOENCODING = \"utf-8\"; $env:PYTHONUTF8 = \"1\"; python C:\\\\tmp\\\\scan_triple.py)",
+      "PowerShell($env:PYTHONIOENCODING = \"utf-8\"; $env:PYTHONUTF8 = \"1\"; python C:\\\\tmp\\\\fix_double_encoded.py)",
+      "PowerShell($env:PYTHONIOENCODING = \"utf-8\"; $env:PYTHONUTF8 = \"1\"; python C:\\\\tmp\\\\fix_all_encoding.py)",
+      "PowerShell($env:PYTHONIOENCODING = \"utf-8\"; $env:PYTHONUTF8 = \"1\"; python C:\\\\tmp\\\\check_synastry.py)",
+      "PowerShell($env:PYTHONIOENCODING = \"utf-8\"; $env:PYTHONUTF8 = \"1\"; python C:\\\\tmp\\\\test_decode.py)"
     ],
     "additionalDirectories": [
       "\\tmp"

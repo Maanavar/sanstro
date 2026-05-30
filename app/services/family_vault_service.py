@@ -15,6 +15,8 @@ from app.models import BirthProfile, Chart, FamilyDailyScore, FamilyMember, Fami
 from app.schemas.daily_guidance import DailyGuidanceWindow
 from app.schemas.dasha import ResponseMeta
 from app.schemas.family_vaults import (
+    CompositeMemberScore,
+    CompositeTimelineItem,
     FamilyAggregateBreakdown,
     FamilyAggregateData,
     FamilyAggregateMember,
@@ -23,6 +25,8 @@ from app.schemas.family_vaults import (
     FamilyCalendarData,
     FamilyCalendarItem,
     FamilyCalendarResponse,
+    FamilyCompositeTimelineData,
+    FamilyCompositeTimelineResponse,
     FamilyMemberCreate,
     FamilyMemberCreateResponse,
     FamilyMemberCreateResult,
@@ -875,6 +879,72 @@ def get_family_calendar(
             familyVaultId=family_vault_id,
             fromDate=start_date,
             toDate=end_date,
+            items=items,
+        ),
+        meta=ResponseMeta(
+            calculation_version=calculation_version,
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )
+
+
+def get_family_composite_timeline(
+    session: Session,
+    family_vault_id: UUID,
+    from_date: date,
+    to_date: date,
+    *,
+    calculation_version: str = DEFAULT_CALCULATION_VERSION,
+) -> FamilyCompositeTimelineResponse:
+    """
+    Return the family composite score timeline with per-member individual scores
+    for each day in [from_date, to_date].  Max range: 90 days.
+    """
+    if to_date < from_date:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="toDate must be on or after fromDate.")
+    if (to_date - from_date).days + 1 > 90:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Composite range must not exceed 90 days.")
+
+    _load_family_vault(session, family_vault_id)
+
+    items: list[CompositeTimelineItem] = []
+    snapshot_cache: dict[tuple[UUID, date], _MemberSnapshot] = {}
+    current = from_date
+    while current <= to_date:
+        agg = get_family_daily_aggregate(
+            session,
+            family_vault_id,
+            current,
+            calculation_version=calculation_version,
+            snapshot_cache=snapshot_cache,
+        )
+        member_scores = [
+            CompositeMemberScore(
+                family_member_id=m.family_member_id,
+                display_name=m.display_name,
+                individual_score=m.individual_score,
+                label=m.label,
+                active_cycle_tags=m.active_cycle_tags,
+            )
+            for m in agg.data.members
+        ]
+        items.append(
+            CompositeTimelineItem(
+                date_local=current,
+                family_score=agg.data.family_score,
+                family_label=agg.data.family_label,
+                members=member_scores,
+                support_need_index=agg.data.aggregate_breakdown.support_need_index,
+                decision_readiness_index=agg.data.aggregate_breakdown.decision_readiness_index,
+            )
+        )
+        current += timedelta(days=1)
+
+    return FamilyCompositeTimelineResponse(
+        data=FamilyCompositeTimelineData(
+            family_vault_id=family_vault_id,
+            from_date=from_date,
+            to_date=to_date,
             items=items,
         ),
         meta=ResponseMeta(

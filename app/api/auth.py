@@ -20,6 +20,7 @@ from app.schemas.auth import (
     ForgotPasswordResponse,
     LoginRequest,
     RegisterRequest,
+    UpdateUserSettingsRequest,
 )
 
 router = APIRouter()
@@ -96,7 +97,7 @@ def register(
 
     token = create_access_token(subject=str(user.user_id))
     _set_auth_cookie(response, token)
-    return AuthUserResponse(userId=str(user.user_id), email=user.email or payload.email)
+    return AuthUserResponse(userId=str(user.user_id), email=user.email or payload.email, userMode="BALANCED", goalTrack=None)
 
 
 @router.post("/login", response_model=AuthUserResponse)
@@ -118,7 +119,7 @@ def login(
 
     token = create_access_token(subject=str(user.user_id))
     _set_auth_cookie(response, token)
-    return AuthUserResponse(userId=str(user.user_id), email=user.email or payload.email)
+    return AuthUserResponse(userId=str(user.user_id), email=user.email or payload.email, userMode="BALANCED", goalTrack=None)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -152,7 +153,49 @@ def me(
     if user.email is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
 
-    return AuthUserResponse(userId=str(user.user_id), email=user.email)
+    return AuthUserResponse(
+        userId=str(user.user_id),
+        email=user.email,
+        userMode=getattr(user, "user_mode", "BALANCED") or "BALANCED",
+        goalTrack=getattr(user, "goal_track", None),
+    )
+
+
+@router.patch("/me", response_model=AuthUserResponse)
+def patch_me(
+    payload: UpdateUserSettingsRequest,
+    session: Session = Depends(get_db),
+    vinaadi_token: str | None = Cookie(default=None),
+) -> AuthUserResponse:
+    if not vinaadi_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+    token_payload = decode_token(vinaadi_token)
+    sub: str | None = token_payload.get("sub")
+    if not sub:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+    try:
+        user_id = UUID(sub)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.") from exc
+
+    user = session.get(User, user_id)
+    if user is None or user.email is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+    if payload.user_mode is not None:
+        user.user_mode = payload.user_mode
+    if payload.goal_track is not None:
+        user.goal_track = payload.goal_track
+    session.flush()
+
+    return AuthUserResponse(
+        userId=str(user.user_id),
+        email=user.email,
+        userMode=user.user_mode or "BALANCED",
+        goalTrack=user.goal_track,
+    )
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)

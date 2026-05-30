@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 
@@ -6,8 +6,6 @@ import { apiFetchJson } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { NotificationPreferenceData } from "@/lib/types";
-
-import { Button, Field } from "./dashboard-ui";
 
 type DashboardSettingsSessionTabProps = {
   lang: Lang;
@@ -25,7 +23,11 @@ type DashboardSettingsSessionTabProps = {
   busyJournalSettings: boolean;
   notificationPrefs: NotificationPreferenceData | null;
   onNotificationPrefsSaved: (prefs: NotificationPreferenceData) => void;
+  userMode: "BEGINNER" | "BALANCED" | "TRADITIONAL";
+  goalTrack: "CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL" | null;
+  onSaveUserSettings: (mode: "BEGINNER" | "BALANCED" | "TRADITIONAL", track: "CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL" | null) => void;
   onOpenSetup: () => void;
+  onSettingsSubTabChange: (sub: "setup" | "session") => void;
   onOwnerUserIdChange: (value: string) => void;
   onSelectedDateChange: (value: string) => void;
   onRefreshPersonal: () => void;
@@ -34,6 +36,206 @@ type DashboardSettingsSessionTabProps = {
   onAcknowledgeJournalReminder: () => void;
   onSignOut: () => void;
 };
+
+/* ── Warm design tokens (match personal / family / life-areas tabs) ── */
+const W = {
+  ink:       "#1A1612",
+  inkMid:    "#3D352B",
+  muted:     "#7A6F5E",
+  mutedLt:   "#A89D89",
+  border:    "#D4C8AE",
+  borderLt:  "#E4DBC8",
+  surface:   "#FAF5EA",
+  surfaceMd: "#F4EEE2",
+  card:      "#FFFFFF",
+  terracota: "#B85A2C",
+  gold:      "#C6973A",
+  sage:      "#5C7654",
+  accent:    "#8c3e18",
+} as const;
+
+/* ── Pill toggle button ── */
+function PillBtn({
+  active, onClick, children,
+}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        padding: "6px 16px",
+        borderRadius: "999px",
+        fontSize: "0.8rem",
+        fontWeight: 600,
+        cursor: "pointer",
+        border: "1.5px solid",
+        borderColor: active ? W.ink : W.border,
+        background: active ? W.ink : "transparent",
+        color: active ? W.surfaceMd : W.muted,
+        fontFamily: "inherit",
+        transition: "all 0.12s ease",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ── Section card ── */
+function SettingsCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      background: W.surface,
+      border: `1px solid ${W.borderLt}`,
+      borderRadius: "16px",
+      padding: "24px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "20px",
+    }}>
+      {children}
+    </div>
+  );
+}
+
+/* ── Section label ── */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p style={{
+      margin: 0,
+      fontSize: "0.68rem",
+      fontWeight: 700,
+      letterSpacing: "0.1em",
+      textTransform: "uppercase",
+      color: W.terracota,
+    }}>
+      {children}
+    </p>
+  );
+}
+
+/* ── Field row ── */
+function FieldRow({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+      <label style={{ fontSize: "0.78rem", fontWeight: 600, color: W.inkMid }}>{label}</label>
+      {children}
+      {hint && <span style={{ fontSize: "0.72rem", color: W.mutedLt, lineHeight: 1.4 }}>{hint}</span>}
+    </div>
+  );
+}
+
+/* ── Input ── */
+function WarmInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      {...props}
+      style={{
+        width: "100%",
+        padding: "8px 12px",
+        borderRadius: "10px",
+        border: `1.5px solid ${W.borderLt}`,
+        background: W.card,
+        color: W.inkMid,
+        fontSize: "0.84rem",
+        fontFamily: "inherit",
+        outline: "none",
+        ...(props.style ?? {}),
+      }}
+    />
+  );
+}
+
+/* ── Select ── */
+function WarmSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select
+      {...props}
+      style={{
+        width: "100%",
+        padding: "8px 12px",
+        borderRadius: "10px",
+        border: `1.5px solid ${W.borderLt}`,
+        background: W.card,
+        color: W.inkMid,
+        fontSize: "0.84rem",
+        fontFamily: "inherit",
+        outline: "none",
+        ...(props.style ?? {}),
+      }}
+    />
+  );
+}
+
+/* ── Action button ── */
+function ActionBtn({
+  onClick, disabled, children, variant = "primary",
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+  variant?: "primary" | "ghost" | "danger";
+}) {
+  const styles: React.CSSProperties =
+    variant === "primary"
+      ? { background: W.ink, color: W.surfaceMd, border: `1.5px solid ${W.ink}` }
+      : variant === "danger"
+      ? { background: "transparent", color: "#A8482F", border: "1.5px solid #A8482F" }
+      : { background: "transparent", color: W.muted, border: `1.5px solid ${W.border}` };
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        padding: "8px 20px",
+        borderRadius: "10px",
+        fontSize: "0.82rem",
+        fontWeight: 600,
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.5 : 1,
+        fontFamily: "inherit",
+        transition: "opacity 0.12s",
+        ...styles,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ── Toggle checkbox row ── */
+function ToggleRow({
+  checked, onChange, children,
+}: { checked: boolean; onChange: (v: boolean) => void; children: React.ReactNode }) {
+  return (
+    <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
+      <span style={{
+        display: "inline-flex",
+        width: "36px", height: "20px",
+        borderRadius: "999px",
+        border: `1.5px solid ${checked ? W.terracota : W.border}`,
+        background: checked ? W.terracota : W.surfaceMd,
+        position: "relative",
+        flexShrink: 0,
+        transition: "all 0.15s",
+        cursor: "pointer",
+      }} onClick={() => onChange(!checked)}>
+        <span style={{
+          position: "absolute",
+          top: "2px",
+          left: checked ? "16px" : "2px",
+          width: "14px", height: "14px",
+          borderRadius: "50%",
+          background: checked ? "#fff" : W.mutedLt,
+          transition: "left 0.15s",
+        }} />
+      </span>
+      <span style={{ fontSize: "0.82rem", color: W.inkMid, lineHeight: 1.4 }}>{children}</span>
+    </label>
+  );
+}
 
 export function DashboardSettingsSessionTab({
   lang,
@@ -51,7 +253,11 @@ export function DashboardSettingsSessionTab({
   busyJournalSettings,
   notificationPrefs,
   onNotificationPrefsSaved,
+  userMode,
+  goalTrack,
+  onSaveUserSettings,
   onOpenSetup,
+  onSettingsSubTabChange,
   onOwnerUserIdChange,
   onSelectedDateChange,
   onRefreshPersonal,
@@ -61,8 +267,11 @@ export function DashboardSettingsSessionTab({
   onSignOut,
 }: DashboardSettingsSessionTabProps) {
   const [retentionDraft, setRetentionDraft] = useState(journalRetentionDays);
+  const [modeDraft, setModeDraft] = useState<"BEGINNER" | "BALANCED" | "TRADITIONAL">(userMode);
+  const [trackDraft, setTrackDraft] = useState<"CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL" | "">(goalTrack ?? "");
+  const [userSettingsSaving, setUserSettingsSaving] = useState(false);
+  const [userSettingsSaved, setUserSettingsSaved] = useState(false);
 
-  // ARCH-02: Notification preferences local draft state
   const [notifChannel, setNotifChannel] = useState<"none" | "email" | "push" | "both">("none");
   const [notifMorning, setNotifMorning] = useState(false);
   const [notifMorningTime, setNotifMorningTime] = useState("06:00");
@@ -72,6 +281,9 @@ export function DashboardSettingsSessionTab({
   const [notifSaving, setNotifSaving] = useState(false);
   const [notifSaved, setNotifSaved] = useState(false);
 
+  useEffect(() => { setModeDraft(userMode); }, [userMode]);
+  useEffect(() => { setTrackDraft(goalTrack ?? ""); }, [goalTrack]);
+  useEffect(() => { setRetentionDraft(journalRetentionDays); }, [journalRetentionDays]);
   useEffect(() => {
     if (notificationPrefs) {
       setNotifChannel(notificationPrefs.notification_channel);
@@ -83,247 +295,342 @@ export function DashboardSettingsSessionTab({
     }
   }, [notificationPrefs]);
 
-  useEffect(() => {
-    setRetentionDraft(journalRetentionDays);
-  }, [journalRetentionDays]);
-
-  const noticeKey: "settings_retention_notice_short" | "settings_retention_notice_medium" | "settings_retention_notice_long" =
-    retentionDraft <= 30
-      ? "settings_retention_notice_short"
-      : retentionDraft <= 90
-        ? "settings_retention_notice_medium"
-        : "settings_retention_notice_long";
-  const retentionValid = Number.isFinite(retentionDraft) && retentionDraft >= 7 && retentionDraft <= 3650;
-
-  const formatTimestamp = (value: string | null): string => {
-    if (!value) return t("settings_retention_not_available", lang);
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return t("settings_retention_not_available", lang);
-    return parsed.toLocaleString();
+  const handleSaveUserSettings = async () => {
+    setUserSettingsSaving(true);
+    setUserSettingsSaved(false);
+    try {
+      await onSaveUserSettings(modeDraft, trackDraft || null);
+      setUserSettingsSaved(true);
+      setTimeout(() => setUserSettingsSaved(false), 2500);
+    } finally {
+      setUserSettingsSaving(false);
+    }
   };
 
-  const formatDateOnly = (value: string | null): string => {
-    if (!value) return t("settings_retention_not_available", lang);
-    const parsed = new Date(`${value}T00:00:00Z`);
-    if (Number.isNaN(parsed.getTime())) return t("settings_retention_not_available", lang);
-    return parsed.toLocaleDateString();
+  const handleSaveNotifications = () => {
+    setNotifSaving(true);
+    setNotifSaved(false);
+    apiFetchJson<{ success: boolean; data: NotificationPreferenceData }>("/api/v1/settings/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        notificationChannel: notifChannel,
+        morningAlertEnabled: notifMorning,
+        morningAlertTime: notifMorningTime,
+        dashaAlertEnabled: notifDasha,
+        piranthaNaalAlertEnabled: notifPirantha,
+        smartSilenceEnabled: notifSmartSilence,
+      }),
+    })
+      .then((r) => { onNotificationPrefsSaved(r.data); setNotifSaved(true); setTimeout(() => setNotifSaved(false), 3000); })
+      .catch(() => {})
+      .finally(() => setNotifSaving(false));
+  };
+
+  const retentionValid = Number.isFinite(retentionDraft) && retentionDraft >= 7 && retentionDraft <= 3650;
+  const retentionNotice =
+    retentionDraft <= 30 ? t("settings_retention_notice_short", lang)
+    : retentionDraft <= 90 ? t("settings_retention_notice_medium", lang)
+    : t("settings_retention_notice_long", lang);
+
+  const fmt = (v: string | null) => {
+    if (!v) return t("settings_retention_not_available", lang);
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? t("settings_retention_not_available", lang) : d.toLocaleString();
+  };
+  const fmtDate = (v: string | null) => {
+    if (!v) return t("settings_retention_not_available", lang);
+    const d = new Date(`${v}T00:00:00Z`);
+    return Number.isNaN(d.getTime()) ? t("settings_retention_not_available", lang) : d.toLocaleDateString();
   };
 
   return (
-    <div className="tab-section">
-            <div className="settings-layout">
-              <aside className="card settings-sidebar">
-                <button
-                  type="button"
-                  className="settings-sidebtn"
-                  onClick={() => onOpenSetup()}
-                >
-                  {t("tab_setup", lang)}
-                </button>
-                <button
-                  type="button"
-                  className="settings-sidebtn settings-sidebtn--active"
-                  onClick={() => {}}
-                >
-                  {t("settings_title", lang)}
-                </button>
-              </aside>
-              <div className="settings-content">
-            <div>
-              <p className="section-kicker">{t("settings_kicker", lang)}</p>
-              <h2 className="section-title">{t("settings_title", lang)}</h2>
-              <p className="section-description">{t("settings_desc", lang)}</p>
-            </div>
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+      gap: "32px",
+      fontFamily: "'Noto Sans Tamil','Inter',system-ui,sans-serif",
+      color: W.ink,
+      maxWidth: "760px",
+    }}>
 
-            <div className="card" style={{ padding: "24px" }}>
-              <div className="settings-grid">
-                <Field label={t("settings_owner", lang)} helper={t("settings_owner_hint", lang)}>
-                  <input className="input" value={ownerUserId}
-                    onChange={(e) => { onOwnerUserIdChange(e.target.value); }} />
-                </Field>
-                <Field label={t("settings_date", lang)}>
-                  <input className="input" type="date" value={selectedDate} onChange={(e) => onSelectedDateChange(e.target.value)} />
-                </Field>
-                <Field label={t("settings_vault", lang)} helper={t("settings_vault_hint", lang)}>
-                  <input className="input" value={selectedVaultId} readOnly />
-                </Field>
-                <Field label={t("settings_profile", lang)}>
-                  <input className="input" value={birthProfileId} readOnly />
-                </Field>
-                <Field label={t("settings_chart", lang)}>
-                  <input className="input" value={chartId} readOnly />
-                </Field>
-              </div>
+      {/* ── Settings sub-tab switcher ── */}
+      <div style={{ display: "flex", gap: "6px" }}>
+        {([
+          { key: "setup",   label: lang === "ta" ? "ஆரம்ப நிலை" : "Onboarding" },
+          { key: "session", label: lang === "ta" ? "அமைப்புகள்" : "Settings" },
+        ] as const).map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => onSettingsSubTabChange(key)}
+            style={{
+              padding: "7px 18px", borderRadius: "999px", fontSize: "0.8rem", fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit",
+              border: "1.5px solid",
+              borderColor: key === "session" ? W.ink : W.border,
+              background: key === "session" ? W.ink : "transparent",
+              color: key === "session" ? W.surfaceMd : W.muted,
+              transition: "all 0.12s ease",
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
-              <div style={{ marginTop: "20px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-                <p className="surface__subhead" style={{ marginBottom: "10px" }}>{t("settings_quick", lang)}</p>
-                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                  <Button onClick={() => onRefreshPersonal()} variant="ghost" disabled={!birthProfileId || busyPersonal}>
-                    {busyPersonal ? t("btn_refreshing", lang) : t("btn_refresh_personal", lang)}
-                  </Button>
-                  <Button onClick={() => onRefreshFamily()} variant="ghost" disabled={!selectedVaultId || busyFamily}>
-                    {busyFamily ? t("btn_refreshing", lang) : t("btn_refresh_family", lang)}
-                  </Button>
-                  <Button onClick={onSignOut} variant="ghost">Sign out</Button>
-                </div>
-              </div>
+      {/* ── Hero ── */}
+      <div>
+        <p style={{ margin: "0 0 6px", fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: W.terracota }}>
+          {t("settings_kicker", lang)}
+        </p>
+        <h1 style={{
+          margin: "0 0 10px",
+          fontFamily: "'Fraunces', Georgia, serif",
+          fontSize: "clamp(2rem, 4vw, 2.8rem)",
+          fontWeight: 500,
+          letterSpacing: "-0.03em",
+          lineHeight: 1.08,
+          color: W.ink,
+        }}>
+          {lang === "ta" ? "அமைப்புகள்" : "Settings"}
+          <br />
+          <em style={{ fontStyle: "italic", color: W.muted }}>
+            {lang === "ta" ? "& விருப்பத்தேர்வுகள்." : "& preferences."}
+          </em>
+        </h1>
+        <p style={{ margin: 0, fontSize: "0.9rem", color: W.muted, lineHeight: 1.6 }}>
+          {t("settings_desc", lang)}
+        </p>
+      </div>
 
-              <div style={{ marginTop: "20px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-                <p className="surface__subhead" style={{ marginBottom: "6px" }}>{t("settings_retention_title", lang)}</p>
-                <p style={{ margin: "0 0 12px", color: "rgba(255,255,255,0.6)", fontSize: "0.84rem" }}>
-                  {t("settings_retention_desc", lang)}
-                </p>
-                <div style={{ display: "flex", gap: "10px", alignItems: "flex-end", flexWrap: "wrap" }}>
-                  <Field label={t("settings_retention_days", lang)} helper={t("settings_retention_hint", lang)}>
-                    <input
-                      className="input"
-                      type="number"
-                      min={7}
-                      max={3650}
-                      value={retentionDraft}
-                      onChange={(e) => setRetentionDraft(Number.parseInt(e.target.value || "0", 10))}
-                    />
-                  </Field>
-                  <Button
-                    onClick={() => onSaveJournalRetentionDays(retentionDraft)}
-                    variant="ghost"
-                    disabled={!retentionValid || busyJournalSettings}
-                  >
-                    {busyJournalSettings ? t("settings_retention_saving", lang) : t("settings_retention_save", lang)}
-                  </Button>
-                </div>
-                <p
-                  style={{
-                    margin: "8px 0 0",
-                    color: retentionDraft <= 30 ? "rgba(255,210,120,0.95)" : "rgba(255,255,255,0.72)",
-                    fontSize: "0.82rem",
-                  }}
-                >
-                  {t(noticeKey, lang)}
-                </p>
-                <div style={{ marginTop: "12px", display: "grid", gap: "6px", fontSize: "0.82rem", color: "rgba(255,255,255,0.72)" }}>
-                  <p style={{ margin: 0 }}>
-                    {t("settings_retention_last_updated", lang)}: {formatTimestamp(journalLastUpdatedAt)}
-                  </p>
-                  <p style={{ margin: 0 }}>
-                    {t("settings_retention_last_reviewed", lang)}: {formatTimestamp(journalLastRetentionReviewedAt)}
-                  </p>
-                  <p style={{ margin: 0 }}>
-                    {t("settings_retention_next_review", lang)}: {formatDateOnly(journalNextRecommendedReviewDate)}
-                  </p>
-                </div>
-                <div style={{ marginTop: "10px" }}>
-                  <Button onClick={onAcknowledgeJournalReminder} variant="ghost" disabled={busyJournalSettings}>
-                    {busyJournalSettings ? t("settings_retention_saving", lang) : t("settings_retention_acknowledge", lang)}
-                  </Button>
-                </div>
-              </div>
-            </div>
+      {/* ── Session info ── */}
+      <SettingsCard>
+        <SectionLabel>{lang === "ta" ? "அமர்வு" : "Session"}</SectionLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
+          <FieldRow label={t("settings_owner", lang)} hint={t("settings_owner_hint", lang)}>
+            <WarmInput value={ownerUserId} onChange={(e) => onOwnerUserIdChange(e.target.value)} />
+          </FieldRow>
+          <FieldRow label={t("settings_date", lang)}>
+            <WarmInput type="date" value={selectedDate} onChange={(e) => onSelectedDateChange(e.target.value)} />
+          </FieldRow>
+          <FieldRow label={t("settings_vault", lang)} hint={t("settings_vault_hint", lang)}>
+            <WarmInput value={selectedVaultId} readOnly style={{ background: W.surfaceMd, cursor: "default" }} />
+          </FieldRow>
+          <FieldRow label={t("settings_profile", lang)}>
+            <WarmInput value={birthProfileId} readOnly style={{ background: W.surfaceMd, cursor: "default" }} />
+          </FieldRow>
+          <FieldRow label={t("settings_chart", lang)}>
+            <WarmInput value={chartId} readOnly style={{ background: W.surfaceMd, cursor: "default" }} />
+          </FieldRow>
+        </div>
 
-            {/* ARCH-02: Notification Preferences */}
-            <div style={{ marginTop: "20px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-              <p className="surface__subhead" style={{ marginBottom: "6px" }}>🔔 {t("notif_section_title", lang)}</p>
+        {/* Quick actions */}
+        <div style={{ paddingTop: "4px", borderTop: `1px solid ${W.borderLt}` }}>
+          <p style={{ margin: "0 0 10px", fontSize: "0.75rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            {t("settings_quick", lang)}
+          </p>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <ActionBtn onClick={onRefreshPersonal} disabled={!birthProfileId || busyPersonal} variant="ghost">
+              {busyPersonal ? t("btn_refreshing", lang) : t("btn_refresh_personal", lang)}
+            </ActionBtn>
+            <ActionBtn onClick={onRefreshFamily} disabled={!selectedVaultId || busyFamily} variant="ghost">
+              {busyFamily ? t("btn_refreshing", lang) : t("btn_refresh_family", lang)}
+            </ActionBtn>
+            <ActionBtn onClick={onOpenSetup} variant="ghost">
+              {t("tab_setup", lang)}
+            </ActionBtn>
+            <ActionBtn onClick={onSignOut} variant="danger">
+              {lang === "ta" ? "வெளியேறு" : "Sign out"}
+            </ActionBtn>
+          </div>
+        </div>
+      </SettingsCard>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      {/* ── Experience mode + Goal track ── */}
+      <SettingsCard>
+        <SectionLabel>{lang === "ta" ? "அனுபவ அமைப்பு" : "Experience mode"}</SectionLabel>
 
-                <Field label={t("notif_channel", lang)}>
-                  <select className="input" value={notifChannel} onChange={(e) => setNotifChannel(e.target.value as "none" | "email" | "push" | "both")}>
-                    <option value="none">{t("notif_channel_none", lang)}</option>
-                    <option value="email">{t("notif_channel_email", lang)}</option>
-                    <option value="push">{t("notif_channel_push", lang)}</option>
-                    <option value="both">{t("notif_channel_both", lang)}</option>
-                  </select>
-                </Field>
+        <div>
+          <p style={{ margin: "0 0 10px", fontSize: "0.78rem", color: W.muted }}>{t("mode_label", lang)}</p>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            {(["BEGINNER", "BALANCED", "TRADITIONAL"] as const).map((m) => (
+              <PillBtn key={m} active={modeDraft === m} onClick={() => setModeDraft(m)}>
+                {t(m === "BEGINNER" ? "mode_beginner" : m === "BALANCED" ? "mode_balanced" : "mode_traditional", lang)}
+              </PillBtn>
+            ))}
+          </div>
+        </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
-                    <input type="checkbox" checked={notifMorning} onChange={(e) => setNotifMorning(e.target.checked)} />
-                    <span style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.7)" }}>{t("notif_morning_alert", lang)}</span>
-                    {notifMorning && (
-                      <input className="input" type="time" value={notifMorningTime} onChange={(e) => setNotifMorningTime(e.target.value)} style={{ maxWidth: "100px", marginLeft: "8px" }} />
-                    )}
-                  </label>
+        <div>
+          <p style={{ margin: "0 0 10px", fontSize: "0.78rem", color: W.muted }}>{t("track_label", lang)}</p>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            <PillBtn active={trackDraft === ""} onClick={() => setTrackDraft("")}>
+              {t("track_none", lang)}
+            </PillBtn>
+            {(["CAREER", "EXAM", "RELATIONSHIP", "FINANCIAL"] as const).map((tr) => (
+              <PillBtn key={tr} active={trackDraft === tr} onClick={() => setTrackDraft(tr)}>
+                {t(tr === "CAREER" ? "track_career" : tr === "EXAM" ? "track_exam" : tr === "RELATIONSHIP" ? "track_relationship" : "track_financial", lang)}
+              </PillBtn>
+            ))}
+          </div>
+        </div>
 
-                  <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
-                    <input type="checkbox" checked={notifDasha} onChange={(e) => setNotifDasha(e.target.checked)} />
-                    <span style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.7)" }}>{t("notif_dasha_alert", lang)}</span>
-                  </label>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <ActionBtn onClick={() => void handleSaveUserSettings()} disabled={userSettingsSaving}>
+            {userSettingsSaving ? t("notif_saving", lang) : lang === "ta" ? "சேமி" : "Save preferences"}
+          </ActionBtn>
+          {userSettingsSaved && (
+            <span style={{ fontSize: "0.78rem", color: W.sage, fontWeight: 600 }}>
+              {lang === "ta" ? "✔ சேமிக்கப்பட்டது" : "✔ Saved"}
+            </span>
+          )}
+        </div>
+      </SettingsCard>
 
-                  <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
-                    <input type="checkbox" checked={notifPirantha} onChange={(e) => setNotifPirantha(e.target.checked)} />
-                    <span style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.7)" }}>{t("notif_pirantha_alert", lang)}</span>
-                  </label>
+      {/* ── Journal retention ── */}
+      <SettingsCard>
+        <SectionLabel>{lang === "ta" ? "குறிப்பேடு தக்கவைப்பு" : "Journal retention"}</SectionLabel>
+        <p style={{ margin: 0, fontSize: "0.84rem", color: W.muted, lineHeight: 1.55 }}>
+          {t("settings_retention_desc", lang)}
+        </p>
 
-                  <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
-                    <input type="checkbox" checked={notifSmartSilence} onChange={(e) => setNotifSmartSilence(e.target.checked)} />
-                    <span style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.7)" }}>{t("notif_smart_silence", lang)}</span>
-                  </label>
-                </div>
+        <div style={{ display: "flex", gap: "12px", alignItems: "flex-end", flexWrap: "wrap" }}>
+          <FieldRow label={t("settings_retention_days", lang)} hint={t("settings_retention_hint", lang)}>
+            <WarmInput
+              type="number"
+              min={7}
+              max={3650}
+              value={retentionDraft}
+              onChange={(e) => setRetentionDraft(Number.parseInt(e.target.value || "0", 10))}
+              style={{ maxWidth: "120px" }}
+            />
+          </FieldRow>
+          <ActionBtn onClick={() => onSaveJournalRetentionDays(retentionDraft)} disabled={!retentionValid || busyJournalSettings}>
+            {busyJournalSettings ? t("settings_retention_saving", lang) : t("settings_retention_save", lang)}
+          </ActionBtn>
+        </div>
 
-                {notificationPrefs && (
-                  <p style={{ margin: 0, fontSize: "0.72rem", color: notificationPrefs.fcmTokenRegistered ? "rgba(74,222,128,0.8)" : "rgba(255,255,255,0.35)" }}>
-                    {notificationPrefs.fcmTokenRegistered ? t("notif_fcm_registered", lang) : t("notif_fcm_not_registered", lang)}
-                  </p>
-                )}
+        <p style={{
+          margin: 0,
+          fontSize: "0.8rem",
+          color: retentionDraft <= 30 ? W.terracota : W.muted,
+          lineHeight: 1.5,
+        }}>
+          {retentionNotice}
+        </p>
 
-                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                  <Button
-                    variant="ghost"
-                    disabled={notifSaving}
-                    onClick={() => {
-                      setNotifSaving(true);
-                      setNotifSaved(false);
-                      apiFetchJson<{ success: boolean; data: NotificationPreferenceData }>("/api/v1/settings/notifications", {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          notificationChannel: notifChannel,
-                          morningAlertEnabled: notifMorning,
-                          morningAlertTime: notifMorningTime,
-                          dashaAlertEnabled: notifDasha,
-                          piranthaNaalAlertEnabled: notifPirantha,
-                          smartSilenceEnabled: notifSmartSilence,
-                        }),
-                      })
-                        .then((r) => { onNotificationPrefsSaved(r.data); setNotifSaved(true); setTimeout(() => setNotifSaved(false), 3000); })
-                        .catch(() => {})
-                        .finally(() => setNotifSaving(false));
-                    }}
-                  >
-                    {notifSaving ? t("notif_saving", lang) : t("btn_save_notifications", lang)}
-                  </Button>
-                  {notifSaved && <span style={{ fontSize: "0.75rem", color: "#4ade80" }}>{t("notif_saved", lang)}</span>}
-                </div>
-              </div>
-            </div>
+        <div style={{ display: "grid", gap: "4px", fontSize: "0.78rem", color: W.mutedLt }}>
+          <p style={{ margin: 0 }}>{t("settings_retention_last_updated", lang)}: {fmt(journalLastUpdatedAt)}</p>
+          <p style={{ margin: 0 }}>{t("settings_retention_last_reviewed", lang)}: {fmt(journalLastRetentionReviewedAt)}</p>
+          <p style={{ margin: 0 }}>{t("settings_retention_next_review", lang)}: {fmtDate(journalNextRecommendedReviewDate)}</p>
+        </div>
 
-            {/* Privacy & disclaimer footer */}
-            <div style={{
-              borderRadius: "10px", border: "1px solid rgba(255,255,255,0.06)",
-              background: "rgba(255,255,255,0.02)", padding: "14px 18px",
-              display: "flex", flexDirection: "column", gap: "6px",
-            }}>
-              <p style={{ margin: 0, fontSize: "0.73rem", color: "rgba(255,255,255,0.4)", lineHeight: 1.6 }}>
-                {t("disclaimer_astro", lang)}
-              </p>
-              <p style={{ margin: 0, fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", lineHeight: 1.5 }}>
-                {t("disclaimer_no_doom", lang)}
-              </p>
-              <p style={{ margin: 0, fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", lineHeight: 1.5 }}>
-                {t("disclaimer_data", lang)}
-              </p>
-              <div style={{ display: "flex", gap: "16px", marginTop: "4px" }}>
-                <span style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.25)", textDecoration: "underline", cursor: "pointer" }}>
-                  {t("privacy_link", lang)}
-                </span>
-                <span style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.25)", textDecoration: "underline", cursor: "pointer" }}>
-                  {t("terms_link", lang)}
-                </span>
-              </div>
-            </div>
-              </div>
-            </div>
+        <div>
+          <ActionBtn onClick={onAcknowledgeJournalReminder} disabled={busyJournalSettings} variant="ghost">
+            {busyJournalSettings ? t("settings_retention_saving", lang) : t("settings_retention_acknowledge", lang)}
+          </ActionBtn>
+        </div>
+      </SettingsCard>
+
+      {/* ── Notifications ── */}
+      <SettingsCard>
+        <SectionLabel>{lang === "ta" ? "அறிவிப்புகள்" : "Notifications"}</SectionLabel>
+
+        <FieldRow label={t("notif_channel", lang)}>
+          <WarmSelect value={notifChannel} onChange={(e) => setNotifChannel(e.target.value as "none" | "email" | "push" | "both")} style={{ maxWidth: "240px" }}>
+            <option value="none">{t("notif_channel_none", lang)}</option>
+            <option value="email">{t("notif_channel_email", lang)}</option>
+            <option value="push">{t("notif_channel_push", lang)}</option>
+            <option value="both">{t("notif_channel_both", lang)}</option>
+          </WarmSelect>
+        </FieldRow>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+          <ToggleRow checked={notifMorning} onChange={setNotifMorning}>
+            {t("notif_morning_alert", lang)}
+            {notifMorning && (
+              <WarmInput
+                type="time"
+                value={notifMorningTime}
+                onChange={(e) => setNotifMorningTime(e.target.value)}
+                style={{ maxWidth: "100px", marginLeft: "8px", display: "inline-block" }}
+              />
+            )}
+          </ToggleRow>
+          <ToggleRow checked={notifDasha} onChange={setNotifDasha}>
+            {t("notif_dasha_alert", lang)}
+          </ToggleRow>
+          <ToggleRow checked={notifPirantha} onChange={setNotifPirantha}>
+            {t("notif_pirantha_alert", lang)}
+          </ToggleRow>
+          <ToggleRow checked={notifSmartSilence} onChange={setNotifSmartSilence}>
+            {t("notif_smart_silence", lang)}
+          </ToggleRow>
+        </div>
+
+        {notificationPrefs && (
+          <p style={{ margin: 0, fontSize: "0.73rem", color: notificationPrefs.fcmTokenRegistered ? W.sage : W.mutedLt }}>
+            {notificationPrefs.fcmTokenRegistered ? t("notif_fcm_registered", lang) : t("notif_fcm_not_registered", lang)}
+          </p>
+        )}
+
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <ActionBtn onClick={handleSaveNotifications} disabled={notifSaving}>
+            {notifSaving ? t("notif_saving", lang) : t("btn_save_notifications", lang)}
+          </ActionBtn>
+          {notifSaved && (
+            <span style={{ fontSize: "0.78rem", color: W.sage, fontWeight: 600 }}>
+              {t("notif_saved", lang)}
+            </span>
+          )}
+        </div>
+      </SettingsCard>
+
+      {/* ── Help & Feedback ── */}
+      <SettingsCard>
+        <SectionLabel>{lang === "ta" ? "உதவி & கருத்து" : "Help & feedback"}</SectionLabel>
+        <p style={{ margin: 0, fontSize: "0.84rem", color: W.muted, lineHeight: 1.55 }}>
+          {lang === "ta"
+            ? "கேள்விகள் அல்லது பரிந்துரைகள் இருந்தால் தொடர்பு கொள்ளவும்."
+            : "Have questions or suggestions? We're here to help."}
+        </p>
+        <div>
+          <ActionBtn onClick={() => { window.location.href = "mailto:support@vinaadi.ai"; }} variant="ghost">
+            {lang === "ta" ? "✉ கருத்து அனுப்பு" : "✉ Send feedback"}
+          </ActionBtn>
+        </div>
+      </SettingsCard>
+
+      {/* ── Privacy footer ── */}
+      <div style={{
+        borderRadius: "12px",
+        border: `1px solid ${W.borderLt}`,
+        background: W.surfaceMd,
+        padding: "16px 20px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+      }}>
+        <p style={{ margin: 0, fontSize: "0.73rem", color: W.mutedLt, lineHeight: 1.6 }}>
+          {t("disclaimer_astro", lang)}
+        </p>
+        <p style={{ margin: 0, fontSize: "0.72rem", color: W.mutedLt, lineHeight: 1.5 }}>
+          {t("disclaimer_no_doom", lang)}
+        </p>
+        <p style={{ margin: 0, fontSize: "0.72rem", color: W.mutedLt, lineHeight: 1.5 }}>
+          {t("disclaimer_data", lang)}
+        </p>
+        <div style={{ display: "flex", gap: "16px", marginTop: "4px" }}>
+          <span style={{ fontSize: "0.7rem", color: W.muted, textDecoration: "underline", cursor: "pointer" }}>
+            {t("privacy_link", lang)}
+          </span>
+          <span style={{ fontSize: "0.7rem", color: W.muted, textDecoration: "underline", cursor: "pointer" }}>
+            {t("terms_link", lang)}
+          </span>
+        </div>
+      </div>
+
     </div>
   );
 }
-

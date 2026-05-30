@@ -1,6 +1,35 @@
 # Vinaadi AI — Audit & QA Reference
 **Consolidated from:** ASTROLOGY_ENGINE_AUDIT.md · VINAADI_CODEX_AUDIT_2026.md · ASTROLOGY_AUDIT_CHECKLIST.md · TEST_PLAN_ASTROLOGY_ENGINE.md  
-**Last audited:** 2026-05-26
+**Last audited:** 2026-05-27
+
+### 2026-05-27 Progress Update
+- `B-05` (Jupiter 7th-from-Moon red bug): verified in both backend scoring and UI tone mapping.
+  - Backend: `TRANSIT_BASE_SCORE["JUPITER"][7] = 68` in `daily_guidance_service.py`
+  - UI tone mapping: `classifyPeyarchiToneFromMoon("JUPITER", 7) => supportive` in `web/lib/peyarchi.ts`
+- `B-10` (shadow prompts 404): verified frontend uses proxy helper.
+  - `dashboard-shadow-prompts.tsx` calls `apiFetchJson('/api/v1/journal/prompts?...&promptType=SHADOW')`
+- Layout distribution verification (no feature loss): confirmed moved modules are wired to dedicated tabs in `dashboard-workspace.tsx`.
+  - `Plan`: Decision + Muhurta + Life Event Log
+  - `Calendar`: Dasha + Life Events + Transit/event surfaces
+  - `Journal`: Journal entries + Shadow prompts
+- Regression + build validation (2026-05-27):
+  - `pytest tests/test_vinaadi_rule_regressions.py tests/test_predictions_api.py -q` → `6 passed`
+  - `npm --prefix web run build` → successful
+- `B-13` (predictions age/life-stage personalization): endpoint-level regression coverage added and passing.
+  - Added [tests/test_predictions_api.py](/C:/Users/senth/OneDrive/문서/GitHub/sanstro/tests/test_predictions_api.py)
+  - Verified with test DB:
+    - `pytest tests/test_predictions_api.py -q` → `3 passed` (run on 2026-05-27)
+- `B-11` (light-theme visibility): additional sweep completed in major dashboard surfaces by replacing hardcoded white text colors with theme tokens.
+  - Updated:
+    - [dashboard-daily-snapshot.tsx](/C:/Users/senth/OneDrive/문서/GitHub/sanstro/web/components/dashboard-daily-snapshot.tsx)
+    - [dashboard-plan-tab.tsx](/C:/Users/senth/OneDrive/문서/GitHub/sanstro/web/components/dashboard-plan-tab.tsx)
+    - [dashboard-journal-tab.tsx](/C:/Users/senth/OneDrive/문서/GitHub/sanstro/web/components/dashboard-journal-tab.tsx)
+    - [dashboard-personal-tab.tsx](/C:/Users/senth/OneDrive/문서/GitHub/sanstro/web/components/dashboard-personal-tab.tsx)
+    - [dashboard-calendar-tab.tsx](/C:/Users/senth/OneDrive/문서/GitHub/sanstro/web/components/dashboard-calendar-tab.tsx)
+    - [dashboard-decision-panel.tsx](/C:/Users/senth/OneDrive/문서/GitHub/sanstro/web/components/dashboard-decision-panel.tsx)
+    - [dashboard-synastry-panel.tsx](/C:/Users/senth/OneDrive/문서/GitHub/sanstro/web/components/dashboard-synastry-panel.tsx)
+  - Verified with:
+    - `npm --prefix web run build` (successful on 2026-05-27)
 
 ---
 

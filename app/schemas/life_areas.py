@@ -24,6 +24,11 @@ class LifeAreaData(BaseModel):
     label: LifeAreaText                        # Display name
     score: int                                 # 0–100
     trend: str                                 # UP / DOWN / STABLE
+    confidence: str = "MEDIUM"                 # HIGH / MEDIUM / LOW
+    confidence_reason: LifeAreaText = Field(
+        default_factory=lambda: LifeAreaText(ta="இரண்டு சமிக்ஞைகள் சீரமைக்கப்பட்டுள்ளன", en="Two signals aligned"),
+        alias="confidenceReason",
+    )
     driver: LifeAreaDriver                     # Primary planet behind the score
     narrative: LifeAreaText                    # 1–2 sentence explanation
     remedy: LifeAreaText                       # Specific remedy for this area

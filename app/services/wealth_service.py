@@ -18,6 +18,7 @@ class WealthAssessmentInput:
     transit_jupiter_rasi: int
     has_dhana_yoga: bool
     age: int
+    life_stage: str
     ashtakavarga_11th_bindu: int | None = None
     pitru_dosham_label: str | None = None
     rahu_ketu_label: str | None = None
@@ -84,6 +85,24 @@ def assess_wealth_prediction(payload: WealthAssessmentInput) -> LifeAreaPredicti
     supports: list[BiText] = []
     challenges: list[BiText] = []
     score = 50
+    factors.append(
+        AstroFactor(
+            key="life_stage",
+            status="INFO",
+            detail=BiText(
+                ta=f"Life stage: {payload.life_stage}.",
+                en=f"Life stage: {payload.life_stage}.",
+            ),
+        )
+    )
+    if payload.life_stage == "student":
+        score -= 5
+        challenges.append(BiText("Student life-stage: prioritise savings habits over aggressive wealth expansion.", "Student life-stage: prioritise savings habits over aggressive wealth expansion."))
+    elif payload.life_stage == "mid_life":
+        score += 4
+        supports.append(BiText("Mid-life phase supports long-horizon wealth structuring.", "Mid-life phase supports long-horizon wealth structuring."))
+    elif payload.life_stage == "senior":
+        challenges.append(BiText("Senior phase: favour preservation and liquidity.", "Senior phase: favour preservation and liquidity."))
 
     second_house = house_from_reference(payload.lagna_rasi, payload.planets_rasi[second_lord])
     eleventh_house = house_from_reference(payload.lagna_rasi, payload.planets_rasi[eleventh_lord])

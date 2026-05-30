@@ -19,6 +19,7 @@ Quick map to the right document for each purpose.
 
 ## Frontend
 - [FRONTEND.md](FRONTEND.md) — Current UI status, 8 missing features with endpoint/response shapes, UI/UX backlog, upcoming features (Porutham, PDF, push notifications)
+- [UIUX_REVAMP_PLAN.md](UIUX_REVAMP_PLAN.md) — **UI/UX revamp master plan**: full 7-phase implementation plan, new IA (7 primary destinations), every feature properly placed, component build list, design tokens, accessibility rules
 
 ## Tamil Astrology Reference
 - [SEVVAIRAGU.MD](SEVVAIRAGU.MD) — Sevvai/Rahu dosha validation rules (Tamil-specific, includes test scenarios)

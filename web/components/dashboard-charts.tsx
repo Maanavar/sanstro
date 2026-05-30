@@ -24,10 +24,10 @@ export const RASI_NAMES = D1_RASI_NAMES;
 export { GRAHA_ABBR };
 
 function occupantColor(abbr: string): string {
-  if (abbr === "La") return "#e5b84d";
-  if (abbr === "Sa") return "#f87171";
-  if (abbr === "Ra" || abbr === "Ke") return "#a78bfa";
-  return "#93c5fd";
+  if (abbr === "La") return "#8c3e18";   /* terracotta-dark — Lagna */
+  if (abbr === "Sa") return "#A8482F";   /* caution rust — Saturn */
+  if (abbr === "Ra" || abbr === "Ke") return "#5a4880"; /* muted violet — nodes */
+  return "#1e5a8c";                      /* deep blue — other planets */
 }
 
 function ExplainPanel({
@@ -46,36 +46,36 @@ function ExplainPanel({
   return (
     <div style={{
       marginTop: "8px",
-      border: "1px solid rgba(255,255,255,0.12)",
+      border: "1px solid #D4C8AE",
       borderRadius: "10px",
       padding: "10px",
-      background: "rgba(255,255,255,0.03)",
+      background: "#FAF5EA",
       width: "100%",
       maxWidth: "296px",
     }}>
-      <p style={{ margin: 0, fontSize: "0.7rem", color: "rgba(255,255,255,0.38)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+      <p style={{ margin: 0, fontSize: "0.7rem", color: "#7A6F5E", textTransform: "uppercase", letterSpacing: "0.06em" }}>
         {title}
       </p>
-      <p style={{ margin: "3px 0 0", fontSize: "0.82rem", color: "rgba(255,255,255,0.88)", fontWeight: 600 }}>
+      <p style={{ margin: "3px 0 0", fontSize: "0.82rem", color: "#1A1612", fontWeight: 600 }}>
         {detail.rasiName} (Rasi {detail.rasi}) {detail.isLagna ? "• Lagna" : ""}
       </p>
-      <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "rgba(255,255,255,0.58)" }}>
+      <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "#5a4f42" }}>
         {subtitle}: {houseLabel} {detail.houseFromRef}
       </p>
       <div style={{ marginTop: "8px", display: "flex", gap: "6px", flexWrap: "wrap" }}>
         {detail.occupants.length === 0 ? (
-          <span style={{ fontSize: "0.74rem", color: "rgba(255,255,255,0.45)" }}>{emptyText}</span>
+          <span style={{ fontSize: "0.74rem", color: "#A89D89" }}>{emptyText}</span>
         ) : (
           detail.occupants.map((occ) => (
             <span key={occ.key} style={{
               fontSize: "0.72rem",
-              border: "1px solid rgba(255,255,255,0.16)",
+              border: "1px solid #D4C8AE",
               borderRadius: "999px",
               padding: "3px 8px",
-              background: "rgba(0,0,0,0.28)",
-              color: "rgba(255,255,255,0.86)",
+              background: "#FFFFFF",
+              color: "#1A1612",
             }}>
-              {occ.graha}
+              {occ.graha}{occ.isRetrograde ? " (R)" : ""}
               {occ.degreeInRasi !== null ? ` ${occ.degreeInRasi.toFixed(2)}°` : ""}
             </span>
           ))
@@ -88,10 +88,12 @@ function ExplainPanel({
 export function RasiChart({
   chart,
   label,
+  showExplain = true,
   lang,
 }: {
   chart: ChartCalculateResponseData;
   label?: string;
+  showExplain?: boolean;
   lang: Lang;
 }) {
   const [selectedRasi, setSelectedRasi] = useState<number>(chart.lagna.rasi);
@@ -101,15 +103,16 @@ export function RasiChart({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
-      {label ? <p style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.5)", margin: 0 }}>{label}</p> : null}
+      {label ? <p style={{ fontSize: "0.78rem", color: "#7A6F5E", margin: 0 }}>{label}</p> : null}
       <div style={{
         display: "grid",
         gridTemplateColumns: `repeat(4, ${cellSize}px)`,
         gridTemplateRows: `repeat(4, ${cellSize}px)`,
         gap: `${gap}px`,
-        border: "1px solid rgba(255,255,255,0.15)",
-        borderRadius: "6px",
+        border: "1.5px solid #D4C8AE",
+        borderRadius: "8px",
         overflow: "hidden",
+        background: "#E4DBC8",
       }}>
         {RASI_GRID.map(({ rasi, col, row }) => {
           const detail = buildD1CellDetail(chart, rasi);
@@ -124,34 +127,40 @@ export function RasiChart({
                 gridColumn: col + 1,
                 gridRow: row + 1,
                 background: detail.isLagna
-                  ? "rgba(229,184,77,0.12)"
+                  ? "#F0D9C4"
                   : isSelected
-                    ? "rgba(147,197,253,0.12)"
-                    : "rgba(255,255,255,0.03)",
-                border: isSelected ? "1px solid rgba(147,197,253,0.55)" : "1px solid rgba(255,255,255,0.08)",
-                padding: "4px",
+                    ? "#EDE5D4"
+                    : "#FFFFFF",
+                border: detail.isLagna
+                  ? "1.5px solid rgba(184,90,44,0.5)"
+                  : isSelected
+                    ? "1.5px solid #B85A2C"
+                    : "1px solid #E4DBC8",
+                padding: "5px",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
                 minWidth: 0,
                 textAlign: "left",
+                cursor: "pointer",
               }}
             >
-              <span style={{ fontSize: "0.6rem", color: "rgba(255,255,255,0.35)", lineHeight: 1, display: "block" }}>
+              <span style={{ fontSize: "0.6rem", color: "#A89D89", lineHeight: 1, display: "block" }}>
                 {RASI_NAMES[rasi]}
               </span>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "2px", alignItems: "flex-end" }}>
                 {detail.occupants.map((occ) => (
                   <span key={occ.key} style={{
                     fontSize: "0.66rem",
-                    fontWeight: 600,
+                    fontWeight: 700,
                     lineHeight: 1,
                     color: occupantColor(occ.abbr),
-                    background: "rgba(0,0,0,0.3)",
                     borderRadius: "3px",
                     padding: "1px 3px",
+                    background: "#FAF5EA",
+                    border: "1px solid #E4DBC8",
                   }}>
-                    {occ.abbr}
+                    {occ.abbr}{occ.isRetrograde ? <sup style={{ fontSize: "0.5rem", color: "#B85A2C" }}>R</sup> : null}
                   </span>
                 ))}
               </div>
@@ -161,27 +170,29 @@ export function RasiChart({
         <div style={{
           gridColumn: "2 / 4",
           gridRow: "2 / 4",
-          background: "rgba(255,255,255,0.02)",
-          border: "1px solid rgba(255,255,255,0.06)",
+          background: "#FAF5EA",
+          border: "1px solid #E4DBC8",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}>
-          <span style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.3)", textAlign: "center", padding: "4px", lineHeight: 1.3 }}>
+          <span style={{ fontSize: "0.7rem", color: "#5a4f42", textAlign: "center", padding: "4px", lineHeight: 1.4 }}>
             {chart.birthProfile.displayName}<br />
-            <span style={{ fontSize: "0.6rem" }}>
+            <span style={{ fontSize: "0.6rem", color: "#A89D89" }}>
               {RASI_NAMES[chart.lagna.rasi]} La
             </span>
           </span>
         </div>
       </div>
-      <ExplainPanel
-        title={t("chart_tap_to_explain", lang)}
-        subtitle={t("chart_from_d1_lagna", lang)}
-        emptyText={t("chart_no_graha_in_rasi", lang)}
-        houseLabel={t("chart_house_label", lang)}
-        detail={selectedDetail}
-      />
+      {showExplain ? (
+        <ExplainPanel
+          title={t("chart_tap_to_explain", lang)}
+          subtitle={t("chart_from_d1_lagna", lang)}
+          emptyText={t("chart_no_graha_in_rasi", lang)}
+          houseLabel={t("chart_house_label", lang)}
+          detail={selectedDetail}
+        />
+      ) : null}
     </div>
   );
 }
@@ -189,10 +200,12 @@ export function RasiChart({
 export function NavamsaChart({
   chart,
   label,
+  showExplain = true,
   lang,
 }: {
   chart: ChartCalculateResponseData;
   label?: string;
+  showExplain?: boolean;
   lang: Lang;
 }) {
   const d9LagnaRasi = useMemo(() => computeD9LagnaRasi(chart.lagna.absoluteLongitude), [chart.lagna.absoluteLongitude]);
@@ -203,15 +216,16 @@ export function NavamsaChart({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
-      {label ? <p style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.5)", margin: 0 }}>{label}</p> : null}
+      {label ? <p style={{ fontSize: "0.78rem", color: "#7A6F5E", margin: 0 }}>{label}</p> : null}
       <div style={{
         display: "grid",
         gridTemplateColumns: `repeat(4, ${cellSize}px)`,
         gridTemplateRows: `repeat(4, ${cellSize}px)`,
         gap: `${gap}px`,
-        border: "1px solid rgba(167,139,250,0.25)",
-        borderRadius: "6px",
+        border: "1.5px solid #D4C8AE",
+        borderRadius: "8px",
         overflow: "hidden",
+        background: "#E4DBC8",
       }}>
         {RASI_GRID.map(({ rasi, col, row }) => {
           const detail = buildD9CellDetail(chart, rasi);
@@ -226,11 +240,15 @@ export function NavamsaChart({
                 gridColumn: col + 1,
                 gridRow: row + 1,
                 background: detail.isLagna
-                  ? "rgba(167,139,250,0.10)"
+                  ? "#DCE4D2"
                   : isSelected
-                    ? "rgba(147,197,253,0.10)"
-                    : "rgba(255,255,255,0.02)",
-                border: isSelected ? "1px solid rgba(147,197,253,0.5)" : "1px solid rgba(255,255,255,0.07)",
+                    ? "#EDE5D4"
+                    : "#FFFFFF",
+                border: detail.isLagna
+                  ? "1.5px solid rgba(92,118,84,0.5)"
+                  : isSelected
+                    ? "1.5px solid #5C7654"
+                    : "1px solid #E4DBC8",
                 padding: "4px",
                 display: "flex",
                 flexDirection: "column",
@@ -239,19 +257,20 @@ export function NavamsaChart({
                 textAlign: "left",
               }}
             >
-              <span style={{ fontSize: "0.6rem", color: "rgba(255,255,255,0.3)", lineHeight: 1, display: "block" }}>
+              <span style={{ fontSize: "0.6rem", color: "#A89D89", lineHeight: 1, display: "block" }}>
                 {RASI_NAMES[rasi]}
               </span>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "2px", alignItems: "flex-end" }}>
                 {detail.occupants.map((occ) => (
                   <span key={occ.key} style={{
                     fontSize: "0.66rem",
-                    fontWeight: 600,
+                    fontWeight: 700,
                     lineHeight: 1,
-                    color: occ.abbr === "La" ? "#a78bfa" : occupantColor(occ.abbr),
-                    background: "rgba(0,0,0,0.3)",
+                    color: occupantColor(occ.abbr),
                     borderRadius: "3px",
                     padding: "1px 3px",
+                    background: "#FAF5EA",
+                    border: "1px solid #E4DBC8",
                   }}>
                     {occ.abbr}
                   </span>
@@ -263,27 +282,93 @@ export function NavamsaChart({
         <div style={{
           gridColumn: "2 / 4",
           gridRow: "2 / 4",
-          background: "rgba(167,139,250,0.04)",
-          border: "1px solid rgba(255,255,255,0.05)",
+          background: "#FAF5EA",
+          border: "1px solid #E4DBC8",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}>
-          <span style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.25)", textAlign: "center", padding: "4px", lineHeight: 1.3 }}>
+          <span style={{ fontSize: "0.7rem", color: "#5a4f42", textAlign: "center", padding: "4px", lineHeight: 1.4 }}>
             {chart.birthProfile.displayName}<br />
-            <span style={{ fontSize: "0.6rem" }}>
+            <span style={{ fontSize: "0.6rem", color: "#A89D89" }}>
               Navamsam · {RASI_NAMES[d9LagnaRasi]} La
             </span>
           </span>
         </div>
       </div>
-      <ExplainPanel
-        title={t("chart_tap_to_explain", lang)}
-        subtitle={t("chart_from_d9_lagna", lang)}
-        emptyText={t("chart_no_graha_in_rasi", lang)}
-        houseLabel={t("chart_house_label", lang)}
-        detail={selectedDetail}
-      />
+      {showExplain ? (
+        <ExplainPanel
+          title={t("chart_tap_to_explain", lang)}
+          subtitle={t("chart_from_d9_lagna", lang)}
+          emptyText={t("chart_no_graha_in_rasi", lang)}
+          houseLabel={t("chart_house_label", lang)}
+          detail={selectedDetail}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+export function JathagamKattam({
+  chart,
+  lang,
+}: {
+  chart: ChartCalculateResponseData;
+  lang: Lang;
+}) {
+  const [view, setView] = useState<"D1" | "D9">("D1");
+
+  return (
+    <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px", alignItems: "center" }}>
+      <div style={{ textAlign: "center" }}>
+        <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 700, color: "#1A1612", letterSpacing: "0.02em" }}>
+          {t("label_jathagam_kattam", lang)}
+        </p>
+        <p style={{ margin: "3px 0 0", fontSize: "0.7rem", color: "#7A6F5E", lineHeight: 1.35 }}>
+          {t("jathagam_kattam_hint", lang)}
+        </p>
+      </div>
+
+      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "center" }}>
+        <button
+          type="button"
+          onClick={() => setView("D1")}
+          style={{
+            padding: "5px 14px",
+            borderRadius: "999px",
+            fontSize: "0.72rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            border: view === "D1" ? "1.5px solid #B85A2C" : "1px solid #D4C8AE",
+            background: view === "D1" ? "#F0D9C4" : "#FAF5EA",
+            color: view === "D1" ? "#8c3e18" : "#7A6F5E",
+          }}
+        >
+          {t("chart_view_d1", lang)}
+        </button>
+        <button
+          type="button"
+          onClick={() => setView("D9")}
+          style={{
+            padding: "5px 14px",
+            borderRadius: "999px",
+            fontSize: "0.72rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            border: view === "D9" ? "1.5px solid #5C7654" : "1px solid #D4C8AE",
+            background: view === "D9" ? "#DCE4D2" : "#FAF5EA",
+            color: view === "D9" ? "#3a6b40" : "#7A6F5E",
+          }}
+        >
+          {t("chart_view_d9", lang)}
+        </button>
+      </div>
+
+      {view === "D1" ? (
+        <RasiChart chart={chart} label={t("label_d1", lang)} lang={lang} />
+      ) : (
+        <NavamsaChart chart={chart} label={t("label_d9", lang)} lang={lang} />
+      )}
     </div>
   );
 }

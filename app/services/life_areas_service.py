@@ -7,7 +7,7 @@ Each area is scored 0–100 using:
   - House signification rules (which house governs this area)
   - Current transit of the area's karaka (significator) planet
   - Dasha lord relevance (maha 70% + antardasha 30%)
-  - Active Sani cycle penalty — from Moon (Janma/Ardhashtama/Ashtama/Kantaka)
+  - Active Sani cycle penalty — from Moon (Sade Sati phases/Ardhashtama/Ashtama)
     and from Lagna (Kandaka Sani)
   - Chandrashtamam penalty for mind-sensitive areas
 
@@ -17,7 +17,7 @@ Whole Sign house system assumed throughout (consistent with chart engine).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -77,11 +77,11 @@ _AREA_LABELS = {
 
 _JUPITER_HOUSE_SCORE = {
     1: 50, 2: 72, 3: 48, 4: 42, 5: 78, 6: 38,
-    7: 74, 8: 25, 9: 82, 10: 58, 11: 80, 12: 34,
+    7: 68, 8: 25, 9: 82, 10: 58, 11: 80, 12: 34,
 }
 _SATURN_HOUSE_SCORE = {
-    1: 38, 2: 30, 3: 58, 4: 28, 5: 55, 6: 60,
-    7: 35, 8: 22, 9: 52, 10: 45, 11: 62, 12: 34,
+    1: 42, 2: 40, 3: 62, 4: 34, 5: 52, 6: 64,
+    7: 50, 8: 22, 9: 36, 10: 62, 11: 76, 12: 42,
 }
 _MARS_HOUSE_SCORE = {
     1: 38, 2: 34, 3: 50, 4: 40, 5: 46, 6: 52,
@@ -147,11 +147,14 @@ _DASHA_AREA_SCORE: dict[str, dict[str, int]] = {
 # ── Sani cycle penalties per area ─────────────────────────────────────────────
 
 _SANI_AREA_PENALTY: dict[str, dict[str, int]] = {
-    "JANMA_SANI":       {"CAREER": 12, "MONEY": 8,  "HEALTH": 15, "RELATIONSHIPS": 10, "EDUCATION": 8,  "SPIRITUAL": 0,  "FAMILY_HARMONY": 10},
-    "ARDHASHTAMA_SANI": {"CAREER": 8,  "MONEY": 12, "HEALTH": 10, "RELATIONSHIPS": 8,  "EDUCATION": 6,  "SPIRITUAL": 0,  "FAMILY_HARMONY": 8},
-    "ASHTAMA_SANI":     {"CAREER": 15, "MONEY": 15, "HEALTH": 18, "RELATIONSHIPS": 12, "EDUCATION": 10, "SPIRITUAL": 0,  "FAMILY_HARMONY": 12},
-    "KANTAKA_SANI":     {"CAREER": 18, "MONEY": 10, "HEALTH": 12, "RELATIONSHIPS": 8,  "EDUCATION": 8,  "SPIRITUAL": 0,  "FAMILY_HARMONY": 8},
-    "KANDAKA_SANI":     {"CAREER": 10, "MONEY": 15, "HEALTH": 8,  "RELATIONSHIPS": 10, "EDUCATION": 5,  "SPIRITUAL": 8,  "FAMILY_HARMONY": 10},
+    # Sade Sati: house 1 = peak (Janma Sani), house 12 = approaching, house 2 = leaving
+    "JANMA_SANI":          {"CAREER": 12, "MONEY": 8,  "HEALTH": 15, "RELATIONSHIPS": 10, "EDUCATION": 8,  "SPIRITUAL": 0,  "FAMILY_HARMONY": 10},
+    "EZHARAI_SANI_PHASE_1":{"CAREER": 6,  "MONEY": 5,  "HEALTH": 8,  "RELATIONSHIPS": 5,  "EDUCATION": 4,  "SPIRITUAL": 0,  "FAMILY_HARMONY": 5},
+    "EZHARAI_SANI_PHASE_3":{"CAREER": 8,  "MONEY": 6,  "HEALTH": 10, "RELATIONSHIPS": 7,  "EDUCATION": 5,  "SPIRITUAL": 0,  "FAMILY_HARMONY": 7},
+    "ARDHASHTAMA_SANI":    {"CAREER": 8,  "MONEY": 12, "HEALTH": 10, "RELATIONSHIPS": 8,  "EDUCATION": 6,  "SPIRITUAL": 0,  "FAMILY_HARMONY": 8},
+    "ASHTAMA_SANI":        {"CAREER": 15, "MONEY": 15, "HEALTH": 18, "RELATIONSHIPS": 12, "EDUCATION": 10, "SPIRITUAL": 0,  "FAMILY_HARMONY": 12},
+    "KANTAKA_SANI":        {"CAREER": 18, "MONEY": 10, "HEALTH": 12, "RELATIONSHIPS": 8,  "EDUCATION": 8,  "SPIRITUAL": 0,  "FAMILY_HARMONY": 8},
+    "KANDAKA_SANI":        {"CAREER": 10, "MONEY": 15, "HEALTH": 8,  "RELATIONSHIPS": 10, "EDUCATION": 5,  "SPIRITUAL": 8,  "FAMILY_HARMONY": 10},
 }
 
 # ── Karaka (significator) planets per area ─────────────────────────────────────
@@ -178,6 +181,119 @@ def _trend(score: int, dasha_score: int) -> str:
     return "STABLE"
 
 
+def _compute_age(on_date: date, birth_date: date) -> int:
+    return on_date.year - birth_date.year - ((on_date.month, on_date.day) < (birth_date.month, birth_date.day))
+
+
+def _is_married(marital_status: str | None) -> bool:
+    return (marital_status or "").strip().lower() == "married"
+
+
+def _is_student(employment_type: str | None) -> bool:
+    return (employment_type or "").strip().lower() == "student"
+
+
+def _not_applicable_text() -> LifeAreaText:
+    return _t(
+        "இந்த உள்ளடக்கம் தற்போதைய வாழ்க்கை நிலையில் பொருந்தாது.",
+        "This content is not applicable for the current life stage.",
+    )
+
+
+def _with_improvement_hint(outlook: LifeAreaText, next_improvement_date: date | None) -> LifeAreaText:
+    if next_improvement_date is None:
+        return outlook
+    ta_date = next_improvement_date.strftime("%d %b %Y")
+    en_date = next_improvement_date.strftime("%d %b %Y")
+    return _t(
+        f"{outlook.ta} நிலை {ta_date}க்கு பின் மேம்படத் தொடங்கும்.",
+        f"{outlook.en} Conditions improve after {en_date}.",
+    )
+
+
+def _married_relationship_text(score: int) -> tuple[LifeAreaText, LifeAreaText, LifeAreaText | None]:
+    if score >= 65:
+        return (
+            _t(
+                "தாம்பத்ய ஒற்றுமைக்கு நல்ல ஆதரவு உள்ளது. துணையுடன் திறந்த உரையாடல் உறவை மேலும் வலுப்படுத்தும்.",
+                "Married life harmony is well supported. Open communication with your spouse can strengthen the bond.",
+            ),
+            _t(
+                "அடுத்த 30 நாட்களில் இணைந்து திட்டமிடும் செயல்கள் நல்ல முன்னேற்றம் தரும்.",
+                "In the next 30 days, shared planning and joint decisions are likely to go well.",
+            ),
+            None,
+        )
+    if score >= 45:
+        return (
+            _t(
+                "தாம்பத்ய வாழ்க்கையில் நடுநிலை நிலை உள்ளது. பொறுமையுடன் பேசுவது முக்கியம்.",
+                "Married life is in a steady phase. Patient and respectful communication is important.",
+            ),
+            _t(
+                "அடுத்த 30 நாட்களில் குடும்ப பொறுப்புகளை இணைந்து பகிர்ந்தால் ஒற்றுமை மேம்படும்.",
+                "Over the next 30 days, sharing responsibilities together can improve harmony.",
+            ),
+            None,
+        )
+    return (
+        _t(
+            "தாம்பத்ய உறவில் கவனம் தேவைப்படும் காலம். பதிலளிப்பதற்கு முன் அமைதியாக பேசுவது நல்லது.",
+            "This is a caution phase for married life. Slow, calm responses are better than reactive conversations.",
+        ),
+        _t(
+            "அடுத்த 30 நாட்களில் பெரிய உணர்ச்சி முடிவுகளை ஒத்திவைத்து உறவை நிலைநிறுத்த கவனம் செலுத்துங்கள்.",
+            "In the next 30 days, avoid major emotional decisions and focus on stabilising the relationship.",
+        ),
+        _t(
+            "சிறிய கருத்து வேறுபாடுகளை பெரிய விவாதமாக மாற்றாமல் நேரம் எடுத்துப் பேசுங்கள்.",
+            "Do not escalate small disagreements; take time before sensitive discussions.",
+        ),
+    )
+
+
+def _find_next_improvement_date(
+    *,
+    area: str,
+    current_score: int,
+    on_date: date,
+    birth_jd: float,
+    natal_moon_rasi: int,
+    natal_lagna_rasi: int,
+    moon_longitude: float,
+) -> date | None:
+    target_score = max(55, current_score + 8)
+    for offset_days in range(7, 181, 7):
+        check_date = on_date + timedelta(days=offset_days)
+        check_jd = utc_datetime_to_julian_day(datetime.combine(check_date, time(12, 0), tzinfo=UTC))
+        transit = calculate_sidereal_planets(check_jd)
+        timeline = calculate_vimshottari_timeline(birth_jd, moon_longitude, check_jd)
+        maha_lord = timeline.current_mahadasha.lord
+        antar_lord = timeline.current_antardasha.lord
+        moon = transit.bodies["MOON"]
+        saturn = transit.bodies["SATURN"]
+        chandrashtama_rasi = ((natal_moon_rasi - 1 + 7) % 12) + 1
+        chandrashtama = moon.rasi == chandrashtama_rasi
+        saturn_house_from_moon = house_from_reference(natal_moon_rasi, saturn.rasi)
+        saturn_house_from_lagna = house_from_reference(natal_lagna_rasi, saturn.rasi)
+        sani_cycle = classify_sani_cycle(saturn_house_from_moon)
+        kandaka_cycle = classify_kandaka_cycle(saturn_house_from_lagna)
+        projected = _score_area(
+            area,
+            natal_moon_rasi,
+            transit.bodies,
+            maha_lord,
+            antar_lord,
+            sani_cycle.type if sani_cycle.is_active else None,
+            sani_cycle.is_active,
+            kandaka_cycle.is_active,
+            chandrashtama,
+        )
+        if projected >= target_score:
+            return check_date
+    return None
+
+
 # ── Narrative templates per area × score band ─────────────────────────────────
 
 @dataclass
@@ -189,18 +305,22 @@ class _NarrativeBundle:
 
 
 _SANI_TYPE_LABEL_TA = {
-    "JANMA_SANI":       "ஜன்ம சனி",
-    "ARDHASHTAMA_SANI": "அர்த்தாஷ்டம சனி",
-    "ASHTAMA_SANI":     "அஷ்டம சனி",
-    "KANTAKA_SANI":     "கண்டக சனி",
-    "KANDAKA_SANI":     "கண்டக சனி (லக்னம்)",
+    "JANMA_SANI":           "ஜன்ம சனி",
+    "EZHARAI_SANI_PHASE_1": "ஏழரை சனி (தொடக்கம்)",
+    "EZHARAI_SANI_PHASE_3": "ஏழரை சனி (முடிவு)",
+    "ARDHASHTAMA_SANI":     "அர்த்தாஷ்டம சனி",
+    "ASHTAMA_SANI":         "அஷ்டம சனி",
+    "KANTAKA_SANI":         "கண்டக சனி",
+    "KANDAKA_SANI":         "கண்டக சனி (லக்னம்)",
 }
 _SANI_TYPE_LABEL_EN = {
-    "JANMA_SANI":       "Janma Sani",
-    "ARDHASHTAMA_SANI": "Ardhashtama Sani",
-    "ASHTAMA_SANI":     "Ashtama Sani",
-    "KANTAKA_SANI":     "Kantaka Sani",
-    "KANDAKA_SANI":     "Kandaka Sani (Lagna)",
+    "JANMA_SANI":           "Janma Sani",
+    "EZHARAI_SANI_PHASE_1": "Sade Sati (beginning)",
+    "EZHARAI_SANI_PHASE_3": "Sade Sati (ending)",
+    "ARDHASHTAMA_SANI":     "Ardhashtama Sani",
+    "ASHTAMA_SANI":         "Ashtama Sani",
+    "KANTAKA_SANI":         "Kantaka Sani",
+    "KANDAKA_SANI":         "Kandaka Sani (Lagna)",
 }
 
 
@@ -578,6 +698,9 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
     natal_lagna_rasi = chart_snapshot.data.lagna.rasi
     birth_jd = chart_snapshot.data.julian_day
     birth_profile = chart_snapshot.data.birth_profile
+    current_age = _compute_age(on_date, birth_profile.birth_date_local)
+    married = _is_married(getattr(birth_profile, "marital_status", None))
+    student_under_18 = _is_student(getattr(birth_profile, "employment_type", None)) and current_age < 18
 
     tz = resolve_timezone(birth_profile.birth_timezone)
     local_noon = datetime.combine(on_date, time(12, 0), tzinfo=tz)
@@ -602,8 +725,55 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
     sani_cycle = classify_sani_cycle(saturn_house_from_moon)
     kandaka_cycle = classify_kandaka_cycle(saturn_house_from_lagna)
 
+    # Label overrides based on life stage
+    _retired = (getattr(birth_profile, "employment_type", None) or "").lower() == "retired"
+    area_label_override: dict[str, LifeAreaText] = {}
+    if married:
+        area_label_override["RELATIONSHIPS"] = _t("உறவு நலம்", "Relationship Harmony")
+    if _retired:
+        area_label_override["CAREER"] = _t("வாழ்க்கை நோக்கம்", "Life Purpose / Legacy")
+
     areas: list[LifeAreaData] = []
     for area in ("CAREER", "MONEY", "HEALTH", "RELATIONSHIPS", "EDUCATION", "SPIRITUAL", "FAMILY_HARMONY"):
+        effective_label = area_label_override.get(area, _AREA_LABELS[area])
+
+        if area == "RELATIONSHIPS" and current_age < 16:
+            na = _not_applicable_text()
+            areas.append(
+                LifeAreaData(
+                    area=area,
+                    label=effective_label,
+                    score=0,
+                    trend="STABLE",
+                    confidence="LOW",
+                    confidenceReason=na,
+                    driver=LifeAreaDriver(planet="N/A", reason=na),
+                    narrative=na,
+                    remedy=na,
+                    next30DayOutlook=na,
+                    caution=None,
+                )
+            )
+            continue
+        if area == "CAREER" and (current_age < 18 or student_under_18):
+            na = _not_applicable_text()
+            areas.append(
+                LifeAreaData(
+                    area=area,
+                    label=effective_label,
+                    score=0,
+                    trend="STABLE",
+                    confidence="LOW",
+                    confidenceReason=na,
+                    driver=LifeAreaDriver(planet="N/A", reason=na),
+                    narrative=na,
+                    remedy=na,
+                    next30DayOutlook=na,
+                    caution=None,
+                )
+            )
+            continue
+
         score = _score_area(
             area,
             natal_moon.rasi,
@@ -625,12 +795,35 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
 
         if primary_karaka in transit.bodies:
             h = house_from_reference(natal_moon.rasi, transit.bodies[primary_karaka].rasi)
+            karaka_transit_score = _HOUSE_SCORE_TABLE.get(primary_karaka, {}).get(h, 50)
             driver_reason = _t(
                 f"{karaka_label.ta} {h}ஆம் இடத்தில் உள்ளது.",
                 f"{karaka_label.en} is in house {h}.",
             )
         else:
+            karaka_transit_score = 50
             driver_reason = _t(f"{karaka_label.ta} நிலை", f"{karaka_label.en} position")
+
+        # P1-B: confidence tier from 3 independent signals
+        _conf_signals = sum(1 for s in (score, dasha_score, karaka_transit_score) if s >= 60)
+        if _conf_signals >= 3:
+            _area_confidence = "HIGH"
+            _area_conf_reason = _t(
+                "மூன்று சமிக்ஞைகளும் சீரமைக்கப்பட்டுள்ளன",
+                "All three signals are aligned",
+            )
+        elif _conf_signals == 2:
+            _area_confidence = "MEDIUM"
+            _area_conf_reason = _t(
+                "இரண்டு சமிக்ஞைகள் சீரமைக்கப்பட்டுள்ளன",
+                "Two of three signals are aligned",
+            )
+        else:
+            _area_confidence = "LOW"
+            _area_conf_reason = _t(
+                "சமிக்ஞைகள் கலந்த நிலையில் உள்ளன — குறிப்பு மட்டுமே",
+                "Mixed signals — indicative only",
+            )
 
         saturn_house = saturn_house_from_moon
         bundle = _narrative(
@@ -639,11 +832,42 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             chandrashtama, jupiter_house, saturn_house,
         )
 
+        # For married users, render relationship guidance as harmony-focused content.
+        label = _AREA_LABELS[area]
+        if married and area == "RELATIONSHIPS":
+            label = _t("தாம்பத்ய ஒற்றுமை", "Married life harmony")
+            married_narrative, married_outlook, married_caution = _married_relationship_text(score)
+            bundle = _NarrativeBundle(
+                narrative=married_narrative,
+                outlook=married_outlook,
+                remedy=bundle.remedy,
+                caution=married_caution,
+            )
+
+        if score < 50 or bundle.caution is not None:
+            next_improvement = _find_next_improvement_date(
+                area=area,
+                current_score=score,
+                on_date=on_date,
+                birth_jd=birth_jd,
+                natal_moon_rasi=natal_moon.rasi,
+                natal_lagna_rasi=natal_lagna_rasi,
+                moon_longitude=natal_moon.absolute_longitude,
+            )
+            bundle = _NarrativeBundle(
+                narrative=bundle.narrative,
+                outlook=_with_improvement_hint(bundle.outlook, next_improvement),
+                remedy=bundle.remedy,
+                caution=bundle.caution,
+            )
+
         areas.append(LifeAreaData(
             area=area,
-            label=_AREA_LABELS[area],
+            label=label,
             score=score,
             trend=_trend(score, dasha_score),
+            confidence=_area_confidence,
+            confidenceReason=_area_conf_reason,
             driver=LifeAreaDriver(planet=primary_karaka, reason=driver_reason),
             narrative=bundle.narrative,
             remedy=bundle.remedy,

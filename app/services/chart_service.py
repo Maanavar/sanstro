@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -12,15 +12,17 @@ from sqlalchemy.orm import Session
 from app.calculations.astro import (
     degree_in_rasi,
     house_from_reference,
+    julian_day_to_utc_datetime,
     local_datetime_to_utc,
     nakshatra_from_degree,
     navamsa_rasi_from_degree,
     pada_from_degree,
+    resolve_timezone,
     utc_datetime_to_julian_day,
 )
 from app.calculations.transits import RASI_NAMES, is_combust
 from app.calculations.panchangam import NAKSHATRA_NAMES
-from app.calculations.ephemeris import calculate_lagna_degree, calculate_sidereal_planets
+from app.calculations.ephemeris import calculate_lagna_degree, calculate_sidereal_planets, calculate_rise_transit_jd
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga
 from app.calculations.chart_strength import compute_natal_planet_score, compute_strength_breakdown
@@ -76,9 +78,86 @@ PLANET_ORDER = {
     "SATURN": 6,
     "RAHU": 7,
     "KETU": 8,
+    "MANDHI": 9,
 }
 
+# Maandhi (Mandhi) slot rules for chart longitude computation.
+# Day birth: Sun=7, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6 (traditional Tamil Panchangam Maandi order)
+MANDHI_DAY_SLOT = {6: 7, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6}
+# Night birth: day_slot + 4 (wrapping within 1-8).
+# Sun=3, Mon=5, Tue=6, Wed=7, Thu=8, Fri=1, Sat=2
+MANDHI_NIGHT_SLOT = {6: 3, 0: 5, 1: 6, 2: 7, 3: 8, 4: 1, 5: 2}
+
 DEFAULT_CALCULATION_VERSION = "jothidam-formula-engine-v1.1-2026"
+
+
+def _mandhi_longitude(
+    birth_date: date,
+    birth_time_local: time | None,
+    birth_lat: float,
+    birth_lng: float,
+    birth_timezone: str,
+) -> float | None:
+    """Return Mandhi's sidereal zodiac longitude at birth (degree of the rising sign at Mandhi-kalam start)."""
+    try:
+        if birth_time_local is None:
+            return None
+        tz = resolve_timezone(birth_timezone)
+        local_midnight = datetime.combine(birth_date, datetime.min.time(), tzinfo=tz)
+        jd_start = utc_datetime_to_julian_day(local_midnight.astimezone(UTC))
+        sunrise_jd = calculate_rise_transit_jd(jd_start, birth_lat, birth_lng, rise=True)
+        sunset_jd = calculate_rise_transit_jd(jd_start, birth_lat, birth_lng, rise=False)
+
+        birth_local_dt = datetime.combine(birth_date, birth_time_local, tzinfo=tz)
+        birth_jd = utc_datetime_to_julian_day(birth_local_dt.astimezone(UTC))
+        weekday = birth_date.weekday()
+
+        if sunrise_jd <= birth_jd < sunset_jd:
+            slot_duration_days = (sunset_jd - sunrise_jd) / 8
+            mandhi_slot = MANDHI_DAY_SLOT[weekday]
+            mandhi_start_jd = sunrise_jd + slot_duration_days * (mandhi_slot - 1)
+        else:
+            mandhi_slot = MANDHI_NIGHT_SLOT[weekday]
+            if birth_jd < sunrise_jd:
+                prev_midnight = local_midnight - timedelta(days=1)
+                prev_start_jd = utc_datetime_to_julian_day(prev_midnight.astimezone(UTC))
+                prev_sunset_jd = calculate_rise_transit_jd(prev_start_jd, birth_lat, birth_lng, rise=False)
+                slot_duration_days = (sunrise_jd - prev_sunset_jd) / 8
+                mandhi_start_jd = prev_sunset_jd + slot_duration_days * (mandhi_slot - 1)
+            else:
+                next_midnight = local_midnight + timedelta(days=1)
+                next_start_jd = utc_datetime_to_julian_day(next_midnight.astimezone(UTC))
+                next_sunrise_jd = calculate_rise_transit_jd(next_start_jd, birth_lat, birth_lng, rise=True)
+                slot_duration_days = (next_sunrise_jd - sunset_jd) / 8
+                mandhi_start_jd = sunset_jd + slot_duration_days * (mandhi_slot - 1)
+
+        return calculate_lagna_degree(mandhi_start_jd, birth_lat, birth_lng)
+    except Exception:
+        return None
+
+
+def _mandhi_planet_position(longitude: float, lagna_rasi: int) -> PlanetPosition:
+    rasi = int((longitude % 360) // 30) + 1
+    nakshatra_number = nakshatra_from_degree(longitude)
+    d9_rasi = navamsa_rasi_from_degree(longitude)
+    return PlanetPosition(
+        graha="MANDHI",
+        rasi_name=RASI_NAMES[rasi],
+        absolute_longitude=longitude,
+        rasi=rasi,
+        degree_in_rasi=degree_in_rasi(longitude),
+        nakshatra=nakshatra_number,
+        nakshatra_name=NAKSHATRA_NAMES[nakshatra_number - 1],
+        pada=pada_from_degree(longitude),
+        house_from_lagna=house_from_reference(lagna_rasi, rasi),
+        speed_deg_per_day=0.0,
+        is_retrograde=False,
+        is_combust=False,
+        d9_rasi=d9_rasi,
+        is_vargottama=rasi == d9_rasi,
+        show_retrograde_badge=False,
+        strength_breakdown={"sthana": "NEUTRAL", "dik": "NEUTRAL", "kala": "NEUTRAL", "chesta": "NEUTRAL"},
+    )
 
 
 def _value(profile: Any, name: str, default: Any = None) -> Any:
@@ -428,6 +507,18 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
     sun_degree = snapshot.bodies["SUN"].absolute_longitude
     for body in snapshot.bodies.values():
         planet_positions.append(_planet_position_from_snapshot(body, lagna_rasi=lagna_rasi, sun_degree=sun_degree))
+
+    # Mandhi (Maandi) upagraha — lagna degree at start of Mandhi kalam on birth date
+    mandhi_lng = _mandhi_longitude(
+        _value(profile, "birth_date_local"),
+        _value(profile, "birth_time_local"),
+        float(_value(profile, "birth_latitude")),
+        float(_value(profile, "birth_longitude")),
+        _value(profile, "birth_timezone"),
+    )
+    if mandhi_lng is not None:
+        planet_positions.append(_mandhi_planet_position(mandhi_lng, lagna_rasi))
+
     moon_rasi = next(planet.rasi for planet in planet_positions if planet.graha == "MOON")
     yogas, doshams, nakshatra_cautions = _build_yoga_dosham_insights(
         planet_positions,

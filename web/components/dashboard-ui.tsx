@@ -56,6 +56,50 @@ export function Surface({ title, children }: { title: string; children: ReactNod
   );
 }
 
+import type { ConfidenceTier } from "@/lib/types";
+import type { Lang } from "@/lib/i18n";
+
+const CONFIDENCE_DOTS: Record<ConfidenceTier, string> = {
+  HIGH:   "●●●",
+  MEDIUM: "●●○",
+  LOW:    "●○○",
+};
+const CONFIDENCE_COLORS: Record<ConfidenceTier, string> = {
+  HIGH:   "#4ade80",
+  MEDIUM: "#facc15",
+  LOW:    "#94a3b8",
+};
+
+export function ConfidenceBadge({
+  level,
+  reason,
+  lang,
+}: {
+  level: ConfidenceTier;
+  reason: { ta: string; en: string };
+  lang: Lang;
+}) {
+  const label = level === "HIGH"
+    ? (lang === "ta" ? "உயர் நம்பகத்தன்மை" : "High confidence")
+    : level === "MEDIUM"
+    ? (lang === "ta" ? "மிதமான நம்பகத்தன்மை" : "Moderate")
+    : (lang === "ta" ? "சாத்தியமான குறிப்பு" : "Indicative only");
+
+  const reasonText = lang === "ta" ? reason.ta : reason.en;
+
+  return (
+    <span
+      className="confidence-badge"
+      style={{ color: CONFIDENCE_COLORS[level] }}
+      title={reasonText}
+    >
+      <span className="confidence-dots">{CONFIDENCE_DOTS[level]}</span>
+      {" "}
+      <span className="confidence-label">{label}</span>
+    </span>
+  );
+}
+
 export function PlaceCombobox({ value, onChange }: { value: string; onChange: (city: CityEntry | null, rawText: string) => void }) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
@@ -68,20 +112,28 @@ export function PlaceCombobox({ value, onChange }: { value: string; onChange: (c
   }
   return (
     <div style={{ position: "relative" }}>
-      <input className="input" value={query} placeholder="Type a city…" autoComplete="off"
+      <input
+        value={query} placeholder="Type a city…" autoComplete="off"
         onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
-        onChange={(e) => handleInput(e.target.value)} />
+        onChange={(e) => handleInput(e.target.value)}
+        style={{
+          width: "100%", padding: "9px 12px", borderRadius: "10px",
+          border: "1.5px solid #E4DBC8", background: "#FFFFFF",
+          color: "#3D352B", fontSize: "0.84rem", fontFamily: "inherit", outline: "none",
+        }}
+      />
       {open && filtered.length > 0 && (
         <ul style={{
           position: "absolute", zIndex: 50, top: "100%", left: 0, right: 0,
-          background: "var(--surface, #1c1c1e)", border: "1px solid rgba(255,255,255,0.12)",
-          borderRadius: "8px", marginTop: "4px", maxHeight: "220px", overflowY: "auto",
+          background: "#FFFFFF", border: "1.5px solid #D4C8AE",
+          borderRadius: "10px", marginTop: "4px", maxHeight: "220px", overflowY: "auto",
           padding: "4px 0", listStyle: "none",
+          boxShadow: "0 8px 24px rgba(26,22,18,0.12)",
         }}>
           {filtered.slice(0, 40).map((city) => (
             <li key={city.name} onMouseDown={() => select(city)}
-              style={{ padding: "8px 12px", cursor: "pointer", fontSize: "0.85rem", color: "var(--text-primary, #fff)" }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.08)"; }}
+              style={{ padding: "9px 14px", cursor: "pointer", fontSize: "0.84rem", color: "#3D352B", fontFamily: "inherit" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#F4EEE2"; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}>
               {city.name}
             </li>

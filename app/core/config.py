@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     port: int = 8000
     api_v1_prefix: str = "/api/v1"
     database_url: str = Field(...)
+    rate_limit_enabled: bool = True
+    rate_limit_window_seconds: int = 60
+    rate_limit_max_requests: int = 120
+    rate_limit_exempt_loopback_in_non_prod: bool = True
 
     # Auth
     jwt_secret: str = Field(default="CHANGE_ME_IN_PRODUCTION_USE_STRONG_SECRET")
@@ -34,6 +38,10 @@ class Settings(BaseSettings):
     # Set JOTHIDAM_FCM_PROJECT_ID and JOTHIDAM_FCM_SERVICE_ACCOUNT_JSON in .env
     fcm_project_id: str | None = Field(default=None)
     fcm_service_account_json: str | None = Field(default=None)
+
+    # Ask Vinaadi — Claude API key. If unset, endpoint returns 503.
+    anthropic_api_key: str | None = Field(default=None)
+    ask_vinaadi_daily_limit: int = Field(default=10)
 
     model_config = SettingsConfigDict(
         env_file=".env",

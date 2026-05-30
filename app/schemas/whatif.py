@@ -28,8 +28,8 @@ class WhatIfRequest(BaseModel):
 
 class TripleConfirmation(BaseModel):
     """
-    The three-pillar check from the Thirukanitham formula spec.
-    Every prediction must trace to all three sources.
+    The four-pillar check from the Thirukanitham formula spec.
+    Every prediction must trace to all four sources.
     """
     natal_promise: str = Field(alias="natalPromise")
     natal_promise_strength: str = Field(alias="natalPromiseStrength")  # STRONG / MODERATE / WEAK
@@ -37,6 +37,7 @@ class TripleConfirmation(BaseModel):
     dasha_support_strength: str = Field(alias="dashaSupportStrength")
     gochar_support: str = Field(alias="gocharSupport")
     gochar_support_strength: str = Field(alias="gocharSupportStrength")
+    panchangam_quality: str = Field(default="MODERATE", alias="panchangamQuality")
     overall_verdict: str = Field(alias="overallVerdict")  # FAVOURABLE / NEUTRAL / CAUTION
 
     model_config = ConfigDict(populate_by_name=True)

@@ -195,11 +195,13 @@ def moon_transit_reason(
             f"Avoid major decisions.",
         )
 
+    # Janma Nakshatra day: Moon returns to the native's birth star.
+    # Distinct from Chandrashtamam (8th Rasi from natal Moon, checked above via moon.rasi).
     if current_nakshatra == janma_nakshatra:
         return _bi(
             f"இன்று சந்திரன் ஜன்ம நட்சத்திரமான {nak_name.ta}-ல் உள்ளது. "
             f"உணர்ச்சிகரமான சூழல்களில் கவனமாக இருக்கவும்.",
-            f"Moon is in your birth nakshatra {nak_name.en} today. "
+            f"Moon is in your birth nakshatra {nak_name.en} today (Janma Nakshatra). "
             f"Be mindful in emotionally charged situations.",
         )
 
@@ -288,7 +290,7 @@ def panchangam_reason(
 
     if karana_name == "VISHTI":
         notes_ta.append("கரணம் விஷ்டி — தீய கரணம், புது துவக்கங்கள் தவிர்க்கவும்")
-        notes_en.append("Karana Vishti — inauspicious karana, avoid new beginnings")
+        notes_en.append("Karana Vishti — a traditionally cautious karana; prefer completing existing tasks")
 
     nak_name = NAKSHATRA_NAME.get(nakshatra_number, _bi(str(nakshatra_number), str(nakshatra_number)))
     notes_ta.append(f"நட்சத்திரம்: {nak_name.ta}")
@@ -479,7 +481,21 @@ def remedy_suggestion(
     sani_cycle_active: bool,
     chandrashtama: bool,
     score: int,
+    afflicted_planets: list[str] | None = None,
 ) -> BiText:
+    if afflicted_planets:
+        primary = afflicted_planets[0]
+        if primary == "SUN":
+            return _bi(
+                "சூரியன் பலம் குறைவதால்: காலை சூரிய உதயத்தில் கிழக்கு நோக்கி 12 சுற்று சூர்ய நமஸ்காரம் செய்யுங்கள்; "
+                "ஆதித்ய ஹ்ருதயம் அல்லது காயத்ரி மந்திரம் ஜபியுங்கள்; சூரியனுக்கு அர்க்யம் அளியுங்கள்; சூரியனார் கோவில் தரிசனம் செய்யலாம்.",
+                "Sun appears weak: perform 12 rounds of Surya Namaskar facing east at sunrise; "
+                "recite Aditya Hridayam or Gayatri; offer Arghyam to the rising Sun; consider visiting Suryanar temple.",
+            )
+        primary_remedy = _PLANET_REMEDY.get(primary)
+        if primary_remedy:
+            return primary_remedy
+
     if score >= 70:
         planet_remedy = _PLANET_REMEDY.get(maha_lord)
         if planet_remedy:
@@ -760,6 +776,7 @@ def build_score_reasons(
     best_window_label: str | None = None,
     rahu_kalam_start: str = "00:00",
     rahu_kalam_end: str = "00:00",
+    afflicted_planets: list[str] | None = None,
 ) -> ScoreComponentReasons:
     return ScoreComponentReasons(
         moon_transit=moon_transit_reason(
@@ -790,7 +807,130 @@ def build_score_reasons(
             rahu_kalam_start, rahu_kalam_end,
         ),
         remedy=remedy_suggestion(
-            maha_lord, sani_cycle_type, sani_cycle_active, chandrashtama, score,
+            maha_lord, sani_cycle_type, sani_cycle_active, chandrashtama, score, afflicted_planets=afflicted_planets,
         ),
     )
 
+
+# ── Tone validator ──────────────────────────────────────────────────────────
+
+_BANNED_PHRASES: list[str] = [
+    "bad day",
+    "danger",
+    "will fail",
+    "doomed",
+    "trouble ahead",
+    "crisis",
+    "hardship",
+    "inauspicious",
+]
+
+
+# ── Shadow Work Prompts — P3-A ────────────────────────────────────────────────
+
+# Tamasic nakshatras per Thirukanitham (8th, 9th, 10th, 18th, 19th, 24th nakshatras)
+_TAMASIC_NAKSHATRAS = {"BHARANI", "AYILYAM", "MAGAM", "KETTAI", "MOOLAM", "SADAYAM"}
+
+# Prompts keyed by 8th/12th lord or moon nakshatra type
+_SHADOW_PROMPTS_8TH: dict[str, tuple[tuple[str, str], ...]] = {
+    "SATURN": (
+        ("என்னிடம் உள்ள நீண்ட நாள் பயம் என்ன? அதை நான் எப்படி எதிர்கொள்கிறேன்?",
+         "What long-held fear do I carry, and how am I facing it?"),
+        ("என்னில் எந்த நம்பிக்கை என்னை பின்னோக்கி இழுக்கிறது?",
+         "What belief in me is holding me back from growth?"),
+    ),
+    "MARS": (
+        ("என் கோபம் அல்லது ஆக்ரோஷம் உண்மையில் என்ன பாதுகாக்கிறது?",
+         "What is my anger or frustration really protecting?"),
+        ("நான் எங்கு ஆற்றலை மிகவும் கடுமையாக உட்புகுத்துகிறேன்?",
+         "Where am I pushing too hard, and what would softening feel like?"),
+    ),
+    "RAHU": (
+        ("என்னிடம் எந்த விஷயங்கள் மீது நான் அதிக ஆர்வம் கொள்கிறேன், ஏன்?",
+         "What am I obsessively drawn to, and what does that reveal about me?"),
+        ("என்னில் என்ன மறைந்திருக்கிறது, அதை நான் ஒப்புக்கொள்ள தயாராக இருக்கிறேனா?",
+         "What part of myself am I hiding, and am I ready to acknowledge it?"),
+    ),
+    "DEFAULT": (
+        ("என்னிடம் உள்ள இருண்ட அல்லது ஒளிவிலக்கப்பட்ட பகுதி என்ன?",
+         "What hidden or shadowed part of me needs acknowledgement today?"),
+        ("நான் அடிக்கடி தவிர்க்கும் உணர்வு எது?",
+         "Which emotion do I most often avoid, and what would it say if I listened?"),
+    ),
+}
+
+_SHADOW_PROMPTS_12TH: dict[str, tuple[tuple[str, str], ...]] = {
+    "JUPITER": (
+        ("என்னில் ஆன்மீக தேடல் எந்த திசையில் உள்ளது?",
+         "In which direction is my spiritual longing pointing?"),
+        ("நான் கொடுத்தது மற்றும் தியாகிப்பது, அது என்னை எப்படி உணர வைக்கிறது?",
+         "What have I given up or sacrificed, and how does that feel in my body?"),
+    ),
+    "VENUS": (
+        ("நான் எந்த உறவில் அல்லது அனுபவத்தில் தன்னை இழந்தேன்?",
+         "In which relationship or experience have I lost myself, and what remains?"),
+        ("என்னில் ஒளிந்திருக்கும் ஆசை என்ன?",
+         "What desire within me is hiding in the shadows?"),
+    ),
+    "DEFAULT": (
+        ("நான் தனிமையில் என்ன உணர்கிறேன், அதை ஒப்புக்கொள்கிறேனா?",
+         "What do I feel in solitude, and am I honest with myself about it?"),
+        ("என்னிலிருந்து விடுவிக்கப்பட வேண்டியது என்ன?",
+         "What am I ready to release from my inner landscape?"),
+    ),
+}
+
+_SHADOW_PROMPTS_TAMASIC = (
+    ("என்னில் உள்ள இருண்ட ஆற்றலை நான் எவ்வாறு ஆக்கபூர்வமாக பயன்படுத்த முடியும்?",
+     "How can I channel my intense inner energy into something constructive?"),
+    ("என் ஆழ்மன பயங்கள் என்னிடம் என்ன சொல்கின்றன?",
+     "What are my deepest instincts trying to tell me?"),
+)
+
+
+def generate_shadow_prompts(
+    lagna_rasi: int,
+    planets: "list[PlanetPosition]",
+    moon_nakshatra: str,
+) -> list[BiText]:
+    """Generate 3 shadow-work journal prompts based on 8th lord, 12th lord, and Moon nakshatra."""
+    from app.calculations.chart_strength import SIGN_LORD
+
+    def house_lord(house: int) -> str:
+        rasi = ((lagna_rasi + house - 2) % 12) + 1
+        return SIGN_LORD.get(rasi, "UNKNOWN")
+
+    eighth_lord = house_lord(8)
+    twelfth_lord = house_lord(12)
+    is_tamasic = moon_nakshatra.upper() in _TAMASIC_NAKSHATRAS
+
+    results: list[BiText] = []
+
+    # Prompt 1: from 8th lord
+    prompts_8 = _SHADOW_PROMPTS_8TH.get(eighth_lord, _SHADOW_PROMPTS_8TH["DEFAULT"])
+    ta, en = prompts_8[0]
+    results.append(_bi(ta, en))
+
+    # Prompt 2: from 12th lord
+    prompts_12 = _SHADOW_PROMPTS_12TH.get(twelfth_lord, _SHADOW_PROMPTS_12TH["DEFAULT"])
+    ta, en = prompts_12[0]
+    results.append(_bi(ta, en))
+
+    # Prompt 3: tamasic nakshatra or generic
+    if is_tamasic:
+        ta, en = _SHADOW_PROMPTS_TAMASIC[0]
+    else:
+        ta, en = prompts_8[1] if len(prompts_8) > 1 else _SHADOW_PROMPTS_8TH["DEFAULT"][1]
+    results.append(_bi(ta, en))
+
+    return results
+
+
+def tone_validator(text: str) -> list[str]:
+    """Return list of banned phrases found in `text` (case-insensitive).
+
+    Returns an empty list when text is compliant.
+    Used in tests to verify non-fatalistic language across all narrative output.
+    """
+    lower = text.lower()
+    return [phrase for phrase in _BANNED_PHRASES if phrase in lower]

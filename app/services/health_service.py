@@ -15,6 +15,7 @@ class HealthAssessmentInput:
     planets_rasi: dict[str, int]
     active_dasha_lords: set[str]
     age: int
+    life_stage: str
     lagna_strength_score: int = 50
     pitru_dosham_label: str | None = None
     rahu_ketu_label: str | None = None
@@ -67,6 +68,23 @@ def assess_health_prediction(payload: HealthAssessmentInput) -> LifeAreaPredicti
     supports: list[BiText] = []
     challenges: list[BiText] = []
     score = 55
+    factors.append(
+        AstroFactor(
+            key="life_stage",
+            status="INFO",
+            detail=BiText(
+                ta=f"Life stage: {payload.life_stage}.",
+                en=f"Life stage: {payload.life_stage}.",
+            ),
+        )
+    )
+    if payload.life_stage == "student":
+        supports.append(BiText("Student phase: consistency in sleep and routines is the strongest support.", "Student phase: consistency in sleep and routines is the strongest support."))
+    elif payload.life_stage == "mid_life":
+        supports.append(BiText("Mid-life phase: preventive screening cadence is important.", "Mid-life phase: preventive screening cadence is important."))
+    elif payload.life_stage == "senior":
+        score -= 3
+        challenges.append(BiText("Senior phase: prioritise regular check-ups and recovery pacing.", "Senior phase: prioritise regular check-ups and recovery pacing."))
 
     if payload.lagna_strength_score >= 65:
         score += 10

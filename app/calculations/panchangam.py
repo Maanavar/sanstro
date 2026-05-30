@@ -124,11 +124,42 @@ YAMA_SLOT = {6: 5, 0: 4, 1: 3, 2: 2, 3: 1, 4: 7, 5: 6}
 # Kuligai (Gulika) daytime slots by Python weekday index (Mon=0..Sun=6).
 # Traditional order is Sun=7, Mon=6, Tue=5, Wed=4, Thu=3, Fri=2, Sat=1.
 KULIGAI_SLOT = {6: 7, 0: 6, 1: 5, 2: 4, 3: 3, 4: 2, 5: 1}
-# Nalla Neram: per-weekday auspicious slot (traditional Tamil panchangam; no overlap with Rahu/Yama/Kuligai)
-NALLA_NERAM_SLOT = {6: 1, 0: 6, 1: 4, 2: 7, 3: 3, 4: 2, 5: 5}
+# Mandhi (Maandi) upagraha daytime slots by Python weekday (Mon=0..Sun=6).
+# Traditional Tamil Panchangam: Sun=7, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6.
+MANDHI_SLOT = {6: 7, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6}
+# Nalla Neram: 2 auspicious slots per day, same 8-slot grid as Rahu/Yama/Kuligai.
+# Traditional Tamil Panchangam values (Sun=6, Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5).
+NALLA_NERAM_SLOTS = {6: (2, 5), 0: (1, 6), 1: (3, 8), 2: (4, 7), 3: (1, 6), 4: (2, 5), 5: (3, 8)}
+
+# Gowri Nalla Neram: 3 auspicious slots per day on the same 8-slot grid.
+# Traditional assignment by day (each slot is ~1.5 hr window).
+GOWRI_NALLA_NERAM_SLOTS = {
+    6: (1, 4, 7),   # Sun
+    0: (2, 5, 8),   # Mon
+    1: (1, 4, 7),   # Tue
+    2: (3, 6,),     # Wed (only 2 for Wednesday in tradition)
+    3: (2, 5, 8),   # Thu
+    4: (1, 4, 7),   # Fri
+    5: (3, 6, 8),   # Sat
+}
+
+# Subha (auspicious) yoga names per Thirukanitha tradition
+SUBHA_YOGAS = {"SIDDHA", "AMRITA", "SHUBHA", "VARIYAAN", "HARSHANA", "BRAHMA", "INDRA", "VAIDHRITI"}
+ASHUBHA_YOGAS = {"VYAGHATA", "GANDA", "SHOOLA", "ATIGANDA", "VYATIPATA", "PARIGHA"}
+
+# Auspicious tithis for muhurtham (Shukla paksha 2,3,5,6,7,10,11,12,13; Krishna 2,3,6,7,10,11)
+SUBHA_TITHIS_SHUKLA = {2, 3, 5, 6, 7, 10, 11, 12, 13}
+SUBHA_TITHIS_KRISHNA = {2, 3, 6, 7, 10, 11}
+
+# Auspicious nakshatras for muhurtham (Thirukanitha list)
+SUBHA_NAKSHATRAS = {
+    "ASHWINI", "ROHINI", "MRIGASHIRA", "PUNARVASU", "PUSHYA", "HASTA",
+    "CHITRA", "SWATI", "ANURADHA", "MULA", "UTTARASHADA", "UTTARABHADRA",
+    "REVATI", "MAGHA", "UTTARAPHALGUNI", "SHRAVANA", "DHANISHTHA",
+}
 PANCHANGAM_CACHE_TTL_HOURS = 24
 DEFAULT_AYANAMSA_TYPE = "LAHIRI"
-PANCHANGAM_CACHE_DATA_VERSION = 3
+PANCHANGAM_CACHE_DATA_VERSION = 5
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,10 +202,14 @@ class PanchangamSnapshot:
     rahu_kalam: PanchangamSlot
     yamagandam: PanchangamSlot
     kuligai: PanchangamSlot
-    nalla_neram: PanchangamSlot
+    mandhi: PanchangamSlot
+    nalla_neram: list[PanchangamSlot]
+    gowri_nalla_neram: list[PanchangamSlot]
     abhijit_start: datetime
     abhijit_end: datetime
     abhijit_restricted: bool
+    is_subha_muhurtham: bool
+    subha_muhurtham_reason: str
     hora: list[PanchangamHoraEntry]
     warnings: tuple[str, ...] = ()
 
@@ -281,6 +316,70 @@ def _make_hora_entries(sunrise: datetime, sunset: datetime, next_sunrise: dateti
     return entries
 
 
+def _compute_nalla_neram(
+    sunrise: datetime,
+    sunset: datetime,
+    weekday_index: int,
+) -> list[PanchangamSlot]:
+    """Nalla Neram: 2 slots per day on the same 8-slot daylight grid as Rahu/Yama/Kuligai."""
+    dur = (sunset - sunrise) / 8
+    return [_slot_datetime(sunrise, dur, s) for s in NALLA_NERAM_SLOTS[weekday_index]]
+
+
+def _compute_gowri_nalla_neram(
+    sunrise: datetime,
+    sunset: datetime,
+    weekday_index: int,
+) -> list[PanchangamSlot]:
+    """Gowri Nalla Neram: 2–3 slots per day on the same 8-slot daylight grid."""
+    dur = (sunset - sunrise) / 8
+    return [_slot_datetime(sunrise, dur, s) for s in GOWRI_NALLA_NERAM_SLOTS[weekday_index]]
+
+
+def _compute_subha_muhurtham(
+    tithi_number: int,
+    tithi_paksha: str,
+    nakshatra_name: str,
+    yoga_name: str,
+    weekday_index: int,
+    abhijit_restricted: bool,
+) -> tuple[bool, str]:
+    """Determine if today is a Subha Muhurtham day per Thirukanitha Panchangam."""
+    reasons: list[str] = []
+    inauspicious: list[str] = []
+
+    if yoga_name in ASHUBHA_YOGAS:
+        inauspicious.append(f"{yoga_name} yoga")
+    elif yoga_name in SUBHA_YOGAS:
+        reasons.append(f"{yoga_name} yoga")
+
+    if tithi_paksha == "SHUKLA" and tithi_number in SUBHA_TITHIS_SHUKLA:
+        reasons.append("auspicious tithi")
+    elif tithi_paksha == "KRISHNA" and tithi_number in SUBHA_TITHIS_KRISHNA:
+        reasons.append("auspicious tithi")
+    else:
+        inauspicious.append("inauspicious tithi")
+
+    if nakshatra_name in SUBHA_NAKSHATRAS:
+        reasons.append("auspicious nakshatra")
+    else:
+        inauspicious.append("inauspicious nakshatra")
+
+    # Amavasai (30), Chaturdashi (14/29) and Ashtami (8/23) are always inauspicious
+    tithi_in_paksha = tithi_number if tithi_number <= 15 else tithi_number - 15
+    if tithi_in_paksha in {8, 14} or tithi_number == 30:
+        inauspicious.append("Rahu tithi / Amavasai")
+
+    is_subha = len(inauspicious) == 0 and len(reasons) >= 2
+    if is_subha:
+        reason = "Auspicious: " + ", ".join(reasons)
+    elif inauspicious:
+        reason = "Inauspicious: " + ", ".join(inauspicious)
+    else:
+        reason = "Neutral day"
+    return is_subha, reason
+
+
 def _calculate_positions_at_sunrise(jd_ut: float) -> tuple[float, float, tuple[str, ...]]:
     snapshot = calculate_sidereal_planets(jd_ut)
     return (
@@ -328,11 +427,21 @@ def _serialize_snapshot(snapshot: PanchangamSnapshot) -> dict:
             "end": snapshot.kuligai.end.isoformat(),
             "slot": snapshot.kuligai.slot,
         },
-        "nalla_neram": {
-            "start": snapshot.nalla_neram.start.isoformat(),
-            "end": snapshot.nalla_neram.end.isoformat(),
-            "slot": snapshot.nalla_neram.slot,
+        "mandhi": {
+            "start": snapshot.mandhi.start.isoformat(),
+            "end": snapshot.mandhi.end.isoformat(),
+            "slot": snapshot.mandhi.slot,
         },
+        "nalla_neram": [
+            {"start": w.start.isoformat(), "end": w.end.isoformat(), "slot": w.slot}
+            for w in snapshot.nalla_neram
+        ],
+        "gowri_nalla_neram": [
+            {"start": w.start.isoformat(), "end": w.end.isoformat(), "slot": w.slot}
+            for w in snapshot.gowri_nalla_neram
+        ],
+        "is_subha_muhurtham": snapshot.is_subha_muhurtham,
+        "subha_muhurtham_reason": snapshot.subha_muhurtham_reason,
         "abhijit_start": snapshot.abhijit_start.isoformat(),
         "abhijit_end": snapshot.abhijit_end.isoformat(),
         "abhijit_restricted": snapshot.abhijit_restricted,
@@ -386,11 +495,33 @@ def _deserialize_snapshot(data: dict) -> PanchangamSnapshot:
             end=datetime.fromisoformat(data["kuligai"]["end"]),
             slot=int(data["kuligai"]["slot"]),
         ),
-        nalla_neram=PanchangamSlot(
-            start=datetime.fromisoformat(data["nalla_neram"]["start"]) if "nalla_neram" in data else datetime.fromisoformat(data["kuligai"]["start"]),
-            end=datetime.fromisoformat(data["nalla_neram"]["end"]) if "nalla_neram" in data else datetime.fromisoformat(data["kuligai"]["end"]),
-            slot=int(data["nalla_neram"]["slot"]) if "nalla_neram" in data else 1,
+        mandhi=PanchangamSlot(
+            start=datetime.fromisoformat(data["mandhi"]["start"]),
+            end=datetime.fromisoformat(data["mandhi"]["end"]),
+            slot=int(data["mandhi"]["slot"]),
         ),
+        nalla_neram=[
+            PanchangamSlot(
+                start=datetime.fromisoformat(w["start"]),
+                end=datetime.fromisoformat(w["end"]),
+                slot=int(w["slot"]),
+            )
+            for w in (data["nalla_neram"] if isinstance(data.get("nalla_neram"), list) else [])
+        ] or [PanchangamSlot(
+            start=datetime.fromisoformat(data["kuligai"]["start"]),
+            end=datetime.fromisoformat(data["kuligai"]["end"]),
+            slot=1,
+        )],
+        gowri_nalla_neram=[
+            PanchangamSlot(
+                start=datetime.fromisoformat(w["start"]),
+                end=datetime.fromisoformat(w["end"]),
+                slot=int(w["slot"]),
+            )
+            for w in (data["gowri_nalla_neram"] if isinstance(data.get("gowri_nalla_neram"), list) else [])
+        ],
+        is_subha_muhurtham=bool(data.get("is_subha_muhurtham", False)),
+        subha_muhurtham_reason=str(data.get("subha_muhurtham_reason", "")),
         abhijit_start=datetime.fromisoformat(data["abhijit_start"]),
         abhijit_end=datetime.fromisoformat(data["abhijit_end"]),
         abhijit_restricted=bool(data["abhijit_restricted"]),
@@ -511,19 +642,30 @@ def calculate_daily_panchangam(
     rahu_slot = RAHU_SLOT[date_local.weekday()]
     yama_slot = YAMA_SLOT[date_local.weekday()]
     kuligai_slot = KULIGAI_SLOT[date_local.weekday()]
+    mandhi_slot = MANDHI_SLOT[date_local.weekday()]
 
     kalam_anchor = sunrise
     kalam_slot_duration = (sunset - sunrise) / 8
     rahu = _slot_datetime(kalam_anchor, kalam_slot_duration, rahu_slot)
     yama = _slot_datetime(kalam_anchor, kalam_slot_duration, yama_slot)
     kuligai = _slot_datetime(kalam_anchor, kalam_slot_duration, kuligai_slot)
-    nalla_neram_slot = NALLA_NERAM_SLOT[date_local.weekday()]
-    nalla_neram = _slot_datetime(kalam_anchor, kalam_slot_duration, nalla_neram_slot)
+    mandhi = _slot_datetime(kalam_anchor, kalam_slot_duration, mandhi_slot)
 
     abhijit_start = solar_noon - timedelta(minutes=24)
     abhijit_end = solar_noon + timedelta(minutes=24)
+    abhijit_restricted = date_local.weekday() == 2
+
+    tithi_paksha: str = "SHUKLA" if tithi_number <= 15 else "KRISHNA"
+    yoga_name_str = _yoga_name(yoga_number)
 
     hora_entries = _make_hora_entries(sunrise, sunset, next_sunrise, weekday_lord)
+    nalla_neram = _compute_nalla_neram(sunrise, sunset, date_local.weekday())
+    gowri_nalla_neram = _compute_gowri_nalla_neram(sunrise, sunset, date_local.weekday())
+
+    is_subha, subha_reason = _compute_subha_muhurtham(
+        tithi_number, tithi_paksha, NAKSHATRA_NAMES[nakshatra_number - 1],
+        yoga_name_str, date_local.weekday(), abhijit_restricted,
+    )
 
     snapshot = PanchangamSnapshot(
         date_local=date_local,
@@ -537,22 +679,26 @@ def calculate_daily_panchangam(
         weekday_lord=weekday_lord,
         tithi_number=tithi_number,
         tithi_name=_tithi_name(tithi_number),
-        tithi_paksha="SHUKLA" if tithi_number <= 15 else "KRISHNA",
+        tithi_paksha=tithi_paksha,
         tithi_ends_at=tithi_ends_at,
         nakshatra_number=nakshatra_number,
         nakshatra_name=NAKSHATRA_NAMES[nakshatra_number - 1],
         nakshatra_pada=nakshatra_pada,
         nakshatra_ends_at=nakshatra_ends_at,
         yoga_number=yoga_number,
-        yoga_name=_yoga_name(yoga_number),
+        yoga_name=yoga_name_str,
         karana_name=_karana_name(karana_index),
         rahu_kalam=rahu,
         yamagandam=yama,
         kuligai=kuligai,
+        mandhi=mandhi,
         nalla_neram=nalla_neram,
+        gowri_nalla_neram=gowri_nalla_neram,
         abhijit_start=abhijit_start,
         abhijit_end=abhijit_end,
-        abhijit_restricted=date_local.weekday() == 2,
+        abhijit_restricted=abhijit_restricted,
+        is_subha_muhurtham=is_subha,
+        subha_muhurtham_reason=subha_reason,
         hora=hora_entries,
         warnings=warnings,
     )

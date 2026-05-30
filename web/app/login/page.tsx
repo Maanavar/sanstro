@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 
 type Mode = "login" | "signup" | "forgot";
 
@@ -45,23 +46,27 @@ function isStrongPassword(pw: string): boolean {
   return pw.length >= 8;
 }
 
+const leftPanelFeatures = [
+  { icon: "◎", text: "Thirukanitham accuracy — Lahiri ayanamsa, Drik ephemeris" },
+  { icon: "☽", text: "Daily Dasha, Gochar & Panchangam in plain language" },
+  { icon: "⊕", text: "Family vault — group charts, shared fortune windows" },
+  { icon: "✦", text: "Yogas & Dosham explained transparently, not just a verdict" },
+];
+
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("login");
 
-  // form fields
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // ui state
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState<"signup" | "forgot" | null>(null);
 
-  // inline validation
   const emailTouched = email.length > 0;
   const emailValid = isValidEmail(email);
   const passwordTouched = password.length > 0;
@@ -125,7 +130,6 @@ export default function LoginPage() {
           const payload = await response.json().catch(() => ({} as { detail?: string }));
           throw new Error(payload.detail ?? "Incorrect email or password.");
         }
-        // Check if user has a birth profile; if not, send them to setup
         try {
           const profileCheck = await fetch("/api/backend/api/v1/birth-profiles/me/latest", { credentials: "include" });
           router.push(profileCheck.ok ? "/dashboard" : "/dashboard?setup=1");
@@ -152,465 +156,814 @@ export default function LoginPage() {
     }
   }
 
-  const title = mode === "login" ? "Welcome back" : mode === "signup" ? "Create account" : "Reset password";
+  const title =
+    mode === "login" ? "Welcome back"
+    : mode === "signup" ? "Create your account"
+    : "Reset your password";
+
   const subtitle =
-    mode === "login" ? "Sign in to your Vinaadi AI account"
-    : mode === "signup" ? "Start your Vinaadi AI journey"
+    mode === "login" ? "Sign in to your Vinaadi workspace"
+    : mode === "signup" ? "Start your morning reading practice"
     : "We'll send a reset link to your email";
+
+  /* Password strength level 0-4 */
+  const pwStrength = password.length < 1 ? 0 : password.length < 8 ? 1 : password.length < 12 ? 2 : password.length < 16 ? 3 : 4;
+  const pwStrengthLabel = ["", "Weak", "Fair", "Good", "Strong"][pwStrength];
+  const pwStrengthColor = ["", "#A8482F", "#B85A2C", "#5C7654", "#3a6b40"][pwStrength];
 
   return (
     <>
       <style>{`
-        .auth-root {
+        /* ── Clarity Auth — warm cream design system ── */
+        .ca-root {
           min-height: 100vh;
+          display: flex;
+          background: #F4EEE2;
+          font-family: 'Noto Sans Tamil', 'Inter', system-ui, sans-serif;
+          color: #3D352B;
+        }
+
+        /* ── Left branding panel (desktop ≥1024px) ── */
+        .ca-left {
+          display: none;
+          width: 420px;
+          flex-shrink: 0;
+          flex-direction: column;
+          justify-content: space-between;
+          padding: 48px 52px;
+          background: #EDE5D4;
+          border-right: 1px solid #E4DBC8;
+          position: relative;
+          overflow: hidden;
+        }
+        .ca-left::before {
+          content: '';
+          position: absolute;
+          top: -100px;
+          right: -80px;
+          width: 340px;
+          height: 340px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(184,90,44,0.08) 0%, transparent 70%);
+          pointer-events: none;
+        }
+        .ca-left::after {
+          content: '';
+          position: absolute;
+          bottom: -60px;
+          left: -60px;
+          width: 260px;
+          height: 260px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(92,118,84,0.07) 0%, transparent 70%);
+          pointer-events: none;
+        }
+        @media (min-width: 1024px) {
+          .ca-left { display: flex; }
+          .ca-right { padding: 32px 64px; }
+          .ca-card-brand { display: none; }
+        }
+
+        .ca-left-brand {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          position: relative;
+          z-index: 1;
+        }
+        .ca-brand-link {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          text-decoration: none;
+        }
+        .ca-brand-icon-lg {
+          width: 36px;
+          height: 36px;
+        }
+        .ca-brand-icon-sm {
+          width: 24px;
+          height: 24px;
+        }
+        .ca-left-wordmark {
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 1.75rem;
+          font-weight: 500;
+          letter-spacing: -0.03em;
+          color: #1A1612;
+          line-height: 1;
+          margin: 0;
+          text-decoration: none;
+        }
+        .ca-left-wordmark:hover { color: #3D352B; }
+        .ca-left-tagline {
+          margin: 8px 0 0;
+          font-size: 0.83rem;
+          color: #7A6F5E;
+          line-height: 1.6;
+          max-width: 300px;
+        }
+
+        .ca-left-headline {
+          position: relative;
+          z-index: 1;
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: clamp(2rem, 3vw, 2.5rem);
+          font-weight: 500;
+          letter-spacing: -0.04em;
+          line-height: 1.05;
+          color: #1A1612;
+          margin: 0 0 8px;
+        }
+        .ca-left-headline em {
+          font-style: italic;
+          color: #7A6F5E;
+        }
+
+        .ca-left-features {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          position: relative;
+          z-index: 1;
+        }
+        .ca-left-feature {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+        }
+        .ca-left-feature-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #B85A2C;
+          flex-shrink: 0;
+          margin-top: 0.45em;
+        }
+        .ca-left-feature-text {
+          margin: 0;
+          font-size: 0.84rem;
+          color: #3D352B;
+          line-height: 1.55;
+        }
+
+        .ca-left-back {
+          font-size: 0.78rem;
+          color: #A89D89;
+          text-decoration: none;
+          position: relative;
+          z-index: 1;
+          transition: color 150ms ease;
+        }
+        .ca-left-back:hover { color: #1A1612; }
+
+        /* ── Right form panel ── */
+        .ca-right {
+          flex: 1;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #05070d;
-          padding: 16px;
-          font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-        }
-        .auth-glow {
-          position: fixed;
-          inset: 0;
-          pointer-events: none;
-          background:
-            radial-gradient(circle at 15% 25%, rgba(229,184,77,0.10) 0%, transparent 35%),
-            radial-gradient(circle at 80% 70%, rgba(139,92,246,0.08) 0%, transparent 35%);
-        }
-        .auth-card {
+          padding: 24px 20px;
           position: relative;
-          z-index: 1;
-          width: min(420px, 100%);
-          background: #111218;
-          border: 1px solid rgba(255,255,255,0.09);
-          border-radius: 20px;
+        }
+
+        /* Subtle decorative arc behind the form */
+        .ca-right::before {
+          content: '';
+          position: absolute;
+          top: -200px;
+          right: -200px;
+          width: 600px;
+          height: 600px;
+          border-radius: 50%;
+          border: 1px solid #E4DBC8;
+          pointer-events: none;
+          opacity: 0.5;
+        }
+
+        .ca-card {
+          width: min(440px, 100%);
+          background: #FFFFFF;
+          border: 1px solid #E4DBC8;
+          border-radius: 24px;
           padding: 36px 32px 28px;
           display: flex;
           flex-direction: column;
-          gap: 28px;
-          box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03);
+          gap: 24px;
+          box-shadow: 0 8px 40px rgba(60,40,20,0.12);
+          position: relative;
+          z-index: 1;
         }
-        .auth-brand {
-          display: inline-flex;
+
+        /* Mobile brand shown inside card */
+        .ca-card-brand {
+          display: flex;
           align-items: center;
-          margin-bottom: 2px;
+          gap: 9px;
+          margin-bottom: 4px;
+          text-decoration: none;
         }
-        .auth-brand-wordmark {
-          width: min(320px, 76vw);
-          height: auto;
-          display: block;
-        }
-        .auth-heading {
-          margin: 0 0 4px;
-          font-size: 1.55rem;
-          font-weight: 700;
-          color: #fff;
+        .ca-card-brand-wordmark {
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 1.35rem;
+          font-weight: 500;
           letter-spacing: -0.02em;
+          color: #1A1612;
+          transition: color 150ms ease;
         }
-        .auth-subheading {
+        .ca-card-brand:hover .ca-card-brand-wordmark { color: #7A6F5E; }
+
+        /* Card heading */
+        .ca-heading {
+          margin: 0 0 4px;
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 1.6rem;
+          font-weight: 500;
+          letter-spacing: -0.03em;
+          color: #1A1612;
+          line-height: 1.1;
+        }
+        .ca-subheading {
           margin: 0;
           font-size: 0.85rem;
-          color: rgba(255,255,255,0.45);
+          color: #7A6F5E;
+          line-height: 1.5;
         }
-        .auth-mode-tabs {
+
+        /* Mode toggle tabs */
+        .ca-tabs {
           display: flex;
-          background: rgba(255,255,255,0.05);
-          border-radius: 10px;
-          padding: 3px;
-          gap: 2px;
+          background: #EDE5D4;
+          border: 1.5px solid #D4C8AE;
+          border-radius: 12px;
+          padding: 4px;
+          gap: 3px;
         }
-        .auth-mode-tab {
+        .ca-tab {
           flex: 1;
-          padding: 7px 12px;
-          border-radius: 7px;
+          padding: 9px 14px;
+          border-radius: 8px;
           border: none;
           background: transparent;
-          color: rgba(255,255,255,0.45);
-          font-size: 0.82rem;
-          font-weight: 500;
+          color: #7A6F5E;
+          font-size: 0.87rem;
+          font-weight: 600;
           cursor: pointer;
-          transition: all 0.15s;
           font-family: inherit;
+          transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+          min-height: 40px;
         }
-        .auth-mode-tab.active {
-          background: rgba(255,255,255,0.10);
-          color: #fff;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        .ca-tab.active {
+          background: #FFFFFF;
+          color: #1A1612;
+          box-shadow: 0 1px 6px rgba(60,40,20,0.15);
         }
-        .auth-mode-tab:hover:not(.active) {
-          color: rgba(255,255,255,0.7);
+        .ca-tab:hover:not(.active) {
+          background: rgba(255,255,255,0.5);
+          color: #3D352B;
         }
-        .auth-field {
+
+        /* Fields */
+        .ca-field {
           display: flex;
           flex-direction: column;
           gap: 6px;
         }
-        .auth-label {
-          font-size: 0.78rem;
+        .ca-label {
+          font-size: 0.8rem;
           font-weight: 500;
-          color: rgba(255,255,255,0.55);
-          letter-spacing: 0.02em;
+          color: #3D352B;
+          letter-spacing: 0.01em;
         }
-        .auth-input-wrap {
-          position: relative;
-        }
-        .auth-input {
+        .ca-input-wrap { position: relative; }
+        .ca-input {
           width: 100%;
           padding: 11px 14px;
           border-radius: 10px;
-          border: 1px solid rgba(255,255,255,0.10);
-          background: rgba(255,255,255,0.04);
-          color: #fff;
+          border: 1.5px solid #D4C8AE;
+          background: #FFFFFF;
+          color: #1A1612;
           font-size: 0.9rem;
           font-family: inherit;
-          transition: border-color 0.15s, box-shadow 0.15s;
+          transition: border-color 150ms ease, box-shadow 150ms ease;
           outline: none;
           box-sizing: border-box;
+          -webkit-appearance: none;
+          appearance: none;
         }
-        .auth-input::placeholder { color: rgba(255,255,255,0.2); }
-        .auth-input:focus {
-          border-color: rgba(229,184,77,0.5);
-          box-shadow: 0 0 0 3px rgba(229,184,77,0.08);
+        .ca-input::placeholder { color: #A89D89; }
+        .ca-input:hover { border-color: #B85A2C; }
+        .ca-input:focus {
+          border-color: #B85A2C;
+          box-shadow: 0 0 0 3px rgba(184,90,44,0.12);
         }
-        .auth-input.has-icon { padding-right: 42px; }
-        .auth-input.error { border-color: rgba(248,113,113,0.5); }
-        .auth-input.valid { border-color: rgba(74,222,128,0.35); }
-        .auth-eye {
+        .ca-input:-webkit-autofill,
+        .ca-input:-webkit-autofill:hover,
+        .ca-input:-webkit-autofill:focus {
+          -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset, 0 0 0 3px rgba(184,90,44,0.12);
+          -webkit-text-fill-color: #1A1612;
+          border-color: #B85A2C;
+          transition: background-color 9999s ease-in-out 0s;
+        }
+        .ca-input.has-icon { padding-right: 44px; }
+        .ca-input.is-error { border-color: #A8482F; box-shadow: 0 0 0 3px rgba(168,72,47,0.08); }
+        .ca-input.is-valid { border-color: #5C7654; box-shadow: 0 0 0 3px rgba(92,118,84,0.07); }
+
+        /* Eye toggle */
+        .ca-eye {
           position: absolute;
           right: 12px;
           top: 50%;
           transform: translateY(-50%);
           background: none;
           border: none;
-          padding: 2px;
-          color: rgba(255,255,255,0.35);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          transition: color 0.15s;
-        }
-        .auth-eye:hover { color: rgba(255,255,255,0.7); }
-        .auth-hint {
-          font-size: 0.75rem;
-          color: rgba(255,255,255,0.3);
-          margin-top: 2px;
-        }
-        .auth-hint.error-hint { color: #f87171; }
-        .auth-error {
-          padding: 11px 14px;
-          border-radius: 10px;
-          background: rgba(239,68,68,0.08);
-          border: 1px solid rgba(248,113,113,0.3);
-          color: #f87171;
-          font-size: 0.83rem;
-          line-height: 1.5;
-        }
-        .auth-btn {
-          width: 100%;
-          padding: 12px 20px;
-          border-radius: 10px;
-          border: none;
-          background: linear-gradient(135deg, rgba(229,184,77,0.95), rgba(200,155,50,0.95));
-          color: #0a0800;
-          font-size: 0.9rem;
-          font-weight: 700;
-          font-family: inherit;
-          cursor: pointer;
-          transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
-          box-shadow: 0 4px 20px rgba(229,184,77,0.25);
-          letter-spacing: 0.01em;
-        }
-        .auth-btn:hover:not(:disabled) {
-          opacity: 0.92;
-          transform: translateY(-1px);
-          box-shadow: 0 6px 24px rgba(229,184,77,0.35);
-        }
-        .auth-btn:active:not(:disabled) { transform: translateY(0); }
-        .auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .auth-divider {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          color: rgba(255,255,255,0.18);
-          font-size: 0.75rem;
-        }
-        .auth-divider::before, .auth-divider::after {
-          content: '';
-          flex: 1;
-          height: 1px;
-          background: rgba(255,255,255,0.08);
-        }
-        .auth-footer {
-          text-align: center;
-          font-size: 0.82rem;
-          color: rgba(255,255,255,0.38);
-        }
-        .auth-link {
-          background: none;
-          border: none;
-          color: rgba(229,184,77,0.85);
-          font-size: 0.82rem;
-          font-family: inherit;
-          cursor: pointer;
           padding: 0;
-          font-weight: 500;
-          text-decoration: underline;
-          text-decoration-color: rgba(229,184,77,0.3);
-          transition: color 0.15s;
-        }
-        .auth-link:hover { color: rgba(229,184,77,1); }
-        .auth-success {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 16px;
-          text-align: center;
-          padding: 8px 0;
-        }
-        .auth-success-icon {
-          width: 52px;
-          height: 52px;
-          border-radius: 50%;
-          background: rgba(74,222,128,0.12);
-          border: 1px solid rgba(74,222,128,0.3);
+          color: #A89D89;
+          cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #4ade80;
+          min-width: 36px;
+          min-height: 36px;
+          transition: color 150ms ease;
         }
-        .auth-success-title {
-          margin: 0;
-          font-size: 1.05rem;
-          font-weight: 600;
-          color: #fff;
+        .ca-eye:hover { color: #3D352B; }
+
+        /* Hint text */
+        .ca-hint {
+          font-size: 0.74rem;
+          color: #A89D89;
+          margin-top: 1px;
+          line-height: 1.4;
         }
-        .auth-success-body {
-          margin: 0;
-          font-size: 0.85rem;
-          color: rgba(255,255,255,0.5);
-          line-height: 1.6;
-          max-width: 280px;
-        }
-        .auth-forgot-link {
+        .ca-hint.is-error { color: #A8482F; }
+
+        /* Forgot password link */
+        .ca-forgot {
           display: flex;
           justify-content: flex-end;
-          margin-top: -8px;
+          margin-top: -4px;
         }
-        .auth-pw-strength {
+        .ca-text-btn {
+          background: none;
+          border: none;
+          padding: 0;
+          font-family: inherit;
+          font-size: 0.8rem;
+          font-weight: 500;
+          color: #B85A2C;
+          cursor: pointer;
+          text-decoration: underline;
+          text-decoration-color: rgba(184,90,44,0.3);
+          min-height: 36px;
+          display: inline-flex;
+          align-items: center;
+          transition: color 150ms ease, text-decoration-color 150ms ease;
+        }
+        .ca-text-btn:hover {
+          color: #8c3e18;
+          text-decoration-color: rgba(184,90,44,0.7);
+        }
+
+        /* Password strength */
+        .ca-pw-strength {
           display: flex;
           gap: 4px;
           margin-top: 4px;
+          align-items: center;
         }
-        .auth-pw-bar {
+        .ca-pw-bar {
           height: 3px;
           flex: 1;
           border-radius: 999px;
-          background: rgba(255,255,255,0.08);
-          transition: background 0.2s;
+          background: #E4DBC8;
+          transition: background 200ms ease;
         }
-        .auth-pw-bar.filled-weak  { background: #f87171; }
-        .auth-pw-bar.filled-ok    { background: rgba(229,184,77,0.8); }
-        .auth-pw-bar.filled-good  { background: #4ade80; }
+        .ca-pw-label {
+          font-size: 0.7rem;
+          font-weight: 600;
+          min-width: 36px;
+          text-align: right;
+          transition: color 200ms ease;
+        }
+
+        /* Error banner */
+        .ca-error {
+          padding: 11px 14px;
+          border-radius: 10px;
+          background: #F2D8CC;
+          border: 1px solid rgba(168,72,47,0.3);
+          color: #A8482F;
+          font-size: 0.84rem;
+          line-height: 1.5;
+        }
+
+        /* Submit button */
+        .ca-btn {
+          width: 100%;
+          padding: 13px 20px;
+          border-radius: 999px;
+          border: none;
+          background: #1A1612;
+          color: #F4EEE2;
+          font-size: 0.92rem;
+          font-weight: 600;
+          font-family: inherit;
+          cursor: pointer;
+          transition: background 150ms ease, transform 120ms ease, box-shadow 150ms ease;
+          letter-spacing: 0.01em;
+          min-height: 48px;
+          margin-top: 4px;
+        }
+        .ca-btn:hover:not(:disabled) {
+          background: #3D352B;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 16px rgba(26,22,18,0.2);
+        }
+        .ca-btn:active:not(:disabled) { transform: translateY(0); }
+        .ca-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+        /* Success state */
+        .ca-success {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 14px;
+          text-align: center;
+          padding: 8px 0;
+        }
+        .ca-success-icon {
+          width: 52px;
+          height: 52px;
+          border-radius: 50%;
+          background: #DCE4D2;
+          border: 1px solid rgba(92,118,84,0.4);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #5C7654;
+        }
+        .ca-success-title {
+          margin: 0;
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 1.2rem;
+          font-weight: 500;
+          color: #1A1612;
+        }
+        .ca-success-body {
+          margin: 0;
+          font-size: 0.85rem;
+          color: #7A6F5E;
+          line-height: 1.65;
+          max-width: 300px;
+        }
+        .ca-email-strong {
+          color: #3D352B;
+        }
+        .ca-form {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+        .ca-center-row {
+          margin: 0;
+          text-align: center;
+        }
+        .ca-footer-switch {
+          font-size: 0.82rem;
+        }
+
+        /* Footer row */
+        .ca-footer {
+          text-align: center;
+          font-size: 0.82rem;
+          color: #7A6F5E;
+          line-height: 1.5;
+        }
+        .ca-footer a {
+          color: #B85A2C;
+          text-decoration: none;
+          font-weight: 500;
+        }
+        .ca-footer a:hover { text-decoration: underline; }
+
+        /* Terms */
+        .ca-terms {
+          margin: 0;
+          font-size: 0.74rem;
+          color: #A89D89;
+          text-align: center;
+          line-height: 1.6;
+        }
+        .ca-terms a {
+          color: #7A6F5E;
+          text-decoration: underline;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .ca-btn, .ca-tab, .ca-input, .ca-text-btn, .ca-pw-bar {
+            transition: none !important;
+          }
+          .ca-btn:hover:not(:disabled) { transform: none; }
+        }
       `}</style>
 
-      <div className="auth-glow" />
-      <main className="auth-root">
-        <div className="auth-card">
+      <div className="ca-root">
 
-          {/* Brand */}
-          <div>
-            <div className="auth-brand">
+        {/* ── Left branding panel (desktop ≥1024px) ── */}
+        <aside className="ca-left" aria-label="Vinaadi features">
+          <div className="ca-left-brand">
+            <Link href="/" aria-label="Vinaadi home" className="ca-brand-link">
               <Image
-                src="/brand/vinaadi-wordmark-color-transparent.png"
-                alt="Vinaadi - Your Cosmic Copilot"
-                width={1764}
-                height={619}
-                className="auth-brand-wordmark"
+                src="/brand/vinaadi-symbol-icon.png"
+                alt=""
+                aria-hidden
+                width={512}
+                height={512}
+                className="ca-brand-icon-lg"
                 priority
               />
-            </div>
-            <h1 className="auth-heading" style={{ marginTop: "16px" }}>{title}</h1>
-            <p className="auth-subheading">{subtitle}</p>
+              <span className="ca-left-wordmark">Vinaadi</span>
+            </Link>
+            <p className="ca-left-tagline">
+              Thirukanitham-based Tamil astrology for daily life and family planning.
+            </p>
           </div>
 
-          {/* Mode tabs — login / sign up only (forgot is accessed via link) */}
-          {mode !== "forgot" && (
-            <div className="auth-mode-tabs">
-              <button type="button" className={`auth-mode-tab${mode === "login" ? " active" : ""}`} onClick={() => switchMode("login")}>
-                Sign in
-              </button>
-              <button type="button" className={`auth-mode-tab${mode === "signup" ? " active" : ""}`} onClick={() => switchMode("signup")}>
-                Sign up
-              </button>
+          <div>
+            <p className="ca-left-headline">
+              One quiet<br />reading.<br /><em>Every morning.</em>
+            </p>
+          </div>
+
+          <ul className="ca-left-features" role="list">
+            {leftPanelFeatures.map((f) => (
+              <li key={f.text} className="ca-left-feature">
+                <span className="ca-left-feature-dot" aria-hidden="true" />
+                <p className="ca-left-feature-text">{f.text}</p>
+              </li>
+            ))}
+          </ul>
+
+          <Link href="/" className="ca-left-back">← Back to home</Link>
+        </aside>
+
+        {/* ── Right form panel ── */}
+        <main className="ca-right">
+          <div className="ca-card">
+
+            {/* Mobile brand (hidden on desktop via CSS) */}
+            <Link href="/" className="ca-card-brand" aria-label="Vinaadi home">
+              <Image
+                src="/brand/vinaadi-symbol-icon.png"
+                alt=""
+                width={512}
+                height={512}
+                className="ca-brand-icon-sm"
+                priority
+              />
+              <span className="ca-card-brand-wordmark">Vinaadi</span>
+            </Link>
+
+            {/* Heading */}
+            <div>
+              <h1 className="ca-heading">{title}</h1>
+              <p className="ca-subheading">{subtitle}</p>
             </div>
-          )}
 
-          {/* Success states */}
-          {done === "signup" && (
-            <div className="auth-success">
-              <div className="auth-success-icon"><CheckIcon /></div>
-              <p className="auth-success-title">Account created!</p>
-              <p className="auth-success-body">
-                Your account is ready. Sign in to continue to your dashboard.
-              </p>
-              <button type="button" className="auth-link" onClick={() => switchMode("login")}>
-                Go to sign in →
-              </button>
-            </div>
-          )}
-
-          {done === "forgot" && (
-            <div className="auth-success">
-              <div className="auth-success-icon"><MailIcon /></div>
-              <p className="auth-success-title">Reset link sent</p>
-              <p className="auth-success-body">
-                If an account exists for <strong style={{ color: "rgba(255,255,255,0.75)" }}>{email}</strong>, you'll receive a password reset link shortly.
-              </p>
-              <button type="button" className="auth-link" onClick={() => switchMode("login")}>
-                Back to sign in →
-              </button>
-            </div>
-          )}
-
-          {/* Form */}
-          {!done && (
-            <form onSubmit={(e) => void handleSubmit(e)} style={{ display: "flex", flexDirection: "column", gap: "16px" }} noValidate>
-
-              {/* Email */}
-              <div className="auth-field">
-                <label className="auth-label" htmlFor="auth-email">Email</label>
-                <input
-                  id="auth-email"
-                  className={`auth-input${emailTouched && !emailValid ? " error" : emailTouched && emailValid ? " valid" : ""}`}
-                  type="email"
-                  autoComplete="email"
-                  required
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); setError(null); }}
-                />
-                {emailTouched && !emailValid && (
-                  <span className="auth-hint error-hint">Enter a valid email address</span>
-                )}
+            {/* Mode tabs (login / signup only) */}
+            {mode !== "forgot" && (
+              <div className="ca-tabs" role="tablist" aria-label="Authentication mode">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === "login"}
+                  className={`ca-tab${mode === "login" ? " active" : ""}`}
+                  onClick={() => switchMode("login")}
+                >
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === "signup"}
+                  className={`ca-tab${mode === "signup" ? " active" : ""}`}
+                  onClick={() => switchMode("signup")}
+                >
+                  Create account
+                </button>
               </div>
+            )}
 
-              {/* Password */}
-              {mode !== "forgot" && (
-                <div className="auth-field">
-                  <label className="auth-label" htmlFor="auth-password">Password</label>
-                  <div className="auth-input-wrap">
-                    <input
-                      id="auth-password"
-                      className={`auth-input has-icon${passwordTouched && !passwordValid ? " error" : passwordTouched && passwordValid ? " valid" : ""}`}
-                      type={showPassword ? "text" : "password"}
-                      autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                      required
-                      placeholder={mode === "signup" ? "Min. 8 characters" : "••••••••"}
-                      value={password}
-                      onChange={(e) => { setPassword(e.target.value); setError(null); }}
-                    />
-                    <button type="button" className="auth-eye" onClick={() => setShowPassword((v) => !v)} tabIndex={-1} aria-label={showPassword ? "Hide password" : "Show password"}>
-                      <EyeIcon open={showPassword} />
-                    </button>
-                  </div>
+            {/* ── Success states ── */}
+            {done === "signup" && (
+              <div className="ca-success" role="status">
+                <div className="ca-success-icon" aria-hidden="true"><CheckIcon /></div>
+                <p className="ca-success-title">Account created</p>
+                <p className="ca-success-body">
+                  Your account is ready. Sign in to open your dashboard.
+                </p>
+                <button type="button" className="ca-text-btn" onClick={() => switchMode("login")}>
+                  Go to sign in →
+                </button>
+              </div>
+            )}
 
-                  {/* Password strength bars (signup only) */}
-                  {mode === "signup" && passwordTouched && (
-                    <>
-                      <div className="auth-pw-strength">
-                        {[0, 1, 2, 3].map((i) => {
-                          const len = password.length;
-                          const strength = len < 8 ? 1 : len < 12 ? 2 : len < 16 ? 3 : 4;
-                          const cls = i < strength ? (strength <= 1 ? "filled-weak" : strength <= 2 ? "filled-ok" : "filled-good") : "";
-                          return <div key={i} className={`auth-pw-bar${cls ? ` ${cls}` : ""}`} />;
-                        })}
-                      </div>
-                      {!passwordValid && (
-                        <span className="auth-hint error-hint">At least 8 characters required</span>
-                      )}
-                    </>
+            {done === "forgot" && (
+              <div className="ca-success" role="status">
+                <div className="ca-success-icon" aria-hidden="true"><MailIcon /></div>
+                <p className="ca-success-title">Reset link sent</p>
+                <p className="ca-success-body">
+                  If an account exists for{" "}
+                  <strong className="ca-email-strong">{email}</strong>,
+                  you&apos;ll receive a reset link shortly.
+                </p>
+                <button type="button" className="ca-text-btn" onClick={() => switchMode("login")}>
+                  ← Back to sign in
+                </button>
+              </div>
+            )}
+
+            {/* ── Form ── */}
+            {!done && (
+              <form
+                onSubmit={(e) => void handleSubmit(e)}
+                className="ca-form"
+                noValidate
+              >
+                {/* Email */}
+                <div className="ca-field">
+                  <label className="ca-label" htmlFor="ca-email">Email</label>
+                  <input
+                    id="ca-email"
+                    className={`ca-input${emailTouched && !emailValid ? " is-error" : emailTouched && emailValid ? " is-valid" : ""}`}
+                    type="email"
+                    autoComplete="email"
+                    required
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setError(null); }}
+                  />
+                  {emailTouched && !emailValid && (
+                    <span className="ca-hint is-error" role="alert">Enter a valid email address</span>
                   )}
+                </div>
 
-                  {/* Forgot password link (login only) */}
-                  {mode === "login" && (
-                    <div className="auth-forgot-link">
-                      <button type="button" className="auth-link" style={{ fontSize: "0.78rem" }} onClick={() => switchMode("forgot")}>
-                        Forgot password?
+                {/* Password */}
+                {mode !== "forgot" && (
+                  <div className="ca-field">
+                    <label className="ca-label" htmlFor="ca-password">Password</label>
+                    <div className="ca-input-wrap">
+                      <input
+                        id="ca-password"
+                        className={`ca-input has-icon${passwordTouched && !passwordValid ? " is-error" : passwordTouched && passwordValid ? " is-valid" : ""}`}
+                        type={showPassword ? "text" : "password"}
+                        autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                        required
+                        placeholder={mode === "signup" ? "Min. 8 characters" : "••••••••"}
+                        value={password}
+                        onChange={(e) => { setPassword(e.target.value); setError(null); }}
+                      />
+                      <button
+                        type="button"
+                        className="ca-eye"
+                        onClick={() => setShowPassword((v) => !v)}
+                        tabIndex={-1}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        <EyeIcon open={showPassword} />
                       </button>
                     </div>
-                  )}
-                </div>
-              )}
 
-              {/* Confirm password (signup only) */}
-              {mode === "signup" && (
-                <div className="auth-field">
-                  <label className="auth-label" htmlFor="auth-confirm">Confirm password</label>
-                  <div className="auth-input-wrap">
-                    <input
-                      id="auth-confirm"
-                      className={`auth-input has-icon${confirmTouched && !confirmMatch ? " error" : confirmTouched && confirmMatch && passwordValid ? " valid" : ""}`}
-                      type={showConfirm ? "text" : "password"}
-                      autoComplete="new-password"
-                      required
-                      placeholder="Repeat your password"
-                      value={confirmPassword}
-                      onChange={(e) => { setConfirmPassword(e.target.value); setError(null); }}
-                    />
-                    <button type="button" className="auth-eye" onClick={() => setShowConfirm((v) => !v)} tabIndex={-1} aria-label={showConfirm ? "Hide password" : "Show password"}>
-                      <EyeIcon open={showConfirm} />
-                    </button>
+                    {/* Strength bars — signup only */}
+                    {mode === "signup" && passwordTouched && (
+                      <div className="ca-pw-strength" aria-hidden="true">
+                        {[1, 2, 3, 4].map((i) => (
+                          <div
+                            key={i}
+                            className="ca-pw-bar"
+                            style={{
+                              background: i <= pwStrength ? pwStrengthColor : "#E4DBC8",
+                            }}
+                          />
+                        ))}
+                        <span
+                          className="ca-pw-label"
+                          style={{ color: pwStrengthColor }}
+                        >
+                          {pwStrengthLabel}
+                        </span>
+                      </div>
+                    )}
+
+                    {mode === "signup" && passwordTouched && !passwordValid && (
+                      <span className="ca-hint is-error" role="alert">At least 8 characters required</span>
+                    )}
+
+                    {/* Forgot link — login only */}
+                    {mode === "login" && (
+                      <div className="ca-forgot">
+                        <button
+                          type="button"
+                          className="ca-text-btn"
+                          onClick={() => switchMode("forgot")}
+                        >
+                          Forgot password?
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  {confirmTouched && !confirmMatch && (
-                    <span className="auth-hint error-hint">Passwords do not match</span>
-                  )}
-                </div>
-              )}
+                )}
 
-              {/* Error banner */}
-              {error && <div className="auth-error" role="alert">{error}</div>}
+                {/* Confirm password — signup only */}
+                {mode === "signup" && (
+                  <div className="ca-field">
+                    <label className="ca-label" htmlFor="ca-confirm">Confirm password</label>
+                    <div className="ca-input-wrap">
+                      <input
+                        id="ca-confirm"
+                        className={`ca-input has-icon${confirmTouched && !confirmMatch ? " is-error" : confirmTouched && confirmMatch && passwordValid ? " is-valid" : ""}`}
+                        type={showConfirm ? "text" : "password"}
+                        autoComplete="new-password"
+                        required
+                        placeholder="Repeat your password"
+                        value={confirmPassword}
+                        onChange={(e) => { setConfirmPassword(e.target.value); setError(null); }}
+                      />
+                      <button
+                        type="button"
+                        className="ca-eye"
+                        onClick={() => setShowConfirm((v) => !v)}
+                        tabIndex={-1}
+                        aria-label={showConfirm ? "Hide confirm password" : "Show confirm password"}
+                      >
+                        <EyeIcon open={showConfirm} />
+                      </button>
+                    </div>
+                    {confirmTouched && !confirmMatch && (
+                      <span className="ca-hint is-error" role="alert">Passwords do not match</span>
+                    )}
+                  </div>
+                )}
 
-              {/* Submit */}
-              <button
-                type="submit"
-                className="auth-btn"
-                disabled={loading}
-                style={{ marginTop: "4px" }}
-              >
-                {loading
-                  ? "Please wait…"
-                  : mode === "login"
-                    ? "Sign in"
-                    : mode === "signup"
-                      ? "Create account"
-                      : "Send reset link"}
-              </button>
+                {/* Error banner */}
+                {error && <div className="ca-error" role="alert">{error}</div>}
 
-              {/* Back link for forgot mode */}
-              {mode === "forgot" && (
-                <p style={{ margin: 0, textAlign: "center" }}>
-                  <button type="button" className="auth-link" onClick={() => switchMode("login")}>
-                    ← Back to sign in
-                  </button>
-                </p>
-              )}
-            </form>
-          )}
+                {/* Submit */}
+                <button type="submit" className="ca-btn" disabled={loading}>
+                  {loading
+                    ? "Please wait…"
+                    : mode === "login"
+                      ? "Sign in"
+                      : mode === "signup"
+                        ? "Create account"
+                        : "Send reset link"}
+                </button>
 
-          {/* Footer — terms / note */}
-          {!done && mode === "signup" && (
-            <p style={{ margin: 0, fontSize: "0.75rem", color: "rgba(255,255,255,0.25)", textAlign: "center", lineHeight: 1.6 }}>
-              By creating an account you agree to our{" "}
-              <span style={{ textDecoration: "underline", cursor: "pointer", color: "rgba(255,255,255,0.38)" }}>Terms</span>{" "}
-              and{" "}
-              <span style={{ textDecoration: "underline", cursor: "pointer", color: "rgba(255,255,255,0.38)" }}>Privacy Policy</span>.
-            </p>
-          )}
+                {/* Back to sign in — forgot mode */}
+                {mode === "forgot" && (
+                  <p className="ca-center-row">
+                    <button type="button" className="ca-text-btn" onClick={() => switchMode("login")}>
+                      ← Back to sign in
+                    </button>
+                  </p>
+                )}
+              </form>
+            )}
 
-        </div>
-      </main>
+            {/* Terms — signup only */}
+            {!done && mode === "signup" && (
+              <p className="ca-terms">
+                By creating an account you agree to our{" "}
+                <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.
+              </p>
+            )}
+
+            {/* Footer switch hint */}
+            {!done && mode !== "forgot" && (
+              <p className="ca-footer">
+                {mode === "login" ? (
+                  <>No account?{" "}
+                    <button type="button" className="ca-text-btn ca-footer-switch" onClick={() => switchMode("signup")}>
+                      Create one
+                    </button>
+                  </>
+                ) : (
+                  <>Already have an account?{" "}
+                    <button type="button" className="ca-text-btn ca-footer-switch" onClick={() => switchMode("login")}>
+                      Sign in
+                    </button>
+                  </>
+                )}
+              </p>
+            )}
+
+          </div>
+        </main>
+      </div>
     </>
   );
 }
-

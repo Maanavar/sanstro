@@ -315,3 +315,45 @@ class FamilyVaultTodayResponse(BaseModel):
     meta: ResponseMeta
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+# ---------------------------------------------------------------------------
+# Family composite timeline (PRES-12)
+# ---------------------------------------------------------------------------
+
+class CompositeMemberScore(BaseModel):
+    family_member_id: UUID = Field(alias="familyMemberId")
+    display_name: str = Field(alias="displayName")
+    individual_score: int = Field(alias="individualScore")
+    label: str
+    active_cycle_tags: list[str] = Field(alias="activeCycleTags")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class CompositeTimelineItem(BaseModel):
+    date_local: date = Field(alias="dateLocal")
+    family_score: int = Field(alias="familyScore")
+    family_label: str = Field(alias="familyLabel")
+    members: list[CompositeMemberScore]
+    support_need_index: int = Field(alias="supportNeedIndex")
+    decision_readiness_index: int = Field(alias="decisionReadinessIndex")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class FamilyCompositeTimelineData(BaseModel):
+    family_vault_id: UUID = Field(alias="familyVaultId")
+    from_date: date = Field(alias="fromDate")
+    to_date: date = Field(alias="toDate")
+    items: list[CompositeTimelineItem]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class FamilyCompositeTimelineResponse(BaseModel):
+    success: bool = True
+    data: FamilyCompositeTimelineData
+    meta: ResponseMeta
+
+    model_config = ConfigDict(populate_by_name=True)

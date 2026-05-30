@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -51,6 +52,15 @@ class ForgotPasswordRequest(BaseModel):
 class AuthUserResponse(BaseModel):
     user_id: str = Field(alias="userId")
     email: str
+    user_mode: Literal["BEGINNER", "BALANCED", "TRADITIONAL"] = Field(default="BALANCED", alias="userMode")
+    goal_track: Optional[Literal["CAREER", "EXAM", "RELATIONSHIP", "FINANCIAL"]] = Field(default=None, alias="goalTrack")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class UpdateUserSettingsRequest(BaseModel):
+    user_mode: Optional[Literal["BEGINNER", "BALANCED", "TRADITIONAL"]] = Field(default=None, alias="userMode")
+    goal_track: Optional[Literal["CAREER", "EXAM", "RELATIONSHIP", "FINANCIAL"]] = Field(default=None, alias="goalTrack")
 
     model_config = ConfigDict(populate_by_name=True)
 

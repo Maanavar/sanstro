@@ -1,71 +1,36 @@
-﻿"use client";
-
-
+"use client";
 
 import { t, tPlanetLord } from "@/lib/i18n";
-
+import { plainLangDashaLord } from "@/lib/plainlang";
+import type { Mode } from "@/lib/plainlang";
 import type { Lang } from "@/lib/i18n";
-
 import type { DashaTimelineItem, DashaTimelineResponseData } from "@/lib/types";
 
 export const DASHA_COLORS: Record<string, string> = {
-
-
-  SUN: "#f59e0b", MOON: "#93c5fd", MARS: "#f87171", MERCURY: "#34d399",
-
-
-  JUPITER: "#fbbf24", VENUS: "#f0abfc", SATURN: "#94a3b8", RAHU: "#a78bfa", KETU: "#6b7280",
-
-
+  SUN:     "#B85A2C",  /* terracotta */
+  MOON:    "#1e5a8c",  /* deep blue */
+  MARS:    "#A8482F",  /* rust */
+  MERCURY: "#5C7654",  /* sage */
+  JUPITER: "#3a6b40",  /* deep sage */
+  VENUS:   "#7a4880",  /* muted violet */
+  SATURN:  "#7A6F5E",  /* warm grey */
+  RAHU:    "#5a4880",  /* muted purple */
+  KETU:    "#8c7a6e",  /* warm taupe */
 };
 
-
-
-
-
 export function dashaStatus(startDate: string, endDate: string, today: string): "past" | "active" | "upcoming" {
-
   if (endDate < today) return "past";
-
-
   if (startDate <= today && endDate >= today) return "active";
-
-
   return "upcoming";
-
-
 }
-
-
-
-
 
 function dashaScore(lord: string, dashaSupport: number): number {
-
-
-  // Rough lord-based baseline score (0-100); active period overrides with real dashaSupport
-
-
   const BASE: Record<string, number> = {
-
-
     JUPITER: 78, VENUS: 72, MERCURY: 65, MOON: 62, SUN: 58,
-
-
     MARS: 52, SATURN: 48, RAHU: 44, KETU: 42,
-
-
   };
-
-
   return BASE[lord] ?? 55;
-
-
 }
-
-
-
-
 
 function ageAtDate(birthDateLocal: string | undefined, targetDate: string): number | null {
   if (!birthDateLocal) return null;
@@ -75,588 +40,231 @@ function ageAtDate(birthDateLocal: string | undefined, targetDate: string): numb
   if (target.getMonth() < birth.getMonth() || (target.getMonth() === birth.getMonth() && target.getDate() < birth.getDate())) age--;
   return age;
 }
+
 export function DashaTimeline({
-
   dasha,
-
-
   dashaAntar,
-
-
   today,
-
-
   dashaSupport,
-
-
   lang,
-
   birthDateLocal,
-
   currentPeriodCaution,
-
   currentPeriodAction,
-
+  mode = "BALANCED",
 }: {
-
-
   dasha: DashaTimelineResponseData;
-
-
   dashaAntar: DashaTimelineItem[];
-
-
   today: string;
-
-
   dashaSupport: number;
-
-
   lang: Lang;
-
   birthDateLocal?: string;
-
   currentPeriodCaution?: string;
-
   currentPeriodAction?: string;
-
+  mode?: Mode;
 }) {
-
-
   const currentMahaDasa = dasha.current.mahadasha.lord;
-
-
   const currentBhukti = dasha.current.antardasha.lord;
 
+  // ── Horizontal bar time calculations ──────────────────────
+  const allPeriods = dasha.timeline;
+  const barStartMs = allPeriods[0]?.startDate
+    ? new Date(String(allPeriods[0].startDate)).getTime() : 0;
+  const barEndMs = allPeriods[allPeriods.length - 1]?.endDate
+    ? new Date(String(allPeriods[allPeriods.length - 1].endDate)).getTime() : 1;
+  const totalMs = Math.max(barEndMs - barStartMs, 1);
+  const todayMs = new Date(today).getTime();
+  const nowPct  = Math.max(0, Math.min(100, ((todayMs - barStartMs) / totalMs) * 100));
 
-
-
+  function pct(dateStr: string) {
+    return Math.max(0, Math.min(100, ((new Date(String(dateStr)).getTime() - barStartMs) / totalMs) * 100));
+  }
 
   return (
-
-
-    <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-
-
-      {dasha.timeline.map((period) => {
-
-
-        const status = dashaStatus(String(period.startDate), String(period.endDate), today);
-
-
-        const isCurrentDasa = period.lord === currentMahaDasa && status === "active";
-
-
-        const color = DASHA_COLORS[period.lord] ?? "#94a3b8";
-
-
-        const score = isCurrentDasa ? dashaSupport : dashaScore(period.lord, dashaSupport);
-
-
-        const isPast = status === "past";
-
-
-
-
-
-        return (
-
-
-          <div key={`${period.lord}-${period.startDate}`} style={{
-
-
-            borderRadius: "10px",
-
-
-            border: isCurrentDasa
-
-
-              ? `2px solid ${color}99`
-
-
-              : isPast
-
-
-                ? "1px solid rgba(255,255,255,0.05)"
-
-
-                : "1px solid rgba(255,255,255,0.07)",
-
-
-            background: isCurrentDasa
-
-
-              ? `linear-gradient(135deg, ${color}18 0%, ${color}08 100%)`
-
-
-              : isPast
-
-
-                ? "rgba(255,255,255,0.01)"
-
-
-                : "rgba(255,255,255,0.02)",
-
-
-            overflow: "hidden",
-
-
-          }}>
-
-
-            {/* Running Dasa glow bar */}
-
-
-            {isCurrentDasa && (
-
-
-              <div style={{ height: "3px", background: `linear-gradient(90deg, ${color}, ${color}44)`, borderRadius: "10px 10px 0 0" }} />
-
-
-            )}
-
-
-
-
-
-            {/* Maha Dasa row */}
-
-
-            <div style={{
-
-
-              display: "flex", alignItems: "center", gap: "10px",
-
-
-              padding: isCurrentDasa ? "10px 14px 8px" : "7px 12px",
-
-
-            }}>
-
-
-              <div style={{
-
-
-                width: isCurrentDasa ? "12px" : "8px",
-
-
-                height: isCurrentDasa ? "12px" : "8px",
-
-
-                borderRadius: "50%", background: color, flexShrink: 0,
-
-
-                boxShadow: isCurrentDasa ? `0 0 8px ${color}` : "none",
-
-
-              }} />
-
-
-              <span style={{
-
-
-                fontSize: isCurrentDasa ? "0.92rem" : "0.82rem",
-
-
-                fontWeight: isCurrentDasa ? 800 : isPast ? 400 : 500,
-
-
-                color: isCurrentDasa ? color : isPast ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.65)",
-
-
-                minWidth: "90px",
-
-
-              }}>
-
-
-                {tPlanetLord(period.lord, lang)} {t("dasha_word", lang)}
-
-
-              </span>
-
-
-              <span style={{ fontSize: "0.72rem", color: isPast ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.4)", flex: 1 }}>
-
-
-                {String(period.startDate)} → {String(period.endDate)}
-
-
-              </span>
-
-
-              <span style={{
-
-
-                fontSize: "0.68rem", fontWeight: 700, padding: "2px 10px", borderRadius: "999px",
-
-
-                background: isCurrentDasa ? color + "33" : isPast ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.04)",
-
-
-                color: isCurrentDasa ? color : isPast ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.4)",
-
-
-                border: `1px solid ${isCurrentDasa ? color + "77" : "rgba(255,255,255,0.07)"}`,
-
-
-              }}>
-
-
-                {isCurrentDasa ? t("status_active", lang) : isPast ? t("status_past", lang) : t("status_upcoming", lang)}
-
-
-              </span>
-
-
-              <span style={{
-
-
-                fontSize: "0.75rem", fontWeight: 700, minWidth: "52px", textAlign: "right",
-
-
-                color: isCurrentDasa
-
-
-                  ? (score >= 65 ? "#4ade80" : score >= 45 ? "#fbbf24" : "#f87171")
-
-
-                  : isPast ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.35)",
-
-
-              }}>
-
-
-                {isCurrentDasa || !isPast ? `${score}/100` : "—"}
-
-
-              </span>
-
-
-            </div>
-
-
-
-
-
-            {/* Bhukti rows — only under current running Dasa */}
-
-
-            {isCurrentDasa && dashaAntar.length > 0 && (
-
-
-              <div style={{
-
-
-                margin: "0 10px 10px 34px",
-
-
-                borderLeft: `2px solid ${color}44`,
-
-
-                paddingLeft: "12px",
-
-
-                display: "flex", flexDirection: "column", gap: "2px",
-
-
-              }}>
-
-
-                {dashaAntar.map((bhukti) => {
-
-
-                  const bhuktiStatus = dashaStatus(String(bhukti.startDate), String(bhukti.endDate), today);
-
-
-                  const isCurrentBhukti = bhukti.lord === currentBhukti && bhuktiStatus === "active";
-
-
-                  const bhuktiColor = DASHA_COLORS[bhukti.lord] ?? "#94a3b8";
-
-
-                  const bhuktiScore = isCurrentBhukti ? Math.round(dashaSupport * 0.9) : dashaScore(bhukti.lord, dashaSupport);
-
-
-                  const bhuktiPast = bhuktiStatus === "past";
-
-
-                  return (
-
-
-                    <div key={`bhukti-${bhukti.lord}-${bhukti.startDate}`}>
-
-
-                      <div style={{
-
-
-                        display: "flex", alignItems: "center", gap: "8px",
-
-
-                        padding: isCurrentBhukti ? "6px 10px" : "4px 8px",
-
-
-                        borderRadius: "7px",
-
-
-                        background: isCurrentBhukti ? `${bhuktiColor}22` : "transparent",
-
-
-                        border: isCurrentBhukti
-
-
-                          ? `1px solid ${bhuktiColor}66`
-
-
-                          : bhuktiPast
-
-
-                            ? "1px solid rgba(255,255,255,0.04)"
-
-
-                            : "1px solid rgba(255,255,255,0.05)",
-
-
-                      }}>
-
-
-                        <div style={{
-
-
-                          width: isCurrentBhukti ? "8px" : "5px",
-
-
-                          height: isCurrentBhukti ? "8px" : "5px",
-
-
-                          borderRadius: "50%", background: bhuktiColor, flexShrink: 0,
-
-
-                          boxShadow: isCurrentBhukti ? `0 0 6px ${bhuktiColor}` : "none",
-
-
-                        }} />
-
-
-                        <span style={{
-
-
-                          fontSize: isCurrentBhukti ? "0.82rem" : "0.75rem",
-
-
-                          fontWeight: isCurrentBhukti ? 700 : bhuktiPast ? 300 : 400,
-
-
-                          color: isCurrentBhukti ? bhuktiColor : bhuktiPast ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.5)",
-
-
-                          minWidth: "80px",
-
-
-                        }}>
-
-
-                          {tPlanetLord(bhukti.lord, lang)} {t("bhukti_word", lang)}
-
-
-                        </span>
-
-
-                        <span style={{ fontSize: "0.67rem", color: bhuktiPast ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.3)", flex: 1 }}>
-
-
-                          {String(bhukti.startDate)} → {String(bhukti.endDate)}
-                          {(() => { const age = ageAtDate(birthDateLocal, String(bhukti.startDate)); return age !== null ? <span style={{ marginLeft: "4px", fontSize: "0.58rem", opacity: 0.5 }}>({age}yr)</span> : null; })()}
-
-
-                        </span>
-
-
-                        <span style={{
-
-
-                          fontSize: "0.62rem", fontWeight: 700, padding: "1px 7px", borderRadius: "999px",
-
-
-                          background: isCurrentBhukti ? `${bhuktiColor}33` : bhuktiPast ? "rgba(255,255,255,0.04)" : "transparent",
-
-
-                          color: isCurrentBhukti ? bhuktiColor : bhuktiPast ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.3)",
-
-
-                          border: `1px solid ${isCurrentBhukti ? bhuktiColor + "66" : "rgba(255,255,255,0.06)"}`,
-
-
-                        }}>
-
-
-                          {isCurrentBhukti ? t("status_active", lang) : bhuktiPast ? t("status_past", lang) : t("status_upcoming", lang)}
-
-
-                        </span>
-
-
-                        <span style={{
-
-
-                          fontSize: "0.7rem", fontWeight: 700, minWidth: "44px", textAlign: "right",
-
-
-                          color: isCurrentBhukti
-
-
-                            ? (bhuktiScore >= 65 ? "#4ade80" : bhuktiScore >= 45 ? "#fbbf24" : "#f87171")
-
-
-                            : bhuktiPast ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.3)",
-
-
-                        }}>
-
-
-                          {isCurrentBhukti || !bhuktiPast ? `${bhuktiScore}/100` : "—"}
-
-
-                        </span>
-
-
-                      </div>
-
-
-
-
-
-                      {/* Antaram — only under current running Bhukti */}
-
-
-                      {isCurrentBhukti && (
-
-
-                        <div style={{ marginLeft: "20px", marginTop: "2px", borderLeft: `2px solid ${bhuktiColor}33`, paddingLeft: "10px" }}>
-
-
-                          {[dasha.current.pratyantardasha].map((antaram) => {
-
-
-                            const antaramColor = DASHA_COLORS[antaram.lord] ?? "#94a3b8";
-
-
-                            return (
-
-
-                              <div key={`antaram-${antaram.lord}`} style={{
-
-
-                                display: "flex", alignItems: "center", gap: "6px",
-
-
-                                padding: "4px 8px", borderRadius: "5px",
-
-
-                                background: `${antaramColor}18`,
-
-
-                                border: `1px solid ${antaramColor}55`,
-
-
-                              }}>
-
-
-                                <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: antaramColor, flexShrink: 0, boxShadow: `0 0 4px ${antaramColor}` }} />
-
-
-                                <span style={{ fontSize: "0.73rem", fontWeight: 700, color: antaramColor, minWidth: "72px" }}>
-
-
-                                  {tPlanetLord(antaram.lord, lang)} {t("antaram_word", lang)}
-
-
-                                </span>
-
-
-                                <span style={{ fontSize: "0.63rem", color: "rgba(255,255,255,0.25)", flex: 1 }}>
-
-
-                                  {String(antaram.startDate)} → {String(antaram.endDate)}
-
-
-                                </span>
-
-
-                                <span style={{ fontSize: "0.62rem", fontWeight: 700, padding: "1px 7px", borderRadius: "999px", background: `${antaramColor}33`, color: antaramColor, border: `1px solid ${antaramColor}66` }}>
-
-
-                                  {t("status_active", lang)}
-
-
-                                </span>
-
-
-                              </div>
-
-
-                            );
-
-
-                          })}
-
-
-                        </div>
-
-
-                      )}
-
-
-                    </div>
-
-
-                  );
-
-
-                })}
-
-
-              </div>
-
-
-            )}
-
-            {isCurrentDasa && (currentPeriodCaution || currentPeriodAction) && (
-              <div style={{ margin: "0 0 10px 12px", display: "flex", flexDirection: "column", gap: "6px" }}>
-                {currentPeriodAction && (
-                  <div style={{ display: "flex", gap: "8px", padding: "8px 10px", borderRadius: "7px", background: "rgba(74,222,128,0.07)", border: "1px solid rgba(74,222,128,0.2)" }}>
-                    <span style={{ fontSize: "0.7rem", color: "#4ade80", fontWeight: 700, flexShrink: 0 }}>&#10003;</span>
-                    <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.6)", lineHeight: 1.4 }}>{currentPeriodAction}</span>
-                  </div>
-                )}
-                {currentPeriodCaution && (
-                  <div style={{ display: "flex", gap: "8px", padding: "8px 10px", borderRadius: "7px", background: "rgba(251,191,36,0.07)", border: "1px solid rgba(251,191,36,0.2)" }}>
-                    <span style={{ fontSize: "0.7rem", color: "#fbbf24", fontWeight: 700, flexShrink: 0 }}>&#9888;</span>
-                    <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.6)", lineHeight: 1.4 }}>{currentPeriodCaution}</span>
-                  </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+
+      {/* ── Horizontal timeline bar ── */}
+      <div>
+        <div style={{ position: "relative", height: "36px", borderRadius: "8px", overflow: "hidden", background: "#E4DBC8", border: "1px solid #D4C8AE" }}>
+          {allPeriods.map((period) => {
+            const status    = dashaStatus(String(period.startDate), String(period.endDate), today);
+            const isActive  = period.lord === currentMahaDasa && status === "active";
+            const isPast    = status === "past";
+            const color     = DASHA_COLORS[period.lord] ?? "#94a3b8";
+            const left      = pct(String(period.startDate));
+            const segWidth  = pct(String(period.endDate)) - left;
+            return (
+              <div
+                key={`bar-${period.lord}-${period.startDate}`}
+                title={`${period.lord} ${String(period.startDate).slice(0, 4)}–${String(period.endDate).slice(0, 4)}`}
+                style={{
+                  position: "absolute",
+                  left: `${left}%`,
+                  width: `${segWidth}%`,
+                  top: 0, bottom: 0,
+                  background: isActive
+                    ? `linear-gradient(180deg, ${color}cc 0%, ${color}88 100%)`
+                    : isPast ? `${color}33` : `${color}55`,
+                  borderRight: "1px solid rgba(212,200,174,0.6)",
+                  display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
+                }}
+              >
+                {segWidth > 6 && (
+                  <span style={{
+                    fontSize: "0.6rem", fontWeight: 700,
+                    color: isActive ? "#F4EEE2" : isPast ? "#A89D89" : color,
+                    textTransform: "uppercase", letterSpacing: "0.04em",
+                    pointerEvents: "none", whiteSpace: "nowrap",
+                    overflow: "hidden", textOverflow: "ellipsis", padding: "0 4px",
+                  }}>
+                    {mode === "BEGINNER" ? plainLangDashaLord(period.lord, "BEGINNER", lang) : tPlanetLord(period.lord, lang)}
+                  </span>
                 )}
               </div>
-            )}
+            );
+          })}
+          {/* Now cursor */}
+          <div style={{ position: "absolute", left: `${nowPct}%`, top: 0, bottom: 0, width: "2px", background: "#1A1612", zIndex: 2 }} />
+        </div>
 
+        {/* Year labels */}
+        <div style={{ position: "relative", height: "16px", marginTop: "2px" }}>
+          {allPeriods.map((period, i) => {
+            const left = pct(String(period.startDate));
+            if (i > 0 && left < 5) return null;
+            return (
+              <span key={`yr-${i}`} style={{ position: "absolute", left: `${left}%`, transform: "translateX(-50%)", fontSize: "0.57rem", color: "#A89D89", whiteSpace: "nowrap" }}>
+                {String(period.startDate).slice(0, 4)}
+              </span>
+            );
+          })}
+        </div>
 
+        {/* You-are-here marker */}
+        <div style={{ position: "relative", height: "24px" }}>
+          <div style={{ position: "absolute", left: `${nowPct}%`, transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+            <div style={{ width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderBottom: "6px solid #e5b84d" }} />
+            <span style={{ fontSize: "0.58rem", fontWeight: 700, color: "#e5b84d", whiteSpace: "nowrap", letterSpacing: "0.05em" }}>
+              {lang === "ta"
+                ? `நீங்கள் இங்கே — ${tPlanetLord(currentMahaDasa, lang)} (${String(dasha.current.mahadasha.startDate).slice(0,4)}–${String(dasha.current.mahadasha.endDate).slice(0,4)})`
+                : `YOU ARE HERE — ${currentMahaDasa} (${String(dasha.current.mahadasha.startDate).slice(0,4)}–${String(dasha.current.mahadasha.endDate).slice(0,4)})`}
+            </span>
           </div>
+        </div>
+      </div>
 
-
+      {/* ── Active Dasa summary pill ── */}
+      {(() => {
+        const activePeriod = allPeriods.find((p) => p.lord === currentMahaDasa && dashaStatus(String(p.startDate), String(p.endDate), today) === "active");
+        if (!activePeriod) return null;
+        const color = DASHA_COLORS[activePeriod.lord] ?? "#94a3b8";
+        const score = dashaSupport;
+        return (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center", padding: "10px 16px", borderRadius: "10px", background: `${color}12`, border: `1px solid ${color}44` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: color, boxShadow: `0 0 8px ${color}` }} />
+              <span style={{ fontSize: "0.88rem", fontWeight: 800, color }}>
+                {mode === "BEGINNER" ? plainLangDashaLord(activePeriod.lord, "BEGINNER", lang) : tPlanetLord(activePeriod.lord, lang)} {t("dasha_word", lang)}
+              </span>
+            </div>
+            <span style={{ fontSize: "0.72rem", color: "#7A6F5E" }}>
+              {String(activePeriod.startDate)} → {String(activePeriod.endDate)}
+            </span>
+            <span style={{ fontSize: "0.72rem", fontWeight: 700, marginLeft: "auto", color: score >= 65 ? "#5C7654" : score >= 45 ? "#B85A2C" : "#A8482F" }}>
+              {score}/100
+            </span>
+          </div>
         );
+      })()}
 
+      {/* ── Bhukti / Antardasha rows ── */}
+      {dashaAntar.length > 0 && (() => {
+        const color = DASHA_COLORS[currentMahaDasa] ?? "#94a3b8";
+        return (
+          <div style={{ marginLeft: "12px", borderLeft: `2px solid ${color}44`, paddingLeft: "14px", display: "flex", flexDirection: "column", gap: "4px" }}>
+            <p style={{ margin: "0 0 8px", fontSize: "0.63rem", fontWeight: 700, color: "var(--color-muted, #94a3b8)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              {t("bhukti_word", lang)}
+            </p>
+            {dashaAntar.map((bhukti) => {
+              const bhuktiStatus = dashaStatus(String(bhukti.startDate), String(bhukti.endDate), today);
+              const isCurrentBhukti = bhukti.lord === currentBhukti && bhuktiStatus === "active";
+              const bhuktiColor = DASHA_COLORS[bhukti.lord] ?? "#94a3b8";
+              const bhuktiScore = isCurrentBhukti ? Math.round(dashaSupport * 0.9) : dashaScore(bhukti.lord, dashaSupport);
+              const bhuktiPast = bhuktiStatus === "past";
 
-      })}
+              return (
+                <div key={`bhukti-${bhukti.lord}-${bhukti.startDate}`}>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: "8px",
+                    padding: isCurrentBhukti ? "7px 12px" : "4px 8px",
+                    borderRadius: "8px",
+                    background: isCurrentBhukti ? `${bhuktiColor}22` : "transparent",
+                    border: isCurrentBhukti ? `1px solid ${bhuktiColor}55` : "1px solid transparent",
+                  }}>
+                    <div style={{ width: isCurrentBhukti ? "8px" : "5px", height: isCurrentBhukti ? "8px" : "5px", borderRadius: "50%", background: bhuktiColor, flexShrink: 0, boxShadow: isCurrentBhukti ? `0 0 5px ${bhuktiColor}` : "none" }} />
+                    <span style={{ fontSize: isCurrentBhukti ? "0.82rem" : "0.75rem", fontWeight: isCurrentBhukti ? 700 : bhuktiPast ? 300 : 400, color: isCurrentBhukti ? bhuktiColor : bhuktiPast ? "#A89D89" : "#3D352B", minWidth: "80px" }}>
+                      {mode === "BEGINNER" ? plainLangDashaLord(bhukti.lord, "BEGINNER", lang) : tPlanetLord(bhukti.lord, lang)}
+                    </span>
+                    <span style={{ fontSize: "0.67rem", color: "var(--color-muted, #94a3b8)", flex: 1 }}>
+                      {String(bhukti.startDate)} → {String(bhukti.endDate)}
+                      {(() => { const age = ageAtDate(birthDateLocal, String(bhukti.startDate)); return age !== null ? <span style={{ marginLeft: "4px", fontSize: "0.58rem", opacity: 0.5 }}>({age}yr)</span> : null; })()}
+                    </span>
+                    {isCurrentBhukti && (
+                      <span style={{ fontSize: "0.6rem", fontWeight: 700, padding: "1px 8px", borderRadius: "999px", background: `${bhuktiColor}33`, color: bhuktiColor, border: `1px solid ${bhuktiColor}66` }}>
+                        ● {lang === "ta" ? "இப்போது" : "NOW"}
+                      </span>
+                    )}
+                    <span style={{ fontSize: "0.7rem", fontWeight: 700, minWidth: "40px", textAlign: "right", color: isCurrentBhukti ? (bhuktiScore >= 65 ? "#5C7654" : bhuktiScore >= 45 ? "#B85A2C" : "#A8482F") : "#D4C8AE" }}>
+                      {isCurrentBhukti || !bhuktiPast ? `${bhuktiScore}/100` : "—"}
+                    </span>
+                  </div>
 
+                  {/* Antaram under active bhukti */}
+                  {isCurrentBhukti && (
+                    <div style={{ marginLeft: "20px", marginTop: "4px", marginBottom: "4px", borderLeft: `2px solid ${bhuktiColor}33`, paddingLeft: "10px" }}>
+                      {[dasha.current.pratyantardasha].map((antaram) => {
+                        const antaramColor = DASHA_COLORS[antaram.lord] ?? "#94a3b8";
+                        return (
+                          <div key={`antaram-${antaram.lord}`} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "4px 8px", borderRadius: "6px", background: `${antaramColor}18`, border: `1px solid ${antaramColor}44` }}>
+                            <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: antaramColor, flexShrink: 0, boxShadow: `0 0 4px ${antaramColor}` }} />
+                            <span style={{ fontSize: "0.73rem", fontWeight: 700, color: antaramColor, minWidth: "72px" }}>
+                              {mode === "BEGINNER" ? plainLangDashaLord(antaram.lord, "BEGINNER", lang) : tPlanetLord(antaram.lord, lang)} {t("antaram_word", lang)}
+                            </span>
+                            <span style={{ fontSize: "0.63rem", color: "var(--color-muted, #94a3b8)", flex: 1 }}>
+                              {String(antaram.startDate)} → {String(antaram.endDate)}
+                            </span>
+                            <span style={{ fontSize: "0.6rem", fontWeight: 700, padding: "1px 6px", borderRadius: "999px", background: `${antaramColor}33`, color: antaramColor, border: `1px solid ${antaramColor}66` }}>
+                              {t("status_active", lang)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
+
+      {/* ── Current period caution / action ── */}
+      {(currentPeriodCaution || currentPeriodAction) && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          {currentPeriodAction && (
+            <div style={{ display: "flex", gap: "8px", padding: "8px 12px", borderRadius: "8px", background: "#DCE4D2", border: "1px solid rgba(92,118,84,0.35)" }}>
+              <span style={{ fontSize: "0.7rem", color: "#5C7654", fontWeight: 700, flexShrink: 0 }}>✓</span>
+              <span style={{ fontSize: "0.72rem", color: "#1A1612", lineHeight: 1.4 }}>{currentPeriodAction}</span>
+            </div>
+          )}
+          {currentPeriodCaution && (
+            <div style={{ display: "flex", gap: "8px", padding: "8px 12px", borderRadius: "8px", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.35)" }}>
+              <span style={{ fontSize: "0.7rem", color: "#B85A2C", fontWeight: 700, flexShrink: 0 }}>⚠</span>
+              <span style={{ fontSize: "0.72rem", color: "#1A1612", lineHeight: 1.4 }}>{currentPeriodCaution}</span>
+            </div>
+          )}
+        </div>
+      )}
 
     </div>
-
-
   );
-
-
 }
-
-
-
-
-

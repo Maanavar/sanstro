@@ -8,7 +8,7 @@ from sqlalchemy import case, select
 from sqlalchemy.orm import Session
 
 from app.models import BirthProfile, FamilyMember
-from app.schemas.birth_profiles import BirthProfileCreate, BirthProfileCreateResult, BirthProfileGetResponse, BirthProfileResponse, BirthProfileResponseMeta
+from app.schemas.birth_profiles import BirthProfileCreate, BirthProfileCreateResult, BirthProfileGetResponse, BirthProfileResponse, BirthProfileResponseMeta, BirthProfileUpdate
 from app.services.chart_service import calculate_chart_for_persisted_profile, create_birth_profile_record, _warning_messages
 
 
@@ -77,6 +77,31 @@ def get_birth_profile(session: Session, birth_profile_id: UUID, *, calculation_v
             generated_at=datetime.now(tz=UTC),
         ),
     )
+
+
+def update_birth_profile(
+    session: Session,
+    profile: BirthProfile,
+    payload: BirthProfileUpdate,
+    *,
+    calculation_version: str,
+) -> BirthProfileGetResponse:
+    """Apply partial updates to an existing BirthProfile and optionally recalculate the chart."""
+    update_data = payload.model_dump(exclude_unset=True, exclude={"recalculate"})
+    for field, value in update_data.items():
+        setattr(profile, field, value)
+    session.flush()
+
+    if payload.recalculate and profile.birth_time_local is not None:
+        calculate_chart_for_persisted_profile(
+            session,
+            profile,
+            calculation_version=calculation_version,
+            force_recalculate=True,
+        )
+
+    session.commit()
+    return get_birth_profile(session, profile.birth_profile_id, calculation_version=calculation_version)
 
 
 def get_latest_birth_profile_for_owner(

@@ -90,6 +90,17 @@ def _to_out(pred: LifeAreaPrediction) -> LifeAreaPredictionOut:
 
 # ── Shared: load chart + live transit data ────────────────────────────────────
 
+def _derive_life_stage(age: int, employment_type: str | None) -> str:
+    emp = (employment_type or "").strip().lower()
+    if age < 22 or emp == "student":
+        return "student"
+    if age <= 35:
+        return "young_adult"
+    if age <= 55:
+        return "mid_life"
+    return "senior"
+
+
 def _load_chart_context(session: Session, chart_id: UUID, current_user: User, as_of: date):
     chart = session.get(Chart, chart_id)
     if chart is None:
@@ -116,8 +127,18 @@ def _load_chart_context(session: Session, chart_id: UUID, current_user: User, as
     age = today.year - birth_date_local.year - (
         (today.month, today.day) < (birth_date_local.month, birth_date_local.day)
     )
+    life_stage = _derive_life_stage(age, getattr(profile, "employment_type", None))
 
-    return snapshot, planets_rasi, active_dasha_lords, transit, age
+    return (
+        snapshot,
+        planets_rasi,
+        active_dasha_lords,
+        transit,
+        age,
+        life_stage,
+        getattr(profile, "employment_type", None),
+        getattr(profile, "marital_status", None),
+    )
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -134,7 +155,7 @@ def get_marriage_prediction(
     current_user: User = Depends(get_current_user),
 ) -> PredictionResponse:
     on_date = as_of or date.today()
-    snapshot, planets_rasi, active_dasha_lords, transit, age = _load_chart_context(
+    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, _employment_type, marital_status = _load_chart_context(
         session, chart_id, current_user, on_date
     )
 
@@ -152,6 +173,8 @@ def get_marriage_prediction(
         transit_jupiter_rasi=transit.bodies["JUPITER"].rasi,
         transit_venus_rasi=transit.bodies["VENUS"].rasi,
         age=age,
+        life_stage=life_stage,
+        marital_status=marital_status,
         sevvai_dosham_cancelled=sevvai_cancelled,
         rahu_ketu_label=rahu_ketu.label if rahu_ketu else None,
         d9_rasi_by_planet=d9_rasi_by_planet,
@@ -172,7 +195,7 @@ def get_career_prediction(
     current_user: User = Depends(get_current_user),
 ) -> PredictionResponse:
     on_date = as_of or date.today()
-    snapshot, planets_rasi, active_dasha_lords, transit, age = _load_chart_context(
+    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, employment_type, _marital_status = _load_chart_context(
         session, chart_id, current_user, on_date
     )
 
@@ -183,6 +206,8 @@ def get_career_prediction(
         active_dasha_lords=active_dasha_lords,
         transit_saturn_rasi=transit.bodies["SATURN"].rasi,
         age=age,
+        life_stage=life_stage,
+        employment_type=employment_type,
         career_track=career_track,
     )
     return PredictionResponse(data=_to_out(assess_career_prediction(payload)))
@@ -200,7 +225,7 @@ def get_wealth_prediction(
     current_user: User = Depends(get_current_user),
 ) -> PredictionResponse:
     on_date = as_of or date.today()
-    snapshot, planets_rasi, active_dasha_lords, transit, age = _load_chart_context(
+    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, _employment_type, _marital_status = _load_chart_context(
         session, chart_id, current_user, on_date
     )
 
@@ -217,6 +242,7 @@ def get_wealth_prediction(
         transit_jupiter_rasi=transit.bodies["JUPITER"].rasi,
         has_dhana_yoga=has_dhana_yoga,
         age=age,
+        life_stage=life_stage,
         pitru_dosham_label=pitru.label if pitru else None,
         rahu_ketu_label=rahu_ketu.label if rahu_ketu else None,
     )
@@ -235,7 +261,7 @@ def get_health_prediction(
     current_user: User = Depends(get_current_user),
 ) -> PredictionResponse:
     on_date = as_of or date.today()
-    snapshot, planets_rasi, active_dasha_lords, transit, age = _load_chart_context(
+    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, _employment_type, _marital_status = _load_chart_context(
         session, chart_id, current_user, on_date
     )
 
@@ -267,6 +293,7 @@ def get_health_prediction(
         planets_rasi=planets_rasi,
         active_dasha_lords=active_dasha_lords,
         age=age,
+        life_stage=life_stage,
         lagna_strength_score=lagna_strength,
         pitru_dosham_label=pitru.label if pitru else None,
         rahu_ketu_label=rahu_ketu.label if rahu_ketu else None,

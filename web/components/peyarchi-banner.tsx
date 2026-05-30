@@ -1,10 +1,11 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 
 import { formatDateLabel } from "@/lib/format";
-import { t, tLang } from "@/lib/i18n";
+import { t, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { classifyPeyarchiToneFromMoon } from "@/lib/peyarchi";
 import type { PeyarchiEvent, PeyarchiReportData } from "@/lib/types";
 
 type PeyarchiBannerProps = {
@@ -12,6 +13,33 @@ type PeyarchiBannerProps = {
   lang: Lang;
   peyarchiReport: PeyarchiReportData | null;
 };
+
+type BannerTone = "supportive" | "neutral" | "caution";
+
+function tonePalette(tone: BannerTone) {
+  if (tone === "supportive") {
+    return {
+      border: "rgba(92,118,84,0.4)",
+      background: "#DCE4D2",
+      text: "#3a6b40",
+      mutedText: "#5C7654",
+    };
+  }
+  if (tone === "caution") {
+    return {
+      border: "rgba(168,72,47,0.35)",
+      background: "#F2D8CC",
+      text: "#8c3e18",
+      mutedText: "#A8482F",
+    };
+  }
+  return {
+    border: "rgba(184,90,44,0.35)",
+    background: "#F0D9C4",
+    text: "#7a3412",
+    mutedText: "#B85A2C",
+  };
+}
 
 export function PeyarchiBanner({ events, lang, peyarchiReport }: PeyarchiBannerProps) {
   const [mounted, setMounted] = useState(false);
@@ -39,12 +67,12 @@ export function PeyarchiBanner({ events, lang, peyarchiReport }: PeyarchiBannerP
     return null;
   }
 
-  const tone = visible.daysFromToday <= 7 ? "urgent" : "soon";
-  const borderColor = tone === "urgent" ? "rgba(248,113,113,0.6)" : "rgba(251,191,36,0.55)";
-  const background = tone === "urgent" ? "rgba(239,68,68,0.11)" : "rgba(251,191,36,0.1)";
-  const textColor = tone === "urgent" ? "#fecaca" : "#fde68a";
+  const palette = tonePalette(classifyPeyarchiToneFromMoon(visible.planet, visible.impactFromMoon));
+  const borderColor = palette.border;
+  const background = palette.background;
+  const textColor = palette.text;
 
-  const messageEn = `${visible.labelEn} moves to ${visible.toRasi} on ${formatDateLabel(visible.peyarchiDateLocal)} - ${visible.daysFromToday} days away. This places it in the ${visible.impactFromMoon}th house from Moon.`;
+  const messageEn = `${visible.labelEn} moves to ${visible.toRasi} on ${formatDateLabel(visible.peyarchiDateLocal)} (${visible.daysFromToday} days away). This places it in the ${visible.impactFromMoon}th house from Moon.`;
   const messageTa = `${visible.labelTa}: ${visible.toRasi} rasiyil ${formatDateLabel(visible.peyarchiDateLocal)} (${visible.daysFromToday} naatkalil). Ithu Chandira rasiyilirundhu ${visible.impactFromMoon}-am idaththai kurikkirathu.`;
 
   return (
@@ -91,42 +119,47 @@ export function PeyarchiBanner({ events, lang, peyarchiReport }: PeyarchiBannerP
             }}
             title="Dismiss"
             style={{
-              border: "1px solid rgba(255,255,255,0.22)",
+              border: `1px solid ${borderColor}`,
               background: "transparent",
-              color: "rgba(255,255,255,0.72)",
+              color: palette.mutedText,
               borderRadius: "999px",
               width: "24px",
               height: "24px",
               cursor: "pointer",
+              fontSize: "0.7rem",
+              fontWeight: 600,
             }}
           >
-            x
+            ✕
           </button>
         </div>
       </div>
 
       {/* FEATURE-11: Peyarchi report outlook panel */}
       {outlookExpanded && peyarchiReport && peyarchiReport.events.length > 0 && (
-        <div style={{ padding: "12px 14px", borderRadius: "8px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.09)" }}>
-          <p style={{ margin: "0 0 8px", fontSize: "0.68rem", fontWeight: 700, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <div style={{ padding: "12px 14px", borderRadius: "8px", background: "#FAF5EA", border: "1px solid #D4C8AE" }}>
+          <p style={{ margin: "0 0 8px", fontSize: "0.68rem", fontWeight: 700, color: "#7A6F5E", textTransform: "uppercase", letterSpacing: "0.06em" }}>
             🪐 {t("peyarchi_outlook_label", lang)}
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {peyarchiReport.events.map((ev, i) => (
-              <div key={`${ev.planet}-${ev.transitDate}-${i}`} style={{ padding: "8px 10px", borderRadius: "6px", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                <p style={{ margin: "0 0 3px", fontSize: "0.7rem", color: "rgba(255,255,255,0.4)" }}>
-                  {ev.planet} · {ev.transitDate} · House {ev.houseFromMoon} from Moon
+            {peyarchiReport.events.map((ev, i) => {
+              const evTone = classifyPeyarchiToneFromMoon(ev.planet, ev.houseFromMoon);
+              const evPalette = tonePalette(evTone);
+              return (
+              <div key={`${ev.planet}-${ev.transitDate}-${i}`} style={{ padding: "8px 10px", borderRadius: "6px", background: evPalette.background, border: `1px solid ${evPalette.border}` }}>
+                <p style={{ margin: "0 0 3px", fontSize: "0.7rem", color: evPalette.mutedText, fontWeight: 600 }}>
+                  {tPlanetLord(ev.planet, lang)} · {ev.transitDate} · {lang === "ta" ? "சந்திர ராசியிலிருந்து" : "House"} {ev.houseFromMoon} {lang === "ta" ? "வீடு" : "from Moon"}
                 </p>
-                <p style={{ margin: 0, fontSize: "0.76rem", color: "rgba(255,255,255,0.65)", lineHeight: 1.45 }}>
+                <p style={{ margin: 0, fontSize: "0.76rem", color: evPalette.text, lineHeight: 1.45 }}>
                   {lang === "ta" ? ev.outlookTa : ev.outlookEn}
                 </p>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
     </div>
   );
 }
-
 

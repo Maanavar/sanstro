@@ -1,64 +1,140 @@
 "use client";
 
-import React, { useState } from "react";
-import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
+import { useState } from "react";
+
+import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { t, tLang } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, DecisionBriefData } from "@/lib/types";
 
-const SCENARIOS = [
-  "job_change", "business_start", "marriage", "education", "property",
-  "health", "travel", "spiritual", "family", "money", "child", "other",
-] as const;
-type Scenario = typeof SCENARIOS[number];
+const SCENARIO_GROUPS: Array<{ groupEn: string; groupTa: string; options: Array<{ value: string; en: string; ta: string }> }> = [
+  {
+    groupEn: "Career & Work",
+    groupTa: "தொழில் & வேலை",
+    options: [
+      { value: "career", en: "Job change / New role", ta: "வேலை மாற்றம் / புதிய பொறுப்பு" },
+      { value: "career", en: "Promotion / Raise", ta: "பதவி உயர்வு / சம்பள உயர்வு" },
+      { value: "career", en: "Start own business", ta: "சொந்த தொழில் தொடங்குதல்" },
+      { value: "career", en: "Resign / Quit", ta: "வேலை விட்டு வெளியேறுதல்" },
+    ],
+  },
+  {
+    groupEn: "Money & Property",
+    groupTa: "பணம் & சொத்து",
+    options: [
+      { value: "money", en: "Investment decision", ta: "முதலீட்டு முடிவு" },
+      { value: "money", en: "Buy / Sell property", ta: "சொத்து வாங்குதல் / விற்பனை" },
+      { value: "money", en: "Take a loan", ta: "கடன் வாங்குதல்" },
+      { value: "money", en: "Start savings / SIP", ta: "சேமிப்பு / SIP தொடங்குதல்" },
+    ],
+  },
+  {
+    groupEn: "Relationships",
+    groupTa: "உறவு",
+    options: [
+      { value: "relationship", en: "Marriage / Engagement", ta: "திருமணம் / நிச்சயதார்த்தம்" },
+      { value: "relationship", en: "Start a relationship", ta: "புதிய உறவு தொடங்குதல்" },
+      { value: "relationship", en: "Resolve family conflict", ta: "குடும்ப பிரச்சினை தீர்க்குதல்" },
+      { value: "family", en: "Children / Family planning", ta: "குழந்தை / குடும்ப திட்டம்" },
+    ],
+  },
+  {
+    groupEn: "Health & Wellbeing",
+    groupTa: "உடல்நலம்",
+    options: [
+      { value: "health", en: "Medical procedure / Surgery", ta: "மருத்துவ சிகிச்சை / அறுவை சிகிச்சை" },
+      { value: "health", en: "Start new health routine", ta: "புதிய உடல்நல திட்டம் தொடங்குதல்" },
+      { value: "health", en: "Mental health / Therapy", ta: "மன நலம் / சிகிச்சை" },
+    ],
+  },
+  {
+    groupEn: "Education & Learning",
+    groupTa: "கல்வி",
+    options: [
+      { value: "education", en: "Higher education / Abroad study", ta: "உயர் கல்வி / வெளிநாட்டு படிப்பு" },
+      { value: "education", en: "New course / Certification", ta: "புதிய படிப்பு / சான்றிதழ்" },
+      { value: "education", en: "Competitive exam", ta: "போட்டித் தேர்வு" },
+    ],
+  },
+  {
+    groupEn: "Relocation & Travel",
+    groupTa: "இடம் மாற்றம் & பயணம்",
+    options: [
+      { value: "career", en: "Relocate to new city", ta: "புதிய நகரத்திற்கு இடம் பெயர்தல்" },
+      { value: "career", en: "Move abroad / Emigrate", ta: "வெளிநாடு செல்லுதல்" },
+      { value: "spiritual", en: "Pilgrimage / Sacred travel", ta: "யாத்திரை / புண்ணிய பயணம்" },
+    ],
+  },
+  {
+    groupEn: "Spiritual & Personal",
+    groupTa: "ஆன்மீகம் & தனிப்பட்டது",
+    options: [
+      { value: "spiritual", en: "Spiritual initiation / Diksha", ta: "ஆன்மீக தீக்ஷை / துவக்கம்" },
+      { value: "spiritual", en: "Start meditation / Sadhana", ta: "தியானம் / சாதனா தொடங்குதல்" },
+      { value: "career", en: "Major life direction change", ta: "வாழ்க்கை திசை மாற்றம்" },
+    ],
+  },
+];
 
 type Props = {
   lang: Lang;
   chartId: string;
 };
 
+const W = {
+  ink: "#1A1612",
+  inkMid: "#3D352B",
+  muted: "#7A6F5E",
+  mutedLt: "#A89D89",
+  border: "#D4C8AE",
+  borderLt: "#E4DBC8",
+  surface: "#FAF5EA",
+  surfaceMd: "#F4EEE2",
+  card: "#FFFFFF",
+  terracotta: "#B85A2C",
+  sage: "#5C7654",
+  rust: "#A8482F",
+} as const;
+
+const fieldStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "8px 10px",
+  borderRadius: "10px",
+  border: `1.5px solid ${W.borderLt}`,
+  background: W.card,
+  color: W.inkMid,
+  fontSize: "0.82rem",
+  fontFamily: "inherit",
+};
+
 function verdictColor(verdict: string): string {
-  if (verdict === "FAVOURABLE") return "#4ade80";
-  if (verdict === "CAUTION") return "#f87171";
-  return "#fbbf24";
-}
-
-function verdictLabel(verdict: string, lang: Lang): string {
-  if (verdict === "FAVOURABLE") return t("verdict_favourable", lang);
-  if (verdict === "CAUTION") return t("verdict_caution", lang);
-  if (verdict === "DEFER") return t("decision_defer", lang);
-  return t("verdict_neutral", lang);
-}
-
-function scenarioLabel(scenario: string, lang: Lang): string {
-  const map: Record<string, { ta: string; en: string }> = {
-    job_change:       { ta: "வேலை மாற்றம்",         en: "Job Change" },
-    business_start:   { ta: "தொழில் தொடக்கம்",      en: "Business Start" },
-    marriage:         { ta: "திருமணம்",             en: "Marriage" },
-    education:        { ta: "கல்வி",               en: "Education" },
-    property:         { ta: "சொத்து",              en: "Property" },
-    health:           { ta: "உடல்நலம்",            en: "Health" },
-    travel:           { ta: "பயணம்",              en: "Travel" },
-    spiritual:        { ta: "ஆன்மிகம்",            en: "Spiritual" },
-    family:           { ta: "குடும்பம்",            en: "Family" },
-    money:            { ta: "பணம்",               en: "Money" },
-    child:            { ta: "குழந்தை",             en: "Child" },
-    other:            { ta: "மற்றவை",              en: "Other" },
-  };
-  return (map[scenario] ?? { ta: scenario, en: scenario })[lang];
+  if (verdict === "A" || verdict === "FAVOURABLE") return W.sage;
+  if (verdict === "B" || verdict === "CAUTION") return W.rust;
+  return W.terracotta;
 }
 
 export function DecisionPanel({ lang, chartId }: Props) {
-  const [scenario, setScenario] = useState<Scenario>("job_change");
+  const [priority, setPriority] = useState("career");
+  const [scenarioLabel, setScenarioLabel] = useState(SCENARIO_GROUPS[0].options[0].en);
   const [targetDate, setTargetDate] = useState("");
-  const [optionA, setOptionA] = useState("");
-  const [optionB, setOptionB] = useState("");
+  const [optionALabel, setOptionALabel] = useState("");
+  const [optionADescription, setOptionADescription] = useState("");
+  const [optionBLabel, setOptionBLabel] = useState("");
+  const [optionBDescription, setOptionBDescription] = useState("");
   const [result, setResult] = useState<DecisionBriefData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const isFormValid =
+    !!chartId &&
+    !!targetDate &&
+    optionALabel.trim().length > 0 &&
+    optionADescription.trim().length > 0 &&
+    optionBLabel.trim().length > 0 &&
+    optionBDescription.trim().length > 0;
+
   async function analyse() {
-    if (!chartId || !targetDate) return;
+    if (!isFormValid) return;
     setLoading(true);
     setError("");
     setResult(null);
@@ -69,9 +145,15 @@ export function DecisionPanel({ lang, chartId }: Props) {
         body: JSON.stringify({
           chartId,
           targetDate,
-          scenario,
-          optionALabel: optionA.trim() || undefined,
-          optionBLabel: optionB.trim() || undefined,
+          priority,
+          optionA: {
+            label: optionALabel.trim(),
+            description: optionADescription.trim(),
+          },
+          optionB: {
+            label: optionBLabel.trim(),
+            description: optionBDescription.trim(),
+          },
         }),
       });
       setResult(r.data);
@@ -85,184 +167,248 @@ export function DecisionPanel({ lang, chartId }: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       <div>
-        <p style={{ margin: "0 0 4px", fontSize: "0.68rem", fontWeight: 700, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <p style={{ margin: "0 0 4px", fontSize: "0.68rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.06em" }}>
           {t("decision_panel_title", lang)}
         </p>
-        <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(255,255,255,0.5)" }}>
-          {t("decision_panel_desc", lang)}
+        <p style={{ margin: 0, fontSize: "0.78rem", color: W.muted }}>{t("decision_panel_desc", lang)}</p>
+      </div>
+
+      <div style={{ padding: "12px 14px", borderRadius: "10px", border: `1px solid ${W.borderLt}`, background: "#EEF1F8" }}>
+        <p style={{ margin: "0 0 8px", fontSize: "0.68rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          {lang === "ta" ? "எதை எப்போது பயன்படுத்துவது?" : "When to use which tool?"}
+        </p>
+        <p style={{ margin: "0 0 6px", fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.5 }}>
+          <strong>{lang === "ta" ? "Decision Support:" : "Decision Support:"}</strong>{" "}
+          {lang === "ta"
+            ? "A vs B போன்ற இரண்டு விருப்பங்களை ஒப்பிட்டு, இப்போது எது சிறந்தது என்பதை தெரிந்துகொள்ள."
+            : "Compare Option A vs Option B when you need a recommendation for a specific decision date."}
+        </p>
+        <p style={{ margin: 0, fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.5 }}>
+          <strong>{lang === "ta" ? "What-If:" : "What-If:"}</strong>{" "}
+          {lang === "ta"
+            ? "ஒரே முடிவிற்கு வேறு தேதிகளை முயன்று, எந்த காலம் சிறந்தது என்பதை பார்க்க (Planning tab)."
+            : "Simulate a single scenario across timing windows to find better periods (Planning tab)."}
         </p>
       </div>
 
-      {/* Input form */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "14px 16px", borderRadius: "10px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.09)" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "14px 16px", borderRadius: "10px", background: W.surface, border: `1px solid ${W.borderLt}` }}>
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: "160px" }}>
-            <label style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", marginBottom: "4px", textTransform: "uppercase" }}>
+            <label style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, marginBottom: "4px", textTransform: "uppercase" }}>
               {t("decision_scenario", lang)}
             </label>
             <select
-              value={scenario}
-              onChange={(e) => setScenario(e.target.value as Scenario)}
-              style={{ width: "100%", padding: "6px 10px", borderRadius: "6px", background: "rgba(30,30,40,0.9)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: "0.82rem", outline: "none", boxSizing: "border-box" }}
+              style={fieldStyle}
+              value={scenarioLabel}
+              onChange={(e) => {
+                const allOptions = SCENARIO_GROUPS.flatMap((g) => g.options);
+                const found = allOptions.find((o) => o.en === e.target.value);
+                if (found) {
+                  setPriority(found.value);
+                  setScenarioLabel(found.en);
+                }
+              }}
             >
-              {SCENARIOS.map((s) => (
-                <option key={s} value={s}>{scenarioLabel(s, lang)}</option>
+              {SCENARIO_GROUPS.map((group) => (
+                <optgroup key={group.groupEn} label={lang === "ta" ? group.groupTa : group.groupEn}>
+                  {group.options.map((opt) => (
+                    <option key={`${opt.value}-${opt.en}`} value={opt.en}>
+                      {lang === "ta" ? opt.ta : opt.en}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>
           <div style={{ flex: 1, minWidth: "160px" }}>
-            <label style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", marginBottom: "4px", textTransform: "uppercase" }}>
+            <label style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, marginBottom: "4px", textTransform: "uppercase" }}>
               {t("decision_target_date", lang)} *
             </label>
-            <input
-              type="date"
-              value={targetDate}
-              onChange={(e) => setTargetDate(e.target.value)}
-              style={{ width: "100%", padding: "6px 10px", borderRadius: "6px", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: "0.82rem", outline: "none", boxSizing: "border-box" }}
-            />
+            <input style={fieldStyle} type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} />
           </div>
         </div>
+
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: "160px" }}>
-            <label style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", marginBottom: "4px", textTransform: "uppercase" }}>
+          <div style={{ flex: 1, minWidth: "220px" }}>
+            <label style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, marginBottom: "4px", textTransform: "uppercase" }}>
               {t("decision_option_a", lang)}
             </label>
             <input
+              style={fieldStyle}
               type="text"
-              value={optionA}
-              onChange={(e) => setOptionA(e.target.value)}
-              placeholder={lang === "ta" ? "உதாரணம்: இப்போதே ஆரம்பி" : "e.g. Start now"}
-              style={{ width: "100%", padding: "6px 10px", borderRadius: "6px", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: "0.82rem", outline: "none", boxSizing: "border-box" }}
+              value={optionALabel}
+              onChange={(e) => setOptionALabel(e.target.value)}
+              placeholder={lang === "ta" ? "விருப்பம் A தலைப்பு" : "Option A label"}
+            />
+            <textarea
+              style={{ ...fieldStyle, marginTop: "6px", resize: "vertical" }}
+              value={optionADescription}
+              onChange={(e) => setOptionADescription(e.target.value)}
+              rows={2}
+              placeholder={lang === "ta" ? "விருப்பம் A விளக்கம்" : "Option A description"}
             />
           </div>
-          <div style={{ flex: 1, minWidth: "160px" }}>
-            <label style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", marginBottom: "4px", textTransform: "uppercase" }}>
+
+          <div style={{ flex: 1, minWidth: "220px" }}>
+            <label style={{ display: "block", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, marginBottom: "4px", textTransform: "uppercase" }}>
               {t("decision_option_b", lang)}
             </label>
             <input
+              style={fieldStyle}
               type="text"
-              value={optionB}
-              onChange={(e) => setOptionB(e.target.value)}
-              placeholder={lang === "ta" ? "உதாரணம்: 3 மாதம் காத்திரு" : "e.g. Wait 3 months"}
-              style={{ width: "100%", padding: "6px 10px", borderRadius: "6px", background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: "0.82rem", outline: "none", boxSizing: "border-box" }}
+              value={optionBLabel}
+              onChange={(e) => setOptionBLabel(e.target.value)}
+              placeholder={lang === "ta" ? "விருப்பம் B தலைப்பு" : "Option B label"}
+            />
+            <textarea
+              style={{ ...fieldStyle, marginTop: "6px", resize: "vertical" }}
+              value={optionBDescription}
+              onChange={(e) => setOptionBDescription(e.target.value)}
+              rows={2}
+              placeholder={lang === "ta" ? "விருப்பம் B விளக்கம்" : "Option B description"}
             />
           </div>
         </div>
+
         <button
           type="button"
           onClick={() => void analyse()}
-          disabled={loading || !chartId || !targetDate}
+          disabled={loading || !isFormValid}
           style={{
-            alignSelf: "flex-start", padding: "8px 18px", borderRadius: "8px", border: "none", cursor: "pointer",
-            fontSize: "0.8rem", fontWeight: 700,
-            background: loading || !chartId || !targetDate ? "rgba(255,255,255,0.08)" : "rgba(229,184,77,0.85)",
-            color: loading || !chartId || !targetDate ? "rgba(255,255,255,0.3)" : "#0a0800",
+            alignSelf: "flex-start",
+            padding: "8px 18px",
+            borderRadius: "10px",
+            border: `1px solid ${W.ink}`,
+            cursor: loading || !isFormValid ? "not-allowed" : "pointer",
+            fontSize: "0.8rem",
+            fontWeight: 700,
+            background: loading || !isFormValid ? W.borderLt : W.ink,
+            color: loading || !isFormValid ? W.mutedLt : W.surfaceMd,
           }}
         >
           {loading ? t("decision_analysing", lang) : t("decision_analyse", lang)}
         </button>
-        {error && <p style={{ margin: 0, fontSize: "0.76rem", color: "#f87171" }}>{error}</p>}
+        {error && <p style={{ margin: 0, fontSize: "0.76rem", color: W.rust }}>{error}</p>}
       </div>
 
-      {/* Result */}
       {result && (
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {/* Recommended verdict */}
-          <div style={{
-            padding: "16px 20px", borderRadius: "12px",
-            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
-            display: "flex", gap: "20px", flexWrap: "wrap", alignItems: "center",
-          }}>
+          <div
+            style={{
+              padding: "16px 20px",
+              borderRadius: "12px",
+              background: W.card,
+              border: `1px solid ${W.borderLt}`,
+              display: "flex",
+              gap: "20px",
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
             <div>
-              <p style={{ margin: "0 0 4px", fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.35)", textTransform: "uppercase" }}>
-                {t("decision_recommended", lang)}
-              </p>
+              <p style={{ margin: "0 0 4px", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>{t("decision_recommended", lang)}</p>
               <p style={{ margin: 0, fontSize: "1.8rem", fontWeight: 900, lineHeight: 1, color: verdictColor(result.recommended) }}>
                 {result.recommended === "DEFER" ? t("decision_defer", lang) : result.recommended}
               </p>
             </div>
             <div>
-              <p style={{ margin: "0 0 4px", fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.35)", textTransform: "uppercase" }}>
-                {t("decision_confidence", lang)}
-              </p>
-              <p style={{ margin: 0, fontSize: "1.4rem", fontWeight: 700, color: verdictColor(result.recommended) }}>
-                {result.confidence}%
-              </p>
+              <p style={{ margin: "0 0 4px", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>{t("decision_confidence", lang)}</p>
+              <p style={{ margin: 0, fontSize: "1.4rem", fontWeight: 700, color: verdictColor(result.recommended) }}>{result.confidence}%</p>
             </div>
             <div style={{ flex: 1, minWidth: "200px" }}>
-              <p style={{ margin: "0 0 4px", fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.35)", textTransform: "uppercase" }}>
-                {t("decision_reasoning", lang)}
-              </p>
-              <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(255,255,255,0.65)", lineHeight: 1.5 }}>
-                {tLang(result.reasoning, lang)}
-              </p>
+              <p style={{ margin: "0 0 4px", fontSize: "0.65rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>{t("decision_reasoning", lang)}</p>
+              <p style={{ margin: 0, fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.5 }}>{tLang(result.reasoning, lang)}</p>
             </div>
           </div>
 
-          {/* Option comparison */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             {[
               { key: "A" as const, data: result.optionA, isRecommended: result.recommended === "A" },
               { key: "B" as const, data: result.optionB, isRecommended: result.recommended === "B" },
-            ].map(({ key, data, isRecommended }) => (
-              <div key={key} style={{
-                padding: "14px 16px", borderRadius: "10px",
-                background: isRecommended ? "rgba(74,222,128,0.06)" : "rgba(255,255,255,0.03)",
-                border: isRecommended ? "1px solid rgba(74,222,128,0.3)" : "1px solid rgba(255,255,255,0.09)",
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                  <p style={{ margin: 0, fontSize: "0.72rem", fontWeight: 700, color: isRecommended ? "#4ade80" : "rgba(255,255,255,0.55)", textTransform: "uppercase" }}>
-                    {t(`decision_option_${key.toLowerCase()}` as any, lang)}{isRecommended && " ✓"}
-                  </p>
-                  <span style={{ fontSize: "1.2rem", fontWeight: 900, color: isRecommended ? "#4ade80" : "#fbbf24" }}>
-                    {data.score}
-                  </span>
-                </div>
-                <p style={{ margin: "0 0 6px", fontSize: "0.76rem", fontWeight: 600, color: "rgba(255,255,255,0.75)" }}>
-                  {data.label}
-                </p>
-                {data.alignmentNotes.length > 0 && (
-                  <ul style={{ margin: "0 0 6px", padding: "0 0 0 14px" }}>
-                    {data.alignmentNotes.map((note, i) => (
-                      <li key={i} style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.55)", lineHeight: 1.4, marginBottom: "2px" }}>{note}</li>
-                    ))}
-                  </ul>
-                )}
-                {data.riskFactors.length > 0 && (
-                  <div style={{ padding: "6px 8px", borderRadius: "5px", background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)" }}>
-                    {data.riskFactors.map((rf, i) => (
-                      <p key={i} style={{ margin: i > 0 ? "2px 0 0" : 0, fontSize: "0.7rem", color: "#f87171", lineHeight: 1.4 }}>⚠ {rf}</p>
-                    ))}
+            ].map(({ key, data, isRecommended }) => {
+              const isDefer = result.recommended === "DEFER";
+              const accentColor = isRecommended ? W.sage : isDefer ? W.terracotta : W.rust;
+              const bgColor = isRecommended ? "#EEF6EA" : isDefer ? W.surface : "#F9ECE7";
+              const borderColor = isRecommended ? "rgba(92,118,84,0.3)" : isDefer ? W.borderLt : "rgba(168,72,47,0.2)";
+              return (
+                <div key={key} style={{ padding: "14px 16px", borderRadius: "10px", background: bgColor, border: `1px solid ${borderColor}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                    <div>
+                      <p style={{ margin: "0 0 2px", fontSize: "0.68rem", fontWeight: 700, color: accentColor, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                        {t(`decision_option_${key.toLowerCase()}` as Parameters<typeof t>[0], lang)}
+                      </p>
+                      <p style={{ margin: 0, fontSize: "0.76rem", fontWeight: 600, color: W.inkMid }}>{data.label}</p>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0, marginLeft: "8px" }}>
+                      <div style={{ fontSize: "1.4rem", fontWeight: 900, color: accentColor, lineHeight: 1 }}>{data.score}</div>
+                      <div style={{ fontSize: "0.62rem", color: W.muted, marginTop: "2px" }}>/100</div>
+                    </div>
                   </div>
-                )}
-                {data.optimalWindow && (
-                  <p style={{ margin: "6px 0 0", fontSize: "0.7rem", color: "#fbbf24" }}>
-                    ◷ {t("decision_optimal_window", lang)}: {data.optimalWindow}
-                  </p>
-                )}
-              </div>
-            ))}
+
+                  <div style={{ marginBottom: "10px" }}>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 700, padding: "3px 10px", borderRadius: "999px", background: `${accentColor}18`, border: `1px solid ${accentColor}44`, color: accentColor }}>
+                      {isRecommended
+                        ? lang === "ta"
+                          ? "Recommended"
+                          : "Recommended"
+                        : isDefer
+                        ? lang === "ta"
+                          ? "Defer"
+                          : "Defer"
+                        : lang === "ta"
+                        ? "Weaker option"
+                        : "Weaker option"}
+                    </span>
+                  </div>
+
+                  {data.alignmentNotes.length > 0 && (
+                    <div style={{ marginBottom: "8px" }}>
+                      <p style={{ margin: "0 0 4px", fontSize: "0.62rem", fontWeight: 700, color: isRecommended ? W.sage : W.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        {lang === "ta" ? (isRecommended ? "Why this is stronger" : "Limiting factors") : isRecommended ? "Why this is stronger" : "Limiting factors"}
+                      </p>
+                      <ul style={{ margin: 0, padding: "0 0 0 14px" }}>
+                        {data.alignmentNotes.map((note) => (
+                          <li key={note} style={{ fontSize: "0.72rem", color: isRecommended ? W.inkMid : W.muted, lineHeight: 1.4, marginBottom: "2px" }}>
+                            {note}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {data.riskFactors.length > 0 && (
+                    <div style={{ padding: "6px 8px", borderRadius: "5px", background: "#F9ECE7", border: "1px solid rgba(168,72,47,0.2)", marginBottom: "6px" }}>
+                      <p style={{ margin: "0 0 3px", fontSize: "0.62rem", fontWeight: 700, color: W.rust, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        {lang === "ta" ? "Watch out for" : "Watch out for"}
+                      </p>
+                      {data.riskFactors.map((rf, i) => (
+                        <p key={rf} style={{ margin: i > 0 ? "2px 0 0" : 0, fontSize: "0.7rem", color: W.rust, lineHeight: 1.4 }}>
+                          ! {rf}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {data.optimalWindow && (
+                    <p style={{ margin: "4px 0 0", fontSize: "0.7rem", color: W.terracotta }}>
+                      {t("decision_optimal_window", lang)}: {data.optimalWindow}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
-          {/* Caution */}
           {result.caution && (
-            <div style={{ padding: "10px 14px", borderRadius: "8px", background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.22)" }}>
-              <p style={{ margin: "0 0 4px", fontSize: "0.65rem", fontWeight: 700, color: "#f87171", textTransform: "uppercase" }}>
-                ⚠ {t("decision_caution", lang)}
-              </p>
-              <p style={{ margin: 0, fontSize: "0.76rem", color: "#fca5a5", lineHeight: 1.5 }}>
-                {tLang(result.caution, lang)}
-              </p>
+            <div style={{ padding: "10px 14px", borderRadius: "8px", background: "#F9ECE7", border: "1px solid rgba(168,72,47,0.22)" }}>
+              <p style={{ margin: "0 0 4px", fontSize: "0.65rem", fontWeight: 700, color: W.rust, textTransform: "uppercase" }}>{t("decision_caution", lang)}</p>
+              <p style={{ margin: 0, fontSize: "0.76rem", color: W.inkMid, lineHeight: 1.5 }}>{tLang(result.caution, lang)}</p>
             </div>
           )}
         </div>
       )}
 
-      {!result && !loading && (
-        <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(255,255,255,0.3)" }}>
-          {t("decision_empty", lang)}
-        </p>
-      )}
+      {!result && !loading && <p style={{ margin: 0, fontSize: "0.78rem", color: W.muted }}>{t("decision_empty", lang)}</p>}
     </div>
   );
 }

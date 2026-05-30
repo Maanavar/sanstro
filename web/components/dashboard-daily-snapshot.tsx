@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { formatClockLabel } from "@/lib/format";
-import { t, tLang } from "@/lib/i18n";
+import { t, tLang, tNakshatra, tTithi } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
   BirthProfileSnapshot,
@@ -58,12 +58,12 @@ export function DashboardDailySnapshot({
 
   const confidenceLabel =
     confidence.level === "high"
-      ? (lang === "ta" ? "High confidence" : "High confidence")
+      ? (lang === "ta" ? "அதிக நம்பகத்தன்மை" : "High confidence")
       : confidence.level === "medium"
-        ? (lang === "ta" ? "Moderate confidence" : "Moderate confidence")
+        ? (lang === "ta" ? "மிதமான நம்பகத்தன்மை" : "Moderate confidence")
         : confidence.level === "low"
-          ? (lang === "ta" ? "Low confidence" : "Low confidence")
-          : (lang === "ta" ? "Birth time not set" : "Birth time not set");
+          ? (lang === "ta" ? "குறைந்த நம்பகத்தன்மை" : "Low confidence")
+          : (lang === "ta" ? "பிறந்த நேரம் அமைக்கப்படவில்லை" : "Birth time not set");
 
   return (
     <Surface title={`${t("personal_today", lang)} Snapshot`}>
@@ -83,20 +83,23 @@ export function DashboardDailySnapshot({
         </div>
 
         {showDualLanguage && (
-          <p className="surface__text" style={{ marginTop: "6px", color: "rgba(255,255,255,0.55)" }}>
+          <p className="surface__text" style={{ marginTop: "6px", color: "var(--color-muted, #94a3b8)" }}>
             {scoreSummarySecondary}
           </p>
         )}
 
         <div className="snapshot-grid">
           <div className="snapshot-box">
-            <p className="snapshot-kicker">Score</p>
-            <p className="snapshot-value">{guidance.score}/100</p>
-            <p className="snapshot-hint">{guidance.label}</p>
+            <p className="snapshot-kicker">{lang === "ta" ? "இன்றைய மதிப்பெண்" : "Today's Score"}</p>
+            <p className="snapshot-value" style={{ color: guidance.score >= 65 ? "#4ade80" : guidance.score >= 45 ? "#fbbf24" : "#f87171" }}>{guidance.score}/100</p>
+            <p className="snapshot-hint">
+              {guidance.label}
+              {guidance.emotionalWeather?.tone ? ` · ${guidance.emotionalWeather.tone}` : ""}
+            </p>
           </div>
 
           <div className="snapshot-box">
-            <p className="snapshot-kicker">Timing</p>
+            <p className="snapshot-kicker">{lang === "ta" ? "சிறந்த நேரம்" : "Best Window"}</p>
             <p className="snapshot-value">
               {guidance.bestWindows[0]
                 ? `${formatClockLabel(guidance.bestWindows[0].start)}–${formatClockLabel(guidance.bestWindows[0].end)}`
@@ -104,44 +107,47 @@ export function DashboardDailySnapshot({
             </p>
             <p className="snapshot-hint">
               {guidance.cautionWindows[0]
-                ? `Caution: ${formatClockLabel(guidance.cautionWindows[0].start)}–${formatClockLabel(guidance.cautionWindows[0].end)}`
-                : "No caution window"}
+                ? `${lang === "ta" ? "தவிர்க்க" : "Avoid"}: ${formatClockLabel(guidance.cautionWindows[0].start)}–${formatClockLabel(guidance.cautionWindows[0].end)}`
+                : lang === "ta" ? "தவிர்ப்பு நேரம் இல்லை" : "No caution window"}
             </p>
           </div>
 
           <div className="snapshot-box">
-            <p className="snapshot-kicker">Current Focus</p>
-            <p className="snapshot-value">
+            <p className="snapshot-kicker">{lang === "ta" ? "ராகு காலம்" : "Rahu Kalam"}</p>
+            <p className="snapshot-value" style={{ color: "#f87171" }}>
+              {panchangam
+                ? `${formatClockLabel(panchangam.kalam.rahuKalam.start)}–${formatClockLabel(panchangam.kalam.rahuKalam.end)}`
+                : "—"}
+            </p>
+            <p className="snapshot-hint">
               {transit?.isChandrashtama
-                ? (lang === "ta" ? "Chandrashtama care" : "Chandrashtama care")
-                : sani?.moonBasedCycle.isActive
-                  ? sani.moonBasedCycle.type ?? "Sani cycle"
-                  : "Steady day"}
+                ? (lang === "ta" ? "⚠ சந்திராஷ்டமம் — கவனமாக இருக்கவும்" : "⚠ Chandrashtama — proceed with care")
+                : (lang === "ta" ? "இந்த நேரத்தில் முக்கிய காரியங்கள் செய்யாதீர்கள்" : "Avoid important activities during this time")}
+            </p>
+          </div>
+
+          <div className="snapshot-box">
+            <p className="snapshot-kicker">{lang === "ta" ? "திதி" : "Tithi"}</p>
+            <p className="snapshot-value">
+              {panchangam
+                ? tTithi(panchangam.tithi.name, lang)
+                : "—"}
             </p>
             <p className="snapshot-hint">
               {panchangam
-                ? `Rahu Kalam ${formatClockLabel(panchangam.kalam.rahuKalam.start)}–${formatClockLabel(panchangam.kalam.rahuKalam.end)}`
-                : "Panchangam not loaded"}
-            </p>
-          </div>
-
-          <div className="snapshot-box">
-            <p className="snapshot-kicker">Birth Data Confidence</p>
-            <p className="snapshot-value">{confidenceLabel}</p>
-            <p className="snapshot-hint">
-              {birthProfile?.birthTimezone ?? "Timezone missing"}
-              {confidence.minutes !== null ? ` • ±${confidence.minutes}m` : ""}
+                ? `${lang === "ta" ? "நட்சத்திரம்" : "Nakshatra"}: ${tNakshatra(panchangam.nakshatra.name, lang)} · ${lang === "ta" ? "பாதம்" : "Pada"} ${panchangam.nakshatra.pada}`
+                : lang === "ta" ? "ஏற்றப்படவில்லை" : "Not loaded"}
             </p>
           </div>
         </div>
 
         <div className="snapshot-action">
           <p className="snapshot-kicker" style={{ marginBottom: "4px" }}>
-            One focused action
+            {lang === "ta" ? "இன்றைய முக்கிய செயல்" : "One focused action"}
           </p>
-          <p style={{ margin: 0, fontSize: "0.84rem", color: "rgba(255,255,255,0.76)", lineHeight: 1.5 }}>{actionPrimary}</p>
+          <p style={{ margin: 0, fontSize: "0.84rem", color: "var(--color-text, #e5e7eb)", lineHeight: 1.5 }}>{actionPrimary}</p>
           {showDualLanguage && actionSecondary && (
-            <p style={{ margin: "6px 0 0", fontSize: "0.78rem", color: "rgba(255,255,255,0.58)", lineHeight: 1.45 }}>
+            <p style={{ margin: "6px 0 0", fontSize: "0.78rem", color: "var(--color-muted, #94a3b8)", lineHeight: 1.45 }}>
               {actionSecondary}
             </p>
           )}

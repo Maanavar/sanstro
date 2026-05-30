@@ -3,6 +3,32 @@ export interface ApiMeta {
   generatedAt: string;
 }
 
+export interface BiText {
+  ta: string;
+  en: string;
+}
+
+export type LifeEventType = "CAREER" | "MARRIAGE" | "STUDIES" | "RELOCATION" | "HEALTH_CAUTION";
+export type ConfidenceTier = "HIGH" | "MEDIUM" | "LOW";
+
+export interface LifeEventWindow {
+  eventType: LifeEventType;
+  startDate: string;
+  endDate: string;
+  confidence: ConfidenceTier;
+  headline: BiText;
+  reasons: BiText[];
+  dashaSupport: BiText;
+  gocharSupport: BiText;
+}
+
+export interface LifeEventsResponseData {
+  chartId: string;
+  asOfDate: string;
+  yearsAhead: number;
+  windows: LifeEventWindow[];
+}
+
 export interface LifeAreaText {
   ta: string;
   en: string;
@@ -13,6 +39,8 @@ export interface LifeAreaData {
   label: LifeAreaText;
   score: number;
   trend: "UP" | "DOWN" | "STABLE";
+  confidence: ConfidenceTier;
+  confidenceReason: LifeAreaText;
   driver: {
     planet: string;
     reason: LifeAreaText;
@@ -27,6 +55,39 @@ export interface LifeAreasResponseData {
   chartId: string;
   dateLocal: string;
   areas: LifeAreaData[];
+}
+
+export interface AskVinaadiAnswer {
+  ta: string;
+  en: string;
+}
+
+export interface AskVinaadiResponseData {
+  question: string;
+  answer: AskVinaadiAnswer;
+  signalsUsed: string[];
+  confidence: ConfidenceTier;
+  caveat: AskVinaadiAnswer | null;
+  questionsUsedToday: number;
+  dailyLimit: number;
+}
+
+export interface MuhurtaSlot {
+  date: string;
+  timeStart: string;
+  timeEnd: string;
+  score: number;
+  panchangamSupport: BiText;
+  dashaSupport: BiText;
+  cautions: BiText[];
+}
+
+export interface MuhurtaResponseData {
+  chartId: string;
+  activity: string;
+  dateFrom: string;
+  dateTo: string;
+  slots: MuhurtaSlot[];
 }
 
 export interface ApiEnvelope<T> {
@@ -177,6 +238,8 @@ export interface DailyGuidanceData {
   dateLocal: string;
   score: number;
   label: string;
+  confidence: ConfidenceTier;
+  confidenceReason: BiText;
   scoreBreakdown: {
     moonTransit: number;
     dashaSupport: number;
@@ -349,13 +412,20 @@ export interface PanchangamDailyResponseData {
     rahuKalam: { start: string; end: string; slot: number };
     yamagandam: { start: string; end: string; slot: number };
     kuligai: { start: string; end: string; slot: number };
-    nallaNeram: { start: string; end: string; slot: number };
+    mandhi: { start: string; end: string; slot: number };
+    nallaNeram: Array<{ start: string; end: string; slot: number }>;
+    gowriNallaNeram: Array<{ start: string; end: string; slot: number }>;
   };
   abhijit: {
     start: string;
     end: string;
     isRestrictedByWeekday: boolean;
   };
+  subhaMuhurtham: {
+    isSubha: boolean;
+    reason: string;
+  };
+  festivals: Array<{ name: string; category: string }>;
   hora: Array<{
     index: number;
     lord: string;
@@ -378,13 +448,20 @@ export interface PanchangamTimingsData {
     rahuKalam: { start: string; end: string; slot: number };
     yamagandam: { start: string; end: string; slot: number };
     kuligai: { start: string; end: string; slot: number };
-    nallaNeram: { start: string; end: string; slot: number };
+    mandhi: { start: string; end: string; slot: number };
+    nallaNeram: Array<{ start: string; end: string; slot: number }>;
+    gowriNallaNeram: Array<{ start: string; end: string; slot: number }>;
   };
   abhijit: {
     start: string;
     end: string;
     isRestrictedByWeekday: boolean;
   };
+  subhaMuhurtham: {
+    isSubha: boolean;
+    reason: string;
+  };
+  festivals: Array<{ name: string; category: string }>;
   hora: Array<{
     index: number;
     lord: string;
@@ -892,6 +969,65 @@ export interface JadhagamReportResponse {
   data: JadhagamReportData;
 }
 
+// ── Journal CRUD ─────────────────────────────────────────────────────────────
+
+export type JournalAnchorData = {
+  activeDasha: string;
+  moonHouseFromMoon: number;
+  saturnHouseFromMoon: number;
+  moonRasi: string;
+  saturnRasi: string;
+};
+
+export type JournalEntryData = {
+  journalId: string;
+  chartId: string;
+  entryDate: string;
+  lifeArea: string;
+  noteText: string;
+  tags: string[];
+  anchor: JournalAnchorData;
+  createdAt: string;
+};
+
+export type JournalListData = {
+  chartId: string;
+  totalCount: number;
+  items: JournalEntryData[];
+};
+
+export type JournalPromptItem = {
+  promptId: string;
+  category: string;
+  text: BiText;
+};
+
+export type JournalPromptsData = {
+  chartId: string;
+  dateLocal: string;
+  lifeArea: string;
+  scoreLabel: string;
+  prompts: JournalPromptItem[];
+};
+
+// ── Context events ────────────────────────────────────────────────────────────
+
+export type ContextEvent = {
+  type: string;
+  date: string;
+  note: string | null;
+};
+
+export type ContextData = {
+  contextId: string;
+  ownerUserId: string;
+  chartId: string;
+  lifeSituation: Record<string, unknown>;
+  activeEvents: ContextEvent[];
+  reactionHistory: unknown[];
+  updatedAt: string;
+};
+
 // ── FEATURE-12: Journal correlations ─────────────────────────────────────────
 
 export type JournalCorrelationData = {
@@ -937,6 +1073,52 @@ export interface SynastryData {
   caution: BiText | null;
 }
 
+export interface KutaResult {
+  name: string;
+  nameTa: string;
+  score: number;
+  maxScore: number;
+  label: string;
+}
+
+export interface PorutthamData {
+  familyVaultId: string;
+  memberId: string;
+  boyNakshatra: number;
+  boyNakshatraName: string;
+  girlNakshatra: number;
+  girlNakshatraName: string;
+  kutas: KutaResult[];
+  totalScore: number;
+  maxScore: number;
+  percentage: number;
+  label: string;
+  rajjuDosha: boolean;
+  vedhaDosha: boolean;
+  summary: BiText;
+  compatibilityContext: string;
+  contextNote: BiText | null;
+}
+
+export interface DirectPoruthamData {
+  chartIdA: string;
+  chartIdB: string;
+  boyNakshatra: number;
+  boyNakshatraName: string;
+  girlNakshatra: number;
+  girlNakshatraName: string;
+  kutas: KutaResult[];
+  totalScore: number;
+  maxScore: number;
+  percentage: number;
+  label: string;
+  rajjuDosha: boolean;
+  vedhaDosha: boolean;
+  summary: BiText;
+  compatibilityContext: string;
+  contextNote: BiText | null;
+}
+
 export interface RelationshipAlertItem {
   alertId: string;
   memberId: string;
@@ -954,6 +1136,33 @@ export interface RelationshipAlertsData {
   items: RelationshipAlertItem[];
 }
 
+// ── P2-B Share Cards ──────────────────────────────────────────────────────────
+
+export type ShareCardType = "DAILY_VIBE" | "DASHA_ERA" | "NAKSHATRA";
+
+export interface ShareCardData {
+  cardType: ShareCardType;
+  chartId: string;
+  dateLocal: string;
+  // DAILY_VIBE
+  score?: number;
+  scoreLabel?: string;
+  scoreBand?: "high" | "good" | "neutral" | "caution";
+  headline?: BiText;
+  subHeadline?: BiText;
+  bestWindow?: string;
+  // DASHA_ERA
+  mahaLord?: string;
+  mahaLordPlain?: BiText;
+  eraLabel?: BiText;
+  eraYears?: string;
+  // NAKSHATRA
+  nakshatraNameTa?: string;
+  nakshatraNameEn?: string;
+  nakshatraTrait?: BiText;
+  rulingPlanet?: string;
+}
+
 // ── Retrospective event analysis ─────────────────────────────────────────────
 
 export interface RetrospectiveCreatePayload {
@@ -967,8 +1176,35 @@ export interface RetrospectiveCreatePayload {
 
 export interface DecisionBriefPayload {
   chartId: string;
-  targetDate: string;
-  scenario: string;
-  optionALabel?: string;
-  optionBLabel?: string;
+  optionA: { label: string; description: string };
+  optionB: { label: string; description: string };
+  priority?: "career" | "family" | "health" | "relationship" | "education" | "money" | "spiritual";
+  targetDate?: string;
+}
+
+// ── P2-C Annual Wrapped ───────────────────────────────────────────────────────
+
+export interface WrappedSlide {
+  slideId: string;
+  slideType: "OVERVIEW" | "DASHA_ERA" | "PEAK" | "STATS" | "REFLECTION" | "LIFE_AREA" | "CLOSING";
+  headline: BiText;
+  body: BiText;
+  accentColor: string;
+  stat: string | null;
+}
+
+export interface AnnualWrappedData {
+  chartId: string;
+  year: number;
+  slides: WrappedSlide[];
+  totalDaysScored: number;
+  peakScore: number;
+  peakDate: string | null;
+  valleyScore: number;
+  valleyDate: string | null;
+  dominantDashaLord: string;
+  highDays: number;
+  cautionDays: number;
+  averageScore: number;
+  topLifeArea: string | null;
 }

@@ -173,9 +173,9 @@ def compute_strength_breakdown(
     else:
         kala = "NEUTRAL"
 
-    # Chesta Bala — motional strength (retrograde = strong)
+    # Chesta Bala — retrograde = exceptional motional strength; direct = normal (neutral).
     if planet not in {"SUN", "MOON", "RAHU", "KETU"}:
-        chesta = "STRONG" if is_retrograde else "WEAK"
+        chesta = "STRONG" if is_retrograde else "NEUTRAL"
     else:
         chesta = "NEUTRAL"
 

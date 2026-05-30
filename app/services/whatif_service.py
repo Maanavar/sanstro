@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from app.calculations.astro import house_from_reference, resolve_timezone, utc_datetime_to_julian_day
 from app.calculations.dasha import DASHA_YEARS, calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
+from app.calculations.panchangam import calculate_daily_panchangam
 from app.calculations.transits import classify_sani_cycle
 from app.schemas.dasha import ResponseMeta
 from app.schemas.whatif import (
@@ -147,8 +148,8 @@ _JUPITER_HOUSE_SCORE = {
     7: 74, 8: 25, 9: 82, 10: 58, 11: 80, 12: 34,
 }
 _SATURN_HOUSE_SCORE = {
-    1: 38, 2: 30, 3: 58, 4: 28, 5: 55, 6: 60,
-    7: 35, 8: 22, 9: 52, 10: 45, 11: 62, 12: 34,
+    1: 42, 2: 40, 3: 62, 4: 34, 5: 52, 6: 64,
+    7: 50, 8: 22, 9: 36, 10: 62, 11: 76, 12: 42,
 }
 _VENUS_HOUSE_SCORE = {
     1: 55, 2: 62, 3: 50, 4: 55, 5: 68, 6: 42,
@@ -444,9 +445,11 @@ def _assess_gochar_support(
     score = primary_score
 
     # Sani cycle penalty for effort-heavy scenarios
-    if sani_cycle_active and sani_cycle_type in ("ASHTAMA_SANI", "KANTAKA_SANI", "JANMA_SANI"):
-        if scenario in ("job_change", "business_start", "property", "marriage"):
+    if sani_cycle_active and scenario in ("job_change", "business_start", "property", "marriage"):
+        if sani_cycle_type == "ASHTAMA_SANI":
             score = max(score - 12, 0)
+        elif sani_cycle_type in ("JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_3", "ARDHASHTAMA_SANI"):
+            score = max(score - 8, 0)
 
     ta_prim = _PLANET_TA[primary]
     en_prim = _PLANET_EN[primary]
@@ -495,11 +498,66 @@ def _assess_gochar_support(
     )
 
 
+# ── Panchangam quality score for a given date ─────────────────────────────────
+
+_CAUTION_YOGAS = {1, 6, 9, 10, 17, 27}
+_AUSPICIOUS_NAKSHATRAS = {1, 4, 5, 7, 8, 13, 14, 15, 17, 22, 27}
+_SIGN_LORDS = {
+    1: "MARS", 2: "VENUS", 3: "MERCURY", 4: "MOON", 5: "SUN", 6: "MERCURY",
+    7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
+}
+
+
+def _compute_panchangam_score(
+    target_date: date,
+    latitude: float,
+    longitude: float,
+    timezone_str: str,
+    natal_lagna_rasi: int,
+    maha_lord: str,
+) -> int:
+    """Compute a 0-100 panchangam quality score for target_date.
+    Uses the same logic as daily_guidance_service panchangam_score section.
+    Returns 70 (neutral) if panchangam cannot be computed.
+    """
+    try:
+        panchang = calculate_daily_panchangam(target_date, latitude, longitude, timezone_str)
+    except Exception:
+        return 70
+
+    from app.calculations.astro import _rasi_lord  # type: ignore[attr-defined]
+
+    score = 70
+    if panchang.tithi_number in {4, 9, 14, 19, 24, 29}:
+        score -= 15
+    if panchang.tithi_number in {8, 23}:
+        score -= 10
+    if panchang.yoga_number in _CAUTION_YOGAS:
+        score -= 10
+    if panchang.karana_name == "VISHTI":
+        score -= 10
+    lagna_lord = _SIGN_LORDS.get(natal_lagna_rasi)
+    if lagna_lord and panchang.weekday_lord == lagna_lord:
+        score += 8
+    if panchang.weekday_lord == maha_lord:
+        score += 5
+    if panchang.nakshatra_number in _AUSPICIOUS_NAKSHATRAS:
+        score += 8
+    return max(0, min(100, score))
+
+
 # ── Combined verdict and narrative ────────────────────────────────────────────
 
-def _overall_verdict(natal_score: int, dasha_score: int, gochar_score: int) -> tuple[int, str]:
-    # Triple-confirmation: all three must agree for FAVOURABLE
-    overall = round(natal_score * 0.30 + dasha_score * 0.40 + gochar_score * 0.30)
+def _overall_verdict(
+    natal_score: int, dasha_score: int, gochar_score: int, panchangam_score: int = 70
+) -> tuple[int, str]:
+    # Four-pillar formula: natal + dasha + gochar + panchangam
+    overall = round(
+        natal_score * 0.25
+        + dasha_score * 0.35
+        + gochar_score * 0.25
+        + panchangam_score * 0.15
+    )
     if overall >= 62 and natal_score >= 50 and dasha_score >= 50 and gochar_score >= 50:
         verdict = "FAVOURABLE"
     elif overall >= 45:
@@ -731,7 +789,17 @@ def evaluate_whatif(
         sani_cycle.type if sani_cycle.is_active else None,
     )
 
-    overall_score, verdict = _overall_verdict(natal.score, dasha.score, gochar.score)
+    # Panchangam quality for target date (uses birth location as proxy for local panchangam)
+    panchang_score = _compute_panchangam_score(
+        target_date,
+        float(birth_profile.birth_latitude or 13.0),
+        float(birth_profile.birth_longitude or 80.0),
+        birth_profile.birth_timezone,
+        natal_lagna_rasi,
+        timeline.current_mahadasha.lord,
+    )
+
+    overall_score, verdict = _overall_verdict(natal.score, dasha.score, gochar.score, panchang_score)
 
     summary, best_period, caution_note, remedy, disclaimer = _build_summary(
         scenario, verdict, overall_score,
@@ -748,6 +816,7 @@ def evaluate_whatif(
         dashaSupportStrength=_strength(dasha.score),
         gocharSupport=gochar.text_en,
         gocharSupportStrength=_strength(gochar.score),
+        panchangamQuality=_strength(panchang_score),
         overallVerdict=verdict,
     )
 

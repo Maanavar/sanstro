@@ -49,7 +49,7 @@ import { NavamsaChart, RasiChart } from "./dashboard-charts";
 import { DASHA_COLORS, dashaStatus } from "./dashboard-dasha";
 
 
-import { Chip } from "./dashboard-ui";
+import { Chip, ConfidenceBadge } from "./dashboard-ui";
 
 
 
@@ -209,6 +209,14 @@ export function MemberCard({
 
 
           </p>
+
+          {memberChart?.dailyGuidance?.confidence && memberChart.dailyGuidance.confidenceReason && (
+            <ConfidenceBadge
+              level={memberChart.dailyGuidance.confidence as "HIGH" | "MEDIUM" | "LOW"}
+              reason={memberChart.dailyGuidance.confidenceReason}
+              lang={lang}
+            />
+          )}
 
 
         </div>

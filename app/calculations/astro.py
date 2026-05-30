@@ -90,6 +90,7 @@ def nakshatra_from_degree(degree: float) -> int:
 
 
 def pada_from_degree(degree: float) -> int:
+    # Pada 1-4 per nakshatra: index the full zodiac in 3°20' steps, then mod 4.
     return _normalized_index(degree, PADA_SIZE_DEGREES) % 4 + 1
 
 

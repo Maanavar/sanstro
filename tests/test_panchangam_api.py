@@ -122,4 +122,4 @@ def test_daily_panchangam_endpoint_ignores_stale_cache_schema(client):
 
     with SessionLocal() as session:
         row = session.query(PanchangamCache).one()
-        assert row.data["schema_version"] == 3
+        assert row.data["schema_version"] == 4

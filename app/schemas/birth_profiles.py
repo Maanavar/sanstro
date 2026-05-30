@@ -59,6 +59,24 @@ class BirthProfileCreateResult(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class BirthProfileUpdate(BaseModel):
+    """Partial update payload for an existing birth profile."""
+    display_name: str | None = Field(default=None, alias="displayName", min_length=1)
+    birth_date_local: date | None = Field(default=None, alias="birthDateLocal")
+    birth_time_local: time | None = Field(default=None, alias="birthTimeLocal")
+    birth_place: str | None = Field(default=None, alias="birthPlace", min_length=1)
+    birth_latitude: float | None = Field(default=None, alias="birthLatitude", ge=-90.0, le=90.0)
+    birth_longitude: float | None = Field(default=None, alias="birthLongitude", ge=-180.0, le=180.0)
+    birth_timezone: str | None = Field(default=None, alias="birthTimezone", min_length=1)
+    birth_time_source: str | None = Field(default=None, alias="birthTimeSource")
+    birth_time_confidence_minutes: int | None = Field(default=None, alias="birthTimeConfidenceMinutes", ge=0)
+    marital_status: str | None = Field(default=None, alias="maritalStatus")
+    employment_type: str | None = Field(default=None, alias="employmentType")
+    recalculate: bool = Field(default=True, alias="recalculate")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class BirthProfileResponseMeta(BaseModel):
     calculation_version: str = Field(alias="calculationVersion")
     generated_at: datetime = Field(alias="generatedAt")

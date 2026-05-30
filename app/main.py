@@ -19,6 +19,13 @@ from app.api.health import router as health_router
 from app.api.goals import router as goals_router
 from app.api.journal import router as journal_router
 from app.api.life_areas import router as life_areas_router
+from app.api.life_events import router as life_events_router
+from app.api.ask_vinaadi import router as ask_vinaadi_router
+from app.api.life_event_log import router as life_event_log_router
+from app.api.muhurta import router as muhurta_router
+from app.api.annual_wrapped import router as annual_wrapped_router
+from app.api.share_card import router as share_card_router
+from app.api.rectification import router as rectification_router
 from app.api.panchangam import router as panchangam_router
 from app.api.qa import router as qa_router
 from app.api.relationships import router as relationships_router
@@ -30,6 +37,7 @@ from app.api.notification_preferences import router as notification_preferences_
 from app.api.predictions import router as predictions_router
 from app.core.config import get_settings
 from app.middleware import RateLimitMiddleware, RequestLoggingMiddleware, SecurityHeadersMiddleware
+from app.services.daily_push_cron import run_daily_push_cron
 from app.services.peyarchi_alert_service import daily_peyarchi_refresh
 from app.services.synastry_service import daily_relationship_alert_refresh
 
@@ -73,6 +81,14 @@ def _build_lifespan():
             id="daily_relationship_alert_refresh",
             replace_existing=True,
         )
+        scheduler.add_job(
+            run_daily_push_cron,
+            "cron",
+            hour=6,
+            minute=0,
+            id="daily_push_cron",
+            replace_existing=True,
+        )
         scheduler.start()
         try:
             yield
@@ -109,6 +125,13 @@ def create_app() -> FastAPI:
     app.include_router(goals_router, prefix=settings.api_v1_prefix)
     app.include_router(journal_router, prefix=settings.api_v1_prefix)
     app.include_router(life_areas_router, prefix=settings.api_v1_prefix)
+    app.include_router(life_events_router, prefix=settings.api_v1_prefix)
+    app.include_router(ask_vinaadi_router, prefix=settings.api_v1_prefix)
+    app.include_router(life_event_log_router, prefix=settings.api_v1_prefix)
+    app.include_router(muhurta_router, prefix=settings.api_v1_prefix)
+    app.include_router(annual_wrapped_router, prefix=settings.api_v1_prefix)
+    app.include_router(share_card_router, prefix=settings.api_v1_prefix)
+    app.include_router(rectification_router, prefix=settings.api_v1_prefix)
     app.include_router(panchangam_router, prefix=settings.api_v1_prefix)
     app.include_router(qa_router, prefix=settings.api_v1_prefix)
     app.include_router(relationships_router, prefix=settings.api_v1_prefix)

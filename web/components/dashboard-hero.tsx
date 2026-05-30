@@ -1,29 +1,31 @@
-﻿"use client";
+"use client";
 
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { formatDateLabel, getScoreBand, todayIso } from "@/lib/format";
-import { t, tPlanetLord } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
   ChartSummaryData,
   DailyGuidanceData,
-  DashaTimelineResponseData,
   FamilyAggregateData,
   FamilyVaultListItem,
   TransitSnapshotData,
 } from "@/lib/types";
-import { Metric } from "./dashboard-ui";
 
-type Tab = "onboarding" | "personal" | "life-areas" | "family" | "calendar" | "settings" | "qa";
+type Tab = "onboarding" | "personal" | "tools" | "transits" | "plan" | "life-areas" | "family" | "calendar" | "journal" | "settings" | "qa";
 
-const TAB_IDS: { id: Tab; emoji: string }[] = [
-  { id: "personal",   emoji: "◎" },
-  { id: "life-areas", emoji: "🌿" },
-  { id: "family",     emoji: "👪" },
-  { id: "calendar",   emoji: "📅" },
-  { id: "settings",   emoji: "⚙️" },
-  { id: "qa",         emoji: "❓" },
+const TAB_DEFS: { id: Tab; label: string; labelTa: string }[] = [
+  { id: "personal",   label: "Personal",   labelTa: "தனிப்பட்ட" },
+  { id: "family",     label: "Family",     labelTa: "குடும்பம்" },
+  { id: "life-areas", label: "Life Areas", labelTa: "வாழ்க்கை" },
+  { id: "plan",       label: "Plan",       labelTa: "திட்டம்" },
+  { id: "transits",   label: "Transits",   labelTa: "கோசாரம்" },
+  { id: "journal",    label: "Journal",    labelTa: "குறிப்பேடு" },
+  { id: "calendar",   label: "Calendar",   labelTa: "நாட்காட்டி" },
+  { id: "tools",      label: "Tools",      labelTa: "கருவிகள்" },
+  { id: "settings",   label: "Settings",   labelTa: "அமைப்புகள்" },
+  { id: "qa",         label: "QA",         labelTa: "QA" },
 ];
 
 interface DashboardHeroProps {
@@ -32,7 +34,6 @@ interface DashboardHeroProps {
   birthDisplayName: string;
   status: string;
   chartSummary: ChartSummaryData | null;
-  dasha: DashaTimelineResponseData | null;
   todayGuidance: DailyGuidanceData | null;
   todayTransit: TransitSnapshotData | null;
   familyAggregate: FamilyAggregateData | null;
@@ -59,7 +60,6 @@ export function DashboardHero({
   birthDisplayName,
   status,
   chartSummary,
-  dasha,
   todayGuidance,
   todayTransit,
   familyAggregate,
@@ -81,103 +81,440 @@ export function DashboardHero({
 }: DashboardHeroProps) {
   const todayDate = useRef(todayIso());
   const [showAlerts, setShowAlerts] = useState(false);
-  const headerScoreBand = todayGuidance ? getScoreBand(todayGuidance.score) : null;
   const isTodayChandrashtama = todayTransit?.isChandrashtama ?? false;
+
+  const lagnaRasi = chartSummary?.lagnaRasi ?? "";
 
   return (
     <>
-      {/* Site hero */}
-      <div className="site__hero">
-        <div className="site__hero-inner">
-          <div className="site__identity">
-            <div>
-              <Image
-                src="/brand/vinaadi-wordmark-color-transparent.png"
-                alt="Vinaadi - Your Cosmic Copilot"
-                width={1764}
-                height={619}
-                className="site__wordmark"
-                priority
-              />
-              <p className="site__subtitle">
+      <style>{`
+        /* ── Clarity Dashboard Shell ── */
+        .cd-shell {
+          background: #F4EEE2;
+          min-height: 100vh;
+          font-family: 'Noto Sans Tamil', 'Inter', system-ui, sans-serif;
+          color: #3D352B;
+        }
+
+        /* ── Top bar ── */
+        .cd-topbar {
+          position: sticky;
+          top: 0;
+          z-index: 60;
+          background: rgba(244,238,226,0.95);
+          backdrop-filter: blur(14px);
+          border-bottom: 1px solid #E4DBC8;
+        }
+        .cd-topbar__inner {
+          width: min(1280px, calc(100% - 32px));
+          margin: 0 auto;
+          height: 56px;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+
+        /* Brand */
+        .cd-brand {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          flex-shrink: 0;
+          text-decoration: none;
+        }
+        .cd-brand__symbol {
+          width: 24px;
+          height: 24px;
+          display: block;
+        }
+        .cd-brand__name {
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 1.15rem;
+          font-weight: 500;
+          letter-spacing: -0.02em;
+          color: #1A1612;
+        }
+        .cd-brand__sub {
+          font-family: 'Inter', system-ui, sans-serif;
+          font-size: 0.68rem;
+          font-weight: 500;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: #A89D89;
+          padding-left: 10px;
+          border-left: 1px solid #D4C8AE;
+          margin-left: 4px;
+        }
+
+        /* Status pill */
+        .cd-status-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 4px 10px;
+          border-radius: 999px;
+          border: 1px solid #E4DBC8;
+          background: #FAF5EA;
+          font-size: 0.72rem;
+          color: #7A6F5E;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 180px;
+        }
+        .cd-status-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #5C7654;
+          flex-shrink: 0;
+        }
+
+        /* Right utility buttons */
+        .cd-topbar__right {
+          margin-left: auto;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .cd-vault-name {
+          font-size: 0.78rem;
+          color: #7A6F5E;
+          font-weight: 500;
+        }
+        .cd-popover-anchor {
+          position: relative;
+        }
+        .cd-overlay {
+          position: fixed;
+          inset: 0;
+        }
+        .cd-overlay--alerts { z-index: 299; }
+        .cd-overlay--menu { z-index: 199; }
+        .cd-empty-note {
+          margin: 0;
+          padding: 8px 10px;
+          font-size: 0.78rem;
+          color: #A89D89;
+        }
+        .cd-icon-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          border: 1px solid #E4DBC8;
+          background: #FAF5EA;
+          color: #7A6F5E;
+          font-size: 0.85rem;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          transition: background 150ms ease, border-color 150ms ease;
+          flex-shrink: 0;
+        }
+        .cd-icon-btn:hover { background: #EDE5D4; border-color: #D4C8AE; }
+
+        .cd-badge {
+          position: absolute;
+          top: -3px;
+          right: -3px;
+          width: 15px;
+          height: 15px;
+          border-radius: 50%;
+          background: #B85A2C;
+          color: #fff;
+          font-size: 0.5rem;
+          font-weight: 800;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .cd-lang-btn {
+          padding: 4px 11px;
+          border-radius: 999px;
+          border: 1px solid #D4C8AE;
+          background: #FAF5EA;
+          color: #3D352B;
+          font-size: 0.73rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 150ms ease;
+        }
+        .cd-lang-btn:hover { background: #EDE5D4; }
+
+        .cd-avatar {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: #1A1612;
+          color: #F4EEE2;
+          font-weight: 700;
+          font-size: 0.82rem;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 2px solid #D4C8AE;
+          transition: transform 0.12s ease;
+          flex-shrink: 0;
+        }
+        .cd-avatar:hover { transform: scale(1.06); }
+
+        /* Dropdown */
+        .cd-dropdown {
+          position: absolute;
+          top: calc(100% + 8px);
+          right: 0;
+          z-index: 300;
+          background: #FFFFFF;
+          border: 1px solid #E4DBC8;
+          border-radius: 14px;
+          padding: 6px;
+          min-width: 200px;
+          box-shadow: 0 8px 32px rgba(60,40,20,0.16);
+        }
+        .cd-dropdown__head {
+          padding: 8px 10px 10px;
+          border-bottom: 1px solid #E4DBC8;
+          margin-bottom: 4px;
+        }
+        .cd-dropdown__email-label {
+          margin: 0 0 2px;
+          font-size: 0.62rem;
+          color: #A89D89;
+          text-transform: uppercase;
+          letter-spacing: 0.07em;
+        }
+        .cd-dropdown__email {
+          margin: 0;
+          font-size: 0.8rem;
+          color: #1A1612;
+          font-weight: 500;
+          word-break: break-all;
+        }
+        .cd-dropdown__btn {
+          width: 100%;
+          padding: 8px 10px;
+          border-radius: 8px;
+          background: transparent;
+          border: none;
+          color: #3D352B;
+          font-size: 0.83rem;
+          text-align: left;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-family: inherit;
+          transition: background 0.12s;
+        }
+        .cd-dropdown__btn:hover { background: #FAF5EA; }
+        .cd-dropdown__btn--danger { color: #A8482F; }
+        .cd-dropdown__btn--danger:hover { background: #F2D8CC; }
+        .cd-dropdown__divider { height: 1px; background: #E4DBC8; margin: 4px 0; }
+
+        /* Alert popover */
+        .cd-alerts-popover {
+          position: absolute;
+          top: calc(100% + 8px);
+          right: 0;
+          z-index: 300;
+          background: #FFFFFF;
+          border: 1px solid #E4DBC8;
+          border-radius: 14px;
+          padding: 6px;
+          min-width: 280px;
+          max-width: 340px;
+          box-shadow: 0 8px 32px rgba(60,40,20,0.16);
+        }
+        .cd-alerts-head {
+          margin: 0 0 6px;
+          padding: 4px 8px;
+          font-size: 0.62rem;
+          font-weight: 700;
+          color: #A89D89;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        .cd-alert-item {
+          padding: 8px 10px;
+          border-radius: 8px;
+          margin-bottom: 3px;
+          background: #FAF5EA;
+          border: 1px solid #E4DBC8;
+        }
+        .cd-alert-item__title {
+          margin: 0 0 2px;
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: #B85A2C;
+        }
+        .cd-alert-item__body {
+          margin: 0;
+          font-size: 0.7rem;
+          color: #7A6F5E;
+          line-height: 1.4;
+        }
+
+        /* ── Tab nav ── */
+        .cd-tabnav {
+          border-bottom: 1px solid #E4DBC8;
+          background: rgba(244,238,226,0.97);
+        }
+        .cd-tabnav__inner {
+          width: min(1280px, calc(100% - 32px));
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          gap: 0;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+        .cd-tabnav__inner::-webkit-scrollbar { display: none; }
+
+        .cd-tab {
+          padding: 14px 18px 12px;
+          border: none;
+          background: transparent;
+          font-family: 'Inter', system-ui, sans-serif;
+          font-size: 0.88rem;
+          font-weight: 500;
+          color: #A89D89;
+          cursor: pointer;
+          white-space: nowrap;
+          border-bottom: 2px solid transparent;
+          margin-bottom: -1px;
+          transition: color 150ms ease, border-color 150ms ease;
+        }
+        .cd-tab:hover { color: #3D352B; }
+        .cd-tab--active {
+          color: #1A1612;
+          font-weight: 600;
+          border-bottom-color: #1A1612;
+        }
+
+        .cd-tabnav__right {
+          margin-left: auto;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 0;
+          flex-shrink: 0;
+        }
+        .cd-date-input {
+          padding: 5px 10px;
+          border-radius: 8px;
+          border: 1px solid #D4C8AE;
+          background: #FFFFFF;
+          color: #1A1612;
+          font-size: 0.8rem;
+          font-family: inherit;
+          outline: none;
+          cursor: pointer;
+        }
+        .cd-date-input:focus { border-color: #B85A2C; box-shadow: 0 0 0 2px rgba(184,90,44,0.1); }
+
+        /* ── Toast ── */
+        .cd-toast {
+          position: fixed;
+          bottom: 24px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 200;
+          padding: 11px 22px;
+          border-radius: 10px;
+          font-size: 0.88rem;
+          font-weight: 500;
+          pointer-events: none;
+          white-space: nowrap;
+          box-shadow: 0 4px 20px rgba(60,40,20,0.18);
+        }
+        .cd-toast--success {
+          background: #DCE4D2;
+          border: 1px solid rgba(92,118,84,0.5);
+          color: #3a6b40;
+        }
+        .cd-toast--error {
+          background: #F2D8CC;
+          border: 1px solid rgba(168,72,47,0.4);
+          color: #A8482F;
+        }
+
+        /* ── Page content wrapper ── */
+        .cd-page {
+          width: min(1280px, calc(100% - 32px));
+          margin: 0 auto;
+          padding: 28px 0 64px;
+        }
+      `}</style>
+
+      {/* ── Top bar ── */}
+      <header className="cd-topbar">
+        <div className="cd-topbar__inner">
+          {/* Brand */}
+          <div className="cd-brand">
+            <Image
+              src="/brand/vinaadi-symbol-icon.png"
+              alt=""
+              aria-hidden
+              width={512}
+              height={512}
+              className="cd-brand__symbol"
+              priority
+            />
+            <span className="cd-brand__name">Vinaadi</span>
+            {lagnaRasi && (
+              <span className="cd-brand__sub">
+                {birthDisplayName ? `${birthDisplayName} · ` : ""}
                 {chartSummary
-                  ? `${birthDisplayName ? `${birthDisplayName} · ` : ""}${chartSummary.lagnaRasi} ${t("label_lagnam", lang)} · ${chartSummary.moonRasi} ${t("label_janma_rasi", lang)} · ${chartSummary.janmaNakshatra} ${t("label_nakshatra", lang)}`
-                  : "Tamil astrology – Thirukanitham"}
-              </p>
-              <div className="site__meta-row">
-                {todayGuidance ? (
-                  <span className="chip chip--accent" title="Today's score – fixed to the current calendar date">
-                    {`${t("personal_today", lang)} ${todayGuidance.score}/100`}
-                  </span>
-                ) : null}
-                {selectedVault ? <span className="chip chip--neutral">{selectedVault.name}</span> : null}
-                {isTodayChandrashtama && (
-                  <span style={{
-                    fontSize: "0.78rem", fontWeight: 700, padding: "4px 12px", borderRadius: "999px",
-                    background: "rgba(239,68,68,0.2)", color: "#f87171",
-                    border: "1px solid rgba(248,113,113,0.5)",
-                  }}>
-                    ⚠ {t("chandrashtamam_active", lang)}
-                  </span>
-                )}
-              </div>
-            </div>
+                  ? `${chartSummary.lagnaRasi} ${t("label_lagnam", lang)} · ${chartSummary.moonRasi} ${t("label_janma_rasi", lang)}`
+                  : "Thirukanitham"}
+              </span>
+            )}
           </div>
 
-          <div className="site__utility-row">
-            {/* Notification bell */}
-            <div style={{ position: "relative" }}>
+          <div className="cd-topbar__right">
+            {/* Status */}
+            <span className="cd-status-pill" title={status}>
+              <span className="cd-status-dot" />
+              {status}
+            </span>
+
+            {/* Family vault name */}
+            {selectedVault && (
+              <span className="cd-vault-name">
+                {selectedVault.name}
+              </span>
+            )}
+
+            {/* Alerts bell */}
+            <div className="cd-popover-anchor">
               <button
                 type="button"
+                className="cd-icon-btn"
                 onClick={() => setShowAlerts((v) => !v)}
                 title={lang === "ta" ? "அறிவிப்புகள்" : "Alerts"}
-                style={{
-                  width: "34px", height: "34px", borderRadius: "50%",
-                  background: alertCount > 0 ? "rgba(251,191,36,0.15)" : "rgba(255,255,255,0.07)",
-                  border: alertCount > 0 ? "1px solid rgba(251,191,36,0.4)" : "1px solid rgba(255,255,255,0.15)",
-                  color: alertCount > 0 ? "#fbbf24" : "rgba(255,255,255,0.5)",
-                  fontSize: "1rem", cursor: "pointer", display: "flex", alignItems: "center",
-                  justifyContent: "center", position: "relative", flexShrink: 0,
-                }}
               >
                 🔔
                 {alertCount > 0 && (
-                  <span style={{
-                    position: "absolute", top: "-3px", right: "-3px",
-                    width: "16px", height: "16px", borderRadius: "50%",
-                    background: "#fbbf24", color: "#0a0800",
-                    fontSize: "0.55rem", fontWeight: 800,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>
-                    {alertCount > 9 ? "9+" : alertCount}
-                  </span>
+                  <span className="cd-badge">{alertCount > 9 ? "9+" : alertCount}</span>
                 )}
               </button>
-
               {showAlerts && (
                 <>
-                  <div style={{ position: "fixed", inset: 0, zIndex: 299 }} onClick={() => setShowAlerts(false)} />
-                  <div style={{
-                    position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 300,
-                    background: "#111218", border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "12px", padding: "8px", minWidth: "280px", maxWidth: "340px",
-                    boxShadow: "0 16px 48px rgba(0,0,0,0.6)",
-                  }}>
-                    <p style={{ margin: "0 0 8px", padding: "4px 8px", fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                      {lang === "ta" ? "அலர்ட்கள்" : "Alerts & Cautions"}
-                    </p>
+                  <div className="cd-overlay cd-overlay--alerts" onClick={() => setShowAlerts(false)} />
+                  <div className="cd-alerts-popover">
+                    <p className="cd-alerts-head">{lang === "ta" ? "அலர்ட்கள்" : "Alerts & Cautions"}</p>
                     {alertItems.length === 0 ? (
-                      <p style={{ margin: 0, padding: "8px 10px", fontSize: "0.78rem", color: "rgba(255,255,255,0.4)" }}>
+                      <p className="cd-empty-note">
                         {lang === "ta" ? "இன்று எந்த அலர்ட்டும் இல்லை." : "No alerts today."}
                       </p>
                     ) : (
                       alertItems.map((a, i) => (
-                        <div key={i} style={{
-                          padding: "8px 10px", borderRadius: "8px", marginBottom: "4px",
-                          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)",
-                        }}>
-                          <p style={{ margin: "0 0 2px", fontSize: "0.72rem", fontWeight: 700, color: "#fbbf24" }}>{a.title}</p>
-                          <p style={{ margin: 0, fontSize: "0.7rem", color: "rgba(255,255,255,0.55)", lineHeight: 1.4 }}>{a.body}</p>
+                        <div key={i} className="cd-alert-item">
+                          <p className="cd-alert-item__title">{a.title}</p>
+                          <p className="cd-alert-item__body">{a.body}</p>
                         </div>
                       ))
                     )}
@@ -186,88 +523,36 @@ export function DashboardHero({
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={onLangToggle}
-              style={{
-                padding: "4px 12px", borderRadius: "999px", border: "1px solid rgba(255,255,255,0.2)",
-                background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.8)",
-                fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em",
-              }}
-              title={lang === "ta" ? "Switch to English" : "தமிழுக்கு மாறு"}
-            >
+            {/* Lang toggle */}
+            <button type="button" className="cd-lang-btn" onClick={onLangToggle}
+              title={lang === "ta" ? "Switch to English" : "தமிழுக்கு மாறு"}>
               {lang === "ta" ? "EN" : "த"}
             </button>
 
-            <span className="site__status-pill" title={status}>
-              <span className="site__status-dot" />
-              {status}
-            </span>
-
-            {/* User avatar + dropdown */}
-            <div style={{ position: "relative" }}>
+            {/* Avatar + user menu */}
+            <div className="cd-popover-anchor">
               <button
                 type="button"
+                className="cd-avatar"
                 onClick={onUserMenuToggle}
                 title={userEmail ?? "Account"}
-                style={{
-                  width: "34px", height: "34px", borderRadius: "50%",
-                  background: "linear-gradient(135deg, rgba(229,184,77,0.85), rgba(200,155,50,0.7))",
-                  border: "2px solid rgba(229,184,77,0.4)",
-                  color: "#0a0800", fontWeight: 700, fontSize: "0.85rem",
-                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                  boxShadow: "0 2px 10px rgba(229,184,77,0.25)",
-                  transition: "box-shadow 0.15s, transform 0.1s", flexShrink: 0,
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.06)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)"; }}
               >
                 {userEmail ? userEmail[0].toUpperCase() : "U"}
               </button>
-
               {showUserMenu && (
                 <>
-                  <div style={{ position: "fixed", inset: 0, zIndex: 199 }} onClick={onUserMenuClose} />
-                  <div style={{
-                    position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 200,
-                    background: "#111218", border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "12px", padding: "8px", minWidth: "200px",
-                    boxShadow: "0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)",
-                  }}>
-                    <div style={{ padding: "8px 10px 10px", borderBottom: "1px solid rgba(255,255,255,0.07)", marginBottom: "6px" }}>
-                      <p style={{ margin: "0 0 2px", fontSize: "0.68rem", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Signed in as</p>
-                      <p style={{ margin: 0, fontSize: "0.82rem", color: "rgba(255,255,255,0.75)", fontWeight: 500, wordBreak: "break-all" }}>{userEmail ?? "—"}</p>
+                  <div className="cd-overlay cd-overlay--menu" onClick={onUserMenuClose} />
+                  <div className="cd-dropdown">
+                    <div className="cd-dropdown__head">
+                      <p className="cd-dropdown__email-label">Signed in as</p>
+                      <p className="cd-dropdown__email">{userEmail ?? "—"}</p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={onGoToSettings}
-                      style={{
-                        width: "100%", padding: "8px 10px", borderRadius: "8px",
-                        background: "transparent", border: "none", color: "rgba(255,255,255,0.65)",
-                        fontSize: "0.84rem", textAlign: "left", cursor: "pointer",
-                        display: "flex", alignItems: "center", gap: "8px",
-                        transition: "background 0.12s, color 0.12s", fontFamily: "inherit",
-                      }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.06)"; (e.currentTarget as HTMLButtonElement).style.color = "#fff"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.65)"; }}
-                    >
-                      <span style={{ fontSize: "1rem" }}>⚙️</span> Settings
+                    <button type="button" className="cd-dropdown__btn" onClick={onGoToSettings}>
+                      <span>⚙️</span> Settings
                     </button>
-                    <div style={{ height: "1px", background: "rgba(255,255,255,0.06)", margin: "6px 0" }} />
-                    <button
-                      type="button"
-                      onClick={onSignOut}
-                      style={{
-                        width: "100%", padding: "8px 10px", borderRadius: "8px",
-                        background: "transparent", border: "none", color: "rgba(248,113,113,0.8)",
-                        fontSize: "0.84rem", textAlign: "left", cursor: "pointer",
-                        display: "flex", alignItems: "center", gap: "8px",
-                        transition: "background 0.12s, color 0.12s", fontFamily: "inherit",
-                      }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.08)"; (e.currentTarget as HTMLButtonElement).style.color = "#f87171"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "rgba(248,113,113,0.8)"; }}
-                    >
-                      <span style={{ fontSize: "1rem" }}>→</span> Sign out
+                    <div className="cd-dropdown__divider" />
+                    <button type="button" className="cd-dropdown__btn cd-dropdown__btn--danger" onClick={onSignOut}>
+                      <span>→</span> Sign out
                     </button>
                   </div>
                 </>
@@ -275,89 +560,36 @@ export function DashboardHero({
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Metric strip – today's data, never changes with date picker */}
-      <div style={{ width: "min(1200px, calc(100% - 32px))", margin: "0 auto", paddingTop: "16px" }}>
-        <div className="metric-strip">
-          <Metric
-            label={t("metric_today", lang)}
-            value={formatDateLabel(todayDate.current)}
-            hint={new Date().toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { weekday: "long" })}
-            tone="high"
-          />
-          <Metric
-            label={t("metric_nakshatra", lang)}
-            value={chartSummary ? chartSummary.janmaNakshatra : "—"}
-            hint={chartSummary
-              ? `${t("metric_pada", lang)} ${chartSummary.janmaPada} · ${chartSummary.moonRasi} ${t("metric_janma_rasi", lang)}`
-              : t("hint_no_profile", lang)}
-            tone="mid"
-          />
-          <Metric
-            label={t("metric_dasha", lang)}
-            value={dasha ? `${tPlanetLord(dasha.current.mahadasha.lord, lang)} ${t("dasha_word", lang)}` : todayGuidance ? `${todayGuidance.score}/100` : "—"}
-            hint={dasha ? `${tPlanetLord(dasha.current.antardasha.lord, lang)} ${t("bhukti_word", lang)}` : headerScoreBand?.label ?? ""}
-            tone={headerScoreBand?.tone === "high" ? "high" : headerScoreBand?.tone === "low" ? "low" : "mid"}
-          />
-          <Metric
-            label={t("metric_family_score", lang)}
-            value={familyAggregate ? `${familyAggregate.familyScore}/100` : selectedVault ? selectedVault.name : "—"}
-            hint={familyAggregate
-              ? familyAggregate.familyLabel
-              : selectedVaultId
-                ? `${selectedVault?.memberCount ?? 0} ${t("metric_members", lang)}`
-                : t("metric_vault_select", lang)}
-            tone={familyAggregate
-              ? (getScoreBand(familyAggregate.familyScore).tone === "high" ? "high" : getScoreBand(familyAggregate.familyScore).tone === "low" ? "low" : "mid")
-              : "rest"}
-          />
-        </div>
-      </div>
+      {/* ── Tab navigation ── */}
+      <nav className="cd-tabnav" aria-label="Dashboard navigation">
+        <div className="cd-tabnav__inner">
+          {TAB_DEFS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`cd-tab${activeTab === tab.id ? " cd-tab--active" : ""}`}
+              onClick={() => onTabChange(tab.id)}
+            >
+              {lang === "ta" ? tab.labelTa : tab.label}
+            </button>
+          ))}
 
-      {/* Tab bar */}
-      <div className="site__nav-wrap" style={{ marginTop: "16px" }}>
-        <nav className="site__nav">
-          {TAB_IDS.map((tab) => {
-            const tabLabel = tab.id === "personal" ? t("tab_personal", lang)
-              : tab.id === "life-areas" ? t("tab_life_areas", lang)
-              : tab.id === "family" ? t("tab_family", lang)
-              : tab.id === "calendar" ? t("tab_calendar", lang)
-              : tab.id === "qa" ? t("tab_qa", lang)
-              : t("tab_settings", lang);
-            return (
-              <button
-                key={tab.id}
-                className={`site__tab${activeTab === tab.id ? " site__tab--active" : ""}`}
-                type="button"
-                onClick={() => onTabChange(tab.id)}
-              >
-                <span>{tab.emoji}</span>{tabLabel}
-              </button>
-            );
-          })}
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>
+          <div className="cd-tabnav__right">
             <input
-              className="input input--compact"
+              className="cd-date-input"
               type="date"
               value={selectedDate}
               onChange={(e) => onDateChange(e.target.value)}
-              style={{ padding: "0.3rem 0.7rem", fontSize: "0.82rem" }}
             />
           </div>
-        </nav>
-      </div>
+        </div>
+      </nav>
 
       {/* Toast */}
       {toast && (
-        <div style={{
-          position: "fixed", bottom: "24px", left: "50%", transform: "translateX(-50%)",
-          zIndex: 100, padding: "12px 24px", borderRadius: "10px", fontSize: "0.9rem",
-          fontWeight: 500, boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
-          background: toast.tone === "success" ? "rgba(34,197,94,0.18)" : "rgba(239,68,68,0.18)",
-          border: `1px solid ${toast.tone === "success" ? "rgba(34,197,94,0.5)" : "rgba(239,68,68,0.5)"}`,
-          color: toast.tone === "success" ? "#4ade80" : "#f87171", pointerEvents: "none",
-        }}>
+        <div className={`cd-toast cd-toast--${toast.tone}`}>
           {toast.tone === "success" ? "✔ " : "✕ "}{toast.message}
         </div>
       )}

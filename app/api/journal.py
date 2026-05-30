@@ -25,6 +25,7 @@ from app.schemas.journal import (
     VALID_LIFE_AREAS,
     VALID_SCORE_LABELS,
 )
+from app.services.chart_service import load_persisted_chart_response
 from app.services.daily_guidance_service import get_daily_guidance
 from app.services.journal_service import (
     apply_journal_retention_window,
@@ -143,10 +144,46 @@ def get_prompts_for_journal(
     on_date: date = Query(alias="date"),
     life_area: str | None = Query(default=None, alias="lifeArea"),
     score_label: str | None = Query(default=None, alias="scoreLabel"),
+    prompt_type: str | None = Query(default=None, alias="promptType"),
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> JournalPromptsResponse:
     _assert_chart_owner(session, chart_id, current_user)
+
+    # Shadow work prompts path (P3-A)
+    if prompt_type == "SHADOW":
+        from app.calculations.astro import RASI_NAME_TO_NUMBER
+        from app.schemas.journal import JournalPromptItem, JournalPromptText
+        from app.services.narrative_engine import generate_shadow_prompts
+
+        snap = load_persisted_chart_response(session, chart_id)
+        lagna_rasi = snap.data.lagna.rasi
+        moon_nak = snap.data.janma_nakshatra
+        planets = snap.data.planets
+        bitext_prompts = generate_shadow_prompts(lagna_rasi, planets, moon_nak)
+        items = [
+            JournalPromptItem(
+                promptId=f"shadow:{i+1}",
+                category="SHADOW",
+                text=JournalPromptText(ta=p.ta, en=p.en),
+            )
+            for i, p in enumerate(bitext_prompts)
+        ]
+        from app.schemas.dasha import ResponseMeta
+        from datetime import UTC, datetime
+        return JournalPromptsResponse(
+            data={
+                "chartId": chart_id,
+                "dateLocal": on_date,
+                "lifeArea": "shadow",
+                "scoreLabel": "SHADOW",
+                "prompts": items,
+            },
+            meta=ResponseMeta(
+                calculation_version="jothidam-formula-engine-v1.0-2026",
+                generated_at=datetime.now(UTC),
+            ),
+        )
 
     guidance = get_daily_guidance(session, chart_id, on_date, "ta-en")
     resolved_life_area = life_area
@@ -165,6 +202,7 @@ def get_prompts_for_journal(
         on_date=on_date,
         life_area=resolved_life_area,
         score_label=resolved_score_label,
+        goal_track=getattr(current_user, "goal_track", None),
     )
 
 

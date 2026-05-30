@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
 
@@ -272,6 +272,38 @@ class JadhagamReportData(BaseModel):
 class JadhagamReportResponse(BaseModel):
     success: bool = True
     data: JadhagamReportData
+    meta: ResponseMeta
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+# ---------------------------------------------------------------------------
+# Event windows (PRES-11)
+# ---------------------------------------------------------------------------
+
+class EventWindowItem(BaseModel):
+    event: str
+    start_date: date = Field(alias="startDate")
+    end_date: date = Field(alias="endDate")
+    score: int
+    reasons: list[str]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class EventWindowsData(BaseModel):
+    chart_id: UUID = Field(alias="chartId")
+    event: str
+    from_year: int = Field(alias="fromYear")
+    to_year: int = Field(alias="toYear")
+    windows: list[EventWindowItem]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class EventWindowsResponse(BaseModel):
+    success: bool = True
+    data: EventWindowsData
     meta: ResponseMeta
 
     model_config = ConfigDict(populate_by_name=True)

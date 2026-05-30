@@ -17,24 +17,35 @@ export const D1_RASI_NAMES = [
 ];
 
 export const GRAHA_ABBR: Record<string, string> = {
-  SUN: "Su",
-  MOON: "Mo",
-  MARS: "Ma",
-  MERCURY: "Me",
-  JUPITER: "Ju",
-  VENUS: "Ve",
-  SATURN: "Sa",
-  RAHU: "Ra",
-  KETU: "Ke",
-  Sun: "Su",
-  Moon: "Mo",
-  Mars: "Ma",
-  Mercury: "Me",
-  Jupiter: "Ju",
-  Venus: "Ve",
-  Saturn: "Sa",
-  Rahu: "Ra",
-  Ketu: "Ke",
+  SUN: "சூ",
+  MOON: "சந்",
+  MARS: "செ",
+  MERCURY: "பு",
+  JUPITER: "கு",
+  VENUS: "சு",
+  SATURN: "ச",
+  RAHU: "ரா",
+  KETU: "கே",
+  MANDHI: "மா",
+  Sun: "சூ",
+  Moon: "சந்",
+  Mars: "செ",
+  Mercury: "பு",
+  Jupiter: "கு",
+  Venus: "சு",
+  Saturn: "ச",
+  Rahu: "ரா",
+  Ketu: "கே",
+  Mandhi: "மா",
+  Lagna: "ல",
+};
+
+// English fallback abbreviations for contexts that need ASCII.
+export const GRAHA_ABBR_EN: Record<string, string> = {
+  SUN: "Su", MOON: "Mo", MARS: "Ma", MERCURY: "Me",
+  JUPITER: "Ju", VENUS: "Ve", SATURN: "Sa", RAHU: "Ra", KETU: "Ke", MANDHI: "Md",
+  Sun: "Su", Moon: "Mo", Mars: "Ma", Mercury: "Me",
+  Jupiter: "Ju", Venus: "Ve", Saturn: "Sa", Rahu: "Ra", Ketu: "Ke", Mandhi: "Md",
   Lagna: "La",
 };
 
@@ -60,6 +71,7 @@ export type RasiCellDetail = {
     graha: string;
     abbr: string;
     degreeInRasi: number | null;
+    isRetrograde: boolean;
   }>;
 };
 
@@ -71,6 +83,7 @@ export function buildD1CellDetail(chart: ChartCalculateResponseData, rasi: numbe
       graha: p.graha,
       abbr: GRAHA_ABBR[p.graha] ?? p.graha.slice(0, 2),
       degreeInRasi: p.degreeInRasi,
+      isRetrograde: p.isRetrograde,
     }));
 
   if (chart.lagna.rasi === rasi) {
@@ -79,6 +92,7 @@ export function buildD1CellDetail(chart: ChartCalculateResponseData, rasi: numbe
       graha: "Lagna",
       abbr: "La",
       degreeInRasi: chart.lagna.degreeInRasi,
+      isRetrograde: false,
     });
   }
 
@@ -100,6 +114,7 @@ export function buildD9CellDetail(chart: ChartCalculateResponseData, rasi: numbe
       graha: p.graha,
       abbr: GRAHA_ABBR[p.graha] ?? p.graha.slice(0, 2),
       degreeInRasi: null,
+      isRetrograde: p.isRetrograde,
     }));
 
   if (d9LagnaRasi === rasi) {
@@ -108,6 +123,7 @@ export function buildD9CellDetail(chart: ChartCalculateResponseData, rasi: numbe
       graha: "Lagna",
       abbr: "La",
       degreeInRasi: null,
+      isRetrograde: false,
     });
   }
 

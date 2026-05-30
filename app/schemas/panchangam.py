@@ -64,7 +64,9 @@ class PanchangamKalam(BaseModel):
     rahu_kalam: PanchangamSlot = Field(alias="rahuKalam")
     yamagandam: PanchangamSlot
     kuligai: PanchangamSlot
-    nalla_neram: PanchangamSlot = Field(alias="nallaNeram")
+    mandhi: PanchangamSlot
+    nalla_neram: list[PanchangamSlot] = Field(alias="nallaNeram")
+    gowri_nalla_neram: list[PanchangamSlot] = Field(alias="gowriNallaNeram")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -73,6 +75,18 @@ class PanchangamAbhijit(BaseModel):
     start: str
     end: str
     is_restricted_by_weekday: bool = Field(alias="isRestrictedByWeekday")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PanchangamFestival(BaseModel):
+    name: str
+    category: str
+
+
+class PanchangamSubhaMuhurtham(BaseModel):
+    is_subha: bool = Field(alias="isSubha")
+    reason: str
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -97,6 +111,8 @@ class PanchangamDailyResponseData(BaseModel):
     karana: PanchangamKarana
     kalam: PanchangamKalam
     abhijit: PanchangamAbhijit
+    subha_muhurtham: PanchangamSubhaMuhurtham = Field(alias="subhaMuhurtham")
+    festivals: list[PanchangamFestival] = []
     hora: list[PanchangamHoraEntry]
 
     model_config = ConfigDict(populate_by_name=True)
@@ -125,6 +141,8 @@ class PanchangamTimingsData(BaseModel):
     solar_noon: str = Field(alias="solarNoon")
     kalam: PanchangamKalam
     abhijit: PanchangamAbhijit
+    subha_muhurtham: PanchangamSubhaMuhurtham = Field(alias="subhaMuhurtham")
+    festivals: list[PanchangamFestival] = []
     hora: list[PanchangamHoraEntry]
 
     model_config = ConfigDict(populate_by_name=True)

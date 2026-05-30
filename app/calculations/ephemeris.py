@@ -78,7 +78,7 @@ else:
         "SATURN": SATURN,
         "RAHU": MEAN_NODE,
     }
-    SIDEREAL_FLAGS: Final[int] = FLG_SPEED | FLG_SIDEREAL
+    SIDEREAL_FLAGS: Final[int] = FLG_SPEED | FLG_SIDEREAL | FLG_SWIEPH
 
 RETROGRADE_BADGE_EXEMPT = frozenset({"SUN", "MOON", "RAHU", "KETU"})
 _SWISS_LOCK = RLock()

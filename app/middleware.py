@@ -1,14 +1,17 @@
 """Sprint 10 — rate limiting, security headers, and structured request logging."""
 from __future__ import annotations
 
+import math
 import logging
 import time
+from ipaddress import ip_address
 from collections import defaultdict
 from threading import Lock
 
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from app.core.config import get_settings
 
 logger = logging.getLogger("jothidam.access")
 
@@ -73,34 +76,67 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 # Sliding-window rate limiter (in-process, per client IP)
 # ---------------------------------------------------------------------------
 
-_RATE_LIMIT_WINDOW_SECONDS = 60
-_RATE_LIMIT_MAX_REQUESTS = 120  # 120 req/min per IP
-
 _counters: dict[str, list[float]] = defaultdict(list)
 _lock = Lock()
 
 RATE_LIMIT_EXEMPT_PREFIXES = ("/health", "/docs", "/redoc", "/openapi.json")
 
 
+def _is_loopback_ip(value: str) -> bool:
+    try:
+        return ip_address(value).is_loopback
+    except ValueError:
+        return False
+
+
 class RateLimitMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app):
+        super().__init__(app)
+        settings = get_settings()
+        self.enabled = bool(settings.rate_limit_enabled)
+        self.window_seconds = max(1, int(settings.rate_limit_window_seconds))
+        self.max_requests = max(1, int(settings.rate_limit_max_requests))
+        self.exempt_loopback = (
+            bool(settings.rate_limit_exempt_loopback_in_non_prod)
+            and settings.environment.lower() != "production"
+        )
+
     async def dispatch(self, request: Request, call_next):
+        if not self.enabled:
+            return await call_next(request)
+
         path = request.url.path
         if any(path.startswith(p) for p in RATE_LIMIT_EXEMPT_PREFIXES):
             return await call_next(request)
 
         client_ip = request.client.host if request.client else "unknown"
+        if self.exempt_loopback and _is_loopback_ip(client_ip):
+            return await call_next(request)
+
         now = time.monotonic()
-        window_start = now - _RATE_LIMIT_WINDOW_SECONDS
+        window_start = now - self.window_seconds
 
         with _lock:
             timestamps = _counters[client_ip]
             # Evict old timestamps
             _counters[client_ip] = [t for t in timestamps if t > window_start]
-            if len(_counters[client_ip]) >= _RATE_LIMIT_MAX_REQUESTS:
+            current_count = len(_counters[client_ip])
+            if current_count >= self.max_requests:
+                oldest = _counters[client_ip][0] if _counters[client_ip] else now
+                retry_after = max(1, int(math.ceil((oldest + self.window_seconds) - now)))
                 return JSONResponse(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                     content={"detail": "Rate limit exceeded. Please slow down."},
+                    headers={
+                        "Retry-After": str(retry_after),
+                        "X-RateLimit-Limit": str(self.max_requests),
+                        "X-RateLimit-Remaining": "0",
+                    },
                 )
             _counters[client_ip].append(now)
+            remaining = max(0, self.max_requests - len(_counters[client_ip]))
 
-        return await call_next(request)
+        response: Response = await call_next(request)
+        response.headers["X-RateLimit-Limit"] = str(self.max_requests)
+        response.headers["X-RateLimit-Remaining"] = str(remaining)
+        return response

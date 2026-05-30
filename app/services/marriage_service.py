@@ -18,6 +18,8 @@ class MarriageAssessmentInput:
     transit_jupiter_rasi: int
     transit_venus_rasi: int
     age: int
+    life_stage: str
+    marital_status: str | None = None
     venus_combust: bool = False
     sevvai_dosham_cancelled: bool = False
     rahu_ketu_label: str | None = None
@@ -65,6 +67,23 @@ def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPred
     supports: list[BiText] = []
     challenges: list[BiText] = []
     score = 50
+    factors.append(
+        AstroFactor(
+            key="life_stage",
+            status="INFO",
+            detail=BiText(
+                ta=f"Life stage: {payload.life_stage}.",
+                en=f"Life stage: {payload.life_stage}.",
+            ),
+        )
+    )
+    marital = (payload.marital_status or "").strip().lower()
+    if marital == "married":
+        score += 3
+        supports.append(BiText("Married profile: read this as relationship-harmony guidance.", "Married profile: read this as relationship-harmony guidance."))
+    elif payload.life_stage == "student":
+        score -= 6
+        challenges.append(BiText("Student life-stage: marriage timing is usually not the primary focus.", "Student life-stage: marriage timing is usually not the primary focus."))
 
     planets_in_7th = sorted(
         name for name, rasi in payload.planets_rasi.items() if rasi == seventh_house_rasi

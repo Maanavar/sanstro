@@ -11,8 +11,9 @@ from app.db.session import get_db
 from app.models import FamilyVault
 from app.models.user import User
 from app.schemas.family_vaults import (
-    FamilyCalendarResponse,
     FamilyAggregateResponse,
+    FamilyCalendarResponse,
+    FamilyCompositeTimelineResponse,
     FamilyMemberCreate,
     FamilyMemberCreateResponse,
     FamilyMemberListResponse,
@@ -30,6 +31,7 @@ from app.services.family_vault_service import (
     create_family_vault,
     delete_family_member,
     get_family_calendar,
+    get_family_composite_timeline,
     get_family_daily_aggregate,
     get_family_member,
     get_family_summary,
@@ -219,6 +221,23 @@ def family_calendar_endpoint(
 ) -> FamilyCalendarResponse:
     _assert_vault_owner(session, family_vault_id, current_user)
     return get_family_calendar(session, family_vault_id, from_date, to_date)
+
+
+@router.get(
+    "/family-vaults/{family_vault_id}/composite",
+    response_model=FamilyCompositeTimelineResponse,
+    tags=["family-vaults"],
+    summary="Family composite score timeline with per-member individual scores",
+)
+def family_composite_timeline_endpoint(
+    family_vault_id: UUID,
+    from_date: date = Query(alias="from"),
+    to_date: date = Query(alias="to"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> FamilyCompositeTimelineResponse:
+    _assert_vault_owner(session, family_vault_id, current_user)
+    return get_family_composite_timeline(session, family_vault_id, from_date, to_date)
 
 
 @router.delete(

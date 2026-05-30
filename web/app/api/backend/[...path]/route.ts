@@ -30,6 +30,14 @@ async function proxyRequest(request: NextRequest, method: string, path: string[]
     });
   }
 
+  if (response.status === 204) {
+    const responseHeaders = new Headers(response.headers);
+    return new NextResponse(null, {
+      status: 204,
+      headers: responseHeaders,
+    });
+  }
+
   const responseBody = await response.arrayBuffer();
   const responseHeaders = new Headers(response.headers);
 

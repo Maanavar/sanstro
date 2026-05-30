@@ -82,6 +82,11 @@ class DailyGuidanceData(BaseModel):
     date_local: date = Field(alias="dateLocal")
     score: int
     label: str
+    confidence: str = Field(default="MEDIUM")
+    confidence_reason: DailyGuidanceText = Field(
+        default_factory=lambda: DailyGuidanceText(ta="இரண்டு சமிக்ஞைகள் சீரமைக்கப்பட்டுள்ளன", en="Two signals aligned"),
+        alias="confidenceReason",
+    )
     score_breakdown: DailyGuidanceScoreBreakdown = Field(alias="scoreBreakdown")
     best_windows: list[DailyGuidanceWindow] = Field(alias="bestWindows")
     caution_windows: list[DailyGuidanceWindow] = Field(alias="cautionWindows")

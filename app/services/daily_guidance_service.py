@@ -86,8 +86,8 @@ PLANET_DAILY_WEIGHT = {
 }
 
 TRANSIT_BASE_SCORE = {
-    "JUPITER": {1: 50, 2: 72, 3: 48, 4: 42, 5: 78, 6: 38, 7: 74, 8: 25, 9: 82, 10: 58, 11: 80, 12: 34},
-    "SATURN": {1: 38, 2: 30, 3: 58, 4: 28, 5: 55, 6: 60, 7: 35, 8: 22, 9: 52, 10: 45, 11: 62, 12: 34},
+    "JUPITER": {1: 50, 2: 72, 3: 48, 4: 42, 5: 78, 6: 38, 7: 68, 8: 25, 9: 82, 10: 58, 11: 80, 12: 34},
+    "SATURN": {1: 42, 2: 40, 3: 62, 4: 34, 5: 52, 6: 64, 7: 50, 8: 22, 9: 36, 10: 62, 11: 76, 12: 42},
     "RAHU": {1: 40, 2: 45, 3: 50, 4: 42, 5: 48, 6: 44, 7: 45, 8: 30, 9: 46, 10: 40, 11: 52, 12: 36},
     "KETU": {1: 42, 2: 40, 3: 46, 4: 48, 5: 44, 6: 42, 7: 46, 8: 34, 9: 48, 10: 44, 11: 40, 12: 38},
     "MARS": {1: 38, 2: 34, 3: 50, 4: 40, 5: 46, 6: 52, 7: 42, 8: 28, 9: 48, 10: 44, 11: 50, 12: 32},
@@ -119,6 +119,28 @@ _NATURAL_FRIENDS: dict[str, frozenset[str]] = {
     "RAHU":    frozenset({"VENUS", "SATURN"}),
     "KETU":    frozenset({"MARS", "VENUS"}),
 }
+def _age_dasha_modifier(age: int, planet: str) -> float:
+    """Return a life-stage multiplier for a dasha planet.
+
+    Thirukanitham teaches that the same dasha produces different intensity depending
+    on the native's age. Saturn is harsh during youth (before karmic readiness), Mars
+    peaks during the physically active years, Venus during the romantic/creative prime,
+    Jupiter during the wisdom-expansion years, and the Moon colours the emotionally
+    receptive phases.
+    """
+    if planet == "SATURN":
+        return 0.88 if age < 30 else (1.05 if age > 55 else 1.0)
+    if planet == "MARS":
+        return 0.92 if age < 25 else (1.05 if age <= 45 else 0.95)
+    if planet == "VENUS":
+        return 0.90 if age < 20 else (1.08 if age <= 40 else (0.95 if age > 55 else 1.0))
+    if planet == "JUPITER":
+        return 1.10 if 35 <= age <= 60 else 1.0
+    if planet == "MOON":
+        return 1.05 if (age < 20 or age > 60) else 1.0
+    return 1.0  # SUN, MERCURY, RAHU, KETU — no strong age-dependency in Thirukanitham
+
+
 _NATURAL_ENEMIES: dict[str, frozenset[str]] = {
     "SUN":     frozenset({"VENUS", "SATURN", "RAHU", "KETU"}),
     "MOON":    frozenset({"RAHU", "KETU"}),
@@ -179,6 +201,55 @@ def _score_label(score: int) -> str:
     if score >= 35:
         return "CAUTION"
     return "RESTORATIVE"
+
+
+def _angular_sep(a: float, b: float) -> float:
+    diff = abs(a - b) % 360
+    return diff if diff <= 180 else 360 - diff
+
+
+def _collect_afflicted_planets(chart_snapshot) -> list[str]:
+    planets = chart_snapshot.data.planets
+    lagna_rasi = chart_snapshot.data.lagna.rasi
+    sun = next((p for p in planets if p.graha == "SUN"), None)
+    saturn = next((p for p in planets if p.graha == "SATURN"), None)
+    rahu = next((p for p in planets if p.graha == "RAHU"), None)
+    ketu = next((p for p in planets if p.graha == "KETU"), None)
+    sun_longitude = sun.absolute_longitude if sun is not None else 0.0
+
+    afflicted: list[str] = []
+    for planet in planets:
+        graha = planet.graha
+        house = house_from_reference(lagna_rasi, planet.rasi)
+        strength = compute_natal_planet_score(
+            planet=graha,
+            natal_rasi=planet.rasi,
+            natal_longitude=planet.absolute_longitude,
+            natal_lagna_rasi=lagna_rasi,
+            sun_longitude=sun_longitude,
+            is_retrograde=planet.is_retrograde,
+            is_vargottama=planet.is_vargottama,
+            d9_rasi=planet.d9_rasi,
+        )
+
+        is_conj_malefic = False
+        for malefic in (saturn, rahu, ketu):
+            if malefic is None or malefic.graha == graha:
+                continue
+            if _angular_sep(planet.absolute_longitude, malefic.absolute_longitude) <= 8:
+                is_conj_malefic = True
+                break
+
+        if graha == "SUN" and planet.rasi == 7:
+            afflicted.append(graha)
+            continue
+
+        if (house in {6, 8, 12} and strength < 45) or (planet.is_combust and graha != "SUN") or is_conj_malefic:
+            afflicted.append(graha)
+
+    # Preserve order, keep top 3 for concise remedy output.
+    unique = list(dict.fromkeys(afflicted))
+    return unique[:3]
 
 
 def _planet_period_score(lord: str) -> int:
@@ -470,6 +541,51 @@ def _enrich_action_with_goals(
     return action
 
 
+_GOAL_TRACK_TA: dict[str, str] = {
+    "CAREER":       "தொழில் வளர்ச்சி",
+    "EXAM":         "தேர்வு வெற்றி",
+    "RELATIONSHIP": "உறவு மேம்பாடு",
+    "FINANCIAL":    "பண வரவு",
+}
+_GOAL_TRACK_EN: dict[str, str] = {
+    "CAREER":       "career growth",
+    "EXAM":         "exam success",
+    "RELATIONSHIP": "relationship goals",
+    "FINANCIAL":    "financial growth",
+}
+_GOAL_TRACK_DASHA_AFFINITY: dict[str, set[str]] = {
+    "CAREER":       {"SUN", "SATURN", "MARS", "JUPITER"},
+    "EXAM":         {"MERCURY", "JUPITER"},
+    "RELATIONSHIP": {"VENUS", "JUPITER", "MOON"},
+    "FINANCIAL":    {"JUPITER", "VENUS", "MERCURY"},
+}
+
+
+def _enrich_action_with_goal_track(
+    action: DailyGuidanceSuggestion,
+    goal_track: str,
+    maha_lord: str,
+    label: str,
+) -> DailyGuidanceSuggestion:
+    """Append a lightweight goal-track hint when user has set a focus track but no active goal."""
+    affinity = _GOAL_TRACK_DASHA_AFFINITY.get(goal_track, set())
+    track_ta = _GOAL_TRACK_TA.get(goal_track, "உங்கள் இலக்கு")
+    track_en = _GOAL_TRACK_EN.get(goal_track, "your goal")
+    planet_ta = _PLANET_TA.get(maha_lord, maha_lord)
+    planet_en = _PLANET_EN.get(maha_lord, maha_lord)
+    if maha_lord in affinity and label in ("STRONG_SUPPORT", "GOOD"):
+        return DailyGuidanceSuggestion(
+            ta=action.ta + f" {track_ta} குறித்த முயற்சிகளுக்கு {planet_ta} தசை இன்று ஆதரவளிக்கிறது.",
+            en=action.en + f" {planet_en} dasa supports {track_en} efforts today.",
+        )
+    if label in ("CAUTION", "RESTORATIVE"):
+        return DailyGuidanceSuggestion(
+            ta=action.ta + f" {track_ta} சம்பந்தமான முக்கிய முடிவுகளை இன்று ஒத்திவையுங்கள்.",
+            en=action.en + f" Defer major {track_en} decisions today.",
+        )
+    return action
+
+
 def _build_journal_insight(
     session: Session,
     *,
@@ -529,6 +645,7 @@ def build_daily_guidance_response(
     active_goals: list | None = None,
     context_row=None,
     journal_insight: DailyGuidanceJournalInsight | None = None,
+    goal_track: str | None = None,
 ) -> DailyGuidanceResponse:
     chart_id = chart_snapshot.data.chart_id
     natal_moon = next(planet for planet in chart_snapshot.data.planets if planet.graha == "MOON")
@@ -612,16 +729,25 @@ def build_daily_guidance_response(
             contribution *= 0.25
         transit_score += contribution
     transit_score = max(0, min(100, transit_score))
-
-    # Secondary Lagna dimension — spec §6.1 (BUG-07)
-    # Jupiter and Saturn's position from Lagna provides a material-impact modifier
-    jupiter_house_from_lagna = house_from_reference(natal_lagna, jupiter.rasi)
+    # Moon-based Jupiter refinement (primary) + Lagna-based Saturn material modifier.
+    jupiter_house_from_moon = _all_transit_houses["JUPITER"]
     saturn_house_from_lagna  = house_from_reference(natal_lagna, saturn.rasi)
     lagna_modifier = 0.0
-    if jupiter_house_from_lagna in {1, 4, 5, 7, 9, 10}:
-        lagna_modifier += 3.0
-    elif jupiter_house_from_lagna in {6, 8, 12}:
-        lagna_modifier -= 3.0
+    jupiter_moon_modifier = {
+        1: 0.0,   # Neutral
+        2: 3.0,   # Good
+        3: -3.0,  # Unfavourable
+        4: -4.0,  # Unfavourable
+        5: 4.0,   # Very good
+        6: -2.0,  # Unfavourable
+        7: 3.0,   # Good (mixed) - never punitive
+        8: -6.0,  # Bad
+        9: 4.0,   # Very good
+        10: 1.0,  # Neutral leaning supportive
+        11: 4.0,  # Very good
+        12: -3.0, # Unfavourable
+    }
+    lagna_modifier += jupiter_moon_modifier.get(jupiter_house_from_moon, 0.0)
     if saturn_house_from_lagna in {1, 4, 7, 10}:
         lagna_modifier -= 4.0
     elif saturn_house_from_lagna in {3, 6, 11}:
@@ -666,11 +792,16 @@ def build_daily_guidance_response(
     else:
         antar_score = PLANET_PERIOD_SCORE.get(antar_lord, 50)
 
-    # Apply Lagna-based functional nature modifier on top of natal strength (BUG-10)
-    maha_score  = max(10, min(95, round(maha_score  * get_dasha_modifier(natal_lagna, maha_lord))))
-    antar_score = max(10, min(95, round(antar_score * get_dasha_modifier(natal_lagna, antar_lord))))
+    # Compute native's age for life-stage dasha modifier
+    profile_age = (on_date - birth_profile.birth_date_local).days // 365
+
+    # Apply functional-nature modifier (lagna-based) + age-phase modifier (Thirukanitham)
+    maha_score  = max(10, min(95, round(maha_score  * get_dasha_modifier(natal_lagna, maha_lord)  * _age_dasha_modifier(profile_age, maha_lord))))
+    antar_score = max(10, min(95, round(antar_score * get_dasha_modifier(natal_lagna, antar_lord) * _age_dasha_modifier(profile_age, antar_lord))))
+
+    # Relationship weight raised from 0.10 → 0.25: enemy lords cause meaningful score divergence
     relationship_score = _graha_relationship_score(maha_lord, antar_lord)
-    dasha_score = max(0, min(100, round(maha_score * 0.55 + antar_score * 0.35 + relationship_score * 0.10)))
+    dasha_score = max(0, min(100, round(maha_score * 0.45 + antar_score * 0.30 + relationship_score * 0.25)))
 
     panchangam_score = 70
     if panchangam.tithi_number in [4, 9, 14, 19, 24, 29]:
@@ -718,8 +849,14 @@ def build_daily_guidance_response(
     personal_safety_score = 60
     if chandrashtama:
         personal_safety_score -= 15
-    if saturn_cycle.is_active and saturn_cycle.type in {"JANMA_SANI", "ARDHASHTAMA_SANI", "ASHTAMA_SANI", "KANTAKA_SANI"}:
-        personal_safety_score -= 10
+    if saturn_cycle.is_active:
+        if saturn_cycle.type in {"JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_3"}:
+            # Sade Sati is a caution cycle, but never treated as flatly "bad".
+            personal_safety_score -= 7
+        elif saturn_cycle.type == "ARDHASHTAMA_SANI":
+            personal_safety_score -= 9
+        elif saturn_cycle.type == "ASHTAMA_SANI":
+            personal_safety_score -= 12
     # Kantaka from Lagna: independent penalty only when Ezhara/Ashtama is not already active
     # to avoid double-counting when both cycles overlap on the same person
     if kantaka_sani.is_active and not saturn_cycle.is_active:
@@ -749,6 +886,27 @@ def build_daily_guidance_response(
     )
     score = max(0, min(100, score))
     label = _score_label(score)
+
+    # P1-B: Confidence tier — count of components scoring ≥60
+    _conf_signals = sum(1 for s in (moon_score, dasha_score, transit_score) if s >= 60)
+    if _conf_signals >= 3:
+        _confidence = "HIGH"
+        _conf_reason = DailyGuidanceText(
+            ta="மூன்று சமிக்ஞைகளும் — சந்திரன், தசை, கோசாரம் — சீரமைக்கப்பட்டுள்ளன",
+            en="All three signals — Moon, dasha, transits — are aligned",
+        )
+    elif _conf_signals == 2:
+        _confidence = "MEDIUM"
+        _conf_reason = DailyGuidanceText(
+            ta="இரண்டு சமிக்ஞைகள் சீரமைக்கப்பட்டுள்ளன",
+            en="Two of three signals are aligned",
+        )
+    else:
+        _confidence = "LOW"
+        _conf_reason = DailyGuidanceText(
+            ta="சமிக்ஞைகள் கலந்த நிலையில் உள்ளன — குறிப்பு மட்டுமே",
+            en="Mixed signals — indicative only",
+        )
     text, action, caution = _build_text(score, label, best_windows, caution_windows)
     nakshatra_perspective = build_nakshatra_perspective(janma_nakshatra, label)
     emotional_weather = compute_emotional_weather(
@@ -797,6 +955,7 @@ def build_daily_guidance_response(
         sun.absolute_longitude,
         transit_snapshot.bodies["MERCURY"].is_retrograde,
     )
+    afflicted_planets = _collect_afflicted_planets(chart_snapshot)
 
     reasons = build_score_reasons(
         score=score,
@@ -829,6 +988,7 @@ def build_daily_guidance_response(
         best_window_label=best_label,
         rahu_kalam_start=rahu_start,
         rahu_kalam_end=rahu_end,
+        afflicted_planets=afflicted_planets,
     )
 
     action_suggestion = DailyGuidanceSuggestion(ta=reasons.action.ta, en=reasons.action.en)
@@ -841,6 +1001,10 @@ def build_daily_guidance_response(
         paksha=panchangam.tithi_paksha,
         weekday_lord=panchangam.weekday_lord,
     )
+    if goal_track and not active_goals:
+        action_suggestion = _enrich_action_with_goal_track(
+            action_suggestion, goal_track, maha_lord, label
+        )
     context_surface = should_surface_proactively(
         context_row,
         for_date=on_date,
@@ -865,6 +1029,8 @@ def build_daily_guidance_response(
             dateLocal=on_date,
             score=score,
             label=label,
+            confidence=_confidence,
+            confidenceReason=_conf_reason,
             scoreBreakdown=DailyGuidanceScoreBreakdown(
                 moonTransit=round(moon_score * 0.30),
                 dashaSupport=round(dasha_score * 0.20),
@@ -930,9 +1096,12 @@ def build_daily_guidance_response(
 
 
 def get_daily_guidance(session: Session, chart_id: UUID, on_date: date, language: str = "ta-en") -> DailyGuidanceResponse:
+    from app.models.user import User as _User
     chart_snapshot = load_persisted_chart_response(session, chart_id)
     active_goals = get_active_goals_for_chart(session, chart_id)
     owner_user_id = chart_snapshot.data.birth_profile.owner_user_id
+    _user_row = session.get(_User, owner_user_id)
+    goal_track = getattr(_user_row, "goal_track", None) if _user_row else None
     context_row = get_context_row(session, owner_user_id, chart_id)
     journal_insight = _build_journal_insight(
         session,
@@ -940,7 +1109,7 @@ def get_daily_guidance(session: Session, chart_id: UUID, on_date: date, language
         chart_id=chart_id,
         on_date=on_date,
     )
-    can_use_cache = not active_goals and context_row is None and journal_insight is None
+    can_use_cache = not active_goals and context_row is None and journal_insight is None and not goal_track
     birth_profile_id = chart_snapshot.data.birth_profile.birth_profile_id
     if can_use_cache:
         cached = _load_daily_score_cache(
@@ -960,6 +1129,7 @@ def get_daily_guidance(session: Session, chart_id: UUID, on_date: date, language
         active_goals=active_goals,
         context_row=context_row,
         journal_insight=journal_insight,
+        goal_track=goal_track,
     )
     if can_use_cache:
         _store_daily_score_cache(
@@ -1360,14 +1530,18 @@ _PEYARCHI_OUTLOOK: dict[str, dict[int, dict[str, str]]] = {
         12: {"ta": "வெளிநாடு, ஆன்மீகம், செலவு அதிகமாகலாம்.", "en": "Possible travel, spirituality, and increased expenses."},
     },
     "SATURN": {
-        3:  {"ta": "மூன்றாம் சனி — தைரியம், உடன்பிறப்பு, போட்டி வெற்றி.", "en": "3rd Saturn — courage, sibling support, competition wins."},
-        6:  {"ta": "ஆறாம் சனி — எதிரிகளை வெல்லலாம், உடல்நல முன்னேற்றம்.", "en": "6th Saturn — overcome obstacles, health improves."},
-        11: {"ta": "லாப சனி — நீண்ட நாள் முயற்சியின் பலன், வருமான வளர்ச்சி.", "en": "11th Saturn — long-term efforts pay off, income grows."},
-        1:  {"ta": "ஜன்ம சனி — மாற்றம், புதுத்துவக்கம், சுய மதிப்பீடு.", "en": "Janma Sani — transformation, new beginnings, self-review."},
-        4:  {"ta": "கண்டக சனி — குடும்பம், வீடு, தொழில் விஷயங்களில் மந்தம்.", "en": "Kantaka Sani — slowdown in home, family, and career matters."},
-        7:  {"ta": "கண்டக சனி — உறவுகள், கூட்டுறவில் கவனம் தேவை.", "en": "Kantaka Sani — attention needed in relationships and partnerships."},
-        8:  {"ta": "அஷ்டம சனி — திடீர் மாற்றங்கள். பொறுமை மிக முக்கியம்.", "en": "Ashtama Sani — sudden changes. Patience is essential."},
-        10: {"ta": "கண்டக சனி — தொழில், அதிகாரம் விஷயங்களில் சிக்கல்கள்.", "en": "Kantaka Sani — challenges in career and authority matters."},
+        1:  {"ta": "ஜன்ம சனி — மாற்றமும் முதிர்ச்சியும் தரும் காலம்; எச்சரிக்கையுடன் முன்னேறவும்.", "en": "Sade Sati peak (1st) — major life changes; proceed with discipline and perspective."},
+        2:  {"ta": "ஏழரை சனி (முடிவு) — நிதியில் கட்டுப்பாடு தேவை; மெதுவாக நிலைநிறுத்தம் நடக்கும்.", "en": "Sade Sati ending (2nd) — financial caution is advised; consolidation improves over time."},
+        3:  {"ta": "மூன்றாம் சனி — முயற்சிக்கு பலன், தைரியம் மற்றும் முன்னேற்றம்.", "en": "3rd Saturn — effort gets rewarded; courage and execution improve."},
+        4:  {"ta": "அர்த்தாஷ்டம சனி — வீடு, மனஅமைதி, குடும்ப பொறுப்புகளில் அழுத்தம் இருக்கலாம்.", "en": "Ardhashtama phase (4th) — domestic and emotional pressure; stay grounded."},
+        5:  {"ta": "ஐந்தாம் சனி — நடுநிலை. திட்டமிட்ட செயல் நிதானமாக பலன் தரும்.", "en": "5th Saturn — neutral; steady, structured action works best."},
+        6:  {"ta": "ஆறாம் சனி — எதிரிகளை வெல்லலாம்; ஒழுக்கமான உழைப்பிற்கு பலன் கிடைக்கும்.", "en": "6th Saturn — strong for overcoming obstacles through disciplined effort."},
+        7:  {"ta": "ஏழாம் சனி — கலப்பு/நடுநிலை பலன்; உறவில் பொறுமை மற்றும் தெளிவு தேவை.", "en": "7th Saturn — neutral to mixed; relationships improve with patience and clarity."},
+        8:  {"ta": "அஷ்டம சனி — கடின பருவம்; உடல்நலம் மற்றும் ஆபத்து மேலாண்மையில் கவனம் அவசியம்.", "en": "Ashtama Sani (8th) — caution period for health and obstacles; take protective steps."},
+        9:  {"ta": "ஒன்பதாம் சனி — பாக்கியம் மந்தமாகலாம்; தந்தை/குரு தொடர்பில் கவனமாக இருங்கள்.", "en": "9th Saturn — unfavourable for fortune flow; be careful in father/guru-related matters."},
+        10: {"ta": "பத்தாம் சனி — கடின உழைப்பால் தொழிலில் நிலையான வளர்ச்சி சாத்தியம்.", "en": "10th Saturn — good for career growth through sustained hard work."},
+        11: {"ta": "லாப சனி — நீண்ட முயற்சிக்கு பலன்; வருமானமும் வட்டார ஆதரவும்வளரும்.", "en": "11th Saturn — very supportive for gains, income, and long-term rewards."},
+        12: {"ta": "ஏழரை சனி (தொடக்கம்) — செலவு, பயணம், உள்ளார்ந்த மாற்றம்; ஆன்மீக முன்னேற்றத்திற்கான காலம்.", "en": "Sade Sati beginning (12th) — expenses and transition, with strong spiritual-growth potential."},
     },
 }
 
@@ -1584,3 +1758,4 @@ def get_journal_correlations(
             generated_at=datetime.now(tz=UTC),
         ),
     )
+

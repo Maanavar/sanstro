@@ -105,6 +105,66 @@ _PROMPT_TEMPLATES: dict[str, dict[str, tuple[tuple[str, str], tuple[str, str], t
             ),
         ),
     },
+    "exam": {
+        "SUPPORTIVE": (
+            (
+                "Indru nandraaga paditha oru topic enna? adhai eppadi thodaralaam?",
+                "What topic did you study well today, and how can you build on it?",
+            ),
+            (
+                "Padippu neram eppadippattu irundhadhu? kavanam sellum neram edhuvum irundhadha?",
+                "How was your study focus today? Was there a time when concentration was sharp?",
+            ),
+            (
+                "Naalai padippukku oru siriya munn-thayarippu enna?",
+                "What is one small preparation you can do tonight for tomorrow's study?",
+            ),
+        ),
+        "CAUTION": (
+            (
+                "Indru padippil kavanam seluththa kashtamaaga irundhadha? enn?",
+                "Did you find it hard to focus on studies today? What got in the way?",
+            ),
+            (
+                "Oru siriya, eludhina padippu neer-velai naalai muthal thodangu.",
+                "Start with one small, written revision task tomorrow.",
+            ),
+            (
+                "Munn-padam padithadhai oru varisai padamaga ezhudhi paarunga.",
+                "Write a brief outline of what you've covered so far.",
+            ),
+        ),
+    },
+    "financial": {
+        "SUPPORTIVE": (
+            (
+                "Indru pana payanippu sari seitha oru seyal enna?",
+                "What was one action today that used money well?",
+            ),
+            (
+                "Ungal siriya semippe kurigu oru nambikkai signal ezhudhunga.",
+                "Write one signal of progress toward your savings intention.",
+            ),
+            (
+                "Naalai mudhaleeddu athava semippu kuriththu oru theirvu seiyunga.",
+                "Make one small decision tomorrow toward your investment or savings goal.",
+            ),
+        ),
+        "CAUTION": (
+            (
+                "Indru thevayillatha suttu enna? adhai eppadi thallivaikkalaam?",
+                "What unnecessary expense tempted you today? How can you avoid it tomorrow?",
+            ),
+            (
+                "Oru siriya pana munn-thayarippu — indru irave ezhudhunga.",
+                "Write one small financial intention for tonight.",
+            ),
+            (
+                "Mudhaleeddu athava kadan kuriththu oru kavanam irukkirkka?",
+                "Is there an investment or debt that needs your attention soon?",
+            ),
+        ),
+    },
 }
 
 _DEFAULT_PROMPTS: dict[str, tuple[tuple[str, str], tuple[str, str], tuple[str, str]]] = {
@@ -402,15 +462,28 @@ def apply_journal_retention_window(
     )
 
 
+_GOAL_TRACK_TO_LIFE_AREA: dict[str, str] = {
+    "CAREER": "career",
+    "EXAM": "exam",
+    "RELATIONSHIP": "relationship",
+    "FINANCIAL": "financial",
+}
+
+
 def build_journal_prompts(
     *,
     chart_id: UUID,
     on_date: date,
     life_area: str,
     score_label: str,
+    goal_track: str | None = None,
 ) -> JournalPromptsResponse:
     bucket = _prompt_bucket(score_label)
-    template = _PROMPT_TEMPLATES.get(life_area, {}).get(bucket, _DEFAULT_PROMPTS[bucket])
+    # When life_area is generic and a goal_track is set, bias toward track-specific prompts
+    effective_area = life_area
+    if effective_area == "general" and goal_track:
+        effective_area = _GOAL_TRACK_TO_LIFE_AREA.get(goal_track, life_area)
+    template = _PROMPT_TEMPLATES.get(effective_area, {}).get(bucket, _DEFAULT_PROMPTS[bucket])
 
     prompts = [
         JournalPromptItem(

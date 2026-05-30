@@ -17,6 +17,8 @@ class CareerAssessmentInput:
     active_dasha_lords: set[str]
     transit_saturn_rasi: int
     age: int
+    life_stage: str
+    employment_type: str | None = None
     career_track: str = "general"
 
 
@@ -61,6 +63,16 @@ def assess_career_prediction(payload: CareerAssessmentInput) -> LifeAreaPredicti
     supports: list[BiText] = []
     challenges: list[BiText] = []
     score = 50
+    factors.append(
+        AstroFactor(
+            key="life_stage",
+            status="INFO",
+            detail=BiText(
+                ta=f"Life stage: {payload.life_stage}.",
+                en=f"Life stage: {payload.life_stage}.",
+            ),
+        )
+    )
 
     planets_in_10th = sorted(
         name for name, rasi in payload.planets_rasi.items() if rasi == tenth_house_rasi
@@ -146,9 +158,98 @@ def assess_career_prediction(payload: CareerAssessmentInput) -> LifeAreaPredicti
         score += 4
         supports.append(BiText("சனி இடம் வளர்ச்சி முயற்சிக்கு துணை.", "Saturn position supports steady growth effort."))
 
+    if payload.life_stage == "student":
+        score -= 6
+        challenges.append(
+            BiText(
+                "Student life-stage: focus on foundations before high-risk career moves.",
+                "Student life-stage: focus on foundations before high-risk career moves.",
+            )
+        )
+    elif payload.life_stage == "young_adult":
+        score += 4
+        supports.append(BiText("Young-adult phase supports career foundation building.", "Young-adult phase supports career foundation building."))
+    elif payload.life_stage == "mid_life":
+        score += 5
+        supports.append(BiText("Mid-life phase supports responsibility expansion.", "Mid-life phase supports responsibility expansion."))
+    else:
+        challenges.append(BiText("Senior phase favours lower-risk transitions.", "Senior phase favours lower-risk transitions."))
     if 24 <= payload.age <= 50:
         score += 5
         supports.append(BiText("வயது கட்டம் தொழில் முன்னேற்றத்திற்கு ஏற்றது.", "Age phase is supportive for career growth."))
+
+    # ── Employment-type karaka adjustment ─────────────────────────────────────
+    # Different employment modes activate different house lords as primary karakas.
+    if payload.employment_type == "self_employed":
+        # Self-employed: 2nd lord (income accumulation) is the critical karaka
+        if second_lord in payload.active_dasha_lords:
+            score += 6
+            supports.append(BiText(
+                "சுயதொழிலில் 2ம் அதிபதி தசை — வருமானம் ஆதரிக்கப்படுகிறது.",
+                "2nd lord active in dasha — self-employment income is supported.",
+            ))
+        else:
+            challenges.append(BiText(
+                "சுயதொழிலில் 2ம் அதிபதி தசையில் இல்லை — வருமானம் தாமதமாகலாம்.",
+                "2nd lord not in active dasha — self-employment income may lag.",
+            ))
+        factors.append(AstroFactor(
+            key="employment_second_lord",
+            status="SUPPORT" if second_lord in payload.active_dasha_lords else "CAUTION",
+            detail=BiText(
+                ta=f"சுயதொழில் — 2ம் அதிபதி ({second_lord}) தசை நிலை பரிசீலிக்கப்பட்டது.",
+                en=f"Self-employed — 2nd lord ({second_lord}) dasha status evaluated.",
+            ),
+        ))
+    elif payload.employment_type == "business_owner":
+        # Business owner: 7th house (partnerships / trade) is the primary karaka
+        seventh_lord = _house_lord(payload.lagna_rasi, 7)
+        seventh_house_rasi = ((payload.lagna_rasi + 7 - 2) % 12) + 1
+        business_planets = sorted(n for n, r in payload.planets_rasi.items() if r == seventh_house_rasi)
+        if seventh_lord in payload.active_dasha_lords or business_planets:
+            score += 7
+            supports.append(BiText(
+                "வியாபாரத்திற்கு 7ம் இடம் / அதிபதி ஆதரவு உள்ளது.",
+                "7th house supports business partnerships and commerce.",
+            ))
+        else:
+            score -= 3
+            challenges.append(BiText(
+                "7ம் இட வலு குறைவு — பங்காளர் சிக்கல் கவனிக்கவும்.",
+                "7th house weak — watch for partnership risks in business.",
+            ))
+        factors.append(AstroFactor(
+            key="employment_seventh_house",
+            status="SUPPORT" if (seventh_lord in payload.active_dasha_lords or business_planets) else "CAUTION",
+            detail=BiText(
+                ta=f"வியாபாரம் — 7ம் அதிபதி ({seventh_lord}), 7ம் வீட்டு கிரகங்கள்: {', '.join(business_planets) or 'இல்லை'}.",
+                en=f"Business — 7th lord ({seventh_lord}), planets in 7th: {', '.join(business_planets) or 'none'}.",
+            ),
+        ))
+    elif payload.employment_type == "retired":
+        score -= 5
+        challenges.append(BiText(
+            "ஓய்வு பெற்ற நிலை — தொழில் மதிப்பீடு பாரம்பரியம் மற்றும் நோக்கத்திற்கு பொருந்தும்.",
+            "Retired phase — career scoring applies to legacy and purpose, not active work.",
+        ))
+        factors.append(AstroFactor(
+            key="employment_retired",
+            status="INFO",
+            detail=BiText(
+                ta="ஓய்வு பெற்ற நிலை கணக்கில் எடுக்கப்பட்டது.",
+                en="Retired employment status factored into career assessment.",
+            ),
+        ))
+    elif payload.employment_type is not None:
+        # Salaried, homemaker, unemployed, student — record for transparency
+        factors.append(AstroFactor(
+            key="employment_type",
+            status="INFO",
+            detail=BiText(
+                ta=f"வேலை நிலை: {payload.employment_type}.",
+                en=f"Employment type: {payload.employment_type}.",
+            ),
+        ))
 
     score = max(0, min(100, score))
     if score >= 70:

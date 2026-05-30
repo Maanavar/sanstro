@@ -21,7 +21,8 @@ dependencies = [
   "bcrypt>=4.1",
   "passlib[bcrypt]>=1.7,<2.0",
   "psycopg2-binary>=2.9,<3.0",
-  "apscheduler>=3.10,<4.0"
+  "apscheduler>=3.10,<4.0",
+  "reportlab>=4.0"
 ]
 
 [project.optional-dependencies]
@@ -38,3 +39,6 @@ include = ["app*"]
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-ra"
+markers = [
+    "no_db: pure unit tests that do not need a database connection",
+]
