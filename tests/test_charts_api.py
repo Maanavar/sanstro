@@ -50,7 +50,7 @@ def test_chart_calculate_endpoint_uses_persisted_birth_profile(client):
     assert body["data"]["birthDateTimeUTC"].startswith("1991-07-22T01:00:00")
     assert body["data"]["ephemerisBackend"] in {"pyswisseph", "swisseph-ffi"}
     assert body["data"]["ayanamsa"]["type"] == "LAHIRI"
-    assert body["data"]["ayanamsa"]["valueDegrees"] == pytest.approx(23.76211742, abs=0.01)
+    assert body["data"]["ayanamsa"]["valueDegrees"] == pytest.approx(23.7391, abs=0.01)
     assert "yogas" in body["data"]
     assert "doshams" in body["data"]
     assert len(body["data"]["yogas"]) >= 1
@@ -61,10 +61,10 @@ def test_chart_calculate_endpoint_uses_persisted_birth_profile(client):
 
     planets = {planet["graha"]: planet for planet in body["data"]["planets"]}
     assert len(planets) == 9
-    assert planets["SUN"]["absoluteLongitude"] == pytest.approx(330.76342508, abs=0.01)
-    assert planets["MOON"]["absoluteLongitude"] == pytest.approx(240.01137891, abs=0.01)
-    assert planets["RAHU"]["absoluteLongitude"] == pytest.approx(232.78702194, abs=0.01)
-    assert planets["KETU"]["absoluteLongitude"] == pytest.approx(52.78702194, abs=0.01)
+    assert planets["SUN"]["absoluteLongitude"] == pytest.approx(95.0158, abs=0.01)
+    assert planets["MOON"]["absoluteLongitude"] == pytest.approx(223.5993, abs=0.01)
+    assert planets["RAHU"]["absoluteLongitude"] == pytest.approx(264.6921, abs=0.01)
+    assert planets["KETU"]["absoluteLongitude"] == pytest.approx(84.6921, abs=0.01)
     assert planets["SUN"]["showRetrogradeBadge"] is False
     assert planets["MOON"]["showRetrogradeBadge"] is False
     assert planets["RAHU"]["showRetrogradeBadge"] is False
