@@ -389,6 +389,22 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
           ) : (
             <span style={{ fontSize: "0.625rem", color: "var(--color-faint)" }}>{t("yoga_absent", lang)}</span>
           )}
+          {yoga.isPresent && typeof yoga.activationScore === "number" && (
+            <span
+              style={{
+                fontSize: "0.625rem",
+                fontWeight: 700,
+                padding: "var(--space-0_5) var(--space-2)",
+                borderRadius: "var(--radius-pill)",
+                background: yoga.isCurrentlyActive ? "rgba(92,118,84,0.18)" : "var(--color-surface-soft)",
+                color: yoga.isCurrentlyActive ? "var(--color-score-high)" : "var(--color-faint)",
+                border: `1px solid ${yoga.isCurrentlyActive ? "rgba(92,118,84,0.4)" : "var(--color-border)"}`,
+                flexShrink: 0,
+              }}
+            >
+              {yoga.isCurrentlyActive ? (lang === "ta" ? "தசையில் உள்ளது" : "Active in dasha") : `${yoga.activationScore}/100`}
+            </span>
+          )}
           <span style={{ color: "var(--color-faint)" }} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" width="12" height="12" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms ease" }}><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
         </div>
       </button>
@@ -418,6 +434,35 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
                   <li key={i} style={{ fontSize: "0.75rem", color: "#5a4f42", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
                 ))}
               </ul>
+            )}
+            {Array.isArray(yoga.cancellationFactors) && yoga.cancellationFactors.length > 0 && (
+              <div style={{ marginTop: "var(--space-3)" }}>
+                <p
+                  style={{
+                    margin: "0 0 var(--space-1)",
+                    fontSize: "0.625rem",
+                    fontWeight: 700,
+                    color: "var(--color-faint)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  {lang === "ta" ? "நிவர்த்தி காரணங்கள்" : "Cancellation factors"}
+                </p>
+                {yoga.cancellationFactors.map((factor) => (
+                  <p
+                    key={factor}
+                    style={{
+                      margin: "var(--space-0_75) 0",
+                      fontSize: "0.875rem",
+                      color: "var(--color-muted)",
+                    }}
+                  >
+                    {"· "}
+                    {markerLabel(factor, lang)}
+                  </p>
+                ))}
+              </div>
             )}
           </div>
 
@@ -559,11 +604,62 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
               </div>
             )}
 
+            {[
+              {
+                sectionKey: "What",
+                labelTa: "என்ன",
+                labelEn: "What this is",
+                ta: dosham.explanationWhatTa,
+                en: dosham.explanationWhatEn,
+              },
+              {
+                sectionKey: "Why",
+                labelTa: "ஏன்",
+                labelEn: "Why your chart has this",
+                ta: dosham.explanationWhyTa,
+                en: dosham.explanationWhyEn,
+              },
+              {
+                sectionKey: "How",
+                labelTa: "எப்படி",
+                labelEn: "How it affects you",
+                ta: dosham.explanationHowTa,
+                en: dosham.explanationHowEn,
+              },
+            ]
+              .filter((s) => (lang === "ta" ? s.ta : s.en))
+              .map((section) => (
+                <div key={section.sectionKey} style={{ marginTop: "var(--space-3)" }}>
+                  <p
+                    style={{
+                      margin: "0 0 var(--space-1)",
+                      fontSize: "0.625rem",
+                      fontWeight: 700,
+                      color: "var(--color-faint)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                    }}
+                  >
+                    {lang === "ta" ? section.labelTa : section.labelEn}
+                  </p>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "0.875rem",
+                      color: "var(--color-text)",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {lang === "ta" ? section.ta : section.en}
+                  </p>
+                </div>
+              ))}
+
             {dosham.missingData && dosham.missingData.length > 0 && (
-              <p style={{ margin: "var(--space-2_5) 0 0", fontSize: "0.75rem", color: "#B85A2C", lineHeight: 1.4 }}>
+              <p style={{ margin: "var(--space-2_5) 0 0", fontSize: "0.75rem", color: "var(--color-score-mid)", fontStyle: "italic", lineHeight: 1.5 }}>
                 {lang === "ta"
-                  ? `குறிப்பு: ${dosham.missingData.join(", ")} தரவு இல்லாததால் முழு முடிவு தரமுடியாது.`
-                  : `Note: A complete verdict requires ${dosham.missingData.join(", ")} data which is not yet available.`}
+                  ? "குறிப்பு: பிறந்த நேரம் இல்லாததால் இந்த மதிப்பீடு தோராயமானது."
+                  : "Note: this assessment is estimated because exact birth time is unavailable."}
               </p>
             )}
           </div>

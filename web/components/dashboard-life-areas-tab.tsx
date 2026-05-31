@@ -17,6 +17,7 @@ import { DrawerPanel } from "./drawer-panel";
 import { PredictionDetailPanel } from "./dashboard-prediction-panel";
 import { YogaDoshamPanel } from "./dashboard-yoga-dosham-panel";
 import { JadhagamReportPanel } from "./dashboard-jadhagam-report-panel";
+import { EventWindowsPanel } from "./dashboard-event-windows";
 
 const AREA_PHASE_MAP: Record<string, string[]> = {
   CAREER:           ["career", "career_preparation", "career_peak"],
@@ -237,7 +238,17 @@ export function DashboardLifeAreasTab({
 
       {/* ── Sub-tab: Predictions ── */}
       {subTab === "predictions" && (
-        <PredictionDetailPanel lang={lang} predictions={predictions} loading={predictionsLoading} />
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+          <PredictionDetailPanel lang={lang} predictions={predictions} loading={predictionsLoading} />
+          {lifeAreas?.chartId && (
+            <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-4)" }}>
+              <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+                {lang === "ta" ? "நிகழ்வு நேரங்கள்" : "Event Windows"}
+              </p>
+              <EventWindowsPanel lang={lang} chartId={lifeAreas.chartId} />
+            </div>
+          )}
+        </div>
       )}
 
       {/* ── Sub-tab: Yogas & Doshams ── */}

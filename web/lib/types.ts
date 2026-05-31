@@ -29,6 +29,14 @@ export interface LifeEventsResponseData {
   windows: LifeEventWindow[];
 }
 
+export interface EventWindowItem {
+  event: "MARRIAGE" | "CAREER" | "FINANCE";
+  start_date: string;
+  end_date: string;
+  score: number;
+  reasons: string[];
+}
+
 export interface LifeAreaText {
   ta: string;
   en: string;
@@ -41,6 +49,12 @@ export interface LifeAreaData {
   trend: "UP" | "DOWN" | "STABLE";
   confidence: ConfidenceTier;
   confidenceReason: LifeAreaText;
+  primaryHouseStrength: "STRONG" | "NEUTRAL" | "WEAK";
+  karakaStatus: "STRONG" | "MODERATE" | "WEAK";
+  dashaActivation: boolean;
+  transitSupport: number;
+  supportingFactors: string[];
+  blockingFactors: string[];
   driver: {
     planet: string;
     reason: LifeAreaText;
@@ -150,6 +164,15 @@ export interface ChartPlanet {
   d9Rasi: number;
   isVargottama: boolean;
   showRetrogradeBadge: boolean;
+  strengthScore?: number;
+  strengthBreakdown?: {
+    sthana: "STRONG" | "NEUTRAL" | "WEAK";
+    dik: "STRONG" | "NEUTRAL" | "WEAK";
+    kala: "STRONG" | "NEUTRAL" | "WEAK";
+    chesta: "STRONG" | "NEUTRAL" | "WEAK";
+    naisargika: "STRONG" | "NEUTRAL" | "WEAK";
+    drik: "STRONG" | "NEUTRAL" | "WEAK";
+  };
 }
 
 export interface ChartCalculateResponseData {
@@ -185,10 +208,16 @@ export interface ChartSummaryData {
   currentAge: number;
   lagnaRasi: string;
   moonRasi: string;
+  d9LagnaRasi?: string | null;
+  d9MoonRasi?: string | null;
   janmaNakshatra: string;
   janmaPada: number;
   currentMahadasha: string;
   currentAntardasha: string;
+  functionalNature?: Record<string, string>;
+  ashtakavarga?: Record<string, Record<number, number>>;
+  planets?: ChartPlanet[];
+  yogas?: ChartYogaInsight[];
   primaryLanguageText: {
     ta: string;
     en: string;
@@ -259,6 +288,8 @@ export interface DailyGuidanceData {
   cautionSuggestion: BiText;
   reasons: DailyGuidanceReasons;
   remedy: BiText;
+  currentHoraLord?: string | null;
+  pratyantarNarrative?: BiText | null;
   tithiCard: BiText | null;
 }
 
@@ -320,6 +351,32 @@ export interface DashaTimelineResponseData {
     pratyantardasha: DashaPeriodWindow;
   };
   timeline: DashaTimelineItem[];
+}
+
+export interface CharaDashaPeriod {
+  rasi: number;
+  rasi_name: string;
+  years: number;
+  start_date: string;
+  end_date: string;
+}
+
+export interface CharaDashaData {
+  chartId: string;
+  lagnaRasi: number;
+  currentPeriod: CharaDashaPeriod | null;
+  periods: CharaDashaPeriod[];
+}
+
+export interface SolarReturnData {
+  chartId: string;
+  returnYear: number;
+  srLagnaRasi: number;
+  srLagnaRasiName: string;
+  munthaRasi: number;
+  munthaRasiName: string;
+  lagnaMatchesNatal: boolean;
+  sunLongAtReturn: number;
 }
 
 export interface TransitPosition {
@@ -554,6 +611,20 @@ export interface FamilySummaryData {
   };
   bestFamilyWindows: DailyGuidanceWindow[];
   avoidForFamilyDecisions: DailyGuidanceWindow[];
+}
+
+export interface FamilyMemberTodayScore {
+  memberId: string;
+  displayName: string;
+  score: number;
+  dashaLord: string;
+  keyTransit: string | null;
+}
+
+export interface FamilyVaultTodayData {
+  vaultId: string;
+  date: string;
+  members: FamilyMemberTodayScore[];
 }
 
 export interface FamilyCalendarItem {
@@ -883,6 +954,8 @@ export interface ChartYogaInsight {
   conditionsMet: string[];
   cancellationFactors: string[];
   dashaActivated: boolean;
+  activationScore: number;
+  isCurrentlyActive: boolean;
   descriptionTa: string;
   descriptionEn: string;
 }

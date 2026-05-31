@@ -59,6 +59,18 @@ const PLANET_COLORS: Record<string, string> = {
   KETU: "#9A8679",
 };
 
+function breakdownToneColor(tag: "STRONG" | "NEUTRAL" | "WEAK"): string {
+  if (tag === "STRONG") return "var(--color-score-high)";
+  if (tag === "WEAK") return "var(--color-score-low)";
+  return "var(--color-score-mid)";
+}
+
+function interpretationLabel(key: string, lang: Lang): string {
+  const text = key.replaceAll("_", " ");
+  if (lang === "ta") return `விளக்கம்: ${text}`;
+  return `Interpretation: ${text}`;
+}
+
 function formatHeaderDate(value: string, lang: Lang): string {
   const parsed = new Date(`${value}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) return value;
@@ -254,6 +266,7 @@ export function DashboardTransitsTab({
               {personalTransit.transits.map((tr) => {
                 const hasFlag = tr.isRetrograde || tr.isCombust || tr.isGandanta || tr.isSandhi;
                 const planetColor = PLANET_COLORS[tr.graha] ?? W.muted;
+                const natalPlanet = personalChart?.planets.find((p) => p.graha === tr.graha);
                 return (
                   <div
                     key={`${tr.graha}-${tr.currentRasi}`}
@@ -275,6 +288,31 @@ export function DashboardTransitsTab({
                     <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>
                       H{tr.houseFromMoon} <span style={{ opacity: 0.6 }}>·</span> L{tr.houseFromLagna}
                     </p>
+                    {typeof natalPlanet?.strengthScore === "number" && (
+                      <div style={{ marginTop: "var(--space-1)", display: "grid", gap: "var(--space-1)" }}>
+                        <p style={{ margin: 0, fontSize: "0.75rem", color: W.inkMid }}>
+                          {lang === "ta" ? "நடப்பு சக்தி" : "Natal strength"}: <strong>{natalPlanet.strengthScore}</strong>/95
+                        </p>
+                        {natalPlanet.strengthBreakdown && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1)" }}>
+                            {(Object.entries(natalPlanet.strengthBreakdown) as Array<[string, "STRONG" | "NEUTRAL" | "WEAK"]>).map(([key, value]) => (
+                              <span
+                                key={`${tr.graha}-${key}`}
+                                style={{
+                                  fontSize: "0.625rem",
+                                  borderRadius: "var(--radius-pill)",
+                                  border: "1px solid var(--color-border)",
+                                  padding: "var(--space-0_5) var(--space-1_5)",
+                                  color: breakdownToneColor(value),
+                                }}
+                              >
+                                {key}: {value}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {hasFlag && (
                       <div style={{ display: "flex", gap: "var(--space-1)", flexWrap: "wrap", marginTop: "var(--space-1)" }}>
                         {tr.isRetrograde && <Flag tone="warn" label={lang === "ta" ? "Vakra" : "Retro"} />}
@@ -282,6 +320,11 @@ export function DashboardTransitsTab({
                         {tr.isGandanta && <Flag tone="focus" label={lang === "ta" ? "Gandanta" : "Gandanta"} />}
                         {tr.isSandhi && <Flag tone="soft" label={lang === "ta" ? "Sandhi" : "Sandhi"} />}
                       </div>
+                    )}
+                    {tr.interpretationKey && (
+                      <p style={{ margin: "var(--space-1) 0 0", fontSize: "0.7rem", color: "var(--color-faint)", lineHeight: 1.35 }}>
+                        {interpretationLabel(tr.interpretationKey, lang)}
+                      </p>
                     )}
                   </div>
                 );
@@ -494,4 +537,3 @@ export function DashboardTransitsTab({
     </div>
   );
 }
-

@@ -12,6 +12,39 @@ interface LifeAreaCardProps {
   onOpenDetail?: () => void;
 }
 
+const FACTOR_LABELS: Record<string, { ta: string; en: string }> = {
+  dasha_activates_area: { en: "Current dasha activates this area", ta: "தற்போதைய தசை இந்த பகுதியை செயல்படுத்துகிறது" },
+  house_av_strong: { en: "Ashtakavarga bindus strong (>=28)", ta: "அஷ்டகவர்க்க பிந்துக்கள் வலிமையானவை (>=28)" },
+  house_av_weak: { en: "Ashtakavarga bindus weak (<=22)", ta: "அஷ்டகவர்க்க பிந்துக்கள் பலவீனமானவை (<=22)" },
+  too_young: { en: "Not yet the typical age for this area", ta: "இந்த பகுதிக்கான பொதுவான வயது இன்னும் வரவில்லை" },
+  age_limit: { en: "Past the typical active age", ta: "இந்த பகுதியின் செயலூக்கமான வயது கடந்துவிட்டது" },
+};
+
+function humaniseFactorKey(key: string, lang: Lang): string {
+  const base = FACTOR_LABELS[key];
+  if (base) return lang === "ta" ? base.ta : base.en;
+  const planetPrefixMatch = key.match(/^(SUN|MOON|MARS|MERCURY|JUPITER|VENUS|SATURN|RAHU|KETU)_(.+)$/);
+  if (planetPrefixMatch) {
+    const [, planet, suffix] = planetPrefixMatch;
+    const suffixLabel =
+      suffix === "karaka_strong"
+        ? (lang === "ta" ? "காரகன் வலிமை" : "karaka strong")
+        : suffix === "karaka_weak"
+        ? (lang === "ta" ? "காரகன் பலவீனம்" : "karaka weak")
+        : suffix === "lord_strong"
+        ? (lang === "ta" ? "அதிபதி வலிமை" : "house lord strong")
+        : suffix === "lord_weak"
+        ? (lang === "ta" ? "அதிபதி பலவீனம்" : "house lord weak")
+        : suffix === "transit_supportive"
+        ? (lang === "ta" ? "கோசார ஆதரவு" : "transit supportive")
+        : suffix === "transit_difficult"
+        ? (lang === "ta" ? "கோசார சவால்" : "transit difficult")
+        : suffix.replaceAll("_", " ");
+    return `${planet}: ${suffixLabel}`;
+  }
+  return key.replaceAll("_", " ");
+}
+
 function WarningGlyph() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: "12px", height: "12px" }}>
@@ -73,6 +106,43 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
           {t("life_area_karaka", lang)} · {lang === "ta" ? "கிரகம்" : "planet"}
         </span>
         <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--color-muted)" }}>{area.driver?.planet ?? "—"}</span>
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1_5)", marginTop: "var(--space-2_5)" }}>
+        <span style={{ fontSize: "0.625rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)", color: "var(--color-muted)" }}>
+          {lang === "ta" ? "முக்கிய வீடு" : "Primary house"}: {area.primaryHouseStrength}
+        </span>
+        <span style={{ fontSize: "0.625rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)", color: "var(--color-muted)" }}>
+          {lang === "ta" ? "காரக நிலை" : "Karaka"}: {area.karakaStatus}
+        </span>
+        <span style={{ fontSize: "0.625rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)", color: area.dashaActivation ? "var(--color-score-high)" : "var(--color-faint)" }}>
+          {area.dashaActivation ? (lang === "ta" ? "தசை செயல்பாடு" : "Dasha active") : (lang === "ta" ? "தசை நடுநிலை" : "Dasha neutral")}
+        </span>
+        <span style={{ fontSize: "0.625rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)", color: "var(--color-muted)" }}>
+          {lang === "ta" ? "கோசார ஆதரவு" : "Transit support"}: {area.transitSupport}
+        </span>
+      </div>
+
+      {((area.supportingFactors?.length ?? 0) > 0 || (area.blockingFactors?.length ?? 0) > 0) && (
+        <div style={{ marginTop: "var(--space-2_5)", display: "grid", gap: "var(--space-1)" }}>
+          {(area.supportingFactors ?? []).slice(0, 3).map((factor) => (
+            <p key={`support-${factor}`} style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-score-high)", lineHeight: 1.4 }}>
+              + {humaniseFactorKey(factor, lang)}
+            </p>
+          ))}
+          {(area.blockingFactors ?? []).slice(0, 3).map((factor) => (
+            <p key={`block-${factor}`} style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-score-low)", lineHeight: 1.4 }}>
+              - {humaniseFactorKey(factor, lang)}
+            </p>
+          ))}
+        </div>
+      )}
+
+      <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
+        <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          {lang === "ta" ? "அடுத்த 30 நாட்கள்" : "Next 30 days"}
+        </p>
+        <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.45 }}>{tLang(area.next30DayOutlook, lang)}</p>
       </div>
 
       {area.caution && (
