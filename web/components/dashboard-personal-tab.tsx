@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { apiFetchJson } from "@/lib/api";
 import { formatClockLabel, formatDateLabel, getScoreBand } from "@/lib/format";
 import { t, tLang, tTithi, tNakshatra, tWeekday, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
   AmbientAlertItem,
+  CharaDashaData,
   ChartCalculateResponseData,
   ChartSummaryData,
   DailyGuidanceData,
@@ -16,6 +19,7 @@ import type {
   PeyarchiEvent,
   PeyarchiReportData,
   SaniCycleData,
+  SolarReturnData,
   TransitSnapshotData,
   WeekAheadData,
 } from "@/lib/types";
@@ -197,6 +201,57 @@ export function DashboardPersonalTab({
   const avoidWindow = personalDailyGuidance?.cautionWindows[0] ?? null;
   const score = personalDailyGuidance?.score ?? null;
   const personalScoreBand = score !== null ? getScoreBand(score) : null;
+  const activeChartId = personalChart?.chartId ?? personalChartSummary?.chartId ?? "";
+  const [charaDasha, setCharaDasha] = useState<CharaDashaData | null>(null);
+  const [solarReturn, setSolarReturn] = useState<SolarReturnData | null>(null);
+
+  useEffect(() => {
+    if (!activeChartId) {
+      setCharaDasha(null);
+      setSolarReturn(null);
+      return;
+    }
+    const returnYear = Number.parseInt((selectedDate || "").slice(0, 4), 10) || new Date().getFullYear();
+    let cancelled = false;
+
+    void apiFetchJson<{ success: boolean; data: CharaDashaData }>(`/api/v1/charts/${activeChartId}/chara-dasha`)
+      .then((res) => {
+        if (!cancelled) setCharaDasha(res.data ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setCharaDasha(null);
+      });
+
+    void apiFetchJson<{ success: boolean; data: SolarReturnData }>(
+      `/api/v1/charts/${activeChartId}/solar-return?year=${returnYear}`
+    )
+      .then((res) => {
+        if (!cancelled) setSolarReturn(res.data ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setSolarReturn(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeChartId, selectedDate]);
+
+  async function downloadPersonalChartPdf() {
+    if (!activeChartId) return;
+    const asOf = selectedDate || new Date().toISOString().slice(0, 10);
+    const response = await fetch(`/api/backend/api/v1/charts/${activeChartId}/export/pdf?asOf=${asOf}`, {
+      credentials: "include",
+    });
+    if (!response.ok) return;
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `jadhagam-${activeChartId}.pdf`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
 
   /* Date label */
   const dateLabel = selectedDate === todayDate
@@ -341,6 +396,58 @@ export function DashboardPersonalTab({
               {busyPersonal ? t("btn_refreshing", lang) : t("btn_refresh", lang)}
             </button>
           )}
+          {activeChartId && (
+            <button
+              type="button"
+              onClick={() => void downloadPersonalChartPdf()}
+              style={{
+                padding: "var(--space-1) var(--space-3)",
+                borderRadius: "var(--radius-pill)",
+                border: "1px solid var(--color-border)",
+                background: "var(--color-surface)",
+                color: "var(--color-text)",
+                fontSize: "0.875rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "var(--space-1_5)",
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M7 1v8M4 6l3 3 3-3M2 11h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              {lang === "ta" ? "PDF பதிவிறக்கம்" : "Download PDF"}
+            </button>
+          )}
+        </div>
+      )}
+      {memberCharts.length === 0 && activeChartId && (
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button
+            type="button"
+            onClick={() => void downloadPersonalChartPdf()}
+            style={{
+              padding: "var(--space-1) var(--space-3)",
+              borderRadius: "var(--radius-pill)",
+              border: "1px solid var(--color-border)",
+              background: "var(--color-surface)",
+              color: "var(--color-text)",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "var(--space-1_5)",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M7 1v8M4 6l3 3 3-3M2 11h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            {lang === "ta" ? "PDF பதிவிறக்கம்" : "Download PDF"}
+          </button>
         </div>
       )}
 
@@ -932,6 +1039,103 @@ export function DashboardPersonalTab({
           </Surface>
         </div>
       </div>
+
+      {(charaDasha || solarReturn) && (
+        <Surface title={lang === "ta" ? "பாரம்பரிய கால நிர்ணயம்" : "Classical Timing"}>
+          <div className="surface__body" style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
+            {charaDasha && (
+              <CollapsibleSection
+                title={lang === "ta" ? "ஜைமினி சார தசை" : "Jaimini Chara Dasha"}
+                defaultOpen={false}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", paddingTop: "var(--space-2)" }}>
+                  <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                    {lang === "ta"
+                      ? "இது ராசி அடிப்படையிலான தசை. திருமணம், தொழில் மாற்றம் போன்ற நிகழ்வுகளின் நேரச் சிக்னலை காட்டும்."
+                      : "This sign-based dasha is used to time life-event periods such as marriage and career transitions."}
+                  </p>
+                  {charaDasha.currentPeriod && (
+                    <div style={{
+                      padding: "var(--space-2_5) var(--space-3)",
+                      borderRadius: "var(--radius-md)",
+                      background: "rgba(92,118,84,0.12)",
+                      border: "1px solid rgba(92,118,84,0.35)",
+                    }}>
+                      <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-score-high)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                        {lang === "ta" ? "தற்போதைய சார தசை" : "Current Chara Dasha"}
+                      </p>
+                      <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                        {charaDasha.currentPeriod.rasi_name}
+                      </p>
+                      <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "0.75rem", color: "var(--color-muted)" }}>
+                        {charaDasha.currentPeriod.start_date} - {charaDasha.currentPeriod.end_date}
+                      </p>
+                    </div>
+                  )}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                    {charaDasha.periods.map((period) => (
+                      <div
+                        key={`${period.rasi}-${period.start_date}`}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "var(--space-2)",
+                          padding: "var(--space-1_5) var(--space-3)",
+                          borderRadius: "var(--radius-sm)",
+                          border: "1px solid var(--color-border)",
+                          background: charaDasha.currentPeriod?.rasi === period.rasi ? "var(--color-surface-soft)" : "transparent",
+                        }}
+                      >
+                        <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text-strong)" }}>
+                          {period.rasi_name}
+                        </span>
+                        <span style={{ fontSize: "0.75rem", color: "var(--color-muted)" }}>
+                          {period.years} {lang === "ta" ? "ஆண்டுகள்" : "yrs"} · {period.start_date}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CollapsibleSection>
+            )}
+
+            {solarReturn && (
+              <CollapsibleSection
+                title={lang === "ta" ? `${solarReturn.returnYear} ஆண்டு தாஜகா` : `${solarReturn.returnYear} Annual Chart`}
+                defaultOpen={false}
+              >
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--space-2_5)", paddingTop: "var(--space-2)" }}>
+                  <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
+                    <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      {lang === "ta" ? "வருட லக்னம்" : "SR Lagna"}
+                    </p>
+                    <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                      {solarReturn.srLagnaRasiName}
+                      {solarReturn.lagnaMatchesNatal && (
+                        <span style={{ marginLeft: "var(--space-1_5)", fontSize: "0.625rem", padding: "2px 6px", borderRadius: "var(--radius-pill)", background: "rgba(92,118,84,0.15)", color: "var(--color-score-high)", border: "1px solid rgba(92,118,84,0.35)" }}>
+                          {lang === "ta" ? "நட்டாள்போல்" : "Same as natal"}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
+                    <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      {lang === "ta" ? "முந்தா" : "Muntha"}
+                    </p>
+                    <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                      {solarReturn.munthaRasiName}
+                    </p>
+                    <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)" }}>
+                      {lang === "ta" ? "சூரிய நீளம்" : "Sun longitude"}: {solarReturn.sunLongAtReturn.toFixed(4)}°
+                    </p>
+                  </div>
+                </div>
+              </CollapsibleSection>
+            )}
+          </div>
+        </Surface>
+      )}
 
       {/* Planet table */}
       <Surface title={t("surface_planets", lang)}>

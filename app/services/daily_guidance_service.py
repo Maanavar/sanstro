@@ -13,6 +13,7 @@ from app.calculations.astro import (
     house_from_reference,
     local_datetime_to_utc,
     nakshatra_from_degree,
+    resolve_timezone,
     utc_datetime_to_julian_day,
 )
 from app.calculations.dasha import calculate_vimshottari_timeline
@@ -347,6 +348,27 @@ def _money_hora_name(lord: str) -> str:
         "VENUS": "VENUS",
         "SATURN": "SATURN",
     }[lord]
+
+
+def _current_hora_lord(panchangam, on_date: date, timezone_name: str) -> str | None:
+    """
+    Return the currently running hora lord for on_date in local timezone.
+    Returns None when the requested date is not today in that timezone.
+    """
+    tz_now = datetime.now(resolve_timezone(timezone_name))
+    if tz_now.date() != on_date:
+        return None
+
+    now_local = tz_now
+    for slot in panchangam.hora:
+        start = _to_utc(slot.start).astimezone(tz_now.tzinfo)
+        end = _to_utc(slot.end).astimezone(tz_now.tzinfo)
+        if start <= now_local < end:
+            normalized_lord = _normalize_graha_name(slot.lord)
+            if normalized_lord == "GURU":
+                return "JUPITER"
+            return normalized_lord
+    return None
 
 
 _NATURAL_BENEFIC_LORDS = {"JUPITER", "VENUS", "MERCURY", "MOON"}
@@ -1153,6 +1175,7 @@ def build_daily_guidance_response(
         planet_scores=planet_strength_map,
         lang=language,
     )
+    hora_lord = _current_hora_lord(panchangam, on_date, birth_profile.birth_timezone)
 
     return DailyGuidanceResponse(
         data=DailyGuidanceData(
@@ -1215,6 +1238,7 @@ def build_daily_guidance_response(
                 summary=DailyGuidanceText(ta=reasons.summary.ta, en=reasons.summary.en),
             ),
             remedy=DailyGuidanceText(ta=reasons.remedy.ta, en=reasons.remedy.en),
+            currentHoraLord=hora_lord,
             pratyantarNarrative=(
                 DailyGuidanceText(ta=pratyantar_story["ta"], en=pratyantar_story["en"])
                 if pratyantar_story is not None

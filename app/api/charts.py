@@ -14,6 +14,8 @@ from app.db.session import get_db
 from app.models import BirthProfile, Chart
 from app.models.user import User
 from app.calculations.astro import NAKSHATRA_NAME_TO_NUMBER, resolve_rasi
+from app.calculations.jaimini_dasha import calculate_chara_dasha, current_chara_dasha
+from app.calculations.tajaka import calculate_tajaka_chart
 from app.calculations.event_windows import ChartData, EventType, find_event_windows
 from app.models.chart_planet import ChartPlanet
 from app.schemas.charts import (
@@ -43,6 +45,16 @@ def _assert_chart_owner(session: Session, chart_id: UUID, current_user: User) ->
     if profile.owner_user_id != current_user.user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
     return chart
+
+
+def _load_chart_and_profile(session: Session, owner_user_id: UUID, chart_id: UUID) -> tuple[Chart | None, BirthProfile | None]:
+    chart = session.get(Chart, chart_id)
+    if chart is None:
+        return None, None
+    profile = session.get(BirthProfile, chart.birth_profile_id)
+    if profile is None or profile.deleted_at is not None or profile.owner_user_id != owner_user_id:
+        return None, None
+    return chart, profile
 
 
 @router.post("/charts/calculate", response_model=ChartCalculateResponse, tags=["charts"])
@@ -173,3 +185,83 @@ def export_chart_pdf(
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="jadhagam-{chart_id}.pdf"'},
     )
+
+
+@router.get("/charts/{chart_id}/chara-dasha", tags=["charts"])
+def get_chara_dasha(
+    chart_id: UUID,
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    chart, birth_profile = _load_chart_and_profile(session, current_user.user_id, chart_id)
+    if chart is None or birth_profile is None:
+        raise HTTPException(status_code=404, detail="Chart not found.")
+
+    planets = session.execute(select(ChartPlanet).where(ChartPlanet.chart_id == chart_id)).scalars().all()
+    planet_rasi_map = {p.graha: resolve_rasi(p.rasi) for p in planets if p.rasi}
+    lagna_rasi = resolve_rasi(chart.lagna_rasi)
+    birth_date = birth_profile.birth_date_local
+
+    periods = calculate_chara_dasha(lagna_rasi, planet_rasi_map, birth_date)
+    current = current_chara_dasha(lagna_rasi, planet_rasi_map, birth_date)
+
+    return {
+        "success": True,
+        "data": {
+            "chartId": str(chart_id),
+            "lagnaRasi": lagna_rasi,
+            "currentPeriod": current,
+            "periods": periods,
+        },
+    }
+
+
+@router.get("/charts/{chart_id}/solar-return", tags=["charts"])
+def get_solar_return(
+    chart_id: UUID,
+    year: int | None = Query(default=None, description="Return year. Defaults to current year."),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    chart, birth_profile = _load_chart_and_profile(session, current_user.user_id, chart_id)
+    if chart is None or birth_profile is None:
+        raise HTTPException(status_code=404, detail="Chart not found.")
+
+    return_year = year or date.today().year
+    birth_year = birth_profile.birth_date_local.year
+
+    sun_row = session.execute(
+        select(ChartPlanet).where(
+            ChartPlanet.chart_id == chart_id,
+            ChartPlanet.graha == "SUN",
+        )
+    ).scalar_one_or_none()
+    if sun_row is None:
+        raise HTTPException(status_code=422, detail="Chart has no Sun position stored.")
+
+    natal_sun_lon = float(sun_row.absolute_longitude)
+    natal_lagna_rasi = resolve_rasi(chart.lagna_rasi)
+
+    result = calculate_tajaka_chart(
+        natal_sun_longitude=natal_sun_lon,
+        natal_lagna_rasi=natal_lagna_rasi,
+        birth_year=birth_year,
+        return_year=return_year,
+        birth_latitude=float(birth_profile.birth_latitude),
+        birth_longitude=float(birth_profile.birth_longitude),
+        ayanamsa_type="LAHIRI",
+    )
+
+    return {
+        "success": True,
+        "data": {
+            "chartId": str(chart_id),
+            "returnYear": result["return_year"],
+            "srLagnaRasi": result["sr_lagna_rasi"],
+            "srLagnaRasiName": result["sr_lagna_rasi_name"],
+            "munthaRasi": result["muntha_rasi"],
+            "munthaRasiName": result["muntha_rasi_name"],
+            "lagnaMatchesNatal": result["lagna_matches_natal"],
+            "sunLongAtReturn": round(result["sun_longitude_at_return"], 4),
+        },
+    }
