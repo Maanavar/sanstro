@@ -71,8 +71,8 @@ def test_longitude_normalization():
 
 
 def test_local_datetime_to_utc_converts_ist_to_utc():
-    utc_dt = local_datetime_to_utc(datetime(1993, 3, 15, 8, 15), "Asia/Kolkata")
-    assert utc_dt.isoformat() == "1991-07-22T02:45:00+00:00"
+    utc_dt = local_datetime_to_utc(datetime(1991, 7, 22, 6, 30), "Asia/Kolkata")
+    assert utc_dt.isoformat() == "1991-07-22T01:00:00+00:00"
 
 
 # T010 — second IST to UTC golden case

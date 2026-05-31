@@ -67,13 +67,13 @@ def _approx(test_id: str, description: str, expected: float, actual: float, tol:
 
 
 def _run_time_conversion() -> QAModuleResult:
-    utc1 = local_datetime_to_utc(datetime(1993, 3, 15, 8, 15), "Asia/Kolkata")
+    utc1 = local_datetime_to_utc(datetime(1991, 7, 22, 6, 30), "Asia/Kolkata")
     utc2 = local_datetime_to_utc(datetime(2025, 5, 20, 15, 32), "Asia/Kolkata")
     utc3 = local_datetime_to_utc(datetime(2000, 1, 1, 0, 0), "Asia/Kolkata")   # millennium midnight IST
     utc4 = local_datetime_to_utc(datetime(1947, 8, 15, 0, 0), "Asia/Kolkata")  # India independence
     utc5 = local_datetime_to_utc(datetime(1975, 6, 10, 18, 45), "Asia/Kolkata")
     cases = [
-        _case("T010-a", "1991-07-22 08:15 IST -> 1991-07-22 02:45 UTC", "1991-07-22T02:45:00+00:00", utc1.isoformat()),
+        _case("T010-a", "1991-07-22 06:30 IST -> 1991-07-22 01:00 UTC", "1991-07-22T01:00:00+00:00", utc1.isoformat()),
         _case("T010-b", "2025-05-20 15:32 IST -> 2025-05-20 10:02 UTC", "2025-05-20T10:02:00+00:00", utc2.isoformat()),
         _case("T010-c", "2000-01-01 00:00 IST -> 1999-12-31 18:30 UTC (millennium rollover)", "1999-12-31T18:30:00+00:00", utc3.isoformat()),
         _case("T010-d", "1947-08-15 00:00 IST -> 1947-08-14 18:30 UTC (independence day)", "1947-08-14T18:30:00+00:00", utc4.isoformat()),
@@ -188,8 +188,8 @@ def _run_vargottama() -> QAModuleResult:
 
 def _run_dasha_balance() -> QAModuleResult:
     set_lahiri_ayanamsa()
-    # Reference birth: 1970-01-01 06:30 IST, Chennai
-    local_dt = datetime(1985, 7, 15, 6, 30)
+    # Reference birth: 1970-01-01 00:00 IST, Chennai (Unix epoch midnight — neutral, memorable)
+    local_dt = datetime(1970, 1, 1, 0, 0)
     utc_dt = local_datetime_to_utc(local_dt, "Asia/Kolkata")
     jd = utc_datetime_to_julian_day(utc_dt)
     snap = calculate_sidereal_planets(jd)
@@ -199,13 +199,13 @@ def _run_dasha_balance() -> QAModuleResult:
     opening_lord, balance_years, _ = calculate_opening_dasha(moon_lon, jd)
     timeline = calculate_vimshottari_timeline(jd, moon_lon)
 
-    # Moon at ~53.91 -> nak 5 (Mirugaseeridam), lord MARS, pada 1
+    # Moon at ~164.39 -> nak 13 (Chithirai), lord MOON, pada 2
     cases = [
-        _case("T030-a", "1970-01-01 IST: Moon nakshatra = 5 (Mirugaseeridam)", 5, moon_nak),
-        _case("T030-b", "1970-01-01 IST: Moon pada = 1", 1, moon_pada),
-        _case("T030-c", "1970-01-01 IST: Opening dasha lord = MARS", "MARS", opening_lord),
-        _approx("T030-d", "1970-01-01 IST: MARS balance ~ 6.697 years", 6.697, balance_years, tol=0.05),
-        _case("T030-e", "NAK_LORD[5] = MARS", "MARS", NAK_LORD[5]),
+        _case("T030-a", "1970-01-01 IST: Moon nakshatra = 13 (Chithirai)", 13, moon_nak),
+        _case("T030-b", "1970-01-01 IST: Moon pada = 2", 2, moon_pada),
+        _case("T030-c", "1970-01-01 IST: Opening dasha lord = MOON", "MOON", opening_lord),
+        _approx("T030-d", "1970-01-01 IST: MOON balance ~ 6.705 years", 6.705, balance_years, tol=0.05),
+        _case("T030-e", "NAK_LORD[13] = MOON", "MOON", NAK_LORD[13]),
         # Near nak start: maximum balance
         _case("T031-a", "Moon at nak start (0.001) -> KETU dasha", "KETU", calculate_opening_dasha(0.001, jd)[0]),
         _approx("T031-b", "Moon at nak start -> balance close to 7.0 yrs (KETU)", 7.0, calculate_opening_dasha(0.001, jd)[1], tol=0.01),

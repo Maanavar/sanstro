@@ -220,13 +220,13 @@ function scoreColor(score: number): string {
 | Birth chart calculation (D1/D9/D10) | ✓ | ✓ |
 | Daily guidance score | ✓ | ✓ |
 | Vimshottari dasha timeline | ✓ | ✓ |
-| Life areas (6 domains, score 0-100) | ✓ | Partial |
+| Life areas (6 domains, score 0-100) | Yes | Yes |
 | Peyarchi (transit) alerts | ✓ | ✓ |
 | Ask Vinaadi (Claude Q&A) | ✓ | ✓ |
-| Synastry (chart-to-chart) | ✓ | Broken URL |
+| Synastry (chart-to-chart) | Yes | Yes |
 | Porutham (marriage matching) | ✓ | ✓ |
 | Family vault management | ✓ | ✓ |
-| Journal (create, read, archive) | ✓ | Partial |
+| Journal (create, read, archive + edit + export + retention) | Yes | Yes |
 | Muhurta (auspicious timing) | ✓ | ✓ |
 | Annual wrapped | ✓ | ✓ |
 | Panchangam | ✓ | ✓ |
@@ -237,56 +237,56 @@ function scoreColor(score: number): string {
 | Shadow prompts journal | ✓ | ✓ |
 | QA validation (139 cases) | ✓ | Admin only |
 
-## What the backend returns that the frontend ignores (Track B)
+## Track B fields now surfaced in frontend
 
 | Field | Source endpoint | Currently shown |
 |-------|----------------|----------------|
-| `strengthScore` per planet | `GET /charts/{id}/calculate` | No |
-| `strengthBreakdown` per planet | Same | No |
-| `activationScore` per yoga | Same | No |
-| `isCurrentlyActive` per yoga | Same | No |
-| `cancellationFactors[]` per yoga | Same | No |
-| `explanationWhat/Why/How` per dosham | Same | No |
-| `missingData[]` per dosham | Same | No |
-| `isCancelled` per dosham | Same | No |
-| `dashaActivation` per life area | `GET /life-areas` | No |
-| `karakaStatus` per life area | Same | No |
-| `primaryHouseStrength` per life area | Same | No |
-| `supportingFactors[]` per life area | Same | No |
-| `blockingFactors[]` per life area | Same | No |
-| `driver.planet` + `driver.reason` | Same | No |
-| `next30DayOutlook` per life area | Same | No |
-| `transitSupport` per life area | Same | No |
-| `pratyantarNarrative` | `GET /charts/{id}/daily-guidance` | No |
-| `emotionalWeather` | Same | No |
-| `nakshatraPerspective` | Same | No |
-| `interpretationKey` per transit | `GET /transits/{id}/major` | No |
+| `strengthScore` per planet | `GET /charts/{id}/calculate` | Yes |
+| `strengthBreakdown` per planet | Same | Yes |
+| `activationScore` per yoga | Same | Yes |
+| `isCurrentlyActive` per yoga | Same | Yes |
+| `cancellationFactors[]` per yoga | Same | Yes |
+| `explanationWhat/Why/How` per dosham | Same | Yes |
+| `missingData[]` per dosham | Same | Yes |
+| `isCancelled` per dosham | Same | Yes |
+| `dashaActivation` per life area | `GET /life-areas` | Yes |
+| `karakaStatus` per life area | Same | Yes |
+| `primaryHouseStrength` per life area | Same | Yes |
+| `supportingFactors[]` per life area | Same | Yes |
+| `blockingFactors[]` per life area | Same | Yes |
+| `driver.planet` + `driver.reason` | Same | Yes |
+| `next30DayOutlook` per life area | Same | Yes |
+| `transitSupport` per life area | Same | Yes |
+| `pratyantarNarrative` | `GET /charts/{id}/daily-guidance` | Yes |
+| `emotionalWeather` | Same | Yes |
+| `nakshatraPerspective` | Same | Yes |
+| `interpretationKey` per transit | `GET /transits/{id}/major` | Yes |
 
 ## Backend endpoints with no frontend (Track D)
 
-| Endpoint | File | What it does | Priority |
-|----------|------|-------------|----------|
-| `GET /charts/{id}/event-windows` | `charts.py:108` | 20-year marriage/career/finance windows | High |
-| `GET /charts/{id}/export/pdf` | `charts.py:168` | Download full chart as PDF | High |
-| `GET /charts/{id}/chara-dasha` | `charts.py:190` | Jaimini Chara Dasha timeline | High (C2 adds this) |
-| `GET /charts/{id}/solar-return` | `charts.py:219` | Annual Tajaka chart | High (C3 adds this) |
-| `GET /charts/{id}/transits/major` | `transits.py:58` | Major planet transits only | Medium |
-| `PATCH /journal/{id}` | `journal.py:96` | Edit existing journal entry | High |
-| `GET /journal/export` | `journal.py:209` | Download journal as CSV/PDF | Medium |
-| `POST /journal/retention/apply` | `journal.py:122` | Apply retention window | Low |
-| `GET /family-vaults/{id}/journal` | `journal.py:230` | Family-level journal view | Medium |
-| `GET /family-vaults/{id}/journal/summary` | `journal.py:249` | Family journal summary | Medium |
-| `GET /family-vaults/{id}/summary` | `family_vaults.py:183` | Family aggregate summary card | Medium |
-| `GET /family-vaults/{id}/today` | `family_vaults.py:198` | All members' today scores | High |
-| `GET /family-vaults/{id}/composite` | `family_vaults.py:226` | Composite score timeline | Medium |
-| `PUT /settings/notifications/fcm-token` | `notification_preferences.py:100` | Register push token | Low |
-| `DELETE /settings/notifications/fcm-token` | `notification_preferences.py:117` | Remove push token | Low |
+| Endpoint | File | What it does | Status |
+|----------|------|-------------|--------|
+| `GET /charts/{id}/event-windows` | `charts.py:108` | 20-year marriage/career/finance windows | Done |
+| `GET /charts/{id}/export/pdf` | `charts.py:168` | Download full chart as PDF | Done |
+| `GET /charts/{id}/chara-dasha` | `charts.py:190` | Jaimini Chara Dasha timeline | Done |
+| `GET /charts/{id}/solar-return` | `charts.py:219` | Annual Tajaka chart | Done |
+| `GET /charts/{id}/transits/major` | `transits.py:58` | Major planet transits only | Done (used by Transits tab) |
+| `PATCH /journal/{id}` | `journal.py:96` | Edit existing journal entry | Done |
+| `GET /journal/export` | `journal.py:209` | Download journal as CSV/PDF | Done |
+| `POST /journal/retention/apply` | `journal.py:122` | Apply retention window | Done |
+| `GET /family-vaults/{id}/journal` | `journal.py:230` | Family-level journal view | Done |
+| `GET /family-vaults/{id}/journal/summary` | `journal.py:249` | Family journal summary | Done |
+| `GET /family-vaults/{id}/summary` | `family_vaults.py:183` | Family aggregate summary card | Done |
+| `GET /family-vaults/{id}/today` | `family_vaults.py:198` | All members' today scores | Done |
+| `GET /family-vaults/{id}/composite` | `family_vaults.py:226` | Composite score timeline | Done |
+| `PUT /settings/notifications/fcm-token` | `notification_preferences.py:100` | Register push token | Done |
+| `DELETE /settings/notifications/fcm-token` | `notification_preferences.py:117` | Remove push token | Done |
 
 ## Known bugs
 
 | Bug | File | Line | Description |
 |-----|------|------|-------------|
-| Synastry URL mismatch | `synastry-matrix.tsx` | 44 | Calls `/charts/synastry?chart_id=...` but backend is `GET /relationships/{member_id}/synastry?familyVaultId=...` — silently fails with null scores |
+| (Resolved 2026-05-31) Export route prefix inconsistency | `dashboard-personal-tab.tsx`, `dashboard-journal-tab.tsx` | n/a | Standardized binary downloads to `/api/v1/...` |
 
 ---
 

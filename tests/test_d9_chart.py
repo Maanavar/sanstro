@@ -6,7 +6,7 @@ from app.calculations.ephemeris import calculate_lagna_degree
 
 
 def test_calculate_d9_chart_returns_all_nine_bodies():
-    birth_utc = local_datetime_to_utc(datetime(1993, 3, 15, 8, 15), "Asia/Kolkata")
+    birth_utc = local_datetime_to_utc(datetime(1991, 7, 22, 6, 30), "Asia/Kolkata")
     jd_ut = utc_datetime_to_julian_day(birth_utc)
     snapshot = calculate_d9_chart(jd_ut, 13.0827, 80.2707)
 
@@ -26,7 +26,7 @@ def test_calculate_d9_chart_returns_all_nine_bodies():
 
 
 def test_d9_lagna_uses_navamsa_of_natal_lagna_degree():
-    birth_utc = local_datetime_to_utc(datetime(1993, 3, 15, 8, 15), "Asia/Kolkata")
+    birth_utc = local_datetime_to_utc(datetime(1991, 7, 22, 6, 30), "Asia/Kolkata")
     jd_ut = utc_datetime_to_julian_day(birth_utc)
     lagna_degree = calculate_lagna_degree(jd_ut, 13.0827, 80.2707)
     expected_d9_lagna = navamsa_rasi_from_degree(lagna_degree)

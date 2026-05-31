@@ -6,14 +6,14 @@ import Image from "next/image";
 ───────────────────────────────────────────────────────────── */
 const SAMPLE = {
   dayLabel: "Tuesday, 26 May",
-  personName: "Senthil's day",
+  personName: "Your day",
   score: 64,
   summary: "A balanced day under Moon Dasa · Moon Bhukti. Saturn refines home and inner stability.",
   bestWindow: { start: "11:53", end: "12:41" },
   holdWindow: { start: "3:28", end: "5:03" },
-  lagna: "Mesham Lagna",
-  nakshatra: "Moolam",
-  rasi: "Dhanusu",
+  lagna: "Kadagam Lagna",
+  nakshatra: "Kettai",
+  rasi: "Viruchigam",
 };
 
 /* Sun arc: 6 a → 6 p mapped to [0..100]. Progress dot at ~12:10 */
@@ -266,7 +266,7 @@ export default function HomePage() {
             <div className="cl-score-panel">
               <p className="cl-score-panel__label">Your family today</p>
               {[
-                { name: "Arjun Kumar", score: 64, band: "mid" },
+                { name: "Arjun", score: 64, band: "mid" },
                 { name: "Priya", score: 81, band: "high" },
                 { name: "Arjun", score: 47, band: "low" },
               ].map((m) => (

@@ -2766,7 +2766,7 @@ if any(house[p] == 10 and is_natural_benefic(p) and not is_combust(p) for p in b
 
 ## QA Validation Reference Values — Modules 6, 7, 11, 14, 15, 16, 20
 
-Each module requires a developer-executable QA reference. Use the same base chart: Native born 15 March 1993, 08:15 IST, Coimbatore. From M1: Lagna = Midhunam (3), Moon = Kanni (6), Janma Nakshatra = Chitta (14), Sun = Meenam (12), Mars = Midhunam (3), Jupiter = Thulaam (7), Saturn = Makaram (10), Rahu = Vrichigam (8).
+Each module requires a developer-executable QA reference. Use the same base chart: Native born 22 July 1991, 06:30 IST, Chennai (13.0827°N, 80.2707°E). Lahiri ayanamsa 23.74°. From M1: Lagna = Kadagam (4) at 102.92°, Moon = Viruchigam (8) at 223.60° nakshatra Kettai pada 4, Sun = Kadagam (4), Mercury = Simmam (5), Venus = Simmam (5), Mars = Simmam (5), Jupiter = Kadagam (4), Saturn = Magaram (10) retrograde, Rahu = Dhanusu (9) retrograde, Ketu = Mithunam (3) retrograde. Opening dasha: SATURN, balance 4.37 years.
 
 ### M6 Transit QA — Jupiter currently in Rishabam (2)
 
@@ -3517,7 +3517,7 @@ For India after standard IST adoption:
 
 ```text
 UTC = IST - 05:30
-08:15 IST = 02:45 UTC
+06:30 IST = 01:00 UTC
 15:32 IST = 10:02 UTC
 ```
 
@@ -5176,7 +5176,7 @@ house_from(Kadagam 4, Kumbam 11) = 8
 
 | Local IST | Expected UTC |
 |---|---|
-| 1991-07-22 08:15 IST | 1991-07-22 02:45 UTC |
+| 1991-07-22 06:30 IST | 1991-07-22 01:00 UTC |
 | 2025-05-20 15:32 IST | 2025-05-20 10:02 UTC |
 
 Fail if local time is passed directly to ephemeris.

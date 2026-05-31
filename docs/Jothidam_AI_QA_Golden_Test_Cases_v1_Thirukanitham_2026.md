@@ -42,7 +42,7 @@ house_from(Kadagam 4, Kumbam 11) = 8
 
 | Local IST | Expected UTC |
 |---|---|
-| 1991-07-22 08:15 IST | 1991-07-22 02:45 UTC |
+| 1991-07-22 06:30 IST | 1991-07-22 01:00 UTC |
 | 2025-05-20 15:32 IST | 2025-05-20 10:02 UTC |
 
 Fail if local time is passed directly to ephemeris.

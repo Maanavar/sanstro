@@ -47,7 +47,7 @@ def test_chart_calculate_endpoint_uses_persisted_birth_profile(client):
     assert body["success"] is True
     assert body["data"]["calculationStatus"] == "completed"
     assert body["data"]["birthProfile"]["birthProfileId"] == birth_profile_id
-    assert body["data"]["birthDateTimeUTC"].startswith("1991-07-22T02:45:00")
+    assert body["data"]["birthDateTimeUTC"].startswith("1991-07-22T01:00:00")
     assert body["data"]["ephemerisBackend"] in {"pyswisseph", "swisseph-ffi"}
     assert body["data"]["ayanamsa"]["type"] == "LAHIRI"
     assert body["data"]["ayanamsa"]["valueDegrees"] == pytest.approx(23.76211742, abs=0.01)
@@ -103,7 +103,7 @@ def test_chart_summary_endpoint_returns_dashboard_payload(client):
     assert body["chartId"] == chart_id
     assert body["displayName"] == "Arjun Kumar"
     today = datetime.now(tz=UTC).date()
-    expected_age = today.year - 1993 - (1 if (today.month, today.day) < (3, 15) else 0)
+    expected_age = today.year - 1991 - (1 if (today.month, today.day) < (7, 22) else 0)
     assert body["currentAge"] == expected_age
     assert body["primaryLanguageText"]["en"]
     assert body["currentMahadasha"]

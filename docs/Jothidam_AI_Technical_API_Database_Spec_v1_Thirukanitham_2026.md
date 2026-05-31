@@ -323,32 +323,144 @@ Runs the deterministic chart engine. Used by profile creation and QA tools.
   "success": true,
   "data": {
     "chartId": "uuid",
-    "birthDateTimeUTC": "1991-07-22T02:45:00Z",
-    "julianDay": 2449061.6145833335,
+    "birthDateTimeUTC": "1991-07-22T01:00:00Z",
+    "julianDay": 2448459.541667,
     "ayanamsa": {
       "type": "LAHIRI",
-      "valueDegrees": 23.7561
+      "valueDegrees": 23.7391
     },
     "lagna": {
-      "rasi": "MESHA",
-      "absoluteLongitude": 12.34,
-      "degreeInRasi": 12.34,
-      "nakshatra": "ASHWINI",
-      "pada": 4
+      "rasi": "KADAGAM",
+      "absoluteLongitude": 102.9156,
+      "degreeInRasi": 12.9156,
+      "nakshatra": "AYILYAM",
+      "pada": 3
     },
     "planets": [
       {
+        "graha": "SURYAN",
+        "absoluteLongitude": 95.0158,
+        "rasi": "KADAGAM",
+        "degreeInRasi": 5.0158,
+        "nakshatra": "AYILYAM",
+        "pada": 1,
+        "houseFromLagna": 1,
+        "speedDegPerDay": 0.9544,
+        "isRetrograde": false,
+        "isCombust": false,
+        "d9Rasi": "SIMMAM",
+        "isVargottama": false
+      },
+      {
         "graha": "CHANDRA",
-        "absoluteLongitude": 253.21,
-        "rasi": "DHANUSU",
-        "degreeInRasi": 13.21,
-        "nakshatra": "MOOLAM",
+        "absoluteLongitude": 223.5993,
+        "rasi": "VIRUCHIGAM",
+        "degreeInRasi": 13.5993,
+        "nakshatra": "KETTAI",
         "pada": 4,
-        "houseFromLagna": 9,
-        "speedDegPerDay": 13.42,
+        "houseFromLagna": 5,
+        "speedDegPerDay": 11.9249,
+        "isRetrograde": false,
+        "isCombust": false,
+        "d9Rasi": "VIRUCHIGAM",
+        "isVargottama": false
+      },
+      {
+        "graha": "CHEVVAI",
+        "absoluteLongitude": 130.2712,
+        "rasi": "SIMMAM",
+        "degreeInRasi": 10.2712,
+        "nakshatra": "POORAM",
+        "pada": 4,
+        "houseFromLagna": 2,
+        "speedDegPerDay": 0.6179,
         "isRetrograde": false,
         "isCombust": false,
         "d9Rasi": "KADAGAM",
+        "isVargottama": false
+      },
+      {
+        "graha": "BUDHAN",
+        "absoluteLongitude": 121.8214,
+        "rasi": "SIMMAM",
+        "degreeInRasi": 1.8214,
+        "nakshatra": "POORAM",
+        "pada": 1,
+        "houseFromLagna": 2,
+        "speedDegPerDay": 1.0914,
+        "isRetrograde": false,
+        "isCombust": false,
+        "d9Rasi": "MESHAM",
+        "isVargottama": false
+      },
+      {
+        "graha": "GURU",
+        "absoluteLongitude": 114.9431,
+        "rasi": "KADAGAM",
+        "degreeInRasi": 24.9431,
+        "nakshatra": "MAGAM",
+        "pada": 3,
+        "houseFromLagna": 1,
+        "speedDegPerDay": 0.2120,
+        "isRetrograde": false,
+        "isCombust": false,
+        "d9Rasi": "KUMBAM",
+        "isVargottama": false
+      },
+      {
+        "graha": "SUKRAN",
+        "absoluteLongitude": 131.6420,
+        "rasi": "SIMMAM",
+        "degreeInRasi": 11.6420,
+        "nakshatra": "POORAM",
+        "pada": 4,
+        "houseFromLagna": 2,
+        "speedDegPerDay": 0.3568,
+        "isRetrograde": false,
+        "isCombust": false,
+        "d9Rasi": "KADAGAM",
+        "isVargottama": false
+      },
+      {
+        "graha": "SANI",
+        "absoluteLongitude": 280.1329,
+        "rasi": "MAGARAM",
+        "degreeInRasi": 10.1329,
+        "nakshatra": "AVITTAM",
+        "pada": 1,
+        "houseFromLagna": 7,
+        "speedDegPerDay": -0.0739,
+        "isRetrograde": true,
+        "isCombust": false,
+        "d9Rasi": "MESHAM",
+        "isVargottama": false
+      },
+      {
+        "graha": "RAHU",
+        "absoluteLongitude": 264.6921,
+        "rasi": "DHANUSU",
+        "degreeInRasi": 24.6921,
+        "nakshatra": "UTHIRADAM",
+        "pada": 4,
+        "houseFromLagna": 6,
+        "speedDegPerDay": -0.0530,
+        "isRetrograde": true,
+        "isCombust": false,
+        "d9Rasi": "VIRUCHIGAM",
+        "isVargottama": false
+      },
+      {
+        "graha": "KETU",
+        "absoluteLongitude": 84.6921,
+        "rasi": "MITHUNAM",
+        "degreeInRasi": 24.6921,
+        "nakshatra": "POOSAM",
+        "pada": 2,
+        "houseFromLagna": 12,
+        "speedDegPerDay": -0.0530,
+        "isRetrograde": true,
+        "isCombust": false,
+        "d9Rasi": "RISHABAM",
         "isVargottama": false
       }
     ],
@@ -371,12 +483,12 @@ Returns a dashboard-friendly chart summary.
   "data": {
     "chartId": "uuid",
     "displayName": "Arjun Kumar",
-    "lagnaRasi": "MESHA",
-    "moonRasi": "DHANUSU",
-    "janmaNakshatra": "MOOLAM",
-    "janmaPada": 1,
-    "currentMahadasha": "RAHU",
-    "currentAntardasha": "SANI",
+    "lagnaRasi": "KADAGAM",
+    "moonRasi": "VIRUCHIGAM",
+    "janmaNakshatra": "KETTAI",
+    "janmaPada": 4,
+    "currentMahadasha": "SATURN",
+    "currentAntardasha": "SATURN",
     "primaryLanguageText": {
       "ta": "இது உங்கள் அடிப்படை ஜாதகச் சுருக்கம்.",
       "en": "This is your base chart summary."
@@ -486,14 +598,14 @@ Returns a dashboard-friendly chart summary.
   "success": true,
   "data": {
     "asOfUTC": "2026-05-21T05:00:00Z",
-    "janmaRasi": "DHANUSU",
-    "lagnaRasi": "MESHA",
+    "janmaRasi": "VIRUCHIGAM",
+    "lagnaRasi": "KADAGAM",
     "transits": [
       {
         "graha": "SANI",
         "currentRasi": "MEENAM",
-        "houseFromMoon": 4,
-        "houseFromLagna": 12,
+        "houseFromMoon": 5,
+        "houseFromLagna": 9,
         "isRetrograde": false,
         "interpretationKey": "SANI_FROM_MOON_4"
       }
@@ -513,20 +625,20 @@ Returns a dashboard-friendly chart summary.
   "success": true,
   "data": {
     "saturnRasi": "MEENAM",
-    "janmaRasi": "DHANUSU",
-    "lagnaRasi": "MESHA",
-    "positionFromMoon": 4,
-    "positionFromLagna": 12,
+    "janmaRasi": "VIRUCHIGAM",
+    "lagnaRasi": "KADAGAM",
+    "positionFromMoon": 5,
+    "positionFromLagna": 9,
     "moonBasedCycle": {
-      "type": "ARDHASHTAMA_SANI",
-      "isActive": true,
-      "supportiveLabel": "Home and inner stability refinement cycle"
+      "type": null,
+      "isActive": false,
+      "supportiveLabel": null
     },
     "lagnaBasedCycle": {
       "type": null,
       "isActive": false
     },
-    "confirmationSentence": "Saturn is in Meenam, which is 4th from Dhanusu Moon. This is Ardhashtama Sani, not Ezharai Sani."
+    "confirmationSentence": "Saturn is in Meenam, which is 5th from Viruchigam Moon. No special Sani cycle active."
   }
 }
 ```
@@ -617,7 +729,7 @@ This is included in MVP 1.
         "displayName": "Arjun Kumar",
         "individualScore": 72,
         "label": "GOOD",
-        "activeCycleTags": ["ARDHASHTAMA_SANI"]
+        "activeCycleTags": []
       },
       {
         "familyMemberId": "uuid",
