@@ -127,10 +127,10 @@ function parseNumber(value: string, fallback = 0): number {
 
 function formatScoreLabel(score: number) {
   const band = getScoreBand(score);
-  return `${score}/100 â€“ ${band.label}`;
+  return `${score}/100 – ${band.label}`;
 }
 
-// â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Main component ────────────────────────────────────────
 
 export function DashboardWorkspace() {
   const [status, setStatus] = useState("Ready. Create a profile or family vault to begin.");
@@ -176,7 +176,7 @@ export function DashboardWorkspace() {
     }
   }, [activeTab]);
 
-  // â”€â”€ Domain hooks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Domain hooks ─────────────────────────────────────────
 
   const session = useSession({
     onSetupRedirect: useCallback(() => {
@@ -199,8 +199,8 @@ export function DashboardWorkspace() {
   const plan = usePlanData({
     chartId: personal.chartId,
     onError: (msg) => showToast(msg, "error"),
-    onGoalAdded: (goalType) => showToast(lang === "ta" ? `à®‡à®²à®•à¯à®•à¯ à®šà¯‡à®°à¯à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®Ÿà®¤à¯: ${goalType}` : `Goal saved: ${goalType}`),
-    onGoalRemoved: () => showToast(lang === "ta" ? "à®‡à®²à®•à¯à®•à¯ à®¨à¯€à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®Ÿà®¤à¯" : "Goal removed"),
+    onGoalAdded: (goalType) => showToast(lang === "ta" ? `இலக்கு சேர்க்கப்பட்டது: ${goalType}` : `Goal saved: ${goalType}`),
+    onGoalRemoved: () => showToast(lang === "ta" ? "இலக்கு நீக்கப்பட்டது" : "Goal removed"),
   });
 
   const journal = useJournalData({
@@ -209,7 +209,7 @@ export function DashboardWorkspace() {
     onError: (msg) => showToast(msg, "error"),
   });
 
-  // â”€â”€ Hydration + localStorage restore â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Hydration + localStorage restore ─────────────────────
 
   useEffect(() => {
     if (!session.hydrated) return;
@@ -229,7 +229,7 @@ export function DashboardWorkspace() {
           if (parsed.vaultForm) setVaultForm((c) => ({ ...c, ...parsed.vaultForm }));
           if (parsed.memberForm) setMemberForm((c) => ({ ...c, ...parsed.memberForm }));
           if (parsed.activeTab === "onboarding" || parsed.activeTab === "settings") {
-            // Don't restore settings from localStorage â€” the onboarding gate
+            // Don't restore settings from localStorage — the onboarding gate
             // decides whether to show settings based on profile existence.
             // Restoring "settings" here causes newly-onboarded users to land
             // back on the setup tab even after they have a birth profile.
@@ -247,15 +247,15 @@ export function DashboardWorkspace() {
     } catch {
       // ignore parse errors
     }
-    // Load DB lang preference â€” overrides localStorage (works across devices)
+    // Load DB lang preference — overrides localStorage (works across devices)
     void apiFetchJson<{ data: { lang: string } }>("/api/v1/settings/ui").then((r) => {
       const dbLang = r.data?.lang;
       if (dbLang === "ta" || dbLang === "en") setLang(dbLang as Lang);
-    }).catch(() => { /* non-critical â€” localStorage fallback is fine */ });
+    }).catch(() => { /* non-critical — localStorage fallback is fine */ });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.hydrated]);
 
-  // â”€â”€ Persist lang to DB when changed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Persist lang to DB when changed ───────────────────────
   const langSyncRef = useRef(false);
   useEffect(() => {
     if (!session.hydrated || !langSyncRef.current) {
@@ -270,7 +270,7 @@ export function DashboardWorkspace() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lang]);
 
-  // â”€â”€ Persistence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Persistence ────────────────────────────────────────
 
   useEffect(() => {
     if (!session.hydrated) return;
@@ -299,7 +299,7 @@ export function DashboardWorkspace() {
     if (birthForm.ownerUserId !== ownerUserId) setBirthForm((c) => ({ ...c, ownerUserId }));
   }, [session.hydrated, ownerUserId, birthForm.ownerUserId, vaultForm.ownerUserId]);
 
-  // â”€â”€ Onboarding gate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Onboarding gate ────────────────────────────────────
 
   useEffect(() => {
     if (!session.hydrated) return;
@@ -314,7 +314,7 @@ export function DashboardWorkspace() {
     }
   }, [session.hydrated, personal.birthProfileId, family.vaults]);
 
-  // â”€â”€ Data trigger effects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Data trigger effects ───────────────────────────────
 
   useEffect(() => {
     if (session.hydrated && ownerUserId) void family.loadVaults(ownerUserId);
@@ -390,7 +390,7 @@ export function DashboardWorkspace() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.hydrated, lifeAreasViewId, selectedDate, personal.chartId, family.memberCharts]);
 
-  // â”€â”€ Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Toast ────────────────────────────────────────────────
 
   function showToast(message: string, tone: "success" | "error" = "success") {
     setToast({ message, tone });
@@ -402,7 +402,7 @@ export function DashboardWorkspace() {
     setSettingsSubTab("setup");
   }
 
-  // â”€â”€ Derived / resolved state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Derived / resolved state ──────────────────────────────
 
   function resolveLifeAreasChartId(): string {
     if (!lifeAreasViewId) return personal.chartId;
@@ -432,7 +432,7 @@ export function DashboardWorkspace() {
   const personalPeyarchiUpcoming = personalMemberChart?.peyarchiUpcoming ?? personal.peyarchiUpcoming;
   const journalRetentionDays = journal.journalSettings?.journalRetentionDays ?? 365;
 
-  // â”€â”€ Form validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Form validation ───────────────────────────────────────
 
   function validateBirthForm(form: BirthFormState): Record<string, string> {
     const errors: Record<string, string> = {};
@@ -454,7 +454,7 @@ export function DashboardWorkspace() {
     return errors;
   }
 
-  // â”€â”€ Form handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Form handlers ─────────────────────────────────────────
 
   async function handleCreateProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -486,8 +486,8 @@ export function DashboardWorkspace() {
       });
       personal.setBirthProfileId(response.data.birthProfileId);
       if (response.data.chartId) personal.setChartId(response.data.chartId);
-      showToast(`${birthForm.displayName} â€“ ${t("toast_profile_created", lang)}`);
-      setStatus(`Profile created â€“ ${response.data.birthProfileId.slice(0, 8)}`);
+      showToast(`${birthForm.displayName} – ${t("toast_profile_created", lang)}`);
+      setStatus(`Profile created – ${response.data.birthProfileId.slice(0, 8)}`);
       setActiveTab("personal");
     } catch (error) {
       const msg = readErrorMessage(error);
@@ -595,7 +595,7 @@ export function DashboardWorkspace() {
     try {
       const existingId = personal.birthProfileId;
       if (existingId) {
-        // Update existing profile â€” never create a duplicate
+        // Update existing profile — never create a duplicate
         const updated = await apiFetchJson<ApiEnvelope<{ data: BirthProfileCreateResponseData }>>(`/api/v1/birth-profiles/${existingId}`, {
           method: "PATCH",
           body: JSON.stringify({
@@ -654,13 +654,13 @@ export function DashboardWorkspace() {
     const name = birthForm.displayName || "this profile";
     if (!confirm(
       lang === "ta"
-        ? `"${name}" à®œà®¾à®¤à®•à®®à¯ à®®à®±à¯à®±à¯à®®à¯ à®…à®©à¯ˆà®¤à¯à®¤à¯ à®•à®£à®•à¯à®•à¯€à®Ÿà¯à®Ÿà¯ à®¤à®°à®µà¯ˆà®¯à¯à®®à¯ à®¨à®¿à®°à®¨à¯à®¤à®°à®®à®¾à®• à®¨à¯€à®•à¯à®•à®µà®¾? à®‡à®¤à¯ˆ à®®à¯€à®Ÿà¯à®Ÿà¯†à®Ÿà¯à®•à¯à®• à®®à¯à®Ÿà®¿à®¯à®¾à®¤à¯.`
+        ? `"${name}" ஜாதகம் மற்றும் அனைத்து கணக்கீட்டு தரவையும் நிரந்தரமாக நீக்கவா? இதை மீட்டெடுக்க முடியாது.`
         : `Permanently delete "${name}" and all its chart data? This cannot be undone.`
     )) return;
     setBusyEditingProfile(true);
     try {
       await apiFetchJson<unknown>(`/api/v1/birth-profiles/${existingId}`, { method: "DELETE" });
-      // Sign out and redirect â€” user must not stay on the dashboard after deleting their profile
+      // Sign out and redirect — user must not stay on the dashboard after deleting their profile
       session.signOut();
     } catch (error) {
       showToast(readErrorMessage(error), "error");
@@ -737,7 +737,7 @@ export function DashboardWorkspace() {
     setVaultForm((c) => ({ ...c, ownerUserId: value }));
   }
 
-  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Render ────────────────────────────────────────────────
 
   return (
     <div className="site cd-shell">
@@ -813,15 +813,15 @@ export function DashboardWorkspace() {
           <div className="cd-onboarding__card">
             <div className="cd-onboarding__content">
               <p className="cd-onboarding__title">
-                {lang === "ta" ? "à®¤à¯Šà®Ÿà®™à¯à®• à®šà®¿à®² à®ªà®Ÿà®¿à®•à®³à¯ à®®à¯€à®¤à®®à¯" : "A few steps to get started"}
+                {lang === "ta" ? "தொடங்க சில படிகள் மீதம்" : "A few steps to get started"}
               </p>
               <div className="cd-onboarding__steps">
                 <div className="cd-onboarding__step">
                   <span className={`cd-onboarding__step-badge ${personal.birthProfileId ? "is-done" : "is-pending"}`}>
-                    {personal.birthProfileId ? "âœ“" : "1"}
+                    {personal.birthProfileId ? "✓" : "1"}
                   </span>
                   <span className={`cd-onboarding__step-text ${personal.birthProfileId ? "is-done" : ""}`}>
-                    {lang === "ta" ? "à®‰à®™à¯à®•à®³à¯ à®œà®¾à®¤à®• à®µà®¿à®µà®°à®™à¯à®•à®³à¯ˆ à®šà¯‡à®°à¯à®•à¯à®•à®µà¯à®®à¯" : "Add your birth profile"}
+                    {lang === "ta" ? "உங்கள் ஜாதக விவரங்களை சேர்க்கவும்" : "Add your birth profile"}
                   </span>
                 </div>
                 {(() => {
@@ -829,10 +829,10 @@ export function DashboardWorkspace() {
                   return (
                     <div className="cd-onboarding__step">
                       <span className={`cd-onboarding__step-badge ${hasMember ? "is-done" : "is-pending"}`}>
-                        {hasMember ? "âœ“" : "2"}
+                        {hasMember ? "✓" : "2"}
                       </span>
                       <span className={`cd-onboarding__step-text ${hasMember ? "is-done" : ""}`}>
-                        {lang === "ta" ? "à®•à¯à®Ÿà¯à®®à¯à®ª à®µà®¾à®·à®¿ à®¤à®¿à®±à®¨à¯à®¤à¯ à®’à®°à¯ à®‰à®±à¯à®ªà¯à®ªà®¿à®©à®°à¯ˆ à®šà¯‡à®°à¯à®•à¯à®•à®µà¯à®®à¯" : "Open Family Vault and add one family member"}
+                        {lang === "ta" ? "குடும்ப வாஷி திறந்து ஒரு உறுப்பினரை சேர்க்கவும்" : "Open Family Vault and add one family member"}
                       </span>
                     </div>
                   );
@@ -844,7 +844,7 @@ export function DashboardWorkspace() {
               onClick={() => { setActiveTab("settings"); setSettingsSubTab("setup"); }}
               className="cd-onboarding__cta"
             >
-              {lang === "ta" ? "à®…à®®à¯ˆà®µà¯à®•à¯à®•à¯ à®šà¯†à®²à¯" : "Go to Setup"}
+              {lang === "ta" ? "அமைவுக்கு செல்" : "Go to Setup"}
             </button>
           </div>
         </div>
@@ -918,20 +918,20 @@ export function DashboardWorkspace() {
 
         {activeTab === "tools" && (() => {
           const activeTool = showPorutham ? "porutham" : showChartGenerate ? "chartgen" : showWrapped ? "wrapped" : showRetrospective ? "retro" : null;
-          // Note: Find Birth Time (rectification) removed â€” results were unreliable
+          // Note: Find Birth Time (rectification) removed — results were unreliable
           const needsProfile = !personal.birthProfileId;
           const TOOL_LIST = [
-            { id: "porutham", icon: "CP", nameEn: "Porutham / Compatibility", nameTa: "à®ªà¯Šà®°à¯à®¤à¯à®¤à®®à¯", descEn: "Check compatibility between any two people", descTa: "à®Žà®¨à¯à®¤ à®‡à®°à¯ à®¨à®ªà®°à®¿à®Ÿà®®à¯à®®à¯ à®ªà¯Šà®°à¯à®¤à¯à®¤à®®à¯ à®ªà®¾à®°à¯à®•à¯à®•à®µà¯à®®à¯", disabled: false },
-            { id: "chartgen", icon: "CH", nameEn: "Generate Chart", nameTa: "à®œà®¾à®¤à®•à®®à¯ à®‰à®°à¯à®µà®¾à®•à¯à®•à¯", descEn: "Create a printable birth chart for any person", descTa: "à®Žà®µà®°à¯à®•à¯à®•à¯à®®à¯ à®…à®šà¯à®šà®Ÿà®¿à®•à¯à®•à®•à¯à®•à¯‚à®Ÿà®¿à®¯ à®œà®¾à®¤à®•à®®à¯ à®‰à®°à¯à®µà®¾à®•à¯à®•à¯", disabled: false },
-            { id: "wrapped", icon: "AW", nameEn: "Annual Wrapped", nameTa: "à®†à®£à¯à®Ÿà¯ à®šà¯à®°à¯à®•à¯à®•à®®à¯", descEn: "Your year in review â€” astrological summary", descTa: "à®‰à®™à¯à®•à®³à¯ à®µà®°à¯à®Ÿ à®œà¯‹à®¤à®¿à®Ÿ à®šà¯à®°à¯à®•à¯à®•à®®à¯", disabled: needsProfile },
-            { id: "retro", icon: "RT", nameEn: "Retrospective", nameTa: "à®ªà®¿à®©à¯à®©à¯‹à®•à¯à®•à¯ à®ªà®¾à®°à¯à®µà¯ˆ", descEn: "Look back at past periods and life patterns", descTa: "à®•à®Ÿà®¨à¯à®¤ à®•à®¾à®²à®™à¯à®•à®³à¯ˆ à®œà¯‹à®¤à®¿à®Ÿ à®ªà®¾à®°à¯à®µà¯ˆà®¯à®¿à®²à¯ à®…à®²à®šà¯", disabled: needsProfile },
+            { id: "porutham", icon: "CP", nameEn: "Porutham / Compatibility", nameTa: "பொருத்தம்", descEn: "Check compatibility between any two people", descTa: "எந்த இரு நபரிடமும் பொருத்தம் பார்க்கவும்", disabled: false },
+            { id: "chartgen", icon: "CH", nameEn: "Generate Chart", nameTa: "ஜாதகம் உருவாக்கு", descEn: "Create a printable birth chart for any person", descTa: "எவருக்கும் அச்சடிக்கக்கூடிய ஜாதகம் உருவாக்கு", disabled: false },
+            { id: "wrapped", icon: "AW", nameEn: "Annual Wrapped", nameTa: "ஆண்டு சுருக்கம்", descEn: "Your year in review — astrological summary", descTa: "உங்கள் வருட ஜோதிட சுருக்கம்", disabled: needsProfile },
+            { id: "retro", icon: "RT", nameEn: "Retrospective", nameTa: "பின்னோக்கு பார்வை", descEn: "Look back at past periods and life patterns", descTa: "கடந்த காலங்களை ஜோதிட பார்வையில் அலசு", disabled: needsProfile },
           ];
           return (
             <div className="cd-tools">
               <div>
-                <p className="section-kicker">{lang === "ta" ? "à®•à®°à¯à®µà®¿à®•à®³à¯" : "Tools"}</p>
-                <h2 className="section-title">{lang === "ta" ? "à®šà®¿à®±à®ªà¯à®ªà¯ à®•à®°à¯à®µà®¿à®•à®³à¯" : "Specialist Tools"}</h2>
-                <p className="section-description">{lang === "ta" ? "à®†à®´à®®à®¾à®© à®ªà®•à¯à®ªà¯à®ªà®¾à®¯à¯à®µà¯à®•à¯à®•à®¾à®© à®•à®°à¯à®µà®¿à®•à®³à¯" : "Deep-dive tools for specific astrology questions"}</p>
+                <p className="section-kicker">{lang === "ta" ? "கருவிகள்" : "Tools"}</p>
+                <h2 className="section-title">{lang === "ta" ? "சிறப்பு கருவிகள்" : "Specialist Tools"}</h2>
+                <p className="section-description">{lang === "ta" ? "ஆழமான பகுப்பாய்வுக்கான கருவிகள்" : "Deep-dive tools for specific astrology questions"}</p>
               </div>
               <div className={`cd-tools__layout${activeTool ? " is-open" : ""}`}>
                 {/* Tool selector rail */}
@@ -975,7 +975,7 @@ export function DashboardWorkspace() {
                       <button type="button"
                         onClick={() => { setShowPorutham(false); setShowChartGenerate(false); setShowWrapped(false); setShowRetrospective(false); }}
                         className="cd-tools__close">
-                        {lang === "ta" ? "à®®à¯‚à®Ÿà¯" : "Close"}
+                        {lang === "ta" ? "மூடு" : "Close"}
                       </button>
                     </div>
                     {showPorutham && <PoruthamPanel lang={lang} />}
@@ -1189,12 +1189,12 @@ export function DashboardWorkspace() {
                 Vinaadi
               </p>
               <p className="cd-footer__tagline">
-                {lang === "ta" ? "à®œà¯‹à®¤à®¿à®Ÿ à®µà®´à®¿à®•à®¾à®Ÿà¯à®Ÿà®¿ Â· à®¤à®¿à®©à®®à¯à®®à¯ à®•à®¾à®²à¯ˆ" : "Jyotish guidance Â· every morning"}
+                {lang === "ta" ? "ஜோதிட வழிகாட்டி · தினமும் காலை" : "Jyotish guidance · every morning"}
               </p>
             </div>
             <div className="cd-footer__links">
               {(lang === "ta"
-                ? ["à®¤à®©à®¿à®ªà¯à®ªà®Ÿà¯à®Ÿ", "à®µà®¾à®´à¯à®•à¯à®•à¯ˆ", "à®¨à®¾à®Ÿà¯à®•à®¾à®Ÿà¯à®Ÿà®¿", "à®•à¯à®±à®¿à®ªà¯à®ªà¯‡à®Ÿà¯", "à®…à®®à¯ˆà®ªà¯à®ªà¯à®•à®³à¯"]
+                ? ["தனிப்பட்ட", "வாழ்க்கை", "நாட்காட்டி", "குறிப்பேடு", "அமைப்புகள்"]
                 : ["Personal", "Life Areas", "Calendar", "Journal", "Settings"]
               ).map((label) => (
                 <span key={label} className="cd-footer__link">{label}</span>
@@ -1209,18 +1209,18 @@ export function DashboardWorkspace() {
           <div className="cd-footer__bottom">
             <p className="cd-footer__disclaimer">
               {lang === "ta"
-                ? "à®œà¯‹à®¤à®¿à®Ÿà®®à¯ à®’à®°à¯ à®ªà®¾à®°à®®à¯à®ªà®°à®¿à®¯ à®¨à®®à¯à®ªà®¿à®•à¯à®•à¯ˆ à®…à®®à¯ˆà®ªà¯à®ªà¯ â€” à®…à®±à®¿à®µà®¿à®¯à®²à¯ à®‰à®£à¯à®®à¯ˆ à®…à®²à¯à®². à®®à®°à¯à®¤à¯à®¤à¯à®µ, à®šà®Ÿà¯à®Ÿ, à®¨à®¿à®¤à®¿ à®®à¯à®Ÿà®¿à®µà¯à®•à®³à¯à®•à¯à®•à¯ à®¤à®•à¯à®¤à®¿à®µà®¾à®¯à¯à®¨à¯à®¤ à®¨à®¿à®ªà¯à®£à®°à¯ˆ à®…à®£à¯à®•à¯à®™à¯à®•à®³à¯."
+                ? "ஜோதிடம் ஒரு பாரம்பரிய நம்பிக்கை அமைப்பு — அறிவியல் உண்மை அல்ல. மருத்துவ, சட்ட, நிதி முடிவுகளுக்கு தகுதிவாய்ந்த நிபுணரை அணுகுங்கள்."
                 : "Astrology is a traditional belief system, not a scientific fact. For medical, legal, or financial decisions, consult a qualified professional."}
             </p>
             <p className="cd-footer__copy">
-              Â© {new Date().getFullYear()} Vinaadi
+              © {new Date().getFullYear()} Vinaadi
             </p>
           </div>
 
         </div>
       </footer>
 
-      {/* Feedback FAB â€” Clarity ink style */}
+      {/* Feedback FAB — Clarity ink style */}
       <button
         type="button"
         onClick={() => setShowFeedback(true)}
@@ -1228,7 +1228,7 @@ export function DashboardWorkspace() {
         aria-label={t("feedback_btn", lang)}
         className="cd-feedback-fab"
       >
-        âœ‰
+        ✉
       </button>
 
       {showFeedback && <FeedbackModal lang={lang} onClose={() => setShowFeedback(false)} />}

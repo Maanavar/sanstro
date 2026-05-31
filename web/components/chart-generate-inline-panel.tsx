@@ -56,36 +56,36 @@ const fieldStyle: React.CSSProperties = {
   fontFamily: "inherit",
 };
 
-// â”€â”€ Traditional data tables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Traditional data tables ──────────────────────────────────────────────────
 const NAKSHATRA_LORDS: Record<number, string> = {
-  1: "à®•à¯‡à®¤à¯", 2: "à®šà¯à®•à¯", 3: "à®šà¯‚à®°à®¿", 4: "à®šà®¨à¯", 5: "à®šà¯†à®µà¯", 6: "à®°à®¾à®•à¯", 7: "à®•à¯à®°à¯",
-  8: "à®šà®©à®¿", 9: "à®ªà¯à®¤", 10: "à®•à¯‡à®¤à¯", 11: "à®šà¯à®•à¯", 12: "à®šà¯‚à®°à®¿", 13: "à®šà®¨à¯", 14: "à®šà¯†à®µà¯",
-  15: "à®°à®¾à®•à¯", 16: "à®•à¯à®°à¯", 17: "à®šà®©à®¿", 18: "à®ªà¯à®¤", 19: "à®•à¯‡à®¤à¯", 20: "à®šà¯à®•à¯", 21: "à®šà¯‚à®°à®¿",
-  22: "à®šà®¨à¯", 23: "à®šà¯†à®µà¯", 24: "à®°à®¾à®•à¯", 25: "à®•à¯à®°à¯", 26: "à®šà®©à®¿", 27: "à®ªà¯à®¤",
+  1: "கேது", 2: "சுக்", 3: "சூரி", 4: "சந்", 5: "செவ்", 6: "ராகு", 7: "குரு",
+  8: "சனி", 9: "புத", 10: "கேது", 11: "சுக்", 12: "சூரி", 13: "சந்", 14: "செவ்",
+  15: "ராகு", 16: "குரு", 17: "சனி", 18: "புத", 19: "கேது", 20: "சுக்", 21: "சூரி",
+  22: "சந்", 23: "செவ்", 24: "ராகு", 25: "குரு", 26: "சனி", 27: "புத",
 };
 
 const RASI_LORDS_TA: Record<number, string> = {
-  1: "à®šà¯†à®µà¯", 2: "à®šà¯à®•à¯", 3: "à®ªà¯à®¤", 4: "à®šà®¨à¯", 5: "à®šà¯‚à®°à®¿", 6: "à®ªà¯à®¤",
-  7: "à®šà¯à®•à¯", 8: "à®šà¯†à®µà¯", 9: "à®•à¯à®°à¯", 10: "à®šà®©à®¿", 11: "à®šà®©à®¿", 12: "à®•à¯à®°à¯",
+  1: "செவ்", 2: "சுக்", 3: "புத", 4: "சந்", 5: "சூரி", 6: "புத",
+  7: "சுக்", 8: "செவ்", 9: "குரு", 10: "சனி", 11: "சனி", 12: "குரு",
 };
 
 const RASI_NAMES_TA: Record<number, string> = {
-  1: "à®®à¯‡à®·à®®à¯", 2: "à®°à®¿à®·à®ªà®®à¯", 3: "à®®à®¿à®¤à¯à®©à®®à¯", 4: "à®•à®Ÿà®•à®®à¯", 5: "à®šà®¿à®®à¯à®®à®®à¯", 6: "à®•à®©à¯à®©à®¿",
-  7: "à®¤à¯à®²à®¾à®®à¯", 8: "à®µà®¿à®°à¯à®šà¯à®šà®¿à®•à®®à¯", 9: "à®¤à®©à¯à®šà¯", 10: "à®®à®•à®°à®®à¯", 11: "à®•à¯à®®à¯à®ªà®®à¯", 12: "à®®à¯€à®©à®®à¯",
+  1: "மேஷம்", 2: "ரிஷபம்", 3: "மிதுனம்", 4: "கடகம்", 5: "சிம்மம்", 6: "கன்னி",
+  7: "துலாம்", 8: "விருச்சிகம்", 9: "தனுசு", 10: "மகரம்", 11: "கும்பம்", 12: "மீனம்",
 };
 
 const GRAHA_NAMES_TA: Record<string, string> = {
-  SUN: "à®šà¯‚à®°à®¿à®¯à®©à¯", MOON: "à®šà®¨à¯à®¤à®¿à®°à®©à¯", MARS: "à®šà¯†à®µà¯à®µà®¾à®¯à¯", MERCURY: "à®ªà¯à®¤à®©à¯",
-  JUPITER: "à®•à¯à®°à¯", VENUS: "à®šà¯à®•à¯à®•à®¿à®°à®©à¯", SATURN: "à®šà®©à®¿", RAHU: "à®°à®¾à®•à¯",
-  KETU: "à®•à¯‡à®¤à¯", MANDHI: "à®®à®¾à®¨à¯à®¤à®¿",
+  SUN: "சூரியன்", MOON: "சந்திரன்", MARS: "செவ்வாய்", MERCURY: "புதன்",
+  JUPITER: "குரு", VENUS: "சுக்கிரன்", SATURN: "சனி", RAHU: "ராகு",
+  KETU: "கேது", MANDHI: "மாந்தி",
 };
 
 const PLANET_DIRECTION: Record<string, string> = {
-  SUN: "à®•à®¿", MOON: "à®µ", MARS: "à®¤à¯†", MERCURY: "à®µ.à®•à®¿", JUPITER: "à®µ.à®•à®¿",
-  VENUS: "à®•à®¿.à®¤à¯†", SATURN: "à®®", RAHU: "à®ˆ", KETU: "à®ˆ", MANDHI: "-",
+  SUN: "கி", MOON: "வ", MARS: "தெ", MERCURY: "வ.கி", JUPITER: "வ.கி",
+  VENUS: "கி.தெ", SATURN: "ம", RAHU: "ஈ", KETU: "ஈ", MANDHI: "-",
 };
 
-const WEEKDAY_NAMES_TA = ["à®¤à®¿à®™à¯à®•à®³à¯", "à®šà¯†à®µà¯à®µà®¾à®¯à¯", "à®ªà¯à®¤à®©à¯", "à®µà®¿à®¯à®¾à®´à®©à¯", "à®µà¯†à®³à¯à®³à®¿", "à®šà®©à®¿", "à®žà®¾à®¯à®¿à®±à¯"];
+const WEEKDAY_NAMES_TA = ["திங்கள்", "செவ்வாய்", "புதன்", "வியாழன்", "வெள்ளி", "சனி", "ஞாயிறு"];
 
 const RASI_GRID: { rasi: number; col: number; row: number }[] = [
   { rasi: 12, col: 0, row: 0 }, { rasi: 1, col: 1, row: 0 }, { rasi: 2, col: 2, row: 0 }, { rasi: 3, col: 3, row: 0 },
@@ -94,13 +94,13 @@ const RASI_GRID: { rasi: number; col: number; row: number }[] = [
   { rasi: 9, col: 0, row: 3 }, { rasi: 8, col: 1, row: 3 }, { rasi: 7, col: 2, row: 3 }, { rasi: 6, col: 3, row: 3 },
 ];
 
-// â”€â”€ Utility functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Utility functions ─────────────────────────────────────────────────────────
 function degreesToDMS(deg: number): string {
   const d = Math.floor(deg);
   const mRaw = (deg - d) * 60;
   const m = Math.floor(mRaw);
   const s = Math.round((mRaw - m) * 60);
-  return `${String(d).padStart(2, "0")}Â° ${String(m).padStart(2, "0")}' ${String(s).padStart(2, "0")}"`;
+  return `${String(d).padStart(2, "0")}° ${String(m).padStart(2, "0")}' ${String(s).padStart(2, "0")}"`;
 }
 
 function formatWeekday(dateStr: string): string {
@@ -118,9 +118,9 @@ function formatDateTa(dateStr: string): string {
 function formatDashaBalance(years: number): string {
   const y = Math.floor(years);
   const months = Math.round((years - y) * 12);
-  if (y === 0) return `${months} à®®à®¾à®¤à®®à¯`;
-  if (months === 0) return `${y} à®†à®£à¯à®Ÿà¯`;
-  return `${y} à®†à®£à¯à®Ÿà¯ ${months} à®®à®¾à®¤à®®à¯`;
+  if (y === 0) return `${months} மாதம்`;
+  if (months === 0) return `${y} ஆண்டு`;
+  return `${y} ஆண்டு ${months} மாதம்`;
 }
 
 function formatDateTA(iso: string): string {
@@ -130,8 +130,8 @@ function formatDateTA(iso: string): string {
 
 function dashaLordTA(lord: string): string {
   const map: Record<string, string> = {
-    SUN: "à®šà¯‚à®°à®¿à®¯à®©à¯", MOON: "à®šà®¨à¯à®¤à®¿à®°à®©à¯", MARS: "à®šà¯†à®µà¯à®µà®¾à®¯à¯", MERCURY: "à®ªà¯à®¤à®©à¯",
-    JUPITER: "à®•à¯à®°à¯", VENUS: "à®šà¯à®•à¯à®•à®¿à®°à®©à¯", SATURN: "à®šà®©à®¿", RAHU: "à®°à®¾à®•à¯", KETU: "à®•à¯‡à®¤à¯",
+    SUN: "சூரியன்", MOON: "சந்திரன்", MARS: "செவ்வாய்", MERCURY: "புதன்",
+    JUPITER: "குரு", VENUS: "சுக்கிரன்", SATURN: "சனி", RAHU: "ராகு", KETU: "கேது",
   };
   return map[lord] ?? lord;
 }
@@ -148,7 +148,7 @@ function currentAge(dateIso: string): number {
   return Math.max(age, 0);
 }
 
-// â”€â”€ Compact print-only Rasi grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Compact print-only Rasi grid ──────────────────────────────────────────────
 function PrintRasiChart({ chart, d9LagnaRasi }: { chart: ChartCalculateResponseData; d9LagnaRasi?: number }) {
   const isD9 = d9LagnaRasi !== undefined;
   const lagnaRasi = isD9 ? d9LagnaRasi : chart.lagna.rasi;
@@ -157,12 +157,12 @@ function PrintRasiChart({ chart, d9LagnaRasi }: { chart: ChartCalculateResponseD
   function getOccupants(rasi: number) {
     if (isD9) {
       const occ: string[] = [];
-      if (d9LagnaRasi === rasi) occ.push("à®²");
+      if (d9LagnaRasi === rasi) occ.push("ல");
       chart.planets.forEach((p) => { if (p.d9Rasi === rasi) occ.push(GRAHA_ABBR[p.graha] ?? p.graha.slice(0, 2)); });
       return occ;
     }
     const occ: string[] = [];
-    if (chart.lagna.rasi === rasi) occ.push("à®²");
+    if (chart.lagna.rasi === rasi) occ.push("ல");
     chart.planets.forEach((p) => { if (p.rasi === rasi) occ.push(GRAHA_ABBR[p.graha] ?? p.graha.slice(0, 2)); });
     return occ;
   }
@@ -205,10 +205,10 @@ function PrintRasiChart({ chart, d9LagnaRasi }: { chart: ChartCalculateResponseD
         background: "#fff", padding: "4px",
       }}>
         <div style={{ textAlign: "center", fontSize: "7px", color: "#333", lineHeight: 1.4 }}>
-          <div style={{ fontWeight: 700, fontSize: "7.5px" }}>{isD9 ? "à®¨à®µà®¾à®®à¯à®šà®®à¯" : "à®‡à®°à®¾à®šà®¿"}</div>
+          <div style={{ fontWeight: 700, fontSize: "7.5px" }}>{isD9 ? "நவாம்சம்" : "இராசி"}</div>
           <div>{chart.birthProfile.displayName}</div>
           <div style={{ fontSize: "6.5px", color: "#666" }}>
-            {isD9 ? "à®¨à®µà®¾à®®à¯à®šà®®à¯ / Male" : `${RASI_NAMES_TA[chart.lagna.rasi]} à®²à®•à¯à®©à®®à¯`}
+            {isD9 ? "நவாம்சம் / Male" : `${RASI_NAMES_TA[chart.lagna.rasi]} லக்னம்`}
           </div>
           <div style={{ fontSize: "6px", color: "#888" }}>
             {chart.birthProfile.birthDateLocal}
@@ -216,7 +216,7 @@ function PrintRasiChart({ chart, d9LagnaRasi }: { chart: ChartCalculateResponseD
           </div>
           {chart.birthProfile.birthLatitude !== undefined && (
             <div style={{ fontSize: "6px", color: "#888" }}>
-              Lat: {Number(chart.birthProfile.birthLatitude).toFixed(2)} N Â· Lon: {Number(chart.birthProfile.birthLongitude ?? 0).toFixed(1)} E
+              Lat: {Number(chart.birthProfile.birthLatitude).toFixed(2)} N · Lon: {Number(chart.birthProfile.birthLongitude ?? 0).toFixed(1)} E
             </div>
           )}
         </div>
@@ -225,7 +225,7 @@ function PrintRasiChart({ chart, d9LagnaRasi }: { chart: ChartCalculateResponseD
   );
 }
 
-// â”€â”€ Full traditional print layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Full traditional print layout ────────────────────────────────────────────
 function JathagamPrint({ chart, dasha }: { chart: ChartCalculateResponseData; dasha: DashaTimelineResponseData | null }) {
   const d9LagnaRasi = computeD9LagnaRasi(chart.lagna.absoluteLongitude);
   const bp = chart.birthProfile;
@@ -234,7 +234,7 @@ function JathagamPrint({ chart, dasha }: { chart: ChartCalculateResponseData; da
 
   const PLANET_ORDER = ["SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU", "MANDHI"];
   const lagnaRow = {
-    graha: "LAGNA", nameTA: "à®²à®•à¯à®©à®®à¯",
+    graha: "LAGNA", nameTA: "லக்னம்",
     absLong: chart.lagna.absoluteLongitude, degInRasi: chart.lagna.degreeInRasi,
     nakshatra: chart.lagna.nakshatra, nakshatraName: chart.lagna.nakshatraName,
     pada: chart.lagna.pada, rasi: chart.lagna.rasi, isRetrograde: false,
@@ -257,56 +257,56 @@ function JathagamPrint({ chart, dasha }: { chart: ChartCalculateResponseData; da
   return (
     <div style={{ fontFamily: "serif", color: "#111", background: "#fff", padding: "14px 18px", maxWidth: "740px", margin: "0 auto" }}>
       <div style={{ textAlign: "center", marginBottom: "8px" }}>
-        <div style={{ fontSize: "11px", color: "#555" }}>à®‰</div>
-        <div style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "0.04em" }}>à®œà®¾à®¤à®• à®•à®£à®¿à®¤à®®à¯</div>
+        <div style={{ fontSize: "11px", color: "#555" }}>உ</div>
+        <div style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "0.04em" }}>ஜாதக கணிதம்</div>
       </div>
 
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "8px", marginBottom: "8px", border: "0.5px solid #999" }}>
         <tbody>
           <tr>
-            <td style={{ ...cellStyle, textAlign: "left", width: "22%", fontWeight: 600 }}>à®ªà¯†à®¯à®°à¯</td>
+            <td style={{ ...cellStyle, textAlign: "left", width: "22%", fontWeight: 600 }}>பெயர்</td>
             <td style={{ ...cellStyle, textAlign: "left", width: "28%" }}>: {bp.displayName}</td>
-            <td style={{ ...cellStyle, textAlign: "left", width: "22%", fontWeight: 600 }}>à®šà¯‚.à®¤à®®à®¿à®´à¯ à®¨à¯‡à®°à®®à¯</td>
+            <td style={{ ...cellStyle, textAlign: "left", width: "22%", fontWeight: 600 }}>சூ.தமிழ் நேரம்</td>
             <td style={{ ...cellStyle, textAlign: "left", width: "28%" }}>: {bp.birthTimeLocal ?? "-"}</td>
           </tr>
           <tr>
-            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>à®ªà®¿à®±à®¨à¯à®¤ à®¤à¯‡à®¤à®¿</td>
+            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>பிறந்த தேதி</td>
             <td style={{ ...cellStyle, textAlign: "left" }}>: {formatDateTa(bp.birthDateLocal)}</td>
-            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>à®…à®¯à®©à®¾à®®à¯à®šà®®à¯</td>
-            <td style={{ ...cellStyle, textAlign: "left" }}>: {chart.ayanamsa.valueDegrees.toFixed(2)} (à®²à®¹à®¿à®°à®¿)</td>
+            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>அயனாம்சம்</td>
+            <td style={{ ...cellStyle, textAlign: "left" }}>: {chart.ayanamsa.valueDegrees.toFixed(2)} (லஹிரி)</td>
           </tr>
           <tr>
-            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>à®ªà®¿à®±à®¨à¯à®¤ à®¨à¯‡à®°à®®à¯</td>
+            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>பிறந்த நேரம்</td>
             <td style={{ ...cellStyle, textAlign: "left" }}>: {bp.birthTimeLocal ?? "-"} am</td>
-            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>à®…à®Ÿà¯à®šà®¾à®®à¯à®šà®®à¯</td>
+            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>அட்சாம்சம்</td>
             <td style={{ ...cellStyle, textAlign: "left" }}>: {bp.birthLatitude !== undefined ? `${Number(bp.birthLatitude).toFixed(2)} N` : "-"}</td>
           </tr>
           <tr>
-            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>à®ªà®¾à®²à®¿à®©à®®à¯</td>
-            <td style={{ ...cellStyle, textAlign: "left" }}>: à®†à®£à¯ / Male</td>
-            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>à®¨à¯€à®°à¯à®•à¯à®•à®¾à®®à¯à®šà®®à¯</td>
+            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>பாலினம்</td>
+            <td style={{ ...cellStyle, textAlign: "left" }}>: ஆண் / Male</td>
+            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>நீர்க்காம்சம்</td>
             <td style={{ ...cellStyle, textAlign: "left" }}>: {bp.birthLongitude !== undefined ? `${Number(bp.birthLongitude).toFixed(1)} E` : "-"}</td>
           </tr>
           <tr>
-            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>à®ªà®¿à®±à®¨à¯à®¤ à®•à®¿à®´à®®à¯ˆ</td>
+            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>பிறந்த கிழமை</td>
             <td style={{ ...cellStyle, textAlign: "left" }}>: {weekday}</td>
-            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>à®²à®•à¯à®©à®®à¯</td>
+            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>லக்னம்</td>
             <td style={{ ...cellStyle, textAlign: "left" }}>: {RASI_NAMES_TA[chart.lagna.rasi] ?? chart.lagna.rasiName}</td>
           </tr>
           <tr>
-            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>à®œà¯†à®©à¯à®® à®¨à®Ÿà¯à®šà®¤à¯à®¤à®¿à®°à®®à¯</td>
-            <td style={{ ...cellStyle, textAlign: "left" }}>: {moon?.nakshatraName ?? chart.lagna.nakshatraName} - {moon?.pada ?? chart.lagna.pada}à®†à®®à¯ à®ªà®¾à®¤à®®à¯</td>
-            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>à®œà¯†à®©à¯à®® à®°à®¾à®šà®¿</td>
+            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>ஜென்ம நட்சத்திரம்</td>
+            <td style={{ ...cellStyle, textAlign: "left" }}>: {moon?.nakshatraName ?? chart.lagna.nakshatraName} - {moon?.pada ?? chart.lagna.pada}ஆம் பாதம்</td>
+            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>ஜென்ம ராசி</td>
             <td style={{ ...cellStyle, textAlign: "left" }}>: {moon ? RASI_NAMES_TA[moon.rasi] : "-"}</td>
           </tr>
           <tr>
-            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>à®ªà®¿à®±à®¨à¯à®¤ à®‡à®Ÿà®®à¯</td>
+            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>பிறந்த இடம்</td>
             <td style={{ ...cellStyle, textAlign: "left" }} colSpan={3}>: {bp.birthPlace}</td>
           </tr>
           <tr>
-            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>à®•à®£à®¿à®ªà¯à®ªà¯ à®®à¯à®±à¯ˆ</td>
+            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>கணிப்பு முறை</td>
             <td style={{ ...cellStyle, textAlign: "left" }}>: {chart.calculationVersion}</td>
-            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>à®•à®£à®¿à®ªà¯à®ªà¯ à®¨à®¿à®²à¯ˆ</td>
+            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>கணிப்பு நிலை</td>
             <td style={{ ...cellStyle, textAlign: "left" }}>: {chart.ephemerisBackend}</td>
           </tr>
         </tbody>
@@ -320,15 +320,15 @@ function JathagamPrint({ chart, dasha }: { chart: ChartCalculateResponseData; da
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "7.5px", marginTop: "4px" }}>
         <thead>
           <tr>
-            <th style={headerCellStyle}>à®•à®¿à®°à®•à®®à¯</th>
-            <th style={headerCellStyle}>à®ªà®¾-à®•à®²à¯ˆ</th>
-            <th style={headerCellStyle}>à®¨à®Ÿà¯à®šà®¤à¯à®¤à®¿à®°à®®à¯</th>
-            <th style={headerCellStyle}>à®¨-à®ªà®¾à®¤à®®à¯</th>
-            <th style={headerCellStyle}>à®šà®¾à®°à®®à¯</th>
-            <th style={headerCellStyle}>à®•à®¿à®¯-à®•à®²à¯ˆ</th>
-            <th style={headerCellStyle}>à®°à®¾à®šà®¿</th>
-            <th style={headerCellStyle}>à®°à®¾à®šà®¿ à®…à®¤à®¿à®ªà®¤à®¿</th>
-            <th style={headerCellStyle}>à®•à®¿à®²à®®à¯</th>
+            <th style={headerCellStyle}>கிரகம்</th>
+            <th style={headerCellStyle}>பா-கலை</th>
+            <th style={headerCellStyle}>நட்சத்திரம்</th>
+            <th style={headerCellStyle}>ந-பாதம்</th>
+            <th style={headerCellStyle}>சாரம்</th>
+            <th style={headerCellStyle}>கிய-கலை</th>
+            <th style={headerCellStyle}>ராசி</th>
+            <th style={headerCellStyle}>ராசி அதிபதி</th>
+            <th style={headerCellStyle}>கிலம்</th>
           </tr>
         </thead>
         <tbody>
@@ -336,7 +336,7 @@ function JathagamPrint({ chart, dasha }: { chart: ChartCalculateResponseData; da
             <tr key={row.graha}>
               <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>
                 {row.nameTA}
-                {row.isRetrograde ? <sup style={{ fontSize: "6px", color: "#c00" }}>à®µ</sup> : null}
+                {row.isRetrograde ? <sup style={{ fontSize: "6px", color: "#c00" }}>வ</sup> : null}
               </td>
               <td style={cellStyle}>{degreesToDMS(row.absLong)}</td>
               <td style={{ ...cellStyle, textAlign: "left" }}>{row.nakshatraName}</td>
@@ -354,26 +354,26 @@ function JathagamPrint({ chart, dasha }: { chart: ChartCalculateResponseData; da
       {dasha && (
         <div style={{ marginTop: "8px", fontSize: "8px", color: "#111", lineHeight: 1.8, borderTop: "0.5px solid #aaa", paddingTop: "6px" }}>
           <div>
-            <strong>à®ªà®¿à®±à®¨à¯à®¤ à®•à®¾à®² à®¤à®šà¯ˆ à®‡à®°à¯à®ªà¯à®ªà¯ (Dasha at Birth):</strong>{" "}
-            {dashaLordTA(dasha.openingDasha.lord)} à®¤à®šà¯ˆ â€” à®‡à®°à¯à®ªà¯à®ªà¯ {formatDashaBalance(dasha.openingDasha.balanceYearsAtBirth)}
+            <strong>பிறந்த கால தசை இருப்பு (Dasha at Birth):</strong>{" "}
+            {dashaLordTA(dasha.openingDasha.lord)} தசை — இருப்பு {formatDashaBalance(dasha.openingDasha.balanceYearsAtBirth)}
           </div>
           <div>
-            <strong>à®¨à®Ÿà®ªà¯à®ªà¯ à®¤à®šà¯ˆ à®‡à®©à¯à®±à¯ (Current Dasha Today):</strong>{" "}
-            {dashaLordTA(dasha.current.mahadasha.lord)} à®®à®•à®¾à®¤à®šà¯ˆ /{" "}
-            {dashaLordTA(dasha.current.antardasha.lord)} à®…à®¨à¯à®¤à®°à¯à®¤à®šà¯ˆ â€”{" "}
-            {formatDateTA(dasha.current.mahadasha.startDate)} à®®à¯à®¤à®²à¯ {formatDateTA(dasha.current.mahadasha.endDate)} à®µà®°à¯ˆ
+            <strong>நடப்பு தசை இன்று (Current Dasha Today):</strong>{" "}
+            {dashaLordTA(dasha.current.mahadasha.lord)} மகாதசை /{" "}
+            {dashaLordTA(dasha.current.antardasha.lord)} அந்தர்தசை —{" "}
+            {formatDateTA(dasha.current.mahadasha.startDate)} முதல் {formatDateTA(dasha.current.mahadasha.endDate)} வரை
           </div>
         </div>
       )}
 
       <div style={{ marginTop: "6px", fontSize: "7px", color: "#666", lineHeight: 1.5 }}>
-        <strong>à®•à¯à®±à®¿à®ªà¯à®ªà¯:</strong> à®•à®£à®¿à®ªà¯à®ªà¯ - Vinaadi AI | à®…à®¯à®©à®¾à®®à¯à®šà®®à¯: à®²à®¹à®¿à®°à®¿ | à®•à®¿à®°à®• à®¨à®¿à®²à¯ˆà®•à®³à¯ à®ªà®•à¯à®•à®¾à®µà®¾à®©à¯ à®†à®•à¯à®®à¯.
+        <strong>குறிப்பு:</strong> கணிப்பு - Vinaadi AI | அயனாம்சம்: லஹிரி | கிரக நிலைகள் பக்காவான் ஆகும்.
       </div>
     </div>
   );
 }
 
-// â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Main component ────────────────────────────────────────────────────────────
 interface ChartGenerateInlinePanelProps {
   lang: Lang;
 }
@@ -391,7 +391,7 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
 
   async function handleGenerate() {
     if (!form.displayName || !form.birthDateLocal || !form.birthPlace || !form.birthLatitude || !form.birthLongitude || !form.birthTimezone) {
-      setError(lang === "ta" ? "à®…à®©à¯ˆà®¤à¯à®¤à¯ à®¤à®•à®µà®²à¯à®•à®³à¯ˆà®¯à¯à®®à¯ à®¨à®¿à®°à®ªà¯à®ªà®µà¯à®®à¯." : "Please fill all required fields.");
+      setError(lang === "ta" ? "அனைத்து தகவல்களையும் நிரப்பவும்." : "Please fill all required fields.");
       return;
     }
     setError("");
@@ -476,7 +476,7 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
 
   return (
     <>
-      {/* Print CSS â€” hides entire page UI, shows only the Jathagam print layout */}
+      {/* Print CSS — hides entire page UI, shows only the Jathagam print layout */}
       <style>{`
         @media print {
           body * { visibility: hidden !important; }
@@ -507,24 +507,24 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
 
         <p style={{ margin: 0, fontSize: "0.75rem", color: W.muted }}>
           {lang === "ta"
-            ? "à®¤à®±à¯à®•à®¾à®²à®¿à®• à®œà®¾à®¤à®•à®®à¯. à®¤à®³à®¤à¯à®¤à¯ˆ à®®à¯‚à®Ÿà®¿à®¯à®¤à¯à®®à¯ à®¤à®¾à®©à®¾à®• à®¨à¯€à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®®à¯."
-            : "Temporary chart â€” auto-deleted when you leave this session."}
+            ? "தற்காலிக ஜாதகம். தளத்தை மூடியதும் தானாக நீக்கப்படும்."
+            : "Temporary chart — auto-deleted when you leave this session."}
         </p>
 
         {/* Birth details form */}
         <div className="card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px", background: W.card, border: `1px solid ${W.borderLt}` }}>
-          <Field label={lang === "ta" ? "à®ªà¯†à®¯à®°à¯" : "Name"}>
+          <Field label={lang === "ta" ? "பெயர்" : "Name"}>
             <input className="input" style={fieldStyle} value={form.displayName}
               onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
-              placeholder={lang === "ta" ? "à®‰à®¤à®¾à®°à®£à®®à¯: à®°à®®à¯‡à®·à¯ à®•à¯à®®à®¾à®°à¯" : "e.g. Ramesh Kumar"} />
+              placeholder={lang === "ta" ? "உதாரணம்: ரமேஷ் குமார்" : "e.g. Ramesh Kumar"} />
           </Field>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <Field label={lang === "ta" ? "à®ªà®¿à®±à®¨à¯à®¤ à®¤à¯‡à®¤à®¿" : "Birth Date"}>
+            <Field label={lang === "ta" ? "பிறந்த தேதி" : "Birth Date"}>
               <input className="input" style={fieldStyle} type="date" value={form.birthDateLocal}
                 onChange={(e) => setForm((f) => ({ ...f, birthDateLocal: e.target.value }))} />
             </Field>
-            <Field label={lang === "ta" ? "à®ªà®¿à®±à®¨à¯à®¤ à®¨à¯‡à®°à®®à¯" : "Birth Time"}>
+            <Field label={lang === "ta" ? "பிறந்த நேரம்" : "Birth Time"}>
               <input className="input" style={fieldStyle} type="time" value={form.birthTimeLocal}
                 onChange={(e) => setForm((f) => ({ ...f, birthTimeLocal: e.target.value }))} />
             </Field>
@@ -561,8 +561,8 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
           <button type="button" className="button button--primary" style={{ background: "#F8E4D2", border: `1px solid ${W.terracotta}66`, color: W.terracotta }}
             onClick={() => void handleGenerate()} disabled={loading}>
             {loading
-              ? (lang === "ta" ? "à®•à®£à®•à¯à®•à®¿à®Ÿà¯à®•à®¿à®±à®¤à¯â€¦" : "Calculatingâ€¦")
-              : (lang === "ta" ? "à®œà®¾à®¤à®•à®®à¯ à®‰à®°à¯à®µà®¾à®•à¯à®•à¯" : "Generate Chart")}
+              ? (lang === "ta" ? "கணக்கிடுகிறது…" : "Calculating…")
+              : (lang === "ta" ? "ஜாதகம் உருவாக்கு" : "Generate Chart")}
           </button>
         </div>
 
@@ -587,7 +587,7 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
                   letterSpacing: "0.02em",
                 }}>
                 <span style={{ fontSize: "0.875rem", fontWeight: 800 }}>PR</span>
-                {lang === "ta" ? "à®œà®¾à®¤à®•à®®à¯ à®…à®šà¯à®šà®¿à®Ÿà¯" : "Print Jathagam"}
+                {lang === "ta" ? "ஜாதகம் அச்சிடு" : "Print Jathagam"}
               </button>
 
               {(["D1", "D9"] as const).map((v) => (

@@ -19,7 +19,7 @@ const W = {
   rust: "#A8482F",
 } as const;
 
-// â”€â”€ Planet accent colours â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Planet accent colours ─────────────────────────────────────────────────────
 const PLANET_COLORS: Record<string, string> = {
   SUN: "#D2873B",
   MOON: "#668FA3",
@@ -32,7 +32,7 @@ const PLANET_COLORS: Record<string, string> = {
   KETU: "#7A6F5E",
 };
 
-// â”€â”€ Slide icon map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Slide icon map ────────────────────────────────────────────────────────────
 const SLIDE_ICON: Record<string, string> = {
   OVERVIEW: "OV",
   DASHA_ERA: "DE",
@@ -43,7 +43,7 @@ const SLIDE_ICON: Record<string, string> = {
   CLOSING: "CL",
 };
 
-// â”€â”€ Single slide card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Single slide card ─────────────────────────────────────────────────────────
 function SlideCard({ slide, lang, total, index }: {
   slide: WrappedSlide;
   lang: Lang;
@@ -99,14 +99,14 @@ function SlideCard({ slide, lang, total, index }: {
   );
 }
 
-// â”€â”€ Summary stats row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Summary stats row ─────────────────────────────────────────────────────────
 function StatsSummary({ data, lang }: { data: AnnualWrappedData; lang: Lang }) {
   const lordColor = PLANET_COLORS[data.dominantDashaLord] ?? W.terracotta;
   const stats = [
-    { label: lang === "ta" ? "à®šà®°à®¾à®šà®°à®¿ à®®à®¤à®¿à®ªà¯à®ªà¯†à®£à¯" : "Avg Score", value: `${data.averageScore}/100` },
-    { label: lang === "ta" ? "à®‰à®¯à®°à¯ à®¨à®¾à®Ÿà¯à®•à®³à¯" : "High Days", value: String(data.highDays) },
-    { label: lang === "ta" ? "à®¨à®¾à®Ÿà¯à®•à®³à¯ à®•à®£à¯à®•à®¾à®£à®¿à®ªà¯à®ªà¯" : "Days Tracked", value: String(data.totalDaysScored) },
-    { label: lang === "ta" ? "à®¤à®²à¯ˆà®®à¯ˆ à®¤à®šà¯ˆ" : "Dominant Dasha", value: data.dominantDashaLord, color: lordColor },
+    { label: lang === "ta" ? "சராசரி மதிப்பெண்" : "Avg Score", value: `${data.averageScore}/100` },
+    { label: lang === "ta" ? "உயர் நாட்கள்" : "High Days", value: String(data.highDays) },
+    { label: lang === "ta" ? "நாட்கள் கண்காணிப்பு" : "Days Tracked", value: String(data.totalDaysScored) },
+    { label: lang === "ta" ? "தலைமை தசை" : "Dominant Dasha", value: data.dominantDashaLord, color: lordColor },
   ];
 
   return (
@@ -126,7 +126,7 @@ function StatsSummary({ data, lang }: { data: AnnualWrappedData; lang: Lang }) {
   );
 }
 
-// â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Main component ────────────────────────────────────────────────────────────
 
 interface DashboardAnnualWrappedProps {
   chartId: string | null;
@@ -143,9 +143,9 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
   const [data, setData] = useState<AnnualWrappedData | null>(null);
   const [slideIndex, setSlideIndex] = useState(0);
 
-  const title = lang === "ta" ? "à®†à®£à¯à®Ÿà¯ à®šà¯à®°à¯à®•à¯à®•à®®à¯" : "Annual Wrapped";
+  const title = lang === "ta" ? "ஆண்டு சுருக்கம்" : "Annual Wrapped";
   const subtitle = lang === "ta"
-    ? "à®•à®¿à®°à®• à®¨à®Ÿà®©à®¤à¯à®¤à®¿à®²à¯ à®‰à®™à¯à®•à®³à¯ à®†à®£à¯à®Ÿà¯ à®ªà®¯à®£à®®à¯"
+    ? "கிரக நடனத்தில் உங்கள் ஆண்டு பயணம்"
     : "Your year in planetary terms";
 
   async function load() {
@@ -163,10 +163,10 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
       const msg = e instanceof Error ? e.message : "Unknown error";
       if (msg.includes("404")) {
         setError(lang === "ta"
-          ? `${selectedYear} à®†à®£à¯à®Ÿà¯à®•à¯à®•à¯ à®¤à®°à®µà¯ à®‡à®²à¯à®²à¯ˆ. à®®à¯‡à®²à¯à®®à¯ à®¨à®¾à®Ÿà¯à®•à®³à¯ à®ªà®¯à®©à¯à®ªà®Ÿà¯à®¤à¯à®¤à®¿à®¯ à®ªà®¿à®©à¯ à®®à¯à®¯à®²à®µà¯à®®à¯.`
+          ? `${selectedYear} ஆண்டுக்கு தரவு இல்லை. மேலும் நாட்கள் பயன்படுத்திய பின் முயலவும்.`
           : `No score data for ${selectedYear} yet. Keep using Vinaadi and try again.`);
       } else {
-        setError(lang === "ta" ? "à®à®¤à¯‹ à®¤à®µà®±à®¾à®• à®‰à®³à¯à®³à®¤à¯." : "Something went wrong.");
+        setError(lang === "ta" ? "ஏதோ தவறாக உள்ளது." : "Something went wrong.");
       }
     } finally {
       setLoading(false);
@@ -234,7 +234,7 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
               opacity: loading ? 0.6 : 1,
             }}
           >
-            {loading ? "..." : (lang === "ta" ? "à®¤à®¿à®±" : "Open")}
+            {loading ? "..." : (lang === "ta" ? "திற" : "Open")}
           </button>
         </div>
       </div>
@@ -267,7 +267,7 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
                 {data.year} - {title}
               </p>
               <p style={{ margin: 0, fontSize: "0.625rem", color: W.mutedLt }}>
-                {data.totalDaysScored} {lang === "ta" ? "à®¨à®¾à®Ÿà¯à®•à®³à¯" : "days"} - {data.slides.length} {lang === "ta" ? "à®šà¯à®³à¯ˆà®•à®³à¯" : "slides"}
+                {data.totalDaysScored} {lang === "ta" ? "நாட்கள்" : "days"} - {data.slides.length} {lang === "ta" ? "சுளைகள்" : "slides"}
               </p>
             </div>
             <button
@@ -279,7 +279,7 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
                 padding: "6px 14px", fontSize: "0.75rem", cursor: "pointer",
               }}
             >
-              {lang === "ta" ? "à®®à¯‚à®Ÿà¯" : "Close"}
+              {lang === "ta" ? "மூடு" : "Close"}
             </button>
           </div>
 
@@ -329,7 +329,7 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
                   cursor: slideIndex === 0 ? "default" : "pointer",
                 }}
               >
-                {"<-"} {lang === "ta" ? "à®®à¯à®¨à¯à®¤à¯ˆà®¯" : "Previous"}
+                {"<-"} {lang === "ta" ? "முந்தைய" : "Previous"}
               </button>
               <button
                 type="button"
@@ -342,13 +342,13 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
                   cursor: slideIndex === data.slides.length - 1 ? "default" : "pointer",
                 }}
               >
-                {lang === "ta" ? "à®…à®Ÿà¯à®¤à¯à®¤à®¤à¯" : "Next"} {"->"}
+                {lang === "ta" ? "அடுத்தது" : "Next"} {"->"}
               </button>
             </div>
 
             {/* Share DASHA_ERA card from within the wrapped view */}
             <div style={{ paddingTop: "4px", display: "flex", justifyContent: "center" }}>
-              <ShareCardButton chartId={chartId} cardType="DASHA_ERA" lang={lang} label={lang === "ta" ? "à®¤à®šà¯ˆ à®…à®Ÿà¯à®Ÿà¯ˆ à®ªà®•à®¿à®°à¯" : "Share Dasha Card"} />
+              <ShareCardButton chartId={chartId} cardType="DASHA_ERA" lang={lang} label={lang === "ta" ? "தசை அட்டை பகிர்" : "Share Dasha Card"} />
             </div>
 
           </div>

@@ -119,7 +119,7 @@ export function DashboardMuhurtaPicker({ lang, chartId }: DashboardMuhurtaPicker
       setResult(json.data);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "";
-      setError(msg || (lang === "ta" ? "??????? ???? � ???????? ????????." : "Network error � please try again."));
+      setError(msg || (lang === "ta" ? "?????????? ???? - ???????? ??????????????." : "Network error - please try again."));
     } finally {
       setLoading(false);
     }
@@ -136,7 +136,7 @@ export function DashboardMuhurtaPicker({ lang, chartId }: DashboardMuhurtaPicker
               {t("muhurta_activity", lang)}
             </label>
             <select value={activity} onChange={(e) => setActivity(e.target.value)} style={fieldStyle}>
-              <option value="">{lang === "ta" ? "� ?????? ????????? �" : "� Select �"}</option>
+              <option value="">{lang === "ta" ? "? ????????? ?????? ?" : "? Select ?"}</option>
               {ACTIVITIES.map((a) => (
                 <option key={a.id} value={a.id}>
                   {lang === "ta" ? a.ta : a.en}
@@ -187,7 +187,7 @@ export function DashboardMuhurtaPicker({ lang, chartId }: DashboardMuhurtaPicker
         {result && result.slots.length > 0 && (
           <div>
             <p style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "10px", color: W.inkMid }}>
-              {t("muhurta_results", lang)} {selectedActivity && <span style={{ color: W.muted, fontWeight: 400 }}>� {lang === "ta" ? selectedActivity.ta : selectedActivity.en}</span>}
+              {t("muhurta_results", lang)} {selectedActivity && <span style={{ color: W.muted, fontWeight: 400 }}>? {lang === "ta" ? selectedActivity.ta : selectedActivity.en}</span>}
             </p>
             {result.slots.map((slot, i) => (
               <MuhurtaCard key={`${slot.date}-${i}`} slot={slot} lang={lang} />
@@ -197,7 +197,7 @@ export function DashboardMuhurtaPicker({ lang, chartId }: DashboardMuhurtaPicker
 
         {result && result.slots.length === 0 && (
           <p style={{ fontSize: "0.875rem", color: W.muted, textAlign: "center", padding: "16px 0" }}>
-            {lang === "ta" ? "??????? ???????? ??? ????? ?????????????." : "No auspicious slots found in this range. Try a wider date range."}
+            {lang === "ta" ? "???? ??????????? ??? ???????? ?????????????. ?????? ????????????? ??????????????." : "No auspicious slots found in this range. Try a wider date range."}
           </p>
         )}
       </div>

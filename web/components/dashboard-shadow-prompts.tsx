@@ -92,22 +92,22 @@ export function DashboardShadowPrompts({ lang, mode = "BALANCED", chartId }: Das
               fontFamily: "inherit",
             }}
           >
-            {lang === "ta" ? "?????????? ?????" : "Explore inner landscape"}
+            {lang === "ta" ? "??? ?????? ?????????" : "Explore inner landscape"}
           </button>
         </div>
 
         {open && (
           <div style={{ marginTop: "14px" }}>
-            {loading && <p style={{ fontSize: "0.875rem", color: W.muted }}>{lang === "ta" ? "??????????�" : "Loading..."}</p>}
+            {loading && <p style={{ fontSize: "0.875rem", color: W.muted }}>{lang === "ta" ? "??????????..." : "Loading..."}</p>}
 
             {!loading && prompts && prompts.length > 0 && (
               <div>
                 <p style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: W.mutedLt, marginBottom: "10px" }}>
-                  {lang === "ta" ? "?????????�" : "Reflect on..."}
+                  {lang === "ta" ? "?????????..." : "Reflect on..."}
                 </p>
                 {prompts.map((p, i) => (
                   <div key={p.promptId} style={{ padding: "12px 14px", borderRadius: "10px", border: `1px solid ${W.borderLt}`, marginBottom: "8px", background: W.card, display: "flex", gap: "10px", alignItems: "flex-start" }}>
-                    <span style={{ fontSize: "1rem", marginTop: "1px" }}>{["??", "??", "??"][i] ?? "?"}</span>
+                    <span style={{ fontSize: "1rem", marginTop: "1px" }}>{["1.", "2.", "3."][i] ?? "?"}</span>
                     <p style={{ margin: 0, fontSize: "0.875rem", lineHeight: 1.55, color: W.inkMid }}>{lang === "ta" ? p.text.ta : p.text.en}</p>
                   </div>
                 ))}
@@ -115,7 +115,7 @@ export function DashboardShadowPrompts({ lang, mode = "BALANCED", chartId }: Das
             )}
 
             {!loading && prompts && prompts.length === 0 && (
-              <p style={{ fontSize: "0.875rem", color: W.muted }}>{lang === "ta" ? "??????? ????????? ?????????????." : "No prompts available at the moment."}</p>
+              <p style={{ fontSize: "0.875rem", color: W.muted }}>{lang === "ta" ? "??????? ??????? ????????? ?????." : "No prompts available at the moment."}</p>
             )}
           </div>
         )}

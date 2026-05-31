@@ -462,7 +462,7 @@ Run one: `.\.venv\Scripts\python.exe -m pytest tests/test_panchangam_api.py -x -
 | Rendering raw panchangam key like `{tithi.name}` | Use `{tTithi(tithi.name, lang)}` |
 | Rendering raw time `{window.start}` | Use `{formatClockLabel(window.start)}` |
 | Rendering raw planet lord `{period.lord}` | Use `{tPlanetLord(period.lord, lang)}` |
-| Tamil text shows as `à®¤à®®à®¿à®´à¯` | Missing `charset=utf-8` — already fixed in middleware, check proxy route.ts |
+| Tamil text shows as `தமிழ்` | Missing `charset=utf-8` - already fixed in middleware, check proxy route.ts |
 | Kalam times don't match printed panchangam | Must use fixed 6 AM anchor, not sunrise — already fixed in panchangam.py |
 | Chandrashtama using nakshatra count | Must use Rasi count (8th rasi from natal Moon Rasi) |
 | Adding a new screen without conditional null check | Always guard: `{data && <Surface>...</Surface>}`, never crash on null |

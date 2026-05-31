@@ -203,7 +203,7 @@ export function DashaTimeline({
             <div style={{ width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderBottom: "6px solid var(--color-accent, #B85A2C)" }} />
             <span style={{ fontSize: "0.625rem", fontWeight: 700, color: "var(--color-accent, #B85A2C)", whiteSpace: "nowrap", letterSpacing: "0.05em" }}>
               {lang === "ta"
-                ? `à®¨à¯€à®™à¯à®•à®³à¯ à®‡à®™à¯à®•à¯‡ - ${tPlanetLord(currentMahaDasa, lang)} (${String(dasha.current.mahadasha.startDate).slice(0, 4)}-${String(dasha.current.mahadasha.endDate).slice(0, 4)})`
+                ? `நீங்கள் இங்கே - ${tPlanetLord(currentMahaDasa, lang)} (${String(dasha.current.mahadasha.startDate).slice(0, 4)}-${String(dasha.current.mahadasha.endDate).slice(0, 4)})`
                 : `YOU ARE HERE - ${currentMahaDasa} (${String(dasha.current.mahadasha.startDate).slice(0, 4)}-${String(dasha.current.mahadasha.endDate).slice(0, 4)})`}
             </span>
           </div>
@@ -223,7 +223,7 @@ export function DashaTimeline({
               </span>
             </div>
             <span style={{ fontSize: "0.75rem", color: "var(--color-muted, #675b4b)" }}>
-              {String(activePeriod.startDate)} â†’ {String(activePeriod.endDate)}
+              {String(activePeriod.startDate)} → {String(activePeriod.endDate)}
             </span>
             <span style={{ fontSize: "0.75rem", fontWeight: 700, marginLeft: "auto", color: scoreColor(dashaSupport) }}>
               {dashaSupport}/100
@@ -262,7 +262,7 @@ export function DashaTimeline({
                     {mode === "BEGINNER" ? plainLangDashaLord(bhukti.lord, "BEGINNER", lang) : tPlanetLord(bhukti.lord, lang)}
                   </span>
                   <span style={{ fontSize: "0.625rem", color: "var(--color-muted, #675b4b)", flex: 1 }}>
-                    {String(bhukti.startDate)} â†’ {String(bhukti.endDate)}
+                    {String(bhukti.startDate)} → {String(bhukti.endDate)}
                     {(() => {
                       const age = ageAtDate(birthDateLocal, String(bhukti.startDate));
                       return age !== null ? <span style={{ marginLeft: "var(--space-1)", fontSize: "0.625rem", opacity: 0.5 }}>({age}yr)</span> : null;
@@ -270,11 +270,11 @@ export function DashaTimeline({
                   </span>
                   {isCurrentBhukti && (
                     <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "1px var(--space-2)", borderRadius: "var(--radius-pill)", background: `${bhuktiColor}33`, color: bhuktiColor, border: `1px solid ${bhuktiColor}66` }}>
-                      â— {lang === "ta" ? "à®‡à®ªà¯à®ªà¯‹à®¤à¯" : "NOW"}
+                      ● {lang === "ta" ? "இப்போது" : "NOW"}
                     </span>
                   )}
                   <span style={{ fontSize: "0.75rem", fontWeight: 700, minWidth: "40px", textAlign: "right", color: isCurrentBhukti ? scoreColor(bhuktiScore) : "var(--color-border-strong, #D4C8AE)" }}>
-                    {isCurrentBhukti || !bhuktiPast ? `${bhuktiScore}/100` : "â€”"}
+                    {isCurrentBhukti || !bhuktiPast ? `${bhuktiScore}/100` : "—"}
                   </span>
                 </div>
 
@@ -289,7 +289,7 @@ export function DashaTimeline({
                             {mode === "BEGINNER" ? plainLangDashaLord(antaram.lord, "BEGINNER", lang) : tPlanetLord(antaram.lord, lang)} {t("antaram_word", lang)}
                           </span>
                           <span style={{ fontSize: "0.625rem", color: "var(--color-muted, #675b4b)", flex: 1 }}>
-                            {String(antaram.startDate)} â†’ {String(antaram.endDate)}
+                            {String(antaram.startDate)} → {String(antaram.endDate)}
                           </span>
                           <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "1px var(--space-2)", borderRadius: "var(--radius-pill)", background: `${antaramColor}33`, color: antaramColor, border: `1px solid ${antaramColor}66` }}>
                             {t("status_active", lang)}

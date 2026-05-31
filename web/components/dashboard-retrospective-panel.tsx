@@ -154,7 +154,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
             value={eventDesc}
             onChange={(e) => setEventDesc(e.target.value)}
             rows={2}
-            placeholder={lang === "ta" ? "à®‰à®¤à®¾à®°à®£à®®à¯: à®µà¯‡à®²à¯ˆ à®•à®¿à®Ÿà¯ˆà®¤à¯à®¤à®¤à¯, à®¤à®¿à®°à¯à®®à®£à®®à¯â€¦" : "e.g. Got a job offer, had an accidentâ€¦"}
+            placeholder={lang === "ta" ? "உதாரணம்: வேலை கிடைத்தது, திருமணம்…" : "e.g. Got a job offer, had an accident…"}
             style={{ ...fieldStyle, resize: "vertical" }}
           />
         </div>
@@ -178,7 +178,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
             onClick={() => void loadHistory()}
             style={{ padding: "var(--space-2) var(--space-3_5)", borderRadius: "var(--radius-sm)", border: `1px solid ${W.border}`, cursor: "pointer", fontSize: "0.75rem", background: W.card, color: W.muted }}
           >
-            {lang === "ta" ? "à®µà®°à®²à®¾à®±à¯" : "History"}
+            {lang === "ta" ? "வரலாறு" : "History"}
           </button>
         </div>
         {error && <p style={{ margin: 0, fontSize: "0.75rem", color: W.rust }}>{error}</p>}
@@ -263,7 +263,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
       {showHistory && history.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>
-            {lang === "ta" ? "à®®à¯à®¨à¯à®¤à¯ˆà®¯ à®†à®¯à¯à®µà¯à®•à®³à¯" : "Past analyses"}
+            {lang === "ta" ? "முந்தைய ஆய்வுகள்" : "Past analyses"}
           </p>
           {history.map((h) => (
             <button

@@ -74,16 +74,16 @@ function PersonForm({
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "10px", minWidth: "260px" }}>
       <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: accentColor }}>{label}</p>
-      <Field label={lang === "ta" ? "à®ªà¯†à®¯à®°à¯" : "Name"}>
+      <Field label={lang === "ta" ? "பெயர்" : "Name"}>
         <input className="input" style={fieldStyle} value={form.displayName}
           onChange={(e) => onChange({ ...form, displayName: e.target.value })}
-          placeholder={lang === "ta" ? "à®ªà¯†à®¯à®°à¯ à®‰à®³à¯à®³à®¿à®Ÿà®µà¯à®®à¯" : "Enter name"} />
+          placeholder={lang === "ta" ? "பெயர் உள்ளிடவும்" : "Enter name"} />
       </Field>
-      <Field label={lang === "ta" ? "à®ªà®¿à®±à®¨à¯à®¤ à®¤à¯‡à®¤à®¿" : "Birth Date"}>
+      <Field label={lang === "ta" ? "பிறந்த தேதி" : "Birth Date"}>
         <input className="input" style={fieldStyle} type="date" value={form.birthDateLocal}
           onChange={(e) => onChange({ ...form, birthDateLocal: e.target.value })} />
       </Field>
-      <Field label={lang === "ta" ? "à®ªà®¿à®±à®¨à¯à®¤ à®¨à¯‡à®°à®®à¯" : "Birth Time"}>
+      <Field label={lang === "ta" ? "பிறந்த நேரம்" : "Birth Time"}>
         <input className="input" style={fieldStyle} type="time" value={form.birthTimeLocal}
           onChange={(e) => onChange({ ...form, birthTimeLocal: e.target.value })} />
       </Field>
@@ -152,7 +152,7 @@ export function PoruthamPanel({ lang }: PoruthamPanelProps) {
   async function handleCompare() {
     const valid = (f: BirthForm) => f.displayName && f.birthDateLocal && f.birthPlace && f.birthLatitude && f.birthLongitude && f.birthTimezone;
     if (!valid(formA) || !valid(formB)) {
-      setError(lang === "ta" ? "à®‡à®°à¯ à®¨à®ªà®°à¯à®•à®³à®¿à®©à¯ à®…à®©à¯ˆà®¤à¯à®¤à¯ à®¤à®•à®µà®²à¯à®•à®³à¯ˆà®¯à¯à®®à¯ à®¨à®¿à®°à®ªà¯à®ªà®µà¯à®®à¯." : "Please fill all fields for both persons.");
+      setError(lang === "ta" ? "இரு நபர்களின் அனைத்து தகவல்களையும் நிரப்பவும்." : "Please fill all fields for both persons.");
       return;
     }
     setError("");
@@ -201,7 +201,7 @@ export function PoruthamPanel({ lang }: PoruthamPanelProps) {
       <div className="card" style={{ padding: "14px 16px", background: W.card, border: `1px solid ${W.borderLt}` }}>
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", marginRight: "4px" }}>
-            {lang === "ta" ? "à®µà®•à¯ˆ" : "Context"}
+            {lang === "ta" ? "வகை" : "Context"}
           </span>
           {(["GENERAL", "MARRIAGE", "FRIENDSHIP", "BUSINESS", "FAMILY"] as const).map((ctx) => (
             <button key={ctx} type="button" onClick={() => setCompatCtx(ctx)}
@@ -211,11 +211,11 @@ export function PoruthamPanel({ lang }: PoruthamPanelProps) {
                 background: compatCtx === ctx ? "#F8E4D2" : W.surface,
                 color: compatCtx === ctx ? W.terracotta : W.muted,
               }}>
-              {ctx === "GENERAL" ? (lang === "ta" ? "à®ªà¯Šà®¤à¯à®µà®¾à®©" : "General") :
-               ctx === "MARRIAGE" ? (lang === "ta" ? "à®¤à®¿à®°à¯à®®à®£à®®à¯" : "Marriage") :
-               ctx === "FRIENDSHIP" ? (lang === "ta" ? "à®¨à®Ÿà¯à®ªà¯" : "Friendship") :
-               ctx === "BUSINESS" ? (lang === "ta" ? "à®¤à¯Šà®´à®¿à®²à¯" : "Business") :
-               (lang === "ta" ? "à®•à¯à®Ÿà¯à®®à¯à®ªà®®à¯" : "Family")}
+              {ctx === "GENERAL" ? (lang === "ta" ? "பொதுவான" : "General") :
+               ctx === "MARRIAGE" ? (lang === "ta" ? "திருமணம்" : "Marriage") :
+               ctx === "FRIENDSHIP" ? (lang === "ta" ? "நட்பு" : "Friendship") :
+               ctx === "BUSINESS" ? (lang === "ta" ? "தொழில்" : "Business") :
+               (lang === "ta" ? "குடும்பம்" : "Family")}
             </button>
           ))}
         </div>
@@ -226,7 +226,7 @@ export function PoruthamPanel({ lang }: PoruthamPanelProps) {
         <div className="card" style={{ padding: "20px", flex: 1, minWidth: "260px", background: W.card, border: `1px solid ${W.borderLt}` }}>
           <PersonForm
             lang={lang}
-            label={lang === "ta" ? "à®¨à®ªà®°à¯ 1 (à®†à®£à¯)" : "Person 1 (Boy)"}
+            label={lang === "ta" ? "நபர் 1 (ஆண்)" : "Person 1 (Boy)"}
             accentColor={W.terracotta}
             form={formA}
             onChange={setFormA}
@@ -235,7 +235,7 @@ export function PoruthamPanel({ lang }: PoruthamPanelProps) {
         <div className="card" style={{ padding: "20px", flex: 1, minWidth: "260px", background: W.card, border: `1px solid ${W.borderLt}` }}>
           <PersonForm
             lang={lang}
-            label={lang === "ta" ? "à®¨à®ªà®°à¯ 2 (à®ªà¯†à®£à¯)" : "Person 2 (Girl)"}
+            label={lang === "ta" ? "நபர் 2 (பெண்)" : "Person 2 (Girl)"}
             accentColor={W.inkMid}
             form={formB}
             onChange={setFormB}
@@ -259,8 +259,8 @@ export function PoruthamPanel({ lang }: PoruthamPanelProps) {
           fontSize: "0.75rem",
         }}>
         {loading
-          ? (lang === "ta" ? "à®•à®£à®•à¯à®•à®¿à®Ÿà¯à®•à®¿à®±à®¤à¯â€¦" : "Calculatingâ€¦")
-          : (lang === "ta" ? "à®ªà¯Šà®°à¯à®¤à¯à®¤à®®à¯ à®•à®¾à®£à¯à®•" : "Check Compatibility")}
+          ? (lang === "ta" ? "கணக்கிடுகிறது…" : "Calculating…")
+          : (lang === "ta" ? "பொருத்தம் காண்க" : "Check Compatibility")}
       </button>
 
       {/* Results */}
@@ -271,19 +271,19 @@ export function PoruthamPanel({ lang }: PoruthamPanelProps) {
           <div className="card" style={{ padding: "20px", display: "flex", gap: "20px", flexWrap: "wrap", alignItems: "center", background: W.card, border: `1px solid ${W.borderLt}` }}>
             <div>
               <p style={{ margin: "0 0 2px", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                {lang === "ta" ? "à®®à¯Šà®¤à¯à®¤ à®ªà¯Šà®°à¯à®¤à¯à®¤à®®à¯" : "Total Score"}
+                {lang === "ta" ? "மொத்த பொருத்தம்" : "Total Score"}
               </p>
               <p style={{ margin: 0, fontSize: "2.4rem", fontWeight: 900, lineHeight: 1, color: scoreColor(pct) }}>
                 {porutham.totalScore}
                 <span style={{ fontSize: "1rem", fontWeight: 400, color: W.mutedLt }}>/{porutham.maxScore}</span>
               </p>
               <p style={{ margin: "3px 0 0", fontSize: "0.75rem", color: W.muted }}>
-                {porutham.label} Â· {porutham.percentage.toFixed(0)}%
+                {porutham.label} · {porutham.percentage.toFixed(0)}%
               </p>
               {(porutham.rajjuDosha || porutham.vedhaDosha) && (
                 <div style={{ marginTop: "6px", display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                  {porutham.rajjuDosha && <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "3px 8px", borderRadius: "4px", background: "#FCE7E2", color: W.rust, border: `1px solid ${W.rust}44` }}>âš  {lang === "ta" ? "à®°à®¾à®œà¯à®œà¯ à®¤à¯‹à®·à®®à¯" : "Rajju Dosha"}</span>}
-                  {porutham.vedhaDosha && <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "3px 8px", borderRadius: "4px", background: "#FCE7E2", color: W.rust, border: `1px solid ${W.rust}44` }}>âš  {lang === "ta" ? "à®µà¯‡à®¤ à®¤à¯‹à®·à®®à¯" : "Vedha Dosha"}</span>}
+                  {porutham.rajjuDosha && <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "3px 8px", borderRadius: "4px", background: "#FCE7E2", color: W.rust, border: `1px solid ${W.rust}44` }}>⚠ {lang === "ta" ? "ராஜ்ஜு தோஷம்" : "Rajju Dosha"}</span>}
+                  {porutham.vedhaDosha && <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "3px 8px", borderRadius: "4px", background: "#FCE7E2", color: W.rust, border: `1px solid ${W.rust}44` }}>⚠ {lang === "ta" ? "வேத தோஷம்" : "Vedha Dosha"}</span>}
                 </div>
               )}
             </div>
@@ -302,7 +302,7 @@ export function PoruthamPanel({ lang }: PoruthamPanelProps) {
           {/* Kuta breakdown */}
           <div className="card" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px", background: W.card, border: `1px solid ${W.borderLt}` }}>
             <p style={{ margin: "0 0 6px", fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              {lang === "ta" ? "à®•à¯à®Ÿ à®ªà¯Šà®°à¯à®¤à¯à®¤à®™à¯à®•à®³à¯" : "Kuta breakdown"}
+              {lang === "ta" ? "குட பொருத்தங்கள்" : "Kuta breakdown"}
             </p>
             {porutham.kutas.map((k) => {
               const kpct = k.maxScore > 0 ? k.score / k.maxScore : 0;
@@ -336,8 +336,8 @@ export function PoruthamPanel({ lang }: PoruthamPanelProps) {
 
           <p style={{ margin: 0, fontSize: "0.625rem", color: W.mutedLt, fontStyle: "italic" }}>
             {lang === "ta"
-              ? "à®‡à®¨à¯à®¤ à®œà®¾à®¤à®•à®™à¯à®•à®³à¯ à®¤à®±à¯à®•à®¾à®²à®¿à®•à®®à®¾à®©à®µà¯ˆ. à®¤à®³à®¤à¯à®¤à¯ˆ à®®à¯‚à®Ÿà®¿à®¯à®¤à¯à®®à¯ à®¤à®¾à®©à®¾à®• à®¨à¯€à®•à¯à®•à®ªà¯à®ªà®Ÿà¯à®®à¯."
-              : "Temporary charts â€” auto-deleted when you leave this session."}
+              ? "இந்த ஜாதகங்கள் தற்காலிகமானவை. தளத்தை மூடியதும் தானாக நீக்கப்படும்."
+              : "Temporary charts — auto-deleted when you leave this session."}
           </p>
         </div>
       )}
