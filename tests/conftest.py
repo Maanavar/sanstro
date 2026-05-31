@@ -78,9 +78,19 @@ def require_db() -> None:
 
 
 def _reset_db() -> None:
-    """Drop and recreate all tables — fast on local Docker, full isolation."""
+    """Drop and recreate all tables — fast on local Docker, full isolation.
+
+    Uses DROP/CREATE SCHEMA CASCADE instead of metadata.drop_all so that
+    PostgreSQL composite types (e.g. for panchangam_cache) are also cleaned up.
+    Without CASCADE, a second drop_all+create_all cycle fails with
+    UniqueViolation on pg_type because the type still exists after the table drop.
+    """
     _assert_safe_reset_target()
-    Base.metadata.drop_all(bind=engine)
+    with engine.connect() as conn:
+        conn.execute(text("DROP SCHEMA public CASCADE"))
+        conn.execute(text("CREATE SCHEMA public"))
+        conn.execute(text("GRANT ALL ON SCHEMA public TO PUBLIC"))
+        conn.commit()
     Base.metadata.create_all(bind=engine)
 
 

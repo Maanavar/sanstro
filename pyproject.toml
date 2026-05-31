@@ -38,6 +38,7 @@ include = ["app*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+cache_dir = "C:/tmp/pytest_cache"
 addopts = "-ra"
 markers = [
     "no_db: pure unit tests that do not need a database connection",
