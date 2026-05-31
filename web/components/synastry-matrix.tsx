@@ -14,6 +14,7 @@ interface MatrixMember {
 interface SynastryMatrixProps {
   lang: Lang;
   ownerChartId: string;
+  familyVaultId: string;
   members: MatrixMember[];
 }
 
@@ -23,14 +24,14 @@ function scoreTone(score: number) {
   return                  { color: "#A8482F", bg: "#F2D8CC", border: "rgba(168,72,47,0.3)" };
 }
 
-export function SynastryMatrix({ lang, ownerChartId, members }: SynastryMatrixProps) {
+export function SynastryMatrix({ lang, ownerChartId, familyVaultId, members }: SynastryMatrixProps) {
   const [scores, setScores]   = useState<Record<string, number | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [loaded, setLoaded]   = useState(false);
   const [error, setError]     = useState("");
 
   async function loadAll() {
-    if (!ownerChartId || members.length === 0) return;
+    if (!ownerChartId || !familyVaultId || members.length === 0) return;
     setLoaded(true);
     setError("");
     const busy: Record<string, boolean> = {};
@@ -41,7 +42,7 @@ export function SynastryMatrix({ lang, ownerChartId, members }: SynastryMatrixPr
       members.map(async (m) => {
         try {
           const res = await apiFetchJson<ApiEnvelope<SynastryData>>(
-            `/charts/synastry?${toQuery({ chart_id: ownerChartId, member_chart_id: m.chartId })}`
+            `/api/v1/relationships/${m.memberId}/synastry${toQuery({ familyVaultId })}`
           );
           setScores((prev) => ({ ...prev, [m.memberId]: res.data?.compatibilityScore ?? null }));
         } catch {

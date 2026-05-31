@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { apiFetchJson } from "@/lib/api";
 import { getScoreBand, formatClockLabel } from "@/lib/format";
 import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -14,6 +15,8 @@ import type {
   FamilyAggregateMember,
   FamilyVaultDetailData,
   FamilyVaultListItem,
+  FamilyVaultTodayData,
+  FamilySummaryData,
   RelationshipAlertItem,
   SaniCycleData,
   TransitSnapshotData,
@@ -474,6 +477,27 @@ export function DashboardFamilyTab({
 }: DashboardFamilyTabProps) {
   const [subTab, setSubTab] = useState<FamilySubTab>("members");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [familyToday, setFamilyToday] = useState<FamilyVaultTodayData | null>(null);
+  const [familySummary, setFamilySummary] = useState<FamilySummaryData | null>(null);
+
+  useEffect(() => {
+    if (!selectedVaultId) {
+      setFamilyToday(null);
+      setFamilySummary(null);
+      return;
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    void apiFetchJson<{ data: FamilyVaultTodayData }>(
+      `/api/v1/family-vaults/${selectedVaultId}/today?date=${today}`
+    )
+      .then((r) => setFamilyToday(r.data ?? null))
+      .catch(() => setFamilyToday(null));
+    void apiFetchJson<{ data: FamilySummaryData }>(
+      `/api/v1/family-vaults/${selectedVaultId}/summary?date=${today}`
+    )
+      .then((r) => setFamilySummary(r.data ?? null))
+      .catch(() => setFamilySummary(null));
+  }, [selectedVaultId, busy.family]);
 
   const members = familyAggregate?.members ?? [];
   const activeMemberId = selectedMemberId ?? members[0]?.familyMemberId ?? null;
@@ -501,6 +525,10 @@ export function DashboardFamilyTab({
 
   const vaultName   = familyDetail?.name ?? (vaults.find((v) => v.familyVaultId === selectedVaultId)?.name ?? "");
   const memberCount = members.length;
+  const todayMembers = familyToday?.members ?? [];
+  const todayHighCount = todayMembers.filter((m) => m.score >= 65).length;
+  const todayMidCount = todayMembers.filter((m) => m.score >= 45 && m.score < 65).length;
+  const todayLowCount = todayMembers.filter((m) => m.score < 45).length;
 
   /* 7-day scores — family score with light variance */
   const weekDayLabels = (() => {
@@ -570,6 +598,46 @@ export function DashboardFamilyTab({
         </div>
       </div>
 
+      {selectedVaultId && (
+        <div style={{
+          background: "var(--color-surface)",
+          border: "1px solid var(--color-border)",
+          borderRadius: "var(--radius-lg)",
+          padding: "var(--space-4) var(--space-5)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "var(--space-3)",
+          flexWrap: "wrap",
+        }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+            <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+              {lang === "ta" ? "குடும்ப சுருக்கம்" : "Family Summary"}
+            </p>
+            <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)" }}>
+              {(familySummary?.dateLocal ?? familyToday?.date ?? selectedDate)} {vaultName ? `· ${vaultName}` : ""}
+            </p>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
+            <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "2rem", color: scoreColor(familySummary?.familyScore ?? familyScore), lineHeight: 1 }}>
+              {familySummary?.familyScore ?? familyScore}
+              <span style={{ fontSize: "0.875rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>/100</span>
+            </p>
+            <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
+              <span style={{ padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", border: "1px solid rgba(92,118,84,0.35)", color: SCORE_HIGH, background: "rgba(92,118,84,0.12)" }}>
+                {todayHighCount} {lang === "ta" ? "உயர்" : "High"}
+              </span>
+              <span style={{ padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", border: "1px solid rgba(184,90,44,0.35)", color: SCORE_MID, background: "rgba(184,90,44,0.12)" }}>
+                {todayMidCount} {lang === "ta" ? "நடு" : "Mid"}
+              </span>
+              <span style={{ padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", border: "1px solid rgba(168,72,47,0.35)", color: SCORE_LOW, background: "rgba(168,72,47,0.12)" }}>
+                {todayLowCount} {lang === "ta" ? "குறை" : "Low"}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── ROW 2: 50/50 — Left = Family Today card · Right = member tiles stacked ── */}
       <div style={{ display: "grid", gridTemplateColumns: "2fr 3fr", gap: "var(--space-4)", alignItems: "stretch" }}>
 
@@ -633,6 +701,31 @@ export function DashboardFamilyTab({
 
         {/* RIGHT: Member tiles — vertical stack, full 50% width */}
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+          {todayMembers.length > 0 && (
+            <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3)" }}>
+              <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+                {lang === "ta" ? "இன்றைய உறுப்பினர் சுருக்கம்" : "Today Snapshot"}
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "var(--space-2)" }}>
+                {todayMembers.map((item) => (
+                  <div key={item.memberId} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface-soft)", padding: "var(--space-2_5)" }}>
+                    <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.75rem", fontWeight: 700, color: "var(--color-text-strong)" }}>{item.displayName}</p>
+                    <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.75rem", color: scoreColor(item.score) }}>
+                      {item.score}/100
+                    </p>
+                    <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", color: "var(--color-muted)" }}>
+                      {lang === "ta" ? "தசை" : "Dasha"}: {tPlanetLord(item.dashaLord, lang)}
+                    </p>
+                    {item.keyTransit && (
+                      <p style={{ margin: 0, fontSize: "0.625rem", color: "var(--color-faint)" }}>
+                        {item.keyTransit}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {busy.family && members.length === 0 ? (
             <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-5)", display: "grid", gap: "var(--space-3)" }}>
               <div className="cd-skeleton" style={{ height: "14px", width: "40%", borderRadius: "var(--radius-sm)" }} />
@@ -719,6 +812,7 @@ export function DashboardFamilyTab({
                 <SynastryMatrix
                   lang={lang}
                   ownerChartId={ownerChartId}
+                  familyVaultId={selectedVaultId}
                   members={memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName, chartId: mc.chart.chartId }))}
                 />
               )}

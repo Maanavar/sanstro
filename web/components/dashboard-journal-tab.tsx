@@ -110,6 +110,12 @@ export function DashboardJournalTab({
 
   const [archivingId, setArchivingId] = useState<string | null>(null);
   const [archiveSuccess, setArchiveSuccess] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState(selectedDate);
+  const [editLifeArea, setEditLifeArea] = useState<LifeArea>("general");
+  const [editNoteText, setEditNoteText] = useState("");
+  const [editBusy, setEditBusy] = useState(false);
+  const [exportBusy, setExportBusy] = useState(false);
 
   const [ctxEventType, setCtxEventType] = useState<ContextEventType>("job_change");
   const [ctxEventDate, setCtxEventDate] = useState(selectedDate);
@@ -164,6 +170,56 @@ export function DashboardJournalTab({
       // ignore
     } finally {
       setArchivingId(null);
+    }
+  }
+
+  function startEdit(entry: JournalEntryData) {
+    setEditId(entry.journalId);
+    setEditDate(entry.entryDate);
+    setEditLifeArea((LIFE_AREAS.includes(entry.lifeArea as LifeArea) ? entry.lifeArea : "general") as LifeArea);
+    setEditNoteText(entry.noteText);
+  }
+
+  function cancelEdit() {
+    setEditId(null);
+    setEditNoteText("");
+  }
+
+  async function handleSaveEdit() {
+    if (!editId || editNoteText.trim().length < 3) return;
+    setEditBusy(true);
+    try {
+      await apiFetchJson(`/api/v1/journal/${editId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entryDate: editDate, lifeArea: editLifeArea, noteText: editNoteText.trim() }),
+      });
+      cancelEdit();
+      onEntrySaved();
+    } catch {
+      // ignore
+    } finally {
+      setEditBusy(false);
+    }
+  }
+
+  async function exportJournal() {
+    if (!chartId) return;
+    setExportBusy(true);
+    try {
+      const response = await fetch(`/api/backend/api/v1/journal/export?chartId=${chartId}`, {
+        credentials: "include",
+      });
+      if (!response.ok) return;
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `journal-${chartId}.csv`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExportBusy(false);
     }
   }
 
@@ -469,6 +525,33 @@ export function DashboardJournalTab({
         <Surface title={`${t("journal_list_label", lang)}${journalTotal > 0 ? ` | ${journalTotal} ${t("journal_total_count", lang)}` : ""}`}>
           <div className="surface__body">
             {archiveSuccess && <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.75rem", color: W.sage }}>{t("journal_archived", lang)}</p>}
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "var(--space-2_5)" }}>
+              <button
+                type="button"
+                onClick={() => void exportJournal()}
+                disabled={exportBusy || !chartId}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "var(--space-1_5)",
+                  padding: "var(--space-1_5) var(--space-3)",
+                  borderRadius: "var(--radius-md)",
+                  border: `1px solid ${W.border}`,
+                  background: W.card,
+                  color: W.inkMid,
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  cursor: exportBusy ? "not-allowed" : "pointer",
+                  opacity: exportBusy ? 0.6 : 1,
+                  fontFamily: "inherit",
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="M7 1v8M4 6l3 3 3-3M2 11h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+                {exportBusy ? (lang === "ta" ? "ஏற்றுகிறது..." : "Exporting...") : (lang === "ta" ? "ஜர்னல் ஏற்றுமதி" : "Export journal")}
+              </button>
+            </div>
 
             {journalEntries.length === 0 ? (
               <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>{t("journal_no_entries", lang)}</p>
@@ -485,23 +568,107 @@ export function DashboardJournalTab({
 
                     <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.875rem", color: W.inkMid, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{entry.noteText}</p>
 
-                    <button
-                      type="button"
-                      disabled={archivingId === entry.journalId}
-                      onClick={() => void handleArchive(entry.journalId)}
-                      style={{
-                        padding: "var(--space-0_75) var(--space-2_5)",
-                        borderRadius: "var(--radius-xs)",
-                        border: "1px solid rgba(168,72,47,0.25)",
-                        background: "transparent",
-                        color: W.rust,
-                        fontSize: "0.625rem",
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      {archivingId === entry.journalId ? "..." : t("btn_archive_entry", lang)}
-                    </button>
+                    <div style={{ display: "flex", gap: "var(--space-1_5)", alignItems: "center", flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        onClick={() => startEdit(entry)}
+                        style={{
+                          padding: "var(--space-0_75) var(--space-2_5)",
+                          borderRadius: "var(--radius-xs)",
+                          border: `1px solid ${W.border}`,
+                          background: W.surface,
+                          color: W.inkMid,
+                          fontSize: "0.625rem",
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        {lang === "ta" ? "திருத்து" : "Edit"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={archivingId === entry.journalId}
+                        onClick={() => void handleArchive(entry.journalId)}
+                        style={{
+                          padding: "var(--space-0_75) var(--space-2_5)",
+                          borderRadius: "var(--radius-xs)",
+                          border: "1px solid rgba(168,72,47,0.25)",
+                          background: "transparent",
+                          color: W.rust,
+                          fontSize: "0.625rem",
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        {archivingId === entry.journalId ? "..." : t("btn_archive_entry", lang)}
+                      </button>
+                    </div>
+
+                    {editId === entry.journalId && (
+                      <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--color-surface-soft)", border: `1px solid ${W.borderLt}` }}>
+                        <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap", marginBottom: "var(--space-2)" }}>
+                          <input
+                            type="date"
+                            value={editDate}
+                            onChange={(e) => setEditDate(e.target.value)}
+                            style={{ ...fieldStyle, minWidth: "140px" }}
+                          />
+                          <select
+                            value={editLifeArea}
+                            onChange={(e) => setEditLifeArea(e.target.value as LifeArea)}
+                            style={{ ...fieldStyle, minWidth: "160px" }}
+                          >
+                            {LIFE_AREAS.map((area) => (
+                              <option key={area} value={area}>{t(AREA_KEY[area], lang)}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <textarea
+                          value={editNoteText}
+                          onChange={(e) => setEditNoteText(e.target.value)}
+                          rows={4}
+                          style={{ ...fieldStyle, width: "100%", resize: "vertical", lineHeight: 1.5 }}
+                        />
+                        <div style={{ display: "flex", gap: "var(--space-2)", marginTop: "var(--space-2)", flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            onClick={() => void handleSaveEdit()}
+                            disabled={editBusy || editNoteText.trim().length < 3}
+                            style={{
+                              padding: "var(--space-1) var(--space-3)",
+                              borderRadius: "var(--radius-sm)",
+                              border: `1px solid ${W.ink}`,
+                              background: W.ink,
+                              color: W.surfaceMd,
+                              fontSize: "0.75rem",
+                              fontWeight: 600,
+                              cursor: editBusy ? "not-allowed" : "pointer",
+                              opacity: editBusy ? 0.7 : 1,
+                              fontFamily: "inherit",
+                            }}
+                          >
+                            {editBusy ? (lang === "ta" ? "சேமிக்கிறது..." : "Saving...") : (lang === "ta" ? "சேமி" : "Save")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            style={{
+                              padding: "var(--space-1) var(--space-3)",
+                              borderRadius: "var(--radius-sm)",
+                              border: `1px solid ${W.border}`,
+                              background: "transparent",
+                              color: W.muted,
+                              fontSize: "0.75rem",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              fontFamily: "inherit",
+                            }}
+                          >
+                            {lang === "ta" ? "ரத்து" : "Cancel"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { apiFetchJson } from "@/lib/api";
+import { clearFcmTokenLocal, fetchFcmToken, hasFirebaseMessagingConfig } from "@/lib/firebase-messaging";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { NotificationPreferenceData } from "@/lib/types";
@@ -280,6 +281,8 @@ export function DashboardSettingsSessionTab({
   const [notifSmartSilence, setNotifSmartSilence] = useState(false);
   const [notifSaving, setNotifSaving] = useState(false);
   const [notifSaved, setNotifSaved] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushMessage, setPushMessage] = useState("");
 
   useEffect(() => { setModeDraft(userMode); }, [userMode]);
   useEffect(() => { setTrackDraft(goalTrack ?? ""); }, [goalTrack]);
@@ -294,6 +297,53 @@ export function DashboardSettingsSessionTab({
       setNotifSmartSilence(notificationPrefs.smartSilenceEnabled);
     }
   }, [notificationPrefs]);
+
+  const pushUnavailable = !hasFirebaseMessagingConfig();
+
+  async function registerPushToken() {
+    if (pushUnavailable) {
+      setPushMessage(lang === "ta" ? "Push notifications unavailable." : "Push notifications unavailable.");
+      return;
+    }
+    if (!("serviceWorker" in navigator) || !("Notification" in window)) return;
+    setPushBusy(true);
+    setPushMessage("");
+    try {
+      // Requires web Firebase config + VAPID key in env and firebase-messaging-sw.js in public/.
+      await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setPushMessage(lang === "ta" ? "அனுமதி தேவை." : "Notification permission is required.");
+        return;
+      }
+      const swRegistration = await navigator.serviceWorker.ready;
+      const token = await fetchFcmToken(swRegistration);
+      await apiFetchJson("/api/v1/settings/notifications/fcm-token", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, platform: "web" }),
+      });
+      setPushMessage(lang === "ta" ? "Push token பதிவு செய்யப்பட்டது." : "Push token registered.");
+    } catch {
+      setPushMessage(lang === "ta" ? "Push பதிவு தோல்வியடைந்தது." : "Push registration failed.");
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
+  async function unregisterPushToken() {
+    setPushBusy(true);
+    setPushMessage("");
+    try {
+      await apiFetchJson("/api/v1/settings/notifications/fcm-token", { method: "DELETE" });
+      await clearFcmTokenLocal();
+      setPushMessage(lang === "ta" ? "Push token நீக்கப்பட்டது." : "Push token removed.");
+    } catch {
+      setPushMessage(lang === "ta" ? "Push token நீக்க முடியவில்லை." : "Unable to remove push token.");
+    } finally {
+      setPushBusy(false);
+    }
+  }
 
   const handleSaveUserSettings = async () => {
     setUserSettingsSaving(true);
@@ -575,17 +625,33 @@ export function DashboardSettingsSessionTab({
             {notificationPrefs.fcmTokenRegistered ? t("notif_fcm_registered", lang) : t("notif_fcm_not_registered", lang)}
           </p>
         )}
+        {pushUnavailable && (
+          <p style={{ margin: 0, fontSize: "0.75rem", color: W.mutedLt }}>
+            {lang === "ta" ? "Push notifications unavailable." : "Push notifications unavailable."}
+          </p>
+        )}
 
         <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
           <ActionBtn onClick={handleSaveNotifications} disabled={notifSaving}>
             {notifSaving ? t("notif_saving", lang) : t("btn_save_notifications", lang)}
           </ActionBtn>
+          {!pushUnavailable && (
+            <>
+              <ActionBtn onClick={() => void registerPushToken()} disabled={pushBusy} variant="ghost">
+                {pushBusy ? (lang === "ta" ? "செயலாக்கம்..." : "Processing...") : (lang === "ta" ? "Push பதிவு" : "Register push")}
+              </ActionBtn>
+              <ActionBtn onClick={() => void unregisterPushToken()} disabled={pushBusy} variant="danger">
+                {lang === "ta" ? "Push நீக்கு" : "Remove push"}
+              </ActionBtn>
+            </>
+          )}
           {notifSaved && (
             <span style={{ fontSize: "0.875rem", color: W.sage, fontWeight: 600 }}>
               {t("notif_saved", lang)}
             </span>
           )}
         </div>
+        {pushMessage && <p style={{ margin: 0, fontSize: "0.75rem", color: W.muted }}>{pushMessage}</p>}
       </SettingsCard>
 
       {/* ── Help & Feedback ── */}
