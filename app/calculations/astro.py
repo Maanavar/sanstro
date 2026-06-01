@@ -197,6 +197,8 @@ def navamsa_rasi_from_degree(degree: float) -> int:
     degree_in_sign = normalized % 30.0
     index = floor(degree_in_sign / PADA_SIZE_DEGREES + EPSILON_DEGREES)
 
+    # Method A (per-sign start): preserves vargottama at 0° of all movable signs.
+    # Method B (universal anchor) breaks movable vargottama — not suitable for this system.
     if natal_rasi in {1, 4, 7, 10}:    # movable — start from same sign
         start_rasi = natal_rasi
     elif natal_rasi in {2, 5, 8, 11}:  # fixed — start from 9th sign

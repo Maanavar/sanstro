@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
+import { MIN_BIRTH_DATE, isBirthDateWithinBounds, maxBirthDateIso } from "@/lib/birth-date";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, ChartCalculateResponseData, DirectPoruthamData } from "@/lib/types";
@@ -80,8 +81,19 @@ function PersonForm({
           placeholder={lang === "ta" ? "பெயர் உள்ளிடவும்" : "Enter name"} />
       </Field>
       <Field label={lang === "ta" ? "பிறந்த தேதி" : "Birth Date"}>
-        <input className="input" style={fieldStyle} type="date" value={form.birthDateLocal}
-          onChange={(e) => onChange({ ...form, birthDateLocal: e.target.value })} />
+        <input
+          className="input"
+          style={fieldStyle}
+          type="date"
+          value={form.birthDateLocal}
+          min={MIN_BIRTH_DATE}
+          max={maxBirthDateIso()}
+          onChange={(e) => {
+            const next = e.target.value;
+            if (!isBirthDateWithinBounds(next)) return;
+            onChange({ ...form, birthDateLocal: next });
+          }}
+        />
       </Field>
       <Field label={lang === "ta" ? "பிறந்த நேரம்" : "Birth Time"}>
         <input className="input" style={fieldStyle} type="time" value={form.birthTimeLocal}
@@ -127,8 +139,22 @@ export function PoruthamPanel({ lang }: PoruthamPanelProps) {
   const [chartB, setChartB] = useState<ChartCalculateResponseData | null>(null);
   const [porutham, setPorutham] = useState<DirectPoruthamData | null>(null);
   const [tempIds, setTempIds] = useState<string[]>([]);
+  const tempIdsRef = useRef<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  useEffect(() => {
+    tempIdsRef.current = tempIds;
+  }, [tempIds]);
+
+  useEffect(() => {
+    return () => {
+      for (const id of tempIdsRef.current) {
+        fetch(`/api/v1/birth-profiles/${id}`, { method: "DELETE", keepalive: true }).catch(() => {});
+      }
+    };
+  }, []);
 
   async function createTempProfile(form: BirthForm): Promise<{ birthProfileId: string }> {
     const res = await apiFetchJson<{ data: { birthProfileId: string } }>("/api/v1/birth-profiles", {
@@ -189,6 +215,35 @@ export function PoruthamPanel({ lang }: PoruthamPanelProps) {
       setError(readErrorMessage(err));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleDownloadPdf() {
+    if (!chartA || !chartB || !porutham || downloadingPdf) return;
+    setDownloadingPdf(true);
+    try {
+      const response = await fetch("/api/backend/api/v1/relationships/compare/pdf", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chartIdA: chartA.chartId,
+          chartIdB: chartB.chartId,
+          compatibilityContext: compatCtx,
+        }),
+      });
+      if (!response.ok) throw new Error(`${response.status}: PDF export failed`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `porutham_${chartA.birthProfile.displayName}_${chartB.birthProfile.displayName}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError(lang === "ta" ? "PDF பதிவிறக்கம் தோல்வியடைந்தது." : "PDF download failed.");
+    } finally {
+      setDownloadingPdf(false);
     }
   }
 
@@ -320,6 +375,29 @@ export function PoruthamPanel({ lang }: PoruthamPanelProps) {
                 </div>
               );
             })}
+          </div>
+
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <button
+              type="button"
+              onClick={() => void handleDownloadPdf()}
+              disabled={downloadingPdf}
+              style={{
+                padding: "8px 20px",
+                borderRadius: "10px",
+                border: `1px solid ${W.borderLt}`,
+                background: W.surface,
+                color: downloadingPdf ? W.mutedLt : W.inkMid,
+                cursor: downloadingPdf ? "wait" : "pointer",
+                fontWeight: 600,
+                fontSize: "0.875rem",
+                fontFamily: "inherit",
+              }}
+            >
+              {downloadingPdf
+                ? (lang === "ta" ? "PDF பதிவிறக்குகிறது…" : "Downloading PDF…")
+                : (lang === "ta" ? "PDF பதிவிறக்கம்" : "Download PDF")}
+            </button>
           </div>
 
           {/* Side-by-side charts */}

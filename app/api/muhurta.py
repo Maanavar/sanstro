@@ -18,7 +18,7 @@ router = APIRouter()
 @router.get("/charts/{chart_id}/muhurta", response_model=MuhurtaResponse, tags=["muhurta"])
 def get_muhurta(
     chart_id: UUID,
-    activity: str = Query(description="JOB_START | MARRIAGE | EXAM | TRAVEL | INVESTMENT | MEDICAL | PURCHASE"),
+    activity: str = Query(description="JOB_START | MARRIAGE | EXAM | TRAVEL | INVESTMENT | MEDICAL | PURCHASE | SPIRITUAL"),
     date_from: date = Query(alias="dateFrom"),
     date_to: date = Query(alias="dateTo"),
     session: Session = Depends(get_db),

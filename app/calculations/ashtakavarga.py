@@ -47,7 +47,7 @@ BAV_TABLE: dict[str, dict[str, list[int]]] = {
         "JUPITER": [6, 8, 11, 12],
         "VENUS":   [1, 2, 3, 4, 5, 8, 9, 11],
         "SATURN":  [1, 2, 4, 7, 8, 9, 10, 11],
-        "LAGNA":   [1, 2, 4, 6, 8, 10, 11],
+        "LAGNA":   [1, 3, 5, 6, 9, 10, 11],  # Phala Deepika (Tamil primary source)
     },
     "JUPITER": {
         "SUN":     [1, 2, 3, 4, 7, 8, 9, 10, 11],

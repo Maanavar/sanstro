@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -24,6 +24,7 @@ type PredictionCardProps = {
   expanded: boolean;
   onToggle: () => void;
   featured?: boolean;
+  deferred?: boolean;
 };
 
 function confidenceTone(confidence: string) {
@@ -71,7 +72,14 @@ function SupportList({ items, color, lang }: { items: { ta: string; en: string }
   );
 }
 
-function PredictionCard({ title, pred, lang, expanded, onToggle, featured }: PredictionCardProps) {
+function predictionIsDeferred(pred: LifeAreaPredictionData): boolean {
+  const factorKeys = pred.astrologicalFactors.map((factor) => factor.key);
+  if (factorKeys.includes("age_phase_gate")) return true;
+  const text = pred.mainPredictionEn.toLowerCase();
+  return text.includes("age-gated") || text.includes("not applicable in this phase") || text.includes("deferred to later phase");
+}
+
+function PredictionCard({ title, pred, lang, expanded, onToggle, featured, deferred = false }: PredictionCardProps) {
   const tone = confidenceTone(pred.confidence);
 
   const detailSection = (
@@ -119,6 +127,11 @@ function PredictionCard({ title, pred, lang, expanded, onToggle, featured }: Pre
           <div style={{ padding: "var(--space-8)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
               <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", letterSpacing: "0.1em", textTransform: "uppercase" }}>{title}</p>
+              {deferred && (
+                <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", background: "rgba(168,72,47,0.12)", color: SCORE_LOW, border: "1px solid rgba(168,72,47,0.3)" }}>
+                  {lang === "ta" ? "பின்வரும் கட்டம்" : "Later phase"}
+                </span>
+              )}
               <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", background: tone.bg, color: tone.text, border: `1px solid ${tone.border}` }}>{confidenceLabel(pred.confidence, lang)}</span>
             </div>
 
@@ -167,7 +180,14 @@ function PredictionCard({ title, pred, lang, expanded, onToggle, featured }: Pre
         }}
       >
         <div style={{ flex: 1 }}>
-          <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: SCORE_MID }}>{title}</p>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", margin: "0 0 var(--space-1)" }}>
+            <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: SCORE_MID }}>{title}</p>
+            {deferred && (
+              <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "2px 8px", borderRadius: "var(--radius-pill)", background: "rgba(168,72,47,0.12)", color: SCORE_LOW, border: "1px solid rgba(168,72,47,0.3)" }}>
+                {lang === "ta" ? "பின்வரும் கட்டம்" : "Later phase"}
+              </span>
+            )}
+          </div>
           <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-text)", lineHeight: 1.5 }}>{lang === "ta" ? pred.mainPredictionTa : pred.mainPredictionEn}</p>
         </div>
 
@@ -195,26 +215,41 @@ export function PredictionDetailPanel({ lang, predictions, loading }: Props) {
     setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
+  const items: Array<{ key: keyof ExpandState; title: string; pred: LifeAreaPredictionData | null | undefined }> = [
+    { key: "marriage", title: t("pred_marriage_title", lang), pred: predictions?.marriage },
+    { key: "career", title: t("pred_career_title", lang), pred: predictions?.career },
+    { key: "wealth", title: t("pred_wealth_title", lang), pred: predictions?.wealth },
+    { key: "health", title: t("pred_health_title", lang), pred: predictions?.health },
+  ];
+
+  const orderedItems = items
+    .filter((item): item is { key: keyof ExpandState; title: string; pred: LifeAreaPredictionData } => Boolean(item.pred))
+    .sort((a, b) => {
+      const deferredA = predictionIsDeferred(a.pred) ? 1 : 0;
+      const deferredB = predictionIsDeferred(b.pred) ? 1 : 0;
+      if (deferredA !== deferredB) return deferredA - deferredB;
+      const order: Record<keyof ExpandState, number> = { marriage: 0, career: 1, wealth: 2, health: 3 };
+      return order[a.key] - order[b.key];
+    });
+
+  const firstKey = orderedItems[0]?.key ?? null;
+
+  useEffect(() => {
+    if (!firstKey) return;
+    setExpanded({ marriage: false, career: false, wealth: false, health: false, [firstKey]: true });
+  }, [firstKey]);
+
   if (loading) {
     return <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>{t("pred_loading", lang)}</p>;
   }
 
-  if (!predictions || (!predictions.marriage && !predictions.career && !predictions.wealth && !predictions.health)) {
+  if (!orderedItems.length) {
     return <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>{t("pred_empty", lang)}</p>;
   }
 
-  const items: Array<{ key: keyof ExpandState; title: string; pred: LifeAreaPredictionData | null | undefined }> = [
-    { key: "marriage", title: t("pred_marriage_title", lang), pred: predictions.marriage },
-    { key: "career", title: t("pred_career_title", lang), pred: predictions.career },
-    { key: "wealth", title: t("pred_wealth_title", lang), pred: predictions.wealth },
-    { key: "health", title: t("pred_health_title", lang), pred: predictions.health },
-  ];
-
-  const firstKey = items.find((item) => item.pred)?.key;
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", fontFamily: "var(--font-body)" }}>
-      {items.map(({ key, title, pred }) => (
+      {orderedItems.map(({ key, title, pred }) => (
         pred ? (
           <PredictionCard
             key={key}
@@ -224,6 +259,7 @@ export function PredictionDetailPanel({ lang, predictions, loading }: Props) {
             expanded={expanded[key]}
             onToggle={() => toggle(key)}
             featured={key === firstKey}
+            deferred={predictionIsDeferred(pred)}
           />
         ) : null
       ))}

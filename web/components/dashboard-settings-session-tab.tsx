@@ -284,6 +284,10 @@ export function DashboardSettingsSessionTab({
   const [pushBusy, setPushBusy] = useState(false);
   const [pushMessage, setPushMessage] = useState("");
 
+  const [deleteConfirming, setDeleteConfirming] = useState(false);
+  const [deleteDeleting, setDeleteDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
   useEffect(() => { setModeDraft(userMode); }, [userMode]);
   useEffect(() => { setTrackDraft(goalTrack ?? ""); }, [goalTrack]);
   useEffect(() => { setRetentionDraft(journalRetentionDays); }, [journalRetentionDays]);
@@ -375,6 +379,18 @@ export function DashboardSettingsSessionTab({
       .then((r) => { onNotificationPrefsSaved(r.data); setNotifSaved(true); setTimeout(() => setNotifSaved(false), 3000); })
       .catch(() => {})
       .finally(() => setNotifSaving(false));
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteDeleting(true);
+    setDeleteError("");
+    try {
+      await apiFetchJson<{ detail: string }>("/api/v1/auth/me", { method: "DELETE" });
+      window.location.href = "/login";
+    } catch {
+      setDeleteError(lang === "ta" ? "நீக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்." : "Could not delete account. Please try again.");
+      setDeleteDeleting(false);
+    }
   };
 
   const retentionValid = Number.isFinite(retentionDraft) && retentionDraft >= 7 && retentionDraft <= 3650;
@@ -667,6 +683,38 @@ export function DashboardSettingsSessionTab({
             {lang === "ta" ? "✉ கருத்து அனுப்பு" : "✉ Send feedback"}
           </ActionBtn>
         </div>
+      </SettingsCard>
+
+      {/* ── Danger zone ── */}
+      <SettingsCard>
+        <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#991B1B" }}>
+          {t("danger_zone_title", lang)}
+        </p>
+        <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.875rem", color: W.muted, lineHeight: 1.55 }}>
+          {t("delete_account_warning", lang)}
+        </p>
+        {!deleteConfirming ? (
+          <ActionBtn onClick={() => { setDeleteConfirming(true); setDeleteError(""); }} variant="danger">
+            {t("delete_account_btn", lang)}
+          </ActionBtn>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", padding: "var(--space-4)", background: "#FEF2F2", borderRadius: "var(--radius-md)", border: "1px solid #FECACA" }}>
+            <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600, color: "#991B1B" }}>
+              {t("delete_account_confirm_prompt", lang)}
+            </p>
+            {deleteError && (
+              <p style={{ margin: 0, fontSize: "0.8rem", color: "#991B1B" }}>{deleteError}</p>
+            )}
+            <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
+              <ActionBtn onClick={() => void handleDeleteAccount()} disabled={deleteDeleting} variant="danger">
+                {deleteDeleting ? t("delete_account_deleting", lang) : t("delete_account_confirm_btn", lang)}
+              </ActionBtn>
+              <ActionBtn onClick={() => { setDeleteConfirming(false); setDeleteError(""); }} disabled={deleteDeleting} variant="ghost">
+                {t("delete_account_cancel", lang)}
+              </ActionBtn>
+            </div>
+          </div>
+        )}
       </SettingsCard>
 
       {/* ── Privacy footer ── */}

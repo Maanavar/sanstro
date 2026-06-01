@@ -12,7 +12,7 @@ PlanetInput = int | Mapping[str, int | float | str]
 
 KENDRA_HOUSES = {1, 4, 7, 10}
 TRIKONA_HOUSES = {1, 5, 9}
-TAMIL_SEVVAI_HOUSES = {2, 4, 7, 8, 12}
+TAMIL_SEVVAI_HOUSES = {1, 2, 4, 7, 8, 12}    # includes 1st house per Tamil Thirukanitham tradition
 EXTENDED_SEVVAI_HOUSES = {1, 2, 4, 7, 8, 12}
 RAHU_KETU_MARRIAGE_HOUSES = {1, 2, 7, 8}
 RAHU_KETU_SARPA_HOUSES = {5, 9}

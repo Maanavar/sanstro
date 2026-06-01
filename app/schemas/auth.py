@@ -11,7 +11,6 @@ _EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 class RegisterRequest(BaseModel):
     email: str = Field(min_length=3, max_length=255)
     password: str = Field(min_length=8, max_length=255)
-    display_name: str | None = Field(default=None, alias="displayName")
 
     @field_validator("email")
     @classmethod
@@ -66,4 +65,8 @@ class UpdateUserSettingsRequest(BaseModel):
 
 
 class ForgotPasswordResponse(BaseModel):
+    detail: str
+
+
+class AccountDeletionResult(BaseModel):
     detail: str

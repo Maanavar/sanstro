@@ -27,6 +27,16 @@ from app.schemas.panchangam import (
 )
 
 
+def _gowri_conflict_warning(slot: int, snapshot) -> str | None:
+    if slot == snapshot.rahu_kalam.slot:
+        return "Coincides with Rahu Kalam — use with caution"
+    if slot == snapshot.yamagandam.slot:
+        return "Coincides with Yamagandam — use with caution"
+    if slot == snapshot.kuligai.slot:
+        return "Coincides with Kuligai — use with caution"
+    return None
+
+
 def _build_kalam(snapshot) -> PanchangamKalam:
     return PanchangamKalam(
         rahu_kalam=PanchangamSlot(
@@ -44,11 +54,6 @@ def _build_kalam(snapshot) -> PanchangamKalam:
             end=snapshot.kuligai.end.strftime("%H:%M"),
             slot=snapshot.kuligai.slot,
         ),
-        mandhi=PanchangamSlot(
-            start=snapshot.mandhi.start.strftime("%H:%M"),
-            end=snapshot.mandhi.end.strftime("%H:%M"),
-            slot=snapshot.mandhi.slot,
-        ),
         nalla_neram=[
             PanchangamSlot(
                 start=w.start.strftime("%H:%M"),
@@ -62,6 +67,7 @@ def _build_kalam(snapshot) -> PanchangamKalam:
                 start=w.start.strftime("%H:%M"),
                 end=w.end.strftime("%H:%M"),
                 slot=w.slot,
+                warning=_gowri_conflict_warning(w.slot, snapshot),
             )
             for w in snapshot.gowri_nalla_neram
         ],

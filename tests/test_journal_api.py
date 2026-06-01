@@ -7,22 +7,8 @@ from app.models.family_vault import FamilyVault
 from app.models.user import User
 
 
-def _birth_profile_payload() -> dict[str, object]:
-    return {
-        "ownerUserId": "11111111-1111-1111-1111-111111111111",
-        "displayName": "Arjun Kumar",
-        "birthDateLocal": "1991-07-22",
-        "birthTimeLocal": "06:30:00",
-        "birthPlace": "Chennai, Tamil Nadu, India",
-        "birthLatitude": 13.0827,
-        "birthLongitude": 80.2707,
-        "birthTimezone": "Asia/Kolkata",
-        "calculateNow": True,
-    }
-
-
-def _create_chart(client) -> str:
-    created = client.post("/api/v1/birth-profiles", json=_birth_profile_payload())
+def _create_chart(client, birth_profile_payload_factory) -> str:
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory())
     assert created.status_code == 200
     birth_profile_id = created.json()["data"]["birthProfileId"]
 
@@ -38,39 +24,24 @@ def _create_chart(client) -> str:
     return chart.json()["data"]["chartId"]
 
 
-def _family_vault_payload(name: str = "Arjun Family"):
-    return {"name": name, "defaultLanguage": "ta-en"}
-
-
-def _family_member_payload(display_name: str):
-    return {
-        "relationshipToOwner": "self" if display_name == "Arjun Kumar" else "spouse",
-        "displayName": display_name,
-        "birthDateLocal": "1991-07-22",
-        "birthTimeLocal": "06:30:00",
-        "birthPlace": "Chennai, Tamil Nadu, India",
-        "birthLatitude": 13.0827,
-        "birthLongitude": 80.2707,
-        "birthTimezone": "Asia/Kolkata",
-        "calculateNow": True,
-        "memberWeight": 1.0,
-    }
-
-
-def _create_family_with_two_members(client) -> tuple[str, dict[str, str], dict[str, str]]:
-    vault = client.post("/api/v1/family-vaults", json=_family_vault_payload())
+def _create_family_with_two_members(
+    client,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+) -> tuple[str, dict[str, str], dict[str, str]]:
+    vault = client.post("/api/v1/family-vaults", json=family_vault_payload_factory())
     assert vault.status_code == 200
     family_vault_id = vault.json()["data"]["familyVaultId"]
 
     self_member = client.post(
         f"/api/v1/family-vaults/{family_vault_id}/members",
-        json=_family_member_payload("Arjun Kumar"),
+        json=family_member_payload_factory(display_name="Arjun Kumar", relationship_to_owner="self"),
     )
     assert self_member.status_code == 200
 
     spouse_member = client.post(
         f"/api/v1/family-vaults/{family_vault_id}/members",
-        json=_family_member_payload("Anitha"),
+        json=family_member_payload_factory(display_name="Anitha"),
     )
     assert spouse_member.status_code == 200
     return family_vault_id, self_member.json()["data"], spouse_member.json()["data"]
@@ -81,8 +52,8 @@ def _ensure_user(session, user_id: UUID, email: str) -> None:
         session.add(User(user_id=user_id, email=email))
 
 
-def test_journal_create_returns_tags_and_chart_anchor(client):
-    chart_id = _create_chart(client)
+def test_journal_create_returns_tags_and_chart_anchor(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
 
     payload = {
         "chartId": chart_id,
@@ -104,8 +75,8 @@ def test_journal_create_returns_tags_and_chart_anchor(client):
     assert body["anchor"]["activeDasha"]
 
 
-def test_journal_list_filters_by_life_area(client):
-    chart_id = _create_chart(client)
+def test_journal_list_filters_by_life_area(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
 
     entries = [
         {
@@ -135,8 +106,8 @@ def test_journal_list_filters_by_life_area(client):
     assert data["items"][0]["lifeArea"] == "health"
 
 
-def test_journal_update_recomputes_tags(client):
-    chart_id = _create_chart(client)
+def test_journal_update_recomputes_tags(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
     created = client.post(
         "/api/v1/journal",
         json={
@@ -163,8 +134,8 @@ def test_journal_update_recomputes_tags(client):
     assert "finance_planning" in body["tags"]
 
 
-def test_journal_delete_hides_from_default_list_and_can_show_archived(client):
-    chart_id = _create_chart(client)
+def test_journal_delete_hides_from_default_list_and_can_show_archived(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
     created = client.post(
         "/api/v1/journal",
         json={
@@ -193,8 +164,8 @@ def test_journal_delete_hides_from_default_list_and_can_show_archived(client):
     assert archived_list.json()["data"]["totalCount"] == 1
 
 
-def test_journal_retention_apply_archives_older_entries(client):
-    chart_id = _create_chart(client)
+def test_journal_retention_apply_archives_older_entries(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
     first = client.post(
         "/api/v1/journal",
         json={
@@ -236,8 +207,8 @@ def test_journal_retention_apply_archives_older_entries(client):
     assert default_list.json()["data"]["totalCount"] == 1
 
 
-def test_journal_retention_uses_user_default_when_keep_days_missing(client):
-    chart_id = _create_chart(client)
+def test_journal_retention_uses_user_default_when_keep_days_missing(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
     settings = client.patch("/api/v1/settings/journal", json={"journalRetentionDays": 30})
     assert settings.status_code == 200
 
@@ -278,8 +249,8 @@ def test_journal_retention_uses_user_default_when_keep_days_missing(client):
     assert data["archivedCount"] == 1
 
 
-def test_journal_prompts_endpoint_returns_bilingual_templates(client):
-    chart_id = _create_chart(client)
+def test_journal_prompts_endpoint_returns_bilingual_templates(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
     response = client.get(
         "/api/v1/journal/prompts",
         params={
@@ -299,8 +270,8 @@ def test_journal_prompts_endpoint_returns_bilingual_templates(client):
     assert all(item["text"]["en"] for item in data["prompts"])
 
 
-def test_journal_prompts_auto_resolves_life_area_from_journal_insight(client):
-    chart_id = _create_chart(client)
+def test_journal_prompts_auto_resolves_life_area_from_journal_insight(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
     created = client.post(
         "/api/v1/journal",
         json={
@@ -326,8 +297,8 @@ def test_journal_prompts_auto_resolves_life_area_from_journal_insight(client):
     assert len(data["prompts"]) == 3
 
 
-def test_journal_export_endpoint_returns_portable_payload(client):
-    chart_id = _create_chart(client)
+def test_journal_export_endpoint_returns_portable_payload(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
     first = client.post(
         "/api/v1/journal",
         json={
@@ -373,8 +344,17 @@ def test_journal_export_endpoint_returns_portable_payload(client):
     assert any(item["deletedAt"] is not None for item in full_data["items"])
 
 
-def test_family_vault_journal_view_filters_to_member_entries(client):
-    family_vault_id, _self_member, spouse_member = _create_family_with_two_members(client)
+def test_family_vault_journal_view_filters_to_member_entries(
+    client,
+    birth_profile_payload_factory,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+):
+    family_vault_id, _self_member, spouse_member = _create_family_with_two_members(
+        client,
+        family_vault_payload_factory,
+        family_member_payload_factory,
+    )
     spouse_chart_id = spouse_member["chartId"]
     assert spouse_chart_id
 
@@ -389,7 +369,7 @@ def test_family_vault_journal_view_filters_to_member_entries(client):
     )
     assert spouse_entry.status_code == 200
 
-    other_chart_id = _create_chart(client)
+    other_chart_id = _create_chart(client, birth_profile_payload_factory)
     other_entry = client.post(
         "/api/v1/journal",
         json={
@@ -410,8 +390,17 @@ def test_family_vault_journal_view_filters_to_member_entries(client):
     assert data["items"][0]["memberDisplayName"] == "Anitha"
 
 
-def test_family_vault_journal_summary_returns_life_area_counts_only(client):
-    family_vault_id, self_member, spouse_member = _create_family_with_two_members(client)
+def test_family_vault_journal_summary_returns_life_area_counts_only(
+    client,
+    birth_profile_payload_factory,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+):
+    family_vault_id, self_member, spouse_member = _create_family_with_two_members(
+        client,
+        family_vault_payload_factory,
+        family_member_payload_factory,
+    )
     self_chart_id = self_member["chartId"]
     spouse_chart_id = spouse_member["chartId"]
     assert self_chart_id and spouse_chart_id
@@ -449,7 +438,7 @@ def test_family_vault_journal_summary_returns_life_area_counts_only(client):
     )
     assert third.status_code == 200
 
-    outside_chart_id = _create_chart(client)
+    outside_chart_id = _create_chart(client, birth_profile_payload_factory)
     outside = client.post(
         "/api/v1/journal",
         json={

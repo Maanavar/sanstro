@@ -10,7 +10,14 @@ from app.core.config import get_settings
 
 def _build_engine():
     settings = get_settings()
-    return create_engine(settings.database_url, future=True)
+    return create_engine(
+        settings.database_url,
+        future=True,
+        pool_size=20,
+        max_overflow=10,
+        pool_pre_ping=True,
+        echo=False,
+    )
 
 
 engine = _build_engine()

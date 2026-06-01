@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
+import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
+import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, ChartCalculateResponseData, ChartSummaryData, DashaTimelineResponseData } from "@/lib/types";
@@ -379,15 +381,30 @@ interface ChartGenerateInlinePanelProps {
 }
 
 export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps) {
+  const { nextBirthDateOrCurrent, applyPlaceSelection } = useBirthProfileForm();
   const [form, setForm] = useState<BirthForm>(EMPTY_FORM);
   const [chart, setChart] = useState<ChartCalculateResponseData | null>(null);
   const [chartSummary, setChartSummary] = useState<ChartSummaryData | null>(null);
   const [dashaData, setDashaData] = useState<DashaTimelineResponseData | null>(null);
   const [tempBirthProfileId, setTempBirthProfileId] = useState<string | null>(null);
+  const tempIdRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [view, setView] = useState<"D1" | "D9">("D1");
   const [printMode, setPrintMode] = useState(false);
+
+  useEffect(() => {
+    tempIdRef.current = tempBirthProfileId;
+  }, [tempBirthProfileId]);
+
+  useEffect(() => {
+    return () => {
+      const id = tempIdRef.current;
+      if (id) {
+        fetch(`/api/v1/birth-profiles/${id}`, { method: "DELETE", keepalive: true }).catch(() => {});
+      }
+    };
+  }, []);
 
   async function handleGenerate() {
     if (!form.displayName || !form.birthDateLocal || !form.birthPlace || !form.birthLatitude || !form.birthLongitude || !form.birthTimezone) {
@@ -521,8 +538,20 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <Field label={lang === "ta" ? "பிறந்த தேதி" : "Birth Date"}>
-              <input className="input" style={fieldStyle} type="date" value={form.birthDateLocal}
-                onChange={(e) => setForm((f) => ({ ...f, birthDateLocal: e.target.value }))} />
+              <input
+                className="input"
+                style={fieldStyle}
+                type="date"
+                value={form.birthDateLocal}
+                min={MIN_BIRTH_DATE}
+                max={maxBirthDateIso()}
+                onChange={(e) => {
+                  setForm((f) => ({
+                    ...f,
+                    birthDateLocal: nextBirthDateOrCurrent(f.birthDateLocal, e.target.value),
+                  }));
+                }}
+              />
             </Field>
             <Field label={lang === "ta" ? "பிறந்த நேரம்" : "Birth Time"}>
               <input className="input" style={fieldStyle} type="time" value={form.birthTimeLocal}
@@ -533,10 +562,7 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
           <Field label={t("field_birth_place", lang)} helper={t("field_place_helper", lang)}>
             <PlaceCombobox
               value={form.birthPlace}
-              onChange={(city, raw) => setForm((f) => ({
-                ...f, birthPlace: raw,
-                ...(city ? { birthLatitude: city.lat, birthLongitude: city.lng, birthTimezone: city.timezone } : {}),
-              }))}
+              onChange={(city, raw) => setForm((f) => applyPlaceSelection(f, city, raw))}
             />
           </Field>
 

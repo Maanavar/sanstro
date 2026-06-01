@@ -34,6 +34,7 @@ from app.api.settings import router as settings_router
 from app.api.transits import router as transits_router
 from app.api.content import router as content_router
 from app.api.notification_preferences import router as notification_preferences_router
+from app.api.notifications import router as notifications_router
 from app.api.predictions import router as predictions_router
 from app.core.config import get_settings
 from app.middleware import RateLimitMiddleware, RequestLoggingMiddleware, SecurityHeadersMiddleware
@@ -84,8 +85,7 @@ def _build_lifespan():
         scheduler.add_job(
             run_daily_push_cron,
             "cron",
-            hour=6,
-            minute=0,
+            minute=0,  # every hour on the hour — morning window check is done inside per user timezone
             id="daily_push_cron",
             replace_existing=True,
         )
@@ -142,6 +142,7 @@ def create_app() -> FastAPI:
     app.include_router(whatif_router, prefix=settings.api_v1_prefix)
     app.include_router(content_router, prefix=settings.api_v1_prefix)
     app.include_router(notification_preferences_router, prefix=settings.api_v1_prefix)
+    app.include_router(notifications_router, prefix=settings.api_v1_prefix)
     app.include_router(predictions_router, prefix=settings.api_v1_prefix)
     return app
 

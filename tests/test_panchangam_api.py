@@ -1,5 +1,6 @@
 from datetime import date
 
+from app.calculations.panchangam import PANCHANGAM_CACHE_DATA_VERSION
 from app.db.session import SessionLocal
 from app.models import PanchangamCache
 
@@ -24,6 +25,8 @@ def test_daily_panchangam_endpoint_returns_structured_daily_data(client):
     assert body["data"]["kalam"]["rahuKalam"]["slot"] == 6
     assert body["data"]["kalam"]["yamagandam"]["slot"] == 1
     assert body["data"]["kalam"]["kuligai"]["slot"] == 3
+    # Nalla Neram is weekday-slot based (Thirukanitham); Thursday = slot 1 = sunrise slot
+    assert body["data"]["kalam"]["nallaNeram"][0]["slot"] == 1
     assert len(body["data"]["hora"]) == 24
 
 
@@ -61,7 +64,6 @@ def test_panchangam_timings_monday_kuligai_uses_day_slot_6_not_sunrise_slot(clie
     body = response.json()["data"]
     assert body["kalam"]["kuligai"]["slot"] == 6
     assert body["kalam"]["kuligai"]["start"] != body["sunrise"]
-    # Monday Kuligai should be an afternoon segment, not the first segment after sunrise.
     assert body["kalam"]["kuligai"]["start"][:2] in {"12", "13", "14"}
 
 
@@ -122,4 +124,4 @@ def test_daily_panchangam_endpoint_ignores_stale_cache_schema(client):
 
     with SessionLocal() as session:
         row = session.query(PanchangamCache).one()
-        assert row.data["schema_version"] == 4
+        assert row.data["schema_version"] == PANCHANGAM_CACHE_DATA_VERSION

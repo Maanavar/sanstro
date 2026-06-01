@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime
 from typing import Any
 from uuid import UUID
 
@@ -9,7 +9,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.transits import angular_distance
 from app.db.session import SessionLocal
@@ -33,6 +33,7 @@ from app.schemas.relationships import (
     SynastryResponse,
 )
 from app.services.chart_service import load_persisted_chart_response
+from app.services.location_service import local_noon_as_utc_for_profile
 
 _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
 _TRANSIT_ALERT_PLANETS = ("JUPITER", "SATURN", "MARS", "RAHU", "VENUS")
@@ -375,8 +376,8 @@ def refresh_relationship_alerts(session: Session, *, as_of_date: date) -> int:
         owner_snapshot = load_persisted_chart_response(session, owner_chart.chart_id)
         owner_profile = owner_snapshot.data.birth_profile
 
-        local_noon = datetime.combine(as_of_date, time(12, 0), tzinfo=resolve_timezone(owner_profile.birth_timezone))
-        transit = calculate_sidereal_planets(utc_datetime_to_julian_day(local_noon.astimezone(UTC)))
+        local_noon_utc = local_noon_as_utc_for_profile(as_of_date, owner_profile)
+        transit = calculate_sidereal_planets(utc_datetime_to_julian_day(local_noon_utc))
 
         members = session.execute(
             select(FamilyMember).where(
@@ -421,28 +422,100 @@ def refresh_relationship_alerts(session: Session, *, as_of_date: date) -> int:
     return created
 
 
+_CONTEXT_KUTA_MASK: dict[str, tuple[str, ...]] = {
+    "MARRIAGE": ("Dinam", "Ganam", "Mahendra", "Stree Dirgha", "Yoni", "Rasi", "Graha Maitri", "Vedha", "Vasya", "Rajju"),
+    "FRIENDSHIP": ("Dinam", "Ganam", "Rasi", "Graha Maitri", "Vedha"),
+    "BUSINESS": ("Ganam", "Mahendra", "Rasi", "Graha Maitri", "Vasya"),
+    "FAMILY": ("Rasi", "Ganam", "Vasya", "Graha Maitri", "Vedha"),
+    "GENERAL": ("Dinam", "Ganam", "Rasi", "Graha Maitri"),
+}
+
+_CONTEXT_TITLE_EN: dict[str, str] = {
+    "MARRIAGE": "Marriage compatibility",
+    "FRIENDSHIP": "Friendship compatibility",
+    "BUSINESS": "Business compatibility",
+    "FAMILY": "Family harmony compatibility",
+    "GENERAL": "General compatibility",
+}
+
 _CONTEXT_NOTE: dict[str, dict[str, str]] = {
     "MARRIAGE": {
         "ta": "திருமண பொருத்தம்: ஸ்தீர கூடம் (நிலைத்த தன்மை) மற்றும் ராஜ்ஜு தோஷம் முக்கியம்.",
         "en": "Marriage context: Sthira kuta (stability) and Rajju dosha are most significant.",
     },
     "FRIENDSHIP": {
-        "ta": "நட்பு பொருத்தம்: நடி கூடம் (இயற்கை நட்பு) மற்றும் தினம் கூடம் கவனிக்கப்படுகின்றன.",
-        "en": "Friendship context: Nadi kuta (natural affinity) and Dina kuta are most relevant.",
+        "ta": "நட்பு பொருத்தம்: தினம், கணம், ராசி, கிரக மைத்திரி, வேதம் ஆகிய சமிக்ஞைகள் மதிப்பிடப்படுகின்றன.",
+        "en": "Friendship context: Dina, Gana, Rasi, Graha Maitri, and Vedha factors are evaluated.",
     },
     "BUSINESS": {
-        "ta": "தொழில் பொருத்தம்: மஹேந்திர கூடம் (நீண்ட கால வளர்ச்சி) மற்றும் வேதா தோஷம் கவனிக்கப்படுகின்றன.",
-        "en": "Business context: Mahendra kuta (long-term growth) and Vedha dosha are most relevant.",
+        "ta": "தொழில் பொருத்தம்: கணம், மஹேந்திரம், ராசி, கிரக மைத்திரி, வாஸ்யம் மூலம் கூட்டாண்மை திறன் மதிப்பிடப்படுகிறது.",
+        "en": "Business context: Gana, Mahendra, Rasi, Graha Maitri, and Vasya factors evaluate partnership potential.",
     },
     "FAMILY": {
-        "ta": "குடும்ப பொருத்தம்: யோனி கூடம் (இயல்பு பொருத்தம்) மற்றும் கோத்திரம் கவனிக்கப்படுகின்றன.",
-        "en": "Family context: Yoni kuta (temperament match) and Gotra are most relevant.",
+        "ta": "குடும்ப பொருத்தம்: ராசி, கணம், வாஸ்யம், கிரக மைத்திரி, வேதம் மூலம் ஒற்றுமை மதிப்பிடப்படுகிறது.",
+        "en": "Family context: Rasi, Gana, Vasya, Graha Maitri, and Vedha factors evaluate harmony.",
     },
     "GENERAL": {
-        "ta": "பொதுவான பொருத்தம் — அனைத்து 10 கூடங்களும் சம முக்கியத்துவம் பெறுகின்றன.",
-        "en": "General compatibility — all 10 kutas are weighted equally.",
+        "ta": "பொதுவான பொருத்தம்: தினம், கணம், ராசி, கிரக மைத்திரி ஆகிய மைய குறியீடுகள் பார்க்கப்படுகின்றன.",
+        "en": "General compatibility uses core factors only (Dina, Gana, Rasi, Graha Maitri).",
     },
 }
+
+
+def _label_for_percentage(percentage: float) -> str:
+    if percentage >= 80:
+        return "EXCELLENT"
+    if percentage >= 60:
+        return "GOOD"
+    if percentage >= 40:
+        return "AVERAGE"
+    return "CAUTION"
+
+
+def _contextualize_porutham_result(result, compatibility_context: str) -> dict[str, object]:
+    allowed = set(_CONTEXT_KUTA_MASK.get(compatibility_context, _CONTEXT_KUTA_MASK["GENERAL"]))
+    selected = [k for k in result.kutas if k.name in allowed]
+    if not selected:
+        selected = list(result.kutas)
+
+    total_score = sum(k.score for k in selected)
+    max_score = sum(k.max_score for k in selected)
+    percentage = round((total_score / max_score) * 100, 1) if max_score > 0 else 0.0
+    label = _label_for_percentage(percentage)
+    rajju_dosha = any(k.name == "Rajju" and k.score == 0 for k in selected)
+    vedha_dosha = any(k.name == "Vedha" and k.score == 0 for k in selected)
+
+    if compatibility_context == "MARRIAGE":
+        summary = RelationshipBiText(ta=result.summary_ta, en=result.summary_en)
+    else:
+        factors = ", ".join(k.name for k in selected[:6])
+        scope = _CONTEXT_TITLE_EN.get(compatibility_context, _CONTEXT_TITLE_EN["GENERAL"])
+        scope_ta = {
+            "FRIENDSHIP": "நட்பு பொருத்தம்",
+            "BUSINESS": "தொழில் பொருத்தம்",
+            "FAMILY": "குடும்ப ஒற்றுமை பொருத்தம்",
+            "GENERAL": "பொது பொருத்தம்",
+        }.get(compatibility_context, "பொது பொருத்தம்")
+        en = (
+            f"{scope}: {label.lower()} alignment ({total_score}/{max_score} · {percentage}%). "
+            f"Evaluated factors: {factors}."
+        )
+        ta = (
+            f"{scope_ta}: {label.lower()} இணக்கம் ({total_score}/{max_score} · {percentage}%). "
+            f"மதிப்பிடப்பட்ட கூறுகள்: {factors}."
+        )
+        summary = RelationshipBiText(ta=ta, en=en)
+
+    return {
+        "kutas": selected,
+        "total_score": total_score,
+        "max_score": max_score,
+        "percentage": percentage,
+        "label": label,
+        "rajju_dosha": rajju_dosha,
+        "vedha_dosha": vedha_dosha,
+        "summary": summary,
+    }
 
 
 def get_porutham_for_member(
@@ -476,6 +549,7 @@ def get_porutham_for_member(
         boy_rasi=owner_moon.rasi,
         girl_rasi=member_moon.rasi,
     )
+    shaped = _contextualize_porutham_result(result, compatibility_context)
 
     kutas = [
         KutaResult(
@@ -485,7 +559,7 @@ def get_porutham_for_member(
             max_score=k.max_score,
             label=k.label,
         )
-        for k in result.kutas
+        for k in shaped["kutas"]
     ]
 
     _note_raw = _CONTEXT_NOTE.get(compatibility_context, _CONTEXT_NOTE["GENERAL"])
@@ -497,13 +571,13 @@ def get_porutham_for_member(
         girl_nakshatra=member_moon.nakshatra,
         girl_nakshatra_name=NAKSHATRA_NAMES[member_moon.nakshatra - 1],
         kutas=kutas,
-        total_score=result.total_score,
-        max_score=result.max_score,
-        percentage=result.percentage,
-        label=result.label,
-        rajju_dosha=result.rajju_dosha,
-        vedha_dosha=result.vedha_dosha,
-        summary=RelationshipBiText(ta=result.summary_ta, en=result.summary_en),
+        total_score=shaped["total_score"],
+        max_score=shaped["max_score"],
+        percentage=shaped["percentage"],
+        label=shaped["label"],
+        rajju_dosha=shaped["rajju_dosha"],
+        vedha_dosha=shaped["vedha_dosha"],
+        summary=shaped["summary"],
         compatibility_context=compatibility_context,
         context_note=RelationshipBiText(ta=_note_raw["ta"], en=_note_raw["en"]),
     )
@@ -545,10 +619,11 @@ def compare_charts_direct(
         boy_rasi=moon_a.rasi,
         girl_rasi=moon_b.rasi,
     )
+    shaped = _contextualize_porutham_result(result, compatibility_context)
 
     kutas = [
         KutaResult(name=k.name, name_ta=k.name_ta, score=k.score, max_score=k.max_score, label=k.label)
-        for k in result.kutas
+        for k in shaped["kutas"]
     ]
 
     _note_raw = _CONTEXT_NOTE.get(compatibility_context, _CONTEXT_NOTE["GENERAL"])
@@ -560,13 +635,13 @@ def compare_charts_direct(
         girl_nakshatra=moon_b.nakshatra,
         girl_nakshatra_name=NAKSHATRA_NAMES[moon_b.nakshatra - 1],
         kutas=kutas,
-        total_score=result.total_score,
-        max_score=result.max_score,
-        percentage=result.percentage,
-        label=result.label,
-        rajju_dosha=result.rajju_dosha,
-        vedha_dosha=result.vedha_dosha,
-        summary=RelationshipBiText(ta=result.summary_ta, en=result.summary_en),
+        total_score=shaped["total_score"],
+        max_score=shaped["max_score"],
+        percentage=shaped["percentage"],
+        label=shaped["label"],
+        rajju_dosha=shaped["rajju_dosha"],
+        vedha_dosha=shaped["vedha_dosha"],
+        summary=shaped["summary"],
         compatibility_context=compatibility_context,
         context_note=RelationshipBiText(ta=_note_raw["ta"], en=_note_raw["en"]),
     )

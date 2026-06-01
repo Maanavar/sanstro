@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date
 from uuid import UUID, uuid4
 
-from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint, func
+from sqlalchemy import Date, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base
+from app.db.base import Base, TimestampMixin
 
 
-class DailyScore(Base):
+class DailyScore(TimestampMixin, Base):
     __tablename__ = "daily_scores"
     __table_args__ = (
         UniqueConstraint("birth_profile_id", "score_date", name="uq_daily_scores_profile_date"),
@@ -25,4 +25,3 @@ class DailyScore(Base):
     score: Mapped[int] = mapped_column(Integer, nullable=False)
     label: Mapped[str] = mapped_column(String(32), nullable=False)
     data: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

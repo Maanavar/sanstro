@@ -36,6 +36,15 @@ class NotificationPreferenceUpdateRequest(BaseModel):
 
 
 class FcmTokenUpdateRequest(BaseModel):
-    fcm_device_token: str = Field(alias="fcmDeviceToken", min_length=10, max_length=512)
+    # Accept either {fcmDeviceToken: "..."} (legacy) or {token: "...", platform: "..."} (web SDK)
+    fcm_device_token: str | None = Field(default=None, alias="fcmDeviceToken", min_length=10, max_length=512)
+    token: str | None = Field(default=None, min_length=10, max_length=512)
+    platform: str | None = Field(default=None)
 
     model_config = ConfigDict(populate_by_name=True)
+
+    def resolved_token(self) -> str:
+        t = self.fcm_device_token or self.token
+        if not t:
+            raise ValueError("FCM token is required (provide fcmDeviceToken or token)")
+        return t

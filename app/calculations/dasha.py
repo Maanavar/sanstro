@@ -74,22 +74,24 @@ def _build_periods(start_jd: float, sequence_start_lord: str, first_duration_yea
     sequence = _sequence_from(sequence_start_lord)
     current_start = start_jd
 
-    for index, lord in enumerate(sequence):
-        duration_years = first_duration_years if index == 0 else DASHA_YEARS[lord]
-        end_jd = current_start + duration_years * JULIAN_YEAR_DAYS
-        start_date, end_date = _period_dates(current_start, end_jd)
-        periods.append(
-            DashaPeriod(
-                level="maha",
-                lord=lord,
-                start_jd=current_start,
-                end_jd=end_jd,
-                start_date=start_date,
-                end_date=end_date,
-                sequence_index=index,
+    # Generate 2 full cycles (18 periods = ~240 years) so _find_period works for long-range projections
+    for cycle in range(2):
+        for index, lord in enumerate(sequence):
+            duration_years = first_duration_years if (cycle == 0 and index == 0) else DASHA_YEARS[lord]
+            end_jd = current_start + duration_years * JULIAN_YEAR_DAYS
+            start_date, end_date = _period_dates(current_start, end_jd)
+            periods.append(
+                DashaPeriod(
+                    level="maha",
+                    lord=lord,
+                    start_jd=current_start,
+                    end_jd=end_jd,
+                    start_date=start_date,
+                    end_date=end_date,
+                    sequence_index=cycle * 9 + index,
+                )
             )
-        )
-        current_start = end_jd
+            current_start = end_jd
 
     return tuple(periods)
 

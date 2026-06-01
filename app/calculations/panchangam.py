@@ -119,29 +119,28 @@ WEEKDAY_LORDS = {
     6: "SUN",
 }
 
+# Thirukanitham / Pambu Panchangam slot tables (8-slot daytime grid, Mon=0..Sun=6)
+# Canonical sequence used by QA golden cases.
+# Sun Mon Tue Wed Thu Fri Sat
 RAHU_SLOT = {6: 8, 0: 2, 1: 7, 2: 5, 3: 6, 4: 4, 5: 3}
 YAMA_SLOT = {6: 5, 0: 4, 1: 3, 2: 2, 3: 1, 4: 7, 5: 6}
-# Kuligai (Gulika) daytime slots by Python weekday index (Mon=0..Sun=6).
-# Traditional order is Sun=7, Mon=6, Tue=5, Wed=4, Thu=3, Fri=2, Sat=1.
 KULIGAI_SLOT = {6: 7, 0: 6, 1: 5, 2: 4, 3: 3, 4: 2, 5: 1}
-# Mandhi (Maandi) upagraha daytime slots by Python weekday (Mon=0..Sun=6).
-# Traditional Tamil Panchangam: Sun=7, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6.
-MANDHI_SLOT = {6: 7, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6}
-# Nalla Neram: 2 auspicious slots per day, same 8-slot grid as Rahu/Yama/Kuligai.
-# Traditional Tamil Panchangam values (Sun=6, Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5).
-NALLA_NERAM_SLOTS = {6: (2, 5), 0: (1, 6), 1: (3, 8), 2: (4, 7), 3: (1, 6), 4: (2, 5), 5: (3, 8)}
-
-# Gowri Nalla Neram: 3 auspicious slots per day on the same 8-slot grid.
-# Traditional assignment by day (each slot is ~1.5 hr window).
+# Gowri Nalla Neram: auspicious slots per day on the same 8-slot daylight grid.
+# Sourced from Thirukanitham / Pambu Panchangam tradition (Sun=6,Mon=0..Sat=5).
+# Wed has only 2 slots by tradition. Note: some slots coincide with Rahu/Yama on
+# certain days — this is correct per the tradition; the UI should surface the conflict.
 GOWRI_NALLA_NERAM_SLOTS = {
-    6: (1, 4, 7),   # Sun
-    0: (2, 5, 8),   # Mon
+    6: (5, 6, 8),   # Sun
+    0: (1, 4, 8),   # Mon
     1: (1, 4, 7),   # Tue
-    2: (3, 6,),     # Wed (only 2 for Wednesday in tradition)
-    3: (2, 5, 8),   # Thu
-    4: (1, 4, 7),   # Fri
-    5: (3, 6, 8),   # Sat
+    2: (2, 6),      # Wed (only 2 slots)
+    3: (3, 5, 8),   # Thu
+    4: (2, 5, 8),   # Fri
+    5: (3, 6, 7),   # Sat
 }
+# Nalla Neram: one slot per day on the 8-slot daylight grid (Thirukanitham tradition)
+# Distinct from Abhijit (midday window); both are shown separately in the UI.
+NALLA_NERAM_SLOT = {6: 3, 0: 5, 1: 6, 2: 7, 3: 1, 4: 4, 5: 2}
 
 # Subha (auspicious) yoga names per Thirukanitha tradition
 SUBHA_YOGAS = {"SIDDHA", "AMRITA", "SHUBHA", "VARIYAAN", "HARSHANA", "BRAHMA", "INDRA", "VAIDHRITI"}
@@ -151,15 +150,29 @@ ASHUBHA_YOGAS = {"VYAGHATA", "GANDA", "SHOOLA", "ATIGANDA", "VYATIPATA", "PARIGH
 SUBHA_TITHIS_SHUKLA = {2, 3, 5, 6, 7, 10, 11, 12, 13}
 SUBHA_TITHIS_KRISHNA = {2, 3, 6, 7, 10, 11}
 
-# Auspicious nakshatras for muhurtham (Thirukanitha list)
+# Auspicious nakshatras for muhurtham (Thirukanitha list — Tamil names matching NAKSHATRA_NAMES)
 SUBHA_NAKSHATRAS = {
-    "ASHWINI", "ROHINI", "MRIGASHIRA", "PUNARVASU", "PUSHYA", "HASTA",
-    "CHITRA", "SWATI", "ANURADHA", "MULA", "UTTARASHADA", "UTTARABHADRA",
-    "REVATI", "MAGHA", "UTTARAPHALGUNI", "SHRAVANA", "DHANISHTHA",
+    "ASWINI",         # 1  — Ashwini
+    "ROHINI",         # 4  — Rohini
+    "MIRUGASEERIDAM", # 5  — Mrigashira
+    "PUNARPOOSAM",    # 7  — Punarvasu
+    "POOSAM",         # 8  — Pushya
+    "HASTHAM",        # 13 — Hasta
+    "CHITHIRAI",      # 14 — Chitra
+    "SWATHI",         # 15 — Swati
+    "ANUSHAM",        # 17 — Anuradha
+    "MOOLAM",         # 19 — Mula
+    "UTHIRADAM",      # 21 — Uttarashada
+    "UTHIRATTATHI",   # 26 — Uttarabhadrapada
+    "REVATHI",        # 27 — Revati
+    "MAGAM",          # 10 — Magha
+    "UTHIRAM",        # 12 — Uttaraphalguni
+    "THIRUVONAM",     # 22 — Shravana
+    "AVITTAM",        # 23 — Dhanishtha
 }
 PANCHANGAM_CACHE_TTL_HOURS = 24
 DEFAULT_AYANAMSA_TYPE = "LAHIRI"
-PANCHANGAM_CACHE_DATA_VERSION = 4
+PANCHANGAM_CACHE_DATA_VERSION = 7
 
 
 @dataclass(frozen=True, slots=True)
@@ -202,7 +215,6 @@ class PanchangamSnapshot:
     rahu_kalam: PanchangamSlot
     yamagandam: PanchangamSlot
     kuligai: PanchangamSlot
-    mandhi: PanchangamSlot
     nalla_neram: list[PanchangamSlot]
     gowri_nalla_neram: list[PanchangamSlot]
     abhijit_start: datetime
@@ -321,9 +333,10 @@ def _compute_nalla_neram(
     sunset: datetime,
     weekday_index: int,
 ) -> list[PanchangamSlot]:
-    """Nalla Neram: 2 slots per day on the same 8-slot daylight grid as Rahu/Yama/Kuligai."""
+    """Nalla Neram: one slot per day on the 8-slot daylight grid (Thirukanitham tradition)."""
     dur = (sunset - sunrise) / 8
-    return [_slot_datetime(sunrise, dur, s) for s in NALLA_NERAM_SLOTS[weekday_index]]
+    slot = NALLA_NERAM_SLOT[weekday_index]
+    return [_slot_datetime(sunrise, dur, slot)]
 
 
 def _compute_gowri_nalla_neram(
@@ -427,11 +440,6 @@ def _serialize_snapshot(snapshot: PanchangamSnapshot) -> dict:
             "end": snapshot.kuligai.end.isoformat(),
             "slot": snapshot.kuligai.slot,
         },
-        "mandhi": {
-            "start": snapshot.mandhi.start.isoformat(),
-            "end": snapshot.mandhi.end.isoformat(),
-            "slot": snapshot.mandhi.slot,
-        },
         "nalla_neram": [
             {"start": w.start.isoformat(), "end": w.end.isoformat(), "slot": w.slot}
             for w in snapshot.nalla_neram
@@ -494,11 +502,6 @@ def _deserialize_snapshot(data: dict) -> PanchangamSnapshot:
             start=datetime.fromisoformat(data["kuligai"]["start"]),
             end=datetime.fromisoformat(data["kuligai"]["end"]),
             slot=int(data["kuligai"]["slot"]),
-        ),
-        mandhi=PanchangamSlot(
-            start=datetime.fromisoformat(data["mandhi"]["start"]),
-            end=datetime.fromisoformat(data["mandhi"]["end"]),
-            slot=int(data["mandhi"]["slot"]),
         ),
         nalla_neram=[
             PanchangamSlot(
@@ -566,7 +569,8 @@ def purge_expired_panchangam_cache(session: Session) -> int:
     result = session.execute(
         delete(PanchangamCache).where(PanchangamCache.expires_at < datetime.now(tz=UTC))
     )
-    session.commit()
+    # Avoid committing here: this helper is called from read paths and should not
+    # flush or commit unrelated pending ORM changes in the caller's session.
     return int(result.rowcount or 0)
 
 
@@ -655,14 +659,12 @@ def calculate_daily_panchangam(
     rahu_slot = RAHU_SLOT[date_local.weekday()]
     yama_slot = YAMA_SLOT[date_local.weekday()]
     kuligai_slot = KULIGAI_SLOT[date_local.weekday()]
-    mandhi_slot = MANDHI_SLOT[date_local.weekday()]
 
     kalam_anchor = sunrise
     kalam_slot_duration = (sunset - sunrise) / 8
     rahu = _slot_datetime(kalam_anchor, kalam_slot_duration, rahu_slot)
     yama = _slot_datetime(kalam_anchor, kalam_slot_duration, yama_slot)
     kuligai = _slot_datetime(kalam_anchor, kalam_slot_duration, kuligai_slot)
-    mandhi = _slot_datetime(kalam_anchor, kalam_slot_duration, mandhi_slot)
 
     abhijit_start = solar_noon - timedelta(minutes=24)
     abhijit_end = solar_noon + timedelta(minutes=24)
@@ -704,7 +706,6 @@ def calculate_daily_panchangam(
         rahu_kalam=rahu,
         yamagandam=yama,
         kuligai=kuligai,
-        mandhi=mandhi,
         nalla_neram=nalla_neram,
         gowri_nalla_neram=gowri_nalla_neram,
         abhijit_start=abhijit_start,

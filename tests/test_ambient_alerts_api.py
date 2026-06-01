@@ -9,40 +9,21 @@ from app.db.session import SessionLocal
 from app.models import BirthProfile, Chart, PeyarchiAlert, RelationshipAlert
 
 
-def _family_vault_payload(name: str = "Arjun Family"):
-    return {"name": name, "defaultLanguage": "ta-en"}
-
-
-def _family_member_payload(display_name: str):
-    return {
-        "relationshipToOwner": "self" if display_name == "Arjun Kumar" else "spouse",
-        "displayName": display_name,
-        "birthDateLocal": "1991-07-22",
-        "birthTimeLocal": "06:30:00",
-        "birthPlace": "Chennai, Tamil Nadu, India",
-        "birthLatitude": 13.0827,
-        "birthLongitude": 80.2707,
-        "birthTimezone": "Asia/Kolkata",
-        "calculateNow": True,
-        "memberWeight": 1.0,
-    }
-
-
-def _create_family_with_two_members(client) -> tuple[str, str, str]:
-    vault = client.post("/api/v1/family-vaults", json=_family_vault_payload())
+def _create_family_with_two_members(client, family_vault_payload_factory, family_member_payload_factory) -> tuple[str, str, str]:
+    vault = client.post("/api/v1/family-vaults", json=family_vault_payload_factory())
     assert vault.status_code == 200
     family_vault_id = vault.json()["data"]["familyVaultId"]
 
     self_member = client.post(
         f"/api/v1/family-vaults/{family_vault_id}/members",
-        json=_family_member_payload("Arjun Kumar"),
+        json=family_member_payload_factory(display_name="Arjun Kumar", relationship_to_owner="self"),
     )
     assert self_member.status_code == 200
     self_member_id = self_member.json()["data"]["familyMemberId"]
 
     spouse_member = client.post(
         f"/api/v1/family-vaults/{family_vault_id}/members",
-        json=_family_member_payload("Anitha"),
+        json=family_member_payload_factory(display_name="Anitha"),
     )
     assert spouse_member.status_code == 200
     spouse_member_id = spouse_member.json()["data"]["familyMemberId"]
@@ -61,8 +42,12 @@ def _latest_chart_for_member(member_id: str) -> UUID:
     return row[0]
 
 
-def test_ambient_alerts_threshold_suppresses_low_signal(client):
-    family_vault_id, self_member_id, spouse_member_id = _create_family_with_two_members(client)
+def test_ambient_alerts_threshold_suppresses_low_signal(client, family_vault_payload_factory, family_member_payload_factory):
+    family_vault_id, self_member_id, spouse_member_id = _create_family_with_two_members(
+        client,
+        family_vault_payload_factory,
+        family_member_payload_factory,
+    )
     self_chart_id = _latest_chart_for_member(self_member_id)
 
     with SessionLocal() as session:
@@ -115,8 +100,16 @@ def test_ambient_alerts_threshold_suppresses_low_signal(client):
     assert all(item["significanceScore"] >= 75 for item in body["items"])
 
 
-def test_ambient_alerts_unread_only_excludes_read_relationship_alerts(client):
-    family_vault_id, _self_member_id, spouse_member_id = _create_family_with_two_members(client)
+def test_ambient_alerts_unread_only_excludes_read_relationship_alerts(
+    client,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+):
+    family_vault_id, _self_member_id, spouse_member_id = _create_family_with_two_members(
+        client,
+        family_vault_payload_factory,
+        family_member_payload_factory,
+    )
     with SessionLocal() as session:
         with session.begin():
             session.add(

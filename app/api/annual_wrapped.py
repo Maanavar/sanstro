@@ -18,8 +18,9 @@ router = APIRouter()
 @router.get("/charts/{chart_id}/annual-wrapped", response_model=AnnualWrappedResponse, tags=["wrapped"])
 def get_annual_wrapped(
     chart_id: UUID,
-    year: int = Query(default_factory=lambda: datetime.now(UTC).year),
+    year: int | None = Query(default=None),
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> AnnualWrappedResponse:
-    return compute_annual_wrapped(session, chart_id, current_user.user_id, year)
+    resolved_year = year or datetime.now(UTC).year
+    return compute_annual_wrapped(session, chart_id, current_user.user_id, resolved_year)

@@ -46,7 +46,6 @@ def get_notification_preferences(
     current_user: User = Depends(get_current_user),
 ) -> NotificationPreferenceResponse:
     pref = get_or_create_preferences(session, current_user.user_id)
-    session.commit()
     return _to_response(pref)
 
 
@@ -93,7 +92,7 @@ def update_notification_preferences(
     if payload.smart_silence_enabled is not None:
         pref.smart_silence_enabled = payload.smart_silence_enabled
 
-    session.commit()
+    session.flush()
     return _to_response(pref)
 
 
@@ -109,8 +108,8 @@ def update_fcm_token(
     current_user: User = Depends(get_current_user),
 ) -> NotificationPreferenceResponse:
     pref = get_or_create_preferences(session, current_user.user_id)
-    pref.fcm_device_token = payload.fcm_device_token
-    session.commit()
+    pref.fcm_device_token = payload.resolved_token()
+    session.flush()
     return _to_response(pref)
 
 
@@ -126,5 +125,5 @@ def delete_fcm_token(
 ) -> NotificationPreferenceResponse:
     pref = get_or_create_preferences(session, current_user.user_id)
     pref.fcm_device_token = None
-    session.commit()
+    session.flush()
     return _to_response(pref)

@@ -16,22 +16,8 @@ from app.services.peyarchi_alert_service import (
 )
 
 
-def _birth_profile_payload() -> dict[str, object]:
-    return {
-        "ownerUserId": "11111111-1111-1111-1111-111111111111",
-        "displayName": "Arjun Kumar",
-        "birthDateLocal": "1991-07-22",
-        "birthTimeLocal": "06:30:00",
-        "birthPlace": "Chennai, Tamil Nadu, India",
-        "birthLatitude": 13.0827,
-        "birthLongitude": 80.2707,
-        "birthTimezone": "Asia/Kolkata",
-        "calculateNow": True,
-    }
-
-
-def _create_chart(client) -> str:
-    created = client.post("/api/v1/birth-profiles", json=_birth_profile_payload())
+def _create_chart(client, birth_profile_payload_factory) -> str:
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory())
     assert created.status_code == 200
     birth_profile_id = created.json()["data"]["birthProfileId"]
 
@@ -47,8 +33,8 @@ def _create_chart(client) -> str:
     return chart.json()["data"]["chartId"]
 
 
-def test_refresh_peyarchi_alerts_inserts_upcoming_alerts(client):
-    chart_id = UUID(_create_chart(client))
+def test_refresh_peyarchi_alerts_inserts_upcoming_alerts(client, birth_profile_payload_factory):
+    chart_id = UUID(_create_chart(client, birth_profile_payload_factory))
 
     with SessionLocal() as session:
         with session.begin():
@@ -62,8 +48,8 @@ def test_refresh_peyarchi_alerts_inserts_upcoming_alerts(client):
         assert {alert.planet for alert in alerts} == {"SATURN", "JUPITER", "RAHU", "KETU"}
 
 
-def test_get_pending_notifications_and_mark_notified(client):
-    chart_id = UUID(_create_chart(client))
+def test_get_pending_notifications_and_mark_notified(client, birth_profile_payload_factory):
+    chart_id = UUID(_create_chart(client, birth_profile_payload_factory))
 
     with SessionLocal() as session:
         with session.begin():
@@ -91,8 +77,8 @@ def test_get_pending_notifications_and_mark_notified(client):
         assert all(item.alert_id != jupiter.alert_id for item in pending_after)
 
 
-def test_day_of_does_not_also_fire_1d(client):
-    chart_id = UUID(_create_chart(client))
+def test_day_of_does_not_also_fire_1d(client, birth_profile_payload_factory):
+    chart_id = UUID(_create_chart(client, birth_profile_payload_factory))
 
     with SessionLocal() as session:
         with session.begin():
@@ -113,8 +99,8 @@ def test_day_of_does_not_also_fire_1d(client):
         assert pending[0].due_tiers == ("day_of",)
 
 
-def test_admin_run_peyarchi_refresh_endpoint(client):
-    _create_chart(client)
+def test_admin_run_peyarchi_refresh_endpoint(client, birth_profile_payload_factory):
+    _create_chart(client, birth_profile_payload_factory)
     response = client.post("/api/v1/admin/run-peyarchi-refresh")
     assert response.status_code == 200
     body = response.json()
@@ -122,8 +108,8 @@ def test_admin_run_peyarchi_refresh_endpoint(client):
     assert body["notifications_marked"] >= 0
 
 
-def test_daily_refresh_does_not_mark_failed_email_notification(client, monkeypatch):
-    chart_id = UUID(_create_chart(client))
+def test_daily_refresh_does_not_mark_failed_email_notification(client, monkeypatch, birth_profile_payload_factory):
+    chart_id = UUID(_create_chart(client, birth_profile_payload_factory))
     run_at_utc = datetime(2026, 5, 22, 3, 0, tzinfo=UTC)
 
     with SessionLocal() as session:
@@ -166,8 +152,8 @@ def test_daily_refresh_does_not_mark_failed_email_notification(client, monkeypat
         assert alert.notified_day_of is False
 
 
-def test_daily_refresh_marks_successful_email_notification(client, monkeypatch):
-    chart_id = UUID(_create_chart(client))
+def test_daily_refresh_marks_successful_email_notification(client, monkeypatch, birth_profile_payload_factory):
+    chart_id = UUID(_create_chart(client, birth_profile_payload_factory))
     run_at_utc = datetime(2026, 5, 22, 3, 0, tzinfo=UTC)
 
     with SessionLocal() as session:

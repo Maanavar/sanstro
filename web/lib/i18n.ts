@@ -152,7 +152,7 @@ const STRINGS = {
   personal_desc:      { ta: "தசா, பஞ்சாங்கம், கோசார தரவு", en: "Dasa, Panchangam, Gochar data" },
   personal_today:     { ta: "இன்று",            en: "Today" },
   personal_you:       { ta: "நீங்கள்",           en: "You" },
-  chandrashtama_warning: { ta: "⚠ சந்திராஷ்டமம் — Chandran ஜன்ம நட்சத்திரத்திலிருந்து 8ஆம் நட்சத்திரத்தில் உள்ளது. முக்கிய முடிவுகளை தவிர்க்கவும்.", en: "⚠ Chandrashtamam — Moon is in the 8th nakshatra from your birth star. Avoid important decisions." },
+  chandrashtama_warning: { ta: "⚠ சந்திராஷ்டமம் — சந்திரன் உங்கள் ஜென்ம ராசியிலிருந்து 8ஆம் ராசியில் உள்ளது. முக்கிய முடிவுகளை தவிர்க்கவும்.", en: "⚠ Chandrashtamam — Moon is in the 8th rasi from your natal Moon sign. Avoid important decisions." },
 
   // ── Chart context surface
   surface_chart_context: { ta: "ஜாதக சுருக்கம்", en: "Chart context" },
@@ -420,6 +420,16 @@ const STRINGS = {
   disclaimer_no_doom:  { ta: "இந்தப் பயன்பாடு அச்சுறுத்தல், மோசமான சகுனம், அல்லது உறுதிப்படுத்தப்பட்ட தோல்வி பற்றி எந்த வார்த்தையும் பயன்படுத்துவதில்லை.", en: "This app never uses fear, doom language, or guaranteed negative predictions." },
   privacy_link:        { ta: "தனியுரிமை கொள்கை",   en: "Privacy policy" },
   terms_link:          { ta: "சேவை விதிமுறைகள்",   en: "Terms of service" },
+
+  // Account deletion
+  danger_zone_title:        { ta: "ஆபத்து மண்டலம்",                          en: "Danger zone" },
+  delete_account_label:     { ta: "கணக்கை நிரந்தரமாக நீக்கு",                en: "Delete account permanently" },
+  delete_account_warning:   { ta: "இந்தச் செயல் திரும்பப்பெற முடியாது. உங்கள் அனைத்து ஜாதகங்கள், குடும்பத் தரவு மற்றும் வரலாறு அழிக்கப்படும்.", en: "This cannot be undone. All your birth profiles, family data, and history will be permanently erased." },
+  delete_account_confirm_prompt: { ta: "உறுதிப்படுத்த கீழே உள்ள பொத்தானை அழுத்தவும்:", en: "Press the button below to confirm:" },
+  delete_account_confirm_btn:    { ta: "ஆம், என் கணக்கை நிரந்தரமாக நீக்கு",  en: "Yes, permanently delete my account" },
+  delete_account_deleting:       { ta: "நீக்குகிறது…",                          en: "Deleting…" },
+  delete_account_btn:            { ta: "கணக்கை நீக்கு",                         en: "Delete account" },
+  delete_account_cancel:         { ta: "ரத்து",                                  en: "Cancel" },
 
   // ── Goals panel
   goals_panel_title:   { ta: "என் இலக்குகள்",          en: "My Goals" },
@@ -728,14 +738,6 @@ const STRINGS = {
   retro_approx_date:       { ta: "தோராயமான தேதி",               en: "Approximate date" },
   retro_intensity:         { ta: "தீவிரம்",                     en: "Intensity" },
   retro_empty:             { ta: "நிகழ்வை உள்ளிட்டு பின்னோக்கு ஆய்வை தொடங்கவும்.", en: "Enter an event above to start retrospective analysis." },
-  retro_event_career:      { ta: "தொழில்",                      en: "Career" },
-  retro_event_health:      { ta: "உடல்நலம்",                    en: "Health" },
-  retro_event_relationship:{ ta: "உறவு",                        en: "Relationship" },
-  retro_event_finance:     { ta: "பணம்",                        en: "Finance" },
-  retro_event_family:      { ta: "குடும்பம்",                   en: "Family" },
-  retro_event_travel:      { ta: "பயணம்",                       en: "Travel" },
-  retro_event_spiritual:   { ta: "ஆன்மிகம்",                   en: "Spiritual" },
-  retro_event_other:       { ta: "மற்றவை",                      en: "Other" },
   retro_intensity_similar: { ta: "இதே போல்",                   en: "Similar" },
   retro_intensity_milder:  { ta: "குறைவான",                     en: "Milder" },
   retro_intensity_stronger:{ ta: "அதிகமான",                    en: "Stronger" },
@@ -797,7 +799,6 @@ const STRINGS = {
 
   // ── P1-C: Ask Vinaadi
   ask_placeholder:         { ta: "ஒரு கேள்வி கேளுங்கள்...",   en: "Ask a question..." },
-  ask_based_on:            { ta: "இதை அடிப்படையாகக் கொண்டு",  en: "Based on" },
   ask_submit:              { ta: "கேள்",                        en: "Ask" },
   ask_submitting:          { ta: "கேட்கிறது…",                 en: "Asking…" },
   ask_low_confidence:      { ta: "பிறந்த நேரம் திட்டமற்றது — லக்கன வாசிப்புகள் மாறலாம்", en: "Birth time estimated — Lagna readings may vary" },
@@ -820,7 +821,6 @@ const STRINGS = {
   life_events_medium:      { ta: "நடுத்தர நம்பகத்தன்மை",       en: "Moderate confidence" },
   life_events_low:         { ta: "சாத்தியமான",                 en: "Potential" },
   life_events_empty:       { ta: "வாழ்க்கை சாளரங்கள் கணக்கிடுகிறது…", en: "Computing life windows…" },
-  life_events_aware:       { ta: "கவனிக்கத்தக்கது",            en: "Worth being aware of" },
 
   // ── P1-E: Muhurta picker
   muhurta_title:           { ta: "சுப நேரம் தேடு",             en: "Find auspicious time" },
@@ -1004,33 +1004,35 @@ const KARANA_NAMES: Record<string, { ta: string; en: string }> = {
 
 type PanchangamNameMap = Record<string, { ta: string; en: string }>;
 
-function _lookupName(map: PanchangamNameMap, key: string, lang: Lang): string {
-  const entry = map[key.toUpperCase()];
-  if (!entry) return key; // fallback: return the raw key unchanged
+function _lookupName(map: PanchangamNameMap, key: string | null | undefined, lang: Lang): string {
+  const rawKey = typeof key === "string" ? key.trim() : "";
+  if (!rawKey) return "";
+  const entry = map[rawKey.toUpperCase()];
+  if (!entry) return rawKey; // fallback: return the raw key unchanged
   return entry[lang];
 }
 
-export function tTithi(key: string, lang: Lang): string {
+export function tTithi(key: string | null | undefined, lang: Lang): string {
   return _lookupName(TITHI_NAMES, key, lang);
 }
 
-export function tNakshatra(key: string, lang: Lang): string {
+export function tNakshatra(key: string | null | undefined, lang: Lang): string {
   return _lookupName(NAKSHATRA_NAMES, key, lang);
 }
 
-export function tWeekday(key: string, lang: Lang): string {
+export function tWeekday(key: string | null | undefined, lang: Lang): string {
   return _lookupName(WEEKDAY_NAMES, key, lang);
 }
 
-export function tPlanetLord(key: string, lang: Lang): string {
+export function tPlanetLord(key: string | null | undefined, lang: Lang): string {
   return _lookupName(PLANET_LORDS, key, lang);
 }
 
-export function tYoga(key: string, lang: Lang): string {
+export function tYoga(key: string | null | undefined, lang: Lang): string {
   return _lookupName(YOGA_NAMES, key, lang);
 }
 
-export function tKarana(key: string, lang: Lang): string {
+export function tKarana(key: string | null | undefined, lang: Lang): string {
   return _lookupName(KARANA_NAMES, key, lang);
 }
 

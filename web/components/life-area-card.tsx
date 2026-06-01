@@ -82,9 +82,26 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "var(--space-2_5)" }}>
-        <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-          {tLang(area.label, lang)}
-        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
+          <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+            {tLang(area.label, lang)}
+          </p>
+          {area.isGoalFocus && (
+            <span
+              style={{
+                fontSize: "0.625rem",
+                fontWeight: 700,
+                padding: "2px 8px",
+                borderRadius: "999px",
+                background: "#F0D9C4",
+                color: "#8C3E18",
+                border: "1px solid rgba(184,90,44,0.3)",
+              }}
+            >
+              {lang === "ta" ? "உங்கள் இலக்கு" : "Your focus"}
+            </span>
+          )}
+        </div>
         <span style={{ fontSize: "0.625rem", fontWeight: 700, color: trendColor, letterSpacing: "0.06em" }}>{trendLabel}</span>
       </div>
 

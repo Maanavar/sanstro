@@ -122,7 +122,8 @@ def _dignity_score(planet: str, natal_rasi: int, natal_longitude: float) -> int:
 
 
 def _avastha_multiplier(natal_longitude: float) -> float:
-    """Bala Avastha based on degree within sign (0-30)."""
+    # Custom bell-curve approximation; not classical Baladi Avastha.
+    # Classical Baladi uses odd/even sign + 6-degree zones (Bala/Kumara/Yuva/Vriddha/Mrita).
     deg = natal_longitude % 30
     if deg < 6:
         return 0.25

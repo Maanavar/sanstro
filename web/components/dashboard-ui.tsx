@@ -2,7 +2,7 @@
 
 
 import { useState } from "react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { TN_CITIES } from "@/lib/tn-cities";
 import type { CityEntry } from "@/lib/tn-cities";
@@ -40,8 +40,23 @@ export function Button({
   children: ReactNode; onClick?: () => void; type?: "button" | "submit";
   variant?: "primary" | "secondary" | "ghost"; disabled?: boolean; title?: string;
 }) {
+  const variantStyles: Record<"primary" | "secondary" | "ghost", CSSProperties> = {
+    primary: { background: "#B85A2C", color: "#FAF5EA", border: "1.5px solid #B85A2C" },
+    secondary: { background: "transparent", color: "#3D352B", border: "1.5px solid #D4C8AE" },
+    ghost: { background: "transparent", color: "#B85A2C", border: "1.5px solid rgba(184,90,44,0.4)" },
+  };
+  const fallbackStyle: CSSProperties = {
+    padding: "8px 20px",
+    borderRadius: "10px",
+    fontWeight: variant === "primary" ? 700 : 600,
+    fontSize: "0.875rem",
+    cursor: disabled ? "not-allowed" : "pointer",
+    fontFamily: "inherit",
+    opacity: disabled ? 0.55 : 1,
+    ...variantStyles[variant],
+  };
   return (
-    <button className={`button button--${variant}`} type={type} onClick={onClick} disabled={disabled} title={title}>
+    <button className={`button button--${variant}`} style={fallbackStyle} type={type} onClick={onClick} disabled={disabled} title={title}>
       {children}
     </button>
   );
@@ -130,8 +145,8 @@ export function PlaceCombobox({ value, onChange }: { value: string; onChange: (c
           padding: "4px 0", listStyle: "none",
           boxShadow: "0 8px 24px rgba(26,22,18,0.12)",
         }}>
-          {filtered.slice(0, 40).map((city) => (
-            <li key={city.name} onMouseDown={() => select(city)}
+          {filtered.slice(0, 40).map((city, idx) => (
+            <li key={`${city.name}-${idx}`} onMouseDown={() => select(city)}
               style={{ padding: "9px 14px", cursor: "pointer", fontSize: "0.875rem", color: "#3D352B", fontFamily: "inherit" }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#F4EEE2"; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}>

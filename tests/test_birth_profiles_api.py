@@ -1,5 +1,5 @@
-import time
 import json
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from app.core.encryption import decrypt_bytes
@@ -95,7 +95,12 @@ def test_birth_profile_me_latest_returns_latest_profile_for_current_user(client)
             "calculateNow": True,
         },
     ).json()
-    time.sleep(1.1)
+    first_birth_profile_id = first["data"]["birthProfileId"]
+    with SessionLocal() as session:
+        profile = session.get(BirthProfile, UUID(first_birth_profile_id))
+        assert profile is not None
+        profile.created_at = datetime.now(UTC) - timedelta(days=1)
+        session.commit()
     second = client.post(
         "/api/v1/birth-profiles",
         json={

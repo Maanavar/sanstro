@@ -2,6 +2,8 @@
 
 import type { FormEvent } from "react";
 import { useState } from "react";
+import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
+import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { FamilyVaultListItem, FamilyAggregateMember } from "@/lib/types";
@@ -24,6 +26,10 @@ export type BirthFormState = {
   birthLatitude: string;
   birthLongitude: string;
   birthTimezone: string;
+  currentPlace: string;
+  currentLatitude: string;
+  currentLongitude: string;
+  currentTimezone: string;
   relationshipToOwner: Relationship;
   calculateNow: boolean;
   maritalStatus: string;
@@ -47,6 +53,10 @@ export type MemberFormState = {
   birthLatitude: string;
   birthLongitude: string;
   birthTimezone: string;
+  currentPlace: string;
+  currentLatitude: string;
+  currentLongitude: string;
+  currentTimezone: string;
   memberWeight: string;
   calculateNow: boolean;
 };
@@ -250,6 +260,7 @@ export function DashboardSetupTab({
   userMode = "BALANCED",
   onModeChange,
 }: DashboardSetupTabProps) {
+  const { nextBirthDateOrCurrent, applyPlaceSelection } = useBirthProfileForm();
   const setupStep: 1 | 2 | 3 = !birthProfileId ? 1 : !selectedVaultId ? 2 : 3;
   const setupComplete = !!birthProfileId && !!selectedVaultId;
   const [showRectWizard, setShowRectWizard] = useState(false);
@@ -443,8 +454,14 @@ export function DashboardSetupTab({
                   </WSelect>
                 </WField>
                 <WField label={t("field_birth_date", lang)} error={formErrors.birthDateLocal}>
-                  <WInput type="date" value={birthForm.birthDateLocal} error={!!formErrors.birthDateLocal}
-                    onChange={(e) => { onBirthFormChange({ ...birthForm, birthDateLocal: e.target.value }); onFormErrorChange({ birthDateLocal: "" }); }}
+                  <WInput type="date" value={birthForm.birthDateLocal} error={!!formErrors.birthDateLocal} min={MIN_BIRTH_DATE} max={maxBirthDateIso()}
+                    onChange={(e) => {
+                        onBirthFormChange({
+                          ...birthForm,
+                          birthDateLocal: nextBirthDateOrCurrent(birthForm.birthDateLocal, e.target.value),
+                        });
+                      onFormErrorChange({ birthDateLocal: "" });
+                    }}
                   />
                 </WField>
                 <WField label={t("field_birth_time", lang)} hint={t("field_time_optional", lang)}>
@@ -468,7 +485,7 @@ export function DashboardSetupTab({
                 <WField label={t("field_birth_place", lang)} hint={t("field_place_helper", lang)} error={formErrors.birthPlace}>
                   <PlaceCombobox value={birthForm.birthPlace}
                     onChange={(city, raw) => {
-                      onBirthFormChange({ ...birthForm, birthPlace: raw, ...(city ? { birthLatitude: city.lat, birthLongitude: city.lng, birthTimezone: city.timezone } : {}) });
+                      onBirthFormChange(applyPlaceSelection(birthForm, city, raw));
                       onFormErrorChange({ birthPlace: "", birthTimezone: "" });
                     }} />
                 </WField>
@@ -677,8 +694,14 @@ export function DashboardSetupTab({
                     </WSelect>
                   </WField>
                   <WField label={t("field_birth_date", lang)} error={formErrors.memberBirthDate}>
-                    <WInput type="date" value={memberForm.birthDateLocal} error={!!formErrors.memberBirthDate}
-                      onChange={(e) => { onMemberFormChange({ ...memberForm, birthDateLocal: e.target.value }); onFormErrorChange({ memberBirthDate: "" }); }} />
+                    <WInput type="date" value={memberForm.birthDateLocal} error={!!formErrors.memberBirthDate} min={MIN_BIRTH_DATE} max={maxBirthDateIso()}
+                      onChange={(e) => {
+                        onMemberFormChange({
+                          ...memberForm,
+                          birthDateLocal: nextBirthDateOrCurrent(memberForm.birthDateLocal, e.target.value),
+                        });
+                        onFormErrorChange({ memberBirthDate: "" });
+                      }} />
                   </WField>
                   <WField label={t("field_birth_time", lang)} hint={t("field_time_optional", lang)}>
                     <WInput type="time" step="1" value={memberForm.birthTimeLocal}
@@ -687,7 +710,7 @@ export function DashboardSetupTab({
                   <WField label={t("field_birth_place", lang)} error={formErrors.memberBirthPlace}>
                     <PlaceCombobox value={memberForm.birthPlace}
                       onChange={(city, raw) => {
-                        onMemberFormChange({ ...memberForm, birthPlace: raw, ...(city ? { birthLatitude: city.lat, birthLongitude: city.lng, birthTimezone: city.timezone } : {}) });
+                        onMemberFormChange(applyPlaceSelection(memberForm, city, raw));
                         onFormErrorChange({ memberBirthPlace: "", memberTimezone: "" });
                       }} />
                   </WField>

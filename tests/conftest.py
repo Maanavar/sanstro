@@ -138,3 +138,61 @@ def raw_client() -> TestClient:
     _reset_db()
     with TestClient(app, raise_server_exceptions=False) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def birth_profile_payload_factory():
+    def _build(
+        *,
+        owner_user_id: str = "11111111-1111-1111-1111-111111111111",
+        display_name: str = "Arjun Kumar",
+        calculate_now: bool = True,
+    ) -> dict:
+        return {
+            "ownerUserId": owner_user_id,
+            "displayName": display_name,
+            "birthDateLocal": "1991-07-22",
+            "birthTimeLocal": "06:30:00",
+            "birthPlace": "Chennai, Tamil Nadu, India",
+            "birthLatitude": 13.0827,
+            "birthLongitude": 80.2707,
+            "birthTimezone": "Asia/Kolkata",
+            "calculateNow": calculate_now,
+        }
+
+    return _build
+
+
+@pytest.fixture
+def family_vault_payload_factory():
+    def _build(name: str = "Arjun Family") -> dict:
+        return {"name": name, "defaultLanguage": "ta-en"}
+
+    return _build
+
+
+@pytest.fixture
+def family_member_payload_factory():
+    def _build(
+        *,
+        display_name: str,
+        owner_user_id: str = "11111111-1111-1111-1111-111111111111",
+        relationship_to_owner: str = "spouse",
+        calculate_now: bool = True,
+        member_weight: float = 1.0,
+    ) -> dict:
+        return {
+            "ownerUserId": owner_user_id,
+            "relationshipToOwner": relationship_to_owner,
+            "displayName": display_name,
+            "birthDateLocal": "1991-07-22",
+            "birthTimeLocal": "06:30:00",
+            "birthPlace": "Chennai, Tamil Nadu, India",
+            "birthLatitude": 13.0827,
+            "birthLongitude": 80.2707,
+            "birthTimezone": "Asia/Kolkata",
+            "calculateNow": calculate_now,
+            "memberWeight": member_weight,
+        }
+
+    return _build

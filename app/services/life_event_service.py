@@ -116,6 +116,10 @@ def _confidence(signal_count: int) -> Literal["HIGH", "MEDIUM", "LOW"]:
     return "LOW"
 
 
+def _compute_age(on_date: date, birth_date: date) -> int:
+    return on_date.year - birth_date.year - ((on_date.month, on_date.day) < (birth_date.month, birth_date.day))
+
+
 # ── Per-event window finders ──────────────────────────────────────────────────
 
 def _marriage_windows(lagna_rasi: int, birth_jd: float, moon_lon: float, from_year: int, to_year: int) -> list[dict]:
@@ -470,15 +474,30 @@ def get_life_event_windows(
     natal_moon = next(p for p in chart_snapshot.data.planets if p.graha == "MOON")
     lagna_rasi = chart_snapshot.data.lagna.rasi
     birth_jd = chart_snapshot.data.julian_day
+    birth_profile = chart_snapshot.data.birth_profile
+    native_age = _compute_age(as_of_date, birth_profile.birth_date_local)
+    marital_status = (getattr(birth_profile, "marital_status", None) or "").strip().lower()
+    employment_type = (getattr(birth_profile, "employment_type", None) or "").strip().lower()
+    is_student = employment_type == "student"
+    is_retired = employment_type == "retired"
 
     from_year = as_of_date.year
     to_year = as_of_date.year + max(1, min(years_ahead, 10))
 
     raw: list[dict] = []
-    raw.extend(_marriage_windows(lagna_rasi, birth_jd, natal_moon.absolute_longitude, from_year, to_year))
-    raw.extend(_career_windows(lagna_rasi, birth_jd, natal_moon.absolute_longitude, from_year, to_year))
-    raw.extend(_studies_windows(lagna_rasi, birth_jd, natal_moon.absolute_longitude, from_year, to_year))
-    raw.extend(_relocation_windows(lagna_rasi, birth_jd, natal_moon.absolute_longitude, from_year, to_year))
+    allow_marriage = native_age >= 18 and marital_status != "married"
+    allow_career = native_age >= 18 and not is_student and not is_retired
+    allow_studies = native_age <= 25 or is_student
+    allow_relocation = native_age >= 18
+
+    if allow_marriage:
+        raw.extend(_marriage_windows(lagna_rasi, birth_jd, natal_moon.absolute_longitude, from_year, to_year))
+    if allow_career:
+        raw.extend(_career_windows(lagna_rasi, birth_jd, natal_moon.absolute_longitude, from_year, to_year))
+    if allow_studies:
+        raw.extend(_studies_windows(lagna_rasi, birth_jd, natal_moon.absolute_longitude, from_year, to_year))
+    if allow_relocation:
+        raw.extend(_relocation_windows(lagna_rasi, birth_jd, natal_moon.absolute_longitude, from_year, to_year))
     raw.extend(_health_caution_windows(lagna_rasi, birth_jd, natal_moon.absolute_longitude, from_year, to_year))
 
     windows: list[LifeEventWindow] = []

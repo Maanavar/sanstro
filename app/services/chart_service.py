@@ -667,6 +667,19 @@ def _birth_profile_response(
         birth_latitude=float(_value(profile, "birth_latitude")),
         birth_longitude=float(_value(profile, "birth_longitude")),
         birth_timezone=_value(profile, "birth_timezone"),
+        current_place=_value(profile, "current_place"),
+        current_latitude=(
+            float(_value(profile, "current_latitude"))
+            if _value(profile, "current_latitude") is not None
+            else None
+        ),
+        current_longitude=(
+            float(_value(profile, "current_longitude"))
+            if _value(profile, "current_longitude") is not None
+            else None
+        ),
+        current_timezone=_value(profile, "current_timezone"),
+        current_location_updated_at=_value(profile, "current_location_updated_at"),
         birth_time_source=_value(profile, "birth_time_source", "unknown"),
         birth_time_confidence_minutes=int(_value(profile, "birth_time_confidence_minutes", 0) or 0),
         calendar_input_type=_value(profile, "calendar_input_type", "gregorian"),
@@ -817,6 +830,16 @@ def create_birth_profile_record(
     birth_datetime_utc = None
     if _value(profile, "birth_time_local") is not None or _value(profile, "birth_datetime_utc") is not None:
         birth_datetime_utc = _birth_datetime_utc(profile)
+    current_place = getattr(profile, "current_place", None)
+    current_latitude = getattr(profile, "current_latitude", None)
+    current_longitude = getattr(profile, "current_longitude", None)
+    current_timezone = getattr(profile, "current_timezone", None)
+    current_location_updated_at = getattr(profile, "current_location_updated_at", None)
+    if (
+        current_location_updated_at is None
+        and (current_place or current_latitude is not None or current_longitude is not None or current_timezone)
+    ):
+        current_location_updated_at = datetime.now(tz=UTC)
     sensitive = {
         "birth_latitude": float(profile.birth_latitude),
         "birth_longitude": float(profile.birth_longitude),
@@ -834,6 +857,11 @@ def create_birth_profile_record(
         birth_latitude=profile.birth_latitude,
         birth_longitude=profile.birth_longitude,
         birth_timezone=profile.birth_timezone,
+        current_place=current_place,
+        current_latitude=current_latitude,
+        current_longitude=current_longitude,
+        current_timezone=current_timezone,
+        current_location_updated_at=current_location_updated_at,
         birth_time_source=profile.birth_time_source,
         birth_time_confidence_minutes=profile.birth_time_confidence_minutes,
         calendar_input_type=profile.calendar_input_type,
@@ -894,7 +922,9 @@ def calculate_chart_for_persisted_profile(
                 Chart.birth_profile_id == persisted_profile_id,
                 Chart.calculation_version == calculation_version,
             )
-        ).scalar_one_or_none()
+            .order_by(Chart.created_at.desc())
+            .limit(1)
+        ).scalars().first()
         if existing_chart is not None:
             return load_persisted_chart_response(session, existing_chart.chart_id)
 

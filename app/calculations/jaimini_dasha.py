@@ -116,3 +116,40 @@ def current_chara_dasha(
         if period["start_date"] <= today < period["end_date"]:
             return period
     return None
+
+
+def calculate_chara_antardasha(
+    lagna_rasi: int,
+    main_period: dict,
+) -> list[dict]:
+    """
+    Sub-periods (Antardasha) within a Jaimini Chara Dasha main period.
+    Each of the 12 sub-periods has equal duration = main_period_years / 12.
+    Sub-period sequence starts from the main period's rasi, same odd/even direction as lagna.
+    """
+    from datetime import timedelta
+
+    main_rasi = main_period["rasi"]
+    main_years = main_period["years"]
+    sub_duration_days = (main_years * 365.25) / 12
+
+    if lagna_rasi % 2 == 1:
+        full_order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    else:
+        full_order = [1, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]
+
+    start_idx = full_order.index(main_rasi)
+    rasi_order = full_order[start_idx:] + full_order[:start_idx]
+
+    periods: list[dict] = []
+    current = main_period["start_date"]
+    for rasi in rasi_order:
+        end_dt = current + timedelta(days=sub_duration_days)
+        periods.append({
+            "rasi": rasi,
+            "rasi_name": RASI_NAMES.get(rasi, str(rasi)),
+            "start_date": current,
+            "end_date": end_dt,
+        })
+        current = end_dt
+    return periods

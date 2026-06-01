@@ -233,11 +233,13 @@ export function ShareCardButton({ chartId, cardType, lang, date, label }: ShareC
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const W = 400, H = 220;
 
   async function handleShare() {
     setLoading(true);
+    setError(null);
     try {
       const resp = await apiFetchJson<ApiEnvelope<ShareCardData>>(
         `/api/v1/charts/${chartId}/share-card${toQuery({ type: cardType, date: date ?? todayIso() })}`
@@ -274,7 +276,7 @@ export function ShareCardButton({ chartId, cardType, lang, date, label }: ShareC
       a.download = `vinaadi-${cardType.toLowerCase()}.png`;
       a.click();
     } catch {
-      // fail silently
+      setError(lang === "ta" ? "பகிர்வு தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும்." : "Share card generation failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -346,6 +348,9 @@ export function ShareCardButton({ chartId, cardType, lang, date, label }: ShareC
             </div>
           </div>
         </div>
+      )}
+      {error && (
+        <p style={{ margin: "6px 0 0", fontSize: "0.75rem", color: "var(--color-score-low, #A8482F)" }}>{error}</p>
       )}
     </>
   );

@@ -30,9 +30,9 @@ from app.calculations.panchangam import (
     calculate_daily_panchangam,
 )
 from app.models import BirthProfile, Chart
-from app.schemas.dasha import ResponseMeta
-from app.schemas.muhurta import BiText, MuhurtaResponse, MuhurtaResponseData, MuhurtaSlot
+from app.schemas.muhurta import BiText, MuhurtaResponse, MuhurtaResponseData, MuhurtaSlot, ResponseMeta
 from app.services.chart_service import load_persisted_chart_response
+from app.services.location_service import resolve_effective_daily_location
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +48,7 @@ _ACTIVITY_LORDS: dict[str, set[str]] = {
     "INVESTMENT":  {"JUPITER", "VENUS", "MERCURY"},
     "MEDICAL":     {"SUN", "MOON"},
     "PURCHASE":    {"VENUS", "JUPITER", "MERCURY"},
+    "SPIRITUAL":   {"JUPITER", "SUN", "MOON"},
 }
 
 # Activity → house numbers to check for dasha support
@@ -59,11 +60,61 @@ _ACTIVITY_HOUSES: dict[str, list[int]] = {
     "INVESTMENT": [2, 11],
     "MEDICAL":    [1, 6],
     "PURCHASE":   [2, 11],
+    "SPIRITUAL":  [9, 5],
 }
+
+
+_SIGN_LORDS = {
+    1: "MARS", 2: "VENUS", 3: "MERCURY", 4: "MOON", 5: "SUN", 6: "MERCURY",
+    7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
+}
+
+_GURU_ALIAS = {"GURU": "JUPITER", "SANI": "SATURN"}
 
 
 def _t(ta: str, en: str) -> BiText:
     return BiText(ta=ta, en=en)
+
+
+def _norm(lord: str) -> str:
+    return _GURU_ALIAS.get(lord, lord)
+
+
+def _activity_hora_lords(activity: str, lagna_rasi: int) -> set[str]:
+    """
+    Personal hora lords for a given activity and chart.
+    = activity generic lords ∪ lords of activity-relevant houses for this lagna.
+    """
+    generic = set(_ACTIVITY_LORDS.get(activity, set()))
+    for house_offset in _ACTIVITY_HOUSES.get(activity, []):
+        house_rasi = ((lagna_rasi - 1 + house_offset - 1) % 12) + 1
+        generic.add(_norm(_SIGN_LORDS[house_rasi]))
+    return generic
+
+
+def _score_hora(snap, activity: str, lagna_rasi: int) -> tuple[float, BiText | None]:
+    """
+    Return (bonus_score, hora_support_text).
+    Checks daytime horas for activity-relevant lords personalized to this chart.
+    Lagna lord hora gets an extra +5 on top of the base +8.
+    """
+    target_lords = _activity_hora_lords(activity, lagna_rasi)
+    lagna_lord = _norm(_SIGN_LORDS[lagna_rasi])
+
+    for entry in snap.hora[:12]:
+        lord = _norm(entry.lord)
+        if lord in target_lords:
+            bonus = 13.0 if lord == lagna_lord else 8.0
+            time_str = f"{entry.start.strftime('%H:%M')}–{entry.end.strftime('%H:%M')}"
+            if lord == lagna_lord:
+                en = f"Lagna lord {lord.capitalize()} hora ({time_str}) — strongest personal window"
+                ta = f"லக்கினாதிபதி {lord.capitalize()} ஹோரை ({time_str}) — சிறந்த தனிப்பட்ட நேரம்"
+            else:
+                en = f"{lord.capitalize()} hora ({time_str}) supports this activity"
+                ta = f"{lord.capitalize()} ஹோரை ({time_str}) இந்த செயலை ஆதரிக்கிறது"
+            return bonus, _t(ta, en)
+
+    return 0.0, None
 
 
 def _score_panchangam(snapshot, activity: str, moon_rasi: int, lagna_rasi: int) -> tuple[float, BiText, list[BiText]]:
@@ -83,18 +134,27 @@ def _score_panchangam(snapshot, activity: str, moon_rasi: int, lagna_rasi: int) 
     tithi_in_paksha = tithi if tithi <= 15 else tithi - 15
 
     if tithi == 30:  # Amavasai — no penalty per rules, just a content note
-        cautions.append(_t("அமாவாசை — புதிய தொடக்கத்திற்கு ஏற்றதல்ல", "Amavasai — not ideal for new starts"))
+        cautions.append(_t("அமாவாசை திதி — புதிய தொடக்கத்திற்கு ஏற்றதல்ல", "Amavasai tithi is generally not ideal for new starts"))
         score -= 5
 
     if tithi_in_paksha in {8, 9}:
-        cautions.append(_t("அஷ்டமி/நவமி திதி — சுப நிகழ்வுகளுக்கு தவிர்க்கவும்", "Ashtami/Navami tithi — avoid for auspicious events"))
+        cautions.append(_t(
+            f"{snapshot.tithi_name} திதி (எண் {tithi}) — சுப நிகழ்வுகளுக்கு தவிர்க்கவும்",
+            f"Tithi {snapshot.tithi_name} ({tithi}) is generally avoided for auspicious starts",
+        ))
         score -= 15
 
     # Chandrashtama: 8th rasi from natal Moon
     chandrashtama_rasi = ((moon_rasi - 1 + 7) % 12) + 1  # 8th from moon
-    moon_nakshatra_rasi = _nakshatra_to_rasi(snapshot.nakshatra_number)
+    moon_nakshatra_rasi = _nakshatra_to_rasi(
+        snapshot.nakshatra_number,
+        getattr(snapshot, "nakshatra_pada", 1),
+    )
     if moon_nakshatra_rasi == chandrashtama_rasi:
-        cautions.append(_t("சந்திர அஷ்டமம் — ஓய்வு எடு", "Chandrashtama — rest day, avoid major decisions"))
+        cautions.append(_t(
+            "சந்திர அஷ்டமம் — முக்கிய முடிவுகளை தள்ளி வைத்து ஓய்வெடுக்கவும்",
+            "Chandrashtama day for natal Moon sign — avoid major decisions",
+        ))
         score -= 20
 
     # ── Positive signals ──────────────────────────────────────────────────────
@@ -105,24 +165,28 @@ def _score_panchangam(snapshot, activity: str, moon_rasi: int, lagna_rasi: int) 
 
     if paksha == "SHUKLA" and tithi in SUBHA_TITHIS_SHUKLA:
         score += 10
-        support_parts_ta.append("சுக்ல திதி")
-        support_parts_en.append("Auspicious Shukla tithi")
+        support_parts_ta.append(f"சாதக திதி: {snapshot.tithi_name}")
+        support_parts_en.append(f"Favourable tithi: {snapshot.tithi_name}")
     elif paksha == "KRISHNA" and tithi in SUBHA_TITHIS_KRISHNA:
         score += 8
-        support_parts_ta.append("சுப கிருஷ்ண திதி")
-        support_parts_en.append("Auspicious Krishna tithi")
+        support_parts_ta.append(f"சாதக திதி: {snapshot.tithi_name}")
+        support_parts_en.append(f"Favourable tithi: {snapshot.tithi_name}")
 
     # Normalize nakshatra name to match SUBHA_NAKSHATRAS set
     if nakshatra.upper().replace("H", "") in {n.upper().replace("H", "") for n in SUBHA_NAKSHATRAS} or nakshatra in SUBHA_NAKSHATRAS:
         score += 10
-        support_parts_ta.append("சுப நட்சத்திரம்")
-        support_parts_en.append("Auspicious nakshatra")
+        support_parts_ta.append(f"சுப நட்சத்திரம்: {nakshatra}")
+        support_parts_en.append(f"Auspicious nakshatra: {nakshatra}")
+
+    if yoga:
+        support_parts_ta.append(f"யோகம்: {yoga}")
+        support_parts_en.append(f"Yoga: {yoga}")
 
     # Abhijit muhurta (except Wednesday)
     if weekday != "WEDNESDAY" and not snapshot.abhijit_restricted:
         score += 5
-        support_parts_ta.append("அபிஜித் முகூர்த்தம்")
-        support_parts_en.append("Abhijit muhurta available")
+        support_parts_ta.append("அபிஜித் முகூர்த்த சாளரம் கிடைக்கிறது")
+        support_parts_en.append("Abhijit muhurta window available")
 
     # Nalla Neram slots available
     if snapshot.nalla_neram:
@@ -135,19 +199,32 @@ def _score_panchangam(snapshot, activity: str, moon_rasi: int, lagna_rasi: int) 
     return score, support, cautions
 
 
-def _nakshatra_to_rasi(nak_number: int) -> int:
-    """Return rasi (1-12) for a nakshatra number (1-27). Each rasi spans 2.25 nakshatras."""
-    return ((nak_number - 1) * 3 // 9) + 1  # simplified: 3 nakshatras per rasi, 9 padas
+def _nakshatra_to_rasi(nak_number: int, pada: int = 1) -> int:
+    """Return rasi (1-12) using the standard 9-pada-per-rasi mapping."""
+    if not 1 <= nak_number <= 27:
+        raise ValueError("nak_number must be in 1..27")
+    pada_norm = pada if 1 <= pada <= 4 else 1
+    absolute_pada = (nak_number - 1) * 4 + (pada_norm - 1)
+    return (absolute_pada // 9) + 1
 
 
-def _best_time_window(snapshot) -> tuple[str, str]:
+def _best_time_window(snapshot) -> tuple[str, str, datetime, datetime]:
     """Return the best (time_start, time_end) slot for the day — Nalla Neram or Abhijit."""
     # Prefer first Nalla Neram slot if available
     if snapshot.nalla_neram:
         s = snapshot.nalla_neram[0]
-        return s.start.strftime("%H:%M"), s.end.strftime("%H:%M")
+        return s.start.strftime("%H:%M"), s.end.strftime("%H:%M"), s.start, s.end
     # Fallback: Abhijit
-    return snapshot.abhijit_start.strftime("%H:%M"), snapshot.abhijit_end.strftime("%H:%M")
+    return (
+        snapshot.abhijit_start.strftime("%H:%M"),
+        snapshot.abhijit_end.strftime("%H:%M"),
+        snapshot.abhijit_start,
+        snapshot.abhijit_end,
+    )
+
+
+def _overlaps(start_a: datetime, end_a: datetime, start_b: datetime, end_b: datetime) -> bool:
+    return max(start_a, start_b) < min(end_a, end_b)
 
 
 def _dasha_support(maha_lord: str, antar_lord: str, activity: str) -> BiText:
@@ -198,9 +275,10 @@ def find_best_muhurta_slots(
     if bp is None:
         raise HTTPException(status_code=404, detail="Birth profile not found")
 
-    lat = float(bp.birth_latitude)
-    lon = float(bp.birth_longitude)
-    tz_name = str(bp.birth_timezone)
+    daily_location = resolve_effective_daily_location(bp)
+    lat = daily_location.latitude
+    lon = daily_location.longitude
+    tz_name = daily_location.timezone
     lagna_rasi = chart_snapshot.data.lagna.rasi
     try:
         moon_rasi = resolve_rasi(str(chart_row.moon_rasi))
@@ -227,7 +305,7 @@ def find_best_muhurta_slots(
     dasha_support = _dasha_support(maha_lord, antar_lord, activity)
 
     # Scan each day in range
-    scored_days: list[tuple[float, date, str, str, BiText, list[BiText]]] = []
+    scored_days: list[tuple[float, date, str, str, BiText, BiText | None, list[BiText]]] = []
     current = date_from
     while current <= date_to:
         try:
@@ -236,8 +314,18 @@ def find_best_muhurta_slots(
             # Dasha bonus
             if maha_lord in _ACTIVITY_LORDS.get(activity, set()) or antar_lord in _ACTIVITY_LORDS.get(activity, set()):
                 day_score += 10
-            t_start, t_end = _best_time_window(snap)
-            scored_days.append((day_score, current, t_start, t_end, pan_support, cautions))
+            # Hora bonus — personalized to chart lagna and activity houses
+            hora_bonus, hora_text = _score_hora(snap, activity, lagna_rasi)
+            day_score += hora_bonus
+            t_start, t_end, slot_start, slot_end = _best_time_window(snap)
+            slot_cautions = list(cautions)
+            if _overlaps(slot_start, slot_end, snap.rahu_kalam.start, snap.rahu_kalam.end):
+                slot_cautions.append(_t("ராகு காலம் இந்த நேரத்துடன் ஒட்டுகிறது", "Rahu Kalam overlaps this slot"))
+            if _overlaps(slot_start, slot_end, snap.yamagandam.start, snap.yamagandam.end):
+                slot_cautions.append(_t("யமகண்டம் இந்த நேரத்துடன் ஒட்டுகிறது", "Yamagandam overlaps this slot"))
+            if _overlaps(slot_start, slot_end, snap.kuligai.start, snap.kuligai.end):
+                slot_cautions.append(_t("குளிகை இந்த நேரத்துடன் ஒட்டுகிறது", "Kuligai overlaps this slot"))
+            scored_days.append((day_score, current, t_start, t_end, pan_support, hora_text, slot_cautions))
         except Exception as exc:
             logger.debug("Muhurta score failed for %s: %s", current, exc)
         current += timedelta(days=1)
@@ -254,9 +342,10 @@ def find_best_muhurta_slots(
             score=round(s, 1),
             panchangamSupport=pan_support,
             dashaSupport=dasha_support,
+            horaSupport=hora_text,
             cautions=cautions,
         )
-        for s, d, t_start, t_end, pan_support, cautions in top
+        for s, d, t_start, t_end, pan_support, hora_text, cautions in top
     ]
 
     return MuhurtaResponse(

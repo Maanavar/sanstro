@@ -101,7 +101,8 @@ def test_t092_sevvai_dosham_from_lagna_moon_venus():
     assert "from_venus" in venus_result.conditions_met
 
 
-def test_sevvai_tamil_mode_does_not_treat_first_house_as_dosham():
+def test_sevvai_tamil_mode_treats_first_house_as_dosham():
+    # Tamil Thirukanitham tradition: house 1 is included in Sevvai Dosham check
     planets = {
         "SUN": 3,
         "MOON": 5,
@@ -112,6 +113,23 @@ def test_sevvai_tamil_mode_does_not_treat_first_house_as_dosham():
         "SATURN": 9,
         "RAHU": 11,
         "KETU": 5,
+    }
+    result = detect_sevvai_dosham(planets, lagna_rasi=1, sevvai_mode="tamil_standard")
+    assert result.is_present is True
+
+
+def test_sevvai_tamil_mode_no_dosham_when_mars_in_neutral_house():
+    # Mars in house 3 — not in {1,2,4,7,8,12} — no dosham
+    planets = {
+        "SUN": 5,
+        "MOON": 6,
+        "MARS": 3,
+        "MERCURY": 9,
+        "JUPITER": 11,
+        "VENUS": 10,
+        "SATURN": 6,
+        "RAHU": 2,
+        "KETU": 8,
     }
     result = detect_sevvai_dosham(planets, lagna_rasi=1, sevvai_mode="tamil_standard")
     assert result.is_present is False

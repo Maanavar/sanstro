@@ -20,6 +20,7 @@ from app.services.career_service import CareerAssessmentInput, assess_career_pre
 from app.services.chart_service import load_persisted_chart_response
 from app.services.health_service import HealthAssessmentInput, assess_health_prediction
 from app.services.life_area_prediction_models import LifeAreaPrediction
+from app.services.location_service import resolve_effective_daily_timezone
 from app.services.marriage_service import MarriageAssessmentInput, assess_marriage_prediction
 from app.services.wealth_service import WealthAssessmentInput, assess_wealth_prediction
 from app.services.chart_service import get_jadhagam_report as _get_jadhagam_report
@@ -114,7 +115,7 @@ def _load_chart_context(session: Session, chart_id: UUID, current_user: User, as
     snapshot = load_persisted_chart_response(session, chart_id)
     natal_moon = next(p for p in snapshot.data.planets if p.graha == "MOON")
 
-    tz = resolve_timezone(profile.birth_timezone)
+    tz = resolve_timezone(resolve_effective_daily_timezone(profile))
     local_noon = datetime.combine(as_of, time(12, 0), tzinfo=tz)
     current_jd = utc_datetime_to_julian_day(local_noon.astimezone(UTC))
 

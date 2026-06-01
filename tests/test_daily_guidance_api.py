@@ -2,22 +2,16 @@ from app.db.session import SessionLocal
 from app.models import DailyScore
 
 
-def _birth_profile_payload():
-    return {
-        "ownerUserId": "11111111-1111-1111-1111-111111111111",
-        "displayName": "Arjun Kumar",
-        "birthDateLocal": "1991-07-22",
-        "birthTimeLocal": "06:30:00",
-        "birthPlace": "Chennai, Tamil Nadu, India",
-        "birthLatitude": 13.0827,
-        "birthLongitude": 80.2707,
-        "birthTimezone": "Asia/Kolkata",
-        "calculateNow": True,
-    }
+def assert_response(response, status=200, required_keys=()):
+    assert response.status_code == status
+    data = response.json()
+    for key in required_keys:
+        assert key in data, f"Missing key '{key}' in response"
+    return data
 
 
-def _create_chart(client):
-    created = client.post("/api/v1/birth-profiles", json=_birth_profile_payload())
+def _create_chart(client, birth_profile_payload_factory):
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory())
     assert created.status_code == 200
     birth_profile_id = created.json()["data"]["birthProfileId"]
 
@@ -47,16 +41,15 @@ def _flatten_text_fields(value, path=""):
         return
 
 
-def test_daily_guidance_endpoint_returns_daily_card(client):
-    chart_id = _create_chart(client)
+def test_daily_guidance_endpoint_returns_daily_card(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
 
     response = client.get(
         f"/api/v1/charts/{chart_id}/daily-guidance",
         params={"date": "2026-05-21", "language": "ta-en"},
     )
 
-    assert response.status_code == 200
-    body = response.json()
+    body = assert_response(response, status=200, required_keys=("success", "data"))
     assert body["success"] is True
     assert body["data"]["dateLocal"] == "2026-05-21"
     assert 0 <= body["data"]["score"] <= 100
@@ -89,14 +82,13 @@ def test_daily_guidance_endpoint_returns_daily_card(client):
     assert "journalInsight" in body["data"]
 
 
-def test_daily_guidance_all_text_fields_bilingual(client):
-    chart_id = _create_chart(client)
+def test_daily_guidance_all_text_fields_bilingual(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
     response = client.get(
         f"/api/v1/charts/{chart_id}/daily-guidance",
         params={"date": "2026-05-21", "language": "ta-en"},
     )
-    assert response.status_code == 200
-    data = response.json()["data"]
+    data = assert_response(response, status=200, required_keys=("data",))["data"]
 
     for field_path, value in _flatten_text_fields(data):
         if isinstance(value, dict) and "ta" in value and "en" in value:
@@ -104,8 +96,8 @@ def test_daily_guidance_all_text_fields_bilingual(client):
             assert value["en"].strip(), f"English missing at {field_path}"
 
 
-def test_daily_guidance_range_endpoint_returns_multiple_days(client):
-    created = client.post("/api/v1/birth-profiles", json=_birth_profile_payload()).json()
+def test_daily_guidance_range_endpoint_returns_multiple_days(client, birth_profile_payload_factory):
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
     birth_profile_id = created["data"]["birthProfileId"]
 
     response = client.post(
@@ -137,8 +129,8 @@ def test_daily_guidance_range_endpoint_returns_multiple_days(client):
     assert all("journalInsight" in item for item in body["items"])
 
 
-def test_daily_guidance_journal_insight_does_not_change_score(client):
-    chart_id = _create_chart(client)
+def test_daily_guidance_journal_insight_does_not_change_score(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
     target_date = "2026-05-23"
 
     before = client.get(
@@ -181,8 +173,8 @@ def test_daily_guidance_journal_insight_does_not_change_score(client):
     assert after_data["journalInsight"]["dominantLifeArea"] == "career"
 
 
-def test_daily_guidance_endpoint_reuses_daily_score_cache(client, monkeypatch):
-    chart_id = _create_chart(client)
+def test_daily_guidance_endpoint_reuses_daily_score_cache(client, monkeypatch, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
     params = {"date": "2026-05-21", "language": "ta-en"}
 
     first = client.get(f"/api/v1/charts/{chart_id}/daily-guidance", params=params)
@@ -205,8 +197,8 @@ def test_daily_guidance_endpoint_reuses_daily_score_cache(client, monkeypatch):
     assert second.json()["data"]["label"] == first.json()["data"]["label"]
 
 
-def test_week_ahead_includes_real_tithi_and_nakshatra_numbers(client):
-    created = client.post("/api/v1/birth-profiles", json=_birth_profile_payload()).json()
+def test_week_ahead_includes_real_tithi_and_nakshatra_numbers(client, birth_profile_payload_factory):
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
     birth_profile_id = created["data"]["birthProfileId"]
     response = client.post(
         "/api/v1/charts/calculate",
@@ -229,8 +221,8 @@ def test_week_ahead_includes_real_tithi_and_nakshatra_numbers(client):
     assert all(1 <= day["nakshatraNumber"] <= 27 for day in days)
 
 
-def test_activity_timing_endpoint_avoids_recursive_daily_guidance_calls(client, monkeypatch):
-    chart_id = _create_chart(client)
+def test_activity_timing_endpoint_avoids_recursive_daily_guidance_calls(client, monkeypatch, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
 
     import app.services.daily_guidance_service as daily_guidance_module
 

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import UTC, date, datetime
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import house_from_reference, nakshatra_from_degree, resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.astro import house_from_reference, nakshatra_from_degree, utc_datetime_to_julian_day
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.transits import (
     GRAHA_LABELS,
@@ -28,12 +28,7 @@ from app.schemas.transits import (
     TransitSnapshotResponse,
 )
 from app.services.chart_service import load_persisted_chart_response
-
-
-def _utc_midnight_local_date(local_date: date, timezone_name: str) -> datetime:
-    timezone_obj = resolve_timezone(timezone_name)
-    local_midnight = datetime.combine(local_date, time.min, tzinfo=timezone_obj)
-    return local_midnight.astimezone(UTC)
+from app.services.location_service import local_midnight_as_jd_for_profile, local_noon_as_utc_for_profile
 
 
 def _to_utc_datetime(value: datetime) -> datetime:
@@ -96,9 +91,10 @@ def build_transit_snapshot(
 def get_gochar_current(session: Session, chart_id: UUID, as_of: datetime | date) -> TransitSnapshotResponse:
     chart_snapshot = load_persisted_chart_response(session, chart_id)
     if isinstance(as_of, date) and not isinstance(as_of, datetime):
-        timezone_obj = resolve_timezone(chart_snapshot.data.birth_profile.birth_timezone)
-        local_noon = datetime.combine(as_of, time(12, 0), tzinfo=timezone_obj)
-        return build_transit_snapshot(chart_snapshot, local_noon.astimezone(UTC))
+        return build_transit_snapshot(
+            chart_snapshot,
+            local_noon_as_utc_for_profile(as_of, chart_snapshot.data.birth_profile),
+        )
     return build_transit_snapshot(chart_snapshot, _to_utc_datetime(as_of))
 
 
@@ -112,7 +108,7 @@ def build_sani_cycle_response(chart_snapshot, on_date: date, *, saturn_snapshot=
     natal_lagna_rasi = chart_snapshot.data.lagna.rasi
     if saturn_snapshot is None:
         saturn_snapshot = calculate_sidereal_planets(
-            utc_datetime_to_julian_day(_utc_midnight_local_date(on_date, chart_snapshot.data.birth_profile.birth_timezone))
+            local_midnight_as_jd_for_profile(on_date, chart_snapshot.data.birth_profile)
         )
     saturn = saturn_snapshot.bodies["SATURN"]
 

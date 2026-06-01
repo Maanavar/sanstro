@@ -149,7 +149,7 @@ FUNCTIONAL_NATURE_TABLE: dict[int, dict[str, str]] = {
         "MOON":    "TRIKONA",     # 9th lord (Kadagam=9th from Viruchigam)
         "MARS":    "LAGNA_LORD",  # 1st+6th lord (Lagna overrides 6th)
         "MERCURY": "DUSTHANA",    # 8th+11th lord (Dusthana+Upachaya → Dusthana)
-        "JUPITER": "NEUTRAL",     # 2nd+5th lord (Maraka+Trikona = mixed → Neutral-positive)
+        "JUPITER": "TRIKONA",     # 2nd+5th lord — 5th=Trikona dominates Maraka; Parashari doctrine
         "VENUS":   "DUSTHANA",    # 7th+12th lord (Maraka+Dusthana → Dusthana)
         "SATURN":  "KENDRA",      # 3rd+4th lord (Upachaya+Kendra → Kendra)
         "RAHU":    "NEUTRAL",
@@ -170,7 +170,7 @@ FUNCTIONAL_NATURE_TABLE: dict[int, dict[str, str]] = {
         "SUN":     "DUSTHANA",    # 8th lord (Simmam=8th from Magaram)
         "MOON":    "MARAKA",      # 7th lord (Kadagam=7th from Magaram)
         "MARS":    "KENDRA",      # 4th+11th lord (Kendra+Upachaya → Kendra)
-        "MERCURY": "TRIKONA",     # 6th+9th lord (9th=Trikona; 6th=Dusthana; Trikona wins for 9th)
+        "MERCURY": "NEUTRAL",     # 6th+9th lord (Trikona+Dusthana = mixed → Neutral, same rule as Kadagam Jupiter)
         "JUPITER": "DUSTHANA",    # 3rd+12th lord (Upachaya+Dusthana → Dusthana)
         "VENUS":   "YOGAKARAKA",  # 5th+10th lord (Trikona+Kendra = Yogakaraka)
         "SATURN":  "LAGNA_LORD",  # 1st+2nd lord (Lagna overrides)

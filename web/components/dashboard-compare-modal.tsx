@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
+import { MIN_BIRTH_DATE, isBirthDateWithinBounds, maxBirthDateIso } from "@/lib/birth-date";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, ChartCalculateResponseData, DirectPoruthamData } from "@/lib/types";
@@ -47,8 +48,21 @@ export function CompareModal({ lang, onClose }: CompareModalProps) {
   const [chartB, setChartB] = useState<ChartCalculateResponseData | null>(null);
   const [porutham, setPorutham] = useState<DirectPoruthamData | null>(null);
   const [tempIds, setTempIds] = useState<string[]>([]);
+  const tempIdsRef = useRef<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    tempIdsRef.current = tempIds;
+  }, [tempIds]);
+
+  useEffect(() => {
+    return () => {
+      for (const id of tempIdsRef.current) {
+        fetch(`/api/v1/birth-profiles/${id}`, { method: "DELETE", keepalive: true }).catch(() => {});
+      }
+    };
+  }, []);
 
   async function createTempProfile(form: BirthForm): Promise<{ birthProfileId: string }> {
     const res = await apiFetchJson<{ data: { birthProfileId: string } }>("/api/v1/birth-profiles", {
@@ -136,8 +150,18 @@ export function CompareModal({ lang, onClose }: CompareModalProps) {
         </Field>
 
         <Field label={lang === "ta" ? "பிறந்த தேதி" : "Birth Date"}>
-          <input className="input" type="date" value={form.birthDateLocal}
-            onChange={(e) => setForm((f) => ({ ...f, birthDateLocal: e.target.value }))} />
+          <input
+            className="input"
+            type="date"
+            value={form.birthDateLocal}
+            min={MIN_BIRTH_DATE}
+            max={maxBirthDateIso()}
+            onChange={(e) => {
+              const next = e.target.value;
+              if (!isBirthDateWithinBounds(next)) return;
+              setForm((f) => ({ ...f, birthDateLocal: next }));
+            }}
+          />
         </Field>
 
         <Field label={lang === "ta" ? "பிறந்த நேரம்" : "Birth Time"}>

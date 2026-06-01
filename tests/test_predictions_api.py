@@ -1,23 +1,17 @@
 from __future__ import annotations
 
 
-def _birth_profile_payload(
+def _prediction_birth_profile_payload(
+    birth_profile_payload_factory,
     *,
     birth_date_local: str,
     employment_type: str | None = None,
     marital_status: str | None = None,
 ) -> dict[str, object]:
-    payload: dict[str, object] = {
-        "ownerUserId": "11111111-1111-1111-1111-111111111111",
-        "displayName": "Prediction Test",
-        "birthDateLocal": birth_date_local,
-        "birthTimeLocal": "06:30:00",
-        "birthPlace": "Chennai, Tamil Nadu, India",
-        "birthLatitude": 13.0827,
-        "birthLongitude": 80.2707,
-        "birthTimezone": "Asia/Kolkata",
-        "calculateNow": True,
-    }
+    payload: dict[str, object] = birth_profile_payload_factory(
+        display_name="Prediction Test",
+    )
+    payload["birthDateLocal"] = birth_date_local
     if employment_type is not None:
         payload["employmentType"] = employment_type
     if marital_status is not None:
@@ -42,10 +36,10 @@ def _create_chart(client, payload: dict[str, object]) -> str:
     return calculated.json()["data"]["chartId"]
 
 
-def test_predictions_endpoints_age_gate_for_minor(client):
+def test_predictions_endpoints_age_gate_for_minor(client, birth_profile_payload_factory):
     chart_id = _create_chart(
         client,
-        _birth_profile_payload(birth_date_local="2012-06-01"),
+        _prediction_birth_profile_payload(birth_profile_payload_factory, birth_date_local="2012-06-01"),
     )
     params = {"asOf": "2026-05-24"}
 
@@ -62,10 +56,11 @@ def test_predictions_endpoints_age_gate_for_minor(client):
     assert "age-gated" in wealth.json()["data"]["mainPredictionEn"].lower()
 
 
-def test_career_prediction_uses_employment_to_derive_student_life_stage(client):
+def test_career_prediction_uses_employment_to_derive_student_life_stage(client, birth_profile_payload_factory):
     chart_id = _create_chart(
         client,
-        _birth_profile_payload(
+        _prediction_birth_profile_payload(
+            birth_profile_payload_factory,
             birth_date_local="1996-03-15",
             employment_type="student",
         ),
@@ -84,10 +79,11 @@ def test_career_prediction_uses_employment_to_derive_student_life_stage(client):
     assert any("student life-stage" in item["en"].lower() for item in data["challenges"])
 
 
-def test_marriage_prediction_reflects_marital_status_for_married_profile(client):
+def test_marriage_prediction_reflects_marital_status_for_married_profile(client, birth_profile_payload_factory):
     chart_id = _create_chart(
         client,
-        _birth_profile_payload(
+        _prediction_birth_profile_payload(
+            birth_profile_payload_factory,
             birth_date_local="1992-03-15",
             marital_status="married",
         ),
@@ -104,11 +100,15 @@ def test_marriage_prediction_reflects_marital_status_for_married_profile(client)
     assert any("married profile" in item["en"].lower() for item in data["supports"])
 
 
-def test_self_employed_career_gets_second_lord_check(client):
+def test_self_employed_career_gets_second_lord_check(client, birth_profile_payload_factory):
     """Self-employed profile triggers employment_second_lord factor in career predictions."""
     chart_id = _create_chart(
         client,
-        _birth_profile_payload(birth_date_local="1990-06-10", employment_type="self_employed"),
+        _prediction_birth_profile_payload(
+            birth_profile_payload_factory,
+            birth_date_local="1990-06-10",
+            employment_type="self_employed",
+        ),
     )
     response = client.get(
         f"/api/v1/charts/{chart_id}/predictions/career",
@@ -119,11 +119,15 @@ def test_self_employed_career_gets_second_lord_check(client):
     assert any(f["key"] == "employment_second_lord" for f in data["astrologicalFactors"])
 
 
-def test_business_owner_career_gets_seventh_house_factor(client):
+def test_business_owner_career_gets_seventh_house_factor(client, birth_profile_payload_factory):
     """Business owner profile triggers employment_seventh_house factor."""
     chart_id = _create_chart(
         client,
-        _birth_profile_payload(birth_date_local="1985-03-20", employment_type="business_owner"),
+        _prediction_birth_profile_payload(
+            birth_profile_payload_factory,
+            birth_date_local="1985-03-20",
+            employment_type="business_owner",
+        ),
     )
     response = client.get(
         f"/api/v1/charts/{chart_id}/predictions/career",
@@ -134,11 +138,15 @@ def test_business_owner_career_gets_seventh_house_factor(client):
     assert any(f["key"] == "employment_seventh_house" for f in data["astrologicalFactors"])
 
 
-def test_retired_career_gets_legacy_framing(client):
+def test_retired_career_gets_legacy_framing(client, birth_profile_payload_factory):
     """Retired employment type surfaces 'retired' in challenges."""
     chart_id = _create_chart(
         client,
-        _birth_profile_payload(birth_date_local="1961-01-15", employment_type="retired"),
+        _prediction_birth_profile_payload(
+            birth_profile_payload_factory,
+            birth_date_local="1961-01-15",
+            employment_type="retired",
+        ),
     )
     response = client.get(
         f"/api/v1/charts/{chart_id}/predictions/career",
@@ -149,16 +157,24 @@ def test_retired_career_gets_legacy_framing(client):
     assert any("retired" in c["en"].lower() for c in data["challenges"])
 
 
-def test_age_modifier_affects_young_vs_senior_differently(client):
+def test_age_modifier_affects_young_vs_senior_differently(client, birth_profile_payload_factory):
     """A young profile (2001) vs. senior (1961) should differ in career confidence
     when both are in the same dasha lord — the age modifier must produce different signals."""
     young_id = _create_chart(
         client,
-        _birth_profile_payload(birth_date_local="2001-03-15", employment_type="employed_salaried"),
+        _prediction_birth_profile_payload(
+            birth_profile_payload_factory,
+            birth_date_local="2001-03-15",
+            employment_type="employed_salaried",
+        ),
     )
     senior_id = _create_chart(
         client,
-        _birth_profile_payload(birth_date_local="1961-03-15", employment_type="employed_salaried"),
+        _prediction_birth_profile_payload(
+            birth_profile_payload_factory,
+            birth_date_local="1961-03-15",
+            employment_type="employed_salaried",
+        ),
     )
     young_resp = client.get(f"/api/v1/charts/{young_id}/predictions/career", params={"asOf": "2026-05-29"})
     senior_resp = client.get(f"/api/v1/charts/{senior_id}/predictions/career", params={"asOf": "2026-05-29"})

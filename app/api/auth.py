@@ -8,6 +8,7 @@ from uuid import UUID, uuid4
 
 import bcrypt
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.auth import create_access_token, decode_token
@@ -19,6 +20,7 @@ from app.schemas.auth import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginRequest,
+    AccountDeletionResult,
     RegisterRequest,
     UpdateUserSettingsRequest,
 )
@@ -30,12 +32,13 @@ _logger = logging.getLogger(__name__)
 
 
 def _set_auth_cookie(response: Response, token: str) -> None:
+    settings = get_settings()
     response.set_cookie(
         key=_COOKIE_NAME,
         value=token,
         httponly=True,
         samesite="lax",
-        secure=False,
+        secure=settings.cookie_secure,
         max_age=_COOKIE_MAX_AGE_SECONDS,
         path="/",
     )
@@ -55,7 +58,7 @@ def _send_password_reset_email(user_email: str, token: str) -> None:
         _logger.info("password_reset_stub email=%s SMTP not configured", user_email)
         return
 
-    reset_link = f"http://localhost:3000/login?resetToken={token}"
+    reset_link = f"{settings.frontend_url.rstrip('/')}/login?resetToken={token}"
     body = (
         "You requested a password reset for your Vinaadi AI account.\n\n"
         f"Use this link to continue: {reset_link}\n\n"
@@ -196,6 +199,124 @@ def patch_me(
         userMode=user.user_mode or "BALANCED",
         goalTrack=user.goal_track,
     )
+
+
+@router.delete("/me", response_model=AccountDeletionResult, status_code=status.HTTP_200_OK)
+def delete_my_account(
+    response: Response,
+    session: Session = Depends(get_db),
+    vinaadi_token: str | None = Cookie(default=None),
+) -> AccountDeletionResult:
+    """Permanently erase all user data and delete the account.
+
+    Deletes every row owned by the user across all tables, then removes the
+    User row itself. Uses raw SQL to avoid SQLAlchemy cascade ordering issues.
+    The auth cookie is cleared on success.
+    """
+    if not vinaadi_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+    payload = decode_token(vinaadi_token)
+    sub: str | None = payload.get("sub")
+    if not sub:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+    try:
+        user_id = UUID(sub)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.") from exc
+
+    user = session.get(User, user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+
+    uid = str(user_id)
+
+    # Collect chart_ids owned by this user (used in multiple steps below)
+    chart_ids_row = session.execute(text("""
+        SELECT c.chart_id::text
+        FROM charts c
+        JOIN birth_profiles bp ON c.birth_profile_id = bp.birth_profile_id
+        WHERE bp.owner_user_id = :uid
+    """), {"uid": uid}).fetchall()
+    chart_ids = [r[0] for r in chart_ids_row]
+
+    # Step 1: leaf rows that reference chart_id
+    if chart_ids:
+        id_list = ", ".join(f"'{cid}'" for cid in chart_ids)
+        for tbl in (
+            "peyarchi_alerts",
+            "chart_planets",
+            "dasha_periods",
+            "varga_positions",
+            "interpretation_outputs",
+            "user_life_events",
+            "user_goals",
+            "retrospective_entries",
+            "journal_entries",
+            "user_contexts",
+            "notifications",
+        ):
+            session.execute(text(f"DELETE FROM {tbl} WHERE chart_id IN ({id_list})"))  # noqa: S608
+
+    # Step 2: rows linked to birth profiles (daily_scores has no chart_id column)
+    session.execute(text("""
+        DELETE FROM daily_scores
+        WHERE birth_profile_id IN (
+            SELECT birth_profile_id FROM birth_profiles WHERE owner_user_id = :uid
+        )
+    """), {"uid": uid})
+
+    # Step 3: direct user_id / owner_user_id rows not linked to charts
+    session.execute(text("DELETE FROM notifications WHERE user_id = :uid"), {"uid": uid})
+    session.execute(text("DELETE FROM user_contexts WHERE owner_user_id = :uid"), {"uid": uid})
+    session.execute(text("DELETE FROM user_notification_preferences WHERE owner_user_id = :uid"), {"uid": uid})
+    session.execute(text("DELETE FROM user_preferences WHERE owner_user_id = :uid"), {"uid": uid})
+    session.execute(text("DELETE FROM subscriptions WHERE user_id = :uid"), {"uid": uid})
+
+    # Step 3: family subtree — relationship_alerts → family_daily_scores → members/vaults
+    session.execute(text("""
+        DELETE FROM relationship_alerts
+        WHERE vault_id IN (
+            SELECT family_vault_id FROM family_vaults WHERE owner_user_id = :uid
+        )
+    """), {"uid": uid})
+
+    session.execute(text("""
+        DELETE FROM family_daily_scores
+        WHERE family_vault_id IN (
+            SELECT family_vault_id FROM family_vaults WHERE owner_user_id = :uid
+        )
+    """), {"uid": uid})
+
+    # Break FK from birth_profiles.family_member_id -> family_members.family_member_id
+    # before deleting family members.
+    session.execute(text("""
+        UPDATE birth_profiles
+        SET family_member_id = NULL
+        WHERE family_member_id IN (
+            SELECT family_member_id FROM family_members WHERE owner_user_id = :uid
+        )
+    """), {"uid": uid})
+
+    session.execute(text("DELETE FROM family_members WHERE owner_user_id = :uid"), {"uid": uid})
+    session.execute(text("UPDATE family_members SET managed_by_user_id = NULL WHERE managed_by_user_id = :uid"), {"uid": uid})
+    session.execute(text("DELETE FROM family_vaults WHERE owner_user_id = :uid"), {"uid": uid})
+
+    # Step 4: charts → birth_profiles
+    session.execute(text("""
+        DELETE FROM charts
+        WHERE birth_profile_id IN (
+            SELECT birth_profile_id FROM birth_profiles WHERE owner_user_id = :uid
+        )
+    """), {"uid": uid})
+    session.execute(text("DELETE FROM birth_profiles WHERE owner_user_id = :uid"), {"uid": uid})
+
+    # Step 5: the user row itself
+    session.execute(text("DELETE FROM users WHERE user_id = :uid"), {"uid": uid})
+
+    response.delete_cookie(key=_COOKIE_NAME, path="/")
+    return AccountDeletionResult(detail="Account permanently deleted.")
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)

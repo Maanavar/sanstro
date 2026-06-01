@@ -12,6 +12,22 @@ from app.schemas.birth_profiles import BirthProfileCreate, BirthProfileCreateRes
 from app.services.chart_service import calculate_chart_for_persisted_profile, create_birth_profile_record, _warning_messages
 
 
+_BIRTH_RECALC_FIELDS = {
+    "birth_date_local",
+    "birth_time_local",
+    "birth_place",
+    "birth_latitude",
+    "birth_longitude",
+    "birth_timezone",
+}
+_CURRENT_LOCATION_FIELDS = {
+    "current_place",
+    "current_latitude",
+    "current_longitude",
+    "current_timezone",
+}
+
+
 def create_birth_profile(session: Session, payload: BirthProfileCreate, *, calculation_version: str) -> BirthProfileCreateResult:
     birth_profile = create_birth_profile_record(session, payload)
     warnings = _warning_messages(payload)
@@ -60,6 +76,11 @@ def get_birth_profile(session: Session, birth_profile_id: UUID, *, calculation_v
             birth_latitude=float(birth_profile.birth_latitude),
             birth_longitude=float(birth_profile.birth_longitude),
             birth_timezone=birth_profile.birth_timezone,
+            current_place=birth_profile.current_place,
+            current_latitude=(float(birth_profile.current_latitude) if birth_profile.current_latitude is not None else None),
+            current_longitude=(float(birth_profile.current_longitude) if birth_profile.current_longitude is not None else None),
+            current_timezone=birth_profile.current_timezone,
+            current_location_updated_at=birth_profile.current_location_updated_at,
             birth_time_source=birth_profile.birth_time_source,
             birth_time_confidence_minutes=int(birth_profile.birth_time_confidence_minutes or 0),
             calendar_input_type=birth_profile.calendar_input_type,
@@ -88,11 +109,15 @@ def update_birth_profile(
 ) -> BirthProfileGetResponse:
     """Apply partial updates to an existing BirthProfile and optionally recalculate the chart."""
     update_data = payload.model_dump(exclude_unset=True, exclude={"recalculate"})
+    touched_fields = set(update_data)
     for field, value in update_data.items():
         setattr(profile, field, value)
+    if touched_fields.intersection(_CURRENT_LOCATION_FIELDS):
+        profile.current_location_updated_at = datetime.now(tz=UTC)
     session.flush()
 
-    if payload.recalculate and profile.birth_time_local is not None:
+    should_recalculate = bool(payload.recalculate and touched_fields.intersection(_BIRTH_RECALC_FIELDS))
+    if should_recalculate and profile.birth_time_local is not None:
         calculate_chart_for_persisted_profile(
             session,
             profile,

@@ -15,13 +15,13 @@ Rules (agents.md / formula spec):
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import house_from_reference, resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.astro import house_from_reference, utc_datetime_to_julian_day
 from app.calculations.dasha import DASHA_YEARS, calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.panchangam import calculate_daily_panchangam
@@ -35,6 +35,7 @@ from app.schemas.whatif import (
 )
 from app.models import BirthProfile, Chart
 from app.services.chart_service import load_persisted_chart_response
+from app.services.location_service import local_noon_as_utc_for_profile, resolve_effective_daily_location
 
 _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
 
@@ -288,6 +289,8 @@ def _assess_natal_promise(
     en_prim = _PLANET_EN[primary]
     scenario_ta = _SCENARIO_LABEL_TA[scenario]
     scenario_en = _SCENARIO_LABEL_EN[scenario]
+    key_house_text = ", ".join(str(hh) for hh in key_houses)
+    prim_house_text = str(prim_house) if prim_house is not None else "?"
 
     if score >= 65:
         text_ta = (
@@ -297,7 +300,7 @@ def _assess_natal_promise(
         )
         text_en = (
             f"Natal chart shows support for {scenario_en}. "
-            f"{en_prim} in house {prim_house} is favourably placed." if prim_house else
+            f"{en_prim} is in house {prim_house_text} from Lagna; key houses are {key_house_text}." if prim_house else
             f"Natal chart shows support for {scenario_en}. Karaka placement is good."
         )
     elif score >= 45:
@@ -307,6 +310,7 @@ def _assess_natal_promise(
         )
         text_en = (
             f"Natal chart shows moderate support for {scenario_en}. "
+            f"{en_prim} is in house {prim_house_text} from Lagna, with key houses {key_house_text}. "
             f"Effort and additional awareness are needed."
         )
     else:
@@ -316,6 +320,7 @@ def _assess_natal_promise(
         )
         text_en = (
             f"Natal chart shows challenges around {scenario_en}. "
+            f"{en_prim} is in house {prim_house_text} from Lagna, while key houses are {key_house_text}. "
             f"Timing and preparation are especially important."
         )
 
@@ -375,7 +380,7 @@ def _assess_dasha_support(
         )
         text_en = (
             f"{en_maha} Mahadasha and {en_antar} Antardasha provide strong support "
-            f"for {scenario_en}."
+            f"for {scenario_en} (dasha index {score}/100)."
         )
     elif score >= 45:
         text_ta = (
@@ -384,7 +389,7 @@ def _assess_dasha_support(
         )
         text_en = (
             f"{en_maha} Mahadasha offers moderate support for {scenario_en}. "
-            f"{en_antar} Antardasha encourages careful action."
+            f"{en_antar} Antardasha encourages careful action (dasha index {score}/100)."
         )
     else:
         text_ta = (
@@ -393,7 +398,7 @@ def _assess_dasha_support(
         )
         text_en = (
             f"Dasha support for {scenario_en} is lower in {en_maha} Mahadasha. "
-            f"View this as a preparation period rather than a setback."
+            f"View this as a preparation period rather than a setback (dasha index {score}/100)."
         )
 
     return _DashaAssessment(
@@ -463,7 +468,7 @@ def _assess_gochar_support(
         )
         text_en = (
             f"Transit position is favourable. {en_prim} transiting house {h} — "
-            f"planetary support for {scenario_en} is good."
+            f"planetary support for {scenario_en} is good (gochar index {score}/100)."
         )
     elif score >= 45:
         text_ta = (
@@ -472,7 +477,7 @@ def _assess_gochar_support(
         )
         text_en = (
             f"Transit position is neutral. {en_prim} is in house {h}. "
-            f"Planning ahead for a better transit window is advised."
+            f"Planning ahead for a better transit window is advised (gochar index {score}/100)."
         )
     else:
         sani_note_ta = (
@@ -489,7 +494,7 @@ def _assess_gochar_support(
         )
         text_en = (
             f"Transit position is challenging. {en_prim} is in house {h}.{sani_note_en} "
-            f"Waiting for a better planetary window is advisable."
+            f"Waiting for a better planetary window is advisable (gochar index {score}/100)."
         )
 
     return _GocharAssessment(
@@ -745,9 +750,7 @@ def evaluate_whatif(
     birth_profile = chart_snapshot.data.birth_profile
 
     # Resolve Julian days
-    tz = resolve_timezone(birth_profile.birth_timezone)
-    local_noon = datetime.combine(target_date, time(12, 0), tzinfo=tz)
-    target_jd = utc_datetime_to_julian_day(local_noon.astimezone(UTC))
+    target_jd = utc_datetime_to_julian_day(local_noon_as_utc_for_profile(target_date, birth_profile))
     birth_jd = chart_snapshot.data.julian_day
 
     # Natal reference points
@@ -788,11 +791,12 @@ def evaluate_whatif(
     )
 
     # Panchangam quality for target date (uses birth location as proxy for local panchangam)
+    daily_location = resolve_effective_daily_location(birth_profile)
     panchang_score = _compute_panchangam_score(
         target_date,
-        float(birth_profile.birth_latitude or 13.0),
-        float(birth_profile.birth_longitude or 80.0),
-        birth_profile.birth_timezone,
+        daily_location.latitude,
+        daily_location.longitude,
+        daily_location.timezone,
         natal_lagna_rasi,
         timeline.current_mahadasha.lord,
     )

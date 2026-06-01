@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime, time, timedelta
 from collections import Counter
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.calculations.activity_timing_rules import ActivityType, assess_activity_timing
@@ -58,6 +59,11 @@ from app.services.chart_service import load_persisted_chart_response
 from app.services.context_service import get_context_row, should_surface_proactively
 from app.services.emotional_weather import TransitPoint, compute_emotional_weather
 from app.services.goals_service import get_active_goals_for_chart
+from app.services.location_service import (
+    local_noon_as_utc_for_profile,
+    resolve_effective_daily_location,
+    resolve_effective_daily_timezone,
+)
 from app.services.nakshatra_content import build_nakshatra_perspective
 from app.services.narrative_engine import build_score_reasons, tithi_content_card
 
@@ -178,11 +184,6 @@ def _birth_datetime_utc(profile: BirthProfile) -> datetime:
 
     local_dt = datetime.combine(profile.birth_date_local, profile.birth_time_local)
     return local_datetime_to_utc(local_dt, profile.birth_timezone)
-
-
-def _local_noon_as_utc(on_date: date, timezone_name: str) -> datetime:
-    local_noon = datetime.combine(on_date, time(12, 0))
-    return local_datetime_to_utc(local_noon, timezone_name)
 
 
 def _rasi_lord(rasi_number: int) -> str:
@@ -373,7 +374,38 @@ def _current_hora_lord(panchangam, on_date: date, timezone_name: str) -> str | N
 
 _NATURAL_BENEFIC_LORDS = {"JUPITER", "VENUS", "MERCURY", "MOON"}
 
-def _best_hours(panchangam, current_maha_lord: str) -> list[DailyGuidanceWindow]:
+# Lords whose hora is universally cautioned (malefics with no offsetting dignity)
+_MALEFIC_HORA_LORDS = {"SATURN", "MARS", "RAHU", "KETU"}
+
+
+def _personal_hora_lords(
+    lagna_rasi: int,
+    maha_lord: str,
+    antar_lord: str,
+) -> tuple[set[str], set[str]]:
+    """
+    Return (priority_lords, supportive_lords).
+
+    priority_lords  — personal planets: lagna lord + current dasha lords.
+                      These are ranked highest regardless of natural benefic status.
+    supportive_lords — natural benefics + SUN + priority_lords.
+                      Any hora from this set is shown as a best window.
+    """
+    lagna_lord = _normalize_graha_name(_rasi_lord(lagna_rasi))
+    norm_maha = _normalize_graha_name(maha_lord)
+    norm_antar = _normalize_graha_name(antar_lord)
+
+    priority = {lagna_lord, norm_maha, norm_antar} - _MALEFIC_HORA_LORDS
+    supportive = set(_NATURAL_BENEFIC_LORDS) | {"SUN"} | priority
+    return priority, supportive
+
+
+def _best_hours(
+    panchangam,
+    current_maha_lord: str,
+    lagna_rasi: int = 0,
+    current_antar_lord: str = "",
+) -> list[DailyGuidanceWindow]:
     windows: list[DailyGuidanceWindow] = []
     if not panchangam.abhijit_restricted:
         windows.append(
@@ -384,28 +416,30 @@ def _best_hours(panchangam, current_maha_lord: str) -> list[DailyGuidanceWindow]
             )
         )
 
-    # Only genuinely benefic lords qualify as a supportive hora window.
-    # Weekday lord and maha lord are added only if they are also natural benefics
-    # or SUN (functional benefic for confidence). SATURN, MARS, RAHU excluded.
-    supportive_lords = set(_NATURAL_BENEFIC_LORDS)
-    supportive_lords.add("SUN")
-    normalized_weekday = _normalize_graha_name(panchangam.weekday_lord)
-    normalized_maha = _normalize_graha_name(current_maha_lord)
-    if normalized_weekday in supportive_lords:
-        supportive_lords.add(normalized_weekday)
-    if normalized_maha in supportive_lords:
-        supportive_lords.add(normalized_maha)
+    if lagna_rasi and current_antar_lord:
+        priority_lords, supportive_lords = _personal_hora_lords(
+            lagna_rasi, current_maha_lord, current_antar_lord
+        )
+    else:
+        # Fallback: generic benefic set + weekday/maha lords if they qualify
+        supportive_lords = set(_NATURAL_BENEFIC_LORDS) | {"SUN"}
+        priority_lords: set[str] = set()
+        norm_maha = _normalize_graha_name(current_maha_lord)
+        if norm_maha not in _MALEFIC_HORA_LORDS:
+            supportive_lords.add(norm_maha)
 
+    # Emit all daytime horas that qualify, marking personal-planet horas distinctly
     for entry in panchangam.hora[:12]:
-        if _normalize_graha_name(_money_hora_name(entry.lord)) in supportive_lords:
+        norm_lord = _normalize_graha_name(_money_hora_name(entry.lord))
+        if norm_lord in supportive_lords:
+            tag = "PERSONAL_HORA" if norm_lord in priority_lords else "HORA"
             windows.append(
                 DailyGuidanceWindow(
-                    type=f"{entry.lord}_HORA",
+                    type=f"{norm_lord}_{tag}",
                     start=entry.start.strftime("%H:%M"),
                     end=entry.end.strftime("%H:%M"),
                 )
             )
-            break
 
     return windows
 
@@ -523,7 +557,9 @@ def _load_daily_score_cache(
             DailyScore.birth_profile_id == birth_profile_id,
             DailyScore.score_date == score_date,
         )
-    ).scalar_one_or_none()
+        .order_by(DailyScore.created_at.desc())
+        .limit(1)
+    ).scalars().first()
     if row is None:
         return None
     return DailyGuidanceResponse(
@@ -542,28 +578,27 @@ def _store_daily_score_cache(
     score_date: date,
     response: DailyGuidanceResponse,
 ) -> None:
-    row = session.execute(
-        select(DailyScore).where(
-            DailyScore.birth_profile_id == birth_profile_id,
-            DailyScore.score_date == score_date,
-        )
-    ).scalar_one_or_none()
     payload = response.data.model_dump(mode="json", by_alias=True)
-    if row is None:
-        session.add(
-            DailyScore(
-                birth_profile_id=birth_profile_id,
-                score_date=score_date,
-                score=response.data.score,
-                label=response.data.label,
-                data=payload,
-            )
+    session.execute(
+        pg_insert(DailyScore)
+        .values(
+            score_id=uuid4(),
+            birth_profile_id=birth_profile_id,
+            score_date=score_date,
+            score=response.data.score,
+            label=response.data.label,
+            data=payload,
         )
-        return
-    row.score = response.data.score
-    row.label = response.data.label
-    row.data = payload
-    row.created_at = datetime.now(tz=UTC)
+        .on_conflict_do_update(
+            constraint="uq_daily_scores_profile_date",
+            set_={
+                "score": response.data.score,
+                "label": response.data.label,
+                "data": payload,
+                "created_at": datetime.now(tz=UTC),
+            },
+        )
+    )
 
 
 def _enrich_action_with_goals(
@@ -752,12 +787,13 @@ def build_daily_guidance_response(
     _bav = compute_bhinnashtakavarga(natal_rasi_map)
 
     birth_profile = chart_snapshot.data.birth_profile
+    daily_location = resolve_effective_daily_location(birth_profile)
     if panchangam is None:
         panchangam = calculate_daily_panchangam(
             on_date,
-            float(birth_profile.birth_latitude),
-            float(birth_profile.birth_longitude),
-            birth_profile.birth_timezone,
+            daily_location.latitude,
+            daily_location.longitude,
+            daily_location.timezone,
             session=session,
         )
     solar_noon_utc = panchangam.solar_noon.astimezone(UTC)
@@ -1015,7 +1051,7 @@ def build_daily_guidance_response(
         personal_safety_score -= 3
     personal_safety_score = max(0, min(100, personal_safety_score))
 
-    best_windows = _best_hours(panchangam, maha_lord)
+    best_windows = _best_hours(panchangam, maha_lord, lagna_rasi=natal_lagna, current_antar_lord=antar_lord)
     caution_windows = _caution_windows(panchangam)
     remedial_support = 6 if best_windows else 0
 
@@ -1175,7 +1211,7 @@ def build_daily_guidance_response(
         planet_scores=planet_strength_map,
         lang=language,
     )
-    hora_lord = _current_hora_lord(panchangam, on_date, birth_profile.birth_timezone)
+    hora_lord = _current_hora_lord(panchangam, on_date, resolve_effective_daily_timezone(birth_profile))
 
     return DailyGuidanceResponse(
         data=DailyGuidanceData(
@@ -1400,11 +1436,12 @@ def get_week_ahead(
         tithi_num = 0
         nakshatra_num = 0
         if birth_profile is not None:
+            daily_location = resolve_effective_daily_location(birth_profile)
             panchangam = calculate_daily_panchangam(
                 day_data.date_local,
-                float(birth_profile.birth_latitude),
-                float(birth_profile.birth_longitude),
-                birth_profile.birth_timezone,
+                daily_location.latitude,
+                daily_location.longitude,
+                daily_location.timezone,
             )
             tithi_num = panchangam.tithi_number
             nakshatra_num = panchangam.nakshatra_number
@@ -1440,7 +1477,7 @@ def get_week_ahead(
             chart_snapshot = load_persisted_chart_response(session, chart.chart_id)
             if birth_profile and chart_snapshot:
                 from app.calculations.astro import utc_datetime_to_julian_day
-                jd = utc_datetime_to_julian_day(_local_noon_as_utc(week_start, birth_profile.birth_timezone))
+                jd = utc_datetime_to_julian_day(local_noon_as_utc_for_profile(week_start, birth_profile))
                 natal_moon = next(p for p in chart_snapshot.data.planets if p.graha == "MOON")
                 if birth_profile.birth_time_local is None:
                     birth_jd_val = float(chart_snapshot.data.julian_day)
@@ -1531,11 +1568,12 @@ def get_activity_timing(
     for day_num in range(1, days_in_month + 1):
         d = date(year, mon, day_num)
         try:
+            daily_location = resolve_effective_daily_location(birth_profile)
             panchang = calculate_daily_panchangam(
                 d,
-                float(birth_profile.birth_latitude),
-                float(birth_profile.birth_longitude),
-                birth_profile.birth_timezone,
+                daily_location.latitude,
+                daily_location.longitude,
+                daily_location.timezone,
             )
             result = assess_activity_timing(
                 activity=activity,  # type: ignore[arg-type]
@@ -1647,7 +1685,7 @@ def get_dasha_story(
         birth_profile.birth_timezone,
     )
     birth_jd = utc_datetime_to_julian_day(birth_dt)
-    current_jd = utc_datetime_to_julian_day(_local_noon_as_utc(as_of, birth_profile.birth_timezone))
+    current_jd = utc_datetime_to_julian_day(local_noon_as_utc_for_profile(as_of, birth_profile))
 
     timeline = calculate_vimshottari_timeline(birth_jd, float(natal_moon.absolute_longitude), current_jd)
     birth_year = birth_profile.birth_date_local.year
@@ -1741,7 +1779,7 @@ def get_peyarchi_report(
     natal_moon = next((p for p in chart_snapshot.data.planets if p.graha == "MOON"), None)
     natal_lagna = chart_snapshot.data.lagna.rasi
 
-    from_dt = _local_noon_as_utc(as_of, birth_profile.birth_timezone)
+    from_dt = local_noon_as_utc_for_profile(as_of, birth_profile)
     from_jd = utc_datetime_to_julian_day(from_dt)
 
     current_snapshot = calculate_sidereal_planets(from_jd)

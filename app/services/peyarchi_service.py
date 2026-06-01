@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 from app.calculations.astro import (
     house_from_reference,
     julian_day_to_utc_datetime,
-    resolve_timezone,
     utc_datetime_to_julian_day,
     utc_datetime_to_local_datetime,
 )
@@ -17,6 +16,7 @@ from app.calculations.transits import RASI_NAMES, classify_sani_cycle
 from app.schemas.dasha import ResponseMeta
 from app.schemas.peyarchi import PeyarchiEvent, PeyarchiSummaryResponse
 from app.services.chart_service import load_persisted_chart_response
+from app.services.location_service import local_noon_as_utc_for_profile, resolve_effective_daily_timezone
 
 SLOW_PLANETS = ("SATURN", "JUPITER", "RAHU", "KETU")
 SEARCH_DAYS_DEFAULT = 700
@@ -33,12 +33,6 @@ PLANET_LABELS: dict[str, tuple[str, str]] = {
 
 def _search_days_for_planet(planet_key: str) -> int:
     return SEARCH_DAYS_SATURN if planet_key == "SATURN" else SEARCH_DAYS_DEFAULT
-
-
-def _to_utc_noon(local_day: date, timezone_name: str) -> datetime:
-    timezone_obj = resolve_timezone(timezone_name)
-    local_noon = datetime.combine(local_day, time(12, 0), tzinfo=timezone_obj)
-    return local_noon.astimezone(UTC)
 
 
 def find_next_rasi_change(planet_key: str, from_jd: float, search_days: int | None = None) -> tuple[datetime, int]:
@@ -108,8 +102,8 @@ def get_peyarchi_summary(
     window_days: int | None = None,
 ) -> PeyarchiSummaryResponse:
     chart_snapshot = load_persisted_chart_response(session, chart_id)
-    birth_timezone = chart_snapshot.data.birth_profile.birth_timezone
-    as_of_utc = _to_utc_noon(as_of, birth_timezone)
+    timezone_name = resolve_effective_daily_timezone(chart_snapshot.data.birth_profile)
+    as_of_utc = local_noon_as_utc_for_profile(as_of, chart_snapshot.data.birth_profile)
     from_jd = utc_datetime_to_julian_day(as_of_utc)
 
     natal_moon = next(planet for planet in chart_snapshot.data.planets if planet.graha == "MOON")
@@ -120,7 +114,7 @@ def get_peyarchi_summary(
     for planet_key in SLOW_PLANETS:
         event_dt_utc, to_rasi = find_next_permanent_rasi_change(planet_key, from_jd)
         from_rasi = current_snapshot.bodies[planet_key].rasi
-        local_event_date = utc_datetime_to_local_datetime(event_dt_utc, birth_timezone).date()
+        local_event_date = utc_datetime_to_local_datetime(event_dt_utc, timezone_name).date()
         days_from_today = (local_event_date - as_of).days
 
         if window_days is not None and days_from_today > window_days:

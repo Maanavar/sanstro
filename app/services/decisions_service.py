@@ -11,6 +11,7 @@ from app.models import BirthProfile, Chart
 from app.schemas.dasha import ResponseMeta
 from app.schemas.decisions import DecisionBiText, DecisionBriefData, DecisionBriefResponse, DecisionOption, OptionAnalysis
 from app.services.chart_service import load_persisted_chart_response
+from app.services.location_service import resolve_effective_daily_timezone
 from app.services.whatif_service import evaluate_whatif
 
 _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
@@ -242,7 +243,7 @@ def build_decision_brief(
     _assert_chart_owner(session, chart_id, owner_user_id)
     chart_snapshot = load_persisted_chart_response(session, chart_id)
     if target_date is None:
-        tz = chart_snapshot.data.birth_profile.birth_timezone
+        tz = resolve_effective_daily_timezone(chart_snapshot.data.birth_profile)
         target_date = datetime.now(tz=UTC).astimezone(ZoneInfo(tz)).date()
 
     shared_scenario = _pick_scenario(priority, option_a, option_b)

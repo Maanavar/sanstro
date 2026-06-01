@@ -102,6 +102,10 @@ class FamilyMemberUpdate(BaseModel):
     birth_latitude: float | None = Field(default=None, alias="birthLatitude", ge=-90.0, le=90.0)
     birth_longitude: float | None = Field(default=None, alias="birthLongitude", ge=-180.0, le=180.0)
     birth_timezone: str | None = Field(default=None, alias="birthTimezone", min_length=1)
+    current_place: str | None = Field(default=None, alias="currentPlace", min_length=1)
+    current_latitude: float | None = Field(default=None, alias="currentLatitude", ge=-90.0, le=90.0)
+    current_longitude: float | None = Field(default=None, alias="currentLongitude", ge=-180.0, le=180.0)
+    current_timezone: str | None = Field(default=None, alias="currentTimezone", min_length=1)
 
     model_config = ConfigDict(populate_by_name=True)
 

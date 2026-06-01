@@ -707,8 +707,8 @@ export function DashboardFamilyTab({
                 {lang === "ta" ? "இன்றைய உறுப்பினர் சுருக்கம்" : "Today Snapshot"}
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "var(--space-2)" }}>
-                {todayMembers.map((item) => (
-                  <div key={item.memberId} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface-soft)", padding: "var(--space-2_5)" }}>
+                {todayMembers.map((item, idx) => (
+                  <div key={`${item.memberId ?? item.displayName}-${idx}`} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface-soft)", padding: "var(--space-2_5)" }}>
                     <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.75rem", fontWeight: 700, color: "var(--color-text-strong)" }}>{item.displayName}</p>
                     <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.75rem", color: scoreColor(item.score) }}>
                       {item.score}/100

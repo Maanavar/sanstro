@@ -58,13 +58,13 @@ class PanchangamSlot(BaseModel):
     start: str
     end: str
     slot: int
+    warning: str | None = None
 
 
 class PanchangamKalam(BaseModel):
     rahu_kalam: PanchangamSlot = Field(alias="rahuKalam")
     yamagandam: PanchangamSlot
     kuligai: PanchangamSlot
-    mandhi: PanchangamSlot
     nalla_neram: list[PanchangamSlot] = Field(alias="nallaNeram")
     gowri_nalla_neram: list[PanchangamSlot] = Field(alias="gowriNallaNeram")
 

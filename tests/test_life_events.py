@@ -49,18 +49,16 @@ def test_reason_bitext_falls_back_to_key_for_unknown():
 # ── Integration tests: API endpoint ──────────────────────────────────────────
 
 
-def _create_test_chart(client) -> str:
-    bp = client.post("/api/v1/birth-profiles", json={
-        "ownerUserId": "11111111-1111-1111-1111-111111111111",
-        "displayName": "Life Events Test",
-        "birthDateLocal": "1990-06-15",
-        "birthTimeLocal": "09:30:00",
-        "birthPlace": "Chennai, India",
-        "birthLatitude": 13.0827,
-        "birthLongitude": 80.2707,
-        "birthTimezone": "Asia/Kolkata",
-        "calculateNow": True,
-    })
+def _create_test_chart(client, birth_profile_payload_factory) -> str:
+    bp = client.post(
+        "/api/v1/birth-profiles",
+        json={
+            **birth_profile_payload_factory(display_name="Life Events Test"),
+            "birthDateLocal": "1990-06-15",
+            "birthTimeLocal": "09:30:00",
+            "birthPlace": "Chennai, India",
+        },
+    )
     assert bp.status_code == 200
     chart = client.post("/api/v1/charts/calculate", json={
         "birthProfileId": bp.json()["data"]["birthProfileId"],
@@ -71,8 +69,8 @@ def _create_test_chart(client) -> str:
     return chart.json()["data"]["chartId"]
 
 
-def test_life_events_endpoint_returns_200(client):
-    chart_id = _create_test_chart(client)
+def test_life_events_endpoint_returns_200(client, birth_profile_payload_factory):
+    chart_id = _create_test_chart(client, birth_profile_payload_factory)
     resp = client.get(
         f"/api/v1/charts/{chart_id}/life-events",
         params={"asOf": date.today().isoformat(), "yearsAhead": 3},
@@ -86,16 +84,16 @@ def test_life_events_endpoint_returns_200(client):
     assert isinstance(data["windows"], list)
 
 
-def test_life_events_endpoint_default_years_ahead(client):
-    chart_id = _create_test_chart(client)
+def test_life_events_endpoint_default_years_ahead(client, birth_profile_payload_factory):
+    chart_id = _create_test_chart(client, birth_profile_payload_factory)
     resp = client.get(f"/api/v1/charts/{chart_id}/life-events")
     assert resp.status_code == 200
     data = resp.json()["data"]
     assert data["yearsAhead"] == 5
 
 
-def test_life_events_each_window_has_required_fields(client):
-    chart_id = _create_test_chart(client)
+def test_life_events_each_window_has_required_fields(client, birth_profile_payload_factory):
+    chart_id = _create_test_chart(client, birth_profile_payload_factory)
     resp = client.get(
         f"/api/v1/charts/{chart_id}/life-events",
         params={"asOf": date.today().isoformat(), "yearsAhead": 5},
@@ -116,8 +114,8 @@ def test_life_events_each_window_has_required_fields(client):
         assert "gocharSupport" in w
 
 
-def test_life_events_windows_sorted_by_start_date(client):
-    chart_id = _create_test_chart(client)
+def test_life_events_windows_sorted_by_start_date(client, birth_profile_payload_factory):
+    chart_id = _create_test_chart(client, birth_profile_payload_factory)
     resp = client.get(
         f"/api/v1/charts/{chart_id}/life-events",
         params={"yearsAhead": 5},
@@ -128,10 +126,10 @@ def test_life_events_windows_sorted_by_start_date(client):
     assert dates == sorted(dates)
 
 
-def test_life_events_no_fatalistic_language(client):
+def test_life_events_no_fatalistic_language(client, birth_profile_payload_factory):
     from app.services.narrative_engine import tone_validator
 
-    chart_id = _create_test_chart(client)
+    chart_id = _create_test_chart(client, birth_profile_payload_factory)
     resp = client.get(f"/api/v1/charts/{chart_id}/life-events", params={"yearsAhead": 5})
     assert resp.status_code == 200
     windows = resp.json()["data"]["windows"]

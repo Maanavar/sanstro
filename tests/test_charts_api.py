@@ -5,22 +5,8 @@ import pytest
 from app.calculations.astro import navamsa_rasi_from_degree
 
 
-def _birth_profile_payload():
-    return {
-        "ownerUserId": "11111111-1111-1111-1111-111111111111",
-        "displayName": "Arjun Kumar",
-        "birthDateLocal": "1991-07-22",
-        "birthTimeLocal": "06:30:00",
-        "birthPlace": "Chennai, Tamil Nadu, India",
-        "birthLatitude": 13.0827,
-        "birthLongitude": 80.2707,
-        "birthTimezone": "Asia/Kolkata",
-        "calculateNow": True,
-    }
-
-
-def test_birth_profile_create_endpoint_persists_and_returns_chart(client):
-    response = client.post("/api/v1/birth-profiles", json=_birth_profile_payload())
+def test_birth_profile_create_endpoint_persists_and_returns_chart(client, birth_profile_payload_factory):
+    response = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory())
 
     assert response.status_code == 200
     body = response.json()
@@ -29,8 +15,8 @@ def test_birth_profile_create_endpoint_persists_and_returns_chart(client):
     assert body["data"]["chartId"] is not None
 
 
-def test_chart_calculate_endpoint_uses_persisted_birth_profile(client):
-    created = client.post("/api/v1/birth-profiles", json=_birth_profile_payload()).json()
+def test_chart_calculate_endpoint_uses_persisted_birth_profile(client, birth_profile_payload_factory):
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
     birth_profile_id = created["data"]["birthProfileId"]
 
     response = client.post(
@@ -84,8 +70,8 @@ def test_chart_calculate_endpoint_uses_persisted_birth_profile(client):
     )
 
 
-def test_chart_summary_endpoint_returns_dashboard_payload(client):
-    created = client.post("/api/v1/birth-profiles", json=_birth_profile_payload()).json()
+def test_chart_summary_endpoint_returns_dashboard_payload(client, birth_profile_payload_factory):
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
     birth_profile_id = created["data"]["birthProfileId"]
     chart_id = client.post(
         "/api/v1/charts/calculate",
@@ -115,8 +101,8 @@ def test_chart_summary_endpoint_returns_dashboard_payload(client):
     assert len(body["ashtakavarga"]["SUN"]) == 12
 
 
-def test_dasha_endpoint_honours_level_parameter(client):
-    created = client.post("/api/v1/birth-profiles", json=_birth_profile_payload()).json()
+def test_dasha_endpoint_honours_level_parameter(client, birth_profile_payload_factory):
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
     birth_profile_id = created["data"]["birthProfileId"]
     chart_id = client.post(
         "/api/v1/charts/calculate",
@@ -135,8 +121,8 @@ def test_dasha_endpoint_honours_level_parameter(client):
     assert all(item["level"] == "maha" for item in body["timeline"])
 
 
-def test_jadhagam_report_endpoint_returns_structured_payload(client):
-    created = client.post("/api/v1/birth-profiles", json=_birth_profile_payload()).json()
+def test_jadhagam_report_endpoint_returns_structured_payload(client, birth_profile_payload_factory):
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
     birth_profile_id = created["data"]["birthProfileId"]
     chart_id = client.post(
         "/api/v1/charts/calculate",

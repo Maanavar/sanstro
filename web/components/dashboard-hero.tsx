@@ -10,6 +10,7 @@ import type {
   DailyGuidanceData,
   FamilyAggregateData,
   FamilyVaultListItem,
+  NotificationInboxItem,
   TransitSnapshotData,
 } from "@/lib/types";
 
@@ -48,6 +49,9 @@ interface DashboardHeroProps {
   toast: { message: string; tone: "success" | "error" } | null;
   alertCount: number;
   alertItems: Array<{ type: string; title: string; body: string }>;
+  inboxItems: NotificationInboxItem[];
+  inboxUnreadCount: number;
+  onMarkAllRead: () => void;
   onTabChange: (tab: Tab) => void;
   onDateChange: (date: string) => void;
   onLangToggle: () => void;
@@ -133,6 +137,9 @@ export function DashboardHero(props: DashboardHeroProps) {
     toast,
     alertCount,
     alertItems,
+    inboxItems,
+    inboxUnreadCount,
+    onMarkAllRead,
     onTabChange,
     onDateChange,
     onLangToggle,
@@ -145,6 +152,7 @@ export function DashboardHero(props: DashboardHeroProps) {
 
   const todayDate = useRef(todayIso());
   const [showAlerts, setShowAlerts] = useState(false);
+  const [showInbox, setShowInbox] = useState(false);
 
   const lagnaRasi = chartSummary?.lagnaRasi ?? "";
   const tabs = useMemo(
@@ -195,28 +203,65 @@ export function DashboardHero(props: DashboardHeroProps) {
               <button
                 type="button"
                 className="cd-icon-btn"
-                onClick={() => setShowAlerts((v) => !v)}
-                aria-label={lang === "ta" ? "அறிவிப்புகள்" : "Alerts"}
+                onClick={() => { setShowAlerts(false); setShowInbox((v) => !v); }}
+                aria-label={lang === "ta" ? "அறிவிப்புகள்" : "Notifications"}
               >
                 <BellIcon />
-                {alertCount > 0 && (
-                  <span className="cd-badge">{alertCount > 9 ? "9+" : alertCount}</span>
+                {(alertCount + inboxUnreadCount) > 0 && (
+                  <span className="cd-badge">{(alertCount + inboxUnreadCount) > 9 ? "9+" : alertCount + inboxUnreadCount}</span>
                 )}
               </button>
-              {showAlerts && (
+              {showInbox && (
                 <>
-                  <div className="cd-overlay cd-overlay--alerts" onClick={() => setShowAlerts(false)} />
+                  <div className="cd-overlay cd-overlay--alerts" onClick={() => setShowInbox(false)} />
                   <div className="cd-alerts-popover">
-                    <p className="cd-alerts-head">{t("ambient_alerts_label", lang)}</p>
-                    {alertItems.length === 0 ? (
+                    {/* Ambient (astro) alerts */}
+                    {alertItems.length > 0 && (
+                      <>
+                        <p className="cd-alerts-head">{t("ambient_alerts_label", lang)}</p>
+                        {alertItems.map((a, i) => (
+                          <div key={`alert-${a.type}-${i}`} className="cd-alert-item">
+                            <p className="cd-alert-item__title">{a.title}</p>
+                            <p className="cd-alert-item__body">{a.body}</p>
+                          </div>
+                        ))}
+                      </>
+                    )}
+
+                    {/* Sent notifications inbox */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                      <p className="cd-alerts-head" style={{ margin: 0 }}>
+                        {lang === "ta" ? "அனுப்பிய அறிவிப்புகள்" : "Sent notifications"}
+                      </p>
+                      {inboxUnreadCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => { onMarkAllRead(); }}
+                          style={{ fontSize: "0.7rem", color: "#B85A2C", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}
+                        >
+                          {lang === "ta" ? "அனைத்தும் படித்தது" : "Mark all read"}
+                        </button>
+                      )}
+                    </div>
+                    {inboxItems.length === 0 && alertItems.length === 0 ? (
                       <p className="cd-empty-note">
-                        {lang === "ta" ? "இன்று எந்த அறிவிப்பும் இல்லை." : "No alerts today."}
+                        {lang === "ta" ? "இன்று எந்த அறிவிப்பும் இல்லை." : "No notifications yet."}
+                      </p>
+                    ) : inboxItems.length === 0 ? (
+                      <p className="cd-empty-note" style={{ fontSize: "0.75rem" }}>
+                        {lang === "ta" ? "அனுப்பிய அறிவிப்புகள் இல்லை." : "No sent notifications yet."}
                       </p>
                     ) : (
-                      alertItems.map((a, i) => (
-                        <div key={`${a.type}-${i}`} className="cd-alert-item">
-                          <p className="cd-alert-item__title">{a.title}</p>
-                          <p className="cd-alert-item__body">{a.body}</p>
+                      inboxItems.map((n) => (
+                        <div key={n.notification_id} className="cd-alert-item" style={{ opacity: n.read_at ? 0.6 : 1 }}>
+                          <p className="cd-alert-item__title" style={{ display: "flex", justifyContent: "space-between", gap: "8px" }}>
+                            <span>{n.title}</span>
+                            {!n.read_at && <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#B85A2C", flexShrink: 0, marginTop: "4px" }} />}
+                          </p>
+                          <p className="cd-alert-item__body">{n.body}</p>
+                          <p style={{ margin: 0, fontSize: "0.65rem", color: "#7A6F5E" }}>
+                            {new Date(n.send_at).toLocaleString()}
+                          </p>
                         </div>
                       ))
                     )}

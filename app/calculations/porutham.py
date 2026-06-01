@@ -43,7 +43,13 @@ _YONI: dict[int, int] = {
 # Friendly yoni pairs (score 4); same yoni = 4; hostile = 0; neutral = 2
 _YONI_HOSTILE: frozenset[frozenset[int]] = frozenset(
     frozenset(pair) for pair in [
-        {1, 2}, {3, 8}, {4, 5}, {6, 7}, {9, 13}, {10, 11}, {12, 14},
+        {1, 2},   # Horse vs Elephant
+        {3, 8},   # Sheep vs Cow
+        {4, 5},   # Serpent vs Dog
+        {6, 7},   # Cat vs Rat
+        {9, 10},  # Buffalo vs Tiger  (was {9, 13} — Tiger/Lion were swapped)
+        {11, 13}, # Hare vs Lion      (was {10, 11})
+        {12, 14}, # Monkey vs Mongoose
     ]
 )
 _YONI_FRIENDLY: frozenset[frozenset[int]] = frozenset(
@@ -160,7 +166,8 @@ def _dinam_score(nak_boy: int, nak_girl: int) -> int:
     """Dinam (Dhinam): count from girl's nakshatra to boy's, max 3."""
     diff = (nak_boy - nak_girl) % 27
     remainder = diff % 9
-    return 3 if remainder in {0, 1, 2, 3, 4} else 0
+    # remainder=0 means same nakshatra group — inauspicious per Tamil Thirukanitham
+    return 3 if remainder in {1, 2, 3, 4} else 0
 
 
 def _ganam_score(nak_boy: int, nak_girl: int) -> int:
@@ -233,13 +240,13 @@ def _vasya_score(rasi_boy: int, rasi_girl: int) -> int:
 def _mahendra_score(nak_boy: int, nak_girl: int) -> int:
     """Mahendra: count from girl's nak to boy's (1-based); auspicious at positions 4,7,10,13,16,19,22,25."""
     diff = (nak_boy - nak_girl) % 27 + 1
-    return 2 if diff in {4, 7, 10, 13, 16, 19, 22, 25} else 0
+    return 4 if diff in {4, 7, 10, 13, 16, 19, 22, 25} else 0
 
 
 def _stree_dirgha_score(nak_boy: int, nak_girl: int) -> int:
     """Stree Dirgha: boy's nak should be > 9 places from girl's for good score."""
     diff = (nak_boy - nak_girl) % 27
-    return 2 if diff > 9 else 0
+    return 5 if diff > 9 else 0
 
 
 # ---------------------------------------------------------------------------
@@ -307,10 +314,10 @@ def compute_porutham(
 
     maxes = {
         "Dinam": 3, "Ganam": 6, "Yoni": 4, "Rasi": 7, "Graha Maitri": 5,
-        "Rajju": 2, "Vedha": 2, "Vasya": 2, "Mahendra": 2, "Stree Dirgha": 2,
+        "Vasya": 2, "Mahendra": 4, "Stree Dirgha": 5,
+        # Rajju and Vedha are dosha-only flags; not counted in positive score total
     }
-    # Classical max is 36 (Rasi kuta can be 7 but total canonical max is 36)
-    MAX_SCORE = 36
+    MAX_SCORE = 36  # 3+6+4+7+5+2+4+5 = 36
 
     _names_ta = {
         "Dinam": "தினம்", "Ganam": "கணம்", "Yoni": "யோனி", "Rasi": "ராசி",
@@ -320,8 +327,7 @@ def compute_porutham(
 
     raw_scores = {
         "Dinam": dinam, "Ganam": ganam, "Yoni": yoni, "Rasi": rasi,
-        "Graha Maitri": gm, "Rajju": rajju, "Vedha": vedha,
-        "Vasya": vasya, "Mahendra": mahendra, "Stree Dirgha": stree,
+        "Graha Maitri": gm, "Vasya": vasya, "Mahendra": mahendra, "Stree Dirgha": stree,
     }
 
     kutas: list[KutaResult] = [

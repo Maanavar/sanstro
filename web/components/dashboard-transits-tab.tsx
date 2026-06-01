@@ -71,16 +71,6 @@ function interpretationLabel(key: string, lang: Lang): string {
   return `Interpretation: ${text}`;
 }
 
-function formatHeaderDate(value: string, lang: Lang): string {
-  const parsed = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 function StatPill({
   label,
   value,
@@ -183,7 +173,6 @@ export function DashboardTransitsTab({
   const dashaSupportScore = personalDailyGuidance
     ? Math.min(100, Math.round(personalDailyGuidance.scoreBreakdown.dashaSupport / 0.2))
     : null;
-  const headerDate = formatHeaderDate(selectedDate, lang);
 
   return (
     <div
@@ -226,21 +215,6 @@ export function DashboardTransitsTab({
             {t("transits_tab_desc", lang)}
           </p>
         </div>
-        <span
-          style={{
-            borderRadius: "var(--radius-pill)",
-            border: `1px solid ${W.border}`,
-            background: W.surface,
-            color: W.inkMid,
-            fontSize: "1rem",
-            fontWeight: 600,
-            padding: "var(--space-1_5) var(--space-4)",
-            whiteSpace: "nowrap",
-            alignSelf: "center",
-          }}
-        >
-          {headerDate}
-        </span>
       </div>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2_5)" }}>

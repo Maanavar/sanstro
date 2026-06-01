@@ -40,6 +40,8 @@ from app.schemas.life_areas import (
 )
 from app.models import BirthProfile, Chart
 from app.services.chart_service import load_persisted_chart_response
+from app.services.goals_service import get_active_goals_for_chart
+from app.services.location_service import resolve_effective_daily_timezone
 
 
 # ── Bilingual helper ───────────────────────────────────────────────────────────
@@ -188,6 +190,54 @@ def _compute_age(on_date: date, birth_date: date) -> int:
     return on_date.year - birth_date.year - ((on_date.month, on_date.day) < (birth_date.month, birth_date.day))
 
 
+def _age_phase(age: int) -> str:
+    if age < 6:
+        return "INFANT"
+    if age < 13:
+        return "CHILD"
+    if age < 18:
+        return "TEEN"
+    if age < 36:
+        return "YOUNG_ADULT"
+    if age < 56:
+        return "MID"
+    return "ELDER"
+
+
+_PHASE_RELEVANT_AREAS: dict[str, set[str]] = {
+    "INFANT": {"HEALTH", "FAMILY_HARMONY"},
+    "CHILD": {"HEALTH", "EDUCATION", "FAMILY_HARMONY"},
+    "TEEN": {"EDUCATION", "HEALTH", "SPIRITUAL", "FAMILY_HARMONY"},
+    "YOUNG_ADULT": {"CAREER", "MONEY", "HEALTH", "RELATIONSHIPS", "EDUCATION", "SPIRITUAL", "FAMILY_HARMONY"},
+    "MID": {"CAREER", "MONEY", "HEALTH", "RELATIONSHIPS", "EDUCATION", "SPIRITUAL", "FAMILY_HARMONY"},
+    "ELDER": {"HEALTH", "SPIRITUAL", "FAMILY_HARMONY", "MONEY"},
+}
+
+
+_PHASE_SKIP_REASON: dict[str, LifeAreaText] = {
+    "INFANT": _t(
+        "இந்த வாழ்க்கைப் பகுதி குழந்தை வளர்ந்த பின் பொருத்தமாகும்.",
+        "This life area becomes relevant as the child grows older.",
+    ),
+    "CHILD": _t(
+        "இந்த பகுதி இளவயதிலும் பெரியவயதிலும் முக்கியமாகும்.",
+        "This area becomes more relevant in the teenage and adult years.",
+    ),
+    "TEEN": _t(
+        "இந்த பகுதி வயது வந்த பிறகு முக்கிய கவனமாகும்.",
+        "This area becomes a key focus in adult years.",
+    ),
+    "ELDER": _t(
+        "இந்த பகுதி முன்பட்ட காலத்தில் முக்கியமாக இருந்தது; இப்போது உடல்நலம் மற்றும் ஆன்மீகத்தில் கவனம் அதிகம்.",
+        "This area was most active in earlier years; focus now shifts to health and spiritual growth.",
+    ),
+}
+
+
+def _phase_skip_text(phase: str) -> LifeAreaText:
+    return _PHASE_SKIP_REASON.get(phase, _not_applicable_text())
+
+
 def _is_married(marital_status: str | None) -> bool:
     return (marital_status or "").strip().lower() == "married"
 
@@ -252,6 +302,52 @@ def _married_relationship_text(score: int) -> tuple[LifeAreaText, LifeAreaText, 
             "சிறிய கருத்து வேறுபாடுகளை பெரிய விவாதமாக மாற்றாமல் நேரம் எடுத்துப் பேசுங்கள்.",
             "Do not escalate small disagreements; take time before sensitive discussions.",
         ),
+    )
+
+
+def _build_area_reason(
+    area_key: str,
+    score: int,
+    karaka_planet: str,
+    karaka_house_from_moon: int,
+    maha_lord: str,
+    antar_lord: str,
+    maha_relevant: bool,
+    antar_relevant: bool,
+    sani_phase: str | None,
+) -> LifeAreaText:
+    area_en = _AREA_LABELS[area_key].en
+    area_ta = _AREA_LABELS[area_key].ta
+    planet_en = _PLANET_LABEL[karaka_planet].en
+    planet_ta = _PLANET_LABEL[karaka_planet].ta
+    transit_quality_en = "well-placed" if karaka_house_from_moon in {1, 2, 3, 4, 5, 7, 9, 10, 11} else "in a challenging position"
+    transit_quality_ta = "சாதகமான இடத்தில்" if transit_quality_en == "well-placed" else "சவாலான இடத்தில்"
+    level_en = "strong" if score >= 70 else ("moderate" if score >= 45 else "needs attention")
+    level_ta = "வலிமையாக" if score >= 70 else ("மிதமாக" if score >= 45 else "கவனம் தேவை")
+
+    if maha_relevant and antar_relevant:
+        dasha_en = f"{maha_lord} mahadasha and {antar_lord} antardasha both support {area_en.lower()}."
+        dasha_ta = f"{maha_lord} மகாதசையும் {antar_lord} அந்தர்தசையும் {area_ta}க்கு ஆதரவு அளிக்கின்றன."
+    elif maha_relevant:
+        dasha_en = f"{maha_lord} mahadasha supports {area_en.lower()}; {antar_lord} antardasha is neutral."
+        dasha_ta = f"{maha_lord} மகாதசை {area_ta}க்கு ஆதரவு; {antar_lord} அந்தர்தசை நடுநிலை."
+    elif antar_relevant:
+        dasha_en = f"{maha_lord} mahadasha is neutral; {antar_lord} antardasha adds support for {area_en.lower()}."
+        dasha_ta = f"{maha_lord} மகாதசை நடுநிலை; {antar_lord} அந்தர்தசை {area_ta}க்கு துணை."
+    else:
+        dasha_en = f"Neither {maha_lord} mahadasha nor {antar_lord} antardasha is strongly aligned with {area_en.lower()}."
+        dasha_ta = f"{maha_lord} மகாதசையும் {antar_lord} அந்தர்தசையும் {area_ta}க்கு வலுவான இணைப்பில் இல்லை."
+
+    sani_en = ""
+    sani_ta = ""
+    if sani_phase:
+        sani_label = _sani_label_en(sani_phase)
+        sani_en = f" {sani_label} is active, so patience and structure are important."
+        sani_ta = f" {_sani_label_ta(sani_phase)} நடப்பில் இருப்பதால் பொறுமையுடன் திட்டமிட்டு செயல்பட வேண்டும்."
+
+    return _t(
+        f"{planet_ta} ({area_ta} காரகன்) சந்திரனிலிருந்து {karaka_house_from_moon}ஆம் இடத்தில் {transit_quality_ta} உள்ளது. {dasha_ta}{sani_ta} மொத்தப் பலன்: {area_ta} {level_ta} ({score}/100).",
+        f"{planet_en} (karaka for {area_en.lower()}) is in house {karaka_house_from_moon} from Moon and is {transit_quality_en}. {dasha_en}{sani_en} Net effect: {area_en.lower()} is {level_en} ({score}/100).",
     )
 
 
@@ -706,6 +802,21 @@ _AREA_TO_CHAIN_KEY: dict[str, str] = {
     "FAMILY_HARMONY": "PROPERTY",
 }
 
+_GOAL_TO_AREA: dict[str, str | None] = {
+    "job_change": "CAREER",
+    "business_start": "CAREER",
+    "marriage": "RELATIONSHIPS",
+    "education": "EDUCATION",
+    "property": "MONEY",
+    "money": "MONEY",
+    "travel_abroad": "CAREER",
+    "health": "HEALTH",
+    "spiritual": "SPIRITUAL",
+    "family_harmony": "FAMILY_HARMONY",
+    "child_birth": "FAMILY_HARMONY",
+    "other": None,
+}
+
 
 def _karaka_chain_score(
     area_key: str,
@@ -840,10 +951,17 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
     birth_jd = chart_snapshot.data.julian_day
     birth_profile = chart_snapshot.data.birth_profile
     current_age = _compute_age(on_date, birth_profile.birth_date_local)
+    phase = _age_phase(current_age)
     married = _is_married(getattr(birth_profile, "marital_status", None))
     student_under_18 = _is_student(getattr(birth_profile, "employment_type", None)) and current_age < 18
+    active_goals = get_active_goals_for_chart(session, chart_id)
+    goal_focus_areas = {
+        mapped
+        for mapped in (_GOAL_TO_AREA.get(goal.goal_type) for goal in active_goals)
+        if mapped
+    }
 
-    tz = resolve_timezone(birth_profile.birth_timezone)
+    tz = resolve_timezone(resolve_effective_daily_timezone(birth_profile))
     local_noon = datetime.combine(on_date, time(12, 0), tzinfo=tz)
     current_jd = utc_datetime_to_julian_day(local_noon.astimezone(UTC))
 
@@ -887,43 +1005,6 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
     for area in ("CAREER", "MONEY", "HEALTH", "RELATIONSHIPS", "EDUCATION", "SPIRITUAL", "FAMILY_HARMONY"):
         effective_label = area_label_override.get(area, _AREA_LABELS[area])
 
-        if area == "RELATIONSHIPS" and current_age < 16:
-            na = _not_applicable_text()
-            areas.append(
-                LifeAreaData(
-                    area=area,
-                    label=effective_label,
-                    score=0,
-                    trend="STABLE",
-                    confidence="LOW",
-                    confidenceReason=na,
-                    driver=LifeAreaDriver(planet="N/A", reason=na),
-                    narrative=na,
-                    remedy=na,
-                    next30DayOutlook=na,
-                    caution=None,
-                )
-            )
-            continue
-        if area == "CAREER" and (current_age < 18 or student_under_18):
-            na = _not_applicable_text()
-            areas.append(
-                LifeAreaData(
-                    area=area,
-                    label=effective_label,
-                    score=0,
-                    trend="STABLE",
-                    confidence="LOW",
-                    confidenceReason=na,
-                    driver=LifeAreaDriver(planet="N/A", reason=na),
-                    narrative=na,
-                    remedy=na,
-                    next30DayOutlook=na,
-                    caution=None,
-                )
-            )
-            continue
-
         score = _score_area(
             area,
             natal_moon.rasi,
@@ -958,13 +1039,14 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
         dasha_score = round(maha_score * 0.70 + antar_score * 0.30)
 
         if primary_karaka in transit.bodies:
-            h = house_from_reference(natal_moon.rasi, transit.bodies[primary_karaka].rasi)
-            karaka_transit_score = _HOUSE_SCORE_TABLE.get(primary_karaka, {}).get(h, 50)
+            karaka_house_from_moon = house_from_reference(natal_moon.rasi, transit.bodies[primary_karaka].rasi)
+            karaka_transit_score = _HOUSE_SCORE_TABLE.get(primary_karaka, {}).get(karaka_house_from_moon, 50)
             driver_reason = _t(
-                f"{karaka_label.ta} {h}ஆம் இடத்தில் உள்ளது.",
-                f"{karaka_label.en} is in house {h}.",
+                f"{karaka_label.ta} {karaka_house_from_moon}ஆம் இடத்தில் உள்ளது.",
+                f"{karaka_label.en} is in house {karaka_house_from_moon}.",
             )
         else:
+            karaka_house_from_moon = 1
             karaka_transit_score = 50
             driver_reason = _t(f"{karaka_label.ta} நிலை", f"{karaka_label.en} position")
 
@@ -995,10 +1077,56 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             sani_cycle.is_active, sani_cycle.type if sani_cycle.is_active else None,
             chandrashtama, jupiter_house, saturn_house,
         )
+        detailed_reason = _build_area_reason(
+            area_key=area,
+            score=score,
+            karaka_planet=primary_karaka,
+            karaka_house_from_moon=karaka_house_from_moon,
+            maha_lord=maha_lord,
+            antar_lord=antar_lord,
+            maha_relevant=maha_score >= 60,
+            antar_relevant=antar_score >= 60,
+            sani_phase=sani_cycle.type if sani_cycle.is_active else None,
+        )
+        bundle = _NarrativeBundle(
+            narrative=_t(f"{detailed_reason.ta} {bundle.narrative.ta}", f"{detailed_reason.en} {bundle.narrative.en}"),
+            outlook=bundle.outlook,
+            remedy=bundle.remedy,
+            caution=bundle.caution,
+        )
+        is_goal_focus = area in goal_focus_areas
+        if is_goal_focus:
+            bundle = _NarrativeBundle(
+                narrative=_t(
+                    f"{bundle.narrative.ta} (உங்கள் இலக்கு கவனம்)",
+                    f"{bundle.narrative.en} (This is highlighted based on your active goal.)",
+                ),
+                outlook=bundle.outlook,
+                remedy=bundle.remedy,
+                caution=bundle.caution,
+            )
+
+        relevant_areas = _PHASE_RELEVANT_AREAS.get(phase, _PHASE_RELEVANT_AREAS["MID"])
+        if area == "CAREER" and student_under_18:
+            relevant_areas = set(relevant_areas)
+            relevant_areas.discard("CAREER")
+        if area not in relevant_areas:
+            skip_text = _phase_skip_text(phase)
+            if phase in {"INFANT", "CHILD"}:
+                score = 0
+            _area_confidence = "LOW"
+            _area_conf_reason = skip_text
+            driver_reason = skip_text
+            bundle = _NarrativeBundle(
+                narrative=skip_text,
+                outlook=skip_text,
+                remedy=skip_text,
+                caution=None,
+            )
 
         # For married users, render relationship guidance as harmony-focused content.
-        label = _AREA_LABELS[area]
-        if married and area == "RELATIONSHIPS":
+        label = effective_label
+        if married and area == "RELATIONSHIPS" and area in relevant_areas:
             label = _t("தாம்பத்ய ஒற்றுமை", "Married life harmony")
             married_narrative, married_outlook, married_caution = _married_relationship_text(score)
             bundle = _NarrativeBundle(
@@ -1043,6 +1171,7 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             remedy=bundle.remedy,
             next30DayOutlook=bundle.outlook,
             caution=bundle.caution,
+            isGoalFocus=is_goal_focus,
         ))
 
     return LifeAreasResponse(

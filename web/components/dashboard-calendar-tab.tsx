@@ -64,15 +64,17 @@ function parseHmToMinutes(hm: string): number {
   return (h ?? 0) * 60 + (m ?? 0);
 }
 
-function moonRasiFromNakshatra(name: string): number {
+function moonRasiFromNakshatra(name: string, pada = 1): number {
   const idx = NAKSHATRA_ORDER.indexOf(name.toUpperCase());
   if (idx < 0) return 0;
-  return Math.floor(idx / 2.25) + 1;
+  const normalizedPada = Math.min(4, Math.max(1, Math.trunc(pada) || 1));
+  const absolutePada = idx * 4 + (normalizedPada - 1);
+  return Math.floor(absolutePada / 9) + 1;
 }
 
-function chandrastamaRasi(moonRasi: number): number {
+function chandrashtamaAffectedNatalRasi(moonRasi: number): number {
   if (!moonRasi) return 0;
-  return ((moonRasi - 1 + 7) % 12) + 1;
+  return ((moonRasi - 1 - 7 + 12) % 12) + 1;
 }
 
 function formatHeaderDate(value: string, lang: Lang): string {
@@ -263,8 +265,8 @@ export function CalendarTab({
     ? `${tWeekday(panchangam.vara.weekday, lang)} · ${tithiPaksha ?? ""} · ${tNakshatra(panchangam.nakshatra.name, lang)}`
     : t("panja_empty", lang);
 
-  const moonRasi = panchangam ? moonRasiFromNakshatra(panchangam.nakshatra.name) : 0;
-  const chandrashtama = chandrastamaRasi(moonRasi);
+  const moonRasi = panchangam ? moonRasiFromNakshatra(panchangam.nakshatra.name, panchangam.nakshatra.pada) : 0;
+  const chandrashtama = chandrashtamaAffectedNatalRasi(moonRasi);
   const moonRasiName = moonRasi ? RASI_NAMES_EN[moonRasi] : "";
   const chandraName = chandrashtama ? RASI_NAMES_EN[chandrashtama] : "";
 
@@ -331,7 +333,7 @@ export function CalendarTab({
                   {tTithi(panchangam.tithi.name, lang)}. {tNakshatra(panchangam.nakshatra.name, lang)}. {tYoga(panchangam.yoga.name, lang)}.
                 </h2>
                 <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>
-                  Sunrise {formatClockLabel(panchangam.sunrise)}, sunset {formatClockLabel(panchangam.sunset)}.
+                  {lang === "ta" ? "சூர்யோதயம்" : "Sunrise"} {formatClockLabel(panchangam.sunrise)} · {lang === "ta" ? "சூர்யாஸ்தமனம்" : "Sunset"} {formatClockLabel(panchangam.sunset)}
                 </p>
 
                 <DayTimeline
@@ -341,35 +343,73 @@ export function CalendarTab({
                   avoidEnd={panchangam.kalam.rahuKalam.end}
                 />
 
-                <div style={{ marginTop: "var(--space-3_5)", borderTop: `1px solid ${W.borderLt}`, paddingTop: "var(--space-3)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                  {[
-                    { label: "Mandhi", tone: "warn", start: panchangam.kalam.mandhi.start, end: panchangam.kalam.mandhi.end },
-                    { label: t("label_abhijit", lang), tone: "good", start: panchangam.abhijit.start, end: panchangam.abhijit.end },
-                    ...(panchangam.kalam.nallaNeram ?? []).map((w) => ({ label: t("label_nalla_neram", lang), tone: "good", start: w.start, end: w.end })),
-                    { label: t("label_yamagandam", lang), tone: "warn", start: panchangam.kalam.yamagandam.start, end: panchangam.kalam.yamagandam.end },
-                    { label: t("label_kuligai", lang), tone: "warn", start: panchangam.kalam.kuligai.start, end: panchangam.kalam.kuligai.end },
-                    { label: t("label_rahu_kalam", lang), tone: "warn", start: panchangam.kalam.rahuKalam.start, end: panchangam.kalam.rahuKalam.end },
-                  ].map((row, idx) => (
-                    <div
-                      key={`${row.label}-${idx}`}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "var(--space-2)",
-                        padding: "var(--space-2) var(--space-3)",
-                        borderRadius: "var(--radius-md)",
-                        border: `1px solid ${W.borderLt}`,
-                        background: row.tone === "good" ? "#DCE4D2" : "#F2D8CC",
-                        color: row.tone === "good" ? W.sage : W.rust,
-                        fontSize: "0.875rem",
-                        fontWeight: 600,
-                      }}
-                    >
-                      <span>{row.label}</span>
-                      <span>{formatClockLabel(row.start)} - {formatClockLabel(row.end)}</span>
+                <div style={{ marginTop: "var(--space-3_5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+
+                  {/* ── Auspicious ── */}
+                  <div>
+                    <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: W.sage, fontWeight: 700 }}>
+                      {lang === "ta" ? "நல்ல நேரங்கள்" : "Auspicious"}
+                    </p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
+                      {(panchangam.kalam.nallaNeram ?? []).map((w, idx) => (
+                        <div key={`nn-${idx}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", background: "#DCE4D2", color: W.sage, fontSize: "0.875rem", fontWeight: 600 }}>
+                          <span>{t("label_nalla_neram", lang)}</span>
+                          <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatClockLabel(w.start)} – {formatClockLabel(w.end)}</span>
+                        </div>
+                      ))}
+                      {(() => {
+                        const slots = panchangam.kalam.gowriNallaNeram ?? [];
+                        if (slots.length === 0) return null;
+                        const times = slots.map((w) => `${formatClockLabel(w.start)} – ${formatClockLabel(w.end)}`).join(", ");
+                        return (
+                          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-3)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", background: "#EAF0E4", border: `1px dashed ${W.sage}`, color: W.sage, fontSize: "0.8125rem", fontWeight: 500 }}>
+                            <span style={{ flexShrink: 0 }}>{t("label_gowri_nalla_neram", lang)}</span>
+                            <span style={{ fontVariantNumeric: "tabular-nums", textAlign: "right" }}>{times}</span>
+                          </div>
+                        );
+                      })()}
                     </div>
-                  ))}
+                  </div>
+
+                  {/* ── Inauspicious ── */}
+                  <div>
+                    <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: W.rust, fontWeight: 700 }}>
+                      {lang === "ta" ? "தவிர்க்க வேண்டிய நேரம்" : "Avoid"}
+                    </p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
+                      {[
+                        { label: t("label_rahu_kalam", lang), slot: panchangam.kalam.rahuKalam },
+                        { label: t("label_yamagandam", lang), slot: panchangam.kalam.yamagandam },
+                        { label: t("label_kuligai", lang), slot: panchangam.kalam.kuligai },
+                      ].map((row) => (
+                        <div key={row.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", background: "#F2D8CC", color: W.rust, fontSize: "0.875rem", fontWeight: 600 }}>
+                          <span>{row.label}</span>
+                          <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatClockLabel(row.slot.start)} – {formatClockLabel(row.slot.end)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ── Chandrashtamam ── */}
+                  {moonRasiName && (
+                    <div style={{ borderRadius: "var(--radius-md)", border: `1px solid rgba(184,90,44,0.25)`, background: "#F8E4D2", overflow: "hidden" }}>
+                      <p style={{ margin: 0, padding: "var(--space-1_5) var(--space-3)", fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: W.terracotta, fontWeight: 700, borderBottom: `1px solid rgba(184,90,44,0.15)` }}>
+                        {t("label_chandrashtamam", lang)}
+                      </p>
+                      <div style={{ display: "flex", flexDirection: "column" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", padding: "var(--space-2) var(--space-3)", fontSize: "0.875rem", color: W.inkMid }}>
+                          <span style={{ color: W.muted }}>{lang === "ta" ? "சந்திர ராசி" : "Moon Rasi"}</span>
+                          <span style={{ fontWeight: 600 }}>{moonRasiName}</span>
+                        </div>
+                        {chandraName && (
+                          <div style={{ display: "flex", justifyContent: "space-between", padding: "var(--space-2) var(--space-3)", borderTop: `1px solid rgba(184,90,44,0.1)`, fontSize: "0.875rem", color: W.rust }}>
+                            <span>{lang === "ta" ? "பாதிக்கப்படும் ராசி" : "Affected Rasi"}</span>
+                            <span style={{ fontWeight: 600 }}>{chandraName}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -401,11 +441,6 @@ export function CalendarTab({
                     Today's Significance
                   </p>
                   <p style={{ margin: 0, fontSize: "0.875rem", lineHeight: 1.6, color: W.inkMid }}>{significanceText}</p>
-                  {chandraName && moonRasiName && (
-                    <p style={{ margin: "var(--space-2_5) 0 0", fontSize: "0.875rem", color: W.rust }}>
-                      Chandrastamam today: {chandraName} (Moon in {moonRasiName}).
-                    </p>
-                  )}
                 </div>
 
                 {panchangam.hora.length > 0 && (

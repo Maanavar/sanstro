@@ -2,6 +2,7 @@
 
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { MIN_BIRTH_DATE, isBirthDateWithinBounds, maxBirthDateIso } from "@/lib/birth-date";
 import { PlaceCombobox } from "./dashboard-ui";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
@@ -22,6 +23,10 @@ export type EditMemberState = {
   birthLatitude: string;
   birthLongitude: string;
   birthTimezone: string;
+  currentPlace: string;
+  currentLatitude: string;
+  currentLongitude: string;
+  currentTimezone: string;
 };
 
 interface EditMemberModalProps {
@@ -151,8 +156,12 @@ export function EditMemberModal({ lang, editMember, busySaving, onClose, onChang
             </WSelect>
           </WField>
           <WField label={t("field_birth_date", lang)}>
-            <WInput type="date" value={editMember.birthDateLocal}
-              onChange={(e) => onChange({ ...editMember, birthDateLocal: e.target.value })} />
+            <WInput type="date" value={editMember.birthDateLocal} min={MIN_BIRTH_DATE} max={maxBirthDateIso()}
+              onChange={(e) => {
+                const next = e.target.value;
+                if (!isBirthDateWithinBounds(next)) return;
+                onChange({ ...editMember, birthDateLocal: next });
+              }} />
           </WField>
           <WField label={t("field_birth_time", lang)}>
             <WInput type="time" step="1" value={editMember.birthTimeLocal}
@@ -176,6 +185,26 @@ export function EditMemberModal({ lang, editMember, busySaving, onClose, onChang
           <WField label={t("field_longitude", lang)}>
             <WInput inputMode="decimal" value={editMember.birthLongitude}
               onChange={(e) => onChange({ ...editMember, birthLongitude: e.target.value })} />
+          </WField>
+          <WField label={lang === "ta" ? "தினசரி நேரங்களுக்கான தற்போதைய நகரம்" : "Current City (Daily Timings)"}>
+            <PlaceCombobox value={editMember.currentPlace}
+              onChange={(city, raw) => onChange({
+                ...editMember,
+                currentPlace: raw,
+                ...(city ? { currentLatitude: city.lat, currentLongitude: city.lng, currentTimezone: city.timezone } : {}),
+              })} />
+          </WField>
+          <WField label={lang === "ta" ? "தற்போதைய நேர மண்டலம்" : "Current Timezone"}>
+            <WInput value={editMember.currentTimezone}
+              onChange={(e) => onChange({ ...editMember, currentTimezone: e.target.value })} />
+          </WField>
+          <WField label={lang === "ta" ? "தற்போதைய அகலம்" : "Current Latitude"}>
+            <WInput inputMode="decimal" value={editMember.currentLatitude}
+              onChange={(e) => onChange({ ...editMember, currentLatitude: e.target.value })} />
+          </WField>
+          <WField label={lang === "ta" ? "தற்போதைய தீர்க்கரம்" : "Current Longitude"}>
+            <WInput inputMode="decimal" value={editMember.currentLongitude}
+              onChange={(e) => onChange({ ...editMember, currentLongitude: e.target.value })} />
           </WField>
           <WField label={t("field_weight", lang)} hint={t("field_weight_hint", lang)}>
             <WInput inputMode="decimal" value={editMember.memberWeight}

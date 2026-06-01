@@ -12,7 +12,7 @@ class ChartPlanet(TimestampMixin, Base):
     __tablename__ = "chart_planets"
     __table_args__ = (
         CheckConstraint("pada BETWEEN 1 AND 4", name="chart_planet_pada_range"),
-        CheckConstraint("house_from_lagna BETWEEN 1 AND 12", name="chart_planet_house_range"),
+        CheckConstraint("house_from_lagna BETWEEN 1 AND 12", name="ck_chart_planets_house_from_lagna_range"),
         Index("idx_chart_planets_chart", "chart_id"),
         Index("idx_chart_planets_graha", "graha"),
     )

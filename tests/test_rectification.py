@@ -121,7 +121,10 @@ def test_rectify_apply_updates_birth_time(client):
         json={"selectedTime": recommended},
     )
     assert apply_resp.status_code == 200
-    assert apply_resp.json()["success"] is True
+    body = apply_resp.json()
+    assert "birthProfileId" in body
+    assert "appliedOffsetMinutes" in body
+    assert "newBirthTimeLocal" in body
 
 
 def test_rectify_apply_invalid_time_returns_422(client):

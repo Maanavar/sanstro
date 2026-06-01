@@ -8,7 +8,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-from app.core.auth import get_admin_user
+from app.core.auth import get_admin_user, get_current_user
 from app.models.user import User
 
 logger = logging.getLogger("jothidam.feedback")
@@ -42,7 +42,10 @@ class FeedbackListResponse(BaseModel):
     response_model=FeedbackResponse,
     summary="Submit in-app feedback",
 )
-def submit_feedback(payload: FeedbackPayload) -> FeedbackResponse:
+def submit_feedback(
+    payload: FeedbackPayload,
+    current_user: User = Depends(get_current_user),
+) -> FeedbackResponse:
     """Accept a feedback submission from the frontend.
 
     Logs it as a structured JSON entry and appends to the in-process store.
@@ -55,12 +58,14 @@ def submit_feedback(payload: FeedbackPayload) -> FeedbackResponse:
         "rating": payload.rating,
         "message": payload.message,
         "page_context": payload.page_context,
-        "owner_user_id": payload.owner_user_id,
+        "owner_user_id": str(current_user.user_id),
     }
     _feedback_log.append(record)
+    log_extra = dict(record)
+    log_extra["feedback_message"] = log_extra.pop("message")
     logger.info(
         "feedback_received",
-        extra=record,
+        extra=log_extra,
     )
     return FeedbackResponse(received=True, submitted_at=now)
 

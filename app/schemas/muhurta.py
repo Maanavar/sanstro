@@ -15,7 +15,7 @@ class BiText(BaseModel):
 class MuhurtaQuery(BaseModel):
     chart_id: UUID
     activity: str = Field(
-        description="JOB_START | MARRIAGE | EXAM | TRAVEL | INVESTMENT | MEDICAL | PURCHASE"
+        description="JOB_START | MARRIAGE | EXAM | TRAVEL | INVESTMENT | MEDICAL | PURCHASE | SPIRITUAL"
     )
     date_from: date
     date_to: date = Field(description="Max 60 days from date_from")
@@ -30,6 +30,7 @@ class MuhurtaSlot(BaseModel):
     score: float
     panchangam_support: BiText = Field(alias="panchangamSupport")
     dasha_support: BiText = Field(alias="dashaSupport")
+    hora_support: BiText | None = Field(alias="horaSupport", default=None)
     cautions: List[BiText]
 
     model_config = {"populate_by_name": True}

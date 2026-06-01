@@ -63,6 +63,7 @@ export interface LifeAreaData {
   remedy: LifeAreaText;
   next30DayOutlook: LifeAreaText;
   caution: LifeAreaText | null;
+  isGoalFocus: boolean;
 }
 
 export interface LifeAreasResponseData {
@@ -137,6 +138,11 @@ export interface BirthProfileSnapshot {
   birthLatitude?: number;
   birthLongitude?: number;
   birthTimezone: string;
+  currentPlace?: string | null;
+  currentLatitude?: number | null;
+  currentLongitude?: number | null;
+  currentTimezone?: string | null;
+  currentLocationUpdatedAt?: string | null;
   birthTimeSource?: string;
   birthTimeConfidenceMinutes?: number;
   calendarInputType?: string;
@@ -469,7 +475,6 @@ export interface PanchangamDailyResponseData {
     rahuKalam: { start: string; end: string; slot: number };
     yamagandam: { start: string; end: string; slot: number };
     kuligai: { start: string; end: string; slot: number };
-    mandhi: { start: string; end: string; slot: number };
     nallaNeram: Array<{ start: string; end: string; slot: number }>;
     gowriNallaNeram: Array<{ start: string; end: string; slot: number }>;
   };
@@ -505,7 +510,6 @@ export interface PanchangamTimingsData {
     rahuKalam: { start: string; end: string; slot: number };
     yamagandam: { start: string; end: string; slot: number };
     kuligai: { start: string; end: string; slot: number };
-    mandhi: { start: string; end: string; slot: number };
     nallaNeram: Array<{ start: string; end: string; slot: number }>;
     gowriNallaNeram: Array<{ start: string; end: string; slot: number }>;
   };
@@ -825,6 +829,24 @@ export type NotificationPreferenceData = {
   piranthaNaalAlertEnabled: boolean;
   smartSilenceEnabled: boolean;
   fcmTokenRegistered: boolean;
+};
+
+// ── Notification inbox ────────────────────────────────────────────────────────
+
+export type NotificationInboxItem = {
+  notification_id: string;
+  type: string;
+  title: string;
+  body: string;
+  status: string;
+  send_at: string;
+  read_at: string | null;
+};
+
+export type NotificationInboxResponse = {
+  success: boolean;
+  data: NotificationInboxItem[];
+  unread_count: number;
 };
 
 // ── FEATURE-11: Peyarchi report ───────────────────────────────────────────────

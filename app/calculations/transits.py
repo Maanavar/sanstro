@@ -140,7 +140,10 @@ def classify_kandaka_cycle(position_from_lagna: int) -> CycleAssessment:
 VEDHA_TABLE: dict[str, dict[int, int]] = {
     "SUN":     {3: 9, 6: 12, 10: 4, 11: 5},
     "MOON":    {1: 5, 3: 9, 6: 12, 7: 2, 10: 4, 11: 8},
+    "MARS":    {3: 12, 6: 9, 11: 5},
+    "MERCURY": {2: 5, 4: 3, 6: 9, 8: 1, 10: 8, 11: 12},
     "JUPITER": {2: 12, 5: 4, 7: 3, 9: 10, 11: 8},
+    "VENUS":   {1: 8, 2: 7, 3: 10, 4: 3, 5: 11, 8: 1, 9: 5, 11: 6, 12: 6},
     "SATURN":  {3: 12, 6: 9, 11: 5},
 }
 

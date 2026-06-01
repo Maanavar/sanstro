@@ -27,6 +27,11 @@ class BirthProfile(TimestampMixin, Base):
     birth_latitude: Mapped[float] = mapped_column(Numeric(9, 6), nullable=False)
     birth_longitude: Mapped[float] = mapped_column(Numeric(9, 6), nullable=False)
     birth_timezone: Mapped[str] = mapped_column(String(64), nullable=False)
+    current_place: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    current_latitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
+    current_longitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
+    current_timezone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    current_location_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     birth_time_source: Mapped[str] = mapped_column(
         String(32), nullable=False, default="unknown", server_default=text("'unknown'")
     )

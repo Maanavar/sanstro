@@ -267,6 +267,7 @@ def analyse_and_save_retrospective(
     _assert_chart_owner(session, chart_id, owner_user_id)
     chart_snapshot = load_persisted_chart_response(session, chart_id)
     timezone_name = chart_snapshot.data.birth_profile.birth_timezone
+    # TODO: historical event location — not current location, separate future enhancement
     event_jd = _local_noon_jd(event_date, timezone_name)
 
     natal_moon = next(p for p in chart_snapshot.data.planets if p.graha == "MOON")
@@ -362,4 +363,3 @@ def list_retrospectives(session: Session, owner_user_id: UUID, chart_id: UUID) -
         data=RetrospectiveListData(chartId=chart_id, items=items),
         meta=_meta(),
     )
-

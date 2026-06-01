@@ -269,8 +269,8 @@ export default function HomePage() {
                 { name: "Arjun", score: 64, band: "mid" },
                 { name: "Priya", score: 81, band: "high" },
                 { name: "Arjun", score: 47, band: "low" },
-              ].map((m) => (
-                <div key={m.name} className="cl-score-row">
+              ].map((m, idx) => (
+                <div key={`${m.name}-${idx}`} className="cl-score-row">
                   <span className="cl-score-row__name">{m.name}</span>
                   <div className="cl-score-bar-wrap">
                     <div

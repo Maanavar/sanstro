@@ -52,3 +52,11 @@ class RectificationApplyRequest(BaseModel):
     selected_time: str = Field(alias="selectedTime")
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class RectificationApplyResponse(BaseModel):
+    birth_profile_id: UUID = Field(alias="birthProfileId")
+    applied_offset_minutes: int = Field(alias="appliedOffsetMinutes")
+    new_birth_time_local: str = Field(alias="newBirthTimeLocal")
+
+    model_config = ConfigDict(populate_by_name=True)

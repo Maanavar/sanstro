@@ -8,6 +8,7 @@ from uuid import UUID, uuid4
 import pytest
 
 from app.services.daily_push_cron import (
+    _dispatch_for_user,
     _morning_alert_due,
     _score_label,
     run_daily_push_cron,
@@ -145,3 +146,66 @@ def test_score_label_boundaries():
     assert _score_label(49) == "CAUTION"
     assert _score_label(0) == "RESTORATIVE"
     assert _score_label(100) == "STRONG_SUPPORT"
+
+
+def test_dispatch_for_user_uses_current_location_for_daily_panchangam(monkeypatch):
+    session = MagicMock()
+    user = MagicMock()
+    user.user_id = uuid4()
+    user.email = "user@example.com"
+    pref = MagicMock()
+    pref.morning_alert_enabled = True
+    pref.dasha_alert_enabled = False
+    pref.pirantha_naal_alert_enabled = False
+
+    profile = MagicMock()
+    profile.birth_profile_id = uuid4()
+    profile.birth_timezone = "Asia/Kolkata"
+    profile.current_latitude = 40.7128
+    profile.current_longitude = -74.0060
+    profile.current_timezone = "America/New_York"
+
+    chart = MagicMock()
+    chart.chart_id = uuid4()
+
+    captured: dict[str, object] = {}
+
+    def fake_calculate_daily_panchangam(on_date, latitude, longitude, timezone_name):
+        captured["args"] = (on_date, latitude, longitude, timezone_name)
+        slot = MagicMock()
+        slot.start = datetime(2026, 5, 26, 9, 0, tzinfo=UTC)
+        slot.end = datetime(2026, 5, 26, 10, 0, tzinfo=UTC)
+        rahu = MagicMock()
+        rahu.start = datetime(2026, 5, 26, 13, 30, tzinfo=UTC)
+        rahu.end = datetime(2026, 5, 26, 15, 0, tzinfo=UTC)
+        return MagicMock(
+            nakshatra_number=1,
+            nalla_neram=[slot],
+            rahu_kalam=rahu,
+        )
+
+    monkeypatch.setattr("app.services.daily_push_cron._latest_active_profile", lambda *_: profile)
+    monkeypatch.setattr("app.services.daily_push_cron._latest_completed_chart", lambda *_: chart)
+    monkeypatch.setattr("app.services.daily_push_cron._morning_alert_due", lambda *_: True)
+    monkeypatch.setattr("app.services.daily_push_cron._already_sent_today", lambda *_: False)
+    monkeypatch.setattr("app.services.daily_push_cron.calculate_daily_panchangam", fake_calculate_daily_panchangam)
+    monkeypatch.setattr("app.services.daily_push_cron.build_nakshatra_perspective", lambda *_: None)
+    monkeypatch.setattr(
+        "app.services.daily_push_cron.build_morning_notification",
+        lambda **_: {"title": {"ta": "ta", "en": "en"}, "body": {"ta": "ta", "en": "en"}},
+    )
+    monkeypatch.setattr("app.services.daily_push_cron.dispatch_notification", lambda **_: "sent_push")
+
+    _dispatch_for_user(
+        session=session,
+        user=user,
+        pref=pref,
+        run_date=date(2026, 5, 26),
+        now_utc=datetime(2026, 5, 26, 12, 0, tzinfo=UTC),
+    )
+
+    assert "args" in captured
+    _, latitude, longitude, timezone_name = captured["args"]
+    assert latitude == 40.7128
+    assert longitude == -74.006
+    assert timezone_name == "America/New_York"

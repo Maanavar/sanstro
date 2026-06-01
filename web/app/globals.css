@@ -2585,6 +2585,15 @@ button:focus-visible,
 .cd-shell .surface__body p   { color: #3D352B; }
 
 /* Buttons inside shell */
+.cd-shell .button--primary {
+  background: #B85A2C;
+  border-color: #B85A2C;
+  color: #FAF5EA;
+}
+.cd-shell .button--primary:hover {
+  background: #A94F24;
+  border-color: #A94F24;
+}
 .cd-shell .button--ghost,
 .cd-shell .button--secondary {
   background: #FAF5EA;

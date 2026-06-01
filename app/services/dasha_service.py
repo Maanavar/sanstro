@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime
 from typing import Literal
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import utc_datetime_to_julian_day, resolve_timezone
 from app.calculations.dasha import _build_subperiods, calculate_vimshottari_timeline
 from app.calculations.dasha_house_mapping import get_dasha_activated_houses
 from app.calculations.functional_nature import FunctionalNature, get_functional_nature
@@ -21,6 +20,7 @@ from app.schemas.dasha import (
     ResponseMeta,
 )
 from app.services.chart_service import load_persisted_chart_response
+from app.services.location_service import local_midnight_as_jd_for_profile
 
 
 # Natural domain text per planet (Tamil + English)
@@ -114,12 +114,6 @@ def _build_dasha_interpretation(
     )
 
 
-def _local_midnight_as_jd(local_date: date, timezone_name: str) -> float:
-    timezone_obj = resolve_timezone(timezone_name)
-    local_midnight = datetime.combine(local_date, time.min, tzinfo=timezone_obj)
-    return utc_datetime_to_julian_day(local_midnight.astimezone(UTC))
-
-
 def _serialize_period(period) -> dict[str, object]:
     return {
         "level": period.level,
@@ -165,7 +159,7 @@ def get_chart_dasha(
     chart_snapshot = load_persisted_chart_response(session, chart_id)
     moon = next(planet for planet in chart_snapshot.data.planets if planet.graha == "MOON")
     birth_jd = chart_snapshot.data.julian_day
-    as_of_jd = _local_midnight_as_jd(as_of, chart_snapshot.data.birth_profile.birth_timezone)
+    as_of_jd = local_midnight_as_jd_for_profile(as_of, chart_snapshot.data.birth_profile)
     lagna_rasi = chart_snapshot.data.lagna.rasi
 
     timeline = calculate_vimshottari_timeline(birth_jd, moon.absolute_longitude, as_of_jd)

@@ -46,10 +46,14 @@ const GOAL_OPTIONS: Array<[string, Parameters<typeof t>[0]]> = [
   ["travel_abroad", "goal_travel"],
   ["spiritual", "goal_spiritual"],
   ["family_harmony", "goal_family"],
-  ["financial", "goal_money"],
+  ["money", "goal_money"],
   ["child_birth", "goal_child"],
   ["other", "goal_other"],
 ];
+
+function normalizeGoalType(goalType: string): string {
+  return goalType === "financial" ? "money" : goalType;
+}
 
 const WHATIF_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
   { value: "job_change", en: "Job change or new role", ta: "வேலை மாற்றம் / புதிய பொறுப்பு" },
@@ -57,7 +61,7 @@ const WHATIF_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
   { value: "marriage", en: "Marriage", ta: "திருமணம்" },
   { value: "education", en: "Education / Exam / Study", ta: "கல்வி / தேர்வு" },
   { value: "property", en: "Buy property or land", ta: "சொத்து வாங்குதல்" },
-  { value: "financial", en: "Investment or financial move", ta: "முதலீடு / நிதி முடிவு" },
+  { value: "money", en: "Investment or financial move", ta: "முதலீடு / நிதி முடிவு" },
   { value: "travel_abroad", en: "Travel abroad or relocation", ta: "வெளிநாடு பயணம் / இடமாற்றம்" },
   { value: "health", en: "Medical procedure or surgery", ta: "மருத்துவ சிகிச்சை / அறுவை" },
   { value: "spiritual", en: "Spiritual initiation or pilgrimage", ta: "ஆன்மீக தீட்சை / தீர்த்தயாத்திரை" },
@@ -72,7 +76,7 @@ const ACTIVITY_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
   { value: "marriage", en: "Marriage ceremony", ta: "திருமண நிகழ்வு" },
   { value: "education", en: "Exam / Course start", ta: "தேர்வு / படிப்பு தொடக்கம்" },
   { value: "property", en: "Property purchase / registration", ta: "சொத்து வாங்கல் / பதிவு" },
-  { value: "financial", en: "Investment or major financial decision", ta: "முதலீடு / நிதி முடிவு" },
+  { value: "money", en: "Investment or major financial decision", ta: "முதலீடு / நிதி முடிவு" },
   { value: "travel", en: "Travel abroad or long journey", ta: "வெளிநாடு / நீண்ட பயணம்" },
   { value: "health", en: "Medical procedure or surgery", ta: "மருத்துவ சிகிச்சை / அறுவை" },
   { value: "spiritual", en: "Grihapravesh or religious event", ta: "கிரகப்பிரவேசம் / மதகார்யம்" },
@@ -124,12 +128,13 @@ export function DashboardPlanTab({
   onRunWhatIf,
   mode = "BALANCED",
 }: DashboardPlanTabProps) {
-  type PlanSubTab = "goals" | "whatif" | "timing" | "decisions";
+  type PlanSubTab = "goals" | "whatif" | "timing" | "muhurta" | "decisions";
   const [planSubTab, setPlanSubTab] = useState<PlanSubTab>("goals");
   const PLAN_SUB_TABS: { key: PlanSubTab; label: string }[] = [
     { key: "goals", label: lang === "ta" ? "இலக்குகள்" : "Goals" },
     { key: "whatif", label: lang === "ta" ? "என்ன ஆகும்?" : "What-If" },
-    { key: "timing", label: lang === "ta" ? "சிறந்த நேரம்" : "Timing" },
+    { key: "timing", label: lang === "ta" ? "சிறந்த நாட்கள்" : "Best Dates" },
+    { key: "muhurta", label: lang === "ta" ? "முஹூர்த்தம்" : "Muhurta" },
     { key: "decisions", label: lang === "ta" ? "முடிவுகள்" : "Decisions" },
   ];
 
@@ -188,7 +193,9 @@ export function DashboardPlanTab({
             </span>
             {goals.map((g) => (
               <span key={g.goalId} style={{ fontSize: "0.75rem", padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.28)", color: "#8C3E18", fontWeight: 600 }}>
-                {GOAL_OPTIONS.find(([v]) => v === g.goalType)?.[1] ? t(GOAL_OPTIONS.find(([v]) => v === g.goalType)![1], lang) : g.goalType}
+                {GOAL_OPTIONS.find(([v]) => v === normalizeGoalType(g.goalType))?.[1]
+                  ? t(GOAL_OPTIONS.find(([v]) => v === normalizeGoalType(g.goalType))![1], lang)
+                  : g.goalType}
               </span>
             ))}
           </div>
@@ -228,7 +235,11 @@ export function DashboardPlanTab({
               <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", marginBottom: "var(--space-3_5)" }}>
                 {goals.map((g) => (
                   <div key={g.goalId} style={{ display: "flex", alignItems: "center", gap: "var(--space-1_5)", padding: "var(--space-1) var(--space-2_5)", borderRadius: "var(--radius-pill)", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.35)", fontSize: "0.875rem", color: "#8C3E18", fontWeight: 600 }}>
-                    <span>{GOAL_OPTIONS.find(([v]) => v === g.goalType)?.[1] ? t(GOAL_OPTIONS.find(([v]) => v === g.goalType)![1], lang) : g.goalType}</span>
+                    <span>
+                      {GOAL_OPTIONS.find(([v]) => v === normalizeGoalType(g.goalType))?.[1]
+                        ? t(GOAL_OPTIONS.find(([v]) => v === normalizeGoalType(g.goalType))![1], lang)
+                        : g.goalType}
+                    </span>
                     <button
                       type="button"
                       onClick={() => onRemoveGoal(g.goalId)}
@@ -239,6 +250,16 @@ export function DashboardPlanTab({
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {goals.length > 0 && (
+              <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#EEF6EA", border: "1px solid rgba(92,118,84,0.2)", marginBottom: "var(--space-3)" }}>
+                <p style={{ margin: 0, fontSize: "0.75rem", color: "#5C7654", lineHeight: 1.5 }}>
+                  {lang === "ta"
+                    ? "உங்கள் இலக்குகள் வாழ்க்கை பகுதிகளில் முன்னிலைப்படுத்தப்படும்; முக்கிய விஷயங்கள் தெளிவாக தெரியும்."
+                    : "Your goals are highlighted in Life Areas and Daily Snapshot tabs, so the most relevant areas stand out."}
+                </p>
               </div>
             )}
 
@@ -440,7 +461,18 @@ export function DashboardPlanTab({
         </Surface>
       )}
 
-      {planSubTab === "timing" && <DashboardMuhurtaPicker lang={lang} chartId={chartId || null} />}
+      {planSubTab === "muhurta" && (
+        <>
+          <div style={{ padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: W.surface, border: `1px solid ${W.borderLt}`, marginBottom: "var(--space-3)" }}>
+            <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted, lineHeight: 1.55 }}>
+              {lang === "ta"
+                ? "குறிப்பிட்ட நிகழ்வுகளுக்கான சிறந்த நேரம் மற்றும் திதி-நட்சத்திர பொருத்தம் இங்கே காணலாம்."
+                : "Find the best hour-precise time slot for a specific ceremony or event, checked against panchangam, dasha, and kalam."}
+            </p>
+          </div>
+          <DashboardMuhurtaPicker lang={lang} chartId={chartId || null} />
+        </>
+      )}
 
       {planSubTab === "goals" && <DashboardLifeEventLog lang={lang} chartId={chartId || null} />}
     </div>

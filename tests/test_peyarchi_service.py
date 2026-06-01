@@ -11,22 +11,8 @@ AS_OF_DATE = date(2026, 5, 22)
 AS_OF_UTC = datetime(2026, 5, 22, 12, 0, tzinfo=UTC)
 
 
-def _birth_profile_payload() -> dict[str, object]:
-    return {
-        "ownerUserId": "11111111-1111-1111-1111-111111111111",
-        "displayName": "Arjun Kumar",
-        "birthDateLocal": "1991-07-22",
-        "birthTimeLocal": "06:30:00",
-        "birthPlace": "Chennai, Tamil Nadu, India",
-        "birthLatitude": 13.0827,
-        "birthLongitude": 80.2707,
-        "birthTimezone": "Asia/Kolkata",
-        "calculateNow": True,
-    }
-
-
-def _create_chart(client) -> str:
-    created = client.post("/api/v1/birth-profiles", json=_birth_profile_payload())
+def _create_chart(client, birth_profile_payload_factory) -> str:
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory())
     assert created.status_code == 200
     birth_profile_id = created.json()["data"]["birthProfileId"]
 
@@ -69,8 +55,8 @@ def test_ketu_is_always_180_degrees_from_rahu():
     assert (ketu.absolute_longitude - rahu.absolute_longitude) % 360 == 180
 
 
-def test_peyarchi_days_from_today_is_positive(client):
-    chart_id = _create_chart(client)
+def test_peyarchi_days_from_today_is_positive(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
     response = client.get(
         f"/api/v1/charts/{chart_id}/peyarchi",
         params={"as_of": AS_OF_DATE.isoformat()},

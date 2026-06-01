@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetchJson } from "@/lib/api";
+import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { formatClockLabel, formatDateLabel, getScoreBand } from "@/lib/format";
 import { t, tLang, tTithi, tNakshatra, tWeekday, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -18,6 +18,7 @@ import type {
   PanchangamTimingsData,
   PeyarchiEvent,
   PeyarchiReportData,
+  NotificationPreferenceData,
   SaniCycleData,
   SolarReturnData,
   TransitSnapshotData,
@@ -204,6 +205,8 @@ export function DashboardPersonalTab({
   const activeChartId = personalChart?.chartId ?? personalChartSummary?.chartId ?? "";
   const [charaDasha, setCharaDasha] = useState<CharaDashaData | null>(null);
   const [solarReturn, setSolarReturn] = useState<SolarReturnData | null>(null);
+  const [savingReminder, setSavingReminder] = useState(false);
+  const [reminderMessage, setReminderMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activeChartId) {
@@ -251,6 +254,32 @@ export function DashboardPersonalTab({
     anchor.download = `jadhagam-${activeChartId}.pdf`;
     anchor.click();
     URL.revokeObjectURL(url);
+  }
+
+  async function handleSaveReminder() {
+    if (savingReminder) return;
+    setSavingReminder(true);
+    setReminderMessage(null);
+    try {
+      const current = await apiFetchJson<{ success: boolean; data: NotificationPreferenceData }>("/api/v1/settings/notifications");
+      const nextChannel = current.data.notification_channel === "none" ? "both" : current.data.notification_channel;
+      const nextTime = current.data.morningAlertTime || "06:00";
+      await apiFetchJson<{ success: boolean; data: NotificationPreferenceData }>("/api/v1/settings/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          notificationChannel: nextChannel,
+          morningAlertEnabled: true,
+          morningAlertTime: nextTime,
+        }),
+      });
+      setReminderMessage(lang === "ta" ? "காலை நினைவூட்டல் சேமிக்கப்பட்டது." : "Morning reminder saved.");
+    } catch (error) {
+      const message = readErrorMessage(error);
+      setReminderMessage(lang === "ta" ? `சேமிக்க முடியவில்லை: ${message}` : `Could not save reminder: ${message}`);
+    } finally {
+      setSavingReminder(false);
+    }
   }
 
   /* Date label */
@@ -310,8 +339,7 @@ export function DashboardPersonalTab({
                 <Chip tone="accent">{t("label_rahu_kalam", lang)} {formatClockLabel(panchangam.kalam.rahuKalam.start)}–{formatClockLabel(panchangam.kalam.rahuKalam.end)}</Chip>
                 <Chip tone="warning">{t("label_yamagandam", lang)} {formatClockLabel(panchangam.kalam.yamagandam.start)}–{formatClockLabel(panchangam.kalam.yamagandam.end)}</Chip>
                 <Chip>{t("label_kuligai", lang)} {formatClockLabel(panchangam.kalam.kuligai.start)}–{formatClockLabel(panchangam.kalam.kuligai.end)}</Chip>
-                {panchangam.kalam.mandhi && <Chip>{t("label_mandhi", lang)} {formatClockLabel(panchangam.kalam.mandhi.start)}–{formatClockLabel(panchangam.kalam.mandhi.end)}</Chip>}
-                {panchangam.kalam.nallaNeram?.map((w) => (
+{panchangam.kalam.nallaNeram?.map((w) => (
                   <Chip key={`${w.start}-${w.end}`} tone="success">{t("label_nalla_neram", lang)} {formatClockLabel(w.start)}–{formatClockLabel(w.end)}</Chip>
                 ))}
                 {panchangamTimings && !panchangam.abhijit.isRestrictedByWeekday && (
@@ -851,17 +879,27 @@ export function DashboardPersonalTab({
               {tLang(personalDailyGuidance.remedy, lang)}
             </p>
           </div>
-          <button
-            type="button"
-            style={{
-              padding: "var(--space-2) var(--space-5)", borderRadius: "var(--radius-pill)", border: "1.5px solid #1A1612",
-              background: "#FFFFFF", color: "#1A1612", fontSize: "0.875rem", fontWeight: 600,
-              cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
-              transition: "background 150ms ease",
-            }}
-          >
-            {lang === "ta" ? "நினைவூட்டல் சேமி →" : "Save reminder →"}
-          </button>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", alignItems: "flex-end" }}>
+            <button
+              type="button"
+              onClick={() => void handleSaveReminder()}
+              disabled={savingReminder}
+              style={{
+                padding: "var(--space-2) var(--space-5)", borderRadius: "var(--radius-pill)", border: "1.5px solid #1A1612",
+                background: savingReminder ? "#E4DBC8" : "#1A1612", color: savingReminder ? "#7A6F5E" : "#F4EEE2", fontSize: "0.875rem", fontWeight: 600,
+                cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+              }}
+            >
+              {savingReminder
+                ? (lang === "ta" ? "சேமிக்கிறது…" : "Saving…")
+                : (lang === "ta" ? "நினைவூட்டல் சேமி" : "Save reminder")}
+            </button>
+            {reminderMessage && (
+              <p style={{ margin: 0, fontSize: "0.75rem", color: reminderMessage.includes("Could not") || reminderMessage.includes("முடியவில்லை") ? "#A8482F" : "#5C7654" }}>
+                {reminderMessage}
+              </p>
+            )}
+          </div>
         </div>
       )}
 

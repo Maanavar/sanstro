@@ -1,7 +1,12 @@
 from functools import lru_cache
+import os
 
 from pydantic import Field
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_DEFAULT_JWT_SECRET = "CHANGE_ME_IN_PRODUCTION_USE_STRONG_SECRET"
+_DEFAULT_ADMIN_API_KEY = "CHANGE_ME_ADMIN_KEY"
 
 
 class Settings(BaseSettings):
@@ -19,11 +24,13 @@ class Settings(BaseSettings):
     rate_limit_exempt_loopback_in_non_prod: bool = True
 
     # Auth
-    jwt_secret: str = Field(default="CHANGE_ME_IN_PRODUCTION_USE_STRONG_SECRET")
+    jwt_secret: str = Field(default=_DEFAULT_JWT_SECRET)
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24  # 1 day
-    admin_api_key: str = Field(default="CHANGE_ME_ADMIN_KEY")
+    admin_api_key: str = Field(default=_DEFAULT_ADMIN_API_KEY)
     enable_admin_data_delete: bool = Field(default=False)
+    frontend_url: str = Field(default="http://localhost:3000")
+    cookie_secure: bool = Field(default=False)
     encryption_key: str = Field(default="")
 
     # Email / SMTP — leave unset to disable email delivery (stub mode)
@@ -50,6 +57,21 @@ class Settings(BaseSettings):
         case_sensitive=False,
         env_prefix="JOTHIDAM_",
     )
+
+    @model_validator(mode="after")
+    def _require_strong_secrets_in_production(self) -> "Settings":
+        app_env = os.getenv("APP_ENV", self.environment).strip().lower()
+        if app_env != "production":
+            return self
+
+        missing: list[str] = []
+        if self.jwt_secret == _DEFAULT_JWT_SECRET:
+            missing.append("JOTHIDAM_JWT_SECRET")
+        if self.admin_api_key == _DEFAULT_ADMIN_API_KEY:
+            missing.append("JOTHIDAM_ADMIN_API_KEY")
+        if missing:
+            raise ValueError(f"Production requires non-default secrets: {', '.join(missing)}")
+        return self
 
 
 @lru_cache

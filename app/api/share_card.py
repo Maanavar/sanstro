@@ -19,8 +19,9 @@ router = APIRouter()
 def get_share_card(
     chart_id: UUID,
     card_type: str = Query(alias="type", default="DAILY_VIBE"),
-    on_date: date = Query(alias="date", default_factory=lambda: datetime.now(UTC).date()),
+    on_date: date | None = Query(alias="date", default=None),
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ShareCardResponse:
-    return generate_card_data(session, chart_id, card_type, on_date)
+    resolved_date = on_date or datetime.now(UTC).date()
+    return generate_card_data(session, chart_id, card_type, resolved_date)

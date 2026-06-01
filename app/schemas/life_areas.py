@@ -40,6 +40,7 @@ class LifeAreaData(BaseModel):
     remedy: LifeAreaText
     next_30_day_outlook: LifeAreaText = Field(alias="next30DayOutlook")
     caution: LifeAreaText | None = None
+    is_goal_focus: bool = Field(default=False, alias="isGoalFocus")
 
     model_config = ConfigDict(populate_by_name=True)
 

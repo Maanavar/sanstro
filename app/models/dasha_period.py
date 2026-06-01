@@ -3,16 +3,20 @@ from __future__ import annotations
 from datetime import date
 from uuid import UUID, uuid4
 
-from sqlalchemy import Date, ForeignKey, Index, Numeric, String
+from sqlalchemy import CheckConstraint, Date, ForeignKey, Index, Numeric, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base
+from app.db.base import Base, TimestampMixin
 
 
-class DashaPeriod(Base):
+class DashaPeriod(TimestampMixin, Base):
     __tablename__ = "dasha_periods"
     __table_args__ = (
+        CheckConstraint(
+            "level IN ('maha', 'antar', 'pratyantar', 'sookshma', 'prana')",
+            name="ck_dasha_periods_level_valid",
+        ),
         Index("idx_dasha_chart_level", "chart_id", "level"),
         Index("idx_dasha_date_lookup", "chart_id", "start_date", "end_date"),
     )
@@ -22,7 +26,7 @@ class DashaPeriod(Base):
     level: Mapped[str] = mapped_column(String(16), nullable=False)
     lord: Mapped[str] = mapped_column(String(32), nullable=False)
     parent_dasha_period_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("dasha_periods.dasha_period_id"), nullable=True
+        ForeignKey("dasha_periods.dasha_period_id", ondelete="CASCADE"), nullable=True
     )
     start_jd: Mapped[float] = mapped_column(Numeric(16, 8), nullable=False)
     end_jd: Mapped[float] = mapped_column(Numeric(16, 8), nullable=False)

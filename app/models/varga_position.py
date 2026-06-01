@@ -2,17 +2,21 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
-from sqlalchemy import ForeignKey, Index, String, UniqueConstraint
+from sqlalchemy import CheckConstraint, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base
+from app.db.base import Base, TimestampMixin
 
 
-class VargaPosition(Base):
+class VargaPosition(TimestampMixin, Base):
     __tablename__ = "varga_positions"
     __table_args__ = (
         UniqueConstraint("chart_id", "varga_code", "graha", name="uq_varga_positions_chart_code_graha"),
+        CheckConstraint(
+            "house_from_varga_lagna BETWEEN 1 AND 12",
+            name="ck_varga_positions_house_from_varga_lagna_range",
+        ),
         Index("idx_varga_positions_chart", "chart_id"),
     )
 

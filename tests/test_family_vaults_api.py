@@ -4,30 +4,12 @@ from app.db.session import SessionLocal
 from app.models import FamilyVault
 
 
-def _family_vault_payload(name: str = "Arjun Family"):
-    return {
-        "name": name,
-        "defaultLanguage": "ta-en",
-    }
-
-
-def _family_member_payload(display_name: str, member_weight: float = 1.0):
-    return {
-        "relationshipToOwner": "self" if display_name == "Arjun Kumar" else "spouse",
-        "displayName": display_name,
-        "birthDateLocal": "1991-07-22",
-        "birthTimeLocal": "06:30:00",
-        "birthPlace": "Chennai, Tamil Nadu, India",
-        "birthLatitude": 13.0827,
-        "birthLongitude": 80.2707,
-        "birthTimezone": "Asia/Kolkata",
-        "calculateNow": True,
-        "memberWeight": member_weight,
-    }
-
-
-def test_family_vault_member_and_aggregate_flow(client):
-    vault = client.post("/api/v1/family-vaults", json=_family_vault_payload())
+def test_family_vault_member_and_aggregate_flow(
+    client,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+):
+    vault = client.post("/api/v1/family-vaults", json=family_vault_payload_factory())
     assert vault.status_code == 200
     vault_body = vault.json()["data"]
     family_vault_id = vault_body["familyVaultId"]
@@ -35,7 +17,11 @@ def test_family_vault_member_and_aggregate_flow(client):
 
     first_member = client.post(
         f"/api/v1/family-vaults/{family_vault_id}/members",
-        json=_family_member_payload("Arjun Kumar", member_weight=1.25),
+        json=family_member_payload_factory(
+            display_name="Arjun Kumar",
+            relationship_to_owner="self",
+            member_weight=1.25,
+        ),
     )
     assert first_member.status_code == 200
     first_member_body = first_member.json()["data"]
@@ -46,7 +32,7 @@ def test_family_vault_member_and_aggregate_flow(client):
 
     second_member = client.post(
         f"/api/v1/family-vaults/{family_vault_id}/members",
-        json=_family_member_payload("Anitha"),
+        json=family_member_payload_factory(display_name="Anitha"),
     )
     assert second_member.status_code == 200
     second_member_body = second_member.json()["data"]
@@ -145,7 +131,7 @@ def test_family_vault_member_and_aggregate_flow(client):
 
     duplicate_member = client.post(
         f"/api/v1/family-vaults/{family_vault_id}/members",
-        json=_family_member_payload("Anitha"),
+        json=family_member_payload_factory(display_name="Anitha"),
     )
     assert duplicate_member.status_code == 409
     assert "already exists" in duplicate_member.json()["detail"]
@@ -155,19 +141,27 @@ def test_family_vault_member_and_aggregate_flow(client):
     assert vault_detail_after_duplicate.json()["data"]["memberCount"] == 2
 
 
-def test_family_vault_list_returns_auth_user_vaults(client):
+def test_family_vault_list_returns_auth_user_vaults(
+    client,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+):
     """List endpoint returns vaults belonging to the authenticated user only."""
-    first_vault = client.post("/api/v1/family-vaults", json=_family_vault_payload("Vault A"))
+    first_vault = client.post("/api/v1/family-vaults", json=family_vault_payload_factory("Vault A"))
     assert first_vault.status_code == 200
     first_vault_id = first_vault.json()["data"]["familyVaultId"]
 
-    second_vault = client.post("/api/v1/family-vaults", json=_family_vault_payload("Vault B"))
+    second_vault = client.post("/api/v1/family-vaults", json=family_vault_payload_factory("Vault B"))
     assert second_vault.status_code == 200
     second_vault_id = second_vault.json()["data"]["familyVaultId"]
 
     client.post(
         f"/api/v1/family-vaults/{first_vault_id}/members",
-        json=_family_member_payload("Arjun Kumar", member_weight=1.25),
+        json=family_member_payload_factory(
+            display_name="Arjun Kumar",
+            relationship_to_owner="self",
+            member_weight=1.25,
+        ),
     )
     client.get(
         f"/api/v1/family-vaults/{first_vault_id}/daily-aggregate",
@@ -188,16 +182,16 @@ def test_family_vault_list_returns_auth_user_vaults(client):
     assert first_item["latestAggregateDate"] == "2026-05-21"
 
 
-def test_family_vault_list_paginates(client):
-    first = client.post("/api/v1/family-vaults", json=_family_vault_payload("Vault A"))
+def test_family_vault_list_paginates(client, family_vault_payload_factory):
+    first = client.post("/api/v1/family-vaults", json=family_vault_payload_factory("Vault A"))
     assert first.status_code == 200
     first_id = first.json()["data"]["familyVaultId"]
 
-    second = client.post("/api/v1/family-vaults", json=_family_vault_payload("Vault B"))
+    second = client.post("/api/v1/family-vaults", json=family_vault_payload_factory("Vault B"))
     assert second.status_code == 200
     second_id = second.json()["data"]["familyVaultId"]
 
-    third = client.post("/api/v1/family-vaults", json=_family_vault_payload("Vault C"))
+    third = client.post("/api/v1/family-vaults", json=family_vault_payload_factory("Vault C"))
     assert third.status_code == 200
     third_id = third.json()["data"]["familyVaultId"]
 
@@ -222,11 +216,14 @@ def test_family_vault_list_paginates(client):
     assert page_two_body["items"][0]["familyVaultId"] not in {item["familyVaultId"] for item in page_one_body["items"]}
 
 
-def test_family_member_list_get_update_delete(client):
-    vault = client.post("/api/v1/family-vaults", json=_family_vault_payload()).json()["data"]
+def test_family_member_list_get_update_delete(client, family_vault_payload_factory, family_member_payload_factory):
+    vault = client.post("/api/v1/family-vaults", json=family_vault_payload_factory()).json()["data"]
     vault_id = vault["familyVaultId"]
 
-    add_resp = client.post(f"/api/v1/family-vaults/{vault_id}/members", json=_family_member_payload("Kavitha"))
+    add_resp = client.post(
+        f"/api/v1/family-vaults/{vault_id}/members",
+        json=family_member_payload_factory(display_name="Kavitha"),
+    )
     assert add_resp.status_code == 200
     member_id = add_resp.json()["data"]["familyMemberId"]
 
@@ -270,8 +267,8 @@ def test_family_member_list_get_update_delete(client):
     assert list_after.json()["data"]["totalCount"] == 0
 
 
-def test_family_member_not_found_returns_404(client):
-    vault = client.post("/api/v1/family-vaults", json=_family_vault_payload()).json()["data"]
+def test_family_member_not_found_returns_404(client, family_vault_payload_factory):
+    vault = client.post("/api/v1/family-vaults", json=family_vault_payload_factory()).json()["data"]
     vault_id = vault["familyVaultId"]
     nonexistent_id = "cccccccc-cccc-cccc-cccc-cccccccccccc"
 
@@ -280,12 +277,16 @@ def test_family_member_not_found_returns_404(client):
     assert client.delete(f"/api/v1/family-vaults/{vault_id}/members/{nonexistent_id}").status_code == 404
 
 
-def test_family_calendar_range_is_capped(client):
-    vault = client.post("/api/v1/family-vaults", json=_family_vault_payload()).json()["data"]
+def test_family_calendar_range_is_capped(client, family_vault_payload_factory, family_member_payload_factory):
+    vault = client.post("/api/v1/family-vaults", json=family_vault_payload_factory()).json()["data"]
     family_vault_id = vault["familyVaultId"]
     client.post(
         f"/api/v1/family-vaults/{family_vault_id}/members",
-        json=_family_member_payload("Arjun Kumar", member_weight=1.25),
+        json=family_member_payload_factory(
+            display_name="Arjun Kumar",
+            relationship_to_owner="self",
+            member_weight=1.25,
+        ),
     )
 
     response = client.get(
@@ -297,8 +298,8 @@ def test_family_calendar_range_is_capped(client):
     assert "90 days" in response.json()["detail"]
 
 
-def test_delete_family_vault_soft_deletes_row(client):
-    vault = client.post("/api/v1/family-vaults", json=_family_vault_payload("Soft Delete Vault"))
+def test_delete_family_vault_soft_deletes_row(client, family_vault_payload_factory):
+    vault = client.post("/api/v1/family-vaults", json=family_vault_payload_factory("Soft Delete Vault"))
     assert vault.status_code == 200
     vault_id = vault.json()["data"]["familyVaultId"]
 

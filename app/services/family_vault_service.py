@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.panchangam import calculate_daily_panchangam
 from app.models import BirthProfile, Chart, FamilyDailyScore, FamilyMember, FamilyVault, User
@@ -52,6 +52,7 @@ from app.schemas.family_vaults import (
 from app.services.chart_service import calculate_chart_for_persisted_profile, create_birth_profile_record
 from app.services.chart_service import load_persisted_chart_response
 from app.services.daily_guidance_service import build_daily_guidance_response
+from app.services.location_service import local_midnight_as_jd_for_profile, resolve_effective_daily_location
 from app.services.transit_service import build_sani_cycle_response, build_transit_snapshot
 
 DEFAULT_CALCULATION_VERSION = "jothidam-formula-engine-v1.1-2026"
@@ -164,19 +165,18 @@ def _member_snapshot(session: Session, member: FamilyMember, on_date: date) -> _
     chart = _latest_chart(session, birth_profile)
     chart_id = chart.chart_id
     chart_snapshot = load_persisted_chart_response(session, chart_id)
+    daily_location = resolve_effective_daily_location(birth_profile)
     panchangam = calculate_daily_panchangam(
         on_date,
-        float(birth_profile.birth_latitude),
-        float(birth_profile.birth_longitude),
-        birth_profile.birth_timezone,
+        daily_location.latitude,
+        daily_location.longitude,
+        daily_location.timezone,
         session=session,
     )
     solar_noon_utc = panchangam.solar_noon.astimezone(UTC)
     current_jd = utc_datetime_to_julian_day(solar_noon_utc)
     transit_snapshot = calculate_sidereal_planets(current_jd)
-    midnight_jd = utc_datetime_to_julian_day(
-        datetime.combine(on_date, time(0, 0), tzinfo=resolve_timezone(birth_profile.birth_timezone)).astimezone(UTC)
-    )
+    midnight_jd = local_midnight_as_jd_for_profile(on_date, birth_profile)
     midnight_snapshot = calculate_sidereal_planets(midnight_jd)
 
     daily_guidance = build_daily_guidance_response(
@@ -767,7 +767,8 @@ def get_family_daily_aggregate(
     family_label = _family_label(family_score)
     support_member = min(member_summaries, key=lambda item: item.individual_score) if member_summaries else None
     summary = _family_summary(family_label, best_family_windows, avoid_for_family_decisions, support_member)
-    timezone_name = member_snapshots[0].birth_profile.birth_timezone
+    # v1 assumption: family aggregate windows share one local context.
+    timezone_name = resolve_effective_daily_location(member_snapshots[0].birth_profile).timezone
 
     aggregate = FamilyAggregateData(
         familyVaultId=family_vault.family_vault_id,
@@ -1078,6 +1079,10 @@ def update_family_member(
         "birth_longitude": payload.birth_longitude,
         "birth_timezone": payload.birth_timezone,
         "birth_time_local": payload.birth_time_local,
+        "current_place": payload.current_place,
+        "current_latitude": payload.current_latitude,
+        "current_longitude": payload.current_longitude,
+        "current_timezone": payload.current_timezone,
     }
     if any(v is not None for v in birth_fields.values()):
         profile = session.execute(
@@ -1103,6 +1108,24 @@ def update_family_member(
             profile.birth_timezone = payload.birth_timezone
         if payload.birth_time_local is not None:
             profile.birth_time_local = payload.birth_time_local
+        if payload.current_place is not None:
+            profile.current_place = payload.current_place
+        if payload.current_latitude is not None:
+            profile.current_latitude = payload.current_latitude
+        if payload.current_longitude is not None:
+            profile.current_longitude = payload.current_longitude
+        if payload.current_timezone is not None:
+            profile.current_timezone = payload.current_timezone
+        if any(
+            value is not None
+            for value in (
+                payload.current_place,
+                payload.current_latitude,
+                payload.current_longitude,
+                payload.current_timezone,
+            )
+        ):
+            profile.current_location_updated_at = datetime.now(tz=UTC)
         profile.updated_at = datetime.now(tz=UTC)
     else:
         profile = session.execute(

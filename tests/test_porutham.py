@@ -22,8 +22,8 @@ from app.calculations.porutham import (
 # ---------------------------------------------------------------------------
 
 def test_dinam_same_nakshatra():
-    # diff == 0, remainder 0 → good
-    assert _dinam_score(1, 1) == 3
+    # diff == 0, remainder 0 → same nakshatra group = inauspicious per Tamil Thirukanitham → 0
+    assert _dinam_score(1, 1) == 0
 
 
 def test_dinam_bad_position():
@@ -100,14 +100,13 @@ def test_vasya_none():
 
 
 def test_mahendra_good():
-    # diff = (10 - 1) % 27 + 1 = 10; 10 % 9 = 1 → not in {4,7,0} → 0
-    # diff = (4 - 1) % 27 + 1 = 4; 4 % 9 = 4 → score 2
-    assert _mahendra_score(4, 1) == 2
+    # diff = (4 - 1) % 27 + 1 = 4; in {4,7,10,...} → classical max score 4
+    assert _mahendra_score(4, 1) == 4
 
 
 def test_stree_dirgha_good():
-    # diff = (14 - 1) % 27 = 13 → > 9 → score 2
-    assert _stree_dirgha_score(14, 1) == 2
+    # diff = (14 - 1) % 27 = 13 → > 9 → classical max score 5
+    assert _stree_dirgha_score(14, 1) == 5
 
 
 def test_stree_dirgha_bad():
@@ -119,12 +118,13 @@ def test_stree_dirgha_bad():
 # compute_porutham integration
 # ---------------------------------------------------------------------------
 
-def test_compute_porutham_returns_10_kutas():
+def test_compute_porutham_returns_8_kutas():
+    # Rajju and Vedha are dosha-only flags (not scored as points); 8 scored kutas remain
     result = compute_porutham(
         boy_nakshatra=1, girl_nakshatra=4,
         boy_rasi=1, girl_rasi=2,
     )
-    assert len(result.kutas) == 10
+    assert len(result.kutas) == 8
 
 
 def test_compute_porutham_max_score_36():

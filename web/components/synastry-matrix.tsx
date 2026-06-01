@@ -45,8 +45,9 @@ export function SynastryMatrix({ lang, ownerChartId, familyVaultId, members }: S
             `/api/v1/relationships/${m.memberId}/synastry${toQuery({ familyVaultId })}`
           );
           setScores((prev) => ({ ...prev, [m.memberId]: res.data?.compatibilityScore ?? null }));
-        } catch {
+        } catch (err) {
           setScores((prev) => ({ ...prev, [m.memberId]: null }));
+          setError(readErrorMessage(err));
         } finally {
           setLoading((prev) => ({ ...prev, [m.memberId]: false }));
         }

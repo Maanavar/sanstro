@@ -174,7 +174,10 @@ def get_life_event_log(
 
     rows = session.execute(
         select(UserLifeEvent)
-        .where(UserLifeEvent.chart_id == chart_id)
+        .where(
+            UserLifeEvent.chart_id == chart_id,
+            UserLifeEvent.deleted_at.is_(None),
+        )
         .order_by(UserLifeEvent.event_date.desc())
     ).scalars().all()
 

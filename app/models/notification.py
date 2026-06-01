@@ -3,16 +3,17 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, func, text
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base
+from app.db.base import Base, TimestampMixin
 
 
-class Notification(Base):
+class Notification(TimestampMixin, Base):
     __tablename__ = "notifications"
     __table_args__ = (
+        CheckConstraint("priority BETWEEN 0 AND 100", name="ck_notifications_priority_range"),
         Index("idx_notifications_user_send", "user_id", "send_at"),
         Index("idx_notifications_status", "status"),
     )
@@ -30,5 +31,5 @@ class Notification(Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="queued", server_default=text("'queued'"))
     suppression_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     payload: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

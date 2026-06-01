@@ -1,19 +1,5 @@
-def _birth_profile_payload():
-    return {
-        "ownerUserId": "11111111-1111-1111-1111-111111111111",
-        "displayName": "Arjun Kumar",
-        "birthDateLocal": "1991-07-22",
-        "birthTimeLocal": "06:30:00",
-        "birthPlace": "Chennai, Tamil Nadu, India",
-        "birthLatitude": 13.0827,
-        "birthLongitude": 80.2707,
-        "birthTimezone": "Asia/Kolkata",
-        "calculateNow": True,
-    }
-
-
-def _create_chart(client):
-    created = client.post("/api/v1/birth-profiles", json=_birth_profile_payload())
+def _create_chart(client, birth_profile_payload_factory):
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory())
     assert created.status_code == 200
     birth_profile_id = created.json()["data"]["birthProfileId"]
 
@@ -29,8 +15,8 @@ def _create_chart(client):
     return chart.json()["data"]["chartId"]
 
 
-def test_retrospective_create_and_list(client):
-    chart_id = _create_chart(client)
+def test_retrospective_create_and_list(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
 
     created = client.post(
         "/api/v1/retrospective",
@@ -57,8 +43,8 @@ def test_retrospective_create_and_list(client):
     assert items[0]["retrospectiveId"] == body["retrospectiveId"]
 
 
-def test_retrospective_rejects_invalid_event_type(client):
-    chart_id = _create_chart(client)
+def test_retrospective_rejects_invalid_event_type(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
     response = client.post(
         "/api/v1/retrospective",
         json={

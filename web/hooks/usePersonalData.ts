@@ -171,7 +171,14 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
       setChartId(chartResponse.data.chartId);
       const chartPath = `/api/v1/charts/${chartResponse.data.chartId}`;
       const isToday = nextDate === todayDate.current;
-      const { birthLatitude: lat, birthLongitude: lng, birthTimezone: tz } = chartResponse.data.birthProfile;
+      const profile = chartResponse.data.birthProfile;
+      const hasCurrentLocation =
+        profile.currentLatitude != null &&
+        profile.currentLongitude != null &&
+        !!profile.currentTimezone;
+      const lat = hasCurrentLocation ? profile.currentLatitude : profile.birthLatitude;
+      const lng = hasCurrentLocation ? profile.currentLongitude : profile.birthLongitude;
+      const tz = hasCurrentLocation ? profile.currentTimezone : profile.birthTimezone;
 
       const [
         summaryRes,

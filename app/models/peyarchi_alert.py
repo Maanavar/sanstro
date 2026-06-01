@@ -3,13 +3,13 @@ from __future__ import annotations
 from datetime import date, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, String, UniqueConstraint, func, text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, String, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base
+from app.db.base import Base, TimestampMixin
 
 
-class PeyarchiAlert(Base):
+class PeyarchiAlert(TimestampMixin, Base):
     __tablename__ = "peyarchi_alerts"
     __table_args__ = (
         UniqueConstraint("chart_id", "planet", "peyarchi_date", name="uq_peyarchi_alerts_chart_planet_date"),
@@ -30,10 +30,3 @@ class PeyarchiAlert(Base):
     notified_7d: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text("false"))
     notified_1d: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text("false"))
     notified_day_of: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text("false"))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now(),
-    )

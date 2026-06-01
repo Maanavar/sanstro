@@ -14,17 +14,20 @@ All notifications are opt-in — if channel == 'none' the call is a no-op.
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from typing import Literal
 from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.calculations.astro import resolve_timezone
+from app.models.birth_profile import BirthProfile
 from app.models.notification import Notification
 from app.models.user_notification_preference import UserNotificationPreference
 from app.services.email_service import EmailMessage, build_notification_email, send_email
 from app.services.fcm_service import send_push
+from app.services.location_service import resolve_effective_daily_timezone
 
 logger = logging.getLogger(__name__)
 
@@ -54,8 +57,29 @@ def get_or_create_preferences(session: Session, user_id: UUID) -> UserNotificati
     return pref
 
 
-def _push_count_today(session: Session, user_id: UUID) -> int:
-    today_start = datetime.combine(date.today(), datetime.min.time()).replace(tzinfo=timezone.utc)
+def _resolve_user_timezone(session: Session, user_id: UUID) -> str:
+    profile = session.execute(
+        select(BirthProfile)
+        .where(
+            BirthProfile.owner_user_id == user_id,
+            BirthProfile.deleted_at.is_(None),
+        )
+        .order_by(BirthProfile.created_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    if profile:
+        return resolve_effective_daily_timezone(profile)
+    return "UTC"
+
+
+def _push_count_today(session: Session, user_id: UUID, user_tz_str: str = "UTC") -> int:
+    try:
+        user_tz = resolve_timezone(user_tz_str)
+    except Exception:
+        user_tz = timezone.utc
+    now_local = datetime.now(user_tz)
+    today_start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = today_start_local.astimezone(timezone.utc)
     return session.execute(
         select(func.count(Notification.notification_id)).where(
             Notification.user_id == user_id,
@@ -121,7 +145,8 @@ def dispatch_notification(
     # Smart silence: max 1 push/day during heavy Sani periods
     wants_push = channel in ("push", "both")
     if wants_push and pref.smart_silence_enabled and sani_cycle in _HEAVY_SANI_CYCLES:
-        if _push_count_today(session, user_id) >= 1:
+        user_tz = _resolve_user_timezone(session, user_id)
+        if _push_count_today(session, user_id, user_tz) >= 1:
             logger.info("smart_silence user=%s sani=%s — push suppressed", user_id, sani_cycle)
             _persist_notification(
                 session, user_id, chart_id, notification_type,

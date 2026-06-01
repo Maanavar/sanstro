@@ -25,15 +25,22 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import NAKSHATRA_NAME_TO_NUMBER, resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.astro import (
+    NAKSHATRA_NAME_TO_NUMBER,
+    local_datetime_to_utc,
+    resolve_timezone,
+    utc_datetime_to_julian_day,
+)
 from app.calculations.panchangam import calculate_daily_panchangam
 from app.db.session import SessionLocal
 from app.models.birth_profile import BirthProfile
 from app.models.chart import Chart
 from app.models.chart_planet import ChartPlanet
+from app.models.notification import Notification
 from app.models.user import User
 from app.models.user_notification_preference import UserNotificationPreference
 from app.services.dasha_transition_service import get_dasha_transition_alerts
+from app.services.location_service import resolve_effective_daily_location
 from app.services.nakshatra_content import build_nakshatra_perspective
 from app.services.notification_dispatch_service import dispatch_notification
 from app.services.notification_service import build_morning_notification
@@ -94,6 +101,31 @@ def _morning_alert_due(pref: UserNotificationPreference, now_utc: datetime, tz_n
     return delta <= 1800  # ±30 minutes
 
 
+def _already_sent_today(
+    session: Session,
+    user_id: UUID,
+    notification_type: str,
+    local_date: date,
+    timezone_name: str,
+) -> bool:
+    """True if a notification of this type was already sent/queued for this user today (local date)."""
+    local_tz = resolve_timezone(timezone_name)
+    day_start_local = datetime.combine(local_date, time(0, 0), tzinfo=local_tz)
+    day_end_local = datetime.combine(local_date, time(23, 59, 59), tzinfo=local_tz)
+    day_start = day_start_local.astimezone(UTC)
+    day_end = day_end_local.astimezone(UTC)
+    count = session.execute(
+        select(Notification).where(
+            Notification.user_id == user_id,
+            Notification.type == notification_type,
+            Notification.status.in_(["sent", "queued"]),
+            Notification.send_at >= day_start,
+            Notification.send_at <= day_end,
+        )
+    ).scalars().first()
+    return count is not None
+
+
 # ---------------------------------------------------------------------------
 # Per-user dispatch
 # ---------------------------------------------------------------------------
@@ -116,14 +148,22 @@ def _dispatch_for_user(
     if chart is None:
         return results
 
-    tz_name = profile.birth_timezone or "Asia/Kolkata"
-    lat = float(profile.birth_latitude or 13.0839)
-    lon = float(profile.birth_longitude or 80.2700)
+    daily_location = resolve_effective_daily_location(profile)
+    tz_name = daily_location.timezone or "Asia/Kolkata"
+    lat = daily_location.latitude
+    lon = daily_location.longitude
+
+    # Use the user's local date for all date-sensitive checks
+    try:
+        user_tz = resolve_timezone(tz_name)
+        run_date = now_utc.astimezone(user_tz).date()
+    except Exception:
+        pass
 
     # ----------------------------------------------------------------
     # 1. Morning Nalla Neram (MORNING_NALLA_NERAM)
     # ----------------------------------------------------------------
-    if pref.morning_alert_enabled and _morning_alert_due(pref, now_utc, tz_name):
+    if pref.morning_alert_enabled and _morning_alert_due(pref, now_utc, tz_name) and not _already_sent_today(session, user.user_id, "MORNING_NALLA_NERAM", run_date, tz_name):
         try:
             panchang = calculate_daily_panchangam(run_date, lat, lon, tz_name)
             score = 50  # daily score placeholder — full calc needs chart; use panchangam signal
@@ -133,8 +173,9 @@ def _dispatch_for_user(
                 score = 32
 
             label = _score_label(score)
-            nalla_start = panchang.nalla_neram.start.strftime("%H:%M")
-            nalla_end   = panchang.nalla_neram.end.strftime("%H:%M")
+            nalla_slot = panchang.nalla_neram[0] if panchang.nalla_neram else None
+            nalla_start = nalla_slot.start.strftime("%H:%M") if nalla_slot else "-"
+            nalla_end = nalla_slot.end.strftime("%H:%M") if nalla_slot else "-"
             rahu_start  = panchang.rahu_kalam.start.strftime("%H:%M")
             rahu_end    = panchang.rahu_kalam.end.strftime("%H:%M")
 
@@ -173,7 +214,7 @@ def _dispatch_for_user(
     # ----------------------------------------------------------------
     # 2. Dasha transition alert (DASHA_TRANSITION)
     # ----------------------------------------------------------------
-    if pref.dasha_alert_enabled:
+    if pref.dasha_alert_enabled and not _already_sent_today(session, user.user_id, "DASHA_TRANSITION", run_date, tz_name):
         try:
             local_noon = datetime.combine(run_date, time(12, 0), tzinfo=resolve_timezone(tz_name))
             jd_noon = utc_datetime_to_julian_day(local_noon.astimezone(UTC))
@@ -185,6 +226,14 @@ def _dispatch_for_user(
                 )
             ).scalar_one_or_none()
             birth_dt = profile.birth_datetime_utc
+            if (
+                birth_dt is None
+                and profile.birth_date_local is not None
+                and profile.birth_time_local is not None
+                and profile.birth_timezone
+            ):
+                local_dt = datetime.combine(profile.birth_date_local, profile.birth_time_local)
+                birth_dt = local_datetime_to_utc(local_dt, profile.birth_timezone)
             if birth_dt is not None and moon_planet is not None:
                 birth_jd = utc_datetime_to_julian_day(
                     birth_dt if birth_dt.tzinfo else birth_dt.replace(tzinfo=UTC)
@@ -213,7 +262,7 @@ def _dispatch_for_user(
     # ----------------------------------------------------------------
     # 3. Pirantha Naal (PIRANTHA_NAAL)
     # ----------------------------------------------------------------
-    if pref.pirantha_naal_alert_enabled:
+    if pref.pirantha_naal_alert_enabled and not _already_sent_today(session, user.user_id, "PIRANTHA_NAAL", run_date, tz_name):
         try:
             janma_nak_name = chart.janma_nakshatra  # stored as uppercase string e.g. "ROHINI"
             nak_key = "".join(c for c in janma_nak_name.lower() if c.isalnum()) if janma_nak_name else None

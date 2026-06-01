@@ -51,7 +51,7 @@ def update_ui_preferences(
         pref.dashboard_lang = payload.lang
     if payload.dashboard_mode is not None and payload.dashboard_mode in ("BEGINNER", "BALANCED", "TRADITIONAL"):
         current_user.user_mode = payload.dashboard_mode
-    session.commit()
+    session.flush()
     session.refresh(pref)
     return UiPrefsResponse(lang=pref.dashboard_lang, dashboard_mode=current_user.user_mode)
 

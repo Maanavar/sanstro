@@ -17,45 +17,7 @@ def _auth_headers(user_id: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def _birth_profile_payload(display_name: str, owner_user_id: str) -> dict:
-    return {
-        "ownerUserId": owner_user_id,
-        "relationshipToOwner": "self",
-        "displayName": display_name,
-        "birthDateLocal": "1991-07-22",
-        "birthTimeLocal": "06:30:00",
-        "birthPlace": "Chennai, Tamil Nadu, India",
-        "birthLatitude": 13.0827,
-        "birthLongitude": 80.2707,
-        "birthTimezone": "Asia/Kolkata",
-        "calculateNow": False,
-    }
-
-
-def _family_vault_payload(name: str = "Arjun Family") -> dict:
-    return {
-        "name": name,
-        "defaultLanguage": "ta-en",
-    }
-
-
-def _family_member_payload(display_name: str, owner_user_id: str) -> dict:
-    return {
-        "ownerUserId": owner_user_id,
-        "relationshipToOwner": "spouse",
-        "displayName": display_name,
-        "birthDateLocal": "1991-07-22",
-        "birthTimeLocal": "06:30:00",
-        "birthPlace": "Chennai, Tamil Nadu, India",
-        "birthLatitude": 13.0827,
-        "birthLongitude": 80.2707,
-        "birthTimezone": "Asia/Kolkata",
-        "calculateNow": False,
-        "memberWeight": 1.0,
-    }
-
-
-def test_birth_profiles_are_isolated_between_users(raw_client):
+def test_birth_profiles_are_isolated_between_users(raw_client, birth_profile_payload_factory):
     user_a = _register_user(raw_client, "isolation-a@example.com")
     user_b = _register_user(raw_client, "isolation-b@example.com")
     headers_a = _auth_headers(user_a["userId"])
@@ -64,7 +26,11 @@ def test_birth_profiles_are_isolated_between_users(raw_client):
     create_response = raw_client.post(
         "/api/v1/birth-profiles",
         headers=headers_a,
-        json=_birth_profile_payload("User A Profile", owner_user_id=user_b["userId"]),
+        json=birth_profile_payload_factory(
+            owner_user_id=user_b["userId"],
+            display_name="User A Profile",
+            calculate_now=False,
+        ),
     )
     assert create_response.status_code == 200
     birth_profile_id = create_response.json()["data"]["birthProfileId"]
@@ -88,7 +54,11 @@ def test_birth_profiles_are_isolated_between_users(raw_client):
     assert no_profile_for_user_b.status_code == 404
 
 
-def test_family_vaults_and_members_are_isolated_between_users(raw_client):
+def test_family_vaults_and_members_are_isolated_between_users(
+    raw_client,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+):
     user_a = _register_user(raw_client, "vault-owner-a@example.com")
     user_b = _register_user(raw_client, "vault-owner-b@example.com")
     headers_a = _auth_headers(user_a["userId"])
@@ -97,7 +67,7 @@ def test_family_vaults_and_members_are_isolated_between_users(raw_client):
     create_vault = raw_client.post(
         "/api/v1/family-vaults",
         headers=headers_a,
-        json=_family_vault_payload("Owner A Vault"),
+        json=family_vault_payload_factory("Owner A Vault"),
     )
     assert create_vault.status_code == 200
     family_vault_id = create_vault.json()["data"]["familyVaultId"]
@@ -105,7 +75,11 @@ def test_family_vaults_and_members_are_isolated_between_users(raw_client):
     add_member = raw_client.post(
         f"/api/v1/family-vaults/{family_vault_id}/members",
         headers=headers_a,
-        json=_family_member_payload("Owner A Member", owner_user_id=user_b["userId"]),
+        json=family_member_payload_factory(
+            owner_user_id=user_b["userId"],
+            display_name="Owner A Member",
+            calculate_now=False,
+        ),
     )
     assert add_member.status_code == 200
     member_body = add_member.json()["data"]

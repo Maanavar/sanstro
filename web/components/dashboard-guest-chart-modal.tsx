@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
+import { MIN_BIRTH_DATE, isBirthDateWithinBounds, maxBirthDateIso } from "@/lib/birth-date";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, ChartCalculateResponseData } from "@/lib/types";
@@ -37,9 +38,22 @@ export function GuestChartModal({ lang, onClose }: GuestChartModalProps) {
   const [form, setForm] = useState<BirthForm>(EMPTY_FORM);
   const [chart, setChart] = useState<ChartCalculateResponseData | null>(null);
   const [tempBirthProfileId, setTempBirthProfileId] = useState<string | null>(null);
+  const tempBirthProfileIdRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [view, setView] = useState<"D1" | "D9">("D1");
+
+  useEffect(() => {
+    tempBirthProfileIdRef.current = tempBirthProfileId;
+  }, [tempBirthProfileId]);
+
+  useEffect(() => {
+    return () => {
+      const id = tempBirthProfileIdRef.current;
+      if (!id) return;
+      fetch(`/api/v1/birth-profiles/${id}`, { method: "DELETE", keepalive: true }).catch(() => {});
+    };
+  }, []);
 
   async function handleGenerate() {
     if (!form.displayName || !form.birthDateLocal || !form.birthPlace || !form.birthLatitude || !form.birthLongitude || !form.birthTimezone) {
@@ -127,8 +141,18 @@ export function GuestChartModal({ lang, onClose }: GuestChartModalProps) {
           </div>
 
           <Field label={lang === "ta" ? "பிறந்த தேதி" : "Birth Date"}>
-            <input className="input" type="date" value={form.birthDateLocal}
-              onChange={(e) => setForm((f) => ({ ...f, birthDateLocal: e.target.value }))} />
+            <input
+              className="input"
+              type="date"
+              value={form.birthDateLocal}
+              min={MIN_BIRTH_DATE}
+              max={maxBirthDateIso()}
+              onChange={(e) => {
+                const next = e.target.value;
+                if (!isBirthDateWithinBounds(next)) return;
+                setForm((f) => ({ ...f, birthDateLocal: next }));
+              }}
+            />
           </Field>
 
           <Field label={lang === "ta" ? "பிறந்த நேரம்" : "Birth Time"}>

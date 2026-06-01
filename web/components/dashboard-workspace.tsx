@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
+import { isBirthDateWithinBounds } from "@/lib/birth-date";
 import { getScoreBand, todayIso } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -11,6 +12,8 @@ import type {
   BirthProfileCreateResponseData,
   FamilyAggregateMember,
   FamilyVaultListItem,
+  NotificationInboxItem,
+  NotificationInboxResponse,
 } from "@/lib/types";
 
 import { useSession } from "@/hooks/useSession";
@@ -62,6 +65,10 @@ type BirthFormState = {
   birthLatitude: string;
   birthLongitude: string;
   birthTimezone: string;
+  currentPlace: string;
+  currentLatitude: string;
+  currentLongitude: string;
+  currentTimezone: string;
   relationshipToOwner: Relationship;
   calculateNow: boolean;
   maritalStatus: string;
@@ -85,6 +92,10 @@ type MemberFormState = {
   birthLatitude: string;
   birthLongitude: string;
   birthTimezone: string;
+  currentPlace: string;
+  currentLatitude: string;
+  currentLongitude: string;
+  currentTimezone: string;
   memberWeight: string;
   calculateNow: boolean;
 };
@@ -105,6 +116,7 @@ type PersistedState = {
 const defaultBirthForm: BirthFormState = {
   ownerUserId: "", displayName: "", birthDateLocal: "", birthTimeLocal: "",
   birthPlace: "", birthLatitude: "", birthLongitude: "", birthTimezone: "",
+  currentPlace: "", currentLatitude: "", currentLongitude: "", currentTimezone: "",
   relationshipToOwner: "self", calculateNow: true,
   maritalStatus: "", employmentType: "",
   birthTimeSource: "unknown", birthTimeConfidenceMinutes: "0",
@@ -117,6 +129,7 @@ const defaultVaultForm: VaultFormState = {
 const defaultMemberForm: MemberFormState = {
   displayName: "", relationshipToOwner: "spouse", birthDateLocal: "", birthTimeLocal: "",
   birthPlace: "", birthLatitude: "", birthLongitude: "", birthTimezone: "",
+  currentPlace: "", currentLatitude: "", currentLongitude: "", currentTimezone: "",
   memberWeight: RELATIONSHIP_WEIGHTS.spouse, calculateNow: true,
 };
 
@@ -170,11 +183,33 @@ export function DashboardWorkspace() {
 
   const [onboardingDone, setOnboardingDone] = useState(false);
 
+  // Notification inbox
+  const [inboxItems, setInboxItems] = useState<NotificationInboxItem[]>([]);
+  const [inboxUnreadCount, setInboxUnreadCount] = useState(0);
+
   useEffect(() => {
     if (!ENABLE_QA_TAB && activeTab === "qa") {
       setActiveTab("personal");
     }
   }, [activeTab]);
+
+  // Poll inbox every 5 minutes
+  useEffect(() => {
+    function fetchInbox() {
+      apiFetchJson<NotificationInboxResponse>("/api/v1/notifications")
+        .then((r) => { setInboxItems(r.data); setInboxUnreadCount(r.unread_count); })
+        .catch(() => {});
+    }
+    fetchInbox();
+    const id = setInterval(fetchInbox, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  function handleMarkAllRead() {
+    apiFetchJson<NotificationInboxResponse>("/api/v1/notifications/read-all", { method: "POST" })
+      .then((r) => { setInboxItems(r.data); setInboxUnreadCount(r.unread_count); })
+      .catch(() => {});
+  }
 
   // ── Domain hooks ─────────────────────────────────────────
 
@@ -199,8 +234,40 @@ export function DashboardWorkspace() {
   const plan = usePlanData({
     chartId: personal.chartId,
     onError: (msg) => showToast(msg, "error"),
-    onGoalAdded: (goalType) => showToast(lang === "ta" ? `இலக்கு சேர்க்கப்பட்டது: ${goalType}` : `Goal saved: ${goalType}`),
-    onGoalRemoved: () => showToast(lang === "ta" ? "இலக்கு நீக்கப்பட்டது" : "Goal removed"),
+    onGoalAdded: (goalType) => {
+      showToast(lang === "ta" ? `இலக்கு சேர்க்கப்பட்டது: ${goalType}` : `Goal saved: ${goalType}`);
+      if (personal.birthProfileId) {
+        void personal.refreshPersonalBundle(personal.birthProfileId, selectedDate);
+      }
+      const targetChartId = (() => {
+        if (!lifeAreasViewId) return personal.chartId;
+        const member = family.memberCharts.find((mc) => mc.memberId === lifeAreasViewId);
+        return member?.chart.chartId ?? personal.chartId;
+      })();
+      if (!targetChartId) return;
+      personal.setPredictionsLoading(true);
+      personal.setJadhagamReport(null);
+      void personal
+        .refreshLifeAreasInsights(targetChartId, selectedDate)
+        .finally(() => personal.setPredictionsLoading(false));
+    },
+    onGoalRemoved: () => {
+      showToast(lang === "ta" ? "இலக்கு நீக்கப்பட்டது" : "Goal removed");
+      if (personal.birthProfileId) {
+        void personal.refreshPersonalBundle(personal.birthProfileId, selectedDate);
+      }
+      const targetChartId = (() => {
+        if (!lifeAreasViewId) return personal.chartId;
+        const member = family.memberCharts.find((mc) => mc.memberId === lifeAreasViewId);
+        return member?.chart.chartId ?? personal.chartId;
+      })();
+      if (!targetChartId) return;
+      personal.setPredictionsLoading(true);
+      personal.setJadhagamReport(null);
+      void personal
+        .refreshLifeAreasInsights(targetChartId, selectedDate)
+        .finally(() => personal.setPredictionsLoading(false));
+    },
   });
 
   const journal = useJournalData({
@@ -360,6 +427,10 @@ export function DashboardWorkspace() {
       birthTimezone: c.birthTimezone || bp.birthTimezone || "",
       birthLatitude: c.birthLatitude || (bp.birthLatitude != null ? String(bp.birthLatitude) : ""),
       birthLongitude: c.birthLongitude || (bp.birthLongitude != null ? String(bp.birthLongitude) : ""),
+      currentPlace: c.currentPlace || bp.currentPlace || "",
+      currentTimezone: c.currentTimezone || bp.currentTimezone || "",
+      currentLatitude: c.currentLatitude || (bp.currentLatitude != null ? String(bp.currentLatitude) : ""),
+      currentLongitude: c.currentLongitude || (bp.currentLongitude != null ? String(bp.currentLongitude) : ""),
     }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [personal.chart]);
@@ -438,6 +509,11 @@ export function DashboardWorkspace() {
     const errors: Record<string, string> = {};
     if (!form.displayName.trim()) errors.displayName = t("err_name_required", lang);
     if (!form.birthDateLocal) errors.birthDateLocal = t("err_date_required", lang);
+    else if (!isBirthDateWithinBounds(form.birthDateLocal)) {
+      errors.birthDateLocal = lang === "ta"
+        ? "பிறந்த தேதி 1900 முதல் இன்றைய தேதிக்குள் இருக்க வேண்டும்."
+        : "Birth date must be between 1900 and today.";
+    }
     if (!form.birthPlace.trim()) errors.birthPlace = t("err_place_required", lang);
     if (!form.birthTimezone.trim()) errors.birthTimezone = t("err_tz_required", lang);
     if (!form.birthLatitude || !parseNumber(form.birthLatitude)) errors.birthLatitude = t("err_lat_required", lang);
@@ -449,6 +525,11 @@ export function DashboardWorkspace() {
     const errors: Record<string, string> = {};
     if (!form.displayName.trim()) errors.memberDisplayName = t("err_name_required", lang);
     if (!form.birthDateLocal) errors.memberBirthDate = t("err_date_required", lang);
+    else if (!isBirthDateWithinBounds(form.birthDateLocal)) {
+      errors.memberBirthDate = lang === "ta"
+        ? "பிறந்த தேதி 1900 முதல் இன்றைய தேதிக்குள் இருக்க வேண்டும்."
+        : "Birth date must be between 1900 and today.";
+    }
     if (!form.birthPlace.trim()) errors.memberBirthPlace = t("err_place_required", lang);
     if (!form.birthTimezone.trim()) errors.memberTimezone = t("err_tz_required", lang);
     return errors;
@@ -475,6 +556,10 @@ export function DashboardWorkspace() {
           birthLatitude: parseNumber(birthForm.birthLatitude),
           birthLongitude: parseNumber(birthForm.birthLongitude),
           birthTimezone: birthForm.birthTimezone,
+          currentPlace: birthForm.currentPlace || undefined,
+          currentLatitude: birthForm.currentLatitude ? parseNumber(birthForm.currentLatitude) : undefined,
+          currentLongitude: birthForm.currentLongitude ? parseNumber(birthForm.currentLongitude) : undefined,
+          currentTimezone: birthForm.currentTimezone || undefined,
           calculateNow: birthForm.calculateNow,
           maritalStatus: birthForm.maritalStatus || undefined,
           employmentType: birthForm.employmentType || undefined,
@@ -540,6 +625,10 @@ export function DashboardWorkspace() {
             birthLatitude: parseNumber(memberForm.birthLatitude),
             birthLongitude: parseNumber(memberForm.birthLongitude),
             birthTimezone: memberForm.birthTimezone,
+            currentPlace: memberForm.currentPlace || undefined,
+            currentLatitude: memberForm.currentLatitude ? parseNumber(memberForm.currentLatitude) : undefined,
+            currentLongitude: memberForm.currentLongitude ? parseNumber(memberForm.currentLongitude) : undefined,
+            currentTimezone: memberForm.currentTimezone || undefined,
             calculateNow: memberForm.calculateNow,
             memberWeight: parseNumber(memberForm.memberWeight, 1),
           }),
@@ -575,6 +664,10 @@ export function DashboardWorkspace() {
             birthLatitude: editMember.birthLatitude ? parseNumber(editMember.birthLatitude) : undefined,
             birthLongitude: editMember.birthLongitude ? parseNumber(editMember.birthLongitude) : undefined,
             birthTimezone: editMember.birthTimezone || undefined,
+            currentPlace: editMember.currentPlace || undefined,
+            currentLatitude: editMember.currentLatitude ? parseNumber(editMember.currentLatitude) : undefined,
+            currentLongitude: editMember.currentLongitude ? parseNumber(editMember.currentLongitude) : undefined,
+            currentTimezone: editMember.currentTimezone || undefined,
             recalculate: true,
           }),
         }
@@ -606,6 +699,10 @@ export function DashboardWorkspace() {
             birthLatitude: parseNumber(birthForm.birthLatitude),
             birthLongitude: parseNumber(birthForm.birthLongitude),
             birthTimezone: birthForm.birthTimezone,
+            currentPlace: birthForm.currentPlace || undefined,
+            currentLatitude: birthForm.currentLatitude ? parseNumber(birthForm.currentLatitude) : undefined,
+            currentLongitude: birthForm.currentLongitude ? parseNumber(birthForm.currentLongitude) : undefined,
+            currentTimezone: birthForm.currentTimezone || undefined,
             maritalStatus: birthForm.maritalStatus || undefined,
             employmentType: birthForm.employmentType || undefined,
             recalculate: true,
@@ -631,6 +728,10 @@ export function DashboardWorkspace() {
             birthLatitude: parseNumber(birthForm.birthLatitude),
             birthLongitude: parseNumber(birthForm.birthLongitude),
             birthTimezone: birthForm.birthTimezone,
+            currentPlace: birthForm.currentPlace || undefined,
+            currentLatitude: birthForm.currentLatitude ? parseNumber(birthForm.currentLatitude) : undefined,
+            currentLongitude: birthForm.currentLongitude ? parseNumber(birthForm.currentLongitude) : undefined,
+            currentTimezone: birthForm.currentTimezone || undefined,
             calculateNow: true,
             maritalStatus: birthForm.maritalStatus || undefined,
             employmentType: birthForm.employmentType || undefined,
@@ -728,6 +829,10 @@ export function DashboardWorkspace() {
       birthLatitude: bp?.birthLatitude?.toString() ?? "",
       birthLongitude: bp?.birthLongitude?.toString() ?? "",
       birthTimezone: bp?.birthTimezone ?? "",
+      currentPlace: bp?.currentPlace ?? "",
+      currentLatitude: bp?.currentLatitude?.toString() ?? "",
+      currentLongitude: bp?.currentLongitude?.toString() ?? "",
+      currentTimezone: bp?.currentTimezone ?? "",
     });
   }
 
@@ -763,6 +868,9 @@ export function DashboardWorkspace() {
           title: lang === "ta" ? a.title.ta : a.title.en,
           body: lang === "ta" ? a.message.ta : a.message.en,
         }))}
+        inboxItems={inboxItems}
+        inboxUnreadCount={inboxUnreadCount}
+        onMarkAllRead={handleMarkAllRead}
         onTabChange={(tab) => setActiveTab(tab)}
         onDateChange={setSelectedDate}
         onLangToggle={() => setLang((l) => l === "ta" ? "en" : "ta")}

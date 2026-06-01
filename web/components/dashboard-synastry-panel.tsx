@@ -69,6 +69,53 @@ const PORUTHAM_META: Record<string, PoruthamMeta> = {
   "Rajju":        { labelEn: "Rajju",                       labelTa: "ரஜ்ஜு",                      checksEn: "Traditional marital longevity risk marker",          checksTa: "பாரம்பரிய திருமண நீட்சி ஆபத்து குறியீடு",                weight: "Critical" },
 };
 
+function getPoruthamMeta(name: string, nameTa: string, context: string): PoruthamMeta {
+  const fallback: PoruthamMeta = {
+    labelEn: name,
+    labelTa: nameTa,
+    checksEn: "Compatibility signal",
+    checksTa: "பொருத்தம் குறியீடு",
+    weight: "Medium",
+  };
+  const base = PORUTHAM_META[name] ?? fallback;
+  if (context === "MARRIAGE") return base;
+
+  const contextualChecksEn: Record<string, Partial<Record<string, string>>> = {
+    FRIENDSHIP: {
+      Dinam: "Day-to-day rhythm and comfort in regular interaction",
+      Ganam: "Temperament match and social chemistry",
+      Rasi: "General compatibility pattern",
+      "Graha Maitri": "Mutual support and understanding",
+      Vedha: "Potential friction-trigger check",
+    },
+    BUSINESS: {
+      Ganam: "Working-style and decision-temperament alignment",
+      Mahendra: "Long-term growth and continuity potential",
+      Rasi: "General partnership compatibility pattern",
+      "Graha Maitri": "Leadership and communication compatibility",
+      Vasya: "Influence balance and collaboration dynamics",
+    },
+    FAMILY: {
+      Rasi: "Overall emotional harmony pattern",
+      Ganam: "Temperament fit within family life",
+      Vedha: "Potential conflict-trigger check",
+      Vasya: "Cooperation and mutual support dynamics",
+      "Graha Maitri": "Understanding and guidance support",
+    },
+    GENERAL: {
+      Dinam: "Day-to-day rhythm compatibility",
+      Ganam: "Temperament compatibility",
+      Rasi: "General compatibility pattern",
+      "Graha Maitri": "Mutual support signal",
+    },
+  };
+
+  return {
+    ...base,
+    checksEn: contextualChecksEn[context]?.[name] ?? base.checksEn,
+  };
+}
+
 function weightLabel(weight: PoruthamWeight, lang: Lang): string {
   if (lang === "ta") {
     if (weight === "Critical") return "முக்கியம்";
@@ -204,6 +251,7 @@ export function SynastryPanel({
   const [poruthamLoading, setPoruthamLoading]   = useState(false);
   const [poruthamError, setPoruthamError]       = useState("");
   const [poruthamContext, setPoruthamContext]   = useState("GENERAL");
+  const [poruthamPdfBusy, setPoruthamPdfBusy]   = useState(false);
 
   const compatMemberChart = memberCharts.find((m) => m.memberId === compatMemberId)?.chart ?? null;
   const poruthamMemberChart = memberCharts.find((m) => m.memberId === poruthamMemberId)?.chart ?? null;
@@ -241,6 +289,36 @@ export function SynastryPanel({
       setPoruthamError(readErrorMessage(err));
     } finally {
       setPoruthamLoading(false);
+    }
+  }
+
+  async function downloadPoruthamPdf() {
+    if (!porutham || !ownerChart || !poruthamMemberChart || poruthamPdfBusy) return;
+    setPoruthamPdfBusy(true);
+    setPoruthamError("");
+    try {
+      const response = await fetch("/api/backend/api/v1/relationships/compare/pdf", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chartIdA: ownerChart.chartId,
+          chartIdB: poruthamMemberChart.chartId,
+          compatibilityContext: poruthamContext,
+        }),
+      });
+      if (!response.ok) throw new Error(`${response.status}: PDF export failed`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `porutham_${ownerChart.birthProfile.displayName}_${poruthamMemberChart.birthProfile.displayName}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setPoruthamError(readErrorMessage(err));
+    } finally {
+      setPoruthamPdfBusy(false);
     }
   }
 
@@ -520,6 +598,29 @@ export function SynastryPanel({
                     </div>
                   )}
 
+                  <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                    <button
+                      type="button"
+                      onClick={() => void downloadPoruthamPdf()}
+                      disabled={poruthamPdfBusy || !ownerChart || !poruthamMemberChart}
+                      style={{
+                        padding: "var(--space-1_5) var(--space-3_5)",
+                        borderRadius: "var(--radius-pill)",
+                        border: "1px solid #D4C8AE",
+                        background: "#FAF5EA",
+                        color: poruthamPdfBusy ? "var(--color-faint)" : "#3D352B",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        cursor: poruthamPdfBusy ? "wait" : "pointer",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      {poruthamPdfBusy
+                        ? (lang === "ta" ? "PDF பதிவிறக்குகிறது…" : "Downloading PDF…")
+                        : (lang === "ta" ? "PDF பதிவிறக்கம்" : "Download PDF")}
+                    </button>
+                  </div>
+
                   {/* Total score */}
                   <div style={{ background: "#FFFFFF", border: "1px solid #E4DBC8", borderRadius: "var(--radius-md)", padding: "var(--space-5)", display: "flex", alignItems: "flex-start", gap: "var(--space-4)", flexWrap: "wrap" }}>
                     <div style={{ flexShrink: 0 }}>
@@ -557,11 +658,7 @@ export function SynastryPanel({
                   {/* 10-kuta rows */}
                   <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                     {porutham.kutas.map((k) => {
-                      const meta = PORUTHAM_META[k.name] ?? {
-                        labelEn: k.name, labelTa: k.nameTa,
-                        checksEn: "Compatibility signal", checksTa: "பொருத்தம் குறியீடு",
-                        weight: "Medium" as const,
-                      };
+                      const meta = getPoruthamMeta(k.name, k.nameTa, poruthamContext);
                       const status = scoreStatusOf(k.score, k.maxScore);
                       const stTone = statusTone(status);
                       const wtTone = weightTone(meta.weight);

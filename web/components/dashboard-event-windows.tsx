@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { apiFetchJson } from "@/lib/api";
+import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { tLang } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { EventWindowItem } from "@/lib/types";
@@ -31,18 +31,21 @@ export function EventWindowsPanel({ lang, chartId }: EventWindowsProps) {
   const [windows, setWindows] = useState<EventWindowItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState("");
   const currentYear = new Date().getFullYear();
 
   async function load(evt: EventType) {
     setLoading(true);
+    setError("");
     setEvent(evt);
     try {
       const res = await apiFetchJson<{ data: { windows: EventWindowItem[] } }>(
         `/api/v1/charts/${chartId}/event-windows?event=${evt}&fromYear=${currentYear}&toYear=${currentYear + 20}`
       );
       setWindows(res.data?.windows ?? []);
-    } catch {
+    } catch (err) {
       setWindows([]);
+      setError(readErrorMessage(err));
     } finally {
       setLoading(false);
       setLoaded(true);
@@ -76,6 +79,11 @@ export function EventWindowsPanel({ lang, chartId }: EventWindowsProps) {
       {!loaded && (
         <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)" }}>
           {lang === "ta" ? "மேலே ஒரு வகையைத் தேர்ந்தெடுக்கவும்." : "Select an event type above."}
+        </p>
+      )}
+      {error && (
+        <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-score-low)" }}>
+          {error}
         </p>
       )}
 

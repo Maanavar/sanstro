@@ -1,8 +1,10 @@
 "use client";
 
 import type { FormEvent } from "react";
+import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
 import { PlaceCombobox } from "./dashboard-ui";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
@@ -16,6 +18,10 @@ export type BirthFormState = {
   birthLatitude: string;
   birthLongitude: string;
   birthTimezone: string;
+  currentPlace: string;
+  currentLatitude: string;
+  currentLongitude: string;
+  currentTimezone: string;
   relationshipToOwner: Relationship;
   calculateNow: boolean;
   maritalStatus: string;
@@ -95,6 +101,7 @@ export function EditProfileModal({
   lang, birthForm, busySaving, isExistingProfile,
   onClose, onChange, onSubmit, onOpenRectification, onDeleteProfile,
 }: EditProfileModalProps) {
+  const { nextBirthDateOrCurrent, applyPlaceSelection } = useBirthProfileForm();
   return (
     <div
       style={{
@@ -156,8 +163,13 @@ export function EditProfileModal({
               </WSelect>
             </WField>
             <WField label={t("field_birth_date", lang)}>
-              <WInput type="date" value={birthForm.birthDateLocal}
-                onChange={(e) => onChange({ ...birthForm, birthDateLocal: e.target.value })} />
+              <WInput type="date" value={birthForm.birthDateLocal} min={MIN_BIRTH_DATE} max={maxBirthDateIso()}
+                onChange={(e) => {
+                  onChange({
+                    ...birthForm,
+                    birthDateLocal: nextBirthDateOrCurrent(birthForm.birthDateLocal, e.target.value),
+                  });
+                }} />
             </WField>
             <WField label={t("field_birth_time", lang)}>
               <WInput type="time" step="1" value={birthForm.birthTimeLocal}
@@ -179,10 +191,7 @@ export function EditProfileModal({
             </WField>
             <WField label={t("field_birth_place", lang)}>
               <PlaceCombobox value={birthForm.birthPlace}
-                onChange={(city, raw) => onChange({
-                  ...birthForm, birthPlace: raw,
-                  ...(city ? { birthLatitude: city.lat, birthLongitude: city.lng, birthTimezone: city.timezone } : {}),
-                })} />
+                onChange={(city, raw) => onChange(applyPlaceSelection(birthForm, city, raw))} />
             </WField>
             <WField label={t("field_timezone", lang)}>
               <WInput value={birthForm.birthTimezone}
@@ -195,6 +204,26 @@ export function EditProfileModal({
             <WField label={t("field_longitude", lang)}>
               <WInput inputMode="decimal" value={birthForm.birthLongitude}
                 onChange={(e) => onChange({ ...birthForm, birthLongitude: e.target.value })} />
+            </WField>
+            <WField label={lang === "ta" ? "தினசரி நேரங்களுக்கான தற்போதைய நகரம்" : "Current City (Daily Timings)"}>
+              <PlaceCombobox value={birthForm.currentPlace}
+                onChange={(city, raw) => onChange({
+                  ...birthForm,
+                  currentPlace: raw,
+                  ...(city ? { currentLatitude: city.lat, currentLongitude: city.lng, currentTimezone: city.timezone } : {}),
+                })} />
+            </WField>
+            <WField label={lang === "ta" ? "தற்போதைய நேர மண்டலம்" : "Current Timezone"}>
+              <WInput value={birthForm.currentTimezone}
+                onChange={(e) => onChange({ ...birthForm, currentTimezone: e.target.value })} />
+            </WField>
+            <WField label={lang === "ta" ? "தற்போதைய அகலம்" : "Current Latitude"}>
+              <WInput inputMode="decimal" value={birthForm.currentLatitude}
+                onChange={(e) => onChange({ ...birthForm, currentLatitude: e.target.value })} />
+            </WField>
+            <WField label={lang === "ta" ? "தற்போதைய தீர்க்கரம்" : "Current Longitude"}>
+              <WInput inputMode="decimal" value={birthForm.currentLongitude}
+                onChange={(e) => onChange({ ...birthForm, currentLongitude: e.target.value })} />
             </WField>
             <WField label={t("field_marital_status", lang)}>
               <WSelect value={birthForm.maritalStatus}
