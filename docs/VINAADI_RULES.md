@@ -115,6 +115,7 @@ These rules apply to ALL astrological calculations, interpretations, and recomme
 ### 5.1 Calculation system
 - This app follows **Thirukanitha Panchangam** (scientific ephemeris-based), not Vakiya Panchangam.
 - Planetary positions must use the Lahiri ayanamsa (Indian standard sidereal).
+- Thirukanitham is the governing source tradition. If "Drik" or "ephemeris" appears elsewhere, it refers only to the calculation method used to implement Thirukanitham accurately.
 - All house calculations use the whole-sign house system unless explicitly stated otherwise.
 - Dasha system: Vimshottari only (not Yogini or other systems unless user requests).
 

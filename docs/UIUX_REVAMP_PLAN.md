@@ -433,7 +433,7 @@ No sub-tabs — use clear section headers.
 
 **Trust section:**
 - "Built on Thirukanitham precision"
-- Lahiri ayanamsa · Drik ephemeris · Whole Sign houses · Vimshottari dasha
+- Thirukanitham tradition · Lahiri ayanamsa · Drik ephemeris backend · Whole Sign houses · Vimshottari dasha
 - This builds credibility with traditional users
 
 **Mobile:** Hero stacks vertically, demo strip becomes horizontal scroll

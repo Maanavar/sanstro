@@ -18,6 +18,7 @@ Tamil-first bilingual astrology daily companion. Users enter their birth details
 - Panchangam kalam slots: fixed 90-minute windows from 6:00 AM (not astronomical sunrise)
 - Natural friendship table: Parashari doctrine (Sun friends Moon/Mars/Jupiter; Venus friends Mercury/Saturn, etc.)
 - Chandrashtama = 8th Rasi from natal Moon Rasi (not 8th nakshatra)
+- Thirukanitham is the main source tradition. If a doc mentions Drik or Drik Ganita, treat it as the astronomical calculation method used inside the Thirukanitham system, not as a separate source of truth.
 - Amavasai = sacred ancestor day, no penalty
 
 **What we do NOT claim to follow from classical texts (custom/approximate):**
@@ -49,7 +50,7 @@ Tamil-first bilingual astrology daily companion. Users enter their birth details
 - Kalam timings (Rahu Kalam, Yamagandam, Kuligai): **fixed 90-minute slots from 6:00 AM local time** — NOT derived from actual sunrise. Code: `kalam_anchor = datetime.combine(date_local, time(6, 0), tzinfo=timezone_obj)` in `app/calculations/panchangam.py`.
 - Transit scoring: primary reference is **Janma Rasi (natal Moon)**. Jupiter/Saturn from Lagna are secondary adjustments only.
 - Score formula weights (`TRANSIT_BASE_SCORE`, `PLANET_DAILY_WEIGHT`, `PLANET_PERIOD_SCORE`) are in `app/services/daily_guidance_service.py`. Do not change these without explicit instruction — they are the author's calibrated values.
-- All score calculation intent is documented in `docs/Jothidam_AI_Formula_Engine_Specification_v1_Thirukanitham_2026.md`. When formula spec conflicts with product spec, **formula spec wins for calculations**, product spec wins for UX.
+- All score calculation intent is documented in `docs/Jothidam_AI_Formula_Engine_Specification_v1_Thirukanitham_2026.md`. When formula spec conflicts with product spec, **formula spec wins for calculations within the Thirukanitham standard**, product spec wins for UX.
 
 ### Coding rules
 - Every user-facing string must have both `ta` and `en` fields. Never hardcode Tamil or English only.
