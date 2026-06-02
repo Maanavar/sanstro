@@ -43,6 +43,59 @@ const W = {
 } as const;
 
 const RASI_NAMES_EN = ["", "Mesham", "Rishabam", "Mithunam", "Kadagam", "Simmam", "Kanni", "Thulam", "Viruchigam", "Dhanusu", "Magaram", "Kumbam", "Meenam"];
+
+// Tamil solar months start dates (approximate Gregorian: month-day)
+// Chithirai begins ~Apr 14, then every ~30–31 days
+const TAMIL_MONTHS_EN = [
+  "Chithirai", "Vaigasi", "Aani", "Aadi", "Aavani", "Purattasi",
+  "Aippasi", "Karthigai", "Margazhi", "Thai", "Maasi", "Panguni",
+];
+const TAMIL_MONTHS_TA = [
+  "சித்திரை", "வைகாசி", "ஆனி", "ஆடி", "ஆவணி", "புரட்டாசி",
+  "ஐப்பசி", "கார்த்திகை", "மார்கழி", "தை", "மாசி", "பங்குனி",
+];
+// Each month starts on these Gregorian md pairs (year-independent approximation)
+const TAMIL_MONTH_STARTS: Array<[number, number]> = [
+  [4, 14], [5, 15], [6, 15], [7, 17], [8, 17], [9, 17],
+  [10, 18], [11, 16], [12, 16], [1, 14], [2, 13], [3, 14],
+];
+
+function getTamilMonthDate(dateStr: string, lang: Lang): string {
+  const d = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return "";
+  const month = d.getMonth() + 1; // 1-based
+  const day = d.getDate();
+
+  // Find which Tamil month this Gregorian date falls in
+  let tamilMonthIdx = -1;
+  for (let i = 0; i < 12; i++) {
+    const [sm, sd] = TAMIL_MONTH_STARTS[i]!;
+    const [nm, nd] = TAMIL_MONTH_STARTS[(i + 1) % 12]!;
+    const inMonth = (month === sm && day >= sd) || (i < 11 ? (month === nm && day < nd) : (month === nm && day < nd) || (month < sm));
+    if (month === sm && day >= sd) { tamilMonthIdx = i; break; }
+    if (i < 11 && month === nm && day < nd) { tamilMonthIdx = i; break; }
+  }
+  // Fallback: find nearest
+  if (tamilMonthIdx < 0) {
+    const dayOfYear = (Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(d.getFullYear(), 0, 0)) / 86400000;
+    tamilMonthIdx = Math.floor(((dayOfYear - 104 + 365) % 365) / 30.4) % 12;
+  }
+
+  // Compute day within Tamil month
+  const [sm, sd] = TAMIL_MONTH_STARTS[tamilMonthIdx]!;
+  const startDate = new Date(d.getFullYear(), sm - 1, sd);
+  if (sm > month || (sm === month && sd > day)) {
+    startDate.setFullYear(d.getFullYear() - 1);
+  }
+  const tamilDay = Math.floor((d.getTime() - startDate.getTime()) / 86400000) + 1;
+
+  const monthName = lang === "ta"
+    ? (TAMIL_MONTHS_TA[tamilMonthIdx] ?? "")
+    : (TAMIL_MONTHS_EN[tamilMonthIdx] ?? "");
+  return lang === "ta"
+    ? `${monthName} ${tamilDay}`
+    : `${monthName} ${tamilDay}`;
+}
 const NAKSHATRA_ORDER = [
   "ASWINI", "BHARANI", "KARTHIGAI", "ROHINI", "MIRUGASEERIDAM", "THIRUVATHIRAI",
   "PUNARPOOSAM", "POOSAM", "AYILYAM", "MAGAM", "POORAM", "UTHIRAM", "HASTHAM",
@@ -285,9 +338,17 @@ export function CalendarTab({
           <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: W.terracotta }}>
             {lang === "ta" ? "கோசாரம் & நிகழ்வுகள்" : "Transits & Events"}
           </p>
-          <h1 style={{ margin: "0 0 var(--space-2)", fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 500, lineHeight: 1.1, color: W.ink, letterSpacing: "-0.02em" }}>
+          <h1 style={{ margin: "0 0 var(--space-1)", fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 500, lineHeight: 1.1, color: W.ink, letterSpacing: "-0.02em" }}>
             {headerDate}
           </h1>
+          {(() => {
+            const tamilDate = getTamilMonthDate(selectedDate, lang);
+            return tamilDate ? (
+              <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.875rem", color: W.terracotta, fontWeight: 600 }}>
+                {tamilDate}
+              </p>
+            ) : null;
+          })()}
           <p style={{ margin: 0, fontSize: "0.875rem", lineHeight: 1.6, color: W.muted, maxWidth: "70ch" }}>{panchangamMeta}</p>
         </div>
 
@@ -391,22 +452,19 @@ export function CalendarTab({
                   </div>
 
                   {/* ── Chandrashtamam ── */}
-                  {moonRasiName && (
+                  {chandraName && (
                     <div style={{ borderRadius: "var(--radius-md)", border: `1px solid rgba(184,90,44,0.25)`, background: "#F8E4D2", overflow: "hidden" }}>
                       <p style={{ margin: 0, padding: "var(--space-1_5) var(--space-3)", fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: W.terracotta, fontWeight: 700, borderBottom: `1px solid rgba(184,90,44,0.15)` }}>
                         {t("label_chandrashtamam", lang)}
                       </p>
-                      <div style={{ display: "flex", flexDirection: "column" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", padding: "var(--space-2) var(--space-3)", fontSize: "0.875rem", color: W.inkMid }}>
-                          <span style={{ color: W.muted }}>{lang === "ta" ? "சந்திர ராசி" : "Moon Rasi"}</span>
-                          <span style={{ fontWeight: 600 }}>{moonRasiName}</span>
-                        </div>
-                        {chandraName && (
-                          <div style={{ display: "flex", justifyContent: "space-between", padding: "var(--space-2) var(--space-3)", borderTop: `1px solid rgba(184,90,44,0.1)`, fontSize: "0.875rem", color: W.rust }}>
-                            <span>{lang === "ta" ? "பாதிக்கப்படும் ராசி" : "Affected Rasi"}</span>
-                            <span style={{ fontWeight: 600 }}>{chandraName}</span>
-                          </div>
-                        )}
+                      <div style={{ display: "flex", justifyContent: "space-between", padding: "var(--space-2) var(--space-3)", fontSize: "0.875rem", color: W.rust }}>
+                        <span style={{ color: W.muted }}>
+                          {lang === "ta" ? "பாதிக்கப்படும் ராசி & நட்சத்திரம்" : "Affected Rasi & Nakshatra"}
+                        </span>
+                        <span style={{ fontWeight: 600 }}>
+                          {chandraName}
+                          {panchangam?.nakshatra.name ? ` · ${tNakshatra(panchangam.nakshatra.name, lang)}` : ""}
+                        </span>
                       </div>
                     </div>
                   )}
@@ -682,10 +740,10 @@ export function CalendarTab({
                 <Surface title={t("cal_sani", lang)}>
                   <div className="surface__body">
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px,1fr))", gap: "var(--space-2_5)" }}>
-                      <div style={{ borderRadius: "var(--radius-md)", border: `1px solid rgba(168,72,47,0.25)`, background: "#F2D8CC", padding: "var(--space-2_5) var(--space-3)" }}>
+                      <div style={{ borderRadius: "var(--radius-md)", border: `1px solid rgba(168,72,47,0.25)`, background: "#F2D8CC", padding: "var(--space-2_5) var(--space-3)", overflow: "hidden", minWidth: 0 }}>
                         <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.08em", color: W.rust, fontWeight: 700 }}>{t("cal_sani_pos", lang)}</p>
-                        <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "1.25rem", fontFamily: "var(--font-display)", color: W.ink }}>{sani.moonBasedCycle.type ?? "—"}</p>
-                        <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>{sani.moonBasedCycle.supportiveLabel ?? ""}</p>
+                        <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "1.25rem", fontFamily: "var(--font-display)", color: W.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sani.moonBasedCycle.type ?? "—"}</p>
+                        <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sani.moonBasedCycle.supportiveLabel ?? ""}</p>
                       </div>
                       <div style={{ borderRadius: "var(--radius-md)", border: `1px solid rgba(168,72,47,0.25)`, background: "#FAF5EA", padding: "var(--space-2_5) var(--space-3)" }}>
                         <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.08em", color: W.muted, fontWeight: 700 }}>{t("cal_sani_rasi", lang)}</p>
@@ -793,11 +851,11 @@ export function CalendarTab({
                           const dn = new Date(`${item.dateLocal}T00:00:00`).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { day: "numeric" });
                           const isSelected = item.dateLocal === selectedDate;
                           return (
-                            <div key={item.dateLocal} style={{ borderRadius: "22px", border: `2px solid ${isSelected ? palette.color : W.border}`, background: W.surface, padding: "var(--space-3_5) var(--space-2)", display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-2)" }}>
+                            <div key={item.dateLocal} style={{ borderRadius: "22px", border: `2px solid ${isSelected ? palette.color : W.border}`, background: W.surface, padding: "var(--space-3_5) var(--space-2)", display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-2)", overflow: "hidden", minWidth: 0 }}>
                               <p style={{ margin: 0, fontSize: "0.75rem", letterSpacing: "0.14em", textTransform: "uppercase", color: W.muted, fontWeight: 700 }}>{wd}</p>
                               <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "1.75rem", fontFamily: "var(--font-display)", lineHeight: 1, color: W.ink }}>{dn}</p>
                               <MiniScoreDial score={item.familyScore} color={palette.color} />
-                              <p style={{ margin: 0, fontSize: "0.875rem", color: palette.color, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700 }}>{item.familyLabel}</p>
+                              <p style={{ margin: 0, fontSize: "0.875rem", color: palette.color, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" }}>{item.familyLabel}</p>
                               {item.bestFamilyWindows[0] && (
                                 <p style={{ margin: 0, fontSize: "0.75rem", color: W.muted }}>Best {formatClockLabel(item.bestFamilyWindows[0].start)}</p>
                               )}

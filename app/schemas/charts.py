@@ -123,6 +123,10 @@ class ChartCalculateResponseData(BaseModel):
     ayanamsa: AyanamsaInfo
     lagna: LagnaPosition
     planets: list[PlanetPosition]
+    bhava_chalit: dict[str, int] = Field(default_factory=dict, alias="bhavaChalit")
+    vargas: dict[str, dict[str, int]] = Field(default_factory=dict)
+    nakshatra_analysis: dict[str, object] = Field(default_factory=dict, alias="nakshatraAnalysis")
+    birth_panchangam_signature: dict[str, object] = Field(default_factory=dict, alias="birthPanchangamSignature")
     yogas: list[ChartYogaInsight] = Field(default_factory=list)
     doshams: list[ChartDoshamInsight] = Field(default_factory=list)
     nakshatra_cautions: list[ChartNakshatraCaution] = Field(default_factory=list, alias="nakshatraCautions")
@@ -170,6 +174,7 @@ class ChartSummaryData(BaseModel):
     ashtakavarga: dict[str, dict[int, int]] = Field(alias="ashtakavarga")
     planets: list[PlanetPosition] = Field(default_factory=list)
     yogas: list[ChartYogaInsight] = Field(default_factory=list)
+    chart_validation_status: str | None = Field(default=None, alias="chartValidationStatus")
     primary_language_text: ChartSummaryText = Field(alias="primaryLanguageText")
 
     model_config = ConfigDict(populate_by_name=True)

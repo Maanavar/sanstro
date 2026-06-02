@@ -13,6 +13,7 @@ class ChartPlanet(TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint("pada BETWEEN 1 AND 4", name="chart_planet_pada_range"),
         CheckConstraint("house_from_lagna BETWEEN 1 AND 12", name="ck_chart_planets_house_from_lagna_range"),
+        CheckConstraint("bhava_house IS NULL OR (bhava_house BETWEEN 1 AND 12)", name="ck_chart_planets_bhava_house_range"),
         Index("idx_chart_planets_chart", "chart_id"),
         Index("idx_chart_planets_graha", "graha"),
     )
@@ -26,6 +27,7 @@ class ChartPlanet(TimestampMixin, Base):
     nakshatra: Mapped[str] = mapped_column(String(32), nullable=False)
     pada: Mapped[int] = mapped_column(Integer, nullable=False)
     house_from_lagna: Mapped[int] = mapped_column(Integer, nullable=False)
+    bhava_house: Mapped[int | None] = mapped_column(Integer, nullable=True)
     speed_deg_per_day: Mapped[float | None] = mapped_column(Numeric(12, 8), nullable=True)
     is_retrograde: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text("false"))
     is_combust: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text("false"))

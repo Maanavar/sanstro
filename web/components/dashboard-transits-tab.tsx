@@ -13,10 +13,12 @@ import type {
   JournalCorrelationData,
   SaniCycleData,
   TransitSnapshotData,
+  VarshaphalaData,
 } from "@/lib/types";
 
 import { DASHA_COLORS, DashaTimeline } from "./dashboard-dasha";
 import { Chip, Surface } from "./dashboard-ui";
+import { VarshaphalaPanel } from "./dashboard-varshaphala-panel";
 
 type DashboardTransitsTabProps = {
   lang: Lang;
@@ -30,6 +32,13 @@ type DashboardTransitsTabProps = {
   personalDashaAntar: DashaTimelineItem[];
   dashaStory: DashaStoryData | null;
   journalCorrelations: JournalCorrelationData | null;
+  varshaphalaData?: VarshaphalaData | null;
+  varshaphalaLoading?: boolean;
+  onLoadVarshaphala?: (year: number) => void;
+  birthDisplayName?: string;
+  memberCharts?: Array<{ memberId: string; displayName: string }>;
+  selectedMemberId?: string | null;
+  onSelectMember?: (memberId: string | null) => void;
 };
 
 const W = {
@@ -161,6 +170,13 @@ export function DashboardTransitsTab({
   personalDashaAntar,
   dashaStory,
   journalCorrelations,
+  varshaphalaData = null,
+  varshaphalaLoading = false,
+  onLoadVarshaphala,
+  birthDisplayName = "",
+  memberCharts = [],
+  selectedMemberId = null,
+  onSelectMember,
 }: DashboardTransitsTabProps) {
   const [dashaStoryExpanded, setDashaStoryExpanded] = useState(false);
   const hasTransitSnapshot = Boolean(personalTransit && personalTransit.transits.length > 0);
@@ -227,6 +243,41 @@ export function DashboardTransitsTab({
           tone={dashaSupportScore !== null && dashaSupportScore >= 65 ? "good" : "neutral"}
         />
       </div>
+
+      {/* ── Person selector ── */}
+      {memberCharts.length > 0 && onSelectMember && (
+        <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            onClick={() => onSelectMember(null)}
+            style={{
+              padding: "var(--space-1) var(--space-3_5)", borderRadius: "var(--radius-pill)", border: "1.5px solid",
+              borderColor: selectedMemberId === null ? W.ink : W.border,
+              background: selectedMemberId === null ? W.ink : "transparent",
+              color: selectedMemberId === null ? W.surface : W.muted,
+              fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+            }}
+          >
+            {birthDisplayName || (lang === "ta" ? "நான்" : "You")}
+          </button>
+          {memberCharts.map((mc) => (
+            <button
+              key={mc.memberId}
+              type="button"
+              onClick={() => onSelectMember(mc.memberId)}
+              style={{
+                padding: "var(--space-1) var(--space-3_5)", borderRadius: "var(--radius-pill)", border: "1.5px solid",
+                borderColor: selectedMemberId === mc.memberId ? W.ink : W.border,
+                background: selectedMemberId === mc.memberId ? W.ink : "transparent",
+                color: selectedMemberId === mc.memberId ? W.surface : W.muted,
+                fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              {mc.displayName}
+            </button>
+          ))}
+        </div>
+      )}
 
       {hasTransitSnapshot && personalTransit && (
         <Surface title={lang === "ta" ? "Inru graha nilaihal" : "Planetary positions today"}>
@@ -507,6 +558,24 @@ export function DashboardTransitsTab({
             )}
           </div>
         </Surface>
+      )}
+
+      {/* ── Varshaphala (Annual Chart) ── */}
+      {onLoadVarshaphala && (
+        <div style={{
+          padding: "var(--space-3_5) var(--space-4_5)",
+          borderRadius: "var(--radius-md)",
+          border: `1px solid ${W.borderLt}`,
+          background: W.surface,
+        }}>
+          <VarshaphalaPanel
+            lang={lang}
+            chartId={personalChart?.chartId ?? null}
+            data={varshaphalaData}
+            loading={varshaphalaLoading}
+            onLoad={onLoadVarshaphala}
+          />
+        </div>
       )}
     </div>
   );

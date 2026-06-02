@@ -41,6 +41,8 @@ class LifeAreaData(BaseModel):
     next_30_day_outlook: LifeAreaText = Field(alias="next30DayOutlook")
     caution: LifeAreaText | None = None
     is_goal_focus: bool = Field(default=False, alias="isGoalFocus")
+    score_breakdown: dict[str, int] | None = Field(default=None, alias="scoreBreakdown")
+    structured_remedy: dict[str, object] | None = Field(default=None, alias="structuredRemedy")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -48,6 +50,7 @@ class LifeAreaData(BaseModel):
 class LifeAreasResponseData(BaseModel):
     chart_id: UUID = Field(alias="chartId")
     date_local: date = Field(alias="dateLocal")
+    chart_validation_status: str | None = Field(default=None, alias="chartValidationStatus")
     areas: list[LifeAreaData]
 
     model_config = ConfigDict(populate_by_name=True)

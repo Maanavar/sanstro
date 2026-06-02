@@ -11,6 +11,8 @@ import type {
   ChartDoshamInsight,
   JadhagamReportData,
   ChartSummaryData,
+  RemedyPlanItem,
+  GemstoneAdviceItem,
 } from "@/lib/types";
 import { LifeAreaCard } from "./life-area-card";
 import { DrawerPanel } from "./drawer-panel";
@@ -18,33 +20,47 @@ import { PredictionDetailPanel } from "./dashboard-prediction-panel";
 import { YogaDoshamPanel } from "./dashboard-yoga-dosham-panel";
 import { JadhagamReportPanel } from "./dashboard-jadhagam-report-panel";
 import { EventWindowsPanel } from "./dashboard-event-windows";
+import { RemediesPanel } from "./dashboard-remedies-panel";
 
-const AREA_PHASE_MAP: Record<string, string[]> = {
-  CAREER:           ["career", "career_preparation", "career_peak"],
-  MONEY:            ["wealth_foundation", "wealth", "career", "career_peak"],
-  HEALTH:           ["health"],
-  RELATIONSHIPS:    ["marriage", "career", "career_peak", "wealth_foundation", "wealth", "property", "children", "spirituality", "family_legacy"],
-  EDUCATION:        ["education", "career_preparation"],
-  SPIRITUAL:        ["spirituality", "family_legacy"],
-  FAMILY_HARMONY:   ["family", "children", "family_legacy"],
-};
+// Areas that are always relevant once a person is 18+ (health is always relevant)
+const ALWAYS_ON_AFTER_18 = new Set(["HEALTH", "SPIRITUAL", "MONEY", "CAREER"]);
 
-function getAgePhases(age: number): string[] {
-  if (age < 12) return ["health", "education", "family"];
-  if (age < 24) return ["education", "health", "career_preparation"];
-  if (age < 35) return ["career", "marriage", "wealth_foundation"];
-  if (age < 50) return ["career_peak", "wealth", "property", "children"];
-  return ["health", "spirituality", "family_legacy"];
-}
+// Areas that unlock when the person is married
+const MARRIAGE_AREAS = new Set(["FAMILY_HARMONY", "CHILDREN"]);
 
-function isAreaRelevantForAge(areaKey: string, age: number): boolean {
-  const activePhases = getAgePhases(age);
-  const phases = AREA_PHASE_MAP[areaKey] ?? [];
-  return phases.some((p) => activePhases.includes(p));
+function isAreaRelevantForAge(areaKey: string, age: number, maritalStatus?: string): boolean {
+  const isMarried = maritalStatus === "married" || maritalStatus === "widowed" || maritalStatus === "divorced";
+
+  // Health is relevant at every age
+  if (areaKey === "HEALTH") return true;
+
+  // Under 12: only health, education, family basics
+  if (age < 12) return areaKey === "EDUCATION" || areaKey === "FAMILY_HARMONY";
+
+  // 12-17: education + health
+  if (age < 18) return areaKey === "EDUCATION";
+
+  // 18+: most areas are relevant
+  if (ALWAYS_ON_AFTER_18.has(areaKey)) return true;
+
+  // Education stays relevant until 30
+  if (areaKey === "EDUCATION") return age < 30;
+
+  // Relationships (dating/marriage prospects) relevant from 18 onwards
+  if (areaKey === "RELATIONSHIPS") return true;
+
+  // Property, foreign travel, litigation relevant from 25 onwards
+  if (areaKey === "PROPERTY" || areaKey === "FOREIGN" || areaKey === "LITIGATION") return age >= 25;
+
+  // Family harmony and children unlock for married/divorced/widowed persons at any age 18+,
+  // or for unmarried persons 35+ (may still be relevant)
+  if (MARRIAGE_AREAS.has(areaKey)) return isMarried || age >= 35;
+
+  return true;
 }
 
 type MemberOption = { memberId: string; displayName: string };
-type SubTab = "scores" | "predictions" | "yogas" | "report";
+type SubTab = "scores" | "predictions" | "yogas" | "report" | "remedies";
 
 type DashboardLifeAreasTabProps = {
   lang: Lang;
@@ -58,9 +74,15 @@ type DashboardLifeAreasTabProps = {
   onLoadJadhagamReport: () => void;
   chartSummary: ChartSummaryData | null;
   birthDisplayName: string;
+  maritalStatus?: string;
   memberCharts: MemberOption[];
   selectedMemberId: string | null;
   onSelectMember: (memberId: string | null) => void;
+  chartId?: string | null;
+  remedyPlan?: RemedyPlanItem[] | null;
+  gemstoneAdvice?: GemstoneAdviceItem[] | null;
+  remediesLoading?: boolean;
+  onLoadRemedies?: () => void;
 };
 
 export function DashboardLifeAreasTab({
@@ -75,27 +97,33 @@ export function DashboardLifeAreasTab({
   onLoadJadhagamReport,
   chartSummary,
   birthDisplayName,
+  maritalStatus,
   memberCharts,
   selectedMemberId,
   onSelectMember,
+  chartId = null,
+  remedyPlan = null,
+  gemstoneAdvice = null,
+  remediesLoading = false,
+  onLoadRemedies,
 }: DashboardLifeAreasTabProps) {
   const [subTab, setSubTab] = useState<SubTab>("scores");
   const [selectedArea, setSelectedArea] = useState<LifeAreaData | null>(null);
   const currentAge = chartSummary?.currentAge ?? null;
-  const activePhases = currentAge !== null ? getAgePhases(currentAge) : null;
 
   const SUB_TABS: { key: SubTab; label: string }[] = [
     { key: "scores",      label: lang === "ta" ? "கண்ணோட்டம்" : "Overview" },
     { key: "predictions", label: t("predictions_tab_label", lang) },
     { key: "yogas",       label: `${t("yogas_title", lang)} & ${t("doshams_title", lang)}` },
+    { key: "remedies",    label: t("remedies_title", lang) },
     { key: "report",      label: lang === "ta" ? "முழு அறிக்கை" : "Full report" },
   ];
 
-  /* Theme line for hero — derived from active phases */
-  const phaseTheme = activePhases
+  const isMarried = maritalStatus === "married" || maritalStatus === "widowed" || maritalStatus === "divorced";
+  const phaseTheme = currentAge !== null
     ? (lang === "ta"
-        ? `தற்போது: ${activePhases.slice(0, 3).join(", ")}`
-        : `${activePhases.slice(0, 3).map((p) => p.replace(/_/g, " ")).join(", ")} are this year's themes.`)
+        ? `வயது ${currentAge}${isMarried ? " · திருமணமானவர்" : ""}`
+        : `Age ${currentAge}${isMarried ? " · Married" : ""}`)
     : "";
 
   return (
@@ -206,7 +234,7 @@ export function DashboardLifeAreasTab({
             <>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "var(--space-4)" }}>
                 {lifeAreas.areas.map((area: LifeAreaData) => {
-                  const ageRelevant = currentAge === null || isAreaRelevantForAge(area.area, currentAge);
+                  const ageRelevant = currentAge === null || isAreaRelevantForAge(area.area, currentAge, maritalStatus);
                   return (
                     <LifeAreaCard
                       key={area.area}
@@ -227,7 +255,7 @@ export function DashboardLifeAreasTab({
                   <LifeAreaCard
                     area={selectedArea}
                     lang={lang}
-                    ageRelevant={currentAge === null || isAreaRelevantForAge(selectedArea.area, currentAge)}
+                    ageRelevant={currentAge === null || isAreaRelevantForAge(selectedArea.area, currentAge, maritalStatus)}
                   />
                 </DrawerPanel>
               )}
@@ -254,6 +282,18 @@ export function DashboardLifeAreasTab({
       {/* ── Sub-tab: Yogas & Doshams ── */}
       {subTab === "yogas" && (
         <YogaDoshamPanel lang={lang} yogas={yogas} doshams={doshams} />
+      )}
+
+      {/* ── Sub-tab: Remedies ── */}
+      {subTab === "remedies" && (
+        <RemediesPanel
+          lang={lang}
+          chartId={chartId ?? null}
+          remedyPlan={remedyPlan ?? null}
+          gemstoneAdvice={gemstoneAdvice ?? null}
+          loading={remediesLoading ?? false}
+          onLoad={onLoadRemedies ?? (() => {})}
+        />
       )}
 
       {/* ── Sub-tab: Full report ── */}

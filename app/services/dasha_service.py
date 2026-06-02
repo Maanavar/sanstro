@@ -10,8 +10,10 @@ from sqlalchemy.orm import Session
 from app.calculations.dasha import _build_subperiods, calculate_vimshottari_timeline
 from app.calculations.dasha_house_mapping import get_dasha_activated_houses
 from app.calculations.functional_nature import FunctionalNature, get_functional_nature
+from app.calculations.maturation import maturation_status
 from app.schemas.dasha import (
     DashaCurrentWindow,
+    DashaTransitionNote,
     DashaInterpretation,
     DashaOpeningWindow,
     DashaPeriodWindow,
@@ -73,6 +75,34 @@ _FUNCTIONAL_NATURE_TEXT: dict[FunctionalNature, tuple[str, str]] = {
 }
 
 
+def _dasha_transition_note(
+    outgoing_lord: str,
+    incoming_lord: str,
+    lagna_rasi: int,
+    transition_date: date,
+) -> DashaTransitionNote:
+    out_fn = get_functional_nature(lagna_rasi, outgoing_lord)
+    in_fn = get_functional_nature(lagna_rasi, incoming_lord)
+
+    if (out_fn in (FunctionalNature.YOGAKARAKA, FunctionalNature.TRIKONA)
+            and in_fn in (FunctionalNature.DUSTHANA, FunctionalNature.MARAKA)):
+        ta = f"{outgoing_lord} தசையிலிருந்து {incoming_lord} தசைக்கு மாற்றம் — சவாலான கட்டம் தொடங்கலாம். கவனமாக இருங்கள்."
+        en = f"Transition from {outgoing_lord} to {incoming_lord} dasha — a more challenging phase begins. Exercise caution."
+    elif (out_fn in (FunctionalNature.DUSTHANA, FunctionalNature.MARAKA)
+            and in_fn in (FunctionalNature.YOGAKARAKA, FunctionalNature.TRIKONA)):
+        ta = f"{incoming_lord} தசை தொடங்குகிறது — நிலைமை மேம்படும் காலம். புதிய வாய்ப்புகளுக்கு தயாராகுங்கள்."
+        en = f"{incoming_lord} dasha begins — conditions improve significantly. Prepare for new opportunities."
+    else:
+        ta = f"{incoming_lord} தசை தொடங்குகிறது — {_PLANET_DOMAIN.get(incoming_lord, ('இந்த கிரக', 'this planet'))[0]} சார்ந்த அம்சங்கள் வலுப்படும்."
+        en = f"{incoming_lord} dasha begins — {_PLANET_DOMAIN.get(incoming_lord, ('', 'this planet'))[1]} themes strengthen."
+
+    return DashaTransitionNote(
+        transitionDate=transition_date.isoformat(),
+        noteTa=ta,
+        noteEn=en,
+    )
+
+
 def _build_dasha_interpretation(
     lord: str,
     lagna_rasi: int,
@@ -114,26 +144,71 @@ def _build_dasha_interpretation(
     )
 
 
-def _serialize_period(period) -> dict[str, object]:
-    return {
+def _serialize_period(
+    period,
+    transition_note: DashaTransitionNote | None = None,
+    maturation: dict[str, object] | None = None,
+) -> dict[str, object]:
+    payload: dict[str, object] = {
         "level": period.level,
         "lord": period.lord,
         "startDate": period.start_date,
         "endDate": period.end_date,
     }
+    if transition_note is not None:
+        payload["transitionNote"] = transition_note.model_dump(mode="json", by_alias=True)
+    if maturation is not None:
+        payload["maturationStatus"] = maturation
+    return payload
 
 
-def _timeline_for_level(timeline, level: Literal["maha", "antar", "pratyantar", "sookshma", "prana"]) -> list[dict[str, object]]:
+def _timeline_for_level(
+    timeline,
+    level: Literal["maha", "antar", "pratyantar", "sookshma", "prana"],
+    lagna_rasi: int,
+    birth_date: date,
+) -> list[dict[str, object]]:
     if level == "maha":
-        return [_serialize_period(period) for period in timeline.mahadashas]
+        rows: list[dict[str, object]] = []
+        prev_lord: str | None = None
+        for period in timeline.mahadashas:
+            transition_note = None
+            if prev_lord is not None:
+                transition_note = _dasha_transition_note(
+                    prev_lord,
+                    period.lord,
+                    lagna_rasi,
+                    period.start_date,
+                )
+            rows.append(
+                _serialize_period(
+                    period,
+                    transition_note=transition_note,
+                    maturation=maturation_status(period.lord, birth_date, period.start_date),
+                )
+            )
+            prev_lord = period.lord
+        return rows
     if level == "antar":
-        return [_serialize_period(period) for period in _build_subperiods(timeline.current_mahadasha, "antar")]
+        return [
+            _serialize_period(period, maturation=maturation_status(period.lord, birth_date, period.start_date))
+            for period in _build_subperiods(timeline.current_mahadasha, "antar")
+        ]
     if level == "pratyantar":
-        return [_serialize_period(period) for period in _build_subperiods(timeline.current_antardasha, "pratyantar")]
+        return [
+            _serialize_period(period, maturation=maturation_status(period.lord, birth_date, period.start_date))
+            for period in _build_subperiods(timeline.current_antardasha, "pratyantar")
+        ]
     if level == "sookshma":
-        return [_serialize_period(period) for period in _build_subperiods(timeline.current_pratyantardasha, "sookshma")]
+        return [
+            _serialize_period(period, maturation=maturation_status(period.lord, birth_date, period.start_date))
+            for period in _build_subperiods(timeline.current_pratyantardasha, "sookshma")
+        ]
     if level == "prana":
-        return [_serialize_period(period) for period in _build_subperiods(timeline.current_sookshmadasha, "prana")]
+        return [
+            _serialize_period(period, maturation=maturation_status(period.lord, birth_date, period.start_date))
+            for period in _build_subperiods(timeline.current_sookshmadasha, "prana")
+        ]
     raise HTTPException(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         detail={
@@ -163,6 +238,7 @@ def get_chart_dasha(
     lagna_rasi = chart_snapshot.data.lagna.rasi
 
     timeline = calculate_vimshottari_timeline(birth_jd, moon.absolute_longitude, as_of_jd)
+    birth_date = chart_snapshot.data.birth_profile.birth_date_local
 
     maha_lord = timeline.current_mahadasha.lord
     antar_lord = timeline.current_antardasha.lord
@@ -181,21 +257,24 @@ def get_chart_dasha(
                     startDate=timeline.current_mahadasha.start_date,
                     endDate=timeline.current_mahadasha.end_date,
                     interpretation=_build_dasha_interpretation(maha_lord, lagna_rasi),
+                    maturationStatus=maturation_status(maha_lord, birth_date, as_of),
                 ),
                 antardasha=DashaPeriodWindow(
                     lord=antar_lord,
                     startDate=timeline.current_antardasha.start_date,
                     endDate=timeline.current_antardasha.end_date,
                     interpretation=_build_dasha_interpretation(antar_lord, lagna_rasi, maha_lord=maha_lord),
+                    maturationStatus=maturation_status(antar_lord, birth_date, as_of),
                 ),
                 pratyantardasha=DashaPeriodWindow(
                     lord=pratyantar_lord,
                     startDate=timeline.current_pratyantardasha.start_date,
                     endDate=timeline.current_pratyantardasha.end_date,
                     interpretation=_build_dasha_interpretation(pratyantar_lord, lagna_rasi, maha_lord=maha_lord),
+                    maturationStatus=maturation_status(pratyantar_lord, birth_date, as_of),
                 ),
             ),
-            timeline=_timeline_for_level(timeline, level),
+            timeline=_timeline_for_level(timeline, level, lagna_rasi, birth_date),
         ),
         meta=ResponseMeta(
             calculation_version=chart_snapshot.meta.calculation_version,

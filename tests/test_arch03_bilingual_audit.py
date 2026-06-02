@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from types import SimpleNamespace
 from typing import Any
 
@@ -211,7 +212,7 @@ def test_dasha_service_invalid_level_error_is_bilingual():
     )
 
     with pytest.raises(HTTPException) as exc:
-        dasha_service._timeline_for_level(timeline, "invalid")  # type: ignore[arg-type]
+        dasha_service._timeline_for_level(timeline, "invalid", lagna_rasi=1, birth_date=date(1990, 1, 1))  # type: ignore[arg-type]
 
     assert exc.value.status_code == 422
     assert isinstance(exc.value.detail, dict)

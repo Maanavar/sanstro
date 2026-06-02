@@ -114,7 +114,14 @@ export default function PoruthamPage() {
 
   useEffect(() => {
     const stored = localStorage.getItem(LANG_STORAGE_KEY);
-    if (stored === "ta" || stored === "en") setLang(stored);
+    if (stored === "ta" || stored === "en") setLang(stored as "ta" | "en");
+    void fetch("/api/backend/api/v1/settings/ui", { credentials: "include" })
+      .then((r) => r.json())
+      .then((j: { data?: { lang?: string } }) => {
+        const dbLang = j.data?.lang;
+        if (dbLang === "ta" || dbLang === "en") setLang(dbLang);
+      })
+      .catch(() => { /* fallback to localStorage */ });
   }, []);
 
   async function createTempProfile(form: BirthForm): Promise<{ birthProfileId: string }> {

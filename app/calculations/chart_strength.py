@@ -121,19 +121,16 @@ def _dignity_score(planet: str, natal_rasi: int, natal_longitude: float) -> int:
     return 50
 
 
-def _avastha_multiplier(natal_longitude: float) -> float:
-    # Custom bell-curve approximation; not classical Baladi Avastha.
-    # Classical Baladi uses odd/even sign + 6-degree zones (Bala/Kumara/Yuva/Vriddha/Mrita).
-    deg = natal_longitude % 30
-    if deg < 6:
-        return 0.25
-    if deg < 12:
-        return 0.50
-    if deg < 18:
-        return 1.00
-    if deg < 24:
-        return 0.50
-    return 0.25
+_AVASTHA_MULTIPLIER_ODD = (0.50, 0.75, 1.00, 0.65, 0.25)
+_AVASTHA_MULTIPLIER_EVEN = (0.25, 0.65, 1.00, 0.75, 0.50)
+
+
+def _avastha_multiplier(natal_longitude: float, rasi: int) -> float:
+    """Classical Baladi avastha multiplier with odd/even sign reversal."""
+    deg = natal_longitude % 30.0
+    zone = min(int(deg / 6.0), 4)
+    is_odd = (rasi % 2 == 1)
+    return _AVASTHA_MULTIPLIER_ODD[zone] if is_odd else _AVASTHA_MULTIPLIER_EVEN[zone]
 
 
 def _dik_bala_score(planet: str, house_from_lagna: int) -> float:
@@ -186,17 +183,57 @@ def _kala_bala_score(
 
 def _chesta_bala_score(planet: str, is_retrograde: bool, speed_ratio: float | None) -> float:
     """Motional strength 0.0-1.0."""
-    if planet in {"SUN", "MOON", "RAHU", "KETU"}:
+    if planet in {"SUN", "MOON"}:
         return 0.5
+    if planet in {"RAHU", "KETU"}:
+        return 0.6
     if is_retrograde:
-        return 0.9
+        return 1.0
     if speed_ratio is None:
+        return 0.6
+    if 0.8 <= speed_ratio <= 1.2:
+        return 0.6
+    if speed_ratio < 0.5:
+        return 0.4
+    if speed_ratio > 1.5:
         return 0.5
-    if speed_ratio > 1.2:
-        return 0.75
-    if speed_ratio > 0.8:
-        return 0.55
-    return 0.35
+    return 0.55
+
+
+def detect_planetary_wars(
+    planet_longitudes: dict[str, float],
+) -> dict[str, str]:
+    """
+    Returns {loser_planet: winner_planet}.
+    War participants: non-luminaries, non-nodes within 1 degree.
+    Loser: lower degree-within-sign.
+    """
+    participants = {
+        p: lon
+        for p, lon in planet_longitudes.items()
+        if p not in {"SUN", "MOON", "RAHU", "KETU"}
+    }
+    wars: dict[str, str] = {}
+    names = sorted(participants.keys())
+    for i, p1 in enumerate(names):
+        lon1 = participants[p1] % 360.0
+        deg1 = lon1 % 30.0
+        for p2 in names[i + 1:]:
+            lon2 = participants[p2] % 360.0
+            deg2 = lon2 % 30.0
+            sep = abs(lon1 - lon2)
+            sep = min(sep, 360.0 - sep)
+            if sep > 1.0:
+                continue
+            if deg1 < deg2:
+                loser, winner = p1, p2
+            elif deg2 < deg1:
+                loser, winner = p2, p1
+            else:
+                # Exact tie: skip assigning an artificial loser.
+                continue
+            wars[loser] = winner
+    return wars
 
 
 def _drik_bala_score(benefic_aspect_count: int, malefic_aspect_count: int) -> float:
@@ -263,6 +300,7 @@ def compute_natal_planet_score(
     is_daytime: bool = True,
     paksha_is_shukla: bool = True,
     speed_ratio: float | None = None,
+    planetary_wars: dict[str, str] | None = None,
 ) -> int:
     """
     Full Shadbala-weighted natal planet strength score.
@@ -271,7 +309,7 @@ def compute_natal_planet_score(
     house = house_from_reference(natal_lagna_rasi, natal_rasi)
 
     dignity = _dignity_score(planet, natal_rasi, natal_longitude)
-    avastha = _avastha_multiplier(natal_longitude)
+    avastha = _avastha_multiplier(natal_longitude, natal_rasi)
     if house in {1, 4, 7, 10}:
         house_strength = 80
     elif house in {5, 9}:
@@ -320,5 +358,8 @@ def compute_natal_planet_score(
 
     if is_retrograde and planet not in {"SUN", "MOON", "RAHU", "KETU"}:
         shadbala += 8.0
+
+    if planetary_wars and planet in planetary_wars:
+        shadbala -= 15.0
 
     return max(10, min(95, round(shadbala)))

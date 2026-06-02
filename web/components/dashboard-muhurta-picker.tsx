@@ -10,14 +10,14 @@ import { formatClockLabel, formatDateLabel, todayIso, addDays } from "@/lib/form
 import { Surface } from "./dashboard-ui";
 
 const ACTIVITIES: Array<{ id: string; en: string; ta: string }> = [
-  { id: "JOB_START", en: "Job start / New role", ta: "???? ???????? / ????? ????????" },
-  { id: "MARRIAGE", en: "Marriage ceremony", ta: "?????? ???????" },
-  { id: "EXAM", en: "Exam / Course start", ta: "?????? / ??????? ????????" },
-  { id: "TRAVEL", en: "Travel / Journey start", ta: "??? ????????" },
-  { id: "INVESTMENT", en: "Investment / Financial agreement", ta: "??????? / ???? ?????????" },
-  { id: "MEDICAL", en: "Medical procedure / Surgery", ta: "???????? ???????? / ?????" },
-  { id: "PURCHASE", en: "Property or major purchase", ta: "?????? / ????? ???????" },
-  { id: "SPIRITUAL", en: "Grihapravesh / Religious event", ta: "?????????????? / ?????????" },
+  { id: "JOB_START",   en: "Job start / New role",             ta: "வேலை தொடக்கம் / புதிய பதவி" },
+  { id: "MARRIAGE",    en: "Marriage ceremony",                 ta: "திருமண நிகழ்ச்சி" },
+  { id: "EXAM",        en: "Exam / Course start",              ta: "தேர்வு / படிப்பு தொடக்கம்" },
+  { id: "TRAVEL",      en: "Travel / Journey start",           ta: "பயண தொடக்கம்" },
+  { id: "INVESTMENT",  en: "Investment / Financial agreement",  ta: "முதலீடு / நிதி ஒப்பந்தம்" },
+  { id: "MEDICAL",     en: "Medical procedure / Surgery",       ta: "மருத்துவ சிகிச்சை / அறுவை" },
+  { id: "PURCHASE",    en: "Property or major purchase",        ta: "சொத்து / பெரிய கொள்முதல்" },
+  { id: "SPIRITUAL",   en: "Grihapravesh / Religious event",    ta: "இல்லப்பிரவேசம் / மத நிகழ்வு" },
 ];
 
 const W = {
@@ -58,7 +58,7 @@ function MuhurtaCard({ slot, lang }: { slot: MuhurtaSlot; lang: Lang }) {
     <div style={{ border: `1px solid ${W.borderLt}`, borderRadius: "10px", padding: "14px 16px", marginBottom: "10px", background: W.card }}>
       <div style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer" }} onClick={() => setExpanded((v) => !v)}>
         <div style={{ textAlign: "center", minWidth: "48px" }}>
-          <div style={{ fontSize: "1.25rem", fontWeight: 700, color: scoreColor }}>{Math.round(slot.score)}</div>
+          <div style={{ fontSize: "1.25rem", fontWeight: 700, color: scoreColor }}>{Math.min(100, Math.round(slot.score))}</div>
           <div style={{ fontSize: "10px", color: W.muted }}>{t("muhurta_score", lang)}</div>
         </div>
         <div style={{ flex: 1 }}>
@@ -66,14 +66,14 @@ function MuhurtaCard({ slot, lang }: { slot: MuhurtaSlot; lang: Lang }) {
           <div style={{ fontSize: "0.875rem", color: W.muted }}>{formatClockLabel(slot.timeStart)} - {formatClockLabel(slot.timeEnd)}</div>
         </div>
         <div style={{ fontSize: "0.875rem", color: W.muted, maxWidth: "160px", textAlign: "right" }}>{lang === "ta" ? slot.panchangamSupport.ta : slot.panchangamSupport.en}</div>
-        <span style={{ color: W.muted, fontSize: "0.75rem" }}>{expanded ? "?" : "?"}</span>
+        <span style={{ color: W.muted, fontSize: "0.75rem" }}>{expanded ? "▲" : "▼"}</span>
       </div>
 
       {expanded && (
         <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: `1px solid ${W.borderLt}` }}>
           <div style={{ marginBottom: "8px" }}>
             <span style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", color: W.mutedLt, letterSpacing: "0.05em" }}>
-              {lang === "ta" ? "??? ?????" : "Dasha support"}
+              {lang === "ta" ? "தசை ஆதரவு" : "Dasha support"}
             </span>
             <p style={{ fontSize: "0.875rem", marginTop: "2px", color: W.inkMid }}>{lang === "ta" ? slot.dashaSupport.ta : slot.dashaSupport.en}</p>
           </div>
@@ -119,7 +119,7 @@ export function DashboardMuhurtaPicker({ lang, chartId }: DashboardMuhurtaPicker
       setResult(json.data);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "";
-      setError(msg || (lang === "ta" ? "?????????? ???? - ???????? ??????????????." : "Network error - please try again."));
+      setError(msg || (lang === "ta" ? "நெட்வொர்க் பிழை - மீண்டும் முயற்சிக்கவும்." : "Network error - please try again."));
     } finally {
       setLoading(false);
     }
@@ -136,7 +136,7 @@ export function DashboardMuhurtaPicker({ lang, chartId }: DashboardMuhurtaPicker
               {t("muhurta_activity", lang)}
             </label>
             <select value={activity} onChange={(e) => setActivity(e.target.value)} style={fieldStyle}>
-              <option value="">{lang === "ta" ? "? ????????? ?????? ?" : "? Select ?"}</option>
+              <option value="">{lang === "ta" ? "-- பயன்பாடு தேர்ந்தெடுக்கவும் --" : "-- Select an activity --"}</option>
               {ACTIVITIES.map((a) => (
                 <option key={a.id} value={a.id}>
                   {lang === "ta" ? a.ta : a.en}
@@ -187,7 +187,7 @@ export function DashboardMuhurtaPicker({ lang, chartId }: DashboardMuhurtaPicker
         {result && result.slots.length > 0 && (
           <div>
             <p style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "10px", color: W.inkMid }}>
-              {t("muhurta_results", lang)} {selectedActivity && <span style={{ color: W.muted, fontWeight: 400 }}>? {lang === "ta" ? selectedActivity.ta : selectedActivity.en}</span>}
+              {t("muhurta_results", lang)} {selectedActivity && <span style={{ color: W.muted, fontWeight: 400 }}>· {lang === "ta" ? selectedActivity.ta : selectedActivity.en}</span>}
             </p>
             {result.slots.map((slot, i) => (
               <MuhurtaCard key={`${slot.date}-${i}`} slot={slot} lang={lang} />
@@ -197,7 +197,7 @@ export function DashboardMuhurtaPicker({ lang, chartId }: DashboardMuhurtaPicker
 
         {result && result.slots.length === 0 && (
           <p style={{ fontSize: "0.875rem", color: W.muted, textAlign: "center", padding: "16px 0" }}>
-            {lang === "ta" ? "???? ??????????? ??? ???????? ?????????????. ?????? ????????????? ??????????????." : "No auspicious slots found in this range. Try a wider date range."}
+            {lang === "ta" ? "இந்த வரம்பில் சுப நேரம் இல்லை. தேதி வரம்பை விரிவாக்கவும்." : "No auspicious slots found in this range. Try a wider date range."}
           </p>
         )}
       </div>

@@ -42,7 +42,18 @@ export function useSession(options: UseSessionOptions = {}) {
 
         const url = new URL(window.location.href);
         if (url.searchParams.get("setup") === "1") {
-          onSetupRedirect?.();
+          // Check DB for an existing birth profile — localStorage is unreliable
+          // in incognito/new devices and can falsely skip setup.
+          let hasProfileInDb = false;
+          try {
+            const resp = await fetch("/api/backend/api/v1/birth-profiles/me/latest", {
+              credentials: "include",
+            });
+            hasProfileInDb = resp.ok;
+          } catch { /* ignore — treat as no profile */ }
+          if (!hasProfileInDb) {
+            onSetupRedirect?.();
+          }
           url.searchParams.delete("setup");
           window.history.replaceState({}, "", url.toString());
         }

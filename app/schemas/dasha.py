@@ -18,11 +18,21 @@ class DashaInterpretation(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class DashaTransitionNote(BaseModel):
+    transition_date: str = Field(alias="transitionDate")
+    note_ta: str = Field(alias="noteTa")
+    note_en: str = Field(alias="noteEn")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class DashaPeriodWindow(BaseModel):
     lord: str
     start_date: date = Field(alias="startDate")
     end_date: date = Field(alias="endDate")
     interpretation: DashaInterpretation | None = Field(default=None)
+    transition_note: DashaTransitionNote | None = Field(default=None, alias="transitionNote")
+    maturation_status: dict[str, object] | None = Field(default=None, alias="maturationStatus")
 
     model_config = ConfigDict(populate_by_name=True)
 

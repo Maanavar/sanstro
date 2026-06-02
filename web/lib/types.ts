@@ -206,6 +206,18 @@ export interface ChartCalculateResponseData {
   calculationStatus: "completed";
   warnings: string[];
   ephemerisBackend: string;
+  bhavaChalit?: Record<string, number>;
+  vargas?: Record<string, Record<string, number>>;
+  nakshatraAnalysis?: Record<string, unknown>;
+  birthPanchangamSignature?: Record<string, unknown>;
+}
+
+export interface ChartValidationStatus {
+  passed: boolean;
+  matchCount: number;
+  totalChecked: number;
+  confidence: "HIGH" | "MEDIUM" | "LOW" | "UNVALIDATED";
+  unmatchedEvents: string[];
 }
 
 export interface ChartSummaryData {
@@ -228,6 +240,7 @@ export interface ChartSummaryData {
     ta: string;
     en: string;
   };
+  chartValidationStatus?: ChartValidationStatus;
 }
 
 export interface DailyGuidanceWindow {
@@ -1302,4 +1315,97 @@ export interface AnnualWrappedData {
   cautionDays: number;
   averageScore: number;
   topLifeArea: string | null;
+}
+
+// ── Varshaphala (Annual Chart) ────────────────────────────────────────────────
+
+export interface TajakaPlanetPosition {
+  planet: string;
+  rasi: number;
+  rasiName: string;
+  house: number;
+  longitude: number;
+}
+
+export interface TajakaAspect {
+  planet1: string;
+  planet2: string;
+  aspectType: string;
+  orb: number;
+}
+
+export interface VarshaphalaAreaOutlook {
+  area: string;
+  score: number;
+  narrativeTa: string;
+  narrativeEn: string;
+  favourableMonths: number[];
+}
+
+export interface VarshaphalaData {
+  year: number;
+  solarReturnDate: string;
+  solarReturnLagnaRasi: number;
+  solarReturnLagnaName: string;
+  munthaRasi: number;
+  munthaRasiName: string;
+  munthaHouseFromSrLagna: number;
+  yearLord: string;
+  yearLordHouse: number;
+  tajakaPlanets: TajakaPlanetPosition[];
+  itthasalaPairs: TajakaAspect[];
+  isarafaPairs: TajakaAspect[];
+  areaOutlook: VarshaphalaAreaOutlook[];
+}
+
+// ── Remedies ──────────────────────────────────────────────────────────────────
+
+export interface RemedyPlanItem {
+  planet: string;
+  priority: number;
+  reason: string;
+  day: string;
+  templeTa: string;
+  templeEn: string;
+  mantraFullTa: string;
+  japaCount: number;
+  daanumItemsTa: string;
+  daanumItemsEn: string;
+  gemstoneTa: string | null;
+  gemstoneEn: string | null;
+  fastingRuleTa: string;
+  fastingRuleEn: string;
+  behaviouralTa: string;
+  behaviouralEn: string;
+}
+
+export interface GemstoneAdviceItem {
+  planet: string;
+  functionalNature: string;
+  isGemstonePrescribed: boolean;
+  gemstoneNameTa: string | null;
+  gemstoneNameEn: string | null;
+  reasonTa: string;
+  reasonEn: string;
+  cautionTa: string | null;
+  cautionEn: string | null;
+}
+
+// ── Prasna (Horary) ───────────────────────────────────────────────────────────
+
+export interface PrasnaResponse {
+  prasnaLagnaRasi: number;
+  prasnaLagnaName: string;
+  moonRasi: number;
+  moonNakshatraName: string;
+  questionArea: string;
+  karaka: string;
+  karakaHouse: number;
+  outlook: "FAVOURABLE" | "UNFAVOURABLE" | "MIXED" | "DELAY";
+  outlookTa: string;
+  outlookEn: string;
+  positiveIndicators: string[];
+  negativeIndicators: string[];
+  cautionTa: string;
+  cautionEn: string;
 }

@@ -32,6 +32,7 @@ from app.schemas.dasha import DashaTimelineResponse
 from app.services.chart_service import calculate_chart as calculate_chart_snapshot, get_chart_summary, get_jadhagam_report
 from app.services.dasha_service import get_chart_dasha
 from app.services.pdf_export_service import generate_chart_pdf
+from app.services.tajaka_service import get_varshaphala
 
 router = APIRouter()
 
@@ -264,5 +265,22 @@ def get_solar_return(
             "munthaRasiName": result["muntha_rasi_name"],
             "lagnaMatchesNatal": result["lagna_matches_natal"],
             "sunLongAtReturn": round(result["sun_longitude_at_return"], 4),
+            "itthasalaPairs": result.get("itthasala_pairs", []),
+            "isarafaPairs": result.get("isarafa_pairs", []),
         },
     }
+
+
+@router.get("/charts/{chart_id}/varshaphala", tags=["charts"])
+def get_varshaphala_endpoint(
+    chart_id: UUID,
+    year: int = Query(..., ge=1900, le=2100),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _assert_chart_owner(session, chart_id, current_user)
+    try:
+        response = get_varshaphala(session, chart_id, year)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return response.model_dump(mode="json", by_alias=True)

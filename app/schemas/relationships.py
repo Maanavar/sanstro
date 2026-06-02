@@ -25,6 +25,18 @@ class KutaResult(BaseModel):
 VALID_COMPATIBILITY_CONTEXTS = {"MARRIAGE", "FRIENDSHIP", "BUSINESS", "FAMILY", "GENERAL"}
 
 
+class NadiDoshaData(BaseModel):
+    boy_nadi: str = Field(alias="boyNadi")
+    girl_nadi: str = Field(alias="girlNadi")
+    has_nadi_dosha: bool = Field(alias="hasNadiDosha")
+    cancellations: list[str] = Field(default_factory=list)
+    severity: str
+    note_ta: str = Field(alias="noteTa")
+    note_en: str = Field(alias="noteEn")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class PorutthamData(BaseModel):
     family_vault_id: UUID = Field(alias="familyVaultId")
     member_id: UUID = Field(alias="memberId")
@@ -39,6 +51,7 @@ class PorutthamData(BaseModel):
     label: str
     rajju_dosha: bool = Field(alias="rajjuDosha")
     vedha_dosha: bool = Field(alias="vedhaDosha")
+    nadi_dosha: NadiDoshaData = Field(alias="nadiDosha")
     summary: RelationshipBiText
     compatibility_context: str = Field(default="GENERAL", alias="compatibilityContext")
     context_note: RelationshipBiText | None = Field(default=None, alias="contextNote")
@@ -158,6 +171,7 @@ class DirectPoruthamData(BaseModel):
     label: str
     rajju_dosha: bool = Field(alias="rajjuDosha")
     vedha_dosha: bool = Field(alias="vedhaDosha")
+    nadi_dosha: NadiDoshaData = Field(alias="nadiDosha")
     summary: RelationshipBiText
     compatibility_context: str = Field(default="GENERAL", alias="compatibilityContext")
     context_note: RelationshipBiText | None = Field(default=None, alias="contextNote")

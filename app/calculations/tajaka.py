@@ -77,6 +77,39 @@ def calculate_muntha(natal_lagna_rasi: int, birth_year: int, return_year: int) -
     return ((natal_lagna_rasi - 1 + years_elapsed) % 12) + 1
 
 
+def _detect_itthasala(planets_snapshot) -> list[str]:
+    """Simple Tajaka Itthasala detector using same-rasi closeness."""
+    hits: list[str] = []
+    names = ["SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN"]
+    for i, p1 in enumerate(names):
+        b1 = planets_snapshot.bodies[p1]
+        for p2 in names[i + 1:]:
+            b2 = planets_snapshot.bodies[p2]
+            if b1.rasi != b2.rasi:
+                continue
+            diff = abs((b1.absolute_longitude % 30.0) - (b2.absolute_longitude % 30.0))
+            if diff <= 5.0:
+                hits.append(f"{p1}-{p2}")
+    return hits
+
+
+def _detect_isarafa(planets_snapshot) -> list[str]:
+    """Simple Tajaka Isarafa detector using separating pairs."""
+    hits: list[str] = []
+    names = ["SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN"]
+    for i, p1 in enumerate(names):
+        b1 = planets_snapshot.bodies[p1]
+        for p2 in names[i + 1:]:
+            b2 = planets_snapshot.bodies[p2]
+            if b1.rasi != b2.rasi:
+                continue
+            d1 = b1.absolute_longitude % 30.0
+            d2 = b2.absolute_longitude % 30.0
+            if abs(d1 - d2) > 5.0:
+                hits.append(f"{p1}-{p2}")
+    return hits
+
+
 def calculate_tajaka_chart(
     natal_sun_longitude: float,
     natal_lagna_rasi: int,
@@ -99,6 +132,8 @@ def calculate_tajaka_chart(
     lagna_longitude = calculate_lagna_degree(sr_jd, birth_latitude, birth_longitude)
     sr_lagna_rasi = rasi_from_degree(lagna_longitude)
     muntha = calculate_muntha(natal_lagna_rasi, birth_year, return_year)
+    itthasala = _detect_itthasala(snap)
+    isarafa = _detect_isarafa(snap)
 
     return {
         "julian_day": sr_jd,
@@ -109,6 +144,7 @@ def calculate_tajaka_chart(
         "muntha_rasi_name": RASI_NAMES.get(muntha, ""),
         "sun_longitude_at_return": normalize_longitude(snap.bodies["SUN"].absolute_longitude),
         "lagna_matches_natal": sr_lagna_rasi == natal_lagna_rasi,
+        "itthasala_pairs": itthasala,
+        "isarafa_pairs": isarafa,
         "planets": snap,
     }
-

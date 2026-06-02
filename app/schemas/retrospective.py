@@ -7,7 +7,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.dasha import ResponseMeta
 
-VALID_RETROSPECTIVE_EVENT_TYPES = {"career", "family", "health", "relationship", "spiritual"}
+VALID_RETROSPECTIVE_EVENT_TYPES = {
+    "career", "family", "health", "relationship", "spiritual",
+    "finance", "travel", "other",
+}
 
 
 class RetrospectiveRequest(BaseModel):

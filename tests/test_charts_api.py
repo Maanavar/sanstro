@@ -44,6 +44,10 @@ def test_chart_calculate_endpoint_uses_persisted_birth_profile(client, birth_pro
     assert all("dashaActivated" in item for item in body["data"]["yogas"])
     assert all(item["descriptionTa"] and item["descriptionEn"] for item in body["data"]["yogas"])
     assert all(item["descriptionTa"] and item["descriptionEn"] for item in body["data"]["doshams"])
+    assert "bhavaChalit" in body["data"]
+    assert "vargas" in body["data"]
+    assert "nakshatraAnalysis" in body["data"]
+    assert "birthPanchangamSignature" in body["data"]
 
     planets = {planet["graha"]: planet for planet in body["data"]["planets"]}
     assert len(planets) == 9
@@ -101,6 +105,30 @@ def test_chart_summary_endpoint_returns_dashboard_payload(client, birth_profile_
     assert len(body["ashtakavarga"]["SUN"]) == 12
 
 
+def test_chart_summary_includes_validation_status_when_events_exist(client, birth_profile_payload_factory):
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
+    chart_id = client.post(
+        "/api/v1/charts/calculate",
+        json={
+            "birthProfileId": created["data"]["birthProfileId"],
+            "calculationVersion": "thirukanitham-2026-v1",
+            "forceRecalculate": False,
+        },
+    ).json()["data"]["chartId"]
+    event_payload = {
+        "eventType": "JOB_CHANGE",
+        "eventDate": "2018-05-15",
+        "description": "Changed job",
+    }
+    event_resp = client.post(f"/api/v1/charts/{chart_id}/life-event-log", json=event_payload)
+    assert event_resp.status_code == 200
+
+    response = client.get(f"/api/v1/charts/{chart_id}/summary", params={"language": "ta-en"})
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["chartValidationStatus"] in {"HIGH", "MEDIUM", "LOW", "UNVALIDATED"}
+
+
 def test_dasha_endpoint_honours_level_parameter(client, birth_profile_payload_factory):
     created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
     birth_profile_id = created["data"]["birthProfileId"]
@@ -144,6 +172,29 @@ def test_jadhagam_report_endpoint_returns_structured_payload(client, birth_profi
     assert "JUPITER" in body["functionalNatureTable"]
     assert "planetaryStrengthSummary" in body
     assert "executiveSummary" in body
+
+
+def test_solar_return_endpoint_includes_tajaka_pairs(client, birth_profile_payload_factory):
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
+    chart_id = created["data"]["chartId"]
+    response = client.get(f"/api/v1/charts/{chart_id}/solar-return", params={"year": 2026})
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert "itthasalaPairs" in data
+    assert "isarafaPairs" in data
+    assert isinstance(data["itthasalaPairs"], list)
+    assert isinstance(data["isarafaPairs"], list)
+
+
+def test_varshaphala_endpoint_returns_annual_outlook(client, birth_profile_payload_factory):
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
+    chart_id = created["data"]["chartId"]
+    response = client.get(f"/api/v1/charts/{chart_id}/varshaphala", params={"year": 2026})
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["year"] == 2026
+    assert "yearLord" in data
+    assert isinstance(data["areaOutlook"], list) and len(data["areaOutlook"]) >= 5
 
 
 def test_chart_calculate_rejects_inline_birth_profile(client):

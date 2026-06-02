@@ -68,6 +68,10 @@ def _nakshatra_to_rasi(nakshatra: int) -> int:
 
 # Precomputed for speed
 _NAK_RASI: dict[int, int] = {n: _nakshatra_to_rasi(n) for n in range(1, 28)}
+_NAKSHATRA_NADI: dict[int, str] = {
+    n: ("AADHI" if (n - 1) % 9 < 3 else "MADHYA" if (n - 1) % 9 < 6 else "ANTHYA")
+    for n in range(1, 28)
+}
 
 # ---------------------------------------------------------------------------
 # Rasi lord — reuse SIGN_LORD from chart_strength
@@ -271,8 +275,47 @@ class PorutthamResult:
     label: str       # EXCELLENT / GOOD / AVERAGE / CAUTION
     rajju_dosha: bool
     vedha_dosha: bool
+    nadi_dosha: dict[str, object]
     summary_en: str
     summary_ta: str
+
+
+def check_nadi_dosha(
+    boy_nakshatra: int,
+    girl_nakshatra: int,
+) -> dict[str, object]:
+    boy_nadi = _NAKSHATRA_NADI[boy_nakshatra]
+    girl_nadi = _NAKSHATRA_NADI[girl_nakshatra]
+    has_dosha = boy_nadi == girl_nadi
+
+    cancellations: list[str] = []
+    if has_dosha and boy_nakshatra != girl_nakshatra:
+        if _NAK_RASI[boy_nakshatra] != _NAK_RASI[girl_nakshatra]:
+            cancellations.append("Different rasi — Nadi Dosha partially mitigated")
+
+    final_has_dosha = has_dosha and not cancellations
+    if final_has_dosha:
+        severity = "SEVERE"
+    elif has_dosha:
+        severity = "MILD"
+    else:
+        severity = "NONE"
+
+    return {
+        "boy_nadi": boy_nadi,
+        "girl_nadi": girl_nadi,
+        "has_nadi_dosha": final_has_dosha,
+        "cancellations": cancellations,
+        "severity": severity,
+        "note_ta": (
+            "நாடி தோஷம் உள்ளது — குழந்தைகள் உடல்நலத்தில் கவனம் தேவை. பரிகாரம் குறித்து ஆலோசிக்கவும்."
+            if has_dosha else "நாடி தோஷம் இல்லை."
+        ),
+        "note_en": (
+            "Nadi Dosha present — children's health needs extra caution. Seek remedial guidance."
+            if has_dosha else "No Nadi Dosha."
+        ),
+    }
 
 
 def _kuta_label(score: int, max_score: int) -> str:
@@ -346,6 +389,7 @@ def compute_porutham(
 
     rajju_dosha = rajju == 0
     vedha_dosha = vedha == 0
+    nadi_dosha = check_nadi_dosha(boy_nakshatra, girl_nakshatra)
 
     if percentage >= 80:
         label = "EXCELLENT"
@@ -408,6 +452,7 @@ def compute_porutham(
         label=label,
         rajju_dosha=rajju_dosha,
         vedha_dosha=vedha_dosha,
+        nadi_dosha=nadi_dosha,
         summary_en=summary_en,
         summary_ta=summary_ta,
     )

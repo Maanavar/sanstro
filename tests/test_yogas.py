@@ -1,11 +1,22 @@
 from app.calculations.yogas import (
+    detect_adhi_yoga,
+    detect_badhaka_dosham,
+    detect_chandala_yoga,
+    detect_daridra_yoga,
     detect_dhana_yoga,
     detect_gaja_kesari,
+    detect_kalathra_dosham,
+    detect_kemadruma_yoga,
+    detect_lakshmi_yoga,
     detect_pitru_dosham,
+    detect_putra_sarpa_dosham,
     detect_rahu_ketu_dosham,
     detect_neecha_bhanga,
     detect_raja_yoga,
+    detect_sakata_yoga,
+    detect_sunapha_anapha_durudhura,
     detect_sevvai_dosham,
+    detect_vasumati_yoga,
 )
 
 
@@ -498,3 +509,42 @@ def test_rahu_ketu_female_high_attention_8th():
     result = detect_rahu_ketu_dosham(planets, lagna_rasi=1, gender="female")
     assert "female_high_attention_house" in result.conditions_met
     assert result.is_present is True
+
+
+def test_sakata_kemadruma_and_chandala_detect():
+    assert detect_sakata_yoga(moon_rasi=6, jupiter_rasi=1, lagna_rasi=3).is_present is True
+    planets = {"MOON": 1, "SUN": 1, "RAHU": 5, "KETU": 11}
+    assert detect_kemadruma_yoga(planets, moon_rasi=1, lagna_rasi=2).is_present is True
+    assert detect_chandala_yoga(jupiter_rasi=5, rahu_rasi=5).is_present is True
+
+
+def test_adhi_daridra_lakshmi_vasumati_and_sunapha_family():
+    planets = {"MOON": 1, "JUPITER": 6, "VENUS": 7, "MERCURY": 8, "SATURN": 12, "SUN": 2}
+    lagna_nature_map = {k: "TRIKONA" for k in planets}
+    assert detect_adhi_yoga(planets, 1, lagna_nature_map).is_present is True
+
+    daridra_planets = {"MERCURY": 6, "SUN": 6, "SATURN": 2}
+    assert detect_daridra_yoga(daridra_planets, lagna_rasi=8, planet_scores={"MERCURY": 30}).is_present is True
+
+    lakshmi_planets = {"MOON": 5, "MARS": 9, "JUPITER": 5}
+    assert detect_lakshmi_yoga(
+        lakshmi_planets,
+        lagna_rasi=1,
+        planet_scores={"MARS": 80, "MOON": 75, "JUPITER": 78},
+    ).is_present is True
+
+    assert detect_vasumati_yoga({"MOON": 1, "JUPITER": 3, "VENUS": 6, "MERCURY": 10}, moon_rasi=1).is_present is True
+    tri = detect_sunapha_anapha_durudhura({"MOON": 1, "MARS": 2, "JUPITER": 12, "SUN": 5}, moon_rasi=1)
+    assert any(x.name == "DURUDHURA_YOGA" for x in tri)
+
+
+def test_new_doshams_kalathra_putra_badhaka():
+    planets = {"VENUS": 7, "JUPITER": 7, "SATURN": 7, "MOON": 7, "MARS": 2}
+    kalathra = detect_kalathra_dosham(planets, lagna_rasi=1, moon_rasi=7, is_male=True, planet_scores={"VENUS": 30})
+    assert kalathra.is_present is True
+
+    putra = detect_putra_sarpa_dosham({"SUN": 5, "RAHU": 5, "JUPITER": 8}, lagna_rasi=1, planet_scores={"SUN": 30})
+    assert putra.is_present is True
+
+    badhaka = detect_badhaka_dosham({"SATURN": 1, "MOON": 1, "MARS": 1}, lagna_rasi=1, planet_scores={"SATURN": 20}, current_maha_lord="SATURN")
+    assert badhaka.is_present is True

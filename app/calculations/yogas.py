@@ -17,6 +17,8 @@ EXTENDED_SEVVAI_HOUSES = {1, 2, 4, 7, 8, 12}
 RAHU_KETU_MARRIAGE_HOUSES = {1, 2, 7, 8}
 RAHU_KETU_SARPA_HOUSES = {5, 9}
 SEVEN_PLANETS = ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN")
+NATURAL_BENEFICS = {"JUPITER", "VENUS", "MERCURY", "MOON"}
+NATURAL_MALEFICS = {"SATURN", "MARS", "RAHU", "KETU", "SUN"}
 
 # Spec §6.3 — house-sign nivarthi table
 HOUSE_SIGN_NIVARTHI: dict[int, frozenset[int]] = {
@@ -91,6 +93,10 @@ def _planet_rasi(planets: Mapping[str, PlanetInput], planet: str) -> int:
     if "rasi" in value:
         return int(value["rasi"])
     raise ValueError(f"Missing rasi for {planet}")
+
+
+def _planets_as_rasi_map(planets: Mapping[str, PlanetInput]) -> dict[str, int]:
+    return {planet: _planet_rasi(planets, planet) for planet in planets}
 
 
 def _house_lord(lagna_rasi: int, house_number: int) -> str:
@@ -1263,12 +1269,360 @@ def _merge_yoga_list(results: list[YogaResult], merged_name: str) -> YogaResult:
     )
 
 
+def detect_sakata_yoga(moon_rasi: int, jupiter_rasi: int, lagna_rasi: int) -> YogaResult:
+    moon_from_jupiter = house_from_reference(jupiter_rasi, moon_rasi)
+    present = moon_from_jupiter in {6, 8, 12}
+    cancelled = house_from_reference(lagna_rasi, moon_rasi) in KENDRA_HOUSES
+    conditions = [f"moon_from_jupiter_{moon_from_jupiter}"] if present else []
+    cancellations = ["moon_kendra_from_lagna"] if present and cancelled else []
+    return YogaResult(
+        name="SAKATA_YOGA",
+        is_present=present,
+        strength="PARTIAL" if present and cancelled else ("STRONG" if present else "WEAK"),
+        conditions_met=conditions,
+        cancellation_factors=cancellations,
+        dasha_activated=False,
+        description_ta="சகட யோகம் — சந்திரன் குருவுக்கு 6/8/12இல் இருந்தால் பலன் ஏற்ற இறக்கம்.",
+        description_en="Sakata Yoga — Moon in 6/8/12 from Jupiter gives fluctuating fortune.",
+    )
+
+
+def detect_kemadruma_yoga(planets: dict[str, int], moon_rasi: int, lagna_rasi: int) -> YogaResult:
+    second = ((moon_rasi - 1 + 1) % 12) + 1
+    twelfth = ((moon_rasi - 1 - 1) % 12) + 1
+    surrounding = [
+        p for p, rasi in planets.items()
+        if p not in {"SUN", "RAHU", "KETU", "MOON"} and rasi in {second, twelfth}
+    ]
+    conjunction = any(p != "MOON" and rasi == moon_rasi for p, rasi in planets.items())
+    moon_kendra_lagna = house_from_reference(lagna_rasi, moon_rasi) in KENDRA_HOUSES
+    present = len(surrounding) == 0
+    cancelled = moon_kendra_lagna or conjunction
+    return YogaResult(
+        name="KEMADRUMA_YOGA",
+        is_present=present,
+        strength="PARTIAL" if present and cancelled else ("STRONG" if present else "WEAK"),
+        conditions_met=["no_planets_2nd_12th_from_moon"] if present else [],
+        cancellation_factors=[c for c, ok in [("moon_kendra_from_lagna", moon_kendra_lagna), ("moon_conjunction", conjunction)] if present and ok],
+        dasha_activated=False,
+        description_ta="கேமத்ரும யோகம் — சந்திரனைச் சுற்றி 2/12இல் கிரக ஆதரவு இல்லாமை.",
+        description_en="Kemadruma Yoga — absence of planets in 2nd/12th from Moon.",
+    )
+
+
+def detect_chandala_yoga(jupiter_rasi: int, rahu_rasi: int) -> YogaResult:
+    present = jupiter_rasi == rahu_rasi
+    return YogaResult(
+        name="CHANDALA_YOGA",
+        is_present=present,
+        strength="STRONG" if present else "WEAK",
+        conditions_met=["jupiter_rahu_conjunction"] if present else [],
+        cancellation_factors=[],
+        dasha_activated=False,
+        description_ta="சண்டாள யோகம் — குரு ராகு சேர்க்கை.",
+        description_en="Chandala Yoga — Jupiter conjunct Rahu.",
+    )
+
+
+def detect_amala_yoga(planets: dict[str, int], lagna_rasi: int, moon_rasi: int, lagna_nature_map: dict[str, str]) -> YogaResult:
+    tenth_lagna = ((lagna_rasi - 1 + 9) % 12) + 1
+    tenth_moon = ((moon_rasi - 1 + 9) % 12) + 1
+    found = []
+    for planet in NATURAL_BENEFICS:
+        rasi = planets.get(planet)
+        if rasi in {tenth_lagna, tenth_moon}:
+            found.append(planet)
+    present = len(found) > 0
+    return YogaResult(
+        name="AMALA_YOGA",
+        is_present=present,
+        strength="STRONG" if len(found) >= 2 else ("PARTIAL" if present else "WEAK"),
+        conditions_met=[f"{planet}_in_10th" for planet in found],
+        cancellation_factors=[],
+        dasha_activated=any(lagna_nature_map.get(planet, "") in {"YOGAKARAKA", "TRIKONA"} for planet in found),
+        description_ta="அமல யோகம் — லக்னம்/சந்திரத்திலிருந்து 10ஆம் இடத்தில் சுபகிரகங்கள்.",
+        description_en="Amala Yoga — benefics in the 10th from Lagna or Moon.",
+    )
+
+
+def detect_adhi_yoga(planets: dict[str, int], moon_rasi: int, lagna_nature_map: dict[str, str]) -> YogaResult:
+    target_houses = {6, 7, 8}
+    coverage = set()
+    for planet in {"JUPITER", "VENUS", "MERCURY"}:
+        rasi = planets.get(planet)
+        if rasi is None:
+            continue
+        h = house_from_reference(moon_rasi, rasi)
+        if h in target_houses:
+            coverage.add(h)
+    count = len(coverage)
+    return YogaResult(
+        name="ADHI_YOGA",
+        is_present=count > 0,
+        strength="STRONG" if count == 3 else ("PARTIAL" if count == 2 else ("WEAK" if count == 1 else "WEAK")),
+        conditions_met=[f"benefic_in_house_{h}_from_moon" for h in sorted(coverage)],
+        cancellation_factors=[],
+        dasha_activated=any(lagna_nature_map.get(p, "") in {"YOGAKARAKA", "TRIKONA"} for p in {"JUPITER", "VENUS", "MERCURY"}),
+        description_ta="அதி யோகம் — சந்திரனிலிருந்து 6/7/8இல் சுபகிரக ஆதரவு.",
+        description_en="Adhi Yoga — benefics in 6th/7th/8th from Moon.",
+    )
+
+
+def detect_daridra_yoga(planets: dict[str, int], lagna_rasi: int, planet_scores: dict[str, int]) -> YogaResult:
+    eleventh_lord = _house_lord(lagna_rasi, 11)
+    eleventh_rasi = planets.get(eleventh_lord, lagna_rasi)
+    eleventh_house = house_from_reference(lagna_rasi, eleventh_rasi)
+    weak = planet_scores.get(eleventh_lord, 50) < 40
+    malefic_conj = any(
+        planets.get(m) == eleventh_rasi for m in NATURAL_MALEFICS if m != eleventh_lord
+    )
+    present = eleventh_house in {6, 8, 12} or (weak and malefic_conj)
+    return YogaResult(
+        name="DARIDRA_YOGA",
+        is_present=present,
+        strength="STRONG" if present and eleventh_house in {6, 8, 12} else ("PARTIAL" if present else "WEAK"),
+        conditions_met=[f"eleventh_lord_in_{eleventh_house}", "eleventh_lord_weak_malefic_conj"] if present else [],
+        cancellation_factors=[],
+        dasha_activated=False,
+        description_ta="தரித்ர யோகம் — 11ஆம் அதிபதி துஷ்டானத்தில்/பலஹீனம்.",
+        description_en="Daridra Yoga — 11th lord in dusthana or weak with malefics.",
+    )
+
+
+def detect_lakshmi_yoga(planets: dict[str, int], lagna_rasi: int, planet_scores: dict[str, int]) -> YogaResult:
+    ninth_lord = _house_lord(lagna_rasi, 9)
+    lagna_lord = _house_lord(lagna_rasi, 1)
+    ninth_house = house_from_reference(lagna_rasi, planets.get(ninth_lord, lagna_rasi))
+    ninth_strong = planet_scores.get(ninth_lord, 50) >= 60 and ninth_house in KENDRA_HOUSES | TRIKONA_HOUSES
+    lagna_strong = planet_scores.get(lagna_lord, 50) >= 60
+    present = ninth_strong and lagna_strong
+    return YogaResult(
+        name="LAKSHMI_YOGA",
+        is_present=present,
+        strength="STRONG" if present else "WEAK",
+        conditions_met=[f"ninth_lord_{ninth_lord}_strong", f"lagna_lord_{lagna_lord}_strong"] if present else [],
+        cancellation_factors=[],
+        dasha_activated=False,
+        description_ta="லக்ஷ்மி யோகம் — 9ஆம் அதிபதி வலிமை + லக்ன அதிபதி வலிமை.",
+        description_en="Lakshmi Yoga — strong 9th lord and strong Lagna lord.",
+    )
+
+
+def detect_sunapha_anapha_durudhura(planets: dict[str, int], moon_rasi: int) -> list[YogaResult]:
+    second = ((moon_rasi - 1 + 1) % 12) + 1
+    twelfth = ((moon_rasi - 1 - 1) % 12) + 1
+    has_second = any(p != "SUN" and r == second for p, r in planets.items())
+    has_twelfth = any(p != "SUN" and r == twelfth for p, r in planets.items())
+    out: list[YogaResult] = []
+    if has_second:
+        out.append(YogaResult("SUNAPHA_YOGA", True, "PARTIAL", ["planets_in_2nd_from_moon"], [], False, "சுனபா யோகம்.", "Sunapha Yoga."))
+    if has_twelfth:
+        out.append(YogaResult("ANAPHA_YOGA", True, "PARTIAL", ["planets_in_12th_from_moon"], [], False, "அநபா யோகம்.", "Anapha Yoga."))
+    if has_second and has_twelfth:
+        out.append(YogaResult("DURUDHURA_YOGA", True, "STRONG", ["planets_in_2nd_and_12th_from_moon"], [], False, "துருதுரா யோகம்.", "Durudhura Yoga."))
+    return out
+
+
+def detect_vasumati_yoga(planets: dict[str, int], moon_rasi: int) -> YogaResult:
+    upachaya = {3, 6, 10, 11}
+    benefic_hits = []
+    for planet in {"JUPITER", "VENUS", "MERCURY", "MOON"}:
+        rasi = planets.get(planet)
+        if rasi is None:
+            continue
+        if house_from_reference(moon_rasi, rasi) in upachaya:
+            benefic_hits.append(planet)
+    present = len(benefic_hits) >= 2
+    return YogaResult(
+        name="VASUMATI_YOGA",
+        is_present=present,
+        strength="STRONG" if len(benefic_hits) >= 3 else ("PARTIAL" if present else "WEAK"),
+        conditions_met=[f"{p}_upachaya_from_moon" for p in benefic_hits],
+        cancellation_factors=[],
+        dasha_activated=False,
+        description_ta="வசுமதி யோகம் — சுபகிரகங்கள் உபசய ஸ்தானங்களில்.",
+        description_en="Vasumati Yoga — benefics in upachaya houses from Moon.",
+    )
+
+
+_MOVABLE_LAGNAS = {1, 4, 7, 10}
+_FIXED_LAGNAS = {2, 5, 8, 11}
+_DUAL_LAGNAS = {3, 6, 9, 12}
+
+
+def get_badhaka_lord(lagna_rasi: int, planets_rasi_to_lord: dict[int, str]) -> str:
+    if lagna_rasi in _MOVABLE_LAGNAS:
+        badhaka_house = 11
+    elif lagna_rasi in _FIXED_LAGNAS:
+        badhaka_house = 9
+    else:
+        badhaka_house = 7
+    badhaka_rasi = ((lagna_rasi + badhaka_house - 2) % 12) + 1
+    return planets_rasi_to_lord[badhaka_rasi]
+
+
+def detect_kalathra_dosham(
+    planets: dict[str, int],
+    lagna_rasi: int,
+    moon_rasi: int,
+    is_male: bool,
+    planet_scores: dict[str, int],
+) -> DoshamResult:
+    seventh_lord = _house_lord(lagna_rasi, 7)
+    seventh_rasi = planets.get(seventh_lord, lagna_rasi)
+    venus_or_jupiter = "VENUS" if is_male else "JUPITER"
+    afflicted = any(planets.get(p) == seventh_rasi for p in {"SATURN", "RAHU", "KETU", "MARS"})
+    aff_karaka = any(planets.get(p) == planets.get(venus_or_jupiter) for p in {"SATURN", "RAHU", "KETU", "MARS"})
+    present = afflicted or aff_karaka
+    cancellation = []
+    if planet_scores.get(seventh_lord, 50) >= 65:
+        cancellation.append("strong_seventh_lord")
+    if planet_scores.get(venus_or_jupiter, 50) >= 65:
+        cancellation.append("strong_primary_karaka")
+    label = "NO_DOSHAM"
+    if present and cancellation:
+        label = "DOSHAM_WITH_NIVARTHI"
+    elif present and planet_scores.get(seventh_lord, 50) < 40:
+        label = "STRONG_ACTIVE_DOSHAM"
+    elif present:
+        label = "ACTIVE_DOSHAM"
+    what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
+        "KALATHRA_DOSHAM",
+        label,
+        conditions_met=["seventh_afflicted"] if present else [],
+        cancellation_factors=cancellation,
+        missing_data=[],
+    )
+    return DoshamResult(
+        name="KALATHRA_DOSHAM",
+        is_present=present,
+        is_cancelled=bool(cancellation),
+        strength="STRONG" if label == "STRONG_ACTIVE_DOSHAM" else ("PARTIAL" if present else "WEAK"),
+        label=label,
+        category="MARRIAGE",
+        conditions_met=["seventh_afflicted"] if present else [],
+        cancellation_factors=cancellation,
+        missing_data=[],
+        dasha_activated=False,
+        description_ta="களத்திர தோஷம் — 7ஆம் பாவம்/அதிபதி/காரகன் பாதிப்பு.",
+        description_en="Kalathra dosham — affliction to 7th house/lord/karaka.",
+        explanation_what_ta=what_ta,
+        explanation_what_en=what_en,
+        explanation_why_ta=why_ta,
+        explanation_why_en=why_en,
+        explanation_how_ta=how_ta,
+        explanation_how_en=how_en,
+    )
+
+
+def detect_putra_sarpa_dosham(planets: dict[str, int], lagna_rasi: int, planet_scores: dict[str, int]) -> DoshamResult:
+    fifth_lord = _house_lord(lagna_rasi, 5)
+    fifth_rasi = planets.get(fifth_lord, lagna_rasi)
+    afflicted = any(planets.get(p) == fifth_rasi for p in {"RAHU", "KETU", "SATURN"})
+    guru_afflicted = any(planets.get(p) == planets.get("JUPITER") for p in {"RAHU", "KETU"})
+    present = afflicted or guru_afflicted
+    cancellation = []
+    if planet_scores.get(fifth_lord, 50) >= 65:
+        cancellation.append("strong_fifth_lord")
+    if house_from_reference(lagna_rasi, planets.get("JUPITER", lagna_rasi)) in KENDRA_HOUSES:
+        cancellation.append("jupiter_kendra")
+    label = "NO_DOSHAM"
+    if present and cancellation:
+        label = "DOSHAM_WITH_NIVARTHI"
+    elif present and planet_scores.get(fifth_lord, 50) < 40:
+        label = "STRONG_ACTIVE_DOSHAM"
+    elif present:
+        label = "ACTIVE_DOSHAM"
+    what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
+        "PUTRA_SARPA_DOSHAM",
+        label,
+        conditions_met=["fifth_afflicted"] if present else [],
+        cancellation_factors=cancellation,
+        missing_data=[],
+    )
+    return DoshamResult(
+        name="PUTRA_SARPA_DOSHAM",
+        is_present=present,
+        is_cancelled=bool(cancellation),
+        strength="STRONG" if label == "STRONG_ACTIVE_DOSHAM" else ("PARTIAL" if present else "WEAK"),
+        label=label,
+        category="CHILDREN",
+        conditions_met=["fifth_afflicted"] if present else [],
+        cancellation_factors=cancellation,
+        missing_data=[],
+        dasha_activated=False,
+        description_ta="புத்ர/சர்ப்ப தோஷம் — 5ஆம் பாவம் அல்லது குரு பாதிப்பு.",
+        description_en="Putra/Sarpa dosham — affliction to 5th house or Jupiter.",
+        explanation_what_ta=what_ta,
+        explanation_what_en=what_en,
+        explanation_why_ta=why_ta,
+        explanation_why_en=why_en,
+        explanation_how_ta=how_ta,
+        explanation_how_en=how_en,
+    )
+
+
+def detect_badhaka_dosham(
+    planets: dict[str, int],
+    lagna_rasi: int,
+    planet_scores: dict[str, int],
+    current_maha_lord: str,
+) -> DoshamResult:
+    badhaka_lord = get_badhaka_lord(lagna_rasi, SIGN_LORD)
+    badhaka_rasi = planets.get(badhaka_lord, lagna_rasi)
+    lagna_lord = _house_lord(lagna_rasi, 1)
+    active = (
+        house_from_reference(lagna_rasi, badhaka_rasi) == 1
+        or planets.get("MOON") == badhaka_rasi
+        or planets.get(lagna_lord) == badhaka_rasi
+        or current_maha_lord == badhaka_lord
+    )
+    cancellation = []
+    if planet_scores.get(badhaka_lord, 50) >= 65:
+        cancellation.append("badhaka_lord_strong")
+    label = "NO_DOSHAM"
+    if active and cancellation:
+        label = "DOSHAM_WITH_NIVARTHI"
+    elif active and current_maha_lord == badhaka_lord:
+        label = "STRONG_ACTIVE_DOSHAM"
+    elif active:
+        label = "ACTIVE_DOSHAM"
+    what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
+        "BADHAKA_DOSHAM",
+        label,
+        conditions_met=["badhaka_active"] if active else [],
+        cancellation_factors=cancellation,
+        missing_data=[],
+    )
+    return DoshamResult(
+        name="BADHAKA_DOSHAM",
+        is_present=active,
+        is_cancelled=bool(cancellation),
+        strength="STRONG" if label == "STRONG_ACTIVE_DOSHAM" else ("PARTIAL" if active else "WEAK"),
+        label=label,
+        category="OBSTACLES",
+        conditions_met=["badhaka_active"] if active else [],
+        cancellation_factors=cancellation,
+        missing_data=[],
+        dasha_activated=current_maha_lord == badhaka_lord,
+        description_ta="பாதக தோஷம் — லக்னத்தின்படி பாதக அதிபதி செயல்படும் காலம்.",
+        description_en="Badhaka dosham — obstruction pattern from badhaka lord.",
+        explanation_what_ta=what_ta,
+        explanation_what_en=what_en,
+        explanation_why_ta=why_ta,
+        explanation_why_en=why_en,
+        explanation_how_ta=how_ta,
+        explanation_how_en=how_en,
+    )
+
+
 def detect_yogas_and_doshams(
     planets: Mapping[str, PlanetInput],
     lagna_rasi: int,
     moon_rasi: int,
     *,
     active_lords: Iterable[str] | None = None,
+    current_maha_lord: str | None = None,
     sevvai_mode: str = "tamil_standard",
     gender: str | None = None,
     partner_has_sevvai_dosham: bool = False,
@@ -1277,7 +1631,22 @@ def detect_yogas_and_doshams(
     janma_nakshatra: int | None = None,
     d9_rasi_map: Mapping[str, int] | None = None,
     d9_lagna_rasi: int | None = None,
+    bhava_chalit_map: Mapping[str, int] | None = None,
 ) -> tuple[list[YogaResult], list[DoshamResult], list[NakshatraCautionResult]]:
+    # Reserved input for Bhava Chalit-aware house judgements.
+    # Current implementation remains rasi-first for backward compatibility.
+    _ = bhava_chalit_map
+    planets_rasi = _planets_as_rasi_map(planets)
+    lagna_nature_map = {
+        planet: get_functional_nature(lagna_rasi, planet).value
+        for planet in planets_rasi
+    }
+    planet_scores = {
+        planet: int(value.get("strength_score", 50))
+        if isinstance(value, Mapping)
+        else 50
+        for planet, value in planets.items()
+    }
     yogas: list[YogaResult] = []
     yogas.append(detect_gaja_kesari(planets, moon_rasi, active_lords=active_lords))
     raja_list = detect_raja_yoga(planets, lagna_rasi, active_lords=active_lords)
@@ -1285,6 +1654,7 @@ def detect_yogas_and_doshams(
     # Parivartana — needed for raja_yoga connection type check
     parivartana = detect_parivartana(planets, lagna_rasi)
     active_set = set(active_lords or ())
+    resolved_maha_lord = current_maha_lord or (sorted(active_set)[0] if active_set else "")
     # Add Parivartana as Raja Yoga connection when both lords are kendra/trikona
     for pv in parivartana:
         if pv.sub_type == "MAHA":
@@ -1370,6 +1740,16 @@ def detect_yogas_and_doshams(
 
     # Chandra Mangala Yoga
     yogas.append(detect_chandra_mangala(planets, active_lords=active_lords))
+    # Expanded yoga library (W07)
+    yogas.append(detect_sakata_yoga(moon_rasi, planets_rasi.get("JUPITER", moon_rasi), lagna_rasi))
+    yogas.append(detect_kemadruma_yoga(planets_rasi, moon_rasi, lagna_rasi))
+    yogas.append(detect_chandala_yoga(planets_rasi.get("JUPITER", moon_rasi), planets_rasi.get("RAHU", moon_rasi)))
+    yogas.append(detect_amala_yoga(planets_rasi, lagna_rasi, moon_rasi, lagna_nature_map))
+    yogas.append(detect_adhi_yoga(planets_rasi, moon_rasi, lagna_nature_map))
+    yogas.append(detect_daridra_yoga(planets_rasi, lagna_rasi, planet_scores))
+    yogas.append(detect_lakshmi_yoga(planets_rasi, lagna_rasi, planet_scores))
+    yogas.extend(detect_sunapha_anapha_durudhura(planets_rasi, moon_rasi))
+    yogas.append(detect_vasumati_yoga(planets_rasi, moon_rasi))
 
     kalasarpa = detect_kalasarpa(planets)
     kalasarpa_label = "KALA_SARPA_DOSHAM_CANDIDATE" if kalasarpa.is_present else "NO_DOSHAM"
@@ -1405,6 +1785,24 @@ def detect_yogas_and_doshams(
             planets,
             lagna_rasi,
             active_lords=active_lords,
+        ),
+        detect_kalathra_dosham(
+            planets_rasi,
+            lagna_rasi,
+            moon_rasi,
+            is_male=True,
+            planet_scores=planet_scores,
+        ),
+        detect_putra_sarpa_dosham(
+            planets_rasi,
+            lagna_rasi,
+            planet_scores=planet_scores,
+        ),
+        detect_badhaka_dosham(
+            planets_rasi,
+            lagna_rasi,
+            planet_scores,
+            resolved_maha_lord,
         ),
         DoshamResult(
             name="KALASARPA",

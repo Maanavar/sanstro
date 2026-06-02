@@ -11,6 +11,7 @@ Accuracy: ~30-60 min window. Labelled clearly as heuristic, not classical.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID
 
@@ -18,6 +19,9 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import RASI_NAMES, rasi_from_degree, resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.astro import house_from_reference
+from app.calculations.chart_strength import SIGN_LORD
+from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_lagna_degree
 from app.models import BirthProfile
 from app.schemas.rectification import (
@@ -182,3 +186,145 @@ def apply_rectified_time(
     session.commit()
     session.refresh(profile)
     return profile
+
+
+@dataclass(frozen=True, slots=True)
+class ValidationReport:
+    passed: bool
+    match_count: int
+    total_checked: int
+    confidence: str
+    unmatched_events: list[str]
+    note_ta: str
+    note_en: str
+
+
+_EVENT_TYPE_TO_KEYS: dict[str, str] = {
+    "MARRIAGE": "MARRIAGE",
+    "RELATIONSHIP_START": "MARRIAGE",
+    "RELATIONSHIP_END": "MARRIAGE",
+    "JOB_CHANGE": "CAREER_BREAK",
+    "PROMOTION": "CAREER_BREAK",
+    "CAREER_BREAK": "CAREER_BREAK",
+    "RELOCATION": "RELOCATION",
+    "HEALTH_EVENT": "HEALTH_MAJOR",
+    "HEALTH_MAJOR": "HEALTH_MAJOR",
+    "PARENT_BIRTH": "PARENT_BIRTH",
+    "FAMILY_LOSS": "PARENT_BIRTH",
+}
+
+
+def _event_date_from_payload(event: dict) -> date | None:
+    if "eventDate" in event and event["eventDate"]:
+        try:
+            return date.fromisoformat(str(event["eventDate"]))
+        except ValueError:
+            return None
+    year = event.get("year") or event.get("eventYear")
+    month = event.get("month") or event.get("eventMonth") or 6
+    if year is None:
+        return None
+    try:
+        return date(int(year), int(month), 15)
+    except ValueError:
+        return None
+
+
+def validate_chart_against_events(
+    chart_response,
+    events: list[dict],
+) -> ValidationReport:
+    if not events:
+        return ValidationReport(
+            passed=False,
+            match_count=0,
+            total_checked=0,
+            confidence="UNVALIDATED",
+            unmatched_events=[],
+            note_ta="வாழ்க்கை நிகழ்வுகள் இல்லை; சரிபார்ப்பு செய்யப்படவில்லை.",
+            note_en="No life events provided; validation not performed.",
+        )
+
+    lagna_rasi = chart_response.data.lagna.rasi
+    moon = next((p for p in chart_response.data.planets if p.graha == "MOON"), None)
+    if moon is None:
+        return ValidationReport(
+            passed=False,
+            match_count=0,
+            total_checked=0,
+            confidence="UNVALIDATED",
+            unmatched_events=["MOON_MISSING"],
+            note_ta="சந்திரன் தரவு இல்லை; சரிபார்ப்பு முடியவில்லை.",
+            note_en="Moon position missing; validation unavailable.",
+        )
+
+    planet_rasi = {p.graha: p.rasi for p in chart_response.data.planets}
+    match_count = 0
+    checked = 0
+    unmatched_events: list[str] = []
+
+    for event in events:
+        mapped_type = _EVENT_TYPE_TO_KEYS.get(str(event.get("type") or event.get("eventType") or "").upper())
+        if mapped_type is None:
+            continue
+        event_date = _event_date_from_payload(event)
+        if event_date is None:
+            continue
+        checked += 1
+        as_of = datetime(event_date.year, event_date.month, event_date.day, 12, 0, tzinfo=UTC)
+        as_of_jd = utc_datetime_to_julian_day(as_of)
+        timeline = calculate_vimshottari_timeline(
+            chart_response.data.julian_day,
+            moon.absolute_longitude,
+            as_of_jd,
+        )
+        maha_lord = timeline.current_mahadasha.lord
+        antar_lord = timeline.current_antardasha.lord
+        key_houses = _EVENT_KEY_HOUSES.get(mapped_type, [])
+        matched = False
+        for lord in (maha_lord, antar_lord):
+            lord_rasi = planet_rasi.get(lord)
+            if lord_rasi is not None:
+                lord_house = house_from_reference(lagna_rasi, lord_rasi)
+                if lord_house in key_houses:
+                    matched = True
+                    break
+            # ownership check
+            for house_num in key_houses:
+                house_rasi = ((lagna_rasi + house_num - 2) % 12) + 1
+                if SIGN_LORD.get(house_rasi) == lord:
+                    matched = True
+                    break
+            if matched:
+                break
+        if matched:
+            match_count += 1
+        else:
+            unmatched_events.append(str(event.get("type") or event.get("eventType") or mapped_type))
+
+    ratio = (match_count / checked) if checked else 0.0
+    if ratio >= 0.75:
+        confidence = "HIGH"
+    elif ratio >= 0.50:
+        confidence = "MEDIUM"
+    elif ratio >= 0.25:
+        confidence = "LOW"
+    else:
+        confidence = "UNVALIDATED"
+
+    passed = checked > 0 and ratio >= 0.5
+    return ValidationReport(
+        passed=passed,
+        match_count=match_count,
+        total_checked=checked,
+        confidence=confidence,
+        unmatched_events=unmatched_events,
+        note_ta=(
+            f"{checked} நிகழ்வுகளில் {match_count} பொருந்தின. நம்பகத் தன்மை: {confidence}."
+            if checked else "சரிபார்க்க முடியவில்லை."
+        ),
+        note_en=(
+            f"{match_count} of {checked} events matched. Confidence: {confidence}."
+            if checked else "Could not validate."
+        ),
+    )

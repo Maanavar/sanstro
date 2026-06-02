@@ -30,11 +30,14 @@ _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
 _KEY_PLANETS = ("SATURN", "JUPITER", "RAHU", "KETU", "MARS", "MOON", "SUN", "VENUS")
 _FUTURE_SCAN_PLANETS = ("SATURN", "JUPITER", "RAHU", "KETU", "MARS")
 _EVENT_HOUSES = {
-    "career": {10, 8, 12, 6},
-    "family": {4, 2, 8, 12},
-    "health": {1, 6, 8, 12},
+    "career":       {10, 8, 12, 6},
+    "family":       {4, 2, 8, 12},
+    "health":       {1, 6, 8, 12},
     "relationship": {7, 2, 8, 12},
-    "spiritual": {9, 12, 8, 5},
+    "spiritual":    {9, 12, 8, 5},
+    "finance":      {2, 11, 8, 12},
+    "travel":       {9, 12, 3, 8},
+    "other":        {1, 5, 9, 10},
 }
 
 

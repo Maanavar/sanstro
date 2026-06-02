@@ -22,6 +22,7 @@ from app.schemas.relationships import (
     DirectPoruthamData,
     DirectPoruthamResponse,
     KutaResult,
+    NadiDoshaData,
     PorutthamData,
     PorutthamResponse,
     RelationshipAlertData,
@@ -514,6 +515,7 @@ def _contextualize_porutham_result(result, compatibility_context: str) -> dict[s
         "label": label,
         "rajju_dosha": rajju_dosha,
         "vedha_dosha": vedha_dosha,
+        "nadi_dosha": result.nadi_dosha,
         "summary": summary,
     }
 
@@ -577,6 +579,7 @@ def get_porutham_for_member(
         label=shaped["label"],
         rajju_dosha=shaped["rajju_dosha"],
         vedha_dosha=shaped["vedha_dosha"],
+        nadi_dosha=NadiDoshaData(**shaped["nadi_dosha"]),
         summary=shaped["summary"],
         compatibility_context=compatibility_context,
         context_note=RelationshipBiText(ta=_note_raw["ta"], en=_note_raw["en"]),
@@ -641,6 +644,7 @@ def compare_charts_direct(
         label=shaped["label"],
         rajju_dosha=shaped["rajju_dosha"],
         vedha_dosha=shaped["vedha_dosha"],
+        nadi_dosha=NadiDoshaData(**shaped["nadi_dosha"]),
         summary=shaped["summary"],
         compatibility_context=compatibility_context,
         context_note=RelationshipBiText(ta=_note_raw["ta"], en=_note_raw["en"]),

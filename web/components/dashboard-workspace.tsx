@@ -165,7 +165,83 @@ export function DashboardWorkspace() {
   const [showRetrospective, setShowRetrospective] = useState(false);
   const [showPorutham, setShowPorutham] = useState(false);
   const [showChartGenerate, setShowChartGenerate] = useState(false);
+  const [showPrasna, setShowPrasna] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // ── Remedies state (lazy-loaded on first tab open)
+  const [remedyPlan, setRemedyPlan] = useState<import("@/lib/types").RemedyPlanItem[] | null>(null);
+  const [gemstoneAdvice, setGemstoneAdvice] = useState<import("@/lib/types").GemstoneAdviceItem[] | null>(null);
+  const [remediesLoading, setRemediesLoading] = useState(false);
+
+  async function loadRemedies() {
+    const chartId = personal.chartId;
+    if (!chartId || remediesLoading) return;
+    setRemediesLoading(true);
+    try {
+      type RawRemedyItem = Record<string, unknown>;
+      const [planRes, gemRes] = await Promise.all([
+        apiFetchJson<{ success: boolean; data: { items: RawRemedyItem[] } }>(`/api/v1/charts/${chartId}/remedy-plan`),
+        apiFetchJson<{ success: boolean; data: { advice: RawRemedyItem[] } }>(`/api/v1/charts/${chartId}/gemstone-advice`),
+      ]);
+      if (planRes.success && Array.isArray(planRes.data?.items)) {
+        setRemedyPlan(planRes.data.items.map((r) => ({
+          planet: r.planet as string,
+          priority: (r.priority as number) ?? 1,
+          reason: (r.reason_en as string) ?? "",
+          day: r.day as string,
+          templeTa: r.temple_ta as string,
+          templeEn: r.temple_en as string,
+          mantraFullTa: r.mantra_full_ta as string,
+          japaCount: r.japa_count as number,
+          daanumItemsTa: r.daanam_items_ta as string,
+          daanumItemsEn: r.daanam_items_en as string,
+          gemstoneTa: (r.gemstone_ta as string | null) ?? null,
+          gemstoneEn: (r.gemstone_en as string | null) ?? null,
+          fastingRuleTa: r.fasting_rule_ta as string,
+          fastingRuleEn: r.fasting_rule_en as string,
+          behaviouralTa: r.behavioural_ta as string,
+          behaviouralEn: r.behavioural_en as string,
+        })));
+      }
+      if (gemRes.success && Array.isArray(gemRes.data?.advice)) {
+        setGemstoneAdvice(gemRes.data.advice.map((r) => ({
+          planet: r.planet as string,
+          functionalNature: r.functional_nature as string,
+          isGemstonePrescribed: r.is_gemstone_prescribed as boolean,
+          gemstoneNameTa: (r.gemstone_ta as string | null) ?? null,
+          gemstoneNameEn: (r.gemstone_en as string | null) ?? null,
+          reasonTa: r.reason_ta as string,
+          reasonEn: r.reason_en as string,
+          cautionTa: (r.caution_ta as string | null) ?? null,
+          cautionEn: (r.caution_en as string | null) ?? null,
+        })));
+      }
+    } catch {
+      // leave null — panel shows empty state
+    } finally {
+      setRemediesLoading(false);
+    }
+  }
+
+  // ── Varshaphala state (lazy-loaded per year)
+  const [varshaphalaData, setVarshaphalaData] = useState<import("@/lib/types").VarshaphalaData | null>(null);
+  const [varshaphalaLoading, setVarshaphalaLoading] = useState(false);
+
+  async function loadVarshaphala(year: number, overrideChartId?: string) {
+    const chartId = overrideChartId ?? personal.chartId;
+    if (!chartId || varshaphalaLoading) return;
+    setVarshaphalaLoading(true);
+    try {
+      const res = await apiFetchJson<{ success: boolean; data: import("@/lib/types").VarshaphalaData }>(
+        `/api/v1/charts/${chartId}/varshaphala?year=${year}`
+      );
+      if (res.success) setVarshaphalaData(res.data);
+    } catch {
+      // leave null
+    } finally {
+      setVarshaphalaLoading(false);
+    }
+  }
   const [toast, setToast] = useState<{ message: string; tone: "success" | "error" } | null>(null);
 
   const [busyCreateProfile, setBusyCreateProfile] = useState(false);
@@ -180,6 +256,7 @@ export function DashboardWorkspace() {
   const [personalViewId, setPersonalViewId] = useState<string | null>(null);
   const [lifeAreasViewId, setLifeAreasViewId] = useState<string | null>(null);
   const [calendarViewId, setCalendarViewId] = useState<string | null>(null);
+  const [transitViewId, setTransitViewId] = useState<string | null>(null);
 
   const [onboardingDone, setOnboardingDone] = useState(false);
 
@@ -449,17 +526,24 @@ export function DashboardWorkspace() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.hydrated, family.selectedVaultId]);
 
-  // Life areas insights re-run when view selector changes
+  // Life areas insights re-run when the resolved chart changes or date changes.
+  // Deliberately NOT including family.memberCharts (a new array reference every
+  // render) — we only need the resolved chart ID for the selected member.
+  const lifeAreasResolvedChartId = (() => {
+    if (!lifeAreasViewId) return personal.chartId;
+    const member = family.memberCharts.find((mc) => mc.memberId === lifeAreasViewId);
+    return member?.chart.chartId ?? personal.chartId;
+  })();
   useEffect(() => {
     if (!session.hydrated) return;
-    const targetChartId = resolveLifeAreasChartId();
+    const targetChartId = lifeAreasResolvedChartId;
     if (!targetChartId) return;
     personal.setPredictionsLoading(true);
     personal.setJadhagamReport(null);
     void personal.refreshLifeAreasInsights(targetChartId, selectedDate)
       .finally(() => personal.setPredictionsLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.hydrated, lifeAreasViewId, selectedDate, personal.chartId, family.memberCharts]);
+  }, [session.hydrated, lifeAreasViewId, selectedDate, lifeAreasResolvedChartId]);
 
   // ── Toast ────────────────────────────────────────────────
 
@@ -491,6 +575,7 @@ export function DashboardWorkspace() {
   const personalMemberChart = resolveMemberChart(personalViewId);
   const lifeAreasMemberChart = resolveMemberChart(lifeAreasViewId);
   const calendarMemberChart = resolveMemberChart(calendarViewId);
+  const transitMemberChart = resolveMemberChart(transitViewId);
 
   const personalChart = personalMemberChart?.chart ?? personal.chart;
   const personalChartSummary = personalMemberChart?.summary ?? personal.chartSummary;
@@ -501,6 +586,15 @@ export function DashboardWorkspace() {
   const personalTransit = personalMemberChart?.transit ?? personal.transit;
   const personalSani = personalMemberChart?.sani ?? personal.sani;
   const personalPeyarchiUpcoming = personalMemberChart?.peyarchiUpcoming ?? personal.peyarchiUpcoming;
+
+  // Transit-tab specific resolved data (follows transitViewId selector)
+  const transitChart = transitMemberChart?.chart ?? personal.chart;
+  const transitDailyGuidance = transitMemberChart?.dailyGuidance ?? personal.dailyGuidance;
+  const transitTransit = transitMemberChart?.transit ?? personal.transit;
+  const transitSani = transitMemberChart?.sani ?? personal.sani;
+  const transitDasha = transitMemberChart?.dasha ?? personal.dasha;
+  const transitDashaMaha = transitMemberChart?.dashaMaha ?? personal.dashaMaha;
+  const transitDashaAntar = transitMemberChart?.dashaAntar ?? personal.dashaAntar;
   const journalRetentionDays = journal.journalSettings?.journalRetentionDays ?? 365;
 
   // ── Form validation ───────────────────────────────────────
@@ -1021,6 +1115,9 @@ export function DashboardWorkspace() {
             familyAggregate={family.familyAggregate}
             onDateChange={setSelectedDate}
             onGoToFamily={() => setActiveTab("family")}
+            onOpenPrasna={() => setShowPrasna(true)}
+            showPrasna={showPrasna}
+            onClosePrasna={() => setShowPrasna(false)}
           />
         )}
 
@@ -1086,7 +1183,21 @@ export function DashboardWorkspace() {
                         {lang === "ta" ? "மூடு" : "Close"}
                       </button>
                     </div>
-                    {showPorutham && <PoruthamPanel lang={lang} />}
+                    {showPorutham && (
+                      <PoruthamPanel
+                        lang={lang}
+                        familyMembers={family.memberCharts.map((mc) => ({
+                          memberId: mc.memberId,
+                          displayName: mc.displayName,
+                          birthDateLocal: mc.chart.birthProfile.birthDateLocal,
+                          birthTimeLocal: mc.chart.birthProfile.birthTimeLocal ?? "",
+                          birthPlace: mc.chart.birthProfile.birthPlace,
+                          birthLatitude: mc.chart.birthProfile.birthLatitude,
+                          birthLongitude: mc.chart.birthProfile.birthLongitude,
+                          birthTimezone: mc.chart.birthProfile.birthTimezone,
+                        }))}
+                      />
+                    )}
                     {showChartGenerate && <ChartGenerateInlinePanel lang={lang} />}
                     {showWrapped && <DashboardAnnualWrapped chartId={personal.chartId} lang={lang} />}
                     {showRetrospective && personal.chartId && <RetrospectivePanel chartId={personal.chartId} lang={lang} />}
@@ -1174,9 +1285,15 @@ export function DashboardWorkspace() {
             onLoadJadhagamReport={() => void personal.loadJadhagamReport(resolveLifeAreasChartId())}
             chartSummary={lifeAreasMemberChart?.summary ?? personal.chartSummary}
             birthDisplayName={birthForm.displayName}
+            maritalStatus={birthForm.maritalStatus || undefined}
             memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
             selectedMemberId={lifeAreasViewId}
             onSelectMember={setLifeAreasViewId}
+            chartId={personal.chartId}
+            remedyPlan={remedyPlan}
+            gemstoneAdvice={gemstoneAdvice}
+            remediesLoading={remediesLoading}
+            onLoadRemedies={() => void loadRemedies()}
           />
         )}
 
@@ -1184,15 +1301,22 @@ export function DashboardWorkspace() {
           <DashboardTransitsTab
             lang={lang}
             selectedDate={selectedDate}
-            personalChart={personalChart}
-            personalDailyGuidance={personalDailyGuidance}
-            personalTransit={personalTransit}
-            personalSani={personalSani}
-            personalDasha={personalDasha}
-            personalDashaMaha={personalDashaMaha}
-            personalDashaAntar={personalDashaAntar}
+            personalChart={transitChart}
+            personalDailyGuidance={transitDailyGuidance}
+            personalTransit={transitTransit}
+            personalSani={transitSani}
+            personalDasha={transitDasha}
+            personalDashaMaha={transitDashaMaha}
+            personalDashaAntar={transitDashaAntar}
             dashaStory={personal.dashaStory}
             journalCorrelations={personal.journalCorrelations}
+            varshaphalaData={varshaphalaData}
+            varshaphalaLoading={varshaphalaLoading}
+            onLoadVarshaphala={(year) => void loadVarshaphala(year, transitChart?.chartId ?? personal.chartId)}
+            birthDisplayName={birthForm.displayName}
+            memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
+            selectedMemberId={transitViewId}
+            onSelectMember={setTransitViewId}
           />
         )}
 

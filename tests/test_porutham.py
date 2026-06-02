@@ -14,6 +14,7 @@ from app.calculations.porutham import (
     _vasya_score,
     _vedha_score,
     _yoni_score,
+    check_nadi_dosha,
     compute_porutham,
 )
 
@@ -186,6 +187,20 @@ def test_compute_porutham_no_dosha_case():
     )
     assert result.rajju_dosha is False
     assert result.vedha_dosha is False
+
+
+def test_nadi_dosha_helper_flags_same_nadi():
+    out = check_nadi_dosha(1, 2)
+    assert out["boy_nadi"] == out["girl_nadi"]
+    assert out["has_nadi_dosha"] is True
+
+
+def test_compute_porutham_includes_nadi_payload():
+    result = compute_porutham(
+        boy_nakshatra=1, girl_nakshatra=2,
+        boy_rasi=1, girl_rasi=2,
+    )
+    assert "has_nadi_dosha" in result.nadi_dosha
 
 
 def test_compute_porutham_bilingual_summary():

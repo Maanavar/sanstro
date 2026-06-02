@@ -34,6 +34,8 @@ import { DayStrip } from "./day-strip";
 import { MemberChip } from "./member-chip";
 import { AlertBanner } from "./alert-banner";
 import { CollapsibleSection } from "./collapsible-section";
+import { VargasPanel } from "./dashboard-vargas-panel";
+import { PrasnaWidget } from "./dashboard-prasna-widget";
 
 type DashboardPersonalTabProps = {
   lang: Lang;
@@ -68,6 +70,9 @@ type DashboardPersonalTabProps = {
   nakshatraCard: NakshatraCardData | null;
   peyarchiReport: PeyarchiReportData | null;
   onGoToFamily?: () => void;
+  onOpenPrasna?: () => void;
+  showPrasna?: boolean;
+  onClosePrasna?: () => void;
 };
 
 const SCORE_HIGH = "var(--color-score-high, #5C7654)";
@@ -195,6 +200,9 @@ export function DashboardPersonalTab({
   nakshatraCard,
   peyarchiReport,
   onGoToFamily,
+  onOpenPrasna,
+  showPrasna = false,
+  onClosePrasna,
 }: DashboardPersonalTabProps) {
   const displayName = personalMemberChart?.displayName ?? birthDisplayName;
   const isChandrashtama = personalTransit?.isChandrashtama ?? false;
@@ -316,8 +324,39 @@ export function DashboardPersonalTab({
     );
   }
 
+  const validationStatus = personalChartSummary?.chartValidationStatus ?? null;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "#3D352B" }}>
+
+      {/* ── Chart validation confidence chip ── */}
+      {validationStatus && (
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+          {(() => {
+            const { confidence, matchCount, totalChecked } = validationStatus;
+            const color = confidence === "HIGH" ? "#5C7654" : confidence === "MEDIUM" ? "#B85A2C" : confidence === "LOW" ? "#A8482F" : "#7A6F5E";
+            const icon = confidence === "HIGH" ? "✓" : confidence === "UNVALIDATED" ? "—" : "⚠";
+            const label = confidence === "HIGH"
+              ? (lang === "ta" ? `உயர் நம்பகம் — ${matchCount}/${totalChecked} பொருந்தியது` : `High confidence — ${matchCount}/${totalChecked} events matched`)
+              : confidence === "MEDIUM"
+              ? (lang === "ta" ? `நடுத்தர நம்பகம் — ${matchCount}/${totalChecked} பொருந்தியது` : `Moderate — ${matchCount}/${totalChecked} matched`)
+              : confidence === "LOW"
+              ? (lang === "ta" ? `குறைவான நம்பகம் — ${matchCount}/${totalChecked} பொருந்தியது` : `Low confidence — ${matchCount}/${totalChecked} matched`)
+              : (lang === "ta" ? "நிகழ்வுகள் பதிவு செய்யப்படவில்லை" : "No life events on record");
+            return (
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: "6px",
+                padding: "4px 12px", borderRadius: "var(--radius-pill)",
+                background: `${color}18`, border: `1px solid ${color}44`,
+                fontSize: "0.75rem", fontWeight: 600, color,
+              }}>
+                <span>{icon}</span>
+                <span>{label}</span>
+              </span>
+            );
+          })()}
+        </div>
+      )}
 
       {/* ── Panchangam drop (above alerts) ── */}
       {panchangam && (
@@ -378,81 +417,21 @@ export function DashboardPersonalTab({
         </div>
       )}
 
-      {/* ── Member switcher (if family members exist) ── */}
-      {memberCharts.length > 0 && (
-        <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
-          <button
-            type="button"
-            onClick={() => onSelectPersonalView(null)}
-            style={{
-              padding: "var(--space-1) var(--space-3_5)", borderRadius: "var(--radius-pill)", border: "1.5px solid",
-              borderColor: personalViewId === null ? "#1A1612" : "#D4C8AE",
-              background: personalViewId === null ? "#1A1612" : "transparent",
-              color: personalViewId === null ? "#F4EEE2" : "#7A6F5E",
-              fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-            }}
-          >
-            {birthDisplayName || t("personal_you", lang)}
-          </button>
-          {memberCharts.map((mc) => (
-            <button
-              key={mc.memberId}
-              type="button"
-              onClick={() => onSelectPersonalView(mc.memberId)}
-              style={{
-                padding: "var(--space-1) var(--space-3_5)", borderRadius: "var(--radius-pill)", border: "1.5px solid",
-                borderColor: personalViewId === mc.memberId ? "#1A1612" : "#D4C8AE",
-                background: personalViewId === mc.memberId ? "#1A1612" : "transparent",
-                color: personalViewId === mc.memberId ? "#F4EEE2" : "#7A6F5E",
-                fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-              }}
-            >
-              {mc.displayName}
-            </button>
-          ))}
-          {!personalViewId && (
-            <button
-              type="button"
-              onClick={() => onRefreshPersonal()}
-              disabled={!birthProfileId || busyPersonal}
-              style={{
-                marginLeft: "auto", padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)",
-                border: "1px solid #D4C8AE", background: "transparent",
-                color: "#7A6F5E", fontSize: "0.875rem", cursor: "pointer", fontFamily: "inherit",
-              }}
-            >
-              {busyPersonal ? t("btn_refreshing", lang) : t("btn_refresh", lang)}
-            </button>
-          )}
-          {activeChartId && (
-            <button
-              type="button"
-              onClick={() => void downloadPersonalChartPdf()}
-              style={{
-                padding: "var(--space-1) var(--space-3)",
-                borderRadius: "var(--radius-pill)",
-                border: "1px solid var(--color-border)",
-                background: "var(--color-surface)",
-                color: "var(--color-text)",
-                fontSize: "0.875rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                fontFamily: "inherit",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "var(--space-1_5)",
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <path d="M7 1v8M4 6l3 3 3-3M2 11h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-              {lang === "ta" ? "PDF பதிவிறக்கம்" : "Download PDF"}
-            </button>
-          )}
-        </div>
-      )}
-      {memberCharts.length === 0 && activeChartId && (
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+      {/* ── Action bar: refresh + PDF (personal tab is root-user only) ── */}
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", flexWrap: "wrap" }}>
+        <button
+          type="button"
+          onClick={() => onRefreshPersonal()}
+          disabled={!birthProfileId || busyPersonal}
+          style={{
+            padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)",
+            border: "1px solid #D4C8AE", background: "transparent",
+            color: "#7A6F5E", fontSize: "0.875rem", cursor: "pointer", fontFamily: "inherit",
+          }}
+        >
+          {busyPersonal ? t("btn_refreshing", lang) : t("btn_refresh", lang)}
+        </button>
+        {activeChartId && (
           <button
             type="button"
             onClick={() => void downloadPersonalChartPdf()}
@@ -476,8 +455,8 @@ export function DashboardPersonalTab({
             </svg>
             {lang === "ta" ? "PDF பதிவிறக்கம்" : "Download PDF"}
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* ── HERO: Left headline + Right score card ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr minmax(280px,420px)", gap: "var(--space-7)", alignItems: "start" }}>
@@ -1249,6 +1228,46 @@ export function DashboardPersonalTab({
       )}
 
       </div>{/* end css-var override wrapper */}
+
+      {/* ── Divisional Charts (Vargas) ── */}
+      {personalChart && (
+        <div style={{
+          padding: "var(--space-3_5) var(--space-4_5)",
+          borderRadius: "var(--radius-md)",
+          border: "1px solid #E4DBC8",
+          background: "#FAF5EA",
+        }}>
+          <VargasPanel
+            lang={lang}
+            vargas={personalChart.vargas}
+            d1Planets={Object.fromEntries(personalChart.planets.map(p => [p.graha, p.rasi]))}
+            bhavaChalit={personalChart.bhavaChalit}
+          />
+        </div>
+      )}
+
+      {/* ── Prasna (Horary) ── */}
+      {onOpenPrasna && (
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+          <Button variant="ghost" onClick={onOpenPrasna}>
+            {lang === "ta" ? "ப்ரஸ்ன கேள்வி கேளுங்கள்" : "Ask a Horary Question"}
+          </Button>
+          <span style={{ fontSize: "0.75rem", color: "#7A6F5E" }}>
+            {lang === "ta" ? "பிறந்த நேரம் தெரியாவிட்டால் அல்லது உடனடி கேள்விக்கு" : "When birth time is unknown or for an immediate question"}
+          </span>
+        </div>
+      )}
+
+      {onClosePrasna && personalChart && (
+        <PrasnaWidget
+          lang={lang}
+          open={showPrasna}
+          onClose={onClosePrasna}
+          timezone={personalChart.birthProfile.birthTimezone ?? "Asia/Kolkata"}
+          latitude={personalChart.birthProfile.birthLatitude ?? 13.0827}
+          longitude={personalChart.birthProfile.birthLongitude ?? 80.2707}
+        />
+      )}
     </div>
   );
 }

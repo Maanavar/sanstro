@@ -1,4 +1,6 @@
-from app.services.life_areas_service import _narrative
+from datetime import date
+
+from app.services.life_areas_service import _duration_caution, _narrative
 
 
 def test_low_score_health_caution_uses_non_chandrashtama_text_when_false():
@@ -114,3 +116,9 @@ def test_low_score_family_caution_is_conditional():
     assert bundle_with_chandra.caution is not None
     assert "Chandrashtamam" not in bundle_no_chandra.caution.en
     assert "Chandrashtamam" in bundle_with_chandra.caution.en
+
+
+def test_duration_caution_includes_until_date_and_action():
+    caution = _duration_caution("CAREER", date(2026, 9, 1))
+    assert "until" in caution.en.lower()
+    assert "Improvement starts" in caution.en

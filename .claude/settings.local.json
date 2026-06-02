@@ -91,7 +91,9 @@
       "PowerShell($env:PYTHONIOENCODING = \"utf-8\"; $env:PYTHONUTF8 = \"1\"; python C:\\\\tmp\\\\fix_double_encoded.py)",
       "PowerShell($env:PYTHONIOENCODING = \"utf-8\"; $env:PYTHONUTF8 = \"1\"; python C:\\\\tmp\\\\fix_all_encoding.py)",
       "PowerShell($env:PYTHONIOENCODING = \"utf-8\"; $env:PYTHONUTF8 = \"1\"; python C:\\\\tmp\\\\check_synastry.py)",
-      "PowerShell($env:PYTHONIOENCODING = \"utf-8\"; $env:PYTHONUTF8 = \"1\"; python C:\\\\tmp\\\\test_decode.py)"
+      "PowerShell($env:PYTHONIOENCODING = \"utf-8\"; $env:PYTHONUTF8 = \"1\"; python C:\\\\tmp\\\\test_decode.py)",
+      "PowerShell($env:PYTHONUTF8 = \"1\"; $env:PYTHONIOENCODING = \"utf-8\"; $env:JOTHIDAM_DATABASE_URL = \"postgresql://slw_admin:slw_dev_password@localhost:5433/vinaadi_test\"; $env:JOTHIDAM_TEST_DB_RESET_ACK = \"I_UNDERSTAND_THIS_WIPES_TEST_DB\"; Set-Location 'C:\\\\Users\\\\senth\\\\OneDrive\\\\문서\\\\GitHub\\\\sanstro'; python -m pytest tests/ -q --tb=short 2>&1 | Select-Object -First 150)",
+      "PowerShell($env:PYTHONIOENCODING = \"utf-8\"; $env:PYTHONUTF8 = \"1\"; Set-Location 'C:\\\\Users\\\\senth\\\\OneDrive\\\\문서\\\\GitHub\\\\sanstro'; python -c \"from app.main import app; print\\('OK'\\)\" 2>&1 | Select-Object -First 40)"
     ],
     "additionalDirectories": [
       "\\tmp"

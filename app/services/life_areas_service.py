@@ -21,14 +21,20 @@ from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga, compute_sarvashtakavarga
 from app.calculations.astro import house_from_reference, resolve_timezone, utc_datetime_to_julian_day
 from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.dasha import calculate_vimshottari_timeline
+from app.calculations.double_transit import score_double_transit
 from app.calculations.ephemeris import calculate_sidereal_planets
+from app.calculations.functional_nature import FunctionalNature, get_functional_nature
 from app.calculations.karaka_chains import LIFE_AREA_KARAKA
+from app.calculations.maturation import maturation_multiplier
+from app.calculations.prediction_score import PredictionScoreInput, compute_prediction_score
+from app.calculations.remedies import get_area_remedy
 from app.calculations.transits import classify_kandaka_cycle, classify_sani_cycle
 from app.schemas.dasha import ResponseMeta
 from app.schemas.life_areas import (
@@ -39,9 +45,11 @@ from app.schemas.life_areas import (
     LifeAreasResponseData,
 )
 from app.models import BirthProfile, Chart
+from app.models.user_life_events import UserLifeEvent
 from app.services.chart_service import load_persisted_chart_response
 from app.services.goals_service import get_active_goals_for_chart
 from app.services.location_service import resolve_effective_daily_timezone
+from app.services.rectification_service import validate_chart_against_events
 
 
 # ── Bilingual helper ───────────────────────────────────────────────────────────
@@ -74,6 +82,12 @@ _AREA_LABELS = {
     "EDUCATION":       _t("கல்வி",          "Education"),
     "SPIRITUAL":       _t("ஆன்மீகம்",       "Spiritual Growth"),
     "FAMILY_HARMONY":  _t("குடும்ப நலம்",   "Family Harmony"),
+    "WEALTH":          _t("செல்வம்",         "Wealth"),
+    "CHILDREN":        _t("பிள்ளைகள்",       "Children"),
+    "PROPERTY":        _t("சொத்து",          "Property"),
+    "FOREIGN":         _t("வெளிநாடு",        "Foreign"),
+    "LITIGATION":      _t("வழக்கு",          "Litigation"),
+    "SPIRITUALITY":    _t("ஆன்மிகம்",        "Spirituality"),
 }
 
 # ── House quality tables (from Moon — Tamil Thirukanitham) ────────────────────
@@ -147,19 +161,64 @@ _DASHA_AREA_SCORE: dict[str, dict[str, int]] = {
         "SUN": 55, "MOON": 72, "MARS": 50, "MERCURY": 58,
         "JUPITER": 70, "VENUS": 68, "SATURN": 45, "RAHU": 42, "KETU": 42,
     },
+    "WEALTH": {
+        "SUN": 55, "MOON": 58, "MARS": 52, "MERCURY": 72,
+        "JUPITER": 70, "VENUS": 68, "SATURN": 50, "RAHU": 58, "KETU": 38,
+    },
+    "CHILDREN": {
+        "SUN": 55, "MOON": 65, "MARS": 50, "MERCURY": 50,
+        "JUPITER": 85, "VENUS": 60, "SATURN": 35, "RAHU": 40, "KETU": 45,
+    },
+    "PROPERTY": {
+        "SUN": 55, "MOON": 60, "MARS": 80, "MERCURY": 55,
+        "JUPITER": 65, "VENUS": 75, "SATURN": 50, "RAHU": 45, "KETU": 40,
+    },
+    "FOREIGN": {
+        "SUN": 45, "MOON": 55, "MARS": 50, "MERCURY": 65,
+        "JUPITER": 60, "VENUS": 60, "SATURN": 45, "RAHU": 85, "KETU": 50,
+    },
+    "LITIGATION": {
+        "SUN": 60, "MOON": 40, "MARS": 75, "MERCURY": 60,
+        "JUPITER": 55, "VENUS": 40, "SATURN": 70, "RAHU": 65, "KETU": 45,
+    },
+    "SPIRITUALITY": {
+        "SUN": 65, "MOON": 60, "MARS": 45, "MERCURY": 55,
+        "JUPITER": 80, "VENUS": 50, "SATURN": 60, "RAHU": 40, "KETU": 85,
+    },
 }
 
 # ── Sani cycle penalties per area ─────────────────────────────────────────────
 
 _SANI_AREA_PENALTY: dict[str, dict[str, int]] = {
     # Sade Sati: house 1 = peak (Janma Sani), house 12 = approaching, house 2 = leaving
-    "JANMA_SANI":          {"CAREER": 12, "MONEY": 8,  "HEALTH": 15, "RELATIONSHIPS": 10, "EDUCATION": 8,  "SPIRITUAL": 0,  "FAMILY_HARMONY": 10},
-    "EZHARAI_SANI_PHASE_1":{"CAREER": 6,  "MONEY": 5,  "HEALTH": 8,  "RELATIONSHIPS": 5,  "EDUCATION": 4,  "SPIRITUAL": 0,  "FAMILY_HARMONY": 5},
-    "EZHARAI_SANI_PHASE_3":{"CAREER": 8,  "MONEY": 6,  "HEALTH": 10, "RELATIONSHIPS": 7,  "EDUCATION": 5,  "SPIRITUAL": 0,  "FAMILY_HARMONY": 7},
-    "ARDHASHTAMA_SANI":    {"CAREER": 8,  "MONEY": 12, "HEALTH": 10, "RELATIONSHIPS": 8,  "EDUCATION": 6,  "SPIRITUAL": 0,  "FAMILY_HARMONY": 8},
-    "ASHTAMA_SANI":        {"CAREER": 15, "MONEY": 15, "HEALTH": 18, "RELATIONSHIPS": 12, "EDUCATION": 10, "SPIRITUAL": 0,  "FAMILY_HARMONY": 12},
-    "KANTAKA_SANI":        {"CAREER": 18, "MONEY": 10, "HEALTH": 12, "RELATIONSHIPS": 8,  "EDUCATION": 8,  "SPIRITUAL": 0,  "FAMILY_HARMONY": 8},
-    "KANDAKA_SANI":        {"CAREER": 10, "MONEY": 15, "HEALTH": 8,  "RELATIONSHIPS": 10, "EDUCATION": 5,  "SPIRITUAL": 8,  "FAMILY_HARMONY": 10},
+    "JANMA_SANI": {
+        "CAREER": 12, "MONEY": 8, "HEALTH": 15, "RELATIONSHIPS": 10, "EDUCATION": 8, "SPIRITUAL": 0, "FAMILY_HARMONY": 10,
+        "CHILDREN": 8, "PROPERTY": 10, "FOREIGN": 5, "LITIGATION": 9, "SPIRITUALITY": 0,
+    },
+    "EZHARAI_SANI_PHASE_1": {
+        "CAREER": 6, "MONEY": 5, "HEALTH": 8, "RELATIONSHIPS": 5, "EDUCATION": 4, "SPIRITUAL": 0, "FAMILY_HARMONY": 5,
+        "CHILDREN": 4, "PROPERTY": 5, "FOREIGN": 3, "LITIGATION": 4, "SPIRITUALITY": 0,
+    },
+    "EZHARAI_SANI_PHASE_3": {
+        "CAREER": 8, "MONEY": 6, "HEALTH": 10, "RELATIONSHIPS": 7, "EDUCATION": 5, "SPIRITUAL": 0, "FAMILY_HARMONY": 7,
+        "CHILDREN": 6, "PROPERTY": 7, "FOREIGN": 4, "LITIGATION": 6, "SPIRITUALITY": 0,
+    },
+    "ARDHASHTAMA_SANI": {
+        "CAREER": 8, "MONEY": 12, "HEALTH": 10, "RELATIONSHIPS": 8, "EDUCATION": 6, "SPIRITUAL": 0, "FAMILY_HARMONY": 8,
+        "CHILDREN": 7, "PROPERTY": 10, "FOREIGN": 5, "LITIGATION": 8, "SPIRITUALITY": 0,
+    },
+    "ASHTAMA_SANI": {
+        "CAREER": 15, "MONEY": 15, "HEALTH": 18, "RELATIONSHIPS": 12, "EDUCATION": 10, "SPIRITUAL": 0, "FAMILY_HARMONY": 12,
+        "CHILDREN": 12, "PROPERTY": 15, "FOREIGN": 7, "LITIGATION": 12, "SPIRITUALITY": 0,
+    },
+    "KANTAKA_SANI": {
+        "CAREER": 18, "MONEY": 10, "HEALTH": 12, "RELATIONSHIPS": 8, "EDUCATION": 8, "SPIRITUAL": 0, "FAMILY_HARMONY": 8,
+        "CHILDREN": 8, "PROPERTY": 9, "FOREIGN": 5, "LITIGATION": 10, "SPIRITUALITY": 0,
+    },
+    "KANDAKA_SANI": {
+        "CAREER": 10, "MONEY": 15, "HEALTH": 8, "RELATIONSHIPS": 10, "EDUCATION": 5, "SPIRITUAL": 8, "FAMILY_HARMONY": 10,
+        "CHILDREN": 7, "PROPERTY": 12, "FOREIGN": 5, "LITIGATION": 9, "SPIRITUALITY": 5,
+    },
 }
 
 # ── Karaka (significator) planets per area ─────────────────────────────────────
@@ -173,6 +232,43 @@ _AREA_KARAKA: dict[str, list[str]] = {
     "EDUCATION":      ["MERCURY", "JUPITER"],    # 4th/5th: Budhan, Guru
     "SPIRITUAL":      ["JUPITER", "KETU"],       # 9th/12th: Guru, Ketu
     "FAMILY_HARMONY": ["MOON", "JUPITER"],       # 4th: Chandran, Guru
+    "WEALTH":         ["JUPITER", "VENUS"],
+    "CHILDREN":       ["JUPITER", "MOON"],
+    "PROPERTY":       ["MARS", "VENUS"],
+    "FOREIGN":        ["RAHU", "SATURN"],
+    "LITIGATION":     ["MARS", "SATURN"],
+    "SPIRITUALITY":   ["KETU", "JUPITER"],
+}
+
+_AREA_PRIMARY_HOUSE: dict[str, int] = {
+    "CAREER": 10,
+    "MONEY": 2,
+    "WEALTH": 2,
+    "HEALTH": 1,
+    "RELATIONSHIPS": 7,
+    "EDUCATION": 5,
+    "SPIRITUAL": 9,
+    "SPIRITUALITY": 9,
+    "FAMILY_HARMONY": 4,
+    "CHILDREN": 5,
+    "PROPERTY": 4,
+    "FOREIGN": 12,
+    "LITIGATION": 6,
+}
+
+_AREA_ROUTING: dict[str, dict] = {
+    "CAREER": {"houses": [10, 6, 2, 11], "karaka": ["SUN", "SATURN"], "varga": "D10", "maraka_risk": False},
+    "RELATIONSHIPS": {"houses": [7, 2, 4, 8], "karaka": ["VENUS", "JUPITER"], "varga": "D9", "maraka_risk": False},
+    "HEALTH": {"houses": [1, 6, 8, 12], "karaka": ["SUN", "MOON"], "varga": "D30", "maraka_risk": True},
+    "MONEY": {"houses": [2, 5, 9, 11], "karaka": ["JUPITER", "VENUS"], "varga": "D2", "maraka_risk": False},
+    "WEALTH": {"houses": [2, 5, 9, 11], "karaka": ["JUPITER", "VENUS"], "varga": "D2", "maraka_risk": False},
+    "EDUCATION": {"houses": [2, 4, 5, 9], "karaka": ["MERCURY", "JUPITER"], "varga": "D24", "maraka_risk": False},
+    "CHILDREN": {"houses": [5, 9], "karaka": ["JUPITER"], "varga": "D7", "maraka_risk": False},
+    "PROPERTY": {"houses": [4, 11], "karaka": ["MARS", "VENUS"], "varga": "D4", "maraka_risk": False},
+    "FOREIGN": {"houses": [3, 9, 12], "karaka": ["RAHU"], "varga": "D9", "maraka_risk": False},
+    "LITIGATION": {"houses": [6, 7, 8], "karaka": ["MARS", "SATURN"], "varga": "D30", "maraka_risk": False},
+    "SPIRITUAL": {"houses": [5, 9, 12], "karaka": ["KETU", "JUPITER"], "varga": "D20", "maraka_risk": False},
+    "SPIRITUALITY": {"houses": [5, 9, 12], "karaka": ["KETU", "JUPITER"], "varga": "D20", "maraka_risk": False},
 }
 
 
@@ -207,10 +303,10 @@ def _age_phase(age: int) -> str:
 _PHASE_RELEVANT_AREAS: dict[str, set[str]] = {
     "INFANT": {"HEALTH", "FAMILY_HARMONY"},
     "CHILD": {"HEALTH", "EDUCATION", "FAMILY_HARMONY"},
-    "TEEN": {"EDUCATION", "HEALTH", "SPIRITUAL", "FAMILY_HARMONY"},
-    "YOUNG_ADULT": {"CAREER", "MONEY", "HEALTH", "RELATIONSHIPS", "EDUCATION", "SPIRITUAL", "FAMILY_HARMONY"},
-    "MID": {"CAREER", "MONEY", "HEALTH", "RELATIONSHIPS", "EDUCATION", "SPIRITUAL", "FAMILY_HARMONY"},
-    "ELDER": {"HEALTH", "SPIRITUAL", "FAMILY_HARMONY", "MONEY"},
+    "TEEN": {"EDUCATION", "HEALTH", "SPIRITUAL", "FAMILY_HARMONY", "FOREIGN"},
+    "YOUNG_ADULT": {"CAREER", "MONEY", "HEALTH", "RELATIONSHIPS", "EDUCATION", "SPIRITUAL", "FAMILY_HARMONY", "CHILDREN", "PROPERTY", "FOREIGN", "LITIGATION", "SPIRITUALITY"},
+    "MID": {"CAREER", "MONEY", "HEALTH", "RELATIONSHIPS", "EDUCATION", "SPIRITUAL", "FAMILY_HARMONY", "CHILDREN", "PROPERTY", "FOREIGN", "LITIGATION", "SPIRITUALITY"},
+    "ELDER": {"HEALTH", "SPIRITUAL", "SPIRITUALITY", "FAMILY_HARMONY", "MONEY", "FOREIGN"},
 }
 
 
@@ -250,6 +346,32 @@ def _not_applicable_text() -> LifeAreaText:
     return _t(
         "இந்த உள்ளடக்கம் தற்போதைய வாழ்க்கை நிலையில் பொருந்தாது.",
         "This content is not applicable for the current life stage.",
+    )
+
+
+_AREA_ACTION_GUIDANCE: dict[str, dict[str, str]] = {
+    "CAREER": {"ta": "தொழில் திறன்களை மேம்படுத்தி புதிய வாய்ப்புகளுக்கு விண்ணப்பிக்கவும்.", "en": "Upgrade skills and apply for relevant opportunities."},
+    "MONEY": {"ta": "செலவுகளை கட்டுப்படுத்து, சேமிப்பு திட்டத்தை தொடங்கவும்.", "en": "Control expenses and start a disciplined savings plan."},
+    "WEALTH": {"ta": "நிதி திட்டத்தை எழுதிப் பின்பற்றவும்.", "en": "Follow a written financial plan."},
+    "HEALTH": {"ta": "மருத்துவ பரிசோதனை மற்றும் ஒழுங்கான தூக்கத்தைக் கடைப்பிடிக்கவும்.", "en": "Maintain regular medical checkups and sleep discipline."},
+    "RELATIONSHIPS": {"ta": "அவசர பதில்களை தவிர்த்து அமைதியான உரையாடலைத் தொடங்கவும்.", "en": "Avoid reactive replies and start calm conversations."},
+    "EDUCATION": {"ta": "தினசரி படிப்பு அட்டவணையை கடைபிடிக்கவும்.", "en": "Follow a daily study routine."},
+    "CHILDREN": {"ta": "குடும்ப ஆலோசனையுடன் நீண்டகால திட்டமிடலை தொடங்கவும்.", "en": "Plan with family support and patience."},
+    "PROPERTY": {"ta": "சட்ட ஆவணங்களை சரிபார்த்து அடுத்த படி எடுக்கவும்.", "en": "Verify legal documents before major commitments."},
+    "FOREIGN": {"ta": "பயணம்/விசா ஆவணங்களை முன்கூட்டியே தயாரிக்கவும்.", "en": "Prepare travel/visa documentation early."},
+    "LITIGATION": {"ta": "தகுதியான சட்ட ஆலோசகருடன் விருப்பங்களை மதிப்பாய்வு செய்யவும்.", "en": "Review options with a qualified legal advisor."},
+    "SPIRITUAL": {"ta": "தினசரி தியானம் அல்லது ஜபம் நடைமுறைப்படுத்தவும்.", "en": "Maintain a daily meditation or mantra practice."},
+    "SPIRITUALITY": {"ta": "தினசரி தியானம் அல்லது ஜபம் நடைமுறைப்படுத்தவும்.", "en": "Maintain a daily meditation or mantra practice."},
+    "FAMILY_HARMONY": {"ta": "குடும்ப முடிவுகளை கலந்துரையாடி ஒன்றாக எடுக்கவும்.", "en": "Take family decisions collaboratively."},
+}
+
+
+def _duration_caution(area: str, end_date: date) -> LifeAreaText:
+    guidance = _AREA_ACTION_GUIDANCE.get(area, {"ta": "அமைதியாக திட்டமிட்டு செயல்படவும்.", "en": "Act with patient planning."})
+    date_text = end_date.strftime("%d %b %Y")
+    return _t(
+        f"இந்த சவாலான காலம் {date_text} வரை நீடிக்கும். {guidance['ta']} அதன் பிறகு முன்னேற்றம் தெளிவாகத் தொடங்கும்.",
+        f"This challenging period lasts until {date_text}. {guidance['en']} Improvement starts clearly after this date.",
     )
 
 
@@ -360,7 +482,13 @@ def _find_next_improvement_date(
     natal_moon_rasi: int,
     natal_lagna_rasi: int,
     moon_longitude: float,
-) -> date | None:
+    natal_planet_scores: dict[str, int],
+    natal_planet_rasis: dict[str, int],
+    vargas: dict[str, dict[str, int]] | None,
+    bav: dict[str, dict[int, int]] | None,
+    sav: dict[int, int] | None,
+    native_age: int,
+) -> date:
     target_score = max(55, current_score + 8)
     for offset_days in range(7, 181, 7):
         check_date = on_date + timedelta(days=offset_days)
@@ -377,7 +505,7 @@ def _find_next_improvement_date(
         saturn_house_from_lagna = house_from_reference(natal_lagna_rasi, saturn.rasi)
         sani_cycle = classify_sani_cycle(saturn_house_from_moon)
         kandaka_cycle = classify_kandaka_cycle(saturn_house_from_lagna)
-        projected = _score_area(
+        projected, _ = _score_area(
             area,
             natal_moon_rasi,
             transit.bodies,
@@ -387,10 +515,17 @@ def _find_next_improvement_date(
             sani_cycle.is_active,
             kandaka_cycle.is_active,
             chandrashtama,
+            lagna_rasi=natal_lagna_rasi,
+            natal_planet_scores=natal_planet_scores,
+            natal_planet_rasis=natal_planet_rasis,
+            vargas=vargas,
+            bav=bav,
+            sav=sav,
+            native_age=native_age,
         )
         if projected >= target_score:
             return check_date
-    return None
+    return on_date + timedelta(days=90)
 
 
 # ── Narrative templates per area × score band ─────────────────────────────────
@@ -654,6 +789,55 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                     ),
                 )
 
+        case "CHILDREN" | "PROPERTY" | "FOREIGN" | "LITIGATION" | "SPIRITUALITY":
+            area_text = {
+                "CHILDREN": ("பிள்ளைகள் சார்ந்த", "children-related"),
+                "PROPERTY": ("சொத்து சார்ந்த", "property-related"),
+                "FOREIGN": ("வெளிநாடு சார்ந்த", "foreign/travel"),
+                "LITIGATION": ("வழக்கு சார்ந்த", "litigation"),
+                "SPIRITUALITY": ("ஆன்மிக", "spiritual"),
+            }.get(area, ("இந்த துறை", "this area"))
+            action = _AREA_ACTION_GUIDANCE.get(area, {"ta": "திட்டமிட்டு செயல்படவும்.", "en": "Act with clear planning."})
+            if score >= 70:
+                narr = _t(
+                    f"{area_text[0]} விஷயங்களில் நல்ல ஆதரவு உள்ளது. {planet_ta} தசை பலன் தருகிறது.",
+                    f"{area_text[1].capitalize()} matters are strongly supported. {planet_en} dasa is favourable.",
+                )
+                outlook = _t(
+                    f"அடுத்த 30 நாட்களில் வளர்ச்சி வாய்ப்பு உள்ளது. {action['ta']}",
+                    f"The next 30 days are supportive for progress. {action['en']}",
+                )
+                remedy = _t("தொடர்ச்சியான வழிபாடு மற்றும் ஒழுக்கமான முயற்சி தொடரவும்.", "Continue steady worship and disciplined effort.")
+            elif score >= 50:
+                narr = _t(
+                    f"{area_text[0]} விஷயங்களில் நடுநிலை பலன். பொறுமையுடன் முன்னேறவும்.",
+                    f"{area_text[1].capitalize()} matters show mixed support. Progress with patience.",
+                )
+                outlook = _t(
+                    "அடுத்த 30 நாட்களில் நிலையான முன்னேற்றம் சாத்தியம்.",
+                    "Steady improvement is possible over the next 30 days.",
+                )
+                remedy = _t("நேரம் தவறாமல் பரிகாரத்தை பின்பற்றவும்.", "Follow remedies consistently and on schedule.")
+            else:
+                narr = _t(
+                    f"{area_text[0]} விஷயங்களில் தற்கால சவால் உள்ளது. அவசர முடிவுகளைத் தவிர்க்கவும்.",
+                    f"There is temporary strain in {area_text[1]} matters. Avoid rushed decisions.",
+                )
+                outlook = _t(
+                    "அடுத்த 30 நாட்களில் பாதுகாப்பான, குறைந்த ஆபத்து முடிவுகளை மட்டும் எடுக்கவும்.",
+                    "Over the next 30 days, prefer safer and lower-risk choices.",
+                )
+                remedy = _t("தினசரி ஜபம் மற்றும் பரிகாரம் தவறாமல் செய்யவும்.", "Maintain daily mantra and remedies without interruption.")
+                return _NarrativeBundle(
+                    narr,
+                    outlook,
+                    remedy,
+                    caution=_t(
+                        "இந்த காலத்தில் பெரிய முடிவுகளை ஒத்திவைத்து படிப்படியாக செயல்படவும்.",
+                        "Defer major commitments during this period and act in measured steps.",
+                    ),
+                )
+
         case "SPIRITUAL":
             if score >= 70:
                 narr = _t(
@@ -737,46 +921,104 @@ def _score_area(
     sani_cycle_active: bool,
     kandaka_sani_active: bool,
     chandrashtama: bool,
-) -> int:
-    karakas = _AREA_KARAKA[area]
+    *,
+    lagna_rasi: int,
+    natal_planet_scores: dict[str, int],
+    natal_planet_rasis: dict[str, int],
+    vargas: dict[str, dict[str, int]] | None = None,
+    bav: dict[str, dict[int, int]] | None = None,
+    sav: dict[int, int] | None = None,
+    native_age: int = 30,
+) -> tuple[int, dict[str, int]]:
+    karakas = _AREA_KARAKA.get(area, ["JUPITER"])
     primary_karaka = karakas[0]
+    primary_house = _AREA_PRIMARY_HOUSE.get(area, 1)
+    primary_house_rasi = ((lagna_rasi + primary_house - 2) % 12) + 1
+    house_lord = SIGN_LORD.get(primary_house_rasi, "SUN")
 
-    # Karaka transit score (primary)
-    if primary_karaka in _HOUSE_SCORE_TABLE and primary_karaka in transit_bodies:
-        h = house_from_reference(natal_moon_rasi, transit_bodies[primary_karaka].rasi)
-        karaka_score = _HOUSE_SCORE_TABLE[primary_karaka][h]
-    else:
-        karaka_score = 50
+    transit_rasi = transit_bodies.get(primary_karaka).rasi if primary_karaka in transit_bodies else natal_moon_rasi
+    karaka_house_from_moon = house_from_reference(natal_moon_rasi, transit_rasi)
+    jupiter_house = house_from_reference(natal_moon_rasi, transit_bodies["JUPITER"].rasi)
+    saturn_house = house_from_reference(natal_moon_rasi, transit_bodies["SATURN"].rasi)
 
-    # Secondary karaka (if available, blend 70/30)
-    if len(karakas) > 1:
-        sec = karakas[1]
-        if sec in _HOUSE_SCORE_TABLE and sec in transit_bodies:
-            h2 = house_from_reference(natal_moon_rasi, transit_bodies[sec].rasi)
-            sec_score = _HOUSE_SCORE_TABLE[sec][h2]
-            karaka_score = round(karaka_score * 0.70 + sec_score * 0.30)
+    jupiter_house_score = _JUPITER_HOUSE_SCORE.get(jupiter_house, 50)
+    saturn_house_score = _SATURN_HOUSE_SCORE.get(saturn_house, 50) - 50
 
-    # Dasha lord affinity — maha 70% + antardasha 30%
-    maha_score = _DASHA_AREA_SCORE[area].get(maha_lord, 52)
-    antar_score = _DASHA_AREA_SCORE[area].get(antar_lord, 52)
-    dasha_score = round(maha_score * 0.70 + antar_score * 0.30)
+    # W11: double transit support
+    relevant_houses = set(_AREA_ROUTING.get(area, {}).get("houses", [primary_house]))
+    relevant_house_rasi = ((lagna_rasi + primary_house - 2) % 12) + 1
+    natal_house_lord_rasi = natal_planet_rasis.get(house_lord, lagna_rasi)
+    double_transit_score = score_double_transit(
+        relevant_house_rasi=relevant_house_rasi,
+        jupiter_transit_rasi=transit_bodies["JUPITER"].rasi,
+        saturn_transit_rasi=transit_bodies["SATURN"].rasi,
+        rahu_transit_rasi=transit_bodies["RAHU"].rasi,
+        natal_house_lord_rasi=natal_house_lord_rasi,
+    )
 
-    # Blend: 55% karaka transit + 35% dasha + 10% base
-    raw = round(karaka_score * 0.55 + dasha_score * 0.35 + 50 * 0.10)
+    # W10: varga confirmation
+    varga_confirmation = 0
+    varga_name = _AREA_ROUTING.get(area, {}).get("varga")
+    if varga_name and vargas and varga_name in vargas:
+        varga_map = vargas[varga_name]
+        varga_lord_rasi = varga_map.get(house_lord)
+        if varga_lord_rasi is not None:
+            varga_house = house_from_reference(lagna_rasi, varga_lord_rasi)
+            varga_confirmation = 10 if varga_house in {1, 4, 5, 7, 9, 10, 11} else -5
 
-    # Sani cycle penalty — from Moon (Janma/Ardhashtama/Ashtama/Kantaka)
-    if sani_cycle_active and sani_cycle_type and sani_cycle_type in _SANI_AREA_PENALTY:
-        raw -= _SANI_AREA_PENALTY[sani_cycle_type].get(area, 0)
+    # W09: ashtakavarga deltas
+    sav_delta = 0
+    bav_delta = 0
+    if sav:
+        sav_score = sav.get(primary_house_rasi, 28)
+        sav_delta = round((sav_score - 28) / 28 * 3)
+    if bav:
+        bav_score = bav.get(primary_karaka, {}).get(transit_rasi, 4)
+        bav_delta = round((bav_score - 4) / 4 * 5)
 
-    # Kandaka Sani penalty — Saturn in 1/4/7/10 from Lagna (separate from Moon cycle)
+    # W12: maturation multiplier from mahadasha lord
+    m_mult = maturation_multiplier(maha_lord, native_age)
+    maha_conn = house_from_reference(lagna_rasi, natal_planet_rasis.get(maha_lord, lagna_rasi)) in relevant_houses
+    antar_conn = house_from_reference(lagna_rasi, natal_planet_rasis.get(antar_lord, lagna_rasi)) in relevant_houses
+
+    inp = PredictionScoreInput(
+        house_lord_strength=natal_planet_scores.get(house_lord, 50),
+        karaka_strength=natal_planet_scores.get(primary_karaka, 50),
+        yoga_present=False,
+        yoga_strength="NONE",
+        dosham_present=False,
+        dosham_cancelled=False,
+        dosham_strength="NONE",
+        key_planet_strengths=[natal_planet_scores.get(p, 50) for p in set([house_lord] + karakas)],
+        maha_lord_functional_nature=get_functional_nature(lagna_rasi, maha_lord).value,
+        antar_lord_functional_nature=get_functional_nature(lagna_rasi, antar_lord).value,
+        maha_lord_house_connection=maha_conn,
+        antar_lord_house_connection=antar_conn,
+        maha_lord_strength=natal_planet_scores.get(maha_lord, 50),
+        maturation_multiplier=m_mult,
+        varga_confirmation=varga_confirmation,
+        jupiter_house_score=jupiter_house_score,
+        saturn_house_score=saturn_house_score,
+        double_transit_score=double_transit_score,
+        is_sade_sati=sani_cycle_type in {"JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_3"},
+        is_ashtama_sani=sani_cycle_type == "ASHTAMA_SANI",
+        bav_delta=bav_delta,
+        sav_delta=sav_delta,
+    )
+    scored = compute_prediction_score(inp)
     if kandaka_sani_active:
-        raw -= _SANI_AREA_PENALTY["KANDAKA_SANI"].get(area, 0)
-
-    # Chandrashtamam penalty for mind-sensitive areas
+        scored.total = max(0, scored.total - _SANI_AREA_PENALTY["KANDAKA_SANI"].get(area, 0))
     if chandrashtama and area in ("HEALTH", "RELATIONSHIPS", "FAMILY_HARMONY", "EDUCATION"):
-        raw -= 8
+        scored.total = max(0, scored.total - 8)
 
-    return max(0, min(100, raw))
+    return scored.total, {
+        "l1": scored.l1_birth_promise,
+        "l2": scored.l2_planet_strength,
+        "l3": scored.l3_dasha_activation,
+        "l4": scored.l4_varga_confirmation,
+        "l5": scored.l5_transit_support,
+        "l6": scored.l6_ashtakavarga,
+    }
 
 
 # ── Public service function ────────────────────────────────────────────────────
@@ -795,11 +1037,17 @@ def _assert_chart_owner(session: Session, chart_id: UUID, owner_user_id: UUID) -
 _AREA_TO_CHAIN_KEY: dict[str, str] = {
     "CAREER": "CAREER",
     "MONEY": "FINANCE",
+    "WEALTH": "FINANCE",
     "HEALTH": "HEALTH",
     "RELATIONSHIPS": "MARRIAGE",
     "EDUCATION": "CHILDREN",
     "SPIRITUAL": "SPIRITUAL",
+    "SPIRITUALITY": "SPIRITUAL",
     "FAMILY_HARMONY": "PROPERTY",
+    "CHILDREN": "CHILDREN",
+    "PROPERTY": "PROPERTY",
+    "FOREIGN": "FOREIGN_TRAVEL",
+    "LITIGATION": "CAREER",
 }
 
 _GOAL_TO_AREA: dict[str, str | None] = {
@@ -816,6 +1064,35 @@ _GOAL_TO_AREA: dict[str, str | None] = {
     "child_birth": "FAMILY_HARMONY",
     "other": None,
 }
+
+
+def _maraka_safety_check(
+    area: str,
+    maha_lord: str,
+    antar_lord: str,
+    lagna_rasi: int,
+    native_age: int,
+) -> dict[str, object] | None:
+    maha_fn = get_functional_nature(lagna_rasi, maha_lord)
+    antar_fn = get_functional_nature(lagna_rasi, antar_lord)
+    if (
+        area == "HEALTH"
+        and maha_fn == FunctionalNature.MARAKA
+        and antar_fn == FunctionalNature.MARAKA
+        and native_age > 65
+    ):
+        return {
+            "override_caution_ta": (
+                "இந்த காலகட்டத்தில் உடல்நலத்தில் கூடுதல் கவனம் செலுத்துங்கள். "
+                "தொடர்ந்து மருத்துவ பரிசோதனைகள் செய்யவும்."
+            ),
+            "override_caution_en": (
+                "Exercise extra health caution during this period. "
+                "Maintain regular medical check-ups and avoid strenuous activity."
+            ),
+            "suppress_score_display": True,
+        }
+    return None
 
 
 def _karaka_chain_score(
@@ -960,6 +1237,22 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
         for mapped in (_GOAL_TO_AREA.get(goal.goal_type) for goal in active_goals)
         if mapped
     }
+    chart_validation_status: str | None = None
+    events = session.execute(
+        select(UserLifeEvent).where(
+            UserLifeEvent.chart_id == chart_id,
+            UserLifeEvent.deleted_at.is_(None),
+        )
+    ).scalars().all()
+    if events:
+        report = validate_chart_against_events(
+            chart_snapshot,
+            [
+                {"eventType": event.event_type, "eventDate": event.event_date.isoformat()}
+                for event in events
+            ],
+        )
+        chart_validation_status = report.confidence
 
     tz = resolve_timezone(resolve_effective_daily_timezone(birth_profile))
     local_noon = datetime.combine(on_date, time(12, 0), tzinfo=tz)
@@ -987,11 +1280,16 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
         p.graha: (p.strength_score if getattr(p, "strength_score", 0) > 0 else 50)
         for p in chart_snapshot.data.planets
     }
+    functional_nature_map = {
+        planet: get_functional_nature(natal_lagna_rasi, planet)
+        for planet in {"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"}
+    }
     natal_planet_rasis = {p.graha: p.rasi for p in chart_snapshot.data.planets}
     transit_planet_rasis = {g: b.rasi for g, b in transit.bodies.items()}
     natal_rasi_map = {p.graha: p.rasi for p in chart_snapshot.data.planets if p.graha != "MANDHI"}
     natal_rasi_map["LAGNA"] = natal_lagna_rasi
-    sarvashtakavarga = compute_sarvashtakavarga(compute_bhinnashtakavarga(natal_rasi_map))
+    bav_table = compute_bhinnashtakavarga(natal_rasi_map)
+    sarvashtakavarga = compute_sarvashtakavarga(bav_table)
 
     # Label overrides based on life stage
     _retired = (getattr(birth_profile, "employment_type", None) or "").lower() == "retired"
@@ -1002,10 +1300,23 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
         area_label_override["CAREER"] = _t("வாழ்க்கை நோக்கம்", "Life Purpose / Legacy")
 
     areas: list[LifeAreaData] = []
-    for area in ("CAREER", "MONEY", "HEALTH", "RELATIONSHIPS", "EDUCATION", "SPIRITUAL", "FAMILY_HARMONY"):
+    for area in (
+        "CAREER",
+        "MONEY",
+        "HEALTH",
+        "RELATIONSHIPS",
+        "EDUCATION",
+        "SPIRITUAL",
+        "FAMILY_HARMONY",
+        "CHILDREN",
+        "PROPERTY",
+        "FOREIGN",
+        "LITIGATION",
+        "SPIRITUALITY",
+    ):
         effective_label = area_label_override.get(area, _AREA_LABELS[area])
 
-        score = _score_area(
+        score, score_breakdown = _score_area(
             area,
             natal_moon.rasi,
             transit.bodies,
@@ -1015,6 +1326,13 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             sani_cycle.is_active,
             kandaka_cycle.is_active,
             chandrashtama,
+            lagna_rasi=natal_lagna_rasi,
+            natal_planet_scores=natal_planet_scores,
+            natal_planet_rasis=natal_planet_rasis,
+            vargas=getattr(chart_snapshot.data, "vargas", {}),
+            bav=bav_table,
+            sav=sarvashtakavarga,
+            native_age=current_age,
         )
         chain_key = _AREA_TO_CHAIN_KEY.get(area, area)
         chain_result = _karaka_chain_score(
@@ -1029,10 +1347,18 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             native_age=current_age,
             sarvashtakavarga=sarvashtakavarga,
         )
-        score = max(0, min(100, round(score * 0.35 + chain_result["score"] * 0.65)))
+        score = max(0, min(100, round(score * 0.65 + chain_result["score"] * 0.35)))
 
         karakas = _AREA_KARAKA[area]
         primary_karaka = karakas[0]
+        weak_planets = sorted(karakas, key=lambda p: natal_planet_scores.get(p, 50))
+        structured_remedy = get_area_remedy(
+            area=area,
+            weak_planets=weak_planets,
+            lagna_rasi=natal_lagna_rasi,
+            functional_nature_map=functional_nature_map,
+            score=score,
+        )
         karaka_label = _PLANET_LABEL[primary_karaka]
         maha_score = _DASHA_AREA_SCORE[area].get(maha_lord, 52)
         antar_score = _DASHA_AREA_SCORE[area].get(antar_lord, 52)
@@ -1105,6 +1431,15 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
                 remedy=bundle.remedy,
                 caution=bundle.caution,
             )
+        if score >= 70:
+            action = _AREA_ACTION_GUIDANCE.get(area)
+            if action:
+                bundle = _NarrativeBundle(
+                    narrative=bundle.narrative,
+                    outlook=_t(f"{bundle.outlook.ta} {action['ta']}", f"{bundle.outlook.en} {action['en']}"),
+                    remedy=bundle.remedy,
+                    caution=bundle.caution,
+                )
 
         relevant_areas = _PHASE_RELEVANT_AREAS.get(phase, _PHASE_RELEVANT_AREAS["MID"])
         if area == "CAREER" and student_under_18:
@@ -1145,13 +1480,36 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
                 natal_moon_rasi=natal_moon.rasi,
                 natal_lagna_rasi=natal_lagna_rasi,
                 moon_longitude=natal_moon.absolute_longitude,
+                natal_planet_scores=natal_planet_scores,
+                natal_planet_rasis=natal_planet_rasis,
+                vargas=getattr(chart_snapshot.data, "vargas", {}),
+                bav=bav_table,
+                sav=sarvashtakavarga,
+                native_age=current_age,
             )
             bundle = _NarrativeBundle(
                 narrative=bundle.narrative,
                 outlook=_with_improvement_hint(bundle.outlook, next_improvement),
                 remedy=bundle.remedy,
-                caution=bundle.caution,
+                caution=_duration_caution(area, next_improvement) if score < 50 else bundle.caution,
             )
+
+        maraka_guard = _maraka_safety_check(
+            area=area,
+            maha_lord=maha_lord,
+            antar_lord=antar_lord,
+            lagna_rasi=natal_lagna_rasi,
+            native_age=current_age,
+        )
+        if maraka_guard is not None:
+            bundle = _NarrativeBundle(
+                narrative=bundle.narrative,
+                outlook=bundle.outlook,
+                remedy=bundle.remedy,
+                caution=_t(maraka_guard["override_caution_ta"], maraka_guard["override_caution_en"]),
+            )
+            if maraka_guard.get("suppress_score_display"):
+                score = 0
 
         areas.append(LifeAreaData(
             area=area,
@@ -1172,12 +1530,15 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             next30DayOutlook=bundle.outlook,
             caution=bundle.caution,
             isGoalFocus=is_goal_focus,
+            scoreBreakdown=score_breakdown,
+            structuredRemedy=structured_remedy,
         ))
 
     return LifeAreasResponse(
         data=LifeAreasResponseData(
             chartId=chart_id,
             dateLocal=on_date,
+            chartValidationStatus=chart_validation_status,
             areas=areas,
         ),
         meta=ResponseMeta(

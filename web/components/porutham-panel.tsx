@@ -129,9 +129,19 @@ function PersonForm({
 
 interface PoruthamPanelProps {
   lang: Lang;
+  familyMembers?: Array<{
+    memberId: string;
+    displayName: string;
+    birthDateLocal?: string;
+    birthTimeLocal?: string;
+    birthPlace?: string;
+    birthLatitude?: number | null;
+    birthLongitude?: number | null;
+    birthTimezone?: string;
+  }>;
 }
 
-export function PoruthamPanel({ lang }: PoruthamPanelProps) {
+export function PoruthamPanel({ lang, familyMembers = [] }: PoruthamPanelProps) {
   const [formA, setFormA] = useState<BirthForm>(EMPTY_FORM);
   const [formB, setFormB] = useState<BirthForm>(EMPTY_FORM);
   const [compatCtx, setCompatCtx] = useState<"GENERAL" | "MARRIAGE" | "FRIENDSHIP" | "BUSINESS" | "FAMILY">("MARRIAGE");
@@ -279,18 +289,74 @@ export function PoruthamPanel({ lang }: PoruthamPanelProps) {
       {/* Two person forms */}
       <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", alignItems: "flex-start" }}>
         <div className="card" style={{ padding: "20px", flex: 1, minWidth: "260px", background: W.card, border: `1px solid ${W.borderLt}` }}>
+          {familyMembers.length > 0 && (
+            <div style={{ marginBottom: "12px" }}>
+              <label style={{ display: "block", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, marginBottom: "4px", textTransform: "uppercase" }}>
+                {lang === "ta" ? "குடும்பத்தினரை ஏற்றவும்" : "Load from family"}
+              </label>
+              <select
+                style={{ ...fieldStyle, width: "100%" }}
+                value=""
+                onChange={(e) => {
+                  const m = familyMembers.find((fm) => fm.memberId === e.target.value);
+                  if (m) setFormA({
+                    displayName: m.displayName,
+                    birthDateLocal: m.birthDateLocal ?? "",
+                    birthTimeLocal: m.birthTimeLocal ?? "12:00",
+                    birthPlace: m.birthPlace ?? "",
+                    birthLatitude: m.birthLatitude != null ? String(m.birthLatitude) : "",
+                    birthLongitude: m.birthLongitude != null ? String(m.birthLongitude) : "",
+                    birthTimezone: m.birthTimezone ?? "Asia/Kolkata",
+                  });
+                }}
+              >
+                <option value="">{lang === "ta" ? "-- தேர்ந்தெடுக்கவும் --" : "-- Select member --"}</option>
+                {familyMembers.map((m) => (
+                  <option key={m.memberId} value={m.memberId}>{m.displayName}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <PersonForm
             lang={lang}
-            label={lang === "ta" ? "நபர் 1 (ஆண்)" : "Person 1 (Boy)"}
+            label={lang === "ta" ? "நபர் 1" : "Person 1"}
             accentColor={W.terracotta}
             form={formA}
             onChange={setFormA}
           />
         </div>
         <div className="card" style={{ padding: "20px", flex: 1, minWidth: "260px", background: W.card, border: `1px solid ${W.borderLt}` }}>
+          {familyMembers.length > 0 && (
+            <div style={{ marginBottom: "12px" }}>
+              <label style={{ display: "block", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, marginBottom: "4px", textTransform: "uppercase" }}>
+                {lang === "ta" ? "குடும்பத்தினரை ஏற்றவும்" : "Load from family"}
+              </label>
+              <select
+                style={{ ...fieldStyle, width: "100%" }}
+                value=""
+                onChange={(e) => {
+                  const m = familyMembers.find((fm) => fm.memberId === e.target.value);
+                  if (m) setFormB({
+                    displayName: m.displayName,
+                    birthDateLocal: m.birthDateLocal ?? "",
+                    birthTimeLocal: m.birthTimeLocal ?? "12:00",
+                    birthPlace: m.birthPlace ?? "",
+                    birthLatitude: m.birthLatitude != null ? String(m.birthLatitude) : "",
+                    birthLongitude: m.birthLongitude != null ? String(m.birthLongitude) : "",
+                    birthTimezone: m.birthTimezone ?? "Asia/Kolkata",
+                  });
+                }}
+              >
+                <option value="">{lang === "ta" ? "-- தேர்ந்தெடுக்கவும் --" : "-- Select member --"}</option>
+                {familyMembers.map((m) => (
+                  <option key={m.memberId} value={m.memberId}>{m.displayName}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <PersonForm
             lang={lang}
-            label={lang === "ta" ? "நபர் 2 (பெண்)" : "Person 2 (Girl)"}
+            label={lang === "ta" ? "நபர் 2" : "Person 2"}
             accentColor={W.inkMid}
             form={formB}
             onChange={setFormB}

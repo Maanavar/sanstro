@@ -109,11 +109,29 @@ export function DashaTimeline({
   const currentMahaDasa = dasha.current.mahadasha.lord;
   const currentBhukti = dasha.current.antardasha.lord;
 
-  const allPeriods = dasha.timeline;
-  const barStartMs = allPeriods[0]?.startDate ? new Date(String(allPeriods[0].startDate)).getTime() : 0;
-  const barEndMs = allPeriods[allPeriods.length - 1]?.endDate
-    ? new Date(String(allPeriods[allPeriods.length - 1].endDate)).getTime()
-    : 1;
+  // Anchor bar at birth date (or first period start), end at birth + 90 years.
+  // Using birth date prevents the pre-birth balance dasha period from
+  // pushing today's marker erroneously toward center.
+  const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
+  const birthMs = birthDateLocal
+    ? new Date(birthDateLocal).getTime()
+    : dasha.timeline[0]?.startDate
+    ? new Date(String(dasha.timeline[0].startDate)).getTime()
+    : 0;
+  const cutoffMs = birthMs + 90 * MS_PER_YEAR;
+
+  const allPeriods = dasha.timeline.filter((p) => {
+    const start = new Date(String(p.startDate)).getTime();
+    return start < cutoffMs;
+  });
+
+  const barStartMs = birthMs;
+  const barEndMs = Math.min(
+    allPeriods[allPeriods.length - 1]?.endDate
+      ? new Date(String(allPeriods[allPeriods.length - 1].endDate)).getTime()
+      : cutoffMs,
+    cutoffMs,
+  );
   const totalMs = Math.max(barEndMs - barStartMs, 1);
   const nowPct = Math.max(0, Math.min(100, ((new Date(today).getTime() - barStartMs) / totalMs) * 100));
 
