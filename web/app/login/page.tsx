@@ -670,6 +670,56 @@ export default function LoginPage() {
           text-decoration: underline;
         }
 
+        @media (max-width: 640px) {
+          .ca-right {
+            padding: 18px 14px;
+          }
+
+          .ca-card {
+            padding: 28px 20px 22px;
+            border-radius: 20px;
+            gap: 20px;
+          }
+
+          .ca-heading {
+            font-size: 1.4rem;
+          }
+
+          .ca-tabs {
+            gap: 4px;
+          }
+
+          .ca-tab {
+            padding-inline: 10px;
+            font-size: 0.82rem;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .ca-root {
+            min-height: 100dvh;
+          }
+
+          .ca-right {
+            padding: 12px;
+          }
+
+          .ca-card {
+            padding: 24px 16px 18px;
+            border-radius: 18px;
+          }
+
+          .ca-subheading,
+          .ca-footer,
+          .ca-terms {
+            font-size: 0.78rem;
+          }
+
+          .ca-btn {
+            min-height: 46px;
+          }
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .ca-btn, .ca-tab, .ca-input, .ca-text-btn, .ca-pw-bar {
             transition: none !important;
@@ -945,7 +995,7 @@ export default function LoginPage() {
             {!done && mode === "signup" && (
               <p className="ca-terms">
                 By creating an account you agree to our{" "}
-                <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.
+                <Link href="/terms">Terms</Link> and <Link href="/privacy">Privacy Policy</Link>.
               </p>
             )}
 

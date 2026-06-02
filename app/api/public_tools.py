@@ -10,12 +10,12 @@ Rate limiting and abuse protection are handled at the infrastructure layer
 """
 from __future__ import annotations
 
-from datetime import date, datetime, UTC
+from datetime import date, time
 from typing import Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -25,6 +25,7 @@ from app.services.chart_service import _chart_response_from_profile  # noqa: PLC
 from app.schemas.charts import ChartCalculateResponseData
 from app.calculations.porutham import compute_porutham
 from app.schemas.relationships import KutaResult, DirectPoruthamData, NadiDoshaData, RelationshipBiText
+from app.schemas.birth_profiles import _validate_birth_date_bounds  # noqa: PLC2701 (shared validation)
 
 router = APIRouter(prefix="/public", tags=["public-tools"])
 
@@ -35,14 +36,19 @@ router = APIRouter(prefix="/public", tags=["public-tools"])
 class PublicBirthInput(BaseModel):
     """Minimal birth details for an unauthenticated chart or porutham request."""
     display_name: str = Field(alias="displayName", default="")
-    birth_date_local: str = Field(alias="birthDateLocal")
-    birth_time_local: str | None = Field(alias="birthTimeLocal", default=None)
+    birth_date_local: date = Field(alias="birthDateLocal")
+    birth_time_local: time | None = Field(alias="birthTimeLocal", default=None)
     birth_latitude: float = Field(alias="birthLatitude")
     birth_longitude: float = Field(alias="birthLongitude")
     birth_timezone: str = Field(alias="birthTimezone", default="Asia/Kolkata")
     birth_place: str = Field(alias="birthPlace", default="")
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @field_validator("birth_date_local")
+    @classmethod
+    def validate_birth_date_local(cls, value: date) -> date:
+        return _validate_birth_date_bounds(value)
 
 
 class PublicChartRequest(BaseModel):

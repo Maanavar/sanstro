@@ -127,7 +127,7 @@ export function PanchangamTool() {
         </div>
 
         {/* Date and manual coords */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+        <div className="cl-mobile-form-grid-3" style={{ gap: "12px" }}>
           <label style={labelStyle}>
             Date
             <input style={inputStyle} type="date" value={date}
@@ -206,10 +206,9 @@ export function PanchangamTool() {
           </div>
 
           {/* Sunrise/sunset */}
-          <div style={{
+          <div className="cl-mobile-card-split" style={{
             background: "var(--cl-surface)", border: "1px solid var(--cl-border)",
             borderRadius: "14px", padding: "18px 22px",
-            display: "flex", flexWrap: "wrap", gap: "16px 32px",
           }}>
             {[
               { label: "Sunrise", value: data.sunrise },
@@ -279,10 +278,9 @@ export function PanchangamTool() {
           )}
 
           {/* CTA */}
-          <div style={{
+          <div className="cl-mobile-card-split" style={{
             background: "rgba(184,90,44,0.05)", border: "1px solid rgba(184,90,44,0.2)",
             borderRadius: "14px", padding: "18px 22px",
-            display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap",
           }}>
             <div>
               <p style={{ margin: 0, fontWeight: 600, color: "var(--cl-ink)", fontSize: "0.92rem" }}>
@@ -292,7 +290,7 @@ export function PanchangamTool() {
                 Free account — daily guidance that combines your chart, dasha, and panchangam.
               </p>
             </div>
-            <a href="/dashboard" style={{
+            <a href="/dashboard" className="cl-mobile-cta" style={{
               display: "inline-flex", alignItems: "center", padding: "9px 22px",
               background: "var(--cl-ink)", color: "var(--cl-bg)", borderRadius: "999px",
               fontWeight: 600, fontSize: "0.88rem", textDecoration: "none",

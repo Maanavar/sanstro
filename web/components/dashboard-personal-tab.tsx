@@ -385,7 +385,7 @@ export function DashboardPersonalTab({
                   <Chip tone="success">{t("label_abhijit", lang)} {formatClockLabel(panchangam.abhijit.start)}–{formatClockLabel(panchangam.abhijit.end)}</Chip>
                 )}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "var(--space-2)" }}>
+              <div className="cd-responsive-grid-2" style={{ gap: "var(--space-2)" }}>
                 {[
                   { label: t("label_tithi", lang), value: `${panchangam.tithi.number} ${tTithi(panchangam.tithi.name, lang)}`, hint: `${t("label_ends_at", lang)} ${formatClockLabel(panchangam.tithi.endsAt)}` },
                   { label: t("label_nakshatra", lang), value: `${tNakshatra(panchangam.nakshatra.name, lang)} ${t("label_padam", lang)} ${panchangam.nakshatra.pada}`, hint: formatClockLabel(panchangam.nakshatra.endsAt) },
@@ -1003,7 +1003,7 @@ export function DashboardPersonalTab({
                   <div style={{ marginTop: "var(--space-2_5)", paddingTop: "var(--space-2_5)", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
                     <p className="surface__subhead" style={{ marginBottom: "var(--space-1_5)" }}>{t("why_this_prediction", lang)}</p>
                     {(["moonTransit", "dashaSupport", "panchangam", "gochar", "personalCaution"] as const).map((key) => (
-                      <div key={key} style={{ display: "flex", gap: "var(--space-2)", marginBottom: "var(--space-1)", alignItems: "flex-start" }}>
+                      <div key={key} className="cd-responsive-detail-row" style={{ marginBottom: "var(--space-1)" }}>
                         <span style={{ fontSize: "0.625rem", fontWeight: 700, color: "var(--color-muted)", minWidth: "84px", paddingTop: "var(--space-0_5)" }}>{t(`reason_${key}` as Parameters<typeof t>[0], lang)}</span>
                         <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.4 }}>{tLang(personalDailyGuidance.reasons[key], lang)}</p>
                       </div>
@@ -1248,7 +1248,7 @@ export function DashboardPersonalTab({
 
       {/* ── Prasna (Horary) ── */}
       {onOpenPrasna && (
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+        <div className="cd-responsive-row" style={{ alignItems: "center", gap: "var(--space-3)" }}>
           <Button variant="ghost" onClick={onOpenPrasna}>
             {lang === "ta" ? "ப்ரஸ்ன கேள்வி கேளுங்கள்" : "Ask a Horary Question"}
           </Button>

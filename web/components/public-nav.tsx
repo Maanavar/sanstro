@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -42,6 +43,12 @@ function Dropdown({
 }
 
 export function PublicNav() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  function closeMobileMenu() {
+    setMobileOpen(false);
+  }
+
   return (
     <>
       <style>{`
@@ -124,11 +131,72 @@ export function PublicNav() {
           color: var(--cl-muted);
           line-height: 1.3;
         }
+        .cl-nav__menu-btn {
+          display: none;
+          min-width: 44px;
+          min-height: 44px;
+          border-radius: 999px;
+          border: 1.5px solid var(--cl-border);
+          background: var(--cl-surface);
+          color: var(--cl-ink);
+          cursor: pointer;
+          align-items: center;
+          justify-content: center;
+        }
+        .cl-nav__mobile {
+          display: none;
+        }
         @media (max-width: 720px) {
+          .cl-nav__menu-btn {
+            display: inline-flex;
+          }
           .cl-nav-dropdown__menu {
             left: auto;
             right: 0;
             transform: none;
+          }
+          .cl-nav__mobile {
+            display: block;
+            border-top: 1px solid var(--cl-border);
+            background: rgba(244, 238, 226, 0.98);
+          }
+          .cl-nav__mobile-inner {
+            width: min(1200px, calc(100% - 40px));
+            margin: 0 auto;
+            padding: 16px 0 18px;
+            display: grid;
+            gap: 14px;
+          }
+          .cl-nav__mobile-group {
+            display: grid;
+            gap: 8px;
+          }
+          .cl-nav__mobile-label {
+            margin: 0;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--cl-muted);
+          }
+          .cl-nav__mobile-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: var(--cl-surface);
+            border: 1px solid var(--cl-border);
+            color: var(--cl-ink);
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-decoration: none;
+          }
+          .cl-nav__mobile-link span:last-child {
+            color: var(--cl-muted);
+            font-size: 0.78rem;
+            font-weight: 400;
           }
         }
       `}</style>
@@ -171,9 +239,81 @@ export function PublicNav() {
 
             <Link href="/learn/what-is-thirukanitham" className="cl-nav__link">Learn</Link>
             <Link href="/trust/methodology" className="cl-nav__link">Method</Link>
-            <Link href="/login" className="cl-nav__signin">Sign in</Link>
+            <Link href="/login" className="cl-nav__signin" onClick={closeMobileMenu}>Sign in</Link>
           </nav>
+
+          <button
+            type="button"
+            className="cl-nav__menu-btn"
+            aria-expanded={mobileOpen}
+            aria-controls="public-mobile-nav"
+            aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
+            onClick={() => setMobileOpen((open) => !open)}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              {mobileOpen ? (
+                <>
+                  <path d="M4 4l10 10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                  <path d="M14 4L4 14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                </>
+              ) : (
+                <>
+                  <path d="M3 5.25h12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                  <path d="M3 9h12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                  <path d="M3 12.75h12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                </>
+              )}
+            </svg>
+          </button>
         </div>
+
+        {mobileOpen && (
+          <div className="cl-nav__mobile" id="public-mobile-nav">
+            <div className="cl-nav__mobile-inner">
+              <div className="cl-nav__mobile-group">
+                <p className="cl-nav__mobile-label">Features</p>
+                {FEATURES.map((feature) => (
+                  <Link
+                    key={feature.href}
+                    href={feature.href}
+                    className="cl-nav__mobile-link"
+                    onClick={closeMobileMenu}
+                  >
+                    <span>{feature.label}</span>
+                    <span>Feature</span>
+                  </Link>
+                ))}
+              </div>
+
+              <div className="cl-nav__mobile-group">
+                <p className="cl-nav__mobile-label">Tools</p>
+                {TOOLS.map((tool) => (
+                  <Link
+                    key={tool.href}
+                    href={tool.href}
+                    className="cl-nav__mobile-link"
+                    onClick={closeMobileMenu}
+                  >
+                    <span>{tool.label}</span>
+                    <span>{tool.desc}</span>
+                  </Link>
+                ))}
+              </div>
+
+              <div className="cl-nav__mobile-group">
+                <p className="cl-nav__mobile-label">Learn</p>
+                <Link href="/learn/what-is-thirukanitham" className="cl-nav__mobile-link" onClick={closeMobileMenu}>
+                  <span>Learn</span>
+                  <span>Concepts and guides</span>
+                </Link>
+                <Link href="/trust/methodology" className="cl-nav__mobile-link" onClick={closeMobileMenu}>
+                  <span>Method</span>
+                  <span>How Vinaadi works</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
     </>
   );

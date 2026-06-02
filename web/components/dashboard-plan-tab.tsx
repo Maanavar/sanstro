@@ -202,7 +202,7 @@ export function DashboardPlanTab({
         )}
       </div>
 
-      <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
+      <div className="cd-responsive-pills" style={{ gap: "var(--space-1_5)" }}>
         {PLAN_SUB_TABS.map(({ key, label }) => (
           <button
             key={key}
@@ -266,7 +266,7 @@ export function DashboardPlanTab({
             {goals.length === 0 && <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.75rem", color: W.muted }}>{t("goals_empty", lang)}</p>}
 
             {goals.length < 3 && (
-              <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center", flexWrap: "wrap" }}>
+              <div className="cd-responsive-actions" style={{ gap: "var(--space-2)" }}>
                 <select style={{ ...fieldStyle, flex: "1 1 180px", maxWidth: "260px" }} value={addingGoalType || "job_change"} onChange={(e) => onAddingGoalTypeChange(e.target.value)}>
                   {GOAL_OPTIONS.map(([val, key]) => (
                     <option key={val} value={val}>
@@ -288,8 +288,8 @@ export function DashboardPlanTab({
           <div className="surface__body">
             <p style={{ margin: "0 0 var(--space-3_5)", fontSize: "0.875rem", color: W.muted, lineHeight: 1.5 }}>{t("whatif_panel_desc", lang)}</p>
 
-            <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap", alignItems: "flex-end", marginBottom: "var(--space-3_5)" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+            <div className="cd-responsive-row" style={{ gap: "var(--space-2_5)", alignItems: "flex-end", marginBottom: "var(--space-3_5)" }}>
+              <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("whatif_scenario", lang)}</span>
                 <select style={{ ...fieldStyle, minWidth: "220px" }} value={whatIfScenario} onChange={(e) => onWhatIfScenarioChange(e.target.value)}>
                   {WHATIF_OPTIONS.map((opt) => (
@@ -300,7 +300,7 @@ export function DashboardPlanTab({
                 </select>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+              <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("whatif_date", lang)}</span>
                 <input style={fieldStyle} type="date" value={whatIfDate} onChange={(e) => onWhatIfDateChange(e.target.value)} />
               </div>
@@ -378,8 +378,8 @@ export function DashboardPlanTab({
       {planSubTab === "timing" && (
         <Surface title={t("activity_timing_label", lang)}>
           <div className="surface__body">
-            <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap", alignItems: "flex-end", marginBottom: "var(--space-3_5)" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+            <div className="cd-responsive-row" style={{ gap: "var(--space-2_5)", alignItems: "flex-end", marginBottom: "var(--space-3_5)" }}>
+              <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("activity_label", lang)}</span>
                 <select style={{ ...fieldStyle, minWidth: "240px" }} value={activityType} onChange={(e) => setActivityType(e.target.value)}>
                   {ACTIVITY_OPTIONS.map((opt) => (
@@ -390,7 +390,7 @@ export function DashboardPlanTab({
                 </select>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+              <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("activity_month_label", lang)}</span>
                 <input style={{ ...fieldStyle, minWidth: "140px" }} type="month" value={activityMonth} onChange={(e) => setActivityMonth(e.target.value)} />
               </div>

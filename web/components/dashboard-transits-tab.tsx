@@ -200,7 +200,7 @@ export function DashboardTransitsTab({
         fontFamily: "var(--font-body)",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "var(--space-4)", flexWrap: "wrap" }}>
+      <div className="cd-responsive-row" style={{ justifyContent: "space-between", alignItems: "flex-start", gap: "var(--space-4)" }}>
         <div>
           <p
             style={{
@@ -233,7 +233,7 @@ export function DashboardTransitsTab({
         </div>
       </div>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2_5)" }}>
+      <div className="cd-responsive-pills" style={{ gap: "var(--space-2_5)" }}>
         <StatPill label={lang === "ta" ? "transits" : "transits"} value={hasTransitSnapshot ? `${personalTransit?.transits.length}` : "0"} tone="neutral" />
         <StatPill label={lang === "ta" ? "flagged" : "flagged"} value={`${flaggedCount}`} tone={flaggedCount > 0 ? "warn" : "good"} />
         <StatPill label={lang === "ta" ? "sani cycles" : "sani cycles"} value={personalSani ? `${activeSaniCycles} active` : "N/A"} tone={activeSaniCycles > 0 ? "warn" : "neutral"} />
@@ -246,7 +246,7 @@ export function DashboardTransitsTab({
 
       {/* ── Person selector ── */}
       {memberCharts.length > 0 && onSelectMember && (
-        <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
+        <div className="cd-responsive-pills" style={{ gap: "var(--space-1_5)" }}>
           <button
             type="button"
             onClick={() => onSelectMember(null)}

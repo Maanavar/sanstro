@@ -361,7 +361,7 @@ function MemberDetailExpanded({
 
       {/* Score breakdown grid */}
       {guidance?.scoreBreakdown && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "var(--space-2_5)" }}>
+        <div className="cd-responsive-grid-3" style={{ gap: "var(--space-2_5)" }}>
           {(["moonTransit", "dashaSupport", "panchangam"] as const).map((k) => (
             <div key={k} style={{ padding: "var(--space-3)", borderRadius: "var(--radius-md)", background: "#FAF5EA", border: "1px solid var(--color-border)" }}>
               <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>
@@ -639,7 +639,7 @@ export function DashboardFamilyTab({
       )}
 
       {/* ── ROW 2: 50/50 — Left = Family Today card · Right = member tiles stacked ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 3fr", gap: "var(--space-4)", alignItems: "stretch" }}>
+      <div className="cd-responsive-grid-2" style={{ gridTemplateColumns: "2fr 3fr", gap: "var(--space-4)", alignItems: "stretch" }}>
 
         {/* LEFT: Family Today score card — stretches to full row height */}
         <div style={{
@@ -662,7 +662,7 @@ export function DashboardFamilyTab({
             </div>
             {familyScore > 0 && <ScoreRing score={familyScore} size={88} />}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-2_5)" }}>
+          <div className="cd-responsive-grid-2" style={{ gap: "var(--space-2_5)" }}>
             <div style={{ borderRadius: "var(--radius-md)", background: "#DCE4D2", border: "1px solid rgba(92,118,84,0.3)", padding: "var(--space-3)" }}>
               <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: SCORE_HIGH }}>
                 {lang === "ta" ? "பகிர்ந்த சிறந்த நேரம்" : "BEST SHARED"}
@@ -757,8 +757,8 @@ export function DashboardFamilyTab({
       {members.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           {/* Selector row: name pills + synastry toggle */}
-          <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap", alignItems: "center" }}>
-            <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap", flex: 1 }}>
+        <div className="cd-responsive-row" style={{ gap: "var(--space-1_5)", alignItems: "center" }}>
+            <div className="cd-responsive-pills" style={{ gap: "var(--space-1_5)", flex: 1 }}>
               {members.map((m) => {
                 const isActive = activeMemberId === m.familyMemberId;
                 return (

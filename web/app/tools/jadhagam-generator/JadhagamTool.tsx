@@ -197,7 +197,7 @@ export function JadhagamTool() {
           Enter birth details to generate a Thirukanitham-precise jadhagam. No account required.
         </p>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+        <div className="cl-mobile-form-grid-2" style={{ gap: "12px" }}>
           <label style={labelStyle}>
             Name (optional)
             <input style={inputStyle} value={form.displayName}
@@ -211,7 +211,7 @@ export function JadhagamTool() {
           </label>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+        <div className="cl-mobile-form-grid-2" style={{ gap: "12px" }}>
           <label style={labelStyle}>
             Birth Time
             <input style={inputStyle} type="time" value={form.birthTimeLocal}
@@ -238,7 +238,7 @@ export function JadhagamTool() {
           />
         </label>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+        <div className="cl-mobile-form-grid-2" style={{ gap: "12px" }}>
           <label style={labelStyle}>
             Latitude
             <input style={inputStyle} inputMode="decimal" value={form.birthLatitude}
@@ -280,7 +280,7 @@ export function JadhagamTool() {
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
 
           {/* Summary strip */}
-          <div style={{
+          <div className="cl-mobile-flex-row" style={{
             background: "var(--cl-surface)", border: "1px solid var(--cl-border)",
             borderRadius: "16px", padding: "20px 24px",
           }}>
@@ -303,7 +303,7 @@ export function JadhagamTool() {
           </div>
 
           {/* Chart view toggle */}
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div className="cl-mobile-flex-row" style={{ gap: "8px" }}>
             {(["D1", "D9"] as const).map((v) => (
               <button key={v} type="button" onClick={() => setView(v)}
                 style={{
@@ -319,7 +319,7 @@ export function JadhagamTool() {
           </div>
 
           {/* Chart grid */}
-          <div style={{ overflowX: "auto" }}>
+          <div className="cl-chart-scroll">
             <RasiGrid chart={chart} d9={view === "D9"} />
           </div>
 
@@ -373,10 +373,9 @@ export function JadhagamTool() {
           </div>
 
           {/* Save CTA */}
-          <div style={{
+          <div className="cl-mobile-card-split" style={{
             background: "rgba(184,90,44,0.05)", border: "1px solid rgba(184,90,44,0.2)",
             borderRadius: "14px", padding: "18px 22px",
-            display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap",
           }}>
             <div>
               <p style={{ margin: 0, fontWeight: 600, color: "var(--cl-ink)", fontSize: "0.92rem" }}>
@@ -386,7 +385,7 @@ export function JadhagamTool() {
                 Free account — daily reading, family vault, dasha tracking.
               </p>
             </div>
-            <a href="/dashboard" style={{
+            <a href="/dashboard" className="cl-mobile-cta" style={{
               display: "inline-flex", alignItems: "center", padding: "9px 22px",
               background: "var(--cl-ink)", color: "var(--cl-bg)", borderRadius: "999px",
               fontWeight: 600, fontSize: "0.88rem", textDecoration: "none",

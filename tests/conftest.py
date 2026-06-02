@@ -17,6 +17,11 @@ TEST_USER_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 TEST_USER_EMAIL = "test@jothidam.test"
 
 
+def _all_selected_tests_are_no_db(request: pytest.FixtureRequest) -> bool:
+    items = getattr(request.session, "items", [])
+    return bool(items) and all(item.get_closest_marker("no_db") is not None for item in items)
+
+
 def _assert_safe_reset_target() -> None:
     db_name = (engine.url.database or "").lower()
     db_host = (engine.url.host or "").lower()
@@ -71,7 +76,9 @@ def _db_is_reachable() -> bool:
 
 
 @pytest.fixture(autouse=True, scope="session")
-def require_db() -> None:
+def require_db(request: pytest.FixtureRequest) -> None:
+    if _all_selected_tests_are_no_db(request):
+        return
     _assert_safe_reset_target()
     if not _db_is_reachable():
         pytest.skip("Local Docker Postgres not reachable - start with: docker compose up -d")

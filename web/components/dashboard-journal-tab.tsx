@@ -314,7 +314,7 @@ export function DashboardJournalTab({
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
+      <div className="cd-responsive-pills" style={{ gap: "var(--space-1_5)" }}>
         {JOURNAL_SUB_TABS.map(({ key, label }) => (
           <button
             key={key}
@@ -371,8 +371,8 @@ export function DashboardJournalTab({
               </div>
             )}
 
-            <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap", alignItems: "flex-end" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+            <div className="cd-responsive-row" style={{ gap: "var(--space-2_5)", alignItems: "flex-end" }}>
+              <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("context_event_type", lang)}</span>
                 <select style={{ ...fieldStyle, minWidth: "160px" }} value={ctxEventType} onChange={(e) => setCtxEventType(e.target.value as ContextEventType)}>
                   {CONTEXT_EVENT_TYPES.map((type) => (
@@ -383,12 +383,12 @@ export function DashboardJournalTab({
                 </select>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+              <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("context_event_date", lang)}</span>
                 <input style={{ ...fieldStyle, minWidth: "140px" }} type="date" value={ctxEventDate} onChange={(e) => setCtxEventDate(e.target.value)} />
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", flex: 1, minWidth: "140px" }}>
+              <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("context_event_note", lang)}</span>
                 <input
                   style={fieldStyle}
@@ -431,13 +431,13 @@ export function DashboardJournalTab({
       {journalSubTab === "write" && (
         <Surface title={t("journal_write_label", lang)}>
           <div className="surface__body">
-            <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap", alignItems: "flex-end", marginBottom: "var(--space-3)" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+            <div className="cd-responsive-row" style={{ gap: "var(--space-2_5)", alignItems: "flex-end", marginBottom: "var(--space-3)" }}>
+              <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("journal_date", lang)}</span>
                 <input style={{ ...fieldStyle, minWidth: "140px" }} type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} />
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+              <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("journal_life_area", lang)}</span>
                 <select style={{ ...fieldStyle, minWidth: "160px" }} value={lifeArea} onChange={(e) => setLifeArea(e.target.value as LifeArea)}>
                   {LIFE_AREAS.map((area) => (
@@ -606,7 +606,7 @@ export function DashboardJournalTab({
 
                     {editId === entry.journalId && (
                       <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--color-surface-soft)", border: `1px solid ${W.borderLt}` }}>
-                        <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap", marginBottom: "var(--space-2)" }}>
+                        <div className="cd-responsive-actions" style={{ gap: "var(--space-2_5)", marginBottom: "var(--space-2)" }}>
                           <input
                             type="date"
                             value={editDate}

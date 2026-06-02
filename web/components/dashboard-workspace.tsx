@@ -1175,7 +1175,7 @@ export function DashboardWorkspace() {
 
                 {/* Active tool panel */}
                 {activeTool && (
-                  <div>
+                  <div className="cd-responsive-tools-panel">
                     <div className="cd-tools__panel-head">
                       <button type="button"
                         onClick={() => { setShowPorutham(false); setShowChartGenerate(false); setShowWrapped(false); setShowRetrospective(false); }}
@@ -1205,9 +1205,7 @@ export function DashboardWorkspace() {
                 )}
 
                 {/* No tool selected: show description cards */}
-                {!activeTool && (
-                  <div className="cd-tools__empty" />
-                )}
+                {!activeTool && <div className="cd-tools__empty" />}
               </div>
             </div>
           );

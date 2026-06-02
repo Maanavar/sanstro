@@ -2222,6 +2222,79 @@ button:focus-visible,
   justify-content: center;
 }
 
+.cl-mobile-form-grid-2,
+.cl-mobile-form-grid-3,
+.cl-mobile-results-grid,
+.cd-responsive-grid-2,
+.cd-responsive-grid-3,
+.cd-responsive-auto-grid {
+  display: grid;
+  gap: var(--space-2_5, 10px);
+}
+
+.cl-mobile-form-grid-2,
+.cd-responsive-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cl-mobile-form-grid-3,
+.cd-responsive-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.cl-mobile-results-grid,
+.cd-responsive-auto-grid {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.cl-mobile-flex-row,
+.cl-mobile-action-row,
+.cd-responsive-row,
+.cd-responsive-actions,
+.cd-responsive-pills,
+.cd-responsive-detail-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2_5, 10px);
+}
+
+.cl-mobile-flex-row,
+.cd-responsive-row,
+.cd-responsive-detail-row {
+  align-items: flex-start;
+}
+
+.cl-mobile-action-row,
+.cd-responsive-actions {
+  align-items: center;
+}
+
+.cl-mobile-card-split {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.cl-mobile-cta {
+  align-self: flex-start;
+}
+
+.cl-chart-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cd-responsive-tools-panel {
+  min-width: 0;
+}
+
+.cd-responsive-form-block {
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
 @media (max-width: 720px) {
   .tool-grid {
     grid-template-columns: 1fr;
@@ -2229,6 +2302,34 @@ button:focus-visible,
 
   .day-strip {
     gap: 4px;
+  }
+
+  .cl-mobile-form-grid-2,
+  .cl-mobile-form-grid-3,
+  .cd-responsive-grid-2,
+  .cd-responsive-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .cl-mobile-results-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cl-mobile-card-split,
+  .cd-responsive-row,
+  .cd-responsive-actions,
+  .cd-responsive-detail-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cl-mobile-cta {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .cd-responsive-pills > * {
+    flex: 1 1 calc(50% - 10px);
   }
 }
 
@@ -3579,6 +3680,47 @@ button:focus-visible,
   .cl-hero__h1 {
     font-size: clamp(2.8rem, 12vw, 4rem);
   }
+  .cl-nav__inner,
+  .cl-container {
+    width: min(1200px, calc(100% - 28px));
+  }
+  .cl-nav__inner {
+    height: auto;
+    min-height: 64px;
+  }
+  .cl-hero__actions {
+    width: 100%;
+  }
+  .cl-btn {
+    justify-content: center;
+  }
+  .cl-reading-card,
+  .cl-daily-card,
+  .cl-method-panel,
+  .cl-tool-card,
+  .cl-fhub-card {
+    padding: 20px;
+  }
+  .cl-pub-hero,
+  .cl-trust-hero {
+    padding: 48px 0 40px;
+  }
+  .cl-pub-body,
+  .cl-trust-body {
+    padding: 40px 0 56px;
+  }
+  .cl-tools-preview,
+  .cl-how,
+  .cl-method,
+  .cl-feature-hub,
+  .cl-learn-strip,
+  .cl-pricing,
+  .cl-helps,
+  .cl-daily,
+  .cl-balance,
+  .cl-commit {
+    padding: 56px 0;
+  }
 }
 
 @media (max-width: 480px) {
@@ -3587,6 +3729,27 @@ button:focus-visible,
   }
   .cl-reading-card {
     padding: 20px;
+  }
+  .cl-nav__inner,
+  .cl-container {
+    width: min(1200px, calc(100% - 20px));
+  }
+  .cl-nav__wordmark {
+    font-size: 1.2rem;
+  }
+  .cl-nav__signin {
+    padding: 0.45rem 0.9rem;
+    font-size: 0.84rem;
+  }
+  .cl-hero__body,
+  .cl-section-body,
+  .cl-pub-lead,
+  .cl-trust-lead {
+    font-size: 0.94rem;
+  }
+  .cl-window,
+  .cl-daily-card__win {
+    padding: 10px 12px;
   }
 }
 
@@ -3871,6 +4034,59 @@ button:focus-visible,
 .cd-feedback-fab:hover {
   transform: scale(1.08);
   box-shadow: 0 6px 20px rgba(26, 22, 18, 0.35);
+}
+
+@media (max-width: 900px) {
+  .cd-tools__layout.is-open {
+    grid-template-columns: 1fr;
+  }
+
+  .cd-tools__rail {
+    order: 1;
+  }
+
+  .cd-responsive-tools-panel {
+    order: 2;
+  }
+}
+
+@media (max-width: 720px) {
+  .cd-onboarding,
+  .cd-tools,
+  .cd-footer__inner {
+    width: min(1200px, calc(100% - 24px));
+  }
+
+  .cd-onboarding__card {
+    padding: 14px 16px;
+  }
+
+  .cd-tools__item {
+    align-items: flex-start;
+  }
+
+  .cd-tools__title {
+    white-space: normal;
+  }
+
+  .cd-footer__top,
+  .cd-footer__bottom {
+    gap: 16px;
+  }
+
+  .cd-footer__links {
+    gap: 12px 18px;
+  }
+
+  .cd-footer__bottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cd-feedback-fab {
+    right: 16px;
+    bottom: 16px;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════

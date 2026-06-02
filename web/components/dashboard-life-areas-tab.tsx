@@ -157,10 +157,10 @@ export function DashboardLifeAreasTab({
       </div>
 
       {/* ── Member selector + Sub-tab nav row ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--space-3)" }}>
+      <div className="cd-responsive-row" style={{ justifyContent: "space-between", alignItems: "center", gap: "var(--space-3)" }}>
 
         {/* Member pills */}
-        <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
+        <div className="cd-responsive-pills" style={{ gap: "var(--space-1_5)" }}>
           <button
             type="button"
             onClick={() => onSelectMember(null)}
@@ -199,7 +199,7 @@ export function DashboardLifeAreasTab({
         </div>
 
         {/* Sub-tab pills — right side */}
-        <div style={{ display: "flex", gap: "var(--space-1)", flexWrap: "wrap" }}>
+        <div className="cd-responsive-pills" style={{ gap: "var(--space-1)" }}>
           {SUB_TABS.map(({ key, label }) => (
             <button
               key={key}

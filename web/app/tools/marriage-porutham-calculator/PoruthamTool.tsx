@@ -65,7 +65,7 @@ function PersonForm({
   form: Form; onChange: (f: Form) => void;
 }) {
   return (
-    <div style={{
+    <div className="cd-responsive-form-block" style={{
       flex: 1, minWidth: "280px",
       background: "var(--cl-surface)", border: "1px solid var(--cl-border)",
       borderRadius: "14px", padding: "20px",
@@ -80,7 +80,7 @@ function PersonForm({
           placeholder="Enter name" />
       </label>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+      <div className="cl-mobile-form-grid-2" style={{ gap: "10px" }}>
         <label style={labelStyle}>
           Birth Date *
           <input style={inputStyle} type="date" value={form.birthDateLocal}
@@ -104,7 +104,7 @@ function PersonForm({
         />
       </label>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+      <div className="cl-mobile-form-grid-2" style={{ gap: "10px" }}>
         <label style={labelStyle}>
           Latitude
           <input style={inputStyle} inputMode="decimal" value={form.birthLatitude}
@@ -187,7 +187,7 @@ export function PoruthamTool() {
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
 
       {/* Two person forms */}
-      <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", alignItems: "flex-start" }}>
+      <div className="cl-mobile-flex-row" style={{ gap: "16px" }}>
         <PersonForm label="Person 1 (Boy / Groom)" accentColor="#B85A2C" form={formA} onChange={setFormA} />
         <PersonForm label="Person 2 (Girl / Bride)" accentColor="#5C7654" form={formB} onChange={setFormB} />
       </div>
@@ -218,10 +218,9 @@ export function PoruthamTool() {
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
 
           {/* Score header */}
-          <div style={{
+          <div className="cl-mobile-card-split" style={{
             background: "var(--cl-surface)", border: "1px solid var(--cl-border)",
             borderRadius: "16px", padding: "22px 24px",
-            display: "flex", gap: "20px", flexWrap: "wrap", alignItems: "flex-start",
           }}>
             <div style={{ minWidth: "120px" }}>
               <p style={{ margin: "0 0 4px", fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
@@ -276,8 +275,8 @@ export function PoruthamTool() {
               {result.kutas.map((k) => {
                 const kpct = k.maxScore > 0 ? k.score / k.maxScore : 0;
                 return (
-                  <div key={k.name} style={{
-                    display: "flex", alignItems: "center", gap: "12px",
+                  <div key={k.name} className="cl-mobile-flex-row" style={{
+                    alignItems: "center", gap: "12px",
                     padding: "8px 12px", borderRadius: "8px",
                     background: "var(--cl-bg-2)", border: "1px solid var(--cl-border)",
                   }}>
@@ -312,10 +311,9 @@ export function PoruthamTool() {
           )}
 
           {/* Save CTA */}
-          <div style={{
+          <div className="cl-mobile-card-split" style={{
             background: "rgba(184,90,44,0.05)", border: "1px solid rgba(184,90,44,0.2)",
             borderRadius: "14px", padding: "18px 22px",
-            display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap",
           }}>
             <div>
               <p style={{ margin: 0, fontWeight: 600, color: "var(--cl-ink)", fontSize: "0.92rem" }}>
@@ -325,7 +323,7 @@ export function PoruthamTool() {
                 Free account — save results, compare multiple matches, get daily guidance.
               </p>
             </div>
-            <a href="/dashboard" style={{
+            <a href="/dashboard" className="cl-mobile-cta" style={{
               display: "inline-flex", alignItems: "center", padding: "9px 22px",
               background: "var(--cl-ink)", color: "var(--cl-bg)", borderRadius: "999px",
               fontWeight: 600, fontSize: "0.88rem", textDecoration: "none",
