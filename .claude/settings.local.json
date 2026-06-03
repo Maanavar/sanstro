@@ -94,7 +94,8 @@
       "PowerShell($env:PYTHONIOENCODING = \"utf-8\"; $env:PYTHONUTF8 = \"1\"; python C:\\\\tmp\\\\test_decode.py)",
       "PowerShell($env:PYTHONUTF8 = \"1\"; $env:PYTHONIOENCODING = \"utf-8\"; $env:JOTHIDAM_DATABASE_URL = \"postgresql://slw_admin:slw_dev_password@localhost:5433/vinaadi_test\"; $env:JOTHIDAM_TEST_DB_RESET_ACK = \"I_UNDERSTAND_THIS_WIPES_TEST_DB\"; Set-Location 'C:\\\\Users\\\\senth\\\\OneDrive\\\\문서\\\\GitHub\\\\sanstro'; python -m pytest tests/ -q --tb=short 2>&1 | Select-Object -First 150)",
       "PowerShell($env:PYTHONIOENCODING = \"utf-8\"; $env:PYTHONUTF8 = \"1\"; Set-Location 'C:\\\\Users\\\\senth\\\\OneDrive\\\\문서\\\\GitHub\\\\sanstro'; python -c \"from app.main import app; print\\('OK'\\)\" 2>&1 | Select-Object -First 40)",
-      "PowerShell(Invoke-WebRequest -Uri \"http://localhost:3000/tools/daily-panchangam-planner\" -UseBasicParsing 2>&1)"
+      "PowerShell(Invoke-WebRequest -Uri \"http://localhost:3000/tools/daily-panchangam-planner\" -UseBasicParsing 2>&1)",
+      "WebFetch(domain:api.anthropic.com)"
     ],
     "additionalDirectories": [
       "\\tmp"

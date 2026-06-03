@@ -9,6 +9,27 @@ export const metadata: Metadata = {
   description:
     "Free Tamil panchangam for today — Tithi, Vara, Nakshatra, Yoga, Karana, Rahu Kalam, Yamagandam, Nalla Neram, and auspicious timings for any date and location.",
   alternates: { canonical: "https://vinaadi.com/tools/daily-panchangam-planner" },
+  openGraph: {
+    title: "Daily Tamil Panchangam Planner — Vinaadi",
+    description:
+      "Free Tamil panchangam for today — Tithi, Vara, Nakshatra, Yoga, Karana, Rahu Kalam, Yamagandam, Nalla Neram, and auspicious timings for any date and location.",
+    url: "https://vinaadi.com/tools/daily-panchangam-planner",
+    images: [
+      {
+        url: "/brand/vinaadi-wordmark-color.png",
+        width: 1792,
+        height: 612,
+        alt: "Vinaadi - Your Cosmic Copilot",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Daily Tamil Panchangam Planner — Vinaadi",
+    description:
+      "Free Tamil panchangam for today — Tithi, Vara, Nakshatra, Yoga, Karana, Rahu Kalam, Yamagandam, Nalla Neram, and auspicious timings for any date and location.",
+    images: ["/brand/vinaadi-wordmark-color.png"],
+  },
 };
 
 export default function PanchangamPlannerPage() {
@@ -17,6 +38,7 @@ export default function PanchangamPlannerPage() {
       <PublicNav />
 
       <main>
+        {/* HERO */}
         <section className="cl-pub-hero" style={{ paddingBottom: "32px" }}>
           <div className="cl-container">
             <p className="cl-eyebrow">Tool · Panchangam Planner</p>
@@ -38,37 +60,32 @@ export default function PanchangamPlannerPage() {
           </div>
         </section>
 
-        {/* Info section */}
-        <section className="cl-pub-body" style={{ paddingTop: 0 }}>
+        {/* BAND — The five limbs */}
+        <section className="cl-band cl-band--alt">
           <div className="cl-container">
-            <div className="cl-pub-section">
-              <h2 className="cl-pub-section__head">The five limbs of the panchangam</h2>
-              <div className="cl-pub-two-col">
-                <div className="cl-pub-section__body">
-                  <p>
-                    Panchangam (பஞ்சாங்கம்) means &ldquo;five limbs&rdquo; — the five daily
-                    elements that define the quality of each day in the Tamil calendar.
-                    Vinaadi computes a precise panchangam from Thirukanitham
-                    astronomical data for any date and location.
-                  </p>
-                </div>
-                <ul className="cl-pub-detail-list">
-                  {[
-                    { title: "Tithi", body: "The 30 lunar day phases. Each has a distinct quality for different types of actions." },
-                    { title: "Vara", body: "The weekday and its planetary lord — Sunday (Sun), Monday (Moon), etc." },
-                    { title: "Nakshatra", body: "The Moon's nakshatra for the day — affects activities started on that day." },
-                    { title: "Yoga", body: "Sun-Moon combination — 27 yogas, some auspicious, some inauspicious." },
-                    { title: "Karana", body: "Half-tithi periods — 11 karanas for finer daily timing." },
-                  ].map((item) => (
-                    <li key={item.title} className="cl-pub-detail-item">
-                      <p className="cl-pub-detail-item__title">{item.title}</p>
-                      <p className="cl-pub-detail-item__body">{item.body}</p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            <div className="cl-band__head">
+              <p className="cl-eyebrow">Reference</p>
+              <h2 className="cl-section-h2">The five limbs of the panchangam</h2>
             </div>
-
+            <div className="cl-pub-two-col">
+              <div className="cl-pub-section__body">
+                <p>Panchangam (பஞ்சாங்கம்) means &ldquo;five limbs&rdquo; — the five daily elements that define the quality of each day in the Tamil calendar. Vinaadi computes a precise panchangam from Thirukanitham astronomical data for any date and location.</p>
+              </div>
+              <ul className="cl-pub-detail-list">
+                {[
+                  { title: "Tithi", body: "The 30 lunar day phases. Each has a distinct quality for different types of actions." },
+                  { title: "Vara", body: "The weekday and its planetary lord — Sunday (Sun), Monday (Moon), etc." },
+                  { title: "Nakshatra", body: "The Moon's nakshatra for the day — affects activities started on that day." },
+                  { title: "Yoga", body: "Sun-Moon combination — 27 yogas, some auspicious, some inauspicious." },
+                  { title: "Karana", body: "Half-tithi periods — 11 karanas for finer daily timing." },
+                ].map((item) => (
+                  <li key={item.title} className="cl-pub-detail-item">
+                    <p className="cl-pub-detail-item__title">{item.title}</p>
+                    <p className="cl-pub-detail-item__body">{item.body}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
             <div className="cl-pub-related">
               <p className="cl-pub-related__title">Related</p>
               <div className="cl-pub-related-links">
@@ -80,6 +97,7 @@ export default function PanchangamPlannerPage() {
           </div>
         </section>
 
+        {/* CTA */}
         <section className="cl-cta-strip">
           <div className="cl-container cl-cta-strip__inner">
             <div>

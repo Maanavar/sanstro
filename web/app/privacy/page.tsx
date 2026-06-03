@@ -9,6 +9,25 @@ export const metadata: Metadata = {
   description: "How Vinaadi collects, uses, and protects your personal data.",
   alternates: { canonical: "https://vinaadi.com/privacy" },
   robots: { index: true, follow: false },
+  openGraph: {
+    title: "Privacy Policy - Vinaadi",
+    description: "How Vinaadi collects, uses, and protects your personal data.",
+    url: "https://vinaadi.com/privacy",
+    images: [
+      {
+        url: "/brand/vinaadi-wordmark-color.png",
+        width: 1792,
+        height: 612,
+        alt: "Vinaadi - Your Cosmic Copilot",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Privacy Policy - Vinaadi",
+    description: "How Vinaadi collects, uses, and protects your personal data.",
+    images: ["/brand/vinaadi-wordmark-color.png"],
+  },
 };
 
 

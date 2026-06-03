@@ -1,14 +1,35 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 
 export const metadata: Metadata = {
-  title: "Why Birth Time Matters in Tamil Astrology — Vinaadi",
+  title: "Why Birth Time Matters in Astrology — Vinaadi",
   description:
-    "Birth time determines your lagna (ascendant) and dasha start point — the two most important factors in Tamil Jyotish chart reading and daily guidance accuracy.",
+    "Your birth time determines your lagna, house placements, and dasha start. Learn why an accurate birth time matters and how birth time rectification can help.",
   alternates: { canonical: "https://vinaadi.com/learn/why-birth-time-matters" },
+  openGraph: {
+    title: "Why Birth Time Matters in Astrology - Vinaadi",
+    description:
+      "Your birth time determines your lagna, house placements, and dasha start. Learn why an accurate birth time matters and how birth time rectification can help.",
+    url: "https://vinaadi.com/learn/why-birth-time-matters",
+    images: [
+      {
+        url: "/brand/vinaadi-wordmark-color.png",
+        width: 1792,
+        height: 612,
+        alt: "Vinaadi - Your Cosmic Copilot",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Why Birth Time Matters in Astrology - Vinaadi",
+    description:
+      "Your birth time determines your lagna, house placements, and dasha start. Learn why an accurate birth time matters and how birth time rectification can help.",
+    images: ["/brand/vinaadi-wordmark-color.png"],
+  },
 };
 
 
@@ -18,102 +39,86 @@ export default function WhyBirthTimePage() {
       <PublicNav />
 
       <main>
-        <section className="cl-trust-hero">
-          <div className="cl-container">
-            <p className="cl-eyebrow">Learn · Tamil Astrology</p>
-            <h1 className="cl-trust-h1">Why birth time matters</h1>
-            <p className="cl-trust-lead">
-              Birth time determines two of the most important elements in Tamil
-              Jyotish — the lagna (ascendant) and the dasha starting point.
-              Without an accurate birth time, chart interpretation and daily
-              guidance both become less reliable.
-            </p>
-          </div>
-        </section>
-
-        <section className="cl-trust-body">
-          <div className="cl-container cl-learn-prose">
-
-            <h2>What birth time affects</h2>
-            <p>
-              In Tamil Jyotish, birth time affects three key calculations:
-            </p>
-            <ul>
-              <li><strong>Lagna (Ascendant)</strong> — The zodiac sign rising on the eastern horizon at the birth moment. It changes every ~2 hours and determines all house positions.</li>
-              <li><strong>Moon nakshatra precision</strong> — When the Moon is near a nakshatra boundary, even a 30-minute error in birth time can shift the nakshatra assignment.</li>
-              <li><strong>Vimshottari dasha starting point</strong> — The dasha sequence is calculated from the Moon&apos;s exact nakshatra position. Nakshatra errors cause the entire dasha sequence to be off.</li>
-            </ul>
-
-            <h2>The lagna changes every 2 hours</h2>
-            <p>
-              The lagna is perhaps the single most important point in a Tamil birth
-              chart. It determines which planet rules the 1st house, which planets
-              are in which houses, and therefore the entire interpretive framework
-              of the chart.
-            </p>
-            <p>
-              Because the lagna changes sign approximately every 2 hours, a birth
-              time error of even 30–90 minutes can put the lagna in the wrong sign.
-              This changes:
-            </p>
-            <ul>
-              <li>Which planet is the lagna lord</li>
-              <li>Which house each planet occupies</li>
-              <li>Which houses each planet rules</li>
-              <li>How yogas and doshas are assessed</li>
-            </ul>
-
-            <h2>How dasha accuracy depends on birth time</h2>
-            <p>
-              The Vimshottari dasha system uses the Moon&apos;s position in its nakshatra
-              at birth to determine how much of the first dasha period was remaining
-              at birth. The more precisely the Moon&apos;s nakshatra degree is known,
-              the more accurately the dasha periods can be dated.
-            </p>
-            <p>
-              When the Moon is near a nakshatra boundary, even small birth time
-              errors can shift it into the adjacent nakshatra — changing which planet
-              rules the current dasha and when major transitions occur. For Vinaadi&apos;s
-              daily guidance, this affects which dasha lord is active and the quality
-              interpretation of the current period.
-            </p>
-
-            <h2>What to do if you don&apos;t have an exact birth time</h2>
-            <p>
-              Many people have only an approximate birth time — a hospital record
-              that says &ldquo;around 7 in the morning&rdquo;, or a family recollection that
-              may be off by an hour. This is common.
-            </p>
-            <p>
-              Vinaadi&apos;s approach for uncertain birth times:
-            </p>
-            <ul>
-              <li><strong>Use the best available time</strong> — Even an approximate time gives meaningful rasi and nakshatra data for most planets, porutham analysis, and transit-level daily guidance.</li>
-              <li><strong>Use rectification</strong> — Vinaadi&apos;s birth time rectification tool uses key life events to narrow the uncertainty and produce a more reliable birth time.</li>
-              <li><strong>Understand the limitation</strong> — Vinaadi indicates when birth time confidence may affect lagna reliability, so users can interpret results accordingly.</li>
-            </ul>
-
-            <h2>How Vinaadi handles birth time uncertainty</h2>
-            <p>
-              Vinaadi does not hide birth time uncertainty. If your lagna is in a
-              sign that the birth time only marginally supports, the chart guidance
-              includes appropriate context. The daily reading is still useful for
-              transit-level guidance even when lagna precision is lower.
-            </p>
-            <p>
-              For the best results, we recommend entering the most accurate birth
-              time available and, if uncertain, using the rectification tool with
-              key life events.
-            </p>
-
-            <div className="cl-trust-links">
-              <Link href="/tools/birth-time-rectification" className="cl-trust-link">Birth time rectification tool →</Link>
-              <Link href="/tools/jadhagam-generator" className="cl-trust-link">Generate your jadhagam →</Link>
-              <Link href="/learn/how-to-read-a-jadhagam" className="cl-trust-link">How to read a jadhagam →</Link>
+        {/* HERO */}
+        <section className="cl-pub-hero">
+          <div className="cl-container cl-pub-hero__inner">
+            <div className="cl-pub-hero__copy">
+              <p className="cl-eyebrow">Learn · Tamil Astrology</p>
+              <h1 className="cl-pub-h1">Why birth time matters</h1>
+              <p className="cl-pub-lead">Of the three birth details — date, time, and place — the time is the most sensitive. It determines your lagna, your house placements, and the precise start of your dasha periods. A small error can shift the whole chart.</p>
+              <div className="cl-hero__actions">
+                <Link href="/tools/birth-time-rectification" className="cl-btn cl-btn--solid">Rectify your birth time →</Link>
+                <Link href="/learn/how-to-read-a-jadhagam" className="cl-btn cl-btn--ghost">How to read a jadhagam</Link>
+              </div>
+            </div>
+            <div className="cl-hero-figure">
+              <p className="cl-hero-figure__label">Lagna shifts with time</p>
+              <div className="cl-hero-figure__art">
+                <svg viewBox="0 0 220 130" role="img" aria-label="The ascendant changes roughly every two hours">
+                  <line x1="16" y1="92" x2="204" y2="92" stroke="var(--cl-border-2)" strokeWidth="1.4" />
+                  <g stroke="var(--cl-muted-2)" strokeWidth="1.5" strokeLinecap="round">
+                    <line x1="16" y1="86" x2="16" y2="98" /><line x1="78" y1="86" x2="78" y2="98" />
+                    <line x1="140" y1="86" x2="140" y2="98" /><line x1="202" y1="86" x2="202" y2="98" />
+                  </g>
+                  <path d="M16 92 Q110 8 204 92" fill="none" stroke="var(--cl-accent)" strokeWidth="1.6" />
+                  <circle cx="78" cy="48" r="6" className="clf-accent-fill" />
+                  <text x="78" y="112" textAnchor="middle" className="clf-cell-label clf-muted">~2 hrs</text>
+                  <text x="110" y="120" textAnchor="middle" className="clf-cell-label clf-muted">one lagna ≈ 2 hours</text>
+                </svg>
+              </div>
+              <p className="cl-hero-figure__title">The ascendant changes ~every 2 hours</p>
+              <p className="cl-hero-figure__note">A birth time off by an hour or two can change your lagna entirely — and with it, the whole house framework.</p>
             </div>
           </div>
         </section>
 
+        {/* ARTICLE BAND */}
+        <section className="cl-band">
+          <div className="cl-container">
+            <div className="cl-article">
+              <aside className="cl-article__toc">
+                <p className="cl-article__toc-label">On this page</p>
+                <nav className="cl-article__toc-list">
+                  <a href="#lagna-depends">Lagna depends on time</a>
+                  <a href="#house-placements">House placements shift</a>
+                  <a href="#dasha">Dasha start point</a>
+                  <a href="#no-exact-time">If you don&apos;t know your time</a>
+                  <a href="#rectification">Birth time rectification</a>
+                  <a href="#how-accurate">How accurate is enough?</a>
+                </nav>
+              </aside>
+              <div className="cl-article__body cl-learn-prose">
+
+                <h2 id="lagna-depends">The lagna depends on the time</h2>
+                <p>The lagna (ascendant) is the sign rising on the eastern horizon at your moment of birth. Because the Earth rotates once every 24 hours, the rising sign changes roughly every two hours. This means a birth time that is off by an hour or two can place your lagna in an entirely different sign — which changes how all twelve houses are counted and interpreted.</p>
+                <div className="cl-callout"><p>Change the lagna, and you change the meaning of every house in the chart.</p></div>
+
+                <h2 id="house-placements">House placements shift</h2>
+                <p>Since the houses are counted from the lagna, an incorrect lagna shifts every planet into a different house. A planet that appears to be in your 10th house of career with one birth time might fall in the 9th or 11th with another. Because house placement is central to interpretation, this has a real effect on the reading.</p>
+
+                <h2 id="dasha">Dasha periods start at a precise point</h2>
+                <p>Your Vimshottari dasha sequence is calculated from the exact position of the Moon within its nakshatra at birth. While the Moon moves more slowly than the lagna, the precise degree still determines the exact start and end dates of your dasha periods. A more accurate birth time produces more accurate dasha timing.</p>
+
+                <h2 id="no-exact-time">What if you don&apos;t know your exact time?</h2>
+                <p>Many people have only an approximate birth time, or none recorded at all. This is common and not a barrier to useful astrology. Even with an approximate time, your rasi (Moon sign), nakshatra, and broad dasha periods are often reliable, because the Moon moves relatively slowly. The main uncertainty is the lagna and the fine timing of dasha changes.</p>
+
+                <h2 id="rectification">Birth time rectification</h2>
+                <p><strong>Rectification</strong> is the process of refining an uncertain birth time by comparing known life events against the chart. By examining when significant events occurred — and which dasha periods and transits would explain them — a more accurate birth time can be estimated. Vinaadi includes a birth time rectification tool that uses the Thirukanitham method to help narrow down your time.</p>
+
+                <h2 id="how-accurate">How accurate is accurate enough?</h2>
+                <p>For most practical guidance, a birth time accurate to within a few minutes gives a reliable lagna and dasha timing. If your recorded time is to the nearest 15 minutes, that is usually sufficient for confident readings. If it is only known to the nearest hour or worse, rectification is worthwhile — especially if you rely on house-based interpretation and precise timing windows.</p>
+
+                <div className="cl-trust-links">
+                  <Link href="/tools/birth-time-rectification" className="cl-trust-link">Birth time rectification tool →</Link>
+                  <Link href="/learn/how-to-read-a-jadhagam" className="cl-trust-link">How to read a jadhagam →</Link>
+                  <Link href="/learn/what-is-thirukanitham" className="cl-trust-link">What is Thirukanitham? →</Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
         <section className="cl-cta-strip">
           <div className="cl-container cl-cta-strip__inner">
             <div>

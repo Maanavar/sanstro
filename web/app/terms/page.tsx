@@ -9,6 +9,25 @@ export const metadata: Metadata = {
   description: "Terms governing use of the Vinaadi Tamil astrology assistant.",
   alternates: { canonical: "https://vinaadi.com/terms" },
   robots: { index: true, follow: false },
+  openGraph: {
+    title: "Terms of Service - Vinaadi",
+    description: "Terms governing use of the Vinaadi Tamil astrology assistant.",
+    url: "https://vinaadi.com/terms",
+    images: [
+      {
+        url: "/brand/vinaadi-wordmark-color.png",
+        width: 1792,
+        height: 612,
+        alt: "Vinaadi - Your Cosmic Copilot",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Terms of Service - Vinaadi",
+    description: "Terms governing use of the Vinaadi Tamil astrology assistant.",
+    images: ["/brand/vinaadi-wordmark-color.png"],
+  },
 };
 
 

@@ -6,11 +6,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://vinaadi.com"),
   title: {
-    default: "Vinaadi — Tamil Astrology Assistant for Daily Guidance & Planning",
+    default: "Vinaadi - Tamil Astrology Assistant for Daily Guidance & Planning",
     template: "%s | Vinaadi",
   },
   description:
-    "Vinaadi brings Thirukanitham-based Tamil astrology into a modern planning assistant — daily guidance, porutham, jadhagam, family planning, and calm interpretation every morning.",
+    "Vinaadi brings Thirukanitham-based Tamil astrology into a modern planning assistant - daily guidance, porutham, jadhagam, family planning, and calm interpretation every morning.",
   keywords: [
     "Tamil astrology",
     "Thirukanitham",
@@ -31,24 +31,24 @@ export const metadata: Metadata = {
     locale: "en_IN",
     url: "https://vinaadi.com",
     siteName: "Vinaadi",
-    title: "Vinaadi — Tamil Astrology Assistant for Daily Guidance & Planning",
+    title: "Vinaadi - Tamil Astrology Assistant for Daily Guidance & Planning",
     description:
       "Precise Thirukanitham-based Tamil astrology for daily guidance, porutham matching, jadhagam generation, and family planning.",
     images: [
       {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "Vinaadi — Tamil Astrology Assistant",
+        url: "/brand/vinaadi-wordmark-color.png",
+        width: 1792,
+        height: 612,
+        alt: "Vinaadi - Your Cosmic Copilot",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Vinaadi — Tamil Astrology Assistant for Daily Guidance & Planning",
+    title: "Vinaadi - Tamil Astrology Assistant for Daily Guidance & Planning",
     description:
       "Thirukanitham-based Tamil astrology for daily guidance, porutham, jadhagam, and family planning.",
-    images: ["/og-image.png"],
+    images: ["/brand/vinaadi-wordmark-color.png"],
   },
   robots: {
     index: true,
@@ -74,7 +74,7 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="ta">
+    <html lang="en">
       <head>
         <meta charSet="utf-8" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

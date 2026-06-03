@@ -13,6 +13,22 @@ export const metadata: Metadata = {
     title: "South Indian Tamil Birth Chart Generator — Vinaadi Jadhagam",
     description:
       "Thirukanitham jadhagam generation — D1 Rasi, D9 Navamsa, Lahiri ayanamsa, planet positions, dasha sequence.",
+    url: "https://vinaadi.com/tools/jadhagam-generator",
+    images: [
+      {
+        url: "/brand/vinaadi-wordmark-color.png",
+        width: 1792,
+        height: 612,
+        alt: "Vinaadi - Your Cosmic Copilot",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "South Indian Tamil Birth Chart Generator — Vinaadi Jadhagam",
+    description:
+      "Thirukanitham jadhagam generation — D1 Rasi, D9 Navamsa, Lahiri ayanamsa, planet positions, dasha sequence.",
+    images: ["/brand/vinaadi-wordmark-color.png"],
   },
 };
 
@@ -22,6 +38,7 @@ export default function JadhagamGeneratorPage() {
       <PublicNav />
 
       <main>
+        {/* HERO */}
         <section className="cl-pub-hero" style={{ paddingBottom: "32px" }}>
           <div className="cl-container">
             <p className="cl-eyebrow">Tool · Jadhagam Generator</p>
@@ -43,36 +60,31 @@ export default function JadhagamGeneratorPage() {
           </div>
         </section>
 
-        {/* Info section */}
-        <section className="cl-pub-body" style={{ paddingTop: 0 }}>
+        {/* BAND — What this chart includes */}
+        <section className="cl-band cl-band--alt">
           <div className="cl-container">
-            <div className="cl-pub-section">
-              <h2 className="cl-pub-section__head">What this chart includes</h2>
-              <div className="cl-pub-two-col">
-                <div className="cl-pub-section__body">
-                  <p>
-                    Every chart is computed using the Thirukanitham method —
-                    the precise Tamil astronomical calculation standard with
-                    Lahiri ayanamsa and Drik ephemeris data. The same method
-                    used by traditional Tamil Jyotish practitioners.
-                  </p>
-                </div>
-                <ul className="cl-pub-detail-list">
-                  {[
-                    { title: "D1 Rasi chart", body: "Primary natal chart — all planets in South Indian square format." },
-                    { title: "D9 Navamsa chart", body: "Divisional chart for relationships, dharma, and second half of life." },
-                    { title: "Planet positions", body: "Precise rasi, nakshatra, pada, and degree for all 9 grahas." },
-                    { title: "Vimshottari Dasha", body: "Current dasha and bhukti period from birth nakshatra." },
-                  ].map((item) => (
-                    <li key={item.title} className="cl-pub-detail-item">
-                      <p className="cl-pub-detail-item__title">{item.title}</p>
-                      <p className="cl-pub-detail-item__body">{item.body}</p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            <div className="cl-band__head">
+              <p className="cl-eyebrow">What&apos;s included</p>
+              <h2 className="cl-section-h2">What this chart includes</h2>
             </div>
-
+            <div className="cl-pub-two-col">
+              <div className="cl-pub-section__body">
+                <p>Every chart is computed using the Thirukanitham method — the precise Tamil astronomical calculation standard with Lahiri ayanamsa and Drik ephemeris data. The same method used by traditional Tamil Jyotish practitioners.</p>
+              </div>
+              <ul className="cl-pub-detail-list">
+                {[
+                  { title: "D1 Rasi chart", body: "Primary natal chart — all planets in South Indian square format." },
+                  { title: "D9 Navamsa chart", body: "Divisional chart for relationships, dharma, and second half of life." },
+                  { title: "Planet positions", body: "Precise rasi, nakshatra, pada, and degree for all 9 grahas." },
+                  { title: "Vimshottari Dasha", body: "Current dasha and bhukti period from birth nakshatra." },
+                ].map((item) => (
+                  <li key={item.title} className="cl-pub-detail-item">
+                    <p className="cl-pub-detail-item__title">{item.title}</p>
+                    <p className="cl-pub-detail-item__body">{item.body}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
             <div className="cl-pub-related">
               <p className="cl-pub-related__title">Related</p>
               <div className="cl-pub-related-links">
@@ -85,6 +97,7 @@ export default function JadhagamGeneratorPage() {
           </div>
         </section>
 
+        {/* CTA */}
         <section className="cl-cta-strip">
           <div className="cl-container cl-cta-strip__inner">
             <div>

@@ -1,14 +1,35 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 
 export const metadata: Metadata = {
-  title: "What is Chandrashtama? Moon in the 8th — Vinaadi",
+  title: "What is Chandrashtama? The Moon's 8th Transit Explained — Vinaadi",
   description:
-    "Chandrashtama is the period when the Moon transits the 8th house from your natal Moon rasi. Learn what it means, how it's calculated, and how to approach it calmly.",
+    "Chandrashtama is the period when the transiting Moon passes through the 8th sign from your birth Moon. Learn what it means, how often it occurs, and how to approach it calmly.",
   alternates: { canonical: "https://vinaadi.com/learn/what-is-chandrashtama" },
+  openGraph: {
+    title: "What is Chandrashtama? - Vinaadi",
+    description:
+      "Chandrashtama is the period when the transiting Moon passes through the 8th sign from your birth Moon. Learn what it means, how often it occurs, and how to approach it calmly.",
+    url: "https://vinaadi.com/learn/what-is-chandrashtama",
+    images: [
+      {
+        url: "/brand/vinaadi-wordmark-color.png",
+        width: 1792,
+        height: 612,
+        alt: "Vinaadi - Your Cosmic Copilot",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "What is Chandrashtama? - Vinaadi",
+    description:
+      "Chandrashtama is the period when the transiting Moon passes through the 8th sign from your birth Moon. Learn what it means, how often it occurs, and how to approach it calmly.",
+    images: ["/brand/vinaadi-wordmark-color.png"],
+  },
 };
 
 
@@ -18,108 +39,88 @@ export default function WhatIsChandrashtamaPage() {
       <PublicNav />
 
       <main>
-        <section className="cl-trust-hero">
-          <div className="cl-container">
-            <p className="cl-eyebrow">Learn · Tamil Astrology</p>
-            <h1 className="cl-trust-h1">What is Chandrashtama?</h1>
-            <p className="cl-trust-lead">
-              Chandrashtama is the period when the transiting Moon passes through
-              the 8th sign from your natal Moon rasi. It is a recurring astrological
-              condition that can be understood — and planned around — calmly.
-            </p>
-          </div>
-        </section>
-
-        <section className="cl-trust-body">
-          <div className="cl-container cl-learn-prose">
-
-            <h2>What Chandrashtama means</h2>
-            <p>
-              The word Chandrashtama combines &ldquo;Chandra&rdquo; (Moon) and &ldquo;Ashtama&rdquo;
-              (eighth). It refers to the Moon transiting the 8th sign from the
-              natal Moon rasi — the sign the Moon occupied at the time of birth.
-            </p>
-            <p>
-              In Tamil and Vedic Jyotish, the 8th house from the Moon is associated
-              with challenges, obstacles, increased mental fatigue, and a period
-              where caution is advisable for important new actions. The Moon moves
-              through all 12 signs roughly once per month, spending approximately
-              2.5 days in each sign. This means Chandrashtama occurs for approximately
-              2–3 days every month.
-            </p>
-
-            <h2>How it is calculated</h2>
-            <p>
-              To determine Chandrashtama for any day, Vinaadi:
-            </p>
-            <ul>
-              <li>Identifies your natal Moon rasi from your birth chart (calculated with Thirukanitham / Lahiri ayanamsa)</li>
-              <li>Counts 8 signs forward from your natal Moon rasi</li>
-              <li>Checks whether the transiting Moon on that day is in that 8th sign</li>
-            </ul>
-            <p>
-              For example, if your natal Moon is in Rishabam (Taurus), the 8th
-              sign from Rishabam is Dhanus (Sagittarius). On any day when the
-              transiting Moon is in Dhanus, you are in Chandrashtama.
-            </p>
-
-            <h2>What Chandrashtama is and is not</h2>
-            <p>
-              Chandrashtama is a regularly occurring transit condition — not a rare
-              or catastrophic event. It happens for 2–3 days every month for
-              everyone. It is not a signal that something bad will happen. It is a
-              signal that the day has a slightly different quality — one where
-              increased care in new decisions, emotional sensitivity, and physical
-              conservation may be advisable.
-            </p>
-            <p>
-              Traditional Tamil astrological practice treats Chandrashtama days as
-              unsuitable for starting important new ventures, making irreversible
-              decisions, or beginning long journeys. Routine activity, rest, and
-              existing commitments continue normally.
-            </p>
-
-            <h2>How Vinaadi handles Chandrashtama</h2>
-            <p>
-              Vinaadi tracks Chandrashtama for each user based on their natal Moon
-              rasi. On Chandrashtama days, the daily score reflects the added
-              caution, the caution window is expanded or shifted, and the
-              interpretation notes the Chandrashtama period clearly.
-            </p>
-            <p>
-              We deliberately avoid amplifying Chandrashtama with fear language.
-              The interpretation uses calm, practical framing — it is a day to
-              approach with a bit more care, not a day to fear.
-            </p>
-
-            <h2>The difference between Chandrashtama and a &ldquo;bad day&rdquo;</h2>
-            <p>
-              Many astrology apps label Chandrashtama days as simply &ldquo;bad&rdquo; or
-              use alarming language around them. This is not consistent with the
-              traditional Tamil Jyotish understanding.
-            </p>
-            <p>
-              Chandrashtama modifies the day&apos;s quality. Whether the day is
-              overall positive or challenging still depends on the full combination
-              of factors — dasha period quality, other transit influences, and the
-              day&apos;s panchangam. A strong dasha period can offset a Chandrashtama
-              period significantly. Vinaadi reads all of these together and gives
-              a balanced score, not a fear trigger.
-            </p>
-
-            <div className="cl-trust-links">
-              <Link href="/features/daily-guidance" className="cl-trust-link">How daily guidance works →</Link>
-              <Link href="/tools/daily-panchangam-planner" className="cl-trust-link">Daily Panchangam Planner →</Link>
-              <Link href="/trust/methodology" className="cl-trust-link">Our methodology →</Link>
+        {/* HERO */}
+        <section className="cl-pub-hero">
+          <div className="cl-container cl-pub-hero__inner">
+            <div className="cl-pub-hero__copy">
+              <p className="cl-eyebrow">Learn · Tamil Astrology</p>
+              <h1 className="cl-pub-h1">What is Chandrashtama?</h1>
+              <p className="cl-pub-lead">Chandrashtama is the period when the transiting Moon passes through the 8th sign counted from your birth Moon sign. In Tamil astrology it is treated as a time for extra care — not fear.</p>
+              <div className="cl-hero__actions">
+                <Link href="/dashboard" className="cl-btn cl-btn--solid">Track your Chandrashtama →</Link>
+                <Link href="/features/daily-guidance" className="cl-btn cl-btn--ghost">Daily guidance</Link>
+              </div>
+            </div>
+            <div className="cl-hero-figure">
+              <p className="cl-hero-figure__label">The 8th from Janma Rasi</p>
+              <div className="cl-hero-figure__art">
+                <svg viewBox="0 0 200 200" role="img" aria-label="Moon in the 8th sign from birth sign">
+                  <circle cx="100" cy="100" r="78" fill="none" stroke="var(--cl-border-2)" strokeWidth="1.4" />
+                  <circle cx="100" cy="22" r="8" className="clf-sage-fill" />
+                  <text x="100" y="14" textAnchor="middle" className="clf-cell-label">janma (1)</text>
+                  <g stroke="var(--cl-muted-2)" strokeWidth="1.2" strokeLinecap="round">
+                    <line x1="100" y1="100" x2="100" y2="22" />
+                  </g>
+                  <circle cx="44" cy="155" r="9" className="clf-accent-fill" />
+                  <text x="40" y="178" textAnchor="middle" className="clf-cell-label clf-accent-fill">moon · 8th</text>
+                  <path d="M100 100 L44 155" stroke="var(--cl-accent)" strokeWidth="1.4" strokeDasharray="3 3" />
+                </svg>
+              </div>
+              <p className="cl-hero-figure__title">Roughly 2¼ days, ~once a month</p>
+              <p className="cl-hero-figure__note">Vinaadi names Chandrashtama days clearly and folds them into the daily score — without dramatising them.</p>
             </div>
           </div>
         </section>
 
+        {/* ARTICLE BAND */}
+        <section className="cl-band">
+          <div className="cl-container">
+            <div className="cl-article">
+              <aside className="cl-article__toc">
+                <p className="cl-article__toc-label">On this page</p>
+                <nav className="cl-article__toc-list">
+                  <a href="#meaning">The meaning</a>
+                  <a href="#how-often">How often it occurs</a>
+                  <a href="#traditionally">What it signifies</a>
+                  <a href="#vinaadi">How Vinaadi handles it</a>
+                  <a href="#calm">A calm approach</a>
+                </nav>
+              </aside>
+              <div className="cl-article__body cl-learn-prose">
+
+                <h2 id="meaning">The meaning of Chandrashtama</h2>
+                <p>&ldquo;Chandra&rdquo; means Moon, and &ldquo;ashtama&rdquo; means eighth. Chandrashtama refers to the time when the transiting Moon is in the 8th rasi (sign) counted from your janma rasi — the Moon sign at your birth. The 8th house in astrology is traditionally associated with transformation, obstacles, and matters that require caution.</p>
+
+                <h2 id="how-often">How often it occurs</h2>
+                <p>The Moon travels through all 12 signs roughly every 27–28 days, spending about 2¼ days in each sign. This means Chandrashtama occurs approximately once a month, for about two to two-and-a-quarter days each time. It is a regular, predictable cycle — not a rare or catastrophic event.</p>
+                <div className="cl-callout"><p>It is a regular monthly rhythm — not a rare catastrophe. Knowing when it falls is simply useful planning information.</p></div>
+
+                <h2 id="traditionally">What it traditionally signifies</h2>
+                <p>During Chandrashtama, the traditional guidance is to avoid initiating major new ventures, important journeys, large financial commitments, or significant ceremonies. It is considered a period better suited to routine activities, completion of existing work, rest, and reflection rather than bold new beginnings.</p>
+                <p>Importantly, Chandrashtama does not predict disaster. It is a period of lowered support for new initiation — a time to be measured, not anxious.</p>
+
+                <h2 id="vinaadi">How Vinaadi handles Chandrashtama</h2>
+                <p>Vinaadi automatically tracks your Chandrashtama based on your birth Moon sign. When a Chandrashtama period is active, it is clearly named in your daily reading and factored into the daily score. We deliberately avoid fear-based language. The reading will tell you the period is active and suggest a measured approach — without amplifying anxiety or making dramatic predictions.</p>
+
+                <h2 id="calm">A calm approach</h2>
+                <p>The healthiest way to use Chandrashtama is as planning information, not as a source of worry. If you know a Chandrashtama period is coming, you can simply schedule major decisions around it where practical. If something important must happen during it, that is not a guarantee of a bad outcome — it is simply a period to proceed with extra awareness.</p>
+
+                <div className="cl-trust-links">
+                  <Link href="/features/daily-guidance" className="cl-trust-link">Daily guidance feature →</Link>
+                  <Link href="/features/timing-and-decisions" className="cl-trust-link">Timing and decisions →</Link>
+                  <Link href="/trust/methodology" className="cl-trust-link">Our methodology →</Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
         <section className="cl-cta-strip">
           <div className="cl-container cl-cta-strip__inner">
             <div>
-              <h2 className="cl-cta-strip__title">Track your Chandrashtama days</h2>
-              <p className="cl-cta-strip__body">Vinaadi identifies and interprets Chandrashtama in your daily reading.</p>
+              <h2 className="cl-cta-strip__title">Know when your Chandrashtama falls</h2>
+              <p className="cl-cta-strip__body">Tracked automatically and explained calmly in your daily reading.</p>
             </div>
             <Link href="/dashboard" className="cl-btn cl-btn--solid">Open dashboard →</Link>
           </div>
