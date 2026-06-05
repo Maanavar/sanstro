@@ -95,10 +95,19 @@
       "PowerShell($env:PYTHONUTF8 = \"1\"; $env:PYTHONIOENCODING = \"utf-8\"; $env:JOTHIDAM_DATABASE_URL = \"postgresql://slw_admin:slw_dev_password@localhost:5433/vinaadi_test\"; $env:JOTHIDAM_TEST_DB_RESET_ACK = \"I_UNDERSTAND_THIS_WIPES_TEST_DB\"; Set-Location 'C:\\\\Users\\\\senth\\\\OneDrive\\\\문서\\\\GitHub\\\\sanstro'; python -m pytest tests/ -q --tb=short 2>&1 | Select-Object -First 150)",
       "PowerShell($env:PYTHONIOENCODING = \"utf-8\"; $env:PYTHONUTF8 = \"1\"; Set-Location 'C:\\\\Users\\\\senth\\\\OneDrive\\\\문서\\\\GitHub\\\\sanstro'; python -c \"from app.main import app; print\\('OK'\\)\" 2>&1 | Select-Object -First 40)",
       "PowerShell(Invoke-WebRequest -Uri \"http://localhost:3000/tools/daily-panchangam-planner\" -UseBasicParsing 2>&1)",
-      "WebFetch(domain:api.anthropic.com)"
+      "WebFetch(domain:api.anthropic.com)",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(Select-Object -First 60)",
+      "Bash(PYTHONUTF8=1 PYTHONIOENCODING=utf-8 ./.venv/Scripts/python.exe c:/tmp/verify_porutham.py)",
+      "Bash(PYTHONUTF8=1 ./.venv/Scripts/python.exe -c ' *)",
+      "Bash(PYTHONUTF8=1 ./.venv/Scripts/python.exe -m py_compile app/calculations/porutham.py app/calculations/dasha.py app/services/chart_service.py app/services/dasha_service.py app/services/narrative_engine.py app/services/age_phase_service.py app/calculations/activity_timing_rules.py)",
+      "Bash(PYTHONUTF8=1 ./.venv/Scripts/python.exe -m py_compile app/services/daily_guidance_service.py)",
+      "PowerShell($env:JOTHIDAM_DATABASE_URL = \"postgresql://slw_admin:slw_dev_password@localhost:5433/vinaadi_test\"; $env:JOTHIDAM_TEST_DB_RESET_ACK = \"I_UNDERSTAND_THIS_WIPES_TEST_DB\"; $env:PYTHONUTF8 = \"1\"; $env:PYTHONIOENCODING = \"utf-8\"; & .\\\\.venv\\\\Scripts\\\\python.exe -m pytest -q 2>&1 | Select-Object -Last 50)"
     ],
     "additionalDirectories": [
-      "\\tmp"
+      "\\tmp",
+      "C:\\Users\\senth\\.claude"
     ]
   }
 }
