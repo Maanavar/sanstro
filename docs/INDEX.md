@@ -22,11 +22,13 @@ Quick map to the right document for each purpose.
 - [UIUX_REVAMP_PLAN.md](UIUX_REVAMP_PLAN.md) — **UI/UX revamp master plan**: full 7-phase implementation plan, new IA (7 primary destinations), every feature properly placed, component build list, design tokens, accessibility rules
 
 ## Marketing, SEO, and Public Site
-- [SEO_GROWTH_STRATEGY_2026_06_02.md](SEO_GROWTH_STRATEGY_2026_06_02.md) — Owner-level SEO and growth strategy: assistant-first positioning, public acquisition layer, 30/60/90 plan
-- [MARKETING_SITE_IA_PLAN_2026_06_02.md](MARKETING_SITE_IA_PLAN_2026_06_02.md) — Public-site information architecture: homepage = assistant story, feature pages = guided use cases, tool pages = search capture
-- [HOMEPAGE_CONTENT_BLUEPRINT_2026_06_02.md](HOMEPAGE_CONTENT_BLUEPRINT_2026_06_02.md) — Section-by-section homepage blueprint preserving the current visual style while expanding usefulness
-- [MARKETING_SEO_IMPLEMENTATION_ROADMAP_2026_06_02.md](MARKETING_SEO_IMPLEMENTATION_ROADMAP_2026_06_02.md) — Execution roadmap for technical SEO, homepage expansion, feature pages, tool pages, and quality fixes
-- [MARKETING_EXECUTION_TASKS_2026_06_02.md](MARKETING_EXECUTION_TASKS_2026_06_02.md) — Agent-friendly task list with task IDs, file scope, requirements, definitions of done, and execution order
+- [MARKETING_PLAN.md](MARKETING_PLAN.md) — Consolidated marketing & SEO plan: growth strategy, site IA, homepage content blueprint, SEO implementation roadmap, and execution tasks (merged from the five 2026-06-02 marketing docs)
+- [PUBLIC_SITE_QA_CHECKLIST.md](PUBLIC_SITE_QA_CHECKLIST.md) — QA gates for the public marketing site
+
+## Roadmap & Rules
+- [VINAADI_ENHANCEMENT_ROADMAP_v1.md](VINAADI_ENHANCEMENT_ROADMAP_v1.md) — Forward enhancement roadmap (referenced by AGENT_INSTRUCTIONS)
+- [VINAADI_RULES.md](VINAADI_RULES.md) — Operational and astrology rule constraints
+- [THIRUKANITHAM_AUDIT_ISSUES.md](THIRUKANITHAM_AUDIT_ISSUES.md) — Active Thirukanitham calculation audit issues
 
 ## Tamil Astrology Reference
 - [SEVVAIRAGU.MD](SEVVAIRAGU.MD) — Sevvai/Rahu dosha validation rules (Tamil-specific, includes test scenarios)
