@@ -545,6 +545,16 @@ _PLANET_EN = {
 _JOURNAL_INSIGHT_LOOKBACK_DAYS = 30
 
 
+# Bump when the daily-score engine logic changes (scoring weights, dasha/porutham
+# corrections, transit rules, …) so previously cached rows self-invalidate instead
+# of being served stale. Combined with the chart calculation_version on load.
+DAILY_SCORE_ENGINE_VERSION = "2026-06-05-v3"
+
+
+def _cache_version(calculation_version: str) -> str:
+    return f"{calculation_version}::{DAILY_SCORE_ENGINE_VERSION}"
+
+
 def _load_daily_score_cache(
     session: Session,
     *,
@@ -562,8 +572,12 @@ def _load_daily_score_cache(
     ).scalars().first()
     if row is None:
         return None
+    stored = dict(row.data)
+    # Stale row from an older engine/chart version → force recompute.
+    if stored.pop("_cacheVersion", None) != _cache_version(calculation_version):
+        return None
     return DailyGuidanceResponse(
-        data=DailyGuidanceData.model_validate(row.data),
+        data=DailyGuidanceData.model_validate(stored),
         meta=ResponseMeta(
             calculation_version=calculation_version,
             generated_at=datetime.now(tz=UTC),
@@ -577,8 +591,10 @@ def _store_daily_score_cache(
     birth_profile_id: UUID,
     score_date: date,
     response: DailyGuidanceResponse,
+    calculation_version: str,
 ) -> None:
     payload = response.data.model_dump(mode="json", by_alias=True)
+    payload["_cacheVersion"] = _cache_version(calculation_version)
     session.execute(
         pg_insert(DailyScore)
         .values(
@@ -1053,7 +1069,12 @@ def build_daily_guidance_response(
 
     best_windows = _best_hours(panchangam, maha_lord, lagna_rasi=natal_lagna, current_antar_lord=antar_lord)
     caution_windows = _caution_windows(panchangam)
-    remedial_support = 6 if best_windows else 0
+    # Remedial support reflects the *quality* of available windows, not merely their
+    # presence (every day has some Nalla Neram). Full credit only when a personal-hora
+    # window — ruled by the native's own lagna/dasha lords — is available; a partial
+    # credit for generic benefic/Abhijit windows; none when the day offers nothing.
+    _has_personal_window = any("PERSONAL_HORA" in w.type for w in best_windows)
+    remedial_support = 6 if _has_personal_window else (3 if best_windows else 0)
 
     score = round(
         moon_score * 0.30
@@ -1226,7 +1247,10 @@ def build_daily_guidance_response(
                 dashaSupport=round(dasha_score * 0.20),
                 panchangam=round(panchangam_score * 0.15),
                 gocharSupport=round(transit_score * 0.25),
-                personalCautions=-(round((60 - personal_safety_score) * 0.2) if personal_safety_score < 60 else 0),
+                # Shortfall from an unafflicted day (baseline 60), scaled by the real
+                # 0.10 weight used in the score formula — keeps this driver dimensionally
+                # consistent with moonTransit/dashaSupport/etc. (≤0 = personal-safety drag).
+                personalCautions=round((personal_safety_score - 60) * 0.10),
                 remedialActionSupport=remedial_support,
             ),
             bestWindows=best_windows,
@@ -1333,6 +1357,7 @@ def get_daily_guidance(session: Session, chart_id: UUID, on_date: date, language
             birth_profile_id=birth_profile_id,
             score_date=on_date,
             response=response,
+            calculation_version=chart_snapshot.meta.calculation_version,
         )
     return response
 
@@ -1621,6 +1646,7 @@ def get_activity_timing(
                         birth_profile_id=birth_profile_id,
                         score_date=d,
                         response=daily_response,
+                        calculation_version=chart_snapshot.meta.calculation_version,
                     )
                 score = daily_response.data.score
 

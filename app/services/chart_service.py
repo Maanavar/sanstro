@@ -115,12 +115,13 @@ _PLANET_MEAN_DAILY_SPEED: dict[str, float] = {
 }
 _NATAL_GRAHAS = frozenset({"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"})
 _VARGA_DIVISIONS = (2, 3, 4, 7, 10, 12, 16, 20, 24, 30, 40, 60)
+# Classical Deva/Manushya/Rakshasa assignment — must match app.calculations.porutham._GANA.
 _NAKSHATRA_GANA = {
-    1: "Deva", 2: "Manushya", 3: "Deva", 4: "Deva", 5: "Manushya", 6: "Manushya",
-    7: "Deva", 8: "Deva", 9: "Rakshasa", 10: "Rakshasa", 11: "Manushya", 12: "Deva",
-    13: "Manushya", 14: "Manushya", 15: "Manushya", 16: "Deva", 17: "Deva", 18: "Manushya",
-    19: "Rakshasa", 20: "Deva", 21: "Rakshasa", 22: "Manushya", 23: "Deva", 24: "Deva",
-    25: "Rakshasa", 26: "Rakshasa", 27: "Deva",
+    1: "Deva", 2: "Manushya", 3: "Rakshasa", 4: "Manushya", 5: "Deva", 6: "Manushya",
+    7: "Deva", 8: "Deva", 9: "Rakshasa", 10: "Rakshasa", 11: "Manushya", 12: "Manushya",
+    13: "Deva", 14: "Rakshasa", 15: "Deva", 16: "Rakshasa", 17: "Deva", 18: "Rakshasa",
+    19: "Rakshasa", 20: "Manushya", 21: "Manushya", 22: "Deva", 23: "Rakshasa", 24: "Rakshasa",
+    25: "Manushya", 26: "Manushya", 27: "Deva",
 }
 
 _ASPECT_OFFSETS: dict[str, frozenset[int]] = {

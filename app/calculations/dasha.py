@@ -99,8 +99,21 @@ def _build_periods(start_jd: float, sequence_start_lord: str, first_duration_yea
 def _build_subperiods(parent: DashaPeriod, level: Literal["antar", "pratyantar", "sookshma", "prana"]) -> tuple[DashaPeriod, ...]:
     periods: list[DashaPeriod] = []
     sequence = _sequence_from(parent.lord)
-    parent_years = (parent.end_jd - parent.start_jd) / JULIAN_YEAR_DAYS
-    current_start = parent.start_jd
+    # Reconstruct the parent's TRUE (unclipped) span. The opening mahadasha is
+    # stored clipped to the dasha balance at birth — its real start precedes the
+    # birth moment. Building antardashas over only the balance would wrongly
+    # compress a full bhukti cycle into the remaining time and yield the wrong
+    # running antardasha for anyone still in their first mahadasha. Rebuilding the
+    # antardashas over the full mahadasha length (anchored on its true start)
+    # resumes from the bhukti actually running at birth. For a full (non-opening)
+    # mahadasha this reconstruction is exact and changes nothing.
+    if level == "antar":
+        parent_years = float(DASHA_YEARS[parent.lord])
+        true_start = parent.end_jd - parent_years * JULIAN_YEAR_DAYS
+    else:
+        parent_years = (parent.end_jd - parent.start_jd) / JULIAN_YEAR_DAYS
+        true_start = parent.start_jd
+    current_start = true_start
 
     for index, lord in enumerate(sequence):
         duration_years = parent_years * DASHA_YEARS[lord] / 120.0

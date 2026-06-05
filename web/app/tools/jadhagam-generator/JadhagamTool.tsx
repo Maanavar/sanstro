@@ -5,6 +5,7 @@ import { PlaceCombobox } from "@/components/dashboard-ui";
 import type { ChartCalculateResponseData, ChartPlanet } from "@/lib/types";
 import { readErrorMessage } from "@/lib/api";
 import { computeD9LagnaRasi, GRAHA_ABBR } from "@/lib/chart-utils";
+import { useLang } from "@/components/lang-toggle";
 
 /* South Indian grid positions — fixed sign layout */
 const RASI_GRID = [
@@ -14,25 +15,40 @@ const RASI_GRID = [
   { rasi: 9, col: 0, row: 3 }, { rasi: 8, col: 1, row: 3 }, { rasi: 7, col: 2, row: 3 }, { rasi: 6, col: 3, row: 3 },
 ];
 
-const RASI_NAMES: Record<number, string> = {
+const RASI_NAMES_EN: Record<number, string> = {
   1: "Mesham", 2: "Rishabam", 3: "Mithunam", 4: "Kadagam",
   5: "Simmam", 6: "Kanni", 7: "Tulam", 8: "Viruchigam",
   9: "Dhanus", 10: "Makaram", 11: "Kumbam", 12: "Meenam",
 };
 
+const RASI_NAMES_TA: Record<number, string> = {
+  1: "மேஷம்", 2: "ரிஷபம்", 3: "மிதுனம்", 4: "கடகம்",
+  5: "சிம்மம்", 6: "கன்னி", 7: "துலாம்", 8: "விருச்சிகம்",
+  9: "தனுசு", 10: "மகரம்", 11: "கும்பம்", 12: "மீனம்",
+};
+
 const PLANET_ORDER = ["SUN","MOON","MARS","MERCURY","JUPITER","VENUS","SATURN","RAHU","KETU","MANDHI"];
-const PLANET_LABELS: Record<string, string> = {
+
+const PLANET_LABELS_EN: Record<string, string> = {
   SUN: "Sun · Suryan", MOON: "Moon · Chandran", MARS: "Mars · Sevvai",
   MERCURY: "Mercury · Budhan", JUPITER: "Jupiter · Guru", VENUS: "Venus · Sukran",
   SATURN: "Saturn · Sani", RAHU: "Rahu", KETU: "Ketu", MANDHI: "Mandhi",
 };
 
-function RasiGrid({ chart, d9 }: { chart: ChartCalculateResponseData; d9?: boolean }) {
+const PLANET_LABELS_TA: Record<string, string> = {
+  SUN: "சூரியன்", MOON: "சந்திரன்", MARS: "செவ்வாய்",
+  MERCURY: "புதன்", JUPITER: "குரு", VENUS: "சுக்கிரன்",
+  SATURN: "சனி", RAHU: "ராகு", KETU: "கேது", MANDHI: "மாந்தி",
+};
+
+function RasiGrid({ chart, d9, lang }: { chart: ChartCalculateResponseData; d9?: boolean; lang: "en" | "ta" }) {
   const lagnaRasi = d9 ? computeD9LagnaRasi(chart.lagna.absoluteLongitude) : chart.lagna.rasi;
+  const RASI_NAMES = lang === "en" ? RASI_NAMES_EN : RASI_NAMES_TA;
+  const lagnaLabel = lang === "en" ? "La" : "ல";
 
   function getOcc(rasi: number): string[] {
     const occ: string[] = [];
-    if (lagnaRasi === rasi) occ.push("La");
+    if (lagnaRasi === rasi) occ.push(lagnaLabel);
     chart.planets.forEach((p) => {
       const planetRasi = d9 ? p.d9Rasi : p.rasi;
       if (planetRasi === rasi) occ.push(GRAHA_ABBR[p.graha] ?? p.graha.slice(0, 2));
@@ -83,7 +99,7 @@ function RasiGrid({ chart, d9 }: { chart: ChartCalculateResponseData; d9?: boole
                 {occ.map((o, i) => (
                   <span key={i} style={{
                     fontSize: "0.75rem", fontWeight: 700,
-                    color: o === "La" ? "#B85A2C" : "var(--cl-ink)",
+                    color: o === lagnaLabel ? "#B85A2C" : "var(--cl-ink)",
                   }}>{o}</span>
                 ))}
               </div>
@@ -99,10 +115,12 @@ function RasiGrid({ chart, d9 }: { chart: ChartCalculateResponseData; d9?: boole
         }}>
           <div style={{ textAlign: "center", fontSize: "0.68rem", color: "var(--cl-muted)" }}>
             <div style={{ fontWeight: 700, fontSize: "0.72rem", color: "var(--cl-ink)" }}>
-              {d9 ? "D9 Navamsa" : "D1 Rasi"}
+              {d9
+                ? (lang === "en" ? "D9 Navamsa" : "D9 நவாம்சம்")
+                : (lang === "en" ? "D1 Rasi" : "D1 ராசி")}
             </div>
             <div style={{ fontSize: "0.6rem", marginTop: "2px" }}>
-              {RASI_NAMES[lagnaRasi]} Lagna
+              {RASI_NAMES[lagnaRasi]} {lang === "en" ? "Lagna" : "லக்னம்"}
             </div>
           </div>
         </div>
@@ -139,6 +157,11 @@ const labelStyle: React.CSSProperties = {
 };
 
 export function JadhagamTool() {
+  const [lang] = useLang();
+  const en = lang === "en";
+  const RASI_NAMES = en ? RASI_NAMES_EN : RASI_NAMES_TA;
+  const PLANET_LABELS = en ? PLANET_LABELS_EN : PLANET_LABELS_TA;
+
   const [form, setForm] = useState<Form>(EMPTY);
   const [chart, setChart] = useState<ChartCalculateResponseData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -147,7 +170,9 @@ export function JadhagamTool() {
 
   async function handleGenerate() {
     if (!form.birthDateLocal || !form.birthLatitude || !form.birthLongitude) {
-      setError("Please enter date, time, and select a birth place.");
+      setError(en
+        ? "Please enter date, time, and select a birth place."
+        : "தேதி, நேரம் உள்ளிட்டு பிறந்த இடம் தேர்வு செய்யவும்.");
       return;
     }
     setError("");
@@ -194,18 +219,20 @@ export function JadhagamTool() {
         display: "flex", flexDirection: "column", gap: "16px",
       }}>
         <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--cl-muted)", lineHeight: 1.5 }}>
-          Enter birth details to generate a Thirukanitham-precise jadhagam. No account required.
+          {en
+            ? "Enter birth details to generate a Thirukanitham-precise jadhagam. No account required."
+            : "திருக்கணிதம் துல்லியமான ஜாதகம் உருவாக்க பிறப்பு விவரங்களை உள்ளிடவும். கணக்கு தேவையில்லை."}
         </p>
 
         <div className="cl-mobile-form-grid-2" style={{ gap: "12px" }}>
           <label style={labelStyle}>
-            Name (optional)
+            {en ? "Name (optional)" : "பெயர் (விருப்பத்திற்கு)"}
             <input style={inputStyle} value={form.displayName}
               onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
-              placeholder="e.g. Ramesh Kumar" />
+              placeholder={en ? "e.g. Ramesh Kumar" : "எ.கா. ரமேஷ் குமார்"} />
           </label>
           <label style={labelStyle}>
-            Birth Date *
+            {en ? "Birth Date *" : "பிறந்த தேதி *"}
             <input style={inputStyle} type="date" value={form.birthDateLocal}
               onChange={(e) => setForm((f) => ({ ...f, birthDateLocal: e.target.value }))} />
           </label>
@@ -213,21 +240,21 @@ export function JadhagamTool() {
 
         <div className="cl-mobile-form-grid-2" style={{ gap: "12px" }}>
           <label style={labelStyle}>
-            Birth Time
+            {en ? "Birth Time" : "பிறந்த நேரம்"}
             <input style={inputStyle} type="time" value={form.birthTimeLocal}
               onChange={(e) => setForm((f) => ({ ...f, birthTimeLocal: e.target.value }))} />
           </label>
           <label style={labelStyle}>
-            Timezone
+            {en ? "Timezone" : "நேர மண்டலம்"}
             <input style={inputStyle} value={form.birthTimezone}
               onChange={(e) => setForm((f) => ({ ...f, birthTimezone: e.target.value }))} />
           </label>
         </div>
 
         <label style={labelStyle}>
-          Birth Place *
+          {en ? "Birth Place *" : "பிறந்த இடம் *"}
           <span style={{ fontSize: "0.7rem", fontWeight: 400, color: "var(--cl-muted)" }}>
-            Type city name to search
+            {en ? "Type city name to search" : "நகர பெயர் தட்டச்சு செய்து தேடவும்"}
           </span>
           <PlaceCombobox
             value={form.birthPlace}
@@ -240,13 +267,13 @@ export function JadhagamTool() {
 
         <div className="cl-mobile-form-grid-2" style={{ gap: "12px" }}>
           <label style={labelStyle}>
-            Latitude
+            {en ? "Latitude" : "அட்சாம்சம்"}
             <input style={inputStyle} inputMode="decimal" value={form.birthLatitude}
               onChange={(e) => setForm((f) => ({ ...f, birthLatitude: e.target.value }))}
               placeholder="e.g. 13.08" />
           </label>
           <label style={labelStyle}>
-            Longitude
+            {en ? "Longitude" : "தீர்க்காம்சம்"}
             <input style={inputStyle} inputMode="decimal" value={form.birthLongitude}
               onChange={(e) => setForm((f) => ({ ...f, birthLongitude: e.target.value }))}
               placeholder="e.g. 80.27" />
@@ -271,7 +298,9 @@ export function JadhagamTool() {
             cursor: loading ? "not-allowed" : "pointer",
           }}
         >
-          {loading ? "Calculating…" : "Generate Jadhagam"}
+          {loading
+            ? (en ? "Calculating…" : "கணக்கிடுகிறது…")
+            : (en ? "Generate Jadhagam" : "ஜாதகம் உருவாக்கு")}
         </button>
       </div>
 
@@ -285,13 +314,13 @@ export function JadhagamTool() {
             borderRadius: "16px", padding: "20px 24px",
           }}>
             <p style={{ margin: "0 0 4px", fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--cl-muted)" }}>
-              Jadhagam · {chart.birthProfile.displayName}
+              {en ? "Jadhagam" : "ஜாதகம்"} · {chart.birthProfile.displayName}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px 28px", marginTop: "12px" }}>
               {[
-                { label: "Lagna", value: RASI_NAMES[chart.lagna.rasi] + " · " + chart.lagna.nakshatraName },
-                { label: "Janma Nakshatra", value: moon ? `${moon.nakshatraName} (Pada ${moon.pada})` : "—" },
-                { label: "Janma Rasi", value: moon ? RASI_NAMES[moon.rasi] : "—" },
+                { label: en ? "Lagna" : "லக்னம்", value: RASI_NAMES[chart.lagna.rasi] + " · " + chart.lagna.nakshatraName },
+                { label: en ? "Janma Nakshatra" : "ஜன்ம நட்சத்திரம்", value: moon ? `${moon.nakshatraName} (${en ? "Pada" : "பாதம்"} ${moon.pada})` : "—" },
+                { label: en ? "Janma Rasi" : "ஜன்ம ராசி", value: moon ? RASI_NAMES[moon.rasi] : "—" },
                 { label: "Ayanamsa", value: `Lahiri ${chart.ayanamsa.valueDegrees.toFixed(2)}°` },
               ].map((row) => (
                 <div key={row.label}>
@@ -313,14 +342,16 @@ export function JadhagamTool() {
                   background: view === v ? "rgba(184,90,44,0.08)" : "var(--cl-surface)",
                   color: view === v ? "#B85A2C" : "var(--cl-ink-2)",
                 }}>
-                {v === "D1" ? "D1 Rasi" : "D9 Navamsa"}
+                {v === "D1"
+                  ? (en ? "D1 Rasi" : "D1 ராசி")
+                  : (en ? "D9 Navamsa" : "D9 நவாம்சம்")}
               </button>
             ))}
           </div>
 
           {/* Chart grid */}
           <div className="cl-chart-scroll">
-            <RasiGrid chart={chart} d9={view === "D9"} />
+            <RasiGrid chart={chart} d9={view === "D9"} lang={lang} />
           </div>
 
           {/* Planet table */}
@@ -330,14 +361,17 @@ export function JadhagamTool() {
           }}>
             <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--cl-border)" }}>
               <p style={{ margin: 0, fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
-                Planet Positions
+                {en ? "Planet Positions" : "கிரக நிலைகள்"}
               </p>
             </div>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
                 <thead>
                   <tr>
-                    {["Planet", "Rasi", "Nakshatra", "Pada", "Degree", "House"].map((h) => (
+                    {(en
+                      ? ["Planet", "Rasi", "Nakshatra", "Pada", "Degree", "House"]
+                      : ["கிரகம்", "ராசி", "நட்சத்திரம்", "பாதம்", "பாகை", "பாவம்"]
+                    ).map((h) => (
                       <th key={h} style={{
                         padding: "8px 14px", textAlign: "left", fontSize: "0.68rem", fontWeight: 700,
                         textTransform: "uppercase", letterSpacing: "0.08em",
@@ -379,10 +413,10 @@ export function JadhagamTool() {
           }}>
             <div>
               <p style={{ margin: 0, fontWeight: 600, color: "var(--cl-ink)", fontSize: "0.92rem" }}>
-                Save your chart and get daily guidance
+                {en ? "Save your chart and get daily guidance" : "ஜாதகம் சேமித்து தினசரி வழிகாட்டுதல் பெறவும்"}
               </p>
               <p style={{ margin: "4px 0 0", fontSize: "0.82rem", color: "var(--cl-muted)" }}>
-                Free account — daily reading, family vault, dasha tracking.
+                {en ? "Free account — daily reading, family vault, dasha tracking." : "இலவச கணக்கு — தினசரி வாசிப்பு, குடும்ப சேகரிப்பு, தசை கண்காணிப்பு."}
               </p>
             </div>
             <a href="/dashboard" className="cl-mobile-cta" style={{
@@ -390,7 +424,7 @@ export function JadhagamTool() {
               background: "var(--cl-ink)", color: "var(--cl-bg)", borderRadius: "999px",
               fontWeight: 600, fontSize: "0.88rem", textDecoration: "none",
             }}>
-              Get started free →
+              {en ? "Get started free →" : "இலவசமாக தொடங்கு →"}
             </a>
           </div>
         </div>

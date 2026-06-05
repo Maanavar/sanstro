@@ -33,8 +33,8 @@ def test_dinam_bad_position():
 
 
 def test_ganam_same():
-    # Both Aswini (Deva)
-    assert _ganam_score(1, 3) == 6
+    # Aswini (Deva) and Mirugaseeridam (Deva) — same gana
+    assert _ganam_score(1, 5) == 6
 
 
 def test_ganam_deva_manushya():
@@ -43,8 +43,8 @@ def test_ganam_deva_manushya():
 
 
 def test_ganam_deva_rakshasa():
-    # Aswini (Deva) and Bharani (Rakshasa=3)
-    assert _ganam_score(1, 2) == 0
+    # Aswini (Deva) and Karthigai/Krittika (Rakshasa) — incompatible
+    assert _ganam_score(1, 3) == 0
 
 
 def test_yoni_same_nakshatra():
@@ -53,8 +53,8 @@ def test_yoni_same_nakshatra():
 
 
 def test_yoni_hostile_pair():
-    # Aswini(1) and Bharani(2) = yoni 1 & 2 = horse+elephant = hostile
-    assert _yoni_score(1, 2) == 0
+    # Aswini(1)=Horse and Hastham(13)=Buffalo — natural enemies
+    assert _yoni_score(1, 13) == 0
 
 
 def test_rasi_seventh():
@@ -83,8 +83,8 @@ def test_rajju_different_group():
 
 
 def test_vedha_pair():
-    # Aswini(1) and Moolam(19) are a vedha pair
-    assert _vedha_score(1, 19) == 0
+    # Aswini(1) and Kettai/Jyeshtha(18) are a classical vedha pair
+    assert _vedha_score(1, 18) == 0
 
 
 def test_vedha_non_pair():
@@ -162,9 +162,9 @@ def test_compute_porutham_excellent_label():
 
 
 def test_compute_porutham_vedha_flagged():
-    # Aswini(1) and Moolam(19) = vedha pair
+    # Aswini(1) and Kettai/Jyeshtha(18) = vedha pair
     result = compute_porutham(
-        boy_nakshatra=1, girl_nakshatra=19,
+        boy_nakshatra=1, girl_nakshatra=18,
         boy_rasi=1, girl_rasi=9,
     )
     assert result.vedha_dosha is True

@@ -189,31 +189,39 @@ def _timeline_for_level(
             )
             prev_lord = period.lord
         return rows
+    # For the opening mahadasha, sub-periods are reconstructed over the full
+    # (unclipped) parent span, so the bhuktis that elapsed before birth are
+    # dropped from the displayed table — only periods extending past birth apply
+    # to the native. For any later (full) mahadasha nothing is filtered.
     if level == "antar":
         return [
             _serialize_period(period, maturation=maturation_status(period.lord, birth_date, period.start_date))
             for period in _build_subperiods(timeline.current_mahadasha, "antar")
+            if period.end_date > birth_date
         ]
     if level == "pratyantar":
         return [
             _serialize_period(period, maturation=maturation_status(period.lord, birth_date, period.start_date))
             for period in _build_subperiods(timeline.current_antardasha, "pratyantar")
+            if period.end_date > birth_date
         ]
     if level == "sookshma":
         return [
             _serialize_period(period, maturation=maturation_status(period.lord, birth_date, period.start_date))
             for period in _build_subperiods(timeline.current_pratyantardasha, "sookshma")
+            if period.end_date > birth_date
         ]
     if level == "prana":
         return [
             _serialize_period(period, maturation=maturation_status(period.lord, birth_date, period.start_date))
             for period in _build_subperiods(timeline.current_sookshmadasha, "prana")
+            if period.end_date > birth_date
         ]
     raise HTTPException(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         detail={
             "ta": (
-                f"'{level}' என்பது செல்லுபடியாகும் தசா நிலை அல்ல. "
+                f"'{level}' என்பது செல்லுபடியாகும் தசை நிலை அல்ல. "
                 "சரியான தேர்வுகள்: maha, antar, pratyantar, sookshma, prana."
             ),
             "en": (

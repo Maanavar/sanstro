@@ -237,7 +237,7 @@ def dasha_support_reason(maha_lord: str, antar_lord: str, dasha_score: int) -> B
         else "reduced support"
     )
     return _bi(
-        f"{maha.ta}. {antar.ta}. தசா {strength} ({dasha_score}/100).",
+        f"{maha.ta}. {antar.ta}. தசை {strength} ({dasha_score}/100).",
         f"{maha.en}. {antar.en}. Dasa provides {strength_en} ({dasha_score}/100).",
     )
 

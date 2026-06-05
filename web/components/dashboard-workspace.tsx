@@ -446,7 +446,7 @@ export function DashboardWorkspace() {
   // ── Onboarding gate ────────────────────────────────────
 
   useEffect(() => {
-    if (!session.hydrated) return;
+    if (!session.hydrated || !personal.birthProfileLookupDone) return;
     if (!personal.birthProfileId) {
       setActiveTab("settings");
       setSettingsSubTab("setup");
@@ -456,7 +456,7 @@ export function DashboardWorkspace() {
     } else {
       setOnboardingDone(true);
     }
-  }, [session.hydrated, personal.birthProfileId, family.vaults]);
+  }, [session.hydrated, personal.birthProfileLookupDone, personal.birthProfileId, family.vaults]);
 
   // ── Data trigger effects ───────────────────────────────
 
@@ -486,10 +486,10 @@ export function DashboardWorkspace() {
   }, [personal.birthProfileId, session.hydrated, selectedDate]);
 
   useEffect(() => {
-    if (!session.hydrated || personal.birthProfileId) return;
+    if (!session.hydrated || personal.birthProfileId || personal.birthProfileLookupDone) return;
     void personal.loadLatestBirthProfileForCurrentUser();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [personal.birthProfileId, session.hydrated]);
+  }, [personal.birthProfileId, personal.birthProfileLookupDone, session.hydrated]);
 
   // Sync birthForm from the loaded chart so name/details survive new builds
   useEffect(() => {

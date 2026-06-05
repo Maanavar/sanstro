@@ -24,6 +24,7 @@ Mark each block `[DONE]` when the fix is applied and tested.
 | P1 | 🔴 CRITICAL | Panchangam | `panchangam.py:151` | `SUBHA_NAKSHATRAS` uses Sanskrit names — never matches runtime Tamil names → muhurta nakshatra check always fails |
 | PO2 | 🟠 MEDIUM | Porutham | `porutham.py:159` | Dinam: remainder=0 (same nakshatra group) scores 3 instead of 0 |
 | PO4 | 🟠 MEDIUM | Porutham | `porutham.py:44` | Yoni hostile pair `{9,13}` (Buffalo vs Lion) should be `{9,10}` (Buffalo vs Tiger) |
+| PO5 | 🔴 CRITICAL `[DONE 2026-06-04]` | Porutham + Chart | `porutham.py` / `chart_service.py` | `_GANA`, `_YONI` (animal), `_YONI_HOSTILE`, `_VEDHA_PAIRS`, `_rajju_cycle` all deviated from the classical standard; `chart_service._NAKSHATRA_GANA` was a *second*, separately-wrong gana table. Unit tests encoded the wrong values (circular validation). All corrected to classical tables; tests updated. **Supersedes PO4** (the whole `_YONI` table was scrambled, not just one hostile pair). NOTE: the earlier PO4 analysis incorrectly validated the scrambled `_YONI` table — do not trust the PO4 "yoni number → animal" reference. |
 | C1 | 🟠 MEDIUM | Functional Nature | `functional_nature.py:173` | Mercury for Magaram lagna marked `TRIKONA` — should be `NEUTRAL` (owns 6th+9th; same rule as Kadagam Jupiter) |
 | T2 | 🟠 MEDIUM | Transits | `transits.py:140` | Vedha table missing Mercury, Mars, Venus entries — their transit vedha check always returns False |
 | P3 | 🟡 MEDIUM | Panchangam | `panchangam.py:314` | Nalla Neram is set to Abhijit window only; weekday-slot-based Nalla Neram not implemented |
@@ -37,6 +38,32 @@ Mark each block `[DONE]` when the fix is applied and tested.
 | D1 | 🟡 LOW | Dasha | `dasha.py:72` | Only 9 mahadasha periods generated; `_find_period` returns last period for dates beyond 120yr window |
 | C3 | 🟡 LOW | Jaimini | `jaimini_dasha.py:78` | Chara Dasha sub-periods (Antardasha within each rasi) not implemented |
 | P2 | 🟡 LOW | Panchangam | `panchangam.py:132` | Gowri Nalla Neram slot 8 on Sunday = Rahu Kalam — UI must surface the conflict |
+
+---
+
+## Resolution status — re-verified against current code 2026-06-05
+
+All issues below were re-checked against the live code. **Every item is resolved except T3, which is a tradition choice (not a bug).**
+
+| # | Status (2026-06-05) |
+|---|---|
+| P1 | ✅ Fixed — `SUBHA_NAKSHATRAS` uses Tamil-transliterated names matching runtime (`panchangam.py:154`) |
+| PO1 | ✅ Fixed — per-kuta maxes sum to 36 (Mahendra 4, Stree Dirgha 5; Rajju/Vedha dosha-only) |
+| PO2 | ✅ Fixed — Dinam remainder 0 → score 0 |
+| PO4 | ✅ Superseded by **PO5** (whole `_YONI`/`_GANA`/`_VEDHA`/Rajju tables corrected 2026-06-04) |
+| PO5 | ✅ Fixed 2026-06-04 (porutham + chart_service gana tables; tests corrected) |
+| P3 | ✅ Fixed — `NALLA_NERAM_SLOT` weekday-slot table; Abhijit separate |
+| C1 | ✅ Fixed — Mercury/Magaram lagna = `NEUTRAL` (`functional_nature.py:173`) |
+| C2 | ✅ Fixed — Viruchigam Jupiter = `TRIKONA` (`functional_nature.py:152`) |
+| T2 | ✅ Fixed — `VEDHA_TABLE` now includes Mars/Mercury/Venus (`transits.py:143-146`) |
+| A2 | ✅ Fixed — Mercury BAV Lagna = Phala Deepika `[1,3,5,6,9,10,11]` (`ashtakavarga.py:50`) |
+| E1 | ✅ OK — navamsa per-sign method preserves movable-sign vargottama (intended) |
+| E2 | ✅ Fixed — real Baladi avastha with odd/even reversal (`chart_strength.py:124-133`) |
+| Y1 | ✅ Fixed — Sevvai houses = `{1,2,4,7,8,12}` (includes 1st) |
+| D1 | ✅ Fixed — 2 full cycles / 18 mahadashas generated (`dasha.py:78`); plus opening-MD sub-period fix 2026-06-04 |
+| C3 | ✅ Fixed — `calculate_chara_antardasha` implemented (`jaimini_dasha.py:121`) |
+| P2 | ✅ Known/by-design — slot conflict surfaced in UI |
+| T3 | ✅ Resolved by decision 2026-06-05 — **keep** `ARDHASHTAMA_SANI` (4th-from-Moon) as an active affliction. It's a genuine Saturn caution many Tamil practitioners use, and the daily-score double-count with Kantaka Sani is already guarded (`daily_guidance_service.py`). No code change. |
 
 ---
 

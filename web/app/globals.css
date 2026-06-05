@@ -3069,6 +3069,27 @@ button:focus-visible,
   color: var(--cl-bg);
 }
 
+/* ── Language toggle ─────────────────────────────────────── */
+.cl-lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1.5px solid var(--cl-border);
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  font-family: var(--cl-font-sans);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--cl-ink-2);
+  transition: border-color 150ms ease;
+}
+.cl-lang-toggle:hover { border-color: var(--cl-ink); }
+.cl-lang-toggle__active { color: var(--cl-ink); font-weight: 700; }
+.cl-lang-toggle__inactive { color: var(--cl-ink-3, var(--cl-muted)); }
+.cl-lang-toggle__sep { color: var(--cl-border); font-size: 0.7rem; }
+
 /* ── Shared utilities ─────────────────────────────────────── */
 .cl-container {
   width: min(1160px, calc(100% - 40px));
@@ -3160,10 +3181,10 @@ button:focus-visible,
 .cl-hero__h1 {
   margin: 0 0 20px;
   font-family: var(--cl-font-display);
-  font-size: clamp(3.6rem, 7vw, 6.4rem);
+  font-size: clamp(2.2rem, 4.4vw, 4.2rem);
   font-weight: 500;
-  letter-spacing: -0.04em;
-  line-height: 0.96;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
   color: var(--cl-ink);
 }
 .cl-hero__h1 em {
@@ -3678,7 +3699,8 @@ button:focus-visible,
     align-items: flex-start;
   }
   .cl-hero__h1 {
-    font-size: clamp(2.8rem, 12vw, 4rem);
+    font-size: clamp(1.6rem, 7.2vw, 2.4rem);
+    line-height: 1.15;
   }
   .cl-nav__inner,
   .cl-container {

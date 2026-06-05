@@ -15,13 +15,14 @@ from app.calculations.chart_strength import SIGN_LORD
 # Deva=1, Manushya=2, Rakshasa=3
 # ---------------------------------------------------------------------------
 _GANA: dict[int, int] = {
-    1: 1, 2: 3, 3: 1, 4: 1, 5: 1,   # Aswini, Bharani, Karthigai, Rohini, Mirugaseer
-    6: 3, 7: 1, 8: 1, 9: 3,           # Thiruvathirai, Punarpoosam, Poosam, Ayilyam
-    10: 3, 11: 2, 12: 2, 13: 1,       # Magam, Pooram, Uthiram, Hastham
-    14: 3, 15: 1, 16: 3, 17: 2,       # Chithirai, Swathi, Visakam, Anusham
-    18: 3, 19: 3, 20: 2, 21: 2,       # Kettai, Moolam, Pooradam, Uthiradam
-    22: 1, 23: 3, 24: 3,               # Thiruvonam, Avittam, Sadayam
-    25: 2, 26: 1, 27: 2,               # Poorattathi, Uthirattathi, Revathi
+    # Classical Deva/Manushya/Rakshasa assignment (pan-Indian, fixed).
+    1: 1, 2: 2, 3: 3, 4: 2, 5: 1,     # Aswini(Deva), Bharani(Manushya), Karthigai(Rakshasa), Rohini(Manushya), Mirugaseer(Deva)
+    6: 2, 7: 1, 8: 1, 9: 3,           # Thiruvathirai(Manushya), Punarpoosam(Deva), Poosam(Deva), Ayilyam(Rakshasa)
+    10: 3, 11: 2, 12: 2, 13: 1,       # Magam(Rakshasa), Pooram(Manushya), Uthiram(Manushya), Hastham(Deva)
+    14: 3, 15: 1, 16: 3, 17: 1,       # Chithirai(Rakshasa), Swathi(Deva), Visakam(Rakshasa), Anusham(Deva)
+    18: 3, 19: 3, 20: 2, 21: 2,       # Kettai(Rakshasa), Moolam(Rakshasa), Pooradam(Manushya), Uthiradam(Manushya)
+    22: 1, 23: 3, 24: 3,               # Thiruvonam(Deva), Avittam(Rakshasa), Sadayam(Rakshasa)
+    25: 2, 26: 2, 27: 1,               # Poorattathi(Manushya), Uthirattathi(Manushya), Revathi(Deva)
 }
 
 # ---------------------------------------------------------------------------
@@ -32,29 +33,29 @@ _GANA: dict[int, int] = {
 #  8=Cow, 9=Buffalo, 10=Tiger, 11=Hare, 12=Monkey, 13=Lion, 14=Mongoose
 # ---------------------------------------------------------------------------
 _YONI: dict[int, int] = {
-    1: 1,  2: 2,  3: 3,  4: 4,  5: 4,
-    6: 5,  7: 6,  8: 7,  9: 4,  10: 8,
-    11: 9, 12: 10, 13: 11, 14: 12, 15: 13,
-    16: 14, 17: 3, 18: 5, 19: 5, 20: 6,
-    21: 7, 22: 8, 23: 13, 24: 9, 25: 10,
-    26: 11, 27: 12,
+    # Classical Yoni Kuta animal assignment (each animal shared by 2 nakshatras,
+    # except Mongoose which only owns Uthiradam).
+    1: 1,  2: 2,  3: 3,  4: 4,  5: 4,    # Aswini=Horse, Bharani=Elephant, Karthigai=Sheep, Rohini=Serpent, Mirugaseer=Serpent
+    6: 5,  7: 6,  8: 3,  9: 6,  10: 7,   # Thiruvathirai=Dog, Punarpoosam=Cat, Poosam=Sheep, Ayilyam=Cat, Magam=Rat
+    11: 7, 12: 8, 13: 9, 14: 10, 15: 9,  # Pooram=Rat, Uthiram=Cow, Hastham=Buffalo, Chithirai=Tiger, Swathi=Buffalo
+    16: 10, 17: 11, 18: 11, 19: 5, 20: 12,  # Visakam=Tiger, Anusham=Hare, Kettai=Hare, Moolam=Dog, Pooradam=Monkey
+    21: 14, 22: 12, 23: 13, 24: 1, 25: 13,  # Uthiradam=Mongoose, Thiruvonam=Monkey, Avittam=Lion, Sadayam=Horse, Poorattathi=Lion
+    26: 8, 27: 2,                            # Uthirattathi=Cow, Revathi=Elephant
 }
 
-# Friendly yoni pairs (score 4); same yoni = 4; hostile = 0; neutral = 2
+# Classical "vairi" (enemy) yoni pairs — these natural enemies score 0.
+# Same yoni = 4; enemy = 0; everything else = neutral = 2.
+# Animal codes: 1=Horse 2=Elephant 3=Sheep 4=Serpent 5=Dog 6=Cat 7=Rat
+#               8=Cow 9=Buffalo 10=Tiger 11=Hare 12=Monkey 13=Lion 14=Mongoose
 _YONI_HOSTILE: frozenset[frozenset[int]] = frozenset(
     frozenset(pair) for pair in [
-        {1, 2},   # Horse vs Elephant
-        {3, 8},   # Sheep vs Cow
-        {4, 5},   # Serpent vs Dog
-        {6, 7},   # Cat vs Rat
-        {9, 10},  # Buffalo vs Tiger  (was {9, 13} — Tiger/Lion were swapped)
-        {11, 13}, # Hare vs Lion      (was {10, 11})
-        {12, 14}, # Monkey vs Mongoose
-    ]
-)
-_YONI_FRIENDLY: frozenset[frozenset[int]] = frozenset(
-    frozenset(pair) for pair in [
-        {1, 9}, {2, 10}, {3, 6}, {4, 11}, {5, 12}, {7, 14}, {8, 13},
+        {8, 10},   # Cow vs Tiger
+        {2, 13},   # Elephant vs Lion
+        {1, 9},    # Horse vs Buffalo
+        {5, 11},   # Dog vs Hare/Deer
+        {4, 14},   # Serpent vs Mongoose
+        {6, 7},    # Cat vs Rat
+        {3, 12},   # Sheep vs Monkey
     ]
 )
 
@@ -131,7 +132,10 @@ def _graha_maitri_score(lord_a: str, lord_b: str) -> int:
 # Shira=1, Kanta=2, Udara=3, Nabhi=4, Pada=5
 # ---------------------------------------------------------------------------
 _RAJJU_GROUP: dict[int, int] = {}
-_rajju_cycle = [1, 2, 3, 4, 5, 5, 4, 3, 2, 1, 1, 2, 3, 4, 5, 5, 4, 3, 2, 1, 1, 2, 3, 4, 5, 5, 4]
+# Aaroha–Avaroha "tent" with period 9: Pada,Kati,Udara,Kanta,Sira,Kanta,Udara,Kati,Pada
+# repeated three times. This puts Sira (head) on Mirugaseeridam(5), Chithirai(14),
+# Avittam(23) — the classical Sira rajju.
+_rajju_cycle = [1, 2, 3, 4, 5, 4, 3, 2, 1] * 3
 for _i, _rg in enumerate(_rajju_cycle, start=1):
     _RAJJU_GROUP[_i] = _rg
 
@@ -140,9 +144,20 @@ for _i, _rg in enumerate(_rajju_cycle, start=1):
 # ---------------------------------------------------------------------------
 _VEDHA_PAIRS: frozenset[frozenset[int]] = frozenset(
     frozenset(p) for p in [
-        {1, 19}, {2, 20}, {3, 21}, {4, 22}, {5, 23},
-        {6, 24}, {7, 25}, {8, 26}, {9, 27}, {10, 16},
-        {11, 17}, {12, 18}, {13, 15}, {14, 27},
+        {1, 18},   # Aswini – Kettai
+        {2, 17},   # Bharani – Anusham
+        {3, 16},   # Karthigai – Visakam
+        {4, 15},   # Rohini – Swathi
+        {5, 23},   # Mirugaseeridam – Avittam
+        {6, 22},   # Thiruvathirai – Thiruvonam
+        {7, 21},   # Punarpoosam – Uthiradam
+        {8, 20},   # Poosam – Pooradam
+        {9, 19},   # Ayilyam – Moolam
+        {10, 27},  # Magam – Revathi
+        {11, 26},  # Pooram – Uthirattathi
+        {12, 25},  # Uthiram – Poorattathi
+        {13, 24},  # Hastham – Sadayam
+        # Chithirai (14) has no vedha partner.
     ]
 )
 
@@ -187,15 +202,12 @@ def _ganam_score(nak_boy: int, nak_girl: int) -> int:
 
 
 def _yoni_score(nak_boy: int, nak_girl: int) -> int:
-    """Yoni: same=4, friendly=3, neutral=2, hostile=0."""
+    """Yoni: same species=4, natural enemy=0, otherwise neutral=2."""
     yb = _YONI[nak_boy]
     yg = _YONI[nak_girl]
     if yb == yg:
         return 4
-    pair = frozenset({yb, yg})
-    if pair in _YONI_FRIENDLY:
-        return 3
-    if pair in _YONI_HOSTILE:
+    if frozenset({yb, yg}) in _YONI_HOSTILE:
         return 0
     return 2
 

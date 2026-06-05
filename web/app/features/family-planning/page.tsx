@@ -1,73 +1,56 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+"use client";
 
+import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-
-export const metadata: Metadata = {
-  title: "Family Planning — Vinaadi Tamil Astrology Assistant",
-  description:
-    "Plan for yourself and the people you share life with. Vinaadi's family vault lets you compare daily readings, find shared timing windows, and use porutham together.",
-  alternates: { canonical: "https://vinaadi.com/features/family-planning" },
-  openGraph: {
-    title: "Family Planning - Vinaadi Tamil Astrology Assistant",
-    description:
-      "Plan for yourself and the people you share life with. Compare daily readings, find shared timing windows, and use porutham together.",
-    url: "https://vinaadi.com/features/family-planning",
-    images: [
-      {
-        url: "/brand/vinaadi-wordmark-color.png",
-        width: 1792,
-        height: 612,
-        alt: "Vinaadi - Your Cosmic Copilot",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Family Planning - Vinaadi Tamil Astrology Assistant",
-    description:
-      "Plan for yourself and the people you share life with. Compare daily readings, find shared timing windows, and use porutham together.",
-    images: ["/brand/vinaadi-wordmark-color.png"],
-  },
-};
-
+import { useLang } from "@/components/lang-toggle";
+import { FEAT_FAMILY, mt } from "@/lib/marketing-i18n";
 
 export default function FamilyPlanningPage() {
+  const [lang] = useLang();
+  const d = FEAT_FAMILY;
+
+  const VAULT_ITEMS = [
+    { title: mt(d.vault1, lang), body: lang === "en" ? "Each gets a full chart, dasha, transit, and panchangam reading." : "ஒவ்வொருவருக்கும் முழுமையான ஜாதகம், தசை, கோசாரம், பஞ்சாங்க வாசிப்பு." },
+    { title: mt(d.vault2_title, lang), body: mt(d.vault2, lang) },
+    { title: mt(d.vault3_title, lang), body: mt(d.vault3, lang) },
+    { title: mt(d.vault4_title, lang), body: mt(d.vault4, lang) },
+  ];
+
+  const FAQS = [
+    { q: mt(d.faq1_q, lang), a: mt(d.faq1_a, lang) },
+    { q: mt(d.faq2_q, lang), a: mt(d.faq2_a, lang) },
+    { q: mt(d.faq3_q, lang), a: mt(d.faq3_a, lang) },
+    { q: mt(d.faq4_q, lang), a: mt(d.faq4_a, lang) },
+  ];
+
+  const FAMILY_MEMBERS = [
+    { name: "Arjun", score: 64, band: "mid" },
+    { name: "Priya", score: 81, band: "high" },
+    { name: "Kavitha", score: 47, band: "low" },
+  ];
+
   return (
     <div className="clarity-shell">
       <PublicNav />
-
       <main>
         {/* HERO */}
         <section className="cl-pub-hero">
           <div className="cl-container cl-pub-hero__inner">
             <div className="cl-pub-hero__copy">
-              <p className="cl-eyebrow">Feature · Family Planning</p>
-              <h1 className="cl-pub-h1">
-                Plan for yourself, or for the people you share life with.
-              </h1>
-              <p className="cl-pub-lead">
-                Most astrology products stop at individual readings. Vinaadi is
-                built for the way Tamil families actually use astrology — together.
-                Add family members, compare readings, and find the timing that
-                works for everyone.
-              </p>
+              <p className="cl-eyebrow">{mt(d.eyebrow, lang)}</p>
+              <h1 className="cl-pub-h1">{mt(d.h1, lang)}</h1>
+              <p className="cl-pub-lead">{mt(d.lead, lang)}</p>
               <div className="cl-hero__actions">
-                <Link href="/dashboard" className="cl-btn cl-btn--solid">Set up family vault →</Link>
-                <Link href="/features/daily-guidance" className="cl-btn cl-btn--ghost">How daily guidance works</Link>
+                <Link href="/dashboard" className="cl-btn cl-btn--solid">{mt(d.cta_start, lang)}</Link>
+                <Link href="/features/daily-guidance" className="cl-btn cl-btn--ghost">{mt(d.cta_how, lang)}</Link>
               </div>
             </div>
-
             <div className="cl-hero-figure">
-              <p className="cl-hero-figure__label">Family Today · Sample</p>
-              <p className="cl-hero-figure__title">Best combined window: 11:53 – 12:41</p>
+              <p className="cl-hero-figure__label">{lang === "en" ? "Family Today · Sample" : "இன்று குடும்பம் · மாதிரி"}</p>
+              <p className="cl-hero-figure__title">{lang === "en" ? "Best combined window: 11:53 – 12:41" : "சிறந்த கூட்டு நேரம்: 11:53 – 12:41"}</p>
               <div className="cl-hero-figure__art" style={{ flexDirection: "column", gap: "10px", width: "100%" }}>
-                {[
-                  { name: "Arjun", score: 64, band: "mid" },
-                  { name: "Priya", score: 81, band: "high" },
-                  { name: "Kavitha", score: 47, band: "low" },
-                ].map((m) => (
+                {FAMILY_MEMBERS.map((m) => (
                   <div key={m.name} className="cl-score-row" style={{ width: "100%" }}>
                     <span className="cl-score-row__name">{m.name}</span>
                     <div className="cl-score-bar-wrap">
@@ -77,30 +60,28 @@ export default function FamilyPlanningPage() {
                   </div>
                 ))}
               </div>
-              <p className="cl-hero-figure__note">Everyone&apos;s day at a glance — and the one window that works best for the whole household.</p>
+              <p className="cl-hero-figure__note">
+                {lang === "en"
+                  ? "Everyone's day at a glance — and the one window that works best for the whole household."
+                  : "எல்லோரின் நாளையும் ஒரே பார்வையில் — முழு வீட்டிற்கும் சிறந்த நேரம்."}
+              </p>
             </div>
           </div>
         </section>
 
-        {/* BAND 1 — The family vault */}
+        {/* BAND 1 — Family vault */}
         <section className="cl-band cl-band--alt">
           <div className="cl-container">
             <div className="cl-band__head">
-              <p className="cl-eyebrow">A shared workspace</p>
-              <h2 className="cl-section-h2">The family vault</h2>
+              <p className="cl-eyebrow">{lang === "en" ? "A shared workspace" : "பகிரப்பட்ட பணியிடம்"}</p>
+              <h2 className="cl-section-h2">{mt(d.vault_h2, lang)}</h2>
             </div>
             <div className="cl-pub-two-col">
               <div className="cl-pub-section__body">
-                <p>The family vault is a shared workspace where you can add multiple birth profiles — for yourself, your partner, children, parents, or any family members you plan with. Each profile gets its own full Thirukanitham-based reading.</p>
-                <p>On the dashboard, you can see everyone&apos;s daily score at a glance, the best combined window for the household, and individual readings when you need them.</p>
+                <p>{mt(d.vault_body, lang)}</p>
               </div>
               <ul className="cl-pub-detail-list">
-                {[
-                  { title: "Multiple birth profiles", body: "Add profiles for each family member. Each gets a full chart, dasha, transit, and panchangam reading." },
-                  { title: "Shared timing view", body: "See everyone's daily score side by side and find the window that works for the whole group." },
-                  { title: "Porutham integration", body: "Check compatibility between any two family members directly from the vault." },
-                  { title: "Individual deep-dives", body: "Switch to any family member's reading for the full detail — chart, dasha, transits, best windows." },
-                ].map((item) => (
+                {VAULT_ITEMS.map((item) => (
                   <li key={item.title} className="cl-pub-detail-item">
                     <p className="cl-pub-detail-item__title">{item.title}</p>
                     <p className="cl-pub-detail-item__body">{item.body}</p>
@@ -111,37 +92,33 @@ export default function FamilyPlanningPage() {
           </div>
         </section>
 
-        {/* BAND 2 — A family tradition (with callout) */}
+        {/* BAND 2 — Why family */}
         <section className="cl-band">
           <div className="cl-container">
             <div className="cl-band__head">
-              <p className="cl-eyebrow">A family tradition</p>
-              <h2 className="cl-section-h2">Why family planning matters in Tamil astrology</h2>
+              <p className="cl-eyebrow">{lang === "en" ? "A family tradition" : "குடும்ப பாரம்பரியம்"}</p>
+              <h2 className="cl-section-h2">{mt(d.why_h2, lang)}</h2>
             </div>
             <div className="cl-pub-two-col">
               <div className="cl-pub-section__body">
-                <p>Tamil Jyotish has always been a family practice. Muhurtha (auspicious timing selection) for marriages, housewarmings, naming ceremonies, and business launches traditionally requires reading multiple family members&apos; charts together — not just one person&apos;s.</p>
-                <p>Vinaadi brings this multi-member approach into a modern daily planning tool. You don&apos;t have to manually compare charts or remember who is in which dasha period. The assistant does it for you.</p>
+                <p>{mt(d.why_body, lang)}</p>
               </div>
-              <div className="cl-callout"><p>Reading charts together — the way Tamil families have always planned.</p></div>
+              <div className="cl-callout">
+                <p>{lang === "en" ? "Reading charts together — the way Tamil families have always planned." : "ஜாதகங்களை சேர்ந்து படிப்பது — தமிழ் குடும்பங்கள் எப்போதும் திட்டமிட்ட விதம்."}</p>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* BAND 3 — FAQ + related */}
+        {/* BAND 3 — FAQ */}
         <section className="cl-band cl-band--alt">
           <div className="cl-container">
             <div className="cl-band__head">
-              <p className="cl-eyebrow">Questions</p>
-              <h2 className="cl-section-h2">Frequently asked questions</h2>
+              <p className="cl-eyebrow">{lang === "en" ? "Questions" : "கேள்விகள்"}</p>
+              <h2 className="cl-section-h2">{mt(d.faq_h2, lang)}</h2>
             </div>
             <div className="cl-pub-faq" style={{ maxWidth: "860px" }}>
-              {[
-                { q: "How many family members can I add?", a: "Vinaadi supports multiple family profiles. The exact limit may vary during early access, but the intent is to support a full household." },
-                { q: "Can I check porutham between family members?", a: "Yes. The Porutham tool inside the dashboard can match any two members of your family vault for full 10-porutham compatibility." },
-                { q: "Is each family member's data private?", a: "Family profiles are stored under your account. They are not visible to other users. See the privacy policy for full details." },
-                { q: "What if a family member's birth time is uncertain?", a: "Vinaadi has a birth time rectification tool. A rough birth time still gives useful rasi, dasha, and transit readings even if lagna accuracy is lower." },
-              ].map((item) => (
+              {FAQS.map((item) => (
                 <div key={item.q} className="cl-pub-faq-item">
                   <p className="cl-pub-faq-item__q">{item.q}</p>
                   <p className="cl-pub-faq-item__a">{item.a}</p>
@@ -149,11 +126,11 @@ export default function FamilyPlanningPage() {
               ))}
             </div>
             <div className="cl-pub-related">
-              <p className="cl-pub-related__title">Related</p>
+              <p className="cl-pub-related__title">{mt(d.related_h2, lang)}</p>
               <div className="cl-pub-related-links">
-                <Link href="/features/daily-guidance" className="cl-pub-related-link">Daily Guidance →</Link>
-                <Link href="/tools/marriage-porutham-calculator" className="cl-pub-related-link">Porutham Calculator →</Link>
-                <Link href="/features/timing-and-decisions" className="cl-pub-related-link">Timing and Decisions →</Link>
+                <Link href="/features/daily-guidance"               className="cl-pub-related-link">{lang === "en" ? "Daily Guidance →"           : "தினசரி வழிகாட்டுதல் →"}</Link>
+                <Link href="/tools/marriage-porutham-calculator"    className="cl-pub-related-link">{lang === "en" ? "Porutham Calculator →"       : "பொருத்தம் கணக்கிடல் →"}</Link>
+                <Link href="/features/timing-and-decisions"         className="cl-pub-related-link">{lang === "en" ? "Timing and Decisions →"      : "நேரம் & முடிவுகள் →"}</Link>
               </div>
             </div>
           </div>
@@ -163,10 +140,10 @@ export default function FamilyPlanningPage() {
         <section className="cl-cta-strip">
           <div className="cl-container cl-cta-strip__inner">
             <div>
-              <h2 className="cl-cta-strip__title">Plan together</h2>
-              <p className="cl-cta-strip__body">Add family members and find your shared best window.</p>
+              <h2 className="cl-cta-strip__title">{lang === "en" ? "Plan together" : "சேர்ந்து திட்டமிடுங்கள்"}</h2>
+              <p className="cl-cta-strip__body">{lang === "en" ? "Add family members and find your shared best window." : "குடும்பத்தினரை சேர்க்கவும், பொதுவான சிறந்த நேரத்தை கண்டறியுங்கள்."}</p>
             </div>
-            <Link href="/dashboard" className="cl-btn cl-btn--solid">Open dashboard →</Link>
+            <Link href="/dashboard" className="cl-btn cl-btn--solid">{lang === "en" ? "Open dashboard →" : "டேஷ்போர்டு திற →"}</Link>
           </div>
         </section>
       </main>

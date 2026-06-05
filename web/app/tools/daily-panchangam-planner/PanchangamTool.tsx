@@ -2,18 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { readErrorMessage } from "@/lib/api";
+import { useLang } from "@/components/lang-toggle";
 import type { PanchangamDailyResponseData } from "@/lib/types";
 
-/* Common South Indian city quick-picks for panchangam */
 const CITIES = [
-  { name: "Chennai", lat: 13.0827, lng: 80.2707, tz: "Asia/Kolkata" },
-  { name: "Coimbatore", lat: 11.0168, lng: 76.9558, tz: "Asia/Kolkata" },
-  { name: "Madurai", lat: 9.9252, lng: 78.1198, tz: "Asia/Kolkata" },
-  { name: "Trichy", lat: 10.7905, lng: 78.7047, tz: "Asia/Kolkata" },
-  { name: "Salem", lat: 11.6643, lng: 78.146, tz: "Asia/Kolkata" },
-  { name: "Bengaluru", lat: 12.9716, lng: 77.5946, tz: "Asia/Kolkata" },
-  { name: "Mumbai", lat: 19.076, lng: 72.8777, tz: "Asia/Kolkata" },
-  { name: "Singapore", lat: 1.3521, lng: 103.8198, tz: "Asia/Singapore" },
+  { name: "Chennai",    nameTa: "சென்னை",    lat: 13.0827, lng: 80.2707, tz: "Asia/Kolkata" },
+  { name: "Coimbatore", nameTa: "கோயம்புத்தூர்", lat: 11.0168, lng: 76.9558, tz: "Asia/Kolkata" },
+  { name: "Madurai",    nameTa: "மதுரை",     lat: 9.9252,  lng: 78.1198, tz: "Asia/Kolkata" },
+  { name: "Trichy",     nameTa: "திருச்சி",   lat: 10.7905, lng: 78.7047, tz: "Asia/Kolkata" },
+  { name: "Salem",      nameTa: "சேலம்",     lat: 11.6643, lng: 78.146,  tz: "Asia/Kolkata" },
+  { name: "Bengaluru",  nameTa: "பெங்களூரு", lat: 12.9716, lng: 77.5946, tz: "Asia/Kolkata" },
+  { name: "Mumbai",     nameTa: "மும்பை",    lat: 19.076,  lng: 72.8777, tz: "Asia/Kolkata" },
+  { name: "Singapore",  nameTa: "சிங்கப்பூர்", lat: 1.3521, lng: 103.8198, tz: "Asia/Singapore" },
 ];
 
 function today(): string {
@@ -48,11 +48,14 @@ function TimeSlot({ label, start, end, tone }: { label: string; start: string; e
 }
 
 export function PanchangamTool() {
+  const [lang] = useLang();
+  const en = lang === "en";
+
   const [date, setDate] = useState(today());
   const [lat, setLat] = useState("13.0827");
   const [lng, setLng] = useState("80.2707");
   const [timezone, setTimezone] = useState("Asia/Kolkata");
-  const [cityName, setCityName] = useState("Chennai");
+  const [cityKey, setCityKey] = useState("Chennai");
   const [data, setData] = useState<PanchangamDailyResponseData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -61,8 +64,14 @@ export function PanchangamTool() {
     setLat(String(city.lat));
     setLng(String(city.lng));
     setTimezone(city.tz);
-    setCityName(city.name);
+    setCityKey(city.name);
   }
+
+  const currentCityDisplay = (() => {
+    const c = CITIES.find((c) => c.name === cityKey);
+    if (!c) return en ? "Custom" : "தனிப்பயன்";
+    return en ? c.name : c.nameTa;
+  })();
 
   async function fetchPanchangam() {
     setError("");
@@ -84,13 +93,16 @@ export function PanchangamTool() {
     }
   }
 
-  /* Load today's panchangam for Chennai on mount */
   useEffect(() => {
     void fetchPanchangam();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const tithiLabel = data ? `${data.tithi.name} (${data.tithi.paksha === "SHUKLA" ? "Valar Pirai" : "Thei Pirai"})` : "";
+  const tithiLabel = data
+    ? `${data.tithi.name} (${data.tithi.paksha === "SHUKLA"
+        ? (en ? "Valar Pirai" : "வளர் பிறை")
+        : (en ? "Thei Pirai" : "தேய் பிறை")})`
+    : "";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -104,7 +116,7 @@ export function PanchangamTool() {
         {/* City quick picks */}
         <div>
           <p style={{ margin: "0 0 8px", fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
-            Location
+            {en ? "Location" : "இடம்"}
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
             {CITIES.map((city) => (
@@ -115,12 +127,12 @@ export function PanchangamTool() {
                 style={{
                   padding: "5px 14px", borderRadius: "999px", fontSize: "0.82rem", fontWeight: 600,
                   cursor: "pointer", fontFamily: "inherit",
-                  border: cityName === city.name ? "1.5px solid var(--cl-accent)" : "1.5px solid var(--cl-border)",
-                  background: cityName === city.name ? "rgba(184,90,44,0.08)" : "var(--cl-surface)",
-                  color: cityName === city.name ? "#B85A2C" : "var(--cl-ink-2)",
+                  border: cityKey === city.name ? "1.5px solid var(--cl-accent)" : "1.5px solid var(--cl-border)",
+                  background: cityKey === city.name ? "rgba(184,90,44,0.08)" : "var(--cl-surface)",
+                  color: cityKey === city.name ? "#B85A2C" : "var(--cl-ink-2)",
                 }}
               >
-                {city.name}
+                {en ? city.name : city.nameTa}
               </button>
             ))}
           </div>
@@ -129,19 +141,19 @@ export function PanchangamTool() {
         {/* Date and manual coords */}
         <div className="cl-mobile-form-grid-3" style={{ gap: "12px" }}>
           <label style={labelStyle}>
-            Date
+            {en ? "Date" : "தேதி"}
             <input style={inputStyle} type="date" value={date}
               onChange={(e) => setDate(e.target.value)} />
           </label>
           <label style={labelStyle}>
-            Latitude
+            {en ? "Latitude" : "அட்சாம்சம்"}
             <input style={inputStyle} inputMode="decimal" value={lat}
-              onChange={(e) => { setLat(e.target.value); setCityName("Custom"); }} />
+              onChange={(e) => { setLat(e.target.value); setCityKey("Custom"); }} />
           </label>
           <label style={labelStyle}>
-            Longitude
+            {en ? "Longitude" : "தீர்க்காம்சம்"}
             <input style={inputStyle} inputMode="decimal" value={lng}
-              onChange={(e) => { setLng(e.target.value); setCityName("Custom"); }} />
+              onChange={(e) => { setLng(e.target.value); setCityKey("Custom"); }} />
           </label>
         </div>
 
@@ -163,7 +175,9 @@ export function PanchangamTool() {
             cursor: loading ? "not-allowed" : "pointer",
           }}
         >
-          {loading ? "Loading…" : "Get Panchangam"}
+          {loading
+            ? (en ? "Loading…" : "ஏற்றுகிறது…")
+            : (en ? "Get Panchangam" : "பஞ்சாங்கம் பெறு")}
         </button>
       </div>
 
@@ -177,15 +191,15 @@ export function PanchangamTool() {
             borderRadius: "16px", padding: "22px 24px",
           }}>
             <p style={{ margin: "0 0 16px", fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
-              Panchangam · {data.dateLocal} · {cityName}
+              {en ? "Panchangam" : "பஞ்சாங்கம்"} · {data.dateLocal} · {currentCityDisplay}
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "12px" }}>
               {[
-                { label: "Tithi", value: tithiLabel, sub: `Ends ${data.tithi.endsAt}` },
-                { label: "Vara", value: data.vara.weekday, sub: `Lord: ${data.vara.lord}` },
-                { label: "Nakshatra", value: data.nakshatra.name, sub: `Pada ${data.nakshatra.pada} · Ends ${data.nakshatra.endsAt}` },
-                { label: "Yoga", value: data.yoga.name, sub: `Yoga ${data.yoga.number}` },
-                { label: "Karana", value: data.karana.name, sub: "" },
+                { label: en ? "Tithi" : "திதி",         value: tithiLabel,          sub: `${en ? "Ends" : "முடிவு"} ${data.tithi.endsAt}` },
+                { label: en ? "Vara" : "வாரம்",          value: data.vara.weekday,   sub: `${en ? "Lord" : "அதிபதி"}: ${data.vara.lord}` },
+                { label: en ? "Nakshatra" : "நட்சத்திரம்", value: data.nakshatra.name, sub: `${en ? "Pada" : "பாதம்"} ${data.nakshatra.pada} · ${en ? "Ends" : "முடிவு"} ${data.nakshatra.endsAt}` },
+                { label: en ? "Yoga" : "யோகம்",          value: data.yoga.name,      sub: `${en ? "Yoga" : "யோகம்"} ${data.yoga.number}` },
+                { label: en ? "Karana" : "கரணம்",        value: data.karana.name,    sub: "" },
               ].map((item) => (
                 <div key={item.label} style={{
                   background: "var(--cl-bg-2)", border: "1px solid var(--cl-border)",
@@ -211,9 +225,9 @@ export function PanchangamTool() {
             borderRadius: "14px", padding: "18px 22px",
           }}>
             {[
-              { label: "Sunrise", value: data.sunrise },
-              { label: "Sunset", value: data.sunset },
-              { label: "Solar Noon", value: data.solarNoon },
+              { label: en ? "Sunrise" : "சூரிய உதயம்",  value: data.sunrise },
+              { label: en ? "Sunset" : "சூரிய அஸ்தமனம்", value: data.sunset },
+              { label: en ? "Solar Noon" : "மத்தியான்னம்", value: data.solarNoon },
             ].map((item) => (
               <div key={item.label}>
                 <p style={{ margin: "0 0 2px", fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
@@ -232,21 +246,21 @@ export function PanchangamTool() {
             borderRadius: "14px", padding: "18px 22px",
           }}>
             <p style={{ margin: "0 0 14px", fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
-              Timing Windows
+              {en ? "Timing Windows" : "நேர சாளரங்கள்"}
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "10px" }}>
               {data.kalam.nallaNeram.length > 0 && (
-                <TimeSlot label="Nalla Neram" start={data.kalam.nallaNeram[0].start} end={data.kalam.nallaNeram[data.kalam.nallaNeram.length - 1].end} tone="best" />
+                <TimeSlot label={en ? "Nalla Neram" : "நல்ல நேரம்"} start={data.kalam.nallaNeram[0].start} end={data.kalam.nallaNeram[data.kalam.nallaNeram.length - 1].end} tone="best" />
               )}
               {data.kalam.gowriNallaNeram.length > 0 && (
-                <TimeSlot label="Gowri Nalla Neram" start={data.kalam.gowriNallaNeram[0].start} end={data.kalam.gowriNallaNeram[data.kalam.gowriNallaNeram.length - 1].end} tone="best" />
+                <TimeSlot label={en ? "Gowri Nalla Neram" : "கௌரி நல்ல நேரம்"} start={data.kalam.gowriNallaNeram[0].start} end={data.kalam.gowriNallaNeram[data.kalam.gowriNallaNeram.length - 1].end} tone="best" />
               )}
               {!data.abhijit.isRestrictedByWeekday && (
-                <TimeSlot label="Abhijit Muhurta" start={data.abhijit.start} end={data.abhijit.end} tone="best" />
+                <TimeSlot label={en ? "Abhijit Muhurta" : "அபிஜித் முகூர்த்தம்"} start={data.abhijit.start} end={data.abhijit.end} tone="best" />
               )}
-              <TimeSlot label="Rahu Kalam" start={data.kalam.rahuKalam.start} end={data.kalam.rahuKalam.end} tone="hold" />
-              <TimeSlot label="Yamagandam" start={data.kalam.yamagandam.start} end={data.kalam.yamagandam.end} tone="hold" />
-              <TimeSlot label="Kuligai" start={data.kalam.kuligai.start} end={data.kalam.kuligai.end} tone="hold" />
+              <TimeSlot label={en ? "Rahu Kalam" : "ராகு காலம்"} start={data.kalam.rahuKalam.start} end={data.kalam.rahuKalam.end} tone="hold" />
+              <TimeSlot label={en ? "Yamagandam" : "யமகண்டம்"} start={data.kalam.yamagandam.start} end={data.kalam.yamagandam.end} tone="hold" />
+              <TimeSlot label={en ? "Kuligai" : "குளிகை"} start={data.kalam.kuligai.start} end={data.kalam.kuligai.end} tone="hold" />
             </div>
           </div>
 
@@ -257,7 +271,9 @@ export function PanchangamTool() {
             borderRadius: "12px", padding: "14px 18px",
           }}>
             <p style={{ margin: "0 0 4px", fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: data.subhaMuhurtham.isSubha ? "#5C7654" : "#A8482F" }}>
-              {data.subhaMuhurtham.isSubha ? "Subha Muhurtham Day" : "Not a Subha Muhurtham Day"}
+              {data.subhaMuhurtham.isSubha
+                ? (en ? "Subha Muhurtham Day" : "சுப முகூர்த்த நாள்")
+                : (en ? "Not a Subha Muhurtham Day" : "சுப முகூர்த்த நாள் அல்ல")}
             </p>
             <p style={{ margin: 0, fontSize: "0.86rem", color: "var(--cl-ink-2)" }}>{data.subhaMuhurtham.reason}</p>
           </div>
@@ -284,10 +300,10 @@ export function PanchangamTool() {
           }}>
             <div>
               <p style={{ margin: 0, fontWeight: 600, color: "var(--cl-ink)", fontSize: "0.92rem" }}>
-                Get panchangam connected to your personal chart
+                {en ? "Get panchangam connected to your personal chart" : "உங்கள் ஜாதகத்துடன் இணைந்த பஞ்சாங்கம் பெறுங்கள்"}
               </p>
               <p style={{ margin: "4px 0 0", fontSize: "0.82rem", color: "var(--cl-muted)" }}>
-                Free account — daily guidance that combines your chart, dasha, and panchangam.
+                {en ? "Free account — daily guidance that combines your chart, dasha, and panchangam." : "இலவச கணக்கு — ஜாதகம், தசை, பஞ்சாங்கம் ஒன்றாக இணைந்த தினசரி வழிகாட்டுதல்."}
               </p>
             </div>
             <a href="/dashboard" className="cl-mobile-cta" style={{
@@ -295,7 +311,7 @@ export function PanchangamTool() {
               background: "var(--cl-ink)", color: "var(--cl-bg)", borderRadius: "999px",
               fontWeight: 600, fontSize: "0.88rem", textDecoration: "none",
             }}>
-              Get started free →
+              {en ? "Get started free →" : "இலவசமாக தொடங்கு →"}
             </a>
           </div>
         </div>

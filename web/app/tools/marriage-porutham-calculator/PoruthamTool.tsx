@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { PlaceCombobox } from "@/components/dashboard-ui";
 import { readErrorMessage } from "@/lib/api";
+import { useLang } from "@/components/lang-toggle";
 import type { KutaResult, BiText } from "@/lib/types";
 
-/* Extended type that includes nadiDosha — returned by the public API */
 interface NadiDoshaResult {
   boyNadi: string;
   girlNadi: string;
@@ -59,11 +59,13 @@ const labelStyle: React.CSSProperties = {
 };
 
 function PersonForm({
-  label, accentColor, form, onChange,
+  label, accentColor, form, onChange, lang,
 }: {
   label: string; accentColor: string;
   form: Form; onChange: (f: Form) => void;
+  lang: "en" | "ta";
 }) {
+  const en = lang === "en";
   return (
     <div className="cd-responsive-form-block" style={{
       flex: 1, minWidth: "280px",
@@ -74,27 +76,27 @@ function PersonForm({
       <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: accentColor }}>{label}</p>
 
       <label style={labelStyle}>
-        Name
+        {en ? "Name" : "பெயர்"}
         <input style={inputStyle} value={form.displayName}
           onChange={(e) => onChange({ ...form, displayName: e.target.value })}
-          placeholder="Enter name" />
+          placeholder={en ? "Enter name" : "பெயர் உள்ளிடவும்"} />
       </label>
 
       <div className="cl-mobile-form-grid-2" style={{ gap: "10px" }}>
         <label style={labelStyle}>
-          Birth Date *
+          {en ? "Birth Date *" : "பிறந்த தேதி *"}
           <input style={inputStyle} type="date" value={form.birthDateLocal}
             onChange={(e) => onChange({ ...form, birthDateLocal: e.target.value })} />
         </label>
         <label style={labelStyle}>
-          Birth Time
+          {en ? "Birth Time" : "பிறந்த நேரம்"}
           <input style={inputStyle} type="time" value={form.birthTimeLocal}
             onChange={(e) => onChange({ ...form, birthTimeLocal: e.target.value })} />
         </label>
       </div>
 
       <label style={labelStyle}>
-        Birth Place *
+        {en ? "Birth Place *" : "பிறந்த இடம் *"}
         <PlaceCombobox
           value={form.birthPlace}
           onChange={(city, raw) => onChange({
@@ -106,12 +108,12 @@ function PersonForm({
 
       <div className="cl-mobile-form-grid-2" style={{ gap: "10px" }}>
         <label style={labelStyle}>
-          Latitude
+          {en ? "Latitude" : "அட்சாம்சம்"}
           <input style={inputStyle} inputMode="decimal" value={form.birthLatitude}
             onChange={(e) => onChange({ ...form, birthLatitude: e.target.value })} placeholder="e.g. 13.08" />
         </label>
         <label style={labelStyle}>
-          Longitude
+          {en ? "Longitude" : "தீர்க்காம்சம்"}
           <input style={inputStyle} inputMode="decimal" value={form.birthLongitude}
             onChange={(e) => onChange({ ...form, birthLongitude: e.target.value })} placeholder="e.g. 80.27" />
         </label>
@@ -127,6 +129,9 @@ function scoreColor(pct: number): string {
 }
 
 export function PoruthamTool() {
+  const [lang] = useLang();
+  const en = lang === "en";
+
   const [formA, setFormA] = useState<Form>(EMPTY);
   const [formB, setFormB] = useState<Form>(EMPTY);
   const [result, setResult] = useState<PublicPoruthamData | null>(null);
@@ -136,7 +141,9 @@ export function PoruthamTool() {
   async function handleCheck() {
     const valid = (f: Form) => f.birthDateLocal && f.birthLatitude && f.birthLongitude;
     if (!valid(formA) || !valid(formB)) {
-      setError("Please fill date and birth place for both persons.");
+      setError(en
+        ? "Please fill date and birth place for both persons."
+        : "இரு நபர்களுக்கும் தேதி மற்றும் பிறந்த இடம் நிரப்பவும்.");
       return;
     }
     setError("");
@@ -188,8 +195,14 @@ export function PoruthamTool() {
 
       {/* Two person forms */}
       <div className="cl-mobile-flex-row" style={{ gap: "16px" }}>
-        <PersonForm label="Person 1 (Boy / Groom)" accentColor="#B85A2C" form={formA} onChange={setFormA} />
-        <PersonForm label="Person 2 (Girl / Bride)" accentColor="#5C7654" form={formB} onChange={setFormB} />
+        <PersonForm
+          label={en ? "Person 1 (Boy / Groom)" : "நபர் 1 (மணமகன்)"}
+          accentColor="#B85A2C" form={formA} onChange={setFormA} lang={lang}
+        />
+        <PersonForm
+          label={en ? "Person 2 (Girl / Bride)" : "நபர் 2 (மணமகள்)"}
+          accentColor="#5C7654" form={formB} onChange={setFormB} lang={lang}
+        />
       </div>
 
       {error && (
@@ -210,7 +223,9 @@ export function PoruthamTool() {
           cursor: loading ? "not-allowed" : "pointer",
         }}
       >
-        {loading ? "Calculating…" : "Check Porutham"}
+        {loading
+          ? (en ? "Calculating…" : "கணக்கிடுகிறது…")
+          : (en ? "Check Porutham" : "பொருத்தம் பார்")}
       </button>
 
       {/* Results */}
@@ -224,7 +239,7 @@ export function PoruthamTool() {
           }}>
             <div style={{ minWidth: "120px" }}>
               <p style={{ margin: "0 0 4px", fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
-                Total Score
+                {en ? "Total Score" : "மொத்த மதிப்பெண்"}
               </p>
               <p style={{ margin: 0, fontSize: "3rem", fontWeight: 700, lineHeight: 1, color: scoreColor(pct) }}>
                 {result.totalScore}
@@ -237,12 +252,12 @@ export function PoruthamTool() {
                 <div style={{ marginTop: "8px", display: "flex", flexWrap: "wrap", gap: "6px" }}>
                   {result.rajjuDosha && (
                     <span style={{ fontSize: "0.72rem", fontWeight: 700, padding: "3px 10px", borderRadius: "999px", background: "rgba(168,72,47,0.12)", color: "#A8482F", border: "1px solid rgba(168,72,47,0.3)" }}>
-                      ⚠ Rajju Dosha
+                      ⚠ {en ? "Rajju Dosha" : "ரஜ்ஜு தோஷம்"}
                     </span>
                   )}
                   {result.vedhaDosha && (
                     <span style={{ fontSize: "0.72rem", fontWeight: 700, padding: "3px 10px", borderRadius: "999px", background: "rgba(168,72,47,0.12)", color: "#A8482F", border: "1px solid rgba(168,72,47,0.3)" }}>
-                      ⚠ Vedha Dosha
+                      ⚠ {en ? "Vedha Dosha" : "வேத தோஷம்"}
                     </span>
                   )}
                 </div>
@@ -250,14 +265,14 @@ export function PoruthamTool() {
             </div>
             <div style={{ flex: 1, minWidth: "220px" }}>
               <p style={{ margin: 0, fontSize: "0.88rem", color: "var(--cl-ink-2)", lineHeight: 1.65 }}>
-                {result.summary.en}
+                {en ? result.summary.en : result.summary.ta}
               </p>
               <div style={{ marginTop: "10px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 <span style={{ fontSize: "0.78rem", color: "var(--cl-muted)", background: "var(--cl-bg-2)", border: "1px solid var(--cl-border)", borderRadius: "999px", padding: "3px 12px" }}>
-                  {formA.displayName || "Person A"}: {result.boyNakshatraName}
+                  {formA.displayName || (en ? "Person A" : "நபர் அ")}: {result.boyNakshatraName}
                 </span>
                 <span style={{ fontSize: "0.78rem", color: "var(--cl-muted)", background: "var(--cl-bg-2)", border: "1px solid var(--cl-border)", borderRadius: "999px", padding: "3px 12px" }}>
-                  {formB.displayName || "Person B"}: {result.girlNakshatraName}
+                  {formB.displayName || (en ? "Person B" : "நபர் ஆ")}: {result.girlNakshatraName}
                 </span>
               </div>
             </div>
@@ -269,7 +284,7 @@ export function PoruthamTool() {
             borderRadius: "14px", padding: "18px",
           }}>
             <p style={{ margin: "0 0 14px", fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
-              Kuta Breakdown
+              {en ? "Kuta Breakdown" : "குட விவரம்"}
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {result.kutas.map((k) => {
@@ -302,10 +317,10 @@ export function PoruthamTool() {
               borderRadius: "12px", padding: "14px 18px",
             }}>
               <p style={{ margin: "0 0 6px", fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#A8482F" }}>
-                ⚠ Nadi Dosha — {result.nadiDosha.severity}
+                ⚠ {en ? "Nadi Dosha" : "நாடி தோஷம்"} — {result.nadiDosha.severity}
               </p>
               <p style={{ margin: 0, fontSize: "0.86rem", color: "var(--cl-ink-2)", lineHeight: 1.6 }}>
-                {result.nadiDosha.noteEn}
+                {en ? result.nadiDosha.noteEn : result.nadiDosha.noteTa}
               </p>
             </div>
           )}
@@ -317,10 +332,10 @@ export function PoruthamTool() {
           }}>
             <div>
               <p style={{ margin: 0, fontWeight: 600, color: "var(--cl-ink)", fontSize: "0.92rem" }}>
-                Save this result and add to your family vault
+                {en ? "Save this result and add to your family vault" : "இந்த முடிவை சேமித்து குடும்ப சேகரிப்பில் சேர்க்கவும்"}
               </p>
               <p style={{ margin: "4px 0 0", fontSize: "0.82rem", color: "var(--cl-muted)" }}>
-                Free account — save results, compare multiple matches, get daily guidance.
+                {en ? "Free account — save results, compare multiple matches, get daily guidance." : "இலவச கணக்கு — முடிவுகளை சேமிக்கவும், பல பொருத்தங்களை ஒப்பிடவும், தினசரி வழிகாட்டுதல் பெறவும்."}
               </p>
             </div>
             <a href="/dashboard" className="cl-mobile-cta" style={{
@@ -328,7 +343,7 @@ export function PoruthamTool() {
               background: "var(--cl-ink)", color: "var(--cl-bg)", borderRadius: "999px",
               fontWeight: 600, fontSize: "0.88rem", textDecoration: "none",
             }}>
-              Get started free →
+              {en ? "Get started free →" : "இலவசமாக தொடங்கு →"}
             </a>
           </div>
         </div>

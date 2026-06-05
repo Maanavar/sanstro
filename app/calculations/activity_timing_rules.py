@@ -225,7 +225,7 @@ def _assess_weekday(activity: ActivityType, weekday_lord: str) -> TimingSignal:
     if activity in _WEEKDAY_CAUTION.get(lord, set()):
         return TimingSignal(
             alignment="CAUTION",
-            reason_ta=f"{day_ta}க்கிழமை இந்த செயலுக்கு திருகாணிதம் படி சாதகமில்லை.",
+            reason_ta=f"{day_ta}க்கிழமை இந்த செயலுக்கு திருக்கணிதம் படி சாதகமில்லை.",
             reason_en=f"{day_en} is traditionally less favourable for this activity per Thirukanitham.",
         )
 

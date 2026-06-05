@@ -39,6 +39,7 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
   const todayDate = useRef(todayIso());
 
   const [birthProfileId, setBirthProfileId] = useState("");
+  const [birthProfileLookupDone, setBirthProfileLookupDone] = useState(false);
   const [chartId, setChartId] = useState("");
 
   const [chart, setChart] = useState<ChartCalculateResponseData | null>(null);
@@ -79,14 +80,23 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
     if (onStatus) onStatus(message);
   }
 
+  function updateBirthProfileId(nextBirthProfileId: string) {
+    setBirthProfileId(nextBirthProfileId);
+    if (nextBirthProfileId) {
+      setBirthProfileLookupDone(true);
+    }
+  }
+
   async function loadLatestBirthProfileForCurrentUser(): Promise<BirthProfileSnapshot | null> {
     try {
       const response = await apiFetchJson<ApiEnvelope<BirthProfileSnapshot>>("/api/v1/birth-profiles/me/latest");
       const profile = response.data;
-      setBirthProfileId(profile.birthProfileId);
+      updateBirthProfileId(profile.birthProfileId);
       return profile;
     } catch {
       return null;
+    } finally {
+      setBirthProfileLookupDone(true);
     }
   }
 
@@ -336,7 +346,8 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
     jadhagamReport,
     jadhagamReportLoading,
     busyPersonal,
-    setBirthProfileId,
+    setBirthProfileId: updateBirthProfileId,
+    birthProfileLookupDone,
     setChartId,
     setPredictionsLoading,
     setJadhagamReport,

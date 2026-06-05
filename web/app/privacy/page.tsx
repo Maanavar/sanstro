@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     url: "https://vinaadi.com/privacy",
     images: [
       {
-        url: "/brand/vinaadi-wordmark-color.png",
+        url: "/brand/vinaadi-og-image.png",
         width: 1792,
         height: 612,
         alt: "Vinaadi - Your Cosmic Copilot",
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Privacy Policy - Vinaadi",
     description: "How Vinaadi collects, uses, and protects your personal data.",
-    images: ["/brand/vinaadi-wordmark-color.png"],
+    images: ["/brand/vinaadi-og-image.png"],
   },
 };
 
