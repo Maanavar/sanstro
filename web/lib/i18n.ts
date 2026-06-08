@@ -283,8 +283,9 @@ const STRINGS = {
   calendar_kicker:  { ta: "கோசாரம் & நிகழ்வுகள்", en: "Transits & Events" },
   calendar_title:   { ta: "கோசாரம், தசை & நிகழ்வுகள்", en: "Transits, Dasha & Events" },
   cal_panchangam:   { ta: "📅 பஞ்சாங்கம்",  en: "📅 Panchangam" },
-  cal_personal:     { ta: "◎ தனிப்பட்ட",   en: "◎ Personal" },
-  cal_family:       { ta: "👪 குடும்பம்",    en: "👪 Family" },
+  cal_monthly:      { ta: "🗓️ மாத காலெண்டர்", en: "🗓️ Monthly" },
+  cal_monthly_loading: { ta: "மாத பஞ்சாங்கம் ஏற்றப்படுகிறது…", en: "Loading monthly panchangam…" },
+  cal_monthly_empty: { ta: "இம்மாதத்திற்கான பஞ்சாங்க தரவு இல்லை.", en: "No panchangam data for this month." },
   surface_panja:    { ta: "பஞ்சாங்கம் — ஐந்து அங்கங்கள்", en: "Panchangam — Five limbs" },
   surface_kala:     { ta: "தடை நேரங்கள் (Kala Vibhagam)", en: "Inauspicious periods" },
   surface_hora:     { ta: "ஹோரை நேரங்கள்", en: "Hora table" },
@@ -306,25 +307,6 @@ const STRINGS = {
   lord_word:        { ta: "அதிபதி",   en: "lord" },
   until_word:       { ta: "வரை",     en: "until" },
   slot_word:        { ta: "இடை",     en: "slot" },
-
-  // ── Calendar personal view
-  cal_score_label:  { ta: "மதிப்பெண் விவரம்",   en: "Score breakdown" },
-  cal_action:       { ta: "செயல் பரிந்துரை",    en: "Action suggestion" },
-  cal_caution_sugg: { ta: "எச்சரிக்கை",         en: "Caution" },
-  cal_sani:         { ta: "சனி சுழற்சி",        en: "Saturn cycle" },
-  cal_sani_pos:     { ta: "சனி நிலை",           en: "Saturn position" },
-  cal_sani_rasi:    { ta: "சனி ராசி",           en: "Saturn sign" },
-  cal_3days:        { ta: "அடுத்த 3 நாட்கள் — யோக அளவீடு", en: "Next 3 days — fortune score" },
-  cal_no_profile:   { ta: "தனிப்பட்ட யோக நிலை பார்க்க முதலில் பிறப்பு விவரம் உருவாக்கவும்.", en: "Create a birth profile to view personal fortune." },
-  cal_no_vault:     { ta: "குடும்ப யோக நிலை பார்க்க முதலில் குடும்ப சேகரிப்பு உருவாக்கவும்.", en: "Create a family vault to view family fortune." },
-  cal_loading:      { ta: "குடும்ப தரவு ஏற்றுகிறது…", en: "Loading family data…" },
-  cal_fam_title:    { ta: "குடும்பம்",      en: "Family" },
-  cal_breakdown:    { ta: "குடும்ப மதிப்பெண் விவரம்",  en: "Family score breakdown" },
-  cal_mean_score:   { ta: "சராசரி மதிப்பெண்",          en: "Mean score" },
-  cal_member_scores: { ta: "உறுப்பினர் மதிப்பெண்கள்",  en: "Member scores" },
-  cal_7days:        { ta: "7 நாட்கள் — குடும்ப யோக காலெண்டர்", en: "7-day family fortune calendar" },
-  cal_avoid_fam:    { ta: "தவிர் ",  en: "Avoid " },
-  cal_best_fam:     { ta: "சிறந்த நேரம் ", en: "Best " },
 
   // ── Settings tab
   settings_kicker:  { ta: "அமைவுகள்",   en: "Settings" },
@@ -730,6 +712,14 @@ const STRINGS = {
   retro_event_date:        { ta: "நிகழ்வு தேதி",                en: "Event date" },
   retro_event_desc:        { ta: "நிகழ்வு விவரம் *",            en: "Event description *" },
   retro_event_type:        { ta: "நிகழ்வு வகை",                 en: "Event type" },
+  retro_event_career:      { ta: "தொழில் / வேலை",              en: "Career / Work" },
+  retro_event_health:      { ta: "உடல்நலம்",                    en: "Health" },
+  retro_event_relationship:{ ta: "உறவு",                       en: "Relationship" },
+  retro_event_finance:     { ta: "நிதி",                        en: "Finance" },
+  retro_event_family:      { ta: "குடும்பம்",                   en: "Family" },
+  retro_event_travel:      { ta: "பயணம்",                       en: "Travel" },
+  retro_event_spiritual:   { ta: "ஆன்மீகம்",                    en: "Spiritual" },
+  retro_event_other:       { ta: "மற்றவை",                      en: "Other" },
   retro_analyse:           { ta: "பின்னோக்கு ஆய்வு செய்",      en: "Analyse Event" },
   retro_analysing:         { ta: "ஆய்வு செய்கிறது…",            en: "Analysing…" },
   retro_correlation:       { ta: "ஜோதிட தொடர்பு",              en: "Astrological Correlation" },
@@ -962,7 +952,9 @@ const STRINGS = {
 export type StringKey = keyof typeof STRINGS;
 
 export function t(key: StringKey, lang: Lang): string {
-  return STRINGS[key][lang];
+  // Defensive: a missing/typo'd key must never crash the app (e.g. dynamically
+  // built keys like `retro_event_${type}`). Fall back to the raw key.
+  return STRINGS[key]?.[lang] ?? (key as string);
 }
 
 export function tLang(obj: { ta: string; en: string }, lang: Lang): string {

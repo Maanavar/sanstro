@@ -173,8 +173,8 @@ export function DashboardWorkspace() {
   const [gemstoneAdvice, setGemstoneAdvice] = useState<import("@/lib/types").GemstoneAdviceItem[] | null>(null);
   const [remediesLoading, setRemediesLoading] = useState(false);
 
-  async function loadRemedies() {
-    const chartId = personal.chartId;
+  async function loadRemedies(targetChartId?: string) {
+    const chartId = targetChartId ?? resolveLifeAreasChartId();
     if (!chartId || remediesLoading) return;
     setRemediesLoading(true);
     try {
@@ -255,7 +255,6 @@ export function DashboardWorkspace() {
   // View-selector IDs for member cross-tab views
   const [personalViewId, setPersonalViewId] = useState<string | null>(null);
   const [lifeAreasViewId, setLifeAreasViewId] = useState<string | null>(null);
-  const [calendarViewId, setCalendarViewId] = useState<string | null>(null);
   const [transitViewId, setTransitViewId] = useState<string | null>(null);
 
   const [onboardingDone, setOnboardingDone] = useState(false);
@@ -540,6 +539,10 @@ export function DashboardWorkspace() {
     if (!targetChartId) return;
     personal.setPredictionsLoading(true);
     personal.setJadhagamReport(null);
+    // Remedies & gemstone advice are per-chart — clear the previous member's
+    // data so a switched member never shows another person's remedies/stones.
+    setRemedyPlan(null);
+    setGemstoneAdvice(null);
     void personal.refreshLifeAreasInsights(targetChartId, selectedDate)
       .finally(() => personal.setPredictionsLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -574,10 +577,10 @@ export function DashboardWorkspace() {
 
   const personalMemberChart = resolveMemberChart(personalViewId);
   const lifeAreasMemberChart = resolveMemberChart(lifeAreasViewId);
-  const calendarMemberChart = resolveMemberChart(calendarViewId);
   const transitMemberChart = resolveMemberChart(transitViewId);
 
   const personalChart = personalMemberChart?.chart ?? personal.chart;
+  const personalChartExplanation = personalMemberChart ? personalMemberChart.explanation : personal.chartExplanation;
   const personalChartSummary = personalMemberChart?.summary ?? personal.chartSummary;
   const personalDailyGuidance = personalMemberChart?.dailyGuidance ?? personal.dailyGuidance;
   const personalDasha = personalMemberChart?.dasha ?? personal.dasha;
@@ -1099,6 +1102,7 @@ export function DashboardWorkspace() {
             onRefreshPersonal={() => void personal.refreshPersonalBundle()}
             personalMemberChart={personalMemberChart}
             personalChart={personalChart}
+            personalChartExplanation={personalChartExplanation}
             personalChartSummary={personalChartSummary}
             personalDailyGuidance={personalDailyGuidance}
             dailyGuidanceRange={personal.dailyGuidanceRange}
@@ -1118,6 +1122,9 @@ export function DashboardWorkspace() {
             onOpenPrasna={() => setShowPrasna(true)}
             showPrasna={showPrasna}
             onClosePrasna={() => setShowPrasna(false)}
+            dasha={personalDasha}
+            dashaMaha={personalDashaMaha}
+            dashaAntar={personalDashaAntar}
           />
         )}
 
@@ -1186,16 +1193,30 @@ export function DashboardWorkspace() {
                     {showPorutham && (
                       <PoruthamPanel
                         lang={lang}
-                        familyMembers={family.memberCharts.map((mc) => ({
-                          memberId: mc.memberId,
-                          displayName: mc.displayName,
-                          birthDateLocal: mc.chart.birthProfile.birthDateLocal,
-                          birthTimeLocal: mc.chart.birthProfile.birthTimeLocal ?? "",
-                          birthPlace: mc.chart.birthProfile.birthPlace,
-                          birthLatitude: mc.chart.birthProfile.birthLatitude,
-                          birthLongitude: mc.chart.birthProfile.birthLongitude,
-                          birthTimezone: mc.chart.birthProfile.birthTimezone,
-                        }))}
+                        familyMembers={[
+                          ...(personal.chart ? [{
+                            memberId: `owner:${personal.chart.birthProfile.birthProfileId}`,
+                            displayName: personal.chart.birthProfile.displayName,
+                            birthDateLocal: personal.chart.birthProfile.birthDateLocal,
+                            birthTimeLocal: personal.chart.birthProfile.birthTimeLocal ?? "",
+                            birthPlace: personal.chart.birthProfile.birthPlace,
+                            birthLatitude: personal.chart.birthProfile.birthLatitude,
+                            birthLongitude: personal.chart.birthProfile.birthLongitude,
+                            birthTimezone: personal.chart.birthProfile.birthTimezone,
+                          }] : []),
+                          ...family.memberCharts
+                            .filter((mc) => mc.chart.birthProfile.birthProfileId !== personal.chart?.birthProfile.birthProfileId)
+                            .map((mc) => ({
+                              memberId: mc.memberId,
+                              displayName: mc.displayName,
+                              birthDateLocal: mc.chart.birthProfile.birthDateLocal,
+                              birthTimeLocal: mc.chart.birthProfile.birthTimeLocal ?? "",
+                              birthPlace: mc.chart.birthProfile.birthPlace,
+                              birthLatitude: mc.chart.birthProfile.birthLatitude,
+                              birthLongitude: mc.chart.birthProfile.birthLongitude,
+                              birthTimezone: mc.chart.birthProfile.birthTimezone,
+                            })),
+                        ]}
                       />
                     )}
                     {showChartGenerate && <ChartGenerateInlinePanel lang={lang} />}
@@ -1246,27 +1267,7 @@ export function DashboardWorkspace() {
             todayDate={personal.todayDate}
             panchangam={personal.panchangam}
             panchangamTimings={personal.panchangamTimings}
-            dailyGuidance={calendarMemberChart?.dailyGuidance ?? personal.dailyGuidance}
-            dailyGuidanceRange={personal.dailyGuidanceRange}
-            familyCalendar={family.familyCalendar}
-            familyAggregate={family.familyAggregate}
-            chartSummary={calendarMemberChart?.summary ?? personal.chartSummary}
-            chartData={calendarMemberChart?.chart ?? personal.chart}
-            transit={calendarMemberChart?.transit ?? personal.transit}
-            sani={calendarMemberChart?.sani ?? personal.sani}
-            dasha={calendarMemberChart?.dasha ?? personal.dasha}
-            dashaMaha={calendarMemberChart?.dashaMaha ?? personal.dashaMaha}
-            dashaAntar={calendarMemberChart?.dashaAntar ?? personal.dashaAntar}
-            chartId={calendarMemberChart?.chart.chartId ?? personal.chartId}
-            hasBirthProfile={!!personal.birthProfileId}
-            hasVault={!!family.selectedVaultId}
             lang={lang}
-            weekAhead={calendarMemberChart?.weekAhead ?? personal.weekAhead}
-            mode={session.userMode}
-            birthDisplayName={birthForm.displayName}
-            memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
-            selectedMemberId={calendarViewId}
-            onSelectMember={setCalendarViewId}
           />
         )}
 
@@ -1283,15 +1284,22 @@ export function DashboardWorkspace() {
             onLoadJadhagamReport={() => void personal.loadJadhagamReport(resolveLifeAreasChartId())}
             chartSummary={lifeAreasMemberChart?.summary ?? personal.chartSummary}
             birthDisplayName={birthForm.displayName}
-            maritalStatus={birthForm.maritalStatus || undefined}
+            maritalStatus={(() => {
+              if (!lifeAreasViewId) return birthForm.maritalStatus || undefined;
+              const mc = family.memberCharts.find((m) => m.memberId === lifeAreasViewId);
+              const rel = mc?.chart.birthProfile.relationshipToOwner;
+              // Spouse/parent/grandparent are definitionally married — no need to ask
+              if (rel === "spouse" || rel === "parent" || rel === "grandparent") return "married";
+              return undefined;
+            })()}
             memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
             selectedMemberId={lifeAreasViewId}
             onSelectMember={setLifeAreasViewId}
-            chartId={personal.chartId}
+            chartId={resolveLifeAreasChartId()}
             remedyPlan={remedyPlan}
             gemstoneAdvice={gemstoneAdvice}
             remediesLoading={remediesLoading}
-            onLoadRemedies={() => void loadRemedies()}
+            onLoadRemedies={() => void loadRemedies(resolveLifeAreasChartId())}
           />
         )}
 
@@ -1306,7 +1314,7 @@ export function DashboardWorkspace() {
             personalDasha={transitDasha}
             personalDashaMaha={transitDashaMaha}
             personalDashaAntar={transitDashaAntar}
-            dashaStory={personal.dashaStory}
+            dashaStory={transitViewId ? null : personal.dashaStory}
             journalCorrelations={personal.journalCorrelations}
             varshaphalaData={varshaphalaData}
             varshaphalaLoading={varshaphalaLoading}
