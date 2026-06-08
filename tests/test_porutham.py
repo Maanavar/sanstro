@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import pytest
 
+pytestmark = pytest.mark.no_db
+
 from app.calculations.porutham import (
     _dinam_score,
     _ganam_score,
@@ -193,6 +195,26 @@ def test_nadi_dosha_helper_flags_same_nadi():
     out = check_nadi_dosha(1, 2)
     assert out["boy_nadi"] == out["girl_nadi"]
     assert out["has_nadi_dosha"] is True
+
+
+def test_nadi_dosha_cancellation_uses_actual_rasi_for_split_nakshatra():
+    out = check_nadi_dosha(3, 2, boy_rasi=2, girl_rasi=1)
+    assert out["boy_nadi"] == out["girl_nadi"]
+    assert out["has_nadi_dosha"] is False
+    assert out["severity"] == "MILD"
+    assert out["cancellations"] == ["Different rasi — Nadi Dosha partially mitigated"]
+
+
+def test_compute_porutham_passes_actual_rasi_to_nadi_cancellation():
+    result = compute_porutham(
+        boy_nakshatra=3,
+        girl_nakshatra=2,
+        boy_rasi=2,
+        girl_rasi=1,
+    )
+    assert result.nadi_dosha["has_nadi_dosha"] is False
+    assert result.nadi_dosha["boy_rasi"] == 2
+    assert result.nadi_dosha["girl_rasi"] == 1
 
 
 def test_compute_porutham_includes_nadi_payload():

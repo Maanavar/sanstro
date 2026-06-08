@@ -2,6 +2,10 @@
 
 from pathlib import Path
 
+import pytest
+
+pytestmark = pytest.mark.no_db
+
 ROOT = Path(__file__).resolve().parents[1]
 SCAN_DIRS = [ROOT / "app", ROOT / "web", ROOT / "docs", ROOT / "tests"]
 TEXT_SUFFIXES = {".py", ".ts", ".tsx", ".js", ".mjs", ".json", ".md", ".css", ".yml", ".yaml", ".toml", ".ps1", ".sql"}

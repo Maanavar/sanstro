@@ -174,6 +174,54 @@ def test_jadhagam_report_endpoint_returns_structured_payload(client, birth_profi
     assert "executiveSummary" in body
 
 
+def test_chart_explanation_endpoint_returns_structured_payload(client, birth_profile_payload_factory):
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
+    chart_id = created["data"]["chartId"]
+
+    response = client.get(
+        f"/api/v1/charts/{chart_id}/explanation",
+        params={"asOf": "2026-05-21", "peyarchiWindowDays": 30},
+    )
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["chartId"] == chart_id
+    assert body["coreIdentity"]["lagnaRasi"]
+    assert body["coreIdentity"]["currentMahadasha"]
+    assert len(body["planets"]) == 9
+    assert {item["graha"] for item in body["planets"]} >= {"SUN", "MOON", "JUPITER", "SATURN", "RAHU", "KETU"}
+    assert all(item["explanation"]["ta"] and item["explanation"]["en"] for item in body["planets"])
+    assert "JUPITER" in body["functionalNature"]
+    assert isinstance(body["conjunctions"], list)
+    assert isinstance(body["aspects"], list)
+    assert all(item["aspectType"] for item in body["aspects"])
+    assert {item["group"] for item in body["houseGroups"]} == {"KENDRA", "TRIKONA", "DUSTHANA"}
+    assert "yogas" in body["yogaDosham"]
+    assert "doshams" in body["yogaDosham"]
+    assert body["currentActivation"]["asOf"] == "2026-05-21"
+    assert body["currentActivation"]["periodSummary"]["en"]
+    assert body["currentActivation"]["transitSummary"]["en"]
+    assert len(body["currentActivation"]["activeLords"]) == 3
+    assert {item["level"] for item in body["currentActivation"]["activeLords"]} == {"MAHADASHA", "BHUKTI", "ANTARAM"}
+    for item in body["currentActivation"]["activeLords"]:
+        assert item["lord"]
+        assert item["startDate"]
+        assert item["endDate"]
+        assert item["natalHouseFromLagna"] in range(1, 13)
+        assert item["natalHouseFromMoon"] in range(1, 13)
+        assert item["transitHouseFromLagna"] in range(1, 13)
+        assert item["transitHouseFromMoon"] in range(1, 13)
+        assert item["periodTone"] in {"SUPPORT", "STEADY", "CAUTION"}
+        assert item["lifeAreas"]
+        assert item["explanation"]["ta"]
+        assert item["explanation"]["en"]
+    assert body["summary"]["positives"]
+    assert body["summary"]["cautions"]
+    assert body["peyarchi"]["asOf"] == "2026-05-21"
+    assert isinstance(body["peyarchi"]["events"], list)
+    assert body["methodNote"]["en"]
+
+
 def test_solar_return_endpoint_includes_tajaka_pairs(client, birth_profile_payload_factory):
     created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
     chart_id = created["data"]["chartId"]

@@ -62,4 +62,5 @@ def test_public_panchangam_returns_daily_snapshot() -> None:
     body = response.json()
     assert body["success"] is True
     assert body["data"]["dateLocal"] == "2026-06-02"
+    assert body["data"]["tamilDate"]["en"]
     assert body["data"]["location"]["timezone"] == "Asia/Kolkata"

@@ -14,6 +14,8 @@ from app.services.daily_push_cron import (
     run_daily_push_cron,
 )
 
+pytestmark = pytest.mark.no_db
+
 
 # ---------------------------------------------------------------------------
 # _score_label
@@ -175,6 +177,7 @@ def test_dispatch_for_user_uses_current_location_for_daily_panchangam(monkeypatc
         slot = MagicMock()
         slot.start = datetime(2026, 5, 26, 9, 0, tzinfo=UTC)
         slot.end = datetime(2026, 5, 26, 10, 0, tzinfo=UTC)
+        slot.name = "LAABAM"
         rahu = MagicMock()
         rahu.start = datetime(2026, 5, 26, 13, 30, tzinfo=UTC)
         rahu.end = datetime(2026, 5, 26, 15, 0, tzinfo=UTC)
@@ -190,10 +193,11 @@ def test_dispatch_for_user_uses_current_location_for_daily_panchangam(monkeypatc
     monkeypatch.setattr("app.services.daily_push_cron._already_sent_today", lambda *_: False)
     monkeypatch.setattr("app.services.daily_push_cron.calculate_daily_panchangam", fake_calculate_daily_panchangam)
     monkeypatch.setattr("app.services.daily_push_cron.build_nakshatra_perspective", lambda *_: None)
-    monkeypatch.setattr(
-        "app.services.daily_push_cron.build_morning_notification",
-        lambda **_: {"title": {"ta": "ta", "en": "en"}, "body": {"ta": "ta", "en": "en"}},
-    )
+    def fake_build_morning_notification(**kwargs):
+        captured["notification_kwargs"] = kwargs
+        return {"title": {"ta": "ta", "en": "en"}, "body": {"ta": "ta", "en": "en"}}
+
+    monkeypatch.setattr("app.services.daily_push_cron.build_morning_notification", fake_build_morning_notification)
     monkeypatch.setattr("app.services.daily_push_cron.dispatch_notification", lambda **_: "sent_push")
 
     _dispatch_for_user(
@@ -209,3 +213,6 @@ def test_dispatch_for_user_uses_current_location_for_daily_panchangam(monkeypatc
     assert latitude == 40.7128
     assert longitude == -74.006
     assert timezone_name == "America/New_York"
+    notification_kwargs = captured["notification_kwargs"]
+    assert notification_kwargs["nalla_neram_category_en"] == "Laabam"
+    assert "profit" in notification_kwargs["nalla_neram_purpose_en"]

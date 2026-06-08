@@ -72,3 +72,31 @@ def test_retrograde_handling_does_not_return_past_date():
     for planet in ("SATURN", "JUPITER", "RAHU", "KETU"):
         event_dt, _next_rasi = find_next_permanent_rasi_change(planet, from_jd)
         assert event_dt.date() >= AS_OF_DATE
+
+
+def test_peyarchi_report_supports_rahu_ketu_axis(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
+
+    rahu_response = client.get(
+        f"/api/v1/transits/peyarchi-report/{chart_id}",
+        params={"planet": "RAHU", "asOf": AS_OF_DATE.isoformat()},
+    )
+    assert rahu_response.status_code == 200
+    rahu_data = rahu_response.json()["data"]
+    assert rahu_data["planet"] == "RAHU"
+    assert rahu_data["events"]
+    rahu_event = rahu_data["events"][0]
+    assert rahu_event["outlookTa"]
+    assert "Ketu" in rahu_event["outlookEn"]
+    assert rahu_event["houseFromMoon"] in range(1, 13)
+    assert rahu_event["houseFromLagna"] in range(1, 13)
+
+    ketu_response = client.get(
+        f"/api/v1/transits/peyarchi-report/{chart_id}",
+        params={"planet": "ketu", "asOf": AS_OF_DATE.isoformat()},
+    )
+    assert ketu_response.status_code == 200
+    ketu_data = ketu_response.json()["data"]
+    assert ketu_data["planet"] == "KETU"
+    assert ketu_data["events"]
+    assert "Rahu" in ketu_data["events"][0]["outlookEn"]

@@ -14,6 +14,8 @@ from app.services.pdf_export_service import (
     generate_chart_pdf,
 )
 
+pytestmark = pytest.mark.no_db
+
 
 def _make_planet(graha="SUN", rasi_name="Mesham", nakshatra_name="ASWINI", house=1,
                  retro=False, combust=False):

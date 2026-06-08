@@ -1,6 +1,7 @@
 from datetime import date
 
 from app.calculations.panchangam import PANCHANGAM_CACHE_DATA_VERSION
+from app.calculations.tamil_calendar import format_tamil_date
 from app.db.session import SessionLocal
 from app.models import PanchangamCache
 
@@ -21,12 +22,34 @@ def test_daily_panchangam_endpoint_returns_structured_daily_data(client):
     assert body["success"] is True
     assert body["data"]["vara"]["weekday"] == "THURSDAY"
     assert body["data"]["vara"]["lord"] == "GURU"
+    expected_ta, expected_en = format_tamil_date(date(2026, 5, 21), "Asia/Kolkata", 9.9252, 78.1198)
+    assert body["data"]["tamilDate"] == {"ta": expected_ta, "en": expected_en}
     assert body["data"]["tithi"]["number"] == 5
     assert body["data"]["kalam"]["rahuKalam"]["slot"] == 6
     assert body["data"]["kalam"]["yamagandam"]["slot"] == 1
     assert body["data"]["kalam"]["kuligai"]["slot"] == 3
-    # Nalla Neram is weekday-slot based (Thirukanitham); Thursday = slot 1 = sunrise slot
-    assert body["data"]["kalam"]["nallaNeram"][0]["slot"] == 1
+    assert len(body["data"]["kalam"]["gowriPanchangam"]) == 16
+    assert body["data"]["kalam"]["gowriPanchangam"][0]["name"] == "DHANAM"
+    assert body["data"]["kalam"]["gowriPanchangam"][0]["period"] == "DAY"
+    assert body["data"]["yoga"]["endsAt"]
+    assert body["data"]["yoga"]["nextName"]
+    assert body["data"]["karana"]["endsAt"]
+    assert body["data"]["karana"]["nextName"]
+    chandra = body["data"]["chandrashtamamToday"]
+    assert 1 <= chandra["moonRasiNumber"] <= 12
+    assert 1 <= chandra["affectedJanmaRasiNumber"] <= 12
+    assert chandra["affectedJanmaRasiNumber"] == ((chandra["moonRasiNumber"] - 8) % 12) + 1
+    # Summary windows are compact daily-calendar timings; the full named
+    # Gowri engine remains available under gowriPanchangam.
+    assert len(body["data"]["kalam"]["gowriNallaNeram"]) == 2
+    assert {s["period"] for s in body["data"]["kalam"]["gowriNallaNeram"]} == {"DAY", "NIGHT"}
+    assert all(s["name"] is None and s["isGood"] is True for s in body["data"]["kalam"]["gowriNallaNeram"])
+    assert len(body["data"]["kalam"]["nallaNeram"]) == 2
+    assert {s["period"] for s in body["data"]["kalam"]["nallaNeram"]} == {"AM", "PM"}
+    for s in body["data"]["kalam"]["nallaNeram"]:
+        assert s["name"] is None
+        assert s["isGood"] is True
+        assert s["warning"] is None
     assert len(body["data"]["hora"]) == 24
 
 
@@ -47,6 +70,24 @@ def test_panchangam_timings_endpoint_returns_timing_windows(client):
     assert body["data"]["kalam"]["rahuKalam"]["slot"] == 6
     assert body["data"]["abhijit"]["isRestrictedByWeekday"] is False
     assert len(body["data"]["hora"]) == 24
+
+
+def test_daily_panchangam_endpoint_returns_festival_tags(client):
+    response = client.get(
+        "/api/v1/panchangam/daily",
+        params={
+            "date": "2026-01-26",
+            "lat": 13.0827,
+            "lng": 80.2707,
+            "timezone": "Asia/Kolkata",
+        },
+    )
+
+    assert response.status_code == 200
+    festivals = response.json()["data"]["festivals"]
+    republic_day = next(item for item in festivals if item["name"] == "Republic Day")
+    assert republic_day["category"] == "indian_govt"
+    assert set(republic_day["tags"]) == {"indian_govt", "tamilnadu_govt"}
 
 
 def test_panchangam_timings_monday_kuligai_uses_day_slot_6_not_sunrise_slot(client):
