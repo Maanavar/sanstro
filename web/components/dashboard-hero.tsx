@@ -21,12 +21,12 @@ const SHOW_QA_TAB = process.env.NODE_ENV !== "production";
 
 const TAB_DEFS: Array<{ id: Tab; labelEn: string; labelTaKey?: LabelKey }> = [
   { id: "personal", labelEn: "Personal", labelTaKey: "tab_personal" },
+  { id: "calendar", labelEn: "Calendar", labelTaKey: "tab_calendar" },
   { id: "family", labelEn: "Family", labelTaKey: "tab_family" },
-  { id: "life-areas", labelEn: "Life Areas", labelTaKey: "tab_life_areas" },
+  { id: "life-areas", labelEn: "Life Area", labelTaKey: "tab_life_areas" },
   { id: "plan", labelEn: "Plan", labelTaKey: "tab_plan" },
   { id: "transits", labelEn: "Transits", labelTaKey: "tab_transits" },
   { id: "journal", labelEn: "Journal", labelTaKey: "tab_journal" },
-  { id: "calendar", labelEn: "Calendar", labelTaKey: "tab_calendar" },
   { id: "tools", labelEn: "Tools", labelTaKey: "tab_tools" },
   { id: "settings", labelEn: "Settings", labelTaKey: "tab_settings" },
   { id: "qa", labelEn: "QA" },

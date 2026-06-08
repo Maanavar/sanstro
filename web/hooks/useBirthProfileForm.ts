@@ -1,10 +1,9 @@
-import { isBirthDateWithinBounds } from "@/lib/birth-date";
-
 type PlaceSelection = { lat: string; lng: string; timezone: string } | null;
 
 export function useBirthProfileForm() {
   function nextBirthDateOrCurrent(current: string, candidate: string): string {
-    return isBirthDateWithinBounds(candidate) ? candidate : current;
+    void current;
+    return candidate;
   }
 
   function applyPlaceSelection<T extends { birthPlace: string; birthLatitude: string; birthLongitude: string; birthTimezone: string }>(

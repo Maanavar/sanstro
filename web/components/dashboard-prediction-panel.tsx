@@ -206,17 +206,25 @@ type Props = {
   lang: Lang;
   predictions: PredictionBundle | null;
   loading: boolean;
+  maritalStatus?: string;
 };
 
-export function PredictionDetailPanel({ lang, predictions, loading }: Props) {
+export function PredictionDetailPanel({ lang, predictions, loading, maritalStatus }: Props) {
   const [expanded, setExpanded] = useState<ExpandState>({ marriage: true, career: false, wealth: false, health: false });
+  const isMarried = maritalStatus === "married" || maritalStatus === "widowed" || maritalStatus === "divorced";
 
   function toggle(key: keyof ExpandState) {
     setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
+  // For married people, rename the marriage prediction to relationship/harmony — the 7th house
+  // still matters (partnership quality, family decisions) but a new-wedding framing is wrong.
+  const marriagePredTitle = isMarried
+    ? (lang === "ta" ? "உறவு & குடும்ப இணக்கம்" : "Relationship & Family Harmony")
+    : t("pred_marriage_title", lang);
+
   const items: Array<{ key: keyof ExpandState; title: string; pred: LifeAreaPredictionData | null | undefined }> = [
-    { key: "marriage", title: t("pred_marriage_title", lang), pred: predictions?.marriage },
+    { key: "marriage", title: marriagePredTitle, pred: predictions?.marriage },
     { key: "career", title: t("pred_career_title", lang), pred: predictions?.career },
     { key: "wealth", title: t("pred_wealth_title", lang), pred: predictions?.wealth },
     { key: "health", title: t("pred_health_title", lang), pred: predictions?.health },
@@ -244,11 +252,26 @@ export function PredictionDetailPanel({ lang, predictions, loading }: Props) {
   }
 
   if (!orderedItems.length) {
-    return <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>{t("pred_empty", lang)}</p>;
+    return (
+      <div style={{ padding: "var(--space-4) var(--space-5)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", fontFamily: "var(--font-body)" }}>
+        <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.6 }}>
+          {lang === "ta"
+            ? "இந்த குடும்ப உறுப்பினரின் கணிப்புகள் தனி பகுப்பாய்வு தேவைப்படுகின்றன. தனிப்பட்ட கணிப்புகளுக்கு உங்கள் சொந்த சுயவிவரத்தை தேர்ந்தெடுக்கவும்."
+            : "Predictions are computed for your own profile. Switch to your profile to see your personalised readings, or use Life Events for this member."}
+        </p>
+      </div>
+    );
   }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", fontFamily: "var(--font-body)" }}>
+      {isMarried && predictions?.marriage && (
+        <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.5, padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "rgba(92,118,84,0.07)", border: "1px solid rgba(92,118,84,0.2)" }}>
+          {lang === "ta"
+            ? "நீங்கள் திருமணமானவர் — 7-ம் வீடு இங்கே உறவு தரம், பாலத்துவம் மற்றும் குடும்ப ஒற்றுமையைக் காட்டுகிறது; புதிய திருமணம் அல்ல."
+            : "This person is married — the 7th-house reading here covers relationship quality, partnership, and family cohesion, not a new wedding."}
+        </p>
+      )}
       {orderedItems.map(({ key, title, pred }) => (
         pred ? (
           <PredictionCard

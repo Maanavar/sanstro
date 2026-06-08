@@ -131,8 +131,13 @@ export function VarshaphalaPanel({ lang, chartId, data, loading, onLoad }: Props
             {/* Area outlook */}
             {data.areaOutlook.length > 0 && (
               <div>
-                <p style={{ fontSize: "0.78rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-2_5)" }}>
+                <p style={{ fontSize: "0.78rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-1)" }}>
                   {t("varshaphala_area_outlook", lang)}
+                </p>
+                <p style={{ fontSize: "0.72rem", color: W.muted, lineHeight: 1.5, marginBottom: "var(--space-2_5)", padding: "var(--space-1_5) var(--space-2_5)", borderRadius: "8px", background: "rgba(122,111,94,0.07)", border: "1px solid rgba(122,111,94,0.15)" }}>
+                  {lang === "ta"
+                    ? "இந்த மதிப்பெண்கள் வர்ஷபல (ஆண்டு) கட்டத்தை மட்டும் அடிப்படையாகக் கொண்டவை. 'ஜீவிதப் பகுதிகள்' தாவலில் உள்ள மதிப்பெண்கள் உங்கள் ஜாதகம் + தசை + கோசாரம் மூன்றையும் சேர்த்து கணக்கிடுவதால் வேறுபடும்."
+                    : "These scores are based solely on your annual solar return chart. They will differ from the Life Areas tab, which combines natal chart strength, dasha period, and transits together."}
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                   {data.areaOutlook.map((item) => (

@@ -31,8 +31,8 @@ export interface LifeEventsResponseData {
 
 export interface EventWindowItem {
   event: "MARRIAGE" | "CAREER" | "FINANCE";
-  start_date: string;
-  end_date: string;
+  startDate: string;
+  endDate: string;
   score: number;
   reasons: string[];
 }
@@ -89,6 +89,7 @@ export interface AskVinaadiResponseData {
 
 export interface MuhurtaSlot {
   date: string;
+  tamilDate?: BiText | null;
   timeStart: string;
   timeEnd: string;
   score: number;
@@ -452,8 +453,171 @@ export interface PeyarchiEvent {
   labelEn: string;
 }
 
+export interface ChartExplanationCoreIdentity {
+  lagnaRasi: string;
+  moonRasi: string;
+  janmaNakshatra: string;
+  janmaPada: number;
+  currentMahadasha: string;
+  currentAntardasha: string;
+  currentPratyantardasha: string;
+  explanation: BiText;
+}
+
+export interface ChartExplanationPlanet {
+  graha: string;
+  houseFromLagna: number;
+  rasi: number;
+  rasiName: string;
+  nakshatra: number;
+  nakshatraName: string;
+  pada: number;
+  dignity: string;
+  dignityScore: number;
+  strengthScore: number;
+  isRetrograde: boolean;
+  isCombust: boolean;
+  isVargottama: boolean;
+  d9Rasi: number;
+  houseGroup: "KENDRA" | "TRIKONA" | "DUSTHANA" | "OTHER";
+  functionalNature: string;
+  explanation: BiText;
+}
+
+export interface ChartExplanationMaitriPair {
+  planetA: string;
+  planetB: string;
+  relationship: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
+  explanation: BiText;
+}
+
+export interface ChartExplanationConjunctionGroup {
+  rasi: number;
+  rasiName: string;
+  houseFromLagna: number;
+  planets: string[];
+  relationshipTone: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
+  pairs: ChartExplanationMaitriPair[];
+  explanation: BiText;
+}
+
+export interface ChartExplanationAspect {
+  sourcePlanet: string;
+  targetPlanet: string;
+  sourceHouse: number;
+  targetHouse: number;
+  aspectHouse: number;
+  aspectType: string;
+  explanation: BiText;
+}
+
+export interface ChartExplanationHouseGroup {
+  group: "KENDRA" | "TRIKONA" | "DUSTHANA" | "OTHER";
+  houses: number[];
+  planets: string[];
+  explanation: BiText;
+}
+
+export interface ChartExplanationYogaDoshamSection {
+  yogas: ChartYogaInsight[];
+  doshams: ChartDoshamInsight[];
+  explanation: BiText;
+}
+
+export interface ChartExplanationActivationSignal {
+  sourcePlanet: string;
+  signalType: string;
+  explanation: BiText;
+}
+
+export interface ChartExplanationDashaLordActivation {
+  level: "MAHADASHA" | "BHUKTI" | "ANTARAM";
+  lord: string;
+  startDate: string;
+  endDate: string;
+  natalHouseFromLagna: number;
+  natalHouseFromMoon: number;
+  natalRasi: number;
+  natalRasiName: string;
+  natalDignity: string;
+  natalStrengthScore: number;
+  functionalNature: string;
+  transitRasi: number;
+  transitRasiName: string;
+  transitHouseFromMoon: number;
+  transitHouseFromLagna: number;
+  transitIsRetrograde: boolean;
+  periodTone: "SUPPORT" | "STEADY" | "CAUTION";
+  lifeAreas: string[];
+  transitSignals: ChartExplanationActivationSignal[];
+  explanation: BiText;
+}
+
+export interface ChartExplanationCurrentActivationSection {
+  asOf: string;
+  periodSummary: BiText;
+  transitSummary: BiText;
+  activeLords: ChartExplanationDashaLordActivation[];
+  explanation: BiText;
+}
+
+export interface ChartExplanationSummarySection {
+  strongestPlanet: string | null;
+  weakestPlanet: string | null;
+  positives: BiText[];
+  cautions: BiText[];
+}
+
+export interface ChartExplanationPeyarchiEvent {
+  planet: string;
+  eventDate: string;
+  fromRasi: string;
+  toRasi: string;
+  houseFromMoon: number;
+  houseFromLagna: number;
+  saniCycleAfter: string | null;
+  explanation: BiText;
+}
+
+export interface ChartExplanationPeyarchiSection {
+  asOf: string;
+  events: ChartExplanationPeyarchiEvent[];
+  explanation: BiText;
+}
+
+export interface ChartExplanationData {
+  chartId: string;
+  coreIdentity: ChartExplanationCoreIdentity;
+  planets: ChartExplanationPlanet[];
+  conjunctions: ChartExplanationConjunctionGroup[];
+  aspects: ChartExplanationAspect[];
+  houseGroups: ChartExplanationHouseGroup[];
+  functionalNature: Record<string, string>;
+  yogaDosham: ChartExplanationYogaDoshamSection;
+  currentActivation: ChartExplanationCurrentActivationSection;
+  summary: ChartExplanationSummarySection;
+  peyarchi: ChartExplanationPeyarchiSection;
+  methodNote: BiText;
+}
+
+export type PanchangamFestivalCategory =
+  | "hindu"
+  | "muslim"
+  | "christian"
+  | "indian_govt"
+  | "tamilnadu_govt"
+  | "observance"
+  | string;
+
+export interface PanchangamFestival {
+  name: string;
+  category: PanchangamFestivalCategory;
+  tags?: PanchangamFestivalCategory[];
+}
+
 export interface PanchangamDailyResponseData {
   dateLocal: string;
+  tamilDate?: BiText | null;
   location: {
     lat: number;
     lng: number;
@@ -471,25 +635,34 @@ export interface PanchangamDailyResponseData {
     name: string;
     paksha: "SHUKLA" | "KRISHNA";
     endsAt: string;
+    nextNumber: number;
+    nextName: string;
+    nextPaksha: "SHUKLA" | "KRISHNA";
   };
   nakshatra: {
     name: string;
     pada: number;
     endsAt: string;
+    nextName: string;
   };
   yoga: {
     number: number;
     name: string;
+    endsAt: string;
+    nextName: string;
   };
   karana: {
     name: string;
+    endsAt: string;
+    nextName: string;
   };
   kalam: {
     rahuKalam: { start: string; end: string; slot: number };
     yamagandam: { start: string; end: string; slot: number };
     kuligai: { start: string; end: string; slot: number };
-    nallaNeram: Array<{ start: string; end: string; slot: number }>;
-    gowriNallaNeram: Array<{ start: string; end: string; slot: number }>;
+    gowriPanchangam?: Array<{ start: string; end: string; slot: number; warning?: string | null; name?: string | null; period?: "DAY" | "NIGHT" | "AM" | "PM" | null; isGood?: boolean | null }>;
+    nallaNeram: Array<{ start: string; end: string; slot: number; warning?: string | null; name?: string | null; period?: "DAY" | "NIGHT" | "AM" | "PM" | null; isGood?: boolean | null }>;
+    gowriNallaNeram: Array<{ start: string; end: string; slot: number; warning?: string | null; name?: string | null; period?: "DAY" | "NIGHT" | "AM" | "PM" | null; isGood?: boolean | null }>;
   };
   abhijit: {
     start: string;
@@ -499,14 +672,34 @@ export interface PanchangamDailyResponseData {
   subhaMuhurtham: {
     isSubha: boolean;
     reason: string;
+    isSubhaStrict: boolean;
+    strictReason: string;
   };
-  festivals: Array<{ name: string; category: string }>;
+  festivals: PanchangamFestival[];
   hora: Array<{
     index: number;
     lord: string;
     start: string;
     end: string;
   }>;
+  moonPhaseLabel: string;
+  soolam: { direction: string; parigaram: string };
+  lagnam: { rasiNumber: number; rasiName: string; endsAt: string; nazhigai: number; vinadi: number };
+  nethiram: string;
+  jeevan: string;
+  amirdhadhiYogam: { name: string; endsAt: string; nextName: string };
+  chandrashtamamToday: {
+    moonRasiNumber: number;
+    moonRasiName: string;
+    affectedJanmaRasiNumber: number;
+    affectedJanmaRasiName: string;
+    nakshatras: string[];
+  };
+  specialTithiDay?: {
+    tithiNumber: number;
+    name: "POURNAMI" | "AMAVASAI";
+    moonPhase: "FULL" | "NEW";
+  } | null;
 }
 
 export interface PanchangamTimingsData {
@@ -523,8 +716,9 @@ export interface PanchangamTimingsData {
     rahuKalam: { start: string; end: string; slot: number };
     yamagandam: { start: string; end: string; slot: number };
     kuligai: { start: string; end: string; slot: number };
-    nallaNeram: Array<{ start: string; end: string; slot: number }>;
-    gowriNallaNeram: Array<{ start: string; end: string; slot: number }>;
+    gowriPanchangam?: Array<{ start: string; end: string; slot: number; warning?: string | null; name?: string | null; period?: "DAY" | "NIGHT" | "AM" | "PM" | null; isGood?: boolean | null }>;
+    nallaNeram: Array<{ start: string; end: string; slot: number; warning?: string | null; name?: string | null; period?: "DAY" | "NIGHT" | "AM" | "PM" | null; isGood?: boolean | null }>;
+    gowriNallaNeram: Array<{ start: string; end: string; slot: number; warning?: string | null; name?: string | null; period?: "DAY" | "NIGHT" | "AM" | "PM" | null; isGood?: boolean | null }>;
   };
   abhijit: {
     start: string;
@@ -534,14 +728,38 @@ export interface PanchangamTimingsData {
   subhaMuhurtham: {
     isSubha: boolean;
     reason: string;
+    isSubhaStrict: boolean;
+    strictReason: string;
   };
-  festivals: Array<{ name: string; category: string }>;
+  festivals: PanchangamFestival[];
   hora: Array<{
     index: number;
     lord: string;
     start: string;
     end: string;
   }>;
+}
+
+export interface PanchangamMonthDayEntry {
+  dateLocal: string;
+  tamilDate?: BiText | null;
+  weekday: string;
+  tithiNumber: number;
+  tithiName: string;
+  tithiPaksha: "SHUKLA" | "KRISHNA";
+  nakshatraName: string;
+  specialTithiDayNumber?: number | null;
+  festivals: PanchangamFestival[];
+  isTamilMuhurthamDay: boolean;
+  isSubhaMuhurtham: boolean;
+  isSubhaMuhurthamStrict: boolean;
+}
+
+export interface PanchangamMonthlyData {
+  year: number;
+  month: number;
+  tamilMonthName?: BiText | null;
+  entries: PanchangamMonthDayEntry[];
 }
 
 export interface FamilyVaultListItem {

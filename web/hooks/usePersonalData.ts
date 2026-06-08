@@ -9,6 +9,7 @@ import type {
   ApiEnvelope,
   BirthProfileSnapshot,
   ChartCalculateResponseData,
+  ChartExplanationData,
   ChartSummaryData,
   DailyGuidanceData,
   DailyGuidanceRangeData,
@@ -43,6 +44,7 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
   const [chartId, setChartId] = useState("");
 
   const [chart, setChart] = useState<ChartCalculateResponseData | null>(null);
+  const [chartExplanation, setChartExplanation] = useState<ChartExplanationData | null>(null);
   const [chartSummary, setChartSummary] = useState<ChartSummaryData | null>(null);
   const [todayGuidance, setTodayGuidance] = useState<DailyGuidanceData | null>(null);
   const [todayTransit, setTodayTransit] = useState<TransitSnapshotData | null>(null);
@@ -165,6 +167,7 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
     setBusyPersonal(true);
     try {
       setChartSummary(null);
+      setChartExplanation(null);
       setDailyGuidanceRange(null);
       setPanchangamTimings(null);
       setDashaAntar([]);
@@ -189,6 +192,15 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
       const lat = hasCurrentLocation ? profile.currentLatitude : profile.birthLatitude;
       const lng = hasCurrentLocation ? profile.currentLongitude : profile.birthLongitude;
       const tz = hasCurrentLocation ? profile.currentTimezone : profile.birthTimezone;
+      const hasPanchangamLocation =
+        typeof lat === "number" &&
+        Number.isFinite(lat) &&
+        typeof lng === "number" &&
+        Number.isFinite(lng) &&
+        !!tz;
+      const panchangamLocationLabel = hasCurrentLocation ? "current location" : "birth location";
+      const emptyPanchangam = { data: null } as ApiEnvelope<PanchangamDailyResponseData | null>;
+      const emptyTimings = { data: null } as ApiEnvelope<PanchangamTimingsData | null>;
 
       const [
         summaryRes,
@@ -200,6 +212,7 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
         transitRes,
         saniRes,
         peyarchiRes,
+        explanationRes,
         panchangamRes,
         timingsRes,
         lifeAreasRes,
@@ -222,16 +235,24 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
         apiFetchJson<ApiEnvelope<PeyarchiEvent[]>>(
           `${chartPath}/peyarchi/upcoming${toQuery({ as_of: nextDate, window_days: 30 })}`,
         ),
-        apiFetchJson<ApiEnvelope<PanchangamDailyResponseData>>(
-          `/api/v1/panchangam/daily${toQuery({ date: nextDate, lat, lng, timezone: tz })}`,
-        ),
-        apiFetchJson<ApiEnvelope<PanchangamTimingsData>>(
-          `/api/v1/panchangam/timings${toQuery({ date: nextDate, lat, lng, timezone: tz })}`,
-        ),
+        apiFetchJson<ApiEnvelope<ChartExplanationData>>(
+          `${chartPath}/explanation${toQuery({ asOf: nextDate, peyarchiWindowDays: 700 })}`,
+        ).catch(() => ({ data: null } as ApiEnvelope<ChartExplanationData | null>)),
+        hasPanchangamLocation
+          ? apiFetchJson<ApiEnvelope<PanchangamDailyResponseData>>(
+              `/api/v1/panchangam/daily${toQuery({ date: nextDate, lat, lng, timezone: tz })}`,
+            ).catch(() => emptyPanchangam)
+          : Promise.resolve(emptyPanchangam),
+        hasPanchangamLocation
+          ? apiFetchJson<ApiEnvelope<PanchangamTimingsData>>(
+              `/api/v1/panchangam/timings${toQuery({ date: nextDate, lat, lng, timezone: tz })}`,
+            ).catch(() => emptyTimings)
+          : Promise.resolve(emptyTimings),
         apiFetchJson<ApiEnvelope<LifeAreasResponseData>>(`${chartPath}/life-areas${toQuery({ asOf: nextDate })}`),
       ]);
 
       setChartSummary(summaryRes.data);
+      setChartExplanation(explanationRes.data);
       setDailyGuidance(daily.data);
       setDailyGuidanceRange(dailyRange.data);
       setDasha(dashaRes.data);
@@ -298,7 +319,11 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
 
       setJadhagamReport(null);
       setJadhagamReportLoading(false);
-      reportStatus("Personal data refreshed.");
+      reportStatus(
+        hasPanchangamLocation
+          ? `Personal data refreshed. Panchangam uses ${panchangamLocationLabel}.`
+          : "Personal data refreshed. Panchangam needs a saved birth or current location.",
+      );
     } catch (error) {
       const message = readErrorMessage(error);
       if (allowRecovery && (message.startsWith("403:") || message.startsWith("404:"))) {
@@ -321,6 +346,7 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
     birthProfileId,
     chartId,
     chart,
+    chartExplanation,
     chartSummary,
     todayGuidance,
     todayTransit,

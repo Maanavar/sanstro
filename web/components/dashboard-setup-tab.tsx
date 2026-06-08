@@ -7,7 +7,7 @@ import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { FamilyVaultListItem, FamilyAggregateMember } from "@/lib/types";
-import { PlaceCombobox } from "./dashboard-ui";
+import { PlaceCombobox } from "./place-combobox";
 import { RectificationWizard } from "./dashboard-rectification-wizard";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
@@ -666,84 +666,108 @@ export function DashboardSetupTab({
             )}
           </form>
 
-          {/* Add member form — always shown once vault exists */}
-          {selectedVaultId && (
-            <div style={{ borderTop: `1px solid ${W.borderLt}`, paddingTop: "var(--space-4)" }}>
-              <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.75rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.07em" }}>
-                + {t("setup_step3_title", lang)}
-              </p>
-              <form id="form-member" onSubmit={onAddMember} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
-                  <WField label={t("field_name", lang)} error={formErrors.memberDisplayName}>
-                    <WInput value={memberForm.displayName} error={!!formErrors.memberDisplayName}
-                      onChange={(e) => { onMemberFormChange({ ...memberForm, displayName: e.target.value }); onFormErrorChange({ memberDisplayName: "" }); }} />
-                  </WField>
-                  <WField label={t("field_relationship", lang)}>
-                    <WSelect value={memberForm.relationshipToOwner}
-                      onChange={(e) => {
-                        const rel = e.target.value as Relationship;
-                        onMemberFormChange({ ...memberForm, relationshipToOwner: rel, memberWeight: RELATIONSHIP_WEIGHTS[rel] });
-                      }}>
-                      <option value="self">{t("rel_self", lang)}</option>
-                      <option value="spouse">{t("rel_spouse", lang)}</option>
-                      <option value="child">{t("rel_child", lang)}</option>
-                      <option value="parent">{t("rel_parent", lang)}</option>
-                      <option value="sibling">{t("rel_sibling", lang)}</option>
-                      <option value="grandparent">{t("rel_grandparent", lang)}</option>
-                      <option value="other">{t("rel_other", lang)}</option>
-                    </WSelect>
-                  </WField>
-                  <WField label={t("field_birth_date", lang)} error={formErrors.memberBirthDate}>
-                    <WInput type="date" value={memberForm.birthDateLocal} error={!!formErrors.memberBirthDate} min={MIN_BIRTH_DATE} max={maxBirthDateIso()}
-                      onChange={(e) => {
-                        onMemberFormChange({
-                          ...memberForm,
-                          birthDateLocal: nextBirthDateOrCurrent(memberForm.birthDateLocal, e.target.value),
-                        });
-                        onFormErrorChange({ memberBirthDate: "" });
-                      }} />
-                  </WField>
-                  <WField label={t("field_birth_time", lang)} hint={t("field_time_optional", lang)}>
-                    <WInput type="time" step="1" value={memberForm.birthTimeLocal}
-                      onChange={(e) => onMemberFormChange({ ...memberForm, birthTimeLocal: e.target.value })} />
-                  </WField>
-                  <WField label={t("field_birth_place", lang)} error={formErrors.memberBirthPlace}>
-                    <PlaceCombobox value={memberForm.birthPlace}
-                      onChange={(city, raw) => {
-                        onMemberFormChange(applyPlaceSelection(memberForm, city, raw));
-                        onFormErrorChange({ memberBirthPlace: "", memberTimezone: "" });
-                      }} />
-                  </WField>
-                  <WField label={t("field_timezone", lang)} error={formErrors.memberTimezone}>
-                    <WInput value={memberForm.birthTimezone} error={!!formErrors.memberTimezone}
-                      onChange={(e) => { onMemberFormChange({ ...memberForm, birthTimezone: e.target.value }); onFormErrorChange({ memberTimezone: "" }); }} />
-                  </WField>
-                  <WField label={t("field_latitude", lang)}>
-                    <WInput inputMode="decimal" value={memberForm.birthLatitude}
-                      onChange={(e) => onMemberFormChange({ ...memberForm, birthLatitude: e.target.value })} />
-                  </WField>
-                  <WField label={t("field_longitude", lang)}>
-                    <WInput inputMode="decimal" value={memberForm.birthLongitude}
-                      onChange={(e) => onMemberFormChange({ ...memberForm, birthLongitude: e.target.value })} />
-                  </WField>
-                  <WField label={t("field_weight", lang)} hint={t("field_weight_helper", lang)}>
-                    <WInput inputMode="decimal" value={memberForm.memberWeight}
-                      onChange={(e) => onMemberFormChange({ ...memberForm, memberWeight: e.target.value })} />
-                  </WField>
-                </div>
-                <label style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", cursor: "pointer", fontSize: "0.875rem", color: W.muted }}>
-                  <input type="checkbox" checked={memberForm.calculateNow}
-                    onChange={(e) => onMemberFormChange({ ...memberForm, calculateNow: e.target.checked })} />
-                  {t("setup_calc_now", lang)}
-                </label>
-                <StepBtn onClick={() => (document.getElementById("form-member") as HTMLFormElement)?.requestSubmit()} busy={busy.addMember}>
-                  {busy.addMember ? t("setup_step3_adding", lang) : t("setup_step3_add", lang)}
-                </StepBtn>
-              </form>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* ── Step 3 — Add family member (separate card, outside vault card) ── */}
+      {selectedVaultId && (
+        <div style={{
+          background: W.surface,
+          border: `1.5px solid ${(selectedVault?.memberCount ?? 0) > 1 ? W.sage : setupStep === 3 ? W.terracota : W.borderLt}`,
+          borderRadius: "var(--radius-md)",
+          padding: "var(--space-6)",
+          display: "flex", flexDirection: "column", gap: "var(--space-4)",
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
+              <StatusChip done={(selectedVault?.memberCount ?? 0) > 1} label={(selectedVault?.memberCount ?? 0) > 1
+                ? (lang === "ta" ? "சேர்க்கப்பட்டது" : "Members added")
+                : (lang === "ta" ? "தேவை" : "Required")} />
+              <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: W.ink }}>
+                {lang === "ta" ? "குடும்ப உறுப்பினரை சேர்" : "Add a family member"}
+              </h3>
+              <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>
+                {lang === "ta"
+                  ? "மனைவி, பெற்றோர், குழந்தை — அவர்களின் ஜாதகம் மட்டும் கொடுங்கள். கொட்டில் விவரங்கள் தனியே உள்ளன."
+                  : "Add spouse, parent, child, etc. — only their birth details needed here. Vault settings are separate above."}
+              </p>
+            </div>
+          </div>
+
+          <form id="form-member" onSubmit={onAddMember} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
+              <WField label={t("field_name", lang)} error={formErrors.memberDisplayName}>
+                <WInput value={memberForm.displayName} error={!!formErrors.memberDisplayName}
+                  onChange={(e) => { onMemberFormChange({ ...memberForm, displayName: e.target.value }); onFormErrorChange({ memberDisplayName: "" }); }} />
+              </WField>
+              <WField label={t("field_relationship", lang)}>
+                <WSelect value={memberForm.relationshipToOwner}
+                  onChange={(e) => {
+                    const rel = e.target.value as Relationship;
+                    onMemberFormChange({ ...memberForm, relationshipToOwner: rel, memberWeight: RELATIONSHIP_WEIGHTS[rel] });
+                  }}>
+                  <option value="self">{t("rel_self", lang)}</option>
+                  <option value="spouse">{t("rel_spouse", lang)}</option>
+                  <option value="child">{t("rel_child", lang)}</option>
+                  <option value="parent">{t("rel_parent", lang)}</option>
+                  <option value="sibling">{t("rel_sibling", lang)}</option>
+                  <option value="grandparent">{t("rel_grandparent", lang)}</option>
+                  <option value="other">{t("rel_other", lang)}</option>
+                </WSelect>
+              </WField>
+              <WField label={t("field_birth_date", lang)} error={formErrors.memberBirthDate}>
+                <WInput type="date" value={memberForm.birthDateLocal} error={!!formErrors.memberBirthDate} min={MIN_BIRTH_DATE} max={maxBirthDateIso()}
+                  onChange={(e) => {
+                    onMemberFormChange({
+                      ...memberForm,
+                      birthDateLocal: nextBirthDateOrCurrent(memberForm.birthDateLocal, e.target.value),
+                    });
+                    onFormErrorChange({ memberBirthDate: "" });
+                  }} />
+              </WField>
+              <WField label={t("field_birth_time", lang)} hint={t("field_time_optional", lang)}>
+                <WInput type="time" step="1" value={memberForm.birthTimeLocal}
+                  onChange={(e) => onMemberFormChange({ ...memberForm, birthTimeLocal: e.target.value })} />
+              </WField>
+              <WField label={t("field_birth_place", lang)} error={formErrors.memberBirthPlace}>
+                <PlaceCombobox value={memberForm.birthPlace}
+                  onChange={(city, raw) => {
+                    onMemberFormChange(applyPlaceSelection(memberForm, city, raw));
+                    onFormErrorChange({ memberBirthPlace: "", memberTimezone: "" });
+                  }} />
+              </WField>
+              <WField label={t("field_timezone", lang)} error={formErrors.memberTimezone}>
+                <WInput value={memberForm.birthTimezone} error={!!formErrors.memberTimezone}
+                  onChange={(e) => { onMemberFormChange({ ...memberForm, birthTimezone: e.target.value }); onFormErrorChange({ memberTimezone: "" }); }} />
+              </WField>
+              <WField label={t("field_latitude", lang)}>
+                <WInput inputMode="decimal" value={memberForm.birthLatitude}
+                  onChange={(e) => onMemberFormChange({ ...memberForm, birthLatitude: e.target.value })} />
+              </WField>
+              <WField label={t("field_longitude", lang)}>
+                <WInput inputMode="decimal" value={memberForm.birthLongitude}
+                  onChange={(e) => onMemberFormChange({ ...memberForm, birthLongitude: e.target.value })} />
+              </WField>
+              <WField
+                label={t("field_weight", lang)}
+                hint={lang === "ta"
+                  ? "குடும்ப ஒட்டுமொத்த மதிப்பெண்ணில் இந்த உறுப்பினரின் தாக்கம். 1.15 = முக்கிய ஆதரவு (பெற்றோர்); 1.00 = சம நிலை (மனைவி); 0.75 = குறைந்த ஆதரவு (குழந்தை, உடன்பிறந்தவர்)."
+                  : "How much this member influences the family aggregate score. 1.15 = strong support role (parent/grandparent); 1.00 = equal partner (spouse); 0.75 = supported member (child, sibling)."}>
+                <WInput inputMode="decimal" value={memberForm.memberWeight}
+                  onChange={(e) => onMemberFormChange({ ...memberForm, memberWeight: e.target.value })} />
+              </WField>
+            </div>
+            <label style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", cursor: "pointer", fontSize: "0.875rem", color: W.muted }}>
+              <input type="checkbox" checked={memberForm.calculateNow}
+                onChange={(e) => onMemberFormChange({ ...memberForm, calculateNow: e.target.checked })} />
+              {t("setup_calc_now", lang)}
+            </label>
+            <StepBtn onClick={() => (document.getElementById("form-member") as HTMLFormElement)?.requestSubmit()} busy={busy.addMember}>
+              {busy.addMember ? t("setup_step3_adding", lang) : t("setup_step3_add", lang)}
+            </StepBtn>
+          </form>
+        </div>
+      )}
 
       {/* ── All done banner ── */}
       {setupComplete && (selectedVault?.memberCount ?? 0) > 1 && (

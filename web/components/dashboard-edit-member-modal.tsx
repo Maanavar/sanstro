@@ -2,8 +2,8 @@
 
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import { MIN_BIRTH_DATE, isBirthDateWithinBounds, maxBirthDateIso } from "@/lib/birth-date";
-import { PlaceCombobox } from "./dashboard-ui";
+import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
+import { PlaceCombobox } from "./place-combobox";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
 
@@ -159,7 +159,6 @@ export function EditMemberModal({ lang, editMember, busySaving, onClose, onChang
             <WInput type="date" value={editMember.birthDateLocal} min={MIN_BIRTH_DATE} max={maxBirthDateIso()}
               onChange={(e) => {
                 const next = e.target.value;
-                if (!isBirthDateWithinBounds(next)) return;
                 onChange({ ...editMember, birthDateLocal: next });
               }} />
           </WField>

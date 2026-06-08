@@ -173,56 +173,81 @@ export function RemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, loadi
 
       {/* Gemstone Advice */}
       {subTab === "gemstone" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+          {/* Methodology note */}
+          <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#EEF1F8", border: "1px solid rgba(122,111,94,0.18)", fontSize: "0.78rem", color: W.muted, lineHeight: 1.5 }}>
+            {lang === "ta"
+              ? "கற்கள் திருகணிதம் அடிப்படையில் கணக்கிடப்படுகின்றன — ஒவ்வொரு கிரகத்தின் செயல்பாட்டு தன்மை (பயனளிப்பவர் / தீங்கு செய்பவர்), வலிமை, மற்றும் லக்னம் அடிப்படையில். ஒரு கல் 'பரிந்துரைக்கப்பட்டது' என்றால் அந்த கிரகம் உங்கள் ஜாதகத்தில் நேர்மறையான கிரகம் மற்றும் வலிமை குறைவாக உள்ளது."
+              : "Gemstone recommendations follow Thirukanitham — each planet's functional nature (benefic/malefic for your Lagna), its strength, and whether strengthening it helps or harms your chart. 'Prescribed' means the planet is a functional benefic AND needs strengthening. 'Not prescribed' means the planet is either strong enough or would harm your chart if strengthened."}
+          </div>
+
           {!gemstoneAdvice && (
             <p style={{ fontSize: "0.82rem", color: W.muted }}>{t("remedies_empty", lang)}</p>
           )}
-          {gemstoneAdvice?.map((item) => {
-            const prescribed = item.isGemstonePrescribed;
-            const optional = !prescribed && item.gemstoneNameEn;
-            const tone = prescribed ? W.sage : optional ? W.terracotta : W.muted;
-            const icon = prescribed ? "✓" : optional ? "⚠" : "✗";
-            const statusLabel = prescribed
-              ? t("remedies_prescribed", lang)
-              : optional
-              ? t("remedies_optional", lang)
-              : t("remedies_not_prescribed", lang);
-
-            return (
-              <div
-                key={item.planet}
-                style={{
-                  padding: "var(--space-2_5) var(--space-3)",
-                  borderRadius: "var(--radius-card)",
-                  background: W.surface,
-                  border: `1px solid ${W.borderLt}`,
-                  display: "flex",
-                  gap: "var(--space-3)",
-                  alignItems: "flex-start",
-                  flexWrap: "wrap",
-                }}
-              >
-                <span style={{ fontSize: "0.9rem", color: tone, fontWeight: 700, minWidth: "1.2rem" }}>{icon}</span>
-                <PlanetBadge planet={item.planet} />
-                <div style={{ flex: 1, minWidth: "10rem" }}>
-                  <p style={{ fontSize: "0.8rem", fontWeight: 700, color: tone, marginBottom: "2px" }}>
-                    {item.gemstoneNameEn ? (lang === "ta" ? item.gemstoneNameTa : item.gemstoneNameEn) : statusLabel}
-                  </p>
-                  <p style={{ fontSize: "0.75rem", color: W.muted }}>
-                    {lang === "ta" ? item.reasonTa : item.reasonEn}
-                  </p>
-                  {item.cautionEn && (
-                    <p style={{ fontSize: "0.72rem", color: W.terracotta, marginTop: "3px" }}>
-                      ⚠ {lang === "ta" ? item.cautionTa : item.cautionEn}
-                    </p>
-                  )}
-                  <span style={{ fontSize: "0.7rem", color: W.muted, fontStyle: "italic" }}>
-                    {item.functionalNature}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+          {gemstoneAdvice && (
+            <>
+              {/* Prescribed first, then optional, then not-prescribed */}
+              {[
+                { filter: (i: typeof gemstoneAdvice[0]) => i.isGemstonePrescribed, groupLabel: lang === "ta" ? "பரிந்துரைக்கப்பட்டவை" : "Prescribed — wear these", tone: W.sage, bg: "rgba(92,118,84,0.07)", border: "rgba(92,118,84,0.28)" },
+                { filter: (i: typeof gemstoneAdvice[0]) => !i.isGemstonePrescribed && !!i.gemstoneNameEn, groupLabel: lang === "ta" ? "விருப்பப்பட்டால் (கவனமாக)" : "Optional — with caution", tone: W.terracotta, bg: "rgba(184,90,44,0.06)", border: "rgba(184,90,44,0.25)" },
+                { filter: (i: typeof gemstoneAdvice[0]) => !i.isGemstonePrescribed && !i.gemstoneNameEn, groupLabel: lang === "ta" ? "பரிந்துரைக்கப்படாதவை" : "Not recommended", tone: W.muted, bg: "transparent", border: W.borderLt },
+              ].map(({ filter, groupLabel, tone, bg, border }) => {
+                const group = gemstoneAdvice.filter(filter);
+                if (group.length === 0) return null;
+                return (
+                  <div key={groupLabel}>
+                    <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.69rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.09em", color: tone }}>{groupLabel}</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                      {group.map((item) => {
+                        const functionalHuman = item.functionalNature?.toLowerCase().includes("benefic")
+                          ? (lang === "ta" ? "உங்கள் லக்னத்திற்கு சாதகமான கிரகம்" : "Beneficial planet for your Lagna")
+                          : item.functionalNature?.toLowerCase().includes("malefic")
+                          ? (lang === "ta" ? "உங்கள் லக்னத்திற்கு கடினமான கிரகம்" : "Challenging planet for your Lagna")
+                          : item.functionalNature ?? "";
+                        return (
+                          <div
+                            key={item.planet}
+                            style={{
+                              padding: "var(--space-2_5) var(--space-3)",
+                              borderRadius: "var(--radius-card)",
+                              background: bg,
+                              border: `1px solid ${border}`,
+                              display: "grid",
+                              gridTemplateColumns: "auto 1fr",
+                              gap: "var(--space-3)",
+                              alignItems: "flex-start",
+                            }}
+                          >
+                            <PlanetBadge planet={item.planet} />
+                            <div>
+                              <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.85rem", fontWeight: 700, color: tone }}>
+                                {item.gemstoneNameEn
+                                  ? (lang === "ta" ? item.gemstoneNameTa : item.gemstoneNameEn)
+                                  : (lang === "ta" ? "கல் தேவையில்லை" : "No gemstone needed")}
+                              </p>
+                              <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.78rem", color: W.inkMid, lineHeight: 1.45 }}>
+                                {lang === "ta" ? item.reasonTa : item.reasonEn}
+                              </p>
+                              {item.cautionEn && (
+                                <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.72rem", color: W.terracotta, lineHeight: 1.4 }}>
+                                  ⚠ {lang === "ta" ? item.cautionTa : item.cautionEn}
+                                </p>
+                              )}
+                              {functionalHuman && (
+                                <span style={{ fontSize: "0.69rem", color: W.muted, fontStyle: "italic" }}>
+                                  {functionalHuman}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
         </div>
       )}
     </div>

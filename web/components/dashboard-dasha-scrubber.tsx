@@ -58,8 +58,14 @@ export function DashboardDashaScrubber({
 
   if (!dashaMaha) return null;
 
-  const mahas = dashaMaha.timeline.filter(p => p.level === "maha");
-  if (mahas.length === 0) return null;
+  const allMahas = dashaMaha.timeline.filter(p => p.level === "maha");
+  if (allMahas.length === 0) return null;
+
+  // Cap at 120 years from the first period's start (one full Vimshottari cycle).
+  const MS_PER_YEAR = 365.25 * 24 * 3600 * 1000;
+  const firstStart = new Date(allMahas[0].startDate).getTime();
+  const cutoffMs = firstStart + 120 * MS_PER_YEAR;
+  const mahas = allMahas.filter(p => new Date(p.startDate).getTime() < cutoffMs);
 
   const totalYears = mahas.reduce((s, p) => s + yearsBetween(p.startDate, p.endDate), 0);
   const currentItem = mahas.find(p => isCurrent(p, todayDate));
@@ -74,18 +80,23 @@ export function DashboardDashaScrubber({
         marginBottom: "var(--space-4)",
       }}
     >
-      <p
-        style={{
-          fontSize: "0.625rem",
-          fontWeight: 600,
-          textTransform: "uppercase",
-          letterSpacing: "0.08em",
-          color: "var(--color-muted, #675b4b)",
-          marginBottom: "var(--space-3)",
-        }}
-      >
-        {lang === "ta" ? "தசை காலரேகை" : "Dasha Timeline"}
-      </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-3)" }}>
+        <p
+          style={{
+            margin: 0,
+            fontSize: "0.625rem",
+            fontWeight: 600,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            color: "var(--color-muted, #675b4b)",
+          }}
+        >
+          {lang === "ta" ? "மகாதசை பார்வை — ஒட்டுமொத்த 120-ஆண்டு சுழற்சி" : "Mahadasha Overview — full 120-year cycle"}
+        </p>
+        <p style={{ margin: 0, fontSize: "0.625rem", color: "var(--color-faint)", fontStyle: "italic" }}>
+          {lang === "ta" ? "கீழே புக்தி விவரம் காண்க" : "See Dasa · Bhukti · Antaram below for sub-period detail"}
+        </p>
+      </div>
 
       {/* Horizontal scrubber track */}
       <div
@@ -162,13 +173,20 @@ export function DashboardDashaScrubber({
                   {formatYear(p.startDate)}–{formatYear(p.endDate)}
                 </span>
 
-                {/* You-are-here marker */}
-                {current && (
+                {/* You-are-here marker — positioned at today's real fraction
+                    within the current mahadasha block, not its midpoint. */}
+                {current && (() => {
+                  const startMs = Date.parse(String(p.startDate));
+                  const endMs = Date.parse(String(p.endDate));
+                  const todayMs = Date.parse(todayDate);
+                  const span = endMs - startMs;
+                  const frac = span > 0 ? Math.max(0, Math.min(1, (todayMs - startMs) / span)) : 0.5;
+                  return (
                   <div
                     style={{
                       position: "absolute",
                       bottom: "-6px",
-                      left: "50%",
+                      left: `${frac * 100}%`,
                       transform: "translateX(-50%)",
                       width: "0",
                       height: "0",
@@ -177,7 +195,8 @@ export function DashboardDashaScrubber({
                       borderTop: "6px solid var(--color-on-accent, #fff)",
                     }}
                   />
-                )}
+                  );
+                })()}
               </div>
             );
           })}

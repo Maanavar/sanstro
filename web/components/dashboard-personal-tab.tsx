@@ -3,15 +3,19 @@
 import { useEffect, useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { formatClockLabel, formatDateLabel, getScoreBand } from "@/lib/format";
+import { gowriCategoryLabel, gowriPeriodLabel, gowriPurposeLabel } from "@/lib/gowri";
 import { t, tLang, tTithi, tNakshatra, tWeekday, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
   AmbientAlertItem,
   CharaDashaData,
   ChartCalculateResponseData,
+  ChartExplanationData,
   ChartSummaryData,
   DailyGuidanceData,
   DailyGuidanceRangeData,
+  DashaTimelineItem,
+  DashaTimelineResponseData,
   FamilyAggregateData,
   NakshatraCardData,
   PanchangamDailyResponseData,
@@ -36,6 +40,7 @@ import { AlertBanner } from "./alert-banner";
 import { CollapsibleSection } from "./collapsible-section";
 import { VargasPanel } from "./dashboard-vargas-panel";
 import { PrasnaWidget } from "./dashboard-prasna-widget";
+import { ChartExplanationPanel } from "./dashboard-chart-explanation";
 
 type DashboardPersonalTabProps = {
   lang: Lang;
@@ -53,6 +58,7 @@ type DashboardPersonalTabProps = {
 
   personalMemberChart: { displayName: string } | null;
   personalChart: ChartCalculateResponseData | null;
+  personalChartExplanation: ChartExplanationData | null;
   personalChartSummary: ChartSummaryData | null;
   personalDailyGuidance: DailyGuidanceData | null;
   dailyGuidanceRange: DailyGuidanceRangeData | null;
@@ -73,6 +79,9 @@ type DashboardPersonalTabProps = {
   onOpenPrasna?: () => void;
   showPrasna?: boolean;
   onClosePrasna?: () => void;
+  dasha: DashaTimelineResponseData | null;
+  dashaMaha?: DashaTimelineResponseData | null;
+  dashaAntar: DashaTimelineItem[];
 };
 
 const SCORE_HIGH = "var(--color-score-high, #5C7654)";
@@ -83,6 +92,13 @@ function scoreColor(score: number) {
   if (score >= 65) return SCORE_HIGH;
   if (score >= 45) return SCORE_MID;
   return SCORE_LOW;
+}
+
+function kalamSlotKey(
+  slot: PanchangamDailyResponseData["kalam"]["nallaNeram"][number],
+  index: number,
+): string {
+  return `${slot.period ?? "slot"}-${slot.name ?? slot.slot}-${slot.start}-${slot.end}-${index}`;
 }
 
 /* ── Score ring SVG ─────────────────────────────────────── */
@@ -185,6 +201,7 @@ export function DashboardPersonalTab({
   onDateChange,
   personalMemberChart,
   personalChart,
+  personalChartExplanation,
   personalChartSummary,
   personalDailyGuidance,
   dailyGuidanceRange,
@@ -203,6 +220,9 @@ export function DashboardPersonalTab({
   onOpenPrasna,
   showPrasna = false,
   onClosePrasna,
+  dasha,
+  dashaMaha = null,
+  dashaAntar,
 }: DashboardPersonalTabProps) {
   const displayName = personalMemberChart?.displayName ?? birthDisplayName;
   const isChandrashtama = personalTransit?.isChandrashtama ?? false;
@@ -378,9 +398,15 @@ export function DashboardPersonalTab({
                 <Chip tone="accent">{t("label_rahu_kalam", lang)} {formatClockLabel(panchangam.kalam.rahuKalam.start)}–{formatClockLabel(panchangam.kalam.rahuKalam.end)}</Chip>
                 <Chip tone="warning">{t("label_yamagandam", lang)} {formatClockLabel(panchangam.kalam.yamagandam.start)}–{formatClockLabel(panchangam.kalam.yamagandam.end)}</Chip>
                 <Chip>{t("label_kuligai", lang)} {formatClockLabel(panchangam.kalam.kuligai.start)}–{formatClockLabel(panchangam.kalam.kuligai.end)}</Chip>
-{panchangam.kalam.nallaNeram?.map((w) => (
-                  <Chip key={`${w.start}-${w.end}`} tone="success">{t("label_nalla_neram", lang)} {formatClockLabel(w.start)}–{formatClockLabel(w.end)}</Chip>
-                ))}
+{panchangam.kalam.nallaNeram?.map((w, idx) => {
+                  const periodLabel = gowriPeriodLabel(w.period, lang);
+                  const category = gowriCategoryLabel(w.name, lang);
+                  const purpose = gowriPurposeLabel(w.name, lang);
+                  const detail = [periodLabel, category, purpose].filter(Boolean).join(" · ");
+                  return (
+                    <Chip key={kalamSlotKey(w, idx)} tone="success">{t("label_nalla_neram", lang)}{detail ? ` (${detail})` : ""} {formatClockLabel(w.start)}–{formatClockLabel(w.end)}</Chip>
+                  );
+                })}
                 {panchangamTimings && !panchangam.abhijit.isRestrictedByWeekday && (
                   <Chip tone="success">{t("label_abhijit", lang)} {formatClockLabel(panchangam.abhijit.start)}–{formatClockLabel(panchangam.abhijit.end)}</Chip>
                 )}
@@ -571,10 +597,25 @@ export function DashboardPersonalTab({
                 <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
                   {lang === "ta" ? "நல்ல நேரம்" : "Nalla Neram"}
                 </p>
-                {panchangam?.kalam?.nallaNeram?.[0] ? (
-                  <p style={{ margin: 0, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 500, color: "#1A1612" }}>
-                    {formatClockLabel(panchangam.kalam.nallaNeram[0].start)} – {formatClockLabel(panchangam.kalam.nallaNeram[0].end)}
-                  </p>
+                {(panchangam?.kalam?.nallaNeram?.length ?? 0) > 0 ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
+                    {panchangam!.kalam.nallaNeram.map((w, idx) => {
+                      const lbl = gowriPeriodLabel(w.period, lang);
+                      const category = gowriCategoryLabel(w.name, lang);
+                      const purpose = gowriPurposeLabel(w.name, lang);
+                      return (
+                        <div key={kalamSlotKey(w, idx)} style={{ display: "grid", gap: "2px" }}>
+                          <div>
+                            {[lbl, category].filter(Boolean).map((part) => (
+                              <span key={part} style={{ fontSize: "0.6rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-faint)", marginRight: "4px" }}>{part}</span>
+                            ))}
+                          </div>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem", fontWeight: 500, color: "#1A1612" }}>{formatClockLabel(w.start)} – {formatClockLabel(w.end)}</span>
+                          {purpose && <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--color-muted)" }}>{purpose}</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
                 ) : bestWindow ? (
                   <p style={{ margin: 0, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 500, color: "#1A1612" }}>
                     {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)}
@@ -739,7 +780,7 @@ export function DashboardPersonalTab({
         {/* Nakshatra card */}
         <div style={{ background: "#FFFFFF", border: "1px solid #E4DBC8", borderRadius: "var(--radius-md)", padding: "var(--space-5)" }}>
           <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-faint)" }}>
-            {lang === "ta" ? "நட்சத்திரம்" : "Nakshatra"}
+            {lang === "ta" ? "இன்றைய நட்சத்திரம்" : "Todays Nakshatra"}
           </p>
           <p style={{ margin: "0 0 var(--space-1)", fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 500, color: "#1A1612", lineHeight: 1.1 }}>
             {panchangam ? tNakshatra(panchangam.nakshatra.name, lang) : (nakshatraCard ? (lang === "ta" ? nakshatraCard.nameTa : nakshatraCard.nameEn) : "—")}
@@ -1057,101 +1098,23 @@ export function DashboardPersonalTab({
         </div>
       </div>
 
-      {(charaDasha || solarReturn) && (
-        <Surface title={lang === "ta" ? "பாரம்பரிய கால நிர்ணயம்" : "Classical Timing"}>
-          <div className="surface__body" style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
-            {charaDasha && (
-              <CollapsibleSection
-                title={lang === "ta" ? "ஜைமினி சார தசை" : "Jaimini Chara Dasha"}
-                defaultOpen={false}
-              >
-                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", paddingTop: "var(--space-2)" }}>
-                  <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
-                    {lang === "ta"
-                      ? "இது ராசி அடிப்படையிலான தசை. திருமணம், தொழில் மாற்றம் போன்ற நிகழ்வுகளின் நேரச் சிக்னலை காட்டும்."
-                      : "This sign-based dasha is used to time life-event periods such as marriage and career transitions."}
-                  </p>
-                  {charaDasha.currentPeriod && (
-                    <div style={{
-                      padding: "var(--space-2_5) var(--space-3)",
-                      borderRadius: "var(--radius-md)",
-                      background: "rgba(92,118,84,0.12)",
-                      border: "1px solid rgba(92,118,84,0.35)",
-                    }}>
-                      <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-score-high)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                        {lang === "ta" ? "தற்போதைய சார தசை" : "Current Chara Dasha"}
-                      </p>
-                      <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
-                        {charaDasha.currentPeriod.rasi_name}
-                      </p>
-                      <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "0.75rem", color: "var(--color-muted)" }}>
-                        {charaDasha.currentPeriod.start_date} - {charaDasha.currentPeriod.end_date}
-                      </p>
-                    </div>
-                  )}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-                    {charaDasha.periods.map((period) => (
-                      <div
-                        key={`${period.rasi}-${period.start_date}`}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          gap: "var(--space-2)",
-                          padding: "var(--space-1_5) var(--space-3)",
-                          borderRadius: "var(--radius-sm)",
-                          border: "1px solid var(--color-border)",
-                          background: charaDasha.currentPeriod?.rasi === period.rasi ? "var(--color-surface-soft)" : "transparent",
-                        }}
-                      >
-                        <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text-strong)" }}>
-                          {period.rasi_name}
-                        </span>
-                        <span style={{ fontSize: "0.75rem", color: "var(--color-muted)" }}>
-                          {period.years} {lang === "ta" ? "ஆண்டுகள்" : "yrs"} · {period.start_date}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </CollapsibleSection>
-            )}
-
-            {solarReturn && (
-              <CollapsibleSection
-                title={lang === "ta" ? `${solarReturn.returnYear} ஆண்டு தாஜகா` : `${solarReturn.returnYear} Annual Chart`}
-                defaultOpen={false}
-              >
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--space-2_5)", paddingTop: "var(--space-2)" }}>
-                  <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
-                    <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                      {lang === "ta" ? "வருட லக்னம்" : "SR Lagna"}
-                    </p>
-                    <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
-                      {solarReturn.srLagnaRasiName}
-                      {solarReturn.lagnaMatchesNatal && (
-                        <span style={{ marginLeft: "var(--space-1_5)", fontSize: "0.625rem", padding: "2px 6px", borderRadius: "var(--radius-pill)", background: "rgba(92,118,84,0.15)", color: "var(--color-score-high)", border: "1px solid rgba(92,118,84,0.35)" }}>
-                          {lang === "ta" ? "நட்டாள்போல்" : "Same as natal"}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
-                    <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                      {lang === "ta" ? "முந்தா" : "Muntha"}
-                    </p>
-                    <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
-                      {solarReturn.munthaRasiName}
-                    </p>
-                    <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)" }}>
-                      {lang === "ta" ? "சூரிய நீளம்" : "Sun longitude"}: {solarReturn.sunLongAtReturn.toFixed(4)}°
-                    </p>
-                  </div>
-                </div>
-              </CollapsibleSection>
-            )}
-          </div>
-        </Surface>
+      {/* Dasa · Bhukti · Antaram strip */}
+      {personalChartSummary && (
+        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", alignItems: "center", padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
+          <span style={{ fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.1em", marginRight: "var(--space-1)" }}>
+            {lang === "ta" ? "தசை நிலை" : "Dasa Position"}
+          </span>
+          {[
+            { label: lang === "ta" ? "தசை" : "Dasa", value: personalChartSummary.currentMahadasha },
+            { label: lang === "ta" ? "புக்தி" : "Bhukti", value: personalChartSummary.currentAntardasha },
+            { label: lang === "ta" ? "அந்தரம்" : "Antaram", value: dashaMaha?.current?.pratyantardasha?.lord ?? null },
+          ].map(({ label, value }) => value && (
+            <div key={label} style={{ display: "flex", flexDirection: "column", gap: "2px", alignItems: "center" }}>
+              <span style={{ fontSize: "0.5625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</span>
+              <span style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)", fontFamily: "var(--font-body)" }}>{tPlanetLord(value, lang)}</span>
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Planet table */}
@@ -1196,6 +1159,22 @@ export function DashboardPersonalTab({
             </table>
           </div>
         ) : <p className="empty-state">{t("planets_empty", lang)}</p>}
+
+        {personalChart && (
+          <div style={{ marginTop: "var(--space-4)" }}>
+            <ChartExplanationPanel
+              lang={lang}
+              chart={personalChart}
+              explanation={personalChartExplanation}
+              summary={personalChartSummary}
+              transit={personalTransit}
+              sani={personalSani}
+              peyarchiUpcoming={peyarchiUpcoming}
+              dasha={dasha}
+              dashaAntar={dashaAntar}
+            />
+          </div>
+        )}
       </Surface>
 
       {/* Nakshatra card */}
@@ -1243,6 +1222,86 @@ export function DashboardPersonalTab({
             d1Planets={Object.fromEntries(personalChart.planets.map(p => [p.graha, p.rasi]))}
             bhavaChalit={personalChart.bhavaChalit}
           />
+        </div>
+      )}
+
+      {/* ── Classical Timing (Chara Dasha + Solar Return) ── */}
+      {(charaDasha || solarReturn) && (
+        <div style={{
+          "--color-surface": "#FFFFFF",
+          "--color-surface-2": "#FAF5EA",
+          "--color-surface-3": "#EDE5D4",
+          "--color-border": "#D4C8AE",
+          "--color-text": "#1A1612",
+          "--color-muted": "#5a4f42",
+          "--color-accent": "#B85A2C",
+          "--color-accent-secondary": "#5C7654",
+          "background": "transparent",
+        } as React.CSSProperties}>
+          <Surface title={lang === "ta" ? "பாரம்பரிய கால நிர்ணயம்" : "Classical Timing"}>
+            <div className="surface__body" style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
+              {charaDasha && (
+                <CollapsibleSection
+                  title={lang === "ta" ? "ஜைமினி சார தசை" : "Jaimini Chara Dasha"}
+                  defaultOpen={false}
+                >
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", paddingTop: "var(--space-2)" }}>
+                    <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                      {lang === "ta"
+                        ? "இது ராசி அடிப்படையிலான தசை. திருமணம், தொழில் மாற்றம் போன்ற நிகழ்வுகளின் நேரச் சிக்னலை காட்டும்."
+                        : "This sign-based dasha is used to time life-event periods such as marriage and career transitions."}
+                    </p>
+                    {charaDasha.currentPeriod && (
+                      <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", background: "rgba(92,118,84,0.12)", border: "1px solid rgba(92,118,84,0.35)" }}>
+                        <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-score-high)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                          {lang === "ta" ? "தற்போதைய சார தசை" : "Current Chara Dasha"}
+                        </p>
+                        <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                          {charaDasha.currentPeriod.rasi_name}
+                        </p>
+                        <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "0.75rem", color: "var(--color-muted)" }}>
+                          {charaDasha.currentPeriod.start_date} – {charaDasha.currentPeriod.end_date}
+                        </p>
+                      </div>
+                    )}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                      {charaDasha.periods.map((period) => (
+                        <div key={`${period.rasi}-${period.start_date}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-2)", padding: "var(--space-1_5) var(--space-3)", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)", background: charaDasha.currentPeriod?.rasi === period.rasi ? "var(--color-surface-soft)" : "transparent" }}>
+                          <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text-strong)" }}>{period.rasi_name}</span>
+                          <span style={{ fontSize: "0.75rem", color: "var(--color-muted)" }}>{period.years} {lang === "ta" ? "ஆண்டுகள்" : "yrs"} · {period.start_date}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CollapsibleSection>
+              )}
+              {solarReturn && (
+                <CollapsibleSection
+                  title={lang === "ta" ? `${solarReturn.returnYear} ஆண்டு தாஜகா` : `${solarReturn.returnYear} Annual Chart`}
+                  defaultOpen={false}
+                >
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--space-2_5)", paddingTop: "var(--space-2)" }}>
+                    <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
+                      <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{lang === "ta" ? "வருட லக்னம்" : "SR Lagna"}</p>
+                      <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                        {solarReturn.srLagnaRasiName}
+                        {solarReturn.lagnaMatchesNatal && (
+                          <span style={{ marginLeft: "var(--space-1_5)", fontSize: "0.625rem", padding: "2px 6px", borderRadius: "var(--radius-pill)", background: "rgba(92,118,84,0.15)", color: "var(--color-score-high)", border: "1px solid rgba(92,118,84,0.35)" }}>
+                            {lang === "ta" ? "நட்டாள்போல்" : "Same as natal"}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
+                      <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{lang === "ta" ? "முந்தா" : "Muntha"}</p>
+                      <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>{solarReturn.munthaRasiName}</p>
+                      <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)" }}>{lang === "ta" ? "சூரிய நீளம்" : "Sun longitude"}: {solarReturn.sunLongAtReturn.toFixed(4)}°</p>
+                    </div>
+                  </div>
+                </CollapsibleSection>
+              )}
+            </div>
+          </Surface>
         </div>
       )}
 

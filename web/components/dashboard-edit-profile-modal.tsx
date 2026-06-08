@@ -5,7 +5,7 @@ import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
-import { PlaceCombobox } from "./dashboard-ui";
+import { PlaceCombobox } from "./place-combobox";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
 

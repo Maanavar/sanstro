@@ -151,8 +151,8 @@ export function DashboardLifeAreasTab({
         </h1>
         <p style={{ margin: 0, fontSize: "0.875rem", color: "#5a4f42", lineHeight: 1.6, maxWidth: "56ch" }}>
           {lang === "ta"
-            ? "ஒவ்வொரு மதிப்பெண்ணும் உங்கள் தற்போதைய மாதசை மற்றும் கோசார நிலையை அடிப்படையாகக் கொண்டது."
-            : `Each score reads support under your current Moon Dasa and active transits. ${phaseTheme}`}
+            ? `ஒவ்வொரு மதிப்பெண்ணும் இன்றைய நிலையை அடிப்படையாகக் கொண்டது — உங்கள் ஜாதக வலிமை + தசை + கோசாரம் மூன்றையும் சேர்த்து கணக்கிடப்படுகிறது. ${phaseTheme}`
+            : `Each score is a snapshot for today — natal chart strength, active dasha period, and current transits combined. ${phaseTheme}`}
         </p>
       </div>
 
@@ -267,13 +267,13 @@ export function DashboardLifeAreasTab({
       {/* ── Sub-tab: Predictions ── */}
       {subTab === "predictions" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-          <PredictionDetailPanel lang={lang} predictions={predictions} loading={predictionsLoading} />
+          <PredictionDetailPanel lang={lang} predictions={predictions} loading={predictionsLoading} maritalStatus={maritalStatus} />
           {lifeAreas?.chartId && (
             <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-4)" }}>
               <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
                 {lang === "ta" ? "நிகழ்வு நேரங்கள்" : "Event Windows"}
               </p>
-              <EventWindowsPanel lang={lang} chartId={lifeAreas.chartId} />
+              <EventWindowsPanel lang={lang} chartId={lifeAreas.chartId} isMarried={isMarried} />
             </div>
           )}
         </div>

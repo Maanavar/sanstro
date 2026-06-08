@@ -13,7 +13,7 @@ export const TN_CITIES: CityEntry[] = [
   { name: "Tiruchirappalli, Tamil Nadu, India",      lat: "10.8333",  lng: "78.7667",  timezone: "Asia/Kolkata" },
   { name: "Salem, Tamil Nadu, India",                lat: "11.6500",  lng: "78.2000",  timezone: "Asia/Kolkata" },
   { name: "Tirunelveli, Tamil Nadu, India",          lat: "8.7333",   lng: "77.7333",  timezone: "Asia/Kolkata" },
-  { name: "Chennai, Tamil Nadu, India",              lat: "11.0833",  lng: "77.3333",  timezone: "Asia/Kolkata" },
+  { name: "Tiruppur, Tamil Nadu, India",             lat: "11.1085",  lng: "77.3411",  timezone: "Asia/Kolkata" },
   { name: "Erode, Tamil Nadu, India",                lat: "11.3333",  lng: "77.7667",  timezone: "Asia/Kolkata" },
   { name: "Vellore, Tamil Nadu, India",              lat: "12.9167",  lng: "79.1833",  timezone: "Asia/Kolkata" },
   { name: "Thoothukudi, Tamil Nadu, India",          lat: "8.8000",   lng: "78.1833",  timezone: "Asia/Kolkata" },

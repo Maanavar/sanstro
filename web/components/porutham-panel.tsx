@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
-import { MIN_BIRTH_DATE, isBirthDateWithinBounds, maxBirthDateIso } from "@/lib/birth-date";
+import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, ChartCalculateResponseData, DirectPoruthamData } from "@/lib/types";
 import { RasiChart } from "./dashboard-charts";
-import { Field, PlaceCombobox } from "./dashboard-ui";
+import { Field } from "./dashboard-ui";
+import { PlaceCombobox } from "./place-combobox";
 
 type BirthForm = {
   displayName: string;
@@ -88,11 +89,7 @@ function PersonForm({
           value={form.birthDateLocal}
           min={MIN_BIRTH_DATE}
           max={maxBirthDateIso()}
-          onChange={(e) => {
-            const next = e.target.value;
-            if (!isBirthDateWithinBounds(next)) return;
-            onChange({ ...form, birthDateLocal: next });
-          }}
+          onChange={(e) => onChange({ ...form, birthDateLocal: e.target.value })}
         />
       </Field>
       <Field label={lang === "ta" ? "பிறந்த நேரம்" : "Birth Time"}>

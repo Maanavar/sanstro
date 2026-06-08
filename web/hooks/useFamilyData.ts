@@ -7,6 +7,7 @@ import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
 import type {
   ApiEnvelope,
   ChartCalculateResponseData,
+  ChartExplanationData,
   ChartSummaryData,
   DailyGuidanceData,
   DashaTimelineItem,
@@ -29,6 +30,7 @@ export type MemberChart = {
   memberId: string;
   displayName: string;
   chart: ChartCalculateResponseData;
+  explanation: ChartExplanationData | null;
   summary: ChartSummaryData | null;
   transit: TransitSnapshotData | null;
   sani: SaniCycleData | null;
@@ -109,6 +111,7 @@ export function useFamilyData({ ownerUserId, selectedDate, onStatus }: UseFamily
             transitRes,
             saniRes,
             peyarchiRes,
+            explanationRes,
             dashaRes,
             dashaMahaRes,
             dashaAntarRes,
@@ -136,6 +139,9 @@ export function useFamilyData({ ownerUserId, selectedDate, onStatus }: UseFamily
             apiFetchJson<ApiEnvelope<PeyarchiEvent[]>>(
               `/api/v1/charts/${chartId}/peyarchi/upcoming${toQuery({ as_of: nextDate, window_days: 30 })}`,
             ),
+            apiFetchJson<ApiEnvelope<ChartExplanationData>>(
+              `/api/v1/charts/${chartId}/explanation${toQuery({ asOf: nextDate, peyarchiWindowDays: 700 })}`,
+            ).catch(() => ({ data: null } as ApiEnvelope<ChartExplanationData | null>)),
             apiFetchJson<ApiEnvelope<DashaTimelineResponseData>>(
               `/api/v1/charts/${chartId}/dasha${toQuery({ asOf: nextDate, level: "pratyantar" })}`,
             ),
@@ -162,6 +168,7 @@ export function useFamilyData({ ownerUserId, selectedDate, onStatus }: UseFamily
             memberId: member.familyMemberId,
             displayName: member.displayName,
             chart: chartRes.data,
+            explanation: explanationRes.data,
             summary: summaryRes.data,
             transit: transitRes.data,
             sani: saniRes.data,
@@ -256,4 +263,3 @@ export function useFamilyData({ ownerUserId, selectedDate, onStatus }: UseFamily
     loadRelationshipAlerts,
   };
 }
-

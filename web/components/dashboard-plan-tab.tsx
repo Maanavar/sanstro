@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 
 import { apiFetchJson, toQuery } from "@/lib/api";
 import { t } from "@/lib/i18n";
@@ -11,6 +11,20 @@ import { Button, Chip, Surface } from "./dashboard-ui";
 import { DecisionPanel } from "./dashboard-decision-panel";
 import { DashboardMuhurtaPicker } from "./dashboard-muhurta-picker";
 import { DashboardLifeEventLog } from "./dashboard-life-event-log";
+import { EventWindowsPanel } from "./dashboard-event-windows";
+
+// Map a declared goal to the event-window engine's event type so we can show
+// the next supportive timing windows for that specific goal.
+const GOAL_EVENT_MAP: Record<string, "MARRIAGE" | "CAREER" | "FINANCE"> = {
+  job_change: "CAREER",
+  business_start: "CAREER",
+  education: "CAREER",
+  marriage: "MARRIAGE",
+  family_harmony: "MARRIAGE",
+  child_birth: "MARRIAGE",
+  property: "FINANCE",
+  money: "FINANCE",
+};
 
 type DashboardPlanTabProps = {
   lang: Lang;
@@ -128,16 +142,16 @@ export function DashboardPlanTab({
   onRunWhatIf,
   mode = "BALANCED",
 }: DashboardPlanTabProps) {
-  type PlanSubTab = "goals" | "whatif" | "timing" | "muhurta" | "decisions";
+  type PlanSubTab = "goals" | "whatif" | "muhurta" | "decisions";
   const [planSubTab, setPlanSubTab] = useState<PlanSubTab>("goals");
   const PLAN_SUB_TABS: { key: PlanSubTab; label: string }[] = [
     { key: "goals", label: lang === "ta" ? "இலக்குகள்" : "Goals" },
     { key: "whatif", label: lang === "ta" ? "என்ன ஆகும்?" : "What-If" },
-    { key: "timing", label: lang === "ta" ? "சிறந்த நாட்கள்" : "Best Dates" },
-    { key: "muhurta", label: lang === "ta" ? "முஹூர்த்தம்" : "Muhurta" },
+    { key: "muhurta", label: lang === "ta" ? "சிறந்த நாள் & முஹூர்த்தம்" : "Best Dates & Muhurta" },
     { key: "decisions", label: lang === "ta" ? "முடிவுகள்" : "Decisions" },
   ];
 
+  // Best Dates (activity timing) state — lives inside the Muhurta sub-tab
   const [activityType, setActivityType] = useState(ACTIVITY_OPTIONS[0].value);
   const [activityMonth, setActivityMonth] = useState(() => {
     const now = new Date();
@@ -145,6 +159,25 @@ export function DashboardPlanTab({
   });
   const [activityTimingResult, setActivityTimingResult] = useState<ActivityTimingData | null>(null);
   const [activityTimingBusy, setActivityTimingBusy] = useState(false);
+
+  // Muhurta picker pre-fill state — set when user clicks "→ Check Muhurta" on a Best Dates result
+  const [muhurtaPresetDate, setMuhurtaPresetDate] = useState<string | undefined>(undefined);
+  const [muhurtaPresetActivity, setMuhurtaPresetActivity] = useState<string | undefined>(undefined);
+
+  // Map Best Dates activity values → Muhurta picker activity IDs
+  const ACTIVITY_TO_MUHURTA: Record<string, string> = {
+    job_change: "JOB_START",
+    business_start: "JOB_START",
+    marriage: "MARRIAGE",
+    education: "EXAM",
+    property: "PURCHASE",
+    money: "INVESTMENT",
+    travel: "TRAVEL",
+    health: "MEDICAL",
+    spiritual: "SPIRITUAL",
+    child: "SPIRITUAL",
+    other: "",
+  };
 
   if (!hasBirthProfile) {
     return (
@@ -263,6 +296,69 @@ export function DashboardPlanTab({
               </div>
             )}
 
+            {/* Methodology note for Goals "Supportive windows" score */}
+            {goals.length > 0 && (
+              <div style={{ padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#EEF1F8", border: "1px solid rgba(122,111,94,0.18)", marginBottom: "var(--space-3)" }}>
+                <p style={{ margin: 0, fontSize: "0.75rem", color: W.muted, lineHeight: 1.5 }}>
+                  <strong style={{ color: W.inkMid }}>
+                    {lang === "ta" ? "இந்த மதிப்பெண் என்ன காட்டுகிறது:" : "What these scores measure:"}
+                  </strong>
+                  {" "}
+                  {lang === "ta"
+                    ? "இந்த காலங்கள் பல வாரங்கள்/மாதங்களில் தசை ஆதரவை அளவிடுகின்றன — 'இந்த காலத்தில் தசை இந்த இலக்கை ஆதரிக்கிறதா?' என்ற கேள்விக்கு பதில். ஒரு குறிப்பிட்ட தேதிக்கு What-If பயன்படுத்தவும் (அது தசை + கோசாரம் + நேட்டல் மூன்றும் சரிபார்க்கும்)."
+                    : "These windows measure long-term Dasha support over weeks or months — answering 'does this period's planetary period support this goal?' For a specific date, use What-If (it triple-checks natal promise + Dasha + transit for that exact day). The two scores naturally differ because they measure different things."}
+                </p>
+              </div>
+            )}
+
+            {/* Goal-specific timing — one EventWindowsPanel per unique event type */}
+            {goals.length > 0 && chartId && (() => {
+              // Group goals by their mapped event type; render one panel per event type
+              const seenEvents = new Set<string>();
+              const panels: React.ReactNode[] = [];
+              for (const g of goals) {
+                const norm = normalizeGoalType(g.goalType);
+                const mappedEvent = GOAL_EVENT_MAP[norm];
+                const goalLabel = GOAL_OPTIONS.find(([v]) => v === norm)?.[1];
+                if (!mappedEvent) {
+                  panels.push(
+                    <div key={`goal-guide-${g.goalId}`} style={{ padding: "var(--space-3_5)", borderRadius: "var(--radius-md)", border: `1px solid ${W.borderLt}`, background: W.card }}>
+                      <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.75rem", fontWeight: 700, color: W.terracotta, letterSpacing: "0.04em" }}>
+                        {goalLabel ? t(goalLabel, lang) : g.goalType}
+                        {" · "}
+                        {lang === "ta" ? "ஆதரவான காலங்கள்" : "Supportive windows"}
+                      </p>
+                      <p style={{ margin: 0, fontSize: "0.8125rem", color: W.muted, lineHeight: 1.5 }}>
+                        {lang === "ta"
+                          ? "இந்த இலக்கிற்கு, ‘சிறந்த தேதி’ மற்றும் ‘முஹூர்த்தம்’ தாவல்களில் உகந்த தேதிகளைக் கண்டறியவும்."
+                          : "For this goal, use the ‘What-if’ and ‘Muhurta’ tabs to find favourable dates tailored to your chart."}
+                      </p>
+                    </div>
+                  );
+                } else if (!seenEvents.has(mappedEvent)) {
+                  seenEvents.add(mappedEvent);
+                  // Collect all goals sharing this event type for the label
+                  const sharedGoalLabels = goals
+                    .filter((og) => GOAL_EVENT_MAP[normalizeGoalType(og.goalType)] === mappedEvent)
+                    .map((og) => {
+                      const lk = GOAL_OPTIONS.find(([v]) => v === normalizeGoalType(og.goalType))?.[1];
+                      return lk ? t(lk, lang) : og.goalType;
+                    });
+                  panels.push(
+                    <div key={`goal-guide-${mappedEvent}`} style={{ padding: "var(--space-3_5)", borderRadius: "var(--radius-md)", border: `1px solid ${W.borderLt}`, background: W.card }}>
+                      <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.75rem", fontWeight: 700, color: W.terracotta, letterSpacing: "0.04em" }}>
+                        {sharedGoalLabels.join(" · ")}
+                        {" · "}
+                        {lang === "ta" ? "ஆதரவான காலங்கள்" : "Supportive windows"}
+                      </p>
+                      <EventWindowsPanel lang={lang} chartId={chartId} onlyEvent={mappedEvent} autoLoad />
+                    </div>
+                  );
+                }
+              }
+              return <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3_5)", marginBottom: "var(--space-3_5)" }}>{panels}</div>;
+            })()}
+
             {goals.length === 0 && <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.75rem", color: W.muted }}>{t("goals_empty", lang)}</p>}
 
             {goals.length < 3 && (
@@ -286,7 +382,18 @@ export function DashboardPlanTab({
       {planSubTab === "whatif" && (
         <Surface title={t("whatif_panel_title", lang)}>
           <div className="surface__body">
-            <p style={{ margin: "0 0 var(--space-3_5)", fontSize: "0.875rem", color: W.muted, lineHeight: 1.5 }}>{t("whatif_panel_desc", lang)}</p>
+            <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.875rem", color: W.muted, lineHeight: 1.5 }}>{t("whatif_panel_desc", lang)}</p>
+            <div style={{ padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#EEF1F8", border: "1px solid rgba(122,111,94,0.18)", marginBottom: "var(--space-3_5)" }}>
+              <p style={{ margin: 0, fontSize: "0.75rem", color: W.muted, lineHeight: 1.5 }}>
+                <strong style={{ color: W.inkMid }}>
+                  {lang === "ta" ? "இந்த மதிப்பெண் என்ன காட்டுகிறது:" : "What this score measures:"}
+                </strong>
+                {" "}
+                {lang === "ta"
+                  ? "நீங்கள் தேர்ந்தெடுத்த குறிப்பிட்ட தேதிக்கு மூன்று-உறுதிப்படுத்தல் பகுப்பாய்வு — நேட்டல் வாக்குறுதி + தசை ஆதரவு + கோசார நிலை ஒரே நேரத்தில் சரிபார்க்கப்படும். இது 'Goals' தாவலில் உள்ள மதிப்பெண்ணிலிருந்து வேறுபடும் — அது பல மாத தசை ஆதரவை அளவிடுகிறது; இது ஒரு குறிப்பிட்ட நாளை அளவிடுகிறது."
+                  : "Triple-confirmation analysis for the exact date you chose — natal promise, Dasha support, and transit positions are all checked simultaneously. This will naturally differ from Goals window scores because Goals measures multi-month Dasha alignment, while What-If measures one specific day."}
+              </p>
+            </div>
 
             <div className="cd-responsive-row" style={{ gap: "var(--space-2_5)", alignItems: "flex-end", marginBottom: "var(--space-3_5)" }}>
               <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
@@ -375,75 +482,6 @@ export function DashboardPlanTab({
         </Surface>
       )}
 
-      {planSubTab === "timing" && (
-        <Surface title={t("activity_timing_label", lang)}>
-          <div className="surface__body">
-            <div className="cd-responsive-row" style={{ gap: "var(--space-2_5)", alignItems: "flex-end", marginBottom: "var(--space-3_5)" }}>
-              <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("activity_label", lang)}</span>
-                <select style={{ ...fieldStyle, minWidth: "240px" }} value={activityType} onChange={(e) => setActivityType(e.target.value)}>
-                  {ACTIVITY_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {lang === "ta" ? opt.ta : opt.en}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("activity_month_label", lang)}</span>
-                <input style={{ ...fieldStyle, minWidth: "140px" }} type="month" value={activityMonth} onChange={(e) => setActivityMonth(e.target.value)} />
-              </div>
-
-              <button
-                type="button"
-                disabled={activityTimingBusy}
-                onClick={() => {
-                  setActivityTimingBusy(true);
-                  apiFetchJson<{ success: boolean; data: ActivityTimingData }>(
-                    `/api/v1/activity-timing${toQuery({ chartId, activity: activityType, month: activityMonth })}`,
-                  )
-                    .then((r) => setActivityTimingResult(r.data))
-                    .catch(() => {})
-                    .finally(() => setActivityTimingBusy(false));
-                }}
-                style={{
-                  padding: "var(--space-2) var(--space-4_5)",
-                  borderRadius: "var(--radius-md)",
-                  border: `1px solid ${W.ink}`,
-                  cursor: activityTimingBusy ? "not-allowed" : "pointer",
-                  fontWeight: 700,
-                  fontSize: "0.875rem",
-                  background: activityTimingBusy ? W.borderLt : W.ink,
-                  color: activityTimingBusy ? W.mutedLt : W.surfaceMd,
-                  fontFamily: "inherit",
-                }}
-              >
-                {activityTimingBusy ? t("btn_finding", lang) : t("btn_find_best_dates", lang)}
-              </button>
-            </div>
-
-            {activityTimingResult && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                {activityTimingResult.topDates.map((item, i) => (
-                  <div key={item.dateLocal} style={{ padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: W.card, border: `1px solid ${W.borderLt}`, display: "flex", gap: "var(--space-2_5)", alignItems: "flex-start" }}>
-                    <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt, minWidth: "16px" }}>{i + 1}.</span>
-                    <div>
-                      <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center", marginBottom: "var(--space-0_75)", flexWrap: "wrap" }}>
-                        <span style={{ fontSize: "0.875rem", fontWeight: 700, color: W.inkMid }}>{item.dateLocal}</span>
-                        <Chip tone={item.score >= 70 ? "success" : item.score >= 50 ? "neutral" : "warning"}>{item.score}/100</Chip>
-                        <span style={{ fontSize: "0.75rem", color: W.muted }}>{item.alignment}</span>
-                      </div>
-                      <p style={{ margin: 0, fontSize: "0.75rem", color: W.muted, lineHeight: 1.4, fontStyle: "italic" }}>{lang === "ta" ? item.reasonTa : item.reasonEn}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Surface>
-      )}
-
       {planSubTab === "decisions" && mode !== "BEGINNER" && (
         <Surface title={t("decision_panel_title", lang)}>
           <div className="surface__body">
@@ -463,14 +501,118 @@ export function DashboardPlanTab({
 
       {planSubTab === "muhurta" && (
         <>
-          <div style={{ padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: W.surface, border: `1px solid ${W.borderLt}`, marginBottom: "var(--space-3)" }}>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted, lineHeight: 1.55 }}>
-              {lang === "ta"
-                ? "குறிப்பிட்ட நிகழ்வுகளுக்கான சிறந்த நேரம் மற்றும் திதி-நட்சத்திர பொருத்தம் இங்கே காணலாம்."
-                : "Find the best hour-precise time slot for a specific ceremony or event, checked against panchangam, dasha, and kalam."}
+          {/* ── Step 1: Find the best dates ───────────────────────────── */}
+          <Surface title={lang === "ta" ? "படி 1 — சிறந்த நாட்கள் கண்டறிய (விரைவு மாத கண்ணோட்டம்)" : "Step 1 — Find Best Dates (quick month scan)"}>
+            <div className="surface__body">
+              <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.75rem", color: W.muted, lineHeight: 1.5 }}>
+                {lang === "ta"
+                  ? "மாதம் முழுவதையும் விரைவாக ஆராய்ந்து, தசை + கோசாரம் + பஞ்சாங்க தினத்தன்மை கொண்டு சிறந்த நாட்களை தேர்ந்தெடுக்கிறது. தேர்ந்த நாளை கிளிக் செய்யுங்கள் — படி 2 தானாக நிரம்பும், அங்கே சரியான நேரம் கண்டறியலாம்."
+                  : "Scans the whole month and picks the days with the best dasha + transit + day-quality alignment for your activity. Click any date to prefill Step 2, where you find the exact auspicious hour within that day."}
+              </p>
+              <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.72rem", color: W.muted, lineHeight: 1.45, padding: "var(--space-1_5) var(--space-2_5)", borderRadius: "var(--radius-sm)", background: "#EEF1F8", border: `1px solid rgba(122,111,94,0.18)` }}>
+                {lang === "ta"
+                  ? "படி 1 — 'எந்த நாள் நல்லது?' என்று சொல்கிறது. படி 2 — 'அந்த நாளில் எந்த நேரம் சிறந்தது?' என்று கண்டறிகிறது. இரண்டும் வேறு அளவீடுகளை பயன்படுத்துவதால் வெவ்வேறு தேதி/மதிப்பெண் காட்டலாம் — இது சரியானதே."
+                  : "Step 1 answers 'which days are good?' Step 2 answers 'what is the best hour on a given day?' They use different criteria (day-level vs hour-level panchangam), so their scores and top dates will not always match — that is expected and correct."}
+              </p>
+              <div className="cd-responsive-row" style={{ gap: "var(--space-2_5)", alignItems: "flex-end", marginBottom: "var(--space-3)" }}>
+                <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("activity_label", lang)}</span>
+                  <select style={{ ...fieldStyle, minWidth: "240px" }} value={activityType} onChange={(e) => { setActivityType(e.target.value); setActivityTimingResult(null); }}>
+                    {ACTIVITY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {lang === "ta" ? opt.ta : opt.en}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("activity_month_label", lang)}</span>
+                  <input style={{ ...fieldStyle, minWidth: "140px" }} type="month" value={activityMonth} onChange={(e) => { setActivityMonth(e.target.value); setActivityTimingResult(null); }} />
+                </div>
+                <button
+                  type="button"
+                  disabled={activityTimingBusy}
+                  onClick={() => {
+                    setActivityTimingBusy(true);
+                    apiFetchJson<{ success: boolean; data: ActivityTimingData }>(
+                      `/api/v1/activity-timing${toQuery({ chartId, activity: activityType, month: activityMonth })}`,
+                    )
+                      .then((r) => setActivityTimingResult(r.data))
+                      .catch(() => {})
+                      .finally(() => setActivityTimingBusy(false));
+                  }}
+                  style={{ padding: "var(--space-2) var(--space-4_5)", borderRadius: "var(--radius-md)", border: `1px solid ${W.ink}`, cursor: activityTimingBusy ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.875rem", background: activityTimingBusy ? W.borderLt : W.ink, color: activityTimingBusy ? W.mutedLt : W.surfaceMd, fontFamily: "inherit" }}
+                >
+                  {activityTimingBusy ? t("btn_finding", lang) : t("btn_find_best_dates", lang)}
+                </button>
+              </div>
+
+              {activityTimingResult && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                  <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.75rem", color: W.muted }}>
+                    {lang === "ta"
+                      ? "ஒரு தேதியை கிளிக் செய்யுங்கள் — படி 2 அந்த நாள் மட்டும் சரிபார்த்து சரியான நேரம் (முஹூர்த்தம்) காட்டும்."
+                      : "Click a date to search only that day in Step 2 and find the best auspicious hour within it."}
+                  </p>
+                  {activityTimingResult.topDates.map((item, i) => {
+                    const isSelected = muhurtaPresetDate === item.dateLocal;
+                    const alignColor = item.alignment === "SUPPORTS" ? "#5C7654" : item.alignment === "CAUTION" ? "#A8482F" : "#B85A2C";
+                    const alignBg = item.alignment === "SUPPORTS" ? "rgba(92,118,84,0.12)" : item.alignment === "CAUTION" ? "rgba(168,72,47,0.12)" : "rgba(184,90,44,0.12)";
+                    const scoreColor = item.score >= 70 ? "#5C7654" : item.score >= 50 ? "#B85A2C" : "#A8482F";
+                    let weekday = "";
+                    try { weekday = new Date(item.dateLocal + "T12:00:00").toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { weekday: "short" }); } catch { /**/ }
+                    let shortDate = "";
+                    try { shortDate = new Date(item.dateLocal + "T12:00:00").toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { day: "numeric", month: "short", year: "numeric" }); } catch { shortDate = item.dateLocal; }
+                    return (
+                      <div
+                        key={item.dateLocal}
+                        style={{ padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)", background: isSelected ? "#EEF6EA" : W.card, border: `1.5px solid ${isSelected ? "rgba(92,118,84,0.5)" : W.borderLt}`, display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "var(--space-3)", alignItems: "center", cursor: "pointer", transition: "all 0.12s" }}
+                        onClick={() => {
+                          setMuhurtaPresetDate(item.dateLocal);
+                          setMuhurtaPresetActivity(ACTIVITY_TO_MUHURTA[activityType] ?? "");
+                        }}
+                      >
+                        {/* Rank + score column */}
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", minWidth: "44px" }}>
+                          <span style={{ fontSize: "0.5625rem", fontWeight: 700, color: W.mutedLt }}>{i + 1}.</span>
+                          <span style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: scoreColor, lineHeight: 1 }}>{item.score}</span>
+                          <span style={{ fontSize: "0.5rem", fontWeight: 600, color: W.mutedLt }}>/100</span>
+                        </div>
+                        {/* Date + reason column */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+                            <span style={{ fontSize: "0.875rem", fontWeight: 700, color: scoreColor }}>{shortDate}</span>
+                            <span style={{ fontSize: "0.75rem", fontWeight: 600, color: W.muted }}>{weekday}</span>
+                            <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "2px 8px", borderRadius: "var(--radius-pill)", background: alignBg, color: alignColor, border: `1px solid ${alignColor}44` }}>
+                              {item.alignment}
+                            </span>
+                          </div>
+                          <p style={{ margin: 0, fontSize: "0.8125rem", color: W.inkMid, lineHeight: 1.5 }}>{lang === "ta" ? item.reasonTa : item.reasonEn}</p>
+                        </div>
+                        {/* CTA */}
+                        <span style={{ fontSize: "0.75rem", fontWeight: 700, color: isSelected ? "#5C7654" : W.muted, flexShrink: 0, whiteSpace: "nowrap" }}>
+                          {lang === "ta" ? "முஹூர்த்தம் →" : "Get Muhurta →"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </Surface>
+
+          {/* ── Step 2: Muhurta time-slot picker ─────────────────────── */}
+          <div style={{ marginTop: "var(--space-1)" }}>
+            <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+              {lang === "ta" ? "படி 2 — சரியான நேரம் கண்டறிய (முஹூர்த்தம்)" : "Step 2 — Find the right hour (Muhurta)"}
             </p>
+            <DashboardMuhurtaPicker
+              lang={lang}
+              chartId={chartId || null}
+              initialDateFrom={muhurtaPresetDate}
+              initialActivity={muhurtaPresetActivity}
+            />
           </div>
-          <DashboardMuhurtaPicker lang={lang} chartId={chartId || null} />
         </>
       )}
 

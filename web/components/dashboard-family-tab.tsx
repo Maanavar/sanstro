@@ -7,6 +7,7 @@ import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
   ChartCalculateResponseData,
+  ChartExplanationData,
   ChartSummaryData,
   DailyGuidanceData,
   DashaTimelineItem,
@@ -17,6 +18,7 @@ import type {
   FamilyVaultListItem,
   FamilyVaultTodayData,
   FamilySummaryData,
+  PeyarchiEvent,
   RelationshipAlertItem,
   SaniCycleData,
   TransitSnapshotData,
@@ -26,14 +28,17 @@ import { SynastryMatrix } from "./synastry-matrix";
 import { SynastryPanel } from "./dashboard-synastry-panel";
 import { DASHA_COLORS, dashaStatus } from "./dashboard-dasha";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
+import { ChartExplanationPanel } from "./dashboard-chart-explanation";
 
 type MemberChartData = {
   memberId: string;
   displayName: string;
   chart: ChartCalculateResponseData;
+  explanation: ChartExplanationData | null;
   summary: ChartSummaryData | null;
   transit: TransitSnapshotData | null;
   sani: SaniCycleData | null;
+  peyarchiUpcoming: PeyarchiEvent[];
   dailyGuidance: DailyGuidanceData | null;
   dasha: DashaTimelineResponseData | null;
   dashaAntar: DashaTimelineItem[];
@@ -381,6 +386,20 @@ function MemberDetailExpanded({
           <RasiChart chart={memberChart.chart} label={t("label_d1", lang)} lang={lang} />
           <NavamsaChart chart={memberChart.chart} label={t("label_d9", lang)} lang={lang} />
         </div>
+      )}
+
+      {memberChart?.chart && (
+        <ChartExplanationPanel
+          lang={lang}
+          chart={memberChart.chart}
+          explanation={memberChart.explanation}
+          summary={memberChart.summary}
+          transit={memberChart.transit}
+          sani={memberChart.sani}
+          peyarchiUpcoming={memberChart.peyarchiUpcoming ?? []}
+          dasha={memberChart.dasha}
+          dashaAntar={memberChart.dashaAntar ?? []}
+        />
       )}
 
       {/* Dasha · Bhukti · Antaram */}

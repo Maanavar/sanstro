@@ -211,6 +211,134 @@ function buildWhyText(
   return parts.join(" ") || (lang === "ta" ? "ஜாதக கிரக நிலைகளால் இந்த சுட்டி உருவாகிறது." : "Chart planetary positions create this indicator.");
 }
 
+// ── Outcomes, Remedies, and Enhancement advice ──────────────────────────────
+
+const YOGA_OUTCOMES: Record<string, { ta: string; en: string }> = {
+  GAJA_KESARI_YOGA: {
+    ta: "இந்த யோகம் உள்ளவர்களுக்கு தொழில்முறை மரியாதை, நல்ல நினைவாற்றல், மக்கள் தொடர்பு திறன், சமூக அங்கீகாரம் ஆகியவை சாத்தியம். கல்வி, ஆலோசனை, பொது சேவை, கற்பித்தல் துறைகளில் சிறப்பாக செயல்படலாம்.",
+    en: "People with this yoga may experience professional respect, strong memory, good public relations skills, and social recognition. They can excel in education, counseling, public service, and teaching roles.",
+  },
+  RAJA_YOGA: {
+    ta: "தொழில்முறை வளர்ச்சி, பொறுப்புகள் அதிகரிப்பு, சமூக அங்கீகாரம் ஆகியவை சாத்தியம். பெரிய நிறுவனங்களில் உயர் பதவிகள், தலைமைத்துவ வாய்ப்புகள், அரசு/அரசியல் துறைகளில் செல்வாக்கு இருக்கலாம்.",
+    en: "Career advancement, increased responsibilities, and social recognition are possible. Senior positions in large organizations, leadership opportunities, and influence in government or public sectors are indicated.",
+  },
+  DHANA_YOGA: {
+    ta: "திட்டமிட்ட முயற்சியால் வருமான வளர்ச்சி சாத்தியம். சேமிப்பு வழக்கங்கள் படிப்படியாக பலன் தரும். தொழில் முனைவோர் வாய்ப்புகள் சாதகமாக இருக்கலாம். உழைப்பால் செல்வம் கட்டுவது சாத்தியம் — திடீர் பணம் வராது.",
+    en: "Income growth through planned effort is possible. Consistent saving habits will yield results over time. Entrepreneurial opportunities may be favorable. Building wealth through sustained effort is indicated — not sudden windfalls.",
+  },
+  NEECHA_BHANGA_RAJA_YOGA: {
+    ta: "ஆரம்பத்தில் கடினங்களை சந்தித்த பகுதிகளில் பின்னர் வலிமை தெரியும். பிரச்சினைகளை திறமையாக கையாண்டு அவற்றை வலிமையாக மாற்றுவதில் இவர்களுக்கு இயல்பான திறன் இருக்கலாம். அனுபவங்களிலிருந்து கற்று முன்னேறுவார்கள்.",
+    en: "Areas where early difficulties were faced can later become strengths. There may be a natural ability to handle challenges and convert them into advantages. These individuals often learn powerfully from experience.",
+  },
+  KALASARPA: {
+    ta: "வாழ்க்கையின் குறிப்பிட்ட திசைகளில் தீவிர கவனம் மற்றும் சாதனை சாத்தியம். ஒரு இலக்கில் கவனம் செலுத்தும் குணம் இவர்களுக்கு உண்டு. ஆன்மீக வளர்ச்சி, கலைத்துறை, ஆராய்ச்சி போன்றவற்றில் அசாதாரண செயல்திறன் இருக்கலாம்.",
+    en: "Intense focus and achievement in specific life directions is possible. These individuals often have the ability to concentrate deeply on one goal. Exceptional performance in spiritual development, arts, or research may emerge.",
+  },
+};
+
+const YOGA_REMEDIES: Record<string, { ta: string; en: string }> = {
+  GAJA_KESARI_YOGA: {
+    ta: "வியாழக்கிழமை குரு வழிபாடு, மஞ்சள் வஸ்திரம் அணிவது, குரு மந்திரம் ஜபிப்பது (ஓம் குரவே நமஹ), தட்சிணாமூர்த்தி வழிபாடு, கல்வி நிறுவனங்களில் தானம் செய்வது.",
+    en: "Jupiter worship on Thursdays, wearing yellow cloth, chanting Jupiter mantra (Om Gurave Namah), Dakshinamurti worship, donating to educational institutions.",
+  },
+  RAJA_YOGA: {
+    ta: "ஏகாதசி விரதம், குரு-சூரிய வழிபாடு, சித்திரை மாதம் திருவண்ணாமலை அல்லது திருவிடைமருதூர் வழிபாடு, மக்களுக்கு உதவுவது, நேர்மையான நடத்தை.",
+    en: "Ekadasi fasting, Sun and Jupiter worship, visiting Tiruvannamalai or Tiruvidaraimarudur in Chithirai month, service to the community, maintaining integrity in all dealings.",
+  },
+  DHANA_YOGA: {
+    ta: "வெள்ளிக்கிழமை லட்சுமி வழிபாடு, சுக்கிர மந்திரம் (ஓம் சுக்ராய நமஹ), திருப்பதி அல்லது திருவரங்கம் வழிபாடு, உணவு தானம், நிதி ஒழுக்கம் கடைப்பிடிப்பது.",
+    en: "Lakshmi worship on Fridays, Venus mantra (Om Shukraya Namah), visits to Tirupati or Srirangam, food donations, maintaining financial discipline.",
+  },
+  NEECHA_BHANGA_RAJA_YOGA: {
+    ta: "நீச கிரகத்திற்கான குறிப்பிட்ட பரிகாரம் செய்வது (எ.கா. சூரியன் நீசம் = ஆதித்யஹ்ருதயம் பாராயணம்), அந்த கிரகம் ஆட்சி செலுத்தும் திரு ஸ்தலத்தை தரிசித்தல், கிரகத்தின் நிறத்தில் வஸ்திரம் அணிவது.",
+    en: "Perform the specific remedy for the debilitated planet (e.g., if Sun is debilitated — recite Aditya Hridayam), visit the temple associated with that planet, wear the planet's associated color.",
+  },
+  KALASARPA: {
+    ta: "திருநாகேஸ்வரம் அல்லது காளஹஸ்தியில் கால சர்ப்ப தோஷ பரிகாரம், நாக வழிபாடு, ஆடி மற்றும் கார்த்திகை மாதங்களில் சர்ப்ப சாந்தி, ஆண்டு தோறும் ஒரு முறை ஆன்மீக பூஜை.",
+    en: "Kala Sarpa Dosha parihara at Thirunageswaram or Kalahasti, Naga worship, Sarpa Shanti in Aadi and Karthigai months, annual spiritual puja.",
+  },
+};
+
+const YOGA_HOW_TO: Record<string, { ta: string; en: string }> = {
+  GAJA_KESARI_YOGA: {
+    ta: "யோகத்தை பலப்படுத்த: குரு தசை காலத்தில் முக்கிய முடிவுகள் எடுங்கள், வியாழக்கிழமை விரதம், ஆசிரியர்கள்/வழிகாட்டிகளை மரியாதையுடன் நடத்துங்கள், நிலையான கல்வி தொடருங்கள்.",
+    en: "To strengthen this yoga: make major decisions during Jupiter Dasha, observe Thursday fasts, treat teachers and mentors with respect, continue lifelong learning.",
+  },
+  RAJA_YOGA: {
+    ta: "யோகத்தை பலப்படுத்த: நேர்மையான செயல்கள், ஆட்சி கிரகங்களின் தசை காலத்தில் பெரிய நடவடிக்கை எடுங்கள், பொறுப்பான பாத்திரங்களை ஏற்றுக்கொள்ளுங்கள், சமுதாய சேவை செய்யுங்கள்.",
+    en: "To strengthen: act with integrity, take major steps during the ruling planets' Dasha, accept leadership responsibilities, engage in community service.",
+  },
+  DHANA_YOGA: {
+    ta: "யோகத்தை பலப்படுத்த: சேமிப்பு ஒழுக்கம், முதலீட்டு திட்டங்கள் உருவாக்குங்கள், 2-ம் மற்றும் 11-ம் அதிபதிகளின் தசையில் நிதி நடவடிக்கை எடுங்கள், அன்னதானம் செய்யுங்கள்.",
+    en: "To strengthen: maintain savings discipline, build an investment plan, take financial action during the 2nd and 11th lord's Dasha periods, donate food regularly.",
+  },
+  NEECHA_BHANGA_RAJA_YOGA: {
+    ta: "யோகத்தை பலப்படுத்த: பலவீனமான கிரகம் ஆட்சி செலுத்தும் விஷயங்களில் கவனமாக உழையுங்கள், தோல்விகளை பாடங்களாக எடுங்கள், நீச கிரகம் சம்பந்தப்பட்ட ஜீவிதத்துறைகளில் தொடர்ந்து முயற்சி செய்யுங்கள்.",
+    en: "To strengthen: work carefully in areas governed by the debilitated planet, treat failures as lessons, keep trying in life domains connected to that planet.",
+  },
+  KALASARPA: {
+    ta: "யோகத்தை பயனுள்ளதாக்க: ஒரு குறிப்பிட்ட இலக்கில் ஆழமாக கவனம் செலுத்துங்கள், நிலையான ஒழுக்கம் வளருங்கள், ஆன்மீக பயிற்சி (தியானம், யோகம்) மிகவும் உதவும். சமூக ஒப்பீட்டை தவிர்த்து, சொந்த பாதையில் கவனம் செலுத்துங்கள்.",
+    en: "To make this work for you: focus deeply on one specific goal, build consistent discipline, spiritual practice (meditation, yoga) helps greatly. Avoid comparing yourself to others — focus on your own path.",
+  },
+};
+
+const DOSHAM_OUTCOMES: Record<string, { ta: string; en: string }> = {
+  SEVVAI_DOSHAM: {
+    ta: "திருமண வாழ்க்கையில் உணர்வு ரீதியான கடுமை, சுதந்திரத்திற்கான ஆசை, சில நேரங்களில் சண்டை-சச்சரவு, துணையுடன் ஒத்துழைக்கும் சவால் ஆகியவை சாத்தியம். செவ்வாய் பலமாக இருந்தால் இவை ஆற்றலாக மாறும்.",
+    en: "Emotional intensity in married life, desire for independence, occasional conflicts, and challenges in adjustment with partner are possible. When Mars is strong, these become energetic drive and assertiveness.",
+  },
+  RAHU_KETU_DOSHAM: {
+    ta: "திருமண விஷயங்களில் காலதாமதம், அசாதாரண உறவுகள், கர்ம-சார்ந்த பந்தங்கள் சாத்தியம். உணர்வு ரீதியான நிலையின்மை சில காலங்களில் வரலாம். ஆன்மீக கற்றலும் இந்த அமைப்பின் ஒரு பக்கமாக இருக்கலாம்.",
+    en: "Delays in marriage matters, unconventional relationships, karma-driven bonds are possible. Emotional instability may arise in certain periods. Spiritual learning is often an aspect of this configuration.",
+  },
+  PITRU_DOSHAM: {
+    ta: "குடும்ப பொறுப்புகள் அதிகமாக உணரப்படலாம், மூதாதையர் வழிபாட்டில் கவனம் தேவைப்படலாம், குடும்ப ஒற்றுமையில் சில சவால்கள் வரலாம். பெரியவர்களுக்கு உதவுவது தேவையாக உணரப்படலாம்.",
+    en: "Family responsibilities may feel heavier, attention to ancestral worship may be needed, some challenges in family harmony may arise. The need to support elders may be strongly felt.",
+  },
+  KALASARPA: {
+    ta: "வாழ்க்கையின் சில துறைகளில் தீவிரமான அனுபவங்கள் வரலாம். ஒருமுகப்படுத்திய கவனம் மற்றும் உழைப்பு சாதனைகளை தரலாம். ஆனால் சில காலங்களில் தனிமை அல்லது வட்டமிட்டு திரும்பும் சவால்கள் உணரப்படலாம்.",
+    en: "Intense experiences in certain life domains may arise. Focused attention and effort can yield achievements. However, some phases may feel isolating or marked by recurring challenges.",
+  },
+};
+
+const DOSHAM_REMEDIES: Record<string, { ta: string; en: string }> = {
+  SEVVAI_DOSHAM: {
+    ta: "செவ்வாய்க்கிழமை திருவிடைமருதூர் அல்லது வைத்தீஸ்வரன் கோயில் வழிபாடு, முருகன் வழிபாடு, கரும்மாரியம்மன் வேண்டல், திருவெள்ளிக்கேணி வழிபாடு. ஒரே போன்ற செவ்வாய் நிலை உள்ள துணையை தேர்ந்தெடுப்பது பொருத்தத்தை சீர்படுத்தும்.",
+    en: "Tuesday worship at Vaitheeswaran Koil or Thiruvidaimarudur, Murugan worship, Karumariamman vow, Thiruvellikeni visit. Choosing a partner with a similar Sevvai position can balance the compatibility.",
+  },
+  RAHU_KETU_DOSHAM: {
+    ta: "திருநாகேஸ்வரம் ராகு பரிகாரம், கல்மண்டபம் (Kala Bhairava) வழிபாடு, ஆடி மாதம் நாக பஞ்சமி விரதம், திருவண்ணாமலை அல்லது திருக்கோவிலூர் வழிபாடு. குரு ஆதரவு வலுப்படுத்த வியாழக்கிழமை வழிபாடு.",
+    en: "Rahu parihara at Thirunageswaram, Kala Bhairava worship, Naga Panchami fasting in Aadi month, visits to Tiruvannamalai or Tirukovilur. Thursday Jupiter worship to strengthen Jupiter's protective counter-influence.",
+  },
+  PITRU_DOSHAM: {
+    ta: "அமாவாசை நாளில் பித்ரு தர்ப்பணம், காகங்களுக்கு உணவிடுவது, திரு காட்டுப்பள்ளி அல்லது காசியில் பித்ரு ஸ்ராத்தம், பெரியவர்களை மரியாதையுடன் நடத்துவது, குடும்ப கோவில் வழிபாடு தொடர்வது.",
+    en: "Pitru tarpan on Amavasya, feeding crows, Pitru Sradham at Tirukattupalli or Kashi, treating elders with respect, continuing family temple worship.",
+  },
+  KALASARPA: {
+    ta: "காளஹஸ்தி அல்லது திருநாகேஸ்வரத்தில் ஆண்டு கால சர்ப்ப பூஜை, நாக பஞ்சமி விரதம், ஆடி மாதம் திருமஞ்சனம், ஆன்மீக பயிற்சி (தியானம், யோகா), அமைதியான சூழலில் தொடர்ந்த சாதனை.",
+    en: "Annual Kala Sarpa puja at Kalahasti or Thirunageswaram, Naga Panchami fasting, Aadi month Thirumanjanam, spiritual practice (meditation, yoga), sustained achievement in a calm environment.",
+  },
+};
+
+const DOSHAM_HOW_TO: Record<string, { ta: string; en: string }> = {
+  SEVVAI_DOSHAM: {
+    ta: "தீவிரத்தை குறைக்க: திருமண பொருத்தம் முழுமையாக பார்க்கவும், நிவர்த்தி காரணங்கள் இருக்கின்றனவா சரிபார்க்கவும், வாழ்க்கையில் செவ்வாயின் ஆற்றலை விளையாட்டு/உடற்பயிற்சி/சாதனை வழியாக வெளிப்படுத்தவும்.",
+    en: "To reduce impact: do thorough marriage compatibility matching, check for cancellation factors, channel Mars energy through sports/exercise/achievement in life rather than conflict.",
+  },
+  RAHU_KETU_DOSHAM: {
+    ta: "தீவிரத்தை குறைக்க: குரு, 7-ம் அதிபதி, சுக்கிரன் நிலைகளை பரிசோதியுங்கள் (இவை வலுவாக இருந்தால் தாக்கம் குறையும்). துணையுடன் திறந்த மனதில் பேசுங்கள், ஆன்மீக பயிற்சி தொடருங்கள்.",
+    en: "To reduce impact: examine Jupiter, 7th lord, and Venus positions (if strong, impact reduces). Communicate openly with your partner, continue spiritual practice.",
+  },
+  PITRU_DOSHAM: {
+    ta: "தீவிரத்தை குறைக்க: குடும்ப பெரியவர்களை மரியாதையுடன் நடத்துங்கள், தவறான குடும்ப விஷயங்களை சரிசெய்யுங்கள், கோவில் வழிபாட்டை தொடருங்கள், கோபம்/வாத்தோட்டம் தவிர்த்து ஒற்றுமையை வளருங்கள்.",
+    en: "To reduce impact: treat family elders respectfully, resolve unresolved family matters, continue temple worship, avoid arguments and build family harmony.",
+  },
+  KALASARPA: {
+    ta: "தீவிரத்தை குறைக்க: ஒரு குறிப்பிட்ட இலக்கில் கவனம் செலுத்துங்கள், ஆன்மீக அஸ்திவாரம் வலுப்படுத்துங்கள், சுய அறிவு வளருங்கள், இந்த அமைப்பை ஒரு சக்திமிக்க கருவியாக கையாளுங்கள்.",
+    en: "To reduce impact: focus on one specific life goal, strengthen spiritual grounding, develop self-knowledge, treat this configuration as a powerful tool rather than a burden.",
+  },
+};
+
 // ── "How powerful & what it can do now" ──────────────────────────────────────
 
 const YOGA_POWER_CONTEXT: Record<string, { strong: { ta: string; en: string }; partial: { ta: string; en: string }; weak: { ta: string; en: string } }> = {
@@ -383,7 +511,10 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1_5)", flexShrink: 0 }}>
           {yoga.isPresent ? (
-            <span style={{ fontSize: "0.625rem", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2_5)" }}>
+            <span
+              title={lang === "ta" ? "ஜாதக பலம் (நேட்டல் சார்ட்)" : "Natal chart strength — how strong this yoga is in your birth chart"}
+              style={{ fontSize: "0.625rem", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2_5)" }}
+            >
               {strengthBand(yoga.strength, yoga.isPresent, lang)}
             </span>
           ) : (
@@ -391,6 +522,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
           )}
           {yoga.isPresent && typeof yoga.activationScore === "number" && (
             <span
+              title={lang === "ta" ? "இன்றைய செயல்பாட்டு மதிப்பெண் (தசை + கோசாரம்)" : "Today's activation score — how strongly Dasha and transits are triggering this yoga now"}
               style={{
                 fontSize: "0.625rem",
                 fontWeight: 700,
@@ -402,7 +534,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
                 flexShrink: 0,
               }}
             >
-              {yoga.isCurrentlyActive ? (lang === "ta" ? "தசையில் உள்ளது" : "Active in dasha") : `${yoga.activationScore}/100`}
+              {`${yoga.activationScore}/100`}
             </span>
           )}
           <span style={{ color: "var(--color-faint)" }} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" width="12" height="12" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms ease" }}><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
@@ -466,6 +598,46 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
             )}
           </div>
 
+          {yoga.isPresent && (() => {
+            const key = yoga.name.toUpperCase().replace("GAJA_KESARI", "GAJA_KESARI_YOGA");
+            const outcomes = YOGA_OUTCOMES[key];
+            const howTo = YOGA_HOW_TO[key];
+            const remedies = YOGA_REMEDIES[key];
+            return (
+              <>
+                {outcomes && (
+                  <div>
+                    <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#5C7654", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      {lang === "ta" ? "வாழ்க்கையில் என்ன தரும்" : "What This Brings"}
+                    </p>
+                    <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
+                      {lang === "ta" ? outcomes.ta : outcomes.en}
+                    </p>
+                  </div>
+                )}
+                {howTo && (
+                  <div>
+                    <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#5C7654", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      {lang === "ta" ? "யோகத்தை பலப்படுத்துவது எப்படி" : "How to Strengthen This Yoga"}
+                    </p>
+                    <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
+                      {lang === "ta" ? howTo.ta : howTo.en}
+                    </p>
+                  </div>
+                )}
+                {remedies && (
+                  <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: "#EEF6EA", border: "1px solid rgba(92,118,84,0.2)" }}>
+                    <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#5C7654", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      {lang === "ta" ? "பரிகாரங்கள்" : "Remedies"}
+                    </p>
+                    <p style={{ margin: 0, fontSize: "0.875rem", color: "#1A1612", lineHeight: 1.55 }}>
+                      {lang === "ta" ? remedies.ta : remedies.en}
+                    </p>
+                  </div>
+                )}
+              </>
+            );
+          })()}
           {yoga.isPresent && powerText && (
             <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: cardBg, border: `1px solid ${cardBorder}` }}>
               <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color, textTransform: "uppercase", letterSpacing: "0.08em" }}>
@@ -484,10 +656,24 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
 
 // ── Dosham Card ───────────────────────────────────────────────────────────────
 
+// Doshams carry no numeric field from the engine, so derive a 0–100 severity
+// from the same signals the yoga badge uses (strength band + dasha activation +
+// cancellation). This gives doshams a score on par with yogas so the UI is
+// consistent ("some have scores, some don't" → all do now).
+function doshamSeverityScore(dosham: ChartDoshamInsight): number | null {
+  if (!dosham.isPresent) return null;
+  let base = dosham.strength === "STRONG" ? 80 : dosham.strength === "PARTIAL" ? 55 : 35;
+  if (dosham.dashaActivated) base += 10;
+  if (dosham.isCancelled) base = Math.round(base * 0.35); // mitigated → much lower
+  return Math.max(0, Math.min(100, base));
+}
+
 function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }) {
   const [open, setOpen] = useState(false);
   const isActiveAndPresent = dosham.isPresent && !dosham.isCancelled;
-  const color = isActiveAndPresent ? "#A8482F" : dosham.isCancelled ? "#5C7654" : "var(--color-faint)";
+  const isCancelledAndPresent = dosham.isPresent && dosham.isCancelled;
+  const color = isActiveAndPresent ? "#A8482F" : isCancelledAndPresent ? "#5C7654" : "var(--color-faint)";
+  const severityScore = doshamSeverityScore(dosham);
 
   const statusLabel =
     !dosham.isPresent
@@ -512,8 +698,8 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
   const triggerBullets = dosham.conditionsMet.filter((c) => !annotationMarkers.has(c));
   const attentionBullets = dosham.conditionsMet.filter((c) => annotationMarkers.has(c));
 
-  const cardBg = isActiveAndPresent ? "#F2D8CC" : dosham.isCancelled ? "#DCE4D2" : "#FAF5EA";
-  const cardBorder = isActiveAndPresent ? "rgba(168,72,47,0.35)" : dosham.isCancelled ? "rgba(92,118,84,0.35)" : "#E4DBC8";
+  const cardBg = isActiveAndPresent ? "#F2D8CC" : isCancelledAndPresent ? "#DCE4D2" : "#FAF5EA";
+  const cardBorder = isActiveAndPresent ? "rgba(168,72,47,0.35)" : isCancelledAndPresent ? "rgba(92,118,84,0.35)" : "#E4DBC8";
 
   return (
     <div style={{ borderRadius: "var(--radius-md)", border: `1px solid ${cardBorder}`, background: "#FFFFFF", overflow: "hidden", fontFamily: "var(--font-body)" }}>
@@ -543,6 +729,14 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
           <span style={{ fontSize: "0.625rem", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2_5)" }}>
             {statusLabel}
           </span>
+          {severityScore !== null && (
+            <span
+              title={lang === "ta" ? "தீவிரம் — ஜாதக பலம் + தசை செயல்பாடு ஆகியவற்றின் அடிப்படையில்" : "Severity — based on natal strength + current Dasha activation"}
+              style={{ fontSize: "0.625rem", fontWeight: 700, padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", background: `${color}14`, color, border: `1px solid ${color}40`, flexShrink: 0 }}
+            >
+              {severityScore}/100
+            </span>
+          )}
           <span style={{ color: "var(--color-faint)" }} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" width="12" height="12" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms ease" }}><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
         </div>
       </button>
@@ -604,56 +798,46 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
               </div>
             )}
 
-            {[
-              {
-                sectionKey: "What",
-                labelTa: "என்ன",
-                labelEn: "What this is",
-                ta: dosham.explanationWhatTa,
-                en: dosham.explanationWhatEn,
-              },
-              {
-                sectionKey: "Why",
-                labelTa: "ஏன்",
-                labelEn: "Why your chart has this",
-                ta: dosham.explanationWhyTa,
-                en: dosham.explanationWhyEn,
-              },
-              {
-                sectionKey: "How",
-                labelTa: "எப்படி",
-                labelEn: "How it affects you",
-                ta: dosham.explanationHowTa,
-                en: dosham.explanationHowEn,
-              },
-            ]
-              .filter((s) => (lang === "ta" ? s.ta : s.en))
-              .map((section) => (
-                <div key={section.sectionKey} style={{ marginTop: "var(--space-3)" }}>
-                  <p
-                    style={{
-                      margin: "0 0 var(--space-1)",
-                      fontSize: "0.625rem",
-                      fontWeight: 700,
-                      color: "var(--color-faint)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                    }}
-                  >
-                    {lang === "ta" ? section.labelTa : section.labelEn}
-                  </p>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: "0.875rem",
-                      color: "var(--color-text)",
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    {lang === "ta" ? section.ta : section.en}
-                  </p>
-                </div>
-              ))}
+            {(() => {
+              const key = dosham.name.toUpperCase();
+              const outcomes = DOSHAM_OUTCOMES[key];
+              const howTo = DOSHAM_HOW_TO[key];
+              const remedies = DOSHAM_REMEDIES[key];
+              return (
+                <>
+                  {outcomes && dosham.isPresent && (
+                    <div style={{ marginTop: "var(--space-2_5)" }}>
+                      <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#A8482F", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                        {lang === "ta" ? "வாழ்க்கையில் என்ன ஆகலாம்" : "How This May Affect You"}
+                      </p>
+                      <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
+                        {lang === "ta" ? outcomes.ta : outcomes.en}
+                      </p>
+                    </div>
+                  )}
+                  {howTo && dosham.isPresent && (
+                    <div style={{ marginTop: "var(--space-2_5)" }}>
+                      <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#5C7654", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                        {lang === "ta" ? "தாக்கத்தை குறைப்பது எப்படி" : "How to Reduce Impact"}
+                      </p>
+                      <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
+                        {lang === "ta" ? howTo.ta : howTo.en}
+                      </p>
+                    </div>
+                  )}
+                  {remedies && dosham.isPresent && (
+                    <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: "#F8E4D2", border: "1px solid rgba(168,72,47,0.2)" }}>
+                      <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#A8482F", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                        {lang === "ta" ? "பரிகாரங்கள்" : "Remedies"}
+                      </p>
+                      <p style={{ margin: 0, fontSize: "0.875rem", color: "#1A1612", lineHeight: 1.55 }}>
+                        {lang === "ta" ? remedies.ta : remedies.en}
+                      </p>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
 
             {dosham.missingData && dosham.missingData.length > 0 && (
               <p style={{ margin: "var(--space-2_5) 0 0", fontSize: "0.75rem", color: "var(--color-score-mid)", fontStyle: "italic", lineHeight: 1.5 }}>

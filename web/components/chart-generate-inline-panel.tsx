@@ -8,7 +8,8 @@ import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, ChartCalculateResponseData, ChartSummaryData, DashaTimelineResponseData } from "@/lib/types";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
-import { Field, PlaceCombobox } from "./dashboard-ui";
+import { Field } from "./dashboard-ui";
+import { PlaceCombobox } from "./place-combobox";
 import {
   computeD9LagnaRasi,
   GRAHA_ABBR,

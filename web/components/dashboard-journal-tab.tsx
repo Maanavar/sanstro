@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 
 import { apiFetchJson, toQuery } from "@/lib/api";
-import { formatDateLabel } from "@/lib/format";
+import { formatDateLabel, todayIso } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
@@ -385,7 +385,7 @@ export function DashboardJournalTab({
 
               <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("context_event_date", lang)}</span>
-                <input style={{ ...fieldStyle, minWidth: "140px" }} type="date" value={ctxEventDate} onChange={(e) => setCtxEventDate(e.target.value)} />
+                <input style={{ ...fieldStyle, minWidth: "140px" }} type="date" value={ctxEventDate} min={todayIso()} onChange={(e) => setCtxEventDate(e.target.value)} />
               </div>
 
               <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
@@ -434,7 +434,7 @@ export function DashboardJournalTab({
             <div className="cd-responsive-row" style={{ gap: "var(--space-2_5)", alignItems: "flex-end", marginBottom: "var(--space-3)" }}>
               <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("journal_date", lang)}</span>
-                <input style={{ ...fieldStyle, minWidth: "140px" }} type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} />
+                <input style={{ ...fieldStyle, minWidth: "140px" }} type="date" value={entryDate} max={todayIso()} onChange={(e) => setEntryDate(e.target.value)} />
               </div>
 
               <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
@@ -610,6 +610,7 @@ export function DashboardJournalTab({
                           <input
                             type="date"
                             value={editDate}
+                            max={todayIso()}
                             onChange={(e) => setEditDate(e.target.value)}
                             style={{ ...fieldStyle, minWidth: "140px" }}
                           />

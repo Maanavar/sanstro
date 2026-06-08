@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { apiFetchJson } from "@/lib/api";
 import { t } from "@/lib/i18n";
@@ -45,9 +45,23 @@ const fieldStyle: React.CSSProperties = {
 
 const SCORE_COLOR = (score: number) => (score >= 75 ? "#5C7654" : score >= 55 ? "#B85A2C" : "#7A6F5E");
 
+// Weekday + full date, e.g. "Mon, 8 Jun 2026" / "திங்கள், 8 ஜூன் 2026".
+function formatMuhurtaDate(value: string, lang: Lang): string {
+  const parsed = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return formatDateLabel(value);
+  return parsed.toLocaleDateString(lang === "ta" ? "ta-IN" : "en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 interface DashboardMuhurtaPickerProps {
   lang: Lang;
   chartId: string | null;
+  initialActivity?: string;
+  initialDateFrom?: string;
 }
 
 function MuhurtaCard({ slot, lang }: { slot: MuhurtaSlot; lang: Lang }) {
@@ -62,7 +76,12 @@ function MuhurtaCard({ slot, lang }: { slot: MuhurtaSlot; lang: Lang }) {
           <div style={{ fontSize: "10px", color: W.muted }}>{t("muhurta_score", lang)}</div>
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 600, fontSize: "0.875rem", color: W.inkMid }}>{formatDateLabel(slot.date)}</div>
+          <div style={{ fontWeight: 600, fontSize: "0.875rem", color: W.inkMid }}>{formatMuhurtaDate(slot.date, lang)}</div>
+          {slot.tamilDate && (
+            <div style={{ fontSize: "0.8125rem", color: "#B85A2C", fontWeight: 600 }}>
+              {lang === "ta" ? slot.tamilDate.ta : slot.tamilDate.en}
+            </div>
+          )}
           <div style={{ fontSize: "0.875rem", color: W.muted }}>{formatClockLabel(slot.timeStart)} - {formatClockLabel(slot.timeEnd)}</div>
         </div>
         <div style={{ fontSize: "0.875rem", color: W.muted, maxWidth: "160px", textAlign: "right" }}>{lang === "ta" ? slot.panchangamSupport.ta : slot.panchangamSupport.en}</div>
@@ -98,14 +117,27 @@ function MuhurtaCard({ slot, lang }: { slot: MuhurtaSlot; lang: Lang }) {
   );
 }
 
-export function DashboardMuhurtaPicker({ lang, chartId }: DashboardMuhurtaPickerProps) {
+export function DashboardMuhurtaPicker({ lang, chartId, initialActivity, initialDateFrom }: DashboardMuhurtaPickerProps) {
   const today = todayIso();
-  const [activity, setActivity] = useState("");
-  const [dateFrom, setDateFrom] = useState(today);
-  const [dateTo, setDateTo] = useState(addDays(today, 30));
+  const [activity, setActivity] = useState(initialActivity ?? "");
+  const [dateFrom, setDateFrom] = useState(initialDateFrom ?? today);
+  const [dateTo, setDateTo] = useState(addDays(initialDateFrom ?? today, 30));
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<MuhurtaResponseData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Sync when parent injects a pre-selected date (Best Dates click-through)
+  useEffect(() => {
+    if (initialActivity) setActivity(initialActivity);
+  }, [initialActivity]);
+  useEffect(() => {
+    if (initialDateFrom) {
+      setDateFrom(initialDateFrom);
+      setDateTo(initialDateFrom);
+      rootRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [initialDateFrom]);
 
   async function handleSearch() {
     if (!chartId || !activity) return;
@@ -128,6 +160,7 @@ export function DashboardMuhurtaPicker({ lang, chartId }: DashboardMuhurtaPicker
   const selectedActivity = ACTIVITIES.find((a) => a.id === activity);
 
   return (
+    <div ref={rootRef}>
     <Surface title={t("muhurta_title", lang)}>
       <div className="surface__body">
         <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "4px", marginBottom: "14px", alignItems: "flex-end" }}>
@@ -202,5 +235,6 @@ export function DashboardMuhurtaPicker({ lang, chartId }: DashboardMuhurtaPicker
         )}
       </div>
     </Surface>
+    </div>
   );
 }

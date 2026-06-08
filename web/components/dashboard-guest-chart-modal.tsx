@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
-import { MIN_BIRTH_DATE, isBirthDateWithinBounds, maxBirthDateIso } from "@/lib/birth-date";
+import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, ChartCalculateResponseData } from "@/lib/types";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
-import { Field, PlaceCombobox } from "./dashboard-ui";
+import { Field } from "./dashboard-ui";
+import { PlaceCombobox } from "./place-combobox";
 
 type BirthForm = {
   displayName: string;
@@ -149,7 +150,6 @@ export function GuestChartModal({ lang, onClose }: GuestChartModalProps) {
               max={maxBirthDateIso()}
               onChange={(e) => {
                 const next = e.target.value;
-                if (!isBirthDateWithinBounds(next)) return;
                 setForm((f) => ({ ...f, birthDateLocal: next }));
               }}
             />

@@ -34,17 +34,24 @@ export async function apiFetchJson<T>(path: string, init?: RequestInit): Promise
     // Try to extract a structured error message from JSON response bodies
     try {
       const json = JSON.parse(text) as Record<string, unknown>;
+      const validationDetail = Array.isArray(json.detail)
+        ? (json.detail as Array<{ loc?: unknown[]; msg?: string }>).map((d) => {
+            const where = Array.isArray(d.loc) ? d.loc.map(String).join(".") : "";
+            return where ? `${where}: ${d.msg ?? "Invalid value"}` : (d.msg ?? String(d));
+          }).join("; ")
+        : null;
       const msg =
         (typeof json.detail === "string" ? json.detail : null) ??
         (typeof json.message === "string" ? json.message : null) ??
-        (Array.isArray(json.detail)
-          ? (json.detail as Array<{ msg?: string }>).map((d) => d.msg ?? String(d)).join("; ")
-          : null) ??
+        validationDetail ??
         text;
-      throw new Error(`${response.status}: ${msg}`);
+      throw new Error(`${response.status}: ${path}: ${msg}`);
     } catch (parseErr) {
-      if (parseErr instanceof Error && parseErr.message.startsWith(`${response.status}:`)) throw parseErr;
-      throw new Error(text || `Request failed with status ${response.status}`);
+      if (
+        parseErr instanceof Error &&
+        parseErr.message.startsWith(`${response.status}:`)
+      ) throw parseErr;
+      throw new Error(text ? `${response.status}: ${path}: ${text}` : `Request failed with status ${response.status} for ${path}`);
     }
   }
 
