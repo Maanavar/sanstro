@@ -667,6 +667,73 @@ slot_end = slot_start + slot_size
 | Friday | 4 | 7 | 2 |
 | Saturday | 3 | 6 | 1 |
 
+### 4.8a Gowri Panchangam / Nalla Neram
+
+The Gowri Panchangam engine names all 16 daily periods (8 daytime + 8 night)
+on the same equal-division grid used for Rahu Kalam (4.8), then derives
+Nalla Neram from the favourable ones.
+
+**Slot grids:**
+
+```python
+day_duration = sunset_local - sunrise_local
+day_slot_size = day_duration / 8
+day_slot[n].start = sunrise + (n - 1) * day_slot_size   # n = 1..8
+
+night_duration = next_sunrise_local - sunset_local
+night_slot_size = night_duration / 8
+night_slot[n].start = sunset + (n - 1) * night_slot_size  # n = 1..8
+```
+
+**Eight Gowri categories**, classified good (auspicious) or bad (avoid):
+
+| Category | Tamil | Quality | Best suited for |
+|---|---|---|---|
+| Amirdha | அமிர்தம் | Good (rank 1) | Best overall — any important activity |
+| Uthi / Uthiyogam | உத்தி / உத்தியோகம் | Good (rank 2) | New starts, jobs, official work, applications |
+| Laabam | லாபம் | Good (rank 3) | Profit, business, deals, buying and selling |
+| Dhanam | தனம் | Good (rank 4) | Money, finance, investments, wealth matters |
+| Sugam | சுகம் | Good (rank 5) | Comfort, health, family peace, travel, routine good work |
+| Rogam | ரோகம் | Bad | Avoid — illness/conflict indication |
+| Soram | சோரம் | Bad | Avoid — loss/theft indication |
+| Visham | விஷம் | Bad | Avoid — poison/danger indication |
+
+The good-category rank order (Amirdha > Uthi > Laabam > Dhanam > Sugam) is
+used whenever a single "best window" must be chosen for a day (see
+`best_gowri_slot` / `gowri_category_rank`).
+
+**Per-weekday rotation tables (`GOWRI_DAY_TABLE` / `GOWRI_NIGHT_TABLE`):**
+Each weekday maps to an ordered 8-tuple of category names assigned to slots
+1-8, keyed on Python `date.weekday()` (Mon=0 ... Sun=6). Both tables are a
+fixed cyclic rotation of the same 8-category sequence — only the starting
+offset changes per weekday, per the classical Gowri Panchangam rotation rule.
+The exact frozen tables (the master reference — do not silently change, see
+section 21) are versioned in `app/calculations/panchangam.py`
+(`GOWRI_DAY_TABLE`, `GOWRI_NIGHT_TABLE`, `PANCHANGAM_CACHE_DATA_VERSION`).
+
+**Deriving Gowri Nalla Neram and Nalla Neram:**
+
+```python
+gowri_panchangam = day_slots(GOWRI_DAY_TABLE[weekday]) + night_slots(GOWRI_NIGHT_TABLE[weekday])
+
+gowri_nalla_neram = [s for s in gowri_panchangam if s.category in GOOD_CATEGORIES]
+
+nalla_neram = [
+    s for s in gowri_nalla_neram
+    if not overlaps(s, rahu_kalam) and not overlaps(s, yamagandam) and not overlaps(s, kuligai)
+]
+```
+
+`gowri_nalla_neram` lists every favourable Gowri window for the day —
+including any that coincide with Rahu Kalam, Yamagandam, or Kuligai (this
+overlap is acknowledged in tradition and the slot is treated as mixed
+quality; the API surfaces a `warning` flag rather than hiding the slot).
+`nalla_neram` is the stricter subset with those caution windows removed —
+the recommended "safe and favourable" picks for the day.
+
+Abhijit Muhurtham (4.9) is a separate midday window and is never merged into
+Nalla Neram.
+
 ### 4.9 Abhijit Muhurtham
 
 ```python
@@ -694,6 +761,10 @@ Night Hora runs from sunset to next sunrise and continues the same sequence.
 ### 4.11 Chandrashtama
 
 Chandrashtama occurs when the transiting Moon is 8th from natal Moon Rasi.
+This platform freezes the Tamil Thirukanitham standard as **rasi-based, not
+nakshatra-count based**. Do not compute Chandrashtama as the 8th nakshatra from
+Janma Nakshatra; Janma Nakshatra, Anujanma, and Trijanma remain separate
+nakshatra-based checks.
 
 ```python
 moon_from_janma = house_from(janma_rasi, current_moon_rasi)
@@ -1761,13 +1832,69 @@ The following tables have regional variations. Product must choose one master ta
 3. Nakshatra suitability table by Muhurtham purpose.
 4. Disha Shoola rules by weekday/direction.
 5. Full classical Shadbala sub-component constants if exact Shadbala is launched.
+6. Chandrashtama definition — frozen as 8th rasi from natal Moon rasi, not 8th nakshatra from Janma Nakshatra.
 6. D20/D24 advanced Varga start-sign variants if your astrologer council chooses a different school.
 
 Until those tables are frozen, the engine may compute a value only if it labels the table version used.
 
 ---
 
-## 22. Final Engineering Principle
+## 22. Pariharam / Remedy Engine
+
+Remedies are **optional cultural guidance, never mandatory** (see 0.2). The
+master remedy catalog lives in `app/calculations/remedies.py`
+(`PLANET_REMEDIES`), is exposed via `app/api/remedies.py`
+(`/charts/{id}/gemstone-advice`, `/charts/{id}/remedy-plan`), and is the
+single source of truth — no service may define its own remedy/temple/mantra
+content.
+
+### 22.1 Per-graha remedy fields
+
+Each of the nine grahas carries a fixed record:
+
+| Field | Description |
+|---|---|
+| Tamil name / day | The graha's Tamil name and its traditional remedy day (a specific weekday, or — for Rahu — the daily Rahu Kalam window, since Rahu has no single weekday assignment) |
+| Temple | The classical Navagraha sthala associated with the graha (e.g. Murugan temple for Mars, Thirunageswaram for Rahu, Keezhaperumpallam for Ketu) |
+| Bija mantra | The seed mantra plus the full chant ending in "Sah `<graha-dative>` Namaha" — must be verified against a Sanskrit reference before any edit; an incorrect mantra is recited verbatim by users and is worse than no mantra |
+| Donation (daanam) | Items and approximate cost guidance |
+| Gemstone | Name plus the **gemstone policy** (22.2) |
+| Fasting / vrata | The fasting day and behavioural practice |
+| Behavioural advice | Tamil + English guidance framed per the Interpretation Engine Contract (18) — constructive, never fatalistic |
+
+### 22.2 Gemstone policy — withholding rule
+
+Gemstone prescriptions must never be issued indiscriminately (the common
+predatory pattern in commercial jyothidam). The engine applies a
+**functional-nature gate**:
+
+```python
+def gemstone_policy(functional_nature: str) -> GemstonePolicy:
+    if functional_nature in {"MALEFIC", "MARAKA"}:
+        return WITHHOLD   # do not recommend wearing this graha's stone
+    if functional_nature == "NEUTRAL":
+        return REVIEW     # show the stone, but flag "use after expert review"
+    return RECOMMEND      # BENEFIC / TRIKONA / YOGAKARAKA
+```
+
+This prevents recommending an expensive gemstone for a graha that is
+functionally malefic or a maraka for the native's Lagna — wearing such a
+stone is contraindicated in classical practice and recommending it anyway is
+financially exploitative.
+
+### 22.3 Tradition-variant remedy choices to freeze
+
+Some remedy fields have more than one defensible classical answer (regional
+or source variation). Product must pick one, document the source, and version
+it the same way as the tradition-variant tables in section 21:
+
+- Rahu/Ketu remedy day — sources differ between a fixed weekday and the daily
+  Rahu Kalam window; the engine currently uses the daily-window framing for
+  Rahu and Saturday/Vinayagar worship for Ketu.
+- Exact bija-mantra wording — minor transliteration variants exist across
+  regional sources; freeze on one Sanskrit-verified version per graha.
+
+## 23. Final Engineering Principle
 
 The platform must never hide uncertainty. If a value depends on approximate birth time, tradition-variant tables, missing D9, or conflicting supplied data, the engine should display a confidence flag instead of forcing certainty.
 

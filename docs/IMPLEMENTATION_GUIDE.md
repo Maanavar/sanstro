@@ -145,7 +145,7 @@ from app.calculations.chart_strength import MOOLATRIKONA_ZONE, OWN_SIGN_RASI, EX
 Mars from Lagna/Moon/Venus, house-sign Nivarthi, Guru aspect, own/exalt, gender weighting, 5 labels.
 Test case: `Lagna=Mesham, Mars=Viruchigam(8th), Jupiter=Kadagam(4th), Moon=Magaram(10th), Gender=Female` → `SEVVAI_DOSHAM_WITH_NIVARTHI`
 
-### 2.2 Missing Yogas (Sprint 2 — see AUDIT_AND_QA.md §PART 4)
+### 2.2 Yogas (implemented — verify against `app/calculations/yogas.py`)
 - Pancha Mahapurusha (Ruchaka/Bhadra/Hamsa/Malavya/Sasa)
 - Budha Aditya (Mercury + Sun, not combust)
 - Vipareetha Raja (6th/8th/12th lord in OTHER dusthana — NOT plain malefic in dusthana)

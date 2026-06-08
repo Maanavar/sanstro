@@ -109,6 +109,44 @@ Yamagandam slot: 2
 Kuligai slot: 4
 ```
 
+### T033 - Gowri Panchangam day-table head per weekday
+
+`gowri_panchangam` must contain 16 named slots (8 day + 8 night), and the
+first four day-slot category names per weekday must match
+`GOWRI_DAY_TABLE` exactly (Python `date.weekday()`: Mon=0 ... Sun=6):
+
+```text
+Sunday    (6): UTHI, AMIRDHA, ROGAM, LAABAM
+Monday    (0): AMIRDHA, VISHAM, ROGAM, LAABAM
+Tuesday   (1): ROGAM, LAABAM, DHANAM, SUGAM
+Wednesday (2): LAABAM, DHANAM, SUGAM, SORAM
+Thursday  (3): DHANAM, SUGAM, SORAM, UTHI
+Friday    (4): SUGAM, SORAM, UTHI, VISHAM
+Saturday  (5): SORAM, UTHI, VISHAM, AMIRDHA
+```
+
+Each day's 8-name sequence (and the corresponding `GOWRI_NIGHT_TABLE` night
+sequence) must remain a fixed cyclic rotation of
+`AMIRDHA, VISHAM, ROGAM, LAABAM, DHANAM, SUGAM, SORAM, UTHI` — only the
+starting offset changes per weekday. Saturday's night sequence
+(`GOWRI_NIGHT_TABLE[5]`) must end with `ROGAM`.
+
+### T034 - Nalla Neram derivation and Gowri category ranking
+
+```text
+gowri_nalla_neram = every slot whose category in {AMIRDHA, UTHI, LAABAM, DHANAM, SUGAM}
+nalla_neram       = gowri_nalla_neram minus any slot overlapping Rahu Kalam, Yamagandam, or Kuligai
+
+Category rank order (best to least, used by best_gowri_slot):
+  AMIRDHA (1) > UTHI (2) > LAABAM (3) > DHANAM (4) > SUGAM (5) > {ROGAM, SORAM, VISHAM} (unranked)
+```
+
+A slot that is favourable (`is_good = true`) but time-overlaps Rahu
+Kalam/Yamagandam/Kuligai must still appear in `gowri_nalla_neram` (carrying a
+`warning` annotation) but must be **excluded** from `nalla_neram` — this
+overlap is acknowledged in tradition (see formula spec 4.8a) and the UI must
+surface it rather than silently hide the slot.
+
 ---
 
 ## 5. Saturn Cycle Tests

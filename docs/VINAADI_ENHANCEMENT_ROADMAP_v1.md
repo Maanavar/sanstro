@@ -25,7 +25,7 @@ This doc > Product spec for feature prioritisation and UX decisions.
 - Mean node Rahu/Ketu (`SE_MEAN_NODE`) — never true node
 - Vimshottari dasha — period lengths in `app/calculations/dasha.py` — do not change
 - Transit scoring primary reference: Janma Rasi (natal Moon)
-- Kalam slots: fixed 90-minute windows from 6:00 AM anchor — NOT sunrise
+- Kalam slots: actual sunrise-to-sunset daylight divided into 8 parts — NOT fixed 6:00 AM anchoring
 - Chandrashtama: 8th Rasi from natal Moon Rasi — NOT 8th nakshatra
 - Amavasai (Tithi 30): no penalty — content card only
 - Every user-facing string: both `ta` and `en` fields — never monolingual
@@ -98,7 +98,7 @@ Execution rule for this roadmap version:
 - Chart engine: D1, D9, planet table, lagna, nakshatra, dasha (maha/antar/pratyantar)
 - Daily guidance: score (0–100), breakdown, reasons, remedy, emotional weather, nakshatra perspective, context insight, journal insight, best/caution windows, action suggestion
 - Transit (gochar): current positions, retrograde/combustion flags, Saturn cycle, peyarchi upcoming
-- Panchangam: tithi, nakshatra, yoga, karana, kalam (fixed 6 AM anchor), hora, abhijit
+- Panchangam: tithi, nakshatra, yoga, karana, kalam (sunrise-to-sunset daylight division), hora, abhijit
 - Family vaults: aggregate score, member weights, calendar, member CRUD
 - Journal: entries, prompts, export, correlations (needs 30+ entries), archive
 - Goals: CRUD, deactivate
@@ -167,7 +167,7 @@ home_one_action: { ta: "இன்றைய செயல்", en: "Today's action
 home_see_full: { ta: "முழு வழிகாட்டல்", en: "See full guidance" },
 ```
 
-**Thirukanitham note:** Window times are derived from panchangam kalam slots (fixed 6 AM anchor) + dasha/transit scoring. Do not recompute — use `bestWindows` from daily-guidance response as-is.
+**Thirukanitham note:** Window times are derived from panchangam kalam slots (actual sunrise-to-sunset daylight division) + dasha/transit scoring. Do not recompute — use `bestWindows` from daily-guidance response as-is.
 
 ---
 
@@ -722,7 +722,7 @@ Do not reopen these as net-new implementation work. Use this section as QA/polis
 
 ### Cross-cutting polish
 - Confirm all existing wired features have tab discoverability (entry point clarity).
-- Stale "UI missing" references to fix: `docs/AGENT_INSTRUCTIONS.md` Section 7 table (FEATURE-05 to FEATURE-12 rows), `docs/Vinaadi_AI_Enhancement_and_Bug_Fix_Instructions_v1.md` if it lists these as pending. Update status column to "Done" — do not change anything else in those files.
+- Stale "UI missing" references to fix: `docs/AGENT_INSTRUCTIONS.md` Section 7 table (FEATURE-05 to FEATURE-12 rows) — update status column to "Done" if any are stale. Do not change anything else in that file.
 - Add regression tests for key wiring paths where coverage is currently thin: at minimum, one integration test per wired feature that verifies the API response shape matches what the frontend type expects.
 
 ---
@@ -1063,7 +1063,7 @@ Select-String -Path "app\**\*.py" -Pattern "ensure_ascii\s*=\s*True" -Recurse
 ```
 - No new code uses tropical ayanamsa, true node, Placidus houses, or non-Vimshottari dasha periods.
 - Chandrashtama must use Rasi count (8th from Moon Rasi) — grep `chandrashtama` in any new code and verify.
-- Kalam anchor must be `time(6, 0)` — grep `kalam_anchor` in any new panchangam code.
+- Kalam must anchor at actual local sunrise and use `(sunset - sunrise) / 8` — grep `kalam_anchor` in any new panchangam code and verify it is not fixed to `time(6, 0)`.
 
 ### 11.7 Tone Compliance
 ```powershell
@@ -1087,7 +1087,7 @@ Apply to every new calculation added in this roadmap:
 | Vimshottari dasha periods (unchanged) | Life event windows, Annual Wrapped |
 | Chandrashtama = 8th Rasi from Moon | Muhurta picker (exclude Chandrashtama days) |
 | Amavasai = no penalty | Life event windows (don't penalise Amavasai windows), Annual Wrapped |
-| Kalam = fixed 6 AM anchor | Muhurta picker (exclude Rahu Kalam, Yamagandam, Kuligai) |
+| Kalam = sunrise-to-sunset daylight division | Muhurta picker (exclude Rahu Kalam, Yamagandam, Kuligai) |
 | Triple-confirmation rule | Life event windows (HIGH/MEDIUM/LOW confidence), Ask Vinaadi answers |
 | Non-fatalistic tone | All narrative text in all features |
 | Evidence-aware framing | Ask Vinaadi system prompt, life event window descriptions |

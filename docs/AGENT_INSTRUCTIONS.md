@@ -1,5 +1,5 @@
 # Vinaadi AI — Agent Instructions
-**Last updated:** 2026-05-24  
+**Last updated:** 2026-06-07  
 **Test suite:** 233 passing  
 **Stack:** FastAPI + PostgreSQL + SQLAlchemy (backend) · Next.js 15 + TypeScript (frontend)
 
@@ -15,7 +15,7 @@ Tamil-first bilingual astrology daily companion. Users enter their birth details
 - Whole Sign houses (`"W"` in Swiss Ephemeris)
 - Vimshottari dasha (standard 120-year periods: Ketu 7, Venus 20, Sun 6, Moon 10, Mars 7, Rahu 18, Jupiter 16, Saturn 19, Mercury 17)
 - Transit scoring from **Janma Rasi (Moon)** as primary reference
-- Panchangam kalam slots: fixed 90-minute windows from 6:00 AM (not astronomical sunrise)
+- Panchangam kalam slots: actual sunrise-to-sunset daylight divided into 8 parts; Rahu Kalam, Yamagandam, and Kuligai use weekday slot order.
 - Natural friendship table: Parashari doctrine (Sun friends Moon/Mars/Jupiter; Venus friends Mercury/Saturn, etc.)
 - Chandrashtama = 8th Rasi from natal Moon Rasi (not 8th nakshatra)
 - Thirukanitham is the main source tradition. If a doc mentions Drik or Drik Ganita, treat it as the astronomical calculation method used inside the Thirukanitham system, not as a separate source of truth.
@@ -47,7 +47,7 @@ Tamil-first bilingual astrology daily companion. Users enter their birth details
 - Chandrashtama: **8th Rasi from natal Moon Rasi** — NOT 8th nakshatra. Code in `app/services/daily_guidance_service.py`. (BUG-01 fixed, don't revert.)
 - Amavasai (Tithi 30): **No score penalty**. It is a sacred ancestor day — trigger content card only. (BUG-02 fixed, don't revert.)
 - Kandaka Sani: computed from **Lagna Rasi**, not Moon Rasi. (BUG-03 fixed.)
-- Kalam timings (Rahu Kalam, Yamagandam, Kuligai): **fixed 90-minute slots from 6:00 AM local time** — NOT derived from actual sunrise. Code: `kalam_anchor = datetime.combine(date_local, time(6, 0), tzinfo=timezone_obj)` in `app/calculations/panchangam.py`.
+- Kalam timings (Rahu Kalam, Yamagandam, Kuligai): divide the actual local sunrise-to-sunset daylight interval into 8 equal parts, then apply the weekday slot order. Code anchors at `sunrise` and uses `(sunset - sunrise) / 8` in `app/calculations/panchangam.py`.
 - Transit scoring: primary reference is **Janma Rasi (natal Moon)**. Jupiter/Saturn from Lagna are secondary adjustments only.
 - Score formula weights (`TRANSIT_BASE_SCORE`, `PLANET_DAILY_WEIGHT`, `PLANET_PERIOD_SCORE`) are in `app/services/daily_guidance_service.py`. Do not change these without explicit instruction — they are the author's calibrated values.
 - All score calculation intent is documented in `docs/Jothidam_AI_Formula_Engine_Specification_v1_Thirukanitham_2026.md`. When formula spec conflicts with product spec, **formula spec wins for calculations within the Thirukanitham standard**, product spec wins for UX.
@@ -131,7 +131,7 @@ All routers mount under `/api/v1` prefix (set in `app/core/config.py`).
 |---|---|
 | `app/services/daily_guidance_service.py` | Score engine, emotional weather, narrative, journal/context insight, week-ahead, activity timing, dasha story, peyarchi report, journal correlations |
 | `app/services/panchangam_service.py` | Wraps `app/calculations/panchangam.py`, formats response |
-| `app/calculations/panchangam.py` | Tithi, nakshatra, yoga, karana, kalam computation. **Kalam uses fixed 6 AM anchor.** |
+| `app/calculations/panchangam.py` | Tithi, nakshatra, yoga, karana, kalam computation. **Kalam uses sunrise-to-sunset daylight division.** |
 | `app/calculations/ephemeris.py` | Swiss Ephemeris wrapper (Lahiri sidereal, mean Rahu/Ketu) |
 | `app/calculations/astro.py` | Rasi, nakshatra, pada, lagna, house computations |
 | `app/services/dasha_service.py` | Vimshottari dasha computation |
@@ -449,8 +449,8 @@ Run one: `.\.venv\Scripts\python.exe -m pytest tests/test_panchangam_api.py -x -
 | `docs/Jothidam_AI_QA_Golden_Test_Cases_v1_Thirukanitham_2026.md` | Verifying calculation output against known-correct values |
 | `docs/Jothidam_AI_OpenAPI_v1_Thirukanitham_2026.yaml` | Full API contract reference |
 | `docs/Jothidam_AI_PostgreSQL_Schema_v1_Thirukanitham_2026.sql` | Database schema DDL |
-| `docs/Vinaadi_AI_Enhancement_and_Bug_Fix_Instructions_v1.md` | All implemented features (FEATURE-01 to FEATURE-12, ARCH-01 to ARCH-03) with detailed specs |
-| `docs/FRONTEND_SURFACE_GAP_PLAN.md` | Detailed plan for rendering emotionalWeather, nakshatraPerspective, journalInsight, contextInsight, ambientAlerts |
+| `docs/FRONTEND.md` | Current UI status, frontend feature backlog, surfaces for emotionalWeather/nakshatraPerspective/journalInsight/contextInsight/ambientAlerts |
+| `docs/VINAADI_ENHANCEMENT_ROADMAP_v1.md` | Forward roadmap, decisions log — what to build next and why |
 
 **Conflict resolution rule:** Formula spec > Product spec for calculations. Both > any other doc.
 
@@ -464,7 +464,7 @@ Run one: `.\.venv\Scripts\python.exe -m pytest tests/test_panchangam_api.py -x -
 | Rendering raw time `{window.start}` | Use `{formatClockLabel(window.start)}` |
 | Rendering raw planet lord `{period.lord}` | Use `{tPlanetLord(period.lord, lang)}` |
 | Tamil text shows as `தமிழ்` | Missing `charset=utf-8` - already fixed in middleware, check proxy route.ts |
-| Kalam times don't match printed panchangam | Must use fixed 6 AM anchor, not sunrise — already fixed in panchangam.py |
+| Kalam times differ from fixed-clock tables | The engine uses sunrise-to-sunset daylight division in `panchangam.py`; compare against Thirukanitham/Drik references that use the same convention |
 | Chandrashtama using nakshatra count | Must use Rasi count (8th rasi from natal Moon Rasi) |
 | Adding a new screen without conditional null check | Always guard: `{data && <Surface>...</Surface>}`, never crash on null |
 | Calling `formatClockLabel` on a date (not time) field | Only pass time strings `"HH:MM"` or ISO datetimes, not plain dates |
@@ -513,3 +513,242 @@ A dedicated Journal tab (✏) was added to the nav. It contains:
 - **Entries list** — last 50 entries with archive action (`GET /journal`, `DELETE /journal/{id}`)
 
 The journal tab loads entries and context data lazily when the user clicks the tab, and reloads after each save/archive. i18n keys are in `web/lib/i18n.ts` under `// ── Journal tab`. Types are in `web/lib/types.ts` under `JournalEntryData`, `JournalListData`, `JournalPromptsData`, `ContextData`.
+
+---
+
+## 15. TAMIL ASTROLOGY STANDARDS & CULTURAL RULES (Thirukanitha)
+
+These rules apply to ALL astrological calculations, interpretations, recommendations, and content generation. They exist because of real mistakes found in production.
+
+### 15.1 Calculation system
+- This app follows **Thirukanitha Panchangam** (scientific ephemeris-based), not Vakiya Panchangam.
+- Thirukanitham is the governing source tradition. "Drik"/"ephemeris" elsewhere refers only to the calculation method used to implement Thirukanitham accurately.
+- Dasha system: Vimshottari only (not Yogini or other systems unless user requests).
+
+### 15.2 Transit scoring — Jupiter (Guru Peyarchi), houses from Moon
+| House from Moon | Classification | Score range | Display colour |
+|-----------------|---------------|-------------|----------------|
+| 1 | Neutral | 50 | Yellow |
+| 2 | Good | 70 | Green |
+| 3 | Unfavourable | 35 | Red |
+| 4 | Unfavourable | 30 | Red |
+| 5 | Very Good | 80 | Green |
+| 6 | Unfavourable | 40 | Red |
+| 7 | Good (mixed) | 65–70 | Green |
+| 8 | Bad | 20 | Red |
+| 9 | Very Good | 82 | Green |
+| 10 | Neutral | 55 | Yellow |
+| 11 | Very Good | 80 | Green |
+| 12 | Unfavourable | 35 | Red |
+
+**Jupiter in house 7 from Moon is GOOD — never show red or warning** (BUG-05, fixed — don't revert).
+
+### 15.3 Transit scoring — Saturn (Sani Peyarchi), houses from Moon
+| House from Moon | Classification | Notes |
+|-----------------|---------------|-------|
+| 1 | Sade Sati (peak) | Caution — major life changes, not necessarily bad |
+| 2 | Sade Sati (ending) | Financial caution |
+| 3 | Good | Effort rewarded |
+| 4 | Unfavourable | Domestic stress |
+| 5 | Neutral | |
+| 6 | Good | Enemies defeated, hard work pays |
+| 7 | Neutral to mixed | |
+| 8 | Ashtama Sani — Bad | Health and obstacles — show warning |
+| 9 | Unfavourable | Father-related issues, spiritual challenges |
+| 10 | Good | Career growth through hard work |
+| 11 | Very Good | Financial gains |
+| 12 | Sade Sati (beginning) | Expenditure, travel, spiritual |
+
+Sade Sati (houses 12, 1, 2 from Moon) = 7.5-year Saturn cycle. Never present it as purely negative — explain both the challenge and the spiritual-growth angle. Never show a flat "BAD" label.
+
+### 15.4 Parihara (remedy) recommendations
+Pariharas must be **chart-specific** (afflicted planet, dasha lord, dosha — never identical across users), follow **Tamil temple tradition**, and be **dasha-lord aware**.
+
+Standard parihara table:
+
+| Planet | Day | Temple deity | Primary remedy |
+|--------|-----|-------------|---------------|
+| Sun (Suryan) | Sunday | Surya / Shiva temples | Morning Surya Namaskar, Aditya Hridayam, offer red flowers |
+| Moon (Chandran) | Monday | Shiva / Durga | Wear white, offer milk to Shiva, Chandra mantra |
+| Mars (Chevvai) | Tuesday | Murugan / Kartikeya | Visit Murugan temple, offer red items, Chevvai parihara at Thiruneermalai |
+| Mercury (Budhan) | Wednesday | Vishnu | Green offerings, Vishnu worship, Budha mantra |
+| Jupiter (Guru) | Thursday | Brihaspati / Dakshinamurthy | Yellow offerings, Dakshinamurthy worship, Guru mantra |
+| Venus (Sukran) | Friday | Lakshmi / Devi | White/pink flowers to Lakshmi, Shukra mantra |
+| Saturn (Shani) | Saturday | Shani / Yama | Sesame oil lamp on Saturday, Shani stotram, visit Thirunallar |
+| Rahu | — | Durga / Kali | Rahu kalam prayer, Durga worship, nagaprathishta |
+| Ketu | — | Ganesha / Murugan | Ketu worship, Ashta Bhuja Durga, spiritual practice |
+
+**Parihara engine logic (must run per-chart, never hardcoded):**
+1. Find the current dasha lord → primary parihara (most urgent).
+2. Find afflicted planets: debilitated, combust (within 6° of Sun), conjunct/aspected by Rahu/Ketu/Saturn with no benefic relief, or in 6th/8th/12th with no strength.
+3. Check specific doshas: Chevvai dosham (Mars in 1/2/4/7/8/12) → Murugan remedy; Shani dosha (Saturn afflicting Lagna/Moon/Sun) → Saturday sesame lamp, Thirunallar; Rahu/Ketu dosha → Sarpa dosha parihara; Naga dosha → nagaprathishta; Pitru dosha → Pitru tharpanam, Aditya Hridayam.
+4. Sun specifically (weak/debilitated/combust/afflicted): Surya Namaskar (12 rounds, facing east at sunrise), Aditya Hridayam, Arghyam, visit Suryanar Koil (Kumbakonam).
+5. Return top 2–3 pariharas ordered by urgency (dasha lord → doshas → afflicted planets).
+
+**Validation rule:** If two different charts get identical parihara recommendations, the logic is broken.
+
+### 15.5 Retrograde planet rules
+- A retrograde planet's effects are **internalized** — significations turn inward, delays/re-dos common.
+- Never interpret retrograde identically to direct. In transit: slow timelines, add "review and reconsider" language. In natal chart: unique non-standard relationship with that planet's themes.
+- Never skip noting retrograde status when displaying planetary positions.
+
+### 15.6 Chandrashtama
+When transiting Moon is in the 8th Rasi from natal Moon Rasi, show a caution notice — a "proceed carefully" notice, never a red error. (Frozen as 8th **rasi**, not 8th nakshatra — see §15.10.)
+
+### 15.7 Positive window after caution
+**Always state when a caution period improves.** Calculate the next transit/dasha shift that brings improvement and add it to the `outlook` text — never leave the user without a forward-looking positive statement.
+> "This period shows caution for career moves (44/100). The planetary climate improves after 15 Aug 2026 when Jupiter enters your 9th house. Consider revisiting major decisions then."
+
+### 15.8 Tamil marriage compatibility — Porutham (10 Poruthams)
+Primary compatibility framework — NOT the same as synastry score.
+
+| # | Porutham | What it checks | Weight |
+|---|----------|----------------|--------|
+| 1 | Dinam | Day star compatibility | Medium |
+| 2 | Ganam | Nature (Deva/Manushya/Rakshasa) | High |
+| 3 | Mahendram | Longevity and prosperity of the couple | High |
+| 4 | Sthree Dheergam | Long life of the wife | High |
+| 5 | Yoni | Sexual/physical compatibility | Medium |
+| 6 | Rasi | Sign compatibility | High |
+| 7 | Rasiyathipam | Lords of the Rasi | Medium |
+| 8 | Vedha | Obstacles — some pairs forbidden | Critical — must not be violated |
+| 9 | Vasya | Influence and attraction | Low |
+| 10 | Rajju | Longevity of the husband | Critical — must not be violated |
+
+**Rajju** and **Vedha** are non-negotiable — if either fails, the match is traditionally rejected regardless of other scores; always flag prominently. Minimum acceptable: 6/10 — display total count, not just percentage.
+
+### 15.9 Cultural & ethical content rules — enforce in BOTH backend and frontend
+- **Never compute marriage compatibility between family members.** Block at the service layer (`synastry_service.py`) before scoring: `parent↔child`, `grandparent↔grandchild`, `sibling↔sibling`, `uncle/aunt↔nephew/niece`. Cross-cousin marriages are traditional in some Tamil families — do not block `cousin`, but note it's a traditional practice. Return a clear error, not a score: *"Marriage compatibility analysis is not applicable for this relationship type."*
+- **Marital status filtering:** a married person must NOT see marriage prospect windows, "find a life partner" goals, or nakshatra-based marriage timing — show married-life harmony content instead (7th house strength, Venus position, spousal compatibility). Divorced/widowed may see remarriage content only on explicit request.
+- **Age-gating (mandatory in backend, not just frontend):** Under 16 → no marriage/relationship-compatibility content; Under 18 → no job-change/career windows; Under 14 → no relationship content; any age → no career content if student life-stage and age < 18. Return: *"This content is not applicable for the current life stage."*
+- **Life-stage calibration:** Student (<22) → education/exams/parental relationships; Young adult (22–35) → career start/marriage/first home; Mid-life (35–55) → career advancement/children/health; Senior (55+) → retirement/health/spiritual/legacy. Never show identical predictions to a 16-year-old and a 50-year-old.
+
+### 15.10 Frozen calculation standards — regression-locked, do not change silently
+(Re-verified against live code 2026-06-05/07; covered by `tests/test_phase_d_regressions.py`, `tests/test_astrology_shared_rules.py`, `tests/test_porutham.py`)
+
+- Panchangam nitya yoga: `VAIDHRITI`, `VISHKAMBHA`, `VAJRA` are ashubha for subha-muhurtham checks; `VARIYANA` is the matching auspicious nitya-yoga spelling; `AMRITA` is NOT one of the 27 nitya-yogas.
+- Muhurta Krishna-paksha tithi scoring uses within-paksha tithi numbers (`tithi_number - 15` for tithi 16–30) — Krishna Dwitiya/Tritiya/Shashti/Saptami/Dashami/Ekadashi must be recognized correctly.
+- Nakshatra→rasi mapping is pada-aware via the canonical 9-pada-per-rasi helper in `app/calculations/astro.py` — never reintroduce the old coarse 3-nakshatra-per-rasi formula.
+- Chandrashtama = **8th rasi from natal Moon rasi**, not 8th nakshatra from Janma Nakshatra (Janma/Anujanma/Trijanma nakshatra checks are a separate concept).
+- Pariharam Badhaka-dosham targeting uses the lagna-specific badhaka lord via `get_badhaka_lord(lagna_rasi, SIGN_LORD)` — never hardcoded Saturn.
+- Ardhashtama Sani (4th-from-Moon) is **kept** as an active affliction alongside Kantaka Sani (4th-from-Lagna) — both are genuine, distinct cautions; the daily-score double-count is already guarded in `daily_guidance_service.py` (decision 2026-06-05, issue T3).
+
+---
+
+## 16. CONTENT TONE RULES — never violate in generated text
+
+Every generated string, notification, narrative, and explanation must follow these rules:
+
+1. **Never say "will happen"** — say "traditionally associated with" or "indicates a tendency."
+2. **Never say "bad times", "danger", "suffer"** — say "caution period", "refinement cycle", "calls for care."
+3. **Saturn / Sani** — always frame as discipline, restructuring, growth, longevity — never punishment.
+4. **Health** — preventive nudges only ("this period calls for attention to bone health") — never diagnosis, never alarm. Always pair with the medical qualifier: *"This is a traditional tendency based on planetary associations, not a medical prediction. Consult a healthcare provider for health decisions."*
+5. **Death** — never mentioned, not even indirectly.
+6. **Every caution must pair with an action** — "X is challenging → here is what helps" (see §15.7 for the positive-window rule).
+7. **Remedies are optional** — never mandatory rituals; always framed as "traditional practices that many people find supportive."
+
+---
+
+## 17. UI/UX & FEATURE-SPECIFIC RULES
+
+### 17.1 Frontend API calls — always through the proxy helper
+All frontend API calls **must** go through `apiFetchJson()` from `web/lib/api.ts` (it prepends `/api/backend`, routed by the Next.js proxy to FastAPI). Never call `fetch('/api/v1/...')` directly — there is no Next.js route at that path and it 404s.
+```ts
+// WRONG — 404s
+fetch(`/api/v1/charts/${chartId}/life-events`, { credentials: "include" })
+// CORRECT — through the proxy
+apiFetchJson(`/api/v1/charts/${chartId}/life-events`)
+```
+When the backend returns HTTP 204 (e.g., logout), the proxy must return a `null` body, not an empty `ArrayBuffer`:
+```ts
+if (response.status === 204) {
+  return new NextResponse(null, { status: 204, headers: responseHeaders });
+}
+```
+
+### 17.2 South Indian chart grid — Jathagam Kattam (ஜாதகம் கட்டம்)
+The traditional South Indian **square** birth chart grid is the standard for Tamil astrology — never the North Indian circular/diamond format. Every chart in Vinaadi must use it.
+
+```
+┌──────────┬──────────┬──────────┬──────────┐
+│  12      │   1      │   2      │   3      │
+│ (Pisces) │ (Aries)  │(Taurus)  │(Gemini)  │
+├──────────┼──────────┼──────────┼──────────┤
+│  11      │          │          │   4      │
+│(Aquarius)│          │          │ (Cancer) │
+├──────────┼──────────┼──────────┼──────────┤
+│  10      │          │          │   5      │
+│(Capricorn│          │          │  (Leo)   │
+├──────────┼──────────┼──────────┼──────────┤
+│   9      │   8      │   7      │   6      │
+│(Sagittar)│(Scorpio) │ (Libra)  │ (Virgo)  │
+└──────────┴──────────┴──────────┴──────────┘
+```
+The fixed signs in the grid never change — the Lagna house shifts based on birth Rasi, and planets are placed in whichever house corresponds to their sign.
+
+Required on every chart: all 12 houses, planet abbreviations in Tamil + English, Lagna marked clearly, rasi name/number per house, all 9 grahas, dasha balance at birth, download/share as image. If birth time is unknown/approximate, show: *"Birth time not confirmed — Lagna may be inaccurate."* Never replace the grid with a list/table — the visual kattam is required, on mobile and desktop.
+
+Two-chart marriage comparison view: side-by-side Jathagam Kattams (name + DOB above each), Porutham table below (all 10, pass/fail — §15.8), prominent total ("7/10"), Rajju/Vedha status with a clear warning block if either fails (never hidden), and a dasha-compatibility note.
+
+### 17.3 Decision Support vs. What-If Simulator — do not conflate
+- **Decision Support** = compare two specific options the user is already considering ("Job Offer A vs B") → which does the current planetary period favour? It is NOT a fortune-teller; it never predicts outcomes.
+- **What-If Simulator** = simulate ONE hypothetical action ("what if I start a business in Sept 2026?") → timing analysis for that single scenario.
+Both need clear onboarding copy explaining the distinction — users have been confused between them.
+
+`/api/v1/decisions/brief` request body (exact shape — the `scenario` field does NOT exist, never send it):
+```json
+{
+  "chartId": "uuid",
+  "optionA": { "label": "string (required)", "description": "string (required)" },
+  "optionB": { "label": "string (required)", "description": "string (required)" },
+  "priority": "career | family | health | relationship | education | money | spiritual",
+  "targetDate": "YYYY-MM-DD"
+}
+```
+
+### 17.4 Shadow work journal
+Jungian-adapted introspective journaling using the Rahu/Ketu axis, 8th house, and 12th house. Must be chart-specific: Rahu sign/house → "what you chase but fear," Ketu → "what you abandon but need," 8th-house lord placement drives the shadow theme. All API calls go through `apiFetchJson()` (§17.1).
+
+### 17.5 Life event log — valid event types
+`app/schemas/life_event_log.py` (`VALID_EVENT_TYPES`) and the frontend dropdown in `dashboard-life-event-log.tsx` must always stay in sync:
+```
+JOB_CHANGE, PROMOTION, DEMOTION, JOB_LOSS,
+RELATIONSHIP_START, RELATIONSHIP_END, MARRIAGE, DIVORCE, REMARRIAGE,
+RELOCATION, TRAVEL_ABROAD,
+HEALTH_EVENT, SURGERY, RECOVERY,
+EXAM_RESULT, EDUCATION_START, EDUCATION_END,
+FINANCIAL_MILESTONE, INVESTMENT, PROPERTY_PURCHASE, DEBT,
+FAMILY_LOSS, BIRTH_OF_CHILD,
+BUSINESS_START, BUSINESS_END,
+SPIRITUAL_EVENT, PILGRIMAGE, INITIATION,
+LEGAL_MATTER,
+OTHER
+```
+
+### 17.6 General UI guardrails
+- Never use `var(--color-surface, #fff)` as a fallback — undefined CSS var → white-on-white text. Define `--color-surface` for both light and dark modes; test all form inputs in both.
+- Ask Vinaadi must always be a **floating button** (fixed, bottom-right) opening an overlay/drawer — never buried in a tab.
+- Every CTA ("See Full Guidance", "Explore", "View More") must have a working `onClick`/`href` — never merge one with `onClick={() => {}}` or no handler. "See Full Guidance" specifically must scroll to `id="personal-daily-guidance"`.
+- Dasha timeline planet colors must contrast against both themes and against each other. Score indicators: green ≥ 65, yellow 45–64, red < 45.
+- No single dashboard tab should require more than 3 full scrolls to reach the bottom.
+
+---
+
+## 18. ANTI-PATTERNS — what not to do
+
+| Don't | Why | Do instead |
+|-------|-----|-----------|
+| Use `fetch('/api/v1/...')` in frontend | No Next.js handler at that path → 404 | `apiFetchJson('/api/v1/...')` |
+| Fix encoding with an iterative Python script | Creates double-encoding, corrupts Tamil text | Set `PYTHONIOENCODING=utf-8` / `PYTHONUTF8=1` env vars, run once |
+| Drop or truncate any table in `vinaadi_dev` | Real user data — irreversible | Back up first; do schema work against the test DB |
+| Show marriage content to family-member pairs | Culturally inappropriate | Block at service layer, return a clear error |
+| Show a caution period without a positive window | Leaves the user without hope or guidance | Always add "improves on [date]" (§15.7) |
+| Merge a button with no `onClick`/`href` | Dead UX, breaks trust | Wire the action before merging |
+| Apply identical predictions to all users | Not personalized, not meaningful | Filter by age, marital status, life stage |
+| Give generic pariharas that don't match the chart | Wrong astrological advice | Chart-specific dosha + dasha-lord pariharas (§15.4) |
+| Score Jupiter 7th-from-Moon as bad | Incorrect per Thirukanitha | Score as 65–70 (good/mixed) |
+| Use `Out-File` to write Tamil-text files | Writes UTF-16 with BOM, breaks Python | Use the Write tool or `Set-Content -Encoding utf8` |
+| Run `alembic upgrade head` on `vinaadi_dev` without review | May run a destructive migration | Read the migration file first; test on `vinaadi_test` |
+| Send `scenario` or `optionALabel` to `/decisions/brief` | Schema mismatch → 422 | Send `optionA`/`optionB` as `{label, description}` objects (§17.3) |
+| Pass an empty `ArrayBuffer` as a 204 response body | `NextResponse` constructor error | `new NextResponse(null, { status: 204 })` (§17.1) |
+| Amend an existing git commit after a hook failure | The commit didn't happen — amend would clobber the previous one | Always create a NEW commit |
