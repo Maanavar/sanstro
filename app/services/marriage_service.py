@@ -219,7 +219,7 @@ def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPred
         score += 10
         supports.append(BiText("தசை ஆதரவு இணைந்துள்ளது.", "Dasha support is aligned."))
     else:
-        challenges.append(BiText("தசை நேரம் மிதமாக உள்ளது.", "Dasha timing is moderate."))
+        challenges.append(BiText("7ம் அதிபதி அல்லது சுக்கிரன் தசை இல்லை — தசை ஆதரவு குறைவு.", "Current dasha does not include the 7th lord or Venus — dasha support is weak."))
 
     jupiter_aspects = get_jupiter_aspects(payload.transit_jupiter_rasi)
     transit_support = "WEAK"

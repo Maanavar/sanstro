@@ -139,8 +139,17 @@ def dispatch_notification(
 
     channel = pref.notification_channel
     if channel == "none":
-        logger.debug("dispatch_skipped user=%s type=%s — channel=none", user_id, notification_type)
-        return "opted_out"
+        # The in-app bell/inbox is decoupled from push/email: even when the user
+        # has not opted into a delivery channel, still persist the notification
+        # so it appears in the in-app inbox (status="sent"). Channel preference
+        # only governs push/email *delivery*, not whether the bell receives it.
+        logger.debug("dispatch_in_app_only user=%s type=%s — channel=none", user_id, notification_type)
+        _persist_notification(
+            session, user_id, chart_id, notification_type,
+            f"{title_ta} / {title_en}", f"{body_ta}\n{body_en}",
+            "sent", None, priority,
+        )
+        return "in_app_only"
 
     # Smart silence: max 1 push/day during heavy Sani periods
     wants_push = channel in ("push", "both")

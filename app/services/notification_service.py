@@ -37,6 +37,10 @@ def build_morning_notification(
     rahu_end: str,
     nakshatra_name_ta: str,
     nakshatra_name_en: str,
+    nalla_neram_category_ta: str | None = None,
+    nalla_neram_category_en: str | None = None,
+    nalla_neram_purpose_ta: str | None = None,
+    nalla_neram_purpose_en: str | None = None,
 ) -> dict:
     """
     Build the bilingual push notification payload for the morning Nalla Neram alert.
@@ -47,19 +51,42 @@ def build_morning_notification(
     Returns a dict with 'title' and 'body', each a dict with 'ta' and 'en' keys.
     """
     label = SCORE_LABEL_LINES.get(score_label, SCORE_LABEL_LINES["BALANCED"])
+    time_range = f"{nalla_neram_start}–{nalla_neram_end}"
+    title_ta = (
+        f"இன்றைய நல்ல நேரம்: {nalla_neram_category_ta} {time_range}"
+        if nalla_neram_category_ta
+        else f"இன்றைய நல்ல நேரம்: {time_range}"
+    )
+    title_en = (
+        f"Today's Nalla Neram: {nalla_neram_category_en} {time_range}"
+        if nalla_neram_category_en
+        else f"Today's Nalla Neram: {time_range}"
+    )
+    purpose_ta = (
+        f"{nalla_neram_category_ta}: {nalla_neram_purpose_ta}. "
+        if nalla_neram_category_ta and nalla_neram_purpose_ta
+        else ""
+    )
+    purpose_en = (
+        f"{nalla_neram_category_en}: good for {nalla_neram_purpose_en}. "
+        if nalla_neram_category_en and nalla_neram_purpose_en
+        else ""
+    )
     return {
         "title": {
-            "ta": f"இன்றைய நல்ல நேரம்: {nalla_neram_start}–{nalla_neram_end}",
-            "en": f"Today's Nalla Neram: {nalla_neram_start}–{nalla_neram_end}",
+            "ta": title_ta,
+            "en": title_en,
         },
         "body": {
             "ta": (
                 f"நட்சத்திரம்: {nakshatra_name_ta}. "
+                f"{purpose_ta}"
                 f"{label['ta']} "
                 f"ராகு காலம் {rahu_start}–{rahu_end} தவிர்க்கவும்."
             ),
             "en": (
                 f"Star: {nakshatra_name_en}. "
+                f"{purpose_en}"
                 f"{label['en']} "
                 f"Avoid Rahu Kalam {rahu_start}–{rahu_end}."
             ),

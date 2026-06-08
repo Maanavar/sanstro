@@ -112,6 +112,33 @@ def house_from_reference(reference_rasi: int | str, target_rasi: int | str) -> i
     return ((target_number - reference_number) % 12) + 1
 
 
+def nakshatra_to_rasi(nakshatra: int | str, pada: int = 1) -> int:
+    """Return rasi (1-12) using the standard 9-pada-per-rasi mapping."""
+    if isinstance(nakshatra, str):
+        normalized = "".join(char for char in nakshatra.strip().lower() if char.isalnum())
+        nakshatra_number = NAKSHATRA_NAME_TO_NUMBER.get(normalized)
+        if nakshatra_number is None:
+            raise ValueError(f"Unknown nakshatra name: {nakshatra}")
+    else:
+        nakshatra_number = nakshatra
+
+    if not 1 <= nakshatra_number <= 27:
+        raise ValueError("Nakshatra number must be between 1 and 27.")
+    pada_norm = pada if 1 <= pada <= 4 else 1
+    absolute_pada = (nakshatra_number - 1) * 4 + (pada_norm - 1)
+    return absolute_pada // 9 + 1
+
+
+def chandrashtama_rasi_from_janma(janma_rasi: int | str) -> int:
+    """Return the 8th rasi from natal Moon rasi, counted inclusively."""
+    janma_rasi_number = resolve_rasi(janma_rasi)
+    return ((janma_rasi_number - 1 + 7) % 12) + 1
+
+
+def is_chandrashtama(janma_rasi: int | str, transit_moon_rasi: int | str) -> bool:
+    return resolve_rasi(transit_moon_rasi) == chandrashtama_rasi_from_janma(janma_rasi)
+
+
 def local_datetime_to_utc(local_datetime: datetime, timezone_name: str) -> datetime:
     timezone_obj = resolve_timezone(timezone_name)
     if local_datetime.tzinfo is None:

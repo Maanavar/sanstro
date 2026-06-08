@@ -4,10 +4,11 @@ Life event window service — P1-A.
 Returns 3-5 year forward-looking windows for CAREER, MARRIAGE, STUDIES,
 RELOCATION, and HEALTH_CAUTION events with HIGH/MEDIUM/LOW confidence tiers.
 
-Confidence = count of independent signals (natal promise, dasha timing, gochar):
-  HIGH   ≥ 3 signals
-  MEDIUM = 2 signals
-  LOW    = 1 signal (dasha alone, no gochar or natal corroboration)
+Confidence = count of active timing categories currently implemented
+(one dasha category + zero or more gochar confirmations):
+  HIGH   ≥ 3 categories
+  MEDIUM = 2 categories
+  LOW    = 1 category (dasha alone, without strong transit confirmation)
 """
 from __future__ import annotations
 
@@ -22,7 +23,7 @@ from app.calculations.astro import house_from_reference, resolve_timezone, utc_d
 from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
-from app.calculations.transits import get_jupiter_aspects
+from app.calculations.transits import get_jupiter_aspects, get_saturn_aspects
 from app.models import BirthProfile, Chart
 from app.schemas.dasha import ResponseMeta
 from app.schemas.life_events import BiText, LifeEventWindow, LifeEventsResponse, LifeEventsResponseData
@@ -51,6 +52,8 @@ _REASON_TA: dict[str, str] = {
     "5th_lord_dasha_active":    "5ஆம் இட அதிபதி தசை நடப்பில் உள்ளது",
     "jupiter_dasha_active":     "குரு தசை நடப்பில் உள்ளது",
     "mercury_supports_4th":     "புதன் 4ஆம் இடத்தை பார்க்கிறது அல்லது நிற்கிறது",
+    "mercury_transits_4th":     "புதன் 4ஆம் இடத்தில் சஞ்சாரம்",
+    "jupiter_supports_4th":     "குரு 4ஆம் இடத்தை பார்க்கிறது அல்லது நிற்கிறது",
     "jupiter_supports_5th":     "குரு 5ஆம் இடத்தை பார்க்கிறது அல்லது நிற்கிறது",
     "12th_lord_dasha_active":   "12ஆம் இட அதிபதி தசை நடப்பில் உள்ளது",
     "rahu_dasha_active":        "ராகு தசை நடப்பில் உள்ளது",
@@ -65,35 +68,46 @@ _REASON_TA: dict[str, str] = {
 }
 
 _REASON_EN: dict[str, str] = {
-    "7th_lord_dasha_active":    "7th lord dasha is active",
-    "venus_dasha_active":       "Venus dasha is active",
-    "jupiter_supports_7th":     "Jupiter aspects or occupies the 7th house",
-    "venus_transits_7th":       "Venus transits the 7th house",
-    "10th_lord_dasha_active":   "10th lord dasha is active",
-    "sun_dasha_active":         "Sun dasha is active",
-    "mercury_dasha_active":     "Mercury dasha is active",
-    "jupiter_supports_10th":    "Jupiter aspects or occupies the 10th house",
-    "sun_transits_10th":        "Sun transits the 10th house",
-    "4th_lord_dasha_active":    "4th lord dasha is active",
-    "5th_lord_dasha_active":    "5th lord dasha is active",
-    "jupiter_dasha_active":     "Jupiter dasha is active",
-    "mercury_supports_4th":     "Mercury aspects or occupies the 4th house",
-    "jupiter_supports_5th":     "Jupiter aspects or occupies the 5th house",
-    "12th_lord_dasha_active":   "12th lord dasha is active",
-    "rahu_dasha_active":        "Rahu dasha is active",
-    "saturn_transits_12th":     "Saturn transits the 12th house",
-    "rahu_transits_key_house":  "Rahu transits a key house",
-    "6th_lord_dasha_active":    "6th lord dasha is active",
-    "8th_lord_dasha_active":    "8th lord dasha is active",
-    "saturn_dasha_active":      "Saturn dasha is active",
-    "saturn_supports_6th":      "Saturn aspects or occupies the 6th house",
-    "mars_transits_6th":        "Mars transits the 6th house",
-    "natal_promise_strong":     "Strong natal promise for this event",
+    "7th_lord_dasha_active":    "Dasha signal: the 7th-house lord for marriage/partnership is active",
+    "venus_dasha_active":       "Dasha signal: Venus, the relationship significator, is active",
+    "jupiter_supports_7th":     "Transit signal: Jupiter occupies or aspects the 7th house",
+    "venus_transits_7th":       "Short-term transit signal: Venus occupies the 7th house",
+    "10th_lord_dasha_active":   "Dasha signal: the 10th-house lord for career is active",
+    "sun_dasha_active":         "Dasha signal: Sun, a career/status significator, is active",
+    "mercury_dasha_active":     "Dasha signal: Mercury, a learning/business significator, is active",
+    "jupiter_supports_10th":    "Transit signal: Jupiter occupies or aspects the 10th house",
+    "sun_transits_10th":        "Short-term transit signal: Sun occupies the 10th house",
+    "4th_lord_dasha_active":    "Dasha signal: the 4th-house lord for education foundation is active",
+    "5th_lord_dasha_active":    "Dasha signal: the 5th-house lord for learning/intelligence is active",
+    "jupiter_dasha_active":     "Dasha signal: Jupiter, a wisdom/education significator, is active",
+    "mercury_supports_4th":     "Transit signal: Mercury occupies the 4th house",
+    "mercury_transits_4th":     "Transit signal: Mercury occupies the 4th house",
+    "jupiter_supports_4th":     "Transit signal: Jupiter occupies or aspects the 4th house",
+    "jupiter_supports_5th":     "Transit signal: Jupiter occupies or aspects the 5th house",
+    "12th_lord_dasha_active":   "Dasha signal: the 12th-house lord for distant places/relocation is active",
+    "rahu_dasha_active":        "Dasha signal: Rahu, a foreign/shift significator, is active",
+    "saturn_transits_12th":     "Transit signal: Saturn occupies the 12th house",
+    "rahu_transits_key_house":  "Transit signal: Rahu occupies a relocation-sensitive house",
+    "6th_lord_dasha_active":    "Dasha caution: the 6th-house lord for health routines/illness is active",
+    "8th_lord_dasha_active":    "Dasha caution: the 8th-house lord for vulnerability/recovery is active",
+    "saturn_dasha_active":      "Dasha caution: Saturn is active, so discipline and rest matter",
+    "saturn_supports_6th":      "Transit caution: Saturn influences the 6th house of health routines",
+    "mars_transits_6th":        "Short-term transit caution: Mars occupies the 6th house",
+    "natal_promise_strong":     "Natal signal: the birth chart supports this event area",
 }
 
 
 def _reason_bitext(key: str) -> BiText:
     return _t(_REASON_TA.get(key, key), _REASON_EN.get(key, key))
+
+
+def _gochar_summary(gochar_reasons: list[str], supported_ta: str, supported_en: str) -> tuple[str, str]:
+    if gochar_reasons:
+        return supported_ta, supported_en
+    return (
+        "கோசார உறுதி பலமாக இல்லை; இது முக்கியமாக தசை ஆதரவின் அடிப்படையிலான கவனிக்கும் காலம்.",
+        "Transit confirmation is light; this is mainly a dasha-based watch window.",
+    )
 
 
 # ── House helpers ─────────────────────────────────────────────────────────────
@@ -150,12 +164,17 @@ def _marriage_windows(lagna_rasi: int, birth_jd: float, moon_lon: float, from_ye
         if venus_rasi == seventh_rasi:
             gochar_reasons.append("venus_transits_7th")
 
-        signals = len(dasha_reasons) + len(gochar_reasons)
+        signals = 1 + len(gochar_reasons)
         if signals == 0:
             continue
 
         maha = timeline.current_mahadasha.lord
         antar = timeline.current_antardasha.lord
+        gochar_ta, gochar_en = _gochar_summary(
+            gochar_reasons,
+            "கோசார உறுதி: குரு அல்லது சுக்கிரன் 7ஆம் இடத்துடன் தொடர்பு கொள்கிறது",
+            "Transit confirmation: Jupiter or Venus connects with the 7th house",
+        )
         results.append({
             "event_type": "MARRIAGE",
             "start_date": date(year, 7, 1),
@@ -164,8 +183,8 @@ def _marriage_windows(lagna_rasi: int, birth_jd: float, moon_lon: float, from_ye
             "reasons": dasha_reasons + gochar_reasons,
             "dasha_ta": f"{maha} - {antar} தசை நடப்பில்",
             "dasha_en": f"{maha} - {antar} dasha active",
-            "gochar_ta": f"குரு {jupiter_rasi}ஆம் ராசியில் சஞ்சாரம்",
-            "gochar_en": f"Jupiter transiting rasi {jupiter_rasi}",
+            "gochar_ta": gochar_ta,
+            "gochar_en": gochar_en,
         })
 
     return results
@@ -201,12 +220,17 @@ def _career_windows(lagna_rasi: int, birth_jd: float, moon_lon: float, from_year
         if sun_rasi == tenth_rasi:
             gochar_reasons.append("sun_transits_10th")
 
-        signals = len(dasha_reasons) + len(gochar_reasons)
+        signals = 1 + len(gochar_reasons)
         if signals == 0:
             continue
 
         maha = timeline.current_mahadasha.lord
         antar = timeline.current_antardasha.lord
+        gochar_ta, gochar_en = _gochar_summary(
+            gochar_reasons,
+            "கோசார உறுதி: குரு அல்லது சூரியன் 10ஆம் இடத்துடன் தொடர்பு கொள்கிறது",
+            "Transit confirmation: Jupiter or Sun connects with the 10th house",
+        )
         results.append({
             "event_type": "CAREER",
             "start_date": date(year, 7, 1),
@@ -215,8 +239,8 @@ def _career_windows(lagna_rasi: int, birth_jd: float, moon_lon: float, from_year
             "reasons": dasha_reasons + gochar_reasons,
             "dasha_ta": f"{maha} - {antar} தசை நடப்பில்",
             "dasha_en": f"{maha} - {antar} dasha active",
-            "gochar_ta": f"குரு {jupiter_rasi}ஆம் ராசியில் சஞ்சாரம்",
-            "gochar_en": f"Jupiter transiting rasi {jupiter_rasi}",
+            "gochar_ta": gochar_ta,
+            "gochar_en": gochar_en,
         })
 
     return results
@@ -252,17 +276,24 @@ def _studies_windows(lagna_rasi: int, birth_jd: float, moon_lon: float, from_yea
 
         gochar_reasons: list[str] = []
         jup_aspects = get_jupiter_aspects(jupiter_rasi)
-        if mercury_rasi == fourth_rasi or fourth_rasi in jup_aspects:
-            gochar_reasons.append("mercury_supports_4th")
+        if mercury_rasi == fourth_rasi:
+            gochar_reasons.append("mercury_transits_4th")
+        if fourth_rasi in jup_aspects or jupiter_rasi == fourth_rasi:
+            gochar_reasons.append("jupiter_supports_4th")
         if fifth_rasi in jup_aspects or jupiter_rasi == fifth_rasi:
             gochar_reasons.append("jupiter_supports_5th")
 
-        signals = len(dasha_reasons) + len(gochar_reasons)
+        signals = 1 + len(gochar_reasons)
         if signals == 0:
             continue
 
         maha = timeline.current_mahadasha.lord
         antar = timeline.current_antardasha.lord
+        gochar_ta, gochar_en = _gochar_summary(
+            gochar_reasons,
+            "கோசார உறுதி: புதன் அல்லது குரு கல்வி வீடுகளுடன் தொடர்பு கொள்கிறது",
+            "Transit confirmation: Mercury or Jupiter connects with education houses",
+        )
         results.append({
             "event_type": "STUDIES",
             "start_date": date(year, 7, 1),
@@ -271,8 +302,8 @@ def _studies_windows(lagna_rasi: int, birth_jd: float, moon_lon: float, from_yea
             "reasons": dasha_reasons + gochar_reasons,
             "dasha_ta": f"{maha} - {antar} தசை நடப்பில்",
             "dasha_en": f"{maha} - {antar} dasha active",
-            "gochar_ta": f"குரு {jupiter_rasi}ஆம் ராசியில் சஞ்சாரம்",
-            "gochar_en": f"Jupiter transiting rasi {jupiter_rasi}",
+            "gochar_ta": gochar_ta,
+            "gochar_en": gochar_en,
         })
 
     return results
@@ -307,12 +338,17 @@ def _relocation_windows(lagna_rasi: int, birth_jd: float, moon_lon: float, from_
         if rahu_rasi_val in (twelfth_rasi, _house_rasi(lagna_rasi, 1), _house_rasi(lagna_rasi, 7)):
             gochar_reasons.append("rahu_transits_key_house")
 
-        signals = len(dasha_reasons) + len(gochar_reasons)
+        signals = 1 + len(gochar_reasons)
         if signals == 0:
             continue
 
         maha = timeline.current_mahadasha.lord
         antar = timeline.current_antardasha.lord
+        gochar_ta, gochar_en = _gochar_summary(
+            gochar_reasons,
+            "கோசார உறுதி: சனி அல்லது ராகு இடமாற்ற வீடுகளைத் தொட்டுள்ளது",
+            "Transit confirmation: Saturn or Rahu activates relocation-sensitive houses",
+        )
         results.append({
             "event_type": "RELOCATION",
             "start_date": date(year, 7, 1),
@@ -321,8 +357,8 @@ def _relocation_windows(lagna_rasi: int, birth_jd: float, moon_lon: float, from_
             "reasons": dasha_reasons + gochar_reasons,
             "dasha_ta": f"{maha} - {antar} தசை நடப்பில்",
             "dasha_en": f"{maha} - {antar} dasha active",
-            "gochar_ta": f"சனி {saturn_rasi}ஆம் ராசியில் சஞ்சாரம்",
-            "gochar_en": f"Saturn transiting rasi {saturn_rasi}",
+            "gochar_ta": gochar_ta,
+            "gochar_en": gochar_en,
         })
 
     return results
@@ -354,18 +390,23 @@ def _health_caution_windows(lagna_rasi: int, birth_jd: float, moon_lon: float, f
         mars_rasi = transit.bodies["MARS"].rasi
 
         gochar_reasons: list[str] = []
-        sat_aspects = get_jupiter_aspects(saturn_rasi)  # same aspect pattern: 3,7,10
+        sat_aspects = get_saturn_aspects(saturn_rasi)
         if saturn_rasi == sixth_rasi or sixth_rasi in sat_aspects:
             gochar_reasons.append("saturn_supports_6th")
         if mars_rasi == sixth_rasi:
             gochar_reasons.append("mars_transits_6th")
 
-        signals = len(dasha_reasons) + len(gochar_reasons)
+        signals = 1 + len(gochar_reasons)
         if signals == 0:
             continue
 
         maha = timeline.current_mahadasha.lord
         antar = timeline.current_antardasha.lord
+        gochar_ta, gochar_en = _gochar_summary(
+            gochar_reasons,
+            "கோசார எச்சரிக்கை: சனி அல்லது செவ்வாய் 6ஆம் இடத்தைத் தொட்டுள்ளது",
+            "Transit caution: Saturn or Mars activates the 6th house",
+        )
         results.append({
             "event_type": "HEALTH_CAUTION",
             "start_date": date(year, 7, 1),
@@ -374,8 +415,8 @@ def _health_caution_windows(lagna_rasi: int, birth_jd: float, moon_lon: float, f
             "reasons": dasha_reasons + gochar_reasons,
             "dasha_ta": f"{maha} - {antar} தசை நடப்பில்",
             "dasha_en": f"{maha} - {antar} dasha active",
-            "gochar_ta": f"சனி {saturn_rasi}ஆம் ராசியில் சஞ்சாரம்",
-            "gochar_en": f"Saturn transiting rasi {saturn_rasi}",
+            "gochar_ta": gochar_ta,
+            "gochar_en": gochar_en,
         })
 
     return results

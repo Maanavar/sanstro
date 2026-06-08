@@ -19,7 +19,7 @@ from app.calculations.astro import (
 )
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
-from app.calculations.panchangam import calculate_daily_panchangam
+from app.calculations.panchangam import calculate_daily_panchangam, calculate_daily_panchangam_range
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga, get_av_bindu
 from app.calculations.chart_strength import compute_natal_planet_score
 from app.calculations.functional_nature import get_dasha_modifier, get_transit_modifier
@@ -583,6 +583,49 @@ def _load_daily_score_cache(
             generated_at=datetime.now(tz=UTC),
         ),
     )
+
+
+def _load_daily_score_cache_range(
+    session: Session,
+    *,
+    birth_profile_id: UUID,
+    start_date: date,
+    end_date: date,
+    calculation_version: str,
+) -> dict[date, DailyGuidanceResponse]:
+    """Bulk-fetch DailyScore cache rows for a date range in a single query.
+
+    Mirrors ``calculate_daily_panchangam_range``'s batching of ``PanchangamCache``
+    lookups: callers that need several consecutive days (month view, week-ahead
+    digest) should use this instead of looping ``_load_daily_score_cache`` —
+    that loop issued one SELECT per day.
+    """
+    rows = session.execute(
+        select(DailyScore)
+        .where(
+            DailyScore.birth_profile_id == birth_profile_id,
+            DailyScore.score_date >= start_date,
+            DailyScore.score_date <= end_date,
+        )
+        .order_by(DailyScore.score_date, DailyScore.created_at.desc())
+    ).scalars()
+
+    expected_version = _cache_version(calculation_version)
+    cached: dict[date, DailyGuidanceResponse] = {}
+    for row in rows:
+        if row.score_date in cached:
+            continue  # keep the most recent row per date (ordered by created_at desc)
+        stored = dict(row.data)
+        if stored.pop("_cacheVersion", None) != expected_version:
+            continue
+        cached[row.score_date] = DailyGuidanceResponse(
+            data=DailyGuidanceData.model_validate(stored),
+            meta=ResponseMeta(
+                calculation_version=calculation_version,
+                generated_at=datetime.now(tz=UTC),
+            ),
+        )
+    return cached
 
 
 def _store_daily_score_cache(
@@ -1315,7 +1358,14 @@ def build_daily_guidance_response(
     )
 
 
-def get_daily_guidance(session: Session, chart_id: UUID, on_date: date, language: str = "ta-en") -> DailyGuidanceResponse:
+def get_daily_guidance(
+    session: Session,
+    chart_id: UUID,
+    on_date: date,
+    language: str = "ta-en",
+    *,
+    preloaded_cache: dict[date, DailyGuidanceResponse] | None = None,
+) -> DailyGuidanceResponse:
     from app.models.user import User as _User
     chart_snapshot = load_persisted_chart_response(session, chart_id)
     active_goals = get_active_goals_for_chart(session, chart_id)
@@ -1332,12 +1382,15 @@ def get_daily_guidance(session: Session, chart_id: UUID, on_date: date, language
     can_use_cache = not active_goals and context_row is None and journal_insight is None and not goal_track
     birth_profile_id = chart_snapshot.data.birth_profile.birth_profile_id
     if can_use_cache:
-        cached = _load_daily_score_cache(
-            session,
-            birth_profile_id=birth_profile_id,
-            score_date=on_date,
-            calculation_version=chart_snapshot.meta.calculation_version,
-        )
+        if preloaded_cache is not None:
+            cached = preloaded_cache.get(on_date)
+        else:
+            cached = _load_daily_score_cache(
+                session,
+                birth_profile_id=birth_profile_id,
+                score_date=on_date,
+                calculation_version=chart_snapshot.meta.calculation_version,
+            )
         if cached is not None:
             return cached
 
@@ -1381,10 +1434,21 @@ def get_daily_guidance_range(
     if chart is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chart not found.")
 
+    chart_snapshot = load_persisted_chart_response(session, chart.chart_id)
+    preloaded_cache = _load_daily_score_cache_range(
+        session,
+        birth_profile_id=chart_snapshot.data.birth_profile.birth_profile_id,
+        start_date=from_date,
+        end_date=to_date,
+        calculation_version=chart_snapshot.meta.calculation_version,
+    )
+
     items: list[DailyGuidanceData] = []
     current = from_date
     while current <= to_date:
-        items.append(get_daily_guidance(session, chart.chart_id, current, language).data)
+        items.append(
+            get_daily_guidance(session, chart.chart_id, current, language, preloaded_cache=preloaded_cache).data
+        )
         current += timedelta(days=1)
 
     return DailyGuidanceRangeResponse(
@@ -1460,6 +1524,7 @@ def get_week_ahead(
     for day_data in range_response.data.items:
         tithi_num = 0
         nakshatra_num = 0
+        dominant_special_tithi_num: int | None = None
         if birth_profile is not None:
             daily_location = resolve_effective_daily_location(birth_profile)
             panchangam = calculate_daily_panchangam(
@@ -1470,7 +1535,12 @@ def get_week_ahead(
             )
             tithi_num = panchangam.tithi_number
             nakshatra_num = panchangam.nakshatra_number
-        special = _SPECIAL_TITHI.get(tithi_num)
+            dominant_special_tithi_num = panchangam.special_tithi_day_number
+        special = (
+            _SPECIAL_TITHI[dominant_special_tithi_num]
+            if dominant_special_tithi_num in {15, 30}
+            else _SPECIAL_TITHI.get(tithi_num)
+        )
         if special is not None:
             special_tithi_days.append(day_data.date_local)
         is_chandrashtama = day_data.is_chandrashtama
@@ -1590,16 +1660,32 @@ def get_activity_timing(
     results: list[tuple[int, ActivityTimingDayResult]] = []
     alignment_rank = {"SUPPORTS": 2, "NEUTRAL": 1, "CAUTION": 0}
 
+    # Batch-load/compute the whole month up front instead of looping per-day
+    # (which previously recomputed panchangam from scratch — no session/cache —
+    # and issued a separate DailyScore SELECT for every day).
+    daily_location = resolve_effective_daily_location(birth_profile)
+    month_start = date(year, mon, 1)
+    month_end = date(year, mon, days_in_month)
+    panchang_by_date = calculate_daily_panchangam_range(
+        month_start,
+        month_end,
+        daily_location.latitude,
+        daily_location.longitude,
+        daily_location.timezone,
+        session=session,
+    )
+    daily_score_cache = _load_daily_score_cache_range(
+        session,
+        birth_profile_id=birth_profile_id,
+        start_date=month_start,
+        end_date=month_end,
+        calculation_version=chart_snapshot.meta.calculation_version,
+    )
+
     for day_num in range(1, days_in_month + 1):
         d = date(year, mon, day_num)
         try:
-            daily_location = resolve_effective_daily_location(birth_profile)
-            panchang = calculate_daily_panchangam(
-                d,
-                daily_location.latitude,
-                daily_location.longitude,
-                daily_location.timezone,
-            )
+            panchang = panchang_by_date[d]
             result = assess_activity_timing(
                 activity=activity,  # type: ignore[arg-type]
                 tithi_number=panchang.tithi_number,
@@ -1616,12 +1702,7 @@ def get_activity_timing(
 
             cached_score: int | None = None
             if can_use_cache:
-                cached_response = _load_daily_score_cache(
-                    session,
-                    birth_profile_id=birth_profile_id,
-                    score_date=d,
-                    calculation_version=chart_snapshot.meta.calculation_version,
-                )
+                cached_response = daily_score_cache.get(d)
                 if cached_response is not None:
                     cached_score = cached_response.data.score
 
@@ -1774,6 +1855,40 @@ _PEYARCHI_OUTLOOK: dict[str, dict[int, dict[str, str]]] = {
 }
 
 
+def _rahu_ketu_axis_outlook(
+    planet: str,
+    house_moon: int,
+    house_lagna: int,
+    opposite_house_moon: int,
+    opposite_house_lagna: int,
+) -> dict[str, str]:
+    if planet == "RAHU":
+        return {
+            "ta": (
+                f"ராகு சந்திர ராசியிலிருந்து {house_moon}ஆம் இடத்தையும் லக்னத்திலிருந்து {house_lagna}ஆம் இடத்தையும் "
+                f"பெரிதாக்கும் போக்கை காட்டுகிறது. எதிர் அச்சில் கேது {opposite_house_moon}ஆம் / "
+                f"{opposite_house_lagna}ஆம் இடங்களில் விடுவிப்பு, குறைத்தல், உள்ளார்ந்த திருப்பத்தை குறிக்கிறது."
+            ),
+            "en": (
+                f"Rahu indicates amplification around house {house_moon} from Moon and house {house_lagna} from Lagna. "
+                f"On the opposite end, Ketu indicates release and inward redirection around house "
+                f"{opposite_house_moon} from Moon and house {opposite_house_lagna} from Lagna."
+            ),
+        }
+    return {
+        "ta": (
+            f"கேது சந்திர ராசியிலிருந்து {house_moon}ஆம் இடத்திலும் லக்னத்திலிருந்து {house_lagna}ஆம் இடத்திலும் "
+            f"விடுவிப்பு, எளிமை, ஆன்மீக திருப்பத்தை குறிக்கிறது. எதிர் அச்சில் ராகு {opposite_house_moon}ஆம் / "
+            f"{opposite_house_lagna}ஆம் இடங்களில் ஆசை மற்றும் கவனத்தை பெரிதாக்கும் போக்கை காட்டுகிறது."
+        ),
+        "en": (
+            f"Ketu indicates release, simplification, and spiritual redirection around house {house_moon} from Moon "
+            f"and house {house_lagna} from Lagna. On the opposite end, Rahu amplifies desire and attention around "
+            f"house {opposite_house_moon} from Moon and house {opposite_house_lagna} from Lagna."
+        ),
+    }
+
+
 def get_peyarchi_report(
     session: Session,
     chart_id: UUID,
@@ -1782,14 +1897,15 @@ def get_peyarchi_report(
     calculation_version: str = "thirukanitham-2026-v1",
 ) -> PeyarchiReportResponse:
     """
-    FEATURE-11: Personalised Peyarchi (Rasi transit) report for Jupiter or Saturn.
+    FEATURE-11: Personalised Peyarchi (Rasi transit) report for Jupiter, Saturn, Rahu, or Ketu.
     """
     from app.models import BirthProfile
     from app.calculations.astro import house_from_reference
     from app.services.peyarchi_service import find_next_rasi_change
 
-    if planet not in ("JUPITER", "SATURN"):
-        raise HTTPException(status_code=422, detail="Only JUPITER and SATURN are supported for peyarchi reports.")
+    planet = planet.upper()
+    if planet not in ("JUPITER", "SATURN", "RAHU", "KETU"):
+        raise HTTPException(status_code=422, detail="Only JUPITER, SATURN, RAHU, and KETU are supported for peyarchi reports.")
 
     chart = session.get(Chart, chart_id)
     if chart is None:
@@ -1828,6 +1944,18 @@ def get_peyarchi_report(
             "ta": f"கோசார {planet.capitalize()} {house_moon}ஆம் இடத்தில் — மிதமான காலம்.",
             "en": f"Transit {planet.capitalize()} in house {house_moon} — moderate period.",
         })
+
+        if planet in {"RAHU", "KETU"}:
+            opposite_rasi = ((next_rasi + 6 - 1) % 12) + 1
+            opposite_house_moon = house_from_reference(natal_moon.rasi if natal_moon else 1, opposite_rasi)
+            opposite_house_lagna = house_from_reference(natal_lagna, opposite_rasi)
+            outlook = _rahu_ketu_axis_outlook(
+                planet,
+                house_moon,
+                house_lagna,
+                opposite_house_moon,
+                opposite_house_lagna,
+            )
 
         events.append(PeyarchiReportPeriod(
             planet=planet,

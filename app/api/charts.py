@@ -28,8 +28,10 @@ from app.schemas.charts import (
     JadhagamReportResponse,
     ResponseMeta,
 )
+from app.schemas.chart_explanation import ChartExplanationResponse
 from app.schemas.dasha import DashaTimelineResponse
 from app.services.chart_service import calculate_chart as calculate_chart_snapshot, get_chart_summary, get_jadhagam_report
+from app.services.chart_explanation_service import build_chart_explanation
 from app.services.dasha_service import get_chart_dasha
 from app.services.pdf_export_service import generate_chart_pdf
 from app.services.tajaka_service import get_varshaphala
@@ -105,6 +107,23 @@ def get_report(
 ) -> JadhagamReportResponse:
     _assert_chart_owner(session, chart_id, current_user)
     return get_jadhagam_report(session, chart_id)
+
+
+@router.get("/charts/{chart_id}/explanation", response_model=ChartExplanationResponse, tags=["charts"])
+def get_explanation(
+    chart_id: UUID,
+    as_of: date | None = Query(default=None, alias="asOf"),
+    peyarchi_window_days: int = Query(default=700, alias="peyarchiWindowDays", ge=1, le=1200),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ChartExplanationResponse:
+    _assert_chart_owner(session, chart_id, current_user)
+    return build_chart_explanation(
+        session,
+        chart_id,
+        as_of=as_of or date.today(),
+        peyarchi_window_days=peyarchi_window_days,
+    )
 
 
 @router.get("/charts/{chart_id}/event-windows", response_model=EventWindowsResponse, tags=["charts"])

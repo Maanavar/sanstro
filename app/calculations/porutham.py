@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.calculations.astro import nakshatra_to_rasi
 from app.calculations.chart_strength import SIGN_LORD
 
 # ---------------------------------------------------------------------------
@@ -60,15 +61,8 @@ _YONI_HOSTILE: frozenset[frozenset[int]] = frozenset(
 )
 
 # ---------------------------------------------------------------------------
-# Nakshatra → Rasi mapping (each nakshatra spans 2½ signs; 1-indexed)
+# Nakshatra → Nadi mapping (1-indexed)
 # ---------------------------------------------------------------------------
-def _nakshatra_to_rasi(nakshatra: int) -> int:
-    """Return the rasi (1-12) that owns the given nakshatra (1-27)."""
-    return ((nakshatra - 1) * 3 // 9) % 12 + 1
-
-
-# Precomputed for speed
-_NAK_RASI: dict[int, int] = {n: _nakshatra_to_rasi(n) for n in range(1, 28)}
 _NAKSHATRA_NADI: dict[int, str] = {
     n: ("AADHI" if (n - 1) % 9 < 3 else "MADHYA" if (n - 1) % 9 < 6 else "ANTHYA")
     for n in range(1, 28)
@@ -295,14 +289,21 @@ class PorutthamResult:
 def check_nadi_dosha(
     boy_nakshatra: int,
     girl_nakshatra: int,
+    *,
+    boy_rasi: int | None = None,
+    girl_rasi: int | None = None,
+    boy_pada: int = 1,
+    girl_pada: int = 1,
 ) -> dict[str, object]:
     boy_nadi = _NAKSHATRA_NADI[boy_nakshatra]
     girl_nadi = _NAKSHATRA_NADI[girl_nakshatra]
     has_dosha = boy_nadi == girl_nadi
+    boy_resolved_rasi = boy_rasi if boy_rasi is not None else nakshatra_to_rasi(boy_nakshatra, boy_pada)
+    girl_resolved_rasi = girl_rasi if girl_rasi is not None else nakshatra_to_rasi(girl_nakshatra, girl_pada)
 
     cancellations: list[str] = []
     if has_dosha and boy_nakshatra != girl_nakshatra:
-        if _NAK_RASI[boy_nakshatra] != _NAK_RASI[girl_nakshatra]:
+        if boy_resolved_rasi != girl_resolved_rasi:
             cancellations.append("Different rasi — Nadi Dosha partially mitigated")
 
     final_has_dosha = has_dosha and not cancellations
@@ -316,6 +317,8 @@ def check_nadi_dosha(
     return {
         "boy_nadi": boy_nadi,
         "girl_nadi": girl_nadi,
+        "boy_rasi": boy_resolved_rasi,
+        "girl_rasi": girl_resolved_rasi,
         "has_nadi_dosha": final_has_dosha,
         "cancellations": cancellations,
         "severity": severity,
@@ -401,7 +404,12 @@ def compute_porutham(
 
     rajju_dosha = rajju == 0
     vedha_dosha = vedha == 0
-    nadi_dosha = check_nadi_dosha(boy_nakshatra, girl_nakshatra)
+    nadi_dosha = check_nadi_dosha(
+        boy_nakshatra,
+        girl_nakshatra,
+        boy_rasi=boy_rasi,
+        girl_rasi=girl_rasi,
+    )
 
     if percentage >= 80:
         label = "EXCELLENT"

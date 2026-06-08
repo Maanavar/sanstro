@@ -7,7 +7,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import house_from_reference, nakshatra_from_degree, utc_datetime_to_julian_day
+from app.calculations.astro import house_from_reference, is_chandrashtama, utc_datetime_to_julian_day
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.transits import (
     GRAHA_LABELS,
@@ -69,9 +69,7 @@ def build_transit_snapshot(
         positions.append(TransitPositionSchema(**asdict(transit_record)))
 
     moon_position = current_snapshot.bodies["MOON"]
-    janma_nakshatra = nakshatra_from_degree(natal_moon.absolute_longitude)
-    current_nakshatra = nakshatra_from_degree(moon_position.absolute_longitude)
-    chandrashtama = current_nakshatra == ((janma_nakshatra + 7 - 1) % 27) + 1
+    chandrashtama = is_chandrashtama(natal_moon_rasi, moon_position.rasi)
 
     return TransitSnapshotResponse(
         data=TransitSnapshotData(

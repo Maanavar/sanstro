@@ -7,9 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import utc_datetime_to_julian_day
+from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.functional_nature import FunctionalNature, get_functional_nature
 from app.calculations.remedies import get_remedy
+from app.calculations.yogas import get_badhaka_lord
 from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
@@ -109,7 +111,7 @@ def remedy_plan(
         elif dosham.name == "PITRU_DOSHAM":
             active_dosham_planet = "SUN"
         elif dosham.name == "BADHAKA_DOSHAM":
-            active_dosham_planet = "SATURN"
+            active_dosham_planet = get_badhaka_lord(lagna_rasi, SIGN_LORD)
         if active_dosham_planet:
             break
 

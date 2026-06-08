@@ -25,6 +25,7 @@ class MuhurtaQuery(BaseModel):
 
 class MuhurtaSlot(BaseModel):
     date: date
+    tamil_date: BiText | None = Field(alias="tamilDate", default=None)
     time_start: str = Field(alias="timeStart")
     time_end: str = Field(alias="timeEnd")
     score: float

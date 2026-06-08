@@ -22,7 +22,7 @@ import logging
 from datetime import UTC, date, datetime, time
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import (
@@ -31,7 +31,12 @@ from app.calculations.astro import (
     resolve_timezone,
     utc_datetime_to_julian_day,
 )
-from app.calculations.panchangam import calculate_daily_panchangam
+from app.calculations.panchangam import (
+    best_gowri_slot,
+    calculate_daily_panchangam,
+    gowri_good_label,
+    gowri_good_purpose,
+)
 from app.db.session import SessionLocal
 from app.models.birth_profile import BirthProfile
 from app.models.chart import Chart
@@ -173,9 +178,10 @@ def _dispatch_for_user(
                 score = 32
 
             label = _score_label(score)
-            nalla_slot = panchang.nalla_neram[0] if panchang.nalla_neram else None
+            nalla_slot = best_gowri_slot(panchang.nalla_neram)
             nalla_start = nalla_slot.start.strftime("%H:%M") if nalla_slot else "-"
             nalla_end = nalla_slot.end.strftime("%H:%M") if nalla_slot else "-"
+            nalla_name = getattr(nalla_slot, "name", None) if nalla_slot else None
             rahu_start  = panchang.rahu_kalam.start.strftime("%H:%M")
             rahu_end    = panchang.rahu_kalam.end.strftime("%H:%M")
 
@@ -191,6 +197,10 @@ def _dispatch_for_user(
                 rahu_end=rahu_end,
                 nakshatra_name_ta=nak_ta,
                 nakshatra_name_en=nak_en,
+                nalla_neram_category_ta=gowri_good_label(nalla_name, "ta"),
+                nalla_neram_category_en=gowri_good_label(nalla_name, "en"),
+                nalla_neram_purpose_ta=gowri_good_purpose(nalla_name, "ta"),
+                nalla_neram_purpose_en=gowri_good_purpose(nalla_name, "en"),
             )
 
             result = dispatch_notification(
@@ -312,10 +322,18 @@ def run_daily_push_cron(run_at_utc: datetime | None = None) -> dict[str, int]:
     dispatched = skipped = errors = 0
 
     with SessionLocal() as session:
-        # Fetch all users with at least one alert opt-in
+        # Fetch all users with at least one alert opt-in. The notification_channel
+        # is intentionally NOT filtered here: the in-app inbox is decoupled from
+        # push/email delivery (dispatch_notification persists an in-app row even
+        # when channel == "none"), so a user who enables an alert toggle but
+        # leaves the channel as "none" still gets a populated bell.
         prefs = session.execute(
             select(UserNotificationPreference).where(
-                UserNotificationPreference.notification_channel != "none",
+                or_(
+                    UserNotificationPreference.morning_alert_enabled.is_(True),
+                    UserNotificationPreference.dasha_alert_enabled.is_(True),
+                    UserNotificationPreference.pirantha_naal_alert_enabled.is_(True),
+                )
             )
         ).scalars().all()
 

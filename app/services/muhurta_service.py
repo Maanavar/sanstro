@@ -21,15 +21,17 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import resolve_rasi, resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.astro import nakshatra_to_rasi, resolve_rasi, resolve_timezone, utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.panchangam import (
     SUBHA_NAKSHATRAS,
     SUBHA_TITHIS_KRISHNA,
     SUBHA_TITHIS_SHUKLA,
-    calculate_daily_panchangam,
+    best_gowri_slot,
+    calculate_daily_panchangam_range,
 )
 from app.models import BirthProfile, Chart
+from app.calculations.tamil_calendar import format_tamil_date
 from app.schemas.muhurta import BiText, MuhurtaResponse, MuhurtaResponseData, MuhurtaSlot, ResponseMeta
 from app.services.chart_service import load_persisted_chart_response
 from app.services.location_service import resolve_effective_daily_location
@@ -167,7 +169,7 @@ def _score_panchangam(snapshot, activity: str, moon_rasi: int, lagna_rasi: int) 
         score += 10
         support_parts_ta.append(f"சாதக திதி: {snapshot.tithi_name}")
         support_parts_en.append(f"Favourable tithi: {snapshot.tithi_name}")
-    elif paksha == "KRISHNA" and tithi in SUBHA_TITHIS_KRISHNA:
+    elif paksha == "KRISHNA" and tithi_in_paksha in SUBHA_TITHIS_KRISHNA:
         score += 8
         support_parts_ta.append(f"சாதக திதி: {snapshot.tithi_name}")
         support_parts_en.append(f"Favourable tithi: {snapshot.tithi_name}")
@@ -200,19 +202,15 @@ def _score_panchangam(snapshot, activity: str, moon_rasi: int, lagna_rasi: int) 
 
 
 def _nakshatra_to_rasi(nak_number: int, pada: int = 1) -> int:
-    """Return rasi (1-12) using the standard 9-pada-per-rasi mapping."""
-    if not 1 <= nak_number <= 27:
-        raise ValueError("nak_number must be in 1..27")
-    pada_norm = pada if 1 <= pada <= 4 else 1
-    absolute_pada = (nak_number - 1) * 4 + (pada_norm - 1)
-    return (absolute_pada // 9) + 1
+    return nakshatra_to_rasi(nak_number, pada)
 
 
 def _best_time_window(snapshot) -> tuple[str, str, datetime, datetime]:
     """Return the best (time_start, time_end) slot for the day — Nalla Neram or Abhijit."""
-    # Prefer first Nalla Neram slot if available
     if snapshot.nalla_neram:
-        s = snapshot.nalla_neram[0]
+        s = best_gowri_slot(snapshot.nalla_neram)
+        if s is None:
+            s = snapshot.nalla_neram[0]
         return s.start.strftime("%H:%M"), s.end.strftime("%H:%M"), s.start, s.end
     # Fallback: Abhijit
     return (
@@ -304,12 +302,15 @@ def find_best_muhurta_slots(
 
     dasha_support = _dasha_support(maha_lord, antar_lord, activity)
 
-    # Scan each day in range
+    # Scan each day in range — batch-load/compute panchangam snapshots in one pass
+    # to avoid a per-day cache SELECT+DELETE (see calculate_daily_panchangam_range).
+    snapshots_by_date = calculate_daily_panchangam_range(date_from, date_to, lat, lon, tz_name, session=session)
+
     scored_days: list[tuple[float, date, str, str, BiText, BiText | None, list[BiText]]] = []
     current = date_from
     while current <= date_to:
         try:
-            snap = calculate_daily_panchangam(current, lat, lon, tz_name, session=session)
+            snap = snapshots_by_date[current]
             day_score, pan_support, cautions = _score_panchangam(snap, activity, moon_rasi, lagna_rasi)
             # Dasha bonus
             if maha_lord in _ACTIVITY_LORDS.get(activity, set()) or antar_lord in _ACTIVITY_LORDS.get(activity, set()):
@@ -334,9 +335,18 @@ def find_best_muhurta_slots(
     scored_days.sort(key=lambda x: x[0], reverse=True)
     top = scored_days[:TOP_N]
 
+    def _tamil_date(d: date) -> BiText | None:
+        try:
+            ta, en = format_tamil_date(d, tz_name, lat, lon)
+            return _t(ta, en)
+        except Exception as exc:  # ephemeris hiccup must not break the muhurta list
+            logger.debug("Tamil date conversion failed for %s: %s", d, exc)
+            return None
+
     slots = [
         MuhurtaSlot(
             date=d,
+            tamilDate=_tamil_date(d),
             timeStart=t_start,
             timeEnd=t_end,
             score=round(s, 1),

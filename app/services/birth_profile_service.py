@@ -138,7 +138,9 @@ def get_latest_birth_profile_for_owner(
     """Return the owner's best personal profile candidate for dashboard restore.
 
     Ordering preference:
-    1) Direct personal profile (not attached to a family member)
+    1) Direct personal profile (not attached to a family member) — oldest first,
+       so the user's real onboarding profile wins over any ephemeral temp profiles
+       created by tools like chart-generate (which are always newer).
     2) Family member profile where relationship is `self`
     3) Any other owned profile
     """
@@ -155,7 +157,11 @@ def get_latest_birth_profile_for_owner(
                 (FamilyMember.relationship_to_owner == "self", 1),
                 else_=2,
             ),
-            BirthProfile.created_at.desc(),
+            # Within each priority tier, prefer the oldest profile. For standalone
+            # profiles (priority 0) this ensures the user's real personal profile
+            # (created at onboarding) beats any ephemeral temp profiles created
+            # later by the chart-generate tool.
+            BirthProfile.created_at.asc(),
         )
     ).scalars().first()
 

@@ -188,10 +188,11 @@ def moon_transit_reason(
     nak_name = NAKSHATRA_NAME.get(current_nakshatra, _bi(str(current_nakshatra), str(current_nakshatra)))
 
     if chandrashtama:
+        rasi_name = _rasi_name_safe(current_moon_rasi)
         return _bi(
-            f"சந்திரன் இன்று ஜன்ம நட்சத்திரத்திலிருந்து 8ஆம் நட்சத்திரமான {nak_name.ta}-ல் உள்ளது (சந்திராஷ்டமம்). "
+            f"சந்திரன் இன்று ஜன்ம ராசியிலிருந்து 8ஆம் ராசியான {rasi_name.ta}-ல் உள்ளது (சந்திராஷ்டமம்). "
             f"முக்கிய முடிவுகளை தவிர்க்கவும்.",
-            f"Moon is in {nak_name.en}, the 8th nakshatra from your birth star (Chandrashtamam). "
+            f"Moon is in {rasi_name.en}, the 8th rasi from your birth Moon sign (Chandrashtamam). "
             f"Avoid major decisions.",
         )
 

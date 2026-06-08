@@ -1,3 +1,13 @@
+"""Long-range event window heuristics.
+
+These windows combine Vimshottari dasha activation with transit checkpoints.
+The birth chart, dasha, houses, and transits use the app's Thirukanitham
+calculation foundation, but the 0-100 score and thresholding are product
+heuristics for planning support, not a direct verse/table from a printed
+Thirukanitham panchangam. Fast transits such as Sun/Venus are treated as
+triggers inside the wider window.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -45,9 +55,17 @@ def find_marriage_windows(
     windows: list[EventWindow] = []
     seventh_house_rasi = _seventh_house_rasi(chart.lagna_rasi)
     seventh_lord = _seventh_lord(chart.lagna_rasi)
+    today = date.today()
 
     for year in range(from_year, to_year + 1):
-        anchor = datetime(year, 7, 1, 12, 0, tzinfo=UTC)
+        # For the current year use today as anchor so the dasha assessment
+        # matches what marriage_service.py sees (both use "now"). Future years
+        # use July 1 as a representative mid-year point.
+        if year == today.year:
+            anchor_date = today
+        else:
+            anchor_date = date(year, 7, 1)
+        anchor = datetime(anchor_date.year, anchor_date.month, anchor_date.day, 12, 0, tzinfo=UTC)
         anchor_jd = utc_datetime_to_julian_day(anchor)
         timeline = calculate_vimshottari_timeline(chart.birth_jd, chart.moon_longitude, anchor_jd)
         active_lords = {timeline.current_mahadasha.lord, timeline.current_antardasha.lord}
@@ -81,7 +99,7 @@ def find_marriage_windows(
         windows.append(
             EventWindow(
                 event="MARRIAGE",
-                start_date=date(year, 7, 1),
+                start_date=anchor_date,
                 end_date=date(year, 12, 31),
                 score=min(100, score),
                 reasons=reasons,
@@ -114,9 +132,11 @@ def find_career_windows(
     windows: list[EventWindow] = []
     tenth_house_rasi = _tenth_house_rasi(chart.lagna_rasi)
     tenth_lord = _tenth_lord(chart.lagna_rasi)
+    today = date.today()
 
     for year in range(from_year, to_year + 1):
-        anchor = datetime(year, 7, 1, 12, 0, tzinfo=UTC)
+        anchor_date = today if year == today.year else date(year, 7, 1)
+        anchor = datetime(anchor_date.year, anchor_date.month, anchor_date.day, 12, 0, tzinfo=UTC)
         anchor_jd = utc_datetime_to_julian_day(anchor)
         timeline = calculate_vimshottari_timeline(chart.birth_jd, chart.moon_longitude, anchor_jd)
         active_lords = {timeline.current_mahadasha.lord, timeline.current_antardasha.lord}
@@ -156,7 +176,7 @@ def find_career_windows(
         windows.append(
             EventWindow(
                 event="CAREER",
-                start_date=date(year, 7, 1),
+                start_date=anchor_date,
                 end_date=date(year, 12, 31),
                 score=min(100, score),
                 reasons=reasons,
@@ -191,9 +211,11 @@ def find_finance_windows(
     eleventh_house_rasi = _eleventh_house_rasi(chart.lagna_rasi)
     second_lord  = SIGN_LORD[second_house_rasi]
     eleventh_lord = SIGN_LORD[eleventh_house_rasi]
+    today = date.today()
 
     for year in range(from_year, to_year + 1):
-        anchor = datetime(year, 7, 1, 12, 0, tzinfo=UTC)
+        anchor_date = today if year == today.year else date(year, 7, 1)
+        anchor = datetime(anchor_date.year, anchor_date.month, anchor_date.day, 12, 0, tzinfo=UTC)
         anchor_jd = utc_datetime_to_julian_day(anchor)
         timeline = calculate_vimshottari_timeline(chart.birth_jd, chart.moon_longitude, anchor_jd)
         active_lords = {timeline.current_mahadasha.lord, timeline.current_antardasha.lord}
@@ -233,7 +255,7 @@ def find_finance_windows(
         windows.append(
             EventWindow(
                 event="FINANCE",
-                start_date=date(year, 7, 1),
+                start_date=anchor_date,
                 end_date=date(year, 12, 31),
                 score=min(100, score),
                 reasons=reasons,

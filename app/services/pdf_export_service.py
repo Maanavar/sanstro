@@ -36,7 +36,12 @@ from reportlab.platypus import (
 )
 from sqlalchemy.orm import Session
 
-from app.calculations.panchangam import calculate_daily_panchangam
+from app.calculations.panchangam import (
+    best_gowri_slot,
+    calculate_daily_panchangam,
+    gowri_good_label,
+    gowri_good_purpose,
+)
 from app.models import BirthProfile, Chart
 from app.services.chart_service import load_persisted_chart_response
 from app.services.dasha_service import get_chart_dasha
@@ -171,8 +176,20 @@ def _section_dasha(dasha_response, heading_style, body_style) -> list:
 
 
 def _section_daily(panchang, score: int, label: str, location_label: str, heading_style, body_style) -> list:
-    slot = panchang.nalla_neram[0] if panchang.nalla_neram else None
-    nalla = f"{slot.start.strftime('%H:%M')}–{slot.end.strftime('%H:%M')}" if slot else "-"
+    slot = best_gowri_slot(panchang.nalla_neram)
+    if slot:
+        slot_name = getattr(slot, "name", None)
+        slot_label = gowri_good_label(slot_name, "en")
+        slot_purpose = gowri_good_purpose(slot_name, "en")
+        nalla_time = f"{slot.start.strftime('%H:%M')}–{slot.end.strftime('%H:%M')}"
+        if slot_label and slot_purpose:
+            nalla = f"{slot_label} {nalla_time} ({slot_purpose})"
+        elif slot_label:
+            nalla = f"{slot_label} {nalla_time}"
+        else:
+            nalla = nalla_time
+    else:
+        nalla = "-"
     rahu  = f"{panchang.rahu_kalam.start.strftime('%H:%M')}–{panchang.rahu_kalam.end.strftime('%H:%M')}"
     lines = [
         f"Location for daily timings: {location_label}",
