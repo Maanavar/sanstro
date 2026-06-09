@@ -134,7 +134,7 @@ const STRINGS = {
 
   // ── Transits tab
   tab_transits:       { ta: "தசை & கோசாரம்",    en: "Transits & Dasha" },
-  transits_tab_desc:  { ta: "விம்சோத்தரி தசை காலவரிசை, கோசார நிலைகள், ஜர்னல் தொடர்புகள்", en: "Vimshottari Dasha timeline, Gochar positions, journal correlations" },
+  transits_tab_desc:  { ta: "விம்சோத்தரி தசை காலவரிசை, கோசார நிலைகள், குறிப்பு தொடர்புகள்", en: "Vimshottari Dasha timeline, Gochar positions, journal correlations" },
 
   // ── TODAY tab (Phase 2)
   today_greeting:       { ta: "வணக்கம்",           en: "Good morning" },
@@ -152,7 +152,7 @@ const STRINGS = {
   personal_desc:      { ta: "தசை, பஞ்சாங்கம், கோசார தரவு", en: "Dasa, Panchangam, Gochar data" },
   personal_today:     { ta: "இன்று",            en: "Today" },
   personal_you:       { ta: "நீங்கள்",           en: "You" },
-  chandrashtama_warning: { ta: "⚠ சந்திராஷ்டமம் — சந்திரன் உங்கள் ஜென்ம ராசியிலிருந்து 8ஆம் ராசியில் உள்ளது. முக்கிய முடிவுகளை தவிர்க்கவும்.", en: "⚠ Chandrashtamam — Moon is in the 8th rasi from your natal Moon sign. Avoid important decisions." },
+  chandrashtama_warning: { ta: "⚠ சந்திராஷ்டமம் — சந்திரன் உங்கள் ஜன்ம ராசியிலிருந்து 8ஆம் ராசியில் உள்ளது. முக்கிய முடிவுகளை தவிர்க்கவும்.", en: "⚠ Chandrashtamam — Moon is in the 8th rasi from your natal Moon sign. Avoid important decisions." },
 
   // ── Chart context surface
   surface_chart_context: { ta: "ஜாதக சுருக்கம்", en: "Chart context" },
@@ -635,7 +635,7 @@ const STRINGS = {
   // ── FEATURE-12: Journal correlations
   journal_patterns_label:  { ta: "குறிப்பு வடிவங்கள்",          en: "Journal Patterns" },
   journal_entries_progress:{ ta: "குறிப்புகள்",                  en: "entries" },
-  journal_keep_going:      { ta: "முறைகளை திறக்க தொடர்ந்து எழுதுங்கள்.", en: "Keep journalling to unlock pattern insights." },
+  journal_keep_going:      { ta: "வடிவங்களை கண்டறிய தொடர்ந்து எழுதுங்கள்.", en: "Keep journalling to unlock pattern insights." },
   journal_mood_avg:        { ta: "சராசரி மனநிலை",               en: "Mood avg" },
   journal_sample_count:    { ta: "குறிப்புகள்",                  en: "entries" },
 
@@ -943,9 +943,9 @@ const STRINGS = {
   prasna_area_general:     { ta: "பொது",                         en: "General" },
 
   // ── Chart validation status
-  validation_high:         { ta: "உயர் நம்பகம் — %d/%d நிகழ்வுகள் பொருந்தியது", en: "High confidence — %d/%d events matched" },
-  validation_medium:       { ta: "நடுத்தர நம்பகம் — %d/%d பொருந்தியது",          en: "Moderate confidence — %d/%d matched" },
-  validation_low:          { ta: "குறைவான நம்பகம் — %d/%d பொருந்தியது",          en: "Low confidence — %d/%d matched" },
+  validation_high:         { ta: "உயர் நம்பகம் — %d/%d நிகழ்வுகள் பொருந்தின", en: "High confidence — %d/%d events matched" },
+  validation_medium:       { ta: "நடுத்தர நம்பகம் — %d/%d பொருந்தின",          en: "Moderate confidence — %d/%d matched" },
+  validation_low:          { ta: "குறைவான நம்பகம் — %d/%d பொருந்தின",          en: "Low confidence — %d/%d matched" },
   validation_unvalidated:  { ta: "நிகழ்வுகள் பதிவு செய்யப்படவில்லை",            en: "No life events on record" },
 } as const;
 

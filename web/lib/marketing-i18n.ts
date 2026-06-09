@@ -111,7 +111,7 @@ export const HOME = {
     "Guidance for the moments people actually need help with",
     "உண்மையில் உதவி தேவைப்படும் தருணங்களுக்கான வழிகாட்டுதல்"
   ),
-  help1_title:    s("Understand today",              "இன்றை புரிந்துகொள்"),
+  help1_title:    s("Understand today",              "இன்றை நாளைப் புரிந்துகொள்"),
   help1_body:     s(
     "One daily score combining your chart, dasha period, transits, and panchangam. Clear reasoning, no guesswork.",
     "உங்கள் ஜாதகம், தசை, கோசாரம், பஞ்சாங்கம் — இவற்றை ஒன்றிணைத்த தினசரி மதிப்பெண். தெளிவான காரணம், யூகம் இல்லை."
@@ -152,7 +152,7 @@ export const HOME = {
     "Vinaadi reads your chart, dasha, transits, and panchangam together — and gives you one balanced answer for the day. Not four separate reports. One reading.",
     "விநாடி உங்கள் ஜாதகம், தசை, கோசாரம், பஞ்சாங்கம் ஆகியவற்றை ஒன்றாக படிக்கிறது — நாளுக்கு ஒரு சமச்சீர் பதிலை தருகிறது. நான்கு தனித்தனி அறிக்கைகள் அல்ல. ஒரே ஒரு வாசிப்பு."
   ),
-  daily_sig1: s("Dasha and bhukti period quality — how your current planetary cycle frames the day", "தசை மற்றும் புக்தி தரம் — இன்றை நடப்பு கிரக சுழற்சி எப்படி வடிவமைக்கிறது"),
+  daily_sig1: s("Dasha and bhukti period quality — how your current planetary cycle frames the day", "தசை மற்றும் புக்தி தரம் — இன்றைய நடப்பு கிரக சுழற்சி நாளை எவ்வாறு வடிவமைக்கிறது"),
   daily_sig2: s("Gochar transits — what Saturn, Jupiter, Rahu, Ketu, and others are doing to your natal chart", "கோசார நகர்வுகள் — சனி, குரு, ராகு, கேது மற்றும் மற்றவர்கள் உங்கள் ஜன்ம ஜாதகத்திற்கு என்ன செய்கிறார்கள்"),
   daily_sig3: s("Panchangam quality — Tithi, Vara, Nakshatra, Yoga, Karana for the day", "பஞ்சாங்க தரம் — நாளுக்கான திதி, வாரம், நட்சத்திரம், யோகம், கரணம்"),
   daily_sig4: s("Best window and caution window — specific times, not vague ranges", "சிறந்த நேரம் மற்றும் எச்சரிக்கை நேரம் — குறிப்பிட்ட நேரங்கள், தெளிவற்ற வரம்புகள் அல்ல"),
@@ -170,7 +170,7 @@ export const HOME = {
   ),
   family_body:    s(
     "Most astrology products stop at individual readings. Vinaadi is built for the way Tamil families actually use astrology — together. Add family members, see everyone's reading side by side, and find the windows that work for the whole household.",
-    "பெரும்பாலான ஜோதிட தயாரிப்புகள் தனிப்பட்ட வாசிப்பில் நிறுத்திக்கொள்கின்றன. விநாடி தமிழ் குடும்பங்கள் உண்மையில் ஜோதிடத்தை பயன்படுத்தும் விதத்திற்காக கட்டப்பட்டுள்ளது — சேர்ந்து. குடும்பத்தினரை சேர்க்கவும், எல்லோரின் வாசிப்பையும் பக்கவாட்டில் பாருங்கள், முழு வீட்டிற்கும் பொருந்தும் நேரங்களை கண்டறியுங்கள்."
+    "பெரும்பாலான ஜோதிட தயாரிப்புகள் தனிப்பட்ட வாசிப்பில் நிறுத்திக்கொள்கின்றன. விநாடி தமிழ் குடும்பங்கள் உண்மையில் ஜோதிடத்தை பயன்படுத்தும் விதத்திற்காக கட்டப்பட்டுள்ளது — சேர்ந்து. குடும்பத்தினரை சேர்க்கவும், எல்லோரின் வாசிப்பையும் ஒப்பிட்டுப் பாருங்கள், முழு வீட்டிற்கும் பொருந்தும் நேரங்களை கண்டறியுங்கள்."
   ),
   family_item1: s("Family vault with individual birth profiles for each member", "ஒவ்வொரு உறுப்பினருக்கும் தனிப்பட்ட ஜன்ம விவரங்களுடன் குடும்ப சேகரிப்பு"),
   family_item2: s("Shared best-window view — plan important events for everyone", "பகிரப்பட்ட சிறந்த நேர காட்சி — எல்லோருக்கும் முக்கியமான நிகழ்வுகளை திட்டமிடுங்கள்"),
