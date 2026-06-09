@@ -37,6 +37,7 @@ import { Button, Chip, Metric, Surface } from "./dashboard-ui";
 import { DayStrip } from "./day-strip";
 import { MemberChip } from "./member-chip";
 import { AlertBanner } from "./alert-banner";
+import { DashboardActivityTimingCard } from "./dashboard-activity-timing-card";
 import { CollapsibleSection } from "./collapsible-section";
 import { VargasPanel } from "./dashboard-vargas-panel";
 import { PrasnaWidget } from "./dashboard-prasna-widget";
@@ -951,6 +952,15 @@ export function DashboardPersonalTab({
         panchangam={panchangam}
         birthProfile={personalChart?.birthProfile ?? null}
       />
+
+      {activeChartId && (
+        <DashboardActivityTimingCard
+          chartId={activeChartId}
+          lang={lang}
+          selectedDate={selectedDate}
+          onDateChange={onDateChange}
+        />
+      )}
 
       {/* Chart + Guidance two-column */}
       <div className="two-col">

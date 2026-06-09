@@ -304,7 +304,9 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
           })}`,
         )
           .then((response) => setPeyarchiReport(response.data))
-          .catch(() => {});
+          .catch(() => setPeyarchiReport(null));
+      } else {
+        setPeyarchiReport(null);
       }
 
       apiFetchJson<ApiEnvelope<JournalCorrelationData>>(
