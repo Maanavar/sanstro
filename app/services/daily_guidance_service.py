@@ -1646,6 +1646,8 @@ def get_activity_timing(
     if birth_profile is None:
         raise HTTPException(status_code=404, detail="Birth profile not found.")
 
+    normalized_activity = _normalize_activity_timing_activity(activity)
+
     year, mon = int(month[:4]), int(month[5:7])
     from calendar import monthrange
     _, days_in_month = monthrange(year, mon)
@@ -1687,7 +1689,7 @@ def get_activity_timing(
         try:
             panchang = panchang_by_date[d]
             result = assess_activity_timing(
-                activity=activity,  # type: ignore[arg-type]
+                activity=normalized_activity,
                 tithi_number=panchang.tithi_number,
                 paksha=panchang.tithi_paksha,
                 weekday_lord=panchang.weekday_lord,
@@ -1855,6 +1857,78 @@ _PEYARCHI_OUTLOOK: dict[str, dict[int, dict[str, str]]] = {
 }
 
 
+_HOUSE_THEME_TA: dict[int, str] = {
+    1: "உடல், தன்மை, வாழ்க்கை திசை",
+    2: "குடும்பம், பேச்சு, பண அடித்தளம்",
+    3: "முயற்சி, துணிவு, தொடர்பு",
+    4: "வீடு, மன அமைதி, சொத்து",
+    5: "கல்வி, புத்தி, குழந்தைகள்",
+    6: "சேவை, பழக்கங்கள், உடல் பராமரிப்பு",
+    7: "உறவுகள், கூட்டாண்மை",
+    8: "ஆழமான மாற்றம், மறைவு, உள்மாற்றம்",
+    9: "தர்மம், ஆசீர்வாதம், உயர்கல்வி",
+    10: "தொழில், பொறுப்பு, பொதுப் பங்கு",
+    11: "லாபம், வலையமைப்பு, விருப்ப நிறைவு",
+    12: "ஓய்வு, வெளிநாடு, ஆன்மீக விடுவிப்பு",
+}
+_HOUSE_THEME_EN: dict[int, str] = {
+    1: "self, body, and life direction",
+    2: "family, speech, and financial foundations",
+    3: "effort, courage, and communication",
+    4: "home, emotional grounding, and property",
+    5: "learning, intelligence, and children",
+    6: "service, habits, and health management",
+    7: "relationships and partnership",
+    8: "deep change, hidden matters, and inner reset",
+    9: "dharma, blessings, and higher learning",
+    10: "career, responsibility, and public role",
+    11: "gains, networks, and fulfilment of goals",
+    12: "rest, foreign links, and spiritual release",
+}
+_ACTIVITY_TIMING_ACTIVITY_ALIASES: dict[str, ActivityType] = {
+    "travel": "travel_abroad",
+    "child": "child_birth",
+}
+
+
+def _normalize_activity_timing_activity(activity: str) -> ActivityType:
+    normalized = _ACTIVITY_TIMING_ACTIVITY_ALIASES.get(activity, activity)
+    allowed: set[ActivityType] = {
+        "job_change",
+        "business_start",
+        "marriage",
+        "education",
+        "property",
+        "health",
+        "travel_abroad",
+        "spiritual",
+        "family_harmony",
+        "money",
+        "child_birth",
+        "other",
+    }
+    if normalized not in allowed:
+        raise HTTPException(status_code=422, detail="Unsupported activity type.")
+    return normalized
+
+
+def _node_axis_phase(rahu_house_from_moon: int) -> tuple[str, str]:
+    if rahu_house_from_moon in {3, 6, 10, 11}:
+        return (
+            "இந்த அச்சு வெளிப்படையான முன்னேற்றம், திறன், சாதனை நோக்கை வலுப்படுத்தும்.",
+            "This axis tends to externalize change through effort, skill-building, and visible progress.",
+        )
+    if rahu_house_from_moon in {1, 5, 7, 8, 12}:
+        return (
+            "இந்த அச்சு ஆழமான மறுசீரமைப்பு காலம்; வேகத்தை விட நிலைத்தன்மை முக்கியம்.",
+            "This axis marks a deeper restructuring phase, so grounding matters more than speed.",
+        )
+    return (
+        "இந்த அச்சு கலப்பு மாற்றத்தை தரும்; எது வளர வேண்டும், எது விடப்பட வேண்டும் என்பதில் தெளிவு தேவை.",
+        "This axis brings mixed but meaningful change; clarity helps you separate what must grow from what must be released.",
+    )
+
+
 def _rahu_ketu_axis_outlook(
     planet: str,
     house_moon: int,
@@ -1862,29 +1936,43 @@ def _rahu_ketu_axis_outlook(
     opposite_house_moon: int,
     opposite_house_lagna: int,
 ) -> dict[str, str]:
+    rahu_house_moon = house_moon if planet == "RAHU" else opposite_house_moon
+    rahu_house_lagna = house_lagna if planet == "RAHU" else opposite_house_lagna
+    ketu_house_moon = opposite_house_moon if planet == "RAHU" else house_moon
+    ketu_house_lagna = opposite_house_lagna if planet == "RAHU" else house_lagna
+    phase_ta, phase_en = _node_axis_phase(rahu_house_moon)
+
     if planet == "RAHU":
         return {
             "ta": (
-                f"ராகு சந்திர ராசியிலிருந்து {house_moon}ஆம் இடத்தையும் லக்னத்திலிருந்து {house_lagna}ஆம் இடத்தையும் "
-                f"பெரிதாக்கும் போக்கை காட்டுகிறது. எதிர் அச்சில் கேது {opposite_house_moon}ஆம் / "
-                f"{opposite_house_lagna}ஆம் இடங்களில் விடுவிப்பு, குறைத்தல், உள்ளார்ந்த திருப்பத்தை குறிக்கிறது."
+                f"ராகு/கேது அச்சு மாற்றம் தொடங்குகிறது. ராகு சந்திர ராசியிலிருந்து {house_moon}ஆம் இடம் "
+                f"({_HOUSE_THEME_TA[house_moon]}) மற்றும் லக்னத்திலிருந்து {house_lagna}ஆம் இடத்தை முன்னிலைப்படுத்தும். "
+                f"எதிர் அச்சில் கேது {opposite_house_moon}ஆம் இடம் ({_HOUSE_THEME_TA[opposite_house_moon]}) மற்றும் "
+                f"லக்னத்திலிருந்து {opposite_house_lagna}ஆம் இடங்களில் எளிமை, விடுவிப்பு, உள்ளார்ந்த திருப்பத்தை தரும். "
+                f"{phase_ta}"
             ),
             "en": (
-                f"Rahu indicates amplification around house {house_moon} from Moon and house {house_lagna} from Lagna. "
-                f"On the opposite end, Ketu indicates release and inward redirection around house "
-                f"{opposite_house_moon} from Moon and house {opposite_house_lagna} from Lagna."
+                f"Rahu/Ketu axis shift begins here. Rahu amplifies house {house_moon} from Moon "
+                f"({_HOUSE_THEME_EN[house_moon]}) and house {house_lagna} from Lagna, increasing appetite and visibility in that area. "
+                f"On the opposite axis, Ketu simplifies house {opposite_house_moon} from Moon "
+                f"({_HOUSE_THEME_EN[opposite_house_moon]}) and house {opposite_house_lagna} from Lagna, "
+                f"asking for release and inner correction. {phase_en}"
             ),
         }
     return {
         "ta": (
-            f"கேது சந்திர ராசியிலிருந்து {house_moon}ஆம் இடத்திலும் லக்னத்திலிருந்து {house_lagna}ஆம் இடத்திலும் "
-            f"விடுவிப்பு, எளிமை, ஆன்மீக திருப்பத்தை குறிக்கிறது. எதிர் அச்சில் ராகு {opposite_house_moon}ஆம் / "
-            f"{opposite_house_lagna}ஆம் இடங்களில் ஆசை மற்றும் கவனத்தை பெரிதாக்கும் போக்கை காட்டுகிறது."
+            f"ராகு/கேது அச்சு மாற்றம் தொடங்குகிறது. கேது சந்திர ராசியிலிருந்து {ketu_house_moon}ஆம் இடம் "
+            f"({_HOUSE_THEME_TA[ketu_house_moon]}) மற்றும் லக்னத்திலிருந்து {ketu_house_lagna}ஆம் இடங்களில் எளிமை, "
+            f"விடுவிப்பு, ஆன்மீக திருப்பத்தை தரும். எதிர் அச்சில் ராகு {rahu_house_moon}ஆம் இடம் "
+            f"({_HOUSE_THEME_TA[rahu_house_moon]}) மற்றும் லக்னத்திலிருந்து {rahu_house_lagna}ஆம் இடங்களில் ஆசை, "
+            f"வளர்ச்சி உந்துதல், வெளிப்படை இயக்கத்தை பெரிதாக்கும். {phase_ta}"
         ),
         "en": (
-            f"Ketu indicates release, simplification, and spiritual redirection around house {house_moon} from Moon "
-            f"and house {house_lagna} from Lagna. On the opposite end, Rahu amplifies desire and attention around "
-            f"house {opposite_house_moon} from Moon and house {opposite_house_lagna} from Lagna."
+            f"Rahu/Ketu axis shift begins here. Ketu simplifies house {ketu_house_moon} from Moon "
+            f"({_HOUSE_THEME_EN[ketu_house_moon]}) and house {ketu_house_lagna} from Lagna, encouraging release, "
+            f"simplification, and inner correction. On the opposite axis, Rahu amplifies house {rahu_house_moon} "
+            f"from Moon ({_HOUSE_THEME_EN[rahu_house_moon]}) and house {rahu_house_lagna} from Lagna, increasing "
+            f"desire and outward movement. {phase_en}"
         ),
     }
 

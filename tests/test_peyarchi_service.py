@@ -87,6 +87,7 @@ def test_peyarchi_report_supports_rahu_ketu_axis(client, birth_profile_payload_f
     assert rahu_data["events"]
     rahu_event = rahu_data["events"][0]
     assert rahu_event["outlookTa"]
+    assert "axis shift" in rahu_event["outlookEn"]
     assert "Ketu" in rahu_event["outlookEn"]
     assert rahu_event["houseFromMoon"] in range(1, 13)
     assert rahu_event["houseFromLagna"] in range(1, 13)
@@ -99,4 +100,5 @@ def test_peyarchi_report_supports_rahu_ketu_axis(client, birth_profile_payload_f
     ketu_data = ketu_response.json()["data"]
     assert ketu_data["planet"] == "KETU"
     assert ketu_data["events"]
+    assert "axis shift" in ketu_data["events"][0]["outlookEn"]
     assert "Rahu" in ketu_data["events"][0]["outlookEn"]

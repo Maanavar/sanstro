@@ -619,13 +619,25 @@ def _peyarchi_text(planet: str, house_from_moon: int, house_from_lagna: int, san
             f"Jupiter moves to house {house_from_moon} from Moon ({quality}) and house {house_from_lagna} from Lagna. Learning, growth, and opportunity themes are activated.",
         )
     if planet == "RAHU":
+        opposite_house = ((house_from_moon + 6 - 1) % 12) + 1
+        rahu_theme = _HOUSE_THEMES[house_from_moon]
+        ketu_theme = _HOUSE_THEMES[opposite_house]
         return _bi(
-            f"ராகு சந்திரனிலிருந்து {house_from_moon}-ஆம் இடம், லக்னத்திலிருந்து {house_from_lagna}-ஆம் இடத்தை பெரிதாக்கும் போக்கை காட்டுகிறது.",
-            f"Rahu indicates amplification around house {house_from_moon} from Moon and house {house_from_lagna} from Lagna.",
+            f"ராகு/கேது அச்சு {house_from_moon}-{opposite_house} வீடுகளை இயக்குகிறது. ராகு {house_from_moon}-ஆம் இடத்தில் "
+            f"({rahu_theme.ta}) கவனத்தை பெரிதாக்கும்; எதிர் அச்சில் கேது {opposite_house}-ஆம் இடம் ({ketu_theme.ta}) "
+            f"விடுவிப்பு மற்றும் உள்ளார்ந்த திருத்தத்தை கேட்கும்.",
+            f"The Rahu/Ketu axis activates houses {house_from_moon} and {opposite_house} from Moon. Rahu magnifies "
+            f"{rahu_theme.en}, while Ketu trims the opposite axis of {ketu_theme.en}; ambition works best with grounding.",
         )
+    opposite_house = ((house_from_moon + 6 - 1) % 12) + 1
+    ketu_theme = _HOUSE_THEMES[house_from_moon]
+    rahu_theme = _HOUSE_THEMES[opposite_house]
     return _bi(
-        f"கேது சந்திரனிலிருந்து {house_from_moon}-ஆம் இடம், லக்னத்திலிருந்து {house_from_lagna}-ஆம் இடத்தில் விடுவிப்பு மற்றும் உள்ளார்ந்த திருப்பத்தை காட்டுகிறது.",
-        f"Ketu indicates release and inward redirection around house {house_from_moon} from Moon and house {house_from_lagna} from Lagna.",
+        f"ராகு/கேது அச்சு {opposite_house}-{house_from_moon} வீடுகளை இயக்குகிறது. கேது {house_from_moon}-ஆம் இடத்தில் "
+        f"({ketu_theme.ta}) எளிமை மற்றும் உள்ளார்ந்த திருத்தத்தை தரும்; எதிர் அச்சில் ராகு {opposite_house}-ஆம் இடம் "
+        f"({rahu_theme.ta}) ஆசை மற்றும் வெளிப்படை இயக்கத்தை பெரிதாக்கும்.",
+        f"The Rahu/Ketu axis activates houses {opposite_house} and {house_from_moon} from Moon. Ketu simplifies "
+        f"{ketu_theme.en}, while Rahu magnifies the opposite axis of {rahu_theme.en}; release works best when desire stays measured.",
     )
 
 

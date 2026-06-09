@@ -222,6 +222,25 @@ def test_chart_explanation_endpoint_returns_structured_payload(client, birth_pro
     assert body["methodNote"]["en"]
 
 
+def test_chart_explanation_includes_expanded_rahu_ketu_peyarchi_notes(client, birth_profile_payload_factory):
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
+    chart_id = created["data"]["chartId"]
+
+    response = client.get(
+        f"/api/v1/charts/{chart_id}/explanation",
+        params={"asOf": "2026-05-21", "peyarchiWindowDays": 700},
+    )
+
+    assert response.status_code == 200
+    events = response.json()["data"]["peyarchi"]["events"]
+    rahu_event = next(item for item in events if item["planet"] == "RAHU")
+    ketu_event = next(item for item in events if item["planet"] == "KETU")
+    assert "Rahu/Ketu axis" in rahu_event["explanation"]["en"]
+    assert "Ketu" in rahu_event["explanation"]["en"]
+    assert "Rahu/Ketu axis" in ketu_event["explanation"]["en"]
+    assert "Rahu" in ketu_event["explanation"]["en"]
+
+
 def test_solar_return_endpoint_includes_tajaka_pairs(client, birth_profile_payload_factory):
     created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
     chart_id = created["data"]["chartId"]
