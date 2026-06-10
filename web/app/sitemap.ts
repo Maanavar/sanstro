@@ -2,6 +2,21 @@ import type { MetadataRoute } from "next";
 
 const BASE = "https://vinaadi.com";
 
+function isoDate(offset = 0): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + offset);
+  return d.toISOString().slice(0, 10);
+}
+
+function panchangamDateEntries(): MetadataRoute.Sitemap {
+  return Array.from({ length: 30 }, (_, i) => ({
+    url: `${BASE}/panchangam/${isoDate(i)}`,
+    changeFrequency: "daily" as const,
+    priority: 0.8,
+    lastModified: new Date(),
+  }));
+}
+
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
@@ -51,6 +66,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    {
+      url: `${BASE}/tools/muhurta-calculator`,
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
+    {
+      url: `${BASE}/tools/indraiya-rasipalan`,
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
     /* ── Trust pages ── */
     {
       url: `${BASE}/trust/methodology`,
@@ -98,5 +123,73 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.7,
     },
+    /* ── Natchathiram pages ── */
+    {
+      url: `${BASE}/natchathiram`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/natchathiram/ashwini`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/natchathiram/bharani`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/natchathiram/krittika`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/natchathiram/rohini`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/natchathiram/mrigashira`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/natchathiram/ardra`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/natchathiram/punarvasu`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/natchathiram/pushya`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/natchathiram/uttara-phalguni`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/natchathiram/hasta`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/natchathiram/chitra`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/natchathiram/swati`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    /* ── Daily panchangam pages (30 days) ── */
+    ...panchangamDateEntries(),
   ];
 }
