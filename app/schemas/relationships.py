@@ -186,3 +186,143 @@ class DirectPoruthamResponse(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
+
+# ---------------------------------------------------------------------------
+# Compatibility Intelligence Report (signed users — full 8-level analysis)
+# ---------------------------------------------------------------------------
+
+class SevvaiDoshamDetail(BaseModel):
+    has_dosham: bool = Field(alias="hasDosham")
+    mars_house: int = Field(alias="marsHouse")
+    is_cancelled: bool = Field(alias="isCancelled")
+    severity: str
+    cancellation_reasons: list[str] = Field(default_factory=list, alias="cancellationReasons")
+    note_en: str = Field(alias="noteEn")
+    note_ta: str = Field(alias="noteTa")
+    score: int
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ChartMarriageStrength(BaseModel):
+    seventh_house_rasi: int = Field(alias="seventhHouseRasi")
+    seventh_lord: str = Field(alias="seventhLord")
+    seventh_lord_house: int = Field(alias="seventhLordHouse")
+    seventh_lord_strength: int = Field(alias="seventhLordStrength")
+    venus_house: int = Field(alias="venusHouse")
+    venus_strength: int = Field(alias="venusStrength")
+    jupiter_house: int = Field(alias="jupiterHouse")
+    jupiter_strength: int = Field(alias="jupiterStrength")
+    has_malefic_in_seventh: bool = Field(alias="hasMaleficInSeventh")
+    score: int
+    note_en: str = Field(alias="noteEn")
+    note_ta: str = Field(alias="noteTa")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class NavamsaCompatibility(BaseModel):
+    person_a_venus_d9: int = Field(alias="personAVenusD9")
+    person_b_venus_d9: int = Field(alias="personBVenusD9")
+    person_a_seventh_lord_d9: int = Field(alias="personASeventhLordD9")
+    person_b_seventh_lord_d9: int = Field(alias="personBSeventhLordD9")
+    harmony_label: str = Field(alias="harmonyLabel")
+    note_en: str = Field(alias="noteEn")
+    note_ta: str = Field(alias="noteTa")
+    score: int
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class DashaHarmony(BaseModel):
+    person_a_maha_lord: str = Field(alias="personAMahaLord")
+    person_a_antar_lord: str = Field(alias="personAantarLord")
+    person_a_maha_end: str = Field(alias="personAMahaEnd")
+    person_b_maha_lord: str = Field(alias="personBMahaLord")
+    person_b_antar_lord: str = Field(alias="personBAntarLord")
+    person_b_maha_end: str = Field(alias="personBMahaEnd")
+    harmony_label: str = Field(alias="harmonyLabel")
+    note_en: str = Field(alias="noteEn")
+    note_ta: str = Field(alias="noteTa")
+    score: int
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class EmotionalCompatibility(BaseModel):
+    moon_moon_harmony: str = Field(alias="moonMoonHarmony")
+    venus_mars_harmony: str = Field(alias="venusMarsHarmony")
+    communication_note: str = Field(alias="communicationNote")
+    note_en: str = Field(alias="noteEn")
+    note_ta: str = Field(alias="noteTa")
+    score: int
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class CompatibilityScoreBreakdown(BaseModel):
+    porutham: int
+    seventh_house: int = Field(alias="seventhHouse")
+    navamsa: int
+    dasha_harmony: int = Field(alias="dashaHarmony")
+    dosham_analysis: int = Field(alias="doshamAnalysis")
+    emotional: int
+    synastry: int
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class CompatibilityIntelligenceData(BaseModel):
+    person_a_name: str = Field(alias="personAName")
+    person_b_name: str = Field(alias="personBName")
+
+    # Layer 1: Porutham
+    porutham_score: int = Field(alias="poruthamScore")
+    porutham_max: int = Field(alias="poruthamMax")
+    porutham_percentage: float = Field(alias="poruthamPercentage")
+    porutham_label: str = Field(alias="poruthamLabel")
+    porutham_kutas: list[KutaResult] = Field(default_factory=list, alias="poruthamKutas")
+    rajju_dosha: bool = Field(alias="rajjuDosha")
+    vedha_dosha: bool = Field(alias="vedhaDosha")
+    nadi_dosha: NadiDoshaData = Field(alias="nadiDosha")
+
+    # Layer 2+3: Chart strength
+    chart_a_strength: ChartMarriageStrength = Field(alias="chartAStrength")
+    chart_b_strength: ChartMarriageStrength = Field(alias="chartBStrength")
+
+    # Layer 4: Navamsa
+    navamsa: NavamsaCompatibility
+
+    # Layer 5: Dosham
+    sevvai_a: SevvaiDoshamDetail = Field(alias="sevvaiA")
+    sevvai_b: SevvaiDoshamDetail = Field(alias="sevvaiB")
+
+    # Layer 6: Dasha
+    dasha_harmony: DashaHarmony = Field(alias="dashaHarmony")
+
+    # Layer 7: Emotional
+    emotional: EmotionalCompatibility
+
+    # Layer 8: Synastry
+    synastry_score: int = Field(alias="synastryScore")
+
+    # Overall
+    overall_score: int = Field(alias="overallScore")
+    overall_label: str = Field(alias="overallLabel")
+    score_breakdown: CompatibilityScoreBreakdown = Field(alias="scoreBreakdown")
+    strengths_en: list[str] = Field(default_factory=list, alias="strengthsEn")
+    strengths_ta: list[str] = Field(default_factory=list, alias="strengthsTa")
+    risks_en: list[str] = Field(default_factory=list, alias="risksEn")
+    risks_ta: list[str] = Field(default_factory=list, alias="risksTa")
+    summary: RelationshipBiText
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class CompatibilityIntelligenceResponse(BaseModel):
+    success: bool = True
+    data: CompatibilityIntelligenceData
+    meta: ResponseMeta
+
+    model_config = ConfigDict(populate_by_name=True)
+

@@ -44,6 +44,7 @@ from app.models.chart_planet import ChartPlanet
 from app.models.notification import Notification
 from app.models.user import User
 from app.models.user_notification_preference import UserNotificationPreference
+from app.services.daily_guidance_service import get_daily_guidance
 from app.services.dasha_transition_service import get_dasha_transition_alerts
 from app.services.location_service import resolve_effective_daily_location
 from app.services.nakshatra_content import build_nakshatra_perspective
@@ -171,19 +172,36 @@ def _dispatch_for_user(
     if pref.morning_alert_enabled and _morning_alert_due(pref, now_utc, tz_name) and not _already_sent_today(session, user.user_id, "MORNING_NALLA_NERAM", run_date, tz_name):
         try:
             panchang = calculate_daily_panchangam(run_date, lat, lon, tz_name)
-            score = 50  # daily score placeholder — full calc needs chart; use panchangam signal
-            if panchang.nakshatra_number in {1, 4, 5, 7, 8, 13, 14, 15, 17, 22, 27}:
-                score = 72
-            elif panchang.nakshatra_number in {2, 9, 10, 14, 19}:
-                score = 32
-
-            label = _score_label(score)
             nalla_slot = best_gowri_slot(panchang.nalla_neram)
             nalla_start = nalla_slot.start.strftime("%H:%M") if nalla_slot else "-"
             nalla_end = nalla_slot.end.strftime("%H:%M") if nalla_slot else "-"
             nalla_name = getattr(nalla_slot, "name", None) if nalla_slot else None
             rahu_start  = panchang.rahu_kalam.start.strftime("%H:%M")
             rahu_end    = panchang.rahu_kalam.end.strftime("%H:%M")
+
+            # Use the full daily guidance engine for an accurate score and rich content.
+            # get_daily_guidance() is cache-backed (DailyScore table) so this is cheap
+            # if the daily batch has already run for today.
+            try:
+                guidance = get_daily_guidance(session, chart.chart_id, run_date)
+                score = guidance.data.score
+                label = guidance.data.label
+                is_chandrashtama = guidance.data.is_chandrashtama
+                action_ta = guidance.data.action_suggestion.ta
+                action_en = guidance.data.action_suggestion.en
+                dasha_ctx_ta = guidance.data.reasons.dasha_support.ta
+                dasha_ctx_en = guidance.data.reasons.dasha_support.en
+            except Exception:
+                # Fall back to panchangam-only signal if full guidance fails
+                score = 50
+                if panchang.nakshatra_number in {1, 4, 5, 7, 8, 13, 14, 15, 17, 22, 27}:
+                    score = 72
+                elif panchang.nakshatra_number in {2, 9, 10, 14, 19}:
+                    score = 32
+                label = _score_label(score)
+                is_chandrashtama = False
+                action_ta = action_en = ""
+                dasha_ctx_ta = dasha_ctx_en = ""
 
             nak_content = build_nakshatra_perspective(panchang.nakshatra_number, label)
             nak_ta = nak_content.ta if nak_content else str(panchang.nakshatra_number)
@@ -202,6 +220,17 @@ def _dispatch_for_user(
                 nalla_neram_purpose_ta=gowri_good_purpose(nalla_name, "ta"),
                 nalla_neram_purpose_en=gowri_good_purpose(nalla_name, "en"),
             )
+
+            # Enrich body with chandrashtama warning, dasha context, action guidance.
+            if is_chandrashtama:
+                payload["body"]["ta"] += " சந்திராஷ்டமம் — உணர்ச்சி ரீதியாக சற்று கவனம் தேவை."
+                payload["body"]["en"] += " Chandrashtama day — be emotionally mindful."
+            if dasha_ctx_en:
+                payload["body"]["ta"] += f" {dasha_ctx_ta}"
+                payload["body"]["en"] += f" {dasha_ctx_en}"
+            if action_en:
+                payload["body"]["ta"] += f" {action_ta}"
+                payload["body"]["en"] += f" {action_en}"
 
             result = dispatch_notification(
                 session=session,

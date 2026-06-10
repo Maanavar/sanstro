@@ -10,8 +10,8 @@ from sqlalchemy.orm import Session
 from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.relationships import DirectCompareRequest, DirectPoruthamResponse, PorutthamResponse, RelationshipAlertsResponse, SynastryResponse
-from app.services.synastry_service import compare_charts_direct, get_porutham_for_member, get_synastry_for_member, list_relationship_alerts
+from app.schemas.relationships import CompatibilityIntelligenceResponse, DirectCompareRequest, DirectPoruthamResponse, PorutthamResponse, RelationshipAlertsResponse, SynastryResponse
+from app.services.synastry_service import compare_charts_direct, get_compatibility_intelligence_for_member, get_porutham_for_member, get_synastry_for_member, list_relationship_alerts
 
 router = APIRouter()
 
@@ -71,6 +71,26 @@ def relationship_porutham(
         family_vault_id,
         member_id,
         compatibility_context=_validate_compatibility_context(compatibility_context),
+    )
+
+
+@router.get(
+    "/relationships/{member_id}/compatibility-intelligence",
+    response_model=CompatibilityIntelligenceResponse,
+    tags=["relationships"],
+)
+def relationship_compatibility_intelligence(
+    member_id: UUID,
+    family_vault_id: UUID = Query(alias="familyVaultId"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> CompatibilityIntelligenceResponse:
+    """Full 8-level Compatibility Intelligence Report for marriage matching (signed users)."""
+    return get_compatibility_intelligence_for_member(
+        session,
+        current_user.user_id,
+        family_vault_id,
+        member_id,
     )
 
 

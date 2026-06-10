@@ -18,17 +18,25 @@ from app.schemas.dasha import ResponseMeta
 from app.calculations.astro import NAKSHATRA_NAMES
 from app.calculations.porutham import compute_porutham
 from app.schemas.relationships import (
+    ChartMarriageStrength,
+    CompatibilityIntelligenceData,
+    CompatibilityIntelligenceResponse,
+    CompatibilityScoreBreakdown,
+    DashaHarmony,
     DirectCompareRequest,
     DirectPoruthamData,
     DirectPoruthamResponse,
+    EmotionalCompatibility,
     KutaResult,
     NadiDoshaData,
+    NavamsaCompatibility,
     PorutthamData,
     PorutthamResponse,
     RelationshipAlertData,
     RelationshipAlertsListData,
     RelationshipAlertsResponse,
     RelationshipBiText,
+    SevvaiDoshamDetail,
     SynastryAspect,
     SynastryData,
     SynastryResponse,
@@ -650,6 +658,174 @@ def compare_charts_direct(
         context_note=RelationshipBiText(ta=_note_raw["ta"], en=_note_raw["en"]),
     )
     return DirectPoruthamResponse(data=data, meta=_meta())
+
+
+def get_compatibility_intelligence_for_member(
+    session: Session,
+    owner_user_id: UUID,
+    family_vault_id: UUID,
+    member_id: UUID,
+) -> CompatibilityIntelligenceResponse:
+    """Full 8-level Compatibility Intelligence Report for marriage (signed users only)."""
+    from app.calculations.astro import utc_datetime_to_julian_day
+    from app.calculations.compatibility_intelligence import compute_compatibility_intelligence
+    from app.calculations.porutham import compute_porutham, check_nadi_dosha
+
+    _assert_vault_owner(session, family_vault_id, owner_user_id)
+    member = _member_in_vault(session, family_vault_id, member_id)
+
+    if member.relationship_to_owner in {"parent", "child", "sibling", "grandparent"}:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Compatibility Intelligence analysis requires a spouse/partner relationship context.",
+        )
+
+    owner_chart = _owner_chart_for_vault(session, family_vault_id, owner_user_id)
+    member_chart = _latest_chart(session, _latest_birth_profile(session, member))
+
+    snap_a = load_persisted_chart_response(session, owner_chart.chart_id)
+    snap_b = load_persisted_chart_response(session, member_chart.chart_id)
+
+    moon_a = _planet(snap_a, "MOON")
+    moon_b = _planet(snap_b, "MOON")
+
+    # Layer 1: compute porutham
+    porutham_result = compute_porutham(
+        boy_nakshatra=moon_a.nakshatra,
+        girl_nakshatra=moon_b.nakshatra,
+        boy_rasi=moon_a.rasi,
+        girl_rasi=moon_b.rasi,
+    )
+
+    # Layer 8: compute synastry
+    synastry_data = compute_synastry_score(snap_a, snap_b)
+
+    # Today's JD
+    today_jd = utc_datetime_to_julian_day(datetime.now(tz=UTC))
+
+    # Get display names
+    name_a = snap_a.data.birth_profile.display_name or "Person A"
+    name_b = snap_b.data.birth_profile.display_name or "Person B"
+
+    ci = compute_compatibility_intelligence(
+        snap_a=snap_a,
+        snap_b=snap_b,
+        porutham_result=porutham_result,
+        synastry_score=synastry_data.score,
+        today_jd=today_jd,
+        person_a_name=name_a,
+        person_b_name=name_b,
+    )
+
+    # Build nadi dosha schema
+    nadi = porutham_result.nadi_dosha
+    nadi_data = NadiDoshaData(
+        boy_nadi=nadi["boy_nadi"],
+        girl_nadi=nadi["girl_nadi"],
+        has_nadi_dosha=nadi["has_nadi_dosha"],
+        cancellations=nadi.get("cancellations", []),
+        severity=nadi["severity"],
+        note_ta=nadi["note_ta"],
+        note_en=nadi["note_en"],
+    )
+
+    kutas = [
+        KutaResult(name=k.name, name_ta=k.name_ta, score=k.score, max_score=k.max_score, label=k.label)
+        for k in porutham_result.kutas
+    ]
+
+    def _sevvai_schema(s: object) -> SevvaiDoshamDetail:
+        return SevvaiDoshamDetail(
+            has_dosham=s.has_dosham,
+            mars_house=s.mars_house,
+            is_cancelled=s.is_cancelled,
+            severity=s.severity,
+            cancellation_reasons=s.cancellation_reasons,
+            note_en=s.note_en,
+            note_ta=s.note_ta,
+            score=s.score,
+        )
+
+    def _cms_schema(c: object) -> ChartMarriageStrength:
+        return ChartMarriageStrength(
+            seventh_house_rasi=c.seventh_house_rasi,
+            seventh_lord=c.seventh_lord,
+            seventh_lord_house=c.seventh_lord_house,
+            seventh_lord_strength=c.seventh_lord_strength,
+            venus_house=c.venus_house,
+            venus_strength=c.venus_strength,
+            jupiter_house=c.jupiter_house,
+            jupiter_strength=c.jupiter_strength,
+            has_malefic_in_seventh=c.has_malefic_in_seventh,
+            score=c.score,
+            note_en=c.note_en,
+            note_ta=c.note_ta,
+        )
+
+    data = CompatibilityIntelligenceData(
+        person_a_name=ci.person_a_name,
+        person_b_name=ci.person_b_name,
+        porutham_score=ci.porutham_score,
+        porutham_max=ci.porutham_max,
+        porutham_percentage=ci.porutham_percentage,
+        porutham_label=ci.porutham_label,
+        porutham_kutas=kutas,
+        rajju_dosha=ci.rajju_dosha,
+        vedha_dosha=ci.vedha_dosha,
+        nadi_dosha=nadi_data,
+        chart_a_strength=_cms_schema(ci.chart_a_strength),
+        chart_b_strength=_cms_schema(ci.chart_b_strength),
+        navamsa=NavamsaCompatibility(
+            person_a_venus_d9=ci.navamsa.person_a_venus_d9,
+            person_b_venus_d9=ci.navamsa.person_b_venus_d9,
+            person_a_seventh_lord_d9=ci.navamsa.person_a_seventh_lord_d9,
+            person_b_seventh_lord_d9=ci.navamsa.person_b_seventh_lord_d9,
+            harmony_label=ci.navamsa.harmony_label,
+            note_en=ci.navamsa.note_en,
+            note_ta=ci.navamsa.note_ta,
+            score=ci.navamsa.score,
+        ),
+        sevvai_a=_sevvai_schema(ci.sevvai_a),
+        sevvai_b=_sevvai_schema(ci.sevvai_b),
+        dasha_harmony=DashaHarmony(
+            person_a_maha_lord=ci.dasha_harmony.person_a_maha_lord,
+            person_a_antar_lord=ci.dasha_harmony.person_a_antar_lord,
+            person_a_maha_end=ci.dasha_harmony.person_a_maha_end,
+            person_b_maha_lord=ci.dasha_harmony.person_b_maha_lord,
+            person_b_antar_lord=ci.dasha_harmony.person_b_antar_lord,
+            person_b_maha_end=ci.dasha_harmony.person_b_maha_end,
+            harmony_label=ci.dasha_harmony.harmony_label,
+            note_en=ci.dasha_harmony.note_en,
+            note_ta=ci.dasha_harmony.note_ta,
+            score=ci.dasha_harmony.score,
+        ),
+        emotional=EmotionalCompatibility(
+            moon_moon_harmony=ci.emotional.moon_moon_harmony,
+            venus_mars_harmony=ci.emotional.venus_mars_harmony,
+            communication_note=ci.emotional.communication_note,
+            note_en=ci.emotional.note_en,
+            note_ta=ci.emotional.note_ta,
+            score=ci.emotional.score,
+        ),
+        synastry_score=ci.synastry_score,
+        overall_score=ci.overall_score,
+        overall_label=ci.overall_label,
+        score_breakdown=CompatibilityScoreBreakdown(
+            porutham=ci.score_breakdown.porutham,
+            seventh_house=ci.score_breakdown.seventh_house,
+            navamsa=ci.score_breakdown.navamsa,
+            dasha_harmony=ci.score_breakdown.dasha_harmony,
+            dosham_analysis=ci.score_breakdown.dosham_analysis,
+            emotional=ci.score_breakdown.emotional,
+            synastry=ci.score_breakdown.synastry,
+        ),
+        strengths_en=ci.strengths_en,
+        strengths_ta=ci.strengths_ta,
+        risks_en=ci.risks_en,
+        risks_ta=ci.risks_ta,
+        summary=RelationshipBiText(ta=ci.summary_ta, en=ci.summary_en),
+    )
+    return CompatibilityIntelligenceResponse(data=data, meta=_meta())
 
 
 def daily_relationship_alert_refresh(run_at_utc: datetime | None = None) -> dict[str, int]:
