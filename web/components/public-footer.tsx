@@ -28,6 +28,7 @@ export function PublicFooter() {
             <Link href="/tools/jadhagam-generator"           className="cl-footer__link">{mt(FOOTER.tool_jad,      lang)}</Link>
             <Link href="/tools/daily-panchangam-planner"     className="cl-footer__link">{mt(FOOTER.tool_panch,    lang)}</Link>
             <Link href="/tools/birth-time-rectification"     className="cl-footer__link">{mt(FOOTER.tool_btr,      lang)}</Link>
+            <Link href="/tools/indraiya-rasipalan"           className="cl-footer__link">{mt(FOOTER.tool_rasipalan, lang)}</Link>
           </div>
           <div className="cl-footer__col">
             <p className="cl-footer__col-head">{mt(FOOTER.col_learn, lang)}</p>

@@ -1,60 +1,83 @@
-"use client";
+import type { Metadata } from "next";
+import { HowToReadJadhagamPageContent } from "./PageContent";
 
-import Link from "next/link";
-import { PublicNav } from "@/components/public-nav";
-import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
-import { LEARN_JAD, mt } from "@/lib/marketing-i18n";
+export const metadata: Metadata = {
+  title: "How to Read a Jadhagam — South Indian Tamil Birth Chart Guide | Vinaadi",
+  description:
+    "Learn how to read a South Indian Tamil jadhagam — the fixed square chart structure, how lagna is determined, how planets are placed across the 12 rasis, and how the Vimshottari dasha sequence is calculated from your Moon nakshatra.",
+  keywords: [
+    "how to read jadhagam",
+    "how to read Tamil birth chart",
+    "Tamil horoscope reading",
+    "South Indian chart explained",
+    "lagna meaning astrology",
+    "dasha sequence Tamil",
+    "jathagam reading guide",
+    "Tamil chart structure",
+    "nakshatra pada astrology",
+  ],
+  alternates: { canonical: "https://vinaadi.com/learn/how-to-read-a-jadhagam" },
+  openGraph: {
+    title: "How to Read a Jadhagam — South Indian Tamil Birth Chart Guide",
+    description:
+      "A clear guide to reading a South Indian Tamil jadhagam — chart structure, lagna, planet placements, and dasha sequence explained in plain language.",
+    url: "https://vinaadi.com/learn/how-to-read-a-jadhagam",
+    type: "article",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "How to Read a Tamil Jadhagam — Birth Chart Guide",
+    description: "South Indian chart structure, lagna, planets, and dasha sequence explained simply.",
+  },
+};
+
+const FAQ_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "What is the structure of a South Indian jadhagam?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "The South Indian jadhagam uses a fixed square grid where the 12 rasis always occupy the same positions — unlike the North Indian chart where the lagna rotates. The rasi positions are fixed (Mesha in the top-middle, moving clockwise), and only the planet symbols and lagna marker change based on birth details.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is lagna in a Tamil birth chart?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Lagna (also called the ascendant or rising sign) is the rasi that was rising on the eastern horizon at the exact moment of birth. It marks the 1st house in the chart — the reference point from which all 12 house positions are counted. Lagna changes approximately every 2 hours, making birth time critical for an accurate chart.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How is the Vimshottari dasha sequence calculated?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "The Vimshottari dasha sequence starts from the Moon's nakshatra at birth. Each of the 27 nakshatras has a planetary lord, and the sequence cycles through 9 planets over 120 years. The exact pada (quarter division) of the Moon's nakshatra — which requires an accurate birth time — determines where in the sequence you begin and how much of the first dasha period has already elapsed.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is the difference between D1 and D9 charts?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "The D1 Rasi chart is the main birth chart showing all 9 planets in their rasis at birth. The D9 Navamsa chart is a divisional chart where each rasi is divided into 9 equal parts — it reveals deeper patterns about marriage, dharma, and the second half of life. Both are generated together in a Thirukanitham jadhagam.",
+      },
+    },
+  ],
+};
 
 export default function HowToReadAJadhagamPage() {
-  const [lang] = useLang();
-  const d = LEARN_JAD;
-
   return (
-    <div className="clarity-shell">
-      <PublicNav />
-      <main>
-        <section className="cl-pub-hero">
-          <div className="cl-container cl-pub-hero__inner">
-            <div className="cl-pub-hero__copy">
-              <p className="cl-eyebrow">{mt(d.eyebrow, lang)}</p>
-              <h1 className="cl-pub-h1">{mt(d.h1, lang)}</h1>
-              <p className="cl-pub-lead">{mt(d.lead, lang)}</p>
-            </div>
-          </div>
-        </section>
-
-        <section className="cl-band cl-band--alt">
-          <div className="cl-container">
-            <h2 className="cl-section-h2">{mt(d.structure_h2, lang)}</h2>
-            <p>{mt(d.structure_body, lang)}</p>
-          </div>
-        </section>
-
-        <section className="cl-band">
-          <div className="cl-container">
-            <h2 className="cl-section-h2">{mt(d.lagna_h2, lang)}</h2>
-            <p>{mt(d.lagna_body, lang)}</p>
-          </div>
-        </section>
-
-        <section className="cl-band cl-band--alt">
-          <div className="cl-container">
-            <h2 className="cl-section-h2">{mt(d.dasha_h2, lang)}</h2>
-            <p>{mt(d.dasha_body, lang)}</p>
-            <div className="cl-pub-related" style={{ marginTop: "2rem" }}>
-              <p className="cl-pub-related__title">{mt(d.related_h2, lang)}</p>
-              <div className="cl-pub-related-links">
-                <Link href="/tools/jadhagam-generator"     className="cl-pub-related-link">{lang === "en" ? "Jadhagam Generator →"        : "ஜாதகம் உருவாக்கு →"}</Link>
-                <Link href="/features/chart-guidance"      className="cl-pub-related-link">{lang === "en" ? "Chart Guidance →"             : "ஜாதக விளக்கம் →"}</Link>
-                <Link href="/learn/why-birth-time-matters" className="cl-pub-related-link">{lang === "en" ? "Why birth time matters →"    : "பிறந்த நேரம் ஏன் முக்கியம் →"}</Link>
-                <Link href="/learn/what-is-thirukanitham"  className="cl-pub-related-link">{lang === "en" ? "What is Thirukanitham? →"   : "திருக்கணிதம் என்றால் என்ன? →"}</Link>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-      <PublicFooter />
-    </div>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }}
+      />
+      <HowToReadJadhagamPageContent />
+    </>
   );
 }

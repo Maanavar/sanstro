@@ -38,6 +38,8 @@ export const NAV = {
   tool_panch_desc: s("Daily Tamil almanac",  "தினசரி தமிழ் பஞ்சாங்கம்"),
   tool_btr:       s("Birth Time Rectification", "பிறப்பு நேர திருத்தம்"),
   tool_btr_desc:  s("Refine uncertain birth time", "தெளிவற்ற பிறந்த நேரத்தை சரிசெய்"),
+  tool_rasipalan:      s("Indraiya Rasipalan",      "இன்றைய ராசிபலன்"),
+  tool_rasipalan_desc: s("Today's horoscope by rasi", "இன்றைய ராசி பலன்"),
 
   lang_toggle_en: s("EN", "EN"),
   lang_toggle_ta: s("தமிழ்", "தமிழ்"),
@@ -64,6 +66,7 @@ export const FOOTER = {
   tool_jad:      s("Jadhagam Generator",      "ஜாதகம் உருவாக்கு"),
   tool_panch:    s("Panchangam Planner",      "பஞ்சாங்க திட்டமிடல்"),
   tool_btr:      s("Birth Time Rectification","பிறப்பு நேர திருத்தம்"),
+  tool_rasipalan: s("Indraiya Rasipalan",     "இன்றைய ராசிபலன்"),
 
   learn_porutham:  s("What is Porutham?",         "பொருத்தம் என்றால் என்ன?"),
   learn_thiruk:    s("What is Thirukanitham?",     "திருக்கணிதம் என்றால் என்ன?"),

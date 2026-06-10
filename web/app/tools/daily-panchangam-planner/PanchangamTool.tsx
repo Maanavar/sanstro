@@ -8,6 +8,7 @@ import { gowriCategoryLabel, gowriPeriodLabel, gowriPurposeLabel } from "@/lib/g
 import { tKarana, tNakshatra, tPlanetLord, tTithi, tWeekday, tYoga, type Lang } from "@/lib/i18n";
 import { TN_CITIES, type CityEntry } from "@/lib/tn-cities";
 import type { PanchangamDailyResponseData, PanchangamFestival } from "@/lib/types";
+import { PanchangamShareButton } from "@/components/public-share-card";
 
 const EXTRA_CITIES: CityEntry[] = [
   { name: "Bengaluru, Karnataka, India", lat: "12.9716", lng: "77.5946", timezone: "Asia/Kolkata" },
@@ -473,6 +474,27 @@ export function PanchangamTool() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Share button */}
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <PanchangamShareButton data={{
+              dateLabel: formatDateLabel(data.dateLocal),
+              cityName: currentCityDisplay || cityKey,
+              tithi: tTithi(data.tithi.name, lang),
+              nakshatra: tNakshatra(data.nakshatra.name, lang),
+              vara: tWeekday(data.vara.weekday, lang),
+              yoga: data.yoga?.name,
+              karana: data.karana?.name,
+              sunrise: formatClockLabel(data.sunrise),
+              sunset: formatClockLabel(data.sunset),
+              rahuKalamStart: formatClockLabel(data.kalam.rahuKalam.start),
+              rahuKalamEnd: formatClockLabel(data.kalam.rahuKalam.end),
+              nallaNeram: data.kalam.nallaNeram.length > 0
+                ? `${formatClockLabel(data.kalam.nallaNeram[0].start)} – ${formatClockLabel(data.kalam.nallaNeram[0].end)}`
+                : (en ? "N/A" : "இல்லை"),
+              lang,
+            }} />
           </div>
 
           {/* Sunrise/sunset */}

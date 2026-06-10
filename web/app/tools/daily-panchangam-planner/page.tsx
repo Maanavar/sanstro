@@ -1,89 +1,91 @@
-"use client";
+import type { Metadata } from "next";
+import { PanchangamPageContent } from "./PanchangamPageContent";
 
-import Link from "next/link";
-import { PanchangamTool } from "./PanchangamTool";
-import { PublicNav } from "@/components/public-nav";
-import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
-import { TOOL_PANCH, mt } from "@/lib/marketing-i18n";
+export const metadata: Metadata = {
+  title: "Tamil Panchangam Today — Tithi, Nakshatra, Rahu Kalam & Nalla Neram",
+  description:
+    "Get today's Tamil panchangam with Tithi, Vara, Nakshatra, Yoga, Karana, Rahu Kalam, Nalla Neram, and Muhurtham timings. Free Thirukanitham-based daily panchangam for any city worldwide.",
+  keywords: [
+    "Tamil panchangam",
+    "panchangam today",
+    "Rahu kalam today",
+    "Nalla neram",
+    "Tithi today",
+    "Tamil calendar",
+    "Thirukanitham panchangam",
+    "nakshatra today",
+    "muhurtham today",
+  ],
+  alternates: { canonical: "https://vinaadi.com/tools/daily-panchangam-planner" },
+  openGraph: {
+    title: "Tamil Panchangam Today — Tithi, Nakshatra, Rahu Kalam & Nalla Neram",
+    description:
+      "Free daily Tamil panchangam with all five elements, Rahu Kalam, Nalla Neram, and auspicious timings. Thirukanitham-based, accurate for any city.",
+    url: "https://vinaadi.com/tools/daily-panchangam-planner",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Tamil Panchangam Today — Tithi, Nakshatra, Rahu Kalam & Nalla Neram",
+    description: "Free Thirukanitham-based daily panchangam. Tithi, Nakshatra, Rahu Kalam, Nalla Neram for any city.",
+  },
+};
+
+const FAQ_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "What is Tamil panchangam?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Panchangam (பஞ்சாங்கம்) is the traditional Tamil almanac that describes the astrological quality of each day. It lists five daily elements — Tithi (lunar day), Vara (weekday), Nakshatra (birth star), Yoga (planetary combination), and Karana (half-day period) — along with auspicious and inauspicious timing windows like Nalla Neram and Rahu Kalam.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What are the five elements of panchangam?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "The five elements of panchangam are: Tithi (lunar day — 30 in a lunar month), Vara (day of the week and its ruling planet), Nakshatra (the Moon's position among the 27 birth stars), Yoga (a combined Sun-Moon calculation — 27 yogas), and Karana (each Tithi is divided into two Karanas). Together they define the spiritual and energetic character of the day.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is Rahu Kalam and should I avoid it?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Rahu Kalam is a 90-minute period each day traditionally considered inauspicious in Tamil astrology. It falls at a different time each weekday. New ventures, travel, and important ceremonies are typically avoided during Rahu Kalam. The exact times vary by location and depend on local sunrise time.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How do I find today's Nalla Neram?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Nalla Neram (நல்ல நேரம்) means 'auspicious time'. It is determined by the day's Gowri Panchangam cycles. Enter your date and city into Vinaadi's free panchangam calculator to get exact Nalla Neram windows for your location. The times change daily based on the weekday and local sunrise.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is this panchangam based on Thirukanitham or Vakya?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Vinaadi uses Thirukanitham (திருக்கணிதம்), the astronomically precise calculation method based on actual planetary positions computed using Swiss Ephemeris. Thirukanitham is more accurate than the traditional Vakya method for contemporary dates and is widely accepted by modern Tamil astrologers.",
+      },
+    },
+  ],
+};
 
 export default function PanchangamPlannerPage() {
-  const [lang] = useLang();
-  const d = TOOL_PANCH;
-
-  const FIVE_ELEMENTS = [
-    { title: mt(d.e1_title, lang), body: mt(d.e1_body, lang) },
-    { title: mt(d.e2_title, lang), body: mt(d.e2_body, lang) },
-    { title: mt(d.e3_title, lang), body: mt(d.e3_body, lang) },
-    { title: mt(d.e4_title, lang), body: mt(d.e4_body, lang) },
-    { title: mt(d.e5_title, lang), body: mt(d.e5_body, lang) },
-  ];
-
   return (
-    <div className="clarity-shell">
-      <PublicNav />
-      <main>
-        {/* HERO */}
-        <section className="cl-pub-hero" style={{ paddingBottom: "32px" }}>
-          <div className="cl-container">
-            <p className="cl-eyebrow">{mt(d.eyebrow, lang)}</p>
-            <h1 className="cl-pub-h1" style={{ maxWidth: "20ch" }}>{mt(d.h1, lang)}</h1>
-            <p className="cl-pub-lead">{mt(d.lead, lang)}</p>
-          </div>
-        </section>
-
-        {/* Live tool */}
-        <section style={{ paddingBottom: "64px" }}>
-          <div className="cl-container">
-            <PanchangamTool />
-          </div>
-        </section>
-
-        {/* BAND — Five limbs */}
-        <section className="cl-band cl-band--alt">
-          <div className="cl-container">
-            <div className="cl-band__head">
-              <p className="cl-eyebrow">{lang === "en" ? "Reference" : "குறிப்பு"}</p>
-              <h2 className="cl-section-h2">{mt(d.five_h2, lang)}</h2>
-            </div>
-            <div className="cl-pub-two-col">
-              <div className="cl-pub-section__body">
-                <p>{lang === "en"
-                  ? "Panchangam (பஞ்சாங்கம்) means \"five limbs\" — the five daily elements that define the quality of each day in the Tamil calendar."
-                  : "பஞ்சாங்கம் என்றால் \"ஐந்து உறுப்புகள்\" — தமிழ் நாட்காட்டியில் ஒவ்வொரு நாளின் தன்மையை வரையறுக்கும் ஐந்து தினசரி கூறுகள்."}</p>
-              </div>
-              <ul className="cl-pub-detail-list">
-                {FIVE_ELEMENTS.map((item) => (
-                  <li key={item.title} className="cl-pub-detail-item">
-                    <p className="cl-pub-detail-item__title">{item.title}</p>
-                    <p className="cl-pub-detail-item__body">{item.body}</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="cl-pub-related">
-              <p className="cl-pub-related__title">{mt(d.related_h2, lang)}</p>
-              <div className="cl-pub-related-links">
-                <Link href="/features/daily-guidance"       className="cl-pub-related-link">{lang === "en" ? "Daily Guidance →"           : "தினசரி வழிகாட்டுதல் →"}</Link>
-                <Link href="/features/timing-and-decisions" className="cl-pub-related-link">{lang === "en" ? "Timing and Decisions →"     : "நேரம் & முடிவுகள் →"}</Link>
-                <Link href="/learn/what-is-chandrashtama"   className="cl-pub-related-link">{lang === "en" ? "What is Chandrashtama? →"   : "சந்திராஷ்டமம் என்றால் என்ன? →"}</Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="cl-cta-strip">
-          <div className="cl-container cl-cta-strip__inner">
-            <div>
-              <h2 className="cl-cta-strip__title">{lang === "en" ? "Get panchangam connected to your chart" : "உங்கள் ஜாதகத்துடன் இணைந்த பஞ்சாங்கம் பெறுங்கள்"}</h2>
-              <p className="cl-cta-strip__body">{lang === "en" ? "Create a free account for daily guidance that combines your chart, dasha, and panchangam together." : "உங்கள் ஜாதகம், தசை, பஞ்சாங்கம் ஒன்றாக இணைந்த தினசரி வழிகாட்டுதலுக்கு இலவச கணக்கை உருவாக்கவும்."}</p>
-            </div>
-            <Link href="/dashboard" className="cl-btn cl-btn--solid">{lang === "en" ? "Get started free →" : "இலவசமாக தொடங்குங்கள் →"}</Link>
-          </div>
-        </section>
-      </main>
-      <PublicFooter />
-    </div>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }}
+      />
+      <PanchangamPageContent />
+    </>
   );
 }

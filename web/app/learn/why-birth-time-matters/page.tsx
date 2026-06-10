@@ -1,59 +1,82 @@
-"use client";
+import type { Metadata } from "next";
+import { WhyBirthTimeMattersPageContent } from "./PageContent";
 
-import Link from "next/link";
-import { PublicNav } from "@/components/public-nav";
-import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
-import { LEARN_BIRTH, mt } from "@/lib/marketing-i18n";
+export const metadata: Metadata = {
+  title: "Why Birth Time Matters in Tamil Astrology — Lagna and Dasha | Vinaadi",
+  description:
+    "In Thirukanitham astrology, birth time determines your lagna (which changes every ~2 hours) and the exact Moon nakshatra pada — both of which shape your entire chart and dasha sequence. Learn why accuracy matters and what to do when birth time is uncertain.",
+  keywords: [
+    "why birth time matters astrology",
+    "birth time Tamil astrology",
+    "lagna birth time",
+    "dasha birth time accuracy",
+    "birth time rectification",
+    "janma nakshatra pada",
+    "uncertain birth time horoscope",
+    "accurate Tamil horoscope",
+  ],
+  alternates: { canonical: "https://vinaadi.com/learn/why-birth-time-matters" },
+  openGraph: {
+    title: "Why Birth Time Matters in Tamil Astrology — Lagna and Dasha",
+    description:
+      "Lagna changes every 2 hours and dasha start depends on the Moon's exact nakshatra pada — both require an accurate birth time. Learn why and what to do when time is uncertain.",
+    url: "https://vinaadi.com/learn/why-birth-time-matters",
+    type: "article",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Why Birth Time Matters in Tamil Astrology",
+    description: "Lagna changes every 2 hours, dasha depends on Moon pada — accurate birth time is essential for a correct jadhagam.",
+  },
+};
+
+const FAQ_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "Why does birth time matter so much in Tamil astrology?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Birth time determines two critical factors in a Thirukanitham jadhagam: (1) the lagna (rising sign), which changes approximately every 2 hours and sets the house positions for all 9 planets; and (2) the exact pada of the Moon's nakshatra, which determines where in the Vimshottari dasha sequence you start. Even a 30-minute difference can change the lagna or shift the Moon to a different nakshatra pada.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How often does lagna change?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Lagna (the rising sign) changes approximately every 2 hours as the Earth rotates. Two people born on the same day in the same city but 2 hours apart can have entirely different lagnas — meaning their charts have different house lords, different planetary house placements, and different overall interpretations.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What if I don't know my exact birth time?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Vinaadi can still generate a chart with an approximate birth time, clearly flagging which elements — lagna, certain planet positions — are uncertain. For a more accurate chart, birth time rectification uses known life events (marriage, career changes, major moves) to narrow down the probable birth time.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is birth time rectification?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Birth time rectification is the process of using life events as reference points — working backwards through the dasha and transit system — to narrow down an uncertain birth time. If major events in your life align with specific dasha periods, the birth time that produces that dasha sequence is likely close to the actual birth time.",
+      },
+    },
+  ],
+};
 
 export default function WhyBirthTimeMattersPage() {
-  const [lang] = useLang();
-  const d = LEARN_BIRTH;
-
   return (
-    <div className="clarity-shell">
-      <PublicNav />
-      <main>
-        <section className="cl-pub-hero">
-          <div className="cl-container cl-pub-hero__inner">
-            <div className="cl-pub-hero__copy">
-              <p className="cl-eyebrow">{mt(d.eyebrow, lang)}</p>
-              <h1 className="cl-pub-h1">{mt(d.h1, lang)}</h1>
-              <p className="cl-pub-lead">{mt(d.lead, lang)}</p>
-            </div>
-          </div>
-        </section>
-
-        <section className="cl-band cl-band--alt">
-          <div className="cl-container">
-            <h2 className="cl-section-h2">{mt(d.lagna_h2, lang)}</h2>
-            <p>{mt(d.lagna_body, lang)}</p>
-          </div>
-        </section>
-
-        <section className="cl-band">
-          <div className="cl-container">
-            <h2 className="cl-section-h2">{mt(d.dasha_h2, lang)}</h2>
-            <p>{mt(d.dasha_body, lang)}</p>
-          </div>
-        </section>
-
-        <section className="cl-band cl-band--alt">
-          <div className="cl-container">
-            <h2 className="cl-section-h2">{mt(d.uncertain_h2, lang)}</h2>
-            <p>{mt(d.uncertain_body, lang)}</p>
-            <div className="cl-pub-related" style={{ marginTop: "2rem" }}>
-              <p className="cl-pub-related__title">{mt(d.related_h2, lang)}</p>
-              <div className="cl-pub-related-links">
-                <Link href="/tools/birth-time-rectification" className="cl-pub-related-link">{lang === "en" ? "Birth Time Rectification →"  : "பிறப்பு நேர திருத்தம் →"}</Link>
-                <Link href="/tools/jadhagam-generator"       className="cl-pub-related-link">{lang === "en" ? "Jadhagam Generator →"        : "ஜாதகம் உருவாக்கு →"}</Link>
-                <Link href="/learn/how-to-read-a-jadhagam"   className="cl-pub-related-link">{lang === "en" ? "How to read a Jadhagam →"   : "ஜாதகம் படிப்பது எப்படி →"}</Link>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-      <PublicFooter />
-    </div>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }}
+      />
+      <WhyBirthTimeMattersPageContent />
+    </>
   );
 }

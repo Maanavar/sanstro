@@ -1193,6 +1193,7 @@ export function DashboardWorkspace() {
                     {showPorutham && (
                       <PoruthamPanel
                         lang={lang}
+                        familyVaultId={family.selectedVaultId ?? undefined}
                         familyMembers={[
                           ...(personal.chart ? [{
                             memberId: `owner:${personal.chart.birthProfile.birthProfileId}`,

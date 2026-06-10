@@ -1445,6 +1445,116 @@ export interface DirectPoruthamData {
   contextNote: BiText | null;
 }
 
+// Compatibility Intelligence — signed-user full 8-level report
+
+export interface SevvaiDoshamDetail {
+  hasDosham: boolean;
+  marsHouse: number;
+  isCancelled: boolean;
+  severity: string;
+  cancellationReasons: string[];
+  noteEn: string;
+  noteTa: string;
+  score: number;
+}
+
+export interface ChartMarriageStrength {
+  seventhHouseRasi: number;
+  seventhLord: string;
+  seventhLordHouse: number;
+  seventhLordStrength: number;
+  venusHouse: number;
+  venusStrength: number;
+  jupiterHouse: number;
+  jupiterStrength: number;
+  hasMaleficInSeventh: boolean;
+  score: number;
+  noteEn: string;
+  noteTa: string;
+}
+
+export interface NavamsaCompatibility {
+  personAVenusD9: number;
+  personBVenusD9: number;
+  personASeventhLordD9: number;
+  personBSeventhLordD9: number;
+  harmonyLabel: string;
+  noteEn: string;
+  noteTa: string;
+  score: number;
+}
+
+export interface DashaHarmony {
+  personAMahaLord: string;
+  personAantarLord: string;
+  personAMahaEnd: string;
+  personBMahaLord: string;
+  personBAntarLord: string;
+  personBMahaEnd: string;
+  harmonyLabel: string;
+  noteEn: string;
+  noteTa: string;
+  score: number;
+}
+
+export interface EmotionalCompatibility {
+  moonMoonHarmony: string;
+  venusMarsHarmony: string;
+  communicationNote: string;
+  noteEn: string;
+  noteTa: string;
+  score: number;
+}
+
+export interface CompatibilityScoreBreakdown {
+  porutham: number;
+  seventhHouse: number;
+  navamsa: number;
+  dashaHarmony: number;
+  doshamAnalysis: number;
+  emotional: number;
+  synastry: number;
+}
+
+export interface NadiDoshaResult {
+  boyNadi: string;
+  girlNadi: string;
+  hasNadiDosha: boolean;
+  cancellations: string[];
+  severity: string;
+  noteTa: string;
+  noteEn: string;
+}
+
+export interface CompatibilityIntelligenceData {
+  personAName: string;
+  personBName: string;
+  poruthamScore: number;
+  poruthamMax: number;
+  poruthamPercentage: number;
+  poruthamLabel: string;
+  poruthamKutas: KutaResult[];
+  rajjuDosha: boolean;
+  vedhaDosha: boolean;
+  nadiDosha: NadiDoshaResult;
+  chartAStrength: ChartMarriageStrength;
+  chartBStrength: ChartMarriageStrength;
+  navamsa: NavamsaCompatibility;
+  sevvaiA: SevvaiDoshamDetail;
+  sevvaiB: SevvaiDoshamDetail;
+  dashaHarmony: DashaHarmony;
+  emotional: EmotionalCompatibility;
+  synastryScore: number;
+  overallScore: number;
+  overallLabel: string;
+  scoreBreakdown: CompatibilityScoreBreakdown;
+  strengthsEn: string[];
+  strengthsTa: string[];
+  risksEn: string[];
+  risksTa: string[];
+  summary: BiText;
+}
+
 export interface RelationshipAlertItem {
   alertId: string;
   memberId: string;

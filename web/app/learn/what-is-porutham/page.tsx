@@ -1,73 +1,92 @@
-"use client";
+import type { Metadata } from "next";
+import { PoruthamLearnPageContent } from "./PageContent";
 
-import Link from "next/link";
-import { PublicNav } from "@/components/public-nav";
-import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
-import { LEARN_PORUTHAM, mt } from "@/lib/marketing-i18n";
+export const metadata: Metadata = {
+  title: "What is Porutham? — Tamil Marriage Compatibility Explained | Vinaadi",
+  description:
+    "Porutham is the Tamil system for checking marriage compatibility using birth nakshatras. Learn about the 10 porutham factors, why Rajju dosha and Nadi dosha outweigh the score, and how Sevvai dosham is assessed.",
+  keywords: [
+    "what is porutham",
+    "porutham meaning Tamil",
+    "Tamil marriage compatibility",
+    "10 porutham explained",
+    "nakshatra porutham",
+    "rajju dosha",
+    "nadi dosha meaning",
+    "sevvai dosham",
+    "thirumana porutham",
+    "Tamil horoscope matching",
+  ],
+  alternates: { canonical: "https://vinaadi.com/learn/what-is-porutham" },
+  openGraph: {
+    title: "What is Porutham? — Tamil Marriage Compatibility Explained",
+    description:
+      "Learn the 10 porutham factors, how marriage compatibility is checked using birth nakshatras, and why Rajju and Nadi doshas are critical checks in Tamil astrology.",
+    url: "https://vinaadi.com/learn/what-is-porutham",
+    type: "article",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "What is Porutham? — Tamil Marriage Compatibility Explained",
+    description: "The 10 porutham factors, Rajju dosha, Nadi dosha, and Sevvai dosham explained clearly.",
+  },
+};
+
+const FAQ_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "What is porutham in Tamil astrology?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Porutham means 'compatibility' in Tamil. It is the traditional system of checking marriage compatibility by comparing the birth nakshatras (birth stars) of two people across 10 dimensions — covering day-to-day harmony, temperament, longevity, progeny, and prosperity.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What are the 10 poruthams?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "The 10 poruthams are: Dinam (daily harmony), Ganam (temperament), Mahendram (longevity and support), Stree Deergham (prosperity), Yoni (physical compatibility), Rajju (life-force compatibility), Vedha (obstacles), Rasi (moon sign compatibility), Rasiyathipathi/Graha Maitri (planetary friendship), and Nadi (hereditary health). The maximum total score is 36 points.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is Rajju dosha and why is it a dealbreaker?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Rajju dosha occurs when both partners share the same Rajju category based on their birth nakshatras. Traditional Tamil jyotish treats Rajju dosha as a critical dealbreaker — regardless of how high the total porutham score is. It is associated with longevity concerns for the spouse.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is Nadi dosha and can it be cancelled?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Nadi dosha occurs when both partners share the same Nadi category (Adi, Madhya, or Antya). It is associated with health concerns for offspring. Certain conditions — such as different rasi (moon sign) or different nakshatra despite same Nadi — can cancel the dosha. Vinaadi checks these cancellations automatically.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How many poruthams are needed for a good marriage match?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Traditional Tamil practice considers 7 or more out of 10 poruthams as a good match. However, the qualitative factors — Rajju dosha, Nadi dosha, and Sevvai dosham — matter more than the raw count. A high score with Rajju dosha or Nadi dosha still requires careful consideration.",
+      },
+    },
+  ],
+};
 
 export default function WhatIsPoruthamPage() {
-  const [lang] = useLang();
-  const d = LEARN_PORUTHAM;
-
   return (
-    <div className="clarity-shell">
-      <PublicNav />
-      <main>
-        <section className="cl-pub-hero">
-          <div className="cl-container cl-pub-hero__inner">
-            <div className="cl-pub-hero__copy">
-              <p className="cl-eyebrow">{mt(d.eyebrow, lang)}</p>
-              <h1 className="cl-pub-h1">{mt(d.h1, lang)}</h1>
-              <p className="cl-pub-lead">{mt(d.lead, lang)}</p>
-            </div>
-          </div>
-        </section>
-
-        <section className="cl-band cl-band--alt">
-          <div className="cl-container">
-            <h2 className="cl-section-h2">{mt(d.meaning_h2, lang)}</h2>
-            <p>{mt(d.meaning_body, lang)}</p>
-          </div>
-        </section>
-
-        <section className="cl-band">
-          <div className="cl-container">
-            <h2 className="cl-section-h2">{mt(d.how_h2, lang)}</h2>
-            <p>{mt(d.how_body, lang)}</p>
-          </div>
-        </section>
-
-        <section className="cl-band cl-band--alt">
-          <div className="cl-container">
-            <h2 className="cl-section-h2">{mt(d.critical_h2, lang)}</h2>
-            <p>{mt(d.critical_body, lang)}</p>
-          </div>
-        </section>
-
-        <section className="cl-band">
-          <div className="cl-container">
-            <h2 className="cl-section-h2">{mt(d.sevvai_h2, lang)}</h2>
-            <p>{mt(d.sevvai_body, lang)}</p>
-          </div>
-        </section>
-
-        <section className="cl-band cl-band--alt">
-          <div className="cl-container">
-            <h2 className="cl-section-h2">{mt(d.count_h2, lang)}</h2>
-            <p>{mt(d.count_body, lang)}</p>
-            <div className="cl-pub-related" style={{ marginTop: "2rem" }}>
-              <p className="cl-pub-related__title">{mt(d.related_h2, lang)}</p>
-              <div className="cl-pub-related-links">
-                <Link href="/tools/marriage-porutham-calculator" className="cl-pub-related-link">{lang === "en" ? "Porutham Calculator →"    : "பொருத்தம் கணக்கிடல் →"}</Link>
-                <Link href="/features/family-planning"           className="cl-pub-related-link">{lang === "en" ? "Family Planning →"        : "குடும்ப திட்டமிடல் →"}</Link>
-                <Link href="/learn/what-is-thirukanitham"        className="cl-pub-related-link">{lang === "en" ? "What is Thirukanitham? →" : "திருக்கணிதம் என்றால் என்ன? →"}</Link>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-      <PublicFooter />
-    </div>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }}
+      />
+      <PoruthamLearnPageContent />
+    </>
   );
 }

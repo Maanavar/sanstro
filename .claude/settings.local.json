@@ -124,7 +124,9 @@
       "Bash(npx eslint *)",
       "Bash(grep -rn \"cal_monthly_subha_\\\\|cal_monthly_\\\\${\" web/ --include=\"*.tsx\" --include=\"*.ts\")",
       "Bash(git check-ignore *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "PowerShell(Set-Location 'C:\\\\Users\\\\senth\\\\OneDrive\\\\문서\\\\GitHub\\\\sanstro'; $env:PYTHONIOENCODING=\"utf-8\"; $env:PYTHONUTF8=\"1\"; python -c \"import ast; ast.parse\\(open\\('app/schemas/relationships.py', encoding='utf-8'\\).read\\(\\)\\); print\\('schemas/relationships.py: OK'\\); ast.parse\\(open\\('app/services/synastry_service.py', encoding='utf-8'\\).read\\(\\)\\); print\\('synastry_service.py: OK'\\); ast.parse\\(open\\('app/api/relationships.py', encoding='utf-8'\\).read\\(\\)\\); print\\('api/relationships.py: OK'\\)\")",
+      "Bash(Select-Object -First 150)"
     ],
     "additionalDirectories": [
       "\\tmp",

@@ -9,6 +9,7 @@ import type { ApiEnvelope, ChartCalculateResponseData, DirectPoruthamData } from
 import { RasiChart } from "./dashboard-charts";
 import { Field } from "./dashboard-ui";
 import { PlaceCombobox } from "./place-combobox";
+import { CompatibilityIntelligencePanel } from "./compatibility-intelligence-panel";
 
 type BirthForm = {
   displayName: string;
@@ -126,6 +127,7 @@ function PersonForm({
 
 interface PoruthamPanelProps {
   lang: Lang;
+  familyVaultId?: string;
   familyMembers?: Array<{
     memberId: string;
     displayName: string;
@@ -138,10 +140,12 @@ interface PoruthamPanelProps {
   }>;
 }
 
-export function PoruthamPanel({ lang, familyMembers = [] }: PoruthamPanelProps) {
+export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: PoruthamPanelProps) {
   const [formA, setFormA] = useState<BirthForm>(EMPTY_FORM);
   const [formB, setFormB] = useState<BirthForm>(EMPTY_FORM);
   const [compatCtx, setCompatCtx] = useState<"GENERAL" | "MARRIAGE" | "FRIENDSHIP" | "BUSINESS" | "FAMILY">("MARRIAGE");
+  const [selectedVaultMemberIdB, setSelectedVaultMemberIdB] = useState<string | null>(null);
+  const [showCiReport, setShowCiReport] = useState(false);
   const [chartA, setChartA] = useState<ChartCalculateResponseData | null>(null);
   const [chartB, setChartB] = useState<ChartCalculateResponseData | null>(null);
   const [porutham, setPorutham] = useState<DirectPoruthamData | null>(null);
@@ -333,15 +337,21 @@ export function PoruthamPanel({ lang, familyMembers = [] }: PoruthamPanelProps) 
                 value=""
                 onChange={(e) => {
                   const m = familyMembers.find((fm) => fm.memberId === e.target.value);
-                  if (m) setFormB({
-                    displayName: m.displayName,
-                    birthDateLocal: m.birthDateLocal ?? "",
-                    birthTimeLocal: m.birthTimeLocal ?? "12:00",
-                    birthPlace: m.birthPlace ?? "",
-                    birthLatitude: m.birthLatitude != null ? String(m.birthLatitude) : "",
-                    birthLongitude: m.birthLongitude != null ? String(m.birthLongitude) : "",
-                    birthTimezone: m.birthTimezone ?? "Asia/Kolkata",
-                  });
+                  if (m) {
+                    setFormB({
+                      displayName: m.displayName,
+                      birthDateLocal: m.birthDateLocal ?? "",
+                      birthTimeLocal: m.birthTimeLocal ?? "12:00",
+                      birthPlace: m.birthPlace ?? "",
+                      birthLatitude: m.birthLatitude != null ? String(m.birthLatitude) : "",
+                      birthLongitude: m.birthLongitude != null ? String(m.birthLongitude) : "",
+                      birthTimezone: m.birthTimezone ?? "Asia/Kolkata",
+                    });
+                    // Track vault member ID (only real UUIDs, not "owner:..." prefixed ones)
+                    const isVaultMember = !m.memberId.startsWith("owner:");
+                    setSelectedVaultMemberIdB(isVaultMember ? m.memberId : null);
+                    setShowCiReport(false);
+                  }
                 }}
               >
                 <option value="">{lang === "ta" ? "-- தேர்ந்தெடுக்கவும் --" : "-- Select member --"}</option>
@@ -480,6 +490,62 @@ export function PoruthamPanel({ lang, familyMembers = [] }: PoruthamPanelProps) 
               ? "இந்த ஜாதகங்கள் தற்காலிகமானவை. தளத்தை மூடியதும் தானாக நீக்கப்படும்."
               : "Temporary charts — auto-deleted when you leave this session."}
           </p>
+
+          {/* Compatibility Intelligence upsell / report */}
+          {compatCtx === "MARRIAGE" && familyVaultId && selectedVaultMemberIdB && (
+            <div style={{ marginTop: "8px" }}>
+              {!showCiReport ? (
+                <div style={{
+                  background: "rgba(92,118,84,0.05)", border: "1px solid rgba(92,118,84,0.25)",
+                  borderRadius: "14px", padding: "16px 20px",
+                  display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap",
+                }}>
+                  <div style={{ flex: 1, minWidth: "200px" }}>
+                    <p style={{ margin: "0 0 4px", fontWeight: 700, fontSize: "0.88rem", color: W.inkMid }}>
+                      {lang === "ta" ? "இணக்க நுண்ணறிவு அறிக்கை" : "Full Compatibility Intelligence Report"}
+                    </p>
+                    <p style={{ margin: 0, fontSize: "0.78rem", color: W.muted, lineHeight: 1.55 }}>
+                      {lang === "ta"
+                        ? "7ஆம் இடம் · நவாம்சம் · தசை இணக்கம் · செவ்வாய் தோஷம் · உணர்வு இணக்கம் · ஒட்டுமொத்த மதிப்பெண் (0–100) உள்ளிட்ட 8 அடுக்கு ஆழமான பகுப்பாய்வு"
+                        : "8-level deep analysis: 7th house · Navamsa · Dasha timing · Sevvai Dosham · Emotional · Overall score 0–100"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCiReport(true)}
+                    style={{
+                      padding: "9px 22px", background: W.inkMid, color: W.card,
+                      border: "none", borderRadius: "999px", fontFamily: "inherit",
+                      fontSize: "0.88rem", fontWeight: 600, cursor: "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {lang === "ta" ? "முழு அறிக்கை காண்க →" : "View Full Report →"}
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: "0.9rem", color: W.inkMid }}>
+                      {lang === "ta" ? "இணக்க நுண்ணறிவு அறிக்கை" : "Compatibility Intelligence Report"}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowCiReport(false)}
+                      style={{ fontSize: "0.78rem", color: W.muted, background: "none", border: `1px solid ${W.border}`, borderRadius: "999px", padding: "4px 12px", cursor: "pointer", fontFamily: "inherit" }}
+                    >
+                      {lang === "ta" ? "மறை" : "Hide"}
+                    </button>
+                  </div>
+                  <CompatibilityIntelligencePanel
+                    familyVaultId={familyVaultId}
+                    memberId={selectedVaultMemberIdB}
+                    lang={lang}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

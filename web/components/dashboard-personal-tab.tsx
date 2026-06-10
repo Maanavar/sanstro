@@ -40,8 +40,10 @@ import { AlertBanner } from "./alert-banner";
 import { DashboardActivityTimingCard } from "./dashboard-activity-timing-card";
 import { CollapsibleSection } from "./collapsible-section";
 import { VargasPanel } from "./dashboard-vargas-panel";
+import { MorningGuidanceCard } from "./morning-guidance-card";
 import { PrasnaWidget } from "./dashboard-prasna-widget";
 import { ChartExplanationPanel } from "./dashboard-chart-explanation";
+import { ShareCardButton } from "./dashboard-share-card";
 
 type DashboardPersonalTabProps = {
   lang: Lang;
@@ -983,6 +985,12 @@ export function DashboardPersonalTab({
                 <Metric label={t("label_lagnam", lang)} value={personalChart.lagna.rasiName ?? `Raasi ${personalChart.lagna.rasi}`} hint={`${personalChart.lagna.degreeInRasi.toFixed(2)}° · ${personalChart.lagna.nakshatraName} ${t("label_padam", lang)} ${personalChart.lagna.pada}`} tone="high" />
               </div>
               <JathagamKattam chart={personalChart} lang={lang} />
+              {activeChartId && (
+                <div style={{ display: "flex", gap: "8px", marginTop: "var(--space-2)", flexWrap: "wrap" }}>
+                  <ShareCardButton chartId={activeChartId} cardType="NAKSHATRA" lang={lang} label={lang === "ta" ? "நட்சத்திர அட்டை பகிர்" : "Share Nakshatra Card"} />
+                  <ShareCardButton chartId={activeChartId} cardType="DAILY_VIBE" lang={lang} date={selectedDate} label={lang === "ta" ? "இன்றைய வைப் பகிர்" : "Share Today's Vibe"} />
+                </div>
+              )}
             </div>
           ) : (
             <p className="empty-state">{t("chart_no_profile", lang)}</p>
@@ -1314,6 +1322,9 @@ export function DashboardPersonalTab({
           </Surface>
         </div>
       )}
+
+      {/* ── Morning Guidance opt-in ── */}
+      <MorningGuidanceCard lang={lang} />
 
       {/* ── Prasna (Horary) ── */}
       {onOpenPrasna && (

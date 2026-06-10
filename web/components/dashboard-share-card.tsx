@@ -19,7 +19,7 @@ const DASHA_COLORS: Record<string, string> = {
   JUPITER: "#fbbf24", VENUS: "#f0abfc", SATURN: "var(--color-faint)", RAHU: "#a78bfa", KETU: "#6b7280",
 };
 
-// ── Canvas drawing ────────────────────────────────────────────────────────────
+// ── Canvas drawing — portrait 1080×1920 (9:16 for stories / reels) ───────────
 
 function drawDailyVibeCard(
   ctx: CanvasRenderingContext2D,
@@ -28,77 +28,95 @@ function drawDailyVibeCard(
   w: number,
   h: number,
 ) {
-  const band = data.scoreBand ?? "neutral";
+  const band    = data.scoreBand ?? "neutral";
   const palette = BAND_COLORS[band] ?? BAND_COLORS.neutral;
 
-  // Background
   ctx.fillStyle = palette.bg;
   ctx.fillRect(0, 0, w, h);
 
-  // Top accent bar
-  ctx.fillStyle = palette.accent;
-  ctx.fillRect(0, 0, w, 4);
+  const grd = ctx.createRadialGradient(w / 2, 560, 10, w / 2, 560, 600);
+  grd.addColorStop(0, palette.accent + "28");
+  grd.addColorStop(1, "transparent");
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, w, h);
 
-  // Score circle
-  const cx = 72, cy = 80, r = 42;
+  ctx.fillStyle = palette.accent;
+  ctx.fillRect(0, 0, w, 10);
+
+  // Score arc ring (centered upper third)
+  const cx = w / 2, cy = 560, r = 210;
+  ctx.strokeStyle = "rgba(255,255,255,0.07)";
+  ctx.lineWidth   = 20;
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(255,255,255,0.06)";
-  ctx.fill();
+  ctx.stroke();
+
+  const score  = data.score ?? 0;
+  const startA = -Math.PI / 2;
+  const endA   = startA + Math.PI * 2 * Math.min(score / 100, 1);
   ctx.strokeStyle = palette.accent;
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth   = 20;
+  ctx.lineCap     = "round";
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startA, endA);
   ctx.stroke();
 
   ctx.fillStyle = palette.accent;
-  ctx.font = "bold 28px system-ui, sans-serif";
+  ctx.font      = "bold 112px system-ui, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(String(data.score ?? 0), cx, cy + 10);
+  ctx.fillText(String(score), cx, cy + 44);
 
-  ctx.fillStyle = "rgba(255,255,255,0.45)";
-  ctx.font = "11px system-ui, sans-serif";
-  ctx.fillText("/100", cx, cy + 26);
+  ctx.fillStyle = "rgba(255,255,255,0.40)";
+  ctx.font      = "36px system-ui, sans-serif";
+  ctx.fillText("/100", cx, cy + 100);
+
+  // Horizontal divider
+  ctx.strokeStyle = "rgba(255,255,255,0.10)";
+  ctx.lineWidth   = 1;
+  ctx.beginPath();
+  ctx.moveTo(64, 840); ctx.lineTo(w - 64, 840);
+  ctx.stroke();
 
   // Headline
   const headline = lang === "ta" ? data.headline?.ta : data.headline?.en;
-  ctx.fillStyle = palette.text;
-  ctx.font = "bold 17px system-ui, sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText(headline ?? "", 130, 66);
+  if (headline) {
+    ctx.fillStyle = palette.text;
+    ctx.font      = "bold 52px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    wrapText(ctx, headline, cx, 920, w - 128, 68, 3);
+  }
 
-  // Sub-headline (action suggestion) — wrap at 34 chars
+  // Sub-headline
   const sub = lang === "ta" ? data.subHeadline?.ta : data.subHeadline?.en;
   if (sub) {
-    ctx.fillStyle = "rgba(255,255,255,0.6)";
-    ctx.font = "12px system-ui, sans-serif";
-    const words = sub.split(" ");
-    let line = "", y = 88;
-    for (const word of words) {
-      const test = line ? `${line} ${word}` : word;
-      if (ctx.measureText(test).width > w - 140) {
-        ctx.fillText(line, 130, y);
-        line = word;
-        y += 17;
-        if (y > 115) { ctx.fillText("…", 130, y); break; }
-      } else {
-        line = test;
-      }
-    }
-    if (line) ctx.fillText(line, 130, y);
+    ctx.fillStyle = "rgba(255,255,255,0.58)";
+    ctx.font      = "32px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    wrapText(ctx, sub, cx, 1120, w - 128, 44, 4);
   }
 
   // Best window pill
   if (data.bestWindow) {
-    ctx.fillStyle = "rgba(255,255,255,0.08)";
-    roundRect(ctx, 16, h - 68, w - 32, 34, 8);
+    ctx.fillStyle = "rgba(255,255,255,0.07)";
+    roundRect(ctx, 64, h - 182, w - 128, 76, 14);
     ctx.fill();
     ctx.fillStyle = palette.accent;
-    ctx.font = "bold 11px system-ui, sans-serif";
-    ctx.textAlign = "left";
-    ctx.fillText("✓ " + (lang === "ta" ? "சிறந்த நேரம்" : "Best window"), 26, h - 47);
-    ctx.fillStyle = "rgba(255,255,255,0.7)";
-    ctx.font = "11px system-ui, sans-serif";
-    ctx.fillText(data.bestWindow, 26 + ctx.measureText("✓ " + (lang === "ta" ? "சிறந்த நேரம்" : "Best window") + "  ").width, h - 47);
+    ctx.font      = "bold 28px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(
+      "✓  " + (lang === "ta" ? "சிறந்த நேரம்: " : "Best window: ") + data.bestWindow,
+      cx, h - 134,
+    );
   }
+
+  // Bottom CTA
+  ctx.fillStyle = "rgba(255,255,255,0.25)";
+  ctx.font      = "24px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(
+    lang === "ta" ? "vinaadi.com இல் உங்கள் ஜாதகம் →" : "Get your daily vibe at vinaadi.com →",
+    cx, h - 52,
+  );
 
   drawBranding(ctx, w, h);
 }
@@ -110,35 +128,45 @@ function drawDashaEraCard(
   w: number,
   h: number,
 ) {
-  ctx.fillStyle = "#0d1117";
+  ctx.fillStyle = "#0a0c14";
   ctx.fillRect(0, 0, w, h);
 
   const lordColor = DASHA_COLORS[data.mahaLord ?? ""] ?? "#e5b84d";
 
-  // Glowing circle
-  const grd = ctx.createRadialGradient(w / 2, h / 2 - 20, 10, w / 2, h / 2 - 20, 90);
-  grd.addColorStop(0, lordColor + "33");
+  const grd = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, 700);
+  grd.addColorStop(0, lordColor + "30");
   grd.addColorStop(1, "transparent");
   ctx.fillStyle = grd;
   ctx.fillRect(0, 0, w, h);
 
-  // Top bar
   ctx.fillStyle = lordColor;
-  ctx.fillRect(0, 0, w, 4);
+  ctx.fillRect(0, 0, w, 10);
 
-  // Era label
+  // Era label (large, centered vertically)
   const label = lang === "ta" ? data.eraLabel?.ta : data.eraLabel?.en;
   ctx.fillStyle = lordColor;
-  ctx.font = "bold 15px system-ui, sans-serif";
+  ctx.font      = "bold 64px system-ui, sans-serif";
   ctx.textAlign = "center";
-  wrapText(ctx, label ?? "", w / 2, 56, w - 40, 20);
+  wrapText(ctx, label ?? "", w / 2, h / 2 - 80, w - 120, 82, 2);
 
-  // Years
+  ctx.fillStyle = "rgba(255,255,255,0.30)";
+  ctx.font      = "32px system-ui, sans-serif";
+  ctx.fillText(lang === "ta" ? "தசை காலம்" : "Dasha Period", w / 2, h / 2 + 100);
+
   if (data.eraYears) {
-    ctx.fillStyle = "rgba(255,255,255,0.35)";
-    ctx.font = "12px system-ui, sans-serif";
-    ctx.fillText(data.eraYears, w / 2, h - 52);
+    ctx.fillStyle = "rgba(255,255,255,0.45)";
+    ctx.font      = "34px system-ui, sans-serif";
+    ctx.fillText(data.eraYears, w / 2, h / 2 + 152);
   }
+
+  // Bottom CTA
+  ctx.fillStyle = "rgba(255,255,255,0.25)";
+  ctx.font      = "24px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(
+    lang === "ta" ? "vinaadi.com இல் உங்கள் தசை →" : "Explore your dasha at vinaadi.com →",
+    w / 2, h - 52,
+  );
 
   drawBranding(ctx, w, h);
 }
@@ -150,43 +178,60 @@ function drawNakshatraCard(
   w: number,
   h: number,
 ) {
-  ctx.fillStyle = "#0e1023";
+  ctx.fillStyle = "#080b18";
   ctx.fillRect(0, 0, w, h);
 
   const accent = "#a78bfa";
-  ctx.fillStyle = accent;
-  ctx.fillRect(0, 0, w, 4);
 
-  // Nakshatra name
+  const grd = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, 700);
+  grd.addColorStop(0, "#a78bfa1a");
+  grd.addColorStop(1, "transparent");
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.fillStyle = accent;
+  ctx.fillRect(0, 0, w, 10);
+
   const name = lang === "ta" ? data.nakshatraNameTa : data.nakshatraNameEn;
   ctx.fillStyle = accent;
-  ctx.font = "bold 22px system-ui, sans-serif";
+  ctx.font      = "bold 96px system-ui, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(name ?? "", w / 2, 62);
+  ctx.fillText(name ?? "", w / 2, h / 2 - 50);
 
-  // Ruling planet
+  ctx.fillStyle = "rgba(255,255,255,0.35)";
+  ctx.font      = "30px system-ui, sans-serif";
   if (data.rulingPlanet) {
-    ctx.fillStyle = "rgba(255,255,255,0.35)";
-    ctx.font = "11px system-ui, sans-serif";
-    ctx.fillText((lang === "ta" ? "ஆள்கின்ற கிரகம்: " : "Ruled by: ") + data.rulingPlanet, w / 2, 82);
+    ctx.fillText(
+      (lang === "ta" ? "ஆள்கின்ற கிரகம்: " : "Ruled by: ") + data.rulingPlanet,
+      w / 2, h / 2 + 24,
+    );
   }
 
-  // Trait text
   const trait = lang === "ta" ? data.nakshatraTrait?.ta : data.nakshatraTrait?.en;
   if (trait) {
-    ctx.fillStyle = "rgba(255,255,255,0.65)";
-    ctx.font = "12px system-ui, sans-serif";
-    wrapText(ctx, trait, w / 2, 108, w - 48, 18);
+    ctx.fillStyle = "rgba(255,255,255,0.58)";
+    ctx.font      = "30px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    wrapText(ctx, trait, w / 2, h / 2 + 90, w - 120, 44, 4);
   }
+
+  // Bottom CTA
+  ctx.fillStyle = "rgba(255,255,255,0.25)";
+  ctx.font      = "24px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(
+    lang === "ta" ? "vinaadi.com இல் உங்கள் நட்சத்திரம் →" : "Discover your nakshatra at vinaadi.com →",
+    w / 2, h - 52,
+  );
 
   drawBranding(ctx, w, h);
 }
 
-function drawBranding(ctx: CanvasRenderingContext2D, w: number, h: number) {
-  ctx.fillStyle = "rgba(255,255,255,0.2)";
-  ctx.font = "10px system-ui, sans-serif";
+function drawBranding(ctx: CanvasRenderingContext2D, w: number, _h: number) {
+  ctx.fillStyle = "rgba(255,255,255,0.30)";
+  ctx.font      = "bold 22px system-ui, sans-serif";
   ctx.textAlign = "right";
-  ctx.fillText("vinaadi.ai", w - 16, h - 14);
+  ctx.fillText("vinaadi.com", w - 32, 46);
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -203,15 +248,18 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath();
 }
 
-function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number, lineH: number) {
+function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number, lineH: number, maxLines = 99) {
   const words = text.split(" ");
   let line = "";
+  let lines = 0;
   for (const word of words) {
     const test = line ? `${line} ${word}` : word;
     if (ctx.measureText(test).width > maxW && line) {
       ctx.fillText(line, x, y);
       line = word;
       y += lineH;
+      lines++;
+      if (lines >= maxLines) { ctx.fillText("…", x, y); return; }
     } else {
       line = test;
     }
@@ -235,7 +283,8 @@ export function ShareCardButton({ chartId, cardType, lang, date, label }: ShareC
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const W = 400, H = 220;
+  // 9:16 portrait — optimal for WhatsApp Status, Instagram Stories/Reels, YouTube Shorts
+  const W = 1080, H = 1920;
 
   async function handleShare() {
     setLoading(true);
@@ -322,7 +371,17 @@ export function ShareCardButton({ chartId, cardType, lang, date, label }: ShareC
             style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "14px" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <img src={preview} alt="share card preview" style={{ borderRadius: "12px", maxWidth: "100%", boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }} />
+            <img
+              src={preview}
+              alt="share card preview"
+              style={{
+                borderRadius: "12px",
+                maxWidth: "min(100%, 420px)",
+                maxHeight: "75vh",
+                objectFit: "contain",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+              }}
+            />
             <div style={{ display: "flex", gap: "10px" }}>
               <a
                 href={preview}

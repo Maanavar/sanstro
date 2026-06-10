@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { PlaceCombobox } from "@/components/dashboard-ui";
-import type { ChartCalculateResponseData, ChartPlanet } from "@/lib/types";
+import type { ChartCalculateResponseData, ChartPlanet, ChartYogaInsight } from "@/lib/types";
 import { readErrorMessage } from "@/lib/api";
-import { computeD9LagnaRasi, GRAHA_ABBR } from "@/lib/chart-utils";
+import { computeD9LagnaRasi, GRAHA_ABBR, GRAHA_ABBR_EN } from "@/lib/chart-utils";
 import { useLang } from "@/components/lang-toggle";
+import { JadhagamShareButton } from "@/components/public-share-card";
 
 /* South Indian grid positions — fixed sign layout */
 const RASI_GRID = [
@@ -404,6 +405,24 @@ export function JadhagamTool() {
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* Share snapshot */}
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <JadhagamShareButton data={{
+              name: form.displayName,
+              lagnaRasi: RASI_NAMES_EN[chart.lagna.rasi] ?? "",
+              lagnaRasiNum: chart.lagna.rasi,
+              janmaNakshatra: moon ? `${moon.nakshatraName} P${moon.pada}` : "—",
+              janmaRasi: moon ? (RASI_NAMES_EN[moon.rasi] ?? "") : "—",
+              planets: PLANET_ORDER.slice(0, 9).flatMap((g) => {
+                const p = chart.planets.find((x: ChartPlanet) => x.graha === g);
+                return p ? [{ abbr: GRAHA_ABBR_EN[g] ?? g.slice(0, 2), rasi: RASI_NAMES_EN[p.rasi] ?? "", rasiNum: p.rasi }] : [];
+              }),
+              yoga: (chart.yogas as ChartYogaInsight[])?.find(y => y.isPresent && y.isCurrentlyActive)?.name
+                || (chart.yogas as ChartYogaInsight[])?.find(y => y.isPresent)?.name,
+              lang,
+            }} />
           </div>
 
           {/* Save CTA */}
