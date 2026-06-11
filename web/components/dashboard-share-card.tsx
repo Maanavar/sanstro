@@ -220,7 +220,7 @@ function drawNakshatraCard(
   ctx.font      = "24px system-ui, sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(
-    lang === "ta" ? "vinaadi.com இல் உங்கள் நட்சத்திரம் →" : "Discover your nakshatra at vinaadi.com →",
+    lang === "ta" ? "vinaadi.com இல் உங்கள் நட்சத்திரம் →" : "Discover your birth star at vinaadi.com →",
     w / 2, h - 52,
   );
 

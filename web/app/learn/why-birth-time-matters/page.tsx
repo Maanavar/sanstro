@@ -4,14 +4,14 @@ import { WhyBirthTimeMattersPageContent } from "./PageContent";
 export const metadata: Metadata = {
   title: "Why Birth Time Matters in Tamil Astrology — Lagna and Dasha | Vinaadi",
   description:
-    "In Thirukanitham astrology, birth time determines your lagna (which changes every ~2 hours) and the exact Moon nakshatra pada — both of which shape your entire chart and dasha sequence. Learn why accuracy matters and what to do when birth time is uncertain.",
+    "In Thirukanitham astrology, birth time determines your lagna (which changes every ~2 hours) and the Moon's exact birth-star pada. Both shape your full chart and dasha sequence. Learn why accuracy matters and what to do when birth time is uncertain.",
   keywords: [
     "why birth time matters astrology",
     "birth time Tamil astrology",
     "lagna birth time",
     "dasha birth time accuracy",
     "birth time rectification",
-    "janma nakshatra pada",
+    "birth star pada",
     "uncertain birth time horoscope",
     "accurate Tamil horoscope",
   ],
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Why Birth Time Matters in Tamil Astrology — Lagna and Dasha",
     description:
-      "Lagna changes every 2 hours and dasha start depends on the Moon's exact nakshatra pada — both require an accurate birth time. Learn why and what to do when time is uncertain.",
+      "Lagna changes every 2 hours and dasha start depends on the Moon's exact birth-star pada. Both require an accurate birth time. Learn why and what to do when time is uncertain.",
     url: "https://vinaadi.com/learn/why-birth-time-matters",
     type: "article",
   },
@@ -39,7 +39,7 @@ const FAQ_JSONLD = {
       name: "Why does birth time matter so much in Tamil astrology?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Birth time determines two critical factors in a Thirukanitham jadhagam: (1) the lagna (rising sign), which changes approximately every 2 hours and sets the house positions for all 9 planets; and (2) the exact pada of the Moon's nakshatra, which determines where in the Vimshottari dasha sequence you start. Even a 30-minute difference can change the lagna or shift the Moon to a different nakshatra pada.",
+        text: "Birth time determines two critical factors in a Thirukanitham jadhagam: the lagna (rising sign), which changes about every 2 hours and sets the house positions for all 9 planets, and the exact pada of the Moon's birth star, which determines where the Vimshottari dasha sequence begins. Even a 30-minute difference can change the lagna or shift the Moon to a different pada.",
       },
     },
     {

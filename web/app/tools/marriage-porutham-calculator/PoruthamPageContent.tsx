@@ -6,22 +6,23 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { useLang } from "@/components/lang-toggle";
 import { TOOL_PORUTHAM, mt } from "@/lib/marketing-i18n";
+import { PoruthamRingsVisual } from "@/components/marketing-visuals";
 
 export function PoruthamPageContent() {
   const [lang] = useLang();
   const d = TOOL_PORUTHAM;
 
   const TEN_PORUTHAMS = [
-    { q: lang === "en" ? "Dinam"                        : "தினம்",          a: lang === "en" ? "Day-to-day harmony and health. Based on nakshatra count from boy to girl."                                                        : "தினசரி நல்லிணக்கம் மற்றும் ஆரோக்கியம். பையனிடமிருந்து பெண்ணுக்கு நட்சத்திர எண்ணிக்கை அடிப்படையில்." },
-    { q: lang === "en" ? "Ganam"                        : "கணம்",           a: lang === "en" ? "Temperament compatibility. Based on Gana (Deva/Manushya/Rakshasa) of each nakshatra."                                              : "குணம் பொருத்தம். ஒவ்வொரு நட்சத்திரத்தின் கணம் (தேவ/மனுஷ்ய/ராக்ஷஸ) அடிப்படையில்." },
+    { q: lang === "en" ? "Dinam"                        : "தினம்",          a: lang === "en" ? "Day-to-day harmony and health. Based on the birth-star count from boy to girl."                                                     : "தினசரி நல்லிணக்கமும் உடல்நல ஆதரவும். ஆண் நட்சத்திரத்திலிருந்து பெண் நட்சத்திரம் வரை எண்ணும் முறையை அடிப்படையாகக் கொண்டது." },
+    { q: lang === "en" ? "Ganam"                        : "கணம்",           a: lang === "en" ? "Temperament compatibility. Based on the gana (Deva/Manushya/Rakshasa) of each birth star."                                       : "குணநிலை பொருத்தம். ஒவ்வொரு நட்சத்திரத்திற்குமான கணம் (தேவ/மனுஷ்ய/ராக்ஷஸ) அடிப்படையாகும்." },
     { q: lang === "en" ? "Mahendram"                    : "மகேந்திரம்",     a: lang === "en" ? "Long-term prosperity and longevity of the marriage."                                                                                : "திருமணத்தின் நீண்டகால செழிப்பு மற்றும் ஆயுள்." },
     { q: lang === "en" ? "Stree Deergham"               : "ஸ்திரீ தீர்க்கம்", a: lang === "en" ? "Long and prosperous life for the bride."                                                                                          : "மணப்பெண்ணுக்கு நீண்ட மற்றும் செழிப்பான வாழ்க்கை." },
-    { q: lang === "en" ? "Yoni"                         : "யோனி",           a: lang === "en" ? "Physical and intimate compatibility. Based on animal symbol of each nakshatra."                                                     : "உடல் மற்றும் நெருக்கமான பொருத்தம். ஒவ்வொரு நட்சத்திரத்தின் விலங்கு சின்னம் அடிப்படையில்." },
-    { q: lang === "en" ? "Rajju ⚠"                     : "ரஜ்ஜு ⚠",        a: lang === "en" ? "Critical dosha. Matching Rajju group indicates risk to longevity of the marriage. Most important single check."                    : "முக்கியமான தோஷம். ஒரே ரஜ்ஜு குழு திருமணத்தின் ஆயுளுக்கு ஆபத்தை சுட்டிக்காட்டுகிறது. மிக முக்கியமான தனி சரிபார்ப்பு." },
-    { q: lang === "en" ? "Vedha"                        : "வேதம்",          a: lang === "en" ? "Certain nakshatra pairs oppose each other. Vedha indicates obstacles."                                                              : "சில நட்சத்திர ஜோடிகள் ஒன்றுக்கொன்று எதிர்க்கின்றன. வேதம் தடைகளை சுட்டிக்காட்டுகிறது." },
+    { q: lang === "en" ? "Yoni"                         : "யோனி",           a: lang === "en" ? "Physical and intimate compatibility. Based on the animal symbol of each birth star."                                                : "உடல் மற்றும் நெருக்கமான பொருத்தம். ஒவ்வொரு நட்சத்திரத்திற்குரிய விலங்கு சின்னத்தை அடிப்படையாகக் கொண்டது." },
+    { q: lang === "en" ? "Rajju ⚠"                     : "ரஜ்ஜு ⚠",        a: lang === "en" ? "Critical dosha. The same Rajju group signals serious concern for marital stability and longevity."                                      : "மிக முக்கியமான தோஷம். ஒரே ரஜ்ஜு குழுவில் இருவரும் இருந்தால் திருமணத்தின் நிலைத்தன்மை மற்றும் ஆயுள் குறித்து தீவிரமாக கவனிக்க வேண்டும்." },
+    { q: lang === "en" ? "Vedha"                        : "வேதம்",          a: lang === "en" ? "Certain birth-star pairs oppose each other. Vedha points to friction and obstacles."                                                  : "சில நட்சத்திர ஜோடிகள் ஒன்றுக்கொன்று ஒத்துவராதவை. வேதம் இருந்தால் தடையும் உரசலும் அதிகமாக இருக்கலாம்." },
     { q: lang === "en" ? "Rasi"                         : "ராசி",           a: lang === "en" ? "Overall compatibility between Moon signs."                                                                                          : "சந்திர ராசிகளுக்கு இடையிலான ஒட்டுமொத்த பொருத்தம்." },
     { q: lang === "en" ? "Rasiyathipathi (Graha Maitri)": "ராஸ்யதிபதி",    a: lang === "en" ? "Compatibility between rasi lords of both partners."                                                                                 : "இரு துணைவர்களின் ராசி நாதர்களுக்கு இடையிலான பொருத்தம்." },
-    { q: lang === "en" ? "Nadi ⚠"                      : "நாடி ⚠",         a: lang === "en" ? "Critical dosha. Same Nadi category (Adi/Madhya/Antya) is associated with health concerns for progeny."                          : "முக்கியமான தோஷம். ஒரே நாடி பிரிவு (ஆதி/மத்திய/அந்த்ய) குழந்தைகளுக்கு உடல்நல கவலைகளுடன் தொடர்புடையது." },
+    { q: lang === "en" ? "Nadi ⚠"                      : "நாடி ⚠",         a: lang === "en" ? "Critical dosha. The same Nadi category (Adi/Madhya/Antya) is traditionally linked with concerns around children and health."      : "முக்கியமான தோஷம். ஒரே நாடி பிரிவில் (ஆதி/மத்திய/அந்த்ய) இருந்தால் குழந்தை மற்றும் உடல்நல விஷயங்களில் கவனம் தேவைப்படலாம் என்று மரபு கருதுகிறது." },
   ];
 
   return (
@@ -30,10 +31,18 @@ export function PoruthamPageContent() {
       <main>
         {/* HERO */}
         <section className="cl-pub-hero" style={{ paddingBottom: "32px" }}>
-          <div className="cl-container">
-            <p className="cl-eyebrow">{mt(d.eyebrow, lang)}</p>
-            <h1 className="cl-pub-h1" style={{ maxWidth: "22ch" }}>{mt(d.h1, lang)}</h1>
-            <p className="cl-pub-lead">{mt(d.lead, lang)}</p>
+          <div className="cl-container cl-pub-hero__inner">
+            <div className="cl-pub-hero__copy">
+              <p className="cl-eyebrow">{mt(d.eyebrow, lang)}</p>
+              <h1 className="cl-pub-h1" style={{ maxWidth: "22ch" }}>{mt(d.h1, lang)}</h1>
+              <p className="cl-pub-lead">{mt(d.lead, lang)}</p>
+            </div>
+            <div className="cl-hero-figure">
+              <p className="cl-hero-figure__label">{lang === "en" ? "Compatibility Map" : "பொருத்த வரைபடம்"}</p>
+              <PoruthamRingsVisual />
+              <p className="cl-hero-figure__title">{lang === "en" ? "10 checks, one readable result" : "10 பொருத்தங்கள், ஒரு தெளிவான முடிவு"}</p>
+              <p className="cl-hero-figure__note">{lang === "en" ? "A clear visual way to compare two charts without turning the page into a spreadsheet." : "இரண்டு ஜாதகங்களின் பொருத்தத்தை சலிப்பான அட்டவணை போல அல்லாமல் தெளிவாகக் காட்டும் காட்சி இது."}</p>
+            </div>
           </div>
         </section>
 

@@ -5,6 +5,7 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { useLang } from "@/components/lang-toggle";
 import { FEAT_DAILY, mt } from "@/lib/marketing-i18n";
+import { PanchangamWheelVisual, SouthIndianChartVisual, TimingArcVisual } from "@/components/marketing-visuals";
 
 export default function DailyGuidancePage() {
   const [lang] = useLang();
@@ -53,6 +54,7 @@ export default function DailyGuidancePage() {
             </div>
             <div className="cl-hero-figure">
               <p className="cl-hero-figure__label">{lang === "en" ? "Sample Reading · Today" : "மாதிரி வாசிப்பு · இன்று"}</p>
+              <TimingArcVisual />
               <div className="cl-hero-figure__art" style={{ gap: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", width: "100%" }}>
                 <div className="cl-daily-card__win cl-daily-card__win--best">
                   <p className="cl-daily-card__win-label">{lang === "en" ? "Best Window" : "சிறந்த நேரம்"}</p>
@@ -88,7 +90,9 @@ export default function DailyGuidancePage() {
               <p className="cl-eyebrow">{mt(d.signals_h2, lang)}</p>
               <h2 className="cl-section-h2">{lang === "en" ? "What goes into a daily reading" : "தினசரி வாசிப்பில் என்ன செல்கிறது"}</h2>
             </div>
-            <div className="cl-pub-two-col">
+            <div className="mk-feature-pair">
+              <PanchangamWheelVisual />
+              <div className="cl-pub-two-col">
               <div className="cl-pub-section__body">
                 <p>{lang === "en"
                   ? "The daily guidance reading integrates four sources of astrological information — each contributing a different layer to the overall picture of the day."
@@ -105,6 +109,7 @@ export default function DailyGuidancePage() {
                   </li>
                 ))}
               </ul>
+              </div>
             </div>
           </div>
         </section>
@@ -116,12 +121,15 @@ export default function DailyGuidancePage() {
               <p className="cl-eyebrow">{lang === "en" ? "Clock times, not vague hours" : "குறிப்பிட்ட நேரங்கள், தெளிவற்றவை அல்ல"}</p>
               <h2 className="cl-section-h2">{mt(d.windows_h2, lang)}</h2>
             </div>
-            <div className="cl-pub-two-col">
+            <div className="mk-feature-pair">
+              <SouthIndianChartVisual lang={lang} />
+              <div className="cl-pub-two-col">
               <div className="cl-pub-section__body">
                 <p>{mt(d.windows_body, lang)}</p>
               </div>
               <div className="cl-callout">
                 <p>{lang === "en" ? "Not to fear, but to be aware of." : "பயப்பட வேண்டியதில்லை, ஆனால் கவனிக்க வேண்டியது."}</p>
+              </div>
               </div>
             </div>
           </div>

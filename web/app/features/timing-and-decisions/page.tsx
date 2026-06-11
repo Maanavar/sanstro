@@ -5,6 +5,7 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { useLang } from "@/components/lang-toggle";
 import { FEAT_TIMING, mt } from "@/lib/marketing-i18n";
+import { PanchangamWheelVisual, TimingArcVisual } from "@/components/marketing-visuals";
 
 export default function TimingAndDecisionsPage() {
   const [lang] = useLang();
@@ -43,6 +44,7 @@ export default function TimingAndDecisionsPage() {
             </div>
             <div className="cl-hero-figure">
               <p className="cl-hero-figure__label">{lang === "en" ? "Today's Windows · Sample" : "இன்றைய நேரங்கள் · மாதிரி"}</p>
+              <TimingArcVisual />
               <div className="cl-hero-figure__art" style={{ gap: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", width: "100%" }}>
                 <div className="cl-daily-card__win cl-daily-card__win--best">
                   <p className="cl-daily-card__win-label">{lang === "en" ? "Best Window" : "சிறந்த நேரம்"}</p>
@@ -55,7 +57,7 @@ export default function TimingAndDecisionsPage() {
               </div>
               <p className="cl-hero-figure__note">
                 {lang === "en"
-                  ? "Based on Amrit Kalam, panchangam quality, dasha lord strength, and Moon nakshatra."
+                  ? "Based on Amrit Kalam, panchangam quality, dasha-lord strength, and the Moon's star."
                   : "அமிர்த காலம், பஞ்சாங்க தரம், தசை நாதன் வலிமை, சந்திர நட்சத்திரம் அடிப்படையில்."}
               </p>
             </div>
@@ -69,7 +71,9 @@ export default function TimingAndDecisionsPage() {
               <p className="cl-eyebrow">{lang === "en" ? "An ancient tradition" : "ஒரு பழங்கால பாரம்பரியம்"}</p>
               <h2 className="cl-section-h2">{mt(d.muhurtha_h2, lang)}</h2>
             </div>
-            <div className="cl-pub-two-col">
+            <div className="mk-feature-pair">
+              <PanchangamWheelVisual />
+              <div className="cl-pub-two-col">
               <div className="cl-pub-section__body">
                 <p>{mt(d.muhurtha_body, lang)}</p>
               </div>
@@ -80,6 +84,7 @@ export default function TimingAndDecisionsPage() {
                   </li>
                 ))}
               </ul>
+              </div>
             </div>
           </div>
         </section>

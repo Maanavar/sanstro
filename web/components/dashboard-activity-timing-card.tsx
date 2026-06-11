@@ -16,12 +16,12 @@ const ACTIVITY_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
   { value: "marriage", en: "Marriage ceremony", ta: "திருமண நிகழ்வு" },
   { value: "education", en: "Exam / Course start", ta: "தேர்வு / படிப்பு தொடக்கம்" },
   { value: "property", en: "Property purchase / registration", ta: "சொத்து வாங்கல் / பதிவு" },
-  { value: "money", en: "Investment or major financial decision", ta: "முதலீடு / நிதி முடிவு" },
+  { value: "money", en: "Investment or major financial decision", ta: "முதலீடு / பெரிய பண முடிவு" },
   { value: "travel", en: "Travel abroad or long journey", ta: "வெளிநாடு / நீண்ட பயணம்" },
-  { value: "health", en: "Medical procedure or surgery", ta: "மருத்துவ சிகிச்சை / அறுவை" },
-  { value: "spiritual", en: "Grihapravesh or religious event", ta: "கிரகப்பிரவேசம் / மதகார்யம்" },
-  { value: "child", en: "Child birth or naming ceremony", ta: "குழந்தை பிறப்பு / பெயரிடல்" },
-  { value: "other", en: "General auspicious day", ta: "பொதுவான நல்ல நாள்" },
+  { value: "health", en: "Medical procedure or surgery", ta: "மருத்துவ சிகிச்சை / அறுவைச் சிகிச்சை" },
+  { value: "spiritual", en: "Grihapravesh or religious event", ta: "புதுமனை புகு விழா / ஆன்மிக நிகழ்வு" },
+  { value: "child", en: "Child birth or naming ceremony", ta: "குழந்தை பிறப்பு / பெயர்சூட்டு" },
+  { value: "other", en: "General auspicious day", ta: "பொது நல்ல நாள்" },
 ];
 
 const fieldStyle: CSSProperties = {
@@ -134,7 +134,7 @@ export function DashboardActivityTimingCard({
       <div className="surface__body" style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
         <p className="surface__text" style={{ margin: 0 }}>
           {lang === "ta"
-            ? "இந்த மாதத்தில் எந்த நாட்கள் உங்கள் செயலுக்கு நல்ல ஒத்துழைப்பு தரும் என்பதை விரைவாக பார்க்கலாம். ஒரு தேதியை தேர்வு செய்தால் Personal tab அந்த நாளுக்குச் செல்லும்."
+            ? "இந்த மாதத்தில் உங்கள் செயல் தொடக்கத்திற்கு ஏற்ற நாட்களை உடனே பார்க்கலாம். ஒரு தேதியைத் தேர்வு செய்தால் Personal பகுதி அந்த நாளைத் திறக்கும்."
             : "See the strongest dates for your chosen activity this month. Picking a date switches the Personal view to that day."}
         </p>
 

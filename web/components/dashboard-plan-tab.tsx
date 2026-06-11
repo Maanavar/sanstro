@@ -78,7 +78,7 @@ const WHATIF_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
   { value: "money", en: "Investment or financial move", ta: "முதலீடு / நிதி முடிவு" },
   { value: "travel_abroad", en: "Travel abroad or relocation", ta: "வெளிநாடு பயணம் / இடமாற்றம்" },
   { value: "health", en: "Medical procedure or surgery", ta: "மருத்துவ சிகிச்சை / அறுவை" },
-  { value: "spiritual", en: "Spiritual initiation or pilgrimage", ta: "ஆன்மீக தீட்சை / தீர்த்தயாத்திரை" },
+  { value: "spiritual", en: "Spiritual initiation or pilgrimage", ta: "ஆன்மீக தொடக்கம் / புனித பயணம்" },
   { value: "family_harmony", en: "Resolve family matter", ta: "குடும்ப பிரச்சினை தீர்க்க" },
   { value: "child_birth", en: "Child birth or naming", ta: "குழந்தை பிறப்பு / பெயரிடல்" },
   { value: "other", en: "General timing check", ta: "பொதுவான நேர சரிபார்ப்பு" },
@@ -93,7 +93,7 @@ const ACTIVITY_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
   { value: "money", en: "Investment or major financial decision", ta: "முதலீடு / நிதி முடிவு" },
   { value: "travel", en: "Travel abroad or long journey", ta: "வெளிநாடு / நீண்ட பயணம்" },
   { value: "health", en: "Medical procedure or surgery", ta: "மருத்துவ சிகிச்சை / அறுவை" },
-  { value: "spiritual", en: "Grihapravesh or religious event", ta: "கிரகப்பிரவேசம் / மதகார்யம்" },
+  { value: "spiritual", en: "Grihapravesh or religious event", ta: "புதுமனை புகு விழா / ஆன்மிக நிகழ்வு" },
   { value: "child", en: "Child birth or naming ceremony", ta: "குழந்தை பிறப்பு / பெயரிடல்" },
   { value: "other", en: "General auspicious day", ta: "பொதுவான நல்ல நாள்" },
 ];
@@ -305,7 +305,7 @@ export function DashboardPlanTab({
                   </strong>
                   {" "}
                   {lang === "ta"
-                    ? "இந்த காலங்கள் பல வாரங்கள்/மாதங்களில் தசை ஆதரவை அளவிடுகின்றன — 'இந்த காலத்தில் தசை இந்த இலக்கை ஆதரிக்கிறதா?' என்ற கேள்விக்கு பதில். ஒரு குறிப்பிட்ட தேதிக்கு What-If பயன்படுத்தவும் (அது தசை + கோசாரம் + நேட்டல் மூன்றும் சரிபார்க்கும்)."
+                    ? "இந்த காலங்கள் பல வாரங்கள் அல்லது மாதங்களில் தசை ஆதரவை அளவிடுகின்றன — 'இந்த காலத்தில் தசை இந்த இலக்கை ஆதரிக்கிறதா?' என்ற கேள்விக்கு பதில். ஒரு குறிப்பிட்ட தேதிக்கு What-If கருவியை பயன்படுத்தவும்; அது தசை + கிரகநகர்வு + பிறப்பு ஜாதகம் மூன்றையும் சேர்த்து பார்க்கும்."
                     : "These windows measure long-term Dasha support over weeks or months — answering 'does this period's planetary period support this goal?' For a specific date, use What-If (it triple-checks natal promise + Dasha + transit for that exact day). The two scores naturally differ because they measure different things."}
                 </p>
               </div>
@@ -390,7 +390,7 @@ export function DashboardPlanTab({
                 </strong>
                 {" "}
                 {lang === "ta"
-                  ? "நீங்கள் தேர்ந்தெடுத்த குறிப்பிட்ட தேதிக்கு மூன்று-உறுதிப்படுத்தல் பகுப்பாய்வு — நேட்டல் வாக்குறுதி + தசை ஆதரவு + கோசார நிலை ஒரே நேரத்தில் சரிபார்க்கப்படும். இது 'Goals' தாவலில் உள்ள மதிப்பெண்ணிலிருந்து வேறுபடும் — அது பல மாத தசை ஆதரவை அளவிடுகிறது; இது ஒரு குறிப்பிட்ட நாளை அளவிடுகிறது."
+                  ? "நீங்கள் தேர்ந்தெடுத்த குறிப்பிட்ட தேதிக்கு மூன்று-உறுதிப்படுத்தல் பகுப்பாய்வு — பிறப்பு ஜாதக வாக்குறுதி + தசை ஆதரவு + கிரகநகர்வு நிலை ஒரே நேரத்தில் சரிபார்க்கப்படும். இது 'Goals' தாவலில் உள்ள மதிப்பெண்ணிலிருந்து வேறுபடும் — அது பல மாத தசை ஆதரவை அளவிடுகிறது; இது ஒரு குறிப்பிட்ட நாளை அளவிடுகிறது."
                   : "Triple-confirmation analysis for the exact date you chose — natal promise, Dasha support, and transit positions are all checked simultaneously. This will naturally differ from Goals window scores because Goals measures multi-month Dasha alignment, while What-If measures one specific day."}
               </p>
             </div>
@@ -506,7 +506,7 @@ export function DashboardPlanTab({
             <div className="surface__body">
               <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.75rem", color: W.muted, lineHeight: 1.5 }}>
                 {lang === "ta"
-                  ? "மாதம் முழுவதையும் விரைவாக ஆராய்ந்து, தசை + கோசாரம் + பஞ்சாங்க தினத்தன்மை கொண்டு சிறந்த நாட்களை தேர்ந்தெடுக்கிறது. தேர்ந்த நாளை கிளிக் செய்யுங்கள் — படி 2 தானாக நிரம்பும், அங்கே சரியான நேரம் கண்டறியலாம்."
+                  ? "மாதம் முழுவதையும் விரைவாக ஆராய்ந்து, தசை + கிரகநகர்வு + பஞ்சாங்க தினத்தன்மை கொண்டு சிறந்த நாட்களைத் தேர்ந்தெடுக்கிறது. தேர்ந்த நாளை கிளிக் செய்யுங்கள் — படி 2 தானாக நிரம்பும்; அங்கே சரியான நேரத்தை கண்டறியலாம்."
                   : "Scans the whole month and picks the days with the best dasha + transit + day-quality alignment for your activity. Click any date to prefill Step 2, where you find the exact auspicious hour within that day."}
               </p>
               <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.72rem", color: W.muted, lineHeight: 1.45, padding: "var(--space-1_5) var(--space-2_5)", borderRadius: "var(--radius-sm)", background: "#EEF1F8", border: `1px solid rgba(122,111,94,0.18)` }}>

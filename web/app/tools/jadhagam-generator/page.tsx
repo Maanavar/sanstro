@@ -4,7 +4,7 @@ import { JadhagamPageContent } from "./JadhagamPageContent";
 export const metadata: Metadata = {
   title: "Free Tamil Jadhagam Generator — South Indian Birth Chart with D1 & D9 | Vinaadi",
   description:
-    "Generate your Thirukanitham-precise South Indian Tamil jadhagam free. Get D1 Rasi chart, D9 Navamsa, all planet positions with nakshatra details, and full Vimshottari dasha sequence. No account required.",
+    "Generate your Thirukanitham-precise South Indian Tamil jadhagam free. Get a D1 Rasi chart, D9 Navamsa, all planet positions with birth-star details, and the full Vimshottari dasha sequence. No account required.",
   keywords: [
     "jadhagam generator",
     "jathagam online free",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Free Tamil Jadhagam Generator — D1 & D9 South Indian Birth Chart",
-    description: "Thirukanitham-precise Tamil jadhagam with D1, D9, planet positions, nakshatra, and dasha. Free.",
+    description: "Thirukanitham-precise Tamil jadhagam with D1, D9, planet positions, birth star, and dasha. Free.",
   },
 };
 
@@ -41,7 +41,7 @@ const FAQ_JSONLD = {
       name: "What is a Tamil jadhagam?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "A jadhagam (also spelled jathagam) is the South Indian Tamil birth chart — a fixed square grid showing the positions of all 9 planets across the 12 rasis at the moment of birth. It includes the lagna (rising sign), nakshatra details, and forms the basis for dasha calculation and astrological readings.",
+        text: "A jadhagam (also spelled jathagam) is the South Indian Tamil birth chart — a fixed square grid showing the positions of all 9 planets across the 12 rasis at the moment of birth. It includes the lagna (rising sign), birth-star details, and forms the basis for dasha calculation and astrological readings.",
       },
     },
     {
@@ -49,7 +49,7 @@ const FAQ_JSONLD = {
       name: "What does the Vinaadi jadhagam generator include?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Every generated jadhagam includes: D1 Rasi chart (the main South Indian square chart), D9 Navamsa chart (divisional chart for deeper patterns), planet positions with longitude, rasi, nakshatra, pada and retrograde status for all 9 planets, and the full Vimshottari dasha-bhukti sequence with start and end dates.",
+        text: "Every generated jadhagam includes: D1 Rasi chart (the main South Indian square chart), D9 Navamsa chart (divisional chart for deeper patterns), planet positions with longitude, rasi, birth star, pada and retrograde status for all 9 planets, and the full Vimshottari dasha-bhukti sequence with start and end dates.",
       },
     },
     {

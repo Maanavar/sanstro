@@ -248,7 +248,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
       <Section title={t("jadhagam_identity", lang)} accent="rgba(96,165,250,0.4)">
         <Row label={lang === "ta" ? "லக்னம்" : "Lagna"} value={coreIdentity.lagnaRasi} />
         <Row label={lang === "ta" ? "சந்திர ராசி" : "Moon Rasi"} value={coreIdentity.moonRasi} />
-        <Row label={lang === "ta" ? "ஜன்ம நட்சத்திரம்" : "Janma Nakshatra"} value={`${coreIdentity.janmaNakshatra} — ${lang === "ta" ? "பாதம்" : "Pada"} ${coreIdentity.janmaPada}`} />
+        <Row label={lang === "ta" ? "பிறப்பு நட்சத்திரம்" : "Birth Star"} value={`${coreIdentity.janmaNakshatra} — ${lang === "ta" ? "பாதம்" : "Pada"} ${coreIdentity.janmaPada}`} />
         <Row label={lang === "ta" ? "நடப்பு மகாதசை" : "Mahadasha"} value={coreIdentity.currentMahadasha} />
         <Row label={lang === "ta" ? "நடப்பு அந்தரதசை" : "Antardasha"} value={coreIdentity.currentAntardasha} />
       </Section>

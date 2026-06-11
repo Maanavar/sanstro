@@ -44,6 +44,7 @@ import { MorningGuidanceCard } from "./morning-guidance-card";
 import { PrasnaWidget } from "./dashboard-prasna-widget";
 import { ChartExplanationPanel } from "./dashboard-chart-explanation";
 import { ShareCardButton } from "./dashboard-share-card";
+import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
 
 type DashboardPersonalTabProps = {
   lang: Lang;
@@ -238,6 +239,7 @@ export function DashboardPersonalTab({
   const [solarReturn, setSolarReturn] = useState<SolarReturnData | null>(null);
   const [savingReminder, setSavingReminder] = useState(false);
   const [reminderMessage, setReminderMessage] = useState<string | null>(null);
+  const astroText = (value: string) => (lang === "en" ? tamilizeAstroEnglish(value) : value);
 
   useEffect(() => {
     if (!activeChartId) {
@@ -685,7 +687,7 @@ export function DashboardPersonalTab({
             {personalChartSummary && (
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "var(--space-2_5)", borderTop: "1px solid #E4DBC8", flexWrap: "wrap", gap: "var(--space-1_5)" }}>
                 <span style={{ fontSize: "0.75rem", color: "#7A6F5E" }}>
-                  {personalChartSummary.lagnaRasi} {t("label_lagnam", lang)} · {personalChartSummary.janmaNakshatra} ☉ {personalChartSummary.moonRasi}
+                  {personalChartSummary.lagnaRasi} {t("label_lagnam", lang)} · {astroText(personalChartSummary.janmaNakshatra)} ☉ {personalChartSummary.moonRasi}
                 </span>
                 <span style={{ fontSize: "0.625rem", fontWeight: 600, color: "var(--color-faint)" }}>D1 · D9 ready</span>
               </div>
@@ -783,10 +785,10 @@ export function DashboardPersonalTab({
         {/* Nakshatra card */}
         <div style={{ background: "#FFFFFF", border: "1px solid #E4DBC8", borderRadius: "var(--radius-md)", padding: "var(--space-5)" }}>
           <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-faint)" }}>
-            {lang === "ta" ? "இன்றைய நட்சத்திரம்" : "Todays Nakshatra"}
+            {lang === "ta" ? "இன்றைய நட்சத்திரம்" : "Today's Birth Star"}
           </p>
           <p style={{ margin: "0 0 var(--space-1)", fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 500, color: "#1A1612", lineHeight: 1.1 }}>
-            {panchangam ? tNakshatra(panchangam.nakshatra.name, lang) : (nakshatraCard ? (lang === "ta" ? nakshatraCard.nameTa : nakshatraCard.nameEn) : "—")}
+            {panchangam ? tNakshatra(panchangam.nakshatra.name, lang) : (nakshatraCard ? (lang === "ta" ? nakshatraCard.nameTa : astroText(nakshatraCard.nameEn)) : "—")}
             {panchangam && (
               <span style={{ fontFamily: "var(--font-body)", fontSize: "0.875rem", color: "var(--color-faint)", fontWeight: 400, marginLeft: "var(--space-1_5)" }}>
                 · {lang === "ta" ? "பாதம்" : "root"} · {lang === "ta" ? "பாதம் தகவல்" : "pAdham info"}
@@ -795,7 +797,7 @@ export function DashboardPersonalTab({
           </p>
           {nakshatraCard && (
             <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.5 }}>
-              {lang === "ta" ? nakshatraCard.profile.ta : nakshatraCard.profile.en}
+              {lang === "ta" ? nakshatraCard.profile.ta : astroText(nakshatraCard.profile.en)}
             </p>
           )}
           {nakshatraCard && (
@@ -977,17 +979,17 @@ export function DashboardPersonalTab({
               </div>
               <p className="surface__text">
                 {personalChartSummary
-                  ? `${personalChartSummary.lagnaRasi} ${t("label_lagnam", lang)} · ${personalChartSummary.moonRasi} ${t("label_janma_rasi", lang)} · ${personalChartSummary.janmaNakshatra} ${t("label_nakshatra", lang)} ${t("label_padam", lang)} ${personalChartSummary.janmaPada}`
+                  ? `${personalChartSummary.lagnaRasi} ${t("label_lagnam", lang)} · ${personalChartSummary.moonRasi} ${t("label_janma_rasi", lang)} · ${astroText(personalChartSummary.janmaNakshatra)} ${t("label_nakshatra", lang)} ${t("label_padam", lang)} ${personalChartSummary.janmaPada}`
                   : t("chart_loading", lang)}
               </p>
               <div className="surface__metrics">
                 <Metric label={t("label_birth_date", lang)} value={personalChart.birthProfile.birthDateLocal} hint={personalChart.birthProfile.birthPlace ?? personalChart.birthProfile.birthProfileId.slice(0, 8)} />
-                <Metric label={t("label_lagnam", lang)} value={personalChart.lagna.rasiName ?? `Raasi ${personalChart.lagna.rasi}`} hint={`${personalChart.lagna.degreeInRasi.toFixed(2)}° · ${personalChart.lagna.nakshatraName} ${t("label_padam", lang)} ${personalChart.lagna.pada}`} tone="high" />
+                <Metric label={t("label_lagnam", lang)} value={personalChart.lagna.rasiName ?? `Raasi ${personalChart.lagna.rasi}`} hint={`${personalChart.lagna.degreeInRasi.toFixed(2)}° · ${astroText(personalChart.lagna.nakshatraName)} ${t("label_padam", lang)} ${personalChart.lagna.pada}`} tone="high" />
               </div>
               <JathagamKattam chart={personalChart} lang={lang} />
               {activeChartId && (
                 <div style={{ display: "flex", gap: "8px", marginTop: "var(--space-2)", flexWrap: "wrap" }}>
-                  <ShareCardButton chartId={activeChartId} cardType="NAKSHATRA" lang={lang} label={lang === "ta" ? "நட்சத்திர அட்டை பகிர்" : "Share Nakshatra Card"} />
+                  <ShareCardButton chartId={activeChartId} cardType="NAKSHATRA" lang={lang} label={lang === "ta" ? "நட்சத்திர அட்டை பகிர்" : "Share Birth Star Card"} />
                   <ShareCardButton chartId={activeChartId} cardType="DAILY_VIBE" lang={lang} date={selectedDate} label={lang === "ta" ? "இன்றைய வைப் பகிர்" : "Share Today's Vibe"} />
                 </div>
               )}
@@ -1050,7 +1052,7 @@ export function DashboardPersonalTab({
                 )}
                 {personalDailyGuidance.nakshatraPerspective && (
                   <p style={{ margin: "var(--space-2) 0 0", fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
-                    {tLang(personalDailyGuidance.nakshatraPerspective, lang)}
+                    {astroText(tLang(personalDailyGuidance.nakshatraPerspective, lang))}
                   </p>
                 )}
                 <div className="surface__metrics">
@@ -1153,7 +1155,7 @@ export function DashboardPersonalTab({
                     <td style={{ fontWeight: 600 }}><span style={{ color: DASHA_COLORS[planet.graha] ?? "#93c5fd", marginRight: "var(--space-1)" }}>{GRAHA_ABBR[planet.graha] ?? planet.graha.slice(0, 2)}</span>{planet.graha}</td>
                     <td>{planet.rasiName}</td>
                     <td>{planet.degreeInRasi.toFixed(2)}°</td>
-                    <td>{planet.nakshatraName}</td>
+                    <td>{astroText(planet.nakshatraName)}</td>
                     <td style={{ textAlign: "center" }}>{planet.pada}</td>
                     <td style={{ textAlign: "center" }}>{planet.houseFromLagna}</td>
                     <td>{RASI_NAMES[planet.d9Rasi] ?? planet.d9Rasi}</td>
@@ -1168,7 +1170,7 @@ export function DashboardPersonalTab({
                   <td style={{ fontWeight: 600 }}><span style={{ color: "#e5b84d", marginRight: "var(--space-1)" }}>ல</span>{t("label_lagnam", lang)}</td>
                   <td>{personalChart.lagna.rasiName}</td>
                   <td>{personalChart.lagna.degreeInRasi.toFixed(2)}°</td>
-                  <td>{personalChart.lagna.nakshatraName}</td>
+                  <td>{astroText(personalChart.lagna.nakshatraName)}</td>
                   <td style={{ textAlign: "center" }}>{personalChart.lagna.pada}</td>
                   <td style={{ textAlign: "center" }}>1</td>
                   <td>–</td><td />
@@ -1200,24 +1202,24 @@ export function DashboardPersonalTab({
         <Surface title={t("nakshatra_card_label", lang)}>
           <div className="surface__body">
             <div className="surface__headline">
-              <span>{lang === "ta" ? nakshatraCard.nameTa : nakshatraCard.nameEn}</span>
+              <span>{lang === "ta" ? nakshatraCard.nameTa : astroText(nakshatraCard.nameEn)}</span>
               <Chip tone="accent">{t("nakshatra_ruling_planet", lang)}: {tPlanetLord(nakshatraCard.rulingPlanet, lang)}</Chip>
             </div>
             <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.75rem", color: "var(--color-muted)" }}>
               <span style={{ marginRight: "var(--space-3)" }}>{t("nakshatra_deity", lang)}: <strong style={{ color: "var(--color-text)" }}>{lang === "ta" ? nakshatraCard.deityTa : nakshatraCard.deityEn}</strong></span>
               <span>{t("nakshatra_symbol", lang)}: <strong style={{ color: "var(--color-text)" }}>{lang === "ta" ? nakshatraCard.symbolTa : nakshatraCard.symbolEn}</strong></span>
             </p>
-            <p className="surface__text">{lang === "ta" ? nakshatraCard.profile.ta : nakshatraCard.profile.en}</p>
+            <p className="surface__text">{lang === "ta" ? nakshatraCard.profile.ta : astroText(nakshatraCard.profile.en)}</p>
             {nakshatraCard.strengths.length > 0 && (
               <div style={{ marginBottom: "var(--space-2)" }}>
                 <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#5C7654", textTransform: "uppercase", letterSpacing: "0.05em" }}>{t("nakshatra_strengths", lang)}</p>
-                <div className="chip-row">{nakshatraCard.strengths.map((s) => <Chip key={s.en} tone="success">{lang === "ta" ? s.ta : s.en}</Chip>)}</div>
+                <div className="chip-row">{nakshatraCard.strengths.map((s) => <Chip key={s.en} tone="success">{lang === "ta" ? s.ta : astroText(s.en)}</Chip>)}</div>
               </div>
             )}
             {nakshatraCard.cautions.length > 0 && (
               <div>
                 <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#B85A2C", textTransform: "uppercase", letterSpacing: "0.05em" }}>{t("nakshatra_cautions", lang)}</p>
-                <div className="chip-row">{nakshatraCard.cautions.map((c) => <Chip key={c.en} tone="warning">{lang === "ta" ? c.ta : c.en}</Chip>)}</div>
+                <div className="chip-row">{nakshatraCard.cautions.map((c) => <Chip key={c.en} tone="warning">{lang === "ta" ? c.ta : astroText(c.en)}</Chip>)}</div>
               </div>
             )}
           </div>

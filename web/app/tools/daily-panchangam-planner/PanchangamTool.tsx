@@ -447,7 +447,7 @@ export function PanchangamTool() {
               {[
                 { label: en ? "Tithi" : "திதி",         value: tithiLabel,          sub: `${en ? "Ends" : "முடிவு"} ${formatEndsAtLabel(data.tithi.endsAt, data.sunrise, data.dateLocal, lang)} · ${en ? "then" : "பின்பு"} ${tTithi(data.tithi.nextName, lang)}` },
                 { label: en ? "Vara" : "வாரம்",          value: tWeekday(data.vara.weekday, lang),   sub: `${en ? "Lord" : "அதிபதி"}: ${tPlanetLord(data.vara.lord, lang)}` },
-                { label: en ? "Nakshatra" : "நட்சத்திரம்", value: tNakshatra(data.nakshatra.name, lang), sub: `${en ? "Pada" : "பாதம்"} ${data.nakshatra.pada} · ${en ? "Ends" : "முடிவு"} ${formatEndsAtLabel(data.nakshatra.endsAt, data.sunrise, data.dateLocal, lang)} · ${en ? "then" : "பின்பு"} ${tNakshatra(data.nakshatra.nextName, lang)}` },
+                { label: en ? "Birth Star" : "நட்சத்திரம்", value: tNakshatra(data.nakshatra.name, lang), sub: `${en ? "Pada" : "பாதம்"} ${data.nakshatra.pada} · ${en ? "Ends" : "முடிவு"} ${formatEndsAtLabel(data.nakshatra.endsAt, data.sunrise, data.dateLocal, lang)} · ${en ? "then" : "பின்பு"} ${tNakshatra(data.nakshatra.nextName, lang)}` },
                 { label: en ? "Yoga" : "யோகம்",          value: tYoga(data.yoga.name, lang),      sub: `${en ? "Yoga" : "யோகம்"} ${data.yoga.number} · ${en ? "Ends" : "முடிவு"} ${formatEndsAtLabel(data.yoga.endsAt, data.sunrise, data.dateLocal, lang)} · ${en ? "then" : "பின்பு"} ${tYoga(data.yoga.nextName, lang)}` },
                 { label: en ? "Karana" : "கரணம்",        value: tKarana(data.karana.name, lang),    sub: `${en ? "Ends" : "முடிவு"} ${formatEndsAtLabel(data.karana.endsAt, data.sunrise, data.dateLocal, lang)} · ${en ? "then" : "பின்பு"} ${tKarana(data.karana.nextName, lang)}` },
                 { label: en ? "Moon Phase" : "சந்திர கலை", value: data.moonPhaseLabel, sub: "" },
@@ -456,7 +456,7 @@ export function PanchangamTool() {
                 { label: en ? "Nethiram" : "நேத்திரம்",   value: data.nethiram,       sub: "" },
                 { label: en ? "Jeevan" : "ஜீவன்",        value: data.jeevan,         sub: "" },
                 { label: en ? "Amirdhadhi Yogam" : "அமிர்தாதி யோகம்", value: formatAmirdhadhiYogam(data.amirdhadhiYogam.name, lang), sub: `${en ? "Ends" : "முடிவு"} ${formatEndsAtLabel(data.amirdhadhiYogam.endsAt, data.sunrise, data.dateLocal, lang)} · ${en ? "then" : "பின்பு"} ${formatAmirdhadhiYogam(data.amirdhadhiYogam.nextName, lang)}` },
-                { label: en ? "Chandrashtamam Today" : "சந்திராஷ்டமம்", value: chandrashtamamRasi, sub: en ? `Affected Janma rasi; Moon in ${moonRasi}` : `பாதிக்கும் ஜென்ம ராசி; சந்திரன் ${moonRasi}` },
+                { label: en ? "Today's Chandrashtamam" : "சந்திராஷ்டமம்", value: chandrashtamamRasi, sub: en ? `Affected birth sign; Moon in ${moonRasi}` : `பாதிக்கும் பிறப்பு ராசி; சந்திரன் ${moonRasi}` },
               ].map((item) => (
                 <div key={item.label} style={{
                   background: "var(--cl-bg-2)", border: "1px solid var(--cl-border)",

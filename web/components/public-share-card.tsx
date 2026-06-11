@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { Lang } from "@/lib/i18n";
+import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -266,7 +267,7 @@ function drawPoruthamCard(
     if (nakshatra) {
       ctx.fillStyle = "rgba(255,255,255,0.38)";
       ctx.font      = "26px system-ui, sans-serif";
-      ctx.fillText(nakshatra, px, y + 36);
+      ctx.fillText(tamilizeAstroEnglish(nakshatra), px, y + 36);
     }
   };
 
@@ -396,7 +397,7 @@ function drawPanchangamCard(
 
   const row1Items = [
     { label: d.lang === "ta" ? "திதி"         : "Tithi",   value: d.tithi },
-    { label: d.lang === "ta" ? "நட்சத்திரம்" : "Star",    value: d.nakshatra },
+    { label: d.lang === "ta" ? "நட்சத்திரம்" : "Birth Star", value: tamilizeAstroEnglish(d.nakshatra) },
     { label: d.lang === "ta" ? "வாரம்"        : "Weekday", value: d.vara },
   ];
 
@@ -432,7 +433,7 @@ function drawPanchangamCard(
   let divY = row1Y + row1H + 16;
   if (hasExtra) {
     const row2Items: Array<{ label: string; value: string }> = [];
-    if (d.yoga)   row2Items.push({ label: d.lang === "ta" ? "யோகம்"  : "Yoga",   value: d.yoga });
+    if (d.yoga)   row2Items.push({ label: d.lang === "ta" ? "யோகம்"  : "Yoga",   value: tamilizeAstroEnglish(d.yoga) });
     if (d.karana) row2Items.push({ label: d.lang === "ta" ? "கரணம்" : "Karana", value: d.karana });
 
     const col2W = w / 2;
@@ -647,10 +648,10 @@ function drawJadhagamCard(
   // Info rows (left-aligned)
   const infos: Array<{ label: string; value: string }> = [
     { label: d.lang === "ta" ? "லக்னம்"        : "Lagna",      value: d.lagnaRasi },
-    { label: d.lang === "ta" ? "நட்சத்திரம்"  : "Nakshatra",  value: d.janmaNakshatra },
-    { label: d.lang === "ta" ? "ஜன்ம ராசி"    : "Janma Rasi", value: d.janmaRasi },
+    { label: d.lang === "ta" ? "நட்சத்திரம்"  : "Birth Star", value: tamilizeAstroEnglish(d.janmaNakshatra) },
+    { label: d.lang === "ta" ? "பிறப்பு ராசி"  : "Birth Sign", value: d.janmaRasi },
   ];
-  if (d.yoga)      infos.push({ label: d.lang === "ta" ? "யோகம்"   : "Yoga",      value: d.yoga });
+  if (d.yoga)      infos.push({ label: d.lang === "ta" ? "யோகம்"   : "Yoga",      value: tamilizeAstroEnglish(d.yoga) });
   if (d.mahadasha) infos.push({ label: d.lang === "ta" ? "மகாதசை" : "Mahadasha", value: d.mahadasha });
 
   const itemY0  = chartBottom + 210;
@@ -704,7 +705,7 @@ export function JadhagamShareButton({ data }: { data: JadhagamShareData }) {
       drawJadhagamCard(ctx, data, W, H);
       const title = lang === "ta"
         ? `${data.name || "ஜாதகம்"} · ${data.lagnaRasi} லக்னம் · ${data.janmaNakshatra} — vinaadi.com`
-        : `${data.name || "My Chart"} — ${data.lagnaRasi} Lagna, ${data.janmaNakshatra} Star — vinaadi.com`;
+        : `${data.name || "My Chart"} — ${data.lagnaRasi} Lagna, ${tamilizeAstroEnglish(data.janmaNakshatra)} birth star — vinaadi.com`;
       const url = await shareOrDownload(canvas, "vinaadi-jadhagam.png", title);
       setPreview(url);
     } catch {

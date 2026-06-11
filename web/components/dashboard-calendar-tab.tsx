@@ -1246,7 +1246,7 @@ export function CalendarTab({
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "var(--space-4)", flexWrap: "wrap" }}>
         <div>
           <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: W.terracotta }}>
-            {lang === "ta" ? "கோசாரம் & நிகழ்வுகள்" : "Transits & Events"}
+            {lang === "ta" ? "கிரகநகர்வு & நிகழ்வுகள்" : "Transits & Events"}
           </p>
           <h1 style={{ margin: "0 0 var(--space-1)", display: "flex", alignItems: "baseline", gap: "var(--space-2_5)", flexWrap: "wrap", fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 500, lineHeight: 1.1, color: W.ink, letterSpacing: "-0.02em" }}>
             <span>{headerDate}</span>

@@ -141,7 +141,7 @@ export function PublicNav() {
               ))}
             </Dropdown>
 
-            <Link href="/natchathiram" className="cl-nav__link">நட்சத்திரங்கள்</Link>
+            <Link href="/natchathiram" className="cl-nav__link">{lang === "en" ? "Nakshathirams" : "நட்சத்திரங்கள்"}</Link>
             <Link href="/learn/what-is-thirukanitham" className="cl-nav__link">{mt(NAV.learn, lang)}</Link>
             <Link href="/trust/methodology" className="cl-nav__link">{mt(NAV.method, lang)}</Link>
 
@@ -199,10 +199,10 @@ export function PublicNav() {
                 ))}
               </div>
               <div className="cl-nav__mobile-group">
-                <p className="cl-nav__mobile-label">நட்சத்திரங்கள்</p>
+                <p className="cl-nav__mobile-label">{lang === "en" ? "Nakshathirams" : "நட்சத்திரங்கள்"}</p>
                 <Link href="/natchathiram" className="cl-nav__mobile-link" onClick={closeMobileMenu}>
-                  <span>27 நட்சத்திரங்கள்</span>
-                  <span>{lang === "en" ? "Nakshatra guide" : "குண நலன்கள் & பலன்கள்"}</span>
+                  <span>{lang === "en" ? "27 Nakshathirams" : "27 நட்சத்திரங்கள்"}</span>
+                  <span>{lang === "en" ? "Nakshathiram guide" : "குண நலன்கள் & பலன்கள்"}</span>
                 </Link>
               </div>
               <div className="cl-nav__mobile-group">

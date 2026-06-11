@@ -5,13 +5,14 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { useLang } from "@/components/lang-toggle";
 import { FEAT_FAMILY, mt } from "@/lib/marketing-i18n";
+import { FamilyOrbitVisual } from "@/components/marketing-visuals";
 
 export default function FamilyPlanningPage() {
   const [lang] = useLang();
   const d = FEAT_FAMILY;
 
   const VAULT_ITEMS = [
-    { title: mt(d.vault1, lang), body: lang === "en" ? "Each gets a full chart, dasha, transit, and panchangam reading." : "ஒவ்வொருவருக்கும் முழுமையான ஜாதகம், தசை, கோசாரம், பஞ்சாங்க வாசிப்பு." },
+    { title: mt(d.vault1, lang), body: lang === "en" ? "Each gets a full chart, dasha, transit, and panchangam reading." : "ஒவ்வொருவருக்கும் முழுமையான ஜாதகம், தசை, கிரகநகர்வு, பஞ்சாங்க வாசிப்பு." },
     { title: mt(d.vault2_title, lang), body: mt(d.vault2, lang) },
     { title: mt(d.vault3_title, lang), body: mt(d.vault3, lang) },
     { title: mt(d.vault4_title, lang), body: mt(d.vault4, lang) },
@@ -49,6 +50,7 @@ export default function FamilyPlanningPage() {
             <div className="cl-hero-figure">
               <p className="cl-hero-figure__label">{lang === "en" ? "Family Today · Sample" : "இன்று குடும்பம் · மாதிரி"}</p>
               <p className="cl-hero-figure__title">{lang === "en" ? "Best combined window: 11:53 – 12:41" : "சிறந்த கூட்டு நேரம்: 11:53 – 12:41"}</p>
+              <FamilyOrbitVisual />
               <div className="cl-hero-figure__art" style={{ flexDirection: "column", gap: "10px", width: "100%" }}>
                 {FAMILY_MEMBERS.map((m) => (
                   <div key={m.name} className="cl-score-row" style={{ width: "100%" }}>

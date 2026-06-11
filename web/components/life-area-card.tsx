@@ -36,9 +36,9 @@ function humaniseFactorKey(key: string, lang: Lang): string {
         : suffix === "lord_weak"
         ? (lang === "ta" ? "அதிபதி பலவீனம்" : "house lord weak")
         : suffix === "transit_supportive"
-        ? (lang === "ta" ? "கோசார ஆதரவு" : "transit supportive")
+        ? (lang === "ta" ? "கிரகநகர்வு ஆதரவு" : "transit supportive")
         : suffix === "transit_difficult"
-        ? (lang === "ta" ? "கோசார சவால்" : "transit difficult")
+        ? (lang === "ta" ? "கிரகநகர்வு சவால்" : "transit difficult")
         : suffix.replaceAll("_", " ");
     return `${planet}: ${suffixLabel}`;
   }
@@ -136,7 +136,7 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
           {area.dashaActivation ? (lang === "ta" ? "தசை செயல்பாடு" : "Dasha active") : (lang === "ta" ? "தசை நடுநிலை" : "Dasha neutral")}
         </span>
         <span style={{ fontSize: "0.625rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)", color: "var(--color-muted)" }}>
-          {lang === "ta" ? "கோசார ஆதரவு" : "Transit support"}: {area.transitSupport}
+          {lang === "ta" ? "கிரகநகர்வு ஆதரவு" : "Transit support"}: {area.transitSupport}
         </span>
       </div>
 

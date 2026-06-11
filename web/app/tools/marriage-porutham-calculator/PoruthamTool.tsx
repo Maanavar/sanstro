@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useLang } from "@/components/lang-toggle";
+import { romanNakshathiramName } from "@/lib/tamil-astro";
 
 // ========== DATA ==========
 
@@ -136,7 +137,7 @@ function calcRajju(g: number, b: number) {
   const same = gr === br;
   const eka  = g === b;
   if (!same) return { match: true, isCritical: true, detail: `${RAJJU_NAMES_TA[gr]} + ${RAJJU_NAMES_TA[br]} ✓`, detailEn: `${RAJJU_NAMES_EN[gr]} + ${RAJJU_NAMES_EN[br]} ✓` };
-  if (eka)  return { match: true, isCritical: true, detail: "ஏக நட்சத்திரம் — விதிவிலக்கு ✓", detailEn: "Eka Nakshatra — exception ✓" };
+  if (eka)  return { match: true, isCritical: true, detail: "ஏக நட்சத்திரம் — விதிவிலக்கு ✓", detailEn: "Same Birth Star - exception ✓" };
   return { match: false, isCritical: true, detail: `${RAJJU_NAMES_TA[gr]} — ${RAJJU_SEVERITY_TA[gr]}`, detailEn: `${RAJJU_NAMES_EN[gr]} — ${RAJJU_SEVERITY_TA[gr]}` };
 }
 function calcVedhai(g: number, b: number) {
@@ -209,7 +210,7 @@ function scoreLabelTa(score: number, criticalFail: boolean): string {
   return "பொருத்தம் இல்லை";
 }
 function scoreLabelEn(score: number, criticalFail: boolean): string {
-  if (criticalFail) return "Dosham — Avoid";
+  if (criticalFail) return "Dosham - Avoid";
   if (score >= 8)  return "Excellent";
   if (score >= 6)  return "Good";
   if (score >= 5)  return "Average";
@@ -229,6 +230,7 @@ const BASE_STAR_BTN: React.CSSProperties = {
 export function PoruthamTool() {
   const [lang] = useLang();
   const ta = lang === "ta";
+  const starNameEn = (index: number) => romanNakshathiramName(NAKSHATRAS[index].en);
 
   const [girlStar, setGirlStar] = useState<number | null>(null);
   const [boyStar,  setBoyStar]  = useState<number | null>(null);
@@ -274,7 +276,7 @@ export function PoruthamTool() {
           {/* Girl star picker */}
           <div>
             <p style={{ margin: "0 0 8px", fontSize: "0.78rem", fontWeight: 700, color: "var(--cl-accent)" }}>
-              ♀ {ta ? "பெண் நட்சத்திரம்" : "Girl's Nakshatra"}
+              ♀ {ta ? "பெண் நட்சத்திரம்" : "Girl's Birth Star"}
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(128px, 1fr))", gap: "6px" }}>
               {NAKSHATRAS.map((n, i) => (
@@ -286,7 +288,7 @@ export function PoruthamTool() {
                     background: girlStar === i ? "var(--cl-accent-soft)" : "var(--cl-surface)",
                   }}>
                   <div style={{ fontWeight: 600, color: girlStar === i ? "var(--cl-accent)" : "var(--cl-ink)" }}>{ta ? n.ta : n.en}</div>
-                  {ta && <div style={{ fontSize: "10px", color: "var(--cl-muted)" }}>{n.en}</div>}
+                  {ta && <div style={{ fontSize: "10px", color: "var(--cl-muted)" }}>{starNameEn(i)}</div>}
                 </button>
               ))}
             </div>
@@ -296,7 +298,7 @@ export function PoruthamTool() {
           {girlStar !== null && compatibility && (
             <div>
               <p style={{ margin: "0 0 6px", fontSize: "0.78rem", fontWeight: 700, color: "var(--cl-sage)" }}>
-                ♂ {ta ? `${NAKSHATRAS[girlStar].ta} பெண்ணுக்கு — ஆண் நட்சத்திர பொருத்தம்` : `Compatibility for ${NAKSHATRAS[girlStar].en} girl`}
+                ♂ {ta ? `${NAKSHATRAS[girlStar].ta} பெண்ணுக்கு — ஆண் நட்சத்திர பொருத்தம்` : `Compatibility for ${starNameEn(girlStar)} girl`}
               </p>
 
               {/* Legend */}
@@ -334,9 +336,9 @@ export function PoruthamTool() {
                       {c.score}
                     </div>
                     <div style={{ fontWeight: 600, color: c.criticalFail ? "var(--cl-caution)" : "var(--cl-ink)" }}>
-                      {ta ? NAKSHATRAS[c.id].ta : NAKSHATRAS[c.id].en}
+                      {ta ? NAKSHATRAS[c.id].ta : starNameEn(c.id)}
                     </div>
-                    {ta && <div style={{ fontSize: 10, color: "var(--cl-muted)" }}>{NAKSHATRAS[c.id].en}</div>}
+                    {ta && <div style={{ fontSize: 10, color: "var(--cl-muted)" }}>{starNameEn(c.id)}</div>}
                     <div style={{ fontSize: 9, color: scoreColor(c.score, c.criticalFail), fontWeight: 600, marginTop: 2 }}>
                       {c.score}/10 · {ta ? scoreLabelTa(c.score, c.criticalFail) : scoreLabelEn(c.score, c.criticalFail)}
                     </div>
@@ -353,9 +355,9 @@ export function PoruthamTool() {
               {/* Pair header */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px", marginBottom: "14px" }}>
                 <div style={{ fontSize: "0.9rem", fontWeight: 600 }}>
-                  <span style={{ color: "var(--cl-accent)" }}>♀ {ta ? NAKSHATRAS[girlStar].ta : NAKSHATRAS[girlStar].en}</span>
+                  <span style={{ color: "var(--cl-accent)" }}>♀ {ta ? NAKSHATRAS[girlStar].ta : starNameEn(girlStar)}</span>
                   <span style={{ margin: "0 8px", color: "var(--cl-muted)" }}>×</span>
-                  <span style={{ color: "var(--cl-sage)" }}>♂ {ta ? NAKSHATRAS[boyStar].ta : NAKSHATRAS[boyStar].en}</span>
+                  <span style={{ color: "var(--cl-sage)" }}>♂ {ta ? NAKSHATRAS[boyStar].ta : starNameEn(boyStar)}</span>
                 </div>
                 <div style={{ background: scoreBg(detail.score, detail.criticalFail), color: scoreColor(detail.score, detail.criticalFail), padding: "5px 14px", borderRadius: "999px", fontWeight: 700, fontSize: "13px" }}>
                   {detail.score}/10 — {ta ? scoreLabelTa(detail.score, detail.criticalFail) : scoreLabelEn(detail.score, detail.criticalFail)}
@@ -366,10 +368,10 @@ export function PoruthamTool() {
               {detail.criticalFail && (
                 <div style={{ background: "var(--cl-caution-soft)", border: "1px solid var(--cl-caution)", borderLeft: "4px solid var(--cl-caution)", borderRadius: "8px", padding: "10px 14px", marginBottom: "14px", fontSize: "12px", color: "var(--cl-caution)", lineHeight: 1.6 }}>
                   <div style={{ fontWeight: 700, marginBottom: 4 }}>
-                    ⚠ {ta ? "முக்கிய தோஷம் — \"ரஜ்ஜு இல்லையேல் பொருத்தம் இல்லை\"" : "Critical Dosham — not recommended"}
+                    ⚠ {ta ? "முக்கிய தோஷம் — \"ரஜ்ஜு இல்லையேல் பொருத்தம் இல்லை\"" : "Critical Dosham - not recommended"}
                   </div>
                   {detail.rajjuFail  && <div>• <strong>{ta?"ரஜ்ஜு தோஷம்":"Rajju Dosham"}</strong> — {ta?"இருவரும் ஒரே ரஜ்ஜு குழு. இது மிக முக்கியமான பொருத்தம்; இல்லாமல் திருமணம் பரிந்துரைக்கப்படாது.":"Both share the same Rajju group — the most critical single check."}</div>}
-                  {detail.vedhaiFail && <div>• <strong>{ta?"வேதை தோஷம்":"Vedhai Dosham"}</strong> — {ta?"இந்த ஜோடி பகை நட்சத்திர ஜோடி.":"These nakshatras are opposing pairs."}</div>}
+                  {detail.vedhaiFail && <div>• <strong>{ta?"வேதை தோஷம்":"Vedhai Dosham"}</strong> — {ta?"இந்த ஜோடி பகை நட்சத்திர ஜோடி.":"These birth stars are opposing pairs."}</div>}
                   {detail.rasiFail   && <div>• <strong>{ta?"ஆறு-எட்டு":"6/8 Rasi"}</strong> — {ta?"ஷஷ்டாஷ்டக தோஷம்.":"Shashtashtaka — 6th/8th rasi opposition."}</div>}
                 </div>
               )}
@@ -381,7 +383,7 @@ export function PoruthamTool() {
                   { star: boyStar,  color: "var(--cl-sage)",   sym: "♂" },
                 ] as const).map(({ star, color, sym }) => (
                   <div key={sym} style={{ background: "var(--cl-bg)", padding: "8px 10px", borderRadius: "8px", border: "1px solid var(--cl-border)" }}>
-                    <div style={{ fontWeight: 700, color, marginBottom: 4 }}>{sym} {NAKSHATRAS[star].en}</div>
+                    <div style={{ fontWeight: 700, color, marginBottom: 4 }}>{sym} {starNameEn(star)}</div>
                     <div>{ta?"ராசி":"Rasi"}: {ta ? RASI_NAMES_TA[RASI[star]] : RASI_NAMES_EN[RASI[star]]}</div>
                     <div>{ta?"கணம்":"Gana"}: {ta ? GANA_NAMES[GANA[star]] : GANA_NAMES_EN[GANA[star]]}</div>
                     <div>{ta?"யோனி":"Yoni"}: {ta ? YONI_NAMES_TA[YONI[star]] : YONI_NAMES_EN[YONI[star]]}</div>
@@ -440,7 +442,7 @@ export function PoruthamTool() {
       {view === "grid" && (
         <div>
           <p style={{ margin: "0 0 10px", fontSize: "0.82rem", color: "var(--cl-muted)" }}>
-            {ta ? "பெண் நட்சத்திரம் தேர்வு செய்யுங்கள். ஒவ்வொரு ஆண் நட்சத்திரத்திற்கும் 10 பொருத்த மதிப்பெண் காட்டப்படும்." : "Select the girl's nakshatra to see compatibility scores with all 27 boy nakshatras."}
+            {ta ? "பெண் நட்சத்திரம் தேர்வு செய்யுங்கள். ஒவ்வொரு ஆண் நட்சத்திரத்திற்கும் 10 பொருத்த மதிப்பெண் காட்டப்படும்." : "Select the girl's birth star to see compatibility scores with all 27 boy birth stars."}
           </p>
 
           {girlStar === null ? (
@@ -448,8 +450,8 @@ export function PoruthamTool() {
               {NAKSHATRAS.map((n, i) => (
                 <button key={i} onClick={() => setGirlStar(i)}
                   style={{ ...BASE_STAR_BTN }}>
-                  <div style={{ fontWeight: 600, color: "var(--cl-ink)" }}>{ta ? n.ta : n.en}</div>
-                  {ta && <div style={{ fontSize: 10, color: "var(--cl-muted)" }}>{n.en}</div>}
+                  <div style={{ fontWeight: 600, color: "var(--cl-ink)" }}>{ta ? n.ta : starNameEn(i)}</div>
+                  {ta && <div style={{ fontSize: 10, color: "var(--cl-muted)" }}>{starNameEn(i)}</div>}
                 </button>
               ))}
             </div>
@@ -457,7 +459,7 @@ export function PoruthamTool() {
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px", flexWrap: "wrap" }}>
                 <div style={{ background: "var(--cl-accent-soft)", padding: "5px 14px", borderRadius: "999px", fontWeight: 600, fontSize: "13px", color: "var(--cl-accent)" }}>
-                  ♀ {ta ? NAKSHATRAS[girlStar].ta : NAKSHATRAS[girlStar].en}
+                  ♀ {ta ? NAKSHATRAS[girlStar].ta : starNameEn(girlStar)}
                 </div>
                 <button
                   onClick={() => { setGirlStar(null); setBoyStar(null); }}
@@ -472,7 +474,7 @@ export function PoruthamTool() {
                 { label: ta?"நல்ல பொருத்தம் (6–7)":"Good Match (6–7)",           items: compatibility.filter(c => !c.criticalFail && c.score >= 6 && c.score < 8) },
                 { label: ta?"சராசரி (5)":"Average (5)",                           items: compatibility.filter(c => !c.criticalFail && c.score === 5) },
                 { label: ta?"குறைவு (0–4)":"Below Average (0–4)",                 items: compatibility.filter(c => !c.criticalFail && c.score < 5) },
-                { label: ta?"⚠ தோஷம் — தவிர்க்கவும்":"⚠ Dosham — Avoid",        items: compatibility.filter(c => c.criticalFail) },
+                { label: ta?"⚠ தோஷம் — தவிர்க்கவும்":"⚠ Dosham - Avoid",        items: compatibility.filter(c => c.criticalFail) },
               ].map(group => {
                 if (group.items.length === 0) return null;
                 const best = group.items[0];
@@ -494,9 +496,9 @@ export function PoruthamTool() {
                           }}>
                           <div>
                             <div style={{ fontWeight: 600, color: c.criticalFail ? "var(--cl-caution)" : "var(--cl-ink)", fontSize: 12 }}>
-                              {c.criticalFail && "⚠ "}♂ {ta ? NAKSHATRAS[c.id].ta : NAKSHATRAS[c.id].en}
+                              {c.criticalFail && "⚠ "}♂ {ta ? NAKSHATRAS[c.id].ta : starNameEn(c.id)}
                             </div>
-                            {ta && <div style={{ fontSize: 10, color: "var(--cl-muted)" }}>{NAKSHATRAS[c.id].en}</div>}
+                            {ta && <div style={{ fontSize: 10, color: "var(--cl-muted)" }}>{starNameEn(c.id)}</div>}
                             {c.criticalFail && (
                               <div style={{ fontSize: 9, color: "var(--cl-caution)", marginTop: 2 }}>{c.criticalWarnings.join(", ")}</div>
                             )}
@@ -534,7 +536,7 @@ export function PoruthamTool() {
           <strong>{ta?"குறிப்பு:":"Note:"}</strong>{" "}
           {ta
             ? "முழுமையான ஜாதக பொருத்தத்திற்கு பாதம், தசா புக்தி, தோஷ பரிகாரம் ஆகியவற்றையும் ஆராய வேண்டும்."
-            : "A full horoscope match also examines Pada, Dasa Bhukti, and dosha parihara. This tool covers the 10 nakshatra-based poruthams."}
+            : "A full horoscope match also examines pada, dasha bhukti, and dosha parihara. This tool covers the 10 birth-star-based poruthams."}
         </div>
       </div>
 

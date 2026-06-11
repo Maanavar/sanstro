@@ -5,6 +5,7 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { useLang } from "@/components/lang-toggle";
 import { LEARN_JAD, mt } from "@/lib/marketing-i18n";
+import { TopicSymbolPanel } from "@/components/astro-symbols";
 
 export function HowToReadJadhagamPageContent() {
   const [lang] = useLang();
@@ -21,6 +22,7 @@ export function HowToReadJadhagamPageContent() {
               <h1 className="cl-pub-h1">{mt(d.h1, lang)}</h1>
               <p className="cl-pub-lead">{mt(d.lead, lang)}</p>
             </div>
+            <TopicSymbolPanel topic="jadhagam" />
           </div>
         </section>
 

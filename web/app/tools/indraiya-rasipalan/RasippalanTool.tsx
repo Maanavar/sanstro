@@ -36,7 +36,7 @@ interface HousePrediction {
 const HOUSE_PREDICTIONS: Record<number, HousePrediction> = {
   1: {
     en: { title: "Mixed day", body: "Moon transits your natal sign — mental restlessness and introspection. Avoid impulsive new starts; short travel is possible.", luckyColor: "White / Silver", pariharam: "Offer water to the Moon at dusk (pour water facing west while reciting Chandra's name). Light a white lamp at home." },
-    ta: { title: "கலப்பான நாள்", body: "சந்திரன் உங்கள் ஜன்ம ராசியில் உள்ளது. மன அமைதியின்மை, ஆத்ம சிந்தனை. அவசர முடிவுகளை தவிர்க்கவும்; குறுகிய பயணம் சாத்தியம்.", luckyColor: "வெள்ளை / வெள்ளி", pariharam: "மாலையில் மேற்கு திசை நோக்கி சந்திரனுக்கு நீர் அர்க்கியம் செலுத்துங்கள். வீட்டில் வெள்ளை நிற விளக்கு ஏற்றுங்கள்." },
+    ta: { title: "கலப்பான நாள்", body: "சந்திரன் உங்கள் பிறப்பு ராசியில் உள்ளது. மன அமைதியின்மை, உள்ளார்ந்த சிந்தனை அதிகமாக இருக்கும். அவசர முடிவுகளைத் தவிர்க்கவும்; குறுகிய பயணம் சாத்தியம்.", luckyColor: "வெள்ளை / வெள்ளி", pariharam: "மாலையில் மேற்கு திசை நோக்கி சந்திரனுக்கு நீர் அர்க்கியம் செலுத்துங்கள். வீட்டில் வெள்ளை நிற விளக்கு ஏற்றுங்கள்." },
     tone: "neutral",
     luckyNumbers: [2, 7],
     colorHex: "#E8E8E8",
@@ -366,7 +366,7 @@ export function RasippalanTool() {
           display: "flex", flexDirection: "column", gap: "14px",
         }}>
           <p style={{ margin: 0, fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
-            {en ? "Select your Janma Rasi (birth sign)" : "உங்கள் ஜன்ம ராசியை தேர்வு செய்யுங்கள்"}
+            {en ? "Select your birth sign" : "உங்கள் பிறப்பு ராசியைத் தேர்வு செய்யுங்கள்"}
           </p>
           <RasiSelectorGrid selectedRasi={selectedRasi} onSelect={setSelectedRasi} lang={lang} />
         </div>

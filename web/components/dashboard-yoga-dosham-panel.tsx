@@ -406,7 +406,7 @@ function getYogaPowerContext(name: string, strength: string, dashaActivated: boo
   const entry = YOGA_POWER_CONTEXT[key];
   if (!entry) {
     return lang === "ta"
-      ? "இந்த யோகத்தின் தாக்கம் உங்கள் தற்போதைய தசை மற்றும் கோசார நிலையை பொறுத்து மாறுபடும்."
+      ? "இந்த யோகத்தின் தாக்கம் உங்கள் தற்போதைய தசை மற்றும் கிரகநகர்வு நிலையைப் பொறுத்து மாறுபடும்."
       : "The impact of this yoga varies with your current Dasha and transit positions.";
   }
   const band = strength === "STRONG" ? "strong" : strength === "PARTIAL" ? "partial" : "weak";
@@ -433,7 +433,7 @@ function getDoshamPowerContext(dosham: ChartDoshamInsight, lang: Lang): string {
 
   if (!entry) {
     return lang === "ta"
-      ? "இந்த தோஷத்தின் தாக்கம் தற்போதைய தசை மற்றும் கோசார நிலையை பொறுத்து மாறுபடும்."
+      ? "இந்த தோஷத்தின் தாக்கம் தற்போதைய தசை மற்றும் கிரகநகர்வு நிலையைப் பொறுத்து மாறுபடும்."
       : "The impact varies with your current Dasha and transit positions.";
   }
 
@@ -522,7 +522,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
           )}
           {yoga.isPresent && typeof yoga.activationScore === "number" && (
             <span
-              title={lang === "ta" ? "இன்றைய செயல்பாட்டு மதிப்பெண் (தசை + கோசாரம்)" : "Today's activation score — how strongly Dasha and transits are triggering this yoga now"}
+              title={lang === "ta" ? "இன்றைய செயல்பாட்டு மதிப்பெண் (தசை + கிரகநகர்வு)" : "Today's activation score — how strongly Dasha and transits are triggering this yoga now"}
               style={{
                 fontSize: "0.625rem",
                 fontWeight: 700,

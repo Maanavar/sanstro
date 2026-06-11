@@ -18,7 +18,7 @@ export default function BirthTimeRectificationPage() {
   ];
 
   const FAQS = [
-    { q: lang === "en" ? "What if I don't know my birth time at all?" : "பிறந்த நேரமே தெரியாவிட்டால்?", a: lang === "en" ? "Without any birth time, lagna calculation is not possible. Vinaadi can still generate a partial chart and give limited daily guidance based on rasi and nakshatra. Rectification requires at least an approximate time range to test against." : "பிறந்த நேரமே இல்லாமல், லக்னம் கணக்கீடு சாத்தியமில்லை. விநாடி இன்னும் பகுதி ஜாதகம் உருவாக்கி ராசி மற்றும் நட்சத்திரம் அடிப்படையில் வரையறுக்கப்பட்ட தினசரி வழிகாட்டுதல் தர முடியும். திருத்தத்திற்கு குறைந்தது ஒரு தோராயமான நேர வரம்பு சோதிக்க தேவை." },
+    { q: lang === "en" ? "What if I don't know my birth time at all?" : "பிறந்த நேரமே தெரியாவிட்டால்?", a: lang === "en" ? "Without any birth time, lagna calculation is not possible. Vinaadi can still generate a partial chart and give limited daily guidance based on rasi and birth star. Rectification requires at least an approximate time range to test against." : "பிறந்த நேரமே தெரியாவிட்டால் லக்னத்தை கணக்கிட முடியாது. இருந்தாலும், ராசி மற்றும் பிறப்பு நட்சத்திரத்தை அடிப்படையாக வைத்து விநாடி ஒரு பகுதி ஜாதகத்தையும் வரையறுக்கப்பட்ட தினசரி வழிகாட்டுதலையும் தர முடியும். நேரத்தைச் சுருக்கிப் பார்க்க, குறைந்தபட்சம் ஒரு தோராயமான நேர வரம்பாவது தேவை." },
     { q: lang === "en" ? "What kinds of life events work best for rectification?" : "எந்த வாழ்க்கை நிகழ்வுகள் திருத்தத்திற்கு சிறப்பாக வேலை செய்கின்றன?", a: lang === "en" ? "Events with clear astrological significance work best: marriages, significant career changes, relocations, major health events, deaths of close family members, and births of children." : "தெளிவான ஜோதிட முக்கியத்துவம் உள்ள நிகழ்வுகள் சிறப்பாக வேலை செய்கின்றன: திருமணங்கள், முக்கியமான தொழில் மாற்றங்கள், இடமாற்றங்கள், முக்கிய உடல்நல நிகழ்வுகள், நெருங்கிய குடும்பத்தினரின் மரணங்கள், குழந்தைகளின் பிறப்புகள்." },
     { q: lang === "en" ? "How accurate does the rectified time become?" : "திருத்தப்பட்ட நேரம் எவ்வளவு துல்லியமாகிறது?", a: lang === "en" ? "Typically, rectification can narrow uncertainty to within 15–30 minutes for a well-documented life. This is usually sufficient to confirm or correct the lagna sign and improve dasha accuracy." : "வழக்கமாக, நன்கு ஆவணப்படுத்தப்பட்ட வாழ்க்கைக்கு திருத்தம் 15-30 நிமிடங்களுக்குள் நிச்சயமற்ற தன்மையை குறைக்க முடியும். இது பொதுவாக லக்னம் ராசியை உறுதிப்படுத்த அல்லது திருத்த, தசை துல்லியத்தை மேம்படுத்த போதுமானது." },
     { q: lang === "en" ? "Is the rectification feature available in early access?" : "ஆரம்ப அணுகல் காலத்தில் திருத்தம் அம்சம் கிடைக்குமா?", a: lang === "en" ? "Yes. Birth time rectification is available in the dashboard for all users during early access." : "ஆம். ஆரம்ப அணுகல் காலத்தில் அனைத்து பயனர்களுக்கும் டேஷ்போர்டில் பிறந்த நேர திருத்தம் கிடைக்கும்." },
@@ -74,7 +74,7 @@ export default function BirthTimeRectificationPage() {
               <div className="cl-pub-section__body">
                 <p>{lang === "en"
                   ? "In Tamil Jyotish, the lagna (ascendant) is the most important single point in the birth chart. It changes approximately every 2 hours. An error of even 30 minutes can place the lagna in the wrong sign."
-                  : "தமிழ் ஜோதிடத்தில், லக்னம் ஜன்ம ஜாதகத்தில் மிக முக்கியமான ஒற்றை புள்ளி. இது தோராயமாக ஒவ்வொரு 2 மணி நேரத்திலும் மாறுகிறது. 30 நிமிடங்கள் கூட பிழை இருந்தால் லக்னம் தவறான ராசியில் வைக்கப்படலாம்."}</p>
+                  : "தமிழ் ஜோதிடத்தில், லக்னம் பிறப்பு ஜாதகத்தின் மிக முக்கியமான ஒற்றை குறியிடம். இது சுமார் ஒவ்வொரு 2 மணி நேரத்திற்கும் மாறுகிறது. 30 நிமிடப் பிழை கூட லக்னத்தை வேறு ராசியில் கொண்டு செல்லக்கூடும்."}</p>
               </div>
               <div className="cl-callout">
                 <p>{lang === "en" ? "An accurate birth time is the foundation of accurate guidance." : "துல்லியமான பிறந்த நேரம் துல்லியமான வழிகாட்டுதலின் அடித்தளம்."}</p>
@@ -94,7 +94,7 @@ export default function BirthTimeRectificationPage() {
               <div className="cl-pub-section__body">
                 <p>{lang === "en"
                   ? "Vinaadi's rectification is dasha-event based. You provide key life events with approximate dates. Vinaadi tests a range of birth times and identifies which produces a dasha sequence that best correlates with your life events."
-                  : "விநாடியின் திருத்தம் தசை-நிகழ்வு அடிப்படையிலானது. தோராயமான தேதிகளுடன் முக்கிய வாழ்க்கை நிகழ்வுகளை கொடுக்கவும். விநாடி பிறந்த நேரங்களின் வரம்பை சோதிக்கிறது, உங்கள் வாழ்க்கை நிகழ்வுகளுடன் சிறந்தது என்று தசை வரிசையை கண்டறிகிறது."}</p>
+                  : "விநாடியின் திருத்த முறை தசை-நிகழ்வு அடிப்படையில் வேலை செய்கிறது. தோராயமான தேதிகளுடன் முக்கிய வாழ்க்கை நிகழ்வுகளை நீங்கள் தருகிறீர்கள். பிறகு பல பிறப்பு நேரங்களைச் சோதித்து, உங்கள் வாழ்க்கை நிகழ்வுகளுடன் மிகவும் நெருக்கமாக பொருந்தும் தசை வரிசை எது என்று விநாடி கண்டறிகிறது."}</p>
               </div>
               <ul className="cl-pub-detail-list">
                 {STEPS.map((item) => (
@@ -159,7 +159,7 @@ export default function BirthTimeRectificationPage() {
           <div className="cl-container cl-cta-strip__inner">
             <div>
               <h2 className="cl-cta-strip__title">{lang === "en" ? "Improve your birth time" : "உங்கள் பிறந்த நேரத்தை மேம்படுத்துங்கள்"}</h2>
-              <p className="cl-cta-strip__body">{lang === "en" ? "More accurate birth time means more accurate guidance." : "மிகவும் துல்லியமான பிறந்த நேரம் மிகவும் துல்லியமான வழிகாட்டுதலை அர்த்தம்."}</p>
+              <p className="cl-cta-strip__body">{lang === "en" ? "More accurate birth time means more accurate guidance." : "பிறப்பு நேரம் துல்லியமாக இருக்கும் போது, வழிகாட்டுதலும் அதே அளவு துல்லியமாகும்."}</p>
             </div>
             <Link href="/dashboard" className="cl-btn cl-btn--solid">{lang === "en" ? "Open dashboard →" : "டேஷ்போர்டு திற →"}</Link>
           </div>

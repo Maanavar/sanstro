@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import { MuhurtaPageContent } from "./MuhurtaPageContent";
 
 export const metadata: Metadata = {
-  title: "Free Tamil Muhurta Calculator — Auspicious Time Finder",
+  title: "Free Tamil Muhurtham Calculator — Auspicious Time Finder",
   description:
-    "Find auspicious muhurta dates and times for weddings, job starts, travel, exams, and more. Uses Thirukanitham Panchangam — tithi, nakshatra, Rahu Kalam — to pick the best windows. No account required.",
+    "Find auspicious muhurtham dates and times for weddings, job starts, travel, exams, and more. Uses Thirukanitham Panchangam — tithi, Moon star, and Rahu Kalam — to pick the best windows. No account required.",
   keywords: [
     "muhurta calculator",
     "auspicious time Tamil",
     "shubh muhurat",
-    "wedding muhurta",
+    "wedding muhurtham",
     "nalla neram",
     "Thirukanitham muhurtha",
     "Tamil panchangam timing",
@@ -17,17 +17,17 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "https://vinaadi.com/tools/muhurta-calculator" },
   openGraph: {
-    title: "Free Tamil Muhurta Calculator — Auspicious Time Finder",
+    title: "Free Tamil Muhurtham Calculator — Auspicious Time Finder",
     description:
-      "Pick the best auspicious time for your event using Thirukanitham Panchangam. Covers tithi, nakshatra, Rahu Kalam and Abhijit muhurta.",
+      "Pick the best auspicious time for your event using Thirukanitham Panchangam. Covers tithi, Moon star, Rahu Kalam, and Abhijit Muhurtham.",
     url: "https://vinaadi.com/tools/muhurta-calculator",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Free Tamil Muhurta Calculator",
+    title: "Free Tamil Muhurtham Calculator",
     description:
-      "Find auspicious muhurta for weddings, job starts, travel, exams and more. Free, Thirukanitham-based.",
+      "Find auspicious muhurtham for weddings, job starts, travel, exams and more. Free, Thirukanitham-based.",
   },
 };
 
@@ -37,26 +37,26 @@ const FAQ_JSONLD = {
   mainEntity: [
     {
       "@type": "Question",
-      name: "What is a muhurta?",
+      name: "What is a muhurtham?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "A muhurta is an auspicious time window chosen by examining the Panchangam — specifically the tithi (lunar day), nakshatra (birth star), vara (weekday), yoga, and inauspicious periods like Rahu Kalam. Starting important events during a good muhurta is a core Tamil and Hindu tradition.",
+        text: "A muhurtham is an auspicious time window chosen by examining the Panchangam, especially the tithi (lunar day), Moon star, vara (weekday), yoga, and caution periods like Rahu Kalam. Starting important events during a good muhurtham is a long-standing Tamil tradition.",
       },
     },
     {
       "@type": "Question",
-      name: "What events can I find muhurta for?",
+      name: "What events can I find muhurtham for?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "You can find auspicious muhurta for weddings, job or career starts, business and investments, property purchases, travel, exams and education, medical procedures, and spiritual events like puja or griha pravesh.",
+        text: "You can find auspicious muhurtham for weddings, job or career starts, business and investments, property purchases, travel, exams and education, medical procedures, and spiritual events like puja or griha pravesh.",
       },
     },
     {
       "@type": "Question",
-      name: "How is this muhurta calculator different from a personalised one?",
+      name: "How is this muhurtham calculator different from a personalised one?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "This free tool uses Panchangam alone — tithi, nakshatra, yoga, and Rahu Kalam. A personalised muhurta (available with a free Vinaadi account) also considers your birth chart: dasha support, hora windows, and Chandrashtama avoidance. The personalised version is significantly stronger.",
+        text: "This free tool uses Panchangam alone — tithi, Moon star, yoga, and Rahu Kalam. A personalised muhurtham, available with a free Vinaadi account, also considers your birth chart, dasha support, hora windows, and Chandrashtama avoidance. The personalised version is significantly stronger.",
       },
     },
     {

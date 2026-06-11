@@ -4,13 +4,13 @@ import { PoruthamLearnPageContent } from "./PageContent";
 export const metadata: Metadata = {
   title: "What is Porutham? — Tamil Marriage Compatibility Explained | Vinaadi",
   description:
-    "Porutham is the Tamil system for checking marriage compatibility using birth nakshatras. Learn about the 10 porutham factors, why Rajju dosha and Nadi dosha outweigh the score, and how Sevvai dosham is assessed.",
+    "Porutham is the Tamil system for checking marriage compatibility using birth stars. Learn about the 10 porutham factors, why Rajju dosha and Nadi dosha outweigh the score, and how Sevvai dosham is assessed.",
   keywords: [
     "what is porutham",
     "porutham meaning Tamil",
     "Tamil marriage compatibility",
     "10 porutham explained",
-    "nakshatra porutham",
+    "birth star porutham",
     "rajju dosha",
     "nadi dosha meaning",
     "sevvai dosham",
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "What is Porutham? — Tamil Marriage Compatibility Explained",
     description:
-      "Learn the 10 porutham factors, how marriage compatibility is checked using birth nakshatras, and why Rajju and Nadi doshas are critical checks in Tamil astrology.",
+      "Learn the 10 porutham factors, how marriage compatibility is checked using birth stars, and why Rajju and Nadi doshas are critical checks in Tamil astrology.",
     url: "https://vinaadi.com/learn/what-is-porutham",
     type: "article",
   },
@@ -41,7 +41,7 @@ const FAQ_JSONLD = {
       name: "What is porutham in Tamil astrology?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Porutham means 'compatibility' in Tamil. It is the traditional system of checking marriage compatibility by comparing the birth nakshatras (birth stars) of two people across 10 dimensions — covering day-to-day harmony, temperament, longevity, progeny, and prosperity.",
+        text: "Porutham means compatibility in Tamil. It is the traditional system of checking marriage compatibility by comparing the birth stars of two people across 10 dimensions, including harmony, temperament, longevity, progeny, and prosperity.",
       },
     },
     {
@@ -57,7 +57,7 @@ const FAQ_JSONLD = {
       name: "What is Rajju dosha and why is it a dealbreaker?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Rajju dosha occurs when both partners share the same Rajju category based on their birth nakshatras. Traditional Tamil jyotish treats Rajju dosha as a critical dealbreaker — regardless of how high the total porutham score is. It is associated with longevity concerns for the spouse.",
+        text: "Rajju dosha occurs when both partners share the same Rajju category based on their birth stars. Traditional Tamil jyotish treats Rajju dosha as a critical dealbreaker regardless of the total porutham score. It is associated with longevity concerns for the spouse.",
       },
     },
     {
@@ -65,7 +65,7 @@ const FAQ_JSONLD = {
       name: "What is Nadi dosha and can it be cancelled?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Nadi dosha occurs when both partners share the same Nadi category (Adi, Madhya, or Antya). It is associated with health concerns for offspring. Certain conditions — such as different rasi (moon sign) or different nakshatra despite same Nadi — can cancel the dosha. Vinaadi checks these cancellations automatically.",
+        text: "Nadi dosha occurs when both partners share the same Nadi category (Adi, Madhya, or Antya). It is associated with health concerns for offspring. Certain conditions, such as different moon signs or different birth stars despite the same Nadi, can cancel the dosha. Vinaadi checks these cancellations automatically.",
       },
     },
     {

@@ -7,6 +7,7 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { useLang } from "@/components/lang-toggle";
 import { TOOL_PANCH, mt } from "@/lib/marketing-i18n";
+import { PanchangamWheelVisual } from "@/components/marketing-visuals";
 
 const EMBED_SNIPPET = `<iframe
   src="https://vinaadi.com/widget/panchangam"
@@ -43,10 +44,18 @@ export function PanchangamPageContent() {
       <main>
         {/* HERO */}
         <section className="cl-pub-hero" style={{ paddingBottom: "32px" }}>
-          <div className="cl-container">
-            <p className="cl-eyebrow">{mt(d.eyebrow, lang)}</p>
-            <h1 className="cl-pub-h1" style={{ maxWidth: "20ch" }}>{mt(d.h1, lang)}</h1>
-            <p className="cl-pub-lead">{mt(d.lead, lang)}</p>
+          <div className="cl-container cl-pub-hero__inner">
+            <div className="cl-pub-hero__copy">
+              <p className="cl-eyebrow">{mt(d.eyebrow, lang)}</p>
+              <h1 className="cl-pub-h1" style={{ maxWidth: "20ch" }}>{mt(d.h1, lang)}</h1>
+              <p className="cl-pub-lead">{mt(d.lead, lang)}</p>
+            </div>
+            <div className="cl-hero-figure">
+              <p className="cl-hero-figure__label">{lang === "en" ? "Five Limbs" : "ஐந்து உறுப்புகள்"}</p>
+              <PanchangamWheelVisual />
+              <p className="cl-hero-figure__title">{lang === "en" ? "Tithi, birth star, yoga, karana and vara" : "திதி, நட்சத்திரம், யோகம், கரணம், வாரம்"}</p>
+              <p className="cl-hero-figure__note">{lang === "en" ? "This quick wheel shows the five daily elements that shape the feel of a day in Tamil panchangam." : "தமிழ் பஞ்சாங்கத்தில் ஒரு நாளின் தன்மையை நிர்ணயிக்கும் ஐந்து கூறுகளை இந்தச் சுருக்கக் காட்சி காட்டுகிறது."}</p>
+            </div>
           </div>
         </section>
 
@@ -68,7 +77,7 @@ export function PanchangamPageContent() {
               <div className="cl-pub-section__body">
                 <p>{lang === "en"
                   ? "Panchangam (பஞ்சாங்கம்) means \"five limbs\" — the five daily elements that define the quality of each day in the Tamil calendar."
-                  : "பஞ்சாங்கம் என்றால் \"ஐந்து உறுப்புகள்\" — தமிழ் நாட்காட்டியில் ஒவ்வொரு நாளின் தன்மையை வரையறுக்கும் ஐந்து தினசரி கூறுகள்."}</p>
+                  : "பஞ்சாங்கம் என்றால் \"ஐந்து கூறுகள்\" — தமிழ் நாட்காட்டியில் ஒவ்வொரு நாளின் தன்மையை வகுக்கும் ஐந்து தினசரி அம்சங்கள்."}</p>
               </div>
               <ul className="cl-pub-detail-list">
                 {FIVE_ELEMENTS.map((item) => (

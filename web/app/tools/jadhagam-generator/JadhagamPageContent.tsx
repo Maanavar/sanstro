@@ -6,6 +6,7 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { useLang } from "@/components/lang-toggle";
 import { TOOL_JADHAGAM, mt } from "@/lib/marketing-i18n";
+import { SouthIndianChartVisual } from "@/components/marketing-visuals";
 
 export function JadhagamPageContent() {
   const [lang] = useLang();
@@ -24,10 +25,18 @@ export function JadhagamPageContent() {
       <main>
         {/* HERO */}
         <section className="cl-pub-hero" style={{ paddingBottom: "32px" }}>
-          <div className="cl-container">
-            <p className="cl-eyebrow">{mt(d.eyebrow, lang)}</p>
-            <h1 className="cl-pub-h1" style={{ maxWidth: "20ch" }}>{mt(d.h1, lang)}</h1>
-            <p className="cl-pub-lead">{mt(d.lead, lang)}</p>
+          <div className="cl-container cl-pub-hero__inner">
+            <div className="cl-pub-hero__copy">
+              <p className="cl-eyebrow">{mt(d.eyebrow, lang)}</p>
+              <h1 className="cl-pub-h1" style={{ maxWidth: "20ch" }}>{mt(d.h1, lang)}</h1>
+              <p className="cl-pub-lead">{mt(d.lead, lang)}</p>
+            </div>
+            <div className="cl-hero-figure">
+              <p className="cl-hero-figure__label">{lang === "en" ? "Chart Preview" : "ஜாதக முன்னோட்டம்"}</p>
+              <SouthIndianChartVisual lang={lang} />
+              <p className="cl-hero-figure__title">{lang === "en" ? "D1 chart, dasha and birth star in one view" : "D1 ஜாதகம், தசை, பிறப்பு நட்சத்திரம் ஒரே பார்வையில்"}</p>
+              <p className="cl-hero-figure__note">{lang === "en" ? "Preview the core chart layout, dasha flow, and birth-star anchor before you generate your full reading." : "முழு ஜாதகத்தை உருவாக்கும் முன் கட்ட அமைப்பு, தசை ஓட்டம், பிறப்பு நட்சத்திரம் எப்படி காணப்படும் என்பதை இங்கே முன்பே பார்க்கலாம்."}</p>
+            </div>
           </div>
         </section>
 
@@ -48,8 +57,8 @@ export function JadhagamPageContent() {
             <div className="cl-pub-two-col">
               <div className="cl-pub-section__body">
                 <p>{lang === "en"
-                  ? "Every chart is computed using the Thirukanitham method — the precise Tamil astronomical calculation standard with Lahiri ayanamsa and Drik ephemeris data."
-                  : "ஒவ்வொரு ஜாதகமும் திருக்கணிதம் முறையில் — லாகிரி அயனாம்சம் மற்றும் திரிக் கோளக்கணித தரவுடன் துல்லியமான தமிழ் வானியல் கணக்கீட்டு தரநிலை — கணக்கிடப்படுகிறது."}</p>
+                  ? "Every chart here is calculated with the Thirukanitham method using Lahiri ayanamsa and Drik ephemeris data."
+                  : "இங்கே வரும் ஒவ்வொரு ஜாதகமும் லாகிரி அயனாம்சம், திரிக் கோளக்கணிதத் தரவு ஆகியவற்றை கொண்டு திருக்கணித முறையில் கணக்கிடப்படுகிறது."}</p>
               </div>
               <ul className="cl-pub-detail-list">
                 {WHAT_ITEMS.map((item) => (

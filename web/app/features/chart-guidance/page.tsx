@@ -5,6 +5,7 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { useLang } from "@/components/lang-toggle";
 import { FEAT_CHART, mt } from "@/lib/marketing-i18n";
+import { SouthIndianChartVisual } from "@/components/marketing-visuals";
 
 export default function ChartGuidancePage() {
   const [lang] = useLang();
@@ -42,6 +43,7 @@ export default function ChartGuidancePage() {
             </div>
             <div className="cl-hero-figure">
               <p className="cl-hero-figure__label">{lang === "en" ? "Chart Summary · Sample" : "ஜாதக சுருக்கம் · மாதிரி"}</p>
+              <SouthIndianChartVisual lang={lang} />
               <div className="cl-hero-figure__art">
                 <svg viewBox="0 0 240 240" role="img" aria-label="South Indian square chart">
                   <rect x="1" y="1" width="238" height="238" rx="6" fill="var(--cl-surface-2)" stroke="var(--cl-border-2)" strokeWidth="1.4" />
@@ -63,7 +65,7 @@ export default function ChartGuidancePage() {
               <p className="cl-hero-figure__title">{lang === "en" ? "Kadagam Lagna · Moon Dasa" : "கடகம் லக்னம் · சந்திர தசை"}</p>
               <p className="cl-hero-figure__note">
                 {lang === "en"
-                  ? "Moon as lagna lord is in Viruchigam (5th house) — Kettai nakshatra. Current Moon dasa activates the 5th house themes."
+                  ? "Moon as lagna lord is in Viruchigam (5th house) — Kettai birth star. The current Moon dasa activates 5th-house themes."
                   : "லக்ன நாதன் சந்திரன் விருச்சிகத்தில் (5வது பாவம்) — கேட்டை நட்சத்திரம். நடப்பு சந்திர தசை 5வது பாவ கருப்பொருள்களை செயல்படுத்துகிறது."}
               </p>
             </div>

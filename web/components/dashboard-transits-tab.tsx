@@ -212,7 +212,7 @@ export function DashboardTransitsTab({
               color: W.terracotta,
             }}
           >
-            {lang === "ta" ? "கோசாரம் & தசை" : "Transits & Dasha"}
+            {lang === "ta" ? "கிரகநகர்வு & தசை" : "Transits & Dasha"}
           </p>
           <h1
             style={{
@@ -225,7 +225,7 @@ export function DashboardTransitsTab({
               fontWeight: 500,
             }}
           >
-            {lang === "ta" ? "Transit intelligence" : "Transit intelligence"}
+            {lang === "ta" ? "கிரகநகர்வு பார்வை" : "Transit intelligence"}
           </h1>
           <p style={{ margin: 0, fontSize: "1rem", color: W.muted, lineHeight: 1.6, maxWidth: "62ch" }}>
             {t("transits_tab_desc", lang)}
@@ -234,8 +234,8 @@ export function DashboardTransitsTab({
       </div>
 
       <div className="cd-responsive-pills" style={{ gap: "var(--space-2_5)" }}>
-        <StatPill label={lang === "ta" ? "transits" : "transits"} value={hasTransitSnapshot ? `${personalTransit?.transits.length}` : "0"} tone="neutral" />
-        <StatPill label={lang === "ta" ? "flagged" : "flagged"} value={`${flaggedCount}`} tone={flaggedCount > 0 ? "warn" : "good"} />
+        <StatPill label={lang === "ta" ? "நகர்வுகள்" : "transits"} value={hasTransitSnapshot ? `${personalTransit?.transits.length}` : "0"} tone="neutral" />
+        <StatPill label={lang === "ta" ? "கவனிக்க" : "flagged"} value={`${flaggedCount}`} tone={flaggedCount > 0 ? "warn" : "good"} />
         <StatPill label={lang === "ta" ? "sani cycles" : "sani cycles"} value={personalSani ? `${activeSaniCycles} active` : "N/A"} tone={activeSaniCycles > 0 ? "warn" : "neutral"} />
         <StatPill
           label={lang === "ta" ? "dasa support" : "dasa support"}
@@ -280,11 +280,11 @@ export function DashboardTransitsTab({
       )}
 
       {hasTransitSnapshot && personalTransit && (
-        <Surface title={lang === "ta" ? "Inru graha nilaihal" : "Planetary positions today"}>
+        <Surface title={lang === "ta" ? "இன்றைய கிரக நிலைகள்" : "Planetary positions today"}>
           <div className="surface__body">
             <p style={{ margin: "0 0 var(--space-3_5)", fontSize: "0.75rem", color: W.muted, lineHeight: 1.55 }}>
               {lang === "ta"
-                ? `Janma rasi ${personalTransit.janmaRasi}. H = house from Moon, L = house from Lagna.`
+                ? `உங்கள் பிறப்பு ராசி ${personalTransit.janmaRasi}. H = சந்திரனிலிருந்து பாவம், L = லக்னத்திலிருந்து பாவம்.`
                 : `Your birth Rasi is ${personalTransit.janmaRasi}. H = house from your Moon, L = house from Lagna.`}
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(225px, 1fr))", gap: "var(--space-3)" }}>

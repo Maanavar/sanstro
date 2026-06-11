@@ -11,7 +11,7 @@ const STRINGS = {
   tab_personal:   { ta: "தனிப்பட்ட",   en: "Personal" },
   tab_plan:       { ta: "திட்டமிடு",   en: "Plan" },
   tab_family:     { ta: "குடும்பம்",    en: "Family" },
-  tab_calendar:   { ta: "கோசாரம் & நிகழ்வுகள்", en: "Transits & Events" },
+  tab_calendar:   { ta: "கிரகநகர்வு & நிகழ்வுகள்", en: "Transits & Events" },
   tab_setup:      { ta: "அமைவு",        en: "Setup" },
   tab_settings:   { ta: "அமைவுகள்",     en: "Settings" },
   nav_label:      { ta: "பக்க வழிகாட்டி", en: "App navigation" },
@@ -27,9 +27,9 @@ const STRINGS = {
 
   // ── Metric strip
   metric_today:      { ta: "இன்றைய தேதி",      en: "Today's date" },
-  metric_nakshatra:  { ta: "ஜன்ம நட்சத்திரம்", en: "Birth star" },
+  metric_nakshatra:  { ta: "பிறப்பு நட்சத்திரம்", en: "Birth Star" },
   metric_pada:       { ta: "பாதம்",             en: "Pada" },
-  metric_janma_rasi: { ta: "ஜன்ம ராசி",         en: "Birth sign" },
+  metric_janma_rasi: { ta: "பிறப்பு ராசி",       en: "Birth sign" },
   metric_dasha:      { ta: "நடப்பு தசை",        en: "Current dasa" },
   metric_bhukti:     { ta: "புக்தி",            en: "Bhukti" },
   metric_family_score: { ta: "குடும்ப மதிப்பெண்", en: "Family score" },
@@ -78,8 +78,8 @@ const STRINGS = {
   field_language:     { ta: "மொழி",               en: "Language" },
   field_owner_id:     { ta: "Owner ID",           en: "Owner ID" },
   field_time_optional: { ta: "தெரியாவிட்டால் விட்டுவிடலாம்", en: "Leave blank if unknown" },
-  field_place_helper: { ta: "நகரத்தை தேர்ந்தெடுக்க lat/lng தானாக அமையும்", en: "Select a city to auto-fill lat/lng" },
-  field_tz_helper:    { ta: "நகரம் தேர்ந்தெடுத்தால் தானாக அமையும்", en: "Auto-filled when city is selected" },
+  field_place_helper: { ta: "நகரத்தைத் தேர்வு செய்தால் அட்சரேகை, தீர்க்கரேகை தானாக நிரம்பும்", en: "Select a city to auto-fill lat/lng" },
+  field_tz_helper:    { ta: "நகரத்தைத் தேர்வு செய்தவுடன் நேர மண்டலம் தானாக வரும்", en: "Auto-filled when city is selected" },
   field_weight_helper:{ ta: "உறவு முறையால் தானாக அமையும்", en: "Auto-set by relationship" },
 
   // ── Relationship options
@@ -133,8 +133,8 @@ const STRINGS = {
   btn_go_personal:    { ta: "தனிப்பட்டது →",     en: "Personal →" },
 
   // ── Transits tab
-  tab_transits:       { ta: "தசை & கோசாரம்",    en: "Transits & Dasha" },
-  transits_tab_desc:  { ta: "விம்சோத்தரி தசை காலவரிசை, கோசார நிலைகள், குறிப்பு தொடர்புகள்", en: "Vimshottari Dasha timeline, Gochar positions, journal correlations" },
+  tab_transits:       { ta: "தசை & கிரகநகர்வு",    en: "Transits & Dasha" },
+  transits_tab_desc:  { ta: "விம்சோத்தரி தசை காலவரிசை, கிரகநகர்வு நிலைகள், குறிப்பேடு ஒப்பீடுகள்", en: "Vimshottari dasha timeline, transit positions, journal comparisons" },
 
   // ── TODAY tab (Phase 2)
   today_greeting:       { ta: "வணக்கம்",           en: "Good morning" },
@@ -148,11 +148,11 @@ const STRINGS = {
 
   // ── Personal tab
   personal_kicker:    { ta: "தனிப்பட்ட",        en: "Personal" },
-  personal_title_default: { ta: "ஜாதகம், வழிகாட்டல் & கோசாரம்", en: "Chart, guidance & transits" },
-  personal_desc:      { ta: "தசை, பஞ்சாங்கம், கோசார தரவு", en: "Dasa, Panchangam, Gochar data" },
+  personal_title_default: { ta: "ஜாதகம், வழிகாட்டுதல் & கிரகநகர்வு", en: "Chart, guidance & transits" },
+  personal_desc:      { ta: "தசை, பஞ்சாங்கம், கிரகநகர்வு தரவு", en: "Dasha, panchangam, transit data" },
   personal_today:     { ta: "இன்று",            en: "Today" },
   personal_you:       { ta: "நீங்கள்",           en: "You" },
-  chandrashtama_warning: { ta: "⚠ சந்திராஷ்டமம் — சந்திரன் உங்கள் ஜன்ம ராசியிலிருந்து 8ஆம் ராசியில் உள்ளது. முக்கிய முடிவுகளை தவிர்க்கவும்.", en: "⚠ Chandrashtamam — Moon is in the 8th rasi from your natal Moon sign. Avoid important decisions." },
+  chandrashtama_warning: { ta: "⚠ சந்திராஷ்டமம் — சந்திரன் உங்கள் பிறப்பு ராசியிலிருந்து 8ஆம் ராசியில் உள்ளது. முக்கிய முடிவுகளைத் தவிர்க்கவும்.", en: "⚠ Chandrashtamam — Moon is in the 8th rasi from your natal Moon sign. Avoid important decisions." },
 
   // ── Chart context surface
   surface_chart_context: { ta: "ஜாதக சுருக்கம்", en: "Chart context" },
@@ -160,10 +160,10 @@ const STRINGS = {
   chart_no_profile: { ta: "பிறப்பு விவரம் உருவாக்கிய பின் ஜாதகம் தெரியும்.", en: "Create a birth profile to load chart data." },
   label_lagnam:     { ta: "லக்னம்",   en: "Lagna" },
   label_birth_date: { ta: "பிறந்த தேதி", en: "Birth date" },
-  label_nakshatra:  { ta: "நட்சத்திரம்", en: "Nakshatra" },
+  label_nakshatra:  { ta: "நட்சத்திரம்", en: "Birth Star" },
   label_padam:      { ta: "பாதம்",       en: "Pada" },
-  label_janma_rasi: { ta: "ஜன்ம ராசி",  en: "Birth sign" },
-  label_d1:         { ta: "D1 — ஜன்ம ராசி கட்டம்", en: "D1 — Birth chart" },
+  label_janma_rasi: { ta: "பிறப்பு ராசி", en: "Birth sign" },
+  label_d1:         { ta: "D1 — பிறப்பு ராசி கட்டம்", en: "D1 — Birth chart" },
   label_d9:         { ta: "D9 — நவாம்சம்",          en: "D9 — Navamsa" },
   label_jathagam_kattam: { ta: "ஜாதக கட்டம் (தென்னிந்திய)", en: "Jathagam Kattam (South Indian)" },
   jathagam_kattam_hint: { ta: "ஒற்றை கட்ட காட்சி — D1 அல்லது D9 தேர்ந்தெடுக்கவும்", en: "Single-chart view — choose D1 or D9" },
@@ -176,24 +176,24 @@ const STRINGS = {
   chart_house_label: { ta: "இடம்", en: "House" },
   chart_no_graha_in_rasi: { ta: "இந்த ராசியில் கிரகம் இல்லை.", en: "No grahas in this rasi." },
   // ── Daily guidance surface
-  surface_guidance: { ta: "இன்றைய யோகம்", en: "Today's fortune" },
+  surface_guidance: { ta: "இன்றைய வழிகாட்டல்", en: "Today's guidance" },
   guidance_empty:   { ta: "ஜாதகம் கணக்கிட்ட பின் வழிகாட்டல் தெரியும்.", en: "Daily guidance loads after a profile is calculated." },
   label_best_time:  { ta: "சிறந்த நேரம்",     en: "Best window" },
   label_caution_time: { ta: "எச்சரிக்கை நேரம்", en: "Caution window" },
-  label_moon_transit: { ta: "சந்திர கோசாரம்", en: "Moon transit" },
+  label_moon_transit: { ta: "சந்திர நகர்வு", en: "Moon transit" },
   label_dasha_support: { ta: "தசை ஆதரவு",      en: "Dasa support" },
   label_next_3_days:   { ta: "அடுத்த 3 நாட்கள்", en: "Next 3 days" },
 
-  // ── Gochar & Panchangam surface
-  surface_gochar:   { ta: "கோசாரம் & பஞ்சாங்கம்", en: "Transits & Panchangam" },
-  gochar_empty:     { ta: "ஜாதகம் உருவாக்கிய பின் கோசாரம் தெரியும்.", en: "Create a chart to see transits and panchangam." },
+  // ── Transit & Panchangam surface
+  surface_gochar:   { ta: "கிரகநகர்வு & பஞ்சாங்கம்", en: "Transits & Panchangam" },
+  gochar_empty:     { ta: "ஜாதகம் உருவாக்கிய பின் கிரகநகர்வும் பஞ்சாங்கமும் தெரியும்.", en: "Create a chart to see transits and panchangam." },
   label_chandrashtamam: { ta: "சந்திராஷ்டமம்", en: "Chandrashtamam" },
   label_chandrashtamam_rasi: { ta: "இன்று சந்திராஷ்டமம்", en: "Today's Chandrashtamam" },
   label_active:     { ta: "நடப்பு",  en: "Active" },
   label_none:       { ta: "இல்லை",  en: "None" },
   label_sani_cycle: { ta: "சனி சுழற்சி", en: "Saturn cycle" },
-  label_gochar_pos: { ta: "கோசார நிலை", en: "Transit positions" },
-  label_janma_rasi_short: { ta: "ஜன்ம ராசி", en: "Janma Rasi" },
+  label_gochar_pos: { ta: "கிரகநகர்வு நிலை", en: "Transit positions" },
+  label_janma_rasi_short: { ta: "பிறப்பு ராசி", en: "Birth sign" },
   label_panchangam: { ta: "பஞ்சாங்கம்", en: "Panchangam" },
   label_tithi:      { ta: "திதி",         en: "Tithi" },
   label_rahu_kalam: { ta: "ரா.காலம்",    en: "Rahu Kalam" },
@@ -219,7 +219,7 @@ const STRINGS = {
   col_graha:        { ta: "கிரகம்",    en: "Planet" },
   col_rasi:         { ta: "ராசி",      en: "Sign" },
   col_degree:       { ta: "பாகை",      en: "Degree" },
-  col_nakshatra:    { ta: "நட்சத்திரம்", en: "Nakshatra" },
+  col_nakshatra:    { ta: "நட்சத்திரம்", en: "Birth Star" },
   col_pada:         { ta: "பாதம்",     en: "Pada" },
   col_house:        { ta: "இடம் (L)",  en: "House (L)" },
   col_d9_rasi:      { ta: "D9 ராசி",   en: "D9 Sign" },
@@ -264,7 +264,7 @@ const STRINGS = {
   best_time:        { ta: "சிறந்த நேரம்",    en: "Best time" },
   caution_time:     { ta: "எச்சரிக்கை",     en: "Caution" },
   identity_lagnam:  { ta: "லக்னம்",          en: "Lagna" },
-  identity_janma:   { ta: "ஜன்ம ராசி",      en: "Birth sign" },
+  identity_janma:   { ta: "பிறப்பு ராசி",    en: "Birth sign" },
 
   // ── Member card
   member_chandrashtamam: { ta: "⚠ சந்திராஷ்டமம்", en: "⚠ Chandrashtamam" },
@@ -280,8 +280,8 @@ const STRINGS = {
   confirm_delete_vault:  { ta: "சேகரிப்பு மற்றும் அனைத்து உறுப்பினர்களையும் நீக்கவா? இதை மீட்க முடியாது.", en: "Delete vault and all members? This cannot be undone." },
 
   // ── Calendar tab
-  calendar_kicker:  { ta: "கோசாரம் & நிகழ்வுகள்", en: "Transits & Events" },
-  calendar_title:   { ta: "கோசாரம், தசை & நிகழ்வுகள்", en: "Transits, Dasha & Events" },
+  calendar_kicker:  { ta: "கிரகநகர்வு & நிகழ்வுகள்", en: "Transits & Events" },
+  calendar_title:   { ta: "கிரகநகர்வு, தசை & நிகழ்வுகள்", en: "Transits, Dasha & Events" },
   cal_panchangam:   { ta: "📅 பஞ்சாங்கம்",  en: "📅 Panchangam" },
   cal_monthly:      { ta: "🗓️ மாத காலெண்டர்", en: "🗓️ Monthly" },
   cal_monthly_loading: { ta: "மாத பஞ்சாங்கம் ஏற்றப்படுகிறது…", en: "Loading monthly panchangam…" },
@@ -293,7 +293,7 @@ const STRINGS = {
   kala_empty:       { ta: "பிறப்பு விவரம் உருவாக்கிய பின் நேர விபரங்கள் தெரியும்.", en: "Create a profile to see timings." },
   label_vaaram:     { ta: "வாரம்",    en: "Vara (weekday)" },
   label_tithi2:     { ta: "திதி",     en: "Tithi" },
-  label_nakshatra2: { ta: "நட்சத்திரம்", en: "Nakshatra" },
+  label_nakshatra2: { ta: "நட்சத்திரம்", en: "Birth Star" },
   label_yogam:      { ta: "யோகம்",   en: "Yoga" },
   label_karanam:    { ta: "கரணம்",   en: "Karana" },
   label_ends_at:    { ta: "முடியும்",           en: "ends" },
@@ -341,7 +341,7 @@ const STRINGS = {
   tools_heading:          { ta: "கருவிகள்",                      en: "Tools" },
   tools_subtitle:         { ta: "ஜோதிட பகுப்பாய்வு கருவிகள்",   en: "Jyotish analysis tools" },
   tool_porutham_name:     { ta: "பொருத்தம் சோதனை",               en: "Compatibility Check" },
-  tool_porutham_desc:     { ta: "திருமண பொருத்தம் — 10 குண பொருத்தம் + தோஷ சோதனை.",    en: "Marriage compatibility — 10-kuna match + dosha check." },
+  tool_porutham_desc:     { ta: "திருமணப் பொருத்தம் — 10 பொருத்தங்கள், தோஷச் சோதனை.",  en: "Marriage compatibility — 10 poruthams + dosha checks." },
   tool_chart_gen_name:    { ta: "ஜாதகம் உருவாக்கு",              en: "Generate Chart" },
   tool_chart_gen_desc:    { ta: "பிறப்பு விவரங்கள் கொடுத்து ராசி + நவாம்ச கட்டம் உருவாக்கு.", en: "Enter birth details and generate Rasi + Navamsa charts." },
   tool_rectify_name:      { ta: "பிறந்த நேர திருத்தம்",          en: "Birth Time Rectification" },
@@ -444,7 +444,7 @@ const STRINGS = {
   whatif_result_title: { ta: "மூன்று தூண் திருக்கணித ஆய்வு",  en: "Triple-confirmation analysis" },
   whatif_natal:        { ta: "ஜாதக வாக்கு",            en: "Natal Promise" },
   whatif_dasha:        { ta: "தசை ஆதரவு",              en: "Dasha Support" },
-  whatif_gochar:       { ta: "கோசார ஆதரவு",            en: "Gochar Support" },
+  whatif_gochar:       { ta: "கிரகநகர்வு ஆதரவு",        en: "Transit Support" },
   whatif_overall:      { ta: "ஒட்டுமொத்த நிலை",        en: "Overall verdict" },
   whatif_best_period:  { ta: "சிறந்த காலம்",           en: "Best period" },
   whatif_caution:      { ta: "கவனிக்கவும்",            en: "Caution" },
@@ -459,7 +459,7 @@ const STRINGS = {
 
   // ── Emotional weather / nakshatra / context / journal / alerts
   emotional_weather_label:    { ta: "உணர்வு வானிலை",    en: "Emotional Weather" },
-  nakshatra_lens_label:       { ta: "நட்சத்திர பார்வை",  en: "Nakshatra Lens" },
+  nakshatra_lens_label:       { ta: "நட்சத்திர பார்வை",  en: "Birth Star Lens" },
   context_insight_label:      { ta: "இன்றைய சூழல்",      en: "Today's Context" },
   journal_insight_label:      { ta: "குறிப்பு வடிவம்",   en: "Journal Pattern" },
   ambient_alerts_label:       { ta: "அறிவிப்புகள்",      en: "Alerts" },
@@ -479,7 +479,7 @@ const STRINGS = {
   pred_health_title:       { ta: "உடல்நலம் கணிப்பு",                en: "Health Prediction" },
   pred_confidence:         { ta: "நம்பிக்கை நிலை",                  en: "Confidence" },
   pred_dasha_support:      { ta: "தசை ஆதரவு",                       en: "Dasha support" },
-  pred_transit_support:    { ta: "கோசார ஆதரவு",                     en: "Transit support" },
+  pred_transit_support:    { ta: "கிரகநகர்வு ஆதரவு",                 en: "Transit support" },
   pred_timing_window:      { ta: "கால வரம்பு",                      en: "Timing window" },
   pred_supports:           { ta: "சாதகங்கள்",                       en: "Supporting factors" },
   pred_challenges:         { ta: "சவால்கள்",                        en: "Challenges" },
@@ -537,10 +537,10 @@ const STRINGS = {
   // ── Narrative / Why this prediction
   why_this_prediction: { ta: "இந்த கணிப்பு ஏன்?",    en: "Why this prediction?" },
   remedy_label:        { ta: "பரிகாரம் / வழிபாடு",   en: "Remedy / Worship" },
-  reason_moonTransit:  { ta: "சந்திர கோசாரம்",       en: "Moon transit" },
+  reason_moonTransit:  { ta: "சந்திர நகர்வு",         en: "Moon transit" },
   reason_dashaSupport: { ta: "தசை ஆதரவு",            en: "Dasa support" },
   reason_panchangam:   { ta: "பஞ்சாங்கம்",           en: "Panchangam" },
-  reason_gochar:       { ta: "கோசாரம்",               en: "Gochar" },
+  reason_gochar:       { ta: "கிரகநகர்வு",            en: "Transit" },
   reason_personalCaution: { ta: "தனிப்பட்ட கவலை",   en: "Personal caution" },
 
   // QA Dashboard tab
@@ -567,7 +567,7 @@ const STRINGS = {
   qa_no_regressions:   { ta: "சேமிக்கப்பட்ட தோல்விகள் இல்லை.", en: "No stored failures." },
 
   // ── FEATURE-10: Nakshatra personality card
-  nakshatra_card_label:    { ta: "நட்சத்திர குணாதிசயம்", en: "Nakshatra Profile" },
+  nakshatra_card_label:    { ta: "நட்சத்திர குணாதிசயம்", en: "Birth Star Profile" },
   nakshatra_deity:         { ta: "தேவதை",                en: "Deity" },
   nakshatra_symbol:        { ta: "சின்னம்",               en: "Symbol" },
   nakshatra_ruling_planet: { ta: "அதிபதி கிரகம்",        en: "Ruling Planet" },
@@ -731,7 +731,7 @@ const STRINGS = {
   retro_intensity_similar: { ta: "இதே போல்",                   en: "Similar" },
   retro_intensity_milder:  { ta: "குறைவான",                     en: "Milder" },
   retro_intensity_stronger:{ ta: "அதிகமான",                    en: "Stronger" },
-  retro_key_transits:      { ta: "முக்கிய கோசாரங்கள்",          en: "Key Transits" },
+  retro_key_transits:      { ta: "முக்கிய கிரகநகர்வுகள்",       en: "Key Transits" },
   retro_active_dasha:      { ta: "நடப்பு தசை",                  en: "Active Dasha" },
 
   // ── Decision support tool
@@ -1112,4 +1112,3 @@ export function tYoga(key: string | null | undefined, lang: Lang): string {
 export function tKarana(key: string | null | undefined, lang: Lang): string {
   return _lookupName(KARANA_NAMES, key, lang);
 }
-

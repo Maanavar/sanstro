@@ -4,7 +4,7 @@ import { HowToReadJadhagamPageContent } from "./PageContent";
 export const metadata: Metadata = {
   title: "How to Read a Jadhagam — South Indian Tamil Birth Chart Guide | Vinaadi",
   description:
-    "Learn how to read a South Indian Tamil jadhagam — the fixed square chart structure, how lagna is determined, how planets are placed across the 12 rasis, and how the Vimshottari dasha sequence is calculated from your Moon nakshatra.",
+    "Learn how to read a South Indian Tamil jadhagam — the fixed square chart structure, how lagna is determined, how planets are placed across the 12 rasis, and how the Vimshottari dasha sequence is calculated from your Moon's birth star.",
   keywords: [
     "how to read jadhagam",
     "how to read Tamil birth chart",
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     "dasha sequence Tamil",
     "jathagam reading guide",
     "Tamil chart structure",
-    "nakshatra pada astrology",
+    "birth star pada astrology",
   ],
   alternates: { canonical: "https://vinaadi.com/learn/how-to-read-a-jadhagam" },
   openGraph: {
@@ -56,7 +56,7 @@ const FAQ_JSONLD = {
       name: "How is the Vimshottari dasha sequence calculated?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "The Vimshottari dasha sequence starts from the Moon's nakshatra at birth. Each of the 27 nakshatras has a planetary lord, and the sequence cycles through 9 planets over 120 years. The exact pada (quarter division) of the Moon's nakshatra — which requires an accurate birth time — determines where in the sequence you begin and how much of the first dasha period has already elapsed.",
+        text: "The Vimshottari dasha sequence starts from the Moon's birth star at birth. Each of the 27 birth stars has a planetary lord, and the sequence cycles through 9 planets over 120 years. The Moon's exact pada, which requires an accurate birth time, determines where in the sequence you begin and how much of the first dasha period has already elapsed.",
       },
     },
     {

@@ -11,7 +11,7 @@ function makeSample(lang: "en" | "ta") {
     score: 64,
     summary:    en
       ? "Moon Dasa · Moon Bhukti. Saturn refines home and inner stability. A measured day — good for steady work, cautious for new ventures."
-      : "சந்திர தசை · சந்திர புக்தி. சனி வீடு மற்றும் உள் நிலைத்தன்மையை செம்மைப்படுத்துகிறது. சீரான நாள் — நிலையான வேலைக்கு நல்லது, புதிய முயற்சிகளுக்கு கவனம் தேவை.",
+      : "சந்திர தசை · சந்திர புக்தி. சனி வீடும் உள்ளமைதியும் உறுதியாக நிற்கச் செய்கிறது. இன்று சீரான நாள்; தொடர்ச்சியாக செய்யும் வேலைகளுக்கு ஏற்றது, புதிய முயற்சிகளில் சற்று கவனம் நல்லது.",
     bestWindow: { start: "11:53", end: "12:41" },
     holdWindow: { start: "15:28", end: "17:03" },
     lagna:      en ? "Kadagam"   : "கடகம்",

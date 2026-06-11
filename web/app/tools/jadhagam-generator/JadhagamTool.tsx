@@ -7,6 +7,7 @@ import { readErrorMessage } from "@/lib/api";
 import { computeD9LagnaRasi, GRAHA_ABBR, GRAHA_ABBR_EN } from "@/lib/chart-utils";
 import { useLang } from "@/components/lang-toggle";
 import { JadhagamShareButton } from "@/components/public-share-card";
+import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
 
 /* South Indian grid positions — fixed sign layout */
 const RASI_GRID = [
@@ -162,6 +163,7 @@ export function JadhagamTool() {
   const en = lang === "en";
   const RASI_NAMES = en ? RASI_NAMES_EN : RASI_NAMES_TA;
   const PLANET_LABELS = en ? PLANET_LABELS_EN : PLANET_LABELS_TA;
+  const formatStarName = (value: string) => (en ? tamilizeAstroEnglish(value) : value);
 
   const [form, setForm] = useState<Form>(EMPTY);
   const [chart, setChart] = useState<ChartCalculateResponseData | null>(null);
@@ -319,9 +321,9 @@ export function JadhagamTool() {
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px 28px", marginTop: "12px" }}>
               {[
-                { label: en ? "Lagna" : "லக்னம்", value: RASI_NAMES[chart.lagna.rasi] + " · " + chart.lagna.nakshatraName },
-                { label: en ? "Janma Nakshatra" : "ஜன்ம நட்சத்திரம்", value: moon ? `${moon.nakshatraName} (${en ? "Pada" : "பாதம்"} ${moon.pada})` : "—" },
-                { label: en ? "Janma Rasi" : "ஜன்ம ராசி", value: moon ? RASI_NAMES[moon.rasi] : "—" },
+                { label: en ? "Lagna" : "லக்னம்", value: RASI_NAMES[chart.lagna.rasi] + " · " + formatStarName(chart.lagna.nakshatraName) },
+                { label: en ? "Birth Star" : "பிறப்பு நட்சத்திரம்", value: moon ? `${formatStarName(moon.nakshatraName)} (${en ? "Pada" : "பாதம்"} ${moon.pada})` : "—" },
+                { label: en ? "Birth Sign" : "பிறப்பு ராசி", value: moon ? RASI_NAMES[moon.rasi] : "—" },
                 { label: "Ayanamsa", value: `Lahiri ${chart.ayanamsa.valueDegrees.toFixed(2)}°` },
               ].map((row) => (
                 <div key={row.label}>
@@ -370,7 +372,7 @@ export function JadhagamTool() {
                 <thead>
                   <tr>
                     {(en
-                      ? ["Planet", "Rasi", "Nakshatra", "Pada", "Degree", "House"]
+                      ? ["Planet", "Rasi", "Birth Star", "Pada", "Degree", "House"]
                       : ["கிரகம்", "ராசி", "நட்சத்திரம்", "பாதம்", "பாகை", "பாவம்"]
                     ).map((h) => (
                       <th key={h} style={{
@@ -393,7 +395,7 @@ export function JadhagamTool() {
                           {p.isRetrograde && <span style={{ fontSize: "0.68rem", color: "#A8482F", marginLeft: "4px" }}>(R)</span>}
                         </td>
                         <td style={{ padding: "9px 14px", color: "var(--cl-ink-2)" }}>{RASI_NAMES[p.rasi]}</td>
-                        <td style={{ padding: "9px 14px", color: "var(--cl-ink-2)" }}>{p.nakshatraName}</td>
+                        <td style={{ padding: "9px 14px", color: "var(--cl-ink-2)" }}>{formatStarName(p.nakshatraName)}</td>
                         <td style={{ padding: "9px 14px", color: "var(--cl-muted)" }}>{p.pada}</td>
                         <td style={{ padding: "9px 14px", color: "var(--cl-muted)", fontFamily: "monospace", fontSize: "0.78rem" }}>
                           {p.degreeInRasi.toFixed(2)}°
@@ -413,7 +415,7 @@ export function JadhagamTool() {
               name: form.displayName,
               lagnaRasi: RASI_NAMES_EN[chart.lagna.rasi] ?? "",
               lagnaRasiNum: chart.lagna.rasi,
-              janmaNakshatra: moon ? `${moon.nakshatraName} P${moon.pada}` : "—",
+              janmaNakshatra: moon ? `${tamilizeAstroEnglish(moon.nakshatraName)} P${moon.pada}` : "—",
               janmaRasi: moon ? (RASI_NAMES_EN[moon.rasi] ?? "") : "—",
               planets: PLANET_ORDER.slice(0, 9).flatMap((g) => {
                 const p = chart.planets.find((x: ChartPlanet) => x.graha === g);

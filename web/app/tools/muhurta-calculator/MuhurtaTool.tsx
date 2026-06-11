@@ -4,6 +4,7 @@ import { useState } from "react";
 import { readErrorMessage } from "@/lib/api";
 import { useLang } from "@/components/lang-toggle";
 import { TN_CITIES, type CityEntry } from "@/lib/tn-cities";
+import { romanNakshathiramName } from "@/lib/tamil-astro";
 import Link from "next/link";
 
 const EXTRA_CITIES: CityEntry[] = [
@@ -148,6 +149,7 @@ export function MuhurtaTool() {
   }
 
   const selectedEvent = EVENT_TYPES.find((e) => e.value === eventType) ?? EVENT_TYPES[0];
+  const slotStarName = (value: string) => romanNakshathiramName(value);
 
   return (
     <div style={{ maxWidth: "680px", margin: "0 auto" }}>
@@ -245,7 +247,7 @@ export function MuhurtaTool() {
         >
           {loading
             ? (lang === "en" ? "Finding auspicious slots…" : "சுப நேரங்கள் தேடுகிறோம்…")
-            : (lang === "en" ? "Find auspicious muhurta →" : "சுப முகூர்த்தம் காண்க →")}
+            : (lang === "en" ? "Find auspicious muhurtham →" : "சுப முகூர்த்தம் காண்க →")}
         </button>
       </form>
 
@@ -268,7 +270,7 @@ export function MuhurtaTool() {
           {slots.length === 0 ? (
             <p style={{ color: "var(--cl-ink-2)", fontSize: "0.9rem", textAlign: "center" }}>
               {lang === "en"
-                ? "No strong muhurta found in this range. Try extending the date range."
+                ? "No strong muhurtham found in this range. Try extending the date range."
                 : "இந்த வரம்பில் சிறந்த முகூர்த்தம் இல்லை. தேதி வரம்பை நீட்டிக்கவும்."}
             </p>
           ) : (
@@ -311,7 +313,7 @@ export function MuhurtaTool() {
                       </p>
                       <p style={{ fontSize: "0.82rem", color: "var(--cl-ink-2)", marginBottom: "6px" }}>
                         {lang === "en"
-                          ? `${slot.tithi} tithi · ${slot.nakshatra} nakshatra`
+                          ? `${slot.tithi} tithi · ${slotStarName(slot.nakshatra)} moon star`
                           : `${slot.tithi} திதி · ${slot.nakshatra} நட்சத்திரம்`}
                       </p>
                       <p style={{ fontSize: "0.82rem", color: "var(--cl-ink)", marginBottom: slot.cautions.length ? "6px" : 0 }}>
@@ -342,13 +344,13 @@ export function MuhurtaTool() {
               }}>
                 <p style={{ fontWeight: 700, fontSize: "0.95rem" }}>
                   {lang === "en"
-                    ? "Get muhurta matched to your birth chart"
+                    ? "Get muhurtham matched to your birth chart"
                     : "உங்கள் ஜாதகத்துடன் பொருந்திய முகூர்த்தம் பெறுங்கள்"}
                 </p>
                 <p style={{ fontSize: "0.82rem", color: "var(--cl-ink-2)" }}>
                   {lang === "en"
-                    ? "The results above are based on Panchangam alone. Your free Vinaadi account adds birth-chart personalisation — dasha support, hora windows, and Chandrashtama checks — for a significantly stronger recommendation."
-                    : "மேற்கண்ட முடிவுகள் பஞ்சாங்கம் மட்டுமே அடிப்படையில். இலவச Vinaadi கணக்கு ஜாதக பொருத்தம் — தசை ஆதரவு, ஹோரை, சந்திராஷ்டமம் — சேர்க்கிறது."}
+                    ? "The results above are based on Panchangam alone. A free Vinaadi account adds birth-chart personalisation, dasha support, hora windows, and Chandrashtama checks for a much stronger recommendation."
+                    : "மேலுள்ள முடிவுகள் பஞ்சாங்கத்தை மட்டும் அடிப்படையாகக் கொண்டவை. இலவச விநாடி கணக்கில் ஜாதகத்துக்கு ஏற்ப தசை ஆதரவு, ஹோரை நேரம், சந்திராஷ்டமம் சோதனை ஆகியவை சேர்ந்து இன்னும் வலுவான பரிந்துரையை தரும்."}
                 </p>
                 <Link
                   href="/dashboard"

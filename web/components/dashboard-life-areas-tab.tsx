@@ -151,7 +151,7 @@ export function DashboardLifeAreasTab({
         </h1>
         <p style={{ margin: 0, fontSize: "0.875rem", color: "#5a4f42", lineHeight: 1.6, maxWidth: "56ch" }}>
           {lang === "ta"
-            ? `ஒவ்வொரு மதிப்பெண்ணும் இன்றைய நிலையை அடிப்படையாகக் கொண்டது — உங்கள் ஜாதக வலிமை + தசை + கோசாரம் மூன்றையும் சேர்த்து கணக்கிடப்படுகிறது. ${phaseTheme}`
+            ? `ஒவ்வொரு மதிப்பெண்ணும் இன்றைய நிலையை அடிப்படையாகக் கொண்டது — உங்கள் ஜாதக வலிமை + தசை + கிரகநகர்வு மூன்றையும் சேர்த்து கணக்கிடப்படுகிறது. ${phaseTheme}`
             : `Each score is a snapshot for today — natal chart strength, active dasha period, and current transits combined. ${phaseTheme}`}
         </p>
       </div>

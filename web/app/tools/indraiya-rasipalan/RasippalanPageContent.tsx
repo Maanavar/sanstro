@@ -5,15 +5,16 @@ import { RasippalanTool } from "./RasippalanTool";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { useLang } from "@/components/lang-toggle";
+import { RasiTransitVisual } from "@/components/marketing-visuals";
 
 const RASIPALAN_CONCEPTS = [
   {
     en: { title: "How does rasipalan work?", body: "Every day the Moon occupies one of the 12 rasis. The house the Moon forms from your janma rasi (natal Moon sign) determines the day's energy for you. House 11 is the best; house 8 is Chandrashtamam — the most challenging." },
-    ta: { title: "ராசிபலன் எவ்வாறு செயல்படுகிறது?", body: "ஒவ்வொரு நாளும் சந்திரன் 12 ராசிகளில் ஒன்றில் இருக்கிறது. உங்கள் ஜன்ம ராசியிலிருந்து சந்திரன் எந்த இடத்தில் உள்ளது என்பது அன்றைய சக்தியை தீர்மானிக்கிறது. 11ஆம் இடம் சிறந்தது; 8ஆம் இடம் சந்திராஷ்டமம் — மிகவும் சவாலான காலம்." },
+    ta: { title: "ராசிபலன் எவ்வாறு செயல்படுகிறது?", body: "ஒவ்வொரு நாளும் சந்திரன் 12 ராசிகளில் ஒன்றில் இருக்கும். உங்கள் பிறப்பு ராசியிலிருந்து சந்திரன் எந்த இடத்தில் உள்ளது என்பதே அன்றைய சக்தியை நிர்ணயிக்கிறது. 11ஆம் இடம் சாதகமானது; 8ஆம் இடம் சந்திராஷ்டமம் — கவனமாக இருக்க வேண்டிய காலம்." },
   },
   {
     en: { title: "What is Chandrashtamam?", body: "Chandrashtamam occurs when the Moon is in the 8th rasi from your natal Moon sign. It lasts roughly 2.5 days. Classical Tamil astrology recommends avoiding new ventures, surgeries, and major financial decisions during this period." },
-    ta: { title: "சந்திராஷ்டமம் என்றால் என்ன?", body: "சந்திரன் உங்கள் ஜன்ம ராசியிலிருந்து 8ஆம் ராசியில் இருக்கும்போது சந்திராஷ்டமம் நிகழ்கிறது. இது சுமார் 2.5 நாட்கள் நீடிக்கும். இந்த காலத்தில் புதிய தொடக்கங்கள், அறுவை சிகிச்சை, முக்கிய பண முடிவுகளை தவிர்க்க வேண்டும்." },
+    ta: { title: "சந்திராஷ்டமம் என்றால் என்ன?", body: "சந்திரன் உங்கள் பிறப்பு ராசியிலிருந்து 8ஆம் ராசியில் இருக்கும்போது சந்திராஷ்டமம் நிகழ்கிறது. இது சுமார் 2.5 நாட்கள் நீடிக்கும். இந்த காலத்தில் புதிய தொடக்கங்கள், அறுவை சிகிச்சை, முக்கிய பண முடிவுகளைத் தவிர்ப்பது நல்லது." },
   },
   {
     en: { title: "How often does the Moon change rasi?", body: "The Moon moves to a new rasi approximately every 2.5 days, completing the full zodiac in about 27–28 days. This is why daily rasipalan changes frequently, unlike sun-sign horoscopes which shift monthly." },
@@ -34,7 +35,8 @@ export function RasippalanPageContent() {
       <main>
         {/* HERO */}
         <section className="cl-pub-hero" style={{ paddingBottom: "32px" }}>
-          <div className="cl-container">
+          <div className="cl-container cl-pub-hero__inner">
+            <div className="cl-pub-hero__copy">
             <p className="cl-eyebrow">
               {lang === "en" ? "Free Daily Rasi Tool" : "இலவச தினசரி ராசி கருவி"}
             </p>
@@ -46,8 +48,14 @@ export function RasippalanPageContent() {
             <p className="cl-pub-lead">
               {lang === "en"
                 ? "Based on today's Moon position, get the classical Tamil daily prediction for every rasi. Select your Janma Rasi to see your personalised reading. Thirukanitham-accurate. No account required."
-                : "இன்றைய சந்திர நிலை அடிப்படையில், ஒவ்வொரு ராசிக்கும் திருகணிதம் கணக்கீட்டில் தினசரி பலன் பெறுங்கள். உங்கள் ஜன்ம ராசியை தேர்வு செய்யுங்கள். கணக்கு தேவையில்லை."}
+                : "இன்றைய சந்திர நிலை அடிப்படையில், ஒவ்வொரு ராசிக்கும் திருக்கணிதக் கணக்கீட்டில் தினசரி பலன் பெறுங்கள். உங்கள் பிறப்பு ராசியைத் தேர்வு செய்யுங்கள். கணக்கு தேவையில்லை."}
             </p>
+            </div>
+            <div className="cl-hero-figure">
+              <p className="cl-hero-figure__label">{lang === "en" ? "Moon Transit" : "சந்திர நகர்வு"}</p>
+              <RasiTransitVisual />
+              <p className="cl-hero-figure__title">{lang === "en" ? "12 rasis, one moving Moon" : "12 ராசிகள், நகரும் சந்திரன்"}</p>
+            </div>
           </div>
         </section>
 
@@ -68,7 +76,7 @@ export function RasippalanPageContent() {
               <h2 className="cl-section-h2">
                 {lang === "en"
                   ? "How Moon transit rasipalan works"
-                  : "சந்திர கோசார ராசிபலன் எவ்வாறு செயல்படுகிறது"}
+                  : "சந்திர நகர்வு ராசிபலன் எவ்வாறு செயல்படுகிறது"}
               </h2>
             </div>
             <div className="cl-pub-two-col">
@@ -76,7 +84,7 @@ export function RasippalanPageContent() {
                 <p>
                   {lang === "en"
                     ? "Daily rasipalan in Tamil Jyothidam is based on the Moon's transit through the 12 rasis. The Moon's house from your natal Moon sign (janma rasi) determines the energy of the day — from gains and fortune in house 11 and 9, to challenges during Chandrashtamam (house 8). Vinaadi uses Thirukanitham for precise Moon longitudes."
-                    : "தமிழ் ஜோதிடத்தில் தினசரி ராசிபலன் சந்திரனின் 12 ராசிகள் வழியான கோசாரத்தை அடிப்படையாக கொண்டது. உங்கள் ஜன்ம ராசியிலிருந்து சந்திரனின் இடம் அன்றைய சக்தியை தீர்மானிக்கிறது — 11, 9ஆம் இடங்களில் லாபம் மற்றும் அதிர்ஷ்டம் முதல், சந்திராஷ்டமத்தில் (8ஆம் இடம்) சவால்கள் வரை. Vinaadi திருகணிதம் மூலம் துல்லியமான சந்திர நீளாம்சம் கணக்கிடுகிறது."}
+                    : "தமிழ் ஜோதிடத்தில் தினசரி ராசிபலன் சந்திரன் 12 ராசிகள் வழியாக நகரும் நிலையை அடிப்படையாகக் கொண்டது. உங்கள் பிறப்பு ராசியிலிருந்து சந்திரன் எங்கு இருக்கிறது என்பதே அன்றைய சக்தியை தீர்மானிக்கிறது — 11, 9ஆம் இடங்களில் லாபம், அதிர்ஷ்டம் முதல் சந்திராஷ்டமம் (8ஆம் இடம்) தரும் சவால்கள் வரை. Vinaadi திருக்கணித முறையில் துல்லியமான சந்திர நீளாம்சத்தை கணக்கிடுகிறது."}
                 </p>
               </div>
               <ul className="cl-pub-detail-list">
@@ -122,7 +130,7 @@ export function RasippalanPageContent() {
               <p className="cl-cta-strip__body">
                 {lang === "en"
                   ? "Create a free account for chart-personalised daily guidance — dasha period, transits, and panchangam all woven together."
-                  : "ஜாதக-தனிப்பட்ட தினசரி வழிகாட்டுதலுக்கு — தசை, கோசாரம், பஞ்சாங்கம் ஒன்றாக இணைந்து — இலவச கணக்கை உருவாக்கவும்."}
+                  : "ஜாதகத்துடன் இணைந்த தனிப்பட்ட தினசரி வழிகாட்டுதலுக்கு — தசை, கிரகநகர்வு, பஞ்சாங்கம் ஒன்றாக இணைந்து — இலவச கணக்கை உருவாக்கவும்."}
               </p>
             </div>
             <Link href="/dashboard" className="cl-btn cl-btn--solid">

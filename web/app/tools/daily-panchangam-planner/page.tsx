@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { PanchangamPageContent } from "./PanchangamPageContent";
 
 export const metadata: Metadata = {
-  title: "Tamil Panchangam Today — Tithi, Nakshatra, Rahu Kalam & Nalla Neram",
+  title: "Tamil Panchangam Today — Tithi, Birth Star, Rahu Kalam & Nalla Neram",
   description:
-    "Get today's Tamil panchangam with Tithi, Vara, Nakshatra, Yoga, Karana, Rahu Kalam, Nalla Neram, and Muhurtham timings. Free Thirukanitham-based daily panchangam for any city worldwide.",
+    "Get today's Tamil panchangam with Tithi, Vara, Birth Star, Yoga, Karana, Rahu Kalam, Nalla Neram, and Muhurtham timings. Free Thirukanitham-based daily panchangam for any city worldwide.",
   keywords: [
     "Tamil panchangam",
     "panchangam today",
@@ -13,12 +13,13 @@ export const metadata: Metadata = {
     "Tithi today",
     "Tamil calendar",
     "Thirukanitham panchangam",
+    "birth star today",
     "nakshatra today",
     "muhurtham today",
   ],
   alternates: { canonical: "https://vinaadi.com/tools/daily-panchangam-planner" },
   openGraph: {
-    title: "Tamil Panchangam Today — Tithi, Nakshatra, Rahu Kalam & Nalla Neram",
+    title: "Tamil Panchangam Today — Tithi, Birth Star, Rahu Kalam & Nalla Neram",
     description:
       "Free daily Tamil panchangam with all five elements, Rahu Kalam, Nalla Neram, and auspicious timings. Thirukanitham-based, accurate for any city.",
     url: "https://vinaadi.com/tools/daily-panchangam-planner",
@@ -26,8 +27,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Tamil Panchangam Today — Tithi, Nakshatra, Rahu Kalam & Nalla Neram",
-    description: "Free Thirukanitham-based daily panchangam. Tithi, Nakshatra, Rahu Kalam, Nalla Neram for any city.",
+    title: "Tamil Panchangam Today — Tithi, Birth Star, Rahu Kalam & Nalla Neram",
+    description: "Free Thirukanitham-based daily panchangam. Tithi, Birth Star, Rahu Kalam, Nalla Neram for any city.",
   },
 };
 
@@ -40,7 +41,7 @@ const FAQ_JSONLD = {
       name: "What is Tamil panchangam?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Panchangam (பஞ்சாங்கம்) is the traditional Tamil almanac that describes the astrological quality of each day. It lists five daily elements — Tithi (lunar day), Vara (weekday), Nakshatra (birth star), Yoga (planetary combination), and Karana (half-day period) — along with auspicious and inauspicious timing windows like Nalla Neram and Rahu Kalam.",
+        text: "Panchangam (பஞ்சாங்கம்) is the traditional Tamil almanac that describes the astrological quality of each day. It lists five daily elements — Tithi (lunar day), Vara (weekday), Birth Star, Yoga (planetary combination), and Karana (half-day period) — along with auspicious and inauspicious timing windows like Nalla Neram and Rahu Kalam.",
       },
     },
     {
@@ -48,7 +49,7 @@ const FAQ_JSONLD = {
       name: "What are the five elements of panchangam?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "The five elements of panchangam are: Tithi (lunar day — 30 in a lunar month), Vara (day of the week and its ruling planet), Nakshatra (the Moon's position among the 27 birth stars), Yoga (a combined Sun-Moon calculation — 27 yogas), and Karana (each Tithi is divided into two Karanas). Together they define the spiritual and energetic character of the day.",
+        text: "The five elements of panchangam are: Tithi (lunar day — 30 in a lunar month), Vara (day of the week and its ruling planet), Birth Star (the Moon's position among the 27 stars), Yoga (a combined Sun-Moon calculation — 27 yogas), and Karana (each Tithi is divided into two Karanas). Together they define the spiritual and energetic character of the day.",
       },
     },
     {

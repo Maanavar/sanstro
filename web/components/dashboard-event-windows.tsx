@@ -34,18 +34,18 @@ const MARRIED_MARRIAGE_LABEL = { ta: "உறவு & இணக்கம்", en:
 const REASON_LABELS: Record<string, { ta: string; en: string }> = {
   "7th_lord_dasha_active": { ta: "தசை: உறவு/திருமணத்தை குறிக்கும் 7-ம் வீட்டு அதிபதி செயல்படுகிறார்", en: "Dasha: the 7th-house lord for marriage/partnership is active" },
   venus_dasha_active: { ta: "தசை: உறவு/திருமண காரகனான சுக்கிரன் செயல்படுகிறார்", en: "Dasha: Venus, the marriage/relationship significator, is active" },
-  jupiter_supports_7th: { ta: "கோசாரம்: குரு 7-ம் வீட்டை பார்க்கிறார் அல்லது அங்கே இருக்கிறார்", en: "Transit: Jupiter occupies or aspects the 7th house" },
-  venus_transits_7th: { ta: "குறுகிய கோசாரம்: சுக்கிரன் 7-ம் வீட்டில் இருக்கிறார்", en: "Short-term transit: Venus is in the 7th house" },
+  jupiter_supports_7th: { ta: "கிரகநகர்வு: குரு 7-ம் வீட்டை பார்க்கிறார் அல்லது அங்கே இருக்கிறார்", en: "Transit: Jupiter occupies or aspects the 7th house" },
+  venus_transits_7th: { ta: "குறுகிய கிரகநகர்வு: சுக்கிரன் 7-ம் வீட்டில் இருக்கிறார்", en: "Short-term transit: Venus is in the 7th house" },
   "10th_lord_dasha_active": { ta: "தசை: தொழிலை குறிக்கும் 10-ம் வீட்டு அதிபதி செயல்படுகிறார்", en: "Dasha: the 10th-house lord for career is active" },
   sun_dasha_active: { ta: "தசை: பதவி/அதிகார காரகனான சூரியன் செயல்படுகிறார்", en: "Dasha: Sun, a status/career significator, is active" },
   mercury_dasha_active: { ta: "தசை: வேலை/வாணிப திறனை குறிக்கும் புதன் செயல்படுகிறார்", en: "Dasha: Mercury, a work/business significator, is active" },
-  jupiter_supports_10th: { ta: "கோசாரம்: குரு 10-ம் வீட்டை பார்க்கிறார் அல்லது அங்கே இருக்கிறார்", en: "Transit: Jupiter occupies or aspects the 10th house" },
-  sun_transits_10th: { ta: "குறுகிய கோசாரம்: சூரியன் 10-ம் வீட்டில் இருக்கிறார்", en: "Short-term transit: Sun is in the 10th house" },
+  jupiter_supports_10th: { ta: "கிரகநகர்வு: குரு 10-ம் வீட்டை பார்க்கிறார் அல்லது அங்கே இருக்கிறார்", en: "Transit: Jupiter occupies or aspects the 10th house" },
+  sun_transits_10th: { ta: "குறுகிய கிரகநகர்வு: சூரியன் 10-ம் வீட்டில் இருக்கிறார்", en: "Short-term transit: Sun is in the 10th house" },
   "2nd_lord_dasha_active": { ta: "தசை: வருமானம்/சேமிப்பை குறிக்கும் 2-ம் வீட்டு அதிபதி செயல்படுகிறார்", en: "Dasha: the 2nd-house lord for income/savings is active" },
   "11th_lord_dasha_active": { ta: "தசை: லாபத்தை குறிக்கும் 11-ம் வீட்டு அதிபதி செயல்படுகிறார்", en: "Dasha: the 11th-house lord for gains is active" },
   jupiter_dasha_active: { ta: "தசை: செல்வ காரகனான குரு செயல்படுகிறார்", en: "Dasha: Jupiter, a wealth significator, is active" },
-  jupiter_supports_2nd: { ta: "கோசாரம்: குரு 2-ம் வீட்டை ஆதரிக்கிறார்", en: "Transit: Jupiter supports the 2nd house of income/savings" },
-  jupiter_supports_11th: { ta: "கோசாரம்: குரு 11-ம் வீட்டை ஆதரிக்கிறார்", en: "Transit: Jupiter supports the 11th house of gains" },
+  jupiter_supports_2nd: { ta: "கிரகநகர்வு: குரு 2-ம் வீட்டை ஆதரிக்கிறார்", en: "Transit: Jupiter supports the 2nd house of income/savings" },
+  jupiter_supports_11th: { ta: "கிரகநகர்வு: குரு 11-ம் வீட்டை ஆதரிக்கிறார்", en: "Transit: Jupiter supports the 11th house of gains" },
 };
 
 function humaniseReason(code: string, lang: Lang): string {
@@ -154,7 +154,7 @@ export function EventWindowsPanel({ lang, chartId, isMarried = false, onlyEvent,
       {!loading && loaded && windows.length > 0 && (
         <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.72rem", color: "var(--color-muted)", lineHeight: 1.5, padding: "var(--space-1_5) var(--space-2_5)", borderRadius: "var(--radius-sm)", background: "rgba(122,111,94,0.07)", border: "1px solid rgba(122,111,94,0.15)" }}>
           {lang === "ta"
-            ? "இந்த சாளரம் தசை மற்றும் கோசார ஆதரவு சேரும் போது மட்டும் தோன்றும். இது திட்டமிட உதவும் சிக்னல்; நிகழ்வு உறுதி அல்ல. சூரியன்/சுக்கிரன் போன்ற வேகமான கோள்கள் அந்த பெரிய சாளரத்துக்குள் குறுகிய தூண்டுதலாக மட்டும் படிக்கப்பட வேண்டும்."
+            ? "இந்த சாளரம் தசை மற்றும் கிரகநகர்வு ஆதரவு சேரும் போது மட்டும் தோன்றும். இது திட்டமிட உதவும் சிக்னல்; நிகழ்வு உறுதி அல்ல. சூரியன், சுக்கிரன் போன்ற வேகமான கோள்கள் அந்த பெரிய சாளரத்துக்குள் குறுகிய தூண்டுதலாக மட்டும் படிக்கப்பட வேண்டும்."
             : "A window appears when dasha timing and transit support overlap. Treat it as a planning signal, not a guaranteed event. Fast Sun/Venus signals are short-term triggers inside the wider window."}
         </p>
       )}
