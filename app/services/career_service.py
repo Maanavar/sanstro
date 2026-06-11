@@ -31,14 +31,14 @@ def assess_career_prediction(payload: CareerAssessmentInput) -> LifeAreaPredicti
     if payload.age < 18:
         return LifeAreaPrediction(
             life_area="career",
-            main_prediction_ta="Career-growth interpretation is age-gated; current focus is learning, health, and family support.",
+            main_prediction_ta="தொழில் வளர்ச்சி விளக்கம் வயது காரணமாக ஒத்திவைக்கப்படுகிறது; இப்போது கல்வி, ஆரோக்கியம், குடும்ப ஆதரவு முக்கியம்.",
             main_prediction_en="Career-growth interpretation is age-gated; current focus is learning, health, and family support.",
             astrological_factors=[
                 AstroFactor(
                     key="age_phase_gate",
                     status="INFO",
                     detail=BiText(
-                        ta=f"Age {payload.age}: career expansion guidance is deferred to later phase.",
+                        ta=f"வயது {payload.age}: தொழில் விரிவு வழிகாட்டல் பின்னர் கட்டத்திற்கு ஒத்திவைக்கப்படுகிறது.",
                         en=f"Age {payload.age}: career expansion guidance is deferred to later phase.",
                     ),
                 )
@@ -48,8 +48,8 @@ def assess_career_prediction(payload: CareerAssessmentInput) -> LifeAreaPredicti
             timing_window_start=payload.as_of,
             timing_window_end=date(payload.as_of.year, 12, 31),
             confidence="LOW",
-            challenges=[BiText("Do not treat this as a career-decision phase.", "Do not treat this as a career-decision phase.")],
-            supports=[BiText("Support education, habits, and emotional security first.", "Support education, habits, and emotional security first.")],
+            challenges=[BiText("இந்த நிலையை தொழில் முடிவு கட்டமாக கருத வேண்டாம்.", "Do not treat this as a career-decision phase.")],
+            supports=[BiText("முதலில் கல்வி, நல்ல பழக்கங்கள், மன பாதுகாப்பு ஆகியவற்றை ஆதரிக்கவும்.", "Support education, habits, and emotional security first.")],
         )
 
     tenth_house_rasi = ((payload.lagna_rasi + 10 - 2) % 12) + 1
@@ -68,7 +68,7 @@ def assess_career_prediction(payload: CareerAssessmentInput) -> LifeAreaPredicti
             key="life_stage",
             status="INFO",
             detail=BiText(
-                ta=f"Life stage: {payload.life_stage}.",
+                ta=f"வாழ்க்கை கட்டம்: {payload.life_stage}.",
                 en=f"Life stage: {payload.life_stage}.",
             ),
         )
@@ -162,18 +162,18 @@ def assess_career_prediction(payload: CareerAssessmentInput) -> LifeAreaPredicti
         score -= 6
         challenges.append(
             BiText(
-                "Student life-stage: focus on foundations before high-risk career moves.",
+                "மாணவர் கட்டம்: அதிக ஆபத்துள்ள தொழில் முடிவுகளுக்கு முன் அடித்தளத்தை உறுதிப்படுத்துங்கள்.",
                 "Student life-stage: focus on foundations before high-risk career moves.",
             )
         )
     elif payload.life_stage == "young_adult":
         score += 4
-        supports.append(BiText("Young-adult phase supports career foundation building.", "Young-adult phase supports career foundation building."))
+        supports.append(BiText("இளம் வயது கட்டம் தொழில் அடித்தள கட்டமைப்பிற்கு ஏற்றது.", "Young-adult phase supports career foundation building."))
     elif payload.life_stage == "mid_life":
         score += 5
-        supports.append(BiText("Mid-life phase supports responsibility expansion.", "Mid-life phase supports responsibility expansion."))
+        supports.append(BiText("நடுத்தர வயது கட்டம் பொறுப்பு விரிவாக்கத்திற்கு ஏற்றது.", "Mid-life phase supports responsibility expansion."))
     else:
-        challenges.append(BiText("Senior phase favours lower-risk transitions.", "Senior phase favours lower-risk transitions."))
+        challenges.append(BiText("மூத்த வயது கட்டம் குறைந்த ஆபத்துள்ள மாற்றங்களை விரும்புகிறது.", "Senior phase favours lower-risk transitions."))
     if 24 <= payload.age <= 50:
         score += 5
         supports.append(BiText("வயது கட்டம் தொழில் முன்னேற்றத்திற்கு ஏற்றது.", "Age phase is supportive for career growth."))
@@ -252,23 +252,38 @@ def assess_career_prediction(payload: CareerAssessmentInput) -> LifeAreaPredicti
         ))
 
     score = max(0, min(100, score))
+    top_supports = [b.ta for b in supports[:2]] if supports else []
+    top_challenges = [b.ta for b in challenges[:2]] if challenges else []
+    top_supports_en = [b.en for b in supports[:2]] if supports else []
+    top_challenges_en = [b.en for b in challenges[:2]] if challenges else []
+
     if score >= 70:
         confidence = "HIGH"
+        support_phrase = "குறிப்பாக " + " மற்றும் ".join(top_supports) if top_supports else "10ம் வீடு மற்றும் தசை நல்ல அமைப்பில் உள்ளன"
         main = (
-            "தொழில் முன்னேற்றம் மற்றும் பொறுப்பு விரிவுக்கு நல்ல கால அமைப்பு.",
-            "Favourable phase for career growth and responsibility expansion.",
+            f"தொழில் முன்னேற்றத்திற்கு சாதகமான காலம். {support_phrase}. "
+            "தசை மற்றும் லக்னாதிபதி நிலை இந்த கட்டத்தை உறுதிப்படுத்துகின்றன.",
+            f"A favourable phase for career progress. {'; '.join(top_supports_en) if top_supports_en else '10th house and dasha are well-aligned'}. "
+            "The dasha and lagna lord placement confirm this window.",
         )
     elif score >= 50:
         confidence = "MEDIUM"
+        support_phrase = " மற்றும் ".join(top_supports) if top_supports else ""
+        challenge_phrase = "ஆனால் " + " மற்றும் ".join(top_challenges) if top_challenges else "சில கவலைகள் உள்ளன"
         main = (
-            "தொழிலில் முன்னேற்ற சிக்னல்கள் உள்ளன; ஆனால் கட்டுப்பாடான திட்டமிடல் அவசியம்.",
-            "Career signals are constructive, with disciplined planning needed.",
+            f"தொழில் சிக்னல்கள் கலந்த நிலையில் உள்ளன. {support_phrase + ' ' if support_phrase else ''}{challenge_phrase}. "
+            "கட்டுப்பாடான திட்டமிடல் மற்றும் நிலைத்த முயற்சி நல்ல பலன் தரும்.",
+            f"Career signals are mixed. {'; '.join(top_supports_en) if top_supports_en else ''} {'but ' + '; '.join(top_challenges_en) if top_challenges_en else ''}. "
+            "Disciplined planning and steady effort will yield better results.",
         )
     else:
         confidence = "LOW"
+        challenge_phrase = "முக்கியமாக " + " மற்றும் ".join(top_challenges) if top_challenges else "தற்போதைய நிலை சவாலானது"
         main = (
-            "தொழில் முடிவுகளில் மிகுதியான அபாயத்தை தவிர்த்து நிலைநிறுத்து அணுகுமுறை பின்பற்றவும்.",
-            "Avoid high-risk career moves and focus on stabilising execution.",
+            f"தொழில் முடிவுகளில் அதிக ஆபத்தை தவிர்க்கவும். {challenge_phrase}. "
+            "நிலைமையை நிலைநிறுத்துவதே இப்போது சிறந்த பாதை.",
+            f"Avoid high-risk career moves. {'; '.join(top_challenges_en) if top_challenges_en else 'Conditions need stabilising'}. "
+            "Consolidating your current position is the better path right now.",
         )
 
     factors.append(

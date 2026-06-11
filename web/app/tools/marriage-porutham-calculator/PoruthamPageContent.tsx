@@ -103,7 +103,7 @@ export function PoruthamPageContent() {
           <div className="cl-container cl-cta-strip__inner">
             <div>
               <h2 className="cl-cta-strip__title">{lang === "en" ? "Save results and plan together" : "முடிவுகளை சேமிக்கவும், சேர்ந்து திட்டமிடவும்"}</h2>
-              <p className="cl-cta-strip__body">{lang === "en" ? "Create a free account to save porutham results, add family members, and get daily guidance." : "பொருத்தம் முடிவுகளை சேமிக்க, குடும்பத்தினரை சேர்க்க, தினசரி வழிகாட்டுதல் பெற இலவச கணக்கை உருவாக்கவும்."}</p>
+              <p className="cl-cta-strip__body">{lang === "en" ? "Create a free account for the full chart-grade porutham report: 36-point score, Nadi judgement, Sevvai dosham, D9, dasha context, saved family members, and daily guidance." : "முழு ஜாதக அடிப்படையிலான பொருத்த அறிக்கைக்கு இலவச கணக்கை உருவாக்குங்கள்: 36 மதிப்பெண், நாடி தீர்வு, செவ்வாய் தோஷம், நவாம்சம், தசை சூழல், குடும்ப உறுப்பினர் சேமிப்பு, தினசரி வழிகாட்டுதல்."}</p>
             </div>
             <Link href="/dashboard" className="cl-btn cl-btn--solid">{lang === "en" ? "Get started free →" : "இலவசமாக தொடங்குங்கள் →"}</Link>
           </div>

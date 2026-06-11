@@ -1,4 +1,4 @@
-﻿"""
+""
 Rule-based narrative engine for Tamil astrology guidance.
 
 Takes structured calculation outputs and produces human-readable Tamil + English
@@ -127,6 +127,36 @@ NAKSHATRA_NAME: dict[int, BiText] = {
     27: _bi("ரேவதி",         "Revathi"),
 }
 
+_NAK_QUALITY: dict[int, BiText] = {
+    1: _bi("வேகமான தொடக்கம் மற்றும் குணப்படுத்தும் எண்ணம்", "quick starts and healing intent"),
+    2: _bi("பொறுப்பு, எல்லை, ஆழமான முடிவு", "responsibility, boundaries, and deep choices"),
+    3: _bi("தெளிவு, தீச்சக்தி, வெட்டியான முடிவு", "clarity, fire, and decisive cutting through"),
+    4: _bi("வளர்ச்சி, அழகு, உறவு மென்மை", "growth, beauty, and relational softness"),
+    5: _bi("தேடல், ஆர்வம், மென்மையான விசாரணை", "seeking, curiosity, and gentle inquiry"),
+    6: _bi("மாற்றம், உண்மை, உள்ளழுத்த சுத்திகரிப்பு", "change, truth, and inner cleansing"),
+    7: _bi("மீளெழுச்சி, பாதுகாப்பு, நம்பிக்கை", "renewal, protection, and restored hope"),
+    8: _bi("பராமரிப்பு, குரு அருள், ஒழுங்கான வளர்ப்பு", "nourishment, guidance, and disciplined care"),
+    9: _bi("உணர்ச்சி ஆழம், உள்ளுணர்வு, பாதுகாப்பு தேவை", "emotional depth, instinct, and a need for care"),
+    10: _bi("மரபு, கௌரவம், குடும்ப அடையாளம்", "lineage, dignity, and family identity"),
+    11: _bi("படைப்பு, மகிழ்ச்சி, மனதள திறப்பு", "creativity, pleasure, and emotional opening"),
+    12: _bi("ஒப்பந்தம், நிலைநிறுத்தல், பொறுப்பான உறுதி", "agreements, steadiness, and responsible commitment"),
+    13: _bi("திறமை, கைநுணுக்கம், நடைமுறை தீர்வு", "skill, craftsmanship, and practical solutions"),
+    14: _bi("வடிவமைப்பு, அழகு, துல்லிய செயல்", "design, beauty, and precise action"),
+    15: _bi("சுதந்திரம், காற்றோட்டம், தனித்த பாதை", "freedom, movement, and an independent path"),
+    16: _bi("இரட்டை நோக்கு, இணைப்பு, தெளிவான தேர்வு", "dual focus, connection, and clear choosing"),
+    17: _bi("நட்பு, பக்தி, உறவின் நம்பிக்கை", "friendship, devotion, and relational trust"),
+    18: _bi("ஆழமான கவனம், மரியாதை, உள்ளக கட்டுப்பாடு", "deep focus, respect, and inner discipline"),
+    19: _bi("வேர் தேடல், உண்மை, பழையதை விடுதல்", "root-seeking, truth, and releasing the old"),
+    20: _bi("நம்பிக்கை, நீர் தன்மை, மன உறுதி", "confidence, fluidity, and emotional resolve"),
+    21: _bi("நிலைத்த வெற்றி, தர்மம், நீண்ட முயற்சி", "lasting success, dharma, and sustained effort"),
+    22: _bi("கேட்பது, கற்றல், ஒழுங்கான தொடர்பு", "listening, learning, and ordered communication"),
+    23: _bi("இசைவு, ஆற்றல், குழு ஒத்துழைப்பு", "rhythm, energy, and group cooperation"),
+    24: _bi("குணப்படுத்தல், சுயாதீனம், மறைந்த உண்மை", "healing, independence, and hidden truth"),
+    25: _bi("தத்துவம், உள்ளமாற்றம், தீவிர நோக்கம்", "philosophy, inner change, and intense purpose"),
+    26: _bi("ஆழம், சேவை, அமைதியான பொறுப்பு", "depth, service, and quiet responsibility"),
+    27: _bi("பாதுகாப்பு, பயணம், கனிவு", "protection, journeying, and kindness"),
+}
+
 
 # ── Score band labels ──────────────────────────────────────────────────────────
 
@@ -186,14 +216,15 @@ def moon_transit_reason(
 ) -> BiText:
     house = ((current_moon_rasi - janma_rasi) % 12) + 1
     nak_name = NAKSHATRA_NAME.get(current_nakshatra, _bi(str(current_nakshatra), str(current_nakshatra)))
+    nak_quality = _NAK_QUALITY.get(current_nakshatra, _bi("மிதமான மன ஓட்டம்", "a moderate emotional current"))
 
     if chandrashtama:
         rasi_name = _rasi_name_safe(current_moon_rasi)
         return _bi(
             f"சந்திரன் இன்று ஜன்ம ராசியிலிருந்து 8ஆம் ராசியான {rasi_name.ta}-ல் உள்ளது (சந்திராஷ்டமம்). "
-            f"முக்கிய முடிவுகளை தவிர்க்கவும்.",
+            f"{nak_name.ta} நட்சத்திரத்தின் {nak_quality.ta} தன்மை இருந்தாலும், முக்கிய முடிவுகளை தவிர்க்கவும்.",
             f"Moon is in {rasi_name.en}, the 8th rasi from your birth Moon sign (Chandrashtamam). "
-            f"Avoid major decisions.",
+            f"The {nak_name.en} quality brings {nak_quality.en}, but avoid major decisions.",
         )
 
     # Janma Nakshatra day: Moon returns to the native's birth star.
@@ -201,24 +232,24 @@ def moon_transit_reason(
     if current_nakshatra == janma_nakshatra:
         return _bi(
             f"இன்று சந்திரன் ஜன்ம நட்சத்திரமான {nak_name.ta}-ல் உள்ளது. "
-            f"உணர்ச்சிகரமான சூழல்களில் கவனமாக இருக்கவும்.",
+            f"{nak_quality.ta} தெளிவாக தெரியும்; உணர்ச்சிகரமான சூழல்களில் கவனமாக இருக்கவும்.",
             f"Moon is in your birth nakshatra {nak_name.en} today (Janma Nakshatra). "
-            f"Be mindful in emotionally charged situations.",
+            f"Its {nak_quality.en} quality is pronounced; be mindful in emotionally charged situations.",
         )
 
     if moon_score >= 65:
         return _bi(
-            f"சந்திரன் {_rasi_name_safe(current_moon_rasi).ta}-ல் உள்ளது — "
-            f"ஜன்ம ராசியிலிருந்து {house}ஆம் இடம். மன நிலை நல்லது.",
-            f"Moon is in {_rasi_name_safe(current_moon_rasi).en} — "
-            f"house {house} from birth sign. Mental state is supportive.",
+            f"சந்திரன் {nak_name.ta} நட்சத்திரத்தில், {_rasi_name_safe(current_moon_rasi).ta}-ல் உள்ளது. "
+            f"ஜன்ம ராசியிலிருந்து {house}ஆம் இடம்; {nak_quality.ta} இன்று மனநிலைக்கு நல்ல ஆதரவு தருகிறது.",
+            f"Moon is in {nak_name.en}, {_rasi_name_safe(current_moon_rasi).en}, "
+            f"house {house} from birth sign. Its {nak_quality.en} quality supports the mind today.",
         )
 
     return _bi(
-        f"சந்திரன் {_rasi_name_safe(current_moon_rasi).ta}-ல் உள்ளது — "
-        f"ஜன்ம ராசியிலிருந்து {house}ஆம் இடம். மிதமான மன அழுத்தம் சாத்தியம்.",
-        f"Moon is in {_rasi_name_safe(current_moon_rasi).en} — "
-        f"house {house} from birth sign. Mild mental pressure is possible.",
+        f"சந்திரன் {nak_name.ta} நட்சத்திரத்தில், {_rasi_name_safe(current_moon_rasi).ta}-ல் உள்ளது. "
+        f"ஜன்ம ராசியிலிருந்து {house}ஆம் இடம்; {nak_quality.ta} இருந்தாலும் நிதானம் உதவும்.",
+        f"Moon is in {nak_name.en}, {_rasi_name_safe(current_moon_rasi).en}, "
+        f"house {house} from birth sign. Its {nak_quality.en} tone is present, but steadiness helps.",
     )
 
 
@@ -227,19 +258,29 @@ def moon_transit_reason(
 def dasha_support_reason(maha_lord: str, antar_lord: str, dasha_score: int) -> BiText:
     maha = _DASHA_CHARACTER.get(maha_lord, _bi(maha_lord, maha_lord))
     antar = _ANTARA_NOTE.get(antar_lord, _bi(antar_lord, antar_lord))
-    strength = (
-        "நல்ல ஆதரவு" if dasha_score >= 65
-        else "மிதமான ஆதரவு" if dasha_score >= 50
-        else "குறைந்த ஆதரவு"
-    )
-    strength_en = (
-        "strong support" if dasha_score >= 65
-        else "moderate support" if dasha_score >= 50
-        else "reduced support"
-    )
+
+    maha_quality_ta = maha.ta.split(" — ")[1] if " — " in maha.ta else "நல்ல வளர்ச்சி"
+    maha_quality_en = maha.en.split(" — ")[1] if " — " in maha.en else "growth"
+
+    if dasha_score >= 65:
+        return _bi(
+            f"நடப்பில் {maha.ta}. இந்த தசை காலத்தில் {maha_quality_ta} கிடைக்கும். "
+            f"உள்ளே {antar.ta}. தசை ஆதரவு வலுவானது ({dasha_score}/100) — திட்டமிட்ட செயல்களுக்கு நல்ல நேரம்.",
+            f"Currently in {maha.en}. This dasha period supports {maha_quality_en}. "
+            f"Sub-period: {antar.en}. Dasha support is strong ({dasha_score}/100) — a favourable time for planned action.",
+        )
+    if dasha_score >= 50:
+        return _bi(
+            f"நடப்பில் {maha.ta}. {antar.ta}. "
+            f"தசை ஆதரவு மிதமானது ({dasha_score}/100) — முடிவுகளில் அவசரம் வேண்டாம், பொறுமையுடன் செயல்படுங்கள்.",
+            f"Currently in {maha.en}. {antar.en}. "
+            f"Dasha support is moderate ({dasha_score}/100) — avoid rushing decisions; steady effort works better.",
+        )
     return _bi(
-        f"{maha.ta}. {antar.ta}. தசை {strength} ({dasha_score}/100).",
-        f"{maha.en}. {antar.en}. Dasa provides {strength_en} ({dasha_score}/100).",
+        f"நடப்பில் {maha.ta}. {antar.ta}. "
+        f"தசை ஆதரவு குறைவு ({dasha_score}/100) — பெரிய புதிய முயற்சிகளை ஒத்திவைத்து, தற்போதுள்ளதை நிலைநிறுத்துவதில் கவனம் செலுத்துங்கள்.",
+        f"Currently in {maha.en}. {antar.en}. "
+        f"Dasha support is reduced ({dasha_score}/100) — defer major new ventures and focus on consolidating what you have.",
     )
 
 
@@ -564,6 +605,9 @@ def daily_summary(
     sani_cycle_type: str | None,
     sani_cycle_active: bool,
     best_window_label: str | None,
+    jupiter_house: int | None = None,
+    saturn_house: int | None = None,
+    current_nakshatra: int | None = None,
 ) -> BiText:
     band = _band(score)
     ta_tmpl, en_tmpl = _SUMMARY_TEMPLATES[band]
@@ -574,6 +618,17 @@ def daily_summary(
 
     ta = ta_tmpl.format(score=score, dasha_char=dasha_char_ta)
     en = en_tmpl.format(score=score, dasha_char=dasha_char_en)
+
+    if current_nakshatra is not None:
+        nak = NAKSHATRA_NAME.get(current_nakshatra)
+        quality = _NAK_QUALITY.get(current_nakshatra)
+        if nak and quality:
+            ta += f" சந்திரன் {nak.ta} வழியாக {quality.ta} நிறத்தை சேர்க்கிறது."
+            en += f" Moon through {nak.en} adds a tone of {quality.en}."
+
+    if jupiter_house is not None and saturn_house is not None:
+        ta += f" குரு {jupiter_house}ம் இடத்தையும் சனி {saturn_house}ம் இடத்தையும் தொடுவதால் வாய்ப்பும் பொறுப்பும் ஒன்றாக படிக்கப்பட வேண்டும்."
+        en += f" With Jupiter in house {jupiter_house} and Saturn in house {saturn_house}, opportunity and responsibility should be read together."
 
     # Append strongest active warning
     if chandrashtama:
@@ -801,6 +856,9 @@ def build_score_reasons(
         summary=daily_summary(
             score, maha_lord, antar_lord, chandrashtama,
             sani_cycle_type, sani_cycle_active, best_window_label,
+            jupiter_house=jupiter_house_from_moon,
+            saturn_house=saturn_house_from_moon,
+            current_nakshatra=current_nakshatra,
         ),
         action=action_suggestion(maha_lord, best_window_start, best_window_end, score),
         caution=caution_suggestion(

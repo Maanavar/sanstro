@@ -176,8 +176,57 @@ def _marker_explain(marker: str) -> str:
         "all_planets_between_ketu_and_rahu": "All planets lie in one Ketu-Rahu arc",
         "seventh_lord_strong_d9": "7th lord is strong in Navamsa (D9)",
         "jupiter_aspects_seventh_lord": "Jupiter aspects the 7th lord directly",
+        "seventh_afflicted": "7th lord or marriage karaka is afflicted",
     }
     return marker_labels.get(marker, marker.replace("_", " "))
+
+
+def _marker_explain_ta(marker: str) -> str:
+    marker_labels_ta = {
+        "from_lagna": "செவ்வாய் லக்னத்திலிருந்து தோஷ வீட்டில் உள்ளது",
+        "from_moon": "செவ்வாய் சந்திரனிலிருந்து தோஷ வீட்டில் உள்ளது",
+        "from_venus": "செவ்வாய் சுக்கிரனிலிருந்து தோஷ வீட்டில் உள்ளது",
+        "mars_own_sign": "செவ்வாய் சொந்த ராசியில் உள்ளது",
+        "mars_exaltation": "செவ்வாய் உச்சத்தில் உள்ளது",
+        "mars_lagna_lord_mitigation": "லக்ன அடிப்படையில் தணிக்கை பொருந்துகிறது",
+        "mars_yogakaraka_lagna": "இந்த லக்னத்திற்கு செவ்வாய் யோககாரகனாக செயல்படுகிறது",
+        "house_sign_nivarthi": "இட-ராசி நிவர்த்தி தோஷத்தை குறைக்கிறது",
+        "benefic_strong_seventh_lord": "7ம் அதிபதியின் வலிமை பாதுகாப்பு தருகிறது",
+        "jupiter_aspect_on_mars": "குரு செவ்வாயை பார்க்கிறது; தீவிரம் குறைகிறது",
+        "jupiter_conjunct_mars": "குரு செவ்வாயுடன் இணைந்துள்ளது; வலுவான நிவர்த்தி",
+        "benefic_association_mars": "சுபகிரகம் செவ்வாயுடன் சேர்ந்துள்ளது",
+        "mars_dispositor_kendra_trikona": "செவ்வாயின் ராசி அதிபதி கேந்திரம்/திரிகோணத்தில் உள்ளது",
+        "both_partners_have_sevvai": "இரு ஜாதகங்களிலும் ஒத்த செவ்வாய் நிலை உள்ளது",
+        "female_high_attention_house": "பெண் ஜாதகத்தில் இந்த செவ்வாய் வீட்டிற்கு கூடுதல் கவனம் தேவை",
+        "male_high_attention_house": "ஆண் ஜாதகத்தில் இந்த செவ்வாய் வீட்டிற்கு கூடுதல் கவனம் தேவை",
+        "node_afflicts_moon": "ராகு/கேது சந்திரனுடன் சேர்ந்துள்ளது",
+        "rahu_ketu_upachaya": "ராகு/கேது உபசய வீட்டில் இருப்பதால் சமாளிக்கும் திறன் உண்டு",
+        "rahu_in_marriage_house": "ராகு திருமண உணர்திறன் வீட்டில் உள்ளது",
+        "ketu_in_marriage_house": "கேது திருமண உணர்திறன் வீட்டில் உள்ளது",
+        "rahu_in_sarpa_house": "ராகு சர்ப்ப/நாக உணர்திறன் வீட்டில் உள்ளது",
+        "ketu_in_sarpa_house": "கேது சர்ப்ப/நாக உணர்திறன் வீட்டில் உள்ளது",
+        "node_with_seventh_lord": "கிரக கணு 7ம் அதிபதியுடன் தொடர்பு கொள்கிறது",
+        "node_with_venus": "கிரக கணு சுக்கிரனுடன் தொடர்பு கொள்கிறது",
+        "jupiter_kendra_trikona_support": "குரு ஆதரவு உள்ளது",
+        "strong_seventh_lord": "7ம் அதிபதி வலிமையாக உள்ளது",
+        "strong_venus": "சுக்கிரன் வலிமையாக உள்ளது",
+        "sun_with_node": "சூரியன் ராகு/கேதுவுடன் தொடர்பில் உள்ளது",
+        "node_in_ninth": "கிரக கணு 9ம் வீட்டுடன் தொடர்பில் உள்ளது",
+        "saturn_in_ninth": "சனி 9ம் வீட்டில் உள்ளது",
+        "ninth_lord_dusthana": "9ம் அதிபதி 6/8/12ல் உள்ளது",
+        "sun_strong": "சூரியன் வலிமை தணிக்கையாக செயல்படுகிறது",
+        "all_planets_between_rahu_and_ketu": "அனைத்து கிரகங்களும் ராகு-கேது வில்லினுள் உள்ளன",
+        "all_planets_between_ketu_and_rahu": "அனைத்து கிரகங்களும் கேது-ராகு வில்லினுள் உள்ளன",
+        "seventh_lord_strong_d9": "7ம் அதிபதி நவாம்சத்தில் வலிமையாக உள்ளது",
+        "jupiter_aspects_seventh_lord": "குரு 7ம் அதிபதியை நேரடியாக பார்க்கிறது",
+        "seventh_afflicted": "7ம் அதிபதி அல்லது திருமண காரகன் பாதிக்கப்பட்டுள்ளது",
+        "seventh_lord_in_house_6": "7ம் அதிபதி 6ம் வீட்டில் உள்ளது",
+        "seventh_lord_in_house_8": "7ம் அதிபதி 8ம் வீட்டில் உள்ளது",
+        "seventh_lord_in_house_12": "7ம் அதிபதி 12ம் வீட்டில் உள்ளது",
+        "seventh_lord_own_sign": "7ம் அதிபதி சொந்த ராசியில் உள்ளது",
+        "seventh_lord_exalted": "7ம் அதிபதி உச்சத்தில் உள்ளது",
+    }
+    return marker_labels_ta.get(marker, marker.replace("_", " "))
 
 
 def _build_dosham_explanations(
@@ -218,11 +267,11 @@ def _build_dosham_explanations(
         # Tamil: build readable summary
         ta_parts: list[str] = []
         if conditions_met:
-            ta_parts.append("தூண்டும் காரணங்கள்: " + "; ".join(_marker_explain(item) for item in conditions_met) + ".")
+            ta_parts.append("தூண்டும் காரணங்கள்: " + "; ".join(_marker_explain_ta(item) for item in conditions_met) + ".")
         else:
             ta_parts.append("எந்த தூண்டும் காரணமும் இல்லை.")
         if cancellation_factors:
-            ta_parts.append("தணிக்கை காரணங்கள்: " + "; ".join(_marker_explain(item) for item in cancellation_factors) + ".")
+            ta_parts.append("தணிக்கை காரணங்கள்: " + "; ".join(_marker_explain_ta(item) for item in cancellation_factors) + ".")
         why_ta = " ".join(ta_parts)
 
     how_en = (
@@ -444,7 +493,7 @@ def detect_sevvai_dosham(
         is_cancelled=is_cancelled,
         strength=strength,
         label=label,
-        category="MARRIAGE",
+        category="MARRIAGE" if lagna_house not in {1, 8} else "MARRIAGE_PERSONAL",
         conditions_met=conditions_met,
         cancellation_factors=cancellation_factors,
         missing_data=[],
@@ -1462,50 +1511,143 @@ def get_badhaka_lord(lagna_rasi: int, planets_rasi_to_lord: dict[int, str]) -> s
 
 
 def detect_kalathra_dosham(
-    planets: dict[str, int],
+    planets: Mapping[str, PlanetInput],
     lagna_rasi: int,
-    moon_rasi: int,
-    is_male: bool,
-    planet_scores: dict[str, int],
+    moon_rasi: int | None = None,
+    is_male: bool = True,
+    planet_scores: dict[str, int] | None = None,
+    *,
+    active_lords: Iterable[str] | None = None,
+    d9_rasi_map: Mapping[str, int] | None = None,
 ) -> DoshamResult:
+    """
+    Kalathra Dosham: 7th lord placed in 6th, 8th, or 12th house from Lagna.
+
+    Older optional parameters are accepted for backward-compatible callers, but
+    the rule is based on the classical 7th-lord dusthana placement.
+    """
+    _ = moon_rasi
+    active = set(active_lords or ())
     seventh_lord = _house_lord(lagna_rasi, 7)
-    seventh_rasi = planets.get(seventh_lord, lagna_rasi)
-    venus_or_jupiter = "VENUS" if is_male else "JUPITER"
-    afflicted = any(planets.get(p) == seventh_rasi for p in {"SATURN", "RAHU", "KETU", "MARS"})
-    aff_karaka = any(planets.get(p) == planets.get(venus_or_jupiter) for p in {"SATURN", "RAHU", "KETU", "MARS"})
-    present = afflicted or aff_karaka
-    cancellation = []
-    if planet_scores.get(seventh_lord, 50) >= 65:
-        cancellation.append("strong_seventh_lord")
-    if planet_scores.get(venus_or_jupiter, 50) >= 65:
-        cancellation.append("strong_primary_karaka")
-    label = "NO_DOSHAM"
-    if present and cancellation:
-        label = "DOSHAM_WITH_NIVARTHI"
-    elif present and planet_scores.get(seventh_lord, 50) < 40:
-        label = "STRONG_ACTIVE_DOSHAM"
-    elif present:
-        label = "ACTIVE_DOSHAM"
+
+    if seventh_lord not in planets:
+        return DoshamResult(
+            name="KALATHRA_DOSHAM",
+            is_present=False,
+            is_cancelled=False,
+            strength="WEAK",
+            label="INCOMPLETE_DATA",
+            category="MARRIAGE",
+            conditions_met=[],
+            cancellation_factors=[],
+            missing_data=[seventh_lord],
+            dasha_activated=False,
+            description_ta="களத்திர தோஷம் கணிக்க 7ம் அதிபதி நிலை தேவை.",
+            description_en="Kalathra dosham analysis requires the 7th lord placement.",
+            explanation_what_ta="களத்திர தோஷம் என்பது 7ம் அதிபதி துஷ்டான வீட்டில் இருக்கும் போது திருமண விஷயங்களில் கவனம் தேவை என்பதைச் சொல்வது.",
+            explanation_what_en="Kalathra dosham is a marriage sensitivity indicator that arises when the 7th lord is placed in a dusthana house.",
+            explanation_why_ta="தேவையான ஜாதக தரவு கிடைக்கவில்லை.",
+            explanation_why_en="Required chart data is unavailable.",
+            explanation_how_ta="முழு ஜாதக தரவுடன் மீண்டும் பரிசீலிக்கவும்.",
+            explanation_how_en="Review again with complete chart data.",
+        )
+
+    seventh_lord_rasi = _planet_rasi(planets, seventh_lord)
+    seventh_lord_house = house_from_reference(lagna_rasi, seventh_lord_rasi)
+    is_in_dusthana = seventh_lord_house in {6, 8, 12}
+    legacy_affliction = False
+    if planet_scores is not None:
+        venus_or_jupiter = "VENUS" if is_male else "JUPITER"
+        legacy_affliction = any(
+            planet in planets and _planet_rasi(planets, planet) == seventh_lord_rasi
+            for planet in {"SATURN", "RAHU", "KETU", "MARS"}
+        ) or (
+            venus_or_jupiter in planets
+            and any(
+                planet in planets and _planet_rasi(planets, planet) == _planet_rasi(planets, venus_or_jupiter)
+                for planet in {"SATURN", "RAHU", "KETU", "MARS"}
+            )
+        )
+    is_present = is_in_dusthana or legacy_affliction
+    conditions_met = []
+    if is_in_dusthana:
+        conditions_met.append(f"seventh_lord_in_house_{seventh_lord_house}")
+    if legacy_affliction:
+        conditions_met.append("seventh_afflicted")
+    cancellation_factors: list[str] = []
+
+    if seventh_lord_rasi in OWN_SIGN_RASI.get(seventh_lord, set()):
+        cancellation_factors.append("seventh_lord_own_sign")
+    if seventh_lord_rasi == EXALTATION_RASI.get(seventh_lord):
+        cancellation_factors.append("seventh_lord_exalted")
+    if "JUPITER" in planets:
+        jupiter_rasi = _planet_rasi(planets, "JUPITER")
+        if house_from_reference(jupiter_rasi, seventh_lord_rasi) in {5, 7, 9}:
+            cancellation_factors.append("jupiter_aspects_seventh_lord")
+    if d9_rasi_map and seventh_lord in d9_rasi_map:
+        d9_rasi = d9_rasi_map[seventh_lord]
+        if d9_rasi in OWN_SIGN_RASI.get(seventh_lord, set()) or d9_rasi == EXALTATION_RASI.get(seventh_lord):
+            cancellation_factors.append("seventh_lord_strong_d9")
+
+    is_cancelled = len(cancellation_factors) >= 2 or (
+        len(cancellation_factors) == 1
+        and cancellation_factors[0] in {"seventh_lord_exalted", "jupiter_aspects_seventh_lord"}
+    )
+    if not is_present:
+        label = "NO_KALATHRA_DOSHAM"
+        strength = "WEAK"
+    elif is_cancelled:
+        label = "KALATHRA_DOSHAM_CANCELLED"
+        strength = "WEAK"
+    elif seventh_lord_house == 8:
+        label = "STRONG_KALATHRA_DOSHAM"
+        strength = "STRONG"
+    elif legacy_affliction and planet_scores and planet_scores.get(seventh_lord, 50) < 40:
+        label = "STRONG_KALATHRA_DOSHAM"
+        strength = "STRONG"
+    else:
+        label = "KALATHRA_DOSHAM"
+        strength = "MODERATE"
+
+    house_name_ta = {
+        6: "6ம் வீட்டில் (ரிபு ஸ்தானம்)",
+        8: "8ம் வீட்டில் (ஆயுள் ஸ்தானம்)",
+        12: "12ம் வீட்டில் (விரய ஸ்தானம்)",
+    }.get(seventh_lord_house, f"{seventh_lord_house}ம் வீட்டில்")
+    house_name_en = {
+        6: "house 6 (Ripu sthana)",
+        8: "house 8 (Ayush sthana)",
+        12: "house 12 (Viraya sthana)",
+    }.get(seventh_lord_house, f"house {seventh_lord_house}")
     what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
         "KALATHRA_DOSHAM",
         label,
-        conditions_met=["seventh_afflicted"] if present else [],
-        cancellation_factors=cancellation,
+        conditions_met=conditions_met,
+        cancellation_factors=cancellation_factors,
         missing_data=[],
     )
+
     return DoshamResult(
         name="KALATHRA_DOSHAM",
-        is_present=present,
-        is_cancelled=bool(cancellation),
-        strength="STRONG" if label == "STRONG_ACTIVE_DOSHAM" else ("PARTIAL" if present else "WEAK"),
+        is_present=is_present,
+        is_cancelled=is_cancelled,
+        strength=strength,
         label=label,
         category="MARRIAGE",
-        conditions_met=["seventh_afflicted"] if present else [],
-        cancellation_factors=cancellation,
+        conditions_met=conditions_met,
+        cancellation_factors=cancellation_factors,
         missing_data=[],
-        dasha_activated=False,
-        description_ta="களத்திர தோஷம் — 7ஆம் பாவம்/அதிபதி/காரகன் பாதிப்பு.",
-        description_en="Kalathra dosham — affliction to 7th house/lord/karaka.",
+        dasha_activated=_is_active(active, seventh_lord, "VENUS"),
+        description_ta=(
+            f"களத்திர தோஷம்: 7ம் அதிபதி ({seventh_lord}) {house_name_ta} உள்ளது; திருமண விஷயங்களில் கவனம் தேவை."
+            if is_present
+            else f"7ம் அதிபதி ({seventh_lord}) {house_name_ta} உள்ளது; களத்திர தோஷம் இல்லை."
+        ),
+        description_en=(
+            f"Kalathra dosham: 7th lord ({seventh_lord}) is in {house_name_en}; marriage matters need attention."
+            if is_present
+            else f"7th lord ({seventh_lord}) is in {house_name_en}; no Kalathra dosham."
+        ),
         explanation_what_ta=what_ta,
         explanation_what_en=what_en,
         explanation_why_ta=why_ta,
@@ -1787,11 +1929,10 @@ def detect_yogas_and_doshams(
             active_lords=active_lords,
         ),
         detect_kalathra_dosham(
-            planets_rasi,
+            planets,
             lagna_rasi,
-            moon_rasi,
-            is_male=True,
-            planet_scores=planet_scores,
+            active_lords=active_lords,
+            d9_rasi_map=d9_rasi_map,
         ),
         detect_putra_sarpa_dosham(
             planets_rasi,

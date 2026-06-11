@@ -35,14 +35,14 @@ def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPred
     if payload.age < 18:
         return LifeAreaPrediction(
             life_area="marriage",
-            main_prediction_ta="Marriage timing/advice is age-gated; current phase is child development and family care.",
+            main_prediction_ta="திருமண நேர ஆலோசனை வயது காரணமாக ஒத்திவைக்கப்படுகிறது; இப்போது குழந்தை வளர்ச்சி மற்றும் குடும்ப பராமரிப்பே முக்கியம்.",
             main_prediction_en="Marriage timing/advice is age-gated; current phase is child development and family care.",
             astrological_factors=[
                 AstroFactor(
                     key="age_phase_gate",
                     status="INFO",
                     detail=BiText(
-                        ta=f"Age {payload.age}: marriage guidance is not applicable in this phase.",
+                        ta=f"வயது {payload.age}: இந்த கட்டத்தில் திருமண வழிகாட்டல் பொருந்தாது.",
                         en=f"Age {payload.age}: marriage guidance is not applicable in this phase.",
                     ),
                 )
@@ -52,8 +52,8 @@ def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPred
             timing_window_start=payload.as_of,
             timing_window_end=date(payload.as_of.year, 12, 31),
             confidence="LOW",
-            challenges=[BiText("Do not use this section for current-life decisions.", "Do not use this section for current-life decisions.")],
-            supports=[BiText("Focus on health, bonding, and safe growth routines.", "Focus on health, bonding, and safe growth routines.")],
+            challenges=[BiText("இப்போதைய வாழ்க்கை முடிவுகளுக்கு இந்த பகுதியை பயன்படுத்த வேண்டாம்.", "Do not use this section for current-life decisions.")],
+            supports=[BiText("ஆரோக்கியம், பாசம், பாதுகாப்பான வளர்ச்சி வழக்கங்கள் ஆகியவற்றில் கவனம் செலுத்தவும்.", "Focus on health, bonding, and safe growth routines.")],
         )
 
     seventh_house_rasi = ((payload.lagna_rasi + 7 - 2) % 12) + 1
@@ -72,7 +72,7 @@ def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPred
             key="life_stage",
             status="INFO",
             detail=BiText(
-                ta=f"Life stage: {payload.life_stage}.",
+                ta=f"வாழ்க்கை கட்டம்: {payload.life_stage}.",
                 en=f"Life stage: {payload.life_stage}.",
             ),
         )
@@ -80,10 +80,10 @@ def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPred
     marital = (payload.marital_status or "").strip().lower()
     if marital == "married":
         score += 3
-        supports.append(BiText("Married profile: read this as relationship-harmony guidance.", "Married profile: read this as relationship-harmony guidance."))
+        supports.append(BiText("திருமணமானவர்களுக்கு இதை உறவு ஒற்றுமை வழிகாட்டலாகப் பார்க்கவும்.", "Married profile: read this as relationship-harmony guidance."))
     elif payload.life_stage == "student":
         score -= 6
-        challenges.append(BiText("Student life-stage: marriage timing is usually not the primary focus.", "Student life-stage: marriage timing is usually not the primary focus."))
+        challenges.append(BiText("மாணவர் கட்டத்தில் திருமண நேரம் பொதுவாக முதன்மை கவனம் அல்ல.", "Student life-stage: marriage timing is usually not the primary focus."))
 
     planets_in_7th = sorted(
         name for name, rasi in payload.planets_rasi.items() if rasi == seventh_house_rasi
@@ -244,30 +244,45 @@ def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPred
     rahu_ketu_label = (payload.rahu_ketu_label or "").upper()
     if rahu_ketu_label in {"STRONG_ACTIVE_RAHU_KETU_DOSHAM", "ACTIVE_RAHU_KETU_DOSHAM"}:
         score -= 5
-        challenges.append(BiText("Rahu-Ketu thodarbu uravu vivarangalil adhiga gavanam thevai.", "Rahu-Ketu factors suggest added relationship caution."))
+        challenges.append(BiText("ராகு-கேது தொடர்பு உறவு விஷயங்களில் கூடுதல் கவனம் தேவை என்பதைக் காட்டுகிறது.", "Rahu-Ketu factors suggest added relationship caution."))
     elif rahu_ketu_label == "RAHU_KETU_DOSHAM_CANDIDATE":
         score -= 2
-        challenges.append(BiText("Rahu-Ketu candidate nilai irukkirathu; thittamitta anugumurai payanullathu.", "Rahu-Ketu candidate signals suggest planning and clarity."))
+        challenges.append(BiText("ராகு-கேது குறிப்பு நிலை உள்ளது; திட்டமிட்ட அணுகுமுறை பயனுள்ளதாக இருக்கும்.", "Rahu-Ketu candidate signals suggest planning and clarity."))
     elif rahu_ketu_label == "RAHU_KETU_DOSHAM_WITH_NIVARTHI":
-        supports.append(BiText("Rahu-Ketu nivarthi karanangal support kodukkindrana.", "Rahu-Ketu mitigation factors are supportive."))
+        supports.append(BiText("ராகு-கேது நிவர்த்தி காரணங்கள் ஆதரவு தருகின்றன.", "Rahu-Ketu mitigation factors are supportive."))
     score = max(0, min(100, score))
+    top_supports = [b.ta for b in supports[:2]] if supports else []
+    top_challenges = [b.ta for b in challenges[:2]] if challenges else []
+    top_supports_en = [b.en for b in supports[:2]] if supports else []
+    top_challenges_en = [b.en for b in challenges[:2]] if challenges else []
+
     if score >= 70:
         confidence = "HIGH"
+        support_phrase = "குறிப்பாக " + " மற்றும் ".join(top_supports) if top_supports else "பொதுவாக நல்ல அமைப்பு உள்ளது"
         main = (
-            "திருமண முன்னேற்றத்திற்கு சாதகமான காலப்போக்கு தெரிகிறது.",
-            "Current indicators suggest a supportive phase for marriage progress.",
+            f"திருமண விஷயங்களில் ஆதரவான நேரம் தெரிகிறது. {support_phrase}. "
+            "தசை மற்றும் கோசாரம் இணைந்து இந்த சாதகமான கட்டத்தை உருவாக்குகின்றன.",
+            f"The current phase appears supportive for marriage matters. {'; '.join(top_supports_en) if top_supports_en else 'General indicators are favourable'}. "
+            "Dasha and transit together create this favourable window.",
         )
     elif score >= 50:
         confidence = "MEDIUM"
+        support_phrase = " மற்றும் ".join(top_supports) if top_supports else ""
+        challenge_phrase = "ஆனால் " + " மற்றும் ".join(top_challenges) if top_challenges else "சில கவலைகள் உள்ளன"
         main = (
-            "திருமண விஷயங்களில் கலப்பு சிக்னல்கள் உள்ளதால் திட்டமிட்ட அணுகுமுறை உதவும்.",
-            "Marriage indicators are mixed, so a planned approach will help.",
+            f"திருமண சிக்னல்கள் கலந்த நிலையில் உள்ளன. {support_phrase + ' ' if support_phrase else ''}{challenge_phrase}. "
+            "திட்டமிட்ட அணுகுமுறை மற்றும் பொறுமை நல்ல பலன் தரும்.",
+            f"Marriage indicators are mixed. {'; '.join(top_supports_en) if top_supports_en else ''} {'but ' + '; '.join(top_challenges_en) if top_challenges_en else ''}. "
+            "A planned approach with patience will yield better results.",
         )
     else:
         confidence = "LOW"
+        challenge_phrase = "முக்கியமாக " + " மற்றும் ".join(top_challenges) if top_challenges else "தற்போதைய நிலை கடினமாக உள்ளது"
         main = (
-            "திருமண தீர்மானங்களில் அவசரம் தவிர்த்து நிலைமையை மெதுவாக உறுதிப்படுத்தவும்.",
-            "Avoid haste in marriage decisions and stabilise conditions gradually.",
+            f"திருமண முடிவுகளில் அவசரம் தவிர்க்கவும். {challenge_phrase}. "
+            "இந்த கட்டத்தில் நிலைமையை நிலைநிறுத்துவதே சிறந்த பாதை.",
+            f"Avoid haste in marriage decisions. {'; '.join(top_challenges_en) if top_challenges_en else 'Conditions need stabilising'}. "
+            "Consolidating your situation is the better path right now.",
         )
 
     return LifeAreaPrediction(
@@ -283,4 +298,3 @@ def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPred
         challenges=challenges,
         supports=supports,
     )
-

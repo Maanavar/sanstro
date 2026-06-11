@@ -54,14 +54,14 @@ def assess_wealth_prediction(payload: WealthAssessmentInput) -> LifeAreaPredicti
     if payload.age < 18:
         return LifeAreaPrediction(
             life_area="wealth",
-            main_prediction_ta="Personal wealth-growth advice is age-gated; this phase is about family-managed protection and habit-building.",
+            main_prediction_ta="தனிப்பட்ட செல்வ வளர்ச்சி ஆலோசனை வயது காரணமாக ஒத்திவைக்கப்படுகிறது; இப்போது குடும்ப பாதுகாப்பும் நல்ல பழக்க வளர்ச்சியும் முக்கியம்.",
             main_prediction_en="Personal wealth-growth advice is age-gated; this phase is about family-managed protection and habit-building.",
             astrological_factors=[
                 AstroFactor(
                     key="age_phase_gate",
                     status="INFO",
                     detail=BiText(
-                        ta=f"Age {payload.age}: long-term wealth decisions are usually parent/guardian managed.",
+                        ta=f"வயது {payload.age}: நீண்டகால செல்வ முடிவுகள் பொதுவாக பெற்றோர் அல்லது பாதுகாவலர் வழிநடத்தலில் இருக்கும்.",
                         en=f"Age {payload.age}: long-term wealth decisions are usually parent/guardian managed.",
                     ),
                 )
@@ -71,8 +71,8 @@ def assess_wealth_prediction(payload: WealthAssessmentInput) -> LifeAreaPredicti
             timing_window_start=payload.as_of,
             timing_window_end=date(payload.as_of.year, 12, 31),
             confidence="LOW",
-            challenges=[BiText("Avoid interpreting this as immediate investment timing.", "Avoid interpreting this as immediate investment timing.")],
-            supports=[BiText("Focus on family financial safety and child-care stability.", "Focus on family financial safety and child-care stability.")],
+            challenges=[BiText("இதை உடனடி முதலீட்டு நேரமாக விளக்க வேண்டாம்.", "Avoid interpreting this as immediate investment timing.")],
+            supports=[BiText("குடும்ப நிதி பாதுகாப்பு மற்றும் குழந்தை பராமரிப்பு நிலைத்தன்மையில் கவனம் செலுத்தவும்.", "Focus on family financial safety and child-care stability.")],
         )
 
     second_lord = _house_lord(payload.lagna_rasi, 2)
@@ -90,19 +90,19 @@ def assess_wealth_prediction(payload: WealthAssessmentInput) -> LifeAreaPredicti
             key="life_stage",
             status="INFO",
             detail=BiText(
-                ta=f"Life stage: {payload.life_stage}.",
+                ta=f"வாழ்க்கை கட்டம்: {payload.life_stage}.",
                 en=f"Life stage: {payload.life_stage}.",
             ),
         )
     )
     if payload.life_stage == "student":
         score -= 5
-        challenges.append(BiText("Student life-stage: prioritise savings habits over aggressive wealth expansion.", "Student life-stage: prioritise savings habits over aggressive wealth expansion."))
+        challenges.append(BiText("மாணவர் கட்டத்தில் தீவிர செல்வ விரிவை விட சேமிப்பு பழக்கங்களுக்கு முன்னுரிமை கொடுக்கவும்.", "Student life-stage: prioritise savings habits over aggressive wealth expansion."))
     elif payload.life_stage == "mid_life":
         score += 4
-        supports.append(BiText("Mid-life phase supports long-horizon wealth structuring.", "Mid-life phase supports long-horizon wealth structuring."))
+        supports.append(BiText("நடுத்தர வயது கட்டம் நீண்டகால செல்வ கட்டமைப்பிற்கு ஆதரவாக உள்ளது.", "Mid-life phase supports long-horizon wealth structuring."))
     elif payload.life_stage == "senior":
-        challenges.append(BiText("Senior phase: favour preservation and liquidity.", "Senior phase: favour preservation and liquidity."))
+        challenges.append(BiText("மூத்த வயதில் பாதுகாப்பும் உடனடி பணப்புழக்கமும் முன்னுரிமை பெற வேண்டும்.", "Senior phase: favour preservation and liquidity."))
 
     second_house = house_from_reference(payload.lagna_rasi, payload.planets_rasi[second_lord])
     eleventh_house = house_from_reference(payload.lagna_rasi, payload.planets_rasi[eleventh_lord])
@@ -185,32 +185,47 @@ def assess_wealth_prediction(payload: WealthAssessmentInput) -> LifeAreaPredicti
     pitru_label = (payload.pitru_dosham_label or "").upper()
     if pitru_label in {"STRONG_ACTIVE_DOSHAM", "ACTIVE_DOSHAM"}:
         score -= 4
-        challenges.append(BiText("Pitru-karma nilaiyil maryadhaiyum kattupaadum mukkiyam.", "Pitru-linked factors call for disciplined financial conduct."))
+        challenges.append(BiText("பித்ரு கர்ம தொடர்பான நிலையில் மரியாதையும் கட்டுப்பாடும் முக்கியம்.", "Pitru-linked factors call for disciplined financial conduct."))
     elif pitru_label == "DOSHAM_WITH_NIVARTHI":
-        supports.append(BiText("Pitru nivarthi karanangal nermai vazhiyai aadharikkindrana.", "Pitru mitigation factors support steady progress."))
+        supports.append(BiText("பித்ரு நிவர்த்தி காரணங்கள் நேர்மையான முன்னேற்றப் பாதையை ஆதரிக்கின்றன.", "Pitru mitigation factors support steady progress."))
 
     rahu_ketu_label = (payload.rahu_ketu_label or "").upper()
     if rahu_ketu_label in {"STRONG_ACTIVE_RAHU_KETU_DOSHAM", "ACTIVE_RAHU_KETU_DOSHAM"}:
         score -= 3
-        challenges.append(BiText("Rahu-Ketu siru alochanai illamal risk edukka vendam.", "Rahu-Ketu signals suggest avoiding impulsive risk."))
+        challenges.append(BiText("ராகு-கேது சுட்டிக்காட்டும் காலங்களில் சிந்திக்காமல் ஆபத்து எடுக்க வேண்டாம்.", "Rahu-Ketu signals suggest avoiding impulsive risk."))
     score = max(0, min(100, score))
+    top_supports = [b.ta for b in supports[:2]] if supports else []
+    top_challenges = [b.ta for b in challenges[:2]] if challenges else []
+    top_supports_en = [b.en for b in supports[:2]] if supports else []
+    top_challenges_en = [b.en for b in challenges[:2]] if challenges else []
+
     if score >= 70:
         confidence = "HIGH"
+        support_phrase = "குறிப்பாக " + " மற்றும் ".join(top_supports) if top_supports else "11ம் வீடு மற்றும் தனயோக அமைப்பு நல்லது"
         main = (
-            "செல்வ முன்னேற்றத்திற்கு சீரான ஆதரவு காணப்படுகிறது.",
-            "Wealth-growth indicators are steadily supportive.",
+            f"செல்வ முன்னேற்றத்திற்கு சாதகமான காலம். {support_phrase}. "
+            "தசை மற்றும் 11ம் வீட்டு நிலை இந்த ஆதரவை உறுதிப்படுத்துகின்றன.",
+            f"A favourable phase for wealth growth. {'; '.join(top_supports_en) if top_supports_en else '11th house and dhana yoga configuration are supportive'}. "
+            "The dasha and 11th house placement confirm this window.",
         )
     elif score >= 50:
         confidence = "MEDIUM"
+        support_phrase = " மற்றும் ".join(top_supports) if top_supports else ""
+        challenge_phrase = "ஆனால் " + " மற்றும் ".join(top_challenges) if top_challenges else "சில கவலைகள் உள்ளன"
         main = (
-            "செல்வத்தில் வளர்ச்சி வாய்ப்புகள் உள்ளன; கட்டுப்பட்ட திட்டமிடல் அவசியம்.",
-            "Wealth opportunities are available with disciplined planning.",
+            f"செல்வ சிக்னல்கள் கலந்த நிலையில் உள்ளன. {support_phrase + ' ' if support_phrase else ''}{challenge_phrase}. "
+            "கட்டுப்பட்ட திட்டமிடல் மூலம் வளர்ச்சி வாய்ப்புகளை பயன்படுத்திக்கொள்ளுங்கள்.",
+            f"Wealth signals are mixed. {'; '.join(top_supports_en) if top_supports_en else ''} {'but ' + '; '.join(top_challenges_en) if top_challenges_en else ''}. "
+            "Use disciplined planning to make the most of available opportunities.",
         )
     else:
         confidence = "LOW"
+        challenge_phrase = "முக்கியமாக " + " மற்றும் ".join(top_challenges) if top_challenges else "தற்போதைய நிலை சவாலானது"
         main = (
-            "அபாய முதலீடுகளை தவிர்த்து பணப்பாதுகாப்பை முன்னிலைப்படுத்தவும்.",
-            "Avoid high-risk exposure and prioritise financial stability.",
+            f"அபாய முதலீடுகளை தவிர்க்கவும். {challenge_phrase}. "
+            "பணப்பாதுகாப்பை முன்னிலைப்படுத்தி நிதி நிலைமையை நிலைநிறுத்துங்கள்.",
+            f"Avoid high-risk financial exposure. {'; '.join(top_challenges_en) if top_challenges_en else 'Conditions need stabilising'}. "
+            "Prioritise financial security and consolidate your position.",
         )
 
     return LifeAreaPrediction(

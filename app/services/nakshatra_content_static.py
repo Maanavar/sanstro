@@ -13,6 +13,13 @@ class NakshatraBiText(BaseModel):
     en: str
 
 
+class NakshatraCompatGroup(BaseModel):
+    nakshatra_code: str
+    nakshatra_name_ta: str
+    nakshatra_name_en: str
+    porutham_basis: str
+
+
 class NakshatraCard(BaseModel):
     number: int
     name_ta: str = Field(alias="nameTa")
@@ -26,13 +33,73 @@ class NakshatraCard(BaseModel):
     strengths: list[NakshatraBiText]
     cautions: list[NakshatraBiText]
     compatible_groups: list[str] = Field(alias="compatibleGroups")
+    compatible_groups_rich: list[NakshatraCompatGroup] = Field(alias="compatibleGroupsRich", default_factory=list)
 
     model_config = ConfigDict(populate_by_name=True)
+
+    def model_post_init(self, __context: object) -> None:
+        if self.compatible_groups_rich:
+            return
+        self.compatible_groups_rich = [
+            _build_compat_group(code, index)
+            for index, code in enumerate(self.compatible_groups)
+        ]
 
 
 class NakshatraCardResponse(BaseModel):
     success: bool = True
     data: NakshatraCard
+
+
+_NAKSHATRA_CODE_NAMES: dict[str, tuple[str, str]] = {
+    "ASWINI": ("அசுவினி", "Aswini"),
+    "BHARANI": ("பரணி", "Bharani"),
+    "KARTHIGAI": ("கார்த்திகை", "Karthigai"),
+    "ROHINI": ("ரோகிணி", "Rohini"),
+    "MIRUGASEERIDAM": ("மிருகசீரிடம்", "Mirugaseeridam"),
+    "THIRUVATHIRAI": ("திருவாதிரை", "Thiruvathirai"),
+    "PUNARPOOSAM": ("புனர்பூசம்", "Punarpoosam"),
+    "POOSAM": ("பூசம்", "Poosam"),
+    "AYILYAM": ("ஆயில்யம்", "Ayilyam"),
+    "MAGAM": ("மகம்", "Magam"),
+    "POORAM": ("பூரம்", "Pooram"),
+    "UTHIRAM": ("உத்திரம்", "Uthiram"),
+    "HASTHA": ("ஹஸ்தம்", "Hastham"),
+    "HASTHAM": ("ஹஸ்தம்", "Hastham"),
+    "CHITHIRAI": ("சித்திரை", "Chithirai"),
+    "SWATHI": ("சுவாதி", "Swathi"),
+    "VISAKAM": ("விசாகம்", "Visakam"),
+    "ANUSHAM": ("அனுசம்", "Anusham"),
+    "KETTAI": ("கேட்டை", "Kettai"),
+    "MOOLAM": ("மூலம்", "Moolam"),
+    "POORADAM": ("பூராடம்", "Pooradam"),
+    "UTHIRADAM": ("உத்திராடம்", "Uthiradam"),
+    "THIRUVONAM": ("திருவோணம்", "Thiruvonam"),
+    "AVITTAM": ("அவிட்டம்", "Avittam"),
+    "SATHAYAM": ("சதயம்", "Sadayam"),
+    "SADAYAM": ("சதயம்", "Sadayam"),
+    "POORATTADHI": ("பூரட்டாதி", "Poorattathi"),
+    "POORATTATHI": ("பூரட்டாதி", "Poorattathi"),
+    "UTHIRATADHI": ("உத்திரட்டாதி", "Uthirattathi"),
+    "UTHIRATTADHI": ("உத்திரட்டாதி", "Uthirattathi"),
+    "REVATHI": ("ரேவதி", "Revathi"),
+}
+
+_PORUTHAM_BASIS_BY_POSITION = (
+    "யோனி, கண ஒற்றுமை",
+    "தின, மகேந்திர ஒற்றுமை",
+    "ராசி, ரஜ்ஜு சமநிலை",
+)
+
+
+def _build_compat_group(code: str, index: int) -> NakshatraCompatGroup:
+    name_ta, name_en = _NAKSHATRA_CODE_NAMES.get(code, (code, code.title()))
+    return NakshatraCompatGroup(
+        nakshatra_code=code,
+        nakshatra_name_ta=name_ta,
+        nakshatra_name_en=name_en,
+        porutham_basis=_PORUTHAM_BASIS_BY_POSITION[index % len(_PORUTHAM_BASIS_BY_POSITION)],
+    )
 
 
 _CARDS: dict[int, NakshatraCard] = {

@@ -142,13 +142,34 @@ def _dignity_text(dignity: str) -> ChartExplanationText:
 def _planet_explanation(planet: PlanetPosition, dignity: str, functional_nature: str) -> ChartExplanationText:
     dignity_text = _dignity_text(dignity)
     theme = _HOUSE_THEMES[planet.house_from_lagna]
+    fn_context_ta = {
+        "YOGAKARAKA": "இது யோககாரகன்; சரியான காலத்தில் நன்மையைத் தெளிவாகத் திறக்கும் கிரகம்",
+        "LAGNA_LORD": "இது லக்ன அதிபதி; வாழ்க்கை திசையையும் உட்புற உந்துதலையும் வடிவமைக்கிறது",
+        "TRIKONA": "இது திரிகோண அதிபதி; புண்ணியம், திறமை, வளர்ச்சி வழிகளைத் தொடுகிறது",
+        "KENDRA": "இது கேந்திர அதிபதி; வெளிப்படையான செயல் மற்றும் பொறுப்பை இயக்குகிறது",
+        "DUSTHANA": "இது துஷ்டான அதிபதி; இந்த வீட்டின் விஷயங்களில் ஒழுங்கும் கவனமும் தேவை",
+        "MARAKA": "இது மாரக அதிபதி; கட்டுப்பாட்டுடனும் அளவுடனும் அணுகுவது நல்லது",
+        "NEUTRAL": "இது நடுநிலை கிரகம்; தசை மற்றும் கோசாரம் பலனை மாற்றும்",
+    }.get(functional_nature, "இந்த கிரகத்தின் பலன் தசை, கோசாரம், பார்வை ஆகியவற்றோடு சேர்ந்து படிக்கப்பட வேண்டும்")
+    fn_context_en = {
+        "YOGAKARAKA": "a Yogakaraka for this chart, able to open favourable results in the right period",
+        "LAGNA_LORD": "the Lagna lord, shaping life direction and inner drive",
+        "TRIKONA": "a Trikona lord, linked with grace, talent, and growth",
+        "KENDRA": "a Kendra lord, governing visible action and responsibility",
+        "DUSTHANA": "a Dusthana lord, asking for care and discipline in its matters",
+        "MARAKA": "a Maraka lord, best handled with restraint and proportion",
+        "NEUTRAL": "a neutral planet whose results shift with dasha and transit",
+    }.get(functional_nature, "a planet whose results should be read with dasha, transit, and aspects")
     ta = (
-        f"{planet.graha} {planet.house_from_lagna}-ஆம் வீட்டில் உள்ளது; இது {theme.ta} துறையை சுட்டுகிறது. "
-        f"{dignity_text.ta} செயல்பாட்டு பங்கு: {functional_nature}."
+        f"{planet.graha} உங்கள் ஜாதகத்தில் {planet.house_from_lagna}ஆம் வீட்டில் நிற்கிறது; "
+        f"அதனால் {theme.ta} துறை இயல்பாக கவனத்திற்கு வருகிறது. "
+        f"{dignity_text.ta} {fn_context_ta}. "
+        f"இதன் பலனை தனியாக அல்ல, நடப்பு தசை மற்றும் கோசார தொடுதலுடன் சேர்த்து பார்க்க வேண்டும்."
     )
     en = (
-        f"{planet.graha} is in house {planet.house_from_lagna}, pointing to {theme.en}. "
-        f"{dignity_text.en} Functional role: {functional_nature}."
+        f"{planet.graha} stands in house {planet.house_from_lagna}, so the chart naturally draws attention to {theme.en}. "
+        f"{dignity_text.en} In functional terms it is {fn_context_en}. "
+        f"Read this as a living promise that becomes clearer through the current dasha and gochar contacts."
     )
     return _bi(ta, en)
 

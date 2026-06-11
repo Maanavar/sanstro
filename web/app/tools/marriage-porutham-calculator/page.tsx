@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { PoruthamPageContent } from "./PoruthamPageContent";
 
 export const metadata: Metadata = {
-  title: "Free Tamil Porutham Calculator — 10-Factor Compatibility Check",
+  title: "Free Tamil Birth Star Porutham Preview",
   description:
-    "Check marriage compatibility instantly with our free Tamil astrology porutham calculator. Verifies all 10 factors including Rajju and Nadi dosha using Thirukanitham-based calculations. No account required.",
+    "Get a quick Tamil birth-star porutham preview with Rajju, Vedha, Rasi, and Nadi cautions. Sign in for the full chart-grade 36-point porutham reading.",
   keywords: [
     "porutham calculator",
     "Tamil marriage compatibility",
@@ -17,16 +17,17 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "https://vinaadi.com/tools/marriage-porutham-calculator" },
   openGraph: {
-    title: "Free Tamil Porutham Calculator — 10-Factor Compatibility",
+    title: "Free Tamil Birth Star Porutham Preview",
     description:
-      "Check marriage compatibility instantly. Our free porutham calculator checks all 10 factors — Dinam, Ganam, Rajju, Nadi, and more — using precise Thirukanitham calculations.",
+      "Check a quick birth-star compatibility preview first. For full 36-point porutham, Nadi cancellation, Sevvai dosham, D9, and dasha context, use the signed-in dashboard.",
     url: "https://vinaadi.com/tools/marriage-porutham-calculator",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Free Tamil Porutham Calculator — 10-Factor Compatibility",
-    description: "Check all 10 porutham factors including Rajju and Nadi dosha. Free, instant, Thirukanitham-based.",
+    title: "Free Tamil Birth Star Porutham Preview",
+    description:
+      "Quick Tamil birth-star porutham preview with Rajju, Vedha, Rasi, and Nadi cautions. Full chart reading is available after sign-in.",
   },
 };
 
@@ -39,7 +40,7 @@ const FAQ_JSONLD = {
       name: "What is porutham in Tamil astrology?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Porutham is the Tamil system of checking marriage compatibility using the birth stars of both partners. It evaluates 10 factors covering temperament, health, longevity, and intimacy using Thirukanitham calculations.",
+        text: "Porutham is the Tamil system of checking marriage compatibility using the birth stars and horoscopes of both partners. The public Vinaadi tool gives a quick birth-star preview; the signed-in dashboard gives the fuller chart-grade reading.",
       },
     },
     {
@@ -47,7 +48,7 @@ const FAQ_JSONLD = {
       name: "How many porutham factors are checked?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "There are 10 porutham factors: Dinam, Ganam, Mahendram, Stree Deergham, Yoni, Rajju, Vedha, Rasi, Rasiyathipathi (Graha Maitri), and Nadi. The maximum total score is 36 points. Additionally, Rajju dosha and Nadi dosha are checked as critical factors independent of the score.",
+        text: "The public tool is a quick birth-star preview. It shows the main star-based porutham checks and separately flags Rajju, Vedha, Rasi, and same-Nadi cautions. The signed-in dashboard uses the fuller 36-point porutham engine with chart context.",
       },
     },
     {
@@ -55,7 +56,7 @@ const FAQ_JSONLD = {
       name: "What is the minimum porutham score for marriage?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Traditionally, a score of 18 or above out of 36 is considered acceptable for marriage. However, Rajju dosha and Nadi dosha are critical checks that must also be clear regardless of the total score. Vinaadi evaluates both the score and these special doshas.",
+        text: "The quick /10 score is only a first look and should not be treated as a final marriage verdict. For a proper Tamil porutham decision, use the signed-in dashboard so the 36-point score, Rajju, Vedha, Nadi, Sevvai dosham, D9, and dasha context can be read together.",
       },
     },
     {
@@ -63,7 +64,7 @@ const FAQ_JSONLD = {
       name: "What is Nadi dosha and can it be cancelled?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Nadi dosha occurs when both partners share the same Nadi category (Adi, Madhya, or Antya). It is associated with health concerns for offspring. Certain conditions, such as different moon signs or different birth stars, can cancel the dosha. Vinaadi checks these cancellations automatically.",
+        text: "Nadi dosha is traditionally considered when both partners fall in the same Nadi category. The public tool flags same-Nadi as a caution only. Cancellation and final judgement require full chart context, which is handled in the signed-in porutham report.",
       },
     },
     {
@@ -71,7 +72,7 @@ const FAQ_JSONLD = {
       name: "Is the porutham calculator free to use?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes, the Vinaadi porutham calculator is completely free. Enter birth date, time, and place for both partners and get an instant compatibility report covering all 10 factors and dosha checks. No account or registration required.",
+        text: "Yes. The public birth-star preview is free and does not require an account. For the detailed saved report with full chart reasoning and dosha context, sign in and use the dashboard.",
       },
     },
   ],

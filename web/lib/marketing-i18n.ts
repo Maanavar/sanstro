@@ -137,8 +137,8 @@ export const HOME = {
   ),
   help5_title:    s("Check compatibility when needed", "தேவைப்படும்போது பொருத்தம் பாருங்கள்"),
   help5_body:     s(
-    "Porutham matching with all 10 poruthams, Rajju dosha, Sevvai dosham, and Nadi dosha — full Tamil standard.",
-    "பத்து பொருத்தங்கள், ரஜ்ஜு, வேதம், செவ்வாய், நாடி என முழு தமிழ் திருமணப் பொருத்தப் பார்வை."
+    "Use the public birth-star preview for a quick first look. Sign in for full chart-grade porutham with 36-point score, Nadi, Sevvai, D9, and dasha context.",
+    "விரைவான முதல் பார்வைக்கு பொதுப் பிறப்பு நட்சத்திரப் பொருத்தத்தைப் பயன்படுத்துங்கள். 36 மதிப்பெண், நாடி, செவ்வாய், நவாம்சம், தசை சூழல் உடன் முழு ஜாதகப் பொருத்தத்திற்கு உள்நுழையுங்கள்."
   ),
   help6_title:    s("Use tools when you need them",   "தேவைப்படும் போது கருவிகளைப் பயன்படுத்துங்கள்"),
   help6_body:     s(
@@ -192,11 +192,11 @@ export const HOME = {
     "கருவி தேவைப்படும்போது, அது ஏற்கனவே வழிகாட்டியின் ஒரு பகுதி"
   ),
   tools_sub: s(
-    "Vinaadi includes powerful tools — not as separate apps, but as extensions of the same assistant. Use them when you need them.",
-    "விநாடியில் சக்திவாய்ந்த கருவிகள் உள்ளன — தனி ஆப்களாக அல்ல, அதே உதவியாளரின் நீட்சிகளாக. தேவைப்படும்போது பயன்படுத்துங்கள்."
+    "Vinaadi includes quick public tools and deeper signed-in readings. Use the public pages for first lookups; use the dashboard when you want chart-based reasoning from your saved jadhagam.",
+    "விரைவான பொதுக் கருவிகளும், உள்நுழைந்த பிறகு ஆழமான ஜாதக வாசிப்புகளும் விநாடியில் உள்ளன. முதல் பார்வைக்கு public பக்கங்களைப் பயன்படுத்துங்கள்; சேமித்த ஜாதகத்தின் அடிப்படையிலான காரண விளக்கத்திற்கு dashboard-ஐ பயன்படுத்துங்கள்."
   ),
   tool1_name: s("Marriage Porutham",          "திருமண பொருத்தம்"),
-  tool1_desc: s("Full 10-porutham compatibility analysis using the Tamil standard — Rajju, Vedha, Nadi, Sevvai dosham, and all factor checks.", "10 பொருத்தங்கள், ரஜ்ஜு, வேதம், நாடி, செவ்வாய் தோஷம் உட்பட முழுமையான தமிழ் திருமண பொருத்த பகுப்பாய்வு."),
+  tool1_desc: s("Quick public birth-star porutham preview. Sign in for the full Tamil marriage match with 36-point score, Nadi, Sevvai, D9, and dasha context.", "விரைவான நட்சத்திரப் பொருத்த முதல் பார்வை. 36 மதிப்பெண், நாடி, செவ்வாய், நவாம்சம், தசை சூழல் உடன் முழு தமிழ் திருமணப் பொருத்தத்திற்கு உள்நுழையுங்கள்."),
   tool1_cta:  s("Porutham calculator →",      "பொருத்தம் பார் →"),
   tool2_name: s("Jadhagam Generator",         "ஜாதகம் உருவாக்கு"),
   tool2_desc: s("South Indian birth chart in Thirukanitham format — D1 Rasi chart and D9 Navamsa, with Lahiri ayanamsa precision.", "திருக்கணிதம் முறையில் தென்னிந்திய ஜாதகம் — D1 ராசி கட்டம் மற்றும் D9 நவாம்சம், லாகிரி அயனாம்சத்துடன்."),
@@ -274,7 +274,7 @@ export const HOME = {
   hub4_body:   s("Plan important actions — ceremonies, travel, business, health — with astrological timing grounded in Thirukanitham.", "முக்கியமான செயல்களை திட்டமிடுங்கள் — விழாக்கள், பயணம், வியாபாரம், உடல்நலம் — திருக்கணிதம் அடிப்படையிலான ஜோதிட நேரத்தில்."),
   hub5_eye:    s("Tool",     "கருவி"),
   hub5_title:  s("Porutham Calculator", "பொருத்தம் பார்"),
-  hub5_body:   s("Full 10-porutham marriage matching using the Tamil standard. Rajju, Vedha, Nadi, Sevvai — clearly explained.", "தமிழ் தரநிலையில் 10 பொருத்தம் திருமண பொருத்தம். ரஜ்ஜு, வேதம், நாடி, செவ்வாய் — தெளிவாக விளக்கப்பட்டது."),
+  hub5_body:   s("Quick birth-star porutham for visitors; full signed-in matching adds 36-point scoring, Nadi judgement, Sevvai, D9, and dasha context.", "வருகையாளர்களுக்கு விரைவான நட்சத்திரப் பொருத்தம்; உள்நுழைந்த பிறகு 36 மதிப்பெண், நாடி தீர்வு, செவ்வாய், நவாம்சம், தசை சூழல் உடன் முழு பொருத்தம்."),
   hub6_eye:    s("Method",   "முறை"),
   hub6_title:  s("Our Methodology", "எங்கள் கணக்கீட்டு முறை"),
   hub6_body:   s("How Vinaadi calculates — Thirukanitham, Lahiri ayanamsa, Drik ephemeris, multi-signal daily score.", "விநாடி எவ்வாறு கணக்கிடுகிறது — திருக்கணிதம், லாகிரி அயனாம்சம், திரிக் கோளக்கணிதம், பல சமிக்ஞை தினசரி மதிப்பெண்."),
@@ -483,16 +483,16 @@ export const FEAT_TIMING = {
 
 export const TOOL_PORUTHAM = {
   eyebrow:    s("Tool · Marriage Porutham Calculator", "கருவி · திருமண பொருத்தம் கணக்கிடல்"),
-  h1:         s("Full 10-porutham Tamil marriage compatibility.", "முழுமையான 10 பொருத்தம் தமிழ் திருமண பொருத்தம்."),
+  h1:         s("Quick Tamil birth-star porutham preview.", "விரைவான தமிழ் நட்சத்திரப் பொருத்த முதல் பார்வை."),
   lead:       s(
-    "Enter two birth details and get a complete porutham analysis — Rajju, Vedha, Nadi, Sevvai dosham, and all 10 poruthams. Thirukanitham-precise. No account required.",
-    "இரண்டு பிறப்பு விவரங்களை உள்ளிடுங்கள். ரஜ்ஜு, வேதம், நாடி, செவ்வாய் தோஷம், மொத்த பத்து பொருத்தங்கள் ஆகிய அனைத்தையும் உள்ளடக்கிய முழுமையான பொருத்த வாசிப்பு கிடைக்கும். திருக்கணிதத் துல்லியத்துடன். கணக்கு தேவையில்லை."
+    "Choose two birth stars and get a quick porutham preview with Rajju, Vedha, Rasi, and Nadi cautions. For the full 36-point chart-grade match with Sevvai dosham, D9, dasha, and cancellation rules, sign in and use the dashboard.",
+    "இரண்டு பிறப்பு நட்சத்திரங்களைத் தேர்வு செய்து ரஜ்ஜு, வேதம், ராசி, நாடி கவனங்களுடன் விரைவான பொருத்த முதல் பார்வையைப் பெறுங்கள். செவ்வாய் தோஷம், நவாம்சம், தசை, தோஷ நிவர்த்தி விதிகள் உடன் முழு 36 மதிப்பெண் ஜாதகப் பொருத்தத்திற்கு உள்நுழைந்து dashboard-ஐ பயன்படுத்துங்கள்."
   ),
 
   checks_h2: s("What Vinaadi checks",     "விநாடி என்ன சரிபார்க்கிறது"),
   checks_body: s(
-    "The full Tamil porutham system goes beyond simply counting matched poruthams. Vinaadi checks the critical factors that traditional practitioners prioritise.",
-    "தமிழ் பொருத்தம் பார்க்கும் முறை வெறும் எண்ணிக்கையை மட்டும் பார்க்காது. பாரம்பரிய ஜோதிடர்கள் முக்கியமாகக் கருதும் அடிப்படைச் சரிபார்ப்புகளையும் விநாடி தெளிவாகப் பார்க்கிறது."
+    "The public tool gives a fast birth-star reading so families can take a first look without entering full birth details. A proper Tamil marriage judgement needs the signed-in chart reading, where the score and dosha cautions are read together.",
+    "முழு பிறப்பு விவரங்கள் இல்லாமலேயே குடும்பங்கள் முதலில் பார்த்துக் கொள்ள இந்த public கருவி விரைவான நட்சத்திர வாசிப்பைத் தருகிறது. சரியான தமிழ் திருமண முடிவுக்கு உள்நுழைந்த ஜாதக வாசிப்பில் மதிப்பெண், தோஷ கவனங்கள் இரண்டும் சேர்த்து பார்க்க வேண்டும்."
   ),
 
   ten_h2: s("The 10 poruthams", "10 பொருத்தங்கள்"),
@@ -509,8 +509,8 @@ export const TOOL_PORUTHAM = {
 
   rajju_h2:   s("Rajju and Nadi — the critical checks", "ரஜ்ஜு மற்றும் நாடி — முக்கியமான சரிபார்ப்புகள்"),
   rajju_body: s(
-    "In Tamil tradition, Rajju dosha and Nadi dosha carry more weight than the total porutham count. A match with Rajju dosha or Nadi dosha is typically reconsidered regardless of how many other poruthams pass. Vinaadi flags both clearly.",
-    "தமிழ் பாரம்பரியத்தில், ரஜ்ஜு தோஷம் மற்றும் நாடி தோஷம் மொத்த பொருத்தம் எண்ணிக்கையை விட அதிக முக்கியத்துவம் வாய்ந்தது. ரஜ்ஜு தோஷம் அல்லது நாடி தோஷம் உள்ள ஒரு பொருத்தம் மற்ற எத்தனை பொருத்தங்கள் ஒத்திருந்தாலும் வழக்கமாக மறுபரிசீலனை செய்யப்படும். விநாடி இரண்டையும் தெளிவாக குறிக்கிறது."
+    "In Tamil tradition, Rajju, Vedha, Rasi, and Nadi cautions are not treated as small footnotes. This public page flags the caution; the signed-in report checks the full chart before giving a final recommendation.",
+    "தமிழ் பாரம்பரியத்தில் ரஜ்ஜு, வேதம், ராசி, நாடி கவனங்கள் சிறிய குறிப்புகளாகப் பார்க்கப்படுவதில்லை. இந்த public பக்கம் கவனத்தை மட்டும் காட்டும்; இறுதி பரிந்துரைக்கு முன் உள்நுழைந்த அறிக்கை முழு ஜாதகத்தைப் பார்க்கும்."
   ),
 
   related_h2: s("Related", "தொடர்புடையவை"),
@@ -795,14 +795,14 @@ export const NATCHATHIRAM_INDEX = {
 export const NATCHATHIRAM_DETAIL = {
   eyebrow_prefix:    s("27 Nakshathirams", "27 நட்சத்திரங்கள்"),
   lead:              s(
-    "Personality traits, career strengths, family dynamics, dasha timelines, and spiritual guidance.",
-    "குண நலன்கள், தொழில், குடும்பம், தசை பலன்கள் மற்றும் ஆன்மீக வழிகாட்டுதல்."
+    "General birth-star tendencies for personality, career strengths, family dynamics, dasha themes, and spiritual guidance. Your exact lagna, Moon degree, and dasha balance refine the reading.",
+    "குணநிலை, தொழில் பலம், குடும்ப ஓட்டம், தசை கருக்கள், ஆன்மீக வழிகாட்டுதல் பற்றிய பொதுப் பிறப்பு நட்சத்திரப் பார்வை. உங்கள் துல்லியமான லக்னம், சந்திரன் degree, தசை இருப்பு வாசிப்பை மேலும் நுணுக்கமாக்கும்."
   ),
   fig_label_suffix:  s("Nakshathiram profile", "நட்சத்திர விவரம்"),
   // Fact card labels
   fact_rasi:         s("Rasi (Sign)",   "ராசி"),
   fact_planet:       s("Ruling Planet", "அதிபதி கிரகம்"),
-  fact_deity:        s("Deity",         "தெய்வம்"),
+  fact_deity:        s("Deity / Worship Form", "தெய்வம் / வழிபாட்டு வடிவு"),
   fact_gana:         s("Gana",          "கணம்"),
   fact_symbol:       s("Symbol",        "சின்னம்"),
   fact_dasha:        s("Birth Dasha",   "பிறப்பு தசை"),
@@ -863,12 +863,12 @@ export const NATCHATHIRAM_VISUAL = {
   career_clusters:  s("Best Career Clusters",  "சிறந்த தொழில் துறைகள்"),
   modern_title:     s("In Today's World — Applications", "இன்றைய உலகில் — பயன்பாடுகள்"),
   dasha_lead:       s(
-    "Life unfolds through cycles. Each dasha brings unique lessons and growth.",
-    "வாழ்க்கை சுழற்சிகளில் விரிகிறது. ஒவ்வொரு தசையும் தனிப்பட்ட பாடங்களையும் வளர்ச்சியையும் தருகிறது."
+    "These are general dasha themes for the birth star. Exact personal dates and strength depend on the Moon's degree, pada, and full horoscope.",
+    "இவை பிறப்பு நட்சத்திரத்துக்கான பொதுத் தசை கருக்கள். துல்லியமான தனிப்பட்ட தேதிகளும் பலமும் சந்திரன் degree, பாதம், முழு ஜாதகம் ஆகியவற்றைப் பொறுத்தது."
   ),
   compat_lead:      s(
-    "Harmonious matches for meaningful, lasting relationships.",
-    "அர்த்தமுள்ள, நீடித்த உறவுகளுக்கான சாதகமான நட்சத்திரங்கள்."
+    "General birth-star affinities. Marriage porutham should still be confirmed with both full horoscopes.",
+    "பொதுவான பிறப்பு நட்சத்திர ஒத்திசைவுகள். திருமணப் பொருத்தம் இருவரின் முழு ஜாதகத்தாலும் உறுதி செய்யப்பட வேண்டும்."
   ),
   check_compat:     s("Check Compatibility →",        "பொருத்தம் பார்க்க →"),
   key_guidance:     s("KEY GUIDANCE",                 "முக்கிய வழிகாட்டுதல்"),

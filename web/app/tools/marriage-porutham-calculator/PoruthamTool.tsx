@@ -156,6 +156,7 @@ interface CompatibilityResult {
   poruthams: PoruthamResult[];
   score: number;
   criticalFail: boolean;
+  nadiCaution: boolean;
   criticalWarnings: string[];
   rajjuFail: boolean; vedhaiFail: boolean; rasiFail: boolean;
 }
@@ -177,12 +178,14 @@ function calcAll(g: number, b: number): CompatibilityResult {
   const rajjuFail  = !poruthams[8].match;
   const vedhaiFail = !poruthams[9].match;
   const rasiFail   = !!(poruthams[5] as PoruthamResult & {isShashtashtaka?: boolean}).isShashtashtaka;
+  const nadiCaution = NADI[g] === NADI[b];
   const criticalFail = rajjuFail || vedhaiFail;
   const criticalWarnings: string[] = [];
   if (rajjuFail)  criticalWarnings.push("ரஜ்ஜு தோஷம்");
   if (vedhaiFail) criticalWarnings.push("வேதை தோஷம்");
   if (rasiFail)   criticalWarnings.push("ஆறு-எட்டு தோஷம்");
-  return { poruthams, score, criticalFail, criticalWarnings, rajjuFail, vedhaiFail, rasiFail };
+  if (nadiCaution) criticalWarnings.push("Nadi caution");
+  return { poruthams, score, criticalFail, nadiCaution, criticalWarnings, rajjuFail, vedhaiFail, rasiFail };
 }
 
 // ========== STYLE HELPERS ==========
@@ -326,10 +329,12 @@ export function PoruthamTool() {
                         ? "2px solid var(--cl-sage)"
                         : c.criticalFail
                         ? "2px solid var(--cl-caution)"
+                        : c.nadiCaution
+                        ? "1px solid var(--cl-accent)"
                         : "1px solid var(--cl-border)",
                       background: scoreBg(c.score, c.criticalFail),
                     }}>
-                    {c.criticalFail && (
+                    {(c.criticalFail || c.nadiCaution) && (
                       <div style={{ position: "absolute", top: 2, left: 6, fontSize: 11 }}>⚠</div>
                     )}
                     <div style={{ position: "absolute", top: 4, right: 6, fontSize: 15, fontWeight: 800, color: scoreColor(c.score, c.criticalFail) }}>
@@ -342,6 +347,11 @@ export function PoruthamTool() {
                     <div style={{ fontSize: 9, color: scoreColor(c.score, c.criticalFail), fontWeight: 600, marginTop: 2 }}>
                       {c.score}/10 · {ta ? scoreLabelTa(c.score, c.criticalFail) : scoreLabelEn(c.score, c.criticalFail)}
                     </div>
+                    {c.nadiCaution && !c.criticalFail && (
+                      <div style={{ fontSize: 9, color: "var(--cl-accent)", fontWeight: 600, marginTop: 2 }}>
+                        {ta ? "நாடி கவனம்" : "Nadi caution"}
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
@@ -373,6 +383,17 @@ export function PoruthamTool() {
                   {detail.rajjuFail  && <div>• <strong>{ta?"ரஜ்ஜு தோஷம்":"Rajju Dosham"}</strong> — {ta?"இருவரும் ஒரே ரஜ்ஜு குழு. இது மிக முக்கியமான பொருத்தம்; இல்லாமல் திருமணம் பரிந்துரைக்கப்படாது.":"Both share the same Rajju group — the most critical single check."}</div>}
                   {detail.vedhaiFail && <div>• <strong>{ta?"வேதை தோஷம்":"Vedhai Dosham"}</strong> — {ta?"இந்த ஜோடி பகை நட்சத்திர ஜோடி.":"These birth stars are opposing pairs."}</div>}
                   {detail.rasiFail   && <div>• <strong>{ta?"ஆறு-எட்டு":"6/8 Rasi"}</strong> — {ta?"ஷஷ்டாஷ்டக தோஷம்.":"Shashtashtaka — 6th/8th rasi opposition."}</div>}
+                </div>
+              )}
+
+              {detail.nadiCaution && (
+                <div style={{ background: "var(--cl-bg-2)", border: "1px solid var(--cl-border-2)", borderLeft: "4px solid var(--cl-accent)", borderRadius: "8px", padding: "10px 14px", marginBottom: "14px", fontSize: "12px", color: "var(--cl-ink-2)", lineHeight: 1.6 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 4, color: "var(--cl-accent)" }}>
+                    {ta ? "நாடி கவனம்" : "Nadi caution"}
+                  </div>
+                  {ta
+                    ? "இருவருக்கும் ஒரே நாடி வருகிறது. இது விரைவான நட்சத்திர அடிப்படையிலான எச்சரிக்கை மட்டும்; பாதம், ராசி, முழு ஜாதகம் பார்த்த பிறகே இறுதி முடிவு சொல்ல வேண்டும்."
+                    : "Both birth stars fall in the same Nadi group. Treat this as a quick star-based caution only; cancellation and final judgement need pada, rasi, and the full horoscope reading in the dashboard."}
                 </div>
               )}
 
@@ -490,17 +511,26 @@ export function PoruthamTool() {
                           onClick={() => { setBoyStar(c.id); setView("selector"); }}
                           style={{
                             ...BASE_STAR_BTN,
-                            border: c.criticalFail ? "2px solid var(--cl-caution)" : "1px solid var(--cl-border)",
+                            border: c.criticalFail
+                              ? "2px solid var(--cl-caution)"
+                              : c.nadiCaution
+                              ? "1px solid var(--cl-accent)"
+                              : "1px solid var(--cl-border)",
                             background: scoreBg(c.score, c.criticalFail),
                             display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left", padding: "8px 10px",
                           }}>
                           <div>
                             <div style={{ fontWeight: 600, color: c.criticalFail ? "var(--cl-caution)" : "var(--cl-ink)", fontSize: 12 }}>
-                              {c.criticalFail && "⚠ "}♂ {ta ? NAKSHATRAS[c.id].ta : starNameEn(c.id)}
+                              {(c.criticalFail || c.nadiCaution) && "⚠ "}♂ {ta ? NAKSHATRAS[c.id].ta : starNameEn(c.id)}
                             </div>
                             {ta && <div style={{ fontSize: 10, color: "var(--cl-muted)" }}>{starNameEn(c.id)}</div>}
                             {c.criticalFail && (
                               <div style={{ fontSize: 9, color: "var(--cl-caution)", marginTop: 2 }}>{c.criticalWarnings.join(", ")}</div>
+                            )}
+                            {c.nadiCaution && !c.criticalFail && (
+                              <div style={{ fontSize: 9, color: "var(--cl-accent)", marginTop: 2 }}>
+                                {ta ? "நாடி கவனம்" : "Nadi caution"}
+                              </div>
                             )}
                           </div>
                           <div style={{ fontWeight: 800, fontSize: 18, color: scoreColor(c.score, c.criticalFail), marginLeft: 6 }}>{c.score}</div>
@@ -536,7 +566,7 @@ export function PoruthamTool() {
           <strong>{ta?"குறிப்பு:":"Note:"}</strong>{" "}
           {ta
             ? "முழுமையான ஜாதக பொருத்தத்திற்கு பாதம், தசா புக்தி, தோஷ பரிகாரம் ஆகியவற்றையும் ஆராய வேண்டும்."
-            : "A full horoscope match also examines pada, dasha bhukti, and dosha parihara. This tool covers the 10 birth-star-based poruthams."}
+            : "A full horoscope match also examines pada, dasha bhukti, Sevvai dosham, Nadi cancellation, navamsa, and dosha parihara. This public tool is only a quick birth-star preview."}
         </div>
       </div>
 

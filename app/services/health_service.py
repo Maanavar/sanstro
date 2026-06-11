@@ -30,14 +30,14 @@ def assess_health_prediction(payload: HealthAssessmentInput) -> LifeAreaPredicti
     if payload.age < 12:
         return LifeAreaPrediction(
             life_area="health",
-            main_prediction_ta="For children, health guidance should prioritize sleep, feeding, hygiene, vaccination schedule, and regular pediatric review.",
+            main_prediction_ta="குழந்தைகளுக்கு தூக்கம், உணவு, சுகாதாரம், தடுப்பூசி அட்டவணை, வழக்கமான குழந்தை மருத்துவர் பரிசோதனை ஆகியவை முக்கியம்.",
             main_prediction_en="For children, health guidance should prioritize sleep, feeding, hygiene, vaccination schedule, and regular pediatric review.",
             astrological_factors=[
                 AstroFactor(
                     key="child_health_phase",
                     status="INFO",
                     detail=BiText(
-                        ta=f"Age {payload.age}: child-health preventive routines are the primary focus.",
+                        ta=f"வயது {payload.age}: குழந்தை ஆரோக்கிய தடுப்பு வழக்கங்களே முதன்மை கவனம்.",
                         en=f"Age {payload.age}: child-health preventive routines are the primary focus.",
                     ),
                 ),
@@ -45,7 +45,7 @@ def assess_health_prediction(payload: HealthAssessmentInput) -> LifeAreaPredicti
                     key="health_safety_note",
                     status="INFO",
                     detail=BiText(
-                        ta="This is preventive guidance only and does not replace medical advice.",
+                        ta="இது தடுப்பு வழிகாட்டல் மட்டுமே; மருத்துவ ஆலோசனையை மாற்றாது.",
                         en="This is preventive guidance only and does not replace medical advice.",
                     ),
                 ),
@@ -55,8 +55,8 @@ def assess_health_prediction(payload: HealthAssessmentInput) -> LifeAreaPredicti
             timing_window_start=payload.as_of,
             timing_window_end=date(payload.as_of.year, 12, 31),
             confidence="MEDIUM",
-            challenges=[BiText("If symptoms appear, seek pediatric care early.", "If symptoms appear, seek pediatric care early.")],
-            supports=[BiText("Steady routine and caregiver support are the strongest protections now.", "Steady routine and caregiver support are the strongest protections now.")],
+            challenges=[BiText("அறிகுறிகள் தெரிந்தால் குழந்தை மருத்துவரை விரைவில் சந்திக்கவும்.", "If symptoms appear, seek pediatric care early.")],
+            supports=[BiText("நிலையான வழக்கமும் பராமரிப்பாளர் ஆதரவும் இப்போது மிக வலுவான பாதுகாப்பாகும்.", "Steady routine and caregiver support are the strongest protections now.")],
         )
 
     lagna_lord = _house_lord(payload.lagna_rasi, 1)
@@ -73,18 +73,18 @@ def assess_health_prediction(payload: HealthAssessmentInput) -> LifeAreaPredicti
             key="life_stage",
             status="INFO",
             detail=BiText(
-                ta=f"Life stage: {payload.life_stage}.",
+                ta=f"வாழ்க்கை கட்டம்: {payload.life_stage}.",
                 en=f"Life stage: {payload.life_stage}.",
             ),
         )
     )
     if payload.life_stage == "student":
-        supports.append(BiText("Student phase: consistency in sleep and routines is the strongest support.", "Student phase: consistency in sleep and routines is the strongest support."))
+        supports.append(BiText("மாணவர் கட்டத்தில் தூக்கம் மற்றும் ஒழுங்கான வழக்கங்களில் நிலைத்தன்மை மிகப் பெரிய ஆதரவு.", "Student phase: consistency in sleep and routines is the strongest support."))
     elif payload.life_stage == "mid_life":
-        supports.append(BiText("Mid-life phase: preventive screening cadence is important.", "Mid-life phase: preventive screening cadence is important."))
+        supports.append(BiText("நடுத்தர வயதில் தடுப்பு பரிசோதனைகளை ஒழுங்காக செய்வது முக்கியம்.", "Mid-life phase: preventive screening cadence is important."))
     elif payload.life_stage == "senior":
         score -= 3
-        challenges.append(BiText("Senior phase: prioritise regular check-ups and recovery pacing.", "Senior phase: prioritise regular check-ups and recovery pacing."))
+        challenges.append(BiText("மூத்த வயதில் வழக்கமான பரிசோதனைகளுக்கும் மெதுவான மீட்பு வேகத்துக்கும் முன்னுரிமை கொடுக்கவும்.", "Senior phase: prioritise regular check-ups and recovery pacing."))
 
     if payload.lagna_strength_score >= 65:
         score += 10
@@ -165,30 +165,45 @@ def assess_health_prediction(payload: HealthAssessmentInput) -> LifeAreaPredicti
     rahu_ketu_label = (payload.rahu_ketu_label or "").upper()
     if rahu_ketu_label in {"STRONG_ACTIVE_RAHU_KETU_DOSHAM", "ACTIVE_RAHU_KETU_DOSHAM"}:
         score -= 3
-        challenges.append(BiText("Rahu-Ketu azhutham irukkum kaalangalil nithanam mukkiyam.", "Rahu-Ketu pressure periods call for steady routines."))
+        challenges.append(BiText("ராகு-கேது அழுத்தம் இருக்கும் காலங்களில் நிதானமான வழக்கங்கள் முக்கியம்.", "Rahu-Ketu pressure periods call for steady routines."))
 
     pitru_label = (payload.pitru_dosham_label or "").upper()
     if pitru_label == "STRONG_ACTIVE_DOSHAM":
         score -= 2
-        challenges.append(BiText("Pitru sambandha manasika bhaaram varalam; routine support thevai.", "Pitru-linked stress sensitivity may rise; routine support helps."))
+        challenges.append(BiText("பித்ரு தொடர்பான மன அழுத்த உணர்வு உயரலாம்; ஒழுங்கான வழக்க ஆதரவு உதவும்.", "Pitru-linked stress sensitivity may rise; routine support helps."))
     score = max(0, min(100, score))
+    top_supports = [b.ta for b in supports[:2]] if supports else []
+    top_challenges = [b.ta for b in challenges[:2]] if challenges else []
+    top_supports_en = [b.en for b in supports[:2]] if supports else []
+    top_challenges_en = [b.en for b in challenges[:2]] if challenges else []
+
     if score >= 70:
         confidence = "HIGH"
+        support_phrase = "குறிப்பாக " + " மற்றும் ".join(top_supports) if top_supports else "லக்னம் மற்றும் தசை ஆதரவாக உள்ளன"
         main = (
-            "ஆரோக்கிய நிலை மேலாண்மைக்கு நல்ல ஆதரவு உள்ளது; தடுப்பு பழக்கங்களை தொடரவும்.",
-            "Health-management support is good; continue preventive routines.",
+            f"ஆரோக்கிய மேலாண்மைக்கு நல்ல ஆதரவு காணப்படுகிறது. {support_phrase}. "
+            "தடுப்பு பழக்கங்களை தொடர்ந்து பின்பற்றுங்கள்.",
+            f"Health-management support is strong. {'; '.join(top_supports_en) if top_supports_en else 'Lagna and dasha are supportive'}. "
+            "Continue preventive routines consistently.",
         )
     elif score >= 50:
         confidence = "MEDIUM"
+        support_phrase = " மற்றும் ".join(top_supports) if top_supports else ""
+        challenge_phrase = "ஆனால் " + " மற்றும் ".join(top_challenges) if top_challenges else "சில கவலைகள் உள்ளன"
         main = (
-            "ஆரோக்கிய சிக்னல்கள் கலப்பு நிலையில் உள்ளதால் ஒழுங்கான வாழ்க்கை முறை அவசியம்.",
-            "Health indicators are mixed, so consistent routine and monitoring are important.",
+            f"ஆரோக்கிய சிக்னல்கள் கலந்த நிலையில் உள்ளன. {support_phrase + ' ' if support_phrase else ''}{challenge_phrase}. "
+            "ஒழுங்கான வாழ்க்கை முறை மற்றும் கண்காணிப்பு அவசியம்.",
+            f"Health indicators are mixed. {'; '.join(top_supports_en) if top_supports_en else ''} {'but ' + '; '.join(top_challenges_en) if top_challenges_en else ''}. "
+            "Consistent routine and monitoring are important.",
         )
     else:
         confidence = "LOW"
+        challenge_phrase = "முக்கியமாக " + " மற்றும் ".join(top_challenges) if top_challenges else "தற்போதைய நிலை கவனம் தேவைப்படுகிறது"
         main = (
-            "உடல் அறிகுறிகளை புறக்கணிக்காமல் உடனடி தடுப்பு அணுகுமுறையை பின்பற்றவும்.",
-            "Do not ignore symptoms; follow a prompt preventive-care approach.",
+            f"உடல் அறிகுறிகளை புறக்கணிக்காதீர்கள். {challenge_phrase}. "
+            "உடனடி தடுப்பு அணுகுமுறையை பின்பற்றவும்; மருத்துவ ஆலோசனை தேவைப்பட்டால் தாமதிக்காதீர்கள்.",
+            f"Do not ignore physical symptoms. {'; '.join(top_challenges_en) if top_challenges_en else 'Conditions require attention'}. "
+            "Follow a prompt preventive-care approach; do not delay medical consultation if needed.",
         )
 
     transit_support = "PARTIAL"
