@@ -16,7 +16,7 @@ function Section({ title, children }: { title: string; accent?: string; children
       display: "flex", flexDirection: "column", gap: "var(--space-3)",
       fontFamily: "var(--font-body)",
     }}>
-      <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+      <p className="cd-kicker--inline" style={{ letterSpacing: "0.1em" }}>
         {title}
       </p>
       {children}
@@ -226,7 +226,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
 
       {/* ── Executive summary ── */}
       <div style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", background: "var(--color-surface)", border: "1px solid var(--color-border)", fontFamily: "var(--font-body)" }}>
-        <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-score-mid)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+        <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", color: "var(--color-score-mid)", letterSpacing: "0.1em" }}>
           {t("jadhagam_executive", lang)}
         </p>
         <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.125rem", fontWeight: 500, color: "var(--color-text-strong)", lineHeight: 1.55 }}>
@@ -356,7 +356,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
 
       {/* ── This year's guidance ── */}
       <div style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", background: "var(--color-surface)", border: "1px solid var(--color-border)", fontFamily: "var(--font-body)" }}>
-        <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.625rem", fontWeight: 700, color: "#1e5a8c", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+        <p className="cd-kicker" style={{ marginBottom: "var(--space-2)", color: "#1e5a8c", letterSpacing: "0.1em" }}>
           {t("jadhagam_year_guidance", lang)}
         </p>
         <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-text-strong)", lineHeight: 1.6 }}>
@@ -380,7 +380,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
 
       {/* ── Remedies ── */}
       <div style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.25)", fontFamily: "var(--font-body)" }}>
-        <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-score-mid)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+        <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", color: "var(--color-score-mid)", letterSpacing: "0.1em" }}>
           {t("jadhagam_remedies", lang)}
         </p>
         <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.875rem", color: "#7a3412", lineHeight: 1.4 }}>

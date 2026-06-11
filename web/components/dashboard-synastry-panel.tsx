@@ -333,7 +333,7 @@ export function SynastryPanel({
 
       {/* Header */}
       <div>
-        <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+        <p className="cd-kicker">
           {t("synastry_panel_title", lang)}
         </p>
         <p style={{ margin: 0, fontSize: "0.875rem", color: "#7A6F5E" }}>
@@ -403,7 +403,7 @@ export function SynastryPanel({
                       </span>
                     </div>
                     <div style={{ flex: 1, minWidth: "180px" }}>
-                      <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+                      <p className="cd-kicker" style={{ letterSpacing: "0.1em" }}>
                         {t("synastry_summary", lang)}
                       </p>
                       <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
@@ -425,7 +425,7 @@ export function SynastryPanel({
                   {/* Caution */}
                   {synastry.caution && (
                     <div style={{ padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)", background: "#F2D8CC", border: "1px solid rgba(168,72,47,0.3)" }}>
-                      <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#A8482F", display: "flex", alignItems: "center", gap: "4px" }}>
+                      <p className="cd-kicker" style={{ color: "#A8482F", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: "4px" }}>
                         <svg viewBox="0 0 24 24" fill="none" width="12" height="12" aria-hidden="true"><path d="M12 3L21 20H3L12 3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M12 9V13.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
                         {t("synastry_caution", lang)}
                       </p>
@@ -438,7 +438,7 @@ export function SynastryPanel({
                   {/* Chart comparison */}
                   <div style={{ background: "#FAF5EA", border: "1px solid #E4DBC8", borderRadius: "var(--radius-md)", padding: "var(--space-4)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-3)", flexWrap: "wrap", gap: "var(--space-2)" }}>
-                      <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+                      <p className="cd-kicker--inline" style={{ letterSpacing: "0.1em" }}>
                         {lang === "ta" ? "இரு ஜாதக கட்ட ஒப்பீடு" : "Chart Comparison"}
                       </p>
                       <div style={{ display: "flex", gap: "var(--space-1_5)" }}>
@@ -453,7 +453,7 @@ export function SynastryPanel({
                   {/* Aspects */}
                   {(synastry.aspects ?? []).length > 0 && (
                     <div>
-                      <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+                      <p className="cd-kicker" style={{ marginBottom: "var(--space-2_5)", letterSpacing: "0.1em" }}>
                         {t("synastry_aspects", lang)}
                       </p>
                       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
@@ -494,7 +494,7 @@ export function SynastryPanel({
                   {/* Timing indicators */}
                   {(synastry.timingIndicators ?? []).length > 0 && (
                     <div style={{ padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.25)" }}>
-                      <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#B85A2C" }}>
+                      <p className="cd-kicker" style={{ marginBottom: "var(--space-2_5)", letterSpacing: "0.1em", color: "#B85A2C" }}>
                         {t("synastry_timing", lang)}
                       </p>
                       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
@@ -582,7 +582,7 @@ export function SynastryPanel({
                   {/* Marriage chart comparison */}
                   {poruthamContext === "MARRIAGE" && (
                     <div style={{ background: "#FAF5EA", border: "1px solid #E4DBC8", borderRadius: "var(--radius-md)", padding: "var(--space-4)" }}>
-                      <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+                      <p className="cd-kicker" style={{ marginBottom: "var(--space-3)", letterSpacing: "0.1em" }}>
                         {lang === "ta" ? "திருமண ஜாதக கட்ட ஒப்பீடு (D1)" : "Marriage Chart Comparison (D1)"}
                       </p>
                       <ChartComparisonCard lang={lang} ownerChart={ownerChart} memberChart={poruthamMemberChart} view="D1" />

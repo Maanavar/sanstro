@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetchJson } from "@/lib/api";
-import { getScoreBand, formatClockLabel } from "@/lib/format";
+import { getScoreBand, formatClockLabel, scoreColor, SCORE_HIGH, SCORE_MID, SCORE_LOW } from "@/lib/format";
 import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
@@ -26,9 +26,12 @@ import type {
 
 import { SynastryMatrix } from "./synastry-matrix";
 import { SynastryPanel } from "./dashboard-synastry-panel";
+import { AlertGlyph } from "./icons";
 import { DASHA_COLORS, dashaStatus } from "./dashboard-dasha";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import { ChartExplanationPanel } from "./dashboard-chart-explanation";
+
+const SCORE_CHIP_KEYS = ["moonTransit", "dashaSupport", "panchangam"] as const;
 
 type MemberChartData = {
   memberId: string;
@@ -71,25 +74,7 @@ type DashboardFamilyTabProps = {
   onEditMember: (member: FamilyAggregateMember) => void;
 };
 
-const SCORE_HIGH = "var(--color-score-high, #5C7654)";
-const SCORE_MID = "var(--color-score-mid, #B85A2C)";
-const SCORE_LOW = "var(--color-score-low, #A8482F)";
 
-function scoreColor(score: number): string {
-  if (score >= 65) return SCORE_HIGH;
-  if (score >= 45) return SCORE_MID;
-  return SCORE_LOW;
-}
-
-function AlertGlyph() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 3L21 20H3L12 3Z" stroke={SCORE_MID} strokeWidth="2" strokeLinejoin="round" />
-      <path d="M12 9V13.8" stroke={SCORE_MID} strokeWidth="2" strokeLinecap="round" />
-      <circle cx="12" cy="17.2" r="1.2" fill={SCORE_MID} />
-    </svg>
-  );
-}
 
 /* ── Score ring ─────────────────────────────────────────── */
 function ScoreRing({ score, size = 72 }: { score: number; size?: number }) {
@@ -122,9 +107,7 @@ function ScoreRing({ score, size = 72 }: { score: number; size?: number }) {
 function SevenDayBars({ scores, labels }: { scores: number[]; labels: string[] }) {
   return (
     <div>
-      <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
-        7-DAY OUTLOOK
-      </p>
+      <p className="cd-kicker" style={{ marginBottom: "var(--space-2)" }}>7-DAY OUTLOOK</p>
       {/* score numbers above bars */}
       <div style={{ display: "flex", gap: "var(--space-1)", marginBottom: "var(--space-0_75)" }}>
         {scores.map((s, i) => (
@@ -204,11 +187,7 @@ function MemberRowCard({
       {/* Top row: label + name + ring */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-3)" }}>
         <div style={{ flex: 1 }}>
-          {relLabel && (
-            <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
-              {relLabel}
-            </p>
-          )}
+          {relLabel && <p className="cd-kicker">{relLabel}</p>}
           <p style={{ margin: "0 0 var(--space-0_75)", fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 500, color: "var(--color-text-strong)", lineHeight: 1.1 }}>
             {member.displayName}
           </p>
@@ -300,11 +279,7 @@ function MemberDetailExpanded({
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-3)" }}>
         <div style={{ flex: 1 }}>
-          {relLabel && (
-            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-faint)" }}>
-              {relLabel}
-            </p>
-          )}
+          {relLabel && <p className="cd-kicker">{relLabel}</p>}
           {/* Name + Edit/Remove inline */}
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)", flexWrap: "wrap", marginBottom: "var(--space-1)" }}>
             <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.6rem", fontWeight: 500, color: "var(--color-text-strong)", lineHeight: 1.1 }}>
@@ -367,14 +342,10 @@ function MemberDetailExpanded({
       {/* Score breakdown grid */}
       {guidance?.scoreBreakdown && (
         <div className="cd-responsive-grid-3" style={{ gap: "var(--space-2_5)" }}>
-          {(["moonTransit", "dashaSupport", "panchangam"] as const).map((k) => (
+          {SCORE_CHIP_KEYS.map((k) => (
             <div key={k} style={{ padding: "var(--space-3)", borderRadius: "var(--radius-md)", background: "#FAF5EA", border: "1px solid var(--color-border)" }}>
-              <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>
-                {t(`reason_${k}` as Parameters<typeof t>[0], lang)}
-              </p>
-              <p style={{ margin: 0, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 600, color: "var(--color-text-strong)" }}>
-                {guidance.scoreBreakdown[k]}
-              </p>
+              <p className="cd-kicker">{t(`reason_${k}` as Parameters<typeof t>[0], lang)}</p>
+              <p className="cd-time-value" style={{ fontWeight: 600 }}>{guidance.scoreBreakdown[k]}</p>
             </div>
           ))}
         </div>
@@ -405,7 +376,7 @@ function MemberDetailExpanded({
       {/* Dasha · Bhukti · Antaram */}
       {dasha && (
         <div style={{ borderRadius: "var(--radius-md)", border: `1px solid ${dashaColor}44`, background: `${dashaColor}0d`, padding: "var(--space-3_5) var(--space-4)" }}>
-          <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+          <p className="cd-kicker" style={{ marginBottom: "var(--space-2_5)" }}>
             {lang === "ta" ? "தசை · புக்தி · அந்தரம்" : "Dasa · Bhukti · Antaram"}
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
@@ -506,16 +477,19 @@ export function DashboardFamilyTab({
       return;
     }
     const today = new Date().toISOString().slice(0, 10);
+    const controller = new AbortController();
+    const { signal } = controller;
     void apiFetchJson<{ data: FamilyVaultTodayData }>(
-      `/api/v1/family-vaults/${selectedVaultId}/today?date=${today}`
+      `/api/v1/family-vaults/${selectedVaultId}/today?date=${today}`, { signal }
     )
-      .then((r) => setFamilyToday(r.data ?? null))
-      .catch(() => setFamilyToday(null));
+      .then((r) => { if (!signal.aborted) setFamilyToday(r.data ?? null); })
+      .catch(() => { if (!signal.aborted) setFamilyToday(null); });
     void apiFetchJson<{ data: FamilySummaryData }>(
-      `/api/v1/family-vaults/${selectedVaultId}/summary?date=${today}`
+      `/api/v1/family-vaults/${selectedVaultId}/summary?date=${today}`, { signal }
     )
-      .then((r) => setFamilySummary(r.data ?? null))
-      .catch(() => setFamilySummary(null));
+      .then((r) => { if (!signal.aborted) setFamilySummary(r.data ?? null); })
+      .catch(() => { if (!signal.aborted) setFamilySummary(null); });
+    return () => controller.abort();
   }, [selectedVaultId, busy.family]);
 
   const members = familyAggregate?.members ?? [];
@@ -630,9 +604,7 @@ export function DashboardFamilyTab({
           flexWrap: "wrap",
         }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-            <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
-              {lang === "ta" ? "குடும்ப சுருக்கம்" : "Family Summary"}
-            </p>
+            <p className="cd-kicker--inline">{lang === "ta" ? "குடும்ப சுருக்கம்" : "Family Summary"}</p>
             <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)" }}>
               {(familySummary?.dateLocal ?? familyToday?.date ?? selectedDate)} {vaultName ? `· ${vaultName}` : ""}
             </p>
@@ -666,9 +638,7 @@ export function DashboardFamilyTab({
           padding: "var(--space-6)", boxShadow: "0 2px 16px rgba(60,40,20,0.07)",
           display: "flex", flexDirection: "column", gap: "var(--space-4)",
         }}>
-          <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-faint)" }}>
-            {lang === "ta" ? "குடும்பம் இன்று" : "FAMILY TODAY"}
-          </p>
+          <p className="cd-kicker--inline">{lang === "ta" ? "குடும்பம் இன்று" : "FAMILY TODAY"}</p>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-3)" }}>
             <div>
               <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "3.4rem", fontWeight: 500, lineHeight: 1, color: "var(--color-text-strong)" }}>
@@ -682,19 +652,19 @@ export function DashboardFamilyTab({
             {familyScore > 0 && <ScoreRing score={familyScore} size={88} />}
           </div>
           <div className="cd-responsive-grid-2" style={{ gap: "var(--space-2_5)" }}>
-            <div style={{ borderRadius: "var(--radius-md)", background: "#DCE4D2", border: "1px solid rgba(92,118,84,0.3)", padding: "var(--space-3)" }}>
-              <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: SCORE_HIGH }}>
+            <div className="cd-time-slot" style={{ background: "#DCE4D2", border: "1px solid rgba(92,118,84,0.3)" }}>
+              <p className="cd-kicker" style={{ color: SCORE_HIGH }}>
                 {lang === "ta" ? "பகிர்ந்த சிறந்த நேரம்" : "BEST SHARED"}
               </p>
-              <p style={{ margin: 0, fontFamily: "var(--font-mono)", fontSize: "0.875rem", fontWeight: 600, color: SCORE_HIGH }}>
+              <p className="cd-time-value" style={{ fontSize: "0.875rem", color: SCORE_HIGH }}>
                 {bestWindow ? `${formatClockLabel(bestWindow.start)} – ${formatClockLabel(bestWindow.end)}` : "—"}
               </p>
             </div>
-            <div style={{ borderRadius: "var(--radius-md)", background: "#F2D8CC", border: "1px solid rgba(168,72,47,0.3)", padding: "var(--space-3)" }}>
-              <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: SCORE_LOW }}>
+            <div className="cd-time-slot" style={{ background: "#F2D8CC", border: "1px solid rgba(168,72,47,0.3)" }}>
+              <p className="cd-kicker" style={{ color: SCORE_LOW }}>
                 {lang === "ta" ? "தவிர்க்கவும்" : "AVOID"}
               </p>
-              <p style={{ margin: 0, fontFamily: "var(--font-mono)", fontSize: "0.875rem", fontWeight: 600, color: SCORE_LOW }}>
+              <p className="cd-time-value" style={{ fontSize: "0.875rem", color: SCORE_LOW }}>
                 {avoidWindow ? `${formatClockLabel(avoidWindow.start)} – ${formatClockLabel(avoidWindow.end)}` : "—"}
               </p>
             </div>
@@ -722,7 +692,7 @@ export function DashboardFamilyTab({
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
           {todayMembers.length > 0 && (
             <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3)" }}>
-              <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+              <p className="cd-kicker" style={{ marginBottom: "var(--space-2)" }}>
                 {lang === "ta" ? "இன்றைய உறுப்பினர் சுருக்கம்" : "Today Snapshot"}
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "var(--space-2)" }}>

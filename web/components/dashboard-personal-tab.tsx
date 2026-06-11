@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
-import { formatClockLabel, formatDateLabel, getScoreBand } from "@/lib/format";
+import { formatClockLabel, formatDateLabel, getScoreBand, scoreColor, SCORE_HIGH, SCORE_MID, SCORE_LOW } from "@/lib/format";
 import { gowriCategoryLabel, gowriPeriodLabel, gowriPurposeLabel } from "@/lib/gowri";
 import { t, tLang, tTithi, tNakshatra, tWeekday, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -46,6 +46,15 @@ import { ChartExplanationPanel } from "./dashboard-chart-explanation";
 import { ShareCardButton } from "./dashboard-share-card";
 import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
 
+const EMOTIONAL_WEATHER_FIELDS = [
+  { labelTa: "உணர்வு நிலை", labelEn: "Emotional tone", key: "toneText" as const },
+  { labelTa: "உடல் போக்கு", labelEn: "Physical tendency", key: "physicalTendencyText" as const },
+  { labelTa: "சிறந்த பயன்பாடு", labelEn: "Best use of day", key: "bestUseOfDayText" as const },
+] as const;
+
+const SCORE_CHIP_KEYS = ["moonTransit", "dashaSupport", "panchangam"] as const;
+const GUIDANCE_REASON_KEYS = ["moonTransit", "dashaSupport", "panchangam", "gochar", "personalCaution"] as const;
+
 type DashboardPersonalTabProps = {
   lang: Lang;
   birthDisplayName: string;
@@ -88,15 +97,6 @@ type DashboardPersonalTabProps = {
   dashaAntar: DashaTimelineItem[];
 };
 
-const SCORE_HIGH = "var(--color-score-high, #5C7654)";
-const SCORE_MID = "var(--color-score-mid, #B85A2C)";
-const SCORE_LOW = "var(--color-score-low, #A8482F)";
-
-function scoreColor(score: number) {
-  if (score >= 65) return SCORE_HIGH;
-  if (score >= 45) return SCORE_MID;
-  return SCORE_LOW;
-}
 
 function kalamSlotKey(
   slot: PanchangamDailyResponseData["kalam"]["nallaNeram"][number],
@@ -190,6 +190,147 @@ function DayTimeline({
   );
 }
 
+type HeroProps = {
+  lang: Lang;
+  displayName: string;
+  dateLabel: string;
+  guidanceHeadline: string;
+  score: number | null;
+  personalScoreBand: ReturnType<typeof getScoreBand> | null;
+  personalDailyGuidance: import("@/lib/types").DailyGuidanceData | null;
+  bestWindow: import("@/lib/types").DailyGuidanceData["bestWindows"][number] | null;
+  avoidWindow: import("@/lib/types").DailyGuidanceData["cautionWindows"][number] | null;
+  panchangam: import("@/lib/types").PanchangamDailyResponseData | null;
+  panchangamTimings: import("@/lib/types").PanchangamTimingsData | null;
+  personalChartSummary: import("@/lib/types").ChartSummaryData | null;
+  astroText: (v: string) => string;
+};
+
+const PersonalHero = memo(function PersonalHero({
+  lang, displayName, dateLabel, guidanceHeadline, score, personalScoreBand,
+  personalDailyGuidance, bestWindow, avoidWindow, panchangam, personalChartSummary, astroText,
+}: HeroProps) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: "var(--space-7)", alignItems: "start" }}>
+      <div>
+        <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#B85A2C" }}>
+          {dateLabel}
+        </p>
+        {personalDailyGuidance ? (
+          <>
+            <h1 style={{ margin: "0 0 var(--space-4)", fontFamily: "var(--font-display)", fontSize: "clamp(2.2rem, 4vw, 3.2rem)", fontWeight: 500, letterSpacing: "-0.03em", lineHeight: 1.05, color: "#1A1612" }}>
+              Today is{" "}
+              <em style={{ fontStyle: "italic", color: "#7A6F5E" }}>
+                {personalDailyGuidance.label.toLowerCase()}.
+              </em>
+              <br />
+              {guidanceHeadline && !guidanceHeadline.includes("Today") ? guidanceHeadline : "Move step by step."}
+            </h1>
+            <p style={{ margin: "0 0 var(--space-5)", fontSize: "1rem", lineHeight: 1.7, color: "#3D352B", maxWidth: "52ch" }}>
+              {lang === "ta" ? personalDailyGuidance.text.ta : personalDailyGuidance.text.en}
+            </p>
+          </>
+        ) : (
+          <h1 style={{ margin: "0 0 var(--space-4)", fontFamily: "var(--font-display)", fontSize: "clamp(2.2rem, 4vw, 3.2rem)", fontWeight: 500, letterSpacing: "-0.03em", color: "#1A1612" }}>
+            {displayName ? `${displayName}'s day` : "Your day"}
+          </h1>
+        )}
+        {personalDailyGuidance && (
+          <DayTimeline
+            bestStart={bestWindow?.start}
+            bestEnd={bestWindow?.end}
+            holdStart={avoidWindow?.start}
+            holdEnd={avoidWindow?.end}
+          />
+        )}
+      </div>
+
+      {personalDailyGuidance && (
+        <div className="cd-card--lg">
+          <p className="cd-kicker">{t("personal_today", lang)}</p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-3)" }}>
+            <div>
+              <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "3.5rem", fontWeight: 500, lineHeight: 1, color: "#1A1612" }}>
+                {score}
+                <span style={{ fontSize: "1.25rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>/100</span>
+              </p>
+              <span
+                className="cd-score-pill"
+                style={{
+                  marginTop: "var(--space-2)",
+                  background: score !== null && score >= 65 ? "#DCE4D2" : score !== null && score >= 45 ? "#F0D9C4" : "#F2D8CC",
+                  color: score !== null ? scoreColor(score) : SCORE_MID,
+                }}
+              >
+                {personalDailyGuidance.label}
+              </span>
+            </div>
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <ScoreRing score={score ?? 0} />
+              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 500, color: score !== null ? scoreColor(score) : SCORE_MID }}>
+                {score}
+              </div>
+            </div>
+          </div>
+
+          <div className="cd-window-grid">
+            <div className="cd-time-slot">
+              <p className="cd-kicker">{lang === "ta" ? "நல்ல நேரம்" : "Nalla Neram"}</p>
+              {(panchangam?.kalam?.nallaNeram?.length ?? 0) > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
+                  {panchangam!.kalam.nallaNeram.map((w, idx) => {
+                    const lbl = gowriPeriodLabel(w.period, lang);
+                    const category = gowriCategoryLabel(w.name, lang);
+                    const purpose = gowriPurposeLabel(w.name, lang);
+                    return (
+                      <div key={kalamSlotKey(w, idx)} style={{ display: "grid", gap: "2px" }}>
+                        <div>{[lbl, category].filter(Boolean).map((part) => <span key={part} style={{ fontSize: "0.6rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-faint)", marginRight: "4px" }}>{part}</span>)}</div>
+                        <span className="cd-time-value" style={{ fontSize: "0.9rem" }}>{formatClockLabel(w.start)} – {formatClockLabel(w.end)}</span>
+                        {purpose && <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--color-muted)" }}>{purpose}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : bestWindow ? (
+                <p className="cd-time-value">{formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)}</p>
+              ) : <p style={{ margin: 0, color: "var(--color-faint)", fontSize: "0.875rem" }}>—</p>}
+            </div>
+            <div className="cd-time-slot">
+              <p className="cd-kicker">{lang === "ta" ? "யமகண்டம்" : "Yamagandam"}</p>
+              {panchangam?.kalam?.yamagandam ? (
+                <p className="cd-time-value">{formatClockLabel(panchangam.kalam.yamagandam.start)} – {formatClockLabel(panchangam.kalam.yamagandam.end)}</p>
+              ) : <p style={{ margin: 0, color: "var(--color-faint)", fontSize: "0.875rem" }}>—</p>}
+            </div>
+            <div className="cd-time-slot" style={{ background: "#DCE4D2", border: "1px solid rgba(92,118,84,0.3)" }}>
+              <p className="cd-kicker" style={{ color: SCORE_HIGH }}>
+                {panchangam?.kalam?.kuligai ? (lang === "ta" ? "குளிகை" : "Kuligai") : t("action_best_window", lang)}
+              </p>
+              <p className="cd-time-value" style={{ color: SCORE_HIGH }}>
+                {panchangam?.kalam?.kuligai ? `${formatClockLabel(panchangam.kalam.kuligai.start)} – ${formatClockLabel(panchangam.kalam.kuligai.end)}` : bestWindow ? `${formatClockLabel(bestWindow.start)} – ${formatClockLabel(bestWindow.end)}` : "—"}
+              </p>
+            </div>
+            <div className="cd-time-slot" style={{ background: "#F2D8CC", border: "1px solid rgba(168,72,47,0.3)" }}>
+              <p className="cd-kicker" style={{ color: SCORE_LOW }}>{lang === "ta" ? "ராகு காலம்" : "Rahu Kalam"}</p>
+              <p className="cd-time-value" style={{ color: SCORE_LOW }}>
+                {panchangam?.kalam?.rahuKalam ? `${formatClockLabel(panchangam.kalam.rahuKalam.start)} – ${formatClockLabel(panchangam.kalam.rahuKalam.end)}` : avoidWindow ? `${formatClockLabel(avoidWindow.start)} – ${formatClockLabel(avoidWindow.end)}` : "—"}
+              </p>
+            </div>
+          </div>
+
+          {personalChartSummary && (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "var(--space-2_5)", borderTop: "1px solid #E4DBC8", flexWrap: "wrap", gap: "var(--space-1_5)" }}>
+              <span style={{ fontSize: "0.75rem", color: "#7A6F5E" }}>
+                {personalChartSummary.lagnaRasi} {t("label_lagnam", lang)} · {astroText(personalChartSummary.janmaNakshatra)} ☉ {personalChartSummary.moonRasi}
+              </span>
+              <span className="cd-kicker--inline">D1 · D9 ready</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+});
+
 export function DashboardPersonalTab({
   lang,
   birthDisplayName,
@@ -248,29 +389,20 @@ export function DashboardPersonalTab({
       return;
     }
     const returnYear = Number.parseInt((selectedDate || "").slice(0, 4), 10) || new Date().getFullYear();
-    let cancelled = false;
+    const controller = new AbortController();
+    const { signal } = controller;
 
-    void apiFetchJson<{ success: boolean; data: CharaDashaData }>(`/api/v1/charts/${activeChartId}/chara-dasha`)
-      .then((res) => {
-        if (!cancelled) setCharaDasha(res.data ?? null);
-      })
-      .catch(() => {
-        if (!cancelled) setCharaDasha(null);
-      });
+    void apiFetchJson<{ success: boolean; data: CharaDashaData }>(`/api/v1/charts/${activeChartId}/chara-dasha`, { signal })
+      .then((res) => { if (!signal.aborted) setCharaDasha(res.data ?? null); })
+      .catch(() => { if (!signal.aborted) setCharaDasha(null); });
 
     void apiFetchJson<{ success: boolean; data: SolarReturnData }>(
-      `/api/v1/charts/${activeChartId}/solar-return?year=${returnYear}`
+      `/api/v1/charts/${activeChartId}/solar-return?year=${returnYear}`, { signal }
     )
-      .then((res) => {
-        if (!cancelled) setSolarReturn(res.data ?? null);
-      })
-      .catch(() => {
-        if (!cancelled) setSolarReturn(null);
-      });
+      .then((res) => { if (!signal.aborted) setSolarReturn(res.data ?? null); })
+      .catch(() => { if (!signal.aborted) setSolarReturn(null); });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [activeChartId, selectedDate]);
 
   async function downloadPersonalChartPdf() {
@@ -385,7 +517,7 @@ export function DashboardPersonalTab({
 
       {/* ── Panchangam drop (above alerts) ── */}
       {panchangam && (
-        <div style={{ padding: "var(--space-3_5) var(--space-4_5)", borderRadius: "var(--radius-md)", border: "1px solid #E4DBC8", background: "#FAF5EA" }}>
+        <div className="cd-panchangam-surface">
           <CollapsibleSection
             title={
               <span style={{ fontSize: "0.875rem", color: "#3D352B" }}>
@@ -449,16 +581,12 @@ export function DashboardPersonalTab({
       )}
 
       {/* ── Action bar: refresh + PDF (personal tab is root-user only) ── */}
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)", flexWrap: "wrap" }}>
+      <div className="cd-action-bar">
         <button
           type="button"
           onClick={() => onRefreshPersonal()}
           disabled={!birthProfileId || busyPersonal}
-          style={{
-            padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)",
-            border: "1px solid #D4C8AE", background: "transparent",
-            color: "#7A6F5E", fontSize: "0.875rem", cursor: "pointer", fontFamily: "inherit",
-          }}
+          className="cd-btn-pill"
         >
           {busyPersonal ? t("btn_refreshing", lang) : t("btn_refresh", lang)}
         </button>
@@ -490,211 +618,21 @@ export function DashboardPersonalTab({
       </div>
 
       {/* ── HERO: Left headline + Right score card ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: "var(--space-7)", alignItems: "start" }}>
-
-        {/* Left: Big headline */}
-        <div>
-          <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#B85A2C" }}>
-            {dateLabel}
-          </p>
-
-          {personalDailyGuidance ? (
-            <>
-              <h1 style={{
-                margin: "0 0 var(--space-4)",
-                fontFamily: "var(--font-display)",
-                fontSize: "clamp(2.2rem, 4vw, 3.2rem)",
-                fontWeight: 500,
-                letterSpacing: "-0.03em",
-                lineHeight: 1.05,
-                color: "#1A1612",
-              }}>
-                Today is{" "}
-                <em style={{ fontStyle: "italic", color: "#7A6F5E" }}>
-                  {personalDailyGuidance.label.toLowerCase()}.
-                </em>
-                <br />
-                {guidanceHeadline && !guidanceHeadline.includes("Today") ? guidanceHeadline : "Move step by step."}
-              </h1>
-
-              <p style={{ margin: "0 0 var(--space-5)", fontSize: "1rem", lineHeight: 1.7, color: "#3D352B", maxWidth: "52ch" }}>
-                {tLang(personalDailyGuidance.text, lang)}
-              </p>
-            </>
-          ) : (
-            <h1 style={{
-              margin: "0 0 var(--space-4)",
-              fontFamily: "var(--font-display)",
-              fontSize: "clamp(2.2rem, 4vw, 3.2rem)",
-              fontWeight: 500,
-              letterSpacing: "-0.03em",
-              color: "#1A1612",
-            }}>
-              {displayName ? `${displayName}'s day` : "Your day"}
-            </h1>
-          )}
-
-          {/* Day timeline */}
-          {personalDailyGuidance && (
-            <DayTimeline
-              bestStart={bestWindow?.start}
-              bestEnd={bestWindow?.end}
-              holdStart={avoidWindow?.start}
-              holdEnd={avoidWindow?.end}
-            />
-          )}
-        </div>
-
-        {/* Right: Score card */}
-        {personalDailyGuidance && (
-          <div style={{
-            background: "#FFFFFF",
-            border: "1px solid #E4DBC8",
-            borderRadius: "var(--radius-lg)",
-            padding: "var(--space-6)",
-            boxShadow: "0 4px 24px rgba(60,40,20,0.1)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "var(--space-4)",
-          }}>
-            {/* TODAY label */}
-            <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-faint)" }}>
-              {t("personal_today", lang)}
-            </p>
-
-            {/* Score + ring */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-3)" }}>
-              <div>
-                <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "3.5rem", fontWeight: 500, lineHeight: 1, color: "#1A1612" }}>
-                  {score}
-                  <span style={{ fontSize: "1.25rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>/100</span>
-                </p>
-                <span style={{
-                  display: "inline-block", marginTop: "var(--space-2)",
-                  padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)",
-                  background: score !== null && score >= 65 ? "#DCE4D2" : score !== null && score >= 45 ? "#F0D9C4" : "#F2D8CC",
-                  color: score !== null ? scoreColor(score) : SCORE_MID,
-                  fontSize: "0.75rem", fontWeight: 600,
-                }}>
-                  {personalDailyGuidance.label}
-                </span>
-              </div>
-              <div style={{ position: "relative", flexShrink: 0 }}>
-                <ScoreRing score={score ?? 0} />
-                <div style={{
-                  position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                  fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 500,
-                  color: score !== null ? scoreColor(score) : SCORE_MID,
-                }}>
-                  {score}
-                </div>
-              </div>
-            </div>
-
-            {/* Nalla Neram / Rahu Kalam windows */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "var(--space-2_5)" }}>
-              {/* Nalla Neram (best window) */}
-              <div style={{
-                borderRadius: "var(--radius-md)",
-                border: `1.5px solid #E4DBC8`,
-                padding: "var(--space-3)",
-              }}>
-                <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
-                  {lang === "ta" ? "நல்ல நேரம்" : "Nalla Neram"}
-                </p>
-                {(panchangam?.kalam?.nallaNeram?.length ?? 0) > 0 ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
-                    {panchangam!.kalam.nallaNeram.map((w, idx) => {
-                      const lbl = gowriPeriodLabel(w.period, lang);
-                      const category = gowriCategoryLabel(w.name, lang);
-                      const purpose = gowriPurposeLabel(w.name, lang);
-                      return (
-                        <div key={kalamSlotKey(w, idx)} style={{ display: "grid", gap: "2px" }}>
-                          <div>
-                            {[lbl, category].filter(Boolean).map((part) => (
-                              <span key={part} style={{ fontSize: "0.6rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-faint)", marginRight: "4px" }}>{part}</span>
-                            ))}
-                          </div>
-                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem", fontWeight: 500, color: "#1A1612" }}>{formatClockLabel(w.start)} – {formatClockLabel(w.end)}</span>
-                          {purpose && <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--color-muted)" }}>{purpose}</span>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : bestWindow ? (
-                  <p style={{ margin: 0, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 500, color: "#1A1612" }}>
-                    {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)}
-                  </p>
-                ) : <p style={{ margin: 0, color: "var(--color-faint)", fontSize: "0.875rem" }}>—</p>}
-              </div>
-
-              {/* Yamagandam */}
-              <div style={{
-                borderRadius: "var(--radius-md)",
-                border: "1.5px solid #E4DBC8",
-                padding: "var(--space-3)",
-              }}>
-                <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
-                  {lang === "ta" ? "யமகண்டம்" : "Yamagandam"}
-                </p>
-                {panchangam?.kalam?.yamagandam ? (
-                  <p style={{ margin: 0, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 500, color: "#1A1612" }}>
-                    {formatClockLabel(panchangam.kalam.yamagandam.start)} – {formatClockLabel(panchangam.kalam.yamagandam.end)}
-                  </p>
-                ) : <p style={{ margin: 0, color: "var(--color-faint)", fontSize: "0.875rem" }}>—</p>}
-              </div>
-
-              {/* Best Window */}
-              <div style={{
-                borderRadius: "var(--radius-md)",
-                background: "#DCE4D2",
-                border: "1px solid rgba(92,118,84,0.3)",
-                padding: "var(--space-3)",
-              }}>
-                <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: SCORE_HIGH }}>
-                  {panchangam?.kalam?.kuligai ? (lang === "ta" ? "குளிகை" : "Kuligai") : t("action_best_window", lang)}
-                </p>
-                <p style={{ margin: 0, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 500, color: SCORE_HIGH }}>
-                  {panchangam?.kalam?.kuligai
-                    ? `${formatClockLabel(panchangam.kalam.kuligai.start)} – ${formatClockLabel(panchangam.kalam.kuligai.end)}`
-                    : bestWindow
-                      ? `${formatClockLabel(bestWindow.start)} – ${formatClockLabel(bestWindow.end)}`
-                      : "—"}
-                </p>
-              </div>
-
-              {/* Rahu Kalam */}
-              <div style={{
-                borderRadius: "var(--radius-md)",
-                background: "#F2D8CC",
-                border: "1px solid rgba(168,72,47,0.3)",
-                padding: "var(--space-3)",
-              }}>
-                <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: SCORE_LOW }}>
-                  {lang === "ta" ? "ராகு காலம்" : "Rahu Kalam"}
-                </p>
-                <p style={{ margin: 0, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 500, color: SCORE_LOW }}>
-                  {panchangam?.kalam?.rahuKalam
-                    ? `${formatClockLabel(panchangam.kalam.rahuKalam.start)} – ${formatClockLabel(panchangam.kalam.rahuKalam.end)}`
-                    : avoidWindow
-                      ? `${formatClockLabel(avoidWindow.start)} – ${formatClockLabel(avoidWindow.end)}`
-                      : "—"}
-                </p>
-              </div>
-            </div>
-
-            {/* Lagna / Nakshatra / D9 footer */}
-            {personalChartSummary && (
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "var(--space-2_5)", borderTop: "1px solid #E4DBC8", flexWrap: "wrap", gap: "var(--space-1_5)" }}>
-                <span style={{ fontSize: "0.75rem", color: "#7A6F5E" }}>
-                  {personalChartSummary.lagnaRasi} {t("label_lagnam", lang)} · {astroText(personalChartSummary.janmaNakshatra)} ☉ {personalChartSummary.moonRasi}
-                </span>
-                <span style={{ fontSize: "0.625rem", fontWeight: 600, color: "var(--color-faint)" }}>D1 · D9 ready</span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      <PersonalHero
+        lang={lang}
+        displayName={displayName}
+        dateLabel={dateLabel}
+        guidanceHeadline={guidanceHeadline}
+        score={score}
+        personalScoreBand={personalScoreBand}
+        personalDailyGuidance={personalDailyGuidance}
+        bestWindow={bestWindow}
+        avoidWindow={avoidWindow}
+        panchangam={panchangam}
+        panchangamTimings={panchangamTimings}
+        personalChartSummary={personalChartSummary}
+        astroText={astroText}
+      />
 
       {/* ── Three info cards: Dasa | Nakshatra | Week Ahead ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "var(--space-4)" }}>
@@ -714,29 +652,13 @@ export function DashboardPersonalTab({
           )}
           {personalDailyGuidance?.emotionalWeather && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "var(--space-2)", marginTop: "var(--space-2_5)" }}>
-              {[
-                {
-                  labelTa: "உணர்வு நிலை",
-                  labelEn: "Emotional tone",
-                  value: lang === "ta"
-                    ? personalDailyGuidance.emotionalWeather.toneText?.ta
-                    : personalDailyGuidance.emotionalWeather.toneText?.en,
-                },
-                {
-                  labelTa: "உடல் போக்கு",
-                  labelEn: "Physical tendency",
-                  value: lang === "ta"
-                    ? personalDailyGuidance.emotionalWeather.physicalTendencyText?.ta
-                    : personalDailyGuidance.emotionalWeather.physicalTendencyText?.en,
-                },
-                {
-                  labelTa: "சிறந்த பயன்பாடு",
-                  labelEn: "Best use of day",
-                  value: lang === "ta"
-                    ? personalDailyGuidance.emotionalWeather.bestUseOfDayText?.ta
-                    : personalDailyGuidance.emotionalWeather.bestUseOfDayText?.en,
-                },
-              ].filter((row) => row.value).map((row) => (
+              {EMOTIONAL_WEATHER_FIELDS.map((field) => ({
+                labelTa: field.labelTa,
+                labelEn: field.labelEn,
+                value: lang === "ta"
+                  ? personalDailyGuidance.emotionalWeather![field.key]?.ta
+                  : personalDailyGuidance.emotionalWeather![field.key]?.en,
+              })).filter((row) => row.value).map((row) => (
                 <div key={row.labelEn} style={{
                   padding: "var(--space-2_5) var(--space-3)",
                   borderRadius: "var(--radius-md)",
@@ -770,7 +692,7 @@ export function DashboardPersonalTab({
           )}
           {personalDailyGuidance?.scoreBreakdown && (
             <div style={{ display: "flex", gap: "var(--space-1)", marginTop: "var(--space-2)" }}>
-              {(["moonTransit", "dashaSupport", "panchangam"] as const).map((k) => (
+              {SCORE_CHIP_KEYS.map((k) => (
                 <span key={k} style={{
                   padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", fontSize: "0.625rem",
                   background: "#FAF5EA", border: "1px solid #E4DBC8", color: "#7A6F5E",
@@ -1063,7 +985,7 @@ export function DashboardPersonalTab({
                 {personalDailyGuidance.reasons && (
                   <div style={{ marginTop: "var(--space-2_5)", paddingTop: "var(--space-2_5)", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
                     <p className="surface__subhead" style={{ marginBottom: "var(--space-1_5)" }}>{t("why_this_prediction", lang)}</p>
-                    {(["moonTransit", "dashaSupport", "panchangam", "gochar", "personalCaution"] as const).map((key) => (
+                    {GUIDANCE_REASON_KEYS.map((key) => (
                       <div key={key} className="cd-responsive-detail-row" style={{ marginBottom: "var(--space-1)" }}>
                         <span style={{ fontSize: "0.625rem", fontWeight: 700, color: "var(--color-muted)", minWidth: "84px", paddingTop: "var(--space-0_5)" }}>{t(`reason_${key}` as Parameters<typeof t>[0], lang)}</span>
                         <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.4 }}>{tLang(personalDailyGuidance.reasons[key], lang)}</p>

@@ -206,7 +206,7 @@ export function DashboardPlanTab({
         }}
       >
         <div>
-          <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: W.terracotta }}>
+          <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", color: W.terracotta }}>
             {t("tab_plan", lang)}
           </p>
           <h2 style={{ margin: "0 0 var(--space-1_5)", fontFamily: "var(--font-display)", fontSize: "clamp(1.75rem, 3.2vw, 2.5rem)", letterSpacing: "-0.02em", color: W.ink }}>
@@ -458,17 +458,17 @@ export function DashboardPlanTab({
                   </div>
 
                   <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#EEF6EA", border: "1px solid rgba(92,118,84,0.2)" }}>
-                    <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, color: "#5C7654" }}>{t("whatif_best_period", lang)}</p>
+                    <p className="cd-kicker" style={{ color: "#5C7654" }}>{t("whatif_best_period", lang)}</p>
                     <p style={{ margin: 0, fontSize: "0.75rem", color: W.inkMid, lineHeight: 1.5 }}>{lang === "ta" ? r.bestPeriodInWindow.ta : r.bestPeriodInWindow.en}</p>
                   </div>
 
                   <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#F6EFE2", border: "1px solid rgba(184,90,44,0.2)" }}>
-                    <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, color: "#B85A2C" }}>{t("whatif_caution", lang)}</p>
+                    <p className="cd-kicker" style={{ color: "#B85A2C" }}>{t("whatif_caution", lang)}</p>
                     <p style={{ margin: 0, fontSize: "0.75rem", color: W.inkMid, lineHeight: 1.5 }}>{lang === "ta" ? r.cautionNote.ta : r.cautionNote.en}</p>
                   </div>
 
                   <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#F6EFE2", border: "1px solid rgba(184,90,44,0.25)" }}>
-                    <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, color: "#B85A2C" }}>{t("whatif_remedy", lang)}</p>
+                    <p className="cd-kicker" style={{ color: "#B85A2C" }}>{t("whatif_remedy", lang)}</p>
                     <p style={{ margin: 0, fontSize: "0.75rem", color: W.inkMid, lineHeight: 1.5 }}>{lang === "ta" ? r.remedy.ta : r.remedy.en}</p>
                   </div>
 
@@ -604,7 +604,7 @@ export function DashboardPlanTab({
 
           {/* ── Step 2: Muhurta time-slot picker ─────────────────────── */}
           <div style={{ marginTop: "var(--space-1)" }}>
-            <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+            <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", letterSpacing: "0.1em" }}>
               {lang === "ta" ? "படி 2 — சரியான நேரம் கண்டறிய (முஹூர்த்தம்)" : "Step 2 — Find the right hour (Muhurta)"}
             </p>
             <DashboardMuhurtaPicker

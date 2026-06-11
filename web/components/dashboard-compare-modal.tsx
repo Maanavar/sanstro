@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { t } from "@/lib/i18n";
+import { scoreColorPct } from "@/lib/format";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, ChartCalculateResponseData, DirectPoruthamData } from "@/lib/types";
 import { RasiChart } from "./dashboard-charts";
@@ -30,11 +31,7 @@ const EMPTY_FORM: BirthForm = {
   birthTimezone: "Asia/Kolkata",
 };
 
-function scoreColor(pct: number): string {
-  if (pct >= 0.7) return "var(--color-score-high, #5C7654)";
-  if (pct >= 0.4) return "var(--color-score-mid, #B85A2C)";
-  return "var(--color-score-low, #A8482F)";
-}
+const scoreColor = scoreColorPct;
 
 interface CompareModalProps {
   lang: Lang;

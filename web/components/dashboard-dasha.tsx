@@ -1,11 +1,12 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { CheckGlyph, AlertGlyph } from "./icons";
 import { t, tPlanetLord } from "@/lib/i18n";
 import { plainLangDashaLord } from "@/lib/plainlang";
 import type { Mode } from "@/lib/plainlang";
 import type { Lang } from "@/lib/i18n";
 import type { DashaTimelineItem, DashaTimelineResponseData } from "@/lib/types";
+import { scoreColor, SCORE_HIGH, SCORE_MID } from "@/lib/format";
 
 export const DASHA_COLORS: Record<string, string> = {
   SUN: "#B85A2C",
@@ -19,41 +20,7 @@ export const DASHA_COLORS: Record<string, string> = {
   KETU: "#8c7a6e",
 };
 
-const SCORE_HIGH = "var(--color-score-high, #5C7654)";
-const SCORE_MID = "var(--color-score-mid, #B85A2C)";
-const SCORE_LOW = "var(--color-score-low, #A8482F)";
 
-function scoreColor(score: number): string {
-  if (score >= 65) return SCORE_HIGH;
-  if (score >= 45) return SCORE_MID;
-  return SCORE_LOW;
-}
-
-function Glyph({ children }: { children: ReactNode }) {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      {children}
-    </svg>
-  );
-}
-
-function CheckGlyph() {
-  return (
-    <Glyph>
-      <path d="M5 12.5L10 17L19 8" stroke={SCORE_HIGH} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-    </Glyph>
-  );
-}
-
-function AlertGlyph() {
-  return (
-    <Glyph>
-      <path d="M12 3L21 20H3L12 3Z" stroke={SCORE_MID} strokeWidth="2" strokeLinejoin="round" />
-      <path d="M12 9V13.8" stroke={SCORE_MID} strokeWidth="2" strokeLinecap="round" />
-      <circle cx="12" cy="17.2" r="1.2" fill={SCORE_MID} />
-    </Glyph>
-  );
-}
 
 export function dashaStatus(startDate: string, endDate: string, today: string): "past" | "active" | "upcoming" {
   if (endDate < today) return "past";
@@ -252,7 +219,7 @@ export function DashaTimeline({
 
       {dashaAntar.length > 0 && (
         <div style={{ marginLeft: "var(--space-3)", borderLeft: `2px solid ${(DASHA_COLORS[currentMahaDasa] ?? "var(--color-faint, #7A6F5E)")}44`, paddingLeft: "var(--space-3)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-          <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-muted, #675b4b)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          <p className="cd-kicker" style={{ marginBottom: "var(--space-2)", color: "var(--color-muted)", letterSpacing: "0.08em" }}>
             {t("bhukti_word", lang)}
           </p>
           {dashaAntar.map((bhukti) => {

@@ -4,8 +4,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from app.calculations.astro import house_from_reference
-from app.calculations.chart_strength import SIGN_LORD
-from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction
+from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction, house_lord_for_lagna
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,13 +18,6 @@ class HealthAssessmentInput:
     lagna_strength_score: int = 50
     pitru_dosham_label: str | None = None
     rahu_ketu_label: str | None = None
-
-
-def _house_lord(lagna_rasi: int, house: int) -> str:
-    house_rasi = ((lagna_rasi + house - 2) % 12) + 1
-    return SIGN_LORD[house_rasi]
-
-
 def assess_health_prediction(payload: HealthAssessmentInput) -> LifeAreaPrediction:
     if payload.age < 12:
         return LifeAreaPrediction(
@@ -59,10 +51,10 @@ def assess_health_prediction(payload: HealthAssessmentInput) -> LifeAreaPredicti
             supports=[BiText("நிலையான வழக்கமும் பராமரிப்பாளர் ஆதரவும் இப்போது மிக வலுவான பாதுகாப்பாகும்.", "Steady routine and caregiver support are the strongest protections now.")],
         )
 
-    lagna_lord = _house_lord(payload.lagna_rasi, 1)
-    sixth_lord = _house_lord(payload.lagna_rasi, 6)
-    eighth_lord = _house_lord(payload.lagna_rasi, 8)
-    twelfth_lord = _house_lord(payload.lagna_rasi, 12)
+    lagna_lord = house_lord_for_lagna(payload.lagna_rasi, 1)
+    sixth_lord = house_lord_for_lagna(payload.lagna_rasi, 6)
+    eighth_lord = house_lord_for_lagna(payload.lagna_rasi, 8)
+    twelfth_lord = house_lord_for_lagna(payload.lagna_rasi, 12)
 
     factors: list[AstroFactor] = []
     supports: list[BiText] = []
@@ -231,4 +223,3 @@ def assess_health_prediction(payload: HealthAssessmentInput) -> LifeAreaPredicti
         challenges=challenges,
         supports=supports,
     )
-

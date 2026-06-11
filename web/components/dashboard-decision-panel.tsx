@@ -167,14 +167,14 @@ export function DecisionPanel({ lang, chartId }: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
       <div>
-        <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <p className="cd-kicker" style={{ letterSpacing: "0.06em" }}>
           {t("decision_panel_title", lang)}
         </p>
         <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>{t("decision_panel_desc", lang)}</p>
       </div>
 
       <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", border: `1px solid ${W.borderLt}`, background: "#EEF1F8" }}>
-        <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <p className="cd-kicker" style={{ marginBottom: "var(--space-2)", letterSpacing: "0.06em" }}>
           {lang === "ta" ? "எதை எப்போது பயன்படுத்துவது?" : "When to use which tool?"}
         </p>
         <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.875rem", color: W.inkMid, lineHeight: 1.5 }}>
@@ -194,7 +194,7 @@ export function DecisionPanel({ lang, chartId }: Props) {
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)", padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)", background: W.surface, border: `1px solid ${W.borderLt}` }}>
         <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: "160px" }}>
-            <label style={{ display: "block", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, marginBottom: "var(--space-1)", textTransform: "uppercase" }}>
+            <label className="cd-kicker" style={{ display: "block" }}>
               {t("decision_scenario", lang)}
             </label>
             <select
@@ -221,7 +221,7 @@ export function DecisionPanel({ lang, chartId }: Props) {
             </select>
           </div>
           <div style={{ flex: 1, minWidth: "160px" }}>
-            <label style={{ display: "block", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, marginBottom: "var(--space-1)", textTransform: "uppercase" }}>
+            <label className="cd-kicker" style={{ display: "block" }}>
               {t("decision_target_date", lang)} *
             </label>
             <input style={fieldStyle} type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} />
@@ -230,7 +230,7 @@ export function DecisionPanel({ lang, chartId }: Props) {
 
         <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: "220px" }}>
-            <label style={{ display: "block", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, marginBottom: "var(--space-1)", textTransform: "uppercase" }}>
+            <label className="cd-kicker" style={{ display: "block" }}>
               {t("decision_option_a", lang)}
             </label>
             <input
@@ -250,7 +250,7 @@ export function DecisionPanel({ lang, chartId }: Props) {
           </div>
 
           <div style={{ flex: 1, minWidth: "220px" }}>
-            <label style={{ display: "block", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, marginBottom: "var(--space-1)", textTransform: "uppercase" }}>
+            <label className="cd-kicker" style={{ display: "block" }}>
               {t("decision_option_b", lang)}
             </label>
             <input
@@ -306,17 +306,17 @@ export function DecisionPanel({ lang, chartId }: Props) {
             }}
           >
             <div>
-              <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>{t("decision_recommended", lang)}</p>
+              <p className="cd-kicker">{t("decision_recommended", lang)}</p>
               <p style={{ margin: 0, fontSize: "1.8rem", fontWeight: 900, lineHeight: 1, color: verdictColor(result.recommended) }}>
                 {result.recommended === "DEFER" ? t("decision_defer", lang) : result.recommended}
               </p>
             </div>
             <div>
-              <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>{t("decision_confidence", lang)}</p>
+              <p className="cd-kicker">{t("decision_confidence", lang)}</p>
               <p style={{ margin: 0, fontSize: "1.5rem", fontWeight: 700, color: verdictColor(result.recommended) }}>{result.confidence}%</p>
             </div>
             <div style={{ flex: 1, minWidth: "200px" }}>
-              <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>{t("decision_reasoning", lang)}</p>
+              <p className="cd-kicker">{t("decision_reasoning", lang)}</p>
               <p style={{ margin: 0, fontSize: "0.875rem", color: W.inkMid, lineHeight: 1.5 }}>{tLang(result.reasoning, lang)}</p>
             </div>
           </div>
@@ -334,7 +334,7 @@ export function DecisionPanel({ lang, chartId }: Props) {
                 <div key={key} style={{ padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)", background: bgColor, border: `1px solid ${borderColor}` }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "var(--space-2)" }}>
                     <div>
-                      <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: accentColor, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                      <p className="cd-kicker" style={{ margin: "0 0 var(--space-0_5)", color: accentColor, letterSpacing: "0.06em" }}>
                         {t(`decision_option_${key.toLowerCase()}` as Parameters<typeof t>[0], lang)}
                       </p>
                       <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 600, color: W.inkMid }}>{data.label}</p>
@@ -363,7 +363,7 @@ export function DecisionPanel({ lang, chartId }: Props) {
 
                   {data.alignmentNotes.length > 0 && (
                     <div style={{ marginBottom: "var(--space-2)" }}>
-                      <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: isRecommended ? W.sage : W.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      <p className="cd-kicker" style={{ color: isRecommended ? W.sage : W.muted, letterSpacing: "0.05em" }}>
                         {lang === "ta" ? (isRecommended ? "Why this is stronger" : "Limiting factors") : isRecommended ? "Why this is stronger" : "Limiting factors"}
                       </p>
                       <ul style={{ margin: 0, padding: "0 0 0 var(--space-3_5)" }}>
@@ -378,7 +378,7 @@ export function DecisionPanel({ lang, chartId }: Props) {
 
                   {data.riskFactors.length > 0 && (
                     <div style={{ padding: "var(--space-1_5) var(--space-2)", borderRadius: "5px", background: "#F9ECE7", border: "1px solid rgba(168,72,47,0.2)", marginBottom: "var(--space-1_5)" }}>
-                      <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, color: W.rust, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      <p className="cd-kicker" style={{ color: W.rust, letterSpacing: "0.05em" }}>
                         {lang === "ta" ? "Watch out for" : "Watch out for"}
                       </p>
                       {data.riskFactors.map((rf, i) => (
@@ -401,7 +401,7 @@ export function DecisionPanel({ lang, chartId }: Props) {
 
           {result.caution && (
             <div style={{ padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: "#F9ECE7", border: "1px solid rgba(168,72,47,0.22)" }}>
-              <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: W.rust, textTransform: "uppercase" }}>{t("decision_caution", lang)}</p>
+              <p className="cd-kicker" style={{ color: W.rust }}>{t("decision_caution", lang)}</p>
               <p style={{ margin: 0, fontSize: "0.75rem", color: W.inkMid, lineHeight: 1.5 }}>{tLang(result.caution, lang)}</p>
             </div>
           )}

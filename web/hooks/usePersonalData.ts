@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { addDays, todayIso } from "@/lib/format";
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
@@ -36,8 +36,16 @@ type UsePersonalDataOptions = {
   onStatus?: (message: string) => void;
 };
 
+type RefreshLifeAreasInsightsOptions = {
+  preloadedLifeAreas?: LifeAreasResponseData | null;
+  requestId?: number;
+  signal?: AbortSignal;
+};
+
 export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptions) {
   const todayDate = useRef(todayIso());
+  const personalRequestIdRef = useRef(0);
+  const personalAbortRef = useRef<AbortController | null>(null);
 
   const [birthProfileId, setBirthProfileId] = useState("");
   const [birthProfileLookupDone, setBirthProfileLookupDone] = useState(false);
@@ -78,8 +86,39 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
   const [jadhagamReportLoading, setJadhagamReportLoading] = useState(false);
   const [busyPersonal, setBusyPersonal] = useState(false);
 
+  useEffect(() => () => {
+    personalAbortRef.current?.abort();
+  }, []);
+
   function reportStatus(message: string) {
     if (onStatus) onStatus(message);
+  }
+
+  function isAbortError(error: unknown): boolean {
+    return error instanceof Error && error.name === "AbortError";
+  }
+
+  function beginPersonalRequest() {
+    personalRequestIdRef.current += 1;
+    personalAbortRef.current?.abort();
+    const controller = new AbortController();
+    personalAbortRef.current = controller;
+    return { controller, requestId: personalRequestIdRef.current };
+  }
+
+  function isPersonalRequestCurrent(requestId: number) {
+    return personalRequestIdRef.current === requestId;
+  }
+
+  async function withFallback<T>(promise: Promise<T>, fallback: T): Promise<T> {
+    try {
+      return await promise;
+    } catch (error) {
+      if (isAbortError(error)) {
+        throw error;
+      }
+      return fallback;
+    }
   }
 
   function updateBirthProfileId(nextBirthProfileId: string) {
@@ -102,29 +141,61 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
     }
   }
 
-  async function refreshLifeAreasInsights(targetChartId: string, onDate: string) {
+  async function refreshLifeAreasInsights(
+    targetChartId: string,
+    onDate: string,
+    options: RefreshLifeAreasInsightsOptions = {},
+  ) {
     if (!targetChartId) return;
+    const requestId = options.requestId ?? personalRequestIdRef.current;
     try {
       const predQuery = toQuery({ asOf: onDate });
+      const lifeAreasPromise = options.preloadedLifeAreas === undefined
+        ? apiFetchJson<ApiEnvelope<LifeAreasResponseData>>(
+            `/api/v1/charts/${targetChartId}/life-areas${toQuery({ asOf: onDate })}`,
+            { signal: options.signal },
+          )
+        : Promise.resolve({
+            data: options.preloadedLifeAreas,
+          } as ApiEnvelope<LifeAreasResponseData | null>);
       const [lifeAreasRes, marriage, career, wealth, health] = await Promise.all([
-        apiFetchJson<ApiEnvelope<LifeAreasResponseData>>(
-          `/api/v1/charts/${targetChartId}/life-areas${toQuery({ asOf: onDate })}`,
-        ),
+        lifeAreasPromise,
         apiFetchJson<LifeAreaPredictionResponse>(
           `/api/v1/charts/${targetChartId}/predictions/marriage${predQuery}`,
-        ).catch(() => null),
+          { signal: options.signal },
+        ).catch((error) => {
+          if (isAbortError(error)) throw error;
+          return null;
+        }),
         apiFetchJson<LifeAreaPredictionResponse>(
           `/api/v1/charts/${targetChartId}/predictions/career${predQuery}`,
-        ).catch(() => null),
+          { signal: options.signal },
+        ).catch((error) => {
+          if (isAbortError(error)) throw error;
+          return null;
+        }),
         apiFetchJson<LifeAreaPredictionResponse>(
           `/api/v1/charts/${targetChartId}/predictions/wealth${predQuery}`,
-        ).catch(() => null),
+          { signal: options.signal },
+        ).catch((error) => {
+          if (isAbortError(error)) throw error;
+          return null;
+        }),
         apiFetchJson<LifeAreaPredictionResponse>(
           `/api/v1/charts/${targetChartId}/predictions/health${predQuery}`,
-        ).catch(() => null),
+          { signal: options.signal },
+        ).catch((error) => {
+          if (isAbortError(error)) throw error;
+          return null;
+        }),
       ]);
 
-      setLifeAreas(lifeAreasRes.data);
+      if (!isPersonalRequestCurrent(requestId)) {
+        return;
+      }
+      if (lifeAreasRes.data) {
+        setLifeAreas(lifeAreasRes.data);
+      }
       setPredictions({
         marriage: marriage?.data ?? null,
         career: career?.data ?? null,
@@ -132,6 +203,9 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
         health: health?.data ?? null,
       });
     } catch (error) {
+      if (isAbortError(error) || !isPersonalRequestCurrent(requestId)) {
+        return;
+      }
       reportStatus(readErrorMessage(error));
     }
   }
@@ -164,6 +238,7 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
       return;
     }
 
+    const { controller, requestId } = beginPersonalRequest();
     setBusyPersonal(true);
     try {
       setChartSummary(null);
@@ -178,7 +253,11 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
           birthProfileId: nextBirthProfileId,
           calculationVersion: "thirukanitham-2026-v1",
         }),
+        signal: controller.signal,
       });
+      if (!isPersonalRequestCurrent(requestId)) {
+        return;
+      }
 
       setChart(chartResponse.data);
       setChartId(chartResponse.data.chartId);
@@ -217,8 +296,8 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
         timingsRes,
         lifeAreasRes,
       ] = await Promise.all([
-        apiFetchJson<ApiEnvelope<ChartSummaryData>>(`${chartPath}/summary${toQuery({ language: "ta-en" })}`),
-        apiFetchJson<ApiEnvelope<DailyGuidanceData>>(`${chartPath}/daily-guidance${toQuery({ date: nextDate, language: "ta-en" })}`),
+        apiFetchJson<ApiEnvelope<ChartSummaryData>>(`${chartPath}/summary${toQuery({ language: "ta-en" })}`, { signal: controller.signal }),
+        apiFetchJson<ApiEnvelope<DailyGuidanceData>>(`${chartPath}/daily-guidance${toQuery({ date: nextDate, language: "ta-en" })}`, { signal: controller.signal }),
         apiFetchJson<ApiEnvelope<DailyGuidanceRangeData>>(
           `/api/v1/daily-guidance/range${toQuery({
             profileId: nextBirthProfileId,
@@ -226,30 +305,38 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
             to: addDays(nextDate, 2),
             language: "ta-en",
           })}`,
+          { signal: controller.signal },
         ),
-        apiFetchJson<ApiEnvelope<DashaTimelineResponseData>>(`${chartPath}/dasha${toQuery({ asOf: nextDate, level: "pratyantar" })}`),
-        apiFetchJson<ApiEnvelope<DashaTimelineResponseData>>(`${chartPath}/dasha${toQuery({ asOf: nextDate, level: "maha" })}`),
-        apiFetchJson<ApiEnvelope<DashaTimelineResponseData>>(`${chartPath}/dasha${toQuery({ asOf: nextDate, level: "antar" })}`),
-        apiFetchJson<ApiEnvelope<TransitSnapshotData>>(`${chartPath}/gochar/current${toQuery({ date: nextDate })}`),
-        apiFetchJson<ApiEnvelope<SaniCycleData>>(`${chartPath}/sani-cycle${toQuery({ date: nextDate })}`),
+        apiFetchJson<ApiEnvelope<DashaTimelineResponseData>>(`${chartPath}/dasha${toQuery({ asOf: nextDate, level: "pratyantar" })}`, { signal: controller.signal }),
+        apiFetchJson<ApiEnvelope<DashaTimelineResponseData>>(`${chartPath}/dasha${toQuery({ asOf: nextDate, level: "maha" })}`, { signal: controller.signal }),
+        apiFetchJson<ApiEnvelope<DashaTimelineResponseData>>(`${chartPath}/dasha${toQuery({ asOf: nextDate, level: "antar" })}`, { signal: controller.signal }),
+        apiFetchJson<ApiEnvelope<TransitSnapshotData>>(`${chartPath}/gochar/current${toQuery({ date: nextDate })}`, { signal: controller.signal }),
+        apiFetchJson<ApiEnvelope<SaniCycleData>>(`${chartPath}/sani-cycle${toQuery({ date: nextDate })}`, { signal: controller.signal }),
         apiFetchJson<ApiEnvelope<PeyarchiEvent[]>>(
           `${chartPath}/peyarchi/upcoming${toQuery({ as_of: nextDate, window_days: 30 })}`,
+          { signal: controller.signal },
         ),
-        apiFetchJson<ApiEnvelope<ChartExplanationData>>(
+        withFallback(apiFetchJson<ApiEnvelope<ChartExplanationData>>(
           `${chartPath}/explanation${toQuery({ asOf: nextDate, peyarchiWindowDays: 700 })}`,
-        ).catch(() => ({ data: null } as ApiEnvelope<ChartExplanationData | null>)),
+          { signal: controller.signal },
+        ), { data: null } as ApiEnvelope<ChartExplanationData | null>),
         hasPanchangamLocation
-          ? apiFetchJson<ApiEnvelope<PanchangamDailyResponseData>>(
+          ? withFallback(apiFetchJson<ApiEnvelope<PanchangamDailyResponseData>>(
               `/api/v1/panchangam/daily${toQuery({ date: nextDate, lat, lng, timezone: tz })}`,
-            ).catch(() => emptyPanchangam)
+              { signal: controller.signal },
+            ), emptyPanchangam)
           : Promise.resolve(emptyPanchangam),
         hasPanchangamLocation
-          ? apiFetchJson<ApiEnvelope<PanchangamTimingsData>>(
+          ? withFallback(apiFetchJson<ApiEnvelope<PanchangamTimingsData>>(
               `/api/v1/panchangam/timings${toQuery({ date: nextDate, lat, lng, timezone: tz })}`,
-            ).catch(() => emptyTimings)
+              { signal: controller.signal },
+            ), emptyTimings)
           : Promise.resolve(emptyTimings),
-        apiFetchJson<ApiEnvelope<LifeAreasResponseData>>(`${chartPath}/life-areas${toQuery({ asOf: nextDate })}`),
+        apiFetchJson<ApiEnvelope<LifeAreasResponseData>>(`${chartPath}/life-areas${toQuery({ asOf: nextDate })}`, { signal: controller.signal }),
       ]);
+      if (!isPersonalRequestCurrent(requestId)) {
+        return;
+      }
 
       setChartSummary(summaryRes.data);
       setChartExplanation(explanationRes.data);
@@ -270,29 +357,49 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
 
       apiFetchJson<{ success: boolean; data: { items: AmbientAlertItem[] } }>(
         `/api/v1/alerts/ambient?as_of_date=${nextDate}&min_significance=70&unread_only=false&limit=5`,
+        { signal: controller.signal },
       )
-        .then((response) => setAmbientAlerts(response.data.items))
+        .then((response) => {
+          if (isPersonalRequestCurrent(requestId)) {
+            setAmbientAlerts(response.data.items);
+          }
+        })
         .catch(() => {});
 
       apiFetchJson<ApiEnvelope<WeekAheadData>>(
         `/api/v1/daily-guidance/week-ahead${toQuery({ profileId: nextBirthProfileId, weekStart: nextDate, language: "ta-en" })}`,
+        { signal: controller.signal },
       )
-        .then((response) => setWeekAhead(response.data))
+        .then((response) => {
+          if (isPersonalRequestCurrent(requestId)) {
+            setWeekAhead(response.data);
+          }
+        })
         .catch(() => {});
 
       const moonPlanet = chartResponse.data.planets.find((planet) => planet.graha === "MOON");
       if (moonPlanet && moonPlanet.nakshatra >= 1 && moonPlanet.nakshatra <= 27) {
         apiFetchJson<{ success: boolean; data: NakshatraCardData }>(
           `/api/v1/content/nakshatra/${moonPlanet.nakshatra}`,
+          { signal: controller.signal },
         )
-          .then((response) => setNakshatraCard(response.data))
+          .then((response) => {
+            if (isPersonalRequestCurrent(requestId)) {
+              setNakshatraCard(response.data);
+            }
+          })
           .catch(() => {});
       }
 
       apiFetchJson<ApiEnvelope<DashaStoryData>>(
         `/api/v1/charts/${chartResponse.data.chartId}/dasha/timeline${toQuery({ asOf: nextDate })}`,
+        { signal: controller.signal },
       )
-        .then((response) => setDashaStory(response.data))
+        .then((response) => {
+          if (isPersonalRequestCurrent(requestId)) {
+            setDashaStory(response.data);
+          }
+        })
         .catch(() => {});
 
       if (peyarchiRes.data.length > 0) {
@@ -302,22 +409,43 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
             planet: firstPlanet,
             asOf: nextDate,
           })}`,
+          { signal: controller.signal },
         )
-          .then((response) => setPeyarchiReport(response.data))
-          .catch(() => setPeyarchiReport(null));
-      } else {
+          .then((response) => {
+            if (isPersonalRequestCurrent(requestId)) {
+              setPeyarchiReport(response.data);
+            }
+          })
+          .catch(() => {
+            if (isPersonalRequestCurrent(requestId)) {
+              setPeyarchiReport(null);
+            }
+          });
+      } else if (isPersonalRequestCurrent(requestId)) {
         setPeyarchiReport(null);
       }
 
       apiFetchJson<ApiEnvelope<JournalCorrelationData>>(
         `/api/v1/journal/${chartResponse.data.chartId}/correlations${toQuery({ lookbackDays: 30 })}`,
+        { signal: controller.signal },
       )
-        .then((response) => setJournalCorrelations(response.data))
+        .then((response) => {
+          if (isPersonalRequestCurrent(requestId)) {
+            setJournalCorrelations(response.data);
+          }
+        })
         .catch(() => {});
 
-      const currentChartId = chartResponse.data.chartId;
       setPredictionsLoading(true);
-      void refreshLifeAreasInsights(currentChartId, nextDate).finally(() => setPredictionsLoading(false));
+      void refreshLifeAreasInsights(chartResponse.data.chartId, nextDate, {
+        preloadedLifeAreas: lifeAreasRes.data,
+        requestId,
+        signal: controller.signal,
+      }).finally(() => {
+        if (isPersonalRequestCurrent(requestId)) {
+          setPredictionsLoading(false);
+        }
+      });
 
       setJadhagamReport(null);
       setJadhagamReportLoading(false);
@@ -327,6 +455,9 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
           : "Personal data refreshed. Panchangam needs a saved birth or current location.",
       );
     } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
       const message = readErrorMessage(error);
       if (allowRecovery && (message.startsWith("403:") || message.startsWith("404:"))) {
         setBirthProfileId("");
@@ -339,7 +470,12 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
       }
       reportStatus(message);
     } finally {
-      setBusyPersonal(false);
+      if (personalAbortRef.current === controller) {
+        personalAbortRef.current = null;
+      }
+      if (isPersonalRequestCurrent(requestId)) {
+        setBusyPersonal(false);
+      }
     }
   }
 

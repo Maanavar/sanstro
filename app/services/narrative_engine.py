@@ -1,4 +1,4 @@
-""
+"""
 Rule-based narrative engine for Tamil astrology guidance.
 
 Takes structured calculation outputs and produces human-readable Tamil + English

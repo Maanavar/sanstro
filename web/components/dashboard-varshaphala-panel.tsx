@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { t } from "@/lib/i18n";
+import { scoreColor } from "@/lib/format";
 import type { Lang } from "@/lib/i18n";
 import type { VarshaphalaData } from "@/lib/types";
 import { CollapsibleSection } from "./collapsible-section";
@@ -27,11 +28,6 @@ const PLANET_COLORS: Record<string, string> = {
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-function scoreColor(score: number) {
-  if (score >= 65) return W.sage;
-  if (score >= 40) return W.terracotta;
-  return W.rust;
-}
 
 function PlanetTag({ planet }: { planet: string }) {
   const color = PLANET_COLORS[planet] ?? W.muted;

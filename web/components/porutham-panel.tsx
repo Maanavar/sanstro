@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { t } from "@/lib/i18n";
+import { scoreColorPct } from "@/lib/format";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, ChartCalculateResponseData, DirectPoruthamData } from "@/lib/types";
 import { RasiChart } from "./dashboard-charts";
@@ -55,11 +56,7 @@ const fieldStyle: React.CSSProperties = {
   fontFamily: "inherit",
 };
 
-function scoreColor(pct: number): string {
-  if (pct >= 0.7) return W.sage;
-  if (pct >= 0.4) return W.terracotta;
-  return W.rust;
-}
+const scoreColor = scoreColorPct;
 
 function PersonForm({
   lang,
@@ -292,7 +289,7 @@ export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: Porut
         <div className="card" style={{ padding: "20px", flex: 1, minWidth: "260px", background: W.card, border: `1px solid ${W.borderLt}` }}>
           {familyMembers.length > 0 && (
             <div style={{ marginBottom: "12px" }}>
-              <label style={{ display: "block", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, marginBottom: "4px", textTransform: "uppercase" }}>
+              <label className="cd-kicker" style={{ display: "block", margin: "0 0 4px" }}>
                 {lang === "ta" ? "குடும்பத்தினரை ஏற்றவும்" : "Load from family"}
               </label>
               <select
@@ -329,7 +326,7 @@ export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: Porut
         <div className="card" style={{ padding: "20px", flex: 1, minWidth: "260px", background: W.card, border: `1px solid ${W.borderLt}` }}>
           {familyMembers.length > 0 && (
             <div style={{ marginBottom: "12px" }}>
-              <label style={{ display: "block", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, marginBottom: "4px", textTransform: "uppercase" }}>
+              <label className="cd-kicker" style={{ display: "block", margin: "0 0 4px" }}>
                 {lang === "ta" ? "குடும்பத்தினரை ஏற்றவும்" : "Load from family"}
               </label>
               <select
@@ -398,7 +395,7 @@ export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: Porut
           {/* Score header */}
           <div className="card" style={{ padding: "20px", display: "flex", gap: "20px", flexWrap: "wrap", alignItems: "center", background: W.card, border: `1px solid ${W.borderLt}` }}>
             <div>
-              <p style={{ margin: "0 0 2px", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              <p className="cd-kicker" style={{ margin: "0 0 2px", letterSpacing: "0.06em" }}>
                 {lang === "ta" ? "மொத்த பொருத்தம்" : "Total Score"}
               </p>
               <p style={{ margin: 0, fontSize: "2.4rem", fontWeight: 900, lineHeight: 1, color: scoreColor(pct) }}>

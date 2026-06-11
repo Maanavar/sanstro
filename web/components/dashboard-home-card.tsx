@@ -1,6 +1,7 @@
 ﻿"use client";
 
-import { formatClockLabel, getScoreBand } from "@/lib/format";
+import { formatClockLabel, getScoreBand, SCORE_HIGH, SCORE_MID, SCORE_LOW } from "@/lib/format";
+import { BoltGlyph, CheckGlyph, WarningGlyph } from "./icons";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { DailyGuidanceData } from "@/lib/types";
@@ -12,35 +13,6 @@ interface DashboardHomeCardProps {
   onJournal: () => void;
 }
 
-const SCORE_HIGH = "var(--color-score-high, #5C7654)";
-const SCORE_MID = "var(--color-score-mid, #B85A2C)";
-const SCORE_LOW = "var(--color-score-low, #A8482F)";
-
-function BoltGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: "12px", height: "12px" }}>
-      <path d="M13 2L5 14h6l-1 8 9-13h-6l0-7z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function CheckGlyph() {
-  return (
-    <svg viewBox="0 0 20 20" aria-hidden="true" style={{ width: "12px", height: "12px" }}>
-      <path d="M4 10l4 4 8-8" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function WarningGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: "12px", height: "12px" }}>
-      <path d="M12 3l9 17H3L12 3z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-      <path d="M12 9v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <circle cx="12" cy="17" r="1.2" fill="currentColor" />
-    </svg>
-  );
-}
 
 export function DashboardHomeCard({
   lang,

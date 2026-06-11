@@ -545,7 +545,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
         <div style={{ padding: "var(--space-4) var(--space-5)", borderTop: `1px solid ${cardBorder}`, display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
 
           <div>
-            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <p className="cd-kicker" style={{ letterSpacing: "0.08em" }}>
               {lang === "ta" ? "இது என்ன" : "What This Is"}
             </p>
             <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
@@ -554,7 +554,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
           </div>
 
           <div>
-            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <p className="cd-kicker" style={{ letterSpacing: "0.08em" }}>
               {lang === "ta" ? "உங்கள் ஜாதகத்தில் ஏன்" : "Why Your Chart Has This"}
             </p>
             <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
@@ -607,7 +607,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
               <>
                 {outcomes && (
                   <div>
-                    <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#5C7654", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    <p className="cd-kicker" style={{ color: "#5C7654", letterSpacing: "0.08em" }}>
                       {lang === "ta" ? "வாழ்க்கையில் என்ன தரும்" : "What This Brings"}
                     </p>
                     <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
@@ -617,7 +617,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
                 )}
                 {howTo && (
                   <div>
-                    <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#5C7654", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    <p className="cd-kicker" style={{ color: "#5C7654", letterSpacing: "0.08em" }}>
                       {lang === "ta" ? "யோகத்தை பலப்படுத்துவது எப்படி" : "How to Strengthen This Yoga"}
                     </p>
                     <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
@@ -627,7 +627,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
                 )}
                 {remedies && (
                   <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: "#EEF6EA", border: "1px solid rgba(92,118,84,0.2)" }}>
-                    <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#5C7654", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    <p className="cd-kicker" style={{ color: "#5C7654", letterSpacing: "0.08em" }}>
                       {lang === "ta" ? "பரிகாரங்கள்" : "Remedies"}
                     </p>
                     <p style={{ margin: 0, fontSize: "0.875rem", color: "#1A1612", lineHeight: 1.55 }}>
@@ -640,7 +640,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
           })()}
           {yoga.isPresent && powerText && (
             <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: cardBg, border: `1px solid ${cardBorder}` }}>
-              <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <p className="cd-kicker" style={{ color, letterSpacing: "0.08em" }}>
                 {lang === "ta" ? "இப்போது என்ன செய்யலாம்" : "What It Can Do Now"}
               </p>
               <p style={{ margin: 0, fontSize: "0.875rem", color: "#1A1612", lineHeight: 1.55 }}>
@@ -745,7 +745,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
         <div style={{ padding: "var(--space-4) var(--space-5)", borderTop: `1px solid ${cardBorder}`, display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
 
           <div>
-            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <p className="cd-kicker" style={{ letterSpacing: "0.08em" }}>
               {lang === "ta" ? "இது என்ன" : "What This Is"}
             </p>
             <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
@@ -754,14 +754,14 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
           </div>
 
           <div>
-            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <p className="cd-kicker" style={{ letterSpacing: "0.08em" }}>
               {lang === "ta" ? "உங்கள் ஜாதகத்தில் ஏன்" : "Why Your Chart Has This"}
             </p>
             <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>{whyText}</p>
 
             {triggerBullets.length > 0 && (
               <div style={{ marginTop: "var(--space-2_5)" }}>
-                <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#A8482F", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <p className="cd-kicker" style={{ color: "#A8482F", letterSpacing: "0.08em" }}>
                   {lang === "ta" ? "கிரக நிலைகள்" : "Planet Positions"}
                 </p>
                 <ul style={{ margin: 0, padding: "0 0 0 var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
@@ -774,7 +774,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
 
             {dosham.cancellationFactors.length > 0 && (
               <div style={{ marginTop: "var(--space-2_5)" }}>
-                <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#5C7654", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <p className="cd-kicker" style={{ color: "#5C7654", letterSpacing: "0.08em" }}>
                   {lang === "ta" ? "பாதுகாப்பு காரணங்கள்" : "Protective Factors"}
                 </p>
                 <ul style={{ margin: 0, padding: "0 0 0 var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
@@ -787,7 +787,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
 
             {attentionBullets.length > 0 && (
               <div style={{ marginTop: "var(--space-2_5)" }}>
-                <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#B85A2C", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <p className="cd-kicker" style={{ color: "#B85A2C", letterSpacing: "0.08em" }}>
                   {lang === "ta" ? "கவன குறிப்பு" : "Attention Note"}
                 </p>
                 <ul style={{ margin: 0, padding: "0 0 0 var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
@@ -807,7 +807,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
                 <>
                   {outcomes && dosham.isPresent && (
                     <div style={{ marginTop: "var(--space-2_5)" }}>
-                      <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#A8482F", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      <p className="cd-kicker" style={{ color: "#A8482F", letterSpacing: "0.08em" }}>
                         {lang === "ta" ? "வாழ்க்கையில் என்ன ஆகலாம்" : "How This May Affect You"}
                       </p>
                       <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
@@ -817,7 +817,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
                   )}
                   {howTo && dosham.isPresent && (
                     <div style={{ marginTop: "var(--space-2_5)" }}>
-                      <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#5C7654", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      <p className="cd-kicker" style={{ color: "#5C7654", letterSpacing: "0.08em" }}>
                         {lang === "ta" ? "தாக்கத்தை குறைப்பது எப்படி" : "How to Reduce Impact"}
                       </p>
                       <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
@@ -827,7 +827,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
                   )}
                   {remedies && dosham.isPresent && (
                     <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: "#F8E4D2", border: "1px solid rgba(168,72,47,0.2)" }}>
-                      <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: "#A8482F", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      <p className="cd-kicker" style={{ color: "#A8482F", letterSpacing: "0.08em" }}>
                         {lang === "ta" ? "பரிகாரங்கள்" : "Remedies"}
                       </p>
                       <p style={{ margin: 0, fontSize: "0.875rem", color: "#1A1612", lineHeight: 1.55 }}>
@@ -849,7 +849,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
           </div>
 
           <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: cardBg, border: `1px solid ${cardBorder}` }}>
-            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <p className="cd-kicker" style={{ color, letterSpacing: "0.08em" }}>
               {lang === "ta" ? "இப்போது என்ன பொருள்" : "What This Means For You Now"}
             </p>
             <p style={{ margin: 0, fontSize: "0.875rem", color: "#1A1612", lineHeight: 1.55 }}>{powerText}</p>

@@ -3,6 +3,24 @@ export interface ScoreBand {
   tone: "high" | "mid" | "low" | "rest";
 }
 
+export const SCORE_HIGH = "var(--color-score-high, #5C7654)";
+export const SCORE_MID = "var(--color-score-mid, #B85A2C)";
+export const SCORE_LOW = "var(--color-score-low, #A8482F)";
+
+/** Color for a 0–100 daily score. */
+export function scoreColor(score: number): string {
+  if (score >= 65) return SCORE_HIGH;
+  if (score >= 45) return SCORE_MID;
+  return SCORE_LOW;
+}
+
+/** Color for a 0–1 compatibility/porutham percentage. */
+export function scoreColorPct(pct: number): string {
+  if (pct >= 0.7) return SCORE_HIGH;
+  if (pct >= 0.4) return SCORE_MID;
+  return SCORE_LOW;
+}
+
 export function todayIso(reference = new Date()): string {
   return reference.toISOString().slice(0, 10);
 }

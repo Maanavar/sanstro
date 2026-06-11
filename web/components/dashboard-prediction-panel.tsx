@@ -3,12 +3,10 @@
 import React, { useEffect, useState } from "react";
 
 import { t } from "@/lib/i18n";
+import { SCORE_HIGH, SCORE_MID, SCORE_LOW } from "@/lib/format";
 import type { Lang } from "@/lib/i18n";
 import type { LifeAreaPredictionData, PredictionBundle } from "@/lib/types";
 
-const SCORE_HIGH = "var(--color-score-high, #5C7654)";
-const SCORE_MID = "var(--color-score-mid, #B85A2C)";
-const SCORE_LOW = "var(--color-score-low, #A8482F)";
 
 type ExpandState = {
   marriage: boolean;
@@ -87,13 +85,13 @@ function PredictionCard({ title, pred, lang, expanded, onToggle, featured, defer
       <div style={{ display: "grid", gridTemplateColumns: pred.challenges.length > 0 ? "repeat(auto-fit, minmax(min(100%, 220px), 1fr))" : "1fr", gap: "var(--space-6)" }}>
         {pred.supports.length > 0 && (
           <div>
-            <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_supports", lang)}</p>
+            <p className="cd-kicker" style={{ marginBottom: "var(--space-2)", letterSpacing: "0.1em" }}>{t("pred_supports", lang)}</p>
             <SupportList items={pred.supports} color={SCORE_HIGH} lang={lang} />
           </div>
         )}
         {pred.challenges.length > 0 && (
           <div>
-            <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: SCORE_MID }}>{t("pred_challenges", lang)}</p>
+            <p className="cd-kicker" style={{ marginBottom: "var(--space-2)", letterSpacing: "0.1em", color: SCORE_MID }}>{t("pred_challenges", lang)}</p>
             <SupportList items={pred.challenges} color={SCORE_MID} lang={lang} />
           </div>
         )}
@@ -101,18 +99,18 @@ function PredictionCard({ title, pred, lang, expanded, onToggle, featured, defer
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "var(--space-3)" }}>
         <div style={{ borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", padding: "var(--space-3) var(--space-4)" }}>
-          <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_dasha_support", lang)}</p>
+          <p className="cd-kicker" style={{ letterSpacing: "0.08em" }}>{t("pred_dasha_support", lang)}</p>
           <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: supportTone(pred.dashaSupport) }}>{supportLabel(pred.dashaSupport, lang)}</p>
         </div>
 
         <div style={{ borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", padding: "var(--space-3) var(--space-4)" }}>
-          <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_transit_support", lang)}</p>
+          <p className="cd-kicker" style={{ letterSpacing: "0.08em" }}>{t("pred_transit_support", lang)}</p>
           <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: supportTone(pred.transitSupport) }}>{supportLabel(pred.transitSupport, lang)}</p>
         </div>
 
         {pred.timingWindowStart && pred.timingWindowEnd && (
           <div style={{ borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", padding: "var(--space-3) var(--space-4)" }}>
-            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_timing_window", lang)}</p>
+            <p className="cd-kicker" style={{ letterSpacing: "0.08em" }}>{t("pred_timing_window", lang)}</p>
             <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text-strong)" }}>{pred.timingWindowStart} to {pred.timingWindowEnd}</p>
           </div>
         )}
@@ -126,7 +124,7 @@ function PredictionCard({ title, pred, lang, expanded, onToggle, featured, defer
         <div className="cd-featured-panel">
           <div style={{ padding: "var(--space-8)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
-              <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", letterSpacing: "0.1em", textTransform: "uppercase" }}>{title}</p>
+              <p className="cd-kicker--inline" style={{ letterSpacing: "0.1em" }}>{title}</p>
               {deferred && (
                 <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", background: "rgba(168,72,47,0.12)", color: SCORE_LOW, border: "1px solid rgba(168,72,47,0.3)" }}>
                   {lang === "ta" ? "பின்வரும் கட்டம்" : "Later phase"}
@@ -143,7 +141,7 @@ function PredictionCard({ title, pred, lang, expanded, onToggle, featured, defer
           </div>
 
           <div className="cd-featured-panel__aside" style={{ padding: "var(--space-8)", background: "var(--color-surface-soft)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-            <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_confidence", lang)}</p>
+            <p className="cd-kicker--inline" style={{ letterSpacing: "0.08em" }}>{t("pred_confidence", lang)}</p>
             <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "2rem", lineHeight: 1, color: tone.text }}>{confidenceLabel(pred.confidence, lang)}</p>
             <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
               {lang === "ta" ? pred.mainPredictionTa : pred.mainPredictionEn}
@@ -181,7 +179,7 @@ function PredictionCard({ title, pred, lang, expanded, onToggle, featured, defer
       >
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", margin: "0 0 var(--space-1)" }}>
-            <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: SCORE_MID }}>{title}</p>
+            <p className="cd-kicker--inline" style={{ letterSpacing: "0.1em", color: SCORE_MID }}>{title}</p>
             {deferred && (
               <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "2px 8px", borderRadius: "var(--radius-pill)", background: "rgba(168,72,47,0.12)", color: SCORE_LOW, border: "1px solid rgba(168,72,47,0.3)" }}>
                 {lang === "ta" ? "பின்வரும் கட்டம்" : "Later phase"}

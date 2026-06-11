@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { formatClockLabel } from "@/lib/format";
+import { formatClockLabel, scoreColor, SCORE_LOW } from "@/lib/format";
 import { t, tLang, tNakshatra, tTithi } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
@@ -16,15 +16,6 @@ import { getBirthTimeConfidence, getScoreDrivers, type ScoreDriver } from "@/lib
 
 import { Chip, Surface } from "./dashboard-ui";
 
-const SCORE_HIGH = "var(--color-score-high, #5C7654)";
-const SCORE_MID = "var(--color-score-mid, #B85A2C)";
-const SCORE_LOW = "var(--color-score-low, #A8482F)";
-
-function scoreColor(score: number): string {
-  if (score >= 65) return SCORE_HIGH;
-  if (score >= 45) return SCORE_MID;
-  return SCORE_LOW;
-}
 
 function driverLabel(driver: ScoreDriver | null, lang: Lang): string {
   if (!driver) return "—";

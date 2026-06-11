@@ -5,8 +5,7 @@ from datetime import date
 
 from app.calculations.astro import house_from_reference
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga, get_av_bindu
-from app.calculations.chart_strength import SIGN_LORD
-from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction
+from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction, house_lord_for_lagna
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,13 +21,6 @@ class WealthAssessmentInput:
     ashtakavarga_11th_bindu: int | None = None
     pitru_dosham_label: str | None = None
     rahu_ketu_label: str | None = None
-
-
-def _house_lord(lagna_rasi: int, house: int) -> str:
-    house_rasi = ((lagna_rasi + house - 2) % 12) + 1
-    return SIGN_LORD[house_rasi]
-
-
 def _derived_11th_bindu(payload: WealthAssessmentInput, eleventh_house_rasi: int) -> int:
     if payload.ashtakavarga_11th_bindu is not None:
         return payload.ashtakavarga_11th_bindu
@@ -75,10 +67,10 @@ def assess_wealth_prediction(payload: WealthAssessmentInput) -> LifeAreaPredicti
             supports=[BiText("குடும்ப நிதி பாதுகாப்பு மற்றும் குழந்தை பராமரிப்பு நிலைத்தன்மையில் கவனம் செலுத்தவும்.", "Focus on family financial safety and child-care stability.")],
         )
 
-    second_lord = _house_lord(payload.lagna_rasi, 2)
-    eleventh_lord = _house_lord(payload.lagna_rasi, 11)
-    fifth_lord = _house_lord(payload.lagna_rasi, 5)
-    ninth_lord = _house_lord(payload.lagna_rasi, 9)
+    second_lord = house_lord_for_lagna(payload.lagna_rasi, 2)
+    eleventh_lord = house_lord_for_lagna(payload.lagna_rasi, 11)
+    fifth_lord = house_lord_for_lagna(payload.lagna_rasi, 5)
+    ninth_lord = house_lord_for_lagna(payload.lagna_rasi, 9)
     eleventh_house_rasi = ((payload.lagna_rasi + 11 - 2) % 12) + 1
 
     factors: list[AstroFactor] = []
@@ -241,4 +233,3 @@ def assess_wealth_prediction(payload: WealthAssessmentInput) -> LifeAreaPredicti
         challenges=challenges,
         supports=supports,
     )
-

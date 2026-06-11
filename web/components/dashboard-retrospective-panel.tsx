@@ -107,7 +107,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
       <div>
-        <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <p className="cd-kicker" style={{ letterSpacing: "0.06em" }}>
           {t("retro_panel_title", lang)}
         </p>
         <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>
@@ -119,7 +119,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)", padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)", background: W.card, border: `1px solid ${W.borderLt}` }}>
         <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: "160px" }}>
-            <label style={{ display: "block", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, marginBottom: "var(--space-1)", textTransform: "uppercase" }}>
+            <label className="cd-kicker" style={{ display: "block" }}>
               {t("retro_event_date", lang)} *
             </label>
             <input
@@ -130,7 +130,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
             />
           </div>
           <div style={{ flex: 1, minWidth: "140px" }}>
-            <label style={{ display: "block", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, marginBottom: "var(--space-1)", textTransform: "uppercase" }}>
+            <label className="cd-kicker" style={{ display: "block" }}>
               {t("retro_event_type", lang)}
             </label>
             <select
@@ -147,7 +147,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
           </div>
         </div>
         <div>
-          <label style={{ display: "block", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, marginBottom: "var(--space-1)", textTransform: "uppercase" }}>
+          <label className="cd-kicker" style={{ display: "block" }}>
             {t("retro_event_desc", lang)}
           </label>
           <textarea
@@ -198,7 +198,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
 
           {/* Correlation explanation */}
           <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: W.surface, border: `1px solid ${W.border}` }}>
-            <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", fontWeight: 700, color: W.terracotta, textTransform: "uppercase" }}>
+            <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", color: W.terracotta }}>
               {t("retro_correlation", lang)}
             </p>
             <p style={{ margin: 0, fontSize: "0.875rem", color: W.inkMid, lineHeight: 1.5 }}>
@@ -209,7 +209,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
           {/* Key transits */}
           {result.keyTransits.length > 0 && (
             <div>
-              <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>
+              <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)" }}>
                 {t("retro_key_transits", lang)}
               </p>
               <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
@@ -226,7 +226,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
           {/* Future recurrences */}
           {result.futureRecurrences.length > 0 && (
           <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: "#FFF7EB", border: `1px solid ${W.border}` }}>
-              <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.625rem", fontWeight: 700, color: W.terracotta, textTransform: "uppercase" }}>
+              <p className="cd-kicker" style={{ marginBottom: "var(--space-2)", color: W.terracotta }}>
                 {t("retro_future_recurrence", lang)}
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
@@ -248,7 +248,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
           {/* Caution */}
           {result.caution && (
           <div style={{ padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: "#FCE7E2", border: `1px solid ${W.rust}44` }}>
-              <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: W.rust, textTransform: "uppercase" }}>
+              <p className="cd-kicker" style={{ color: W.rust }}>
                 âš  {t("retro_caution", lang)}
               </p>
               <p style={{ margin: 0, fontSize: "0.75rem", color: W.rust, lineHeight: 1.5 }}>
@@ -262,7 +262,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
       {/* History list */}
       {showHistory && history.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-          <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>
+          <p className="cd-kicker">
             {lang === "ta" ? "முந்தைய ஆய்வுகள்" : "Past analyses"}
           </p>
           {history.map((h) => (

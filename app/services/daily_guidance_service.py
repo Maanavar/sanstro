@@ -25,6 +25,7 @@ from app.calculations.chart_strength import compute_natal_planet_score
 from app.calculations.functional_nature import get_dasha_modifier, get_transit_modifier
 from app.calculations.transits import RASI_NAMES, check_vedha, classify_kandaka_cycle, classify_sani_cycle, is_combust
 from app.models import BirthProfile, Chart, DailyScore, JournalEntry
+from app.schemas.charts import ChartCalculateResponse
 from app.schemas.daily_guidance import (
     ActivityTimingData,
     ActivityTimingDayResult,
@@ -1364,10 +1365,11 @@ def get_daily_guidance(
     on_date: date,
     language: str = "ta-en",
     *,
+    chart_snapshot: ChartCalculateResponse | None = None,
     preloaded_cache: dict[date, DailyGuidanceResponse] | None = None,
 ) -> DailyGuidanceResponse:
     from app.models.user import User as _User
-    chart_snapshot = load_persisted_chart_response(session, chart_id)
+    chart_snapshot = chart_snapshot or load_persisted_chart_response(session, chart_id)
     active_goals = get_active_goals_for_chart(session, chart_id)
     owner_user_id = chart_snapshot.data.birth_profile.owner_user_id
     _user_row = session.get(_User, owner_user_id)
@@ -1447,7 +1449,14 @@ def get_daily_guidance_range(
     current = from_date
     while current <= to_date:
         items.append(
-            get_daily_guidance(session, chart.chart_id, current, language, preloaded_cache=preloaded_cache).data
+            get_daily_guidance(
+                session,
+                chart.chart_id,
+                current,
+                language,
+                chart_snapshot=chart_snapshot,
+                preloaded_cache=preloaded_cache,
+            ).data
         )
         current += timedelta(days=1)
 

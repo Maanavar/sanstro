@@ -1,5 +1,20 @@
 # CLAUDE.md
 
+## Path guard
+
+Use this exact repo root on Windows:
+
+```powershell
+Set-Location 'C:\Users\senth\OneDrive\문서\GitHub\sanstro'
+```
+
+Rules for this workspace:
+
+- The folder name is `문서`, not `文서`, not mojibake like `ë¬¸ì„œ`, and not `Documents`.
+- Use `PowerShell` by default in this repo. Avoid `Bash` unless the user explicitly asks for it.
+- After changing to the repo root, prefer repo-relative paths such as `web\components\dashboard-workspace.tsx`.
+- Avoid mixed path styles such as Windows paths inside Bash commands or absolute `Read(...)` paths copied from stale cache entries.
+
 This repository is `Vinaadi AI` in a Windows workspace.
 
 ## Repo root — memorise this, never guess

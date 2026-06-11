@@ -30,7 +30,12 @@ from app.schemas.charts import (
 )
 from app.schemas.chart_explanation import ChartExplanationResponse
 from app.schemas.dasha import DashaTimelineResponse
-from app.services.chart_service import calculate_chart as calculate_chart_snapshot, get_chart_summary, get_jadhagam_report
+from app.services.chart_service import (
+    calculate_chart as calculate_chart_snapshot,
+    get_chart_summary,
+    get_jadhagam_report,
+    load_persisted_chart_response,
+)
 from app.services.chart_explanation_service import build_chart_explanation
 from app.services.dasha_service import get_chart_dasha
 from app.services.pdf_export_service import generate_chart_pdf
@@ -74,6 +79,16 @@ def calculate_chart(
     if profile.owner_user_id != current_user.user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
     return calculate_chart_snapshot(payload, session)
+
+
+@router.get("/charts/{chart_id}", response_model=ChartCalculateResponse, tags=["charts"])
+def get_chart(
+    chart_id: UUID,
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ChartCalculateResponse:
+    _assert_chart_owner(session, chart_id, current_user)
+    return load_persisted_chart_response(session, chart_id)
 
 
 @router.get("/charts/{chart_id}/dasha", response_model=DashaTimelineResponse, tags=["charts"])

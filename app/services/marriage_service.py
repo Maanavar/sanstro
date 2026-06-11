@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from datetime import date
 
 from app.calculations.astro import house_from_reference
-from app.calculations.chart_strength import DEBILITATION_RASI, EXALTATION_RASI, OWN_SIGN_RASI, SIGN_LORD
+from app.calculations.chart_strength import DEBILITATION_RASI, EXALTATION_RASI, OWN_SIGN_RASI
 from app.calculations.transits import get_jupiter_aspects
-from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction
+from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction, house_lord_for_lagna
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,13 +24,6 @@ class MarriageAssessmentInput:
     sevvai_dosham_cancelled: bool = False
     rahu_ketu_label: str | None = None
     d9_rasi_by_planet: dict[str, int] | None = None
-
-
-def _house_lord(lagna_rasi: int, house: int) -> str:
-    house_rasi = ((lagna_rasi + house - 2) % 12) + 1
-    return SIGN_LORD[house_rasi]
-
-
 def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPrediction:
     if payload.age < 18:
         return LifeAreaPrediction(
@@ -57,8 +50,8 @@ def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPred
         )
 
     seventh_house_rasi = ((payload.lagna_rasi + 7 - 2) % 12) + 1
-    seventh_lord = _house_lord(payload.lagna_rasi, 7)
-    second_lord = _house_lord(payload.lagna_rasi, 2)
+    seventh_lord = house_lord_for_lagna(payload.lagna_rasi, 7)
+    second_lord = house_lord_for_lagna(payload.lagna_rasi, 2)
     venus_rasi = payload.planets_rasi["VENUS"]
     seventh_lord_rasi = payload.planets_rasi[seventh_lord]
     second_lord_rasi = payload.planets_rasi[second_lord]

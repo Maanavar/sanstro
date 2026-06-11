@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { getScoreBand } from "@/lib/format";
+import { WarningGlyph } from "./icons";
 import type { WeekAheadDayItem } from "@/lib/types";
 
 interface DayStripProps {
@@ -11,15 +12,6 @@ interface DayStripProps {
 
 const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-function WarningGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: "10px", height: "10px" }}>
-      <path d="M12 3l9 17H3L12 3z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-      <path d="M12 9v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <circle cx="12" cy="17" r="1.2" fill="currentColor" />
-    </svg>
-  );
-}
 
 export function DayStrip({ days, selectedDate, onSelectDate }: DayStripProps) {
   return (
@@ -58,7 +50,7 @@ export function DayStrip({ days, selectedDate, onSelectDate }: DayStripProps) {
             <span className={dotClass} />
             {isChandrashtama && (
               <span style={{ color: "var(--color-alert-critical)", display: "inline-flex", alignItems: "center" }} aria-label="Chandrashtama">
-                <WarningGlyph />
+                <WarningGlyph size={10} />
               </span>
             )}
           </button>

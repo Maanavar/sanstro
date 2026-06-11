@@ -4,6 +4,7 @@ import { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import type { Lang } from "@/lib/i18n";
 import type { CompatibilityIntelligenceData } from "@/lib/types";
+import { scoreColorPct } from "@/lib/format";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -30,11 +31,7 @@ const W = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function scoreColor(pct: number): string {
-  if (pct >= 0.7) return W.sage;
-  if (pct >= 0.45) return W.terracotta;
-  return W.rust;
-}
+const scoreColor = scoreColorPct;
 
 function overallColor(label: string): string {
   if (label === "EXCELLENT") return W.sage;

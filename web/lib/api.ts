@@ -25,7 +25,10 @@ export async function apiFetchJson<T>(path: string, init?: RequestInit): Promise
         ...(init?.headers ?? {}),
       },
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw error;
+    }
     throw new Error("Network error — backend unreachable. Check your connection.");
   }
 

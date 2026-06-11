@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { getScoreBand } from "@/lib/format";
+import { WarningGlyph } from "./icons";
 import { t, tLang } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { LifeAreaData } from "@/lib/types";
@@ -45,15 +46,6 @@ function humaniseFactorKey(key: string, lang: Lang): string {
   return key.replaceAll("_", " ");
 }
 
-function WarningGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: "12px", height: "12px" }}>
-      <path d="M12 3l9 17H3L12 3z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-      <path d="M12 9v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <circle cx="12" cy="17" r="1.2" fill="currentColor" />
-    </svg>
-  );
-}
 
 export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeAreaCardProps) {
   const scoreBand = getScoreBand(area.score);
@@ -83,7 +75,7 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "var(--space-2_5)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
-          <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+          <p className="cd-kicker--inline" style={{ letterSpacing: "0.1em" }}>
             {tLang(area.label, lang)}
           </p>
           {area.isGoalFocus && (
@@ -156,7 +148,7 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
       )}
 
       <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
-        <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        <p className="cd-kicker" style={{ margin: "0 0 var(--space-0_5)", letterSpacing: "0.08em" }}>
           {lang === "ta" ? "அடுத்த 30 நாட்கள்" : "Next 30 days"}
         </p>
         <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.45 }}>{tLang(area.next30DayOutlook, lang)}</p>
@@ -173,7 +165,7 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
 
       {area.remedy && (
         <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.25)" }}>
-          <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-score-mid)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          <p className="cd-kicker" style={{ margin: "0 0 var(--space-0_5)", color: "var(--color-score-mid)", letterSpacing: "0.08em" }}>
             {t("remedy_label", lang)}
           </p>
           <p style={{ margin: 0, fontSize: "0.75rem", color: "#7a3412", lineHeight: 1.45 }}>{tLang(area.remedy, lang)}</p>

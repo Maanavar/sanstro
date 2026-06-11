@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
+from app.calculations.chart_strength import SIGN_LORD
+
 
 @dataclass(frozen=True, slots=True)
 class BiText:
@@ -30,3 +32,8 @@ class LifeAreaPrediction:
     confidence: str
     challenges: list[BiText]
     supports: list[BiText]
+
+
+def house_lord_for_lagna(lagna_rasi: int, house: int) -> str:
+    house_rasi = ((lagna_rasi + house - 2) % 12) + 1
+    return SIGN_LORD[house_rasi]

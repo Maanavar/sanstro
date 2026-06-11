@@ -4,9 +4,8 @@ from dataclasses import dataclass
 from datetime import date
 
 from app.calculations.astro import house_from_reference
-from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.transits import classify_kandaka_cycle
-from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction
+from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction, house_lord_for_lagna
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,13 +19,6 @@ class CareerAssessmentInput:
     life_stage: str = "young_adult"
     employment_type: str | None = None
     career_track: str = "general"
-
-
-def _house_lord(lagna_rasi: int, house: int) -> str:
-    house_rasi = ((lagna_rasi + house - 2) % 12) + 1
-    return SIGN_LORD[house_rasi]
-
-
 def assess_career_prediction(payload: CareerAssessmentInput) -> LifeAreaPrediction:
     if payload.age < 18:
         return LifeAreaPrediction(
@@ -53,11 +45,11 @@ def assess_career_prediction(payload: CareerAssessmentInput) -> LifeAreaPredicti
         )
 
     tenth_house_rasi = ((payload.lagna_rasi + 10 - 2) % 12) + 1
-    tenth_lord = _house_lord(payload.lagna_rasi, 10)
-    sixth_lord = _house_lord(payload.lagna_rasi, 6)
-    second_lord = _house_lord(payload.lagna_rasi, 2)
-    eleventh_lord = _house_lord(payload.lagna_rasi, 11)
-    lagna_lord = _house_lord(payload.lagna_rasi, 1)
+    tenth_lord = house_lord_for_lagna(payload.lagna_rasi, 10)
+    sixth_lord = house_lord_for_lagna(payload.lagna_rasi, 6)
+    second_lord = house_lord_for_lagna(payload.lagna_rasi, 2)
+    eleventh_lord = house_lord_for_lagna(payload.lagna_rasi, 11)
+    lagna_lord = house_lord_for_lagna(payload.lagna_rasi, 1)
 
     factors: list[AstroFactor] = []
     supports: list[BiText] = []
@@ -203,7 +195,7 @@ def assess_career_prediction(payload: CareerAssessmentInput) -> LifeAreaPredicti
         ))
     elif payload.employment_type == "business_owner":
         # Business owner: 7th house (partnerships / trade) is the primary karaka
-        seventh_lord = _house_lord(payload.lagna_rasi, 7)
+        seventh_lord = house_lord_for_lagna(payload.lagna_rasi, 7)
         seventh_house_rasi = ((payload.lagna_rasi + 7 - 2) % 12) + 1
         business_planets = sorted(n for n, r in payload.planets_rasi.items() if r == seventh_house_rasi)
         if seventh_lord in payload.active_dasha_lords or business_planets:
