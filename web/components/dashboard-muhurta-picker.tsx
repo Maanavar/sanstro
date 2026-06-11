@@ -70,12 +70,12 @@ function MuhurtaCard({ slot, lang }: { slot: MuhurtaSlot; lang: Lang }) {
 
   return (
     <div style={{ border: `1px solid ${W.borderLt}`, borderRadius: "10px", padding: "14px 16px", marginBottom: "10px", background: W.card }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer" }} onClick={() => setExpanded((v) => !v)}>
-        <div style={{ textAlign: "center", minWidth: "48px" }}>
+      <div className="cd-ranked-card" style={{ cursor: "pointer" }} onClick={() => setExpanded((v) => !v)}>
+        <div className="cd-ranked-card__score" style={{ textAlign: "center" }}>
           <div style={{ fontSize: "1.25rem", fontWeight: 700, color: scoreColor }}>{Math.min(100, Math.round(slot.score))}</div>
           <div style={{ fontSize: "10px", color: W.muted }}>{t("muhurta_score", lang)}</div>
         </div>
-        <div style={{ flex: 1 }}>
+        <div className="cd-ranked-card__body">
           <div style={{ fontWeight: 600, fontSize: "0.875rem", color: W.inkMid }}>{formatMuhurtaDate(slot.date, lang)}</div>
           {slot.tamilDate && (
             <div style={{ fontSize: "0.8125rem", color: "#B85A2C", fontWeight: 600 }}>
@@ -84,8 +84,10 @@ function MuhurtaCard({ slot, lang }: { slot: MuhurtaSlot; lang: Lang }) {
           )}
           <div style={{ fontSize: "0.875rem", color: W.muted }}>{formatClockLabel(slot.timeStart)} - {formatClockLabel(slot.timeEnd)}</div>
         </div>
-        <div style={{ fontSize: "0.875rem", color: W.muted, maxWidth: "160px", textAlign: "right" }}>{lang === "ta" ? slot.panchangamSupport.ta : slot.panchangamSupport.en}</div>
-        <span style={{ color: W.muted, fontSize: "0.75rem" }}>{expanded ? "▲" : "▼"}</span>
+        <div className="cd-ranked-card__cta" style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "8px", fontSize: "0.875rem", color: W.muted, maxWidth: "200px", textAlign: "right" }}>
+          <span>{lang === "ta" ? slot.panchangamSupport.ta : slot.panchangamSupport.en}</span>
+          <span style={{ color: W.muted, fontSize: "0.75rem", flexShrink: 0 }}>{expanded ? "▲" : "▼"}</span>
+        </div>
       </div>
 
       {expanded && (

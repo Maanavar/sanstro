@@ -232,7 +232,7 @@ export function DashboardLifeAreasTab({
             <p style={{ margin: 0, color: "var(--color-faint)", fontSize: "0.875rem" }}>{t("life_areas_empty", lang)}</p>
           ) : (
             <>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "var(--space-4)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "var(--space-4)" }}>
                 {lifeAreas.areas.map((area: LifeAreaData) => {
                   const ageRelevant = currentAge === null || isAreaRelevantForAge(area.area, currentAge, maritalStatus);
                   return (

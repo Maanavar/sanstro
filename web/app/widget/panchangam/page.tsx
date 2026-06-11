@@ -104,7 +104,7 @@ export default function PanchangamWidget() {
       <div style={{ height: "1px", background: "rgba(255,255,255,0.08)", marginBottom: "12px" }} />
 
       {/* Five elements */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "12px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 120px), 1fr))", gap: "8px", marginBottom: "12px" }}>
         {[
           { lbl: en ? "Tithi" : "திதி",       val: tTithi(data.tithi.name, params.lang) },
           { lbl: en ? "Vara" : "வாரம்",        val: tWeekday(data.vara.weekday, params.lang) },

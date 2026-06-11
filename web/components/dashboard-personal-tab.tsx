@@ -490,7 +490,7 @@ export function DashboardPersonalTab({
       </div>
 
       {/* ── HERO: Left headline + Right score card ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr minmax(280px,420px)", gap: "var(--space-7)", alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: "var(--space-7)", alignItems: "start" }}>
 
         {/* Left: Big headline */}
         <div>
@@ -592,7 +592,7 @@ export function DashboardPersonalTab({
             </div>
 
             {/* Nalla Neram / Rahu Kalam windows */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-2_5)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "var(--space-2_5)" }}>
               {/* Nalla Neram (best window) */}
               <div style={{
                 borderRadius: "var(--radius-md)",
@@ -697,7 +697,7 @@ export function DashboardPersonalTab({
       </div>
 
       {/* ── Three info cards: Dasa | Nakshatra | Week Ahead ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: "var(--space-4)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "var(--space-4)" }}>
 
         {/* Dasa card */}
         <div style={{ background: "#FFFFFF", border: "1px solid #E4DBC8", borderRadius: "var(--radius-md)", padding: "var(--space-5)" }}>

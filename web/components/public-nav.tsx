@@ -85,8 +85,9 @@ export function PublicNav() {
           cursor: pointer; align-items: center; justify-content: center;
         }
         .cl-nav__mobile { display: none; }
-        @media (max-width: 720px) {
+        @media (max-width: 1024px) {
           .cl-nav__menu-btn { display: inline-flex; }
+          .cl-nav__links { display: none; }
           .cl-nav-dropdown__menu { left: auto; right: 0; transform: none; }
           .cl-nav__mobile {
             display: block; border-top: 1px solid var(--cl-border);
@@ -107,7 +108,18 @@ export function PublicNav() {
             background: var(--cl-surface); border: 1px solid var(--cl-border);
             color: var(--cl-ink); font-size: 0.9rem; font-weight: 500; text-decoration: none;
           }
-          .cl-nav__mobile-link span:last-child { color: var(--cl-muted); font-size: 0.78rem; font-weight: 400; }
+          .cl-nav__mobile-link span:first-child { min-width: 0; overflow-wrap: anywhere; }
+          .cl-nav__mobile-link span:last-child { color: var(--cl-muted); font-size: 0.78rem; font-weight: 400; max-width: 24ch; text-align: right; }
+        }
+        @media (max-width: 560px) {
+          .cl-nav__mobile-link {
+            align-items: flex-start;
+            flex-direction: column;
+          }
+          .cl-nav__mobile-link span:last-child {
+            max-width: none;
+            text-align: left;
+          }
         }
       `}</style>
 

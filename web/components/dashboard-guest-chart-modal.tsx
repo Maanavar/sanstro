@@ -132,7 +132,7 @@ export function GuestChartModal({ lang, onClose }: GuestChartModalProps) {
           </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "var(--space-3)" }}>
           <div style={{ gridColumn: "1 / -1" }}>
             <Field label={lang === "ta" ? "பெயர்" : "Name"}>
               <input className="input" value={form.displayName}
@@ -180,7 +180,7 @@ export function GuestChartModal({ lang, onClose }: GuestChartModalProps) {
               onChange={(e) => setForm((f) => ({ ...f, birthTimezone: e.target.value }))} />
           </Field>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-2)", gridColumn: "1 / -1" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "var(--space-2)", gridColumn: "1 / -1" }}>
             <Field label={t("field_latitude", lang)}>
               <input className="input" inputMode="decimal" value={form.birthLatitude}
                 onChange={(e) => setForm((f) => ({ ...f, birthLatitude: e.target.value }))} />

@@ -537,7 +537,7 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
               placeholder={lang === "ta" ? "உதாரணம்: ரமேஷ் குமார்" : "e.g. Ramesh Kumar"} />
           </Field>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "12px" }}>
             <Field label={lang === "ta" ? "பிறந்த தேதி" : "Birth Date"}>
               <input
                 className="input"
@@ -572,7 +572,7 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
               onChange={(e) => setForm((f) => ({ ...f, birthTimezone: e.target.value }))} />
           </Field>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "12px" }}>
             <Field label={t("field_latitude", lang)}>
               <input className="input" style={fieldStyle} inputMode="decimal" value={form.birthLatitude}
                 onChange={(e) => setForm((f) => ({ ...f, birthLatitude: e.target.value }))} />

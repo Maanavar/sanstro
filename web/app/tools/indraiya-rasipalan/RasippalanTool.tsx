@@ -154,7 +154,7 @@ function RasiSelectorGrid({
   lang: Lang;
 }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 132px), 1fr))", gap: "8px" }}>
       {RASI_LIST.map((r) => {
         const isSelected = r.number === selectedRasi;
         return (
@@ -294,7 +294,7 @@ export function RasippalanTool() {
         borderRadius: "16px", padding: "20px 24px",
         display: "flex", flexDirection: "column", gap: "14px",
       }}>
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: "12px", alignItems: "end" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "12px", alignItems: "end" }}>
           <label style={{ display: "flex", flexDirection: "column", gap: "5px", fontSize: "0.78rem", fontWeight: 600, color: "var(--cl-ink-2)" }}>
             {en ? "Date" : "தேதி"}
             <input
@@ -317,7 +317,7 @@ export function RasippalanTool() {
               background: loading ? "var(--cl-border)" : "var(--cl-ink)",
               color: "var(--cl-bg)", border: "none", borderRadius: "999px",
               fontFamily: "inherit", fontSize: "0.88rem", fontWeight: 600,
-              cursor: loading ? "not-allowed" : "pointer", whiteSpace: "nowrap",
+              cursor: loading ? "not-allowed" : "pointer", whiteSpace: "nowrap", width: "100%",
             }}
           >
             {loading ? (en ? "Loading…" : "ஏற்றுகிறது…") : (en ? "Get Rasipalan" : "ராசிபலன் பெறு")}

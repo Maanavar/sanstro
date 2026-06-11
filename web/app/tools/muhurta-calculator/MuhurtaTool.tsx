@@ -182,7 +182,7 @@ export function MuhurtaTool() {
         </label>
 
         {/* Date range */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "12px" }}>
           <label style={labelStyle}>
             {lang === "en" ? "From date" : "தொடக்க நாள்"}
             <input

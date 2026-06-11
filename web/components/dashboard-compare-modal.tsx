@@ -187,7 +187,7 @@ export function CompareModal({ lang, onClose }: CompareModalProps) {
             onChange={(e) => setForm((f) => ({ ...f, birthTimezone: e.target.value }))} />
         </Field>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "8px" }}>
           <Field label={t("field_latitude", lang)}>
             <input className="input" inputMode="decimal" value={form.birthLatitude}
               onChange={(e) => setForm((f) => ({ ...f, birthLatitude: e.target.value }))} />
@@ -248,14 +248,13 @@ export function CompareModal({ lang, onClose }: CompareModalProps) {
         </div>
 
         {/* Two person forms side by side */}
-        <div style={{ display: "flex", gap: "var(--space-5)", flexWrap: "wrap" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))", gap: "var(--space-5)" }}>
           <PersonForm
             label={lang === "ta" ? "நபர் 1 (ஆண்)" : "Person 1 (Boy)"}
             accentColor="var(--color-accent)"
             form={formA}
             setForm={setFormA}
           />
-          <div style={{ width: "1px", background: "var(--color-border)", alignSelf: "stretch" }} />
           <PersonForm
             label={lang === "ta" ? "நபர் 2 (பெண்)" : "Person 2 (Girl)"}
             accentColor="var(--color-accent-alt)"

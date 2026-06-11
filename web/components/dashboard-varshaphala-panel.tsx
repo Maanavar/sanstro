@@ -113,7 +113,7 @@ export function VarshaphalaPanel({ lang, chartId, data, loading, onLoad }: Props
             </p>
 
             {/* Itthasala / Isarafa */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)", marginBottom: "var(--space-4)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "var(--space-3)", marginBottom: "var(--space-4)" }}>
               <AspectList
                 lang={lang}
                 title={t("varshaphala_itthasala", lang)}

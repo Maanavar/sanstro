@@ -45,7 +45,7 @@ export default function TimingAndDecisionsPage() {
             <div className="cl-hero-figure">
               <p className="cl-hero-figure__label">{lang === "en" ? "Today's Windows · Sample" : "இன்றைய நேரங்கள் · மாதிரி"}</p>
               <TimingArcVisual />
-              <div className="cl-hero-figure__art" style={{ gap: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", width: "100%" }}>
+              <div className="cl-hero-figure__art" style={{ gap: "10px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", width: "100%" }}>
                 <div className="cl-daily-card__win cl-daily-card__win--best">
                   <p className="cl-daily-card__win-label">{lang === "en" ? "Best Window" : "சிறந்த நேரம்"}</p>
                   <p className="cl-daily-card__win-time">11:53 – 12:41</p>

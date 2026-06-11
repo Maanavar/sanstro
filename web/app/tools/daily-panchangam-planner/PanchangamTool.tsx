@@ -338,7 +338,7 @@ export function PanchangamTool() {
         display: "flex", flexDirection: "column", gap: "16px",
       }}>
         {/* Location */}
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: "12px", alignItems: "end" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "12px", alignItems: "end" }}>
           <label style={labelStyle}>
             {en ? "Location" : "இடம்"}
             <select
@@ -377,6 +377,7 @@ export function PanchangamTool() {
               background: cityKey === "Browser" ? "rgba(184,90,44,0.08)" : "var(--cl-bg-2)",
               color: cityKey === "Browser" ? "#B85A2C" : "var(--cl-ink)",
               whiteSpace: "nowrap",
+              width: "100%",
             }}
           >
             {locating ? (en ? "Locating..." : "இடம் பெறுகிறது...") : (en ? "Use my location" : "என் இடம்")}

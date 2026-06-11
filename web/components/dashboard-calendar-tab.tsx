@@ -863,8 +863,10 @@ function MonthlyCalendarView({
       {!isLoading && !error && !monthly?.entries.length && <p className="empty-state">{t("cal_monthly_empty", lang)}</p>}
 
       {Boolean(monthly?.entries.length) && (
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(320px, 380px)", gap: "var(--space-4)", alignItems: "start" }}>
+        <div className="cd-calendar-monthly-layout">
           <div style={{ minWidth: 0 }}>
+            <div className="cd-calendar-grid-scroll">
+              <div className="cd-calendar-grid">
             <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "var(--space-2)", marginBottom: "var(--space-2)" }}>
               {weekdayLabels.map((wd, i) => (
                 <p
@@ -989,6 +991,8 @@ function MonthlyCalendarView({
                 );
               })}
             </div>
+              </div>
+            </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", marginTop: "var(--space-3)", paddingLeft: "4px" }}>
               {[
                 { label: lang === "ta" ? "விரதம்" : "Vratha", color: monthlyTheme.vratha },
@@ -1003,7 +1007,7 @@ function MonthlyCalendarView({
             </div>
           </div>
 
-          <aside style={{ alignSelf: "stretch", borderLeft: `1px solid ${monthlyTheme.line}`, paddingLeft: "var(--space-4)" }}>
+          <aside className="cd-calendar-monthly-sidebar" style={{ borderLeftColor: monthlyTheme.line }}>
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", borderBottom: `1px solid ${monthlyTheme.line}`, marginBottom: "var(--space-2)" }}>
               {([
                 ["events", lang === "ta" ? "நிகழ்வுகள்" : "Events", sidebarCounts.events],
@@ -1291,7 +1295,7 @@ export function CalendarTab({
           {!panchangam ? (
             <p className="empty-state">{t("panja_empty", lang)}</p>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "var(--space-4)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: "var(--space-4)" }}>
               <div style={{ borderRadius: "var(--radius-xl)", border: `1px solid ${W.borderLt}`, background: W.card, padding: "var(--space-5_5) var(--space-6)" }}>
                 <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.75rem", letterSpacing: "0.16em", textTransform: "uppercase", color: W.muted, fontWeight: 700 }}>
                   Day At A Glance
@@ -1447,13 +1451,13 @@ export function CalendarTab({
                     { key: lang === "ta" ? "ஜீவன்" : "Jeevan", value: panchangam.jeevan, hint: lang === "ta" ? "இன்று முழுவதும்" : "Throughout today" },
                     { key: lang === "ta" ? "அமிர்தாதி யோகம்" : "Amirdhadhi Yogam", value: panchangam.amirdhadhiYogam.name, hint: `${formatClockLabel(panchangam.amirdhadhiYogam.endsAt)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${panchangam.amirdhadhiYogam.nextName}` },
                   ].map((row) => (
-                    <div key={row.key} style={{ borderRadius: "22px", border: `1px solid ${W.border}`, background: W.surface, padding: "var(--space-3_5) var(--space-4_5)", display: "grid", gridTemplateColumns: "120px 1fr auto", alignItems: "center", gap: "var(--space-3)", marginBottom: "var(--space-2_5)" }}>
-                      <span style={{ fontSize: "0.875rem", letterSpacing: "0.14em", textTransform: "uppercase", color: W.muted, fontWeight: 700 }}>{row.key}</span>
-                      <div>
-                        <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "1.25rem", lineHeight: 1, fontFamily: "var(--font-display)", color: W.ink }}>{row.value}</p>
-                        <p style={{ margin: 0, color: W.muted, fontSize: "0.875rem" }}>{row.hint}</p>
+                    <div key={row.key} className="cd-detail-spec-row">
+                      <span className="cd-detail-spec-row__label">{row.key}</span>
+                      <div className="cd-detail-spec-row__body">
+                        <p>{row.value}</p>
+                        <p>{row.hint}</p>
                       </div>
-                      <span style={{ color: W.mutedLt, fontSize: "0.75rem", fontWeight: 700 }}>5L</span>
+                      <span className="cd-detail-spec-row__tag">5L</span>
                     </div>
                   ))}
                 </div>

@@ -658,7 +658,7 @@ export function DashboardFamilyTab({
       )}
 
       {/* ── ROW 2: 50/50 — Left = Family Today card · Right = member tiles stacked ── */}
-      <div className="cd-responsive-grid-2" style={{ gridTemplateColumns: "2fr 3fr", gap: "var(--space-4)", alignItems: "stretch" }}>
+      <div className="cd-responsive-grid-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: "var(--space-4)", alignItems: "stretch" }}>
 
         {/* LEFT: Family Today score card — stretches to full row height */}
         <div style={{

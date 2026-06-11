@@ -379,7 +379,7 @@ export function DashboardSetupTab({
       </div>
 
       {/* ── Step cards row (Step 1 + Step 2 side by side when both active/done) ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "var(--space-4)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "var(--space-4)" }}>
 
         {/* Step 1 — Birth chart card */}
         <div style={{
@@ -411,7 +411,7 @@ export function DashboardSetupTab({
           {/* Summary grid when done */}
           {birthProfileId && (
             <div style={{
-              display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3) var(--space-6)",
+              display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "var(--space-3) var(--space-6)",
               padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)",
               background: W.surfaceMd, border: `1px solid ${W.borderLt}`,
             }}>
@@ -434,7 +434,7 @@ export function DashboardSetupTab({
           {/* Form — shown when not yet created */}
           {!birthProfileId && (
             <form id="form-profile" onSubmit={onCreateProfile} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "var(--space-3)" }}>
                 <WField label={t("field_name", lang)} error={formErrors.displayName}>
                   <WInput
                     value={birthForm.displayName} error={!!formErrors.displayName}
@@ -645,7 +645,7 @@ export function DashboardSetupTab({
 
           {/* Vault creation / rename form */}
           <form id="form-vault" onSubmit={onCreateVault} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "var(--space-3)" }}>
               <WField label={t("field_vault_name", lang)}>
                 <WInput value={vaultForm.name} placeholder="எ.கா. Murugan Family"
                   onChange={(e) => onVaultFormChange({ ...vaultForm, name: e.target.value })} />
@@ -695,7 +695,7 @@ export function DashboardSetupTab({
           </div>
 
           <form id="form-member" onSubmit={onAddMember} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "var(--space-3)" }}>
               <WField label={t("field_name", lang)} error={formErrors.memberDisplayName}>
                 <WInput value={memberForm.displayName} error={!!formErrors.memberDisplayName}
                   onChange={(e) => { onMemberFormChange({ ...memberForm, displayName: e.target.value }); onFormErrorChange({ memberDisplayName: "" }); }} />

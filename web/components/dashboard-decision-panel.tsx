@@ -321,7 +321,7 @@ export function DecisionPanel({ lang, chartId }: Props) {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "var(--space-3)" }}>
             {[
               { key: "A" as const, data: result.optionA, isRecommended: result.recommended === "A" },
               { key: "B" as const, data: result.optionB, isRecommended: result.recommended === "B" },

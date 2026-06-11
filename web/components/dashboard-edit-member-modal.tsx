@@ -135,7 +135,7 @@ export function EditMemberModal({ lang, editMember, busySaving, onClose, onChang
         </div>
 
         {/* Fields */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "14px" }}>
           <WField label={t("field_display_name", lang)}>
             <WInput value={editMember.displayName}
               onChange={(e) => onChange({ ...editMember, displayName: e.target.value })} />

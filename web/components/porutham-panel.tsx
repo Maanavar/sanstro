@@ -111,7 +111,7 @@ function PersonForm({
         <input className="input" style={fieldStyle} value={form.birthTimezone}
           onChange={(e) => onChange({ ...form, birthTimezone: e.target.value })} />
       </Field>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "8px" }}>
         <Field label={t("field_latitude", lang)}>
           <input className="input" style={fieldStyle} inputMode="decimal" value={form.birthLatitude}
             onChange={(e) => onChange({ ...form, birthLatitude: e.target.value })} />

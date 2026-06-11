@@ -398,7 +398,7 @@ export function DashboardPlanTab({
             <div className="cd-responsive-row" style={{ gap: "var(--space-2_5)", alignItems: "flex-end", marginBottom: "var(--space-3_5)" }}>
               <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("whatif_scenario", lang)}</span>
-                <select style={{ ...fieldStyle, minWidth: "220px" }} value={whatIfScenario} onChange={(e) => onWhatIfScenarioChange(e.target.value)}>
+                <select style={{ ...fieldStyle, minWidth: "min(220px, 100%)" }} value={whatIfScenario} onChange={(e) => onWhatIfScenarioChange(e.target.value)}>
                   {WHATIF_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {lang === "ta" ? opt.ta : opt.en}
@@ -517,7 +517,7 @@ export function DashboardPlanTab({
               <div className="cd-responsive-row" style={{ gap: "var(--space-2_5)", alignItems: "flex-end", marginBottom: "var(--space-3)" }}>
                 <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                   <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("activity_label", lang)}</span>
-                  <select style={{ ...fieldStyle, minWidth: "240px" }} value={activityType} onChange={(e) => { setActivityType(e.target.value); setActivityTimingResult(null); }}>
+                  <select style={{ ...fieldStyle, minWidth: "min(240px, 100%)" }} value={activityType} onChange={(e) => { setActivityType(e.target.value); setActivityTimingResult(null); }}>
                     {ACTIVITY_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {lang === "ta" ? opt.ta : opt.en}
@@ -527,7 +527,7 @@ export function DashboardPlanTab({
                 </div>
                 <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                   <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("activity_month_label", lang)}</span>
-                  <input style={{ ...fieldStyle, minWidth: "140px" }} type="month" value={activityMonth} onChange={(e) => { setActivityMonth(e.target.value); setActivityTimingResult(null); }} />
+                  <input style={{ ...fieldStyle, minWidth: "min(140px, 100%)" }} type="month" value={activityMonth} onChange={(e) => { setActivityMonth(e.target.value); setActivityTimingResult(null); }} />
                 </div>
                 <button
                   type="button"
@@ -565,21 +565,22 @@ export function DashboardPlanTab({
                     try { shortDate = new Date(item.dateLocal + "T12:00:00").toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { day: "numeric", month: "short", year: "numeric" }); } catch { shortDate = item.dateLocal; }
                     return (
                       <div
+                        className="cd-ranked-card"
                         key={item.dateLocal}
-                        style={{ padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)", background: isSelected ? "#EEF6EA" : W.card, border: `1.5px solid ${isSelected ? "rgba(92,118,84,0.5)" : W.borderLt}`, display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "var(--space-3)", alignItems: "center", cursor: "pointer", transition: "all 0.12s" }}
+                        style={{ padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)", background: isSelected ? "#EEF6EA" : W.card, border: `1.5px solid ${isSelected ? "rgba(92,118,84,0.5)" : W.borderLt}`, cursor: "pointer", transition: "all 0.12s" }}
                         onClick={() => {
                           setMuhurtaPresetDate(item.dateLocal);
                           setMuhurtaPresetActivity(ACTIVITY_TO_MUHURTA[activityType] ?? "");
                         }}
                       >
                         {/* Rank + score column */}
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", minWidth: "44px" }}>
+                        <div className="cd-ranked-card__score">
                           <span style={{ fontSize: "0.5625rem", fontWeight: 700, color: W.mutedLt }}>{i + 1}.</span>
                           <span style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: scoreColor, lineHeight: 1 }}>{item.score}</span>
                           <span style={{ fontSize: "0.5rem", fontWeight: 600, color: W.mutedLt }}>/100</span>
                         </div>
                         {/* Date + reason column */}
-                        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                        <div className="cd-ranked-card__body">
                           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
                             <span style={{ fontSize: "0.875rem", fontWeight: 700, color: scoreColor }}>{shortDate}</span>
                             <span style={{ fontSize: "0.75rem", fontWeight: 600, color: W.muted }}>{weekday}</span>
@@ -590,7 +591,7 @@ export function DashboardPlanTab({
                           <p style={{ margin: 0, fontSize: "0.8125rem", color: W.inkMid, lineHeight: 1.5 }}>{lang === "ta" ? item.reasonTa : item.reasonEn}</p>
                         </div>
                         {/* CTA */}
-                        <span style={{ fontSize: "0.75rem", fontWeight: 700, color: isSelected ? "#5C7654" : W.muted, flexShrink: 0, whiteSpace: "nowrap" }}>
+                        <span className="cd-ranked-card__cta" style={{ fontSize: "0.75rem", fontWeight: 700, color: isSelected ? "#5C7654" : W.muted, flexShrink: 0 }}>
                           {lang === "ta" ? "முஹூர்த்தம் →" : "Get Muhurta →"}
                         </span>
                       </div>

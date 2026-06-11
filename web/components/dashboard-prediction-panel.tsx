@@ -84,7 +84,7 @@ function PredictionCard({ title, pred, lang, expanded, onToggle, featured, defer
 
   const detailSection = (
     <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
-      <div style={{ display: "grid", gridTemplateColumns: pred.challenges.length > 0 ? "1fr 1fr" : "1fr", gap: "var(--space-6)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: pred.challenges.length > 0 ? "repeat(auto-fit, minmax(min(100%, 220px), 1fr))" : "1fr", gap: "var(--space-6)" }}>
         {pred.supports.length > 0 && (
           <div>
             <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_supports", lang)}</p>
@@ -123,7 +123,7 @@ function PredictionCard({ title, pred, lang, expanded, onToggle, featured, defer
   if (featured && expanded) {
     return (
       <div style={{ borderRadius: "var(--radius-lg)", border: "1px solid var(--color-border)", background: "var(--color-surface)", overflow: "hidden", boxShadow: "0 2px 14px rgba(60,40,20,0.08)", fontFamily: "var(--font-body)" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr minmax(220px, 280px)", gap: 0 }}>
+        <div className="cd-featured-panel">
           <div style={{ padding: "var(--space-8)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
               <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", letterSpacing: "0.1em", textTransform: "uppercase" }}>{title}</p>
@@ -142,7 +142,7 @@ function PredictionCard({ title, pred, lang, expanded, onToggle, featured, defer
             {detailSection}
           </div>
 
-          <div style={{ padding: "var(--space-8)", borderLeft: "1px solid var(--color-border)", background: "var(--color-surface-soft)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+          <div className="cd-featured-panel__aside" style={{ padding: "var(--space-8)", background: "var(--color-surface-soft)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
             <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_confidence", lang)}</p>
             <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "2rem", lineHeight: 1, color: tone.text }}>{confidenceLabel(pred.confidence, lang)}</p>
             <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.55 }}>

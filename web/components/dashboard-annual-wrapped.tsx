@@ -110,7 +110,7 @@ function StatsSummary({ data, lang }: { data: AnnualWrappedData; lang: Lang }) {
   ];
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "8px" }}>
       {stats.map((s) => (
         <div key={s.label} style={{
           padding: "12px 14px",

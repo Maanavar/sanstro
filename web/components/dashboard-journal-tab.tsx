@@ -374,7 +374,7 @@ export function DashboardJournalTab({
             <div className="cd-responsive-row" style={{ gap: "var(--space-2_5)", alignItems: "flex-end" }}>
               <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("context_event_type", lang)}</span>
-                <select style={{ ...fieldStyle, minWidth: "160px" }} value={ctxEventType} onChange={(e) => setCtxEventType(e.target.value as ContextEventType)}>
+                <select style={{ ...fieldStyle, minWidth: "min(160px, 100%)" }} value={ctxEventType} onChange={(e) => setCtxEventType(e.target.value as ContextEventType)}>
                   {CONTEXT_EVENT_TYPES.map((type) => (
                     <option key={type} value={type}>
                       {t(CTX_TYPE_KEY[type], lang)}
@@ -385,7 +385,7 @@ export function DashboardJournalTab({
 
               <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("context_event_date", lang)}</span>
-                <input style={{ ...fieldStyle, minWidth: "140px" }} type="date" value={ctxEventDate} min={todayIso()} onChange={(e) => setCtxEventDate(e.target.value)} />
+                <input style={{ ...fieldStyle, minWidth: "min(140px, 100%)" }} type="date" value={ctxEventDate} min={todayIso()} onChange={(e) => setCtxEventDate(e.target.value)} />
               </div>
 
               <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
@@ -434,12 +434,12 @@ export function DashboardJournalTab({
             <div className="cd-responsive-row" style={{ gap: "var(--space-2_5)", alignItems: "flex-end", marginBottom: "var(--space-3)" }}>
               <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("journal_date", lang)}</span>
-                <input style={{ ...fieldStyle, minWidth: "140px" }} type="date" value={entryDate} max={todayIso()} onChange={(e) => setEntryDate(e.target.value)} />
+                <input style={{ ...fieldStyle, minWidth: "min(140px, 100%)" }} type="date" value={entryDate} max={todayIso()} onChange={(e) => setEntryDate(e.target.value)} />
               </div>
 
               <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt }}>{t("journal_life_area", lang)}</span>
-                <select style={{ ...fieldStyle, minWidth: "160px" }} value={lifeArea} onChange={(e) => setLifeArea(e.target.value as LifeArea)}>
+                <select style={{ ...fieldStyle, minWidth: "min(160px, 100%)" }} value={lifeArea} onChange={(e) => setLifeArea(e.target.value as LifeArea)}>
                   {LIFE_AREAS.map((area) => (
                     <option key={area} value={area}>
                       {t(AREA_KEY[area], lang)}
@@ -612,12 +612,12 @@ export function DashboardJournalTab({
                             value={editDate}
                             max={todayIso()}
                             onChange={(e) => setEditDate(e.target.value)}
-                            style={{ ...fieldStyle, minWidth: "140px" }}
+                            style={{ ...fieldStyle, minWidth: "min(140px, 100%)" }}
                           />
                           <select
                             value={editLifeArea}
                             onChange={(e) => setEditLifeArea(e.target.value as LifeArea)}
-                            style={{ ...fieldStyle, minWidth: "160px" }}
+                            style={{ ...fieldStyle, minWidth: "min(160px, 100%)" }}
                           >
                             {LIFE_AREAS.map((area) => (
                               <option key={area} value={area}>{t(AREA_KEY[area], lang)}</option>

@@ -664,7 +664,7 @@ export default function ChartGeneratePage() {
             />
           </Field>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "12px" }}>
             <Field label="Birth Date">
               <input className="input" type="date" value={form.birthDateLocal} onChange={(e) => setForm((f) => ({ ...f, birthDateLocal: e.target.value }))} />
             </Field>
@@ -690,7 +690,7 @@ export default function ChartGeneratePage() {
             <input className="input" value={form.birthTimezone} onChange={(e) => setForm((f) => ({ ...f, birthTimezone: e.target.value }))} />
           </Field>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "12px" }}>
             <Field label={t("field_latitude", lang)}>
               <input className="input" inputMode="decimal" value={form.birthLatitude} onChange={(e) => setForm((f) => ({ ...f, birthLatitude: e.target.value }))} />
             </Field>

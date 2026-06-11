@@ -145,7 +145,7 @@ export function EditProfileModal({
 
         {/* Form */}
         <form id="form-edit-profile" onSubmit={onSubmit}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "14px" }}>
             <WField label={t("field_display_name", lang)}>
               <WInput value={birthForm.displayName}
                 onChange={(e) => onChange({ ...birthForm, displayName: e.target.value })} />

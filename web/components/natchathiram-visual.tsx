@@ -553,7 +553,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
         {/* ── Personality Snapshot + Core Strengths ────────────────────── */}
         <section className="cl-band">
           <div className="cl-container">
-            <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:"4rem", alignItems:"start" }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,260px),1fr))", gap:"4rem", alignItems:"start" }}>
 
               <div>
                 <SectionHeading>{mtv(v.personality)}</SectionHeading>
@@ -606,7 +606,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
         {/* ── Career & Abilities + Best Clusters ───────────────────────── */}
         <section className="cl-band cl-band--alt">
           <div className="cl-container">
-            <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:"4rem" }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,260px),1fr))", gap:"4rem" }}>
 
               <div>
                 <SectionHeading>{mtv(d.sec_career)}</SectionHeading>
@@ -630,7 +630,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
 
               <div>
                 <SectionHeading>{mtv(v.career_clusters)}</SectionHeading>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0.875rem" }}>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,160px),1fr))", gap:"0.875rem" }}>
                   {careerClusters.map((c) => (
                     <div key={c.title} style={{ background:T.surface, border:`1px solid ${T.border}`, borderRadius:12, padding:"1.25rem 1rem", textAlign:"center", boxShadow:`0 1px 4px ${T.accentA10}` }}>
                       <div style={{ display:"flex", justifyContent:"center", marginBottom:"0.6rem" }}>
@@ -671,7 +671,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
         {/* ── Family & Compatible ───────────────────────────────────────── */}
         <section className="cl-band cl-band--alt">
           <div className="cl-container">
-            <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1fr) minmax(0,1fr)", gap:"4rem" }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,260px),1fr))", gap:"4rem" }}>
 
               <div>
                 <SectionHeading>{mtv(d.sec_family)}</SectionHeading>
@@ -831,7 +831,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
         {/* ── Key Guidance ─────────────────────────────────────────────── */}
         <section className="cl-band">
           <div className="cl-container">
-            <div style={{ display:"grid", gridTemplateColumns:"1fr auto", gap:"3rem", alignItems:"center", background:T.surface2, border:`1px solid ${T.border}`, borderRadius:18, padding:"2.5rem 3rem", boxShadow:`0 2px 16px ${T.accentA10}` }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,260px),1fr))", gap:"3rem", alignItems:"center", background:T.surface2, border:`1px solid ${T.border}`, borderRadius:18, padding:"2.5rem 3rem", boxShadow:`0 2px 16px ${T.accentA10}` }}>
               <div>
                 <p className="cl-eyebrow" style={{ marginBottom:"1rem" }}>{mtv(v.key_guidance)}</p>
                 <blockquote style={{ margin:0, fontFamily:"var(--cl-font-display)", fontSize:"clamp(1rem,2.5vw,1.35rem)", lineHeight:1.7, color:T.ink, borderLeft:`3px solid ${T.accent}`, paddingLeft:"1.5rem", fontStyle:"italic" }}>

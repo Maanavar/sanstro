@@ -398,7 +398,7 @@ export function PoruthamTool() {
               )}
 
               {/* Star info cards */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "14px", fontSize: "11px", color: "var(--cl-ink-2)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "8px", marginBottom: "14px", fontSize: "11px", color: "var(--cl-ink-2)" }}>
                 {([
                   { star: girlStar, color: "var(--cl-accent)", sym: "♀" },
                   { star: boyStar,  color: "var(--cl-sage)",   sym: "♂" },
