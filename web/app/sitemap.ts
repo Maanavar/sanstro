@@ -76,6 +76,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "daily",
       priority: 0.9,
     },
+    {
+      url: `${BASE}/tools/friendship-compatibility`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    /* ── Share pages ── */
+    {
+      url: `${BASE}/share/panchangam`,
+      changeFrequency: "daily",
+      priority: 0.7,
+    },
     /* ── Trust pages ── */
     {
       url: `${BASE}/trust/methodology`,
@@ -168,6 +179,41 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${BASE}/natchathiram/pushya`,
       changeFrequency: "monthly",
       priority: 0.8,
+    },
+    {
+      url: `${BASE}/natchathiram/pushya/visual`,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${BASE}/natchathiram/ashlesha`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/natchathiram/ashlesha/visual`,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${BASE}/natchathiram/magha`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/natchathiram/magha/visual`,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${BASE}/natchathiram/purva-phalguni`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/natchathiram/purva-phalguni/visual`,
+      changeFrequency: "monthly",
+      priority: 0.7,
     },
     {
       url: `${BASE}/natchathiram/uttara-phalguni`,

@@ -7,6 +7,7 @@ import { tNakshatra, tTithi, tWeekday, tYoga, tKarana, tPlanetLord } from "@/lib
 import { formatClockLabel, formatDateLabel, addDays } from "@/lib/format";
 import type { PanchangamDailyResponseData } from "@/lib/types";
 import { PanchangamShareButton } from "@/components/public-share-card";
+import { PanchangamShareCard } from "@/components/panchangam-share-card";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
 const DEFAULT_LAT = "13.0827";
@@ -281,7 +282,12 @@ export default async function PanchangamDatePage({ params }: Props) {
                 </div>
               </div>
 
-              {/* Share button */}
+              {/* Share — festive WhatsApp card (deity + festival themes, 9:16 / 1:1) */}
+              <div style={{ display: "flex", justifyContent: "center", gap: "12px", flexWrap: "wrap" }}>
+                <PanchangamShareCard lang="ta" date={date} city={DEFAULT_CITY} />
+              </div>
+
+              {/* Legacy share button (text card) */}
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <PanchangamShareButton data={{
                   dateLabel,

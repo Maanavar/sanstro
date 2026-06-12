@@ -76,6 +76,26 @@ export function ToolsGrid({
           note={needsProfileNote}
           onClick={onOpenRetrospective}
         />
+        {/* Feature 4 — Friends & Compatibility (public tool, no profile needed) */}
+        <div className="tool-card">
+          <span className="tool-card__icon" aria-hidden="true">✦</span>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
+            <p className="tool-card__name">{lang === "ta" ? "நண்பர்கள் & பொருத்தம்" : "Friends & Compatibility"}</p>
+            <p className="tool-card__desc">
+              {lang === "ta"
+                ? "இரு நபர்களின் நட்பு பாணியை நட்சத்திர அடிப்படையில் அறியுங்கள்."
+                : "Discover two people's friendship style, nakshatra-based."}
+            </p>
+          </div>
+          <a
+            className="tool-card__cta"
+            href="/tools/friendship-compatibility"
+            aria-label={lang === "ta" ? "நண்பர்கள் & பொருத்தம்" : "Friends & Compatibility"}
+            style={{ textDecoration: "none", textAlign: "center" }}
+          >
+            {t("tool_open", lang)}
+          </a>
+        </div>
       </div>
     </div>
   );

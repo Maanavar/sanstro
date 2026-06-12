@@ -199,6 +199,54 @@ def public_porutham(payload: PublicPoruthamRequest) -> PublicPoruthamResponse:
     return PublicPoruthamResponse(data=data)
 
 
+# ── Public Friendship Compatibility (Feature 4) ───────────────────────────────
+
+class FriendshipRequest(BaseModel):
+    person_a: PublicBirthInput = Field(alias="personA")
+    person_b: PublicBirthInput = Field(alias="personB")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+@router.post("/friendship-compatibility")
+def public_friendship_compatibility(payload: FriendshipRequest) -> dict:
+    """Positively-framed friendship compatibility between two people. No auth.
+
+    Reuses the porutham engine but drops marriage-specific kutas and reframes the
+    result as friendship. Rate limiting is handled at the infrastructure layer.
+    """
+    from app.services.friendship_compatibility_service import get_friendship_report
+
+    try:
+        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), "thirukanitham-2026-v1")
+        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), "thirukanitham-2026-v1")
+    except (ValueError, HTTPException) as exc:
+        msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=msg) from exc
+
+    moon_a = next((p for p in chart_a.data.planets if p.graha == "MOON"), None)
+    moon_b = next((p for p in chart_b.data.planets if p.graha == "MOON"), None)
+    if moon_a is None or moon_b is None:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Could not determine Moon position.")
+
+    return get_friendship_report(
+        {
+            "name": payload.person_a.display_name,
+            "nakshatra": moon_a.nakshatra,
+            "nakshatra_name": moon_a.nakshatra_name,
+            "rasi": moon_a.rasi,
+            "rasi_name": getattr(moon_a, "rasi_name", ""),
+        },
+        {
+            "name": payload.person_b.display_name,
+            "nakshatra": moon_b.nakshatra,
+            "nakshatra_name": moon_b.nakshatra_name,
+            "rasi": moon_b.rasi,
+            "rasi_name": getattr(moon_b, "rasi_name", ""),
+        },
+    )
+
+
 @router.get("/panchangam", response_model=PanchangamDailyResponse)
 def public_panchangam(
     date: date,
@@ -213,6 +261,26 @@ def public_panchangam(
     """
     query = PanchangamDailyQuery(date=date, lat=lat, lng=lng, timezone=timezone)
     return calculate_panchangam(query, session)
+
+
+@router.get("/panchangam-share-card")
+def public_panchangam_share_card(
+    date: date,
+    lat: float = 13.0827,
+    lng: float = 80.2707,
+    timezone: str = "Asia/Kolkata",
+    city: str = "Chennai",
+    lang: str = "ta",
+    session: Session = Depends(get_db),
+) -> dict:
+    """Assemble the share-card payload for a date/location. No authentication required.
+
+    Defaults to Chennai. Used by the public /share/panchangam page and the in-app
+    "Share Today's Card" button.
+    """
+    from app.services.panchangam_card_service import get_card_data
+
+    return get_card_data(date, lat, lng, timezone, lang=lang, city=city, session=session)
 
 
 # ── Public Muhurta ─────────────────────────────────────────────────────────────
