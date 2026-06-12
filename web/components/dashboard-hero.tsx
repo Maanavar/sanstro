@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { todayIso } from "@/lib/format";
 import { t } from "@/lib/i18n";
@@ -153,12 +153,21 @@ export function DashboardHero(props: DashboardHeroProps) {
   const todayDate = useRef(todayIso());
   const [showAlerts, setShowAlerts] = useState(false);
   const [showInbox, setShowInbox] = useState(false);
+  const activeTabRef = useRef<HTMLButtonElement>(null);
 
   const lagnaRasi = chartSummary?.lagnaRasi ?? "";
+  // Settings is reachable from the avatar menu, so it is omitted from the tab
+  // strip to keep the mobile nav compact. QA only shows outside production.
   const tabs = useMemo(
-    () => (SHOW_QA_TAB ? TAB_DEFS : TAB_DEFS.filter((tab) => tab.id !== "qa")),
+    () => TAB_DEFS.filter((tab) => tab.id !== "settings" && (SHOW_QA_TAB || tab.id !== "qa")),
     [],
   );
+
+  // Keep the active tab scrolled into view on the mobile scrollable strip so the
+  // user can always see where they are, even when tabs overflow the viewport.
+  useEffect(() => {
+    activeTabRef.current?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  }, [activeTab]);
 
   const langToggleTitle = lang === "ta" ? "Switch to English" : "தமிழுக்கு மாறு";
 
@@ -317,16 +326,20 @@ export function DashboardHero(props: DashboardHeroProps) {
 
       <nav className="cd-tabnav" aria-label="Dashboard navigation">
         <div className="cd-tabnav__inner">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              className={`cd-tab${activeTab === tab.id ? " cd-tab--active" : ""}`}
-              onClick={() => onTabChange(tab.id)}
-            >
-              {lang === "ta" && tab.labelTaKey ? t(tab.labelTaKey, lang) : tab.labelEn}
-            </button>
-          ))}
+          <div className="cd-tabnav__scroll">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                ref={activeTab === tab.id ? activeTabRef : undefined}
+                className={`cd-tab${activeTab === tab.id ? " cd-tab--active" : ""}`}
+                aria-current={activeTab === tab.id ? "page" : undefined}
+                onClick={() => onTabChange(tab.id)}
+              >
+                {lang === "ta" && tab.labelTaKey ? t(tab.labelTaKey, lang) : tab.labelEn}
+              </button>
+            ))}
+          </div>
 
           <div className="cd-tabnav__right">
             <label htmlFor="dashboard-date" className="cd-visually-hidden">
