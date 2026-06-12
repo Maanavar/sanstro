@@ -14,7 +14,8 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\senth\\\\OneDrive\\\\문서\\\\GitHub\\\\sanstro\" -Force)",
       "Bash(Select-Object -Property Name, PSIsContainer)",
       "Bash(ls -la \"C:\\\\Users\\\\senth\\\\OneDrive\\\\文档\\\\GitHub\\\\sanstro\")",
-      "Bash(ls -la \"/c/Users/senth/OneDrive/文档/GitHub/sanstro\")"
+      "Bash(ls -la \"/c/Users/senth/OneDrive/文档/GitHub/sanstro\")",
+      "Bash(Test-Path 'C:\\\\Users\\\\senth\\\\OneDrive\\\\문서\\\\GitHub\\\\sanstro\\\\docs')"
     ],
     "additionalDirectories": [
       "C:\\tmp",
