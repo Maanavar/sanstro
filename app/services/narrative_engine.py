@@ -763,19 +763,49 @@ def build_ekadasi_card() -> BiText:
     )
 
 
+def build_shivarathiri_card() -> BiText:
+    """Tithi 29 — Krishna Chaturdashi / Masa Shivarathiri, sacred to Shiva."""
+    return _bi(
+        "இன்று சிவராத்திரி — சிவ வழிபாட்டின் இரவு. "
+        "இரவு முழுவதும் விழித்திருந்து சிவ நாமம் ஜபித்தல், அபிஷேகம் காண்பது மிகச் சிறப்பு. "
+        "மனத்தூய்மைக்கும் ஆன்மிக வளர்ச்சிக்கும் ஏற்ற நாள்.",
+        "Today is Shivarathiri — the night of Lord Shiva. "
+        "Staying awake through the night chanting Shiva's name and witnessing abhishekam is especially blessed. "
+        "A powerful day for inner purity and spiritual growth.",
+    )
+
+
 def tithi_content_card(tithi_number: int) -> BiText | None:
     """
     Returns a tithi content card for special tithis, or None for ordinary days.
-    Tithis: 30=Amavasai, 15=Pournami, 13/28=Pradosham, 11/26=Ekadasi.
+    Tithis: 30=Amavasai, 15=Pournami, 29=Shivarathiri, 13/28=Pradosham, 11/26=Ekadasi.
     """
     if tithi_number == 30:
         return build_amavasai_card()
     if tithi_number == 15:
         return build_pournami_card()
+    if tithi_number == 29:
+        return build_shivarathiri_card()
     if tithi_number in {13, 28}:
         return build_pradosham_card()
     if tithi_number in {11, 26}:
         return build_ekadasi_card()
+    return None
+
+
+# Festival key + display names for share cards (Feature 1).
+# Keyed by absolute tithi number (1=Shukla Prathamai … 30=Amavasai).
+def festival_for_tithi(tithi_number: int) -> dict | None:
+    if tithi_number == 30:
+        return {"key": "AMAVASAI", "ta": "அமாவாசை", "en": "Amavasai", "deity": "shiva"}
+    if tithi_number == 15:
+        return {"key": "POURNAMI", "ta": "பௌர்ணமி", "en": "Pournami", "deity": "lakshmi"}
+    if tithi_number == 29:
+        return {"key": "SHIVARATHIRI", "ta": "சிவராத்திரி", "en": "Shivarathiri", "deity": "shiva"}
+    if tithi_number in {13, 28}:
+        return {"key": "PRADOSHAM", "ta": "பிரதோஷம்", "en": "Pradosham", "deity": "shiva"}
+    if tithi_number in {11, 26}:
+        return {"key": "EKADASI", "ta": "ஏகாதசி", "en": "Ekadasi", "deity": "vishnu"}
     return None
 
 

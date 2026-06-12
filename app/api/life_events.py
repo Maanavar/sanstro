@@ -6,8 +6,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app.core.age_gate import MINOR_BLOCKED_LIFE_EVENT_TYPES, is_minor
 from app.core.auth import get_current_user
 from app.db.session import get_db
+from app.models import BirthProfile, Chart
 from app.models.user import User
 from app.schemas.life_events import LifeEventsResponse
 from app.services.life_event_service import get_life_event_windows
@@ -24,10 +26,21 @@ def get_chart_life_events(
     current_user: User = Depends(get_current_user),
 ) -> LifeEventsResponse:
     on_date = as_of or date.today()
-    return get_life_event_windows(
+    response = get_life_event_windows(
         session,
         chart_id,
         on_date,
         years_ahead,
         owner_user_id=current_user.user_id,
     )
+
+    # Feature 5 — filter marriage/romantic-timing windows for minors.
+    chart = session.get(Chart, chart_id)
+    profile = session.get(BirthProfile, chart.birth_profile_id) if chart else None
+    if profile is not None and is_minor(profile.birth_date_local):
+        response.data.windows = [
+            w for w in response.data.windows
+            if w.event_type not in MINOR_BLOCKED_LIFE_EVENT_TYPES
+        ]
+
+    return response

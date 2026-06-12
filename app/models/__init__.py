@@ -1,5 +1,6 @@
 """Database model package for Vinaadi AI."""
 
+from app.models.ask_vinaadi_usage import AskVinaadiUsage
 from app.models.birth_profile import BirthProfile
 from app.models.chart import Chart
 from app.models.chart_planet import ChartPlanet
@@ -27,6 +28,7 @@ from app.models.user_life_events import UserLifeEvent
 from app.models.varga_position import VargaPosition
 
 __all__ = [
+    "AskVinaadiUsage",
     "BirthProfile",
     "Chart",
     "ChartPlanet",

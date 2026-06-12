@@ -133,7 +133,10 @@ def dispatch_notification(
     Dispatch a notification for a user, respecting their channel preference and
     the smart silence rule.
 
-    Returns one of: 'sent_push', 'sent_email', 'sent_both', 'suppressed', 'opted_out', 'failed'.
+    Returns one of: 'sent_push', 'sent_email', 'sent_both', 'suppressed', 'in_app_only', 'failed'.
+
+    Note: channel='none' returns 'in_app_only' (not a hard opt-out) — the notification is
+    still persisted to the in-app inbox; only push/email *delivery* is suppressed.
     """
     pref = get_or_create_preferences(session, user_id)
 

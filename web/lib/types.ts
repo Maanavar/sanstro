@@ -85,6 +85,7 @@ export interface AskVinaadiResponseData {
   caveat: AskVinaadiAnswer | null;
   questionsUsedToday: number;
   dailyLimit: number;
+  chipsRemaining?: number | null;
 }
 
 export interface MuhurtaSlot {
@@ -1187,6 +1188,23 @@ export interface LifeAreaPredictionData {
 export interface LifeAreaPredictionResponse {
   success: boolean;
   data: LifeAreaPredictionData;
+  // Feature 5 — set on the wealth prediction for under-18 users so the client can
+  // reframe investment guidance as education/savings.
+  ageGated?: boolean;
+  alternativeFraming?: string | null;
+}
+
+// Feature 2/5 — Life Mode (focus intent). Stored on user_preferences, not user_mode
+// (which is the dashboard complexity mode: BEGINNER/BALANCED/TRADITIONAL).
+export type LifeMode =
+  | "STUDY" | "CAREER" | "LOVE" | "MARRIAGE" | "FAMILY"
+  | "WEALTH" | "HEALTH" | "SPIRITUALITY" | "REMEDIES" | "BALANCED";
+
+export interface LifeModeStatus {
+  mode: LifeMode;
+  lifeModeSetAt: string | null;
+  showLifeModePicker: boolean;
+  blockedModes?: string[];
 }
 
 // ── Phase 4: All four predictions bundled ─────────────────────────────────────

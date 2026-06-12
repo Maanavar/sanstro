@@ -8,6 +8,7 @@ import type { Lang } from "@/lib/i18n";
 import type {
   BirthProfileSnapshot,
   DailyGuidanceData,
+  LifeMode,
   PanchangamDailyResponseData,
   SaniCycleData,
   TransitSnapshotData,
@@ -15,6 +16,7 @@ import type {
 import { getBirthTimeConfidence, getScoreDrivers, type ScoreDriver } from "@/lib/uiux-enhancements";
 
 import { Chip, Surface } from "./dashboard-ui";
+import { LifeModeBadge } from "./life-mode-picker";
 
 
 function driverLabel(driver: ScoreDriver | null, lang: Lang): string {
@@ -30,6 +32,8 @@ export function DashboardDailySnapshot({
   sani,
   panchangam,
   birthProfile,
+  lifeMode,
+  onChangeFocus,
 }: {
   lang: Lang;
   guidance: DailyGuidanceData | null;
@@ -37,6 +41,8 @@ export function DashboardDailySnapshot({
   sani: SaniCycleData | null;
   panchangam: PanchangamDailyResponseData | null;
   birthProfile: BirthProfileSnapshot | null;
+  lifeMode?: LifeMode;
+  onChangeFocus?: () => void;
 }) {
   const [showDualLanguage, setShowDualLanguage] = useState(false);
   const drivers = useMemo(() => (guidance ? getScoreDrivers(guidance.scoreBreakdown) : null), [guidance]);
@@ -65,14 +71,19 @@ export function DashboardDailySnapshot({
           <p className="surface__text" style={{ margin: 0 }}>
             {scoreSummaryPrimary}
           </p>
-          <button
-            type="button"
-            className="button button--ghost"
-            onClick={() => setShowDualLanguage((v) => !v)}
-            style={{ padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem" }}
-          >
-            {showDualLanguage ? "Single language" : "TA + EN"}
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+            {lifeMode && onChangeFocus && (
+              <LifeModeBadge mode={lifeMode} lang={lang} onClick={onChangeFocus} />
+            )}
+            <button
+              type="button"
+              className="button button--ghost"
+              onClick={() => setShowDualLanguage((v) => !v)}
+              style={{ padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem" }}
+            >
+              {showDualLanguage ? "Single language" : "TA + EN"}
+            </button>
+          </div>
         </div>
 
         {showDualLanguage && (

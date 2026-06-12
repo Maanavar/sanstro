@@ -80,7 +80,10 @@ def test_birth_profile_without_time_can_be_saved_without_chart(client):
     assert body["calculationStatus"] == "pending"
 
 
-def test_birth_profile_me_latest_returns_latest_profile_for_current_user(client):
+def test_birth_profile_me_latest_returns_oldest_onboarding_profile_for_current_user(client):
+    # /me/latest deliberately returns the OLDEST standalone profile so the user's real
+    # onboarding profile wins over ephemeral temp profiles created later by tools. The
+    # first profile is backdated below to stand in as the onboarding profile.
     first = client.post(
         "/api/v1/birth-profiles",
         json={
@@ -120,11 +123,11 @@ def test_birth_profile_me_latest_returns_latest_profile_for_current_user(client)
 
     assert response.status_code == 200
     body = response.json()["data"]
-    assert body["birthProfileId"] == second["data"]["birthProfileId"]
-    assert body["displayName"] == "Second Profile"
+    assert body["birthProfileId"] == first_birth_profile_id
+    assert body["displayName"] == "First Profile"
     assert body["birthTimeLocal"] == "06:30:00"
     assert body["relationshipToOwner"] == "self"
-    assert body["birthProfileId"] != first["data"]["birthProfileId"]
+    assert body["birthProfileId"] != second["data"]["birthProfileId"]
 
 
 def test_birth_profile_me_latest_returns_404_when_no_profile_exists(client):

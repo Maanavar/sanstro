@@ -61,6 +61,8 @@ class LifeAreaPredictionOut(BaseModel):
 class PredictionResponse(BaseModel):
     success: bool = True
     data: LifeAreaPredictionOut
+    age_gated: bool = Field(default=False, alias="ageGated")
+    alternative_framing: str | None = Field(default=None, alias="alternativeFraming")
     model_config = ConfigDict(populate_by_name=True)
 
 
@@ -182,7 +184,12 @@ def get_marriage_prediction(
         rahu_ketu_label=rahu_ketu.label if rahu_ketu else None,
         d9_rasi_by_planet=d9_rasi_by_planet,
     )
-    return PredictionResponse(data=_to_out(assess_marriage_prediction(payload)))
+    # Feature 5 — minors get a 200 with an age-gated framing from the service layer
+    # (no hard 403); surface the flag so the client can reframe the section.
+    return PredictionResponse(
+        data=_to_out(assess_marriage_prediction(payload)),
+        age_gated=age < 18,
+    )
 
 
 @router.get(
@@ -249,7 +256,14 @@ def get_wealth_prediction(
         pitru_dosham_label=pitru.label if pitru else None,
         rahu_ketu_label=rahu_ketu.label if rahu_ketu else None,
     )
-    return PredictionResponse(data=_to_out(assess_wealth_prediction(payload)))
+    # Feature 5 — for minors, wealth/investment framing is replaced with an
+    # education/savings framing flag the client uses to reframe the section.
+    minor = age < 18
+    return PredictionResponse(
+        data=_to_out(assess_wealth_prediction(payload)),
+        age_gated=minor,
+        alternative_framing="education" if minor else None,
+    )
 
 
 @router.get(

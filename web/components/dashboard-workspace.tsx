@@ -12,6 +12,8 @@ import type {
   BirthProfileCreateResponseData,
   FamilyAggregateMember,
   FamilyVaultListItem,
+  LifeMode,
+  LifeModeStatus,
   NotificationInboxItem,
   NotificationInboxResponse,
 } from "@/lib/types";
@@ -43,6 +45,8 @@ import { ChartGenerateInlinePanel } from "./chart-generate-inline-panel";
 import { DashboardAnnualWrapped } from "./dashboard-annual-wrapped";
 import { RetrospectivePanel } from "./dashboard-retrospective-panel";
 import { RectificationWizard } from "./dashboard-rectification-wizard";
+import { LifeModePicker } from "./life-mode-picker";
+import { DashboardAskVinaadiWidget } from "./dashboard-ask-vinaadi-widget";
 
 const STORAGE_KEY = "jothidam-ai-dashboard-state";
 const ENABLE_QA_TAB = process.env.NODE_ENV !== "production";
@@ -296,6 +300,11 @@ export function DashboardWorkspace() {
     }, []),
   });
 
+  // ── Life Mode (Feature 2) ─────────────────────────────────
+  const [lifeModeStatus, setLifeModeStatus] = useState<LifeModeStatus | null>(null);
+  const [lifeModePickerOpen, setLifeModePickerOpen] = useState(false);
+  const activeLifeMode: LifeMode = lifeModeStatus?.mode ?? "BALANCED";
+
   const personal = usePersonalData({
     selectedDate,
     onStatus: setStatus,
@@ -468,6 +477,22 @@ export function DashboardWorkspace() {
     if (session.hydrated) void journal.loadJournalSettings();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.hydrated]);
+
+  // Load Life Mode status; auto-open the picker for set-up users who haven't
+  // chosen recently (null, stale >30d, or server flag set).
+  useEffect(() => {
+    if (!session.hydrated || !personal.chartId) return;
+    apiFetchJson<LifeModeStatus>("/api/v1/settings/life-mode")
+      .then((s) => {
+        setLifeModeStatus(s);
+        const stale =
+          !s.lifeModeSetAt ||
+          Date.now() - new Date(s.lifeModeSetAt).getTime() > 30 * 24 * 60 * 60 * 1000;
+        if (s.showLifeModePicker || stale) setLifeModePickerOpen(true);
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.hydrated, personal.chartId]);
 
   useEffect(() => {
     if (session.hydrated && personal.chartId) {
@@ -1090,6 +1115,8 @@ export function DashboardWorkspace() {
         {activeTab === "personal" && (
           <DashboardPersonalTab
             lang={lang}
+            activeLifeMode={activeLifeMode}
+            onChangeFocus={() => setLifeModePickerOpen(true)}
             birthDisplayName={birthForm.displayName}
             selectedDate={selectedDate}
             todayDate={personal.todayDate}
@@ -1470,7 +1497,26 @@ export function DashboardWorkspace() {
         ✉
       </button>
 
+      {personal.chartId && (
+        <DashboardAskVinaadiWidget
+          lang={lang}
+          chartId={personal.chartId}
+          goalTrack={session.goalTrack}
+          activeLifeMode={activeLifeMode}
+        />
+      )}
+
       {showFeedback && <FeedbackModal lang={lang} onClose={() => setShowFeedback(false)} />}
+
+      {lifeModePickerOpen && (
+        <LifeModePicker
+          lang={lang}
+          currentMode={activeLifeMode}
+          blockedModes={lifeModeStatus?.blockedModes ?? []}
+          onClose={() => setLifeModePickerOpen(false)}
+          onSelected={(status) => setLifeModeStatus(status)}
+        />
+      )}
 
       {showRectification && personal.birthProfileId && (
         <RectificationWizard

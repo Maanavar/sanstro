@@ -138,8 +138,8 @@ def test_send_push_stub_mode_returns_true(client):
 
 # ── dispatch service tests ────────────────────────────────────────────────────
 
-def test_dispatch_opted_out(client):
-    """Users with channel=none get 'opted_out' result."""
+def test_dispatch_in_app_only_when_channel_none(client):
+    """channel=none persists to the in-app inbox and returns 'in_app_only' (push/email opted out)."""
     from app.db.session import SessionLocal
     from app.services.notification_dispatch_service import dispatch_notification
 
@@ -155,7 +155,7 @@ def test_dispatch_opted_out(client):
                 body_en="Body",
             )
 
-    assert result == "opted_out"
+    assert result == "in_app_only"
 
 
 def test_dispatch_smart_silence_suppresses_during_heavy_sani(client):

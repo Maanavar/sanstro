@@ -9,6 +9,7 @@ import type { Lang } from "@/lib/i18n";
 import type {
   AmbientAlertItem,
   CharaDashaData,
+  LifeMode,
   ChartCalculateResponseData,
   ChartExplanationData,
   ChartSummaryData,
@@ -57,6 +58,8 @@ const GUIDANCE_REASON_KEYS = ["moonTransit", "dashaSupport", "panchangam", "goch
 
 type DashboardPersonalTabProps = {
   lang: Lang;
+  activeLifeMode?: LifeMode;
+  onChangeFocus?: () => void;
   birthDisplayName: string;
   selectedDate: string;
   todayDate: string;
@@ -333,6 +336,8 @@ const PersonalHero = memo(function PersonalHero({
 
 export function DashboardPersonalTab({
   lang,
+  activeLifeMode,
+  onChangeFocus,
   birthDisplayName,
   selectedDate,
   todayDate,
@@ -877,6 +882,8 @@ export function DashboardPersonalTab({
         sani={personalSani}
         panchangam={panchangam}
         birthProfile={personalChart?.birthProfile ?? null}
+        lifeMode={activeLifeMode}
+        onChangeFocus={onChangeFocus}
       />
 
       {activeChartId && (

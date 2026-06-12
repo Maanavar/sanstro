@@ -98,9 +98,19 @@ def test_whatif_strength_buckets() -> None:
     assert ws._strength(30) == "WEAK"
 
 
-def test_dispatch_notification_opted_out(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_dispatch_notification_in_app_only_when_channel_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    # channel="none" suppresses push/email delivery but still persists to the in-app
+    # inbox (status="sent"); dispatch reflects that with "in_app_only".
     pref = SimpleNamespace(notification_channel="none", smart_silence_enabled=True, fcm_device_token=None)
+    persisted: dict[str, str | None] = {}
     monkeypatch.setattr(nds, "get_or_create_preferences", lambda *_args, **_kwargs: pref)
+    monkeypatch.setattr(
+        nds,
+        "_persist_notification",
+        lambda _s, _u, _c, _t, _title, _body, status, suppression_reason, _p: persisted.update(
+            {"status": status, "suppression_reason": suppression_reason}
+        ),
+    )
     result = nds.dispatch_notification(
         session=object(),
         user_id=uuid4(),
@@ -110,7 +120,8 @@ def test_dispatch_notification_opted_out(monkeypatch: pytest.MonkeyPatch) -> Non
         body_ta="Urai",
         body_en="Body",
     )
-    assert result == "opted_out"
+    assert result == "in_app_only"
+    assert persisted["status"] == "sent"
 
 
 def test_dispatch_notification_smart_silence_suppressed(monkeypatch: pytest.MonkeyPatch) -> None:

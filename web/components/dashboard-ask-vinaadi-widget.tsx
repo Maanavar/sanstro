@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { apiFetchJson } from "@/lib/api";
 import type { Lang } from "@/lib/i18n";
+import type { LifeMode } from "@/lib/types";
 import { DashboardAskVinaadi } from "./dashboard-ask-vinaadi";
 
 type GoalTrack = "CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL" | null;
@@ -10,10 +12,24 @@ interface DashboardAskVinaadiWidgetProps {
   lang: Lang;
   chartId: string | null;
   goalTrack?: GoalTrack;
+  activeLifeMode?: LifeMode;
+  onUpgrade?: () => void;
 }
 
-export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack }: DashboardAskVinaadiWidgetProps) {
+export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLifeMode, onUpgrade }: DashboardAskVinaadiWidgetProps) {
   const [open, setOpen] = useState(false);
+  const [chipsRemaining, setChipsRemaining] = useState<number | null>(null);
+
+  // Counter badge — show remaining free chips when fewer than the daily allowance.
+  useEffect(() => {
+    apiFetchJson<{ chipsRemaining: number | null; isPremium: boolean; dailyLimit: number }>(
+      "/api/v1/ask-vinaadi/daily-status",
+    )
+      .then((s) => setChipsRemaining(s.isPremium ? null : s.chipsRemaining))
+      .catch(() => {});
+  }, [open]);
+
+  const showBadge = chipsRemaining !== null && chipsRemaining < 3;
 
   return (
     <>
@@ -38,6 +54,19 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack }: Dashboar
         }}
       >
         {lang === "ta" ? "கேள் வினாடி" : "Ask Vinaadi"}
+        {showBadge && (
+          <span
+            title={lang === "ta" ? `இன்று ${chipsRemaining} மீதம்` : `${chipsRemaining} left today`}
+            style={{
+              position: "absolute", top: "-6px", right: "-6px", minWidth: "18px", height: "18px",
+              padding: "0 5px", borderRadius: "999px", background: chipsRemaining! > 0 ? "#5C7654" : "#A8482F",
+              color: "#fff", fontSize: "0.6875rem", fontWeight: 800, lineHeight: "18px", textAlign: "center",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
+            }}
+          >
+            {chipsRemaining}
+          </span>
+        )}
       </button>
 
       {open && (
@@ -72,7 +101,7 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack }: Dashboar
               ×
             </button>
           </div>
-          <DashboardAskVinaadi lang={lang} chartId={chartId} goalTrack={goalTrack} />
+          <DashboardAskVinaadi lang={lang} chartId={chartId} goalTrack={goalTrack} activeLifeMode={activeLifeMode} onUpgrade={onUpgrade} />
         </div>
       )}
     </>
