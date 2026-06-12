@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-tests:
+    name: Backend tests (pytest)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: vinaadi_test
+          POSTGRES_USER: slw_admin
+          POSTGRES_PASSWORD: slw_dev_password
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U slw_admin -d vinaadi_test"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+      JOTHIDAM_DATABASE_URL: postgresql://slw_admin:slw_dev_password@localhost:5433/vinaadi_test
+      JOTHIDAM_TEST_DB_RESET_ACK: I_UNDERSTAND_THIS_WIPES_TEST_DB
+      # Throwaway Fernet key so encryption-touching tests run (test DB only — never
+      # used for real data).
+      JOTHIDAM_ENCRYPTION_KEY: oIE2E5GlSD8XImPyokV8q3d27MolWWwtsbokjOvVSQA=
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install backend
+        run: pip install -e .[dev]
+      - name: Run pytest
+        run: pytest -q
+
+  backend-lint:
+    name: Backend lint (ruff) + types (mypy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install tooling
+        run: pip install ruff mypy
+      # Advisory for now: the existing codebase has a lint backlog. New code is
+      # expected to be clean; flip these to blocking once the backlog is cleared.
+      - name: Ruff (advisory)
+        run: ruff check app tests || true
+      - name: Mypy (advisory)
+        run: mypy app || true
+
+  migrations:
+    name: Alembic round-trip
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: vinaadi_migrate
+          POSTGRES_USER: slw_admin
+          POSTGRES_PASSWORD: slw_dev_password
+        ports:
+          - 5440:5432
+        options: >-
+          --health-cmd "pg_isready -U slw_admin -d vinaadi_migrate"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    env:
+      JOTHIDAM_DATABASE_URL: postgresql://slw_admin:slw_dev_password@localhost:5440/vinaadi_migrate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install backend
+        run: pip install -e .
+      - name: Upgrade -> downgrade -> upgrade
+        run: |
+          alembic upgrade head
+          alembic downgrade base
+          alembic upgrade head
+
+  web:
+    name: Web (lint, test, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npm run build

@@ -1,8 +1,7 @@
-from functools import lru_cache
 import os
+from functools import lru_cache
 
-from pydantic import Field
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _DEFAULT_JWT_SECRET = "CHANGE_ME_IN_PRODUCTION_USE_STRONG_SECRET"
@@ -22,6 +21,14 @@ class Settings(BaseSettings):
     rate_limit_window_seconds: int = 60
     rate_limit_max_requests: int = 120
     rate_limit_exempt_loopback_in_non_prod: bool = True
+    # Number of trusted reverse-proxy hops in front of the app. When > 0 the rate
+    # limiter resolves the real client IP from the right-most-but-N entry of
+    # X-Forwarded-For instead of the immediate peer. Leave 0 when there is no proxy.
+    trusted_proxy_count: int = 0
+
+    # CORS — comma-separated list of allowed origins (e.g. "https://app.vinaadi.ai").
+    # Empty disables CORS middleware (fine for server-to-server Next proxy).
+    cors_allow_origins: str = Field(default="")
 
     # Auth
     jwt_secret: str = Field(default=_DEFAULT_JWT_SECRET)
@@ -69,8 +76,20 @@ class Settings(BaseSettings):
             missing.append("JOTHIDAM_JWT_SECRET")
         if self.admin_api_key == _DEFAULT_ADMIN_API_KEY:
             missing.append("JOTHIDAM_ADMIN_API_KEY")
+        # Birth data is encrypted at rest with this key. Without it the app boots
+        # fine and only 500s the first time it touches encrypted data — fail now.
+        if not self.encryption_key.strip():
+            missing.append("JOTHIDAM_ENCRYPTION_KEY")
         if missing:
-            raise ValueError(f"Production requires non-default secrets: {', '.join(missing)}")
+            raise ValueError(f"Production requires these secrets to be set: {', '.join(missing)}")
+
+        insecure: list[str] = []
+        if not self.cookie_secure:
+            insecure.append("JOTHIDAM_COOKIE_SECURE must be true (JWT cookie over HTTPS only)")
+        if self.debug:
+            insecure.append("JOTHIDAM_DEBUG must be false in production")
+        if insecure:
+            raise ValueError("Insecure production configuration: " + "; ".join(insecure))
         return self
 
 

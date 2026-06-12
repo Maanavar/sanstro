@@ -4,16 +4,16 @@ Ask Vinaadi service — P1-C.
 Assembles the user's full chart context and routes to Claude API
 (claude-sonnet-4-6) to answer natural-language astrology questions.
 
-Rate limit: JOTHIDAM_ASK_VINAADI_DAILY_LIMIT questions per user per day.
-Counter is in-process (resets on restart); acceptable for current scale.
+Rate limit: enforced by the DB-backed ask_vinaadi_usage table (see
+app.services.ask_vinaadi_usage_service). That table is the single source of
+truth — this service no longer keeps an in-process counter, so the limit is
+correct across multiple workers/restarts.
 """
 from __future__ import annotations
 
 import json
 import logging
-from collections import defaultdict
-from datetime import UTC, date, datetime
-from threading import Lock
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -36,32 +36,9 @@ from app.services.chart_service import load_persisted_chart_response
 
 logger = logging.getLogger("jothidam.ask_vinaadi")
 
-# ── In-process daily rate counter ────────────────────────────────────────────
-_counter_lock = Lock()
-_daily_counts: dict[str, dict[str, int]] = defaultdict(dict)
-
-
-def _today_key() -> str:
-    return date.today().isoformat()
-
-
-def _increment_and_check(user_id: str, limit: int) -> int:
-    today = _today_key()
-    with _counter_lock:
-        count = _daily_counts[user_id].get(today, 0)
-        if count >= limit:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=f"Daily limit of {limit} questions reached. Resets at midnight.",
-            )
-        _daily_counts[user_id][today] = count + 1
-        return count + 1
-
-
-def _get_count(user_id: str) -> int:
-    today = _today_key()
-    with _counter_lock:
-        return _daily_counts[user_id].get(today, 0)
+# Hard ceiling on how long we will wait for the Anthropic API before giving up,
+# so a hung request cannot pin a worker thread indefinitely.
+_CLAUDE_TIMEOUT_SECONDS = 30.0
 
 
 # ── System prompt ─────────────────────────────────────────────────────────────
@@ -223,23 +200,49 @@ def _call_claude(context: str, question: str) -> dict:
 
     try:
         import anthropic
-    except ImportError:
+    except ImportError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Ask Vinaadi is not configured on this instance.",
-        )
+        ) from exc
 
-    client = anthropic.Anthropic(api_key=api_key)
+    client = anthropic.Anthropic(api_key=api_key, timeout=_CLAUDE_TIMEOUT_SECONDS, max_retries=1)
     user_message = f"Chart context:\n{context}\n\nQuestion: {question}"
 
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1400,
-        system=_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_message}],
-    )
+    try:
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1400,
+            system=_SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": user_message}],
+        )
+    except anthropic.APITimeoutError as exc:
+        logger.warning("Ask Vinaadi Claude request timed out: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="Vinaadi is taking too long to respond. Please try again.",
+        ) from exc
+    except anthropic.APIError as exc:
+        logger.error("Ask Vinaadi Claude request failed: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Vinaadi could not be reached. Please try again shortly.",
+        ) from exc
 
-    raw = message.content[0].text.strip()
+    # Guard the response shape: an empty or non-text content block must not raise
+    # an IndexError/AttributeError that surfaces as an opaque 500.
+    raw = ""
+    for block in message.content:
+        if getattr(block, "type", None) == "text":
+            raw = block.text.strip()
+            break
+    if not raw:
+        logger.error("Ask Vinaadi Claude response had no text block: %r", message.content)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Vinaadi returned an empty response. Please try again.",
+        )
+
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
@@ -260,20 +263,20 @@ def answer_question(
     question: str,
     owner_user_id: UUID,
 ) -> AskVinaadiResponse:
-    settings = get_settings()
-    user_key = str(owner_user_id)
-    count = _increment_and_check(user_key, settings.ask_vinaadi_daily_limit)
+    # The DB-backed ask_vinaadi_usage table is the single source of truth for the
+    # daily limit (enforced/consumed in the API layer). We only read it here to
+    # populate the display counters. Because the chip is consumed *after* a
+    # successful answer, a Claude failure raises before any quota is spent.
+    from app.services.ask_vinaadi_usage_service import get_daily_status
+
+    daily_status = get_daily_status(session, owner_user_id)
+    used_before = daily_status["chipsUsed"]
+    daily_limit = daily_status["dailyLimit"]
 
     context_text, signals, caveat_en = _build_context_block(session, chart_id, owner_user_id)
 
-    try:
-        result = _call_claude(context_text, question)
-    except HTTPException:
-        # Decrement on API failure so the question doesn't count
-        with _counter_lock:
-            today = _today_key()
-            _daily_counts[user_key][today] = max(0, count - 1)
-        raise
+    result = _call_claude(context_text, question)
+    count = used_before + 1
 
     ta_answer = result.get("ta", "")
     en_answer = result.get("en", "")
@@ -299,7 +302,7 @@ def answer_question(
             confidence=confidence,
             caveat=caveat_bitext,
             questionsUsedToday=count,
-            dailyLimit=settings.ask_vinaadi_daily_limit,
+            dailyLimit=daily_limit,
         ),
         meta=ResponseMeta(
             calculation_version="thirukanitham-2026-v1",

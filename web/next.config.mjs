@@ -2,6 +2,12 @@
 const nextConfig = {
   output: "standalone",
 
+  // Linting runs as its own CI step (`npm run lint`); keep it out of the build so
+  // a lint warning never blocks producing a deployable artifact.
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
   async headers() {
     return [
       {
