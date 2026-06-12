@@ -14,6 +14,7 @@ export function NatchathiramIndexContent() {
   const [lang] = useLang();
   const d = NATCHATHIRAM_INDEX;
   const text = (value: string) => (lang === "en" ? tamilizeAstroEnglish(value) : value);
+  const visualHref = (slug: string) => `/natchathiram/${slug}/visual`;
 
   const available = NATCHATHIRAM_LIST.filter((n) => n.available);
   const upcoming = NATCHATHIRAM_LIST.filter((n) => !n.available);
@@ -53,24 +54,10 @@ export function NatchathiramIndexContent() {
               {available.map((n) => (
                 <Link
                   key={n.slug}
-                  href={n.slug === "ashwini" ? `/natchathiram/${n.slug}/visual` : `/natchathiram/${n.slug}`}
+                  href={visualHref(n.slug)}
                   className="cl-natch-card cl-natch-tile"
                   style={{ position: "relative" }}
                 >
-                  {n.slug === "ashwini" && (
-                    <span style={{
-                      position: "absolute", top: 6, right: 6,
-                      fontSize: "0.58rem", fontWeight: 700,
-                      textTransform: "uppercase", letterSpacing: "0.06em",
-                      padding: "0.15rem 0.45rem", borderRadius: "1rem",
-                      background: "var(--cl-accent-soft)",
-                      border: "1px solid rgba(184,90,44,0.3)",
-                      color: "var(--cl-accent)",
-                      lineHeight: 1.4,
-                    }}>
-                      Visual
-                    </span>
-                  )}
                   <span className="cl-natch-tile__num">{n.number}</span>
                   <span className="cl-natch-tile__sigil">
                     <NakshatraSigil number={n.number} name={romanNakshathiramName(n.name_en)} size="md" />
