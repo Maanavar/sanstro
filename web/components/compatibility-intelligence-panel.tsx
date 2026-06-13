@@ -12,6 +12,9 @@ interface Props {
   familyVaultId: string;
   memberId: string;
   lang: Lang;
+  /** Pins Person A to a specific chart (e.g. the Porutham tool's Person 1).
+   *  When omitted, Person A defaults to the vault owner. */
+  chartIdA?: string;
 }
 
 // ── Palette ──────────────────────────────────────────────────────────────────
@@ -88,7 +91,7 @@ function Badge({ text, color, bg }: { text: string; color: string; bg: string })
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang }: Props) {
+export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, chartIdA }: Props) {
   const en = lang === "en";
   const [data, setData] = useState<CompatibilityIntelligenceData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -99,8 +102,10 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang }
     setLoading(true);
     setError("");
     try {
+      const params = new URLSearchParams({ familyVaultId });
+      if (chartIdA) params.set("chartIdA", chartIdA);
       const res = await apiFetchJson<{ success: boolean; data: CompatibilityIntelligenceData }>(
-        `/api/v1/relationships/${memberId}/compatibility-intelligence?familyVaultId=${familyVaultId}`
+        `/api/v1/relationships/${memberId}/compatibility-intelligence?${params.toString()}`
       );
       setData(res.data);
     } catch (e) {

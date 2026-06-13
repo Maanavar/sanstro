@@ -127,8 +127,17 @@ export default function MethodologyPage() {
                 <p>{lang === "en"
                   ? "Vinaadi is designed to help users interpret astrology thoughtfully, not fearfully. Every verdict includes the reasoning behind it. We deliberately avoid language that amplifies anxiety, exaggerates threats, or presents astrological periods as fixed outcomes."
                   : "விநாடி பயமுறுத்தாமல், சிந்தித்துப் புரிந்து கொள்ள உதவுவதற்காக வடிவமைக்கப்பட்டுள்ளது. ஒவ்வொரு முடிவுக்கும் அதன் காரணம் காட்டப்படும். கவலையை தூண்டும், அச்சத்தை பெருக்கும், ஜோதிடக் காலத்தை இறுதி தீர்ப்பாகச் சொல்வதுபோன்ற மொழியை நாங்கள் திட்டமிட்டு தவிர்க்கிறோம்."}</p>
+                <p>{lang === "en"
+                  ? "A dasha period is a window, not a verdict. It describes the quality of energy available to you — which planetary influences are amplified, which life domains are active, where effort will find the most traction. What you do with that window is yours to determine. A challenging dasha navigated with awareness can produce more growth than an easy one spent passively. A favourable dasha that receives no directed effort can pass without producing what it was capable of."
+                  : "ஒரு தசைக் காலம் தீர்ப்பல்ல — ஒரு ஜன்னல். உங்களுக்குக் கிடைக்கும் ஆற்றலின் தரத்தை அது விவரிக்கிறது: எந்த கிரக தாக்கங்கள் பெருக்கப்படுகின்றன, எந்த வாழ்க்கை துறைகள் செயலில் உள்ளன, முயற்சி எங்கே மிகவும் பலன் தரும். அந்த ஜன்னலை வைத்து நீங்கள் என்ன செய்கிறீர்கள் என்பதை நீங்களே தீர்மானிக்கிறீர்கள். விழிப்புணர்வுடன் கடந்த ஒரு சவாலான தசை, அலட்சியமாக கழிந்த ஒரு எளிதான தசையை விட அதிக வளர்ச்சியைத் தரலாம்."}</p>
+                <p>{lang === "en"
+                  ? "Tamil Jyotish has always understood that the inner world and the outer world mirror each other. What you hold in mind consistently — what you fear, what you pursue, what you attend to — shapes the field in which planetary energies act. Vinaadi reads the field. Your intention directs it. The two work together: good timing plus focused effort produces outcomes that neither would produce alone."
+                  : "தமிழ் ஜோதிடம் எப்போதும் உள்ளுலகும் புறவுலகும் ஒன்றை ஒன்று பிரதிபலிக்கும் என்பதை அறிந்திருந்தது. நீங்கள் தொடர்ந்து மனதில் வைத்திருப்பது — என்ன பயப்படுகிறீர்கள், என்ன தேடுகிறீர்கள், எதில் கவனம் செலுத்துகிறீர்கள் — கிரக ஆற்றல்கள் செயல்படும் தளத்தை வடிவமைக்கிறது. விநாடி அந்த தளத்தை வாசிக்கிறது. உங்கள் நோக்கம் அதை வழிநடத்துகிறது. இரண்டும் சேர்ந்து செயல்படும்போதே — சரியான நேரமும் கவனமான முயற்சியும் — ஒவ்வொன்றும் தனியாக உருவாக்க முடியாத பலன்கள் கிடைக்கும்."}</p>
                 <div className="cl-callout">
                   <p>{lang === "en" ? "Jyotish is a tradition to plan calmly with — not a fixed fate to fear." : "ஜோதிடம் அமைதியாக திட்டமிட ஒரு பாரம்பரியம் — பயப்படும் நிலையான விதி அல்ல."}</p>
+                </div>
+                <div className="cl-callout">
+                  <p>{lang === "en" ? "A dasha window amplifies what you direct into it. Vinaadi shows you the window. The direction is yours." : "தசை ஜன்னல் நீங்கள் அதில் செலுத்துவதை பெருக்குகிறது. ஜன்னலை விநாடி காட்டுகிறது. திசையை நீங்கள் தீர்மானிக்கிறீர்கள்."}</p>
                 </div>
 
                 <div className="cl-trust-links">

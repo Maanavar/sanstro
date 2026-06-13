@@ -2,8 +2,14 @@ import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "playwright";
 
-const BASE_URL = process.env.SCREENSHOT_BASE_URL ?? "http://127.0.0.1:3100";
+const BASE_URL = process.env.SCREENSHOT_BASE_URL ?? "http://127.0.0.1:3000";
 const OUT_DIR = path.resolve("artifacts", "screenshots", "marketing-site");
+
+const VIEWPORTS = [
+  { name: "mobile-390", width: 390, height: 844 },
+  { name: "ipad-768", width: 768, height: 1024 },
+  { name: "ipad-landscape-1024", width: 1024, height: 768 },
+];
 
 const PAGES = [
   { route: "/", file: "home.png" },
@@ -47,29 +53,136 @@ async function launchBrowser() {
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
 const browser = await launchBrowser();
-const context = await browser.newContext({
-  viewport: { width: 1440, height: 1200 },
-  deviceScaleFactor: 1,
-  colorScheme: "light",
-});
-const page = await context.newPage();
-page.setDefaultNavigationTimeout(60000);
+
+const results = {
+  total: 0,
+  issues: [],
+};
 
 try {
-  for (const item of PAGES) {
-    const targetUrl = new URL(item.route, BASE_URL).toString();
-    const outFile = path.join(OUT_DIR, item.file);
-
-    console.log(`Capturing ${targetUrl}`);
-    await page.goto(targetUrl, { waitUntil: "networkidle" });
-    await page.evaluate(async () => {
-      await document.fonts.ready;
-      window.scrollTo(0, 0);
+  for (const viewport of VIEWPORTS) {
+    console.log(`\n📱 Starting captures for ${viewport.name} (${viewport.width}x${viewport.height})`);
+    
+    const context = await browser.newContext({
+      viewport: { width: viewport.width, height: viewport.height },
+      deviceScaleFactor: 1,
+      colorScheme: "light",
     });
-    await page.waitForTimeout(800);
-    await page.screenshot({ path: outFile, fullPage: true, type: "png" });
-    console.log(`Saved ${outFile}`);
+    const page = await context.newPage();
+    page.setDefaultNavigationTimeout(60000);
+
+    for (const item of PAGES) {
+      const targetUrl = new URL(item.route, BASE_URL).toString();
+      const baseFileName = item.file.replace(".png", "");
+      const outFile = path.join(OUT_DIR, `${baseFileName}__${viewport.name}.png`);
+
+      results.total++;
+      try {
+        console.log(`  Capturing ${item.route} (${viewport.name})...`);
+        await page.goto(targetUrl, { waitUntil: "networkidle" });
+        
+        // Check for layout issues
+        const layoutIssues = await page.evaluate(() => {
+          const issues = [];
+          
+          // Check for horizontal overflow
+          if (window.innerWidth < document.documentElement.scrollWidth) {
+            issues.push("horizontal-overflow");
+          }
+          
+          // Check for text clipping
+          const elements = document.querySelectorAll("p, h1, h2, h3, h4, h5, h6, button, a");
+          let clipped = 0;
+          elements.forEach((el) => {
+            if (el.scrollHeight > el.clientHeight) {
+              clipped++;
+            }
+          });
+          if (clipped > 5) {
+            issues.push("text-clipping");
+          }
+          
+          // Check for overlapping elements
+          const buttons = document.querySelectorAll("button, [role='button']");
+          if (buttons.length > 0) {
+            let overlapped = 0;
+            buttons.forEach((btn) => {
+              const rect = btn.getBoundingClientRect();
+              if (rect.right > window.innerWidth) {
+                overlapped++;
+              }
+            });
+            if (overlapped > 0) {
+              issues.push("buttons-overflow");
+            }
+          }
+          
+          // Check for images with bad aspect ratios
+          const images = document.querySelectorAll("img");
+          let badImages = 0;
+          images.forEach((img) => {
+            if (img.naturalWidth && img.naturalHeight) {
+              const ratio = img.naturalWidth / img.naturalHeight;
+              const displayRatio = img.width / img.height;
+              if (Math.abs(ratio - displayRatio) > 0.5) {
+                badImages++;
+              }
+            }
+          });
+          if (badImages > 3) {
+            issues.push("image-ratio-issues");
+          }
+          
+          return issues;
+        });
+        
+        await page.evaluate(async () => {
+          await document.fonts.ready;
+          window.scrollTo(0, 0);
+        });
+        await page.waitForTimeout(800);
+        await page.screenshot({ path: outFile, fullPage: true, type: "png" });
+        
+        if (layoutIssues.length > 0) {
+          results.issues.push({
+            route: item.route,
+            viewport: viewport.name,
+            issues: layoutIssues,
+          });
+          console.log(`    ⚠️  Issues detected: ${layoutIssues.join(", ")}`);
+        } else {
+          console.log(`    ✅ Saved ${outFile}`);
+        }
+      } catch (error) {
+        results.issues.push({
+          route: item.route,
+          viewport: viewport.name,
+          error: error.message,
+        });
+        console.error(`    ❌ Error: ${error.message}`);
+      }
+    }
+    
+    await context.close();
   }
 } finally {
   await browser.close();
+}
+
+// Report summary
+console.log("\n" + "=".repeat(60));
+console.log("SCREENSHOT CAPTURE SUMMARY");
+console.log("=".repeat(60));
+console.log(`Total captures attempted: ${results.total}`);
+console.log(`Pages with issues: ${results.issues.length}`);
+
+if (results.issues.length > 0) {
+  console.log("\n🔴 BROKEN PAGES:\n");
+  results.issues.forEach((item) => {
+    const issueStr = item.error || item.issues.join(", ");
+    console.log(`  • ${item.route} @ ${item.viewport}`);
+    console.log(`    └─ ${issueStr}`);
+  });
+} else {
+  console.log("\n✅ All pages look good across all viewports!");
 }

@@ -1723,6 +1723,8 @@ export interface RemedyPlanItem {
   fastingRuleEn: string;
   behaviouralTa: string;
   behaviouralEn: string;
+  sevaTa: string;
+  sevaEn: string;
 }
 
 export interface GemstoneAdviceItem {

@@ -907,6 +907,7 @@ const STRINGS = {
   remedies_daanam:         { ta: "தானம்",                        en: "Daanam" },
   remedies_fasting:        { ta: "விரதம்",                       en: "Fasting" },
   remedies_behaviour:      { ta: "நடத்தை மாற்றம்",              en: "Behavioural" },
+  remedies_seva:           { ta: "சேவை பரிகாரம்",               en: "Service remedy" },
   remedies_gemstone_title: { ta: "ரத்தின ஆலோசனை",               en: "Gemstone Advice" },
   remedies_prescribed:     { ta: "அணியலாம்",                    en: "Prescribed" },
   remedies_not_prescribed: { ta: "அணிய வேண்டாம் (தோஷ கிரகம்)", en: "Not prescribed (malefic)" },

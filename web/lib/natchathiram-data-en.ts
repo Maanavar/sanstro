@@ -95,13 +95,14 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "The Sun dasha that follows brings authority, prestige, and government connections into focus. Career advancement is possible, but disrespect toward elders or superiors can cause setbacks.",
       "During Moon dasha, home changes, travel, overseas opportunities, food-related businesses, and water-connected trades tend to emerge. Ashwini's nature is inherently one of movement and change.",
       "Mars dasha brings progress in real estate, land, vehicles, machinery, and factories. Attention is needed around anger, minor injuries, surgeries, electricity, and fire. Since Mars rules the rasi, a well-placed Mars delivers excellent results.",
-      "Rahu dasha is a period requiring careful navigation — health concerns, debt, dishonest associations, and ventures that appear profitable but lead to complications are characteristic risks.",
+      "Rahu dasha calls for careful navigation — health concerns, debt, dishonest associations, and ventures that appear profitable but lead to complications are risks worth monitoring.",
       "Jupiter dasha in later life deepens the spiritual quest — a time for retirement, witnessing children establish themselves, completing family responsibilities, and turning toward devotional practice. Jupiter's friendship with Ketu makes this a profoundly transformative spiritual period.",
     ],
     spiritual: [
       "Ashwini natives are born in Ketu's cycle. Lord Ganesha is considered to grant swift blessings to this nakshatra — particularly Yugala Vinayaka (twin Ganesha) worship is especially auspicious.",
       "Visiting shrines of siddhas, saints, and the jeevasamadhis of great masters brings quick mental peace. When facing challenges in career, debt, or difficult circumstances, Ganesha worship is particularly beneficial.",
       "Respecting elders, fulfilling ancestral duties, avoiding harsh words, and walking the spiritual path — when these are honored, Ashwini natives find steady progress opening before them.",
+      "Helping a terminally ill or destitute person, feeding street animals, or sponsoring meditation/yoga education for someone who cannot afford it is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "The most important thing Ashwini natives must avoid is speaking disrespectfully about or to elders. Fulfilling ancestral duties and responsibilities toward paternal relatives is non-negotiable. The blessings of ancestors are of the highest importance for this star.",
@@ -135,12 +136,13 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Since Venus dasha completes early, deep romantic experiences are less common in childhood. True transformative love or significant relationships more often manifest during the Moon dasha period.",
       "The Moon dasha is one of the most important periods — roughly ages 21 to 31. Education completing, employment beginning, marriage, birth of children, family disputes, job changes, and relationship challenges all tend to converge. The emotional turbulence of Moon as the mind-significator makes this period vivid and formative.",
       "During Mars dasha, those who drive or travel frequently should exercise heightened caution. Sharp objects, fire, electricity, and small accidents require watchfulness — especially when Saturn or Ketu sub-periods coincide.",
-      "Rahu dasha is a period of maximum vigilance — chronic health conditions, debt traps, financial deception, and seemingly profitable ventures that lead to complications are characteristic risks.",
+      "Rahu dasha calls for maximum vigilance — health challenges, debt traps, financial deception, and seemingly profitable ventures that lead to complications are risks worth watching carefully.",
       "Jupiter dasha from around age 56 to 72 tends to unfold with relative grace — pension, retirement savings, property transactions, children taking on household responsibilities, and the arrival of grandchildren mark this beautiful phase.",
     ],
     spiritual: [
       "Homa, yagna, and fire worship are especially beneficial for Bharani natives. Participating in temple homas and performing an annual Ganapati Homa at home brings auspicious energy.",
       "The Agnishvarar temple near Mayiladuthurai is a particularly powerful sacred site for Bharani. Karthigai Deepam at Thiruvannamalai, Murugan worship, and fire-related Shiva forms bring good results. Om Namasivaya japa and homa worship can create meaningful life transformations.",
+      "Supporting a girl child's education, helping an underprivileged woman start a livelihood, or donating to a women's empowerment organisation is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Bharani natives find stable progress when they learn to regulate their emotional velocity, develop their artistic and technological talents, seek and honor the mother's blessings, and continue spiritual practice.",
@@ -179,6 +181,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
     spiritual: [
       "Deepa worship — the worship of sacred fire — is of the highest importance for Krittika natives. The Karthigai Deepam darshan at Thiruvannamalai, the annual girivalam of Arunachala, worship at Palani Murugan temple, and devotion to Shiva and Murugan all support spiritual growth.",
       "By reducing anger, being careful in property matters, handling sibling responsibilities with maturity, and maintaining consistent fire and Murugan worship, Krittika natives can navigate even the most difficult obstacles and reach stable heights.",
+      "Doing annadhanam (feeding the poor) on Sundays, donating books to a government school child, or helping a visually impaired person is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Krittika natives who reduce anger, exercise caution in property matters, handle sibling relationships with maturity, and maintain consistent fire and Murugan worship can overcome challenges and achieve stable, lasting progress.",
@@ -217,6 +220,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "For Rohini natives seeking immediate grace, the sixth nakshatra from Rohini is Ayilyam — associated with Varahi Amman, Adishesha, and serpent deities. Worship of Varahi Amman, Vishnu resting on the serpent, serpent-adorned Ganesha, Shiva, and Bhairava are considered auspicious.",
       "For financial difficulties — reduced cash flow or blocked income — deer imagery is considered auspicious for Rohini. Images of deer leaping or grazing, Nataraja with the deer in hand, or feeding deer at temples are all connected to prosperity for this star.",
       "White clothing is favorable for Rohini natives. Rice-based foods — rice, idli, dosa — are considered well-suited to this star. Traditional guidance also advises against giving salt as a gift.",
+      "Sponsoring a girl child's education, feeding mothers and young children, or supporting a woman in need — food, medicine, or school fees — is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Rohini natives are a beautiful blend of Moon's magnetism, Mercury's communication gifts, and the discipline of Saturn's influence on their growth. Support, financial flow, charisma, healing hands, food, networking, relationships, and intuition are all prominent in their lives.",
@@ -255,6 +259,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Mrigashira natives carry Jupiter's karma. For those drawn to upasana practice, Yamadarma Raja or the Kalasankara Murthy form of Shiva is considered a powerful deity. Yama upasana is said to reduce fear of death and shield against the evil eye and negative influences.",
       "When health problems are persistent, feeding cows is considered especially beneficial. Pushya nakshatra — the 'beneficial' tara from Mrigashira — is associated with the cow, making Kamadhenu imagery and cow-related devotional acts particularly meaningful for health and mental wellbeing.",
       "Before driving — especially for those who feel fear or unease about vehicular travel — Ganesha worship is recommended. Beginning any journey with Ganesha's blessing, or simply offering a prayer to a Ganesha image before starting a vehicle, is a protective practice for this star.",
+      "Donating blood, helping a hospital patient who cannot afford care, or supporting a soldier's family is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Mrigashira natives are gifted with emotion, speed, leadership, courage, and honesty. The disciplines to master are impulsiveness, quick anger, harsh speech, and reactive decision-making. With the right guru, the right sacred practice, consistent health care, and deep parental responsibility — these natives are capable of reaching exceptional heights.",
@@ -292,6 +297,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Shiva, Rama, serpent deities, and Kalabhairava are the primary sacred presences for Ardra. Their worship brings mental clarity and life direction. Nagaraja worship on Ayilya nakshatra days holds special power for healing.",
       "For those drawn to upasana, Yamadarma Raja and the Kalasankara Murthy form of Shiva are highly recommended. These forms address the fear of death, protect against the evil eye, and shield against negative influences.",
       "For auspicious events — home purchases, vehicle purchases, jewelry acquisitions — Ayilya nakshatra days tend to bring favorable results for Ardra. Venus-influenced individuals who appear in life must be met with patience, respect, and watchfulness.",
+      "Helping the socially marginalised, donating to an orphanage, or mentoring a first-generation college student is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Ardra natives carry the gifts of research, knowledge, innovation, investigation, technological mastery, pharmacological precision, and the power to bring transformation. The areas requiring care are romance and marriage, anger at its edges, relationships with Venus-influenced people, and health.",
@@ -330,6 +336,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "For Punarvasu natives who seek recognition and deep respect in society, Shiva worship is especially recommended. The mythological reference is telling: even Sri Rama made a Shivalinga from sand and worshipped before crossing the ocean. Shiva grants the ability to cross seemingly impassable obstacles.",
       "The 27th nakshatra from Punarvasu is Thiruvathirai — Shiva's Rudra nakshatra. Offering sincere Shiva worship is said to bring a level of social respect where others naturally bow to the native's wisdom.",
       "Kamadhenu imagery, images of cows nursing their calves, and feeding cows are all auspicious for Punarvasu. Cow-related worship and service bring good outcomes for these natives.",
+      "Sponsoring a deserving student's complete education, contributing to a girl child education fund, or donating to a school serving the poor is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Punarvasu is the star of renewal and resurrection. These natives will fall — and they will rise. Through knowledge, patience, dignity, the capacity to guide others, and devotion to sacred practice, they reach positions of lasting respect.",
@@ -368,6 +375,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Pushya is considered one of the most auspicious nakshatras for religious ceremonies and new beginnings. Performing any important undertaking on Pushya nakshatra day is traditionally considered highly favorable.",
       "Shiva worship — particularly in his compassionate, nourishing aspect — resonates with Pushya. Offering water and milk to Shivalinga on Pushya nakshatra day is a powerful practice. Vishnu in his protective, sustaining aspect is also deeply aligned.",
       "Cow service and feeding of the poor are among the most effective karmic remedies for Pushya. Acts of genuine nourishment — feeding those in need, caring for animals, donating food at temples — carry special weight for this star.",
+      "Doing annadhanam — feeding the hungry at a shelter — helping a daily wage worker, or supporting an elderly person living alone with food or medicine is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Pushya natives are the quiet sustainers — the ones who nourish, support, and patiently build what lasts. Their path is not the dramatic arc of sudden fame; it is the long, steady accumulation of genuine service and wisdom.",
@@ -406,6 +414,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Sun worship — Surya Namaskar, offering water to the rising sun, visiting Surya temples — holds special meaning for Uttara Phalguni. The Sun is both the nakshatra lord and the primary deity influence.",
       "Shiva worship and visits to significant Shiva temples on auspicious days bring grace and direction. Mahasivaratri, Karthigai month observances, and regular Abhisheka participation are particularly meaningful.",
       "Serving those in genuine need — offering food, education, or material support — is a powerful karmic practice for Uttara Phalguni, amplified by Aryaman's association with righteous social contracts.",
+      "Doing annadhanam (feeding the poor) on Sundays, donating books to a government school child, or helping a visually impaired person is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Uttara Phalguni natives bring dignity, precision, reliability, and a genuine sense of social responsibility to whatever they undertake. The path is steady, structured, and sustained.",
@@ -444,6 +453,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Savitar — the creative solar deity of skill and handiwork — is the primary divine connection for Hasta. Offering dedicated craft or art as service (making something beautiful and offering it at a temple) is a meaningful devotional practice.",
       "Moon-related worship — white flowers, milk offerings, and visiting Shiva temples on Pradosham days — brings emotional peace and mental clarity for Hasta natives.",
       "Regular care of the hands, treating manual skill with reverence, and using craft abilities in service of others are spiritual practices in themselves for this star.",
+      "Sponsoring a girl child's education, feeding mothers and young children, or supporting a woman in need — food, medicine, or school fees — is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Hasta natives bring precision, care, emotional intelligence, and skillful hands to everything they do. Their path is one of honest craft and genuine service.",
@@ -482,6 +492,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Vishwakarma worship — honoring the divine craftsman — is central to Chitra's spiritual life. Vishwakarma Day is particularly meaningful. Dedicating one's work to the highest creative standard is itself a form of worship for Chitra.",
       "Shiva in his creative aspect — Nataraja, the cosmic dancer — resonates deeply with Chitra's architectural and creative energy. Visiting famous Nataraja temples and offering artistic service is a meaningful practice.",
       "Working with beauty in service of the sacred — creating temple art, restoring cultural heritage, using design skills for charitable organizations — carries deep karmic benefit for Chitra natives.",
+      "Donating blood, helping a hospital patient who cannot afford care, or supporting a soldier's family is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Chitra natives carry the gift of beauty and architectural vision into everything they create. Whether building structures, designing systems, or crafting relationships — they bring an elevated standard to form.",
@@ -520,6 +531,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Vayu — the wind deity — is invoked for Swati. Hanuman, who carries the energy of Vayu, is a powerful deity for this nakshatra. Hanuman worship brings protection, strength, and the removal of obstacles for Swati natives.",
       "Visiting Saraswati temples and practicing art, music, or any form of creative expression as devotional offering connects Swati to its Venus-aesthetic dimension. Offering music in temple settings is particularly meaningful.",
       "Planting trees, particularly those that offer shelter and whose branches move freely in the wind, is a traditional auspicious act for Swati. The wind, freedom, and rootedness in the earth are the elements of this star's sacred practice.",
+      "Helping the socially marginalised, donating to an orphanage, or mentoring a first-generation college student is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Swati natives carry the gifts of adaptability, independence, aesthetic grace, and negotiation skill. Like the grass in wind — they move, they bend, they survive, and they return to their own true nature.",
@@ -558,6 +570,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Indra and Agni worship — fire worship in temples, participating in Agnihotra or homas — is deeply aligned with Vishakha's spiritual nature. The sacred fire transforms and clarifies.",
       "Jupiter's teaching quality means that Vishakha natives often find their spiritual home in lineages of genuine wisdom transmission — a qualified guru, a sacred text, or a philosophical school can anchor their spiritual life powerfully.",
       "Service and charitable giving — particularly in education, healthcare, and social welfare — are the sacred practices that most directly connect Vishakha's worldly ambition to its deeper spiritual purpose.",
+      "Sponsoring a deserving student's complete education, contributing to a girl child education fund, or donating to a school serving the poor is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Vishakha natives carry the sacred combination of focused aim, strategic patience, Jupiter's wisdom, and the fire to transform. When these gifts are directed toward a cause beyond personal gain, their full power is revealed.",
@@ -596,6 +609,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Mitra worship — honoring the deity of sacred friendship and covenant — is the core spiritual practice for Anuradha. Keeping one's word, honoring commitments, and being genuinely present for those who depend on the native are the highest forms of this worship.",
       "Shiva worship, particularly in his intense aspects — Kala Bhairava, Aghora — resonates with the Saturn-Scorpio depth of Anuradha. These forms help the native access transformation through rather than around difficulty.",
       "Acts of genuine charitable service — visiting and supporting those in hospitals or difficult circumstances — carry significant karmic weight for Anuradha, aligned with Saturn's call to work with those who are overlooked.",
+      "Doing annadhanam — feeding the hungry at a shelter — helping a daily wage worker, or supporting an elderly person living alone with food or medicine is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Anuradha natives carry the gifts of loyalty, depth, perseverance, and the capacity to form sacred bonds. Their path is one of sustained commitment — in relationships, in work, and in spiritual practice.",
@@ -634,6 +648,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Indra worship is central to Jyeshtha. But the Indra aspect of Jyeshtha's spiritual life is earned, not assumed: genuine humility before the sacred, combined with the willingness to serve others in leadership, is the real worship.",
       "Shiva worship, particularly forms associated with transformation and dissolution — Mahakala, Kalabhairava — resonates with Jyeshtha's Scorpio depth. These practices support the internal transformation that the native's intensity demands.",
       "Serving elders, honoring ancestors, and taking genuine responsibility for those under their care — these are the living spiritual practices of a Jyeshtha who has integrated the full weight of their star.",
+      "Paying a term's school fees for an underprivileged student, donating books and stationery to a government school, or sponsoring a girl child's full year of education is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Jyeshtha natives are born to lead — but the deepest leadership available to them is the leadership of their own interior landscape. When they transform their intensity from control into genuine service, their authority becomes something the world genuinely needs.",
@@ -672,6 +687,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Nirriti worship — honoring the goddess of endings and dissolution — is perhaps the deepest spiritual practice for Mula. Rather than resisting endings, the spiritual path of Mula involves learning to dissolve gracefully what needs to go, trusting the root that remains.",
       "Kali, Durga, and the fierce feminine aspects of the divine resonate with Mula's Ketu-Nirriti energy. These goddesses represent transformation through what frightens us — the exact territory Mula natives navigate.",
       "Root practices — literally connecting to the earth, growing things, tending to living roots, and sitting in forests or sacred groves — are restorative spiritual practices for Mula. The earth's root system is the temple of this nakshatra.",
+      "Helping a terminally ill or destitute person, feeding street animals, or sponsoring meditation/yoga education for someone who cannot afford it is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Mula natives carry the gift of getting to the root — of systems, of truth, of themselves. Their path requires the courage to dissolve what is not true and the faith to trust the roots that remain.",
@@ -710,6 +726,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Apas — the water deities — are invoked through water-related offerings and purification rituals. Regular ritual bathing, river worship, and offering water at dawn are powerful practices for Purva Ashadha.",
       "Sagittarius's Jupiter essence makes pilgrimage — physically going to sacred places in search of truth — a particularly meaningful spiritual practice. For Purva Ashadha, the journey toward truth is itself the practice.",
       "Venus and Sagittarius together suggest that beautiful music, devotional singing, and artistic offerings in temple or sacred contexts are profoundly nourishing forms of spiritual expression for this star.",
+      "Supporting a girl child's education, helping an underprivileged woman start a livelihood, or donating to a women's empowerment organisation is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Purva Ashadha natives carry the gift of idealism — the genuine belief that something higher is possible and worth pursuing. This is a gift when it animates genuine service and creative contribution; it requires tempering when it becomes rigid expectation of others.",
@@ -747,6 +764,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "The Vishwadevas — the universal divine presences — are worshipped through universal service: acts of genuine goodwill toward all, without discrimination. The most powerful spiritual practice for Uttara Ashadha is righteous living itself.",
       "Sun worship — offering water at sunrise, visiting Surya temples, practicing Surya Namaskar — honors the nakshatra lord and supports physical vitality and moral clarity.",
       "Serving in community welfare, education, health, and environmental protection — without seeking recognition — is the sacred practice that most directly expresses the Uttara Ashadha spiritual path.",
+      "Doing annadhanam (feeding the poor) on Sundays, donating books to a government school child, or helping a visually impaired person is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Uttara Ashadha natives carry the gift of earned authority — the trust of others built through consistent righteous action over time. This is not glamorous; it is deep.",
@@ -785,6 +803,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Vishnu worship — in all his forms as preserver and sustainer — is the natural spiritual home of Shravana. Ekadashi fasting, Vishnu Sahasranama chanting, and visiting significant Vishnu temples on auspicious days are especially aligned.",
       "Listening to sacred music and devotional chanting is a particularly powerful practice for Shravana — the very sense of hearing, when turned toward the sacred, becomes a form of meditation.",
       "Feeding others — particularly those who are hungry — and supporting those who maintain cultural, educational, and spiritual institutions, expresses Vishnu's preservation energy through Shravana's hands.",
+      "Sponsoring a girl child's education, feeding mothers and young children, or supporting a woman in need — food, medicine, or school fees — is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Shravana natives carry the gift of deep listening and patient preservation. In a world that speaks too much and hears too little, their capacity to truly listen and truly understand is rare and precious.",
@@ -823,6 +842,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "The Ashta Vasus — eight deities of abundance and cosmic order — are honored through acts that create genuine abundance for others. Generosity, sharing prosperity, and supporting communal wellbeing are the sacred practices of Dhanishtha.",
       "Shiva worship, particularly forms associated with the drum — Nataraja's cosmic dance, Damaru — resonates with the drumbeat quality of Dhanishtha. The cosmic rhythm of creation and dissolution is the spiritual landscape of this star.",
       "Music offered in a devotional context — kirtan, bhajan, devotional drumming — is a particularly powerful form of worship for Dhanishtha. The sound of the drum, when offered to the sacred, becomes the sound of divine order.",
+      "Donating blood, helping a hospital patient who cannot afford care, or supporting a soldier's family is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Dhanishtha natives carry the gift of rhythm, coordination, and the power to bring people together toward something larger than any individual effort. Fame and abundance are genuine possibilities when this gift is generously offered.",
@@ -861,6 +881,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Varuna worship — the deity of cosmic law, vast waters, and divine healing — is the core spiritual practice for Shatabhisha. Offering prayer facing the ocean or a vast body of water, maintaining personal integrity (Varuna's primary requirement), and engaging in genuine healing practice are the living forms of this worship.",
       "Water purification rituals, river worship, and ocean rituals hold particular power for Shatabhisha. The vast space of the sky at night, particularly the open sky visible from the ocean, is a sacred landscape for this star.",
       "Kala Bhairava and Shiva in his healing and dissolution aspects resonate with Shatabhisha's Rahu energy and unconventional healing knowledge. These forms help integrate the native's unusual wisdom into something genuinely helpful.",
+      "Helping the socially marginalised, donating to an orphanage, or mentoring a first-generation college student is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Shatabhisha natives carry the gift of unusual healing wisdom, radical originality, and the courage to walk paths that conventional thinking has not yet charted. Their contribution to the world is often the path itself — the new approach, the hundred healers, the vision of what medicine or technology might become.",
@@ -899,6 +920,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Ajaikapada — the one-footed Rudra — is worshipped through fierce commitment to transformation. The spiritual path of Purva Bhadra is not comfortable; it requires willingness to dissolve comfortable identities in service of genuine growth.",
       "Shiva in his ascetic and transformative aspects — Dakshinamurti (teacher of silence), Rudra (transformative destroyer) — resonates deeply with Purva Bhadra. These forms honor the fire of genuine transformation rather than its appearance.",
       "Philosophical study, deep meditation, and the genuine integration of wisdom into daily living — rather than the performance of spirituality — are the most meaningful practices for Purva Bhadra.",
+      "Sponsoring a deserving student's complete education, contributing to a girl child education fund, or donating to a school serving the poor is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Purva Bhadra natives carry the fierce gift of transformation — within themselves and in service of the world. Their path requires courage, genuine commitment, and the willingness to be transformed by what they undertake.",
@@ -937,6 +959,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Ahirbudhnya — the deep serpent — is honored through practices of genuine depth rather than performance. Sustained meditation, the cultivation of genuine stillness, and the patient accumulation of wisdom are the authentic practices of this deity.",
       "Shiva in his aspect as the meditative ascetic — Dakshinamurti, the silent teacher — is the natural spiritual form for Uttara Bhadra. Sitting in genuine meditation and genuine silence is a practice perfectly aligned with this deity's deepest nature.",
       "Serving those who are in the most difficult places — hospitals, hospices, and those at the margins — is the most powerful karmic practice for Uttara Bhadra. The deep serpent of the depths does not shy away from darkness; it illuminates it.",
+      "Doing annadhanam — feeding the hungry at a shelter — helping a daily wage worker, or supporting an elderly person living alone with food or medicine is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Uttara Bhadra natives carry the gift of genuine depth — the kind that comes from patience, from sustained practice, from willingness to dwell in what is difficult until it is understood. This is among the most precious and most rare of human qualities.",
@@ -975,6 +998,7 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
       "Pushan worship — honoring the deity who guides and nourishes travelers — is central to Revati's spiritual life. Offering food and care to those on difficult journeys, supporting pilgrims, and helping those who are lost find their way are the living forms of Pushan worship.",
       "Vishnu in his nourishing and protecting aspects — particularly Ananta Padmanabha — resonates with Revati's Pisces depth. Ekadashi fasting and Vishnu Sahasranama chanting are meaningful practices.",
       "Being present at sacred times of transition — supporting those who are being born, being married, being ill, or dying — is the deepest form of Pushan worship available to Revati. The guide of travelers is most needed at the crossings.",
+      "Paying a term's school fees for an underprivileged student, donating books and stationery to a government school, or sponsoring a girl child's full year of education is the most resonant seva for this nakshatra.",
     ],
     summary: [
       "Revati natives carry the gift of completion — the accumulated wisdom of the full cycle, expressed through gentle guidance, genuine nourishment, and the capacity to be present with others in their most important moments.",

@@ -338,6 +338,21 @@ export function DashboardSetupTab({
           : "Three quiet steps. Then we read for you."}
       </h1>
 
+      {/* Philosophy primer */}
+      <div style={{
+        padding: "var(--space-5) var(--space-6)",
+        background: "rgba(184, 90, 44, 0.05)",
+        border: "1px solid rgba(184, 90, 44, 0.18)",
+        borderRadius: "var(--radius-md)",
+        marginTop: "-8px",
+      }}>
+        <p style={{ margin: 0, fontSize: "0.9rem", lineHeight: 1.7, color: W.inkMid }}>
+          {lang === "ta"
+            ? "விநாடி உங்கள் ஜாதகத்தை படிக்கிறது — தவிர்க்க முடியாத தீர்ப்பாக அல்ல, ஒரு ஜன்னலாக. ஒவ்வொரு தசையும் ஒரு ஆற்றல் தரம்: சில மாதங்கள் விதைக்க ஏற்றது, சில மாதங்கள் அறுவடைக்கு, சில மாதங்கள் ஆழமாக ஓய்வெடுக்க. இந்த ஜன்னல்களை அறிந்துகொண்டால், சரியான நேரத்தில் சரியான முயற்சி செய்யலாம். நினைவில் கொள்ளுங்கள்: ஜோதிடம் வானிலையை காட்டுகிறது — அதில் நீங்கள் என்ன செய்கிறீர்கள் என்பதை நீங்களே தீர்மானிக்கிறீர்கள்."
+            : "Vinaadi reads your birth chart as a window, not a verdict. Each dasha period has a quality — some months are built for planting, some for harvesting, some for deep rest. Knowing these windows lets you bring the right effort at the right time. Remember: astrology reads the weather. What you do in it is always yours to decide."}
+        </p>
+      </div>
+
       {/* ── Step stepper ── */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: "0" }}>
         {steps.map((s, i) => (

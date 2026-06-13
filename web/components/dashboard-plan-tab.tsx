@@ -501,6 +501,23 @@ export function DashboardPlanTab({
 
       {planSubTab === "muhurta" && (
         <>
+          {/* ── How the two steps fit together (overview) ─────────────── */}
+          <div style={{ borderRadius: "var(--radius-md)", border: `1px solid ${W.borderLt}`, background: W.surface, padding: "var(--space-3_5) var(--space-4)", marginBottom: "var(--space-3)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", marginBottom: "var(--space-2)" }}>
+              <span style={{ fontSize: "0.875rem", fontWeight: 700, color: W.ink }}>
+                {lang === "ta" ? "சிறந்த நாள் & முஹூர்த்தம்" : "Best Dates & Muhurta"}
+              </span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "2px 9px", borderRadius: "var(--radius-pill)", background: "#DCE4D2", border: "1px solid rgba(92,118,84,0.35)", color: "#46603C", fontSize: "0.6875rem", fontWeight: 700 }}>
+                ★ {lang === "ta" ? "உங்கள் ஜாதகத்திற்கு ஏற்ப — பொதுவானது அல்ல" : "Personalised to your jadhagam — not generic"}
+              </span>
+            </div>
+            <p style={{ margin: 0, fontSize: "0.8125rem", color: W.muted, lineHeight: 1.55 }}>
+              {lang === "ta"
+                ? "இரண்டு படிகள் ஒன்றாக வேலை செய்கின்றன: படி 1 உங்கள் தசை + கிரகநகர்வைக் கொண்டு சிறந்த நாட்களைக் கண்டறிகிறது → ஒரு நாளைக் கிளிக் செய்தால், படி 2 அந்த நாளுக்குள் சரியான நேரத்தை (முஹூர்த்தம்) காட்டுகிறது."
+                : "The two steps work together: Step 1 finds the best days from your Dasha + transits → click a day, and Step 2 finds the exact auspicious hour within that day."}
+            </p>
+          </div>
+
           {/* ── Step 1: Find the best dates ───────────────────────────── */}
           <Surface title={lang === "ta" ? "படி 1 — சிறந்த நாட்கள் கண்டறிய (விரைவு மாத கண்ணோட்டம்)" : "Step 1 — Find Best Dates (quick month scan)"}>
             <div className="surface__body">
@@ -604,8 +621,13 @@ export function DashboardPlanTab({
 
           {/* ── Step 2: Muhurta time-slot picker ─────────────────────── */}
           <div style={{ marginTop: "var(--space-1)" }}>
-            <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", letterSpacing: "0.1em" }}>
+            <p className="cd-kicker" style={{ marginBottom: "var(--space-1)", letterSpacing: "0.1em" }}>
               {lang === "ta" ? "படி 2 — சரியான நேரம் கண்டறிய (முஹூர்த்தம்)" : "Step 2 — Find the right hour (Muhurta)"}
+            </p>
+            <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.72rem", color: W.mutedLt, lineHeight: 1.5 }}>
+              {muhurtaPresetDate
+                ? (lang === "ta" ? "படி 1-ல் தேர்ந்த நாள் கீழே நிரப்பப்பட்டுள்ளது. நேர-அளவிலான மதிப்பெண் காட்டப்படும்." : "The day you picked in Step 1 is filled in below. Scores here are hour-level for that day.")
+                : (lang === "ta" ? "உங்கள் ஜாதகத்தின்படி ஒரு நாளுக்குள் சிறந்த நேரத்தைக் காட்டுகிறது." : "Shows the best hour within a day, personalised to your jadhagam.")}
             </p>
             <DashboardMuhurtaPicker
               lang={lang}

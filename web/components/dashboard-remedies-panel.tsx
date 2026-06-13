@@ -152,6 +152,7 @@ export function RemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, loadi
                 <RemedyRow label={t("remedies_daanam", lang)} value={lang === "ta" ? item.daanumItemsTa : item.daanumItemsEn} lang={lang} />
                 <RemedyRow label={t("remedies_fasting", lang)} value={lang === "ta" ? item.fastingRuleTa : item.fastingRuleEn} lang={lang} />
                 <RemedyRow label={t("remedies_behaviour", lang)} value={lang === "ta" ? item.behaviouralTa : item.behaviouralEn} lang={lang} />
+                <RemedyRow label={t("remedies_seva", lang)} value={lang === "ta" ? item.sevaTa : item.sevaEn} lang={lang} />
                 {item.gemstoneTa && (
                   <div style={{
                     marginTop: "var(--space-2)",

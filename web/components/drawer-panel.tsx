@@ -6,9 +6,11 @@ interface DrawerPanelProps {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  /** Visual theme. Defaults to the dark panel; "light" matches parchment surfaces. */
+  theme?: "dark" | "light";
 }
 
-export function DrawerPanel({ title, onClose, children }: DrawerPanelProps) {
+export function DrawerPanel({ title, onClose, children, theme = "dark" }: DrawerPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Focus trap and ESC key
@@ -41,7 +43,7 @@ export function DrawerPanel({ title, onClose, children }: DrawerPanelProps) {
   }, [onClose]);
 
   return (
-    <div className="drawer" role="dialog" aria-modal="true" aria-label={title}>
+    <div className={`drawer${theme === "light" ? " drawer--light" : ""}`} role="dialog" aria-modal="true" aria-label={title}>
       <div className="drawer__backdrop" onClick={onClose} />
       <div
         className="drawer__panel"

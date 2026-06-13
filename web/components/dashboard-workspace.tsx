@@ -39,7 +39,6 @@ import { DashboardSettingsSessionTab } from "./dashboard-settings-session-tab";
 import { DashboardTransitsTab } from "./dashboard-transits-tab";
 import { DashboardPlanTab } from "./dashboard-plan-tab";
 import { DashboardJournalTab } from "./dashboard-journal-tab";
-import { ToolsGrid } from "./tools-grid";
 import { PoruthamPanel } from "./porutham-panel";
 import { ChartGenerateInlinePanel } from "./chart-generate-inline-panel";
 import { DashboardAnnualWrapped } from "./dashboard-annual-wrapped";
@@ -205,6 +204,8 @@ export function DashboardWorkspace() {
           fastingRuleEn: r.fasting_rule_en as string,
           behaviouralTa: r.behavioural_ta as string,
           behaviouralEn: r.behavioural_en as string,
+          sevaTa: r.seva_ta as string,
+          sevaEn: r.seva_en as string,
         })));
       }
       if (gemRes.success && Array.isArray(gemRes.data?.advice)) {
@@ -969,6 +970,14 @@ export function DashboardWorkspace() {
   return (
     <div className="site cd-shell">
 
+      {/* Print-only brand lockup. Hidden on screen; appears at the top of
+          browser-printed / "Save as PDF" output so printouts read as a Vinaadi
+          document. Pairs with the brand-first <title> in dashboard/layout.tsx. */}
+      <div className="cd-print-brand" aria-hidden="true">
+        <span className="cd-print-brand__name">Vinaadi AI</span>
+        <span className="cd-print-brand__tag">{lang === "ta" ? "திருக்கணித ஜோதிடம்" : "Thirukanitham Jyotish"}</span>
+      </div>
+
       <DashboardHero
         lang={lang}
         activeTab={activeTab}
@@ -1160,63 +1169,162 @@ export function DashboardWorkspace() {
           // Note: Find Birth Time (rectification) removed — results were unreliable
           const needsProfile = !personal.birthProfileId;
           const TOOL_LIST = [
-            { id: "porutham", icon: "CP", nameEn: "Porutham / Compatibility", nameTa: "பொருத்தம்", descEn: "Check compatibility between any two people", descTa: "எந்த இரு நபரிடமும் பொருத்தம் பார்க்கவும்", disabled: false },
-            { id: "chartgen", icon: "CH", nameEn: "Generate Chart", nameTa: "ஜாதகம் உருவாக்கு", descEn: "Create a printable birth chart for any person", descTa: "எவருக்கும் அச்சடிக்கக்கூடிய ஜாதகம் உருவாக்கு", disabled: false },
-            { id: "wrapped", icon: "AW", nameEn: "Annual Wrapped", nameTa: "ஆண்டு சுருக்கம்", descEn: "Your year in review — astrological summary", descTa: "உங்கள் வருட ஜோதிட சுருக்கம்", disabled: needsProfile },
-            { id: "retro", icon: "RT", nameEn: "Retrospective", nameTa: "பின்னோக்கு பார்வை", descEn: "Look back at past periods and life patterns", descTa: "கடந்த காலங்களை ஜோதிட பார்வையில் அலசு", disabled: needsProfile },
+            {
+              id: "porutham",
+              icon: "CP",
+              num: "01",
+              tone: "accent",
+              nameEn: "Porutham / Compatibility",
+              nameTa: "பொருத்தம்",
+              taglineEn: "8 kuta matching · 36-point score",
+              taglineTa: "8 கூட பொருத்தம் · 36 மதிப்பெண்",
+              descEn: "Traditional matching for marriage, friendship, business, or family contexts.",
+              descTa: "திருமணம், நட்பு, வியாபாரம் அல்லது குடும்ப சூழலுக்கான பாரம்பரிய பொருத்தம்.",
+              specsEn: ["8 kutas", "36-point score", "D1 charts", "PDF export"],
+              specsTa: ["8 கூடங்கள்", "36 மதிப்பெண்", "D1 கட்டம்", "PDF"],
+              disabled: false,
+            },
+            {
+              id: "chartgen",
+              icon: "CH",
+              num: "02",
+              tone: "sage",
+              nameEn: "Generate Chart",
+              nameTa: "ஜாதகம் உருவாக்கு",
+              taglineEn: "D1 rasi · D9 navamsa · print ready",
+              taglineTa: "D1 ராசி · D9 நவாம்சம் · அச்சிட தயார்",
+              descEn: "Create a printable Thirukanitham birth chart for any person.",
+              descTa: "எவருக்கும் அச்சிடக்கூடிய திருக்கணித ஜாதகம் உருவாக்கு.",
+              specsEn: ["D1 rasi", "D9 navamsa", "Print ready", "Lahiri"],
+              specsTa: ["D1 ராசி", "D9 நவாம்சம்", "அச்சிடல்", "லாகிரி"],
+              disabled: false,
+            },
+            {
+              id: "wrapped",
+              icon: "AW",
+              num: "03",
+              tone: "info",
+              nameEn: "Annual Wrapped",
+              nameTa: "ஆண்டு சுருக்கம்",
+              taglineEn: "Dasha map · key transits · year review",
+              taglineTa: "தசை வரைபடம் · முக்கிய கிரகநகர்வுகள்",
+              descEn: "Review the dasha transitions and Jyotish themes that shaped a year.",
+              descTa: "ஒரு ஆண்டை வடிவமைத்த தசை மாற்றங்கள் மற்றும் ஜோதிட கருப்பொருள்கள்.",
+              specsEn: ["Year review", "Dasha map", "Transit summary"],
+              specsTa: ["ஆண்டு ஆய்வு", "தசை வரைபடம்", "கிரகநகர்வு சுருக்கம்"],
+              disabled: needsProfile,
+            },
+            {
+              id: "retro",
+              icon: "RT",
+              num: "04",
+              tone: "gold",
+              nameEn: "Retrospective",
+              nameTa: "பின்னோக்கு பார்வை",
+              taglineEn: "Event lookup · recurrence patterns",
+              taglineTa: "நிகழ்வு ஆய்வு · மீளும் வடிவங்கள்",
+              descEn: "Enter a past event and compare it with dasha and transit signatures.",
+              descTa: "கடந்த நிகழ்வை தசை மற்றும் கிரகநகர்வு வடிவங்களுடன் ஒப்பிடு.",
+              specsEn: ["Event lookup", "Recurrence map", "Dasha match"],
+              specsTa: ["நிகழ்வு ஆய்வு", "மீளும் வரைபடம்", "தசை ஒப்பீடு"],
+              disabled: needsProfile,
+            },
           ];
+          const selectedTool = TOOL_LIST.find((tool) => tool.id === activeTool);
+          const openTool = (toolId: string) => {
+            setShowPorutham(toolId === "porutham");
+            setShowChartGenerate(toolId === "chartgen");
+            setShowWrapped(toolId === "wrapped");
+            setShowRetrospective(toolId === "retro");
+          };
+          const closeTool = () => {
+            setShowPorutham(false);
+            setShowChartGenerate(false);
+            setShowWrapped(false);
+            setShowRetrospective(false);
+          };
           return (
             <div className="cd-tools">
-              <div>
-                <p className="section-kicker">{lang === "ta" ? "கருவிகள்" : "Tools"}</p>
-                <h2 className="section-title">{lang === "ta" ? "சிறப்பு கருவிகள்" : "Specialist Tools"}</h2>
-                <p className="section-description">{lang === "ta" ? "ஆழமான பகுப்பாய்வுக்கான கருவிகள்" : "Deep-dive tools for specific astrology questions"}</p>
-              </div>
-              <div className={`cd-tools__layout${activeTool ? " is-open" : ""}`}>
-                {/* Tool selector rail */}
-                <div className="cd-tools__rail">
-                  {TOOL_LIST.map((tool) => {
-                    const isActive = activeTool === tool.id;
-                    return (
+              {!activeTool && (
+                <>
+                  <div className="cd-tools-v3__hero">
+                    <p className="cd-tools-v3__eyebrow">{lang === "ta" ? "கருவிகள்" : "Tools"}</p>
+                    <h2 className="cd-tools-v3__title">{lang === "ta" ? "சிறப்பு கருவிகள்" : "Specialist Tools"}</h2>
+                    <p className="cd-tools-v3__subtitle">
+                      {lang === "ta"
+                        ? "பொருத்தம், ஜாதகம், ஆண்டு சுருக்கம், நிகழ்வு ஆய்வு போன்ற ஆழமான ஜோதிடப் பணிகளுக்கான அமைதியான கருவிகள்."
+                        : "Focused Jyotish workspaces for compatibility, chart generation, yearly review, and event analysis."}
+                    </p>
+                  </div>
+
+                  <div className="cd-tools-v3__grid">
+                    {TOOL_LIST.map((tool) => (
                       <button
                         key={tool.id}
                         type="button"
                         disabled={tool.disabled}
-                        onClick={() => {
-                          setShowPorutham(tool.id === "porutham");
-                          setShowChartGenerate(tool.id === "chartgen");
-                          setShowWrapped(tool.id === "wrapped");
-                          setShowRetrospective(tool.id === "retro");
-                        }}
-                        className={`cd-tools__item${isActive ? " is-active" : ""}${tool.disabled ? " is-disabled" : ""}`}
+                        onClick={() => openTool(tool.id)}
+                        className={`cd-tools-v3-card cd-tools-v3-card--${tool.tone}${tool.disabled ? " is-disabled" : ""}`}
                       >
-                        <span className={`cd-tools__icon${isActive ? " is-active" : ""}`}>
-                          {tool.icon}
+                        <span className="cd-tools-v3-card__top">
+                          <span className="cd-tools-v3-card__icon" aria-hidden="true">{tool.icon}</span>
+                          <span className="cd-tools-v3-card__num">{tool.num}</span>
                         </span>
-                        <div className="cd-tools__copy">
-                          <p className={`cd-tools__title${isActive ? " is-active" : ""}`}>
+                        <span className="cd-tools-v3-card__body">
+                          <span className="cd-tools-v3-card__title">
                             {lang === "ta" ? tool.nameTa : tool.nameEn}
-                          </p>
-                          <p className="cd-tools__desc">
+                          </span>
+                          <span className="cd-tools-v3-card__tagline">
+                            {lang === "ta" ? tool.taglineTa : tool.taglineEn}
+                          </span>
+                          <span className="cd-tools-v3-card__desc">
                             {lang === "ta" ? tool.descTa : tool.descEn}
-                          </p>
-                        </div>
-                        {isActive && <span className="cd-tools__chevron">&gt;</span>}
+                          </span>
+                        </span>
+                        <span className="cd-tools-v3-card__specs">
+                          {(lang === "ta" ? tool.specsTa : tool.specsEn).map((spec) => (
+                            <span key={spec} className="cd-tools-v3-card__chip">{spec}</span>
+                          ))}
+                        </span>
+                        <span className="cd-tools-v3-card__footer">
+                          <span>{tool.disabled ? (lang === "ta" ? "ஜாதகம் தேவை" : "Needs profile") : (lang === "ta" ? "கருவியை திற" : "Open tool")}</span>
+                          <span className="cd-tools-v3-card__arrow" aria-hidden="true">-&gt;</span>
+                        </span>
                       </button>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
+                </>
+              )}
 
-                {/* Active tool panel */}
-                {activeTool && (
-                  <div className="cd-responsive-tools-panel">
-                    <div className="cd-tools__panel-head">
-                      <button type="button"
-                        onClick={() => { setShowPorutham(false); setShowChartGenerate(false); setShowWrapped(false); setShowRetrospective(false); }}
-                        className="cd-tools__close">
-                        {lang === "ta" ? "மூடு" : "Close"}
-                      </button>
+              {selectedTool && (
+                <div className="cd-tools-v3-detail">
+                  <div className="cd-tools-v3-detail__breadcrumb">
+                    <button type="button" onClick={closeTool} className="cd-tools-v3-detail__back">
+                      <span aria-hidden="true">&lt;-</span>
+                      <span>{lang === "ta" ? "கருவிகள்" : "Tools"}</span>
+                    </button>
+                    <span className="cd-tools-v3-detail__crumb-sep" aria-hidden="true">/</span>
+                    <span className="cd-tools-v3-detail__crumb-title">
+                      {lang === "ta" ? selectedTool.nameTa : selectedTool.nameEn}
+                    </span>
+                  </div>
+
+                  <div className="cd-tools-v3-detail__header">
+                    <span className={`cd-tools-v3-detail__icon cd-tools-v3-card--${selectedTool.tone}`} aria-hidden="true">
+                      {selectedTool.icon}
+                    </span>
+                    <div className="cd-tools-v3-detail__copy">
+                      <h2>{lang === "ta" ? selectedTool.nameTa : selectedTool.nameEn}</h2>
+                      <p>{lang === "ta" ? selectedTool.taglineTa : selectedTool.taglineEn}</p>
+                      <div className="cd-tools-v3-detail__chips">
+                        {(lang === "ta" ? selectedTool.specsTa : selectedTool.specsEn).map((spec) => (
+                          <span key={spec}>{spec}</span>
+                        ))}
+                      </div>
                     </div>
+                  </div>
+
+                  <div className="cd-tools-v3-panel">
                     {showPorutham && (
                       <PoruthamPanel
                         lang={lang}
@@ -1251,11 +1359,8 @@ export function DashboardWorkspace() {
                     {showWrapped && <DashboardAnnualWrapped chartId={personal.chartId} lang={lang} />}
                     {showRetrospective && personal.chartId && <RetrospectivePanel chartId={personal.chartId} lang={lang} />}
                   </div>
-                )}
-
-                {/* No tool selected: show description cards */}
-                {!activeTool && <div className="cd-tools__empty" />}
-              </div>
+                </div>
+              )}
             </div>
           );
         })()}
@@ -1296,6 +1401,7 @@ export function DashboardWorkspace() {
             panchangam={personal.panchangam}
             panchangamTimings={personal.panchangamTimings}
             lang={lang}
+            onSelectDate={setSelectedDate}
           />
         )}
 
