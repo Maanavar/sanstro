@@ -140,6 +140,11 @@ def _planet_is_strong(planets: Mapping[str, PlanetInput], planet: str, lagna_ras
 
 def _marker_explain(marker: str) -> str:
     marker_labels = {
+        "badhaka_active": "The badhaka lord (by your lagna) is touching your Lagna, Moon, lagna-lord, or current Dasha",
+        "badhaka_lord_strong": "The badhaka lord is strong, so obstacles clear faster",
+        "fifth_afflicted": "The 5th house/lord (progeny, creativity) is afflicted by the nodes or malefics",
+        "strong_fifth_lord": "The 5th lord is strong, reducing the impact",
+        "jupiter_kendra": "Jupiter is in a kendra and protects the progeny significator",
         "from_lagna": "Mars is in a dosha house from Lagna",
         "from_moon": "Mars is in a dosha house from Moon",
         "from_venus": "Mars is in a dosha house from Venus",
@@ -183,6 +188,11 @@ def _marker_explain(marker: str) -> str:
 
 def _marker_explain_ta(marker: str) -> str:
     marker_labels_ta = {
+        "badhaka_active": "லக்னப்படி பாதக அதிபதி உங்கள் லக்னம்/சந்திரன்/லக்னாதிபதி அல்லது தற்போதைய தசையை பாதிக்கிறது",
+        "badhaka_lord_strong": "பாதக அதிபதி வலுவாக உள்ளதால் தடைகள் விரைவில் கடக்கப்படும்",
+        "fifth_afflicted": "5-ம் வீடு/அதிபதி ராகு-கேது அல்லது பாதக கிரகங்களால் பாதிக்கப்பட்டுள்ளது",
+        "strong_fifth_lord": "5-ம் அதிபதி வலுவாக உள்ளதால் தாக்கம் குறைகிறது",
+        "jupiter_kendra": "குரு கேந்திரத்தில் இருந்து சந்தான காரகனை பாதுகாக்கிறார்",
         "from_lagna": "செவ்வாய் லக்னத்திலிருந்து தோஷ வீட்டில் உள்ளது",
         "from_moon": "செவ்வாய் சந்திரனிலிருந்து தோஷ வீட்டில் உள்ளது",
         "from_venus": "செவ்வாய் சுக்கிரனிலிருந்து தோஷ வீட்டில் உள்ளது",
@@ -242,12 +252,18 @@ def _build_dosham_explanations(
         "RAHU_KETU_DOSHAM": "Rahu-Ketu dosham is a traditional node-based sensitivity indicator interpreted by context.",
         "PITRU_DOSHAM": "Pitru dosham is a traditional lineage-karma sensitivity indicator in Tamil astrology.",
         "KALASARPA": "Kala Sarpa indicates all seven classical planets on one side of the Rahu-Ketu axis.",
+        "BADHAKA_DOSHAM": "Badhaka dosham is an obstruction pattern from the badhaka lord (the lord of the 11th/9th/7th house, set by your lagna type) that can bring delays and last-minute blocks when it is active.",
+        "KALATHRA_DOSHAM": "Kalathra dosham is a marriage-sensitivity indicator formed when the 7th house or its lord is afflicted.",
+        "PUTRA_SARPA_DOSHAM": "Putra Sarpa dosham is an indicator formed when the 5th house (children, creativity) or its lord is afflicted by the nodes or malefics.",
     }
     what_ta_map = {
         "SEVVAI_DOSHAM": "செவ்வாய் தோஷம் என்பது செவ்வாயின் இடத்தை அடிப்படையாகக் கொண்ட திருமண இணக்கப் பார்வை குறிப்பான்.",
         "RAHU_KETU_DOSHAM": "ராகு-கேது தோஷம் என்பது கிரக நிலைகளை சூழ்நிலையோடு பார்க்கும் பாரம்பரிய தோஷ குறிப்பான்.",
         "PITRU_DOSHAM": "பித்ரு தோஷம் என்பது தமிழ் ஜோதிடத்தில் முன்னோர் கர்ம உணர்திறன் குறிப்பான்.",
         "KALASARPA": "காலசர்ப்ப யோகம் என்பது அனைத்து ஏழு கிரகங்களும் ராகு-கேது அச்சின் ஒரு பக்கத்தில் உள்ளதைக் குறிக்கும்.",
+        "BADHAKA_DOSHAM": "பாதக தோஷம் என்பது உங்கள் லக்னப்படி அமையும் பாதக அதிபதி செயல்படும்போது தடைகளையும் கடைசி-நிமிட இடையூறுகளையும் தரக்கூடிய தடை-வடிவம்.",
+        "KALATHRA_DOSHAM": "களத்திர தோஷம் என்பது 7-ம் வீடு அல்லது அதன் அதிபதி பாதிக்கப்படும்போது உருவாகும் திருமண உணர்திறன் குறிப்பான்.",
+        "PUTRA_SARPA_DOSHAM": "புத்ர சர்ப்ப தோஷம் என்பது சந்தானம்/படைப்பாற்றலை குறிக்கும் 5-ம் வீடு ராகு-கேது அல்லது பாதக கிரகங்களால் பாதிக்கப்படும்போது உருவாகும் குறிப்பான்.",
     }
     what_en = what_en_map.get(dosham_name, "This is a traditional dosham indicator.")
     what_ta = what_ta_map.get(dosham_name, "இது ஒரு பாரம்பரிய தோஷ குறிப்பான்.")

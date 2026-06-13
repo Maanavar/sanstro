@@ -123,6 +123,27 @@ def _latest_chart(session: Session, profile: BirthProfile) -> Chart:
     return chart
 
 
+def _load_owned_chart(session: Session, chart_id: UUID, owner_user_id: UUID) -> Chart:
+    """Load a completed chart by id, asserting it belongs to the requesting user.
+
+    Used when a caller (e.g. the Porutham tool) wants to pin Person A explicitly
+    to a chart they just generated, instead of defaulting to the vault owner.
+    """
+    chart = session.execute(
+        select(Chart).where(
+            Chart.chart_id == chart_id,
+            Chart.status == "completed",
+            Chart.deleted_at.is_(None),
+        )
+    ).scalar_one_or_none()
+    if chart is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chart not found for comparison.")
+    profile = session.get(BirthProfile, chart.birth_profile_id)
+    if profile is None or profile.owner_user_id != owner_user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Chart does not belong to this user.")
+    return chart
+
+
 def _owner_chart_for_vault(session: Session, family_vault_id: UUID, owner_user_id: UUID) -> Chart:
     member = session.execute(
         select(FamilyMember)
@@ -665,8 +686,16 @@ def get_compatibility_intelligence_for_member(
     owner_user_id: UUID,
     family_vault_id: UUID,
     member_id: UUID,
+    person_a_chart_id: UUID | None = None,
 ) -> CompatibilityIntelligenceResponse:
-    """Full 8-level Compatibility Intelligence Report for marriage (signed users only)."""
+    """Full 8-level Compatibility Intelligence Report for marriage (signed users only).
+
+    Person A defaults to the vault owner's chart. Callers that already know who
+    Person A is (the Porutham tool, where the user fills two explicit people) can
+    pass ``person_a_chart_id`` to pin Person A to that chart instead of the owner —
+    otherwise the report can silently compare the owner against the member even
+    when the user meant two different people.
+    """
     from app.calculations.astro import utc_datetime_to_julian_day
     from app.calculations.compatibility_intelligence import compute_compatibility_intelligence
     from app.calculations.porutham import compute_porutham, check_nadi_dosha
@@ -680,7 +709,11 @@ def get_compatibility_intelligence_for_member(
             detail="Compatibility Intelligence analysis requires a spouse/partner relationship context.",
         )
 
-    owner_chart = _owner_chart_for_vault(session, family_vault_id, owner_user_id)
+    owner_chart = (
+        _load_owned_chart(session, person_a_chart_id, owner_user_id)
+        if person_a_chart_id is not None
+        else _owner_chart_for_vault(session, family_vault_id, owner_user_id)
+    )
     member_chart = _latest_chart(session, _latest_birth_profile(session, member))
 
     snap_a = load_persisted_chart_response(session, owner_chart.chart_id)

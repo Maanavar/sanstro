@@ -82,15 +82,23 @@ def relationship_porutham(
 def relationship_compatibility_intelligence(
     member_id: UUID,
     family_vault_id: UUID = Query(alias="familyVaultId"),
+    chart_id_a: UUID | None = Query(default=None, alias="chartIdA"),
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> CompatibilityIntelligenceResponse:
-    """Full 8-level Compatibility Intelligence Report for marriage matching (signed users)."""
+    """Full 8-level Compatibility Intelligence Report for marriage matching (signed users).
+
+    ``chartIdA`` optionally pins Person A to a specific chart the caller already
+    has (the Porutham tool passes its Person-1 chart) so the report compares the
+    two people the user actually entered rather than defaulting Person A to the
+    vault owner.
+    """
     return get_compatibility_intelligence_for_member(
         session,
         current_user.user_id,
         family_vault_id,
         member_id,
+        person_a_chart_id=chart_id_a,
     )
 
 
