@@ -1,0 +1,179 @@
+/* Global resets for canvas artboards */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Shared tokens — two themes scoped by class */
+
+.theme-clarity {
+  --bg: #F4EEE2;
+  --bg-2: #EDE5D4;
+  --surface: #FFFFFF;
+  --surface-2: #FAF5EA;
+  --ink: #1A1612;
+  --ink-2: #3D352B;
+  --muted: #7A6F5E;
+  --muted-2: #A89D89;
+  --border: #E4DBC8;
+  --border-2: #D4C8AE;
+  --accent: #B85A2C;        /* terracotta */
+  --accent-soft: #F0D9C4;
+  --sage: #5C7654;
+  --sage-soft: #DCE4D2;
+  --caution: #A8482F;
+  --caution-soft: #F2D8CC;
+  --info: #4A6B8A;
+  --info-soft: #D6E2EE;
+  --font-display: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  color-scheme: light;
+}
+
+.theme-twilight {
+  --bg: #141110;
+  --bg-2: #1A1614;
+  --surface: #1E1A17;
+  --surface-2: #25201C;
+  --ink: #F1E8D6;
+  --ink-2: #D8CCB4;
+  --muted: #8F8474;
+  --muted-2: #5E574B;
+  --border: #2D2722;
+  --border-2: #3A332C;
+  --accent: #D4A574;        /* warm gold */
+  --accent-soft: #3A2E1F;
+  --sage: #8FA68A;
+  --sage-soft: #2A332A;
+  --caution: #D17A5E;
+  --caution-soft: #3A2520;
+  --info: #8FA8C2;
+  --info-soft: #1F2A35;
+  --font-display: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  color-scheme: dark;
+}
+
+/* Frame defaults */
+.frame {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Common reusable bits */
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+}
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+}
+.mono { font-family: var(--font-mono); font-feature-settings: "tnum" 1; }
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+/* Buttons */
+.btn {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+.theme-twilight .btn-primary {
+  background: var(--accent);
+  color: #1A1410;
+  border-color: var(--accent);
+}
+.btn-ghost { background: transparent; border-color: transparent; }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+}
+.card-flat { background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+
+/* Pill / tag */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border: 1px solid var(--border);
+}
+.tag-sage { background: var(--sage-soft); color: var(--sage); border-color: transparent; }
+.tag-caution { background: var(--caution-soft); color: var(--caution); border-color: transparent; }
+.tag-accent { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+
+/* Score dial */
+.dial { position: relative; }
+.dial svg { display: block; transform: rotate(-90deg); }
+.dial-num {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+
+/* Generic dividers */
+.hr { height: 1px; background: var(--border); border: 0; }
+
+/* Section underline */
+.tab-strip {
+  display: flex; gap: 4px; align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+.tab.active { color: var(--ink); border-bottom-color: var(--ink); }
+.theme-twilight .tab.active { border-bottom-color: var(--accent); color: var(--accent); }
+
+/* Subtle texture for the calm look (clarity) */
+.theme-clarity .grain {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(0,0,0,0.025) 1px, transparent 0);
+  background-size: 3px 3px;
+}

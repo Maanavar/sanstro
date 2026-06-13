@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vinaadi — Tools Redesign v3</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    html, body { min-height:100%; background:var(--bg); color:var(--ink); }
+    button { cursor:pointer; }
+    ::-webkit-scrollbar { width:5px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:var(--border-2); border-radius:3px; }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(16px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+  </style>
+</head>
+<body class="theme-clarity">
+  <div id="root"></div>
+
+  <template id="__bundler_thumbnail">
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <rect width="100" height="100" fill="#F4EEE2"/>
+      <rect x="8" y="8" width="40" height="40" rx="5" fill="#fff" stroke="#E4DBC8" strokeWidth="1"/>
+      <rect x="52" y="8" width="40" height="40" rx="5" fill="#fff" stroke="#E4DBC8" strokeWidth="1"/>
+      <rect x="8" y="52" width="40" height="40" rx="5" fill="#fff" stroke="#E4DBC8" strokeWidth="1"/>
+      <rect x="52" y="52" width="40" height="40" rx="5" fill="#fff" stroke="#E4DBC8" strokeWidth="1"/>
+      <circle cx="21" cy="24" r="5" fill="none" stroke="#B85A2C" strokeWidth="1.2"/>
+      <circle cx="27" cy="24" r="5" fill="none" stroke="#B85A2C" strokeWidth="1.2"/>
+    </svg>
+  </template>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="tools-v3-components.jsx"></script>
+  <script type="text/babel" src="tools-v3-panels.jsx"></script>
+  <script type="text/babel" src="tools-v3-app.jsx"></script>
+</body>
+</html>

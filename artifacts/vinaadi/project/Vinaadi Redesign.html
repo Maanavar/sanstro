@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vinaadi — Redesign Directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Tamil:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<style>
+  html, body { background: #ECE4D4; height: 100%; }
+  /* Tamil glyph support layered after Inter/Fraunces */
+  .theme-clarity, .theme-twilight { font-feature-settings: "tnum" 0; }
+  body { font-family: 'Inter', 'Noto Sans Tamil', system-ui, sans-serif; }
+  .display { font-family: 'Fraunces', 'Noto Sans Tamil', Georgia, serif; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" fill="#141110"/>
+    <circle cx="50" cy="50" r="22" fill="none" stroke="#D4A574" stroke-width="2"/>
+    <circle cx="50" cy="50" r="5" fill="#D4A574"/>
+    <line x1="50" y1="20" x2="50" y2="28" stroke="#D4A574" stroke-width="2"/>
+    <line x1="50" y1="72" x2="50" y2="80" stroke="#D4A574" stroke-width="2"/>
+    <line x1="20" y1="50" x2="28" y2="50" stroke="#D4A574" stroke-width="2"/>
+    <line x1="72" y1="50" x2="80" y2="50" stroke="#D4A574" stroke-width="2"/>
+  </svg>
+</template>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="shared.jsx"></script>
+<script type="text/babel" src="clarity-1.jsx"></script>
+<script type="text/babel" src="clarity-2.jsx"></script>
+<script type="text/babel" src="twilight-1.jsx"></script>
+<script type="text/babel" src="twilight-2.jsx"></script>
+<script type="text/babel" src="shared-transits.jsx"></script>
+<script type="text/babel" src="transits.jsx"></script>
+<script type="text/babel" src="cal-panchangam.jsx"></script>
+<script type="text/babel" src="cal-family.jsx"></script>
+<script type="text/babel" src="cal-personal.jsx"></script>
+<script type="text/babel" src="cal-monthly.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+const CL = window.Clarity, CL2 = window.Clarity2;
+const TW = window.Twilight, TW2 = window.Twilight2;
+const Transits = window.ClarityTransits;
+const CalPan = window.ClarityCalPanchangam;
+const CalFam = window.ClarityCalFamily;
+const CalPer = window.ClarityCalPersonal;
+const CalMon = window.ClarityCalMonthly;
+
+// Desktop frame size for app screens
+const W = 1280, H = 860;
+
+function App() {
+  const [tweaks, setTweak] = useTweaks({ lang: 'en' });
+
+  // Broadcast language so every frame's useLang() updates
+  React.useEffect(() => {
+    window.__vinaadiLang = tweaks.lang;
+    window.dispatchEvent(new CustomEvent('vinaadi-lang', { detail: tweaks.lang }));
+  }, [tweaks.lang]);
+
+  return (
+    <React.Fragment>
+      <DesignCanvas>
+        <DCSection id="entry" title="Entry" subtitle="Landing & sign in — two directions">
+          <DCArtboard id="cl-home" label="Clarity · Home" width={W} height={H}><CL.ClarityLanding /></DCArtboard>
+          <DCArtboard id="tw-home" label="Twilight · Home" width={W} height={H}><TW.TwilightLanding /></DCArtboard>
+          <DCArtboard id="cl-login" label="Clarity · Sign in" width={W} height={H}><CL.ClarityLogin /></DCArtboard>
+          <DCArtboard id="tw-login" label="Twilight · Sign in" width={W} height={H}><TW.TwilightLogin /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="today" title="Today · Personal" subtitle="The daily reading — hero of the product">
+          <DCArtboard id="cl-today" label="Clarity · Today" width={W} height={H}><CL.ClarityToday /></DCArtboard>
+          <DCArtboard id="tw-today" label="Twilight · Today" width={W} height={H}><TW.TwilightToday /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="life" title="Life Areas & Predictions" subtitle="Where you stand, area by area">
+          <DCArtboard id="cl-life" label="Clarity · Life Areas" width={W} height={H}><CL2.ClarityLifeAreas /></DCArtboard>
+          <DCArtboard id="tw-life" label="Twilight · Life Areas" width={W} height={H}><TW2.TwilightLifeAreas /></DCArtboard>
+          <DCArtboard id="cl-pred" label="Clarity · Predictions" width={W} height={H}><CL2.ClarityPredictions /></DCArtboard>
+          <DCArtboard id="tw-pred" label="Twilight · Predictions" width={W} height={H}><TW2.TwilightPredictions /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="family" title="Family Vault" subtitle="Shared windows & decision support">
+          <DCArtboard id="cl-fam" label="Clarity · Family" width={W} height={H}><CL2.ClarityFamily /></DCArtboard>
+          <DCArtboard id="tw-fam" label="Twilight · Family" width={W} height={H}><TW2.TwilightFamily /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="calendar" title="Calendar · Panchangam" subtitle="The five limbs & day windows">
+          <DCArtboard id="cl-cal" label="Clarity · Calendar" width={W} height={H}><CL2.ClarityCalendar /></DCArtboard>
+          <DCArtboard id="tw-cal" label="Twilight · Calendar" width={W} height={H}><TW2.TwilightCalendar /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="setup" title="Setup & Settings" subtitle="Onboarding — chart, vault, members">
+          <DCArtboard id="cl-set" label="Clarity · Setup" width={W} height={H}><CL2.ClaritySetup /></DCArtboard>
+          <DCArtboard id="tw-set" label="Twilight · Setup" width={W} height={H}><TW2.TwilightSetup /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="transits" title="Transits & Dasha" subtitle="Gochar positions, Vimshottari dasha, Saturn cycles">
+          <DCArtboard id="cl-transits" label="Clarity · Transit intelligence" width={W} height={2220}><Transits /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="cal-views" title="Calendar — four lenses" subtitle="Panchangam · Personal forecast · Family day · Monthly (revamped)">
+          <DCArtboard id="cl-cal-pan" label="Clarity · Panchangam" width={W} height={1260}><CalPan /></DCArtboard>
+          <DCArtboard id="cl-cal-fam" label="Clarity · Calendar Family" width={W} height={1200}><CalFam /></DCArtboard>
+          <DCArtboard id="cl-cal-per" label="Clarity · Calendar Personal" width={W} height={2810}><CalPer /></DCArtboard>
+          <DCArtboard id="cl-cal-mon" label="Clarity · Monthly (Revamped)" width={W} height={860}><CalMon /></DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection label="Language">
+          <TweakRadio label="Display" value={tweaks.lang}
+            options={[
+              { value: 'en', label: 'English' },
+              { value: 'ta_en', label: 'Tamil + En' },
+              { value: 'ta', label: 'தமிழ்' },
+            ]}
+            onChange={(v) => setTweak('lang', v)} />
+        </TweakSection>
+      </TweaksPanel>
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
