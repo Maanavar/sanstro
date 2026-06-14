@@ -5121,6 +5121,103 @@ button:focus-visible,
 }
 .cl-pub-related-link:hover { border-color: var(--cl-accent); }
 
+.cl-band--signup {
+  background:
+    linear-gradient(180deg, rgba(255, 250, 240, 0.86), rgba(244, 238, 226, 0.98)),
+    var(--cl-bg);
+  color: var(--cl-ink-2);
+  border-top: 1px solid var(--cl-border);
+  border-bottom: 1px solid var(--cl-border);
+}
+.cl-context-cta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 390px);
+  gap: 36px 48px;
+  align-items: center;
+}
+.cl-context-cta__copy {
+  max-width: 720px;
+}
+.cl-context-cta__eyebrow {
+  margin: 0 0 12px;
+  color: var(--cl-accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.cl-context-cta__title {
+  margin: 0;
+  max-width: 16.5ch;
+  color: var(--cl-ink);
+  font-family: var(--cl-font-display);
+  font-size: clamp(1.9rem, 4.2vw, 3.15rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+}
+.cl-context-cta__body {
+  margin: 20px 0 0;
+  max-width: 63ch;
+  color: var(--cl-ink-2);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+.cl-context-cta__actions {
+  margin-top: 26px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.cl-band--signup .cl-btn--solid {
+  background: var(--cl-accent);
+  border-color: var(--cl-accent);
+  color: #fffaf0;
+}
+.cl-band--signup .cl-btn--solid:hover {
+  background: #8c3e18;
+  border-color: #8c3e18;
+}
+.cl-band--signup .cl-btn--ghost {
+  border-color: var(--cl-border-2);
+  color: var(--cl-ink);
+  background: rgba(255, 252, 244, 0.5);
+}
+.cl-band--signup .cl-btn--ghost:hover {
+  background: rgba(255, 252, 244, 0.92);
+  border-color: var(--cl-accent);
+}
+.cl-context-cta__details {
+  display: grid;
+  gap: 0;
+  border-left: 2px solid var(--cl-border);
+  padding-left: 24px;
+}
+.cl-context-cta__step {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 18px 0;
+  border-top: 1px solid var(--cl-border);
+}
+.cl-context-cta__step:last-child {
+  border-bottom: 1px solid var(--cl-border);
+}
+.cl-context-cta__step span {
+  color: var(--cl-accent);
+  font-family: var(--cl-font-mono);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.cl-context-cta__step p {
+  margin: 0;
+  color: var(--cl-ink-2);
+  font-size: 0.92rem;
+  line-height: 1.58;
+}
+
 /* ── Learn page prose ────────────────────────────────────────── */
 .cl-learn-prose {
   max-width: 740px;
@@ -5175,6 +5272,7 @@ button:focus-visible,
   }
   .cl-daily__inner,
   .cl-method__inner,
+  .cl-context-cta,
   .cl-pub-hero__inner,
   .cl-pub-two-col {
     grid-template-columns: 1fr;
@@ -5199,6 +5297,29 @@ button:focus-visible,
   .cl-pub-h1 {
     font-size: clamp(1.8rem, 8vw, 2.6rem);
   }
+  .cl-context-cta {
+    gap: 28px;
+  }
+  .cl-context-cta__title {
+    max-width: 100%;
+  }
+  .cl-context-cta__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .cl-context-cta__actions .cl-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .cl-context-cta__details {
+    border-left: none;
+    border-top: 2px solid var(--cl-border);
+    padding-left: 0;
+    padding-top: 4px;
+  }
+  .cl-context-cta__step {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -5221,6 +5342,100 @@ button:focus-visible,
   color: var(--cl-ink-2);
   line-height: 1.7;
   max-width: 60ch;
+}
+.cl-guide-detail {
+  max-width: 980px;
+}
+.cl-guide-detail p {
+  margin: 0 0 16px;
+  max-width: 86ch;
+  color: var(--cl-ink-2);
+  font-size: 0.98rem;
+  line-height: 1.75;
+}
+.cl-guide-detail p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Quick-facts strip (at-a-glance label/value pairs under a guide hero) ── */
+.cl-quick-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 0;
+}
+.cl-quick-fact {
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.cl-quick-fact dt {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cl-muted);
+  margin: 0 0 6px;
+}
+.cl-quick-fact dd {
+  margin: 0;
+  color: var(--cl-ink);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+/* ── Remedy / what-to-do list ──────────────────────────────────────────── */
+.cl-remedy-list {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+  max-width: 86ch;
+}
+.cl-remedy-list li {
+  position: relative;
+  padding: 14px 16px 14px 42px;
+  border-radius: 12px;
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  color: var(--cl-ink-2);
+  font-size: 0.96rem;
+  line-height: 1.65;
+}
+.cl-remedy-list li::before {
+  content: "✦";
+  position: absolute;
+  left: 16px;
+  top: 13px;
+  color: var(--cl-accent, #b4622d);
+  font-size: 0.95rem;
+}
+
+/* ── Verify footnote (one muted line: how an astrologer confirms it) ────── */
+.cl-guide-verify {
+  margin: 2.25rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--cl-border);
+  max-width: 96ch;
+  color: var(--cl-muted);
+  font-size: 0.85rem;
+  line-height: 1.65;
+}
+.cl-guide-verify__badge {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--cl-bg-2, rgba(0, 0, 0, 0.05));
+  border: 1px solid var(--cl-border);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cl-ink-2);
+  vertical-align: middle;
 }
 
 /* ── Hero figure card (right-column visual anchor for heroes) ─── */

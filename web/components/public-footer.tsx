@@ -39,6 +39,13 @@ export function PublicFooter() {
             <Link href="/learn/why-birth-time-matters" className="cl-footer__link">{mt(FOOTER.learn_birth,    lang)}</Link>
           </div>
           <div className="cl-footer__col">
+            <p className="cl-footer__col-head">{mt(FOOTER.col_guide, lang)}</p>
+            <Link href="/dosham"    className="cl-footer__link">{mt(FOOTER.guide_dosham,    lang)}</Link>
+            <Link href="/yogam"     className="cl-footer__link">{mt(FOOTER.guide_yogam,     lang)}</Link>
+            <Link href="/pariharam" className="cl-footer__link">{mt(FOOTER.guide_pariharam, lang)}</Link>
+            <Link href="/temples"   className="cl-footer__link">{mt(FOOTER.guide_temples,   lang)}</Link>
+          </div>
+          <div className="cl-footer__col">
             <p className="cl-footer__col-head">{mt(FOOTER.col_company, lang)}</p>
             <Link href="/trust/about-vinaadi" className="cl-footer__link">{mt(FOOTER.about,       lang)}</Link>
             <Link href="/trust/methodology"   className="cl-footer__link">{mt(FOOTER.methodology,  lang)}</Link>
