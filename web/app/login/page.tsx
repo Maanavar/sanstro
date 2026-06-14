@@ -7,7 +7,7 @@
    clean we rely on the parent layout's robots default and add noindex via
    a sibling layout file. The login page does not need search visibility. */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -80,6 +80,13 @@ export default function LoginPage() {
   const passwordValid = isStrongPassword(password);
   const confirmTouched = confirmPassword.length > 0;
   const confirmMatch = password === confirmPassword;
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("mode") === "signup") {
+      setMode("signup");
+    }
+  }, []);
 
   function switchMode(next: Mode) {
     setMode(next);

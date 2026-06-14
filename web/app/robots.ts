@@ -11,6 +11,10 @@ export default function robots(): MetadataRoute.Robots {
           "/tools/",
           "/learn/",
           "/trust/",
+          "/dosham/",
+          "/yogam/",
+          "/pariharam/",
+          "/temples/",
         ],
         disallow: [
           "/dashboard",
