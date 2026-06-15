@@ -170,6 +170,20 @@ export default async function PanchangamDatePage({ params }: Props) {
                 {formatDateLabel(nextDate)} →
               </Link>
             </div>
+
+            {data?.isKarinaal && (
+              <Link
+                href="/tamil-calendar/karinaal-2026"
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: "8px", marginTop: "16px",
+                  padding: "8px 16px", borderRadius: "10px", textDecoration: "none",
+                  background: "#FBE9E7", border: "1.5px solid #E0A89C", color: "#8A2B16",
+                  fontWeight: 700, fontSize: "0.85rem",
+                }}
+              >
+                ⚠️ Karinaal (கரிநாள்) — inauspicious day, avoid new auspicious starts →
+              </Link>
+            )}
           </div>
         </section>
 

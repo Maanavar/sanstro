@@ -22,7 +22,7 @@ body {
   min-height: 100svh;
   color: var(--admin-ink);
   background: var(--admin-bg);
-  font-family: Inter, "Noto Sans Tamil", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-body), var(--font-tamil), ui-sans-serif, system-ui, sans-serif;
   padding: 24px;
 }
 

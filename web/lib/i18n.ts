@@ -1,6 +1,7 @@
 export type Lang = "ta" | "en";
 
 export const LANG_STORAGE_KEY = "jothidam-lang";
+export const LANG_COOKIE_NAME = "jothidam-lang";
 
 // All UI strings. Key = stable identifier, value = { ta, en }
 const STRINGS = {
@@ -388,7 +389,10 @@ const STRINGS = {
   feedback_bug:        { ta: "பிழை",                en: "Bug" },
   feedback_calc:       { ta: "கணக்கீடு",            en: "Calculation" },
   feedback_suggest:    { ta: "பரிந்துரை",            en: "Suggestion" },
+  feedback_review:     { ta: "மதிப்புரை",            en: "Review" },
   feedback_other:      { ta: "மற்றவை",              en: "Other" },
+  feedback_mark_review: { ta: "இதை மதிப்புரையாகப் பகிரலாம்", en: "You may feature this as a review" },
+  feedback_allow_contact: { ta: "இது பற்றி என்னைத் தொடர்பு கொள்ளலாம் (மதிப்புரைஞர் சலுகைக்கு)", en: "You may contact me about this (for the reviewer perk)" },
   feedback_rating:     { ta: "மதிப்பீடு (விருப்பம்)", en: "Rating (optional)" },
   feedback_message:    { ta: "உங்கள் கருத்து *",     en: "Your message *" },
   feedback_send:       { ta: "அனுப்பு",             en: "Send" },
@@ -916,6 +920,8 @@ const STRINGS = {
   remedies_load_gemstone:  { ta: "ரத்தின ஆலோசனை காண்",         en: "View Gemstone Advice" },
   remedies_loading:        { ta: "ஏற்றுகிறது…",                  en: "Loading…" },
   remedies_empty:          { ta: "ஜாதகம் கணக்கிட்ட பின் பரிகாரங்கள் கிடைக்கும்.", en: "Remedies load after chart calculation." },
+  remedies_safety_note:    { ta: "பரிகாரம் மனதை நிலைப்படுத்தி, சரியான காலத்தோடு உங்கள் முயற்சியை இணைக்கிறது — ஒரு குறிப்பிட்ட பலனையோ துல்லியமான தேதியையோ உறுதி செய்ய முடியாது. நாங்கள் சாதகமான கால வரம்புகளை மட்டுமே சுட்டிக்காட்டுகிறோம், உறுதிகளை அல்ல. இவை மருத்துவ, சட்ட அல்லது நிதி ஆலோசனைக்கு மாற்றல்ல.", en: "Pariharam steadies the mind and aligns your effort with the right time — it cannot guarantee a specific outcome or an exact date. We point to favourable ranges, not certainties, and this is not a substitute for medical, legal, or financial advice." },
+  remedies_fasting_caution:{ ta: "விரதம் விருப்பத்திற்குரியது — மனதை நிலைப்படுத்தவே, உடலை வருத்த அல்ல. நீரிழிவு, குறைந்த ரத்த அழுத்தம், கர்ப்பம், பாலூட்டுதல், வயது முதிர்வு, உடல்நலக் குறைவு அல்லது தொடர் மருந்து உட்கொள்பவர்கள் கடுமையான உணவு விரதம் வேண்டாம் — லேசான சாத்வீக உணவு உண்ணலாம், அல்லது மந்திரம், வழிபாடு, தானம் செய்யலாம். முன்பு மருத்துவரை அணுகவும்.", en: "Fasting is optional and meant to steady the mind, never to harm the body. If you have diabetes, low blood pressure, are pregnant or breastfeeding, are elderly or unwell, or take regular medication, do not keep a strict food-fast — keep a light sattvic meal instead, or replace the fast with the mantra, worship, or charity. Consult your doctor first." },
 
   // ── Prasna (Horary)
   prasna_title:            { ta: "ப்ரஸ்ன ஜோதிடம்",              en: "Prasna (Horary)" },

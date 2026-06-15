@@ -1,10 +1,44 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { Fraunces, Inter, JetBrains_Mono, Noto_Sans_Tamil } from "next/font/google";
 import type { ReactNode } from "react";
+import { BetaSystem } from "@/components/beta-system";
+import { PostHogProvider } from "@/components/posthog-provider";
 import { LangProvider } from "@/components/lang-toggle";
+import { LANG_COOKIE_NAME, type Lang } from "@/lib/i18n";
 
 import "./globals.css";
 
 const BASE = "https://vinaadi.com";
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+  display: "swap",
+  variable: "--font-display",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-body",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
+  variable: "--font-mono",
+});
+
+const notoSansTamil = Noto_Sans_Tamil({
+  subsets: ["tamil"],
+  weight: ["400", "500", "600"],
+  display: "swap",
+  variable: "--font-tamil",
+});
 
 const ORG_JSONLD = {
   "@context": "https://schema.org",
@@ -107,21 +141,23 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const langCookie = cookieStore.get(LANG_COOKIE_NAME)?.value;
+  const initialLang: Lang = langCookie === "ta" ? "ta" : "en";
+
   return (
-    <html lang="en">
+    <html
+      lang={initialLang}
+      suppressHydrationWarning
+      className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable} ${notoSansTamil.variable}`}
+    >
       <head>
         <meta charSet="utf-8" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Tamil:wght@400;500;600&display=swap"
-          rel="stylesheet"
-        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG_JSONLD) }}
@@ -131,7 +167,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSONLD) }}
         />
       </head>
-      <body><LangProvider>{children}</LangProvider></body>
+      <body><LangProvider initialLang={initialLang}><PostHogProvider /><BetaSystem />{children}</LangProvider></body>
     </html>
   );
 }

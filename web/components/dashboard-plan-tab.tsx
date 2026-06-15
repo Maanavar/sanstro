@@ -10,6 +10,7 @@ import type { ActivityTimingData, GoalData, WhatIfData } from "@/lib/types";
 import { Button, Chip, Surface } from "./dashboard-ui";
 import { DecisionPanel } from "./dashboard-decision-panel";
 import { DashboardMuhurtaPicker } from "./dashboard-muhurta-picker";
+import { DashboardMuhurthamNaal } from "./dashboard-muhurtham-naal";
 import { DashboardLifeEventLog } from "./dashboard-life-event-log";
 import { EventWindowsPanel } from "./dashboard-event-windows";
 
@@ -635,6 +636,19 @@ export function DashboardPlanTab({
               initialDateFrom={muhurtaPresetDate}
               initialActivity={muhurtaPresetActivity}
             />
+          </div>
+
+          {/* ── Verified almanac wedding dates, matched to the chart ──── */}
+          <div style={{ marginTop: "var(--space-1)" }}>
+            <p className="cd-kicker" style={{ marginBottom: "var(--space-1)", letterSpacing: "0.1em" }}>
+              {lang === "ta" ? "திருமணம் — 2026 முகூர்த்த நாட்கள்" : "Marriage — 2026 muhurtham dates"}
+            </p>
+            <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.72rem", color: W.mutedLt, lineHeight: 1.5 }}>
+              {lang === "ta"
+                ? "வெளியிடப்பட்ட பஞ்சாங்க முகூர்த்த நாட்கள், உங்கள் நட்சத்திரத்துக்கு தாரா பலம் + சந்திராஷ்டமம் வைத்து வரிசைப்படுத்தப்பட்டவை."
+                : "Published almanac wedding dates, ranked for your birth star by Tara Bala and Chandrashtama."}
+            </p>
+            <DashboardMuhurthamNaal lang={lang} chartId={chartId || null} />
           </div>
         </>
       )}

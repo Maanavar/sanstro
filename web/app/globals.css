@@ -1,22 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+Tamil:wght@400;500;600&display=swap');
-
-/* Tamil Unicode block override: for U+0B80–U+0BFF we substitute "Noto Sans Tamil"
-   into every font stack. This means even when a stack lists Inter first, the browser
-   will use Noto Sans Tamil for Tamil characters (Inter has zero Tamil coverage and
-   produces replacement boxes without this rule). */
-@font-face {
-  font-family: Inter;
-  src: local("Noto Sans Tamil");
-  unicode-range: U+0B80-0BFF;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Fraunces";
-  src: local("Noto Sans Tamil");
-  unicode-range: U+0B80-0BFF;
-  font-display: swap;
-}
-
 :root {
   color-scheme: dark;
   --color-surface: #111827;
@@ -73,7 +54,7 @@ body {
   min-width: 320px;
   background: #05070d;
   color: var(--color-text);
-  font-family: "Noto Sans Tamil", Inter, ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-body), var(--font-tamil), ui-sans-serif, system-ui, sans-serif;
 }
 
 button {
@@ -2685,7 +2666,7 @@ button:focus-visible,
 .cd-shell {
   background: #F4EEE2;
   color: #3D352B;
-  font-family: 'Noto Sans Tamil', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-body), var(--font-tamil), system-ui, sans-serif;
 }
 
 /* Cards / surfaces */
@@ -3074,9 +3055,9 @@ button:focus-visible,
   --cl-shadow:        rgba(60,40,20,0.18);
 
   /* Typography tokens */
-  --cl-font-display: 'Fraunces', 'Noto Sans Tamil', Georgia, serif;
-  --cl-font-sans:    'Noto Sans Tamil', 'Inter', system-ui, sans-serif;
-  --cl-font-mono:    'JetBrains Mono', ui-monospace, monospace;
+  --cl-font-display: var(--font-display), var(--font-tamil), Georgia, serif;
+  --cl-font-sans:    var(--font-body), var(--font-tamil), system-ui, sans-serif;
+  --cl-font-mono:    var(--font-mono), ui-monospace, monospace;
 
   background: var(--cl-bg);
   color: var(--cl-ink-2);
@@ -3956,7 +3937,7 @@ button:focus-visible,
 }
 .cd-tools-v3__title {
   margin: 0 0 12px;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 500;
   letter-spacing: -0.03em;
@@ -4054,7 +4035,7 @@ button:focus-visible,
   border: 1px solid #E4DBC8;
   padding: 4px 11px;
   font-size: 0.68rem;
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: var(--font-mono), ui-monospace, monospace;
   font-weight: 700;
   letter-spacing: 0.08em;
 }
@@ -4065,7 +4046,7 @@ button:focus-visible,
   flex: 1;
 }
 .cd-tools-v3-card__title {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1.35rem;
   line-height: 1.18;
   letter-spacing: -0.02em;
@@ -4189,7 +4170,7 @@ button:focus-visible,
 }
 .cd-tools-v3-detail__copy h2 {
   margin: 0 0 8px;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: clamp(1.9rem, 3.5vw, 2.35rem);
   line-height: 1.05;
   letter-spacing: -0.03em;
@@ -4238,7 +4219,7 @@ button:focus-visible,
 }
 .cd-footer__wordmark {
   margin: 0 0 4px;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-size: 1rem;
   font-weight: 500;
   color: #1A1612;
@@ -4284,7 +4265,7 @@ button:focus-visible,
   font-size: 0.72rem;
   color: #A89D89;
   white-space: nowrap;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: var(--font-display), Georgia, serif;
   font-weight: 500;
 }
 
@@ -5120,6 +5101,107 @@ button:focus-visible,
   transition: border-color 150ms ease;
 }
 .cl-pub-related-link:hover { border-color: var(--cl-accent); }
+
+/* ── Public calendar / muhurtham filters, table, FAQ ──────── */
+.cl-filter-bar {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-bottom: 24px;
+  padding: 16px 18px;
+  border: 1px solid var(--cl-border);
+  border-radius: 16px;
+  background: var(--cl-surface);
+}
+.cl-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cl-filter-field > span {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cl-muted);
+}
+.cl-filter-count {
+  margin-left: auto;
+  align-self: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--cl-ink);
+}
+.cl-select {
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 190px;
+  border: 1px solid var(--cl-border);
+  border-radius: 12px;
+  padding: 0.6rem 2.2rem 0.6rem 0.9rem;
+  font-size: 0.95rem;
+  color: var(--cl-ink);
+  background-color: var(--cl-bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23B85A2C' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.cl-select:hover { border-color: var(--cl-accent); }
+.cl-select:focus {
+  outline: none;
+  border-color: var(--cl-accent);
+  box-shadow: 0 0 0 3px rgba(184, 90, 44, 0.14);
+}
+
+.cl-cal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.cl-cal-table thead th {
+  text-align: left;
+  padding: 12px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--cl-muted);
+  border-bottom: 2px solid var(--cl-border);
+}
+.cl-cal-table tbody td { padding: 12px 10px; vertical-align: top; }
+.cl-cal-table tbody tr { border-bottom: 1px solid var(--cl-border); }
+.cl-cal-table tbody tr:nth-child(even) { background: var(--cl-bg-2); }
+.cl-cal-ta { color: var(--cl-accent); }
+
+.cl-faq-item {
+  border: 1px solid var(--cl-border);
+  border-radius: 14px;
+  background: var(--cl-surface);
+  padding: 16px 20px;
+  margin-bottom: 12px;
+}
+.cl-faq-item summary {
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.cl-faq-item summary::-webkit-details-marker { display: none; }
+.cl-faq-item summary::after {
+  content: "+";
+  font-size: 1.4rem;
+  font-weight: 400;
+  color: var(--cl-accent);
+  line-height: 1;
+}
+.cl-faq-item[open] summary::after { content: "\2212"; }
+.cl-faq-item p { margin: 12px 0 0; color: var(--cl-ink-2); line-height: 1.6; }
 
 .cl-band--signup {
   background:
@@ -6136,7 +6218,7 @@ button:focus-visible,
 .cl-natch-tile__ta {
   display: block;
   color: var(--cl-ink);
-  font-family: "Noto Sans Tamil", var(--cl-font-display);
+  font-family: var(--font-tamil), var(--cl-font-display);
   font-size: clamp(1.08rem, 2vw, 1.28rem);
   font-weight: 700;
   line-height: 1.28;
@@ -6182,7 +6264,7 @@ button:focus-visible,
   display: block;
 }
 .cl-natch-detail-title__ta {
-  font-family: "Noto Sans Tamil", var(--cl-font-display);
+  font-family: var(--font-tamil), var(--cl-font-display);
   line-height: 1.12;
 }
 .cl-natch-detail-title__en {
@@ -6230,7 +6312,7 @@ button:focus-visible,
 .cl-natch-fact__value {
   margin: 0;
   color: var(--cl-ink);
-  font-family: "Noto Sans Tamil", var(--cl-font-display);
+  font-family: var(--font-tamil), var(--cl-font-display);
   font-size: 0.98rem;
   font-weight: 700;
   line-height: 1.4;

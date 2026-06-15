@@ -8,6 +8,7 @@ import { PARIHARAM_INDEX, mt } from "@/lib/marketing-i18n";
 import { TopicSymbolPanel } from "@/components/astro-symbols";
 import { GuideCardGrid, type GuideCard } from "@/components/guide-cards";
 import { ContextualSignupCta } from "@/components/contextual-signup-cta";
+import { FaithNote } from "@/components/devotional";
 
 export function PariharamIndexContent() {
   const [lang] = useLang();
@@ -55,6 +56,7 @@ export function PariharamIndexContent() {
                 {mt(d.cta, lang)}
               </Link>
             </div>
+            <FaithNote />
           </div>
         </section>
 

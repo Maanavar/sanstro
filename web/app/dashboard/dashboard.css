@@ -1,8 +1,4 @@
 .cd-shell {
-  --font-body: "Noto Sans Tamil", Inter, system-ui, sans-serif;
-  --font-display: Fraunces, Georgia, serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
-
   --cd-container-max: 1200px;
 
   --color-bg: #f4eee2;

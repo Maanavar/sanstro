@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
+import { identifyUser, resetAnalytics } from "@/lib/analytics";
 
 export type UserMode = "BEGINNER" | "BALANCED" | "TRADITIONAL";
 export type GoalTrack = "CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL" | null;
@@ -37,6 +38,7 @@ export function useSession(options: UseSessionOptions = {}) {
 
         setSessionUserId(me.userId);
         setUserEmail(me.email);
+        identifyUser(me.userId); // opaque UUID only — never email
         if (me.userMode) setUserMode(me.userMode);
         if (me.goalTrack !== undefined) setGoalTrack(me.goalTrack ?? null);
 
@@ -79,6 +81,7 @@ export function useSession(options: UseSessionOptions = {}) {
   }, [onSetupRedirect]);
 
   const signOut = useCallback(() => {
+    resetAnalytics();
     void fetch("/api/backend/api/v1/auth/logout", {
       method: "POST",
       credentials: "include",

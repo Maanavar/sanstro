@@ -159,7 +159,7 @@ function RadarChart({ labels, values }: { labels: string[]; values: number[] }) 
         return (
           <g key={i}>
             <circle cx={x} cy={y} r={5} fill={T.accent} stroke={T.surface} strokeWidth={1.5} />
-            <text x={x} y={y - 11} textAnchor="middle" fill={T.accent} fontSize={9} fontWeight="700" fontFamily="Inter,sans-serif">{v}</text>
+            <text x={x} y={y - 11} textAnchor="middle" fill={T.accent} fontSize={9} fontWeight="700" fontFamily="var(--font-body)">{v}</text>
           </g>
         );
       })}
@@ -169,7 +169,7 @@ function RadarChart({ labels, values }: { labels: string[]; values: number[] }) 
         return (
           <text key={i} x={x} y={y} textAnchor={anchor} dominantBaseline="middle"
             fill={T.ink2} fontSize={10.5} fontWeight="600"
-            fontFamily="'Noto Sans Tamil',Inter,sans-serif">
+            fontFamily="var(--font-body)">
             {label}
           </text>
         );
@@ -682,12 +682,12 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
                       <g key={label}>
                         <line x1={150} y1={115} x2={x} y2={y} stroke={T.border} strokeWidth={1.5} strokeDasharray="4,3" />
                         <circle cx={x} cy={y} r={27} fill={bg} stroke={clr} strokeWidth={1.5} opacity="0.85" />
-                        <text x={x} y={y+1} textAnchor="middle" dominantBaseline="middle" fill={clr} fontSize={8.5} fontWeight="600" fontFamily="'Noto Sans Tamil',Inter,sans-serif">{label}</text>
+                        <text x={x} y={y+1} textAnchor="middle" dominantBaseline="middle" fill={clr} fontSize={8.5} fontWeight="600" fontFamily="var(--font-body)">{label}</text>
                       </g>
                     ))}
                     <circle cx={150} cy={115} r={44} fill={T.accentSoft} stroke={T.accent} strokeWidth={2} />
-                    <text x={150} y={111} textAnchor="middle" fill={T.accent} fontSize={12} fontWeight="700" fontFamily="'Noto Sans Tamil',Inter,sans-serif">{mtv(v.rel_you)}</text>
-                    <text x={150} y={125} textAnchor="middle" fill={T.muted} fontSize={9} fontFamily="'Noto Sans Tamil',Inter,sans-serif">
+                    <text x={150} y={111} textAnchor="middle" fill={T.accent} fontSize={12} fontWeight="700" fontFamily="var(--font-body)">{mtv(v.rel_you)}</text>
+                    <text x={150} y={125} textAnchor="middle" fill={T.muted} fontSize={9} fontFamily="var(--font-body)">
                       ({lang === "ta" ? data.name_ta : englishName})
                     </text>
                   </svg>

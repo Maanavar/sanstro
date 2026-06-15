@@ -26,6 +26,20 @@ function panchangamDateEntries(): MetadataRoute.Sitemap {
   }));
 }
 
+const TAMIL_CALENDAR_EVENTS = [
+  "pournami", "amavasai", "pradosham", "ekadhasi", "sankatahara-chathurthi",
+  "chathurthi", "sashti", "ashtami", "navami", "karthigai", "thiruvonam",
+  "maadha-sivarathiri", "chandra-darisanam", "karinaal",
+];
+
+function tamilCalendarEntries(): MetadataRoute.Sitemap {
+  return TAMIL_CALENDAR_EVENTS.map((key) => ({
+    url: `${BASE}/tamil-calendar/${key}-2026`,
+    changeFrequency: "weekly" as const,
+    priority: 0.85,
+  }));
+}
+
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
@@ -80,6 +94,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.9,
     },
+    {
+      url: `${BASE}/muhurtham-naal`,
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
+    {
+      url: `${BASE}/tamil-calendar`,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    ...tamilCalendarEntries(),
     {
       url: `${BASE}/tools/indraiya-rasipalan`,
       changeFrequency: "daily",

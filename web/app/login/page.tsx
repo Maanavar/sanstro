@@ -193,7 +193,7 @@ export default function LoginPage() {
           min-height: 100vh;
           display: flex;
           background: #F4EEE2;
-          font-family: 'Noto Sans Tamil', 'Inter', system-ui, sans-serif;
+          font-family: var(--font-body), var(--font-tamil), system-ui, sans-serif;
           color: #3D352B;
         }
 
@@ -260,7 +260,7 @@ export default function LoginPage() {
           height: 24px;
         }
         .ca-left-wordmark {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-display), Georgia, serif;
           font-size: 1.75rem;
           font-weight: 500;
           letter-spacing: -0.03em;
@@ -281,7 +281,7 @@ export default function LoginPage() {
         .ca-left-headline {
           position: relative;
           z-index: 1;
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-display), Georgia, serif;
           font-size: clamp(2rem, 3vw, 2.5rem);
           font-weight: 500;
           letter-spacing: -0.04em;
@@ -381,7 +381,7 @@ export default function LoginPage() {
           text-decoration: none;
         }
         .ca-card-brand-wordmark {
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-display), Georgia, serif;
           font-size: 1.35rem;
           font-weight: 500;
           letter-spacing: -0.02em;
@@ -393,7 +393,7 @@ export default function LoginPage() {
         /* Card heading */
         .ca-heading {
           margin: 0 0 4px;
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-display), Georgia, serif;
           font-size: 1.6rem;
           font-weight: 500;
           letter-spacing: -0.03em;
@@ -622,7 +622,7 @@ export default function LoginPage() {
         }
         .ca-success-title {
           margin: 0;
-          font-family: 'Fraunces', Georgia, serif;
+          font-family: var(--font-display), Georgia, serif;
           font-size: 1.2rem;
           font-weight: 500;
           color: #1A1612;

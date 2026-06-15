@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
@@ -24,31 +25,103 @@ import { useFamilyData, type MemberChart } from "@/hooks/useFamilyData";
 import { usePlanData } from "@/hooks/usePlanData";
 import { useJournalData } from "@/hooks/useJournalData";
 
-import { CalendarTab } from "./dashboard-calendar-tab";
-import { EditMemberModal } from "./dashboard-edit-member-modal";
 import type { EditMemberState } from "./dashboard-edit-member-modal";
-import { EditProfileModal } from "./dashboard-edit-profile-modal";
-import { DashboardFamilyTab } from "./dashboard-family-tab";
-import { FeedbackModal } from "./dashboard-feedback-modal";
 import { DashboardHero } from "./dashboard-hero";
-import { DashboardLifeAreasTab } from "./dashboard-life-areas-tab";
 import { DashboardPersonalTab } from "./dashboard-personal-tab";
-import { QATab } from "./dashboard-qa-tab";
-import { DashboardSetupTab } from "./dashboard-setup-tab";
-import { DashboardSettingsSessionTab } from "./dashboard-settings-session-tab";
-import { DashboardTransitsTab } from "./dashboard-transits-tab";
-import { DashboardPlanTab } from "./dashboard-plan-tab";
-import { DashboardJournalTab } from "./dashboard-journal-tab";
-import { PoruthamPanel } from "./porutham-panel";
-import { ChartGenerateInlinePanel } from "./chart-generate-inline-panel";
-import { DashboardAnnualWrapped } from "./dashboard-annual-wrapped";
-import { RetrospectivePanel } from "./dashboard-retrospective-panel";
-import { RectificationWizard } from "./dashboard-rectification-wizard";
 import { LifeModePicker } from "./life-mode-picker";
 import { DashboardAskVinaadiWidget } from "./dashboard-ask-vinaadi-widget";
 
 const STORAGE_KEY = "jothidam-ai-dashboard-state";
 const ENABLE_QA_TAB = process.env.NODE_ENV !== "production";
+
+function LazyPanelFallback() {
+  return <p className="empty-state">Loading...</p>;
+}
+
+const CalendarTab = dynamic(
+  () => import("./dashboard-calendar-tab").then((mod) => mod.CalendarTab),
+  { loading: LazyPanelFallback },
+);
+
+const DashboardTransitsTab = dynamic(
+  () => import("./dashboard-transits-tab").then((mod) => mod.DashboardTransitsTab),
+  { loading: LazyPanelFallback },
+);
+
+const PoruthamPanel = dynamic(
+  () => import("./porutham-panel").then((mod) => mod.PoruthamPanel),
+  { loading: LazyPanelFallback },
+);
+
+const DashboardAnnualWrapped = dynamic(
+  () => import("./dashboard-annual-wrapped").then((mod) => mod.DashboardAnnualWrapped),
+  { loading: LazyPanelFallback },
+);
+
+const EditMemberModal = dynamic(
+  () => import("./dashboard-edit-member-modal").then((mod) => mod.EditMemberModal),
+  { loading: LazyPanelFallback },
+);
+
+const EditProfileModal = dynamic(
+  () => import("./dashboard-edit-profile-modal").then((mod) => mod.EditProfileModal),
+  { loading: LazyPanelFallback },
+);
+
+const DashboardFamilyTab = dynamic(
+  () => import("./dashboard-family-tab").then((mod) => mod.DashboardFamilyTab),
+  { loading: LazyPanelFallback },
+);
+
+const FeedbackModal = dynamic(
+  () => import("./dashboard-feedback-modal").then((mod) => mod.FeedbackModal),
+  { loading: LazyPanelFallback },
+);
+
+const DashboardLifeAreasTab = dynamic(
+  () => import("./dashboard-life-areas-tab").then((mod) => mod.DashboardLifeAreasTab),
+  { loading: LazyPanelFallback },
+);
+
+const QATab = dynamic(
+  () => import("./dashboard-qa-tab").then((mod) => mod.QATab),
+  { loading: LazyPanelFallback },
+);
+
+const DashboardSetupTab = dynamic(
+  () => import("./dashboard-setup-tab").then((mod) => mod.DashboardSetupTab),
+  { loading: LazyPanelFallback },
+);
+
+const DashboardSettingsSessionTab = dynamic(
+  () => import("./dashboard-settings-session-tab").then((mod) => mod.DashboardSettingsSessionTab),
+  { loading: LazyPanelFallback },
+);
+
+const DashboardPlanTab = dynamic(
+  () => import("./dashboard-plan-tab").then((mod) => mod.DashboardPlanTab),
+  { loading: LazyPanelFallback },
+);
+
+const DashboardJournalTab = dynamic(
+  () => import("./dashboard-journal-tab").then((mod) => mod.DashboardJournalTab),
+  { loading: LazyPanelFallback },
+);
+
+const ChartGenerateInlinePanel = dynamic(
+  () => import("./chart-generate-inline-panel").then((mod) => mod.ChartGenerateInlinePanel),
+  { loading: LazyPanelFallback },
+);
+
+const RetrospectivePanel = dynamic(
+  () => import("./dashboard-retrospective-panel").then((mod) => mod.RetrospectivePanel),
+  { loading: LazyPanelFallback },
+);
+
+const RectificationWizard = dynamic(
+  () => import("./dashboard-rectification-wizard").then((mod) => mod.RectificationWizard),
+  { loading: LazyPanelFallback },
+);
 
 type Tab = "onboarding" | "personal" | "tools" | "transits" | "plan" | "life-areas" | "family" | "calendar" | "journal" | "settings" | "qa";
 type SettingsSubTab = "setup" | "session";

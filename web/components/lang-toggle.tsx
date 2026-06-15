@@ -1,25 +1,39 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { LANG_STORAGE_KEY, type Lang } from "@/lib/i18n";
+import { LANG_COOKIE_NAME, LANG_STORAGE_KEY, type Lang } from "@/lib/i18n";
 
 // ── Shared context ──────────────────────────────────────────────────────────
 
 type LangCtx = [Lang, (l: Lang) => void];
 const LangContext = createContext<LangCtx>(["en", () => {}]);
 
-export function LangProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("en");
+function persistLangPreference(lang: Lang) {
+  localStorage.setItem(LANG_STORAGE_KEY, lang);
+  document.cookie = `${LANG_COOKIE_NAME}=${lang}; path=/; max-age=31536000; samesite=lax`;
+  document.documentElement.lang = lang;
+}
 
-  // Hydrate from localStorage once on mount
+export function LangProvider({
+  children,
+  initialLang = "en",
+}: {
+  children: React.ReactNode;
+  initialLang?: Lang;
+}) {
+  const [lang, setLangState] = useState<Lang>(initialLang);
+
+  // Reconcile any client-stored preference with the server-provided default.
   useEffect(() => {
     const stored = localStorage.getItem(LANG_STORAGE_KEY);
-    if (stored === "ta" || stored === "en") setLangState(stored);
-  }, []);
+    const resolved = stored === "ta" || stored === "en" ? stored : initialLang;
+    setLangState(resolved);
+    persistLangPreference(resolved);
+  }, [initialLang]);
 
   function setLang(l: Lang) {
     setLangState(l);
-    localStorage.setItem(LANG_STORAGE_KEY, l);
+    persistLangPreference(l);
   }
 
   return (

@@ -39,6 +39,8 @@ export function PublicNav() {
     { href: "/tools/marriage-porutham-calculator", label: mt(NAV.tool_porutham, lang), desc: mt(NAV.tool_porutham_desc, lang) },
     { href: "/tools/jadhagam-generator",           label: mt(NAV.tool_jad,      lang), desc: mt(NAV.tool_jad_desc,      lang) },
     { href: "/tools/daily-panchangam-planner",     label: mt(NAV.tool_panch,    lang), desc: mt(NAV.tool_panch_desc,    lang) },
+    { href: "/muhurtham-naal",                     label: lang === "en" ? "Muhurtham Naal 2026" : "முகூர்த்த நாள் 2026", desc: lang === "en" ? "Verified Tamil wedding dates" : "சரிபார்த்த திருமண நாட்கள்" },
+    { href: "/tamil-calendar",                     label: lang === "en" ? "Tamil Calendar 2026" : "தமிழ் நாட்காட்டி 2026", desc: lang === "en" ? "Pournami, Amavasai, Pradosham dates" : "பௌர்ணமி, அமாவாசை, பிரதோஷ நாட்கள்" },
     { href: "/tools/birth-time-rectification",     label: mt(NAV.tool_btr,      lang), desc: mt(NAV.tool_btr_desc,      lang) },
     { href: "/tools/indraiya-rasipalan",           label: mt(NAV.tool_rasipalan, lang), desc: mt(NAV.tool_rasipalan_desc, lang) },
   ];

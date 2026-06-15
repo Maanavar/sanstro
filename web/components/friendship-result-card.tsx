@@ -127,7 +127,10 @@ export function FriendshipResultCard({ report, lang }: { report: FriendshipRepor
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "14px" }}>
       <canvas ref={canvasRef} style={{ display: "none" }} />
       {preview && (
-        <img src={preview} alt="friendship card" style={{ width: "min(100%, 360px)", borderRadius: "16px", boxShadow: "0 10px 30px rgba(0,0,0,0.25)" }} />
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- canvas data URL, not a network image */}
+          <img src={preview} alt="friendship card" style={{ width: "min(100%, 360px)", borderRadius: "16px", boxShadow: "0 10px 30px rgba(0,0,0,0.25)" }} />
+        </>
       )}
       <button
         type="button"

@@ -742,6 +742,7 @@ export function JadhagamShareButton({ data }: { data: JadhagamShareData }) {
           onClick={() => setPreview(null)}
         >
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "14px" }} onClick={(e) => e.stopPropagation()}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- runtime-generated data URL; next/image cannot optimize it */}
             <img
               src={preview}
               alt="jadhagam share card"
@@ -823,6 +824,7 @@ export function PoruthamShareButton({ data }: { data: PoruthamShareData }) {
           onClick={() => setPreview(null)}
         >
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "14px" }} onClick={(e) => e.stopPropagation()}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- runtime-generated data URL; next/image cannot optimize it */}
             <img
               src={preview}
               alt="porutham share card"
@@ -904,6 +906,7 @@ export function PanchangamShareButton({ data }: { data: PanchangamShareData }) {
           onClick={() => setPreview(null)}
         >
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "14px" }} onClick={(e) => e.stopPropagation()}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- runtime-generated data URL; next/image cannot optimize it */}
             <img
               src={preview}
               alt="panchangam share card"

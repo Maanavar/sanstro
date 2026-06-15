@@ -77,6 +77,20 @@ export function RemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, loadi
 
   return (
     <div>
+      {/* Always-on safety note: pariharam guides, it does not guarantee. */}
+      <div style={{
+        padding: "var(--space-2_5) var(--space-3)",
+        marginBottom: "var(--space-3)",
+        borderRadius: "var(--radius-sm)",
+        background: "rgba(122,111,94,0.07)",
+        border: "1px solid rgba(122,111,94,0.18)",
+        fontSize: "0.76rem",
+        color: W.muted,
+        lineHeight: 1.55,
+      }}>
+        {t("remedies_safety_note", lang)}
+      </div>
+
       {/* Sub-tab pills */}
       <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: "var(--space-3)", flexWrap: "wrap" }}>
         {(["plan", "gemstone"] as const).map((tab) => {
@@ -151,6 +165,17 @@ export function RemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, loadi
                 />
                 <RemedyRow label={t("remedies_daanam", lang)} value={lang === "ta" ? item.daanumItemsTa : item.daanumItemsEn} lang={lang} />
                 <RemedyRow label={t("remedies_fasting", lang)} value={lang === "ta" ? item.fastingRuleTa : item.fastingRuleEn} lang={lang} />
+                {(item.fastingRuleTa || item.fastingRuleEn) && (
+                  <p style={{
+                    margin: "calc(-1 * var(--space-0_5)) 0 var(--space-2)",
+                    paddingLeft: "7rem",
+                    fontSize: "0.72rem",
+                    color: W.terracotta,
+                    lineHeight: 1.45,
+                  }}>
+                    ⚠ {t("remedies_fasting_caution", lang)}
+                  </p>
+                )}
                 <RemedyRow label={t("remedies_behaviour", lang)} value={lang === "ta" ? item.behaviouralTa : item.behaviouralEn} lang={lang} />
                 <RemedyRow label={t("remedies_seva", lang)} value={lang === "ta" ? item.sevaTa : item.sevaEn} lang={lang} />
                 {item.gemstoneTa && (

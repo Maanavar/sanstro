@@ -701,6 +701,7 @@ export interface PanchangamDailyResponseData {
     name: "POURNAMI" | "AMAVASAI";
     moonPhase: "FULL" | "NEW";
   } | null;
+  isKarinaal?: boolean;
 }
 
 export interface PanchangamTimingsData {
@@ -754,6 +755,7 @@ export interface PanchangamMonthDayEntry {
   isTamilMuhurthamDay: boolean;
   isSubhaMuhurtham: boolean;
   isSubhaMuhurthamStrict: boolean;
+  isKarinaal?: boolean;
 }
 
 export interface PanchangamMonthlyData {

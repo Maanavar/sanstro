@@ -945,24 +945,17 @@ function MonthlyCalendarView({
                 const specialTithiMeta = lunarSpecialTithiMeta(specialTithi, lang);
                 const selectDate = cell.dateLocal;
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={cell.dateLocal}
-                    role={onSelectDate ? "button" : undefined}
-                    tabIndex={onSelectDate ? 0 : undefined}
                     aria-pressed={onSelectDate ? isSelected : undefined}
                     aria-label={onSelectDate ? `${selectDate}${hasFestival ? ` · ${dayItems[0]?.name ?? ""}` : ""}` : undefined}
+                    aria-current={isToday ? "date" : undefined}
                     onClick={onSelectDate ? () => onSelectDate(selectDate) : undefined}
-                    onKeyDown={
-                      onSelectDate
-                        ? (e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              onSelectDate(selectDate);
-                            }
-                          }
-                        : undefined
-                    }
+                    disabled={!onSelectDate}
                     style={{
+                      appearance: "none",
+                      width: "100%",
                       position: "relative",
                       border: `1px solid ${isSelected ? monthlyTheme.selectedBorder : monthlyTheme.line}`,
                       borderRadius: "16px",
@@ -974,6 +967,8 @@ function MonthlyCalendarView({
                       gap: "4px",
                       overflow: "hidden",
                       cursor: onSelectDate ? "pointer" : "default",
+                      textAlign: "left",
+                      opacity: 1,
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-1)" }}>
@@ -1027,13 +1022,18 @@ function MonthlyCalendarView({
                           {specialTithiMeta.label}
                         </span>
                       ) : null}
+                      {entry?.isKarinaal ? (
+                        <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#8A2B16", display: "inline-flex", alignItems: "center", gap: "3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <span aria-hidden="true">⚠</span>{lang === "ta" ? "கரிநாள்" : "Karinaal"}
+                        </span>
+                      ) : null}
                       {isToday && !isSelected ? (
                         <span style={{ display: "inline-flex", alignSelf: "flex-start", borderRadius: "999px", background: "#F2E4D6", color: W.terracotta, padding: "2px 8px", fontSize: "0.625rem", fontWeight: 700 }}>
                           {lang === "ta" ? "இன்று" : "Today"}
                         </span>
                       ) : null}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -1044,6 +1044,7 @@ function MonthlyCalendarView({
                 { label: lang === "ta" ? "விரதம்" : "Vratha", color: monthlyTheme.vratha },
                 { label: lang === "ta" ? "திருவிழா" : "Festival", color: monthlyTheme.festival },
                 { label: lang === "ta" ? "உலக நாள்" : "Global day", color: monthlyTheme.global },
+                { label: lang === "ta" ? "கரிநாள் (தவிர்க்க)" : "Karinaal (avoid)", color: "#8A2B16" },
               ].map((item) => (
                 <span key={item.label} style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "0.75rem", color: monthlyTheme.softText }}>
                   <span aria-hidden="true" style={{ width: "9px", height: "9px", borderRadius: "999px", background: item.color }} />

@@ -56,6 +56,9 @@ export function PublicFooter() {
       </div>
       <div className="cl-footer__bottom">
         <div className="cl-container cl-footer__bottom-inner">
+          <p className="cl-footer__disclaimer">
+            <Link href="/beta" className="cl-footer__link" style={{ fontWeight: 600 }}>{mt(FOOTER.beta_line, lang)}</Link>
+          </p>
           <p className="cl-footer__disclaimer">{mt(FOOTER.disclaimer, lang)}</p>
           <p className="cl-footer__copy">
             {mt(FOOTER.copyright, lang).replace("{year}", String(new Date().getFullYear()))}

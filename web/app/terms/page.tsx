@@ -89,11 +89,26 @@ export default function TermsPage() {
               harm others.
             </p>
 
-            <h2>Early access</h2>
+            <h2>Open beta, free access &amp; future plans</h2>
             <p>
-              Vinaadi is currently in early access. Features may change. We
-              reserve the right to modify, pause, or discontinue the service
-              with reasonable notice.
+              Vinaadi is currently in open beta. All features are provided free of
+              charge during this period while we refine the product. Features may
+              change, and we reserve the right to modify, pause, or discontinue the
+              service with reasonable notice. When we introduce paid subscription
+              plans for the full version, we will give existing users advance notice
+              before any feature becomes paid, and your existing data and readings
+              will carry over. See our <Link href="/beta" className="cl-inline-link">beta page</Link> for
+              details.
+            </p>
+
+            <h2>Beta feedback &amp; reviewer recognition</h2>
+            <p>
+              Feedback and reviews you submit may be used to improve the service
+              and, where you have indicated, may be quoted or featured. As a
+              thank-you, our most helpful reviewers may, at our sole discretion,
+              receive extended free access. This is a discretionary recognition,
+              not a guaranteed reward or contractual entitlement, and may be changed
+              or withdrawn at any time.
             </p>
 
             <h2>Limitation of liability</h2>
