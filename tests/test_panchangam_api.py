@@ -139,6 +139,45 @@ def test_daily_panchangam_endpoint_reuses_cached_row(client, monkeypatch):
         assert len(rows) == 1
 
 
+def test_monthly_panchangam_uses_cached_dominant_values(client, monkeypatch):
+    """A warm monthly load must not re-walk the ephemeris.
+
+    The dominant tithi/nakshatra/yoga for each civil day are persisted on the
+    cached snapshot (schema v22+), so once a month is warm the monthly endpoint
+    should serve it from a bulk SELECT alone — no per-day ephemeris recompute.
+    """
+    params = {
+        "year": 2026,
+        "month": 5,
+        "lat": 9.9252,
+        "lng": 78.1198,
+        "timezone": "Asia/Kolkata",
+    }
+
+    first = client.get("/api/v1/panchangam/monthly", params=params)
+    assert first.status_code == 200
+    first_entries = first.json()["data"]["entries"]
+    assert first_entries
+
+    import app.services.panchangam_service as service_module
+
+    def _unexpected_dominant_walk(*args, **kwargs):
+        raise AssertionError("Warm monthly load must read dominant values from the cache.")
+
+    # The civil-day dominant tithi/nakshatra/yoga are the expensive per-day ephemeris
+    # walk. On a warm load they come off the cached snapshot, so these fallbacks must
+    # never be invoked.
+    monkeypatch.setattr(service_module, "dominant_tithi_for_civil_day", _unexpected_dominant_walk)
+    monkeypatch.setattr(service_module, "dominant_nakshatra_for_civil_day", _unexpected_dominant_walk)
+    monkeypatch.setattr(service_module, "dominant_yoga_for_civil_day", _unexpected_dominant_walk)
+
+    second = client.get("/api/v1/panchangam/monthly", params=params)
+    assert second.status_code == 200
+    second_entries = second.json()["data"]["entries"]
+    assert [e["tithiNumber"] for e in second_entries] == [e["tithiNumber"] for e in first_entries]
+    assert [e["nakshatraName"] for e in second_entries] == [e["nakshatraName"] for e in first_entries]
+
+
 def test_daily_panchangam_endpoint_ignores_stale_cache_schema(client):
     params = {
         "date": "2026-05-21",
