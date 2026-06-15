@@ -22,6 +22,9 @@ Quick map to the right document for each purpose.
 - [MARKETING_PLAN.md](MARKETING_PLAN.md) — Consolidated marketing & SEO plan: growth strategy, site IA, homepage content blueprint, SEO implementation roadmap, and execution tasks (merged from the five 2026-06-02 marketing docs)
 - [PUBLIC_SITE_QA_CHECKLIST.md](PUBLIC_SITE_QA_CHECKLIST.md) — Repeatable QA checklist to run before deploying any public-site change
 
+- [launch/GO_LIVE_CHECKLIST.md](launch/GO_LIVE_CHECKLIST.md) - Master go-live checklist covering product, engineering, infra, legal, analytics, support, launch-day execution, and rollback
+- [launch/BETA_LAUNCH_CHECKLIST.md](launch/BETA_LAUNCH_CHECKLIST.md) - Narrower beta-launch checklist for the current public beta flow
+
 ## Roadmap
 - [VINAADI_ENHANCEMENT_ROADMAP_v1.md](VINAADI_ENHANCEMENT_ROADMAP_v1.md) — Forward enhancement roadmap, decisions log (referenced by AGENT_INSTRUCTIONS)
 

@@ -55,12 +55,10 @@ jobs:
           cache: pip
       - name: Install tooling
         run: pip install ruff mypy
-      # Advisory for now: the existing codebase has a lint backlog. New code is
-      # expected to be clean; flip these to blocking once the backlog is cleared.
-      - name: Ruff (advisory)
-        run: ruff check app tests || true
-      - name: Mypy (advisory)
-        run: mypy app || true
+      - name: Ruff
+        run: ruff check app tests
+      - name: Mypy
+        run: mypy app
 
   migrations:
     name: Alembic round-trip
