@@ -10,7 +10,7 @@ from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.functional_nature import FunctionalNature, get_functional_nature
-from app.calculations.remedies import get_remedy
+from app.calculations.remedies import get_remedy, remedy_disclaimer
 from app.calculations.yogas import get_badhaka_lord
 from app.core.auth import get_current_user
 from app.db.session import get_db
@@ -66,6 +66,7 @@ def gemstone_advice(
             "asOf": date.today().isoformat(),
             "advice": rows,
             "profileName": profile.display_name,
+            "disclaimer": remedy_disclaimer(),
         },
     }
 
@@ -148,5 +149,6 @@ def remedy_plan(
             "weakestPlanets": weakest,
             "activeDoshamPlanet": active_dosham_planet,
             "items": rows,
+            "disclaimer": remedy_disclaimer(),
         },
     }

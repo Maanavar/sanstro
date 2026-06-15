@@ -112,7 +112,7 @@ def _latest_birth_profile(session: Session, member: FamilyMember) -> BirthProfil
     ).scalar_one_or_none()
     if birth_profile is None:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Family member {member.display_name} does not have a birth profile yet.",
         )
     return birth_profile
@@ -506,7 +506,7 @@ def create_family_vault(session: Session, payload: FamilyVaultCreate, *, calcula
     owner_user_id = payload.owner_user_id
     if owner_user_id is None:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="ownerUserId is required for family vault creation.",
         )
     _ensure_user(session, owner_user_id)
@@ -666,11 +666,11 @@ def add_family_member(
     family_vault = _load_family_vault(session, family_vault_id)
 
     if payload.family_vault_id is not None and payload.family_vault_id != family_vault.family_vault_id:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Family vault mismatch.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Family vault mismatch.")
 
     owner_user_id = payload.owner_user_id or family_vault.owner_user_id
     if payload.owner_user_id is not None and payload.owner_user_id != family_vault.owner_user_id:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Owner mismatch for family vault.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Owner mismatch for family vault.")
 
     _ensure_user(session, owner_user_id)
 
@@ -748,7 +748,7 @@ def get_family_daily_aggregate(
         .order_by(FamilyMember.created_at.asc())
     ).scalars().all()
     if not family_members:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Family vault has no members.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Family vault has no members.")
 
     request_cache = snapshot_cache if snapshot_cache is not None else {}
     member_snapshots = [
@@ -842,7 +842,7 @@ def get_family_calendar(
     calculation_version: str = DEFAULT_CALCULATION_VERSION,
 ) -> FamilyCalendarResponse:
     if end_date < start_date:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="End date must be on or after start date.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="End date must be on or after start date.")
 
     if (end_date - start_date).days + 1 > 90:
         raise HTTPException(
@@ -902,9 +902,9 @@ def get_family_composite_timeline(
     for each day in [from_date, to_date].  Max range: 90 days.
     """
     if to_date < from_date:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="toDate must be on or after fromDate.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="toDate must be on or after fromDate.")
     if (to_date - from_date).days + 1 > 90:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Composite range must not exceed 90 days.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Composite range must not exceed 90 days.")
 
     _load_family_vault(session, family_vault_id)
 
@@ -1095,7 +1095,7 @@ def update_family_member(
         ).scalar_one_or_none()
         if profile is None:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="No birth profile found for this member to update.",
             )
         if payload.birth_place is not None:

@@ -42,6 +42,7 @@ from app.api.whatif import router as whatif_router
 from app.core.config import get_settings
 from app.middleware import RateLimitMiddleware, RequestLoggingMiddleware, SecurityHeadersMiddleware
 from app.services.daily_push_cron import run_daily_push_cron
+from app.services.panchangam_prewarm import run_panchangam_prewarm_cron
 from app.services.peyarchi_alert_service import daily_peyarchi_refresh
 from app.services.synastry_service import daily_relationship_alert_refresh
 
@@ -101,6 +102,16 @@ def _build_lifespan():
             "cron",
             minute=0,  # every hour on the hour — morning window check is done inside per user timezone
             id="daily_push_cron",
+            replace_existing=True,
+        )
+        # Pre-warm the panchangam cache for popular locations so the calendar and
+        # daily panchangam load as warm cache hits (no cold ephemeris on first view).
+        scheduler.add_job(
+            run_panchangam_prewarm_cron,
+            "cron",
+            hour=2,
+            minute=10,
+            id="panchangam_prewarm",
             replace_existing=True,
         )
         scheduler.start()

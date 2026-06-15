@@ -98,6 +98,10 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
 # ---------------------------------------------------------------------------
 # Sliding-window rate limiter (in-process, per client IP)
+# Known limitation: counters live inside each Python worker. In a single-process
+# deployment the limit is exact, but in multi-worker Gunicorn/Uvicorn setups the
+# effective allowance becomes roughly N x max_requests. Move this state into a
+# shared store (for example Redis) when enforcing a cluster-wide production limit.
 # ---------------------------------------------------------------------------
 
 _counters: dict[str, list[float]] = defaultdict(list)

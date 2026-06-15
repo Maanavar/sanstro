@@ -254,7 +254,7 @@ def find_best_muhurta_slots(
     activity = activity.upper()
     if activity not in _ACTIVITY_LORDS:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Unknown activity '{activity}'. Valid values: {sorted(_ACTIVITY_LORDS)}",
         )
 

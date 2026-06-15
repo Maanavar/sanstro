@@ -600,8 +600,8 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                     "அடுத்த 30 நாட்களில் நிலையான முன்னேற்றம் எதிர்பார்க்கலாம். அவசர முடிவுகளை தவிர்க்கவும்.",
                     "Steady progress expected in the next 30 days. Avoid hasty decisions.",
                 )
-                remedy = _t("சனிக்கிழமை விரதம் அல்லது ஹனுமான் வழிபாடு உதவும். தினக்கூலி தொழிலாளிக்கு உதவுவது தொழில் நிலைப்படுத்தலுக்கு சேவை.",
-                            "Saturday fasting or Hanuman worship is helpful. Helping a daily wage worker or donating to a skills training program supports career stability.")
+                remedy = _t("சனிக்கிழமை விரதம் (உடல்நலம் இடம் தந்தால்) அல்லது ஹனுமான் வழிபாடு உதவும். தினக்கூலி தொழிலாளிக்கு உதவுவது தொழில் நிலைப்படுத்தலுக்கு சேவை.",
+                            "Saturday fasting (only if your health permits) or Hanuman worship is helpful. Helping a daily wage worker or donating to a skills training program supports career stability.")
             else:
                 narr = _t(
                     f"தொழிலில் தற்காலிக சவால்கள் உள்ளன. {planet_ta} தசையில் பொறுமை மிக முக்கியம். "
@@ -648,8 +648,8 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                 )
                 outlook = _t("அடுத்த 30 நாட்களில் பெரிய முதலீடுகளை தவிர்க்கவும்.",
                              "Avoid large investments in the next 30 days.")
-                remedy = _t("வெள்ளிக்கிழமை விரதம், மகாலட்சுமி வழிபாடு. தங்கம் வாங்குவதை ஒத்திவையுங்கள். அனாதை இல்லம் அல்லது பெண் குழந்தை கல்வி நிதிக்கு நன்கொடை சேர்ப்பது வீணஸ் மற்றும் குரு வழிகளை திறக்கும்.",
-                            "Friday fasting and Mahalakshmi worship. Postpone gold purchases. Add service: donate to a girl child education fund or orphanage to activate Venus and Jupiter channels.")
+                remedy = _t("வெள்ளிக்கிழமை விரதம் (உடல்நலம் இடம் தந்தால்), மகாலட்சுமி வழிபாடு. தங்கம் வாங்குவதை ஒத்திவையுங்கள். அனாதை இல்லம் அல்லது பெண் குழந்தை கல்வி நிதிக்கு நன்கொடை சேர்ப்பது வீணஸ் மற்றும் குரு வழிகளை திறக்கும்.",
+                            "Friday fasting (only if your health permits) and Mahalakshmi worship. Postpone gold purchases. Add service: donate to a girl child education fund or orphanage to activate Venus and Jupiter channels.")
                 return _NarrativeBundle(narr, outlook, remedy, caution=_t(
                     "பெரிய கடன் வாங்குவதோ, தொழில் முதலீடு செய்வதோ ஒத்திவையுங்கள்.",
                     "Postpone large loans or business investments.",
@@ -720,8 +720,8 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                 )
                 outlook = _t("அடுத்த 30 நாட்களில் உறவுகளில் நேர்மையான தொடர்பு வைத்திருங்கள்.",
                              "Maintain honest communication in relationships over the next 30 days.")
-                remedy = _t("வெள்ளிக்கிழமை விரதம் மற்றும் சுக்கிர வழிபாடு உதவும். பெண் குழந்தை கல்விக்கு உதவுவது அல்லது ஆதரவற்ற பெண்ணுக்கு மருந்து வழங்குவது சுக்கிர சேவை.",
-                            "Friday fasting and Venus worship will help. Sponsoring a girl child's education or supporting a woman in need deepens Venus harmony.")
+                remedy = _t("வெள்ளிக்கிழமை விரதம் (உடல்நலம் இடம் தந்தால்) மற்றும் சுக்கிர வழிபாடு உதவும். பெண் குழந்தை கல்விக்கு உதவுவது அல்லது ஆதரவற்ற பெண்ணுக்கு மருந்து வழங்குவது சுக்கிர சேவை.",
+                            "Friday fasting (only if your health permits) and Venus worship will help. Sponsoring a girl child's education or supporting a woman in need deepens Venus harmony.")
             else:
                 narr = _t(
                     f"உறவுகளில் சவால்கள் உள்ளன. {'சந்திராஷ்டமம் — உணர்வு மோதல் தவிர்க்கவும்.' if chandrashtama else 'அமைதியான உரையாடல் தேவை.'}",
@@ -875,8 +875,8 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                 )
                 outlook = _t("அடுத்த 30 நாட்களில் குடும்ப உறுப்பினர்களுக்கு நேரம் ஒதுக்குங்கள்.",
                              "Allocate time for family members over the next 30 days.")
-                remedy = _t("திங்கட்கிழமை விரதம், சந்திர வழிபாடு உதவும்.",
-                            "Monday fasting and Moon worship will help.")
+                remedy = _t("திங்கட்கிழமை விரதம் (உடல்நலம் இடம் தந்தால்), சந்திர வழிபாடு உதவும்.",
+                            "Monday fasting (only if your health permits) and Moon worship will help.")
             else:
                 narr = _t(
                     f"குடும்பத்தில் மோதல் மற்றும் கருத்து வேறுபாடு சாத்தியம். {'சந்திராஷ்டமம் — உணர்வுகளை கவனமாக வெளிப்படுத்துங்கள்.' if chandrashtama else 'பொறுமை மிக முக்கியம்.'}",

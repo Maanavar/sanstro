@@ -65,7 +65,7 @@ def update_notification_preferences(
     if payload.notification_channel is not None:
         if payload.notification_channel not in _VALID_CHANNELS:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"notification_channel must be one of: {sorted(_VALID_CHANNELS)}",
             )
         pref.notification_channel = payload.notification_channel
@@ -78,7 +78,7 @@ def update_notification_preferences(
             parsed = time.fromisoformat(payload.morning_alert_time)
         except ValueError:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="morning_alert_time must be HH:MM",
             )
         pref.morning_alert_time = parsed

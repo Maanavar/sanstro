@@ -181,7 +181,7 @@ def _birth_datetime_utc(profile: BirthProfile) -> datetime:
         return birth_datetime_utc.astimezone(UTC)
 
     if profile.birth_time_local is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Birth time is required.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Birth time is required.")
 
     local_dt = datetime.combine(profile.birth_date_local, profile.birth_time_local)
     return local_datetime_to_utc(local_dt, profile.birth_timezone)

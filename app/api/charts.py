@@ -153,9 +153,9 @@ def get_event_windows(
     chart = _assert_chart_owner(session, chart_id, current_user)
 
     if from_year > to_year:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="fromYear must be <= toYear.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="fromYear must be <= toYear.")
     if to_year - from_year > 20:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Range must not exceed 20 years.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Range must not exceed 20 years.")
 
     moon_row = session.execute(
         select(ChartPlanet).where(
@@ -164,7 +164,7 @@ def get_event_windows(
         )
     ).scalar_one_or_none()
     if moon_row is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Chart is missing Moon position.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Chart is missing Moon position.")
 
     lagna_rasi = resolve_rasi(chart.lagna_rasi)
     chart_data = ChartData(

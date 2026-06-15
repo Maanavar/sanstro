@@ -492,8 +492,8 @@ _PLANET_REMEDY: dict[str, BiText] = {
                    "Worship Mahalakshmi on Fridays. Offering white or colourful flowers is auspicious. Supporting a woman's education or livelihood is the most resonant Venus seva."),
     "SATURN":  _bi("சனிக்கிழமை சனீஸ்வரன் வழிபாடு. எள் எண்ணெய் விளக்கு ஏற்றுங்கள். கடுமையான பேச்சை தவிர்க்கவும். பசிப்பவருக்கு உணவளிப்பது அல்லது தினக்கூலி தொழிலாளிக்கு உதவுவது சனியை திருப்திப்படுத்தும்.",
                    "Worship Saneeswaran on Saturdays. Light a sesame oil lamp. Avoid harsh speech. Feeding the hungry or helping a daily wage worker on Saturdays is the most effective Saturn seva."),
-    "RAHU":    _bi("துர்கா / காளி வழிபாடு நல்லது. ஏழை உணவு தானம் செய்யலாம். சனிக்கிழமை விரதம் உதவும். முதல் தலைமுறை மாணவருக்கு வழிகாட்டுதல் அல்லது அனாதை இல்லத்திற்கு நன்கொடை ராகு நிவாரணம்.",
-                   "Worship Durga / Kali. Donating food to the needy is helpful. Saturday fasting is beneficial. Mentoring a first-generation college student or donating to an orphanage are effective Rahu remedies."),
+    "RAHU":    _bi("துர்கா / காளி வழிபாடு நல்லது. ஏழை உணவு தானம் செய்யலாம். சனிக்கிழமை விரதம் (உடல்நலம் இடம் தந்தால்) உதவும். முதல் தலைமுறை மாணவருக்கு வழிகாட்டுதல் அல்லது அனாதை இல்லத்திற்கு நன்கொடை ராகு நிவாரணம்.",
+                   "Worship Durga / Kali. Donating food to the needy is helpful. Saturday fasting (only if your health permits) is beneficial. Mentoring a first-generation college student or donating to an orphanage are effective Rahu remedies."),
     "KETU":    _bi("கணேஷ் வழிபாடு நல்லது. ஆன்மீக நூல்கள் படியுங்கள். தனிமையில் தியானம் செய்யுங்கள். நோய்வாய்ப்பட்ட ஏழைக்கு உதவுவது அல்லது தெரு விலங்குகளுக்கு உணவளிப்பது கேது சேவை.",
                    "Worship Ganesha. Read spiritual texts. Meditate in solitude. Helping a destitute or terminally ill person, or feeding street animals, is a meaningful Ketu seva."),
 }
@@ -755,10 +755,12 @@ def build_ekadasi_card() -> BiText:
     """Tithi 11 or 26 — Ekadasi, sacred to Vishnu / Perumal."""
     return _bi(
         "இன்று ஏகாதசி — திருமால் வழிபாட்டிற்கு சிறப்பான நாள். "
-        "விரதம் இருப்பவர்களுக்கு ஆன்மீக பலன் அதிகம். "
+        "உடல்நலம் இடம் தந்தால் விரதம் இருப்பவர்களுக்கு ஆன்மீக பலன் அதிகம்; "
+        "இயலாதவர் லேசான சாத்வீக உணவு உண்ணலாம். "
         "பெருமாள் கோவிலுக்கு சென்று துளசி சமர்ப்பிக்கலாம்.",
         "Today is Ekadasi — a sacred day for Thirumal (Vishnu). "
-        "Fasting on this day carries spiritual merit. "
+        "Fasting carries spiritual merit if your health permits; "
+        "otherwise a light sattvic meal is fine. "
         "Visit a Perumal temple and offer Tulasi.",
     )
 

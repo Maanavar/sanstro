@@ -4,6 +4,55 @@ from dataclasses import asdict, dataclass
 
 from app.calculations.functional_nature import FunctionalNature
 
+# Safety notes that MUST accompany every prescribed remedy.
+#
+# 1. Fasting (viratham) is a discipline of the mind, never a punishment of the
+#    body. It is optional and substitutable — anyone for whom a food-fast is
+#    unsafe may keep it symbolically (a light sattvic meal) or replace it
+#    entirely with the mantra, temple worship, or daanam (charity).
+# 2. No remedy can guarantee a specific outcome or an exact date. We point to
+#    favourable ranges and steady the effort; we never promise certainties.
+FASTING_CAUTION_TA = (
+    "விரதம் விருப்பத்திற்குரியது — மனதை நிலைப்படுத்தவே, உடலை வருத்த அல்ல. "
+    "நீரிழிவு, குறைந்த ரத்த அழுத்தம், கர்ப்பம், பாலூட்டுதல், வயது முதிர்வு, "
+    "உடல்நலக் குறைவு அல்லது தொடர் மருந்து உட்கொள்பவர்கள் கடுமையான உணவு விரதம் "
+    "வேண்டாம் — அதற்குப் பதிலாக லேசான சாத்வீக உணவு உண்ணலாம், அல்லது மந்திரம், "
+    "கோயில் வழிபாடு, தானம் ஆகியவற்றைச் செய்யலாம். எந்த விரதத்திற்கும் முன் "
+    "மருத்துவரை அணுகவும்."
+)
+FASTING_CAUTION_EN = (
+    "Fasting is optional and meant to steady the mind, never to harm the body. "
+    "If you have diabetes, low blood pressure, are pregnant or breastfeeding, "
+    "are elderly or unwell, or take regular medication, do not keep a strict "
+    "food-fast — observe a light sattvic meal instead, or replace the fast with "
+    "the mantra, temple worship, or daanam (charity). Consult your doctor before "
+    "any fast."
+)
+GUARANTEE_NOTE_TA = (
+    "பரிகாரம் மனதை நிலைப்படுத்தி, சரியான காலத்தோடு உங்கள் முயற்சியை இணைக்கிறது — "
+    "ஒரு குறிப்பிட்ட பலனையோ துல்லியமான தேதியையோ உறுதி செய்ய முடியாது. திருமணம், "
+    "குழந்தை, வேலை எந்த நாளில் அமையும் என்று யாராலும் உறுதியளிக்க முடியாது; நாங்கள் "
+    "சாதகமான கால வரம்புகளை மட்டுமே சுட்டிக்காட்டுகிறோம், உறுதிகளை அல்ல. இவை மருத்துவ, "
+    "சட்ட அல்லது நிதி ஆலோசனைக்கு மாற்றல்ல."
+)
+GUARANTEE_NOTE_EN = (
+    "Pariharam steadies the mind and aligns your effort with the right time — it "
+    "cannot guarantee a specific outcome or an exact date. No one can promise the "
+    "day a marriage, child, or job will come; we point to favourable ranges, not "
+    "certainties. None of this is a substitute for medical, legal, or financial "
+    "advice."
+)
+
+
+def remedy_disclaimer() -> dict[str, str]:
+    """Bilingual safety + no-guarantee note attached to every remedy response."""
+    return {
+        "fasting_caution_ta": FASTING_CAUTION_TA,
+        "fasting_caution_en": FASTING_CAUTION_EN,
+        "guarantee_note_ta": GUARANTEE_NOTE_TA,
+        "guarantee_note_en": GUARANTEE_NOTE_EN,
+    }
+
 
 @dataclass(frozen=True)
 class PlanetRemedy:
@@ -64,6 +113,10 @@ def get_remedy(planet: str, functional_nature: FunctionalNature, severity: str) 
             "reason_en": reason_en,
             "caution_ta": caution_ta,
             "caution_en": caution_en,
+            # Fasting is surfaced for this planet — always pair it with the
+            # health caveat so a strict food-fast is never read as mandatory.
+            "fasting_caution_ta": FASTING_CAUTION_TA,
+            "fasting_caution_en": FASTING_CAUTION_EN,
         }
     )
     return payload

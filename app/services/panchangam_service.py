@@ -49,6 +49,7 @@ from app.schemas.panchangam import (
     PanchangamTimingsData,
     PanchangamTimingsResponse,
 )
+from app.services.panchangam_events_service import is_karinaal
 
 PANCHANGAM_CALCULATION_VERSION = "thirukanitham-2026-v5"
 logger = logging.getLogger(__name__)
@@ -253,6 +254,7 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
                 nakshatras=list(snapshot.chandrashtamam_today_nakshatras),
             ),
             special_tithi_day=_build_special_tithi_day(snapshot),
+            is_karinaal=is_karinaal(snapshot.date_local),
         ),
         meta=PanchangamMeta(
             calculation_version=PANCHANGAM_CALCULATION_VERSION,
@@ -321,12 +323,26 @@ def build_monthly_panchangam(query: PanchangamMonthlyQuery, session: Session | N
     for day_number in range(1, days_in_month + 1):
         date_local = date(query.year, query.month, day_number)
         snapshot = snapshots_by_date[date_local]
-        dominant_tithi_number = dominant_tithi_for_civil_day(date_local, snapshot.timezone_name) or snapshot.tithi_number
+        # Prefer the dominant values persisted on the cached snapshot (schema v22+);
+        # only re-walk the ephemeris for snapshots produced without the cache.
+        dominant_tithi_number = (
+            snapshot.dominant_tithi_number
+            or dominant_tithi_for_civil_day(date_local, snapshot.timezone_name)
+            or snapshot.tithi_number
+        )
         dominant_tithi_paksha = "SHUKLA" if dominant_tithi_number <= 15 else "KRISHNA"
         dominant_tithi_name = _tithi_name(dominant_tithi_number)
-        dominant_nakshatra_number = dominant_nakshatra_for_civil_day(date_local, snapshot.timezone_name) or snapshot.nakshatra_number
+        dominant_nakshatra_number = (
+            snapshot.dominant_nakshatra_number
+            or dominant_nakshatra_for_civil_day(date_local, snapshot.timezone_name)
+            or snapshot.nakshatra_number
+        )
         dominant_nakshatra_name = NAKSHATRA_NAMES[dominant_nakshatra_number - 1]
-        dominant_yoga_number = dominant_yoga_for_civil_day(date_local, snapshot.timezone_name) or snapshot.yoga_number
+        dominant_yoga_number = (
+            snapshot.dominant_yoga_number
+            or dominant_yoga_for_civil_day(date_local, snapshot.timezone_name)
+            or snapshot.yoga_number
+        )
         dominant_yoga_name = _yoga_name(dominant_yoga_number)
         is_subha_muhurtham, _ = _compute_subha_muhurtham_broad(
             dominant_tithi_number,
@@ -365,6 +381,7 @@ def build_monthly_panchangam(query: PanchangamMonthlyQuery, session: Session | N
                 is_tamil_muhurtham_day=snapshot.is_subha_muhurtham,
                 is_subha_muhurtham=is_subha_muhurtham,
                 is_subha_muhurtham_strict=is_subha_muhurtham_strict,
+                is_karinaal=is_karinaal(date_local),
             )
         )
 

@@ -9,6 +9,7 @@ from app.models.dasha_period import DashaPeriod
 from app.models.family_daily_score import FamilyDailyScore
 from app.models.family_member import FamilyMember
 from app.models.family_vault import FamilyVault
+from app.models.feedback import Feedback
 from app.models.interpretation_output import InterpretationOutput
 from app.models.journal_entry import JournalEntry
 from app.models.notification import Notification
@@ -37,6 +38,7 @@ __all__ = [
     "FamilyDailyScore",
     "FamilyMember",
     "FamilyVault",
+    "Feedback",
     "InterpretationOutput",
     "JournalEntry",
     "Notification",

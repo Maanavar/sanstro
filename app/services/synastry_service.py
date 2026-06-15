@@ -103,7 +103,7 @@ def _latest_birth_profile(session: Session, member: FamilyMember) -> BirthProfil
         .order_by(BirthProfile.created_at.desc())
     ).scalar_one_or_none()
     if profile is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Family member has no birth profile.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Family member has no birth profile.")
     return profile
 
 
@@ -119,7 +119,7 @@ def _latest_chart(session: Session, profile: BirthProfile) -> Chart:
         .limit(1)
     ).scalar_one_or_none()
     if chart is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Family member has no completed chart.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Family member has no completed chart.")
     return chart
 
 
@@ -168,7 +168,7 @@ def _owner_chart_for_vault(session: Session, family_vault_id: UUID, owner_user_i
         .limit(1)
     ).scalar_one_or_none()
     if profile is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Owner birth profile not found for synastry.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Owner birth profile not found for synastry.")
     return _latest_chart(session, profile)
 
 
@@ -561,7 +561,7 @@ def get_porutham_for_member(
     member = _member_in_vault(session, family_vault_id, member_id)
     if compatibility_context == "MARRIAGE" and member.relationship_to_owner in {"parent", "child", "sibling", "grandparent"}:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Marriage compatibility analysis is not applicable for this relationship type.",
         )
     owner_chart = _owner_chart_for_vault(session, family_vault_id, owner_user_id)
@@ -705,7 +705,7 @@ def get_compatibility_intelligence_for_member(
 
     if member.relationship_to_owner in {"parent", "child", "sibling", "grandparent"}:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Compatibility Intelligence analysis requires a spouse/partner relationship context.",
         )
 

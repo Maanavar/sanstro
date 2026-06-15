@@ -129,7 +129,7 @@ def update_life_mode(
     mode = payload.mode.strip().upper()
     if mode not in ALL_LIFE_MODES:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Unknown life mode: {payload.mode}",
         )
 

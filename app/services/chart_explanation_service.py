@@ -708,7 +708,7 @@ def build_chart_explanation(
     planets = _public_planets(data.planets)
     moon = next((planet for planet in planets if planet.graha == "MOON"), None)
     if moon is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Chart is missing Moon position.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Chart is missing Moon position.")
 
     as_of_dt = datetime.combine(as_of, time(hour=12), tzinfo=UTC)
     as_of_jd = utc_datetime_to_julian_day(as_of_dt)
