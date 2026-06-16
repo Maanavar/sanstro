@@ -112,6 +112,34 @@ def _safe_filename_fragment(raw: str, fallback: str) -> str:
     return cleaned or fallback
 
 
+def _format_clock_label(value) -> str:
+    if value is None:
+        return "Unknown"
+    if hasattr(value, "strftime"):
+        try:
+            value = value.strftime("%H:%M")
+        except (TypeError, ValueError):
+            pass
+    hour = getattr(value, "hour", None)
+    minute = getattr(value, "minute", None)
+    if hour is None or minute is None:
+        pieces = str(value).split(":")
+        try:
+            hour = int(pieces[0])
+            minute = int(pieces[1]) if len(pieces) > 1 else 0
+        except (TypeError, ValueError):
+            return str(value)
+    hour = int(hour) % 24
+    minute = int(minute) % 60
+    period = "am" if hour < 12 else "pm"
+    hour12 = hour % 12 or 12
+    return f"{hour12}:{minute:02d} {period}"
+
+
+def _format_time_range(start, end) -> str:
+    return f"{_format_clock_label(start)}-{_format_clock_label(end)}"
+
+
 # ---------------------------------------------------------------------------
 # Section builders
 # ---------------------------------------------------------------------------
@@ -121,8 +149,9 @@ def _section_birth_profile(chart_response, title_style, body_style, caption_styl
     lagna = chart_response.data.lagna
 
     birth_date = profile.birth_date_local
-    birth_time = profile.birth_time_local or "Unknown"
+    birth_time = _format_clock_label(profile.birth_time_local) if profile.birth_time_local else "Unknown"
 
+    generated_at = datetime.now(tz=UTC)
     elements = [
         Paragraph("Vinaadi AI — Jadhagam Report", title_style),
         Paragraph(f"<b>{profile.display_name}</b>", body_style),
@@ -136,7 +165,7 @@ def _section_birth_profile(chart_response, title_style, body_style, caption_styl
             f"Nakshatra: {lagna.nakshatra_name} Pada {lagna.pada}",
             body_style,
         ),
-        Paragraph(f"Generated: {datetime.now(tz=UTC).strftime('%Y-%m-%d %H:%M UTC')}", caption_style),
+        Paragraph(f"Generated: {generated_at.strftime('%Y-%m-%d')} {_format_clock_label(generated_at)} UTC", caption_style),
     ]
     return elements
 
@@ -181,7 +210,7 @@ def _section_daily(panchang, score: int, label: str, location_label: str, headin
         slot_name = getattr(slot, "name", None)
         slot_label = gowri_good_label(slot_name, "en")
         slot_purpose = gowri_good_purpose(slot_name, "en")
-        nalla_time = f"{slot.start.strftime('%H:%M')}–{slot.end.strftime('%H:%M')}"
+        nalla_time = _format_time_range(slot.start, slot.end)
         if slot_label and slot_purpose:
             nalla = f"{slot_label} {nalla_time} ({slot_purpose})"
         elif slot_label:
@@ -190,7 +219,7 @@ def _section_daily(panchang, score: int, label: str, location_label: str, headin
             nalla = nalla_time
     else:
         nalla = "-"
-    rahu  = f"{panchang.rahu_kalam.start.strftime('%H:%M')}–{panchang.rahu_kalam.end.strftime('%H:%M')}"
+    rahu = _format_time_range(panchang.rahu_kalam.start, panchang.rahu_kalam.end)
     lines = [
         f"Location for daily timings: {location_label}",
         f"Date: {panchang.date_local} &nbsp;&nbsp; Nakshatra: {panchang.nakshatra_name} (Pada {panchang.nakshatra_pada})",

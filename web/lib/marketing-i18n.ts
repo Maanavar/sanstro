@@ -2261,8 +2261,8 @@ export const PARIHARAM_PUTHRA_FAQ = [
     a: s("No. Puthra pariharam is taken up by many couples simply as devotional practice for children's blessings, regardless of whether the chart shows a specific dosham. Grace and devotion are open to all.", "இல்லை. ஜாதகம் குறிப்பிட்ட தோஷம் காட்டுகிறதா இல்லையா என்பதைப் பொருட்படுத்தாமல், குழந்தை ஆசீர்வாதங்களுக்கான பக்தி நடைமுறையாக மட்டுமே பல தம்பதிகள் புத்திர பரிகாரம் மேற்கொள்கின்றனர். அருளும் பக்தியும் அனைவருக்கும் திறந்தவை."),
   },
   {
-    q: s("When can we expect results?", "எப்போது பலன் எதிர்பார்க்கலாம்?"),
-    a: s("Results are tied to chart timing — the dasha and bhukti of Jupiter and the 5th lord, supported by favourable transits, are the most likely windows. Maintain the practice patiently through those periods alongside medical care.", "பலன்கள் ஜாதக காலத்துடன் இணைந்தவை — குரு & 5-ஆம் அதிபதியின் தசை-புத்தி, சாதகமான கோச்சாரத்தால் ஆதரிக்கப்படுவது, மிகவும் சாத்தியமான காலகட்டங்கள். அந்த காலங்களில் மருத்துவ சிகிச்சையுடன் நடைமுறையை பொறுமையாக பராமரியுங்கள்."),
+    q: s("Does dasha timing affect this practice?", "தசை காலம் இந்த பக்தி நடைமுறையை பாதிக்குமா?"),
+    a: s("Dasha timing creates more receptive windows for devotional practice — the periods of Jupiter and the 5th lord are traditionally considered auspicious. But outcomes depend on many factors beyond astrology. This pariharam supports your journey; it does not promise a specific result. Continue medical guidance throughout.", "தசை காலம் பக்தி நடைமுறைக்கு மிகவும் கிரகணமான காலகட்டங்களை உருவாக்குகிறது — குரு மற்றும் 5-ஆம் அதிபதியின் காலங்கள் பாரம்பரியமாக மங்களமாகக் கருதப்படுகின்றன. ஆனால் பலன்கள் ஜோதிடத்திற்கு அப்பால் பல காரணிகளைப் பொறுத்தவை. இந்த பரிகாரம் உங்கள் பயணத்தை ஆதரிக்கிறது; இது ஒரு குறிப்பிட்ட பலனை உறுதியளிக்கவில்லை. மருத்துவ வழிகாட்டுதலை தொடர்ந்து பின்பற்றுங்கள்."),
   },
 ];
 
@@ -2272,8 +2272,8 @@ export const PARIHARAM_AYUL = {
   eyebrow:       s("Pariharam · Health & Longevity", "பரிகாரம் · ஆரோக்கியம் & ஆயுள்"),
   h1:            s("Pariharam for health and longevity (Ayul Pariharam)", "ஆரோக்கியம் & ஆயுளுக்கான பரிகாரம்"),
   lead:          s(
-    "Ayul pariharam is taken up when health, vitality or longevity feels challenged by the chart — particularly when the 8th house (lifespan), the Sun (vitality) or the 6th house (illness) are under pressure. It pairs healing temple devotion with the Mahamrityunjaya mantra.",
-    "ஆரோக்கியம், உயிர்சக்தி அல்லது ஆயுள் ஜாதகத்தால் சவாலாக உணரும்போது ஆயுள் பரிகாரம் மேற்கொள்ளப்படுகிறது — குறிப்பாக 8-ஆம் பாவம் (ஆயுள்), சூரியன் (உயிர்சக்தி) அல்லது 6-ஆம் பாவம் (நோய்) அழுத்தத்தில் இருக்கும்போது. இது வைத்திய கோயில் பக்தியை மஹாம்ருத்யுஞ்சய மந்திரத்துடன் இணைக்கிறது."
+    "Ayul pariharam is a devotional practice for those seeking inner strength and clarity during difficult life periods — particularly when the 8th house (lifespan), the Sun (vitality) or the 6th house (challenges) are under astrological pressure. It pairs healing temple devotion with the Mahamrityunjaya mantra. It is not a medical treatment.",
+    "ஆயுள் பரிகாரம் கடினமான வாழ்க்கைக் காலகட்டங்களில் உள் பலத்தையும் தெளிவையும் தேடுவோருக்கான பக்தி நடைமுறை — குறிப்பாக 8-ஆம் பாவம் (ஆயுள்), சூரியன் (உயிர்சக்தி) அல்லது 6-ஆம் பாவம் (சவால்கள்) ஜோதிட அழுத்தத்தில் இருக்கும்போது. இது வைத்திய கோயில் பக்தியை மஹாம்ருத்யுஞ்சய மந்திரத்துடன் இணைக்கிறது. இது மருத்துவ சிகிச்சை அல்ல."
   ),
   why_h2:        s("What the chart points to in health and longevity", "ஆரோக்கியம் & ஆயுளில் ஜாதகம் எதை சுட்டுகிறது"),
   why_body:      s(
@@ -2311,7 +2311,7 @@ export const PARIHARAM_AYUL = {
 
 export const PARIHARAM_AYUL_FAQ = [
   {
-    q: s("Can this pariharam cure illness?", "இந்த பரிகாரம் நோயைக் குணப்படுத்துமா?"),
+    q: s("Does this pariharam support someone who is ill?", "இந்த பரிகாரம் நோயுற்றவருக்கு துணை செய்யுமா?"),
     a: s("Pariharam supports the mind's strength during illness — which genuinely helps healing — but it is not a medical cure. Always continue your doctor's treatment. Devotion and medicine together are more powerful than either alone.", "பரிகாரம் நோயின்போது மனதின் பலத்தை ஆதரிக்கிறது — இது குணமடைதலை உண்மையில் உதவுகிறது — ஆனால் மருத்துவ தீர்வு அல்ல. உங்கள் மருத்துவரின் சிகிச்சையை எப்போதும் தொடருங்கள். பக்தியும் மருத்துவமும் சேர்ந்து தனியாக ஒவ்வொன்றையும் விட சக்திவாய்ந்தவை."),
   },
   {

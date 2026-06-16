@@ -82,6 +82,7 @@ export function MuhurthamNaalContent() {
   }, [all, month, pirai]);
 
   const t = (en: string, ta: string) => (lang === "en" ? en : ta);
+  const bt = (value: { en: string; ta: string }) => value[lang];
 
   return (
     <div className="clarity-shell">
@@ -89,12 +90,23 @@ export function MuhurthamNaalContent() {
       <main>
         {/* HERO */}
         <section className="cl-pub-hero" style={{ paddingBottom: "24px" }}>
-          <div className="cl-container cl-pub-hero__inner">
+          <div className="cl-container">
             <div className="cl-pub-hero__copy">
               <p className="cl-eyebrow">{t("2026 Almanac", "2026 பஞ்சாங்கம்")}</p>
-              <h1 className="cl-pub-h1" style={{ maxWidth: "24ch" }}>
-                {t("2026 Tamil Muhurtham Naal (Wedding Dates)", "2026 திருமண முகூர்த்த நாட்கள்")}
-              </h1>
+              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                <img
+                  src="/calendar/muhurtham.png"
+                  alt=""
+                  aria-hidden="true"
+                  width={56}
+                  height={56}
+                  style={{ objectFit: "contain", flexShrink: 0 }}
+                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                />
+                <h1 className="cl-pub-h1" style={{ margin: 0 }}>
+                  {t("2026 Tamil Muhurtham Naal (Wedding Dates)", "2026 திருமண முகூர்த்த நாட்கள்")}
+                </h1>
+              </div>
               <p className="cl-pub-lead">
                 {t(
                   "The full published almanac list of auspicious wedding dates for 2026 — with weekday, Tamil date, pirai, nakshatra and nalla neram for each day.",
@@ -162,17 +174,16 @@ export function MuhurthamNaalContent() {
                           {formatGregorian(n.date, lang)}
                         </td>
                         <td>
-                          {n.weekday.en} <span className="cl-cal-ta">· {n.weekday.ta}</span>
+                          {bt(n.weekday)}
                         </td>
                         <td style={{ whiteSpace: "nowrap" }}>
-                          {n.tamilMonth.en} {n.tamilDay}{" "}
-                          <span className="cl-cal-ta">({n.tamilMonth.ta} {n.tamilDay})</span>
+                          {bt(n.tamilMonth)} {n.tamilDay}
                         </td>
                         <td>
-                          {n.pirai.en} <span className="cl-cal-ta">· {n.pirai.ta}</span>
+                          {bt(n.pirai)}
                         </td>
                         <td>
-                          {n.nakshatra.en} <span className="cl-cal-ta">({n.nakshatra.ta})</span>
+                          {bt(n.nakshatra)}
                         </td>
                         <td style={{ whiteSpace: "nowrap", fontSize: "0.85rem" }}>
                           {n.nallaNeram.map((w) => `${w.start}–${w.end}`).join(", ")}

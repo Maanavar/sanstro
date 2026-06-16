@@ -29,6 +29,27 @@ def _bi(ta: str, en: str) -> BiText:
     return BiText(ta=ta, en=en)
 
 
+def _format_clock_label(value: str | None) -> str:
+    if not value:
+        return ""
+    time_part = value.split("T", 1)[1] if "T" in value else value
+    pieces = time_part.split(":")
+    try:
+        hour = int(pieces[0])
+        minute = int(pieces[1]) if len(pieces) > 1 else 0
+    except (TypeError, ValueError):
+        return value[:5]
+    hour %= 24
+    minute %= 60
+    period = "am" if hour < 12 else "pm"
+    hour12 = hour % 12 or 12
+    return f"{hour12}:{minute:02d} {period}"
+
+
+def _format_time_range(start: str | None, end: str | None) -> str:
+    return f"{_format_clock_label(start)}-{_format_clock_label(end)}"
+
+
 def build_strength_narrative(planets: list["PlanetPosition"], lagna_rasi: int) -> BiText:
     if not planets:
         return _bi(
@@ -641,8 +662,13 @@ def daily_summary(
             en += f" {warn.en}."
 
     if best_window_label and band in ("STRONG_SUPPORT", "GOOD"):
-        ta += f" சிறந்த நேரம்: {best_window_label}."
-        en += f" Best window: {best_window_label}."
+        best_window_display = (
+            _format_time_range(*best_window_label.split("-", 1))
+            if "-" in best_window_label
+            else _format_clock_label(best_window_label)
+        )
+        ta += f" சிறந்த நேரம்: {best_window_display}."
+        en += f" Best window: {best_window_display}."
 
     return _bi(ta, en)
 
@@ -660,10 +686,11 @@ def action_suggestion(
     planet_ta = PLANET_NAME.get(maha_lord, _bi(maha_lord, maha_lord)).ta
 
     if best_window_start and band in ("STRONG_SUPPORT", "GOOD", "BALANCED"):
+        best_window_display = _format_time_range(best_window_start, best_window_end)
         return _bi(
-            f"சிறந்த நேரம் {best_window_start}–{best_window_end}-ல் முக்கிய பணிகளை தொடங்குங்கள். "
+            f"சிறந்த நேரம் {best_window_display}-ல் முக்கிய பணிகளை தொடங்குங்கள். "
             f"{planet_ta} தசையில் தொடர்ச்சியான முயற்சி நல்ல பலன் தரும்.",
-            f"Begin your most important task during the best window {best_window_start}–{best_window_end}. "
+            f"Begin your most important task during the best window {best_window_display}. "
             f"Consistent effort under {planet_en} dasa yields good results.",
         )
 
@@ -688,11 +715,12 @@ def caution_suggestion(
     rahu_kalam_start: str,
     rahu_kalam_end: str,
 ) -> BiText:
+    rahu_kalam_display = _format_time_range(rahu_kalam_start, rahu_kalam_end)
     if chandrashtama:
         return _bi(
-            f"சந்திராஷ்டமம் நடப்பில் உள்ளது. ராகு காலம் {rahu_kalam_start}–{rahu_kalam_end} தவிர்க்கவும். "
+            f"சந்திராஷ்டமம் நடப்பில் உள்ளது. ராகு காலம் {rahu_kalam_display} தவிர்க்கவும். "
             f"நிதி மற்றும் உடல்நலம் சார்ந்த முடிவுகளை ஒத்தி வையுங்கள்.",
-            f"Chandrashtamam is active. Avoid Rahu Kalam {rahu_kalam_start}–{rahu_kalam_end}. "
+            f"Chandrashtamam is active. Avoid Rahu Kalam {rahu_kalam_display}. "
             f"Defer financial and health-related decisions.",
         )
 
@@ -701,14 +729,14 @@ def caution_suggestion(
         warn_ta = warn.ta if warn else ""
         warn_en = warn.en if warn else ""
         return _bi(
-            f"{warn_ta}. ராகு காலம் {rahu_kalam_start}–{rahu_kalam_end} தவிர்க்கவும்.",
-            f"{warn_en}. Avoid Rahu Kalam {rahu_kalam_start}–{rahu_kalam_end}.",
+            f"{warn_ta}. ராகு காலம் {rahu_kalam_display} தவிர்க்கவும்.",
+            f"{warn_en}. Avoid Rahu Kalam {rahu_kalam_display}.",
         )
 
     return _bi(
-        f"ராகு காலம் {rahu_kalam_start}–{rahu_kalam_end} புதிய முயற்சிகளுக்கு தவிர்க்கவும். "
+        f"ராகு காலம் {rahu_kalam_display} புதிய முயற்சிகளுக்கு தவிர்க்கவும். "
         f"அவசர முடிவுகளை தடுக்கவும்.",
-        f"Avoid Rahu Kalam {rahu_kalam_start}–{rahu_kalam_end} for new starts. "
+        f"Avoid Rahu Kalam {rahu_kalam_display} for new starts. "
         f"Prevent rushed decisions.",
     )
 

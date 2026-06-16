@@ -49,6 +49,7 @@ from app.schemas.panchangam import (
     PanchangamTimingsData,
     PanchangamTimingsResponse,
 )
+from app.data.muhurtham_naals import get_muhurtham_naals
 from app.services.panchangam_events_service import is_karinaal
 
 PANCHANGAM_CALCULATION_VERSION = "thirukanitham-2026-v5"
@@ -314,6 +315,10 @@ def build_monthly_panchangam(query: PanchangamMonthlyQuery, session: Session | N
     entries: list[PanchangamMonthDayEntry] = []
     tamil_month_name: BiText | None = None
 
+    almanac_muhurtham_dates: frozenset[date] = frozenset(
+        n.date for n in get_muhurtham_naals(query.year)
+    )
+
     first_day = date(query.year, query.month, 1)
     last_day = date(query.year, query.month, days_in_month)
     snapshots_by_date = calculate_daily_panchangam_range(
@@ -378,7 +383,7 @@ def build_monthly_panchangam(query: PanchangamMonthlyQuery, session: Session | N
                     tithi_paksha=dominant_tithi_paksha,
                     nakshatra_name=dominant_nakshatra_name,
                 ),
-                is_tamil_muhurtham_day=snapshot.is_subha_muhurtham,
+                is_tamil_muhurtham_day=date_local in almanac_muhurtham_dates,
                 is_subha_muhurtham=is_subha_muhurtham,
                 is_subha_muhurtham_strict=is_subha_muhurtham_strict,
                 is_karinaal=is_karinaal(date_local),

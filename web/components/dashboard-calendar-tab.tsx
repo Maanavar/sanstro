@@ -217,7 +217,7 @@ function DayTimeline({
         <circle cx={sunX} cy={sunY} r="8" fill={W.terracotta} />
       </svg>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", marginTop: "var(--space-1)", padding: "0 var(--space-2)" }}>
-        {["6a", "9a", "12p", "3p", "6p"].map((label) => (
+        {["6 am", "9 am", "12 pm", "3 pm", "6 pm"].map((label) => (
           <span key={label} style={{ textAlign: "center", fontSize: "0.75rem", color: W.mutedLt, fontFamily: "var(--font-mono)" }}>
             {label}
           </span>
@@ -489,6 +489,13 @@ function festivalIcon(name: string): string {
   return festivalGlyph(name);
 }
 
+function festivalImagePath(name: string): string | null {
+  if (/chaturthi|chathurthi/i.test(name)) return "/calendar/chathurthi.png";
+  if (/sashti/i.test(name)) return "/calendar/shasti.png";
+  if (/ekadasi|ekadashi/i.test(name)) return "/calendar/ekadashi.png";
+  return null;
+}
+
 function festivalTags(festival: Pick<PanchangamFestival, "category" | "tags">): string[] {
   const tags = festival.tags && festival.tags.length > 0 ? festival.tags : [festival.category];
   return Array.from(new Set(tags.filter(Boolean)));
@@ -757,30 +764,17 @@ function MonthlyCalendarView({
     () => (monthly?.entries ?? []).filter((entry) => entry.isTamilMuhurthamDay),
     [monthly],
   );
-  const subhaEntries = useMemo(
-    () => (monthly?.entries ?? []).filter((entry) => entry.isSubhaMuhurtham),
-    [monthly],
+  const chartMatchedMuhurthamEntries = useMemo(
+    () => tamilMuhurthamEntries.filter((entry) => entry.isSubhaMuhurtham),
+    [tamilMuhurthamEntries],
   );
-  const broadSubhaEntries = useMemo(
-    () => subhaEntries.filter((entry) => !entry.isSubhaMuhurthamStrict),
-    [subhaEntries],
-  );
-  const strongMuhurthamEntries = useMemo(
-    () => subhaEntries.filter((entry) => entry.isSubhaMuhurthamStrict),
-    [subhaEntries],
-  );
-  const broadSubhaDates = useMemo(() => broadSubhaEntries.map((entry) => entry.dateLocal), [broadSubhaEntries]);
   const tamilMuhurthamDates = useMemo(
     () => tamilMuhurthamEntries.map((entry) => entry.dateLocal),
     [tamilMuhurthamEntries],
   );
-  const broadSubhaValarpiraiDates = useMemo(
-    () => broadSubhaEntries.filter((entry) => entry.tithiPaksha === "SHUKLA").map((entry) => entry.dateLocal),
-    [broadSubhaEntries],
-  );
-  const strongMuhurthamDates = useMemo(
-    () => strongMuhurthamEntries.map((entry) => entry.dateLocal),
-    [strongMuhurthamEntries],
+  const chartMatchedDates = useMemo(
+    () => chartMatchedMuhurthamEntries.map((entry) => entry.dateLocal),
+    [chartMatchedMuhurthamEntries],
   );
 
   // Vratha (fasting/observance) days — group recurring "hindu" category
@@ -806,29 +800,12 @@ function MonthlyCalendarView({
     const muhurthams = [
       ...tamilMuhurthamEntries.map((entry) => ({
         dateLocal: entry.dateLocal,
-        name: lang === "ta" ? "தமிழ் முஹூர்த்த நாள்" : "Tamil Muhurtham Day",
+        name: lang === "ta" ? "தமிழ் முகூர்த்த நாள்" : "Tamil Muhurtham",
         kind: "reference-muhurtham" as const,
-      })),
-      ...strongMuhurthamEntries.map((entry) => ({
-        dateLocal: entry.dateLocal,
-        name: lang === "ta" ? "வலுவான முஹூர்த்த நாள்" : "Strong Muhurtham Day",
-        kind: "strong-muhurtham" as const,
-      })),
-      ...broadSubhaEntries.map((entry) => ({
-        dateLocal: entry.dateLocal,
-        name:
-          lang === "ta"
-            ? entry.tithiPaksha === "SHUKLA"
-              ? "வளர்பிறை சுப நாள்"
-              : "தேய்பிறை சுப நாள்"
-            : entry.tithiPaksha === "SHUKLA"
-              ? "Valarpirai Subha Day"
-              : "Theipirai Subha Day",
-        kind: "muhurtham" as const,
       })),
     ].sort((left, right) => left.dateLocal.localeCompare(right.dateLocal));
     return { events: allEvents, vratha, muhurthams };
-  }, [lang, monthFestivals, tamilMuhurthamEntries, strongMuhurthamEntries, broadSubhaEntries]);
+  }, [lang, monthFestivals, tamilMuhurthamEntries]);
 
   const sidebarCounts = {
     events: sidebarItems.events.length,
@@ -944,6 +921,31 @@ function MonthlyCalendarView({
                     : null;
                 const specialTithiMeta = lunarSpecialTithiMeta(specialTithi, lang);
                 const selectDate = cell.dateLocal;
+                const specialFestivalNames = entry ? entry.festivals.map((f) => f.name).join(" ") : "";
+                const highlightType = !entry ? null
+                  : entry.isTamilMuhurthamDay ? "muhurtham" as const
+                  : entry.specialTithiDayNumber === 15 ? "pournami" as const
+                  : entry.specialTithiDayNumber === 30 ? "amavasai" as const
+                  : /chaturthi|chathurthi/i.test(specialFestivalNames) ? "chathurthi" as const
+                  : /sashti/i.test(specialFestivalNames) ? "sashti" as const
+                  : /pradhosam|pradosham/i.test(specialFestivalNames) ? "pradosham" as const
+                  : null;
+                const cellBg = isSelected ? monthlyTheme.selected
+                  : highlightType === "muhurtham" ? "#E8F3E0"
+                  : highlightType === "pournami" ? "#FFFCE8"
+                  : highlightType === "amavasai" ? "#EEEAF5"
+                  : highlightType === "chathurthi" ? "#FFF0E6"
+                  : highlightType === "sashti" ? "#E6EEFF"
+                  : highlightType === "pradosham" ? "#F5E6FF"
+                  : hasFestival ? monthlyTheme.mutedCard : monthlyTheme.card;
+                const cellBorderColor = isSelected ? monthlyTheme.selectedBorder
+                  : highlightType === "muhurtham" ? "#5C7654"
+                  : highlightType === "pournami" ? "#C9A84C"
+                  : highlightType === "amavasai" ? "#7060B0"
+                  : highlightType === "chathurthi" ? "#CB7748"
+                  : highlightType === "sashti" ? "#3468B4"
+                  : highlightType === "pradosham" ? "#8B5CF6"
+                  : monthlyTheme.line;
                 return (
                   <button
                     type="button"
@@ -957,9 +959,9 @@ function MonthlyCalendarView({
                       appearance: "none",
                       width: "100%",
                       position: "relative",
-                      border: `1px solid ${isSelected ? monthlyTheme.selectedBorder : monthlyTheme.line}`,
+                      border: `1px solid ${cellBorderColor}`,
                       borderRadius: "16px",
-                      background: isSelected ? monthlyTheme.selected : hasFestival ? monthlyTheme.mutedCard : monthlyTheme.card,
+                      background: cellBg,
                       padding: "12px 12px 10px",
                       minHeight: "148px",
                       display: "flex",
@@ -993,7 +995,7 @@ function MonthlyCalendarView({
                       {hasFestival ? <span aria-hidden="true" style={{ width: "8px", height: "8px", borderRadius: "999px", background: dotColor, marginTop: "2px", flexShrink: 0 }} /> : null}
                     </div>
                     {tamilDay ? <span style={{ fontSize: "0.75rem", color: monthlyTheme.softText, fontWeight: 500 }}>{tamilDay}</span> : null}
-                    {entry ? <span style={{ fontSize: "0.75rem", color: W.inkMid, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: "4px" }}><span aria-hidden="true" style={{ fontSize: "0.72rem" }}>{nakshatraSymbol(entry.nakshatraName)}</span>{tNakshatra(entry.nakshatraName, lang)}</span> : null}
+                    {entry ? <span style={{ fontSize: "0.72rem", color: monthlyTheme.softText, fontWeight: 600 }}>{tTithi(entry.tithiName, lang)}</span> : null}
                     <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: "4px" }}>
                       {entry?.festivals.slice(0, 2).map((f) => {
                         const kind = monthFestivals.find((item) => item.dateLocal === cell.dateLocal && item.name === f.name)?.kind ?? "festival";
@@ -1012,7 +1014,22 @@ function MonthlyCalendarView({
                               minWidth: 0,
                             }}
                           >
-                            <span aria-hidden="true" style={{ fontSize: "0.78rem", lineHeight: 1, color: itemColor }}>{festivalGlyph(f.name)}</span>
+                            {(() => {
+                              const imgSrc = festivalImagePath(f.name);
+                              return imgSrc ? (
+                                <img
+                                  src={imgSrc}
+                                  alt=""
+                                  aria-hidden="true"
+                                  width={14}
+                                  height={14}
+                                  style={{ objectFit: "contain", flexShrink: 0 }}
+                                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                                />
+                              ) : (
+                                <span aria-hidden="true" style={{ fontSize: "0.78rem", lineHeight: 1, color: itemColor }}>{festivalGlyph(f.name)}</span>
+                              );
+                            })()}
                             <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{f.name}</span>
                           </span>
                         );
@@ -1020,6 +1037,21 @@ function MonthlyCalendarView({
                       {specialTithiMeta && !entry?.festivals.length ? (
                         <span style={{ fontSize: "0.625rem", fontWeight: 600, color: W.rust, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {specialTithiMeta.label}
+                        </span>
+                      ) : null}
+                      {entry?.isTamilMuhurthamDay ? (
+                        <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#5C7654", display: "inline-flex", alignItems: "center", gap: "3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <img
+                            src="/calendar/muhurtha.png"
+                            alt=""
+                            aria-hidden="true"
+                            width={12}
+                            height={12}
+                            style={{ objectFit: "contain", flexShrink: 0 }}
+                            onError={(e) => { e.currentTarget.style.display = "none"; const fb = e.currentTarget.nextSibling as HTMLElement | null; if (fb) fb.style.display = "inline"; }}
+                          />
+                          <span aria-hidden="true" style={{ display: "none" }}>✦</span>
+                          {lang === "ta" ? "முகூர்த்தம்" : "Muhurtham"}
                         </span>
                       ) : null}
                       {entry?.isKarinaal ? (
@@ -1039,27 +1071,48 @@ function MonthlyCalendarView({
             </div>
               </div>
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", marginTop: "var(--space-3)", paddingLeft: "4px" }}>
-              {[
-                { label: lang === "ta" ? "விரதம்" : "Vratha", color: monthlyTheme.vratha },
-                { label: lang === "ta" ? "திருவிழா" : "Festival", color: monthlyTheme.festival },
-                { label: lang === "ta" ? "உலக நாள்" : "Global day", color: monthlyTheme.global },
-                { label: lang === "ta" ? "கரிநாள் (தவிர்க்க)" : "Karinaal (avoid)", color: "#8A2B16" },
-              ].map((item) => (
-                <span key={item.label} style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "0.75rem", color: monthlyTheme.softText }}>
-                  <span aria-hidden="true" style={{ width: "9px", height: "9px", borderRadius: "999px", background: item.color }} />
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", marginTop: "var(--space-3)", paddingLeft: "4px" }}>
+              {([
+                { label: lang === "ta" ? "முகூர்த்த நாள்" : "Muhurtham day", icon: "/calendar/muhurtha.png", emoji: "✦" },
+                { label: lang === "ta" ? "பௌர்ணமி" : "Pournami", icon: null, emoji: "🌕" },
+                { label: lang === "ta" ? "அமாவாசை" : "Amavasai", icon: null, emoji: "🌑" },
+                { label: lang === "ta" ? "சதுர்த்தி" : "Chathurthi", icon: "/calendar/chathurthi.png", emoji: "🐘" },
+                { label: lang === "ta" ? "சஷ்டி" : "Sashti", icon: "/calendar/shasti.png", emoji: "🦚" },
+                { label: lang === "ta" ? "ஏகாதசி" : "Ekadashi", icon: "/calendar/ekadashi.png", emoji: "🪷" },
+                { label: lang === "ta" ? "பிரதோஷம்" : "Pradosham", icon: null, emoji: "🪔" },
+                { label: lang === "ta" ? "திருவிழா" : "Festival", icon: null, emoji: "🎉" },
+                { label: lang === "ta" ? "கரிநாள் (தவிர்க்க)" : "Karinaal (avoid)", icon: null, emoji: "⚠️" },
+              ] as const).map((item) => (
+                <span key={item.label} style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "0.72rem", color: monthlyTheme.softText }}>
+                  {item.icon ? (
+                    <img
+                      src={item.icon}
+                      alt=""
+                      aria-hidden="true"
+                      width={16}
+                      height={16}
+                      style={{ objectFit: "contain", flexShrink: 0 }}
+                      onError={(e) => {
+                        const img = e.currentTarget;
+                        img.style.display = "none";
+                        const sibling = img.nextSibling as HTMLElement | null;
+                        if (sibling) sibling.style.display = "inline";
+                      }}
+                    />
+                  ) : null}
+                  <span aria-hidden="true" style={{ fontSize: "0.85rem", lineHeight: 1, display: item.icon ? "none" : "inline" }}>{item.emoji}</span>
                   {item.label}
                 </span>
               ))}
             </div>
           </div>
 
-          <aside className="cd-calendar-monthly-sidebar" style={{ borderLeftColor: monthlyTheme.line }}>
+          <aside className="cd-calendar-monthly-sidebar" style={{ borderTopColor: monthlyTheme.line }}>
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", borderBottom: `1px solid ${monthlyTheme.line}`, marginBottom: "var(--space-2)" }}>
               {([
                 ["events", lang === "ta" ? "நிகழ்வுகள்" : "Events", sidebarCounts.events],
                 ["vratha", lang === "ta" ? "விரதம்" : "Vratha", sidebarCounts.vratha],
-                ["muhurthams", lang === "ta" ? "சுப நாள் / முஹூர்த்தம்" : "Subha / Muhurtham", sidebarCounts.muhurthams],
+                ["muhurthams", lang === "ta" ? "முகூர்த்தம்" : "Muhurtham", sidebarCounts.muhurthams],
               ] as const).map(([key, label, count]) => {
                 const active = sidebarTab === key;
                 return (
@@ -1090,28 +1143,8 @@ function MonthlyCalendarView({
               })}
             </div>
 
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "14px", marginBottom: "var(--space-3)" }}>
-              {[
-                { label: lang === "ta" ? "விரதம்" : "Vratha", color: monthlyTheme.vratha },
-                { label: lang === "ta" ? "திருவிழா" : "Festival", color: monthlyTheme.festival },
-                { label: lang === "ta" ? "உலகம்" : "Global", color: monthlyTheme.global },
-              ].map((item) => (
-                <span key={item.label} style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "0.75rem", color: monthlyTheme.softText }}>
-                  <span aria-hidden="true" style={{ width: "8px", height: "8px", borderRadius: "999px", background: item.color }} />
-                  {item.label}
-                </span>
-              ))}
-            </div>
 
-            {sidebarTab === "muhurthams" && (
-              <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.8125rem", lineHeight: 1.55, color: monthlyTheme.softText }}>
-                {lang === "ta"
-                  ? "சுப நாள் என்பது பொதுவாக நல்ல நாளை குறிக்கும். வலுவான முஹூர்த்த நாள் என்பது கடுமையான திதி-நட்சத்திர பொருத்தத்தையும் கடக்கும் நாள்."
-                  : "Subha day means a broadly auspicious day. Strong muhurtham day means the date also passes the stricter tithi and nakshatra screening."}
-              </p>
-            )}
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "10px" }}>
               {sidebarItems[sidebarTab].length === 0 ? (
                 <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>{t("cal_monthly_empty", lang)}</p>
               ) : (
@@ -1120,9 +1153,11 @@ function MonthlyCalendarView({
                     ? monthlyTheme.global
                     : item.kind === "vratha"
                       ? monthlyTheme.vratha
-                      : item.kind === "strong-muhurtham"
-                        ? W.sage
+                      : item.kind === "reference-muhurtham"
+                        ? "#5C7654"
                         : monthlyTheme.festival;
+                  const isMuhurtham = item.kind === "reference-muhurtham";
+                  const isChartMatch = isMuhurtham && chartMatchedDates.includes(item.dateLocal);
                   const dayLabel = new Date(`${item.dateLocal}T00:00:00`).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", {
                     day: "2-digit",
                     month: "short",
@@ -1137,24 +1172,50 @@ function MonthlyCalendarView({
                         gap: "10px",
                         padding: "12px 14px",
                         borderRadius: "14px",
-                        border: `1px solid ${monthlyTheme.line}`,
-                        background: "#FBF7EF",
+                        border: `1px solid ${isChartMatch ? "rgba(92,118,84,0.4)" : monthlyTheme.line}`,
+                        background: isChartMatch ? "#EEF5E8" : "#FBF7EF",
                       }}
                     >
-                      <span aria-hidden="true" style={{ width: "9px", height: "9px", borderRadius: "999px", background: itemColor }} />
+                      {isMuhurtham ? (
+                        <>
+                          <img
+                            src="/calendar/muhurtha.png"
+                            alt=""
+                            aria-hidden="true"
+                            width={22}
+                            height={22}
+                            style={{ objectFit: "contain", flexShrink: 0 }}
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                              const fb = e.currentTarget.nextSibling as HTMLElement | null;
+                              if (fb) fb.style.display = "inline";
+                            }}
+                          />
+                          <span aria-hidden="true" style={{ display: "none", fontSize: "1rem", lineHeight: 1 }}>✦</span>
+                        </>
+                      ) : (
+                        <span aria-hidden="true" style={{ width: "9px", height: "9px", borderRadius: "999px", background: itemColor }} />
+                      )}
                       <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#2E241C", fontSize: "0.875rem", fontWeight: 600 }}>
                         {item.name}
                       </span>
-                      <span style={{ color: monthlyTheme.softText, fontSize: "0.8125rem", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
-                        {dayLabel}
-                      </span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        {isChartMatch ? (
+                          <span style={{ fontSize: "0.6rem", fontWeight: 800, color: "#5C7654", background: "#C8E6C9", borderRadius: "999px", padding: "2px 6px", whiteSpace: "nowrap" }}>
+                            {lang === "ta" ? "உங்கள் ஜாதகம்" : "Your chart ✦"}
+                          </span>
+                        ) : null}
+                        <span style={{ color: monthlyTheme.softText, fontSize: "0.8125rem", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+                          {dayLabel}
+                        </span>
+                      </div>
                     </div>
                   );
                 })
               )}
             </div>
 
-            {((sidebarTab === "vratha" && vrathaGroups.length > 0) || (sidebarTab === "muhurthams" && (tamilMuhurthamDates.length > 0 || broadSubhaDates.length > 0 || strongMuhurthamDates.length > 0))) && (
+            {((sidebarTab === "vratha" && vrathaGroups.length > 0) || (sidebarTab === "muhurthams" && chartMatchedDates.length > 0)) && (
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", marginTop: "var(--space-4)" }}>
                 {sidebarTab === "vratha" && vrathaGroups.length > 0 && (
                   <div>
@@ -1173,51 +1234,15 @@ function MonthlyCalendarView({
                   </div>
                 )}
 
-                {sidebarTab === "muhurthams" && tamilMuhurthamDates.length > 0 && (
+                {sidebarTab === "muhurthams" && chartMatchedDates.length > 0 && (
                   <div>
-                    <p style={{ margin: "0 0 8px", fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: monthlyTheme.softText, fontWeight: 700 }}>
-                      {lang === "ta" ? "தமிழ் முஹூர்த்த நாட்கள்" : "Tamil muhurtham days"}
+                    <p style={{ margin: "0 0 8px", fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#5C7654", fontWeight: 700 }}>
+                      {lang === "ta" ? "உங்கள் ஜாதகத்துக்கு ஏற்ற நாட்கள்" : "Best for your chart"}
                     </p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                      {tamilMuhurthamDates.slice(0, 10).map((dateLocal) => (
-                        <span key={dateLocal} style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "7px 10px", borderRadius: "999px", background: "#FBF7EF", border: `1px solid ${monthlyTheme.line}`, fontSize: "0.75rem", color: W.inkMid }}>
-                          <span aria-hidden="true" style={{ width: "8px", height: "8px", borderRadius: "999px", background: monthlyTheme.festival }} />
-                          {formatDateLabel(dateLocal)}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {sidebarTab === "muhurthams" && broadSubhaDates.length > 0 && (
-                  <div>
-                    <p style={{ margin: "0 0 8px", fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: monthlyTheme.softText, fontWeight: 700 }}>
-                      {lang === "ta" ? "சுப நாட்கள்" : "Subha days"}
-                    </p>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                      {broadSubhaDates.slice(0, 10).map((dateLocal) => {
-                        const isShukla = broadSubhaValarpiraiDates.includes(dateLocal);
-                        const chipColor = isShukla ? monthlyTheme.festival : monthlyTheme.vratha;
-                        return (
-                          <span key={dateLocal} style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "7px 10px", borderRadius: "999px", background: "#FBF7EF", border: `1px solid ${monthlyTheme.line}`, fontSize: "0.75rem", color: W.inkMid }}>
-                            <span aria-hidden="true" style={{ width: "8px", height: "8px", borderRadius: "999px", background: chipColor }} />
-                            {formatDateLabel(dateLocal)}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {sidebarTab === "muhurthams" && strongMuhurthamDates.length > 0 && (
-                  <div>
-                    <p style={{ margin: "0 0 8px", fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: monthlyTheme.softText, fontWeight: 700 }}>
-                      {lang === "ta" ? "வலுவான முஹூர்த்த நாட்கள்" : "Strong muhurtham days"}
-                    </p>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                      {strongMuhurthamDates.slice(0, 10).map((dateLocal) => (
-                        <span key={dateLocal} style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "7px 10px", borderRadius: "999px", background: "#FBF7EF", border: `1px solid ${monthlyTheme.line}`, fontSize: "0.75rem", color: W.inkMid }}>
-                          <span aria-hidden="true" style={{ width: "8px", height: "8px", borderRadius: "999px", background: W.sage }} />
+                      {chartMatchedDates.map((dateLocal) => (
+                        <span key={dateLocal} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "7px 10px", borderRadius: "999px", background: "#E8F3E0", border: "1px solid rgba(92,118,84,0.4)", fontSize: "0.75rem", color: "#5C7654", fontWeight: 700 }}>
+                          <span aria-hidden="true">✦</span>
                           {formatDateLabel(dateLocal)}
                         </span>
                       ))}

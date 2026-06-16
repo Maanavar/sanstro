@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useLang } from "@/components/lang-toggle";
+import { formatClockLabel } from "@/lib/format";
 import { HOME, mt } from "@/lib/marketing-i18n";
 
 function makeSample(lang: "en" | "ta") {
@@ -23,11 +24,13 @@ function makeSample(lang: "en" | "ta") {
   };
 }
 
-const ARC_HOURS = ["6a", "9a", "12p", "3p", "6p"];
+const ARC_HOURS = ["6 am", "9 am", "12 pm", "3 pm", "6 pm"];
 
 export function HomeContent() {
   const [lang] = useLang();
   const SAMPLE = makeSample(lang);
+  const bestWindowLabel = `${formatClockLabel(SAMPLE.bestWindow.start)} - ${formatClockLabel(SAMPLE.bestWindow.end)}`;
+  const holdWindowLabel = `${formatClockLabel(SAMPLE.holdWindow.start)} - ${formatClockLabel(SAMPLE.holdWindow.end)}`;
 
   const HELPS = [
     { icon: "◎", title: mt(HOME.help1_title, lang), body: mt(HOME.help1_body, lang) },
@@ -156,11 +159,11 @@ export function HomeContent() {
               <div className="cl-window-row">
                 <div className="cl-window cl-window--best">
                   <p className="cl-window__label">{mt(HOME.card_best, lang)}</p>
-                  <p className="cl-window__time">{SAMPLE.bestWindow.start} – {SAMPLE.bestWindow.end}</p>
+                  <p className="cl-window__time">{bestWindowLabel}</p>
                 </div>
                 <div className="cl-window cl-window--hold">
                   <p className="cl-window__label">{mt(HOME.card_hold, lang)}</p>
-                  <p className="cl-window__time">{SAMPLE.holdWindow.start} – {SAMPLE.holdWindow.end}</p>
+                  <p className="cl-window__time">{holdWindowLabel}</p>
                 </div>
               </div>
               <div className="cl-card-foot">
@@ -216,11 +219,11 @@ export function HomeContent() {
             <div className="cl-daily-card__windows">
               <div className="cl-daily-card__win cl-daily-card__win--best">
                 <p className="cl-daily-card__win-label">{mt(HOME.card_best, lang)}</p>
-                <p className="cl-daily-card__win-time">{SAMPLE.bestWindow.start} – {SAMPLE.bestWindow.end}</p>
+                <p className="cl-daily-card__win-time">{bestWindowLabel}</p>
               </div>
               <div className="cl-daily-card__win cl-daily-card__win--hold">
                 <p className="cl-daily-card__win-label">{mt(HOME.card_caution, lang)}</p>
-                <p className="cl-daily-card__win-time">{SAMPLE.holdWindow.start} – {SAMPLE.holdWindow.end}</p>
+                <p className="cl-daily-card__win-time">{holdWindowLabel}</p>
               </div>
             </div>
             <p className="cl-daily-card__summary">{SAMPLE.summary}</p>
@@ -261,7 +264,7 @@ export function HomeContent() {
                 <span className={`cl-score-num cl-score-num--${m.band}`}>{m.score}</span>
               </div>
             ))}
-            <p className="cl-score-panel__foot">{mt(HOME.family_panel_foot, lang)} 11:53 – 12:41</p>
+            <p className="cl-score-panel__foot">{mt(HOME.family_panel_foot, lang)} {bestWindowLabel}</p>
           </div>
         </div>
       </section>

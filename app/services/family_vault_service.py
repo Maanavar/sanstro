@@ -278,6 +278,22 @@ def _format_minutes(value: int) -> str:
     return f"{value // 60:02d}:{value % 60:02d}"
 
 
+def _format_clock_label(value: str) -> str:
+    try:
+        hours_text, minutes_text = value.split(":", 1)
+        hour = int(hours_text)
+        minute = int(minutes_text[:2])
+    except Exception:
+        return value
+    suffix = "am" if hour < 12 else "pm"
+    hour_12 = hour % 12 or 12
+    return f"{hour_12}:{minute:02d} {suffix}"
+
+
+def _format_time_range(start: str, end: str) -> str:
+    return f"{_format_clock_label(start)} - {_format_clock_label(end)}"
+
+
 def _intersect_windows(windows: list[list[DailyGuidanceWindow]]) -> list[DailyGuidanceWindow]:
     if not windows:
         return []
@@ -344,8 +360,9 @@ def _family_summary(
 
     if best_windows:
         window = best_windows[0]
-        en += f" Best shared window: {window.start}-{window.end}."
-        ta += f" சிறந்த பகிர்ந்த நேரம்: {window.start}-{window.end}."
+        window_label = _format_time_range(window.start, window.end)
+        en += f" Best shared window: {window_label}."
+        ta += f" சிறந்த பகிர்ந்த நேரம்: {window_label}."
 
     if avoid_windows:
         window = avoid_windows[0]

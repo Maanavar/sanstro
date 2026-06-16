@@ -2200,17 +2200,15 @@ button:focus-visible,
 }
 
 .cd-calendar-monthly-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
-  gap: var(--space-4);
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
 }
 
 .cd-calendar-monthly-sidebar {
-  align-self: stretch;
   min-width: 0;
-  border-left: 1px solid var(--color-border);
-  padding-left: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-4);
 }
 
 .cd-calendar-grid-scroll {
@@ -2337,14 +2335,11 @@ button:focus-visible,
   }
 
   .cd-calendar-monthly-layout {
-    grid-template-columns: 1fr;
+    gap: var(--space-4);
   }
 
   .cd-calendar-monthly-sidebar {
-    border-left: none;
-    border-top: 1px solid var(--color-border);
-    padding-left: 0;
-    padding-top: var(--space-4);
+    /* already single-column at all sizes */
   }
 
   .cd-calendar-grid-scroll > .cd-calendar-grid {
@@ -3643,84 +3638,153 @@ button:focus-visible,
 
 /* ── Footer ───────────────────────────────────────────────── */
 .cl-footer {
-  background: var(--cl-bg-2);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.48), rgba(255, 255, 255, 0) 34%),
+    var(--cl-bg-2);
   border-top: 1px solid var(--cl-border);
 }
 .cl-footer__inner {
-  display: flex;
-  justify-content: space-between;
-  gap: 40px 60px;
-  padding: 48px 0;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.48fr);
+  gap: 44px 72px;
+  padding: 56px 0 44px;
   align-items: flex-start;
 }
 .cl-footer__brand {
-  max-width: 280px;
+  display: grid;
+  gap: 28px;
+  min-width: 0;
+}
+.cl-footer__brand-lockup {
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+}
+.cl-footer__symbol {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+.cl-footer__brand-copy {
+  display: grid;
   gap: 12px;
+  max-width: 34ch;
 }
 .cl-footer__wordmark {
   font-family: var(--cl-font-display);
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 500;
   color: var(--cl-ink);
-  opacity: 0.7;
+  line-height: 1;
 }
 .cl-footer__tagline {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 0.95rem;
   color: var(--cl-muted);
-  line-height: 1.6;
+  line-height: 1.72;
+  max-width: 34ch;
+}
+.cl-footer__company {
+  display: grid;
+  gap: 14px;
+}
+.cl-footer__company-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
 }
 .cl-footer__links {
-  display: flex;
-  gap: 48px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 42px;
+  min-width: 0;
 }
 .cl-footer__col {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  min-width: 0;
 }
 .cl-footer__col-head {
   margin: 0;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   color: var(--cl-muted);
 }
 .cl-footer__link {
-  font-size: 0.85rem;
-  color: var(--cl-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--cl-ink-2);
   text-decoration: none;
   transition: color 150ms ease;
+  overflow-wrap: anywhere;
 }
-.cl-footer__link:hover { color: var(--cl-ink); }
+.cl-footer__link:hover { color: var(--cl-accent); }
 .cl-footer__bottom {
   border-top: 1px solid var(--cl-border);
+  background: rgba(255, 255, 255, 0.28);
 }
 .cl-footer__bottom-inner {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 18px 32px;
+  padding: 22px 0 24px;
+}
+.cl-footer__legal {
+  display: grid;
+  gap: 12px;
+}
+.cl-footer__beta {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px 0;
-  flex-wrap: wrap;
+  width: fit-content;
+  max-width: 100%;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--cl-border-2);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--cl-ink);
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.5;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    background 150ms ease;
+}
+.cl-footer__beta:hover {
+  border-color: var(--cl-accent);
+  color: var(--cl-accent);
+  background: rgba(255, 255, 255, 0.78);
 }
 .cl-footer__disclaimer {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: 0.79rem;
   color: var(--cl-muted-2);
-  line-height: 1.6;
-  max-width: 68ch;
+  line-height: 1.72;
+  max-width: 74ch;
 }
 .cl-footer__copy {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   color: var(--cl-muted-2);
   white-space: nowrap;
+  align-self: end;
+}
+.cl-footer[lang="ta"] .cl-footer__col-head {
+  text-transform: none;
+  letter-spacing: 0.04em;
+  font-size: 0.78rem;
+}
+.cl-footer[lang="ta"] .cl-footer__tagline,
+.cl-footer[lang="ta"] .cl-footer__link,
+.cl-footer[lang="ta"] .cl-footer__disclaimer,
+.cl-footer[lang="ta"] .cl-footer__beta {
+  line-height: 1.78;
 }
 
 /* ── Clarity responsive ───────────────────────────────────── */
@@ -3735,6 +3799,14 @@ button:focus-visible,
   }
   .cl-hero__card-wrap {
     max-width: 520px;
+  }
+  .cl-footer__inner {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+  .cl-footer__brand-copy,
+  .cl-footer__tagline {
+    max-width: none;
   }
 }
 
@@ -3755,15 +3827,29 @@ button:focus-visible,
     display: none;
   }
   .cl-footer__inner {
-    flex-direction: column;
     gap: 28px;
   }
   .cl-footer__links {
-    gap: 24px;
+    grid-template-columns: 1fr;
+    gap: 22px;
   }
   .cl-footer__bottom-inner {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .cl-footer__brand-lockup {
+    gap: 14px;
+  }
+  .cl-footer__symbol {
+    width: 44px;
+    height: 44px;
+  }
+  .cl-footer__company-links {
     flex-direction: column;
-    align-items: flex-start;
+    gap: 10px;
+  }
+  .cl-footer__copy {
+    white-space: normal;
   }
   .cl-hero__h1 {
     font-size: clamp(1.6rem, 7.2vw, 2.4rem);
@@ -6496,5 +6582,135 @@ button:focus-visible,
 .cd-btn-pill:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Tamil UI typography needs room for taller glyphs and longer words. */
+html[lang="ta"] body {
+  font-family: var(--font-tamil), var(--font-body), system-ui, sans-serif;
+}
+
+html[lang="ta"] .clarity-shell {
+  --cl-font-display: var(--font-tamil), var(--font-body), system-ui, sans-serif;
+  --cl-font-sans: var(--font-tamil), var(--font-body), system-ui, sans-serif;
+}
+
+html[lang="ta"] :where(
+  .hero h1,
+  .section-title,
+  .feature-card__title,
+  .cta-strip__title,
+  .drawer__title,
+  .cl-hero__h1,
+  .cl-section-h2,
+  .cl-card-title,
+  .cl-pillar__title,
+  .cl-helps-card__title,
+  .cl-method-panel__title,
+  .cl-fhub-card__title,
+  .cl-cta-strip__title,
+  .cl-trust-h1,
+  .cl-trust-prose h2,
+  .cl-pub-h1,
+  .cl-pub-preview__title,
+  .cl-pub-section__head,
+  .cl-context-cta__title,
+  .cl-learn-prose h2,
+  .cl-hero-figure__title,
+  .as-card__title,
+  .as-profile__title,
+  .as-topic__title
+) {
+  font-family: var(--font-tamil), var(--font-body), system-ui, sans-serif;
+  letter-spacing: 0;
+  line-height: 1.28;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+html[lang="ta"] :where(
+  .hero h1,
+  .cl-hero__h1,
+  .cl-trust-h1,
+  .cl-pub-h1,
+  .cl-context-cta__title
+) {
+  max-width: min(100%, 28ch);
+}
+
+/* Tamil glyphs render visually ~20% taller/wider — scale down display sizes */
+html[lang="ta"] :where(.cl-pub-h1, .cl-trust-h1) {
+  font-size: clamp(1.75rem, 3.5vw, 2.9rem);
+}
+
+html[lang="ta"] .cl-hero__h1 {
+  font-size: clamp(1.75rem, 3.5vw, 3.3rem);
+}
+
+html[lang="ta"] .cl-section-h2 {
+  font-size: clamp(1.45rem, 2.8vw, 2.1rem);
+}
+
+html[lang="ta"] :where(
+  .eyebrow,
+  .hero__asideLabel,
+  .section-kicker,
+  .surface__title,
+  .surface__subhead,
+  .metric__label,
+  .table th,
+  .calendar-day__date,
+  .calendar-day__label,
+  .cl-eyebrow,
+  .cl-card-date,
+  .cl-window__label,
+  .cl-daily-card__label,
+  .cl-daily-card__win-label,
+  .cl-score-panel__label,
+  .cl-footer__col-head,
+  .cl-pub-preview__label,
+  .cl-pub-related__title,
+  .cl-filter-field > span,
+  .cl-tool__score-label,
+  .cl-tool__breakdown-label,
+  .as-card__eyebrow,
+  .as-profile__kicker
+) {
+  font-family: var(--font-tamil), var(--font-body), system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  line-height: 1.45;
+  text-transform: none;
+  overflow-wrap: anywhere;
+}
+
+html[lang="ta"] :where(
+  .button,
+  .cl-btn,
+  .cl-nav__link,
+  .cl-nav__signin,
+  .cl-lang-toggle,
+  .cl-pub-related-link,
+  .cl-learn-pill,
+  .cd-btn-pill
+) {
+  line-height: 1.35;
+  text-align: center;
+  white-space: normal;
+}
+
+html[lang="ta"] :where(
+  .cl-nav-dropdown__item-label,
+  .cl-nav-dropdown__item-desc,
+  .cl-nav__mobile-label,
+  .cl-nav__mobile-link,
+  .cl-window__time,
+  .cl-daily-card__chip,
+  .cl-card-foot__meta,
+  .cl-card-foot__badge,
+  .cl-callout,
+  .cl-pub-faq-item__q,
+  .cl-pub-detail-item__title
+) {
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 

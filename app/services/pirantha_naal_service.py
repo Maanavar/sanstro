@@ -6,7 +6,7 @@ Scans forward day by day until the transiting Moon enters the person's birth Nak
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 
 from app.calculations.panchangam import calculate_daily_panchangam
 from app.services.narrative_engine import NAKSHATRA_NAME
@@ -21,6 +21,26 @@ class PiranthaNaalAlert:
     nakshatra_ends_at: str    # Local time when the Nakshatra ends on that day
     days_away: int
     is_today: bool
+
+
+def _format_clock_label(value: datetime | time | object | None) -> str:
+    if value is None:
+        return "N/A"
+    try:
+        hour = int(getattr(value, "hour"))
+        minute = int(getattr(value, "minute"))
+    except Exception:
+        try:
+            raw = str(value.strftime("%H:%M"))
+            hour_text, minute_text = raw.split(":", 1)
+            hour = int(hour_text)
+            minute = int(minute_text[:2])
+        except Exception:
+            return str(value)
+
+    suffix = "am" if hour < 12 else "pm"
+    hour_12 = hour % 12 or 12
+    return f"{hour_12}:{minute:02d} {suffix}"
 
 
 def next_janma_nakshatra_date(
@@ -42,7 +62,7 @@ def next_janma_nakshatra_date(
             nak_bi = NAKSHATRA_NAME.get(janma_nakshatra)
             name_ta = nak_bi.ta if nak_bi else str(janma_nakshatra)
             name_en = nak_bi.en if nak_bi else str(janma_nakshatra)
-            ends_at = panchang.nakshatra_ends_at.strftime("%H:%M") if panchang.nakshatra_ends_at else "N/A"
+            ends_at = _format_clock_label(panchang.nakshatra_ends_at)
             days_away = (current - from_date).days
             return PiranthaNaalAlert(
                 janma_nakshatra=janma_nakshatra,

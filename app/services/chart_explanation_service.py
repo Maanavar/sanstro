@@ -169,7 +169,7 @@ def _planet_explanation(planet: PlanetPosition, dignity: str, functional_nature:
     en = (
         f"{planet.graha} stands in house {planet.house_from_lagna}, so the chart naturally draws attention to {theme.en}. "
         f"{dignity_text.en} In functional terms it is {fn_context_en}. "
-        f"Read this as a living promise that becomes clearer through the current dasha and gochar contacts."
+        f"Read this as a living indicator that becomes clearer through the current dasha and gochar contacts."
     )
     return _bi(ta, en)
 

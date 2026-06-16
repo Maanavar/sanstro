@@ -21,9 +21,9 @@ const W = {
 } as const;
 
 const TIME_PRESETS = [
-  { value: "06:00", labelEn: "6 AM", labelTa: "காலை 6" },
-  { value: "07:00", labelEn: "7 AM", labelTa: "காலை 7" },
-  { value: "08:00", labelEn: "8 AM", labelTa: "காலை 8" },
+  { value: "06:00", labelEn: "6 am", labelTa: "காலை 6" },
+  { value: "07:00", labelEn: "7 am", labelTa: "காலை 7" },
+  { value: "08:00", labelEn: "8 am", labelTa: "காலை 8" },
 ];
 
 const CHANNEL_OPTS: { value: "email" | "push" | "both"; labelEn: string; labelTa: string }[] = [

@@ -435,6 +435,10 @@ export function DashboardWorkspace() {
     onError: (msg) => showToast(msg, "error"),
   });
 
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
   // ── Hydration + localStorage restore ─────────────────────
 
   useEffect(() => {
@@ -1041,7 +1045,7 @@ export function DashboardWorkspace() {
   // ── Render ────────────────────────────────────────────────
 
   return (
-    <div className="site cd-shell">
+    <div className="site cd-shell" data-lang={lang}>
 
       {/* Print-only brand lockup. Hidden on screen; appears at the top of
           browser-printed / "Save as PDF" output so printouts read as a Vinaadi

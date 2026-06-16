@@ -1187,7 +1187,7 @@ def build_daily_guidance_response(
 
     best_start = best_windows[0].start if best_windows else None
     best_end = best_windows[0].end if best_windows else None
-    best_label = f"{best_windows[0].start}–{best_windows[0].end}" if best_windows else None
+    best_label = f"{best_windows[0].start}-{best_windows[0].end}" if best_windows else None
     rahu_start = caution_windows[0].start if caution_windows else "00:00"
     rahu_end = caution_windows[0].end if caution_windows else "00:00"
 
