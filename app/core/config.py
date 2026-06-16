@@ -4,8 +4,8 @@ from functools import lru_cache
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-_DEFAULT_JWT_SECRET = "CHANGE_ME_IN_PRODUCTION_USE_STRONG_SECRET"
-_DEFAULT_ADMIN_API_KEY = "CHANGE_ME_ADMIN_KEY"
+_DEFAULT_JWT_SECRET = "faLe6vxFC4K4InyTaGUu9Axg1VafM+BA3jmlttWK2hwF5hlOgHcse+ra6PRRVHFWMA2WwgITzxQrnv64zuVtXQ=="
+_DEFAULT_ADMIN_API_KEY = "J2xfyx5Z2HfOlsWzpJsdGwucYX3rAygC6hxLuj4tPl4"
 
 
 class Settings(BaseSettings):

@@ -71,6 +71,10 @@ Repo-specific checks:
 - [ ] `web/app/privacy/page.tsx` has the correct live contact email
 - [ ] `web/app/terms/page.tsx` matches actual beta / production behavior
 - [ ] Admin delete policy aligns with `app/api/admin.py`
+- [ ] DPDP consent record is implemented (consent checkbox + `consent_given_at` on User model)
+- [ ] Privacy page discloses Anthropic as data processor if Ask Vinaadi is enabled
+- [ ] `JOTHIDAM_ENABLE_ADMIN_DATA_DELETE=true` is set in production so operator-triggered
+  deletion requests (from `privacy@vinaadi.com` inbox) can be fulfilled
 
 ## 4. Domains, hosting, and infrastructure
 
@@ -157,6 +161,23 @@ Repo-specific checks:
 - [ ] `app/core/auth.py` login and token flows are smoke-tested
 - [ ] `app/middleware.py` in-memory rate limiting is acceptable for current topology
 - [ ] If running multiple workers or instances, a decision has been made on Redis or accepting approximate limits
+
+Security audit findings — must clear before go-live:
+- [ ] **JWT/Admin key defaults**: `app/core/config.py` lines 7–8 define public default secrets
+  (`CHANGE_ME_IN_PRODUCTION_USE_STRONG_SECRET`, `CHANGE_ME_ADMIN_KEY`). The production
+  guard only fires when `APP_ENV=production` / `JOTHIDAM_ENVIRONMENT=production` is
+  explicitly set. A deployment that omits this flag silently uses the known-public
+  defaults. Confirm both env vars are set AND both secrets are strong random values
+  before any public traffic reaches the deployment.
+- [ ] **DPDP Act 2023 consent**: No logged affirmative consent record exists at registration.
+  Section 6 requires a specific, informed, unambiguous consent action before collecting
+  birth data. Add a consent checkbox + store `consent_given_at` timestamp on the User
+  model before launch.
+- [ ] **Ask Vinaadi — Anthropic data processor disclosure** *(before enabling the feature)*:
+  When Ask Vinaadi is live, user chart context (birth date/time/place + planetary data)
+  is sent to Anthropic (USA). Add one sentence to `web/app/privacy/page.tsx`:
+  "When you use Ask Vinaadi, your anonymised chart context is processed by Anthropic PBC
+  (USA) to generate your answer." Required under DPDP Act Section 9.
 
 ## 8. Quality, testing, and release gates
 
