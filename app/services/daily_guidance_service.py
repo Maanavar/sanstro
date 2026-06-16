@@ -181,7 +181,7 @@ def _birth_datetime_utc(profile: BirthProfile) -> datetime:
         return birth_datetime_utc.astimezone(UTC)
 
     if profile.birth_time_local is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Birth time is required.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Birth time is required.")
 
     local_dt = datetime.combine(profile.birth_date_local, profile.birth_time_local)
     return local_datetime_to_utc(local_dt, profile.birth_timezone)
@@ -1187,7 +1187,7 @@ def build_daily_guidance_response(
 
     best_start = best_windows[0].start if best_windows else None
     best_end = best_windows[0].end if best_windows else None
-    best_label = f"{best_windows[0].start}–{best_windows[0].end}" if best_windows else None
+    best_label = f"{best_windows[0].start}-{best_windows[0].end}" if best_windows else None
     rahu_start = caution_windows[0].start if caution_windows else "00:00"
     rahu_end = caution_windows[0].end if caution_windows else "00:00"
 

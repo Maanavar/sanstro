@@ -22,13 +22,18 @@ dependencies = [
   "passlib[bcrypt]>=1.7,<2.0",
   "psycopg2-binary>=2.9,<3.0",
   "apscheduler>=3.10,<4.0",
-  "reportlab>=4.0"
+  "reportlab>=4.0",
+  "anthropic>=0.40,<1.0"
 ]
 
 [project.optional-dependencies]
 dev = [
   "httpx>=0.27,<1.0",
   "pytest>=8.0,<9.0"
+]
+lint = [
+  "ruff>=0.6",
+  "mypy>=1.11"
 ]
 
 [tool.setuptools.packages.find]
@@ -43,3 +48,31 @@ addopts = "-ra"
 markers = [
     "no_db: pure unit tests that do not need a database connection",
 ]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+extend-exclude = [".venv", "migrations/versions", "__pycache__"]
+
+[tool.ruff.lint]
+# Conservative, high-signal rule set so this can be adopted on an existing
+# codebase without a noisy first run.
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = [
+    "E501",  # line length handled by the formatter, not enforced as an error
+    "B008",  # FastAPI uses function calls (Depends(...)) in argument defaults
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]
+# __init__.py files intentionally re-export names (and register SQLAlchemy models
+# with Base as an import side effect) — do not flag those as unused imports.
+"__init__.py" = ["F401"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+follow_imports = "skip"
+warn_unused_ignores = false
+check_untyped_defs = false
+exclude = ["migrations/", "tests/", "\\.venv/"]

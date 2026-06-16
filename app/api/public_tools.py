@@ -20,6 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.schemas.muhurtham_naal import MuhurthamNaalListResponse, item_from_view
 from app.schemas.panchangam import PanchangamDailyQuery, PanchangamDailyResponse, PanchangamTimingsResponse
 from app.services.panchangam_service import calculate_panchangam, calculate_panchangam_timings
 from app.services.chart_service import _chart_response_from_profile  # noqa: PLC2701 (internal use)
@@ -115,7 +116,7 @@ def public_chart(payload: PublicChartRequest) -> PublicChartResponse:
         result = _chart_response_from_profile(profile, "thirukanitham-2026-v1")
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=msg) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
     return PublicChartResponse(data=result.data)
 
 
@@ -129,7 +130,7 @@ def public_porutham(payload: PublicPoruthamRequest) -> PublicPoruthamResponse:
 
     if payload.compatibility_context not in VALID_COMPATIBILITY_CONTEXTS:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"compatibilityContext must be one of: {sorted(VALID_COMPATIBILITY_CONTEXTS)}",
         )
 
@@ -138,7 +139,7 @@ def public_porutham(payload: PublicPoruthamRequest) -> PublicPoruthamResponse:
         chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), "thirukanitham-2026-v1")
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=msg) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
 
     def _moon(chart_data: Any) -> Any:
         return next((p for p in chart_data.data.planets if p.graha == "MOON"), None)
@@ -146,7 +147,7 @@ def public_porutham(payload: PublicPoruthamRequest) -> PublicPoruthamResponse:
     moon_a = _moon(chart_a)
     moon_b = _moon(chart_b)
     if moon_a is None or moon_b is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Could not determine Moon position.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Could not determine Moon position.")
 
     result = compute_porutham(
         boy_nakshatra=moon_a.nakshatra,
@@ -222,12 +223,12 @@ def public_friendship_compatibility(payload: FriendshipRequest) -> dict:
         chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), "thirukanitham-2026-v1")
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=msg) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
 
     moon_a = next((p for p in chart_a.data.planets if p.graha == "MOON"), None)
     moon_b = next((p for p in chart_b.data.planets if p.graha == "MOON"), None)
     if moon_a is None or moon_b is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Could not determine Moon position.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Could not determine Moon position.")
 
     return get_friendship_report(
         {
@@ -245,6 +246,75 @@ def public_friendship_compatibility(payload: FriendshipRequest) -> dict:
             "rasi_name": getattr(moon_b, "rasi_name", ""),
         },
     )
+
+
+@router.get("/muhurtham-naals", response_model=MuhurthamNaalListResponse)
+def public_muhurtham_naals(
+    year: int = 2026,
+    month: int | None = None,
+    pirai: str | None = None,
+    weekday: str | None = None,
+    nakshatra: str | None = None,
+) -> MuhurthamNaalListResponse:
+    """List the curated Tamil muhurtham (wedding) naals for a year.
+
+    No authentication required — powers the public marketing page. Dates come
+    from a published almanac sheet (not our broad calculation), enriched with
+    each day's verified nakshatra / tithi / Tamil-month labels. Optional
+    filters: month (1-12), pirai (VALARPIRAI|THEIPIRAI), weekday, nakshatra.
+    """
+    from app.data.muhurtham_naals import MUHURTHAM_SOURCE
+    from app.services.muhurtham_naal_service import list_muhurtham_naals
+
+    views = list_muhurtham_naals(
+        year, month=month, pirai=pirai, weekday=weekday, nakshatra=nakshatra,
+    )
+    return MuhurthamNaalListResponse(
+        year=year,
+        source=MUHURTHAM_SOURCE,
+        count=len(views),
+        naals=[item_from_view(v) for v in views],
+    )
+
+
+@router.get("/panchangam-events")
+def public_panchangam_events(year: int = 2026) -> dict:
+    """List all Tamil-calendar special events for a year with their next date.
+
+    No auth. Powers the /tamil-calendar SEO hub. Each event includes its
+    bilingual name, count of dates, and the next upcoming date.
+    """
+    from app.services.panchangam_events_service import list_events
+
+    return list_events(year)
+
+
+@router.get("/panchangam-events/{event}")
+def public_panchangam_event(event: str, year: int = 2026) -> dict:
+    """Full date list + SEO content for one special event (e.g. pournami-2026).
+
+    No auth. Powers the /tamil-calendar/[event] SEO pages. Accepts either an
+    event key ('pournami') or a slug ('pournami-2026').
+    """
+    from app.services.panchangam_events_service import get_event
+
+    return get_event(event, year)
+
+
+@router.get("/calendar-categories")
+def public_calendar_categories(year: int = 2026) -> dict:
+    """List festival/holiday category pages for the public Tamil calendar."""
+    from app.services.calendar_category_service import list_calendar_categories
+
+    return list_calendar_categories(year)
+
+
+@router.get("/calendar-categories/{category}")
+def public_calendar_category(category: str, year: int = 2026) -> dict:
+    """Full date list for one festival/holiday category page."""
+    from app.services.calendar_category_service import get_calendar_category
+
+    return get_calendar_category(category, year)
 
 
 @router.get("/panchangam", response_model=PanchangamDailyResponse)
@@ -398,6 +468,26 @@ def _quality_label(score: float) -> str:
     return "fair"
 
 
+def _format_clock_label(value) -> str:
+    if hasattr(value, "strftime"):
+        value = value.strftime("%H:%M")
+    pieces = str(value).split(":")
+    try:
+        hour = int(pieces[0])
+        minute = int(pieces[1]) if len(pieces) > 1 else 0
+    except (TypeError, ValueError):
+        return str(value)
+    hour %= 24
+    minute %= 60
+    period = "am" if hour < 12 else "pm"
+    hour12 = hour % 12 or 12
+    return f"{hour12}:{minute:02d} {period}"
+
+
+def _format_time_range(start, end) -> str:
+    return f"{_format_clock_label(start)}-{_format_clock_label(end)}"
+
+
 @router.post("/muhurta", response_model=PublicMuhurtaResponse)
 def public_muhurta(
     payload: PublicMuhurtaRequest,
@@ -414,7 +504,7 @@ def public_muhurta(
     event_type = payload.event_type.upper()
     if event_type not in _PUBLIC_MUHURTA_ACTIVITIES:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"eventType must be one of: {sorted(_PUBLIC_MUHURTA_ACTIVITIES)}",
         )
 
@@ -455,7 +545,7 @@ def public_muhurta(
                 cautions_en.append("Kuligai overlaps this slot")
                 cautions_ta.append("குளிகை இந்த நேரத்துடன் ஒட்டுகிறது")
 
-            time_window = f"{t_start.strftime('%H:%M')}–{t_end.strftime('%H:%M')}"
+            time_window = _format_time_range(t_start, t_end)
             scored.append((
                 score, current, time_window,
                 snap.tithi_name, snap.nakshatra_name,

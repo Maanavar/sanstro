@@ -1,0 +1,59 @@
+# Full application stack (backend + web + postgres) for production-like runs.
+# Dev infra (adminer/mailhog/test DB) lives in docker-compose.yml.
+#
+#   docker compose -f docker-compose.app.yml up --build
+#
+# Provide secrets via a .env file next to this compose file (see .env.example).
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vinaadi}
+      POSTGRES_USER: ${POSTGRES_USER:-vinaadi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - vinaadi_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vinaadi} -d ${POSTGRES_DB:-vinaadi}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      JOTHIDAM_ENVIRONMENT: production
+      JOTHIDAM_DATABASE_URL: postgresql://${POSTGRES_USER:-vinaadi}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-vinaadi}
+      JOTHIDAM_JWT_SECRET: ${JOTHIDAM_JWT_SECRET:?set JOTHIDAM_JWT_SECRET}
+      JOTHIDAM_ADMIN_API_KEY: ${JOTHIDAM_ADMIN_API_KEY:?set JOTHIDAM_ADMIN_API_KEY}
+      JOTHIDAM_ENCRYPTION_KEY: ${JOTHIDAM_ENCRYPTION_KEY:?set JOTHIDAM_ENCRYPTION_KEY}
+      JOTHIDAM_ANTHROPIC_API_KEY: ${JOTHIDAM_ANTHROPIC_API_KEY:-}
+      JOTHIDAM_COOKIE_SECURE: "true"
+      JOTHIDAM_DEBUG: "false"
+      # If the API sits behind a single reverse proxy / load balancer, set this to 1.
+      JOTHIDAM_TRUSTED_PROXY_COUNT: ${JOTHIDAM_TRUSTED_PROXY_COUNT:-0}
+      JOTHIDAM_CORS_ALLOW_ORIGINS: ${JOTHIDAM_CORS_ALLOW_ORIGINS:-}
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      # Server-to-server base URL the Next proxy uses to reach the API.
+      API_BASE_URL: ${API_BASE_URL:-http://api:8000}
+    ports:
+      - "3000:3000"
+
+volumes:
+  vinaadi_db_data:

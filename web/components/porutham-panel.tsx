@@ -537,6 +537,7 @@ export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: Porut
                   <CompatibilityIntelligencePanel
                     familyVaultId={familyVaultId}
                     memberId={selectedVaultMemberIdB}
+                    chartIdA={chartA.chartId}
                     lang={lang}
                   />
                 </div>

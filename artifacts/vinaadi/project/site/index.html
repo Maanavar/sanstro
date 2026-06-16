@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vinaadi — Tamil Astrology Assistant for Daily Guidance & Planning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Tamil:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="site.css" />
+<link rel="stylesheet" href="site-improvements.css" />
+<template id="__bundler_thumbnail" data-bg-color="#F4EEE2">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#F4EEE2"/>
+    <g transform="translate(600 360)" fill="none" stroke="#B85A2C" stroke-width="10" stroke-linecap="round">
+      <circle r="150" stroke-width="8"/>
+      <circle r="34" fill="#B85A2C" stroke="none"/>
+      <path d="M0 -185v-58M0 185v58M-185 0h-58M185 0h58"/>
+      <path d="M-131 -131l-41 -41M131 131l41 41M131 -131l41 -41M-131 131l-41 41"/>
+    </g>
+    <text x="600" y="640" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="84" fill="#1A1612">Vinaadi</text>
+  </svg>
+</template>
+</head>
+<body>
+<div class="clarity-shell">
+  <main>
+
+    <!-- SECTION 1 — Hero -->
+    <section class="cl-hero" id="top">
+      <div class="cl-hero__inner">
+        <div class="cl-hero__copy">
+          <p class="cl-eyebrow">Tamil Astrology Assistant</p>
+          <h1 class="cl-hero__h1">One calm guide for your chart, your day, and the people you plan with.</h1>
+          <p class="cl-hero__body">Vinaadi turns Thirukanitham-based astrology into daily guidance, timing windows, family planning, and tools you can actually use — every morning, in plain language.</p>
+          <div class="cl-hero__actions">
+            <a href="/dashboard" class="cl-btn cl-btn--solid">Start with today's guidance →</a>
+            <a href="#how-it-works" class="cl-btn cl-btn--ghost">See how it works</a>
+          </div>
+        </div>
+
+        <div class="cl-hero__card-wrap" id="sample">
+          <span class="cl-sticker">Today's Reading</span>
+          <div class="cl-reading-card">
+            <div class="cl-card-head">
+              <div>
+                <p class="cl-card-date">Tuesday, 26 May</p>
+                <h2 class="cl-card-title">Your day</h2>
+              </div>
+              <div class="cl-dial" aria-label="Day score 64">
+                <svg class="cl-dial__svg" viewBox="0 0 80 80" width="80" height="80" aria-hidden="true">
+                  <circle cx="40" cy="40" r="34" fill="none" stroke="var(--cl-border)" stroke-width="6"></circle>
+                  <circle cx="40" cy="40" r="34" fill="none" stroke="var(--cl-ink)" stroke-width="6" stroke-dasharray="136.7 213.6" stroke-linecap="round" transform="rotate(-90 40 40)"></circle>
+                </svg>
+                <div class="cl-dial__num">64</div>
+              </div>
+            </div>
+            <p class="cl-card-summary">Moon Dasa · Moon Bhukti. Saturn refines home and inner stability. A measured day — good for steady work, cautious for new ventures.</p>
+            <div class="cl-arc-wrap" aria-hidden="true">
+              <svg viewBox="0 0 320 110" class="cl-arc__svg" preserveAspectRatio="xMidYMid meet">
+                <path d="M20,82 Q160,18 300,82" fill="none" stroke="#D4C8AE" stroke-width="1.5" stroke-linecap="round"></path>
+                <rect x="20" y="79" width="280" height="5" rx="2.5" fill="#E4DBC8"></rect>
+                <rect x="157" y="78" width="19" height="7" rx="3.5" fill="#5C7654"></rect>
+                <rect x="241" y="78" width="37" height="7" rx="3.5" fill="#A8482F"></rect>
+                <line x1="20" y1="86" x2="20" y2="93" stroke="#A89D89" stroke-width="1.5" stroke-linecap="round"></line>
+                <line x1="90" y1="86" x2="90" y2="93" stroke="#A89D89" stroke-width="1.5" stroke-linecap="round"></line>
+                <line x1="160" y1="86" x2="160" y2="93" stroke="#A89D89" stroke-width="1.5" stroke-linecap="round"></line>
+                <line x1="230" y1="86" x2="230" y2="93" stroke="#A89D89" stroke-width="1.5" stroke-linecap="round"></line>
+                <line x1="300" y1="86" x2="300" y2="93" stroke="#A89D89" stroke-width="1.5" stroke-linecap="round"></line>
+                <circle cx="164" cy="50" r="6" fill="#B85A2C"></circle>
+              </svg>
+              <div class="cl-arc-labels">
+                <span class="cl-arc-label">6a</span><span class="cl-arc-label">9a</span><span class="cl-arc-label">12p</span><span class="cl-arc-label">3p</span><span class="cl-arc-label">6p</span>
+              </div>
+            </div>
+            <div class="cl-window-row">
+              <div class="cl-window cl-window--best"><p class="cl-window__label">Best Window</p><p class="cl-window__time">11:53 – 12:41</p></div>
+              <div class="cl-window cl-window--hold"><p class="cl-window__label">Hold</p><p class="cl-window__time">15:28 – 17:03</p></div>
+            </div>
+            <div class="cl-card-foot">
+              <span class="cl-card-foot__meta">Kadagam · Kettai · Viruchigam</span>
+              <span class="cl-card-foot__badge">D1 · D9 ready</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2 — What Vinaadi helps you do -->
+    <section class="cl-helps">
+      <div class="cl-container">
+        <div class="cl-helps__head">
+          <p class="cl-eyebrow">What Vinaadi does</p>
+          <h2 class="cl-section-h2">Guidance for the moments people actually need help with</h2>
+        </div>
+        <div class="cl-helps-grid">
+          <div class="cl-helps-card"><span class="cl-helps-card__icon">◎</span><h3 class="cl-helps-card__title">Understand today</h3><p class="cl-helps-card__body">One daily score combining your chart, dasha period, transits, and panchangam. Clear reasoning, no guesswork.</p></div>
+          <div class="cl-helps-card"><span class="cl-helps-card__icon">⊕</span><h3 class="cl-helps-card__title">Plan important actions</h3><p class="cl-helps-card__body">Best and caution windows calculated from your natal chart and the day's signals — practical, not vague.</p></div>
+          <div class="cl-helps-card"><span class="cl-helps-card__icon">☽</span><h3 class="cl-helps-card__title">Read family timing together</h3><p class="cl-helps-card__body">See your reading alongside the people you plan with. Shared best-window view for family decisions.</p></div>
+          <div class="cl-helps-card"><span class="cl-helps-card__icon">◈</span><h3 class="cl-helps-card__title">Understand chart patterns</h3><p class="cl-helps-card__body">Your lagna, dasha lord, transiting planets, yogas, and doshas — explained in plain language, not jargon.</p></div>
+          <div class="cl-helps-card"><span class="cl-helps-card__icon">✦</span><h3 class="cl-helps-card__title">Check compatibility when needed</h3><p class="cl-helps-card__body">Porutham matching with all 10 poruthams, Rajju dosha, Sevvai dosham, and Nadi dosha — full Tamil standard.</p></div>
+          <div class="cl-helps-card"><span class="cl-helps-card__icon">⊛</span><h3 class="cl-helps-card__title">Use tools when you need them</h3><p class="cl-helps-card__body">Jadhagam generation, panchangam planner, birth time rectification — part of the assistant, not separate apps.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3 — Daily guidance -->
+    <section class="cl-daily" id="how-it-works">
+      <div class="cl-container cl-daily__inner">
+        <div class="cl-daily__copy">
+          <p class="cl-eyebrow">Daily Guidance</p>
+          <h2 class="cl-section-h2">Every day starts with one quiet reading</h2>
+          <p class="cl-section-body">Vinaadi reads your chart, dasha, transits, and panchangam together — and gives you one balanced answer for the day. Not four separate reports. One reading.</p>
+          <ul class="cl-daily__signal-list">
+            <li class="cl-daily__signal"><span class="cl-daily__signal-dot" aria-hidden="true"></span>Dasha and bhukti period quality — how your current planetary cycle frames the day</li>
+            <li class="cl-daily__signal"><span class="cl-daily__signal-dot" aria-hidden="true"></span>Gochar transits — what Saturn, Jupiter, Rahu, Ketu, and others are doing to your natal chart</li>
+            <li class="cl-daily__signal"><span class="cl-daily__signal-dot" aria-hidden="true"></span>Panchangam quality — Tithi, Vara, Nakshatra, Yoga, Karana for the day</li>
+            <li class="cl-daily__signal"><span class="cl-daily__signal-dot" aria-hidden="true"></span>Best window and caution window — specific times, not vague ranges</li>
+            <li class="cl-daily__signal"><span class="cl-daily__signal-dot" aria-hidden="true"></span>Chandrashtama tracking when relevant — named clearly, not dramatised</li>
+          </ul>
+          <a href="/features/daily-guidance" class="cl-btn cl-btn--ghost">How daily guidance works →</a>
+        </div>
+        <div class="cl-daily-card">
+          <div class="cl-daily-card__head">
+            <p class="cl-daily-card__label">Daily Reading · Sample</p>
+            <span class="cl-daily-card__score">64</span>
+          </div>
+          <div class="cl-daily-card__windows">
+            <div class="cl-daily-card__win cl-daily-card__win--best"><p class="cl-daily-card__win-label">Best Window</p><p class="cl-daily-card__win-time">11:53 – 12:41</p></div>
+            <div class="cl-daily-card__win cl-daily-card__win--hold"><p class="cl-daily-card__win-label">Caution</p><p class="cl-daily-card__win-time">15:28 – 17:03</p></div>
+          </div>
+          <p class="cl-daily-card__summary">Moon Dasa · Moon Bhukti. Saturn refines home and inner stability. A measured day — good for steady work, cautious for new ventures.</p>
+          <div class="cl-daily-card__signals">
+            <span class="cl-daily-card__chip">Moon Dasa · Moon Bhukti</span>
+            <span class="cl-daily-card__chip">Saturn in Kumbam · Jupiter in Mesham</span>
+            <span class="cl-daily-card__chip">Ekadasi · Kettai · Vishkambha</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4 — Family planning -->
+    <section class="cl-balance" id="family">
+      <div class="cl-container cl-balance__inner">
+        <div class="cl-balance__copy">
+          <p class="cl-eyebrow">Family Planning</p>
+          <h2 class="cl-section-h2">Plan for yourself, or for the people you share life with.</h2>
+          <p class="cl-section-body">Most astrology products stop at individual readings. Vinaadi is built for the way Tamil families actually use astrology — together. Add family members, see everyone's reading side by side, and find the windows that work for the whole household.</p>
+          <ul class="cl-check-list">
+            <li class="cl-check-list__item"><span class="cl-check-list__dot" aria-hidden="true"></span>Family vault with individual birth profiles for each member</li>
+            <li class="cl-check-list__item"><span class="cl-check-list__dot" aria-hidden="true"></span>Shared best-window view — plan important events for everyone</li>
+            <li class="cl-check-list__item"><span class="cl-check-list__dot" aria-hidden="true"></span>Porutham compatibility when making family decisions</li>
+            <li class="cl-check-list__item"><span class="cl-check-list__dot" aria-hidden="true"></span>Dasha comparisons across family members</li>
+          </ul>
+          <a href="/features/family-planning" class="cl-btn cl-btn--ghost cl-balance-cta">Family planning feature →</a>
+        </div>
+        <div class="cl-score-panel">
+          <p class="cl-score-panel__label">Your family today</p>
+          <div class="cl-score-row"><span class="cl-score-row__name">Arjun</span><div class="cl-score-bar-wrap"><div class="cl-score-bar cl-score-bar--mid" style="width:64%"></div></div><span class="cl-score-num cl-score-num--mid">64</span></div>
+          <div class="cl-score-row"><span class="cl-score-row__name">Priya</span><div class="cl-score-bar-wrap"><div class="cl-score-bar cl-score-bar--high" style="width:81%"></div></div><span class="cl-score-num cl-score-num--high">81</span></div>
+          <div class="cl-score-row"><span class="cl-score-row__name">Kavitha</span><div class="cl-score-bar-wrap"><div class="cl-score-bar cl-score-bar--low" style="width:47%"></div></div><span class="cl-score-num cl-score-num--low">47</span></div>
+          <p class="cl-score-panel__foot">Best combined window: 11:53 – 12:41</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5 — Tools -->
+    <section class="cl-tools-preview">
+      <div class="cl-container">
+        <div class="cl-tools-preview__head">
+          <p class="cl-eyebrow">Tools</p>
+          <h2 class="cl-section-h2">When you need a tool, it's already part of the guide</h2>
+        </div>
+        <p class="cl-tools-preview__sub">Vinaadi includes powerful tools — not as separate apps, but as extensions of the same assistant. Use them when you need them.</p>
+        <div class="cl-tools-grid">
+          <a href="/tools/marriage-porutham-calculator" class="cl-tool-card"><span class="cl-tool-card__icon">⊕</span><h3 class="cl-tool-card__name">Marriage Porutham</h3><p class="cl-tool-card__desc">Full 10-porutham compatibility analysis using the Tamil standard — Rajju, Vedha, Nadi, Sevvai dosham, and all kuta checks.</p><span class="cl-tool-card__link">Porutham calculator →</span></a>
+          <a href="/tools/jadhagam-generator" class="cl-tool-card"><span class="cl-tool-card__icon">◈</span><h3 class="cl-tool-card__name">Jadhagam Generator</h3><p class="cl-tool-card__desc">South Indian birth chart in Thirukanitham format — D1 Rasi chart and D9 Navamsa, with Lahiri ayanamsa precision.</p><span class="cl-tool-card__link">Generate jadhagam →</span></a>
+          <a href="/tools/daily-panchangam-planner" class="cl-tool-card"><span class="cl-tool-card__icon">☽</span><h3 class="cl-tool-card__name">Daily Panchangam Planner</h3><p class="cl-tool-card__desc">Tithi, Vara, Nakshatra, Yoga, Karana — plus Rahu Kalam, Yamagandam, and auspicious timings for any day.</p><span class="cl-tool-card__link">Panchangam planner →</span></a>
+          <a href="/tools/birth-time-rectification" class="cl-tool-card"><span class="cl-tool-card__icon">◎</span><h3 class="cl-tool-card__name">Birth Time Rectification</h3><p class="cl-tool-card__desc">Refine an uncertain birth time using life events and the Thirukanitham calculation method for more accurate readings.</p><span class="cl-tool-card__link">Rectification tool →</span></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 6 — How it works -->
+    <section class="cl-how">
+      <div class="cl-container">
+        <div class="cl-how__head">
+          <p class="cl-eyebrow">How it works</p>
+          <h2 class="cl-section-h2">Traditional inputs. Clear output. Modern guidance.</h2>
+        </div>
+        <div class="cl-how-steps">
+          <div class="cl-how-step"><span class="cl-how-step__num">01</span><h3 class="cl-how-step__title">Add your birth details</h3><p class="cl-how-step__body">Date, time, and place of birth. Vinaadi uses this to compute your precise Thirukanitham jadhagam — lagna, nakshatras, rasi, dasha period.</p></div>
+          <div class="cl-how-step"><span class="cl-how-step__num">02</span><h3 class="cl-how-step__title">Vinaadi reads chart, dasha, transits, and panchangam together</h3><p class="cl-how-step__body">Every day, the assistant combines your natal chart analysis with current dasha period, gochar transits, and the day's panchangam into one reading.</p></div>
+          <div class="cl-how-step"><span class="cl-how-step__num">03</span><h3 class="cl-how-step__title">Get one balanced answer</h3><p class="cl-how-step__body">A daily score, a best window, a caution window, and a brief interpretation. For decisions, tools, or family context — it's all in the same place.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 7 — Method and trust -->
+    <section class="cl-method">
+      <div class="cl-container cl-method__inner">
+        <div class="cl-method__copy">
+          <p class="cl-eyebrow">Method &amp; Trust</p>
+          <h2 class="cl-section-h2">Built on method, not vague astrology language</h2>
+          <p class="cl-section-body">Vinaadi is designed to be transparent about how it works. Every reading shows the reasoning behind it. Every signal is sourced from a specific astrological input.</p>
+          <div class="cl-method-items">
+            <div class="cl-method-item"><h3 class="cl-method-item__title">Thirukanitham</h3><p class="cl-method-item__body">The Tamil astronomical calculation standard — precise planet positions, traditional South Indian methodology.</p></div>
+            <div class="cl-method-item"><h3 class="cl-method-item__title">Lahiri ayanamsa</h3><p class="cl-method-item__body">India's government-recognized sidereal ayanamsa standard. The same used by traditional Tamil Jyotish practitioners.</p></div>
+            <div class="cl-method-item"><h3 class="cl-method-item__title">Drik ephemeris precision</h3><p class="cl-method-item__body">High-accuracy astronomical data — the same source used in modern Tamil panchang publications.</p></div>
+            <div class="cl-method-item"><h3 class="cl-method-item__title">Multi-signal daily score</h3><p class="cl-method-item__body">Dasha + transit + panchangam + Moon nakshatra combined into one reading. Not a single-factor verdict.</p></div>
+            <div class="cl-method-item"><h3 class="cl-method-item__title">Calm interpretation</h3><p class="cl-method-item__body">No fear language. No doom predictions. Vinaadi frames astrology as a planning tool, not a fatalistic oracle.</p></div>
+          </div>
+        </div>
+        <div class="cl-method-panel">
+          <p class="cl-method-panel__title">Vinaadi is designed to help users interpret astrology thoughtfully, not fearfully.</p>
+          <p class="cl-method-panel__body">Jyotish is a traditional belief system with deep roots in Tamil culture. We approach it with respect for that tradition while communicating clearly and calmly. Every verdict includes the reasoning. Your data is never sold or shared.</p>
+          <a href="/trust/methodology" class="cl-method-panel__link">Full methodology →</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 8 — Feature hub -->
+    <section class="cl-feature-hub">
+      <div class="cl-container">
+        <div class="cl-feature-hub__head">
+          <p class="cl-eyebrow">Features</p>
+          <h2 class="cl-section-h2">Explore the ways Vinaadi can guide you</h2>
+        </div>
+        <div class="cl-feature-hub-grid">
+          <a href="/features/daily-guidance" class="cl-fhub-card"><p class="cl-fhub-card__eyebrow">Feature</p><h3 class="cl-fhub-card__title">Daily Guidance</h3><p class="cl-fhub-card__body">One daily reading combining chart, dasha, transits, and panchangam. Your best window, caution window, and day tone.</p><span class="cl-fhub-card__arrow">→</span></a>
+          <a href="/features/family-planning" class="cl-fhub-card"><p class="cl-fhub-card__eyebrow">Feature</p><h3 class="cl-fhub-card__title">Family Planning</h3><p class="cl-fhub-card__body">Add family members, compare readings, and find the timing windows that work for the whole household.</p><span class="cl-fhub-card__arrow">→</span></a>
+          <a href="/features/chart-guidance" class="cl-fhub-card"><p class="cl-fhub-card__eyebrow">Feature</p><h3 class="cl-fhub-card__title">Chart Guidance</h3><p class="cl-fhub-card__body">Understand your jadhagam — lagna, planets, yogas, doshas, and what they mean in the context of your current dasha.</p><span class="cl-fhub-card__arrow">→</span></a>
+          <a href="/features/timing-and-decisions" class="cl-fhub-card"><p class="cl-fhub-card__eyebrow">Feature</p><h3 class="cl-fhub-card__title">Timing and Decisions</h3><p class="cl-fhub-card__body">Plan important actions — ceremonies, travel, business, health — with astrological timing grounded in Thirukanitham.</p><span class="cl-fhub-card__arrow">→</span></a>
+          <a href="/tools/marriage-porutham-calculator" class="cl-fhub-card"><p class="cl-fhub-card__eyebrow">Tool</p><h3 class="cl-fhub-card__title">Porutham Calculator</h3><p class="cl-fhub-card__body">Full 10-porutham marriage matching using the Tamil standard. Rajju, Vedha, Nadi, Sevvai — clearly explained.</p><span class="cl-fhub-card__arrow">→</span></a>
+          <a href="/trust/methodology" class="cl-fhub-card"><p class="cl-fhub-card__eyebrow">Method</p><h3 class="cl-fhub-card__title">Our Methodology</h3><p class="cl-fhub-card__body">How Vinaadi calculates — Thirukanitham, Lahiri ayanamsa, Drik ephemeris, multi-signal daily score.</p><span class="cl-fhub-card__arrow">→</span></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 9 — Learn -->
+    <section class="cl-learn-strip">
+      <div class="cl-container">
+        <div class="cl-learn-strip__head">
+          <p class="cl-eyebrow">Learn</p>
+          <h2 class="cl-section-h2">Learn the ideas behind the guidance</h2>
+        </div>
+        <div class="cl-learn-links">
+          <a href="/learn/what-is-porutham" class="cl-learn-pill">What is Porutham?</a>
+          <a href="/learn/what-is-thirukanitham" class="cl-learn-pill">What is Thirukanitham?</a>
+          <a href="/learn/what-is-chandrashtama" class="cl-learn-pill">What is Chandrashtama?</a>
+          <a href="/learn/how-to-read-a-jadhagam" class="cl-learn-pill">How to read a Jadhagam</a>
+          <a href="/learn/why-birth-time-matters" class="cl-learn-pill">Why birth time matters</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 10 — Commitment -->
+    <section class="cl-commit" id="commitment">
+      <div class="cl-container cl-commit__inner">
+        <p class="cl-eyebrow cl-commit-eyebrow">Our commitment</p>
+        <h2 class="cl-section-h2 cl-commit-title"><em>Calm language</em>, no fear.</h2>
+        <div class="cl-commit-grid">
+          <div class="cl-commit-item"><span class="cl-commit-item__icon">✓</span><p class="cl-commit-item__text">No doom language or guaranteed bad predictions</p></div>
+          <div class="cl-commit-item"><span class="cl-commit-item__icon">✓</span><p class="cl-commit-item__text">Every verdict shows the reasoning behind it</p></div>
+          <div class="cl-commit-item"><span class="cl-commit-item__icon">✓</span><p class="cl-commit-item__text">Your data stays on our servers — never sold</p></div>
+          <div class="cl-commit-item"><span class="cl-commit-item__icon">✓</span><p class="cl-commit-item__text">Jyotish is tradition, not science — we say so clearly</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 11 — Final CTA -->
+    <section class="cl-pricing" id="pricing">
+      <div class="cl-container cl-pricing__inner">
+        <p class="cl-eyebrow">Early access</p>
+        <h2 class="cl-section-h2 cl-pricing__title">Start with one reading. Stay for the clarity.</h2>
+        <p class="cl-section-body cl-pricing__body">Full access — chart, daily guidance, family vault, all tools — at no cost during early access.</p>
+        <a href="/dashboard" class="cl-btn cl-btn--solid">Get started free →</a>
+      </div>
+    </section>
+
+  </main>
+</div>
+<script src="site.js"></script>
+</body>
+</html>

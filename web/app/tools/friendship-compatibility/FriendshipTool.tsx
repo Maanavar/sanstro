@@ -86,7 +86,7 @@ export function FriendshipTool() {
         <section className="cl-pub-hero" style={{ paddingBottom: "24px" }}>
           <div className="cl-container">
             <p className="cl-eyebrow">Friends & Compatibility · நட்பு பொருத்தம்</p>
-            <h1 className="cl-pub-h1" style={{ maxWidth: "20ch" }}>
+            <h1 className="cl-pub-h1">
               {lang === "ta" ? "உங்கள் நட்பு பாணியைக் கண்டறியுங்கள்" : "Find your friendship style"}
             </h1>
             <p className="cl-pub-lead" style={{ maxWidth: "54ch" }}>

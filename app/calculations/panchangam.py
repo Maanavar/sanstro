@@ -307,7 +307,11 @@ CHANDRASHTAMAM_OFFSETS = (8, 12, 16, 21, 24)
 
 PANCHANGAM_CACHE_TTL_HOURS = 24
 DEFAULT_AYANAMSA_TYPE = "LAHIRI"
-PANCHANGAM_CACHE_DATA_VERSION = 21
+# v22: persist the civil-day dominant tithi/nakshatra/yoga numbers in the cached
+# record so the monthly calendar reads them instead of re-walking the ephemeris.
+# v23: Gowri Nalla Neram morning (DAY) slots shifted +15 min to match the common
+# Tamil almanac clock-table convention.
+PANCHANGAM_CACHE_DATA_VERSION = 23
 DOMINANT_SPECIAL_TITHIS = {15, 30}
 
 # Compact daily-calendar summary windows used by Tamil calendars for everyday
@@ -330,21 +334,25 @@ NALLA_NERAM_SUMMARY_TABLE = {
     6: ((7 * 60 + 30, 8 * 60 + 30, "AM"), (15 * 60 + 30, 16 * 60 + 30, "PM")),
 }
 
+# Morning (DAY) slots align with the common Tamil almanac clock-table convention,
+# which starts 15 minutes later than the earlier draft used here (e.g. Mon 9:30
+# not 9:15). Evening (NIGHT) slots already matched reference almanacs and are
+# left unchanged.
 GOWRI_NALLA_NERAM_SUMMARY_TABLE = {
     # Mon
-    0: ((9 * 60 + 15, 10 * 60 + 15, "DAY"), (19 * 60 + 30, 20 * 60 + 30, "NIGHT")),
+    0: ((9 * 60 + 30, 10 * 60 + 30, "DAY"), (19 * 60 + 30, 20 * 60 + 30, "NIGHT")),
     # Tue
-    1: ((10 * 60 + 30, 11 * 60 + 30, "DAY"), (19 * 60 + 30, 20 * 60 + 30, "NIGHT")),
+    1: ((10 * 60 + 45, 11 * 60 + 45, "DAY"), (19 * 60 + 30, 20 * 60 + 30, "NIGHT")),
     # Wed
-    2: ((10 * 60 + 45, 11 * 60 + 45, "DAY"), (18 * 60 + 30, 19 * 60 + 30, "NIGHT")),
+    2: ((11 * 60 + 0, 12 * 60 + 0, "DAY"), (18 * 60 + 30, 19 * 60 + 30, "NIGHT")),
     # Thu
-    3: ((6 * 60 + 30, 7 * 60 + 30, "DAY"), (18 * 60 + 30, 19 * 60 + 30, "NIGHT")),
+    3: ((6 * 60 + 45, 7 * 60 + 45, "DAY"), (18 * 60 + 30, 19 * 60 + 30, "NIGHT")),
     # Fri
-    4: ((12 * 60 + 30, 13 * 60 + 30, "DAY"), (18 * 60 + 30, 19 * 60 + 30, "NIGHT")),
+    4: ((12 * 60 + 45, 13 * 60 + 45, "DAY"), (18 * 60 + 30, 19 * 60 + 30, "NIGHT")),
     # Sat
-    5: ((10 * 60 + 30, 11 * 60 + 30, "DAY"), (21 * 60 + 30, 22 * 60 + 30, "NIGHT")),
+    5: ((10 * 60 + 45, 11 * 60 + 45, "DAY"), (21 * 60 + 30, 22 * 60 + 30, "NIGHT")),
     # Sun
-    6: ((10 * 60 + 45, 11 * 60 + 45, "DAY"), (25 * 60 + 30, 26 * 60 + 30, "NIGHT")),
+    6: ((11 * 60 + 0, 12 * 60 + 0, "DAY"), (25 * 60 + 30, 26 * 60 + 30, "NIGHT")),
 }
 
 
@@ -470,6 +478,12 @@ class PanchangamSnapshot:
     chandrashtamam_affected_janma_rasi_name: str
     chandrashtamam_today_nakshatras: tuple[str, ...]
     warnings: tuple[str, ...] = ()
+    # Dominant (longest-span) state for the whole civil day, used by the monthly
+    # calendar grid. Cached so the monthly endpoint never re-walks the ephemeris.
+    # 0 means "not computed" — callers fall back to the live computation.
+    dominant_tithi_number: int = 0
+    dominant_nakshatra_number: int = 0
+    dominant_yoga_number: int = 0
 
 
 def _format_hhmm(moment: datetime) -> str:
@@ -1107,6 +1121,9 @@ def _serialize_snapshot(snapshot: PanchangamSnapshot) -> dict:
         "chandrashtamam_affected_janma_rasi_name": snapshot.chandrashtamam_affected_janma_rasi_name,
         "chandrashtamam_today_nakshatras": list(snapshot.chandrashtamam_today_nakshatras),
         "warnings": list(snapshot.warnings),
+        "dominant_tithi_number": snapshot.dominant_tithi_number,
+        "dominant_nakshatra_number": snapshot.dominant_nakshatra_number,
+        "dominant_yoga_number": snapshot.dominant_yoga_number,
     }
 
 
@@ -1207,6 +1224,9 @@ def _deserialize_snapshot(data: dict) -> PanchangamSnapshot:
         chandrashtamam_affected_janma_rasi_name=str(data.get("chandrashtamam_affected_janma_rasi_name", "")),
         chandrashtamam_today_nakshatras=tuple(data.get("chandrashtamam_today_nakshatras", [])),
         warnings=tuple(data.get("warnings", [])),
+        dominant_tithi_number=int(data.get("dominant_tithi_number", 0)),
+        dominant_nakshatra_number=int(data.get("dominant_nakshatra_number", 0)),
+        dominant_yoga_number=int(data.get("dominant_yoga_number", 0)),
     )
 
 
@@ -1432,6 +1452,13 @@ def calculate_daily_panchangam(
     affected_janma_rasi_number = _chandrashtamam_affected_janma_rasi(moon_rasi_number)
     chandrashtamam_today_nakshatras = _chandrashtamam_today_nakshatras(nakshatra_number)
 
+    # Dominant state across the civil day (what the monthly calendar grid shows).
+    # Computed once here so it lands in the cache record; the monthly endpoint then
+    # reads it back instead of re-walking the ephemeris for every day of the month.
+    dominant_tithi_number = dominant_tithi_for_civil_day(date_local, timezone_name) or tithi_number
+    dominant_nakshatra_number = dominant_nakshatra_for_civil_day(date_local, timezone_name) or nakshatra_number
+    dominant_yoga_number = dominant_yoga_for_civil_day(date_local, timezone_name) or yoga_number
+
     snapshot = PanchangamSnapshot(
         date_local=date_local,
         timezone_name=timezone_name,
@@ -1495,6 +1522,9 @@ def calculate_daily_panchangam(
         chandrashtamam_affected_janma_rasi_name=RASI_NAMES[affected_janma_rasi_number],
         chandrashtamam_today_nakshatras=chandrashtamam_today_nakshatras,
         warnings=warnings,
+        dominant_tithi_number=dominant_tithi_number,
+        dominant_nakshatra_number=dominant_nakshatra_number,
+        dominant_yoga_number=dominant_yoga_number,
     )
 
     if use_cache and session is not None:

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { apiFetchJson } from "@/lib/api";
 import { clearFcmTokenLocal, fetchFcmToken, hasFirebaseMessagingConfig } from "@/lib/firebase-messaging";
+import { formatDateTimeLabel } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { NotificationPreferenceData } from "@/lib/types";
@@ -401,8 +402,8 @@ export function DashboardSettingsSessionTab({
 
   const fmt = (v: string | null) => {
     if (!v) return t("settings_retention_not_available", lang);
-    const d = new Date(v);
-    return Number.isNaN(d.getTime()) ? t("settings_retention_not_available", lang) : d.toLocaleString();
+    const formatted = formatDateTimeLabel(v);
+    return formatted === v ? t("settings_retention_not_available", lang) : formatted;
   };
   const fmtDate = (v: string | null) => {
     if (!v) return t("settings_retention_not_available", lang);

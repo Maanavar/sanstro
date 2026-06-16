@@ -48,6 +48,15 @@ export default function PrivacyPage() {
         <section className="cl-trust-body">
           <div className="cl-container cl-trust-prose">
 
+            <h2>Beta notice</h2>
+            <p>
+              Vinaadi is currently in open beta. Features are evolving and this
+              policy may be updated as the product matures. We will post the
+              updated date below whenever it changes. By using the beta you help
+              us improve — see our <Link href="/beta" className="cl-trust-link">beta page</Link> for
+              what this means.
+            </p>
+
             <h2>What we collect</h2>
             <p>
               Vinaadi collects only the information required to provide your
@@ -66,18 +75,37 @@ export default function PrivacyPage() {
               for marketing purposes.
             </p>
 
-            <h2>Data storage</h2>
+            <h2>Data storage and security</h2>
             <p>
-              Your data is stored on secured servers. Birth profiles and reading
-              history are retained for the life of your account. You may delete
-              your account and all associated data at any time by contacting us.
+              Your data is stored on secured servers. Your birth details are
+              <strong> encrypted at rest</strong>, transmitted over HTTPS, and access
+              to them is restricted to the systems that generate your readings.
+              Birth profiles and reading history are retained for the life of your
+              account.
+            </p>
+
+            <h2>Your rights and data deletion</h2>
+            <p>
+              You may request access to, correction of, or deletion of your
+              personal data at any time. To delete your account and all associated
+              data — birth profiles, charts, family member profiles, and reading
+              history — email <a href="mailto:privacy@vinaadi.com" className="cl-trust-link">privacy@vinaadi.com</a> or
+              use the contact option in your dashboard settings. We action deletion
+              requests promptly and confirm once complete.
             </p>
 
             <h2>Cookies and analytics</h2>
             <p>
-              Vinaadi uses session cookies for authentication. We may use
-              privacy-respecting analytics to understand aggregate usage patterns.
-              We do not use advertising trackers or behavioural profiling cookies.
+              Vinaadi uses a session cookie for authentication. For product
+              analytics we use PostHog, configured in a privacy-respecting way: it
+              stores a first-party identifier in your browser&apos;s local storage
+              (not a tracking cookie), is hosted in the EU, and honours your
+              browser&apos;s &quot;Do Not Track&quot; setting. We only record a
+              small set of named events — such as a page view, generating a chart,
+              or submitting feedback — to understand aggregate usage. We never send
+              your birth details, name, email, or the content you type to
+              analytics, and we do not use advertising trackers or behavioural
+              profiling cookies.
             </p>
 
             <h2>Astrology disclaimer</h2>
@@ -90,8 +118,9 @@ export default function PrivacyPage() {
 
             <h2>Contact</h2>
             <p>
-              For privacy questions or data deletion requests, please contact us
-              through the dashboard or email listed in your account settings.
+              For privacy questions or data deletion requests, contact us at{" "}
+              <a href="mailto:privacy@vinaadi.com" className="cl-trust-link">privacy@vinaadi.com</a> or
+              through the dashboard in your account settings.
             </p>
 
             <div className="cl-trust-links">

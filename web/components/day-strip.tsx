@@ -15,7 +15,7 @@ const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function DayStrip({ days, selectedDate, onSelectDate }: DayStripProps) {
   return (
-    <div className="day-strip" role="list" aria-label="Week ahead scores">
+    <div className="day-strip" aria-label="Week ahead scores">
       {days.map((day) => {
         const band = getScoreBand(day.score);
         const date = new Date(day.dateLocal);
@@ -39,7 +39,6 @@ export function DayStrip({ days, selectedDate, onSelectDate }: DayStripProps) {
           <button
             key={day.dateLocal}
             type="button"
-            role="listitem"
             className={cellClass}
             onClick={() => onSelectDate(day.dateLocal)}
             aria-label={`${day.dateLocal}: score ${day.score}`}

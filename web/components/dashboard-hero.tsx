@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { todayIso } from "@/lib/format";
 import { t } from "@/lib/i18n";
@@ -18,6 +18,37 @@ type Tab = "onboarding" | "personal" | "tools" | "transits" | "plan" | "life-are
 type LabelKey = Parameters<typeof t>[0];
 
 const SHOW_QA_TAB = process.env.NODE_ENV !== "production";
+
+const DAILY_PRINCIPLES: Array<{ en: string; ta: string }> = [
+  {
+    en: "A dasha is a window, not a verdict. What you bring to it shapes what you take from it.",
+    ta: "தசை ஒரு ஜன்னல், தீர்ப்பல்ல. நீங்கள் அதில் கொண்டுவருவதே நீங்கள் பெறுவதை வடிவமைக்கிறது.",
+  },
+  {
+    en: "Planetary periods amplify what you focus on. Direct your attention with intention.",
+    ta: "கிரகக் காலங்கள் நீங்கள் கவனிப்பதை பெருக்கும். உங்கள் கவனத்தை நோக்கத்துடன் திருப்புங்கள்.",
+  },
+  {
+    en: "A caution signal is not a prediction of failure — it is a reminder to act wisely.",
+    ta: "எச்சரிக்கை சிக்னல் தோல்வியின் முன்னறிவிப்பல்ல — புத்திசாலித்தனமாக செயல்பட நினைவூட்டல் மட்டுமே.",
+  },
+  {
+    en: "The universe tends to move you toward what you consistently hold in mind.",
+    ta: "நீங்கள் தொடர்ந்து மனதில் கொண்டிருப்பதை நோக்கி பிரபஞ்சம் உங்களை நகர்த்துகிறது.",
+  },
+  {
+    en: "A favourable period still requires your effort. Vinaadi shows you when the ground is ready.",
+    ta: "சாதகமான காலமும் உங்கள் முயற்சி தேவைப்படும். நிலம் தயாராக இருக்கும் நேரத்தை விநாடி காட்டுகிறது.",
+  },
+  {
+    en: "Astrology reads the weather. You still decide whether to dance in the rain or carry an umbrella.",
+    ta: "ஜோதிடம் வானிலையை வாசிக்கிறது. மழையில் நடனமாடுவதா அல்லது குடை எடுப்பதா என்பதை நீங்கள் தீர்மானிக்கிறீர்கள்.",
+  },
+  {
+    en: "The birth chart is the instrument you were given. How you play it remains entirely your choice.",
+    ta: "ஜாதகம் உங்களுக்கு கொடுக்கப்பட்ட கருவி. நீங்கள் அதை எப்படி வாசிக்கிறீர்கள் என்பது முற்றிலும் உங்கள் தேர்வே.",
+  },
+];
 
 const TAB_DEFS: Array<{ id: Tab; labelEn: string; labelTaKey?: LabelKey }> = [
   { id: "personal", labelEn: "Personal", labelTaKey: "tab_personal" },
@@ -153,12 +184,21 @@ export function DashboardHero(props: DashboardHeroProps) {
   const todayDate = useRef(todayIso());
   const [showAlerts, setShowAlerts] = useState(false);
   const [showInbox, setShowInbox] = useState(false);
+  const activeTabRef = useRef<HTMLButtonElement>(null);
 
   const lagnaRasi = chartSummary?.lagnaRasi ?? "";
+  // Settings is reachable from the avatar menu, so it is omitted from the tab
+  // strip to keep the mobile nav compact. QA only shows outside production.
   const tabs = useMemo(
-    () => (SHOW_QA_TAB ? TAB_DEFS : TAB_DEFS.filter((tab) => tab.id !== "qa")),
+    () => TAB_DEFS.filter((tab) => tab.id !== "settings" && (SHOW_QA_TAB || tab.id !== "qa")),
     [],
   );
+
+  // Keep the active tab scrolled into view on the mobile scrollable strip so the
+  // user can always see where they are, even when tabs overflow the viewport.
+  useEffect(() => {
+    activeTabRef.current?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  }, [activeTab]);
 
   const langToggleTitle = lang === "ta" ? "Switch to English" : "தமிழுக்கு மாறு";
 
@@ -317,16 +357,20 @@ export function DashboardHero(props: DashboardHeroProps) {
 
       <nav className="cd-tabnav" aria-label="Dashboard navigation">
         <div className="cd-tabnav__inner">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              className={`cd-tab${activeTab === tab.id ? " cd-tab--active" : ""}`}
-              onClick={() => onTabChange(tab.id)}
-            >
-              {lang === "ta" && tab.labelTaKey ? t(tab.labelTaKey, lang) : tab.labelEn}
-            </button>
-          ))}
+          <div className="cd-tabnav__scroll">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                ref={activeTab === tab.id ? activeTabRef : undefined}
+                className={`cd-tab${activeTab === tab.id ? " cd-tab--active" : ""}`}
+                aria-current={activeTab === tab.id ? "page" : undefined}
+                onClick={() => onTabChange(tab.id)}
+              >
+                {lang === "ta" && tab.labelTaKey ? t(tab.labelTaKey, lang) : tab.labelEn}
+              </button>
+            ))}
+          </div>
 
           <div className="cd-tabnav__right">
             <label htmlFor="dashboard-date" className="cd-visually-hidden">
@@ -346,6 +390,30 @@ export function DashboardHero(props: DashboardHeroProps) {
           </div>
         </div>
       </nav>
+
+      {/* Daily principle strip — rotates by day of week */}
+      {(() => {
+        const principle = DAILY_PRINCIPLES[new Date(selectedDate).getDay()] ?? DAILY_PRINCIPLES[0];
+        return (
+          <div style={{
+            padding: "8px 20px",
+            background: "rgba(184, 90, 44, 0.05)",
+            borderBottom: "1px solid rgba(184, 90, 44, 0.14)",
+            textAlign: "center",
+          }}>
+            <p style={{
+              margin: 0,
+              fontSize: "0.72rem",
+              fontStyle: "italic",
+              color: "#6B4C2A",
+              letterSpacing: "0.01em",
+              lineHeight: 1.55,
+            }}>
+              {lang === "ta" ? principle.ta : principle.en}
+            </p>
+          </div>
+        );
+      })()}
 
       {toast && (
         <div className={`cd-toast cd-toast--${toast.tone}`} role="status" aria-live="polite">

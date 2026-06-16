@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
@@ -35,42 +34,58 @@ def _create_test_chart(client) -> tuple[str, str]:
 
 def _mock_claude_response(ta: str, en: str, signals: list, confidence: str = "MEDIUM") -> MagicMock:
     mock_msg = MagicMock()
-    mock_msg.content = [MagicMock()]
-    mock_msg.content[0].text = json.dumps({
+    block = MagicMock()
+    block.type = "text"
+    block.text = json.dumps({
         "ta": ta,
         "en": en,
         "signals_used": signals,
         "confidence": confidence,
     })
+    mock_msg.content = [block]
     return mock_msg
 
 
-# ── Unit tests ────────────────────────────────────────────────────────────────
+# ── Unit tests: DB-backed chip counter (single source of truth) ───────────────
 
 
-def test_ask_vinaadi_counter_increments():
-    from app.services.ask_vinaadi_service import _daily_counts, _get_count, _today_key
+def test_ask_vinaadi_counter_increments(client):
+    """consume_chip increments the DB-backed daily usage row."""
+    from uuid import UUID
 
-    import uuid
-    uid = str(uuid.uuid4())
-    today = _today_key()
-    assert _get_count(uid) == 0
-    _daily_counts[uid][today] = 3
-    assert _get_count(uid) == 3
-    del _daily_counts[uid]
+    from app.services.ask_vinaadi_usage_service import consume_chip, get_daily_status
+    from tests.conftest import TEST_USER_ID, SessionLocal
+
+    uid = UUID(TEST_USER_ID)
+    with SessionLocal() as session, session.begin():
+        assert get_daily_status(session, uid)["chipsUsed"] == 0
+        consume_chip(session, uid)
+        consume_chip(session, uid)
+    with SessionLocal() as session:
+        assert get_daily_status(session, uid)["chipsUsed"] == 2
 
 
-def test_ask_vinaadi_rate_limit_raises():
-    from app.services.ask_vinaadi_service import _daily_counts, _increment_and_check, _today_key
+def test_ask_vinaadi_rate_limit_raises(client):
+    """assert_chip_available raises 429 once the free daily allowance is spent."""
+    from uuid import UUID
+
     from fastapi import HTTPException
 
-    import uuid
-    uid = str(uuid.uuid4())
-    _daily_counts[uid][_today_key()] = 10
-    with pytest.raises(HTTPException) as exc:
-        _increment_and_check(uid, limit=10)
+    from app.services.ask_vinaadi_usage_service import (
+        FREE_DAILY_CHIPS,
+        assert_chip_available,
+        consume_chip,
+    )
+    from tests.conftest import TEST_USER_ID, SessionLocal
+
+    uid = UUID(TEST_USER_ID)
+    with SessionLocal() as session, session.begin():
+        for _ in range(FREE_DAILY_CHIPS):
+            consume_chip(session, uid)
+    with SessionLocal() as session:
+        with pytest.raises(HTTPException) as exc:
+            assert_chip_available(session, uid)
     assert exc.value.status_code == 429
-    del _daily_counts[uid]
 
 
 # ── Integration tests: 503 when no API key ────────────────────────────────────

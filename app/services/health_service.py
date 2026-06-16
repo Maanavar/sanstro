@@ -113,8 +113,8 @@ def assess_health_prediction(payload: HealthAssessmentInput) -> LifeAreaPredicti
             score -= 4
             challenges.append(
                 BiText(
-                    f"{house_name} வீட்டு அதிபதி பாதிப்பு சிக்னல் தருகிறது.",
-                    f"{house_name} house-lord placement indicates caution.",
+                    f"{house_name} வீட்டு அதிபதி கவனம் தேவைப்படும் சிக்னல் தருகிறது — தடுப்பு பரிசோதனை மற்றும் ஆரோக்கியமான வழக்கங்கள் இப்போது மிக முக்கியம்.",
+                    f"{house_name} house-lord placement is a signal to be attentive — preventive check-ups and consistent health routines are especially valuable now.",
                 )
             )
         else:
@@ -127,7 +127,7 @@ def assess_health_prediction(payload: HealthAssessmentInput) -> LifeAreaPredicti
             affliction_count += 1
     if affliction_count >= 2:
         score -= 8
-        challenges.append(BiText("சனி/செவ்வாய்/ராகு அழுத்தம் அதிகம்.", "Saturn/Mars/Rahu pressure is elevated."))
+        challenges.append(BiText("சனி/செவ்வாய்/ராகு அழுத்தம் அதிகம் — இது நினைவு கூறுகிறது: நிலையான தினசரி வழக்கங்கள், போதுமான தூக்கம், உடற்பயிற்சி ஆகியவை இப்போது சிறந்த பாதுகாப்பு.", "Saturn/Mars/Rahu pressure is elevated — a reminder that steady daily routines, adequate rest, and regular movement are your strongest protection right now."))
     elif affliction_count == 0:
         score += 4
         supports.append(BiText("கடின கிரக அழுத்தம் குறைவாக உள்ளது.", "Heavy-planet pressure is limited."))

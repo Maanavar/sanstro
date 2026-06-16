@@ -103,6 +103,7 @@ export function usePlanData({ chartId, onError, onGoalAdded, onGoalRemoved }: Us
       return;
     }
     void loadGoals(chartId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when chartId changes; loadGoals is recreated each render
   }, [chartId]);
 
   return {

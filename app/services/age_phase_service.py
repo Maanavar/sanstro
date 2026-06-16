@@ -252,7 +252,7 @@ def get_age_based_remedies(
     # Dasha-specific remedy
     dasha_remedies: dict[str, tuple[str, str]] = {
         "SUN": ("Offer water (arghya) to the rising Sun on Sundays.", "ஞாயிற்றுக்கிழமைகளில் உதய சூரியனுக்கு அர்க்கியம் செலுத்தவும்."),
-        "MOON": ("Fasting or simple sattvic food on Mondays and offering milk to Shiva/Goddess.", "திங்கட்கிழமைகளில் விரதம் அல்லது சாத்வீக உணவு மற்றும் சிவன்/தேவிக்கு பால் படைத்தல்."),
+        "MOON": ("Fasting (only if your health permits) or simple sattvic food on Mondays and offering milk to Shiva/Goddess.", "திங்கட்கிழமைகளில் விரதம் (உடல்நலம் இடம் தந்தால்) அல்லது சாத்வீக உணவு மற்றும் சிவன்/தேவிக்கு பால் படைத்தல்."),
         "MARS": ("Hanuman puja on Tuesdays and reciting Anjaneya stotra supports Mars.", "செவ்வாய்க்கிழமைகளில் ஆஞ்சநேய பூஜை மற்றும் அஞ்சநேய ஸ்தோத்திரம் செவ்வாயை ஆதரிக்கும்."),
         "MERCURY": ("Reciting Vishnu sahasranamam on Wednesdays supports Mercury.", "புதன்கிழமைகளில் விஷ்ணு சஹஸ்ரநாமம் புதனை ஆதரிக்கும்."),
         "JUPITER": ("Guru puja on Thursdays and reading Devi Bhagavatam or Guru stotram.", "வியாழக்கிழமைகளில் குரு பூஜை மற்றும் தேவி பாகவதம் அல்லது குரு ஸ்தோத்திரம் படிக்கவும்."),

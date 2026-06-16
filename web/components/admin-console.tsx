@@ -1,0 +1,1289 @@
+"use client";
+
+import { FormEvent, useEffect, useMemo, useState } from "react";
+
+import { useSession } from "@/hooks/useSession";
+import { readErrorMessage } from "@/lib/api";
+import { formatDateTimeLabel } from "@/lib/format";
+
+type AdminStats = {
+  total_users: number;
+  total_birth_profiles: number;
+  total_charts: number;
+  total_family_vaults: number;
+  total_family_members: number;
+  as_of: string;
+};
+
+type ComponentHealth = {
+  name: string;
+  status: "ok" | "warning" | "error";
+  detail: string | null;
+};
+
+type HealthDetailResponse = {
+  overall: string;
+  components: ComponentHealth[];
+  checked_at: string;
+};
+
+type UserSummary = {
+  user_id: string;
+  email: string | null;
+  user_mode: string;
+  is_suspended: boolean;
+  suspension_reason: string | null;
+  birth_profile_count: number;
+  chart_count: number;
+  created_at: string;
+};
+
+type UserListResponse = {
+  total: number;
+  items: UserSummary[];
+  page: number;
+  page_size: number;
+};
+
+type UserDetail = UserSummary & {
+  family_vault_count: number;
+  family_member_count: number;
+  feedback_count: number;
+  ask_vinaadi_usage_today: number;
+  subscription_tier: string | null;
+  subscription_status: string | null;
+};
+
+type DailyCount = { date: string; count: number };
+type DailyMetrics = { new_users: DailyCount[]; active_users: DailyCount[]; days: number };
+
+type FeatureUsage = {
+  charts_total: number;
+  family_vaults_total: number;
+  ask_vinaadi_total: number;
+  ask_vinaadi_today: number;
+  birth_profiles_total: number;
+  as_of: string;
+};
+
+type RetentionCohort = {
+  cohort_week: string;
+  cohort_size: number;
+  retained_d7: number;
+  retained_d30: number;
+};
+
+type RetentionReport = { cohorts: RetentionCohort[] };
+
+type FeedbackItem = {
+  id: string;
+  submitted_at: string;
+  category: "bug" | "calculation" | "suggestion" | "review" | "other";
+  rating: number | null;
+  message: string;
+  page_context: string | null;
+  owner_user_id: string | null;
+  is_review: boolean;
+  allow_contact: boolean;
+  reward_qualified: boolean;
+};
+
+type FeedbackResponse = {
+  total: number;
+  items: FeedbackItem[];
+};
+
+type JobInfo = { job_id: string; label: string; description: string };
+type JobRunResult = { job_id: string; started_at: string; finished_at: string; result_summary: string | null };
+
+type BroadcastResult = { sent: number; skipped: number; target: string; sent_at: string };
+
+type FlagEntry = { name: string; value: unknown; default: unknown; overridden: boolean };
+
+type AuditLogEntry = {
+  id: string;
+  action: string;
+  target_type: string | null;
+  target_id: string | null;
+  payload_summary: string | null;
+  ip_address: string | null;
+  created_at: string;
+};
+
+type AuditLogResponse = { total: number; items: AuditLogEntry[] };
+
+type DataDeletionResult = {
+  owner_user_id: string;
+  deleted_at: string;
+  birth_profiles_deleted: number;
+  charts_deleted: number;
+  family_vaults_deleted: number;
+  family_members_deleted: number;
+  family_daily_scores_deleted: number;
+};
+
+type AdminTab =
+  | "overview"
+  | "health"
+  | "users"
+  | "analytics"
+  | "feedback"
+  | "operations"
+  | "notifications"
+  | "config"
+  | "audit"
+  | "privacy";
+
+const ADMIN_KEY_STORAGE = "vinaadi:admin-key";
+
+const tabs: Array<{ id: AdminTab; label: string }> = [
+  { id: "overview", label: "Overview" },
+  { id: "health", label: "Health" },
+  { id: "users", label: "Users" },
+  { id: "analytics", label: "Analytics" },
+  { id: "feedback", label: "Feedback" },
+  { id: "operations", label: "Operations" },
+  { id: "notifications", label: "Notifications" },
+  { id: "config", label: "Config" },
+  { id: "audit", label: "Audit Log" },
+  { id: "privacy", label: "Privacy" },
+];
+
+function numberLabel(value: number | null | undefined) {
+  if (typeof value !== "number") return "-";
+  return new Intl.NumberFormat().format(value);
+}
+
+async function adminFetchJson<T>(
+  path: string,
+  adminKey: string,
+  init: RequestInit = {},
+): Promise<T> {
+  const response = await fetch(`/api/backend${path}`, {
+    ...init,
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Admin-Key": adminKey,
+      ...(init.headers ?? {}),
+    },
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    try {
+      const json = JSON.parse(text) as { detail?: unknown; message?: unknown };
+      const detail =
+        typeof json.detail === "string"
+          ? json.detail
+          : typeof json.message === "string"
+            ? json.message
+            : text;
+      throw new Error(`${response.status}: ${detail}`);
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith(`${response.status}:`)) {
+        throw error;
+      }
+      throw new Error(text || `Request failed with status ${response.status}`);
+    }
+  }
+
+  return (await response.json()) as T;
+}
+
+export function AdminConsole() {
+  const { hydrated, userEmail, signOut } = useSession();
+  const [adminKey, setAdminKey] = useState("");
+  const [keyDraft, setKeyDraft] = useState("");
+  const [activeTab, setActiveTab] = useState<AdminTab>("overview");
+  const [status, setStatus] = useState("Enter the admin key to unlock operations.");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [healthDetail, setHealthDetail] = useState<HealthDetailResponse | null>(null);
+  const [userList, setUserList] = useState<UserListResponse | null>(null);
+  const [userSearch, setUserSearch] = useState("");
+  const [userDetail, setUserDetail] = useState<UserDetail | null>(null);
+  const [suspendReason, setSuspendReason] = useState("");
+  const [userPage, setUserPage] = useState(1);
+  const [dailyMetrics, setDailyMetrics] = useState<DailyMetrics | null>(null);
+  const [featureUsage, setFeatureUsage] = useState<FeatureUsage | null>(null);
+  const [retention, setRetention] = useState<RetentionReport | null>(null);
+  const [feedback, setFeedback] = useState<FeedbackResponse | null>(null);
+  const [jobs, setJobs] = useState<JobInfo[]>([]);
+  const [jobResults, setJobResults] = useState<Record<string, JobRunResult>>({});
+  const [runningJob, setRunningJob] = useState<string | null>(null);
+  const [notifTitle, setNotifTitle] = useState("");
+  const [notifBody, setNotifBody] = useState("");
+  const [notifTarget, setNotifTarget] = useState("");
+  const [broadcastResult, setBroadcastResult] = useState<BroadcastResult | null>(null);
+  const [flags, setFlags] = useState<FlagEntry[]>([]);
+  const [flagDrafts, setFlagDrafts] = useState<Record<string, string>>({});
+  const [auditLog, setAuditLog] = useState<AuditLogResponse | null>(null);
+  const [auditPage, setAuditPage] = useState(1);
+  const [deleteUserId, setDeleteUserId] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleteResult, setDeleteResult] = useState<DataDeletionResult | null>(null);
+
+  const isUnlocked = adminKey.trim().length > 0;
+
+  useEffect(() => {
+    const saved = window.sessionStorage.getItem(ADMIN_KEY_STORAGE) ?? "";
+    if (saved) {
+      setAdminKey(saved);
+      setKeyDraft(saved);
+      setStatus("Admin key restored for this browser session.");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!adminKey || activeTab !== "overview") return;
+    void loadOverview(adminKey);
+  }, [adminKey, activeTab]);
+
+  useEffect(() => {
+    if (!adminKey || activeTab !== "health") return;
+    void loadHealthDetail(adminKey);
+  }, [adminKey, activeTab]);
+
+  useEffect(() => {
+    if (!adminKey || activeTab !== "users") return;
+    void loadUsers(adminKey, 1, userSearch);
+  }, [adminKey, activeTab]);
+
+  useEffect(() => {
+    if (!adminKey || activeTab !== "analytics") return;
+    void loadAnalytics(adminKey);
+  }, [adminKey, activeTab]);
+
+  useEffect(() => {
+    if (!adminKey || activeTab !== "feedback") return;
+    void loadFeedback(adminKey);
+  }, [adminKey, activeTab]);
+
+  useEffect(() => {
+    if (!adminKey || activeTab !== "operations") return;
+    void loadJobs(adminKey);
+  }, [adminKey, activeTab]);
+
+  useEffect(() => {
+    if (!adminKey || activeTab !== "config") return;
+    void loadFlags(adminKey);
+  }, [adminKey, activeTab]);
+
+  useEffect(() => {
+    if (!adminKey || activeTab !== "audit") return;
+    void loadAuditLog(adminKey);
+  }, [adminKey, activeTab]);
+
+  async function loadOverview(key: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await adminFetchJson<AdminStats>("/api/v1/admin/stats", key);
+      setStats(data);
+      setStatus("Overview refreshed.");
+    } catch (err) {
+      setError(readErrorMessage(err));
+      setStatus("Overview could not be loaded.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadHealthDetail(key: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await adminFetchJson<HealthDetailResponse>("/api/v1/admin/health/detail", key);
+      setHealthDetail(data);
+      setStatus("Health check refreshed.");
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadUsers(key: string, page = 1, search = "") {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({ page: String(page), page_size: "50" });
+      if (search) params.set("search", search);
+      const data = await adminFetchJson<UserListResponse>(`/api/v1/admin/users?${params}`, key);
+      setUserList(data);
+      setUserPage(page);
+      setStatus("User list refreshed.");
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadUserDetail(key: string, userId: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await adminFetchJson<UserDetail>(`/api/v1/admin/users/${encodeURIComponent(userId)}`, key);
+      setUserDetail(data);
+      setStatus("User details loaded.");
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function toggleSuspend(key: string, userId: string, suspend: boolean) {
+    setLoading(true);
+    setError(null);
+    try {
+      await adminFetchJson(`/api/v1/admin/users/${encodeURIComponent(userId)}/suspend`, key, {
+        method: "PATCH",
+        body: JSON.stringify({ suspend, reason: suspend ? suspendReason || null : null }),
+      });
+      setSuspendReason("");
+      await loadUserDetail(key, userId);
+      await loadUsers(key, userPage, userSearch);
+      setStatus(suspend ? "User suspended." : "User reinstated.");
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadAnalytics(key: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const [daily, features, ret] = await Promise.all([
+        adminFetchJson<DailyMetrics>("/api/v1/admin/analytics/daily?days=30", key),
+        adminFetchJson<FeatureUsage>("/api/v1/admin/analytics/features", key),
+        adminFetchJson<RetentionReport>("/api/v1/admin/analytics/retention", key),
+      ]);
+      setDailyMetrics(daily);
+      setFeatureUsage(features);
+      setRetention(ret);
+      setStatus("Analytics refreshed.");
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadFeedback(key: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await adminFetchJson<FeedbackResponse>("/api/v1/feedback", key);
+      setFeedback(data);
+      setStatus("Feedback refreshed.");
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadJobs(key: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await adminFetchJson<JobInfo[]>("/api/v1/admin/jobs", key);
+      setJobs(data);
+      setStatus("Job registry refreshed.");
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function triggerJob(key: string, jobId: string) {
+    setRunningJob(jobId);
+    setError(null);
+    try {
+      const result = await adminFetchJson<JobRunResult>(
+        `/api/v1/admin/jobs/${encodeURIComponent(jobId)}/trigger`,
+        key,
+        { method: "POST" },
+      );
+      setJobResults((prev) => ({ ...prev, [jobId]: result }));
+      setStatus(`Job ${jobId} completed.`);
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setRunningJob(null);
+    }
+  }
+
+  async function sendBroadcast(key: string) {
+    if (!notifTitle.trim() || !notifBody.trim()) {
+      setError("Title and body are required.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await adminFetchJson<BroadcastResult>("/api/v1/admin/notify/broadcast", key, {
+        method: "POST",
+        body: JSON.stringify({
+          title: notifTitle.trim(),
+          body: notifBody.trim(),
+          target_user_id: notifTarget.trim() || null,
+        }),
+      });
+      setBroadcastResult(result);
+      setNotifTitle("");
+      setNotifBody("");
+      setNotifTarget("");
+      setStatus(`Broadcast sent to ${result.sent} users.`);
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadFlags(key: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await adminFetchJson<FlagEntry[]>("/api/v1/admin/flags", key);
+      setFlags(data);
+      setFlagDrafts(Object.fromEntries(data.map((flag) => [flag.name, String(flag.value)])));
+      setStatus("Config flags refreshed.");
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function saveFlag(key: string, name: string, rawValue: string) {
+    let value: unknown = rawValue;
+    if (rawValue === "true") value = true;
+    else if (rawValue === "false") value = false;
+    else if (!Number.isNaN(Number(rawValue)) && rawValue.trim() !== "") value = Number(rawValue);
+
+    setLoading(true);
+    setError(null);
+    try {
+      await adminFetchJson(`/api/v1/admin/flags/${encodeURIComponent(name)}`, key, {
+        method: "PATCH",
+        body: JSON.stringify({ value }),
+      });
+      setStatus(`Flag ${name} updated.`);
+      await loadFlags(key);
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function resetFlag(key: string, name: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      await adminFetchJson(`/api/v1/admin/flags/${encodeURIComponent(name)}/reset`, key, {
+        method: "DELETE",
+      });
+      setStatus(`Flag ${name} reset to default.`);
+      await loadFlags(key);
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadAuditLog(key: string, page = 1) {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await adminFetchJson<AuditLogResponse>(
+        `/api/v1/admin/audit-log?page=${page}&page_size=100`,
+        key,
+      );
+      setAuditLog(data);
+      setAuditPage(page);
+      setStatus("Audit log refreshed.");
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function deleteUserData(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!adminKey) return;
+    const userId = deleteUserId.trim();
+    if (!userId || deleteConfirm.trim() !== "DELETE") {
+      setError("Enter a user id and type DELETE to confirm.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await adminFetchJson<DataDeletionResult>(
+        `/api/v1/admin/users/${encodeURIComponent(userId)}/data`,
+        adminKey,
+        { method: "DELETE" },
+      );
+      setDeleteResult(result);
+      setDeleteConfirm("");
+      setStatus("User data deletion completed.");
+      if (activeTab === "overview") {
+        await loadOverview(adminKey);
+      }
+    } catch (err) {
+      setError(readErrorMessage(err));
+      setStatus("User data deletion failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleUnlock(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const nextKey = keyDraft.trim();
+    if (!nextKey) {
+      setError("Admin key is required.");
+      return;
+    }
+    window.sessionStorage.setItem(ADMIN_KEY_STORAGE, nextKey);
+    setAdminKey(nextKey);
+    setStatus("Admin key accepted for this session.");
+    setError(null);
+  }
+
+  function lockConsole() {
+    window.sessionStorage.removeItem(ADMIN_KEY_STORAGE);
+    setAdminKey("");
+    setKeyDraft("");
+    setError(null);
+    setStatus("Admin console locked.");
+    setStats(null);
+    setHealthDetail(null);
+    setUserList(null);
+    setUserDetail(null);
+    setDailyMetrics(null);
+    setFeatureUsage(null);
+    setRetention(null);
+    setFeedback(null);
+    setJobs([]);
+    setJobResults({});
+    setBroadcastResult(null);
+    setFlags([]);
+    setFlagDrafts({});
+    setAuditLog(null);
+    setDeleteResult(null);
+  }
+
+  const statsRows = useMemo(
+    () => [
+      { label: "Users", value: stats?.total_users, hint: "Registered identities" },
+      { label: "Birth profiles", value: stats?.total_birth_profiles, hint: "Stored profile records" },
+      { label: "Charts", value: stats?.total_charts, hint: "Calculated jadhagam records" },
+      { label: "Family vaults", value: stats?.total_family_vaults, hint: "Shared planning groups" },
+      { label: "Family members", value: stats?.total_family_members, hint: "Managed people" },
+    ],
+    [stats],
+  );
+
+  const detailMetrics = useMemo(
+    () =>
+      userDetail
+        ? [
+            { label: "Mode", value: userDetail.user_mode },
+            { label: "Profiles", value: userDetail.birth_profile_count },
+            { label: "Charts", value: userDetail.chart_count },
+            { label: "Vaults", value: userDetail.family_vault_count },
+            { label: "Members", value: userDetail.family_member_count },
+            { label: "Feedback", value: userDetail.feedback_count },
+            { label: "Asks today", value: userDetail.ask_vinaadi_usage_today },
+            { label: "Subscription", value: userDetail.subscription_tier ?? "None" },
+            { label: "Sub status", value: userDetail.subscription_status ?? "-" },
+          ]
+        : [],
+    [userDetail],
+  );
+
+  if (!hydrated) {
+    return (
+      <main className="admin-shell">
+        <div className="admin-loading" role="status">Loading admin session...</div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="admin-shell">
+      <header className="admin-topbar">
+        <div>
+          <p className="admin-kicker">Vinaadi Operations</p>
+          <h1>Admin Console</h1>
+          <p className="admin-subtitle">Monitor health, manage users, and control runtime operations.</p>
+        </div>
+        <div className="admin-session">
+          <span className="admin-session__email">{userEmail ?? "Signed in"}</span>
+          <button className="admin-button admin-button--quiet" type="button" onClick={signOut}>Sign out</button>
+        </div>
+      </header>
+
+      <section className="admin-status" aria-live="polite">
+        <div>
+          <span className={`admin-dot ${error ? "admin-dot--error" : isUnlocked ? "admin-dot--ok" : ""}`} />
+          <span>{error ?? status}</span>
+        </div>
+        {isUnlocked ? (
+          <button className="admin-button admin-button--quiet" type="button" onClick={lockConsole}>Lock</button>
+        ) : null}
+      </section>
+
+      {!isUnlocked ? (
+        <section className="admin-unlock" aria-labelledby="admin-unlock-title">
+          <div>
+            <p className="admin-kicker">Protected Area</p>
+            <h2 id="admin-unlock-title">Unlock admin operations</h2>
+            <p>
+              Use the production admin key only on trusted devices. The key is stored in session storage
+              and cleared when you lock the console or close the browser session.
+            </p>
+          </div>
+          <form className="admin-unlock__form" onSubmit={handleUnlock}>
+            <label htmlFor="admin-key">Admin key</label>
+            <input
+              id="admin-key"
+              className="admin-input"
+              type="password"
+              autoComplete="off"
+              value={keyDraft}
+              onChange={(event) => setKeyDraft(event.target.value)}
+            />
+            <button className="admin-button admin-button--primary" type="submit">Unlock console</button>
+          </form>
+        </section>
+      ) : (
+        <>
+          <nav className="admin-tabs" aria-label="Admin sections">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                className={`admin-tab ${activeTab === tab.id ? "admin-tab--active" : ""}`}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                aria-current={activeTab === tab.id ? "page" : undefined}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+
+          {activeTab === "overview" ? (
+            <section className="admin-section" aria-labelledby="overview-title">
+              <div className="admin-section__header">
+                <div>
+                  <h2 id="overview-title">System Overview</h2>
+                  <p>Counts refresh from the backend admin stats endpoint.</p>
+                </div>
+                <button className="admin-button" type="button" onClick={() => void loadOverview(adminKey)} disabled={loading}>
+                  {loading ? "Refreshing..." : "Refresh"}
+                </button>
+              </div>
+              <div className="admin-metrics">
+                {statsRows.map((row) => (
+                  <div className="admin-metric" key={row.label}>
+                    <span>{row.label}</span>
+                    <strong>{numberLabel(row.value)}</strong>
+                    <small>{row.hint}</small>
+                  </div>
+                ))}
+              </div>
+              <div className="admin-note">
+                <span>Last stats snapshot</span>
+                <strong>{formatDateTimeLabel(stats?.as_of)}</strong>
+              </div>
+            </section>
+          ) : null}
+
+          {activeTab === "health" ? (
+            <section className="admin-section" aria-labelledby="health-title">
+              <div className="admin-section__header">
+                <div>
+                  <h2 id="health-title">System Health</h2>
+                  {healthDetail ? (
+                    <p>
+                      Overall:
+                      {" "}
+                      <span className={`admin-badge ${healthDetail.overall === "ok" ? "admin-badge--ok" : "admin-badge--danger"}`}>
+                        {healthDetail.overall.toUpperCase()}
+                      </span>
+                      {" "}
+                      as of {formatDateTimeLabel(healthDetail.checked_at)}
+                    </p>
+                  ) : (
+                    <p>Database, scheduler, and secrets health checks.</p>
+                  )}
+                </div>
+                <button className="admin-button" type="button" onClick={() => void loadHealthDetail(adminKey)} disabled={loading}>
+                  Refresh
+                </button>
+              </div>
+              <div className="admin-health-list">
+                {(healthDetail?.components ?? []).map((component) => (
+                  <div key={component.name} className={`admin-health-item admin-health-item--${component.status}`}>
+                    <div className="admin-health-name">
+                      <span
+                        className={`admin-dot ${
+                          component.status === "ok"
+                            ? "admin-dot--ok"
+                            : component.status === "warning"
+                              ? "admin-dot--warning"
+                              : "admin-dot--error"
+                        }`}
+                      />
+                      <code>{component.name}</code>
+                    </div>
+                    <span className="admin-health-detail">{component.detail ?? "-"}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {activeTab === "users" ? (
+            <section className="admin-section" aria-labelledby="users-title">
+              <div className="admin-section__header">
+                <div>
+                  <h2 id="users-title">User Management</h2>
+                  <p>{numberLabel(userList?.total)} registered users.</p>
+                </div>
+              </div>
+              <form
+                className="admin-search-row"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void loadUsers(adminKey, 1, userSearch);
+                }}
+              >
+                <input
+                  className="admin-input"
+                  type="search"
+                  placeholder="Search by email..."
+                  value={userSearch}
+                  onChange={(event) => setUserSearch(event.target.value)}
+                />
+                <button className="admin-button" type="submit" disabled={loading}>Search</button>
+                <button
+                  className="admin-button admin-button--quiet"
+                  type="button"
+                  onClick={() => {
+                    setUserSearch("");
+                    void loadUsers(adminKey, 1, "");
+                  }}
+                >
+                  Clear
+                </button>
+              </form>
+
+              {userDetail ? (
+                <div className="admin-user-detail">
+                  <div className="admin-section__header">
+                    <div>
+                      <h3>{userDetail.email ?? userDetail.user_id}</h3>
+                      <p>Joined {formatDateTimeLabel(userDetail.created_at)}</p>
+                    </div>
+                    <button className="admin-button admin-button--quiet" type="button" onClick={() => setUserDetail(null)}>
+                      Close
+                    </button>
+                  </div>
+                  <div className="admin-metrics admin-metrics--detail">
+                    {detailMetrics.map((row) => (
+                      <div className="admin-metric" key={row.label}>
+                        <span>{row.label}</span>
+                        <strong>{typeof row.value === "number" ? numberLabel(row.value) : row.value}</strong>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="admin-suspend-section">
+                    <h4>{userDetail.is_suspended ? "Account is suspended" : "Account is active"}</h4>
+                    {userDetail.suspension_reason ? <p>Reason: {userDetail.suspension_reason}</p> : null}
+                    {userDetail.is_suspended ? (
+                      <button
+                        className="admin-button"
+                        type="button"
+                        onClick={() => void toggleSuspend(adminKey, userDetail.user_id, false)}
+                        disabled={loading}
+                      >
+                        Reinstate account
+                      </button>
+                    ) : (
+                      <div className="admin-suspend-form">
+                        <input
+                          className="admin-input"
+                          type="text"
+                          placeholder="Suspension reason (optional)"
+                          value={suspendReason}
+                          onChange={(event) => setSuspendReason(event.target.value)}
+                        />
+                        <button
+                          className="admin-button admin-button--danger"
+                          type="button"
+                          onClick={() => void toggleSuspend(adminKey, userDetail.user_id, true)}
+                          disabled={loading}
+                        >
+                          Suspend account
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (userList?.items ?? []).length > 0 ? (
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Email</th>
+                      <th>Mode</th>
+                      <th>Profiles</th>
+                      <th>Charts</th>
+                      <th>Status</th>
+                      <th>Joined</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(userList?.items ?? []).map((user) => (
+                      <tr key={user.user_id} className={user.is_suspended ? "admin-row--suspended" : ""}>
+                        <td>{user.email ?? <em>anonymous</em>}</td>
+                        <td>{user.user_mode}</td>
+                        <td>{numberLabel(user.birth_profile_count)}</td>
+                        <td>{numberLabel(user.chart_count)}</td>
+                        <td>
+                          <span className={`admin-badge ${user.is_suspended ? "admin-badge--danger" : "admin-badge--ok"}`}>
+                            {user.is_suspended ? "Suspended" : "Active"}
+                          </span>
+                        </td>
+                        <td>{formatDateTimeLabel(user.created_at)}</td>
+                        <td>
+                          <button
+                            className="admin-button admin-button--quiet"
+                            type="button"
+                            onClick={() => void loadUserDetail(adminKey, user.user_id)}
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="admin-empty">No users found.</div>
+              )}
+
+              {(userList?.total ?? 0) > 50 && !userDetail ? (
+                <div className="admin-pagination">
+                  <button
+                    className="admin-button admin-button--quiet"
+                    type="button"
+                    disabled={userPage <= 1 || loading}
+                    onClick={() => void loadUsers(adminKey, userPage - 1, userSearch)}
+                  >
+                    Previous
+                  </button>
+                  <span>Page {userPage} of {Math.ceil((userList?.total ?? 0) / 50)}</span>
+                  <button
+                    className="admin-button admin-button--quiet"
+                    type="button"
+                    disabled={userPage * 50 >= (userList?.total ?? 0) || loading}
+                    onClick={() => void loadUsers(adminKey, userPage + 1, userSearch)}
+                  >
+                    Next
+                  </button>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
+          {activeTab === "analytics" ? (
+            <section className="admin-section" aria-labelledby="analytics-title">
+              <div className="admin-section__header">
+                <div>
+                  <h2 id="analytics-title">Analytics</h2>
+                  <p>Growth and feature usage over the last 30 days.</p>
+                </div>
+                <button className="admin-button" type="button" onClick={() => void loadAnalytics(adminKey)} disabled={loading}>
+                  Refresh
+                </button>
+              </div>
+
+              {featureUsage ? (
+                <div className="admin-metrics">
+                  {[
+                    { label: "Total charts", value: featureUsage.charts_total, hint: "All time" },
+                    { label: "Profiles", value: featureUsage.birth_profiles_total, hint: "All time" },
+                    { label: "Family vaults", value: featureUsage.family_vaults_total, hint: "All time" },
+                    { label: "Ask Vinaadi total", value: featureUsage.ask_vinaadi_total, hint: "All time" },
+                    { label: "Ask Vinaadi today", value: featureUsage.ask_vinaadi_today, hint: "Current day" },
+                  ].map((row) => (
+                    <div className="admin-metric" key={row.label}>
+                      <span>{row.label}</span>
+                      <strong>{numberLabel(row.value)}</strong>
+                      <small>{row.hint}</small>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {dailyMetrics ? (
+                <div className="admin-chart-section">
+                  <h3>New signups - last {dailyMetrics.days} days</h3>
+                  <div className="admin-sparkbar-row">
+                    {dailyMetrics.new_users.map((day) => {
+                      const maxCount = Math.max(...dailyMetrics.new_users.map((entry) => entry.count), 1);
+                      return (
+                        <div key={day.date} className="admin-sparkbar" title={`${day.date}: ${day.count}`}>
+                          <div className="admin-sparkbar__fill" style={{ height: `${(day.count / maxCount) * 100}%` }} />
+                          <span className="admin-sparkbar__label">{day.count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
+              {retention && retention.cohorts.length > 0 ? (
+                <div className="admin-retention">
+                  <h3>Weekly cohort retention</h3>
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Cohort week</th>
+                        <th>Signed up</th>
+                        <th>Active D7</th>
+                        <th>D7 %</th>
+                        <th>Active D30</th>
+                        <th>D30 %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {retention.cohorts.map((cohort) => (
+                        <tr key={cohort.cohort_week}>
+                          <td>{cohort.cohort_week}</td>
+                          <td>{numberLabel(cohort.cohort_size)}</td>
+                          <td>{numberLabel(cohort.retained_d7)}</td>
+                          <td>{cohort.cohort_size > 0 ? `${Math.round((cohort.retained_d7 / cohort.cohort_size) * 100)}%` : "-"}</td>
+                          <td>{numberLabel(cohort.retained_d30)}</td>
+                          <td>{cohort.cohort_size > 0 ? `${Math.round((cohort.retained_d30 / cohort.cohort_size) * 100)}%` : "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
+          {activeTab === "feedback" ? (
+            <section className="admin-section" aria-labelledby="feedback-title">
+              <div className="admin-section__header">
+                <div>
+                  <h2 id="feedback-title">Feedback Inbox</h2>
+                  <p>{numberLabel(feedback?.total)} submissions in the feedback store.</p>
+                </div>
+                <button className="admin-button" type="button" onClick={() => void loadFeedback(adminKey)} disabled={loading}>
+                  Refresh
+                </button>
+              </div>
+              <div className="admin-feedback-list">
+                {(feedback?.items ?? []).length > 0 ? (
+                  feedback?.items.map((item) => (
+                    <article className="admin-feedback" key={item.id}>
+                      <div className="admin-feedback__meta">
+                        <span className="admin-badge">{item.category}</span>
+                        <span>{formatDateTimeLabel(item.submitted_at)}</span>
+                        <span>{item.rating ? `${item.rating}/5` : "No rating"}</span>
+                      </div>
+                      <p>{item.message}</p>
+                      <footer>
+                        <span>User {item.owner_user_id ?? "unknown"}</span>
+                        <span>{item.page_context ?? "No page context"}</span>
+                      </footer>
+                    </article>
+                  ))
+                ) : (
+                  <div className="admin-empty">No feedback yet.</div>
+                )}
+              </div>
+            </section>
+          ) : null}
+
+          {activeTab === "operations" ? (
+            <section className="admin-section" aria-labelledby="operations-title">
+              <div className="admin-section__header">
+                <div>
+                  <h2 id="operations-title">Background Jobs</h2>
+                  <p>Manually trigger any registered background job.</p>
+                </div>
+                <button className="admin-button" type="button" onClick={() => void loadJobs(adminKey)} disabled={loading}>
+                  Refresh
+                </button>
+              </div>
+              {jobs.length === 0 ? <div className="admin-empty">No jobs registered yet.</div> : null}
+              {jobs.map((job) => (
+                <div className="admin-action-row" key={job.job_id}>
+                  <div>
+                    <h3>{job.label}</h3>
+                    <p>{job.description}</p>
+                    {jobResults[job.job_id] ? (
+                      <div className="admin-result">
+                        <span>Result: {jobResults[job.job_id].result_summary ?? "OK"}</span>
+                        <span>Ran at: {formatDateTimeLabel(jobResults[job.job_id].started_at)}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                  <button
+                    className="admin-button admin-button--primary"
+                    type="button"
+                    onClick={() => void triggerJob(adminKey, job.job_id)}
+                    disabled={runningJob !== null}
+                  >
+                    {runningJob === job.job_id ? "Running..." : "Run now"}
+                  </button>
+                </div>
+              ))}
+            </section>
+          ) : null}
+
+          {activeTab === "notifications" ? (
+            <section className="admin-section" aria-labelledby="notif-title">
+              <div className="admin-section__header">
+                <div>
+                  <h2 id="notif-title">Push Notifications</h2>
+                  <p>Broadcast to all users or target a specific user.</p>
+                </div>
+              </div>
+              <div className="admin-notif-form">
+                <label>
+                  Title
+                  <input
+                    className="admin-input"
+                    type="text"
+                    value={notifTitle}
+                    onChange={(event) => setNotifTitle(event.target.value)}
+                    placeholder="Notification title"
+                  />
+                </label>
+                <label>
+                  Body
+                  <textarea
+                    className="admin-input admin-textarea"
+                    value={notifBody}
+                    onChange={(event) => setNotifBody(event.target.value)}
+                    placeholder="Notification body text"
+                    rows={3}
+                  />
+                </label>
+                <label>
+                  Target user ID <small>(leave blank to send to all users)</small>
+                  <input
+                    className="admin-input"
+                    type="text"
+                    value={notifTarget}
+                    onChange={(event) => setNotifTarget(event.target.value)}
+                    placeholder="UUID or blank for broadcast"
+                  />
+                </label>
+                <button
+                  className="admin-button admin-button--primary"
+                  type="button"
+                  onClick={() => void sendBroadcast(adminKey)}
+                  disabled={loading || !notifTitle.trim() || !notifBody.trim()}
+                >
+                  {notifTarget.trim() ? "Send to user" : "Broadcast to all"}
+                </button>
+              </div>
+              {broadcastResult ? (
+                <div className="admin-result">
+                  <span>Sent: {numberLabel(broadcastResult.sent)}</span>
+                  <span>Skipped: {numberLabel(broadcastResult.skipped)}</span>
+                  <span>Target: {broadcastResult.target}</span>
+                  <span>At: {formatDateTimeLabel(broadcastResult.sent_at)}</span>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
+          {activeTab === "config" ? (
+            <section className="admin-section" aria-labelledby="config-title">
+              <div className="admin-section__header">
+                <div>
+                  <h2 id="config-title">Feature Flags</h2>
+                  <p>Runtime overrides reset on process restart. Permanent changes still belong in environment config.</p>
+                </div>
+                <button className="admin-button" type="button" onClick={() => void loadFlags(adminKey)} disabled={loading}>
+                  Refresh
+                </button>
+              </div>
+              <div className="admin-flags-list">
+                {flags.map((flag) => (
+                  <div className="admin-flag-row" key={flag.name}>
+                    <div className="admin-flag-info">
+                      <code className="admin-flag-name">{flag.name}</code>
+                      {flag.overridden ? <span className="admin-badge admin-badge--warning">overridden</span> : null}
+                      <small>default: {String(flag.default)}</small>
+                    </div>
+                    <div className="admin-flag-controls">
+                      <input
+                        className="admin-input admin-flag-input"
+                        type="text"
+                        value={flagDrafts[flag.name] ?? String(flag.value)}
+                        onChange={(event) => setFlagDrafts((prev) => ({ ...prev, [flag.name]: event.target.value }))}
+                      />
+                      <button
+                        className="admin-button"
+                        type="button"
+                        onClick={() => void saveFlag(adminKey, flag.name, flagDrafts[flag.name] ?? String(flag.value))}
+                        disabled={loading}
+                      >
+                        Save
+                      </button>
+                      {flag.overridden ? (
+                        <button
+                          className="admin-button admin-button--quiet"
+                          type="button"
+                          onClick={() => void resetFlag(adminKey, flag.name)}
+                          disabled={loading}
+                        >
+                          Reset
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {activeTab === "audit" ? (
+            <section className="admin-section" aria-labelledby="audit-title">
+              <div className="admin-section__header">
+                <div>
+                  <h2 id="audit-title">Audit Log</h2>
+                  <p>{numberLabel(auditLog?.total)} admin actions recorded.</p>
+                </div>
+                <button className="admin-button" type="button" onClick={() => void loadAuditLog(adminKey)} disabled={loading}>
+                  Refresh
+                </button>
+              </div>
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Action</th>
+                    <th>Target</th>
+                    <th>ID</th>
+                    <th>Summary</th>
+                    <th>IP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(auditLog?.items ?? []).map((entry) => (
+                    <tr key={entry.id}>
+                      <td>{formatDateTimeLabel(entry.created_at)}</td>
+                      <td><code>{entry.action}</code></td>
+                      <td>{entry.target_type ?? "-"}</td>
+                      <td><small>{entry.target_id ?? "-"}</small></td>
+                      <td>{entry.payload_summary ?? "-"}</td>
+                      <td><small>{entry.ip_address ?? "-"}</small></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {(auditLog?.total ?? 0) > 100 ? (
+                <div className="admin-pagination">
+                  <button
+                    className="admin-button admin-button--quiet"
+                    type="button"
+                    disabled={auditPage <= 1}
+                    onClick={() => void loadAuditLog(adminKey, auditPage - 1)}
+                  >
+                    Previous
+                  </button>
+                  <span>Page {auditPage}</span>
+                  <button
+                    className="admin-button admin-button--quiet"
+                    type="button"
+                    disabled={auditPage * 100 >= (auditLog?.total ?? 0)}
+                    onClick={() => void loadAuditLog(adminKey, auditPage + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
+          {activeTab === "privacy" ? (
+            <section className="admin-section" aria-labelledby="privacy-title">
+              <div className="admin-section__header">
+                <div>
+                  <h2 id="privacy-title">Privacy Requests</h2>
+                  <p>Erase calculation and personal data for a user. This requires the deletion flag to be enabled.</p>
+                </div>
+              </div>
+              <form className="admin-delete" onSubmit={deleteUserData}>
+                <label>
+                  User id
+                  <input
+                    className="admin-input"
+                    type="text"
+                    inputMode="text"
+                    value={deleteUserId}
+                    onChange={(event) => setDeleteUserId(event.target.value)}
+                    placeholder="00000000-0000-0000-0000-000000000000"
+                  />
+                </label>
+                <label>
+                  Type DELETE to confirm
+                  <input
+                    className="admin-input"
+                    type="text"
+                    value={deleteConfirm}
+                    onChange={(event) => setDeleteConfirm(event.target.value)}
+                    placeholder="DELETE"
+                  />
+                </label>
+                <button
+                  className="admin-button admin-button--danger"
+                  type="submit"
+                  disabled={loading || deleteConfirm !== "DELETE"}
+                >
+                  Delete user data
+                </button>
+              </form>
+              {deleteResult ? (
+                <div className="admin-result admin-result--danger">
+                  <span>Deleted at: {formatDateTimeLabel(deleteResult.deleted_at)}</span>
+                  <span>Birth profiles: {numberLabel(deleteResult.birth_profiles_deleted)}</span>
+                  <span>Charts: {numberLabel(deleteResult.charts_deleted)}</span>
+                  <span>Family vaults: {numberLabel(deleteResult.family_vaults_deleted)}</span>
+                  <span>Family members: {numberLabel(deleteResult.family_members_deleted)}</span>
+                  <span>Daily scores: {numberLabel(deleteResult.family_daily_scores_deleted)}</span>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+        </>
+      )}
+    </main>
+  );
+}

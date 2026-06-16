@@ -48,11 +48,11 @@ export default function TimingAndDecisionsPage() {
               <div className="cl-hero-figure__art" style={{ gap: "10px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", width: "100%" }}>
                 <div className="cl-daily-card__win cl-daily-card__win--best">
                   <p className="cl-daily-card__win-label">{lang === "en" ? "Best Window" : "சிறந்த நேரம்"}</p>
-                  <p className="cl-daily-card__win-time">11:53 – 12:41</p>
+                  <p className="cl-daily-card__win-time">11:53 am - 12:41 pm</p>
                 </div>
                 <div className="cl-daily-card__win cl-daily-card__win--hold">
                   <p className="cl-daily-card__win-label">{lang === "en" ? "Caution" : "எச்சரிக்கை"}</p>
-                  <p className="cl-daily-card__win-time">15:28 – 17:03</p>
+                  <p className="cl-daily-card__win-time">3:28 pm - 5:03 pm</p>
                 </div>
               </div>
               <p className="cl-hero-figure__note">

@@ -1,5 +1,6 @@
 """Database model package for Vinaadi AI."""
 
+from app.models.admin_audit_log import AdminAuditLog
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
 from app.models.birth_profile import BirthProfile
 from app.models.chart import Chart
@@ -9,6 +10,7 @@ from app.models.dasha_period import DashaPeriod
 from app.models.family_daily_score import FamilyDailyScore
 from app.models.family_member import FamilyMember
 from app.models.family_vault import FamilyVault
+from app.models.feedback import Feedback
 from app.models.interpretation_output import InterpretationOutput
 from app.models.journal_entry import JournalEntry
 from app.models.notification import Notification
@@ -29,6 +31,7 @@ from app.models.varga_position import VargaPosition
 
 __all__ = [
     "AskVinaadiUsage",
+    "AdminAuditLog",
     "BirthProfile",
     "Chart",
     "ChartPlanet",
@@ -37,6 +40,7 @@ __all__ = [
     "FamilyDailyScore",
     "FamilyMember",
     "FamilyVault",
+    "Feedback",
     "InterpretationOutput",
     "JournalEntry",
     "Notification",

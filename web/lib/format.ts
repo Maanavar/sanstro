@@ -41,7 +41,7 @@ export function formatDateLabel(isoDate: string): string {
 }
 
 export function formatClockLabel(value: string): string {
-  // Accept "HH:MM", "HH:MM:SS", or ISO datetime and format as 12-hour AM/PM.
+  // Accept "HH:MM", "HH:MM:SS", or ISO datetime and normalize to 12-hour h:mm am/pm.
   const timePart = value.includes("T") ? value.split("T")[1] : value;
   const [hhStr = "", mmStr = "00"] = timePart.split(":");
   const hh = Number.parseInt(hhStr, 10);
@@ -54,6 +54,17 @@ export function formatClockLabel(value: string): string {
   const period = h24 < 12 ? "am" : "pm";
   const h12 = h24 % 12 || 12;
   return `${h12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
+export function formatDateTimeLabel(value: string | null | undefined): string {
+  if (!value) return "Not available";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+    hour12: true,
+  }).format(date).replace(/\b(AM|PM)\b/g, (match) => match.toLowerCase());
 }
 
 export function getScoreBand(score: number): ScoreBand {

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.age_gate import MINOR_REDIRECT_KEYWORDS, is_minor
@@ -73,11 +73,16 @@ def ask_vinaadi(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> AskVinaadiResponse:
-    # Feature 5 — minors asking about love/marriage get a safe redirect (not processed,
-    # not counted against the daily limit).
+    # Verify ownership first so no feature-specific logic leaks chart existence or
+    # the owner's birth date to callers who don't own the chart.
     chart = session.get(Chart, chart_id)
     profile = session.get(BirthProfile, chart.birth_profile_id) if chart else None
-    if profile is not None and is_minor(profile.birth_date_local):
+    if profile is None or profile.owner_user_id != current_user.user_id:
+        raise HTTPException(status_code=403, detail="Access denied.")
+
+    # Feature 5 — minors asking about love/marriage get a safe redirect (not processed,
+    # not counted against the daily limit).
+    if is_minor(profile.birth_date_local):
         q_lower = payload.question.lower()
         if any(keyword in q_lower for keyword in MINOR_REDIRECT_KEYWORDS):
             return _minor_redirect_response(payload.question)

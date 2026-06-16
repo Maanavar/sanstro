@@ -27,6 +27,7 @@ from app.models.notification import Notification
 from app.models.user_notification_preference import UserNotificationPreference
 from app.services.email_service import EmailMessage, build_notification_email, send_email
 from app.services.fcm_service import send_push
+from app.services.feature_flags import get_flag
 from app.services.location_service import resolve_effective_daily_timezone
 
 logger = logging.getLogger(__name__)
@@ -155,7 +156,7 @@ def dispatch_notification(
         return "in_app_only"
 
     # Smart silence: max 1 push/day during heavy Sani periods
-    wants_push = channel in ("push", "both")
+    wants_push = channel in ("push", "both") and bool(get_flag("enable_push_notifications"))
     if wants_push and pref.smart_silence_enabled and sani_cycle in _HEAVY_SANI_CYCLES:
         user_tz = _resolve_user_timezone(session, user_id)
         if _push_count_today(session, user_id, user_tz) >= 1:

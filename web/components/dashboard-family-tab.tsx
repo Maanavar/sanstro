@@ -629,6 +629,39 @@ export function DashboardFamilyTab({
         </div>
       )}
 
+      {/* ── Today Snapshot: full-width at-a-glance comparison of every member ── */}
+      {todayMembers.length > 0 && (
+        <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-4) var(--space-5)" }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--space-2)", marginBottom: "var(--space-3)" }}>
+            <p className="cd-kicker--inline" style={{ margin: 0 }}>{lang === "ta" ? "இன்றைய சுருக்கம்" : "Today Snapshot"}</p>
+            <span style={{ fontSize: "0.75rem", color: "var(--color-faint)" }}>
+              {todayMembers.length} {lang === "ta" ? "பேர்" : "members"}
+            </span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))", gap: "var(--space-2_5)" }}>
+            {todayMembers.map((item, idx) => (
+              <div key={`${item.memberId ?? item.displayName}-${idx}`} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", background: "var(--color-surface-soft)", padding: "var(--space-3) var(--space-3_5)", display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--space-2)" }}>
+                  <span style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.displayName}</span>
+                  <span style={{ fontSize: "0.875rem", fontWeight: 800, color: scoreColor(item.score), fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
+                    {item.score}<span style={{ fontSize: "0.6875rem", color: "var(--color-faint)", fontWeight: 500 }}>/100</span>
+                  </span>
+                </div>
+                <div style={{ height: "5px", borderRadius: "3px", background: "var(--color-border)", overflow: "hidden" }}>
+                  <div style={{ height: "100%", borderRadius: "3px", width: `${Math.max(0, Math.min(100, item.score))}%`, background: scoreColor(item.score) }} />
+                </div>
+                <p style={{ margin: 0, fontSize: "0.6875rem", color: "var(--color-muted)" }}>
+                  {lang === "ta" ? "தசை" : "Dasha"}: <span style={{ fontWeight: 600, color: "var(--color-text)" }}>{tPlanetLord(item.dashaLord, lang)}</span>
+                </p>
+                <p style={{ margin: 0, fontSize: "0.6875rem", color: "var(--color-faint)", lineHeight: 1.4, minHeight: "1.4em" }}>
+                  {item.keyTransit || (lang === "ta" ? "குறிப்பிடத்தக்க கிரகநகர்வு இல்லை" : "No notable transit today")}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── ROW 2: 50/50 — Left = Family Today card · Right = member tiles stacked ── */}
       <div className="cd-responsive-grid-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: "var(--space-4)", alignItems: "stretch" }}>
 
@@ -690,31 +723,6 @@ export function DashboardFamilyTab({
 
         {/* RIGHT: Member tiles — vertical stack, full 50% width */}
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-          {todayMembers.length > 0 && (
-            <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3)" }}>
-              <p className="cd-kicker" style={{ marginBottom: "var(--space-2)" }}>
-                {lang === "ta" ? "இன்றைய உறுப்பினர் சுருக்கம்" : "Today Snapshot"}
-              </p>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "var(--space-2)" }}>
-                {todayMembers.map((item, idx) => (
-                  <div key={`${item.memberId ?? item.displayName}-${idx}`} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface-soft)", padding: "var(--space-2_5)" }}>
-                    <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.75rem", fontWeight: 700, color: "var(--color-text-strong)" }}>{item.displayName}</p>
-                    <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.75rem", color: scoreColor(item.score) }}>
-                      {item.score}/100
-                    </p>
-                    <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", color: "var(--color-muted)" }}>
-                      {lang === "ta" ? "தசை" : "Dasha"}: {tPlanetLord(item.dashaLord, lang)}
-                    </p>
-                    {item.keyTransit && (
-                      <p style={{ margin: 0, fontSize: "0.625rem", color: "var(--color-faint)" }}>
-                        {item.keyTransit}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           {busy.family && members.length === 0 ? (
             <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-5)", display: "grid", gap: "var(--space-3)" }}>
               <div className="cd-skeleton" style={{ height: "14px", width: "40%", borderRadius: "var(--radius-sm)" }} />

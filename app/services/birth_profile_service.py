@@ -4,12 +4,20 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import case, select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from app.models import BirthProfile, FamilyMember
-from app.schemas.birth_profiles import BirthProfileCreate, BirthProfileCreateResult, BirthProfileGetResponse, BirthProfileResponse, BirthProfileResponseMeta, BirthProfileUpdate
+from app.schemas.birth_profiles import (
+    BirthProfileCreate,
+    BirthProfileCreateResult,
+    BirthProfileGetResponse,
+    BirthProfileResponse,
+    BirthProfileResponseMeta,
+    BirthProfileUpdate,
+)
 from app.services.chart_service import calculate_chart_for_persisted_profile, create_birth_profile_record, _warning_messages
+from app.services.feature_flags import get_flag
 
 
 _BIRTH_RECALC_FIELDS = {
@@ -29,6 +37,21 @@ _CURRENT_LOCATION_FIELDS = {
 
 
 def create_birth_profile(session: Session, payload: BirthProfileCreate, *, calculation_version: str) -> BirthProfileCreateResult:
+    max_profiles = max(1, int(get_flag("max_birth_profiles_per_user") or 10))
+    active_profile_count = session.execute(
+        select(func.count())
+        .select_from(BirthProfile)
+        .where(
+            BirthProfile.owner_user_id == payload.owner_user_id,
+            BirthProfile.deleted_at.is_(None),
+        )
+    ).scalar_one()
+    if int(active_profile_count) >= max_profiles:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Birth profile limit reached ({max_profiles}).",
+        )
+
     birth_profile = create_birth_profile_record(session, payload)
     warnings = _warning_messages(payload)
     chart_id = None

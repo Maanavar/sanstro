@@ -70,8 +70,8 @@ const RASI_NAMES_EN = ["Mesha","Rishaba","Mithuna","Kataka","Simha","Kanni","Thu
 // Rasi lords: 0=Mars 1=Venus 2=Mercury 3=Moon 4=Sun 5=Jupiter 6=Saturn
 const RASI_LORD = [0,1,2,3,4,2,1,0,5,6,6,5];
 const LORD_TA = ["செவ்வாய்","சுக்கிரன்","புதன்","சந்திரன்","சூரியன்","குரு","சனி"];
-const PLANET_FRIENDS: Record<number,number[]> = {0:[4,3,5],1:[2,6],2:[4,1],3:[4,2],4:[3,0,5],5:[4,3,0],6:[2,1]};
-const PLANET_ENEMIES: Record<number,number[]> = {0:[],1:[4,3],2:[3],3:[],4:[1,6],5:[2,1],6:[4,3,0]};
+const PLANET_FRIENDS: Record<number,number[]> = {0:[4,3,5],1:[2,6],2:[4,1,3],3:[4,2],4:[3,0,5],5:[4,3,0],6:[2,1]};
+const PLANET_ENEMIES: Record<number,number[]> = {0:[2],1:[4,3],2:[],3:[],4:[1,6],5:[2,1],6:[4,3,0]};
 
 // Vasya rasi pairs
 const VASYA_MAP: Record<number,number[]> = {0:[4,7],1:[3,6],2:[5],3:[7,8],4:[6],5:[2,11],6:[9],7:[3],8:[11],9:[0],10:[0],11:[9]};
@@ -454,6 +454,22 @@ export function PoruthamTool() {
                   </tbody>
                 </table>
               </div>
+
+              {/* How to read the numbers */}
+              <div style={{ marginTop: "12px", padding: "10px 14px", background: "var(--cl-bg-2)", borderRadius: "8px", borderLeft: "3px solid var(--cl-border-2)", fontSize: "11px", color: "var(--cl-muted)", lineHeight: 1.7 }}>
+                <div style={{ marginBottom: 6 }}>
+                  <strong style={{ color: "var(--cl-ink-2)" }}>{ta ? "மொத்த மதிப்பெண் (x/10):" : "Overall score (x/10):"}</strong>{" "}
+                  {ta
+                    ? "10 பொருத்தங்களில் எத்தனை பொருந்துகின்றன என்பதே மதிப்பெண் — அதிகமானால் நல்லது. 8–10 மிக நல்லது, 6–7 நல்லது, 5 சராசரி, 0–4 குறைவு. ரஜ்ஜு அல்லது வேதை பொருந்தாவிட்டால், மதிப்பெண் எதுவாயினும் தோஷமாகவே கருதப்படும்."
+                    : "How many of the 10 poruthams pass — higher is better. 8–10 excellent, 6–7 good, 5 average, 0–4 weak. If Rajju or Vedhai fails, it counts as a dosham no matter how high the score is."}
+                </div>
+                <div>
+                  <strong style={{ color: "var(--cl-ink-2)" }}>{ta ? "\"எண்\" என்றால் என்ன?" : "What does \"Count\" mean?"}</strong>{" "}
+                  {ta
+                    ? "பெண் நட்சத்திரத்திலிருந்து ஆண் நட்சத்திரம் வரை எண்ணும் எண்ணிக்கை (1–27). நாள், மகேந்திரம், ஸ்திரீ தீர்க்கம் ஆகிய மூன்று பொருத்தங்கள் மட்டுமே இந்த எண்ணை அடிப்படையாகக் கொண்டவை — மற்ற பொருத்தங்கள் கணம், யோனி, ராசி, ரஜ்ஜு போன்ற வேறு கூறுகளை ஒப்பிடுகின்றன, அதனால் அவற்றுக்கு எண் காட்டப்படுவதில்லை. இந்த எண்ணுக்கு தனியாக நல்லது/கெட்டது கிடையாது — ஒவ்வொரு பொருத்தமும் தன் விதிப்படி அதைச் சரிபார்த்து ✓ அல்லது ✗ காட்டுகிறது."
+                    : "The number of stars counted from the girl's birth star up to the boy's (1–27). Only Dina, Mahendra and Stree Dheerga are judged from this count — the other poruthams compare a different attribute (gana, yoni, rasi, rajju…), so no count is shown for them. The count itself isn't \"good\" or \"bad\" on its own — each porutham applies its own rule to it and shows ✓ or ✗ in the Status column."}
+                </div>
+              </div>
             </div>
           )}
         </>
@@ -562,11 +578,17 @@ export function PoruthamTool() {
             ? "பெண் ராசியிலிருந்து ஆண் ராசி 6வது அல்லது 8வது இடத்தில் இருந்தால் தோஷம்."
             : "When the boy's rasi falls in the 6th or 8th position from the girl's rasi, it indicates Shashtashtaka dosham."}
         </div>
-        <div>
+        <div style={{ marginBottom: 6 }}>
           <strong>{ta?"குறிப்பு:":"Note:"}</strong>{" "}
           {ta
             ? "முழுமையான ஜாதக பொருத்தத்திற்கு பாதம், தசா புக்தி, தோஷ பரிகாரம் ஆகியவற்றையும் ஆராய வேண்டும்."
             : "A full horoscope match also examines pada, dasha bhukti, Sevvai dosham, Nadi cancellation, navamsa, and dosha parihara. This public tool is only a quick birth-star preview."}
+        </div>
+        <div>
+          <strong>{ta?"டாஷ்போர்ட் வேறுபாடு:":"Dashboard difference:"}</strong>{" "}
+          {ta
+            ? "இந்த நட்சத்திர முன்னோட்ட முடிவுகள் டாஷ்போர்டு முழு ஜாதக பொருத்தத்திலிருந்து மாறுபடலாம் — டாஷ்போர்ட் 36-புள்ளி எடை மதிப்பெண், முழு ஜாதக செவ்வாய் மற்றும் நாடி பகுப்பாய்வு, மற்றும் ரத்து விதிகளைப் பயன்படுத்துகிறது."
+            : "Results from this star-only preview may differ from your full chart match in the dashboard — the dashboard uses weighted 36-point scoring, full chart Sevvai and Nadi analysis, and cancellation rules."}
         </div>
       </div>
 

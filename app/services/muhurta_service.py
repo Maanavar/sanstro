@@ -82,6 +82,26 @@ def _norm(lord: str) -> str:
     return _GURU_ALIAS.get(lord, lord)
 
 
+def _format_clock_label(value) -> str:
+    if hasattr(value, "strftime"):
+        value = value.strftime("%H:%M")
+    pieces = str(value).split(":")
+    try:
+        hour = int(pieces[0])
+        minute = int(pieces[1]) if len(pieces) > 1 else 0
+    except (TypeError, ValueError):
+        return str(value)
+    hour %= 24
+    minute %= 60
+    period = "am" if hour < 12 else "pm"
+    hour12 = hour % 12 or 12
+    return f"{hour12}:{minute:02d} {period}"
+
+
+def _format_time_range(start, end) -> str:
+    return f"{_format_clock_label(start)}-{_format_clock_label(end)}"
+
+
 def _activity_hora_lords(activity: str, lagna_rasi: int) -> set[str]:
     """
     Personal hora lords for a given activity and chart.
@@ -107,7 +127,7 @@ def _score_hora(snap, activity: str, lagna_rasi: int) -> tuple[float, BiText | N
         lord = _norm(entry.lord)
         if lord in target_lords:
             bonus = 13.0 if lord == lagna_lord else 8.0
-            time_str = f"{entry.start.strftime('%H:%M')}–{entry.end.strftime('%H:%M')}"
+            time_str = _format_time_range(entry.start, entry.end)
             if lord == lagna_lord:
                 en = f"Lagna lord {lord.capitalize()} hora ({time_str}) — strongest personal window"
                 ta = f"லக்கினாதிபதி {lord.capitalize()} ஹோரை ({time_str}) — சிறந்த தனிப்பட்ட நேரம்"
@@ -254,7 +274,7 @@ def find_best_muhurta_slots(
     activity = activity.upper()
     if activity not in _ACTIVITY_LORDS:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Unknown activity '{activity}'. Valid values: {sorted(_ACTIVITY_LORDS)}",
         )
 

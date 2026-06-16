@@ -941,7 +941,7 @@ def create_birth_profile_record(
     owner_user_id = profile.owner_user_id
     if owner_user_id is None:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="ownerUserId is required for birth profile creation.",
         )
     _ensure_user(session, owner_user_id)
@@ -1059,7 +1059,7 @@ def calculate_chart_for_persisted_profile(
     try:
         response = _chart_response_from_profile(birth_profile, calculation_version, chart_id=chart_id)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
     _persist_chart_record(session, persisted_profile_id, response)
     session.flush()
 

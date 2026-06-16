@@ -185,7 +185,7 @@ function DayTimeline({
         <circle cx={sunX} cy={sunY} r="6" fill={SCORE_MID} />
       </svg>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", padding: "0 calc(20/320*100%)", marginTop: "var(--space-0_5)" }}>
-        {["6a", "9a", "12p", "3p", "6p"].map((h) => (
+        {["6 am", "9 am", "12 pm", "3 pm", "6 pm"].map((h) => (
           <span key={h} style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--color-faint)", textAlign: "center" }}>{h}</span>
         ))}
       </div>

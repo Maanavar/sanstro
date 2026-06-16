@@ -169,7 +169,7 @@ def _planet_explanation(planet: PlanetPosition, dignity: str, functional_nature:
     en = (
         f"{planet.graha} stands in house {planet.house_from_lagna}, so the chart naturally draws attention to {theme.en}. "
         f"{dignity_text.en} In functional terms it is {fn_context_en}. "
-        f"Read this as a living promise that becomes clearer through the current dasha and gochar contacts."
+        f"Read this as a living indicator that becomes clearer through the current dasha and gochar contacts."
     )
     return _bi(ta, en)
 
@@ -708,7 +708,7 @@ def build_chart_explanation(
     planets = _public_planets(data.planets)
     moon = next((planet for planet in planets if planet.graha == "MOON"), None)
     if moon is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Chart is missing Moon position.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Chart is missing Moon position.")
 
     as_of_dt = datetime.combine(as_of, time(hour=12), tzinfo=UTC)
     as_of_jd = utc_datetime_to_julian_day(as_of_dt)

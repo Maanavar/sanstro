@@ -1,8 +1,4 @@
 .cd-shell {
-  --font-body: "Noto Sans Tamil", Inter, system-ui, sans-serif;
-  --font-display: Fraunces, Georgia, serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
-
   --cd-container-max: 1200px;
 
   --color-bg: #f4eee2;
@@ -409,24 +405,37 @@
   align-items: center;
   min-height: 48px;
   gap: 0;
+}
+
+/* Tabs scroll horizontally within this region; the date control on the right
+   stays pinned and always visible. */
+.cd-tabnav__scroll {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 0;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
+  scroll-behavior: smooth;
   position: relative;
 }
 
-.cd-tabnav__inner::-webkit-scrollbar {
+.cd-tabnav__scroll::-webkit-scrollbar {
   display: none;
 }
 
-.cd-tabnav__inner::after {
+.cd-tabnav__scroll::after {
   content: "";
   position: sticky;
   right: 0;
-  width: 48px;
-  height: 100%;
+  align-self: stretch;
+  width: 40px;
+  flex-shrink: 0;
+  margin-left: -40px;
   background: linear-gradient(to right, rgb(244 238 226 / 0%), rgb(244 238 226 / 97%));
   pointer-events: none;
-  flex-shrink: 0;
 }
 
 .cd-tab {
@@ -438,6 +447,7 @@
   color: var(--color-faint);
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   transition: color 150ms ease, border-color 150ms ease;
@@ -537,12 +547,6 @@
   padding: 28px 0 64px;
 }
 
-.cd-shell .bottom-nav__item {
-  font-size: 0.75rem;
-  text-transform: none;
-  letter-spacing: 0.02em;
-}
-
 .cd-skeleton {
   position: relative;
   overflow: hidden;
@@ -608,25 +612,20 @@
   }
 
   .cd-tabnav__inner {
-    flex-wrap: wrap;
-    row-gap: var(--space-1);
-    padding: var(--space-1) 0 var(--space-2);
+    gap: var(--space-2);
   }
 
-  .cd-tabnav__inner::after {
-    display: none;
+  .cd-tab {
+    padding: var(--space-2) var(--space-3) 8px;
   }
 
   .cd-tabnav__right {
-    width: 100%;
     margin-left: 0;
-    justify-content: flex-start;
-    padding: 0;
+    padding-left: var(--space-1);
   }
 
-  .cd-date-field,
   .cd-date-input {
-    width: 100%;
+    padding: var(--space-1) var(--space-2);
   }
 
   .cd-toast {
@@ -664,4 +663,81 @@
     padding-top: 20px;
     padding-bottom: 56px;
   }
+}
+
+.cd-shell[data-lang="ta"] {
+  font-family: var(--font-tamil), var(--font-body), system-ui, sans-serif;
+}
+
+.cd-shell[data-lang="ta"] :where(
+  .cd-brand__name,
+  .section-title,
+  .surface__headline,
+  .panel__header h3,
+  .life-events-title,
+  .cd-onboarding__title,
+  .cd-tools-v3__title,
+  .cd-tools-v3-card__title,
+  .cd-tools-v3-detail__copy h2,
+  .cd-footer__wordmark
+) {
+  font-family: var(--font-tamil), var(--font-body), system-ui, sans-serif;
+  letter-spacing: 0;
+  line-height: 1.28;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.cd-shell[data-lang="ta"] :where(
+  .cd-brand__sub,
+  .cd-status-pill,
+  .cd-vault-name,
+  .cd-alerts-head,
+  .cd-alert-item__title,
+  .cd-tab,
+  .surface__title,
+  .surface__subhead,
+  .metric__label,
+  .table th,
+  .calendar-day__date,
+  .calendar-day__label,
+  .cd-tools-v3__eyebrow,
+  .cd-tools-v3-card__tagline,
+  .cd-tools-v3-card__num,
+  .cd-tools-v3-detail__crumb-title,
+  .cd-tools-v3-detail__chips span,
+  .cd-confidence-badge
+) {
+  font-family: var(--font-tamil), var(--font-body), system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  line-height: 1.45;
+  text-transform: none;
+  overflow-wrap: anywhere;
+}
+
+.cd-shell[data-lang="ta"] :where(
+  .cd-tab,
+  .cd-lang-btn,
+  .cd-dropdown__btn,
+  .button,
+  .chip,
+  .cd-tools-v3-detail__back,
+  .cd-tools-v3-card__footer,
+  .cd-onboarding__cta,
+  .cd-btn-pill
+) {
+  line-height: 1.35;
+  text-align: center;
+  white-space: normal;
+}
+
+.cd-shell[data-lang="ta"] :where(
+  .cd-brand__sub,
+  .cd-status-pill,
+  .cd-toast,
+  .metric__hint,
+  .cd-tools-v3-card__chip,
+  .cd-footer__copy
+) {
+  white-space: normal;
 }

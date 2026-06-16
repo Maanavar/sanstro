@@ -108,7 +108,7 @@ export function NatchathiramFactVisual({ data }: { data: NatchathiramEntry }) {
   );
 }
 
-export function TopicSymbolPanel({ topic }: { topic: "method" | "thirukanitham" | "jadhagam" | "birth-time" | "porutham" | "chandrashtama" | "about" }) {
+export function TopicSymbolPanel({ topic }: { topic: "method" | "thirukanitham" | "jadhagam" | "birth-time" | "porutham" | "chandrashtama" | "about" | "dosham" | "yogam" | "pariharam" | "temple" }) {
   const config = {
     method: { title: "Calculation Stack", sub: "ephemeris, ayanamsa, panchangam", marks: ["♈", "☉", "☽", "27"] },
     thirukanitham: { title: "Precise Sky", sub: "drik positions, not guesswork", marks: ["☉", "☽", "♃", "♄"] },
@@ -117,6 +117,10 @@ export function TopicSymbolPanel({ topic }: { topic: "method" | "thirukanitham" 
     porutham: { title: "Matching Lens", sub: "birth star, rasi and dosha checks", marks: ["10", "♎", "27", "⚬"] },
     chandrashtama: { title: "8th Moon", sub: "awareness window, not fear", marks: ["☽", "8", "♏", "!"] },
     about: { title: "Vinaadi", sub: "Tamil astrology, made readable", marks: ["27", "D1", "☽", "♈"] },
+    dosham: { title: "Dosham", sub: "afflictions, strength and balance", marks: ["♂", "☊", "♄", "7"] },
+    yogam: { title: "Yogam", sub: "combinations, dignity and rise", marks: ["♃", "☽", "★", "10"] },
+    pariharam: { title: "Pariharam", sub: "devotion, slokam and steadiness", marks: ["ॐ", "🪔", "108", "♀"] },
+    temple: { title: "Sacred Sthalam", sub: "deity, blessing and faith", marks: ["🛕", "♄", "ॐ", "9"] },
   }[topic];
 
   return (

@@ -9,7 +9,7 @@ export function classifyPeyarchiToneFromMoon(planet: string, houseFromMoon: numb
 
   if (planet === "SATURN") {
     if ([3, 6, 10, 11].includes(houseFromMoon)) return "supportive";
-    if ([5, 7].includes(houseFromMoon)) return "neutral";
+    if ([1, 2, 5, 7, 12].includes(houseFromMoon)) return "neutral";
     return "caution";
   }
 

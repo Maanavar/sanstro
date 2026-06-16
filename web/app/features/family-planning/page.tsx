@@ -49,7 +49,7 @@ export default function FamilyPlanningPage() {
             </div>
             <div className="cl-hero-figure">
               <p className="cl-hero-figure__label">{lang === "en" ? "Family Today · Sample" : "இன்று குடும்பம் · மாதிரி"}</p>
-              <p className="cl-hero-figure__title">{lang === "en" ? "Best combined window: 11:53 – 12:41" : "சிறந்த கூட்டு நேரம்: 11:53 – 12:41"}</p>
+              <p className="cl-hero-figure__title">{lang === "en" ? "Best combined window: 11:53 am - 12:41 pm" : "சிறந்த கூட்டு நேரம்: 11:53 am - 12:41 pm"}</p>
               <FamilyOrbitVisual />
               <div className="cl-hero-figure__art" style={{ flexDirection: "column", gap: "10px", width: "100%" }}>
                 {FAMILY_MEMBERS.map((m) => (

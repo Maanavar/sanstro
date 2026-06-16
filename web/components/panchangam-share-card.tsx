@@ -426,7 +426,10 @@ export function PanchangamShareCard({ lang, date, city = "Chennai", lat = 13.082
                 </div>
 
                 {preview && (
-                  <img src={preview} alt="card preview" style={{ borderRadius: "12px", maxWidth: "min(100%, 380px)", maxHeight: "66vh", objectFit: "contain", boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }} />
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- canvas data URL, not a network image */}
+                    <img src={preview} alt="card preview" style={{ borderRadius: "12px", maxWidth: "min(100%, 380px)", maxHeight: "66vh", objectFit: "contain", boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }} />
+                  </>
                 )}
 
                 <div style={{ display: "flex", gap: "10px" }}>

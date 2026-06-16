@@ -39,8 +39,17 @@ export function PublicNav() {
     { href: "/tools/marriage-porutham-calculator", label: mt(NAV.tool_porutham, lang), desc: mt(NAV.tool_porutham_desc, lang) },
     { href: "/tools/jadhagam-generator",           label: mt(NAV.tool_jad,      lang), desc: mt(NAV.tool_jad_desc,      lang) },
     { href: "/tools/daily-panchangam-planner",     label: mt(NAV.tool_panch,    lang), desc: mt(NAV.tool_panch_desc,    lang) },
+    { href: "/muhurtham-naal",                     label: lang === "en" ? "Muhurtham Naal 2026" : "முகூர்த்த நாள் 2026", desc: lang === "en" ? "Verified Tamil wedding dates" : "சரிபார்த்த திருமண நாட்கள்" },
+    { href: "/tamil-calendar",                     label: lang === "en" ? "Tamil Calendar 2026" : "தமிழ் நாட்காட்டி 2026", desc: lang === "en" ? "Pournami, Amavasai, Pradosham dates" : "பௌர்ணமி, அமாவாசை, பிரதோஷ நாட்கள்" },
     { href: "/tools/birth-time-rectification",     label: mt(NAV.tool_btr,      lang), desc: mt(NAV.tool_btr_desc,      lang) },
     { href: "/tools/indraiya-rasipalan",           label: mt(NAV.tool_rasipalan, lang), desc: mt(NAV.tool_rasipalan_desc, lang) },
+  ];
+
+  const GUIDE = [
+    { href: "/dosham",    label: mt(NAV.guide_dosham,    lang), desc: mt(NAV.guide_dosham_desc,    lang) },
+    { href: "/yogam",     label: mt(NAV.guide_yogam,     lang), desc: mt(NAV.guide_yogam_desc,     lang) },
+    { href: "/pariharam", label: mt(NAV.guide_pariharam, lang), desc: mt(NAV.guide_pariharam_desc, lang) },
+    { href: "/temples",   label: mt(NAV.guide_temples,   lang), desc: mt(NAV.guide_temples_desc,   lang) },
   ];
 
   return (
@@ -153,6 +162,15 @@ export function PublicNav() {
               ))}
             </Dropdown>
 
+            <Dropdown label={mt(NAV.guide, lang)}>
+              {GUIDE.map((g) => (
+                <Link key={g.href} href={g.href} className="cl-nav-dropdown__item" role="menuitem">
+                  <span className="cl-nav-dropdown__item-label">{g.label}</span>
+                  <span className="cl-nav-dropdown__item-desc">{g.desc}</span>
+                </Link>
+              ))}
+            </Dropdown>
+
             <Link href="/natchathiram" className="cl-nav__link">{lang === "en" ? "Nakshathirams" : "நட்சத்திரங்கள்"}</Link>
             <Link href="/learn/what-is-thirukanitham" className="cl-nav__link">{mt(NAV.learn, lang)}</Link>
             <Link href="/trust/methodology" className="cl-nav__link">{mt(NAV.method, lang)}</Link>
@@ -207,6 +225,15 @@ export function PublicNav() {
                   <Link key={t.href} href={t.href} className="cl-nav__mobile-link" onClick={closeMobileMenu}>
                     <span>{t.label}</span>
                     <span>{t.desc}</span>
+                  </Link>
+                ))}
+              </div>
+              <div className="cl-nav__mobile-group">
+                <p className="cl-nav__mobile-label">{mt(NAV.guide, lang)}</p>
+                {GUIDE.map((g) => (
+                  <Link key={g.href} href={g.href} className="cl-nav__mobile-link" onClick={closeMobileMenu}>
+                    <span>{g.label}</span>
+                    <span>{g.desc}</span>
                   </Link>
                 ))}
               </div>

@@ -40,3 +40,14 @@ web/artifacts/
 web/scripts/_debug-*.mjs
 web/scripts/_dump-*.mjs
 
+# Local tools and editor settings
+.claude/
+.claude/*local*.json
+.vscode/
+.idea/
+.DS_Store
+
+# Local debug files
+*.local
+*.local.*
+

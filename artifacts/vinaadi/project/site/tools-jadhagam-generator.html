@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>South Indian Tamil Birth Chart Generator — Vinaadi Jadhagam</title>
+<meta name="description" content="Generate a Thirukanitham-precise South Indian birth chart (jadhagam) free online. D1 Rasi chart, D9 Navamsa, Lahiri ayanamsa, planet positions, and dasha sequence." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Tamil:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="site.css" />
+<link rel="stylesheet" href="site-improvements.css" />
+</head>
+<body>
+<div class="clarity-shell">
+  <main>
+
+    <section class="cl-pub-hero" style="padding-bottom:32px">
+      <div class="cl-container">
+        <p class="cl-eyebrow">Tool · Jadhagam Generator</p>
+        <h1 class="cl-pub-h1" style="max-width:20ch">Generate a South Indian Tamil Birth Chart</h1>
+        <p class="cl-pub-lead">Thirukanitham-precise jadhagam — Lahiri ayanamsa, Drik ephemeris. D1 Rasi chart, D9 Navamsa, full planet positions, nakshatra, and dasha sequence. Free, no account required.</p>
+      </div>
+    </section>
+
+    <section style="padding-bottom:64px">
+      <div class="cl-container">
+        <div class="cl-tool">
+          <form class="cl-tool__card" onsubmit="return false">
+            <p class="cl-tool__card-intro">Enter birth details to generate a Thirukanitham-precise jadhagam. No account required.</p>
+            <div class="cl-tool__card-grid">
+              <label class="cl-tool__label">Name (optional)<input class="cl-tool__input" placeholder="e.g. Ramesh Kumar" /></label>
+              <label class="cl-tool__label">Birth Date *<input class="cl-tool__input" type="date" /></label>
+              <label class="cl-tool__label">Birth Time<input class="cl-tool__input" type="time" value="12:00" /></label>
+              <label class="cl-tool__label">Timezone<input class="cl-tool__input" value="Asia/Kolkata" /></label>
+              <label class="cl-tool__label cl-tool__full">Birth Place *<input class="cl-tool__input" placeholder="Type a city…" /></label>
+              <label class="cl-tool__label">Latitude<input class="cl-tool__input" placeholder="e.g. 13.08" /></label>
+              <label class="cl-tool__label">Longitude<input class="cl-tool__input" placeholder="e.g. 80.27" /></label>
+            </div>
+            <button type="button" class="cl-tool__submit" data-reveal="jd-result">Generate Jadhagam</button>
+          </form>
+
+          <div class="cl-tool__result" id="jd-result" hidden>
+            <div class="cl-tool__score-card">
+              <div class="cl-tool__score-figure" style="min-width:160px">
+                <p class="cl-tool__score-label">Lagna</p>
+                <p class="cl-tool__score-num" style="font-size:1.8rem;color:var(--cl-ink)">Kadagam</p>
+                <p class="cl-tool__score-sub">Cancer · Moon as lagna lord</p>
+              </div>
+              <div class="cl-tool__score-body">
+                <p class="cl-tool__score-summary">Moon in Viruchigam (5th house), Kettai nakshatra, pada 2. Currently in <strong>Moon Dasa · Saturn Bhukti</strong>. Saturn transiting Kumbam aspects the lagna from the 8th — a period favouring patience and steady consolidation.</p>
+                <div class="cl-tool__chips">
+                  <span class="cl-tool__chip">Janma nakshatra: Kettai</span>
+                  <span class="cl-tool__chip">Rasi: Viruchigam</span>
+                  <span class="cl-tool__chip">Tithi: Ekadasi</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="cl-tool__charts">
+              <div class="cl-tool__chart-card">
+                <svg viewBox="0 0 240 240" role="img" aria-label="D1 Rasi chart">
+                  <rect x="1" y="1" width="238" height="238" rx="5" fill="var(--cl-surface-2)" class="clf-grid-line"></rect>
+                  <g class="clf-grid-line"><line x1="60" y1="1" x2="60" y2="239"></line><line x1="120" y1="1" x2="120" y2="239"></line><line x1="180" y1="1" x2="180" y2="239"></line><line x1="1" y1="60" x2="239" y2="60"></line><line x1="1" y1="120" x2="239" y2="120"></line><line x1="1" y1="180" x2="239" y2="180"></line></g>
+                  <rect x="60" y="60" width="120" height="120" fill="var(--cl-surface)" class="clf-grid-line"></rect>
+                  <text x="120" y="115" text-anchor="middle" font-family="var(--cl-font-display)" font-size="14" fill="var(--cl-ink)">Rasi</text>
+                  <text x="120" y="132" text-anchor="middle" class="clf-cell-label">D1</text>
+                  <rect x="60" y="0" width="60" height="60" class="clf-cell-lag"></rect>
+                  <text x="66" y="15" class="clf-cell-label clf-accent-fill">Lag</text>
+                  <text x="125" y="52" class="clf-cell-label clf-ink">Su Bu</text>
+                  <text x="186" y="160" class="clf-cell-label clf-ink">Ch</text>
+                  <text x="6" y="135" class="clf-cell-label clf-ink">Sa</text>
+                  <text x="66" y="225" class="clf-cell-label clf-ink">Gu</text>
+                </svg>
+                <p>D1 · Rasi Chart</p>
+              </div>
+              <div class="cl-tool__chart-card">
+                <svg viewBox="0 0 240 240" role="img" aria-label="D9 Navamsa chart">
+                  <rect x="1" y="1" width="238" height="238" rx="5" fill="var(--cl-surface-2)" class="clf-grid-line"></rect>
+                  <g class="clf-grid-line"><line x1="60" y1="1" x2="60" y2="239"></line><line x1="120" y1="1" x2="120" y2="239"></line><line x1="180" y1="1" x2="180" y2="239"></line><line x1="1" y1="60" x2="239" y2="60"></line><line x1="1" y1="120" x2="239" y2="120"></line><line x1="1" y1="180" x2="239" y2="180"></line></g>
+                  <rect x="60" y="60" width="120" height="120" fill="var(--cl-surface)" class="clf-grid-line"></rect>
+                  <text x="120" y="115" text-anchor="middle" font-family="var(--cl-font-display)" font-size="14" fill="var(--cl-ink)">Navamsa</text>
+                  <text x="120" y="132" text-anchor="middle" class="clf-cell-label">D9</text>
+                  <rect x="120" y="0" width="60" height="60" class="clf-cell-lag"></rect>
+                  <text x="126" y="15" class="clf-cell-label clf-accent-fill">Lag</text>
+                  <text x="6" y="80" class="clf-cell-label clf-ink">Su</text>
+                  <text x="186" y="135" class="clf-cell-label clf-ink">Ch Sk</text>
+                  <text x="125" y="225" class="clf-cell-label clf-ink">Gu</text>
+                </svg>
+                <p>D9 · Navamsa Chart</p>
+              </div>
+            </div>
+
+            <div class="cl-tool__save">
+              <div>
+                <p class="cl-tool__save-title">Save your chart and track dasha over time</p>
+                <p class="cl-tool__save-sub">Free account — save the jadhagam, get a reading every morning.</p>
+              </div>
+              <a href="/dashboard" class="cl-btn cl-btn--solid">Get started free →</a>
+            </div>
+            <p class="cl-tool__note">Preview chart shown for illustration. Enter real birth details and sign in to generate a live jadhagam.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cl-band cl-band--alt">
+      <div class="cl-container">
+        <div class="cl-band__head">
+          <p class="cl-eyebrow">Overview</p>
+          <h2 class="cl-section-h2">What this chart includes</h2>
+        </div>
+        <div class="cl-pub-two-col">
+          <div class="cl-pub-section__body">
+            <p>Every chart is computed using the Thirukanitham method — the precise Tamil astronomical calculation standard with Lahiri ayanamsa and Drik ephemeris data. The same method used by traditional Tamil Jyotish practitioners.</p>
+          </div>
+          <ul class="cl-pub-detail-list">
+            <li class="cl-pub-detail-item"><p class="cl-pub-detail-item__title">D1 Rasi chart</p><p class="cl-pub-detail-item__body">Primary natal chart — all planets in South Indian square format.</p></li>
+            <li class="cl-pub-detail-item"><p class="cl-pub-detail-item__title">D9 Navamsa chart</p><p class="cl-pub-detail-item__body">Divisional chart for relationships, dharma, and second half of life.</p></li>
+            <li class="cl-pub-detail-item"><p class="cl-pub-detail-item__title">Planet positions</p><p class="cl-pub-detail-item__body">Precise rasi, nakshatra, pada, and degree for all 9 grahas.</p></li>
+            <li class="cl-pub-detail-item"><p class="cl-pub-detail-item__title">Vimshottari Dasha</p><p class="cl-pub-detail-item__body">Current dasha and bhukti period from birth nakshatra.</p></li>
+          </ul>
+        </div>
+        <div class="cl-pub-related">
+          <p class="cl-pub-related__title">Related</p>
+          <div class="cl-pub-related-links">
+            <a href="/features/chart-guidance" class="cl-pub-related-link">Chart Guidance →</a>
+            <a href="/learn/how-to-read-a-jadhagam" class="cl-pub-related-link">How to read a Jadhagam →</a>
+            <a href="/learn/why-birth-time-matters" class="cl-pub-related-link">Why birth time matters →</a>
+            <a href="/tools/birth-time-rectification" class="cl-pub-related-link">Birth Time Rectification →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cl-cta-strip">
+      <div class="cl-container cl-cta-strip__inner">
+        <div>
+          <h2 class="cl-cta-strip__title">Save your chart and get daily guidance</h2>
+          <p class="cl-cta-strip__body">Create a free account to save, track dasha over time, and get a reading every morning.</p>
+        </div>
+        <a href="/dashboard" class="cl-btn cl-btn--solid">Get started free →</a>
+      </div>
+    </section>
+
+  </main>
+</div>
+<script src="site.js"></script>
+</body>
+</html>

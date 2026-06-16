@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
 import { t } from "@/lib/i18n";
@@ -448,6 +449,7 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
         body: JSON.stringify({ birthProfileId, calculationVersion: "thirukanitham-2026-v1" }),
       });
       setChart(chartRes.data);
+      track("chart_generated"); // activation event — no birth details attached
 
       try {
         const summaryRes = await apiFetchJson<ApiEnvelope<ChartSummaryData>>(

@@ -1,6 +1,16 @@
 import type { MetadataRoute } from "next";
+import { DOSHAM_DETAILS, YOGAM_DETAILS, TEMPLE_DETAILS, PARIHARAM_DETAILS } from "@/lib/guide-detail-content";
+import { CALENDAR_CATEGORY_SLUGS } from "./tamil-calendar/calendar-category-api";
 
 const BASE = "https://vinaadi.com";
+
+function guideEntries(prefix: string, slugs: string[]): MetadataRoute.Sitemap {
+  return slugs.map((slug) => ({
+    url: `${BASE}/${prefix}/${slug}`,
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  }));
+}
 
 function isoDate(offset = 0): string {
   const d = new Date();
@@ -15,6 +25,27 @@ function panchangamDateEntries(): MetadataRoute.Sitemap {
     priority: 0.8,
     lastModified: new Date(),
   }));
+}
+
+const TAMIL_CALENDAR_EVENTS = [
+  "pournami", "amavasai", "pradosham", "ekadhasi", "sankatahara-chathurthi",
+  "chathurthi", "sashti", "ashtami", "navami", "karthigai", "thiruvonam",
+  "maadha-sivarathiri", "chandra-darisanam", "karinaal",
+];
+
+function tamilCalendarEntries(): MetadataRoute.Sitemap {
+  return [
+    ...CALENDAR_CATEGORY_SLUGS.map((slug) => ({
+      url: `${BASE}/tamil-calendar/${slug}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.88,
+    })),
+    ...TAMIL_CALENDAR_EVENTS.map((key) => ({
+    url: `${BASE}/tamil-calendar/${key}-2026`,
+    changeFrequency: "weekly" as const,
+    priority: 0.85,
+    })),
+  ];
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -71,6 +102,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.9,
     },
+    {
+      url: `${BASE}/muhurtham-naal`,
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
+    {
+      url: `${BASE}/tamil-calendar`,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    ...tamilCalendarEntries(),
     {
       url: `${BASE}/tools/indraiya-rasipalan`,
       changeFrequency: "daily",
@@ -134,6 +176,49 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.7,
     },
+    /* ── Dosham pages ── */
+    {
+      url: `${BASE}/dosham`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/dosham/sevvai-dosham`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    ...guideEntries("dosham", Object.keys(DOSHAM_DETAILS)),
+    /* ── Yogam pages ── */
+    {
+      url: `${BASE}/yogam`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    ...guideEntries("yogam", Object.keys(YOGAM_DETAILS)),
+    /* ── Pariharam pages ── */
+    {
+      url: `${BASE}/pariharam`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/pariharam/thirumana-thadai`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    ...guideEntries("pariharam", Object.keys(PARIHARAM_DETAILS)),
+    /* ── Temple pages ── */
+    {
+      url: `${BASE}/temples`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/temples/thirunallar`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    ...guideEntries("temples", Object.keys(TEMPLE_DETAILS)),
     /* ── Natchathiram pages ── */
     {
       url: `${BASE}/natchathiram`,

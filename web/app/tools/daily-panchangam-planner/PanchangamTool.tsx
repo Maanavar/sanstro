@@ -78,6 +78,34 @@ function endsAtDate(endsAt: string, sunrise: string, dateLocal: string): string 
   return clockPart(endsAt) >= clockPart(sunrise) ? dateLocal : addDays(dateLocal, 1);
 }
 
+function clockToMinutes(value: string): number {
+  const hm = clockPart(value);
+  const [h, m] = hm.split(":").map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
+}
+
+function nowLocalMinutes(): number {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
+// When the user is viewing *today* and the clock has passed a limb's end time,
+// the headline should become the next segment so the card reflects what is
+// actually running now. We only promote for a clear same-day daytime rollover:
+// an end time on a later calendar day hasn't passed yet, and an end before
+// ~04:00 is an after-midnight boundary that two-segment data can't disambiguate.
+function limbRolledOver(
+  endsAt: string,
+  sunrise: string,
+  dateLocal: string,
+  isToday: boolean,
+): boolean {
+  if (!isToday) return false;
+  if (endsAtDate(endsAt, sunrise, dateLocal) !== dateLocal) return false;
+  const end = clockToMinutes(endsAt);
+  return end >= 240 && nowLocalMinutes() > end;
+}
+
 function formatRasi(number: number, fallback: string, lang: Lang): string {
   return RASI_LABELS[number]?.[lang] ?? fallback;
 }
@@ -166,6 +194,10 @@ function formatEndsAtLabel(endsAt: string, sunrise: string, dateLocal: string, l
   return `${clock}, ${dateLabel}${nextDaySuffix}`;
 }
 
+function formatTimeRange(start: string, end: string): string {
+  return `${formatClockLabel(start)} - ${formatClockLabel(end)}`;
+}
+
 function TimeSlot({ label, start, end, tone }: { label: string; start: string; end: string; tone: "best" | "hold" | "neutral" }) {
   const colors = {
     best: { bg: "rgba(92,118,84,0.08)", border: "rgba(92,118,84,0.3)", text: "#5C7654" },
@@ -184,6 +216,34 @@ function TimeSlot({ label, start, end, tone }: { label: string; start: string; e
 }
 
 type PanchangamTimingSlot = PanchangamDailyResponseData["kalam"]["nallaNeram"][number];
+
+function SummaryChip({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "best" | "hold" | "neutral" }) {
+  const colors = {
+    best: { bg: "rgba(92,118,84,0.08)", border: "rgba(92,118,84,0.18)", label: "#5C7654", value: "var(--cl-ink)" },
+    hold: { bg: "rgba(168,72,47,0.07)", border: "rgba(168,72,47,0.18)", label: "#A8482F", value: "var(--cl-ink)" },
+    neutral: { bg: "var(--cl-bg-2)", border: "var(--cl-border)", label: "var(--cl-muted)", value: "var(--cl-ink)" },
+  }[tone];
+
+  return (
+    <span style={{
+      display: "inline-flex",
+      alignItems: "baseline",
+      gap: "8px",
+      borderRadius: "999px",
+      border: `1px solid ${colors.border}`,
+      background: colors.bg,
+      padding: "7px 12px",
+      whiteSpace: "nowrap",
+    }}>
+      <span style={{ fontSize: "0.66rem", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: colors.label }}>
+        {label}
+      </span>
+      <span style={{ fontSize: "0.82rem", fontWeight: 700, color: colors.value, fontVariantNumeric: "tabular-nums" }}>
+        {value}
+      </span>
+    </span>
+  );
+}
 
 function SlotStack({ slots, emptyLabel, lang }: { slots: PanchangamTimingSlot[]; emptyLabel: string; lang: Lang }) {
   if (slots.length === 0) {
@@ -311,10 +371,32 @@ export function PanchangamTool() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const piraiLabel = (paksha: "SHUKLA" | "KRISHNA") =>
+    paksha === "SHUKLA" ? (en ? "Valar Pirai" : "வளர் பிறை") : (en ? "Thei Pirai" : "தேய் பிறை");
+
+  const isToday = data ? data.dateLocal === today() : false;
+
+  // For *today*, promote the currently-running segment once its end has passed
+  // (see limbRolledOver). Each flag drives both the headline value and its sub.
+  const tithiRolled = data ? limbRolledOver(data.tithi.endsAt, data.sunrise, data.dateLocal, isToday) : false;
+  const nakshatraRolled = data ? limbRolledOver(data.nakshatra.endsAt, data.sunrise, data.dateLocal, isToday) : false;
+  const yogaRolled = data ? limbRolledOver(data.yoga.endsAt, data.sunrise, data.dateLocal, isToday) : false;
+  const karanaRolled = data ? limbRolledOver(data.karana.endsAt, data.sunrise, data.dateLocal, isToday) : false;
+  const amirdhadhiRolled = data ? limbRolledOver(data.amirdhadhiYogam.endsAt, data.sunrise, data.dateLocal, isToday) : false;
+
+  // "Active since {time}" when promoted (the segment began when the previous one
+  // ended), otherwise the usual "Ends {time} · then {next}" forward-looking sub.
+  const limbSub = (rolled: boolean, endsAt: string, thenLabel: string, prefix = ""): string => {
+    if (!data) return "";
+    const ends = formatEndsAtLabel(endsAt, data.sunrise, data.dateLocal, lang);
+    if (rolled) return `${en ? "Active since" : "செயலில்"} ${ends}`;
+    return `${prefix}${en ? "Ends" : "முடிவு"} ${ends} · ${en ? "then" : "பின்பு"} ${thenLabel}`;
+  };
+
   const tithiLabel = data
-    ? `${tTithi(data.tithi.name, lang)} (${data.tithi.paksha === "SHUKLA"
-        ? (en ? "Valar Pirai" : "வளர் பிறை")
-        : (en ? "Thei Pirai" : "தேய் பிறை")})`
+    ? (tithiRolled
+        ? `${tTithi(data.tithi.nextName, lang)} (${piraiLabel(data.tithi.nextPaksha)})`
+        : `${tTithi(data.tithi.name, lang)} (${piraiLabel(data.tithi.paksha)})`)
     : "";
   const chandrashtamamRasi = data
     ? formatRasi(
@@ -327,6 +409,65 @@ export function PanchangamTool() {
     ? formatRasi(data.chandrashtamamToday.moonRasiNumber, data.chandrashtamamToday.moonRasiName, lang)
     : "";
   const tamilDateLabel = data?.tamilDate ? data.tamilDate[lang] : "";
+  const firstNallaSlot = data?.kalam.nallaNeram?.[0] ?? null;
+  const secondNallaSlot = data?.kalam.nallaNeram?.[1] ?? null;
+  const hasAbhijitWindow = data ? !data.abhijit.isRestrictedByWeekday : false;
+  const primaryWindow = data
+    ? (firstNallaSlot
+        ? {
+            label: en ? "Nalla Neram" : "நல்ல நேரம்",
+            range: formatTimeRange(firstNallaSlot.start, firstNallaSlot.end),
+          }
+        : (hasAbhijitWindow
+            ? {
+                label: en ? "Abhijit" : "அபிஜித்",
+                range: formatTimeRange(data.abhijit.start, data.abhijit.end),
+              }
+            : null))
+    : null;
+  const secondaryWindow = data
+    ? (secondNallaSlot
+        ? {
+            label: en ? "Next clean window" : "அடுத்த நல்ல நேரம்",
+            range: formatTimeRange(secondNallaSlot.start, secondNallaSlot.end),
+          }
+        : (firstNallaSlot && hasAbhijitWindow
+            ? {
+                label: en ? "Abhijit backup" : "அபிஜித் மாற்று நேரம்",
+                range: formatTimeRange(data.abhijit.start, data.abhijit.end),
+              }
+            : null))
+    : null;
+  const rahuRange = data ? formatTimeRange(data.kalam.rahuKalam.start, data.kalam.rahuKalam.end) : "";
+  const plannerHeadline = data
+    ? (primaryWindow
+        ? (en ? `Best planning window: ${primaryWindow.range}` : `சிறந்த திட்ட நேரம்: ${primaryWindow.range}`)
+        : (en ? "Plan around the cleaner windows below" : "கீழே உள்ள நல்ல நேரங்களை வைத்து திட்டமிடுங்கள்"))
+    : "";
+  const plannerBody = data
+    ? (data.subhaMuhurtham.isSubha
+        ? (en
+            ? `This date carries traditional support for fresh starts. Lead with ${primaryWindow ? `${primaryWindow.label} ${primaryWindow.range}` : "the cleaner windows below"}${secondaryWindow ? `, and keep ${secondaryWindow.label} ${secondaryWindow.range} in reserve` : ""}. Avoid Rahu Kalam ${rahuRange}.`
+            : `இந்த நாள் சுப தொடக்கங்களுக்கு ஏற்றதாக கருதப்படுகிறது. ${primaryWindow ? `${primaryWindow.label} ${primaryWindow.range}` : "கீழே உள்ள நல்ல நேரங்களை"} முதலில் பயன்படுத்துங்கள்${secondaryWindow ? `; ${secondaryWindow.label} ${secondaryWindow.range} மாற்று நேரமாக இருக்கும்` : ""}. ராகு காலம் ${rahuRange} தவிர்க்கவும்.`)
+        : (en
+            ? `Use this date selectively. ${primaryWindow ? `The cleanest opening is ${primaryWindow.label} ${primaryWindow.range}` : "There is no standout muhurta window on this date"}${secondaryWindow ? `, and ${secondaryWindow.label} ${secondaryWindow.range} is the next option` : ""}. Keep major starts outside Rahu Kalam ${rahuRange}.`
+            : `இந்த நாளை தேர்ந்தெடுத்து பயன்படுத்துங்கள். ${primaryWindow ? `${primaryWindow.label} ${primaryWindow.range} தான் சுத்தமான தொடக்க நேரம்` : "இந்த நாளில் மிகவும் வலுவான முகூர்த்த நேரம் இல்லை"}${secondaryWindow ? `; ${secondaryWindow.label} ${secondaryWindow.range} அடுத்த விருப்பம்` : ""}. முக்கிய தொடக்கங்களை ராகு காலம் ${rahuRange} வெளியே வைத்துக்கொள்ளுங்கள்.`))
+    : "";
+  const dayStatusLabel = data
+    ? (data.subhaMuhurtham.isSubha
+        ? (en ? "Subha day" : "சுப நாள்")
+        : (en ? "Use selectively" : "தேர்ந்து பயன்படுத்தவும்"))
+    : "";
+  const specialDayLabel = data?.specialTithiDay
+    ? (data.specialTithiDay.name === "AMAVASAI"
+        ? (en ? "Amavasai" : "அமாவாசை")
+        : (en ? "Pournami" : "பௌர்ணமி"))
+    : (data?.isKarinaal ? (en ? "Karinaal" : "கரிநாள்") : "");
+  const subhaBadgeLabel = data
+    ? (data.subhaMuhurtham.isSubha
+        ? (en ? "Favourable for starts" : "தொடக்கங்களுக்கு சாதகம்")
+        : (en ? "Avoid auspicious launches" : "சுப தொடக்கங்களை தவிர்க்கவும்"))
+    : "";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -446,18 +587,18 @@ export function PanchangamTool() {
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "12px" }}>
               {[
-                { label: en ? "Tithi" : "திதி",         value: tithiLabel,          sub: `${en ? "Ends" : "முடிவு"} ${formatEndsAtLabel(data.tithi.endsAt, data.sunrise, data.dateLocal, lang)} · ${en ? "then" : "பின்பு"} ${tTithi(data.tithi.nextName, lang)}` },
+                { label: en ? "Tithi" : "திதி",         value: tithiLabel,          sub: limbSub(tithiRolled, data.tithi.endsAt, tTithi(data.tithi.nextName, lang)) },
                 { label: en ? "Vara" : "வாரம்",          value: tWeekday(data.vara.weekday, lang),   sub: `${en ? "Lord" : "அதிபதி"}: ${tPlanetLord(data.vara.lord, lang)}` },
-                { label: en ? "Birth Star" : "நட்சத்திரம்", value: tNakshatra(data.nakshatra.name, lang), sub: `${en ? "Pada" : "பாதம்"} ${data.nakshatra.pada} · ${en ? "Ends" : "முடிவு"} ${formatEndsAtLabel(data.nakshatra.endsAt, data.sunrise, data.dateLocal, lang)} · ${en ? "then" : "பின்பு"} ${tNakshatra(data.nakshatra.nextName, lang)}` },
-                { label: en ? "Yoga" : "யோகம்",          value: tYoga(data.yoga.name, lang),      sub: `${en ? "Yoga" : "யோகம்"} ${data.yoga.number} · ${en ? "Ends" : "முடிவு"} ${formatEndsAtLabel(data.yoga.endsAt, data.sunrise, data.dateLocal, lang)} · ${en ? "then" : "பின்பு"} ${tYoga(data.yoga.nextName, lang)}` },
-                { label: en ? "Karana" : "கரணம்",        value: tKarana(data.karana.name, lang),    sub: `${en ? "Ends" : "முடிவு"} ${formatEndsAtLabel(data.karana.endsAt, data.sunrise, data.dateLocal, lang)} · ${en ? "then" : "பின்பு"} ${tKarana(data.karana.nextName, lang)}` },
+                { label: en ? "Birth Star" : "நட்சத்திரம்", value: tNakshatra(nakshatraRolled ? data.nakshatra.nextName : data.nakshatra.name, lang), sub: limbSub(nakshatraRolled, data.nakshatra.endsAt, tNakshatra(data.nakshatra.nextName, lang), nakshatraRolled ? "" : `${en ? "Pada" : "பாதம்"} ${data.nakshatra.pada} · `) },
+                { label: en ? "Today's Chandrashtamam" : "சந்திராஷ்டமம்", value: chandrashtamamRasi, sub: en ? `Affected birth sign; Moon in ${moonRasi}` : `பாதிக்கும் பிறப்பு ராசி; சந்திரன் ${moonRasi}` },
+                { label: en ? "Yoga" : "யோகம்",          value: tYoga(yogaRolled ? data.yoga.nextName : data.yoga.name, lang),      sub: limbSub(yogaRolled, data.yoga.endsAt, tYoga(data.yoga.nextName, lang), yogaRolled ? "" : `${en ? "Yoga" : "யோகம்"} ${data.yoga.number} · `) },
+                { label: en ? "Karana" : "கரணம்",        value: tKarana(karanaRolled ? data.karana.nextName : data.karana.name, lang),    sub: limbSub(karanaRolled, data.karana.endsAt, tKarana(data.karana.nextName, lang)) },
                 { label: en ? "Moon Phase" : "சந்திர கலை", value: data.moonPhaseLabel, sub: "" },
                 { label: en ? "Lagnam" : "லக்னம்",       value: formatRasi(data.lagnam.rasiNumber, data.lagnam.rasiName, lang), sub: `${en ? "Ends" : "முடிவு"} ${formatEndsAtLabel(data.lagnam.endsAt, data.sunrise, data.dateLocal, lang)} · ${data.lagnam.nazhigai} ${en ? "nazhigai" : "நாழிகை"} ${data.lagnam.vinadi} ${en ? "vinadi" : "விநாடி"}` },
                 { label: en ? "Soolam" : "சூலம்",        value: data.soolam.direction, sub: `${en ? "Parigaram" : "பரிகாரம்"}: ${data.soolam.parigaram}` },
                 { label: en ? "Nethiram" : "நேத்திரம்",   value: data.nethiram,       sub: "" },
                 { label: en ? "Jeevan" : "ஜீவன்",        value: data.jeevan,         sub: "" },
-                { label: en ? "Amirdhadhi Yogam" : "அமிர்தாதி யோகம்", value: formatAmirdhadhiYogam(data.amirdhadhiYogam.name, lang), sub: `${en ? "Ends" : "முடிவு"} ${formatEndsAtLabel(data.amirdhadhiYogam.endsAt, data.sunrise, data.dateLocal, lang)} · ${en ? "then" : "பின்பு"} ${formatAmirdhadhiYogam(data.amirdhadhiYogam.nextName, lang)}` },
-                { label: en ? "Today's Chandrashtamam" : "சந்திராஷ்டமம்", value: chandrashtamamRasi, sub: en ? `Affected birth sign; Moon in ${moonRasi}` : `பாதிக்கும் பிறப்பு ராசி; சந்திரன் ${moonRasi}` },
+                { label: en ? "Amirdhadhi Yogam" : "அமிர்தாதி யோகம்", value: formatAmirdhadhiYogam(amirdhadhiRolled ? data.amirdhadhiYogam.nextName : data.amirdhadhiYogam.name, lang), sub: limbSub(amirdhadhiRolled, data.amirdhadhiYogam.endsAt, formatAmirdhadhiYogam(data.amirdhadhiYogam.nextName, lang)) },
               ].map((item) => (
                 <div key={item.label} style={{
                   background: "var(--cl-bg-2)", border: "1px solid var(--cl-border)",
@@ -477,25 +618,75 @@ export function PanchangamTool() {
             </div>
           </div>
 
-          {/* Share button */}
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <PanchangamShareButton data={{
-              dateLabel: formatDateLabel(data.dateLocal),
-              cityName: currentCityDisplay || cityKey,
-              tithi: tTithi(data.tithi.name, lang),
-              nakshatra: tNakshatra(data.nakshatra.name, lang),
-              vara: tWeekday(data.vara.weekday, lang),
-              yoga: data.yoga?.name,
-              karana: data.karana?.name,
-              sunrise: formatClockLabel(data.sunrise),
-              sunset: formatClockLabel(data.sunset),
-              rahuKalamStart: formatClockLabel(data.kalam.rahuKalam.start),
-              rahuKalamEnd: formatClockLabel(data.kalam.rahuKalam.end),
-              nallaNeram: data.kalam.nallaNeram.length > 0
-                ? `${formatClockLabel(data.kalam.nallaNeram[0].start)} – ${formatClockLabel(data.kalam.nallaNeram[0].end)}`
-                : (en ? "N/A" : "இல்லை"),
-              lang,
-            }} />
+          {/* Planning summary + share */}
+          <div className="cl-mobile-card-split" style={{ alignItems: "stretch", gap: "14px" }}>
+            <div style={{
+              flex: "1 1 480px",
+              background: "var(--cl-surface)",
+              border: "1px solid var(--cl-border)",
+              borderRadius: "16px",
+              padding: "16px 18px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+            }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <p style={{ margin: 0, fontSize: "0.68rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
+                  {en ? "Planning note" : "திட்டமிடும் குறிப்பு"}
+                </p>
+                <p style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: "var(--cl-ink)" }}>
+                  {plannerHeadline}
+                </p>
+                <p style={{ margin: 0, fontSize: "0.84rem", lineHeight: 1.6, color: "var(--cl-ink-2)" }}>
+                  {plannerBody}
+                </p>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                <SummaryChip
+                  label={en ? "Day status" : "நாள் நிலை"}
+                  value={dayStatusLabel}
+                  tone={data.subhaMuhurtham.isSubha ? "best" : "neutral"}
+                />
+                {primaryWindow && (
+                  <SummaryChip
+                    label={primaryWindow.label}
+                    value={primaryWindow.range}
+                    tone="best"
+                  />
+                )}
+                <SummaryChip
+                  label={en ? "Rahu Kalam" : "ராகு காலம்"}
+                  value={rahuRange}
+                  tone="hold"
+                />
+                {specialDayLabel && (
+                  <SummaryChip
+                    label={en ? "Special day" : "சிறப்பு நாள்"}
+                    value={specialDayLabel}
+                  />
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+              <PanchangamShareButton data={{
+                dateLabel: formatDateLabel(data.dateLocal),
+                cityName: currentCityDisplay || cityKey,
+                tithi: tTithi(data.tithi.name, lang),
+                nakshatra: tNakshatra(data.nakshatra.name, lang),
+                vara: tWeekday(data.vara.weekday, lang),
+                yoga: data.yoga?.name,
+                karana: data.karana?.name,
+                sunrise: formatClockLabel(data.sunrise),
+                sunset: formatClockLabel(data.sunset),
+                rahuKalamStart: formatClockLabel(data.kalam.rahuKalam.start),
+                rahuKalamEnd: formatClockLabel(data.kalam.rahuKalam.end),
+                nallaNeram: data.kalam.nallaNeram.length > 0
+                  ? `${formatClockLabel(data.kalam.nallaNeram[0].start)} – ${formatClockLabel(data.kalam.nallaNeram[0].end)}`
+                  : (en ? "N/A" : "இல்லை"),
+                lang,
+              }} />
+            </div>
           </div>
 
           {/* Sunrise/sunset */}
@@ -569,15 +760,42 @@ export function PanchangamTool() {
           {/* Subha muhurtham status */}
           <div style={{
             background: data.subhaMuhurtham.isSubha ? "rgba(92,118,84,0.07)" : "rgba(168,72,47,0.05)",
-            border: `1px solid ${data.subhaMuhurtham.isSubha ? "rgba(92,118,84,0.3)" : "rgba(168,72,47,0.2)"}`,
-            borderRadius: "12px", padding: "14px 18px",
+            border: `1px solid ${data.subhaMuhurtham.isSubha ? "rgba(92,118,84,0.26)" : "rgba(168,72,47,0.18)"}`,
+            borderRadius: "16px",
+            padding: "15px 18px",
           }}>
-            <p style={{ margin: "0 0 4px", fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: data.subhaMuhurtham.isSubha ? "#5C7654" : "#A8482F" }}>
-              {data.subhaMuhurtham.isSubha
-                ? (en ? "Subha Muhurtham Day" : "சுப முகூர்த்த நாள்")
-                : (en ? "Not a Subha Muhurtham Day" : "சுப முகூர்த்த நாள் அல்ல")}
-            </p>
-            <p style={{ margin: 0, fontSize: "0.86rem", color: "var(--cl-ink-2)" }}>{data.subhaMuhurtham.reason}</p>
+            <div className="cl-mobile-card-split" style={{ alignItems: "center", gap: "12px" }}>
+              <div style={{ flex: "1 1 420px", minWidth: 0 }}>
+                <p style={{ margin: "0 0 4px", fontSize: "0.68rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: data.subhaMuhurtham.isSubha ? "#5C7654" : "#A8482F" }}>
+                  {en ? "Subha Muhurtham Check" : "சுப முகூர்த்தம் பரிசோதனை"}
+                </p>
+                <p style={{ margin: "0 0 4px", fontSize: "0.98rem", fontWeight: 700, color: "var(--cl-ink)" }}>
+                  {data.subhaMuhurtham.isSubha
+                    ? (en ? "Subha Muhurtham Day" : "சுப முகூர்த்த நாள்")
+                    : (en ? "Not a Subha Muhurtham Day" : "சுப முகூர்த்த நாள் அல்ல")}
+                </p>
+                <p style={{ margin: 0, fontSize: "0.85rem", lineHeight: 1.55, color: "var(--cl-ink-2)" }}>
+                  {data.subhaMuhurtham.reason}
+                </p>
+              </div>
+              <div style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "9px 13px",
+                borderRadius: "999px",
+                background: data.subhaMuhurtham.isSubha ? "rgba(92,118,84,0.1)" : "rgba(168,72,47,0.08)",
+                border: `1px solid ${data.subhaMuhurtham.isSubha ? "rgba(92,118,84,0.22)" : "rgba(168,72,47,0.16)"}`,
+                color: data.subhaMuhurtham.isSubha ? "#5C7654" : "#A8482F",
+                fontSize: "0.76rem",
+                fontWeight: 800,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+                textAlign: "center",
+              }}>
+                {subhaBadgeLabel}
+              </div>
+            </div>
           </div>
 
           {/* Festivals */}

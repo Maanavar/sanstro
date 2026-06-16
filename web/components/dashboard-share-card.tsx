@@ -371,6 +371,7 @@ export function ShareCardButton({ chartId, cardType, lang, date, label }: ShareC
             style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "14px" }}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element -- runtime-generated data URL; next/image cannot optimize it */}
             <img
               src={preview}
               alt="share card preview"

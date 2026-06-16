@@ -70,6 +70,26 @@ def _score_label(score: int) -> str:
     return "RESTORATIVE"
 
 
+def _format_clock_label(value: datetime | time | object | None) -> str:
+    if value is None:
+        return "N/A"
+    try:
+        hour = int(getattr(value, "hour"))
+        minute = int(getattr(value, "minute"))
+    except Exception:
+        try:
+            raw = str(value.strftime("%H:%M"))
+            hour_text, minute_text = raw.split(":", 1)
+            hour = int(hour_text)
+            minute = int(minute_text[:2])
+        except Exception:
+            return str(value)
+
+    suffix = "am" if hour < 12 else "pm"
+    hour_12 = hour % 12 or 12
+    return f"{hour_12}:{minute:02d} {suffix}"
+
+
 def _latest_active_profile(session: Session, user_id: UUID) -> BirthProfile | None:
     return session.execute(
         select(BirthProfile)
@@ -173,11 +193,11 @@ def _dispatch_for_user(
         try:
             panchang = calculate_daily_panchangam(run_date, lat, lon, tz_name)
             nalla_slot = best_gowri_slot(panchang.nalla_neram)
-            nalla_start = nalla_slot.start.strftime("%H:%M") if nalla_slot else "-"
-            nalla_end = nalla_slot.end.strftime("%H:%M") if nalla_slot else "-"
+            nalla_start = _format_clock_label(nalla_slot.start) if nalla_slot else "-"
+            nalla_end = _format_clock_label(nalla_slot.end) if nalla_slot else "-"
             nalla_name = getattr(nalla_slot, "name", None) if nalla_slot else None
-            rahu_start  = panchang.rahu_kalam.start.strftime("%H:%M")
-            rahu_end    = panchang.rahu_kalam.end.strftime("%H:%M")
+            rahu_start = _format_clock_label(panchang.rahu_kalam.start)
+            rahu_end = _format_clock_label(panchang.rahu_kalam.end)
 
             # Use the full daily guidance engine for an accurate score and rich content.
             # get_daily_guidance() is cache-backed (DailyScore table) so this is cheap

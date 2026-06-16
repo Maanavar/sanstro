@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import { apiFetchJson } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 
 export function FeedbackModal({ lang, onClose }: { lang: Lang; onClose: () => void }) {
-  const [category, setCategory] = useState<"bug" | "calculation" | "suggestion" | "other">("other");
+  const [category, setCategory] = useState<"bug" | "calculation" | "suggestion" | "review" | "other">("other");
   const [rating, setRating] = useState<number | null>(null);
   const [message, setMessage] = useState("");
+  const [isReview, setIsReview] = useState(false);
+  const [allowContact, setAllowContact] = useState(false);
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -19,7 +22,20 @@ export function FeedbackModal({ lang, onClose }: { lang: Lang; onClose: () => vo
       await apiFetchJson("/api/v1/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category, rating, message: message.trim(), page_context: "dashboard" }),
+        body: JSON.stringify({
+          category,
+          rating,
+          message: message.trim(),
+          page_context: "dashboard",
+          is_review: isReview || category === "review",
+          allow_contact: allowContact,
+        }),
+      });
+      // Metadata only — the free-text message is never sent to analytics.
+      track("feedback_submitted", {
+        category,
+        rating,
+        is_review: isReview || category === "review",
       });
       setDone(true);
       setTimeout(() => onClose(), 1800);
@@ -46,9 +62,9 @@ export function FeedbackModal({ lang, onClose }: { lang: Lang; onClose: () => vo
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <label style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.5)" }}>{t("feedback_category", lang)}</label>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                {(["bug", "calculation", "suggestion", "other"] as const).map((c) => (
+                {(["bug", "calculation", "suggestion", "review", "other"] as const).map((c) => (
                   <button key={c} type="button" className={`button button--ghost${category === c ? " button--active" : ""}`} style={{ fontSize: "0.875rem", padding: "4px 12px", opacity: category === c ? 1 : 0.5 }} onClick={() => setCategory(c)}>
-                    {t(c === "bug" ? "feedback_bug" : c === "calculation" ? "feedback_calc" : c === "suggestion" ? "feedback_suggest" : "feedback_other", lang)}
+                    {t(c === "bug" ? "feedback_bug" : c === "calculation" ? "feedback_calc" : c === "suggestion" ? "feedback_suggest" : c === "review" ? "feedback_review" : "feedback_other", lang)}
                   </button>
                 ))}
               </div>
@@ -69,6 +85,15 @@ export function FeedbackModal({ lang, onClose }: { lang: Lang; onClose: () => vo
               <label style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.5)" }}>{t("feedback_message", lang)}</label>
               <textarea className="input" rows={4} style={{ resize: "vertical", fontFamily: "inherit" }} value={message} onChange={(e) => setMessage(e.target.value)} maxLength={2000} placeholder="..." />
             </div>
+
+            <label style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "0.85rem", color: "rgba(255,255,255,0.7)", cursor: "pointer" }}>
+              <input type="checkbox" checked={isReview || category === "review"} disabled={category === "review"} onChange={(e) => setIsReview(e.target.checked)} style={{ marginTop: "3px" }} />
+              <span>{t("feedback_mark_review", lang)}</span>
+            </label>
+            <label style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "0.85rem", color: "rgba(255,255,255,0.7)", cursor: "pointer" }}>
+              <input type="checkbox" checked={allowContact} onChange={(e) => setAllowContact(e.target.checked)} style={{ marginTop: "3px" }} />
+              <span>{t("feedback_allow_contact", lang)}</span>
+            </label>
 
             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
               <button type="button" className="button button--ghost" onClick={onClose} disabled={sending}>{t("feedback_cancel", lang)}</button>

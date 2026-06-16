@@ -29,6 +29,27 @@ def _bi(ta: str, en: str) -> BiText:
     return BiText(ta=ta, en=en)
 
 
+def _format_clock_label(value: str | None) -> str:
+    if not value:
+        return ""
+    time_part = value.split("T", 1)[1] if "T" in value else value
+    pieces = time_part.split(":")
+    try:
+        hour = int(pieces[0])
+        minute = int(pieces[1]) if len(pieces) > 1 else 0
+    except (TypeError, ValueError):
+        return value[:5]
+    hour %= 24
+    minute %= 60
+    period = "am" if hour < 12 else "pm"
+    hour12 = hour % 12 or 12
+    return f"{hour12}:{minute:02d} {period}"
+
+
+def _format_time_range(start: str | None, end: str | None) -> str:
+    return f"{_format_clock_label(start)}-{_format_clock_label(end)}"
+
+
 def build_strength_narrative(planets: list["PlanetPosition"], lagna_rasi: int) -> BiText:
     if not planets:
         return _bi(
@@ -478,24 +499,24 @@ def personal_caution_reason(
 # ── Remedy suggestions ─────────────────────────────────────────────────────────
 
 _PLANET_REMEDY: dict[str, BiText] = {
-    "SUN":     _bi("ஞாயிற்றுக்கிழமை காலையில் சூரியனை வணங்குங்கள். ஆதித்ய ஹ்ருதயம் படிக்கலாம்.",
-                   "Offer water to the rising Sun on Sundays. Reciting Aditya Hridayam is beneficial."),
-    "MOON":    _bi("திங்கட்கிழமை சந்திர வழிபாடு செய்யுங்கள். வெள்ளை பொருட்கள் தானம் செய்யலாம்.",
-                   "Worship the Moon on Mondays. Donating white items is beneficial."),
-    "MARS":    _bi("செவ்வாய்க்கிழமை முருகன் வழிபாடு. செம்பு பொருட்கள் தானம் நல்லது.",
-                   "Worship Murugan on Tuesdays. Donating copper items is auspicious."),
-    "MERCURY": _bi("புதன்கிழமை பெருமாள் (திருமால்) வழிபாடு. பச்சை பொருட்கள் தானம்.",
-                   "Worship Perumal (Thirumaal) on Wednesdays. Donating green items is helpful."),
-    "JUPITER": _bi("வியாழக்கிழமை தட்சிணாமூர்த்தி தரிசனம், குரு பகவான் வழிபாடு. மஞ்சள் அல்லது மஞ்சள் பூக்கள் தானம்.",
-                   "Visit Dakshinamurthy temple on Thursdays. Worship Guru Bhagavan. Donating yellow or yellow flowers is auspicious."),
-    "VENUS":   _bi("வெள்ளிக்கிழமை மகாலட்சுமி வழிபாடு. வெள்ளை அல்லது வண்ணமயமான பூக்கள் சமர்ப்பிக்கலாம்.",
-                   "Worship Mahalakshmi on Fridays. Offering white or colourful flowers is auspicious."),
-    "SATURN":  _bi("சனிக்கிழமை சனீஸ்வரன் வழிபாடு. எள் எண்ணெய் விளக்கு ஏற்றுங்கள். கடுமையான பேச்சை தவிர்க்கவும்.",
-                   "Worship Saneeswaran on Saturdays. Light a sesame oil lamp. Avoid harsh speech."),
-    "RAHU":    _bi("துர்கா / காளி வழிபாடு நல்லது. ஏழை உணவு தானம் செய்யலாம். சனிக்கிழமை விரதம் உதவும்.",
-                   "Worship Durga / Kali. Donating food to the needy is helpful. Saturday fasting is beneficial."),
-    "KETU":    _bi("கணேஷ் வழிபாடு நல்லது. ஆன்மீக நூல்கள் படியுங்கள். தனிமையில் தியானம் செய்யுங்கள்.",
-                   "Worship Ganesha. Read spiritual texts. Meditate in solitude."),
+    "SUN":     _bi("ஞாயிற்றுக்கிழமை காலையில் சூரியனை வணங்குங்கள். ஆதித்ய ஹ்ருதயம் படிக்கலாம். ஏழைகளுக்கு அன்னதானம் அல்லது அரசு பள்ளி மாணவருக்கு புத்தகம் தானம் சூரிய அருளை மேம்படுத்தும்.",
+                   "Offer water to the rising Sun on Sundays. Reciting Aditya Hridayam is beneficial. Feeding the needy or donating books to a government school child deepens Sun's grace."),
+    "MOON":    _bi("திங்கட்கிழமை சந்திர வழிபாடு செய்யுங்கள். வெள்ளை பொருட்கள் தானம் செய்யலாம். ஒரு பெண் குழந்தையின் கல்விக்கோ, இளம் தாய்க்கோ உதவுவது சந்திர சேவை.",
+                   "Worship the Moon on Mondays. Donating white items is beneficial. Sponsoring a girl child's education or feeding a young mother and child is an effective Moon seva."),
+    "MARS":    _bi("செவ்வாய்க்கிழமை முருகன் வழிபாடு. செம்பு பொருட்கள் தானம் நல்லது. இரத்த தானம் அல்லது மருத்துவமனை நோயாளிக்கு உதவுவது செவ்வாய் சேவை.",
+                   "Worship Murugan on Tuesdays. Donating copper items is auspicious. Donating blood or helping a hospital patient who cannot afford care is a powerful Mars seva."),
+    "MERCURY": _bi("புதன்கிழமை பெருமாள் (திருமால்) வழிபாடு. பச்சை பொருட்கள் தானம். ஒரு மாணவரின் புத்தகம் அல்லது கல்விக் கட்டணம் கொடுப்பது புதன் சேவை.",
+                   "Worship Perumal (Thirumaal) on Wednesdays. Donating green items is helpful. Sponsoring a student's books or school fees is an effective Mercury seva."),
+    "JUPITER": _bi("வியாழக்கிழமை தட்சிணாமூர்த்தி தரிசனம், குரு பகவான் வழிபாடு. மஞ்சள் அல்லது மஞ்சள் பூக்கள் தானம். தகுதியான மாணவரின் கல்லூரி கட்டணம் செலுத்துவது அல்லது பெண் குழந்தை கல்வி நிதிக்கு நன்கொடை — குரு சேவையின் உச்சம்.",
+                   "Visit Dakshinamurthy temple on Thursdays. Worship Guru Bhagavan. Donating yellow or yellow flowers is auspicious. Sponsoring a student's college fees or contributing to a girl child education fund is Jupiter seva at its finest."),
+    "VENUS":   _bi("வெள்ளிக்கிழமை மகாலட்சுமி வழிபாடு. வெள்ளை அல்லது வண்ணமயமான பூக்கள் சமர்ப்பிக்கலாம். ஒரு பெண்ணின் கல்வி அல்லது தொழிலுக்கு உதவுவது சுக்கிர சேவை.",
+                   "Worship Mahalakshmi on Fridays. Offering white or colourful flowers is auspicious. Supporting a woman's education or livelihood is the most resonant Venus seva."),
+    "SATURN":  _bi("சனிக்கிழமை சனீஸ்வரன் வழிபாடு. எள் எண்ணெய் விளக்கு ஏற்றுங்கள். கடுமையான பேச்சை தவிர்க்கவும். பசிப்பவருக்கு உணவளிப்பது அல்லது தினக்கூலி தொழிலாளிக்கு உதவுவது சனியை திருப்திப்படுத்தும்.",
+                   "Worship Saneeswaran on Saturdays. Light a sesame oil lamp. Avoid harsh speech. Feeding the hungry or helping a daily wage worker on Saturdays is the most effective Saturn seva."),
+    "RAHU":    _bi("துர்கா / காளி வழிபாடு நல்லது. ஏழை உணவு தானம் செய்யலாம். சனிக்கிழமை விரதம் (உடல்நலம் இடம் தந்தால்) உதவும். முதல் தலைமுறை மாணவருக்கு வழிகாட்டுதல் அல்லது அனாதை இல்லத்திற்கு நன்கொடை ராகு நிவாரணம்.",
+                   "Worship Durga / Kali. Donating food to the needy is helpful. Saturday fasting (only if your health permits) is beneficial. Mentoring a first-generation college student or donating to an orphanage are effective Rahu remedies."),
+    "KETU":    _bi("கணேஷ் வழிபாடு நல்லது. ஆன்மீக நூல்கள் படியுங்கள். தனிமையில் தியானம் செய்யுங்கள். நோய்வாய்ப்பட்ட ஏழைக்கு உதவுவது அல்லது தெரு விலங்குகளுக்கு உணவளிப்பது கேது சேவை.",
+                   "Worship Ganesha. Read spiritual texts. Meditate in solitude. Helping a destitute or terminally ill person, or feeding street animals, is a meaningful Ketu seva."),
 }
 
 _CYCLE_REMEDY: dict[str, BiText] = {
@@ -641,8 +662,13 @@ def daily_summary(
             en += f" {warn.en}."
 
     if best_window_label and band in ("STRONG_SUPPORT", "GOOD"):
-        ta += f" சிறந்த நேரம்: {best_window_label}."
-        en += f" Best window: {best_window_label}."
+        best_window_display = (
+            _format_time_range(*best_window_label.split("-", 1))
+            if "-" in best_window_label
+            else _format_clock_label(best_window_label)
+        )
+        ta += f" சிறந்த நேரம்: {best_window_display}."
+        en += f" Best window: {best_window_display}."
 
     return _bi(ta, en)
 
@@ -660,10 +686,11 @@ def action_suggestion(
     planet_ta = PLANET_NAME.get(maha_lord, _bi(maha_lord, maha_lord)).ta
 
     if best_window_start and band in ("STRONG_SUPPORT", "GOOD", "BALANCED"):
+        best_window_display = _format_time_range(best_window_start, best_window_end)
         return _bi(
-            f"சிறந்த நேரம் {best_window_start}–{best_window_end}-ல் முக்கிய பணிகளை தொடங்குங்கள். "
+            f"சிறந்த நேரம் {best_window_display}-ல் முக்கிய பணிகளை தொடங்குங்கள். "
             f"{planet_ta} தசையில் தொடர்ச்சியான முயற்சி நல்ல பலன் தரும்.",
-            f"Begin your most important task during the best window {best_window_start}–{best_window_end}. "
+            f"Begin your most important task during the best window {best_window_display}. "
             f"Consistent effort under {planet_en} dasa yields good results.",
         )
 
@@ -688,11 +715,12 @@ def caution_suggestion(
     rahu_kalam_start: str,
     rahu_kalam_end: str,
 ) -> BiText:
+    rahu_kalam_display = _format_time_range(rahu_kalam_start, rahu_kalam_end)
     if chandrashtama:
         return _bi(
-            f"சந்திராஷ்டமம் நடப்பில் உள்ளது. ராகு காலம் {rahu_kalam_start}–{rahu_kalam_end} தவிர்க்கவும். "
+            f"சந்திராஷ்டமம் நடப்பில் உள்ளது. ராகு காலம் {rahu_kalam_display} தவிர்க்கவும். "
             f"நிதி மற்றும் உடல்நலம் சார்ந்த முடிவுகளை ஒத்தி வையுங்கள்.",
-            f"Chandrashtamam is active. Avoid Rahu Kalam {rahu_kalam_start}–{rahu_kalam_end}. "
+            f"Chandrashtamam is active. Avoid Rahu Kalam {rahu_kalam_display}. "
             f"Defer financial and health-related decisions.",
         )
 
@@ -701,14 +729,14 @@ def caution_suggestion(
         warn_ta = warn.ta if warn else ""
         warn_en = warn.en if warn else ""
         return _bi(
-            f"{warn_ta}. ராகு காலம் {rahu_kalam_start}–{rahu_kalam_end} தவிர்க்கவும்.",
-            f"{warn_en}. Avoid Rahu Kalam {rahu_kalam_start}–{rahu_kalam_end}.",
+            f"{warn_ta}. ராகு காலம் {rahu_kalam_display} தவிர்க்கவும்.",
+            f"{warn_en}. Avoid Rahu Kalam {rahu_kalam_display}.",
         )
 
     return _bi(
-        f"ராகு காலம் {rahu_kalam_start}–{rahu_kalam_end} புதிய முயற்சிகளுக்கு தவிர்க்கவும். "
+        f"ராகு காலம் {rahu_kalam_display} புதிய முயற்சிகளுக்கு தவிர்க்கவும். "
         f"அவசர முடிவுகளை தடுக்கவும்.",
-        f"Avoid Rahu Kalam {rahu_kalam_start}–{rahu_kalam_end} for new starts. "
+        f"Avoid Rahu Kalam {rahu_kalam_display} for new starts. "
         f"Prevent rushed decisions.",
     )
 
@@ -755,10 +783,12 @@ def build_ekadasi_card() -> BiText:
     """Tithi 11 or 26 — Ekadasi, sacred to Vishnu / Perumal."""
     return _bi(
         "இன்று ஏகாதசி — திருமால் வழிபாட்டிற்கு சிறப்பான நாள். "
-        "விரதம் இருப்பவர்களுக்கு ஆன்மீக பலன் அதிகம். "
+        "உடல்நலம் இடம் தந்தால் விரதம் இருப்பவர்களுக்கு ஆன்மீக பலன் அதிகம்; "
+        "இயலாதவர் லேசான சாத்வீக உணவு உண்ணலாம். "
         "பெருமாள் கோவிலுக்கு சென்று துளசி சமர்ப்பிக்கலாம்.",
         "Today is Ekadasi — a sacred day for Thirumal (Vishnu). "
-        "Fasting on this day carries spiritual merit. "
+        "Fasting carries spiritual merit if your health permits; "
+        "otherwise a light sattvic meal is fine. "
         "Visit a Perumal temple and offer Tulasi.",
     )
 

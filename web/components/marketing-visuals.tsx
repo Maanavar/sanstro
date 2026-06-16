@@ -51,11 +51,11 @@ export function TimingArcVisual({ className }: VisualProps) {
         <g className="mk-ticks">
           <path d="M42 170v16M111 170v12M180 170v16M249 170v12M318 170v16" />
         </g>
-        <text className="mk-label" x="35" y="207">6a</text>
-        <text className="mk-label" x="100" y="207">9a</text>
-        <text className="mk-label mk-label--strong" x="165" y="207">12p</text>
-        <text className="mk-label" x="240" y="207">3p</text>
-        <text className="mk-label" x="308" y="207">6p</text>
+        <text className="mk-label" x="30" y="207">6 am</text>
+        <text className="mk-label" x="94" y="207">9 am</text>
+        <text className="mk-label mk-label--strong" x="156" y="207">12 pm</text>
+        <text className="mk-label" x="232" y="207">3 pm</text>
+        <text className="mk-label" x="298" y="207">6 pm</text>
         <text className="mk-center-sub" x="151" y="52">best window</text>
       </svg>
     </div>
@@ -130,7 +130,7 @@ export function FamilyOrbitVisual({ className }: VisualProps) {
         <path className="mk-orbit" d="M72 154C102 64 226 44 266 168" />
         <path className="mk-orbit mk-orbit--wide" d="M72 154C130 214 224 218 266 168" />
         <circle className="mk-sun-dot" cx="170" cy="136" r="24" />
-        <text className="mk-center-title" x="170" y="142" textAnchor="middle">11:53</text>
+        <text className="mk-center-title" x="170" y="142" textAnchor="middle">11:53 am</text>
         {members.map((member) => (
           <g key={member.name}>
             <circle className="mk-node" cx={member.x} cy={member.y} r="22" />

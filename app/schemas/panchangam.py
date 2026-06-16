@@ -196,6 +196,7 @@ class PanchangamDailyResponseData(BaseModel):
     amirdhadhi_yogam: PanchangamAmirdhadhiYogam = Field(alias="amirdhadhiYogam")
     chandrashtamam_today: PanchangamChandrashtamamToday = Field(alias="chandrashtamamToday")
     special_tithi_day: PanchangamSpecialTithiDay | None = Field(default=None, alias="specialTithiDay")
+    is_karinaal: bool = Field(default=False, alias="isKarinaal")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -259,6 +260,7 @@ class PanchangamMonthDayEntry(BaseModel):
     is_tamil_muhurtham_day: bool = Field(alias="isTamilMuhurthamDay")
     is_subha_muhurtham: bool = Field(alias="isSubhaMuhurtham")
     is_subha_muhurtham_strict: bool = Field(alias="isSubhaMuhurthamStrict")
+    is_karinaal: bool = Field(default=False, alias="isKarinaal")
 
     model_config = ConfigDict(populate_by_name=True)
 
