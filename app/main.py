@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api.admin import router as admin_router
+from app.api.admin_analytics import router as admin_analytics_router
 from app.api.alerts import router as alerts_router
 from app.api.annual_wrapped import router as annual_wrapped_router
 from app.api.ask_vinaadi import router as ask_vinaadi_router
@@ -40,10 +41,11 @@ from app.api.share_card import router as share_card_router
 from app.api.transits import router as transits_router
 from app.api.whatif import router as whatif_router
 from app.core.config import get_settings
-from app.middleware import RateLimitMiddleware, RequestLoggingMiddleware, SecurityHeadersMiddleware
+from app.middleware import MaintenanceModeMiddleware, RateLimitMiddleware, RequestLoggingMiddleware, SecurityHeadersMiddleware
 from app.services.daily_push_cron import run_daily_push_cron
 from app.services.panchangam_prewarm import run_panchangam_prewarm_cron
 from app.services.peyarchi_alert_service import daily_peyarchi_refresh
+from app.services.job_registry import register_job
 from app.services.synastry_service import daily_relationship_alert_refresh
 
 try:
@@ -71,6 +73,31 @@ _LOGGING_CONFIG = {
 def _build_lifespan():
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
+        register_job(
+            "daily_peyarchi_refresh",
+            "Peyarchi Refresh",
+            "Refresh transit alerts for all charts (daily, 02:00 UTC)",
+            daily_peyarchi_refresh,
+        )
+        register_job(
+            "daily_relationship_alert_refresh",
+            "Relationship Alerts",
+            "Refresh synastry alerts (daily, 02:05 UTC)",
+            daily_relationship_alert_refresh,
+        )
+        register_job(
+            "daily_push_cron",
+            "Daily Push Notifications",
+            "Send morning guidance push (hourly, per-user timezone window)",
+            run_daily_push_cron,
+        )
+        register_job(
+            "panchangam_prewarm",
+            "Panchangam Prewarm",
+            "Pre-warm panchangam cache for popular locations (daily, 02:10 UTC)",
+            run_panchangam_prewarm_cron,
+        )
+
         scheduler = AsyncIOScheduler(timezone="UTC") if AsyncIOScheduler is not None else None
         if scheduler is None:
             logging.getLogger(__name__).warning("APScheduler not installed; peyarchi background scheduler disabled.")
@@ -165,6 +192,7 @@ def create_app() -> FastAPI:
     # Outermost middleware runs first on the way in / last on the way out.
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RequestLoggingMiddleware)
+    app.add_middleware(MaintenanceModeMiddleware)
     app.add_middleware(RateLimitMiddleware)
 
     cors_origins = [o.strip() for o in settings.cors_allow_origins.split(",") if o.strip()]
@@ -204,6 +232,7 @@ def create_app() -> FastAPI:
     app.include_router(retrospective_router, prefix=settings.api_v1_prefix)
     app.include_router(settings_router, prefix=settings.api_v1_prefix)
     app.include_router(admin_router, prefix=settings.api_v1_prefix)
+    app.include_router(admin_analytics_router, prefix=settings.api_v1_prefix)
     app.include_router(feedback_router, prefix=settings.api_v1_prefix)
     app.include_router(whatif_router, prefix=settings.api_v1_prefix)
     app.include_router(content_router, prefix=settings.api_v1_prefix)

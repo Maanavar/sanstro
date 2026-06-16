@@ -307,6 +307,36 @@ def test_login_non_existent_email_returns_401(raw_client):
     assert response.json()["detail"] == "Invalid email or password."
 
 
+def test_suspended_user_cannot_log_in_or_load_me(raw_client):
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "suspended@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    user_id = UUID(register.json()["userId"])
+
+    with SessionLocal() as session:
+        user = session.get(User, user_id)
+        assert user is not None
+        user.is_suspended = True
+        user.suspension_reason = "support action"
+        session.commit()
+
+    me_response = raw_client.get("/api/v1/auth/me")
+    assert me_response.status_code == 403
+    assert me_response.json()["detail"] == "Account suspended. Contact support."
+
+    logout = raw_client.post("/api/v1/auth/logout")
+    assert logout.status_code == 204
+
+    login_response = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "suspended@example.com", "password": "password123"},
+    )
+    assert login_response.status_code == 403
+    assert login_response.json()["detail"] == "Account suspended. Contact support."
+
+
 def test_logout_when_already_logged_out_returns_204(raw_client):
     logout = raw_client.post("/api/v1/auth/logout")
     assert logout.status_code == 204

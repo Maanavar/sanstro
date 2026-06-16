@@ -31,6 +31,14 @@ _COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24
 _logger = logging.getLogger(__name__)
 
 
+def _assert_not_suspended(user: User) -> None:
+    if user.is_suspended:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account suspended. Contact support.",
+        )
+
+
 def _set_auth_cookie(response: Response, token: str) -> None:
     settings = get_settings()
     response.set_cookie(
@@ -119,6 +127,7 @@ def login(
         raise invalid_credentials
     if not _verify_password(payload.password, user.hashed_password):
         raise invalid_credentials
+    _assert_not_suspended(user)
 
     token = create_access_token(subject=str(user.user_id))
     _set_auth_cookie(response, token)
@@ -155,6 +164,7 @@ def me(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
     if user.email is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+    _assert_not_suspended(user)
 
     return AuthUserResponse(
         userId=str(user.user_id),
@@ -186,6 +196,7 @@ def patch_me(
     user = session.get(User, user_id)
     if user is None or user.email is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+    _assert_not_suspended(user)
 
     if payload.user_mode is not None:
         user.user_mode = payload.user_mode
@@ -229,6 +240,7 @@ def delete_my_account(
     user = session.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+    _assert_not_suspended(user)
 
     uid = str(user_id)
 

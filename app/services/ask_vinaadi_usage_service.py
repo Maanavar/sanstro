@@ -13,8 +13,14 @@ from sqlalchemy.orm import Session
 
 from app.core.subscription import is_premium
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
+from app.services.feature_flags import get_flag
 
-FREE_DAILY_CHIPS = 3
+
+def _daily_limit() -> int:
+    try:
+        return max(1, int(get_flag("ask_vinaadi_daily_limit")))
+    except (TypeError, ValueError):
+        return 3
 
 
 def _get_usage(session: Session, user_id: UUID, on_date: date) -> AskVinaadiUsage | None:
@@ -32,11 +38,12 @@ def get_daily_status(session: Session, user_id: UUID) -> dict:
     if not premium:
         usage = _get_usage(session, user_id, date.today())
         used = usage.chip_count if usage else 0
+    daily_limit = _daily_limit()
     return {
         "chipsUsed": used,
-        "chipsRemaining": None if premium else max(0, FREE_DAILY_CHIPS - used),
+        "chipsRemaining": None if premium else max(0, daily_limit - used),
         "isPremium": premium,
-        "dailyLimit": FREE_DAILY_CHIPS,
+        "dailyLimit": daily_limit,
     }
 
 
@@ -46,7 +53,7 @@ def assert_chip_available(session: Session, user_id: UUID) -> None:
         return
     usage = _get_usage(session, user_id, date.today())
     used = usage.chip_count if usage else 0
-    if used >= FREE_DAILY_CHIPS:
+    if used >= _daily_limit():
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={"error": "DAILY_LIMIT_REACHED", "chips_used": used},
@@ -64,4 +71,4 @@ def consume_chip(session: Session, user_id: UUID) -> int | None:
         session.add(usage)
     usage.chip_count += 1
     session.flush()
-    return max(0, FREE_DAILY_CHIPS - usage.chip_count)
+    return max(0, _daily_limit() - usage.chip_count)

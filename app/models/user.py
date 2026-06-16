@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import String
+from sqlalchemy import Boolean, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -17,6 +17,8 @@ class User(TimestampMixin, Base):
     hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
     user_mode: Mapped[str] = mapped_column(String(20), nullable=False, server_default="BALANCED")
     goal_track: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    is_suspended: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    suspension_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     birth_profiles = relationship("BirthProfile", back_populates="owner_user")
     family_members = relationship("FamilyMember", back_populates="owner_user", foreign_keys="FamilyMember.owner_user_id")

@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import get_settings
+from app.services.feature_flags import get_flag
 
 logger = logging.getLogger("jothidam.access")
 
@@ -191,3 +192,25 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         response.headers["X-RateLimit-Limit"] = str(self.max_requests)
         response.headers["X-RateLimit-Remaining"] = str(remaining)
         return response
+
+
+_MAINTENANCE_EXEMPT_PREFIXES = (
+    "/health",
+    "/docs",
+    "/redoc",
+    "/openapi.json",
+    "/api/v1/admin",
+)
+
+
+class MaintenanceModeMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        if any(path.startswith(prefix) for prefix in _MAINTENANCE_EXEMPT_PREFIXES):
+            return await call_next(request)
+        if bool(get_flag("maintenance_mode")):
+            return JSONResponse(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                content={"detail": "Service temporarily unavailable for maintenance."},
+            )
+        return await call_next(request)
