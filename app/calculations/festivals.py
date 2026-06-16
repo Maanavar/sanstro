@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import date
 from typing import Literal
 
+from app.data.calendar_categories_2026 import events_for_date as category_events_for_date
+
 FestivalCategory = Literal[
     "hindu",
     "muslim",
@@ -99,7 +101,7 @@ _YEARLY_FESTIVALS: dict[int, list[FestivalEntry]] = {
         ("11-08", "Deepavali", "hindu"),
         ("11-08", "Deepavali", "indian_govt"),
         ("11-08", "Deepavali", "tamilnadu_govt"),
-        ("11-25", "Karthigai Deepam", "hindu"),
+        ("11-24", "Karthigai Deepam", "hindu"),
         # Hindu — Ekadashis 2026 (exact dates)
         ("01-14", "Shattila Ekadashi", "hindu"),
         ("01-29", "Jaya Ekadashi", "hindu"),
@@ -139,7 +141,7 @@ _YEARLY_FESTIVALS: dict[int, list[FestivalEntry]] = {
         ("05-01", "Buddha Purnima", "indian_govt"),
         ("11-24", "Guru Nanak's Birthday", "indian_govt"),
         # Muslim 2026
-        ("02-18", "Ramzan begins", "muslim"),
+        ("02-19", "Ramzan Begins", "muslim"),
         ("03-21", "Eid ul-Fitr (Ramazan)", "muslim"),
         ("03-21", "Eid ul-Fitr (Ramazan)", "indian_govt"),
         ("03-21", "Eid ul-Fitr (Ramazan)", "tamilnadu_govt"),
@@ -303,6 +305,12 @@ def get_festivals_for_date(
     for md, name, cat in _YEARLY_FESTIVALS.get(d.year, []):
         if md == mmdd:
             results.append({"name": name, "category": cat})
+
+    # Curated category-page events. These also feed the signed-in dashboard so
+    # public SEO lists and the product calendar show the same named days.
+    for event in category_events_for_date(d):
+        category = event.tags[0] if event.tags else "observance"
+        results.append({"name": event.name_en, "category": category, "tags": list(event.tags)})
 
     # Nakshatra-based
     nk_upper = nakshatra_name.upper()

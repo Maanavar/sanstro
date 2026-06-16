@@ -301,6 +301,22 @@ def public_panchangam_event(event: str, year: int = 2026) -> dict:
     return get_event(event, year)
 
 
+@router.get("/calendar-categories")
+def public_calendar_categories(year: int = 2026) -> dict:
+    """List festival/holiday category pages for the public Tamil calendar."""
+    from app.services.calendar_category_service import list_calendar_categories
+
+    return list_calendar_categories(year)
+
+
+@router.get("/calendar-categories/{category}")
+def public_calendar_category(category: str, year: int = 2026) -> dict:
+    """Full date list for one festival/holiday category page."""
+    from app.services.calendar_category_service import get_calendar_category
+
+    return get_calendar_category(category, year)
+
+
 @router.get("/panchangam", response_model=PanchangamDailyResponse)
 def public_panchangam(
     date: date,
@@ -452,6 +468,26 @@ def _quality_label(score: float) -> str:
     return "fair"
 
 
+def _format_clock_label(value) -> str:
+    if hasattr(value, "strftime"):
+        value = value.strftime("%H:%M")
+    pieces = str(value).split(":")
+    try:
+        hour = int(pieces[0])
+        minute = int(pieces[1]) if len(pieces) > 1 else 0
+    except (TypeError, ValueError):
+        return str(value)
+    hour %= 24
+    minute %= 60
+    period = "am" if hour < 12 else "pm"
+    hour12 = hour % 12 or 12
+    return f"{hour12}:{minute:02d} {period}"
+
+
+def _format_time_range(start, end) -> str:
+    return f"{_format_clock_label(start)}-{_format_clock_label(end)}"
+
+
 @router.post("/muhurta", response_model=PublicMuhurtaResponse)
 def public_muhurta(
     payload: PublicMuhurtaRequest,
@@ -509,7 +545,7 @@ def public_muhurta(
                 cautions_en.append("Kuligai overlaps this slot")
                 cautions_ta.append("குளிகை இந்த நேரத்துடன் ஒட்டுகிறது")
 
-            time_window = f"{t_start.strftime('%H:%M')}–{t_end.strftime('%H:%M')}"
+            time_window = _format_time_range(t_start, t_end)
             scored.append((
                 score, current, time_window,
                 snap.tithi_name, snap.nakshatra_name,

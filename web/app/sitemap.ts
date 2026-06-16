@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { DOSHAM_DETAILS, YOGAM_DETAILS, TEMPLE_DETAILS, PARIHARAM_DETAILS } from "@/lib/guide-detail-content";
+import { CALENDAR_CATEGORY_SLUGS } from "./tamil-calendar/calendar-category-api";
 
 const BASE = "https://vinaadi.com";
 
@@ -33,11 +34,18 @@ const TAMIL_CALENDAR_EVENTS = [
 ];
 
 function tamilCalendarEntries(): MetadataRoute.Sitemap {
-  return TAMIL_CALENDAR_EVENTS.map((key) => ({
+  return [
+    ...CALENDAR_CATEGORY_SLUGS.map((slug) => ({
+      url: `${BASE}/tamil-calendar/${slug}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.88,
+    })),
+    ...TAMIL_CALENDAR_EVENTS.map((key) => ({
     url: `${BASE}/tamil-calendar/${key}-2026`,
     changeFrequency: "weekly" as const,
     priority: 0.85,
-  }));
+    })),
+  ];
 }
 
 export default function sitemap(): MetadataRoute.Sitemap {
