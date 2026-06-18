@@ -6,6 +6,7 @@ from datetime import date
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import DEBILITATION_RASI, EXALTATION_RASI, OWN_SIGN_RASI
 from app.calculations.transits import get_jupiter_aspects
+from app.core.age_gate import MARRIAGE_UPPER_AGE, is_married_settled, is_seeking_marriage
 from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction, house_lord_for_lagna
 
 
@@ -49,6 +50,44 @@ def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPred
             supports=[BiText("ஆரோக்கியம், பாசம், பாதுகாப்பான வளர்ச்சி வழக்கங்கள் ஆகியவற்றில் கவனம் செலுத்தவும்.", "Focus on health, bonding, and safe growth routines.")],
         )
 
+    # Soft gate — past prime marriage age (50+, Tamil/Indian cultural context).
+    if payload.age >= MARRIAGE_UPPER_AGE:
+        return LifeAreaPrediction(
+            life_area="marriage",
+            main_prediction_ta=(
+                "இந்த வாழ்க்கை கட்டத்தில் ஜோதிட வழிகாட்டல் திருமண நேர கணிப்பிலிருந்து "
+                "துணைவன்/துணைவி ஒற்றுமை, குடும்ப பாலம் மற்றும் ஆன்மிக தொடர்புக்கு மாறுகிறது. "
+                "உறவு தரம் மற்றும் குடும்ப நலன் பற்றிய கேள்விகளுக்கு விநாடி உதவ தயார்."
+            ),
+            main_prediction_en=(
+                "At this life stage, astrological guidance naturally shifts from marriage timing "
+                "to companionship quality, family bonds, and spiritual partnership. "
+                "Vinaadi is happy to guide you on relationship quality and family well-being."
+            ),
+            astrological_factors=[
+                AstroFactor(
+                    key="life_stage_gate",
+                    status="INFO",
+                    detail=BiText(
+                        ta=f"வயது {payload.age}: திருமண நேர கணிப்பு இந்த கட்டத்திற்கு பொருந்தாது.",
+                        en=f"Age {payload.age}: marriage timing predictions are not applicable at this life stage.",
+                    ),
+                )
+            ],
+            dasha_support="PARTIAL",
+            transit_support="PARTIAL",
+            timing_window_start=payload.as_of,
+            timing_window_end=date(payload.as_of.year, 12, 31),
+            confidence="LOW",
+            challenges=[],
+            supports=[BiText(
+                "துணைவன்/துணைவி ஒற்றுமை மற்றும் குடும்ப நலன் பற்றி கேட்கலாம்.",
+                "Ask about companionship harmony and family well-being instead.",
+            )],
+        )
+
+    married_harmony_mode = is_married_settled(payload.marital_status)
+
     seventh_house_rasi = ((payload.lagna_rasi + 7 - 2) % 12) + 1
     seventh_lord = house_lord_for_lagna(payload.lagna_rasi, 7)
     second_lord = house_lord_for_lagna(payload.lagna_rasi, 2)
@@ -70,10 +109,106 @@ def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPred
             ),
         )
     )
-    marital = (payload.marital_status or "").strip().lower()
-    if marital == "married":
-        score += 3
-        supports.append(BiText("திருமணமானவர்களுக்கு இதை உறவு ஒற்றுமை வழிகாட்டலாகப் பார்க்கவும்.", "Married profile: read this as relationship-harmony guidance."))
+    if married_harmony_mode:
+        score += 5
+        factors.append(AstroFactor(
+            key="married_harmony_mode",
+            status="INFO",
+            detail=BiText(
+                ta="திருமணமானவர் — இந்த பகுதி குடும்ப நலன், இல்ல ஒற்றுமை மற்றும் குழந்தை யோகத்தை காட்டுகிறது.",
+                en="Married profile — this reading reflects family fortune: home stability, marital harmony, and children's prosperity.",
+            ),
+        ))
+        supports.append(BiText(
+            "7ம் வீடு பலம் உறவின் தரத்தை குறிக்கிறது.",
+            "7th house strength reflects the quality of your marital bond.",
+        ))
+
+        # 4th house — home and family stability
+        fourth_lord = house_lord_for_lagna(payload.lagna_rasi, 4)
+        fourth_lord_rasi = payload.planets_rasi.get(fourth_lord)
+        if fourth_lord_rasi is not None:
+            fourth_lord_house = house_from_reference(payload.lagna_rasi, fourth_lord_rasi)
+            if fourth_lord_house in {1, 4, 5, 7, 9, 10, 11}:
+                score += 6
+                factors.append(AstroFactor(
+                    key="fourth_lord_family_home",
+                    status="SUPPORT",
+                    detail=BiText(
+                        ta=f"4ம் அதிபதி {fourth_lord_house}ம் வீட்டில் — குடும்ப வீட்டு நிலை நல்லது.",
+                        en=f"4th lord in house {fourth_lord_house} — family home stability is well-supported.",
+                    ),
+                ))
+                supports.append(BiText("குடும்ப வீட்டு நிலை நல்ல நிலையில் உள்ளது.", "Family home stability is in a good position."))
+            else:
+                score -= 3
+                factors.append(AstroFactor(
+                    key="fourth_lord_family_home",
+                    status="CAUTION",
+                    detail=BiText(
+                        ta=f"4ம் அதிபதி {fourth_lord_house}ம் வீட்டில் — இல்ல சுகத்தில் கவனம் தேவை.",
+                        en=f"4th lord in house {fourth_lord_house} — home comfort needs mindful attention.",
+                    ),
+                ))
+                challenges.append(BiText("இல்ல சுகம் மேம்பட கவனம் தேவை.", "Home comfort needs careful attention."))
+
+        # 5th house — children and family prosperity
+        fifth_lord = house_lord_for_lagna(payload.lagna_rasi, 5)
+        fifth_lord_rasi = payload.planets_rasi.get(fifth_lord)
+        if fifth_lord_rasi is not None:
+            fifth_lord_house = house_from_reference(payload.lagna_rasi, fifth_lord_rasi)
+            if fifth_lord_house in {1, 4, 5, 7, 9, 10, 11}:
+                score += 6
+                factors.append(AstroFactor(
+                    key="fifth_lord_family_prosperity",
+                    status="SUPPORT",
+                    detail=BiText(
+                        ta=f"5ம் அதிபதி {fifth_lord_house}ம் வீட்டில் — குழந்தை யோகம் மற்றும் குடும்ப செல்வாக்கு நல்லது.",
+                        en=f"5th lord in house {fifth_lord_house} — children's fortune and family prosperity are well-supported.",
+                    ),
+                ))
+                supports.append(BiText("குடும்ப செல்வாக்கு மற்றும் குழந்தை யோகம் நல்ல அமைப்பில் உள்ளது.", "Family prosperity and children's fortune are well-placed."))
+            else:
+                factors.append(AstroFactor(
+                    key="fifth_lord_family_prosperity",
+                    status="NEUTRAL",
+                    detail=BiText(
+                        ta=f"5ம் அதிபதி {fifth_lord_house}ம் வீட்டில் — குழந்தை நலனில் கவனம் நல்லது.",
+                        en=f"5th lord in house {fifth_lord_house} — mindful care supports children's welfare.",
+                    ),
+                ))
+
+    elif is_seeking_marriage(payload.marital_status):
+        # Divorced / widowed / breakup — eligible for marriage fortune, contextually framed.
+        marital = (payload.marital_status or "").strip().lower()
+        _context_map = {
+            "divorced": (
+                "மறுமணம் / புதிய உறவு — முன்பு திருமணமானவர்; 7ம் வீடு புதிய வாழ்க்கைத்துணை யோகத்தை காட்டுகிறது.",
+                "Second marriage / new relationship — previously married; 7th house now indicates prospects for a new life partner.",
+            ),
+            "widowed": (
+                "புதிய வாழ்க்கைத்துணை யோகம் — இழப்பிற்குப் பிறகான துணை மற்றும் உறவு சாத்தியம் மதிப்பீடு செய்யப்படுகிறது.",
+                "Companionship and new life-partner prospects assessed with sensitivity after bereavement.",
+            ),
+            "breakup": (
+                "உறவு மீட்சி மற்றும் திருமண யோகம் — பிரிவிற்குப் பிறகு புதிய காதல் / திருமண சாத்தியம் மதிப்பீடு.",
+                "Relationship healing and marriage prospects — assessing fresh love / marriage opportunity after a breakup.",
+            ),
+        }
+        ta_ctx, en_ctx = _context_map.get(marital, (
+            "திருமண / புதிய உறவு யோகம் மதிப்பீடு செய்யப்படுகிறது.",
+            "Marriage / new relationship prospects are being assessed.",
+        ))
+        factors.append(AstroFactor(
+            key="relationship_context",
+            status="INFO",
+            detail=BiText(ta=ta_ctx, en=en_ctx),
+        ))
+        supports.append(BiText(
+            "7ம் வீடு பலம் புதிய வாழ்க்கைத்துணை யோகத்தை குறிக்கிறது.",
+            "7th house strength indicates prospects for a new life partner.",
+        ))
+
     elif payload.life_stage == "student":
         score -= 6
         challenges.append(BiText("மாணவர் கட்டத்தில் திருமண நேரம் பொதுவாக முதன்மை கவனம் அல்ல.", "Student life-stage: marriage timing is usually not the primary focus."))
@@ -223,7 +358,10 @@ def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPred
     else:
         challenges.append(BiText("கோசார ஆதரவு குறைவு.", "Transit support is limited."))
 
-    if 25 <= payload.age <= 35:
+    if married_harmony_mode:
+        # Age range is irrelevant for married users — skip the timing-oriented age check.
+        pass
+    elif 25 <= payload.age <= 35:
         score += 6
         supports.append(BiText("வயது கட்டம் ஆதரிக்கும் நிலை.", "Age phase is supportive."))
     else:
@@ -249,7 +387,35 @@ def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPred
     top_supports_en = [b.en for b in supports[:2]] if supports else []
     top_challenges_en = [b.en for b in challenges[:2]] if challenges else []
 
-    if score >= 70:
+    if married_harmony_mode:
+        if score >= 70:
+            confidence = "HIGH"
+            support_phrase = " மற்றும் ".join(top_supports) if top_supports else "பொதுவாக வலுவான அமைப்பு"
+            main = (
+                f"உங்கள் திருமண பந்தம் இந்த கட்டத்தில் வலுவாக உள்ளது. {support_phrase}. "
+                "தசை மற்றும் கோசாரம் உறவு ஒற்றுமைக்கு சாதகமான சூழலை உருவாக்குகின்றன.",
+                f"Your marital bond appears strong in this phase. {'; '.join(top_supports_en) if top_supports_en else 'Overall indicators are favourable'}. "
+                "Dasha and transit support a harmonious period in your relationship.",
+            )
+        elif score >= 50:
+            confidence = "MEDIUM"
+            challenge_phrase = " மற்றும் ".join(top_challenges) if top_challenges else "கொஞ்சம் கவனம் தேவை"
+            main = (
+                f"உறவு ஒற்றுமைக்கு கொஞ்சம் கவனம் மற்றும் புரிதல் தேவை. {challenge_phrase}. "
+                "பொறுமையும் திறந்த உரையாடலும் நல்ல பலன் தரும்.",
+                f"Your relationship calls for mindful attention. {'; '.join(top_challenges_en) if top_challenges_en else 'Some areas need care'}. "
+                "Patience and open communication will strengthen the bond.",
+            )
+        else:
+            confidence = "LOW"
+            challenge_phrase = " மற்றும் ".join(top_challenges) if top_challenges else "சில சவால்கள் உள்ளன"
+            main = (
+                f"இந்த கட்டத்தில் திருமண உறவில் பொறுமையும் மரியாதையும் முக்கியம். {challenge_phrase}. "
+                "இணை நலனில் கவனம் செலுத்துவது சிறந்த பாதை.",
+                f"Patience and mutual respect are key in your marital relationship now. {'; '.join(top_challenges_en) if top_challenges_en else 'Some challenges need attention'}. "
+                "Focusing on your partner's well-being is the better path.",
+            )
+    elif score >= 70:
         confidence = "HIGH"
         support_phrase = "குறிப்பாக " + " மற்றும் ".join(top_supports) if top_supports else "பொதுவாக நல்ல அமைப்பு உள்ளது"
         main = (

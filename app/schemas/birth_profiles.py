@@ -7,6 +7,13 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
+_VALID_MARITAL_STATUSES: frozenset[str] = frozenset({"single", "married", "divorced", "widowed", "breakup"})
+_VALID_EMPLOYMENT_TYPES: frozenset[str] = frozenset({
+    "employed_salaried", "self_employed", "business_owner", "student",
+    "unemployed", "recently_unemployed", "retired", "homemaker",
+})
+
+
 def _validate_birth_date_bounds(value: date) -> date:
     if value.year < 1900:
         raise ValueError("Birth year must be 1900 or later.")
@@ -43,12 +50,12 @@ class BirthProfileCreate(BaseModel):
     marital_status: str | None = Field(
         default=None,
         alias="maritalStatus",
-        description="single | married | divorced | widowed",
+        description="single | married | divorced | widowed | breakup",
     )
     employment_type: str | None = Field(
         default=None,
         alias="employmentType",
-        description="employed_salaried | self_employed | business_owner | student | unemployed | retired | homemaker",
+        description="employed_salaried | self_employed | business_owner | student | unemployed | recently_unemployed | retired | homemaker",
     )
 
     model_config = ConfigDict(populate_by_name=True)
@@ -57,6 +64,30 @@ class BirthProfileCreate(BaseModel):
     @classmethod
     def validate_birth_date_local(cls, value: date) -> date:
         return _validate_birth_date_bounds(value)
+
+    @field_validator("marital_status", mode="before")
+    @classmethod
+    def validate_marital_status(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        normalized = v.strip().lower()
+        if normalized not in _VALID_MARITAL_STATUSES:
+            raise ValueError(
+                f"maritalStatus must be one of: {', '.join(sorted(_VALID_MARITAL_STATUSES))}"
+            )
+        return normalized
+
+    @field_validator("employment_type", mode="before")
+    @classmethod
+    def validate_employment_type(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        normalized = v.strip().lower()
+        if normalized not in _VALID_EMPLOYMENT_TYPES:
+            raise ValueError(
+                f"employmentType must be one of: {', '.join(sorted(_VALID_EMPLOYMENT_TYPES))}"
+            )
+        return normalized
 
 
 class BirthProfileResponse(BirthProfileCreate):
@@ -105,6 +136,30 @@ class BirthProfileUpdate(BaseModel):
         if value is None:
             return None
         return _validate_birth_date_bounds(value)
+
+    @field_validator("marital_status", mode="before")
+    @classmethod
+    def validate_marital_status(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        normalized = v.strip().lower()
+        if normalized not in _VALID_MARITAL_STATUSES:
+            raise ValueError(
+                f"maritalStatus must be one of: {', '.join(sorted(_VALID_MARITAL_STATUSES))}"
+            )
+        return normalized
+
+    @field_validator("employment_type", mode="before")
+    @classmethod
+    def validate_employment_type(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        normalized = v.strip().lower()
+        if normalized not in _VALID_EMPLOYMENT_TYPES:
+            raise ValueError(
+                f"employmentType must be one of: {', '.join(sorted(_VALID_EMPLOYMENT_TYPES))}"
+            )
+        return normalized
 
 
 class BirthProfileResponseMeta(BaseModel):

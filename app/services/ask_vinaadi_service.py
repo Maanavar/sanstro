@@ -168,8 +168,18 @@ def _build_context_block(
         top_yogas = [y.name for y in chart_snapshot.data.yogas[:3]]
         yogas_text = f"\nActive yogas: {', '.join(top_yogas)}"
 
+    today = now_local.date()
+    age = today.year - profile.birth_date_local.year - (
+        (today.month, today.day) < (profile.birth_date_local.month, profile.birth_date_local.day)
+    )
+    marital_status = (getattr(profile, "marital_status", None) or "not specified")
+    employment_type = (getattr(profile, "employment_type", None) or "not specified")
+
     context_text = (
-        f"User chart context (today: {now_local.date()}):\n"
+        f"User chart context (today: {today}):\n"
+        f"Age: {age}\n"
+        f"Marital status: {marital_status}\n"
+        f"Employment / life role: {employment_type}\n"
         f"Lagna rasi: {natal_lagna_rasi} ({RASI_NAMES.get(natal_lagna_rasi, '?')})\n"
         f"Natal Moon rasi: {natal_moon.rasi} ({RASI_NAMES.get(natal_moon.rasi, '?')})\n"
         f"Janma nakshatra: {natal_moon.nakshatra}\n"

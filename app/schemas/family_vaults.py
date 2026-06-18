@@ -106,6 +106,16 @@ class FamilyMemberUpdate(BaseModel):
     current_latitude: float | None = Field(default=None, alias="currentLatitude", ge=-90.0, le=90.0)
     current_longitude: float | None = Field(default=None, alias="currentLongitude", ge=-180.0, le=180.0)
     current_timezone: str | None = Field(default=None, alias="currentTimezone", min_length=1)
+    marital_status: str | None = Field(
+        default=None,
+        alias="maritalStatus",
+        description="single | married | divorced | widowed | breakup",
+    )
+    employment_type: str | None = Field(
+        default=None,
+        alias="employmentType",
+        description="employed_salaried | self_employed | business_owner | student | unemployed | recently_unemployed | retired | homemaker",
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -122,6 +132,8 @@ class FamilyMemberData(BaseModel):
     date_of_birth_local: date | None = Field(default=None, alias="dateOfBirthLocal")
     is_minor: bool = Field(alias="isMinor")
     birth_profile_id: UUID | None = Field(default=None, alias="birthProfileId")
+    marital_status: str | None = Field(default=None, alias="maritalStatus")
+    employment_type: str | None = Field(default=None, alias="employmentType")
 
     model_config = ConfigDict(populate_by_name=True)
 

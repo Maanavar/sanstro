@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.calculations.astro import resolve_timezone, utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
+from app.core.age_gate import is_married_settled, is_past_prime_marriage_age
 from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
@@ -95,6 +96,8 @@ def _to_out(pred: LifeAreaPrediction) -> LifeAreaPredictionOut:
 
 def _derive_life_stage(age: int, employment_type: str | None) -> str:
     emp = (employment_type or "").strip().lower()
+    if emp == "retired":
+        return "senior"
     if age < 22 or emp == "student":
         return "student"
     if age <= 35:
@@ -184,11 +187,13 @@ def get_marriage_prediction(
         rahu_ketu_label=rahu_ketu.label if rahu_ketu else None,
         d9_rasi_by_planet=d9_rasi_by_planet,
     )
-    # Feature 5 — minors get a 200 with an age-gated framing from the service layer
-    # (no hard 403); surface the flag so the client can reframe the section.
+    result = assess_marriage_prediction(payload)
+    gated = age < 18 or is_past_prime_marriage_age(age) or is_married_settled(marital_status)
+    alt = "Relationship Harmony" if is_married_settled(marital_status) else None
     return PredictionResponse(
-        data=_to_out(assess_marriage_prediction(payload)),
-        age_gated=age < 18,
+        data=_to_out(result),
+        age_gated=gated,
+        alternative_framing=alt,
     )
 
 

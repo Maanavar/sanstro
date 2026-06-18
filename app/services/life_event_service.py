@@ -526,9 +526,9 @@ def get_life_event_windows(
     to_year = as_of_date.year + max(1, min(years_ahead, 10))
 
     raw: list[dict] = []
-    allow_marriage = native_age >= 18 and marital_status != "married"
+    allow_marriage = 18 <= native_age < 50 and marital_status != "married"
     allow_career = native_age >= 18 and not is_student and not is_retired
-    allow_studies = native_age <= 25 or is_student
+    allow_studies = 6 <= native_age <= 25 or is_student          # under-6: education not applicable
     allow_relocation = native_age >= 18
 
     if allow_marriage:

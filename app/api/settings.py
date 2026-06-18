@@ -7,9 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
-from app.core.age_gate import is_minor
+from app.core.age_gate import compute_age, get_blocked_life_modes, is_minor
 from app.core.auth import get_current_user
-from app.core.life_mode import ALL_LIFE_MODES, MINOR_BLOCKED_MODES
+from app.core.life_mode import ALL_LIFE_MODES
 from app.db.session import get_db
 from app.models.birth_profile import BirthProfile
 from app.models.user import User
@@ -37,6 +37,15 @@ def _self_birth_profile(session: Session, user_id) -> BirthProfile | None:
 def _user_is_minor(session: Session, user_id) -> bool:
     profile = _self_birth_profile(session, user_id)
     return profile is not None and is_minor(profile.birth_date_local)
+
+
+def _user_blocked_modes(session: Session, user_id) -> frozenset[str]:
+    """Comprehensive blocked life modes based on age and marital status."""
+    profile = _self_birth_profile(session, user_id)
+    if profile is None:
+        return frozenset()
+    age = compute_age(profile.birth_date_local)
+    return get_blocked_life_modes(age, profile.marital_status)
 
 
 def _get_or_create_preference(session: Session, user_id) -> UserPreference:
@@ -111,12 +120,12 @@ def get_life_mode(
     current_user: User = Depends(get_current_user),
 ) -> LifeModeResponse:
     pref = session.query(UserPreference).filter_by(owner_user_id=current_user.user_id).first()
-    minor = _user_is_minor(session, current_user.user_id)
+    blocked = _user_blocked_modes(session, current_user.user_id)
     return LifeModeResponse(
         mode=getattr(pref, "life_mode", "BALANCED") if pref else "BALANCED",
         lifeModeSetAt=getattr(pref, "life_mode_set_at", None) if pref else None,
         showLifeModePicker=getattr(pref, "show_life_mode_picker", True) if pref else True,
-        blockedModes=sorted(MINOR_BLOCKED_MODES) if minor else [],
+        blockedModes=sorted(blocked),
     )
 
 
@@ -133,12 +142,11 @@ def update_life_mode(
             detail=f"Unknown life mode: {payload.mode}",
         )
 
-    # Feature 5 — minors may never select LOVE or MARRIAGE (safety, not bypassable).
-    minor = _user_is_minor(session, current_user.user_id)
-    if minor and mode in MINOR_BLOCKED_MODES:
+    blocked = _user_blocked_modes(session, current_user.user_id)
+    if mode in blocked:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="This focus is not available for users under 18.",
+            detail=f"The '{mode}' focus is not available for your profile.",
         )
 
     pref = _get_or_create_preference(session, current_user.user_id)
@@ -151,7 +159,7 @@ def update_life_mode(
         mode=pref.life_mode,
         lifeModeSetAt=pref.life_mode_set_at,
         showLifeModePicker=pref.show_life_mode_picker,
-        blockedModes=sorted(MINOR_BLOCKED_MODES) if minor else [],
+        blockedModes=sorted(blocked),
     )
 
 
