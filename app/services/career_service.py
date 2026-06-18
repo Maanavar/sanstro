@@ -232,8 +232,125 @@ def assess_career_prediction(payload: CareerAssessmentInput) -> LifeAreaPredicti
                 en="Retired employment status factored into career assessment.",
             ),
         ))
+    elif payload.employment_type == "employed_salaried":
+        # Salaried: promotion, salary growth, and job stability are the key metrics.
+        # 6th lord = service quality; 2nd lord = salary/income growth.
+        if sixth_lord in payload.active_dasha_lords:
+            score += 5
+            supports.append(BiText(
+                "6ம் அதிபதி தசை — வேலை நிலை மற்றும் வருமான நிலைத்தன்மை ஆதரிக்கப்படுகிறது.",
+                "6th lord active in dasha — job stability and income continuity are supported.",
+            ))
+        if second_lord in payload.active_dasha_lords:
+            score += 5
+            supports.append(BiText(
+                "2ம் அதிபதி தசை — சம்பள உயர்வு / வருமான முன்னேற்றம் யோகம்.",
+                "2nd lord active in dasha — salary raise or income growth is favoured.",
+            ))
+        if sixth_lord not in payload.active_dasha_lords and second_lord not in payload.active_dasha_lords:
+            challenges.append(BiText(
+                "6ம் / 2ம் அதிபதி தசையில் இல்லை — பதவி உயர்வு காலம் சற்று நீண்டிருக்கலாம்.",
+                "6th/2nd lord not in active dasha — promotion or salary growth may take more time.",
+            ))
+        factors.append(AstroFactor(
+            key="employment_salaried",
+            status="INFO",
+            detail=BiText(
+                ta="சம்பளதாரர் — பதவி உயர்வு, சம்பள வளர்ச்சி மற்றும் வேலை நிலைத்தன்மை மதிப்பீடு.",
+                en="Salaried employee — evaluating promotion prospects, salary growth, and job stability.",
+            ),
+        ))
+
+    elif payload.employment_type == "unemployed":
+        # Unemployed: focus on when the employment opportunity window opens.
+        score -= 5
+        challenges.append(BiText(
+            "வேலை இல்லா நிலை — ஜோதிட சமிக்ஞைகள் வாய்ப்பு நேரத்தை காட்டுகின்றன.",
+            "Currently unemployed — astrological signals point to the upcoming opportunity window.",
+        ))
+        if sixth_lord in payload.active_dasha_lords or tenth_lord in payload.active_dasha_lords:
+            score += 8
+            supports.append(BiText(
+                "6ம் / 10ம் அதிபதி தசை — வேலை வாய்ப்பு வரும் நேரம் நெருங்குகிறது.",
+                "6th/10th lord in active dasha — an employment opportunity window is approaching soon.",
+            ))
+        else:
+            challenges.append(BiText(
+                "6ம் / 10ம் அதிபதி தற்போதைய தசையில் இல்லை — திட்டமிடல் மற்றும் பொறுமை முக்கியம்.",
+                "6th/10th lord not in active dasha — focused preparation and patience are key right now.",
+            ))
+        factors.append(AstroFactor(
+            key="employment_unemployed",
+            status="CAUTION",
+            detail=BiText(
+                ta="வேலை தேடும் கட்டம் — வேலை வாய்ப்பு நேர கணிப்பு செய்யப்படுகிறது.",
+                en="Job-seeking phase — employment opportunity timing is being assessed.",
+            ),
+        ))
+
+    elif payload.employment_type == "recently_unemployed":
+        # Recently lost job: recovery timing is the focus; frame as temporary.
+        score -= 8
+        challenges.append(BiText(
+            "சமீபத்தில் வேலை இழப்பு — இந்த கட்டம் தற்காலிகமானது; மீட்சி நேர கணிப்பு கீழே.",
+            "Recently lost job — this phase is temporary; recovery timing is indicated below.",
+        ))
+        if sixth_lord in payload.active_dasha_lords or tenth_lord in payload.active_dasha_lords:
+            score += 10
+            supports.append(BiText(
+                "6ம் / 10ம் அதிபதி தசை — விரைவான மீட்சி மற்றும் புதிய வேலை வாய்ப்பு சாத்தியம்.",
+                "6th/10th lord active in dasha — swift recovery and a new employment opportunity is likely.",
+            ))
+        else:
+            challenges.append(BiText(
+                "6ம் / 10ம் அதிபதி தற்போதைய தசையில் இல்லை — பொறுமையும் திட்டமான மறுதொடக்கமும் தேவை.",
+                "6th/10th lord not in active dasha — a patient and planned re-entry is the better approach.",
+            ))
+        factors.append(AstroFactor(
+            key="employment_recently_unemployed",
+            status="CAUTION",
+            detail=BiText(
+                ta="சமீப வேலை இழப்பு — வேலை மீட்சி நேர கணிப்பு செய்யப்படுகிறது.",
+                en="Recent job loss factored in — employment recovery timing is being assessed.",
+            ),
+        ))
+
+    elif payload.employment_type == "homemaker":
+        # Homemaker: reframe career as household prosperity and family wealth management.
+        # Primary house: 4th (home/comfort), secondary: 2nd (family wealth).
+        score += 3
+        fourth_lord_hm = house_lord_for_lagna(payload.lagna_rasi, 4)
+        fourth_lord_hm_rasi = payload.planets_rasi.get(fourth_lord_hm)
+        if fourth_lord_hm_rasi is not None:
+            fourth_lord_hm_house = house_from_reference(payload.lagna_rasi, fourth_lord_hm_rasi)
+            if fourth_lord_hm_house in {1, 4, 5, 7, 9, 10, 11}:
+                score += 7
+                supports.append(BiText(
+                    "4ம் அதிபதி நல்ல நிலையில் — இல்ல சுகம் மற்றும் குடும்ப செழிப்பு ஆதரிக்கப்படுகிறது.",
+                    "4th lord is well-placed — home comfort and family prosperity are supported.",
+                ))
+            else:
+                challenges.append(BiText(
+                    "4ம் அதிபதி சவாலான இடத்தில் — இல்ல விஷயங்களில் கவனம் தேவை.",
+                    "4th lord in a challenging house — home matters need careful attention.",
+                ))
+        if second_lord in payload.active_dasha_lords:
+            score += 5
+            supports.append(BiText(
+                "2ம் அதிபதி தசை — குடும்ப செல்வ மேலாண்மை சாதகமாக உள்ளது.",
+                "2nd lord active in dasha — family wealth management is well-supported.",
+            ))
+        factors.append(AstroFactor(
+            key="employment_homemaker",
+            status="INFO",
+            detail=BiText(
+                ta="இல்லத்தரசர்/ரசி — இல்ல நிர்வாகம், குடும்ப செல்வம் மற்றும் இல்ல சுகம் மதிப்பீடு.",
+                en="Homemaker — household management, family wealth, and home prosperity assessment applied.",
+            ),
+        ))
+
     elif payload.employment_type is not None:
-        # Salaried, homemaker, unemployed, student — record for transparency
+        # student and any future values — record for transparency.
         factors.append(AstroFactor(
             key="employment_type",
             status="INFO",

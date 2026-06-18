@@ -79,7 +79,7 @@ scare. (This is also a store-approval + trust advantage.)
 | 2 | Sequencing | **Guest-first (Phase A), then accounts (Phase B), then money tiers (Phase C)** | Fastest to DAU + retention data; de-risks everything |
 | 3 | Ad network | **AdMob** (with UMP consent + ATT) | Best fill/eCPM in India; standard, store-safe |
 | 4 | Widget in MVP? | **Yes — one: daily Panchangam + rasi palan** | #1 daily-habit lever; competitors do it badly |
-| 5 | Tools: free vs gated | **Porutham & panchangam free; *detailed* porutham report = rewarded-ad OR paid; jadhagam full report = paid IAP** | Free hook, paid depth |
+| 5 | Tools: free vs gated | **Porutham & panchangam free; detailed porutham report = rewarded-ad OR paid; jadhagam 1-page = free (signup required, max 3/day); 5-page/10-page = pay-per-doc IAP** | Free hook, paid depth |
 | 6 | Subscription now? | **No — Phase 2** | Prove retention first; don't gate before there's habit |
 | 7 | Consultation marketplace? | **No for MVP — Phase 3** | Needs astrologer supply ops; too heavy solo now |
 | 8 | Devotional/remedy commerce? | **Phase 2 pilot** (we own the content) | High-margin, culturally native, differentiates from AstroTalk |
@@ -88,7 +88,81 @@ scare. (This is also a store-approval + trust advantage.)
 | 11 | Languages day 1 | **Tamil + English** | Cheap; diaspora needs English fallback |
 | 12 | Login wall on open? | **Never** | Guest must reach value in <1s |
 | 13 | Data hook style | **per-domain React Query; do NOT port `usePersonalData.ts`** | Avoid importing web complexity |
-| 14 | Monetization MVP | **Ads (floor) + 1 paid report IAP** | Real revenue without heavy ops |
+| 14 | Monetization MVP | **Ads (floor, guests) + pay-per-doc IAP (5-page/10-page jadhagam, porutham report)** | Real revenue without heavy ops; subscription deferred to Phase 2 |
+
+---
+
+## 4.1 Access model — the final answer (LOCKED 2026-06-18)
+
+Three tiers. The user sees two simple choices: "use freely" or "get personal guidance."
+
+---
+
+### Tier 1 — Guest (no account)
+
+| Feature | Access |
+|---|---|
+| Daily panchangam (nalla neram, rahu kalam, etc.) | Free |
+| Rasi palan (user picks sign once, stored locally) | Free |
+| Porutham basic result | Free |
+| Muhurta lookup | Free |
+| Festival / auspicious-day calendar | Free |
+| Share-to-WhatsApp cards | Free |
+| **Jadhagam (any format)** | **Signup gate — tapping = conversion moment** |
+| Ads | Yes — in-feed + rewarded |
+
+---
+
+### Tier 2 — Registered Free (gives birth time + place)
+
+| Feature | Access |
+|---|---|
+| Everything in Tier 1 | Free |
+| Personalized daily guidance + score | Free |
+| Chandrashtama alerts | Free |
+| Peyarchi timing | Free |
+| **1-page jadhagam** | **Free — max 3 per day (daily reset at midnight)** |
+| **5-page jadhagam** | **Pay per doc (IAP)** |
+| **10-page jadhagam** | **Pay per doc (IAP)** |
+| Porutham detailed report | Pay per doc |
+| Year-ahead report | Pay per doc |
+| Ads | Reduced (no interstitials) |
+
+**Signup reward (Option A):** when a guest taps "Generate Jadhagam" → signup prompt →
+enters birth details → receives their **1-page chart immediately, free.** Upsell to
+5-page/10-page shown right after. The immediate reward makes the data exchange feel fair.
+
+**Daily limit rationale:** 3 charts/day covers 90% of real sessions (self + spouse + one
+more). The 4th attempt surfaces a natural Premium upsell or "come back tomorrow" — the
+daily reset itself creates a return reason.
+
+---
+
+### Tier 3 — Premium (Phase 2, subscription)
+
+| Feature | Access |
+|---|---|
+| Everything in Tier 2 | Included |
+| Any report format | **Included up to 3 reports/month** |
+| Reports beyond monthly limit | Pay per doc (overage rate) |
+| Family vault | Included |
+| Ask Vinaadi | Included |
+| Deep dasha timelines | Included |
+| Devotional commerce | Included |
+| Ads | None |
+
+---
+
+**Do not choose between "guest vs signup" and "freemium vs premium." Use all three:**
+guest = acquisition + ad floor; registered = personalization + retention; premium = direct
+revenue. Each tier earns differently; all run simultaneously.
+
+**Signup trigger rule:** ask only when the next value genuinely needs birth details —
+generate a chart, get personal daily score, enable profile alerts, buy or store a report.
+Never ask at app open.
+
+**India/privacy rule:** never make mobile number mandatory for core use. Email, Google, or
+Apple sign-in only in v1. Phone optional later as a trust/recovery method.
 
 ---
 
@@ -111,7 +185,8 @@ scare. (This is also a store-approval + trust advantage.)
 - Personal **daily guidance + score**, best/caution windows, emotional weather, alerts.
 - Notification settings + inbox.
 - Profile/settings, multiple profiles.
-- **First paid report IAP** (detailed jadhagam / year-ahead).
+- **Jadhagam generation:** 1-page free (max 3/day, immediate on signup); 5-page and 10-page as pay-per-doc IAP.
+- **Daily limit enforcement:** server-side counter, resets midnight IST; surfaced in UI as "X of 3 free charts used today."
 
 **Phase C — Real monetization & depth:**
 - Subscription (ad-free + unlimited guidance).

@@ -26,8 +26,8 @@ newer/authoritative doc above wins.
 
 - **Product:** Tamil-first daily astrology companion. Owns the user's morning (panchangam +
   rasi palan), converts the habit into personalized birth-chart guidance.
-- **Three tiers:** Guest (no-account, ad-supported) → Registered (free, personalized) →
-  Premium (paid; later).
+- **Access model:** no login wall. Guest gets instant value and light ads; free account
+  unlocks birth-chart personalization; premium/paid reports unlock depth.
 - **Build order:** Phase A guest habit app → Phase B accounts+personalization → Phase C money depth.
 - **Money:** ads are a *floor*; real revenue = paid reports → subscription → devotional
   commerce → (later) astrologer consults.

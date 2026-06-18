@@ -997,6 +997,8 @@ def _member_data(member: FamilyMember, birth_profile: BirthProfile | None) -> Fa
         dateOfBirthLocal=member.date_of_birth_local,
         isMinor=member.is_minor,
         birthProfileId=birth_profile.birth_profile_id if birth_profile else None,
+        maritalStatus=birth_profile.marital_status if birth_profile else None,
+        employmentType=birth_profile.employment_type if birth_profile else None,
     )
 
 
@@ -1089,27 +1091,23 @@ def update_family_member(
         member.gender_for_traditional_rules = payload.gender_for_traditional_rules
     member.updated_at = datetime.now(tz=UTC)
 
-    # Update birth profile fields if birth location/time data was supplied
-    birth_fields = {
-        "birth_place": payload.birth_place,
-        "birth_latitude": payload.birth_latitude,
-        "birth_longitude": payload.birth_longitude,
-        "birth_timezone": payload.birth_timezone,
-        "birth_time_local": payload.birth_time_local,
-        "current_place": payload.current_place,
-        "current_latitude": payload.current_latitude,
-        "current_longitude": payload.current_longitude,
-        "current_timezone": payload.current_timezone,
-    }
-    if any(v is not None for v in birth_fields.values()):
-        profile = session.execute(
-            select(BirthProfile)
-            .where(
-                BirthProfile.family_member_id == member.family_member_id,
-                BirthProfile.deleted_at.is_(None),
-            )
-            .order_by(BirthProfile.created_at.desc())
-        ).scalar_one_or_none()
+    # Update birth profile fields if any profile data was supplied
+    profile_fields_touched = any(v is not None for v in (
+        payload.birth_place, payload.birth_latitude, payload.birth_longitude,
+        payload.birth_timezone, payload.birth_time_local,
+        payload.current_place, payload.current_latitude, payload.current_longitude,
+        payload.current_timezone, payload.marital_status, payload.employment_type,
+    ))
+    profile = session.execute(
+        select(BirthProfile)
+        .where(
+            BirthProfile.family_member_id == member.family_member_id,
+            BirthProfile.deleted_at.is_(None),
+        )
+        .order_by(BirthProfile.created_at.desc())
+    ).scalar_one_or_none()
+
+    if profile_fields_touched:
         if profile is None:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -1133,26 +1131,16 @@ def update_family_member(
             profile.current_longitude = payload.current_longitude
         if payload.current_timezone is not None:
             profile.current_timezone = payload.current_timezone
-        if any(
-            value is not None
-            for value in (
-                payload.current_place,
-                payload.current_latitude,
-                payload.current_longitude,
-                payload.current_timezone,
-            )
-        ):
+        if payload.marital_status is not None:
+            profile.marital_status = payload.marital_status
+        if payload.employment_type is not None:
+            profile.employment_type = payload.employment_type
+        if any(v is not None for v in (
+            payload.current_place, payload.current_latitude,
+            payload.current_longitude, payload.current_timezone,
+        )):
             profile.current_location_updated_at = datetime.now(tz=UTC)
         profile.updated_at = datetime.now(tz=UTC)
-    else:
-        profile = session.execute(
-            select(BirthProfile)
-            .where(
-                BirthProfile.family_member_id == member.family_member_id,
-                BirthProfile.deleted_at.is_(None),
-            )
-            .order_by(BirthProfile.created_at.desc())
-        ).scalar_one_or_none()
 
     session.flush()
     return FamilyMemberResponse(
