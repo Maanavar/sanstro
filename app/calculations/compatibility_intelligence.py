@@ -17,18 +17,18 @@ Scoring model (total 100 points):
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.chart_strength import (
+    _NATURAL_ENEMIES,
+    _NATURAL_FRIENDS,
     EXALTATION_RASI,
     OWN_SIGN_RASI,
     SIGN_LORD,
-    _NATURAL_ENEMIES,
-    _NATURAL_FRIENDS,
 )
-from app.calculations.dasha import DASHA_YEARS, calculate_vimshottari_timeline
+from app.calculations.dasha import calculate_vimshottari_timeline
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -484,7 +484,6 @@ def _compute_navamsa(snap_a: Any, snap_b: Any) -> NavamsaCompatibility:
 # ---------------------------------------------------------------------------
 
 def _jd_for_today() -> float:
-    from app.calculations.astro import utc_datetime_to_julian_day
     return utc_datetime_to_julian_day(datetime.now(tz=UTC))
 
 
@@ -542,8 +541,8 @@ def _compute_dasha_harmony(snap_a: Any, snap_b: Any, today_jd: float) -> DashaHa
                 f"the dasha lords are neutral to each other. Moderately favourable."
             )
             note_ta = (
-                f"ஒரு நபர் திருமண சாதகமான தசையில் உள்ளார்; தசை அதிபதிகள் நடுநிலையானவர்கள். "
-                f"நடுத்தர சாதகம்."
+                "ஒரு நபர் திருமண சாதகமான தசையில் உள்ளார்; தசை அதிபதிகள் நடுநிலையானவர்கள். "
+                "நடுத்தர சாதகம்."
             )
         else:
             note_en = (
@@ -615,8 +614,8 @@ def _compute_emotional_compatibility(snap_a: Any, snap_b: Any) -> EmotionalCompa
     vm_diff_ba = abs(venus_b.house_from_lagna - mars_a.house_from_lagna)
     vm_diff_ab_alt = 12 - vm_diff_ab
     vm_diff_ba_alt = 12 - vm_diff_ba
-    vm_ab = min(vm_diff_ab, vm_diff_ab_alt)
-    vm_ba = min(vm_diff_ba, vm_diff_ba_alt)
+    vm_ab = min(vm_diff_ab, vm_diff_ab_alt)  # noqa: F841 — retained scaffolding; harmony uses rasi distance below
+    vm_ba = min(vm_diff_ba, vm_diff_ba_alt)  # noqa: F841 — retained scaffolding; harmony uses rasi distance below
 
     # Use rasi distance between Venus A and Venus B for overall Venus harmony
     venus_rasi_diff = (venus_a.rasi - venus_b.rasi) % 12 + 1
@@ -635,7 +634,7 @@ def _compute_emotional_compatibility(snap_a: Any, snap_b: Any) -> EmotionalCompa
     score = moon_score_map.get(moon_harmony, 2) + vm_score_map.get(venus_mars_harmony, 3)
     score = max(0, min(10, score))
 
-    moon_diff_desc = (moon_b.rasi - moon_a.rasi) % 12 + 1
+    moon_diff_desc = (moon_b.rasi - moon_a.rasi) % 12 + 1  # noqa: F841 — retained scaffolding for future moon-distance note
     communication_note = (
         "Natural emotional wavelength — communication will feel effortless."
         if moon_harmony in {"EXCELLENT", "GOOD"}

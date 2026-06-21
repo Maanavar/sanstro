@@ -22,10 +22,11 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import house_from_reference, utc_datetime_to_julian_day
-from app.calculations.dasha import DASHA_YEARS, calculate_vimshottari_timeline
+from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.panchangam import calculate_daily_panchangam
 from app.calculations.transits import classify_sani_cycle
+from app.models import BirthProfile, Chart
 from app.schemas.dasha import ResponseMeta
 from app.schemas.whatif import (
     TripleConfirmation,
@@ -33,7 +34,6 @@ from app.schemas.whatif import (
     WhatIfData,
     WhatIfResponse,
 )
-from app.models import BirthProfile, Chart
 from app.services.chart_service import load_persisted_chart_response
 from app.services.location_service import local_noon_as_utc_for_profile, resolve_effective_daily_location
 
@@ -770,9 +770,8 @@ def evaluate_whatif(
         saturn_house = house_from_reference(natal_moon.rasi, saturn_transit.rasi)
         sani_cycle = classify_sani_cycle(saturn_house)
     else:
-        from dataclasses import dataclass as _dc
-        sani_cycle_active = False
-        sani_cycle_type = None
+        sani_cycle_active = False  # noqa: F841 — mirrors the if-branch shape; _FakeCycle below is what's used
+        sani_cycle_type = None  # noqa: F841 — mirrors the if-branch shape; _FakeCycle below is what's used
 
         class _FakeCycle:
             is_active = False

@@ -15,7 +15,6 @@ def require_db():  # noqa: F811  — shadows conftest require_db; no DB needed f
 
 from app.services.career_service import CareerAssessmentInput, assess_career_prediction
 
-
 # ---------------------------------------------------------------------------
 # Shared test data — Mesh Lagna (lagna_rasi=1)
 # Sun in 10th (Magaram=10), Saturn in 3rd (Mithun=3), Jupiter in 9th (Dhanusu=9).
@@ -127,9 +126,9 @@ def test_salaried_employment_records_info_factor():
     """Salaried employment type is recorded as an INFO factor."""
     inp = CareerAssessmentInput(**{**_BASE_INPUT, "employment_type": "employed_salaried"})
     result = assess_career_prediction(inp)
-    factor = next((f for f in result.astrological_factors if f.key == "employment_type"), None)
+    factor = next((f for f in result.astrological_factors if f.key == "employment_salaried"), None)
     assert factor is not None
-    assert "employed_salaried" in factor.detail.en.lower()
+    assert "salaried" in factor.detail.en.lower()
 
 
 # ---------------------------------------------------------------------------

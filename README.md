@@ -78,7 +78,14 @@ All variables use the `JOTHIDAM_` prefix to avoid collisions with system setting
 - `JOTHIDAM_PORT`
 - `JOTHIDAM_API_V1_PREFIX`
 - `JOTHIDAM_DATABASE_URL`
+- `JOTHIDAM_JWT_SECRET`
+- `JOTHIDAM_ADMIN_API_KEY`
+- `JOTHIDAM_COOKIE_SECURE`
 - `JOTHIDAM_DEBUG`
+
+`JOTHIDAM_JWT_SECRET` and `JOTHIDAM_ADMIN_API_KEY` are required for staging and production.
+Local development and tests generate per-process ephemeral values when they are unset, so JWTs
+and admin sessions will not survive a restart unless you set stable local values.
 
 ## Notes
 

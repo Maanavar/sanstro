@@ -2,7 +2,14 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from app.calculations.astro import NAKSHATRA_NAMES, RASI_NAMES, house_from_reference, nakshatra_from_degree, resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.astro import (
+    NAKSHATRA_NAMES,
+    RASI_NAMES,
+    house_from_reference,
+    nakshatra_from_degree,
+    resolve_timezone,
+    utc_datetime_to_julian_day,
+)
 from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.ephemeris import calculate_lagna_degree, calculate_sidereal_planets
 

@@ -16,7 +16,7 @@ from hmac import compare_digest
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Cookie, Depends, Header, HTTPException, status
+from fastapi import Cookie, Depends, Header, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -26,6 +26,8 @@ from app.db.session import get_db
 from app.models.user import User
 
 _bearer = HTTPBearer(auto_error=False)
+_MUTATING_METHODS = {"POST", "PATCH", "PUT", "DELETE"}
+_CSRF_HEADER_VALUE = "1"
 
 
 # ── Token helpers ─────────────────────────────────────────────────────────────
@@ -34,6 +36,8 @@ _bearer = HTTPBearer(auto_error=False)
 def create_access_token(subject: str, expires_delta: timedelta | None = None) -> str:
     """Create a signed JWT for the given subject (user_id or email)."""
     settings = get_settings()
+    if settings.jwt_secret is None:
+        raise RuntimeError("JWT secret is not configured.")
     now = datetime.now(UTC)
     expire = now + (expires_delta or timedelta(minutes=settings.jwt_expire_minutes))
     payload = {"sub": subject, "iat": now, "exp": expire}
@@ -43,6 +47,8 @@ def create_access_token(subject: str, expires_delta: timedelta | None = None) ->
 def decode_token(token: str) -> dict:
     """Decode and verify a JWT. Raises HTTPException on any failure."""
     settings = get_settings()
+    if settings.jwt_secret is None:
+        raise RuntimeError("JWT secret is not configured.")
     try:
         return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
     except JWTError as exc:
@@ -112,15 +118,60 @@ def get_current_user(
     return user
 
 
+def is_admin_user(user: User) -> bool:
+    """True when the session itself grants admin — DB role or bootstrap email.
+
+    This keeps admin authority server-side so the browser never has to store a
+    long-lived admin secret.
+    """
+    if getattr(user, "is_admin", False):
+        return True
+    if user.email is not None:
+        return user.email.strip().lower() in get_settings().admin_email_set
+    return False
+
+
 def get_admin_user(
     current_user: Annotated[User, Depends(get_current_user)],
     x_admin_key: Annotated[str | None, Header()] = None,
 ) -> User:
-    """Require a valid JWT **and** the X-Admin-Key header for admin endpoints."""
+    """Authorize admin endpoints.
+
+    Primary path: the authenticated session is itself admin (``is_admin`` column
+    or a bootstrap ``JOTHIDAM_ADMIN_EMAILS`` entry) — no browser-held secret.
+
+    Fallback: the legacy ``X-Admin-Key`` header, retained for server-to-server
+    callers and the existing admin console until it moves to session-only auth.
+    """
+    if is_admin_user(current_user):
+        return current_user
+
     settings = get_settings()
-    if x_admin_key is None or not compare_digest(x_admin_key, settings.admin_api_key):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin key required.",
-        )
-    return current_user
+    if settings.admin_api_key is not None and x_admin_key is not None and compare_digest(x_admin_key, settings.admin_api_key):
+        return current_user
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Admin access required.",
+    )
+
+
+def require_csrf_header(
+    request: Request,
+    vinaadi_token: Annotated[str | None, Cookie()] = None,
+    authorization: Annotated[str | None, Header()] = None,
+    x_vinaadi_csrf: Annotated[str | None, Header()] = None,
+) -> None:
+    """Require a simple custom header for mutating cookie-authenticated requests."""
+    if request.method.upper() not in _MUTATING_METHODS:
+        return
+    if vinaadi_token is None:
+        return
+    if authorization and authorization.lower().startswith("bearer "):
+        return
+    if x_vinaadi_csrf == _CSRF_HEADER_VALUE:
+        return
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="CSRF header required.",
+    )

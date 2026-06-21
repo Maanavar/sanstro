@@ -14,6 +14,8 @@ from app.models.daily_score import DailyScore
 from app.models.family_member import FamilyMember
 from app.models.user import User
 
+CSRF_HEADERS = {"X-Vinaadi-CSRF": "1"}
+
 
 def assert_response(response, status=200, required_keys=()):
     assert response.status_code == status
@@ -76,7 +78,7 @@ def test_logout_clears_cookie(raw_client):
     )
     assert register.status_code == 200
 
-    logout = raw_client.post("/api/v1/auth/logout")
+    logout = raw_client.post("/api/v1/auth/logout", headers=CSRF_HEADERS)
     assert logout.status_code == 204
 
     me = raw_client.get("/api/v1/auth/me")
@@ -145,7 +147,7 @@ def test_delete_me_handles_daily_scores_linked_by_birth_profile(raw_client):
         profile_id = profile.birth_profile_id
         session.commit()
 
-    delete_response = raw_client.delete("/api/v1/auth/me")
+    delete_response = raw_client.delete("/api/v1/auth/me", headers=CSRF_HEADERS)
     assert delete_response.status_code == 200
     assert delete_response.json()["detail"] == "Account permanently deleted."
 
@@ -229,7 +231,7 @@ def test_delete_me_does_not_delete_other_users_profiles_or_charts(raw_client):
             profile_b_id = profile_b.birth_profile_id
             chart_b_id = chart_b.chart_id
 
-        delete_response = user_a_client.delete("/api/v1/auth/me")
+        delete_response = user_a_client.delete("/api/v1/auth/me", headers=CSRF_HEADERS)
         assert delete_response.status_code == 200
 
         with SessionLocal() as session:
@@ -252,7 +254,7 @@ def test_deleted_user_cannot_login_until_registering_again(raw_client):
     assert first_register.status_code == 200
     first_user_id = first_register.json()["userId"]
 
-    delete_response = raw_client.delete("/api/v1/auth/me")
+    delete_response = raw_client.delete("/api/v1/auth/me", headers=CSRF_HEADERS)
     assert delete_response.status_code == 200
 
     login_after_delete = raw_client.post(
@@ -326,7 +328,7 @@ def test_suspended_user_cannot_log_in_or_load_me(raw_client):
     assert me_response.status_code == 403
     assert me_response.json()["detail"] == "Account suspended. Contact support."
 
-    logout = raw_client.post("/api/v1/auth/logout")
+    logout = raw_client.post("/api/v1/auth/logout", headers=CSRF_HEADERS)
     assert logout.status_code == 204
 
     login_response = raw_client.post(
@@ -337,9 +339,57 @@ def test_suspended_user_cannot_log_in_or_load_me(raw_client):
     assert login_response.json()["detail"] == "Account suspended. Contact support."
 
 
+def test_suspended_user_cannot_patch_or_delete_me(raw_client):
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "suspended-mutating@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    user_id = UUID(register.json()["userId"])
+
+    with SessionLocal() as session:
+        user = session.get(User, user_id)
+        assert user is not None
+        user.is_suspended = True
+        user.suspension_reason = "support action"
+        session.commit()
+
+    patch_response = raw_client.patch(
+        "/api/v1/auth/me",
+        headers=CSRF_HEADERS,
+        json={"userMode": "TRADITIONAL"},
+    )
+    assert patch_response.status_code == 403
+    assert patch_response.json()["detail"] == "Account suspended. Contact support."
+
+    delete_response = raw_client.delete("/api/v1/auth/me", headers=CSRF_HEADERS)
+    assert delete_response.status_code == 403
+    assert delete_response.json()["detail"] == "Account suspended. Contact support."
+
+
 def test_logout_when_already_logged_out_returns_204(raw_client):
     logout = raw_client.post("/api/v1/auth/logout")
     assert logout.status_code == 204
+
+
+def test_cookie_auth_mutation_requires_csrf_header(raw_client):
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "csrf-user@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+
+    response = raw_client.patch("/api/v1/auth/me", json={"userMode": "TRADITIONAL"})
+    assert response.status_code == 403
+    assert response.json()["detail"] == "CSRF header required."
+
+    ok = raw_client.patch(
+        "/api/v1/auth/me",
+        headers=CSRF_HEADERS,
+        json={"userMode": "TRADITIONAL"},
+    )
+    assert ok.status_code == 200
+    assert ok.json()["userMode"] == "TRADITIONAL"
 
 
 def test_delete_me_requires_authentication(raw_client):

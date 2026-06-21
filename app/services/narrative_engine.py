@@ -50,7 +50,7 @@ def _format_time_range(start: str | None, end: str | None) -> str:
     return f"{_format_clock_label(start)}-{_format_clock_label(end)}"
 
 
-def build_strength_narrative(planets: list["PlanetPosition"], lagna_rasi: int) -> BiText:
+def build_strength_narrative(planets: list[PlanetPosition], lagna_rasi: int) -> BiText:
     if not planets:
         return _bi(
             "கிரக பல விவரம் தற்போது கிடைக்கவில்லை.",
@@ -1009,7 +1009,7 @@ _SHADOW_PROMPTS_TAMASIC = (
 
 def generate_shadow_prompts(
     lagna_rasi: int,
-    planets: "list[PlanetPosition]",
+    planets: list[PlanetPosition],
     moon_nakshatra: str,
 ) -> list[BiText]:
     """Generate 3 shadow-work journal prompts based on 8th lord, 12th lord, and Moon nakshatra."""

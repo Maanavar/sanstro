@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from itertools import combinations
-from typing import Iterable, Mapping
 
 from app.calculations.astro import house_from_reference
-from app.calculations.chart_strength import DEBILITATION_RASI, EXALTATION_RASI, MOOLATRIKONA_ZONE, OWN_SIGN_RASI, SIGN_LORD
+from app.calculations.chart_strength import (
+    DEBILITATION_RASI,
+    EXALTATION_RASI,
+    MOOLATRIKONA_ZONE,
+    OWN_SIGN_RASI,
+    SIGN_LORD,
+)
 from app.calculations.functional_nature import FunctionalNature, get_functional_nature
 
 PlanetInput = int | Mapping[str, int | float | str]
@@ -369,13 +375,13 @@ def detect_sevvai_dosham(
 
     # Gender-based severity annotation (spec §7.2)
     gender_norm = (gender or "").lower()
-    for ref_key, house_num in house_hits.items():
+    for _ref_key, house_num in house_hits.items():
         if gender_norm == "female" and house_num in FEMALE_HIGH_ATTENTION_SEVVAI_HOUSES:
-            severity_notes.append(f"female_high_attention_house")
+            severity_notes.append("female_high_attention_house")
             if "female_high_attention_house" not in conditions_met:
                 conditions_met.append("female_high_attention_house")
         elif gender_norm == "male" and house_num in MALE_HIGH_ATTENTION_SEVVAI_HOUSES:
-            severity_notes.append(f"male_high_attention_house")
+            severity_notes.append("male_high_attention_house")
             if "male_high_attention_house" not in conditions_met:
                 conditions_met.append("male_high_attention_house")
 
@@ -403,7 +409,7 @@ def detect_sevvai_dosham(
         major_cancellation = True
 
     # Spec §6.3 — house-sign nivarthi table
-    for ref_key, house_num in house_hits.items():
+    for _ref_key, house_num in house_hits.items():
         if house_num in HOUSE_SIGN_NIVARTHI and mars_rasi in HOUSE_SIGN_NIVARTHI[house_num]:
             if "house_sign_nivarthi" not in cancellation_factors:
                 cancellation_factors.append("house_sign_nivarthi")
@@ -1816,9 +1822,9 @@ def detect_yogas_and_doshams(
     # Add Parivartana as Raja Yoga connection when both lords are kendra/trikona
     for pv in parivartana:
         if pv.sub_type == "MAHA":
-            p1_house = house_from_reference(lagna_rasi, _planet_rasi(planets, pv.planet_a))
-            p2_house = house_from_reference(lagna_rasi, _planet_rasi(planets, pv.planet_b))
-            kendra_trikona = KENDRA_HOUSES | TRIKONA_HOUSES
+            p1_house = house_from_reference(lagna_rasi, _planet_rasi(planets, pv.planet_a))  # noqa: F841 — retained scaffolding for maha-parivartana house check
+            p2_house = house_from_reference(lagna_rasi, _planet_rasi(planets, pv.planet_b))  # noqa: F841 — retained scaffolding for maha-parivartana house check
+            kendra_trikona = KENDRA_HOUSES | TRIKONA_HOUSES  # noqa: F841 — retained scaffolding for maha-parivartana house check
             kendra_lords = {_house_lord(lagna_rasi, h) for h in (1, 4, 7, 10)}
             trikona_lords = {_house_lord(lagna_rasi, h) for h in (1, 5, 9)}
             if pv.planet_a in kendra_lords and pv.planet_b in trikona_lords or \

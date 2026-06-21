@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 from datetime import UTC, date, datetime, time
-from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -24,7 +22,6 @@ from app.services.life_area_prediction_models import LifeAreaPrediction
 from app.services.location_service import resolve_effective_daily_timezone
 from app.services.marriage_service import MarriageAssessmentInput, assess_marriage_prediction
 from app.services.wealth_service import WealthAssessmentInput, assess_wealth_prediction
-from app.services.chart_service import get_jadhagam_report as _get_jadhagam_report
 
 router = APIRouter()
 

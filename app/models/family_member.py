@@ -17,8 +17,10 @@ class FamilyMember(TimestampMixin, Base):
     )
 
     family_member_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    owner_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id"), nullable=False)
-    family_vault_id: Mapped[UUID | None] = mapped_column(ForeignKey("family_vaults.family_vault_id"), nullable=True)
+    owner_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    family_vault_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("family_vaults.family_vault_id", ondelete="CASCADE"), nullable=True
+    )
     relationship_to_owner: Mapped[str] = mapped_column("relationship", String(32), nullable=False, default="other")
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
     gender_for_traditional_rules: Mapped[str] = mapped_column(
@@ -26,7 +28,7 @@ class FamilyMember(TimestampMixin, Base):
     )
     date_of_birth_local: Mapped[date | None] = mapped_column(Date, nullable=True)
     is_minor: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text("false"))
-    managed_by_user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.user_id"), nullable=True)
+    managed_by_user_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
     consent_status: Mapped[str] = mapped_column(
         String(32), nullable=False, default="owner_managed", server_default=text("'owner_managed'")
     )
@@ -37,5 +39,7 @@ class FamilyMember(TimestampMixin, Base):
     family_vault = relationship("FamilyVault", back_populates="family_members")
     owner_user = relationship("User", back_populates="family_members", foreign_keys=[owner_user_id])
     managed_by_user = relationship("User", foreign_keys=[managed_by_user_id])
-    birth_profiles = relationship("BirthProfile", back_populates="family_member")
-    relationship_alerts = relationship("RelationshipAlert", back_populates="member")
+    birth_profiles = relationship("BirthProfile", back_populates="family_member", passive_deletes=True)
+    relationship_alerts = relationship(
+        "RelationshipAlert", back_populates="member", cascade="all, delete-orphan", passive_deletes=True
+    )

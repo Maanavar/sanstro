@@ -9,12 +9,12 @@ from sqlalchemy.orm import Session
 
 from app.calculations.astro import RASI_NAMES, house_from_reference, utc_datetime_to_julian_day
 from app.calculations.chart_strength import (
+    _NATURAL_ENEMIES,
+    _NATURAL_FRIENDS,
     DEBILITATION_RASI,
     EXALTATION_RASI,
     MOOLATRIKONA_ZONE,
     OWN_SIGN_RASI,
-    _NATURAL_ENEMIES,
-    _NATURAL_FRIENDS,
     _dignity_score,
 )
 from app.calculations.dasha import DashaPeriod, calculate_vimshottari_timeline
@@ -22,13 +22,13 @@ from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.functional_nature import get_functional_nature
 from app.models import Chart
 from app.schemas.chart_explanation import (
-    ChartExplanationAspect,
     ChartExplanationActivationSignal,
+    ChartExplanationAspect,
     ChartExplanationConjunctionGroup,
     ChartExplanationCoreIdentity,
     ChartExplanationCurrentActivationSection,
-    ChartExplanationData,
     ChartExplanationDashaLordActivation,
+    ChartExplanationData,
     ChartExplanationHouseGroup,
     ChartExplanationMaitriPair,
     ChartExplanationPeyarchiEvent,
@@ -466,7 +466,7 @@ def _activation_explanation(
 ) -> ChartExplanationText:
     tone_copy = _tone_text(tone)
     natal_theme = _HOUSE_THEMES[natal_planet.house_from_lagna]
-    transit_theme = _HOUSE_THEMES[transit_house_from_lagna]
+    transit_theme = _HOUSE_THEMES[transit_house_from_lagna]  # noqa: F841 — retained for parity with natal_theme; not yet surfaced
     return _bi(
         (
             f"{level} நிலையில் {period.lord} செயல்படும் கிரகம். பிறப்பு ஜாதகத்தில் இது லக்னத்திலிருந்து "

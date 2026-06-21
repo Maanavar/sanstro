@@ -10,8 +10,19 @@ from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models import BirthProfile
 from app.models.user import User
-from app.schemas.birth_profiles import BirthProfileCreate, BirthProfileCreateResponse, BirthProfileResponseMeta, BirthProfileGetResponse, BirthProfileUpdate
-from app.services.birth_profile_service import create_birth_profile, get_birth_profile, get_latest_birth_profile_for_owner, update_birth_profile
+from app.schemas.birth_profiles import (
+    BirthProfileCreate,
+    BirthProfileCreateResponse,
+    BirthProfileGetResponse,
+    BirthProfileResponseMeta,
+    BirthProfileUpdate,
+)
+from app.services.birth_profile_service import (
+    create_birth_profile,
+    get_birth_profile,
+    get_latest_birth_profile_for_owner,
+    update_birth_profile,
+)
 
 router = APIRouter()
 

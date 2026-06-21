@@ -80,7 +80,7 @@ def update_notification_preferences(
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="morning_alert_time must be HH:MM",
-            )
+            ) from None
         pref.morning_alert_time = parsed
 
     if payload.dasha_alert_enabled is not None:

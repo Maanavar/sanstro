@@ -261,7 +261,7 @@ def test_jupiter_dasha_modifier_differs_by_lagna():
 
 
 def test_all_lagnas_all_planets_covered():
-    from app.calculations.functional_nature import get_functional_nature, FunctionalNature
+    from app.calculations.functional_nature import FunctionalNature, get_functional_nature
     planets = ["SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"]
     for lagna in range(1, 13):
         for planet in planets:
@@ -270,7 +270,7 @@ def test_all_lagnas_all_planets_covered():
 
 
 def test_saturn_yogakaraka_for_rishabam_and_thulaam():
-    from app.calculations.functional_nature import get_functional_nature, FunctionalNature
+    from app.calculations.functional_nature import FunctionalNature, get_functional_nature
     # Saturn rules 9th+10th for Rishabam → Yogakaraka
     assert get_functional_nature(2, "SATURN") == FunctionalNature.YOGAKARAKA
     # Saturn rules 4th+5th for Thulaam → Yogakaraka
@@ -278,7 +278,7 @@ def test_saturn_yogakaraka_for_rishabam_and_thulaam():
 
 
 def test_venus_yogakaraka_for_magaram_and_kumbam():
-    from app.calculations.functional_nature import get_functional_nature, FunctionalNature
+    from app.calculations.functional_nature import FunctionalNature, get_functional_nature
     # Venus rules 5th+10th for Magaram → Yogakaraka
     assert get_functional_nature(10, "VENUS") == FunctionalNature.YOGAKARAKA
     # Venus rules 4th+9th for Kumbam → Yogakaraka

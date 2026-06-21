@@ -8,14 +8,14 @@ from app.calculations.yogas import (
     detect_kalathra_dosham,
     detect_kemadruma_yoga,
     detect_lakshmi_yoga,
+    detect_neecha_bhanga,
     detect_pitru_dosham,
     detect_putra_sarpa_dosham,
     detect_rahu_ketu_dosham,
-    detect_neecha_bhanga,
     detect_raja_yoga,
     detect_sakata_yoga,
-    detect_sunapha_anapha_durudhura,
     detect_sevvai_dosham,
+    detect_sunapha_anapha_durudhura,
     detect_vasumati_yoga,
 )
 

@@ -36,21 +36,20 @@ from app.calculations.maturation import maturation_multiplier
 from app.calculations.prediction_score import PredictionScoreInput, compute_prediction_score
 from app.calculations.remedies import get_area_remedy
 from app.calculations.transits import classify_kandaka_cycle, classify_sani_cycle
+from app.models import BirthProfile, Chart
+from app.models.user_life_events import UserLifeEvent
 from app.schemas.dasha import ResponseMeta
 from app.schemas.life_areas import (
     LifeAreaData,
     LifeAreaDriver,
-    LifeAreaText,
     LifeAreasResponse,
     LifeAreasResponseData,
+    LifeAreaText,
 )
-from app.models import BirthProfile, Chart
-from app.models.user_life_events import UserLifeEvent
 from app.services.chart_service import load_persisted_chart_response
 from app.services.goals_service import get_active_goals_for_chart
 from app.services.location_service import resolve_effective_daily_timezone
 from app.services.rectification_service import validate_chart_against_events
-
 
 # ── Bilingual helper ───────────────────────────────────────────────────────────
 
@@ -937,7 +936,7 @@ def _score_area(
     house_lord = SIGN_LORD.get(primary_house_rasi, "SUN")
 
     transit_rasi = transit_bodies.get(primary_karaka).rasi if primary_karaka in transit_bodies else natal_moon_rasi
-    karaka_house_from_moon = house_from_reference(natal_moon_rasi, transit_rasi)
+    karaka_house_from_moon = house_from_reference(natal_moon_rasi, transit_rasi)  # noqa: F841 — retained scaffolding; jupiter_house is used below
     jupiter_house = house_from_reference(natal_moon_rasi, transit_bodies["JUPITER"].rasi)
     saturn_house = house_from_reference(natal_moon_rasi, transit_bodies["SATURN"].rasi)
 

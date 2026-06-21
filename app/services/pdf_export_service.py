@@ -201,7 +201,7 @@ def _section_dasha(dasha_response, heading_style, body_style) -> list:
         f"<b>Pratyantar:</b> {pratyantar.lord} &nbsp; ends {pratyantar.end_date}",
     ]
 
-    return [Paragraph("Current Dasha", heading_style)] + [Paragraph(l, body_style) for l in lines]
+    return [Paragraph("Current Dasha", heading_style)] + [Paragraph(line, body_style) for line in lines]
 
 
 def _section_daily(panchang, score: int, label: str, location_label: str, heading_style, body_style) -> list:
@@ -227,7 +227,7 @@ def _section_daily(panchang, score: int, label: str, location_label: str, headin
         f"Daily Score: <b>{score}/100</b> — {label}",
         f"Nalla Neram: {nalla} &nbsp;&nbsp; Rahu Kalam: {rahu}",
     ]
-    return [Paragraph("Today's Guidance", heading_style)] + [Paragraph(l, body_style) for l in lines]
+    return [Paragraph("Today's Guidance", heading_style)] + [Paragraph(line, body_style) for line in lines]
 
 
 # ---------------------------------------------------------------------------
@@ -305,7 +305,7 @@ def generate_chart_pdf(
 
 
 def generate_porutham_pdf(
-    porutham: "DirectPoruthamData",
+    porutham: DirectPoruthamData,
     name_a: str,
     name_b: str,
 ) -> bytes:

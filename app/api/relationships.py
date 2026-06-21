@@ -10,8 +10,21 @@ from sqlalchemy.orm import Session
 from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.relationships import CompatibilityIntelligenceResponse, DirectCompareRequest, DirectPoruthamResponse, PorutthamResponse, RelationshipAlertsResponse, SynastryResponse
-from app.services.synastry_service import compare_charts_direct, get_compatibility_intelligence_for_member, get_porutham_for_member, get_synastry_for_member, list_relationship_alerts
+from app.schemas.relationships import (
+    CompatibilityIntelligenceResponse,
+    DirectCompareRequest,
+    DirectPoruthamResponse,
+    PorutthamResponse,
+    RelationshipAlertsResponse,
+    SynastryResponse,
+)
+from app.services.synastry_service import (
+    compare_charts_direct,
+    get_compatibility_intelligence_for_member,
+    get_porutham_for_member,
+    get_synastry_for_member,
+    list_relationship_alerts,
+)
 
 router = APIRouter()
 
@@ -139,12 +152,12 @@ def compare_charts_pdf(
     try:
         snap_a = load_persisted_chart_response(session, payload.chart_id_a)
         name_a = snap_a.data.birth_profile.display_name
-    except Exception:
+    except Exception:  # noqa: S110 — best-effort name lookup; falls back to "Person_A"
         pass
     try:
         snap_b = load_persisted_chart_response(session, payload.chart_id_b)
         name_b = snap_b.data.birth_profile.display_name
-    except Exception:
+    except Exception:  # noqa: S110 — best-effort name lookup; falls back to "Person_B"
         pass
 
     pdf_bytes = generate_porutham_pdf(result.data, name_a, name_b)

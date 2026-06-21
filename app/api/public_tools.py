@@ -19,15 +19,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.orm import Session
 
-from app.db.session import get_db
-from app.schemas.muhurtham_naal import MuhurthamNaalListResponse, item_from_view
-from app.schemas.panchangam import PanchangamDailyQuery, PanchangamDailyResponse, PanchangamTimingsResponse
-from app.services.panchangam_service import calculate_panchangam, calculate_panchangam_timings
-from app.services.chart_service import _chart_response_from_profile  # noqa: PLC2701 (internal use)
-from app.schemas.charts import ChartCalculateResponseData
 from app.calculations.porutham import compute_porutham
-from app.schemas.relationships import KutaResult, DirectPoruthamData, NadiDoshaData, RelationshipBiText
+from app.db.session import get_db
 from app.schemas.birth_profiles import _validate_birth_date_bounds  # noqa: PLC2701 (shared validation)
+from app.schemas.charts import ChartCalculateResponseData
+from app.schemas.muhurtham_naal import MuhurthamNaalListResponse, item_from_view
+from app.schemas.panchangam import PanchangamDailyQuery, PanchangamDailyResponse
+from app.schemas.relationships import DirectPoruthamData, KutaResult, NadiDoshaData, RelationshipBiText
+from app.services.chart_service import _chart_response_from_profile  # noqa: PLC2701 (internal use)
+from app.services.panchangam_service import calculate_panchangam
 
 logger = logging.getLogger(__name__)
 
@@ -499,7 +499,7 @@ def public_muhurta(
     (tithi, nakshatra, yoga, Abhijit). Create an account for chart-personalised
     muhurta that also considers dasha and hora windows.
     """
-    from app.calculations.panchangam import calculate_daily_panchangam_range, best_gowri_slot
+    from app.calculations.panchangam import best_gowri_slot, calculate_daily_panchangam_range
 
     event_type = payload.event_type.upper()
     if event_type not in _PUBLIC_MUHURTA_ACTIVITIES:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
-from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -13,9 +13,9 @@ class InterpretationOutput(TimestampMixin, Base):
     __tablename__ = "interpretation_outputs"
 
     interpretation_output_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    chart_id: Mapped[UUID | None] = mapped_column(ForeignKey("charts.chart_id"), nullable=True)
+    chart_id: Mapped[UUID | None] = mapped_column(ForeignKey("charts.chart_id", ondelete="SET NULL"), nullable=True)
     family_vault_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("family_vaults.family_vault_id"),
+        ForeignKey("family_vaults.family_vault_id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )

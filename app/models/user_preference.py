@@ -17,7 +17,7 @@ class UserPreference(TimestampMixin, Base):
     )
 
     preference_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    owner_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id"), nullable=False)
+    owner_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
     journal_retention_days: Mapped[int] = mapped_column(
         Integer,
         nullable=False,

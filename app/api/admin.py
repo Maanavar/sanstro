@@ -11,7 +11,6 @@ from sqlalchemy import func, select, text, update
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_admin_user
-from app.core.config import _DEFAULT_ADMIN_API_KEY
 from app.db.session import get_db
 from app.models import (
     BirthProfile,
@@ -632,8 +631,8 @@ def get_health_detail(
     from app.core.config import get_settings
 
     settings = get_settings()
-    if settings.environment.strip().lower() == "production" and settings.admin_api_key == _DEFAULT_ADMIN_API_KEY:
-        components.append(ComponentHealth(name="secrets", status="error", detail="Default admin key in production"))
+    if not settings.admin_api_key:
+        components.append(ComponentHealth(name="secrets", status="error", detail="Admin key is not configured"))
     else:
         components.append(ComponentHealth(name="secrets", status="ok", detail="Secrets appear configured"))
 

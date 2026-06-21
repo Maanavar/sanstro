@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from uuid import UUID, uuid4
 
-from sqlalchemy import Date, ForeignKey, Index, JSON, String
+from sqlalchemy import JSON, Date, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -18,8 +18,8 @@ class JournalEntry(TimestampMixin, Base):
     )
 
     journal_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    owner_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id"), nullable=False)
-    chart_id: Mapped[UUID] = mapped_column(ForeignKey("charts.chart_id"), nullable=False)
+    owner_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    chart_id: Mapped[UUID] = mapped_column(ForeignKey("charts.chart_id", ondelete="CASCADE"), nullable=False)
     entry_date: Mapped[date] = mapped_column(Date, nullable=False)
     life_area: Mapped[str] = mapped_column(String(32), nullable=False, default="general")
     note_text: Mapped[str] = mapped_column(String(2000), nullable=False)

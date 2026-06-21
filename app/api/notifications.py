@@ -1,8 +1,7 @@
 """Notification inbox — list recent notifications for the current user."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import List
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
@@ -32,7 +31,7 @@ class NotificationItem(BaseModel):
 
 class NotificationListResponse(BaseModel):
     success: bool = True
-    data: List[NotificationItem]
+    data: list[NotificationItem]
     unread_count: int
 
 
@@ -81,7 +80,7 @@ def mark_read(
     ).scalar_one_or_none()
 
     if notif and notif.read_at is None:
-        notif.read_at = datetime.now(timezone.utc)
+        notif.read_at = datetime.now(UTC)
         session.flush()
 
     return list_notifications(limit=30, session=session, current_user=current_user)
@@ -105,7 +104,7 @@ def mark_all_read(
         )
     ).scalars().all()
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     for r in rows:
         r.read_at = now
     session.flush()

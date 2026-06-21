@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
-from math import ceil, floor
 
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -11,9 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.calculations.astro import (
     RASI_NAMES,
-    degree_in_rasi,
     julian_day_to_utc_datetime,
-    local_datetime_to_utc,
     nakshatra_from_degree,
     normalize_longitude,
     rasi_from_degree,

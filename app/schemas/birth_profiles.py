@@ -6,7 +6,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-
 _VALID_MARITAL_STATUSES: frozenset[str] = frozenset({"single", "married", "divorced", "widowed", "breakup"})
 _VALID_EMPLOYMENT_TYPES: frozenset[str] = frozenset({
     "employed_salaried", "self_employed", "business_owner", "student",

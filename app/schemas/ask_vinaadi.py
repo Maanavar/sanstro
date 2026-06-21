@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-from uuid import UUID
-
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.dasha import ResponseMeta
@@ -30,10 +27,10 @@ class AskVinaadiResponseData(BaseModel):
     answer: BiText
     signals_used: list[str] = Field(alias="signalsUsed")
     confidence: str
-    caveat: Optional[BiText] = None
+    caveat: BiText | None = None
     questions_used_today: int = Field(alias="questionsUsedToday")
     daily_limit: int = Field(alias="dailyLimit")
-    chips_remaining: Optional[int] = Field(default=None, alias="chipsRemaining")
+    chips_remaining: int | None = Field(default=None, alias="chipsRemaining")
 
     model_config = ConfigDict(populate_by_name=True)
 

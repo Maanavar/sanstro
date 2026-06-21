@@ -39,8 +39,38 @@ services:
       JOTHIDAM_TRUSTED_PROXY_COUNT: ${JOTHIDAM_TRUSTED_PROXY_COUNT:-0}
       JOTHIDAM_CORS_ALLOW_ORIGINS: ${JOTHIDAM_CORS_ALLOW_ORIGINS:-}
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+      # Single-box default: the API also runs the cron scheduler (behind the
+      # advisory leader lock). Set false and start the `worker` service (compose
+      # profile `scaled`) to move scheduling to a dedicated process.
+      JOTHIDAM_RUN_SCHEDULER_IN_WEB: ${JOTHIDAM_RUN_SCHEDULER_IN_WEB:-true}
+      # Optional shared-state backends for a multi-box deploy (see .env.example).
+      JOTHIDAM_REDIS_URL: ${JOTHIDAM_REDIS_URL:-}
+      JOTHIDAM_RATE_LIMIT_BACKEND: ${JOTHIDAM_RATE_LIMIT_BACKEND:-memory}
+      JOTHIDAM_CACHE_BACKEND: ${JOTHIDAM_CACHE_BACKEND:-memory}
     ports:
       - "8000:8000"
+
+  # Dedicated scheduler process for scaled deploys. Not started by default; bring
+  # it up with `--profile scaled` and set JOTHIDAM_RUN_SCHEDULER_IN_WEB=false on
+  # the api so exactly one process owns cron. Reuses the api image; skips the
+  # uvicorn entrypoint and runs the scheduler directly.
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["scaled"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      JOTHIDAM_ENVIRONMENT: production
+      JOTHIDAM_DATABASE_URL: postgresql://${POSTGRES_USER:-vinaadi}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-vinaadi}
+      JOTHIDAM_JWT_SECRET: ${JOTHIDAM_JWT_SECRET:?set JOTHIDAM_JWT_SECRET}
+      JOTHIDAM_ADMIN_API_KEY: ${JOTHIDAM_ADMIN_API_KEY:?set JOTHIDAM_ADMIN_API_KEY}
+      JOTHIDAM_ENCRYPTION_KEY: ${JOTHIDAM_ENCRYPTION_KEY:?set JOTHIDAM_ENCRYPTION_KEY}
+      JOTHIDAM_REDIS_URL: ${JOTHIDAM_REDIS_URL:-}
+    # Migrations are owned by the api container; the worker just runs the scheduler.
+    entrypoint: ["tini", "--", "python", "-m", "app.worker"]
 
   web:
     build:

@@ -1,4 +1,3 @@
-import pytest
 
 from app.calculations.astro import house_from_reference
 from app.calculations.transits import classify_sani_cycle

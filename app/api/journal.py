@@ -11,6 +11,8 @@ from app.db.session import get_db
 from app.models import BirthProfile, Chart
 from app.models.user import User
 from app.schemas.journal import (
+    VALID_LIFE_AREAS,
+    VALID_SCORE_LABELS,
     FamilyVaultJournalResponse,
     FamilyVaultJournalSummaryResponse,
     JournalCreateRequest,
@@ -22,8 +24,6 @@ from app.schemas.journal import (
     JournalRetentionApplyRequest,
     JournalRetentionApplyResponse,
     JournalUpdateRequest,
-    VALID_LIFE_AREAS,
-    VALID_SCORE_LABELS,
 )
 from app.services.chart_service import load_persisted_chart_response
 from app.services.daily_guidance_service import get_daily_guidance
@@ -152,7 +152,6 @@ def get_prompts_for_journal(
 
     # Shadow work prompts path (P3-A)
     if prompt_type == "SHADOW":
-        from app.calculations.astro import RASI_NAME_TO_NUMBER
         from app.schemas.journal import JournalPromptItem, JournalPromptText
         from app.services.narrative_engine import generate_shadow_prompts
 
@@ -169,8 +168,9 @@ def get_prompts_for_journal(
             )
             for i, p in enumerate(bitext_prompts)
         ]
-        from app.schemas.dasha import ResponseMeta
         from datetime import UTC, datetime
+
+        from app.schemas.dasha import ResponseMeta
         return JournalPromptsResponse(
             data={
                 "chartId": chart_id,

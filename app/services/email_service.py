@@ -73,7 +73,7 @@ def send_email(message: EmailMessage) -> bool:
             if attempt == _MAX_ATTEMPTS:
                 logger.error("email_failed to=%s after %d attempts: %s", message.to_address, _MAX_ATTEMPTS, exc)
                 return False
-            delay = _BASE_DELAY_S * (2 ** (attempt - 1)) * (1 + random.uniform(-_JITTER, _JITTER))
+            delay = _BASE_DELAY_S * (2 ** (attempt - 1)) * (1 + random.uniform(-_JITTER, _JITTER))  # noqa: S311 — retry-backoff jitter, not security-sensitive
             logger.warning("email_retry attempt=%d/%d to=%s exc=%s delay=%.1fs", attempt, _MAX_ATTEMPTS, message.to_address, exc, delay)
             time.sleep(delay)
 

@@ -9,21 +9,19 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import utc_datetime_to_julian_day
+from app.calculations.astro import NAKSHATRA_NAMES, utc_datetime_to_julian_day
 from app.calculations.ephemeris import calculate_sidereal_planets
+from app.calculations.porutham import compute_porutham
 from app.calculations.transits import angular_distance
 from app.db.session import SessionLocal
 from app.models import BirthProfile, Chart, FamilyMember, FamilyVault, RelationshipAlert
 from app.schemas.dasha import ResponseMeta
-from app.calculations.astro import NAKSHATRA_NAMES
-from app.calculations.porutham import compute_porutham
 from app.schemas.relationships import (
     ChartMarriageStrength,
     CompatibilityIntelligenceData,
     CompatibilityIntelligenceResponse,
     CompatibilityScoreBreakdown,
     DashaHarmony,
-    DirectCompareRequest,
     DirectPoruthamData,
     DirectPoruthamResponse,
     EmotionalCompatibility,
@@ -698,7 +696,7 @@ def get_compatibility_intelligence_for_member(
     """
     from app.calculations.astro import utc_datetime_to_julian_day
     from app.calculations.compatibility_intelligence import compute_compatibility_intelligence
-    from app.calculations.porutham import compute_porutham, check_nadi_dosha
+    from app.calculations.porutham import compute_porutham
 
     _assert_vault_owner(session, family_vault_id, owner_user_id)
     member = _member_in_vault(session, family_vault_id, member_id)

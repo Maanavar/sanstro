@@ -54,11 +54,23 @@ jobs:
           python-version: "3.12"
           cache: pip
       - name: Install tooling
-        run: pip install ruff mypy
+        # Pin ruff so a newer release introducing rules can't silently turn the
+        # lint gate red on an unrelated PR. Bump deliberately and fix findings in
+        # the same PR. See REFACTOR_PLAN 2.1.
+        run: pip install ruff==0.15.17 mypy
       - name: Ruff
         run: ruff check app tests
       - name: Mypy
         run: mypy app
+      - name: Dependency audit (pip-audit)
+        # Fail on any known advisory except the ecdsa Minerva timing issue, which
+        # has no upstream fix and is off our signing path (HS256/HMAC only).
+        # See the ecdsa note in requirements.txt and REFACTOR_PLAN 1.2.
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt \
+            --ignore-vuln GHSA-wj6h-64fc-37mp \
+            --ignore-vuln CVE-2024-23342
 
   migrations:
     name: Alembic round-trip
@@ -109,6 +121,39 @@ jobs:
       - name: Lint
         run: npm run lint
       - name: Unit tests
-        run: npm test
+        run: npm test -- --coverage
       - name: Build
         run: npm run build
+
+  e2e:
+    name: Playwright e2e
+    runs-on: ubuntu-latest
+    # Only run e2e when BASE_URL is provided (staging / preview deploy).
+    # On PRs without a preview deploy the job is skipped automatically.
+    if: vars.E2E_BASE_URL != ''
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Run Playwright tests
+        env:
+          BASE_URL: ${{ vars.E2E_BASE_URL }}
+          TEST_USER_EMAIL: ${{ secrets.E2E_TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
+        run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: web/playwright-report/
+          retention-days: 7

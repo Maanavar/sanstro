@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, JSON, Numeric, String, Text, CheckConstraint, text
+from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -19,7 +19,9 @@ class Chart(TimestampMixin, Base):
     )
 
     chart_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    birth_profile_id: Mapped[UUID] = mapped_column(ForeignKey("birth_profiles.birth_profile_id"), nullable=False)
+    birth_profile_id: Mapped[UUID] = mapped_column(
+        ForeignKey("birth_profiles.birth_profile_id", ondelete="CASCADE"), nullable=False
+    )
     calculation_version: Mapped[str] = mapped_column(Text, nullable=False)
     ephemeris_provider: Mapped[str] = mapped_column(
         String(64), nullable=False, default="SWISS_EPHEMERIS", server_default=text("'SWISS_EPHEMERIS'")
@@ -42,7 +44,13 @@ class Chart(TimestampMixin, Base):
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     birth_profile = relationship("BirthProfile", back_populates="charts")
-    planets = relationship("ChartPlanet", back_populates="chart", cascade="all, delete-orphan", lazy="selectin")
-    contexts = relationship("UserContext")
-    journal_entries = relationship("JournalEntry", back_populates="chart")
-    retrospectives = relationship("RetrospectiveEntry", back_populates="chart")
+    planets = relationship(
+        "ChartPlanet", back_populates="chart", cascade="all, delete-orphan", lazy="selectin", passive_deletes=True
+    )
+    contexts = relationship("UserContext", cascade="all, delete-orphan", passive_deletes=True)
+    journal_entries = relationship(
+        "JournalEntry", back_populates="chart", cascade="all, delete-orphan", passive_deletes=True
+    )
+    retrospectives = relationship(
+        "RetrospectiveEntry", back_populates="chart", cascade="all, delete-orphan", passive_deletes=True
+    )

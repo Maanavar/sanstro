@@ -19,6 +19,11 @@ click==8.4.0
 colorama==0.4.6
 cryptography==48.0.0
 distro==1.9.0
+# ecdsa carries the Minerva timing side-channel (GHSA-wj6h-64fc-37mp / CVE-2024-23342)
+# with no upstream fix. It is a transitive dep of python-jose; we only sign/verify with
+# HS256 (HMAC), so ecdsa is never on the signing path. The advisory is ignored in the
+# pip-audit CI step for that reason. Removing it requires dropping python-jose (see
+# REFACTOR_PLAN 1.2: migrate to pyjwt).
 ecdsa==0.19.2
 fastapi==0.136.1
 greenlet==3.5.1

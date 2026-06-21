@@ -7,7 +7,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.dasha import ResponseMeta
 
-
 # ---------------------------------------------------------------------------
 # Porutham (10-kuta compatibility)
 # ---------------------------------------------------------------------------

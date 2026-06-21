@@ -1,16 +1,18 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
-
-from app.calculations.ephemeris import EphemerisSnapshot
+from typing import Any
 
 from app.calculations.astro import (
     RASI_NAMES as CANONICAL_RASI_NAMES,
+)
+from app.calculations.astro import (
     degree_in_rasi,
     house_from_reference,
     normalize_longitude,
 )
+from app.calculations.ephemeris import EphemerisSnapshot
 
 # Transit-facing labels remain uppercase for backward compatibility in stored/output payloads.
 RASI_NAMES = {number: name.upper() for number, name in CANONICAL_RASI_NAMES.items()}

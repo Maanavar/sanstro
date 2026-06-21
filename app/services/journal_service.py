@@ -27,8 +27,8 @@ from app.schemas.journal import (
     JournalListData,
     JournalListResponse,
     JournalPromptItem,
-    JournalPromptText,
     JournalPromptsResponse,
+    JournalPromptText,
     JournalRetentionApplyResponse,
 )
 from app.services.chart_service import load_persisted_chart_response

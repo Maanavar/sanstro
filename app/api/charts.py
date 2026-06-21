@@ -1,23 +1,22 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from uuid import UUID
-
-from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.calculations.astro import resolve_rasi
+from app.calculations.event_windows import ChartData, EventType, find_event_windows
+from app.calculations.jaimini_dasha import calculate_chara_dasha, current_chara_dasha
+from app.calculations.tajaka import calculate_tajaka_chart
 from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
-from app.models.user import User
-from app.calculations.astro import NAKSHATRA_NAME_TO_NUMBER, resolve_rasi
-from app.calculations.jaimini_dasha import calculate_chara_dasha, current_chara_dasha
-from app.calculations.tajaka import calculate_tajaka_chart
-from app.calculations.event_windows import ChartData, EventType, find_event_windows
 from app.models.chart_planet import ChartPlanet
+from app.models.user import User
+from app.schemas.chart_explanation import ChartExplanationResponse
 from app.schemas.charts import (
     ChartCalculateRequest,
     ChartCalculateResponse,
@@ -28,15 +27,16 @@ from app.schemas.charts import (
     JadhagamReportResponse,
     ResponseMeta,
 )
-from app.schemas.chart_explanation import ChartExplanationResponse
 from app.schemas.dasha import DashaTimelineResponse
+from app.services.chart_explanation_service import build_chart_explanation
 from app.services.chart_service import (
     calculate_chart as calculate_chart_snapshot,
+)
+from app.services.chart_service import (
     get_chart_summary,
     get_jadhagam_report,
     load_persisted_chart_response,
 )
-from app.services.chart_explanation_service import build_chart_explanation
 from app.services.dasha_service import get_chart_dasha
 from app.services.pdf_export_service import generate_chart_pdf
 from app.services.tajaka_service import get_varshaphala

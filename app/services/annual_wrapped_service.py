@@ -10,8 +10,8 @@ from sqlalchemy.orm import Session
 
 from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
-from app.models.chart import Chart
 from app.models.birth_profile import BirthProfile
+from app.models.chart import Chart
 from app.models.daily_score import DailyScore
 from app.models.dasha_period import DashaPeriod
 from app.models.journal_entry import JournalEntry
@@ -269,7 +269,7 @@ def compute_annual_wrapped(
                 chart_snap.data.julian_day, natal_moon.absolute_longitude, mid_year_jd
             )
             dominant_lord = timeline.current_mahadasha.lord
-        except Exception:
+        except Exception:  # noqa: S110 — optional dasha enrichment; omitted on failure
             pass
 
     # Top journalled life area

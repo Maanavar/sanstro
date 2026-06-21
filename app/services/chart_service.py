@@ -9,10 +9,10 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.calculations.ashtakavarga import compute_bhinnashtakavarga
 from app.calculations.astro import (
     degree_in_rasi,
     house_from_reference,
-    julian_day_to_utc_datetime,
     local_datetime_to_utc,
     nakshatra_from_degree,
     navamsa_rasi_from_degree,
@@ -20,20 +20,21 @@ from app.calculations.astro import (
     resolve_timezone,
     utc_datetime_to_julian_day,
 )
-from app.calculations.transits import RASI_NAMES, is_combust
-from app.calculations.panchangam import NAKSHATRA_NAMES
-from app.calculations.ephemeris import calculate_lagna_degree, calculate_sidereal_planets, calculate_rise_transit_jd
-from app.calculations.dasha import calculate_vimshottari_timeline
-from app.calculations.ashtakavarga import compute_bhinnashtakavarga
 from app.calculations.bhava_chalit import compute_bhava_chalit
-from app.calculations.chart_strength import compute_natal_planet_score, compute_strength_breakdown, detect_planetary_wars
+from app.calculations.chart_strength import (
+    compute_natal_planet_score,
+    compute_strength_breakdown,
+    detect_planetary_wars,
+)
+from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.divisional_charts import get_varga
+from app.calculations.ephemeris import calculate_lagna_degree, calculate_rise_transit_jd, calculate_sidereal_planets
 from app.calculations.functional_nature import get_functional_nature
 from app.calculations.nakshatra_analysis import build_dispositor_chain, gandanta_detail, pushkara_check
+from app.calculations.panchangam import NAKSHATRA_NAMES, calculate_daily_panchangam
+from app.calculations.transits import RASI_NAMES, is_combust
 from app.calculations.yoga_activation import yoga_activation_score
-from app.calculations.yogas import NakshatraCautionResult, detect_yogas_and_doshams
-from app.calculations.d9_chart import calculate_d9_chart
-from app.calculations.panchangam import calculate_daily_panchangam
+from app.calculations.yogas import detect_yogas_and_doshams
 from app.core.encryption import encrypt_bytes
 from app.models import BirthProfile, Chart, ChartPlanet, User
 from app.models.user_life_events import UserLifeEvent
@@ -48,6 +49,7 @@ from app.schemas.charts import (
     ChartSummaryData,
     ChartSummaryResponse,
     ChartSummaryText,
+    ChartYogaInsight,
     JadhagamReportAgeWiseTimeline,
     JadhagamReportBirthProfile,
     JadhagamReportCoreIdentity,
@@ -60,7 +62,6 @@ from app.schemas.charts import (
     JadhagamReportRasiSummary,
     JadhagamReportResponse,
     JadhagamReportYogaDoshamSummary,
-    ChartYogaInsight,
     LagnaPosition,
     PlanetPosition,
     ResponseMeta,
@@ -674,7 +675,7 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             speed_ratio=speed_ratio,
         )
     bhava_chalit_map = {
-        p.graha: (int(getattr(p_row, "bhava_house")) if getattr(p_row, "bhava_house", None) is not None else 0)
+        p.graha: (int(p_row.bhava_house) if getattr(p_row, "bhava_house", None) is not None else 0)
         for p, p_row in zip(planet_positions, planets, strict=False)
     }
     if not all(v in range(1, 13) for v in bhava_chalit_map.values()):
@@ -1066,8 +1067,9 @@ def calculate_chart_for_persisted_profile(
     # Migrate active goals from the previous chart to the new one so they
     # are not orphaned when a user edits and recalculates their birth profile.
     if prev_chart is not None and prev_chart.chart_id != response.data.chart_id:
-        from app.models.user_goal import UserGoal as _UserGoal
         from sqlalchemy import update as _sql_update
+
+        from app.models.user_goal import UserGoal as _UserGoal
         session.execute(
             _sql_update(_UserGoal)
             .where(

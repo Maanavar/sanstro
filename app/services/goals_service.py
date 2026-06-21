@@ -20,7 +20,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Chart, UserGoal
-from app.models.user_goal import VALID_GOAL_TYPES
 from app.schemas.dasha import ResponseMeta
 from app.schemas.goals import (
     GoalData,

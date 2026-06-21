@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import List, Optional
-from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -29,7 +27,7 @@ class BiText(BaseModel):
 class LifeEventLogCreate(BaseModel):
     event_type: str = Field(alias="eventType")
     event_date: date = Field(alias="eventDate")
-    description: Optional[str] = None
+    description: str | None = None
 
     model_config = {"populate_by_name": True}
 
@@ -48,15 +46,15 @@ class LifeEventLogItem(BaseModel):
     chart_id: str = Field(alias="chartId")
     event_type: str = Field(alias="eventType")
     event_date: date = Field(alias="eventDate")
-    description: Optional[str] = None
-    correlation: Optional[EventCorrelation] = None
+    description: str | None = None
+    correlation: EventCorrelation | None = None
 
     model_config = {"populate_by_name": True}
 
 
 class LifeEventLogResponse(BaseModel):
     success: bool = True
-    data: List[LifeEventLogItem]
+    data: list[LifeEventLogItem]
 
 
 class LifeEventLogCreateResponse(BaseModel):

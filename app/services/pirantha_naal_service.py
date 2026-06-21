@@ -27,8 +27,8 @@ def _format_clock_label(value: datetime | time | object | None) -> str:
     if value is None:
         return "N/A"
     try:
-        hour = int(getattr(value, "hour"))
-        minute = int(getattr(value, "minute"))
+        hour = int(value.hour)
+        minute = int(value.minute)
     except Exception:
         try:
             raw = str(value.strftime("%H:%M"))

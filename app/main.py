@@ -2,7 +2,7 @@ import logging
 import logging.config
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 
 from app.api.admin import router as admin_router
 from app.api.admin_analytics import router as admin_analytics_router
@@ -16,6 +16,7 @@ from app.api.content import router as content_router
 from app.api.context import router as context_router
 from app.api.daily_guidance import router as daily_guidance_router
 from app.api.decisions import router as decisions_router
+from app.api.devices import router as devices_router
 from app.api.family_vaults import router as family_vaults_router
 from app.api.feedback import router as feedback_router
 from app.api.goals import router as goals_router
@@ -24,6 +25,7 @@ from app.api.journal import router as journal_router
 from app.api.life_areas import router as life_areas_router
 from app.api.life_event_log import router as life_event_log_router
 from app.api.life_events import router as life_events_router
+from app.api.mobile_auth import router as mobile_auth_router
 from app.api.muhurta import router as muhurta_router
 from app.api.notification_preferences import router as notification_preferences_router
 from app.api.notifications import router as notifications_router
@@ -39,14 +41,17 @@ from app.api.retrospective import router as retrospective_router
 from app.api.settings import router as settings_router
 from app.api.share_card import router as share_card_router
 from app.api.transits import router as transits_router
+from app.api.webhooks import router as webhooks_router
 from app.api.whatif import router as whatif_router
+from app.core.auth import require_csrf_header
 from app.core.config import get_settings
-from app.middleware import MaintenanceModeMiddleware, RateLimitMiddleware, RequestLoggingMiddleware, SecurityHeadersMiddleware
-from app.services.daily_push_cron import run_daily_push_cron
-from app.services.panchangam_prewarm import run_panchangam_prewarm_cron
-from app.services.peyarchi_alert_service import daily_peyarchi_refresh
-from app.services.job_registry import register_job
-from app.services.synastry_service import daily_relationship_alert_refresh
+from app.middleware import (
+    MaintenanceModeMiddleware,
+    RateLimitMiddleware,
+    RequestLoggingMiddleware,
+    SecurityHeadersMiddleware,
+)
+from app.scheduler import register_all_jobs, schedule_all_jobs
 
 try:
     from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -73,34 +78,22 @@ _LOGGING_CONFIG = {
 def _build_lifespan():
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
-        register_job(
-            "daily_peyarchi_refresh",
-            "Peyarchi Refresh",
-            "Refresh transit alerts for all charts (daily, 02:00 UTC)",
-            daily_peyarchi_refresh,
-        )
-        register_job(
-            "daily_relationship_alert_refresh",
-            "Relationship Alerts",
-            "Refresh synastry alerts (daily, 02:05 UTC)",
-            daily_relationship_alert_refresh,
-        )
-        register_job(
-            "daily_push_cron",
-            "Daily Push Notifications",
-            "Send morning guidance push (hourly, per-user timezone window)",
-            run_daily_push_cron,
-        )
-        register_job(
-            "panchangam_prewarm",
-            "Panchangam Prewarm",
-            "Pre-warm panchangam cache for popular locations (daily, 02:10 UTC)",
-            run_panchangam_prewarm_cron,
-        )
+        # Register job metadata regardless of who schedules them, so the admin
+        # trigger endpoints work even when a dedicated worker owns the scheduler.
+        register_all_jobs()
+
+        log = logging.getLogger(__name__)
+
+        # In a scaled deploy a dedicated `app.worker` process owns scheduling and
+        # the API only serves requests. Default true keeps single-box behaviour.
+        if not get_settings().run_scheduler_in_web:
+            log.info("run_scheduler_in_web is false; cron runs in the dedicated worker process.")
+            yield
+            return
 
         scheduler = AsyncIOScheduler(timezone="UTC") if AsyncIOScheduler is not None else None
         if scheduler is None:
-            logging.getLogger(__name__).warning("APScheduler not installed; peyarchi background scheduler disabled.")
+            log.warning("APScheduler not installed; background scheduler disabled.")
             yield
             return
 
@@ -111,36 +104,11 @@ def _build_lifespan():
 
         lease = SchedulerLease(engine)
         if not lease.acquire():
-            logging.getLogger(__name__).info("Scheduler lock held by another worker; running as follower.")
+            log.info("Scheduler lock held by another worker; running as follower.")
             yield
             return
 
-        scheduler.add_job(daily_peyarchi_refresh, "cron", hour=2, minute=0, id="daily_peyarchi_refresh", replace_existing=True)
-        scheduler.add_job(
-            daily_relationship_alert_refresh,
-            "cron",
-            hour=2,
-            minute=5,
-            id="daily_relationship_alert_refresh",
-            replace_existing=True,
-        )
-        scheduler.add_job(
-            run_daily_push_cron,
-            "cron",
-            minute=0,  # every hour on the hour — morning window check is done inside per user timezone
-            id="daily_push_cron",
-            replace_existing=True,
-        )
-        # Pre-warm the panchangam cache for popular locations so the calendar and
-        # daily panchangam load as warm cache hits (no cold ephemeris on first view).
-        scheduler.add_job(
-            run_panchangam_prewarm_cron,
-            "cron",
-            hour=2,
-            minute=10,
-            id="panchangam_prewarm",
-            replace_existing=True,
-        )
+        schedule_all_jobs(scheduler)
         scheduler.start()
         try:
             yield
@@ -206,41 +174,48 @@ def create_app() -> FastAPI:
             allow_methods=["*"],
             allow_headers=["*"],
         )
+    csrf_dependencies = [Depends(require_csrf_header)]
     app.include_router(health_router)
     app.include_router(auth_router, prefix=f"{settings.api_v1_prefix}/auth", tags=["auth"])
-    app.include_router(alerts_router, prefix=settings.api_v1_prefix)
-    app.include_router(birth_profiles_router, prefix=settings.api_v1_prefix)
-    app.include_router(charts_router, prefix=settings.api_v1_prefix)
-    app.include_router(daily_guidance_router, prefix=settings.api_v1_prefix)
-    app.include_router(context_router, prefix=settings.api_v1_prefix)
-    app.include_router(decisions_router, prefix=settings.api_v1_prefix)
-    app.include_router(family_vaults_router, prefix=settings.api_v1_prefix)
-    app.include_router(transits_router, prefix=settings.api_v1_prefix)
-    app.include_router(goals_router, prefix=settings.api_v1_prefix)
-    app.include_router(journal_router, prefix=settings.api_v1_prefix)
-    app.include_router(life_areas_router, prefix=settings.api_v1_prefix)
-    app.include_router(life_events_router, prefix=settings.api_v1_prefix)
-    app.include_router(ask_vinaadi_router, prefix=settings.api_v1_prefix)
-    app.include_router(life_event_log_router, prefix=settings.api_v1_prefix)
-    app.include_router(muhurta_router, prefix=settings.api_v1_prefix)
-    app.include_router(annual_wrapped_router, prefix=settings.api_v1_prefix)
-    app.include_router(share_card_router, prefix=settings.api_v1_prefix)
-    app.include_router(rectification_router, prefix=settings.api_v1_prefix)
-    app.include_router(panchangam_router, prefix=settings.api_v1_prefix)
-    app.include_router(qa_router, prefix=settings.api_v1_prefix)
-    app.include_router(relationships_router, prefix=settings.api_v1_prefix)
-    app.include_router(retrospective_router, prefix=settings.api_v1_prefix)
-    app.include_router(settings_router, prefix=settings.api_v1_prefix)
-    app.include_router(admin_router, prefix=settings.api_v1_prefix)
-    app.include_router(admin_analytics_router, prefix=settings.api_v1_prefix)
-    app.include_router(feedback_router, prefix=settings.api_v1_prefix)
-    app.include_router(whatif_router, prefix=settings.api_v1_prefix)
+    # Mobile-only: cookie-free Bearer + refresh-token auth (no CSRF needed — no cookies)
+    app.include_router(mobile_auth_router, prefix=f"{settings.api_v1_prefix}/auth")
+    # Device push-token registration (guests + registered users, no cookie CSRF risk)
+    app.include_router(devices_router, prefix=settings.api_v1_prefix)
+    # Third-party inbound webhooks (no cookie auth, validated by shared secret)
+    app.include_router(webhooks_router, prefix=settings.api_v1_prefix)
+    app.include_router(alerts_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(birth_profiles_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(charts_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(daily_guidance_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(context_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(decisions_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(family_vaults_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(transits_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(goals_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(journal_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(life_areas_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(life_events_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(ask_vinaadi_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(life_event_log_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(muhurta_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(annual_wrapped_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(share_card_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(rectification_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(panchangam_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(qa_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(relationships_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(retrospective_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(settings_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(admin_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(admin_analytics_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(feedback_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(whatif_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(content_router, prefix=settings.api_v1_prefix)
-    app.include_router(notification_preferences_router, prefix=settings.api_v1_prefix)
-    app.include_router(notifications_router, prefix=settings.api_v1_prefix)
-    app.include_router(predictions_router, prefix=settings.api_v1_prefix)
-    app.include_router(prasna_router, prefix=settings.api_v1_prefix)
-    app.include_router(remedies_router, prefix=settings.api_v1_prefix)
+    app.include_router(notification_preferences_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(notifications_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(predictions_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(prasna_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(remedies_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(public_tools_router, prefix=settings.api_v1_prefix)
     return app
 

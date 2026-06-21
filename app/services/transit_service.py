@@ -4,7 +4,6 @@ from dataclasses import asdict
 from datetime import UTC, date, datetime
 from uuid import UUID
 
-from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import house_from_reference, is_chandrashtama, utc_datetime_to_julian_day
@@ -13,19 +12,23 @@ from app.calculations.transits import (
     GRAHA_LABELS,
     MAJOR_GRAHAS,
     RASI_NAMES,
-    TransitPosition as TransitPositionRecord,
+    build_transit_position,
     classify_kandaka_cycle,
     classify_sani_cycle,
-    build_transit_position,
+)
+from app.calculations.transits import (
+    TransitPosition as TransitPositionRecord,
 )
 from app.schemas.dasha import ResponseMeta
 from app.schemas.transits import (
     SaniCycleData,
     SaniCycleResponse,
     TransitCycle,
-    TransitPosition as TransitPositionSchema,
     TransitSnapshotData,
     TransitSnapshotResponse,
+)
+from app.schemas.transits import (
+    TransitPosition as TransitPositionSchema,
 )
 from app.services.chart_service import load_persisted_chart_response
 from app.services.location_service import local_midnight_as_jd_for_profile, local_noon_as_utc_for_profile

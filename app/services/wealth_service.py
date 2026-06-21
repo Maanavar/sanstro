@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
-from app.calculations.astro import house_from_reference
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga, get_av_bindu
+from app.calculations.astro import house_from_reference
 from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction, house_lord_for_lagna
 
 

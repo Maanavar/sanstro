@@ -6,11 +6,11 @@ from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
 import app.models as app_models  # noqa: F401  (registers all models with Base)
-from app.core.auth import create_access_token, get_current_user, get_admin_user
+from app.core.auth import create_access_token, get_admin_user, get_current_user
+from app.core.rate_limit import reset_rate_limit_backend
 from app.db.base import Base
-from app.db.session import engine, SessionLocal
+from app.db.session import SessionLocal, engine
 from app.main import app
-from app.middleware import _counters
 from app.models.user import User
 
 TEST_USER_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
@@ -124,13 +124,13 @@ def client() -> TestClient:
 
     app.dependency_overrides[get_current_user] = lambda: stub_user
     app.dependency_overrides[get_admin_user] = lambda: stub_user
-    _counters.clear()
+    reset_rate_limit_backend()
 
     with TestClient(app) as test_client:
         yield test_client
 
     app.dependency_overrides.clear()
-    _counters.clear()
+    reset_rate_limit_backend()
 
 
 @pytest.fixture()

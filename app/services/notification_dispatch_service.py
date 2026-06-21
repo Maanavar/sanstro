@@ -14,7 +14,7 @@ All notifications are opt-in — if channel == 'none' the call is a no-op.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
 
@@ -25,7 +25,7 @@ from app.calculations.astro import resolve_timezone
 from app.models.birth_profile import BirthProfile
 from app.models.notification import Notification
 from app.models.user_notification_preference import UserNotificationPreference
-from app.services.email_service import EmailMessage, build_notification_email, send_email
+from app.services.email_service import build_notification_email, send_email
 from app.services.fcm_service import send_push
 from app.services.feature_flags import get_flag
 from app.services.location_service import resolve_effective_daily_timezone
@@ -77,10 +77,10 @@ def _push_count_today(session: Session, user_id: UUID, user_tz_str: str = "UTC")
     try:
         user_tz = resolve_timezone(user_tz_str)
     except Exception:
-        user_tz = timezone.utc
+        user_tz = UTC
     now_local = datetime.now(user_tz)
     today_start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
-    today_start = today_start_local.astimezone(timezone.utc)
+    today_start = today_start_local.astimezone(UTC)
     return session.execute(
         select(func.count(Notification.notification_id)).where(
             Notification.user_id == user_id,
@@ -108,7 +108,7 @@ def _persist_notification(
         priority=priority,
         title=title,
         body=body,
-        send_at=datetime.now(timezone.utc),
+        send_at=datetime.now(UTC),
         status=status,
         suppression_reason=suppression_reason,
         payload={},

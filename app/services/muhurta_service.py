@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, date, datetime, timedelta
-from typing import List
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -30,8 +29,8 @@ from app.calculations.panchangam import (
     best_gowri_slot,
     calculate_daily_panchangam_range,
 )
-from app.models import BirthProfile, Chart
 from app.calculations.tamil_calendar import format_tamil_date
+from app.models import BirthProfile, Chart
 from app.schemas.muhurta import BiText, MuhurtaResponse, MuhurtaResponseData, MuhurtaSlot, ResponseMeta
 from app.services.chart_service import load_persisted_chart_response
 from app.services.location_service import resolve_effective_daily_location

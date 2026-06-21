@@ -12,14 +12,19 @@ Accuracy: ~30-60 min window. Labelled clearly as heuristic, not classical.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import RASI_NAMES, rasi_from_degree, resolve_timezone, utc_datetime_to_julian_day
-from app.calculations.astro import house_from_reference
+from app.calculations.astro import (
+    RASI_NAMES,
+    house_from_reference,
+    rasi_from_degree,
+    resolve_timezone,
+    utc_datetime_to_julian_day,
+)
 from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_lagna_degree
@@ -178,7 +183,7 @@ def apply_rectified_time(
     try:
         parsed = datetime.strptime(selected_time_str, "%H:%M").time()
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid time format. Expected HH:MM.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid time format. Expected HH:MM.") from None
 
     profile.birth_time_local = parsed
     profile.birth_time_source = "ESTIMATED_RECTIFIED"

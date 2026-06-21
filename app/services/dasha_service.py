@@ -13,17 +13,16 @@ from app.calculations.functional_nature import FunctionalNature, get_functional_
 from app.calculations.maturation import maturation_status
 from app.schemas.dasha import (
     DashaCurrentWindow,
-    DashaTransitionNote,
     DashaInterpretation,
     DashaOpeningWindow,
     DashaPeriodWindow,
     DashaTimelineResponse,
     DashaTimelineResponseData,
+    DashaTransitionNote,
     ResponseMeta,
 )
 from app.services.chart_service import load_persisted_chart_response
 from app.services.location_service import local_midnight_as_jd_for_profile
-
 
 # Natural domain text per planet (Tamil + English)
 _PLANET_DOMAIN: dict[str, tuple[str, str]] = {

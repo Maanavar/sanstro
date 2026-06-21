@@ -17,10 +17,11 @@ These classifications affect:
 2. Dasha score modifier (how beneficial is this planet's Mahadasha/Antardasha)
 """
 from __future__ import annotations
+
 from enum import Enum
 
 
-class FunctionalNature(str, Enum):
+class FunctionalNature(str, Enum):  # noqa: UP042 — str-mixin enum kept; StrEnum changes str()/format() output
     YOGAKARAKA = "YOGAKARAKA"
     LAGNA_LORD = "LAGNA_LORD"
     TRIKONA    = "TRIKONA"

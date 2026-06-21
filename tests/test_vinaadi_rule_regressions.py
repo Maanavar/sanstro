@@ -4,7 +4,6 @@ from pathlib import Path
 
 from app.services.daily_guidance_service import TRANSIT_BASE_SCORE
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 

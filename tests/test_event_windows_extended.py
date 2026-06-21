@@ -1,8 +1,6 @@
 """Tests for Career and Finance event window types (PRES-11)."""
 from __future__ import annotations
 
-from unittest.mock import MagicMock
-
 import pytest
 
 from app.calculations.astro import julian_day_to_utc_datetime
@@ -12,7 +10,6 @@ from app.calculations.event_windows import (
     find_event_windows,
     find_finance_windows,
 )
-
 
 # ---------------------------------------------------------------------------
 # Shared test helpers (mirror test_event_windows.py pattern)

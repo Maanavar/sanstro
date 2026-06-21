@@ -19,9 +19,11 @@ class Notification(TimestampMixin, Base):
     )
 
     notification_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id"), nullable=False)
-    family_vault_id: Mapped[UUID | None] = mapped_column(ForeignKey("family_vaults.family_vault_id"), nullable=True)
-    chart_id: Mapped[UUID | None] = mapped_column(ForeignKey("charts.chart_id"), nullable=True)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    family_vault_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("family_vaults.family_vault_id", ondelete="SET NULL"), nullable=True
+    )
+    chart_id: Mapped[UUID | None] = mapped_column(ForeignKey("charts.chart_id", ondelete="SET NULL"), nullable=True)
     type: Mapped[str] = mapped_column(String(64), nullable=False)
     priority: Mapped[int] = mapped_column(Integer, nullable=False)
     title: Mapped[str] = mapped_column(Text, nullable=False)

@@ -74,8 +74,8 @@ def _format_clock_label(value: datetime | time | object | None) -> str:
     if value is None:
         return "N/A"
     try:
-        hour = int(getattr(value, "hour"))
-        minute = int(getattr(value, "minute"))
+        hour = int(value.hour)
+        minute = int(value.minute)
     except Exception:
         try:
             raw = str(value.strftime("%H:%M"))
@@ -183,7 +183,7 @@ def _dispatch_for_user(
     try:
         user_tz = resolve_timezone(tz_name)
         run_date = now_utc.astimezone(user_tz).date()
-    except Exception:
+    except Exception:  # noqa: S110 — fall back to the UTC run_date computed above
         pass
 
     # ----------------------------------------------------------------

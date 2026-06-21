@@ -4,7 +4,6 @@ Product Spec Module 18.1: Daily 6 AM local push notification per user.
 """
 from __future__ import annotations
 
-
 SCORE_LABEL_LINES: dict[str, dict[str, str]] = {
     "STRONG_SUPPORT": {
         "ta": "இன்று வலுவான ஆதரவு நாள். திட்டமிட்ட காரியங்களுக்கு நல்ல நேரம்.",

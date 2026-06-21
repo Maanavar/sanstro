@@ -16,9 +16,12 @@ from app.schemas.birth_profiles import (
     BirthProfileResponseMeta,
     BirthProfileUpdate,
 )
-from app.services.chart_service import calculate_chart_for_persisted_profile, create_birth_profile_record, _warning_messages
+from app.services.chart_service import (
+    _warning_messages,
+    calculate_chart_for_persisted_profile,
+    create_birth_profile_record,
+)
 from app.services.feature_flags import get_flag
-
 
 _BIRTH_RECALC_FIELDS = {
     "birth_date_local",

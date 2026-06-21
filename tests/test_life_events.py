@@ -3,9 +3,6 @@ from __future__ import annotations
 
 from datetime import date
 
-import pytest
-
-
 # ── Unit tests for the service layer ─────────────────────────────────────────
 
 
@@ -150,6 +147,6 @@ def test_life_events_no_fatalistic_language(client, birth_profile_payload_factor
                     violations.append((text[:80], found))
 
     assert violations == [], (
-        f"Tone violations in life event windows:\n"
+        "Tone violations in life event windows:\n"
         + "\n".join(f"  {v[1]} in: {v[0]!r}" for v in violations[:10])
     )

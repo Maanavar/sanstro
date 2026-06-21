@@ -25,7 +25,7 @@ from app.core.config import get_settings
 logger = logging.getLogger(__name__)
 
 _FCM_SEND_URL = "https://fcm.googleapis.com/v1/projects/{project_id}/messages:send"
-_OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token"
+_OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token"  # noqa: S105 — public OAuth endpoint URL, not a secret
 _FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging"
 
 # Simple in-process token cache: (access_token, expiry_epoch)
@@ -52,17 +52,14 @@ def _get_access_token() -> str:
     sa_json: dict[str, Any] = json.loads(s.fcm_service_account_json)  # type: ignore[arg-type]
 
     import base64
-    import hashlib
-    import hmac
-    import struct
 
     # Build a minimal JWT for the service account → exchange for access token
     # Using RS256 requires the rsa or cryptography package. We fall back to
     # the google-auth flow via httpx if available, otherwise raise clearly.
     try:
+        from cryptography.hazmat.backends import default_backend
         from cryptography.hazmat.primitives import hashes, serialization
         from cryptography.hazmat.primitives.asymmetric import padding
-        from cryptography.hazmat.backends import default_backend
     except ImportError as exc:
         raise RuntimeError(
             "FCM push requires the 'cryptography' package. "

@@ -138,7 +138,7 @@ def _run_navamsa() -> QAModuleResult:
     d1_rishabam = rasi_from_degree(43.5)                 # Rishabam 13°30'
     d9_rishabam = navamsa_rasi_from_degree(43.5)
     d9_mesham_start = navamsa_rasi_from_degree(0.0)      # Mesham start → D9 Mesham
-    d9_mesham_mid = navamsa_rasi_from_degree(15.0)       # Mesham mid
+    d9_mesham_mid = navamsa_rasi_from_degree(15.0)       # Mesham mid  # noqa: F841 — verification fixture; kept for reference
     d9_kadagam = navamsa_rasi_from_degree(90.0)          # Kadagam start (movable) → D9 Kadagam
     d9_kanni_fixed = navamsa_rasi_from_degree(150.0)     # Kanni (fixed) → starts from 9th = Makaram
     d9_midhunam_dual = navamsa_rasi_from_degree(60.0)    # Midhunam (dual) → starts from 5th = Thulam

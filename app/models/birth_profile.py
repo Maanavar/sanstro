@@ -17,8 +17,10 @@ class BirthProfile(TimestampMixin, Base):
     )
 
     birth_profile_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    owner_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id"), nullable=False)
-    family_member_id: Mapped[UUID | None] = mapped_column(ForeignKey("family_members.family_member_id"), nullable=True)
+    owner_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    family_member_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("family_members.family_member_id", ondelete="SET NULL"), nullable=True
+    )
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
     birth_date_local: Mapped[date] = mapped_column(Date, nullable=False)
     birth_time_local: Mapped[time | None] = mapped_column(Time, nullable=True)
@@ -48,4 +50,4 @@ class BirthProfile(TimestampMixin, Base):
 
     owner_user = relationship("User", back_populates="birth_profiles")
     family_member = relationship("FamilyMember", back_populates="birth_profiles")
-    charts = relationship("Chart", back_populates="birth_profile", cascade="all, delete-orphan")
+    charts = relationship("Chart", back_populates="birth_profile", cascade="all, delete-orphan", passive_deletes=True)

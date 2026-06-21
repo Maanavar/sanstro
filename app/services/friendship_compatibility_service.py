@@ -58,7 +58,7 @@ def get_friendship_report(p1: dict, p2: dict) -> dict:
     gana = kuta_score("GANA")
     rasi = kuta_score("RASI", "BHAKOOT")
     nadi = kuta_score("NADI")
-    yoni = kuta_score("YONI")
+    yoni = kuta_score("YONI")  # noqa: F841 — computed for completeness; not part of friendship score
 
     cosmic = band["key"] == "COSMIC_TEACHERS"
 

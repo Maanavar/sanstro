@@ -10,10 +10,7 @@ from __future__ import annotations
 
 from datetime import date
 
-import pytest
-
 from app.services.narrative_engine import tone_validator
-
 
 # ── Unit tests for tone_validator itself ─────────────────────────────────────
 

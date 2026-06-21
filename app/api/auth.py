@@ -4,23 +4,23 @@ import logging
 import smtplib
 from datetime import timedelta
 from email.mime.text import MIMEText
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import bcrypt
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.core.auth import create_access_token, decode_token
+from app.core.auth import create_access_token, get_current_user, require_csrf_header
 from app.core.config import get_settings
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import (
+    AccountDeletionResult,
     AuthUserResponse,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginRequest,
-    AccountDeletionResult,
     RegisterRequest,
     UpdateUserSettingsRequest,
 )
@@ -37,6 +37,12 @@ def _assert_not_suspended(user: User) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account suspended. Contact support.",
         )
+
+
+def _require_user_email(user: User) -> str:
+    if user.email is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+    return user.email
 
 
 def _set_auth_cookie(response: Response, token: str) -> None:
@@ -134,7 +140,7 @@ def login(
     return AuthUserResponse(userId=str(user.user_id), email=user.email or payload.email, userMode="BALANCED", goalTrack=None)
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_csrf_header)])
 def logout(response: Response) -> Response:
     response.delete_cookie(key=_COOKIE_NAME, path="/")
     response.status_code = status.HTTP_204_NO_CONTENT
@@ -143,60 +149,25 @@ def logout(response: Response) -> Response:
 
 @router.get("/me", response_model=AuthUserResponse)
 def me(
-    session: Session = Depends(get_db),
-    vinaadi_token: str | None = Cookie(default=None),
+    user: User = Depends(get_current_user),
 ) -> AuthUserResponse:
-    if not vinaadi_token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
-
-    payload = decode_token(vinaadi_token)
-    sub: str | None = payload.get("sub")
-    if not sub:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
-
-    try:
-        user_id = UUID(sub)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.") from exc
-
-    user = session.get(User, user_id)
-    if user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
-    if user.email is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
-    _assert_not_suspended(user)
+    email = _require_user_email(user)
 
     return AuthUserResponse(
         userId=str(user.user_id),
-        email=user.email,
+        email=email,
         userMode=getattr(user, "user_mode", "BALANCED") or "BALANCED",
         goalTrack=getattr(user, "goal_track", None),
     )
 
 
-@router.patch("/me", response_model=AuthUserResponse)
+@router.patch("/me", response_model=AuthUserResponse, dependencies=[Depends(require_csrf_header)])
 def patch_me(
     payload: UpdateUserSettingsRequest,
     session: Session = Depends(get_db),
-    vinaadi_token: str | None = Cookie(default=None),
+    user: User = Depends(get_current_user),
 ) -> AuthUserResponse:
-    if not vinaadi_token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
-
-    token_payload = decode_token(vinaadi_token)
-    sub: str | None = token_payload.get("sub")
-    if not sub:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
-
-    try:
-        user_id = UUID(sub)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.") from exc
-
-    user = session.get(User, user_id)
-    if user is None or user.email is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
-    _assert_not_suspended(user)
+    email = _require_user_email(user)
 
     if payload.user_mode is not None:
         user.user_mode = payload.user_mode
@@ -206,127 +177,55 @@ def patch_me(
 
     return AuthUserResponse(
         userId=str(user.user_id),
-        email=user.email,
+        email=email,
         userMode=user.user_mode or "BALANCED",
         goalTrack=user.goal_track,
     )
 
 
-@router.delete("/me", response_model=AccountDeletionResult, status_code=status.HTTP_200_OK)
+@router.delete(
+    "/me",
+    response_model=AccountDeletionResult,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_csrf_header)],
+)
 def delete_my_account(
     response: Response,
     session: Session = Depends(get_db),
-    vinaadi_token: str | None = Cookie(default=None),
+    user: User = Depends(get_current_user),
 ) -> AccountDeletionResult:
     """Permanently erase all user data and delete the account.
 
-    Deletes every row owned by the user across all tables, then removes the
-    User row itself. Uses raw SQL to avoid SQLAlchemy cascade ordering issues.
-    The auth cookie is cleared on success.
+    The user → birth_profile → chart and user → family_vault subtrees all cascade
+    from the ``users`` row at the schema level (see migration
+    ``z1a2b3c4d5e6_user_delete_cascades``), so deleting the User row erases the
+    bulk of the data automatically.
+
+    The one exception is ``interpretation_outputs``: its chart/vault links use
+    ``ON DELETE SET NULL`` (so deleting a single chart doesn't wipe family
+    aggregates), which would otherwise leave the user's interpreted data behind
+    as orphan rows. We erase those explicitly before the cascade nulls the link.
     """
-    if not vinaadi_token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
+    uid = str(user.user_id)
 
-    payload = decode_token(vinaadi_token)
-    sub: str | None = payload.get("sub")
-    if not sub:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
-
-    try:
-        user_id = UUID(sub)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.") from exc
-
-    user = session.get(User, user_id)
-    if user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated.")
-    _assert_not_suspended(user)
-
-    uid = str(user_id)
-
-    # Collect chart_ids owned by this user (used in multiple steps below)
-    chart_ids_row = session.execute(text("""
-        SELECT c.chart_id::text
-        FROM charts c
-        JOIN birth_profiles bp ON c.birth_profile_id = bp.birth_profile_id
-        WHERE bp.owner_user_id = :uid
-    """), {"uid": uid}).fetchall()
-    chart_ids = [r[0] for r in chart_ids_row]
-
-    # Step 1: leaf rows that reference chart_id
-    if chart_ids:
-        id_list = ", ".join(f"'{cid}'" for cid in chart_ids)
-        for tbl in (
-            "peyarchi_alerts",
-            "chart_planets",
-            "dasha_periods",
-            "varga_positions",
-            "interpretation_outputs",
-            "user_life_events",
-            "user_goals",
-            "retrospective_entries",
-            "journal_entries",
-            "user_contexts",
-            "notifications",
-        ):
-            session.execute(text(f"DELETE FROM {tbl} WHERE chart_id IN ({id_list})"))  # noqa: S608
-
-    # Step 2: rows linked to birth profiles (daily_scores has no chart_id column)
     session.execute(text("""
-        DELETE FROM daily_scores
-        WHERE birth_profile_id IN (
-            SELECT birth_profile_id FROM birth_profiles WHERE owner_user_id = :uid
+        DELETE FROM interpretation_outputs
+        WHERE chart_id IN (
+            SELECT c.chart_id
+            FROM charts c
+            JOIN birth_profiles bp ON c.birth_profile_id = bp.birth_profile_id
+            WHERE bp.owner_user_id = :uid
         )
-    """), {"uid": uid})
-
-    # Step 3: direct user_id / owner_user_id rows not linked to charts
-    session.execute(text("DELETE FROM notifications WHERE user_id = :uid"), {"uid": uid})
-    session.execute(text("DELETE FROM user_contexts WHERE owner_user_id = :uid"), {"uid": uid})
-    session.execute(text("DELETE FROM user_notification_preferences WHERE owner_user_id = :uid"), {"uid": uid})
-    session.execute(text("DELETE FROM user_preferences WHERE owner_user_id = :uid"), {"uid": uid})
-    session.execute(text("DELETE FROM subscriptions WHERE user_id = :uid"), {"uid": uid})
-
-    # Step 3: family subtree — relationship_alerts → family_daily_scores → members/vaults
-    session.execute(text("""
-        DELETE FROM relationship_alerts
-        WHERE vault_id IN (
+        OR family_vault_id IN (
             SELECT family_vault_id FROM family_vaults WHERE owner_user_id = :uid
         )
     """), {"uid": uid})
 
-    session.execute(text("""
-        DELETE FROM family_daily_scores
-        WHERE family_vault_id IN (
-            SELECT family_vault_id FROM family_vaults WHERE owner_user_id = :uid
-        )
-    """), {"uid": uid})
+    # Everything else cascades from the users row at the DB level.
+    session.delete(user)
+    session.flush()
 
-    # Break FK from birth_profiles.family_member_id -> family_members.family_member_id
-    # before deleting family members.
-    session.execute(text("""
-        UPDATE birth_profiles
-        SET family_member_id = NULL
-        WHERE family_member_id IN (
-            SELECT family_member_id FROM family_members WHERE owner_user_id = :uid
-        )
-    """), {"uid": uid})
-
-    session.execute(text("DELETE FROM family_members WHERE owner_user_id = :uid"), {"uid": uid})
-    session.execute(text("UPDATE family_members SET managed_by_user_id = NULL WHERE managed_by_user_id = :uid"), {"uid": uid})
-    session.execute(text("DELETE FROM family_vaults WHERE owner_user_id = :uid"), {"uid": uid})
-
-    # Step 4: charts → birth_profiles
-    session.execute(text("""
-        DELETE FROM charts
-        WHERE birth_profile_id IN (
-            SELECT birth_profile_id FROM birth_profiles WHERE owner_user_id = :uid
-        )
-    """), {"uid": uid})
-    session.execute(text("DELETE FROM birth_profiles WHERE owner_user_id = :uid"), {"uid": uid})
-
-    # Step 5: the user row itself
-    session.execute(text("DELETE FROM users WHERE user_id = :uid"), {"uid": uid})
-
+    _logger.info("account_erasure_complete user_id=%s", uid)
     response.delete_cookie(key=_COOKIE_NAME, path="/")
     return AccountDeletionResult(detail="Account permanently deleted.")
 

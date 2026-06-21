@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, time, timedelta
 from collections import Counter
+from datetime import UTC, date, datetime, timedelta
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
@@ -10,6 +10,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.calculations.activity_timing_rules import ActivityType, assess_activity_timing
+from app.calculations.ashtakavarga import compute_bhinnashtakavarga, get_av_bindu
 from app.calculations.astro import (
     house_from_reference,
     local_datetime_to_utc,
@@ -17,13 +18,12 @@ from app.calculations.astro import (
     resolve_timezone,
     utc_datetime_to_julian_day,
 )
+from app.calculations.chart_strength import compute_natal_planet_score
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
-from app.calculations.panchangam import calculate_daily_panchangam, calculate_daily_panchangam_range
-from app.calculations.ashtakavarga import compute_bhinnashtakavarga, get_av_bindu
-from app.calculations.chart_strength import compute_natal_planet_score
 from app.calculations.functional_nature import get_dasha_modifier, get_transit_modifier
-from app.calculations.transits import RASI_NAMES, check_vedha, classify_kandaka_cycle, classify_sani_cycle, is_combust
+from app.calculations.panchangam import calculate_daily_panchangam, calculate_daily_panchangam_range
+from app.calculations.transits import check_vedha, classify_kandaka_cycle, classify_sani_cycle, is_combust
 from app.models import BirthProfile, Chart, DailyScore, JournalEntry
 from app.schemas.charts import ChartCalculateResponse
 from app.schemas.daily_guidance import (
@@ -34,10 +34,10 @@ from app.schemas.daily_guidance import (
     DailyGuidanceEmotionalWeather,
     DailyGuidanceJournalInsight,
     DailyGuidanceJournalSignal,
-    DailyGuidanceReasons,
-    DailyGuidanceResponse,
     DailyGuidanceRangeData,
     DailyGuidanceRangeResponse,
+    DailyGuidanceReasons,
+    DailyGuidanceResponse,
     DailyGuidanceScoreBreakdown,
     DailyGuidanceSuggestion,
     DailyGuidanceText,
@@ -1597,7 +1597,7 @@ def get_week_ahead(
                 theme = _MAHADASHA_THEMES.get(maha_lord, {"ta": maha_lord, "en": maha_lord})
                 dasha_theme_ta = theme["ta"]
                 dasha_theme_en = theme["en"]
-        except Exception:
+        except Exception:  # noqa: S110 — optional dasha theme enrichment; omitted on failure
             pass
 
     return WeekAheadResponse(
@@ -1751,7 +1751,7 @@ def get_activity_timing(
                 reasonTa=result.combined_ta,
                 reasonEn=result.combined_en,
             )))
-        except Exception:
+        except Exception:  # noqa: S112 — skip an un-scorable candidate date, keep the rest
             continue
 
     results.sort(key=lambda x: x[0], reverse=True)
@@ -1996,8 +1996,8 @@ def get_peyarchi_report(
     """
     FEATURE-11: Personalised Peyarchi (Rasi transit) report for Jupiter, Saturn, Rahu, or Ketu.
     """
-    from app.models import BirthProfile
     from app.calculations.astro import house_from_reference
+    from app.models import BirthProfile
     from app.services.peyarchi_service import find_next_rasi_change
 
     planet = planet.upper()
@@ -2151,7 +2151,7 @@ def get_journal_correlations(
             else:
                 if hasattr(entry, "mood_rating") and entry.mood_rating is not None:
                     non_chandrashtama_entries.append(float(entry.mood_rating))
-        except Exception:
+        except Exception:  # noqa: S112 — skip an un-correlatable journal entry, keep the rest
             continue
 
     correlations: list[JournalCorrelationItem] = []

@@ -9,7 +9,6 @@ from datetime import date
 
 from app.calculations.dasha import SEQUENCE, calculate_vimshottari_timeline
 
-
 TRANSITION_COPY: dict[str, dict[str, dict[str, str]]] = {
     "MAHADASHA": {
         "90_DAY": {

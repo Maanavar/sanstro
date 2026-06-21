@@ -25,8 +25,10 @@ class RelationshipAlert(TimestampMixin, Base):
     )
 
     alert_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    vault_id: Mapped[UUID] = mapped_column(ForeignKey("family_vaults.family_vault_id"), nullable=False)
-    member_id: Mapped[UUID] = mapped_column(ForeignKey("family_members.family_member_id"), nullable=False)
+    vault_id: Mapped[UUID] = mapped_column(ForeignKey("family_vaults.family_vault_id", ondelete="CASCADE"), nullable=False)
+    member_id: Mapped[UUID] = mapped_column(
+        ForeignKey("family_members.family_member_id", ondelete="CASCADE"), nullable=False
+    )
     trigger_planet: Mapped[str] = mapped_column(String(16), nullable=False)
     trigger_type: Mapped[str] = mapped_column(String(64), nullable=False)
     message_en: Mapped[str] = mapped_column(String(500), nullable=False)

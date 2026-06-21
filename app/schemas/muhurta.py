@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import List
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -32,7 +31,7 @@ class MuhurtaSlot(BaseModel):
     panchangam_support: BiText = Field(alias="panchangamSupport")
     dasha_support: BiText = Field(alias="dashaSupport")
     hora_support: BiText | None = Field(alias="horaSupport", default=None)
-    cautions: List[BiText]
+    cautions: list[BiText]
 
     model_config = {"populate_by_name": True}
 
@@ -42,7 +41,7 @@ class MuhurtaResponseData(BaseModel):
     activity: str
     date_from: date = Field(alias="dateFrom")
     date_to: date = Field(alias="dateTo")
-    slots: List[MuhurtaSlot]
+    slots: list[MuhurtaSlot]
 
     model_config = {"populate_by_name": True}
 
