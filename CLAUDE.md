@@ -5,12 +5,11 @@
 Use this exact repo root on Windows:
 
 ```powershell
-Set-Location 'C:\Users\senth\OneDrive\문서\GitHub\sanstro'
+Set-Location 'D:\sanstro'
 ```
 
 Rules for this workspace:
 
-- The folder name is `문서`, not `文서`, not mojibake like `ë¬¸ì„œ`, and not `Documents`.
 - Use `PowerShell` by default in this repo. Avoid `Bash` unless the user explicitly asks for it.
 - After changing to the repo root, prefer repo-relative paths such as `web\components\dashboard-workspace.tsx`.
 - Avoid mixed path styles such as Windows paths inside Bash commands or absolute `Read(...)` paths copied from stale cache entries.
@@ -20,10 +19,10 @@ This repository is `Vinaadi AI` in a Windows workspace.
 ## Repo root — memorise this, never guess
 
 ```
-C:\Users\senth\OneDrive\문서\GitHub\sanstro
+D:\sanstro
 ```
 
-The Korean folder name `문서` is mandatory. Do NOT substitute `Documents`, `문서`, a Bash-style path, or any variation. Every command must start from this exact path. If a command fails due to a path error, stop and re-read this line before retrying.
+Every command must start from this exact path. If a command fails due to a path error, stop and re-read this line before retrying.
 
 ## Preferred shell
 
@@ -35,7 +34,7 @@ The Korean folder name `문서` is mandatory. Do NOT substitute `Documents`, `�
 
 ```powershell
 # Correct pattern for most commands:
-Set-Location 'C:\Users\senth\OneDrive\문서\GitHub\sanstro'
+Set-Location 'D:\sanstro'
 Get-ChildItem -Recurse -Filter "*.py" -ErrorAction SilentlyContinue |
   Where-Object { $_.FullName -notmatch '\.venv|\.pytest_cache|__pycache__|node_modules' } |
   Select-Object -ExpandProperty FullName |
@@ -89,7 +88,7 @@ Get-ChildItem -Recurse -Filter "*.py" -ErrorAction SilentlyContinue |
 
 ## Before running any command
 
-1. Confirm CWD is the exact repo root path above.
+1. Confirm CWD is `D:\sanstro`.
 2. Confirm PowerShell syntax (no `&&`, no `head`).
 3. Confirm DB URL — test commands use test DB, dev server uses dev DB.
 4. When searching the codebase, prefer repo-local files over `.venv`.

@@ -10,8 +10,6 @@
 
 import React, { forwardRef, useImperativeHandle, useRef } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
-import ViewShot from "react-native-view-shot";
-import Share from "react-native-share";
 import { C } from "@/theme/colors";
 import { S, RADIUS } from "@/theme/spacing";
 
@@ -32,26 +30,33 @@ export const ShareCard = forwardRef<ShareCardRef, ShareCardProps>(
     { tamilDate, nallaNeram, rahuKalam, rasiPalanText, isTamil },
     ref
   ) {
-    const shotRef = useRef<ViewShot>(null);
+    const viewRef = useRef<View>(null);
 
     useImperativeHandle(ref, () => ({
       async share() {
-        if (!shotRef.current) return;
+        if (!viewRef.current) return;
         try {
-          const uri = await (shotRef.current as unknown as { capture(): Promise<string> }).capture();
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const { captureRef } = require("react-native-view-shot") as {
+            captureRef: (ref: unknown, opts: { format: string; quality: number }) => Promise<string>;
+          };
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const Share = (require("react-native-share") as { default: { open: (opts: Record<string, unknown>) => Promise<void> } }).default;
+          const uri = await captureRef(viewRef.current, { format: "png", quality: 1 });
           await Share.open({
             url: Platform.OS === "ios" ? uri : `file://${uri}`,
             type: "image/png",
             title: isTamil ? "விநாடி AI — இன்றைய பஞ்சாங்கம்" : "Vinaadi AI — Today's Panchangam",
           });
         } catch {
-          // User dismissed the share sheet — non-fatal.
+          // Not available in Expo Go or user dismissed — non-fatal.
         }
       },
     }));
 
     return (
-      <ViewShot ref={shotRef} options={{ format: "png", quality: 1 }}>
+      // collapsable={false} ensures React Native keeps the node for captureRef
+      <View ref={viewRef} collapsable={false}>
         <View style={styles.card}>
           {/* Header */}
           <View style={styles.header}>
@@ -99,7 +104,7 @@ export const ShareCard = forwardRef<ShareCardRef, ShareCardProps>(
           {/* Footer */}
           <Text style={styles.footer}>vinaadi.app</Text>
         </View>
-      </ViewShot>
+      </View>
     );
   }
 );

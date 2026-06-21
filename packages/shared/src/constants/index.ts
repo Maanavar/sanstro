@@ -1,4 +1,4 @@
-import type { BiText } from "../types/index.js";
+import type { BiText } from "../types";
 
 export const RASI_LIST: Array<{ number: number; slug: string; name: BiText }> = [
   { number: 1,  slug: "mesham",     name: { ta: "மேஷம்",      en: "Aries" } },

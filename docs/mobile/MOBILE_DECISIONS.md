@@ -1,7 +1,7 @@
 # Vinaadi AI Mobile — Final Decisions (Owner's Call)
 
 **Decided by:** acting PM + Design + CMO, full ownership.
-**Reads with:** `MOBILE_APP_PLAN.md` (build) + `MOBILE_UX_STRATEGY.md` (UX). This doc
+**Reads with:** `MOBILE_BUILD_SPEC.md` (build) + `MOBILE_DESIGN_BRIEF.md` (design). This doc
 **overrides** both where they conflict.
 **Status:** LOCKED — build to this.
 **Date:** 2026-06-14

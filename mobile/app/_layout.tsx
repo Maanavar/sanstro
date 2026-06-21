@@ -28,13 +28,13 @@ function RootNavigation() {
         // Font load failures are non-fatal — system fonts will render
       }
 
-      const tokens = await getTokens();
-      if (!tokens) {
-        setReady();
-        return;
-      }
-
       try {
+        const tokens = await getTokens();
+        if (!tokens) {
+          setReady();
+          return;
+        }
+
         const me = await getMe();
         setSession(
           { userId: me.userId, email: me.email, displayName: me.displayName },
@@ -62,10 +62,8 @@ function RootNavigation() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(onboarding)" />
-      <Stack.Screen name="jadhagam/[id]" />
-      <Stack.Screen name="jadhagam/upsell" />
-      <Stack.Screen name="notifications/inbox" />
-      <Stack.Screen name="notifications/settings" />
+      <Stack.Screen name="jadhagam" />
+      <Stack.Screen name="notifications" />
       <Stack.Screen name="daily-score" />
       <Stack.Screen name="chandrashtama" />
       <Stack.Screen name="premium" />

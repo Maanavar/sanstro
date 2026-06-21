@@ -20,6 +20,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
         "Used to calculate panchangam timings for your location.",
+      ITSAppUsesNonExemptEncryption: false,
     },
   },
   android: {

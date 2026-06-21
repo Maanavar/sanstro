@@ -6,7 +6,7 @@ This folder is the **single home** for mobile specification & reference. Read to
 
 | Topic | Authoritative doc | Don't redefine elsewhere |
 |-------|-------------------|--------------------------|
-| Business/product decisions, scope, GTM | `/MOBILE_DECISIONS.md` (repo root) | timelines, tiers, pricing |
+| Business/product decisions, scope, GTM | `MOBILE_DECISIONS.md` (this folder) | timelines, tiers, pricing |
 | Market & competitors | `01-market-competitive-analysis.md` | |
 | Users, journeys, JTBD | `02-personas-journeys.md` | |
 | Money model & unit economics | `03-monetization-unit-economics.md` | pricing numbers |
@@ -18,9 +18,7 @@ This folder is the **single home** for mobile specification & reference. Read to
 | Metrics & event taxonomy | `09-analytics-kpis.md` | KPI definitions, events |
 | Risks | `10-risk-register.md` | |
 
-Older planning docs at repo root (`MOBILE_APP_PLAN.md`, `MOBILE_UX_STRATEGY.md`) remain as
-**narrative background**; where they conflict with this folder or `MOBILE_DECISIONS.md`, the
-newer/authoritative doc above wins.
+The authoritative docs for all mobile decisions, design, and build spec live in this folder (`MOBILE_DECISIONS.md`, `MOBILE_DESIGN_BRIEF.md`, `MOBILE_BUILD_SPEC.md`). No other planning docs exist at repo root.
 
 ## The 60-second summary
 

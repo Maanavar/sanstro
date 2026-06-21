@@ -10,7 +10,9 @@
       "channel": "development",
       "env": {
         "API_BASE_URL": "http://192.168.1.7:8000",
-        "APP_BUNDLE_ID": "ai.vinaadi.app.dev"
+        "APP_BUNDLE_ID": "ai.vinaadi.app.dev",
+        "ADMOB_ANDROID_APP_ID": "ca-app-pub-1647489078218080~7498769534",
+        "ADMOB_IOS_APP_ID": "ca-app-pub-1647489078218080~1124932876"
       }
     },
     "staging": {
@@ -18,7 +20,9 @@
       "channel": "staging",
       "env": {
         "API_BASE_URL": "https://staging.vinaadi.app",
-        "APP_BUNDLE_ID": "ai.vinaadi.app.staging"
+        "APP_BUNDLE_ID": "ai.vinaadi.app.staging",
+        "ADMOB_ANDROID_APP_ID": "ca-app-pub-1647489078218080~7498769534",
+        "ADMOB_IOS_APP_ID": "ca-app-pub-1647489078218080~1124932876"
       }
     },
     "production": {
@@ -26,7 +30,9 @@
       "channel": "production",
       "env": {
         "API_BASE_URL": "https://api.vinaadi.app",
-        "APP_BUNDLE_ID": "ai.vinaadi.app"
+        "APP_BUNDLE_ID": "ai.vinaadi.app",
+        "ADMOB_ANDROID_APP_ID": "ca-app-pub-1647489078218080~7498769534",
+        "ADMOB_IOS_APP_ID": "ca-app-pub-1647489078218080~1124932876"
       }
     }
   },

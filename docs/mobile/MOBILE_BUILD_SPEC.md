@@ -1,6 +1,6 @@
 # Vinaadi AI — Mobile App Build Specification
 **Single source of truth for any coding agent implementing the mobile app.**
-**Authority order:** `MOBILE_DECISIONS.md` > this file > `MOBILE_APP_PLAN.md` > `MOBILE_UX_STRATEGY.md`
+**Authority order:** `MOBILE_DECISIONS.md` > this file
 **Design visuals:** `MOBILE_DESIGN_BRIEF.md` (32 screens, exact hex/Tamil strings/ad slots)
 **Last updated:** 2026-06-20
 
