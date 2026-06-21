@@ -1017,6 +1017,7 @@ function MonthlyCalendarView({
                             {(() => {
                               const imgSrc = festivalImagePath(f.name);
                               return imgSrc ? (
+                                // eslint-disable-next-line @next/next/no-img-element -- decorative festival icon with onError fallback
                                 <img
                                   src={imgSrc}
                                   alt=""
@@ -1041,6 +1042,7 @@ function MonthlyCalendarView({
                       ) : null}
                       {entry?.isTamilMuhurthamDay ? (
                         <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#5C7654", display: "inline-flex", alignItems: "center", gap: "3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element -- decorative fixed-size local icon */}
                           <img
                             src="/calendar/muhurtha.png"
                             alt=""
@@ -1085,6 +1087,7 @@ function MonthlyCalendarView({
               ] as const).map((item) => (
                 <span key={item.label} style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "0.72rem", color: monthlyTheme.softText }}>
                   {item.icon ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- decorative fixed-size local legend icon
                     <img
                       src={item.icon}
                       alt=""
@@ -1178,6 +1181,7 @@ function MonthlyCalendarView({
                     >
                       {isMuhurtham ? (
                         <>
+                          {/* eslint-disable-next-line @next/next/no-img-element -- decorative fixed-size local icon */}
                           <img
                             src="/calendar/muhurtha.png"
                             alt=""

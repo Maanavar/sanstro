@@ -6,11 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --max-warnings=0",
     "test": "vitest run",
     "screenshots": "node scripts/capture-screenshots.mjs"
   },
   "dependencies": {
+    "@vinaadi/shared": "workspace:*",
     "firebase": "^12.14.0",
     "next": "^15.0.0",
     "posthog-js": "^1.386.6",
@@ -19,11 +20,15 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
+    "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/react": "^16.0.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@vitest/coverage-v8": "^2.0.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "^15.0.0",
+    "jsdom": "^26.0.0",
     "typescript": "^5.0.0",
     "vitest": "^2.0.0"
   }

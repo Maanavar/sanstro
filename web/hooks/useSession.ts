@@ -68,6 +68,7 @@ export function useSession(options: UseSessionOptions = {}) {
           await fetch("/api/backend/api/v1/auth/logout", {
             method: "POST",
             credentials: "include",
+            headers: { "X-Vinaadi-CSRF": "1" },
           }).catch(() => undefined);
         }
         window.location.href = "/login";
@@ -85,6 +86,7 @@ export function useSession(options: UseSessionOptions = {}) {
     void fetch("/api/backend/api/v1/auth/logout", {
       method: "POST",
       credentials: "include",
+      headers: { "X-Vinaadi-CSRF": "1" },
     }).finally(() => {
       window.location.href = "/login";
     });

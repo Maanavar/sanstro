@@ -233,7 +233,7 @@ export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: Porut
       const response = await fetch("/api/backend/api/v1/relationships/compare/pdf", {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
         body: JSON.stringify({
           chartIdA: chartA.chartId,
           chartIdB: chartB.chartId,

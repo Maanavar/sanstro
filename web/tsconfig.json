@@ -20,6 +20,12 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@vinaadi/shared": [
+        "../packages/shared/src"
+      ],
+      "@vinaadi/shared/*": [
+        "../packages/shared/src/*"
       ]
     },
     "plugins": [

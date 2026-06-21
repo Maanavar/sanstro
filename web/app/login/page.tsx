@@ -124,7 +124,7 @@ export default function LoginPage() {
       if (mode === "signup") {
         const response = await fetch("/api/backend/api/v1/auth/register", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
           credentials: "include",
           body: JSON.stringify({ email: email.trim(), password }),
         });
@@ -136,7 +136,7 @@ export default function LoginPage() {
       } else if (mode === "login") {
         const response = await fetch("/api/backend/api/v1/auth/login", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
           credentials: "include",
           body: JSON.stringify({ email: email.trim(), password }),
         });
@@ -153,7 +153,7 @@ export default function LoginPage() {
       } else {
         const response = await fetch("/api/backend/api/v1/auth/forgot-password", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
           credentials: "include",
           body: JSON.stringify({ email: email.trim() }),
         });

@@ -94,6 +94,7 @@ export function MuhurthamNaalContent() {
             <div className="cl-pub-hero__copy">
               <p className="cl-eyebrow">{t("2026 Almanac", "2026 பஞ்சாங்கம்")}</p>
               <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- decorative fixed-size local icon; next/image adds no benefit */}
                 <img
                   src="/calendar/muhurtham.png"
                   alt=""

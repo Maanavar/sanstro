@@ -154,6 +154,17 @@ function numberLabel(value: number | null | undefined) {
   return new Intl.NumberFormat().format(value);
 }
 
+function adminHeaders(adminKey: string, init: RequestInit) {
+  const headers = new Headers(init.headers);
+  headers.set("Content-Type", headers.get("Content-Type") ?? "application/json");
+  headers.set("X-Admin-Key", adminKey);
+  const method = (init.method ?? "GET").toUpperCase();
+  if (["POST", "PATCH", "PUT", "DELETE"].includes(method)) {
+    headers.set("X-Vinaadi-CSRF", "1");
+  }
+  return headers;
+}
+
 async function adminFetchJson<T>(
   path: string,
   adminKey: string,
@@ -162,11 +173,7 @@ async function adminFetchJson<T>(
   const response = await fetch(`/api/backend${path}`, {
     ...init,
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Admin-Key": adminKey,
-      ...(init.headers ?? {}),
-    },
+    headers: adminHeaders(adminKey, init),
   });
 
   if (!response.ok) {
@@ -249,7 +256,13 @@ export function AdminConsole() {
 
   useEffect(() => {
     if (!adminKey || activeTab !== "users") return;
+    // Read the current userSearch when the tab is opened, but intentionally do
+    // NOT react to it: the search input updates userSearch on every keystroke and
+    // search is submitted explicitly (Search button), so depending on it here
+    // would fire a request per keystroke. This reads the latest value at
+    // activation, which is the intended behaviour — not a stale closure.
     void loadUsers(adminKey, 1, userSearch);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminKey, activeTab]);
 
   useEffect(() => {

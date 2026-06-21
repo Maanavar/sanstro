@@ -1,4 +1,15 @@
 const BACKEND_PREFIX = "/api/backend";
+const MUTATING_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
+
+function buildHeaders(init?: RequestInit) {
+  const headers = new Headers(init?.headers);
+  headers.set("Content-Type", headers.get("Content-Type") ?? "application/json");
+  const method = (init?.method ?? "GET").toUpperCase();
+  if (MUTATING_METHODS.has(method)) {
+    headers.set("X-Vinaadi-CSRF", "1");
+  }
+  return headers;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -20,10 +31,7 @@ export async function apiFetchJson<T>(path: string, init?: RequestInit): Promise
     response = await fetch(`${BACKEND_PREFIX}${path}`, {
       ...init,
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(init?.headers ?? {}),
-      },
+      headers: buildHeaders(init),
     });
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
