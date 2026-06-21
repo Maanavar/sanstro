@@ -1,0 +1,10 @@
+{
+  "name": "sanstro",
+  "private": true,
+  "packageManager": "pnpm@11.8.0",
+  "workspaces": [
+    "mobile",
+    "packages/*",
+    "web"
+  ]
+}

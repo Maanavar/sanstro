@@ -1,0 +1,36 @@
+import * as SecureStore from "expo-secure-store";
+
+const KEYS = {
+  ACCESS_TOKEN:  "vinaadi_access_token",
+  REFRESH_TOKEN: "vinaadi_refresh_token",
+} as const;
+
+export interface StoredTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
+export async function getTokens(): Promise<StoredTokens | null> {
+  const [accessToken, refreshToken] = await Promise.all([
+    SecureStore.getItemAsync(KEYS.ACCESS_TOKEN),
+    SecureStore.getItemAsync(KEYS.REFRESH_TOKEN),
+  ]);
+  if (!accessToken || !refreshToken) return null;
+  return { accessToken, refreshToken };
+}
+
+export async function setTokens(tokens: StoredTokens): Promise<void> {
+  await Promise.all([
+    SecureStore.setItemAsync(KEYS.ACCESS_TOKEN, tokens.accessToken),
+    SecureStore.setItemAsync(KEYS.REFRESH_TOKEN, tokens.refreshToken),
+  ]);
+}
+
+export async function clearTokens(): Promise<void> {
+  await Promise.all([
+    SecureStore.deleteItemAsync(KEYS.ACCESS_TOKEN),
+    SecureStore.deleteItemAsync(KEYS.REFRESH_TOKEN),
+  ]);
+}
+
+export { SecureStore };
