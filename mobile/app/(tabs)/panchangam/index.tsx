@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View,
+  RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { C } from "@/theme/colors";
@@ -12,9 +13,9 @@ import { TimeCard } from "@/components/TimeCard";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { getPanchangamDay } from "@/api/panchangam";
+import { loadGuestPrefs } from "@/features/guest/guestStore";
+import type { GuestPrefs } from "@/features/guest/guestStore";
 
-const LAT = 13.0827;
-const LON = 80.2707;
 const TZ = "Asia/Kolkata";
 
 function isoToHHMM(iso: string): string {
@@ -35,12 +36,20 @@ export default function PanchangamDayScreen() {
   const { t, strings, lang } = useI18n();
   const isTamil = lang === "ta";
   const [dayOffset, setDayOffset] = useState(0);
+  const [prefs, setPrefs] = useState<GuestPrefs | null>(null);
+
+  useEffect(() => {
+    loadGuestPrefs().then(setPrefs);
+  }, []);
 
   const dateStr = dateString(dayOffset);
+  const lat = prefs?.lat ?? 13.0827;
+  const lon = prefs?.lon ?? 80.2707;
+  const locationLabel = prefs?.city ?? "Chennai";
 
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["panchangam-day", dateStr],
-    queryFn: () => getPanchangamDay(dateStr, { lat: LAT, lng: LON, tz: TZ }),
+  const { data, isLoading, isError, isFetching, refetch } = useQuery({
+    queryKey: ["panchangam-day", dateStr, lat, lon],
+    queryFn: () => getPanchangamDay(dateStr, { lat, lng: lon, tz: TZ }),
     staleTime: 1000 * 60 * 60 * 12,
   });
   const p = data?.data;
@@ -61,6 +70,7 @@ export default function PanchangamDayScreen() {
           {t(strings.panchangam.title)}
         </Text>
         <View style={styles.headerActions}>
+          <Text style={styles.locationLabel}>{locationLabel}</Text>
           <TouchableOpacity onPress={() => router.push("/(tabs)/panchangam/calendar")}>
             <Text style={styles.calendarLink}>{isTamil ? "மாதம் ▸" : "Month ▸"}</Text>
           </TouchableOpacity>
@@ -85,7 +95,11 @@ export default function PanchangamDayScreen() {
         ))}
       </ScrollView>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={C.saffron} />}
+      >
         {isLoading ? (
           <>
             <SkeletonCard height={80} />
@@ -170,7 +184,8 @@ const styles = StyleSheet.create({
     borderBottomColor: C.divider,
   },
   headerTitle: { color: C.textPrimary },
-  headerActions: { flexDirection: "row", gap: S.sm },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: S.sm },
+  locationLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textTertiary },
   calendarLink: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: C.saffron },
 
   dayStrip: { paddingHorizontal: S.base, paddingVertical: S.sm, borderBottomWidth: 1, borderBottomColor: C.divider },

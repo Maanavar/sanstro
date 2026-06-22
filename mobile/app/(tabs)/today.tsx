@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text,
+  Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput,
   TouchableOpacity, View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
 import { useQuery } from "@tanstack/react-query";
-import { router } from "expo-router";
+import { FadeInDown } from "react-native-reanimated";
+import { router, type Href } from "expo-router";
 import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
@@ -17,21 +20,121 @@ import { ThirukanithamBadge } from "@/components/ThirukanithamBadge";
 import { NativeAdUnit } from "@/components/AdUnit";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
+import { SharedTransitionView } from "@/components/SharedTransitionView";
 import { getPanchangamToday } from "@/api/panchangam";
+import { getRasiPalan } from "@/api/rasiPalan";
 import { getDailyGuidance } from "@/api/guidance";
+import { getLifeAreas, type LifeAreaData } from "@/api/lifeAreas";
+import { getLifeEvents, type LifeEventWindow } from "@/api/lifeEvents";
+import { getUpcomingTransits, type TransitItem } from "@/api/transits";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
+import { saveQuickJournalEntry, syncQuickJournalEntries } from "@/features/journal/journalStore";
+import { STALE } from "@/lib/queryClient";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import { pushWidgetData } from "@/lib/widgetBridge";
+import { biText } from "@/lib/i18n";
+import { useOfflineStatus } from "@/hooks/useOfflineStatus";
+import { scoreTone } from "@/lib/score";
 import type { GuestPrefs } from "@/features/guest/guestStore";
 import type { DailyGuidanceData } from "@vinaadi/shared";
+type ExtendedGuidance = DailyGuidanceData & {
+  is_chandrashtama?: boolean;
+  chandrashtama_ends?: string | null;
+};
+
+type GowriSlot = {
+  name?: string | null;
+  label?: string | null;
+  purpose?: string | null;
+  start: string;
+  end: string;
+  warning?: string | null;
+};
+
+type DetailSheetState = {
+  title: string;
+  body: string;
+  tone?: "good" | "caution" | "neutral";
+} | null;
+
+
+const JOURNAL_MOMENTS = [
+  { key: "win", label: "Big win" },
+  { key: "hard_day", label: "Hard day" },
+  { key: "decision", label: "Decision" },
+  { key: "milestone", label: "Milestone" },
+  { key: "quiet", label: "Nothing yet" },
+];
+
+const JOURNAL_AREAS = [
+  { key: "career", label: "Career" },
+  { key: "love", label: "Love" },
+  { key: "health", label: "Health" },
+  { key: "money", label: "Money" },
+  { key: "family", label: "Family" },
+  { key: "spiritual", label: "Spiritual" },
+  { key: "general", label: "General" },
+];
 
 function formatTime(iso: string): string {
   try {
+    if (/^\d{2}:\d{2}/.test(iso)) return iso.slice(0, 5);
     const d = new Date(iso);
     return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false });
   } catch {
     return iso;
   }
+}
+
+function dateDistanceLabel(date: string, isTamil: boolean): string {
+  const target = new Date(date);
+  if (Number.isNaN(target.getTime())) return date;
+  const today = new Date();
+  target.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  const days = Math.ceil((target.getTime() - today.getTime()) / 86400000);
+  if (days <= 0) return isTamil ? "active now" : "active now";
+  if (days === 1) return isTamil ? "tomorrow" : "tomorrow";
+  return isTamil ? `${days} days` : `${days} days`;
+}
+
+
+function getGowriSlots(p: { kalam?: { gowriNallaNeram?: GowriSlot[] } } | undefined): GowriSlot[] {
+  return p?.kalam?.gowriNallaNeram ?? [];
+}
+
+function getNextEvent(events: LifeEventWindow[]): LifeEventWindow | undefined {
+  const now = Date.now();
+  return [...events]
+    .filter((event) => new Date(event.endDate).getTime() >= now)
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0];
+}
+
+function getCosmicAlert(g: ExtendedGuidance | undefined, transit: TransitItem | undefined, isTamil: boolean): DetailSheetState {
+  if (g?.isChandrashtama ?? g?.is_chandrashtama) {
+    const end = g.chandrashtamaEnds ?? g.chandrashtama_ends;
+    return {
+      title: isTamil ? "Chandrashtama alert" : "Chandrashtama alert",
+      body: end ? `${isTamil ? "Ends" : "Ends"}: ${new Date(end).toLocaleDateString()}` : (isTamil ? "Move slowly today." : "Move slowly today."),
+      tone: "caution",
+    };
+  }
+  if (transit) {
+    return {
+      title: isTamil ? transit.planet_ta || transit.planet : `${transit.planet} transit`,
+      body: isTamil ? transit.summary_ta : transit.summary_en,
+      tone: transit.impact === "challenging" ? "caution" : transit.impact === "good" ? "good" : "neutral",
+    };
+  }
+  if (g?.cautionWindows?.length) {
+    const first = g.cautionWindows[0];
+    return {
+      title: isTamil ? "Timing caution" : "Timing caution",
+      body: `${first.type}: ${formatTime(first.start)} - ${formatTime(first.end)}`,
+      tone: "caution",
+    };
+  }
+  return null;
 }
 
 export default function TodayTab() {
@@ -42,6 +145,13 @@ export default function TodayTab() {
   const [prefs, setPrefs] = useState<GuestPrefs | null>(null);
   const [showSignupPrompt, setShowSignupPrompt] = useState(false);
   const [primaryChartId, setPrimaryChartId] = useState<string | null>(null);
+  const [detailSheet, setDetailSheet] = useState<DetailSheetState>(null);
+  const [journalOpen, setJournalOpen] = useState(false);
+  const [journalMoment, setJournalMoment] = useState(JOURNAL_MOMENTS[0].key);
+  const [journalArea, setJournalArea] = useState(JOURNAL_AREAS[0].key);
+  const [journalNote, setJournalNote] = useState("");
+
+  const isOffline = useOfflineStatus();
 
   useEffect(() => {
     loadGuestPrefs().then(setPrefs);
@@ -54,23 +164,72 @@ export default function TodayTab() {
   const lon = prefs?.lon ?? 80.2707;
   const tz = "Asia/Kolkata";
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const {
+    data: panchangamData,
+    isLoading: isPanchangamLoading,
+    isFetching: isPanchangamFetching,
+    isError,
+    refetch: refetchPanchangam,
+  } = useQuery({
     queryKey: ["panchangam-today", lat, lon],
     queryFn: () => getPanchangamToday({ lat, lng: lon, tz }),
-    staleTime: 1000 * 60 * 60,
+    staleTime: STALE.panchangam,
     enabled: !!prefs,
   });
 
-  const p = data?.data;
-
-  const todayStr = new Date().toISOString().split("T")[0];
-  const { data: guidanceData } = useQuery({
-    queryKey: ["daily-guidance", primaryChartId, todayStr],
-    queryFn: () => getDailyGuidance(primaryChartId!, todayStr),
-    enabled: tier !== "guest" && !!primaryChartId,
-    staleTime: 1000 * 60 * 60,
+  const todayDateStr = new Date().toISOString().split("T")[0];
+  const {
+    data: rasiPalanData,
+    isFetching: isRasiPalanFetching,
+    refetch: refetchRasiPalan,
+  } = useQuery({
+    queryKey: ["rasi-palan", prefs?.rasi, todayDateStr, lat, lon],
+    queryFn: () =>
+      getRasiPalan({
+        rasi: prefs!.rasi!,
+        date: todayDateStr,
+        lat,
+        lng: lon,
+        timezone: tz,
+      }),
+    staleTime: STALE.rasiPalan,
+    enabled: !!prefs?.rasi,
   });
-  const g = guidanceData?.data as DailyGuidanceData | undefined;
+
+  const p = panchangamData?.data;
+
+  const {
+    data: guidanceData,
+    isFetching: isGuidanceFetching,
+    refetch: refetchGuidance,
+  } = useQuery({
+    queryKey: ["daily-guidance", primaryChartId, todayDateStr],
+    queryFn: () => getDailyGuidance(primaryChartId!, todayDateStr),
+    enabled: tier !== "guest" && !!primaryChartId,
+    staleTime: STALE.guidance,
+  });
+  const g = guidanceData?.data as ExtendedGuidance | undefined;
+
+  const lifeAreas = useQuery({
+    queryKey: ["today-life-areas", primaryChartId, todayDateStr],
+    queryFn: () => getLifeAreas(primaryChartId!, todayDateStr),
+    enabled: tier !== "guest" && !!primaryChartId,
+    staleTime: STALE.today,
+  });
+
+  const lifeEvents = useQuery({
+    queryKey: ["today-life-events", primaryChartId],
+    queryFn: () => getLifeEvents(primaryChartId!, 3),
+    enabled: tier !== "guest" && !!primaryChartId,
+    staleTime: STALE.today,
+  });
+
+  const transits = useQuery({
+    queryKey: ["today-transits", prefs?.rasi],
+    queryFn: () => getUpcomingTransits(prefs!.rasi!, 3),
+    enabled: !!prefs?.rasi,
+    staleTime: STALE.transits,
+  });
 
   // Push today's snapshot to native widget storage whenever data freshens.
   useEffect(() => {
@@ -78,9 +237,9 @@ export default function TodayTab() {
     const firstNalla = p.kalam.nallaNeram[0];
     pushWidgetData({
       nallaNeram: firstNalla
-        ? `${formatTime(firstNalla.start)} – ${formatTime(firstNalla.end)}`
-        : "–",
-      rahuKalam: `${formatTime(p.kalam.rahuKalam.start)} – ${formatTime(p.kalam.rahuKalam.end)}`,
+        ? `${formatTime(firstNalla.start)} â€“ ${formatTime(firstNalla.end)}`
+        : "â€“",
+      rahuKalam: `${formatTime(p.kalam.rahuKalam.start)} â€“ ${formatTime(p.kalam.rahuKalam.end)}`,
       rasiPalan: g ? (lang === "ta" ? g.text?.ta ?? "" : g.text?.en ?? "") : "",
       tamilDate: p.tamilDate ? (lang === "ta" ? p.tamilDate.ta : p.tamilDate.en) : "",
       lang,
@@ -91,35 +250,109 @@ export default function TodayTab() {
   const todayLabel = today.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
   const tamilDate = p?.tamilDate ? (isTamil ? p.tamilDate.ta : p.tamilDate.en) : todayLabel;
   const cityName = prefs?.city ?? "Chennai";
+  const areaPulse = lifeAreas.data?.data.areas ?? [];
+  const nextEvent = useMemo(
+    () => getNextEvent(lifeEvents.data?.data.windows ?? []),
+    [lifeEvents.data]
+  );
+  const gowriSlots = getGowriSlots(p);
+  const primaryGowri = gowriSlots[0];
+  const cosmicAlert = getCosmicAlert(g, transits.data?.data[0], isTamil);
+  const refreshing = isPanchangamFetching || isRasiPalanFetching || isGuidanceFetching || lifeAreas.isFetching || lifeEvents.isFetching || transits.isFetching;
+  const activityChips = useMemo(() => {
+    if (!g) return [];
+    const chips = [] as Array<{ label: string; ok: boolean; detail: string }>;
+    if (g.bestWindows?.[0]) {
+      const w = g.bestWindows[0];
+      chips.push({ label: "Start work", ok: true, detail: `${w.type}: ${formatTime(w.start)} - ${formatTime(w.end)}` });
+    }
+    if (g.currentHoraLord) {
+      chips.push({ label: `${g.currentHoraLord} hora`, ok: true, detail: biText(g.actionSuggestion, isTamil, "Use this window for focused action.") });
+    }
+    chips.push({ label: "Travel", ok: g.score >= 55, detail: biText(g.reasons?.panchangam, isTamil, biText(g.actionSuggestion, isTamil)) });
+    chips.push({ label: "Contracts", ok: !g.cautionWindows?.length && g.score >= 65, detail: biText(g.cautionSuggestion, isTamil, "Check caution windows before signing.") });
+    if (g.cautionWindows?.[0]) {
+      const w = g.cautionWindows[0];
+      chips.push({ label: "Avoid rush", ok: false, detail: `${w.type}: ${formatTime(w.start)} - ${formatTime(w.end)}` });
+    }
+    return chips.slice(0, 5);
+  }, [g, isTamil]);
+
+  const refreshAll = () => {
+    refetchPanchangam();
+    void refetchRasiPalan();
+    refetchGuidance();
+    lifeAreas.refetch();
+    lifeEvents.refetch();
+    transits.refetch();
+  };
+
+  const saveJournalEntry = async () => {
+    const entry = {
+      id: `${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      moment: journalMoment,
+      area: journalArea,
+      note: journalNote.trim(),
+      chartId: primaryChartId,
+      dailyScore: g?.score ?? null,
+      dashaContext: g?.contextInsight ?? null,
+      activeTransit: transits.data?.data[0] ?? null,
+    };
+    try {
+      await saveQuickJournalEntry(entry);
+      if (tier !== "guest" && primaryChartId) {
+        void syncQuickJournalEntries(primaryChartId);
+      }
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setJournalOpen(false);
+      setJournalNote("");
+      Alert.alert(isTamil ? "Saved" : "Saved", isTamil ? "Moment logged." : "Moment logged.");
+    } catch {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(isTamil ? "Error" : "Error", isTamil ? "Could not save moment." : "Could not save moment.");
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={C.saffron} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshAll} tintColor={C.saffron} />}
         contentContainerStyle={styles.scroll}
       >
+        {/* Offline banner */}
+        {isOffline && (
+          <View style={styles.offlineBanner} accessibilityLiveRegion="polite">
+            <Text style={styles.offlineBannerText}>
+              {isTamil ? "இணைப்பு இல்லை — தேக்கிய தகவல் காட்டப்படுகிறது" : "No connection — showing cached data"}
+            </Text>
+          </View>
+        )}
+
         {/* Header */}
         {tier !== "guest" ? (
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.logo}>விநாடி AI</Text>
+              <Text style={styles.logo}>à®µà®¿à®¨à®¾à®Ÿà®¿ AI</Text>
               {user?.displayName ? (
                 <Text style={[styles.greeting, isTamil ? TamilType.caption : EnType.caption]}>
-                  {isTamil ? `வணக்கம், ${user.displayName}` : `Welcome back, ${user.displayName}`}
+                  {isTamil ? `à®µà®£à®•à¯à®•à®®à¯, ${user.displayName}` : `Welcome back, ${user.displayName}`}
                 </Text>
               ) : null}
             </View>
             <TouchableOpacity
-              onPress={() => router.push("/notifications/inbox")}
+              onPress={() => router.push(“/notifications/inbox”)}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel=”Notifications”
+              accessibilityRole=”button”
             >
-              <Text style={styles.bellIcon}>🔔</Text>
+              <Text style={styles.bellIcon}>ðŸ””</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.header}>
-            <Text style={styles.logo}>விநாடி AI</Text>
+            <Text style={styles.logo}>à®µà®¿à®¨à®¾à®Ÿà®¿ AI</Text>
             <View style={styles.headerCenter}>
               <Text style={[styles.tamilDate, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
                 {tamilDate}
@@ -127,7 +360,7 @@ export default function TodayTab() {
               <Text style={styles.engDate}>{todayLabel}</Text>
             </View>
             <TouchableOpacity style={styles.cityChip}>
-              <Text style={styles.cityText}>{cityName} ▾</Text>
+              <Text style={styles.cityText}>{cityName} â–¾</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -142,11 +375,16 @@ export default function TodayTab() {
                 style={styles.scoreHeroCard}
                 onPress={() => primaryChartId && router.push({ pathname: "/daily-score", params: { chartId: primaryChartId } })}
                 activeOpacity={0.88}
+                accessibilityLabel={g ? `Today's score ${g.score}. ${isTamil ? g.text?.ta : g.text?.en}` : "Today's score"}
+                accessibilityRole="button"
+                accessibilityHint="Opens daily score details"
               >
-                <ScoreRing score={g.score} size={88} />
+                <SharedTransitionView entering={FadeInDown.delay(80).springify()} sharedTransitionTag="score-ring">
+                  <ScoreRing score={g.score} size={88} />
+                </SharedTransitionView>
                 <View style={{ flex: 1, gap: S.xs }}>
                   <Text style={[styles.scoreHeroLabel, isTamil ? TamilType.caption : EnType.caption]}>
-                    {isTamil ? "இன்றைய நிலை" : "Today's Score"}
+                    {isTamil ? "à®‡à®©à¯à®±à¯ˆà®¯ à®¨à®¿à®²à¯ˆ" : "Today's Score"}
                   </Text>
                   <Text style={[styles.scoreHeroText, isTamil ? TamilType.body : EnType.body]}>
                     {isTamil ? g.text?.ta : g.text?.en}
@@ -155,59 +393,121 @@ export default function TodayTab() {
                     <View style={styles.windowChipRow}>
                       {g.bestWindows.slice(0, 2).map((w, i) => (
                         <View key={i} style={styles.windowChip}>
-                          <Text style={styles.windowChipText}>✓ {formatTime(w.start)}</Text>
+                          <Text style={styles.windowChipText}>âœ“ {formatTime(w.start)}</Text>
                         </View>
                       ))}
                     </View>
                   )}
                 </View>
-                <Text style={styles.scoreArrow}>›</Text>
+                <Text style={styles.scoreArrow}>â€º</Text>
               </TouchableOpacity>
             )}
           </View>
         )}
 
+        {tier !== "guest" && areaPulse.length > 0 && (
+          <LifeAreaPulse
+            areas={areaPulse.slice(0, 4)}
+            isTamil={isTamil}
+            onSelect={(area) => {
+              Haptics.selectionAsync();
+              setDetailSheet({
+                title: biText(area.label, isTamil, area.area),
+                body: `${biText(area.narrative, isTamil)}\n\n${biText(area.next30DayOutlook, isTamil)}`,
+                tone: area.score >= 55 ? "good" : "caution",
+              });
+            }}
+          />
+        )}
+
+        {cosmicAlert && (
+          <TouchableOpacity
+            style={[styles.cosmicAlert, cosmicAlert.tone === "good" && styles.cosmicAlertGood]}
+            activeOpacity={0.86}
+            onPress={() => {
+              Haptics.selectionAsync();
+              setDetailSheet(cosmicAlert);
+            }}
+            accessibilityLabel={`Cosmic alert: ${cosmicAlert.title}`}
+            accessibilityRole="button"
+            accessibilityHint="Opens detail"
+          >
+            <View style={[styles.cosmicDot, { backgroundColor: cosmicAlert.tone === "good" ? C.green : C.caution }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cosmicKicker}>{isTamil ? "Cosmic alert" : "Cosmic alert"}</Text>
+              <Text style={[styles.cosmicTitle, isTamil ? TamilType.bodySmall : EnType.bodySmall]} numberOfLines={2}>
+                {cosmicAlert.title}
+              </Text>
+            </View>
+            <Text style={styles.cosmicArrow}>{">"}</Text>
+          </TouchableOpacity>
+        )}
         {/* Chandrashtama alert (registered, when active) */}
-        {tier !== "guest" && g !== undefined && g.score <= 3 && g.cautionWindows.length > 0 && (
+        {tier !== "guest" && g?.isChandrashtama === true && (
           <TouchableOpacity
             style={styles.chandraCard}
             onPress={() => router.push("/chandrashtama")}
             activeOpacity={0.85}
+            accessibilityLabel={isTamil ? "சந்திராஷ்டமம் — விரிவாக அறிய" : "Chandrashtama — tap to learn more"}
+            accessibilityRole="button"
           >
-            <Text style={styles.chandraIcon}>⚠️</Text>
+            <Text style={styles.chandraIcon}>âš ï¸</Text>
             <Text style={[styles.chandraText, isTamil ? TamilType.caption : EnType.caption]}>
-              {isTamil ? "சந்திராஷ்டமம் — விரிவாக அறிய" : "Chandrashtama — tap to learn more"}
+              {isTamil ? "à®šà®¨à¯à®¤à®¿à®°à®¾à®·à¯à®Ÿà®®à®®à¯ â€” à®µà®¿à®°à®¿à®µà®¾à®• à®…à®±à®¿à®¯" : "Chandrashtama â€” tap to learn more"}
             </Text>
-            <Text style={styles.chandraArrow}>›</Text>
+            <Text style={styles.chandraArrow}>â€º</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Dasha Timeline quick-link (registered users with a chart) */}
+        {tier !== "guest" && primaryChartId && (
+          <TouchableOpacity
+            style={styles.dashaCard}
+            onPress={() => router.push("/dasha" as Href)}
+            activeOpacity={0.85}
+            accessibilityLabel={isTamil ? "தசா காலவரிசை" : "Dasha Timeline"}
+            accessibilityRole="button"
+            accessibilityHint={isTamil ? "உங்கள் மகா மற்றும் அந்தர தசை காலங்களைக் காண்க" : "View your Maha and Antar Dasha periods"}
+          >
+            <Text style={styles.dashaIcon}>ðŸª</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.dashaTitle, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
+                {isTamil ? "à®¤à®šà®¾ à®•à®¾à®²à®µà®°à®¿à®šà¯ˆ" : "Dasha Timeline"}
+              </Text>
+              <Text style={[styles.dashaDesc, isTamil ? TamilType.caption : EnType.caption]}>
+                {isTamil ? "à®‰à®™à¯à®•à®³à¯ à®®à®¹à®¾ à®¤à®šà¯ˆ & à®…à®¨à¯à®¤à®°à¯ à®¤à®šà¯ˆ" : "Your Maha & Antar Dasha periods"}
+              </Text>
+            </View>
+            <Text style={styles.dashaArrow}>â€º</Text>
           </TouchableOpacity>
         )}
 
         {/* Guest Hero Card */}
         {tier === "guest" && (
           <View style={styles.hero}>
-            {isLoading ? (
+            {isPanchangamLoading ? (
               <SkeletonCard height={200} />
             ) : (
               <View style={styles.heroCard}>
-                <Text style={styles.heroLabel}>{isTamil ? "இன்று" : "Today"}</Text>
+                <Text style={styles.heroLabel}>{isTamil ? "à®‡à®©à¯à®±à¯" : "Today"}</Text>
                 <View style={styles.heroRow}>
                   <View>
                     <Text style={styles.heroRasi}>
                       {prefs?.rasi
                         ? (isTamil
-                          ? { mesham: "மேஷம்", rishabam: "ரிஷபம்", mithunam: "மிதுனம்", katakam: "கடகம்",
-                              simham: "சிம்மம்", kanni: "கன்னி", thulam: "துலாம்", viruchigam: "விருச்சிகம்",
-                              dhanusu: "தனுசு", makaram: "மகரம்", kumbam: "கும்பம்", meenam: "மீனம்" }[prefs.rasi] ?? prefs.rasi
+                          ? { mesham: "à®®à¯‡à®·à®®à¯", rishabam: "à®°à®¿à®·à®ªà®®à¯", mithunam: "à®®à®¿à®¤à¯à®©à®®à¯", katakam: "à®•à®Ÿà®•à®®à¯",
+                              simham: "à®šà®¿à®®à¯à®®à®®à¯", kanni: "à®•à®©à¯à®©à®¿", thulam: "à®¤à¯à®²à®¾à®®à¯", viruchigam: "à®µà®¿à®°à¯à®šà¯à®šà®¿à®•à®®à¯",
+                              dhanusu: "à®¤à®©à¯à®šà¯", makaram: "à®®à®•à®°à®®à¯", kumbam: "à®•à¯à®®à¯à®ªà®®à¯", meenam: "à®®à¯€à®©à®®à¯" }[prefs.rasi] ?? prefs.rasi
                           : prefs.rasi.charAt(0).toUpperCase() + prefs.rasi.slice(1))
-                        : (isTamil ? "ராசி தேர்வு செய்யவும்" : "Select your rasi")}
+                        : (isTamil ? "à®°à®¾à®šà®¿ à®¤à¯‡à®°à¯à®µà¯ à®šà¯†à®¯à¯à®¯à®µà¯à®®à¯" : "Select your rasi")}
                     </Text>
                     {p && (
                       <Text style={styles.heroSub}>
-                        {p.nakshatra.name} · {p.tithi.name}
+                        {p.nakshatra.name} Â· {p.tithi.name}
                       </Text>
                     )}
                   </View>
-                  <Text style={styles.heroSymbol}>🌅</Text>
+                  <Text style={styles.heroSymbol}>ðŸŒ…</Text>
                 </View>
                 {p?.specialTithiDay && (
                   <View style={styles.heroBadge}>
@@ -229,7 +529,7 @@ export default function TodayTab() {
         )}
 
         {/* Nalla Neram / Kalam Strip */}
-        {isLoading ? (
+        {isPanchangamLoading ? (
           <SkeletonCard height={80} />
         ) : isError ? null : p ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.kalamRow}>
@@ -241,6 +541,20 @@ export default function TodayTab() {
                 end={formatTime(slot.end)}
               />
             ))}
+            {primaryGowri && (
+              <GowriCard
+                slot={primaryGowri}
+                isTamil={isTamil}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setDetailSheet({
+                    title: primaryGowri.name || primaryGowri.label || "Gowri",
+                    body: primaryGowri.purpose || primaryGowri.warning || `${formatTime(primaryGowri.start)} - ${formatTime(primaryGowri.end)}`,
+                    tone: primaryGowri.warning ? "caution" : "good",
+                  });
+                }}
+              />
+            )}
             <TimeCard
               kind="rahu_kalam"
               start={formatTime(p.kalam.rahuKalam.start)}
@@ -259,24 +573,41 @@ export default function TodayTab() {
           </ScrollView>
         ) : null}
 
+        {activityChips.length > 0 && (
+          <ActivityChipRow
+            chips={activityChips}
+            onSelect={(chip) => {
+              Haptics.selectionAsync();
+              setDetailSheet({
+                title: chip.label,
+                body: chip.detail,
+                tone: chip.ok ? "good" : "caution",
+              });
+            }}
+          />
+        )}
         {/* Rasi Palan Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-            {isTamil ? "இன்றைய ராசி பலன்" : "Today's Rasi Palan"}
+            {isTamil ? "à®‡à®©à¯à®±à¯ˆà®¯ à®°à®¾à®šà®¿ à®ªà®²à®©à¯" : "Today's Rasi Palan"}
           </Text>
-          {isLoading ? (
+          {isPanchangamLoading ? (
             <SkeletonCard height={120} />
           ) : (
             <RasiPalanCard
               rasiName={
-                prefs?.rasi
-                  ? (isTamil ? "மேஷம்" : "Aries")
-                  : (isTamil ? "ராசி தேர்வு செய்யவும்" : "Select rasi")
+                rasiPalanData
+                  ? (isTamil ? rasiPalanData.rasiName.ta : rasiPalanData.rasiName.en)
+                  : prefs?.rasi
+                    ? prefs.rasi.charAt(0).toUpperCase() + prefs.rasi.slice(1)
+                    : (isTamil ? "ராசி தேர்வு செய்யவும்" : "Select rasi")
               }
               palanText={
-                isTamil
-                  ? "இன்றைய நாள் உங்களுக்கு சாதகமாக உள்ளது. தொழில் விஷயங்களில் கவனம் தேவை. குடும்பத்தினருடன் நேரம் செலவிடுங்கள்."
-                  : "Today looks favourable. Pay attention to professional matters. Spend quality time with family."
+                rasiPalanData
+                  ? (isTamil ? rasiPalanData.body.ta : rasiPalanData.body.en)
+                  : prefs?.rasi
+                    ? (isTamil ? "ஏற்றுகிறது…" : "Loading…")
+                    : (isTamil ? "உங்கள் ராசியை தேர்வு செய்யுங்கள்." : "Select your rasi to see today's palan.")
               }
               onReadMore={
                 !prefs?.rasi
@@ -287,14 +618,75 @@ export default function TodayTab() {
           )}
         </View>
 
-        {/* Ad unit — guest only */}
+        {tier !== "guest" && nextEvent && (
+          <TouchableOpacity
+            style={styles.eventCountdown}
+            activeOpacity={0.86}
+            onPress={() => router.push("/(tabs)/insights" as Href)}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.eventKicker}>{isTamil ? "Next significant window" : "Next significant window"}</Text>
+              <Text style={[styles.eventTitle, isTamil ? TamilType.bodySmall : EnType.bodySmall]} numberOfLines={2}>
+                {biText(nextEvent.headline, isTamil, nextEvent.eventType)}
+              </Text>
+              <Text style={styles.eventMeta}>{dateDistanceLabel(nextEvent.startDate, isTamil)} - {nextEvent.confidence.toLowerCase()} confidence</Text>
+            </View>
+            <Text style={styles.eventArrow}>{">"}</Text>
+          </TouchableOpacity>
+        )}
+
+        <View style={styles.quickActions}>
+          <TouchableOpacity
+            style={styles.quickActionBtn}
+            activeOpacity={0.86}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setJournalOpen(true);
+            }}
+          >
+            <Text style={styles.quickActionText}>{isTamil ? "Log a moment +" : "Log a moment +"}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.quickActionBtn, styles.quickActionSecondary]}
+            activeOpacity={0.86}
+            onPress={() => router.push("/ask-vinaadi" as Href)}
+          >
+            <Text style={[styles.quickActionText, styles.quickActionSecondaryText]}>{isTamil ? "Ask Vinaadi" : "Ask Vinaadi"}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Decision prompt card — daily card surfacing the /ask-vinaadi decision mode */}
+        <TouchableOpacity
+          style={styles.decisionCard}
+          activeOpacity={0.86}
+          onPress={() => router.push("/ask-vinaadi" as Href)}
+          accessibilityLabel={isTamil ? "முடிவு எடுக்க விநாடியிடம் கேளுங்கள்" : "Facing a decision? Ask Vinaadi."}
+          accessibilityRole="button"
+          accessibilityHint={isTamil ? "விநாடி AI திறக்கும்" : "Opens Vinaadi AI assistant"}
+        >
+          <View style={styles.decisionTop}>
+            <Text style={styles.decisionKicker}>{isTamil ? "இன்றைய முடிவு" : "Decision of the day"}</Text>
+            <Text style={styles.decisionArrow}>{">"}</Text>
+          </View>
+          <Text style={styles.decisionTitle}>
+            {isTamil
+              ? "இன்று ஒரு முடிவை எதிர்கொள்கிறீர்களா?"
+              : "Facing a decision today?"}
+          </Text>
+          <Text style={styles.decisionBody}>
+            {isTamil
+              ? "விநாடியிடம் கேளுங்கள் — உங்கள் தசா மற்றும் கோச்சாரத்தை வைத்து சரியான நேரத்தை அறியலாம்."
+              : "Ask Vinaadi — your dasha and transits reveal the right timing for your decision."}
+          </Text>
+        </TouchableOpacity>
+        {/* Ad unit â€” guest only */}
         {tier === "guest" && <NativeAdUnit />}
 
         {/* Panchangam Details (collapsible stub) */}
         {p && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-              {isTamil ? "பஞ்சாங்க விவரம்" : "Panchangam Details"}
+              {isTamil ? "à®ªà®žà¯à®šà®¾à®™à¯à®• à®µà®¿à®µà®°à®®à¯" : "Panchangam Details"}
             </Text>
             <View style={styles.panchangamGrid}>
               {[
@@ -318,7 +710,7 @@ export default function TodayTab() {
           </View>
         )}
 
-        {isError && <ErrorCard onRetry={refetch} />}
+        {isError && <ErrorCard onRetry={refetchPanchangam} />}
 
         {/* Soft Signup Prompt (shown after 3+ days) */}
         {tier === "guest" && showSignupPrompt && (
@@ -328,30 +720,167 @@ export default function TodayTab() {
               style={styles.promptDismiss}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.promptDismissText}>✕</Text>
+              <Text style={styles.promptDismissText}>âœ•</Text>
             </TouchableOpacity>
             <Text style={[styles.promptHeading, isTamil ? TamilType.bodySmall : EnType.bodySmall]}>
               {isTamil
-                ? "உங்கள் ஜாதகத்தில் இன்றைய நாள் எப்படி?"
+                ? "à®‰à®™à¯à®•à®³à¯ à®œà®¾à®¤à®•à®¤à¯à®¤à®¿à®²à¯ à®‡à®©à¯à®±à¯ˆà®¯ à®¨à®¾à®³à¯ à®Žà®ªà¯à®ªà®Ÿà®¿?"
                 : "How does today look for YOUR birth chart?"}
             </Text>
             <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
               <Text style={styles.promptCta}>
-                {isTamil ? "இலவசமாக அறிந்துகொள் →" : "Find out free →"}
+                {isTamil ? "à®‡à®²à®µà®šà®®à®¾à®• à®…à®±à®¿à®¨à¯à®¤à¯à®•à¯Šà®³à¯ â†’" : "Find out free â†’"}
               </Text>
             </TouchableOpacity>
           </View>
         )}
 
+        <Modal transparent visible={!!detailSheet} animationType="slide" onRequestClose={() => setDetailSheet(null)}>
+          <TouchableOpacity style={styles.modalScrim} activeOpacity={1} onPress={() => setDetailSheet(null)}>
+            <TouchableOpacity activeOpacity={1} style={styles.detailSheet}>
+              <View style={[styles.sheetHandle, detailSheet?.tone === "caution" && { backgroundColor: C.caution }]} />
+              <Text style={styles.sheetTitle}>{detailSheet?.title}</Text>
+              <Text style={styles.sheetBody}>{detailSheet?.body}</Text>
+              <TouchableOpacity style={styles.sheetDoneBtn} onPress={() => setDetailSheet(null)}>
+                <Text style={styles.sheetDoneText}>{isTamil ? "Done" : "Done"}</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+
+        <Modal transparent visible={journalOpen} animationType="slide" onRequestClose={() => setJournalOpen(false)}>
+          <TouchableOpacity style={styles.modalScrim} activeOpacity={1} onPress={() => setJournalOpen(false)}>
+            <TouchableOpacity activeOpacity={1} style={styles.journalSheet}>
+              <View style={styles.sheetHandle} />
+              <Text style={styles.sheetTitle}>{isTamil ? "Log a moment" : "Log a moment"}</Text>
+              <Text style={styles.journalStep}>{isTamil ? "What happened?" : "What happened?"}</Text>
+              <View style={styles.sheetChipWrap}>
+                {JOURNAL_MOMENTS.map((item) => (
+                  <TouchableOpacity
+                    key={item.key}
+                    style={[styles.sheetChip, journalMoment === item.key && styles.sheetChipActive]}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setJournalMoment(item.key);
+                    }}
+                  >
+                    <Text style={[styles.sheetChipText, journalMoment === item.key && styles.sheetChipTextActive]}>{item.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.journalStep}>{isTamil ? "Which area?" : "Which area?"}</Text>
+              <View style={styles.sheetChipWrap}>
+                {JOURNAL_AREAS.map((item) => (
+                  <TouchableOpacity
+                    key={item.key}
+                    style={[styles.sheetChip, journalArea === item.key && styles.sheetChipActive]}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setJournalArea(item.key);
+                    }}
+                  >
+                    <Text style={[styles.sheetChipText, journalArea === item.key && styles.sheetChipTextActive]}>{item.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TextInput
+                value={journalNote}
+                onChangeText={setJournalNote}
+                maxLength={200}
+                multiline
+                placeholder={isTamil ? "Optional note" : "Optional note"}
+                placeholderTextColor={C.textTertiary}
+                style={styles.journalInput}
+              />
+              <TouchableOpacity style={styles.sheetDoneBtn} onPress={saveJournalEntry}>
+                <Text style={styles.sheetDoneText}>{isTamil ? "Save" : "Save"}</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
         <ThirukanithamBadge style={styles.badge} />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+function LifeAreaPulse({
+  areas,
+  isTamil,
+  onSelect,
+}: {
+  areas: LifeAreaData[];
+  isTamil: boolean;
+  onSelect: (area: LifeAreaData) => void;
+}) {
+  return (
+    <View style={styles.areaPulseWrap}>
+      {areas.map((area) => {
+        const tone = scoreTone(area.score);
+        return (
+          <TouchableOpacity key={area.area} style={styles.areaPulseItem} activeOpacity={0.82} onPress={() => onSelect(area)}>
+            <View style={styles.areaPulseHeader}>
+              <Text numberOfLines={1} style={styles.areaPulseLabel}>{biText(area.label, isTamil, area.area)}</Text>
+              <Text style={[styles.areaPulseScore, { color: tone }]}>{Math.round(area.score)}</Text>
+            </View>
+            <View style={styles.areaPulseTrack}>
+              <View style={[styles.areaPulseFill, { width: `${Math.max(8, Math.min(area.score, 100))}%`, backgroundColor: tone }]} />
+            </View>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
+function GowriCard({ slot, isTamil, onPress }: { slot: GowriSlot; isTamil: boolean; onPress: () => void }) {
+  return (
+    <TouchableOpacity style={styles.gowriCard} activeOpacity={0.86} onPress={onPress}>
+      <View style={styles.gowriChip}>
+        <Text style={styles.gowriChipText}>G</Text>
+      </View>
+      <Text style={styles.gowriTime}>{formatTime(slot.start)} - {formatTime(slot.end)}</Text>
+      <Text style={styles.gowriLabel} numberOfLines={1}>{slot.name || slot.label || (isTamil ? "Gowri" : "Gowri")}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function ActivityChipRow({
+  chips,
+  onSelect,
+}: {
+  chips: Array<{ label: string; ok: boolean; detail: string }>;
+  onSelect: (chip: { label: string; ok: boolean; detail: string }) => void;
+}) {
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.activityRow} contentContainerStyle={styles.activityContent}>
+      {chips.map((chip) => (
+        <TouchableOpacity
+          key={chip.label}
+          activeOpacity={0.82}
+          onPress={() => onSelect(chip)}
+          style={[styles.activityChip, !chip.ok && styles.activityChipCaution]}
+        >
+          <Text style={[styles.activityChipText, !chip.ok && styles.activityChipTextCaution]}>{chip.ok ? "+" : "!"} {chip.label}</Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  );
+}
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
   scroll: { paddingBottom: S.xxl },
+  offlineBanner: {
+    backgroundColor: C.caution,
+    paddingVertical: 6,
+    paddingHorizontal: S.base,
+    alignItems: "center",
+  },
+  offlineBannerText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 12,
+    color: "#FFFFFF",
+  },
 
   header: {
     flexDirection: "row",
@@ -441,7 +970,113 @@ const styles = StyleSheet.create({
   chandraText: { flex: 1, color: C.caution },
   chandraArrow: { fontFamily: "Inter_700Bold", fontSize: 18, color: C.caution },
   kalamRow: { paddingLeft: S.base, paddingVertical: S.base },
-
+  areaPulseWrap: {
+    marginHorizontal: S.base,
+    marginTop: S.sm,
+    backgroundColor: C.surface,
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
+    borderColor: C.divider,
+    padding: S.sm,
+    gap: S.xs,
+  },
+  areaPulseItem: { paddingVertical: S.xs, gap: 5 },
+  areaPulseHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: S.sm },
+  areaPulseLabel: { flex: 1, fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textSecond },
+  areaPulseScore: { fontFamily: "Inter_800ExtraBold", fontSize: 12 },
+  areaPulseTrack: { height: 5, borderRadius: 999, backgroundColor: C.surfaceAlt, overflow: "hidden" },
+  areaPulseFill: { height: 5, borderRadius: 999 },
+  cosmicAlert: {
+    marginHorizontal: S.base,
+    marginTop: S.sm,
+    backgroundColor: "#FFF5EA",
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
+    borderColor: "rgba(192,96,10,0.18)",
+    padding: S.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: S.sm,
+  },
+  cosmicAlertGood: { backgroundColor: "#EEF7EF", borderColor: "rgba(45,122,58,0.18)" },
+  cosmicDot: { width: 10, height: 10, borderRadius: 999 },
+  cosmicKicker: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.textTertiary, textTransform: "uppercase", letterSpacing: 0 },
+  cosmicTitle: { color: C.textPrimary, marginTop: 2 },
+  cosmicArrow: { fontFamily: "Inter_700Bold", fontSize: 16, color: C.textTertiary },
+  gowriCard: {
+    width: 120,
+    borderRadius: RADIUS.card,
+    padding: S.md,
+    marginRight: S.sm,
+    backgroundColor: C.surface,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  gowriChip: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", marginBottom: S.xs, backgroundColor: C.gold },
+  gowriChipText: { color: C.surface, fontFamily: "Inter_800ExtraBold", fontSize: 13 },
+  gowriTime: { fontFamily: "Inter_600SemiBold", fontSize: 14, lineHeight: 20, color: C.textPrimary, marginBottom: 2 },
+  gowriLabel: { fontFamily: "Inter_400Regular", fontSize: 11, lineHeight: 16, color: C.textSecond },
+  activityRow: { paddingLeft: S.base, marginBottom: S.xs },
+  activityContent: { gap: S.xs, paddingRight: S.base },
+  activityChip: {
+    borderRadius: RADIUS.chip,
+    backgroundColor: "#EBF5ED",
+    borderWidth: 1,
+    borderColor: "rgba(45,122,58,0.16)",
+    paddingHorizontal: S.md,
+    paddingVertical: S.xs,
+  },
+  activityChipCaution: { backgroundColor: "#FEF5EC", borderColor: "rgba(192,96,10,0.18)" },
+  activityChipText: { fontFamily: "Inter_700Bold", fontSize: 12, color: C.green },
+  activityChipTextCaution: { color: C.caution },
+  eventCountdown: {
+    marginHorizontal: S.base,
+    marginTop: S.base,
+    backgroundColor: C.surface,
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
+    borderColor: C.divider,
+    padding: S.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: S.md,
+  },
+  eventKicker: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.saffron, textTransform: "uppercase", letterSpacing: 0 },
+  eventTitle: { color: C.textPrimary, marginTop: 3 },
+  eventMeta: { marginTop: 4, fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textSecond },
+  eventArrow: { fontFamily: "Inter_700Bold", fontSize: 18, color: C.textTertiary },
+  quickActions: { flexDirection: "row", gap: S.sm, marginHorizontal: S.base, marginTop: S.base },
+  quickActionBtn: { flex: 1, borderRadius: RADIUS.button, backgroundColor: C.saffron, paddingVertical: S.sm, alignItems: "center" },
+  quickActionSecondary: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.divider },
+  quickActionText: { fontFamily: "Inter_800ExtraBold", fontSize: 13, color: C.surface },
+  quickActionSecondaryText: { color: C.saffron },
+  modalScrim: { flex: 1, backgroundColor: "rgba(15,21,32,0.34)", justifyContent: "flex-end" },
+  detailSheet: { backgroundColor: C.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: S.lg, gap: S.sm },
+  journalSheet: { backgroundColor: C.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: S.lg, gap: S.sm, maxHeight: "86%" },
+  sheetHandle: { alignSelf: "center", width: 42, height: 4, borderRadius: 999, backgroundColor: C.gold, marginBottom: S.xs },
+  sheetTitle: { fontFamily: "Inter_800ExtraBold", fontSize: 20, lineHeight: 26, color: C.textPrimary },
+  sheetBody: { fontFamily: "Inter_400Regular", fontSize: 14, lineHeight: 22, color: C.textSecond },
+  sheetDoneBtn: { marginTop: S.sm, borderRadius: RADIUS.button, backgroundColor: C.saffron, paddingVertical: S.sm, alignItems: "center" },
+  sheetDoneText: { fontFamily: "Inter_800ExtraBold", fontSize: 14, color: C.surface },
+  journalStep: { marginTop: S.xs, fontFamily: "Inter_700Bold", fontSize: 13, color: C.textSecond },
+  sheetChipWrap: { flexDirection: "row", flexWrap: "wrap", gap: S.xs },
+  sheetChip: { borderRadius: RADIUS.chip, backgroundColor: C.surfaceAlt, paddingHorizontal: S.md, paddingVertical: S.xs, borderWidth: 1, borderColor: C.divider },
+  sheetChipActive: { backgroundColor: C.saffron, borderColor: C.saffron },
+  sheetChipText: { fontFamily: "Inter_700Bold", fontSize: 12, color: C.textSecond },
+  sheetChipTextActive: { color: C.surface },
+  journalInput: {
+    minHeight: 84,
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
+    borderColor: C.divider,
+    padding: S.md,
+    color: C.textPrimary,
+    fontFamily: "Inter_400Regular",
+    textAlignVertical: "top",
+  },
   section: { paddingHorizontal: S.base, marginTop: S.base, gap: S.sm },
   sectionTitle: { color: C.textPrimary },
 
@@ -484,5 +1119,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: C.saffron,
   },
+  decisionCard: {
+    marginHorizontal: S.base,
+    marginTop: S.base,
+    backgroundColor: C.deepIndigo,
+    borderRadius: RADIUS.card,
+    padding: S.lg,
+    gap: S.xs,
+  },
+  decisionTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  decisionKicker: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.gold, textTransform: "uppercase", letterSpacing: 0 },
+  decisionArrow: { fontFamily: "Inter_700Bold", fontSize: 18, color: "rgba(255,255,255,0.5)" },
+  decisionTitle: { fontFamily: "Inter_800ExtraBold", fontSize: 18, lineHeight: 24, color: "#FFF" },
+  decisionBody: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19, color: "rgba(255,255,255,0.72)" },
+
   badge: { alignSelf: "center", marginTop: S.xl },
+  dashaCard: {
+    backgroundColor: C.surface, borderRadius: RADIUS.card,
+    padding: S.base, flexDirection: "row", alignItems: "center", gap: S.sm,
+    borderWidth: 1, borderColor: C.divider,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
+  },
+  dashaIcon: { fontSize: 28 },
+  dashaTitle: { fontSize: 15, lineHeight: 22, color: C.textPrimary },
+  dashaDesc: { color: C.textSecond, marginTop: 2 },
+  dashaArrow: { fontFamily: "Inter_700Bold", fontSize: 18, color: C.textTertiary },
 });

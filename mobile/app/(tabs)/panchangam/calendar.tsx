@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View,
+  RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { C } from "@/theme/colors";
@@ -11,9 +12,9 @@ import { useI18n } from "@/hooks/useI18n";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { getPanchangamMonth } from "@/api/panchangam";
+import { loadGuestPrefs } from "@/features/guest/guestStore";
+import type { GuestPrefs } from "@/features/guest/guestStore";
 
-const LAT = 13.0827;
-const LON = 80.2707;
 const TZ = "Asia/Kolkata";
 
 const WEEKDAY_LABELS_TA = ["ஞா", "தி", "செ", "பு", "வி", "வெ", "ச"];
@@ -25,10 +26,19 @@ export default function PanchangamCalendarScreen() {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
+  const [prefs, setPrefs] = useState<GuestPrefs | null>(null);
 
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["panchangam-month", year, month],
-    queryFn: () => getPanchangamMonth(year, month, { lat: LAT, lng: LON, tz: TZ }),
+  useEffect(() => {
+    loadGuestPrefs().then(setPrefs);
+  }, []);
+
+  const lat = prefs?.lat ?? 13.0827;
+  const lon = prefs?.lon ?? 80.2707;
+  const locationLabel = prefs?.city ?? "Chennai";
+
+  const { data, isLoading, isError, isFetching, refetch } = useQuery({
+    queryKey: ["panchangam-month", year, month, lat, lon],
+    queryFn: () => getPanchangamMonth(year, month, { lat, lng: lon, tz: TZ }),
     staleTime: 1000 * 60 * 60 * 12,
   });
   const d = data?.data;
@@ -66,16 +76,23 @@ export default function PanchangamCalendarScreen() {
           <TouchableOpacity onPress={prevMonth} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Text style={styles.navArrow}>‹</Text>
           </TouchableOpacity>
-          <Text style={[styles.monthLabel, isTamil ? TamilType.heading : EnType.heading]}>
-            {monthLabel}
-          </Text>
+          <View style={styles.monthTitleGroup}>
+            <Text style={[styles.monthLabel, isTamil ? TamilType.heading : EnType.heading]}>
+              {monthLabel}
+            </Text>
+            <Text style={styles.locationLabel}>{locationLabel}</Text>
+          </View>
           <TouchableOpacity onPress={nextMonth} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Text style={styles.navArrow}>›</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={C.saffron} />}
+      >
         {/* Weekday headers */}
         <View style={styles.weekdayRow}>
           {(isTamil ? WEEKDAY_LABELS_TA : WEEKDAY_LABELS_EN).map((l) => (
@@ -113,27 +130,58 @@ export default function PanchangamCalendarScreen() {
           </View>
         )}
 
-        {/* Upcoming festivals */}
-        {d && (
-          <View style={styles.festivalSection}>
-            <Text style={[styles.festivalTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-              {t(strings.panchangam.festivals)}
-            </Text>
-            {d.entries
-              .filter((e) => e.festivals.length > 0)
-              .slice(0, 5)
-              .map((e) => (
-                <View key={e.dateLocal} style={styles.festivalRow}>
+        {/* Muhurtham Naal — auspicious days this month */}
+        {d && (() => {
+          const muhurthamDays = d.entries.filter((e) => e.isSubhaMuhurtham);
+          return muhurthamDays.length > 0 ? (
+            <View style={styles.festivalSection}>
+              <View style={styles.sectionHeaderRow}>
+                <View style={styles.sectionDot} />
+                <Text style={[styles.festivalTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
+                  {isTamil ? "முகூர்த்த நாட்கள்" : "Muhurtham Naal"}
+                </Text>
+              </View>
+              <Text style={styles.sectionHint}>
+                {isTamil ? "இந்த மாதம் சுபமுகூர்த்த நாட்கள்" : "Auspicious days this month"}
+              </Text>
+              {muhurthamDays.map((e) => (
+                <View key={`muhurtham-${e.dateLocal}`} style={[styles.festivalRow, styles.muhurthamRow]}>
+                  <View style={styles.muhurthamDot} />
                   <Text style={[styles.festivalName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_600SemiBold" }]}>
-                    {e.festivals[0].name}
-                  </Text>
-                  <Text style={styles.festivalDate}>
                     {e.tamilDate ? (isTamil ? e.tamilDate.ta : e.tamilDate.en) : e.dateLocal}
+                  </Text>
+                  <Text style={styles.muhurthamDate}>
+                    {new Date(e.dateLocal).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                   </Text>
                 </View>
               ))}
-          </View>
-        )}
+            </View>
+          ) : null;
+        })()}
+
+        {/* All festivals this month */}
+        {d && (() => {
+          const festivalEntries = d.entries.filter((e) => e.festivals.length > 0);
+          return festivalEntries.length > 0 ? (
+            <View style={styles.festivalSection}>
+              <Text style={[styles.festivalTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
+                {t(strings.panchangam.festivals)}
+              </Text>
+              {festivalEntries.map((e) => (
+                e.festivals.map((fest, fi) => (
+                  <View key={`${e.dateLocal}-${fi}`} style={styles.festivalRow}>
+                    <Text style={[styles.festivalName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_600SemiBold" }]}>
+                      {fest.name}
+                    </Text>
+                    <Text style={styles.festivalDate}>
+                      {e.tamilDate ? (isTamil ? e.tamilDate.ta : e.tamilDate.en) : e.dateLocal}
+                    </Text>
+                  </View>
+                ))
+              ))}
+            </View>
+          ) : null;
+        })()}
       </ScrollView>
     </SafeAreaView>
   );
@@ -152,8 +200,10 @@ const styles = StyleSheet.create({
   },
   back: { fontFamily: "Inter_400Regular", fontSize: 22, color: C.textSecond, paddingRight: S.sm },
   monthNav: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: S.base },
+  monthTitleGroup: { flex: 1, alignItems: "center" },
   navArrow: { fontFamily: "Inter_700Bold", fontSize: 24, color: C.saffron, paddingHorizontal: S.sm },
-  monthLabel: { color: C.textPrimary },
+  monthLabel: { color: C.textPrimary, textAlign: "center" },
+  locationLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textTertiary, marginTop: 2 },
 
   scroll: { padding: S.base, gap: S.base },
   weekdayRow: { flexDirection: "row", marginBottom: S.sm },
@@ -183,6 +233,9 @@ const styles = StyleSheet.create({
   dot: { width: 4, height: 4, borderRadius: 2 },
 
   festivalSection: { gap: S.sm },
+  sectionHeaderRow: { flexDirection: "row", alignItems: "center", gap: S.xs },
+  sectionDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.green },
+  sectionHint: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.textTertiary, marginTop: -S.xs },
   festivalTitle: { color: C.textPrimary },
   festivalRow: {
     backgroundColor: C.surface,
@@ -192,6 +245,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  muhurthamRow: { borderLeftWidth: 3, borderLeftColor: C.green },
+  muhurthamDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.green, marginRight: S.xs },
+  muhurthamDate: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.textTertiary },
   festivalName: { fontSize: 14, lineHeight: 20, color: C.textPrimary, flex: 1 },
   festivalDate: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.textTertiary },
 });

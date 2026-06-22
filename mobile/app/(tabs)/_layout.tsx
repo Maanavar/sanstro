@@ -1,14 +1,13 @@
 import React from "react";
 import { Tabs } from "expo-router";
-import { Text, StyleSheet, View } from "react-native";
+import { Text, StyleSheet } from "react-native";
 import { C } from "@/theme/colors";
 import { useI18n } from "@/hooks/useI18n";
-
-function TabIcon({ label, focused }: { label: string; focused: boolean }) {
-  return (
-    <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.5 }}>{label}</Text>
-  );
-}
+import { TodayIcon } from "@/components/icons/TodayIcon";
+import { PanchangamIcon } from "@/components/icons/PanchangamIcon";
+import { InsightsIcon } from "@/components/icons/InsightsIcon";
+import { ToolsIcon } from "@/components/icons/ToolsIcon";
+import { MeIcon } from "@/components/icons/MeIcon";
 
 function TabLabel({ text, focused }: { text: string; focused: boolean }) {
   return (
@@ -24,7 +23,7 @@ function TabLabel({ text, focused }: { text: string; focused: boolean }) {
 }
 
 export default function TabLayout() {
-  const { t, strings } = useI18n();
+  const { t, strings, lang } = useI18n();
 
   return (
     <Tabs
@@ -39,7 +38,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="today"
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="🌅" focused={focused} />,
+          tabBarIcon: ({ color, size }) => <TodayIcon color={color} size={size} />,
           tabBarLabel: ({ focused }) => (
             <TabLabel text={t(strings.tabs.today)} focused={focused} />
           ),
@@ -49,7 +48,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="panchangam"
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="📅" focused={focused} />,
+          tabBarIcon: ({ color, size }) => <PanchangamIcon color={color} size={size} />,
           tabBarLabel: ({ focused }) => (
             <TabLabel text={t(strings.tabs.panchangam)} focused={focused} />
           ),
@@ -57,9 +56,18 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="insights"
+        options={{
+          tabBarIcon: ({ color, size }) => <InsightsIcon color={color} size={size} />,
+          tabBarLabel: ({ focused }) => (
+            <TabLabel text={lang === "ta" ? "பார்வை" : "Insights"} focused={focused} />
+          ),
+          tabBarShowLabel: true,
+        }}
+      />      <Tabs.Screen
         name="tools"
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="🔧" focused={focused} />,
+          tabBarIcon: ({ color, size }) => <ToolsIcon color={color} size={size} />,
           tabBarLabel: ({ focused }) => (
             <TabLabel text={t(strings.tabs.tools)} focused={focused} />
           ),
@@ -69,7 +77,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="me"
         options={{
-          tabBarIcon: ({ focused }) => <TabIcon label="👤" focused={focused} />,
+          tabBarIcon: ({ color, size }) => <MeIcon color={color} size={size} />,
           tabBarLabel: ({ focused }) => (
             <TabLabel text={t(strings.tabs.me)} focused={focused} />
           ),
