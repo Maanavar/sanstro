@@ -1,21 +1,35 @@
 import React, { useEffect } from "react";
+import { Platform } from "react-native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as ExpoFont from "expo-font";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import Purchases from "react-native-purchases";
 import { SessionProvider, useSession } from "@/state/sessionContext";
 import { LanguageProvider } from "@/state/languageContext";
 import { queryClient, asyncStoragePersister } from "@/lib/queryClient";
 import { getTokens, clearTokens } from "@/lib/secureStore";
-import { initAnalytics } from "@/lib/analytics";
+import { initAnalytics, setUser } from "@/lib/analytics";
 import { ENV } from "@/lib/env";
 import { getMe } from "@/api/auth";
 import { FONT_MAP } from "@/theme/typography";
 
 SplashScreen.preventAutoHideAsync();
 
-// Init once at module load — safe to call before the React tree mounts.
+// Init analytics once at module load â€” safe before React tree mounts.
 initAnalytics(ENV.SENTRY_DSN, ENV.POSTHOG_API_KEY, ENV.POSTHOG_HOST);
+
+// Configure RevenueCat â€” only if a key is provided (won't fire in CI/dev without keys).
+const rcKey = Platform.OS === "ios" ? ENV.REVENUECAT_PUBLIC_KEY : ENV.REVENUECAT_ANDROID_KEY;
+if (rcKey) {
+  try {
+    Purchases.configure({ apiKey: rcKey });
+  } catch {
+    // SDK unavailable in some environments (Expo Go web).
+  }
+}
 
 function RootNavigation() {
   const { setSession, clearSession, setReady } = useSession();
@@ -25,7 +39,7 @@ function RootNavigation() {
       try {
         await ExpoFont.loadAsync(FONT_MAP);
       } catch {
-        // Font load failures are non-fatal — system fonts will render
+        // Non-fatal â€” system fonts will render.
       }
 
       try {
@@ -36,13 +50,39 @@ function RootNavigation() {
         }
 
         const me = await getMe();
+
+        // Sync RevenueCat user identity and determine effective tier.
+        // RC is the source of truth for subscription status. If RC confirms no
+        // active “premium” entitlement but the backend tier still says “premium”,
+        // treat the user as “registered” — the subscription likely expired and
+        // the backend webhook hasn't fired yet.
+        if (rcKey) {
+          try {
+            await Purchases.logIn(me.userId);
+            const ci = await Purchases.getCustomerInfo();
+            const hasPremium = !!ci.entitlements.active[“premium”];
+            const effectiveTier = hasPremium
+              ? “premium”
+              : me.tier === “premium”
+              ? “registered” // expired subscription — RC overrides stale backend tier
+              : me.tier;
+            setSession(
+              { userId: me.userId, email: me.email, displayName: me.displayName },
+              effectiveTier
+            );
+            setUser(me.userId);
+            return;
+          } catch {
+            // RevenueCat SDK unavailable (Expo Go, CI, no keys) — trust backend tier.
+          }
+        }
+
         setSession(
           { userId: me.userId, email: me.email, displayName: me.displayName },
           me.tier
         );
+        setUser(me.userId);
       } catch (err: unknown) {
-        // 401 from getMe triggers token rotation inside fetchWithAuth.
-        // If we still end up here it means rotation also failed → guest.
         const isUnauth =
           err instanceof Error && "status" in err && (err as { status: number }).status === 401;
         if (isUnauth) {
@@ -69,21 +109,30 @@ function RootNavigation() {
       <Stack.Screen name="premium" />
       <Stack.Screen name="family-vault" />
       <Stack.Screen name="ask-vinaadi" />
+      <Stack.Screen name="dasha" />
+      <Stack.Screen name="transits" />
+      <Stack.Screen name="varshaphala" />
+      <Stack.Screen name="rectification" />
+      <Stack.Screen name="wrapped" />
     </Stack>
   );
 }
 
 export default function RootLayout() {
   return (
-    <PersistQueryClientProvider
-      client={queryClient}
-      persistOptions={{ persister: asyncStoragePersister }}
-    >
-      <SessionProvider>
-        <LanguageProvider>
-          <RootNavigation />
-        </LanguageProvider>
-      </SessionProvider>
-    </PersistQueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{ persister: asyncStoragePersister }}
+      >
+        <SessionProvider>
+          <LanguageProvider>
+            <RootNavigation />
+          </LanguageProvider>
+        </SessionProvider>
+      </PersistQueryClientProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

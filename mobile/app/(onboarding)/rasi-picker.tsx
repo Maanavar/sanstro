@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import * as Haptics from "expo-haptics";
 import {
-  FlatList, StyleSheet, Text, TouchableOpacity, View, SafeAreaView, ScrollView,
+  FlatList, StyleSheet, Text, TouchableOpacity, View, ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { RASI_LIST, NAKSHATRA_LIST } from "@vinaadi/shared";
 import { C } from "@/theme/colors";
@@ -50,7 +52,7 @@ export default function RasiPickerScreen() {
               <TouchableOpacity
                 key={rasi.slug}
                 style={[styles.rasiCard, selected && styles.rasiCardSelected]}
-                onPress={() => setSelectedRasi(rasi.slug)}
+                onPress={() => { Haptics.selectionAsync(); setSelectedRasi(rasi.slug); }}
                 activeOpacity={0.8}
               >
                 {selected && <Text style={styles.checkmark}>✓</Text>}
@@ -82,7 +84,7 @@ export default function RasiPickerScreen() {
                 <TouchableOpacity
                   key={n.slug}
                   style={[styles.chip, sel && styles.chipSelected]}
-                  onPress={() => setSelectedNakshatra(sel ? null : n.slug)}
+                  onPress={() => { Haptics.selectionAsync(); setSelectedNakshatra(sel ? null : n.slug); }}
                 >
                   <Text style={[styles.chipText, sel && styles.chipTextSelected]}>
                     {isTamil ? n.name.ta : n.name.en}

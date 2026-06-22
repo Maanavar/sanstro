@@ -1,15 +1,19 @@
-import React, { useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   Alert,
-  SafeAreaView,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
+import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import Svg, { Circle, Line, Polygon, Text as SvgText } from "react-native-svg";
 import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
@@ -19,7 +23,10 @@ import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { ScoreRing } from "@/components/ScoreRing";
 import { listFamilyVaults, getFamilyVaultToday, createFamilyVault } from "@/api/familyVault";
+import { getRelationshipSynastry } from "@/api/relationships";
+import { biText } from "@/lib/i18n";
 import type { FamilyMemberDayView } from "@/api/familyVault";
+import type { SynastryAspect, SynastryData } from "@/api/relationships";
 
 const RELATIONSHIP_TA: Record<string, string> = {
   father: "தந்தை", mother: "அம்மா", spouse: "மனைவி / கணவர்",
@@ -31,6 +38,46 @@ function scoreColor(score: number): string {
   if (score >= 7) return C.green;
   if (score >= 4) return C.amber;
   return C.alert;
+}
+function synastryScoreColor(score: number): string {
+  if (score >= 65) return C.green;
+  if (score >= 45) return C.amber;
+  return C.alert;
+}
+
+function clampPercent(value: number): number {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+
+function isHarmonyTone(tone: string): boolean {
+  const normalized = tone.toLowerCase();
+  return normalized === "harmony" || normalized === "supportive";
+}
+
+function isTensionTone(tone: string): boolean {
+  const normalized = tone.toLowerCase();
+  return normalized === "tension" || normalized === "challenging";
+}
+
+function toneColor(tone: string): string {
+  if (isHarmonyTone(tone)) return C.green;
+  if (isTensionTone(tone)) return C.alert;
+  return C.amber;
+}
+
+function toneLabel(tone: string): string {
+  if (isHarmonyTone(tone)) return "Support";
+  if (isTensionTone(tone)) return "Tension";
+  return "Neutral";
+}
+
+function prettyAstroLabel(value: string): string {
+  return value
+    .replace(/_/g, " ")
+    .replace(/-/g, " - ")
+    .toLowerCase()
+    .replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
 function MemberCard({
@@ -78,11 +125,15 @@ function MemberDetail({
   member,
   isTamil,
   onAskVinaadi,
+  onOpenSynastry,
 }: {
   member: FamilyMemberDayView;
   isTamil: boolean;
   onAskVinaadi: () => void;
+  onOpenSynastry: () => void;
 }) {
+  const canCompare = member.relationship.toLowerCase() !== "self";
+
   return (
     <View style={styles.detailCard}>
       {/* Score hero */}
@@ -126,6 +177,13 @@ function MemberDetail({
         </View>
       </View>
 
+      {canCompare && (
+        <TouchableOpacity style={styles.synastryBtn} onPress={onOpenSynastry} activeOpacity={0.85}>
+          <Text style={[styles.synastryBtnText, isTamil ? TamilType.body : EnType.body]}>
+            {isTamil ? "Compatibility Radar" : "Compatibility Radar"}
+          </Text>
+        </TouchableOpacity>
+      )}
       {/* Ask Vinaadi CTA */}
       <TouchableOpacity style={styles.askBtn} onPress={onAskVinaadi} activeOpacity={0.85}>
         <Text style={[styles.askBtnText, isTamil ? TamilType.body : EnType.body]}>
@@ -138,14 +196,288 @@ function MemberDetail({
   );
 }
 
+type RadarFactor = { key: string; label: string; value: number };
+
+function buildRadarFactors(data: SynastryData): RadarFactor[] {
+  const aspects = data.keyAspects ?? [];
+  const harmonyCount = data.harmonyNotes?.length ?? 0;
+  const tensionCount = data.tensionNotes?.length ?? 0;
+  const supportiveAspects = aspects.filter((a) => isHarmonyTone(a.tone)).length;
+  const tenseAspects = aspects.filter((a) => isTensionTone(a.tone)).length;
+  const totalAspects = Math.max(aspects.length, 1);
+  const timingCount = data.timingIndicators?.length ?? 0;
+
+  return [
+    { key: "overall", label: "Overall", value: clampPercent(data.score) },
+    {
+      key: "harmony",
+      label: "Harmony",
+      value: clampPercent(data.score * 0.55 + harmonyCount * 14 + (supportiveAspects / totalAspects) * 35),
+    },
+    {
+      key: "ease",
+      label: "Ease",
+      value: clampPercent(78 - tensionCount * 10 - tenseAspects * 8 + data.score * 0.22),
+    },
+    {
+      key: "spark",
+      label: "Spark",
+      value: clampPercent(45 + aspects.length * 7 + supportiveAspects * 8 - tenseAspects * 4),
+    },
+    {
+      key: "timing",
+      label: "Timing",
+      value: clampPercent(50 + timingCount * 15 + data.score * 0.25),
+    },
+    {
+      key: "repair",
+      label: "Repair",
+      value: clampPercent(58 + tensionCount * 6 - tenseAspects * 5 + harmonyCount * 3),
+    },
+  ];
+}
+
+function RadarChart({ factors }: { factors: RadarFactor[] }) {
+  const size = 236;
+  const center = size / 2;
+  const radius = 78;
+  const angleStep = (Math.PI * 2) / factors.length;
+
+  function pointAt(index: number, value: number) {
+    const angle = -Math.PI / 2 + index * angleStep;
+    const r = radius * (value / 100);
+    return {
+      x: center + Math.cos(angle) * r,
+      y: center + Math.sin(angle) * r,
+    };
+  }
+
+  function pointsAt(scale: number) {
+    return factors
+      .map((_, index) => {
+        const point = pointAt(index, scale * 100);
+        return `${point.x},${point.y}`;
+      })
+      .join(" ");
+  }
+
+  const dataPoints = factors
+    .map((factor, index) => {
+      const point = pointAt(index, factor.value);
+      return `${point.x},${point.y}`;
+    })
+    .join(" ");
+
+  return (
+    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {[0.25, 0.5, 0.75, 1].map((scale) => (
+        <Polygon
+          key={scale}
+          points={pointsAt(scale)}
+          fill="none"
+          stroke={C.divider}
+          strokeWidth={scale === 1 ? 1.2 : 0.8}
+        />
+      ))}
+      {factors.map((factor, index) => {
+        const outer = pointAt(index, 100);
+        const label = pointAt(index, 118);
+        return (
+          <React.Fragment key={factor.key}>
+            <Line x1={center} y1={center} x2={outer.x} y2={outer.y} stroke={C.divider} strokeWidth={0.8} />
+            <SvgText
+              x={label.x}
+              y={label.y}
+              fill={C.textSecond}
+              fontSize={10}
+              fontWeight="600"
+              textAnchor="middle"
+            >
+              {factor.label}
+            </SvgText>
+          </React.Fragment>
+        );
+      })}
+      <Polygon points={dataPoints} fill={`${C.saffron}30`} stroke={C.saffron} strokeWidth={2.5} />
+      {factors.map((factor, index) => {
+        const point = pointAt(index, factor.value);
+        return <Circle key={factor.key} cx={point.x} cy={point.y} r={3.5} fill={C.saffron} />;
+      })}
+    </Svg>
+  );
+}
+
+function NoteCluster({
+  title,
+  notes,
+  isTamil,
+  tone,
+}: {
+  title: string;
+  notes: SynastryData["harmonyNotes"];
+  isTamil: boolean;
+  tone: "harmony" | "tension";
+}) {
+  if (notes.length === 0) return null;
+  const color = tone === "harmony" ? C.green : C.alert;
+  return (
+    <View style={[styles.notePanel, tone === "tension" && styles.notePanelTension]}>
+      <Text style={[styles.sectionTitle, { color }]}>{title}</Text>
+      {notes.map((note, index) => (
+        <View key={`${title}-${index}`} style={styles.noteRow}>
+          <View style={[styles.noteDot, { backgroundColor: color }]} />
+          <Text style={[styles.noteText, isTamil ? TamilType.bodySmall : EnType.bodySmall]}>
+            {biText(note, isTamil)}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function AspectRow({ aspect, isTamil }: { aspect: SynastryAspect; isTamil: boolean }) {
+  const color = toneColor(aspect.tone);
+  return (
+    <View style={styles.aspectRow}>
+      <View style={[styles.aspectDot, { backgroundColor: color }]} />
+      <View style={styles.aspectBody}>
+        <Text style={styles.aspectTitle}>
+          {prettyAstroLabel(aspect.pair)} / {prettyAstroLabel(aspect.aspect)}
+        </Text>
+        <Text style={[styles.aspectNote, isTamil ? TamilType.bodySmall : EnType.bodySmall]}>
+          {biText(aspect.note, isTamil)}
+        </Text>
+      </View>
+      <View style={[styles.toneChip, { borderColor: color, backgroundColor: `${color}18` }]}>
+        <Text style={[styles.toneChipText, { color }]}>{toneLabel(aspect.tone)}</Text>
+      </View>
+    </View>
+  );
+}
+
+function SynastryRadarSheet({
+  member,
+  data,
+  isLoading,
+  isError,
+  onRetry,
+  isTamil,
+}: {
+  member: FamilyMemberDayView | null;
+  data: SynastryData | null;
+  isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
+  isTamil: boolean;
+}) {
+  const factors = useMemo(() => (data ? buildRadarFactors(data) : []), [data]);
+  const scoreColorValue = data ? synastryScoreColor(data.score) : C.saffron;
+
+  return (
+    <>
+      <View style={styles.sheetHeader}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.sheetEyebrow}>Synastry</Text>
+          <Text style={[styles.sheetTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
+            {member ? `Compatibility with ${member.name}` : "Compatibility Radar"}
+          </Text>
+        </View>
+        {data && (
+          <View style={[styles.sheetScoreBadge, { borderColor: scoreColorValue }]}>
+            <Text style={[styles.sheetScoreValue, { color: scoreColorValue }]}>{data.score}</Text>
+            <Text style={styles.sheetScoreLabel}>{data.label}</Text>
+          </View>
+        )}
+      </View>
+
+      {isLoading ? (
+        <>
+          <SkeletonCard height={220} />
+          <SkeletonCard height={96} />
+          <SkeletonCard height={140} />
+        </>
+      ) : isError ? (
+        <ErrorCard
+          onRetry={onRetry}
+          message={isTamil ? "Compatibility load failed." : "Could not load compatibility."}
+        />
+      ) : data ? (
+        <>
+          <View style={styles.radarPanel}>
+            <View style={styles.radarChartWrap}>
+              <RadarChart factors={factors} />
+            </View>
+            <View style={styles.radarLegend}>
+              {factors.map((factor) => (
+                <View key={factor.key} style={styles.radarMetricRow}>
+                  <View style={styles.radarMetricMeta}>
+                    <Text style={styles.radarMetricLabel}>{factor.label}</Text>
+                    <Text style={styles.radarMetricValue}>{factor.value}</Text>
+                  </View>
+                  <View style={styles.radarTrack}>
+                    <View style={[styles.radarFill, { width: `${factor.value}%` }]} />
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.summaryPanel}>
+            <Text style={styles.sectionTitle}>Summary</Text>
+            <Text style={[styles.summaryText, isTamil ? TamilType.body : EnType.body]}>
+              {biText(data.summary, isTamil)}
+            </Text>
+          </View>
+
+          <NoteCluster title="Harmony signals" notes={data.harmonyNotes ?? []} isTamil={isTamil} tone="harmony" />
+          <NoteCluster title="Care points" notes={data.tensionNotes ?? []} isTamil={isTamil} tone="tension" />
+
+          {(data.keyAspects ?? []).length > 0 && (
+            <View style={styles.summaryPanel}>
+              <Text style={styles.sectionTitle}>Key aspects</Text>
+              {(data.keyAspects ?? []).map((aspect, index) => (
+                <AspectRow key={`${aspect.pair}-${aspect.aspect}-${index}`} aspect={aspect} isTamil={isTamil} />
+              ))}
+            </View>
+          )}
+
+          {(data.timingIndicators ?? []).length > 0 && (
+            <View style={styles.summaryPanel}>
+              <Text style={styles.sectionTitle}>Timing indicators</Text>
+              {(data.timingIndicators ?? []).map((item, index) => (
+                <View key={`${item.planet}-${index}`} style={styles.timingRow}>
+                  <Text style={styles.timingPlanet}>{prettyAstroLabel(item.planet)}</Text>
+                  <Text style={[styles.timingText, isTamil ? TamilType.bodySmall : EnType.bodySmall]}>
+                    {biText(item.description, isTamil)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </>
+      ) : (
+        <Text style={styles.sheetEmptyText}>Pick a family member to compare charts.</Text>
+      )}
+    </>
+  );
+}
+
 export default function FamilyVaultScreen() {
   const { lang } = useI18n();
   const isTamil = lang === "ta";
   const { tier } = useSession();
   const [selectedMemberIdx, setSelectedMemberIdx] = useState(0);
+  const [synastryMember, setSynastryMember] = useState<FamilyMemberDayView | null>(null);
+  const synastrySheetRef = useRef<BottomSheet>(null);
+  const synastrySnapPoints = useMemo(() => ["58%", "92%"], []);
 
-  const { data: vaultsData, isLoading: vaultsLoading, isError: vaultsError, refetch: refetchVaults } =
-    useQuery({
+  const {
+    data: vaultsData,
+    isLoading: vaultsLoading,
+    isFetching: vaultsFetching,
+    isError: vaultsError,
+    refetch: refetchVaults,
+  } = useQuery({
       queryKey: ["family-vaults"],
       queryFn: listFamilyVaults,
       staleTime: 1000 * 60 * 5,
@@ -154,16 +486,54 @@ export default function FamilyVaultScreen() {
   const vaults = vaultsData?.data?.items ?? [];
   const firstVault = vaults[0];
 
-  const { data: todayData, isLoading: todayLoading, isError: todayError } = useQuery({
+  const {
+    data: todayData,
+    isLoading: todayLoading,
+    isFetching: todayFetching,
+    isError: todayError,
+    refetch: refetchToday,
+  } = useQuery({
     queryKey: ["family-vault-today", firstVault?.familyVaultId],
     queryFn: () => getFamilyVaultToday(firstVault!.familyVaultId),
     enabled: !!firstVault,
     staleTime: 1000 * 60 * 30,
   });
 
+
+  const synastryMemberId = synastryMember?.memberId;
+  const {
+    data: synastryData,
+    isLoading: synastryLoading,
+    isFetching: synastryFetching,
+    isError: synastryError,
+    refetch: refetchSynastry,
+  } = useQuery({
+    queryKey: ["relationship-synastry", firstVault?.familyVaultId, synastryMemberId],
+    queryFn: () => getRelationshipSynastry(synastryMemberId!, firstVault!.familyVaultId),
+    enabled: !!firstVault && !!synastryMemberId,
+    staleTime: 1000 * 60 * 30,
+  });
   const members = todayData?.data?.members ?? [];
   const selectedMember = members[selectedMemberIdx];
+  const isRefreshing = vaultsFetching || todayFetching;
+  const refreshControl = (
+    <RefreshControl
+      refreshing={isRefreshing}
+      onRefresh={() => {
+        refetchVaults();
+        if (firstVault) refetchToday();
+      }}
+      tintColor={C.saffron}
+    />
+  );
 
+
+  function handleOpenSynastry(member: FamilyMemberDayView) {
+    if (!firstVault) return;
+    setSynastryMember(member);
+    Haptics.selectionAsync();
+    synastrySheetRef.current?.expand();
+  }
   // Premium gate
   if (tier !== "premium") {
     return (
@@ -241,19 +611,19 @@ export default function FamilyVaultScreen() {
       </View>
 
       {vaultsLoading ? (
-        <View style={styles.scroll}>
+        <ScrollView contentContainerStyle={styles.scroll} refreshControl={refreshControl}>
           <SkeletonCard height={120} />
           <SkeletonCard height={200} />
-        </View>
+        </ScrollView>
       ) : vaultsError ? (
-        <View style={{ padding: S.base }}>
+        <ScrollView contentContainerStyle={{ padding: S.base }} refreshControl={refreshControl}>
           <ErrorCard
             onRetry={refetchVaults}
             message={isTamil ? "Vault தகவல் கிடைக்கவில்லை." : "Could not load vault."}
           />
-        </View>
+        </ScrollView>
       ) : vaults.length === 0 ? (
-        <View style={styles.emptyContainer}>
+        <ScrollView contentContainerStyle={styles.emptyContainer} refreshControl={refreshControl}>
           <Text style={styles.emptyIcon}>👨‍👩‍👧‍👦</Text>
           <Text style={[styles.emptyTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
             {isTamil ? "குடும்ப Vault இல்லை" : "No Family Vault Yet"}
@@ -268,9 +638,9 @@ export default function FamilyVaultScreen() {
               {isTamil ? "Vault உருவாக்கு" : "Create Vault"}
             </Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView showsVerticalScrollIndicator={false} refreshControl={refreshControl}>
           {/* Member horizontal scroller */}
           <ScrollView
             horizontal
@@ -285,7 +655,7 @@ export default function FamilyVaultScreen() {
                 ))
               : members.map((m, idx) => (
                   <MemberCard
-                    key={m.profileId}
+                    key={m.memberId}
                     member={m}
                     selected={idx === selectedMemberIdx}
                     onPress={() => setSelectedMemberIdx(idx)}
@@ -310,11 +680,31 @@ export default function FamilyVaultScreen() {
                 onAskVinaadi={() =>
                   router.push({ pathname: "/ask-vinaadi", params: { chartId: selectedMember.chartId } })
                 }
+                onOpenSynastry={() => handleOpenSynastry(selectedMember)}
               />
             </View>
           )}
         </ScrollView>
       )}
+      <BottomSheet
+        ref={synastrySheetRef}
+        snapPoints={synastrySnapPoints}
+        index={-1}
+        enablePanDownToClose
+        backgroundStyle={styles.synastrySheetBg}
+        handleIndicatorStyle={styles.synastrySheetHandle}
+      >
+        <BottomSheetScrollView contentContainerStyle={styles.synastrySheetScroll}>
+          <SynastryRadarSheet
+            member={synastryMember}
+            data={synastryData?.data ?? null}
+            isLoading={synastryLoading || (synastryFetching && !synastryData)}
+            isError={synastryError}
+            onRetry={() => { refetchSynastry(); }}
+            isTamil={isTamil}
+          />
+        </BottomSheetScrollView>
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -412,6 +802,94 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   askBtnText: { color: C.amber },
+  synastryBtn: {
+    backgroundColor: "rgba(255,255,255,0.10)",
+    borderRadius: RADIUS.button,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.28)",
+    padding: S.md,
+    alignItems: "center",
+  },
+  synastryBtnText: { color: "#FFFFFF", fontFamily: "Inter_700Bold" },
+  synastrySheetBg: { backgroundColor: C.parchment },
+  synastrySheetHandle: { backgroundColor: C.divider, width: 42 },
+  synastrySheetScroll: { padding: S.base, gap: S.md, paddingBottom: S.xxl },
+  sheetHeader: { flexDirection: "row", alignItems: "center", gap: S.md, marginBottom: S.sm },
+  sheetEyebrow: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 11,
+    letterSpacing: 0,
+    color: C.saffron,
+    textTransform: "uppercase",
+  },
+  sheetTitle: { color: C.textPrimary, marginTop: 2 },
+  sheetScoreBadge: {
+    minWidth: 74,
+    borderRadius: RADIUS.card,
+    borderWidth: 1.5,
+    backgroundColor: C.surface,
+    paddingHorizontal: S.sm,
+    paddingVertical: S.xs,
+    alignItems: "center",
+  },
+  sheetScoreValue: { fontFamily: "Inter_800ExtraBold", fontSize: 24, lineHeight: 28 },
+  sheetScoreLabel: { fontFamily: "Inter_700Bold", fontSize: 10, color: C.textTertiary },
+  radarPanel: {
+    backgroundColor: C.surface,
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
+    borderColor: C.divider,
+    padding: S.base,
+    gap: S.md,
+  },
+  radarChartWrap: { alignItems: "center" },
+  radarLegend: { gap: S.sm },
+  radarMetricRow: { gap: S.xs },
+  radarMetricMeta: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  radarMetricLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textSecond },
+  radarMetricValue: { fontFamily: "Inter_700Bold", fontSize: 12, color: C.textPrimary },
+  radarTrack: { height: 6, borderRadius: 4, backgroundColor: C.surfaceAlt, overflow: "hidden" },
+  radarFill: { height: 6, borderRadius: 4, backgroundColor: C.saffron },
+  summaryPanel: {
+    backgroundColor: C.surface,
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
+    borderColor: C.divider,
+    padding: S.base,
+    gap: S.sm,
+  },
+  sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 13, color: C.textPrimary },
+  summaryText: { color: C.textSecond },
+  notePanel: {
+    backgroundColor: "#EBF5ED",
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
+    borderColor: "rgba(45,122,58,0.20)",
+    padding: S.base,
+    gap: S.sm,
+  },
+  notePanelTension: { backgroundColor: "#FEF2F2", borderColor: "rgba(185,28,60,0.20)" },
+  noteRow: { flexDirection: "row", gap: S.sm, alignItems: "flex-start" },
+  noteDot: { width: 7, height: 7, borderRadius: 4, marginTop: 7 },
+  noteText: { color: C.textSecond, flex: 1 },
+  aspectRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: S.sm,
+    paddingVertical: S.sm,
+    borderTopWidth: 1,
+    borderTopColor: C.divider,
+  },
+  aspectDot: { width: 9, height: 9, borderRadius: 5, marginTop: 5 },
+  aspectBody: { flex: 1, gap: 3 },
+  aspectTitle: { fontFamily: "Inter_700Bold", fontSize: 12, color: C.textPrimary },
+  aspectNote: { color: C.textSecond },
+  toneChip: { borderRadius: RADIUS.chip, borderWidth: 1, paddingHorizontal: S.sm, paddingVertical: 3 },
+  toneChipText: { fontFamily: "Inter_700Bold", fontSize: 10 },
+  timingRow: { gap: S.xs, paddingTop: S.sm, borderTopWidth: 1, borderTopColor: C.divider },
+  timingPlanet: { fontFamily: "Inter_700Bold", fontSize: 12, color: C.saffron },
+  timingText: { color: C.textSecond },
+  sheetEmptyText: { fontFamily: "Inter_400Regular", fontSize: 14, color: C.textSecond, textAlign: "center" },
   gateContainer: {
     flex: 1,
     alignItems: "center",

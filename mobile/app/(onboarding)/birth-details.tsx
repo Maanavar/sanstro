@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import {
-  KeyboardAvoidingView, Platform, SafeAreaView, ScrollView,
+  KeyboardAvoidingView, Platform, ScrollView,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
@@ -11,6 +12,20 @@ import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { createBirthProfile } from "@/api/charts";
 import { setPrimaryChartId, setPrimaryProfileId } from "@/lib/userPrefs";
+
+async function geocodeBirthPlace(place: string): Promise<{ lat: number; lon: number } | null> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place)}&format=json&limit=1`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "VinaadAI/1.0 (mobile@vinaadi.app)" },
+    });
+    const data = (await res.json()) as Array<{ lat: string; lon: string }>;
+    if (!data.length) return null;
+    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+  } catch {
+    return null;
+  }
+}
 
 const GENDER_OPTIONS = [
   { key: "male", ta: "ஆண்", en: "Male" },
@@ -49,7 +64,8 @@ export default function BirthDetailsScreen() {
     }
     const d = parseInt(dobDay), m = parseInt(dobMonth), y = parseInt(dobYear);
     const curYear = new Date().getFullYear();
-    if (isNaN(d) || isNaN(m) || isNaN(y) || d < 1 || d > 31 || m < 1 || m > 12 || y < 1900 || y > curYear) {
+    const dateObj = new Date(y, m - 1, d);
+    if (isNaN(d) || isNaN(m) || isNaN(y) || y < 1900 || y > curYear || dateObj.getMonth() !== m - 1) {
       setError(isTamil ? "சரியான பிறந்த தேதி தேவை." : "Enter a valid date of birth.");
       return false;
     }
@@ -90,13 +106,24 @@ export default function BirthDetailsScreen() {
         birthTimeLocal = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:00`;
       }
 
+      const geo = await geocodeBirthPlace(birthPlace.trim());
+      if (!geo) {
+        setError(
+          isTamil
+            ? "இடம் கிடைக்கவில்லை. சரியான நகரம் பெயர் கொடுங்கள்."
+            : "Location not found. Please enter a valid city name."
+        );
+        setLoading(false);
+        return;
+      }
+
       const res = await createBirthProfile({
         displayName: displayName.trim(),
         birthDateLocal,
         birthTimeLocal,
         birthPlace: birthPlace.trim(),
-        birthLatitude: 0,
-        birthLongitude: 0,
+        birthLatitude: geo.lat,
+        birthLongitude: geo.lon,
         birthTimezone: "Asia/Kolkata",
         calculateNow: true,
         genderForTraditionalRules: gender === "other" ? null : gender,

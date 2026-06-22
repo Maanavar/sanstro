@@ -1,5 +1,7 @@
 import React from "react";
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Animated from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { C } from "@/theme/colors";
@@ -10,6 +12,7 @@ import { getDailyGuidance } from "@/api/guidance";
 import { ScoreRing } from "@/components/ScoreRing";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
+import { SharedTransitionView } from "@/components/SharedTransitionView";
 import type { DailyGuidanceData } from "@vinaadi/shared";
 
 function formatTime(iso: string): string {
@@ -60,7 +63,9 @@ export default function DailyScoreScreen() {
           <>
             {/* Score hero */}
             <View style={styles.scoreCard}>
-              <ScoreRing score={g.score} size={100} />
+              <SharedTransitionView sharedTransitionTag="score-ring">
+                <ScoreRing score={g.score} size={100} />
+              </SharedTransitionView>
               <View style={styles.scoreInfo}>
                 <Text style={[styles.scoreLabel, isTamil ? TamilType.caption : EnType.caption]}>
                   {isTamil ? "இன்றைய நிலை" : "Today's Score"}

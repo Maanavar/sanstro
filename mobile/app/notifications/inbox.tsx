@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { router } from "expo-router";
+import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { router, type Href } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
@@ -50,7 +51,7 @@ export default function NotificationInboxScreen() {
   const isTamil = lang === "ta";
   const [filter, setFilter] = useState<FilterId>("all");
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["notification-inbox"],
     queryFn: getNotificationInbox,
     staleTime: 1000 * 60 * 5,
@@ -105,6 +106,7 @@ export default function NotificationInboxScreen() {
           keyExtractor={(item) => item.notification_id}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={C.saffron} />}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyIcon}>📭</Text>
@@ -115,8 +117,13 @@ export default function NotificationInboxScreen() {
           }
           renderItem={({ item }) => {
             const isUnread = item.read_at === null;
+            const isPeyarchi = item.type === "alert" && item.title?.toLowerCase().includes("peyarchi");
             return (
-              <View style={[styles.notifRow, isUnread && styles.notifUnread]}>
+              <TouchableOpacity
+                style={[styles.notifRow, isUnread && styles.notifUnread]}
+                onPress={() => isPeyarchi ? router.push("/transits" as Href) : undefined}
+                activeOpacity={isPeyarchi ? 0.75 : 1}
+              >
                 <View style={[styles.iconCircle, { backgroundColor: iconBg(item.type) }]}>
                   <Text style={styles.iconEmoji}>{notifIcon(item.type)}</Text>
                 </View>
@@ -137,7 +144,7 @@ export default function NotificationInboxScreen() {
                 </View>
                 <Text style={styles.notifTime}>{timeAgo(item.send_at, isTamil)}</Text>
                 {isUnread && <View style={styles.unreadDot} />}
-              </View>
+              </TouchableOpacity>
             );
           }}
           ItemSeparatorComponent={() => <View style={styles.separator} />}

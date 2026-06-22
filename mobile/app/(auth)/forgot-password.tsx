@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import {
-  KeyboardAvoidingView, Platform, SafeAreaView, ScrollView,
+  KeyboardAvoidingView, Platform, ScrollView,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";

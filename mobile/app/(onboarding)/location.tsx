@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
-  StyleSheet, Text, TouchableOpacity, View, SafeAreaView,
-} from "react-native";
+  StyleSheet, Text, TouchableOpacity, View,} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import * as Location from "expo-location";
 import { C } from "@/theme/colors";

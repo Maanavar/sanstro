@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
+import * as Haptics from "expo-haptics";
 import {
-  SafeAreaView, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View,
+  ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View,
   Linking,
 } from "react-native";
-import { router } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { router, type Href } from "expo-router";
 import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
@@ -15,18 +17,18 @@ import { clearTokens } from "@/lib/secureStore";
 import { clearUserPrefs, getPrimaryChartId } from "@/lib/userPrefs";
 
 const RASI_NAMES: Record<string, { ta: string; en: string }> = {
-  mesham: { ta: "மேஷம்", en: "Aries" },
-  rishabam: { ta: "ரிஷபம்", en: "Taurus" },
-  mithunam: { ta: "மிதுனம்", en: "Gemini" },
-  katakam: { ta: "கடகம்", en: "Cancer" },
-  simham: { ta: "சிம்மம்", en: "Leo" },
-  kanni: { ta: "கன்னி", en: "Virgo" },
-  thulam: { ta: "துலாம்", en: "Libra" },
-  viruchigam: { ta: "விருச்சிகம்", en: "Scorpio" },
-  dhanusu: { ta: "தனுசு", en: "Sagittarius" },
-  makaram: { ta: "மகரம்", en: "Capricorn" },
-  kumbam: { ta: "கும்பம்", en: "Aquarius" },
-  meenam: { ta: "மீனம்", en: "Pisces" },
+  mesham: { ta: "à®®à¯‡à®·à®®à¯", en: "Aries" },
+  rishabam: { ta: "à®°à®¿à®·à®ªà®®à¯", en: "Taurus" },
+  mithunam: { ta: "à®®à®¿à®¤à¯à®©à®®à¯", en: "Gemini" },
+  katakam: { ta: "à®•à®Ÿà®•à®®à¯", en: "Cancer" },
+  simham: { ta: "à®šà®¿à®®à¯à®®à®®à¯", en: "Leo" },
+  kanni: { ta: "à®•à®©à¯à®©à®¿", en: "Virgo" },
+  thulam: { ta: "à®¤à¯à®²à®¾à®®à¯", en: "Libra" },
+  viruchigam: { ta: "à®µà®¿à®°à¯à®šà¯à®šà®¿à®•à®®à¯", en: "Scorpio" },
+  dhanusu: { ta: "à®¤à®©à¯à®šà¯", en: "Sagittarius" },
+  makaram: { ta: "à®®à®•à®°à®®à¯", en: "Capricorn" },
+  kumbam: { ta: "à®•à¯à®®à¯à®ªà®®à¯", en: "Aquarius" },
+  meenam: { ta: "à®®à¯€à®©à®®à¯", en: "Pisces" },
 };
 
 export default function MeScreen() {
@@ -49,6 +51,7 @@ export default function MeScreen() {
   }, []);
 
   async function togglePush(val: boolean) {
+    Haptics.selectionAsync();
     setPushOptedIn(val);
     await saveGuestPrefs({ pushOptedIn: val });
   }
@@ -66,7 +69,7 @@ export default function MeScreen() {
 
   const rasiLabel = rasi
     ? (isTamil ? (RASI_NAMES[rasi]?.ta ?? rasi) : (RASI_NAMES[rasi]?.en ?? rasi))
-    : (isTamil ? "தேர்வு செய்யவில்லை" : "Not selected");
+    : (isTamil ? "à®¤à¯‡à®°à¯à®µà¯ à®šà¯†à®¯à¯à®¯à®µà®¿à®²à¯à®²à¯ˆ" : "Not selected");
 
   return (
     <SafeAreaView style={styles.container}>
@@ -79,10 +82,10 @@ export default function MeScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {/* Rasi identity card */}
         <View style={styles.rasiCard}>
-          <Text style={styles.rasiSymbol}>⭐</Text>
+          <Text style={styles.rasiSymbol}>â­</Text>
           <View style={styles.rasiInfo}>
             <Text style={[styles.rasiLabel, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-              {isTamil ? `உங்கள் ராசி: ${rasiLabel}` : `Your Rasi: ${rasiLabel}`}
+              {isTamil ? `à®‰à®™à¯à®•à®³à¯ à®°à®¾à®šà®¿: ${rasiLabel}` : `Your Rasi: ${rasiLabel}`}
             </Text>
             {city && (
               <Text style={[styles.rasiCity, isTamil ? TamilType.caption : EnType.caption]}>
@@ -91,7 +94,7 @@ export default function MeScreen() {
             )}
           </View>
           <TouchableOpacity onPress={() => router.push("/(onboarding)/rasi-picker")}>
-            <Text style={styles.changeLink}>{isTamil ? "மாற்ற" : "Change"}</Text>
+            <Text style={styles.changeLink}>{isTamil ? "à®®à®¾à®±à¯à®±" : "Change"}</Text>
           </TouchableOpacity>
         </View>
 
@@ -99,7 +102,7 @@ export default function MeScreen() {
         <View style={styles.menuSection}>
           {/* Notifications */}
           <View style={styles.menuRow}>
-            <Text style={styles.menuIcon}>🔔</Text>
+            <Text style={styles.menuIcon}>ðŸ””</Text>
             <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
               {t(strings.me.push_label)}
             </Text>
@@ -114,20 +117,20 @@ export default function MeScreen() {
 
           {/* Language */}
           <View style={styles.menuRow}>
-            <Text style={styles.menuIcon}>🌐</Text>
+            <Text style={styles.menuIcon}>ðŸŒ</Text>
             <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
               {t(strings.me.language_label)}
             </Text>
             <View style={styles.langToggle}>
               <TouchableOpacity
                 style={[styles.langChip, lang === "ta" && styles.langChipActive]}
-                onPress={() => setLang("ta")}
+                onPress={() => { Haptics.selectionAsync(); setLang("ta"); }}
               >
-                <Text style={[styles.langChipText, lang === "ta" && styles.langChipTextActive]}>தமிழ்</Text>
+                <Text style={[styles.langChipText, lang === "ta" && styles.langChipTextActive]}>à®¤à®®à®¿à®´à¯</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.langChip, lang === "en" && styles.langChipActive]}
-                onPress={() => setLang("en")}
+                onPress={() => { Haptics.selectionAsync(); setLang("en"); }}
               >
                 <Text style={[styles.langChipText, lang === "en" && styles.langChipTextActive]}>EN</Text>
               </TouchableOpacity>
@@ -139,9 +142,9 @@ export default function MeScreen() {
           {city && (
             <>
               <View style={styles.menuRow}>
-                <Text style={styles.menuIcon}>📍</Text>
+                <Text style={styles.menuIcon}>ðŸ“</Text>
                 <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
-                  {isTamil ? "நகரம்" : "City"}
+                  {isTamil ? "à®¨à®•à®°à®®à¯" : "City"}
                 </Text>
                 <Text style={styles.menuValue}>{city}</Text>
               </View>
@@ -151,21 +154,21 @@ export default function MeScreen() {
 
           {/* Privacy */}
           <TouchableOpacity style={styles.menuRow} onPress={() => Linking.openURL("https://vinaadi.app/privacy")}>
-            <Text style={styles.menuIcon}>🔒</Text>
+            <Text style={styles.menuIcon}>ðŸ”’</Text>
             <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
-              {isTamil ? "தனியுரிமை" : "Privacy Policy"}
+              {isTamil ? "à®¤à®©à®¿à®¯à¯à®°à®¿à®®à¯ˆ" : "Privacy Policy"}
             </Text>
-            <Text style={styles.menuArrow}>›</Text>
+            <Text style={styles.menuArrow}>{">"}</Text>
           </TouchableOpacity>
           <View style={styles.divider} />
 
           {/* Terms */}
           <TouchableOpacity style={styles.menuRow} onPress={() => Linking.openURL("https://vinaadi.app/terms")}>
-            <Text style={styles.menuIcon}>📋</Text>
+            <Text style={styles.menuIcon}>ðŸ“‹</Text>
             <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
-              {isTamil ? "பயன்பாட்டு விதிகள்" : "Terms of Use"}
+              {isTamil ? "à®ªà®¯à®©à¯à®ªà®¾à®Ÿà¯à®Ÿà¯ à®µà®¿à®¤à®¿à®•à®³à¯" : "Terms of Use"}
             </Text>
-            <Text style={styles.menuArrow}>›</Text>
+            <Text style={styles.menuArrow}>{">"}</Text>
           </TouchableOpacity>
         </View>
 
@@ -192,7 +195,7 @@ export default function MeScreen() {
         {tier !== "guest" && (
           <View style={styles.menuSection}>
             <Text style={styles.menuSectionHeader}>
-              {isTamil ? "வழிகாட்டுதல்" : "Guidance"}
+              {isTamil ? "à®µà®´à®¿à®•à®¾à®Ÿà¯à®Ÿà¯à®¤à®²à¯" : "Guidance"}
             </Text>
             {primaryChartId && (
               <>
@@ -200,29 +203,72 @@ export default function MeScreen() {
                   style={styles.menuRow}
                   onPress={() => router.push({ pathname: "/jadhagam/[id]", params: { id: primaryChartId } })}
                 >
-                  <Text style={styles.menuIcon}>🔯</Text>
+                  <Text style={styles.menuIcon}>ðŸ”¯</Text>
                   <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
-                    {isTamil ? "என் ஜாதகம்" : "My Jadhagam"}
+                    {isTamil ? "à®Žà®©à¯ à®œà®¾à®¤à®•à®®à¯" : "My Jadhagam"}
                   </Text>
-                  <Text style={styles.menuArrow}>›</Text>
+                  <Text style={styles.menuArrow}>{">"}</Text>
+                </TouchableOpacity>
+                <View style={styles.divider} />
+                <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/wrapped" as Href)}>
+                  <Text style={styles.menuIcon}>YR</Text>
+                  <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+                    {isTamil ? "Annual Wrapped" : "Annual Wrapped"}
+                  </Text>
+                  <Text style={styles.menuArrow}>{">"}</Text>
+                </TouchableOpacity>
+                <View style={styles.divider} />
+                <TouchableOpacity
+                  style={styles.menuRow}
+                  onPress={() => router.push(`/rectification?chartId=${encodeURIComponent(primaryChartId)}` as Href)}
+                >
+                  <Text style={styles.menuIcon}>BT</Text>
+                  <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+                    {isTamil ? "Birth Time Rectification" : "Birth Time Rectification"}
+                  </Text>
+                  <Text style={styles.menuArrow}>{">"}</Text>
+                </TouchableOpacity>
+                <View style={styles.divider} />
+                <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/dasha" as Href)}>
+                  <Text style={styles.menuIcon}>ðŸª</Text>
+                  <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+                    {isTamil ? "à®¤à®šà®¾ à®•à®¾à®²à®µà®°à®¿à®šà¯ˆ" : "Dasha Timeline"}
+                  </Text>
+                  <Text style={styles.menuArrow}>{">"}</Text>
+                </TouchableOpacity>
+                <View style={styles.divider} />
+                <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/varshaphala" as Href)}>
+                  <Text style={styles.menuIcon}>ðŸ“…</Text>
+                  <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+                    {isTamil ? "à®µà®°à¯à®·à®ªà®²" : "Annual Prediction"}
+                  </Text>
+                  <Text style={styles.menuArrow}>{">"}</Text>
                 </TouchableOpacity>
                 <View style={styles.divider} />
               </>
             )}
-            <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/notifications/inbox")}>
-              <Text style={styles.menuIcon}>🔔</Text>
+            <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/transits" as Href)}>
+              <Text style={styles.menuIcon}>ðŸŒ™</Text>
               <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
-                {isTamil ? "அறிவிப்புகள்" : "Notification Inbox"}
+                {isTamil ? "à®ªà¯†à®¯à®°à¯à®šà¯à®šà®¿ / à®•à¯‹à®šà¯à®šà®¾à®°à®®à¯" : "Upcoming Transits"}
               </Text>
-              <Text style={styles.menuArrow}>›</Text>
+              <Text style={styles.menuArrow}>{">"}</Text>
+            </TouchableOpacity>
+            <View style={styles.divider} />
+            <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/notifications/inbox")}>
+              <Text style={styles.menuIcon}>ðŸ””</Text>
+              <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+                {isTamil ? "à®…à®±à®¿à®µà®¿à®ªà¯à®ªà¯à®•à®³à¯" : "Notification Inbox"}
+              </Text>
+              <Text style={styles.menuArrow}>{">"}</Text>
             </TouchableOpacity>
             <View style={styles.divider} />
             <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/notifications/settings")}>
-              <Text style={styles.menuIcon}>⚙️</Text>
+              <Text style={styles.menuIcon}>âš™ï¸</Text>
               <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
-                {isTamil ? "அறிவிப்பு அமைப்புகள்" : "Notification Settings"}
+                {isTamil ? "à®…à®±à®¿à®µà®¿à®ªà¯à®ªà¯ à®…à®®à¯ˆà®ªà¯à®ªà¯à®•à®³à¯" : "Notification Settings"}
               </Text>
-              <Text style={styles.menuArrow}>›</Text>
+              <Text style={styles.menuArrow}>{">"}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -231,9 +277,9 @@ export default function MeScreen() {
         {tier === "registered" && (
           <TouchableOpacity style={styles.upgradeStrip} onPress={() => router.push("/premium")} activeOpacity={0.85}>
             <Text style={[styles.upgradeText, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-              {isTamil ? "✨ Premium-க்கு மேம்படுத்துங்கள்" : "✨ Upgrade to Premium"}
+              {isTamil ? "âœ¨ Premium-à®•à¯à®•à¯ à®®à¯‡à®®à¯à®ªà®Ÿà¯à®¤à¯à®¤à¯à®™à¯à®•à®³à¯" : "âœ¨ Upgrade to Premium"}
             </Text>
-            <Text style={styles.upgradeArrow}>›</Text>
+            <Text style={styles.upgradeArrow}>â€º</Text>
           </TouchableOpacity>
         )}
 
@@ -241,7 +287,7 @@ export default function MeScreen() {
         {tier === "guest" && (
           <View style={styles.accountCta}>
             <Text style={[styles.accountCtaHeading, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-              {isTamil ? "உங்கள் ஜாதகம் இலவசமாக உருவாக்குங்கள்" : "Create your birth chart — free"}
+              {isTamil ? "à®‰à®™à¯à®•à®³à¯ à®œà®¾à®¤à®•à®®à¯ à®‡à®²à®µà®šà®®à®¾à®• à®‰à®°à¯à®µà®¾à®•à¯à®•à¯à®™à¯à®•à®³à¯" : "Create your birth chart â€” free"}
             </Text>
             <Text style={[styles.accountCtaDesc, isTamil ? TamilType.caption : EnType.caption]}>
               {t(strings.me.create_account_desc)}

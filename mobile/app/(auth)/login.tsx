@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import * as Haptics from "expo-haptics";
 import {
-  KeyboardAvoidingView, Platform, SafeAreaView, ScrollView,
+  KeyboardAvoidingView, Platform, ScrollView,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router, Link } from "expo-router";
 import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
@@ -11,6 +13,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { login } from "@/api/auth";
 import { ApiError } from "@/api/client";
+import { setUser } from "@/lib/analytics";
 
 export default function LoginScreen() {
   const { t, strings, lang } = useI18n();
@@ -25,6 +28,7 @@ export default function LoginScreen() {
   async function handleLogin() {
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail || !password) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setError(isTamil ? "மின்னஞ்சல் மற்றும் கடவுச்சொல் தேவை." : "Email and password are required.");
       return;
     }
@@ -36,8 +40,10 @@ export default function LoginScreen() {
         { userId: res.user.userId, email: res.user.email, displayName: res.user.displayName },
         "registered"
       );
+      setUser(res.user.userId);
       router.replace("/(tabs)/today");
     } catch (err) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       if (err instanceof ApiError && err.status === 401) {
         setError(isTamil ? "மின்னஞ்சல் அல்லது கடவுச்சொல் தவறு." : "Invalid email or password.");
       } else {
