@@ -1,0 +1,14 @@
+appId: ai.vinaadi.app
+---
+# Golden path: app launches, splash clears, and auth gate is visible.
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd
+# Either the onboarding welcome or the auth login button should be visible.
+- assertVisible:
+    anyOf:
+      - text: "Login"
+      - text: "உள்நுழை"
+      - text: "Sign in"
+      - text: "Get Started"
+      - text: "தொடங்குங்கள்"
