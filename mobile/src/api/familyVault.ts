@@ -18,6 +18,7 @@ export interface FamilyVaultListResponse {
 }
 
 export interface FamilyMemberDayView {
+  memberId: string;
   profileId: string;
   chartId: string;
   name: string;
@@ -52,8 +53,16 @@ export function listFamilyVaults(): Promise<FamilyVaultListResponse> {
   return apiGet("/family-vaults");
 }
 
-export function getFamilyVaultToday(vaultId: string): Promise<FamilyVaultTodayResponse> {
-  return apiGet(`/family-vaults/${vaultId}/today`);
+function utcDateParam(date = new Date()): string {
+  return date.toISOString().slice(0, 10);
+}
+
+export function getFamilyVaultToday(
+  vaultId: string,
+  dateLocal = utcDateParam()
+): Promise<FamilyVaultTodayResponse> {
+  const q = new URLSearchParams({ date: dateLocal });
+  return apiGet(`/family-vaults/${encodeURIComponent(vaultId)}/today?${q}`);
 }
 
 export function createFamilyVault(name: string): Promise<FamilyVaultCreateResponse> {

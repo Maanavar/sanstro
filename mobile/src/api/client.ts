@@ -2,9 +2,8 @@ import { router } from "expo-router";
 import { getTokens, setTokens, clearTokens } from "@/lib/secureStore";
 import { ENV } from "@/lib/env";
 
-// Single-flight 401 refresh — queue concurrent 401s, resolve after one refresh
-const QUEUE: Array<() => void> = [];
-let isRefreshing = false;
+// Single-flight 401 refresh — all concurrent 401s share one refresh Promise
+let _refreshPromise: Promise<void> | null = null;
 
 async function rotateTokens(): Promise<void> {
   const stored = await getTokens();
@@ -30,6 +29,15 @@ async function rotateTokens(): Promise<void> {
   });
 }
 
+function getRefreshPromise(): Promise<void> {
+  if (!_refreshPromise) {
+    _refreshPromise = rotateTokens().finally(() => {
+      _refreshPromise = null;
+    });
+  }
+  return _refreshPromise;
+}
+
 export async function fetchWithAuth(
   url: string,
   init: RequestInit = {}
@@ -45,24 +53,14 @@ export async function fetchWithAuth(
 
   if (res.status !== 401) return res;
 
-  if (!isRefreshing) {
-    isRefreshing = true;
-    try {
-      await rotateTokens();
-      QUEUE.forEach((fn) => fn());
-      QUEUE.length = 0;
-    } catch {
-      await clearTokens();
-      router.replace("/(auth)/login");
-      return res;
-    } finally {
-      isRefreshing = false;
-    }
+  try {
+    await getRefreshPromise();
+    return fetchWithAuth(url, init);
+  } catch {
+    await clearTokens();
+    router.replace("/(auth)/login");
+    return res;
   }
-
-  return new Promise((resolve) =>
-    QUEUE.push(() => resolve(fetchWithAuth(url, init)))
-  );
 }
 
 export async function apiGet<T>(url: string): Promise<T> {
