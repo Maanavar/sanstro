@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
+import * as Haptics from "expo-haptics";
 import {
-  SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View,
-  Platform,
+  ScrollView, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
+import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { NAKSHATRA_LIST } from "@vinaadi/shared";
 import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
@@ -13,8 +15,6 @@ import { useI18n } from "@/hooks/useI18n";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { getPorutham } from "@/api/tools";
-
-type View_ = "input" | "result";
 
 function NakshatraPicker({ label, value, onChange, isTamil }: {
   label: string;
@@ -32,7 +32,7 @@ function NakshatraPicker({ label, value, onChange, isTamil }: {
             <TouchableOpacity
               key={n.number}
               style={[styles.nChip, sel && styles.nChipSel]}
-              onPress={() => onChange(n.number)}
+              onPress={() => { Haptics.selectionAsync(); onChange(n.number); }}
             >
               <Text style={[styles.nChipText, sel && styles.nChipTextSel]}>
                 {isTamil ? n.name.ta : n.name.en}
@@ -49,10 +49,12 @@ export default function PoruthamScreen() {
   const { lang } = useI18n();
   const isTamil = lang === "ta";
 
-  const [view, setView] = useState<View_>("input");
   const [boyN, setBoyN] = useState<number | null>(null);
   const [girlN, setGirlN] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
+
+  const sheetRef = useRef<BottomSheet>(null);
+  const snapPoints = useMemo(() => ["55%", "92%"], []);
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["porutham", boyN, girlN],
@@ -63,73 +65,20 @@ export default function PoruthamScreen() {
 
   function handleCheck() {
     if (!boyN || !girlN) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSubmitted(true);
-    setView("result");
+    sheetRef.current?.expand();
   }
 
   const result = data?.data;
 
+  if (result && result.totalScore >= 8) {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
+
   const scoreColor = result
     ? result.totalScore >= 8 ? C.saffron : result.totalScore >= 5 ? C.amber : "#8B1A3C"
     : C.saffron;
-
-  if (view === "result" && submitted) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => { setView("input"); setSubmitted(false); }} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Text style={styles.back}>←</Text>
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, isTamil ? TamilType.heading : EnType.heading]}>
-            {isTamil ? "திருமண பொருத்தம்" : "Marriage Matching"}
-          </Text>
-          <TouchableOpacity onPress={() => { setView("input"); setSubmitted(false); }}>
-            <Text style={styles.checkAgain}>{isTamil ? "மீண்டும்" : "Again"}</Text>
-          </TouchableOpacity>
-        </View>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-          {isLoading ? (
-            <SkeletonCard height={160} />
-          ) : isError ? (
-            <ErrorCard onRetry={refetch} />
-          ) : result ? (
-            <>
-              {/* Score hero */}
-              <View style={[styles.scoreHero, { backgroundColor: scoreColor }]}>
-                <Text style={styles.scoreNum}>{result.totalScore} / {result.maxScore}</Text>
-                <Text style={styles.scoreLabel}>
-                  {isTamil ? result.summary.ta : result.summary.en}
-                </Text>
-              </View>
-
-              {/* Kuta breakdown */}
-              {result.kutas.map((k) => (
-                <View key={k.name} style={styles.kutaRow}>
-                  <View style={styles.kutaLeft}>
-                    <Text style={[styles.kutaName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                      {isTamil ? k.nameTa : k.name}
-                    </Text>
-                    <Text style={styles.kutaScore}>{k.score}/{k.maxScore}</Text>
-                  </View>
-                  <View style={[
-                    styles.kutaChip,
-                    { backgroundColor: k.score === k.maxScore ? "#EBF5ED" : k.score === 0 ? "#FEF2F2" : "#FEF5EC" },
-                  ]}>
-                    <Text style={[
-                      styles.kutaChipText,
-                      { color: k.score === k.maxScore ? C.green : k.score === 0 ? C.alert : C.caution },
-                    ]}>
-                      {k.score === k.maxScore ? (isTamil ? "பொருந்தும்" : "Match") : k.score === 0 ? (isTamil ? "பொருந்தாது" : "No match") : (isTamil ? "நடுத்தரம்" : "Partial")}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </>
-          ) : null}
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -185,6 +134,57 @@ export default function PoruthamScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <BottomSheet
+        ref={sheetRef}
+        snapPoints={snapPoints}
+        index={-1}
+        enablePanDownToClose
+        backgroundStyle={styles.sheetBg}
+        handleIndicatorStyle={styles.sheetHandle}
+      >
+        <BottomSheetScrollView contentContainerStyle={styles.sheetScroll}>
+          {isLoading ? (
+            <>
+              <SkeletonCard height={120} />
+              <SkeletonCard height={80} />
+            </>
+          ) : isError ? (
+            <ErrorCard onRetry={refetch} />
+          ) : result ? (
+            <>
+              <View style={[styles.scoreHero, { backgroundColor: scoreColor }]}>
+                <Text style={styles.scoreNum}>{result.totalScore} / {result.maxScore}</Text>
+                <Text style={styles.scoreLabel}>
+                  {isTamil ? result.summary.ta : result.summary.en}
+                </Text>
+              </View>
+
+              {result.kutas.map((k) => (
+                <View key={k.name} style={styles.kutaRow}>
+                  <View style={styles.kutaLeft}>
+                    <Text style={[styles.kutaName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
+                      {isTamil ? k.nameTa : k.name}
+                    </Text>
+                    <Text style={styles.kutaScore}>{k.score}/{k.maxScore}</Text>
+                  </View>
+                  <View style={[
+                    styles.kutaChip,
+                    { backgroundColor: k.score === k.maxScore ? "#EBF5ED" : k.score === 0 ? "#FEF2F2" : "#FEF5EC" },
+                  ]}>
+                    <Text style={[
+                      styles.kutaChipText,
+                      { color: k.score === k.maxScore ? C.green : k.score === 0 ? C.alert : C.caution },
+                    ]}>
+                      {k.score === k.maxScore ? (isTamil ? "பொருந்தும்" : "Match") : k.score === 0 ? (isTamil ? "பொருந்தாது" : "No match") : (isTamil ? "நடுத்தரம்" : "Partial")}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </>
+          ) : null}
+        </BottomSheetScrollView>
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -198,14 +198,12 @@ const styles = StyleSheet.create({
   },
   back: { fontFamily: "Inter_400Regular", fontSize: 22, color: C.textSecond, width: 40 },
   headerTitle: { color: C.textPrimary },
-  checkAgain: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: C.saffron, width: 60, textAlign: "right" },
   scroll: { padding: S.base, gap: S.md },
   formSub: { color: C.textSecond },
   formCols: { flexDirection: "row", gap: S.sm },
   colLabel: { flex: 1 },
   colChip: { borderRadius: RADIUS.chip, paddingHorizontal: S.md, paddingVertical: S.xs, alignSelf: "flex-start" },
   colChipText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.surface },
-
   pickerWrap: { gap: S.xs },
   pickerLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textSecond },
   pickerRow: {},
@@ -217,21 +215,21 @@ const styles = StyleSheet.create({
   nChipSel: { backgroundColor: C.saffron, borderColor: C.saffron },
   nChipText: { fontFamily: "NotoSansTamil_400Regular", fontSize: 12, lineHeight: 18, color: C.textPrimary },
   nChipTextSel: { color: C.surface },
-
   cta: {
     backgroundColor: C.saffron, borderRadius: RADIUS.button,
     height: 52, alignItems: "center", justifyContent: "center",
   },
   ctaDisabled: { opacity: 0.4 },
   ctaText: { fontFamily: "NotoSansTamil_700Bold", fontSize: 16, lineHeight: 24, color: C.surface },
-
+  sheetBg: { backgroundColor: C.parchment },
+  sheetHandle: { backgroundColor: C.divider, width: 40 },
+  sheetScroll: { padding: S.base, gap: S.md, paddingBottom: S.xxl },
   scoreHero: {
     borderRadius: RADIUS.card, padding: S.xl,
     alignItems: "center", gap: S.sm, marginBottom: S.sm,
   },
   scoreNum: { fontFamily: "Inter_800ExtraBold", fontSize: 48, color: C.surface, lineHeight: 56 },
   scoreLabel: { fontFamily: "NotoSansTamil_700Bold", fontSize: 18, lineHeight: 26, color: C.surface, textAlign: "center" },
-
   kutaRow: {
     backgroundColor: C.surface, borderRadius: RADIUS.card, padding: S.md,
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",

@@ -1,25 +1,53 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import * as Haptics from "expo-haptics";
 import {
-  SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
+import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
+import { useSession } from "@/hooks/useSession";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { BannerAdUnit } from "@/components/AdUnit";
+import { getDecisionBrief, type DecisionPriority } from "@/api/decisions";
 import { getMuhurta } from "@/api/tools";
+import { getPrimaryChartId } from "@/lib/userPrefs";
+import { scoreTone } from "@/lib/score";
 
 const ACTIVITIES = [
-  { key: "marriage",    ta: "திருமணம்",    en: "Marriage" },
-  { key: "house",       ta: "வீடு",         en: "House" },
-  { key: "vehicle",     ta: "வாகனம்",      en: "Vehicle" },
-  { key: "business",    ta: "தொழில்",       en: "Business" },
-  { key: "baby_naming", ta: "குழந்தை பேர்", en: "Baby Naming" },
-  { key: "travel",      ta: "பயணம்",       en: "Travel" },
+  { key: "marriage", label: "Marriage" },
+  { key: "house", label: "House" },
+  { key: "vehicle", label: "Vehicle" },
+  { key: "business", label: "Business" },
+  { key: "baby_naming", label: "Baby Naming" },
+  { key: "travel", label: "Travel" },
+];
+
+const LIFE_AREAS: Array<{ key: DecisionPriority; label: string; action: string }> = [
+  { key: "career", label: "Career", action: "make the career move" },
+  { key: "relationship", label: "Relationship", action: "move the relationship forward" },
+  { key: "money", label: "Money", action: "make the financial decision" },
+  { key: "family", label: "Family", action: "settle the family matter" },
+  { key: "education", label: "Education", action: "begin the learning plan" },
+  { key: "spiritual", label: "Spiritual", action: "start the spiritual commitment" },
+];
+
+const HORIZONS = [
+  { months: 3, label: "3 months" },
+  { months: 6, label: "6 months" },
+  { months: 12, label: "1 year" },
+  { months: 24, label: "2 years" },
 ];
 
 function addDays(date: Date, n: number): string {
@@ -28,81 +56,223 @@ function addDays(date: Date, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-type ViewState = "input" | "result";
+function addMonths(date: Date, n: number): string {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + n);
+  return d.toISOString().slice(0, 10);
+}
+
 
 export default function MuhurtaScreen() {
   const { lang } = useI18n();
+  const { tier } = useSession();
   const isTamil = lang === "ta";
+  const isGuest = tier === "guest";
 
-  const [view, setView] = useState<ViewState>("input");
+  const [mode, setMode] = useState<"quick" | "decision">("quick");
   const [activity, setActivity] = useState<string>("marriage");
-  const [submitted, setSubmitted] = useState(false);
+  const [decisionArea, setDecisionArea] = useState<DecisionPriority>("career");
+  const [horizonMonths, setHorizonMonths] = useState(6);
+  const [submittedMode, setSubmittedMode] = useState<"quick" | "decision" | null>(null);
+  const [chartId, setChartId] = useState<string | null>(null);
+
+  const sheetRef = useRef<BottomSheet>(null);
+  const snapPoints = useMemo(() => ["55%", "92%"], []);
+
+  useEffect(() => {
+    if (!isGuest) getPrimaryChartId().then(setChartId);
+  }, [isGuest]);
 
   const today = new Date();
   const dateFrom = addDays(today, 1);
   const dateTo = addDays(today, 30);
+  const targetDate = addMonths(today, horizonMonths);
+  const selectedArea = LIFE_AREAS.find((item) => item.key === decisionArea) ?? LIFE_AREAS[0];
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const muhurta = useQuery({
     queryKey: ["muhurta", activity, dateFrom, dateTo],
     queryFn: () => getMuhurta({ chartId: "public", activity, dateFrom, dateTo }),
-    enabled: submitted,
+    enabled: submittedMode === "quick",
     staleTime: 1000 * 60 * 60 * 12,
   });
 
-  function handleSearch() {
-    setSubmitted(true);
-    setView("result");
+  const decision = useQuery({
+    queryKey: ["decision-brief", chartId, decisionArea, targetDate],
+    queryFn: () => getDecisionBrief({
+      chartId: chartId!,
+      priority: decisionArea,
+      targetDate,
+      optionA: {
+        label: `Act within ${HORIZONS.find((h) => h.months === horizonMonths)?.label ?? "this window"}`,
+        description: `I want to ${selectedArea.action} within the selected horizon if timing supports it.`,
+      },
+      optionB: {
+        label: "Wait for stronger timing",
+        description: "I can delay and prepare until the astrology shows a cleaner support window.",
+      },
+    }),
+    enabled: submittedMode === "decision" && !!chartId,
+    staleTime: 1000 * 60 * 60 * 12,
+  });
+
+  function setModeWithHaptic(nextMode: "quick" | "decision") {
+    Haptics.selectionAsync();
+    setMode(nextMode);
+    setSubmittedMode(null);
   }
 
-  const slots = data?.data?.slots ?? [];
+  function handleSearch() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (mode === "decision" && (!chartId || isGuest)) {
+      Alert.alert(
+        "Chart required",
+        "Life Decision needs your birth chart so Vinaadi can compare dasha, transit, and timing support.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Create account", onPress: () => router.push("/(auth)/register") },
+        ]
+      );
+      return;
+    }
+    setSubmittedMode(mode);
+    sheetRef.current?.expand();
+  }
 
-  if (view === "result") {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setView("input")} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Text style={styles.back}>←</Text>
+  const slots = muhurta.data?.data?.slots ?? [];
+  const brief = decision.data?.data;
+  const isSearching = submittedMode === "quick" ? muhurta.isLoading : decision.isLoading;
+  const isError = submittedMode === "quick" ? muhurta.isError : decision.isError;
+  const retry = submittedMode === "quick" ? muhurta.refetch : decision.refetch;
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <Text style={styles.back}>{"<-"}</Text>
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, isTamil ? TamilType.heading : EnType.heading]}>Auspicious Timing</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        <View style={styles.segmented}>
+          <TouchableOpacity style={[styles.segment, mode === "quick" && styles.segmentActive]} onPress={() => setModeWithHaptic("quick")}>
+            <Text style={[styles.segmentText, mode === "quick" && styles.segmentTextActive]}>Quick Muhurta</Text>
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, isTamil ? TamilType.heading : EnType.heading]}>
-            {isTamil ? "முகூர்த்த நேரங்கள்" : "Auspicious Timings"}
-          </Text>
-          <View style={{ width: 40 }} />
+          <TouchableOpacity style={[styles.segment, mode === "decision" && styles.segmentActive]} onPress={() => setModeWithHaptic("decision")}>
+            <Text style={[styles.segmentText, mode === "decision" && styles.segmentTextActive]}>Life Decision</Text>
+          </TouchableOpacity>
         </View>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+
+        {mode === "quick" ? (
+          <>
+            <Text style={[styles.sectionLabel, isTamil ? TamilType.bodySmall : EnType.bodySmall]}>Select purpose</Text>
+            <View style={styles.activityRow}>
+              {ACTIVITIES.map((item) => (
+                <TouchableOpacity
+                  key={item.key}
+                  style={[styles.actChip, activity === item.key && styles.actChipSel]}
+                  onPress={() => { Haptics.selectionAsync(); setActivity(item.key); }}
+                >
+                  <Text style={[styles.actChipText, activity === item.key && styles.actChipTextSel]}>{item.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.dateRow}>
+              <View style={styles.datePill}>
+                <Text style={styles.dateLabel}>From</Text>
+                <Text style={styles.dateValue}>{dateFrom}</Text>
+              </View>
+              <Text style={styles.dateSep}>{"->"}</Text>
+              <View style={styles.datePill}>
+                <Text style={styles.dateLabel}>To</Text>
+                <Text style={styles.dateValue}>{dateTo}</Text>
+              </View>
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={[styles.sectionLabel, isTamil ? TamilType.bodySmall : EnType.bodySmall]}>Choose life area</Text>
+            <View style={styles.activityRow}>
+              {LIFE_AREAS.map((item) => (
+                <TouchableOpacity
+                  key={item.key}
+                  style={[styles.actChip, decisionArea === item.key && styles.actChipSel]}
+                  onPress={() => { Haptics.selectionAsync(); setDecisionArea(item.key); }}
+                >
+                  <Text style={[styles.actChipText, decisionArea === item.key && styles.actChipTextSel]}>{item.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={[styles.sectionLabel, isTamil ? TamilType.bodySmall : EnType.bodySmall]}>Planning horizon</Text>
+            <View style={styles.activityRow}>
+              {HORIZONS.map((item) => (
+                <TouchableOpacity
+                  key={item.months}
+                  style={[styles.actChip, horizonMonths === item.months && styles.actChipSel]}
+                  onPress={() => { Haptics.selectionAsync(); setHorizonMonths(item.months); }}
+                >
+                  <Text style={[styles.actChipText, horizonMonths === item.months && styles.actChipTextSel]}>{item.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.decisionPreview}>
+              <Text style={styles.previewKicker}>Decision window</Text>
+              <Text style={styles.previewTitle}>{selectedArea.label} by {targetDate}</Text>
+              <Text style={styles.previewBody}>Vinaadi will compare acting in this window with waiting for stronger support.</Text>
+            </View>
+          </>
+        )}
+
+        <TouchableOpacity style={styles.cta} onPress={handleSearch} activeOpacity={0.85}>
+          <Text style={styles.ctaText}>{mode === "quick" ? "Find Muhurta" : "Check Decision Timing"}</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      <BottomSheet
+        ref={sheetRef}
+        snapPoints={snapPoints}
+        index={-1}
+        enablePanDownToClose
+        backgroundStyle={styles.sheetBg}
+        handleIndicatorStyle={styles.sheetHandle}
+      >
+        <BottomSheetScrollView contentContainerStyle={styles.sheetScroll}>
           <Text style={[styles.resultCount, isTamil ? TamilType.caption : EnType.caption]}>
-            {isLoading
-              ? (isTamil ? "தேடுகிறது…" : "Searching…")
-              : `${slots.length} ${isTamil ? "நல்ல நேரங்கள்" : "auspicious times found"}`}
+            {isSearching
+              ? "Searching..."
+              : submittedMode === "decision"
+                ? "Decision brief"
+                : `${slots.length} auspicious times found`}
           </Text>
 
-          {isLoading ? (
+          {isSearching ? (
             <>
               <SkeletonCard height={96} />
               <SkeletonCard height={96} />
               <SkeletonCard height={96} />
             </>
           ) : isError ? (
-            <ErrorCard onRetry={refetch} />
+            <ErrorCard onRetry={retry} />
+          ) : submittedMode === "decision" && brief ? (
+            <DecisionResult brief={brief} />
           ) : (
             slots.map((slot, i) => (
-              <View key={i} style={styles.slotCard}>
+              <View key={`${slot.date}-${slot.timeStart}-${i}`} style={styles.slotCard}>
                 <View style={styles.slotLeft}>
-                  <Text style={[styles.slotDate, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                    {slot.tamilDate ? (isTamil ? slot.tamilDate.ta : slot.tamilDate.en) : slot.date}
-                  </Text>
+                  <Text style={styles.slotDate}>{slot.tamilDate ? (isTamil ? slot.tamilDate.ta : slot.tamilDate.en) : slot.date}</Text>
                   <Text style={styles.slotDateEn}>{slot.date}</Text>
                 </View>
                 <View style={styles.slotCenter}>
-                  <Text style={styles.slotTime}>
-                    {slot.timeStart} – {slot.timeEnd}
-                  </Text>
-                  <Text style={styles.slotScore}>
-                    {"⭐".repeat(Math.max(1, Math.min(5, Math.round(slot.score / 2))))}
-                  </Text>
+                  <Text style={styles.slotTime}>{slot.timeStart} - {slot.timeEnd}</Text>
+                  <Text style={styles.slotSupport} numberOfLines={2}>{isTamil ? slot.panchangamSupport.ta : slot.panchangamSupport.en}</Text>
                 </View>
                 {i === 0 && (
                   <View style={styles.bestBadge}>
-                    <Text style={styles.bestBadgeText}>{isTamil ? "சிறந்தது" : "Best"}</Text>
+                    <Text style={styles.bestBadgeText}>Best</Text>
                   </View>
                 )}
               </View>
@@ -110,64 +280,46 @@ export default function MuhurtaScreen() {
           )}
 
           <BannerAdUnit />
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Text style={styles.back}>←</Text>
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, isTamil ? TamilType.heading : EnType.heading]}>
-          {isTamil ? "முகூர்த்த நேரம்" : "Auspicious Timing"}
-        </Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        <Text style={[styles.sectionLabel, isTamil ? TamilType.bodySmall : EnType.bodySmall]}>
-          {isTamil ? "நோக்கம் தேர்வு" : "Select purpose"}
-        </Text>
-        <View style={styles.activityRow}>
-          {ACTIVITIES.map((a) => (
-            <TouchableOpacity
-              key={a.key}
-              style={[styles.actChip, activity === a.key && styles.actChipSel]}
-              onPress={() => setActivity(a.key)}
-            >
-              <Text style={[
-                styles.actChipText,
-                { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" },
-                activity === a.key && styles.actChipTextSel,
-              ]}>
-                {isTamil ? a.ta : a.en}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.dateRow}>
-          <View style={styles.datePill}>
-            <Text style={styles.dateLabel}>{isTamil ? "இருந்து" : "From"}</Text>
-            <Text style={styles.dateValue}>{dateFrom}</Text>
-          </View>
-          <Text style={styles.dateSep}>→</Text>
-          <View style={styles.datePill}>
-            <Text style={styles.dateLabel}>{isTamil ? "வரை" : "To"}</Text>
-            <Text style={styles.dateValue}>{dateTo}</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.cta} onPress={handleSearch} activeOpacity={0.85}>
-          <Text style={styles.ctaText}>
-            {isTamil ? "முகூர்த்தம் தேடு" : "Find Muhurta"}
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
+        </BottomSheetScrollView>
+      </BottomSheet>
     </SafeAreaView>
+  );
+}
+
+function DecisionResult({ brief }: { brief: import("@/api/decisions").DecisionBriefData }) {
+  const recommendedA = brief.recommended === brief.optionA.label;
+  return (
+    <View style={styles.decisionResult}>
+      <View style={styles.recommendPanel}>
+        <Text style={styles.previewKicker}>Recommendation</Text>
+        <Text style={styles.recommendTitle}>{brief.recommended}</Text>
+        <Text style={styles.previewBody}>{brief.reasoning.en}</Text>
+        {brief.caution && <Text style={styles.cautionText}>{brief.caution.en}</Text>}
+      </View>
+      <OptionCard option={brief.optionA} active={recommendedA} />
+      <OptionCard option={brief.optionB} active={!recommendedA} />
+    </View>
+  );
+}
+
+function OptionCard({ option, active }: { option: import("@/api/decisions").OptionAnalysis; active: boolean }) {
+  const tone = scoreTone(option.score);
+  return (
+    <View style={[styles.optionCard, active && styles.optionCardActive]}>
+      <View style={styles.optionTop}>
+        <Text style={styles.optionTitle}>{option.label}</Text>
+        <View style={[styles.scoreBadge, { backgroundColor: tone }]}>
+          <Text style={styles.scoreBadgeText}>{option.score}</Text>
+        </View>
+      </View>
+      {option.optimalWindow && <Text style={styles.optionWindow}>{option.optimalWindow}</Text>}
+      {option.alignmentNotes.slice(0, 2).map((note) => (
+        <Text key={note} style={styles.optionNote}>+ {note}</Text>
+      ))}
+      {option.riskFactors.slice(0, 2).map((risk) => (
+        <Text key={risk} style={styles.optionRisk}>! {risk}</Text>
+      ))}
+    </View>
   );
 }
 
@@ -178,10 +330,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: S.base, paddingVertical: S.md,
     borderBottomWidth: 1, borderBottomColor: C.divider,
   },
-  back: { fontFamily: "Inter_400Regular", fontSize: 22, color: C.textSecond, width: 40 },
+  back: { fontFamily: "Inter_700Bold", fontSize: 18, color: C.textSecond, width: 40 },
   headerTitle: { color: C.textPrimary },
   scroll: { padding: S.base, gap: S.md },
-
+  segmented: { flexDirection: "row", backgroundColor: C.surfaceAlt, borderRadius: RADIUS.button, padding: 3, gap: 3 },
+  segment: { flex: 1, borderRadius: RADIUS.input, alignItems: "center", paddingVertical: S.sm },
+  segmentActive: { backgroundColor: C.surface },
+  segmentText: { fontFamily: "Inter_700Bold", fontSize: 12, color: C.textSecond },
+  segmentTextActive: { color: C.saffron },
   sectionLabel: { color: C.textSecond },
   activityRow: { flexDirection: "row", flexWrap: "wrap", gap: S.sm },
   actChip: {
@@ -190,24 +346,22 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: C.divider,
   },
   actChipSel: { backgroundColor: C.saffron, borderColor: C.saffron },
-  actChipText: { fontSize: 13, lineHeight: 20, color: C.textPrimary },
+  actChipText: { fontFamily: "Inter_600SemiBold", fontSize: 13, lineHeight: 20, color: C.textPrimary },
   actChipTextSel: { color: C.surface },
-
   dateRow: { flexDirection: "row", alignItems: "center", gap: S.sm },
-  datePill: {
-    flex: 1, backgroundColor: C.surfaceAlt,
-    borderRadius: RADIUS.input, padding: S.md,
-  },
+  datePill: { flex: 1, backgroundColor: C.surfaceAlt, borderRadius: RADIUS.input, padding: S.md },
   dateLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: C.textTertiary },
   dateValue: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: C.textPrimary },
   dateSep: { fontFamily: "Inter_400Regular", fontSize: 16, color: C.textTertiary },
-
-  cta: {
-    backgroundColor: C.saffron, borderRadius: RADIUS.button,
-    height: 52, alignItems: "center", justifyContent: "center",
-  },
-  ctaText: { fontFamily: "NotoSansTamil_700Bold", fontSize: 16, lineHeight: 24, color: C.surface },
-
+  decisionPreview: { backgroundColor: C.surface, borderRadius: RADIUS.card, borderWidth: 1, borderColor: C.divider, padding: S.md, gap: S.xs },
+  previewKicker: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.saffron, textTransform: "uppercase", letterSpacing: 0 },
+  previewTitle: { fontFamily: "Inter_800ExtraBold", fontSize: 18, lineHeight: 24, color: C.textPrimary },
+  previewBody: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19, color: C.textSecond },
+  cta: { backgroundColor: C.saffron, borderRadius: RADIUS.button, height: 52, alignItems: "center", justifyContent: "center" },
+  ctaText: { fontFamily: "Inter_800ExtraBold", fontSize: 15, color: C.surface },
+  sheetBg: { backgroundColor: C.parchment },
+  sheetHandle: { backgroundColor: C.divider, width: 40 },
+  sheetScroll: { padding: S.base, gap: S.md, paddingBottom: S.xxl },
   resultCount: { color: C.textTertiary },
   slotCard: {
     backgroundColor: C.surface, borderRadius: RADIUS.card,
@@ -215,15 +369,25 @@ const styles = StyleSheet.create({
     gap: S.sm, shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
   },
-  slotLeft: { width: 80 },
-  slotDate: { fontSize: 16, lineHeight: 22, color: C.textPrimary },
+  slotLeft: { width: 82 },
+  slotDate: { fontFamily: "Inter_700Bold", fontSize: 15, lineHeight: 21, color: C.textPrimary },
   slotDateEn: { fontFamily: "Inter_400Regular", fontSize: 11, color: C.textTertiary },
   slotCenter: { flex: 1, gap: 4 },
-  slotTime: { fontFamily: "Inter_600SemiBold", fontSize: 16, color: C.textPrimary },
-  slotScore: { fontSize: 12 },
-  bestBadge: {
-    backgroundColor: C.gold, borderRadius: RADIUS.chip,
-    paddingHorizontal: S.sm, paddingVertical: 3,
-  },
-  bestBadgeText: { fontFamily: "NotoSansTamil_700Bold", fontSize: 10, lineHeight: 14, color: C.surface },
+  slotTime: { fontFamily: "Inter_700Bold", fontSize: 15, color: C.textPrimary },
+  slotSupport: { fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 17, color: C.textSecond },
+  bestBadge: { backgroundColor: C.gold, borderRadius: RADIUS.chip, paddingHorizontal: S.sm, paddingVertical: 3 },
+  bestBadgeText: { fontFamily: "Inter_800ExtraBold", fontSize: 10, color: C.surface },
+  decisionResult: { gap: S.md },
+  recommendPanel: { backgroundColor: C.darkBg, borderRadius: RADIUS.card, padding: S.md, gap: S.xs },
+  recommendTitle: { color: C.surface, fontFamily: "Inter_800ExtraBold", fontSize: 20, lineHeight: 26 },
+  cautionText: { color: "rgba(255,255,255,0.78)", fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 18, marginTop: S.xs },
+  optionCard: { backgroundColor: C.surface, borderRadius: RADIUS.card, borderWidth: 1, borderColor: C.divider, padding: S.md, gap: S.xs },
+  optionCardActive: { borderColor: C.gold, borderWidth: 2 },
+  optionTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: S.sm },
+  optionTitle: { flex: 1, color: C.textPrimary, fontFamily: "Inter_800ExtraBold", fontSize: 16 },
+  scoreBadge: { minWidth: 42, height: 28, borderRadius: 999, alignItems: "center", justifyContent: "center", paddingHorizontal: S.sm },
+  scoreBadgeText: { color: C.surface, fontFamily: "Inter_800ExtraBold", fontSize: 13 },
+  optionWindow: { color: C.saffron, fontFamily: "Inter_700Bold", fontSize: 12 },
+  optionNote: { color: C.textSecond, fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 17 },
+  optionRisk: { color: C.caution, fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 17 },
 });

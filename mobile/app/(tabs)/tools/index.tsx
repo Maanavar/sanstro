@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import {
-  Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View,
+  Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
@@ -17,9 +18,14 @@ interface ToolCard {
 }
 
 const TOOLS: ToolCard[] = [
-  { icon: "💍", key: "porutham", route: "/(tabs)/tools/porutham" },
-  { icon: "⏰", key: "muhurta", route: "/(tabs)/tools/muhurta" },
-  { icon: "📜", key: "jadhagam", locked: true },
+  { icon: "💍", key: "porutham",    route: "/(tabs)/tools/porutham" },
+  { icon: "⏰", key: "muhurta",     route: "/(tabs)/tools/muhurta" },
+  { icon: "⭐", key: "natchathiram", route: "/(tabs)/tools/natchathiram" },
+  { icon: "📜", key: "jadhagam",    locked: true },
+  { icon: "🔱", key: "dosham",      route: "/(tabs)/tools/dosham" },
+  { icon: "🌟", key: "yogam",       route: "/(tabs)/tools/yogam" },
+  { icon: "🛕", key: "pariharam",   route: "/(tabs)/tools/pariharam" },
+  { icon: "🔮", key: "prashan",     route: "/(tabs)/tools/prashan" },
 ];
 
 export default function ToolsScreen() {
@@ -83,14 +89,29 @@ export default function ToolsScreen() {
           <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>
 
+        {/* Nakshatra */}
+        <Text style={styles.sectionLabel}>{isTamil ? "நட்சத்திரம்" : "Nakshatra"}</Text>
+        <TouchableOpacity style={styles.card} onPress={() => handleToolTap(TOOLS[2])} activeOpacity={0.85}>
+          <Text style={styles.cardIcon}>{TOOLS[2].icon}</Text>
+          <View style={styles.cardText}>
+            <Text style={[styles.cardName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
+              {isTamil ? "நட்சத்திர விவரம்" : "Nakshatra Details"}
+            </Text>
+            <Text style={[styles.cardDesc, isTamil ? TamilType.caption : EnType.caption]}>
+              {isTamil ? "பண்புகள், தெய்வம், சின்னம், பாதங்கள்" : "Traits, deity, symbol & padas"}
+            </Text>
+          </View>
+          <Text style={styles.arrow}>›</Text>
+        </TouchableOpacity>
+
         {/* Birth Chart */}
         <Text style={styles.sectionLabel}>{isTamil ? "ஜாதகம்" : "Birth Chart"}</Text>
         <TouchableOpacity
           style={styles.card}
-          onPress={() => handleToolTap(TOOLS[2])}
+          onPress={() => handleToolTap(TOOLS[3])}
           activeOpacity={0.85}
         >
-          <Text style={styles.cardIcon}>{TOOLS[2].icon}</Text>
+          <Text style={styles.cardIcon}>{TOOLS[3].icon}</Text>
           <View style={styles.cardText}>
             <Text style={[styles.cardName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
               {t(strings.tools.jadhagam_name)}
@@ -104,6 +125,46 @@ export default function ToolsScreen() {
           ) : (
             <Text style={styles.arrow}>›</Text>
           )}
+        </TouchableOpacity>
+
+        {/* Chart Analysis */}
+        <Text style={styles.sectionLabel}>{isTamil ? "ஜாதக ஆய்வு" : "Chart Analysis"}</Text>
+        {[TOOLS[4], TOOLS[5], TOOLS[6]].map((tool, i) => {
+          const labels: { ta: string; en: string; descTa: string; descEn: string }[] = [
+            { ta: "தோஷ ஆய்வு", en: "Dosha Check", descTa: "மங்கல, கால சர்ப, பித்ரு தோஷம்", descEn: "Mangal, Kala Sarpa, Pitru doshas" },
+            { ta: "யோக ஆய்வு", en: "Yoga Analysis", descTa: "ராஜ யோகம், தன யோகம் மேலும்", descEn: "Raja, Dhana & Pancha Mahapurusha yogas" },
+            { ta: "பரிகார பரிந்துரை", en: "Remedies", descTa: "கோயில், மந்திரம், கல்லு, நிறம்", descEn: "Temples, mantras, stones & colours" },
+          ];
+          const lbl = labels[i];
+          return (
+            <TouchableOpacity key={tool.key} style={styles.card} onPress={() => handleToolTap(tool)} activeOpacity={0.85}>
+              <Text style={styles.cardIcon}>{tool.icon}</Text>
+              <View style={styles.cardText}>
+                <Text style={[styles.cardName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
+                  {isTamil ? lbl.ta : lbl.en}
+                </Text>
+                <Text style={[styles.cardDesc, isTamil ? TamilType.caption : EnType.caption]}>
+                  {isTamil ? lbl.descTa : lbl.descEn}
+                </Text>
+              </View>
+              <Text style={styles.arrow}>›</Text>
+            </TouchableOpacity>
+          );
+        })}
+
+        {/* Horary */}
+        <Text style={styles.sectionLabel}>{isTamil ? "பிரச்னம்" : "Horary"}</Text>
+        <TouchableOpacity style={styles.card} onPress={() => handleToolTap(TOOLS[7])} activeOpacity={0.85}>
+          <Text style={styles.cardIcon}>{TOOLS[7].icon}</Text>
+          <View style={styles.cardText}>
+            <Text style={[styles.cardName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
+              {isTamil ? "பிரச்னம் (ஹோரர்)" : "Prashan (Horary)"}
+            </Text>
+            <Text style={[styles.cardDesc, isTamil ? TamilType.caption : EnType.caption]}>
+              {isTamil ? "கேள்வி கேட்டு உடனடி பதில் பெறுங்கள்" : "Ask a question, get an instant reading"}
+            </Text>
+          </View>
+          <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>
 
         {/* Guest banner */}
