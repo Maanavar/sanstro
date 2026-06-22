@@ -10,6 +10,7 @@ import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
+import { OnboardingProgressBar } from "@/components/OnboardingProgressBar";
 import { createBirthProfile } from "@/api/charts";
 import { setPrimaryChartId, setPrimaryProfileId } from "@/lib/userPrefs";
 
@@ -164,12 +165,13 @@ export default function BirthDetailsScreen() {
             <Text style={styles.backText}>← {isTamil ? "பின்னால்" : "Back"}</Text>
           </TouchableOpacity>
 
-          {/* Progress dots: overall steps 1-4, this screen is steps 2-3 */}
-          <View style={styles.dotsRow}>
-            {[0, 1, 2, 3].map((i) => (
-              <View key={i} style={[styles.dot, i === step + 1 && styles.dotActive]} />
-            ))}
-          </View>
+          {/* Progress bar: overall steps 1-4, this screen covers steps 2-3 */}
+          <OnboardingProgressBar
+            currentStep={step + 2}
+            totalSteps={4}
+            label={isTamil ? "கணக்கீடு அமைப்பு" : "Setup"}
+            style={{ marginBottom: S.xl }}
+          />
 
           {step === 0 ? (
             <>

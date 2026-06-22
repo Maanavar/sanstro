@@ -10,6 +10,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { getChartFull } from "@/api/charts";
 import { ThirukanithamBadge } from "@/components/ThirukanithamBadge";
 import { JadhagamChart, type JadhagamHouseData } from "@/components/JadhagamChart";
+import { AnimatedEmptyState } from "@/components/AnimatedEmptyState";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import type { ChartCalculateResponseData } from "@vinaadi/shared";
 
@@ -52,22 +53,16 @@ export default function JadhagamRevealScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Success header */}
-        <View style={styles.successRow}>
-          <View style={styles.checkCircle}>
-            <Text style={styles.checkMark}>✓</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.readyTitle, isTamil ? TamilType.heading : EnType.heading]}>
-              {isTamil ? "ஜாதகம் தயார்!" : "Jadhagam Ready!"}
-            </Text>
-            {chart?.birthProfile && (
-              <Text style={[styles.readySub, isTamil ? TamilType.caption : EnType.caption]}>
-                {chart.birthProfile.displayName}
-                {chart.birthProfile.birthPlace ? ` · ${chart.birthProfile.birthPlace}` : ""}
-              </Text>
-            )}
-          </View>
-        </View>
+        <AnimatedEmptyState
+          variant="success"
+          title={isTamil ? "ஜாதகம் தயார்!" : "Jadhagam Ready!"}
+          body={
+            chart?.birthProfile
+              ? `${chart.birthProfile.displayName}${chart.birthProfile.birthPlace ? ` · ${chart.birthProfile.birthPlace}` : ""}`
+              : undefined
+          }
+          style={{ marginBottom: S.xl }}
+        />
 
         {/* Chart preview card */}
         <View style={styles.chartCard}>

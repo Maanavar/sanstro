@@ -17,6 +17,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { ErrorCard } from "@/components/ErrorCard";
 import { SkeletonCard } from "@/components/SkeletonCard";
+import { AnimatedEmptyState } from "@/components/AnimatedEmptyState";
 import { getDashaTimeline, dashaKeys } from "@/api/dasha";
 import { getLifeAreas, lifeAreasKeys } from "@/api/lifeAreas";
 import { getLifeEvents, lifeEventsKeys } from "@/api/lifeEvents";
@@ -168,17 +169,18 @@ export default function InsightsScreen() {
         </View>
 
         {!isAuthenticated || !chartId ? (
-          <View style={styles.emptyPanel}>
-            <Text style={[styles.emptyTitle, type.heading]}>{isTamil ? "Add a chart to unlock personal insights" : "Add a chart to unlock personal insights"}</Text>
-            <Text style={[styles.emptyBody, type.body]}>
-              {isTamil
-                ? "Dasha, life-area trends, event windows, and annual predictions are calculated from your birth chart."
+          <>
+            <AnimatedEmptyState
+              variant="constellation"
+              title={isTamil ? "உங்கள் ஜாதகம் சேர்க்கவும்" : "Add your chart to unlock insights"}
+              body={isTamil
+                ? "தசா, வாழ்க்கைப் பகுதிகள், நிகழ்வு சாளரங்கள் மற்றும் ஆண்டு கணிப்புகள் உங்கள் பிறந்த ஜாதகத்திலிருந்து கணக்கிடப்படுகின்றன."
                 : "Dasha, life-area trends, event windows, and annual predictions are calculated from your birth chart."}
-            </Text>
+            />
             <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push("/(auth)/register")}>
-              <Text style={styles.primaryBtnText}>{isTamil ? "Create account" : "Create account"}</Text>
+              <Text style={styles.primaryBtnText}>{isTamil ? "கணக்கு உருவாக்கு" : "Create account"}</Text>
             </TouchableOpacity>
-          </View>
+          </>
         ) : (
           <>
             {dasha.isLoading ? (

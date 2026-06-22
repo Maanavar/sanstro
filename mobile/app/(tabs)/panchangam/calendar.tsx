@@ -14,6 +14,7 @@ import { ErrorCard } from "@/components/ErrorCard";
 import { getPanchangamMonth } from "@/api/panchangam";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
 import type { GuestPrefs } from "@/features/guest/guestStore";
+import { SwipeRouteView } from "@/components/SwipeRouteView";
 
 const TZ = "Asia/Kolkata";
 
@@ -66,6 +67,7 @@ export default function PanchangamCalendarScreen() {
   const todayStr = today.toISOString().slice(0, 10);
 
   return (
+    <SwipeRouteView rightRoute="/(tabs)/panchangam">
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
@@ -184,6 +186,7 @@ export default function PanchangamCalendarScreen() {
         })()}
       </ScrollView>
     </SafeAreaView>
+    </SwipeRouteView>
   );
 }
 
