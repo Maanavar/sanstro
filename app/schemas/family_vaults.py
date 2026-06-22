@@ -299,6 +299,7 @@ class FamilyCalendarResponse(BaseModel):
 
 
 class FamilyMemberDayView(BaseModel):
+    member_id: UUID = Field(alias="memberId")
     profile_id: UUID = Field(alias="profileId")
     chart_id: UUID = Field(alias="chartId")
     name: str

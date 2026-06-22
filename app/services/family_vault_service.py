@@ -1254,6 +1254,7 @@ def get_family_vault_today(
         birth_profile = _latest_birth_profile(session, member)
 
         day_views.append(FamilyMemberDayView(
+            memberId=member.family_member_id,
             profileId=birth_profile.birth_profile_id,
             chartId=snapshot.chart_id,
             name=member.display_name,

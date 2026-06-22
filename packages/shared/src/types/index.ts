@@ -335,6 +335,8 @@ export interface DailyGuidanceData {
   currentHoraLord?: string | null;
   pratyantarNarrative?: BiText | null;
   tithiCard: BiText | null;
+  isChandrashtama?: boolean;
+  chandrashtamaEnds?: string | null;
 }
 
 export type AmbientAlertItem = {

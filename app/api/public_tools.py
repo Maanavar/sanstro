@@ -19,15 +19,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.orm import Session
 
+from app.calculations.astro import RASI_NAME_TO_NUMBER, RASI_NAMES
 from app.calculations.porutham import compute_porutham
 from app.db.session import get_db
 from app.schemas.birth_profiles import _validate_birth_date_bounds  # noqa: PLC2701 (shared validation)
 from app.schemas.charts import ChartCalculateResponseData
 from app.schemas.muhurtham_naal import MuhurthamNaalListResponse, item_from_view
-from app.schemas.panchangam import PanchangamDailyQuery, PanchangamDailyResponse
+from app.schemas.panchangam import PanchangamDailyQuery, PanchangamDailyResponse, PanchangamMonthlyQuery, PanchangamMonthlyResponse
 from app.schemas.relationships import DirectPoruthamData, KutaResult, NadiDoshaData, RelationshipBiText
 from app.services.chart_service import _chart_response_from_profile  # noqa: PLC2701 (internal use)
-from app.services.panchangam_service import calculate_panchangam
+from app.services.panchangam_service import build_monthly_panchangam, calculate_panchangam
 
 logger = logging.getLogger(__name__)
 
@@ -576,3 +577,147 @@ def public_muhurta(
     ]
 
     return PublicMuhurtaResponse(success=True, slots=slots)
+
+
+# ── Public Rasi Palan ──────────────────────────────────────────────────────────
+
+_RASI_PALAN_TA: dict[int, dict] = {
+    1:  {"title": "கலப்பான நாள்", "body": "சந்திரன் உங்கள் பிறப்பு ராசியில் உள்ளது. மன அமைதியின்மை, உள்ளார்ந்த சிந்தனை அதிகமாக இருக்கும். அவசர முடிவுகளைத் தவிர்க்கவும்; குறுகிய பயணம் சாத்தியம்.", "lucky_color": "வெள்ளை / வெள்ளி", "pariharam": "மாலையில் மேற்கு திசை நோக்கி சந்திரனுக்கு நீர் அர்க்கியம் செலுத்துங்கள். வீட்டில் வெள்ளை நிற விளக்கு ஏற்றுங்கள்.", "lucky_numbers": [2, 7], "tone": "neutral"},
+    2:  {"title": "பண விஷயங்கள்", "body": "குடும்பம் மற்றும் பண விஷயங்கள் முன்னிலையில் உள்ளன. வாக்கு விஷயத்தில் கவனமாக இருங்கள். சிறிய பண பிரச்சினைகள் சாத்தியம்.", "lucky_color": "மஞ்சள் / தங்க நிறம்", "pariharam": "ஒரு குடும்பத்திற்கு உணவு அல்லது மளிகை தானம் செய்யுங்கள். காலையில் ஸ்ரீ சூக்தம் அல்லது லக்ஷ்மி அஷ்டகம் படியுங்கள்.", "lucky_numbers": [6, 8], "tone": "neutral"},
+    3:  {"title": "தைரியம் மற்றும் முயற்சி", "body": "முயற்சி, குறுகிய பயணம், தொடர்பாடல் ஆகியவற்றிற்கு நல்ல சக்தி. சகோதர ஆதரவு உண்டு. நம்பிக்கையுடன் சவால்களை எதிர்கொள்ளுங்கள்.", "lucky_color": "சிவப்பு / கோரல்", "pariharam": "முருகன் கோவிலுக்கு செல்லுங்கள். சிவப்பு மலர் சமர்ப்பித்து வேண்டிக் கொள்ளுங்கள்.", "lucky_numbers": [3, 9], "tone": "positive"},
+    4:  {"title": "வீடு மற்றும் சுகம்", "body": "வீடு, சொத்து, தாயின் நலன் ஆகியவை கவனம் பெறும். அமைதியான, சுகமான காலம். குடும்ப விஷயங்களுக்கு ஏற்றது.", "lucky_color": "வெண்மை / இளம் பச்சை", "pariharam": "சிவலிங்கத்திற்கு பால் அபிஷேகம் செய்யுங்கள். இன்று தாயை சேவியுங்கள் அல்லது அவர் ஆசீர்வாதம் பெறுங்கள்.", "lucky_numbers": [2, 4], "tone": "positive"},
+    5:  {"title": "புத்தி மற்றும் மகிழ்ச்சி", "body": "புத்தி கூர்மையாகவும் படைப்பாற்றல் மிகுந்தும் உள்ளது. பிள்ளைகள், காதல், கற்றல் ஆகியவற்றிற்கு நல்லது. உள்ளுணர்வு அதிகரிக்கும்.", "lucky_color": "மஞ்சள் / ஆரஞ்சு", "pariharam": "விநாயகர் கோவிலுக்கு செல்லுங்கள். கொழுக்கட்டை நைவேத்தியம் செய்யுங்கள்.", "lucky_numbers": [5, 9], "tone": "positive"},
+    6:  {"title": "உடல் நலம் மற்றும் சேவை", "body": "சிறிய உடல்நலக்குறைவு அல்லது கடன் வரலாம். மோதல்களை கவனமாக கையாளுங்கள். சேவை, வழக்கமான பணிகள், சுய பராமரிப்பில் கவனம் செலுத்துங்கள்.", "lucky_color": "பச்சை", "pariharam": "காலையில் நாய்கள் மற்றும் பறவைகளுக்கு உணவிடுங்கள். துர்கை கோவிலுக்கு சென்று வேம்பு இலை சமர்ப்பியுங்கள்.", "lucky_numbers": [5, 6], "tone": "caution"},
+    7:  {"title": "உறவுகள்", "body": "கூட்டாண்மை, சமூக தொடர்புகள் முன்னிலையில் உள்ளன. புதியவர்களை சந்திக்கவும், ஒத்துழைக்கவும் ஏற்ற நேரம். துணையர் விஷயங்கள் கவனம் பெறும்.", "lucky_color": "வெள்ளை / இளஞ்சிவப்பு", "pariharam": "லலிதா சஹஸ்ரநாமம் படியுங்கள் அல்லது தேவிக்கு மலர் சமர்ப்பியுங்கள். துணையரிடம் அன்பான செயல் செய்யுங்கள்.", "lucky_numbers": [6, 7], "tone": "neutral"},
+    8:  {"title": "சந்திராஷ்டமம்", "body": "சந்திரன் உங்கள் ராசியிலிருந்து 8ஆம் இடத்தில் உள்ளது. புதிய தொடக்கங்கள், முக்கிய முடிவுகள், அறுவை சிகிச்சை, பண ஆபத்துகளை தவிர்க்கவும். ஓய்வும் தியானமும் நலம்.", "lucky_color": "வெள்ளை / சாம்பல்", "pariharam": "சிவலிங்கத்திற்கு பால் அபிஷேகம் செய்து வில்வம் சமர்ப்பியுங்கள். மகா மிருத்யுஞ்சய மந்திரம் 108 முறை ஜபியுங்கள்.", "lucky_numbers": [8], "tone": "warn"},
+    9:  {"title": "அதிர்ஷ்டம் மற்றும் ஆசீர்வாதம்", "body": "சுப காலம். அதிர்ஷ்டம், தர்மம், தந்தையின் ஆசீர்வாதம், நீண்ட பயணம் ஆகியவை சாதகமாக உள்ளன. ஆன்மிக நடவடிக்கைகளில் பலன் கிடைக்கும்.", "lucky_color": "மஞ்சள் / காவி", "pariharam": "குலதெய்வம் அல்லது தந்தையின் விரும்பிய கோவிலுக்கு செல்லுங்கள். கோவிலுக்கு தானம் செய்யுங்கள்.", "lucky_numbers": [1, 3], "tone": "positive"},
+    10: {"title": "தொழில் மற்றும் அங்கீகாரம்", "body": "தொழில் நடவடிக்கைகள், பொது தெரிவு, தலைமை ஏற்பதற்கு நல்லது. தொழில் இலக்குகளில் நடவடிக்கை எடுங்கள் — வேகம் கிடைக்கும்.", "lucky_color": "சிவப்பு / செம்பு / ஆரஞ்சு", "pariharam": "சூரிய அஷ்டகம் படியுங்கள் அல்லது காலையில் உதிக்கும் சூரியனுக்கு அர்க்கியம் செலுத்துங்கள்.", "lucky_numbers": [1, 9], "tone": "positive"},
+    11: {"title": "லாபம் மற்றும் வெற்றி", "body": "மிகவும் நல்ல நாள். லாபம், ஆசை நிறைவேற்றம், வருமானம், நட்பு சாதகமாக உள்ளன. சந்திர சுழற்சியின் சிறந்த காலம் — வாய்ப்புகளை பயன்படுத்துங்கள்.", "lucky_color": "நீலம் / இண்டிகோ", "pariharam": "ஒரு தர்ம நிறுவனத்திற்கு தானம் செய்யுங்கள். விநாயகர் கோவிலுக்கு சென்று வேண்டிக் கொள்ளுங்கள்.", "lucky_numbers": [3, 6, 9], "tone": "positive"},
+    12: {"title": "செலவு மற்றும் ஓய்வு", "body": "செலவுகள் மற்றும் நஷ்டம் சாத்தியம். உலகிலிருந்து விலகி ஓய்வெடுங்கள். ஆன்மிக சாதனை, தனிமை, வெளிநாட்டு தொடர்புகளுக்கு ஏற்றது.", "lucky_color": "மஞ்சள் / வெள்ளை", "pariharam": "மாலையில் நல்லெண்ணெய் விளக்கு ஏற்றுங்கள். ஏழைகளுக்கு தானம் செய்யுங்கள். விஷ்ணு சஹஸ்ரநாமம் படியுங்கள்.", "lucky_numbers": [3, 7], "tone": "caution"},
+}
+
+_RASI_PALAN_EN: dict[int, dict] = {
+    1:  {"title": "Mixed day", "body": "Moon transits your natal sign — mental restlessness and introspection. Avoid impulsive new starts; short travel is possible.", "lucky_color": "White / Silver", "pariharam": "Offer water to the Moon at dusk (pour water facing west while reciting Chandra's name). Light a white lamp at home.", "lucky_numbers": [2, 7], "tone": "neutral"},
+    2:  {"title": "Financial focus", "body": "Family and money matters surface. Watch your speech — careless words create friction. Minor monetary tensions are possible.", "lucky_color": "Yellow / Gold", "pariharam": "Donate food or groceries to a family in need. Recite Sri Suktam or Lakshmi Ashtakam in the morning.", "lucky_numbers": [6, 8], "tone": "neutral"},
+    3:  {"title": "Courage and effort", "body": "Strong energy for initiative, short travel, and communication. Sibling support is available. Take on challenges with confidence.", "lucky_color": "Red / Coral", "pariharam": "Visit a Murugan temple. Offer red flowers or a garland and pray for strength and courage.", "lucky_numbers": [3, 9], "tone": "positive"},
+    4:  {"title": "Home and comfort", "body": "Focus on home, property, and mother's wellbeing. A peaceful and comforting period — good for domestic matters and rest.", "lucky_color": "Cream / Light Green", "pariharam": "Offer milk abhishekam to a Shivalinga. Serve or seek blessings from your mother today.", "lucky_numbers": [2, 4], "tone": "positive"},
+    5:  {"title": "Intellect and joy", "body": "Sharp intelligence and creativity. Good for children, romance, learning, and speculative ideas. Intuition is heightened.", "lucky_color": "Yellow / Orange", "pariharam": "Visit a Vinayaka temple. Offer modakam or kozhukattai and pray for wisdom and clarity.", "lucky_numbers": [5, 9], "tone": "positive"},
+    6:  {"title": "Health and service", "body": "Minor health issues or debts may surface. Handle conflicts carefully. Focus on service, routines, and self-care.", "lucky_color": "Green", "pariharam": "Feed dogs and birds in the morning. Visit a Durga Devi temple and offer neem leaves or flowers.", "lucky_numbers": [5, 6], "tone": "caution"},
+    7:  {"title": "Relationships", "body": "Partnerships and social interactions are highlighted. Good for meeting people, collaborating, and spouse-related matters.", "lucky_color": "White / Pink", "pariharam": "Recite Lalita Sahasranama or offer white or pink flowers to Devi. Perform an act of kindness toward your spouse or partner.", "lucky_numbers": [6, 7], "tone": "neutral"},
+    8:  {"title": "Chandrashtamam", "body": "Moon is in the 8th house from your rasi. Avoid new ventures, major decisions, surgery, and financial risk. Rest and introspect.", "lucky_color": "White / Grey", "pariharam": "Perform milk abhishekam on a Shivalinga and offer bilva leaves. Recite Maha Mrityunjaya mantra 108 times for protection.", "lucky_numbers": [8], "tone": "warn"},
+    9:  {"title": "Fortune and blessings", "body": "Auspicious period. Luck, dharma, father's blessings, and long journeys are favoured. Spiritual activities bring rewards.", "lucky_color": "Yellow / Saffron", "pariharam": "Visit your kula deivam or father's favourite deity. Donate to a temple or offer yellow flowers to Guru Bhagavan.", "lucky_numbers": [1, 3], "tone": "positive"},
+    10: {"title": "Career and recognition", "body": "Good for professional activities, public visibility, and leadership. Take action on career goals — momentum is available.", "lucky_color": "Red / Copper / Orange", "pariharam": "Recite Surya Ashtakam or offer water to the rising Sun. Visit a Sun temple or Murugan temple.", "lucky_numbers": [1, 9], "tone": "positive"},
+    11: {"title": "Gains and success", "body": "Excellent day. Gains, fulfilled desires, income, and friendships are favoured. Best window in the lunar cycle — act on opportunities.", "lucky_color": "Blue / Indigo", "pariharam": "Donate to a charity or help someone in genuine need. Visit a Ganapati temple and pray for continued blessings.", "lucky_numbers": [3, 6, 9], "tone": "positive"},
+    12: {"title": "Expenses and rest", "body": "Expenditure and losses are possible. Retreat from the world — good for spiritual practice, solitude, and overseas connections.", "lucky_color": "Yellow / White (spiritual tones)", "pariharam": "Light a sesame oil lamp in the evening. Donate to the poor or a dharmasala. Recite Vishnu Sahasranama for peace.", "lucky_numbers": [3, 7], "tone": "caution"},
+}
+
+_RASI_NAMES_TA: dict[int, str] = {
+    1: "மேஷம்", 2: "ரிஷபம்", 3: "மிதுனம்", 4: "கடகம்",
+    5: "சிம்மம்", 6: "கன்னி", 7: "துலாம்", 8: "விருச்சிகம்",
+    9: "தனுசு", 10: "மகரம்", 11: "கும்பம்", 12: "மீனம்",
+}
+
+
+def _resolve_rasi_number(rasi: str) -> int:
+    """Accept a rasi number (1-12) or name (mesham, rishabam, …) and return 1-12."""
+    rasi = rasi.strip()
+    if rasi.isdigit():
+        n = int(rasi)
+        if 1 <= n <= 12:
+            return n
+        raise ValueError(f"rasi number must be 1-12, got {n}")
+    key = rasi.lower().replace(" ", "")
+    # Try direct lookup then common aliases
+    aliases = {"kadagam": "katakam", "katakam": "katakam", "simmam": "simmam", "simham": "simmam"}
+    lookup_key = aliases.get(key, key)
+    # RASI_NAME_TO_NUMBER uses Mesham-style keys; build our own map too
+    _extra = {
+        "mesham": 1, "rishabam": 2, "mithunam": 3, "katakam": 4, "kadagam": 4,
+        "simmam": 5, "simham": 5, "kanni": 6, "thulam": 7, "viruchigam": 8,
+        "dhanusu": 9, "makaram": 10, "kumbam": 11, "meenam": 12,
+    }
+    n = _extra.get(lookup_key) or _extra.get(key) or RASI_NAME_TO_NUMBER.get(lookup_key) or RASI_NAME_TO_NUMBER.get(key)
+    if n is None:
+        raise ValueError(f"Unknown rasi: '{rasi}'. Use a number 1-12 or a name like 'mesham'.")
+    return n
+
+
+class PublicRasiPalanResponse(BaseModel):
+    success: bool = True
+    rasi: int
+    rasi_name: dict = Field(alias="rasiName")
+    date: date
+    moon_rasi: int = Field(alias="moonRasi")
+    moon_house: int = Field(alias="moonHouse")
+    headline: dict
+    body: dict
+    lucky_color: dict = Field(alias="luckyColor")
+    lucky_numbers: list[int] = Field(alias="luckyNumbers")
+    pariharam: dict
+    tone: str
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+@router.get("/rasi-palan", response_model=PublicRasiPalanResponse)
+def public_rasi_palan(
+    rasi: str,
+    query_date: date | None = None,
+    lang: str = "ta",
+    lat: float = 13.0827,
+    lng: float = 80.2707,
+    timezone: str = "Asia/Kolkata",
+    session: Session = Depends(get_db),
+) -> PublicRasiPalanResponse:
+    """Return today's rasi palan for a janma rasi based on Moon's current transit.
+
+    No authentication required. The Moon's rasi is derived from the panchangam
+    engine for the given date and location (defaults to Chennai). The house number
+    (Moon's position from janma rasi) drives the prediction.
+    """
+    try:
+        janma_rasi = _resolve_rasi_number(rasi)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
+
+    target_date = query_date or date.today()
+    query = PanchangamDailyQuery(date=target_date, lat=lat, lng=lng, timezone=timezone)
+    panchangam = calculate_panchangam(query, session)
+    moon_rasi = panchangam.data.chandrashtamam_today.moon_rasi_number
+
+    moon_house = ((moon_rasi - janma_rasi) % 12) + 1
+    pred_ta = _RASI_PALAN_TA[moon_house]
+    pred_en = _RASI_PALAN_EN[moon_house]
+
+    rasi_name_en = RASI_NAMES.get(janma_rasi, str(janma_rasi))
+    rasi_name_ta = _RASI_NAMES_TA.get(janma_rasi, rasi_name_en)
+
+    return PublicRasiPalanResponse(
+        success=True,
+        rasi=janma_rasi,
+        rasiName={"ta": rasi_name_ta, "en": rasi_name_en},
+        date=target_date,
+        moonRasi=moon_rasi,
+        moonHouse=moon_house,
+        headline={"ta": pred_ta["title"], "en": pred_en["title"]},
+        body={"ta": pred_ta["body"], "en": pred_en["body"]},
+        luckyColor={"ta": pred_ta["lucky_color"], "en": pred_en["lucky_color"]},
+        luckyNumbers=pred_ta["lucky_numbers"],
+        pariharam={"ta": pred_ta["pariharam"], "en": pred_en["pariharam"]},
+        tone=pred_ta["tone"],
+    )
+
+
+# ── Public Monthly Panchangam ──────────────────────────────────────────────────
+
+@router.get("/panchangam/monthly", response_model=PanchangamMonthlyResponse)
+def public_panchangam_monthly(
+    query: PanchangamMonthlyQuery = Depends(),
+    session: Session = Depends(get_db),
+) -> PanchangamMonthlyResponse:
+    """Return the monthly panchangam (festival markers, special days) without auth.
+
+    Powers the guest calendar screen (S3). Same data as the authenticated
+    /panchangam/monthly but accessible to guest users.
+    """
+    return build_monthly_panchangam(query, session)
