@@ -1,94 +1,97 @@
-import React from "react";
-import { View, Text } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Text, View } from "react-native";
+import Svg, { Circle } from "react-native-svg";
+import Animated, {
+  cancelAnimation,
+  runOnJS,
+  useAnimatedProps,
+  useAnimatedReaction,
+  useDerivedValue,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { C } from "@/theme/colors";
 
 interface ScoreRingProps {
-  score: number;  // 0–10
+  score: number; // 0-10
   size?: number;
   textColor?: string;
 }
 
-export function ScoreRing({ score, size = 96, textColor = "#FFFFFF" }: ScoreRingProps) {
-  const pct = Math.min(Math.max(score / 10, 0), 1);
-  const bw = Math.round(size * 0.11);
-  const half = size / 2;
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-  // Two-semicircle technique: right clip handles 0–50%, left clip 50–100%
-  const rightRotate = Math.min(pct * 360 - 180, 0);   // -180° to 0°
-  const leftRotate = Math.max((pct - 0.5) * 360, 0);  // 0° to 180°
+export function ScoreRing({ score, size = 96, textColor = "#FFFFFF" }: ScoreRingProps) {
+  const normalizedScore = Math.min(Math.max(score, 0), 10);
+  const strokeWidth = Math.max(Math.round(size * 0.11), 8);
+  const radius = (size - strokeWidth) / 2;
+  const center = size / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progress = useSharedValue(0);
+  const [displayScore, setDisplayScore] = useState(0);
+
+  useEffect(() => {
+    progress.value = withTiming(normalizedScore / 10, { duration: 1200 });
+    return () => cancelAnimation(progress);
+  }, [normalizedScore, progress]);
+
+  // Drive the integer count-up on the JS thread in sync with the stroke animation
+  const intProgress = useDerivedValue(() => Math.round(progress.value * 10));
+  useAnimatedReaction(
+    () => intProgress.value,
+    (current, previous) => {
+      if (current !== previous) {
+        runOnJS(setDisplayScore)(current);
+      }
+    }
+  );
+
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: circumference * (1 - progress.value),
+  }));
 
   return (
     <View style={{ width: size, height: size }}>
-      {/* Track ring */}
-      <View style={{
-        position: "absolute",
-        width: size, height: size,
-        borderRadius: half,
-        borderWidth: bw,
-        borderColor: "rgba(255,255,255,0.18)",
-      }} />
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <Circle
+          cx={center} cy={center} r={radius}
+          stroke="rgba(255,255,255,0.18)"
+          strokeWidth={strokeWidth} fill="none"
+        />
+        <AnimatedCircle
+          cx={center} cy={center} r={radius}
+          stroke={C.gold} strokeWidth={strokeWidth} fill="none"
+          strokeDasharray={circumference}
+          animatedProps={animatedProps}
+          strokeLinecap="round"
+          rotation={-90}
+          origin={`${center}, ${center}`}
+        />
+      </Svg>
 
-      {/* Right fill: shows 0–50% of arc progress */}
-      <View style={{
-        position: "absolute",
-        left: half, top: 0,
-        width: half, height: size,
-        overflow: "hidden",
-      }}>
-        <View style={{
-          position: "absolute",
-          left: -half, top: 0,
-          width: size, height: size,
-          borderRadius: half,
-          borderWidth: bw,
-          borderColor: C.saffron,
-          transform: [{ rotate: `${rightRotate}deg` }],
-        }} />
-      </View>
-
-      {/* Left fill: shows 50–100% of arc progress */}
-      {pct > 0.5 && (
-        <View style={{
-          position: "absolute",
-          left: 0, top: 0,
-          width: half, height: size,
-          overflow: "hidden",
-        }}>
-          <View style={{
-            position: "absolute",
-            left: 0, top: 0,
-            width: size, height: size,
-            borderRadius: half,
-            borderWidth: bw,
-            borderColor: C.gold,
-            transform: [{ rotate: `${leftRotate}deg` }],
-          }} />
-        </View>
-      )}
-
-      {/* Center score text */}
-      <View style={{
-        position: "absolute",
-        width: size, height: size,
-        alignItems: "center",
-        justifyContent: "center",
-      }}>
-        <Text style={{
-          fontFamily: "Inter_800ExtraBold",
-          fontSize: size * 0.37,
-          lineHeight: size * 0.44,
-          color: textColor,
-        }}>
-          {score}
+      <View
+        style={{
+          position: "absolute", width: size, height: size,
+          alignItems: "center", justifyContent: "center",
+        }}
+      >
+        <Text
+          style={{
+            fontFamily: "Inter_800ExtraBold",
+            fontSize: size * 0.37,
+            lineHeight: size * 0.44,
+            color: textColor,
+          }}
+        >
+          {displayScore}
         </Text>
-        <Text style={{
-          fontFamily: "Inter_400Regular",
-          fontSize: size * 0.17,
-          lineHeight: size * 0.22,
-          color: textColor === "#FFFFFF"
-            ? "rgba(255,255,255,0.65)"
-            : C.textSecond,
-        }}>
+        <Text
+          style={{
+            fontFamily: "Inter_400Regular",
+            fontSize: size * 0.17,
+            lineHeight: size * 0.22,
+            color: textColor === "#FFFFFF" ? "rgba(255,255,255,0.65)" : C.textSecond,
+          }}
+        >
           / 10
         </Text>
       </View>

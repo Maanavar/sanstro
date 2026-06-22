@@ -1,21 +1,24 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View } from "react-native";
+import Svg, { Rect, Text as SvgText } from "react-native-svg";
 import { C } from "@/theme/colors";
 
-// South Indian fixed rasi grid positions [row, col] for rasi 1-12
-const RASI_GRID: [number, number][] = [
-  [0, 1], // 1  Mesham
-  [0, 2], // 2  Rishabam
-  [0, 3], // 3  Mithunam
-  [1, 3], // 4  Katakam
-  [2, 3], // 5  Simham
-  [3, 3], // 6  Kanni
-  [3, 2], // 7  Thulam
-  [3, 1], // 8  Viruchigam
-  [3, 0], // 9  Dhanusu
-  [2, 0], // 10 Makaram
-  [1, 0], // 11 Kumbam
-  [0, 0], // 12 Meenam
+const VIEWBOX = 320;
+const CELL = VIEWBOX / 4;
+
+const RASI_CELLS: Array<{ rasi: number; row: number; col: number }> = [
+  { rasi: 1, row: 0, col: 1 },
+  { rasi: 2, row: 0, col: 2 },
+  { rasi: 3, row: 0, col: 3 },
+  { rasi: 4, row: 1, col: 3 },
+  { rasi: 5, row: 2, col: 3 },
+  { rasi: 6, row: 3, col: 3 },
+  { rasi: 7, row: 3, col: 2 },
+  { rasi: 8, row: 3, col: 1 },
+  { rasi: 9, row: 3, col: 0 },
+  { rasi: 10, row: 2, col: 0 },
+  { rasi: 11, row: 1, col: 0 },
+  { rasi: 12, row: 0, col: 0 },
 ];
 
 const RASI_SHORT_TA = ["", "மே", "ரி", "மி", "க", "சி", "க", "து", "வி", "த", "ம", "கு", "மீ"];
@@ -31,92 +34,130 @@ interface Props {
   size?: number;
 }
 
+function chunkPlanets(planets: string[]): string[] {
+  const lines: string[] = [];
+  for (let i = 0; i < planets.length; i += 3) {
+    lines.push(planets.slice(i, i + 3).join(" "));
+  }
+  return lines.slice(0, 3);
+}
+
 export function JadhagamChart({ houses, size = 280 }: Props) {
-  const cell = Math.floor(size / 4);
   const houseMap = new Map(houses.map((h) => [h.rasi, h]));
 
   return (
-    <View style={[styles.grid, { width: cell * 4, height: cell * 4 }]}>
-      {RASI_GRID.map(([row, col], idx) => {
-        const rasiNum = idx + 1;
-        const house = houseMap.get(rasiNum) ?? { rasi: rasiNum, planets: [], isLagna: false };
-        return (
-          <View
-            key={rasiNum}
-            style={[styles.cell, {
-              position: "absolute",
-              top: row * cell,
-              left: col * cell,
-              width: cell,
-              height: cell,
-              backgroundColor: house.isLagna ? "#FEF5EC" : C.surface,
-            }]}
-          >
-            <Text style={styles.rasiLabel}>{RASI_SHORT_TA[rasiNum]}</Text>
-            {house.isLagna && <Text style={styles.lagnaTag}>லக்</Text>}
-            {house.planets.length > 0 && (
-              <Text style={styles.planets} numberOfLines={3}>
-                {house.planets.join(" ")}
-              </Text>
-            )}
-          </View>
-        );
-      })}
+    <View style={{ width: size, height: size }}>
+      <Svg width={size} height={size} viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`}>
+        <Rect x={0} y={0} width={VIEWBOX} height={VIEWBOX} fill={C.parchment} rx={4} />
 
-      {/* Centre — no house */}
-      <View style={[styles.centre, { top: cell, left: cell, width: cell * 2, height: cell * 2 }]}>
-        <Text style={styles.centreText}>திருக்கணிதம்</Text>
-      </View>
+        {RASI_CELLS.map(({ rasi, row, col }) => {
+          const x = col * CELL;
+          const y = row * CELL;
+          const house = houseMap.get(rasi) ?? { rasi, planets: [], isLagna: false };
+          const planetLines = chunkPlanets(house.planets);
+          const firstPlanetY = house.isLagna ? y + 40 : y + 36;
+
+          return (
+            <React.Fragment key={rasi}>
+              <Rect
+                x={x}
+                y={y}
+                width={CELL}
+                height={CELL}
+                fill={house.isLagna ? "#FEF5EC" : C.surface}
+                stroke={C.divider}
+                strokeWidth={0.6}
+              />
+              <SvgText
+                x={x + 7}
+                y={y + 15}
+                fill={C.textTertiary}
+                fontFamily="NotoSansTamil_400Regular"
+                fontSize={10}
+              >
+                {RASI_SHORT_TA[rasi]}
+              </SvgText>
+              {house.isLagna && (
+                <SvgText
+                  x={x + CELL - 7}
+                  y={y + 15}
+                  fill={C.saffron}
+                  fontFamily="NotoSansTamil_700Bold"
+                  fontSize={10}
+                  textAnchor="end"
+                >
+                  லக்
+                </SvgText>
+              )}
+              {planetLines.map((line, index) => (
+                <SvgText
+                  key={`${rasi}-${index}`}
+                  x={x + CELL / 2}
+                  y={firstPlanetY + index * 14}
+                  fill={C.textPrimary}
+                  fontFamily="NotoSansTamil_700Bold"
+                  fontSize={11}
+                  textAnchor="middle"
+                >
+                  {line}
+                </SvgText>
+              ))}
+              {house.planets.length > 9 && (
+                <SvgText
+                  x={x + CELL / 2}
+                  y={y + CELL - 7}
+                  fill={C.textTertiary}
+                  fontFamily="Inter_600SemiBold"
+                  fontSize={9}
+                  textAnchor="middle"
+                >
+                  +{house.planets.length - 9}
+                </SvgText>
+              )}
+            </React.Fragment>
+          );
+        })}
+
+        <Rect
+          x={CELL}
+          y={CELL}
+          width={CELL * 2}
+          height={CELL * 2}
+          fill={C.parchment}
+          stroke={C.divider}
+          strokeWidth={0.6}
+        />
+        <SvgText
+          x={VIEWBOX / 2}
+          y={VIEWBOX / 2 - 3}
+          fill={C.textTertiary}
+          fontFamily="NotoSansTamil_400Regular"
+          fontSize={11}
+          textAnchor="middle"
+        >
+          திருக்கணிதம்
+        </SvgText>
+        <SvgText
+          x={VIEWBOX / 2}
+          y={VIEWBOX / 2 + 15}
+          fill={C.gold}
+          fontFamily="Inter_600SemiBold"
+          fontSize={9}
+          textAnchor="middle"
+        >
+          Vinaadi AI
+        </SvgText>
+        <Rect
+          x={0.75}
+          y={0.75}
+          width={VIEWBOX - 1.5}
+          height={VIEWBOX - 1.5}
+          fill="none"
+          stroke={C.gold}
+          strokeWidth={1.5}
+          rx={4}
+        />
+      </Svg>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  grid: {
-    position: "relative",
-    borderWidth: 1.5,
-    borderColor: C.gold,
-    borderRadius: 4,
-    overflow: "hidden",
-    backgroundColor: C.parchment,
-  },
-  cell: {
-    borderWidth: 0.75,
-    borderColor: C.divider,
-    padding: 4,
-  },
-  rasiLabel: {
-    fontFamily: "NotoSansTamil_400Regular",
-    fontSize: 9,
-    lineHeight: 12,
-    color: C.textTertiary,
-  },
-  lagnaTag: {
-    fontFamily: "NotoSansTamil_700Bold",
-    fontSize: 8,
-    lineHeight: 10,
-    color: C.saffron,
-  },
-  planets: {
-    fontFamily: "NotoSansTamil_700Bold",
-    fontSize: 10,
-    lineHeight: 14,
-    color: C.textPrimary,
-    flexShrink: 1,
-  },
-  centre: {
-    position: "absolute",
-    backgroundColor: C.parchment,
-    borderWidth: 0.75,
-    borderColor: C.divider,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  centreText: {
-    fontFamily: "NotoSansTamil_400Regular",
-    fontSize: 7,
-    lineHeight: 11,
-    color: C.textTertiary,
-    textAlign: "center",
-  },
-});

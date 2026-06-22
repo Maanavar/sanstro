@@ -34,7 +34,9 @@ const DEFAULT_PREFS: Omit<GuestPrefs, "anonymousId"> = {
   pushTime: "06:30",
 };
 
-export async function loadGuestPrefs(): Promise<GuestPrefs> {
+let _initPromise: Promise<GuestPrefs> | null = null;
+
+async function _doLoad(): Promise<GuestPrefs> {
   const raw = await AsyncStorage.getItem(STORAGE_KEY);
   if (raw) {
     try {
@@ -46,6 +48,15 @@ export async function loadGuestPrefs(): Promise<GuestPrefs> {
   const fresh: GuestPrefs = { ...DEFAULT_PREFS, anonymousId: makeAnonymousId() };
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
   return fresh;
+}
+
+export function loadGuestPrefs(): Promise<GuestPrefs> {
+  if (!_initPromise) {
+    _initPromise = _doLoad().finally(() => {
+      _initPromise = null;
+    });
+  }
+  return _initPromise;
 }
 
 export async function saveGuestPrefs(patch: Partial<GuestPrefs>): Promise<GuestPrefs> {
