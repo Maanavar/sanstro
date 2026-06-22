@@ -8,9 +8,18 @@ RUN npm ci
 FROM node:20-slim AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG SENTRY_AUTH_TOKEN
+ARG SENTRY_ORG
+ARG SENTRY_PROJECT
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
+RUN if [ -n "$SENTRY_AUTH_TOKEN" ] && [ -n "$SENTRY_ORG" ] && [ -n "$SENTRY_PROJECT" ]; then \
+      npx @sentry/cli sourcemaps inject .next && \
+      npx @sentry/cli sourcemaps upload .next --org "$SENTRY_ORG" --project "$SENTRY_PROJECT"; \
+    else \
+      echo "Skipping Sentry sourcemap upload; Sentry build args are not set."; \
+    fi
 
 FROM node:20-slim AS runner
 WORKDIR /app
