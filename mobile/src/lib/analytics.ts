@@ -41,6 +41,8 @@ export function initAnalytics(sentryDsn: string, posthogApiKey: string, posthogH
     } catch {
       _sentry = null;
     }
+  } else if (__DEV__) {
+    console.warn("[analytics] SENTRY_DSN not set - crashes will not be reported");
   }
 
   const posthogKey = posthogApiKey.trim();
