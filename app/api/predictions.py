@@ -14,6 +14,7 @@ from app.core.age_gate import is_married_settled, is_past_prime_marriage_age
 from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
+from app.models.family_member import FamilyMember
 from app.models.user import User
 from app.services.career_service import CareerAssessmentInput, assess_career_prediction
 from app.services.chart_service import load_persisted_chart_response
@@ -134,6 +135,12 @@ def _load_chart_context(session: Session, chart_id: UUID, current_user: User, as
     )
     life_stage = _derive_life_stage(age, getattr(profile, "employment_type", None))
 
+    relationship_to_owner = "self"
+    if profile.family_member_id is not None:
+        member = session.get(FamilyMember, profile.family_member_id)
+        if member is not None:
+            relationship_to_owner = member.relationship_to_owner or "self"
+
     return (
         snapshot,
         planets_rasi,
@@ -143,6 +150,7 @@ def _load_chart_context(session: Session, chart_id: UUID, current_user: User, as
         life_stage,
         getattr(profile, "employment_type", None),
         getattr(profile, "marital_status", None),
+        relationship_to_owner,
     )
 
 
@@ -160,7 +168,7 @@ def get_marriage_prediction(
     current_user: User = Depends(get_current_user),
 ) -> PredictionResponse:
     on_date = as_of or date.today()
-    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, _employment_type, marital_status = _load_chart_context(
+    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, _employment_type, marital_status, relationship_to_owner = _load_chart_context(
         session, chart_id, current_user, on_date
     )
 
@@ -183,9 +191,11 @@ def get_marriage_prediction(
         sevvai_dosham_cancelled=sevvai_cancelled,
         rahu_ketu_label=rahu_ketu.label if rahu_ketu else None,
         d9_rasi_by_planet=d9_rasi_by_planet,
+        relationship_to_owner=relationship_to_owner,
     )
     result = assess_marriage_prediction(payload)
-    gated = age < 18 or is_past_prime_marriage_age(age) or is_married_settled(marital_status)
+    is_parental = relationship_to_owner in {"parent", "grandparent"}
+    gated = age < 18 or is_past_prime_marriage_age(age) or is_married_settled(marital_status) or is_parental
     alt = "Relationship Harmony" if is_married_settled(marital_status) else None
     return PredictionResponse(
         data=_to_out(result),
@@ -207,7 +217,7 @@ def get_career_prediction(
     current_user: User = Depends(get_current_user),
 ) -> PredictionResponse:
     on_date = as_of or date.today()
-    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, employment_type, _marital_status = _load_chart_context(
+    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, employment_type, _marital_status, _rel = _load_chart_context(
         session, chart_id, current_user, on_date
     )
 
@@ -237,7 +247,7 @@ def get_wealth_prediction(
     current_user: User = Depends(get_current_user),
 ) -> PredictionResponse:
     on_date = as_of or date.today()
-    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, _employment_type, _marital_status = _load_chart_context(
+    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, _employment_type, _marital_status, _rel = _load_chart_context(
         session, chart_id, current_user, on_date
     )
 
@@ -280,7 +290,7 @@ def get_health_prediction(
     current_user: User = Depends(get_current_user),
 ) -> PredictionResponse:
     on_date = as_of or date.today()
-    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, _employment_type, _marital_status = _load_chart_context(
+    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, _employment_type, _marital_status, _rel = _load_chart_context(
         session, chart_id, current_user, on_date
     )
 

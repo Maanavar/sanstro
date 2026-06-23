@@ -15,7 +15,7 @@ from datetime import date, time, timedelta
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.orm import Session
 
@@ -23,12 +23,15 @@ from app.calculations.astro import RASI_NAME_TO_NUMBER, RASI_NAMES
 from app.calculations.porutham import compute_porutham
 from app.db.session import get_db
 from app.schemas.birth_profiles import _validate_birth_date_bounds  # noqa: PLC2701 (shared validation)
-from app.schemas.charts import ChartCalculateResponseData
+from app.schemas.charts import ChartCalculateResponseData, ChartSummaryData
 from app.schemas.muhurtham_naal import MuhurthamNaalListResponse, item_from_view
 from app.schemas.panchangam import PanchangamDailyQuery, PanchangamDailyResponse, PanchangamMonthlyQuery, PanchangamMonthlyResponse
+from app.schemas.dasha import DashaTimelineResponseData
 from app.schemas.relationships import DirectPoruthamData, KutaResult, NadiDoshaData, RelationshipBiText
-from app.services.chart_service import _chart_response_from_profile  # noqa: PLC2701 (internal use)
+from app.services.chart_service import _chart_response_from_profile, get_chart_summary_from_snapshot  # noqa: PLC2701 (internal use)
+from app.services.dasha_service import get_chart_dasha_from_snapshot
 from app.services.panchangam_service import build_monthly_panchangam, calculate_panchangam
+from app.services.synastry_service import compare_chart_snapshots_direct
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +87,36 @@ class PublicPoruthamResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class PublicChartPreviewData(BaseModel):
+    chart: ChartCalculateResponseData
+    summary: ChartSummaryData
+    dasha: DashaTimelineResponseData
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PublicChartPreviewResponse(BaseModel):
+    success: bool = True
+    data: PublicChartPreviewData
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PublicCompareData(BaseModel):
+    chart_a: ChartCalculateResponseData = Field(alias="chartA")
+    chart_b: ChartCalculateResponseData = Field(alias="chartB")
+    porutham: DirectPoruthamData
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PublicCompareResponse(BaseModel):
+    success: bool = True
+    data: PublicCompareData
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 # ── Helper: thin profile-like object that matches the field accessor pattern ───
 
 class _EphemeralProfile:
@@ -106,6 +139,27 @@ class _EphemeralProfile:
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
 
+@router.post("/chart-preview", response_model=PublicChartPreviewResponse)
+def public_chart_preview(payload: PublicChartRequest) -> PublicChartPreviewResponse:
+    """Calculate a transient chart plus summary and dasha without persistence."""
+    profile = _EphemeralProfile(payload.birth)
+    try:
+        result = _chart_response_from_profile(profile, "thirukanitham-2026-v1")
+    except (ValueError, HTTPException) as exc:
+        msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
+
+    summary = get_chart_summary_from_snapshot(result, language="ta-en")
+    dasha = get_chart_dasha_from_snapshot(result, date.today())
+    return PublicChartPreviewResponse(
+        data=PublicChartPreviewData(
+            chart=result.data,
+            summary=summary.data,
+            dasha=dasha.data,
+        )
+    )
+
+
 @router.post("/chart", response_model=PublicChartResponse)
 def public_chart(payload: PublicChartRequest) -> PublicChartResponse:
     """Calculate a Thirukanitham birth chart from raw birth details.
@@ -119,6 +173,74 @@ def public_chart(payload: PublicChartRequest) -> PublicChartResponse:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
     return PublicChartResponse(data=result.data)
+
+
+@router.post("/compare", response_model=PublicCompareResponse)
+def public_compare(payload: PublicPoruthamRequest) -> PublicCompareResponse:
+    """Calculate two transient charts plus porutham without saving profiles."""
+    from app.schemas.relationships import VALID_COMPATIBILITY_CONTEXTS
+
+    if payload.compatibility_context not in VALID_COMPATIBILITY_CONTEXTS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"compatibilityContext must be one of: {sorted(VALID_COMPATIBILITY_CONTEXTS)}",
+        )
+
+    try:
+        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), "thirukanitham-2026-v1")
+        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), "thirukanitham-2026-v1")
+    except (ValueError, HTTPException) as exc:
+        msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
+
+    porutham = compare_chart_snapshots_direct(
+        chart_a,
+        chart_b,
+        compatibility_context=payload.compatibility_context,
+    )
+    return PublicCompareResponse(
+        data=PublicCompareData(
+            chartA=chart_a.data,
+            chartB=chart_b.data,
+            porutham=porutham.data,
+        )
+    )
+
+
+@router.post("/compare/pdf")
+def public_compare_pdf(payload: PublicPoruthamRequest) -> Response:
+    """Generate a transient porutham PDF without creating saved profiles."""
+    from app.schemas.relationships import VALID_COMPATIBILITY_CONTEXTS
+    from app.services.pdf_export_service import generate_porutham_pdf
+
+    if payload.compatibility_context not in VALID_COMPATIBILITY_CONTEXTS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"compatibilityContext must be one of: {sorted(VALID_COMPATIBILITY_CONTEXTS)}",
+        )
+
+    try:
+        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), "thirukanitham-2026-v1")
+        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), "thirukanitham-2026-v1")
+    except (ValueError, HTTPException) as exc:
+        msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
+
+    porutham = compare_chart_snapshots_direct(
+        chart_a,
+        chart_b,
+        compatibility_context=payload.compatibility_context,
+    )
+    pdf_bytes = generate_porutham_pdf(
+        porutham.data,
+        chart_a.data.birth_profile.display_name or "Person_A",
+        chart_b.data.birth_profile.display_name or "Person_B",
+    )
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="porutham_preview.pdf"'},
+    )
 
 
 @router.post("/porutham", response_model=PublicPoruthamResponse)

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
+from app.core.error_codes import ErrorCode, get_error_message
 from app.db.session import get_db
 from app.models import BirthProfile
 from app.models.user import User
@@ -16,15 +17,38 @@ from app.schemas.birth_profiles import (
     BirthProfileGetResponse,
     BirthProfileResponseMeta,
     BirthProfileUpdate,
+    BirthProfileListResponse,
 )
 from app.services.birth_profile_service import (
     create_birth_profile,
     get_birth_profile,
     get_latest_birth_profile_for_owner,
+    list_birth_profiles_for_owner,
+    soft_delete_birth_profile,
     update_birth_profile,
 )
 
 router = APIRouter()
+
+
+@router.get("/birth-profiles", response_model=BirthProfileListResponse, tags=["birth-profiles"])
+def list_birth_profiles_endpoint(
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> BirthProfileListResponse:
+    """List all birth profiles for the current user."""
+    profiles = list_birth_profiles_for_owner(
+        session,
+        current_user.user_id,
+        calculation_version="thirukanitham-2026-v1",
+    )
+    return BirthProfileListResponse(
+        data=profiles,
+        meta=BirthProfileResponseMeta(
+            calculation_version="thirukanitham-2026-v1",
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )
 
 
 @router.post("/birth-profiles", response_model=BirthProfileCreateResponse, tags=["birth-profiles"])
@@ -53,9 +77,11 @@ def get_birth_profile_endpoint(
 ) -> BirthProfileGetResponse:
     profile = session.get(BirthProfile, birth_profile_id)
     if profile is None or profile.deleted_at is not None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
+        error_info = get_error_message(ErrorCode.BIRTH_PROFILE_NOT_FOUND)
+        raise HTTPException(status_code=error_info["status"], detail=error_info["user_message"])
     if profile.owner_user_id != current_user.user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+        error_info = get_error_message(ErrorCode.ACCESS_DENIED)
+        raise HTTPException(status_code=error_info["status"], detail=error_info["user_message"])
     return get_birth_profile(session, birth_profile_id, calculation_version="thirukanitham-2026-v1")
 
 
@@ -80,9 +106,11 @@ def update_birth_profile_endpoint(
 ) -> BirthProfileGetResponse:
     profile = session.get(BirthProfile, birth_profile_id)
     if profile is None or profile.deleted_at is not None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
+        error_info = get_error_message(ErrorCode.BIRTH_PROFILE_NOT_FOUND)
+        raise HTTPException(status_code=error_info["status"], detail=error_info["user_message"])
     if profile.owner_user_id != current_user.user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+        error_info = get_error_message(ErrorCode.ACCESS_DENIED)
+        raise HTTPException(status_code=error_info["status"], detail=error_info["user_message"])
     return update_birth_profile(session, profile, payload, calculation_version="thirukanitham-2026-v1")
 
 
@@ -97,11 +125,13 @@ def delete_birth_profile_endpoint(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Response:
-    """Soft-delete a birth profile."""
+    """Soft-delete a birth profile and retire any orphaned family-member link."""
     profile = session.get(BirthProfile, birth_profile_id)
     if profile is None or profile.deleted_at is not None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
+        error_info = get_error_message(ErrorCode.BIRTH_PROFILE_NOT_FOUND)
+        raise HTTPException(status_code=error_info["status"], detail=error_info["user_message"])
     if profile.owner_user_id != current_user.user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
-    profile.deleted_at = datetime.now(tz=UTC)
+        error_info = get_error_message(ErrorCode.ACCESS_DENIED)
+        raise HTTPException(status_code=error_info["status"], detail=error_info["user_message"])
+    soft_delete_birth_profile(session, profile)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

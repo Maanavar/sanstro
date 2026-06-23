@@ -25,6 +25,7 @@ from app.schemas.panchangam import (
     BiText,
     PanchangamAbhijit,
     PanchangamAmirdhadhiYogam,
+    PanchangamChandrashtamamNakshatraWindow,
     PanchangamChandrashtamamToday,
     PanchangamDailyQuery,
     PanchangamDailyResponse,
@@ -254,6 +255,14 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
                 affected_janma_rasi_number=snapshot.chandrashtamam_affected_janma_rasi_number,
                 affected_janma_rasi_name=snapshot.chandrashtamam_affected_janma_rasi_name,
                 nakshatras=list(snapshot.chandrashtamam_today_nakshatras),
+                janma_nakshatra_windows=[
+                    PanchangamChandrashtamamNakshatraWindow(
+                        name=window.name,
+                        start=window.start,
+                        end=window.end,
+                    )
+                    for window in snapshot.chandrashtamam_janma_nakshatra_windows
+                ],
             ),
             special_tithi_day=_build_special_tithi_day(snapshot),
             is_karinaal=is_karinaal(snapshot.date_local),

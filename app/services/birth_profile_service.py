@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
+from app.core.error_codes import ErrorCode, get_error_message
 from app.models import BirthProfile, FamilyMember
 from app.schemas.birth_profiles import (
     BirthProfileCreate,
@@ -39,7 +40,65 @@ _CURRENT_LOCATION_FIELDS = {
 }
 
 
+def _find_duplicate_birth_profile(
+    session: Session,
+    *,
+    owner_user_id: UUID,
+    display_name: str,
+    birth_date_local,
+    birth_time_local,
+    birth_place: str,
+    birth_latitude: float,
+    birth_longitude: float,
+    birth_timezone: str,
+    exclude_birth_profile_id: UUID | None = None,
+) -> BirthProfile | None:
+    conditions = [
+        BirthProfile.owner_user_id == owner_user_id,
+        BirthProfile.deleted_at.is_(None),
+        BirthProfile.birth_date_local == birth_date_local,
+        BirthProfile.birth_place == birth_place,
+        BirthProfile.birth_latitude == birth_latitude,
+        BirthProfile.birth_longitude == birth_longitude,
+        BirthProfile.birth_timezone == birth_timezone,
+        func.lower(func.trim(BirthProfile.display_name)) == display_name.strip().lower(),
+    ]
+    if birth_time_local is None:
+        conditions.append(BirthProfile.birth_time_local.is_(None))
+    else:
+        conditions.append(BirthProfile.birth_time_local == birth_time_local)
+    if exclude_birth_profile_id is not None:
+        conditions.append(BirthProfile.birth_profile_id != exclude_birth_profile_id)
+
+    return session.execute(
+        select(BirthProfile)
+        .where(*conditions)
+        .order_by(BirthProfile.created_at.asc())
+    ).scalars().first()
+
+
+def _raise_duplicate_birth_profile() -> None:
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="A matching birth profile already exists in this account. Use the existing profile instead of creating another copy.",
+    )
+
+
 def create_birth_profile(session: Session, payload: BirthProfileCreate, *, calculation_version: str) -> BirthProfileCreateResult:
+    duplicate_profile = _find_duplicate_birth_profile(
+        session,
+        owner_user_id=payload.owner_user_id,
+        display_name=payload.display_name,
+        birth_date_local=payload.birth_date_local,
+        birth_time_local=payload.birth_time_local,
+        birth_place=payload.birth_place,
+        birth_latitude=float(payload.birth_latitude),
+        birth_longitude=float(payload.birth_longitude),
+        birth_timezone=payload.birth_timezone,
+    )
+    if duplicate_profile is not None:
+        _raise_duplicate_birth_profile()
+
     max_profiles = max(1, int(get_flag("max_birth_profiles_per_user") or 10))
     active_profile_count = session.execute(
         select(func.count())
@@ -50,9 +109,10 @@ def create_birth_profile(session: Session, payload: BirthProfileCreate, *, calcu
         )
     ).scalar_one()
     if int(active_profile_count) >= max_profiles:
+        error_info = get_error_message(ErrorCode.RESOURCE_LIMIT_EXCEEDED)
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Birth profile limit reached ({max_profiles}).",
+            status_code=error_info["status"],
+            detail=error_info["user_message"],
         )
 
     birth_profile = create_birth_profile_record(session, payload)
@@ -82,7 +142,8 @@ def create_birth_profile(session: Session, payload: BirthProfileCreate, *, calcu
 def get_birth_profile(session: Session, birth_profile_id: UUID, *, calculation_version: str) -> BirthProfileGetResponse:
     birth_profile = session.get(BirthProfile, birth_profile_id)
     if birth_profile is None or birth_profile.deleted_at is not None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
+        error_info = get_error_message(ErrorCode.BIRTH_PROFILE_NOT_FOUND)
+        raise HTTPException(status_code=error_info["status"], detail=error_info["user_message"])
 
     family_member = birth_profile.family_member
     family_vault_id = family_member.family_vault_id if family_member is not None else None
@@ -135,6 +196,21 @@ def update_birth_profile(
 ) -> BirthProfileGetResponse:
     """Apply partial updates to an existing BirthProfile and optionally recalculate the chart."""
     update_data = payload.model_dump(exclude_unset=True, exclude={"recalculate"})
+    duplicate_profile = _find_duplicate_birth_profile(
+        session,
+        owner_user_id=profile.owner_user_id,
+        display_name=update_data.get("display_name", profile.display_name),
+        birth_date_local=update_data.get("birth_date_local", profile.birth_date_local),
+        birth_time_local=update_data["birth_time_local"] if "birth_time_local" in update_data else profile.birth_time_local,
+        birth_place=update_data.get("birth_place", profile.birth_place),
+        birth_latitude=float(update_data.get("birth_latitude", profile.birth_latitude)),
+        birth_longitude=float(update_data.get("birth_longitude", profile.birth_longitude)),
+        birth_timezone=update_data.get("birth_timezone", profile.birth_timezone),
+        exclude_birth_profile_id=profile.birth_profile_id,
+    )
+    if duplicate_profile is not None:
+        _raise_duplicate_birth_profile()
+
     touched_fields = set(update_data)
     for field, value in update_data.items():
         setattr(profile, field, value)
@@ -153,6 +229,62 @@ def update_birth_profile(
 
     session.commit()
     return get_birth_profile(session, profile.birth_profile_id, calculation_version=calculation_version)
+
+
+def list_birth_profiles_for_owner(
+    session: Session,
+    owner_user_id: UUID,
+    *,
+    calculation_version: str,
+) -> list[BirthProfileResponse]:
+    """Return all active birth profiles for the owner, ordered by creation date."""
+    birth_profiles = session.execute(
+        select(BirthProfile)
+        .where(
+            BirthProfile.owner_user_id == owner_user_id,
+            BirthProfile.deleted_at.is_(None),
+        )
+        .order_by(BirthProfile.created_at.desc())
+    ).scalars().all()
+
+    results = []
+    for birth_profile in birth_profiles:
+        family_member = birth_profile.family_member
+        family_vault_id = family_member.family_vault_id if family_member is not None else None
+        relationship_to_owner = family_member.relationship_to_owner if family_member is not None else "self"
+
+        results.append(BirthProfileResponse(
+            birth_profile_id=birth_profile.birth_profile_id,
+            owner_user_id=birth_profile.owner_user_id,
+            family_vault_id=family_vault_id,
+            family_member_id=birth_profile.family_member_id,
+            relationship_to_owner=relationship_to_owner or "self",
+            display_name=birth_profile.display_name,
+            birth_date_local=birth_profile.birth_date_local,
+            birth_time_local=birth_profile.birth_time_local,
+            birth_place=birth_profile.birth_place,
+            birth_latitude=float(birth_profile.birth_latitude),
+            birth_longitude=float(birth_profile.birth_longitude),
+            birth_timezone=birth_profile.birth_timezone,
+            current_place=birth_profile.current_place,
+            current_latitude=(float(birth_profile.current_latitude) if birth_profile.current_latitude is not None else None),
+            current_longitude=(float(birth_profile.current_longitude) if birth_profile.current_longitude is not None else None),
+            current_timezone=birth_profile.current_timezone,
+            current_location_updated_at=birth_profile.current_location_updated_at,
+            birth_time_source=birth_profile.birth_time_source,
+            birth_time_confidence_minutes=int(birth_profile.birth_time_confidence_minutes or 0),
+            calendar_input_type=birth_profile.calendar_input_type,
+            calculate_now=False,
+            language_preference="ta-en",
+            gender_for_traditional_rules=None,
+            marital_status=birth_profile.marital_status,
+            employment_type=birth_profile.employment_type,
+            birth_datetime_utc=birth_profile.birth_datetime_utc,
+            calculation_status="completed" if birth_profile.birth_datetime_utc is not None else "pending",
+            warnings=_warning_messages(birth_profile),
+        ))
+
+    return results
 
 
 def get_latest_birth_profile_for_owner(
@@ -192,6 +324,37 @@ def get_latest_birth_profile_for_owner(
     ).scalars().first()
 
     if birth_profile is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No birth profile found for the current user.")
+        error_info = get_error_message(ErrorCode.BIRTH_PROFILE_NOT_FOUND)
+        raise HTTPException(status_code=error_info["status"], detail=error_info["user_message"])
 
     return get_birth_profile(session, birth_profile.birth_profile_id, calculation_version=calculation_version)
+
+
+def soft_delete_birth_profile(session: Session, profile: BirthProfile) -> None:
+    """Soft-delete a birth profile and retire its family member if it was the last active profile."""
+    deleted_at = datetime.now(tz=UTC)
+    profile.deleted_at = deleted_at
+
+    family_member_id = profile.family_member_id
+    session.flush()
+
+    if family_member_id is None:
+        session.commit()
+        return
+
+    remaining_active_profiles = session.execute(
+        select(func.count())
+        .select_from(BirthProfile)
+        .where(
+            BirthProfile.family_member_id == family_member_id,
+            BirthProfile.deleted_at.is_(None),
+            BirthProfile.birth_profile_id != profile.birth_profile_id,
+        )
+    ).scalar_one()
+
+    if int(remaining_active_profiles) == 0:
+        family_member = session.get(FamilyMember, family_member_id)
+        if family_member is not None and family_member.deleted_at is None:
+            family_member.deleted_at = deleted_at
+
+    session.commit()

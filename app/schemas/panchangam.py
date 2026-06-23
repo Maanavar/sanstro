@@ -147,11 +147,18 @@ class PanchangamAmirdhadhiYogam(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class PanchangamChandrashtamamNakshatraWindow(BaseModel):
+    name: str
+    start: datetime
+    end: datetime
+
+
 class PanchangamChandrashtamamToday(BaseModel):
     """Rasi-based Chandrashtamam for the current Moon rasi.
 
     nakshatras is retained for older clients that display the generic almanac
-    nakshatra-count list.
+    nakshatra-count list. janma_nakshatra_windows carries the rasi-specific
+    nakshatra timing windows that Tamil almanacs usually call out.
     """
 
     moon_rasi_number: int = Field(alias="moonRasiNumber")
@@ -159,6 +166,7 @@ class PanchangamChandrashtamamToday(BaseModel):
     affected_janma_rasi_number: int = Field(alias="affectedJanmaRasiNumber")
     affected_janma_rasi_name: str = Field(alias="affectedJanmaRasiName")
     nakshatras: list[str] = Field(default_factory=list)
+    janma_nakshatra_windows: list[PanchangamChandrashtamamNakshatraWindow] = Field(default_factory=list, alias="janmaNakshatraWindows")
 
     model_config = ConfigDict(populate_by_name=True)
 

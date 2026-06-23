@@ -308,7 +308,9 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # record so the monthly calendar reads them instead of re-walking the ephemeris.
 # v23: Gowri Nalla Neram morning (DAY) slots shifted +15 min to match the common
 # Tamil almanac clock-table convention.
-PANCHANGAM_CACHE_DATA_VERSION = 23
+# v24: persist rasi-specific Chandrashtamam janma-nakshatra windows with local
+# start/end timestamps so clients can show the exact affected star timing.
+PANCHANGAM_CACHE_DATA_VERSION = 24
 DOMINANT_SPECIAL_TITHIS = {15, 30}
 
 # Compact daily-calendar summary windows used by Tamil calendars for everyday
@@ -412,6 +414,13 @@ class PanchangamHoraEntry:
 
 
 @dataclass(frozen=True, slots=True)
+class PanchangamChandrashtamamNakshatraWindow:
+    name: str
+    start: datetime
+    end: datetime
+
+
+@dataclass(frozen=True, slots=True)
 class PanchangamSnapshot:
     date_local: date
     timezone_name: str
@@ -474,6 +483,7 @@ class PanchangamSnapshot:
     chandrashtamam_affected_janma_rasi_number: int
     chandrashtamam_affected_janma_rasi_name: str
     chandrashtamam_today_nakshatras: tuple[str, ...]
+    chandrashtamam_janma_nakshatra_windows: tuple[PanchangamChandrashtamamNakshatraWindow, ...] = ()
     warnings: tuple[str, ...] = ()
     # Dominant (longest-span) state for the whole civil day, used by the monthly
     # calendar grid. Cached so the monthly endpoint never re-walks the ephemeris.
@@ -968,6 +978,57 @@ def _chandrashtamam_today_nakshatras(nakshatra_number: int) -> tuple[str, ...]:
     )
 
 
+def _moon_rasi_number_at_jd(jd: float) -> int:
+    return rasi_from_degree(_nakshatra_angle_at_jd(jd))
+
+
+def _chandrashtamam_janma_nakshatra_name_at_jd(jd: float) -> str:
+    janma_longitude = normalize_longitude(_nakshatra_angle_at_jd(jd) - 210.0)
+    return NAKSHATRA_NAMES[nakshatra_from_degree(janma_longitude) - 1]
+
+
+def _chandrashtamam_janma_nakshatra_windows(
+    date_local: date,
+    timezone_name: str,
+    moon_rasi_number: int,
+) -> tuple[PanchangamChandrashtamamNakshatraWindow, ...]:
+    start_jd, end_jd = _civil_day_bounds_jd(date_local, timezone_name)
+    cursor = start_jd
+    found_target_rasi = False
+    windows: list[PanchangamChandrashtamamNakshatraWindow] = []
+
+    for _ in range(12):
+        if cursor >= end_jd - 1e-10:
+            break
+
+        current_moon_rasi = _moon_rasi_number_at_jd(cursor)
+        next_nakshatra_boundary = _find_next_boundary_jd(cursor, _nakshatra_angle_at_jd, 40 / 3)
+        next_rasi_boundary = _find_next_boundary_jd(cursor, _nakshatra_angle_at_jd, 30.0)
+        interval_end = min(next_nakshatra_boundary, next_rasi_boundary, end_jd)
+
+        if current_moon_rasi == moon_rasi_number:
+            found_target_rasi = True
+            window = PanchangamChandrashtamamNakshatraWindow(
+                name=_chandrashtamam_janma_nakshatra_name_at_jd(cursor),
+                start=utc_datetime_to_local_datetime(julian_day_to_utc_datetime(cursor), timezone_name),
+                end=utc_datetime_to_local_datetime(julian_day_to_utc_datetime(interval_end), timezone_name),
+            )
+            if windows and windows[-1].name == window.name and abs((window.start - windows[-1].end).total_seconds()) < 1:
+                windows[-1] = PanchangamChandrashtamamNakshatraWindow(
+                    name=window.name,
+                    start=windows[-1].start,
+                    end=window.end,
+                )
+            else:
+                windows.append(window)
+        elif found_target_rasi:
+            break
+
+        cursor = min(interval_end + 1e-8, end_jd)
+
+    return tuple(windows)
+
+
 def _find_lagna_rasi_boundary_jd(start_jd: float, latitude: float, longitude: float) -> float:
     """Find the JD at which the sidereal ascendant crosses into the next rasi (30°)."""
     base_degree = normalize_longitude(calculate_lagna_degree(start_jd, latitude, longitude))
@@ -1117,6 +1178,14 @@ def _serialize_snapshot(snapshot: PanchangamSnapshot) -> dict:
         "chandrashtamam_affected_janma_rasi_number": snapshot.chandrashtamam_affected_janma_rasi_number,
         "chandrashtamam_affected_janma_rasi_name": snapshot.chandrashtamam_affected_janma_rasi_name,
         "chandrashtamam_today_nakshatras": list(snapshot.chandrashtamam_today_nakshatras),
+        "chandrashtamam_janma_nakshatra_windows": [
+            {
+                "name": window.name,
+                "start": window.start.isoformat(),
+                "end": window.end.isoformat(),
+            }
+            for window in snapshot.chandrashtamam_janma_nakshatra_windows
+        ],
         "warnings": list(snapshot.warnings),
         "dominant_tithi_number": snapshot.dominant_tithi_number,
         "dominant_nakshatra_number": snapshot.dominant_nakshatra_number,
@@ -1220,6 +1289,14 @@ def _deserialize_snapshot(data: dict) -> PanchangamSnapshot:
         chandrashtamam_affected_janma_rasi_number=int(data.get("chandrashtamam_affected_janma_rasi_number", 0)),
         chandrashtamam_affected_janma_rasi_name=str(data.get("chandrashtamam_affected_janma_rasi_name", "")),
         chandrashtamam_today_nakshatras=tuple(data.get("chandrashtamam_today_nakshatras", [])),
+        chandrashtamam_janma_nakshatra_windows=tuple(
+            PanchangamChandrashtamamNakshatraWindow(
+                name=str(window.get("name", "")),
+                start=datetime.fromisoformat(window["start"]),
+                end=datetime.fromisoformat(window["end"]),
+            )
+            for window in (data.get("chandrashtamam_janma_nakshatra_windows") or [])
+        ),
         warnings=tuple(data.get("warnings", [])),
         dominant_tithi_number=int(data.get("dominant_tithi_number", 0)),
         dominant_nakshatra_number=int(data.get("dominant_nakshatra_number", 0)),
@@ -1448,6 +1525,11 @@ def calculate_daily_panchangam(
     moon_rasi_number = rasi_from_degree(moon_longitude)
     affected_janma_rasi_number = _chandrashtamam_affected_janma_rasi(moon_rasi_number)
     chandrashtamam_today_nakshatras = _chandrashtamam_today_nakshatras(nakshatra_number)
+    chandrashtamam_janma_nakshatra_windows = _chandrashtamam_janma_nakshatra_windows(
+        date_local,
+        timezone_name,
+        moon_rasi_number,
+    )
 
     # Dominant state across the civil day (what the monthly calendar grid shows).
     # Computed once here so it lands in the cache record; the monthly endpoint then
@@ -1518,6 +1600,7 @@ def calculate_daily_panchangam(
         chandrashtamam_affected_janma_rasi_number=affected_janma_rasi_number,
         chandrashtamam_affected_janma_rasi_name=RASI_NAMES[affected_janma_rasi_number],
         chandrashtamam_today_nakshatras=chandrashtamam_today_nakshatras,
+        chandrashtamam_janma_nakshatra_windows=chandrashtamam_janma_nakshatra_windows,
         warnings=warnings,
         dominant_tithi_number=dominant_tithi_number,
         dominant_nakshatra_number=dominant_nakshatra_number,

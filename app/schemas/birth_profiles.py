@@ -182,3 +182,11 @@ class BirthProfileGetResponse(BaseModel):
     meta: BirthProfileResponseMeta
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class BirthProfileListResponse(BaseModel):
+    success: bool = True
+    data: list[BirthProfileResponse]
+    meta: BirthProfileResponseMeta
+
+    model_config = ConfigDict(populate_by_name=True)

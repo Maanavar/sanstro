@@ -547,99 +547,12 @@ def _contextualize_porutham_result(result, compatibility_context: str) -> dict[s
     }
 
 
-def get_porutham_for_member(
-    session: Session,
-    owner_user_id: UUID,
-    family_vault_id: UUID,
-    member_id: UUID,
-    *,
-    compatibility_context: str = "GENERAL",
-) -> PorutthamResponse:
-    _assert_vault_owner(session, family_vault_id, owner_user_id)
-    member = _member_in_vault(session, family_vault_id, member_id)
-    if compatibility_context == "MARRIAGE" and member.relationship_to_owner in {"parent", "child", "sibling", "grandparent"}:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Marriage compatibility analysis is not applicable for this relationship type.",
-        )
-    owner_chart = _owner_chart_for_vault(session, family_vault_id, owner_user_id)
-    member_chart = _latest_chart(session, _latest_birth_profile(session, member))
-
-    owner_snap = load_persisted_chart_response(session, owner_chart.chart_id)
-    member_snap = load_persisted_chart_response(session, member_chart.chart_id)
-
-    owner_moon = _planet(owner_snap, "MOON")
-    member_moon = _planet(member_snap, "MOON")
-
-    # Convention: owner=boy, member=girl for the kuta direction
-    result = compute_porutham(
-        boy_nakshatra=owner_moon.nakshatra,
-        girl_nakshatra=member_moon.nakshatra,
-        boy_rasi=owner_moon.rasi,
-        girl_rasi=member_moon.rasi,
-    )
-    shaped = _contextualize_porutham_result(result, compatibility_context)
-
-    kutas = [
-        KutaResult(
-            name=k.name,
-            name_ta=k.name_ta,
-            score=k.score,
-            max_score=k.max_score,
-            label=k.label,
-        )
-        for k in shaped["kutas"]
-    ]
-
-    _note_raw = _CONTEXT_NOTE.get(compatibility_context, _CONTEXT_NOTE["GENERAL"])
-    data = PorutthamData(
-        family_vault_id=family_vault_id,
-        member_id=member_id,
-        boy_nakshatra=owner_moon.nakshatra,
-        boy_nakshatra_name=NAKSHATRA_NAMES[owner_moon.nakshatra - 1],
-        girl_nakshatra=member_moon.nakshatra,
-        girl_nakshatra_name=NAKSHATRA_NAMES[member_moon.nakshatra - 1],
-        kutas=kutas,
-        total_score=shaped["total_score"],
-        max_score=shaped["max_score"],
-        percentage=shaped["percentage"],
-        label=shaped["label"],
-        rajju_dosha=shaped["rajju_dosha"],
-        vedha_dosha=shaped["vedha_dosha"],
-        nadi_dosha=NadiDoshaData(**shaped["nadi_dosha"]),
-        summary=shaped["summary"],
-        compatibility_context=compatibility_context,
-        context_note=RelationshipBiText(ta=_note_raw["ta"], en=_note_raw["en"]),
-    )
-    return PorutthamResponse(data=data, meta=_meta())
-
-
-def compare_charts_direct(
-    session: Session,
-    owner_user_id: UUID,
-    chart_id_a: UUID,
-    chart_id_b: UUID,
+def compare_chart_snapshots_direct(
+    snap_a: Any,
+    snap_b: Any,
     *,
     compatibility_context: str = "GENERAL",
 ) -> DirectPoruthamResponse:
-    """Compute Porutham for any two charts owned by the current user."""
-    from app.models import Chart
-
-    def _assert_owned(cid: UUID) -> Chart:
-        chart = session.get(Chart, cid)
-        if chart is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Chart {cid} not found.")
-        profile = session.get(BirthProfile, chart.birth_profile_id)
-        if profile is None or profile.owner_user_id != owner_user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
-        return chart
-
-    chart_a = _assert_owned(chart_id_a)
-    chart_b = _assert_owned(chart_id_b)
-
-    snap_a = load_persisted_chart_response(session, chart_a.chart_id)
-    snap_b = load_persisted_chart_response(session, chart_b.chart_id)
-
     moon_a = _planet(snap_a, "MOON")
     moon_b = _planet(snap_b, "MOON")
 
@@ -658,8 +571,8 @@ def compare_charts_direct(
 
     _note_raw = _CONTEXT_NOTE.get(compatibility_context, _CONTEXT_NOTE["GENERAL"])
     data = DirectPoruthamData(
-        chart_id_a=chart_id_a,
-        chart_id_b=chart_id_b,
+        chart_id_a=snap_a.data.chart_id,
+        chart_id_b=snap_b.data.chart_id,
         boy_nakshatra=moon_a.nakshatra,
         boy_nakshatra_name=NAKSHATRA_NAMES[moon_a.nakshatra - 1],
         girl_nakshatra=moon_b.nakshatra,
@@ -679,62 +592,26 @@ def compare_charts_direct(
     return DirectPoruthamResponse(data=data, meta=_meta())
 
 
-def get_compatibility_intelligence_for_member(
-    session: Session,
-    owner_user_id: UUID,
-    family_vault_id: UUID,
-    member_id: UUID,
-    person_a_chart_id: UUID | None = None,
+def build_compatibility_intelligence_from_snapshots(
+    snap_a: Any,
+    snap_b: Any,
 ) -> CompatibilityIntelligenceResponse:
-    """Full 8-level Compatibility Intelligence Report for marriage (signed users only).
-
-    Person A defaults to the vault owner's chart. Callers that already know who
-    Person A is (the Porutham tool, where the user fills two explicit people) can
-    pass ``person_a_chart_id`` to pin Person A to that chart instead of the owner —
-    otherwise the report can silently compare the owner against the member even
-    when the user meant two different people.
-    """
     from app.calculations.astro import utc_datetime_to_julian_day
     from app.calculations.compatibility_intelligence import compute_compatibility_intelligence
     from app.calculations.porutham import compute_porutham
 
-    _assert_vault_owner(session, family_vault_id, owner_user_id)
-    member = _member_in_vault(session, family_vault_id, member_id)
-
-    if member.relationship_to_owner in {"parent", "child", "sibling", "grandparent"}:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Compatibility Intelligence analysis requires a spouse/partner relationship context.",
-        )
-
-    owner_chart = (
-        _load_owned_chart(session, person_a_chart_id, owner_user_id)
-        if person_a_chart_id is not None
-        else _owner_chart_for_vault(session, family_vault_id, owner_user_id)
-    )
-    member_chart = _latest_chart(session, _latest_birth_profile(session, member))
-
-    snap_a = load_persisted_chart_response(session, owner_chart.chart_id)
-    snap_b = load_persisted_chart_response(session, member_chart.chart_id)
-
     moon_a = _planet(snap_a, "MOON")
     moon_b = _planet(snap_b, "MOON")
 
-    # Layer 1: compute porutham
     porutham_result = compute_porutham(
         boy_nakshatra=moon_a.nakshatra,
         girl_nakshatra=moon_b.nakshatra,
         boy_rasi=moon_a.rasi,
         girl_rasi=moon_b.rasi,
     )
-
-    # Layer 8: compute synastry
     synastry_data = compute_synastry_score(snap_a, snap_b)
-
-    # Today's JD
     today_jd = utc_datetime_to_julian_day(datetime.now(tz=UTC))
 
-    # Get display names
     name_a = snap_a.data.birth_profile.display_name or "Person A"
     name_b = snap_b.data.birth_profile.display_name or "Person B"
 
@@ -748,7 +625,6 @@ def get_compatibility_intelligence_for_member(
         person_b_name=name_b,
     )
 
-    # Build nadi dosha schema
     nadi = porutham_result.nadi_dosha
     nadi_data = NadiDoshaData(
         boy_nadi=nadi["boy_nadi"],
@@ -857,6 +733,163 @@ def get_compatibility_intelligence_for_member(
         summary=RelationshipBiText(ta=ci.summary_ta, en=ci.summary_en),
     )
     return CompatibilityIntelligenceResponse(data=data, meta=_meta())
+
+
+def get_compatibility_intelligence_for_member_with_snapshot(
+    session: Session,
+    owner_user_id: UUID,
+    family_vault_id: UUID,
+    member_id: UUID,
+    *,
+    person_a_snapshot: Any,
+) -> CompatibilityIntelligenceResponse:
+    _assert_vault_owner(session, family_vault_id, owner_user_id)
+    member = _member_in_vault(session, family_vault_id, member_id)
+
+    if member.relationship_to_owner in {"parent", "child", "sibling", "grandparent"}:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Compatibility Intelligence analysis requires a spouse/partner relationship context.",
+        )
+
+    member_chart = _latest_chart(session, _latest_birth_profile(session, member))
+    snap_b = load_persisted_chart_response(session, member_chart.chart_id)
+    return build_compatibility_intelligence_from_snapshots(person_a_snapshot, snap_b)
+
+
+def get_porutham_for_member(
+    session: Session,
+    owner_user_id: UUID,
+    family_vault_id: UUID,
+    member_id: UUID,
+    *,
+    compatibility_context: str = "GENERAL",
+) -> PorutthamResponse:
+    _assert_vault_owner(session, family_vault_id, owner_user_id)
+    member = _member_in_vault(session, family_vault_id, member_id)
+    if compatibility_context == "MARRIAGE" and member.relationship_to_owner in {"parent", "child", "sibling", "grandparent"}:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Marriage compatibility analysis is not applicable for this relationship type.",
+        )
+    owner_chart = _owner_chart_for_vault(session, family_vault_id, owner_user_id)
+    member_chart = _latest_chart(session, _latest_birth_profile(session, member))
+
+    owner_snap = load_persisted_chart_response(session, owner_chart.chart_id)
+    member_snap = load_persisted_chart_response(session, member_chart.chart_id)
+
+    owner_moon = _planet(owner_snap, "MOON")
+    member_moon = _planet(member_snap, "MOON")
+
+    # Convention: owner=boy, member=girl for the kuta direction
+    result = compute_porutham(
+        boy_nakshatra=owner_moon.nakshatra,
+        girl_nakshatra=member_moon.nakshatra,
+        boy_rasi=owner_moon.rasi,
+        girl_rasi=member_moon.rasi,
+    )
+    shaped = _contextualize_porutham_result(result, compatibility_context)
+
+    kutas = [
+        KutaResult(
+            name=k.name,
+            name_ta=k.name_ta,
+            score=k.score,
+            max_score=k.max_score,
+            label=k.label,
+        )
+        for k in shaped["kutas"]
+    ]
+
+    _note_raw = _CONTEXT_NOTE.get(compatibility_context, _CONTEXT_NOTE["GENERAL"])
+    data = PorutthamData(
+        family_vault_id=family_vault_id,
+        member_id=member_id,
+        boy_nakshatra=owner_moon.nakshatra,
+        boy_nakshatra_name=NAKSHATRA_NAMES[owner_moon.nakshatra - 1],
+        girl_nakshatra=member_moon.nakshatra,
+        girl_nakshatra_name=NAKSHATRA_NAMES[member_moon.nakshatra - 1],
+        kutas=kutas,
+        total_score=shaped["total_score"],
+        max_score=shaped["max_score"],
+        percentage=shaped["percentage"],
+        label=shaped["label"],
+        rajju_dosha=shaped["rajju_dosha"],
+        vedha_dosha=shaped["vedha_dosha"],
+        nadi_dosha=NadiDoshaData(**shaped["nadi_dosha"]),
+        summary=shaped["summary"],
+        compatibility_context=compatibility_context,
+        context_note=RelationshipBiText(ta=_note_raw["ta"], en=_note_raw["en"]),
+    )
+    return PorutthamResponse(data=data, meta=_meta())
+
+
+def compare_charts_direct(
+    session: Session,
+    owner_user_id: UUID,
+    chart_id_a: UUID,
+    chart_id_b: UUID,
+    *,
+    compatibility_context: str = "GENERAL",
+) -> DirectPoruthamResponse:
+    """Compute Porutham for any two charts owned by the current user."""
+    from app.models import Chart
+
+    def _assert_owned(cid: UUID) -> Chart:
+        chart = session.get(Chart, cid)
+        if chart is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Chart {cid} not found.")
+        profile = session.get(BirthProfile, chart.birth_profile_id)
+        if profile is None or profile.owner_user_id != owner_user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+        return chart
+
+    chart_a = _assert_owned(chart_id_a)
+    chart_b = _assert_owned(chart_id_b)
+
+    snap_a = load_persisted_chart_response(session, chart_a.chart_id)
+    snap_b = load_persisted_chart_response(session, chart_b.chart_id)
+    return compare_chart_snapshots_direct(snap_a, snap_b, compatibility_context=compatibility_context)
+
+
+def get_compatibility_intelligence_for_member(
+    session: Session,
+    owner_user_id: UUID,
+    family_vault_id: UUID,
+    member_id: UUID,
+    person_a_chart_id: UUID | None = None,
+) -> CompatibilityIntelligenceResponse:
+    """Full 8-level Compatibility Intelligence Report for marriage (signed users only).
+
+    Person A defaults to the vault owner's chart. Callers that already know who
+    Person A is (the Porutham tool, where the user fills two explicit people) can
+    pass ``person_a_chart_id`` to pin Person A to that chart instead of the owner —
+    otherwise the report can silently compare the owner against the member even
+    when the user meant two different people.
+    """
+    from app.calculations.astro import utc_datetime_to_julian_day
+    from app.calculations.compatibility_intelligence import compute_compatibility_intelligence
+    from app.calculations.porutham import compute_porutham
+
+    _assert_vault_owner(session, family_vault_id, owner_user_id)
+    member = _member_in_vault(session, family_vault_id, member_id)
+
+    if member.relationship_to_owner in {"parent", "child", "sibling", "grandparent"}:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Compatibility Intelligence analysis requires a spouse/partner relationship context.",
+        )
+
+    owner_chart = (
+        _load_owned_chart(session, person_a_chart_id, owner_user_id)
+        if person_a_chart_id is not None
+        else _owner_chart_for_vault(session, family_vault_id, owner_user_id)
+    )
+    member_chart = _latest_chart(session, _latest_birth_profile(session, member))
+
+    snap_a = load_persisted_chart_response(session, owner_chart.chart_id)
+    snap_b = load_persisted_chart_response(session, member_chart.chart_id)
+    return build_compatibility_intelligence_from_snapshots(snap_a, snap_b)
 
 
 def daily_relationship_alert_refresh(run_at_utc: datetime | None = None) -> dict[str, int]:

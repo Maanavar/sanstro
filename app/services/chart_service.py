@@ -1131,6 +1131,48 @@ def _ashtakavarga_table(chart_response: ChartCalculateResponse) -> dict[str, dic
     return compute_bhinnashtakavarga(natal_rasi_map)
 
 
+def get_chart_summary_from_snapshot(
+    chart_response: ChartCalculateResponse,
+    *,
+    language: str = "ta-en",
+) -> ChartSummaryResponse:
+    birth_profile = chart_response.data.birth_profile
+    moon = next(planet for planet in chart_response.data.planets if planet.graha == "MOON")
+    d9_lagna_rasi = navamsa_rasi_from_degree(chart_response.data.lagna.absolute_longitude)
+    timeline = calculate_vimshottari_timeline(
+        chart_response.data.julian_day,
+        moon.absolute_longitude,
+        utc_datetime_to_julian_day(datetime.now(tz=UTC)),
+    )
+    today = datetime.now(tz=UTC).date()
+
+    return ChartSummaryResponse(
+        data=ChartSummaryData(
+            chart_id=chart_response.data.chart_id,
+            display_name=birth_profile.display_name,
+            current_age=_current_age(birth_profile.birth_date_local, today),
+            lagna_rasi=chart_response.data.lagna.rasi_name,
+            moon_rasi=moon.rasi_name,
+            d9_lagna_rasi=RASI_NAMES[d9_lagna_rasi],
+            d9_moon_rasi=RASI_NAMES[moon.d9_rasi] if isinstance(moon.d9_rasi, int) else None,
+            janma_nakshatra=moon.nakshatra_name,
+            janma_pada=moon.pada,
+            current_mahadasha=timeline.current_mahadasha.lord,
+            current_antardasha=timeline.current_antardasha.lord,
+            functional_nature=_functional_nature_table(chart_response.data.lagna.rasi),
+            ashtakavarga=_ashtakavarga_table(chart_response),
+            planets=chart_response.data.planets,
+            yogas=chart_response.data.yogas,
+            chart_validation_status=None,
+            primary_language_text=_summary_text(language),
+        ),
+        meta=ResponseMeta(
+            calculation_version=chart_response.meta.calculation_version,
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )
+
+
 def get_chart_summary(session: Session, chart_id: UUID, *, language: str = "ta-en") -> ChartSummaryResponse:
     chart_response = load_persisted_chart_response(session, chart_id)
     chart = session.get(Chart, chart_id)

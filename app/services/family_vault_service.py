@@ -217,6 +217,21 @@ def _cached_member_snapshot(
     return snapshot
 
 
+def _collect_member_snapshots(
+    session: Session,
+    family_members: list[FamilyMember],
+    on_date: date,
+    snapshot_cache: dict[tuple[UUID, date], _MemberSnapshot],
+) -> list[_MemberSnapshot]:
+    snapshots: list[_MemberSnapshot] = []
+    for member in family_members:
+        try:
+            snapshots.append(_cached_member_snapshot(session, member, on_date, snapshot_cache))
+        except HTTPException:
+            continue
+    return snapshots
+
+
 def _member_active_tags(snapshot: _MemberSnapshot) -> list[str]:
     tags: list[str] = []
     score = snapshot.daily_guidance.data.score
@@ -717,6 +732,12 @@ def add_family_member(
     session.flush()
 
     birth_profile = create_birth_profile_record(session, payload, family_member_id=family_member.family_member_id)
+    # Spouse relationship implies married on both sides — override marital status so all
+    # prediction gates (marriage timing, life mode blocking) fire correctly automatically.
+    if payload.relationship_to_owner == "spouse" and birth_profile.marital_status != "married":
+        birth_profile.marital_status = "married"
+        session.flush()
+
     chart_response = None
     if payload.calculate_now:
         chart_response = calculate_chart_for_persisted_profile(
@@ -771,10 +792,13 @@ def get_family_daily_aggregate(
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Family vault has no members.")
 
     request_cache = snapshot_cache if snapshot_cache is not None else {}
-    member_snapshots = [
-        _cached_member_snapshot(session, member, on_date, request_cache)
-        for member in family_members
-    ]
+    member_snapshots = _collect_member_snapshots(session, family_members, on_date, request_cache)
+    if not member_snapshots:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Family vault has no active members with valid birth profiles.",
+        )
+
     member_summaries = [_member_response(snapshot) for snapshot in member_snapshots]
     best_family_windows = _family_best_windows(member_snapshots)
     avoid_for_family_decisions = _family_avoid_windows(member_snapshots)
@@ -1143,6 +1167,17 @@ def update_family_member(
             payload.current_longitude, payload.current_timezone,
         )):
             profile.current_location_updated_at = datetime.now(tz=UTC)
+        profile.updated_at = datetime.now(tz=UTC)
+
+    # When relationship becomes spouse, ensure profile reflects married status
+    # so all prediction gates fire without requiring an explicit separate update.
+    if (
+        payload.relationship_to_owner == "spouse"
+        and profile is not None
+        and profile.marital_status != "married"
+        and payload.marital_status is None
+    ):
+        profile.marital_status = "married"
         profile.updated_at = datetime.now(tz=UTC)
 
     session.flush()

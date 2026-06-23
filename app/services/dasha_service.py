@@ -231,14 +231,12 @@ def _timeline_for_level(
     )
 
 
-def get_chart_dasha(
-    session: Session,
-    chart_id: UUID,
+def get_chart_dasha_from_snapshot(
+    chart_snapshot,
     as_of: date,
     *,
     level: Literal["maha", "antar", "pratyantar", "sookshma", "prana"] = "pratyantar",
 ) -> DashaTimelineResponse:
-    chart_snapshot = load_persisted_chart_response(session, chart_id)
     moon = next(planet for planet in chart_snapshot.data.planets if planet.graha == "MOON")
     birth_jd = chart_snapshot.data.julian_day
     as_of_jd = local_midnight_as_jd_for_profile(as_of, chart_snapshot.data.birth_profile)
@@ -253,7 +251,7 @@ def get_chart_dasha(
 
     return DashaTimelineResponse(
         data=DashaTimelineResponseData(
-            chartId=chart_id,
+            chartId=chart_snapshot.data.chart_id,
             openingDasha=DashaOpeningWindow(
                 lord=timeline.opening_lord,
                 balanceYearsAtBirth=timeline.balance_years_at_birth,
@@ -288,3 +286,14 @@ def get_chart_dasha(
             generated_at=datetime.now(tz=UTC),
         ),
     )
+
+
+def get_chart_dasha(
+    session: Session,
+    chart_id: UUID,
+    as_of: date,
+    *,
+    level: Literal["maha", "antar", "pratyantar", "sookshma", "prana"] = "pratyantar",
+) -> DashaTimelineResponse:
+    chart_snapshot = load_persisted_chart_response(session, chart_id)
+    return get_chart_dasha_from_snapshot(chart_snapshot, as_of, level=level)

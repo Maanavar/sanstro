@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import re
+from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, ConfigDict, Field
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
@@ -18,15 +20,53 @@ from app.schemas.relationships import (
     RelationshipAlertsResponse,
     SynastryResponse,
 )
+from app.services.chart_service import _chart_response_from_profile  # noqa: PLC2701
 from app.services.synastry_service import (
     compare_charts_direct,
     get_compatibility_intelligence_for_member,
+    get_compatibility_intelligence_for_member_with_snapshot,
     get_porutham_for_member,
     get_synastry_for_member,
     list_relationship_alerts,
 )
 
 router = APIRouter()
+
+
+class DirectBirthInput(BaseModel):
+    display_name: str = Field(alias="displayName", default="")
+    birth_date_local: date = Field(alias="birthDateLocal")
+    birth_time_local: str | None = Field(alias="birthTimeLocal", default=None)
+    birth_latitude: float = Field(alias="birthLatitude")
+    birth_longitude: float = Field(alias="birthLongitude")
+    birth_timezone: str = Field(alias="birthTimezone", default="Asia/Kolkata")
+    birth_place: str = Field(alias="birthPlace", default="")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class DirectCompatibilityIntelligenceRequest(BaseModel):
+    person_a: DirectBirthInput = Field(alias="personA")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class _TransientProfile:
+    def __init__(self, payload: DirectBirthInput) -> None:
+        from datetime import time
+        from uuid import uuid4
+
+        self.birth_profile_id = uuid4()
+        self.display_name = payload.display_name or "Anonymous"
+        self.birth_date_local = payload.birth_date_local
+        self.birth_time_local = time.fromisoformat(payload.birth_time_local) if payload.birth_time_local else None
+        self.birth_latitude = payload.birth_latitude
+        self.birth_longitude = payload.birth_longitude
+        self.birth_timezone = payload.birth_timezone
+        self.birth_place = payload.birth_place
+        self.gender_for_traditional_rules = "UNKNOWN"
+        self.relationship_to_owner = "other"
+        self.deleted_at = None
 
 
 def _validate_compatibility_context(value: str) -> str:
@@ -112,6 +152,33 @@ def relationship_compatibility_intelligence(
         family_vault_id,
         member_id,
         person_a_chart_id=chart_id_a,
+    )
+
+
+@router.post(
+    "/relationships/{member_id}/compatibility-intelligence/direct",
+    response_model=CompatibilityIntelligenceResponse,
+    tags=["relationships"],
+)
+def relationship_compatibility_intelligence_direct(
+    member_id: UUID,
+    payload: DirectCompatibilityIntelligenceRequest,
+    family_vault_id: UUID = Query(alias="familyVaultId"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> CompatibilityIntelligenceResponse:
+    try:
+        snap_a = _chart_response_from_profile(_TransientProfile(payload.person_a), "thirukanitham-2026-v1")
+    except (ValueError, HTTPException) as exc:
+        msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
+        raise HTTPException(status_code=422, detail=msg) from exc
+
+    return get_compatibility_intelligence_for_member_with_snapshot(
+        session,
+        current_user.user_id,
+        family_vault_id,
+        member_id,
+        person_a_snapshot=snap_a,
     )
 
 

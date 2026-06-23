@@ -25,7 +25,46 @@ class MarriageAssessmentInput:
     sevvai_dosham_cancelled: bool = False
     rahu_ketu_label: str | None = None
     d9_rasi_by_planet: dict[str, int] | None = None
+    relationship_to_owner: str = "self"
+_PARENTAL_RELATIONSHIPS: frozenset[str] = frozenset({"parent", "grandparent"})
+
+
 def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPrediction:
+    # Parent/grandparent profiles: marriage timing is not applicable — redirect to
+    # family harmony and companionship guidance instead.
+    if payload.relationship_to_owner in _PARENTAL_RELATIONSHIPS:
+        return LifeAreaPrediction(
+            life_area="marriage",
+            main_prediction_ta=(
+                "பெற்றோர் / பாட்டன்/பாட்டி பிரோஃபைல்களுக்கு திருமண நேர ஆலோசனை பொருந்தாது. "
+                "குடும்ப ஒற்றுமை, ஆரோக்கியம் மற்றும் ஆன்மிக வழிகாட்டல் பற்றி விநாடி உதவ தயார்."
+            ),
+            main_prediction_en=(
+                "Marriage timing guidance is not applicable for parent/grandparent profiles. "
+                "Vinaadi is here to guide on family harmony, health, and spiritual well-being."
+            ),
+            astrological_factors=[
+                AstroFactor(
+                    key="relationship_gate",
+                    status="INFO",
+                    detail=BiText(
+                        ta=f"உறவு வகை '{payload.relationship_to_owner}': திருமண நேர கணிப்பு இந்த சூழலில் பொருந்தாது.",
+                        en=f"Relationship type '{payload.relationship_to_owner}': marriage timing prediction is not applicable in this context.",
+                    ),
+                )
+            ],
+            dasha_support="PARTIAL",
+            transit_support="PARTIAL",
+            timing_window_start=payload.as_of,
+            timing_window_end=date(payload.as_of.year, 12, 31),
+            confidence="LOW",
+            challenges=[],
+            supports=[BiText(
+                "குடும்ப நலன், ஆரோக்கியம் மற்றும் துணைவர் ஒற்றுமை பற்றி கேட்கலாம்.",
+                "Ask about family well-being, health, and companionship harmony instead.",
+            )],
+        )
+
     if payload.age < 18:
         return LifeAreaPrediction(
             life_area="marriage",
