@@ -2,14 +2,20 @@ import { router } from "expo-router";
 import { getTokens, setTokens, clearTokens } from "@/lib/secureStore";
 import { ENV } from "@/lib/env";
 
-// Single-flight 401 refresh — all concurrent 401s share one refresh Promise
+const API_V1_PREFIX = "/api/v1";
+
+function buildApiUrl(path: string): string {
+  return ENV.API_BASE_URL + (path.startsWith("/api/") ? path : `${API_V1_PREFIX}${path}`);
+}
+
+// Single-flight 401 refresh - all concurrent 401s share one refresh Promise
 let _refreshPromise: Promise<void> | null = null;
 
 async function rotateTokens(): Promise<void> {
   const stored = await getTokens();
   if (!stored) throw new Error("no refresh token");
 
-  const res = await fetch(`${ENV.API_BASE_URL}/auth/mobile/refresh`, {
+  const res = await fetch(buildApiUrl("/auth/mobile/refresh"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refreshToken: stored.refreshToken }),
@@ -49,7 +55,7 @@ export async function fetchWithAuth(
   };
   if (tokens) headers["Authorization"] = `Bearer ${tokens.accessToken}`;
 
-  const res = await fetch(ENV.API_BASE_URL + url, { ...init, headers });
+  const res = await fetch(buildApiUrl(url), { ...init, headers });
 
   if (res.status !== 401) return res;
 
@@ -104,4 +110,14 @@ export class ApiError extends Error {
   get isUnauthorized() { return this.status === 401; }
   get isNotFound()     { return this.status === 404; }
   get isLimitReached() { return this.status === 429; }
+  get isConflict()     { return this.status === 409; }
+
+  getUserMessage(): string {
+    try {
+      const json = JSON.parse(this.message) as { detail?: string };
+      return json.detail || this.message;
+    } catch {
+      return this.message;
+    }
+  }
 }

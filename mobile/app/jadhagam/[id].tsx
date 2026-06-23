@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Share from "react-native-share";
+import { fetchWithAuth } from "@/api/client";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams, type Href } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -86,6 +88,7 @@ export default function JadhagamDetailScreen() {
   const isTamil = lang === "ta";
   const { id } = useLocalSearchParams<{ id: string }>();
   const [activeVarga, setActiveVarga] = useState<VargaKey>("D1");
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["chart-full", id],
@@ -100,6 +103,40 @@ export default function JadhagamDetailScreen() {
     () => chart ? hasVargaPlacements(chart, activeVarga) : true,
     [chart, activeVarga]
   );
+
+  async function handleExportPdf() {
+    if (!id || isExporting) return;
+    setIsExporting(true);
+    try {
+      const res = await fetchWithAuth(`/charts/${id}/export/pdf`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const buffer = await res.arrayBuffer();
+      // Pure-JS base64 encoding — works on all RN platforms without btoa
+      const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+      const bytes = new Uint8Array(buffer);
+      let b64 = "";
+      for (let i = 0; i < bytes.length; i += 3) {
+        const b0 = bytes[i], b1 = i + 1 < bytes.length ? bytes[i + 1] : 0, b2 = i + 2 < bytes.length ? bytes[i + 2] : 0;
+        b64 += alphabet[b0 >> 2];
+        b64 += alphabet[((b0 & 3) << 4) | (b1 >> 4)];
+        b64 += i + 1 < bytes.length ? alphabet[((b1 & 15) << 2) | (b2 >> 6)] : "=";
+        b64 += i + 2 < bytes.length ? alphabet[b2 & 63] : "=";
+      }
+      await Share.open({
+        title: isTamil ? "à®œà®¾à®¤à®•à®®à¯ PDF" : "Jadhagam PDF",
+        type: "application/pdf",
+        url: `data:application/pdf;base64,${b64}`,
+        filename: `jadhagam-${id}.pdf`,
+      });
+    } catch {
+      Alert.alert(
+        isTamil ? "Error" : "Export Failed",
+        isTamil ? "PDF à®à®±à¯à®±à¯à®®à®¤à®¿ à®¤à¯‹à®²à¯à®µà®¿. à®®à¯€à®£à¯à®Ÿà¯à®®à¯ à®®à¯à®¯à®±à¯à®šà®¿à®•à¯à®•à®µà¯à®®à¯." : "Could not export PDF. Please try again.",
+      );
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   function handleVargaSelect(view: VargaKey) {
     if (view === activeVarga) return;
@@ -237,6 +274,22 @@ export default function JadhagamDetailScreen() {
               <Text style={styles.rectifyArrow}>{">"}</Text>
             </TouchableOpacity>
 
+            {/* PDF Export */}
+            <TouchableOpacity
+              style={[styles.exportBtn, isExporting && styles.exportBtnDisabled]}
+              onPress={handleExportPdf}
+              disabled={isExporting}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={isTamil ? "PDF à®à®±à¯à®±à¯à®®à®¤à®¿" : "Export as PDF"}
+            >
+              <Text style={styles.exportBtnText}>
+                {isExporting
+                  ? (isTamil ? "à®à®±à¯à®±à¯à®®à®¤à®¿ à®šà¯†à®¯à¯à®•à®¿à®±à®¤à¯..." : "Exporting…")
+                  : (isTamil ? "PDF à®à®±à¯à®±à¯à®®à®¤à®¿" : "Export as PDF")}
+              </Text>
+            </TouchableOpacity>
+
             {/* Upsell CTA */}
             <TouchableOpacity
               style={styles.upsellCard}
@@ -294,6 +347,16 @@ const styles = StyleSheet.create({
   },
   datumLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: C.textTertiary, marginBottom: 3 },
   datumValue: { fontSize: 13, lineHeight: 18, color: C.textPrimary },
+  exportBtn: {
+    borderRadius: RADIUS.button,
+    borderWidth: 1,
+    borderColor: C.divider,
+    backgroundColor: C.surface,
+    paddingVertical: S.sm,
+    alignItems: "center",
+  },
+  exportBtnDisabled: { opacity: 0.45 },
+  exportBtnText: { fontFamily: "Inter_700Bold", fontSize: 14, color: C.textSecond },
   planetList: { backgroundColor: C.surface, borderRadius: RADIUS.card, overflow: "hidden" },
   planetRow: { flexDirection: "row", alignItems: "center", gap: S.sm, paddingHorizontal: S.base, paddingVertical: S.sm },
   planetBorder: { borderTopWidth: 1, borderTopColor: C.divider },

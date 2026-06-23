@@ -245,6 +245,14 @@ export default function MeScreen() {
                   <Text style={styles.menuArrow}>{">"}</Text>
                 </TouchableOpacity>
                 <View style={styles.divider} />
+                <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/profile-manager" as Href)}>
+                  <Text style={styles.menuIcon}>👤</Text>
+                  <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+                    {"Manage Birth Profiles"}
+                  </Text>
+                  <Text style={styles.menuArrow}>{">"}</Text>
+                </TouchableOpacity>
+                <View style={styles.divider} />
               </>
             )}
             <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/transits" as Href)}>

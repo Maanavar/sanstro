@@ -3,6 +3,7 @@ import {
   Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput,
   TouchableOpacity, View,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useQuery } from "@tanstack/react-query";
@@ -29,6 +30,7 @@ import { getLifeEvents, type LifeEventWindow } from "@/api/lifeEvents";
 import { getUpcomingTransits, type TransitItem } from "@/api/transits";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
 import { saveQuickJournalEntry, syncQuickJournalEntries } from "@/features/journal/journalStore";
+import { useConversionPrompt } from "@/hooks/useConversionPrompt";
 import { STALE } from "@/lib/queryClient";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import { pushWidgetData } from "@/lib/widgetBridge";
@@ -142,9 +144,11 @@ export default function TodayTab() {
   const { tier, user } = useSession();
   const isTamil = lang === "ta";
 
+  const { recordTodayVisit } = useConversionPrompt();
   const [prefs, setPrefs] = useState<GuestPrefs | null>(null);
   const [showSignupPrompt, setShowSignupPrompt] = useState(false);
   const [primaryChartId, setPrimaryChartId] = useState<string | null>(null);
+  const [streakCount, setStreakCount] = useState(0);
   const [detailSheet, setDetailSheet] = useState<DetailSheetState>(null);
   const [journalOpen, setJournalOpen] = useState(false);
   const [journalMoment, setJournalMoment] = useState(JOURNAL_MOMENTS[0].key);
@@ -158,7 +162,12 @@ export default function TodayTab() {
     if (tier !== "guest") {
       getPrimaryChartId().then(setPrimaryChartId);
     }
-  }, [tier]);
+    void recordTodayVisit().then(() => {
+      void AsyncStorage.getItem("vinaadi_streak_days").then((val) => {
+        if (val) setStreakCount(Number(val));
+      });
+    });
+  }, [tier, recordTodayVisit]);
 
   const lat = prefs?.lat ?? 13.0827;
   const lon = prefs?.lon ?? 80.2707;
@@ -341,6 +350,11 @@ export default function TodayTab() {
                 </Text>
               ) : null}
             </View>
+            {streakCount >= 1 && (
+              <View style={styles.streakChip} accessibilityLabel={`${streakCount}-day streak`}>
+                <Text style={styles.streakText}>🔥 {streakCount}</Text>
+              </View>
+            )}
             <TouchableOpacity
               onPress={() => router.push(“/notifications/inbox”)}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -1134,6 +1148,18 @@ const styles = StyleSheet.create({
   decisionBody: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19, color: "rgba(255,255,255,0.72)" },
 
   badge: { alignSelf: "center", marginTop: S.xl },
+  streakChip: {
+    backgroundColor: C.saffron,
+    borderRadius: RADIUS.chip,
+    paddingHorizontal: S.sm,
+    paddingVertical: 4,
+    marginRight: S.sm,
+  },
+  streakText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 13,
+    color: C.surface,
+  },
   dashaCard: {
     backgroundColor: C.surface, borderRadius: RADIUS.card,
     padding: S.base, flexDirection: "row", alignItems: "center", gap: S.sm,

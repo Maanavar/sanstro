@@ -1,5 +1,5 @@
 import React from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { C } from "@/theme/colors";
@@ -157,6 +157,41 @@ export const LEARN_CONTENT: Record<string, {
     ],
     webPath: "/learn/chandrashtama",
   },
+  "navagraha-temples": {
+    titleEn: "Navagraha Temples of Tamil Nadu",
+    titleTa: "தமிழ்நாட்டின் நவகிரக கோயில்கள்",
+    summaryEn: "Each of the nine grahas has a dedicated temple in Tamil Nadu. Visiting the temple for your weak or afflicted planet is the traditional way to ease those difficulties.",
+    summaryTa: "ஒன்பது கிரகங்களுக்கும் தமிழ்நாட்டில் தனித்தனி கோயில்கள் உள்ளன. பலவீனமான கிரகத்தின் கோயிலை தரிசிப்பது கிரக தோஷ நிவாரணத்தின் பாரம்பரிய வழியாகும்.",
+    sectionsEn: [
+      {
+        heading: "The nine temples",
+        body: "Sun — Suryanar Koil (near Kumbakonam). Moon — Thingalur (Thiruvarur district). Mars — Vaitheeswaran Koil (Sirkazhi). Mercury — Thiruvenkadu (Sirkazhi). Jupiter — Alangudi (Papanasam). Venus — Kanjanur (Thanjavur). Saturn — Thirunallar (Karaikal). Rahu — Thirunageswaram (Kumbakonam). Ketu — Keezhperumpallam (Nagapattinam).",
+      },
+      {
+        heading: "Which planet to focus on",
+        body: "Check your Jadhagam for planets that are debilitated (neecha), in the 6th, 8th, or 12th house, or closely conjunct Rahu or Ketu. These benefit most from a temple visit. Your Vinaadi chart highlights such placements.",
+      },
+      {
+        heading: "When to visit",
+        body: "Each planet has an associated day: Sun=Sunday, Moon=Monday, Mars=Tuesday, Mercury=Wednesday, Jupiter=Thursday, Venus=Friday, Saturn=Saturday. Visiting on the planet's own day during its hora is considered most auspicious.",
+      },
+    ],
+    sectionsTa: [
+      {
+        heading: "ஒன்பது கோயில்கள்",
+        body: "சூரியன் — சூரியனார் கோயில் (கும்பகோணம்). சந்திரன் — திங்களூர் (திருவாரூர்). செவ்வாய் — வைத்தீஸ்வரன் கோயில் (சீர்காழி). புதன் — திருவெண்காடு (சீர்காழி). குரு — ஆலங்குடி (பாபநாசம்). சுக்கிரன் — காஞ்சனூர் (தஞ்சாவூர்). சனி — திருநள்ளாறு (காரைக்கால்). ராகு — திருநாகேஸ்வரம் (கும்பகோணம்). கேது — கீழப்பெரும்பள்ளம் (நாகப்பட்டினம்).",
+      },
+      {
+        heading: "எந்த கிரகத்தில் கவனம்",
+        body: "உங்கள் ஜாதகத்தில் நீசம், 6-8-12 ஆம் பாவம், அல்லது ராகு-கேதுவுடன் சேர்ந்த கிரகங்களை கண்டறியுங்கள். இவை கோயில் தரிசனத்தால் அதிக பலன் பெறும்.",
+      },
+      {
+        heading: "எப்போது தரிசிக்க வேண்டும்",
+        body: "ஒவ்வொரு கிரகத்திற்கும் ஒரு நாள்: சூரியன்=ஞாயிறு, சந்திரன்=திங்கள், செவ்வாய்=செவ்வாய், புதன்=புதன், குரு=வியாழன், சுக்கிரன்=வெள்ளி, சனி=சனி. கிரகத்தின் நாளில் ஓரையில் தரிசிப்பது சுபமானது.",
+      },
+    ],
+    webPath: "/temples",
+  },
   "what-is-porutham": {
     titleEn: "What is Porutham?",
     titleTa: "பொருத்தம் என்றால் என்ன?",
@@ -240,16 +275,22 @@ export default function LearnArticleScreen() {
           </View>
         ))}
 
-        <View style={styles.webLink}>
+        <TouchableOpacity
+          style={styles.webLink}
+          onPress={() => content.webPath && void Linking.openURL("https://vinaadi.com" + content.webPath)}
+          activeOpacity={0.75}
+          accessibilityRole="link"
+          accessibilityLabel={isTamil ? "முழு வழிகாட்டி" : "Full guide"}
+        >
           <Text style={styles.webLinkLabel}>
-            {isTamil ? "முழு வழிகாட்டி" : "Full guide"}
+            {isTamil ? "முழு வழிகாட்டி →" : "Full guide →"}
           </Text>
           <Text style={[styles.webLinkBody, type.bodySmall]}>
             {isTamil
-              ? "இந்த தலைப்பில் விரிவான கட்டுரை எங்கள் இணையதளத்தில் உள்ளது."
-              : "A detailed article on this topic is available on our website at vinaadi.app."}
+              ? "விரிவான கட்டுரை vinaadi.com-ல் உள்ளது. தட்டினால் திறக்கும்."
+              : "Detailed article available at vinaadi.com — tap to open."}
           </Text>
-        </View>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );

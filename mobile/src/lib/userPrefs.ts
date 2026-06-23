@@ -22,3 +22,7 @@ export async function getPrimaryProfileId(): Promise<string | null> {
 export async function clearUserPrefs(): Promise<void> {
   await AsyncStorage.multiRemove([KEY_PRIMARY_CHART_ID, KEY_PRIMARY_PROFILE_ID]);
 }
+
+export async function clearPrimarySelection(): Promise<void> {
+  await clearUserPrefs();
+}
