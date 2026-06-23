@@ -124,6 +124,29 @@ export interface BirthProfileCreateResponseData {
   warnings: string[];
 }
 
+export interface BirthProfileResponse {
+  birthProfileId: string;
+  ownerUserId: string | null;
+  familyVaultId: string | null;
+  familyMemberId: string | null;
+  relationshipToOwner: "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
+  displayName: string;
+  birthDateLocal: string;
+  birthTimeLocal: string | null;
+  birthPlace: string;
+  birthLatitude: number;
+  birthLongitude: number;
+  birthTimezone: string;
+  currentPlace: string | null;
+  currentLatitude: number | null;
+  currentLongitude: number | null;
+  currentTimezone: string | null;
+  birthTimeSource: string;
+  birthTimeConfidenceMinutes: number;
+  calculationStatus: "pending" | "completed" | "failed";
+  warnings: string[];
+}
+
 export interface BirthProfileSnapshot {
   birthProfileId: string;
   ownerUserId?: string;
@@ -673,10 +696,16 @@ export interface PanchangamDailyResponseData {
   chandrashtamamToday: {
     moonRasiNumber: number; moonRasiName: string;
     affectedJanmaRasiNumber: number; affectedJanmaRasiName: string; nakshatras: string[];
+    janmaNakshatraWindows: Array<{ name: string; start: string; end: string }>;
   };
   specialTithiDay?: { tithiNumber: number; name: "POURNAMI" | "AMAVASAI"; moonPhase: "FULL" | "NEW" } | null;
   isKarinaal?: boolean;
 }
+
+export type PanchangamTimingsData = Pick<
+  PanchangamDailyResponseData,
+  "dateLocal" | "location" | "sunrise" | "sunset" | "solarNoon" | "kalam" | "abhijit" | "subhaMuhurtham" | "festivals" | "hora"
+>;
 
 export interface PanchangamMonthDayEntry {
   dateLocal: string;
