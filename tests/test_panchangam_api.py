@@ -39,6 +39,9 @@ def test_daily_panchangam_endpoint_returns_structured_daily_data(client):
     assert 1 <= chandra["moonRasiNumber"] <= 12
     assert 1 <= chandra["affectedJanmaRasiNumber"] <= 12
     assert chandra["affectedJanmaRasiNumber"] == ((chandra["moonRasiNumber"] - 8) % 12) + 1
+    assert isinstance(chandra["janmaNakshatraWindows"], list)
+    assert chandra["janmaNakshatraWindows"]
+    assert {"name", "start", "end"}.issubset(chandra["janmaNakshatraWindows"][0])
     # Summary windows are compact daily-calendar timings; the full named
     # Gowri engine remains available under gowriPanchangam.
     assert len(body["data"]["kalam"]["gowriNallaNeram"]) == 2

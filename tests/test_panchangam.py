@@ -203,6 +203,11 @@ def test_yoga_karana_chandrashtamam_have_transition_metadata():
     assert snap.chandrashtamam_affected_janma_rasi_number == (
         (snap.chandrashtamam_moon_rasi_number - 8) % 12
     ) + 1
+    assert snap.chandrashtamam_janma_nakshatra_windows
+    assert snap.chandrashtamam_janma_nakshatra_windows[0].start.date() == date(2026, 6, 8)
+    assert snap.chandrashtamam_janma_nakshatra_windows[0].start <= snap.sunrise <= snap.chandrashtamam_janma_nakshatra_windows[-1].end
+    assert all(window.start < window.end for window in snap.chandrashtamam_janma_nakshatra_windows)
+    assert all(window.name in NAKSHATRA_NAMES for window in snap.chandrashtamam_janma_nakshatra_windows)
 
 
 def test_amavasai_pournami_use_dominant_civil_day_marker():

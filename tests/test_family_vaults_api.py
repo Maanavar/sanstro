@@ -298,6 +298,57 @@ def test_family_calendar_range_is_capped(client, family_vault_payload_factory, f
     assert "90 days" in response.json()["detail"]
 
 
+def test_deleting_member_profile_does_not_break_family_summary_or_calendar(
+    client,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+):
+    vault = client.post("/api/v1/family-vaults", json=family_vault_payload_factory()).json()["data"]
+    family_vault_id = vault["familyVaultId"]
+
+    owner_member = client.post(
+        f"/api/v1/family-vaults/{family_vault_id}/members",
+        json=family_member_payload_factory(
+            display_name="Arjun Kumar",
+            relationship_to_owner="self",
+        ),
+    )
+    assert owner_member.status_code == 200
+
+    spouse_member = client.post(
+        f"/api/v1/family-vaults/{family_vault_id}/members",
+        json=family_member_payload_factory(
+            display_name="Meera",
+            relationship_to_owner="spouse",
+        ),
+    )
+    assert spouse_member.status_code == 200
+    spouse_profile_id = spouse_member.json()["data"]["birthProfileId"]
+
+    delete_response = client.delete(f"/api/v1/birth-profiles/{spouse_profile_id}")
+    assert delete_response.status_code == 204
+
+    members_after_delete = client.get(f"/api/v1/family-vaults/{family_vault_id}/members")
+    assert members_after_delete.status_code == 200
+    remaining_members = members_after_delete.json()["data"]["items"]
+    assert len(remaining_members) == 1
+    assert remaining_members[0]["displayName"] == "Arjun Kumar"
+
+    summary = client.get(
+        f"/api/v1/family-vaults/{family_vault_id}/summary",
+        params={"date": "2026-05-21"},
+    )
+    assert summary.status_code == 200
+    assert summary.json()["data"]["familyVaultId"] == family_vault_id
+
+    calendar = client.get(
+        f"/api/v1/family-vaults/{family_vault_id}/calendar",
+        params={"from": "2026-05-21", "to": "2026-05-22"},
+    )
+    assert calendar.status_code == 200
+    assert len(calendar.json()["data"]["items"]) == 2
+
+
 def test_delete_family_vault_soft_deletes_row(client, family_vault_payload_factory):
     vault = client.post("/api/v1/family-vaults", json=family_vault_payload_factory("Soft Delete Vault"))
     assert vault.status_code == 200

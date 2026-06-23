@@ -2,6 +2,8 @@ import json
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
+from sqlalchemy import select
+
 from app.core.encryption import decrypt_bytes
 from app.db.session import SessionLocal
 from app.models.birth_profile import BirthProfile
@@ -56,6 +58,37 @@ def test_birth_profile_get_endpoint_returns_full_profile(client):
     assert body["displayName"] == "Arjun Kumar"
     assert body["birthTimeLocal"] == "06:30:00"
     assert body["calculationStatus"] == "completed"
+
+
+def test_duplicate_birth_profile_create_is_rejected(client):
+    payload = {
+        "ownerUserId": "22222222-2222-2222-2222-222222222222",
+        "displayName": "Arjun Kumar",
+        "birthDateLocal": "1991-07-22",
+        "birthTimeLocal": "06:30:00",
+        "birthPlace": "Chennai, Tamil Nadu, India",
+        "birthLatitude": 13.0827,
+        "birthLongitude": 80.2707,
+        "birthTimezone": "Asia/Kolkata",
+        "calculateNow": True,
+    }
+
+    first = client.post("/api/v1/birth-profiles", json=payload)
+    duplicate = client.post("/api/v1/birth-profiles", json=payload)
+
+    assert first.status_code == 200
+    assert duplicate.status_code == 409
+    assert "matching birth profile already exists" in duplicate.json()["detail"].lower()
+
+    with SessionLocal() as session:
+        rows = session.execute(
+            select(BirthProfile).where(
+                BirthProfile.deleted_at.is_(None),
+                BirthProfile.display_name == "Arjun Kumar",
+                BirthProfile.birth_place == "Chennai, Tamil Nadu, India",
+            )
+        ).scalars().all()
+        assert len(rows) == 1
 
 
 def test_birth_profile_without_time_can_be_saved_without_chart(client):
@@ -134,7 +167,55 @@ def test_birth_profile_me_latest_returns_404_when_no_profile_exists(client):
     response = client.get("/api/v1/birth-profiles/me/latest")
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "No birth profile found for the current user."
+    assert response.json()["detail"] == "Birth profile not found. Please create one to get started."
+
+
+def test_updating_birth_profile_to_duplicate_is_rejected(client):
+    first = client.post(
+        "/api/v1/birth-profiles",
+        json={
+            "ownerUserId": "22222222-2222-2222-2222-222222222222",
+            "displayName": "Arjun Kumar",
+            "birthDateLocal": "1991-07-22",
+            "birthTimeLocal": "06:30:00",
+            "birthPlace": "Chennai, Tamil Nadu, India",
+            "birthLatitude": 13.0827,
+            "birthLongitude": 80.2707,
+            "birthTimezone": "Asia/Kolkata",
+            "calculateNow": True,
+        },
+    ).json()
+    second = client.post(
+        "/api/v1/birth-profiles",
+        json={
+            "ownerUserId": "22222222-2222-2222-2222-222222222222",
+            "displayName": "Anitha Kumar",
+            "birthDateLocal": "1990-07-22",
+            "birthTimeLocal": "07:00:00",
+            "birthPlace": "Madurai, Tamil Nadu, India",
+            "birthLatitude": 9.9252,
+            "birthLongitude": 78.1198,
+            "birthTimezone": "Asia/Kolkata",
+            "calculateNow": True,
+        },
+    ).json()
+
+    response = client.patch(
+        f"/api/v1/birth-profiles/{second['data']['birthProfileId']}",
+        json={
+            "displayName": "Arjun Kumar",
+            "birthDateLocal": "1991-07-22",
+            "birthTimeLocal": "06:30:00",
+            "birthPlace": "Chennai, Tamil Nadu, India",
+            "birthLatitude": 13.0827,
+            "birthLongitude": 80.2707,
+            "birthTimezone": "Asia/Kolkata",
+        },
+    )
+
+    assert first['data']['birthProfileId'] != second['data']['birthProfileId']
+    assert response.status_code == 409
+    assert "matching birth profile already exists" in response.json()["detail"].lower()
 
 
 def test_birth_profile_create_persists_encrypted_payload(client):
