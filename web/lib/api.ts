@@ -1,4 +1,5 @@
 const BACKEND_PREFIX = "/api/backend";
+const API_V1_PREFIX = "/api/v1";
 const MUTATING_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 
 function buildHeaders(init?: RequestInit) {
@@ -11,7 +12,9 @@ function buildHeaders(init?: RequestInit) {
   return headers;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+function normalizeApiPath(path: string) {
+  return path.startsWith("/api/") ? path : `${API_V1_PREFIX}${path}`;
+}
 
 export function toQuery(params: Record<string, string | number | boolean | undefined | null>) {
   const query = new URLSearchParams();
@@ -28,7 +31,7 @@ export function toQuery(params: Record<string, string | number | boolean | undef
 export async function apiFetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${BACKEND_PREFIX}${path}`, {
+    response = await fetch(`${BACKEND_PREFIX}${normalizeApiPath(path)}`, {
       ...init,
       credentials: "include",
       headers: buildHeaders(init),
@@ -37,12 +40,11 @@ export async function apiFetchJson<T>(path: string, init?: RequestInit): Promise
     if (error instanceof Error && error.name === "AbortError") {
       throw error;
     }
-    throw new Error("Network error — backend unreachable. Check your connection.");
+    throw new Error("Network error - backend unreachable. Check your connection.");
   }
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    // Try to extract a structured error message from JSON response bodies
     try {
       const json = JSON.parse(text) as Record<string, unknown>;
       const validationDetail = Array.isArray(json.detail)
@@ -58,10 +60,9 @@ export async function apiFetchJson<T>(path: string, init?: RequestInit): Promise
         text;
       throw new Error(`${response.status}: ${path}: ${msg}`);
     } catch (parseErr) {
-      if (
-        parseErr instanceof Error &&
-        parseErr.message.startsWith(`${response.status}:`)
-      ) throw parseErr;
+      if (parseErr instanceof Error && parseErr.message.startsWith(`${response.status}:`)) {
+        throw parseErr;
+      }
       throw new Error(text ? `${response.status}: ${path}: ${text}` : `Request failed with status ${response.status} for ${path}`);
     }
   }
@@ -76,4 +77,17 @@ export function readErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
   return "Unexpected error. Please try again.";
+}
+
+export function readUserFriendlyError(error: unknown): { title: string; message: string; suggestion?: string } {
+  const { formatErrorMessage } = require("./error-messages");
+  if (typeof formatErrorMessage === "function") {
+    return formatErrorMessage(error);
+  }
+
+  const msg = readErrorMessage(error);
+  return {
+    title: "Error",
+    message: msg,
+  };
 }

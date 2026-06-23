@@ -9,6 +9,7 @@ import type { Lang } from "@/lib/i18n";
 import type { FamilyVaultListItem, FamilyAggregateMember } from "@/lib/types";
 import { PlaceCombobox } from "./place-combobox";
 import { RectificationWizard } from "./dashboard-rectification-wizard";
+import { BirthProfilesManager } from "./birth-profiles-manager";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
 
@@ -580,6 +581,27 @@ export function DashboardSetupTab({
             </div>
           )}
         </div>
+
+        {/* Manage all birth profiles — visible once at least one profile exists */}
+        {birthProfileId && (
+          <div style={{
+            background: W.surface,
+            border: `1.5px solid ${W.borderLt}`,
+            borderRadius: "var(--radius-md)",
+            overflow: "hidden",
+          }}>
+            <div style={{
+              padding: "var(--space-4) var(--space-6)",
+              borderBottom: `1px solid ${W.borderLt}`,
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+            }}>
+              <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: W.ink }}>
+                {lang === "ta" ? "பிறந்த விவர பட்டியல்" : "All birth profiles"}
+              </h3>
+            </div>
+            <BirthProfilesManager lang={lang} activeProfileId={birthProfileId} />
+          </div>
+        )}
 
         {/* Step 2 — Family vault card */}
         <div style={{

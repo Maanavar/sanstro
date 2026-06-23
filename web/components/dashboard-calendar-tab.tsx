@@ -134,21 +134,21 @@ function moonRasiFromNakshatra(name: string, pada = 1): number {
   return Math.floor(absolutePada / 9) + 1;
 }
 
-// Nakshatras (by janma star) that fall inside a given rasi. A rasi spans 9
-// padas (2¼ nakshatras); each nakshatra spans 4 padas. Chandrashtamam afflicts
-// people whose *janma* rasi/star is the affected sign — so we list that sign's
-// constituent stars, NOT today's transit nakshatra.
-function nakshatrasForRasi(rasi: number): string[] {
-  if (!rasi) return [];
-  const rasiPadaStart = (rasi - 1) * 9;
-  const rasiPadaEnd = rasi * 9 - 1;
-  const names: string[] = [];
-  for (let idx = 0; idx < NAKSHATRA_ORDER.length; idx++) {
-    const nakStart = idx * 4;
-    const nakEnd = idx * 4 + 3;
-    if (nakStart <= rasiPadaEnd && nakEnd >= rasiPadaStart) names.push(NAKSHATRA_ORDER[idx]);
-  }
-  return names;
+function formatChandrashtamaWindowEdge(value: string, dateLocal: string): string {
+  const clock = formatClockLabel(value);
+  if (!value.includes("T")) return clock;
+  const edgeDate = value.slice(0, 10);
+  return edgeDate === dateLocal ? clock : `${clock}, ${formatDateLabel(edgeDate)}`;
+}
+
+function formatChandrashtamaWindowSummary(
+  windows: PanchangamDailyResponseData["chandrashtamamToday"]["janmaNakshatraWindows"],
+  dateLocal: string,
+  lang: Lang,
+): string {
+  return windows
+    .map((window) => `${tNakshatra(window.name, lang)} ${formatChandrashtamaWindowEdge(window.start, dateLocal)} - ${formatChandrashtamaWindowEdge(window.end, dateLocal)}`)
+    .join("; ");
 }
 
 function chandrashtamaAffectedNatalRasi(moonRasi: number): number {
@@ -1503,7 +1503,11 @@ export function CalendarTab({
   const chandrashtama = panchangam?.chandrashtamamToday.affectedJanmaRasiNumber || chandrashtamaAffectedNatalRasi(moonRasi);
   const moonRasiName = moonRasi ? rasiName(moonRasi, lang) : "";
   const chandraName = chandrashtama ? rasiName(chandrashtama, lang) : "";
-  const chandraNakshatras = chandrashtama ? nakshatrasForRasi(chandrashtama) : [];
+  const chandraNakshatraWindows = panchangam?.chandrashtamamToday.janmaNakshatraWindows ?? [];
+  const chandraNakshatraWindowSummary = panchangam
+    ? formatChandrashtamaWindowSummary(chandraNakshatraWindows, panchangam.dateLocal, lang)
+    : "";
+  const todayMoonNakshatra = panchangam ? panchangam.nakshatra.name : "";
   const observanceFestivals = panchangam?.festivals.filter((f) => festivalTags(f).includes("observance")) ?? [];
   const dailyFestivalEvents = panchangam?.festivals.filter((f) => !festivalTags(f).includes("observance")) ?? [];
 
@@ -1626,6 +1630,16 @@ export function CalendarTab({
                         {t("label_chandrashtamam", lang)}
                       </p>
                       <div style={{ padding: "var(--space-2) var(--space-3)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                        {todayMoonNakshatra && (
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+                            <span style={{ color: W.muted }}>
+                              {lang === "ta" ? "இன்று சந்திர நட்சத்திரம்" : "Today's Moon Nakshatra"}
+                            </span>
+                            <span style={{ fontWeight: 600, textAlign: "right", color: W.inkMid }}>
+                              {tNakshatra(todayMoonNakshatra, lang)} ({moonRasiName})
+                            </span>
+                          </div>
+                        )}
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", color: W.rust }}>
                           <span style={{ color: W.muted }}>
                             {lang === "ta" ? "பாதிக்கப்படும் ராசி" : "Affected Rasi"}
@@ -1634,20 +1648,20 @@ export function CalendarTab({
                             {rasiGlyph(chandrashtama)} {chandraName}
                           </span>
                         </div>
-                        {chandraNakshatras.length > 0 && (
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+                        {chandraNakshatraWindows.length > 0 && (
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", fontSize: "0.75rem" }}>
                             <span style={{ color: W.muted }}>
-                              {lang === "ta" ? "இந்த ராசியில் உள்ள நட்சத்திரங்கள்" : "Nakshatras in this rasi"}
+                              {lang === "ta" ? "இன்றைய ஜன்ம நட்சத்திர நேரங்கள்" : "Today's Janma Nakshatra Windows"}
                             </span>
-                            <span style={{ color: W.terracotta, fontWeight: 600, textAlign: "right" }}>
-                              {chandraNakshatras.map((n) => tNakshatra(n, lang)).join(", ")}
+                            <span style={{ color: W.terracotta, fontWeight: 600, textAlign: "right", lineHeight: 1.45 }}>
+                              {chandraNakshatraWindowSummary}
                             </span>
                           </div>
                         )}
                         <p style={{ margin: 0, fontSize: "0.75rem", color: W.muted, lineHeight: 1.45, fontStyle: "italic", borderTop: `1px solid rgba(184,90,44,0.12)`, paddingTop: "var(--space-1_5)", marginTop: "var(--space-0_5)" }}>
                           {lang === "ta"
-                            ? `இந்த ராசியில் பிறந்த அனைவருக்கும் சந்திரன் ${moonRasiName} ராசியில் இருக்கும் ~2½ நாட்கள் சந்திராஷ்டமம். இந்த ராசியின் அனைத்து நட்சத்திரங்களும் சேர்ந்தே பாதிக்கப்படும்.`
-                            : `Everyone born with their natal Moon in ${chandraName} rasi is in Chandrashtamam for the ~2½ days the Moon transits ${moonRasiName}. All nakshatras of this rasi are affected together.`}
+                            ? `சந்திரன் இன்று ${todayMoonNakshatra ? tNakshatra(todayMoonNakshatra, lang) + " நட்சத்திரத்தில் " : ""}${moonRasiName} ராசியில் சஞ்சரிக்கிறது. ${chandraName} ஜன்ம ராசி உடையோருக்கு சந்திராஷ்டமம்.${chandraNakshatraWindowSummary ? ` குறிப்பாக ${chandraNakshatraWindowSummary} நேரத்தில் இருக்கும் ஜன்ம நட்சத்திரங்கள் கவனமாக இருக்கவும்.` : ""}`
+                            : `Moon transits ${moonRasiName} today${todayMoonNakshatra ? ` (in ${tNakshatra(todayMoonNakshatra, "en")} nakshatra)` : ""}. Natives born with ${chandraName} as their Janma Rasi are in Chandrashtamam.${chandraNakshatraWindowSummary ? ` Specifically, the Janma Nakshatra windows are ${chandraNakshatraWindowSummary}.` : ""}` }
                         </p>
                       </div>
                     </div>

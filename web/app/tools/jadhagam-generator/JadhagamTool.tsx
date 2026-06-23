@@ -131,6 +131,254 @@ function RasiGrid({ chart, d9, lang }: { chart: ChartCalculateResponseData; d9?:
   );
 }
 
+
+function formatDateForSheet(dateIso: string) {
+  const [year, month, day] = dateIso.split("-");
+  if (!year || !month || !day) return dateIso;
+  return `${day}-${month}-${year}`;
+}
+
+function PrintableSouthChart({
+  chart,
+  lang,
+  title,
+  d9 = false,
+}: {
+  chart: ChartCalculateResponseData;
+  lang: "en" | "ta";
+  title: string;
+  d9?: boolean;
+}) {
+  const lagnaRasi = d9 ? computeD9LagnaRasi(chart.lagna.absoluteLongitude) : chart.lagna.rasi;
+  const rasiNames = lang === "en" ? RASI_NAMES_EN : RASI_NAMES_TA;
+  const lagnaLabel = lang === "en" ? "La" : "L";
+  const cellSize = 66;
+
+  function getOccupants(rasi: number): string[] {
+    const occ: string[] = [];
+    if (lagnaRasi === rasi) occ.push(lagnaLabel);
+    chart.planets.forEach((planet) => {
+      const planetRasi = d9 ? planet.d9Rasi : planet.rasi;
+      if (planetRasi === rasi) occ.push(GRAHA_ABBR[planet.graha] ?? planet.graha.slice(0, 2));
+    });
+    return occ;
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "center" }}>
+      <div style={{ fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#2f2720" }}>
+        {title}
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(4, ${cellSize}px)`,
+          gridTemplateRows: `repeat(4, ${cellSize}px)`,
+          border: "1.5px solid #2f2720",
+          background: "#fff",
+        }}
+      >
+        {RASI_GRID.map(({ rasi, col, row }) => {
+          const occupants = getOccupants(rasi);
+          const isLagna = lagnaRasi === rasi;
+          return (
+            <div
+              key={`${title}-${rasi}`}
+              style={{
+                gridColumn: col + 1,
+                gridRow: row + 1,
+                border: "1px solid #6b5d4d",
+                padding: "4px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                minHeight: `${cellSize}px`,
+                background: isLagna ? "#fbf1de" : "#fff",
+              }}
+            >
+              <span style={{ fontSize: "0.58rem", color: "#7a6f5e" }}>{rasiNames[rasi]}</span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "2px" }}>
+                {occupants.map((item, index) => (
+                  <span
+                    key={`${rasi}-${item}-${index}`}
+                    style={{
+                      fontSize: "0.74rem",
+                      fontWeight: 700,
+                      color: item === lagnaLabel ? "#b85a2c" : "#2f2720",
+                    }}
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+        <div
+          style={{
+            gridColumn: "2 / 4",
+            gridRow: "2 / 4",
+            border: "1px solid #6b5d4d",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "8px",
+            textAlign: "center",
+            background: "#fffdfa",
+          }}
+        >
+          <div>
+            <div style={{ fontSize: "0.9rem", fontWeight: 700, color: "#2f2720" }}>{chart.birthProfile.displayName}</div>
+            <div style={{ fontSize: "0.72rem", color: "#7a6f5e", marginTop: "4px" }}>
+              {rasiNames[lagnaRasi]} {lang === "en" ? "Lagna" : "Lagna"}
+            </div>
+            <div style={{ fontSize: "0.66rem", color: "#7a6f5e", marginTop: "2px" }}>
+              {formatDateForSheet(chart.birthProfile.birthDateLocal)}
+              {chart.birthProfile.birthTimeLocal ? ` · ${chart.birthProfile.birthTimeLocal}` : ""}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PrintableJadhagamSheet({ chart, lang }: { chart: ChartCalculateResponseData; lang: "en" | "ta" }) {
+  const en = lang === "en";
+  const moon = chart.planets.find((planet) => planet.graha === "MOON");
+  const d9LagnaRasi = computeD9LagnaRasi(chart.lagna.absoluteLongitude);
+  const rasiNames = en ? RASI_NAMES_EN : RASI_NAMES_TA;
+  const planetLabels = en ? PLANET_LABELS_EN : PLANET_LABELS_TA;
+
+  const summaryRows = [
+    { label: "Name", value: chart.birthProfile.displayName || "Chart" },
+    { label: "Birth Place", value: chart.birthProfile.birthPlace || "-" },
+    {
+      label: "Birth Date & Time",
+      value: `${formatDateForSheet(chart.birthProfile.birthDateLocal)}${chart.birthProfile.birthTimeLocal ? ` · ${chart.birthProfile.birthTimeLocal}` : ""}`,
+    },
+    { label: "Timezone", value: chart.birthProfile.birthTimezone || "-" },
+    { label: "Lagna", value: `${rasiNames[chart.lagna.rasi]} · ${chart.lagna.nakshatraName}` },
+    { label: "Birth Star", value: moon ? `${moon.nakshatraName} (Pada ${moon.pada})` : "-" },
+    { label: "Birth Sign", value: moon ? rasiNames[moon.rasi] : "-" },
+    {
+      label: "Coordinates",
+      value: `${Number(chart.birthProfile.birthLatitude ?? 0).toFixed(2)}, ${Number(chart.birthProfile.birthLongitude ?? 0).toFixed(2)}`,
+    },
+  ];
+
+  return (
+    <div
+      className="jg-document-sheet"
+      style={{
+        width: "100%",
+        maxWidth: "860px",
+        margin: "0 auto",
+        background: "#fff",
+        color: "#2f2720",
+        border: "2px solid #2f2720",
+        padding: "18px",
+        boxSizing: "border-box",
+        fontFamily: '"Times New Roman", Georgia, serif',
+      }}
+    >
+      <div style={{ textAlign: "center", borderBottom: "1.5px solid #2f2720", paddingBottom: "10px", marginBottom: "12px" }}>
+        <div style={{ fontSize: "1.6rem", fontWeight: 700, letterSpacing: "0.04em" }}>Vinaadi AI</div>
+        <div style={{ marginTop: "4px", fontSize: "0.9rem" }}>
+          {en ? "Traditional South Indian Jadhagam" : "Traditional South Indian Jadhagam"}
+        </div>
+        <div style={{ marginTop: "4px", fontSize: "0.74rem", color: "#7a6f5e" }}>
+          {chart.calculationVersion} · {chart.ayanamsa.type} {chart.ayanamsa.valueDegrees.toFixed(2)}° · {chart.ephemerisBackend}
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+          border: "1px solid #6b5d4d",
+          marginBottom: "14px",
+        }}
+      >
+        {summaryRows.map((row) => (
+          <div
+            key={row.label}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "150px 1fr",
+              borderRight: "1px solid #6b5d4d",
+              borderBottom: "1px solid #6b5d4d",
+              minHeight: "34px",
+            }}
+          >
+            <div style={{ padding: "7px 8px", fontSize: "0.74rem", fontWeight: 700, background: "#f7f1e6" }}>{row.label}</div>
+            <div style={{ padding: "7px 8px", fontSize: "0.76rem" }}>{row.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ border: "1px solid #6b5d4d", padding: "14px", marginBottom: "14px" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))",
+            gap: "18px",
+            alignItems: "start",
+          }}
+        >
+          <PrintableSouthChart chart={chart} lang={lang} title="D1 Rasi" />
+          <PrintableSouthChart chart={chart} lang={lang} title="D9 Navamsa" d9 />
+        </div>
+        <div style={{ marginTop: "10px", fontSize: "0.72rem", color: "#6b5d4d", textAlign: "center" }}>
+          {`D9 Lagna: ${rasiNames[d9LagnaRasi]}`}
+        </div>
+      </div>
+
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.74rem" }}>
+          <thead>
+            <tr>
+              {["Planet", "Rasi", "Navamsa", "Birth Star", "Pada", "Degree", "House"].map((heading) => (
+                <th
+                  key={heading}
+                  style={{
+                    border: "1px solid #6b5d4d",
+                    background: "#f7f1e6",
+                    padding: "7px 8px",
+                    textAlign: "left",
+                    fontWeight: 700,
+                  }}
+                >
+                  {heading}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {PLANET_ORDER.map((graha) => {
+              const planet = chart.planets.find((item: ChartPlanet) => item.graha === graha);
+              if (!planet) return null;
+              return (
+                <tr key={graha}>
+                  <td style={{ border: "1px solid #6b5d4d", padding: "6px 8px", fontWeight: 700 }}>
+                    {planetLabels[graha] ?? graha}
+                  </td>
+                  <td style={{ border: "1px solid #6b5d4d", padding: "6px 8px" }}>{rasiNames[planet.rasi]}</td>
+                  <td style={{ border: "1px solid #6b5d4d", padding: "6px 8px" }}>{rasiNames[planet.d9Rasi]}</td>
+                  <td style={{ border: "1px solid #6b5d4d", padding: "6px 8px" }}>{planet.nakshatraName}</td>
+                  <td style={{ border: "1px solid #6b5d4d", padding: "6px 8px" }}>{planet.pada}</td>
+                  <td style={{ border: "1px solid #6b5d4d", padding: "6px 8px", fontFamily: "monospace" }}>{planet.degreeInRasi.toFixed(2)}°</td>
+                  <td style={{ border: "1px solid #6b5d4d", padding: "6px 8px" }}>{planet.houseFromLagna}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 type Form = {
   displayName: string;
   birthDateLocal: string;
@@ -169,7 +417,7 @@ export function JadhagamTool() {
   const [chart, setChart] = useState<ChartCalculateResponseData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [view, setView] = useState<"D1" | "D9">("D1");
+
 
   async function handleGenerate() {
     if (!form.birthDateLocal || !form.birthLatitude || !form.birthLongitude) {
@@ -210,10 +458,52 @@ export function JadhagamTool() {
     }
   }
 
+
+  function handleExportPdf() {
+    window.setTimeout(() => {
+      window.print();
+    }, 80);
+  }
+
   const moon = chart?.planets.find((p) => p.graha === "MOON");
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+      <style>{`
+        @page {
+          size: A4 portrait;
+          margin: 10mm;
+        }
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          .jg-print-only,
+          .jg-print-only * {
+            visibility: visible !important;
+          }
+          .jg-print-only {
+            position: absolute !important;
+            inset: 0 !important;
+            width: 100% !important;
+            display: block !important;
+          }
+          body {
+            background: #fff !important;
+          }
+        }
+        @media screen {
+          .jg-print-only {
+            display: none !important;
+          }
+        }
+      `}</style>
+
+      {chart && (
+        <div className="jg-print-only">
+          <PrintableJadhagamSheet chart={chart} lang={lang} />
+        </div>
+      )}
 
       {/* Form card */}
       <div style={{
@@ -334,29 +624,56 @@ export function JadhagamTool() {
             </div>
           </div>
 
-          {/* Chart view toggle */}
-          <div className="cl-mobile-flex-row" style={{ gap: "8px" }}>
-            {(["D1", "D9"] as const).map((v) => (
-              <button key={v} type="button" onClick={() => setView(v)}
-                style={{
-                  padding: "6px 18px", borderRadius: "999px", fontSize: "0.82rem", fontWeight: 700,
-                  cursor: "pointer", fontFamily: "inherit",
-                  border: view === v ? "1.5px solid var(--cl-accent)" : "1.5px solid var(--cl-border)",
-                  background: view === v ? "rgba(184,90,44,0.08)" : "var(--cl-surface)",
-                  color: view === v ? "#B85A2C" : "var(--cl-ink-2)",
-                }}>
-                {v === "D1"
-                  ? (en ? "D1 Rasi" : "D1 ராசி")
-                  : (en ? "D9 Navamsa" : "D9 நவாம்சம்")}
-              </button>
-            ))}
+          {/* Export + dual chart layout */}
+          <div className="cl-mobile-flex-row" style={{ justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+            <div>
+              <p style={{ margin: 0, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--cl-muted)" }}>
+                {en ? "Classic Layout" : "Classic Layout"}
+              </p>
+              <p style={{ margin: "4px 0 0", fontSize: "0.84rem", color: "var(--cl-ink-2)" }}>
+                {en
+                  ? "Rasi and Navamsa are shown together here, and the PDF export uses a traditional single-page layout."
+                  : "Rasi and Navamsa are shown together here, and the PDF export uses a traditional single-page layout."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleExportPdf}
+              style={{
+                padding: "9px 16px",
+                borderRadius: "999px",
+                border: "1px solid rgba(184,90,44,0.35)",
+                background: "rgba(184,90,44,0.08)",
+                color: "#B85A2C",
+                fontFamily: "inherit",
+                fontSize: "0.84rem",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              {en ? "Export PDF" : "Export PDF"}
+            </button>
           </div>
 
-          {/* Chart grid */}
-          <div className="cl-chart-scroll">
-            <RasiGrid chart={chart} d9={view === "D9"} lang={lang} />
-          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px" }}>
+            <div style={{ background: "var(--cl-surface)", border: "1px solid var(--cl-border)", borderRadius: "16px", padding: "18px", overflowX: "auto" }}>
+              <p style={{ margin: "0 0 10px", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--cl-muted)" }}>
+                {en ? "D1 Rasi" : "D1 Rasi"}
+              </p>
+              <div className="cl-chart-scroll">
+                <RasiGrid chart={chart} lang={lang} />
+              </div>
+            </div>
 
+            <div style={{ background: "var(--cl-surface)", border: "1px solid var(--cl-border)", borderRadius: "16px", padding: "18px", overflowX: "auto" }}>
+              <p style={{ margin: "0 0 10px", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--cl-muted)" }}>
+                {en ? "D9 Navamsa" : "D9 Navamsa"}
+              </p>
+              <div className="cl-chart-scroll">
+                <RasiGrid chart={chart} d9 lang={lang} />
+              </div>
+            </div>
+          </div>
           {/* Planet table */}
           <div style={{
             background: "var(--cl-surface)", border: "1px solid var(--cl-border)",

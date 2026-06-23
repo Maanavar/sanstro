@@ -198,6 +198,23 @@ function formatTimeRange(start: string, end: string): string {
   return `${formatClockLabel(start)} - ${formatClockLabel(end)}`;
 }
 
+function formatChandrashtamaWindowEdge(value: string, dateLocal: string): string {
+  const clock = formatClockLabel(value);
+  if (!value.includes("T")) return clock;
+  const edgeDate = value.slice(0, 10);
+  return edgeDate === dateLocal ? clock : `${clock}, ${formatDateLabel(edgeDate)}`;
+}
+
+function formatChandrashtamaWindowSummary(
+  windows: PanchangamDailyResponseData["chandrashtamamToday"]["janmaNakshatraWindows"],
+  dateLocal: string,
+  lang: Lang,
+): string {
+  return windows
+    .map((window) => `${tNakshatra(window.name, lang)} ${formatChandrashtamaWindowEdge(window.start, dateLocal)} - ${formatChandrashtamaWindowEdge(window.end, dateLocal)}`)
+    .join("; ");
+}
+
 function TimeSlot({ label, start, end, tone }: { label: string; start: string; end: string; tone: "best" | "hold" | "neutral" }) {
   const colors = {
     best: { bg: "rgba(92,118,84,0.08)", border: "rgba(92,118,84,0.3)", text: "#5C7654" },
@@ -408,6 +425,9 @@ export function PanchangamTool() {
   const moonRasi = data
     ? formatRasi(data.chandrashtamamToday.moonRasiNumber, data.chandrashtamamToday.moonRasiName, lang)
     : "";
+  const chandrashtamaWindowSummary = data
+    ? formatChandrashtamaWindowSummary(data.chandrashtamamToday.janmaNakshatraWindows ?? [], data.dateLocal, lang)
+    : "";
   const tamilDateLabel = data?.tamilDate ? data.tamilDate[lang] : "";
   const firstNallaSlot = data?.kalam.nallaNeram?.[0] ?? null;
   const secondNallaSlot = data?.kalam.nallaNeram?.[1] ?? null;
@@ -590,7 +610,15 @@ export function PanchangamTool() {
                 { label: en ? "Tithi" : "திதி",         value: tithiLabel,          sub: limbSub(tithiRolled, data.tithi.endsAt, tTithi(data.tithi.nextName, lang)) },
                 { label: en ? "Vara" : "வாரம்",          value: tWeekday(data.vara.weekday, lang),   sub: `${en ? "Lord" : "அதிபதி"}: ${tPlanetLord(data.vara.lord, lang)}` },
                 { label: en ? "Birth Star" : "நட்சத்திரம்", value: tNakshatra(nakshatraRolled ? data.nakshatra.nextName : data.nakshatra.name, lang), sub: limbSub(nakshatraRolled, data.nakshatra.endsAt, tNakshatra(data.nakshatra.nextName, lang), nakshatraRolled ? "" : `${en ? "Pada" : "பாதம்"} ${data.nakshatra.pada} · `) },
-                { label: en ? "Today's Chandrashtamam" : "சந்திராஷ்டமம்", value: chandrashtamamRasi, sub: en ? `Affected birth sign; Moon in ${moonRasi}` : `பாதிக்கும் பிறப்பு ராசி; சந்திரன் ${moonRasi}` },
+                {
+                  label: en ? "Today's Chandrashtamam" : "சந்திராஷ்டமம்",
+                  value: chandrashtamamRasi,
+                  sub: chandrashtamaWindowSummary
+                    ? (en
+                        ? `Janma star windows: ${chandrashtamaWindowSummary} · Moon in ${moonRasi}`
+                        : `ஜன்ம நட்சத்திர நேரங்கள்: ${chandrashtamaWindowSummary} · சந்திரன் ${moonRasi}`)
+                    : (en ? `Affected birth sign; Moon in ${moonRasi}` : `பாதிக்கும் பிறப்பு ராசி; சந்திரன் ${moonRasi}`),
+                },
                 { label: en ? "Yoga" : "யோகம்",          value: tYoga(yogaRolled ? data.yoga.nextName : data.yoga.name, lang),      sub: limbSub(yogaRolled, data.yoga.endsAt, tYoga(data.yoga.nextName, lang), yogaRolled ? "" : `${en ? "Yoga" : "யோகம்"} ${data.yoga.number} · `) },
                 { label: en ? "Karana" : "கரணம்",        value: tKarana(karanaRolled ? data.karana.nextName : data.karana.name, lang),    sub: limbSub(karanaRolled, data.karana.endsAt, tKarana(data.karana.nextName, lang)) },
                 { label: en ? "Moon Phase" : "சந்திர கலை", value: data.moonPhaseLabel, sub: "" },

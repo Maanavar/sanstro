@@ -62,36 +62,36 @@ const EVENT_TYPES = [
 ];
 
 const EVENT_ICON: Record<string, string> = {
-  JOB_CHANGE: "??",
-  PROMOTION: "??",
-  DEMOTION: "??",
-  JOB_LOSS: "??",
-  RELATIONSHIP_START: "??",
-  RELATIONSHIP_END: "??",
-  MARRIAGE: "??",
-  DIVORCE: "??",
-  REMARRIAGE: "??",
-  RELOCATION: "??",
-  TRAVEL_ABROAD: "??",
-  HEALTH_EVENT: "??",
-  SURGERY: "??",
-  RECOVERY: "??",
-  EXAM_RESULT: "??",
-  EDUCATION_START: "??",
-  EDUCATION_END: "??",
-  FINANCIAL_MILESTONE: "??",
-  INVESTMENT: "??",
-  PROPERTY_PURCHASE: "??",
-  DEBT: "??",
-  FAMILY_LOSS: "???",
-  BIRTH_OF_CHILD: "??",
-  BUSINESS_START: "??",
-  BUSINESS_END: "??",
-  SPIRITUAL_EVENT: "??",
-  PILGRIMAGE: "??",
-  INITIATION: "??",
-  LEGAL_MATTER: "????",
-  OTHER: "?",
+  JOB_CHANGE: "💼",
+  PROMOTION: "⬆️",
+  DEMOTION: "⬇️",
+  JOB_LOSS: "📉",
+  RELATIONSHIP_START: "💕",
+  RELATIONSHIP_END: "💔",
+  MARRIAGE: "💍",
+  DIVORCE: "⚖️",
+  REMARRIAGE: "💍",
+  RELOCATION: "🏠",
+  TRAVEL_ABROAD: "✈️",
+  HEALTH_EVENT: "🏥",
+  SURGERY: "🏥",
+  RECOVERY: "💪",
+  EXAM_RESULT: "📝",
+  EDUCATION_START: "🎓",
+  EDUCATION_END: "🎓",
+  FINANCIAL_MILESTONE: "💰",
+  INVESTMENT: "📈",
+  PROPERTY_PURCHASE: "🏡",
+  DEBT: "💸",
+  FAMILY_LOSS: "🕯️",
+  BIRTH_OF_CHILD: "👶",
+  BUSINESS_START: "🚀",
+  BUSINESS_END: "🚫",
+  SPIRITUAL_EVENT: "🙏",
+  PILGRIMAGE: "🛕",
+  INITIATION: "🔔",
+  LEGAL_MATTER: "⚖️",
+  OTHER: "📌",
 };
 
 const W = {
@@ -129,21 +129,21 @@ function EventCard({ item, lang }: { item: LifeEventLogItem; lang: Lang }) {
           <p style={{ margin: "2px 0 0 0", fontSize: "0.875rem", color: W.muted }}>{formatDateLabel(item.eventDate)}</p>
           {item.description && <p style={{ margin: "4px 0 0 0", fontSize: "0.875rem", color: W.muted }}>{item.description}</p>}
         </div>
-        {item.correlation && <span style={{ fontSize: "0.75rem", color: W.muted }}>{expanded ? "?" : "?"}</span>}
+        {item.correlation && <span style={{ fontSize: "0.75rem", color: W.muted }}>{expanded ? "▲" : "▼"}</span>}
       </div>
 
       {expanded && item.correlation && (
         <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: `1px solid ${W.borderLt}` }}>
           <p style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: W.mutedLt, marginBottom: "4px" }}>
-            {lang === "ta" ? "???? ?????" : "Planetary context"}
+            {lang === "ta" ? "கிரக சூழல்" : "Planetary context"}
           </p>
           <p style={{ fontSize: "0.875rem", color: W.muted, lineHeight: 1.5 }}>{lang === "ta" ? item.correlation.narrative.ta : item.correlation.narrative.en}</p>
           <div style={{ display: "flex", gap: "6px", marginTop: "8px", flexWrap: "wrap" }}>
             <span style={{ padding: "2px 8px", background: W.surfaceMd, borderRadius: "10px", fontSize: "11px", color: W.inkMid }}>
-              {lang === "ta" ? "??????" : "Mahadasha"}: {item.correlation.mahaLord}
+              {lang === "ta" ? "மகாதசை" : "Mahadasha"}: {item.correlation.mahaLord}
             </span>
             <span style={{ padding: "2px 8px", background: W.surfaceMd, borderRadius: "10px", fontSize: "11px", color: W.inkMid }}>
-              {lang === "ta" ? "?????????" : "Antardasha"}: {item.correlation.antarLord}
+              {lang === "ta" ? "அந்தர்தசை" : "Antardasha"}: {item.correlation.antarLord}
             </span>
           </div>
         </div>
@@ -195,7 +195,7 @@ export function DashboardLifeEventLog({ lang, chartId, onError }: DashboardLifeE
       setEventType("");
       setDescription("");
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : lang === "ta" ? "??????? ???????????. ???????? ????????." : "Could not save. Please try again.";
+      const msg = e instanceof Error ? e.message : lang === "ta" ? "சேமிக்க முடியவில்லை. மீண்டும் முயலுங்கள்." : "Could not save. Please try again.";
       setSaveError(msg);
       if (onError) onError(msg);
     } finally {
@@ -206,11 +206,11 @@ export function DashboardLifeEventLog({ lang, chartId, onError }: DashboardLifeE
   if (!chartId) return null;
 
   return (
-    <Surface title={lang === "ta" ? "???????? ??????????" : "Life Event Log"}>
+    <Surface title={lang === "ta" ? "வாழ்க்கை நிகழ்வு பதிவு" : "Life Event Log"}>
       <div className="surface__body">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
           <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt, letterSpacing: "0.07em", textTransform: "uppercase" }}>
-            {lang === "ta" ? "???????? ??????????" : "Life Event Log"}
+            {lang === "ta" ? "வாழ்க்கை நிகழ்வு பதிவு" : "Life Event Log"}
           </p>
           <button
             type="button"
@@ -227,13 +227,13 @@ export function DashboardLifeEventLog({ lang, chartId, onError }: DashboardLifeE
               fontFamily: "inherit",
             }}
           >
-            {showForm ? (lang === "ta" ? "????" : "Close") : lang === "ta" ? "+ ??????? ?????" : "+ Log event"}
+            {showForm ? (lang === "ta" ? "மூடு" : "Close") : lang === "ta" ? "+ நிகழ்வை பதிவுசெய்" : "+ Log event"}
           </button>
         </div>
 
         {loadError && (
           <p style={{ fontSize: "0.875rem", color: W.rust, margin: "0 0 12px" }}>
-            {lang === "ta" ? "?????????? ???? ???????????." : "Could not load events."} {loadError}
+            {lang === "ta" ? "நிகழ்வுகளை ஏற்ற முடியவில்லை." : "Could not load events."} {loadError}
           </p>
         )}
 
@@ -242,10 +242,10 @@ export function DashboardLifeEventLog({ lang, chartId, onError }: DashboardLifeE
             <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "10px" }}>
               <div style={{ flex: "1 1 180px" }}>
                 <label style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: W.mutedLt, display: "block", marginBottom: "4px" }}>
-                  {lang === "ta" ? "??????? ???" : "Event type"}
+                  {lang === "ta" ? "நிகழ்வு வகை" : "Event type"}
                 </label>
                 <select value={eventType} onChange={(e) => setEventType(e.target.value)} style={{ width: "100%", padding: "7px 10px", borderRadius: "10px", border: `1.5px solid ${W.borderLt}`, background: W.card, color: W.inkMid, fontSize: "0.875rem", fontFamily: "inherit" }}>
-                  <option value="">{lang === "ta" ? "? ?????? ?" : "? Select ?"}</option>
+                  <option value="">{lang === "ta" ? "— தேர்ந்தெடு —" : "— Select —"}</option>
                   {EVENT_TYPES.map((e) => (
                     <option key={e.id} value={e.id}>
                       {e.en}
@@ -255,20 +255,20 @@ export function DashboardLifeEventLog({ lang, chartId, onError }: DashboardLifeE
               </div>
               <div style={{ flex: "1 1 130px" }}>
                 <label style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: W.mutedLt, display: "block", marginBottom: "4px" }}>
-                  {lang === "ta" ? "??????? ????" : "Date"}
+                  {lang === "ta" ? "தேதி" : "Date"}
                 </label>
                 <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} style={{ width: "100%", padding: "7px 10px", borderRadius: "10px", border: `1.5px solid ${W.borderLt}`, background: W.card, color: W.inkMid, fontSize: "0.875rem", fontFamily: "inherit" }} />
               </div>
             </div>
             <div style={{ marginBottom: "10px" }}>
               <label style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: W.mutedLt, display: "block", marginBottom: "4px" }}>
-                {lang === "ta" ? "???????? (?????????)" : "Notes (optional)"}
+                {lang === "ta" ? "குறிப்பு (விருப்பம்)" : "Notes (optional)"}
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={2}
-                placeholder={lang === "ta" ? "???? ????????..." : "Brief note..."}
+                placeholder={lang === "ta" ? "சுருக்கமான குறிப்பு..." : "Brief note..."}
                 style={{ width: "100%", padding: "7px 10px", borderRadius: "10px", border: `1.5px solid ${W.borderLt}`, background: W.card, color: W.inkMid, fontSize: "0.875rem", resize: "none", boxSizing: "border-box", fontFamily: "inherit" }}
               />
             </div>
@@ -289,18 +289,18 @@ export function DashboardLifeEventLog({ lang, chartId, onError }: DashboardLifeE
                   fontFamily: "inherit",
                 }}
               >
-                {submitting ? (lang === "ta" ? "???????????..." : "Saving...") : lang === "ta" ? "????" : "Save"}
+                {submitting ? (lang === "ta" ? "சேமிக்கிறோம்..." : "Saving...") : lang === "ta" ? "சேமி" : "Save"}
               </button>
               {saveError && <p style={{ margin: 0, fontSize: "0.75rem", color: W.rust }}>{saveError}</p>}
             </div>
           </div>
         )}
 
-        {loading && <p style={{ fontSize: "0.875rem", color: W.muted, textAlign: "center", padding: "16px 0" }}>{lang === "ta" ? "??????????..." : "Loading..."}</p>}
+        {loading && <p style={{ fontSize: "0.875rem", color: W.muted, textAlign: "center", padding: "16px 0" }}>{lang === "ta" ? "ஏற்றுகிறோம்..." : "Loading..."}</p>}
 
         {!loading && items.length === 0 && !showForm && (
           <p style={{ fontSize: "0.875rem", color: W.muted, textAlign: "center", padding: "16px 0" }}>
-            {lang === "ta" ? "??????? ?????????? ????? ???????????????. + ??????? ????? ??????????." : "No events logged yet. Tap + Log event to add your first."}
+            {lang === "ta" ? "இன்னும் நிகழ்வுகள் பதிவு இல்லை. + நிகழ்வை பதிவுசெய் என்பதை அழுத்துங்கள்." : "No events logged yet. Tap + Log event to add your first."}
           </p>
         )}
 

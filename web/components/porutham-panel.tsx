@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { t } from "@/lib/i18n";
 import { scoreColorPct } from "@/lib/format";
 import type { Lang } from "@/lib/i18n";
-import type { ApiEnvelope, ChartCalculateResponseData, DirectPoruthamData } from "@/lib/types";
+import type { ChartCalculateResponseData, DirectPoruthamData } from "@/lib/types";
 import { RasiChart } from "./dashboard-charts";
 import { Field } from "./dashboard-ui";
 import { PlaceCombobox } from "./place-combobox";
 import { CompatibilityIntelligencePanel } from "./compatibility-intelligence-panel";
+
+type PublicCompareResponse = { success: boolean; data: { chartA: ChartCalculateResponseData; chartB: ChartCalculateResponseData; porutham: DirectPoruthamData } };
 
 type BirthForm = {
   displayName: string;
@@ -146,79 +148,49 @@ export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: Porut
   const [chartA, setChartA] = useState<ChartCalculateResponseData | null>(null);
   const [chartB, setChartB] = useState<ChartCalculateResponseData | null>(null);
   const [porutham, setPorutham] = useState<DirectPoruthamData | null>(null);
-  const [tempIds, setTempIds] = useState<string[]>([]);
-  const tempIdsRef = useRef<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
-  useEffect(() => {
-    tempIdsRef.current = tempIds;
-  }, [tempIds]);
-
-  useEffect(() => {
-    return () => {
-      for (const id of tempIdsRef.current) {
-        fetch(`/api/v1/birth-profiles/${id}`, { method: "DELETE", keepalive: true }).catch(() => {});
-      }
-    };
-  }, []);
-
-  async function createTempProfile(form: BirthForm): Promise<{ birthProfileId: string }> {
-    const res = await apiFetchJson<{ data: { birthProfileId: string } }>("/api/v1/birth-profiles", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        displayName: form.displayName,
-        birthDateLocal: form.birthDateLocal,
-        birthTimeLocal: form.birthTimeLocal || null,
-        birthPlace: form.birthPlace,
-        birthLatitude: parseFloat(form.birthLatitude),
-        birthLongitude: parseFloat(form.birthLongitude),
-        birthTimezone: form.birthTimezone,
-        relationshipToOwner: "other",
-        calculateNow: false,
-      }),
-    });
-    return res.data;
-  }
-
   async function handleCompare() {
     const valid = (f: BirthForm) => f.displayName && f.birthDateLocal && f.birthPlace && f.birthLatitude && f.birthLongitude && f.birthTimezone;
     if (!valid(formA) || !valid(formB)) {
-      setError(lang === "ta" ? "இரு நபர்களின் அனைத்து தகவல்களையும் நிரப்பவும்." : "Please fill all fields for both persons.");
+      setError(lang === "ta" ? "????????? ??????????????????????????? ????????????????????? ???????????????????????????????????? ??????????????????????????????." : "Please fill all fields for both persons.");
       return;
     }
     setError("");
     setLoading(true);
-    await Promise.all(tempIds.map((id) => apiFetchJson(`/api/v1/birth-profiles/${id}`, { method: "DELETE" }).catch(() => {})));
-    setTempIds([]);
     setPorutham(null); setChartA(null); setChartB(null);
 
     try {
-      const [profA, profB] = await Promise.all([createTempProfile(formA), createTempProfile(formB)]);
-      setTempIds([profA.birthProfileId, profB.birthProfileId]);
-
-      const [resA, resB] = await Promise.all([
-        apiFetchJson<ApiEnvelope<ChartCalculateResponseData>>("/api/v1/charts/calculate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ birthProfileId: profA.birthProfileId, calculationVersion: "thirukanitham-2026-v1" }),
-        }),
-        apiFetchJson<ApiEnvelope<ChartCalculateResponseData>>("/api/v1/charts/calculate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ birthProfileId: profB.birthProfileId, calculationVersion: "thirukanitham-2026-v1" }),
-        }),
-      ]);
-      setChartA(resA.data); setChartB(resB.data);
-
-      const porRes = await apiFetchJson<{ data: DirectPoruthamData }>("/api/v1/relationships/compare", {
+      const result = await apiFetchJson<PublicCompareResponse>("/api/v1/public/compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chartIdA: resA.data.chartId, chartIdB: resB.data.chartId, compatibilityContext: compatCtx }),
+        body: JSON.stringify({
+          personA: {
+            displayName: formA.displayName,
+            birthDateLocal: formA.birthDateLocal,
+            birthTimeLocal: formA.birthTimeLocal || null,
+            birthPlace: formA.birthPlace,
+            birthLatitude: parseFloat(formA.birthLatitude),
+            birthLongitude: parseFloat(formA.birthLongitude),
+            birthTimezone: formA.birthTimezone,
+          },
+          personB: {
+            displayName: formB.displayName,
+            birthDateLocal: formB.birthDateLocal,
+            birthTimeLocal: formB.birthTimeLocal || null,
+            birthPlace: formB.birthPlace,
+            birthLatitude: parseFloat(formB.birthLatitude),
+            birthLongitude: parseFloat(formB.birthLongitude),
+            birthTimezone: formB.birthTimezone,
+          },
+          compatibilityContext: compatCtx,
+        }),
       });
-      setPorutham(porRes.data);
+      setChartA(result.data.chartA);
+      setChartB(result.data.chartB);
+      setPorutham(result.data.porutham);
     } catch (err) {
       setError(readErrorMessage(err));
     } finally {
@@ -230,13 +202,29 @@ export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: Porut
     if (!chartA || !chartB || !porutham || downloadingPdf) return;
     setDownloadingPdf(true);
     try {
-      const response = await fetch("/api/backend/api/v1/relationships/compare/pdf", {
+      const response = await fetch("/api/backend/api/v1/public/compare/pdf", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
         body: JSON.stringify({
-          chartIdA: chartA.chartId,
-          chartIdB: chartB.chartId,
+          personA: {
+            displayName: formA.displayName,
+            birthDateLocal: formA.birthDateLocal,
+            birthTimeLocal: formA.birthTimeLocal || null,
+            birthPlace: formA.birthPlace,
+            birthLatitude: parseFloat(formA.birthLatitude),
+            birthLongitude: parseFloat(formA.birthLongitude),
+            birthTimezone: formA.birthTimezone,
+          },
+          personB: {
+            displayName: formB.displayName,
+            birthDateLocal: formB.birthDateLocal,
+            birthTimeLocal: formB.birthTimeLocal || null,
+            birthPlace: formB.birthPlace,
+            birthLatitude: parseFloat(formB.birthLatitude),
+            birthLongitude: parseFloat(formB.birthLongitude),
+            birthTimezone: formB.birthTimezone,
+          },
           compatibilityContext: compatCtx,
         }),
       });
@@ -249,7 +237,7 @@ export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: Porut
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      setError(lang === "ta" ? "PDF பதிவிறக்கம் தோல்வியடைந்தது." : "PDF download failed.");
+      setError(lang === "ta" ? "PDF ????????????????????????????????? ??????????????????????????????????????????." : "PDF download failed.");
     } finally {
       setDownloadingPdf(false);
     }
@@ -485,7 +473,7 @@ export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: Porut
           <p style={{ margin: 0, fontSize: "0.625rem", color: W.mutedLt, fontStyle: "italic" }}>
             {lang === "ta"
               ? "இந்த ஜாதகங்கள் தற்காலிகமானவை. தளத்தை மூடியதும் தானாக நீக்கப்படும்."
-              : "Temporary charts — auto-deleted when you leave this session."}
+              : "Preview only. This comparison is not saved to your account."}
           </p>
 
           {/* Compatibility Intelligence upsell / report */}
@@ -537,7 +525,15 @@ export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: Porut
                   <CompatibilityIntelligencePanel
                     familyVaultId={familyVaultId}
                     memberId={selectedVaultMemberIdB}
-                    chartIdA={chartA.chartId}
+                    personABirth={{
+                      displayName: formA.displayName,
+                      birthDateLocal: formA.birthDateLocal,
+                      birthTimeLocal: formA.birthTimeLocal || null,
+                      birthPlace: formA.birthPlace,
+                      birthLatitude: parseFloat(formA.birthLatitude),
+                      birthLongitude: parseFloat(formA.birthLongitude),
+                      birthTimezone: formA.birthTimezone,
+                    }}
                     lang={lang}
                   />
                 </div>

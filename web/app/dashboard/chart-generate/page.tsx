@@ -6,7 +6,7 @@ import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { LANG_STORAGE_KEY } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import type { ApiEnvelope, ChartCalculateResponseData, ChartSummaryData, DashaTimelineResponseData } from "@/lib/types";
+import type { ChartCalculateResponseData, ChartSummaryData, DashaTimelineResponseData } from "@/lib/types";
 import { RasiChart, NavamsaChart } from "@/components/dashboard-charts";
 import { Field, PlaceCombobox } from "@/components/dashboard-ui";
 import {
@@ -16,6 +16,8 @@ import {
   D1_RASI_NAMES,
   GRAHA_ABBR,
 } from "@/lib/chart-utils";
+
+type PublicChartPreviewResponse = { success: boolean; data: { chart: ChartCalculateResponseData; summary: ChartSummaryData; dasha: DashaTimelineResponseData } };
 
 type BirthForm = {
   displayName: string;
@@ -437,7 +439,6 @@ export default function ChartGeneratePage() {
   const [chart, setChart] = useState<ChartCalculateResponseData | null>(null);
   const [chartSummary, setChartSummary] = useState<ChartSummaryData | null>(null);
   const [dashaData, setDashaData] = useState<DashaTimelineResponseData | null>(null);
-  const [tempBirthProfileId, setTempBirthProfileId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [view, setView] = useState<"D1" | "D9">("D1");
@@ -481,56 +482,25 @@ export default function ChartGeneratePage() {
     setChartSummary(null);
     setDashaData(null);
 
-    if (tempBirthProfileId) {
-      await apiFetchJson(`/api/v1/birth-profiles/${tempBirthProfileId}`, { method: "DELETE" }).catch(() => {});
-      setTempBirthProfileId(null);
-    }
-
     try {
-      const profileRes = await apiFetchJson<{ data: { birthProfileId: string } }>("/api/v1/birth-profiles", {
+      const preview = await apiFetchJson<PublicChartPreviewResponse>("/api/v1/public/chart-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          displayName: form.displayName,
-          birthDateLocal: form.birthDateLocal,
-          birthTimeLocal: form.birthTimeLocal || null,
-          birthPlace: form.birthPlace,
-          birthLatitude: parseFloat(form.birthLatitude),
-          birthLongitude: parseFloat(form.birthLongitude),
-          birthTimezone: form.birthTimezone,
-          relationshipToOwner: "other",
-          calculateNow: false,
+          birth: {
+            displayName: form.displayName,
+            birthDateLocal: form.birthDateLocal,
+            birthTimeLocal: form.birthTimeLocal || null,
+            birthPlace: form.birthPlace,
+            birthLatitude: parseFloat(form.birthLatitude),
+            birthLongitude: parseFloat(form.birthLongitude),
+            birthTimezone: form.birthTimezone,
+          },
         }),
       });
-
-      const birthProfileId = profileRes.data.birthProfileId;
-      setTempBirthProfileId(birthProfileId);
-
-      const chartRes = await apiFetchJson<ApiEnvelope<ChartCalculateResponseData>>("/api/v1/charts/calculate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ birthProfileId, calculationVersion: "thirukanitham-2026-v1" }),
-      });
-      setChart(chartRes.data);
-
-      try {
-        const summaryRes = await apiFetchJson<ApiEnvelope<ChartSummaryData>>(
-          `/api/v1/charts/${chartRes.data.chartId}/summary?language=ta-en`,
-        );
-        setChartSummary(summaryRes.data);
-      } catch {
-        setChartSummary(null);
-      }
-
-      try {
-        const today = new Date().toISOString().slice(0, 10);
-        const dashaRes = await apiFetchJson<ApiEnvelope<DashaTimelineResponseData>>(
-          `/api/v1/charts/${chartRes.data.chartId}/dasha?asOf=${today}`,
-        );
-        setDashaData(dashaRes.data);
-      } catch {
-        setDashaData(null);
-      }
+      setChart(preview.data.chart);
+      setChartSummary(preview.data.summary);
+      setDashaData(preview.data.dasha);
     } catch (err) {
       setChart(null);
       setChartSummary(null);
@@ -542,9 +512,6 @@ export default function ChartGeneratePage() {
   }
 
   async function handleBack() {
-    if (tempBirthProfileId) {
-      await apiFetchJson(`/api/v1/birth-profiles/${tempBirthProfileId}`, { method: "DELETE" }).catch(() => {});
-    }
     router.back();
   }
 
@@ -585,7 +552,7 @@ export default function ChartGeneratePage() {
         padding: "24px 16px 42px",
       }}
     >
-      <style jsx global>{`
+      <style>{`
         @media print {
           body {
             background: #fff !important;
@@ -651,7 +618,7 @@ export default function ChartGeneratePage() {
         </div>
 
         <p className="no-print" style={{ margin: 0, fontSize: "0.8rem", color: "rgba(255,255,255,0.54)" }}>
-          Temporary chart. It is automatically deleted when leaving this page.
+          Preview chart only. Nothing here is saved to All Birth Profiles unless you create a real profile.
         </p>
 
         <div className="card no-print" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px", border: "1px solid rgba(255,255,255,0.08)" }}>

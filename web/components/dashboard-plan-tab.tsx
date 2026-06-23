@@ -88,7 +88,6 @@ const WHATIF_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
 const ACTIVITY_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
   { value: "job_change", en: "Job change or new role", ta: "வேலை மாற்றம் / புதிய பொறுப்பு" },
   { value: "business_start", en: "Start a new business", ta: "புதிய தொழில் தொடங்குதல்" },
-  { value: "marriage", en: "Marriage ceremony", ta: "திருமண நிகழ்வு" },
   { value: "education", en: "Exam / Course start", ta: "தேர்வு / படிப்பு தொடக்கம்" },
   { value: "property", en: "Property purchase / registration", ta: "சொத்து வாங்கல் / பதிவு" },
   { value: "money", en: "Investment or major financial decision", ta: "முதலீடு / நிதி முடிவு" },
@@ -169,7 +168,6 @@ export function DashboardPlanTab({
   const ACTIVITY_TO_MUHURTA: Record<string, string> = {
     job_change: "JOB_START",
     business_start: "JOB_START",
-    marriage: "MARRIAGE",
     education: "EXAM",
     property: "PURCHASE",
     money: "INVESTMENT",

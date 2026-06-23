@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { track } from "@/lib/analytics";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import type { ApiEnvelope, ChartCalculateResponseData, ChartSummaryData, DashaTimelineResponseData } from "@/lib/types";
+import type { ChartCalculateResponseData, ChartSummaryData, DashaTimelineResponseData } from "@/lib/types";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import { Field } from "./dashboard-ui";
 import { PlaceCombobox } from "./place-combobox";
@@ -15,6 +15,8 @@ import {
   computeD9LagnaRasi,
   GRAHA_ABBR,
 } from "@/lib/chart-utils";
+
+type PublicChartPreviewResponse = { success: boolean; data: { chart: ChartCalculateResponseData; summary: ChartSummaryData; dasha: DashaTimelineResponseData } };
 
 type BirthForm = {
   displayName: string;
@@ -388,29 +390,15 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
   const [chart, setChart] = useState<ChartCalculateResponseData | null>(null);
   const [chartSummary, setChartSummary] = useState<ChartSummaryData | null>(null);
   const [dashaData, setDashaData] = useState<DashaTimelineResponseData | null>(null);
-  const [tempBirthProfileId, setTempBirthProfileId] = useState<string | null>(null);
-  const tempIdRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [view, setView] = useState<"D1" | "D9">("D1");
   const [printMode, setPrintMode] = useState(false);
 
-  useEffect(() => {
-    tempIdRef.current = tempBirthProfileId;
-  }, [tempBirthProfileId]);
-
-  useEffect(() => {
-    return () => {
-      const id = tempIdRef.current;
-      if (id) {
-        fetch(`/api/v1/birth-profiles/${id}`, { method: "DELETE", keepalive: true }).catch(() => {});
-      }
-    };
-  }, []);
 
   async function handleGenerate() {
     if (!form.displayName || !form.birthDateLocal || !form.birthPlace || !form.birthLatitude || !form.birthLongitude || !form.birthTimezone) {
-      setError(lang === "ta" ? "அனைத்து தகவல்களையும் நிரப்பவும்." : "Please fill all required fields.");
+      setError(lang === "ta" ? "????????????????????? ???????????????????????????????????? ??????????????????????????????." : "Please fill all required fields.");
       return;
     }
     setError("");
@@ -418,54 +406,26 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
     setChartSummary(null);
     setDashaData(null);
 
-    if (tempBirthProfileId) {
-      await apiFetchJson(`/api/v1/birth-profiles/${tempBirthProfileId}`, { method: "DELETE" }).catch(() => {});
-      setTempBirthProfileId(null);
-    }
-
     try {
-      const profileRes = await apiFetchJson<{ data: { birthProfileId: string } }>("/api/v1/birth-profiles", {
+      const preview = await apiFetchJson<PublicChartPreviewResponse>("/api/v1/public/chart-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          displayName: form.displayName,
-          birthDateLocal: form.birthDateLocal,
-          birthTimeLocal: form.birthTimeLocal || null,
-          birthPlace: form.birthPlace,
-          birthLatitude: parseFloat(form.birthLatitude),
-          birthLongitude: parseFloat(form.birthLongitude),
-          birthTimezone: form.birthTimezone,
-          relationshipToOwner: "other",
-          calculateNow: false,
+          birth: {
+            displayName: form.displayName,
+            birthDateLocal: form.birthDateLocal,
+            birthTimeLocal: form.birthTimeLocal || null,
+            birthPlace: form.birthPlace,
+            birthLatitude: parseFloat(form.birthLatitude),
+            birthLongitude: parseFloat(form.birthLongitude),
+            birthTimezone: form.birthTimezone,
+          },
         }),
       });
-
-      const birthProfileId = profileRes.data.birthProfileId;
-      setTempBirthProfileId(birthProfileId);
-
-      const chartRes = await apiFetchJson<ApiEnvelope<ChartCalculateResponseData>>("/api/v1/charts/calculate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ birthProfileId, calculationVersion: "thirukanitham-2026-v1" }),
-      });
-      setChart(chartRes.data);
-      track("chart_generated"); // activation event — no birth details attached
-
-      try {
-        const summaryRes = await apiFetchJson<ApiEnvelope<ChartSummaryData>>(
-          `/api/v1/charts/${chartRes.data.chartId}/summary?language=ta-en`,
-        );
-        setChartSummary(summaryRes.data);
-      } catch { setChartSummary(null); }
-
-      try {
-        const today = new Date().toISOString().slice(0, 10);
-        const dashaRes = await apiFetchJson<ApiEnvelope<DashaTimelineResponseData>>(
-          `/api/v1/charts/${chartRes.data.chartId}/dasha?asOf=${today}`,
-        );
-        setDashaData(dashaRes.data);
-      } catch { setDashaData(null); }
-
+      setChart(preview.data.chart);
+      track("chart_generated");
+      setChartSummary(preview.data.summary);
+      setDashaData(preview.data.dasha);
     } catch (err) {
       setChart(null); setChartSummary(null); setDashaData(null);
       setError(readErrorMessage(err));
@@ -528,7 +488,7 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
         <p style={{ margin: 0, fontSize: "0.75rem", color: W.muted }}>
           {lang === "ta"
             ? "தற்காலிக ஜாதகம். தளத்தை மூடியதும் தானாக நீக்கப்படும்."
-            : "Temporary chart — auto-deleted when you leave this session."}
+            : "Preview only. This chart is not saved to your account."}
         </p>
 
         {/* Birth details form */}

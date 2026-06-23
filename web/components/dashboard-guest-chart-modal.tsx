@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import type { ApiEnvelope, ChartCalculateResponseData } from "@/lib/types";
+import type { ChartCalculateResponseData } from "@/lib/types";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import { Field } from "./dashboard-ui";
 import { PlaceCombobox } from "./place-combobox";
@@ -38,58 +38,33 @@ interface GuestChartModalProps {
 export function GuestChartModal({ lang, onClose }: GuestChartModalProps) {
   const [form, setForm] = useState<BirthForm>(EMPTY_FORM);
   const [chart, setChart] = useState<ChartCalculateResponseData | null>(null);
-  const [tempBirthProfileId, setTempBirthProfileId] = useState<string | null>(null);
-  const tempBirthProfileIdRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [view, setView] = useState<"D1" | "D9">("D1");
 
-  useEffect(() => {
-    tempBirthProfileIdRef.current = tempBirthProfileId;
-  }, [tempBirthProfileId]);
-
-  useEffect(() => {
-    return () => {
-      const id = tempBirthProfileIdRef.current;
-      if (!id) return;
-      fetch(`/api/v1/birth-profiles/${id}`, { method: "DELETE", keepalive: true }).catch(() => {});
-    };
-  }, []);
 
   async function handleGenerate() {
     if (!form.displayName || !form.birthDateLocal || !form.birthPlace || !form.birthLatitude || !form.birthLongitude || !form.birthTimezone) {
-      setError(lang === "ta" ? "அனைத்து தகவல்களையும் நிரப்பவும்." : "Please fill all required fields.");
+      setError(lang === "ta" ? "????????????????????? ???????????????????????????????????? ??????????????????????????????." : "Please fill all required fields.");
       return;
     }
     setError("");
     setLoading(true);
-    if (tempBirthProfileId) {
-      await apiFetchJson(`/api/v1/birth-profiles/${tempBirthProfileId}`, { method: "DELETE" }).catch(() => {});
-      setTempBirthProfileId(null);
-    }
     try {
-      const profileRes = await apiFetchJson<{ data: { birthProfileId: string } }>("/api/v1/birth-profiles", {
+      const chartRes = await apiFetchJson<{ success: boolean; data: ChartCalculateResponseData }>("/api/v1/public/chart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          displayName: form.displayName,
-          birthDateLocal: form.birthDateLocal,
-          birthTimeLocal: form.birthTimeLocal || null,
-          birthPlace: form.birthPlace,
-          birthLatitude: parseFloat(form.birthLatitude),
-          birthLongitude: parseFloat(form.birthLongitude),
-          birthTimezone: form.birthTimezone,
-          relationshipToOwner: "other",
-          calculateNow: false,
+          birth: {
+            displayName: form.displayName,
+            birthDateLocal: form.birthDateLocal,
+            birthTimeLocal: form.birthTimeLocal || null,
+            birthPlace: form.birthPlace,
+            birthLatitude: parseFloat(form.birthLatitude),
+            birthLongitude: parseFloat(form.birthLongitude),
+            birthTimezone: form.birthTimezone,
+          },
         }),
-      });
-      const birthProfileId = profileRes.data.birthProfileId;
-      setTempBirthProfileId(birthProfileId);
-
-      const chartRes = await apiFetchJson<ApiEnvelope<ChartCalculateResponseData>>("/api/v1/charts/calculate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ birthProfileId, calculationVersion: "thirukanitham-2026-v1" }),
       });
       setChart(chartRes.data);
     } catch (err) {
@@ -100,9 +75,6 @@ export function GuestChartModal({ lang, onClose }: GuestChartModalProps) {
   }
 
   async function handleClose() {
-    if (tempBirthProfileId) {
-      await apiFetchJson(`/api/v1/birth-profiles/${tempBirthProfileId}`, { method: "DELETE" }).catch(() => {});
-    }
     onClose();
   }
 
@@ -240,7 +212,7 @@ export function GuestChartModal({ lang, onClose }: GuestChartModalProps) {
             <p style={{ margin: 0, fontSize: "0.625rem", color: "var(--color-faint)", fontStyle: "italic" }}>
               {lang === "ta"
                 ? "இந்த ஜாதகம் தற்காலிகமானது. மூடியதும் தானாக நீக்கப்படும்."
-                : "Temporary chart — auto-deleted when you close."}
+                : "Preview only. This chart is not saved to your account."}
             </p>
           </div>
         )}

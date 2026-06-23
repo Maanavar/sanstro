@@ -387,6 +387,14 @@ export function DashboardPersonalTab({
   const [reminderMessage, setReminderMessage] = useState<string | null>(null);
   const astroText = (value: string) => (lang === "en" ? tamilizeAstroEnglish(value) : value);
 
+  const chandrashtamaWindowsSummary = (() => {
+    const windows = panchangam?.chandrashtamamToday?.janmaNakshatraWindows ?? [];
+    if (!windows.length) return "";
+    return windows
+      .map((w) => `${tNakshatra(w.name, lang)} ${formatClockLabel(w.start)}–${formatClockLabel(w.end)}`)
+      .join(", ");
+  })();
+
   useEffect(() => {
     if (!activeChartId) {
       setCharaDasha(null);
@@ -575,7 +583,14 @@ export function DashboardPersonalTab({
       {(isChandrashtama || ambientAlerts.length > 0 || peyarchiUpcoming.length > 0) && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           {isChandrashtama && (
-            <AlertBanner variant="critical" message={t("chandrashtama_warning", lang)} dismissible={false} />
+            <AlertBanner
+              variant="critical"
+              message={chandrashtamaWindowsSummary
+                ? `${t("chandrashtama_warning", lang)} — ${lang === "ta" ? "ஜன்ம நட்சத்திர நேரங்கள்" : "Janma star windows"}: ${chandrashtamaWindowsSummary}`
+                : t("chandrashtama_warning", lang)
+              }
+              dismissible={false}
+            />
           )}
           {ambientAlerts.slice(0, 2).map((alert) => (
             <AlertBanner key={alert.alertId} variant="caution"
@@ -1025,7 +1040,15 @@ export function DashboardPersonalTab({
             {personalTransit && personalSani && panchangam ? (
               <div className="stack">
                 <div className="surface__metrics">
-                  <Metric label={t("label_chandrashtamam", lang)} value={personalTransit.isChandrashtama ? t("label_active", lang) : t("label_none", lang)} hint={personalSani.confirmationSentence} tone={personalTransit.isChandrashtama ? "low" : "rest"} />
+                  <Metric
+                    label={t("label_chandrashtamam", lang)}
+                    value={personalTransit.isChandrashtama ? t("label_active", lang) : t("label_none", lang)}
+                    hint={personalTransit.isChandrashtama && chandrashtamaWindowsSummary
+                      ? chandrashtamaWindowsSummary
+                      : personalSani.confirmationSentence
+                    }
+                    tone={personalTransit.isChandrashtama ? "low" : "rest"}
+                  />
                   {personalSani.moonBasedCycle.isActive && <Metric label={t("label_sani_cycle", lang)} value={personalSani.moonBasedCycle.type ?? ""} hint={personalSani.moonBasedCycle.supportiveLabel ?? ""} tone="low" />}
                 </div>
                 <div className="surface__textBlock">

@@ -11,7 +11,6 @@ import { Surface } from "./dashboard-ui";
 
 const ACTIVITIES: Array<{ id: string; en: string; ta: string }> = [
   { id: "JOB_START",   en: "Job start / New role",             ta: "வேலை தொடக்கம் / புதிய பதவி" },
-  { id: "MARRIAGE",    en: "Marriage ceremony",                 ta: "திருமண நிகழ்ச்சி" },
   { id: "EXAM",        en: "Exam / Course start",              ta: "தேர்வு / படிப்பு தொடக்கம்" },
   { id: "TRAVEL",      en: "Travel / Journey start",           ta: "பயண தொடக்கம்" },
   { id: "INVESTMENT",  en: "Investment / Financial agreement",  ta: "முதலீடு / நிதி ஒப்பந்தம்" },
