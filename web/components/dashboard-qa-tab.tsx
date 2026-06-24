@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 
@@ -61,16 +61,16 @@ export function QATab({ lang }: { lang: Lang }) {
         </Button>
       </div>
 
-      {error && <p style={{ color: "#A8482F", fontSize: "0.875rem" }}>{error}</p>}
+      {error && <p style={{ color: "var(--planet-saturn)", fontSize: "0.875rem" }}>{error}</p>}
 
       {result && (
         <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
           <div className="card" style={{ padding: "var(--space-4) var(--space-6)", flex: 1, minWidth: "140px", textAlign: "center" }}>
-            <p style={{ margin: 0, fontSize: "2rem", fontWeight: 800, color: "#4ade80" }}>{result.total_passed}</p>
+            <p style={{ margin: 0, fontSize: "2rem", fontWeight: 800, color: "var(--color-positive)" }}>{result.total_passed}</p>
             <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "0.75rem", color: FAINT, letterSpacing: "0.05em" }}>{t("qa_passed", lang)}</p>
           </div>
           <div className="card" style={{ padding: "var(--space-4) var(--space-6)", flex: 1, minWidth: "140px", textAlign: "center" }}>
-            <p style={{ margin: 0, fontSize: "2rem", fontWeight: 800, color: result.total_failed > 0 ? "#f87171" : "#4ade80" }}>{result.total_failed}</p>
+            <p style={{ margin: 0, fontSize: "2rem", fontWeight: 800, color: result.total_failed > 0 ? "var(--color-error-light)" : "var(--color-positive)" }}>{result.total_failed}</p>
             <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "0.75rem", color: FAINT, letterSpacing: "0.05em" }}>{t("qa_failed", lang)}</p>
           </div>
           <div className="card" style={{ padding: "var(--space-4) var(--space-6)", flex: 1, minWidth: "140px", textAlign: "center" }}>
@@ -80,13 +80,13 @@ export function QATab({ lang }: { lang: Lang }) {
           {allPass && (
             <div className="card" style={{ padding: "var(--space-4) var(--space-6)", flex: 2, minWidth: "200px", display: "flex", alignItems: "center", gap: "var(--space-2_5)", background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.3)" }}>
               <span style={{ fontSize: "1.5rem" }}>✓</span>
-              <p style={{ margin: 0, fontWeight: 700, color: "#4ade80" }}>{t("qa_all_pass", lang)}</p>
+              <p style={{ margin: 0, fontWeight: 700, color: "var(--color-positive)" }}>{t("qa_all_pass", lang)}</p>
             </div>
           )}
           {!allPass && result.total_failed > 0 && (
             <div className="card" style={{ padding: "var(--space-4) var(--space-6)", flex: 2, minWidth: "200px", display: "flex", alignItems: "center", gap: "var(--space-2_5)", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(248,113,113,0.35)" }}>
               <span style={{ fontSize: "1.5rem" }}>⚠</span>
-              <p style={{ margin: 0, fontWeight: 700, color: "#f87171" }}>{t("qa_has_failures", lang)}</p>
+              <p style={{ margin: 0, fontWeight: 700, color: "var(--color-error-light)" }}>{t("qa_has_failures", lang)}</p>
             </div>
           )}
         </div>
@@ -122,7 +122,7 @@ export function QATab({ lang }: { lang: Lang }) {
               padding: "var(--space-0_5) var(--space-2)",
               borderRadius: "var(--radius-pill)",
               background: mod.failed === 0 ? "rgba(74,222,128,0.15)" : "rgba(239,68,68,0.15)",
-              color: mod.failed === 0 ? "#4ade80" : "#f87171",
+              color: mod.failed === 0 ? "var(--color-positive)" : "var(--color-error-light)",
               border: `1px solid ${mod.failed === 0 ? "rgba(74,222,128,0.3)" : "rgba(248,113,113,0.3)"}`,
             }}>
               {mod.failed === 0 ? "PASS" : "FAIL"}
@@ -149,9 +149,9 @@ export function QATab({ lang }: { lang: Lang }) {
                       <td style={{ padding: "var(--space-1_5) var(--space-3)", fontFamily: "monospace", color: MUTED, whiteSpace: "nowrap" }}>{c.test_id}</td>
                       <td style={{ padding: "var(--space-1_5) var(--space-3)", color: TEXT, maxWidth: "320px" }}>{c.description}</td>
                       <td style={{ padding: "var(--space-1_5) var(--space-3)", fontFamily: "monospace", color: MUTED, whiteSpace: "nowrap" }}>{String(c.expected)}</td>
-                      <td style={{ padding: "var(--space-1_5) var(--space-3)", fontFamily: "monospace", color: c.passed ? MUTED : "#f87171", whiteSpace: "nowrap" }}>{String(c.actual)}</td>
+                      <td style={{ padding: "var(--space-1_5) var(--space-3)", fontFamily: "monospace", color: c.passed ? MUTED : "var(--color-error-light)", whiteSpace: "nowrap" }}>{String(c.actual)}</td>
                       <td style={{ padding: "var(--space-1_5) var(--space-3)", whiteSpace: "nowrap" }}>
-                        <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "var(--space-0_5) var(--space-1_5)", borderRadius: "var(--radius-pill)", background: c.passed ? "rgba(74,222,128,0.12)" : "rgba(239,68,68,0.15)", color: c.passed ? "#4ade80" : "#f87171" }}>
+                        <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "var(--space-0_5) var(--space-1_5)", borderRadius: "var(--radius-pill)", background: c.passed ? "rgba(74,222,128,0.12)" : "rgba(239,68,68,0.15)", color: c.passed ? "var(--color-positive)" : "var(--color-error-light)" }}>
                           {c.passed ? "✓" : "✕"}
                         </span>
                       </td>
@@ -179,14 +179,14 @@ export function QATab({ lang }: { lang: Lang }) {
               {regressions.failures.map((f) => (
                 <div key={f.test_id} style={{ borderRadius: "var(--radius-sm)", border: "1px solid rgba(248,113,113,0.25)", background: "rgba(239,68,68,0.06)", padding: "var(--space-2_5) var(--space-3_5)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
-                    <span style={{ fontFamily: "monospace", fontSize: "0.75rem", color: "#f87171", fontWeight: 700 }}>{f.test_id}</span>
+                    <span style={{ fontFamily: "monospace", fontSize: "0.75rem", color: "var(--color-error-light)", fontWeight: 700 }}>{f.test_id}</span>
                     <span style={{ fontSize: "0.75rem", color: MUTED, fontFamily: "monospace" }}>{f.module}</span>
                     <span style={{ fontSize: "0.75rem", color: FAINT, marginLeft: "auto" }}>×{f.occurrences}</span>
                   </div>
                   <p style={{ margin: "var(--space-1) 0 0", fontSize: "0.875rem", color: TEXT }}>{f.description}</p>
                   <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "0.75rem", color: MUTED }}>
-                    expected: <code style={{ color: "#f87171" }}>{String(f.expected)}</code>
-                    {" · "}actual: <code style={{ color: "#f87171" }}>{String(f.actual)}</code>
+                    expected: <code style={{ color: "var(--color-error-light)" }}>{String(f.expected)}</code>
+                    {" · "}actual: <code style={{ color: "var(--color-error-light)" }}>{String(f.actual)}</code>
                   </p>
                 </div>
               ))}

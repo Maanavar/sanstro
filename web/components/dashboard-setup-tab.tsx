@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { FormEvent } from "react";
 import { useState } from "react";
@@ -95,18 +95,18 @@ interface DashboardSetupTabProps {
 
 /* ── Design tokens (warm, matching personal/family/life-areas) ── */
 const W = {
-  ink:      "#1A1612",
-  inkMid:   "#3D352B",
-  muted:    "#7A6F5E",
+  ink:      "var(--panel-earth-dark)",
+  inkMid:   "var(--panel-earth)",
+  muted:    "var(--color-faint)",
   mutedLt:  "var(--color-faint)",
-  border:   "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface:  "#FAF5EA",
-  surfaceMd:"#F4EEE2",
-  card:     "#FFFFFF",
-  terracota:"#B85A2C",
-  accent:   "#8c3e18",
-  sage:     "#5C7654",
+  border:   "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface:  "var(--panel-cream)",
+  surfaceMd:"var(--panel-hover)",
+  card:     "var(--chart-cell-default)",
+  terracota:"var(--panel-brand)",
+  accent:   "var(--planet-lagna)",
+  sage:     "var(--chart-d9-active)",
   sageLt:   "rgba(92,118,84,0.15)",
   sageBorder:"rgba(92,118,84,0.35)",
   goldBorder:"rgba(184,90,44,0.35)",
@@ -124,7 +124,7 @@ function WInput(props: React.InputHTMLAttributes<HTMLInputElement> & { error?: b
       style={{
         width: "100%", padding: "var(--space-2) var(--space-3)",
         borderRadius: "var(--radius-md)",
-        border: `1.5px solid ${error ? "#A8482F" : W.borderLt}`,
+        border: `1.5px solid ${error ? "var(--planet-saturn)" : W.borderLt}`,
         background: rest.readOnly ? W.surfaceMd : W.card,
         color: W.inkMid, fontSize: "0.875rem", fontFamily: "inherit",
         outline: "none", cursor: rest.readOnly ? "default" : undefined,
@@ -157,7 +157,7 @@ function WField({ label, hint, error, children }: { label: string; hint?: string
       <label style={{ fontSize: "0.75rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</label>
       {children}
       {hint && <span style={{ fontSize: "0.75rem", color: W.mutedLt, lineHeight: 1.4 }}>{hint}</span>}
-      {error && <span style={{ fontSize: "0.75rem", color: "#A8482F", lineHeight: 1.4 }}>{error}</span>}
+      {error && <span style={{ fontSize: "0.75rem", color: "var(--planet-saturn)", lineHeight: 1.4 }}>{error}</span>}
     </div>
   );
 }

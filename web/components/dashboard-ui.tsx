@@ -1,9 +1,9 @@
 "use client";
 
 
-import { useState } from "react";
-import type { CSSProperties, ReactNode } from "react";
-
+import { cloneElement, isValidElement, useState } from "react";
+import type { CSSProperties, InputHTMLAttributes, ReactNode } from "react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { TN_CITIES } from "@/lib/tn-cities";
 import type { CityEntry } from "@/lib/tn-cities";
 export function Metric({
@@ -20,12 +20,58 @@ export function Metric({
   );
 }
 
-export function Field({ label, children, helper }: { label: string; children: ReactNode; helper?: string }) {
+export function Field({
+  id,
+  label,
+  children,
+  helper,
+  error,
+  valid,
+  required,
+}: {
+  id?: string;
+  label: string;
+  children: ReactNode;
+  helper?: string;
+  error?: string;
+  valid?: boolean;
+  required?: boolean;
+}) {
+  const fieldId = id ?? `field-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "control"}`;
+  const errorId = error ? `${fieldId}-error` : undefined;
+  const helperId = helper ? `${fieldId}-helper` : undefined;
+  const describedBy = [helperId, errorId].filter(Boolean).join(" ") || undefined;
+  const control = isValidElement(children)
+    ? cloneElement(children as any, {
+        id: (children as any).props?.id ?? fieldId,
+        "aria-invalid": error ? "true" : undefined,
+        "aria-describedby": describedBy,
+        "aria-required": required ? "true" : undefined,
+        required: required || (children as any).props?.required,
+      })
+    : children;
+
   return (
-    <label className="field">
-      <span className="field__label">{label}</span>
-      {children}
-      {helper ? <span className="field__helper">{helper}</span> : null}
+    <label className="field" htmlFor={fieldId}>
+      <span className="field__label">
+        {label}
+        {required ? <span aria-hidden="true"> *</span> : null}
+      </span>
+      <div className="input-wrapper">
+        {control}
+        {valid && !error ? (
+          <span className="input-wrapper__check" aria-hidden="true">
+            <CheckCircle2 size={16} strokeWidth={1.5} />
+          </span>
+        ) : null}
+      </div>
+      {error ? (
+        <span id={errorId} className="field__error" role="alert" aria-live="polite">
+          <AlertCircle size={14} strokeWidth={1.5} aria-hidden="true" />
+          {error}
+        </span>
+      ) : null}
+      {helper && !error ? <span id={helperId} className="field__helper">{helper}</span> : null}
     </label>
   );
 }
@@ -41,9 +87,9 @@ export function Button({
   variant?: "primary" | "secondary" | "ghost"; disabled?: boolean; title?: string;
 }) {
   const variantStyles: Record<"primary" | "secondary" | "ghost", CSSProperties> = {
-    primary: { background: "#B85A2C", color: "#FAF5EA", border: "1.5px solid #B85A2C" },
-    secondary: { background: "transparent", color: "#3D352B", border: "1.5px solid #D4C8AE" },
-    ghost: { background: "transparent", color: "#B85A2C", border: "1.5px solid rgba(184,90,44,0.4)" },
+    primary:   { background: "var(--panel-brand)",  color: "var(--panel-cream)", border: "1.5px solid var(--panel-brand)" },
+    secondary: { background: "transparent",          color: "var(--panel-earth)", border: "1.5px solid var(--panel-tan)" },
+    ghost:     { background: "transparent",          color: "var(--panel-brand)", border: "1.5px solid var(--panel-brand-border)" },
   };
   const fallbackStyle: CSSProperties = {
     padding: "8px 20px",
@@ -80,9 +126,9 @@ const CONFIDENCE_DOTS: Record<ConfidenceTier, string> = {
   LOW:    "●○○",
 };
 const CONFIDENCE_COLORS: Record<ConfidenceTier, string> = {
-  HIGH:   "var(--color-score-high, #5C7654)",
-  MEDIUM: "var(--color-score-mid, #B85A2C)",
-  LOW:    "var(--color-faint, #7A6F5E)",
+  HIGH:   "var(--color-score-high)",
+  MEDIUM: "var(--color-score-mid)",
+  LOW:    "var(--color-faint)",
 };
 
 export function ConfidenceBadge({
@@ -115,7 +161,18 @@ export function ConfidenceBadge({
   );
 }
 
-export function PlaceCombobox({ value, onChange }: { value: string; onChange: (city: CityEntry | null, rawText: string) => void }) {
+type PlaceComboboxProps = {
+  value: string;
+  onChange: (city: CityEntry | null, rawText: string) => void;
+} & Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">;
+
+export function PlaceCombobox({
+  value,
+  onChange,
+  placeholder = "Type a city...",
+  className = "",
+  ...inputProps
+}: PlaceComboboxProps) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const filtered = query.length < 1 ? TN_CITIES : TN_CITIES.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()));
@@ -128,27 +185,30 @@ export function PlaceCombobox({ value, onChange }: { value: string; onChange: (c
   return (
     <div style={{ position: "relative" }}>
       <input
-        value={query} placeholder="Type a city…" autoComplete="off"
-        onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
+        {...inputProps}
+        className={className}
+        value={query} placeholder={placeholder} autoComplete={inputProps.autoComplete ?? "off"}
+        onFocus={(event) => { inputProps.onFocus?.(event); setOpen(true); }}
+        onBlur={(event) => { inputProps.onBlur?.(event); setTimeout(() => setOpen(false), 150); }}
         onChange={(e) => handleInput(e.target.value)}
         style={{
-          width: "100%", padding: "9px 12px", borderRadius: "10px",
-          border: "1.5px solid #E4DBC8", background: "#FFFFFF",
-          color: "#3D352B", fontSize: "0.875rem", fontFamily: "inherit", outline: "none",
+          width: "100%", padding: "9px 12px", borderRadius: "var(--radius-md)",
+          border: "1.5px solid var(--panel-tan-light)", background: "var(--panel-cream)",
+          color: "var(--panel-earth)", fontSize: "0.875rem", fontFamily: "inherit", outline: "none",
         }}
       />
       {open && filtered.length > 0 && (
         <ul style={{
           position: "absolute", zIndex: 50, top: "100%", left: 0, right: 0,
-          background: "#FFFFFF", border: "1.5px solid #D4C8AE",
-          borderRadius: "10px", marginTop: "4px", maxHeight: "220px", overflowY: "auto",
+          background: "var(--panel-cream)", border: "1.5px solid var(--panel-tan)",
+          borderRadius: "var(--radius-md)", marginTop: "4px", maxHeight: "220px", overflowY: "auto",
           padding: "4px 0", listStyle: "none",
-          boxShadow: "0 8px 24px rgba(26,22,18,0.12)",
+          boxShadow: "0 8px 24px var(--panel-shadow)",
         }}>
           {filtered.slice(0, 40).map((city, idx) => (
             <li key={`${city.name}-${idx}`} onMouseDown={() => select(city)}
-              style={{ padding: "9px 14px", cursor: "pointer", fontSize: "0.875rem", color: "#3D352B", fontFamily: "inherit" }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#F4EEE2"; }}
+              style={{ padding: "9px 14px", cursor: "pointer", fontSize: "0.875rem", color: "var(--panel-earth)", fontFamily: "inherit" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--panel-hover)"; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}>
               {city.name}
             </li>
@@ -158,4 +218,3 @@ export function PlaceCombobox({ value, onChange }: { value: string; onChange: (c
     </div>
   );
 }
-

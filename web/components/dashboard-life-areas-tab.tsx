@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { t } from "@/lib/i18n";
@@ -131,7 +131,7 @@ export function DashboardLifeAreasTab({
 
       {/* ── Hero ── */}
       <div>
-        <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#B85A2C" }}>
+        <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--panel-brand)" }}>
           {t("tab_life_areas", lang)}{currentAge !== null ? ` · ${lang === "ta" ? "வயது" : "AGE"} ${currentAge}` : ""}
         </p>
         <h1 style={{
@@ -141,15 +141,15 @@ export function DashboardLifeAreasTab({
           fontWeight: 500,
           letterSpacing: "-0.03em",
           lineHeight: 1.05,
-          color: "#1A1612",
+          color: "var(--panel-earth-dark)",
         }}>
           {lang === "ta" ? "நீங்கள் எங்கே நிற்கிறீர்கள்," : "Where you stand,"}
           <br />
-          <em style={{ fontStyle: "italic", color: "#7A6F5E" }}>
+          <em style={{ fontStyle: "italic", color: "var(--color-faint)" }}>
             {lang === "ta" ? "துறை வாரியாக." : "area by area."}
           </em>
         </h1>
-        <p style={{ margin: 0, fontSize: "0.875rem", color: "#5a4f42", lineHeight: 1.6, maxWidth: "56ch" }}>
+        <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--panel-mid-earth)", lineHeight: 1.6, maxWidth: "56ch" }}>
           {lang === "ta"
             ? `ஒவ்வொரு மதிப்பெண்ணும் இன்றைய நிலையை அடிப்படையாகக் கொண்டது — உங்கள் ஜாதக வலிமை + தசை + கிரகநகர்வு மூன்றையும் சேர்த்து கணக்கிடப்படுகிறது. ${phaseTheme}`
             : `Each score is a snapshot for today — natal chart strength, active dasha period, and current transits combined. ${phaseTheme}`}
@@ -167,15 +167,15 @@ export function DashboardLifeAreasTab({
             style={{
               padding: "var(--space-1) var(--space-4)", borderRadius: "var(--radius-pill)", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer",
               border: "1.5px solid",
-              borderColor: selectedMemberId === null ? "#B85A2C" : "#D4C8AE",
-              background: selectedMemberId === null ? "#F0D9C4" : "transparent",
-              color: selectedMemberId === null ? "#8c3e18" : "#7A6F5E",
+              borderColor: selectedMemberId === null ? "var(--panel-brand)" : "var(--panel-tan)",
+              background: selectedMemberId === null ? "var(--chart-d1-lagna-bg)" : "transparent",
+              color: selectedMemberId === null ? "var(--planet-lagna)" : "var(--color-faint)",
               fontFamily: "inherit",
               display: "flex", alignItems: "center", gap: "var(--space-1_5)",
             }}
           >
             {selectedMemberId === null && (
-              <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#B85A2C", display: "inline-block", flexShrink: 0 }} />
+              <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--panel-brand)", display: "inline-block", flexShrink: 0 }} />
             )}
             {birthDisplayName || t("personal_you", lang)}
           </button>
@@ -187,9 +187,9 @@ export function DashboardLifeAreasTab({
               style={{
                 padding: "var(--space-1) var(--space-4)", borderRadius: "var(--radius-pill)", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer",
                 border: "1.5px solid",
-                borderColor: selectedMemberId === mc.memberId ? "#1A1612" : "#D4C8AE",
-                background: selectedMemberId === mc.memberId ? "#1A1612" : "transparent",
-                color: selectedMemberId === mc.memberId ? "#F4EEE2" : "#7A6F5E",
+                borderColor: selectedMemberId === mc.memberId ? "var(--panel-earth-dark)" : "var(--panel-tan)",
+                background: selectedMemberId === mc.memberId ? "var(--panel-earth-dark)" : "transparent",
+                color: selectedMemberId === mc.memberId ? "var(--panel-hover)" : "var(--color-faint)",
                 fontFamily: "inherit",
               }}
             >
@@ -212,9 +212,9 @@ export function DashboardLifeAreasTab({
                 fontWeight: 600,
                 cursor: "pointer",
                 border: "1.5px solid",
-                borderColor: subTab === key ? "#1A1612" : "#D4C8AE",
-                background: subTab === key ? "#1A1612" : "transparent",
-                color: subTab === key ? "#F4EEE2" : "#7A6F5E",
+                borderColor: subTab === key ? "var(--panel-earth-dark)" : "var(--panel-tan)",
+                background: subTab === key ? "var(--panel-earth-dark)" : "transparent",
+                color: subTab === key ? "var(--panel-hover)" : "var(--color-faint)",
                 fontFamily: "inherit",
                 transition: "all 0.12s ease",
               }}

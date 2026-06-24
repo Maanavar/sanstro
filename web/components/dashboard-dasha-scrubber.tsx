@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRef, useState } from "react";
 import { t } from "@/lib/i18n";
@@ -17,11 +17,11 @@ interface DashboardDashaScrubberProps {
 
 const LORD_COLOR: Record<string, string> = {
   SUN:     "#f97316",
-  MOON:    "#a78bfa",
+  MOON:    "var(--color-violet)",
   MARS:    "#ef4444",
-  RAHU:    "#6366f1",
+  RAHU:    "var(--color-indigo)",
   JUPITER: "#eab308",
-  SATURN:  "#7A6F5E",
+  SATURN:  "var(--color-faint)",
   MERCURY: "#22c55e",
   KETU:    "#e879f9",
   VENUS:   "#ec4899",
@@ -73,7 +73,7 @@ export function DashboardDashaScrubber({
   return (
     <div
       style={{
-        border: "1px solid var(--color-border, #E4DBC8)",
+        border: "1px solid var(--color-border, var(--panel-tan-light))",
         borderRadius: "var(--radius-md)",
         padding: "var(--space-4)",
         background: "var(--color-surface)",
@@ -88,7 +88,7 @@ export function DashboardDashaScrubber({
             fontWeight: 600,
             textTransform: "uppercase",
             letterSpacing: "0.08em",
-            color: "var(--color-muted, #675b4b)",
+            color: "var(--color-muted, var(--panel-mid-earth))",
           }}
         >
           {lang === "ta" ? "மகாதசை பார்வை — ஒட்டுமொத்த 120-ஆண்டு சுழற்சி" : "Mahadasha Overview — full 120-year cycle"}
@@ -151,7 +151,7 @@ export function DashboardDashaScrubber({
                   style={{
                     fontSize: "0.625rem",
                     fontWeight: 700,
-                    color: past ? "var(--color-muted, #675b4b)" : "var(--color-on-accent, #fff)",
+                    color: past ? "var(--color-muted, var(--panel-mid-earth))" : "var(--color-on-accent, #fff)",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -166,7 +166,7 @@ export function DashboardDashaScrubber({
                 <span
                   style={{
                     fontSize: "0.625rem",
-                    color: past ? "var(--color-muted, #675b4b)" : "rgba(255,255,255,0.8)",
+                    color: past ? "var(--color-muted, var(--panel-mid-earth))" : "rgba(255,255,255,0.8)",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -205,7 +205,7 @@ export function DashboardDashaScrubber({
 
       {/* You are here label */}
       {currentItem && (
-        <p style={{ fontSize: "0.75rem", color: "var(--color-muted, #675b4b)", marginTop: "var(--space-2)", textAlign: "center" }}> Now: {t("dasha_you_are_here", lang)} — {mode === "BEGINNER" ? plainLangDashaLord(currentItem.lord, "BEGINNER", lang) : currentItem.lord} (
+        <p style={{ fontSize: "0.75rem", color: "var(--color-muted, var(--panel-mid-earth))", marginTop: "var(--space-2)", textAlign: "center" }}> Now: {t("dasha_you_are_here", lang)} — {mode === "BEGINNER" ? plainLangDashaLord(currentItem.lord, "BEGINNER", lang) : currentItem.lord} (
           {formatYear(currentItem.startDate)}–{formatYear(currentItem.endDate)})
         </p>
       )}
@@ -239,7 +239,7 @@ export function DashboardDashaScrubber({
                   ? plainLangDashaLord(item.lord, "BEGINNER", lang)
                   : item.lord.charAt(0) + item.lord.slice(1).toLowerCase()}{" "}
                 {lang === "ta" ? "தசை" : "Dasha"}{" "}
-                <span style={{ fontWeight: 400, color: "var(--color-muted, #675b4b)" }}>
+                <span style={{ fontWeight: 400, color: "var(--color-muted, var(--panel-mid-earth))" }}>
                   {formatYear(item.startDate)}–{formatYear(item.endDate)}
                 </span>
               </strong>
@@ -249,18 +249,18 @@ export function DashboardDashaScrubber({
                 </span>
               )}
               {past && (
-                <span style={{ fontSize: "0.625rem", color: "var(--color-muted, #675b4b)" }}>
+                <span style={{ fontSize: "0.625rem", color: "var(--color-muted, var(--panel-mid-earth))" }}>
                   {t("dasha_past_era", lang)}
                 </span>
               )}
               {!past && !current && (
-                <span style={{ fontSize: "0.625rem", color: "var(--color-muted, #675b4b)" }}>
+                <span style={{ fontSize: "0.625rem", color: "var(--color-muted, var(--panel-mid-earth))" }}>
                   {t("dasha_future_era", lang)}
                 </span>
               )}
             </div>
 
-            <p style={{ fontSize: "0.875rem", color: "var(--color-muted, #675b4b)", marginBottom: antars.length > 0 ? "var(--space-2)" : "0" }}>
+            <p style={{ fontSize: "0.875rem", color: "var(--color-muted, var(--panel-mid-earth))", marginBottom: antars.length > 0 ? "var(--space-2)" : "0" }}>
               {Math.round(yearsBetween(item.startDate, item.endDate))}{" "}
               {lang === "ta" ? "ஆண்டுகள் நீடிக்கும்" : "year period"}
             </p>
@@ -268,7 +268,7 @@ export function DashboardDashaScrubber({
             {/* Antar periods */}
             {antars.length > 0 && (
               <div>
-                <p style={{ fontSize: "0.625rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-muted, #675b4b)", marginBottom: "var(--space-2)" }}>
+                <p style={{ fontSize: "0.625rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-muted, var(--panel-mid-earth))", marginBottom: "var(--space-2)" }}>
                   {lang === "ta" ? "அந்தர்தசைகள்" : "Sub-periods"}
                 </p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>

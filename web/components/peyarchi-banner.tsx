@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 
@@ -20,24 +20,24 @@ function tonePalette(tone: BannerTone) {
   if (tone === "supportive") {
     return {
       border: "rgba(92,118,84,0.4)",
-      background: "#DCE4D2",
-      text: "#3a6b40",
-      mutedText: "#5C7654",
+      background: "var(--chart-d9-active-bg)",
+      text: "var(--chart-d9-active-dark)",
+      mutedText: "var(--chart-d9-active)",
     };
   }
   if (tone === "caution") {
     return {
       border: "rgba(168,72,47,0.35)",
-      background: "#F2D8CC",
-      text: "#8c3e18",
-      mutedText: "#A8482F",
+      background: "var(--panel-warm-tint)",
+      text: "var(--planet-lagna)",
+      mutedText: "var(--planet-saturn)",
     };
   }
   return {
     border: "rgba(184,90,44,0.35)",
-    background: "#F0D9C4",
+    background: "var(--chart-d1-lagna-bg)",
     text: "#7a3412",
-    mutedText: "#B85A2C",
+    mutedText: "var(--panel-brand)",
   };
 }
 
@@ -137,8 +137,8 @@ export function PeyarchiBanner({ events, lang, peyarchiReport }: PeyarchiBannerP
 
       {/* FEATURE-11: Peyarchi report outlook panel */}
       {outlookExpanded && peyarchiReport && peyarchiReport.events.length > 0 && (
-        <div style={{ padding: "12px 14px", borderRadius: "8px", background: "#FAF5EA", border: "1px solid #D4C8AE" }}>
-          <p style={{ margin: "0 0 8px", fontSize: "0.625rem", fontWeight: 700, color: "#7A6F5E", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <div style={{ padding: "12px 14px", borderRadius: "8px", background: "var(--panel-cream)", border: "1px solid var(--panel-tan)" }}>
+          <p style={{ margin: "0 0 8px", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
             🪐 {t("peyarchi_outlook_label", lang)}
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>

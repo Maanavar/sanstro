@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
@@ -19,9 +19,9 @@ interface SynastryMatrixProps {
 }
 
 function scoreTone(score: number) {
-  if (score >= 65) return { color: "#5C7654", bg: "#DCE4D2", border: "rgba(92,118,84,0.35)" };
-  if (score >= 40) return { color: "#B85A2C", bg: "#F0D9C4", border: "rgba(184,90,44,0.3)" };
-  return                  { color: "#A8482F", bg: "#F2D8CC", border: "rgba(168,72,47,0.3)" };
+  if (score >= 65) return { color: "var(--chart-d9-active)", bg: "var(--chart-d9-active-bg)", border: "rgba(92,118,84,0.35)" };
+  if (score >= 40) return { color: "var(--panel-brand)", bg: "var(--chart-d1-lagna-bg)", border: "rgba(184,90,44,0.3)" };
+  return                  { color: "var(--planet-saturn)", bg: "var(--panel-warm-tint)", border: "rgba(168,72,47,0.3)" };
 }
 
 export function SynastryMatrix({ lang, ownerChartId, familyVaultId, members }: SynastryMatrixProps) {
@@ -69,8 +69,8 @@ export function SynastryMatrix({ lang, ownerChartId, familyVaultId, members }: S
             onClick={() => void loadAll()}
             style={{
               padding: "4px 14px", borderRadius: "999px",
-              border: "1.5px solid #D4C8AE", background: "transparent",
-              color: "#3D352B", fontSize: "0.75rem", fontWeight: 600,
+              border: "1.5px solid var(--panel-tan)", background: "transparent",
+              color: "var(--panel-earth)", fontSize: "0.75rem", fontWeight: 600,
               cursor: "pointer", fontFamily: "inherit",
             }}
           >
@@ -80,7 +80,7 @@ export function SynastryMatrix({ lang, ownerChartId, familyVaultId, members }: S
       </div>
 
       {error && (
-        <p style={{ margin: "0 0 8px", fontSize: "0.75rem", color: "#A8482F" }}>{error}</p>
+        <p style={{ margin: "0 0 8px", fontSize: "0.75rem", color: "var(--planet-saturn)" }}>{error}</p>
       )}
 
       {loaded && (
@@ -88,7 +88,7 @@ export function SynastryMatrix({ lang, ownerChartId, familyVaultId, members }: S
           {members.map((m) => {
             const score = scores[m.memberId] ?? null;
             const busy  = loading[m.memberId] ?? false;
-            const tone  = score !== null ? scoreTone(score) : { color: "var(--color-faint)", bg: "#FAF5EA", border: "#E4DBC8" };
+            const tone  = score !== null ? scoreTone(score) : { color: "var(--color-faint)", bg: "var(--panel-cream)", border: "var(--panel-tan-light)" };
             return (
               <div
                 key={m.memberId}
@@ -101,7 +101,7 @@ export function SynastryMatrix({ lang, ownerChartId, familyVaultId, members }: S
                   textAlign: "center",
                 }}
               >
-                <p style={{ margin: "0 0 5px", fontSize: "0.75rem", color: "#3D352B", fontWeight: 600 }}>
+                <p style={{ margin: "0 0 5px", fontSize: "0.75rem", color: "var(--panel-earth)", fontWeight: 600 }}>
                   {m.displayName}
                 </p>
                 {busy ? (

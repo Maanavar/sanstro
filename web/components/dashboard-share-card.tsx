@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRef, useState } from "react";
 import { apiFetchJson, toQuery } from "@/lib/api";
@@ -8,15 +8,15 @@ import { todayIso } from "@/lib/format";
 
 // ── Colour palette per score band ────────────────────────────────────────────
 const BAND_COLORS: Record<string, { bg: string; accent: string; text: string }> = {
-  high:    { bg: "#0f2a1a", accent: "#4ade80", text: "#e2fcea" },
+  high:    { bg: "#0f2a1a", accent: "var(--color-positive)", text: "#e2fcea" },
   good:    { bg: "#1a2410", accent: "#a3e635", text: "#ecfccb" },
   neutral: { bg: "#1a1a2e", accent: "#93c5fd", text: "#e0f2fe" },
   caution: { bg: "#1e1010", accent: "#fbbf24", text: "#fef9c3" },
 };
 
 const DASHA_COLORS: Record<string, string> = {
-  SUN: "#f59e0b", MOON: "#93c5fd", MARS: "#f87171", MERCURY: "#34d399",
-  JUPITER: "#fbbf24", VENUS: "#f0abfc", SATURN: "var(--color-faint)", RAHU: "#a78bfa", KETU: "#6b7280",
+  SUN: "#f59e0b", MOON: "#93c5fd", MARS: "var(--color-error-light)", MERCURY: "#34d399",
+  JUPITER: "#fbbf24", VENUS: "#f0abfc", SATURN: "var(--color-faint)", RAHU: "var(--color-violet)", KETU: "#6b7280",
 };
 
 // ── Canvas drawing — portrait 1080×1920 (9:16 for stories / reels) ───────────
@@ -131,7 +131,7 @@ function drawDashaEraCard(
   ctx.fillStyle = "#0a0c14";
   ctx.fillRect(0, 0, w, h);
 
-  const lordColor = DASHA_COLORS[data.mahaLord ?? ""] ?? "#e5b84d";
+  const lordColor = DASHA_COLORS[data.mahaLord ?? ""] ?? "var(--chart-amber)";
 
   const grd = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, 700);
   grd.addColorStop(0, lordColor + "30");
@@ -181,10 +181,10 @@ function drawNakshatraCard(
   ctx.fillStyle = "#080b18";
   ctx.fillRect(0, 0, w, h);
 
-  const accent = "#a78bfa";
+  const accent = "var(--color-violet)";
 
   const grd = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, 700);
-  grd.addColorStop(0, "#a78bfa1a");
+  grd.addColorStop(0, "var(--color-violet)1a");
   grd.addColorStop(1, "transparent");
   ctx.fillStyle = grd;
   ctx.fillRect(0, 0, w, h);
@@ -388,7 +388,7 @@ export function ShareCardButton({ chartId, cardType, lang, date, label }: ShareC
                 href={preview}
                 download={`vinaadi-${cardType.toLowerCase()}.png`}
                 style={{
-                  padding: "8px 20px", borderRadius: "8px", background: "#e5b84d", color: "#0d1117",
+                  padding: "8px 20px", borderRadius: "8px", background: "var(--chart-amber)", color: "#0d1117",
                   fontWeight: 700, fontSize: "0.875rem", textDecoration: "none",
                 }}
               >
@@ -410,7 +410,7 @@ export function ShareCardButton({ chartId, cardType, lang, date, label }: ShareC
         </div>
       )}
       {error && (
-        <p style={{ margin: "6px 0 0", fontSize: "0.75rem", color: "var(--color-score-low, #A8482F)" }}>{error}</p>
+        <p style={{ margin: "6px 0 0", fontSize: "0.75rem", color: "var(--color-score-low, var(--planet-saturn))" }}>{error}</p>
       )}
     </>
   );

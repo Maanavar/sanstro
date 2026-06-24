@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -40,16 +40,16 @@ interface EditMemberModalProps {
 
 /* ── Warm design tokens ── */
 const W = {
-  ink:      "#1A1612",
-  inkMid:   "#3D352B",
-  muted:    "#7A6F5E",
+  ink:      "var(--panel-earth-dark)",
+  inkMid:   "var(--panel-earth)",
+  muted:    "var(--color-faint)",
   mutedLt:  "var(--color-faint)",
-  border:   "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface:  "#FAF5EA",
-  surfaceMd:"#F4EEE2",
-  card:     "#FFFFFF",
-  terracota:"#B85A2C",
+  border:   "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface:  "var(--panel-cream)",
+  surfaceMd:"var(--panel-hover)",
+  card:     "var(--chart-cell-default)",
+  terracota:"var(--panel-brand)",
 } as const;
 
 function WField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {

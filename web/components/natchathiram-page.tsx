@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
@@ -172,7 +172,7 @@ export function NatchathiramPageContent({ data }: Props) {
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", margin: "1rem 0" }}>
               {data.compatible_nakshatras.map((n) => (
                 <span key={n} style={{
-                  background: "var(--cl-accent, #6366f1)",
+                  background: "var(--cl-accent, var(--color-indigo))",
                   color: "#fff",
                   borderRadius: "2rem",
                   padding: "0.25rem 0.75rem",

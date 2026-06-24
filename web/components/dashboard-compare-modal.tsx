@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
@@ -203,7 +203,7 @@ export function CompareModal({ lang, onClose }: CompareModalProps) {
                 padding: "var(--space-0_75) var(--space-3)", borderRadius: "var(--radius-pill)",
                 fontSize: "0.625rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                 border: compatCtx === ctx ? "1.5px solid var(--color-accent)" : "1px solid var(--color-border)",
-                background: compatCtx === ctx ? "#F0D9C4" : "transparent",
+                background: compatCtx === ctx ? "var(--chart-d1-lagna-bg)" : "transparent",
                 color: compatCtx === ctx ? "var(--color-accent)" : "var(--color-faint)",
               }}
             >
@@ -266,8 +266,8 @@ export function CompareModal({ lang, onClose }: CompareModalProps) {
                 </p>
                 {(porutham.rajjuDosha || porutham.vedhaDosha) && (
                   <div style={{ marginTop: "var(--space-1_5)", display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
-                    {porutham.rajjuDosha && <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "0.625rem", fontWeight: 700, padding: "2px 6px", borderRadius: "var(--radius-sm)", background: "#F2D8CC", color: "var(--color-accent-strong)", border: "1px solid rgba(168,72,47,0.3)" }}><svg viewBox="0 0 24 24" fill="none" width="10" height="10" aria-hidden="true"><path d="M12 3L21 20H3L12 3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M12 9V13.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>{lang === "ta" ? "ராஜ்ஜு தோஷம்" : "Rajju Dosha"}</span>}
-                    {porutham.vedhaDosha && <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "0.625rem", fontWeight: 700, padding: "2px 6px", borderRadius: "var(--radius-sm)", background: "#F2D8CC", color: "var(--color-accent-strong)", border: "1px solid rgba(168,72,47,0.3)" }}><svg viewBox="0 0 24 24" fill="none" width="10" height="10" aria-hidden="true"><path d="M12 3L21 20H3L12 3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M12 9V13.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>{lang === "ta" ? "வேத தோஷம்" : "Vedha Dosha"}</span>}
+                    {porutham.rajjuDosha && <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "0.625rem", fontWeight: 700, padding: "2px 6px", borderRadius: "var(--radius-sm)", background: "var(--panel-warm-tint)", color: "var(--color-accent-strong)", border: "1px solid rgba(168,72,47,0.3)" }}><svg viewBox="0 0 24 24" fill="none" width="10" height="10" aria-hidden="true"><path d="M12 3L21 20H3L12 3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M12 9V13.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>{lang === "ta" ? "ராஜ்ஜு தோஷம்" : "Rajju Dosha"}</span>}
+                    {porutham.vedhaDosha && <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", fontSize: "0.625rem", fontWeight: 700, padding: "2px 6px", borderRadius: "var(--radius-sm)", background: "var(--panel-warm-tint)", color: "var(--color-accent-strong)", border: "1px solid rgba(168,72,47,0.3)" }}><svg viewBox="0 0 24 24" fill="none" width="10" height="10" aria-hidden="true"><path d="M12 3L21 20H3L12 3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M12 9V13.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>{lang === "ta" ? "வேத தோஷம்" : "Vedha Dosha"}</span>}
                   </div>
                 )}
               </div>

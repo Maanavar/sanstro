@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 
@@ -42,18 +42,18 @@ type DashboardTransitsTabProps = {
 };
 
 const W = {
-  ink: "#1A1612",
-  inkMid: "#3D352B",
-  muted: "#7A6F5E",
+  ink: "var(--panel-earth-dark)",
+  inkMid: "var(--panel-earth)",
+  muted: "var(--color-faint)",
   mutedLt: "var(--color-faint)",
-  border: "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface: "#FAF5EA",
-  surfaceMd: "#F4EEE2",
-  card: "#FFFFFF",
-  terracotta: "#B85A2C",
-  sage: "#5C7654",
-  rust: "#A8482F",
+  border: "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface: "var(--panel-cream)",
+  surfaceMd: "var(--panel-hover)",
+  card: "var(--chart-cell-default)",
+  terracotta: "var(--panel-brand)",
+  sage: "var(--chart-d9-active)",
+  rust: "var(--planet-saturn)",
 } as const;
 
 const PLANET_COLORS: Record<string, string> = {
@@ -91,9 +91,9 @@ function StatPill({
 }) {
   const palette =
     tone === "good"
-      ? { bg: "#DCE4D2", border: "rgba(92,118,84,0.35)", color: W.sage }
+      ? { bg: "var(--chart-d9-active-bg)", border: "rgba(92,118,84,0.35)", color: W.sage }
       : tone === "warn"
-      ? { bg: "#F0D9C4", border: "rgba(184,90,44,0.3)", color: W.terracotta }
+      ? { bg: "var(--chart-d1-lagna-bg)", border: "rgba(184,90,44,0.3)", color: W.terracotta }
       : { bg: W.surface, border: W.borderLt, color: W.inkMid };
 
   return (
@@ -133,9 +133,9 @@ function Flag({
 }) {
   const palette =
     tone === "danger"
-      ? { bg: "#F2D8CC", border: "rgba(168,72,47,0.35)", color: W.rust }
+      ? { bg: "var(--panel-warm-tint)", border: "rgba(168,72,47,0.35)", color: W.rust }
       : tone === "focus"
-      ? { bg: "rgba(122,72,128,0.12)", border: "rgba(122,72,128,0.28)", color: "#7A4880" }
+      ? { bg: "rgba(122,72,128,0.12)", border: "rgba(122,72,128,0.28)", color: "var(--planet-nodes)" }
       : tone === "soft"
       ? { bg: "rgba(92,118,84,0.14)", border: "rgba(92,118,84,0.28)", color: W.sage }
       : { bg: "rgba(184,90,44,0.12)", border: "rgba(184,90,44,0.3)", color: W.terracotta };
@@ -388,7 +388,7 @@ export function DashboardTransitsTab({
                 style={{
                   padding: "var(--space-3_5) var(--space-4)",
                   borderRadius: "var(--radius-md)",
-                  background: personalSani.moonBasedCycle.isActive ? "#F0D9C4" : W.surface,
+                  background: personalSani.moonBasedCycle.isActive ? "var(--chart-d1-lagna-bg)" : W.surface,
                   border: `1px solid ${personalSani.moonBasedCycle.isActive ? "rgba(184,90,44,0.28)" : W.borderLt}`,
                 }}
               >
@@ -416,7 +416,7 @@ export function DashboardTransitsTab({
                 style={{
                   padding: "var(--space-3_5) var(--space-4)",
                   borderRadius: "var(--radius-md)",
-                  background: personalSani.lagnaBasedCycle.isActive ? "#DCE4D2" : W.surface,
+                  background: personalSani.lagnaBasedCycle.isActive ? "var(--chart-d9-active-bg)" : W.surface,
                   border: `1px solid ${personalSani.lagnaBasedCycle.isActive ? "rgba(92,118,84,0.3)" : W.borderLt}`,
                 }}
               >
@@ -536,7 +536,7 @@ export function DashboardTransitsTab({
         <Surface title={t("journal_patterns_label", lang)}>
           <div className="surface__body">
             {!journalCorrelations.hasSufficientData ? (
-              <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", background: "#EEF6EA", border: "1px solid rgba(92,118,84,0.25)" }}>
+              <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--chart-d9-active-bg)", border: "1px solid rgba(92,118,84,0.25)" }}>
                 <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.875rem", color: W.ink, lineHeight: 1.5 }}>
                   {journalCorrelations.entryCount} / {journalCorrelations.minimumEntriesRequired} {t("journal_entries_progress", lang)}
                 </p>

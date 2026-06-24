@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { motion } from "framer-motion";
 import Image from "next/image";
 import { todayIso } from "@/lib/format";
 import { t } from "@/lib/i18n";
@@ -77,7 +78,6 @@ interface DashboardHeroProps {
   selectedDate: string;
   userEmail: string | null;
   showUserMenu: boolean;
-  toast: { message: string; tone: "success" | "error" } | null;
   alertCount: number;
   alertItems: Array<{ type: string; title: string; body: string }>;
   inboxItems: NotificationInboxItem[];
@@ -90,7 +90,6 @@ interface DashboardHeroProps {
   onUserMenuClose: () => void;
   onGoToSettings: () => void;
   onSignOut: () => void;
-  onToastDismiss: () => void;
 }
 
 function Icon({ children }: { children: ReactNode }) {
@@ -165,7 +164,6 @@ export function DashboardHero(props: DashboardHeroProps) {
     selectedDate,
     userEmail,
     showUserMenu,
-    toast,
     alertCount,
     alertItems,
     inboxItems,
@@ -178,7 +176,6 @@ export function DashboardHero(props: DashboardHeroProps) {
     onUserMenuClose,
     onGoToSettings,
     onSignOut,
-    onToastDismiss,
   } = props;
 
   const todayDate = useRef(todayIso());
@@ -277,7 +274,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                         <button
                           type="button"
                           onClick={() => { onMarkAllRead(); }}
-                          style={{ fontSize: "0.7rem", color: "#B85A2C", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}
+                          style={{ fontSize: "0.7rem", color: "var(--panel-brand)", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}
                         >
                           {lang === "ta" ? "அனைத்தும் படித்தது" : "Mark all read"}
                         </button>
@@ -296,10 +293,10 @@ export function DashboardHero(props: DashboardHeroProps) {
                         <div key={n.notification_id} className="cd-alert-item" style={{ opacity: n.read_at ? 0.6 : 1 }}>
                           <p className="cd-alert-item__title" style={{ display: "flex", justifyContent: "space-between", gap: "8px" }}>
                             <span>{n.title}</span>
-                            {!n.read_at && <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#B85A2C", flexShrink: 0, marginTop: "4px" }} />}
+                            {!n.read_at && <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--panel-brand)", flexShrink: 0, marginTop: "4px" }} />}
                           </p>
                           <p className="cd-alert-item__body">{n.body}</p>
-                          <p style={{ margin: 0, fontSize: "0.65rem", color: "#7A6F5E" }}>
+                          <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--color-faint)" }}>
                             {new Date(n.send_at).toLocaleString()}
                           </p>
                         </div>
@@ -368,6 +365,13 @@ export function DashboardHero(props: DashboardHeroProps) {
                 onClick={() => onTabChange(tab.id)}
               >
                 {lang === "ta" && tab.labelTaKey ? t(tab.labelTaKey, lang) : tab.labelEn}
+                {activeTab === tab.id && (
+                  <motion.span
+                    layoutId="cd-tab-indicator"
+                    className="cd-tab__indicator"
+                    transition={{ type: "spring", stiffness: 400, damping: 15, mass: 0.8 }}
+                  />
+                )}
               </button>
             ))}
           </div>
@@ -415,20 +419,6 @@ export function DashboardHero(props: DashboardHeroProps) {
         );
       })()}
 
-      {toast && (
-        <div className={`cd-toast cd-toast--${toast.tone}`} role="status" aria-live="polite">
-          {toast.tone === "success" ? <CheckIcon /> : <CloseIcon />}
-          <span>{toast.message}</span>
-          <button
-            type="button"
-            className="cd-toast__close"
-            onClick={onToastDismiss}
-            aria-label={lang === "ta" ? "மூடு" : "Dismiss"}
-          >
-            <CloseIcon />
-          </button>
-        </div>
-      )}
     </>
   );
 }

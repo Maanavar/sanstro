@@ -1,6 +1,16 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
+
+const scoreGridVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.04, delayChildren: 0.12 } },
+};
+const scoreRowVariants = {
+  hidden: { opacity: 0, y: 4 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] } },
+};
 
 import { formatClockLabel, scoreColor, SCORE_LOW } from "@/lib/format";
 import { t, tLang, tNakshatra, tTithi } from "@/lib/i18n";
@@ -87,7 +97,7 @@ export function DashboardDailySnapshot({
         </div>
 
         {showDualLanguage && (
-          <p className="surface__text" style={{ marginTop: "var(--space-2)", color: "var(--color-muted, #675b4b)" }}>
+          <p className="surface__text" style={{ marginTop: "var(--space-2)", color: "var(--color-muted, var(--panel-mid-earth))" }}>
             {scoreSummarySecondary}
           </p>
         )}
@@ -141,9 +151,9 @@ export function DashboardDailySnapshot({
           <p className="snapshot-kicker" style={{ marginBottom: "var(--space-1)" }}>
             {lang === "ta" ? "இன்றைய முக்கிய செயல்" : "One focused action"}
           </p>
-          <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-text, #3D352B)", lineHeight: 1.5 }}>{actionPrimary}</p>
+          <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-text, var(--panel-earth))", lineHeight: 1.5 }}>{actionPrimary}</p>
           {showDualLanguage && actionSecondary && (
-            <p style={{ margin: "var(--space-2) 0 0", fontSize: "0.875rem", color: "var(--color-muted, #675b4b)", lineHeight: 1.45 }}>
+            <p style={{ margin: "var(--space-2) 0 0", fontSize: "0.875rem", color: "var(--color-muted, var(--panel-mid-earth))", lineHeight: 1.45 }}>
               {actionSecondary}
             </p>
           )}
@@ -166,14 +176,19 @@ export function DashboardDailySnapshot({
               <Chip tone="neutral">{confidenceLabel}</Chip>
             </div>
 
-            <div className="snapshot-score-grid">
+            <motion.div
+              className="snapshot-score-grid"
+              variants={scoreGridVariants}
+              initial="hidden"
+              animate="visible"
+            >
               {Object.entries(guidance.scoreBreakdown).map(([key, value]) => (
-                <div key={key} className="snapshot-score-grid__row">
+                <motion.div key={key} className="snapshot-score-grid__row" variants={scoreRowVariants}>
                   <span>{key}</span>
                   <strong>{value}</strong>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
             {sani?.moonBasedCycle.isActive && (
               <p className="surface__text" style={{ marginTop: "var(--space-2)" }}>
                 {sani.confirmationSentence}

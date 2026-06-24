@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
@@ -35,17 +35,17 @@ const EMPTY_FORM: BirthForm = {
 };
 
 const W = {
-  inkMid: "#3D352B",
-  muted: "#7A6F5E",
+  inkMid: "var(--panel-earth)",
+  muted: "var(--color-faint)",
   mutedLt: "var(--color-faint)",
-  border: "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface: "#FAF5EA",
-  surfaceMd: "#F4EEE2",
-  card: "#FFFFFF",
-  terracotta: "#B85A2C",
-  sage: "#5C7654",
-  rust: "#A8482F",
+  border: "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface: "var(--panel-cream)",
+  surfaceMd: "var(--panel-hover)",
+  card: "var(--chart-cell-default)",
+  terracotta: "var(--panel-brand)",
+  sage: "var(--chart-d9-active)",
+  rust: "var(--planet-saturn)",
 } as const;
 
 const fieldStyle: React.CSSProperties = {
@@ -259,7 +259,7 @@ export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: Porut
               style={{
                 padding: "4px 12px", borderRadius: "14px", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer",
                 border: compatCtx === ctx ? `1px solid ${W.terracotta}66` : `1px solid ${W.border}`,
-                background: compatCtx === ctx ? "#F8E4D2" : W.surface,
+                background: compatCtx === ctx ? "var(--panel-warm-light)" : W.surface,
                 color: compatCtx === ctx ? W.terracotta : W.muted,
               }}>
               {ctx === "GENERAL" ? (lang === "ta" ? "பொதுவான" : "General") :
@@ -365,7 +365,7 @@ export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: Porut
           padding: "10px 24px",
           borderRadius: "10px",
           border: `1px solid ${W.terracotta}66`,
-          background: loading ? W.surfaceMd : "#F8E4D2",
+          background: loading ? W.surfaceMd : "var(--panel-warm-light)",
           color: loading ? W.mutedLt : W.terracotta,
           cursor: loading ? "wait" : "pointer",
           fontWeight: 700,

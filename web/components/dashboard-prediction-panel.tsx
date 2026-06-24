@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState } from "react";
 
@@ -26,9 +26,9 @@ type PredictionCardProps = {
 };
 
 function confidenceTone(confidence: string) {
-  if (confidence === "HIGH") return { bg: "#DCE4D2", border: "rgba(92,118,84,0.35)", text: SCORE_HIGH };
-  if (confidence === "LOW") return { bg: "#F2D8CC", border: "rgba(168,72,47,0.35)", text: SCORE_LOW };
-  return { bg: "#F0D9C4", border: "rgba(184,90,44,0.35)", text: SCORE_MID };
+  if (confidence === "HIGH") return { bg: "var(--chart-d9-active-bg)", border: "rgba(92,118,84,0.35)", text: SCORE_HIGH };
+  if (confidence === "LOW") return { bg: "var(--panel-warm-tint)", border: "rgba(168,72,47,0.35)", text: SCORE_LOW };
+  return { bg: "var(--chart-d1-lagna-bg)", border: "rgba(184,90,44,0.35)", text: SCORE_MID };
 }
 
 function supportTone(value: string) {

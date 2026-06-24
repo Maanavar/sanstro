@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 
@@ -41,19 +41,19 @@ type DashboardSettingsSessionTabProps = {
 
 /* ── Warm design tokens (match personal / family / life-areas tabs) ── */
 const W = {
-  ink:       "#1A1612",
-  inkMid:    "#3D352B",
-  muted:     "#7A6F5E",
+  ink:       "var(--panel-earth-dark)",
+  inkMid:    "var(--panel-earth)",
+  muted:     "var(--color-faint)",
   mutedLt:   "var(--color-faint)",
-  border:    "#D4C8AE",
-  borderLt:  "#E4DBC8",
-  surface:   "#FAF5EA",
-  surfaceMd: "#F4EEE2",
-  card:      "#FFFFFF",
-  terracota: "#B85A2C",
+  border:    "var(--panel-tan)",
+  borderLt:  "var(--panel-tan-light)",
+  surface:   "var(--panel-cream)",
+  surfaceMd: "var(--panel-hover)",
+  card:      "var(--chart-cell-default)",
+  terracota: "var(--panel-brand)",
   gold:      "#C6973A",
-  sage:      "#5C7654",
-  accent:    "#8c3e18",
+  sage:      "var(--chart-d9-active)",
+  accent:    "var(--planet-lagna)",
 } as const;
 
 /* ── Pill toggle button ── */
@@ -182,7 +182,7 @@ function ActionBtn({
     variant === "primary"
       ? { background: W.ink, color: W.surfaceMd, border: `1.5px solid ${W.ink}` }
       : variant === "danger"
-      ? { background: "transparent", color: "#A8482F", border: "1.5px solid #A8482F" }
+      ? { background: "transparent", color: "var(--planet-saturn)", border: "1.5px solid var(--planet-saturn)" }
       : { background: "transparent", color: W.muted, border: `1.5px solid ${W.border}` };
 
   return (

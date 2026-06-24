@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Briefcase, Heart, GraduationCap, Home, Leaf } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { apiFetchJson } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -13,12 +15,12 @@ interface DashboardLifeEventsProps {
   yearsAhead?: number;
 }
 
-const EVENT_TYPE_ICON: Record<LifeEventType, string> = {
-  CAREER:         "💼",
-  MARRIAGE:       "💍",
-  STUDIES:        "🎓",
-  RELOCATION:     "🏠",
-  HEALTH_CAUTION: "🌿",
+const EVENT_TYPE_ICON: Record<LifeEventType, LucideIcon> = {
+  CAREER:         Briefcase,
+  MARRIAGE:       Heart,
+  STUDIES:        GraduationCap,
+  RELOCATION:     Home,
+  HEALTH_CAUTION: Leaf,
 };
 
 const CONFIDENCE_COLOR: Record<ConfidenceTier, string> = {
@@ -37,11 +39,12 @@ function formatDateRange(start: string, end: string, lang: Lang): string {
 
 function LifeEventCard({ window: w, lang }: { window: LifeEventWindow; lang: Lang }) {
   const [expanded, setExpanded] = useState(false);
+  const EventIcon = EVENT_TYPE_ICON[w.eventType];
 
   return (
     <div className={`life-event-card life-event-${w.eventType.toLowerCase()}`}>
       <div className="life-event-card-header" onClick={() => setExpanded(v => !v)}>
-        <span className="life-event-icon">{EVENT_TYPE_ICON[w.eventType]}</span>
+        <span className="life-event-icon"><EventIcon size={18} strokeWidth={1.5} aria-hidden="true" /></span>
         <div className="life-event-meta">
           <p className="life-event-headline">
             {lang === "ta" ? w.headline.ta : w.headline.en}

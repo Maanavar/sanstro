@@ -2,7 +2,9 @@
 
 import dynamic from "next/dynamic";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
+import { toast } from "sonner";
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
 import { isBirthDateWithinBounds } from "@/lib/birth-date";
 import { getScoreBand, todayIso } from "@/lib/format";
@@ -34,8 +36,15 @@ import { DashboardAskVinaadiWidget } from "./dashboard-ask-vinaadi-widget";
 const STORAGE_KEY = "jothidam-ai-dashboard-state";
 const ENABLE_QA_TAB = process.env.NODE_ENV !== "production";
 
+import { SkeletonDashboardCard } from "@/components/skeleton";
+
 function LazyPanelFallback() {
-  return <p className="empty-state">Loading...</p>;
+  return (
+    <div className="lazy-panel-fallback">
+      <SkeletonDashboardCard lines={4} showIcon />
+      <SkeletonDashboardCard lines={3} />
+    </div>
+  );
 }
 
 const CalendarTab = dynamic(
@@ -320,8 +329,6 @@ export function DashboardWorkspace() {
       setVarshaphalaLoading(false);
     }
   }
-  const [toast, setToast] = useState<{ message: string; tone: "success" | "error" } | null>(null);
-
   const [busyCreateProfile, setBusyCreateProfile] = useState(false);
   const [busyCreateVault, setBusyCreateVault] = useState(false);
   const [busyAddMember, setBusyAddMember] = useState(false);
@@ -651,11 +658,9 @@ export function DashboardWorkspace() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.hydrated, lifeAreasViewId, selectedDate, lifeAreasResolvedChartId]);
 
-  // ── Toast ────────────────────────────────────────────────
-
   function showToast(message: string, tone: "success" | "error" = "success") {
-    setToast({ message, tone });
-    setTimeout(() => setToast(null), 4000);
+    if (tone === "error") toast.error(message);
+    else toast.success(message);
   }
 
   function openSetupInSettings() {
@@ -1069,7 +1074,6 @@ export function DashboardWorkspace() {
         selectedDate={selectedDate}
         userEmail={session.userEmail}
         showUserMenu={session.showUserMenu}
-        toast={toast}
         alertCount={personal.ambientAlerts.length}
         alertItems={personal.ambientAlerts.map((a) => ({
           type: a.source,
@@ -1093,7 +1097,6 @@ export function DashboardWorkspace() {
           session.setShowUserMenu(false);
           session.signOut();
         }}
-        onToastDismiss={() => setToast(null)}
       />
 
       {/* Edit member modal */}
@@ -1168,6 +1171,13 @@ export function DashboardWorkspace() {
 
       {/* Tab content */}
       <div className="cd-page site__body">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={activeTab === "settings" ? `settings-${settingsSubTab}` : activeTab}
+            initial={{ opacity: 0, y: 3 }}
+            animate={{ opacity: 1, y: 0, transition: { duration: 0.15, ease: [0.4, 0, 0.2, 1] } }}
+            exit={{ opacity: 0, transition: { duration: 0.08 } }}
+          >
 
         {activeTab === "settings" && settingsSubTab === "setup" && (
           <DashboardSetupTab
@@ -1625,6 +1635,8 @@ export function DashboardWorkspace() {
           />
         )}
 
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* Dashboard footer */}

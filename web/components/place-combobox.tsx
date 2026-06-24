@@ -8,9 +8,9 @@ import type { CityEntry } from "@/lib/tn-cities";
 type PlaceComboboxProps = {
   value: string;
   onChange: (city: CityEntry | null, rawText: string) => void;
-};
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">;
 
-export function PlaceCombobox({ value, onChange }: PlaceComboboxProps) {
+export function PlaceCombobox({ value, onChange, className = "", placeholder = "Type a city...", ...inputProps }: PlaceComboboxProps) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -98,9 +98,9 @@ export function PlaceCombobox({ value, onChange }: PlaceComboboxProps) {
           width: "100%",
           padding: "9px 12px",
           borderRadius: "10px",
-          border: "1.5px solid #E4DBC8",
-          background: "#FFFFFF",
-          color: "#3D352B",
+          border: "1.5px solid var(--panel-tan-light)",
+          background: "var(--chart-cell-default)",
+          color: "var(--panel-earth)",
           fontSize: "0.875rem",
           fontFamily: "inherit",
           outline: "none",
@@ -116,8 +116,8 @@ export function PlaceCombobox({ value, onChange }: PlaceComboboxProps) {
             top: "100%",
             left: 0,
             right: 0,
-            background: "#FFFFFF",
-            border: "1.5px solid #D4C8AE",
+            background: "var(--chart-cell-default)",
+            border: "1.5px solid var(--panel-tan)",
             borderRadius: "10px",
             marginTop: "4px",
             maxHeight: "220px",
@@ -139,9 +139,9 @@ export function PlaceCombobox({ value, onChange }: PlaceComboboxProps) {
                 padding: "9px 14px",
                 cursor: "pointer",
                 fontSize: "0.875rem",
-                color: "#3D352B",
+                color: "var(--panel-earth)",
                 fontFamily: "inherit",
-                background: idx === activeIndex ? "#F4EEE2" : "",
+                background: idx === activeIndex ? "var(--panel-hover)" : "",
               }}
             >
               {city.name}

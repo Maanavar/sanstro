@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AlertTriangle } from "lucide-react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
@@ -181,7 +182,8 @@ export default async function PanchangamDatePage({ params }: Props) {
                   fontWeight: 700, fontSize: "0.85rem",
                 }}
               >
-                ⚠️ Karinaal (கரிநாள்) — inauspicious day, avoid new auspicious starts →
+                <AlertTriangle size={14} strokeWidth={2} aria-hidden="true" />
+                Karinaal (கரிநாள்) — inauspicious day, avoid new auspicious starts →
               </Link>
             )}
           </div>

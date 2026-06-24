@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { apiFetchJson, toQuery } from "@/lib/api";
@@ -44,7 +44,7 @@ const PALETTE = {
   cream: "#FBF3E0",
   creamDeep: "#F4E4C1",
   gold: "#C99A3B",
-  goldBright: "#E7BE57",
+  goldBright: "var(--panel-golden)",
   maroon: "#8C1D1D",
   maroonDeep: "#6E1414",
   green: "#1E6B3A",
@@ -173,7 +173,7 @@ function drawPanchangamCard(ctx: CanvasRenderingContext2D, data: PanchangamCardD
   ctx.textAlign = "left";
   ctx.font = `bold 46px ${TAMIL_FONT}`;
   ctx.fillText("Vinaadi AI", 84, 118);
-  ctx.fillStyle = "#FFE9C2";
+  ctx.fillStyle = "var(--panel-warm-gold)";
   ctx.textAlign = "right";
   ctx.font = `28px ${TAMIL_FONT}`;
   const dateLine = lang === "ta" && data.tamilDate ? data.tamilDate.ta : data.date;
@@ -395,7 +395,7 @@ export function PanchangamShareCard({ lang, date, city = "Chennai", lat = 13.082
         style={{
           display: "inline-flex", alignItems: "center", gap: "8px",
           padding: "10px 18px", borderRadius: "var(--radius-pill, 999px)", fontWeight: 700,
-          border: "none", background: "#8C1D1D", color: "#FFE9C2", cursor: "pointer", fontSize: "0.9rem",
+          border: "none", background: "#8C1D1D", color: "var(--panel-warm-gold)", cursor: "pointer", fontSize: "0.9rem",
         }}
       >
         <span aria-hidden="true">↗</span>
@@ -408,7 +408,7 @@ export function PanchangamShareCard({ lang, date, city = "Chennai", lat = 13.082
           onClick={() => setOpen(false)}
         >
           <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "14px", maxHeight: "92vh" }}>
-            {loading && <p style={{ color: "#FFE9C2" }}>{lang === "ta" ? "ஏற்றுகிறது…" : "Loading…"}</p>}
+            {loading && <p style={{ color: "var(--panel-warm-gold)" }}>{lang === "ta" ? "ஏற்றுகிறது…" : "Loading…"}</p>}
             {error && <p style={{ color: "#ffb4a8" }}>{error}</p>}
 
             {data && (
@@ -433,10 +433,10 @@ export function PanchangamShareCard({ lang, date, city = "Chennai", lat = 13.082
                 )}
 
                 <div style={{ display: "flex", gap: "10px" }}>
-                  <button type="button" onClick={() => void share()} style={{ padding: "10px 22px", borderRadius: "10px", background: "#E7BE57", color: "#3A2A12", fontWeight: 800, border: "none", cursor: "pointer" }}>
+                  <button type="button" onClick={() => void share()} style={{ padding: "10px 22px", borderRadius: "10px", background: "var(--panel-golden)", color: "#3A2A12", fontWeight: 800, border: "none", cursor: "pointer" }}>
                     {lang === "ta" ? "பகிர் / பதிவிறக்கம்" : "Share / Download"}
                   </button>
-                  <button type="button" onClick={() => setOpen(false)} style={{ padding: "10px 22px", borderRadius: "10px", background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "#FFE9C2", cursor: "pointer" }}>
+                  <button type="button" onClick={() => setOpen(false)} style={{ padding: "10px 22px", borderRadius: "10px", background: "transparent", border: "1px solid rgba(255,255,255,0.3)", color: "var(--panel-warm-gold)", cursor: "pointer" }}>
                     {lang === "ta" ? "மூடு" : "Close"}
                   </button>
                 </div>
@@ -456,8 +456,8 @@ function Seg({ active, onClick, children }: { active: boolean; onClick: () => vo
       onClick={onClick}
       style={{
         padding: "7px 14px", borderRadius: "999px", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer",
-        border: "1.5px solid", borderColor: active ? "#E7BE57" : "rgba(255,255,255,0.3)",
-        background: active ? "#E7BE57" : "transparent", color: active ? "#3A2A12" : "#FFE9C2",
+        border: "1.5px solid", borderColor: active ? "var(--panel-golden)" : "rgba(255,255,255,0.3)",
+        background: active ? "var(--panel-golden)" : "transparent", color: active ? "#3A2A12" : "var(--panel-warm-gold)",
       }}
     >
       {children}

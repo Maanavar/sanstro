@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 
 
@@ -181,7 +181,7 @@ export function MemberCard({
                 fontSize: "0.75rem", fontWeight: 700, padding: "2px 8px", borderRadius: "999px",
 
 
-                background: "#F2D8CC", color: "var(--color-accent-strong, #A8482F)",
+                background: "var(--panel-warm-tint)", color: "var(--color-accent-strong, var(--planet-saturn))",
 
 
                 border: "1px solid rgba(168,72,47,0.4)", animation: "pulse 2s infinite",
@@ -243,7 +243,7 @@ export function MemberCard({
           <button type="button" className="button button--ghost"
 
 
-            style={{ fontSize: "0.75rem", padding: "3px 10px", opacity: 0.6, color: "var(--color-accent-strong, #A8482F)" }}
+            style={{ fontSize: "0.75rem", padding: "3px 10px", opacity: 0.6, color: "var(--color-accent-strong, var(--planet-saturn))" }}
 
 
             disabled={deletingId === member.familyMemberId}
@@ -285,7 +285,7 @@ export function MemberCard({
         {memberChart?.dailyGuidance?.scoreBreakdown && (
 
 
-          <span style={{ fontSize: "0.625rem", padding: "2px 8px", borderRadius: "var(--radius-pill)", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.3)", color: "var(--color-accent, #B85A2C)", fontWeight: 600 }}>
+          <span style={{ fontSize: "0.625rem", padding: "2px 8px", borderRadius: "var(--radius-pill)", background: "var(--chart-d1-lagna-bg)", border: "1px solid rgba(184,90,44,0.3)", color: "var(--color-accent, var(--panel-brand))", fontWeight: 600 }}>
 
 
             {t("dasha_word", lang)} {memberChart.dailyGuidance.scoreBreakdown.dashaSupport}/100

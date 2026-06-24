@@ -85,8 +85,8 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
                 fontWeight: 700,
                 padding: "2px 8px",
                 borderRadius: "999px",
-                background: "#F0D9C4",
-                color: "#8C3E18",
+                background: "var(--chart-d1-lagna-bg)",
+                color: "var(--planet-lagna)",
                 border: "1px solid rgba(184,90,44,0.3)",
               }}
             >
@@ -155,8 +155,8 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
       </div>
 
       {area.caution && (
-        <div style={{ marginTop: "var(--space-3)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#F2D8CC", border: "1px solid rgba(168,72,47,0.3)" }}>
-          <p style={{ margin: 0, fontSize: "0.75rem", color: "#8c3e18", lineHeight: 1.45, display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
+        <div style={{ marginTop: "var(--space-3)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--panel-warm-tint)", border: "1px solid rgba(168,72,47,0.3)" }}>
+          <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--planet-lagna)", lineHeight: 1.45, display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
             <WarningGlyph />
             {tLang(area.caution, lang)}
           </p>
@@ -164,7 +164,7 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
       )}
 
       {area.remedy && (
-        <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.25)" }}>
+        <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--chart-d1-lagna-bg)", border: "1px solid rgba(184,90,44,0.25)" }}>
           <p className="cd-kicker" style={{ margin: "0 0 var(--space-0_5)", color: "var(--color-score-mid)", letterSpacing: "0.08em" }}>
             {t("remedy_label", lang)}
           </p>

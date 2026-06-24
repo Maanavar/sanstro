@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 
@@ -82,18 +82,18 @@ type Props = {
 };
 
 const W = {
-  ink: "#1A1612",
-  inkMid: "#3D352B",
-  muted: "#7A6F5E",
+  ink: "var(--panel-earth-dark)",
+  inkMid: "var(--panel-earth)",
+  muted: "var(--color-faint)",
   mutedLt: "var(--color-faint)",
-  border: "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface: "#FAF5EA",
-  surfaceMd: "#F4EEE2",
-  card: "#FFFFFF",
-  terracotta: "#B85A2C",
-  sage: "#5C7654",
-  rust: "#A8482F",
+  border: "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface: "var(--panel-cream)",
+  surfaceMd: "var(--panel-hover)",
+  card: "var(--chart-cell-default)",
+  terracotta: "var(--panel-brand)",
+  sage: "var(--chart-d9-active)",
+  rust: "var(--planet-saturn)",
 } as const;
 
 const fieldStyle: React.CSSProperties = {
@@ -173,7 +173,7 @@ export function DecisionPanel({ lang, chartId }: Props) {
         <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>{t("decision_panel_desc", lang)}</p>
       </div>
 
-      <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", border: `1px solid ${W.borderLt}`, background: "#EEF1F8" }}>
+      <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", border: `1px solid ${W.borderLt}`, background: "var(--color-info-light)" }}>
         <p className="cd-kicker" style={{ marginBottom: "var(--space-2)", letterSpacing: "0.06em" }}>
           {lang === "ta" ? "எதை எப்போது பயன்படுத்துவது?" : "When to use which tool?"}
         </p>
@@ -328,7 +328,7 @@ export function DecisionPanel({ lang, chartId }: Props) {
             ].map(({ key, data, isRecommended }) => {
               const isDefer = result.recommended === "DEFER";
               const accentColor = isRecommended ? W.sage : isDefer ? W.terracotta : W.rust;
-              const bgColor = isRecommended ? "#EEF6EA" : isDefer ? W.surface : "#F9ECE7";
+              const bgColor = isRecommended ? "var(--chart-d9-active-bg)" : isDefer ? W.surface : "#F9ECE7";
               const borderColor = isRecommended ? "rgba(92,118,84,0.3)" : isDefer ? W.borderLt : "rgba(168,72,47,0.2)";
               return (
                 <div key={key} style={{ padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)", background: bgColor, border: `1px solid ${borderColor}` }}>

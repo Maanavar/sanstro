@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
@@ -272,7 +272,7 @@ function HoraRow({
         gap: "var(--space-2)",
         padding: "var(--space-2) var(--space-3)",
         borderRadius: "var(--radius-md)",
-        background: running ? "#F8E4D2" : W.surface,
+        background: running ? "var(--panel-warm-light)" : W.surface,
         border: `1px solid ${running ? "rgba(184,90,44,0.35)" : W.borderLt}`,
       }}
     >
@@ -312,7 +312,7 @@ function AuspiciousSlotGroup({
   if (slots.length === 0) return null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", background: "#DCE4D2" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--chart-d9-active-bg)" }}>
       <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: W.sage }}>{label}</span>
       {slots.map((slot, idx) => {
         const period = gowriPeriodLabel(slot.period, lang);
@@ -379,7 +379,7 @@ function GowriNamedSlotPanel({
               style={{
                 borderRadius: "var(--radius-md)",
                 border: isBad ? "1px solid rgba(184,90,44,0.35)" : "1px solid rgba(92,118,84,0.22)",
-                background: isBad ? "#F2D8CC" : "#DCE4D2",
+                background: isBad ? "var(--panel-warm-tint)" : "var(--chart-d9-active-bg)",
                 padding: "var(--space-2) var(--space-2_5)",
                 minWidth: 0,
               }}
@@ -522,8 +522,8 @@ function compactFestivalTagLabel(tag: string, lang: Lang): string {
 const VRATHA_FESTIVAL_PATTERN = /ekadashi|ekadasi|pradosham|sashti|chaturthi|chathurthi|ashtami|amavas|pourn|vratam|vratham|thiruvonam/i;
 
 function festivalTagTone(tag: string): { bg: string; border: string; color: string } {
-  if (tag === "hindu") return { bg: "#F8E4D2", border: "rgba(184,90,44,0.25)", color: W.rust };
-  if (tag === "muslim") return { bg: "#DCE4D2", border: "rgba(92,118,84,0.25)", color: W.sage };
+  if (tag === "hindu") return { bg: "var(--panel-warm-light)", border: "rgba(184,90,44,0.25)", color: W.rust };
+  if (tag === "muslim") return { bg: "var(--chart-d9-active-bg)", border: "rgba(92,118,84,0.25)", color: W.sage };
   if (tag === "christian") return { bg: "#E7D3BE", border: "rgba(75,57,45,0.18)", color: W.ink };
   if (tag === "indian_govt") return { bg: "#DDEAF1", border: "rgba(49,86,106,0.25)", color: "#31566A" };
   if (tag === "tamilnadu_govt") return { bg: "#F0E2B8", border: "rgba(122,92,20,0.25)", color: "#7A5C14" };
@@ -597,7 +597,7 @@ function MonthSidebarCard({
             padding: "0 var(--space-1_5)",
             borderRadius: "var(--radius-pill)",
             background: accent,
-            color: "#FFFFFF",
+            color: "var(--chart-cell-default)",
             fontSize: "0.6875rem",
             fontWeight: 800,
             fontVariantNumeric: "tabular-nums",
@@ -693,7 +693,7 @@ function MonthlyCalendarView({
   const monthlyTheme = {
     page: "#F6F0E3",
     line: "rgba(116, 91, 66, 0.16)",
-    card: "#FBF7EF",
+    card: "var(--panel-cream-light)",
     mutedCard: "#EFEEE2",
     selected: "#F4DDC8",
     selectedBorder: "#CB7748",
@@ -939,7 +939,7 @@ function MonthlyCalendarView({
                   : highlightType === "pradosham" ? "#F5E6FF"
                   : hasFestival ? monthlyTheme.mutedCard : monthlyTheme.card;
                 const cellBorderColor = isSelected ? monthlyTheme.selectedBorder
-                  : highlightType === "muhurtham" ? "#5C7654"
+                  : highlightType === "muhurtham" ? "var(--chart-d9-active)"
                   : highlightType === "pournami" ? "#C9A84C"
                   : highlightType === "amavasai" ? "#7060B0"
                   : highlightType === "chathurthi" ? "#CB7748"
@@ -1041,7 +1041,7 @@ function MonthlyCalendarView({
                         </span>
                       ) : null}
                       {entry?.isTamilMuhurthamDay ? (
-                        <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#5C7654", display: "inline-flex", alignItems: "center", gap: "3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "var(--chart-d9-active)", display: "inline-flex", alignItems: "center", gap: "3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {/* eslint-disable-next-line @next/next/no-img-element -- decorative fixed-size local icon */}
                           <img
                             src="/calendar/muhurtha.png"
@@ -1157,7 +1157,7 @@ function MonthlyCalendarView({
                     : item.kind === "vratha"
                       ? monthlyTheme.vratha
                       : item.kind === "reference-muhurtham"
-                        ? "#5C7654"
+                        ? "var(--chart-d9-active)"
                         : monthlyTheme.festival;
                   const isMuhurtham = item.kind === "reference-muhurtham";
                   const isChartMatch = isMuhurtham && chartMatchedDates.includes(item.dateLocal);
@@ -1176,7 +1176,7 @@ function MonthlyCalendarView({
                         padding: "12px 14px",
                         borderRadius: "14px",
                         border: `1px solid ${isChartMatch ? "rgba(92,118,84,0.4)" : monthlyTheme.line}`,
-                        background: isChartMatch ? "#EEF5E8" : "#FBF7EF",
+                        background: isChartMatch ? "#EEF5E8" : "var(--panel-cream-light)",
                       }}
                     >
                       {isMuhurtham ? (
@@ -1205,7 +1205,7 @@ function MonthlyCalendarView({
                       </span>
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                         {isChartMatch ? (
-                          <span style={{ fontSize: "0.6rem", fontWeight: 800, color: "#5C7654", background: "#C8E6C9", borderRadius: "999px", padding: "2px 6px", whiteSpace: "nowrap" }}>
+                          <span style={{ fontSize: "0.6rem", fontWeight: 800, color: "var(--chart-d9-active)", background: "#C8E6C9", borderRadius: "999px", padding: "2px 6px", whiteSpace: "nowrap" }}>
                             {lang === "ta" ? "உங்கள் ஜாதகம்" : "Your chart ✦"}
                           </span>
                         ) : null}
@@ -1228,7 +1228,7 @@ function MonthlyCalendarView({
                     </p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                       {vrathaGroups.slice(0, 6).map((group) => (
-                        <span key={group.name} style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "7px 10px", borderRadius: "999px", background: "#FBF7EF", border: `1px solid ${monthlyTheme.line}`, fontSize: "0.75rem", color: W.inkMid }}>
+                        <span key={group.name} style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "7px 10px", borderRadius: "999px", background: "var(--panel-cream-light)", border: `1px solid ${monthlyTheme.line}`, fontSize: "0.75rem", color: W.inkMid }}>
                           <span aria-hidden="true" style={{ width: "8px", height: "8px", borderRadius: "999px", background: monthlyTheme.vratha }} />
                           {group.name}
                           <span style={{ color: monthlyTheme.softText }}>{group.days.join(", ")}</span>
@@ -1240,12 +1240,12 @@ function MonthlyCalendarView({
 
                 {sidebarTab === "muhurthams" && chartMatchedDates.length > 0 && (
                   <div>
-                    <p style={{ margin: "0 0 8px", fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "#5C7654", fontWeight: 700 }}>
+                    <p style={{ margin: "0 0 8px", fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--chart-d9-active)", fontWeight: 700 }}>
                       {lang === "ta" ? "உங்கள் ஜாதகத்துக்கு ஏற்ற நாட்கள்" : "Best for your chart"}
                     </p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                       {chartMatchedDates.map((dateLocal) => (
-                        <span key={dateLocal} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "7px 10px", borderRadius: "999px", background: "#E8F3E0", border: "1px solid rgba(92,118,84,0.4)", fontSize: "0.75rem", color: "#5C7654", fontWeight: 700 }}>
+                        <span key={dateLocal} style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "7px 10px", borderRadius: "999px", background: "#E8F3E0", border: "1px solid rgba(92,118,84,0.4)", fontSize: "0.75rem", color: "var(--chart-d9-active)", fontWeight: 700 }}>
                           <span aria-hidden="true">✦</span>
                           {formatDateLabel(dateLocal)}
                         </span>
@@ -1356,7 +1356,7 @@ function DayDetailDrawer({
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
               {avoidRows.map((row) => (
-                <div key={row.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", background: "#F2D8CC", color: W.rust, fontSize: "0.8125rem", fontWeight: 600 }}>
+                <div key={row.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--panel-warm-tint)", color: W.rust, fontSize: "0.8125rem", fontWeight: 600 }}>
                   <span>{row.label}</span>
                   <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatClockLabel(row.slot.start)} – {formatClockLabel(row.slot.end)}</span>
                 </div>
@@ -1615,7 +1615,7 @@ export function CalendarTab({
                         { label: t("label_yamagandam", lang), slot: panchangam.kalam.yamagandam },
                         { label: t("label_kuligai", lang), slot: panchangam.kalam.kuligai },
                       ].map((row) => (
-                        <div key={row.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", background: "#F2D8CC", color: W.rust, fontSize: "0.875rem", fontWeight: 600 }}>
+                        <div key={row.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--panel-warm-tint)", color: W.rust, fontSize: "0.875rem", fontWeight: 600 }}>
                           <span>{row.label}</span>
                           <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatClockLabel(row.slot.start)} – {formatClockLabel(row.slot.end)}</span>
                         </div>
@@ -1625,7 +1625,7 @@ export function CalendarTab({
 
                   {/* ── Chandrashtamam ── */}
                   {chandraName && (
-                    <div style={{ borderRadius: "var(--radius-md)", border: `1px solid rgba(184,90,44,0.25)`, background: "#F8E4D2", overflow: "hidden" }}>
+                    <div style={{ borderRadius: "var(--radius-md)", border: `1px solid rgba(184,90,44,0.25)`, background: "var(--panel-warm-light)", overflow: "hidden" }}>
                       <p style={{ margin: 0, padding: "var(--space-1_5) var(--space-3)", fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: W.terracotta, fontWeight: 700, borderBottom: `1px solid rgba(184,90,44,0.15)` }}>
                         {t("label_chandrashtamam", lang)}
                       </p>
@@ -1756,7 +1756,7 @@ export function CalendarTab({
                   ))}
                 </div>
 
-                <div style={{ borderRadius: "var(--radius-xl)", border: `1px solid rgba(184,90,44,0.2)`, background: "#F8E4D2", padding: "var(--space-5)" }}>
+                <div style={{ borderRadius: "var(--radius-xl)", border: `1px solid rgba(184,90,44,0.2)`, background: "var(--panel-warm-light)", padding: "var(--space-5)" }}>
                   <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.75rem", letterSpacing: "0.16em", textTransform: "uppercase", color: W.terracotta, fontWeight: 700 }}>
                     {lang === "ta" ? "இன்றைய சிறப்பு" : "Today's Significance"}
                   </p>
@@ -1777,7 +1777,7 @@ export function CalendarTab({
                       });
                       if (!runningHora) return null;
                       return (
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-2)", marginBottom: "var(--space-2_5)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", background: "#F8E4D2", border: "1px solid rgba(184,90,44,0.35)" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-2)", marginBottom: "var(--space-2_5)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--panel-warm-light)", border: "1px solid rgba(184,90,44,0.35)" }}>
                           <span style={{ display: "flex", alignItems: "center", gap: "var(--space-1_5)", fontSize: "0.875rem", fontWeight: 700, color: W.inkMid }}>
                             <span style={{ width: "9px", height: "9px", borderRadius: "50%", background: DASHA_COLORS[runningHora.lord.toUpperCase()] ?? W.mutedLt, display: "inline-block" }} />
                             {lang === "ta" ? "தற்போதைய ஹோரா" : "Running hora"}: {tPlanetLord(runningHora.lord, lang)} {t("hora_word", lang)}

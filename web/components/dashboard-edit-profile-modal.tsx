@@ -44,24 +44,24 @@ interface EditProfileModalProps {
 
 /* ── Warm design tokens ── */
 const W = {
-  ink:      "#1A1612",
-  inkMid:   "#3D352B",
-  muted:    "#7A6F5E",
+  ink:      "var(--panel-earth-dark)",
+  inkMid:   "var(--panel-earth)",
+  muted:    "var(--color-faint)",
   mutedLt:  "var(--color-faint)",
-  border:   "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface:  "#FAF5EA",
-  surfaceMd:"#F4EEE2",
-  card:     "#FFFFFF",
-  terracota:"#B85A2C",
-  sage:     "#5C7654",
-  error:    "#A8482F",
+  border:   "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface:  "var(--panel-cream)",
+  surfaceMd:"var(--panel-hover)",
+  card:     "var(--chart-cell-default)",
+  terracota:"var(--panel-brand)",
+  sage:     "var(--chart-d9-active)",
+  error:    "var(--planet-saturn)",
 } as const;
 
-function WField({ label, children }: { label: string; children: React.ReactNode }) {
+function WField({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-      <label style={{ fontSize: "0.75rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</label>
+      <label style={{ fontSize: "0.75rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}{required ? <span aria-hidden="true"> *</span> : null}</label>
       {children}
     </div>
   );
@@ -146,8 +146,8 @@ export function EditProfileModal({
         {/* Form */}
         <form id="form-edit-profile" onSubmit={onSubmit}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "14px" }}>
-            <WField label={t("field_display_name", lang)}>
-              <WInput value={birthForm.displayName}
+            <WField label={t("field_display_name", lang)} required>
+              <WInput required value={birthForm.displayName}
                 onChange={(e) => onChange({ ...birthForm, displayName: e.target.value })} />
             </WField>
             <WField label={t("field_relationship", lang)}>
@@ -162,8 +162,8 @@ export function EditProfileModal({
                 <option value="other">{t("rel_other", lang)}</option>
               </WSelect>
             </WField>
-            <WField label={t("field_birth_date", lang)}>
-              <WInput type="date" value={birthForm.birthDateLocal} min={MIN_BIRTH_DATE} max={maxBirthDateIso()}
+            <WField label={t("field_birth_date", lang)} required>
+              <WInput required type="date" value={birthForm.birthDateLocal} min={MIN_BIRTH_DATE} max={maxBirthDateIso()}
                 onChange={(e) => {
                   onChange({
                     ...birthForm,
@@ -189,20 +189,20 @@ export function EditProfileModal({
                 </button>
               )}
             </WField>
-            <WField label={t("field_birth_place", lang)}>
-              <PlaceCombobox value={birthForm.birthPlace}
+            <WField label={t("field_birth_place", lang)} required>
+              <PlaceCombobox required value={birthForm.birthPlace}
                 onChange={(city, raw) => onChange(applyPlaceSelection(birthForm, city, raw))} />
             </WField>
-            <WField label={t("field_timezone", lang)}>
-              <WInput value={birthForm.birthTimezone}
+            <WField label={t("field_timezone", lang)} required>
+              <WInput required value={birthForm.birthTimezone}
                 onChange={(e) => onChange({ ...birthForm, birthTimezone: e.target.value })} />
             </WField>
-            <WField label={t("field_latitude", lang)}>
-              <WInput inputMode="decimal" value={birthForm.birthLatitude}
+            <WField label={t("field_latitude", lang)} required>
+              <WInput required inputMode="decimal" value={birthForm.birthLatitude}
                 onChange={(e) => onChange({ ...birthForm, birthLatitude: e.target.value })} />
             </WField>
-            <WField label={t("field_longitude", lang)}>
-              <WInput inputMode="decimal" value={birthForm.birthLongitude}
+            <WField label={t("field_longitude", lang)} required>
+              <WInput required inputMode="decimal" value={birthForm.birthLongitude}
                 onChange={(e) => onChange({ ...birthForm, birthLongitude: e.target.value })} />
             </WField>
             <WField label={lang === "ta" ? "தினசரி நேரங்களுக்கான தற்போதைய நகரம்" : "Current City (Daily Timings)"}>

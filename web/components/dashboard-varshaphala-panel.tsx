@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { t } from "@/lib/i18n";
@@ -9,16 +9,16 @@ import { CollapsibleSection } from "./collapsible-section";
 import { Button } from "./dashboard-ui";
 
 const W = {
-  ink: "#1A1612",
-  inkMid: "#3D352B",
-  muted: "#7A6F5E",
-  border: "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface: "#FAF5EA",
-  surfaceMd: "#F4EEE2",
-  sage: "#5C7654",
-  terracotta: "#B85A2C",
-  rust: "#A8482F",
+  ink: "var(--panel-earth-dark)",
+  inkMid: "var(--panel-earth)",
+  muted: "var(--color-faint)",
+  border: "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface: "var(--panel-cream)",
+  surfaceMd: "var(--panel-hover)",
+  sage: "var(--chart-d9-active)",
+  terracotta: "var(--panel-brand)",
+  rust: "var(--planet-saturn)",
 } as const;
 
 const PLANET_COLORS: Record<string, string> = {

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
@@ -26,9 +26,9 @@ const ACTIVITY_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
 
 const fieldStyle: CSSProperties = {
   borderRadius: "var(--radius-md)",
-  border: "1px solid #D4C8AE",
-  background: "#FFFFFF",
-  color: "#3D352B",
+  border: "1px solid var(--panel-tan)",
+  background: "var(--chart-cell-default)",
+  color: "var(--panel-earth)",
   fontSize: "0.875rem",
   padding: "var(--space-2) var(--space-2_5)",
   fontFamily: "inherit",
@@ -176,7 +176,7 @@ export function DashboardActivityTimingCard({
         </div>
 
         {error && (
-          <p style={{ margin: 0, fontSize: "0.8125rem", color: "#A8482F" }}>
+          <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--planet-saturn)" }}>
             {error}
           </p>
         )}
@@ -192,18 +192,18 @@ export function DashboardActivityTimingCard({
                     <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--color-faint)" }}>
                       {index + 1}.
                     </span>
-                    <span style={{ fontSize: "0.9375rem", fontWeight: 700, color: "#1A1612" }}>
+                    <span style={{ fontSize: "0.9375rem", fontWeight: 700, color: "var(--panel-earth-dark)" }}>
                       {formatShortDate(item.dateLocal, lang)}
                     </span>
                     {weekday && (
-                      <span style={{ fontSize: "0.75rem", color: "#7A6F5E" }}>
+                      <span style={{ fontSize: "0.75rem", color: "var(--color-faint)" }}>
                         {weekday}
                       </span>
                     )}
                     <Chip tone={alignmentTone(item.alignment)}>
                       {item.alignment}
                     </Chip>
-                    <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#5C7654" }}>
+                    <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--chart-d9-active)" }}>
                       {item.score}/100
                     </span>
                     {isSelected && (
@@ -212,7 +212,7 @@ export function DashboardActivityTimingCard({
                       </Chip>
                     )}
                   </div>
-                  <p style={{ margin: "var(--space-1) 0 0", fontSize: "0.8125rem", color: "#3D352B", lineHeight: 1.5 }}>
+                  <p style={{ margin: "var(--space-1) 0 0", fontSize: "0.8125rem", color: "var(--panel-earth)", lineHeight: 1.5 }}>
                     {lang === "ta" ? item.reasonTa : item.reasonEn}
                   </p>
                 </>
@@ -225,8 +225,8 @@ export function DashboardActivityTimingCard({
                     style={{
                       padding: "var(--space-3)",
                       borderRadius: "var(--radius-md)",
-                      border: `1px solid ${isSelected ? "rgba(92,118,84,0.45)" : "#E4DBC8"}`,
-                      background: isSelected ? "#EEF6EA" : "#FFFFFF",
+                      border: `1px solid ${isSelected ? "rgba(92,118,84,0.45)" : "var(--panel-tan-light)"}`,
+                      background: isSelected ? "var(--chart-d9-active-bg)" : "var(--chart-cell-default)",
                     }}
                   >
                     {content}
@@ -242,8 +242,8 @@ export function DashboardActivityTimingCard({
                   style={{
                     padding: "var(--space-3)",
                     borderRadius: "var(--radius-md)",
-                    border: `1px solid ${isSelected ? "rgba(92,118,84,0.45)" : "#E4DBC8"}`,
-                    background: isSelected ? "#EEF6EA" : "#FFFFFF",
+                    border: `1px solid ${isSelected ? "rgba(92,118,84,0.45)" : "var(--panel-tan-light)"}`,
+                    background: isSelected ? "var(--chart-d9-active-bg)" : "var(--chart-cell-default)",
                     textAlign: "left",
                     cursor: "pointer",
                     fontFamily: "inherit",
@@ -257,7 +257,7 @@ export function DashboardActivityTimingCard({
         )}
 
         {!busy && !error && result && result.topDates.length === 0 && (
-          <p style={{ margin: 0, fontSize: "0.8125rem", color: "#7A6F5E" }}>
+          <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-faint)" }}>
             {lang === "ta"
               ? "இந்த மாதத்திற்கு பொருத்தமான தேதிகள் கிடைக்கவில்லை."
               : "No matching dates were found for this month."}

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
@@ -272,9 +272,9 @@ function normalizePlanet(graha: string): string {
 
 function strengthColor(score: number | undefined): string {
   if (score === undefined) return "var(--color-faint)";
-  if (score >= 70) return "var(--color-score-high, #5C7654)";
-  if (score >= 45) return "var(--color-score-mid, #B85A2C)";
-  return "var(--color-score-low, #A8482F)";
+  if (score >= 70) return "var(--color-score-high, var(--chart-d9-active))";
+  if (score >= 45) return "var(--color-score-mid, var(--panel-brand))";
+  return "var(--color-score-low, var(--planet-saturn))";
 }
 
 function strengthLabel(score: number | undefined, lang: Lang): string {
@@ -346,9 +346,9 @@ function relationshipLabel(tone: string, lang: Lang): string {
 
 function relationshipColor(tone: string): string {
   const key = normalizeRelationshipTone(tone);
-  if (key === "friendly") return "var(--color-score-high, #5C7654)";
-  if (key === "hostile") return "var(--color-score-low, #A8482F)";
-  return "var(--color-score-mid, #B85A2C)";
+  if (key === "friendly") return "var(--color-score-high, var(--chart-d9-active))";
+  if (key === "hostile") return "var(--color-score-low, var(--planet-saturn))";
+  return "var(--color-score-mid, var(--panel-brand))";
 }
 
 function periodLevelLabel(level: string, lang: Lang): string {
@@ -365,9 +365,9 @@ function activationToneLabel(tone: string, lang: Lang): string {
 }
 
 function activationToneColor(tone: string): string {
-  if (tone === "SUPPORT") return "var(--color-score-high, #5C7654)";
-  if (tone === "CAUTION") return "var(--color-score-low, #A8482F)";
-  return "var(--color-score-mid, #B85A2C)";
+  if (tone === "SUPPORT") return "var(--color-score-high, var(--chart-d9-active))";
+  if (tone === "CAUTION") return "var(--color-score-low, var(--planet-saturn))";
+  return "var(--color-score-mid, var(--panel-brand))";
 }
 
 function signalTypeLabel(signalType: string, lang: Lang): string {

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
@@ -39,17 +39,17 @@ const EMPTY_FORM: BirthForm = {
 };
 
 const W = {
-  inkMid: "#3D352B",
-  muted: "#7A6F5E",
+  inkMid: "var(--panel-earth)",
+  muted: "var(--color-faint)",
   mutedLt: "var(--color-faint)",
-  border: "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface: "#FAF5EA",
-  surfaceMd: "#F4EEE2",
-  card: "#FFFFFF",
-  terracotta: "#B85A2C",
-  rust: "#A8482F",
-  sage: "#5C7654",
+  border: "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface: "var(--panel-cream)",
+  surfaceMd: "var(--panel-hover)",
+  card: "var(--chart-cell-default)",
+  terracotta: "var(--panel-brand)",
+  rust: "var(--planet-saturn)",
+  sage: "var(--chart-d9-active)",
 } as const;
 
 const fieldStyle: React.CSSProperties = {
@@ -195,7 +195,7 @@ function PrintRasiChart({ chart, d9LagnaRasi }: { chart: ChartCalculateResponseD
               <div style={{
                 position: "absolute", top: 0, right: 0, width: 0, height: 0,
                 borderStyle: "solid", borderWidth: "0 12px 12px 0",
-                borderColor: "transparent #e5b84d transparent transparent",
+                borderColor: "transparent var(--chart-amber) transparent transparent",
               }} />
             )}
             <span style={{ color: "#888", fontSize: "6.5px" }}>{RASI_NAMES_TA[rasi]}</span>
@@ -547,7 +547,7 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
 
           {error && <p style={{ margin: 0, color: W.rust, fontSize: "0.75rem" }}>{error}</p>}
 
-          <button type="button" className="button button--primary" style={{ background: "#F8E4D2", border: `1px solid ${W.terracotta}66`, color: W.terracotta }}
+          <button type="button" className="button button--primary" style={{ background: "var(--panel-warm-light)", border: `1px solid ${W.terracotta}66`, color: W.terracotta }}
             onClick={() => void handleGenerate()} disabled={loading}>
             {loading
               ? (lang === "ta" ? "கணக்கிடுகிறது…" : "Calculating…")
@@ -584,7 +584,7 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
                   style={{
                     padding: "5px 14px", borderRadius: "14px", fontSize: "0.75rem", fontWeight: 700, cursor: "pointer",
                     border: view === v ? `1px solid ${W.terracotta}66` : `1px solid ${W.border}`,
-                    background: view === v ? "#F8E4D2" : W.card,
+                    background: view === v ? "var(--panel-warm-light)" : W.card,
                     color: view === v ? W.terracotta : W.muted,
                   }}>
                   {v === "D1" ? t("label_d1", lang) : t("label_d9", lang)}

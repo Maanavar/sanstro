@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 
@@ -16,23 +16,23 @@ import { Surface } from "./dashboard-ui";
 const YEAR = 2026;
 
 const W = {
-  ink: "#1A1612",
-  inkMid: "#3D352B",
-  muted: "#7A6F5E",
+  ink: "var(--panel-earth-dark)",
+  inkMid: "var(--panel-earth)",
+  muted: "var(--color-faint)",
   mutedLt: "var(--color-faint)",
-  borderLt: "#E4DBC8",
-  border: "#D4C8AE",
-  card: "#FFFFFF",
-  surface: "#FAF5EA",
-  good: "#5C7654",
+  borderLt: "var(--panel-tan-light)",
+  border: "var(--panel-tan)",
+  card: "var(--chart-cell-default)",
+  surface: "var(--panel-cream)",
+  good: "var(--chart-d9-active)",
   goodBg: "#EEF5E8",
-  avoid: "#A8482F",
+  avoid: "var(--planet-saturn)",
   avoidBg: "#F9EDEA",
-  neutral: "#7A6F5E",
-  neutralBg: "#F4EEE2",
+  neutral: "var(--color-faint)",
+  neutralBg: "var(--panel-hover)",
 } as const;
 
-const SCORE_COLOR = (s: number) => (s >= 75 ? W.good : s >= 55 ? "#B85A2C" : W.avoid);
+const SCORE_COLOR = (s: number) => (s >= 75 ? W.good : s >= 55 ? "var(--panel-brand)" : W.avoid);
 
 const QUALITY_META: Record<string, { label: { en: string; ta: string }; dot: string; bg: string }> = {
   GOOD: { label: { en: "Favourable", ta: "சாதகம்" }, dot: W.good, bg: W.goodBg },
@@ -107,7 +107,7 @@ function NaalRow({ row, lang, showMatchCol }: { row: MergedRow; lang: Lang; show
             <div style={{ fontWeight: 700, fontSize: "0.875rem", color: W.inkMid }}>
               {formatDate(naal.date, lang)}
             </div>
-            <div style={{ fontSize: "0.78rem", color: "#B85A2C", fontWeight: 600 }}>
+            <div style={{ fontSize: "0.78rem", color: "var(--panel-brand)", fontWeight: 600 }}>
               {lang === "ta" ? naal.weekday.ta : naal.weekday.en}
             </div>
           </div>

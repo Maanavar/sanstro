@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { CheckGlyph, AlertGlyph } from "./icons";
 import { t, tPlanetLord } from "@/lib/i18n";
@@ -9,14 +9,14 @@ import type { DashaTimelineItem, DashaTimelineResponseData } from "@/lib/types";
 import { scoreColor, SCORE_HIGH, SCORE_MID } from "@/lib/format";
 
 export const DASHA_COLORS: Record<string, string> = {
-  SUN: "#B85A2C",
-  MOON: "#1e5a8c",
-  MARS: "#A8482F",
-  MERCURY: "#5C7654",
-  JUPITER: "#3a6b40",
+  SUN: "var(--panel-brand)",
+  MOON: "var(--planet-other)",
+  MARS: "var(--planet-saturn)",
+  MERCURY: "var(--chart-d9-active)",
+  JUPITER: "var(--chart-d9-active-dark)",
   VENUS: "#7a4880",
-  SATURN: "#7A6F5E",
-  RAHU: "#5a4880",
+  SATURN: "var(--color-faint)",
+  RAHU: "var(--planet-nodes)",
   KETU: "#8c7a6e",
 };
 
@@ -115,15 +115,15 @@ export function DashaTimeline({
             height: "36px",
             borderRadius: "var(--radius-sm)",
             overflow: "hidden",
-            background: "var(--color-border, #E4DBC8)",
-            border: "1px solid var(--color-border-strong, #D4C8AE)",
+            background: "var(--color-border, var(--panel-tan-light))",
+            border: "1px solid var(--color-border-strong, var(--panel-tan))",
           }}
         >
           {allPeriods.map((period) => {
             const status = dashaStatus(String(period.startDate), String(period.endDate), today);
             const isActive = period.lord === currentMahaDasa && status === "active";
             const isPast = status === "past";
-            const color = DASHA_COLORS[period.lord] ?? "var(--color-faint, #7A6F5E)";
+            const color = DASHA_COLORS[period.lord] ?? "var(--color-faint, var(--color-faint))";
             const left = pct(String(period.startDate));
             const segWidth = pct(String(period.endDate)) - left;
             return (
@@ -149,7 +149,7 @@ export function DashaTimeline({
                     style={{
                       fontSize: "0.625rem",
                       fontWeight: 700,
-                      color: isActive ? "var(--color-bg, #F4EEE2)" : isPast ? "var(--color-faint, #7A6F5E)" : color,
+                      color: isActive ? "var(--color-bg, var(--panel-hover))" : isPast ? "var(--color-faint, var(--color-faint))" : color,
                       textTransform: "uppercase",
                       letterSpacing: "0.04em",
                       pointerEvents: "none",
@@ -165,7 +165,7 @@ export function DashaTimeline({
               </div>
             );
           })}
-          <div style={{ position: "absolute", left: `${nowPct}%`, top: 0, bottom: 0, width: "2px", background: "var(--color-text-strong, #1A1612)", zIndex: 2 }} />
+          <div style={{ position: "absolute", left: `${nowPct}%`, top: 0, bottom: 0, width: "2px", background: "var(--color-text-strong, var(--panel-earth-dark))", zIndex: 2 }} />
         </div>
 
         <div style={{ position: "relative", height: "16px", marginTop: "var(--space-1)" }}>
@@ -175,7 +175,7 @@ export function DashaTimeline({
             return (
               <span
                 key={`yr-${i}`}
-                style={{ position: "absolute", left: `${left}%`, transform: "translateX(-50%)", fontSize: "0.625rem", color: "var(--color-faint, #7A6F5E)", whiteSpace: "nowrap" }}
+                style={{ position: "absolute", left: `${left}%`, transform: "translateX(-50%)", fontSize: "0.625rem", color: "var(--color-faint, var(--color-faint))", whiteSpace: "nowrap" }}
               >
                 {String(period.startDate).slice(0, 4)}
               </span>
@@ -185,8 +185,8 @@ export function DashaTimeline({
 
         <div style={{ position: "relative", height: "24px" }}>
           <div style={{ position: "absolute", left: `${nowPct}%`, transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-0_5)" }}>
-            <div style={{ width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderBottom: "6px solid var(--color-accent, #B85A2C)" }} />
-            <span style={{ fontSize: "0.625rem", fontWeight: 700, color: "var(--color-accent, #B85A2C)", whiteSpace: "nowrap", letterSpacing: "0.05em" }}>
+            <div style={{ width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderBottom: "6px solid var(--color-accent, var(--panel-brand))" }} />
+            <span style={{ fontSize: "0.625rem", fontWeight: 700, color: "var(--color-accent, var(--panel-brand))", whiteSpace: "nowrap", letterSpacing: "0.05em" }}>
               {lang === "ta"
                 ? `நீங்கள் இங்கே - ${tPlanetLord(currentMahaDasa, lang)} (${String(dasha.current.mahadasha.startDate).slice(0, 4)}-${String(dasha.current.mahadasha.endDate).slice(0, 4)})`
                 : `YOU ARE HERE - ${currentMahaDasa} (${String(dasha.current.mahadasha.startDate).slice(0, 4)}-${String(dasha.current.mahadasha.endDate).slice(0, 4)})`}
@@ -198,7 +198,7 @@ export function DashaTimeline({
       {(() => {
         const activePeriod = allPeriods.find((p) => p.lord === currentMahaDasa && dashaStatus(String(p.startDate), String(p.endDate), today) === "active");
         if (!activePeriod) return null;
-        const color = DASHA_COLORS[activePeriod.lord] ?? "var(--color-faint, #7A6F5E)";
+        const color = DASHA_COLORS[activePeriod.lord] ?? "var(--color-faint, var(--color-faint))";
         return (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", alignItems: "center", padding: "var(--space-2) var(--space-4)", borderRadius: "var(--radius-sm)", background: `${color}12`, border: `1px solid ${color}44` }}>
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
@@ -207,7 +207,7 @@ export function DashaTimeline({
                 {mode === "BEGINNER" ? plainLangDashaLord(activePeriod.lord, "BEGINNER", lang) : tPlanetLord(activePeriod.lord, lang)} {t("dasha_word", lang)}
               </span>
             </div>
-            <span style={{ fontSize: "0.75rem", color: "var(--color-muted, #675b4b)" }}>
+            <span style={{ fontSize: "0.75rem", color: "var(--color-muted, var(--panel-mid-earth))" }}>
               {String(activePeriod.startDate)} → {String(activePeriod.endDate)}
             </span>
             <span style={{ fontSize: "0.75rem", fontWeight: 700, marginLeft: "auto", color: scoreColor(dashaSupport) }}>
@@ -218,14 +218,14 @@ export function DashaTimeline({
       })()}
 
       {dashaAntar.length > 0 && (
-        <div style={{ marginLeft: "var(--space-3)", borderLeft: `2px solid ${(DASHA_COLORS[currentMahaDasa] ?? "var(--color-faint, #7A6F5E)")}44`, paddingLeft: "var(--space-3)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+        <div style={{ marginLeft: "var(--space-3)", borderLeft: `2px solid ${(DASHA_COLORS[currentMahaDasa] ?? "var(--color-faint, var(--color-faint))")}44`, paddingLeft: "var(--space-3)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
           <p className="cd-kicker" style={{ marginBottom: "var(--space-2)", color: "var(--color-muted)", letterSpacing: "0.08em" }}>
             {t("bhukti_word", lang)}
           </p>
           {dashaAntar.map((bhukti) => {
             const bhuktiStatus = dashaStatus(String(bhukti.startDate), String(bhukti.endDate), today);
             const isCurrentBhukti = bhukti.lord === currentBhukti && bhuktiStatus === "active";
-            const bhuktiColor = DASHA_COLORS[bhukti.lord] ?? "var(--color-faint, #7A6F5E)";
+            const bhuktiColor = DASHA_COLORS[bhukti.lord] ?? "var(--color-faint, var(--color-faint))";
             const bhuktiScore = isCurrentBhukti ? Math.round(dashaSupport * 0.9) : dashaScore(bhukti.lord);
             const bhuktiPast = bhuktiStatus === "past";
 
@@ -243,10 +243,10 @@ export function DashaTimeline({
                   }}
                 >
                   <div style={{ width: isCurrentBhukti ? "8px" : "5px", height: isCurrentBhukti ? "8px" : "5px", borderRadius: "50%", background: bhuktiColor, flexShrink: 0, boxShadow: isCurrentBhukti ? `0 0 5px ${bhuktiColor}` : "none" }} />
-                  <span style={{ fontSize: isCurrentBhukti ? "0.875rem" : "0.75rem", fontWeight: isCurrentBhukti ? 700 : bhuktiPast ? 300 : 400, color: isCurrentBhukti ? bhuktiColor : bhuktiPast ? "var(--color-faint, #7A6F5E)" : "var(--color-text, #3D352B)", minWidth: "80px" }}>
+                  <span style={{ fontSize: isCurrentBhukti ? "0.875rem" : "0.75rem", fontWeight: isCurrentBhukti ? 700 : bhuktiPast ? 300 : 400, color: isCurrentBhukti ? bhuktiColor : bhuktiPast ? "var(--color-faint, var(--color-faint))" : "var(--color-text, var(--panel-earth))", minWidth: "80px" }}>
                     {mode === "BEGINNER" ? plainLangDashaLord(bhukti.lord, "BEGINNER", lang) : tPlanetLord(bhukti.lord, lang)}
                   </span>
-                  <span style={{ fontSize: "0.625rem", color: "var(--color-muted, #675b4b)", flex: 1 }}>
+                  <span style={{ fontSize: "0.625rem", color: "var(--color-muted, var(--panel-mid-earth))", flex: 1 }}>
                     {String(bhukti.startDate)} → {String(bhukti.endDate)}
                     {(() => {
                       const age = ageAtDate(birthDateLocal, String(bhukti.startDate));
@@ -258,7 +258,7 @@ export function DashaTimeline({
                       ● {lang === "ta" ? "இப்போது" : "NOW"}
                     </span>
                   )}
-                  <span style={{ fontSize: "0.75rem", fontWeight: 700, minWidth: "40px", textAlign: "right", color: isCurrentBhukti ? scoreColor(bhuktiScore) : "var(--color-border-strong, #D4C8AE)" }}>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 700, minWidth: "40px", textAlign: "right", color: isCurrentBhukti ? scoreColor(bhuktiScore) : "var(--color-border-strong, var(--panel-tan))" }}>
                     {isCurrentBhukti || !bhuktiPast ? `${bhuktiScore}/100` : "—"}
                   </span>
                 </div>
@@ -266,14 +266,14 @@ export function DashaTimeline({
                 {isCurrentBhukti && (
                   <div style={{ marginLeft: "var(--space-5)", marginTop: "var(--space-1)", marginBottom: "var(--space-1)", borderLeft: `2px solid ${bhuktiColor}33`, paddingLeft: "var(--space-2)" }}>
                     {[dasha.current.pratyantardasha].map((antaram) => {
-                      const antaramColor = DASHA_COLORS[antaram.lord] ?? "var(--color-faint, #7A6F5E)";
+                      const antaramColor = DASHA_COLORS[antaram.lord] ?? "var(--color-faint, var(--color-faint))";
                       return (
                         <div key={`antaram-${antaram.lord}`} style={{ display: "flex", alignItems: "center", gap: "var(--space-1_5)", padding: "var(--space-1) var(--space-2)", borderRadius: "var(--radius-xs)", background: `${antaramColor}18`, border: `1px solid ${antaramColor}44` }}>
                           <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: antaramColor, flexShrink: 0, boxShadow: `0 0 4px ${antaramColor}` }} />
                           <span style={{ fontSize: "0.75rem", fontWeight: 700, color: antaramColor, minWidth: "72px" }}>
                             {mode === "BEGINNER" ? plainLangDashaLord(antaram.lord, "BEGINNER", lang) : tPlanetLord(antaram.lord, lang)} {t("antaram_word", lang)}
                           </span>
-                          <span style={{ fontSize: "0.625rem", color: "var(--color-muted, #675b4b)", flex: 1 }}>
+                          <span style={{ fontSize: "0.625rem", color: "var(--color-muted, var(--panel-mid-earth))", flex: 1 }}>
                             {String(antaram.startDate)} → {String(antaram.endDate)}
                           </span>
                           <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "1px var(--space-2)", borderRadius: "var(--radius-pill)", background: `${antaramColor}33`, color: antaramColor, border: `1px solid ${antaramColor}66` }}>
@@ -293,15 +293,15 @@ export function DashaTimeline({
       {(currentPeriodCaution || currentPeriodAction) && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           {currentPeriodAction && (
-            <div style={{ display: "flex", gap: "var(--space-2)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#DCE4D2", border: "1px solid rgba(92,118,84,0.35)" }}>
+            <div style={{ display: "flex", gap: "var(--space-2)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--chart-d9-active-bg)", border: "1px solid rgba(92,118,84,0.35)" }}>
               <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><CheckGlyph /></span>
-              <span style={{ fontSize: "0.75rem", color: "var(--color-text-strong, #1A1612)", lineHeight: 1.4 }}>{currentPeriodAction}</span>
+              <span style={{ fontSize: "0.75rem", color: "var(--color-text-strong, var(--panel-earth-dark))", lineHeight: 1.4 }}>{currentPeriodAction}</span>
             </div>
           )}
           {currentPeriodCaution && (
-            <div style={{ display: "flex", gap: "var(--space-2)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.35)" }}>
+            <div style={{ display: "flex", gap: "var(--space-2)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--chart-d1-lagna-bg)", border: "1px solid rgba(184,90,44,0.35)" }}>
               <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><AlertGlyph /></span>
-              <span style={{ fontSize: "0.75rem", color: "var(--color-text-strong, #1A1612)", lineHeight: 1.4 }}>{currentPeriodCaution}</span>
+              <span style={{ fontSize: "0.75rem", color: "var(--color-text-strong, var(--panel-earth-dark))", lineHeight: 1.4 }}>{currentPeriodCaution}</span>
             </div>
           )}
         </div>

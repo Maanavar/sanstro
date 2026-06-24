@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
@@ -29,15 +29,15 @@ interface Props {
 // ── Palette ──────────────────────────────────────────────────────────────────
 
 const W = {
-  inkMid: "#3D352B",
-  muted: "#7A6F5E",
-  border: "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface: "#FAF5EA",
-  card: "#FFFFFF",
-  terracotta: "#B85A2C",
-  sage: "#5C7654",
-  rust: "#A8482F",
+  inkMid: "var(--panel-earth)",
+  muted: "var(--color-faint)",
+  border: "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface: "var(--panel-cream)",
+  card: "var(--chart-cell-default)",
+  terracotta: "var(--panel-brand)",
+  sage: "var(--chart-d9-active)",
+  rust: "var(--planet-saturn)",
   gold: "#A0852A",
 } as const;
 

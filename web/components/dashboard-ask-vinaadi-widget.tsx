@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { apiFetchJson } from "@/lib/api";
@@ -45,7 +45,7 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLife
           border: "none",
           borderRadius: "999px",
           padding: "12px 16px",
-          background: "var(--color-accent, #B85A2C)",
+          background: "var(--color-accent, var(--panel-brand))",
           color: "var(--color-on-accent, #fff)",
           fontWeight: 700,
           fontSize: "0.875rem",
@@ -59,7 +59,7 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLife
             title={lang === "ta" ? `இன்று ${chipsRemaining} மீதம்` : `${chipsRemaining} left today`}
             style={{
               position: "absolute", top: "-6px", right: "-6px", minWidth: "18px", height: "18px",
-              padding: "0 5px", borderRadius: "999px", background: chipsRemaining! > 0 ? "#5C7654" : "#A8482F",
+              padding: "0 5px", borderRadius: "999px", background: chipsRemaining! > 0 ? "var(--chart-d9-active)" : "var(--planet-saturn)",
               color: "#fff", fontSize: "0.6875rem", fontWeight: 800, lineHeight: "18px", textAlign: "center",
               boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
             }}
@@ -80,8 +80,8 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLife
             overflowY: "auto",
             zIndex: 170,
             borderRadius: "14px",
-            background: "var(--color-surface, #FFFFFF)",
-            border: "1px solid var(--color-border, #E4DBC8)",
+            background: "var(--color-surface, var(--chart-cell-default))",
+            border: "1px solid var(--color-border, var(--panel-tan-light))",
             boxShadow: "0 16px 48px rgba(61,53,43,0.24)",
             padding: "10px",
           }}
@@ -93,7 +93,7 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLife
               style={{
                 border: "none",
                 background: "transparent",
-                color: "var(--color-muted, #675b4b)",
+                color: "var(--color-muted, var(--panel-mid-earth))",
                 fontSize: "1rem",
                 cursor: "pointer",
               }}

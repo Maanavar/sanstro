@@ -1,34 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ChartCalculateResponseData } from "@/lib/types";
+import { guestChartSchema, type GuestChartFormValues } from "@/lib/schemas";
+import { ValidatedField, ValidatedInput } from "@/components/form/ValidatedField";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import { Field } from "./dashboard-ui";
 import { PlaceCombobox } from "./place-combobox";
-
-type BirthForm = {
-  displayName: string;
-  birthDateLocal: string;
-  birthTimeLocal: string;
-  birthPlace: string;
-  birthLatitude: string;
-  birthLongitude: string;
-  birthTimezone: string;
-};
-
-const EMPTY_FORM: BirthForm = {
-  displayName: "",
-  birthDateLocal: "",
-  birthTimeLocal: "12:00",
-  birthPlace: "",
-  birthLatitude: "",
-  birthLongitude: "",
-  birthTimezone: "Asia/Kolkata",
-};
+import "./dashboard-guest-chart-modal.css";
 
 interface GuestChartModalProps {
   lang: Lang;
@@ -36,168 +21,205 @@ interface GuestChartModalProps {
 }
 
 export function GuestChartModal({ lang, onClose }: GuestChartModalProps) {
-  const [form, setForm] = useState<BirthForm>(EMPTY_FORM);
   const [chart, setChart] = useState<ChartCalculateResponseData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const [view, setView] = useState<"D1" | "D9">("D1");
 
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<GuestChartFormValues>({
+    resolver: zodResolver(guestChartSchema) as any,
+    defaultValues: {
+      displayName: "",
+      birthDateLocal: "",
+      birthTimeLocal: "12:00",
+      birthPlace: "",
+      birthLatitude: "",
+      birthLongitude: "",
+      birthTimezone: "Asia/Kolkata",
+    },
+  });
 
-  async function handleGenerate() {
-    if (!form.displayName || !form.birthDateLocal || !form.birthPlace || !form.birthLatitude || !form.birthLongitude || !form.birthTimezone) {
-      setError(lang === "ta" ? "????????????????????? ???????????????????????????????????? ??????????????????????????????." : "Please fill all required fields.");
-      return;
-    }
-    setError("");
-    setLoading(true);
+  const birthPlace = watch("birthPlace");
+
+  async function onSubmit(values: GuestChartFormValues) {
+    setSubmitError("");
     try {
       const chartRes = await apiFetchJson<{ success: boolean; data: ChartCalculateResponseData }>("/api/v1/public/chart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           birth: {
-            displayName: form.displayName,
-            birthDateLocal: form.birthDateLocal,
-            birthTimeLocal: form.birthTimeLocal || null,
-            birthPlace: form.birthPlace,
-            birthLatitude: parseFloat(form.birthLatitude),
-            birthLongitude: parseFloat(form.birthLongitude),
-            birthTimezone: form.birthTimezone,
+            displayName: values.displayName,
+            birthDateLocal: values.birthDateLocal,
+            birthTimeLocal: values.birthTimeLocal || null,
+            birthPlace: values.birthPlace,
+            birthLatitude: parseFloat(values.birthLatitude),
+            birthLongitude: parseFloat(values.birthLongitude),
+            birthTimezone: values.birthTimezone,
           },
         }),
       });
       setChart(chartRes.data);
     } catch (err) {
-      setError(readErrorMessage(err));
-    } finally {
-      setLoading(false);
+      setSubmitError(readErrorMessage(err));
     }
-  }
-
-  async function handleClose() {
-    onClose();
   }
 
   return (
     <div
-      style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(26,22,18,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--space-4)" }}
-      onClick={(e) => { if (e.target === e.currentTarget) void handleClose(); }}
+      className="gcm-overlay"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{
-        width: "min(520px, 100%)", maxHeight: "90vh", overflowY: "auto",
-        background: "var(--color-surface)", border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-lg)", padding: "var(--space-6)",
-        display: "flex", flexDirection: "column", gap: "var(--space-4)",
-        boxShadow: "0 24px 64px rgba(26,22,18,0.18)",
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3 style={{ margin: 0, fontSize: "1rem", color: "var(--color-text-strong)", fontFamily: "var(--font-display)", fontWeight: 500 }}>
+      <div className="gcm-panel">
+        <div className="gcm-header">
+          <h3 className="gcm-title">
             {lang === "ta" ? "யாரின் ஜாதகமும் காண்க" : "Generate Anyone's Chart"}
           </h3>
           <button
             type="button"
-            onClick={() => void handleClose()}
+            onClick={onClose}
             aria-label="Close"
-            style={{ width: "32px", height: "32px", borderRadius: "50%", border: "1px solid var(--color-border)", background: "transparent", color: "var(--color-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+            className="gcm-close"
           >
-            <svg viewBox="0 0 24 24" fill="none" width="14" height="14" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" width="14" height="14" aria-hidden="true">
+              <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
           </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "var(--space-3)" }}>
-          <div style={{ gridColumn: "1 / -1" }}>
-            <Field label={lang === "ta" ? "பெயர்" : "Name"}>
-              <input className="input" value={form.displayName}
-                onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
-                placeholder={lang === "ta" ? "எ.கா. ராமேஷ் குமார்" : "e.g. Ramesh Kumar"} />
-            </Field>
+        <form className="gcm-form" onSubmit={handleSubmit(onSubmit)} noValidate>
+          <div className="gcm-full-col">
+            <ValidatedField
+              id="displayName"
+              label={lang === "ta" ? "பெயர்" : "Name"}
+              error={errors.displayName?.message}
+              required
+            >
+              <ValidatedInput
+                id="displayName"
+                error={!!errors.displayName}
+                placeholder={lang === "ta" ? "எ.கா. ராமேஷ் குமார்" : "e.g. Ramesh Kumar"}
+                {...register("displayName")}
+              />
+            </ValidatedField>
           </div>
 
-          <Field label={lang === "ta" ? "பிறந்த தேதி" : "Birth Date"}>
-            <input
-              className="input"
+          <ValidatedField
+            id="birthDateLocal"
+            label={lang === "ta" ? "பிறந்த தேதி" : "Birth Date"}
+            error={errors.birthDateLocal?.message}
+            required
+          >
+            <ValidatedInput
+              id="birthDateLocal"
               type="date"
-              value={form.birthDateLocal}
               min={MIN_BIRTH_DATE}
               max={maxBirthDateIso()}
-              onChange={(e) => {
-                const next = e.target.value;
-                setForm((f) => ({ ...f, birthDateLocal: next }));
-              }}
+              error={!!errors.birthDateLocal}
+              {...register("birthDateLocal")}
             />
-          </Field>
+          </ValidatedField>
 
           <Field label={lang === "ta" ? "பிறந்த நேரம்" : "Birth Time"}>
-            <input className="input" type="time" value={form.birthTimeLocal}
-              onChange={(e) => setForm((f) => ({ ...f, birthTimeLocal: e.target.value }))} />
+            <input className="input" type="time" {...register("birthTimeLocal")} />
           </Field>
 
-          <div style={{ gridColumn: "1 / -1" }}>
-            <Field label={t("field_birth_place", lang)} helper={t("field_place_helper", lang)}>
+          <div className="gcm-full-col">
+            <ValidatedField
+              id="birthPlace"
+              label={t("field_birth_place", lang)}
+              helper={errors.birthLatitude?.message ?? t("field_place_helper", lang)}
+              error={errors.birthPlace?.message}
+              required
+            >
               <PlaceCombobox
-                value={form.birthPlace}
+                value={birthPlace}
                 onChange={(city, raw) => {
-                  setForm((f) => ({
-                    ...f,
-                    birthPlace: raw,
-                    ...(city ? { birthLatitude: city.lat, birthLongitude: city.lng, birthTimezone: city.timezone } : {}),
-                  }));
+                  setValue("birthPlace", raw, { shouldValidate: true });
+                  if (city) {
+                    setValue("birthLatitude", city.lat, { shouldValidate: true });
+                    setValue("birthLongitude", city.lng, { shouldValidate: true });
+                    setValue("birthTimezone", city.timezone, { shouldValidate: true });
+                  }
                 }}
               />
-            </Field>
+            </ValidatedField>
           </div>
 
-          <Field label={t("field_timezone", lang)} helper={t("field_tz_helper", lang)}>
-            <input className="input" value={form.birthTimezone}
-              onChange={(e) => setForm((f) => ({ ...f, birthTimezone: e.target.value }))} />
-          </Field>
+          <ValidatedField
+            id="birthTimezone"
+            label={t("field_timezone", lang)}
+            helper={t("field_tz_helper", lang)}
+            error={errors.birthTimezone?.message}
+            required
+          >
+            <ValidatedInput
+              id="birthTimezone"
+              error={!!errors.birthTimezone}
+              {...register("birthTimezone")}
+            />
+          </ValidatedField>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "var(--space-2)", gridColumn: "1 / -1" }}>
-            <Field label={t("field_latitude", lang)}>
-              <input className="input" inputMode="decimal" value={form.birthLatitude}
-                onChange={(e) => setForm((f) => ({ ...f, birthLatitude: e.target.value }))} />
-            </Field>
-            <Field label={t("field_longitude", lang)}>
-              <input className="input" inputMode="decimal" value={form.birthLongitude}
-                onChange={(e) => setForm((f) => ({ ...f, birthLongitude: e.target.value }))} />
-            </Field>
+          <div className="gcm-coord-grid">
+            <ValidatedField
+              id="birthLatitude"
+              label={t("field_latitude", lang)}
+              error={errors.birthLatitude?.message}
+              required
+            >
+              <ValidatedInput
+                id="birthLatitude"
+                inputMode="decimal"
+                error={!!errors.birthLatitude}
+                {...register("birthLatitude")}
+              />
+            </ValidatedField>
+            <ValidatedField
+              id="birthLongitude"
+              label={t("field_longitude", lang)}
+              error={errors.birthLongitude?.message}
+              required
+            >
+              <ValidatedInput
+                id="birthLongitude"
+                inputMode="decimal"
+                error={!!errors.birthLongitude}
+                {...register("birthLongitude")}
+              />
+            </ValidatedField>
           </div>
-        </div>
 
-        {error && <p style={{ margin: 0, color: "var(--color-score-low)", fontSize: "0.875rem" }}>{error}</p>}
+          {submitError && (
+            <p className="gcm-submit-error">{submitError}</p>
+          )}
 
-        <button
-          type="button"
-          style={{
-            alignSelf: "flex-start", padding: "var(--space-2) var(--space-5)",
-            borderRadius: "var(--radius-pill)", border: "none",
-            background: "var(--color-text-strong)", color: "var(--color-bg)",
-            fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-            opacity: loading ? 0.6 : 1,
-          }}
-          onClick={() => void handleGenerate()}
-          disabled={loading}
-        >
-          {loading ? (lang === "ta" ? "கணக்கிடுகிறது…" : "Calculating…") : (lang === "ta" ? "ஜாதகம் காண்க" : "Generate Chart")}
-        </button>
+          <button type="submit" className="gcm-submit" disabled={isSubmitting}>
+            {isSubmitting
+              ? (lang === "ta" ? "கணக்கிடுகிறது…" : "Calculating…")
+              : (lang === "ta" ? "ஜாதகம் காண்க" : "Generate Chart")}
+          </button>
+        </form>
 
         {chart && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-            <div style={{ padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)" }}>
-              <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-accent)", fontFamily: "var(--font-display)" }}>{chart.birthProfile.displayName}</p>
-              <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "0.75rem", color: "var(--color-faint)" }}>{chart.birthProfile.birthDateLocal}</p>
+          <div className="gcm-chart-section">
+            <div className="gcm-profile-card">
+              <p className="gcm-profile-name">{chart.birthProfile.displayName}</p>
+              <p className="gcm-profile-date">{chart.birthProfile.birthDateLocal}</p>
             </div>
 
-            <div style={{ display: "flex", gap: "var(--space-1_5)" }}>
+            <div className="gcm-view-tabs">
               {(["D1", "D9"] as const).map((v) => (
-                <button key={v} type="button" onClick={() => setView(v)}
-                  style={{
-                    padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)",
-                    fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                    border: view === v ? "1.5px solid var(--color-accent)" : "1px solid var(--color-border)",
-                    background: view === v ? "#F0D9C4" : "transparent",
-                    color: view === v ? "var(--color-accent)" : "var(--color-faint)",
-                  }}
+                <button
+                  key={v}
+                  type="button"
+                  className="gcm-view-tab"
+                  data-active={view === v}
+                  onClick={() => setView(v)}
                 >
                   {v === "D1" ? t("label_d1", lang) : t("label_d9", lang)}
                 </button>
@@ -209,7 +231,7 @@ export function GuestChartModal({ lang, onClose }: GuestChartModalProps) {
               : <NavamsaChart chart={chart} label={t("label_d9", lang)} lang={lang} showExplain={false} />
             }
 
-            <p style={{ margin: 0, fontSize: "0.625rem", color: "var(--color-faint)", fontStyle: "italic" }}>
+            <p className="gcm-preview-note">
               {lang === "ta"
                 ? "இந்த ஜாதகம் தற்காலிகமானது. மூடியதும் தானாக நீக்கப்படும்."
                 : "Preview only. This chart is not saved to your account."}

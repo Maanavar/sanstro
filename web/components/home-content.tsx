@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useLang } from "@/components/lang-toggle";
@@ -143,14 +143,14 @@ export function HomeContent() {
               <p className="cl-card-summary">{SAMPLE.summary}</p>
               <div className="cl-arc-wrap" aria-hidden="true">
                 <svg viewBox="0 0 320 110" className="cl-arc__svg" preserveAspectRatio="xMidYMid meet">
-                  <path d="M20,82 Q160,18 300,82" fill="none" stroke="#D4C8AE" strokeWidth="1.5" strokeLinecap="round" />
-                  <rect x="20" y="79" width="280" height="5" rx="2.5" fill="#E4DBC8" />
-                  <rect x="157" y="78" width="19" height="7" rx="3.5" fill="#5C7654" />
-                  <rect x="241" y="78" width="37" height="7" rx="3.5" fill="#A8482F" />
+                  <path d="M20,82 Q160,18 300,82" fill="none" stroke="var(--panel-tan)" strokeWidth="1.5" strokeLinecap="round" />
+                  <rect x="20" y="79" width="280" height="5" rx="2.5" fill="var(--panel-tan-light)" />
+                  <rect x="157" y="78" width="19" height="7" rx="3.5" fill="var(--chart-d9-active)" />
+                  <rect x="241" y="78" width="37" height="7" rx="3.5" fill="var(--planet-saturn)" />
                   {[20, 90, 160, 230, 300].map((x) => (
                     <line key={x} x1={x} y1="86" x2={x} y2="93" stroke="#A89D89" strokeWidth="1.5" strokeLinecap="round" />
                   ))}
-                  <circle cx="164" cy="50" r="6" fill="#B85A2C" />
+                  <circle cx="164" cy="50" r="6" fill="var(--panel-brand)" />
                 </svg>
                 <div className="cl-arc-labels">
                   {ARC_HOURS.map((h) => <span key={h} className="cl-arc-label">{h}</span>)}

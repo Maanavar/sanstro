@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 
@@ -20,15 +20,15 @@ const ACTIVITIES: Array<{ id: string; en: string; ta: string }> = [
 ];
 
 const W = {
-  ink: "#1A1612",
-  inkMid: "#3D352B",
-  muted: "#7A6F5E",
+  ink: "var(--panel-earth-dark)",
+  inkMid: "var(--panel-earth)",
+  muted: "var(--color-faint)",
   mutedLt: "var(--color-faint)",
-  border: "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface: "#FAF5EA",
-  surfaceMd: "#F4EEE2",
-  card: "#FFFFFF",
+  border: "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface: "var(--panel-cream)",
+  surfaceMd: "var(--panel-hover)",
+  card: "var(--chart-cell-default)",
 } as const;
 
 const fieldStyle: React.CSSProperties = {
@@ -42,7 +42,7 @@ const fieldStyle: React.CSSProperties = {
   fontFamily: "inherit",
 };
 
-const SCORE_COLOR = (score: number) => (score >= 75 ? "#5C7654" : score >= 55 ? "#B85A2C" : "#7A6F5E");
+const SCORE_COLOR = (score: number) => (score >= 75 ? "var(--chart-d9-active)" : score >= 55 ? "var(--panel-brand)" : "var(--color-faint)");
 
 // Weekday + full date, e.g. "Mon, 8 Jun 2026" / "திங்கள், 8 ஜூன் 2026".
 function formatMuhurtaDate(value: string, lang: Lang): string {
@@ -77,7 +77,7 @@ function MuhurtaCard({ slot, lang }: { slot: MuhurtaSlot; lang: Lang }) {
         <div className="cd-ranked-card__body">
           <div style={{ fontWeight: 600, fontSize: "0.875rem", color: W.inkMid }}>{formatMuhurtaDate(slot.date, lang)}</div>
           {slot.tamilDate && (
-            <div style={{ fontSize: "0.8125rem", color: "#B85A2C", fontWeight: 600 }}>
+            <div style={{ fontSize: "0.8125rem", color: "var(--panel-brand)", fontWeight: 600 }}>
               {lang === "ta" ? slot.tamilDate.ta : slot.tamilDate.en}
             </div>
           )}
@@ -100,7 +100,7 @@ function MuhurtaCard({ slot, lang }: { slot: MuhurtaSlot; lang: Lang }) {
 
           {slot.cautions.length > 0 && (
             <div>
-              <span style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", color: "#A8482F", letterSpacing: "0.05em" }}>
+              <span style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", color: "var(--planet-saturn)", letterSpacing: "0.05em" }}>
                 {t("muhurta_cautions", lang)}
               </span>
               <ul style={{ margin: "4px 0 0 0", padding: "0 0 0 16px" }}>
@@ -216,7 +216,7 @@ export function DashboardMuhurtaPicker({ lang, chartId, initialActivity, initial
 
         {!result && !loading && !error && <p style={{ fontSize: "0.875rem", color: W.muted, textAlign: "center", padding: "16px 0" }}>{t("muhurta_empty", lang)}</p>}
 
-        {error && <p style={{ fontSize: "0.875rem", color: "#A8482F", padding: "8px 0" }}>{error}</p>}
+        {error && <p style={{ fontSize: "0.875rem", color: "var(--planet-saturn)", padding: "8px 0" }}>{error}</p>}
 
         {result && result.slots.length > 0 && (
           <div>

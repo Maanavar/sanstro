@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
@@ -61,18 +61,18 @@ interface DashboardJournalTabProps {
 }
 
 const W = {
-  ink: "#1A1612",
-  inkMid: "#3D352B",
-  muted: "#7A6F5E",
+  ink: "var(--panel-earth-dark)",
+  inkMid: "var(--panel-earth)",
+  muted: "var(--color-faint)",
   mutedLt: "var(--color-faint)",
-  border: "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface: "#FAF5EA",
-  surfaceMd: "#F4EEE2",
-  card: "#FFFFFF",
-  terracotta: "#B85A2C",
-  rust: "#A8482F",
-  sage: "#5C7654",
+  border: "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface: "var(--panel-cream)",
+  surfaceMd: "var(--panel-hover)",
+  card: "var(--chart-cell-default)",
+  terracotta: "var(--panel-brand)",
+  rust: "var(--planet-saturn)",
+  sage: "var(--chart-d9-active)",
 } as const;
 
 const fieldStyle: CSSProperties = {
@@ -346,7 +346,7 @@ export function DashboardJournalTab({
             {(contextData?.activeEvents ?? []).length > 0 && (
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)", marginBottom: "var(--space-4)" }}>
                 {(contextData?.activeEvents ?? []).map((ev, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", padding: "var(--space-1_5) var(--space-2_5)", borderRadius: "var(--radius-sm)", background: "#EEF6EA", border: "1px solid rgba(92,118,84,0.2)", flexWrap: "wrap" }}>
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", padding: "var(--space-1_5) var(--space-2_5)", borderRadius: "var(--radius-sm)", background: "var(--chart-d9-active-bg)", border: "1px solid rgba(92,118,84,0.2)", flexWrap: "wrap" }}>
                     <Chip tone="accent">{CTX_TYPE_KEY[ev.type as ContextEventType] ? t(CTX_TYPE_KEY[ev.type as ContextEventType], lang) : ev.type}</Chip>
                     <span style={{ fontSize: "0.75rem", color: W.muted }}>{formatDateLabel(ev.date)}</span>
                     {ev.note && <span style={{ fontSize: "0.75rem", color: W.muted, fontStyle: "italic", flex: 1 }}>{ev.note}</span>}

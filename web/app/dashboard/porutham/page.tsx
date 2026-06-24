@@ -55,13 +55,13 @@ function PersonForm({
     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "10px", minWidth: "260px" }}>
       <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: 700, color: accentColor }}>{label}</p>
 
-      <Field label={lang === "ta" ? "பெயர்" : "Name"}>
+      <Field label={lang === "ta" ? "பெயர்" : "Name"} required>
         <input className="input" value={form.displayName}
           onChange={(e) => onChange({ ...form, displayName: e.target.value })}
           placeholder={lang === "ta" ? "பெயர் உள்ளிடவும்" : "Enter name"} />
       </Field>
 
-      <Field label={lang === "ta" ? "பிறந்த தேதி" : "Birth Date"}>
+      <Field label={lang === "ta" ? "பிறந்த தேதி" : "Birth Date"} required>
         <input className="input" type="date" value={form.birthDateLocal}
           onChange={(e) => onChange({ ...form, birthDateLocal: e.target.value })} />
       </Field>
@@ -71,7 +71,7 @@ function PersonForm({
           onChange={(e) => onChange({ ...form, birthTimeLocal: e.target.value })} />
       </Field>
 
-      <Field label={t("field_birth_place", lang)} helper={t("field_place_helper", lang)}>
+      <Field label={t("field_birth_place", lang)} helper={t("field_place_helper", lang)} required>
         <PlaceCombobox
           value={form.birthPlace}
           onChange={(city, raw) => onChange({
@@ -82,17 +82,17 @@ function PersonForm({
         />
       </Field>
 
-      <Field label={t("field_timezone", lang)}>
+      <Field label={t("field_timezone", lang)} required>
         <input className="input" value={form.birthTimezone}
           onChange={(e) => onChange({ ...form, birthTimezone: e.target.value })} />
       </Field>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "8px" }}>
-        <Field label={t("field_latitude", lang)}>
+        <Field label={t("field_latitude", lang)} required>
           <input className="input" inputMode="decimal" value={form.birthLatitude}
             onChange={(e) => onChange({ ...form, birthLatitude: e.target.value })} />
         </Field>
-        <Field label={t("field_longitude", lang)}>
+        <Field label={t("field_longitude", lang)} required>
           <input className="input" inputMode="decimal" value={form.birthLongitude}
             onChange={(e) => onChange({ ...form, birthLongitude: e.target.value })} />
         </Field>

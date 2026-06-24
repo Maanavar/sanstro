@@ -1,7 +1,13 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 
+import {
+  Briefcase, TrendingUp, TrendingDown, Heart, HeartCrack, Scale, Home, Plane,
+  HeartPulse, Scissors, Dumbbell, FileText, GraduationCap, Coins, CreditCard,
+  Flame, Baby, Rocket, XCircle, Star, MapPin, Bell, Pin,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { apiFetchJson } from "@/lib/api";
 import type { Lang } from "@/lib/i18n";
 import { formatDateLabel, todayIso } from "@/lib/format";
@@ -61,50 +67,50 @@ const EVENT_TYPES = [
   { id: "OTHER", en: "Other" },
 ];
 
-const EVENT_ICON: Record<string, string> = {
-  JOB_CHANGE: "💼",
-  PROMOTION: "⬆️",
-  DEMOTION: "⬇️",
-  JOB_LOSS: "📉",
-  RELATIONSHIP_START: "💕",
-  RELATIONSHIP_END: "💔",
-  MARRIAGE: "💍",
-  DIVORCE: "⚖️",
-  REMARRIAGE: "💍",
-  RELOCATION: "🏠",
-  TRAVEL_ABROAD: "✈️",
-  HEALTH_EVENT: "🏥",
-  SURGERY: "🏥",
-  RECOVERY: "💪",
-  EXAM_RESULT: "📝",
-  EDUCATION_START: "🎓",
-  EDUCATION_END: "🎓",
-  FINANCIAL_MILESTONE: "💰",
-  INVESTMENT: "📈",
-  PROPERTY_PURCHASE: "🏡",
-  DEBT: "💸",
-  FAMILY_LOSS: "🕯️",
-  BIRTH_OF_CHILD: "👶",
-  BUSINESS_START: "🚀",
-  BUSINESS_END: "🚫",
-  SPIRITUAL_EVENT: "🙏",
-  PILGRIMAGE: "🛕",
-  INITIATION: "🔔",
-  LEGAL_MATTER: "⚖️",
-  OTHER: "📌",
+const EVENT_ICON: Record<string, LucideIcon> = {
+  JOB_CHANGE:          Briefcase,
+  PROMOTION:           TrendingUp,
+  DEMOTION:            TrendingDown,
+  JOB_LOSS:            TrendingDown,
+  RELATIONSHIP_START:  Heart,
+  RELATIONSHIP_END:    HeartCrack,
+  MARRIAGE:            Heart,
+  DIVORCE:             Scale,
+  REMARRIAGE:          Heart,
+  RELOCATION:          Home,
+  TRAVEL_ABROAD:       Plane,
+  HEALTH_EVENT:        HeartPulse,
+  SURGERY:             Scissors,
+  RECOVERY:            Dumbbell,
+  EXAM_RESULT:         FileText,
+  EDUCATION_START:     GraduationCap,
+  EDUCATION_END:       GraduationCap,
+  FINANCIAL_MILESTONE: Coins,
+  INVESTMENT:          TrendingUp,
+  PROPERTY_PURCHASE:   Home,
+  DEBT:                CreditCard,
+  FAMILY_LOSS:         Flame,
+  BIRTH_OF_CHILD:      Baby,
+  BUSINESS_START:      Rocket,
+  BUSINESS_END:        XCircle,
+  SPIRITUAL_EVENT:     Star,
+  PILGRIMAGE:          MapPin,
+  INITIATION:          Bell,
+  LEGAL_MATTER:        Scale,
+  OTHER:               Pin,
 };
 
 const W = {
-  ink: "#1A1612",
-  inkMid: "#3D352B",
-  muted: "#7A6F5E",
+  ink: "var(--panel-earth-dark)",
+  inkMid: "var(--panel-earth)",
+  muted: "var(--color-faint)",
   mutedLt: "var(--color-faint)",
-  border: "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface: "#FAF5EA",
-  surfaceMd: "#F4EEE2",
-  card: "#FFFFFF",
-  rust: "#A8482F",
+  border: "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface: "var(--panel-cream)",
+  surfaceMd: "var(--panel-hover)",
+  card: "var(--chart-cell-default)",
+  rust: "var(--planet-saturn)",
 } as const;
 
 function eventLabel(type: string): string {
@@ -119,11 +125,12 @@ interface DashboardLifeEventLogProps {
 
 function EventCard({ item, lang }: { item: LifeEventLogItem; lang: Lang }) {
   const [expanded, setExpanded] = useState(false);
+  const EvtIcon = EVENT_ICON[item.eventType] ?? Pin;
 
   return (
     <div style={{ border: `1px solid ${W.borderLt}`, borderRadius: "10px", padding: "12px 14px", marginBottom: "10px", background: W.card }}>
       <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: item.correlation ? "pointer" : "default" }} onClick={() => item.correlation && setExpanded((v) => !v)}>
-        <span style={{ fontSize: "1.25rem" }}>{EVENT_ICON[item.eventType] ?? "?"}</span>
+        <EvtIcon size={20} color={W.inkMid} strokeWidth={1.5} aria-hidden="true" />
         <div style={{ flex: 1 }}>
           <p style={{ margin: 0, fontWeight: 600, fontSize: "0.875rem", color: W.inkMid }}>{eventLabel(item.eventType)}</p>
           <p style={{ margin: "2px 0 0 0", fontSize: "0.875rem", color: W.muted }}>{formatDateLabel(item.eventDate)}</p>

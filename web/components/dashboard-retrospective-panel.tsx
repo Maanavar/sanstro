@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
@@ -17,18 +17,18 @@ type Props = {
 };
 
 const W = {
-  ink: "#1A1612",
-  inkMid: "#3D352B",
-  muted: "#7A6F5E",
+  ink: "var(--panel-earth-dark)",
+  inkMid: "var(--panel-earth)",
+  muted: "var(--color-faint)",
   mutedLt: "var(--color-faint)",
-  border: "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface: "#FAF5EA",
-  surfaceMd: "#F4EEE2",
-  card: "#FFFFFF",
-  terracotta: "#B85A2C",
-  rust: "#A8482F",
-  sage: "#5C7654",
+  border: "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface: "var(--panel-cream)",
+  surfaceMd: "var(--panel-hover)",
+  card: "var(--chart-cell-default)",
+  terracotta: "var(--panel-brand)",
+  rust: "var(--planet-saturn)",
+  sage: "var(--chart-d9-active)",
 } as const;
 
 const fieldStyle: React.CSSProperties = {
@@ -166,7 +166,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
             style={{
               padding: "var(--space-2) var(--space-4_5)", borderRadius: "var(--radius-sm)", cursor: "pointer",
               fontSize: "0.875rem", fontWeight: 700,
-              background: loading || !chartId || !eventDate || !eventDesc.trim() ? W.surfaceMd : "#F8E4D2",
+              background: loading || !chartId || !eventDate || !eventDesc.trim() ? W.surfaceMd : "var(--panel-warm-light)",
               border: `1px solid ${W.terracotta}55`,
               color: loading || !chartId || !eventDate || !eventDesc.trim() ? W.mutedLt : W.terracotta,
             }}
@@ -272,7 +272,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
               onClick={() => setResult(h)}
               style={{
                 padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-sm)", textAlign: "left", cursor: "pointer",
-                background: result?.retrospectiveId === h.retrospectiveId ? "#F8E4D2" : W.card,
+                background: result?.retrospectiveId === h.retrospectiveId ? "var(--panel-warm-light)" : W.card,
                 border: result?.retrospectiveId === h.retrospectiveId ? `1px solid ${W.terracotta}55` : `1px solid ${W.borderLt}`,
               }}
             >

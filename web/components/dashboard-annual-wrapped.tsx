@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { apiFetchJson } from "@/lib/api";
@@ -7,29 +7,29 @@ import type { AnnualWrappedData, ApiEnvelope, WrappedSlide } from "@/lib/types";
 import { ShareCardButton } from "./dashboard-share-card";
 
 const W = {
-  inkMid: "#3D352B",
-  muted: "#7A6F5E",
+  inkMid: "var(--panel-earth)",
+  muted: "var(--color-faint)",
   mutedLt: "var(--color-faint)",
-  border: "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface: "#FAF5EA",
-  surfaceMd: "#F4EEE2",
-  card: "#FFFFFF",
-  terracotta: "#B85A2C",
-  rust: "#A8482F",
+  border: "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface: "var(--panel-cream)",
+  surfaceMd: "var(--panel-hover)",
+  card: "var(--chart-cell-default)",
+  terracotta: "var(--panel-brand)",
+  rust: "var(--planet-saturn)",
 } as const;
 
 // ── Planet accent colours ─────────────────────────────────────────────────────
 const PLANET_COLORS: Record<string, string> = {
   SUN: "#D2873B",
   MOON: "#668FA3",
-  MARS: "#A8482F",
-  MERCURY: "#5C7654",
-  JUPITER: "#B85A2C",
+  MARS: "var(--planet-saturn)",
+  MERCURY: "var(--chart-d9-active)",
+  JUPITER: "var(--panel-brand)",
   VENUS: "#956A8A",
   SATURN: "#6B7280",
   RAHU: "#7E6B99",
-  KETU: "#7A6F5E",
+  KETU: "var(--color-faint)",
 };
 
 // ── Slide icon map ────────────────────────────────────────────────────────────
@@ -213,7 +213,7 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
                 style={{
                   padding: "4px 10px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: 600,
                   border: `1px solid ${W.border}`,
-                  background: selectedYear === y ? "#F8E4D2" : W.card,
+                  background: selectedYear === y ? "var(--panel-warm-light)" : W.card,
                   color: selectedYear === y ? W.terracotta : W.muted,
                   cursor: "pointer",
                 }}
@@ -229,7 +229,7 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
             disabled={loading}
             style={{
               padding: "6px 16px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 700,
-              background: "#F8E4D2", border: `1px solid ${W.terracotta}66`,
+              background: "var(--panel-warm-light)", border: `1px solid ${W.terracotta}66`,
               color: W.terracotta, cursor: loading ? "wait" : "pointer",
               opacity: loading ? 0.6 : 1,
             }}

@@ -1,6 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
+import { Sun, Flame, Sparkles } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
@@ -55,30 +57,30 @@ export interface NatchathiramVisualData {
 // ── Design tokens ─────────────────────────────────────────────────────────
 
 const T = {
-  bg:          "#F4EEE2",
-  bg2:         "#EDE5D4",
-  surface:     "#FFFFFF",
-  surface2:    "#FAF5EA",
-  ink:         "#1A1612",
-  ink2:        "#3D352B",
-  muted:       "#7A6F5E",
-  border:      "#E4DBC8",
-  accent:      "#B85A2C",
-  accentSoft:  "#F0D9C4",
+  bg:          "var(--panel-hover)",
+  bg2:         "var(--chart-cell-selected)",
+  surface:     "var(--chart-cell-default)",
+  surface2:    "var(--panel-cream)",
+  ink:         "var(--panel-earth-dark)",
+  ink2:        "var(--panel-earth)",
+  muted:       "var(--color-faint)",
+  border:      "var(--panel-tan-light)",
+  accent:      "var(--panel-brand)",
+  accentSoft:  "var(--chart-d1-lagna-bg)",
   accentA10:   "rgba(184,90,44,0.10)",
   accentA15:   "rgba(184,90,44,0.15)",
   accentA20:   "rgba(184,90,44,0.20)",
   accentA30:   "rgba(184,90,44,0.30)",
   accentA40:   "rgba(184,90,44,0.40)",
-  sage:        "#5C7654",
-  sageSoft:    "#DCE4D2",
+  sage:        "var(--chart-d9-active)",
+  sageSoft:    "var(--chart-d9-active-bg)",
   sageA15:     "rgba(92,118,84,0.15)",
   sageA25:     "rgba(92,118,84,0.25)",
 };
 
 const DASHA_COLORS = [
-  "#B85A2C", "#5C7654", "#A8482F", "#7A8F5E",
-  "#C4714A", "#6B7A52", "#9E5024", "#3D352B",
+  "var(--panel-brand)", "var(--chart-d9-active)", "var(--planet-saturn)", "#7A8F5E",
+  "#C4714A", "#6B7A52", "#9E5024", "var(--panel-earth)",
 ];
 
 const PLANET_GLYPHS: Record<string, string> = {
@@ -419,7 +421,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
   const familyLead = ta?.familyLead && lang === "ta" ? ta.familyLead
     : `Deep bonds, trust, and emotional loyalty shape ${englishName}'s relationships.`;
 
-  const spiritIcons = ["🙏", "🪔", "✨"];
+  const spiritIcons: LucideIcon[] = [Sun, Flame, Sparkles];
   const [selectedDasha, setSelectedDasha] = useState<number | null>(null);
 
   // ── Relationship hub labels ───────────────────────────────────────────
@@ -805,7 +807,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
               {spirituality.map((s, i) => (
                 <div key={s.title} style={{ background:T.surface, border:`1px solid ${T.border}`, borderRadius:14, padding:"1.5rem", boxShadow:`0 1px 6px ${T.accentA10}` }}>
                   <div style={{ display:"flex", gap:"0.875rem", alignItems:"flex-start" }}>
-                    <IconCircle size={46}><span style={{ fontSize:"1.1rem" }}>{spiritIcons[i%spiritIcons.length]}</span></IconCircle>
+                    <IconCircle size={46}>{(() => { const SI = spiritIcons[i%spiritIcons.length]; return <SI size={20} strokeWidth={1.5} aria-hidden="true" />; })()}</IconCircle>
                     <div>
                       <p style={{ fontWeight:700, fontSize:"0.95rem", color:T.ink, margin:"0 0 0.4rem" }}>{s.title}</p>
                       <p style={{ fontSize:"0.8rem", color:T.muted, margin:0, lineHeight:1.6 }}>{s.desc}</p>

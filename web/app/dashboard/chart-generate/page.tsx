@@ -640,7 +640,7 @@ export default function ChartGeneratePage() {
             </Field>
           </div>
 
-          <Field label={t("field_birth_place", lang)} helper={t("field_place_helper", lang)}>
+          <Field label={t("field_birth_place", lang)} helper={t("field_place_helper", lang)} required>
             <PlaceCombobox
               value={form.birthPlace}
               onChange={(city, raw) => {
@@ -658,10 +658,10 @@ export default function ChartGeneratePage() {
           </Field>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "12px" }}>
-            <Field label={t("field_latitude", lang)}>
+            <Field label={t("field_latitude", lang)} required>
               <input className="input" inputMode="decimal" value={form.birthLatitude} onChange={(e) => setForm((f) => ({ ...f, birthLatitude: e.target.value }))} />
             </Field>
-            <Field label={t("field_longitude", lang)}>
+            <Field label={t("field_longitude", lang)} required>
               <input className="input" inputMode="decimal" value={form.birthLongitude} onChange={(e) => setForm((f) => ({ ...f, birthLongitude: e.target.value }))} />
             </Field>
           </div>

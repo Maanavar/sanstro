@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Moon } from "lucide-react";
 import { readErrorMessage } from "@/lib/api";
 import { useLang } from "@/components/lang-toggle";
 import { tNakshatra, type Lang } from "@/lib/i18n";
@@ -338,7 +339,7 @@ export function RasippalanTool() {
           borderRadius: "14px", padding: "16px 20px",
           display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px",
         }}>
-          <span style={{ fontSize: "1.4rem" }}>🌙</span>
+          <Moon size={22} color="var(--cl-ink)" strokeWidth={1.5} aria-hidden="true" />
           <div>
             <p style={{ margin: 0, fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
               {en ? "Moon's position today" : "இன்று சந்திரன் நிலை"}

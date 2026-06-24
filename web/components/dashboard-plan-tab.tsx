@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 
@@ -99,16 +99,16 @@ const ACTIVITY_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
 ];
 
 const W = {
-  ink: "#1A1612",
-  inkMid: "#3D352B",
-  muted: "#7A6F5E",
+  ink: "var(--panel-earth-dark)",
+  inkMid: "var(--panel-earth)",
+  muted: "var(--color-faint)",
   mutedLt: "var(--color-faint)",
-  border: "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface: "#FAF5EA",
-  surfaceMd: "#F4EEE2",
-  card: "#FFFFFF",
-  terracotta: "#B85A2C",
+  border: "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface: "var(--panel-cream)",
+  surfaceMd: "var(--panel-hover)",
+  card: "var(--chart-cell-default)",
+  terracotta: "var(--panel-brand)",
 } as const;
 
 const fieldStyle: React.CSSProperties = {
@@ -186,9 +186,9 @@ export function DashboardPlanTab({
     );
   }
 
-  const verdictColor = (v: string) => (v === "FAVOURABLE" ? "#5C7654" : v === "CAUTION" ? "#A8482F" : "#B85A2C");
+  const verdictColor = (v: string) => (v === "FAVOURABLE" ? "var(--chart-d9-active)" : v === "CAUTION" ? "var(--planet-saturn)" : "var(--panel-brand)");
   const verdictKey = (v: string) => (v === "FAVOURABLE" ? "verdict_favourable" : v === "CAUTION" ? "verdict_caution" : "verdict_neutral");
-  const strengthColor = (s: string) => (s === "STRONG" ? "#5C7654" : s === "WEAK" ? "#A8482F" : "#B85A2C");
+  const strengthColor = (s: string) => (s === "STRONG" ? "var(--chart-d9-active)" : s === "WEAK" ? "var(--planet-saturn)" : "var(--panel-brand)");
   const strengthKey = (s: string) => (s === "STRONG" ? "strength_strong" : s === "WEAK" ? "strength_weak" : "strength_moderate");
 
   return (
@@ -224,7 +224,7 @@ export function DashboardPlanTab({
               {lang === "ta" ? "உங்கள் இலக்கு:" : "Focus"}
             </span>
             {goals.map((g) => (
-              <span key={g.goalId} style={{ fontSize: "0.75rem", padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.28)", color: "#8C3E18", fontWeight: 600 }}>
+              <span key={g.goalId} style={{ fontSize: "0.75rem", padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", background: "var(--chart-d1-lagna-bg)", border: "1px solid rgba(184,90,44,0.28)", color: "var(--planet-lagna)", fontWeight: 600 }}>
                 {GOAL_OPTIONS.find(([v]) => v === normalizeGoalType(g.goalType))?.[1]
                   ? t(GOAL_OPTIONS.find(([v]) => v === normalizeGoalType(g.goalType))![1], lang)
                   : g.goalType}
@@ -266,7 +266,7 @@ export function DashboardPlanTab({
             {goals.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", marginBottom: "var(--space-3_5)" }}>
                 {goals.map((g) => (
-                  <div key={g.goalId} style={{ display: "flex", alignItems: "center", gap: "var(--space-1_5)", padding: "var(--space-1) var(--space-2_5)", borderRadius: "var(--radius-pill)", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.35)", fontSize: "0.875rem", color: "#8C3E18", fontWeight: 600 }}>
+                  <div key={g.goalId} style={{ display: "flex", alignItems: "center", gap: "var(--space-1_5)", padding: "var(--space-1) var(--space-2_5)", borderRadius: "var(--radius-pill)", background: "var(--chart-d1-lagna-bg)", border: "1px solid rgba(184,90,44,0.35)", fontSize: "0.875rem", color: "var(--planet-lagna)", fontWeight: 600 }}>
                     <span>
                       {GOAL_OPTIONS.find(([v]) => v === normalizeGoalType(g.goalType))?.[1]
                         ? t(GOAL_OPTIONS.find(([v]) => v === normalizeGoalType(g.goalType))![1], lang)
@@ -286,8 +286,8 @@ export function DashboardPlanTab({
             )}
 
             {goals.length > 0 && (
-              <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#EEF6EA", border: "1px solid rgba(92,118,84,0.2)", marginBottom: "var(--space-3)" }}>
-                <p style={{ margin: 0, fontSize: "0.75rem", color: "#5C7654", lineHeight: 1.5 }}>
+              <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--chart-d9-active-bg)", border: "1px solid rgba(92,118,84,0.2)", marginBottom: "var(--space-3)" }}>
+                <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--chart-d9-active)", lineHeight: 1.5 }}>
                   {lang === "ta"
                     ? "உங்கள் இலக்குகள் வாழ்க்கை பகுதிகளில் முன்னிலைப்படுத்தப்படும்; முக்கிய விஷயங்கள் தெளிவாக தெரியும்."
                     : "Your goals are highlighted in Life Areas and Daily Snapshot tabs, so the most relevant areas stand out."}
@@ -297,7 +297,7 @@ export function DashboardPlanTab({
 
             {/* Methodology note for Goals "Supportive windows" score */}
             {goals.length > 0 && (
-              <div style={{ padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#EEF1F8", border: "1px solid rgba(122,111,94,0.18)", marginBottom: "var(--space-3)" }}>
+              <div style={{ padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--color-info-light)", border: "1px solid rgba(122,111,94,0.18)", marginBottom: "var(--space-3)" }}>
                 <p style={{ margin: 0, fontSize: "0.75rem", color: W.muted, lineHeight: 1.5 }}>
                   <strong style={{ color: W.inkMid }}>
                     {lang === "ta" ? "இந்த மதிப்பெண் என்ன காட்டுகிறது:" : "What these scores measure:"}
@@ -382,7 +382,7 @@ export function DashboardPlanTab({
         <Surface title={t("whatif_panel_title", lang)}>
           <div className="surface__body">
             <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.875rem", color: W.muted, lineHeight: 1.5 }}>{t("whatif_panel_desc", lang)}</p>
-            <div style={{ padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#EEF1F8", border: "1px solid rgba(122,111,94,0.18)", marginBottom: "var(--space-3_5)" }}>
+            <div style={{ padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--color-info-light)", border: "1px solid rgba(122,111,94,0.18)", marginBottom: "var(--space-3_5)" }}>
               <p style={{ margin: 0, fontSize: "0.75rem", color: W.muted, lineHeight: 1.5 }}>
                 <strong style={{ color: W.inkMid }}>
                   {lang === "ta" ? "இந்த மதிப்பெண் என்ன காட்டுகிறது:" : "What this score measures:"}
@@ -416,7 +416,7 @@ export function DashboardPlanTab({
               </Button>
             </div>
 
-            {whatIfError && <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.875rem", color: "#A8482F" }}>{whatIfError}</p>}
+            {whatIfError && <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.875rem", color: "var(--planet-saturn)" }}>{whatIfError}</p>}
 
             {whatIfResult && (() => {
               const r = whatIfResult;
@@ -456,18 +456,18 @@ export function DashboardPlanTab({
                     ))}
                   </div>
 
-                  <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#EEF6EA", border: "1px solid rgba(92,118,84,0.2)" }}>
-                    <p className="cd-kicker" style={{ color: "#5C7654" }}>{t("whatif_best_period", lang)}</p>
+                  <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--chart-d9-active-bg)", border: "1px solid rgba(92,118,84,0.2)" }}>
+                    <p className="cd-kicker" style={{ color: "var(--chart-d9-active)" }}>{t("whatif_best_period", lang)}</p>
                     <p style={{ margin: 0, fontSize: "0.75rem", color: W.inkMid, lineHeight: 1.5 }}>{lang === "ta" ? r.bestPeriodInWindow.ta : r.bestPeriodInWindow.en}</p>
                   </div>
 
                   <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#F6EFE2", border: "1px solid rgba(184,90,44,0.2)" }}>
-                    <p className="cd-kicker" style={{ color: "#B85A2C" }}>{t("whatif_caution", lang)}</p>
+                    <p className="cd-kicker" style={{ color: "var(--panel-brand)" }}>{t("whatif_caution", lang)}</p>
                     <p style={{ margin: 0, fontSize: "0.75rem", color: W.inkMid, lineHeight: 1.5 }}>{lang === "ta" ? r.cautionNote.ta : r.cautionNote.en}</p>
                   </div>
 
                   <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#F6EFE2", border: "1px solid rgba(184,90,44,0.25)" }}>
-                    <p className="cd-kicker" style={{ color: "#B85A2C" }}>{t("whatif_remedy", lang)}</p>
+                    <p className="cd-kicker" style={{ color: "var(--panel-brand)" }}>{t("whatif_remedy", lang)}</p>
                     <p style={{ margin: 0, fontSize: "0.75rem", color: W.inkMid, lineHeight: 1.5 }}>{lang === "ta" ? r.remedy.ta : r.remedy.en}</p>
                   </div>
 
@@ -484,7 +484,7 @@ export function DashboardPlanTab({
       {planSubTab === "decisions" && mode !== "BEGINNER" && (
         <Surface title={t("decision_panel_title", lang)}>
           <div className="surface__body">
-            <div style={{ margin: "0 0 var(--space-3_5)", padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: "#EEF1F8", border: "1px solid rgba(122,111,94,0.2)" }}>
+            <div style={{ margin: "0 0 var(--space-3_5)", padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: "var(--color-info-light)", border: "1px solid rgba(122,111,94,0.2)" }}>
               <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.75rem", fontWeight: 700, color: W.inkMid, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                 {t("decision_support_what_label", lang)}
               </p>
@@ -506,7 +506,7 @@ export function DashboardPlanTab({
               <span style={{ fontSize: "0.875rem", fontWeight: 700, color: W.ink }}>
                 {lang === "ta" ? "சிறந்த நாள் & முஹூர்த்தம்" : "Best Dates & Muhurta"}
               </span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "2px 9px", borderRadius: "var(--radius-pill)", background: "#DCE4D2", border: "1px solid rgba(92,118,84,0.35)", color: "#46603C", fontSize: "0.6875rem", fontWeight: 700 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "2px 9px", borderRadius: "var(--radius-pill)", background: "var(--chart-d9-active-bg)", border: "1px solid rgba(92,118,84,0.35)", color: "#46603C", fontSize: "0.6875rem", fontWeight: 700 }}>
                 ★ {lang === "ta" ? "உங்கள் ஜாதகத்திற்கு ஏற்ப — பொதுவானது அல்ல" : "Personalised to your jadhagam — not generic"}
               </span>
             </div>
@@ -525,7 +525,7 @@ export function DashboardPlanTab({
                   ? "மாதம் முழுவதையும் விரைவாக ஆராய்ந்து, தசை + கிரகநகர்வு + பஞ்சாங்க தினத்தன்மை கொண்டு சிறந்த நாட்களைத் தேர்ந்தெடுக்கிறது. தேர்ந்த நாளை கிளிக் செய்யுங்கள் — படி 2 தானாக நிரம்பும்; அங்கே சரியான நேரத்தை கண்டறியலாம்."
                   : "Scans the whole month and picks the days with the best dasha + transit + day-quality alignment for your activity. Click any date to prefill Step 2, where you find the exact auspicious hour within that day."}
               </p>
-              <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.72rem", color: W.muted, lineHeight: 1.45, padding: "var(--space-1_5) var(--space-2_5)", borderRadius: "var(--radius-sm)", background: "#EEF1F8", border: `1px solid rgba(122,111,94,0.18)` }}>
+              <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.72rem", color: W.muted, lineHeight: 1.45, padding: "var(--space-1_5) var(--space-2_5)", borderRadius: "var(--radius-sm)", background: "var(--color-info-light)", border: `1px solid rgba(122,111,94,0.18)` }}>
                 {lang === "ta"
                   ? "படி 1 — 'எந்த நாள் நல்லது?' என்று சொல்கிறது. படி 2 — 'அந்த நாளில் எந்த நேரம் சிறந்தது?' என்று கண்டறிகிறது. இரண்டும் வேறு அளவீடுகளை பயன்படுத்துவதால் வெவ்வேறு தேதி/மதிப்பெண் காட்டலாம் — இது சரியானதே."
                   : "Step 1 answers 'which days are good?' Step 2 answers 'what is the best hour on a given day?' They use different criteria (day-level vs hour-level panchangam), so their scores and top dates will not always match — that is expected and correct."}
@@ -572,9 +572,9 @@ export function DashboardPlanTab({
                   </p>
                   {activityTimingResult.topDates.map((item, i) => {
                     const isSelected = muhurtaPresetDate === item.dateLocal;
-                    const alignColor = item.alignment === "SUPPORTS" ? "#5C7654" : item.alignment === "CAUTION" ? "#A8482F" : "#B85A2C";
+                    const alignColor = item.alignment === "SUPPORTS" ? "var(--chart-d9-active)" : item.alignment === "CAUTION" ? "var(--planet-saturn)" : "var(--panel-brand)";
                     const alignBg = item.alignment === "SUPPORTS" ? "rgba(92,118,84,0.12)" : item.alignment === "CAUTION" ? "rgba(168,72,47,0.12)" : "rgba(184,90,44,0.12)";
-                    const scoreColor = item.score >= 70 ? "#5C7654" : item.score >= 50 ? "#B85A2C" : "#A8482F";
+                    const scoreColor = item.score >= 70 ? "var(--chart-d9-active)" : item.score >= 50 ? "var(--panel-brand)" : "var(--planet-saturn)";
                     let weekday = "";
                     try { weekday = new Date(item.dateLocal + "T12:00:00").toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { weekday: "short" }); } catch { /**/ }
                     let shortDate = "";
@@ -583,7 +583,7 @@ export function DashboardPlanTab({
                       <div
                         className="cd-ranked-card"
                         key={item.dateLocal}
-                        style={{ padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)", background: isSelected ? "#EEF6EA" : W.card, border: `1.5px solid ${isSelected ? "rgba(92,118,84,0.5)" : W.borderLt}`, cursor: "pointer", transition: "all 0.12s" }}
+                        style={{ padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)", background: isSelected ? "var(--chart-d9-active-bg)" : W.card, border: `1.5px solid ${isSelected ? "rgba(92,118,84,0.5)" : W.borderLt}`, cursor: "pointer", transition: "all 0.12s" }}
                         onClick={() => {
                           setMuhurtaPresetDate(item.dateLocal);
                           setMuhurtaPresetActivity(ACTIVITY_TO_MUHURTA[activityType] ?? "");
@@ -607,7 +607,7 @@ export function DashboardPlanTab({
                           <p style={{ margin: 0, fontSize: "0.8125rem", color: W.inkMid, lineHeight: 1.5 }}>{lang === "ta" ? item.reasonTa : item.reasonEn}</p>
                         </div>
                         {/* CTA */}
-                        <span className="cd-ranked-card__cta" style={{ fontSize: "0.75rem", fontWeight: 700, color: isSelected ? "#5C7654" : W.muted, flexShrink: 0 }}>
+                        <span className="cd-ranked-card__cta" style={{ fontSize: "0.75rem", fontWeight: 700, color: isSelected ? "var(--chart-d9-active)" : W.muted, flexShrink: 0 }}>
                           {lang === "ta" ? "முஹூர்த்தம் →" : "Get Muhurta →"}
                         </span>
                       </div>

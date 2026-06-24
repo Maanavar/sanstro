@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { t } from "@/lib/i18n";
@@ -58,9 +58,9 @@ function StrengthBar({ planet, score, lang }: { planet: string; score: number; l
 
 const NATURE_COLORS: Record<string, string> = {
   LAGNA_LORD: "var(--color-score-high)",
-  YOGAKARAKA: "#5a4880",
-  TRIKONA:    "#1e5a8c",
-  KENDRA:     "#3a6b40",
+  YOGAKARAKA: "var(--planet-nodes)",
+  TRIKONA:    "var(--planet-other)",
+  KENDRA:     "var(--chart-d9-active-dark)",
   MARAKA:     "var(--color-score-low)",
   DUSTHANA:   "var(--color-score-low)",
   NEUTRAL:    "var(--color-faint)",
@@ -79,7 +79,7 @@ function NatureBadge({ planet, nature, lang }: { planet: string; nature: string;
     <div style={{
       display: "flex", alignItems: "center", gap: "var(--space-1)",
       padding: "var(--space-1) var(--space-2_5)", borderRadius: "var(--radius-pill)",
-      background: "#FAF5EA", border: "1px solid var(--color-border)",
+      background: "var(--panel-cream)", border: "1px solid var(--color-border)",
     }}>
       <span style={{ fontSize: "0.75rem", color: "var(--color-text)", fontWeight: 600 }}>{planetLabel}</span>
       <span style={{ fontSize: "0.625rem", fontWeight: 700, color, textTransform: "uppercase", letterSpacing: "0.04em" }}>{natureLabel}</span>
@@ -91,15 +91,15 @@ function NatureBadge({ planet, nature, lang }: { planet: string; nature: string;
 
 const FOCUS_AREA_COLORS: Record<string, string> = {
   health: "var(--color-score-high)", health_focus: "var(--color-score-high)", health_priority: "var(--color-score-high)", health_senior: "var(--color-score-high)",
-  education: "#1e5a8c", education_foundation: "#1e5a8c",
+  education: "var(--planet-other)", education_foundation: "var(--planet-other)",
   career: "var(--color-score-mid)", career_preparation: "var(--color-score-mid)", career_growth: "var(--color-score-mid)",
   career_peak: "var(--color-score-mid)", career_legacy: "var(--color-score-mid)",
   marriage_prospect: "#7a4880", marriage_stability: "#7a4880",
-  wealth_foundation: "#5a4880", wealth_building: "#5a4880",
-  wealth_consolidation: "#5a4880", wealth_protection: "#5a4880",
-  property: "#3a6b40",
-  children: "#1e5a8c", children_education: "#1e5a8c", children_settlement: "#1e5a8c",
-  spirituality: "#5a4880", family_legacy: "#5a4880", ancestral_duty: "#5a4880",
+  wealth_foundation: "var(--planet-nodes)", wealth_building: "var(--planet-nodes)",
+  wealth_consolidation: "var(--planet-nodes)", wealth_protection: "var(--planet-nodes)",
+  property: "var(--chart-d9-active-dark)",
+  children: "var(--planet-other)", children_education: "var(--planet-other)", children_settlement: "var(--planet-other)",
+  spirituality: "var(--planet-nodes)", family_legacy: "var(--planet-nodes)", ancestral_duty: "var(--planet-nodes)",
   family: "var(--color-score-low)", family_nurture: "var(--color-score-low)", family_responsibility: "var(--color-score-low)",
   family_support: "var(--color-score-low)",
 };
@@ -147,7 +147,7 @@ function FocusBadge({ area, lang }: { area: string; lang: Lang }) {
     <span style={{
       fontSize: "0.75rem", fontWeight: 600, color,
       border: `1px solid ${color}44`, borderRadius: "var(--radius-pill)",
-      padding: "var(--space-0_75) var(--space-3)", background: "#FAF5EA",
+      padding: "var(--space-0_75) var(--space-3)", background: "var(--panel-cream)",
     }}>
       {label}
     </span>
@@ -331,7 +331,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
           {showNavamsa && (
             <div>
               {navamsamSummary.vargottamaPlanets.length > 0 && (
-                <p style={{ margin: "var(--space-1) 0 var(--space-2_5)", fontSize: "0.875rem", color: "#1e5a8c", lineHeight: 1.4 }}>
+                <p style={{ margin: "var(--space-1) 0 var(--space-2_5)", fontSize: "0.875rem", color: "var(--planet-other)", lineHeight: 1.4 }}>
                   {lang === "ta" ? "வர்கோத்தமம்: " : "Vargottama: "}
                   {navamsamSummary.vargottamaPlanets.map((p) => (lang === "ta" ? (PLANET_NAMES_TA[p] ?? p) : p)).join(", ")}
                 </p>
@@ -340,7 +340,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
                 {Object.entries(navamsamSummary.d9ByPlanet).map(([planet, rasi]) => (
                   <div key={planet} style={{
                     padding: "var(--space-1) var(--space-2_5)", borderRadius: "var(--radius-pill)",
-                    background: "#FAF5EA", border: "1px solid var(--color-border)",
+                    background: "var(--panel-cream)", border: "1px solid var(--color-border)",
                     fontSize: "0.75rem", color: "var(--color-text)",
                   }}>
                     {lang === "ta" ? (PLANET_NAMES_TA[planet] ?? planet) : planet}
@@ -356,7 +356,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
 
       {/* ── This year's guidance ── */}
       <div style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", background: "var(--color-surface)", border: "1px solid var(--color-border)", fontFamily: "var(--font-body)" }}>
-        <p className="cd-kicker" style={{ marginBottom: "var(--space-2)", color: "#1e5a8c", letterSpacing: "0.1em" }}>
+        <p className="cd-kicker" style={{ marginBottom: "var(--space-2)", color: "var(--planet-other)", letterSpacing: "0.1em" }}>
           {t("jadhagam_year_guidance", lang)}
         </p>
         <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-text-strong)", lineHeight: 1.6 }}>
@@ -379,7 +379,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
       </Section>
 
       {/* ── Remedies ── */}
-      <div style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.25)", fontFamily: "var(--font-body)" }}>
+      <div style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", background: "var(--chart-d1-lagna-bg)", border: "1px solid rgba(184,90,44,0.25)", fontFamily: "var(--font-body)" }}>
         <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", color: "var(--color-score-mid)", letterSpacing: "0.1em" }}>
           {t("jadhagam_remedies", lang)}
         </p>

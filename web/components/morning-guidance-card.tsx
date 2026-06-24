@@ -1,6 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
+import { Bell } from "lucide-react";
 import { apiFetchJson } from "@/lib/api";
 import type { Lang } from "@/lib/i18n";
 import type { NotificationPreferenceData } from "@/lib/types";
@@ -8,16 +9,16 @@ import type { NotificationPreferenceData } from "@/lib/types";
 type Props = { lang: Lang };
 
 const W = {
-  ink:      "#1A1612",
-  inkMid:   "#3D352B",
-  muted:    "#7A6F5E",
-  border:   "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface:  "#FAF5EA",
-  surfaceMd:"#F4EEE2",
-  card:     "#FFFFFF",
-  terracota:"#B85A2C",
-  sage:     "#5C7654",
+  ink:      "var(--panel-earth-dark)",
+  inkMid:   "var(--panel-earth)",
+  muted:    "var(--color-faint)",
+  border:   "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface:  "var(--panel-cream)",
+  surfaceMd:"var(--panel-hover)",
+  card:     "var(--chart-cell-default)",
+  terracota:"var(--panel-brand)",
+  sage:     "var(--chart-d9-active)",
 } as const;
 
 const TIME_PRESETS = [
@@ -163,12 +164,7 @@ export function MorningGuidanceCard({ lang }: Props) {
     }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-        <span style={{
-          fontSize: "1.25rem",
-          lineHeight: 1,
-          flexShrink: 0,
-          color: W.terracota,
-        }} aria-hidden>🔔</span>
+        <Bell size={20} color={W.terracota} strokeWidth={1.5} aria-hidden="true" style={{ flexShrink: 0 }} />
         <div style={{ flex: 1 }}>
           <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: W.terracota }}>
             {lang === "ta" ? "காலை வழிகாட்டல்" : "Morning Guidance"}
