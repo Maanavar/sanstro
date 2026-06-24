@@ -6,6 +6,7 @@ import { BetaSystem } from "@/components/beta-system";
 import { PostHogProvider } from "@/components/posthog-provider";
 import { LangProvider } from "@/components/lang-toggle";
 import { LANG_COOKIE_NAME, type Lang } from "@/lib/i18n";
+import { Toaster } from "sonner";
 
 import "./globals.css";
 
@@ -158,6 +159,7 @@ export default async function RootLayout({
     >
       <head>
         <meta charSet="utf-8" />
+        <meta name="color-scheme" content="light dark" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG_JSONLD) }}
@@ -167,7 +169,14 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSONLD) }}
         />
       </head>
-      <body><LangProvider initialLang={initialLang}><PostHogProvider /><BetaSystem />{children}</LangProvider></body>
+      <body>
+        <LangProvider initialLang={initialLang}>
+          <PostHogProvider />
+          <BetaSystem />
+          {children}
+          <Toaster position="bottom-center" />
+        </LangProvider>
+      </body>
     </html>
   );
 }

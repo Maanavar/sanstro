@@ -11,12 +11,18 @@
     "screenshots": "node scripts/capture-screenshots.mjs"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.4.0",
     "@vinaadi/shared": "workspace:*",
     "firebase": "^12.14.0",
+    "framer-motion": "^12.40.0",
+    "lucide-react": "^1.21.0",
     "next": "^15.0.0",
     "posthog-js": "^1.386.6",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.80.0",
+    "sonner": "^2.0.7",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",

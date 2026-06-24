@@ -1,41 +1,156 @@
+/* ── Design Tokens — Warm Cosmic Minimalism ─────────────────
+   Generated from packages/design-tokens/tokens.json v1.0
+   Dark theme is primary (marketing shell + dashboard).
+   Light theme overrides are defined below, activated in Phase 5.
+   ─────────────────────────────────────────────────────────── */
 :root {
-  color-scheme: dark;
-  --color-surface: #111827;
-  --color-surface-2: #1f2937;
-  --color-surface-3: #374151;
-  --color-border: #334155;
-  --color-text: #e5e7eb;
-  --color-muted: #94a3b8;
-  /* Primary accent: golden (was cold indigo) */
-  --color-accent: #e5b84d;
-  --color-accent-muted: rgba(229, 184, 77, 0.18);
-  --color-on-accent: #0a0800;
-  /* Secondary accent: sky blue (demoted indigo) */
-  --color-accent-secondary: #93c5fd;
+  color-scheme: light dark;
+
+  /* Surface tokens */
+  --surface-0: #0D0F1A;
+  --surface-1: #151825;
+  --surface-2: #1E2235;
+  --surface-3: #252A40;
+  --surface-4: #0A0C14;
+  --surface-5: #2A3050;
+
+  /* Text tokens */
+  --text-primary:   #F0EBE0;
+  --text-secondary: #B8A88A;
+  --text-tertiary:  #9A8A70;
+  --text-disabled:  #4A3E2E;
+
+  /* Accent */
+  --accent:        #C9971C;
+  --accent-hover:  #E0AE28;
+  --accent-subtle:    #1E1A0A;
+  --accent-on-light:  #8B6412;
+
+  /* Semantic */
+  --success:        #3DAA6A;
+  --success-subtle: #0A1E14;
+  --warning:        #E08A20;
+  --warning-subtle: #1E1200;
+  --error:          #E05040;
+  --error-subtle:   #1E0A08;
+  --info:           #5080E0;
+  --info-subtle:    #080E1E;
+  --overlay:        rgba(0, 0, 0, 0.7);
+
+  /* Spacing */
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  12px;
+  --space-lg:  16px;
+  --space-xl:  24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+  --space-4xl: 64px;
+
+  /* Radius */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   16px;
+  --radius-xl:   24px;
+  --radius-full: 9999px;
+
+  /* Duration */
+  --duration-fast:   150ms;
+  --duration-base:   250ms;
+  --duration-slow:   400ms;
+  --duration-slower: 600ms;
+  --easing-default:  cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Icon */
+  --icon-stroke: 1.5px;
+
+  /* Skeleton shimmer */
+  --shimmer-base: var(--surface-1);
+  --shimmer-peak: var(--surface-2);
+
+  /* Warm panel context — parchment drawers, knowledge surfaces, light forms */
+  --panel-brand:        #B05220;
+  --panel-brand-border: rgba(184, 90, 44, 0.4);
+  --panel-cream:        #FAF5EA;
+  --panel-earth:        #3D352B;
+  --panel-tan:          #D4C8AE;
+  --panel-tan-light:    #E4DBC8;
+  --panel-hover:        #F4EEE2;
+  --panel-shadow:       rgba(26, 22, 18, 0.12);
+
+  /* Score / confidence colors */
+  --color-score-high: #3DAA6A;
+  --color-score-mid:  #E08A20;
+  --color-score-low:  #E05040;
+  --color-faint:      #9A8A70;
+
+  /* Astrology / planet semantic colors */
+  --planet-lagna:  #8c3e18;
+  --planet-saturn: #A8482F;
+  --planet-nodes:  #5a4880;
+  --planet-other:  #1e5a8c;
+
+  /* Chart cell states — warm panel context */
+  --chart-bg:               #E4DBC8;  /* chart grid background */
+  --chart-cell-default:     #FFFFFF;  /* default cell fill */
+  --chart-cell-selected:    #EDE5D4;  /* selected/hover cell */
+  --chart-d1-lagna-bg:      #F0D9C4;  /* D1 Lagna cell */
+  --chart-d1-lagna-border:  rgba(184, 90, 44, 0.5);
+  --chart-d1-active:        #B85A2C;  /* D1 tab / accent */
+  --chart-d1-active-text:   #8c3e18;
+  --chart-d9-lagna-bg:      #DCE4D2;  /* D9 Lagna cell */
+  --chart-d9-lagna-border:  rgba(92, 118, 84, 0.5);
+  --chart-d9-active:        #5C7654;  /* D9 tab / accent */
+  --chart-d9-active-dark:   #3a6b40;
+  --chart-d9-active-bg:     #DCE4D2;
+  --panel-earth-dark:       #1A1612;  /* darkest warm text — headings on light */
+  /* Additional warm panel tints */
+  --panel-warm-tint:  #F2D8CC;
+  --panel-warm-light: #F8E4D2;
+  --panel-mid-earth:  #675B4B;
+  --color-error-light: #F87171;
+  /* Extended semantic palette */
+  --color-info-light:  #EEF1F8;   /* light blue info background */
+  --panel-golden:      #E7BE57;   /* rich golden tint */
+  --panel-cream-light: #FBF7EF;   /* very light parchment (panchangam/calendar) */
+  --panel-warm-gold:   #FFE9C2;   /* warm golden highlight */
+  --panel-terracotta:  #B4622D;   /* warm terracotta accent */
+  --color-indigo:      #6366F1;   /* indigo — premium/plan indicator */
+  --color-violet:      #A78BFA;   /* violet — secondary accent */
+  --chart-amber:       #E5B84D;   /* marketing gold / score amber */
+
+  /* ── Backward-compat aliases — existing CSS classes reference these ── */
+  --color-surface:   var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border:    var(--surface-5);
+  --color-text:      var(--text-primary);
+  --color-muted:     var(--text-secondary);
+  --color-accent:              var(--accent);
+  --color-accent-muted:        var(--accent-subtle);
+  --color-on-accent:           #0a0800;
+  --color-accent-secondary:       #93c5fd;
   --color-accent-secondary-muted: rgba(147, 197, 253, 0.15);
-  /* Semantic alert tokens */
-  --color-alert-critical: #f87171;
-  --color-alert-caution: #fbbf24;
-  --color-positive: #4ade80;
+  --color-alert-critical: var(--error);
+  --color-alert-caution:  var(--warning);
+  --color-positive:       var(--success);
 }
 
+/* Light theme token overrides — activated in Phase 5. */
 @media (prefers-color-scheme: light) {
   :root {
-    color-scheme: dark;
-    --color-surface: #111827;
-    --color-surface-2: #1f2937;
-    --color-surface-3: #374151;
-    --color-border: #334155;
-    --color-text: #e5e7eb;
-    --color-muted: #94a3b8;
-    --color-accent: #e5b84d;
-    --color-accent-muted: rgba(229, 184, 77, 0.18);
-    --color-on-accent: #0a0800;
-    --color-accent-secondary: #93c5fd;
-    --color-accent-secondary-muted: rgba(147, 197, 253, 0.15);
-    --color-alert-critical: #f87171;
-    --color-alert-caution: #fbbf24;
-    --color-positive: #4ade80;
+    color-scheme: light;
+    --surface-0: #FAF7F2; --surface-1: #F3EEE5; --surface-2: #EAE3D6;
+    --surface-3: #DDD6C8; --surface-4: #CFC7B5; --surface-5: #B8AFA0;
+    --text-primary: #1C1008; --text-secondary: #4A3820;
+    --text-tertiary: #9A8A70; --text-disabled: #A89880;
+    --accent: #C9971C; --accent-hover: #A87D18; --accent-subtle: #FDF3DC;
+    --success: #2D7A4F; --success-subtle: #EAF5EF;
+    --warning: #B86A00; --warning-subtle: #FEF3E2;
+    --error: #C0392B;   --error-subtle:   #FDE8E6;
+    --info:  #1D5EA8;   --info-subtle:    #E8F0FC;
+    --overlay: rgba(28, 16, 8, 0.5);
+    --shimmer-base: var(--surface-1); --shimmer-peak: var(--surface-2);
   }
 }
 
@@ -52,7 +167,7 @@ html {
 body {
   margin: 0;
   min-width: 320px;
-  background: #05070d;
+  background: var(--surface-0);
   color: var(--color-text);
   font-family: var(--font-body), var(--font-tamil), ui-sans-serif, system-ui, sans-serif;
 }
@@ -673,6 +788,57 @@ a {
   line-height: 1.5;
 }
 
+/* Field validation states — Design Constitution §7.3 */
+.field__error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--type-small, 0.8125rem);
+  color: var(--error);
+  line-height: 1.4;
+}
+.field__error svg { flex-shrink: 0; }
+
+.field__success {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--type-small, 0.8125rem);
+  color: var(--success);
+}
+
+.input--error,
+.select--error {
+  border-color: var(--error) !important;
+  border-width: 2px;
+}
+.input--error:focus,
+.select--error:focus {
+  border-color: var(--error) !important;
+  box-shadow: 0 0 0 3px var(--error-subtle);
+}
+
+.input--valid {
+  border-color: var(--success);
+  padding-right: 2.25rem;
+}
+
+/* Wrapper for input + success icon overlay */
+.input-wrapper {
+  position: relative;
+}
+.input-wrapper .input {
+  width: 100%;
+}
+.input-wrapper__check {
+  position: absolute;
+  right: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--success);
+  pointer-events: none;
+}
+
 .input,
 .select {
   width: 100%;
@@ -1273,6 +1439,63 @@ button:focus-visible,
 @keyframes drift {
   from { transform: translate3d(-1%, -1%, 0) scale(1); }
   to   { transform: translate3d(1%, 1%, 0) scale(1.04); }
+}
+
+@keyframes shimmer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+/* Skeleton shimmer utility — GPU-composited (transform only, no Paint).
+   Add class="skel" and set width/height for shape. */
+.skel {
+  position: relative;
+  overflow: hidden;
+  background: var(--shimmer-base);
+  border-radius: var(--radius-sm);
+}
+.skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--shimmer-peak) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skel::after { animation: none; }
+}
+
+/* Lazy panel loading shell — used by dynamic import fallbacks */
+.lazy-panel-fallback {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-xl) 0;
+}
+
+/* ── Sonner toast overrides — design token integration ───── */
+[data-sonner-toaster] {
+  --normal-bg:      var(--surface-2);
+  --normal-text:    var(--text-primary);
+  --normal-border:  var(--surface-5);
+  --success-bg:     var(--success-subtle);
+  --success-text:   var(--success);
+  --success-border: var(--success);
+  --error-bg:       var(--error-subtle);
+  --error-text:     var(--error);
+  --error-border:   var(--error);
+}
+[data-sonner-toast] {
+  border-radius: var(--radius-md) !important;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 0.875rem;
+  border: 1px solid var(--normal-border) !important;
 }
 
 /* ── Responsive ───────────────────────────────────────────── */
