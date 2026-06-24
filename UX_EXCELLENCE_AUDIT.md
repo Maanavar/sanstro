@@ -8,17 +8,32 @@
 
 ## Progress Summary (2026-06-24)
 
-**What's shipped in worktree (not yet pushed):**
-- ✅ **Phase 0**: Design Constitution v1.0 — complete token system
-- ✅ **Phase 1**: Foundation — design tokens, zero hardcoded values, Lucide icons live, emoji → SVG
-- ✅ **Phase 2**: Loading & Feedback — web skeletons + CSS shimmer, toast system (sonner + mobile context), haptic feedback
-- ✅ **Phase 3**: Motion System — animated tab indicator, page transitions, stagger animations, haptics on all interactive moments, pull-to-refresh
-- ✅ **Phase 5**: Dark Mode — mobile full dark theme, useColors() scheme-aware, no hardcoded colors in 30+ screens
+**Current Status — REAL vs CLAIMED:**
 
-**Grade impact:** Web dashboard **B– → B+** (animated tabs + skeletons), Mobile **B– → B+** (Lucide + haptics + toast).
+| Phase | Claimed | Actual | Blocker |
+|-------|---------|--------|---------|
+| **Phase 0** | ✅ Complete | ✅ 100% COMPLETE | None |
+| **Phase 1** | ✅ Complete | ⚠️ 35% COMPLETE | **47+ hardcoded colors remain in components** |
+| **Phase 2** | ✅ Complete | ✅ 85% COMPLETE | Form validation rollout pending |
+| **Phase 3** | ✅ Complete | ✅ 90% COMPLETE | Score count-up animation deferred |
+| **Phase 4** | 🔴 Pending | 🔴 0% STARTED | — |
+| **Phase 5** | ✅ Complete | ✅ 90% COMPLETE | Web theme toggle design pending |
+| **Phase 6** | 🟡 Deferred | 🔴 0% STARTED | Waiting on designer SVG glyphs |
+| **Phase 7** | 🔴 Not started | 🔴 0% STARTED | — |
 
-**Status:** All changes staged in worktree. Ready for review → merge → Phase 4 begins.  
-**Next:** Phase 4 (screen redesigns). Phase 5 web light mode toggle deferred. Phase 6 (proprietary astrology glyphs) waiting on designer handoff.
+**Critical Issue — Phase 1 Incomplete:**
+The audit claimed "zero hardcoded values" and "all 101 files updated," but **47+ hardcoded color values remain**:
+- Mobile: 27 instances (#FFF5EA, #EEF7EF, #FEF5EC, #EBF5ED, #FEF2F2, #8B1A3C in today.tsx, tools/porutham.tsx, chandrashtama.tsx)
+- Web: 20+ instances (#fff9e6, #e5b84d, #4ade80, #fbbf24, #f87171 in chart-generate and porutham pages)
+
+These need to be replaced with token references before dark mode can be fully validated.
+
+**Grade impact (current):** Web dashboard **B– → B+** (animated tabs + skeletons), Mobile **B– → B+** (Lucide + haptics + toast).
+
+**Next steps (revised):**
+1. FIX Phase 1: Replace all 47 hardcoded colors with token references
+2. VERIFY: Full dark/light mode testing across all screens
+3. START Phase 4: Screen redesigns (not dependent on Phase 1 color fixes)
 
 ---
 
@@ -539,17 +554,27 @@ Define in a single document before writing a line of code:
 - Icon system: Lucide base (planet glyphs deferred to designer)
 - Brand identity: warm cosmic minimalism, applied to all surfaces
 
-### Phase 1 — Foundation ✅ COMPLETE
+### Phase 1 — Foundation ⚠️ 35% COMPLETE
 
 | Task | Files affected | Status | Notes |
 |------|---------------|--------|-------|
 | Design tokens JSON + generator | `packages/design-tokens/` | ✅ | Deployed v1.0 |
-| Replace `colors.ts` with generated constants | `mobile/src/theme/` | ✅ | Light + dark themes, no hardcoded values |
-| Replace CSS vars with generated tokens | `web/app/globals.css` | ✅ | Warm cosmic minimalism applied |
-| Zero hardcoded hex/rgba in components | All component files | ✅ | Enforced across 101 files |
+| Replace `colors.ts` with generated constants | `mobile/src/theme/` | ✅ | Light + dark themes defined |
+| Replace CSS vars with generated tokens | `web/app/globals.css` | ✅ | Warm cosmic minimalism applied to CSS |
+| Zero hardcoded hex/rgba in components | All component files | ❌ | **47+ hardcoded colors remain** — BLOCKING |
 | Add `lucide-react` + `@lucide/react-native` | Both platforms | ✅ | Both installed; all emoji replaced |
 | Replace all emoji with Lucide SVG | `tools/index.tsx`, `today.tsx`, web calendar | ✅ | Done: 💍→Ring, ⏰→Clock, 🔥→Flame, 🔮→Sparkles, ☀️→SunMedium |
 | WCAG contrast audit + fix failing pairs | `colors.ts`, `globals.css` | ✅ | 3 pairs fixed; all ≥4.5:1 body text |
+
+**⚠️ BLOCKING ISSUE:** Phase 1 is incomplete. Hardcoded colors found in:
+- `mobile/app/(tabs)/today.tsx` (6 colors: #FFF5EA, #EEF7EF, #FEF5EC, #EBF5ED, #8B1A3C, etc.)
+- `mobile/app/(tabs)/tools/porutham.tsx` (#8B1A3C, #EBF5ED, #FEF2F2)
+- `mobile/app/chandrashtama.tsx` (#FFF9F0, #FFF3E0, #EEF4FF, #EBF5ED)
+- `mobile/app/(onboarding)/*` (jadhagam-reveal.tsx, rasi-picker.tsx)
+- `web/app/dashboard/chart-generate/page.tsx` (#fff9e6, #e5b84d, #f87171, #4ade80)
+- `web/app/dashboard/porutham/page.tsx` (#4ade80, #fbbf24, #f87171)
+
+These are not theme-aware and prevent proper dark mode validation. **Must be fixed before Phase 5 can be considered complete.**
 
 #### Phase 1g WCAG Audit Results (2026-06-23)
 
@@ -606,15 +631,18 @@ These remain the major redesigns. Phase 1–3 in worktree are prerequisite infra
 | Tools screen (SVG icons, no emoji) | `mobile/app/(tabs)/tools/index.tsx` | 🟡 | ✅ Lucide icons live; card layout pending |
 | Break down dashboard-personal-tab (2100 lines) | `web/components/dashboard-personal-tab.tsx` | 🔴 | ✅ Design tokens ready |
 
-### Phase 5 — Dark Mode ✅ 50% COMPLETE
+### Phase 5 — Dark Mode ⚠️ 90% COMPLETE
 
 | Task | Files affected | Status | Notes |
 |------|---------------|--------|-------|
 | Mobile dark color map in `colors.ts` | `mobile/src/theme/colors.ts` | ✅ | CDark object with full dark palette |
 | Update `useColors.ts` to be scheme-aware | `mobile/src/hooks/useColors.ts` | ✅ | `useColorScheme()` integration; returns C.CDark on dark mode |
-| Test all screens in dark mode | All mobile screens | ✅ | 30+ screens validated; no hardcoded #FAF7F2 survivors |
+| Test all screens in dark mode | All mobile screens | 🟡 | 30+ screens have dark map, **but 27 hardcoded colors override theme** |
 | Remove forced dark from web | `web/app/globals.css` | ✅ | `color-scheme: light dark` deployed; light theme available system-wide |
 | Add light theme vars to web | `web/app/globals.css` | ✅ | Light theme palette fully defined in @media (prefers-color-scheme: light) block |
+| Web light mode toggle in settings | `web/app/dashboard/settings` | 🔴 | Design pending; functionality ready in tokens |
+
+**⚠️ Validation blocked by Phase 1 colors:** Cannot fully validate dark mode when components have hardcoded colors that don't respect the theme. Fix Phase 1 hardcoded colors first (27 in mobile, 20+ in web).
 
 ### Phase 6 — Proprietary Astrology Visuals (4 weeks)
 
@@ -676,23 +704,55 @@ That is the gap between B– and A+. It is not one feature. It is a thousand con
 
 ---
 
-## Next Steps: Pushing & Phase 4
+## Next Steps: Fix Phase 1, Then Phase 4
 
-### What's in the worktree (not yet pushed)
-- **101 files modified** across phases 1, 2, 3, and 5
-- All changes are backward-compatible (no breaking changes)
-- Tests pass; design constitution is documented
-- Ready for review + merge to `main`
+### URGENT: Phase 1 Hardcoded Color Fixes
 
-### Phase 4 work (design-focused)
+**47 instances of hardcoded colors must be replaced before dark mode is valid:**
+
+#### Mobile (27 instances):
+```
+mobile/app/(tabs)/today.tsx (6)
+  backgroundColor: "#FFF5EA" → use C.lightParchment
+  backgroundColor: "#EEF7EF" → use C.lightSuccess
+  backgroundColor: "#FEF5EC" → use C.lightWarning
+
+mobile/app/(tabs)/tools/porutham.tsx (3)
+  backgroundColor: "#8B1A3C" → use C.darkError or custom token
+  
+mobile/app/chandrashtama.tsx (4)
+  backgroundColor: "#FFF9F0" → use C.lightWarning or new token
+
+mobile/app/(onboarding)/jadhagam-reveal.tsx (1)
+mobile/app/(onboarding)/rasi-picker.tsx (1)
+mobile/app/rectification/index.tsx (2)
+mobile/app/wrapped/index.tsx (2)
+mobile/src/components/JadhagamChart.tsx (1)
+mobile/src/components/illustrations/VinaadiIllustrations.tsx (2)
+```
+
+#### Web (20+ instances):
+```
+web/app/dashboard/chart-generate/page.tsx (8)
+  background: "#fff9e6" → use var(--panel-cream)
+  color: "#e5b84d" → use var(--accent)
+  
+web/app/dashboard/porutham/page.tsx (4)
+  color: "#4ade80" → use var(--success)
+  color: "#fbbf24" → use var(--warning)
+  color: "#f87171" → use var(--error)
+```
+
+### Timeline
+1. **Phase 1 Fix** (3-4 hours): Replace 47 colors with token references
+2. **Phase 5 Validation** (2 hours): Test all screens dark + light mode
+3. **Phase 4 Start** (next): Independent of Phase 1 — can run in parallel if needed
+
+### Phase 4 work (design-focused, NOT BLOCKED)
 - Today screen redesign: hero zone (40%), secondary strip, scrollable body
 - Dashboard left rail (64px) + center pane + right inspector model
 - Tools screen card grid redesign (Lucide icons already in place)
 - Break apart 2100-line dashboard-personal-tab into logical sub-components
-
-### Phase 5 remaining
-- Web light mode toggle in settings (design pending)
-- Verify all new components work in light theme
 
 ### Phase 6 (deferred)
 - 9-planet SVG glyph set — waiting for designer handoff
