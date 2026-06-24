@@ -1,20 +1,23 @@
-import React, { useMemo, useRef, useState } from "react";
+﻿import React, { useMemo, useRef, useState } from "react";
+import { AlertTriangle, Home } from "lucide-react-native";
 import {
-  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useToast } from "@/context/ToastContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import Svg, { Circle, Line, Polygon, Text as SvgText } from "react-native-svg";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -34,12 +37,12 @@ const RELATIONSHIP_TA: Record<string, string> = {
   self: "நான்", other: "மற்றவர்",
 };
 
-function scoreColor(score: number): string {
+function scoreColor(score: number, C: ColorTokens): string {
   if (score >= 7) return C.green;
   if (score >= 4) return C.amber;
   return C.alert;
 }
-function synastryScoreColor(score: number): string {
+function synastryScoreColor(score: number, C: ColorTokens): string {
   if (score >= 65) return C.green;
   if (score >= 45) return C.amber;
   return C.alert;
@@ -60,7 +63,7 @@ function isTensionTone(tone: string): boolean {
   return normalized === "tension" || normalized === "challenging";
 }
 
-function toneColor(tone: string): string {
+function toneColor(tone: string, C: ColorTokens): string {
   if (isHarmonyTone(tone)) return C.green;
   if (isTensionTone(tone)) return C.alert;
   return C.amber;
@@ -91,6 +94,8 @@ function MemberCard({
   onPress: () => void;
   isTamil: boolean;
 }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const relLabel = isTamil
     ? (RELATIONSHIP_TA[member.relationship.toLowerCase()] ?? member.relationship)
     : member.relationship;
@@ -101,8 +106,8 @@ function MemberCard({
       onPress={onPress}
       activeOpacity={0.85}
     >
-      <View style={[styles.memberAvatar, { backgroundColor: scoreColor(member.score) + "22" }]}>
-        <Text style={[styles.memberInitial, { color: scoreColor(member.score) }]}>
+      <View style={[styles.memberAvatar, { backgroundColor: scoreColor(member.score, C) + "22" }]}>
+        <Text style={[styles.memberInitial, { color: scoreColor(member.score, C) }]}>
           {member.name.charAt(0).toUpperCase()}
         </Text>
       </View>
@@ -132,6 +137,8 @@ function MemberDetail({
   onAskVinaadi: () => void;
   onOpenSynastry: () => void;
 }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const canCompare = member.relationship.toLowerCase() !== "self";
 
   return (
@@ -148,8 +155,9 @@ function MemberDetail({
           </Text>
           {member.chandrashtama && (
             <View style={styles.chandraChip}>
+              <AlertTriangle size={10} color={C.caution} strokeWidth={2} />
               <Text style={styles.chandraChipText}>
-                {isTamil ? "⚠️ சந்திராஷ்டமம்" : "⚠️ Chandrashtama"}
+                {isTamil ? "சந்திராஷ்டமம்" : "Chandrashtama"}
               </Text>
             </View>
           )}
@@ -238,6 +246,7 @@ function buildRadarFactors(data: SynastryData): RadarFactor[] {
 }
 
 function RadarChart({ factors }: { factors: RadarFactor[] }) {
+  const C = useColors();
   const size = 236;
   const center = size / 2;
   const radius = 78;
@@ -318,6 +327,8 @@ function NoteCluster({
   isTamil: boolean;
   tone: "harmony" | "tension";
 }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   if (notes.length === 0) return null;
   const color = tone === "harmony" ? C.green : C.alert;
   return (
@@ -336,7 +347,9 @@ function NoteCluster({
 }
 
 function AspectRow({ aspect, isTamil }: { aspect: SynastryAspect; isTamil: boolean }) {
-  const color = toneColor(aspect.tone);
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  const color = toneColor(aspect.tone, C);
   return (
     <View style={styles.aspectRow}>
       <View style={[styles.aspectDot, { backgroundColor: color }]} />
@@ -370,8 +383,10 @@ function SynastryRadarSheet({
   onRetry: () => void;
   isTamil: boolean;
 }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const factors = useMemo(() => (data ? buildRadarFactors(data) : []), [data]);
-  const scoreColorValue = data ? synastryScoreColor(data.score) : C.saffron;
+  const scoreColorValue = data ? synastryScoreColor(data.score, C) : C.saffron;
 
   return (
     <>
@@ -463,6 +478,9 @@ function SynastryRadarSheet({
 }
 
 export default function FamilyVaultScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  const { showError } = useToast();
   const { lang } = useI18n();
   const isTamil = lang === "ta";
   const { tier } = useSession();
@@ -470,6 +488,12 @@ export default function FamilyVaultScreen() {
   const [synastryMember, setSynastryMember] = useState<FamilyMemberDayView | null>(null);
   const synastrySheetRef = useRef<BottomSheet>(null);
   const synastrySnapPoints = useMemo(() => ["58%", "92%"], []);
+
+  // Vault name input sheet state
+  const [vaultNameSheetOpen, setVaultNameSheetOpen] = useState(false);
+  const [vaultNameInput, setVaultNameInput] = useState("");
+  const vaultNameSheetRef = useRef<BottomSheet>(null);
+  const vaultNameSnapPoints = useMemo(() => ["35%"], []);
 
   const {
     data: vaultsData,
@@ -547,7 +571,7 @@ export default function FamilyVaultScreen() {
           </Text>
         </View>
         <View style={styles.gateContainer}>
-          <Text style={styles.gateIcon}>🏠</Text>
+          <Home size={56} color={C.gold} strokeWidth={1} style={{ marginBottom: S.sm }} />
           <Text style={[styles.gateTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
             {isTamil ? "குடும்ப Vault — Premium" : "Family Vault — Premium Feature"}
           </Text>
@@ -571,24 +595,22 @@ export default function FamilyVaultScreen() {
   }
 
   function handleCreateVault() {
-    Alert.prompt(
-      isTamil ? "Vault பெயர்" : "Vault Name",
-      isTamil ? "உங்கள் குடும்ப Vault-க்கு பெயர் கொடுங்கள்" : "Give your family vault a name",
-      async (name) => {
-        if (!name?.trim()) return;
-        try {
-          await createFamilyVault(name.trim());
-          refetchVaults();
-        } catch {
-          Alert.alert(
-            isTamil ? "பிழை" : "Error",
-            isTamil ? "Vault உருவாக்க முடியவில்லை." : "Could not create vault."
-          );
-        }
-      },
-      "plain-text",
-      isTamil ? "என் குடும்பம்" : "My Family"
-    );
+    setVaultNameInput(isTamil ? "என் குடும்பம்" : "My Family");
+    setVaultNameSheetOpen(true);
+    vaultNameSheetRef.current?.snapToIndex(0);
+  }
+
+  async function submitCreateVault() {
+    const name = vaultNameInput.trim();
+    if (!name) return;
+    vaultNameSheetRef.current?.close();
+    setVaultNameSheetOpen(false);
+    try {
+      await createFamilyVault(name);
+      refetchVaults();
+    } catch {
+      showError(isTamil ? "Vault உருவாக்க முடியவில்லை" : "Could not create vault.");
+    }
   }
 
   return (
@@ -705,11 +727,46 @@ export default function FamilyVaultScreen() {
           />
         </BottomSheetScrollView>
       </BottomSheet>
+
+      {/* Vault name input sheet — replaces Alert.prompt (iOS-only) */}
+      <BottomSheet
+        ref={vaultNameSheetRef}
+        index={-1}
+        snapPoints={vaultNameSnapPoints}
+        enablePanDownToClose
+        onClose={() => setVaultNameSheetOpen(false)}
+        backgroundStyle={styles.synastrySheetBg}
+        handleIndicatorStyle={styles.synastrySheetHandle}
+      >
+        <View style={styles.vaultInputSheet}>
+          <Text style={styles.vaultInputTitle}>
+            {isTamil ? "Vault பெயர்" : "Vault Name"}
+          </Text>
+          <Text style={styles.vaultInputBody}>
+            {isTamil ? "உங்கள் குடும்ப Vault-க்கு பெயர் கொடுங்கள்" : "Give your family vault a name"}
+          </Text>
+          <TextInput
+            style={styles.vaultInput}
+            value={vaultNameInput}
+            onChangeText={setVaultNameInput}
+            autoFocus
+            returnKeyType="done"
+            onSubmitEditing={submitCreateVault}
+            placeholderTextColor={C.textTertiary}
+          />
+          <TouchableOpacity style={styles.vaultInputSubmit} onPress={submitCreateVault}>
+            <Text style={styles.vaultInputSubmitText}>
+              {isTamil ? "உருவாக்கு" : "Create"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheet>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
   header: {
     flexDirection: "row",
@@ -757,7 +814,7 @@ const styles = StyleSheet.create({
   memberName: { fontSize: 13, lineHeight: 18, textAlign: "center" },
   memberRel: { color: C.textTertiary, textAlign: "center", fontSize: 11, lineHeight: 16 },
   detailCard: {
-    backgroundColor: "#1A2540",
+    backgroundColor: C.darkBg,
     borderRadius: RADIUS.card,
     padding: S.base,
     gap: S.base,
@@ -769,19 +826,22 @@ const styles = StyleSheet.create({
   },
   detailScoreRow: { flexDirection: "row", gap: S.base, alignItems: "center" },
   detailScoreInfo: { flex: 1, gap: S.xs },
-  detailName: { color: "#FFFFFF" },
-  detailLabel: { color: "rgba(255,255,255,0.70)" },
+  detailName: { color: C.indigoText },
+  detailLabel: { color: C.indigoText, opacity: 0.7 },
   chandraChip: {
-    backgroundColor: "#FEF5EC",
+    backgroundColor: C.goldMethodLight,
     borderRadius: RADIUS.chip,
     paddingHorizontal: S.sm,
     paddingVertical: 3,
     alignSelf: "flex-start",
     borderWidth: 1,
     borderColor: C.caution,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 3,
   },
   chandraChipText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: C.caution },
-  highlight: { color: "rgba(255,255,255,0.90)", lineHeight: 22 },
+  highlight: { color: C.indigoText, opacity: 0.9, lineHeight: 22 },
   timingsRow: { flexDirection: "row", gap: S.sm },
   timingChip: {
     flex: 1,
@@ -789,12 +849,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: S.sm,
     gap: S.xs,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: C.indigoText + "14",
   },
   timingLabel: { fontFamily: "Inter_600SemiBold", fontSize: 11 },
-  timingValue: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: "#FFFFFF" },
+  timingValue: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: C.indigoText },
   askBtn: {
-    backgroundColor: "rgba(212,97,26,0.18)",
+    backgroundColor: C.saffron + "2E",
     borderRadius: RADIUS.button,
     borderWidth: 1,
     borderColor: C.saffron,
@@ -803,14 +863,14 @@ const styles = StyleSheet.create({
   },
   askBtnText: { color: C.amber },
   synastryBtn: {
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: C.indigoText + "1A",
     borderRadius: RADIUS.button,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.28)",
+    borderColor: C.indigoText + "47",
     padding: S.md,
     alignItems: "center",
   },
-  synastryBtnText: { color: "#FFFFFF", fontFamily: "Inter_700Bold" },
+  synastryBtnText: { color: C.indigoText, fontFamily: "Inter_700Bold" },
   synastrySheetBg: { backgroundColor: C.parchment },
   synastrySheetHandle: { backgroundColor: C.divider, width: 42 },
   synastrySheetScroll: { padding: S.base, gap: S.md, paddingBottom: S.xxl },
@@ -861,14 +921,14 @@ const styles = StyleSheet.create({
   sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 13, color: C.textPrimary },
   summaryText: { color: C.textSecond },
   notePanel: {
-    backgroundColor: "#EBF5ED",
+    backgroundColor: C.green + "22",
     borderRadius: RADIUS.card,
     borderWidth: 1,
-    borderColor: "rgba(45,122,58,0.20)",
+    borderColor: C.green + "33",
     padding: S.base,
     gap: S.sm,
   },
-  notePanelTension: { backgroundColor: "#FEF2F2", borderColor: "rgba(185,28,60,0.20)" },
+  notePanelTension: { backgroundColor: C.alert + "22", borderColor: C.alert + "33" },
   noteRow: { flexDirection: "row", gap: S.sm, alignItems: "flex-start" },
   noteDot: { width: 7, height: 7, borderRadius: 4, marginTop: 7 },
   noteText: { color: C.textSecond, flex: 1 },
@@ -897,7 +957,6 @@ const styles = StyleSheet.create({
     padding: S.xxl,
     gap: S.base,
   },
-  gateIcon: { fontSize: 56, marginBottom: S.sm },
   gateTitle: { color: C.textPrimary, textAlign: "center" },
   gateSub: { color: C.textSecond, textAlign: "center", lineHeight: 22 },
   upgradeBtn: {
@@ -926,4 +985,46 @@ const styles = StyleSheet.create({
     marginTop: S.sm,
   },
   createBtnText: { color: C.surface, fontFamily: "Inter_700Bold" },
-});
+  vaultInputSheet: {
+    flex: 1,
+    paddingHorizontal: S.xl,
+    paddingTop: S.lg,
+    paddingBottom: S["2xl"],
+    gap: S.md,
+  },
+  vaultInputTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: C.textPrimary,
+  },
+  vaultInputBody: {
+    fontSize: 14,
+    color: C.textSecond,
+    lineHeight: 20,
+  },
+  vaultInput: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: C.divider,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: S.lg,
+    fontSize: 15,
+    color: C.textPrimary,
+    backgroundColor: C.parchment,
+    marginTop: S.sm,
+  },
+  vaultInputSubmit: {
+    height: 48,
+    borderRadius: RADIUS.md,
+    backgroundColor: C.gold,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: S.sm,
+  },
+  vaultInputSubmitText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: C.indigoText,
+  },
+  });
+}

@@ -1,11 +1,13 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Lock } from "lucide-react-native";
 import {
   ScrollView, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -21,7 +23,7 @@ import { getDosham } from "@/api/tools";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import type { DoshamFlag } from "@/api/tools";
 
-function severityColor(s: DoshamFlag["severity"]): string {
+function severityColor(s: DoshamFlag["severity"], C: ColorTokens): string {
   if (s === "severe") return C.alert;
   if (s === "moderate") return C.caution;
   if (s === "mild") return C.amber;
@@ -44,6 +46,8 @@ const HOW_CHECKED_ITEMS = [
 ];
 
 export default function DoshamScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { lang } = useI18n();
   const { tier } = useSession();
   const isTamil = lang === "ta";
@@ -108,18 +112,18 @@ export default function DoshamScreen() {
               return (
                 <TouchableOpacity
                   key={f.name_en}
-                  style={[styles.card, styles.cardDetected, { borderLeftColor: severityColor(f.severity) }]}
+                  style={[styles.card, styles.cardDetected, { borderLeftColor: severityColor(f.severity, C) }]}
                   onPress={() => setExpanded(isExpanded ? null : f.name_en)}
                   activeOpacity={0.85}
                 >
                   <View style={styles.cardRow}>
-                    <View style={[styles.statusDot, { backgroundColor: severityColor(f.severity) }]} />
+                    <View style={[styles.statusDot, { backgroundColor: severityColor(f.severity, C) }]} />
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.doshaName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
                         {isTamil ? f.name_ta : f.name_en}
                       </Text>
-                      <View style={[styles.severityBadge, { backgroundColor: severityColor(f.severity) + "22" }]}>
-                        <Text style={[styles.severityText, { color: severityColor(f.severity) }]}>
+                      <View style={[styles.severityBadge, { backgroundColor: severityColor(f.severity, C) + "22" }]}>
+                        <Text style={[styles.severityText, { color: severityColor(f.severity, C) }]}>
                           {severityLabel(f.severity, isTamil)}
                         </Text>
                       </View>
@@ -142,7 +146,7 @@ export default function DoshamScreen() {
                           </Text>
                           <TouchableOpacity
                             style={styles.pariharamCta}
-                            onPress={() => router.push("/(tabs)/tools/pariharam")}
+                            onPress={() => router.push('/(tabs)/tools/pariharam' as any)}
                           >
                             <Text style={styles.pariharamCtaText}>
                               {isTamil ? "முழு பரிகாரம் காண →" : "See full remedies →"}
@@ -183,6 +187,8 @@ export default function DoshamScreen() {
 }
 
 function Header({ isTamil, onWhyPress }: { isTamil: boolean; onWhyPress: (() => void) | null }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={styles.header}>
       <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
@@ -203,9 +209,11 @@ function Header({ isTamil, onWhyPress }: { isTamil: boolean; onWhyPress: (() => 
 }
 
 function GuestWall({ isTamil }: { isTamil: boolean }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={styles.guestWrap}>
-      <Text style={styles.lockIcon}>🔒</Text>
+      <Lock size={48} color={C.textTertiary} strokeWidth={1} />
       <Text style={[styles.guestTitle, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
         {isTamil ? "உள்நுழைவு தேவை" : "Login required"}
       </Text>
@@ -219,7 +227,8 @@ function GuestWall({ isTamil }: { isTamil: boolean }) {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
@@ -254,7 +263,7 @@ const styles = StyleSheet.create({
   expandedBody: { gap: S.sm, paddingLeft: S.md + S.xs },
   description: { color: C.textPrimary, lineHeight: 22 },
   pariharamBox: {
-    backgroundColor: "#FEF5EC", borderRadius: RADIUS.card, padding: S.md, gap: S.sm,
+    backgroundColor: C.goldMethodLight, borderRadius: RADIUS.card, padding: S.md, gap: S.sm,
     borderLeftWidth: 2, borderLeftColor: C.amber,
   },
   pariharamLabel: { color: C.caution },
@@ -273,7 +282,6 @@ const styles = StyleSheet.create({
   absentName: { fontSize: 13, color: C.textSecond },
 
   guestWrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: S.xxl, gap: S.md },
-  lockIcon: { fontSize: 48 },
   guestTitle: { fontSize: 18, color: C.textPrimary, textAlign: "center" },
   guestDesc: { color: C.textSecond, textAlign: "center" },
   loginBtn: {
@@ -281,4 +289,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: S.xl, paddingVertical: S.md, marginTop: S.sm,
   },
   loginBtnText: { fontFamily: "Inter_700Bold", fontSize: 15, color: C.surface },
-});
+  });
+}

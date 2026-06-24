@@ -1,4 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
+import { Star, Leaf, Briefcase, Heart, Clock, Diamond } from "lucide-react-native";
+import type { LucideIcon } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import {
   NativeScrollEvent,
@@ -14,7 +16,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { NAKSHATRA_LIST } from "@vinaadi/shared";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -67,6 +70,8 @@ function chunkStars(stars: NakshatraItem[]) {
 }
 
 export default function NatchathiramScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { lang } = useI18n();
   const isTamil = lang === "ta";
   const pagerRef = useRef<ScrollView>(null);
@@ -208,17 +213,17 @@ export default function NatchathiramScreen() {
 
               <View style={styles.posterMeta}>
                 <PosterMetaItem
-                  icon="🌟"
+                  Icon={Star}
                   label={isTamil ? "ஆட்சி கிரகம்" : "Ruling planet"}
                   value={isTamil ? attrs.planetTa : attrs.planet}
                 />
                 <PosterMetaItem
-                  icon="🔷"
+                  Icon={Diamond}
                   label={isTamil ? "குண வகை" : "Guna"}
                   value={isTamil ? attrs.gunaTa : attrs.guna}
                 />
                 <PosterMetaItem
-                  icon="🌿"
+                  Icon={Leaf}
                   label={isTamil ? "தத்துவம்" : "Element"}
                   value={isTamil ? attrs.elementTa : attrs.element}
                 />
@@ -257,21 +262,21 @@ export default function NatchathiramScreen() {
                 {isTamil ? "பொருத்தமான சூழல்கள்" : "Compatible Contexts"}
               </Text>
               <ContextRow
-                icon="💼"
+                Icon={Briefcase}
                 label={isTamil ? "தொழில்" : "Career"}
                 value={isTamil
                   ? `${attrs.planet === "Jupiter" || attrs.planet === "Sun" ? "தலைமை, ஆசிரியர், ஆட்சி சார்ந்த பணிகள்" : attrs.planet === "Mercury" ? "தகவல், வணிகம், கணக்கு சார்ந்த பணிகள்" : attrs.planet === "Mars" ? "நிர்வாகம், தொழில்நுட்பம், போர் சார்ந்த பணிகள்" : "கலை, அழகியல், தொழில் சார்ந்த பணிகள்"}`
                   : `${attrs.planet === "Jupiter" || attrs.planet === "Sun" ? "Leadership, teaching, governance roles" : attrs.planet === "Mercury" ? "Communication, trade, analytics roles" : attrs.planet === "Mars" ? "Engineering, administration, defence roles" : "Creative, aesthetic, commercial roles"}`}
               />
               <ContextRow
-                icon="💑"
+                Icon={Heart}
                 label={isTamil ? "திருமணம்" : "Marriage"}
                 value={isTamil
                   ? `${attrs.guna === "Divine" ? "தேவ குண நட்சத்திரங்களுடன் சிறந்த பொருத்தம்" : attrs.guna === "Human" ? "மனித குண நட்சத்திரங்களுடன் நல்ல பொருத்தம்" : "பொருத்தம் கணிக்க ஜாதக ஆய்வு அவசியம்"}`
                   : `${attrs.guna === "Divine" ? "Strong match with other Deva guna stars" : attrs.guna === "Human" ? "Good match with Human guna stars" : "Chart analysis required for compatibility"}`}
               />
               <ContextRow
-                icon="⏰"
+                Icon={Clock}
                 label={isTamil ? "சுப நேரம்" : "Auspicious timing"}
                 value={isTamil
                   ? `${attrs.planet} தசை / அந்தர் தசையில் இந்த நட்சத்திர நாட்கள் மிகவும் சிறப்பானவை`
@@ -314,20 +319,24 @@ export default function NatchathiramScreen() {
   );
 }
 
-function PosterMetaItem({ icon, label, value }: { icon: string; label: string; value: string }) {
+function PosterMetaItem({ Icon, label, value }: { Icon: LucideIcon; label: string; value: string }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={styles.posterMetaItem}>
-      <Text style={styles.posterMetaIcon}>{icon}</Text>
+      <Icon size={18} color={C.gold} strokeWidth={1.5} />
       <Text style={styles.posterMetaLabel}>{label}</Text>
       <Text style={styles.posterMetaValue}>{value}</Text>
     </View>
   );
 }
 
-function ContextRow({ icon, label, value }: { icon: string; label: string; value: string }) {
+function ContextRow({ Icon, label, value }: { Icon: LucideIcon; label: string; value: string }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={styles.contextRow}>
-      <Text style={styles.contextIcon}>{icon}</Text>
+      <Icon size={18} color={C.gold} strokeWidth={1.5} />
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={styles.contextLabel}>{label}</Text>
         <Text style={styles.contextValue}>{value}</Text>
@@ -336,7 +345,8 @@ function ContextRow({ icon, label, value }: { icon: string; label: string; value
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
@@ -384,7 +394,6 @@ const styles = StyleSheet.create({
     flex: 1, alignItems: "center", gap: S.xs,
     backgroundColor: C.indigoSurface, borderRadius: RADIUS.card, padding: S.sm,
   },
-  posterMetaIcon: { fontSize: 18 },
   posterMetaLabel: { fontFamily: "Inter_400Regular", fontSize: 10, color: C.indigoText, opacity: 0.6, textAlign: "center" },
   posterMetaValue: { fontFamily: "Inter_700Bold", fontSize: 12, color: C.indigoText, textAlign: "center" },
   posterSecondary: { flexDirection: "row", gap: S.sm },
@@ -400,7 +409,6 @@ const styles = StyleSheet.create({
   },
   contextsTitle: { fontSize: 15, color: C.textPrimary },
   contextRow: { flexDirection: "row", gap: S.sm, alignItems: "flex-start" },
-  contextIcon: { fontSize: 18, width: 24 },
   contextLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textTertiary },
   contextValue: { fontFamily: "Inter_400Regular", fontSize: 13, color: C.textPrimary, lineHeight: 20 },
 
@@ -420,4 +428,5 @@ const styles = StyleSheet.create({
     alignSelf: "center", paddingVertical: S.md, paddingHorizontal: S.base,
   },
   learnLinkText: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: C.goldMethod },
-});
+  });
+}

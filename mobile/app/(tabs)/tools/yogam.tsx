@@ -1,11 +1,13 @@
-import React, { useEffect, useRef, useState } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Lock } from "lucide-react-native";
 import {
   ScrollView, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -22,7 +24,7 @@ import { getYogam } from "@/api/tools";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import type { YogamEntry } from "@/api/tools";
 
-function strengthColor(s: YogamEntry["strength"]): string {
+function strengthColor(s: YogamEntry["strength"], C: ColorTokens): string {
   if (s === "strong") return C.green;
   if (s === "moderate") return C.amber;
   return C.textTertiary;
@@ -44,6 +46,8 @@ function yogaHowCheckedItems(yoga: YogamEntry): WhyItem[] {
 }
 
 export default function YogamScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { lang } = useI18n();
   const { tier } = useSession();
   const isTamil = lang === "ta";
@@ -76,7 +80,7 @@ export default function YogamScreen() {
       <SafeAreaView style={styles.container}>
         <Header isTamil={isTamil} />
         <View style={styles.guestWrap}>
-          <Text style={styles.lockIcon}>🔒</Text>
+          <Lock size={48} color={C.textTertiary} strokeWidth={1} />
           <Text style={[styles.guestTitle, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
             {isTamil ? "உள்நுழைவு தேவை" : "Login required"}
           </Text>
@@ -119,8 +123,8 @@ export default function YogamScreen() {
                   <Text style={[styles.heroName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]} numberOfLines={2}>
                     {isTamil ? y.name_ta : y.name_en}
                   </Text>
-                  <View style={[styles.strengthBadge, { backgroundColor: strengthColor(y.strength) + "22" }]}>
-                    <Text style={[styles.strengthBadgeText, { color: strengthColor(y.strength) }]}>
+                  <View style={[styles.strengthBadge, { backgroundColor: strengthColor(y.strength, C) + "22" }]}>
+                    <Text style={[styles.strengthBadgeText, { color: strengthColor(y.strength, C) }]}>
                       {strengthLabel(y.strength, isTamil)}
                     </Text>
                   </View>
@@ -136,14 +140,14 @@ export default function YogamScreen() {
               {isTamil ? "அனைத்து யோகங்கள்" : "All Yogas"}
             </Text>
             {yogas.map((y, i) => (
-              <View key={i} style={[styles.card, { borderLeftColor: strengthColor(y.strength) }]}>
+              <View key={i} style={[styles.card, { borderLeftColor: strengthColor(y.strength, C) }]}>
                 <View style={styles.cardHeader}>
                   <Text style={[styles.yogaName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
                     {isTamil ? y.name_ta : y.name_en}
                   </Text>
                   <View style={styles.cardBadges}>
-                    <View style={[styles.strengthBadge, { backgroundColor: strengthColor(y.strength) + "22" }]}>
-                      <Text style={[styles.strengthBadgeText, { color: strengthColor(y.strength) }]}>
+                    <View style={[styles.strengthBadge, { backgroundColor: strengthColor(y.strength, C) + "22" }]}>
+                      <Text style={[styles.strengthBadgeText, { color: strengthColor(y.strength, C) }]}>
                         {strengthLabel(y.strength, isTamil)}
                       </Text>
                     </View>
@@ -169,14 +173,14 @@ export default function YogamScreen() {
               {isTamil ? "அனைத்து யோகங்கள்" : "All Yogas"}
             </Text>
             {yogas.map((y, i) => (
-              <View key={i} style={[styles.card, { borderLeftColor: strengthColor(y.strength) }]}>
+              <View key={i} style={[styles.card, { borderLeftColor: strengthColor(y.strength, C) }]}>
                 <View style={styles.cardHeader}>
                   <Text style={[styles.yogaName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
                     {isTamil ? y.name_ta : y.name_en}
                   </Text>
                   <View style={styles.cardBadges}>
-                    <View style={[styles.strengthBadge, { backgroundColor: strengthColor(y.strength) + "22" }]}>
-                      <Text style={[styles.strengthBadgeText, { color: strengthColor(y.strength) }]}>
+                    <View style={[styles.strengthBadge, { backgroundColor: strengthColor(y.strength, C) + "22" }]}>
+                      <Text style={[styles.strengthBadgeText, { color: strengthColor(y.strength, C) }]}>
                         {strengthLabel(y.strength, isTamil)}
                       </Text>
                     </View>
@@ -207,6 +211,8 @@ export default function YogamScreen() {
 }
 
 function Header({ isTamil }: { isTamil: boolean }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={styles.header}>
       <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
@@ -220,7 +226,8 @@ function Header({ isTamil }: { isTamil: boolean }) {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
@@ -260,11 +267,11 @@ const styles = StyleSheet.create({
   emptyWrap: { alignItems: "center", paddingTop: 60 },
   emptyText: { color: C.textTertiary, textAlign: "center" },
   guestWrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: S.xxl, gap: S.md },
-  lockIcon: { fontSize: 48 },
   guestTitle: { fontSize: 18, color: C.textPrimary, textAlign: "center" },
   loginBtn: {
     backgroundColor: C.saffron, borderRadius: RADIUS.button,
     paddingHorizontal: S.xl, paddingVertical: S.md, marginTop: S.sm,
   },
   loginBtnText: { fontFamily: "Inter_700Bold", fontSize: 15, color: C.surface },
-});
+  });
+}

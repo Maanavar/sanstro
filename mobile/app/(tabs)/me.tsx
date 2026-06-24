@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
 import {
-  ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View,
+  RefreshControl, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View,
   Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -15,6 +16,8 @@ import { loadGuestPrefs, saveGuestPrefs } from "@/features/guest/guestStore";
 import { logout } from "@/api/auth";
 import { clearTokens } from "@/lib/secureStore";
 import { clearUserPrefs, getPrimaryChartId } from "@/lib/userPrefs";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import { entranceDelay, spring, staggerInterval, duration } from "@/theme/motion";
 
 const RASI_NAMES: Record<string, { ta: string; en: string }> = {
   mesham: { ta: "à®®à¯‡à®·à®®à¯", en: "Aries" },
@@ -32,6 +35,8 @@ const RASI_NAMES: Record<string, { ta: string; en: string }> = {
 };
 
 export default function MeScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { t, strings, lang, setLang } = useI18n();
   const { tier, user, clearSession } = useSession();
   const isTamil = lang === "ta";
@@ -40,15 +45,23 @@ export default function MeScreen() {
   const [pushOptedIn, setPushOptedIn] = useState(false);
   const [city, setCity] = useState<string | null>(null);
   const [primaryChartId, setPrimaryChartId_] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadGuestPrefs().then((p) => {
-      setRasi(p.rasi);
-      setPushOptedIn(p.pushOptedIn);
-      setCity(p.city);
-    });
-    getPrimaryChartId().then(setPrimaryChartId_);
-  }, []);
+  async function applyPrefs() {
+    const [p, chartId] = await Promise.all([loadGuestPrefs(), getPrimaryChartId()]);
+    setRasi(p.rasi);
+    setPushOptedIn(p.pushOptedIn);
+    setCity(p.city);
+    setPrimaryChartId_(chartId);
+  }
+
+  useEffect(() => { void applyPrefs(); }, []);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await applyPrefs();
+    setRefreshing(false);
+  }
 
   async function togglePush(val: boolean) {
     Haptics.selectionAsync();
@@ -73,15 +86,19 @@ export default function MeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <Animated.View style={styles.header} entering={FadeInDown.delay(entranceDelay.hero).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}>
         <Text style={[styles.title, isTamil ? TamilType.heading : EnType.heading]}>
           {t(strings.me.title_guest)}
         </Text>
-      </View>
+      </Animated.View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.saffron} />}
+      >
         {/* Rasi identity card */}
-        <View style={styles.rasiCard}>
+        <Animated.View style={styles.rasiCard} entering={FadeInDown.delay(entranceDelay.supporting).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}>
           <Text style={styles.rasiSymbol}>â­</Text>
           <View style={styles.rasiInfo}>
             <Text style={[styles.rasiLabel, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
@@ -96,10 +113,10 @@ export default function MeScreen() {
           <TouchableOpacity onPress={() => router.push("/(onboarding)/rasi-picker")}>
             <Text style={styles.changeLink}>{isTamil ? "à®®à®¾à®±à¯à®±" : "Change"}</Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
 
         {/* Settings menu */}
-        <View style={styles.menuSection}>
+        <Animated.View style={styles.menuSection} entering={FadeInDown.delay(entranceDelay.supporting + staggerInterval).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}>
           {/* Notifications */}
           <View style={styles.menuRow}>
             <Text style={styles.menuIcon}>ðŸ””</Text>
@@ -170,11 +187,11 @@ export default function MeScreen() {
             </Text>
             <Text style={styles.menuArrow}>{">"}</Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
 
         {/* Registered: User identity card */}
         {tier !== "guest" && user && (
-          <View style={styles.identityCard}>
+          <Animated.View style={styles.identityCard} entering={FadeIn.delay(entranceDelay.tertiary).duration(duration.medium)}>
             <View style={styles.avatarCircle}>
               <Text style={styles.avatarLetter}>
                 {(user.displayName ?? user.email ?? "V").charAt(0).toUpperCase()}
@@ -188,7 +205,7 @@ export default function MeScreen() {
               )}
               <Text style={styles.identityEmail}>{user.email}</Text>
             </View>
-          </View>
+          </Animated.View>
         )}
 
         {/* Registered: Guidance links section */}
@@ -322,7 +339,8 @@ export default function MeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
   header: {
     paddingHorizontal: S.base, paddingVertical: S.md,
@@ -332,7 +350,7 @@ const styles = StyleSheet.create({
   scroll: { padding: S.base, gap: S.base },
 
   rasiCard: {
-    backgroundColor: "#FEF5EC",
+    backgroundColor: C.goldMethodLight,
     borderRadius: RADIUS.card,
     padding: S.base,
     flexDirection: "row",
@@ -397,7 +415,7 @@ const styles = StyleSheet.create({
   signOutText: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: C.alert },
 
   identityCard: {
-    backgroundColor: "#FEF5EC", borderRadius: RADIUS.card,
+    backgroundColor: C.goldMethodLight, borderRadius: RADIUS.card,
     padding: S.base, flexDirection: "row", alignItems: "center", gap: S.md,
   },
   avatarCircle: {
@@ -420,4 +438,5 @@ const styles = StyleSheet.create({
   },
   upgradeText: { flex: 1, fontSize: 15, lineHeight: 22, color: C.surface },
   upgradeArrow: { fontFamily: "Inter_700Bold", fontSize: 22, color: C.surface },
-});
+  });
+}

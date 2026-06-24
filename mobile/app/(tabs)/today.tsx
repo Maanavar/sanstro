@@ -1,14 +1,25 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput,
+  Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput,
   TouchableOpacity, View,
 } from "react-native";
+import { useToast } from "@/context/ToastContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useQuery } from "@tanstack/react-query";
 import { FadeInDown } from "react-native-reanimated";
 import { router, type Href } from "expo-router";
+import {
+  Bell,
+  BookOpen,
+  ChevronRight,
+  Flame,
+  Orbit,
+  Sparkles,
+  SunMedium,
+  X,
+} from "lucide-react-native";
 import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
@@ -140,6 +151,7 @@ function getCosmicAlert(g: ExtendedGuidance | undefined, transit: TransitItem | 
 }
 
 export default function TodayTab() {
+  const { showSuccess, showError } = useToast();
   const { t, strings, lang } = useI18n();
   const { tier, user } = useSession();
   const isTamil = lang === "ta";
@@ -267,6 +279,7 @@ export default function TodayTab() {
   const gowriSlots = getGowriSlots(p);
   const primaryGowri = gowriSlots[0];
   const cosmicAlert = getCosmicAlert(g, transits.data?.data[0], isTamil);
+  const bestActionWindow = g?.bestWindows?.[0] ?? null;
   const refreshing = isPanchangamFetching || isRasiPalanFetching || isGuidanceFetching || lifeAreas.isFetching || lifeEvents.isFetching || transits.isFetching;
   const activityChips = useMemo(() => {
     if (!g) return [];
@@ -297,6 +310,7 @@ export default function TodayTab() {
   };
 
   const saveJournalEntry = async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const entry = {
       id: `${Date.now()}`,
       createdAt: new Date().toISOString(),
@@ -316,10 +330,10 @@ export default function TodayTab() {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setJournalOpen(false);
       setJournalNote("");
-      Alert.alert(isTamil ? "Saved" : "Saved", isTamil ? "Moment logged." : "Moment logged.");
+      showSuccess(isTamil ? "தருணம் பதிவு செய்யப்பட்டது" : "Moment logged");
     } catch {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(isTamil ? "Error" : "Error", isTamil ? "Could not save moment." : "Could not save moment.");
+      showError(isTamil ? "தருணம் சேமிக்க முடியவில்லை" : "Could not save moment");
     }
   };
 
@@ -352,16 +366,16 @@ export default function TodayTab() {
             </View>
             {streakCount >= 1 && (
               <View style={styles.streakChip} accessibilityLabel={`${streakCount}-day streak`}>
-                <Text style={styles.streakText}>🔥 {streakCount}</Text>
+                <Flame size={13} color={C.surface} strokeWidth={1.5} /><Text style={styles.streakText}>{streakCount}</Text>
               </View>
             )}
             <TouchableOpacity
-              onPress={() => router.push(“/notifications/inbox”)}
+              onPress={() => router.push("/notifications/inbox" as Href)}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityLabel=”Notifications”
-              accessibilityRole=”button”
+              accessibilityLabel="Notifications"
+              accessibilityRole="button"
             >
-              <Text style={styles.bellIcon}>ðŸ””</Text>
+              <Bell size={22} color={C.textSecond} strokeWidth={1.5} />
             </TouchableOpacity>
           </View>
         ) : (
@@ -374,51 +388,62 @@ export default function TodayTab() {
               <Text style={styles.engDate}>{todayLabel}</Text>
             </View>
             <TouchableOpacity style={styles.cityChip}>
-              <Text style={styles.cityText}>{cityName} â–¾</Text>
+              <Text style={styles.cityText}>{cityName}</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Registered: Daily Score Hero */}
+        {/* Registered: one-answer hero */}
         {tier !== "guest" && (
           <View style={styles.hero}>
             {!g ? (
-              <SkeletonCard height={160} />
+              <SkeletonCard height={260} />
             ) : (
               <TouchableOpacity
                 style={styles.scoreHeroCard}
                 onPress={() => primaryChartId && router.push({ pathname: "/daily-score", params: { chartId: primaryChartId } })}
-                activeOpacity={0.88}
+                activeOpacity={0.9}
                 accessibilityLabel={g ? `Today's score ${g.score}. ${isTamil ? g.text?.ta : g.text?.en}` : "Today's score"}
                 accessibilityRole="button"
                 accessibilityHint="Opens daily score details"
               >
-                <SharedTransitionView entering={FadeInDown.delay(80).springify()} sharedTransitionTag="score-ring">
-                  <ScoreRing score={g.score} size={88} />
-                </SharedTransitionView>
-                <View style={{ flex: 1, gap: S.xs }}>
-                  <Text style={[styles.scoreHeroLabel, isTamil ? TamilType.caption : EnType.caption]}>
-                    {isTamil ? "à®‡à®©à¯à®±à¯ˆà®¯ à®¨à®¿à®²à¯ˆ" : "Today's Score"}
+                <View style={styles.scoreHeroTopRow}>
+                  <View style={styles.heroKickerRow}>
+                    <SunMedium size={16} color={C.gold} strokeWidth={1.5} />
+                    <Text style={[styles.scoreHeroLabel, isTamil ? TamilType.caption : EnType.caption]}>
+                      {isTamil ? "Today" : "Today"} · {cityName}
+                    </Text>
+                  </View>
+                  <ChevronRight size={20} color={C.textTertiary} strokeWidth={1.5} />
+                </View>
+
+                <View style={styles.scoreHeroMain}>
+                  <SharedTransitionView entering={FadeInDown.delay(80).springify()} sharedTransitionTag="score-ring">
+                    <ScoreRing score={g.score} size={132} />
+                  </SharedTransitionView>
+                  <View style={styles.scoreHeroCopy}>
+                    <Text style={styles.scoreHeroNumber}>{g.score}</Text>
+                    <Text style={styles.scoreHeroState}>{g.score >= 65 ? "Good window" : g.score >= 45 ? "Move steadily" : "Go gently"}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.bestWindowPanel}>
+                  <Text style={styles.bestWindowLabel}>{isTamil ? "Best window" : "Best window"}</Text>
+                  <Text style={styles.bestWindowTime}>
+                    {bestActionWindow
+                      ? `${formatTime(bestActionWindow.start)} - ${formatTime(bestActionWindow.end)}`
+                      : primaryGowri
+                        ? `${formatTime(primaryGowri.start)} - ${formatTime(primaryGowri.end)}`
+                        : "Check timing"}
                   </Text>
-                  <Text style={[styles.scoreHeroText, isTamil ? TamilType.body : EnType.body]}>
+                  <Text style={[styles.scoreHeroText, isTamil ? TamilType.bodySmall : EnType.bodySmall]} numberOfLines={3}>
                     {isTamil ? g.text?.ta : g.text?.en}
                   </Text>
-                  {g.bestWindows.length > 0 && (
-                    <View style={styles.windowChipRow}>
-                      {g.bestWindows.slice(0, 2).map((w, i) => (
-                        <View key={i} style={styles.windowChip}>
-                          <Text style={styles.windowChipText}>âœ“ {formatTime(w.start)}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  )}
                 </View>
-                <Text style={styles.scoreArrow}>â€º</Text>
               </TouchableOpacity>
             )}
           </View>
         )}
-
         {tier !== "guest" && areaPulse.length > 0 && (
           <LifeAreaPulse
             areas={areaPulse.slice(0, 4)}
@@ -453,26 +478,9 @@ export default function TodayTab() {
                 {cosmicAlert.title}
               </Text>
             </View>
-            <Text style={styles.cosmicArrow}>{">"}</Text>
+            <ChevronRight size={16} color={C.textTertiary} strokeWidth={1.5} />
           </TouchableOpacity>
         )}
-        {/* Chandrashtama alert (registered, when active) */}
-        {tier !== "guest" && g?.isChandrashtama === true && (
-          <TouchableOpacity
-            style={styles.chandraCard}
-            onPress={() => router.push("/chandrashtama")}
-            activeOpacity={0.85}
-            accessibilityLabel={isTamil ? "சந்திராஷ்டமம் — விரிவாக அறிய" : "Chandrashtama — tap to learn more"}
-            accessibilityRole="button"
-          >
-            <Text style={styles.chandraIcon}>âš ï¸</Text>
-            <Text style={[styles.chandraText, isTamil ? TamilType.caption : EnType.caption]}>
-              {isTamil ? "à®šà®¨à¯à®¤à®¿à®°à®¾à®·à¯à®Ÿà®®à®®à¯ â€” à®µà®¿à®°à®¿à®µà®¾à®• à®…à®±à®¿à®¯" : "Chandrashtama â€” tap to learn more"}
-            </Text>
-            <Text style={styles.chandraArrow}>â€º</Text>
-          </TouchableOpacity>
-        )}
-
         {/* Dasha Timeline quick-link (registered users with a chart) */}
         {tier !== "guest" && primaryChartId && (
           <TouchableOpacity
@@ -483,7 +491,7 @@ export default function TodayTab() {
             accessibilityRole="button"
             accessibilityHint={isTamil ? "உங்கள் மகா மற்றும் அந்தர தசை காலங்களைக் காண்க" : "View your Maha and Antar Dasha periods"}
           >
-            <Text style={styles.dashaIcon}>ðŸª</Text>
+            <Orbit size={28} color={C.goldOnLight} strokeWidth={1.5} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.dashaTitle, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
                 {isTamil ? "à®¤à®šà®¾ à®•à®¾à®²à®µà®°à®¿à®šà¯ˆ" : "Dasha Timeline"}
@@ -492,7 +500,7 @@ export default function TodayTab() {
                 {isTamil ? "à®‰à®™à¯à®•à®³à¯ à®®à®¹à®¾ à®¤à®šà¯ˆ & à®…à®¨à¯à®¤à®°à¯ à®¤à®šà¯ˆ" : "Your Maha & Antar Dasha periods"}
               </Text>
             </View>
-            <Text style={styles.dashaArrow}>â€º</Text>
+            <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
           </TouchableOpacity>
         )}
 
@@ -521,7 +529,7 @@ export default function TodayTab() {
                       </Text>
                     )}
                   </View>
-                  <Text style={styles.heroSymbol}>ðŸŒ…</Text>
+                  <SunMedium size={56} color={C.surface} strokeWidth={1.5} />
                 </View>
                 {p?.specialTithiDay && (
                   <View style={styles.heroBadge}>
@@ -645,7 +653,7 @@ export default function TodayTab() {
               </Text>
               <Text style={styles.eventMeta}>{dateDistanceLabel(nextEvent.startDate, isTamil)} - {nextEvent.confidence.toLowerCase()} confidence</Text>
             </View>
-            <Text style={styles.eventArrow}>{">"}</Text>
+            <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
           </TouchableOpacity>
         )}
 
@@ -654,18 +662,18 @@ export default function TodayTab() {
             style={styles.quickActionBtn}
             activeOpacity={0.86}
             onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               setJournalOpen(true);
             }}
           >
-            <Text style={styles.quickActionText}>{isTamil ? "Log a moment +" : "Log a moment +"}</Text>
+            <View style={styles.quickActionInner}><BookOpen size={18} color={C.surface} strokeWidth={1.5} /><Text style={styles.quickActionText}>{isTamil ? "Log moment" : "Log moment"}</Text></View>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.quickActionBtn, styles.quickActionSecondary]}
             activeOpacity={0.86}
             onPress={() => router.push("/ask-vinaadi" as Href)}
           >
-            <Text style={[styles.quickActionText, styles.quickActionSecondaryText]}>{isTamil ? "Ask Vinaadi" : "Ask Vinaadi"}</Text>
+            <View style={styles.quickActionInner}><Sparkles size={18} color={C.saffron} strokeWidth={1.5} /><Text style={[styles.quickActionText, styles.quickActionSecondaryText]}>{isTamil ? "Ask Vinaadi" : "Ask Vinaadi"}</Text></View>
           </TouchableOpacity>
         </View>
 
@@ -680,7 +688,7 @@ export default function TodayTab() {
         >
           <View style={styles.decisionTop}>
             <Text style={styles.decisionKicker}>{isTamil ? "இன்றைய முடிவு" : "Decision of the day"}</Text>
-            <Text style={styles.decisionArrow}>{">"}</Text>
+            <ChevronRight size={18} color={C.gold} strokeWidth={1.5} />
           </View>
           <Text style={styles.decisionTitle}>
             {isTamil
@@ -734,7 +742,7 @@ export default function TodayTab() {
               style={styles.promptDismiss}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.promptDismissText}>âœ•</Text>
+              <X size={16} color={C.textTertiary} strokeWidth={1.5} />
             </TouchableOpacity>
             <Text style={[styles.promptHeading, isTamil ? TamilType.bodySmall : EnType.bodySmall]}>
               {isTamil
@@ -893,7 +901,7 @@ const styles = StyleSheet.create({
   offlineBannerText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 12,
-    color: "#FFFFFF",
+    color: C.surface,
   },
 
   header: {
@@ -961,21 +969,43 @@ const styles = StyleSheet.create({
   greeting: { color: C.textSecond, marginTop: 2 },
   bellIcon: { fontSize: 22 },
   scoreHeroCard: {
-    backgroundColor: "#1A2540", borderRadius: RADIUS.card,
-    padding: S.base, flexDirection: "row", alignItems: "center", gap: S.md,
+    backgroundColor: C.darkSurface,
+    borderRadius: RADIUS.xl,
+    padding: S.xl,
+    gap: S.lg,
+    borderWidth: 1,
+    borderColor: C.darkRaised,
   },
-  scoreHeroLabel: { color: "rgba(255,255,255,0.65)" },
-  scoreHeroText: { color: "#FFFFFF" },
+  scoreHeroTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: S.md },
+  heroKickerRow: { flexDirection: "row", alignItems: "center", gap: S.xs },
+  scoreHeroLabel: { color: C.indigoText },
+  scoreHeroMain: { alignItems: "center", justifyContent: "center", minHeight: 148 },
+  scoreHeroCopy: { position: "absolute", alignItems: "center", justifyContent: "center" },
+  scoreHeroNumber: { fontFamily: "Inter_800ExtraBold", fontSize: 34, lineHeight: 40, color: C.indigoText },
+  scoreHeroState: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.gold, textTransform: "uppercase", letterSpacing: 0 },
+  bestWindowPanel: {
+    backgroundColor: C.indigoSurface,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: C.darkRaised,
+    padding: S.md,
+    gap: S.xs,
+  },
+  bestWindowLabel: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.gold, textTransform: "uppercase", letterSpacing: 0 },
+  bestWindowTime: { fontFamily: "Inter_800ExtraBold", fontSize: 24, lineHeight: 30, color: C.indigoText },
+  scoreHeroText: { color: C.indigoText, opacity: 0.78 },
   windowChipRow: { flexDirection: "row", gap: S.xs, flexWrap: "wrap", marginTop: 4 },
   windowChip: {
-    backgroundColor: "rgba(255,255,255,0.12)", borderRadius: RADIUS.chip,
-    paddingHorizontal: S.sm, paddingVertical: 2,
+    backgroundColor: C.darkRaised,
+    borderRadius: RADIUS.chip,
+    paddingHorizontal: S.sm,
+    paddingVertical: 2,
   },
-  windowChipText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: "rgba(255,255,255,0.85)" },
-  scoreArrow: { fontFamily: "Inter_700Bold", fontSize: 22, color: "rgba(255,255,255,0.6)" },
+  windowChipText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: C.indigoText },
+  scoreArrow: { fontFamily: "Inter_700Bold", fontSize: 22, color: C.textTertiary },
   chandraCard: {
     marginHorizontal: S.base, marginBottom: S.sm,
-    backgroundColor: "#FFF3E0", borderRadius: RADIUS.card,
+    backgroundColor: C.cautionLight, borderRadius: RADIUS.card,
     borderLeftWidth: 4, borderLeftColor: C.caution,
     flexDirection: "row", alignItems: "center", gap: S.sm,
     paddingHorizontal: S.md, paddingVertical: S.sm,
@@ -1063,11 +1093,12 @@ const styles = StyleSheet.create({
   eventMeta: { marginTop: 4, fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textSecond },
   eventArrow: { fontFamily: "Inter_700Bold", fontSize: 18, color: C.textTertiary },
   quickActions: { flexDirection: "row", gap: S.sm, marginHorizontal: S.base, marginTop: S.base },
-  quickActionBtn: { flex: 1, borderRadius: RADIUS.button, backgroundColor: C.saffron, paddingVertical: S.sm, alignItems: "center" },
+  quickActionBtn: { flex: 1, minHeight: 48, borderRadius: RADIUS.button, backgroundColor: C.saffron, paddingVertical: S.sm, alignItems: "center", justifyContent: "center" },
   quickActionSecondary: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.divider },
+  quickActionInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: S.xs },
   quickActionText: { fontFamily: "Inter_800ExtraBold", fontSize: 13, color: C.surface },
   quickActionSecondaryText: { color: C.saffron },
-  modalScrim: { flex: 1, backgroundColor: "rgba(15,21,32,0.34)", justifyContent: "flex-end" },
+  modalScrim: { flex: 1, backgroundColor: C.deepIndigo, justifyContent: "flex-end" },
   detailSheet: { backgroundColor: C.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: S.lg, gap: S.sm },
   journalSheet: { backgroundColor: C.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: S.lg, gap: S.sm, maxHeight: "86%" },
   sheetHandle: { alignSelf: "center", width: 42, height: 4, borderRadius: 999, backgroundColor: C.gold, marginBottom: S.xs },
@@ -1149,6 +1180,9 @@ const styles = StyleSheet.create({
 
   badge: { alignSelf: "center", marginTop: S.xl },
   streakChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: S.xs,
     backgroundColor: C.saffron,
     borderRadius: RADIUS.chip,
     paddingHorizontal: S.sm,
@@ -1161,13 +1195,15 @@ const styles = StyleSheet.create({
     color: C.surface,
   },
   dashaCard: {
-    backgroundColor: C.surface, borderRadius: RADIUS.card,
+    marginHorizontal: S.base,
+    marginTop: S.sm,
+    backgroundColor: C.parchmentDeep, borderRadius: RADIUS.card,
     padding: S.base, flexDirection: "row", alignItems: "center", gap: S.sm,
     borderWidth: 1, borderColor: C.divider,
     shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
   },
-  dashaIcon: { fontSize: 28 },
+  dashaIcon: { width: 28, height: 28 },
   dashaTitle: { fontSize: 15, lineHeight: 22, color: C.textPrimary },
   dashaDesc: { color: C.textSecond, marginTop: 2 },
-  dashaArrow: { fontFamily: "Inter_700Bold", fontSize: 18, color: C.textTertiary },
+  dashaArrow: { width: 18, height: 18 },
 });

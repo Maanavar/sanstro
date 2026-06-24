@@ -1,18 +1,19 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as Haptics from "expo-haptics";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useConfirm } from "@/context/ConfirmContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -64,6 +65,9 @@ function addMonths(date: Date, n: number): string {
 
 
 export default function MuhurtaScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  const confirm = useConfirm();
   const { lang } = useI18n();
   const { tier } = useSession();
   const isTamil = lang === "ta";
@@ -121,17 +125,16 @@ export default function MuhurtaScreen() {
     setSubmittedMode(null);
   }
 
-  function handleSearch() {
+  async function handleSearch() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (mode === "decision" && (!chartId || isGuest)) {
-      Alert.alert(
-        "Chart required",
-        "Life Decision needs your birth chart so Vinaadi can compare dasha, transit, and timing support.",
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Create account", onPress: () => router.push("/(auth)/register") },
-        ]
-      );
+      const ok = await confirm({
+        title: "Chart required",
+        body: "Life Decision needs your birth chart so Vinaadi can compare dasha, transit, and timing support.",
+        confirmLabel: "Create account",
+        cancelLabel: "Cancel",
+      });
+      if (ok) router.push("/(auth)/register");
       return;
     }
     setSubmittedMode(mode);
@@ -287,6 +290,8 @@ export default function MuhurtaScreen() {
 }
 
 function DecisionResult({ brief }: { brief: import("@/api/decisions").DecisionBriefData }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const recommendedA = brief.recommended === brief.optionA.label;
   return (
     <View style={styles.decisionResult}>
@@ -303,6 +308,8 @@ function DecisionResult({ brief }: { brief: import("@/api/decisions").DecisionBr
 }
 
 function OptionCard({ option, active }: { option: import("@/api/decisions").OptionAnalysis; active: boolean }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const tone = scoreTone(option.score);
   return (
     <View style={[styles.optionCard, active && styles.optionCardActive]}>
@@ -323,7 +330,8 @@ function OptionCard({ option, active }: { option: import("@/api/decisions").Opti
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
@@ -380,7 +388,7 @@ const styles = StyleSheet.create({
   decisionResult: { gap: S.md },
   recommendPanel: { backgroundColor: C.darkBg, borderRadius: RADIUS.card, padding: S.md, gap: S.xs },
   recommendTitle: { color: C.surface, fontFamily: "Inter_800ExtraBold", fontSize: 20, lineHeight: 26 },
-  cautionText: { color: "rgba(255,255,255,0.78)", fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 18, marginTop: S.xs },
+  cautionText: { color: C.indigoText, opacity: 0.8, fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 18, marginTop: S.xs },
   optionCard: { backgroundColor: C.surface, borderRadius: RADIUS.card, borderWidth: 1, borderColor: C.divider, padding: S.md, gap: S.xs },
   optionCardActive: { borderColor: C.gold, borderWidth: 2 },
   optionTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: S.sm },
@@ -390,4 +398,5 @@ const styles = StyleSheet.create({
   optionWindow: { color: C.saffron, fontFamily: "Inter_700Bold", fontSize: 12 },
   optionNote: { color: C.textSecond, fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 17 },
   optionRisk: { color: C.caution, fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 17 },
-});
+  });
+}

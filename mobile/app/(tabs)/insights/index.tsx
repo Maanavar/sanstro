@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import {
   RefreshControl,
   ScrollView,
@@ -10,7 +10,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -24,6 +25,8 @@ import { getLifeEvents, lifeEventsKeys } from "@/api/lifeEvents";
 import { getUpcomingTransits, transitsKeys } from "@/api/transits";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
 import { loadQuickJournalEntries, syncQuickJournalEntries, type QuickJournalEntry } from "@/features/journal/journalStore";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import { entranceDelay, spring, staggerInterval, duration } from "@/theme/motion";
 import { ShareCaptureView } from "@/components/share/ShareCaptureView";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import { biText } from "@/lib/i18n";
@@ -76,6 +79,8 @@ function topArea(entries: QuickJournalEntry[]) {
 }
 
 export default function InsightsScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { lang } = useI18n();
   const { tier } = useSession();
   const isAuthenticated = tier !== "guest";
@@ -158,7 +163,7 @@ export default function InsightsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.gold} />}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
+        <Animated.View style={styles.header} entering={FadeInDown.delay(entranceDelay.hero).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}>
           <View>
             <Text style={[styles.eyebrow, type.caption]}>{isTamil ? "Personal depth" : "Personal depth"}</Text>
             <Text style={[styles.title, type.display]}>{isTamil ? "Insights" : "Insights"}</Text>
@@ -166,10 +171,10 @@ export default function InsightsScreen() {
           <View style={styles.rasiChip}>
             <Text style={styles.rasiText}>{prefs?.rasi ?? (isTamil ? "Rasi" : "Rasi")}</Text>
           </View>
-        </View>
+        </Animated.View>
 
         {!isAuthenticated || !chartId ? (
-          <>
+          <Animated.View style={{ gap: S.md }} entering={FadeInDown.delay(entranceDelay.supporting).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}>
             <AnimatedEmptyState
               variant="constellation"
               title={isTamil ? "உங்கள் ஜாதகம் சேர்க்கவும்" : "Add your chart to unlock insights"}
@@ -180,9 +185,9 @@ export default function InsightsScreen() {
             <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push("/(auth)/register")}>
               <Text style={styles.primaryBtnText}>{isTamil ? "கணக்கு உருவாக்கு" : "Create account"}</Text>
             </TouchableOpacity>
-          </>
+          </Animated.View>
         ) : (
-          <>
+          <Animated.View style={{ gap: S.md }} entering={FadeInDown.delay(entranceDelay.supporting).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}>
             {dasha.isLoading ? (
               <SkeletonCard height={170} />
             ) : dasha.isError ? (
@@ -284,7 +289,7 @@ export default function InsightsScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </>
+          </Animated.View>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -292,6 +297,8 @@ export default function InsightsScreen() {
 }
 
 function SectionTitle({ title, action, onPress }: { title: string; action?: string; onPress?: () => void }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -305,6 +312,8 @@ function SectionTitle({ title, action, onPress }: { title: string; action?: stri
 }
 
 function AreaStoryCard({ area, isTamil }: { area: LifeAreaData; isTamil: boolean }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const tone = scoreTone(area.score);
   const title = biText(area.label, isTamil, area.area);
   return (
@@ -336,6 +345,8 @@ function AreaStoryCard({ area, isTamil }: { area: LifeAreaData; isTamil: boolean
 }
 
 function RiverTimeline({ events, isTamil }: { events: LifeEventWindow[]; isTamil: boolean }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   if (!events.length) {
     return (
       <View style={styles.timelineEmpty}>
@@ -369,6 +380,8 @@ function RiverTimeline({ events, isTamil }: { events: LifeEventWindow[]; isTamil
 }
 
 function JournalPanel({ entries, pattern, isTamil }: { entries: QuickJournalEntry[]; pattern: [string, number] | null; isTamil: boolean }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const days = recentDays(35);
   const counts = new Map<string, number>();
   entries.forEach((entry) => counts.set(dayKey(entry.createdAt), (counts.get(dayKey(entry.createdAt)) ?? 0) + 1));
@@ -408,6 +421,8 @@ function JournalPanel({ entries, pattern, isTamil }: { entries: QuickJournalEntr
 }
 
 function InsightLink({ title, body, onPress }: { title: string; body: string; onPress: () => void }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <TouchableOpacity style={styles.linkPanel} onPress={onPress} activeOpacity={0.85}>
       <Text style={styles.linkTitle}>{title}</Text>
@@ -417,7 +432,8 @@ function InsightLink({ title, body, onPress }: { title: string; body: string; on
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) {
+  return StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.parchment },
   content: { padding: S.lg, paddingBottom: S.xl * 2, gap: S.md },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: S.xs },
@@ -429,13 +445,13 @@ const styles = StyleSheet.create({
   emptyTitle: { color: C.textPrimary },
   emptyBody: { color: C.textSecond },
   primaryBtn: { alignSelf: "flex-start", marginTop: S.sm, backgroundColor: C.saffron, borderRadius: RADIUS.button, paddingHorizontal: S.lg, paddingVertical: S.sm },
-  primaryBtnText: { color: "#FFFFFF", fontFamily: "Inter_700Bold", fontSize: 14 },
+  primaryBtnText: { color: C.surface, fontFamily: "Inter_700Bold", fontSize: 14 },
   dashaHero: { backgroundColor: C.darkBg, borderRadius: RADIUS.card, padding: S.lg, gap: S.xs },
   heroKicker: { fontFamily: "Inter_600SemiBold", color: C.gold, fontSize: 12, textTransform: "uppercase", letterSpacing: 0 },
-  heroLord: { color: "#FFFFFF" },
-  heroSub: { fontFamily: "Inter_600SemiBold", color: "rgba(255,255,255,0.72)", fontSize: 16 },
+  heroLord: { color: C.surface },
+  heroSub: { fontFamily: "Inter_600SemiBold", color: C.indigoText, fontSize: 16, opacity: 0.72 },
   heroMetaRow: { marginTop: S.md, flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: S.md },
-  heroMeta: { flex: 1, color: "rgba(255,255,255,0.62)", fontFamily: "Inter_400Regular", fontSize: 12 },
+  heroMeta: { flex: 1, color: C.indigoText, fontFamily: "Inter_400Regular", fontSize: 12, opacity: 0.62 },
   heroLink: { color: C.gold, fontFamily: "Inter_700Bold", fontSize: 13 },
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: S.sm },
   sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 17, lineHeight: 23, color: C.textPrimary },
@@ -444,7 +460,7 @@ const styles = StyleSheet.create({
   areaCard: { width: 280, minHeight: 226, backgroundColor: C.surface, borderRadius: RADIUS.card, borderWidth: 1, borderColor: C.divider, padding: S.md },
   areaTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   scoreOrb: { width: 48, height: 48, borderRadius: 999, alignItems: "center", justifyContent: "center" },
-  scoreOrbText: { color: "#FFFFFF", fontFamily: "Inter_800ExtraBold", fontSize: 16 },
+  scoreOrbText: { color: C.surface, fontFamily: "Inter_800ExtraBold", fontSize: 16 },
   trendBadge: { backgroundColor: C.surfaceAlt, borderRadius: RADIUS.chip, paddingHorizontal: S.sm, paddingVertical: 3 },
   trendText: { color: C.textSecond, fontFamily: "Inter_700Bold", fontSize: 11 },
   areaTitle: { marginTop: S.md, color: C.textPrimary, fontFamily: "Inter_700Bold", fontSize: 18 },
@@ -487,10 +503,10 @@ const styles = StyleSheet.create({
     backgroundColor: C.saffron, borderRadius: RADIUS.card, padding: S.lg, gap: S.xs,
   },
   goalsTileTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  goalsTileKicker: { fontFamily: "Inter_700Bold", fontSize: 11, color: "rgba(255,255,255,0.72)", textTransform: "uppercase" },
-  goalsTileArrow: { fontFamily: "Inter_700Bold", fontSize: 18, color: "rgba(255,255,255,0.72)" },
-  goalsTileTitle: { fontFamily: "Inter_800ExtraBold", fontSize: 22, color: "#FFF" },
-  goalsTileBody: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19, color: "rgba(255,255,255,0.82)" },
+  goalsTileKicker: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.indigoText, textTransform: "uppercase", opacity: 0.72 },
+  goalsTileArrow: { fontFamily: "Inter_700Bold", fontSize: 18, color: C.indigoText, opacity: 0.72 },
+  goalsTileTitle: { fontFamily: "Inter_800ExtraBold", fontSize: 22, color: C.indigoText },
+  goalsTileBody: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19, color: C.indigoText, opacity: 0.82 },
 
   // Varga tile
   vargaTile: {
@@ -498,9 +514,9 @@ const styles = StyleSheet.create({
   },
   vargaTileTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   vargaTileKicker: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.gold, textTransform: "uppercase" },
-  vargaTileArrow: { fontFamily: "Inter_700Bold", fontSize: 18, color: "rgba(255,255,255,0.5)" },
-  vargaTileTitle: { fontFamily: "Inter_800ExtraBold", fontSize: 22, color: "#FFF" },
-  vargaTileBody: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19, color: "rgba(255,255,255,0.72)" },
+  vargaTileArrow: { fontFamily: "Inter_700Bold", fontSize: 18, color: C.indigoText, opacity: 0.5 },
+  vargaTileTitle: { fontFamily: "Inter_800ExtraBold", fontSize: 22, color: C.indigoText },
+  vargaTileBody: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19, color: C.indigoText, opacity: 0.72 },
 
   // Learn rail
   learnRail: { gap: S.sm, paddingRight: S.lg },
@@ -510,4 +526,5 @@ const styles = StyleSheet.create({
   },
   learnCardTitle: { fontFamily: "Inter_700Bold", fontSize: 14, lineHeight: 20, color: C.textPrimary, flex: 1 },
   learnCardArrow: { fontFamily: "Inter_700Bold", fontSize: 16, color: C.gold, marginTop: S.sm },
-});
+  });
+}

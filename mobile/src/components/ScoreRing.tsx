@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import Animated, {
@@ -20,7 +20,7 @@ interface ScoreRingProps {
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-export function ScoreRing({ score, size = 96, textColor = "#FFFFFF" }: ScoreRingProps) {
+export function ScoreRing({ score, size = 96, textColor = C.surface }: ScoreRingProps) {
   const normalizedScore = Math.min(Math.max(score, 0), 10);
   const strokeWidth = Math.max(Math.round(size * 0.11), 8);
   const radius = (size - strokeWidth) / 2;
@@ -89,7 +89,7 @@ export function ScoreRing({ score, size = 96, textColor = "#FFFFFF" }: ScoreRing
             fontFamily: "Inter_400Regular",
             fontSize: size * 0.17,
             lineHeight: size * 0.22,
-            color: textColor === "#FFFFFF" ? "rgba(255,255,255,0.65)" : C.textSecond,
+            color: textColor === C.surface ? "rgba(255,255,255,0.65)" : C.textSecond,
           }}
         >
           / 10

@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { AlertTriangle } from "lucide-react-native";
 import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { EnType, TamilType } from "@/theme/typography";
@@ -15,7 +16,7 @@ export function ErrorCard({ onRetry, message }: Props) {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.icon}>⚠️</Text>
+      <AlertTriangle size={24} color={C.caution} strokeWidth={1.5} />
       <Text style={styles.heading}>{message ?? t(strings.common.error)}</Text>
       {onRetry && (
         <TouchableOpacity onPress={onRetry} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -35,9 +36,6 @@ const styles = StyleSheet.create({
     padding: S.base,
     alignItems: "center",
     gap: S.sm,
-  },
-  icon: {
-    fontSize: 24,
   },
   heading: {
     ...TamilType.body,

@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Star } from "lucide-react-native";
 import {
   RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -16,6 +18,8 @@ import { getPanchangamDay } from "@/api/panchangam";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
 import type { GuestPrefs } from "@/features/guest/guestStore";
 import { SwipeRouteView } from "@/components/SwipeRouteView";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import { entranceDelay, spring, staggerInterval, duration } from "@/theme/motion";
 
 const TZ = "Asia/Kolkata";
 
@@ -34,6 +38,8 @@ function dateString(offset: number): string {
 }
 
 export default function PanchangamDayScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { t, strings, lang } = useI18n();
   const isTamil = lang === "ta";
   const [dayOffset, setDayOffset] = useState(0);
@@ -67,7 +73,7 @@ export default function PanchangamDayScreen() {
     <SwipeRouteView leftRoute="/(tabs)/panchangam/calendar">
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <Animated.View style={styles.header} entering={FadeInDown.delay(entranceDelay.hero).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}>
         <Text style={[styles.headerTitle, isTamil ? TamilType.heading : EnType.heading]}>
           {t(strings.panchangam.title)}
         </Text>
@@ -77,9 +83,10 @@ export default function PanchangamDayScreen() {
             <Text style={styles.calendarLink}>{isTamil ? "மாதம் ▸" : "Month ▸"}</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
 
       {/* Day strip */}
+      <Animated.View entering={FadeInDown.delay(entranceDelay.supporting).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dayStrip}>
         {dayChips.map((chip) => (
           <TouchableOpacity
@@ -96,7 +103,9 @@ export default function PanchangamDayScreen() {
           </TouchableOpacity>
         ))}
       </ScrollView>
+      </Animated.View>
 
+      <Animated.View style={{ flex: 1 }} entering={FadeIn.delay(entranceDelay.supporting + staggerInterval).duration(duration.medium)}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
@@ -161,21 +170,26 @@ export default function PanchangamDayScreen() {
                   {t(strings.panchangam.festivals)}
                 </Text>
                 {p.festivals.map((f, i) => (
-                  <Text key={i} style={[styles.festivalItem, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_600SemiBold" }]}>
-                    ⭐ {f.name}
-                  </Text>
+                  <View key={i} style={styles.festivalRow}>
+                    <Star size={12} color={C.gold} strokeWidth={1.5} fill={C.gold} />
+                    <Text style={[styles.festivalItem, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_600SemiBold" }]}>
+                      {f.name}
+                    </Text>
+                  </View>
                 ))}
               </View>
             )}
           </>
         ) : null}
       </ScrollView>
+      </Animated.View>
     </SafeAreaView>
     </SwipeRouteView>
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
   header: {
     flexDirection: "row",
@@ -233,5 +247,7 @@ const styles = StyleSheet.create({
 
   festivalCard: { backgroundColor: C.surface, borderRadius: RADIUS.card, padding: S.base, gap: S.sm },
   festivalTitle: { color: C.textPrimary },
-  festivalItem: { fontSize: 14, lineHeight: 22, color: C.textPrimary },
-});
+  festivalRow: { flexDirection: "row" as const, alignItems: "center" as const, gap: 6 },
+  festivalItem: { fontSize: 14, lineHeight: 22, color: C.textPrimary, flex: 1 },
+  });
+}

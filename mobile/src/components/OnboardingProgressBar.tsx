@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View, type ViewStyle } from "react-native";
+import { StyleSheet, Text, View, type DimensionValue, type ViewStyle } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
@@ -13,7 +13,7 @@ interface Props {
 
 export function OnboardingProgressBar({ currentStep, totalSteps, label, style }: Props) {
   const clampedStep = Math.max(1, Math.min(currentStep, totalSteps));
-  const progress = `${(clampedStep / totalSteps) * 100}%`;
+  const progress: DimensionValue = `${(clampedStep / totalSteps) * 100}%`;
 
   return (
     <Animated.View entering={FadeInDown.delay(40).springify()} style={[styles.wrap, style]}>

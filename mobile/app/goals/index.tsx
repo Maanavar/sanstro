@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
-  Alert,
   Modal,
   RefreshControl,
   ScrollView,
@@ -10,11 +9,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useToast } from "@/context/ToastContext";
+import { useConfirm } from "@/context/ConfirmContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -45,6 +47,10 @@ const CURRENT_DASHA_AREAS: Record<string, string> = {
 };
 
 export default function GoalsScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  const { showError } = useToast();
+  const confirm = useConfirm();
   const { lang } = useI18n();
   const { tier } = useSession();
   const isTamil = lang === "ta";
@@ -78,7 +84,7 @@ export default function GoalsScreen() {
     },
     onError: () => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert("Error", "Could not save goal. Please try again.");
+      showError(isTamil ? "இலக்கை சேமிக்க முடியவில்லை" : "Could not save goal. Please try again.");
     },
   });
 
@@ -148,15 +154,14 @@ export default function GoalsScreen() {
               key={goal.goalId}
               goal={goal}
               isTamil={isTamil}
-              onRemove={() => {
-                Alert.alert(
-                  "Remove goal?",
-                  "This will mark the goal as inactive.",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    { text: "Remove", style: "destructive", onPress: () => removeMutation.mutate(goal.goalId) },
-                  ]
-                );
+              onRemove={async () => {
+                const ok = await confirm({
+                  title: isTamil ? "இலக்கை நீக்கவா?" : "Remove goal?",
+                  body: isTamil ? "இந்த இலக்கு செயலற்றதாக மாறும்." : "This will mark the goal as inactive.",
+                  confirmLabel: isTamil ? "நீக்கு" : "Remove",
+                  style: "destructive",
+                });
+                if (ok) removeMutation.mutate(goal.goalId);
               }}
             />
           ))
@@ -237,6 +242,8 @@ export default function GoalsScreen() {
 }
 
 function Header({ isTamil }: { isTamil: boolean }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={styles.header}>
       <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -249,6 +256,8 @@ function Header({ isTamil }: { isTamil: boolean }) {
 }
 
 function GoalCard({ goal, isTamil, onRemove }: { goal: GoalData; isTamil: boolean; onRemove: () => void }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const gt = GOAL_TYPES.find((g) => g.key === goal.goalType);
   const label = gt ? (isTamil ? gt.labelTa : gt.labelEn) : goal.goalType;
   const hint = CURRENT_DASHA_AREAS[goal.goalType] ?? "";
@@ -273,7 +282,8 @@ function GoalCard({ goal, isTamil, onRemove }: { goal: GoalData; isTamil: boolea
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) {
+  return StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.parchment },
   header: {
     flexDirection: "row", alignItems: "center", paddingHorizontal: S.base,
@@ -295,7 +305,7 @@ const styles = StyleSheet.create({
   emptyTitle: { color: C.textPrimary },
   emptyBody: { color: C.textSecond },
   primaryBtn: { alignSelf: "flex-start", marginTop: S.sm, backgroundColor: C.saffron, borderRadius: RADIUS.button, paddingHorizontal: S.lg, paddingVertical: S.sm },
-  primaryBtnText: { color: "#FFF", fontFamily: "Inter_700Bold", fontSize: 14 },
+  primaryBtnText: { color: C.indigoText, fontFamily: "Inter_700Bold", fontSize: 14 },
   goalCard: {
     backgroundColor: C.surface, borderRadius: RADIUS.card, padding: S.md, gap: S.xs,
     borderWidth: 1, borderColor: C.divider,
@@ -312,7 +322,7 @@ const styles = StyleSheet.create({
     paddingVertical: S.md, alignItems: "center",
   },
   addBtnText: { fontFamily: "Inter_700Bold", fontSize: 14, color: C.saffron },
-  scrim: { flex: 1, backgroundColor: "rgba(15,21,32,0.34)", justifyContent: "flex-end" },
+  scrim: { flex: 1, backgroundColor: C.darkBg + "57", justifyContent: "flex-end" },
   sheet: { backgroundColor: C.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: S.lg, gap: S.sm, maxHeight: "86%" },
   handle: { alignSelf: "center", width: 42, height: 4, borderRadius: 999, backgroundColor: C.gold, marginBottom: S.xs },
   sheetTitle: { fontFamily: "Inter_800ExtraBold", fontSize: 20, color: C.textPrimary },
@@ -321,11 +331,12 @@ const styles = StyleSheet.create({
   chip: { borderRadius: RADIUS.chip, backgroundColor: C.surfaceAlt, paddingHorizontal: S.md, paddingVertical: S.xs, borderWidth: 1, borderColor: C.divider },
   chipActive: { backgroundColor: C.saffron, borderColor: C.saffron },
   chipText: { fontFamily: "Inter_700Bold", fontSize: 12, color: C.textSecond },
-  chipTextActive: { color: "#FFF" },
+  chipTextActive: { color: C.indigoText },
   input: { minHeight: 80, borderRadius: RADIUS.card, borderWidth: 1, borderColor: C.divider, padding: S.md, color: C.textPrimary, fontFamily: "Inter_400Regular", textAlignVertical: "top" },
   contextHint: { backgroundColor: C.goldMethodLight, borderRadius: RADIUS.chip, padding: S.sm },
   contextHintText: { fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 18, color: C.textPrimary, fontStyle: "italic" },
   saveBtn: { borderRadius: RADIUS.button, backgroundColor: C.saffron, paddingVertical: S.sm, alignItems: "center", marginTop: S.xs },
   saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: { fontFamily: "Inter_800ExtraBold", fontSize: 14, color: "#FFF" },
-});
+  saveBtnText: { fontFamily: "Inter_800ExtraBold", fontSize: 14, color: C.indigoText },
+  });
+}

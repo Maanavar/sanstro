@@ -8,8 +8,10 @@
  *   LotusIllustration      — 8-petal lotus mandala (for onboarding / premium screens)
  */
 
-import React from "react";
+import React, { useMemo } from "react";
 import { type ViewStyle } from "react-native";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import Svg, {
   Circle,
   Defs,
@@ -21,27 +23,27 @@ import Svg, {
   Text as SvgText,
 } from "react-native-svg";
 
-// ─── Palette (duplicated to keep this file self-contained) ────────────────────
-const PAL = {
-  saffron:      "#D4611A",
-  ochre:        "#A8430E",
-  amber:        "#F5A855",
-  maroon:       "#8B1A3C",
-  gold:         "#C9971C",
-  goldLight:    "#FDF3D9",
-  parchment:    "#FAF7F2",
-  surface:      "#FFFFFF",
-  deepIndigo:   "#0D0F1A",
-  indigoSurf:   "#161929",
-  skyBlue:      "#1A5EA8",
-  green:        "#2D7A3A",
-  textTertiary: "#A89080",
-} as const;
+// ─── Palette (self-contained; theme-sensitive tokens resolved via C) ──────────
+function makePal(C: ColorTokens) {
+  return {
+    saffron:      "#D4611A",
+    ochre:        "#A8430E",
+    amber:        "#F5A855",
+    maroon:       "#8B1A3C",
+    gold:         C.gold,
+    goldLight:    C.goldMethodLight,
+    parchment:    C.parchment,
+    surface:      C.surface,
+    deepIndigo:   C.deepIndigo,
+    indigoSurf:   "#161929",
+    skyBlue:      "#1A5EA8",
+    green:        "#2D7A3A",
+    textTertiary: "#A89080",
+  };
+}
 
 // Tamil rasi abbreviations (one char each)
 const RASI_ABBR = ["மே", "ரி", "மி", "க", "சி", "க", "து", "வி", "த", "ம", "கு", "மீ"];
-// Alternate fill colors for donut segments
-const SEG_FILLS = [PAL.saffron, PAL.goldLight, PAL.amber, PAL.goldLight];
 
 function makeRasiArc(
   i: number,
@@ -79,6 +81,8 @@ interface IllustrationProps {
 }
 
 export function RasiWheelIllustration({ size = 200, style }: IllustrationProps) {
+  const C = useColors();
+  const PAL = useMemo(() => makePal(C), [C]);
   const cx = size / 2, cy = size / 2;
   const outerR = size * 0.44;
   const innerR = size * 0.26;
@@ -112,9 +116,9 @@ export function RasiWheelIllustration({ size = 200, style }: IllustrationProps) 
             />
             <SvgText
               x={pos.x}
-              y={pos.y}
+              y={pos.y + fontSize * 0.35}
               textAnchor="middle"
-              dominantBaseline="middle"
+
               fontSize={fontSize}
               fontWeight="600"
               fill={i % 2 === 0 ? "#FFF" : PAL.ochre}
@@ -151,6 +155,8 @@ const STARS = [
 ];
 
 export function SkyIllustration({ size = 200, style }: IllustrationProps) {
+  const C = useColors();
+  const PAL = useMemo(() => makePal(C), [C]);
   const vbW = 200, vbH = 140;
   const scale = size / vbW;
 
@@ -210,6 +216,8 @@ function petalPath(cx: number, cy: number, angle: number, len: number, width: nu
 }
 
 export function LotusIllustration({ size = 200, style }: IllustrationProps) {
+  const C = useColors();
+  const PAL = useMemo(() => makePal(C), [C]);
   const cx = size / 2, cy = size / 2;
   const outerLen = size * 0.36;
   const outerW   = size * 0.12;

@@ -1,10 +1,11 @@
-import React from "react";
+﻿import React, { useMemo } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -30,6 +31,8 @@ const BREAKDOWN_AREAS = [
 ];
 
 export default function DailyScoreScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { lang } = useI18n();
   const isTamil = lang === "ta";
   const { chartId } = useLocalSearchParams<{ chartId?: string }>();
@@ -176,7 +179,8 @@ export default function DailyScoreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
   header: {
     flexDirection: "row", alignItems: "center", gap: S.md,
@@ -187,13 +191,13 @@ const styles = StyleSheet.create({
   headerTitle: { color: C.textPrimary, flex: 1 },
   scroll: { padding: S.base, gap: S.md, paddingBottom: S.xxl },
   scoreCard: {
-    backgroundColor: "#1A2540", borderRadius: RADIUS.card,
+    backgroundColor: C.darkBg, borderRadius: RADIUS.card,
     padding: S.base, flexDirection: "row", alignItems: "center", gap: S.base,
   },
   scoreInfo: { flex: 1, gap: S.xs },
-  scoreLabel: { color: "rgba(255,255,255,0.65)" },
-  scoreText: { color: "#FFFFFF" },
-  actionText: { color: "rgba(255,255,255,0.8)", marginTop: 4 },
+  scoreLabel: { color: C.indigoText, opacity: 0.65 },
+  scoreText: { color: C.indigoText },
+  actionText: { color: C.indigoText, opacity: 0.8, marginTop: 4 },
   sectionTitle: { color: C.textPrimary },
   areaCard: {
     backgroundColor: C.surface, borderRadius: RADIUS.card, padding: S.md, gap: S.sm,
@@ -220,4 +224,5 @@ const styles = StyleSheet.create({
   },
   suggestionLabel: { color: C.textTertiary },
   suggestionBody: { color: C.textPrimary },
-});
+  });
+}

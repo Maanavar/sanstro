@@ -1,6 +1,7 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import * as Haptics from "expo-haptics";
-import { Alert, Platform, Pressable, StyleProp, View, ViewStyle } from "react-native";
+import { Platform, Pressable, StyleProp, View, ViewStyle } from "react-native";
+import { useToast } from "@/context/ToastContext";
 
 export interface ShareCaptureRef {
   share: () => Promise<void>;
@@ -29,6 +30,7 @@ export const ShareCaptureView = forwardRef<ShareCaptureRef, ShareCaptureViewProp
     },
     ref
   ) {
+    const { showError } = useToast();
     const viewRef = useRef<View>(null);
     const [sharing, setSharing] = useState(false);
 
@@ -66,7 +68,7 @@ export const ShareCaptureView = forwardRef<ShareCaptureRef, ShareCaptureViewProp
       } catch (error) {
         const messageText = error instanceof Error ? error.message : "";
         if (!messageText.toLowerCase().includes("cancel")) {
-          Alert.alert("Share unavailable", "Could not create the share card on this device.");
+          showError("Could not create the share card on this device.");
         }
       } finally {
         setSharing(false);

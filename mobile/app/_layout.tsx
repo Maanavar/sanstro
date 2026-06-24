@@ -9,6 +9,8 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import Purchases from "react-native-purchases";
 import { SessionProvider, useSession } from "@/state/sessionContext";
 import { LanguageProvider } from "@/state/languageContext";
+import { ToastProvider } from "@/context/ToastContext";
+import { ConfirmProvider } from "@/context/ConfirmContext";
 import { queryClient, asyncStoragePersister } from "@/lib/queryClient";
 import { getTokens, clearTokens } from "@/lib/secureStore";
 import { initAnalytics, setUser } from "@/lib/analytics";
@@ -53,18 +55,18 @@ function RootNavigation() {
 
         // Sync RevenueCat user identity and determine effective tier.
         // RC is the source of truth for subscription status. If RC confirms no
-        // active “premium” entitlement but the backend tier still says “premium”,
-        // treat the user as “registered” — the subscription likely expired and
+        // active "premium" entitlement but the backend tier still says "premium",
+        // treat the user as "registered" — the subscription likely expired and
         // the backend webhook hasn't fired yet.
         if (rcKey) {
           try {
             await Purchases.logIn(me.userId);
             const ci = await Purchases.getCustomerInfo();
-            const hasPremium = !!ci.entitlements.active[“premium”];
+            const hasPremium = !!ci.entitlements.active["premium"];
             const effectiveTier = hasPremium
-              ? “premium”
-              : me.tier === “premium”
-              ? “registered” // expired subscription — RC overrides stale backend tier
+              ? "premium"
+              : me.tier === "premium"
+              ? "registered" // expired subscription — RC overrides stale backend tier
               : me.tier;
             setSession(
               { userId: me.userId, email: me.email, displayName: me.displayName },
@@ -128,7 +130,11 @@ export default function RootLayout() {
       >
         <SessionProvider>
           <LanguageProvider>
-            <RootNavigation />
+            <ToastProvider>
+              <ConfirmProvider>
+                <RootNavigation />
+              </ConfirmProvider>
+            </ToastProvider>
           </LanguageProvider>
         </SessionProvider>
       </PersistQueryClientProvider>

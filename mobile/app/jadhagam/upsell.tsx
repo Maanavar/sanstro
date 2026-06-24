@@ -1,8 +1,11 @@
-import React, { useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Timer } from "lucide-react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useToast } from "@/context/ToastContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -33,20 +36,21 @@ const PLANS = [
 ];
 
 export default function JadhagamUpsellScreen() {
+  const { showToast } = useToast();
   const { lang } = useI18n();
   const isTamil = lang === "ta";
   const { chartId, limitReached } = useLocalSearchParams<{ chartId?: string; limitReached?: string }>();
   const isLimitReached = limitReached === "true";
 
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const [selectedPlan, setSelectedPlan] = useState("10page");
 
   function handlePurchase() {
     // RevenueCat purchase will be wired here in Phase B final
-    Alert.alert(
-      isTamil ? "விரைவில் வருகிறது" : "Coming Soon",
-      isTamil
-        ? "கொள்முதல் ஒருங்கிணைப்பு விரைவில் கிடைக்கும்."
-        : "Purchase integration will be available soon."
+    showToast(
+      isTamil ? "கொள்முதல் ஒருங்கிணைப்பு விரைவில் கிடைக்கும்" : "Purchase integration coming soon",
+      "success"
     );
   }
 
@@ -67,7 +71,7 @@ export default function JadhagamUpsellScreen() {
         {/* Daily limit reached notice */}
         {isLimitReached && (
           <View style={styles.limitCard}>
-            <Text style={styles.limitIcon}>⏳</Text>
+            <Timer size={36} color={C.caution} strokeWidth={1.5} />
             <Text style={[styles.limitTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
               {isTamil ? "இன்று 3 ஜாதகங்கள் உருவாக்கினீர்கள்!" : "You've created 3 charts today!"}
             </Text>
@@ -150,7 +154,7 @@ export default function JadhagamUpsellScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) { return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
   header: {
     flexDirection: "row", alignItems: "center", gap: S.md,
@@ -161,11 +165,10 @@ const styles = StyleSheet.create({
   headerTitle: { color: C.textPrimary, flex: 1 },
   scroll: { padding: S.base, gap: S.base, paddingBottom: S.xxl },
   limitCard: {
-    backgroundColor: "#FEF5EC", borderRadius: RADIUS.card,
+    backgroundColor: C.goldMethodLight, borderRadius: RADIUS.card,
     padding: S.base, alignItems: "center", gap: S.sm,
     borderWidth: 1, borderColor: C.amber,
   },
-  limitIcon: { fontSize: 36 },
   limitTitle: { color: C.textPrimary, textAlign: "center" },
   limitSub: { color: C.textSecond, textAlign: "center" },
   planCard: {
@@ -174,7 +177,7 @@ const styles = StyleSheet.create({
     padding: S.base, gap: S.sm,
     shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
-  planCardSelected: { borderColor: C.gold, backgroundColor: "#FFFDF5" },
+  planCardSelected: { borderColor: C.gold, backgroundColor: C.goldLight },
   bestBadge: {
     backgroundColor: C.gold, borderRadius: RADIUS.chip,
     paddingHorizontal: S.sm, paddingVertical: 3, alignSelf: "flex-start",
@@ -188,7 +191,7 @@ const styles = StyleSheet.create({
   featText: { color: C.textSecond, flex: 1 },
   trustStrip: {
     flexDirection: "row", alignItems: "center", gap: S.sm,
-    backgroundColor: "#FFFBEA", borderRadius: RADIUS.card,
+    backgroundColor: C.goldLight, borderRadius: RADIUS.card,
     borderWidth: 1, borderColor: C.gold, padding: S.md,
   },
   trustText: { flex: 1, color: C.textSecond },
@@ -206,4 +209,4 @@ const styles = StyleSheet.create({
   payBadgeText: { fontFamily: "Inter_400Regular", fontSize: 11, color: C.textTertiary },
   laterBtn: { alignItems: "center", paddingVertical: S.sm },
   laterText: { fontFamily: "Inter_400Regular", fontSize: 14, color: C.textTertiary },
-});
+}); }

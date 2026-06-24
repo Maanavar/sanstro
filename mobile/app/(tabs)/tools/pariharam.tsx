@@ -1,11 +1,14 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
+import { Lock, MapPin, Sparkles, Palette, Gem } from "lucide-react-native";
+import type { LucideIcon } from "lucide-react-native";
 import {
   ScrollView, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -19,30 +22,30 @@ import type { PariharamEntry } from "@/api/tools";
 
 type RemedyCategory = "temples" | "mantras" | "colours" | "stones";
 
-const CATEGORY_META: Record<RemedyCategory, { icon: string; labelEn: string; labelTa: string; whenEn: string; whenTa: string }> = {
+const CATEGORY_META: Record<RemedyCategory, { Icon: LucideIcon; labelEn: string; labelTa: string; whenEn: string; whenTa: string }> = {
   temples: {
-    icon: "🛕",
+    Icon: MapPin,
     labelEn: "Temples & Deities",
     labelTa: "கோயில் & தெய்வம்",
     whenEn: "Visit on the ruling planet's weekday",
     whenTa: "கிரகத்தின் வாரத்தில் வருகை தர வேண்டும்",
   },
   mantras: {
-    icon: "🕉️",
+    Icon: Sparkles,
     labelEn: "Mantras",
     labelTa: "மந்திரங்கள்",
     whenEn: "Recite daily at sunrise or sunset",
     whenTa: "தினமும் சூரிய உதயம் அல்லது அஸ்தமனத்தில் சொல்லவும்",
   },
   colours: {
-    icon: "🎨",
+    Icon: Palette,
     labelEn: "Auspicious Colours",
     labelTa: "சுப நிறங்கள்",
     whenEn: "Wear on the ruling planet's day",
     whenTa: "கிரகத்தின் வாரத்தில் அணியவும்",
   },
   stones: {
-    icon: "💎",
+    Icon: Gem,
     labelEn: "Gemstones",
     labelTa: "கல்லுகள்",
     whenEn: "Wear set in silver or gold, on the correct finger",
@@ -51,6 +54,8 @@ const CATEGORY_META: Record<RemedyCategory, { icon: string; labelEn: string; lab
 };
 
 export default function PariharamScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { lang } = useI18n();
   const { tier } = useSession();
   const isTamil = lang === "ta";
@@ -79,7 +84,7 @@ export default function PariharamScreen() {
       <SafeAreaView style={styles.container}>
         <Header isTamil={isTamil} />
         <View style={styles.guestWrap}>
-          <Text style={styles.lockIcon}>🔒</Text>
+          <Lock size={48} color={C.textTertiary} strokeWidth={1} />
           <Text style={[styles.guestTitle, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
             {isTamil ? "உள்நுழைவு தேவை" : "Login required"}
           </Text>
@@ -124,7 +129,7 @@ export default function PariharamScreen() {
                   <View key={cat} style={[styles.remedyCard, isDone && styles.remedyCardDone]}>
                     <View style={styles.remedyCardTop}>
                       <View style={styles.remedyIconWrap}>
-                        <Text style={styles.remedyIcon}>{meta.icon}</Text>
+                        <meta.Icon size={20} color={C.gold} strokeWidth={1.5} />
                       </View>
                       <View style={{ flex: 1, gap: 2 }}>
                         <Text style={styles.remedyCategoryLabel}>
@@ -164,6 +169,8 @@ export default function PariharamScreen() {
 }
 
 function Header({ isTamil }: { isTamil: boolean }) {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={styles.header}>
       <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
@@ -177,7 +184,8 @@ function Header({ isTamil }: { isTamil: boolean }) {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
@@ -203,7 +211,6 @@ const styles = StyleSheet.create({
     width: 36, height: 36, borderRadius: 10,
     backgroundColor: C.parchmentDeep, alignItems: "center", justifyContent: "center",
   },
-  remedyIcon: { fontSize: 18 },
   remedyCategoryLabel: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: C.textTertiary, textTransform: "uppercase", letterSpacing: 0.5 },
   remedyValue: { color: C.textPrimary, lineHeight: 22, flex: 1 },
   remedyValueDone: { textDecorationLine: "line-through", color: C.textTertiary },
@@ -225,11 +232,11 @@ const styles = StyleSheet.create({
   whenValue: { flex: 1, color: C.textSecond, lineHeight: 18 },
 
   guestWrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: S.xxl, gap: S.md },
-  lockIcon: { fontSize: 48 },
   guestTitle: { fontSize: 18, color: C.textPrimary, textAlign: "center" },
   loginBtn: {
     backgroundColor: C.saffron, borderRadius: RADIUS.button,
     paddingHorizontal: S.xl, paddingVertical: S.md, marginTop: S.sm,
   },
   loginBtnText: { fontFamily: "Inter_700Bold", fontSize: 15, color: C.surface },
-});
+  });
+}

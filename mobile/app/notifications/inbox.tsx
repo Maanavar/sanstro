@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
+import { AlertTriangle, Moon, Sparkles, Bell } from "lucide-react-native";
+import type { LucideIcon } from "lucide-react-native";
 import { FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -32,21 +35,23 @@ function timeAgo(iso: string | null | undefined, isTamil: boolean): string {
   return isTamil ? `${days} நாள்` : `${days}d`;
 }
 
-function notifIcon(type: string): string {
-  if (type === "alert") return "⚠️";
-  if (type === "panchangam") return "🌙";
-  if (type === "personal") return "✨";
-  return "🔔";
+function notifIcon(type: string): LucideIcon {
+  if (type === "alert") return AlertTriangle;
+  if (type === "panchangam") return Moon;
+  if (type === "personal") return Sparkles;
+  return Bell;
 }
 
-function iconBg(type: string): string {
-  if (type === "alert") return "#FEF3C7";
-  if (type === "panchangam") return "#EFF1FE";
-  if (type === "personal") return "#FEF5EC";
+function iconBg(type: string, C: ColorTokens): string {
+  if (type === "alert") return C.amber + "55";
+  if (type === "panchangam") return C.deepIndigo + "22";
+  if (type === "personal") return C.goldMethodLight;
   return C.surfaceAlt;
 }
 
 export default function NotificationInboxScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { lang } = useI18n();
   const isTamil = lang === "ta";
   const [filter, setFilter] = useState<FilterId>("all");
@@ -118,14 +123,15 @@ export default function NotificationInboxScreen() {
           renderItem={({ item }) => {
             const isUnread = item.read_at === null;
             const isPeyarchi = item.type === "alert" && item.title?.toLowerCase().includes("peyarchi");
+            const NotifIcon = notifIcon(item.type);
             return (
               <TouchableOpacity
                 style={[styles.notifRow, isUnread && styles.notifUnread]}
                 onPress={() => isPeyarchi ? router.push("/transits" as Href) : undefined}
                 activeOpacity={isPeyarchi ? 0.75 : 1}
               >
-                <View style={[styles.iconCircle, { backgroundColor: iconBg(item.type) }]}>
-                  <Text style={styles.iconEmoji}>{notifIcon(item.type)}</Text>
+                <View style={[styles.iconCircle, { backgroundColor: iconBg(item.type, C) }]}>
+                  <NotifIcon size={18} color={C.textSecond} strokeWidth={1.5} />
                 </View>
                 <View style={styles.notifBody}>
                   <Text style={[styles.notifTitle, {
@@ -154,7 +160,8 @@ export default function NotificationInboxScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
   header: {
     flexDirection: "row", alignItems: "center", gap: S.sm,
@@ -185,13 +192,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: S.base, paddingVertical: S.md,
     backgroundColor: C.parchment,
   },
-  notifUnread: { backgroundColor: "#FFFAF3" },
+  notifUnread: { backgroundColor: C.goldMethodLight },
   iconCircle: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  iconEmoji: { fontSize: 18 },
   notifBody: { flex: 1, gap: 2 },
   notifTitle: {},
   notifBodyText: { color: C.textSecond },
   notifTime: { fontFamily: "Inter_400Regular", fontSize: 11, color: C.textTertiary, minWidth: 28, textAlign: "right" },
   unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.saffron, marginTop: 6 },
   separator: { height: 1, backgroundColor: C.divider, marginLeft: 60 },
-});
+  });
+}

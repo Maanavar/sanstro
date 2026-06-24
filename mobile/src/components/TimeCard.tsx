@@ -1,5 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View, type ViewStyle } from "react-native";
+import { Sun, AlertTriangle, Timer, Moon } from "lucide-react-native";
+import type { LucideIcon } from "lucide-react-native";
 import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { useI18n } from "@/hooks/useI18n";
@@ -13,11 +15,11 @@ interface Props {
   style?: ViewStyle;
 }
 
-const KIND_CONFIG: Record<Kind, { chipColor: string; icon: string; bgColor: string }> = {
-  nalla_neram:  { chipColor: C.green,   icon: "☀️", bgColor: "#EBF5ED" },
-  rahu_kalam:   { chipColor: C.caution, icon: "⚠️", bgColor: "#FEF5EC" },
-  yamagandam:   { chipColor: C.caution, icon: "⏳", bgColor: "#FEF5EC" },
-  kuligai:      { chipColor: C.caution, icon: "🌙", bgColor: "#FEF5EC" },
+const KIND_CONFIG: Record<Kind, { chipColor: string; Icon: LucideIcon; bgColor: string }> = {
+  nalla_neram:  { chipColor: C.green,   Icon: Sun,           bgColor: C.greenLight },
+  rahu_kalam:   { chipColor: C.caution, Icon: AlertTriangle, bgColor: C.cautionLight },
+  yamagandam:   { chipColor: C.caution, Icon: Timer,         bgColor: C.cautionLight },
+  kuligai:      { chipColor: C.caution, Icon: Moon,          bgColor: C.cautionLight },
 };
 
 export function TimeCard({ kind, start, end, style }: Props) {
@@ -34,7 +36,7 @@ export function TimeCard({ kind, start, end, style }: Props) {
   return (
     <View style={[styles.card, { backgroundColor: C.surface }, style]}>
       <View style={[styles.chip, { backgroundColor: cfg.chipColor }]}>
-        <Text style={styles.icon}>{cfg.icon}</Text>
+        <cfg.Icon size={14} color={C.surface} strokeWidth={2} />
       </View>
       <Text style={styles.time}>{start} – {end}</Text>
       <Text style={[styles.label, { fontFamily: lang === "ta" ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
@@ -63,9 +65,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: S.xs,
-  },
-  icon: {
-    fontSize: 14,
   },
   time: {
     fontFamily: "Inter_600SemiBold",

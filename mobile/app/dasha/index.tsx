@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Lock } from "lucide-react-native";
 import {
   FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -45,6 +47,8 @@ function remainingLabel(end: string, isTamil: boolean): string {
 }
 
 export default function DashaScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { lang } = useI18n();
   const { tier } = useSession();
   const isTamil = lang === "ta";
@@ -77,7 +81,7 @@ export default function DashaScreen() {
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.guestWrap}>
-          <Text style={styles.lockIcon}>🔒</Text>
+          <Lock size={48} color={C.textTertiary} strokeWidth={1} />
           <Text style={[styles.guestTitle, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
             {isTamil ? "உள்நுழைவு தேவை" : "Login required"}
           </Text>
@@ -163,25 +167,8 @@ export default function DashaScreen() {
                 </View>
               </View>
 
-              {/* Birth time not confirmed notice */}
-              {d.birth_time_confirmed === false && (
-                <TouchableOpacity
-                  style={styles.birthTimeNotice}
-                  onPress={() => router.push("/rectification")}
-                >
-                  <Text style={styles.birthTimeNoticeIcon}>⚠️</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.birthTimeNoticeText}>
-                      {isTamil
-                        ? "பிறந்த நேரம் உறுதி செய்யப்படவில்லை — திருத்தம் செய்க"
-                        : "Birth time not confirmed — rectify for accurate dasha"}
-                    </Text>
-                    <Text style={styles.birthTimeNoticeCta}>
-                      {isTamil ? "திருத்தத்திற்கு →" : "Go to Rectification →"}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              )}
+
+
 
               <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
                 {isTamil ? "ஜீவித தசை காலவரிசை" : "Lifetime Dasha Periods"}
@@ -257,7 +244,8 @@ export default function DashaScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
@@ -270,34 +258,33 @@ const styles = StyleSheet.create({
   sectionTitle: { color: C.textPrimary, marginTop: S.sm },
 
   banner: {
-    backgroundColor: "#1A2540", borderRadius: RADIUS.card,
+    backgroundColor: C.darkBg, borderRadius: RADIUS.card,
     padding: S.base, flexDirection: "row", marginBottom: S.md,
   },
   bannerMain: { flex: 1, gap: S.xs },
   bannerLord: { fontFamily: "NotoSansTamil_700Bold", fontSize: 22, lineHeight: 30, color: C.gold },
-  bannerLabel: { fontFamily: "Inter_400Regular", fontSize: 12, color: "rgba(255,255,255,0.6)" },
-  bannerDates: { fontFamily: "Inter_400Regular", fontSize: 11, color: "rgba(255,255,255,0.45)" },
+  bannerLabel: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.indigoText, opacity: 0.6 },
+  bannerDates: { fontFamily: "Inter_400Regular", fontSize: 11, color: C.indigoText, opacity: 0.45 },
   bannerRemaining: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: C.amber },
   progressTrack: {
-    height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.15)",
+    height: 4, borderRadius: 2, backgroundColor: C.indigoText + "26",
     marginTop: S.xs,
   },
   progressFill: {
     height: 4, borderRadius: 2, backgroundColor: C.gold,
   },
-  progressLabel: { fontFamily: "Inter_400Regular", fontSize: 10, color: "rgba(255,255,255,0.45)" },
-  bannerDivider: { width: 1, backgroundColor: "rgba(255,255,255,0.15)", marginHorizontal: S.md },
+  progressLabel: { fontFamily: "Inter_400Regular", fontSize: 10, color: C.indigoText, opacity: 0.45 },
+  bannerDivider: { width: 1, backgroundColor: C.indigoText + "26", marginHorizontal: S.md },
   bannerSub: { flex: 1, gap: S.xs, justifyContent: "center" },
-  bannerSubLord: { fontFamily: "NotoSansTamil_700Bold", fontSize: 16, lineHeight: 24, color: "#FFFFFF" },
-  bannerSubLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: "rgba(255,255,255,0.6)" },
-  bannerSubDates: { fontFamily: "Inter_400Regular", fontSize: 11, color: "rgba(255,255,255,0.55)" },
+  bannerSubLord: { fontFamily: "NotoSansTamil_700Bold", fontSize: 16, lineHeight: 24, color: C.indigoText },
+  bannerSubLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: C.indigoText, opacity: 0.6 },
+  bannerSubDates: { fontFamily: "Inter_400Regular", fontSize: 11, color: C.indigoText, opacity: 0.55 },
 
   birthTimeNotice: {
     flexDirection: "row", alignItems: "flex-start", gap: S.sm,
     backgroundColor: C.amber + "22", borderRadius: RADIUS.card, padding: S.md,
     borderWidth: 1, borderColor: C.amber + "55", marginBottom: S.sm,
   },
-  birthTimeNoticeIcon: { fontSize: 16, marginTop: 1 },
   birthTimeNoticeText: { fontFamily: "Inter_400Regular", fontSize: 13, color: C.textPrimary, lineHeight: 18 },
   birthTimeNoticeCta: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.saffron, marginTop: 4 },
 
@@ -312,7 +299,7 @@ const styles = StyleSheet.create({
   periodDates: { color: C.textTertiary, marginTop: 2 },
   periodDuration: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.textTertiary },
   activeBadge: {
-    backgroundColor: "#FEF5EC", borderRadius: RADIUS.chip,
+    backgroundColor: C.goldMethodLight, borderRadius: RADIUS.chip,
     paddingHorizontal: S.sm, paddingVertical: 2,
   },
   activeBadgeText: { fontFamily: "Inter_600SemiBold", fontSize: 10, color: C.saffron },
@@ -326,7 +313,6 @@ const styles = StyleSheet.create({
   subPrediction: { color: C.textSecond, marginTop: 4 },
 
   guestWrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: S.xxl, gap: S.md },
-  lockIcon: { fontSize: 48 },
   guestTitle: { fontSize: 18, color: C.textPrimary, textAlign: "center" },
   guestDesc: { color: C.textSecond, textAlign: "center" },
   loginBtn: {
@@ -334,4 +320,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: S.xl, paddingVertical: S.md, marginTop: S.sm,
   },
   loginBtnText: { fontFamily: "Inter_700Bold", fontSize: 15, color: C.surface },
-});
+  });
+}

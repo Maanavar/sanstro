@@ -1,12 +1,14 @@
 import React, { useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useToast } from "@/context/ToastContext";
 import Share from "react-native-share";
 import { fetchWithAuth } from "@/api/client";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams, type Href } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -84,6 +86,9 @@ function buildHouses(chart: ChartCalculateResponseData, view: VargaKey): Jadhaga
 }
 
 export default function JadhagamDetailScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  const { showError } = useToast();
   const { lang } = useI18n();
   const isTamil = lang === "ta";
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -129,10 +134,7 @@ export default function JadhagamDetailScreen() {
         filename: `jadhagam-${id}.pdf`,
       });
     } catch {
-      Alert.alert(
-        isTamil ? "Error" : "Export Failed",
-        isTamil ? "PDF à®à®±à¯à®±à¯à®®à®¤à®¿ à®¤à¯‹à®²à¯à®µà®¿. à®®à¯€à®£à¯à®Ÿà¯à®®à¯ à®®à¯à®¯à®±à¯à®šà®¿à®•à¯à®•à®µà¯à®®à¯." : "Could not export PDF. Please try again.",
-      );
+      showError(isTamil ? "PDF ஏற்றுமதி தோல்வி. மீண்டும் முயற்சிக்கவும்" : "Could not export PDF. Please try again.");
     } finally {
       setIsExporting(false);
     }
@@ -313,7 +315,8 @@ export default function JadhagamDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
   header: {
     flexDirection: "row", alignItems: "center", gap: S.sm,
@@ -362,7 +365,7 @@ const styles = StyleSheet.create({
   planetBorder: { borderTopWidth: 1, borderTopColor: C.divider },
   planetChip: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: "#EBF2FB", alignItems: "center", justifyContent: "center",
+    backgroundColor: C.skyBlue + "22", alignItems: "center", justifyContent: "center",
   },
   planetChipText: { fontFamily: "NotoSansTamil_700Bold", fontSize: 10, lineHeight: 14, color: C.skyBlue },
   planetName: { flex: 1, fontSize: 14, lineHeight: 20, color: C.textPrimary },
@@ -370,7 +373,7 @@ const styles = StyleSheet.create({
   retroBadge: { backgroundColor: C.caution, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1 },
   retroText: { fontFamily: "Inter_700Bold", fontSize: 10, color: C.surface },
   rectifyCard: {
-    backgroundColor: "#FEF5EC", borderRadius: RADIUS.card,
+    backgroundColor: C.goldMethodLight, borderRadius: RADIUS.card,
     borderWidth: 1, borderColor: C.saffron,
     padding: S.base, flexDirection: "row", alignItems: "center", gap: S.md,
   },
@@ -390,4 +393,5 @@ const styles = StyleSheet.create({
   upsellTitle: { color: C.textPrimary },
   upsellSub: { color: C.textSecond, marginTop: 2 },
   upsellArrow: { fontFamily: "Inter_700Bold", fontSize: 20, color: C.saffron },
-});
+  });
+}

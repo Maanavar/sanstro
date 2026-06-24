@@ -1,4 +1,5 @@
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
+import { AlertTriangle, Sparkles, FolderOpen } from "lucide-react-native";
 import {
   ActivityIndicator,
   Alert,
@@ -14,7 +15,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -37,6 +39,8 @@ interface ChatMessage {
 }
 
 export default function AskVinaadiScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { lang } = useI18n();
   const isTamil = lang === "ta";
   const { tier } = useSession();
@@ -73,7 +77,7 @@ export default function AskVinaadiScreen() {
           </Text>
         </View>
         <View style={styles.gateContainer}>
-          <Text style={styles.gateIcon}>✨</Text>
+          <Sparkles size={56} color={C.gold} strokeWidth={1} style={{ marginBottom: S.sm }} />
           <Text style={[styles.gateTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
             {isTamil ? "கணக்கு தேவை" : "Account Required"}
           </Text>
@@ -108,7 +112,7 @@ export default function AskVinaadiScreen() {
           </Text>
         </View>
         <View style={styles.gateContainer}>
-          <Text style={styles.gateIcon}>🗂️</Text>
+          <FolderOpen size={56} color={C.gold} strokeWidth={1} style={{ marginBottom: S.sm }} />
           <Text style={[styles.gateTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
             {isTamil ? "ஜாதகம் தேவை" : "Chart Required"}
           </Text>
@@ -245,9 +249,12 @@ export default function AskVinaadiScreen() {
                   {msg.text}
                 </Text>
                 {msg.caveat && (
-                  <Text style={[styles.caveatText, isTamil ? TamilType.caption : EnType.caption]}>
-                    ⚠️ {msg.caveat}
-                  </Text>
+                  <View style={styles.caveatRow}>
+                    <AlertTriangle size={12} color={C.caution} strokeWidth={1.5} />
+                    <Text style={[styles.caveatText, isTamil ? TamilType.caption : EnType.caption]}>
+                      {msg.caveat}
+                    </Text>
+                  </View>
                 )}
                 {msg.signals && msg.signals.length > 0 && (
                   <Text style={styles.signalsText} numberOfLines={2}>
@@ -351,7 +358,8 @@ export default function AskVinaadiScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
   header: {
     flexDirection: "row",
@@ -397,7 +405,7 @@ const styles = StyleSheet.create({
     height: 72,
     textAlign: "center",
     lineHeight: 72,
-    backgroundColor: "#FDEBD0",
+    backgroundColor: C.goldMethodLight,
     borderRadius: 36,
   },
   emptyChatText: { color: C.textSecond, textAlign: "center", lineHeight: 22 },
@@ -420,10 +428,11 @@ const styles = StyleSheet.create({
     padding: S.md,
     gap: S.xs,
   },
-  userBubbleContent: { backgroundColor: "#FDEBD0", borderBottomRightRadius: 4 },
+  userBubbleContent: { backgroundColor: C.goldMethodLight, borderBottomRightRadius: 4 },
   assistantBubbleContent: { backgroundColor: C.surface, borderBottomLeftRadius: 4 },
   bubbleText: { color: C.textPrimary, lineHeight: 22 },
-  caveatText: { color: C.caution, lineHeight: 18, marginTop: S.xs },
+  caveatRow: { flexDirection: "row" as const, alignItems: "flex-start" as const, gap: S.xs, marginTop: S.xs },
+  caveatText: { color: C.caution, lineHeight: 18, flex: 1 },
   signalsText: {
     fontFamily: "Inter_400Regular",
     fontSize: 10,
@@ -446,7 +455,7 @@ const styles = StyleSheet.create({
   },
   suggestChipText: { color: C.saffron },
   disclaimer: {
-    backgroundColor: "#FFFBEA",
+    backgroundColor: C.goldLight,
     paddingHorizontal: S.base,
     paddingVertical: S.sm,
     borderTopWidth: 1,
@@ -489,7 +498,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: S.sm,
-    backgroundColor: "#FEF5EC",
+    backgroundColor: C.goldMethodLight,
     paddingHorizontal: S.base,
     paddingVertical: S.sm,
     borderTopWidth: 1,
@@ -504,7 +513,6 @@ const styles = StyleSheet.create({
     padding: S.xxl,
     gap: S.base,
   },
-  gateIcon: { fontSize: 56, marginBottom: S.sm },
   gateTitle: { color: C.textPrimary, textAlign: "center" },
   gateSub: { color: C.textSecond, textAlign: "center", lineHeight: 22 },
   upgradeBtn: {
@@ -515,4 +523,5 @@ const styles = StyleSheet.create({
     marginTop: S.sm,
   },
   upgradeBtnText: { color: C.surface, fontFamily: "Inter_700Bold" },
-});
+  });
+}

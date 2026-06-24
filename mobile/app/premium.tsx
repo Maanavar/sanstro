@@ -1,18 +1,19 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useToast } from "@/context/ToastContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import Purchases from "react-native-purchases";
 import type { PurchasesPackage } from "react-native-purchases";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -31,12 +32,15 @@ const FEATURES = [
 type Plan = "monthly" | "annual";
 
 export default function PremiumScreen() {
+  const { showToast, showError } = useToast();
   const { lang } = useI18n();
   const { setSession, user, tier } = useSession();
   const isTamil = lang === "ta";
   const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
   const [monthlyPkg, setMonthlyPkg] = useState<PurchasesPackage | null>(null);
   const [annualPkg, setAnnualPkg] = useState<PurchasesPackage | null>(null);
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   useEffect(() => {
     Purchases.getOfferings()
@@ -54,11 +58,9 @@ export default function PremiumScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     const pkg = selectedPlan === "monthly" ? monthlyPkg : annualPkg;
     if (!pkg) {
-      Alert.alert(
-        isTamil ? "விரைவில் வருகிறது" : "Coming Soon",
-        isTamil
-          ? "Premium சந்தா ஒருங்கிணைப்பு விரைவில் கிடைக்கும்."
-          : "Premium subscription integration will be available soon."
+      showToast(
+        isTamil ? "Premium சந்தா விரைவில் கிடைக்கும்" : "Premium subscription coming soon",
+        "success"
       );
       return;
     }
@@ -74,7 +76,7 @@ export default function PremiumScreen() {
     } catch (e: unknown) {
       const err = e as { userCancelled?: boolean; message?: string };
       if (!err.userCancelled) {
-        Alert.alert(isTamil ? "பிழை" : "Error", err.message ?? "Purchase failed");
+        showError(err.message ?? (isTamil ? "கொள்முதல் தோல்வி" : "Purchase failed"));
       }
     }
   }
@@ -87,13 +89,13 @@ export default function PremiumScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.replace("/(tabs)/today");
       } else {
-        Alert.alert(
-          isTamil ? "கிடைக்கவில்லை" : "Nothing to Restore",
-          isTamil ? "இந்த கணக்கில் Premium சந்தா இல்லை." : "No active Premium subscription found."
+        showToast(
+          isTamil ? "இந்த கணக்கில் Premium சந்தா இல்லை" : "No active Premium subscription found",
+          "error"
         );
       }
     } catch {
-      Alert.alert(isTamil ? "பிழை" : "Error", isTamil ? "மீட்டெடுப்பு தோல்வி" : "Restore failed");
+      showError(isTamil ? "மீட்டெடுப்பு தோல்வி" : "Restore failed");
     }
   }
 
@@ -211,7 +213,7 @@ export default function PremiumScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) { return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.darkBg },
   hero: {
     backgroundColor: C.darkBg,
@@ -228,11 +230,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: C.indigoText + "1F",
     alignItems: "center",
     justifyContent: "center",
   },
-  closeText: { fontFamily: "Inter_400Regular", fontSize: 14, color: "#FFFFFF" },
+  closeText: { fontFamily: "Inter_400Regular", fontSize: 14, color: C.indigoText },
   lotusIcon: { fontSize: 48, marginBottom: S.md },
   heroTitle: {
     fontFamily: "Inter_800ExtraBold",
@@ -242,7 +244,7 @@ const styles = StyleSheet.create({
     marginBottom: S.sm,
   },
   heroSub: {
-    color: "rgba(255,255,255,0.80)",
+    color: C.indigoText, opacity: 0.8,
     textAlign: "center",
     lineHeight: 22,
   },
@@ -290,7 +292,7 @@ const styles = StyleSheet.create({
   },
   planPillActive: {
     borderColor: C.gold,
-    backgroundColor: "#FFFDF5",
+    backgroundColor: C.goldLight,
   },
   planLabel: {
     fontSize: 14,
@@ -318,4 +320,4 @@ const styles = StyleSheet.create({
   laterText: { color: C.textTertiary },
   restoreBtn: { alignItems: "center", paddingVertical: S.xs },
   restoreText: { color: C.textTertiary, textDecorationLine: "underline" },
-});
+}); }
