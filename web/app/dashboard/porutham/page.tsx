@@ -32,9 +32,9 @@ const EMPTY_FORM: BirthForm = {
 };
 
 function scoreColor(pct: number): string {
-  if (pct >= 0.7) return "#4ade80";
-  if (pct >= 0.4) return "#fbbf24";
-  return "#f87171";
+  if (pct >= 0.7) return "var(--success)";
+  if (pct >= 0.4) return "var(--warning)";
+  return "var(--error)";
 }
 
 // PersonForm is a top-level component so React never remounts it mid-edit.
@@ -179,13 +179,13 @@ export default function PoruthamPage() {
   const pct = porutham ? porutham.totalScore / Math.max(1, porutham.maxScore) : 0;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#05070d", color: "#e5e7eb", padding: "24px 16px" }}>
+    <div style={{ minHeight: "100vh", background: "var(--surface-0)", color: "var(--color-text)", padding: "24px 16px" }}>
       <div style={{ maxWidth: "860px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "20px" }}>
 
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <button type="button" onClick={() => void handleBack()}
-            style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "8px", color: "rgba(255,255,255,0.6)", padding: "6px 12px", fontSize: "0.8rem", cursor: "pointer" }}>
+            style={{ background: "transparent", border: "1px solid var(--color-border)", borderRadius: "8px", color: "var(--text-secondary)", padding: "6px 12px", fontSize: "0.8rem", cursor: "pointer" }}>
             ← {lang === "ta" ? "திரும்பு" : "Back"}
           </button>
           <h1 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>
@@ -196,16 +196,16 @@ export default function PoruthamPage() {
         {/* Context selector */}
         <div className="card" style={{ padding: "14px 16px" }}>
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
-            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", marginRight: "4px" }}>
+            <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", marginRight: "4px" }}>
               {lang === "ta" ? "வகை" : "Context"}
             </span>
             {(["GENERAL", "MARRIAGE", "FRIENDSHIP", "BUSINESS", "FAMILY"] as const).map((ctx) => (
               <button key={ctx} type="button" onClick={() => setCompatCtx(ctx)}
                 style={{
                   padding: "4px 12px", borderRadius: "14px", fontSize: "0.72rem", fontWeight: 600, cursor: "pointer",
-                  border: compatCtx === ctx ? "1px solid rgba(147,197,253,0.45)" : "1px solid rgba(255,255,255,0.1)",
-                  background: compatCtx === ctx ? "rgba(147,197,253,0.14)" : "transparent",
-                  color: compatCtx === ctx ? "#93c5fd" : "rgba(255,255,255,0.45)",
+                  border: compatCtx === ctx ? "1px solid var(--accent)" : "1px solid var(--color-border)",
+                  background: compatCtx === ctx ? "var(--panel-warm-light)" : "transparent",
+                  color: compatCtx === ctx ? "var(--accent)" : "var(--text-secondary)",
                 }}>
                 {ctx === "GENERAL" ? (lang === "ta" ? "பொதுவான" : "General") :
                  ctx === "MARRIAGE" ? (lang === "ta" ? "திருமணம்" : "Marriage") :
@@ -223,7 +223,7 @@ export default function PoruthamPage() {
             <PersonForm
               lang={lang}
               label={lang === "ta" ? "நபர் 1 (ஆண்)" : "Person 1 (Boy)"}
-              accentColor="#e5b84d"
+              accentColor="var(--accent)"
               form={formA}
               onChange={setFormA}
             />
@@ -232,14 +232,14 @@ export default function PoruthamPage() {
             <PersonForm
               lang={lang}
               label={lang === "ta" ? "நபர் 2 (பெண்)" : "Person 2 (Girl)"}
-              accentColor="#93c5fd"
+              accentColor="var(--info)"
               form={formB}
               onChange={setFormB}
             />
           </div>
         </div>
 
-        {error && <p style={{ margin: 0, color: "#f87171", fontSize: "0.78rem" }}>{error}</p>}
+        {error && <p style={{ margin: 0, color: "var(--error)", fontSize: "0.78rem" }}>{error}</p>}
 
         <button type="button" className="button button--primary"
           onClick={() => void handleCompare()} disabled={loading}
@@ -256,29 +256,29 @@ export default function PoruthamPage() {
             {/* Score header */}
             <div className="card" style={{ padding: "20px", display: "flex", gap: "20px", flexWrap: "wrap", alignItems: "center" }}>
               <div>
-                <p style={{ margin: "0 0 2px", fontSize: "0.65rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                <p style={{ margin: "0 0 2px", fontSize: "0.65rem", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                   {lang === "ta" ? "மொத்த பொருத்தம்" : "Total Score"}
                 </p>
                 <p style={{ margin: 0, fontSize: "2.4rem", fontWeight: 900, lineHeight: 1, color: scoreColor(pct) }}>
                   {porutham.totalScore}
-                  <span style={{ fontSize: "1rem", fontWeight: 400, color: "rgba(255,255,255,0.4)" }}>/{porutham.maxScore}</span>
+                  <span style={{ fontSize: "1rem", fontWeight: 400, color: "var(--color-text)", opacity: 0.4 }}>/{porutham.maxScore}</span>
                 </p>
-                <p style={{ margin: "3px 0 0", fontSize: "0.78rem", color: "rgba(255,255,255,0.55)" }}>
+                <p style={{ margin: "3px 0 0", fontSize: "0.78rem", color: "var(--text-secondary)" }}>
                   {porutham.label} · {porutham.percentage.toFixed(0)}%
                 </p>
                 {(porutham.rajjuDosha || porutham.vedhaDosha) && (
                   <div style={{ marginTop: "6px", display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                    {porutham.rajjuDosha && <span style={{ fontSize: "0.68rem", fontWeight: 700, padding: "3px 8px", borderRadius: "4px", background: "rgba(248,113,113,0.2)", color: "#f87171", border: "1px solid rgba(248,113,113,0.3)" }}>⚠ {lang === "ta" ? "ராஜ்ஜு தோஷம்" : "Rajju Dosha"}</span>}
-                    {porutham.vedhaDosha && <span style={{ fontSize: "0.68rem", fontWeight: 700, padding: "3px 8px", borderRadius: "4px", background: "rgba(248,113,113,0.2)", color: "#f87171", border: "1px solid rgba(248,113,113,0.3)" }}>⚠ {lang === "ta" ? "வேத தோஷம்" : "Vedha Dosha"}</span>}
+                    {porutham.rajjuDosha && <span style={{ fontSize: "0.68rem", fontWeight: 700, padding: "3px 8px", borderRadius: "4px", background: "var(--warning-subtle)", color: "var(--warning)", border: "1px solid var(--warning)" }}>⚠ {lang === "ta" ? "ராஜ்ஜு தோஷம்" : "Rajju Dosha"}</span>}
+                    {porutham.vedhaDosha && <span style={{ fontSize: "0.68rem", fontWeight: 700, padding: "3px 8px", borderRadius: "4px", background: "var(--warning-subtle)", color: "var(--warning)", border: "1px solid var(--warning)" }}>⚠ {lang === "ta" ? "வேத தோஷம்" : "Vedha Dosha"}</span>}
                   </div>
                 )}
               </div>
               <div style={{ flex: 1, minWidth: "200px" }}>
-                <p style={{ margin: 0, fontSize: "0.82rem", color: "rgba(255,255,255,0.8)", lineHeight: 1.6 }}>
+                <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--color-text)", opacity: 0.85, lineHeight: 1.6 }}>
                   {lang === "ta" ? porutham.summary.ta : porutham.summary.en}
                 </p>
                 {porutham.contextNote && (
-                  <p style={{ margin: "8px 0 0", fontSize: "0.74rem", color: "rgba(255,255,255,0.45)", lineHeight: 1.4 }}>
+                  <p style={{ margin: "8px 0 0", fontSize: "0.74rem", color: "var(--color-text)", opacity: 0.45, lineHeight: 1.4 }}>
                     {lang === "ta" ? porutham.contextNote.ta : porutham.contextNote.en}
                   </p>
                 )}
@@ -287,20 +287,20 @@ export default function PoruthamPage() {
 
             {/* Kuta breakdown */}
             <div className="card" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
-              <p style={{ margin: "0 0 6px", fontSize: "0.7rem", fontWeight: 700, color: "rgba(255,255,255,0.38)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              <p style={{ margin: "0 0 6px", fontSize: "0.7rem", fontWeight: 700, color: "var(--color-text)", opacity: 0.38, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                 {lang === "ta" ? "குட பொருத்தங்கள்" : "Kuta breakdown"}
               </p>
               {porutham.kutas.map((k) => {
                 const kpct = k.maxScore > 0 ? k.score / k.maxScore : 0;
                 return (
-                  <div key={k.name} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", borderRadius: "7px", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                    <p style={{ margin: 0, minWidth: "140px", fontSize: "0.76rem", fontWeight: 600, color: "rgba(255,255,255,0.8)" }}>
+                  <div key={k.name} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", borderRadius: "7px", background: "var(--color-surface-3)", border: "1px solid var(--color-border)" }}>
+                    <p style={{ margin: 0, minWidth: "140px", fontSize: "0.76rem", fontWeight: 600, color: "var(--color-text)", opacity: 0.8 }}>
                       {lang === "ta" ? k.nameTa : k.name}
                     </p>
-                    <div style={{ flex: 1, height: "5px", borderRadius: "3px", background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+                    <div style={{ flex: 1, height: "5px", borderRadius: "3px", background: "var(--color-border)", opacity: 0.15, overflow: "hidden" }}>
                       <div style={{ height: "100%", borderRadius: "3px", width: `${Math.round(kpct * 100)}%`, background: scoreColor(kpct) }} />
                     </div>
-                    <p style={{ margin: 0, fontSize: "0.74rem", fontWeight: 700, color: "rgba(255,255,255,0.7)", minWidth: "40px", textAlign: "right" }}>
+                    <p style={{ margin: 0, fontSize: "0.74rem", fontWeight: 700, color: "var(--color-text)", opacity: 0.7, minWidth: "40px", textAlign: "right" }}>
                       {k.score}/{k.maxScore}
                     </p>
                   </div>
@@ -311,16 +311,16 @@ export default function PoruthamPage() {
             {/* Side-by-side kattam */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px" }}>
               <div className="card" style={{ padding: "14px" }}>
-                <p style={{ margin: "0 0 10px", fontSize: "0.85rem", fontWeight: 700, color: "#e5b84d" }}>{chartA.birthProfile.displayName}</p>
+                <p style={{ margin: "0 0 10px", fontSize: "0.85rem", fontWeight: 700, color: "var(--chart-amber)" }}>{chartA.birthProfile.displayName}</p>
                 <RasiChart chart={chartA} label={t("label_d1", lang)} lang={lang} showExplain={false} />
               </div>
               <div className="card" style={{ padding: "14px" }}>
-                <p style={{ margin: "0 0 10px", fontSize: "0.85rem", fontWeight: 700, color: "#93c5fd" }}>{chartB.birthProfile.displayName}</p>
+                <p style={{ margin: "0 0 10px", fontSize: "0.85rem", fontWeight: 700, color: "var(--color-accent-secondary)" }}>{chartB.birthProfile.displayName}</p>
                 <RasiChart chart={chartB} label={t("label_d1", lang)} lang={lang} showExplain={false} />
               </div>
             </div>
 
-            <p style={{ margin: 0, fontSize: "0.68rem", color: "rgba(255,255,255,0.25)", fontStyle: "italic" }}>
+            <p style={{ margin: 0, fontSize: "0.68rem", color: "var(--color-text)", opacity: 0.25, fontStyle: "italic" }}>
               {lang === "ta"
                 ? "இந்த ஜாதகங்கள் தற்காலிகமானவை. பக்கம் விட்டு சென்றதும் தானாக நீக்கப்படும்."
                 : "Preview only. This comparison is not saved to your account."}

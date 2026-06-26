@@ -869,10 +869,12 @@ export default function LoginPage() {
                     required
                     placeholder="you@example.com"
                     value={email}
+                    aria-invalid={emailTouched && !emailValid}
+                    aria-describedby={emailTouched && !emailValid ? "ca-email-error" : undefined}
                     onChange={(e) => { setEmail(e.target.value); setError(null); }}
                   />
                   {emailTouched && !emailValid && (
-                    <span className="ca-hint is-error" role="alert">Enter a valid email address</span>
+                    <span id="ca-email-error" className="ca-hint is-error" role="alert">Enter a valid email address</span>
                   )}
                 </div>
 
@@ -889,6 +891,8 @@ export default function LoginPage() {
                         required
                         placeholder={mode === "signup" ? "Min. 8 characters" : "••••••••"}
                         value={password}
+                        aria-invalid={passwordTouched && !passwordValid ? "true" : undefined}
+                        aria-describedby={passwordTouched && !passwordValid ? "ca-password-error" : undefined}
                         onChange={(e) => { setPassword(e.target.value); setError(null); }}
                       />
                       <button
@@ -924,7 +928,7 @@ export default function LoginPage() {
                     )}
 
                     {mode === "signup" && passwordTouched && !passwordValid && (
-                      <span className="ca-hint is-error" role="alert">At least 8 characters required</span>
+                      <span id="ca-password-error" className="ca-hint is-error" role="alert">At least 8 characters required</span>
                     )}
 
                     {/* Forgot link — login only */}
@@ -955,6 +959,8 @@ export default function LoginPage() {
                         required
                         placeholder="Repeat your password"
                         value={confirmPassword}
+                        aria-invalid={confirmTouched && !confirmMatch ? "true" : undefined}
+                        aria-describedby={confirmTouched && !confirmMatch ? "ca-confirm-error" : undefined}
                         onChange={(e) => { setConfirmPassword(e.target.value); setError(null); }}
                       />
                       <button
@@ -968,7 +974,7 @@ export default function LoginPage() {
                       </button>
                     </div>
                     {confirmTouched && !confirmMatch && (
-                      <span className="ca-hint is-error" role="alert">Passwords do not match</span>
+                      <span id="ca-confirm-error" className="ca-hint is-error" role="alert">Passwords do not match</span>
                     )}
                   </div>
                 )}

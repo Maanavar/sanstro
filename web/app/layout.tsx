@@ -160,6 +160,8 @@ export default async function RootLayout({
       <head>
         <meta charSet="utf-8" />
         <meta name="color-scheme" content="light dark" />
+        {/* Apply saved theme before first paint to prevent flash of wrong theme */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem("vinaadi-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}})();` }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG_JSONLD) }}

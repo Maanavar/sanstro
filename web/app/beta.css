@@ -49,10 +49,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 44px;
+  height: 44px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
   color: rgba(244, 236, 216, 0.7);
 }
@@ -69,6 +69,7 @@
   justify-content: center;
   padding: 16px;
   background: rgba(3, 5, 11, 0.78);
+  -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
   animation: beta-fade 0.18s ease-out;
 }
@@ -95,6 +96,11 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+/* In light mode the modal background becomes parchment; switch to accessible dark gold */
+@media (prefers-color-scheme: light) {
+  .beta-modal__eyebrow { background: rgba(120, 90, 14, 0.14); color: #785A0E; }
+}
+[data-theme="light"] .beta-modal__eyebrow { background: rgba(120, 90, 14, 0.14); color: #785A0E; }
 
 .beta-modal__title {
   margin: 14px 0 8px;
@@ -117,6 +123,7 @@
 .beta-modal__primary {
   flex: 1;
   min-width: 150px;
+  min-height: 44px;
   padding: 11px 18px;
   border: none;
   border-radius: 10px;
