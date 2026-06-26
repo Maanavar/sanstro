@@ -1,8 +1,10 @@
 import * as SecureStore from "expo-secure-store";
+import { generateId } from "@vinaadi/shared/uuid";
 
 const KEYS = {
   ACCESS_TOKEN:  "vinaadi_access_token",
   REFRESH_TOKEN: "vinaadi_refresh_token",
+  ENCRYPTION_KEY: "vinaadi_master_encryption_key",
 } as const;
 
 export interface StoredTokens {
@@ -31,6 +33,19 @@ export async function clearTokens(): Promise<void> {
     SecureStore.deleteItemAsync(KEYS.ACCESS_TOKEN),
     SecureStore.deleteItemAsync(KEYS.REFRESH_TOKEN),
   ]);
+}
+
+export async function getMasterEncryptionKey(): Promise<string> {
+  let key = await SecureStore.getItemAsync(KEYS.ENCRYPTION_KEY);
+  if (!key) {
+    key = generateId();
+    try {
+      await SecureStore.setItemAsync(KEYS.ENCRYPTION_KEY, key);
+    } catch {
+      console.warn("Failed to persist encryption key to SecureStore");
+    }
+  }
+  return key;
 }
 
 export { SecureStore };

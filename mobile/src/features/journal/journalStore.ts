@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { encryptedStorage } from "@/lib/encryptedStorage";
 import { createJournalEntry } from "@/api/journal";
 
 export const JOURNAL_STORAGE_KEY = "vinaadi:quick-journal:v1";
@@ -44,7 +44,7 @@ function isEntry(value: unknown): value is QuickJournalEntry {
 }
 
 export async function loadQuickJournalEntries(): Promise<QuickJournalEntry[]> {
-  const raw = await AsyncStorage.getItem(JOURNAL_STORAGE_KEY);
+  const raw = await encryptedStorage.getItem(JOURNAL_STORAGE_KEY);
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw) as unknown;
@@ -58,7 +58,7 @@ export async function loadQuickJournalEntries(): Promise<QuickJournalEntry[]> {
 export async function saveQuickJournalEntry(entry: QuickJournalEntry): Promise<QuickJournalEntry[]> {
   const existing = await loadQuickJournalEntries();
   const next = [entry, ...existing].slice(0, 100);
-  await AsyncStorage.setItem(JOURNAL_STORAGE_KEY, JSON.stringify(next));
+  await encryptedStorage.setItem(JOURNAL_STORAGE_KEY, JSON.stringify(next));
   return next;
 }
 
@@ -121,6 +121,6 @@ export async function syncQuickJournalEntries(chartId?: string | null): Promise<
     }
   }
 
-  await AsyncStorage.setItem(JOURNAL_STORAGE_KEY, JSON.stringify(next));
+  await encryptedStorage.setItem(JOURNAL_STORAGE_KEY, JSON.stringify(next));
   return { entries: next, syncedCount, failedCount };
 }

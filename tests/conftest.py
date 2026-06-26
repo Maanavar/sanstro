@@ -143,8 +143,10 @@ def token() -> str:
 def raw_client() -> TestClient:
     """Unauthenticated client — resets DB so auth provisioning tests start clean."""
     _reset_db()
+    reset_rate_limit_backend()
     with TestClient(app, raise_server_exceptions=False) as test_client:
         yield test_client
+    reset_rate_limit_backend()
 
 
 @pytest.fixture

@@ -1,6 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import { createEncryptedPersister } from "./encryptedQueryPersister";
 
 const H = (n: number) => 1000 * 60 * 60 * n;
 const D = (n: number) => H(24 * n);
@@ -16,8 +15,7 @@ export const queryClient = new QueryClient({
   },
 });
 
-export const asyncStoragePersister = createAsyncStoragePersister({
-  storage: AsyncStorage,
+export const asyncStoragePersister = createEncryptedPersister({
   key: "vinaadi_rq_cache",
 });
 

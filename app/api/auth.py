@@ -7,13 +7,16 @@ from email.mime.text import MIMEText
 from uuid import uuid4
 
 import bcrypt
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.auth import create_access_token, get_current_user, require_csrf_header
+from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
 from app.core.config import get_settings
+from app.core.redis_client import get_redis
 from app.db.session import get_db
+from app.middleware import resolve_client_ip
 from app.models.user import User
 from app.schemas.auth import (
     AccountDeletionResult,
@@ -29,6 +32,14 @@ router = APIRouter()
 _COOKIE_NAME = "vinaadi_token"
 _COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24
 _logger = logging.getLogger(__name__)
+_throttler = get_auth_throttler()
+
+
+def _get_client_ip(request: Request) -> str:
+    """Extract client IP from request, respecting proxy configuration."""
+    settings = get_settings()
+    trusted_proxy_count = max(0, int(settings.trusted_proxy_count))
+    return resolve_client_ip(request, trusted_proxy_count)
 
 
 def _assert_not_suspended(user: User) -> None:
@@ -98,8 +109,24 @@ def _send_password_reset_email(user_email: str, token: str) -> None:
 def register(
     payload: RegisterRequest,
     response: Response,
+    request: Request,
     session: Session = Depends(get_db),
 ) -> AuthUserResponse:
+    client_ip = _get_client_ip(request)
+
+    # Check throttles: per-IP and per-email
+    allowed, retry_after = _throttler.check(
+        AuthThrottleAction.REGISTER,
+        ip=client_ip,
+        account_identifier=payload.email.lower(),
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many registration attempts. Please try again later.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
     existing = session.query(User).filter(User.email == payload.email).first()
     if existing is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="An account with this email already exists.")
@@ -121,8 +148,24 @@ def register(
 def login(
     payload: LoginRequest,
     response: Response,
+    request: Request,
     session: Session = Depends(get_db),
 ) -> AuthUserResponse:
+    client_ip = _get_client_ip(request)
+
+    # Check throttles: per-IP and per-email
+    allowed, retry_after = _throttler.check(
+        AuthThrottleAction.LOGIN,
+        ip=client_ip,
+        account_identifier=payload.email.lower(),
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts. Please try again later.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
     user = session.query(User).filter(User.email == payload.email).first()
     invalid_credentials = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -233,8 +276,24 @@ def delete_my_account(
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)
 def forgot_password(
     payload: ForgotPasswordRequest,
+    request: Request,
     session: Session = Depends(get_db),
 ) -> ForgotPasswordResponse:
+    client_ip = _get_client_ip(request)
+
+    # Check throttles: per-IP and per-email
+    allowed, retry_after = _throttler.check(
+        AuthThrottleAction.FORGOT_PASSWORD,
+        ip=client_ip,
+        account_identifier=payload.email.lower(),
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many password reset attempts. Please try again later.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
     user = session.query(User).filter(User.email == payload.email).first()
     if user and user.email:
         reset_token = create_access_token(subject=str(user.user_id), expires_delta=timedelta(minutes=30))
