@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
+import { BookOpen, Users } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
@@ -19,6 +20,8 @@ import { useSession } from "@/hooks/useSession";
 import { ErrorCard } from "@/components/ErrorCard";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { AnimatedEmptyState } from "@/components/AnimatedEmptyState";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { SectionLabel } from "@/components/SectionLabel";
 import { getDashaTimeline, dashaKeys } from "@/api/dasha";
 import { getLifeAreas, lifeAreasKeys } from "@/api/lifeAreas";
 import { getLifeEvents, lifeEventsKeys } from "@/api/lifeEvents";
@@ -163,15 +166,19 @@ export default function InsightsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.gold} />}
         showsVerticalScrollIndicator={false}
       >
-        <Animated.View style={styles.header} entering={FadeInDown.delay(entranceDelay.hero).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}>
-          <View>
-            <Text style={[styles.eyebrow, type.caption]}>{isTamil ? "Personal depth" : "Personal depth"}</Text>
-            <Text style={[styles.title, type.display]}>{isTamil ? "Insights" : "Insights"}</Text>
-          </View>
-          <View style={styles.rasiChip}>
-            <Text style={styles.rasiText}>{prefs?.rasi ?? (isTamil ? "Rasi" : "Rasi")}</Text>
-          </View>
-        </Animated.View>
+        <ScreenHeader
+          title="Explore"
+          titleTa="ஆராய்"
+          subtitle="Your personalised depth views"
+          subtitleTa="உங்கள் ஜோதிட ஆழம்"
+          isTamil={isTamil}
+          entering={FadeInDown.delay(entranceDelay.hero).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}
+          badge={
+            <View style={styles.rasiChip}>
+              <Text style={styles.rasiText}>{prefs?.rasi ?? "Rasi"}</Text>
+            </View>
+          }
+        />
 
         {!isAuthenticated || !chartId ? (
           <Animated.View style={{ gap: S.md }} entering={FadeInDown.delay(entranceDelay.supporting).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}>
@@ -188,6 +195,7 @@ export default function InsightsScreen() {
           </Animated.View>
         ) : (
           <Animated.View style={{ gap: S.md }} entering={FadeInDown.delay(entranceDelay.supporting).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}>
+            <SectionLabel labelEn="Daily Depth" labelTa="நாளாந்த ஆழம்" isTamil={isTamil} />
             {dasha.isLoading ? (
               <SkeletonCard height={170} />
             ) : dasha.isError ? (
@@ -230,6 +238,35 @@ export default function InsightsScreen() {
               <InsightLink title={isTamil ? "Transits" : "Transits"} body={`${transits.data?.data.length ?? 0} upcoming`} onPress={() => router.push("/transits" as Href)} />
             </View>
 
+            {/* Family & Journal group */}
+            <SectionLabel labelEn="Family & Journal" labelTa="குடும்பம் & குறிப்பு" isTamil={isTamil} />
+            <NavCard
+              icon={<Users size={22} color={C.goldOnLight} strokeWidth={1.5} />}
+              title="Family Vault"
+              titleTa="குடும்ப சேமிப்பு"
+              body="Charts and guidance for your family"
+              bodyTa="குடும்பத்தினர் அனைவரின் ஜாதகங்கள்"
+              isTamil={isTamil}
+              onPress={() => router.push("/family-vault" as Href)}
+              C={C}
+            />
+            <NavCard
+              icon={<BookOpen size={22} color={C.goldOnLight} strokeWidth={1.5} />}
+              title="Journal"
+              titleTa="குறிப்பேடு"
+              body="Log life moments and see your rhythm"
+              bodyTa="தருணங்கள் பதிவு செய்யுங்கள்"
+              isTamil={isTamil}
+              onPress={() => router.push("/journal" as Href)}
+              C={C}
+            />
+
+            <SectionTitle title={isTamil ? "Journal rhythm" : "Journal rhythm"} action={isTamil ? "Open" : "Open"} onPress={() => router.push("/journal" as Href)} />
+            <JournalPanel entries={journalEntries} pattern={journalPattern} isTamil={isTamil} />
+
+            {/* Specialist Tools group */}
+            <SectionLabel labelEn="Specialist Tools" labelTa="சிறப்பு கருவிகள்" isTamil={isTamil} />
+
             {/* Goals tile */}
             <TouchableOpacity
               style={styles.goalsTile}
@@ -269,9 +306,6 @@ export default function InsightsScreen() {
                   : "Rasi, Navamsa, Dashamsa — and more. Depth from Thirukanitham-precise positions."}
               </Text>
             </TouchableOpacity>
-
-            <SectionTitle title={isTamil ? "Journal rhythm" : "Journal rhythm"} action={isTamil ? "Log" : "Log"} onPress={() => router.push("/(tabs)/today")} />
-            <JournalPanel entries={journalEntries} pattern={journalPattern} isTamil={isTamil} />
 
             {/* Learn Thirukanitham rail */}
             <SectionTitle title={isTamil ? "கற்றுக்கொள்ளுங்கள்" : "Learn Thirukanitham"} />
@@ -432,13 +466,40 @@ function InsightLink({ title, body, onPress }: { title: string; body: string; on
   );
 }
 
+function NavCard({
+  icon, title, titleTa, body, bodyTa, isTamil, onPress, C,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  titleTa: string;
+  body: string;
+  bodyTa: string;
+  isTamil: boolean;
+  onPress: () => void;
+  C: ColorTokens;
+}) {
+  const styles = useMemo(() => makeStyles(C), [C]);
+  return (
+    <TouchableOpacity
+      style={styles.navCard}
+      onPress={onPress}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+    >
+      <View style={styles.navCardIconWell}>{icon}</View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.navCardTitle}>{isTamil ? titleTa : title}</Text>
+        <Text style={styles.navCardBody}>{isTamil ? bodyTa : body}</Text>
+      </View>
+      <Text style={styles.navCardArrow}>{"->"}</Text>
+    </TouchableOpacity>
+  );
+}
+
 function makeStyles(C: ColorTokens) {
   return StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.parchment },
-  content: { padding: S.lg, paddingBottom: S.xl * 2, gap: S.md },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: S.xs },
-  eyebrow: { color: C.textSecond, textTransform: "uppercase", letterSpacing: 0 },
-  title: { color: C.textPrimary, marginTop: 2 },
+  content: { paddingHorizontal: S.lg, paddingBottom: S.xl * 2, gap: S.md },
   rasiChip: { borderRadius: 999, backgroundColor: C.surface, borderWidth: 1, borderColor: C.divider, paddingHorizontal: S.md, paddingVertical: S.xs },
   rasiText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textSecond },
   emptyPanel: { backgroundColor: C.surface, borderRadius: RADIUS.card, padding: S.lg, gap: S.sm, borderWidth: 1, borderColor: C.divider },
@@ -517,6 +578,20 @@ function makeStyles(C: ColorTokens) {
   vargaTileArrow: { fontFamily: "Inter_700Bold", fontSize: 18, color: C.indigoText, opacity: 0.5 },
   vargaTileTitle: { fontFamily: "Inter_800ExtraBold", fontSize: 22, color: C.indigoText },
   vargaTileBody: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19, color: C.indigoText, opacity: 0.72 },
+
+  // Family & Journal nav cards
+  navCard: {
+    flexDirection: "row", alignItems: "center", gap: S.md,
+    backgroundColor: C.surface, borderRadius: RADIUS.card,
+    borderWidth: 1, borderColor: C.divider, padding: S.md, minHeight: 72,
+  },
+  navCardIconWell: {
+    width: 44, height: 44, borderRadius: RADIUS.md,
+    backgroundColor: C.goldLight, alignItems: "center", justifyContent: "center",
+  },
+  navCardTitle: { fontFamily: "Inter_700Bold", fontSize: 15, lineHeight: 20, color: C.textPrimary },
+  navCardBody: { fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 18, color: C.textSecond, marginTop: 2 },
+  navCardArrow: { fontFamily: "Inter_700Bold", fontSize: 16, color: C.saffron },
 
   // Learn rail
   learnRail: { gap: S.sm, paddingRight: S.lg },
