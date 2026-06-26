@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.surface, borderRadius: RADIUS.card,
     borderWidth: 1, borderColor: C.gold,
     padding: S.base, gap: S.sm, marginBottom: S.xl,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 2 },
+    shadowColor: C.deepIndigo, shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
   chartHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   keyLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: C.textTertiary, marginBottom: 2 },
   keyValue: { fontSize: 13, lineHeight: 18, color: C.textPrimary },
   savedChip: {
-    backgroundColor: "#EAF6EC", borderRadius: RADIUS.chip,
+    backgroundColor: C.greenLight, borderRadius: RADIUS.chip,
     paddingHorizontal: S.md, paddingVertical: 4, alignSelf: "flex-start",
   },
   savedText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.green },

@@ -77,7 +77,7 @@ export default function PoruthamScreen() {
   }
 
   const scoreColor = result
-    ? result.totalScore >= 8 ? C.saffron : result.totalScore >= 5 ? C.amber : "#8B1A3C"
+    ? result.totalScore >= 8 ? C.saffron : result.totalScore >= 5 ? C.amber : C.maroon
     : C.saffron;
 
   return (
@@ -170,7 +170,7 @@ export default function PoruthamScreen() {
                   </View>
                   <View style={[
                     styles.kutaChip,
-                    { backgroundColor: k.score === k.maxScore ? "#EBF5ED" : k.score === 0 ? "#FEF2F2" : "#FEF5EC" },
+                    { backgroundColor: k.score === k.maxScore ? C.greenLight : k.score === 0 ? C.alertLight : C.cautionLight },
                   ]}>
                     <Text style={[
                       styles.kutaChipText,

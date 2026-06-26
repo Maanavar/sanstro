@@ -2,7 +2,8 @@ import React, { useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useToast } from "@/context/ToastContext";
-import Share from "react-native-share";
+let Share: typeof import("react-native-share").default | null = null;
+try { Share = require("react-native-share").default; } catch { /* Expo Go */ }
 import { fetchWithAuth } from "@/api/client";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams, type Href } from "expo-router";
@@ -127,7 +128,7 @@ export default function JadhagamDetailScreen() {
         b64 += i + 1 < bytes.length ? alphabet[((b1 & 15) << 2) | (b2 >> 6)] : "=";
         b64 += i + 2 < bytes.length ? alphabet[b2 & 63] : "=";
       }
-      await Share.open({
+      await Share?.open({
         title: isTamil ? "à®œà®¾à®¤à®•à®®à¯ PDF" : "Jadhagam PDF",
         type: "application/pdf",
         url: `data:application/pdf;base64,${b64}`,
@@ -149,7 +150,7 @@ export default function JadhagamDetailScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TouchableOpacity style={styles.backBtn} accessibilityLabel={isTamil ? "Back" : "Back"} onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Text style={styles.backArrow}>â†</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, isTamil ? TamilType.heading : EnType.heading]} numberOfLines={1}>
@@ -323,6 +324,10 @@ function makeStyles(C: ColorTokens) {
     paddingHorizontal: S.base, paddingVertical: S.md,
     borderBottomWidth: 1, borderBottomColor: C.divider,
   },
+  backBtn: {
+    width: 44, height: 44, borderRadius: 22,
+    alignItems: "center", justifyContent: "center",
+  },
   backArrow: { fontFamily: "Inter_700Bold", fontSize: 20, color: C.textPrimary },
   headerTitle: { color: C.textPrimary, flex: 1 },
   scroll: { padding: S.base, gap: S.xl, paddingBottom: S.xxl },
@@ -346,7 +351,7 @@ function makeStyles(C: ColorTokens) {
   dataGrid: { flexDirection: "row", gap: S.sm },
   datumCard: {
     flex: 1, backgroundColor: C.surface, borderRadius: 12, padding: S.md,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
+    shadowColor: C.deepIndigo, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
   },
   datumLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: C.textTertiary, marginBottom: 3 },
   datumValue: { fontSize: 13, lineHeight: 18, color: C.textPrimary },
@@ -364,7 +369,7 @@ function makeStyles(C: ColorTokens) {
   planetRow: { flexDirection: "row", alignItems: "center", gap: S.sm, paddingHorizontal: S.base, paddingVertical: S.sm },
   planetBorder: { borderTopWidth: 1, borderTopColor: C.divider },
   planetChip: {
-    width: 32, height: 32, borderRadius: 16,
+    width: 44, height: 44, borderRadius: 22,
     backgroundColor: C.skyBlue + "22", alignItems: "center", justifyContent: "center",
   },
   planetChipText: { fontFamily: "NotoSansTamil_700Bold", fontSize: 10, lineHeight: 14, color: C.skyBlue },
@@ -388,7 +393,7 @@ function makeStyles(C: ColorTokens) {
     backgroundColor: C.surface, borderRadius: RADIUS.card,
     borderWidth: 1, borderColor: C.gold,
     padding: S.base, flexDirection: "row", alignItems: "center",
-    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
+    shadowColor: C.deepIndigo, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
   },
   upsellTitle: { color: C.textPrimary },
   upsellSub: { color: C.textSecond, marginTop: 2 },

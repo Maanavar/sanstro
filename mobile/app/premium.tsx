@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
 import {
   ScrollView,
@@ -10,8 +10,9 @@ import {
 import { useToast } from "@/context/ToastContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import Purchases from "react-native-purchases";
 import type { PurchasesPackage } from "react-native-purchases";
+let Purchases: typeof import("react-native-purchases").default | null = null;
+try { Purchases = require("react-native-purchases").default; } catch { /* Expo Go */ }
 import { useColors } from "@/hooks/useColors";
 import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
@@ -43,7 +44,7 @@ export default function PremiumScreen() {
   const styles = useMemo(() => makeStyles(C), [C]);
 
   useEffect(() => {
-    Purchases.getOfferings()
+    Purchases?.getOfferings()
       .then((offerings) => {
         const pkgs = offerings.current?.availablePackages ?? [];
         setMonthlyPkg(pkgs.find((p) => p.packageType === "MONTHLY") ?? null);
@@ -57,7 +58,7 @@ export default function PremiumScreen() {
   async function handleSubscribe() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     const pkg = selectedPlan === "monthly" ? monthlyPkg : annualPkg;
-    if (!pkg) {
+    if (!Purchases || !pkg) {
       showToast(
         isTamil ? "Premium சந்தா விரைவில் கிடைக்கும்" : "Premium subscription coming soon",
         "success"
@@ -82,6 +83,13 @@ export default function PremiumScreen() {
   }
 
   async function handleRestore() {
+    if (!Purchases) {
+      showToast(
+        isTamil ? "Premium subscription coming soon" : "Premium subscription coming soon",
+        "error"
+      );
+      return;
+    }
     try {
       const ci = await Purchases.restorePurchases();
       if (ci.entitlements.active["premium"]) {
@@ -108,6 +116,7 @@ export default function PremiumScreen() {
       <View style={styles.hero}>
         <TouchableOpacity
           style={styles.closeBtn}
+          accessibilityLabel={isTamil ? "Close premium screen" : "Close premium screen"}
           onPress={() => router.back()}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
@@ -227,9 +236,9 @@ function makeStyles(C: ColorTokens) { return StyleSheet.create({
     position: "absolute",
     top: S.md,
     right: S.base,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: C.indigoText + "1F",
     alignItems: "center",
     justifyContent: "center",
@@ -261,7 +270,7 @@ function makeStyles(C: ColorTokens) { return StyleSheet.create({
     borderRadius: RADIUS.card,
     padding: S.base,
     gap: S.md,
-    shadowColor: "#000",
+    shadowColor: C.deepIndigo,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 6,

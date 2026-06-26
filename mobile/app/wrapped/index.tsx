@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as Haptics from "expo-haptics";
 import {
   NativeScrollEvent,
@@ -466,9 +466,9 @@ const styles = StyleSheet.create({
   },
   heroKicker: { fontFamily: "Inter_700Bold", fontSize: 12, textTransform: "uppercase", letterSpacing: 0, color: C.gold },
   heroYear: { fontFamily: "Inter_800ExtraBold", fontSize: 56, lineHeight: 62, color: C.surface },
-  heroBody: { fontFamily: "Inter_400Regular", fontSize: 15, lineHeight: 22, color: "#F7E9D7" },
+  heroBody: { fontFamily: "Inter_400Regular", fontSize: 15, lineHeight: 22, color: C.indigoText },
   heroMetaRow: { flexDirection: "row", flexWrap: "wrap", gap: S.xs, marginTop: S.sm },
-  heroMeta: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.surface, backgroundColor: "#FFFFFF22", borderRadius: RADIUS.chip, paddingHorizontal: S.sm, paddingVertical: 4 },
+  heroMeta: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.surface, backgroundColor: `${C.surface}22`, borderRadius: RADIUS.chip, paddingHorizontal: S.sm, paddingVertical: 4 },
   storyBlock: { gap: S.sm },
   storyRail: { marginHorizontal: -S.base, paddingLeft: S.base },
   slideFrame: { paddingRight: S.base },

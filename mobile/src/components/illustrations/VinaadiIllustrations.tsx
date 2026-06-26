@@ -26,19 +26,19 @@ import Svg, {
 // ─── Palette (self-contained; theme-sensitive tokens resolved via C) ──────────
 function makePal(C: ColorTokens) {
   return {
-    saffron:      "#D4611A",
-    ochre:        "#A8430E",
-    amber:        "#F5A855",
-    maroon:       "#8B1A3C",
+    saffron:      C.saffron,
+    ochre:        C.ochre,
+    amber:        C.amber,
+    maroon:       C.maroon,
     gold:         C.gold,
-    goldLight:    C.goldMethodLight,
+    goldLight:    C.goldLight,
     parchment:    C.parchment,
     surface:      C.surface,
     deepIndigo:   C.deepIndigo,
-    indigoSurf:   "#161929",
-    skyBlue:      "#1A5EA8",
-    green:        "#2D7A3A",
-    textTertiary: "#A89080",
+    indigoSurf:   C.indigoSurface,
+    skyBlue:      C.skyBlue,
+    green:        C.green,
+    textTertiary: C.textTertiary,
   };
 }
 
@@ -121,7 +121,7 @@ export function RasiWheelIllustration({ size = 200, style }: IllustrationProps) 
 
               fontSize={fontSize}
               fontWeight="600"
-              fill={i % 2 === 0 ? "#FFF" : PAL.ochre}
+              fill={i % 2 === 0 ? PAL.surface : PAL.ochre}
             >
               {RASI_ABBR[i]}
             </SvgText>
@@ -185,7 +185,7 @@ export function SkyIllustration({ size = 200, style }: IllustrationProps) {
       {/* Horizon bands (rolling hills silhouette) */}
       <Ellipse cx={55}  cy={138} rx={72}  ry={28} fill={PAL.indigoSurf} />
       <Ellipse cx={155} cy={142} rx={65}  ry={26} fill={PAL.indigoSurf} />
-      <Ellipse cx={100} cy={148} rx={110} ry={22} fill="#1A2540" />
+      <Ellipse cx={100} cy={148} rx={110} ry={22} fill={PAL.indigoSurf} />
 
       {/* Horizon glow */}
       <Ellipse cx={100} cy={112} rx={60} ry={10} fill={PAL.saffron} opacity={0.18} />

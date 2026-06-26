@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import * as Haptics from "expo-haptics";
 import {
-  FlatList, StyleSheet, Text, TouchableOpacity, View, ScrollView,
+  Image, StyleSheet, Text, TouchableOpacity, View, ScrollView,
+  type ImageSourcePropType,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -12,10 +13,19 @@ import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { saveGuestPrefs } from "@/features/guest/guestStore";
 
-const RASI_SYMBOLS: Record<string, string> = {
-  mesham: "♈", rishabam: "♉", mithunam: "♊", katakam: "♋",
-  simham: "♌", kanni: "♍", thulam: "♎", viruchigam: "♏",
-  dhanusu: "♐", makaram: "♑", kumbam: "♒", meenam: "♓",
+const RASI_IMAGES: Record<string, ImageSourcePropType> = {
+  mesham:    require("../../assets/rasi/1Mesham.avif"),
+  rishabam:  require("../../assets/rasi/2Rishabham.avif"),
+  mithunam:  require("../../assets/rasi/3Midhunam.avif"),
+  katakam:   require("../../assets/rasi/4Kadagam.avif"),
+  simham:    require("../../assets/rasi/5Simmam.avif"),
+  kanni:     require("../../assets/rasi/6Kanni.avif"),
+  thulam:    require("../../assets/rasi/7Thulam.avif"),
+  viruchigam: require("../../assets/rasi/8Virichigam.avif"),
+  dhanusu:   require("../../assets/rasi/9Dhanusu.avif"),
+  makaram:   require("../../assets/rasi/10Magharam.avif"),
+  kumbam:    require("../../assets/rasi/11Kumbham.avif"),
+  meenam:    require("../../assets/rasi/12Meenam.avif"),
 };
 
 export default function RasiPickerScreen() {
@@ -56,7 +66,11 @@ export default function RasiPickerScreen() {
                 activeOpacity={0.8}
               >
                 {selected && <Text style={styles.checkmark}>✓</Text>}
-                <Text style={styles.rasiSymbol}>{RASI_SYMBOLS[rasi.slug] ?? "⭐"}</Text>
+                <Image
+                  source={RASI_IMAGES[rasi.slug]}
+                  style={styles.rasiImage}
+                  resizeMode="contain"
+                />
                 <Text style={[styles.rasiName, { fontFamily: "NotoSansTamil_700Bold" }]}>
                   {rasi.name.ta}
                 </Text>
@@ -123,16 +137,17 @@ const styles = StyleSheet.create({
     marginBottom: S.base,
   },
   rasiCard: {
-    width: 88,
-    height: 96,
+    width: 96,
+    height: 116,
     backgroundColor: C.surface,
     borderRadius: RADIUS.card,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
     borderColor: "transparent",
-    padding: S.sm,
-    shadowColor: "#000",
+    paddingHorizontal: S.sm,
+    paddingVertical: S.sm,
+    shadowColor: C.deepIndigo,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
@@ -140,7 +155,7 @@ const styles = StyleSheet.create({
   },
   rasiCardSelected: {
     borderColor: C.saffron,
-    backgroundColor: "#FEF5EC",
+    backgroundColor: C.cautionLight,
   },
   checkmark: {
     position: "absolute",
@@ -150,7 +165,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Inter_700Bold",
   },
-  rasiSymbol: { fontSize: 28, marginBottom: 4 },
+  rasiImage: { width: 60, height: 60, marginBottom: 4 },
   rasiName: { fontSize: 13, lineHeight: 18, color: C.textPrimary, textAlign: "center" },
   rasiEn: {
     fontFamily: "Inter_400Regular",

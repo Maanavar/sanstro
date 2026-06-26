@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import {
   Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput,
-  TouchableOpacity, View,
+  TouchableOpacity, useWindowDimensions, View,
 } from "react-native";
 import { useToast } from "@/context/ToastContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -155,6 +155,8 @@ export default function TodayTab() {
   const { t, strings, lang } = useI18n();
   const { tier, user } = useSession();
   const isTamil = lang === "ta";
+  const { height: windowHeight } = useWindowDimensions();
+  const heroZoneHeight = Math.round(windowHeight * 0.4);
 
   const { recordTodayVisit } = useConversionPrompt();
   const [prefs, setPrefs] = useState<GuestPrefs | null>(null);
@@ -166,6 +168,7 @@ export default function TodayTab() {
   const [journalMoment, setJournalMoment] = useState(JOURNAL_MOMENTS[0].key);
   const [journalArea, setJournalArea] = useState(JOURNAL_AREAS[0].key);
   const [journalNote, setJournalNote] = useState("");
+  const [panchangamExpanded, setPanchangamExpanded] = useState(false);
 
   const isOffline = useOfflineStatus();
 
@@ -400,7 +403,7 @@ export default function TodayTab() {
               <SkeletonCard height={260} />
             ) : (
               <TouchableOpacity
-                style={styles.scoreHeroCard}
+                style={[styles.scoreHeroCard, { minHeight: heroZoneHeight }]}
                 onPress={() => primaryChartId && router.push({ pathname: "/daily-score", params: { chartId: primaryChartId } })}
                 activeOpacity={0.9}
                 accessibilityLabel={g ? `Today's score ${g.score}. ${isTamil ? g.text?.ta : g.text?.en}` : "Today's score"}
@@ -704,31 +707,49 @@ export default function TodayTab() {
         {/* Ad unit â€” guest only */}
         {tier === "guest" && <NativeAdUnit />}
 
-        {/* Panchangam Details (collapsible stub) */}
+        {/* Panchangam Details — collapsible */}
         {p && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-              {isTamil ? "à®ªà®žà¯à®šà®¾à®™à¯à®• à®µà®¿à®µà®°à®®à¯" : "Panchangam Details"}
-            </Text>
-            <View style={styles.panchangamGrid}>
-              {[
-                { label: t(strings.panchangam.tithi), value: p.tithi.name },
-                { label: t(strings.panchangam.nakshatra), value: p.nakshatra.name },
-                { label: t(strings.panchangam.yoga), value: p.yoga.name },
-                { label: t(strings.panchangam.sunrise), value: formatTime(p.sunrise) },
-                { label: t(strings.panchangam.sunset), value: formatTime(p.sunset) },
-                { label: t(strings.panchangam.karana), value: p.karana.name },
-              ].map((item) => (
-                <View key={item.label} style={styles.datumCard}>
-                  <Text style={styles.datumLabel}>{item.label}</Text>
-                  <Text
-                    style={[styles.datumValue, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}
-                  >
-                    {item.value}
-                  </Text>
-                </View>
-              ))}
-            </View>
+            <TouchableOpacity
+              style={styles.panchangamToggle}
+              activeOpacity={0.8}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setPanchangamExpanded((v) => !v);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={isTamil ? "Panchangam Details" : "Panchangam Details"}
+              accessibilityState={{ expanded: panchangamExpanded }}
+            >
+              <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
+                {isTamil ? "à®ªà®žà¯à®šà®¾à®™à¯à®• à®µà®¿à®µà®°à®®à¯" : "Panchangam Details"}
+              </Text>
+              <ChevronRight
+                size={16}
+                color={C.textTertiary}
+                strokeWidth={1.5}
+                style={{ transform: [{ rotate: panchangamExpanded ? "90deg" : "0deg" }] }}
+              />
+            </TouchableOpacity>
+            {panchangamExpanded && (
+              <View style={styles.panchangamGrid}>
+                {[
+                  { label: t(strings.panchangam.tithi), value: p.tithi.name },
+                  { label: t(strings.panchangam.nakshatra), value: p.nakshatra.name },
+                  { label: t(strings.panchangam.yoga), value: p.yoga.name },
+                  { label: t(strings.panchangam.sunrise), value: formatTime(p.sunrise) },
+                  { label: t(strings.panchangam.sunset), value: formatTime(p.sunset) },
+                  { label: t(strings.panchangam.karana), value: p.karana.name },
+                ].map((item) => (
+                  <View key={item.label} style={styles.datumCard}>
+                    <Text style={styles.datumLabel}>{item.label}</Text>
+                    <Text style={[styles.datumValue, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
+                      {item.value}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         )}
 
@@ -836,18 +857,25 @@ function LifeAreaPulse({
   onSelect: (area: LifeAreaData) => void;
 }) {
   return (
-    <View style={styles.areaPulseWrap}>
+    <View style={styles.areaPulseRow}>
       {areas.map((area) => {
         const tone = scoreTone(area.score);
+        const score = Math.round(area.score);
+        const rawLabel = biText(area.label, isTamil, area.area);
+        const label = rawLabel.length > 7 ? rawLabel.slice(0, 6) + "…" : rawLabel;
         return (
-          <TouchableOpacity key={area.area} style={styles.areaPulseItem} activeOpacity={0.82} onPress={() => onSelect(area)}>
-            <View style={styles.areaPulseHeader}>
-              <Text numberOfLines={1} style={styles.areaPulseLabel}>{biText(area.label, isTamil, area.area)}</Text>
-              <Text style={[styles.areaPulseScore, { color: tone }]}>{Math.round(area.score)}</Text>
+          <TouchableOpacity
+            key={area.area}
+            style={styles.areaDotWrap}
+            activeOpacity={0.78}
+            onPress={() => onSelect(area)}
+            accessibilityLabel={`${rawLabel}: ${score}`}
+            accessibilityRole="button"
+          >
+            <View style={[styles.areaDot, { backgroundColor: tone }]}>
+              <Text style={styles.areaDotScore}>{score}</Text>
             </View>
-            <View style={styles.areaPulseTrack}>
-              <View style={[styles.areaPulseFill, { width: `${Math.max(8, Math.min(area.score, 100))}%`, backgroundColor: tone }]} />
-            </View>
+            <Text numberOfLines={1} style={styles.areaDotLabel}>{label}</Text>
           </TouchableOpacity>
         );
       })}
@@ -933,7 +961,7 @@ const styles = StyleSheet.create({
   heroLabel: {
     fontFamily: "NotoSansTamil_400Regular",
     fontSize: 13,
-    color: "rgba(255,255,255,0.8)",
+    color: `${C.surface}CC`,
     marginBottom: S.sm,
   },
   heroRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
@@ -947,7 +975,7 @@ const styles = StyleSheet.create({
     fontFamily: "NotoSansTamil_400Regular",
     fontSize: 14,
     lineHeight: 20,
-    color: "rgba(255,255,255,0.85)",
+    color: `${C.surface}D9`,
     marginTop: S.xs,
   },
   heroSymbol: { fontSize: 64, opacity: 0.9 },
@@ -979,10 +1007,10 @@ const styles = StyleSheet.create({
   scoreHeroTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: S.md },
   heroKickerRow: { flexDirection: "row", alignItems: "center", gap: S.xs },
   scoreHeroLabel: { color: C.indigoText },
-  scoreHeroMain: { alignItems: "center", justifyContent: "center", minHeight: 148 },
+  scoreHeroMain: { alignItems: "center", justifyContent: "center", flex: 1, minHeight: 120 },
   scoreHeroCopy: { position: "absolute", alignItems: "center", justifyContent: "center" },
-  scoreHeroNumber: { fontFamily: "Inter_800ExtraBold", fontSize: 34, lineHeight: 40, color: C.indigoText },
-  scoreHeroState: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.gold, textTransform: "uppercase", letterSpacing: 0 },
+  scoreHeroNumber: { fontFamily: "Inter_800ExtraBold", fontSize: 40, lineHeight: 46, color: C.indigoText },
+  scoreHeroState: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.gold, textTransform: "uppercase", letterSpacing: 1 },
   bestWindowPanel: {
     backgroundColor: C.indigoSurface,
     borderRadius: RADIUS.lg,
@@ -992,7 +1020,7 @@ const styles = StyleSheet.create({
     gap: S.xs,
   },
   bestWindowLabel: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.gold, textTransform: "uppercase", letterSpacing: 0 },
-  bestWindowTime: { fontFamily: "Inter_800ExtraBold", fontSize: 24, lineHeight: 30, color: C.indigoText },
+  bestWindowTime: { fontFamily: "Inter_800ExtraBold", fontSize: 26, lineHeight: 32, color: C.indigoText },
   scoreHeroText: { color: C.indigoText, opacity: 0.78 },
   windowChipRow: { flexDirection: "row", gap: S.xs, flexWrap: "wrap", marginTop: 4 },
   windowChip: {
@@ -1014,35 +1042,53 @@ const styles = StyleSheet.create({
   chandraText: { flex: 1, color: C.caution },
   chandraArrow: { fontFamily: "Inter_700Bold", fontSize: 18, color: C.caution },
   kalamRow: { paddingLeft: S.base, paddingVertical: S.base },
-  areaPulseWrap: {
+  areaPulseRow: {
+    flexDirection: "row",
     marginHorizontal: S.base,
     marginTop: S.sm,
-    backgroundColor: C.surface,
-    borderRadius: RADIUS.card,
-    borderWidth: 1,
-    borderColor: C.divider,
-    padding: S.sm,
+    gap: S.sm,
+  },
+  areaDotWrap: {
+    flex: 1,
+    alignItems: "center",
     gap: S.xs,
   },
-  areaPulseItem: { paddingVertical: S.xs, gap: 5 },
-  areaPulseHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: S.sm },
-  areaPulseLabel: { flex: 1, fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textSecond },
-  areaPulseScore: { fontFamily: "Inter_800ExtraBold", fontSize: 12 },
-  areaPulseTrack: { height: 5, borderRadius: 999, backgroundColor: C.surfaceAlt, overflow: "hidden" },
-  areaPulseFill: { height: 5, borderRadius: 999 },
+  areaDot: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: C.deepIndigo,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  areaDotScore: {
+    fontFamily: "Inter_800ExtraBold",
+    fontSize: 16,
+    color: C.surface,
+  },
+  areaDotLabel: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 10,
+    color: C.textSecond,
+    textAlign: "center",
+  },
   cosmicAlert: {
     marginHorizontal: S.base,
     marginTop: S.sm,
-    backgroundColor: "#FFF5EA",
+    backgroundColor: C.goldLight,
     borderRadius: RADIUS.card,
     borderWidth: 1,
-    borderColor: "rgba(192,96,10,0.18)",
+    borderColor: `${C.caution}2E`,
     padding: S.md,
     flexDirection: "row",
     alignItems: "center",
     gap: S.sm,
   },
-  cosmicAlertGood: { backgroundColor: "#EEF7EF", borderColor: "rgba(45,122,58,0.18)" },
+  cosmicAlertGood: { backgroundColor: C.greenLight, borderColor: `${C.green}2E` },
   cosmicDot: { width: 10, height: 10, borderRadius: 999 },
   cosmicKicker: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.textTertiary, textTransform: "uppercase", letterSpacing: 0 },
   cosmicTitle: { color: C.textPrimary, marginTop: 2 },
@@ -1053,7 +1099,7 @@ const styles = StyleSheet.create({
     padding: S.md,
     marginRight: S.sm,
     backgroundColor: C.surface,
-    shadowColor: "#000",
+    shadowColor: C.deepIndigo,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
@@ -1067,13 +1113,13 @@ const styles = StyleSheet.create({
   activityContent: { gap: S.xs, paddingRight: S.base },
   activityChip: {
     borderRadius: RADIUS.chip,
-    backgroundColor: "#EBF5ED",
+    backgroundColor: C.greenLight,
     borderWidth: 1,
-    borderColor: "rgba(45,122,58,0.16)",
+    borderColor: `${C.green}2A`,
     paddingHorizontal: S.md,
     paddingVertical: S.xs,
   },
-  activityChipCaution: { backgroundColor: "#FEF5EC", borderColor: "rgba(192,96,10,0.18)" },
+  activityChipCaution: { backgroundColor: C.cautionLight, borderColor: `${C.caution}2E` },
   activityChipText: { fontFamily: "Inter_700Bold", fontSize: 12, color: C.green },
   activityChipTextCaution: { color: C.caution },
   eventCountdown: {
@@ -1124,6 +1170,12 @@ const styles = StyleSheet.create({
   },
   section: { paddingHorizontal: S.base, marginTop: S.base, gap: S.sm },
   sectionTitle: { color: C.textPrimary },
+  panchangamToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: S.xs,
+  },
 
   panchangamGrid: {
     flexDirection: "row",
@@ -1135,7 +1187,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.surface,
     borderRadius: 12,
     padding: S.md,
-    shadowColor: "#000",
+    shadowColor: C.deepIndigo,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
     shadowRadius: 3,
@@ -1151,7 +1203,7 @@ const styles = StyleSheet.create({
 
   signupPrompt: {
     margin: S.base,
-    backgroundColor: "rgba(139,26,60,0.06)",
+    backgroundColor: C.alertLight,
     borderRadius: RADIUS.card,
     padding: S.base,
     gap: S.sm,
@@ -1174,9 +1226,9 @@ const styles = StyleSheet.create({
   },
   decisionTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   decisionKicker: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.gold, textTransform: "uppercase", letterSpacing: 0 },
-  decisionArrow: { fontFamily: "Inter_700Bold", fontSize: 18, color: "rgba(255,255,255,0.5)" },
-  decisionTitle: { fontFamily: "Inter_800ExtraBold", fontSize: 18, lineHeight: 24, color: "#FFF" },
-  decisionBody: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19, color: "rgba(255,255,255,0.72)" },
+  decisionArrow: { fontFamily: "Inter_700Bold", fontSize: 18, color: `${C.surface}80` },
+  decisionTitle: { fontFamily: "Inter_800ExtraBold", fontSize: 18, lineHeight: 24, color: C.surface },
+  decisionBody: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19, color: `${C.surface}B8` },
 
   badge: { alignSelf: "center", marginTop: S.xl },
   streakChip: {
@@ -1200,7 +1252,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.parchmentDeep, borderRadius: RADIUS.card,
     padding: S.base, flexDirection: "row", alignItems: "center", gap: S.sm,
     borderWidth: 1, borderColor: C.divider,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
+    shadowColor: C.deepIndigo, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
   },
   dashaIcon: { width: 28, height: 28 },
   dashaTitle: { fontSize: 15, lineHeight: 22, color: C.textPrimary },

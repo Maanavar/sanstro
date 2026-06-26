@@ -64,7 +64,7 @@ export function JadhagamChart({ houses, size = 280 }: Props) {
                 y={y}
                 width={CELL}
                 height={CELL}
-                fill={house.isLagna ? "#FEF5EC" : C.surface}
+                fill={house.isLagna ? C.cautionLight : C.surface}
                 stroke={C.divider}
                 strokeWidth={0.6}
               />
