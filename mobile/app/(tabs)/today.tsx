@@ -26,6 +26,8 @@ import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { TimeCard } from "@/components/TimeCard";
+import { ListItem } from "@/components/ListItem";
+import { ChipStrip } from "@/components/ChipStrip";
 import { RasiPalanCard } from "@/components/RasiPalanCard";
 import { ScoreRing } from "@/components/ScoreRing";
 import { ThirukanithamBadge } from "@/components/ThirukanithamBadge";
@@ -486,27 +488,17 @@ export default function TodayTab() {
         )}
         {/* Dasha Timeline quick-link (registered users with a chart) */}
         {tier !== "guest" && primaryChartId && (
-          <TouchableOpacity
-            style={styles.dashaCard}
+          <ListItem
+            icon={Orbit}
+            title="Dasha Timeline"
+            titleTa="தசா காலவரிசை"
+            subtitle="Your Maha & Antar Dasha periods"
+            subtitleTa="உங்கள் மகா தசை & அந்தர தசை"
+            isTamil={isTamil}
             onPress={() => router.push("/dasha" as Href)}
-            activeOpacity={0.85}
-            accessibilityLabel={isTamil ? "தசா காலவரிசை" : "Dasha Timeline"}
-            accessibilityRole="button"
-            accessibilityHint={isTamil ? "உங்கள் மகா மற்றும் அந்தர தசை காலங்களைக் காண்க" : "View your Maha and Antar Dasha periods"}
-          >
-            <Orbit size={28} color={C.goldOnLight} strokeWidth={1.5} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.dashaTitle, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                {isTamil ? "à®¤à®šà®¾ à®•à®¾à®²à®µà®°à®¿à®šà¯ˆ" : "Dasha Timeline"}
-              </Text>
-              <Text style={[styles.dashaDesc, isTamil ? TamilType.caption : EnType.caption]}>
-                {isTamil ? "à®‰à®™à¯à®•à®³à¯ à®®à®¹à®¾ à®¤à®šà¯ˆ & à®…à®¨à¯à®¤à®°à¯ à®¤à®šà¯ˆ" : "Your Maha & Antar Dasha periods"}
-              </Text>
-            </View>
-            <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
-          </TouchableOpacity>
+            style={{ marginHorizontal: S.base, marginTop: S.sm }}
+          />
         )}
-
         {/* Guest Hero Card */}
         {tier === "guest" && (
           <View style={styles.hero}>
@@ -797,35 +789,19 @@ export default function TodayTab() {
               <View style={styles.sheetHandle} />
               <Text style={styles.sheetTitle}>{isTamil ? "Log a moment" : "Log a moment"}</Text>
               <Text style={styles.journalStep}>{isTamil ? "What happened?" : "What happened?"}</Text>
-              <View style={styles.sheetChipWrap}>
-                {JOURNAL_MOMENTS.map((item) => (
-                  <TouchableOpacity
-                    key={item.key}
-                    style={[styles.sheetChip, journalMoment === item.key && styles.sheetChipActive]}
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      setJournalMoment(item.key);
-                    }}
-                  >
-                    <Text style={[styles.sheetChipText, journalMoment === item.key && styles.sheetChipTextActive]}>{item.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <ChipStrip
+                items={JOURNAL_MOMENTS}
+                selected={journalMoment}
+                onSelect={setJournalMoment}
+                layout="wrap"
+              />
               <Text style={styles.journalStep}>{isTamil ? "Which area?" : "Which area?"}</Text>
-              <View style={styles.sheetChipWrap}>
-                {JOURNAL_AREAS.map((item) => (
-                  <TouchableOpacity
-                    key={item.key}
-                    style={[styles.sheetChip, journalArea === item.key && styles.sheetChipActive]}
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      setJournalArea(item.key);
-                    }}
-                  >
-                    <Text style={[styles.sheetChipText, journalArea === item.key && styles.sheetChipTextActive]}>{item.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <ChipStrip
+                items={JOURNAL_AREAS}
+                selected={journalArea}
+                onSelect={setJournalArea}
+                layout="wrap"
+              />
               <TextInput
                 value={journalNote}
                 onChangeText={setJournalNote}
@@ -1153,11 +1129,6 @@ const styles = StyleSheet.create({
   sheetDoneBtn: { marginTop: S.sm, borderRadius: RADIUS.button, backgroundColor: C.saffron, paddingVertical: S.sm, alignItems: "center" },
   sheetDoneText: { fontFamily: "Inter_800ExtraBold", fontSize: 14, color: C.surface },
   journalStep: { marginTop: S.xs, fontFamily: "Inter_700Bold", fontSize: 13, color: C.textSecond },
-  sheetChipWrap: { flexDirection: "row", flexWrap: "wrap", gap: S.xs },
-  sheetChip: { borderRadius: RADIUS.chip, backgroundColor: C.surfaceAlt, paddingHorizontal: S.md, paddingVertical: S.xs, borderWidth: 1, borderColor: C.divider },
-  sheetChipActive: { backgroundColor: C.saffron, borderColor: C.saffron },
-  sheetChipText: { fontFamily: "Inter_700Bold", fontSize: 12, color: C.textSecond },
-  sheetChipTextActive: { color: C.surface },
   journalInput: {
     minHeight: 84,
     borderRadius: RADIUS.card,
@@ -1246,16 +1217,4 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: C.surface,
   },
-  dashaCard: {
-    marginHorizontal: S.base,
-    marginTop: S.sm,
-    backgroundColor: C.parchmentDeep, borderRadius: RADIUS.card,
-    padding: S.base, flexDirection: "row", alignItems: "center", gap: S.sm,
-    borderWidth: 1, borderColor: C.divider,
-    shadowColor: C.deepIndigo, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
-  },
-  dashaIcon: { width: 28, height: 28 },
-  dashaTitle: { fontSize: 15, lineHeight: 22, color: C.textPrimary },
-  dashaDesc: { color: C.textSecond, marginTop: 2 },
-  dashaArrow: { width: 18, height: 18 },
 });

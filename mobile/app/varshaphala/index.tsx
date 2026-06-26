@@ -3,6 +3,7 @@ import { Lock } from "lucide-react-native";
 import {
   ScrollView, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
+import { ChipStrip } from "@/components/ChipStrip";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
@@ -86,23 +87,14 @@ export default function VarshaphalaScreen() {
       <Header isTamil={isTamil} />
 
       {/* Year selector */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.yearStrip}
-      >
-        {YEAR_RANGE.map((y) => (
-          <TouchableOpacity
-            key={y}
-            style={[styles.yearChip, y === year && styles.yearChipActive]}
-            onPress={() => setYear(y)}
-          >
-            <Text style={[styles.yearChipText, y === year && styles.yearChipTextActive]}>
-              {y}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View style={styles.yearStripOuter}>
+        <ChipStrip
+          items={YEAR_RANGE.map((y) => ({ key: String(y), label: String(y) }))}
+          selected={String(year)}
+          onSelect={(k) => setYear(Number(k))}
+          contentStyle={{ paddingHorizontal: S.base, paddingVertical: S.sm, gap: S.sm }}
+        />
+      </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {isLoading && (
@@ -231,18 +223,7 @@ function makeStyles(C: ColorTokens) {
   },
   back: { fontFamily: "Inter_400Regular", fontSize: 22, color: C.textSecond, width: 40 },
   headerTitle: { color: C.textPrimary },
-  yearStrip: {
-    paddingHorizontal: S.base, paddingVertical: S.sm, gap: S.sm,
-    borderBottomWidth: 1, borderBottomColor: C.divider,
-  },
-  yearChip: {
-    paddingHorizontal: S.base, paddingVertical: S.xs,
-    borderRadius: RADIUS.chip, borderWidth: 1, borderColor: C.divider,
-    backgroundColor: C.surface,
-  },
-  yearChipActive: { backgroundColor: C.saffron, borderColor: C.saffron },
-  yearChipText: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: C.textSecond },
-  yearChipTextActive: { color: C.surface },
+  yearStripOuter: { borderBottomWidth: 1, borderBottomColor: C.divider },
   scroll: { padding: S.base, gap: S.md, paddingBottom: S.xxl },
   sectionTitle: { color: C.textPrimary },
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+﻿import React, { useMemo, useState } from "react";
 import {
   Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
   Heart, Clock, Star, FileText, Layers, Sparkles, MapPin, HelpCircle, Lock, BookOpen, Check,
+  TrendingUp, SlidersHorizontal, Award, Users, Shuffle,
 } from "lucide-react-native";
 import type { LucideIcon } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
@@ -16,6 +17,8 @@ import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { entranceDelay, spring, staggerInterval, duration } from "@/theme/motion";
+import { ScreenHeader } from "@/components/ScreenHeader";
+import { SectionLabel } from "@/components/SectionLabel";
 
 type ToolDef = {
   Icon: LucideIcon;
@@ -90,6 +93,37 @@ const GROUPS: ToolGroup[] = [
         Icon: HelpCircle, key: "prashan", route: "/(tabs)/tools/prashan",
         nameEn: "Horary",   nameTa: "பிரச்னம்",
         descEn: "Ask and get an instant reading", descTa: "கேள்வி கேட்டு உடனடி பதில்",
+      },
+    ],
+  },
+  {
+    labelEn: "Advanced",
+    labelTa: "மேம்பட்ட",
+    tools: [
+      {
+        Icon: Shuffle, key: "dasha", route: "/dasha/index",
+        nameEn: "Dasha",         nameTa: "தசா",
+        descEn: "Your life-period timeline",     descTa: "தசா காலகட்ட அட்டவணை",
+      },
+      {
+        Icon: TrendingUp, key: "varshaphala", route: "/varshaphala/index",
+        nameEn: "Varshaphala",   nameTa: "வர்ஷபல",
+        descEn: "Annual chart & predictions",    descTa: "ஆண்டு ஜாதக முன்னறிவிப்பு",
+      },
+      {
+        Icon: SlidersHorizontal, key: "rectification", route: "/rectification/index",
+        nameEn: "Rectification", nameTa: "பிறந்த நேர திருத்தம்",
+        descEn: "Fine-tune your birth time",     descTa: "பிறந்த நேரம் சரிப்படுத்துதல்",
+      },
+      {
+        Icon: Award, key: "wrapped", route: "/wrapped/index",
+        nameEn: "Year Wrapped",  nameTa: "ஆண்டு சுருக்கம்",
+        descEn: "Your cosmic year in review",    descTa: "உங்கள் ஜோதிட ஆண்டு பார்வை",
+      },
+      {
+        Icon: Users, key: "family-vault", route: "/family-vault",
+        nameEn: "Family Vault",  nameTa: "குடும்ப சேமிப்பு",
+        descEn: "Charts for everyone you care about", descTa: "குடும்பத்தினர் ஜாதகங்கள்",
       },
     ],
   },
@@ -169,20 +203,19 @@ export default function ToolsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Animated.View style={styles.header} entering={FadeInDown.delay(entranceDelay.hero).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}>
-        <View style={styles.headerText}>
-          <Text style={[styles.title, isTamil ? TamilType.heading : EnType.heading]}>
-            {t(strings.tools.title)}
-          </Text>
-          <Text style={[styles.subtitle, isTamil ? TamilType.caption : EnType.caption]}>
-            {isTamil ? "8 à®œà¯‹à®¤à®¿à®Ÿ à®•à®°à¯à®µà®¿à®•à®³à¯" : "8 Jyotish tools, grouped by job"}
-          </Text>
-        </View>
-        <View style={styles.toolCountPill}>
-          <Sparkles size={15} color={C.goldOnLight} strokeWidth={1.5} />
-          <Text style={styles.toolCountText}>8</Text>
-        </View>
-      </Animated.View>
+      <ScreenHeader
+        title={t(strings.tools.title)}
+        subtitle="13 Jyotish tools, grouped by job"
+        subtitleTa="13 ஜோதிட கருவிகள்"
+        isTamil={isTamil}
+        entering={FadeInDown.delay(entranceDelay.hero).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}
+        badge={
+          <View style={styles.toolCountPill}>
+            <Sparkles size={15} color={C.goldOnLight} strokeWidth={1.5} />
+            <Text style={styles.toolCountText}>13</Text>
+          </View>
+        }
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -190,9 +223,7 @@ export default function ToolsScreen() {
       >
         {GROUPS.map((group, groupIdx) => (
           <Animated.View key={group.labelEn} style={styles.group} entering={FadeInDown.delay(entranceDelay.supporting + groupIdx * staggerInterval).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}>
-            <Text style={styles.groupLabel}>
-              {isTamil ? group.labelTa : group.labelEn}
-            </Text>
+            <SectionLabel labelEn={group.labelEn} labelTa={group.labelTa} isTamil={isTamil} />
             {chunkPairs(group.tools).map(([a, b], rowIdx) => (
               <View key={rowIdx} style={styles.tileRow}>
                 <ToolTile
@@ -289,28 +320,6 @@ export default function ToolsScreen() {
 function makeStyles(C: ColorTokens) {
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
-  header: {
-    marginHorizontal: S.lg,
-    marginTop: S.lg,
-    marginBottom: S.md,
-    padding: S.lg,
-    borderRadius: RADIUS.xl,
-    backgroundColor: C.parchmentDeep,
-    borderWidth: 1,
-    borderColor: C.divider,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: S.md,
-    shadowColor: C.deepIndigo,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  headerText: { flex: 1, gap: S.xs },
-  title: { color: C.textPrimary },
-  subtitle: { color: C.textTertiary },
   toolCountPill: {
     minWidth: 52,
     height: 44,
@@ -327,15 +336,6 @@ function makeStyles(C: ColorTokens) {
   scroll: { paddingHorizontal: S.lg, paddingBottom: S.xl, gap: S.xl },
 
   group: { gap: S.sm },
-  groupLabel: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 11,
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-    color: C.textTertiary,
-    marginBottom: S.xs,
-    paddingLeft: 2,
-  },
   tileRow:    { flexDirection: "row", gap: S.sm },
   tileSpacer: { flex: 1 },
 
