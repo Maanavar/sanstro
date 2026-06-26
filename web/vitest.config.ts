@@ -8,6 +8,7 @@ export default defineConfig({
     },
   },
   test: {
+    globals: true,
     include: ["**/*.test.ts", "**/*.test.tsx"],
     exclude: ["node_modules", ".next", "e2e"],
     // Component tests (.test.tsx) use jsdom; pure logic tests (.test.ts) run in node.

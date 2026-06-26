@@ -2,6 +2,8 @@ packages:
   - "mobile"
   - "packages/*"
   - "web"
+overrides:
+  react-native-worklets: "0.8.3"
 allowBuilds:
   '@firebase/util': true
   '@sentry/cli': true

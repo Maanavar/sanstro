@@ -1,10 +1,15 @@
 {
-  "name": "sanstro",
-  "private": true,
-  "packageManager": "pnpm@11.8.0",
-  "workspaces": [
-    "mobile",
-    "packages/*",
-    "web"
-  ]
+    "name":  "sanstro",
+    "private":  true,
+    "packageManager":  "pnpm@11.8.0",
+    "workspaces":  [
+                       "mobile",
+                       "packages/*",
+                       "web"
+                   ],
+    "scripts":  {
+                    "qa:colors":  "node scripts/audit-color-literals.mjs",
+                    "qa:colors:update":  "node scripts/audit-color-literals.mjs --update-baseline",
+                    "qa:phase7":  "pnpm qa:colors \u0026\u0026 pnpm --filter mobile qa:touch-targets \u0026\u0026 pnpm --filter jothidam-ai-web test:visual"
+                }
 }
