@@ -185,8 +185,8 @@ def test_nalla_and_gowri_nalla_neram_use_compact_tamil_calendar_windows():
         ("PM", "16:30", "17:30"),
     ]
     assert [(s.period, s.start.strftime("%H:%M"), s.end.strftime("%H:%M")) for s in snap.gowri_nalla_neram] == [
-        ("DAY", "09:30", "10:30"),
-        ("NIGHT", "19:30", "20:30"),
+        ("DAY", "05:41", "07:18"),
+        ("NIGHT", "18:34", "19:57"),
     ]
     assert all(s.name is None and s.is_good is True for s in snap.nalla_neram + snap.gowri_nalla_neram)
 

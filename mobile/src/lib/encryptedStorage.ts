@@ -1,64 +1,23 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import CryptoJS from "crypto-js";
 import { getMasterEncryptionKey } from "./secureStore";
 
 const STORAGE_KEY_PREFIX = "vinaadi_encrypted:";
 
-function stringToCharCodes(str: string): number[] {
-  const codes: number[] = [];
-  for (let i = 0; i < str.length; i++) {
-    codes.push(str.charCodeAt(i));
-  }
-  return codes;
+function aesEncrypt(plaintext: string, key: string): string {
+  const encrypted = CryptoJS.AES.encrypt(plaintext, key).toString();
+  const withVersion = `v2:${encrypted}`;
+  return withVersion;
 }
 
-function charCodesToString(codes: number[]): string {
-  return String.fromCharCode(...codes);
-}
-
-function bytesToBase64(bytes: number[]): string {
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
-
-function base64ToBytes(base64: string): number[] {
-  const binary = atob(base64);
-  const bytes: number[] = [];
-  for (let i = 0; i < binary.length; i++) {
-    bytes.push(binary.charCodeAt(i));
-  }
-  return bytes;
-}
-
-function simpleEncrypt(plaintext: string, key: string): string {
-  const keyBytes = stringToCharCodes(key);
-  const plaintextBytes = stringToCharCodes(plaintext);
-
-  const encrypted: number[] = [];
-  for (let i = 0; i < plaintextBytes.length; i++) {
-    encrypted.push(plaintextBytes[i] ^ keyBytes[i % keyBytes.length]);
-  }
-
-  const withVersion = [118, 49, 58, ...encrypted]; // "v1:" + encrypted
-  return bytesToBase64(withVersion);
-}
-
-function simpleDecrypt(ciphertext: string, key: string): string | null {
+function aesDecrypt(ciphertext: string, key: string): string | null {
   try {
-    const buffer = base64ToBytes(ciphertext);
-    const version = charCodesToString(buffer.slice(0, 3));
-    if (version !== "v1:") return null;
-
-    const encrypted = buffer.slice(3);
-    const keyBytes = stringToCharCodes(key);
-    const decrypted: number[] = [];
-    for (let i = 0; i < encrypted.length; i++) {
-      decrypted.push(encrypted[i] ^ keyBytes[i % keyBytes.length]);
-    }
-
-    return charCodesToString(decrypted);
+    if (!ciphertext.startsWith("v2:")) return null;
+    const encrypted = ciphertext.slice(3);
+    const decrypted = CryptoJS.AES.decrypt(encrypted, key);
+    const plaintext = decrypted.toString(CryptoJS.enc.Utf8);
+    if (!plaintext) return null;
+    return plaintext;
   } catch {
     return null;
   }
@@ -81,7 +40,7 @@ export class EncryptedStorage {
       const ciphertext = await AsyncStorage.getItem(storageKey);
 
       if (!ciphertext) return null;
-      const plaintext = simpleDecrypt(ciphertext, encryptionKey);
+      const plaintext = aesDecrypt(ciphertext, encryptionKey);
       return plaintext;
     } catch (error) {
       console.warn(`EncryptedStorage.getItem failed for key ${key}:`, error);
@@ -93,7 +52,7 @@ export class EncryptedStorage {
     try {
       const encryptionKey = await this.getKey();
       const storageKey = `${STORAGE_KEY_PREFIX}${key}`;
-      const ciphertext = simpleEncrypt(value, encryptionKey);
+      const ciphertext = aesEncrypt(value, encryptionKey);
       await AsyncStorage.setItem(storageKey, ciphertext);
     } catch (error) {
       console.warn(`EncryptedStorage.setItem failed for key ${key}:`, error);

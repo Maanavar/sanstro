@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
@@ -24,6 +25,8 @@ from app.calculations.ephemeris import (
     calculate_sidereal_planets,
 )
 from app.models.panchangam_cache import PanchangamCache
+
+logger = logging.getLogger(__name__)
 
 # Tamil tithi names (Thirukanitham tradition — numbered 1 to 15, same for both pakshas)
 TITHI_NAMES = [
@@ -823,21 +826,15 @@ def _compute_nalla_neram(
     next_sunrise: datetime,
     weekday_index: int,
 ) -> list[PanchangamSlot]:
-    """Derive Nalla Neram from good Gowri slots for sunrise/sunset-relative timing.
+    """Return 2-slot Nalla Neram summary using fixed Tamil almanac clock times.
 
-    Nalla Neram (auspicious times) are extracted from the computed Gowri Panchangam,
-    which ensures the times adapt to latitude, longitude, and the actual sunrise/sunset
-    times rather than using hardcoded IST clock tables.
+    Classic Nalla Neram uses AM and PM clock tables for everyday planning,
+    independent of sunrise/sunset shifts. See NALLA_NERAM_SUMMARY_TABLE.
     """
-    gowri_slots = _compute_gowri_panchangam(sunrise, sunset, next_sunrise, weekday_index)
-
-    # Filter to the good/auspicious Gowri slots (Amirdha, Uthi, Laabam, Dhanam, Sugam)
-    nalla_neram_slots: list[PanchangamSlot] = []
-    for slot in gowri_slots:
-        if slot.name in GOWRI_GOOD_NAMES:
-            nalla_neram_slots.append(slot)
-
-    return nalla_neram_slots
+    # Create date and tzinfo for _summary_slots
+    date_local = sunrise.date()
+    tzinfo = sunrise.tzinfo
+    return _summary_slots(date_local, tzinfo, NALLA_NERAM_SUMMARY_TABLE, weekday_index)
 
 
 def _compute_gowri_panchangam(
@@ -861,12 +858,44 @@ def _compute_gowri_panchangam(
 
 
 def _compute_gowri_nalla_neram(
-    date_local: date,
-    tzinfo,
+    sunrise: datetime,
+    sunset: datetime,
+    next_sunrise: datetime,
     weekday_index: int,
 ) -> list[PanchangamSlot]:
-    """Compact day/night Gowri Nalla Neram summary for daily planning."""
-    return _summary_slots(date_local, tzinfo, GOWRI_NALLA_NERAM_SUMMARY_TABLE, weekday_index)
+    """Compact day/night Gowri Nalla Neram summary derived from computed Gowri slots.
+
+    Returns the first good Gowri slot in DAY and NIGHT periods as summary windows.
+    """
+    gowri_slots = _compute_gowri_panchangam(sunrise, sunset, next_sunrise, weekday_index)
+
+    day_good_slots = [s for s in gowri_slots if s.period == "DAY" and s.is_good]
+    night_good_slots = [s for s in gowri_slots if s.period == "NIGHT" and s.is_good]
+
+    summary_slots = []
+    if day_good_slots:
+        first_day = day_good_slots[0]
+        summary_slots.append(PanchangamSlot(
+            start=first_day.start,
+            end=first_day.end,
+            slot=1,
+            name=None,
+            period="DAY",
+            is_good=True,
+        ))
+
+    if night_good_slots:
+        first_night = night_good_slots[0]
+        summary_slots.append(PanchangamSlot(
+            start=first_night.start,
+            end=first_night.end,
+            slot=2,
+            name=None,
+            period="NIGHT",
+            is_good=True,
+        ))
+
+    return summary_slots
 
 
 # Tithis universally treated as Rahu/rikta — excluded from muhurtham regardless
@@ -1510,7 +1539,7 @@ def calculate_daily_panchangam(
     hora_entries = _make_hora_entries(sunrise, sunset, next_sunrise, weekday_lord)
     weekday_index = date_local.weekday()
     gowri_panchangam = _compute_gowri_panchangam(sunrise, sunset, next_sunrise, weekday_index)
-    gowri_nalla_neram = _compute_gowri_nalla_neram(date_local, sunrise.tzinfo, weekday_index)
+    gowri_nalla_neram = _compute_gowri_nalla_neram(sunrise, sunset, next_sunrise, weekday_index)
     nalla_neram = _compute_nalla_neram(sunrise, sunset, next_sunrise, weekday_index)
 
     is_subha, subha_reason = _compute_subha_muhurtham_broad(

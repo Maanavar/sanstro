@@ -624,8 +624,8 @@ def _format_time_range(start, end) -> str:
 @public_endpoint_rate_limit("public_muhurta")
 def public_muhurta(
     payload: PublicMuhurtaRequest,
+    request: Request,
     session: Session = Depends(get_db),
-    request: Request = Depends(),
 ) -> PublicMuhurtaResponse:
     """Return top-3 auspicious muhurta slots for a date range and event type.
 
@@ -846,8 +846,8 @@ def public_rasi_palan(
 @router.get("/panchangam/monthly", response_model=PanchangamMonthlyResponse)
 @public_endpoint_rate_limit("public_panchangam")
 def public_panchangam_monthly(
+    request: Request,
     query: PanchangamMonthlyQuery = Depends(),
-    request: Request = Depends(),
     session: Session = Depends(get_db),
 ) -> PanchangamMonthlyResponse:
     """Return the monthly panchangam (festival markers, special days) without auth.
