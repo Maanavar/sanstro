@@ -127,6 +127,9 @@ class PanchangamHoraEntry(BaseModel):
 class PanchangamSoolam(BaseModel):
     direction: str
     parigaram: str
+    status: str = Field(default="preliminary", description="Verification status: 'preliminary' indicates pending source verification")
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class PanchangamLagnam(BaseModel):
@@ -143,6 +146,7 @@ class PanchangamAmirdhadhiYogam(BaseModel):
     name: str
     ends_at: str = Field(alias="endsAt")
     next_name: str = Field(alias="nextName")
+    status: str = Field(default="preliminary", description="Verification status: 'preliminary' indicates pending source verification")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -167,6 +171,7 @@ class PanchangamChandrashtamamToday(BaseModel):
     affected_janma_rasi_name: str = Field(alias="affectedJanmaRasiName")
     nakshatras: list[str] = Field(default_factory=list)
     janma_nakshatra_windows: list[PanchangamChandrashtamamNakshatraWindow] = Field(default_factory=list, alias="janmaNakshatraWindows")
+    status: str = Field(default="preliminary", description="Verification status: 'preliminary' indicates pending source verification")
 
     model_config = ConfigDict(populate_by_name=True)
 

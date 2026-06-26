@@ -48,6 +48,11 @@ class ForgotPasswordRequest(BaseModel):
         return normalized
 
 
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=20, max_length=4096)
+    password: str = Field(min_length=8, max_length=255)
+
+
 class AuthUserResponse(BaseModel):
     user_id: str = Field(alias="userId")
     email: str
@@ -62,6 +67,10 @@ class UpdateUserSettingsRequest(BaseModel):
     goal_track: Literal["CAREER", "EXAM", "RELATIONSHIP", "FINANCIAL"] | None = Field(default=None, alias="goalTrack")
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class RegisterResponse(BaseModel):
+    detail: str
 
 
 class ForgotPasswordResponse(BaseModel):

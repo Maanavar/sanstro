@@ -1,6 +1,10 @@
 import { apiPost, apiGet, apiPatch, apiDelete } from "./client";
 import { setTokens, clearTokens } from "@/lib/secureStore";
 
+export interface RegisterResponse {
+  detail: string;
+}
+
 export interface MobileAuthResponse {
   accessToken: string;
   refreshToken: string;
@@ -29,14 +33,12 @@ export async function register(
   email: string,
   password: string,
   displayName?: string
-): Promise<MobileAuthResponse> {
-  const data = await apiPost<MobileAuthResponse>("/auth/mobile/register", {
+): Promise<RegisterResponse> {
+  return apiPost<RegisterResponse>("/auth/mobile/register", {
     email,
     password,
     displayName,
   });
-  await setTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
-  return data;
 }
 
 export async function logout(): Promise<void> {

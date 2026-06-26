@@ -17,7 +17,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import bcrypt
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.orm import Session
 
@@ -28,7 +28,8 @@ from app.db.session import get_db
 from app.middleware import resolve_client_ip
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
-from app.schemas.auth import AuthUserResponse
+from app.services.email_service import enqueue_existing_account_registration_email
+from app.schemas.auth import AuthUserResponse, RegisterResponse
 
 router = APIRouter(prefix="/mobile", tags=["mobile-auth"])
 
@@ -126,6 +127,7 @@ def _build_response(db: Session, user: User, device_id: str | None) -> MobileAut
     access = create_access_token(
         subject=str(user.user_id),
         expires_delta=timedelta(minutes=_ACCESS_TTL_MINUTES),
+        token_version=int(getattr(user, "token_version", 0) or 0),
     )
     refresh = _issue_refresh_token(db, user.user_id, device_id)
     return MobileAuthResponse(
@@ -176,12 +178,13 @@ def mobile_login(
     return _build_response(db, user, payload.device_id)
 
 
-@router.post("/register", response_model=MobileAuthResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=RegisterResponse)
 def mobile_register(
     payload: MobileRegisterRequest,
+    background_tasks: BackgroundTasks,
     request: Request,
     db: Session = Depends(get_db),
-) -> MobileAuthResponse:
+) -> RegisterResponse:
     client_ip = _get_client_ip(request)
 
     # Check throttles: per-IP and per-email
@@ -197,12 +200,17 @@ def mobile_register(
             headers={"Retry-After": str(retry_after)},
         )
 
-    if db.query(User).filter(User.email == payload.email).first() is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="An account with this email already exists.")
+    existing = db.query(User).filter(User.email == payload.email).first()
+    if existing is not None:
+        _hash_password(payload.password)
+        if existing.email:
+            enqueue_existing_account_registration_email(background_tasks, existing.email)
+        return RegisterResponse(detail="If this email can be used, your account is ready. Please sign in to continue.")
+
     user = User(user_id=uuid4(), email=payload.email, hashed_password=_hash_password(payload.password))
     db.add(user)
     db.flush()
-    return _build_response(db, user, payload.device_id)
+    return RegisterResponse(detail="If this email can be used, your account is ready. Please sign in to continue.")
 
 
 @router.post("/refresh", response_model=MobileAuthResponse)

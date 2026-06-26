@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, String, Text
+from sqlalchemy import Boolean, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -21,6 +21,7 @@ class User(TimestampMixin, Base):
     # Server-side admin role. Authoritative source of admin access so the browser
     # never needs to hold a long-lived admin secret (see app/core/auth.get_admin_user).
     is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    token_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
     birth_profiles = relationship(
         "BirthProfile", back_populates="owner_user", cascade="all, delete-orphan", passive_deletes=True

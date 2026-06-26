@@ -9,6 +9,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import NamedTuple
 
+from fastapi import BackgroundTasks
+
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -25,6 +27,66 @@ class EmailMessage(NamedTuple):
     subject: str
     body_text: str
     body_html: str | None = None
+
+
+def _password_reset_link(token: str) -> str:
+    settings = get_settings()
+    return f"{settings.frontend_url.rstrip('/')}/login?resetToken={token}"
+
+
+def send_password_reset_email(to_address: str, token: str) -> bool:
+    reset_link = _password_reset_link(token)
+    message = EmailMessage(
+        to_address=to_address,
+        subject="Vinaadi AI password reset",
+        body_text=(
+            "You requested a password reset for your Vinaadi AI account.\n\n"
+            f"Use this link to continue: {reset_link}\n\n"
+            "This link is single-use and expires shortly. If you did not request this, you can ignore this message."
+        ),
+        body_html=(
+            "<html><body style='font-family:sans-serif;max-width:600px;margin:auto;padding:24px'>"
+            "<h2>Reset your Vinaadi AI password</h2>"
+            "<p>You requested a password reset for your Vinaadi AI account.</p>"
+            f"<p><a href='{reset_link}'>Reset your password</a></p>"
+            "<p>This link is single-use and expires shortly. If you did not request this, you can ignore this message.</p>"
+            "</body></html>"
+        ),
+    )
+    return send_email(message)
+
+
+def enqueue_password_reset_email(background_tasks: BackgroundTasks, to_address: str, token: str) -> None:
+    background_tasks.add_task(send_password_reset_email, to_address, token)
+
+
+def send_existing_account_registration_email(to_address: str) -> bool:
+    settings = get_settings()
+    login_link = f"{settings.frontend_url.rstrip('/')}/login"
+    message = EmailMessage(
+        to_address=to_address,
+        subject="Vinaadi AI account sign-in reminder",
+        body_text=(
+            "Someone tried to create a Vinaadi AI account with this email address.\n\n"
+            "You already have an account, so no new account was created. "
+            f"You can sign in here: {login_link}\n\n"
+            "If this was not you, you can ignore this message."
+        ),
+        body_html=(
+            "<html><body style='font-family:sans-serif;max-width:600px;margin:auto;padding:24px'>"
+            "<h2>Your Vinaadi AI account already exists</h2>"
+            "<p>Someone tried to create a Vinaadi AI account with this email address.</p>"
+            "<p>You already have an account, so no new account was created.</p>"
+            f"<p><a href='{login_link}'>Sign in to Vinaadi AI</a></p>"
+            "<p>If this was not you, you can ignore this message.</p>"
+            "</body></html>"
+        ),
+    )
+    return send_email(message)
+
+
+def enqueue_existing_account_registration_email(background_tasks: BackgroundTasks, to_address: str) -> None:
+    background_tasks.add_task(send_existing_account_registration_email, to_address)
 
 
 def _smtp_configured() -> bool:

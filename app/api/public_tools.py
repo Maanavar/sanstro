@@ -5,8 +5,9 @@ the public site: jadhagam generation, porutham compatibility, and today's
 panchangam. No account creation, no data persistence — results are computed
 on the fly and returned directly.
 
-Rate limiting and abuse protection are handled at the infrastructure layer
-(reverse proxy / CDN). These endpoints do not write to the database.
+Rate limiting: Application-level per-endpoint rate limits enforce tight per-IP
+budgets for expensive operations (chart, porutham, muhurta). Additional infrastructure
+rate limiting (CDN / WAF) should be confirmed separately.
 """
 from __future__ import annotations
 
@@ -15,12 +16,13 @@ from datetime import date, time, timedelta
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import RASI_NAME_TO_NUMBER, RASI_NAMES
 from app.calculations.porutham import compute_porutham
+from app.core.public_endpoint_limiter import public_endpoint_rate_limit
 from app.db.session import get_db
 from app.schemas.birth_profiles import _validate_birth_date_bounds  # noqa: PLC2701 (shared validation)
 from app.schemas.charts import ChartCalculateResponseData, ChartSummaryData
@@ -140,7 +142,8 @@ class _EphemeralProfile:
 
 
 @router.post("/chart-preview", response_model=PublicChartPreviewResponse)
-def public_chart_preview(payload: PublicChartRequest) -> PublicChartPreviewResponse:
+@public_endpoint_rate_limit("public_chart")
+def public_chart_preview(payload: PublicChartRequest, request: Request) -> PublicChartPreviewResponse:
     """Calculate a transient chart plus summary and dasha without persistence."""
     profile = _EphemeralProfile(payload.birth)
     try:
@@ -161,7 +164,8 @@ def public_chart_preview(payload: PublicChartRequest) -> PublicChartPreviewRespo
 
 
 @router.post("/chart", response_model=PublicChartResponse)
-def public_chart(payload: PublicChartRequest) -> PublicChartResponse:
+@public_endpoint_rate_limit("public_chart")
+def public_chart(payload: PublicChartRequest, request: Request) -> PublicChartResponse:
     """Calculate a Thirukanitham birth chart from raw birth details.
 
     No authentication required. Result is computed in-memory and not persisted.
@@ -176,7 +180,8 @@ def public_chart(payload: PublicChartRequest) -> PublicChartResponse:
 
 
 @router.post("/compare", response_model=PublicCompareResponse)
-def public_compare(payload: PublicPoruthamRequest) -> PublicCompareResponse:
+@public_endpoint_rate_limit("public_porutham")
+def public_compare(payload: PublicPoruthamRequest, request: Request) -> PublicCompareResponse:
     """Calculate two transient charts plus porutham without saving profiles."""
     from app.schemas.relationships import VALID_COMPATIBILITY_CONTEXTS
 
@@ -208,7 +213,8 @@ def public_compare(payload: PublicPoruthamRequest) -> PublicCompareResponse:
 
 
 @router.post("/compare/pdf")
-def public_compare_pdf(payload: PublicPoruthamRequest) -> Response:
+@public_endpoint_rate_limit("public_compare_pdf")
+def public_compare_pdf(payload: PublicPoruthamRequest, request: Request) -> Response:
     """Generate a transient porutham PDF without creating saved profiles."""
     from app.schemas.relationships import VALID_COMPATIBILITY_CONTEXTS
     from app.services.pdf_export_service import generate_porutham_pdf
@@ -244,7 +250,8 @@ def public_compare_pdf(payload: PublicPoruthamRequest) -> Response:
 
 
 @router.post("/porutham", response_model=PublicPoruthamResponse)
-def public_porutham(payload: PublicPoruthamRequest) -> PublicPoruthamResponse:
+@public_endpoint_rate_limit("public_porutham")
+def public_porutham(payload: PublicPoruthamRequest, request: Request) -> PublicPoruthamResponse:
     """Calculate 10-kuta porutham from two raw birth profiles.
 
     No authentication required. No data is persisted.
@@ -441,9 +448,11 @@ def public_calendar_category(category: str, year: int = 2026) -> dict:
 
 
 @router.get("/panchangam", response_model=PanchangamDailyResponse)
+@public_endpoint_rate_limit("public_panchangam")
 def public_panchangam(
     date: date,
     lat: float,
+    request: Request,
     lng: float,
     timezone: str = "Asia/Kolkata",
     session: Session = Depends(get_db),
@@ -612,9 +621,11 @@ def _format_time_range(start, end) -> str:
 
 
 @router.post("/muhurta", response_model=PublicMuhurtaResponse)
+@public_endpoint_rate_limit("public_muhurta")
 def public_muhurta(
     payload: PublicMuhurtaRequest,
     session: Session = Depends(get_db),
+    request: Request = Depends(),
 ) -> PublicMuhurtaResponse:
     """Return top-3 auspicious muhurta slots for a date range and event type.
 
@@ -833,8 +844,10 @@ def public_rasi_palan(
 # ── Public Monthly Panchangam ──────────────────────────────────────────────────
 
 @router.get("/panchangam/monthly", response_model=PanchangamMonthlyResponse)
+@public_endpoint_rate_limit("public_panchangam")
 def public_panchangam_monthly(
     query: PanchangamMonthlyQuery = Depends(),
+    request: Request = Depends(),
     session: Session = Depends(get_db),
 ) -> PanchangamMonthlyResponse:
     """Return the monthly panchangam (festival markers, special days) without auth.

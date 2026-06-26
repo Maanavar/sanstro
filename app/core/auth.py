@@ -28,19 +28,36 @@ from app.models.user import User
 _bearer = HTTPBearer(auto_error=False)
 _MUTATING_METHODS = {"POST", "PATCH", "PUT", "DELETE"}
 _CSRF_HEADER_VALUE = "1"
+TOKEN_TYPE_ACCESS = "access"
+TOKEN_TYPE_PASSWORD_RESET = "pwreset"
 
 
 # ── Token helpers ─────────────────────────────────────────────────────────────
 
 
-def create_access_token(subject: str, expires_delta: timedelta | None = None) -> str:
+def create_access_token(
+    subject: str,
+    expires_delta: timedelta | None = None,
+    *,
+    token_type: str = TOKEN_TYPE_ACCESS,
+    token_version: int = 0,
+    jti: str | None = None,
+) -> str:
     """Create a signed JWT for the given subject (user_id or email)."""
     settings = get_settings()
     if settings.jwt_secret is None:
         raise RuntimeError("JWT secret is not configured.")
     now = datetime.now(UTC)
     expire = now + (expires_delta or timedelta(minutes=settings.jwt_expire_minutes))
-    payload = {"sub": subject, "iat": now, "exp": expire}
+    payload: dict[str, object] = {
+        "sub": subject,
+        "iat": now,
+        "exp": expire,
+        "typ": token_type,
+        "ver": token_version,
+    }
+    if jti is not None:
+        payload["jti"] = jti
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
@@ -58,6 +75,25 @@ def decode_token(token: str) -> dict:
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
 
+def _require_access_token(payload: dict) -> None:
+    token_type = payload.get("typ", TOKEN_TYPE_ACCESS)
+    if token_type != TOKEN_TYPE_ACCESS:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token is not valid for API access.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+def _payload_token_version(payload: dict) -> int:
+    try:
+        return int(payload.get("ver", 0))
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token version.",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
 
 # ── FastAPI dependencies ───────────────────────────────────────────────────────
 
@@ -88,6 +124,7 @@ def get_current_user(
         )
 
     payload = decode_token(token)
+    _require_access_token(payload)
     sub: str | None = payload.get("sub")
     if not sub:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token missing subject.")
@@ -109,6 +146,12 @@ def get_current_user(
 
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not resolve user.")
+    if _payload_token_version(payload) != int(getattr(user, "token_version", 0) or 0):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     if user.is_suspended:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

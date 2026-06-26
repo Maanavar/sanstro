@@ -22,6 +22,7 @@ export default function MethodologyPage() {
   const TOC = [
     { href: "#thirukanitham", label: lang === "en" ? "Thirukanitham"           : "திருக்கணிதம்" },
     { href: "#lahiri",        label: lang === "en" ? "Lahiri ayanamsa"         : "லாகிரி அயனாம்சம்" },
+    { href: "#node",          label: lang === "en" ? "Rahu and Ketu"           : "ராகு மற்றும் கேது" },
     { href: "#drik",          label: lang === "en" ? "Drik ephemeris"          : "திரிக் கோளக்கணிதம்" },
     { href: "#dasha",         label: lang === "en" ? "Vimshottari Dasha"       : "விம்சோத்தரி தசை" },
     { href: "#gochar",        label: lang === "en" ? "Transits"                 : "கிரகநகர்வு" },
@@ -83,10 +84,15 @@ export default function MethodologyPage() {
                   ? "Unlike generalized astrology apps that use approximate planetary data, Vinaadi uses Thirukanitham-based computation to produce birth charts, panchangam, and transit readings anchored to the exact Tamil astrological standard."
                   : "தோராயமான கிரகத் தரவை நம்பும் பல ஜோதிட ஆப்களிலிருந்து வேறுபட்டு, விநாடி திருக்கணிதக் கணக்கீட்டின் அடிப்படையில் ஜாதகம், பஞ்சாங்கம், கிரகநகர்வு வாசிப்பு ஆகிய அனைத்தையும் தமிழ் தரநிலைக்கேற்ப உருவாக்குகிறது."}</p>
 
-                <h2 id="lahiri">{lang === "en" ? "Lahiri ayanamsa" : "லாகிரி அயனாம்சம்"}</h2>
+                <h2 id="lahiri">{lang === "en" ? "Lahiri ayanamsa (Chitra-paksha)" : "லாகிரி அயனாம்சம் (சித்திரப் பக்ষம்)"}</h2>
                 <p>{lang === "en"
-                  ? "Tamil Jyotish uses the sidereal zodiac — the fixed star positions — rather than the tropical zodiac used in Western astrology. The difference between sidereal and tropical positions is called the ayanamsa. Vinaadi uses the Lahiri ayanamsa, the government-recognized standard in India."
-                  : "தமிழ் ஜோதிடம் மேற்கத்திய வெப்பமண்டல ராசிக்கட்டத்தை அல்ல, நிலையான நட்சத்திர நிலைகளை அடிப்படையாகக் கொண்ட நட்சத்திர ராசிக்கட்டத்தையே பயன்படுத்துகிறது. இந்த இரண்டு முறைகளுக்கிடையிலான வேறுபாடே அயனாம்சம். இந்தியாவில் அரசாங்கம் அங்கீகரித்த லாகிரி அயனாம்சத்தையே விநாடி பயன்படுத்துகிறது."}</p>
+                  ? "Tamil Jyotish uses the sidereal zodiac — the fixed star positions — rather than the tropical zodiac used in Western astrology. The difference between sidereal and tropical positions is called the ayanamsa. Vinaadi uses the Lahiri ayanamsa (also known as Chitra-paksha), the government-recognized standard in India."
+                  : "தமிழ் ஜோதிடம் மேற்கத்திய வெப்பமண்டல ராசிக்கட்டத்தை அல்ல, நிலையான நட்சத்திர நிலைகளை அடிப்படையாகக் கொண்ட நட்சத்திர ராசிக்கட்டத்தையே பயன்படுத்துகிறது. இந்த இரண்டு முறைகளுக்கிடையிலான வேறுபாடே அயனாம்சம். இந்தியாவில் அரசாங்கம் அங்கீகரித்த லாகிரி அயனாம்சத்தையே (சித்திரப் பக்ஷம்) விநாடி பயன்படுத்துகிறது."}</p>
+
+                <h2 id="node">{lang === "en" ? "Rahu and Ketu (Mean node)" : "ராகு மற்றும் கேது (சரியான கணிப்பு)"}</h2>
+                <p>{lang === "en"
+                  ? "Vinaadi computes Rahu and Ketu (the lunar nodes) using the mean node calculation. The mean node represents the average position of the Moon's orbit, which is the classical approach in Jyotish. Some systems use the true node instead, which can differ by approximately 1.5 degrees. This difference occasionally causes variations in nakshatra or pada boundaries near the node positions. Vinaadi's mean node approach is consistent with the Thirukanitham and Lahiri standards."
+                  : "விநாடி ராகு மற்றும் கேது (சந்திர முனைப்புக்கள்) ஆகியவற்றைக் கணக்கிடுதற்கு சரிப்பட்ட கணிப்பு முறையைப் பயன்படுத்துகிறது. சரிப்பட்ட முனை சந்திரனின் சுற்றுப்பாதையின் சராசரி நிலையைக் குறிக்கும். இதுவே ஜோதிடத்தின் பாரம்பரிய முறை. சில முறைகள் உண்மையான முனையைப் பயன்படுத்துகின்றன, இது சுமார் 1.5 டிகிரி வேறுபடலாம். இந்த வேறுபாடு சில வேளைகளில் முனை நிலைகளுக்கு அருகிலுள்ள நட்சத்திர அல்லது பாத வரம்பிலு ஏற்றத்தாழ்வை உண்டாக்கலாம். விநாடியின் சரிப்பட்ட முனை முறை திருக்கணிதம் மற்றும் லாகிரி தரநிலைகளுடன் ஒத்துப்போகிறது."}</p>
 
                 <h2 id="drik">{lang === "en" ? "Drik ephemeris precision" : "திரிக் கோளக்கணித துல்லியம்"}</h2>
                 <p>{lang === "en"

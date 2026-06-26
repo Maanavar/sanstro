@@ -234,6 +234,7 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
             soolam=PanchangamSoolam(
                 direction=snapshot.soolam_direction,
                 parigaram=snapshot.soolam_parigaram,
+                status="preliminary",
             ),
             lagnam=PanchangamLagnam(
                 rasi_number=snapshot.lagna_rasi_number,
@@ -248,6 +249,7 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
                 name=snapshot.amirdhadhi_yogam_name,
                 ends_at=snapshot.amirdhadhi_yogam_ends_at.strftime("%H:%M"),
                 next_name=snapshot.amirdhadhi_yogam_next_name,
+                status="preliminary",
             ),
             chandrashtamam_today=PanchangamChandrashtamamToday(
                 moon_rasi_number=snapshot.chandrashtamam_moon_rasi_number,
@@ -263,6 +265,7 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
                     )
                     for window in snapshot.chandrashtamam_janma_nakshatra_windows
                 ],
+                status="preliminary",
             ),
             special_tithi_day=_build_special_tithi_day(snapshot),
             is_karinaal=is_karinaal(snapshot.date_local),

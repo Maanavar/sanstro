@@ -16,6 +16,7 @@ from app.models.interpretation_output import InterpretationOutput
 from app.models.journal_entry import JournalEntry
 from app.models.notification import Notification
 from app.models.panchangam_cache import PanchangamCache
+from app.models.password_reset_token import PasswordResetToken
 from app.models.peyarchi_alert import PeyarchiAlert
 from app.models.qa_golden_case import QaGoldenCase
 from app.models.refresh_token import RefreshToken
@@ -48,6 +49,7 @@ __all__ = [
     "JournalEntry",
     "Notification",
     "PanchangamCache",
+    "PasswordResetToken",
     "PeyarchiAlert",
     "QaGoldenCase",
     "RefreshToken",

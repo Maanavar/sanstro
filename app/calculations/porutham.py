@@ -1,7 +1,15 @@
 """
-Tamil 10-kuta (Porutham) compatibility engine.
+Tamil compatibility scoring engine using Ashtakoota (8-kuta) guna weights.
 
-Classical 10 kutas scored against a maximum total of 36 points.
+Implements an 8-kuta system with point weights (Dinam, Ganam, Yoni, Rasi,
+Graha Maitri, Vasya, Mahendra, Stree Dirgha) totaling a maximum of 36 points.
+Also checks for Rajju Dosha, Vedha Dosha, and Nadi Dosha.
+
+NOTE: This is Ashtakoota-style guna scoring, not true Tamil 10-porutham
+(which is traditionally a 10-match pass/fail system). The naming "Porutham"
+is used for consistency with Tamil tradition, but the scoring model is
+Ashtakoota-derived.
+
 Nakshatra numbers are 1-indexed (1 = Aswini … 27 = Revathi).
 """
 from __future__ import annotations
@@ -437,41 +445,41 @@ def compute_porutham(
     if percentage >= 80:
         label = "EXCELLENT"
         summary_en = (
-            f"Porutham score {total}/{MAX_SCORE} ({percentage}%). "
-            "Strong overall compatibility across the 10 kutas — traditionally associated with a harmonious union."
+            f"Ashtakoota guna score {total}/{MAX_SCORE} ({percentage}%). "
+            "Strong overall compatibility across the kutas — traditionally associated with a harmonious union."
         )
         summary_ta = (
-            f"பொருத்தம் மதிப்பெண் {total}/{MAX_SCORE} ({percentage}%). "
-            "10 கூட்டு பொருத்தங்களிலும் நல்ல ஒத்திசைவு — இணக்கமான வாழ்க்கைக்கு பாரம்பரியமாக சாதகமான அறிகுறி."
+            f"அஷ்டகூட கணக்கு மதிப்பெண் {total}/{MAX_SCORE} ({percentage}%). "
+            "குணங்களிலெல்லாம் நல்ல ஒத்திசைவு — இணக்கமான வாழ்க்கைக்கு பாரம்பரியமாக சாதகமான அறிகுறி."
         )
     elif percentage >= 60:
         label = "GOOD"
         summary_en = (
-            f"Porutham score {total}/{MAX_SCORE} ({percentage}%). "
+            f"Ashtakoota guna score {total}/{MAX_SCORE} ({percentage}%). "
             "Good compatibility with minor differences — traditionally considered suitable with mindful approach."
         )
         summary_ta = (
-            f"பொருத்தம் மதிப்பெண் {total}/{MAX_SCORE} ({percentage}%). "
+            f"அஷ்டகூட கணக்கு மதிப்பெண் {total}/{MAX_SCORE} ({percentage}%). "
             "நல்ல ஒத்திசைவு, சில சிறு வேறுபாடுகளுடன் — கவனமான அணுகுமுறையுடன் பாரம்பரியமாக ஏற்புடையது."
         )
     elif percentage >= 40:
         label = "AVERAGE"
         summary_en = (
-            f"Porutham score {total}/{MAX_SCORE} ({percentage}%). "
+            f"Ashtakoota guna score {total}/{MAX_SCORE} ({percentage}%). "
             "Moderate compatibility — some kutas need attention; consultation with a jyotishi is advised."
         )
         summary_ta = (
-            f"பொருத்தம் மதிப்பெண் {total}/{MAX_SCORE} ({percentage}%). "
-            "நடுத்தர ஒத்திசைவு — சில கூட்டு பொருத்தங்களில் கவனம் தேவை; ஜோதிடர் ஆலோசனை உதவும்."
+            f"அஷ்டகூட கணக்கு மதிப்பெண் {total}/{MAX_SCORE} ({percentage}%). "
+            "நடுத்தர ஒத்திசைவு — சில குணங்களில் கவனம் தேவை; ஜோதிடர் ஆலோசனை உதவும்."
         )
     else:
         label = "CAUTION"
         summary_en = (
-            f"Porutham score {total}/{MAX_SCORE} ({percentage}%). "
+            f"Ashtakoota guna score {total}/{MAX_SCORE} ({percentage}%). "
             "Significant incompatibilities found — traditional guidance recommends careful consultation before proceeding."
         )
         summary_ta = (
-            f"பொருத்தம் மதிப்பெண் {total}/{MAX_SCORE} ({percentage}%). "
+            f"அஷ்டகூட கணக்கு மதிப்பெண் {total}/{MAX_SCORE} ({percentage}%). "
             "குறிப்பிடத்தக்க பொருத்தமின்மை கண்டறியப்பட்டுள்ளது — தொடரும் முன் ஜோதிட ஆலோசனை அவசியம்."
         )
 

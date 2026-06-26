@@ -1,22 +1,30 @@
 from __future__ import annotations
 
+import hashlib
 import logging
-import smtplib
-from datetime import timedelta
-from email.mime.text import MIMEText
-from uuid import uuid4
+import secrets
+from datetime import UTC, datetime, timedelta
+from uuid import UUID, uuid4
 
 import bcrypt
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.core.auth import create_access_token, get_current_user, require_csrf_header
+from app.core.auth import (
+    TOKEN_TYPE_ACCESS,
+    TOKEN_TYPE_PASSWORD_RESET,
+    create_access_token,
+    decode_token,
+    get_current_user,
+    require_csrf_header,
+)
 from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
 from app.core.config import get_settings
-from app.core.redis_client import get_redis
 from app.db.session import get_db
 from app.middleware import resolve_client_ip
+from app.models.password_reset_token import PasswordResetToken
+from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.schemas.auth import (
     AccountDeletionResult,
@@ -25,12 +33,21 @@ from app.schemas.auth import (
     ForgotPasswordResponse,
     LoginRequest,
     RegisterRequest,
+    RegisterResponse,
+    ResetPasswordRequest,
     UpdateUserSettingsRequest,
+)
+from app.services.email_service import (
+    enqueue_existing_account_registration_email,
+    enqueue_password_reset_email,
 )
 
 router = APIRouter()
 _COOKIE_NAME = "vinaadi_token"
 _COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24
+_PASSWORD_RESET_TTL = timedelta(minutes=15)
+_REGISTER_NEUTRAL_DETAIL = "If this email can be used, your account is ready. Please sign in to continue."
+_RESET_NEUTRAL_DETAIL = "If an account exists for this email, you will receive a password reset link shortly."
 _logger = logging.getLogger(__name__)
 _throttler = get_auth_throttler()
 
@@ -77,44 +94,110 @@ def _verify_password(password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(password.encode("utf-8"), hashed_password.encode("utf-8"))
 
 
-def _send_password_reset_email(user_email: str, token: str) -> None:
-    settings = get_settings()
-    if not settings.smtp_host or not settings.notification_from_email:
-        _logger.info("password_reset_stub email=%s SMTP not configured", user_email)
-        return
+def _hash_jti(jti: str) -> str:
+    return hashlib.sha256(jti.encode("utf-8")).hexdigest()
 
-    reset_link = f"{settings.frontend_url.rstrip('/')}/login?resetToken={token}"
-    body = (
-        "You requested a password reset for your Vinaadi AI account.\n\n"
-        f"Use this link to continue: {reset_link}\n\n"
-        "If you did not request this, you can ignore this message."
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
+def _build_auth_user_response(user: User, fallback_email: str | None = None) -> AuthUserResponse:
+    return AuthUserResponse(
+        userId=str(user.user_id),
+        email=user.email or fallback_email or "",
+        userMode=getattr(user, "user_mode", "BALANCED") or "BALANCED",
+        goalTrack=getattr(user, "goal_track", None),
     )
-    message = MIMEText(body, "plain", "utf-8")
-    message["Subject"] = "Vinaadi AI password reset"
-    message["From"] = f"{settings.notification_from_name} <{settings.notification_from_email}>"
-    message["To"] = user_email
 
+
+def _issue_access_token_for_user(user: User) -> str:
+    return create_access_token(
+        subject=str(user.user_id),
+        token_version=int(getattr(user, "token_version", 0) or 0),
+    )
+
+
+def _issue_password_reset_token(session: Session, user: User) -> str:
+    jti = secrets.token_urlsafe(32)
+    expires_at = datetime.now(UTC) + _PASSWORD_RESET_TTL
+    session.add(
+        PasswordResetToken(
+            user_id=user.user_id,
+            jti_hash=_hash_jti(jti),
+            expires_at=expires_at,
+        )
+    )
+    return create_access_token(
+        subject=str(user.user_id),
+        expires_delta=_PASSWORD_RESET_TTL,
+        token_type=TOKEN_TYPE_PASSWORD_RESET,
+        jti=jti,
+    )
+
+
+def _advance_token_version(user: User) -> None:
+    user.token_version = int(getattr(user, "token_version", 0) or 0) + 1
+
+
+def _revoke_refresh_tokens(session: Session, user: User, now: datetime) -> None:
+    session.query(RefreshToken).filter(
+        RefreshToken.user_id == user.user_id,
+        RefreshToken.revoked_at.is_(None),
+    ).update({"revoked_at": now}, synchronize_session=False)
+
+
+def _request_token(request: Request) -> str | None:
+    authorization = request.headers.get("authorization")
+    if authorization and authorization.lower().startswith("bearer "):
+        return authorization.split(" ", 1)[1].strip()
+    return request.cookies.get(_COOKIE_NAME)
+
+
+def _resolve_user_from_sub(session: Session, sub: str) -> User | None:
     try:
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as server:  # type: ignore[arg-type]
-            server.ehlo()
-            if settings.smtp_user and settings.smtp_pass:
-                server.starttls()
-                server.login(settings.smtp_user, settings.smtp_pass)
-            server.sendmail(settings.notification_from_email, user_email, message.as_string())
-    except Exception:
-        _logger.exception("password_reset_send_failed email=%s", user_email)
+        uid = UUID(sub)
+    except ValueError:
+        return session.query(User).filter(User.email == sub).first() if "@" in sub else None
+    return session.get(User, uid)
 
 
-@router.post("/register", response_model=AuthUserResponse)
+def _revoke_presented_access_token(request: Request, session: Session) -> None:
+    token = _request_token(request)
+    if token is None:
+        return
+    try:
+        payload = decode_token(token)
+    except HTTPException:
+        return
+    if payload.get("typ", TOKEN_TYPE_ACCESS) != TOKEN_TYPE_ACCESS:
+        return
+    sub = payload.get("sub")
+    if not sub:
+        return
+    user = _resolve_user_from_sub(session, str(sub))
+    if user is None:
+        return
+    if int(payload.get("ver", 0) or 0) != int(getattr(user, "token_version", 0) or 0):
+        return
+    _advance_token_version(user)
+
+
+def _invalid_reset_token() -> HTTPException:
+    return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired reset token.")
+
+
+@router.post("/register", response_model=RegisterResponse)
 def register(
     payload: RegisterRequest,
-    response: Response,
+    background_tasks: BackgroundTasks,
     request: Request,
     session: Session = Depends(get_db),
-) -> AuthUserResponse:
+) -> RegisterResponse:
     client_ip = _get_client_ip(request)
 
-    # Check throttles: per-IP and per-email
     allowed, retry_after = _throttler.check(
         AuthThrottleAction.REGISTER,
         ip=client_ip,
@@ -129,7 +212,12 @@ def register(
 
     existing = session.query(User).filter(User.email == payload.email).first()
     if existing is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="An account with this email already exists.")
+        # Match the bcrypt work done for new registrations so duplicate attempts are
+        # not an obvious timing oracle, then notify the account owner out-of-band.
+        _hash_password(payload.password)
+        if existing.email:
+            enqueue_existing_account_registration_email(background_tasks, existing.email)
+        return RegisterResponse(detail=_REGISTER_NEUTRAL_DETAIL)
 
     user = User(
         user_id=uuid4(),
@@ -138,10 +226,7 @@ def register(
     )
     session.add(user)
     session.flush()
-
-    token = create_access_token(subject=str(user.user_id))
-    _set_auth_cookie(response, token)
-    return AuthUserResponse(userId=str(user.user_id), email=user.email or payload.email, userMode="BALANCED", goalTrack=None)
+    return RegisterResponse(detail=_REGISTER_NEUTRAL_DETAIL)
 
 
 @router.post("/login", response_model=AuthUserResponse)
@@ -153,7 +238,6 @@ def login(
 ) -> AuthUserResponse:
     client_ip = _get_client_ip(request)
 
-    # Check throttles: per-IP and per-email
     allowed, retry_after = _throttler.check(
         AuthThrottleAction.LOGIN,
         ip=client_ip,
@@ -178,13 +262,18 @@ def login(
         raise invalid_credentials
     _assert_not_suspended(user)
 
-    token = create_access_token(subject=str(user.user_id))
+    token = _issue_access_token_for_user(user)
     _set_auth_cookie(response, token)
-    return AuthUserResponse(userId=str(user.user_id), email=user.email or payload.email, userMode="BALANCED", goalTrack=None)
+    return _build_auth_user_response(user, payload.email)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_csrf_header)])
-def logout(response: Response) -> Response:
+def logout(
+    response: Response,
+    request: Request,
+    session: Session = Depends(get_db),
+) -> Response:
+    _revoke_presented_access_token(request, session)
     response.delete_cookie(key=_COOKIE_NAME, path="/")
     response.status_code = status.HTTP_204_NO_CONTENT
     return response
@@ -237,18 +326,7 @@ def delete_my_account(
     session: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> AccountDeletionResult:
-    """Permanently erase all user data and delete the account.
-
-    The user → birth_profile → chart and user → family_vault subtrees all cascade
-    from the ``users`` row at the schema level (see migration
-    ``z1a2b3c4d5e6_user_delete_cascades``), so deleting the User row erases the
-    bulk of the data automatically.
-
-    The one exception is ``interpretation_outputs``: its chart/vault links use
-    ``ON DELETE SET NULL`` (so deleting a single chart doesn't wipe family
-    aggregates), which would otherwise leave the user's interpreted data behind
-    as orphan rows. We erase those explicitly before the cascade nulls the link.
-    """
+    """Permanently erase all user data and delete the account."""
     uid = str(user.user_id)
 
     session.execute(text("""
@@ -264,7 +342,6 @@ def delete_my_account(
         )
     """), {"uid": uid})
 
-    # Everything else cascades from the users row at the DB level.
     session.delete(user)
     session.flush()
 
@@ -274,14 +351,15 @@ def delete_my_account(
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)
+@router.post("/reset-password/request", response_model=ForgotPasswordResponse)
 def forgot_password(
     payload: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
     request: Request,
     session: Session = Depends(get_db),
 ) -> ForgotPasswordResponse:
     client_ip = _get_client_ip(request)
 
-    # Check throttles: per-IP and per-email
     allowed, retry_after = _throttler.check(
         AuthThrottleAction.FORGOT_PASSWORD,
         ip=client_ip,
@@ -296,8 +374,51 @@ def forgot_password(
 
     user = session.query(User).filter(User.email == payload.email).first()
     if user and user.email:
-        reset_token = create_access_token(subject=str(user.user_id), expires_delta=timedelta(minutes=30))
-        _send_password_reset_email(user.email, reset_token)
-    return ForgotPasswordResponse(
-        detail="If an account exists for this email, you will receive a password reset link shortly."
-    )
+        reset_token = _issue_password_reset_token(session, user)
+        enqueue_password_reset_email(background_tasks, user.email, reset_token)
+    return ForgotPasswordResponse(detail=_RESET_NEUTRAL_DETAIL)
+
+
+@router.post("/reset-password", response_model=ForgotPasswordResponse)
+@router.post("/reset-password/confirm", response_model=ForgotPasswordResponse)
+def reset_password(
+    payload: ResetPasswordRequest,
+    response: Response,
+    session: Session = Depends(get_db),
+) -> ForgotPasswordResponse:
+    try:
+        token_payload = decode_token(payload.token)
+    except HTTPException as exc:
+        raise _invalid_reset_token() from exc
+
+    if token_payload.get("typ") != TOKEN_TYPE_PASSWORD_RESET:
+        raise _invalid_reset_token()
+
+    sub = token_payload.get("sub")
+    jti = token_payload.get("jti")
+    if not sub or not jti:
+        raise _invalid_reset_token()
+
+    try:
+        user_id = UUID(str(sub))
+    except ValueError as exc:
+        raise _invalid_reset_token() from exc
+
+    row = session.query(PasswordResetToken).filter(PasswordResetToken.jti_hash == _hash_jti(str(jti))).first()
+    now = datetime.now(UTC)
+    if row is None or row.user_id != user_id or row.used_at is not None or _as_utc(row.expires_at) <= now:
+        raise _invalid_reset_token()
+
+    user = session.get(User, row.user_id)
+    if user is None:
+        raise _invalid_reset_token()
+
+    user.hashed_password = _hash_password(payload.password)
+    _advance_token_version(user)
+    _revoke_refresh_tokens(session, user, now)
+    session.query(PasswordResetToken).filter(
+        PasswordResetToken.user_id == user.user_id,
+        PasswordResetToken.used_at.is_(None),
+    ).update({"used_at": now}, synchronize_session=False)
+    response.delete_cookie(key=_COOKIE_NAME, path="/")
+    return ForgotPasswordResponse(detail="Password updated. Please sign in again.")

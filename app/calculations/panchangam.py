@@ -817,9 +817,27 @@ def _summary_slots(
     ]
 
 
-def _compute_nalla_neram(date_local: date, tzinfo, weekday_index: int) -> list[PanchangamSlot]:
-    """Compact morning/evening Nalla Neram summary for daily planning."""
-    return _summary_slots(date_local, tzinfo, NALLA_NERAM_SUMMARY_TABLE, weekday_index)
+def _compute_nalla_neram(
+    sunrise: datetime,
+    sunset: datetime,
+    next_sunrise: datetime,
+    weekday_index: int,
+) -> list[PanchangamSlot]:
+    """Derive Nalla Neram from good Gowri slots for sunrise/sunset-relative timing.
+
+    Nalla Neram (auspicious times) are extracted from the computed Gowri Panchangam,
+    which ensures the times adapt to latitude, longitude, and the actual sunrise/sunset
+    times rather than using hardcoded IST clock tables.
+    """
+    gowri_slots = _compute_gowri_panchangam(sunrise, sunset, next_sunrise, weekday_index)
+
+    # Filter to the good/auspicious Gowri slots (Amirdha, Uthi, Laabam, Dhanam, Sugam)
+    nalla_neram_slots: list[PanchangamSlot] = []
+    for slot in gowri_slots:
+        if slot.name in GOWRI_GOOD_NAMES:
+            nalla_neram_slots.append(slot)
+
+    return nalla_neram_slots
 
 
 def _compute_gowri_panchangam(
@@ -1404,10 +1422,14 @@ def calculate_daily_panchangam(
     use_cache: bool = True,
 ) -> PanchangamSnapshot:
     if use_cache and session is not None:
-        purge_expired_panchangam_cache(session)
-        cached = _load_cached_snapshot(session, date_local, latitude, longitude, DEFAULT_AYANAMSA_TYPE)
-        if cached is not None:
-            return cached
+        try:
+            purge_expired_panchangam_cache(session)
+            cached = _load_cached_snapshot(session, date_local, latitude, longitude, DEFAULT_AYANAMSA_TYPE)
+            if cached is not None:
+                return cached
+        except Exception as exc:
+            logger.warning(f"Panchangam cache read/purge failed; falling back to computation: {exc}")
+            use_cache = False
 
     timezone_obj = resolve_timezone(timezone_name)
     local_midnight = datetime.combine(date_local, datetime.min.time(), tzinfo=timezone_obj)
@@ -1489,7 +1511,7 @@ def calculate_daily_panchangam(
     weekday_index = date_local.weekday()
     gowri_panchangam = _compute_gowri_panchangam(sunrise, sunset, next_sunrise, weekday_index)
     gowri_nalla_neram = _compute_gowri_nalla_neram(date_local, sunrise.tzinfo, weekday_index)
-    nalla_neram = _compute_nalla_neram(date_local, sunrise.tzinfo, weekday_index)
+    nalla_neram = _compute_nalla_neram(sunrise, sunset, next_sunrise, weekday_index)
 
     is_subha, subha_reason = _compute_subha_muhurtham_broad(
         tithi_number, NAKSHATRA_NAMES[nakshatra_number - 1], weekday_index,
@@ -1608,7 +1630,10 @@ def calculate_daily_panchangam(
     )
 
     if use_cache and session is not None:
-        _store_cached_snapshot(session, snapshot, DEFAULT_AYANAMSA_TYPE)
+        try:
+            _store_cached_snapshot(session, snapshot, DEFAULT_AYANAMSA_TYPE)
+        except Exception as exc:
+            logger.warning(f"Failed to store panchangam cache for {date_local}: {exc}")
     return snapshot
 
 
@@ -1634,10 +1659,14 @@ def calculate_daily_panchangam_range(
             for current in _date_range(start_date, end_date)
         }
 
-    purge_expired_panchangam_cache(session)
-    cached = _load_cached_snapshots_in_range(
-        session, start_date, end_date, latitude, longitude, DEFAULT_AYANAMSA_TYPE,
-    )
+    try:
+        purge_expired_panchangam_cache(session)
+        cached = _load_cached_snapshots_in_range(
+            session, start_date, end_date, latitude, longitude, DEFAULT_AYANAMSA_TYPE,
+        )
+    except Exception as exc:
+        logger.warning(f"Panchangam cache read/purge failed for range; computing all: {exc}")
+        cached = {}
 
     snapshots: dict[date, PanchangamSnapshot] = {}
     for current in _date_range(start_date, end_date):
@@ -1648,7 +1677,10 @@ def calculate_daily_panchangam_range(
         computed = calculate_daily_panchangam(
             current, latitude, longitude, timezone_name, session=session, use_cache=False,
         )
-        _store_cached_snapshot(session, computed, DEFAULT_AYANAMSA_TYPE)
+        try:
+            _store_cached_snapshot(session, computed, DEFAULT_AYANAMSA_TYPE)
+        except Exception as exc:
+            logger.warning(f"Failed to store panchangam cache for {current}: {exc}")
         snapshots[current] = computed
     return snapshots
 
