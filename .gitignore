@@ -39,6 +39,10 @@ test_run_*.txt
 web/artifacts/
 web/scripts/_debug-*.mjs
 web/scripts/_dump-*.mjs
+.coverage
+web/playwright-report/
+web/test-results/
+web/tests/
 
 # Local tools and editor settings
 .claude/
