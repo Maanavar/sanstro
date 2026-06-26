@@ -97,7 +97,7 @@ def test_marriage_prediction_reflects_marital_status_for_married_profile(client,
     data = response.json()["data"]
 
     assert "age-gated" not in data["mainPredictionEn"].lower()
-    assert any("married profile" in item["en"].lower() for item in data["supports"])
+    assert any(factor["key"] == "married_harmony_mode" for factor in data["astrologicalFactors"])
 
 
 def test_self_employed_career_gets_second_lord_check(client, birth_profile_payload_factory):

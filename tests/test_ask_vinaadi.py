@@ -72,7 +72,7 @@ def test_ask_vinaadi_rate_limit_raises(client):
     from fastapi import HTTPException
 
     from app.services.ask_vinaadi_usage_service import (
-        FREE_DAILY_CHIPS,
+        _daily_limit,
         assert_chip_available,
         consume_chip,
     )
@@ -80,7 +80,7 @@ def test_ask_vinaadi_rate_limit_raises(client):
 
     uid = UUID(TEST_USER_ID)
     with SessionLocal() as session, session.begin():
-        for _ in range(FREE_DAILY_CHIPS):
+        for _ in range(_daily_limit()):
             consume_chip(session, uid)
     with SessionLocal() as session:
         with pytest.raises(HTTPException) as exc:

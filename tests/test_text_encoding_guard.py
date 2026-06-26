@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from pathlib import Path
 
@@ -9,7 +9,7 @@ pytestmark = pytest.mark.no_db
 ROOT = Path(__file__).resolve().parents[1]
 SCAN_DIRS = [ROOT / "app", ROOT / "web", ROOT / "docs", ROOT / "tests"]
 TEXT_SUFFIXES = {".py", ".ts", ".tsx", ".js", ".mjs", ".json", ".md", ".css", ".yml", ".yaml", ".toml", ".ps1", ".sql"}
-EXCLUDE_PARTS = {"node_modules", ".next", ".git", "__pycache__", "artifacts"}
+EXCLUDE_PARTS = {"node_modules", ".next", ".git", "__pycache__", "artifacts", "playwright-report", "test-results"}
 
 # Common mojibake markers seen when UTF-8 Tamil gets decoded/written incorrectly.
 MOJIBAKE_MARKERS = (
