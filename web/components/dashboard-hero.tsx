@@ -399,7 +399,7 @@ export function DashboardHero(props: DashboardHeroProps) {
       {(() => {
         const principle = DAILY_PRINCIPLES[new Date(selectedDate).getDay()] ?? DAILY_PRINCIPLES[0];
         return (
-          <div style={{
+          <div className="cd-principle-strip" style={{
             padding: "8px 20px",
             background: "rgba(184, 90, 44, 0.05)",
             borderBottom: "1px solid rgba(184, 90, 44, 0.14)",

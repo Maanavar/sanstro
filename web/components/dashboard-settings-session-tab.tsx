@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { useTheme, type Theme } from "@/hooks/useTheme";
 import { apiFetchJson } from "@/lib/api";
 import { clearFcmTokenLocal, fetchFcmToken, hasFirebaseMessagingConfig } from "@/lib/firebase-messaging";
 import { formatDateTimeLabel } from "@/lib/format";
@@ -268,6 +269,7 @@ export function DashboardSettingsSessionTab({
   onAcknowledgeJournalReminder,
   onSignOut,
 }: DashboardSettingsSessionTabProps) {
+  const { theme: currentTheme, setTheme } = useTheme();
   const [retentionDraft, setRetentionDraft] = useState(journalRetentionDays);
   const [modeDraft, setModeDraft] = useState<"BEGINNER" | "BALANCED" | "TRADITIONAL">(userMode);
   const [trackDraft, setTrackDraft] = useState<"CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL" | "">(goalTrack ?? "");
@@ -553,6 +555,27 @@ export function DashboardSettingsSessionTab({
               {lang === "ta" ? "சேமிக்கப்பட்டது" : "Saved"}
             </span>
           )}
+        </div>
+      </SettingsCard>
+
+      {/* ── Appearance ── */}
+      <SettingsCard>
+        <SectionLabel>{lang === "ta" ? "தோற்றம்" : "Appearance"}</SectionLabel>
+        <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted, lineHeight: 1.55 }}>
+          {lang === "ta"
+            ? "இருண்ட அல்லது வெளிர் பயன்முறையை தேர்வு செய்யுங்கள், அல்லது சாதன அமைப்பைப் பின்பற்றவும்."
+            : "Choose dark or light mode, or follow your device setting."}
+        </p>
+        <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+          {([
+            { value: "system", labelEn: "System", labelTa: "சாதனம்" },
+            { value: "light",  labelEn: "Light",  labelTa: "வெளிர்" },
+            { value: "dark",   labelEn: "Dark",   labelTa: "இருண்ட" },
+          ] as { value: Theme; labelEn: string; labelTa: string }[]).map(({ value, labelEn, labelTa }) => (
+            <PillBtn key={value} active={currentTheme === value} onClick={() => setTheme(value)}>
+              {lang === "ta" ? labelTa : labelEn}
+            </PillBtn>
+          ))}
         </div>
       </SettingsCard>
 

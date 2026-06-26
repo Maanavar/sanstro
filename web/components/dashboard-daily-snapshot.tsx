@@ -1,15 +1,35 @@
-﻿"use client";
+"use client";
 
-import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, type Variants, useMotionValue, useTransform, animate } from "framer-motion";
 
-const scoreGridVariants = {
+function useCountUp(target: number, duration = 0.6) {
+  const motionVal = useMotionValue(0);
+  const [display, setDisplay] = useState(0);
+  const prevTarget = useRef(target);
+
+  useEffect(() => {
+    const from = prevTarget.current === target ? 0 : prevTarget.current;
+    prevTarget.current = target;
+    const controls = animate(motionVal, target, {
+      duration,
+      ease: "easeOut",
+      onUpdate: (v) => setDisplay(Math.round(v)),
+    });
+    return controls.stop;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
+
+  return display;
+}
+
+const scoreGridVariants: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.04, delayChildren: 0.12 } },
 };
-const scoreRowVariants = {
+const scoreRowVariants: Variants = {
   hidden: { opacity: 0, y: 4 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: [0.4, 0, 0.2, 1] } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: "easeInOut" } },
 };
 
 import { formatClockLabel, scoreColor, SCORE_LOW } from "@/lib/format";
@@ -57,6 +77,7 @@ export function DashboardDailySnapshot({
   const [showDualLanguage, setShowDualLanguage] = useState(false);
   const drivers = useMemo(() => (guidance ? getScoreDrivers(guidance.scoreBreakdown) : null), [guidance]);
   const confidence = getBirthTimeConfidence(birthProfile);
+  const animatedScore = useCountUp(guidance?.score ?? 0, 0.7);
 
   if (!guidance) return null;
 
@@ -105,7 +126,7 @@ export function DashboardDailySnapshot({
         <div className="snapshot-grid">
           <div className="snapshot-box">
             <p className="snapshot-kicker">{lang === "ta" ? "இன்றைய மதிப்பெண்" : "Today's Score"}</p>
-            <p className="snapshot-value" style={{ color: scoreColor(guidance.score) }}>{guidance.score}/100</p>
+            <p className="snapshot-value" style={{ color: scoreColor(guidance.score) }}>{animatedScore}/100</p>
             <p className="snapshot-hint">
               {guidance.label}
               {guidance.emotionalWeather?.tone ? ` · ${guidance.emotionalWeather.tone}` : ""}

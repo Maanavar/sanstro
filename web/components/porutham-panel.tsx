@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
@@ -202,40 +202,71 @@ export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: Porut
     if (!chartA || !chartB || !porutham || downloadingPdf) return;
     setDownloadingPdf(true);
     try {
-      const response = await fetch("/api/backend/api/v1/public/compare/pdf", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
-        body: JSON.stringify({
-          personA: {
-            displayName: formA.displayName,
-            birthDateLocal: formA.birthDateLocal,
-            birthTimeLocal: formA.birthTimeLocal || null,
-            birthPlace: formA.birthPlace,
-            birthLatitude: parseFloat(formA.birthLatitude),
-            birthLongitude: parseFloat(formA.birthLongitude),
-            birthTimezone: formA.birthTimezone,
-          },
-          personB: {
-            displayName: formB.displayName,
-            birthDateLocal: formB.birthDateLocal,
-            birthTimeLocal: formB.birthTimeLocal || null,
-            birthPlace: formB.birthPlace,
-            birthLatitude: parseFloat(formB.birthLatitude),
-            birthLongitude: parseFloat(formB.birthLongitude),
-            birthTimezone: formB.birthTimezone,
-          },
-          compatibilityContext: compatCtx,
-        }),
-      });
-      if (!response.ok) throw new Error(`${response.status}: PDF export failed`);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `porutham_${chartA.birthProfile.displayName}_${chartB.birthProfile.displayName}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      if (showCiReport && selectedVaultMemberIdB && familyVaultId) {
+        const params = new URLSearchParams({ familyVaultId });
+        const response = await fetch(
+          `/api/backend/api/v1/relationships/${selectedVaultMemberIdB}/compatibility-intelligence/direct/pdf?${params.toString()}`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
+            body: JSON.stringify({
+              personA: {
+                displayName: formA.displayName,
+                birthDateLocal: formA.birthDateLocal,
+                birthTimeLocal: formA.birthTimeLocal || null,
+                birthPlace: formA.birthPlace,
+                birthLatitude: parseFloat(formA.birthLatitude),
+                birthLongitude: parseFloat(formA.birthLongitude),
+                birthTimezone: formA.birthTimezone,
+              },
+            }),
+          }
+        );
+        if (!response.ok) throw new Error(`${response.status}: PDF export failed`);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `compatibility_intelligence_${formA.displayName}_${formB.displayName}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        const response = await fetch("/api/backend/api/v1/public/compare/pdf", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
+          body: JSON.stringify({
+            personA: {
+              displayName: formA.displayName,
+              birthDateLocal: formA.birthDateLocal,
+              birthTimeLocal: formA.birthTimeLocal || null,
+              birthPlace: formA.birthPlace,
+              birthLatitude: parseFloat(formA.birthLatitude),
+              birthLongitude: parseFloat(formA.birthLongitude),
+              birthTimezone: formA.birthTimezone,
+            },
+            personB: {
+              displayName: formB.displayName,
+              birthDateLocal: formB.birthDateLocal,
+              birthTimeLocal: formB.birthTimeLocal || null,
+              birthPlace: formB.birthPlace,
+              birthLatitude: parseFloat(formB.birthLatitude),
+              birthLongitude: parseFloat(formB.birthLongitude),
+              birthTimezone: formB.birthTimezone,
+            },
+            compatibilityContext: compatCtx,
+          }),
+        });
+        if (!response.ok) throw new Error(`${response.status}: PDF export failed`);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `porutham_${chartA.birthProfile.displayName}_${chartB.birthProfile.displayName}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
     } catch {
       setError(lang === "ta" ? "PDF ????????????????????????????????? ??????????????????????????????????????????." : "PDF download failed.");
     } finally {
@@ -454,7 +485,9 @@ export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: Porut
             >
               {downloadingPdf
                 ? (lang === "ta" ? "PDF பதிவிறக்குகிறது…" : "Downloading PDF…")
-                : (lang === "ta" ? "PDF பதிவிறக்கம்" : "Download PDF")}
+                : showCiReport
+                  ? (lang === "ta" ? "முழு அறிக்கை PDF பதிவிறக்கம்" : "Download Full Report PDF")
+                  : (lang === "ta" ? "PDF பதிவிறக்கம்" : "Download PDF")}
             </button>
           </div>
 

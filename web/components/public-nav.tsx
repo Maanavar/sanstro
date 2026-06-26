@@ -60,6 +60,7 @@ export function PublicNav() {
           background: none; border: none; cursor: pointer;
           font-family: inherit;
           display: inline-flex; align-items: center; gap: 5px; padding: 0;
+          min-height: 44px;
         }
         .cl-nav-dropdown__chevron { transition: transform 150ms ease; opacity: 0.6; }
         .cl-nav-dropdown__menu {
@@ -138,7 +139,7 @@ export function PublicNav() {
             <Image
               src="/brand/vinaadi-symbol-icon.png"
               alt="" aria-hidden
-              width={512} height={512}
+              width={28} height={28}
               className="cl-nav__symbol" priority
             />
             <span className="cl-nav__wordmark">Vinaadi</span>

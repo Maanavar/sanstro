@@ -20,6 +20,9 @@ type PublicChartPreviewResponse = { success: boolean; data: { chart: ChartCalcul
 
 type BirthForm = {
   displayName: string;
+  fatherName: string;
+  motherName: string;
+  gender: "MALE" | "FEMALE";
   birthDateLocal: string;
   birthTimeLocal: string;
   birthPlace: string;
@@ -30,6 +33,9 @@ type BirthForm = {
 
 const EMPTY_FORM: BirthForm = {
   displayName: "",
+  fatherName: "",
+  motherName: "",
+  gender: "MALE",
   birthDateLocal: "",
   birthTimeLocal: "12:00",
   birthPlace: "",
@@ -232,7 +238,10 @@ function PrintRasiChart({ chart, d9LagnaRasi }: { chart: ChartCalculateResponseD
 }
 
 // ── Full traditional print layout ────────────────────────────────────────────
-function JathagamPrint({ chart, dasha }: { chart: ChartCalculateResponseData; dasha: DashaTimelineResponseData | null }) {
+function JathagamPrint({ chart, dasha, fatherName, motherName, gender }: {
+  chart: ChartCalculateResponseData; dasha: DashaTimelineResponseData | null;
+  fatherName: string; motherName: string; gender: string;
+}) {
   const d9LagnaRasi = computeD9LagnaRasi(chart.lagna.absoluteLongitude);
   const bp = chart.birthProfile;
   const moon = chart.planets.find((p) => p.graha === "MOON");
@@ -272,8 +281,20 @@ function JathagamPrint({ chart, dasha }: { chart: ChartCalculateResponseData; da
           <tr>
             <td style={{ ...cellStyle, textAlign: "left", width: "22%", fontWeight: 600 }}>பெயர்</td>
             <td style={{ ...cellStyle, textAlign: "left", width: "28%" }}>: {bp.displayName}</td>
-            <td style={{ ...cellStyle, textAlign: "left", width: "22%", fontWeight: 600 }}>சூ.தமிழ் நேரம்</td>
-            <td style={{ ...cellStyle, textAlign: "left", width: "28%" }}>: {bp.birthTimeLocal ?? "-"}</td>
+            <td style={{ ...cellStyle, textAlign: "left", width: "22%", fontWeight: 600 }}>தகப்பனார்</td>
+            <td style={{ ...cellStyle, textAlign: "left", width: "28%" }}>: {fatherName || "—"}</td>
+          </tr>
+          <tr>
+            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>அன்னை</td>
+            <td style={{ ...cellStyle, textAlign: "left" }}>: {motherName || "—"}</td>
+            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>பாலினம்</td>
+            <td style={{ ...cellStyle, textAlign: "left" }}>: {gender === "FEMALE" ? "பெண் / Female" : "ஆண் / Male"}</td>
+          </tr>
+          <tr>
+            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>சூ.தமிழ் நேரம்</td>
+            <td style={{ ...cellStyle, textAlign: "left" }}>: {bp.birthTimeLocal ?? "-"}</td>
+            <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}></td>
+            <td style={{ ...cellStyle, textAlign: "left" }}></td>
           </tr>
           <tr>
             <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>பிறந்த தேதி</td>
@@ -478,7 +499,7 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
       {/* PRINT-ONLY: full traditional Jathagam layout */}
       {chart && (
         <div className="cgp-print-only">
-          <JathagamPrint chart={chart} dasha={dashaData} />
+          <JathagamPrint chart={chart} dasha={dashaData} fatherName={form.fatherName} motherName={form.motherName} gender={form.gender} />
         </div>
       )}
 
@@ -497,6 +518,32 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
             <input className="input" style={fieldStyle} value={form.displayName}
               onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
               placeholder={lang === "ta" ? "உதாரணம்: ரமேஷ் குமார்" : "e.g. Ramesh Kumar"} />
+          </Field>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "12px" }}>
+            <Field label={lang === "ta" ? "தகப்பனார் பெயர்" : "Father's Name"}>
+              <input className="input" style={fieldStyle} value={form.fatherName}
+                onChange={(e) => setForm((f) => ({ ...f, fatherName: e.target.value }))}
+                placeholder={lang === "ta" ? "உதாரணம்: சுரேஷ் குமார்" : "e.g. Suresh Kumar"} />
+            </Field>
+            <Field label={lang === "ta" ? "அன்னை பெயர்" : "Mother's Name"}>
+              <input className="input" style={fieldStyle} value={form.motherName}
+                onChange={(e) => setForm((f) => ({ ...f, motherName: e.target.value }))}
+                placeholder={lang === "ta" ? "உதாரணம்: மீனா தேவி" : "e.g. Meena Devi"} />
+            </Field>
+          </div>
+
+          <Field label={lang === "ta" ? "பாலினம்" : "Gender"}>
+            <select
+              className="input"
+              aria-label="Gender"
+              style={fieldStyle}
+              value={form.gender}
+              onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value as "MALE" | "FEMALE" }))}
+            >
+              <option value="MALE">{lang === "ta" ? "ஆண் / Male" : "Male / ஆண்"}</option>
+              <option value="FEMALE">{lang === "ta" ? "பெண் / Female" : "Female / பெண்"}</option>
+            </select>
           </Field>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "12px" }}>

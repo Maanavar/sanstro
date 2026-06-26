@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
@@ -106,6 +106,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -132,6 +133,49 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
       setError(readErrorMessage(e));
     } finally {
       setLoading(false);
+    }
+  }
+  async function downloadPdf() {
+    if (!data || downloadingPdf) return;
+    setDownloadingPdf(true);
+    setError("");
+    try {
+      const params = new URLSearchParams({ familyVaultId });
+      let response: Response;
+      if (personABirth) {
+        response = await fetch(
+          `/api/backend/api/v1/relationships/${memberId}/compatibility-intelligence/direct/pdf?${params.toString()}`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
+            body: JSON.stringify({ personA: personABirth }),
+          }
+        );
+      } else {
+        if (chartIdA) params.set("chartIdA", chartIdA);
+        response = await fetch(
+          `/api/backend/api/v1/relationships/${memberId}/compatibility-intelligence/pdf?${params.toString()}`,
+          {
+            method: "GET",
+            credentials: "include",
+            headers: { "X-Vinaadi-CSRF": "1" },
+          }
+        );
+      }
+
+      if (!response.ok) throw new Error(`${response.status}: PDF export failed`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `compatibility_intelligence_${data.personAName}_${data.personBName}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(readErrorMessage(e));
+    } finally {
+      setDownloadingPdf(false);
     }
   }
 
@@ -423,7 +467,21 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
       </SectionCard>
 
       {/* ── Refresh ── */}
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", flexWrap: "wrap" }}>
+        <button
+          type="button"
+          onClick={() => void downloadPdf()}
+          disabled={downloadingPdf}
+          style={{
+            fontSize: "0.8rem", color: downloadingPdf ? W.muted : W.inkMid, background: W.surface,
+            border: `1px solid ${W.border}`, borderRadius: "999px", padding: "6px 16px",
+            cursor: downloadingPdf ? "wait" : "pointer", fontFamily: "inherit", fontWeight: 600,
+          }}
+        >
+          {downloadingPdf
+            ? (en ? "Downloading PDF…" : "PDF பதிவிறக்குகிறது…")
+            : (en ? "Download Full Report PDF" : "முழு அறிக்கை PDF பதிவிறக்கம்")}
+        </button>
         <button
           type="button"
           onClick={() => void load()}

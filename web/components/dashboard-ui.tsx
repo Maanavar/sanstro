@@ -1,7 +1,7 @@
 "use client";
 
 
-import { cloneElement, isValidElement, useState } from "react";
+import { cloneElement, isValidElement, useEffect, useId, useState } from "react";
 import type { CSSProperties, InputHTMLAttributes, ReactNode } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { TN_CITIES } from "@/lib/tn-cities";
@@ -175,22 +175,45 @@ export function PlaceCombobox({
 }: PlaceComboboxProps) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const listboxId = useId();
   const filtered = query.length < 1 ? TN_CITIES : TN_CITIES.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()));
-  function select(city: CityEntry) { setQuery(city.name); setOpen(false); onChange(city, city.name); }
+
+  useEffect(() => { setQuery(value); }, [value]);
+
+  useEffect(() => {
+    setActiveIndex((cur) => (filtered.length === 0 ? 0 : Math.min(cur, filtered.length - 1)));
+  }, [filtered.length]);
+
+  function select(city: CityEntry) { setQuery(city.name); setOpen(false); setActiveIndex(0); onChange(city, city.name); }
   function handleInput(text: string) {
-    setQuery(text); setOpen(true);
+    setQuery(text); setOpen(true); setActiveIndex(0);
     const exact = TN_CITIES.find((c) => c.name.toLowerCase() === text.toLowerCase());
     onChange(exact ?? null, text);
   }
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp")) { setOpen(true); return; }
+    if (!filtered.length) return;
+    if (e.key === "ArrowDown") { e.preventDefault(); setActiveIndex((i) => (i + 1) % filtered.length); return; }
+    if (e.key === "ArrowUp")   { e.preventDefault(); setActiveIndex((i) => (i - 1 + filtered.length) % filtered.length); return; }
+    if (e.key === "Enter") { e.preventDefault(); const city = filtered[activeIndex]; if (city) select(city); return; }
+    if (e.key === "Tab")   { const city = filtered[activeIndex]; if (open && city) select(city); return; }
+    if (e.key === "Escape") { setOpen(false); }
+  }
+
   return (
     <div style={{ position: "relative" }}>
       <input
         {...inputProps}
         className={className}
         value={query} placeholder={placeholder} autoComplete={inputProps.autoComplete ?? "off"}
+        role="combobox" aria-autocomplete="list" aria-expanded={open ? "true" : "false"}
+        aria-controls={listboxId}
+        aria-activedescendant={open && filtered[activeIndex] ? `${listboxId}-opt-${activeIndex}` : undefined}
         onFocus={(event) => { inputProps.onFocus?.(event); setOpen(true); }}
         onBlur={(event) => { inputProps.onBlur?.(event); setTimeout(() => setOpen(false), 150); }}
         onChange={(e) => handleInput(e.target.value)}
+        onKeyDown={handleKeyDown}
         style={{
           width: "100%", padding: "9px 12px", borderRadius: "var(--radius-md)",
           border: "1.5px solid var(--panel-tan-light)", background: "var(--panel-cream)",
@@ -198,7 +221,7 @@ export function PlaceCombobox({
         }}
       />
       {open && filtered.length > 0 && (
-        <ul style={{
+        <ul id={listboxId} role="listbox" style={{
           position: "absolute", zIndex: 50, top: "100%", left: 0, right: 0,
           background: "var(--panel-cream)", border: "1.5px solid var(--panel-tan)",
           borderRadius: "var(--radius-md)", marginTop: "4px", maxHeight: "220px", overflowY: "auto",
@@ -206,10 +229,17 @@ export function PlaceCombobox({
           boxShadow: "0 8px 24px var(--panel-shadow)",
         }}>
           {filtered.slice(0, 40).map((city, idx) => (
-            <li key={`${city.name}-${idx}`} onMouseDown={() => select(city)}
-              style={{ padding: "9px 14px", cursor: "pointer", fontSize: "0.875rem", color: "var(--panel-earth)", fontFamily: "inherit" }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--panel-hover)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = ""; }}>
+            <li
+              id={`${listboxId}-opt-${idx}`}
+              key={`${city.name}-${idx}`}
+              role="option" aria-selected={idx === activeIndex ? "true" : "false"}
+              onMouseDown={() => select(city)}
+              onMouseEnter={() => setActiveIndex(idx)}
+              style={{
+                padding: "9px 14px", cursor: "pointer", fontSize: "0.875rem",
+                color: "var(--panel-earth)", fontFamily: "inherit",
+                background: idx === activeIndex ? "var(--panel-hover)" : "",
+              }}>
               {city.name}
             </li>
           ))}

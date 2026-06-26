@@ -55,8 +55,8 @@ export function PublicFooter() {
               src="/brand/vinaadi-symbol-icon.png"
               alt=""
               aria-hidden
-              width={512}
-              height={512}
+              width={52}
+              height={52}
               className="cl-footer__symbol"
             />
             <div className="cl-footer__brand-copy">

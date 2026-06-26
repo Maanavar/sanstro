@@ -29,6 +29,7 @@ import { useJournalData } from "@/hooks/useJournalData";
 
 import type { EditMemberState } from "./dashboard-edit-member-modal";
 import { DashboardHero } from "./dashboard-hero";
+import { DashboardLeftRail } from "./dashboard-left-rail";
 import { DashboardPersonalTab } from "./dashboard-personal-tab";
 import { LifeModePicker } from "./life-mode-picker";
 import { DashboardAskVinaadiWidget } from "./dashboard-ask-vinaadi-widget";
@@ -1126,6 +1127,14 @@ export function DashboardWorkspace() {
         />
       )}
 
+      <div className="cd-app-body">
+      <DashboardLeftRail
+        lang={lang}
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab)}
+      />
+      <div className="cd-main-content">
+
       {/* Onboarding banner: shown until profile + one family member added */}
       {!onboardingDone && session.hydrated && (
         <div className="cd-onboarding">
@@ -1680,6 +1689,9 @@ export function DashboardWorkspace() {
 
         </div>
       </footer>
+
+      </div>{/* cd-main-content */}
+      </div>{/* cd-app-body */}
 
       {/* Feedback FAB — Clarity ink style */}
       <button
