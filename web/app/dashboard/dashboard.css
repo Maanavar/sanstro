@@ -741,6 +741,13 @@
   white-space: normal;
 }
 
+/* Tabs must stay single-line so the tab nav bar stays at fixed height.
+   The scroll container already handles overflow horizontally. */
+.cd-shell[data-lang="ta"] .cd-tab {
+  white-space: nowrap;
+  line-height: 1;
+}
+
 .cd-shell[data-lang="ta"] :where(
   .cd-brand__sub,
   .cd-status-pill,
@@ -750,6 +757,28 @@
   .cd-footer__copy
 ) {
   white-space: normal;
+}
+
+/* ── Tamil overrides: panchangam spec rows ──────────────────
+   The fixed 120px label column is too narrow for long Tamil
+   labels like "அமிர்தாதி யோகம்" (~190px). Switch to max-content
+   so the column self-sizes. Also relax line-height on display-
+   size text so Tamil ascenders/descenders aren't clipped. */
+.cd-shell[data-lang="ta"] .cd-detail-spec-row {
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr) auto;
+}
+
+.cd-shell[data-lang="ta"] .cd-detail-spec-row__label {
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.cd-shell[data-lang="ta"] .cd-detail-spec-row__body > p:first-child {
+  font-family: var(--font-tamil), var(--font-display), sans-serif;
+  line-height: 1.35;
+  font-size: 1rem;
 }
 
 /* ── Phase 4: Left Rail Layout ───────────────────────────────

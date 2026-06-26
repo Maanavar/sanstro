@@ -65,8 +65,8 @@
   --icon-stroke: 1.5px;
 
   /* Skeleton shimmer */
-  --shimmer-base: var(--surface-1);
-  --shimmer-peak: var(--surface-2);
+  --shimmer-base: rgba(255,255,255,0.07);
+  --shimmer-peak: rgba(255,255,255,0.15);
 
   /* Warm panel context — parchment drawers, knowledge surfaces, light forms */
   --panel-brand:        #B05220;
@@ -173,7 +173,7 @@
     --error: #C0392B;   --error-subtle:   #FDE8E6;
     --info:  #1D5EA8;   --info-subtle:    #E8F0FC;
     --overlay: rgba(28, 16, 8, 0.5);
-    --shimmer-base: var(--surface-1); --shimmer-peak: var(--surface-2);
+    --shimmer-base: #E4DDD4; --shimmer-peak: #EDE8E0;
   }
 }
 
@@ -208,7 +208,7 @@
   --error: #E05040;   --error-subtle:   #1E0A08;
   --info:  #5080E0;   --info-subtle:    #080E1E;
   --overlay: rgba(0, 0, 0, 0.7);
-  --shimmer-base: var(--surface-1); --shimmer-peak: var(--surface-2);
+  --shimmer-base: rgba(255,255,255,0.07); --shimmer-peak: rgba(255,255,255,0.15);
 }
 
 *,
@@ -2489,6 +2489,40 @@ button:focus-visible,
   min-width: 0;
   border-top: 1px solid var(--color-border);
   padding-top: var(--space-4);
+}
+
+/* ── Desktop: calendar grid + sidebar sit side-by-side ──────── */
+@media (min-width: 900px) {
+  .cd-calendar-monthly-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    align-items: start;
+    gap: var(--space-6);
+  }
+
+  .cd-calendar-monthly-sidebar {
+    border-top: 0;
+    border-left: 1px solid var(--color-border);
+    padding-top: 0;
+    padding-left: var(--space-5);
+    position: sticky;
+    top: 112px;
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+  }
+}
+
+/* ── Tamil calendar cell text — prevent overflow inside fixed-height cells ── */
+.cd-cal-cell-subtext {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.25;
+}
+
+[data-lang="ta"] .cd-cal-cell-subtext {
+  font-size: 0.65rem;
 }
 
 .cd-calendar-grid-scroll {

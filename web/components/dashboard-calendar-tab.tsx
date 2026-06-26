@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
@@ -994,8 +994,8 @@ function MonthlyCalendarView({
                       </span>
                       {hasFestival ? <span aria-hidden="true" style={{ width: "8px", height: "8px", borderRadius: "999px", background: dotColor, marginTop: "2px", flexShrink: 0 }} /> : null}
                     </div>
-                    {tamilDay ? <span style={{ fontSize: "0.75rem", color: monthlyTheme.softText, fontWeight: 500 }}>{tamilDay}</span> : null}
-                    {entry ? <span style={{ fontSize: "0.72rem", color: monthlyTheme.softText, fontWeight: 600 }}>{tTithi(entry.tithiName, lang)}</span> : null}
+                    {tamilDay ? <span className="cd-cal-cell-subtext" style={{ fontSize: lang === "ta" ? "0.65rem" : "0.75rem", color: monthlyTheme.softText, fontWeight: 500 }}>{tamilDay}</span> : null}
+                    {entry ? <span className="cd-cal-cell-subtext" style={{ fontSize: lang === "ta" ? "0.65rem" : "0.72rem", color: monthlyTheme.softText, fontWeight: 600 }}>{tTithi(entry.tithiName, lang)}</span> : null}
                     <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: "4px" }}>
                       {entry?.festivals.slice(0, 2).map((f) => {
                         const kind = monthFestivals.find((item) => item.dateLocal === cell.dateLocal && item.name === f.name)?.kind ?? "festival";
@@ -1147,7 +1147,7 @@ function MonthlyCalendarView({
             </div>
 
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "10px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))", gap: "10px" }}>
               {sidebarItems[sidebarTab].length === 0 ? (
                 <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>{t("cal_monthly_empty", lang)}</p>
               ) : (
@@ -1667,37 +1667,49 @@ export function CalendarTab({
                     </div>
                   )}
 
-                  {/* ── World / observance days ── */}
-                  <div style={{ borderRadius: "var(--radius-md)", border: `1px solid ${W.borderLt}`, background: W.surface, overflow: "hidden" }}>
-                    <p style={{ margin: 0, padding: "var(--space-1_5) var(--space-3)", fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: W.muted, fontWeight: 700, borderBottom: `1px solid ${W.borderLt}` }}>
-                      {lang === "ta" ? "உலக தினங்கள்" : "World Observance Days"}
-                    </p>
-                    <div style={{ padding: "var(--space-2) var(--space-3)" }}>
-                      <span style={{ fontSize: "0.8125rem", color: observanceFestivals.length > 0 ? W.inkMid : W.muted, fontWeight: 600 }}>
-                        {observanceFestivals.length > 0
-                          ? observanceFestivals.map((f) => f.name).join(", ")
-                          : lang === "ta"
-                            ? "இன்றைக்கு உலக தினம் பட்டியலிடப்படவில்லை"
-                            : "No world observance listed for this date"}
-                      </span>
-                    </div>
-                  </div>
+                  {/* ── Events & Significance ── */}
                   <div style={{ borderRadius: "var(--radius-md)", border: `1px solid ${W.borderLt}`, background: W.surface, overflow: "hidden" }}>
                     <p style={{ margin: 0, padding: "var(--space-1_5) var(--space-3)", fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: W.terracotta, fontWeight: 700, borderBottom: `1px solid ${W.borderLt}` }}>
-                      {t("label_festivals", lang)}
+                      {lang === "ta" ? "இன்றைய நிகழ்வுகள்" : "Today's Events"}
                     </p>
-                    <div style={{ padding: "var(--space-2) var(--space-3)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                      {dailyFestivalEvents.length > 0 ? (
-                        dailyFestivalEvents.map((festival) => (
-                          <div key={festival.name} style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr)", gap: "var(--space-2)", alignItems: "start" }}>
-                            <span aria-hidden="true" style={{ lineHeight: 1.4 }}>{festivalIcon(festival.name)}</span>
-                            <div style={{ minWidth: 0 }}>
-                              <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.875rem", color: W.inkMid, fontWeight: 700, lineHeight: 1.35 }}>{festival.name}</p>
-                              <FestivalTagList festival={festival} lang={lang} />
-                            </div>
+                    <div style={{ padding: "var(--space-3)" }}>
+                      {observanceFestivals.length > 0 && (
+                        <div style={{ marginBottom: "var(--space-3)" }}>
+                          <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.7rem", color: W.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                            {lang === "ta" ? "உலக தினங்கள்" : "World Observance"}
+                          </p>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
+                            {observanceFestivals.map((festival) => (
+                              <div key={festival.name} style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr)", gap: "var(--space-2)", alignItems: "start" }}>
+                                <span aria-hidden="true" style={{ lineHeight: 1.4 }}>{festivalIcon(festival.name)}</span>
+                                <div style={{ minWidth: 0 }}>
+                                  <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.875rem", color: W.inkMid, fontWeight: 700, lineHeight: 1.35 }}>{festival.name}</p>
+                                  <FestivalTagList festival={festival} lang={lang} compact />
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        ))
-                      ) : (
+                        </div>
+                      )}
+                      {dailyFestivalEvents.length > 0 && (
+                        <div style={{ marginBottom: observanceFestivals.length > 0 ? "var(--space-3)" : 0, paddingTop: observanceFestivals.length > 0 ? "var(--space-2)" : 0, borderTop: observanceFestivals.length > 0 ? `1px solid ${W.borderLt}` : "none" }}>
+                          <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.7rem", color: W.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                            {lang === "ta" ? "திருவிழாக்கள்" : "Festivals"}
+                          </p>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
+                            {dailyFestivalEvents.map((festival) => (
+                              <div key={festival.name} style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr)", gap: "var(--space-2)", alignItems: "start" }}>
+                                <span aria-hidden="true" style={{ lineHeight: 1.4 }}>{festivalIcon(festival.name)}</span>
+                                <div style={{ minWidth: 0 }}>
+                                  <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.875rem", color: W.inkMid, fontWeight: 700, lineHeight: 1.35 }}>{festival.name}</p>
+                                  <FestivalTagList festival={festival} lang={lang} compact />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {observanceFestivals.length === 0 && dailyFestivalEvents.length === 0 && (
                         <span style={{ fontSize: "0.8125rem", color: W.muted, fontWeight: 600 }}>{t("label_no_festivals", lang)}</span>
                       )}
                     </div>
@@ -1712,6 +1724,14 @@ export function CalendarTab({
                     ]}
                     lang={lang}
                   />
+
+                  {/* ── Today's Significance ── */}
+                  <div style={{ borderRadius: "var(--radius-md)", border: `1px solid rgba(184,90,44,0.2)`, background: "var(--panel-warm-light)", padding: "var(--space-3_5)" }}>
+                    <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: W.terracotta, fontWeight: 700 }}>
+                      {lang === "ta" ? "இன்றைய சிறப்பு" : "Today's Significance"}
+                    </p>
+                    <p style={{ margin: 0, fontSize: "0.8125rem", lineHeight: 1.6, color: W.inkMid }}>{significanceText}</p>
+                  </div>
                 </div>
               </div>
 
@@ -1754,13 +1774,6 @@ export function CalendarTab({
                       <span className="cd-detail-spec-row__tag">5L</span>
                     </div>
                   ))}
-                </div>
-
-                <div style={{ borderRadius: "var(--radius-xl)", border: `1px solid rgba(184,90,44,0.2)`, background: "var(--panel-warm-light)", padding: "var(--space-5)" }}>
-                  <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.75rem", letterSpacing: "0.16em", textTransform: "uppercase", color: W.terracotta, fontWeight: 700 }}>
-                    {lang === "ta" ? "இன்றைய சிறப்பு" : "Today's Significance"}
-                  </p>
-                  <p style={{ margin: 0, fontSize: "0.875rem", lineHeight: 1.6, color: W.inkMid }}>{significanceText}</p>
                 </div>
 
                 {panchangam.hora.length > 0 && (
