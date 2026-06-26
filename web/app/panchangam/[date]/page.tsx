@@ -356,7 +356,7 @@ export default async function PanchangamDatePage({ params }: Props) {
           <div className="cl-container cl-cta-strip__inner">
             <div>
               <h2 className="cl-cta-strip__title">Get panchangam connected to your chart</h2>
-              <p className="cl-cta-strip__body">Create a free account for daily guidance that combines your chart, dasha, and panchangam together.</p>
+              <p className="cl-cta-strip__body">Create a free account for daily guidance that combines your chart, dasa, and panchangam together.</p>
             </div>
             <Link href="/dashboard" className="cl-btn cl-btn--solid">Get started free →</Link>
           </div>

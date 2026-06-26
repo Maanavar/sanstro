@@ -1058,7 +1058,7 @@ export function DashboardWorkspace() {
           document. Pairs with the brand-first <title> in dashboard/layout.tsx. */}
       <div className="cd-print-brand" aria-hidden="true">
         <span className="cd-print-brand__name">Vinaadi AI</span>
-        <span className="cd-print-brand__tag">{lang === "ta" ? "திருக்கணித ஜோதிடம்" : "Thirukanitham Jyotish"}</span>
+        <span className="cd-print-brand__tag">{lang === "ta" ? "திருக்கணித ஜோதிடம்" : "Thirukanitham Jothidam"}</span>
       </div>
 
       <DashboardHero
@@ -1302,9 +1302,9 @@ export function DashboardWorkspace() {
               tone: "info",
               nameEn: "Annual Wrapped",
               nameTa: "ஆண்டு சுருக்கம்",
-              taglineEn: "Dasha map · key transits · year review",
+              taglineEn: "Dasa map · key transits · year review",
               taglineTa: "தசை வரைபடம் · முக்கிய கிரகநகர்வுகள்",
-              descEn: "Review the dasha transitions and Jyotish themes that shaped a year.",
+              descEn: "Review the dasa transitions and Jothidam themes that shaped a year.",
               descTa: "ஒரு ஆண்டை வடிவமைத்த தசை மாற்றங்கள் மற்றும் ஜோதிட கருப்பொருள்கள்.",
               specsEn: ["Year review", "Dasha map", "Transit summary"],
               specsTa: ["ஆண்டு ஆய்வு", "தசை வரைபடம்", "கிரகநகர்வு சுருக்கம்"],
@@ -1349,7 +1349,7 @@ export function DashboardWorkspace() {
                     <p className="cd-tools-v3__subtitle">
                       {lang === "ta"
                         ? "பொருத்தம், ஜாதகம், ஆண்டு சுருக்கம், நிகழ்வு ஆய்வு போன்ற ஆழமான ஜோதிடப் பணிகளுக்கான அமைதியான கருவிகள்."
-                        : "Focused Jyotish workspaces for compatibility, chart generation, yearly review, and event analysis."}
+                        : "Focused Jothidam workspaces for compatibility, chart generation, yearly review, and event analysis."}
                     </p>
                   </div>
 
@@ -1659,7 +1659,7 @@ export function DashboardWorkspace() {
                 Vinaadi
               </p>
               <p className="cd-footer__tagline">
-                {lang === "ta" ? "ஜோதிட வழிகாட்டி · தினமும் காலை" : "Jyotish guidance · every morning"}
+                {lang === "ta" ? "ஜோதிட வழிகாட்டி · தினமும் காலை" : "Jothidam guidance · every morning"}
               </p>
             </div>
             <div className="cd-footer__links">

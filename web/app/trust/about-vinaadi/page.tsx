@@ -15,7 +15,7 @@ export default function AboutPage() {
     { label: lang === "en" ? "Precise"       : "துல்லியமான",   desc: lang === "en" ? "Thirukanitham, Lahiri ayanamsa, Drik ephemeris"              : "திருக்கணிதம், லாகிரி அயனாம்சம், திரிக் கோளக்கணிதம்" },
     { label: lang === "en" ? "Calm"           : "அமைதியான",    desc: lang === "en" ? "No doom language; every verdict shows its reasoning"          : "பயமுறுத்தும் மொழி இல்லை; ஒவ்வொரு தீர்ப்பும் காரணம் காட்டுகிறது" },
     { label: lang === "en" ? "Family-aware"   : "குடும்ப உணர்வு", desc: lang === "en" ? "Built for the way Tamil families actually plan"           : "தமிழ் குடும்பங்கள் உண்மையில் ஆலோசித்து முடிவு எடுக்கும் முறைக்கே இது அமைக்கப்பட்டது" },
-    { label: lang === "en" ? "Honest"         : "நேர்மையான",   desc: lang === "en" ? "Jyotish is tradition, not science — we say so"               : "ஜோதிடம் பாரம்பரியம்; அறிவியல் அல்ல என்பதை நாங்கள் தெளிவாகச் சொல்கிறோம்" },
+    { label: lang === "en" ? "Honest"         : "நேர்மையான",   desc: lang === "en" ? "Jothidam is tradition, not science — we say so"               : "ஜோதிடம் பாரம்பரியம்; அறிவியல் அல்ல என்பதை நாங்கள் தெளிவாகச் சொல்கிறோம்" },
   ];
 
   const TOC = [
@@ -28,10 +28,10 @@ export default function AboutPage() {
 
   const DIFFERENCES = [
     { title: lang === "en" ? "Thirukanitham precision."       : "திருக்கணிதத் துல்லியம்.",          body: lang === "en" ? "Every calculation uses the Tamil standard — Lahiri ayanamsa, Drik ephemeris, traditional South Indian chart format."                                                    : "ஒவ்வொரு கணக்கீடும் தமிழ் ஜோதிடத்தில் பயன்படுத்தப்படும் தரநிலையையே பின்பற்றுகிறது: லாகிரி அயனாம்சம், திரிக் கோளக்கணிதம், தென்னிந்திய ஜாதக வடிவம்." },
-    { title: lang === "en" ? "Assistant-first, not tool-first." : "முதலில் வழிகாட்டல்.", body: lang === "en" ? "The daily reading integrates chart, dasha, transits, and panchangam together. Tools are available when needed but do not define the experience."                              : "தினசரி வாசிப்பில் ஜாதகம், தசை, கிரகநகர்வு, பஞ்சாங்கம் அனைத்தும் ஒன்றாக சேர்கின்றன. கருவிகள் இருக்கின்றன; ஆனால் அனுபவத்தை அவை மட்டுமே நிர்ணயிக்கவில்லை." },
+    { title: lang === "en" ? "Assistant-first, not tool-first." : "முதலில் வழிகாட்டல்.", body: lang === "en" ? "The daily reading integrates chart, dasa, transits, and panchangam together. Tools are available when needed but do not define the experience."                              : "தினசரி வாசிப்பில் ஜாதகம், தசை, கிரகநகர்வு, பஞ்சாங்கம் அனைத்தும் ஒன்றாக சேர்கின்றன. கருவிகள் இருக்கின்றன; ஆனால் அனுபவத்தை அவை மட்டுமே நிர்ணயிக்கவில்லை." },
     { title: lang === "en" ? "Family-aware."                   : "குடும்பம் மையம்.",                body: lang === "en" ? "Most astrology products stop at individual readings. Vinaadi is designed for the way Tamil families actually use astrology — together."                                        : "பல ஜோதிட சேவைகள் ஒருவரின் வாசிப்பில் முடிந்து விடுகின்றன. விநாடி குடும்பமாக சேர்ந்து பார்க்கவும், ஆலோசிக்கவும், முடிவு எடுக்கவும் வடிவமைக்கப்பட்டுள்ளது." },
     { title: lang === "en" ? "Calm language."                  : "அமைதியான சொல் நடை.",                 body: lang === "en" ? "No doom language. No fear-based predictions. Every signal includes reasoning. Users understand what the reading is based on."                                              : "பயமுறுத்தும் சொற்கள் இல்லை. அச்சத்தை தூண்டும் கணிப்புகள் இல்லை. ஒவ்வொரு சுட்டிக்கும் காரணம் காட்டப்படும்; வாசிப்பு எதின் அடிப்படையில் வருகிறது என்பதையும் பயனர் புரிந்து கொள்ள முடியும்." },
-    { title: lang === "en" ? "Transparent reasoning."          : "வெளிப்படையான காரணம்.",           body: lang === "en" ? "Vinaadi shows you why a day scores the way it does. Dasha period quality, transit influences, panchangam quality — all visible."                                           : "ஒரு நாள் ஏன் அப்படிப் படிக்கப்படுகிறது என்பதை விநாடி மறைக்காது. தசை தரம், கிரகநகர்வு தாக்கம், பஞ்சாங்க நிலை ஆகியவை தெளிவாகக் காட்டப்படும்." },
+    { title: lang === "en" ? "Transparent reasoning."          : "வெளிப்படையான காரணம்.",           body: lang === "en" ? "Vinaadi shows you why a day scores the way it does. Dasa period quality, transit influences, panchangam quality — all visible."                                           : "ஒரு நாள் ஏன் அப்படிப் படிக்கப்படுகிறது என்பதை விநாடி மறைக்காது. தசை தரம், கிரகநகர்வு தாக்கம், பஞ்சாங்க நிலை ஆகியவை தெளிவாகக் காட்டப்படும்." },
   ];
 
   return (
@@ -79,15 +79,15 @@ export default function AboutPage() {
 
                 <h2 id="problem">{lang === "en" ? "The problem Vinaadi solves" : "விநாடி தீர்க்கும் பிரச்சினை"}</h2>
                 <p>{lang === "en"
-                  ? "Most astrology apps are built around passive consumption — daily sun-sign horoscopes, generic forecasts, or entertainment content. They are not designed for the Tamil Jyotish practitioner who needs Thirukanitham-accurate birth charts, or the family that wants to plan shared decisions using real astrological signals."
+                  ? "Most astrology apps are built around passive consumption — daily sun-sign horoscopes, generic forecasts, or entertainment content. They are not designed for the Tamil Jothida practitioner who needs Thirukanitham-accurate birth charts, or the family that wants to plan shared decisions using real astrological signals."
                   : "பெரும்பாலான ஜோதிட ஆப்கள் தினசரி சூரிய ராசி பலன், பொதுவான கணிப்பு, அல்லது பொழுதுபோக்கு வாசிப்பைச் சுற்றியே நிற்கின்றன. திருக்கணிதம் துல்லியமான ஜாதகம் வேண்டிய தமிழ் ஜோதிட பயனருக்கும், உண்மையான ஜோதிடச் சுட்டிகளை வைத்து குடும்பமாக முடிவு எடுக்க விரும்புபவர்களுக்கும் அவை வடிவமைக்கப்படவில்லை."}</p>
                 <p>{lang === "en"
-                  ? "There is also a trust problem. Many existing tools use fear-amplifying language — warning of 'dangerous' periods, predicting bad outcomes, or presenting astrological signals as fixed fate. That is not how traditional Tamil Jyotish is meant to be used."
+                  ? "There is also a trust problem. Many existing tools use fear-amplifying language — warning of 'dangerous' periods, predicting bad outcomes, or presenting astrological signals as fixed fate. That is not how traditional Tamil Jothidam is meant to be used."
                   : "மேலும் நம்பகத்தன்மை பிரச்சினையும் இருக்கிறது. பல கருவிகள் பயத்தை தூண்டும் மொழியில் 'ஆபத்து', 'கெட்ட காலம்' என்று பேசுகின்றன. பாரம்பரிய தமிழ் ஜோதிடம் அப்படிப் பயன்படுத்தப்பட வேண்டியதல்ல."}</p>
 
                 <h2 id="what-vinaadi-is">{lang === "en" ? "What Vinaadi is" : "விநாடி என்ன"}</h2>
                 <p>{lang === "en"
-                  ? "Vinaadi is an assistant. It reads your chart, tracks your dasha, monitors transits, computes a daily panchangam, and gives you one quiet reading every morning — a score, a best window, a caution window, and a brief interpretation in plain language."
+                  ? "Vinaadi is an assistant. It reads your chart, tracks your dasa, monitors transits, computes a daily panchangam, and gives you one quiet reading every morning — a score, a best window, a caution window, and a brief interpretation in plain language."
                   : "விநாடி ஒரு உதவியாளர். உங்கள் ஜாதகத்தைப் படிக்கிறது, தசை முன்னேற்றத்தை கவனிக்கிறது, கிரகநகர்வை பார்க்கிறது, தின பஞ்சாங்கத்தை கணக்கிடுகிறது, ஒவ்வொரு காலையும் ஒரு அமைதியான வாசிப்பைத் தருகிறது: ஒரு மதிப்பெண், நல்ல நேரம், கவன நேரம், எளிய விளக்கம்."}</p>
                 <p>{lang === "en"
                   ? "When you need a specific tool — porutham matching, jadhagam generation, birth time rectification, or panchangam — those tools are part of the same assistant."
@@ -105,7 +105,7 @@ export default function AboutPage() {
 
                 <h2 id="what-not">{lang === "en" ? "What Vinaadi is not" : "விநாடி எது அல்ல"}</h2>
                 <p>{lang === "en"
-                  ? "Vinaadi is not a replacement for a trained Jyotish practitioner for complex life decisions. It is not medical, legal, or financial advice. It is a planning assistant that uses Tamil astrological tradition to help people think about time, timing, and context — with clarity rather than anxiety."
+                  ? "Vinaadi is not a replacement for a trained Jothida practitioner for complex life decisions. It is not medical, legal, or financial advice. It is a planning assistant that uses Tamil astrological tradition to help people think about time, timing, and context — with clarity rather than anxiety."
                   : "விநாடி சிக்கலான வாழ்க்கை முடிவுகளுக்கு பயிற்சி பெற்ற ஜோதிடருக்குப் பதிலாக வருவதில்லை. இது மருத்துவ, சட்ட, நிதி ஆலோசனையும் அல்ல. நேரம், சூழல், முடிவு ஆகியவற்றை அமைதியாக சிந்திக்க உதவும் திட்டமிடல் துணை மட்டுமே."}</p>
                 <div className="cl-callout">
                   <p>{lang === "en" ? "A planning assistant for time, timing, and context — with clarity rather than anxiety." : "நேரம், சூழல், முடிவு ஆகியவற்றை தெளிவாகச் சிந்திக்க உதவும் அமைதியான திட்டமிடல் துணை."}</p>

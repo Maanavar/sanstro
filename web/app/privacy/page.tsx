@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PublicNav } from "@/components/public-nav";
@@ -69,7 +69,7 @@ export default function PrivacyPage() {
             <h2>How we use your data</h2>
             <p>
               Your birth details are used exclusively to calculate Thirukanitham-based
-              astrological readings — daily guidance scores, dasha periods, transit
+              astrological readings — daily guidance scores, dasa periods, transit
               positions, panchangam timings, porutham results, and jadhagam charts.
               We do not sell, share, or transfer your personal data to third parties
               for marketing purposes.
@@ -110,7 +110,7 @@ export default function PrivacyPage() {
 
             <h2>Astrology disclaimer</h2>
             <p>
-              Vinaadi provides Jyotish-based guidance. Astrology is a traditional
+              Vinaadi provides Jothida-based guidance. Astrology is a traditional
               belief system, not a science. Nothing in Vinaadi constitutes medical,
               legal, or financial advice. For decisions in those areas, consult a
               qualified professional.

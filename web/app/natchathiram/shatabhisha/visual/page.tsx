@@ -3,12 +3,12 @@ import { SATHAYAM } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
 
 export const metadata: Metadata = {
-  title: "Shatabhisha Nakshathiram — Visual Profile | Vinaadi",
-  description: "Visual profile of Shatabhisha Nakshathiram: personality traits, career strengths, dasha timeline, compatible nakshathirams, and spiritual guidance.",
+  title: "Sadayam Nakshathiram — Visual Profile | Vinaadi",
+  description: "Visual profile of Sadayam Nakshathiram: personality traits, career strengths, dasa timeline, compatible nakshathirams, and spiritual guidance.",
   alternates: { canonical: "https://vinaadi.com/natchathiram/shatabhisha/visual" },
   openGraph: {
-    title: "Shatabhisha Nakshathiram — Visual Profile",
-    description: "Visual profile of Shatabhisha Nakshathiram: personality traits, career strengths, dasha timeline, and spiritual guidance.",
+    title: "Sadayam Nakshathiram — Visual Profile",
+    description: "Visual profile of Sadayam Nakshathiram: personality traits, career strengths, dasa timeline, and spiritual guidance.",
     url: "https://vinaadi.com/natchathiram/shatabhisha/visual",
     type: "article",
   },
@@ -48,7 +48,7 @@ const SHATABHISHA_VISUAL: NatchathiramVisualData = {
 
   careerClusters: [
     { symbol: "◎", title: "Medicine, Healing & Alternative Therapies", desc: "Conventional medicine, Ayurveda, energy healing, herbalism — the 'hundred healers' star applied to the professional domain of health and recovery." },
-    { symbol: "◈", title: "Astrology & Occult Sciences",              desc: "Jyotish, Tantra, esoteric traditions — Varuna's domain of hidden order and cosmic law engaged as professional wisdom." },
+    { symbol: "◈", title: "Astrology & Occult Sciences",              desc: "Jothidam, Tantra, esoteric traditions — Varuna's domain of hidden order and cosmic law engaged as professional wisdom." },
     { symbol: "⚡", title: "Scientific Research & Innovation",         desc: "Independent scientific research, paradigm-breaking investigation, the pursuit of what existing frameworks have missed — Shatabhisha's independent vision in the domain of knowledge." },
     { symbol: "♥", title: "Psychology & Depth Therapy",               desc: "Depth psychology, energy psychology, the therapies that address the invisible roots of visible symptoms — the hundred healers' capacity applied to the psyche." },
     { symbol: "△", title: "Technology & Systems Innovation",          desc: "Technology research, systems innovation, the design of structures that reflect the hidden order of things — Saturn's discipline and Rahu's innovative energy in the domain of technology." },
@@ -57,7 +57,7 @@ const SHATABHISHA_VISUAL: NatchathiramVisualData = {
 
   modernApps: [
     { symbol: "◎", title: "Health Technology & Healing Platforms",  desc: "Integrative medicine platforms, alternative healing technology, holistic health applications — the hundred healers at digital scale." },
-    { symbol: "◈", title: "Astrology & Esoteric Technology",         desc: "Jyotish platforms, esoteric wisdom technology, cosmic law intelligence applications." },
+    { symbol: "◈", title: "Astrology & Esoteric Technology",         desc: "Jothidam platforms, esoteric wisdom technology, cosmic law intelligence applications." },
     { symbol: "⚡", title: "Scientific Research Technology",         desc: "Independent research platforms, paradigm-innovation tools, open-science investigation technology." },
     { symbol: "♥", title: "Psychology & Depth Therapy Technology",   desc: "Energy psychology platforms, depth therapy applications, invisible-root health technology." },
     { symbol: "△", title: "Systems Innovation & Technology Research", desc: "Systems innovation platforms, hidden order research technology, structural intelligence applications." },
@@ -68,31 +68,31 @@ const SHATABHISHA_VISUAL: NatchathiramVisualData = {
     {
       planet: "Rahu", period: "18 yrs", ageRange: "Age 0–18", theme: "Born into the Invisible",
       detail: {
-        expect: "Shatabhisha opens in Rahu dasha — a beginning of unusual perceptual range, unconventional intelligence, and the sense that the invisible dimension of experience is as real, or more real, than the visible. The Shatabhisha child born into Rahu's domain has an uncanny quality from the earliest years: the awareness of what is not said, what is not shown, what operates beneath the surface of family and social life. Early encounters with the mystical, the medical, or the scientifically unconventional are common in Rahu's opening. The school years engage the educational system with a mixture of genuine intellectual brilliance and difficulty with conventional frameworks — the Shatabhisha mind is too wide and too deep for most curricula. Rahu–Saturn antardasha (~yr 15 of Rahu, ~ages 15-16) is a critical rasi lord sub-period flag: the structural discipline and long-game patience that Saturn will govern in its own dasha arrives as an early formative encounter in adolescence.",
+        expect: "Shatabhisha opens in Rahu dasa — a beginning of unusual perceptual range, unconventional intelligence, and the sense that the invisible dimension of experience is as real, or more real, than the visible. The Shatabhisha child born into Rahu's domain has an uncanny quality from the earliest years: the awareness of what is not said, what is not shown, what operates beneath the surface of family and social life. Early encounters with the mystical, the medical, or the scientifically unconventional are common in Rahu's opening. The school years engage the educational system with a mixture of genuine intellectual brilliance and difficulty with conventional frameworks — the Shatabhisha mind is too wide and too deep for most curricula. Rahu–Saturn antardasa (~yr 15 of Rahu, ~ages 15-16) is a critical rasi lord sub-period flag: the structural discipline and long-game patience that Saturn will govern in its own dasa arrives as an early formative encounter in adolescence.",
         navigate: "Rahu's primary challenge for the young Shatabhisha is the intensity of the perceptual range — the child who sees the invisible is also exposed to it without the maturity to integrate what is perceived. The unconventional intelligence needs unconventional educational support; forcing the Shatabhisha child into purely conventional frameworks produces frustration and often apparent underperformance in a highly capable person. Rahu–Saturn (~yr 15, ~ages 15-16) is a rasi lord flag: a pivotal adolescent encounter with the discipline and structure that will be the framework for the mature Shatabhisha life.",
-        focus: "Saturday Rahu shrine prayers and the provision of educational environments that honour and challenge the unconventional intelligence. Rahu–Saturn (~yr 15, ~ages 15-16) is a major rasi lord antardasha flag: Saturn arrives in Rahu's opening field as the first serious encounter with the structural discipline that the mature healer or mystic must inhabit — this sub-period is often the moment of the decisive early commitment to a discipline.",
+        focus: "Saturday Rahu shrine prayers and the provision of educational environments that honour and challenge the unconventional intelligence. Rahu–Saturn (~yr 15, ~ages 15-16) is a major rasi lord antardasa flag: Saturn arrives in Rahu's opening field as the first serious encounter with the structural discipline that the mature healer or mystic must inhabit — this sub-period is often the moment of the decisive early commitment to a discipline.",
       },
     },
     {
       planet: "Jupiter", period: "16 yrs", ageRange: "Age 18–34", theme: "The Philosophical Opening",
       detail: {
-        expect: "Jupiter dasha from 18 to 34 brings the philosophical breadth and wisdom that contextualises Shatabhisha's mystical and healing intelligence within a larger tradition of understanding. Higher education, the first serious encounter with the healing or occult tradition that becomes the life's work, and the philosophical framework within which the unconventional intelligence operates are all established in Jupiter's sixteen years. The teacher who becomes the defining guide of the Shatabhisha professional life typically enters in Jupiter–Venus or Jupiter–Saturn antardasha. The first serious healing or research practice is established.",
+        expect: "Jupiter dasa from 18 to 34 brings the philosophical breadth and wisdom that contextualises Shatabhisha's mystical and healing intelligence within a larger tradition of understanding. Higher education, the first serious encounter with the healing or occult tradition that becomes the life's work, and the philosophical framework within which the unconventional intelligence operates are all established in Jupiter's sixteen years. The teacher who becomes the defining guide of the Shatabhisha professional life typically enters in Jupiter–Venus or Jupiter–Saturn antardasa. The first serious healing or research practice is established.",
         navigate: "Jupiter's primary challenge for Shatabhisha is the temptation to systematise the mystical — to turn the living, fluid intelligence of Varuna's domain into a fixed philosophical system that loses the living quality. The 'hundred healers' does not work from a single system but from the capacity to find the appropriate medicine for the specific situation. Jupiter–Saturn (~yr 13 of Jupiter, ~ages 31-33) is a major rasi lord sub-period flag — the most significant encounter with the Saturn structural discipline in Jupiter's expansive field.",
-        focus: "Thursday Brihaspati worship and the deliberate cultivation of philosophical breadth alongside the mystical depth. Jupiter–Saturn (~yr 13, ~ages 31-33) is a rasi lord antardasha flag: Saturn arrives in Jupiter's wise field as a powerful structuring encounter that establishes the discipline framework for the mature Shatabhisha practice.",
+        focus: "Thursday Brihaspati worship and the deliberate cultivation of philosophical breadth alongside the mystical depth. Jupiter–Saturn (~yr 13, ~ages 31-33) is a rasi lord antardasa flag: Saturn arrives in Jupiter's wise field as a powerful structuring encounter that establishes the discipline framework for the mature Shatabhisha practice.",
       },
     },
     {
       planet: "Saturn", period: "19 yrs", ageRange: "Age 34–53", theme: "Rasi Lord — The Healer's Mastery",
       detail: {
-        expect: "Saturn dasha from 34 to 53 is the rasi lord's arrival for Shatabhisha. Saturn is the lord of your rasi, Kumbha — and his 19-year dasha, arriving in the prime professional years, is the most structurally complete, disciplined, and professionally authoritative period of the Shatabhisha life. The healing, research, or mystical practice that has been developing since Rahu's opening and deepened through Jupiter's philosophical breadth now receives the full structural governance of Saturn's long-game patience. Independent practice is established; the reputation of the 'hundred healers' begins to be known in the wider world; the research or healing work reaches a quality of structural mastery that earlier periods, however inspired, could not achieve. This is the dasha of the established healer, the authoritative researcher, the master of the hidden order.",
-        navigate: "Saturn's primary challenge in the rasi lord dasha is the institutionalisation of the independent vision — the healer who has always operated from the invisible root of illness discovering the temptation to create a fixed system and defend it as the only correct approach. Varuna's domain has a hundred medicines because illness is various and the healing intelligence must remain flexible. Physical care is important across the long 19-year dasha.",
+        expect: "Saturn dasa from 34 to 53 is the rasi lord's arrival for Shatabhisha. Saturn is the lord of your rasi, Kumbha — and his 19-year dasa, arriving in the prime professional years, is the most structurally complete, disciplined, and professionally authoritative period of the Shatabhisha life. The healing, research, or mystical practice that has been developing since Rahu's opening and deepened through Jupiter's philosophical breadth now receives the full structural governance of Saturn's long-game patience. Independent practice is established; the reputation of the 'hundred healers' begins to be known in the wider world; the research or healing work reaches a quality of structural mastery that earlier periods, however inspired, could not achieve. This is the dasa of the established healer, the authoritative researcher, the master of the hidden order.",
+        navigate: "Saturn's primary challenge in the rasi lord dasa is the institutionalisation of the independent vision — the healer who has always operated from the invisible root of illness discovering the temptation to create a fixed system and defend it as the only correct approach. Varuna's domain has a hundred medicines because illness is various and the healing intelligence must remain flexible. Physical care is important across the long 19-year dasa.",
         focus: "Saturday Saturn worship, Shani puja, and the deliberate maintenance of the independence of vision within the discipline of practice. The Saturn rasi lord's 19 years are best expressed as the humble master who knows that the hundred medicines is not a finite list — it grows with each new encounter between the healer's intelligence and the specific situation that presents itself.",
       },
     },
     {
       planet: "Mercury", period: "17 yrs", ageRange: "Age 53–70", theme: "The Articulate Mystery",
       detail: {
-        expect: "Mercury dasha from 53 to 70 brings the mind's precision and articulative capacity to Shatabhisha's mystical and healing mastery. The hidden knowledge that has been operating as practice and presence since Rahu's opening now finds in Mercury the capacity for clear, precise articulation — the healer who can explain what they do, the mystic who can write what they know, the researcher who can publish what they have found. Teaching, writing, and the transmission of the Shatabhisha understanding are the primary professional expressions of Mercury dasha.",
+        expect: "Mercury dasa from 53 to 70 brings the mind's precision and articulative capacity to Shatabhisha's mystical and healing mastery. The hidden knowledge that has been operating as practice and presence since Rahu's opening now finds in Mercury the capacity for clear, precise articulation — the healer who can explain what they do, the mystic who can write what they know, the researcher who can publish what they have found. Teaching, writing, and the transmission of the Shatabhisha understanding are the primary professional expressions of Mercury dasa.",
         navigate: "Mercury's primary challenge for Shatabhisha is the articulation of what is genuinely ineffable — the domain of Varuna's hidden order does not always translate cleanly into Mercury's precise language. The risk is either the over-simplification that loses the depth or the deliberate obscurity that protects the depth but fails to transmit it. Physical care and energy management are important.",
         focus: "Wednesday Mercury worship and the deliberate practice of writing and articulating the accumulated mystical and healing understanding at the level of depth that the material requires — neither over-simplified nor unnecessarily obscure.",
       },
@@ -100,7 +100,7 @@ const SHATABHISHA_VISUAL: NatchathiramVisualData = {
     {
       planet: "Ketu", period: "7 yrs", ageRange: "Age 70–77", theme: "The Mystery Returns",
       detail: {
-        expect: "Ketu dasha from 70 to 77 brings the great simplification of the knowledge domain. After Mercury's articulative fullness, Ketu returns Shatabhisha to the source — the invisible dimension from which the healing and mystical intelligence has always drawn its authority. The 'hundred healers' discovers, in Ketu's simplification, that the final medicine is not a specific herb or a specific practice but the presence itself — the quality of attentiveness that Varuna's awareness grants.",
+        expect: "Ketu dasa from 70 to 77 brings the great simplification of the knowledge domain. After Mercury's articulative fullness, Ketu returns Shatabhisha to the source — the invisible dimension from which the healing and mystical intelligence has always drawn its authority. The 'hundred healers' discovers, in Ketu's simplification, that the final medicine is not a specific herb or a specific practice but the presence itself — the quality of attentiveness that Varuna's awareness grants.",
         navigate: "Complete and gentle physical care. Ketu at this age is the invitation to be present to what is, without the healer's need to fix it — the deepest expression of the 'hundred healers' intelligence in its most distilled form.",
         focus: "Pitru tharpanam and ancestral rites. Varuna's servant has healed many; now the healer rests in the healing that needs no particular instrument.",
       },
@@ -108,15 +108,15 @@ const SHATABHISHA_VISUAL: NatchathiramVisualData = {
     {
       planet: "Venus", period: "20 yrs", ageRange: "Age 77–97", theme: "The Beautiful Healing",
       detail: {
-        expect: "Venus dasha from 77 to 97 brings the aesthetic grace and abundant warmth of Venus to the late life of the Shatabhisha elder. The mystical depth and healing mastery of the previous dashas are now accompanied by Venus's gift of beauty — the quality that makes the elder's presence itself a form of nourishment.",
-        navigate: "Complete and devoted physical care across Venus's long 20-year dasha at this age. The body requires consistent, gentle attention.",
-        focus: "Friday Venus worship and the deliberate enjoyment of beauty — music, nature, relationships, the aesthetic pleasures of a long life well lived. Venus as the closing dasha of this sequence is the gift of grace: the hundred healers receives, in very old age, the beauty that healing has always been serving.",
+        expect: "Venus dasa from 77 to 97 brings the aesthetic grace and abundant warmth of Venus to the late life of the Shatabhisha elder. The mystical depth and healing mastery of the previous dasas are now accompanied by Venus's gift of beauty — the quality that makes the elder's presence itself a form of nourishment.",
+        navigate: "Complete and devoted physical care across Venus's long 20-year dasa at this age. The body requires consistent, gentle attention.",
+        focus: "Friday Venus worship and the deliberate enjoyment of beauty — music, nature, relationships, the aesthetic pleasures of a long life well lived. Venus as the closing dasa of this sequence is the gift of grace: the hundred healers receives, in very old age, the beauty that healing has always been serving.",
       },
     },
     {
       planet: "Sun", period: "6 yrs", ageRange: "Age 97–103", theme: "Final Solar Clarity",
       detail: {
-        expect: "Sun dasha from 97 to 103 is reached by very few Shatabhisha souls. For those who arrive, Sun brings the final solar clarity — the distilled authority of the hundred healers in its most luminous form.",
+        expect: "Sun dasa from 97 to 103 is reached by very few Shatabhisha souls. For those who arrive, Sun brings the final solar clarity — the distilled authority of the hundred healers in its most luminous form.",
         navigate: "Complete and devoted physical care.",
         focus: "The solar authority of the healer elder — the light that has seen through the invisible to the real, and now simply illuminates without the need for instruments or systems.",
       },
@@ -124,7 +124,7 @@ const SHATABHISHA_VISUAL: NatchathiramVisualData = {
     {
       planet: "Moon", period: "10 yrs", ageRange: "Age 103–113", theme: "Final Emotional Ocean",
       detail: {
-        expect: "Moon dasha from 103 to 113 is reached by extraordinarily few Shatabhisha souls. For those who arrive, Moon brings the final return to the emotional ocean — the feeling dimension of Varuna's cosmic waters in their most direct and unmediated form.",
+        expect: "Moon dasa from 103 to 113 is reached by extraordinarily few Shatabhisha souls. For those who arrive, Moon brings the final return to the emotional ocean — the feeling dimension of Varuna's cosmic waters in their most direct and unmediated form.",
         navigate: "Complete and devoted physical care at this extreme age.",
         focus: "The healer who has spent a lifetime attending to others now receives the full depth of care from those who love them. The invisible becomes visible; the cosmic waters are also the waters of emotion, of relationship, of love.",
       },
@@ -148,7 +148,7 @@ const SHATABHISHA_VISUAL: NatchathiramVisualData = {
 
   guidance: "The hundred healers know that no single medicine is always right and no single system is always complete — because the disease is various and the hidden order behind it is deeper than any one formulation. The independence of vision that Varuna gave you is not arrogance but fidelity: the willingness to see what is actually there, rather than what the existing framework says should be there. Trust the invisible root; be disciplined in the practice; and let the hundred medicines emerge from the genuine encounter between your attentiveness and the specific situation that seeks your help.",
 
-  compatibleEn: ["Ardra", "Swati", "Purva Bhadra", "Dhanishtha", "Ashlesha"],
+  compatibleEn: ["Thiruvathirai", "Swathi", "Poorattathi", "Avittam", "Ayilyam"],
   compatibleNote: "These nakshatras complement Shatabhisha's healing intelligence, mystical depth, and independent vision with transformative power, social grace, and deep wisdom.",
 
   ta: {

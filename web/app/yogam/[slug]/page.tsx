@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!content) return {};
 
   return {
-    title: `${content.title.en} - Formula, Benefits & Dasha Activation | Vinaadi`,
+    title: `${content.title.en} - Formula, Benefits & Dasa Activation | Vinaadi`,
     description: content.lead.en,
     alternates: { canonical: `https://vinaadi.com/yogam/${slug}` },
     openGraph: {

@@ -3,12 +3,12 @@ import { HASTA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
 
 export const metadata: Metadata = {
-  title: "Hasta Nakshathiram — Visual Profile | Vinaadi",
-  description: "Visual profile of Hasta Nakshathiram: personality traits, career strengths, dasha timeline, compatible nakshathirams, and spiritual guidance.",
+  title: "Hastham Nakshathiram — Visual Profile | Vinaadi",
+  description: "Visual profile of Hastham Nakshathiram: personality traits, career strengths, dasa timeline, compatible nakshathirams, and spiritual guidance.",
   alternates: { canonical: "https://vinaadi.com/natchathiram/hasta/visual" },
   openGraph: {
-    title: "Hasta Nakshathiram — Visual Profile",
-    description: "Visual profile of Hasta Nakshathiram: personality traits, career strengths, dasha timeline, and spiritual guidance.",
+    title: "Hastham Nakshathiram — Visual Profile",
+    description: "Visual profile of Hastham Nakshathiram: personality traits, career strengths, dasa timeline, and spiritual guidance.",
     url: "https://vinaadi.com/natchathiram/hasta/visual",
     type: "article",
   },
@@ -68,55 +68,55 @@ const HASTA_VISUAL: NatchathiramVisualData = {
     {
       planet: "Moon", period: "10 yrs", ageRange: "Age 0–10", theme: "Born in the Healing Stream",
       detail: {
-        expect: "Hasta opens in Moon dasha — the first ten years bathed in emotional sensitivity and the early flowering of the hands' intelligence. Infancy (0–3) often shows unusual motor development — Hasta babies are noted for the purposeful precision of their hand movements before language appears. Early childhood (3–10) produces a child who learns through making, touching, and fixing: the one who takes toys apart to understand them, who draws with unusual accuracy, who helps in the kitchen with a child's seriousness. School begins in Moon dasha, and Hasta's social ease and natural wit emerge — the child who makes the class laugh while also finishing the task first.",
-        navigate: "Moon dasha's primary vulnerabilities for Hasta in childhood are emotional sensitivity, digestive function, and cold-related illness. The hands' intelligence developing in Moon dasha can produce frustration when the child's manual capabilities exceed their verbal expression — give Hasta children craft, art, and physical activity rather than only sedentary learning. Moon–Rahu antardasha (~yr 7 of Moon, ~age 7) can bring a brief period of social or family turbulence.",
+        expect: "Hasta opens in Moon dasa — the first ten years bathed in emotional sensitivity and the early flowering of the hands' intelligence. Infancy (0–3) often shows unusual motor development — Hasta babies are noted for the purposeful precision of their hand movements before language appears. Early childhood (3–10) produces a child who learns through making, touching, and fixing: the one who takes toys apart to understand them, who draws with unusual accuracy, who helps in the kitchen with a child's seriousness. School begins in Moon dasa, and Hasta's social ease and natural wit emerge — the child who makes the class laugh while also finishing the task first.",
+        navigate: "Moon dasa's primary vulnerabilities for Hasta in childhood are emotional sensitivity, digestive function, and cold-related illness. The hands' intelligence developing in Moon dasa can produce frustration when the child's manual capabilities exceed their verbal expression — give Hasta children craft, art, and physical activity rather than only sedentary learning. Moon–Rahu antardasa (~yr 7 of Moon, ~age 7) can bring a brief period of social or family turbulence.",
         focus: "Monday Moon worship, white flower offerings, and giving the Hasta child abundant hands-on creative materials — clay, craft, instruments, basic tools — are the most formative investments. The hands that will later heal, create, or engineer are learning their intelligence here.",
       },
     },
     {
       planet: "Mars", period: "7 yrs", ageRange: "Age 10–17", theme: "The Hands Find Their Force",
       detail: {
-        expect: "Mars dasha from 10 to 17 brings energy, drive, and the first serious testing of Hasta's manual intelligence. Sports, crafts, martial arts, mechanical hobbies, or early musical instrument practice all intensify in Mars dasha — Hasta at this age discovers the domains where their hands' precision becomes something formidable. Academic performance, especially in practical subjects, often exceeds that of peers in these years. The first serious ambition takes shape.",
-        navigate: "Mars's energy in adolescence for Hasta can produce impatience with slower-moving peers and teachers, and occasionally impulsive commitments. Physical concerns: injury to hands and fingers deserves particular attention — Hasta's primary instrument must be protected. Mars–Saturn antardasha (~yr 5 of Mars, ~age 15) brings a period of useful discipline but also frustration.",
-        focus: "Tuesday Mars shrine prayers and red offerings. Channel Mars's drive into one well-chosen manual or craft discipline — the commitment made to a skill in Mars dasha tends to be the technical foundation that sustains the rest of the life.",
+        expect: "Mars dasa from 10 to 17 brings energy, drive, and the first serious testing of Hasta's manual intelligence. Sports, crafts, martial arts, mechanical hobbies, or early musical instrument practice all intensify in Mars dasa — Hasta at this age discovers the domains where their hands' precision becomes something formidable. Academic performance, especially in practical subjects, often exceeds that of peers in these years. The first serious ambition takes shape.",
+        navigate: "Mars's energy in adolescence for Hasta can produce impatience with slower-moving peers and teachers, and occasionally impulsive commitments. Physical concerns: injury to hands and fingers deserves particular attention — Hasta's primary instrument must be protected. Mars–Saturn antardasa (~yr 5 of Mars, ~age 15) brings a period of useful discipline but also frustration.",
+        focus: "Tuesday Mars shrine prayers and red offerings. Channel Mars's drive into one well-chosen manual or craft discipline — the commitment made to a skill in Mars dasa tends to be the technical foundation that sustains the rest of the life.",
       },
     },
     {
       planet: "Rahu", period: "18 yrs", ageRange: "Age 17–35", theme: "The World Receives the Hands",
       detail: {
-        expect: "Rahu dasha from 17 to 35 is when Hasta's hands meet the world at scale. Advanced education or professional training establishes the technical domain; medicine, engineering, design, finance, or performance all emerge as natural professional homes. Career foundations are laid and early professional recognition arrives — Hasta's precision and adaptability distinguish them in almost any field they choose. Marriage and family formation typically occur between ages 25 and 31. Social networks widen; the wit and ease that Moon dasha cultivated and Mars dasha sharpened now serves Hasta brilliantly in professional social contexts.",
-        navigate: "Rahu's 18-year expansion through the professional formation years can produce overcommitment to multiple domains. Hasta's natural adaptability is an asset; its shadow is the person who is technically excellent at many things but does not master any one. Rahu–Saturn antardasha (~yr 12 of Rahu, ~ages 29–31) is the most demanding sub-period. Physical concerns specific to Hasta in Rahu dasha: repetitive strain injuries, wrist and hand conditions from overwork.",
-        focus: "Saturday Rahu shrine and deliberate depth-over-breadth choices in the technical domain. Also watch Rahu–Mercury antardasha (~yr 15 of Rahu, ~ages 32–34) — Mercury is the lord of your rasi, Kanya; this sub-period carries the rasi lord's amplified analytical and communicative precision. Exceptional professional output — the breakthrough technical contribution, the significant analytical publication, or the precision performance that defines a career — often lands here.",
+        expect: "Rahu dasa from 17 to 35 is when Hasta's hands meet the world at scale. Advanced education or professional training establishes the technical domain; medicine, engineering, design, finance, or performance all emerge as natural professional homes. Career foundations are laid and early professional recognition arrives — Hasta's precision and adaptability distinguish them in almost any field they choose. Marriage and family formation typically occur between ages 25 and 31. Social networks widen; the wit and ease that Moon dasa cultivated and Mars dasa sharpened now serves Hasta brilliantly in professional social contexts.",
+        navigate: "Rahu's 18-year expansion through the professional formation years can produce overcommitment to multiple domains. Hasta's natural adaptability is an asset; its shadow is the person who is technically excellent at many things but does not master any one. Rahu–Saturn antardasa (~yr 12 of Rahu, ~ages 29–31) is the most demanding sub-period. Physical concerns specific to Hasta in Rahu dasa: repetitive strain injuries, wrist and hand conditions from overwork.",
+        focus: "Saturday Rahu shrine and deliberate depth-over-breadth choices in the technical domain. Also watch Rahu–Mercury antardasa (~yr 15 of Rahu, ~ages 32–34) — Mercury is the lord of your rasi, Kanya; this sub-period carries the rasi lord's amplified analytical and communicative precision. Exceptional professional output — the breakthrough technical contribution, the significant analytical publication, or the precision performance that defines a career — often lands here.",
       },
     },
     {
       planet: "Jupiter", period: "16 yrs", ageRange: "Age 35–51", theme: "Mastery Recognised",
       detail: {
-        expect: "Jupiter dasha from 35 to 51 is when Hasta's technical mastery reaches professional peak and begins to be transmitted as wisdom. Leadership in the chosen field — senior surgeon, master craftsperson, principal engineer, head of a creative studio — becomes the natural terrain. Mentoring younger practitioners arrives naturally; Hasta discovers that teaching the hands' intelligence is as satisfying as exercising it. Family life is in full flower; children are in school; the home life Hasta builds is often one of unusual practical beauty — well-made things, well-maintained spaces.",
-        navigate: "Jupiter's expansion can produce over-commitment to mentoring and teaching at the expense of Hasta's own technical practice. The hands must keep working, not only directing. Cardiovascular and liver health deserve attention from the late thirties. Jupiter–Rahu antardasha (~yr 12 of Jupiter, ~ages 47–49) can bring unusual disruptions or breakthroughs.",
-        focus: "Thursday Brihaspati worship and sustained personal technical practice alongside mentoring. Jupiter–Mercury antardasha (~yr 14 of Jupiter, ~age 49) is worth preparing for: Mercury as rasi lord in Jupiter's generous context produces one of the most intellectually and technically fertile 11-month windows of Hasta's life.",
+        expect: "Jupiter dasa from 35 to 51 is when Hasta's technical mastery reaches professional peak and begins to be transmitted as wisdom. Leadership in the chosen field — senior surgeon, master craftsperson, principal engineer, head of a creative studio — becomes the natural terrain. Mentoring younger practitioners arrives naturally; Hasta discovers that teaching the hands' intelligence is as satisfying as exercising it. Family life is in full flower; children are in school; the home life Hasta builds is often one of unusual practical beauty — well-made things, well-maintained spaces.",
+        navigate: "Jupiter's expansion can produce over-commitment to mentoring and teaching at the expense of Hasta's own technical practice. The hands must keep working, not only directing. Cardiovascular and liver health deserve attention from the late thirties. Jupiter–Rahu antardasa (~yr 12 of Jupiter, ~ages 47–49) can bring unusual disruptions or breakthroughs.",
+        focus: "Thursday Brihaspati worship and sustained personal technical practice alongside mentoring. Jupiter–Mercury antardasa (~yr 14 of Jupiter, ~age 49) is worth preparing for: Mercury as rasi lord in Jupiter's generous context produces one of the most intellectually and technically fertile 11-month windows of Hasta's life.",
       },
     },
     {
       planet: "Saturn", period: "19 yrs", ageRange: "Age 51–70", theme: "The Long Patient Work",
       detail: {
-        expect: "Saturn dasha from 51 to 70 brings the long, patient, deepening work that is the hallmark of a mature Hasta. Career transitions from active production toward architectural influence — the senior practitioner who sets standards, trains successors, and builds institutions. Retirement from primary professional work may come in the late sixties, but Hasta's hands never fully stop: hobbies, crafts, garden, grandchildren's projects all become the new technical territory. Financial and property matters consolidate; the life simplifies without diminishing.",
-        navigate: "Saturn's primary health concerns for Hasta between 51 and 70 are musculoskeletal (particularly hands, wrists, and fingers), cardiovascular, and respiratory. Repetitive strain from decades of precise manual work may require specific physiotherapeutic attention. Saturn–Rahu antardasha (~yr 12 of Saturn, ~ages 63–65) is the most demanding sub-period.",
-        focus: "Saturday oil bath and Shani worship are essential. Specific attention to hand and wrist maintenance — gentle exercise, appropriate rest, and protective measures — is the most important physical self-care for Hasta in Saturn dasha.",
+        expect: "Saturn dasa from 51 to 70 brings the long, patient, deepening work that is the hallmark of a mature Hasta. Career transitions from active production toward architectural influence — the senior practitioner who sets standards, trains successors, and builds institutions. Retirement from primary professional work may come in the late sixties, but Hasta's hands never fully stop: hobbies, crafts, garden, grandchildren's projects all become the new technical territory. Financial and property matters consolidate; the life simplifies without diminishing.",
+        navigate: "Saturn's primary health concerns for Hasta between 51 and 70 are musculoskeletal (particularly hands, wrists, and fingers), cardiovascular, and respiratory. Repetitive strain from decades of precise manual work may require specific physiotherapeutic attention. Saturn–Rahu antardasa (~yr 12 of Saturn, ~ages 63–65) is the most demanding sub-period.",
+        focus: "Saturday oil bath and Shani worship are essential. Specific attention to hand and wrist maintenance — gentle exercise, appropriate rest, and protective measures — is the most important physical self-care for Hasta in Saturn dasa.",
       },
     },
     {
       planet: "Mercury", period: "17 yrs", ageRange: "Age 70–87", theme: "Rasi Lord — The Great Precision",
       detail: {
-        expect: "Mercury dasha from 70 to 87 is the rasi lord's arrival for Hasta. Mercury is the lord of your rasi, Kanya — this makes his dasha doubly charged for Hasta natives. The analytical intelligence, communicative precision, and systematic wisdom accumulated across seven decades now find their fullest and most refined expression. Writing — a memoir of technical mastery, a guide to craft, a systematic account of the healing art — becomes the primary mode of transmission. Wit, which has been present throughout the life, reaches a particular crystalline quality in Mercury dasha; Hasta in their seventies and eighties are often the most amusing and perceptive people in any room.",
-        navigate: "Mercury's health concerns at this age are primarily nervous system and respiratory. Mental agility maintained through active intellectual and communicative engagement outlasts physical capacity. Mercury dasha's primary shadow for Hasta is the temptation to scatter across too many final projects; choose one significant communicative or technical legacy work and complete it.",
+        expect: "Mercury dasa from 70 to 87 is the rasi lord's arrival for Hasta. Mercury is the lord of your rasi, Kanya — this makes his dasa doubly charged for Hasta natives. The analytical intelligence, communicative precision, and systematic wisdom accumulated across seven decades now find their fullest and most refined expression. Writing — a memoir of technical mastery, a guide to craft, a systematic account of the healing art — becomes the primary mode of transmission. Wit, which has been present throughout the life, reaches a particular crystalline quality in Mercury dasa; Hasta in their seventies and eighties are often the most amusing and perceptive people in any room.",
+        navigate: "Mercury's health concerns at this age are primarily nervous system and respiratory. Mental agility maintained through active intellectual and communicative engagement outlasts physical capacity. Mercury dasa's primary shadow for Hasta is the temptation to scatter across too many final projects; choose one significant communicative or technical legacy work and complete it.",
         focus: "Wednesday worship, green offerings, and sustained writing or teaching practice are Mercury's primary remedies. Vishnu Sahasranama and Gayatri Mantra are the most resonant recitations. The hands that have healed and created for seven decades now transmit their wisdom in words.",
       },
     },
     {
       planet: "Ketu", period: "7 yrs", ageRange: "Age 87–94", theme: "Still Hands, Full Heart",
       detail: {
-        expect: "Ketu dasha from 87 to 94 calls Hasta into a stillness the hands have never fully known. The making and the healing that have defined seven decades gradually yield to the receiving — of care, of presence, of the accumulated love that Hasta's hands have built over a lifetime. Spiritual depth surfaces with unusual clarity. The wit remains; the precision remains in perception if not in physical expression; the healing intelligence simply rests in its own completeness.",
+        expect: "Ketu dasa from 87 to 94 calls Hasta into a stillness the hands have never fully known. The making and the healing that have defined seven decades gradually yield to the receiving — of care, of presence, of the accumulated love that Hasta's hands have built over a lifetime. Spiritual depth surfaces with unusual clarity. The wit remains; the precision remains in perception if not in physical expression; the healing intelligence simply rests in its own completeness.",
         navigate: "Complete physical care from attentive caregivers is the primary requirement. Ketu's natural withdrawal is appropriate at this age; ensure spiritual companionship alongside physical care. The hands may no longer build, but the wisdom they accumulated for nine decades is entire.",
         focus: "Ketu shrine visits, pitru tharpanam, and black sesame offerings. Savitar's gift — the hand extended in healing and creation — has completed its arc. What remains is the warmth of everything it touched.",
       },
@@ -124,7 +124,7 @@ const HASTA_VISUAL: NatchathiramVisualData = {
     {
       planet: "Venus", period: "20 yrs", ageRange: "Age 94–114", theme: "Beauty Without End",
       detail: {
-        expect: "Venus dasha from 94 to 114 is reached by virtually none. For the rare Hasta soul who arrives here, Venus brings the final flowering of beauty — the recognition that the precision and craft that defined nine decades was itself a form of love, and that love, in Venus's dasha, simply continues.",
+        expect: "Venus dasa from 94 to 114 is reached by virtually none. For the rare Hasta soul who arrives here, Venus brings the final flowering of beauty — the recognition that the precision and craft that defined nine decades was itself a form of love, and that love, in Venus's dasa, simply continues.",
         navigate: "Complete and tender physical care. The body's requirements are simple; the person's spiritual and relational needs are profound.",
         focus: "Friday Lakshmi worship, rose and jasmine offerings, and the presence of music and natural beauty. Savitar's child ends in Venus's garden of light.",
       },
@@ -148,7 +148,7 @@ const HASTA_VISUAL: NatchathiramVisualData = {
 
   guidance: "The hand that heals knows something the mind cannot fully articulate. Trust that knowing — the precision, the wit, the healing touch — and let it lead. The analytical mind of Kanya and the solar joy of Savitar are not separate capacities; they are one instrument. When they work together, Hasta creates things the world does not forget.",
 
-  compatibleEn: ["Uttara Phalguni", "Swati", "Shravana", "Anuradha", "Rohini"],
+  compatibleEn: ["Uthiram", "Swathi", "Thiruvonam", "Anusham", "Rohini"],
   compatibleNote: "These nakshatras complement Hasta's precision, healing intelligence, and adaptive wit with warmth, depth, and complementary service orientation.",
 
   ta: {

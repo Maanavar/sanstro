@@ -112,7 +112,7 @@ export function TopicSymbolPanel({ topic }: { topic: "method" | "thirukanitham" 
   const config = {
     method: { title: "Calculation Stack", sub: "ephemeris, ayanamsa, panchangam", marks: ["♈", "☉", "☽", "27"] },
     thirukanitham: { title: "Precise Sky", sub: "drik positions, not guesswork", marks: ["☉", "☽", "♃", "♄"] },
-    jadhagam: { title: "Chart Map", sub: "lagna, rasi, houses and dasha", marks: ["D1", "♋", "☽", "9"] },
+    jadhagam: { title: "Chart Map", sub: "lagna, rasi, houses and dasa", marks: ["D1", "♋", "☽", "9"] },
     "birth-time": { title: "Minutes Matter", sub: "lagna can shift with time", marks: ["00", "♋", "D1", "↻"] },
     porutham: { title: "Matching Lens", sub: "birth star, rasi and dosha checks", marks: ["10", "♎", "27", "⚬"] },
     chandrashtama: { title: "8th Moon", sub: "awareness window, not fear", marks: ["☽", "8", "♏", "!"] },

@@ -15,7 +15,7 @@ export default function MethodologyPage() {
     { label: "Thirukanitham",      desc: lang === "en" ? "True astronomical positions — the Tamil standard"      : "உண்மையான வானியல் நிலைகள் — தமிழ் தரநிலை" },
     { label: "Lahiri ayanamsa",    desc: lang === "en" ? "Government-recognised sidereal zodiac offset"           : "அரசாங்கம் அங்கீகரித்த நட்சத்திர ராசிக்கட்ட இடைவெளி" },
     { label: "Drik ephemeris",     desc: lang === "en" ? "High-precision planetary data"                         : "உயர் துல்லியமான கிரக தரவு" },
-    { label: "Vimshottari dasha",  desc: lang === "en" ? "120-year planetary period cycle"                       : "120 ஆண்டு கிரக காலசுழற்சி" },
+    { label: "Vimshottari dasa",  desc: lang === "en" ? "120-year planetary period cycle"                       : "120 ஆண்டு கிரக காலசுழற்சி" },
     { label: "Transit + panchangam", desc: lang === "en" ? "Daily transits and five-part almanac"                : "தினசரி கிரகநகர்வு மற்றும் ஐந்து கூறு பஞ்சாங்கம்" },
   ];
 
@@ -24,7 +24,7 @@ export default function MethodologyPage() {
     { href: "#lahiri",        label: lang === "en" ? "Lahiri ayanamsa"         : "லாகிரி அயனாம்சம்" },
     { href: "#node",          label: lang === "en" ? "Rahu and Ketu"           : "ராகு மற்றும் கேது" },
     { href: "#drik",          label: lang === "en" ? "Drik ephemeris"          : "திரிக் கோளக்கணிதம்" },
-    { href: "#dasha",         label: lang === "en" ? "Vimshottari Dasha"       : "விம்சோத்தரி தசை" },
+    { href: "#dasa",         label: lang === "en" ? "Vimshottari dasa"       : "விம்சோத்தரி தசை" },
     { href: "#gochar",        label: lang === "en" ? "Transits"                 : "கிரகநகர்வு" },
     { href: "#panchangam",    label: lang === "en" ? "Panchangam"              : "பஞ்சாங்கம்" },
     { href: "#daily-score",   label: lang === "en" ? "Multi-signal score"      : "பல சமிக்ஞை மதிப்பெண்" },
@@ -86,12 +86,12 @@ export default function MethodologyPage() {
 
                 <h2 id="lahiri">{lang === "en" ? "Lahiri ayanamsa (Chitra-paksha)" : "லாகிரி அயனாம்சம் (சித்திரப் பக்ষம்)"}</h2>
                 <p>{lang === "en"
-                  ? "Tamil Jyotish uses the sidereal zodiac — the fixed star positions — rather than the tropical zodiac used in Western astrology. The difference between sidereal and tropical positions is called the ayanamsa. Vinaadi uses the Lahiri ayanamsa (also known as Chitra-paksha), the government-recognized standard in India."
+                  ? "Tamil Jothidam uses the sidereal zodiac — the fixed star positions — rather than the tropical zodiac used in Western astrology. The difference between sidereal and tropical positions is called the ayanamsa. Vinaadi uses the Lahiri ayanamsa (also known as Chitra-paksha), the government-recognized standard in India."
                   : "தமிழ் ஜோதிடம் மேற்கத்திய வெப்பமண்டல ராசிக்கட்டத்தை அல்ல, நிலையான நட்சத்திர நிலைகளை அடிப்படையாகக் கொண்ட நட்சத்திர ராசிக்கட்டத்தையே பயன்படுத்துகிறது. இந்த இரண்டு முறைகளுக்கிடையிலான வேறுபாடே அயனாம்சம். இந்தியாவில் அரசாங்கம் அங்கீகரித்த லாகிரி அயனாம்சத்தையே (சித்திரப் பக்ஷம்) விநாடி பயன்படுத்துகிறது."}</p>
 
                 <h2 id="node">{lang === "en" ? "Rahu and Ketu (Mean node)" : "ராகு மற்றும் கேது (சரியான கணிப்பு)"}</h2>
                 <p>{lang === "en"
-                  ? "Vinaadi computes Rahu and Ketu (the lunar nodes) using the mean node calculation. The mean node represents the average position of the Moon's orbit, which is the classical approach in Jyotish. Some systems use the true node instead, which can differ by approximately 1.5 degrees. This difference occasionally causes variations in nakshatra or pada boundaries near the node positions. Vinaadi's mean node approach is consistent with the Thirukanitham and Lahiri standards."
+                  ? "Vinaadi computes Rahu and Ketu (the lunar nodes) using the mean node calculation. The mean node represents the average position of the Moon's orbit, which is the classical approach in Jothidam. Some systems use the true node instead, which can differ by approximately 1.5 degrees. This difference occasionally causes variations in nakshatra or pada boundaries near the node positions. Vinaadi's mean node approach is consistent with the Thirukanitham and Lahiri standards."
                   : "விநாடி ராகு மற்றும் கேது (சந்திர முனைப்புக்கள்) ஆகியவற்றைக் கணக்கிடுதற்கு சரிப்பட்ட கணிப்பு முறையைப் பயன்படுத்துகிறது. சரிப்பட்ட முனை சந்திரனின் சுற்றுப்பாதையின் சராசரி நிலையைக் குறிக்கும். இதுவே ஜோதிடத்தின் பாரம்பரிய முறை. சில முறைகள் உண்மையான முனையைப் பயன்படுத்துகின்றன, இது சுமார் 1.5 டிகிரி வேறுபடலாம். இந்த வேறுபாடு சில வேளைகளில் முனை நிலைகளுக்கு அருகிலுள்ள நட்சத்திர அல்லது பாத வரம்பிலு ஏற்றத்தாழ்வை உண்டாக்கலாம். விநாடியின் சரிப்பட்ட முனை முறை திருக்கணிதம் மற்றும் லாகிரி தரநிலைகளுடன் ஒத்துப்போகிறது."}</p>
 
                 <h2 id="drik">{lang === "en" ? "Drik ephemeris precision" : "திரிக் கோளக்கணித துல்லியம்"}</h2>
@@ -99,14 +99,14 @@ export default function MethodologyPage() {
                   ? "Planet positions are computed using the Drik (visual) ephemeris — the same astronomical data used in modern panchang publications. This provides the highest precision available for Tamil astrological calculation."
                   : "கிரக நிலைகள் திரிக் கோளக்கணிதத் தரவை வைத்து கணக்கிடப்படுகின்றன. நவீன பஞ்சாங்க வெளியீடுகளில் பயன்படுத்தப்படும் அதே வானியல் ஆதாரம் இதுவே. அதனால் தமிழ் ஜோதிடக் கணக்கில் உயர்ந்த துல்லியம் கிடைக்கிறது."}</p>
 
-                <h2 id="dasha">{lang === "en" ? "Vimshottari Dasha system" : "விம்சோத்தரி தசை முறை"}</h2>
+                <h2 id="dasa">{lang === "en" ? "Vimshottari Dasa system" : "விம்சோத்தரி தசை முறை"}</h2>
                 <p>{lang === "en"
-                  ? "Daily guidance integrates the Vimshottari Dasha system — a 120-year planetary period cycle tied to the birth star. Dasha periods define the dominant planetary influence over each phase of life, and the sub-period (bhukti) adds granularity to daily and weekly guidance."
+                  ? "Daily guidance integrates the Vimshottari Dasa system — a 120-year planetary period cycle tied to the birth star. Dasa periods define the dominant planetary influence over each phase of life, and the sub-period (bhukti) adds granularity to daily and weekly guidance."
                   : "தினசரி வழிகாட்டுதலில் விம்சோத்தரி தசை முறை இணைக்கப்பட்டுள்ளது. பிறப்பு நட்சத்திரத்தை அடிப்படையாகக் கொண்ட 120 ஆண்டு கிரகச் சுழற்சி இது. வாழ்க்கையின் ஒவ்வொரு கட்டத்திலும் எந்த கிரகத்தின் ஆதிக்கம் வேலை செய்கிறது என்பதை தசை காட்டும்; புக்தி அதனை இன்னும் நுணுக்கமாக விளக்குகிறது."}</p>
 
                 <h2 id="gochar">{lang === "en" ? "Transits" : "கிரகநகர்வு"}</h2>
                 <p>{lang === "en"
-                  ? "Transits are the planets' current movements relative to your birth chart. Vinaadi combines major transits — especially Saturn, Jupiter, Rahu, and Ketu — with dasha periods to judge the tone of each day. Key effects like Chandrashtama and Ashtama Shani are tracked clearly, without fear language."
+                  ? "Transits are the planets' current movements relative to your birth chart. Vinaadi combines major transits — especially Saturn, Jupiter, Rahu, and Ketu — with dasa periods to judge the tone of each day. Key effects like Chandrashtama and Ashtama Shani are tracked clearly, without fear language."
                   : "உங்கள் பிறப்பு ஜாதகத்துடன் ஒப்பிடும்போது கிரகங்கள் இப்போது எங்கு நகர்கின்றன என்பதையே கிரகநகர்வு என்று சொல்கிறோம். சனி, குரு, ராகு, கேது போன்ற முக்கிய நகர்வுகளை விநாடி தசையுடன் சேர்த்து பார்த்து நாளின் தரத்தை மதிப்பிடுகிறது. சந்திராஷ்டமம், அஷ்டம சனி போன்ற சுட்டிகளும் பயமுறுத்தாமல் தெளிவாகக் காட்டப்படுகின்றன."}</p>
 
                 <h2 id="panchangam">{lang === "en" ? "Panchangam" : "பஞ்சாங்கம்"}</h2>
@@ -116,7 +116,7 @@ export default function MethodologyPage() {
 
                 <h2 id="daily-score">{lang === "en" ? "Multi-signal daily score" : "பல சமிக்ஞை தினசரி மதிப்பெண்"}</h2>
                 <p>{lang === "en"
-                  ? "Vinaadi's daily score combines: current dasha and bhukti period quality, transit influences on your birth chart, panchangam quality for the day, the Moon's star position, and Ashtakavarga contributions where applicable."
+                  ? "Vinaadi's daily score combines: current dasa and bhukti period quality, transit influences on your birth chart, panchangam quality for the day, the Moon's star position, and Ashtakavarga contributions where applicable."
                   : "விநாடியின் தினசரி மதிப்பெண் பல சுட்டிகளை ஒன்றாகப் பார்க்கிறது: நடப்பு தசை, புக்தி தரம், ஜாதகத்தின் மீது படும் கிரகநகர்வு தாக்கம், நாளுக்கான பஞ்சாங்க நிலை, சந்திர நட்சத்திரம், தேவையான இடங்களில் அஷ்டகவர்க பங்களிப்பு."}</p>
 
                 <h2 id="porutham">{lang === "en" ? "Porutham (marriage compatibility)" : "பொருத்தம் (திருமண பொருத்தம்)"}</h2>
@@ -126,7 +126,7 @@ export default function MethodologyPage() {
 
                 <h2 id="jadhagam">{lang === "en" ? "Birth chart (Jadhagam)" : "பிறப்பு ஜாதகம்"}</h2>
                 <p>{lang === "en"
-                  ? "Jadhagam generation uses the South Indian square-chart format. The D1 (Rasi chart) and D9 (Navamsa chart) are computed using Lahiri ayanamsa and Drik ephemeris. Planet lordships, conjunctions, and aspects follow classical Parashari principles as applied in Tamil Jyotish."
+                  ? "Jadhagam generation uses the South Indian square-chart format. The D1 (Rasi chart) and D9 (Navamsa chart) are computed using Lahiri ayanamsa and Drik ephemeris. Planet lordships, conjunctions, and aspects follow classical Parashari principles as applied in Tamil Jothidam."
                   : "ஜாதகம் தென்னிந்திய சதுரக் கட்ட வடிவத்தில் உருவாக்கப்படுகிறது. D1 ராசி கட்டமும் D9 நவாம்ச கட்டமும் லாகிரி அயனாம்சம், திரிக் கோளக்கணிதம் ஆகியவற்றின் அடிப்படையில் கணக்கிடப்படுகின்றன. கிரக ஆட்சி, சேர்க்கை, பார்வை ஆகியவை தமிழ் ஜோதிடத்தில் பயன்படும் பாராசரி முறையிலேயே பார்க்கப்படுகின்றன."}</p>
 
                 <h2 id="philosophy">{lang === "en" ? "Interpretation philosophy" : "விளக்கம் தத்துவம்"}</h2>
@@ -134,16 +134,16 @@ export default function MethodologyPage() {
                   ? "Vinaadi is designed to help users interpret astrology thoughtfully, not fearfully. Every verdict includes the reasoning behind it. We deliberately avoid language that amplifies anxiety, exaggerates threats, or presents astrological periods as fixed outcomes."
                   : "விநாடி பயமுறுத்தாமல், சிந்தித்துப் புரிந்து கொள்ள உதவுவதற்காக வடிவமைக்கப்பட்டுள்ளது. ஒவ்வொரு முடிவுக்கும் அதன் காரணம் காட்டப்படும். கவலையை தூண்டும், அச்சத்தை பெருக்கும், ஜோதிடக் காலத்தை இறுதி தீர்ப்பாகச் சொல்வதுபோன்ற மொழியை நாங்கள் திட்டமிட்டு தவிர்க்கிறோம்."}</p>
                 <p>{lang === "en"
-                  ? "A dasha period is a window, not a verdict. It describes the quality of energy available to you — which planetary influences are amplified, which life domains are active, where effort will find the most traction. What you do with that window is yours to determine. A challenging dasha navigated with awareness can produce more growth than an easy one spent passively. A favourable dasha that receives no directed effort can pass without producing what it was capable of."
+                  ? "A dasa period is a window, not a verdict. It describes the quality of energy available to you — which planetary influences are amplified, which life domains are active, where effort will find the most traction. What you do with that window is yours to determine. A challenging dasa navigated with awareness can produce more growth than an easy one spent passively. A favourable dasa that receives no directed effort can pass without producing what it was capable of."
                   : "ஒரு தசைக் காலம் தீர்ப்பல்ல — ஒரு ஜன்னல். உங்களுக்குக் கிடைக்கும் ஆற்றலின் தரத்தை அது விவரிக்கிறது: எந்த கிரக தாக்கங்கள் பெருக்கப்படுகின்றன, எந்த வாழ்க்கை துறைகள் செயலில் உள்ளன, முயற்சி எங்கே மிகவும் பலன் தரும். அந்த ஜன்னலை வைத்து நீங்கள் என்ன செய்கிறீர்கள் என்பதை நீங்களே தீர்மானிக்கிறீர்கள். விழிப்புணர்வுடன் கடந்த ஒரு சவாலான தசை, அலட்சியமாக கழிந்த ஒரு எளிதான தசையை விட அதிக வளர்ச்சியைத் தரலாம்."}</p>
                 <p>{lang === "en"
-                  ? "Tamil Jyotish has always understood that the inner world and the outer world mirror each other. What you hold in mind consistently — what you fear, what you pursue, what you attend to — shapes the field in which planetary energies act. Vinaadi reads the field. Your intention directs it. The two work together: good timing plus focused effort produces outcomes that neither would produce alone."
+                  ? "Tamil Jothidam has always understood that the inner world and the outer world mirror each other. What you hold in mind consistently — what you fear, what you pursue, what you attend to — shapes the field in which planetary energies act. Vinaadi reads the field. Your intention directs it. The two work together: good timing plus focused effort produces outcomes that neither would produce alone."
                   : "தமிழ் ஜோதிடம் எப்போதும் உள்ளுலகும் புறவுலகும் ஒன்றை ஒன்று பிரதிபலிக்கும் என்பதை அறிந்திருந்தது. நீங்கள் தொடர்ந்து மனதில் வைத்திருப்பது — என்ன பயப்படுகிறீர்கள், என்ன தேடுகிறீர்கள், எதில் கவனம் செலுத்துகிறீர்கள் — கிரக ஆற்றல்கள் செயல்படும் தளத்தை வடிவமைக்கிறது. விநாடி அந்த தளத்தை வாசிக்கிறது. உங்கள் நோக்கம் அதை வழிநடத்துகிறது. இரண்டும் சேர்ந்து செயல்படும்போதே — சரியான நேரமும் கவனமான முயற்சியும் — ஒவ்வொன்றும் தனியாக உருவாக்க முடியாத பலன்கள் கிடைக்கும்."}</p>
                 <div className="cl-callout">
-                  <p>{lang === "en" ? "Jyotish is a tradition to plan calmly with — not a fixed fate to fear." : "ஜோதிடம் அமைதியாக திட்டமிட ஒரு பாரம்பரியம் — பயப்படும் நிலையான விதி அல்ல."}</p>
+                  <p>{lang === "en" ? "Jothidam is a tradition to plan calmly with — not a fixed fate to fear." : "ஜோதிடம் அமைதியாக திட்டமிட ஒரு பாரம்பரியம் — பயப்படும் நிலையான விதி அல்ல."}</p>
                 </div>
                 <div className="cl-callout">
-                  <p>{lang === "en" ? "A dasha window amplifies what you direct into it. Vinaadi shows you the window. The direction is yours." : "தசை ஜன்னல் நீங்கள் அதில் செலுத்துவதை பெருக்குகிறது. ஜன்னலை விநாடி காட்டுகிறது. திசையை நீங்கள் தீர்மானிக்கிறீர்கள்."}</p>
+                  <p>{lang === "en" ? "A dasa window amplifies what you direct into it. Vinaadi shows you the window. The direction is yours." : "தசை ஜன்னல் நீங்கள் அதில் செலுத்துவதை பெருக்குகிறது. ஜன்னலை விநாடி காட்டுகிறது. திசையை நீங்கள் தீர்மானிக்கிறீர்கள்."}</p>
                 </div>
 
                 <div className="cl-trust-links">

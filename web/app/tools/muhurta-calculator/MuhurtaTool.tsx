@@ -349,7 +349,7 @@ export function MuhurtaTool() {
                 </p>
                 <p style={{ fontSize: "0.82rem", color: "var(--cl-ink-2)" }}>
                   {lang === "en"
-                    ? "The results above are based on Panchangam alone. A free Vinaadi account adds birth-chart personalisation, dasha support, hora windows, and Chandrashtama checks for a much stronger recommendation."
+                    ? "The results above are based on Panchangam alone. A free Vinaadi account adds birth-chart personalisation, dasa support, hora windows, and Chandrashtama checks for a much stronger recommendation."
                     : "மேலுள்ள முடிவுகள் பஞ்சாங்கத்தை மட்டும் அடிப்படையாகக் கொண்டவை. இலவச விநாடி கணக்கில் ஜாதகத்துக்கு ஏற்ப தசை ஆதரவு, ஹோரை நேரம், சந்திராஷ்டமம் சோதனை ஆகியவை சேர்ந்து இன்னும் வலுவான பரிந்துரையை தரும்."}
                 </p>
                 <Link

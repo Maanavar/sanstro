@@ -8,7 +8,7 @@ export type NatchathiramEnSections = {
   summary: string[];
 };
 
-// Maps Tamil jyotish terms → English equivalents for fact-card rendering
+// Maps Tamil Jothidam terms → English equivalents for fact-card rendering
 export const JYOTISH_TERM_EN: Record<string, string> = {
   // Planets
   "கேது": "Ketu",

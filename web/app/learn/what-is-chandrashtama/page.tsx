@@ -38,7 +38,7 @@ const FAQ_JSONLD = {
       name: "What is Chandrashtama?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Chandrashtama is the period when the transiting Moon passes through the 8th sign from your birth Moon sign (Janma Rasi). In Tamil jyotish, the 8th house is associated with obstacles and matters requiring extra care. The word comes from 'Chandra' (Moon) and 'Ashtama' (eighth).",
+        text: "Chandrashtama is the period when the transiting Moon passes through the 8th sign from your birth Moon sign (Janma Rasi). In Tamil Jothidam, the 8th house is associated with obstacles and matters requiring extra care. The word comes from 'Chandra' (Moon) and 'Ashtama' (eighth).",
       },
     },
     {

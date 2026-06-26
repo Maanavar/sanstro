@@ -56,7 +56,7 @@ const FAQ_JSONLD = {
       name: "How is this muhurtham calculator different from a personalised one?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "This free tool uses Panchangam alone — tithi, Moon star, yoga, and Rahu Kalam. A personalised muhurtham, available with a free Vinaadi account, also considers your birth chart, dasha support, hora windows, and Chandrashtama avoidance. The personalised version is significantly stronger.",
+        text: "This free tool uses Panchangam alone — tithi, Moon star, yoga, and Rahu Kalam. A personalised muhurtham, available with a free Vinaadi account, also considers your birth chart, dasa support, hora windows, and Chandrashtama avoidance. The personalised version is significantly stronger.",
       },
     },
     {

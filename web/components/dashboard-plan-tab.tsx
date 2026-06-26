@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 
@@ -305,7 +305,7 @@ export function DashboardPlanTab({
                   {" "}
                   {lang === "ta"
                     ? "இந்த காலங்கள் பல வாரங்கள் அல்லது மாதங்களில் தசை ஆதரவை அளவிடுகின்றன — 'இந்த காலத்தில் தசை இந்த இலக்கை ஆதரிக்கிறதா?' என்ற கேள்விக்கு பதில். ஒரு குறிப்பிட்ட தேதிக்கு What-If கருவியை பயன்படுத்தவும்; அது தசை + கிரகநகர்வு + பிறப்பு ஜாதகம் மூன்றையும் சேர்த்து பார்க்கும்."
-                    : "These windows measure long-term Dasha support over weeks or months — answering 'does this period's planetary period support this goal?' For a specific date, use What-If (it triple-checks natal promise + Dasha + transit for that exact day). The two scores naturally differ because they measure different things."}
+                    : "These windows measure long-term Dasa support over weeks or months — answering 'does this period's planetary period support this goal?' For a specific date, use What-If (it triple-checks natal promise + Dasa + transit for that exact day). The two scores naturally differ because they measure different things."}
                 </p>
               </div>
             )}
@@ -390,7 +390,7 @@ export function DashboardPlanTab({
                 {" "}
                 {lang === "ta"
                   ? "நீங்கள் தேர்ந்தெடுத்த குறிப்பிட்ட தேதிக்கு மூன்று-உறுதிப்படுத்தல் பகுப்பாய்வு — பிறப்பு ஜாதக வாக்குறுதி + தசை ஆதரவு + கிரகநகர்வு நிலை ஒரே நேரத்தில் சரிபார்க்கப்படும். இது 'Goals' தாவலில் உள்ள மதிப்பெண்ணிலிருந்து வேறுபடும் — அது பல மாத தசை ஆதரவை அளவிடுகிறது; இது ஒரு குறிப்பிட்ட நாளை அளவிடுகிறது."
-                  : "Triple-confirmation analysis for the exact date you chose — natal promise, Dasha support, and transit positions are all checked simultaneously. This will naturally differ from Goals window scores because Goals measures multi-month Dasha alignment, while What-If measures one specific day."}
+                  : "Triple-confirmation analysis for the exact date you chose — natal promise, Dasa support, and transit positions are all checked simultaneously. This will naturally differ from Goals window scores because Goals measures multi-month Dasa alignment, while What-If measures one specific day."}
               </p>
             </div>
 
@@ -513,7 +513,7 @@ export function DashboardPlanTab({
             <p style={{ margin: 0, fontSize: "0.8125rem", color: W.muted, lineHeight: 1.55 }}>
               {lang === "ta"
                 ? "இரண்டு படிகள் ஒன்றாக வேலை செய்கின்றன: படி 1 உங்கள் தசை + கிரகநகர்வைக் கொண்டு சிறந்த நாட்களைக் கண்டறிகிறது → ஒரு நாளைக் கிளிக் செய்தால், படி 2 அந்த நாளுக்குள் சரியான நேரத்தை (முஹூர்த்தம்) காட்டுகிறது."
-                : "The two steps work together: Step 1 finds the best days from your Dasha + transits → click a day, and Step 2 finds the exact auspicious hour within that day."}
+                : "The two steps work together: Step 1 finds the best days from your Dasa + transits → click a day, and Step 2 finds the exact auspicious hour within that day."}
             </p>
           </div>
 

@@ -56,7 +56,7 @@ export default async function SharePanchangamPage({ searchParams }: Props) {
             <div>
               <h2 className="cl-cta-strip__title">Get your free Jadhagam</h2>
               <p className="cl-cta-strip__body">
-                Create a free account for daily guidance that combines your chart, dasha, and panchangam together.
+                Create a free account for daily guidance that combines your chart, dasa, and panchangam together.
               </p>
             </div>
             <Link href="/dashboard" className="cl-btn cl-btn--solid">Get started free →</Link>

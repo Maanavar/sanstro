@@ -57,7 +57,7 @@ const FAQ_JSONLD = {
       name: "What is Rajju dosha and why is it a dealbreaker?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Rajju dosha occurs when both partners share the same Rajju category based on their birth stars. Traditional Tamil jyotish treats Rajju dosha as a critical dealbreaker regardless of the total porutham score. It is associated with longevity concerns for the spouse.",
+        text: "Rajju dosha occurs when both partners share the same Rajju category based on their birth stars. Traditional Tamil Jothidam treats Rajju dosha as a critical dealbreaker regardless of the total porutham score. It is associated with longevity concerns for the spouse.",
       },
     },
     {

@@ -192,7 +192,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
           </p>
           <p style={{ margin: "0 0 14px", fontSize: "0.82rem", color: W.muted, lineHeight: 1.65 }}>
             {en
-              ? "Full 8-level analysis: Porutham · 7th House · Navamsa (D9) · Dasha Timing · Sevvai Dosham · Emotional Compatibility · Synastry · Overall Score (0–100)"
+              ? "Full 8-level analysis: Porutham · 7th House · Navamsa (D9) · Dasa Timing · Sevvai Dosham · Emotional Compatibility · Synastry · Overall Score (0–100)"
               : "8 அடுக்கு பகுப்பாய்வு: பொருத்தம் · 7ஆம் இடம் · நவாம்சம் · தசை நேரம் · செவ்வாய் தோஷம் · உணர்வு இணக்கம் · சினாஸ்ட்ரி · ஒட்டுமொத்த மதிப்பெண்"}
           </p>
           {error && (
@@ -228,7 +228,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
     { key: "porutham", label: en ? "Porutham (Traditional)" : "பொருத்தம் (பாரம்பரியம்)", score: d.scoreBreakdown.porutham, max: 20 },
     { key: "seventh", label: en ? "7th House Strength" : "7ஆம் இடம் வலிமை", score: d.scoreBreakdown.seventhHouse, max: 20 },
     { key: "navamsa", label: en ? "Navamsa (D9)" : "நவாம்சம் (D9)", score: d.scoreBreakdown.navamsa, max: 20 },
-    { key: "dasha", label: en ? "Dasha Alignment" : "தசை இணக்கம்", score: d.scoreBreakdown.dashaHarmony, max: 15 },
+    { key: "dasha", label: en ? "Dasa Alignment" : "தசை இணக்கம்", score: d.scoreBreakdown.dashaHarmony, max: 15 },
     { key: "dosham", label: en ? "Dosham Analysis" : "தோஷம் பகுப்பாய்வு", score: d.scoreBreakdown.doshamAnalysis, max: 10 },
     { key: "emotional", label: en ? "Emotional Compatibility" : "உணர்வு இணக்கம்", score: d.scoreBreakdown.emotional, max: 10 },
     { key: "synastry", label: en ? "Synastry" : "சினாஸ்ட்ரி", score: d.scoreBreakdown.synastry, max: 5 },
@@ -411,7 +411,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
       </SectionCard>
 
       {/* ── Dasha Harmony ── */}
-      <SectionCard title={en ? "Level 6 — Dasha Alignment (Next Period)" : "நிலை 6 — தசை இணக்கம்"}>
+      <SectionCard title={en ? "Level 6 — Dasa Alignment (Next Period)" : "நிலை 6 — தசை இணக்கம்"}>
         <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap", marginBottom: "10px" }}>
           <Badge text={d.dashaHarmony.harmonyLabel} {...harmonyBadge(d.dashaHarmony.harmonyLabel)} />
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>

@@ -32,18 +32,18 @@ const MARRIED_MARRIAGE_LABEL = { ta: "உறவு & இணக்கம்", en:
 // Humanise the raw engine reason codes — users should never see tokens like
 // `7th_lord_dasha_active`.
 const REASON_LABELS: Record<string, { ta: string; en: string }> = {
-  "7th_lord_dasha_active": { ta: "தசை: உறவு/திருமணத்தை குறிக்கும் 7-ம் வீட்டு அதிபதி செயல்படுகிறார்", en: "Dasha: the 7th-house lord for marriage/partnership is active" },
-  venus_dasha_active: { ta: "தசை: உறவு/திருமண காரகனான சுக்கிரன் செயல்படுகிறார்", en: "Dasha: Venus, the marriage/relationship significator, is active" },
+  "7th_lord_dasha_active": { ta: "தசை: உறவு/திருமணத்தை குறிக்கும் 7-ம் வீட்டு அதிபதி செயல்படுகிறார்", en: "Dasa: the 7th-house lord for marriage/partnership is active" },
+  venus_dasha_active: { ta: "தசை: உறவு/திருமண காரகனான சுக்கிரன் செயல்படுகிறார்", en: "Dasa: Venus, the marriage/relationship significator, is active" },
   jupiter_supports_7th: { ta: "கிரகநகர்வு: குரு 7-ம் வீட்டை பார்க்கிறார் அல்லது அங்கே இருக்கிறார்", en: "Transit: Jupiter occupies or aspects the 7th house" },
   venus_transits_7th: { ta: "குறுகிய கிரகநகர்வு: சுக்கிரன் 7-ம் வீட்டில் இருக்கிறார்", en: "Short-term transit: Venus is in the 7th house" },
-  "10th_lord_dasha_active": { ta: "தசை: தொழிலை குறிக்கும் 10-ம் வீட்டு அதிபதி செயல்படுகிறார்", en: "Dasha: the 10th-house lord for career is active" },
-  sun_dasha_active: { ta: "தசை: பதவி/அதிகார காரகனான சூரியன் செயல்படுகிறார்", en: "Dasha: Sun, a status/career significator, is active" },
-  mercury_dasha_active: { ta: "தசை: வேலை/வாணிப திறனை குறிக்கும் புதன் செயல்படுகிறார்", en: "Dasha: Mercury, a work/business significator, is active" },
+  "10th_lord_dasha_active": { ta: "தசை: தொழிலை குறிக்கும் 10-ம் வீட்டு அதிபதி செயல்படுகிறார்", en: "Dasa: the 10th-house lord for career is active" },
+  sun_dasha_active: { ta: "தசை: பதவி/அதிகார காரகனான சூரியன் செயல்படுகிறார்", en: "Dasa: Sun, a status/career significator, is active" },
+  mercury_dasha_active: { ta: "தசை: வேலை/வாணிப திறனை குறிக்கும் புதன் செயல்படுகிறார்", en: "Dasa: Mercury, a work/business significator, is active" },
   jupiter_supports_10th: { ta: "கிரகநகர்வு: குரு 10-ம் வீட்டை பார்க்கிறார் அல்லது அங்கே இருக்கிறார்", en: "Transit: Jupiter occupies or aspects the 10th house" },
   sun_transits_10th: { ta: "குறுகிய கிரகநகர்வு: சூரியன் 10-ம் வீட்டில் இருக்கிறார்", en: "Short-term transit: Sun is in the 10th house" },
-  "2nd_lord_dasha_active": { ta: "தசை: வருமானம்/சேமிப்பை குறிக்கும் 2-ம் வீட்டு அதிபதி செயல்படுகிறார்", en: "Dasha: the 2nd-house lord for income/savings is active" },
-  "11th_lord_dasha_active": { ta: "தசை: லாபத்தை குறிக்கும் 11-ம் வீட்டு அதிபதி செயல்படுகிறார்", en: "Dasha: the 11th-house lord for gains is active" },
-  jupiter_dasha_active: { ta: "தசை: செல்வ காரகனான குரு செயல்படுகிறார்", en: "Dasha: Jupiter, a wealth significator, is active" },
+  "2nd_lord_dasha_active": { ta: "தசை: வருமானம்/சேமிப்பை குறிக்கும் 2-ம் வீட்டு அதிபதி செயல்படுகிறார்", en: "Dasa: the 2nd-house lord for income/savings is active" },
+  "11th_lord_dasha_active": { ta: "தசை: லாபத்தை குறிக்கும் 11-ம் வீட்டு அதிபதி செயல்படுகிறார்", en: "Dasa: the 11th-house lord for gains is active" },
+  jupiter_dasha_active: { ta: "தசை: செல்வ காரகனான குரு செயல்படுகிறார்", en: "Dasa: Jupiter, a wealth significator, is active" },
   jupiter_supports_2nd: { ta: "கிரகநகர்வு: குரு 2-ம் வீட்டை ஆதரிக்கிறார்", en: "Transit: Jupiter supports the 2nd house of income/savings" },
   jupiter_supports_11th: { ta: "கிரகநகர்வு: குரு 11-ம் வீட்டை ஆதரிக்கிறார்", en: "Transit: Jupiter supports the 11th house of gains" },
 };

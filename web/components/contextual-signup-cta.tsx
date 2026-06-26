@@ -27,7 +27,7 @@ const COPY: Record<CtaVariant, { en: Copy; ta: Copy }> = {
     en: {
       eyebrow: "Match doshams with your chart",
       title: "Check which doshams actually apply to your Thirukanitham birth chart.",
-      body: "Create a free Vinaadi account to save your birth details and read dosham results with Lagna, Moon, Venus, dasha, gochar, cancellations, and Tamil astrology context.",
+      body: "Create a free Vinaadi account to save your birth details and read dosham results with Lagna, Moon, Venus, dasa, gochar, cancellations, and Tamil astrology context.",
       primary: "Create account and check my chart",
       secondary: "Generate a jadhagam first",
       secondaryHref: "/tools/jadhagam-generator",
@@ -55,7 +55,7 @@ const COPY: Record<CtaVariant, { en: Copy; ta: Copy }> = {
     en: {
       eyebrow: "Match it with your chart",
       title: "Now see whether Sevvai dosham is active, reduced, or balanced in your own birth chart.",
-      body: "Create a free Vinaadi account to save your birth details, generate your chart, and get a plain-language explanation that considers Lagna, Moon, Venus, dasha, cancellations, remedies, and marriage matching context.",
+      body: "Create a free Vinaadi account to save your birth details, generate your chart, and get a plain-language explanation that considers Lagna, Moon, Venus, dasa, cancellations, remedies, and marriage matching context.",
       primary: "Create account and check my chart",
       secondary: "Try the chart tool first",
       secondaryHref: "/tools/jadhagam-generator",
@@ -82,15 +82,15 @@ const COPY: Record<CtaVariant, { en: Copy; ta: Copy }> = {
   yogam: {
     en: {
       eyebrow: "Find yogams in your chart",
-      title: "See which yogams are formed, strong, or waiting for the right dasha.",
-      body: "Vinaadi reads yogams through a Thirukanitham chart, including house ownership, dignity, aspects, dasha activation, and practical life areas such as wealth, career, learning, and marriage.",
+      title: "See which yogams are formed, strong, or waiting for the right dasa.",
+      body: "Vinaadi reads yogams through a Thirukanitham chart, including house ownership, dignity, aspects, dasa activation, and practical life areas such as wealth, career, learning, and marriage.",
       primary: "Create account and find your yogams",
       secondary: "Explore doshams",
       secondaryHref: "/dosham",
       steps: [
         "Build your Lagna-based Tamil jadhagam.",
         "Identify yogams with strength, activation, and limiting factors.",
-        "Track how yogams connect with dasha, gochar, and daily guidance.",
+        "Track how yogams connect with dasa, gochar, and daily guidance.",
       ],
     },
     ta: {
@@ -111,13 +111,13 @@ const COPY: Record<CtaVariant, { en: Copy; ta: Copy }> = {
     en: {
       eyebrow: "Choose pariharam by chart",
       title: "Use remedies that match the planet, house, and timing in your own jadhagam.",
-      body: "Pariharam is most useful when it is connected to the active graha, bhava, dasha, and family context. Save your chart to get guidance that stays within Tamil astrology tradition.",
+      body: "Pariharam is most useful when it is connected to the active graha, bhava, dasa, and family context. Save your chart to get guidance that stays within Tamil astrology tradition.",
       primary: "Create account for personal pariharam",
       secondary: "Generate a jadhagam first",
       secondaryHref: "/tools/jadhagam-generator",
       steps: [
         "Save your birth chart and current life context.",
-        "Connect remedies to graha, house, dasha, and dosham signals.",
+        "Connect remedies to graha, house, dasa, and dosham signals.",
         "Keep temple, slokam, and daily practice guidance in one place.",
       ],
     },
@@ -138,14 +138,14 @@ const COPY: Record<CtaVariant, { en: Copy; ta: Copy }> = {
   "marriage-pariharam": {
     en: {
       eyebrow: "Match marriage remedies with your chart",
-      title: "See whether delay comes from the 7th house, Venus, Jupiter, Sevvai, or the running dasha.",
+      title: "See whether delay comes from the 7th house, Venus, Jupiter, Sevvai, or the running dasa.",
       body: "Create a free account to read marriage-delay signals in your Thirukanitham chart and keep pariharam, porutham, temple guidance, and timing support together.",
       primary: "Create account and check marriage timing",
       secondary: "Check porutham",
       secondaryHref: "/tools/marriage-porutham-calculator",
       steps: [
         "Read 7th house, 7th lord, Venus, Jupiter, and relevant doshams.",
-        "Understand whether the running dasha supports marriage timing.",
+        "Understand whether the running dasa supports marriage timing.",
         "Save remedies and compare charts when a match is being considered.",
       ],
     },
@@ -166,14 +166,14 @@ const COPY: Record<CtaVariant, { en: Copy; ta: Copy }> = {
   temple: {
     en: {
       eyebrow: "Connect temples to your chart",
-      title: "Find which graha temples matter most for your current dasha and transit phase.",
-      body: "Temple guidance is clearer when it follows the chart. Vinaadi connects Navagraha temples, dosham relief, dasha periods, and Tamil panchangam timing from your saved birth details.",
+      title: "Find which graha temples matter most for your current dasa and transit phase.",
+      body: "Temple guidance is clearer when it follows the chart. Vinaadi connects Navagraha temples, dosham relief, dasa periods, and Tamil panchangam timing from your saved birth details.",
       primary: "Create account for temple guidance",
       secondary: "Explore pariharam",
       secondaryHref: "/pariharam",
       steps: [
         "Save your Thirukanitham chart and active graha periods.",
-        "Match temple guidance with dasha, gochar, and dosham signals.",
+        "Match temple guidance with dasa, gochar, and dosham signals.",
         "Use panchangam timing for practical visit and worship planning.",
       ],
     },
@@ -195,13 +195,13 @@ const COPY: Record<CtaVariant, { en: Copy; ta: Copy }> = {
     en: {
       eyebrow: "Read Sani through your chart",
       title: "Before planning Thirunallar worship, see how Saturn is acting in your own chart.",
-      body: "Vinaadi reads Sani through Moon rasi, Lagna, Saturn dasha, Sani peyarchi, Ashtama Sani, and Ezharai Sani context so temple guidance stays personal and grounded.",
+      body: "Vinaadi reads Sani through Moon rasi, Lagna, Saturn dasa, Sani peyarchi, Ashtama Sani, and Ezharai Sani context so temple guidance stays personal and grounded.",
       primary: "Create account and read my Sani phase",
       secondary: "Explore Sani guidance",
       secondaryHref: "/learn/what-is-chandrashtama",
       steps: [
         "Check Saturn from Lagna, Moon, and current transit.",
-        "Understand dasha, Sani peyarchi, and sensitive timing.",
+        "Understand dasa, Sani peyarchi, and sensitive timing.",
         "Keep temple, slokam, and panchangam guidance together.",
       ],
     },

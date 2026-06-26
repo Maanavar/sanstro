@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
@@ -184,12 +184,12 @@ const SECTION_META: Array<{ id: SectionId; title: BiCopy; hint: BiCopy }> = [
   {
     id: "basics",
     title: { ta: "ஜாதக அடிப்படை", en: "Chart Basics" },
-    hint: { ta: "லக்னம், சந்திரன், நடப்பு தசை", en: "Lagna, Moon, current Dasha" },
+    hint: { ta: "லக்னம், சந்திரன், நடப்பு தசை", en: "Lagna, Moon, current Dasa" },
   },
   {
     id: "activation",
     title: { ta: "நடப்பு தசை செயல்பாடு", en: "Current Period Activation" },
-    hint: { ta: "தசை / புக்தி / அந்தரம் + கிரகநகர்வு", en: "Dasha / Bhukti / Antaram + transit" },
+    hint: { ta: "தசை / புக்தி / அந்தரம் + கிரகநகர்வு", en: "Dasa / Bhukti / Antaram + transit" },
   },
   {
     id: "positions",
@@ -352,7 +352,7 @@ function relationshipColor(tone: string): string {
 }
 
 function periodLevelLabel(level: string, lang: Lang): string {
-  if (level === "MAHADASHA") return lang === "ta" ? "மகாதசை" : "Mahadasha";
+  if (level === "MAHADASHA") return lang === "ta" ? "மகாதசை" : "Mahadasa";
   if (level === "BHUKTI") return lang === "ta" ? "புக்தி" : "Bhukti";
   if (level === "ANTARAM") return lang === "ta" ? "அந்தரம்" : "Antaram";
   return level;
@@ -479,7 +479,7 @@ function natureNote(nature: string, lang: Lang): string {
     },
     NEUTRAL: {
       ta: "பலன் சூழ்நிலை, தசை, கிரகநகர்வு ஆகியவற்றைப் பொறுத்து மாறும்.",
-      en: "Results vary by context, dasha, and transit.",
+      en: "Results vary by context, dasa, and transit.",
     },
   };
   return tx(notes[nature] ?? notes.NEUTRAL, lang);
@@ -775,7 +775,7 @@ export function ChartExplanationPanel({
       ? `${displayPlanet(summary.currentMahadasha, lang)} / ${displayPlanet(summary.currentAntardasha, lang)}`
       : lang === "ta"
         ? "தசை தரவு இல்லை"
-        : "Dasha data unavailable";
+        : "Dasa data unavailable";
 
   const currentAntar = dasha?.current.pratyantardasha.lord ?? dashaAntar.find((item) => item.level === "antar")?.lord ?? null;
   const guruEvent = peyarchiUpcoming.find((event) => event.planet === "JUPITER") ?? null;
@@ -890,7 +890,7 @@ export function ChartExplanationPanel({
                       }
                     />
                     <DetailRow
-                      label={lang === "ta" ? "நடப்பு தசை" : "Current Dasha"}
+                      label={lang === "ta" ? "நடப்பு தசை" : "Current Dasa"}
                       value={coreIdentity
                         ? `${displayPlanet(coreIdentity.currentMahadasha, lang)} / ${displayPlanet(coreIdentity.currentAntardasha, lang)}`
                         : dashaLabel}
@@ -914,7 +914,7 @@ export function ChartExplanationPanel({
                       </p>
                       <div style={{ display: "grid", gap: "var(--space-2)" }}>
                         <DetailRow
-                          label={lang === "ta" ? "தசைச் சங்கிலி" : "Dasha chain"}
+                          label={lang === "ta" ? "தசைச் சங்கிலி" : "Dasa chain"}
                           value={tx(backendCurrentActivation.periodSummary, lang)}
                         />
                         <DetailRow
@@ -962,7 +962,7 @@ export function ChartExplanationPanel({
                     </>
                   ) : (
                     <div style={{ display: "grid", gap: "var(--space-2)" }}>
-                      <DetailRow label={lang === "ta" ? "நடப்பு தசை" : "Current Dasha"} value={dashaLabel} />
+                      <DetailRow label={lang === "ta" ? "நடப்பு தசை" : "Current Dasa"} value={dashaLabel} />
                       <DetailRow
                         label={lang === "ta" ? "நடப்பு அந்தரம்" : "Current Antaram"}
                         value={currentAntar ? displayPlanet(currentAntar, lang) : (lang === "ta" ? "தரவு இல்லை" : "Unavailable")}
@@ -970,7 +970,7 @@ export function ChartExplanationPanel({
                       <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
                         {lang === "ta"
                           ? "முழு தசை செயல்பாட்டு விளக்கம் backend தரவு கிடைக்கும் போது காட்டப்படும்."
-                          : "Full Dasha activation detail appears when backend explanation data is available."}
+                          : "Full Dasa activation detail appears when backend explanation data is available."}
                       </p>
                     </div>
                   )}

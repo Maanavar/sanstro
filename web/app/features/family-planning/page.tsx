@@ -12,7 +12,7 @@ export default function FamilyPlanningPage() {
   const d = FEAT_FAMILY;
 
   const VAULT_ITEMS = [
-    { title: mt(d.vault1, lang), body: lang === "en" ? "Each gets a full chart, dasha, transit, and panchangam reading." : "ஒவ்வொருவருக்கும் முழுமையான ஜாதகம், தசை, கிரகநகர்வு, பஞ்சாங்க வாசிப்பு." },
+    { title: mt(d.vault1, lang), body: lang === "en" ? "Each gets a full chart, dasa, transit, and panchangam reading." : "ஒவ்வொருவருக்கும் முழுமையான ஜாதகம், தசை, கிரகநகர்வு, பஞ்சாங்க வாசிப்பு." },
     { title: mt(d.vault2_title, lang), body: mt(d.vault2, lang) },
     { title: mt(d.vault3_title, lang), body: mt(d.vault3, lang) },
     { title: mt(d.vault4_title, lang), body: mt(d.vault4, lang) },

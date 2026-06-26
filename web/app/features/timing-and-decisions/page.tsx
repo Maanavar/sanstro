@@ -57,7 +57,7 @@ export default function TimingAndDecisionsPage() {
               </div>
               <p className="cl-hero-figure__note">
                 {lang === "en"
-                  ? "Based on Amrit Kalam, panchangam quality, dasha-lord strength, and the Moon's star."
+                  ? "Based on Amrit Kalam, panchangam quality, dasa-lord strength, and the Moon's star."
                   : "அமிர்த காலம், பஞ்சாங்க தரம், தசை நாதன் வலிமை, சந்திர நட்சத்திரம் அடிப்படையில்."}
               </p>
             </div>

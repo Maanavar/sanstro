@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 /* Page-level metadata must be exported from a separate server file
    when using "use client". We add it here via a metadata export comment —
@@ -55,7 +55,7 @@ function isStrongPassword(pw: string): boolean {
 
 const leftPanelFeatures = [
   { icon: "◎", text: "Thirukanitham accuracy — Lahiri ayanamsa, Drik ephemeris" },
-  { icon: "☽", text: "Daily Dasha, Gochar & Panchangam in plain language" },
+  { icon: "☽", text: "Daily Dasa, Gochar & Panchangam in plain language" },
   { icon: "⊕", text: "Family vault — group charts, shared fortune windows" },
   { icon: "✦", text: "Yogas & Dosham explained transparently, not just a verdict" },
 ];

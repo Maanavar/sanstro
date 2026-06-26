@@ -618,7 +618,7 @@ export default function ChartGeneratePage() {
             : `${moon?.nakshatraName ?? "-"}${moon?.pada ? ` (Pada ${moon.pada})` : ""}`,
         },
         {
-          label: "Current Dasha",
+          label: "Current Dasa",
           value: chartSummary ? `${chartSummary.currentMahadasha} / ${chartSummary.currentAntardasha}` : "-",
         },
       ]

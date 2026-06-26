@@ -133,7 +133,7 @@ export function MuhurtaPageContent() {
               </h2>
               <p className="cl-cta-strip__body">
                 {lang === "en"
-                  ? "Create a free account for chart-personalised muhurtham with dasha support, hora windows, and Chandrashtama checks."
+                  ? "Create a free account for chart-personalised muhurtham with dasa support, hora windows, and Chandrashtama checks."
                   : "தசை ஆதரவு, ஹோரை நேரங்கள், சந்திராஷ்டமம் உள்ளிட்ட ஜாதகத்துக்கு ஏற்ற முகூர்த்தம் பெற இலவச கணக்கை உருவாக்குங்கள்."}
               </p>
             </div>

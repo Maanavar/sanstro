@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PublicNav } from "@/components/public-nav";
@@ -64,7 +64,7 @@ export default function TermsPage() {
 
             <h2>Nature of guidance</h2>
             <p>
-              Vinaadi provides Jyotish-based interpretations rooted in Tamil
+              Vinaadi provides Jothida-based interpretations rooted in Tamil
               astrological tradition. Astrology is a belief system and cultural
               practice, not a predictive science. Vinaadi&apos;s readings are
               intended to support reflection and planning — not to replace

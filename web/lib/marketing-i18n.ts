@@ -98,7 +98,7 @@ export const FOOTER = {
   terms:        s("Terms of service",   "பயன்பாட்டு விதிகள்"),
 
   disclaimer: s(
-    "Vinaadi provides Jyotish-based guidance. Astrology is a traditional belief system, not a science. For medical, legal, or financial decisions, consult a qualified professional.",
+    "Vinaadi provides Jothida-based guidance. Astrology is a traditional belief system, not a science. For medical, legal, or financial decisions, consult a qualified professional.",
     "விநாடி ஜோதிட அடிப்படையிலான வழிகாட்டுதலை வழங்குகிறது. ஜோதிடம் ஒரு பாரம்பரிய நம்பிக்கை முறை — அறிவியல் அல்ல. மருத்துவ, சட்ட அல்லது நிதி முடிவுகளுக்கு தகுதிவாய்ந்த நிபுணரை அணுகவும்."
   ),
   copyright: s("© {year} Vinaadi", "© {year} விநாடி"),
@@ -191,7 +191,7 @@ export const HOME = {
   ),
   help1_title:    s("Understand today",              "இன்றைய நாளைப் புரிந்து கொள்ளுங்கள்"),
   help1_body:     s(
-    "One daily score combining your chart, dasha period, transits, and panchangam. Clear reasoning, no guesswork.",
+    "One daily score combining your chart, dasa period, transits, and panchangam. Clear reasoning, no guesswork.",
     "ஜாதகம், தசை, கிரகநகர்வு, பஞ்சாங்கம் ஆகியவை சேர்ந்த ஒரு தினசரி மதிப்பெண். ஏன் அந்த முடிவு வருகிறது என்பதும் தெளிவாகத் தெரியும்."
   ),
   help2_title:    s("Plan important actions",         "முக்கியமான செயல்களை திட்டமிடுங்கள்"),
@@ -206,12 +206,12 @@ export const HOME = {
   ),
   help4_title:    s("Understand chart patterns",      "ஜாதக அமைப்பைப் புரிந்து கொள்ளுங்கள்"),
   help4_body:     s(
-    "Your lagna, dasha lord, transiting planets, yogas, and doshas — explained in plain language, not jargon.",
+    "Your lagna, dasa lord, transiting planets, yogas, and doshas — explained in plain language, not jargon.",
     "லக்னம், தசைநாதன், கிரகநகர்வு, யோகம், தோஷம் ஆகியவை எளிய சொல்லில் விளக்கப்படும். அரிய தொழில்சொற்களில் சிக்கிக்கொள்ள வேண்டாம்."
   ),
   help5_title:    s("Check compatibility when needed", "தேவைப்படும்போது பொருத்தம் பாருங்கள்"),
   help5_body:     s(
-    "Use the public birth-star preview for a quick first look. Sign in for full chart-grade porutham with 36-point score, Nadi, Sevvai, D9, and dasha context.",
+    "Use the public birth-star preview for a quick first look. Sign in for full chart-grade porutham with 36-point score, Nadi, Sevvai, D9, and dasa context.",
     "விரைவான முதல் பார்வைக்கு பொதுப் பிறப்பு நட்சத்திரப் பொருத்தத்தைப் பயன்படுத்துங்கள். 36 மதிப்பெண், நாடி, செவ்வாய், நவாம்சம், தசை சூழல் உடன் முழு ஜாதகப் பொருத்தத்திற்கு உள்நுழையுங்கள்."
   ),
   help6_title:    s("Use tools when you need them",   "தேவைப்படும் போது கருவிகளைப் பயன்படுத்துங்கள்"),
@@ -227,10 +227,10 @@ export const HOME = {
     "ஒவ்வொரு நாளும் ஒரு அமைதியான வாசிப்பில் தொடங்கட்டும்"
   ),
   daily_body:     s(
-    "Vinaadi reads your chart, dasha, transits, and panchangam together — and gives you one balanced answer for the day. Not four separate reports. One reading.",
+    "Vinaadi reads your chart, dasa, transits, and panchangam together — and gives you one balanced answer for the day. Not four separate reports. One reading.",
     "விநாடி உங்கள் ஜாதகம், தசை, கிரகநகர்வு, பஞ்சாங்கம் ஆகியவற்றை ஒன்றாகப் படிக்கிறது — நாளுக்கு ஒரு சமச்சீர் பதிலைத் தருகிறது. நான்கு தனித்தனி அறிக்கைகள் அல்ல; ஒரே ஒரு வாசிப்பு."
   ),
-  daily_sig1: s("Dasha and bhukti period quality — how your current planetary cycle frames the day", "தசை மற்றும் புக்தி தரம் — இன்றைய நடப்பு கிரக சுழற்சி நாளை எவ்வாறு வடிவமைக்கிறது"),
+  daily_sig1: s("Dasa and bhukti period quality — how your current planetary cycle frames the day", "தசை மற்றும் புக்தி தரம் — இன்றைய நடப்பு கிரக சுழற்சி நாளை எவ்வாறு வடிவமைக்கிறது"),
   daily_sig2: s("Planet transits — how Saturn, Jupiter, Rahu, Ketu, and the rest are influencing your birth chart", "கிரகநகர்வு — சனி, குரு, ராகு, கேது போன்றவை உங்கள் பிறப்பு ஜாதகத்தில் இப்போது என்ன தாக்கம் தருகின்றன"),
   daily_sig3: s("Panchangam quality — Tithi, Vara, Nakshathiram, Yoga, Karana for the day", "பஞ்சாங்க தரம் — நாளுக்கான திதி, வாரம், நட்சத்திரம், யோகம், கரணம்"),
   daily_sig4: s("Best window and caution window — specific times, not vague ranges", "சிறந்த நேரம் மற்றும் எச்சரிக்கை நேரம் — குறிப்பிட்ட நேரங்கள், தெளிவற்ற வரம்புகள் அல்ல"),
@@ -253,7 +253,7 @@ export const HOME = {
   family_item1: s("Family vault with individual birth profiles for each member", "ஒவ்வொருவருக்கும் தனித் பிறப்பு விவரங்களுடன் குடும்ப சேகரிப்பு"),
   family_item2: s("Shared best-window view — plan important events for everyone", "பகிரப்பட்ட சிறந்த நேர காட்சி — எல்லோருக்கும் முக்கியமான நிகழ்வுகளை திட்டமிடுங்கள்"),
   family_item3: s("Porutham compatibility when making family decisions", "குடும்ப முடிவுகள் எடுக்கும்போது பொருத்தம் சரிபார்ப்பு"),
-  family_item4: s("Dasha comparisons across family members", "குடும்பத்தினர் முழுவதும் தசை ஒப்பீடுகள்"),
+  family_item4: s("Dasa comparisons across family members", "குடும்பத்தினர் முழுவதும் தசை ஒப்பீடுகள்"),
   family_link:  s("Family planning feature →", "குடும்ப திட்டமிடல் அம்சம் →"),
 
   family_panel_label: s("Your family today",          "இன்று உங்கள் குடும்பம்"),
@@ -270,7 +270,7 @@ export const HOME = {
     "விரைவான பொதுக் கருவிகளும், உள்நுழைந்த பிறகு ஆழமான ஜாதக வாசிப்புகளும் விநாடியில் உள்ளன. முதல் பார்வைக்கு public பக்கங்களைப் பயன்படுத்துங்கள்; சேமித்த ஜாதகத்தின் அடிப்படையிலான காரண விளக்கத்திற்கு dashboard-ஐ பயன்படுத்துங்கள்."
   ),
   tool1_name: s("Marriage Porutham",          "திருமண பொருத்தம்"),
-  tool1_desc: s("Quick public birth-star porutham preview. Sign in for the full Tamil marriage match with 36-point score, Nadi, Sevvai, D9, and dasha context.", "விரைவான நட்சத்திரப் பொருத்த முதல் பார்வை. 36 மதிப்பெண், நாடி, செவ்வாய், நவாம்சம், தசை சூழல் உடன் முழு தமிழ் திருமணப் பொருத்தத்திற்கு உள்நுழையுங்கள்."),
+  tool1_desc: s("Quick public birth-star porutham preview. Sign in for the full Tamil marriage match with 36-point score, Nadi, Sevvai, D9, and dasa context.", "விரைவான நட்சத்திரப் பொருத்த முதல் பார்வை. 36 மதிப்பெண், நாடி, செவ்வாய், நவாம்சம், தசை சூழல் உடன் முழு தமிழ் திருமணப் பொருத்தத்திற்கு உள்நுழையுங்கள்."),
   tool1_cta:  s("Porutham calculator →",      "பொருத்தம் பார் →"),
   tool2_name: s("Jadhagam Generator",         "ஜாதகம் உருவாக்கு"),
   tool2_desc: s("South Indian birth chart in Thirukanitham format — D1 Rasi chart and D9 Navamsa, with Lahiri ayanamsa precision.", "திருக்கணிதம் முறையில் தென்னிந்திய ஜாதகம் — D1 ராசி கட்டம் மற்றும் D9 நவாம்சம், லாகிரி அயனாம்சத்துடன்."),
@@ -288,13 +288,13 @@ export const HOME = {
   step1_num:   s("01", "01"),
   step1_title: s("Add your birth details", "உங்கள் பிறப்பு விவரங்களை சேர்க்கவும்"),
   step1_body:  s(
-    "Date, time, and place of birth. Vinaadi uses this to compute your precise Thirukanitham jadhagam — lagna, birth stars, rasi, and dasha periods.",
+    "Date, time, and place of birth. Vinaadi uses this to compute your precise Thirukanitham jadhagam — lagna, birth stars, rasi, and dasa periods.",
     "பிறந்த தேதி, நேரம், இடம். விநாடி இதை பயன்படுத்தி உங்கள் திருக்கணிதம் ஜாதகத்தை கணக்கிடுகிறது — லக்னம், நட்சத்திரங்கள், ராசி, தசை."
   ),
   step2_num:   s("02", "02"),
-  step2_title: s("Vinaadi reads chart, dasha, transits, and panchangam together", "விநாடி ஜாதகம், தசை, கிரகநகர்வு, பஞ்சாங்கம் ஆகியவற்றை ஒன்றாகப் படிக்கிறது"),
+  step2_title: s("Vinaadi reads chart, dasa, transits, and panchangam together", "விநாடி ஜாதகம், தசை, கிரகநகர்வு, பஞ்சாங்கம் ஆகியவற்றை ஒன்றாகப் படிக்கிறது"),
   step2_body:  s(
-    "Every day, the assistant combines your birth-chart reading with the current dasha period, transit positions, and the day's panchangam into one view.",
+    "Every day, the assistant combines your birth-chart reading with the current dasa period, transit positions, and the day's panchangam into one view.",
     "ஒவ்வொரு நாளும், உதவியாளர் உங்கள் பிறப்பு ஜாதகப் பார்வையை நடப்பு தசை, கிரகநகர்வு, அந்த நாளின் பஞ்சாங்கம் ஆகியவற்றுடன் சேர்த்து ஒரு வாசிப்பாகத் தருகிறது."
   ),
   step3_num:   s("03", "03"),
@@ -314,11 +314,11 @@ export const HOME = {
   meth1_title: s("Thirukanitham",        "திருக்கணிதம்"),
   meth1_body:  s("The Tamil astronomical calculation standard — precise planet positions, traditional South Indian methodology.", "தமிழ் வானியல் கணக்கீட்டு தரநிலை — துல்லியமான கிரக நிலைகள், பாரம்பரிய தென்னிந்திய முறை."),
   meth2_title: s("Lahiri ayanamsa",      "லாகிரி அயனாம்சம்"),
-  meth2_body:  s("India's government-recognized sidereal ayanamsa standard. The same used by traditional Tamil Jyotish practitioners.", "இந்திய அரசாங்கம் அங்கீகரித்த நட்சத்திர அயனாம்சம். பாரம்பரிய தமிழ் ஜோதிடர்களும் பயன்படுத்துவதே இது."),
+  meth2_body:  s("India's government-recognized sidereal ayanamsa standard. The same used by traditional Tamil Jothida practitioners.", "இந்திய அரசாங்கம் அங்கீகரித்த நட்சத்திர அயனாம்சம். பாரம்பரிய தமிழ் ஜோதிடர்களும் பயன்படுத்துவதே இது."),
   meth3_title: s("Drik ephemeris precision", "திரிக் கோளக்கணித துல்லியம்"),
   meth3_body:  s("High-accuracy astronomical data — the same source used in modern Tamil panchang publications.", "உயர் துல்லியமான வானியல் தரவு — நவீன தமிழ் பஞ்சாங்க வெளியீடுகளில் பயன்படுத்தப்படும் அதே மூலம்."),
   meth4_title: s("Multi-signal daily score",  "பல சமிக்ஞை தினசரி மதிப்பெண்"),
-  meth4_body:  s("Dasha + transit + panchangam + Moon star combined into one reading. Not a single-factor verdict.", "தசை + கிரகநகர்வு + பஞ்சாங்கம் + சந்திர நட்சத்திரம் ஒன்றாக சேர்ந்த வாசிப்பு. ஒரு காரணியை மட்டும் வைத்த முடிவு அல்ல."),
+  meth4_body:  s("Dasa + transit + panchangam + Moon star combined into one reading. Not a single-factor verdict.", "தசை + கிரகநகர்வு + பஞ்சாங்கம் + சந்திர நட்சத்திரம் ஒன்றாக சேர்ந்த வாசிப்பு. ஒரு காரணியை மட்டும் வைத்த முடிவு அல்ல."),
   meth5_title: s("Calm interpretation",       "அமைதியான விளக்கம்"),
   meth5_body:  s("No fear language. No doom predictions. Vinaadi frames astrology as a planning tool, not a fatalistic oracle.", "பயமுறுத்தும் வார்த்தைகள் இல்லை. அழிவு கணிப்புகள் இல்லை. விநாடி ஜோதிடத்தை திட்டமிடல் கருவியாக கட்டமைக்கிறது, விதி நிர்ணயிக்கும் ஆரக்கிள் அல்ல."),
   method_panel_title: s(
@@ -326,7 +326,7 @@ export const HOME = {
     "விநாடி பயனர்களுக்கு பயமின்றி, சிந்தனையுடன் ஜோதிடத்தை புரிந்துகொள்ள உதவ வடிவமைக்கப்பட்டுள்ளது."
   ),
   method_panel_body: s(
-    "Jyotish is a traditional belief system with deep roots in Tamil culture. We approach it with respect for that tradition while communicating clearly and calmly. Every verdict includes the reasoning. Your data is never sold or shared.",
+    "Jothidam is a traditional belief system with deep roots in Tamil culture. We approach it with respect for that tradition while communicating clearly and calmly. Every verdict includes the reasoning. Your data is never sold or shared.",
     "ஜோதிடம் தமிழ் கலாச்சாரத்தில் ஆழமான வேர்களைக் கொண்ட ஒரு பாரம்பரிய நம்பிக்கை முறை. நாங்கள் அந்த பாரம்பரியத்தை மதிக்கிறோம், தெளிவாகவும் அமைதியாகவும் தகவல் தருகிறோம். ஒவ்வொரு தீர்ப்பும் காரணத்தை உள்ளடக்கும். உங்கள் தரவு விற்கப்படுவதோ பகிரப்படுவதோ இல்லை."
   ),
   method_link: s("Full methodology →", "முழு கணக்கீட்டு முறை →"),
@@ -336,19 +336,19 @@ export const HOME = {
   hub_h2:      s("Explore the ways Vinaadi can guide you", "விநாடி எந்தெந்த வழியில் உதவுகிறது என்பதைப் பாருங்கள்"),
   hub1_eye:    s("Feature",  "அம்சம்"),
   hub1_title:  s("Daily Guidance", "தினசரி வழிகாட்டுதல்"),
-  hub1_body:   s("One daily reading combining chart, dasha, transits, and panchangam. Your best window, caution window, and day tone.", "ஜாதகம், தசை, கிரகநகர்வு, பஞ்சாங்கம் சேர்ந்த தினசரி வாசிப்பு. நல்ல நேரம், கவன நேரம், நாளின் நிலை அனைத்தும் ஒரே இடத்தில்."),
+  hub1_body:   s("One daily reading combining chart, dasa, transits, and panchangam. Your best window, caution window, and day tone.", "ஜாதகம், தசை, கிரகநகர்வு, பஞ்சாங்கம் சேர்ந்த தினசரி வாசிப்பு. நல்ல நேரம், கவன நேரம், நாளின் நிலை அனைத்தும் ஒரே இடத்தில்."),
   hub2_eye:    s("Feature",  "அம்சம்"),
   hub2_title:  s("Family Planning", "குடும்ப திட்டமிடல்"),
   hub2_body:   s("Add family members, compare readings, and find the timing windows that work for the whole household.", "குடும்பத்தினரை சேர்க்கவும், வாசிப்புகளை ஒப்பிடவும், முழு வீட்டிற்கும் பொருந்தும் நேர சாளரங்களை கண்டறியுங்கள்."),
   hub3_eye:    s("Feature",  "அம்சம்"),
   hub3_title:  s("Chart Guidance", "ஜாதகப் புரிதல்"),
-  hub3_body:   s("Understand your jadhagam — lagna, planets, yogas, doshas, and what they mean in the context of your current dasha.", "உங்கள் ஜாதகம் — லக்னம், கிரகங்கள், யோகங்கள், தோஷங்கள், நடப்பு தசை சூழலில் அவற்றின் அர்த்தம்."),
+  hub3_body:   s("Understand your jadhagam — lagna, planets, yogas, doshas, and what they mean in the context of your current dasa.", "உங்கள் ஜாதகம் — லக்னம், கிரகங்கள், யோகங்கள், தோஷங்கள், நடப்பு தசை சூழலில் அவற்றின் அர்த்தம்."),
   hub4_eye:    s("Feature",  "அம்சம்"),
   hub4_title:  s("Timing and Decisions", "நல்ல நேரம் & முடிவுகள்"),
   hub4_body:   s("Plan important actions — ceremonies, travel, business, health — with astrological timing grounded in Thirukanitham.", "முக்கியமான செயல்களை திட்டமிடுங்கள் — விழாக்கள், பயணம், வியாபாரம், உடல்நலம் — திருக்கணிதம் அடிப்படையிலான ஜோதிட நேரத்தில்."),
   hub5_eye:    s("Tool",     "கருவி"),
   hub5_title:  s("Porutham Calculator", "பொருத்தம் பார்"),
-  hub5_body:   s("Quick birth-star porutham for visitors; full signed-in matching adds 36-point scoring, Nadi judgement, Sevvai, D9, and dasha context.", "வருகையாளர்களுக்கு விரைவான நட்சத்திரப் பொருத்தம்; உள்நுழைந்த பிறகு 36 மதிப்பெண், நாடி தீர்வு, செவ்வாய், நவாம்சம், தசை சூழல் உடன் முழு பொருத்தம்."),
+  hub5_body:   s("Quick birth-star porutham for visitors; full signed-in matching adds 36-point scoring, Nadi judgement, Sevvai, D9, and dasa context.", "வருகையாளர்களுக்கு விரைவான நட்சத்திரப் பொருத்தம்; உள்நுழைந்த பிறகு 36 மதிப்பெண், நாடி தீர்வு, செவ்வாய், நவாம்சம், தசை சூழல் உடன் முழு பொருத்தம்."),
   hub6_eye:    s("Method",   "முறை"),
   hub6_title:  s("Our Methodology", "எங்கள் கணக்கீட்டு முறை"),
   hub6_body:   s("How Vinaadi calculates — Thirukanitham, Lahiri ayanamsa, Drik ephemeris, multi-signal daily score.", "விநாடி எவ்வாறு கணக்கிடுகிறது — திருக்கணிதம், லாகிரி அயனாம்சம், திரிக் கோளக்கணிதம், பல சமிக்ஞை தினசரி மதிப்பெண்."),
@@ -368,7 +368,7 @@ export const HOME = {
   commit1: s("No doom language or guaranteed bad predictions",   "அழிவு மொழி அல்லது உறுதியான மோசமான கணிப்புகள் இல்லை"),
   commit2: s("Every verdict shows the reasoning behind it",     "ஒவ்வொரு தீர்ப்பும் அதன் பின்னால் உள்ள காரணத்தை காட்டுகிறது"),
   commit3: s("Your data stays on our servers — never sold",     "உங்கள் தரவு எங்கள் சேவையகங்களில் இருக்கும் — ஒருபோதும் விற்கப்படாது"),
-  commit4: s("Jyotish is tradition, not science — we say so clearly", "ஜோதிடம் பாரம்பரியம், அறிவியல் அல்ல — நாங்கள் தெளிவாக சொல்கிறோம்"),
+  commit4: s("Jothidam is tradition, not science — we say so clearly", "ஜோதிடம் பாரம்பரியம், அறிவியல் அல்ல — நாங்கள் தெளிவாக சொல்கிறோம்"),
 
   // Section 11 — CTA
   cta_eyebrow: s("Early access",   "ஆரம்ப அணுகல்"),
@@ -386,15 +386,15 @@ export const FEAT_DAILY = {
   eyebrow:      s("Feature · Daily Guidance",  "அம்சம் · தினசரி வழிகாட்டுதல்"),
   h1:           s("One quiet reading. Every morning.", "ஒரு அமைதியான வாசிப்பு. ஒவ்வொரு காலையும்."),
   lead:         s(
-    "Vinaadi reads your Thirukanitham chart, your current dasha period, today's transit positions, and the panchangam — then gives you one balanced answer. Not four separate reports. One reading.",
+    "Vinaadi reads your Thirukanitham chart, your current dasa period, today's transit positions, and the panchangam — then gives you one balanced answer. Not four separate reports. One reading.",
     "விநாடி உங்கள் திருக்கணித ஜாதகம், நடப்பு தசை, இன்றைய கிரகநகர்வு, பஞ்சாங்கம் ஆகியவற்றை ஒன்றாகப் படித்து ஒரு சமச்சீர் பதிலைத் தருகிறது. நான்கு தனித்தனி அறிக்கைகள் அல்ல; ஒரே ஒரு வாசிப்பு.",
   ),
   cta_start:    s("Start reading →",           "வாசிக்க தொடங்கு →"),
   cta_method:   s("How it's calculated",        "எப்படி கணக்கிடப்படுகிறது"),
 
   signals_h2:   s("The four signals",           "நான்கு சமிக்ஞைகள்"),
-  sig1_title:   s("Vimshottari Dasha",          "விம்சோத்தரி தசை"),
-  sig1_body:    s("Your planetary period cycle — which planet runs the current dasha and bhukti, and whether that period is favourable, neutral, or challenging for your chart.", "உங்கள் கிரக சுழற்சி — எந்த கிரகம் நடப்பு தசை மற்றும் புக்தியை நடத்துகிறது, அந்த காலம் உங்கள் ஜாதகத்திற்கு சாதகமானதா, நடுநிலையானதா அல்லது சவாலானதா."),
+  sig1_title:   s("Vimshottari dasa",          "விம்சோத்தரி தசை"),
+  sig1_body:    s("Your planetary period cycle — which planet runs the current dasa and bhukti, and whether that period is favourable, neutral, or challenging for your chart.", "உங்கள் கிரக சுழற்சி — எந்த கிரகம் நடப்பு தசை மற்றும் புக்தியை நடத்துகிறது, அந்த காலம் உங்கள் ஜாதகத்திற்கு சாதகமானதா, நடுநிலையானதா அல்லது சவாலானதா."),
   sig2_title:   s("Planet transits",             "கிரகநகர்வு"),
   sig2_body:    s("Where the planets are today — and how Saturn, Jupiter, Rahu, Ketu, and Moon are interacting with your birth chart right now.", "இன்று கிரகங்கள் எங்கு உள்ளன, சனி, குரு, ராகு, கேது, சந்திரன் ஆகியவை உங்கள் பிறப்பு ஜாதகத்தை இப்போது எப்படி தொடுகின்றன என்பதைக் காட்டும்."),
   sig3_title:   s("Tamil Panchangam",            "தமிழ் பஞ்சாங்கம்"),
@@ -410,17 +410,17 @@ export const FEAT_DAILY = {
 
   current_h2:   s("Why it stays current", "ஏன் இது புதுப்பிக்கப்பட்டிருக்கும்"),
   current_body: s(
-    "Every day brings a new panchangam, new Moon position, and slight dasha progressions. The reading updates daily — it doesn't recycle a generic week-long or month-long forecast.",
+    "Every day brings a new panchangam, new Moon position, and slight dasa progressions. The reading updates daily — it doesn't recycle a generic week-long or month-long forecast.",
     "ஒவ்வொரு நாளும் புதிய பஞ்சாங்கம், புதிய சந்திர நிலை, சிறிய தசை முன்னேற்றங்களை கொண்டு வருகிறது. வாசிப்பு தினசரி புதுப்பிக்கப்படுகிறது — பொதுவான வார அல்லது மாத கணிப்பை மீண்டும் பயன்படுத்துவதில்லை."
   ),
 
   faq_h2: s("Questions about daily guidance", "தினசரி வழிகாட்டுதல் பற்றிய கேள்விகள்"),
   faq1_q: s("How is this different from a generic daily horoscope?", "இது ஒரு பொதுவான தினசரி ஜோதிட பலனிலிருந்து எவ்வாறு வேறுபடுகிறது?"),
-  faq1_a: s("Generic horoscopes use only your Sun sign or Moon sign. Vinaadi uses your full Thirukanitham birth chart — precise to your date, time, and place of birth — combined with your current dasha period and the day's actual planetary positions. The result is specific to you, not shared with millions of people born in the same month.", "பொதுவான ஜோதிட பலன்கள் உங்கள் சூரிய ராசி அல்லது சந்திர ராசியை மட்டுமே பார்க்கும். விநாடி உங்கள் முழு திருக்கணிதப் பிறப்பு ஜாதகத்தை — பிறந்த தேதி, நேரம், இடம் ஆகியவற்றுக்கு துல்லியமாக — நடப்பு தசை மற்றும் நாளின் உண்மையான கிரக நிலைகளுடன் சேர்த்து வாசிக்கிறது. அதனால் கிடைக்கும் முடிவு உங்களுக்கே உரியது; அதே மாதத்தில் பிறந்த எல்லோருக்கும் ஒரே மாதிரி சொல்லப்படுவது அல்ல."),
+  faq1_a: s("Generic horoscopes use only your Sun sign or Moon sign. Vinaadi uses your full Thirukanitham birth chart — precise to your date, time, and place of birth — combined with your current dasa period and the day's actual planetary positions. The result is specific to you, not shared with millions of people born in the same month.", "பொதுவான ஜோதிட பலன்கள் உங்கள் சூரிய ராசி அல்லது சந்திர ராசியை மட்டுமே பார்க்கும். விநாடி உங்கள் முழு திருக்கணிதப் பிறப்பு ஜாதகத்தை — பிறந்த தேதி, நேரம், இடம் ஆகியவற்றுக்கு துல்லியமாக — நடப்பு தசை மற்றும் நாளின் உண்மையான கிரக நிலைகளுடன் சேர்த்து வாசிக்கிறது. அதனால் கிடைக்கும் முடிவு உங்களுக்கே உரியது; அதே மாதத்தில் பிறந்த எல்லோருக்கும் ஒரே மாதிரி சொல்லப்படுவது அல்ல."),
   faq2_q: s("Does Vinaadi show me my score every day automatically?", "விநாடி ஒவ்வொரு நாளும் தானாகவே மதிப்பெண்ணை காட்டுகிறதா?"),
   faq2_a: s("Yes — the Today tab updates every day with a fresh reading. Your chart stays saved, so there's nothing to re-enter. Open the app in the morning and the reading is ready.", "ஆம் — இன்று தாவல் ஒவ்வொரு நாளும் புதிய வாசிப்புடன் புதுப்பிக்கப்படுகிறது. உங்கள் ஜாதகம் சேமிக்கப்பட்டிருக்கும், மீண்டும் உள்ளிட தேவையில்லை. காலையில் ஆப்பை திறந்தால் வாசிப்பு தயாராக இருக்கும்."),
   faq3_q: s("What does the daily score number mean?", "தினசரி மதிப்பெண் எண் என்ன அர்த்தம்?"),
-  faq3_a: s("It's a relative indicator — not a prediction of luck, but a composite of how your dasha, transits, and panchangam align today versus your baseline chart. Higher means more signals are aligned favourably. It's a planning aid, not a verdict.", "இது அதிர்ஷ்டக் கணிப்பு அல்ல; உங்கள் தசை, கிரகநகர்வு, பஞ்சாங்கம் ஆகியவை இன்று உங்கள் அடிப்படை ஜாதகத்துடன் எவ்வளவு ஒத்திசைகின்றன என்பதைக் காட்டும் ஒப்பீட்டு மதிப்பெண். மதிப்பெண் உயர்ந்தால் சாதகமான சைகைகள் அதிகம் சேர்ந்துள்ளன என்பதுதான் பொருள். இது திட்டமிட உதவும் குறியீடு; இறுதி தீர்ப்பு அல்ல."),
+  faq3_a: s("It's a relative indicator — not a prediction of luck, but a composite of how your dasa, transits, and panchangam align today versus your baseline chart. Higher means more signals are aligned favourably. It's a planning aid, not a verdict.", "இது அதிர்ஷ்டக் கணிப்பு அல்ல; உங்கள் தசை, கிரகநகர்வு, பஞ்சாங்கம் ஆகியவை இன்று உங்கள் அடிப்படை ஜாதகத்துடன் எவ்வளவு ஒத்திசைகின்றன என்பதைக் காட்டும் ஒப்பீட்டு மதிப்பெண். மதிப்பெண் உயர்ந்தால் சாதகமான சைகைகள் அதிகம் சேர்ந்துள்ளன என்பதுதான் பொருள். இது திட்டமிட உதவும் குறியீடு; இறுதி தீர்ப்பு அல்ல."),
   faq4_q: s("What is Chandrashtama and when does it show up?", "சந்திராஷ்டமம் என்றால் என்ன, எப்போது தெரியும்?"),
   faq4_a: s("Chandrashtama occurs when the transiting Moon moves into the 8th sign from your birth Moon sign. It lasts roughly 2.5 days and repeats monthly. Vinaadi tracks it and flags it clearly in the reading — without dramatising it.", "சந்திராஷ்டமம் நகரும் சந்திரன் உங்கள் பிறப்பு சந்திர ராசியிலிருந்து 8வது ராசிக்கு செல்லும்போது நிகழ்கிறது. இது தோராயமாக 2.5 நாட்கள் நீடிக்கும், மாதாந்திரம் திரும்பும். விநாடி இதை கண்காணித்து, வாசிப்பில் தெளிவாகக் குறிப்பிடுகிறது — நாடகமயமாக்காமல்."),
 
@@ -439,7 +439,7 @@ export const FEAT_FAMILY = {
 
   vault_h2:   s("The family vault",       "குடும்ப சேகரிப்பு"),
   vault_body: s(
-    "Create a vault and add as many family members as you need. Each member gets their own full Thirukanitham chart, daily reading, and dasha timeline.",
+    "Create a vault and add as many family members as you need. Each member gets their own full Thirukanitham chart, daily reading, and dasa timeline.",
     "ஒரு சேகரிப்பை உருவாக்கி, தேவையான அளவு குடும்பத்தினரை சேர்க்கலாம். ஒவ்வொருவருக்கும் தனிப்பட்ட முழுமையான திருக்கணித ஜாதகம், தினசரி வாசிப்பு, தசை காலவரிசை கிடைக்கும்."
   ),
   vault1:       s("Individual charts for each family member",           "ஒவ்வொரு குடும்ப உறுப்பினருக்கும் தனிப்பட்ட ஜாதகங்கள்"),
@@ -448,11 +448,11 @@ export const FEAT_FAMILY = {
   vault3_title: s("Porutham integration",                               "பொருத்தம் இணைப்பு"),
   vault3:       s("Shared best-window calculation for joint decisions", "கூட்டு முடிவுகளுக்கான பொதுவான நல்ல நேரக் கணிப்பு"),
   vault4_title: s("Individual deep-dives",                              "தனிப்பட்ட விரிவான பார்வை"),
-  vault4:       s("Dasha timeline comparison across members",           "உறுப்பினர்கள் முழுவதும் தசை காலவரிசை ஒப்பீடு"),
+  vault4:       s("Dasa timeline comparison across members",           "உறுப்பினர்கள் முழுவதும் தசை காலவரிசை ஒப்பீடு"),
 
   why_h2:   s("Why family planning matters in Tamil astrology", "தமிழ் ஜோதிடத்தில் குடும்ப திட்டமிடல் ஏன் முக்கியம்"),
   why_body: s(
-    "Tamil families have always used astrology together — for muhurtha selection, travel timing, ceremony dates, and understanding each member's dasha period. Vinaadi brings that collaborative use into a single assistant.",
+    "Tamil families have always used astrology together — for muhurtha selection, travel timing, ceremony dates, and understanding each member's dasa period. Vinaadi brings that collaborative use into a single assistant.",
     "தமிழ் குடும்பங்கள் எப்போதும் ஜோதிடத்தை சேர்ந்து பயன்படுத்தியிருக்கின்றன — முகூர்த்த தேர்வு, பயண நேரம், விழா தேதிகள், ஒவ்வொரு உறுப்பினரின் தசை காலத்தை புரிந்துகொள்வதற்கு. விநாடி அந்த கூட்டு பயன்பாட்டை ஒரே உதவியாளரில் கொண்டு வருகிறது."
   ),
 
@@ -473,7 +473,7 @@ export const FEAT_CHART = {
   eyebrow:  s("Feature · Chart Guidance", "அம்சம் · ஜாதக விளக்கம்"),
   h1:       s("Understand what your chart is actually saying.", "உங்கள் ஜாதகம் உண்மையில் என்ன சொல்கிறது என்று புரிந்துகொள்ளுங்கள்."),
   lead:     s(
-    "Vinaadi reads your Thirukanitham jadhagam — lagna, planet positions, dasha context, yogas, and doshas — and explains what they mean in plain language.",
+    "Vinaadi reads your Thirukanitham jadhagam — lagna, planet positions, dasa context, yogas, and doshas — and explains what they mean in plain language.",
     "விநாடி உங்கள் திருக்கணித ஜாதகத்தை வாசிக்கிறது — லக்னம், கிரக நிலைகள், தசை சூழல், யோகங்கள், தோஷங்கள் ஆகியவை உங்கள் வாழ்க்கையில் என்ன சொல்லுகின்றன என்பதை எளிய மொழியில் விளக்குகிறது."
   ),
   cta_start:  s("Open my chart →",          "என் ஜாதகத்தை திற →"),
@@ -491,19 +491,19 @@ export const FEAT_CHART = {
 
   assistant_h2:   s("The assistant model",    "உதவியாளர் மாதிரி"),
   assistant_body: s(
-    "Chart guidance in Vinaadi is not a static printout. The assistant interprets your chart in the context of where you are now — your current dasha period and today's transits — so the explanation is always grounded in the present moment.",
+    "Chart guidance in Vinaadi is not a static printout. The assistant interprets your chart in the context of where you are now — your current dasa period and today's transits — so the explanation is always grounded in the present moment.",
     "விநாடியில் ஜாதக விளக்கம் ஒரு நிலையான அச்சு அல்ல. நீங்கள் இப்போது நிற்கும் வாழ்க்கைச் சூழலில் — நடப்பு தசை, இன்றைய கிரகநகர்வு ஆகியவற்றை சேர்த்து — உதவியாளர் உங்கள் ஜாதகத்தை விளக்குகிறது. அதனால் வாசிப்பு எப்போதும் நிகழ்காலத்துடன் இணைந்ததாக இருக்கும்."
   ),
 
   faq_h2: s("Questions about chart guidance", "ஜாதக விளக்கம் பற்றிய கேள்விகள்"),
   faq1_q: s("Do I need to know astrology to read my chart?", "என் ஜாதகத்தை படிக்க ஜோதிடம் தெரிய வேண்டுமா?"),
-  faq1_a: s("No. Vinaadi explains each element in plain language — you don't need to know what lagna or dasha lord means before reading. The assistant provides context.", "இல்லை. விநாடி ஒவ்வொரு கூறையும் எளிய மொழியில் விளக்குகிறது — படிக்கும் முன் லக்னம் அல்லது தசை நாதன் என்று தெரிய வேண்டியதில்லை. உதவியாளர் சூழலை வழங்குகிறது."),
+  faq1_a: s("No. Vinaadi explains each element in plain language — you don't need to know what lagna or dasa lord means before reading. The assistant provides context.", "இல்லை. விநாடி ஒவ்வொரு கூறையும் எளிய மொழியில் விளக்குகிறது — படிக்கும் முன் லக்னம் அல்லது தசை நாதன் என்று தெரிய வேண்டியதில்லை. உதவியாளர் சூழலை வழங்குகிறது."),
   faq2_q: s("What ayanamsa does Vinaadi use?", "விநாடி எந்த அயனாம்சத்தை பயன்படுத்துகிறது?"),
-  faq2_a: s("Lahiri ayanamsa — the standard used by most traditional Tamil jyotish practitioners and recognised by the Government of India. This is the same as Chitrapaksha ayanamsa.", "லாகிரி அயனாம்சம் — பெரும்பாலான பாரம்பரிய தமிழ் ஜோதிடர்கள் பயன்படுத்தும் தரநிலை, இந்திய அரசாங்கத்தால் அங்கீகரிக்கப்பட்டது. இது சித்திரபக்ஷ அயனாம்சம் என்றும் அழைக்கப்படுகிறது."),
+  faq2_a: s("Lahiri ayanamsa — the standard used by most traditional Tamil Jothida practitioners and recognised by the Government of India. This is the same as Chitrapaksha ayanamsa.", "லாகிரி அயனாம்சம் — பெரும்பாலான பாரம்பரிய தமிழ் ஜோதிடர்கள் பயன்படுத்தும் தரநிலை, இந்திய அரசாங்கத்தால் அங்கீகரிக்கப்பட்டது. இது சித்திரபக்ஷ அயனாம்சம் என்றும் அழைக்கப்படுகிறது."),
   faq3_q: s("Can I see both D1 and D9 charts?", "D1 மற்றும் D9 ஜாதகங்கள் இரண்டையும் பார்க்கலாமா?"),
   faq3_a: s("Yes. Both the D1 Rasi chart and D9 Navamsa are generated with every birth profile. You can toggle between them in the chart view.", "ஆம். ஒவ்வொரு பிறப்பு விவரத்துடனும் D1 ராசி ஜாதகம் மற்றும் D9 நவாம்சம் இரண்டும் உருவாக்கப்படும். ஜாதகக் காட்சியில் அவற்றுக்கு இடையே மாறிப் பார்க்கலாம்."),
   faq4_q: s("What is a yoga in a birth chart?", "பிறப்பு ஜாதகத்தில் யோகம் என்றால் என்ன?"),
-  faq4_a: s("A yoga is a specific combination of planets or house lords that creates a meaningful pattern — favourable or unfavourable. Common yogas in Tamil jyotish include Raj yoga (power and authority), Dhana yoga (wealth), and Chandra-Mangal yoga (financial drive). Vinaadi identifies the key ones present in your chart.", "யோகம் என்பது கிரகங்கள் அல்லது பாவ நாதர்களின் குறிப்பிட்ட சேர்க்கை, இது ஒரு அர்த்தமுள்ள முறையை உருவாக்குகிறது — சாதகமானதோ இல்லையோ. தமிழ் ஜோதிடத்தில் பொதுவான யோகங்கள்: ராஜ யோகம் (அதிகாரம்), தன யோகம் (செல்வம்), சந்திர-மங்கல யோகம் (நிதி உந்துதல்). விநாடி உங்கள் ஜாதகத்தில் உள்ள முக்கியமானவற்றை கண்டறிகிறது."),
+  faq4_a: s("A yoga is a specific combination of planets or house lords that creates a meaningful pattern — favourable or unfavourable. Common yogas in Tamil Jothidam include Raj yoga (power and authority), Dhana yoga (wealth), and Chandra-Mangal yoga (financial drive). Vinaadi identifies the key ones present in your chart.", "யோகம் என்பது கிரகங்கள் அல்லது பாவ நாதர்களின் குறிப்பிட்ட சேர்க்கை, இது ஒரு அர்த்தமுள்ள முறையை உருவாக்குகிறது — சாதகமானதோ இல்லையோ. தமிழ் ஜோதிடத்தில் பொதுவான யோகங்கள்: ராஜ யோகம் (அதிகாரம்), தன யோகம் (செல்வம்), சந்திர-மங்கல யோகம் (நிதி உந்துதல்). விநாடி உங்கள் ஜாதகத்தில் உள்ள முக்கியமானவற்றை கண்டறிகிறது."),
 
   related_h2: s("Related", "தொடர்புடையவை"),
 };
@@ -512,7 +512,7 @@ export const FEAT_TIMING = {
   eyebrow:  s("Feature · Timing and Decisions", "அம்சம் · நேரம் & முடிவுகள்"),
   h1:       s("Act at the right time. Skip the wrong ones.", "சரியான நேரத்தில் செயல்படுங்கள். தவறான நேரங்களை தவிருங்கள்."),
   lead:     s(
-    "Vinaadi identifies the best and caution windows each day, combining your birth chart with dasha, transit positions, and panchangam — so you know when to move and when to wait.",
+    "Vinaadi identifies the best and caution windows each day, combining your birth chart with dasa, transit positions, and panchangam — so you know when to move and when to wait.",
     "விநாடி ஒவ்வொரு நாளும் சிறந்த மற்றும் எச்சரிக்கை நேரங்களை கண்டறிகிறது. உங்கள் பிறப்பு ஜாதகம், தசை, கிரகநகர்வு, பஞ்சாங்கம் ஆகியவற்றை சேர்த்து எப்போது நகரவேண்டும், எப்போது காத்திருக்கவேண்டும் என்பதைத் தெளிவாகச் சொல்கிறது."
   ),
   cta_start:  s("See today's windows →", "இன்றைய நேரங்களை பாருங்கள் →"),
@@ -520,7 +520,7 @@ export const FEAT_TIMING = {
 
   muhurtha_h2:   s("The muhurtha tradition",    "முகூர்த்த பாரம்பரியம்"),
   muhurtha_body: s(
-    "Muhurtha — the practice of selecting auspicious timing — is one of the oldest branches of Tamil jyotish. Vinaadi brings this into a daily assistant: not just special-occasion muhurtha, but practical daily windows for any kind of action.",
+    "Muhurtha — the practice of selecting auspicious timing — is one of the oldest branches of Tamil Jothidam. Vinaadi brings this into a daily assistant: not just special-occasion muhurtha, but practical daily windows for any kind of action.",
     "முகூர்த்தம் — நல்ல நேரம் தேர்வுசெய்யும் மரபு — தமிழ் ஜோதிடத்தின் பழமையான முக்கியப் பிரிவுகளில் ஒன்று. விநாடி இதை தினசரி உதவியாளராக கொண்டு வருகிறது: விழா, திருமணம் போன்ற சிறப்பு நாட்களுக்கு மட்டும் அல்ல, அன்றாட முக்கிய செயல்களுக்கும் பயன்படும் நேரச் சுட்டிகளாக."
   ),
 
@@ -528,7 +528,7 @@ export const FEAT_TIMING = {
   what1: s("Best window — the highest-signal time of day for starting new actions", "சிறந்த நேரம் — புதிய செயலை தொடங்க நாளில் அதிக ஆதரவு கிடைக்கும் பகுதி"),
   what2: s("Caution window — times where planetary combinations suggest waiting or proceeding carefully", "எச்சரிக்கை நேரம் — சற்று காத்திருக்கவோ, மிக கவனமாக முன்னேறவோ சொல்வதுபோல் இருக்கும் நேரங்கள்"),
   what3: s("Rahu Kalam and Yamagandam — traditional inauspicious periods from the Tamil panchangam", "ராகு காலம் மற்றும் யமகண்டம் — தமிழ் பஞ்சாங்கத்திலிருந்து பாரம்பரிய அசுப காலங்கள்"),
-  what4: s("Dasha-transit quality — how your current planetary period amplifies or softens the day's signals", "தசை-கிரகநகர்வு ஒத்திசைவு — உங்கள் நடப்பு தசை நாளின் சுட்டிகளை எவ்வாறு வலுப்படுத்துகிறது அல்லது மெலிதாக்குகிறது"),
+  what4: s("Dasa-transit quality — how your current planetary period amplifies or softens the day's signals", "தசை-கிரகநகர்வு ஒத்திசைவு — உங்கள் நடப்பு தசை நாளின் சுட்டிகளை எவ்வாறு வலுப்படுத்துகிறது அல்லது மெலிதாக்குகிறது"),
 
   decisions_h2:   s("What kinds of decisions benefit", "எந்த வகையான முடிவுகள் பயனடைகின்றன"),
   decisions_body: s(
@@ -546,7 +546,7 @@ export const FEAT_TIMING = {
   faq1_q: s("Is astrological timing a guarantee?", "ஜோதிட நேரம் ஒரு உத்தரவாதமா?"),
   faq1_a: s("No — and Vinaadi doesn't claim it is. Timing guidance improves the odds of a favourable outcome, but no astrological method guarantees results. We treat it as a planning input, not a fatalistic verdict.", "இல்லை — விநாடியும் அப்படிச் சொல்லாது. நல்ல முடிவுக்கான வாய்ப்பை உயர்த்த உதவலாம்; ஆனால் எந்த ஜோதிட முறையும் முடிவை உறுதியாகச் சொல்ல முடியாது. இதை நாங்கள் திட்டமிட உதவும் ஒரு சுட்டியாகவே பார்க்கிறோம்; இறுதி விதித் தீர்ப்பாக அல்ல."),
   faq2_q: s("How is a 'best window' calculated?", "'சிறந்த நேரம்' எவ்வாறு கணக்கிடப்படுகிறது?"),
-  faq2_a: s("It combines your natal chart's sensitive points with the day's planetary hora sequence, panchangam quality, and dasha-transit alignment. It's a multi-signal composite, not a single-rule lookup.", "உங்கள் பிறப்பு ஜாதகத்தின் முக்கிய அம்சங்களை, அன்றைய கிரக ஹோரா வரிசை, பஞ்சாங்கத் தரம், தசை-கிரகநகர்வு ஒத்திசைவு ஆகியவற்றுடன் சேர்த்து பார்க்கிறோம். இது ஒரு விதியை மட்டும் பார்த்த முடிவு அல்ல; பல சுட்டிகள் சேர்ந்து தரும் வாசிப்பு."),
+  faq2_a: s("It combines your natal chart's sensitive points with the day's planetary hora sequence, panchangam quality, and dasa-transit alignment. It's a multi-signal composite, not a single-rule lookup.", "உங்கள் பிறப்பு ஜாதகத்தின் முக்கிய அம்சங்களை, அன்றைய கிரக ஹோரா வரிசை, பஞ்சாங்கத் தரம், தசை-கிரகநகர்வு ஒத்திசைவு ஆகியவற்றுடன் சேர்த்து பார்க்கிறோம். இது ஒரு விதியை மட்டும் பார்த்த முடிவு அல்ல; பல சுட்டிகள் சேர்ந்து தரும் வாசிப்பு."),
   faq3_q: s("What is Rahu Kalam exactly?", "ராகு காலம் என்றால் சரியாக என்ன?"),
   faq3_a: s("Rahu Kalam is a daily inauspicious period in the Tamil panchangam — roughly 90 minutes, occurring at different times on each day of the week. Traditional practice avoids starting new actions during this window. Vinaadi marks it clearly in the daily view.", "ராகு காலம் தமிழ் பஞ்சாங்கத்தில் தினசரி அசுப காலம் — தோராயமாக 90 நிமிடங்கள், வாரத்தின் ஒவ்வொரு நாளும் வெவ்வேறு நேரங்களில் நிகழ்கிறது. பாரம்பரிய நடைமுறை இந்த சாளரத்தில் புதிய செயல்களை தொடங்குவதை தவிர்க்கிறது. விநாடி தினசரி காட்சியில் இதை தெளிவாக குறிக்கிறது."),
 
@@ -559,7 +559,7 @@ export const TOOL_PORUTHAM = {
   eyebrow:    s("Tool · Marriage Porutham Calculator", "கருவி · திருமண பொருத்தம் கணக்கிடல்"),
   h1:         s("Quick Tamil birth-star porutham preview.", "விரைவான தமிழ் நட்சத்திரப் பொருத்த முதல் பார்வை."),
   lead:       s(
-    "Choose two birth stars and get a quick porutham preview with Rajju, Vedha, Rasi, and Nadi cautions. For the full 36-point chart-grade match with Sevvai dosham, D9, dasha, and cancellation rules, sign in and use the dashboard.",
+    "Choose two birth stars and get a quick porutham preview with Rajju, Vedha, Rasi, and Nadi cautions. For the full 36-point chart-grade match with Sevvai dosham, D9, dasa, and cancellation rules, sign in and use the dashboard.",
     "இரண்டு பிறப்பு நட்சத்திரங்களைத் தேர்வு செய்து ரஜ்ஜு, வேதம், ராசி, நாடி கவனங்களுடன் விரைவான பொருத்த முதல் பார்வையைப் பெறுங்கள். செவ்வாய் தோஷம், நவாம்சம், தசை, தோஷ நிவர்த்தி விதிகள் உடன் முழு 36 மதிப்பெண் ஜாதகப் பொருத்தத்திற்கு உள்நுழைந்து dashboard-ஐ பயன்படுத்துங்கள்."
   ),
 
@@ -594,7 +594,7 @@ export const TOOL_JADHAGAM = {
   eyebrow:   s("Tool · Jadhagam Generator", "கருவி · ஜாதகம் உருவாக்கு"),
   h1:        s("South Indian Tamil birth chart, precisely calculated.", "தென்னிந்திய தமிழ் ஜாதகம், துல்லியமாக கணக்கிடப்பட்டது."),
   lead:      s(
-    "Enter a birth date, time, and place to generate a Thirukanitham-precise South Indian jadhagam — D1 Rasi chart, D9 Navamsa, planet positions, and Vimshottari dasha sequence.",
+    "Enter a birth date, time, and place to generate a Thirukanitham-precise South Indian jadhagam — D1 Rasi chart, D9 Navamsa, planet positions, and Vimshottari dasa sequence.",
     "திருக்கணிதம் துல்லியமான தென்னிந்திய ஜாதகம் உருவாக்க பிறந்த தேதி, நேரம், இடம் உள்ளிடவும் — D1 ராசி கட்டம், D9 நவாம்சம், கிரக நிலைகள், விம்சோத்தரி தசை வரிசை."
   ),
   cta_gen:    s("Generate now →",           "இப்போதே உருவாக்கு →"),
@@ -607,8 +607,8 @@ export const TOOL_JADHAGAM = {
   w2_body:    s("The Navamsa divisional chart, used to examine deeper patterns — especially marriage and dharma — beyond the D1 Rasi chart.", "D1 ராசி கட்டத்திற்கு அப்பால் ஆழமான முறைகளை — குறிப்பாக திருமணம் மற்றும் தர்மம் — ஆய்வு செய்ய பயன்படும் நவாம்ச பிரிவு கட்டம்."),
   w3_title:   s("Planet positions",           "கிரக நிலைகள்"),
   w3_body:    s("Longitude, rasi, birth star, pada, and retrograde status for all 9 planets — Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn, Rahu, and Ketu.", "சூரியன், சந்திரன், செவ்வாய், புதன், குரு, சுக்கிரன், சனி, ராகு, கேது ஆகிய 9 கிரகங்களுக்கும் தீர்க்கரேகை, ராசி, நட்சத்திரம், பாதம், வக்கிர நிலை ஆகியவை காட்டப்படும்."),
-  w4_title:   s("Vimshottari Dasha sequence", "விம்சோத்தரி தசை வரிசை"),
-  w4_body:    s("The full 120-year dasha sequence with start and end dates — maha dasha, antar dasha (bhukti), and pratyanta dasha levels.", "மஹா தசை, அந்தர் தசை (புக்தி), பிரத்யந்த தசை நிலைகளுடன் தொடக்க மற்றும் முடிவு தேதிகள் கொண்ட முழுமையான 120 ஆண்டு தசை வரிசை."),
+  w4_title:   s("Vimshottari dasa sequence", "விம்சோத்தரி தசை வரிசை"),
+  w4_body:    s("The full 120-year dasa sequence with start and end dates — maha dasa, antar dasa (bhukti), and pratyanta dasa levels.", "மஹா தசை, அந்தர் தசை (புக்தி), பிரத்யந்த தசை நிலைகளுடன் தொடக்க மற்றும் முடிவு தேதிகள் கொண்ட முழுமையான 120 ஆண்டு தசை வரிசை."),
 
   related_h2: s("Related", "தொடர்புடையவை"),
 };
@@ -661,7 +661,7 @@ export const LEARN_THIRUK = {
 
   meaning_h2:   s("The meaning of Thirukanitham",  "திருக்கணிதம் என்ன அர்த்தம்"),
   meaning_body: s(
-    "The word Thirukanitham comes from 'Thiru' (sacred) and 'Kanitham' (mathematics/calculation). It refers to the precise astronomical calculation method used in Tamil jyotish — as opposed to the older Vakya system, which relied on pre-computed planetary positions from memorised Sanskrit verses.",
+    "The word Thirukanitham comes from 'Thiru' (sacred) and 'Kanitham' (mathematics/calculation). It refers to the precise astronomical calculation method used in Tamil Jothidam — as opposed to the older Vakya system, which relied on pre-computed planetary positions from memorised Sanskrit verses.",
     "'திரு' (புனிதமான) மற்றும் 'கணிதம்' (கணிதம்/கணக்கீடு) என்ற வார்த்தைகளிலிருந்து திருக்கணிதம் என்ற வார்த்தை வருகிறது. இது தமிழ் ஜோதிடத்தில் பயன்படுத்தப்படும் துல்லியமான வானியல் கணக்கீட்டு முறையை குறிக்கிறது — மனப்பாட சமஸ்கிருத வசனங்களிலிருந்து முன்கூட்டியே கணக்கிடப்பட்ட கிரக நிலைகளை நம்பிய பழைய வாக்கிய முறைக்கு மாறாக."
   ),
 
@@ -685,7 +685,7 @@ export const LEARN_THIRUK = {
 
   how_h2:   s("How Vinaadi uses Thirukanitham", "விநாடி திருக்கணிதத்தை எவ்வாறு பயன்படுத்துகிறது"),
   how_body: s(
-    "Vinaadi computes all charts using the Drik ephemeris with Lahiri ayanamsa — giving you precise planet positions, correct birth-star placements, and an accurate dasha sequence based on your actual Moon birth star and pada at birth.",
+    "Vinaadi computes all charts using the Drik ephemeris with Lahiri ayanamsa — giving you precise planet positions, correct birth-star placements, and an accurate dasa sequence based on your actual Moon birth star and pada at birth.",
     "விநாடி லாகிரி அயனாம்சத்துடன் திரிக் கோளக்கணிதத்தை பயன்படுத்தி அனைத்து ஜாதகங்களையும் கணக்கிடுகிறது — துல்லியமான கிரக நிலைகள், சரியான நட்சத்திர நிலைகள், பிறப்பின் போது உங்கள் உண்மையான சந்திர நட்சத்திரம் மற்றும் பாதத்தை அடிப்படையாக கொண்ட துல்லியமான தசை வரிசை தருகிறது."
   ),
 
@@ -714,7 +714,7 @@ export const LEARN_PORUTHAM = {
 
   critical_h2: s("Rajju and Nadi — why they outweigh the count", "ரஜ்ஜு மற்றும் நாடி — ஏன் இவை எண்ணிக்கையை விட முக்கியம்"),
   critical_body: s(
-    "Traditional Tamil jyotish treats Rajju dosha and Nadi dosha as dealbreakers — regardless of how many other poruthams match. A high porutham count with Rajju dosha or Nadi dosha present is still considered problematic by traditional practitioners.",
+    "Traditional Tamil Jothidam treats Rajju dosha and Nadi dosha as dealbreakers — regardless of how many other poruthams match. A high porutham count with Rajju dosha or Nadi dosha present is still considered problematic by traditional practitioners.",
     "பாரம்பரிய தமிழ் ஜோதிடத்தில் ரஜ்ஜு தோஷமும் நாடி தோஷமும் மிகவும் முக்கியமாகக் கருதப்படுகின்றன. மற்ற பல பொருத்தங்கள் இருந்தாலும், இந்த இரண்டில் குறை இருந்தால் அதை எளிதாகத் தவிர்க்க முடியாது. அதனால் மொத்த எண்ணிக்கையைவிட இவை அதிக கவனம் பெறுகின்றன."
   ),
 
@@ -743,7 +743,7 @@ export const LEARN_CHANDRA = {
 
   what_h2:   s("What it means",        "இது என்ன அர்த்தம்"),
   what_body: s(
-    "In Tamil jyotish, the 8th house is associated with obstacles, hidden difficulties, and matters requiring extra care. When the transiting Moon — which moves through all 12 signs in roughly 27 days — enters the sign 8th from your natal Moon, the period is traditionally considered one for caution rather than new beginnings.",
+    "In Tamil Jothidam, the 8th house is associated with obstacles, hidden difficulties, and matters requiring extra care. When the transiting Moon — which moves through all 12 signs in roughly 27 days — enters the sign 8th from your natal Moon, the period is traditionally considered one for caution rather than new beginnings.",
     "தமிழ் ஜோதிடத்தில், 8வது பாவம் தடைகள், மறைக்கப்பட்ட சிரமங்கள், கூடுதல் கவனம் தேவைப்படும் விஷயங்களுடன் தொடர்புடையது. நகரும் சந்திரன் — தோராயமாக 27 நாட்களில் அனைத்து 12 ராசிகளையும் கடக்கும் — உங்கள் பிறப்பு சந்திரனிலிருந்து 8வது ராசியை நுழையும்போது, அந்த காலம் புதிய தொடக்கங்களுக்கு அல்ல, எச்சரிக்கைக்காக பாரம்பரியமாக கருதப்படுகிறது."
   ),
 
@@ -776,9 +776,9 @@ export const LEARN_JAD = {
     "நீங்கள் பிறந்த தருணத்தில் கிழக்கு திசையில் உதித்துக் கொண்டிருந்த ராசியே லக்னம். அதுவே முதல் பாவமாகக் கொள்ளப்படும்; அங்கிருந்துதான் மற்ற பாவங்கள் அனைத்தும் எண்ணப்படுகின்றன. விநாடி ஜாதகக் காட்சியில் லக்னம் தெளிவாகக் குறிக்கப்படும்."
   ),
 
-  dasha_h2:   s("The dasha sequence",  "தசை வரிசை"),
+  dasha_h2:   s("The dasa sequence",  "தசை வரிசை"),
   dasha_body: s(
-    "The dasha sequence starts from the Moon's birth star at birth. Each birth star has a planetary lord, and the sequence runs through 9 planets in a fixed order over 120 years. Where you start in the sequence, and how much of the first dasha remains at birth, depends on the Moon's exact position within that star.",
+    "The dasa sequence starts from the Moon's birth star at birth. Each birth star has a planetary lord, and the sequence runs through 9 planets in a fixed order over 120 years. Where you start in the sequence, and how much of the first dasa remains at birth, depends on the Moon's exact position within that star.",
     "தசை வரிசை, பிறந்தபோது சந்திரன் இருந்த நட்சத்திரத்திலிருந்தே தொடங்குகிறது. ஒவ்வொரு நட்சத்திரத்துக்கும் ஒரு கிரக அதிபதி உண்டு; அந்த வரிசை 120 ஆண்டுகளில் ஒன்பது கிரகங்கள் வழியாகச் செல்கிறது. பிறக்கும் போது அந்த நட்சத்திரத்தில் சந்திரன் எங்கே இருந்தது என்பதையே வைத்து, எந்த தசையில் ஆரம்பிக்கிறீர்கள், முதல் தசையில் எவ்வளவு காலம் எஞ்சியுள்ளது என்பதைக் கணக்கிடுகிறோம்."
   ),
 
@@ -799,9 +799,9 @@ export const LEARN_BIRTH = {
     "பூமி சுழல்வதால், கிழக்கில் உதிக்கும் ராசி சுமார் இரண்டு மணி நேரத்திற்கு ஒருமுறை மாறுகிறது. அதே நகரத்தில், அதே நாளில் பிறந்திருந்தாலும், காலை 6 மணிக்கும் 8 மணிக்கும் பிறந்தவர்களின் லக்னம் வேறுபடலாம். லக்னம் தான் ஒன்பது கிரகங்களும் எந்த பாவத்தில் அமைகின்றன என்பதை முடிவு செய்கிறது; அதனால் முழு ஜாதக விளக்கமும் மாறலாம்."
   ),
 
-  dasha_h2:   s("Dasha start depends on Moon's exact pada",  "தசை தொடக்கம் சந்திரனின் சரியான பாதத்தை பொறுத்தது"),
+  dasha_h2:   s("Dasa start depends on Moon's exact pada",  "தசை தொடக்கம் சந்திரனின் சரியான பாதத்தை பொறுத்தது"),
   dasha_body: s(
-    "The Vimshottari dasha sequence starts from the Moon's birth star at birth. Each birth star has 4 padas (quarter divisions). The exact pada — which requires an accurate birth time to determine — sets where in the dasha sequence you begin and how much of the first dasha period has already elapsed.",
+    "The Vimshottari dasa sequence starts from the Moon's birth star at birth. Each birth star has 4 padas (quarter divisions). The exact pada — which requires an accurate birth time to determine — sets where in the dasa sequence you begin and how much of the first dasa period has already elapsed.",
     "விம்சோத்தரி தசை வரிசை, பிறந்தபோது சந்திரன் இருந்த நட்சத்திரத்திலிருந்து தொடங்குகிறது. ஒவ்வொரு நட்சத்திரமும் நான்கு பாதங்களாகப் பிரியும். நீங்கள் எந்த பாதத்தில் பிறந்தீர்கள் என்பதைத் துல்லியமாக அறிய பிறப்பு நேரம் அவசியம்; அதைத்தான் வைத்து நீங்கள் எந்த தசையில் ஆரம்பிக்கிறீர்கள், முதல் தசையில் எவ்வளவு காலம் ஏற்கனவே சென்றுவிட்டது என்பதைக் கணக்கிடுகிறோம்."
   ),
 
@@ -830,7 +830,7 @@ export const TRUST_ABOUT = {
   eyebrow:  s("About Vinaadi",         "விநாடி பற்றி"),
   h1:       s("A calm Tamil astrology assistant.", "ஒரு அமைதியான தமிழ் ஜோதிட உதவியாளர்."),
   lead:     s(
-    "Vinaadi is built to bring the Tamil jyotish tradition into a modern, calm planning assistant — precise calculation, family-aware, and without fear language.",
+    "Vinaadi is built to bring the Tamil Jothidam tradition into a modern, calm planning assistant — precise calculation, family-aware, and without fear language.",
     "விநாடி தமிழ் ஜோதிட பாரம்பரியத்தை நவீன, அமைதியான திட்டமிடல் உதவியாளரில் கொண்டு வர கட்டப்பட்டுள்ளது — துல்லியமான கணக்கீடு, குடும்பத்தை கருத்தில் கொண்டது, பயமுறுத்தும் மொழியின்றி."
   ),
   related_h2: s("Related", "தொடர்புடையவை"),
@@ -843,7 +843,7 @@ export const NATCHATHIRAM_INDEX = {
   h1_ta:         s("27 Birth Stars", "27 நட்சத்திரங்கள்"),
   h1_sub:        s("The 27 Birth Stars · Complete Nakshathiram Profiles", "27 நட்சத்திரங்கள் — முழு வழிகாட்டுதல்"),
   lead:          s(
-    "Your birth star — the lunar mansion the Moon occupied at the moment of your birth — reveals your core temperament, career strengths, relationship patterns, and the dasha periods that shape each chapter of life. Find your full birth-star profile below.",
+    "Your birth star — the lunar mansion the Moon occupied at the moment of your birth — reveals your core temperament, career strengths, relationship patterns, and the dasa periods that shape each chapter of life. Find your full birth-star profile below.",
     "நீங்கள் பிறந்த நட்சத்திரம் உங்கள் குணம், தொழில், குடும்பம், தசை காலங்கள் மற்றும் ஆன்மீக பாதை பற்றி என்ன சொல்கிறது? ஒவ்வொரு நட்சத்திரத்தின் விரிவான வழிகாட்டுதல் இங்கே."
   ),
   figure_label:  s("Birth star map · 27 Nakshathirams", "27 நட்சத்திர வரைபடம்"),
@@ -860,7 +860,7 @@ export const NATCHATHIRAM_INDEX = {
     "இந்திய வேத ஜோதிடத்தில் சந்திரன் 27 நட்சத்திரங்களில் ஒவ்வொரு நாளும் ஒன்றைத் தொட்டு நகர்கிறது; 27 நாளில் முழு சுற்றை முடிக்கிறது. நீங்கள் பிறந்த கணத்தில் சந்திரன் இருந்த நட்சத்திரமே உங்கள் பிறப்பு நட்சத்திரம். அது உங்கள் உள்ளுணர்வு, குணநிலை, வாழ்க்கை ஓட்டம் ஆகியவற்றின் நிலையான அடையாளம்."
   ),
   what_p2:       s(
-    "Unlike the Sun sign, the birth star is a finer lens. It speaks more directly to emotional instincts, natural abilities, and the dasha rhythm active from birth.",
+    "Unlike the Sun sign, the birth star is a finer lens. It speaks more directly to emotional instincts, natural abilities, and the dasa rhythm active from birth.",
     "சூரிய ராசியை விட நட்சத்திரம் நுணுக்கமான பார்வை தரும். உங்கள் மனப் போக்கு, இயல்பான திறன், பிறந்தபோதே தொடங்கும் தசை ஓட்டம் ஆகியவற்றை இது தெளிவாகச் சொல்கிறது. இங்கே உள்ள பலன்கள் பொதுவானவை; தனிப்பட்ட ஜாதகம் இன்னும் துல்லியமான வாசிப்பை தரும்."
   ),
   what_cta:      s("Find Your Birth Star →", "உங்கள் நட்சத்திரத்தை அறியவும் →"),
@@ -869,7 +869,7 @@ export const NATCHATHIRAM_INDEX = {
 export const NATCHATHIRAM_DETAIL = {
   eyebrow_prefix:    s("27 Nakshathirams", "27 நட்சத்திரங்கள்"),
   lead:              s(
-    "General birth-star tendencies for personality, career strengths, family dynamics, dasha themes, and spiritual guidance. Your exact lagna, Moon degree, and dasha balance refine the reading.",
+    "General birth-star tendencies for personality, career strengths, family dynamics, dasa themes, and spiritual guidance. Your exact lagna, Moon degree, and dasa balance refine the reading.",
     "குணநிலை, தொழில் பலம், குடும்ப ஓட்டம், தசை கருக்கள், ஆன்மீக வழிகாட்டுதல் பற்றிய பொதுப் பிறப்பு நட்சத்திரப் பார்வை. உங்கள் துல்லியமான லக்னம், சந்திரன் degree, தசை இருப்பு வாசிப்பை மேலும் நுணுக்கமாக்கும்."
   ),
   fig_label_suffix:  s("Nakshathiram profile", "நட்சத்திர விவரம்"),
@@ -879,13 +879,13 @@ export const NATCHATHIRAM_DETAIL = {
   fact_deity:        s("Deity / Worship Form", "தெய்வம் / வழிபாட்டு வடிவு"),
   fact_gana:         s("Gana",          "கணம்"),
   fact_symbol:       s("Symbol",        "சின்னம்"),
-  fact_dasha:        s("Birth Dasha",   "பிறப்பு தசை"),
+  fact_dasha:        s("Birth dasa",   "பிறப்பு தசை"),
   // Section headings (English translations of the fixed Tamil headings in data)
   sec_personality:   s("Personality Traits",    "குண நலன்கள்"),
   sec_career:        s("Career & Abilities",     "தொழில் மற்றும் திறன்கள்"),
   sec_modern_pre:    s("In Today's World ·",     "இன்றைய காலத்தில் ·"),
   sec_family:        s("Family & Relationships", "குடும்பம் மற்றும் உறவுகள்"),
-  sec_dasha:         s("Dasha Periods",          "தசை பலன்கள்"),
+  sec_dasha:         s("Dasa Periods",          "தசை பலன்கள்"),
   sec_spiritual:     s("Spirituality & Worship", "ஆன்மீகம் மற்றும் வழிபாடு"),
   sec_summary:       s("Key Guidance",           "முக்கியமான வழிகாட்டுதல்"),
   // Notes
@@ -894,11 +894,11 @@ export const NATCHATHIRAM_DETAIL = {
     "100 ஆண்டுகளுக்கு முன் கணினி இல்லை. 20 ஆண்டுகளுக்கு முன் analytics இல்லை. 5 ஆண்டுகளுக்கு முன் AI agents இல்லை. இன்றைய தலைமுறைக்கு பாரம்பரிய குண நலன்கள் எப்படி வெளிப்படுகின்றன என்று பாருங்கள்."
   ),
   dasha_note_pre:    s(
-    "Note: Dasha timelines shift based on the exact pada and degree at birth.",
+    "Note: dasa timelines shift based on the exact pada and degree at birth.",
     "குறிப்பு: தசை காலங்கள் பாதம் மற்றும் டிகிரியை பொறுத்து மாறும்."
   ),
   dasha_note_link:   s("Generate your jathagam", "ஜாதகம் உருவாக்கவும்"),
-  dasha_note_post:   s("for precise personal dasha dates.", "தனிப்பட்ட தசை காலங்களை அறிய."),
+  dasha_note_post:   s("for precise personal dasa dates.", "தனிப்பட்ட தசை காலங்களை அறிய."),
   // Compatible nakshatras
   compat_h2:         s("Compatible Nakshathirams",             "சாதகமான நட்சத்திரங்கள்"),
   compat_desc_pre:   s("Nakshathirams that usually blend well with", "இந்த நட்சத்திரத்துடன் பொதுவாக நன்றாக ஒத்துச் செல்லும் நட்சத்திரங்கள்:"),
@@ -907,7 +907,7 @@ export const NATCHATHIRAM_DETAIL = {
   // CTA
   cta_h2:            s("Read Your Full Birth Chart",           "உங்கள் ஜாதகம் பாருங்கள்"),
   cta_body:          s(
-    "This profile covers general tendencies. Your lagna, planetary positions, and personal dasha timeline give the precise, complete picture.",
+    "This profile covers general tendencies. Your lagna, planetary positions, and personal dasa timeline give the precise, complete picture.",
     "இந்த நட்சத்திரத்தின் பொதுப் பலன்கள் இங்கே தரப்பட்டுள்ளன. உங்கள் லக்னம், கிரக நிலைகள் மற்றும் தனிப்பட்ட தசை காலங்களுக்கு உங்கள் ஜாதகத்தை உருவாக்கவும்."
   ),
   cta_btn_primary:   s("Generate Free Jathagam →", "இலவச ஜாதகம் உருவாக்கவும்"),
@@ -937,7 +937,7 @@ export const NATCHATHIRAM_VISUAL = {
   career_clusters:  s("Best Career Clusters",  "சிறந்த தொழில் துறைகள்"),
   modern_title:     s("In Today's World — Applications", "இன்றைய உலகில் — பயன்பாடுகள்"),
   dasha_lead:       s(
-    "These are general dasha themes for the birth star. Exact personal dates and strength depend on the Moon's degree, pada, and full horoscope.",
+    "These are general dasa themes for the birth star. Exact personal dates and strength depend on the Moon's degree, pada, and full horoscope.",
     "இவை பிறப்பு நட்சத்திரத்துக்கான பொதுத் தசை கருக்கள். துல்லியமான தனிப்பட்ட தேதிகளும் பலமும் சந்திரன் degree, பாதம், முழு ஜாதகம் ஆகியவற்றைப் பொறுத்தது."
   ),
   compat_lead:      s(
@@ -980,14 +980,14 @@ export const DOSHAM_INDEX = {
   eyebrow:  s("Jothidam Guide · Dosham", "ஜோதிட வழிகாட்டி · தோஷம்"),
   h1:       s("Doshams in your chart", "உங்கள் ஜாதகத்தில் தோஷங்கள்"),
   lead:     s(
-    "A dosham is a planetary placement that asks for awareness and care — not a fixed verdict on your life. Each guide explains what the dosham means, how it is calculated in Thirukanitham, what it can express depending on house, aspect and dasha, and the traditional pariharam.",
+    "A dosham is a planetary placement that asks for awareness and care — not a fixed verdict on your life. Each guide explains what the dosham means, how it is calculated in Thirukanitham, what it can express depending on house, aspect and dasa, and the traditional pariharam.",
     "தோஷம் என்பது கவனமும் பராமரிப்பும் கேட்கும் ஒரு கிரக நிலை — உங்கள் வாழ்க்கையின் மாறாத தீர்ப்பு அல்ல. ஒவ்வொரு வழிகாட்டியும் தோஷத்தின் பொருள், திருக்கணிதத்தில் அது எப்படிக் கணக்கிடப்படுகிறது, பாவம்–பார்வை–தசையைப் பொறுத்து எப்படி வெளிப்படலாம், பாரம்பரிய பரிகாரம் ஆகியவற்றை விளக்குகிறது."
   ),
   list_h2: s("Common Doshams", "முக்கிய தோஷங்கள்"),
   upcoming_note: s("Detailed guide coming soon", "விரிவான வழிகாட்டி விரைவில்"),
   what_h2:  s("A calm view of dosham", "தோஷம் — அமைதியான பார்வை"),
   what_p1:  s(
-    "In classical jyotish, no single placement decides a life. A dosham marks an area that benefits from awareness and care; how strongly it expresses depends on the house it falls in, the aspects it receives, the planet's strength, and the running dasha and transit.",
+    "In classical Jothidam, no single placement decides a life. A dosham marks an area that benefits from awareness and care; how strongly it expresses depends on the house it falls in, the aspects it receives, the planet's strength, and the running dasa and transit.",
     "பாரம்பரிய ஜோதிடத்தில் ஒரே ஒரு கிரக நிலை வாழ்க்கையை முடிவு செய்வதில்லை. தோஷம் கவனமும் பராமரிப்பும் பயன்தரும் ஒரு பகுதியைக் குறிக்கிறது; அது எவ்வளவு வலுவாக வெளிப்படுகிறது என்பது அது விழும் பாவம், வரும் பார்வைகள், கிரகத்தின் பலம், நடக்கும் தசை–கோச்சாரத்தைப் பொறுத்தது."
   ),
   what_p2:  s(
@@ -1001,14 +1001,14 @@ export const YOGAM_INDEX = {
   eyebrow:  s("Jothidam Guide · Yogam", "ஜோதிட வழிகாட்டி · யோகம்"),
   h1:       s("Yogams in your chart", "உங்கள் ஜாதகத்தில் யோகங்கள்"),
   lead:     s(
-    "A yogam is a fortunate planetary combination that lifts a chart — strengthening wealth, wisdom, status or relationships. Each guide explains the formula, what the yogam can bring, when it activates through dasha, and what makes it strong or weak.",
+    "A yogam is a fortunate planetary combination that lifts a chart — strengthening wealth, wisdom, status or relationships. Each guide explains the formula, what the yogam can bring, when it activates through dasa, and what makes it strong or weak.",
     "யோகம் என்பது ஜாதகத்தை உயர்த்தும் நல்ல கிரகச் சேர்க்கை — செல்வம், ஞானம், அந்தஸ்து அல்லது உறவுகளை வலுப்படுத்துவது. ஒவ்வொரு வழிகாட்டியும் அதன் சூத்திரம், யோகம் தரக்கூடியவை, தசை வழியாக எப்போது செயல்படுகிறது, எது அதை வலுவாக்குகிறது அல்லது பலவீனப்படுத்துகிறது என்பதை விளக்குகிறது."
   ),
   list_h2: s("Auspicious Yogams", "சுப யோகங்கள்"),
   upcoming_note: s("Detailed guide coming soon", "விரிவான வழிகாட்டி விரைவில்"),
   what_h2:  s("How a yogam strengthens a chart", "யோகம் ஜாதகத்தை எப்படி வலுப்படுத்துகிறது"),
   what_p1:  s(
-    "A yogam describes where a chart carries natural grace. Its benefit is not automatic — it depends on the strength of the planets involved, the houses they own, and whether its dasha or bhukti is active during the relevant years of life.",
+    "A yogam describes where a chart carries natural grace. Its benefit is not automatic — it depends on the strength of the planets involved, the houses they own, and whether its dasa or bhukti is active during the relevant years of life.",
     "யோகம் ஜாதகத்தில் இயல்பான அருள் எங்கே உள்ளது என்பதைச் சொல்கிறது. அதன் பலன் தானாக வராது — அதில் ஈடுபட்ட கிரகங்களின் பலம், அவை ஆளும் பாவங்கள், அந்த ஆண்டுகளில் அதன் தசை அல்லது புக்தி செயல்படுகிறதா என்பதைப் பொறுத்தது."
   ),
   what_p2:  s(
@@ -1057,7 +1057,7 @@ export const DOSHAM_SEVVAI = {
         s("Bold and fast-moving at work — which brings results but also overshoots.", "தொழிலில் தைரியமாகவும் வேகமாகவும் செயல்படுவது — பலனும் தரும், அதிகமாகவும் போகும்."),
         s("Friction with authority figures or colleagues — Mars does not subordinate easily.", "அதிகாரிகள் அல்லது சக ஊழியர்களுடன் உராய்வு — செவ்வாய் எளிதாக கீழ்படிவதில்லை."),
         s("Disputes over land, property, or inheritance — Mars rules immovable assets in Tamil astrology.", "நிலம், சொத்து அல்லது மரபுரிமை சம்பந்தமான சர்ச்சைகள் — தமிழ் ஜோதிடத்தில் செவ்வாய் நிலையான சொத்தை ஆளுகிறது."),
-        s("Impulsive financial decisions — especially during Mars dasha or when under pressure.", "உந்துதலில் எடுக்கப்படும் நிதி முடிவுகள் — குறிப்பாக செவ்வாய் தசையில் அல்லது அழுத்தத்தில் இருக்கும்போது."),
+        s("Impulsive financial decisions — especially during Mars dasa or when under pressure.", "உந்துதலில் எடுக்கப்படும் நிதி முடிவுகள் — குறிப்பாக செவ்வாய் தசையில் அல்லது அழுத்தத்தில் இருக்கும்போது."),
         s("Strong natural fit for medicine, engineering, defence, or law — fields that reward Mars energy.", "மருத்துவம், பொறியியல், தற்காப்பு, சட்டம் போன்றவற்றில் இயற்கையான திறன் — செவ்வாய் ஆற்றலை வெகுமதியாக தரும் துறைகள்."),
       ],
     },
@@ -1107,9 +1107,9 @@ export const DOSHAM_SEVVAI = {
       ),
     },
     {
-      h: s("5 — Look at the running dasha", "5 — நடக்கும் தசையை பாருங்கள்"),
+      h: s("5 — Look at the running dasa", "5 — நடக்கும் தசையை பாருங்கள்"),
       b: s(
-        "A dosham in the chart does not press equally at every stage of life. Its pull on marriage is felt most during Mars mahadasha (the 7-year Mars period) or a Mars antardasha within another dasha. If you are in Venus dasha and Mars afflicts Venus in your chart, marriage timing comes into focus then. Outside those periods the same placement may pass quietly. This is why Thirukanitham reading always checks dasha alongside placement.",
+        "A dosham in the chart does not press equally at every stage of life. Its pull on marriage is felt most during Mars mahaDasa (the 7-year Mars period) or a Mars antardasa within another dasa. If you are in Venus dasa and Mars afflicts Venus in your chart, marriage timing comes into focus then. Outside those periods the same placement may pass quietly. This is why Thirukanitham reading always checks dasa alongside placement.",
         "ஜாதகத்தில் தோஷம் இருந்தாலும் எல்லா காலத்திலும் சம அளவில் அழுத்தம் கொடுக்காது. திருமணத்தில் அதன் இழுப்பு மிகவும் உணரப்படுவது செவ்வாய் மஹாதசையில் (7 ஆண்டு செவ்வாய் கால) அல்லது வேறொரு தசையில் செவ்வாய் அந்தர்தசையிலேயே. சுக்கிர தசையில் இருக்கும்போது ஜாதகத்தில் செவ்வாய் சுக்கிரனை பாதிக்கிறது என்றால், திருமண காலம் அப்போது கவனத்துக்கு வரும். அந்தக் காலங்களுக்கு வெளியே, அதே அமைப்பு அமைதியாகவும் கடந்து போகலாம். திருகணித வாசிப்பு எப்போதும் அமைப்புடன் தசையையும் சேர்த்துப் பார்க்கும் காரணம் இதுவே."
       ),
     },
@@ -1153,7 +1153,7 @@ export const PARIHARAM_INDEX = {
     "பரிகாரம் என்பது விதியோடு பேரம் பேசுவதல்ல. அது மனதை அமைதிப்படுத்தி, பொறுமையை வளர்த்து, முயற்சியை சரியான நேரத்தோடு இணைக்கும் ஒழுக்கமான பக்திச் செயல். ஸ்லோகம் இதயத்தை ஒருமுகப்படுத்துகிறது; விரதம் ஒழுக்கத்தை வளர்க்கிறது; கோயில் வழிபாடு நம்பிக்கையைப் புதுப்பிக்கிறது."
   ),
   what_p2:  s(
-    "The most effective pariharam is matched to your own chart — the planet and house causing the difficulty, and the running dasha. Use these guides to understand the tradition, and a personal reading to know which remedy fits you.",
+    "The most effective pariharam is matched to your own chart — the planet and house causing the difficulty, and the running dasa. Use these guides to understand the tradition, and a personal reading to know which remedy fits you.",
     "மிகவும் பயனுள்ள பரிகாரம் உங்கள் சொந்த ஜாதகத்துக்கு ஏற்றது — சிக்கலை ஏற்படுத்தும் கிரகம், பாவம், நடக்கும் தசை ஆகியவற்றுக்கு ஏற்பவே. பாரம்பரியத்தைப் புரிந்துகொள்ள இந்த வழிகாட்டிகளையும், எந்தப் பரிகாரம் உங்களுக்குப் பொருந்தும் என்றறிய தனிப்பட்ட வாசிப்பையும் பயன்படுத்துங்கள்."
   ),
   cta:      s("Generate your jadhagam →", "உங்கள் ஜாதகம் உருவாக்குங்கள் →"),
@@ -1168,12 +1168,12 @@ export const PARIHARAM_MARRIAGE = {
   ),
   why_h2:   s("Why marriage gets delayed — the astrological reasons", "திருமணம் ஏன் தாமதமாகிறது — ஜோதிடக் காரணங்கள்"),
   why_body: s(
-    "The 7th house and its lord govern marriage; Venus signifies the spouse for men and Jupiter for women. Delay is commonly linked to an afflicted 7th lord, Saturn aspecting the 7th (slowing but stabilising), Sevvai dosham, Rahu-Ketu on the marriage axis, or a weak Venus/Jupiter. The running dasha also decides when marriage 'opens'.",
+    "The 7th house and its lord govern marriage; Venus signifies the spouse for men and Jupiter for women. Delay is commonly linked to an afflicted 7th lord, Saturn aspecting the 7th (slowing but stabilising), Sevvai dosham, Rahu-Ketu on the marriage axis, or a weak Venus/Jupiter. The running dasa also decides when marriage 'opens'.",
     "7-ஆம் பாவமும் அதன் அதிபதியும் திருமணத்தை ஆளுகின்றன; ஆண்களுக்கு சுக்கிரன், பெண்களுக்கு குரு துணையைக் குறிக்கின்றனர். தாமதம் பொதுவாக பாதிக்கப்பட்ட 7-ஆம் அதிபதி, 7-ஐப் பார்க்கும் சனி (தாமதப்படுத்தினாலும் நிலைப்படுத்துபவர்), செவ்வாய் தோஷம், திருமண அச்சில் ராகு-கேது, அல்லது பலவீனமான சுக்கிரன்/குரு ஆகியவற்றோடு தொடர்புடையது. திருமணம் எப்போது 'திறக்கும்' என்பதை நடக்கும் தசையும் தீர்மானிக்கிறது."
   ),
   remedy_h2:   s("The pariharam — step by step", "பரிகாரம் — படிப்படியாக"),
   remedy_intro: s(
-    "Practise the following with devotion, ideally beginning on a Friday during the bright fortnight (Shukla paksha):",
+    "Practise the following with devotion, ideally beginning on a Friday during the bright fortnight (Valarpirai):",
     "பின்வருவனவற்றை பக்தியோடு செய்யுங்கள் — சிறந்தது வளர்பிறை (சுக்ல பக்ஷம்) வெள்ளிக்கிழமை தொடங்குவது:"
   ),
   step1_t: s("Worship Goddess Katyayani / Swayamvara Parvati", "கத்யாயனி / சுயம்வர பார்வதியை வழிபடுங்கள்"),
@@ -1224,7 +1224,7 @@ export const TEMPLE_INDEX = {
   ),
   navagraha_h2: s("Navagraha temples", "நவகிரக கோயில்கள்"),
   navagraha_desc: s(
-    "Nine temples near Kumbakonam, each dedicated to one of the nine planets — visited for relief during difficult planetary periods (peyarchi) and dasha.",
+    "Nine temples near Kumbakonam, each dedicated to one of the nine planets — visited for relief during difficult planetary periods (peyarchi) and dasa.",
     "கும்பகோணம் அருகே ஒன்பது கோயில்கள், ஒவ்வொன்றும் ஒரு கிரகத்துக்கு உரியது — கடினமான கிரக காலங்களிலும் (பெயர்ச்சி) தசையிலும் நிவாரணத்துக்கு வழிபடப்படுகின்றன."
   ),
   other_h2:  s("Other powerful sthalams", "மற்ற சக்தி வாய்ந்த தலங்கள்"),
@@ -1234,7 +1234,7 @@ export const TEMPLE_INDEX = {
     "A temple consecrated to a planet or deity is, in tradition, a focused field of that energy. Worshipping there during a difficult period is a way to steady the mind, surrender the worry, and renew faith — the inner shift that pariharam is really about.",
     "ஒரு கிரகத்துக்கோ தெய்வத்துக்கோ அர்ப்பணிக்கப்பட்ட கோயில், பாரம்பரியத்தில், அந்த ஆற்றலின் ஒருமுகப்படுத்தப்பட்ட களம். கடினமான காலத்தில் அங்கே வழிபடுவது மனதை நிலைப்படுத்தி, கவலையை சமர்ப்பித்து, நம்பிக்கையைப் புதுப்பிக்கும் வழி — பரிகாரத்தின் உண்மையான உள்மாற்றம் இதுவே."
   ),
-  cta:      s("See which planet runs your dasha →", "உங்கள் தசையை ஆளும் கிரகத்தைப் பாருங்கள் →"),
+  cta:      s("See which planet runs your dasa →", "உங்கள் தசையை ஆளும் கிரகத்தைப் பாருங்கள் →"),
 };
 
 export const TEMPLE_THIRUNALLAR = {
@@ -1251,7 +1251,7 @@ export const TEMPLE_THIRUNALLAR = {
   ),
   power_h2:   s("What it is known for", "எதற்காக புகழ்பெற்றது"),
   power_body: s(
-    "It is the foremost temple for Saturn-related relief: the seven-and-a-half-year Sani (Ezharai Sani), Ashtama Sani, Sani dasha/bhukti, and Sani peyarchi (Saturn's transit, every ~2.5 years). During Sani peyarchi, lakhs of devotees take a holy dip in the Nala Theertham and worship Saniswaran for a smoother transit.",
+    "It is the foremost temple for Saturn-related relief: the seven-and-a-half-year Sani (Ezharai Sani), Ashtama Sani, Sani dasa/bhukti, and Sani peyarchi (Saturn's transit, every ~2.5 years). During Sani peyarchi, lakhs of devotees take a holy dip in the Nala Theertham and worship Saniswaran for a smoother transit.",
     "சனி தொடர்பான நிவாரணத்துக்கு முதன்மையான கோயில்: ஏழரை சனி, அஷ்டம சனி, சனி தசை/புக்தி, மற்றும் சனி பெயர்ச்சி (சுமார் 2.5 ஆண்டுகளுக்கு ஒருமுறை). சனி பெயர்ச்சியின்போது லட்சக்கணக்கான பக்தர்கள் நள தீர்த்தத்தில் புனித நீராடி, சுமூகமான பெயர்ச்சிக்காக சனீஸ்வரனை வழிபடுகிறார்கள்."
   ),
   when_h2:   s("When & how to worship", "எப்போது, எப்படி வழிபடுவது"),
@@ -1288,7 +1288,7 @@ export const DOSHAM_SEVVAI_FAQ = [
   {
     q: s("Does Sevvai dosham become weaker with age?", "செவ்வாய் தோஷம் வயதுக்கு ஏற்ப குறையுமா?"),
     a: s(
-      "Many traditional texts hold that Mars's fiery influence settles as a person matures, so the dosham is treated as milder for an older bride or groom. It is a softening, not an automatic removal — the strength of Mars in the chart and the running dasha still decide how much it matters.",
+      "Many traditional texts hold that Mars's fiery influence settles as a person matures, so the dosham is treated as milder for an older bride or groom. It is a softening, not an automatic removal — the strength of Mars in the chart and the running dasa still decide how much it matters.",
       "பல பாரம்பரிய நூல்கள், ஒருவர் முதிர்ச்சியடையும்போது செவ்வாயின் தீ தாக்கம் தணிவதாகச் சொல்கின்றன; எனவே வயது முதிர்ந்த மணமகன்/மணமகளுக்கு தோஷம் மிதமாகக் கருதப்படுகிறது. இது மென்மையாகுதலே தவிர தானாக நீங்குதல் அல்ல — ஜாதகத்தில் செவ்வாயின் பலமும் நடக்கும் தசையும் அதன் முக்கியத்துவத்தை இன்னும் தீர்மானிக்கின்றன."
     ),
   },
@@ -1324,7 +1324,7 @@ export const DOSHAM_NAGA = {
   ),
   calc_h2:   s("How Naga dosham is formed", "நாக தோஷம் எப்படி உருவாகிறது"),
   calc_body: s(
-    "Naga dosham is recognised when: Rahu or Ketu occupies the 5th house (putra sthana — children and ancestral merit); Rahu or Ketu conjoins or aspects the 5th lord; they afflict Jupiter, the karaka for children; or the Moon is closely conjunct Rahu (Grahan yoga — eclipse combination), disrupting the maternal line of ancestral flow. The severity depends on whether Jupiter provides a counter-aspect, the strength of the 5th lord, and the running dasha.",
+    "Naga dosham is recognised when: Rahu or Ketu occupies the 5th house (putra sthana — children and ancestral merit); Rahu or Ketu conjoins or aspects the 5th lord; they afflict Jupiter, the karaka for children; or the Moon is closely conjunct Rahu (Grahan yoga — eclipse combination), disrupting the maternal line of ancestral flow. The severity depends on whether Jupiter provides a counter-aspect, the strength of the 5th lord, and the running dasa.",
     "நாக தோஷம் இவ்விடங்களில் அங்கீகரிக்கப்படுகிறது: ராகு அல்லது கேது 5-ஆம் பாவத்தில் (புத்திர ஸ்தானம்) அமரும்போது; ராகு அல்லது கேது 5-ஆம் அதிபதியுடன் சேரும் அல்லது பார்க்கும்போது; சந்தான காரகனான குருவை பாதிக்கும்போது; அல்லது சந்திரன் ராகுவுடன் நெருக்கமாக சேரும்போது (கிரஹண யோகம்), தாய் வழி முன்னோர் ஓட்டத்தை பாதிக்கிறது. குரு எதிர்ப்பார்வை தருகிறதா, 5-ஆம் அதிபதியின் பலம், நடக்கும் தசை ஆகியவற்றைப் பொறுத்து தீவிரம் மாறும்."
   ),
   brings_h2: s("What Naga dosham can bring", "நாக தோஷம் என்ன கொண்டு வரலாம்"),
@@ -1356,7 +1356,7 @@ export const DOSHAM_NAGA = {
       heading: s("Mind & Health", "மனம் & ஆரோக்கியம்"),
       items: [
         s("Free-floating anxiety without clear cause — Rahu's nodal energy creates an unsettled, seeking quality in the mind.", "தெளிவான காரணமின்றி மிதக்கும் பதற்றம் — ராகுவின் நோடு சக்தி மனதில் அமைதியற்ற, தேடும் குணத்தை உருவாக்குகிறது."),
-        s("Sensitivity to eclipses — restlessness or vivid dreams around lunar and solar eclipses, especially during Rahu-Ketu dasha.", "கிரகணங்களுக்கு உணர்திறன் — சந்திர மற்றும் சூரிய கிரகணங்களில், குறிப்பாக ராகு-கேது தசையில் அமைதியின்மை அல்லது தெளிவான கனவுகள்."),
+        s("Sensitivity to eclipses — restlessness or vivid dreams around lunar and solar eclipses, especially during Rahu-Ketu dasa.", "கிரகணங்களுக்கு உணர்திறன் — சந்திர மற்றும் சூரிய கிரகணங்களில், குறிப்பாக ராகு-கேது தசையில் அமைதியின்மை அல்லது தெளிவான கனவுகள்."),
         s("Skin conditions that come and go during nodal transits — mild in most cases, receding with pariharam.", "நோடு கோச்சாரங்களில் தோல் நிலைகள் வந்து போவது — பெரும்பாலான சந்தர்ப்பங்களில் மிதமானது, பரிகாரத்துடன் குறைகிறது."),
         s("Once the ancestral connection is restored through worship, many report a settling of mind and energy that was unexpected.", "வழிபாட்டின் மூலம் முன்னோர் தொடர்பு மீண்டும் நிலைபெறுத்தப்பட்டவுடன், பலர் எதிர்பாராத மன மற்றும் சக்தி அமைதியை அனுபவிப்பதாக தெரிவிக்கின்றனர்."),
       ],
@@ -1397,16 +1397,16 @@ export const DOSHAM_NAGA = {
       ),
     },
     {
-      h: s("5 — Note the running dasha", "5 — நடக்கும் தசையை பாருங்கள்"),
+      h: s("5 — Note the running dasa", "5 — நடக்கும் தசையை பாருங்கள்"),
       b: s(
-        "Naga dosham is felt most during Rahu mahadasha (18 years) and Ketu mahadasha (7 years), and within other dashas during Rahu or Ketu antardasha. Jupiter mahadasha and antardasha generally bring relief — they open the 5th house's positive potential and ease the ancestral karmic weight. Outside Rahu-Ketu dasha periods, even a strongly-placed dosham can pass quietly.",
+        "Naga dosham is felt most during Rahu mahaDasa (18 years) and Ketu mahaDasa (7 years), and within other dasas during Rahu or Ketu antardasa. Jupiter mahaDasa and antardasa generally bring relief — they open the 5th house's positive potential and ease the ancestral karmic weight. Outside Rahu-Ketu dasa periods, even a strongly-placed dosham can pass quietly.",
         "நாக தோஷம் ராகு மஹாதசையில் (18 ஆண்டு) மற்றும் கேது மஹாதசையில் (7 ஆண்டு) மிகவும் உணரப்படுகிறது; மற்ற தசைகளில் ராகு அல்லது கேது அந்தர்தசையிலும். குரு மஹாதசை மற்றும் அந்தர்தசை பொதுவாக நிவாரணம் தருகின்றன — 5-ஆம் பாவத்தின் நேர்மறையான திறனை திறந்து முன்னோர் கர்ம சுமையை குறைக்கின்றன. ராகு-கேது தசை காலங்களுக்கு வெளியே, வலிமையான நிலையிலுள்ள தோஷமும் அமைதியாக கடந்து போகலாம்."
       ),
     },
   ],
   cancel_h2:  s("When the dosham is softened or cancelled", "தோஷம் மென்மையாகும் அல்லது ரத்தாகும் நிலைகள்"),
   cancel_body: s(
-    "Jupiter in the 5th house or a direct Jupiter aspect on the 5th is the most powerful natural cancellation. Rahu in a Mercury or Saturn sign (Mithuna, Kanya, Makaram, Kumbam) behaves more moderately. When the 5th lord is in its own or exalted sign, the protective force is increased even with Rahu present. A strong running dasha of Jupiter or the 5th lord counteracts the nodal pressure for that period. When the family sincerely resumes naga worship and tarpan, the dosham often noticeably lightens within a year — this is the tradition's most reliable teaching on Naga dosham.",
+    "Jupiter in the 5th house or a direct Jupiter aspect on the 5th is the most powerful natural cancellation. Rahu in a Mercury or Saturn sign (Mithuna, Kanya, Makaram, Kumbam) behaves more moderately. When the 5th lord is in its own or exalted sign, the protective force is increased even with Rahu present. A strong running dasa of Jupiter or the 5th lord counteracts the nodal pressure for that period. When the family sincerely resumes naga worship and tarpan, the dosham often noticeably lightens within a year — this is the tradition's most reliable teaching on Naga dosham.",
     "5-ஆம் பாவத்தில் குரு அல்லது 5-ஆம் பாவத்தில் நேரடி குரு பார்வை மிகவும் சக்தி வாய்ந்த இயற்கை ரத்து. ராகு புதன் அல்லது சனி ராசியில் (மிதுனம், கன்னி, மகரம், கும்பம்) இருந்தால் மிதமாக நடந்துகொள்கிறது. ராகு இருந்தாலும் 5-ஆம் அதிபதி சொந்த அல்லது உச்ச ராசியில் இருந்தால் பாதுகாப்பு சக்தி அதிகரிக்கிறது. குரு அல்லது 5-ஆம் அதிபதியின் வலிமையான நடக்கும் தசை அந்தக் காலத்தில் நோடு அழுத்தத்தை சமன் செய்கிறது. குடும்பம் மனமார்ந்து நாக வழிபாடு மற்றும் தர்ப்பணத்தை மீண்டும் தொடங்கும்போது, தோஷம் ஒரு ஆண்டில் கணிசமாகக் குறைகிறது — இது நாக தோஷம் குறித்த மரபின் மிகவும் நம்பகமான போதனை."
   ),
   pariharam_h2:   s("Pariharam — honouring the naga", "பரிகாரம் — நாகத்தை மரியாதைப்படுத்துதல்"),
@@ -1430,7 +1430,7 @@ export const DOSHAM_NAGA_FAQ = [
   {
     q: s("Does Naga dosham mean I will not have children?", "நாக தோஷம் என்றால் குழந்தை பிறக்காதா?"),
     a: s(
-      "No. It most often indicates delay or that conception benefits from patience and medical support. A strong Jupiter or a supportive 5th house dasha can open the progeny area normally. Many couples with this pattern conceive naturally with time.",
+      "No. It most often indicates delay or that conception benefits from patience and medical support. A strong Jupiter or a supportive 5th house dasa can open the progeny area normally. Many couples with this pattern conceive naturally with time.",
       "இல்லை. பெரும்பாலும் இது தாமதம் அல்லது கருத்தரிப்பு பொறுமை மற்றும் மருத்துவ உதவியால் பலன் அடையும் என்பதைக் குறிக்கிறது. பலமான குரு அல்லது ஆதரவான 5-ஆம் பாவ தசை சந்தான பகுதியை இயல்பாக திறக்கலாம். இந்த அமைப்பு கொண்ட பல தம்பதியர் காலப்போக்கில் இயல்பாகவே கருத்தரிக்கின்றனர்."
     ),
   },
@@ -1478,7 +1478,7 @@ export const DOSHAM_KALA_SARPA = {
   ),
   brings_h2: s("What Kala Sarpa dosham can bring", "கால சர்ப்ப தோஷம் என்ன கொண்டு வரலாம்"),
   brings_intro: s(
-    "The experience of this dosham depends on which type (Rahu's house), the strength of the enclosed planets, and the running dasha. These are tendencies — many who carry this pattern develop exceptional strength and resilience precisely because the chart requires it.",
+    "The experience of this dosham depends on which type (Rahu's house), the strength of the enclosed planets, and the running dasa. These are tendencies — many who carry this pattern develop exceptional strength and resilience precisely because the chart requires it.",
     "இந்த தோஷத்தின் அனுபவம் எந்த வகை (ராகுவின் பாவம்), அடைக்கப்பட்ட கிரகங்களின் பலம், நடக்கும் தசை ஆகியவற்றைப் பொறுத்தது. இவை போக்குகள் — இந்த அமைப்பு கொண்ட பலர் ஜாதகம் அதை தேவைப்படுவதால் சரியாக விதிவிலக்கான வலிமையையும் மன உறுதியையும் வளர்க்கிறார்கள்."
   ),
   brings_categories: [
@@ -1486,9 +1486,9 @@ export const DOSHAM_KALA_SARPA = {
       heading: s("Career & Life Path", "தொழில் & வாழ்க்கை பாதை"),
       items: [
         s("Effort that meets unexpected obstacles just before culmination — the 'two steps forward, one step back' pattern is characteristic.", "உச்சத்திற்கு நேரம் தவறாமல் எதிர்பாராத தடைகளை சந்திக்கும் முயற்சி — 'இரண்டு படி முன்னோக்கி, ஒரு படி பின்னோக்கி' அமைப்பு குணாதிசயமானது."),
-        s("A late but often powerful rise — the chart's full potential tends to emerge after the first Rahu dasha or significant Saturn transit.", "தாமதமான ஆனால் பெரும்பாலும் சக்திவாய்ந்த உயர்வு — ஜாதகத்தின் முழு திறன் முதல் ராகு தசை அல்லது முக்கிய சனி கோச்சாரத்திற்குப் பின் வெளிப்படுவது வழக்கம்."),
+        s("A late but often powerful rise — the chart's full potential tends to emerge after the first Rahu dasa or significant Saturn transit.", "தாமதமான ஆனால் பெரும்பாலும் சக்திவாய்ந்த உயர்வு — ஜாதகத்தின் முழு திறன் முதல் ராகு தசை அல்லது முக்கிய சனி கோச்சாரத்திற்குப் பின் வெளிப்படுவது வழக்கம்."),
         s("Risk of dramatic reversals after peaks of success — the dosham asks for sustained discipline, not one big bet.", "வெற்றியின் உச்சத்திற்குப் பிறகு நாடகமான திரும்பல் ஏற்படும் அபாயம் — தோஷம் நிலையான ஒழுக்கத்தை கேட்கிறது, ஒரே ஒரு பெரிய சவாலை அல்ல."),
-        s("Financial instability in waves, especially during nodal transits — more stable during Jupiter and Venus dashas.", "நோடு கோச்சாரங்களில் குறிப்பாக அலையலையாக நிதி நிலையின்மை — குரு மற்றும் சுக்கிர தசைகளில் மிகவும் நிலையானது."),
+        s("Financial instability in waves, especially during nodal transits — more stable during Jupiter and Venus dasas.", "நோடு கோச்சாரங்களில் குறிப்பாக அலையலையாக நிதி நிலையின்மை — குரு மற்றும் சுக்கிர தசைகளில் மிகவும் நிலையானது."),
         s("High ambition and unusual focus — the concentration of planetary energy often produces people who go further than expected.", "உயர் லட்சியம் மற்றும் அசாதாரண கவனம் — கிரக சக்தியின் செறிவு பெரும்பாலும் எதிர்பார்ப்பை விட தூரம் செல்லும் மனிதர்களை உருவாக்குகிறது."),
       ],
     },
@@ -1499,7 +1499,7 @@ export const DOSHAM_KALA_SARPA = {
         s("Recurring dreams with vivid imagery; sensitivity to the Moon's phases, especially the full moon and eclipses.", "ஆழமான உருவகங்களுடன் மீண்டும் வரும் கனவுகள்; பௌர்ணமி மற்றும் கிரகணங்கள் உட்பட சந்திரன் நிலைகளுக்கு உணர்திறன்."),
         s("Restlessness that is often creative — many artists, seekers, innovators, and leaders carry this pattern and channel it into output.", "பெரும்பாலும் ஆக்கப்பூர்வமான அமைதியின்மை — பல கலைஞர்கள், தேடுபவர்கள், புதுமையாளர்கள், தலைவர்கள் இந்த அமைப்பு கொண்டு அதை வெளிப்பாடாக செலுத்துகிறார்கள்."),
         s("Periods of feeling enclosed or restricted, followed by sudden openings — the rhythm of the dosham itself.", "அடைபட்டது அல்லது கட்டுப்பாட்டில் உள்ளது என்ற உணர்வின் காலங்கள், அதைத் தொடரும் திடீர் திறப்புகள் — தோஷத்தின் சொந்த தாளம்."),
-        s("Heightened intuition — a consistent ability to sense undercurrents others miss, especially during Rahu-Ketu dasha.", "உயர்ந்த நுண்ணுணர்வு — மற்றவர்கள் தவறும் அடிநீரோட்டங்களை உணரும் தொடர்ந்த திறன், குறிப்பாக ராகு-கேது தசையில்."),
+        s("Heightened intuition — a consistent ability to sense undercurrents others miss, especially during Rahu-Ketu dasa.", "உயர்ந்த நுண்ணுணர்வு — மற்றவர்கள் தவறும் அடிநீரோட்டங்களை உணரும் தொடர்ந்த திறன், குறிப்பாக ராகு-கேது தசையில்."),
       ],
     },
     {
@@ -1547,9 +1547,9 @@ export const DOSHAM_KALA_SARPA = {
       ),
     },
     {
-      h: s("5 — Note the running dasha", "5 — நடக்கும் தசையை பாருங்கள்"),
+      h: s("5 — Note the running dasa", "5 — நடக்கும் தசையை பாருங்கள்"),
       b: s(
-        "Kala Sarpa is felt most during Rahu mahadasha (18 years) and Ketu mahadasha (7 years). The interval between these two periods often provides relative relief. Jupiter mahadasha brings expansion and opening even within a Kala Sarpa chart. Outside nodal dasha windows, many people with this pattern lead essentially normal lives, with intensity surfacing mainly during sensitive transits.",
+        "Kala Sarpa is felt most during Rahu mahaDasa (18 years) and Ketu mahaDasa (7 years). The interval between these two periods often provides relative relief. Jupiter mahaDasa brings expansion and opening even within a Kala Sarpa chart. Outside nodal dasa windows, many people with this pattern lead essentially normal lives, with intensity surfacing mainly during sensitive transits.",
         "கால சர்ப்பம் ராகு மஹாதசையில் (18 ஆண்டு) மற்றும் கேது மஹாதசையில் (7 ஆண்டு) மிகவும் உணரப்படுகிறது. இந்த இரண்டு காலங்களுக்கிடையேயுள்ள இடைவெளி பொதுவாக ஒப்பீட்டளவில் நிவாரணம் தருகிறது. குரு மஹாதசை கால சர்ப்ப ஜாதகத்திலும் விரிவாக்கம் மற்றும் திறப்பை கொண்டுவருகிறது. நோடு தசை காலங்களுக்கு வெளியே, இந்த அமைப்பு கொண்ட பலர் அடிப்படையில் இயல்பான வாழ்க்கை வாழ்கின்றனர்."
       ),
     },
@@ -1601,7 +1601,7 @@ export const DOSHAM_KALA_SARPA_FAQ = [
   {
     q: s("Does Kala Sarpa dosham ease as one gets older?", "வயது அதிகரிக்கும்போது கால சர்ப்ப தோஷம் குறையுமா?"),
     a: s(
-      "Yes, in practice. The dosham typically feels heaviest during the Rahu mahadasha and eases as the person moves into benefic dashas. Many with Kala Sarpa report that after the first major Rahu period, life opens noticeably. The tradition says the chart asks you to earn your rise — once earned, the dosham has fulfilled its purpose.",
+      "Yes, in practice. The dosham typically feels heaviest during the Rahu mahaDasa and eases as the person moves into benefic dasas. Many with Kala Sarpa report that after the first major Rahu period, life opens noticeably. The tradition says the chart asks you to earn your rise — once earned, the dosham has fulfilled its purpose.",
       "ஆம், நடைமுறையில். தோஷம் வழக்கமாக ராகு மஹாதசையில் மிகவும் கனமாக உணரப்பட்டு, சாதகமான தசைகளுக்கு நகரும்போது குறைகிறது. கால சர்ப்பம் கொண்ட பலர் முதல் முக்கிய ராகு காலத்திற்குப் பிறகு வாழ்க்கை கணிசமாக திறக்கிறது என்று சொல்கிறார்கள். பாரம்பரியம் சொல்கிறது ஜாதகம் உன் உயர்வை உழைத்துப் பெறும்படி கேட்கிறது — ஒருமுறை சம்பாதிக்கப்பட்டால், தோஷம் அதன் நோக்கத்தை நிறைவேற்றியிருக்கிறது."
     ),
   },
@@ -1698,9 +1698,9 @@ export const DOSHAM_PITHRU = {
       ),
     },
     {
-      h: s("5 — Note the dasha — especially Sun, Rahu, and Saturn dashas", "5 — தசையை குறிக்கவும் — குறிப்பாக சூரியன், ராகு, சனி தசைகள்"),
+      h: s("5 — Note the dasa — especially Sun, Rahu, and Saturn dasas", "5 — தசையை குறிக்கவும் — குறிப்பாக சூரியன், ராகு, சனி தசைகள்"),
       b: s(
-        "Pithru dosham's pull is felt most during Sun mahadasha (6 years), Rahu mahadasha (18 years), and Saturn mahadasha (19 years). Jupiter mahadasha (16 years) typically opens the ancestral blessing-flow and brings notable improvement. If you are in Jupiter's mahadasha or antardasha, this is the natural window to perform tarpan and see the dosham ease quickly.",
+        "Pithru dosham's pull is felt most during Sun mahaDasa (6 years), Rahu mahaDasa (18 years), and Saturn mahaDasa (19 years). Jupiter mahaDasa (16 years) typically opens the ancestral blessing-flow and brings notable improvement. If you are in Jupiter's mahaDasa or antardasa, this is the natural window to perform tarpan and see the dosham ease quickly.",
         "பித்ரு தோஷத்தின் இழுப்பு சூரிய மஹாதசையில் (6 ஆண்டு), ராகு மஹாதசையில் (18 ஆண்டு), சனி மஹாதசையில் (19 ஆண்டு) மிகவும் உணரப்படுகிறது. குரு மஹாதசை (16 ஆண்டு) வழக்கமாக முன்னோர் ஆசீர்வாத ஓட்டத்தை திறந்து குறிப்பிடத்தக்க முன்னேற்றம் தருகிறது. குரு மஹாதசை அல்லது அந்தர்தசையில் இருந்தால், இது தர்ப்பணம் செய்து தோஷம் விரைவாக குறைவதை பார்க்கும் இயற்கையான காலகட்டம்."
       ),
     },
@@ -1789,7 +1789,7 @@ export const DOSHAM_KALATHRA = {
         s("Delay in marriage beyond the expected age — proposals arrive and dissolve before concluding; each near-miss adds to impatience.", "எதிர்பார்த்த வயதுக்கு அப்பால் திருமணத் தாமதம் — வரன்கள் வந்து முடிவதற்கு முன்பே கலைகின்றன; ஒவ்வொரு நெருங்கிய தவறலும் ஆவலின்மையை சேர்க்கிறது."),
         s("When Saturn is in the 7th: the right person arrives late, but once the marriage settles it tends to be durable and steady.", "7-ல் சனி இருக்கும்போது: சரியான நபர் தாமதமாக வருகிறார், ஆனால் திருமணம் நிலைபெற்றவுடன் நீடிக்கிறது."),
         s("When Rahu is in the 7th: the match may be unconventional or arrive through unexpected circumstances — not a negative, just unexpected.", "7-ல் ராகு இருக்கும்போது: வரன் மரபுக்கு மாறானதாக அல்லது எதிர்பாராத சூழ்நிலையில் வரலாம் — எதிர்மறையல்ல, எதிர்பாராதது மட்டும்."),
-        s("A long phase of waiting that resolves suddenly — the dosham is time-sensitive, often clearing during the Venus or Jupiter dasha window.", "திடீரென தீர்வடையும் நீண்ட காத்திருப்பு கட்டம் — தோஷம் காலம்-சார்ந்தது; பெரும்பாலும் சுக்கிர அல்லது குரு தசை காலத்தில் தீர்கிறது."),
+        s("A long phase of waiting that resolves suddenly — the dosham is time-sensitive, often clearing during the Venus or Jupiter dasa window.", "திடீரென தீர்வடையும் நீண்ட காத்திருப்பு கட்டம் — தோஷம் காலம்-சார்ந்தது; பெரும்பாலும் சுக்கிர அல்லது குரு தசை காலத்தில் தீர்கிறது."),
         s("Good porutham between two charts can compensate for individual dosham — the tradition's primary solution to Kalathra dosham.", "இரு ஜாதகங்களுக்கிடையே நல்ல பொருத்தம் தனிப்பட்ட தோஷத்தை சமன் செய்யலாம் — களத்திர தோஷத்திற்கான மரபின் முதன்மையான தீர்வு."),
       ],
     },
@@ -1815,7 +1815,7 @@ export const DOSHAM_KALATHRA = {
   ],
   howtoread_h2: s("How to read your own chart for Kalathra dosham", "உங்கள் ஜாதகத்தில் களத்திர தோஷம் எப்படி பார்ப்பது"),
   howtoread_intro: s(
-    "Open your Thirukanitham jadhagam and focus on five things: what sits in the 7th house, the condition of the 7th lord, where Venus is placed and in what sign, whether Jupiter aspects the 7th house, and the running dasha of Venus or the 7th lord. These five together give the marriage picture.",
+    "Open your Thirukanitham jadhagam and focus on five things: what sits in the 7th house, the condition of the 7th lord, where Venus is placed and in what sign, whether Jupiter aspects the 7th house, and the running dasa of Venus or the 7th lord. These five together give the marriage picture.",
     "உங்கள் திருக்கணித ஜாதகத்தை எடுத்து ஐந்து விஷயங்களில் கவனம் செலுத்துங்கள்: 7-ஆம் பாவத்தில் என்ன இருக்கிறது, 7-ஆம் அதிபதியின் நிலை, சுக்கிரன் எங்கே உள்ளது மற்றும் எந்த ராசியில், குரு 7-ஆம் பாவத்தை பார்க்கிறதா, சுக்கிரனின் அல்லது 7-ஆம் அதிபதியின் நடக்கும் தசை. இந்த ஐந்தும் சேர்ந்து திருமண படத்தை தருகின்றன."
   ),
   howtoread_steps: [
@@ -1848,9 +1848,9 @@ export const DOSHAM_KALATHRA = {
       ),
     },
     {
-      h: s("5 — Note the dasha of the 7th lord and Venus", "5 — 7-ஆம் அதிபதி மற்றும் சுக்கிரனின் தசையை பாருங்கள்"),
+      h: s("5 — Note the dasa of the 7th lord and Venus", "5 — 7-ஆம் அதிபதி மற்றும் சுக்கிரனின் தசையை பாருங்கள்"),
       b: s(
-        "Marriage typically manifests during the mahadasha or antardasha of the 7th lord, Venus, or Jupiter. If these dashas coincide with unfavorable transits or the malefic's own dasha, the timing gets pushed. Watching the dasha window is more useful than worrying about the dosham label — when the right dasha arrives and a good match is found, Kalathra dosham charts marry well.",
+        "Marriage typically manifests during the mahaDasa or antardasa of the 7th lord, Venus, or Jupiter. If these dasas coincide with unfavorable transits or the malefic's own dasa, the timing gets pushed. Watching the dasa window is more useful than worrying about the dosham label — when the right dasa arrives and a good match is found, Kalathra dosham charts marry well.",
         "திருமணம் வழக்கமாக 7-ஆம் அதிபதி, சுக்கிரன் அல்லது குரு மஹாதசை அல்லது அந்தர்தசையில் வெளிப்படுகிறது. இந்த தசைகள் சாதகமற்ற கோச்சாரங்கள் அல்லது தீய கிரகத்தின் சொந்த தசையுடன் ஒத்துப்போனால் காலம் தள்ளிப்போகிறது. தோஷ முத்திரையைப் பற்றி கவலைப்படுவதை விட தசை காலகட்டத்தை கவனிப்பது அதிக பயனுள்ளது — சரியான தசை வந்து நல்ல பொருத்தம் கண்டறியப்படும்போது, களத்திர தோஷம் கொண்ட ஜாதகங்கள் நன்றாகவே திருமணம் செய்கின்றன."
       ),
     },
@@ -1912,7 +1912,7 @@ export const PARIHARAM_MARRIAGE_FAQ = [
   {
     q: s("Does the pariharam guarantee marriage by a fixed date?", "பரிகாரம் ஒரு குறிப்பிட்ட தேதிக்குள் திருமணத்தை உறுதி செய்யுமா?"),
     a: s(
-      "No sincere tradition promises a date. Pariharam steadies the mind, builds patience, and aligns your effort with the time the chart opens marriage (the supportive dasha). It works best alongside practical steps — meeting families and porutham matching — not as a substitute for them.",
+      "No sincere tradition promises a date. Pariharam steadies the mind, builds patience, and aligns your effort with the time the chart opens marriage (the supportive dasa). It works best alongside practical steps — meeting families and porutham matching — not as a substitute for them.",
       "எந்த உண்மையான பாரம்பரியமும் தேதியை உறுதியளிக்காது. பரிகாரம் மனதை நிலைப்படுத்தி, பொறுமையை வளர்த்து, ஜாதகம் திருமணத்தைத் திறக்கும் காலத்தோடு (சாதகமான தசை) உங்கள் முயற்சியை இணைக்கிறது. குடும்பங்களைச் சந்திப்பது, பொருத்தம் பார்ப்பது போன்ற நடைமுறை நடவடிக்கைகளுக்கு மாற்றாக அல்ல, அவற்றுடன் சேர்ந்தே சிறப்பாகப் பயன்படுகிறது."
     ),
   },
@@ -1926,7 +1926,7 @@ export const PARIHARAM_MARRIAGE_FAQ = [
   {
     q: s("How long should the marriage pariharam be continued?", "திருமணப் பரிகாரத்தை எவ்வளவு காலம் தொடர வேண்டும்?"),
     a: s(
-      "Treat it as steady devotion, not a one-day fix — many continue through the unfavourable dasha or until the marriage settles. It is ideally begun on a Friday in the bright fortnight (Shukla paksha) and kept up with a calm, regular discipline.",
+      "Treat it as steady devotion, not a one-day fix — many continue through the unfavourable dasa or until the marriage settles. It is ideally begun on a Friday in the bright fortnight (Valarpirai) and kept up with a calm, regular discipline.",
       "ஒரே நாள் தீர்வாக அல்ல, தொடர்ந்த பக்தியாகக் கொள்ளுங்கள் — பலர் சாதகமற்ற தசை முடியும் வரை அல்லது திருமணம் நிறைவேறும் வரை தொடர்கின்றனர். சிறந்தது வளர்பிறை (சுக்ல பக்ஷம்) வெள்ளிக்கிழமை தொடங்கி, அமைதியான வழக்கமான ஒழுக்கத்துடன் கடைப்பிடிப்பது."
     ),
   },
@@ -1950,7 +1950,7 @@ export const TEMPLE_THIRUNALLAR_FAQ = [
   {
     q: s("Is Thirunallar only for people going through Saturn troubles?", "திருநள்ளாறு சனித் தொல்லைகளில் இருப்பவர்களுக்கு மட்டுமா?"),
     a: s(
-      "No — worship there is open to all. It is most sought during Ezharai Sani, Ashtama Sani and Sani dasha/peyarchi, but devotees also visit for general discipline, patience and Saturn's blessing, and many go simply out of faith rather than fear.",
+      "No — worship there is open to all. It is most sought during Ezharai Sani, Ashtama Sani and Sani dasa/peyarchi, but devotees also visit for general discipline, patience and Saturn's blessing, and many go simply out of faith rather than fear.",
       "இல்லை — அங்கு வழிபாடு அனைவருக்கும் திறந்தது. ஏழரை சனி, அஷ்டம சனி, சனி தசை/பெயர்ச்சி காலங்களில் மிகவும் நாடப்பட்டாலும், பொது ஒழுக்கம், பொறுமை, சனியின் அருளுக்காகவும் பக்தர்கள் வருகிறார்கள்; பலர் பயத்தால் அல்ல, நம்பிக்கையாலேயே செல்கிறார்கள்."
     ),
   },
@@ -1962,12 +1962,12 @@ export const PARIHARAM_RAHU_KETU = {
   eyebrow:       s("Pariharam · Rahu-Ketu", "பரிகாரம் · ராகு-கேது"),
   h1:            s("Rahu-Ketu Pariharam", "ராகு-கேது பரிகாரம்"),
   lead:          s(
-    "Rahu-Ketu pariharam is steady devotional practice taken up when the lunar nodes pressure the chart — through dasha, transit or sensitive house contact. Its aim is clarity and steadiness, not fear.",
+    "Rahu-Ketu pariharam is steady devotional practice taken up when the lunar nodes pressure the chart — through dasa, transit or sensitive house contact. Its aim is clarity and steadiness, not fear.",
     "தசை, கோச்சாரம் அல்லது முக்கிய பாவத் தொடர்பு வழியாக சந்திப்பு புள்ளிகள் ஜாதகத்தை அழுத்தும்போது மேற்கொள்ளப்படும் நிலையான பக்தி நடைமுறையே ராகு-கேது பரிகாரம். அதன் இலக்கு தெளிவும் மன உறுதியும் — பயம் அல்ல."
   ),
   why_h2:        s("Why this pariharam is taken up", "இந்த பரிகாரம் ஏன் மேற்கொள்ளப்படுகிறது"),
   why_body:      s(
-    "Rahu and Ketu are the nodal axis — they bring disruption, sudden change, confusion and karmic intensity wherever they sit. When they afflict the Lagna, Moon, 5th or 7th house, or run their dasha-bhukti, life can feel unstable. Sarpa dosham and Kala Sarpa patterns are also read through this axis. This pariharam steadies the mind and channels the nodes' intensity into disciplined effort.",
+    "Rahu and Ketu are the nodal axis — they bring disruption, sudden change, confusion and karmic intensity wherever they sit. When they afflict the Lagna, Moon, 5th or 7th house, or run their dasa-bhukti, life can feel unstable. Sarpa dosham and Kala Sarpa patterns are also read through this axis. This pariharam steadies the mind and channels the nodes' intensity into disciplined effort.",
     "ராகு-கேது சந்திப்பு அச்சு — அவை அமரும் இடத்தில் குழப்பம், திடீர் மாற்றம், கர்ம தீவிரம் தருகின்றன. அவை லக்னம், சந்திரன், 5 அல்லது 7-ஆம் பாவத்தைப் பாதிக்கும்போது, அல்லது தசை-புத்தி நடக்கும்போது, வாழ்க்கை நிலையற்றதாக உணரலாம். சர்ப்ப தோஷமும் கால சர்ப்ப அமைப்பும் இந்த அச்சு வழியே படிக்கப்படுகின்றன. இந்த பரிகாரம் மனதை அமைதிப்படுத்தி, நோடுகளின் தீவிரத்தை ஒழுக்கமான முயற்சியாக மாற்றுகிறது."
   ),
   remedy_h2:     s("What to do — step by step", "என்ன செய்வது — படிப்படியாக"),
@@ -1976,7 +1976,7 @@ export const PARIHARAM_RAHU_KETU = {
     "இந்த படிகள் ஒரே சடங்காக அல்ல, ராகு-கேது காலம் முழுவதும் தொடர்ந்த பக்தியாக கருதப்படுகின்றன."
   ),
   step1_t: s("Identify the active node first", "செயல்படும் நோடை முதலில் கண்டறியுங்கள்"),
-  step1_b: s("Read the chart to find which node (Rahu or Ketu) is more afflicting and whose dasha is running — the emphasis follows the active node, not both equally.", "எந்த நோடு (ராகு அல்லது கேது) அதிகம் பாதிக்கிறது, யாருடைய தசை நடக்கிறது என்பதை ஜாதகத்தில் கண்டறியுங்கள் — முக்கியத்துவம் செயல்படும் நோடைப் பின்தொடருகிறது, இரண்டையும் சமனாக அல்ல."),
+  step1_b: s("Read the chart to find which node (Rahu or Ketu) is more afflicting and whose dasa is running — the emphasis follows the active node, not both equally.", "எந்த நோடு (ராகு அல்லது கேது) அதிகம் பாதிக்கிறது, யாருடைய தசை நடக்கிறது என்பதை ஜாதகத்தில் கண்டறியுங்கள் — முக்கியத்துவம் செயல்படும் நோடைப் பின்தொடருகிறது, இரண்டையும் சமனாக அல்ல."),
   step2_t: s("Visit Thirunageswaram (Rahu) and Keezhaperumpallam (Ketu)", "திருநாகேஸ்வரம் (ராகு) & கீழப்பெரும்பள்ளம் (கேது) தரிசனம்"),
   step2_b: s("These are the dedicated Navagraha sthalams for the nodes. Offer milk abhishekam with naga prarthana. Both temples are ideally visited in one pilgrimage for Sarpa or Kala Sarpa concerns.", "இவை நோடுகளுக்குரிய நவகிரக ஸ்தலங்கள். நாக பிரார்த்தனையுடன் பால் அபிஷேகம் செய்யுங்கள். சர்ப்ப அல்லது கால சர்ப்ப கவலைகளுக்கு இரண்டு கோயில்களும் ஒரே யாத்திரையில் தரிசிக்கப்படுவது சிறந்தது."),
   step3_t: s("Add Panchami and Aayilyam observances", "பஞ்சமி & ஆயில்யம் நோன்புகளைச் சேருங்கள்"),
@@ -1993,7 +1993,7 @@ export const PARIHARAM_RAHU_KETU = {
   slokam_label:  s("Rahu Beeja Mantra", "ராகு பீஜ மந்திரம்"),
   slokam_text:   s("Om Braam Breem Braum Sah Raahave Namah", "ஓம் ப்ராம் ப்ரீம் ப்ரௌம் சஹ ராஹவே நமஹ"),
   slokam_meaning: s(
-    "Salutation to Rahu, who transforms restless ambition into focused power. Steady recitation during Rahu dasha with calm intent and disciplined action brings clarity over confusion.",
+    "Salutation to Rahu, who transforms restless ambition into focused power. Steady recitation during Rahu dasa with calm intent and disciplined action brings clarity over confusion.",
     "அமைதியற்ற ஆசையை கவனம் செலுத்திய சக்தியாக மாற்றும் ராகுவுக்கு வணக்கம். ராகு தசையில் அமைதியான எண்ணம் & ஒழுக்கமான செயலுடன் நிலையான ஜெபம் குழப்பத்திற்கு மேல் தெளிவைத் தருகிறது."
   ),
   related_h2:    s("Related guides", "தொடர்புடைய வழிகாட்டிகள்"),
@@ -2002,7 +2002,7 @@ export const PARIHARAM_RAHU_KETU = {
 export const PARIHARAM_RAHU_KETU_FAQ = [
   {
     q: s("Which node do I focus on — Rahu or Ketu?", "ராகு அல்லது கேது — எந்த நோடில் கவனம் செலுத்த வேண்டும்?"),
-    a: s("Follow the active node — whichever is running its dasha-bhukti or afflicting key houses more strongly in your chart. Both nodes share one axis, so both temples are often visited together, but prayers are directed to the more pressing one.", "செயல்படும் நோடைப் பின்தொடருங்கள் — உங்கள் ஜாதகத்தில் தசை-புத்தி நடத்துவது அல்லது முக்கிய பாவங்களை அதிகமாக பாதிப்பது எதுவோ அது. இரு நோடும் ஒரே அச்சைப் பகிர்வதால் இரண்டு கோயில்களும் சேர்ந்து தரிசிக்கப்படுகின்றன; ஆனால் பிரார்த்தனை அழுத்தமான நோடிடம் செலுத்தப்படுகிறது."),
+    a: s("Follow the active node — whichever is running its dasa-bhukti or afflicting key houses more strongly in your chart. Both nodes share one axis, so both temples are often visited together, but prayers are directed to the more pressing one.", "செயல்படும் நோடைப் பின்தொடருங்கள் — உங்கள் ஜாதகத்தில் தசை-புத்தி நடத்துவது அல்லது முக்கிய பாவங்களை அதிகமாக பாதிப்பது எதுவோ அது. இரு நோடும் ஒரே அச்சைப் பகிர்வதால் இரண்டு கோயில்களும் சேர்ந்து தரிசிக்கப்படுகின்றன; ஆனால் பிரார்த்தனை அழுத்தமான நோடிடம் செலுத்தப்படுகிறது."),
   },
   {
     q: s("How long should I continue this pariharam?", "இந்த பரிகாரம் எவ்வளவு காலம் தொடர வேண்டும்?"),
@@ -2153,7 +2153,7 @@ export const PARIHARAM_KADAN = {
   ),
   why_h2:        s("What causes financial pressure in the chart", "ஜாதகத்தில் பண அழுத்தம் எதனால் வருகிறது"),
   why_body:      s(
-    "Persistent financial difficulty in a chart is typically read through the 2nd house (stored wealth, savings), the 11th house (income and gains), and the 6th house (debt and obstacles). When these houses or their lords are weak, afflicted by Saturn, Rahu, or the 12th lord (loss), or when dasha periods of such planets run, money strain can feel chronic. Mercury's weakness also affects financial reasoning and business judgment. This pariharam addresses these placements through devotion to Lakshmi, Kubera, and strengthening Venus and Jupiter.",
+    "Persistent financial difficulty in a chart is typically read through the 2nd house (stored wealth, savings), the 11th house (income and gains), and the 6th house (debt and obstacles). When these houses or their lords are weak, afflicted by Saturn, Rahu, or the 12th lord (loss), or when dasa periods of such planets run, money strain can feel chronic. Mercury's weakness also affects financial reasoning and business judgment. This pariharam addresses these placements through devotion to Lakshmi, Kubera, and strengthening Venus and Jupiter.",
     "ஜாதகத்தில் நீடித்த பண சிரமம் வழக்கமாக 2-ஆம் பாவம் (சேமிப்பு செல்வம்), 11-ஆம் பாவம் (வருமானம் & லாபம்), 6-ஆம் பாவம் (கடன் & தடைகள்) ஆகியவற்றின் மூலம் படிக்கப்படுகிறது. இந்த பாவங்கள் அல்லது அவற்றின் அதிபதிகள் பலவீனமாக, சனி, ராகு அல்லது 12-ஆம் அதிபதியால் (இழப்பு) பாதிக்கப்படும்போது, அல்லது இத்தகைய கிரகங்களின் தசை காலங்கள் நடக்கும்போது, பண நெருக்கடி நீடிப்பதாக உணரலாம். புதனின் பலவீனம் நிதி சிந்தனையையும் வணிக தீர்மானத்தையும் பாதிக்கிறது. இந்த பரிகாரம் லட்சுமி, குபேர பக்தி மற்றும் சுக்கிரன், குரு வலுப்படுத்தல் மூலம் இந்த அமைப்புகளை நிவர்த்தி செய்கிறது."
   ),
   remedy_h2:     s("What to do — step by step", "என்ன செய்வது — படிப்படியாக"),
@@ -2168,7 +2168,7 @@ export const PARIHARAM_KADAN = {
   step3_t: s("Visit Kanjanur (Venus) and Alangudi (Jupiter) temples", "காஞ்சனூர் (சுக்கிரன்) & ஆலங்குடி (குரு) கோயில்கள் தரிசிக்கவும்"),
   step3_b: s("Venus governs financial comfort and Jupiter governs legitimate wealth and wisdom in money matters. These temples together address both comfort (2nd house) and fortune (9th-11th house) dimensions of Kadan pariharam.", "சுக்கிரன் நிதி சுகத்தை, குரு சட்டபூர்வமான செல்வத்தையும் பண விஷயங்களில் ஞானத்தையும் ஆளுகிறார். இந்த கோயில்கள் சேர்ந்து கடன் பரிகாரத்தின் சுகம் (2-ஆம் பாவம்) & பாக்கியம் (9-11-ஆம் பாவம்) பரிமாணங்களை நிவர்த்தி செய்கின்றன."),
   step4_t: s("Practice financial discipline alongside devotion", "பக்தியுடன் நிதி ஒழுக்கத்தை கடைப்பிடியுங்கள்"),
-  step4_b: s("Pariharam is not a substitute for budgeting, debt repayment or saving. Use the dasha periods of 2nd, 11th and Venus lords for financial decisions. Avoid new debt during weak planetary periods.", "பரிகாரம் பட்ஜெட், கடன் திரும்பச் செலுத்தல் அல்லது சேமிப்பிற்கு மாற்றல்ல. 2, 11-ஆம் பாவம் & சுக்கிர அதிபதிகளின் தசை காலங்களை நிதி முடிவுகளுக்குப் பயன்படுத்துங்கள். பலவீன கிரக காலங்களில் புதிய கடன் வாங்கவதை தவிருங்கள்."),
+  step4_b: s("Pariharam is not a substitute for budgeting, debt repayment or saving. Use the dasa periods of 2nd, 11th and Venus lords for financial decisions. Avoid new debt during weak planetary periods.", "பரிகாரம் பட்ஜெட், கடன் திரும்பச் செலுத்தல் அல்லது சேமிப்பிற்கு மாற்றல்ல. 2, 11-ஆம் பாவம் & சுக்கிர அதிபதிகளின் தசை காலங்களை நிதி முடிவுகளுக்குப் பயன்படுத்துங்கள். பலவீன கிரக காலங்களில் புதிய கடன் வாங்கவதை தவிருங்கள்."),
   step5_t: s("Give a portion to charity consistently", "தொடர்ந்து ஒரு பகுதியை தானம் செய்யுங்கள்"),
   step5_b: s("Traditional wisdom across many systems holds that charitable giving keeps the channels of wealth open — not from abundance alone, but as a practice even in difficulty. A small, consistent amount is more meaningful than a large one-time gesture.", "பல முறைகளிலுள்ள பாரம்பரிய ஞானம் தானம் செல்வத்தின் வழிகளைத் திறந்து வைக்கும் என்கிறது — வளம் இருக்கும்போது மட்டும் அல்ல, சிரமத்திலும் ஒரு நடைமுறையாக. சிறிய, தொடர்ந்த தொகை பெரிய ஒரே முறை சைகையை விட அர்த்தமுள்ளது."),
   temple_h2:     s("Key temples for this pariharam", "இந்த பரிகாரத்திற்கான முக்கிய கோயில்கள்"),
@@ -2196,7 +2196,7 @@ export const PARIHARAM_KADAN_FAQ = [
   },
   {
     q: s("How long should I continue kadan pariharam?", "கடன் பரிகாரம் எவ்வளவு காலம் தொடர வேண்டும்?"),
-    a: s("Maintain the practice through the dasha period of the afflicting planet and for at least one full year of consistent worship. Combine it with visible financial discipline changes to make the practice meaningful.", "பாதிக்கும் கிரகத்தின் தசை காலம் முழுவதும் & குறைந்தது ஒரு முழு ஆண்டு தொடர்ந்த வழிபாட்டிற்கு நடைமுறையை பராமரியுங்கள். நடைமுறையை அர்த்தமுள்ளதாக்க தெரியும் நிதி ஒழுக்க மாற்றங்களுடன் இணையுங்கள்."),
+    a: s("Maintain the practice through the dasa period of the afflicting planet and for at least one full year of consistent worship. Combine it with visible financial discipline changes to make the practice meaningful.", "பாதிக்கும் கிரகத்தின் தசை காலம் முழுவதும் & குறைந்தது ஒரு முழு ஆண்டு தொடர்ந்த வழிபாட்டிற்கு நடைமுறையை பராமரியுங்கள். நடைமுறையை அர்த்தமுள்ளதாக்க தெரியும் நிதி ஒழுக்க மாற்றங்களுடன் இணையுங்கள்."),
   },
   {
     q: s("Is charitable giving really part of the pariharam?", "தானம் உண்மையில் பரிகாரத்தின் ஒரு பகுதியா?"),
@@ -2261,8 +2261,8 @@ export const PARIHARAM_PUTHRA_FAQ = [
     a: s("No. Puthra pariharam is taken up by many couples simply as devotional practice for children's blessings, regardless of whether the chart shows a specific dosham. Grace and devotion are open to all.", "இல்லை. ஜாதகம் குறிப்பிட்ட தோஷம் காட்டுகிறதா இல்லையா என்பதைப் பொருட்படுத்தாமல், குழந்தை ஆசீர்வாதங்களுக்கான பக்தி நடைமுறையாக மட்டுமே பல தம்பதிகள் புத்திர பரிகாரம் மேற்கொள்கின்றனர். அருளும் பக்தியும் அனைவருக்கும் திறந்தவை."),
   },
   {
-    q: s("Does dasha timing affect this practice?", "தசை காலம் இந்த பக்தி நடைமுறையை பாதிக்குமா?"),
-    a: s("Dasha timing creates more receptive windows for devotional practice — the periods of Jupiter and the 5th lord are traditionally considered auspicious. But outcomes depend on many factors beyond astrology. This pariharam supports your journey; it does not promise a specific result. Continue medical guidance throughout.", "தசை காலம் பக்தி நடைமுறைக்கு மிகவும் கிரகணமான காலகட்டங்களை உருவாக்குகிறது — குரு மற்றும் 5-ஆம் அதிபதியின் காலங்கள் பாரம்பரியமாக மங்களமாகக் கருதப்படுகின்றன. ஆனால் பலன்கள் ஜோதிடத்திற்கு அப்பால் பல காரணிகளைப் பொறுத்தவை. இந்த பரிகாரம் உங்கள் பயணத்தை ஆதரிக்கிறது; இது ஒரு குறிப்பிட்ட பலனை உறுதியளிக்கவில்லை. மருத்துவ வழிகாட்டுதலை தொடர்ந்து பின்பற்றுங்கள்."),
+    q: s("Does dasa timing affect this practice?", "தசை காலம் இந்த பக்தி நடைமுறையை பாதிக்குமா?"),
+    a: s("Dasa timing creates more receptive windows for devotional practice — the periods of Jupiter and the 5th lord are traditionally considered auspicious. But outcomes depend on many factors beyond astrology. This pariharam supports your journey; it does not promise a specific result. Continue medical guidance throughout.", "தசை காலம் பக்தி நடைமுறைக்கு மிகவும் கிரகணமான காலகட்டங்களை உருவாக்குகிறது — குரு மற்றும் 5-ஆம் அதிபதியின் காலங்கள் பாரம்பரியமாக மங்களமாகக் கருதப்படுகின்றன. ஆனால் பலன்கள் ஜோதிடத்திற்கு அப்பால் பல காரணிகளைப் பொறுத்தவை. இந்த பரிகாரம் உங்கள் பயணத்தை ஆதரிக்கிறது; இது ஒரு குறிப்பிட்ட பலனை உறுதியளிக்கவில்லை. மருத்துவ வழிகாட்டுதலை தொடர்ந்து பின்பற்றுங்கள்."),
   },
 ];
 
@@ -2349,7 +2349,7 @@ export const TEMPLE_THIRUMANANJERI = {
   ),
   when_h2:       s("Best times to visit", "தரிசிக்க சிறந்த நேரங்கள்"),
   when_body:     s(
-    "Panguni Uthiram (Panguni month, Uthiram nakshathiram) is the most auspicious time — this is when the divine marriage is celebrated here each year with grand festival. Aadi Pooram (in the Tamil month of Aadi), Fridays, and Tuesdays are also specially auspicious for this temple. Those in a Venus or Jupiter dasha, or facing 7th house pressure, are particularly recommended to visit during these windows. For pariharam visits, a Thursday (Jupiter's day) combined with the puja timing works well.",
+    "Panguni Uthiram (Panguni month, Uthiram nakshathiram) is the most auspicious time — this is when the divine marriage is celebrated here each year with grand festival. Aadi Pooram (in the Tamil month of Aadi), Fridays, and Tuesdays are also specially auspicious for this temple. Those in a Venus or Jupiter dasa, or facing 7th house pressure, are particularly recommended to visit during these windows. For pariharam visits, a Thursday (Jupiter's day) combined with the puja timing works well.",
     "பங்குனி உத்திரம் (பங்குனி மாதம், உத்திரம் நட்சத்திரம்) மிகவும் மங்களகரமான நேரம் — ஒவ்வொரு ஆண்டும் தெய்வீக திருமணம் இங்கே பெரும் திருவிழாவுடன் கொண்டாடப்படுகிறது. ஆடி பூரம் (தமிழ் ஆடி மாதம்), வெள்ளிகிழமைகள், செவ்வாய்க்கிழமைகள் ஆகியவையும் இந்த கோயிலுக்கு குறிப்பாக சுபமானவை. சுக்கிர அல்லது குரு தசையில் இருப்பவர்கள், அல்லது 7-ஆம் பாவ அழுத்தம் உள்ளவர்கள், இந்த காலகட்டங்களில் தரிசிக்க குறிப்பாக பரிந்துரைக்கப்படுகிறார்கள். பரிகார தரிசனத்திற்கு வியாழன் (குருவின் நாள்) பூஜை நேரத்துடன் சேர்ந்து நன்றாக வேலை செய்கிறது."
   ),
   slokam_label:  s("Swayamvara Parvati Mantra", "சுயம்வர பார்வதி மந்திரம்"),
@@ -2401,7 +2401,7 @@ export const TEMPLE_PANCHA_BHOOTA = {
   ),
   when_h2:       s("When and how to do the circuit", "சுற்றை எப்போது, எப்படி செய்வது"),
   when_body:     s(
-    "The most common approach is to complete all five temples in 3–5 days in a single trip. The traditional order is: Kanchipuram → Thiruvanaikaval → Thiruvannamalai → Srikalahasti → Chidambaram. Mahashivaratri is auspicious for any of these individually. Saturn and Rahu dasha periods are the most recommended times for the full circuit as a remedy. Kartika month (Tamil Karthigai) is especially powerful at Thiruvannamalai (the Karthigai Deepam festival). Even visiting one or two of these temples has individual significance — the full circuit is not required for benefit.",
+    "The most common approach is to complete all five temples in 3–5 days in a single trip. The traditional order is: Kanchipuram → Thiruvanaikaval → Thiruvannamalai → Srikalahasti → Chidambaram. Mahashivaratri is auspicious for any of these individually. Saturn and Rahu dasa periods are the most recommended times for the full circuit as a remedy. Kartika month (Tamil Karthigai) is especially powerful at Thiruvannamalai (the Karthigai Deepam festival). Even visiting one or two of these temples has individual significance — the full circuit is not required for benefit.",
     "மிகவும் பொதுவான அணுகுமுறை ஒரே பயணத்தில் 3–5 நாட்களில் அனைத்து ஐந்து கோயில்களையும் நிறைவு செய்வது. பாரம்பரிய வரிசை: காஞ்சிபுரம் → திருவானைக்காவல் → திருவண்ணாமலை → ஸ்ரீகாளஹஸ்தி → சிதம்பரம். மஹாசிவராத்திரி இவற்றில் எதற்கும் தனித்தனியாக மங்களகரமானது. சனி & ராகு தசை காலங்கள் பரிகாரமாக முழு சுற்றுக்கு மிகவும் பரிந்துரைக்கப்படும் நேரங்கள். கார்த்திக மாதம் (தமிழ் கார்த்திகை) திருவண்ணாமலையில் குறிப்பாக சக்திவாய்ந்தது (கார்த்திகை தீப திருவிழா). இந்த கோயில்களில் ஒன்று அல்லது இரண்டை மட்டும் தரிசிப்பதும் தனிப்பட்ட முக்கியத்துவம் கொண்டது — நலனுக்கு முழு சுற்று தேவையில்லை."
   ),
   slokam_label:  s("Panchakshara Mantra", "பஞ்சாக்ஷர மந்திரம்"),
@@ -2419,8 +2419,8 @@ export const TEMPLE_PANCHA_BHOOTA_FAQ = [
     a: s("No. Visiting even one or two of these temples has its own individual significance. The full circuit amplifies the benefit, but any of these temples can be visited independently for their own power.", "இல்லை. இந்த கோயில்களில் ஒன்று அல்லது இரண்டை தரிசிப்பதும் அதன் சொந்த தனிப்பட்ட முக்கியத்துவம் கொண்டது. முழு சுற்று நலனை பெருக்குகிறது, ஆனால் இந்த கோயில்களில் எதுவும் அவற்றின் சொந்த சக்திக்காக சுதந்திரமாக தரிசிக்கப்படலாம்."),
   },
   {
-    q: s("What is the significance of visiting these during Saturn's dasha?", "சனி தசையில் இவற்றை தரிசிப்பதன் முக்கியத்துவம் என்ன?"),
-    a: s("Saturn's energy is associated with slowness, discipline and the body's structural elements — earth and air. Visiting Ekambareswarar (earth) and Srikalahasti (wind/air) during Sani dasha is particularly meaningful for grounding and stability.", "சனியின் சக்தி மெதுவான தன்மை, ஒழுக்கம், உடலின் கட்டமைப்பு பூதங்கள் — மண் & காற்று — ஆகியவற்றுடன் தொடர்புடையது. சனி தசையில் ஏகாம்பரேஸ்வரர் (மண்) & ஸ்ரீகாளஹஸ்தி (காற்று) தரிசிப்பது ஆதாரம் & நிலைத்தன்மைக்கு குறிப்பாக அர்த்தமுள்ளது."),
+    q: s("What is the significance of visiting these during Saturn's dasa?", "சனி தசையில் இவற்றை தரிசிப்பதன் முக்கியத்துவம் என்ன?"),
+    a: s("Saturn's energy is associated with slowness, discipline and the body's structural elements — earth and air. Visiting Ekambareswarar (earth) and Srikalahasti (wind/air) during Sani dasa is particularly meaningful for grounding and stability.", "சனியின் சக்தி மெதுவான தன்மை, ஒழுக்கம், உடலின் கட்டமைப்பு பூதங்கள் — மண் & காற்று — ஆகியவற்றுடன் தொடர்புடையது. சனி தசையில் ஏகாம்பரேஸ்வரர் (மண்) & ஸ்ரீகாளஹஸ்தி (காற்று) தரிசிப்பது ஆதாரம் & நிலைத்தன்மைக்கு குறிப்பாக அர்த்தமுள்ளது."),
   },
   {
     q: s("Is Chidambaram only for the element of space?", "சிதம்பரம் ஆகாய பூதத்திற்கு மட்டுமா?"),
@@ -2453,7 +2453,7 @@ export const TEMPLE_ARUPADAI_VEEDU = {
   ),
   when_h2:       s("Best times to visit", "தரிசிக்க சிறந்த நேரங்கள்"),
   when_body:     s(
-    "Skanda Sashti (the six-day festival in Tamil Karthigai / October-November) is the most powerful time for any Murugan temple, and especially for Thiruchendur — where the Soorasamharam (victory over Surapadman) is re-enacted dramatically. Karthigai Deepam, Thaipusam (Thai month), and Vaikasi Visakam are all auspicious. Tuesdays are Murugan's day (Mars governs the same energy). For Sevvai dosham pariharam, visiting on a Tuesday during Mars dasha or antardasha is particularly meaningful. Individual temples have their own festivals — Thiruparankundram's Panguni Uthiram and Palani's Thaipusam are the largest individual mela-s.",
+    "Skanda Sashti (the six-day festival in Tamil Karthigai / October-November) is the most powerful time for any Murugan temple, and especially for Thiruchendur — where the Soorasamharam (victory over Surapadman) is re-enacted dramatically. Karthigai Deepam, Thaipusam (Thai month), and Vaikasi Visakam are all auspicious. Tuesdays are Murugan's day (Mars governs the same energy). For Sevvai dosham pariharam, visiting on a Tuesday during Mars dasa or antardasa is particularly meaningful. Individual temples have their own festivals — Thiruparankundram's Panguni Uthiram and Palani's Thaipusam are the largest individual mela-s.",
     "ஸ்கந்த சஷ்டி (தமிழ் கார்த்திகை / அக்டோபர்-நவம்பர் மாதங்களில் ஆறு நாள் திருவிழா) எந்த முருகன் கோயிலுக்கும் மிகவும் சக்திவாய்ந்த நேரம், குறிப்பாக திருச்செந்தூருக்கு — சூரசம்ஹாரம் (சூரபத்மன் மீது வெற்றி) இங்கே வியத்தகு முறையில் மீண்டும் நடிக்கப்படுகிறது. கார்த்திகை தீபம், தைப்பூசம் (தை மாதம்), வைகாசி விசாகம் ஆகியவை மங்களகரமானவை. செவ்வாய்க்கிழமைகள் முருகனின் நாள் (செவ்வாய் அதே சக்தியை ஆளுகிறது). செவ்வாய் தோஷ பரிகாரத்திற்கு செவ்வாய் தசை அல்லது அந்தர்தசையில் செவ்வாய்க்கிழமை தரிசிப்பது குறிப்பாக அர்த்தமுள்ளது. தனிப்பட்ட கோயில்களுக்கு அவற்றின் சொந்த திருவிழாக்கள் உள்ளன — திருப்பரங்குன்றத்தின் பங்குனி உத்திரம் & பழனியின் தைப்பூசம் மிகப் பெரிய தனிப்பட்ட மேளாக்கள்."
   ),
   slokam_label:  s("Murugan Mantra (Shadakshara)", "முருகன் மந்திரம் (ஷடக்ஷர)"),

@@ -4,14 +4,14 @@ import { HowToReadJadhagamPageContent } from "./PageContent";
 export const metadata: Metadata = {
   title: "How to Read a Jadhagam — South Indian Tamil Birth Chart Guide | Vinaadi",
   description:
-    "Learn how to read a South Indian Tamil jadhagam — the fixed square chart structure, how lagna is determined, how planets are placed across the 12 rasis, and how the Vimshottari dasha sequence is calculated from your Moon's birth star.",
+    "Learn how to read a South Indian Tamil jadhagam — the fixed square chart structure, how lagna is determined, how planets are placed across the 12 rasis, and how the Vimshottari dasa sequence is calculated from your Moon's birth star.",
   keywords: [
     "how to read jadhagam",
     "how to read Tamil birth chart",
     "Tamil horoscope reading",
     "South Indian chart explained",
     "lagna meaning astrology",
-    "dasha sequence Tamil",
+    "dasa sequence Tamil",
     "jathagam reading guide",
     "Tamil chart structure",
     "birth star pada astrology",
@@ -20,14 +20,14 @@ export const metadata: Metadata = {
   openGraph: {
     title: "How to Read a Jadhagam — South Indian Tamil Birth Chart Guide",
     description:
-      "A clear guide to reading a South Indian Tamil jadhagam — chart structure, lagna, planet placements, and dasha sequence explained in plain language.",
+      "A clear guide to reading a South Indian Tamil jadhagam — chart structure, lagna, planet placements, and dasa sequence explained in plain language.",
     url: "https://vinaadi.com/learn/how-to-read-a-jadhagam",
     type: "article",
   },
   twitter: {
     card: "summary_large_image",
     title: "How to Read a Tamil Jadhagam — Birth Chart Guide",
-    description: "South Indian chart structure, lagna, planets, and dasha sequence explained simply.",
+    description: "South Indian chart structure, lagna, planets, and dasa sequence explained simply.",
   },
 };
 
@@ -53,10 +53,10 @@ const FAQ_JSONLD = {
     },
     {
       "@type": "Question",
-      name: "How is the Vimshottari dasha sequence calculated?",
+      name: "How is the Vimshottari dasa sequence calculated?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "The Vimshottari dasha sequence starts from the Moon's birth star at birth. Each of the 27 birth stars has a planetary lord, and the sequence cycles through 9 planets over 120 years. The Moon's exact pada, which requires an accurate birth time, determines where in the sequence you begin and how much of the first dasha period has already elapsed.",
+        text: "The Vimshottari dasa sequence starts from the Moon's birth star at birth. Each of the 27 birth stars has a planetary lord, and the sequence cycles through 9 planets over 120 years. The Moon's exact pada, which requires an accurate birth time, determines where in the sequence you begin and how much of the first dasa period has already elapsed.",
       },
     },
     {

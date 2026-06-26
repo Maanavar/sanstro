@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     "Lahiri ayanamsa",
     "Tamil astrology calculation",
     "drik panchang Tamil",
-    "Tamil jyotish method",
+    "Tamil Jothidam method",
   ],
   alternates: { canonical: "https://vinaadi.com/learn/what-is-thirukanitham" },
   openGraph: {
@@ -56,7 +56,7 @@ const FAQ_JSONLD = {
       name: "What is Lahiri ayanamsa and why is it used in Thirukanitham?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Ayanamsa is the correction applied to convert tropical (Western) planetary longitudes to sidereal (Vedic) positions, accounting for the precession of the equinoxes. Lahiri ayanamsa — also called Chitrapaksha ayanamsa — is India's government-recognised standard and is used by most Tamil Jyotish practitioners. Thirukanitham uses Lahiri ayanamsa for all chart calculations.",
+        text: "Ayanamsa is the correction applied to convert tropical (Western) planetary longitudes to sidereal (Vedic) positions, accounting for the precession of the equinoxes. Lahiri ayanamsa — also called Chitrapaksha ayanamsa — is India's government-recognised standard and is used by most Tamil Jothida practitioners. Thirukanitham uses Lahiri ayanamsa for all chart calculations.",
       },
     },
     {
@@ -64,7 +64,7 @@ const FAQ_JSONLD = {
       name: "Why does the choice between Thirukanitham and Vakya affect my birth chart?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "A planet's position can differ by 1–2 degrees or more between Vakya and Thirukanitham calculations. This difference can shift a planet from one nakshatra to another, change its pada (quarter division), and sometimes place it in a different rasi. For charts near cusps — especially the Moon's nakshatra which determines the dasha start — this matters significantly for the entire reading.",
+        text: "A planet's position can differ by 1–2 degrees or more between Vakya and Thirukanitham calculations. This difference can shift a planet from one nakshatra to another, change its pada (quarter division), and sometimes place it in a different rasi. For charts near cusps — especially the Moon's nakshatra which determines the dasa start — this matters significantly for the entire reading.",
       },
     },
   ],

@@ -12,7 +12,7 @@ const STRINGS = {
   tab_personal:   { ta: "தனிப்பட்ட",   en: "Personal" },
   tab_plan:       { ta: "திட்டமிடு",   en: "Plan" },
   tab_family:     { ta: "குடும்பம்",    en: "Family" },
-  tab_calendar:   { ta: "கிரகநகர்வு & நிகழ்வுகள்", en: "Transits & Events" },
+  tab_calendar:   { ta: "நகர்வு & நிகழ்வு", en: "Transits & Events" },
   tab_setup:      { ta: "அமைவு",        en: "Setup" },
   tab_settings:   { ta: "அமைவுகள்",     en: "Settings" },
   nav_label:      { ta: "பக்க வழிகாட்டி", en: "App navigation" },
@@ -134,8 +134,8 @@ const STRINGS = {
   btn_go_personal:    { ta: "தனிப்பட்டது →",     en: "Personal →" },
 
   // ── Transits tab
-  tab_transits:       { ta: "தசை & கிரகநகர்வு",    en: "Transits & Dasha" },
-  transits_tab_desc:  { ta: "விம்சோத்தரி தசை காலவரிசை, கிரகநகர்வு நிலைகள், குறிப்பேடு ஒப்பீடுகள்", en: "Vimshottari dasha timeline, transit positions, journal comparisons" },
+  tab_transits:       { ta: "தசை & கிரகநகர்வு",    en: "Transits & Dasa" },
+  transits_tab_desc:  { ta: "விம்சோத்தரி தசை காலவரிசை, கிரகநகர்வு நிலைகள், குறிப்பேடு ஒப்பீடுகள்", en: "Vimshottari Dasa timeline, transit positions, journal comparisons" },
 
   // ── TODAY tab (Phase 2)
   today_greeting:       { ta: "வணக்கம்",           en: "Good morning" },
@@ -150,7 +150,7 @@ const STRINGS = {
   // ── Personal tab
   personal_kicker:    { ta: "தனிப்பட்ட",        en: "Personal" },
   personal_title_default: { ta: "ஜாதகம், வழிகாட்டுதல் & கிரகநகர்வு", en: "Chart, guidance & transits" },
-  personal_desc:      { ta: "தசை, பஞ்சாங்கம், கிரகநகர்வு தரவு", en: "Dasha, panchangam, transit data" },
+  personal_desc:      { ta: "தசை, பஞ்சாங்கம், கிரகநகர்வு தரவு", en: "Dasa, panchangam, transit data" },
   personal_today:     { ta: "இன்று",            en: "Today" },
   personal_you:       { ta: "நீங்கள்",           en: "You" },
   chandrashtama_warning: { ta: "⚠ சந்திராஷ்டமம் — சந்திரன் உங்கள் பிறப்பு ராசியிலிருந்து 8ஆம் ராசியில் உள்ளது. முக்கிய முடிவுகளைத் தவிர்க்கவும்.", en: "⚠ Chandrashtamam — Moon is in the 8th rasi from your natal Moon sign. Avoid important decisions." },
@@ -282,7 +282,7 @@ const STRINGS = {
 
   // ── Calendar tab
   calendar_kicker:  { ta: "கிரகநகர்வு & நிகழ்வுகள்", en: "Transits & Events" },
-  calendar_title:   { ta: "கிரகநகர்வு, தசை & நிகழ்வுகள்", en: "Transits, Dasha & Events" },
+  calendar_title:   { ta: "கிரகநகர்வு, தசை & நிகழ்வுகள்", en: "Transits, Dasa & Events" },
   cal_panchangam:   { ta: "📅 பஞ்சாங்கம்",  en: "📅 Panchangam" },
   cal_monthly:      { ta: "🗓️ மாத காலெண்டர்", en: "🗓️ Monthly" },
   cal_monthly_loading: { ta: "மாத பஞ்சாங்கம் ஏற்றப்படுகிறது…", en: "Loading monthly panchangam…" },
@@ -303,8 +303,8 @@ const STRINGS = {
   label_rahu_avoid: { ta: "தவிர்க்கவும்",     en: "Avoid" },
   label_restricted: { ta: "(இந்த வாரம் தடை)", en: "(restricted today)" },
   hora_word:        { ta: "ஹோரை",    en: "Hora" },
-  paksha_shukla:    { ta: "வளர்பிறை", en: "Shukla" },
-  paksha_krishna:   { ta: "தேய்பிறை", en: "Krishna" },
+  paksha_shukla:    { ta: "வளர்பிறை", en: "Valarpirai" },
+  paksha_krishna:   { ta: "தேய்பிறை", en: "Theipirai" },
   lord_word:        { ta: "அதிபதி",   en: "lord" },
   until_word:       { ta: "வரை",     en: "until" },
   slot_word:        { ta: "இடை",     en: "slot" },
@@ -340,7 +340,7 @@ const STRINGS = {
 
   // ── Tools tab
   tools_heading:          { ta: "கருவிகள்",                      en: "Tools" },
-  tools_subtitle:         { ta: "ஜோதிட பகுப்பாய்வு கருவிகள்",   en: "Jyotish analysis tools" },
+  tools_subtitle:         { ta: "ஜோதிட பகுப்பாய்வு கருவிகள்",   en: "Jothida analysis tools" },
   tool_porutham_name:     { ta: "பொருத்தம் சோதனை",               en: "Compatibility Check" },
   tool_porutham_desc:     { ta: "திருமணப் பொருத்தம் — 10 பொருத்தங்கள், தோஷச் சோதனை.",  en: "Marriage compatibility — 10 poruthams + dosha checks." },
   tool_chart_gen_name:    { ta: "ஜாதகம் உருவாக்கு",              en: "Generate Chart" },
@@ -348,7 +348,7 @@ const STRINGS = {
   tool_rectify_name:      { ta: "பிறந்த நேர திருத்தம்",          en: "Birth Time Rectification" },
   tool_rectify_desc:      { ta: "வாழ்க்கை நிகழ்வுகளை பயன்படுத்தி பிறந்த நேரத்தை நிரூபிக்கவும்.", en: "Confirm birth time using life events as evidence." },
   tool_wrapped_name:      { ta: "வருடாந்திர சுருக்கம்",          en: "Annual Wrapped" },
-  tool_wrapped_desc:      { ta: "கடந்த ஆண்டின் ஜோதிட ஆய்வு — முக்கிய தசைகள் மற்றும் நிகழ்வுகள்.", en: "Year-in-review astrology — key dashas and events." },
+  tool_wrapped_desc:      { ta: "கடந்த ஆண்டின் ஜோதிட ஆய்வு — முக்கிய தசைகள் மற்றும் நிகழ்வுகள்.", en: "Year-in-review astrology — key dasas and events." },
   tool_retro_name:        { ta: "பின்னோக்கு பகுப்பாய்வு",        en: "Retrospective Analysis" },
   tool_retro_desc:        { ta: "கடந்த காலத்தை ஜோதிட கண்ணோட்டத்தில் பகுப்பாய்வு செய்யவும்.", en: "Review past periods through an astrological lens." },
   tool_open:              { ta: "திறக்கவும்",                     en: "Open" },
@@ -401,7 +401,7 @@ const STRINGS = {
   feedback_cancel:     { ta: "ரத்து",               en: "Cancel" },
 
   // Privacy & disclaimer
-  disclaimer_astro:    { ta: "இந்த பயன்பாடு ஜோதிடம் சார்ந்த வழிகாட்டுதல்களை வழங்குகிறது. இவை அறிவியல் உண்மைகள் அல்ல — நம்பிக்கை சார்ந்த பாரம்பரிய கலை. மருத்துவ, சட்டம், நிதி முடிவுகளுக்கு தகுதிவாய்ந்த நிபுணரை அணுகுங்கள்.", en: "This app provides Jyotish-based guidance. Astrology is a traditional belief system, not a science. For medical, legal, or financial decisions, consult a qualified professional." },
+  disclaimer_astro:    { ta: "இந்த பயன்பாடு ஜோதிடம் சார்ந்த வழிகாட்டுதல்களை வழங்குகிறது. இவை அறிவியல் உண்மைகள் அல்ல — நம்பிக்கை சார்ந்த பாரம்பரிய கலை. மருத்துவ, சட்டம், நிதி முடிவுகளுக்கு தகுதிவாய்ந்த நிபுணரை அணுகுங்கள்.", en: "This app provides Jothida-based guidance. Astrology is a traditional belief system, not a science. For medical, legal, or financial decisions, consult a qualified professional." },
   disclaimer_data:     { ta: "உங்கள் தரவு இந்தச் சாதனத்திலும் சேவையகத்திலும் மட்டும் சேமிக்கப்படுகிறது. உங்கள் தரவை நீக்க அமைவுகள் பகுதிக்கு செல்லவும் அல்லது ஆதரவை தொடர்புகொள்ளவும்.", en: "Your data is stored only on this device and our server. To delete your data, visit Settings or contact support." },
   disclaimer_no_doom:  { ta: "இந்தப் பயன்பாடு அச்சுறுத்தல், மோசமான சகுனம், அல்லது உறுதிப்படுத்தப்பட்ட தோல்வி பற்றி எந்த வார்த்தையும் பயன்படுத்துவதில்லை.", en: "This app never uses fear, doom language, or guaranteed negative predictions." },
   privacy_link:        { ta: "தனியுரிமை கொள்கை",   en: "Privacy policy" },
@@ -447,7 +447,7 @@ const STRINGS = {
   whatif_running:      { ta: "ஆய்வு செய்கிறது…",       en: "Analysing…" },
   whatif_result_title: { ta: "மூன்று தூண் திருக்கணித ஆய்வு",  en: "Triple-confirmation analysis" },
   whatif_natal:        { ta: "ஜாதக வாக்கு",            en: "Natal Promise" },
-  whatif_dasha:        { ta: "தசை ஆதரவு",              en: "Dasha Support" },
+  whatif_dasha:        { ta: "தசை ஆதரவு",              en: "Dasa Support" },
   whatif_gochar:       { ta: "கிரகநகர்வு ஆதரவு",        en: "Transit Support" },
   whatif_overall:      { ta: "ஒட்டுமொத்த நிலை",        en: "Overall verdict" },
   whatif_best_period:  { ta: "சிறந்த காலம்",           en: "Best period" },
@@ -482,7 +482,7 @@ const STRINGS = {
   pred_wealth_title:       { ta: "பண வரவு கணிப்பு",                 en: "Wealth Prediction" },
   pred_health_title:       { ta: "உடல்நலம் கணிப்பு",                en: "Health Prediction" },
   pred_confidence:         { ta: "நம்பிக்கை நிலை",                  en: "Confidence" },
-  pred_dasha_support:      { ta: "தசை ஆதரவு",                       en: "Dasha support" },
+  pred_dasha_support:      { ta: "தசை ஆதரவு",                       en: "Dasa support" },
   pred_transit_support:    { ta: "கிரகநகர்வு ஆதரவு",                 en: "Transit support" },
   pred_timing_window:      { ta: "கால வரம்பு",                      en: "Timing window" },
   pred_supports:           { ta: "சாதகங்கள்",                       en: "Supporting factors" },
@@ -507,7 +507,7 @@ const STRINGS = {
   yoga_absent:             { ta: "இல்லை",                            en: "Absent" },
   dosham_cancelled:        { ta: "ரத்தாகியது",                       en: "Cancelled" },
   dosham_active:           { ta: "செயலில் உள்ளது",                   en: "Active" },
-  yoga_dasha_activated:    { ta: "தசையில் செயல்படுகிறது",            en: "Dasha-activated" },
+  yoga_dasha_activated:    { ta: "தசையில் செயல்படுகிறது",            en: "Dasa-activated" },
   yoga_conditions_met:     { ta: "நிறைவேறிய நிபந்தனைகள்",           en: "Conditions met" },
   yoga_cancellation:       { ta: "ரத்து காரணங்கள்",                  en: "Cancellation factors" },
   yogas_empty:             { ta: "ஜாதகம் கணக்கிட்ட பின் யோக/தோஷ விவரம் தெரியும்.", en: "Yoga/Dosham details appear after chart calculation." },
@@ -587,7 +587,7 @@ const STRINGS = {
   notif_channel_both:      { ta: "இரண்டும்",                        en: "Both" },
   notif_morning_alert:     { ta: "காலை அறிவிப்பு",                  en: "Morning alert" },
   notif_morning_time:      { ta: "நேரம்",                           en: "Time" },
-  notif_dasha_alert:       { ta: "தசை மாற்ற அறிவிப்பு",            en: "Dasha transition alert" },
+  notif_dasha_alert:       { ta: "தசை மாற்ற அறிவிப்பு",            en: "Dasa transition alert" },
   notif_pirantha_alert:    { ta: "பிறந்த நாள் அறிவிப்பு",           en: "Pirantha Naal alert" },
   notif_smart_silence:     { ta: "நுட்பமான அமைதி",                 en: "Smart silence" },
   notif_fcm_registered:    { ta: "FCM பதிவு செய்யப்பட்டது",         en: "Push token registered" },
@@ -607,7 +607,7 @@ const STRINGS = {
   // ── FEATURE-07: Week-ahead digest
   week_ahead_label:        { ta: "வாரக் கண்ணோட்டம்",          en: "Week Ahead" },
   week_best_day:           { ta: "சிறந்த நாள்",               en: "Best day" },
-  week_dasha_theme:        { ta: "தசை கருப்பொருள்",           en: "Dasha theme" },
+  week_dasha_theme:        { ta: "தசை கருப்பொருள்",           en: "Dasa theme" },
   week_chandrashtama_badge:{ ta: "⚠ சந்திராஷ்டமம்",           en: "⚠ Chandrashtama" },
   week_special_tithi:      { ta: "சிறப்பு திதி",              en: "Special tithi" },
 
@@ -631,9 +631,9 @@ const STRINGS = {
   activity_other:          { ta: "மற்றவை",                     en: "Other" },
 
   // ── FEATURE-09: Dasha story timeline
-  dasha_story_label:       { ta: "முழு தசை வரலாறு",            en: "Full Dasha Story" },
+  dasha_story_label:       { ta: "முழு தசை வரலாறு",            en: "Full Dasa Story" },
   dasha_story_age:         { ta: "வயது",                        en: "Age" },
-  btn_expand_dasha_story:  { ta: "தசை வரலாறு காண்",             en: "View Dasha Story" },
+  btn_expand_dasha_story:  { ta: "தசை வரலாறு காண்",             en: "View Dasa Story" },
   btn_collapse_dasha_story:{ ta: "மூடு",                        en: "Collapse" },
 
   // ── FEATURE-12: Journal correlations
@@ -670,7 +670,7 @@ const STRINGS = {
   journal_area_education:  { ta: "கல்வி",                           en: "Education" },
   journal_area_spiritual:  { ta: "ஆன்மிகம்",                       en: "Spiritual" },
   journal_area_general:    { ta: "பொதுவான",                         en: "General" },
-  journal_anchor_dasha:    { ta: "தசை",                             en: "Dasha" },
+  journal_anchor_dasha:    { ta: "தசை",                             en: "Dasa" },
   // ── Context events
   context_section_label:   { ta: "வரவிருக்கும் நிகழ்வுகள்",         en: "Upcoming Events" },
   context_section_desc:    { ta: "வரவிருக்கும் முக்கிய நிகழ்வுகளை பதிவு செய்யுங்கள். இவை உங்கள் தினசரி வழிகாட்டுதலை மேம்படுத்தும்.", en: "Register key upcoming events. They enhance your daily context insight." },
@@ -736,7 +736,7 @@ const STRINGS = {
   retro_intensity_milder:  { ta: "குறைவான",                     en: "Milder" },
   retro_intensity_stronger:{ ta: "அதிகமான",                    en: "Stronger" },
   retro_key_transits:      { ta: "முக்கிய கிரகநகர்வுகள்",       en: "Key Transits" },
-  retro_active_dasha:      { ta: "நடப்பு தசை",                  en: "Active Dasha" },
+  retro_active_dasha:      { ta: "நடப்பு தசை",                  en: "Active Dasa" },
 
   // ── Decision support tool
   decision_panel_title:       { ta: "முடிவு ஆதரவு",               en: "Decision Support" },
@@ -836,7 +836,7 @@ const STRINGS = {
   // ── P2-B: Shareable cards
   share_card:              { ta: "பகிர்",                       en: "Share" },
   share_daily_vibe:        { ta: "இன்றைய ஆற்றல்",              en: "Today's energy" },
-  share_dasha_era:         { ta: "என் தசை காலம்",              en: "My dasha era" },
+  share_dasha_era:         { ta: "என் தசை காலம்",              en: "My dasa era" },
 
   // ── P2-C: Annual wrapped
   wrapped_title:           { ta: "என் வருட விமர்சனம்",         en: "My Year Wrapped" },

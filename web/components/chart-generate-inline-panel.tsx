@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
@@ -381,11 +381,11 @@ function JathagamPrint({ chart, dasha, fatherName, motherName, gender }: {
       {dasha && (
         <div style={{ marginTop: "8px", fontSize: "8px", color: "#111", lineHeight: 1.8, borderTop: "0.5px solid #aaa", paddingTop: "6px" }}>
           <div>
-            <strong>பிறந்த கால தசை இருப்பு (Dasha at Birth):</strong>{" "}
+            <strong>பிறந்த கால தசை இருப்பு (Dasa at Birth):</strong>{" "}
             {dashaLordTA(dasha.openingDasha.lord)} தசை — இருப்பு {formatDashaBalance(dasha.openingDasha.balanceYearsAtBirth)}
           </div>
           <div>
-            <strong>நடப்பு தசை இன்று (Current Dasha Today):</strong>{" "}
+            <strong>நடப்பு தசை இன்று (Current Dasa Today):</strong>{" "}
             {dashaLordTA(dasha.current.mahadasha.lord)} மகாதசை /{" "}
             {dashaLordTA(dasha.current.antardasha.lord)} அந்தர்தசை —{" "}
             {formatDateTA(dasha.current.mahadasha.startDate)} முதல் {formatDateTA(dasha.current.mahadasha.endDate)} வரை
@@ -472,7 +472,7 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
         ? `${chartSummary.janmaNakshatra} (Pada ${chartSummary.janmaPada})`
         : `${moon?.nakshatraName ?? "-"}${moon?.pada ? ` (Pada ${moon.pada})` : ""}`,
     },
-    { label: "Current Dasha", value: chartSummary ? `${chartSummary.currentMahadasha} / ${chartSummary.currentAntardasha}` : "-" },
+    { label: "Current Dasa", value: chartSummary ? `${chartSummary.currentMahadasha} / ${chartSummary.currentAntardasha}` : "-" },
   ] : [];
 
   return (
@@ -656,7 +656,7 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
                 Version: <strong>{chart.calculationVersion}</strong> | Ayanamsa: <strong>{chart.ayanamsa.type}</strong> | Ephemeris: <strong>{chart.ephemerisBackend}</strong>
               </p>
               <p style={{ margin: "6px 0 0", fontSize: "0.75rem", color: W.muted }}>
-                House style: Whole-sign from Lagna. Dasha system: Vimshottari from Moon longitude.
+                House style: Whole-sign from Lagna. Dasa system: Vimshottari from Moon longitude.
               </p>
             </div>
 

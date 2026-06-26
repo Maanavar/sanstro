@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useRef, useState } from "react";
 import { t } from "@/lib/i18n";
@@ -91,7 +91,7 @@ export function DashboardDashaScrubber({
             color: "var(--color-muted, var(--panel-mid-earth))",
           }}
         >
-          {lang === "ta" ? "மகாதசை பார்வை — ஒட்டுமொத்த 120-ஆண்டு சுழற்சி" : "Mahadasha Overview — full 120-year cycle"}
+          {lang === "ta" ? "மகாதசை பார்வை — ஒட்டுமொத்த 120-ஆண்டு சுழற்சி" : "Mahadasa Overview — full 120-year cycle"}
         </p>
         <p style={{ margin: 0, fontSize: "0.625rem", color: "var(--color-faint)", fontStyle: "italic" }}>
           {lang === "ta" ? "கீழே புக்தி விவரம் காண்க" : "See Dasa · Bhukti · Antaram below for sub-period detail"}
@@ -238,7 +238,7 @@ export function DashboardDashaScrubber({
                 {mode === "BEGINNER"
                   ? plainLangDashaLord(item.lord, "BEGINNER", lang)
                   : item.lord.charAt(0) + item.lord.slice(1).toLowerCase()}{" "}
-                {lang === "ta" ? "தசை" : "Dasha"}{" "}
+                {lang === "ta" ? "தசை" : "Dasa"}{" "}
                 <span style={{ fontWeight: 400, color: "var(--color-muted, var(--panel-mid-earth))" }}>
                   {formatYear(item.startDate)}–{formatYear(item.endDate)}
                 </span>

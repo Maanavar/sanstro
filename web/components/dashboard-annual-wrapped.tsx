@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { apiFetchJson } from "@/lib/api";
@@ -106,7 +106,7 @@ function StatsSummary({ data, lang }: { data: AnnualWrappedData; lang: Lang }) {
     { label: lang === "ta" ? "சராசரி மதிப்பெண்" : "Avg Score", value: `${data.averageScore}/100` },
     { label: lang === "ta" ? "உயர் நாட்கள்" : "High Days", value: String(data.highDays) },
     { label: lang === "ta" ? "நாட்கள் கண்காணிப்பு" : "Days Tracked", value: String(data.totalDaysScored) },
-    { label: lang === "ta" ? "தலைமை தசை" : "Dominant Dasha", value: data.dominantDashaLord, color: lordColor },
+    { label: lang === "ta" ? "தலைமை தசை" : "Dominant Dasa", value: data.dominantDashaLord, color: lordColor },
   ];
 
   return (
@@ -348,7 +348,7 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
 
             {/* Share DASHA_ERA card from within the wrapped view */}
             <div style={{ paddingTop: "4px", display: "flex", justifyContent: "center" }}>
-              <ShareCardButton chartId={chartId} cardType="DASHA_ERA" lang={lang} label={lang === "ta" ? "தசை அட்டை பகிர்" : "Share Dasha Card"} />
+              <ShareCardButton chartId={chartId} cardType="DASHA_ERA" lang={lang} label={lang === "ta" ? "தசை அட்டை பகிர்" : "Share Dasa Card"} />
             </div>
 
           </div>

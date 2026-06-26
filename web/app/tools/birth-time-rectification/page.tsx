@@ -73,7 +73,7 @@ export default function BirthTimeRectificationPage() {
             <div className="cl-pub-two-col">
               <div className="cl-pub-section__body">
                 <p>{lang === "en"
-                  ? "In Tamil Jyotish, the lagna (ascendant) is the most important single point in the birth chart. It changes approximately every 2 hours. An error of even 30 minutes can place the lagna in the wrong sign."
+                  ? "In Tamil Jothidam, the lagna (ascendant) is the most important single point in the birth chart. It changes approximately every 2 hours. An error of even 30 minutes can place the lagna in the wrong sign."
                   : "தமிழ் ஜோதிடத்தில், லக்னம் பிறப்பு ஜாதகத்தின் மிக முக்கியமான ஒற்றை குறியிடம். இது சுமார் ஒவ்வொரு 2 மணி நேரத்திற்கும் மாறுகிறது. 30 நிமிடப் பிழை கூட லக்னத்தை வேறு ராசியில் கொண்டு செல்லக்கூடும்."}</p>
               </div>
               <div className="cl-callout">
