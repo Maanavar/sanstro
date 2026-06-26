@@ -14,7 +14,15 @@ Quick map to the right document for each purpose.
 
 ## Implementation
 - [IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md) — Non-negotiable rules, MVP scope, stack context, all implementation phases
-- [REFACTOR_PLAN.md](../REFACTOR_PLAN.md) — Production-readiness refactor plan (phases 0–5; some DONE, some DEFERRED)
+- [REFACTOR_PLAN.md](REFACTOR_PLAN.md) — Production-readiness refactor plan (phases 0–5; some DONE, some DEFERRED)
+- [HOW_TO_USE_CODEBASE.md](HOW_TO_USE_CODEBASE.md) — Codebase orientation: repo layout, service map, key patterns
+- [error-handling.md](error-handling.md) — Centralized error code system: backend ErrorCode enum, frontend formatters, migration status
+- [MASTER_FIX_LIST.md](MASTER_FIX_LIST.md) — Cumulative fix/issue tracking list
+
+## UX & Design
+- [UX_EXCELLENCE_AUDIT.md](UX_EXCELLENCE_AUDIT.md) — UX audit findings and recommendations
+- [BIRTH_PROFILE_MANAGEMENT.md](BIRTH_PROFILE_MANAGEMENT.md) — Birth profile management UX spec
+- [COMPLETE_SOLUTION_SUMMARY.md](COMPLETE_SOLUTION_SUMMARY.md) — High-level implementation summary (historical reference)
 
 ## Frontend
 - [FRONTEND.md](FRONTEND.md) — Current UI status, missing features, UI/UX backlog
@@ -24,6 +32,8 @@ Quick map to the right document for each purpose.
 - [mobile/MOBILE_DECISIONS.md](mobile/MOBILE_DECISIONS.md) — **Owner-level decisions**: scope, monetization, GTM, access model (LOCKED)
 - [mobile/MOBILE_DESIGN_BRIEF.md](mobile/MOBILE_DESIGN_BRIEF.md) — Design authority: color, typography, all screens across phases A/B/C
 - [mobile/MOBILE_BUILD_SPEC.md](mobile/MOBILE_BUILD_SPEC.md) — **Coding agent reference**: tech stack, non-negotiables, screen-by-screen build spec
+- [MOBILE_PRODUCT_DESIGN.md](MOBILE_PRODUCT_DESIGN.md) — Mobile product design overview
+- [MOBILE_UX_2026.md](MOBILE_UX_2026.md) — Mobile UX principles and screen patterns for 2026
 
 ## Marketing, SEO, and Public Site
 - [MARKETING_PLAN.md](MARKETING_PLAN.md) — Growth strategy, site IA, homepage content blueprint, SEO roadmap
