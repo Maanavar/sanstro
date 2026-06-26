@@ -1,0 +1,9 @@
+{
+  "root": true,
+  "extends": "expo",
+  "ignorePatterns": [
+    ".expo/",
+    "android/",
+    "node_modules/"
+  ]
+}
