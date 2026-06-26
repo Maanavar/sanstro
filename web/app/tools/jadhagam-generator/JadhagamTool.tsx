@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { PlaceCombobox } from "@/components/dashboard-ui";
 import type { ChartCalculateResponseData, ChartPlanet, ChartYogaInsight } from "@/lib/types";
 import { readErrorMessage } from "@/lib/api";
@@ -9,7 +10,7 @@ import { useLang } from "@/components/lang-toggle";
 import { JadhagamShareButton } from "@/components/public-share-card";
 import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
 
-/* South Indian grid positions — fixed sign layout */
+// ── South Indian grid layout ──────────────────────────────────────────────────
 const RASI_GRID = [
   { rasi: 12, col: 0, row: 0 }, { rasi: 1, col: 1, row: 0 }, { rasi: 2, col: 2, row: 0 }, { rasi: 3, col: 3, row: 0 },
   { rasi: 11, col: 0, row: 1 }, { rasi: 4, col: 3, row: 1 },
@@ -29,7 +30,7 @@ const RASI_NAMES_TA: Record<number, string> = {
   9: "தனுசு", 10: "மகரம்", 11: "கும்பம்", 12: "மீனம்",
 };
 
-const PLANET_ORDER = ["SUN","MOON","MARS","MERCURY","JUPITER","VENUS","SATURN","RAHU","KETU","MANDHI"];
+const PLANET_ORDER = ["SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU", "MANDHI"];
 
 const PLANET_LABELS_EN: Record<string, string> = {
   SUN: "Sun · Suryan", MOON: "Moon · Chandran", MARS: "Mars · Sevvai",
@@ -43,10 +44,188 @@ const PLANET_LABELS_TA: Record<string, string> = {
   SATURN: "சனி", RAHU: "ராகு", KETU: "கேது", MANDHI: "மாந்தி",
 };
 
+// ── Nakshatra lord table (1-27) ──────────────────────────────────────────────
+const NAKSHATRA_LORDS_TA: Record<number, string> = {
+  1: "கேது", 2: "சுக்", 3: "சூரி", 4: "சந்", 5: "செவ்", 6: "ராகு", 7: "குரு",
+  8: "சனி", 9: "புத", 10: "கேது", 11: "சுக்", 12: "சூரி", 13: "சந்", 14: "செவ்",
+  15: "ராகு", 16: "குரு", 17: "சனி", 18: "புத", 19: "கேது", 20: "சுக்", 21: "சூரி",
+  22: "சந்", 23: "செவ்", 24: "ராகு", 25: "குரு", 26: "சனி", 27: "புத",
+};
+
+// ── Nakshatra starting syllables (4 padas each) ──────────────────────────────
+const NAKSHATRA_SYLLABLES: Record<number, [string, string, string, string]> = {
+  1:  ["அ",   "சி",   "சு",   "சே"],
+  2:  ["லீ",  "லு",   "லே",   "லோ"],
+  3:  ["அ",   "இ",    "உ",    "எ"],
+  4:  ["ஓ",   "வா",   "வி",   "வு"],
+  5:  ["வே",  "வோ",   "க",    "கி"],
+  6:  ["கு",  "க்ஷ",  "ண",    "ஞ"],
+  7:  ["கே",  "கோ",   "ஹா",   "ஹி"],
+  8:  ["ஹு",  "ஹே",   "ஹோ",   "ட"],
+  9:  ["டி",  "டு",   "டே",   "டோ"],
+  10: ["மா",  "மி",   "மு",   "மே"],
+  11: ["மோ",  "ட",    "டீ",   "டு"],
+  12: ["டே",  "டோ",   "ப",    "பி"],
+  13: ["பு",  "ஷ",    "ண",    "ட"],
+  14: ["பே",  "போ",   "ர",    "ரீ"],
+  15: ["ரு",  "ரே",   "ரோ",   "த"],
+  16: ["தி",  "தூ",   "தே",   "தோ"],
+  17: ["ந",   "நி",   "நு",   "நே"],
+  18: ["நோ",  "ய",    "யி",   "யு"],
+  19: ["யே",  "யோ",   "ப",    "பீ"],
+  20: ["பு",  "ட",    "ட",    "டீ"],
+  21: ["பே",  "போ",   "ஜ",    "ஜி"],
+  22: ["ஜு",  "ஜே",   "ஜோ",   "க்ஷீ"],
+  23: ["க",   "கீ",   "கு",   "கே"],
+  24: ["கோ",  "ச",    "சீ",   "சு"],
+  25: ["சே",  "சோ",   "த",    "தீ"],
+  26: ["து",  "ஜ",    "ஜீ",   "ஜு"],
+  27: ["தே",  "தோ",   "ச",    "சீ"],
+};
+
+// ── Dignity (Nilai) tables ────────────────────────────────────────────────────
+const EXALTATION_RASI: Record<string, number> = {
+  SUN: 1, MOON: 2, MARS: 10, MERCURY: 6, JUPITER: 4, VENUS: 12, SATURN: 7,
+};
+const DEBILITATION_RASI: Record<string, number> = {
+  SUN: 7, MOON: 8, MARS: 4, MERCURY: 12, JUPITER: 10, VENUS: 6, SATURN: 1,
+};
+const OWN_SIGN_RASI: Record<string, number[]> = {
+  SUN: [5], MOON: [4], MARS: [1, 8], MERCURY: [3, 6],
+  JUPITER: [9, 12], VENUS: [2, 7], SATURN: [10, 11],
+};
+const NATURAL_FRIENDS: Record<string, string[]> = {
+  SUN: ["MOON", "MARS", "JUPITER"],
+  MOON: ["SUN", "MERCURY"],
+  MARS: ["SUN", "MOON", "JUPITER"],
+  MERCURY: ["SUN", "VENUS"],
+  JUPITER: ["SUN", "MOON", "MARS"],
+  VENUS: ["MERCURY", "SATURN"],
+  SATURN: ["MERCURY", "VENUS"],
+  RAHU: ["VENUS", "SATURN"],
+  KETU: ["MARS", "VENUS"],
+};
+const NATURAL_ENEMIES: Record<string, string[]> = {
+  SUN: ["VENUS", "SATURN"],
+  MOON: ["RAHU", "KETU"],
+  MARS: ["MERCURY"],
+  MERCURY: ["MOON"],
+  JUPITER: ["MERCURY", "VENUS"],
+  VENUS: ["SUN", "MOON"],
+  SATURN: ["SUN", "MOON", "MARS"],
+  RAHU: ["SUN", "MOON", "MARS", "JUPITER"],
+  KETU: ["SUN", "MOON", "JUPITER"],
+};
+const SIGN_LORD: Record<number, string> = {
+  1: "MARS", 2: "VENUS", 3: "MERCURY", 4: "MOON", 5: "SUN", 6: "MERCURY",
+  7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
+};
+
+function getNilai(graha: string, rasi: number): string {
+  if (EXALTATION_RASI[graha] === rasi) return "உச்சம்";
+  if (DEBILITATION_RASI[graha] === rasi) return "நீச்சம்";
+  if (OWN_SIGN_RASI[graha]?.includes(rasi)) return "ஆட்சி";
+  const lord = SIGN_LORD[rasi];
+  if (!lord) return "—";
+  if (NATURAL_FRIENDS[graha]?.includes(lord)) return "நட்பு";
+  if (NATURAL_ENEMIES[graha]?.includes(lord)) return "பகை";
+  return "சமம்";
+}
+
+// ── Utility helpers ───────────────────────────────────────────────────────────
+function toDMS(deg: number): string {
+  const d = Math.floor(deg);
+  const mRaw = (deg - d) * 60;
+  const m = Math.floor(mRaw);
+  const s = Math.round((mRaw - m) * 60);
+  return `${d}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function formatDateDD(dateIso: string) {
+  const [y, m, d] = dateIso.split("-");
+  return `${d ?? ""}-${m ?? ""}-${y ?? ""}`;
+}
+
+function timeToMinutes(t: string): number {
+  // Handles "HH:MM", "HH:MM:SS", "HH:MM:SS AM/PM"
+  const upper = t.trim().toUpperCase();
+  const isPM = upper.endsWith("PM");
+  const isAM = upper.endsWith("AM");
+  const clean = upper.replace(/\s*(AM|PM)$/, "");
+  const parts = clean.split(":").map(Number);
+  let h = parts[0] ?? 0;
+  const min = parts[1] ?? 0;
+  if (isPM && h !== 12) h += 12;
+  if (isAM && h === 12) h = 0;
+  return h * 60 + min;
+}
+
+function computeNaaligai(birthTime: string, sunriseTime: string): string {
+  const bMin = timeToMinutes(birthTime);
+  const sMin = timeToMinutes(sunriseTime);
+  let diff = bMin - sMin;
+  if (diff < 0) diff += 1440; // before today's sunrise → count from prev sunrise
+  const totalSec = diff * 60;
+  const naaligai = Math.floor(totalSec / 1440);
+  const rem = totalSec % 1440;
+  const vinnadi = Math.floor(rem / 24);
+  const tattam = rem % 24;
+  return `${naaligai}.${String(vinnadi).padStart(2, "0")}.${String(tattam).padStart(2, "0")}`;
+}
+
+function latToDMS(lat: number): string {
+  const abs = Math.abs(lat);
+  const d = Math.floor(abs);
+  const mRaw = (abs - d) * 60;
+  const m = Math.floor(mRaw);
+  const s = Math.round((mRaw - m) * 60);
+  const dir = lat >= 0 ? "N" : "S";
+  return `${d}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")} ${dir}`;
+}
+
+function lngToDMS(lng: number): string {
+  const abs = Math.abs(lng);
+  const d = Math.floor(abs);
+  const mRaw = (abs - d) * 60;
+  const m = Math.floor(mRaw);
+  const s = Math.round((mRaw - m) * 60);
+  const dir = lng >= 0 ? "E" : "W";
+  return `${d}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")} ${dir}`;
+}
+
+function pakshaTa(p: string): string {
+  if (p === "SHUKLA") return "சுக்ல";
+  if (p === "KRISHNA") return "கிருஷ்ண";
+  return p;
+}
+
+function dashaLordTa(lord: string): string {
+  const MAP: Record<string, string> = {
+    SUN: "சூரியன்", MOON: "சந்திரன்", MARS: "செவ்வாய்", MERCURY: "புதன்",
+    JUPITER: "குரு", VENUS: "சுக்கிரன்", SATURN: "சனி", RAHU: "ராகு", KETU: "கேது",
+  };
+  return MAP[lord] ?? lord;
+}
+
+function formatDashaYMD(years: number): string {
+  const y = Math.floor(years);
+  const m = Math.round((years - y) * 12);
+  if (y === 0) return `${m} மாதம்`;
+  if (m === 0) return `${y} வருடம்`;
+  return `${y} வருடம் ${m} மாதம்`;
+}
+
+function formatISODate(iso: string): string {
+  const [y, m, d] = iso.split("-");
+  return `${d}-${m}-${y}`;
+}
+
+// ── Screen RasiGrid (interactive) ─────────────────────────────────────────────
 function RasiGrid({ chart, d9, lang }: { chart: ChartCalculateResponseData; d9?: boolean; lang: "en" | "ta" }) {
   const lagnaRasi = d9 ? computeD9LagnaRasi(chart.lagna.absoluteLongitude) : chart.lagna.rasi;
   const RASI_NAMES = lang === "en" ? RASI_NAMES_EN : RASI_NAMES_TA;
   const lagnaLabel = lang === "en" ? "La" : "ல";
+  const cellSize = 72;
 
   function getOcc(rasi: number): string[] {
     const occ: string[] = [];
@@ -57,8 +236,6 @@ function RasiGrid({ chart, d9, lang }: { chart: ChartCalculateResponseData; d9?:
     });
     return occ;
   }
-
-  const cellSize = 72;
 
   return (
     <div style={{ display: "inline-block" }}>
@@ -75,22 +252,17 @@ function RasiGrid({ chart, d9, lang }: { chart: ChartCalculateResponseData; d9?:
           const isLagna = lagnaRasi === rasi;
           return (
             <div key={rasi} style={{
-              gridColumn: col + 1,
-              gridRow: row + 1,
+              gridColumn: col + 1, gridRow: row + 1,
               border: "1px solid var(--cl-border)",
               padding: "4px 5px",
               background: isLagna ? "rgba(184,90,44,0.07)" : "var(--cl-surface)",
-              position: "relative",
-              minHeight: `${cellSize}px`,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
+              position: "relative", minHeight: `${cellSize}px`,
+              display: "flex", flexDirection: "column", justifyContent: "space-between",
             }}>
               {isLagna && (
                 <div style={{
-                  position: "absolute", top: 0, right: 0,
-                  width: 0, height: 0, borderStyle: "solid",
-                  borderWidth: "0 14px 14px 0",
+                  position: "absolute", top: 0, right: 0, width: 0, height: 0,
+                  borderStyle: "solid", borderWidth: "0 14px 14px 0",
                   borderColor: "transparent #B85A2C transparent transparent",
                 }} />
               )}
@@ -108,7 +280,6 @@ function RasiGrid({ chart, d9, lang }: { chart: ChartCalculateResponseData; d9?:
             </div>
           );
         })}
-        {/* Center label */}
         <div style={{
           gridColumn: "2 / 4", gridRow: "2 / 4",
           border: "1px solid var(--cl-border)",
@@ -117,9 +288,7 @@ function RasiGrid({ chart, d9, lang }: { chart: ChartCalculateResponseData; d9?:
         }}>
           <div style={{ textAlign: "center", fontSize: "0.68rem", color: "var(--cl-muted)" }}>
             <div style={{ fontWeight: 700, fontSize: "0.72rem", color: "var(--cl-ink)" }}>
-              {d9
-                ? (lang === "en" ? "D9 Navamsa" : "D9 நவாம்சம்")
-                : (lang === "en" ? "D1 Rasi" : "D1 ராசி")}
+              {d9 ? (lang === "en" ? "D9 Navamsa" : "D9 நவாம்சம்") : (lang === "en" ? "D1 Rasi" : "D1 ராசி")}
             </div>
             <div style={{ fontSize: "0.6rem", marginTop: "2px" }}>
               {RASI_NAMES[lagnaRasi]} {lang === "en" ? "Lagna" : "லக்னம்"}
@@ -131,110 +300,79 @@ function RasiGrid({ chart, d9, lang }: { chart: ChartCalculateResponseData; d9?:
   );
 }
 
-
-function formatDateForSheet(dateIso: string) {
-  const [year, month, day] = dateIso.split("-");
-  if (!year || !month || !day) return dateIso;
-  return `${day}-${month}-${year}`;
-}
-
-function PrintableSouthChart({
-  chart,
-  lang,
-  title,
-  d9 = false,
+// ── Print-only South chart ────────────────────────────────────────────────────
+function PrintSouthChart({
+  chart, title, d9 = false,
 }: {
-  chart: ChartCalculateResponseData;
-  lang: "en" | "ta";
-  title: string;
-  d9?: boolean;
+  chart: ChartCalculateResponseData; title: string; d9?: boolean;
 }) {
   const lagnaRasi = d9 ? computeD9LagnaRasi(chart.lagna.absoluteLongitude) : chart.lagna.rasi;
-  const rasiNames = lang === "en" ? RASI_NAMES_EN : RASI_NAMES_TA;
-  const lagnaLabel = lang === "en" ? "La" : "L";
-  const cellSize = 66;
+  const cellSize = 64;
 
-  function getOccupants(rasi: number): string[] {
+  function getOcc(rasi: number): string[] {
     const occ: string[] = [];
-    if (lagnaRasi === rasi) occ.push(lagnaLabel);
+    if (lagnaRasi === rasi) occ.push("ல");
     chart.planets.forEach((planet) => {
-      const planetRasi = d9 ? planet.d9Rasi : planet.rasi;
-      if (planetRasi === rasi) occ.push(GRAHA_ABBR[planet.graha] ?? planet.graha.slice(0, 2));
+      const r = d9 ? planet.d9Rasi : planet.rasi;
+      if (r === rasi) occ.push(GRAHA_ABBR[planet.graha] ?? planet.graha.slice(0, 2));
     });
     return occ;
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "center" }}>
-      <div style={{ fontSize: "0.78rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#2f2720" }}>
-        {title}
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(4, ${cellSize}px)`,
-          gridTemplateRows: `repeat(4, ${cellSize}px)`,
-          border: "1.5px solid #2f2720",
-          background: "#fff",
-        }}
-      >
+    <div style={{ display: "flex", flexDirection: "column", gap: "5px", alignItems: "center" }}>
+      <div style={{ fontSize: "7.5px", fontWeight: 700, letterSpacing: "0.06em", color: "#2f2720" }}>{title}</div>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: `repeat(4, ${cellSize}px)`,
+        gridTemplateRows: `repeat(4, ${cellSize}px)`,
+        border: "1.5px solid #2f2720",
+        background: "#fff",
+      }}>
         {RASI_GRID.map(({ rasi, col, row }) => {
-          const occupants = getOccupants(rasi);
+          const occ = getOcc(rasi);
           const isLagna = lagnaRasi === rasi;
           return (
-            <div
-              key={`${title}-${rasi}`}
-              style={{
-                gridColumn: col + 1,
-                gridRow: row + 1,
-                border: "1px solid #6b5d4d",
-                padding: "4px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                minHeight: `${cellSize}px`,
-                background: isLagna ? "#fbf1de" : "#fff",
-              }}
-            >
-              <span style={{ fontSize: "0.58rem", color: "#7a6f5e" }}>{rasiNames[rasi]}</span>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "2px" }}>
-                {occupants.map((item, index) => (
-                  <span
-                    key={`${rasi}-${item}-${index}`}
-                    style={{
-                      fontSize: "0.74rem",
-                      fontWeight: 700,
-                      color: item === lagnaLabel ? "#b85a2c" : "#2f2720",
-                    }}
-                  >
-                    {item}
-                  </span>
+            <div key={`${title}-${rasi}`} style={{
+              gridColumn: col + 1, gridRow: row + 1,
+              border: "0.75px solid #6b5d4d",
+              padding: "3px",
+              display: "flex", flexDirection: "column", justifyContent: "space-between",
+              minHeight: `${cellSize}px`,
+              background: isLagna ? "#fbf1de" : "#fff",
+              position: "relative",
+            }}>
+              {isLagna && (
+                <div style={{
+                  position: "absolute", top: 0, right: 0, width: 0, height: 0,
+                  borderStyle: "solid", borderWidth: "0 10px 10px 0",
+                  borderColor: "transparent #b85a2c transparent transparent",
+                }} />
+              )}
+              <span style={{ fontSize: "5.5px", color: "#7a6f5e" }}>{RASI_NAMES_TA[rasi]}</span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "1px" }}>
+                {occ.map((item, index) => (
+                  <span key={`${rasi}-${item}-${index}`} style={{
+                    fontSize: "7px", fontWeight: 700,
+                    color: item === "ல" ? "#b85a2c" : "#2f2720",
+                  }}>{item}</span>
                 ))}
               </div>
             </div>
           );
         })}
-        <div
-          style={{
-            gridColumn: "2 / 4",
-            gridRow: "2 / 4",
-            border: "1px solid #6b5d4d",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "8px",
-            textAlign: "center",
-            background: "#fffdfa",
-          }}
-        >
+        <div style={{
+          gridColumn: "2 / 4", gridRow: "2 / 4",
+          border: "0.75px solid #6b5d4d",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: "4px", textAlign: "center", background: "#fffdfa",
+        }}>
           <div>
-            <div style={{ fontSize: "0.9rem", fontWeight: 700, color: "#2f2720" }}>{chart.birthProfile.displayName}</div>
-            <div style={{ fontSize: "0.72rem", color: "#7a6f5e", marginTop: "4px" }}>
-              {rasiNames[lagnaRasi]} {lang === "en" ? "Lagna" : "Lagna"}
+            <div style={{ fontSize: "7.5px", fontWeight: 700, color: "#2f2720" }}>
+              {d9 ? "நவாம்சம்" : "இராசி"}
             </div>
-            <div style={{ fontSize: "0.66rem", color: "#7a6f5e", marginTop: "2px" }}>
-              {formatDateForSheet(chart.birthProfile.birthDateLocal)}
-              {chart.birthProfile.birthTimeLocal ? ` · ${chart.birthProfile.birthTimeLocal}` : ""}
+            <div style={{ fontSize: "6px", color: "#7a6f5e", marginTop: "2px" }}>
+              {RASI_NAMES_TA[lagnaRasi]} லக்னம்
             </div>
           </div>
         </div>
@@ -243,144 +381,251 @@ function PrintableSouthChart({
   );
 }
 
-function PrintableJadhagamSheet({ chart, lang }: { chart: ChartCalculateResponseData; lang: "en" | "ta" }) {
-  const en = lang === "en";
-  const moon = chart.planets.find((planet) => planet.graha === "MOON");
+// ── Main print document ───────────────────────────────────────────────────────
+function PrintableJadhagamSheet({
+  chart,
+  fatherName,
+  motherName,
+  gender,
+  dasha,
+}: {
+  chart: ChartCalculateResponseData;
+  fatherName: string;
+  motherName: string;
+  gender: string;
+  dasha: { openingDasha: { lord: string; balanceYearsAtBirth: number }; current: { mahadasha: { lord: string; startDate: string; endDate: string }; antardasha: { lord: string; endDate: string } } } | null;
+}) {
+  const bp = chart.birthProfile;
+  const moon = chart.planets.find((p) => p.graha === "MOON");
   const d9LagnaRasi = computeD9LagnaRasi(chart.lagna.absoluteLongitude);
-  const rasiNames = en ? RASI_NAMES_EN : RASI_NAMES_TA;
-  const planetLabels = en ? PLANET_LABELS_EN : PLANET_LABELS_TA;
+  const sig = chart.birthPanchangamSignature as Record<string, string>;
 
-  const summaryRows = [
-    { label: "Name", value: chart.birthProfile.displayName || "Chart" },
-    { label: "Birth Place", value: chart.birthProfile.birthPlace || "-" },
-    {
-      label: "Birth Date & Time",
-      value: `${formatDateForSheet(chart.birthProfile.birthDateLocal)}${chart.birthProfile.birthTimeLocal ? ` · ${chart.birthProfile.birthTimeLocal}` : ""}`,
-    },
-    { label: "Timezone", value: chart.birthProfile.birthTimezone || "-" },
-    { label: "Lagna", value: `${rasiNames[chart.lagna.rasi]} · ${chart.lagna.nakshatraName}` },
-    { label: "Birth Star", value: moon ? `${moon.nakshatraName} (Pada ${moon.pada})` : "-" },
-    { label: "Birth Sign", value: moon ? rasiNames[moon.rasi] : "-" },
-    {
-      label: "Coordinates",
-      value: `${Number(chart.birthProfile.birthLatitude ?? 0).toFixed(2)}, ${Number(chart.birthProfile.birthLongitude ?? 0).toFixed(2)}`,
-    },
-  ];
+  // Nakshatra syllables for moon's nakshatra
+  const moonNakIdx = moon?.nakshatra ?? 0;
+  const syllables = NAKSHATRA_SYLLABLES[moonNakIdx] ?? ["—", "—", "—", "—"];
+
+  // Udhayadhi Naaligai
+  const naaligai = sig.sunrise_time && bp.birthTimeLocal
+    ? computeNaaligai(bp.birthTimeLocal, sig.sunrise_time)
+    : "—";
+
+  const cellSt: React.CSSProperties = {
+    border: "0.5px solid #6b5d4d",
+    padding: "3px 5px",
+    fontSize: "7.5px",
+    verticalAlign: "middle",
+  };
+  const hdrSt: React.CSSProperties = {
+    ...cellSt,
+    fontWeight: 700,
+    background: "#f5eedd",
+    whiteSpace: "nowrap",
+    width: "1%",
+  };
+
+  // Build lagna + planet rows for planet table
+  const lagnaRow = {
+    graha: "LAGNA",
+    nameTA: "லக்னம்",
+    absLong: chart.lagna.absoluteLongitude,
+    nakshatra: chart.lagna.nakshatra,
+    nakshatraName: chart.lagna.nakshatraName,
+    pada: chart.lagna.pada,
+    rasi: chart.lagna.rasi,
+    d9Rasi: d9LagnaRasi,
+    isRetrograde: false,
+  };
+
+  const planetRows = PLANET_ORDER.map((g) => {
+    const p = chart.planets.find((x) => x.graha === g);
+    if (!p) return null;
+    return {
+      graha: g,
+      nameTA: PLANET_LABELS_TA[g] ?? g,
+      absLong: p.absoluteLongitude,
+      nakshatra: p.nakshatra,
+      nakshatraName: p.nakshatraName,
+      pada: p.pada,
+      rasi: p.rasi,
+      d9Rasi: p.d9Rasi,
+      isRetrograde: p.isRetrograde,
+    };
+  }).filter(Boolean) as typeof lagnaRow[];
+
+  const allPlanetRows = [lagnaRow, ...planetRows];
+
+  // Paavaga Maarudhal
+  const paavagam = PLANET_ORDER.map((g) => {
+    const p = chart.planets.find((x) => x.graha === g);
+    if (!p) return null;
+    const abbr = GRAHA_ABBR[g] ?? g.slice(0, 2);
+    const v = p.isRetrograde ? "(வ)" : "";
+    return `${abbr}${v}-${p.houseFromLagna}`;
+  }).filter(Boolean).join(", ");
+
+  const docStyle: React.CSSProperties = {
+    width: "100%",
+    maxWidth: "780px",
+    margin: "0 auto",
+    background: "#fff",
+    color: "#2f2720",
+    border: "1.5px solid #2f2720",
+    padding: "14px 16px",
+    boxSizing: "border-box",
+    fontFamily: '"Noto Serif Tamil", "Latha", "Tamil MN", Georgia, serif',
+    fontSize: "8px",
+  };
 
   return (
-    <div
-      className="jg-document-sheet"
-      style={{
-        width: "100%",
-        maxWidth: "860px",
-        margin: "0 auto",
-        background: "#fff",
-        color: "#2f2720",
-        border: "2px solid #2f2720",
-        padding: "18px",
-        boxSizing: "border-box",
-        fontFamily: '"Times New Roman", Georgia, serif',
-      }}
-    >
-      <div style={{ textAlign: "center", borderBottom: "1.5px solid #2f2720", paddingBottom: "10px", marginBottom: "12px" }}>
-        <div style={{ fontSize: "1.6rem", fontWeight: 700, letterSpacing: "0.04em" }}>Vinaadi AI</div>
-        <div style={{ marginTop: "4px", fontSize: "0.9rem" }}>
-          {en ? "Traditional South Indian Jadhagam" : "Traditional South Indian Jadhagam"}
-        </div>
-        <div style={{ marginTop: "4px", fontSize: "0.74rem", color: "#7a6f5e" }}>
-          {chart.calculationVersion} · {chart.ayanamsa.type} {chart.ayanamsa.valueDegrees.toFixed(2)}° · {chart.ephemerisBackend}
+    <div className="jg-document-sheet" style={docStyle}>
+      {/* ── Branding header ── */}
+      <div style={{ textAlign: "center", borderBottom: "1.5px solid #2f2720", paddingBottom: "8px", marginBottom: "10px" }}>
+        <div style={{ fontSize: "14px", fontWeight: 700, letterSpacing: "0.05em" }}>Vinaadi AI</div>
+        <div style={{ fontSize: "8px", marginTop: "2px", color: "#5a4a3a" }}>
+          விண்ணாடி AI · thirukanitham-based jathagam · {chart.ayanamsa.type} {chart.ayanamsa.valueDegrees.toFixed(2)}°
         </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-          border: "1px solid #6b5d4d",
-          marginBottom: "14px",
-        }}
-      >
-        {summaryRows.map((row) => (
-          <div
-            key={row.label}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "150px 1fr",
-              borderRight: "1px solid #6b5d4d",
-              borderBottom: "1px solid #6b5d4d",
-              minHeight: "34px",
-            }}
-          >
-            <div style={{ padding: "7px 8px", fontSize: "0.74rem", fontWeight: 700, background: "#f7f1e6" }}>{row.label}</div>
-            <div style={{ padding: "7px 8px", fontSize: "0.76rem" }}>{row.value}</div>
-          </div>
-        ))}
-      </div>
+      {/* ── Section 1: Two-column personal details ── */}
+      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "10px", border: "0.5px solid #6b5d4d" }}>
+        <tbody>
+          <tr>
+            <td style={hdrSt}>பெயர்</td>
+            <td style={cellSt}>: {bp.displayName}</td>
+            <td style={hdrSt}>அன்னை</td>
+            <td style={cellSt}>: {motherName || "—"}</td>
+          </tr>
+          <tr>
+            <td style={hdrSt}>தகப்பனார்</td>
+            <td style={cellSt}>: {fatherName || "—"}</td>
+            <td style={hdrSt}>பாலினம்</td>
+            <td style={cellSt}>: {gender === "FEMALE" ? "பெண்" : "ஆண்"}</td>
+          </tr>
+          <tr>
+            <td style={hdrSt}>பிறந்த தேதி/நேரம்</td>
+            <td style={cellSt}>: {formatDateDD(bp.birthDateLocal)}{bp.birthTimeLocal ? ` ${bp.birthTimeLocal}` : ""}</td>
+            <td style={hdrSt}>உதயாதி நாழிகை</td>
+            <td style={cellSt}>: {naaligai}</td>
+          </tr>
+          <tr>
+            <td style={hdrSt}>லக்னம்</td>
+            <td style={cellSt}>: {RASI_NAMES_TA[chart.lagna.rasi]} · {chart.lagna.nakshatraName}</td>
+            <td style={hdrSt}>பிறந்த இடம்</td>
+            <td style={cellSt}>: {bp.birthPlace || "—"}</td>
+          </tr>
+          <tr>
+            <td style={hdrSt}>ராசி / நட்சத்திரம்</td>
+            <td style={cellSt}>
+              : {moon ? `${RASI_NAMES_TA[moon.rasi]}-${moon.nakshatraName}, பாதம்-${moon.pada}` : "—"}
+            </td>
+            <td style={hdrSt}>அட்சாம்சம் / தீர்க்காம்சம்</td>
+            <td style={cellSt}>
+              : {latToDMS(Number(bp.birthLatitude ?? 0))} / {lngToDMS(Number(bp.birthLongitude ?? 0))}
+            </td>
+          </tr>
+          <tr>
+            <td style={hdrSt}>பஷ்ம-திதி</td>
+            <td style={cellSt}>
+              : {sig.tithi_paksha ? pakshaTa(sig.tithi_paksha) : "—"}{sig.tithi ? `/${sig.tithi}` : ""}
+            </td>
+            <td style={hdrSt}>சூரிய உதயம்</td>
+            <td style={cellSt}>: {sig.sunrise_time || "—"}</td>
+          </tr>
+          <tr>
+            <td style={hdrSt}>யோகம்-காரணம்</td>
+            <td style={cellSt}>
+              : {sig.yogam || "—"}{sig.karanam ? `/${sig.karanam}` : ""}
+            </td>
+            <td style={hdrSt}>சூரிய அஸ்தமனம்</td>
+            <td style={cellSt}>: {sig.sunset_time || "—"}</td>
+          </tr>
+          <tr>
+            <td style={hdrSt}>தமிழ் மாதம்/தேதி</td>
+            <td style={cellSt}>: {sig.tamil_date_ta || "—"}</td>
+            <td style={hdrSt}>நட்சத்திர எழுத்துக்கள்</td>
+            <td style={cellSt}>: {syllables.join(", ")}</td>
+          </tr>
+        </tbody>
+      </table>
 
-      <div style={{ border: "1px solid #6b5d4d", padding: "14px", marginBottom: "14px" }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))",
-            gap: "18px",
-            alignItems: "start",
-          }}
-        >
-          <PrintableSouthChart chart={chart} lang={lang} title="D1 Rasi" />
-          <PrintableSouthChart chart={chart} lang={lang} title="D9 Navamsa" d9 />
-        </div>
-        <div style={{ marginTop: "10px", fontSize: "0.72rem", color: "#6b5d4d", textAlign: "center" }}>
-          {`D9 Lagna: ${rasiNames[d9LagnaRasi]}`}
-        </div>
-      </div>
-
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.74rem" }}>
-          <thead>
-            <tr>
-              {["Planet", "Rasi", "Navamsa", "Birth Star", "Pada", "Degree", "House"].map((heading) => (
-                <th
-                  key={heading}
-                  style={{
-                    border: "1px solid #6b5d4d",
-                    background: "#f7f1e6",
-                    padding: "7px 8px",
-                    textAlign: "left",
-                    fontWeight: 700,
-                  }}
-                >
-                  {heading}
-                </th>
-              ))}
+      {/* ── Section 2: Planet positions table ── */}
+      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "10px", fontSize: "7.5px" }}>
+        <thead>
+          <tr>
+            {["கிரகம்", "பாகை-கலை", "நட்சத்திரம்", "பாதம்", "நட்சத்திர அதிபதி", "ராசி", "நவாம்சம்", "நிலை"].map((h) => (
+              <th key={h} style={{ ...cellSt, background: "#f5eedd", fontWeight: 700, textAlign: "center" }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {allPlanetRows.map((row) => (
+            <tr key={row.graha}>
+              <td style={{ ...cellSt, fontWeight: 600 }}>
+                {row.nameTA}
+                {row.isRetrograde && <sup style={{ fontSize: "5.5px", color: "#a84830" }}>வ</sup>}
+              </td>
+              <td style={{ ...cellSt, textAlign: "center", fontFamily: "monospace" }}>
+                {toDMS(row.absLong)}
+              </td>
+              <td style={cellSt}>{row.nakshatraName}</td>
+              <td style={{ ...cellSt, textAlign: "center" }}>{row.pada}</td>
+              <td style={{ ...cellSt, textAlign: "center" }}>
+                {row.graha === "LAGNA" ? "—" : (NAKSHATRA_LORDS_TA[row.nakshatra] ?? "—")}
+              </td>
+              <td style={cellSt}>{RASI_NAMES_TA[row.rasi]}</td>
+              <td style={cellSt}>{RASI_NAMES_TA[row.d9Rasi] ?? "—"}</td>
+              <td style={{ ...cellSt, textAlign: "center" }}>
+                {row.graha === "LAGNA" || row.graha === "RAHU" || row.graha === "KETU" || row.graha === "MANDHI"
+                  ? "—"
+                  : getNilai(row.graha, row.rasi)}
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {PLANET_ORDER.map((graha) => {
-              const planet = chart.planets.find((item: ChartPlanet) => item.graha === graha);
-              if (!planet) return null;
-              return (
-                <tr key={graha}>
-                  <td style={{ border: "1px solid #6b5d4d", padding: "6px 8px", fontWeight: 700 }}>
-                    {planetLabels[graha] ?? graha}
-                  </td>
-                  <td style={{ border: "1px solid #6b5d4d", padding: "6px 8px" }}>{rasiNames[planet.rasi]}</td>
-                  <td style={{ border: "1px solid #6b5d4d", padding: "6px 8px" }}>{rasiNames[planet.d9Rasi]}</td>
-                  <td style={{ border: "1px solid #6b5d4d", padding: "6px 8px" }}>{planet.nakshatraName}</td>
-                  <td style={{ border: "1px solid #6b5d4d", padding: "6px 8px" }}>{planet.pada}</td>
-                  <td style={{ border: "1px solid #6b5d4d", padding: "6px 8px", fontFamily: "monospace" }}>{planet.degreeInRasi.toFixed(2)}°</td>
-                  <td style={{ border: "1px solid #6b5d4d", padding: "6px 8px" }}>{planet.houseFromLagna}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+          ))}
+        </tbody>
+      </table>
+
+      {/* ── Section 3: Charts ── */}
+      <div style={{ display: "flex", gap: "20px", justifyContent: "center", marginBottom: "10px" }}>
+        <PrintSouthChart chart={chart} title="இராசி படம் (D1)" />
+        <PrintSouthChart chart={chart} title="நவாம்சம் படம் (D9)" d9 />
+      </div>
+
+      {/* ── Section 4: Dasha + Paavaga Maarudhal ── */}
+      <div style={{ borderTop: "0.5px solid #6b5d4d", paddingTop: "6px", fontSize: "7.5px", lineHeight: 1.9 }}>
+        {dasha && (
+          <>
+            <div>
+              <strong>பிறந்த கால தசை இருப்பு:</strong>{" "}
+              {dashaLordTa(dasha.openingDasha.lord)} தசை — இருப்பு {formatDashaYMD(dasha.openingDasha.balanceYearsAtBirth)}
+            </div>
+            <div>
+              <strong>நடப்பு தசை/அந்தரம்:</strong>{" "}
+              {dashaLordTa(dasha.current.mahadasha.lord)} தசை · {dashaLordTa(dasha.current.antardasha.lord)} புக்தி —{" "}
+              {formatISODate(dasha.current.antardasha.endDate)} வரை
+            </div>
+          </>
+        )}
+        <div>
+          <strong>பாவக மாறுதல்:</strong> {paavagam}
+        </div>
+      </div>
+
+      {/* Footer — bottom-right attribution */}
+      <div style={{ marginTop: "10px", paddingTop: "5px", borderTop: "0.5px solid #b0a090", display: "flex", justifyContent: "flex-end" }}>
+        <span style={{ fontSize: "6.5px", color: "#9a8a7a" }}>
+          vinaadi.com · திருக்கணிதம் · {chart.ayanamsa.type} {chart.ayanamsa.valueDegrees.toFixed(2)}° · {chart.ephemerisBackend}
+        </span>
       </div>
     </div>
   );
 }
 
+// ── Form type ─────────────────────────────────────────────────────────────────
 type Form = {
   displayName: string;
+  fatherName: string;
+  motherName: string;
+  gender: "MALE" | "FEMALE";
   birthDateLocal: string;
   birthTimeLocal: string;
   birthPlace: string;
@@ -390,15 +635,24 @@ type Form = {
 };
 
 const EMPTY: Form = {
-  displayName: "", birthDateLocal: "", birthTimeLocal: "12:00",
+  displayName: "", fatherName: "", motherName: "", gender: "MALE",
+  birthDateLocal: "", birthTimeLocal: "12:00",
   birthPlace: "", birthLatitude: "", birthLongitude: "", birthTimezone: "Asia/Kolkata",
+};
+
+// DashaData shape we accept from /chart-preview
+type DashaData = {
+  openingDasha: { lord: string; balanceYearsAtBirth: number };
+  current: {
+    mahadasha: { lord: string; startDate: string; endDate: string };
+    antardasha: { lord: string; startDate: string; endDate: string };
+  };
 };
 
 const inputStyle: React.CSSProperties = {
   width: "100%", border: "1.5px solid var(--cl-border)", borderRadius: "8px",
   padding: "9px 12px", background: "var(--cl-bg)", color: "var(--cl-ink)",
-  fontSize: "0.88rem", fontFamily: "inherit", outline: "none",
-  boxSizing: "border-box" as const,
+  fontSize: "0.88rem", fontFamily: "inherit", outline: "none", boxSizing: "border-box",
 };
 
 const labelStyle: React.CSSProperties = {
@@ -411,13 +665,15 @@ export function JadhagamTool() {
   const en = lang === "en";
   const RASI_NAMES = en ? RASI_NAMES_EN : RASI_NAMES_TA;
   const PLANET_LABELS = en ? PLANET_LABELS_EN : PLANET_LABELS_TA;
-  const formatStarName = (value: string) => (en ? tamilizeAstroEnglish(value) : value);
+  const fmtStar = (v: string) => (en ? tamilizeAstroEnglish(v) : v);
 
   const [form, setForm] = useState<Form>(EMPTY);
   const [chart, setChart] = useState<ChartCalculateResponseData | null>(null);
+  const [dasha, setDasha] = useState<DashaData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   async function handleGenerate() {
     if (!form.birthDateLocal || !form.birthLatitude || !form.birthLongitude) {
@@ -426,11 +682,9 @@ export function JadhagamTool() {
         : "தேதி, நேரம் உள்ளிட்டு பிறந்த இடம் தேர்வு செய்யவும்.");
       return;
     }
-    setError("");
-    setLoading(true);
-    setChart(null);
+    setError(""); setLoading(true); setChart(null); setDasha(null);
     try {
-      const res = await fetch("/api/backend/api/v1/public/chart", {
+      const res = await fetch("/api/backend/api/v1/public/chart-preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -449,8 +703,9 @@ export function JadhagamTool() {
         const j = await res.json().catch(() => ({})) as { detail?: string };
         throw new Error(j.detail ?? `Error ${res.status}`);
       }
-      const data = await res.json() as { success: boolean; data: ChartCalculateResponseData };
-      setChart(data.data);
+      const data = await res.json() as { success: boolean; data: { chart: ChartCalculateResponseData; dasha: DashaData } };
+      setChart(data.data.chart);
+      setDasha(data.data.dasha ?? null);
     } catch (err) {
       setError(readErrorMessage(err));
     } finally {
@@ -458,54 +713,43 @@ export function JadhagamTool() {
     }
   }
 
-
   function handleExportPdf() {
-    window.setTimeout(() => {
-      window.print();
-    }, 80);
+    window.setTimeout(() => { window.print(); }, 80);
   }
 
   const moon = chart?.planets.find((p) => p.graha === "MOON");
+  const d9LagnaRasi = chart ? computeD9LagnaRasi(chart.lagna.absoluteLongitude) : 0;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       <style>{`
-        @page {
-          size: A4 portrait;
-          margin: 10mm;
-        }
+        @page { size: A4 portrait; margin: 0; }
         @media print {
-          body * {
-            visibility: hidden !important;
-          }
-          .jg-print-only,
-          .jg-print-only * {
-            visibility: visible !important;
-          }
-          .jg-print-only {
-            position: absolute !important;
-            inset: 0 !important;
-            width: 100% !important;
+          body > *:not(.jg-print-portal) { display: none !important; }
+          .jg-print-portal {
             display: block !important;
-          }
-          body {
-            background: #fff !important;
-          }
-        }
-        @media screen {
-          .jg-print-only {
-            display: none !important;
+            width: 210mm;
+            padding: 10mm;
+            box-sizing: border-box;
           }
         }
+        @media screen { .jg-print-portal { display: none !important; } }
       `}</style>
 
-      {chart && (
-        <div className="jg-print-only">
-          <PrintableJadhagamSheet chart={chart} lang={lang} />
-        </div>
+      {chart && mounted && createPortal(
+        <div className="jg-print-portal">
+          <PrintableJadhagamSheet
+            chart={chart}
+            fatherName={form.fatherName}
+            motherName={form.motherName}
+            gender={form.gender}
+            dasha={dasha}
+          />
+        </div>,
+        document.body,
       )}
 
-      {/* Form card */}
+      {/* ── Form ── */}
       <div style={{
         background: "var(--cl-surface)", border: "1px solid var(--cl-border)",
         borderRadius: "16px", padding: "24px",
@@ -513,10 +757,11 @@ export function JadhagamTool() {
       }}>
         <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--cl-muted)", lineHeight: 1.5 }}>
           {en
-            ? "Enter birth details to generate a Thirukanitham-precise jadhagam. No account required."
-            : "திருக்கணிதம் துல்லியமான ஜாதகம் உருவாக்க பிறப்பு விவரங்களை உள்ளிடவும். கணக்கு தேவையில்லை."}
+            ? "Enter birth details to generate a Thirukanitham-precise jadhagam."
+            : "திருக்கணிதம் துல்லியமான ஜாதகம் உருவாக்க பிறப்பு விவரங்களை உள்ளிடவும்."}
         </p>
 
+        {/* Name + DOB */}
         <div className="cl-mobile-form-grid-2" style={{ gap: "12px" }}>
           <label style={labelStyle}>
             {en ? "Name (optional)" : "பெயர் (விருப்பத்திற்கு)"}
@@ -531,6 +776,23 @@ export function JadhagamTool() {
           </label>
         </div>
 
+        {/* Father + Mother */}
+        <div className="cl-mobile-form-grid-2" style={{ gap: "12px" }}>
+          <label style={labelStyle}>
+            {en ? "Father's Name (optional)" : "தகப்பனார் பெயர் (விருப்பத்திற்கு)"}
+            <input style={inputStyle} value={form.fatherName}
+              onChange={(e) => setForm((f) => ({ ...f, fatherName: e.target.value }))}
+              placeholder={en ? "e.g. Rajan" : "எ.கா. ராஜன்"} />
+          </label>
+          <label style={labelStyle}>
+            {en ? "Mother's Name (optional)" : "அன்னை பெயர் (விருப்பத்திற்கு)"}
+            <input style={inputStyle} value={form.motherName}
+              onChange={(e) => setForm((f) => ({ ...f, motherName: e.target.value }))}
+              placeholder={en ? "e.g. Meena" : "எ.கா. மீனா"} />
+          </label>
+        </div>
+
+        {/* Time + Gender */}
         <div className="cl-mobile-form-grid-2" style={{ gap: "12px" }}>
           <label style={labelStyle}>
             {en ? "Birth Time" : "பிறந்த நேரம்"}
@@ -538,12 +800,19 @@ export function JadhagamTool() {
               onChange={(e) => setForm((f) => ({ ...f, birthTimeLocal: e.target.value }))} />
           </label>
           <label style={labelStyle}>
-            {en ? "Timezone" : "நேர மண்டலம்"}
-            <input style={inputStyle} value={form.birthTimezone}
-              onChange={(e) => setForm((f) => ({ ...f, birthTimezone: e.target.value }))} />
+            {en ? "Gender" : "பாலினம்"}
+            <select
+              style={inputStyle}
+              value={form.gender}
+              onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value as "MALE" | "FEMALE" }))}
+            >
+              <option value="MALE">{en ? "Male" : "ஆண்"}</option>
+              <option value="FEMALE">{en ? "Female" : "பெண்"}</option>
+            </select>
           </label>
         </div>
 
+        {/* Birth Place */}
         <label style={labelStyle}>
           {en ? "Birth Place *" : "பிறந்த இடம் *"}
           <span style={{ fontSize: "0.7rem", fontWeight: 400, color: "var(--cl-muted)" }}>
@@ -558,6 +827,7 @@ export function JadhagamTool() {
           />
         </label>
 
+        {/* Lat / Long */}
         <div className="cl-mobile-form-grid-2" style={{ gap: "12px" }}>
           <label style={labelStyle}>
             {en ? "Latitude" : "அட்சாம்சம்"}
@@ -580,9 +850,7 @@ export function JadhagamTool() {
         )}
 
         <button
-          type="button"
-          onClick={() => void handleGenerate()}
-          disabled={loading}
+          type="button" onClick={() => void handleGenerate()} disabled={loading}
           style={{
             alignSelf: "flex-start", padding: "10px 28px",
             background: loading ? "var(--cl-border)" : "var(--cl-ink)",
@@ -591,13 +859,11 @@ export function JadhagamTool() {
             cursor: loading ? "not-allowed" : "pointer",
           }}
         >
-          {loading
-            ? (en ? "Calculating…" : "கணக்கிடுகிறது…")
-            : (en ? "Generate Jadhagam" : "ஜாதகம் உருவாக்கு")}
+          {loading ? (en ? "Calculating…" : "கணக்கிடுகிறது…") : (en ? "Generate Jadhagam" : "ஜாதகம் உருவாக்கு")}
         </button>
       </div>
 
-      {/* Results */}
+      {/* ── Results ── */}
       {chart && (
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
 
@@ -611,9 +877,9 @@ export function JadhagamTool() {
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px 28px", marginTop: "12px" }}>
               {[
-                { label: en ? "Lagna" : "லக்னம்", value: RASI_NAMES[chart.lagna.rasi] + " · " + formatStarName(chart.lagna.nakshatraName) },
-                { label: en ? "Birth Star" : "பிறப்பு நட்சத்திரம்", value: moon ? `${formatStarName(moon.nakshatraName)} (${en ? "Pada" : "பாதம்"} ${moon.pada})` : "—" },
-                { label: en ? "Birth Sign" : "பிறப்பு ராசி", value: moon ? RASI_NAMES[moon.rasi] : "—" },
+                { label: en ? "Lagna" : "லக்னம்", value: `${RASI_NAMES[chart.lagna.rasi]} · ${fmtStar(chart.lagna.nakshatraName)}` },
+                { label: en ? "Birth Star" : "ஜென்ம நட்சத்திரம்", value: moon ? `${fmtStar(moon.nakshatraName)} (${en ? "Pada" : "பாதம்"} ${moon.pada})` : "—" },
+                { label: en ? "Birth Sign" : "ஜென்ம ராசி", value: moon ? RASI_NAMES[moon.rasi] : "—" },
                 { label: "Ayanamsa", value: `Lahiri ${chart.ayanamsa.valueDegrees.toFixed(2)}°` },
               ].map((row) => (
                 <div key={row.label}>
@@ -624,61 +890,38 @@ export function JadhagamTool() {
             </div>
           </div>
 
-          {/* Export + dual chart layout */}
+          {/* Export bar */}
           <div className="cl-mobile-flex-row" style={{ justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-            <div>
-              <p style={{ margin: 0, fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--cl-muted)" }}>
-                {en ? "Classic Layout" : "Classic Layout"}
-              </p>
-              <p style={{ margin: "4px 0 0", fontSize: "0.84rem", color: "var(--cl-ink-2)" }}>
-                {en
-                  ? "Rasi and Navamsa are shown together here, and the PDF export uses a traditional single-page layout."
-                  : "Rasi and Navamsa are shown together here, and the PDF export uses a traditional single-page layout."}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleExportPdf}
-              style={{
-                padding: "9px 16px",
-                borderRadius: "999px",
-                border: "1px solid rgba(184,90,44,0.35)",
-                background: "rgba(184,90,44,0.08)",
-                color: "#B85A2C",
-                fontFamily: "inherit",
-                fontSize: "0.84rem",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              {en ? "Export PDF" : "Export PDF"}
+            <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--cl-ink-2)" }}>
+              {en ? "Traditional single-page layout with all sections." : "அனைத்து பிரிவுகளுடன் பாரம்பரிய ஒரு-பக்க வடிவமைப்பு."}
+            </p>
+            <button type="button" onClick={handleExportPdf} style={{
+              padding: "9px 16px", borderRadius: "999px",
+              border: "1px solid rgba(184,90,44,0.35)", background: "rgba(184,90,44,0.08)",
+              color: "#B85A2C", fontFamily: "inherit", fontSize: "0.84rem", fontWeight: 700, cursor: "pointer",
+            }}>
+              {en ? "Export PDF" : "PDF ஏற்றுமதி"}
             </button>
           </div>
 
+          {/* Dual charts */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px" }}>
             <div style={{ background: "var(--cl-surface)", border: "1px solid var(--cl-border)", borderRadius: "16px", padding: "18px", overflowX: "auto" }}>
               <p style={{ margin: "0 0 10px", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--cl-muted)" }}>
-                {en ? "D1 Rasi" : "D1 Rasi"}
+                {en ? "D1 Rasi" : "D1 இராசி"}
               </p>
-              <div className="cl-chart-scroll">
-                <RasiGrid chart={chart} lang={lang} />
-              </div>
+              <div className="cl-chart-scroll"><RasiGrid chart={chart} lang={lang} /></div>
             </div>
-
             <div style={{ background: "var(--cl-surface)", border: "1px solid var(--cl-border)", borderRadius: "16px", padding: "18px", overflowX: "auto" }}>
               <p style={{ margin: "0 0 10px", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--cl-muted)" }}>
-                {en ? "D9 Navamsa" : "D9 Navamsa"}
+                {en ? "D9 Navamsa" : "D9 நவாம்சம்"}
               </p>
-              <div className="cl-chart-scroll">
-                <RasiGrid chart={chart} d9 lang={lang} />
-              </div>
+              <div className="cl-chart-scroll"><RasiGrid chart={chart} d9 lang={lang} /></div>
             </div>
           </div>
-          {/* Planet table */}
-          <div style={{
-            background: "var(--cl-surface)", border: "1px solid var(--cl-border)",
-            borderRadius: "14px", overflow: "hidden",
-          }}>
+
+          {/* Planet table — updated columns */}
+          <div style={{ background: "var(--cl-surface)", border: "1px solid var(--cl-border)", borderRadius: "14px", overflow: "hidden" }}>
             <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--cl-border)" }}>
               <p style={{ margin: 0, fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
                 {en ? "Planet Positions" : "கிரக நிலைகள்"}
@@ -689,11 +932,11 @@ export function JadhagamTool() {
                 <thead>
                   <tr>
                     {(en
-                      ? ["Planet", "Rasi", "Birth Star", "Pada", "Degree", "House"]
-                      : ["கிரகம்", "ராசி", "நட்சத்திரம்", "பாதம்", "பாகை", "பாவம்"]
+                      ? ["Planet", "Degrees (DMS)", "Nakshatra", "Pada", "Nak. Lord", "Rasi", "Navamsa", "Dignity"]
+                      : ["கிரகம்", "பாகை-கலை", "நட்சத்திரம்", "பாதம்", "நட்சத்திர அதிபதி", "ராசி", "நவாம்சம்", "நிலை"]
                     ).map((h) => (
                       <th key={h} style={{
-                        padding: "8px 14px", textAlign: "left", fontSize: "0.68rem", fontWeight: 700,
+                        padding: "8px 12px", textAlign: "left", fontSize: "0.68rem", fontWeight: 700,
                         textTransform: "uppercase", letterSpacing: "0.08em",
                         color: "var(--cl-muted)", background: "var(--cl-bg-2)",
                         borderBottom: "1px solid var(--cl-border)",
@@ -702,22 +945,46 @@ export function JadhagamTool() {
                   </tr>
                 </thead>
                 <tbody>
+                  {/* Lagna row */}
+                  <tr style={{ borderBottom: "1px solid var(--cl-border)" }}>
+                    <td style={{ padding: "9px 12px", fontWeight: 600, color: "#B85A2C" }}>
+                      {en ? "Lagna" : "லக்னம்"}
+                    </td>
+                    <td style={{ padding: "9px 12px", color: "var(--cl-ink-2)", fontFamily: "monospace", fontSize: "0.78rem" }}>
+                      {toDMS(chart.lagna.absoluteLongitude)}
+                    </td>
+                    <td style={{ padding: "9px 12px", color: "var(--cl-ink-2)" }}>{fmtStar(chart.lagna.nakshatraName)}</td>
+                    <td style={{ padding: "9px 12px", color: "var(--cl-muted)" }}>{chart.lagna.pada}</td>
+                    <td style={{ padding: "9px 12px", color: "var(--cl-muted)" }}>
+                      {NAKSHATRA_LORDS_TA[chart.lagna.nakshatra] ?? "—"}
+                    </td>
+                    <td style={{ padding: "9px 12px", color: "var(--cl-ink-2)" }}>{RASI_NAMES[chart.lagna.rasi]}</td>
+                    <td style={{ padding: "9px 12px", color: "var(--cl-ink-2)" }}>{RASI_NAMES[d9LagnaRasi]}</td>
+                    <td style={{ padding: "9px 12px", color: "var(--cl-muted)" }}>—</td>
+                  </tr>
                   {PLANET_ORDER.map((g) => {
                     const p = chart.planets.find((x: ChartPlanet) => x.graha === g);
                     if (!p) return null;
+                    const nilai = (g === "RAHU" || g === "KETU" || g === "MANDHI") ? "—" : getNilai(g, p.rasi);
                     return (
                       <tr key={g} style={{ borderBottom: "1px solid var(--cl-border)" }}>
-                        <td style={{ padding: "9px 14px", fontWeight: 600, color: "var(--cl-ink)" }}>
+                        <td style={{ padding: "9px 12px", fontWeight: 600, color: "var(--cl-ink)" }}>
                           {PLANET_LABELS[g] ?? g}
-                          {p.isRetrograde && <span style={{ fontSize: "0.68rem", color: "#A8482F", marginLeft: "4px" }}>(R)</span>}
+                          {p.isRetrograde && <span style={{ fontSize: "0.68rem", color: "#A8482F", marginLeft: "4px" }}>(வ)</span>}
                         </td>
-                        <td style={{ padding: "9px 14px", color: "var(--cl-ink-2)" }}>{RASI_NAMES[p.rasi]}</td>
-                        <td style={{ padding: "9px 14px", color: "var(--cl-ink-2)" }}>{formatStarName(p.nakshatraName)}</td>
-                        <td style={{ padding: "9px 14px", color: "var(--cl-muted)" }}>{p.pada}</td>
-                        <td style={{ padding: "9px 14px", color: "var(--cl-muted)", fontFamily: "monospace", fontSize: "0.78rem" }}>
-                          {p.degreeInRasi.toFixed(2)}°
+                        <td style={{ padding: "9px 12px", color: "var(--cl-ink-2)", fontFamily: "monospace", fontSize: "0.78rem" }}>
+                          {toDMS(p.absoluteLongitude)}
                         </td>
-                        <td style={{ padding: "9px 14px", color: "var(--cl-muted)" }}>{p.houseFromLagna}</td>
+                        <td style={{ padding: "9px 12px", color: "var(--cl-ink-2)" }}>{fmtStar(p.nakshatraName)}</td>
+                        <td style={{ padding: "9px 12px", color: "var(--cl-muted)" }}>{p.pada}</td>
+                        <td style={{ padding: "9px 12px", color: "var(--cl-muted)" }}>
+                          {NAKSHATRA_LORDS_TA[p.nakshatra] ?? "—"}
+                        </td>
+                        <td style={{ padding: "9px 12px", color: "var(--cl-ink-2)" }}>{RASI_NAMES[p.rasi]}</td>
+                        <td style={{ padding: "9px 12px", color: "var(--cl-ink-2)" }}>{RASI_NAMES[p.d9Rasi]}</td>
+                        <td style={{ padding: "9px 12px", fontWeight: 500, color: nilai === "உச்சம்" ? "#2a7a2a" : nilai === "நீச்சம்" ? "#a83020" : "var(--cl-ink-2)" }}>
+                          {nilai}
+                        </td>
                       </tr>
                     );
                   })}

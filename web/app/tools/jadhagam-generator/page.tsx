@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { JadhagamPageContent } from "./JadhagamPageContent";
 
 export const metadata: Metadata = {
-  title: "Free Tamil Jadhagam Generator — South Indian Birth Chart with D1 & D9 | Vinaadi",
+  title: "Free Tamil Jadhagam Generator — South Indian Birth Chart | Vinaadi.com",
   description:
     "Generate your Thirukanitham-precise South Indian Tamil jadhagam free. Get a D1 Rasi chart, D9 Navamsa, all planet positions with birth-star details, and the full Vimshottari dasha sequence. No account required.",
   keywords: [
