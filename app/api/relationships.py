@@ -236,3 +236,80 @@ def compare_charts_pdf(
         headers={"Content-Disposition": f'attachment; filename="porutham_{safe_a}_{safe_b}.pdf"'},
     )
 
+
+@router.get(
+    "/relationships/{member_id}/compatibility-intelligence/pdf",
+    tags=["relationships"],
+)
+def relationship_compatibility_intelligence_pdf(
+    member_id: UUID,
+    family_vault_id: UUID = Query(alias="familyVaultId"),
+    chart_id_a: UUID | None = Query(default=None, alias="chartIdA"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Response:
+    from app.services.pdf_export_service import generate_compatibility_intelligence_pdf
+
+    result = get_compatibility_intelligence_for_member(
+        session,
+        current_user.user_id,
+        family_vault_id,
+        member_id,
+        person_a_chart_id=chart_id_a,
+    )
+    name_a = result.data.person_a_name or "Person_A"
+    name_b = result.data.person_b_name or "Person_B"
+    pdf_bytes = generate_compatibility_intelligence_pdf(result.data, name_a, name_b)
+    safe_a = _safe_name(name_a, "A")
+    safe_b = _safe_name(name_b, "B")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="compatibility_intelligence_{safe_a}_{safe_b}.pdf"'
+            )
+        },
+    )
+
+
+@router.post(
+    "/relationships/{member_id}/compatibility-intelligence/direct/pdf",
+    tags=["relationships"],
+)
+def relationship_compatibility_intelligence_direct_pdf(
+    member_id: UUID,
+    payload: DirectCompatibilityIntelligenceRequest,
+    family_vault_id: UUID = Query(alias="familyVaultId"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Response:
+    from app.services.pdf_export_service import generate_compatibility_intelligence_pdf
+
+    try:
+        snap_a = _chart_response_from_profile(_TransientProfile(payload.person_a), "thirukanitham-2026-v1")
+    except (ValueError, HTTPException) as exc:
+        msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
+        raise HTTPException(status_code=422, detail=msg) from exc
+
+    result = get_compatibility_intelligence_for_member_with_snapshot(
+        session,
+        current_user.user_id,
+        family_vault_id,
+        member_id,
+        person_a_snapshot=snap_a,
+    )
+    name_a = result.data.person_a_name or payload.person_a.display_name or "Person_A"
+    name_b = result.data.person_b_name or "Person_B"
+    pdf_bytes = generate_compatibility_intelligence_pdf(result.data, name_a, name_b)
+    safe_a = _safe_name(name_a, "A")
+    safe_b = _safe_name(name_b, "B")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="compatibility_intelligence_{safe_a}_{safe_b}.pdf"'
+            )
+        },
+    )
