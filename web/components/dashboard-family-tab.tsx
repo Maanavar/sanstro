@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { apiFetchJson } from "@/lib/api";
@@ -17,7 +17,6 @@ import type {
   FamilyVaultDetailData,
   FamilyVaultListItem,
   FamilyVaultTodayData,
-  FamilySummaryData,
   PeyarchiEvent,
   RelationshipAlertItem,
   SaniCycleData,
@@ -188,7 +187,7 @@ function MemberRowCard({
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-3)" }}>
         <div style={{ flex: 1 }}>
           {relLabel && <p className="cd-kicker">{relLabel}</p>}
-          <p style={{ margin: "0 0 var(--space-0_75)", fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 500, color: "var(--color-text-strong)", lineHeight: 1.1 }}>
+          <p style={{ margin: "0 0 var(--space-0_75)", fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 500, color: "var(--color-text-strong)", lineHeight: 1.1, overflowWrap: "anywhere", wordBreak: "break-word" }}>
             {member.displayName}
           </p>
           {identityParts.length > 0 && (
@@ -282,7 +281,7 @@ function MemberDetailExpanded({
           {relLabel && <p className="cd-kicker">{relLabel}</p>}
           {/* Name + Edit/Remove inline */}
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)", flexWrap: "wrap", marginBottom: "var(--space-1)" }}>
-            <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.6rem", fontWeight: 500, color: "var(--color-text-strong)", lineHeight: 1.1 }}>
+            <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.6rem", fontWeight: 500, color: "var(--color-text-strong)", lineHeight: 1.1, overflowWrap: "anywhere", wordBreak: "break-word" }}>
               {member.displayName}
             </h3>
             <button
@@ -468,12 +467,10 @@ export function DashboardFamilyTab({
   const [subTab, setSubTab] = useState<FamilySubTab>("members");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [familyToday, setFamilyToday] = useState<FamilyVaultTodayData | null>(null);
-  const [familySummary, setFamilySummary] = useState<FamilySummaryData | null>(null);
 
   useEffect(() => {
     if (!selectedVaultId) {
       setFamilyToday(null);
-      setFamilySummary(null);
       return;
     }
     const today = new Date().toISOString().slice(0, 10);
@@ -484,11 +481,6 @@ export function DashboardFamilyTab({
     )
       .then((r) => { if (!signal.aborted) setFamilyToday(r.data ?? null); })
       .catch(() => { if (!signal.aborted) setFamilyToday(null); });
-    void apiFetchJson<{ data: FamilySummaryData }>(
-      `/api/v1/family-vaults/${selectedVaultId}/summary?date=${today}`, { signal }
-    )
-      .then((r) => { if (!signal.aborted) setFamilySummary(r.data ?? null); })
-      .catch(() => { if (!signal.aborted) setFamilySummary(null); });
     return () => controller.abort();
   }, [selectedVaultId, busy.family]);
 
@@ -566,7 +558,7 @@ export function DashboardFamilyTab({
               : "Family score, member charts, shared best windows."}
           </p>
         </div>
-        <div style={{ display: "flex", gap: "var(--space-2)", flexShrink: 0, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "var(--space-2)", flexShrink: 0, flexWrap: "wrap", alignItems: "center" }}>
           {/* Multiple vault switcher */}
           {vaults.length > 1 && vaults.map((v) => (
             <button key={v.familyVaultId} type="button" onClick={() => onSelectVault(v)}
@@ -591,44 +583,6 @@ export function DashboardFamilyTab({
         </div>
       </div>
 
-      {selectedVaultId && (
-        <div style={{
-          background: "var(--color-surface)",
-          border: "1px solid var(--color-border)",
-          borderRadius: "var(--radius-lg)",
-          padding: "var(--space-4) var(--space-5)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "var(--space-3)",
-          flexWrap: "wrap",
-        }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-            <p className="cd-kicker--inline">{lang === "ta" ? "குடும்ப சுருக்கம்" : "Family Summary"}</p>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)" }}>
-              {(familySummary?.dateLocal ?? familyToday?.date ?? selectedDate)} {vaultName ? `· ${vaultName}` : ""}
-            </p>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
-            <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "2rem", color: scoreColor(familySummary?.familyScore ?? familyScore), lineHeight: 1 }}>
-              {familySummary?.familyScore ?? familyScore}
-              <span style={{ fontSize: "0.875rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>/100</span>
-            </p>
-            <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
-              <span style={{ padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", border: "1px solid rgba(92,118,84,0.35)", color: SCORE_HIGH, background: "rgba(92,118,84,0.12)" }}>
-                {todayHighCount} {lang === "ta" ? "உயர்" : "High"}
-              </span>
-              <span style={{ padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", border: "1px solid rgba(184,90,44,0.35)", color: SCORE_MID, background: "rgba(184,90,44,0.12)" }}>
-                {todayMidCount} {lang === "ta" ? "நடு" : "Mid"}
-              </span>
-              <span style={{ padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", border: "1px solid rgba(168,72,47,0.35)", color: SCORE_LOW, background: "rgba(168,72,47,0.12)" }}>
-                {todayLowCount} {lang === "ta" ? "குறை" : "Low"}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Today Snapshot: full-width at-a-glance comparison of every member ── */}
       {todayMembers.length > 0 && (
         <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-4) var(--space-5)" }}>
@@ -639,115 +593,105 @@ export function DashboardFamilyTab({
             </span>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))", gap: "var(--space-2_5)" }}>
-            {todayMembers.map((item, idx) => (
-              <div key={`${item.memberId ?? item.displayName}-${idx}`} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", background: "var(--color-surface-soft)", padding: "var(--space-3) var(--space-3_5)", display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
-                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--space-2)" }}>
-                  <span style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.displayName}</span>
-                  <span style={{ fontSize: "0.875rem", fontWeight: 800, color: scoreColor(item.score), fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
-                    {item.score}<span style={{ fontSize: "0.6875rem", color: "var(--color-faint)", fontWeight: 500 }}>/100</span>
-                  </span>
+            {todayMembers.map((item, idx) => {
+              const band = getScoreBand(item.score);
+              const toneColor = scoreColor(item.score);
+              const scoreBg = band.tone === "high" ? "var(--chart-d9-active-bg)" : band.tone === "low" ? "var(--panel-warm-tint)" : "var(--chart-d1-lagna-bg)";
+              const relLabel = formatRelLabel(item.relationship);
+              return (
+                <div key={`${item.memberId ?? item.displayName}-${idx}`} style={{ border: `1px solid ${item.chandrashtama ? "rgba(168,72,47,0.35)" : "var(--color-border)"}`, borderRadius: "var(--radius-md)", background: "var(--color-surface-soft)", padding: "var(--space-3) var(--space-3_5)", display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-2)", marginBottom: "var(--space-0_5)" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {relLabel && <p className="cd-kicker" style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.65rem" }}>{relLabel}</p>}
+                      <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.displayName}</p>
+                    </div>
+                    <span style={{ fontSize: "1rem", fontWeight: 800, color: toneColor, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
+                      {item.score}
+                    </span>
+                  </div>
+                  <div style={{ height: "4px", borderRadius: "2px", background: "var(--color-border)", overflow: "hidden" }}>
+                    <div style={{ height: "100%", borderRadius: "2px", width: `${Math.max(0, Math.min(100, item.score))}%`, background: toneColor }} />
+                  </div>
+                  <div style={{ display: "flex", gap: "var(--space-1)", flexWrap: "wrap" }}>
+                    <span style={{ padding: "2px 8px", borderRadius: "var(--radius-xs)", fontSize: "0.6875rem", fontWeight: 600, background: scoreBg, color: toneColor, border: `1px solid ${toneColor}44` }}>
+                      {band.label}
+                    </span>
+                    {item.saniCycleActive && (
+                      <span style={{ padding: "2px 8px", borderRadius: "var(--radius-xs)", fontSize: "0.6875rem", fontWeight: 600, background: "rgba(255,193,7,0.12)", color: "rgb(184,90,44)", border: "1px solid rgba(184,90,44,0.3)" }}>
+                        {lang === "ta" ? "சனி" : "Sani"}
+                      </span>
+                    )}
+                    {item.chandrashtama && (
+                      <span style={{ padding: "2px 8px", borderRadius: "var(--radius-xs)", fontSize: "0.6875rem", fontWeight: 700, background: "var(--panel-warm-tint)", color: SCORE_LOW, border: "1px solid rgba(168,72,47,0.4)", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                        <AlertGlyph /> {t("label_chandrashtamam", lang)}
+                      </span>
+                    )}
+                  </div>
+                  {item.nallaNeramStart && item.nallaNeramStart !== "N/A" && (
+                    <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)" }}>
+                      {lang === "ta" ? "சிறந்த" : "Best"}: <span style={{ fontWeight: 600, color: "var(--color-text)" }}>{formatClockLabel(item.nallaNeramStart)}</span>
+                    </p>
+                  )}
                 </div>
-                <div style={{ height: "5px", borderRadius: "3px", background: "var(--color-border)", overflow: "hidden" }}>
-                  <div style={{ height: "100%", borderRadius: "3px", width: `${Math.max(0, Math.min(100, item.score))}%`, background: scoreColor(item.score) }} />
-                </div>
-                <p style={{ margin: 0, fontSize: "0.6875rem", color: "var(--color-muted)" }}>
-                  {lang === "ta" ? "தசை" : "Dasha"}: <span style={{ fontWeight: 600, color: "var(--color-text)" }}>{tPlanetLord(item.dashaLord, lang)}</span>
-                </p>
-                <p style={{ margin: 0, fontSize: "0.6875rem", color: "var(--color-faint)", lineHeight: 1.4, minHeight: "1.4em" }}>
-                  {item.keyTransit || (lang === "ta" ? "குறிப்பிடத்தக்க கிரகநகர்வு இல்லை" : "No notable transit today")}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* ── ROW 2: 50/50 — Left = Family Today card · Right = member tiles stacked ── */}
-      <div className="cd-responsive-grid-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: "var(--space-4)", alignItems: "stretch" }}>
-
-        {/* LEFT: Family Today score card — stretches to full row height */}
-        <div style={{
-          background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)",
-          padding: "var(--space-6)", boxShadow: "0 2px 16px rgba(60,40,20,0.07)",
-          display: "flex", flexDirection: "column", gap: "var(--space-4)",
-        }}>
-          <p className="cd-kicker--inline">{lang === "ta" ? "குடும்பம் இன்று" : "FAMILY TODAY"}</p>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-3)" }}>
-            <div>
-              <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "3.4rem", fontWeight: 500, lineHeight: 1, color: "var(--color-text-strong)" }}>
-                {familyScore || "—"}
-                {familyScore > 0 && <span style={{ fontSize: "1.125rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>/100</span>}
-              </p>
-              <span style={{ display: "inline-block", marginTop: "var(--space-2)", padding: "var(--space-0_75) var(--space-3)", borderRadius: "var(--radius-pill)", background: scoreBg, color: familyScoreColor, fontSize: "0.75rem", fontWeight: 600, textTransform: "capitalize" }}>
-                {familyLabel || (busy.family ? "Loading…" : "—")}
-              </span>
-            </div>
-            {familyScore > 0 && <ScoreRing score={familyScore} size={88} />}
+      {/* ── ROW 2: Family Today card ── */}
+      <div style={{
+        background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)",
+        padding: "var(--space-6)", boxShadow: "0 2px 16px rgba(60,40,20,0.07)",
+        display: "flex", flexDirection: "column", gap: "var(--space-4)",
+      }}>
+        <p className="cd-kicker--inline">{lang === "ta" ? "குடும்பம் இன்று" : "FAMILY TODAY"}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+          <div>
+            <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "3.4rem", fontWeight: 500, lineHeight: 1, color: "var(--color-text-strong)" }}>
+              {familyScore || "—"}
+              {familyScore > 0 && <span style={{ fontSize: "1.125rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>/100</span>}
+            </p>
+            <span style={{ display: "inline-block", marginTop: "var(--space-2)", padding: "var(--space-0_75) var(--space-3)", borderRadius: "var(--radius-pill)", background: scoreBg, color: familyScoreColor, fontSize: "0.75rem", fontWeight: 600, textTransform: "capitalize" }}>
+              {familyLabel || (busy.family ? "Loading…" : "—")}
+            </span>
           </div>
-          <div className="cd-responsive-grid-2" style={{ gap: "var(--space-2_5)" }}>
-            <div className="cd-time-slot" style={{ background: "var(--chart-d9-active-bg)", border: "1px solid rgba(92,118,84,0.3)" }}>
-              <p className="cd-kicker" style={{ color: SCORE_HIGH }}>
-                {lang === "ta" ? "பகிர்ந்த சிறந்த நேரம்" : "BEST SHARED"}
-              </p>
-              <p className="cd-time-value" style={{ fontSize: "0.875rem", color: SCORE_HIGH }}>
-                {bestWindow ? `${formatClockLabel(bestWindow.start)} – ${formatClockLabel(bestWindow.end)}` : "—"}
-              </p>
-            </div>
-            <div className="cd-time-slot" style={{ background: "var(--panel-warm-tint)", border: "1px solid rgba(168,72,47,0.3)" }}>
-              <p className="cd-kicker" style={{ color: SCORE_LOW }}>
-                {lang === "ta" ? "தவிர்க்கவும்" : "AVOID"}
-              </p>
-              <p className="cd-time-value" style={{ fontSize: "0.875rem", color: SCORE_LOW }}>
-                {avoidWindow ? `${formatClockLabel(avoidWindow.start)} – ${formatClockLabel(avoidWindow.end)}` : "—"}
-              </p>
-            </div>
+        </div>
+        <div className="cd-responsive-grid-2" style={{ gap: "var(--space-2_5)" }}>
+          <div className="cd-time-slot" style={{ background: "var(--chart-d9-active-bg)", border: "1px solid rgba(92,118,84,0.3)" }}>
+            <p className="cd-kicker" style={{ color: SCORE_HIGH }}>
+              {lang === "ta" ? "பகிர்ந்த சிறந்த நேரம்" : "BEST SHARED"}
+            </p>
+            <p className="cd-time-value" style={{ fontSize: "0.875rem", color: SCORE_HIGH }}>
+              {bestWindow ? `${formatClockLabel(bestWindow.start)} – ${formatClockLabel(bestWindow.end)}` : "—"}
+            </p>
           </div>
-          <SevenDayBars scores={weekScores} labels={weekDayLabels} />
-          {familyAggregate && familyAggregate.aggregateBreakdown.chandrashtamaCount > 0 && (
-            <div style={{ padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--panel-warm-tint)", border: "1px solid rgba(168,72,47,0.3)" }}>
-              <p style={{ margin: 0, fontSize: "0.875rem", color: SCORE_LOW, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
-                <AlertGlyph /> {familyAggregate.aggregateBreakdown.chandrashtamaCount} {t("member_chandrashtamam", lang)}
-              </p>
-            </div>
-          )}
-          {!selectedVaultId && !busy.vaults && vaults.length === 0 && (
-            <div style={{ textAlign: "center", paddingTop: "var(--space-2)" }}>
-              <p style={{ margin: "0 0 var(--space-3)", color: "var(--color-faint)", fontSize: "0.875rem" }}>{t("vaults_empty", lang)}</p>
-              <button type="button" onClick={onOpenSetup}
-                style={{ padding: "var(--space-2) var(--space-5)", borderRadius: "var(--radius-pill)", background: "var(--color-text-strong)", color: "var(--color-bg)", border: "none", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                + {t("btn_add_first_member", lang)}
-              </button>
-            </div>
-          )}
+          <div className="cd-time-slot" style={{ background: "var(--panel-warm-tint)", border: "1px solid rgba(168,72,47,0.3)" }}>
+            <p className="cd-kicker" style={{ color: SCORE_LOW }}>
+              {lang === "ta" ? "தவிர்க்கவும்" : "AVOID"}
+            </p>
+            <p className="cd-time-value" style={{ fontSize: "0.875rem", color: SCORE_LOW }}>
+              {avoidWindow ? `${formatClockLabel(avoidWindow.start)} – ${formatClockLabel(avoidWindow.end)}` : "—"}
+            </p>
+          </div>
         </div>
-
-        {/* RIGHT: Member tiles — vertical stack, full 50% width */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-          {busy.family && members.length === 0 ? (
-            <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-5)", display: "grid", gap: "var(--space-3)" }}>
-              <div className="cd-skeleton" style={{ height: "14px", width: "40%", borderRadius: "var(--radius-sm)" }} />
-              <div className="cd-skeleton" style={{ height: "10px", width: "80%", borderRadius: "var(--radius-sm)" }} />
-              <div className="cd-skeleton" style={{ height: "10px", width: "70%", borderRadius: "var(--radius-sm)" }} />
-            </div>
-          ) : members.length === 0 && selectedVaultId ? (
-            <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-7) var(--space-6)", textAlign: "center" }}>
-              <p style={{ margin: "0 0 var(--space-3_5)", color: "var(--color-faint)", fontSize: "0.875rem" }}>{t("no_members_yet", lang)}</p>
-              <button type="button" onClick={onOpenSetup}
-                style={{ padding: "var(--space-2) var(--space-5)", borderRadius: "var(--radius-pill)", background: "var(--color-text-strong)", color: "var(--color-bg)", border: "none", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                + {t("btn_add_first_member", lang)}
-              </button>
-            </div>
-          ) : (
-            members.map((m) => (
-              <MemberRowCard
-                key={m.familyMemberId}
-                member={m}
-                memberChart={memberCharts.find((mc) => mc.memberId === m.familyMemberId)}
-                lang={lang}
-              />
-            ))
-          )}
-        </div>
+        <SevenDayBars scores={weekScores} labels={weekDayLabels} />
+        {familyAggregate && familyAggregate.aggregateBreakdown.chandrashtamaCount > 0 && (
+          <div style={{ padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--panel-warm-tint)", border: "1px solid rgba(168,72,47,0.3)" }}>
+            <p style={{ margin: 0, fontSize: "0.875rem", color: SCORE_LOW, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
+              <AlertGlyph /> {familyAggregate.aggregateBreakdown.chandrashtamaCount} {t("member_chandrashtamam", lang)}
+            </p>
+          </div>
+        )}
+        {!selectedVaultId && !busy.vaults && vaults.length === 0 && (
+          <div style={{ textAlign: "center", paddingTop: "var(--space-2)" }}>
+            <p style={{ margin: "0 0 var(--space-3)", color: "var(--color-faint)", fontSize: "0.875rem" }}>{t("vaults_empty", lang)}</p>
+            <button type="button" onClick={onOpenSetup}
+              style={{ padding: "var(--space-2) var(--space-5)", borderRadius: "var(--radius-pill)", background: "var(--color-text-strong)", color: "var(--color-bg)", border: "none", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              + {t("btn_add_first_member", lang)}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Name selector + individual detail (below hero) ── */}

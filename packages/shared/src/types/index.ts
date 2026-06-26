@@ -1184,14 +1184,24 @@ export type QARegressionReport = { total_stored: number; failures: QAFailureReco
 
 export interface FamilyMemberTodayScore {
   memberId: string;
+  profileId: string;
+  chartId: string;
   displayName: string;
+  relationship: string;
   score: number;
-  dashaLord: string;
-  keyTransit: string | null;
+  label: string;
+  highlightTa: string;
+  highlightEn: string;
+  chandrashtama: boolean;
+  saniCycleActive: boolean;
+  saniCycleType: string | null;
+  nallaNeramStart: string;
+  rahuKalamStart: string;
+  rahuKalamEnd: string;
 }
 
 export interface FamilyVaultTodayData {
   vaultId: string;
-  date: string;
+  dateLocal: string;
   members: FamilyMemberTodayScore[];
 }

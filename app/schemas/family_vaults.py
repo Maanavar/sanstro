@@ -302,7 +302,7 @@ class FamilyMemberDayView(BaseModel):
     member_id: UUID = Field(alias="memberId")
     profile_id: UUID = Field(alias="profileId")
     chart_id: UUID = Field(alias="chartId")
-    name: str
+    name: str = Field(alias="displayName")
     relationship: str
     score: int
     label: str
