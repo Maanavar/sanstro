@@ -5,11 +5,13 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "tsc": "tsc --noEmit",
-    "lint": "eslint src/ app/",
-    "qa:maestro": "maestro test .maestro/flows"
+    "lint": "eslint \"app/**/*.{ts,tsx}\"",
+    "qa:maestro": "maestro test .maestro/flows",
+    "qa:touch-targets": "node scripts/audit-touch-targets.mjs",
+    "qa:touch-targets:update": "node scripts/audit-touch-targets.mjs --update-baseline"
   },
   "dependencies": {
     "@babel/runtime": "^7.29.7",
@@ -44,7 +46,7 @@
     "react-native-gesture-handler": "^3.0.2",
     "react-native-google-mobile-ads": "^14.7.0",
     "react-native-purchases": "^8.5.0",
-    "react-native-reanimated": "^4.1.7",
+    "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "^5.8.0",
     "react-native-screens": "~4.16.0",
     "react-native-share": "^10.2.1",

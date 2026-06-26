@@ -6,7 +6,9 @@ import * as ExpoFont from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import Purchases from "react-native-purchases";
+// Lazy-loaded to avoid crashing in Expo Go — JSI modules fail at import time when native bridge is absent.
+let Purchases: typeof import("react-native-purchases").default | null = null;
+try { Purchases = require("react-native-purchases").default; } catch { /* Expo Go */ }
 import { SessionProvider, useSession } from "@/state/sessionContext";
 import { LanguageProvider } from "@/state/languageContext";
 import { ToastProvider } from "@/context/ToastContext";
@@ -25,7 +27,7 @@ initAnalytics(ENV.SENTRY_DSN, ENV.POSTHOG_API_KEY, ENV.POSTHOG_HOST);
 
 // Configure RevenueCat â€” only if a key is provided (won't fire in CI/dev without keys).
 const rcKey = Platform.OS === "ios" ? ENV.REVENUECAT_PUBLIC_KEY : ENV.REVENUECAT_ANDROID_KEY;
-if (rcKey) {
+if (rcKey && Purchases) {
   try {
     Purchases.configure({ apiKey: rcKey });
   } catch {
@@ -58,10 +60,11 @@ function RootNavigation() {
         // active "premium" entitlement but the backend tier still says "premium",
         // treat the user as "registered" — the subscription likely expired and
         // the backend webhook hasn't fired yet.
-        if (rcKey) {
+        const purchases = Purchases;
+        if (rcKey && purchases) {
           try {
-            await Purchases.logIn(me.userId);
-            const ci = await Purchases.getCustomerInfo();
+            await purchases.logIn(me.userId);
+            const ci = await purchases.getCustomerInfo();
             const hasPremium = !!ci.entitlements.active["premium"];
             const effectiveTier = hasPremium
               ? "premium"
