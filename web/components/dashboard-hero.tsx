@@ -15,7 +15,7 @@ import type {
   TransitSnapshotData,
 } from "@/lib/types";
 
-type Tab = "onboarding" | "personal" | "tools" | "transits" | "plan" | "life-areas" | "family" | "calendar" | "journal" | "settings" | "qa";
+type Tab = "onboarding" | "personal" | "tools" | "transits" | "plan" | "life-areas" | "family" | "calendar" | "journal" | "settings" | "qa" | "explore";
 type LabelKey = Parameters<typeof t>[0];
 
 const SHOW_QA_TAB = process.env.NODE_ENV !== "production";

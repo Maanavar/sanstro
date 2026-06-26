@@ -128,12 +128,17 @@ const RetrospectivePanel = dynamic(
   { loading: LazyPanelFallback },
 );
 
+const DashboardExploreTab = dynamic(
+  () => import("./dashboard-explore-tab").then((mod) => mod.DashboardExploreTab),
+  { loading: LazyPanelFallback },
+);
+
 const RectificationWizard = dynamic(
   () => import("./dashboard-rectification-wizard").then((mod) => mod.RectificationWizard),
   { loading: LazyPanelFallback },
 );
 
-type Tab = "onboarding" | "personal" | "tools" | "transits" | "plan" | "life-areas" | "family" | "calendar" | "journal" | "settings" | "qa";
+type Tab = "onboarding" | "personal" | "tools" | "transits" | "plan" | "life-areas" | "family" | "calendar" | "journal" | "settings" | "qa" | "explore";
 type SettingsSubTab = "setup" | "session";
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
 
@@ -1594,6 +1599,10 @@ export function DashboardWorkspace() {
             onContextUpdated={(data) => journal.setContextData(data)}
             mode={session.userMode}
           />
+        )}
+
+        {activeTab === "explore" && (
+          <DashboardExploreTab lang={lang} onNavigate={setActiveTab} />
         )}
 
         {ENABLE_QA_TAB && activeTab === "qa" && (

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 
-type Tab = "onboarding" | "personal" | "tools" | "transits" | "plan" | "life-areas" | "family" | "calendar" | "journal" | "settings" | "qa";
+type Tab = "onboarding" | "personal" | "tools" | "transits" | "plan" | "life-areas" | "family" | "calendar" | "journal" | "settings" | "qa" | "explore";
 
 interface DashboardLeftRailProps {
   lang: Lang;
@@ -32,16 +32,16 @@ function RailIcon({ children }: { children: React.ReactNode }) {
   );
 }
 
-function PersonalIcon() {
+function TodayIcon() {
   return (
     <RailIcon>
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
     </RailIcon>
   );
 }
 
-function CalendarIcon() {
+function PanchangamIcon() {
   return (
     <RailIcon>
       <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -50,60 +50,11 @@ function CalendarIcon() {
   );
 }
 
-function FamilyIcon() {
+function ExploreIcon() {
   return (
     <RailIcon>
-      <circle cx="9" cy="7" r="3" />
-      <circle cx="17" cy="9" r="2.5" />
-      <path d="M2 20c0-3.5 3-6 7-6s7 2.5 7 6" />
-      <path d="M17.5 13.5c2.5.5 4.5 2.5 4.5 5" />
-    </RailIcon>
-  );
-}
-
-function LifeAreasIcon() {
-  return (
-    <RailIcon>
-      <path d="M18 20V10M12 20V4M6 20v-6" />
-    </RailIcon>
-  );
-}
-
-function PlanIcon() {
-  return (
-    <RailIcon>
-      <circle cx="12" cy="12" r="9" />
-      <circle cx="12" cy="12" r="3" />
-      <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
-    </RailIcon>
-  );
-}
-
-function TransitsIcon() {
-  return (
-    <RailIcon>
-      <ellipse cx="12" cy="12" rx="10" ry="4" />
-      <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)" />
-      <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)" />
-      <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
-    </RailIcon>
-  );
-}
-
-function JournalIcon() {
-  return (
-    <RailIcon>
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-      <path d="M8 7h8M8 11h6" />
-    </RailIcon>
-  );
-}
-
-function ToolsIcon() {
-  return (
-    <RailIcon>
-      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.77 3.77z" />
+      <circle cx="12" cy="12" r="10" />
+      <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
     </RailIcon>
   );
 }
@@ -125,14 +76,9 @@ type RailItemDef = {
 };
 
 const RAIL_ITEMS: RailItemDef[] = [
-  { id: "personal",   labelEn: "Personal",   labelTaKey: "tab_personal",   icon: <PersonalIcon /> },
-  { id: "calendar",   labelEn: "Calendar",   labelTaKey: "tab_calendar",   icon: <CalendarIcon /> },
-  { id: "family",     labelEn: "Family",     labelTaKey: "tab_family",     icon: <FamilyIcon /> },
-  { id: "life-areas", labelEn: "Life Areas", labelTaKey: "tab_life_areas", icon: <LifeAreasIcon /> },
-  { id: "plan",       labelEn: "Plan",       labelTaKey: "tab_plan",       icon: <PlanIcon /> },
-  { id: "transits",   labelEn: "Transits",   labelTaKey: "tab_transits",   icon: <TransitsIcon /> },
-  { id: "journal",    labelEn: "Journal",    labelTaKey: "tab_journal",    icon: <JournalIcon /> },
-  { id: "tools",      labelEn: "Tools",      labelTaKey: "tab_tools",      icon: <ToolsIcon /> },
+  { id: "personal", labelEn: "Today",      labelTaKey: "tab_personal",   icon: <TodayIcon /> },
+  { id: "calendar", labelEn: "Panchangam", labelTaKey: "tab_calendar",   icon: <PanchangamIcon /> },
+  { id: "explore",  labelEn: "Explore",                                   icon: <ExploreIcon /> },
 ];
 
 const SHOW_QA_TAB = process.env.NODE_ENV !== "production";
@@ -158,11 +104,14 @@ export function DashboardLeftRail({ lang, activeTab, onTabChange }: DashboardLef
         {expanded && <span className="cd-rail-item__label cd-rail-item__label--inline">Menu</span>}
       </button>
       {items.map((item, idx) => {
-        const isActive = activeTab === item.id;
+        const DEPTH_TABS: Tab[] = ["tools", "transits", "plan", "life-areas", "family", "journal", "explore"];
+        const isActive =
+          item.id === "explore"
+            ? DEPTH_TABS.includes(activeTab)
+            : activeTab === item.id;
         const label = lang === "ta" && item.labelTaKey ? t(item.labelTaKey, lang) : item.labelEn;
 
-        // Divider before Tools to signal "specialist" section
-        const showDivider = idx > 0 && item.id === "tools";
+        const showDivider = false;
 
         return (
           <div key={item.id}>
