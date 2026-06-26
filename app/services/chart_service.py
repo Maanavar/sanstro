@@ -163,6 +163,9 @@ def _compute_nakshatra_analysis(planet_longitudes: dict[str, float]) -> dict[str
 
 
 def _birth_panchangam_signature(profile: Any) -> dict[str, object]:
+    from zoneinfo import ZoneInfo
+    from app.calculations.tamil_calendar import format_tamil_date
+
     snapshot = calculate_daily_panchangam(
         date_local=_value(profile, "birth_date_local"),
         timezone_name=_value(profile, "birth_timezone"),
@@ -171,6 +174,17 @@ def _birth_panchangam_signature(profile: Any) -> dict[str, object]:
         session=None,
         use_cache=False,
     )
+
+    tz = ZoneInfo(str(_value(profile, "birth_timezone")))
+    sunrise_local = snapshot.sunrise.astimezone(tz)
+    sunset_local = snapshot.sunset.astimezone(tz)
+    tamil_date_ta, tamil_date_en = format_tamil_date(
+        _value(profile, "birth_date_local"),
+        str(_value(profile, "birth_timezone")),
+        float(_value(profile, "birth_latitude")),
+        float(_value(profile, "birth_longitude")),
+    )
+
     return {
         "vaaram": snapshot.weekday,
         "vaaram_lord": snapshot.weekday_lord,
@@ -183,6 +197,10 @@ def _birth_panchangam_signature(profile: Any) -> dict[str, object]:
         "is_vishti_karanam": snapshot.karana_name == "VISHTI",
         "gana": _nakshatra_gana(snapshot.nakshatra_number),
         "nadi": _nakshatra_nadi(snapshot.nakshatra_number),
+        "sunrise_time": sunrise_local.strftime("%I:%M:%S %p"),
+        "sunset_time": sunset_local.strftime("%I:%M:%S %p"),
+        "tamil_date_ta": tamil_date_ta,
+        "tamil_date_en": tamil_date_en,
     }
 
 
