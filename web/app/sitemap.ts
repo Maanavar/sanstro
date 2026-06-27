@@ -108,6 +108,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
+      url: `${BASE}/muhurtham-naal/2027`,
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
+    {
+      url: `${BASE}/muhurtham-naal/2026`,
+      changeFrequency: "monthly",
+      priority: 0.75,
+    },
+    {
       url: `${BASE}/tamil-calendar`,
       changeFrequency: "weekly",
       priority: 0.9,

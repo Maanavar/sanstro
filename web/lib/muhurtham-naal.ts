@@ -1,5 +1,9 @@
 import { apiFetchJson, toQuery } from "@/lib/api";
 
+export const MUHURTHAM_NAAL_YEARS = [2027, 2026] as const;
+export const LATEST_MUHURTHAM_NAAL_YEAR = MUHURTHAM_NAAL_YEARS[0];
+export type MuhurthamNaalYear = (typeof MUHURTHAM_NAAL_YEARS)[number];
+
 export interface BiText {
   ta: string;
   en: string;
@@ -76,7 +80,7 @@ export function fetchPublicMuhurthamNaals(
 
 export function fetchChartMuhurthamNaals(
   chartId: string,
-  year = 2026,
+  year = LATEST_MUHURTHAM_NAAL_YEAR,
   recommendedOnly = false,
 ): Promise<MuhurthamNaalMatchResponse> {
   const query = toQuery({ year, recommendedOnly });

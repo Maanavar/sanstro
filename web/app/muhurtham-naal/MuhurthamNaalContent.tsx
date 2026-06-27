@@ -6,12 +6,12 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { useLang } from "@/components/lang-toggle";
 import {
+  MUHURTHAM_NAAL_YEARS,
+  LATEST_MUHURTHAM_NAAL_YEAR,
   fetchPublicMuhurthamNaals,
   type MuhurthamNaalItem,
 } from "@/lib/muhurtham-naal";
 import { readErrorMessage } from "@/lib/api";
-
-const YEAR = 2026;
 
 const MONTHS: { value: number; en: string; ta: string }[] = [
   { value: 0, en: "All months", ta: "எல்லா மாதங்கள்" },
@@ -44,7 +44,7 @@ function formatGregorian(iso: string, lang: "en" | "ta"): string {
   });
 }
 
-export function MuhurthamNaalContent() {
+export function MuhurthamNaalContent({ year = LATEST_MUHURTHAM_NAAL_YEAR }: { year?: number }) {
   const [lang] = useLang();
   const [all, setAll] = useState<MuhurthamNaalItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +56,7 @@ export function MuhurthamNaalContent() {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    fetchPublicMuhurthamNaals(YEAR)
+    fetchPublicMuhurthamNaals(year)
       .then((res) => {
         if (!active) return;
         setAll(res.naals);
@@ -71,7 +71,7 @@ export function MuhurthamNaalContent() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [year]);
 
   const filtered = useMemo(() => {
     return all.filter((n) => {
@@ -92,7 +92,7 @@ export function MuhurthamNaalContent() {
         <section className="cl-pub-hero" style={{ paddingBottom: "24px" }}>
           <div className="cl-container">
             <div className="cl-pub-hero__copy">
-              <p className="cl-eyebrow">{t("2026 Almanac", "2026 பஞ்சாங்கம்")}</p>
+              <p className="cl-eyebrow">{t(`${year} Almanac`, `${year} பஞ்சாங்கம்`)}</p>
               <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                 {/* eslint-disable-next-line @next/next/no-img-element -- decorative fixed-size local icon; next/image adds no benefit */}
                 <img
@@ -105,13 +105,13 @@ export function MuhurthamNaalContent() {
                   onError={(e) => { e.currentTarget.style.display = "none"; }}
                 />
                 <h1 className="cl-pub-h1" style={{ margin: 0 }}>
-                  {t("2026 Tamil Muhurtham Naal (Wedding Dates)", "2026 திருமண முகூர்த்த நாட்கள்")}
+                  {t(`${year} Tamil Muhurtham Naal (Wedding Dates)`, `${year} திருமண முகூர்த்த நாட்கள்`)}
                 </h1>
               </div>
               <p className="cl-pub-lead">
                 {t(
-                  "The full published almanac list of auspicious wedding dates for 2026 — with weekday, Tamil date, pirai, nakshatra and nalla neram for each day.",
-                  "2026-ஆம் ஆண்டுக்கான திருமண சுப முகூர்த்த நாட்களின் முழுப் பட்டியல் — ஒவ்வொரு நாளுக்கும் கிழமை, தமிழ் தேதி, பிறை, நட்சத்திரம், நல்ல நேரத்துடன்.",
+                  `The full published almanac list of auspicious wedding dates for ${year} — with weekday, Tamil date, pirai, nakshatra and nalla neram for each day.`,
+                  `${year}-ஆம் ஆண்டுக்கான திருமண சுப முகூர்த்த நாட்களின் முழுப் பட்டியல் — ஒவ்வொரு நாளுக்கும் கிழமை, தமிழ் தேதி, பிறை, நட்சத்திரம், நல்ல நேரத்துடன்.`,
                 )}
               </p>
             </div>
@@ -122,6 +122,22 @@ export function MuhurthamNaalContent() {
         <section style={{ paddingBottom: "48px" }}>
           <div className="cl-container">
             <div className="cl-filter-bar">
+              <div className="cl-filter-field">
+                <span>{t("Year", "ஆண்டு")}</span>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {MUHURTHAM_NAAL_YEARS.map((option) => (
+                    <Link
+                      key={option}
+                      href={option === LATEST_MUHURTHAM_NAAL_YEAR ? "/muhurtham-naal" : `/muhurtham-naal/${option}`}
+                      className="cl-btn cl-btn--ghost"
+                      aria-current={option === year ? "page" : undefined}
+                      style={{ padding: "8px 12px", fontSize: "0.85rem" }}
+                    >
+                      {option}
+                    </Link>
+                  ))}
+                </div>
+              </div>
               <label className="cl-filter-field">
                 <span>{t("Month", "மாதம்")}</span>
                 <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="cl-select">
