@@ -1,4 +1,4 @@
-import { normalizeTamilAstroText } from "./tamil-astro";
+﻿import { normalizeTamilAstroText } from "./tamil-astro";
 import { LANG_STORAGE_KEY, type Lang } from "./i18n";
 
 export type { Lang };
@@ -165,7 +165,7 @@ export const BETA = {
 
 export const HOME = {
   // Hero
-  hero_eyebrow:   s("Tamil Astrology Assistant", "தமிழ் ஜோதிட வழிகாட்டி"),
+  hero_eyebrow:   s("Thirukanitham-Precise Tamil Astrology", "திருக்கணித-துல்லிய தமிழ் ஜோதிடம்"),
   hero_h1:        s(
     "One calm guide for your chart, your day, and the people you plan with.",
     "உங்கள் ஜாதகம், இன்றைய நாள், குடும்ப முடிவுகள் அனைத்துக்கும் ஒரே அமைதியான வழிகாட்டல்."

@@ -20,11 +20,12 @@ import {
   SunMedium,
   X,
 } from "lucide-react-native";
-import { C } from "@/theme/colors";
+import { C, type ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
+import { useColors } from "@/hooks/useColors";
 import { TimeCard } from "@/components/TimeCard";
 import { ListItem } from "@/components/ListItem";
 import { ChipStrip } from "@/components/ChipStrip";
@@ -49,7 +50,6 @@ import { getPrimaryChartId } from "@/lib/userPrefs";
 import { pushWidgetData } from "@/lib/widgetBridge";
 import { biText } from "@/lib/i18n";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
-import { scoreTone } from "@/lib/score";
 import type { GuestPrefs } from "@/features/guest/guestStore";
 import type { DailyGuidanceData } from "@vinaadi/shared";
 type ExtendedGuidance = DailyGuidanceData & {
@@ -155,6 +155,7 @@ function getCosmicAlert(g: ExtendedGuidance | undefined, transit: TransitItem | 
 export default function TodayTab() {
   const { showSuccess, showError } = useToast();
   const { t, strings, lang } = useI18n();
+  const C = useColors();
   const { tier, user } = useSession();
   const isTamil = lang === "ta";
   const { height: windowHeight } = useWindowDimensions();
@@ -418,6 +419,7 @@ export default function TodayTab() {
                     <Text style={[styles.scoreHeroLabel, isTamil ? TamilType.caption : EnType.caption]}>
                       {isTamil ? "Today" : "Today"} · {cityName}
                     </Text>
+                    <ThirukanithamBadge size="sm" style={{ alignSelf: "center" }} />
                   </View>
                   <ChevronRight size={20} color={C.textTertiary} strokeWidth={1.5} />
                 </View>
@@ -453,6 +455,7 @@ export default function TodayTab() {
           <LifeAreaPulse
             areas={areaPulse.slice(0, 4)}
             isTamil={isTamil}
+            C={C}
             onSelect={(area) => {
               Haptics.selectionAsync();
               setDetailSheet({
@@ -526,6 +529,7 @@ export default function TodayTab() {
                   </View>
                   <SunMedium size={56} color={C.surface} strokeWidth={1.5} />
                 </View>
+                <ThirukanithamBadge size="sm" style={{ marginTop: 8 }} />
                 {p?.specialTithiDay && (
                   <View style={styles.heroBadge}>
                     <Text style={styles.heroBadgeText}>
@@ -817,7 +821,6 @@ export default function TodayTab() {
             </TouchableOpacity>
           </TouchableOpacity>
         </Modal>
-        <ThirukanithamBadge style={styles.badge} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -826,16 +829,18 @@ export default function TodayTab() {
 function LifeAreaPulse({
   areas,
   isTamil,
+  C,
   onSelect,
 }: {
   areas: LifeAreaData[];
   isTamil: boolean;
+  C: ColorTokens;
   onSelect: (area: LifeAreaData) => void;
 }) {
   return (
     <View style={styles.areaPulseRow}>
       {areas.map((area) => {
-        const tone = scoreTone(area.score);
+        const tone = area.score >= 65 ? C.green : area.score >= 45 ? C.gold : C.caution;
         const score = Math.round(area.score);
         const rawLabel = biText(area.label, isTamil, area.area);
         const label = rawLabel.length > 7 ? rawLabel.slice(0, 6) + "…" : rawLabel;
@@ -1201,7 +1206,6 @@ const styles = StyleSheet.create({
   decisionTitle: { fontFamily: "Inter_800ExtraBold", fontSize: 18, lineHeight: 24, color: C.surface },
   decisionBody: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19, color: `${C.surface}B8` },
 
-  badge: { alignSelf: "center", marginTop: S.xl },
   streakChip: {
     flexDirection: 'row',
     alignItems: 'center',
