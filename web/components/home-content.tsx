@@ -1,11 +1,13 @@
 ﻿"use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useLang } from "@/components/lang-toggle";
 import { formatClockLabel } from "@/lib/format";
 import { HOME, mt } from "@/lib/marketing-i18n";
+import { useGuestStore, RASI_LIST } from "@/hooks/useGuestStore";
 
-function makeSample(lang: "en" | "ta") {
+function makeSample(lang: "en" | "ta", rasiOverride?: { en: string; ta: string } | null) {
   const en = lang === "en";
   return {
     dayLabel:   en ? "Tuesday, 26 May"      : "செவ்வாய், 26 மே",
@@ -17,7 +19,7 @@ function makeSample(lang: "en" | "ta") {
     holdWindow: { start: "15:28", end: "17:03" },
     lagna:      en ? "Kadagam"   : "கடகம்",
     nakshatra:  en ? "Kettai"    : "கேட்டை",
-    rasi:       en ? "Viruchigam": "விருச்சிகம்",
+    rasi:       rasiOverride ? (en ? rasiOverride.en : rasiOverride.ta) : (en ? "Viruchigam" : "விருச்சிகம்"),
     dasha:      en ? "Moon Dasa · Moon Bhukti"              : "சந்திர தசை · சந்திர புக்தி",
     transit:    en ? "Saturn in Kumbam · Jupiter in Mesham" : "சனி கும்பத்தில் · குரு மேஷத்தில்",
     panchangam: en ? "Ekadasi · Kettai · Vishkambha"        : "ஏகாதசி · கேட்டை · விஷ்கம்பம்",
@@ -28,7 +30,9 @@ const ARC_HOURS = ["6 am", "9 am", "12 pm", "3 pm", "6 pm"];
 
 export function HomeContent() {
   const [lang] = useLang();
-  const SAMPLE = makeSample(lang);
+  const { selectedRasi, setRasi } = useGuestStore();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const SAMPLE = makeSample(lang, selectedRasi);
   const bestWindowLabel = `${formatClockLabel(SAMPLE.bestWindow.start)} - ${formatClockLabel(SAMPLE.bestWindow.end)}`;
   const holdWindowLabel = `${formatClockLabel(SAMPLE.holdWindow.start)} - ${formatClockLabel(SAMPLE.holdWindow.end)}`;
 
@@ -120,12 +124,71 @@ export function HomeContent() {
               <Link href="/dashboard" className="cl-btn cl-btn--solid">{mt(HOME.hero_cta_start, lang)}</Link>
               <a href="#how-it-works" className="cl-btn cl-btn--ghost">{mt(HOME.hero_cta_how, lang)}</a>
             </div>
-            <p className="cl-hero__guest-note">
-              {lang === "en"
-                ? <><span>No account needed</span> — <Link href="/tools/daily-panchangam-planner">Try today&apos;s Panchangam free →</Link></>
-                : <><span>கணக்கு தேவையில்லை</span> — <Link href="/tools/daily-panchangam-planner">இன்றைய பஞ்சாங்கம் இலவசமாக பாருங்கள் →</Link></>
-              }
-            </p>
+            {/* Guest rasi picker */}
+            <div className="cl-guest-rasi">
+              {!pickerOpen && !selectedRasi && (
+                <p className="cl-hero__guest-note">
+                  <button
+                    type="button"
+                    className="cl-guest-rasi__trigger"
+                    onClick={() => setPickerOpen(true)}
+                  >
+                    {lang === "en"
+                      ? "No account needed — Pick your Rasi to personalise →"
+                      : "கணக்கு தேவையில்லை — உங்கள் ராசி தேர்வு செய்யுங்கள் →"}
+                  </button>
+                </p>
+              )}
+              {selectedRasi && !pickerOpen && (
+                <p className="cl-hero__guest-note">
+                  <span className="cl-guest-rasi__badge">
+                    {lang === "ta" ? selectedRasi.ta : selectedRasi.en}
+                  </span>
+                  {" "}
+                  <Link href="/tools/daily-panchangam-planner" className="cl-guest-rasi__cta">
+                    {lang === "en" ? "See today's Panchangam →" : "இன்றைய பஞ்சாங்கம் பாருங்கள் →"}
+                  </Link>
+                  {" · "}
+                  <button
+                    type="button"
+                    className="cl-guest-rasi__change"
+                    onClick={() => setPickerOpen(true)}
+                  >
+                    {lang === "en" ? "Change" : "மாற்று"}
+                  </button>
+                </p>
+              )}
+              {pickerOpen && (
+                <div className="cl-rasi-picker">
+                  <p className="cl-rasi-picker__label">
+                    {lang === "en" ? "Select your birth Rasi" : "உங்கள் ஜன்ம ராசி தேர்க"}
+                  </p>
+                  <div className="cl-rasi-picker__grid">
+                    {RASI_LIST.map((rasi) => (
+                      <button
+                        key={rasi.id}
+                        type="button"
+                        className="cl-rasi-picker__chip"
+                        data-active={selectedRasi?.id === rasi.id}
+                        onClick={() => {
+                          setRasi(rasi.id);
+                          setPickerOpen(false);
+                        }}
+                      >
+                        {lang === "ta" ? rasi.ta : rasi.en}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="cl-rasi-picker__cancel"
+                    onClick={() => setPickerOpen(false)}
+                  >
+                    {lang === "en" ? "Cancel" : "ரத்து செய்"}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="cl-hero__card-wrap" id="sample">
