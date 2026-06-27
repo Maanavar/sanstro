@@ -6,6 +6,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
+import { ChevronRight, Gift, Clock } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
@@ -175,7 +176,7 @@ export default function MeScreen() {
             <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
               {isTamil ? "à®¤à®©à®¿à®¯à¯à®°à®¿à®®à¯ˆ" : "Privacy Policy"}
             </Text>
-            <Text style={styles.menuArrow}>{">"}</Text>
+            <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
           </TouchableOpacity>
           <View style={styles.divider} />
 
@@ -185,7 +186,7 @@ export default function MeScreen() {
             <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
               {isTamil ? "à®ªà®¯à®©à¯à®ªà®¾à®Ÿà¯à®Ÿà¯ à®µà®¿à®¤à®¿à®•à®³à¯" : "Terms of Use"}
             </Text>
-            <Text style={styles.menuArrow}>{">"}</Text>
+            <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
           </TouchableOpacity>
         </Animated.View>
 
@@ -224,26 +225,30 @@ export default function MeScreen() {
                   <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
                     {isTamil ? "à®Žà®©à¯ à®œà®¾à®¤à®•à®®à¯" : "My Jadhagam"}
                   </Text>
-                  <Text style={styles.menuArrow}>{">"}</Text>
+                  <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
                 </TouchableOpacity>
                 <View style={styles.divider} />
                 <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/wrapped" as Href)}>
-                  <Text style={styles.menuIcon}>YR</Text>
+                  <View style={{ width: 28, alignItems: 'center' }}>
+                    <Gift size={20} color={C.gold} strokeWidth={1.5} />
+                  </View>
                   <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
                     {isTamil ? "Annual Wrapped" : "Annual Wrapped"}
                   </Text>
-                  <Text style={styles.menuArrow}>{">"}</Text>
+                  <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
                 </TouchableOpacity>
                 <View style={styles.divider} />
                 <TouchableOpacity
                   style={styles.menuRow}
                   onPress={() => router.push(`/rectification?chartId=${encodeURIComponent(primaryChartId)}` as Href)}
                 >
-                  <Text style={styles.menuIcon}>BT</Text>
+                  <View style={{ width: 28, alignItems: 'center' }}>
+                    <Clock size={20} color={C.gold} strokeWidth={1.5} />
+                  </View>
                   <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
                     {isTamil ? "Birth Time Rectification" : "Birth Time Rectification"}
                   </Text>
-                  <Text style={styles.menuArrow}>{">"}</Text>
+                  <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
                 </TouchableOpacity>
                 <View style={styles.divider} />
                 <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/dasha" as Href)}>
@@ -251,7 +256,7 @@ export default function MeScreen() {
                   <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
                     {isTamil ? "à®¤à®šà®¾ à®•à®¾à®²à®µà®°à®¿à®šà¯ˆ" : "Dasha Timeline"}
                   </Text>
-                  <Text style={styles.menuArrow}>{">"}</Text>
+                  <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
                 </TouchableOpacity>
                 <View style={styles.divider} />
                 <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/varshaphala" as Href)}>
@@ -259,7 +264,7 @@ export default function MeScreen() {
                   <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
                     {isTamil ? "à®µà®°à¯à®·à®ªà®²" : "Annual Prediction"}
                   </Text>
-                  <Text style={styles.menuArrow}>{">"}</Text>
+                  <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
                 </TouchableOpacity>
                 <View style={styles.divider} />
                 <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/profile-manager" as Href)}>
@@ -267,7 +272,7 @@ export default function MeScreen() {
                   <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
                     {"Manage Birth Profiles"}
                   </Text>
-                  <Text style={styles.menuArrow}>{">"}</Text>
+                  <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
                 </TouchableOpacity>
                 <View style={styles.divider} />
               </>
@@ -277,7 +282,7 @@ export default function MeScreen() {
               <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
                 {isTamil ? "à®ªà¯†à®¯à®°à¯à®šà¯à®šà®¿ / à®•à¯‹à®šà¯à®šà®¾à®°à®®à¯" : "Upcoming Transits"}
               </Text>
-              <Text style={styles.menuArrow}>{">"}</Text>
+              <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
             </TouchableOpacity>
             <View style={styles.divider} />
             <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/notifications/inbox")}>
@@ -285,7 +290,7 @@ export default function MeScreen() {
               <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
                 {isTamil ? "à®…à®±à®¿à®µà®¿à®ªà¯à®ªà¯à®•à®³à¯" : "Notification Inbox"}
               </Text>
-              <Text style={styles.menuArrow}>{">"}</Text>
+              <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
             </TouchableOpacity>
             <View style={styles.divider} />
             <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/notifications/settings")}>
@@ -293,7 +298,7 @@ export default function MeScreen() {
               <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
                 {isTamil ? "à®…à®±à®¿à®µà®¿à®ªà¯à®ªà¯ à®…à®®à¯ˆà®ªà¯à®ªà¯à®•à®³à¯" : "Notification Settings"}
               </Text>
-              <Text style={styles.menuArrow}>{">"}</Text>
+              <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
             </TouchableOpacity>
           </View>
         )}
