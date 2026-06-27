@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   RefreshControl,
   ScrollView,
@@ -33,7 +33,7 @@ import { entranceDelay, spring, staggerInterval, duration } from "@/theme/motion
 import { ShareCaptureView } from "@/components/share/ShareCaptureView";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import { biText } from "@/lib/i18n";
-import { scoreTone } from "@/lib/score";
+import { scoreFillColor } from "@/lib/score";
 import type { GuestPrefs } from "@/features/guest/guestStore";
 import type { LifeAreaData } from "@/api/lifeAreas";
 import type { LifeEventWindow } from "@/api/lifeEvents";
@@ -348,7 +348,7 @@ function SectionTitle({ title, action, onPress }: { title: string; action?: stri
 function AreaStoryCard({ area, isTamil }: { area: LifeAreaData; isTamil: boolean }) {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
-  const tone = scoreTone(area.score);
+  const tone = scoreFillColor(area.score);
   const title = biText(area.label, isTamil, area.area);
   return (
     <ShareCaptureView

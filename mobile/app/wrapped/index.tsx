@@ -30,7 +30,7 @@ import {
 import { ShareCaptureView } from "@/components/share/ShareCaptureView";
 import { loadQuickJournalEntries, type QuickJournalEntry } from "@/features/journal/journalStore";
 import { getPrimaryChartId } from "@/lib/userPrefs";
-import { scoreTone } from "@/lib/score";
+import { scoreFillColor } from "@/lib/score";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = [CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2].filter((year) => year >= 2024);
@@ -347,8 +347,8 @@ function SlideCard({
 
 function StatsSummary({ data }: { data: AnnualWrappedData }) {
   const stats = [
-    { label: "Average", value: `${data.averageScore}/100`, color: scoreTone(data.averageScore) },
-    { label: "Peak", value: `${data.peakScore}`, sub: dateLabel(data.peakDate), color: scoreTone(data.peakScore) },
+    { label: "Average", value: `${data.averageScore}/100`, color: scoreFillColor(data.averageScore) },
+    { label: "Peak", value: `${data.peakScore}`, sub: dateLabel(data.peakDate), color: scoreFillColor(data.peakScore) },
     { label: "Caution", value: String(data.cautionDays), color: C.caution },
     { label: "Dasha", value: data.dominantDashaLord, color: C.saffron },
   ];

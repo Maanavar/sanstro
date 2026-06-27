@@ -8,7 +8,7 @@ describe("format helpers", () => {
     expect(getScoreBand(68)).toEqual({ label: "supportive", tone: "high" });
     expect(getScoreBand(53)).toEqual({ label: "steady", tone: "mid" });
     expect(getScoreBand(39)).toEqual({ label: "soft caution", tone: "low" });
-    expect(getScoreBand(14)).toEqual({ label: "restorative", tone: "rest" });
+    expect(getScoreBand(14)).toEqual({ label: "restorative", tone: "low" });
   });
 
   it("formats dates and clock labels", () => {

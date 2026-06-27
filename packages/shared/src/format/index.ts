@@ -1,6 +1,8 @@
+import { scoreTone } from "../utils/score";
+
 export interface ScoreBand {
   label: string;
-  tone: "high" | "mid" | "low" | "rest";
+  tone: "high" | "mid" | "low";
 }
 
 export function todayIso(reference = new Date()): string {
@@ -48,15 +50,16 @@ export function formatDateTimeLabel(value: string | null | undefined): string {
 
 export function getScoreBand(score: number): ScoreBand {
   if (score >= 80) return { label: "strong day", tone: "high" };
-  if (score >= 65) return { label: "supportive", tone: "high" };
-  if (score >= 50) return { label: "steady", tone: "mid" };
-  if (score >= 35) return { label: "soft caution", tone: "low" };
-  return { label: "restorative", tone: "rest" };
+  const tone = scoreTone(score);
+  if (tone === "high") return { label: "supportive", tone };
+  if (tone === "mid") return { label: "steady", tone };
+  if (score >= 35) return { label: "soft caution", tone };
+  return { label: "restorative", tone };
 }
 
-export function scoreBandColor(score: number): "green" | "amber" | "caution" | "rest" {
-  if (score >= 65) return "green";
-  if (score >= 50) return "amber";
-  if (score >= 35) return "caution";
-  return "rest";
+export function scoreBandColor(score: number): "green" | "amber" | "caution" {
+  const tone = scoreTone(score);
+  if (tone === "high") return "green";
+  if (tone === "mid") return "amber";
+  return "caution";
 }

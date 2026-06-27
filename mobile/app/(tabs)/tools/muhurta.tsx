@@ -24,7 +24,7 @@ import { BannerAdUnit } from "@/components/AdUnit";
 import { getDecisionBrief, type DecisionPriority } from "@/api/decisions";
 import { getMuhurta } from "@/api/tools";
 import { getPrimaryChartId } from "@/lib/userPrefs";
-import { scoreTone } from "@/lib/score";
+import { scoreFillColor } from "@/lib/score";
 
 const ACTIVITIES = [
   { key: "marriage", label: "Marriage" },
@@ -310,7 +310,7 @@ function DecisionResult({ brief }: { brief: import("@/api/decisions").DecisionBr
 function OptionCard({ option, active }: { option: import("@/api/decisions").OptionAnalysis; active: boolean }) {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
-  const tone = scoreTone(option.score);
+  const tone = scoreFillColor(option.score);
   return (
     <View style={[styles.optionCard, active && styles.optionCardActive]}>
       <View style={styles.optionTop}>

@@ -8,6 +8,6 @@ const TONE_COLOR = {
 } as const;
 
 /** Returns the theme color string for a 0–100 score. */
-export function scoreTone(score: number): string {
+export function scoreFillColor(score: number): string {
   return TONE_COLOR[getScoreTone(score)];
 }
