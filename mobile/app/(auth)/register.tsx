@@ -10,7 +10,8 @@ import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
-import { register } from "@/api/auth";
+import { register, login } from "@/api/auth";
+import { setTokens } from "@/lib/secureStore";
 import { ApiError } from "@/api/client";
 
 export default function RegisterScreen() {
@@ -36,9 +37,11 @@ export default function RegisterScreen() {
     setError(null);
     setLoading(true);
     try {
-      const res = await register(trimmedEmail, password);
+      await register(trimmedEmail, password);
+      const loginRes = await login(trimmedEmail, password);
+      await setTokens({ accessToken: loginRes.accessToken, refreshToken: loginRes.refreshToken });
       setSession(
-        { userId: res.user.userId, email: res.user.email, displayName: res.user.displayName },
+        { userId: loginRes.user.userId, email: loginRes.user.email, displayName: loginRes.user.displayName },
         "registered"
       );
       router.replace("/(onboarding)/birth-details");

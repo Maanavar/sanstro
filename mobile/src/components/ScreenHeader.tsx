@@ -1,7 +1,6 @@
 import React, { useMemo } from "react";
 import { StyleSheet, Text, View, type ViewStyle } from "react-native";
 import Animated from "react-native-reanimated";
-import type { AnimationBuilder } from "react-native-reanimated";
 import { useColors } from "@/hooks/useColors";
 import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
@@ -16,7 +15,7 @@ type Props = {
   /** Right-side slot — a pill, count badge, icon, etc. */
   badge?: React.ReactNode;
   style?: ViewStyle;
-  entering?: AnimationBuilder | React.ComponentProps<typeof Animated.View>["entering"];
+  entering?: React.ComponentProps<typeof Animated.View>["entering"];
 };
 
 /**

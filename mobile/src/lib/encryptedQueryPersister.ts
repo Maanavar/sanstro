@@ -44,10 +44,9 @@ function sanitizeClientState(clientState: any): any {
 }
 
 export function createEncryptedPersister(
-  storage: EncryptedStorage = encryptedStorage,
-  options?: { key?: string }
+  options: { key?: string; storage?: EncryptedStorage } = {}
 ): Persister {
-  const key = options?.key ?? "vinaadi_rq_cache";
+  const { key = "vinaadi_rq_cache", storage = encryptedStorage } = options;
 
   return {
     persistClient: async (clientState: any) => {
