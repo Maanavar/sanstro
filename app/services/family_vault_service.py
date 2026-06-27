@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session
 from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.panchangam import calculate_daily_panchangam
+from app.core.subscription import is_premium
+from app.core.tier_limits import get_limits
 from app.models import BirthProfile, Chart, FamilyDailyScore, FamilyMember, FamilyVault, User
 from app.schemas.daily_guidance import DailyGuidanceWindow
 from app.schemas.dasha import ResponseMeta
@@ -714,6 +716,20 @@ def add_family_member(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="This family member already exists in the vault.",
+        )
+
+    tier = "premium" if is_premium(owner_user_id, session) else "registered"
+    vault_limit = get_limits(tier).family_vault_profiles_max
+    existing_count = session.execute(
+        select(func.count(FamilyMember.family_member_id)).where(
+            FamilyMember.family_vault_id == family_vault.family_vault_id,
+            FamilyMember.deleted_at.is_(None),
+        )
+    ).scalar_one()
+    if int(existing_count) >= vault_limit:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Family Vault limit reached ({vault_limit} profile{'s' if vault_limit != 1 else ''}). Upgrade to Premium to add more.",
         )
 
     family_member = FamilyMember(

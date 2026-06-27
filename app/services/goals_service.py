@@ -12,13 +12,16 @@ Rules (from agents.md):
 """
 from __future__ import annotations
 
+import math
 from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.subscription import is_premium
+from app.core.tier_limits import get_limits
 from app.models import Chart, UserGoal
 from app.schemas.dasha import ResponseMeta
 from app.schemas.goals import (
@@ -67,6 +70,22 @@ def create_goal(
     language_preference: str,
 ) -> GoalResponse:
     _assert_chart_owner(session, chart_id, owner_user_id)
+
+    tier = "premium" if is_premium(owner_user_id, session) else "registered"
+    goals_max = get_limits(tier).goals_max
+    if not math.isinf(goals_max):
+        active_count = session.execute(
+            select(func.count(UserGoal.goal_id)).where(
+                UserGoal.owner_user_id == owner_user_id,
+                UserGoal.is_active.is_(True),
+                UserGoal.deleted_at.is_(None),
+            )
+        ).scalar_one()
+        if int(active_count) >= int(goals_max):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Active goal limit reached ({int(goals_max)}). Deactivate a goal or upgrade to Premium for unlimited goals.",
+            )
 
     goal = UserGoal(
         owner_user_id=owner_user_id,

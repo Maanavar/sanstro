@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -17,12 +18,13 @@ from app.schemas.birth_profiles import (
     BirthProfileResponseMeta,
     BirthProfileUpdate,
 )
+from app.core.subscription import is_premium
+from app.core.tier_limits import get_limits
 from app.services.chart_service import (
     _warning_messages,
     calculate_chart_for_persisted_profile,
     create_birth_profile_record,
 )
-from app.services.feature_flags import get_flag
 
 _BIRTH_RECALC_FIELDS = {
     "birth_date_local",
@@ -99,7 +101,8 @@ def create_birth_profile(session: Session, payload: BirthProfileCreate, *, calcu
     if duplicate_profile is not None:
         _raise_duplicate_birth_profile()
 
-    max_profiles = max(1, int(get_flag("max_birth_profiles_per_user") or 10))
+    tier = "premium" if is_premium(payload.owner_user_id, session) else "registered"
+    max_profiles = get_limits(tier).birth_profiles_max
     active_profile_count = session.execute(
         select(func.count())
         .select_from(BirthProfile)
@@ -108,7 +111,7 @@ def create_birth_profile(session: Session, payload: BirthProfileCreate, *, calcu
             BirthProfile.deleted_at.is_(None),
         )
     ).scalar_one()
-    if int(active_profile_count) >= max_profiles:
+    if not math.isinf(max_profiles) and int(active_profile_count) >= int(max_profiles):
         error_info = get_error_message(ErrorCode.RESOURCE_LIMIT_EXCEEDED)
         raise HTTPException(
             status_code=error_info["status"],

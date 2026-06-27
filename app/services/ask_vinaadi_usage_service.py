@@ -1,7 +1,8 @@
-"""Ask Vinaadi Lite chip-usage accounting — Feature 3.
+"""Ask Vinaadi chip-usage accounting — tier-aware.
 
-Free-tier users get FREE_DAILY_CHIPS questions per day (DB-backed, resets at the
-local date boundary). Premium users are not limited here.
+Guest:      2 questions / day  (tracked client-side; backend enforces for authenticated calls)
+Registered: 5 questions / day  (DB-backed, resets at local date boundary)
+Premium:    30 questions / month (summed from daily rows, no schema change needed)
 """
 from __future__ import annotations
 
@@ -9,18 +10,21 @@ from datetime import date
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.subscription import is_premium
+from app.core.tier_limits import ask_vinaadi_limit_for_tier
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
-from app.services.feature_flags import get_flag
 
 
-def _daily_limit() -> int:
-    try:
-        return max(1, int(get_flag("ask_vinaadi_daily_limit")))
-    except (TypeError, ValueError):
-        return 3
+def _tier(user_id: UUID, session: Session) -> str:
+    return "premium" if is_premium(user_id, session) else "registered"
+
+
+def _month_start() -> date:
+    today = date.today()
+    return today.replace(day=1)
 
 
 def _get_usage(session: Session, user_id: UUID, on_date: date) -> AskVinaadiUsage | None:
@@ -31,39 +35,70 @@ def _get_usage(session: Session, user_id: UUID, on_date: date) -> AskVinaadiUsag
     )
 
 
+def _get_monthly_count(session: Session, user_id: UUID) -> int:
+    total = session.execute(
+        select(func.sum(AskVinaadiUsage.chip_count)).where(
+            AskVinaadiUsage.user_id == user_id,
+            AskVinaadiUsage.usage_date >= _month_start(),
+        )
+    ).scalar_one()
+    return int(total or 0)
+
+
 def get_daily_status(session: Session, user_id: UUID) -> dict:
-    """Return chip usage for today: {chipsUsed, chipsRemaining, isPremium, dailyLimit}."""
-    premium = is_premium(user_id, session)
-    used = 0
-    if not premium:
-        usage = _get_usage(session, user_id, date.today())
-        used = usage.chip_count if usage else 0
-    daily_limit = _daily_limit()
+    """Return chip usage: {chipsUsed, chipsRemaining, isPremium, dailyLimit, monthlyLimit}."""
+    tier = _tier(user_id, session)
+    daily_limit, monthly_limit = ask_vinaadi_limit_for_tier(tier)
+
+    if monthly_limit is not None:
+        used = _get_monthly_count(session, user_id)
+        return {
+            "chipsUsed": used,
+            "chipsRemaining": max(0, monthly_limit - used),
+            "isPremium": True,
+            "dailyLimit": None,
+            "monthlyLimit": monthly_limit,
+        }
+
+    usage = _get_usage(session, user_id, date.today())
+    used = usage.chip_count if usage else 0
     return {
         "chipsUsed": used,
-        "chipsRemaining": None if premium else max(0, daily_limit - used),
-        "isPremium": premium,
+        "chipsRemaining": max(0, (daily_limit or 0) - used),
+        "isPremium": False,
         "dailyLimit": daily_limit,
+        "monthlyLimit": None,
     }
 
 
 def assert_chip_available(session: Session, user_id: UUID) -> None:
-    """Raise 429 if a free user has exhausted today's chips. No-op for premium."""
-    if is_premium(user_id, session):
+    """Raise 429 if the user has exhausted their quota (daily for registered, monthly for premium)."""
+    tier = _tier(user_id, session)
+    daily_limit, monthly_limit = ask_vinaadi_limit_for_tier(tier)
+
+    if monthly_limit is not None:
+        used = _get_monthly_count(session, user_id)
+        if used >= monthly_limit:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail={"error": "MONTHLY_LIMIT_REACHED", "chips_used": used, "monthly_limit": monthly_limit},
+            )
         return
+
     usage = _get_usage(session, user_id, date.today())
     used = usage.chip_count if usage else 0
-    if used >= _daily_limit():
+    if used >= (daily_limit or 0):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail={"error": "DAILY_LIMIT_REACHED", "chips_used": used},
+            detail={"error": "DAILY_LIMIT_REACHED", "chips_used": used, "daily_limit": daily_limit},
         )
 
 
 def consume_chip(session: Session, user_id: UUID) -> int | None:
-    """Increment today's chip count for free users. Returns chips remaining (None=premium)."""
-    if is_premium(user_id, session):
-        return None
+    """Increment today's chip count. Returns chips remaining (None if top-up packs are in play)."""
+    tier = _tier(user_id, session)
+    daily_limit, monthly_limit = ask_vinaadi_limit_for_tier(tier)
+
     today = date.today()
     usage = _get_usage(session, user_id, today)
     if usage is None:
@@ -71,4 +106,9 @@ def consume_chip(session: Session, user_id: UUID) -> int | None:
         session.add(usage)
     usage.chip_count += 1
     session.flush()
-    return max(0, _daily_limit() - usage.chip_count)
+
+    if monthly_limit is not None:
+        monthly_used = _get_monthly_count(session, user_id)
+        return max(0, monthly_limit - monthly_used)
+
+    return max(0, (daily_limit or 0) - usage.chip_count)

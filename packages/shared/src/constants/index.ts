@@ -1,3 +1,5 @@
+export * from "./tiers";
+
 import type { BiText } from "../types";
 
 export const RASI_LIST: Array<{ number: number; slug: string; name: BiText }> = [
