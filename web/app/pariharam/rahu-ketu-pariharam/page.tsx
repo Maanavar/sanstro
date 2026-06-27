@@ -43,9 +43,20 @@ const FAQ_JSONLD = {
   })),
 };
 
+const ARTICLE_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Rahu-Ketu Pariharam — Nodal Remedy, Temples & Mantra",
+  about: "Rahu-Ketu (lunar node) pariharam in Tamil Vedic astrology",
+  inLanguage: ["en", "ta"],
+  publisher: { "@type": "Organization", name: "Vinaadi", url: "https://vinaadi.com" },
+  mainEntityOfPage: "https://vinaadi.com/pariharam/rahu-ketu-pariharam",
+};
+
 export default function RahuKetuPariharamPage() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ARTICLE_JSONLD) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
       <RahuKetuPariharamContent />
     </>

@@ -43,9 +43,20 @@ const FAQ_JSONLD = {
   })),
 };
 
+const ARTICLE_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Pariharam for Health & Longevity (Ayul Pariharam)",
+  about: "Ayul (health and longevity) pariharam in Tamil Vedic astrology",
+  inLanguage: ["en", "ta"],
+  publisher: { "@type": "Organization", name: "Vinaadi", url: "https://vinaadi.com" },
+  mainEntityOfPage: "https://vinaadi.com/pariharam/ayul-pariharam",
+};
+
 export default function AyulPariharamPage() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ARTICLE_JSONLD) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
       <AyulPariharamContent />
     </>
