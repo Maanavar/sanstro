@@ -21,13 +21,14 @@ import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 
 const FEATURES = [
-  { ta: "வரம்பற்ற ஜாதகங்கள் (நாளுக்கு 3 இலவசமான பதிலாக)", en: "Unlimited charts (vs 3/day free)" },
+  { ta: "வரம்பற்ற ஜாதகங்கள் (3 இலவசத்திற்கு பதிலாக)", en: "Unlimited charts (vs 3 total free)" },
   { ta: "விளம்பரங்கள் இல்லை", en: "No ads" },
   { ta: "குடும்ப Vault — 5 சுயவிவரங்கள்", en: "Family Vault — 5 profiles" },
-  { ta: "Ask Vinaadi AI உரையாடல்", en: "Ask Vinaadi AI chat" },
-  { ta: "மாதம் 3 விரிவான அறிக்கைகள்", en: "3 detailed reports/month" },
-  { ta: "தசா / காலவரிசை", en: "Dasha timeline" },
-  { ta: "பரிகார பரிந்துரைகள்", en: "Remedy suggestions" },
+  { ta: "மாதம் 30 Ask Vinaadi கேள்விகள் + கூடுதல் பேக் கிடைக்கும்", en: "30 Ask Vinaadi questions/month + top-up available" },
+  { ta: "மாதம் 5 விரிவான அறிக்கைகள் உட்பட", en: "5 detailed reports/month included" },
+  { ta: "முழு தசா காலவரிசை (மகாதசா → பிரத்யந்தர்)", en: "Full dasha timeline (mahadasha → pratyantardasha)" },
+  { ta: "வருஷபலன், வர்கங்கள், ஒத்திசைவு பலகை", en: "Varshaphala, vargas, synastry panel" },
+  { ta: "வார்ஷிக Wrapped சமூக பகிர்வு + பரிகாரங்கள்", en: "Annual Wrapped social share + remedy suggestions" },
 ];
 
 type Plan = "monthly" | "annual";
@@ -186,7 +187,7 @@ export default function PremiumScreen() {
             </Text>
             <View style={styles.savingsBadge}>
               <Text style={styles.savingsText}>
-                {isTamil ? "48% சேமிப்பு!" : "48% off!"}
+                {isTamil ? "44% சேமிப்பு!" : "44% off!"}
               </Text>
             </View>
           </TouchableOpacity>

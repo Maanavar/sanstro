@@ -27,13 +27,15 @@ import { getLifeAreas, lifeAreasKeys } from "@/api/lifeAreas";
 import { getLifeEvents, lifeEventsKeys } from "@/api/lifeEvents";
 import { getUpcomingTransits, transitsKeys } from "@/api/transits";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
-import { loadQuickJournalEntries, syncQuickJournalEntries, type QuickJournalEntry } from "@/features/journal/journalStore";
+import { type QuickJournalEntry } from "@/features/journal/journalStore";
+import { useJournal } from "@/hooks/useJournal";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { entranceDelay, spring, staggerInterval, duration } from "@/theme/motion";
 import { ShareCaptureView } from "@/components/share/ShareCaptureView";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import { biText } from "@/lib/i18n";
 import { scoreFillColor } from "@/lib/score";
+import { TIER_LIMITS } from "@vinaadi/shared";
 import type { GuestPrefs } from "@/features/guest/guestStore";
 import type { LifeAreaData } from "@/api/lifeAreas";
 import type { LifeEventWindow } from "@/api/lifeEvents";
@@ -91,26 +93,16 @@ export default function InsightsScreen() {
   const type = isTamil ? TamilType : EnType;
   const [chartId, setChartId] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<GuestPrefs | null>(null);
-  const [journalEntries, setJournalEntries] = useState<QuickJournalEntry[]>([]);
+  const { entries: journalEntries, refreshEntries } = useJournal({ chartId, isAuthenticated });
 
-  const reloadJournal = async (syncChartId?: string | null) => {
-    if (syncChartId && isAuthenticated) {
-      const result = await syncQuickJournalEntries(syncChartId);
-      setJournalEntries(result.entries);
-      return;
+  useEffect(() => {
+    if (isAuthenticated) {
+      getPrimaryChartId().then(setChartId);
+    } else {
+      setChartId(null);
     }
-    setJournalEntries(await loadQuickJournalEntries());
-  };
-
-  useEffect(() => {
-    getPrimaryChartId().then(setChartId);
     loadGuestPrefs().then(setPrefs);
-    reloadJournal();
-  }, []);
-
-  useEffect(() => {
-    if (chartId && isAuthenticated) void reloadJournal(chartId);
-  }, [chartId, isAuthenticated]);
+  }, [isAuthenticated]);
 
   const date = useMemo(todayIso, []);
 
@@ -150,7 +142,7 @@ export default function InsightsScreen() {
     lifeAreas.refetch();
     lifeEvents.refetch();
     transits.refetch();
-    reloadJournal(chartId);
+    void refreshEntries(chartId);
   };
 
   const areas = lifeAreas.data?.data.areas ?? [];
@@ -233,8 +225,17 @@ export default function InsightsScreen() {
             <RiverTimeline events={events.slice(0, 5)} isTamil={isTamil} />
 
             <View style={styles.linkGrid}>
-              <InsightLink title={isTamil ? "Annual wrapped" : "Annual wrapped"} body={String(currentYear)} onPress={() => router.push("/wrapped" as Href)} />
-              <InsightLink title={isTamil ? "Annual prediction" : "Annual prediction"} body={String(currentYear)} onPress={() => router.push("/varshaphala" as Href)} />
+              <InsightLink
+                title={isTamil ? "Annual wrapped" : "Annual wrapped"}
+                body={String(currentYear)}
+                onPress={() => (TIER_LIMITS[tier].annualWrappedEnabled ? router.push("/wrapped" as Href) : router.push("/premium" as Href))}
+              />
+              <InsightLink
+                title={isTamil ? "Annual prediction" : "Annual prediction"}
+                body={String(currentYear)}
+                onPress={() => (TIER_LIMITS[tier].varshaphalaEnabled ? router.push("/varshaphala" as Href) : router.push("/premium" as Href))}
+                locked={!TIER_LIMITS[tier].varshaphalaEnabled}
+              />
               <InsightLink title={isTamil ? "Transits" : "Transits"} body={`${transits.data?.data.length ?? 0} upcoming`} onPress={() => router.push("/transits" as Href)} />
             </View>
 
@@ -291,12 +292,12 @@ export default function InsightsScreen() {
             <TouchableOpacity
               style={styles.vargaTile}
               activeOpacity={0.88}
-              onPress={() => router.push("/vargas" as Href)}
+              onPress={() => (TIER_LIMITS[tier].vargasEnabled ? router.push("/vargas" as Href) : router.push("/premium" as Href))}
               accessibilityLabel={isTamil ? "பிரிவு ஜாதகங்கள்" : "Divisional Charts"}
               accessibilityRole="button"
             >
               <View style={styles.vargaTileTop}>
-                <Text style={styles.vargaTileKicker}>{isTamil ? "பிரிவு ஜாதகங்கள்" : "Divisional Charts"}</Text>
+                <Text style={styles.vargaTileKicker}>{isTamil ? "பிரிவு ஜாதகங்கள்" : "Divisional Charts"}{!TIER_LIMITS[tier].vargasEnabled ? " 🔒" : ""}</Text>
                 <Text style={styles.vargaTileArrow}>{"->"}</Text>
               </View>
               <Text style={styles.vargaTileTitle}>{isTamil ? "D1 · D9 · D10" : "D1 · D9 · D10"}</Text>
@@ -454,12 +455,12 @@ function JournalPanel({ entries, pattern, isTamil }: { entries: QuickJournalEntr
   );
 }
 
-function InsightLink({ title, body, onPress }: { title: string; body: string; onPress: () => void }) {
+function InsightLink({ title, body, onPress, locked }: { title: string; body: string; onPress: () => void; locked?: boolean }) {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <TouchableOpacity style={styles.linkPanel} onPress={onPress} activeOpacity={0.85}>
-      <Text style={styles.linkTitle}>{title}</Text>
+      <Text style={styles.linkTitle}>{title}{locked ? " 🔒" : ""}</Text>
       <Text style={styles.linkBody}>{body}</Text>
       <Text style={styles.linkArrow}>{"->"}</Text>
     </TouchableOpacity>

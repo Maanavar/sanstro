@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import {
   Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput,
   TouchableOpacity, useWindowDimensions, View,
@@ -20,7 +20,7 @@ import {
   SunMedium,
   X,
 } from "lucide-react-native";
-import { C, type ColorTokens } from "@/theme/colors";
+import { type ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -43,7 +43,7 @@ import { getLifeAreas, type LifeAreaData } from "@/api/lifeAreas";
 import { getLifeEvents, type LifeEventWindow } from "@/api/lifeEvents";
 import { getUpcomingTransits, type TransitItem } from "@/api/transits";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
-import { saveQuickJournalEntry, syncQuickJournalEntries } from "@/features/journal/journalStore";
+import { useJournal } from "@/hooks/useJournal";
 import { useConversionPrompt } from "@/hooks/useConversionPrompt";
 import { STALE } from "@/lib/queryClient";
 import { getPrimaryChartId } from "@/lib/userPrefs";
@@ -156,8 +156,10 @@ export default function TodayTab() {
   const { showSuccess, showError } = useToast();
   const { t, strings, lang } = useI18n();
   const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { tier, user } = useSession();
   const isTamil = lang === "ta";
+  const T = isTamil ? TamilType : EnType;
   const { height: windowHeight } = useWindowDimensions();
   const heroZoneHeight = Math.round(windowHeight * 0.4);
 
@@ -172,6 +174,7 @@ export default function TodayTab() {
   const [journalArea, setJournalArea] = useState(JOURNAL_AREAS[0].key);
   const [journalNote, setJournalNote] = useState("");
   const [panchangamExpanded, setPanchangamExpanded] = useState(false);
+  const { saveEntry } = useJournal({ chartId: primaryChartId, isAuthenticated: tier !== "guest" });
 
   const isOffline = useOfflineStatus();
 
@@ -333,10 +336,7 @@ export default function TodayTab() {
       activeTransit: transits.data?.data[0] ?? null,
     };
     try {
-      await saveQuickJournalEntry(entry);
-      if (tier !== "guest" && primaryChartId) {
-        void syncQuickJournalEntries(primaryChartId);
-      }
+      await saveEntry(entry);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setJournalOpen(false);
       setJournalNote("");
@@ -392,7 +392,7 @@ export default function TodayTab() {
           <View style={styles.header}>
             <Text style={styles.logo}>à®µà®¿à®¨à®¾à®Ÿà®¿ AI</Text>
             <View style={styles.headerCenter}>
-              <Text style={[styles.tamilDate, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
+              <Text style={[styles.tamilDate, { fontFamily: T.subheading.fontFamily }]}>
                 {tamilDate}
               </Text>
               <Text style={styles.engDate}>{todayLabel}</Text>
@@ -484,6 +484,7 @@ export default function TodayTab() {
             areas={areaPulse.slice(0, 4)}
             isTamil={isTamil}
             C={C}
+            styles={styles}
             onSelect={(area) => {
               Haptics.selectionAsync();
               setDetailSheet({
@@ -537,7 +538,10 @@ export default function TodayTab() {
               <SkeletonCard height={200} />
             ) : (
               <View style={styles.heroCard}>
-                <Text style={styles.heroLabel}>{isTamil ? "à®‡à®©à¯à®±à¯" : "Today"}</Text>
+                <View style={[styles.heroKickerRow, { justifyContent: "space-between" }]}>
+                  <Text style={styles.heroLabel}>{isTamil ? "à®‡à®©à¯à®±à¯" : "Today"}</Text>
+                  <ThirukanithamBadge size="sm" />
+                </View>
                 <View style={styles.heroRow}>
                   <View>
                     <Text style={styles.heroRasi}>
@@ -556,8 +560,7 @@ export default function TodayTab() {
                     )}
                   </View>
                   <SunMedium size={56} color={C.surface} strokeWidth={1.5} />
-                </View>
-                <ThirukanithamBadge size="sm" style={{ marginTop: 8 }} />
+                </View>
                 {p?.specialTithiDay && (
                   <View style={styles.heroBadge}>
                     <Text style={styles.heroBadgeText}>
@@ -594,6 +597,7 @@ export default function TodayTab() {
               <GowriCard
                 slot={primaryGowri}
                 isTamil={isTamil}
+                styles={styles}
                 onPress={() => {
                   Haptics.selectionAsync();
                   setDetailSheet({
@@ -625,6 +629,7 @@ export default function TodayTab() {
         {activityChips.length > 0 && (
           <ActivityChipRow
             chips={activityChips}
+            styles={styles}
             onSelect={(chip) => {
               Haptics.selectionAsync();
               setDetailSheet({
@@ -767,7 +772,7 @@ export default function TodayTab() {
                 ].map((item) => (
                   <View key={item.label} style={styles.datumCard}>
                     <Text style={styles.datumLabel}>{item.label}</Text>
-                    <Text style={[styles.datumValue, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
+                    <Text style={[styles.datumValue, { fontFamily: T.subheading.fontFamily }]}>
                       {item.value}
                     </Text>
                   </View>
@@ -859,11 +864,13 @@ function LifeAreaPulse({
   isTamil,
   C,
   onSelect,
+  styles,
 }: {
   areas: LifeAreaData[];
   isTamil: boolean;
   C: ColorTokens;
   onSelect: (area: LifeAreaData) => void;
+  styles: ReturnType<typeof makeStyles>;
 }) {
   return (
     <View style={styles.areaPulseRow}>
@@ -892,7 +899,7 @@ function LifeAreaPulse({
   );
 }
 
-function GowriCard({ slot, isTamil, onPress }: { slot: GowriSlot; isTamil: boolean; onPress: () => void }) {
+function GowriCard({ slot, isTamil, onPress, styles }: { slot: GowriSlot; isTamil: boolean; onPress: () => void; styles: ReturnType<typeof makeStyles> }) {
   return (
     <TouchableOpacity style={styles.gowriCard} activeOpacity={0.86} onPress={onPress}>
       <View style={styles.gowriChip}>
@@ -907,9 +914,11 @@ function GowriCard({ slot, isTamil, onPress }: { slot: GowriSlot; isTamil: boole
 function ActivityChipRow({
   chips,
   onSelect,
+  styles,
 }: {
   chips: Array<{ label: string; ok: boolean; detail: string }>;
   onSelect: (chip: { label: string; ok: boolean; detail: string }) => void;
+  styles: ReturnType<typeof makeStyles>;
 }) {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.activityRow} contentContainerStyle={styles.activityContent}>
@@ -926,7 +935,8 @@ function ActivityChipRow({
     </ScrollView>
   );
 }
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
   scroll: { paddingBottom: S.xxl },
   offlineBanner: {
@@ -1249,4 +1259,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: C.surface,
   },
-});
+  });
+}

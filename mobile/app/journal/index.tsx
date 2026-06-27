@@ -22,12 +22,8 @@ import { useToast } from "@/context/ToastContext";
 import { ChipStrip } from "@/components/ChipStrip";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { SectionLabel } from "@/components/SectionLabel";
-import {
-  loadQuickJournalEntries,
-  saveQuickJournalEntry,
-  syncQuickJournalEntries,
-  type QuickJournalEntry,
-} from "@/features/journal/journalStore";
+import { type QuickJournalEntry } from "@/features/journal/journalStore";
+import { useJournal } from "@/hooks/useJournal";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import { entranceDelay, spring } from "@/theme/motion";
 
@@ -78,11 +74,14 @@ export default function JournalScreen() {
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [chartId, setChartId] = useState<string | null>(null);
-  const [entries, setEntries] = useState<QuickJournalEntry[]>([]);
+  const { entries, saveEntry } = useJournal({ chartId, isAuthenticated: tier !== "guest" });
 
   useEffect(() => {
-    if (tier !== "guest") getPrimaryChartId().then(setChartId);
-    loadQuickJournalEntries().then(setEntries);
+    if (tier !== "guest") {
+      getPrimaryChartId().then(setChartId);
+      return;
+    }
+    setChartId(null);
   }, [tier]);
 
   async function save() {
@@ -100,10 +99,8 @@ export default function JournalScreen() {
         dashaContext: null,
         activeTransit: null,
       };
-      const next = await saveQuickJournalEntry(entry);
-      if (tier !== "guest" && chartId) void syncQuickJournalEntries(chartId);
+      await saveEntry(entry);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setEntries(next);
       setNote("");
       showSuccess(isTamil ? "தருணம் பதிவு செய்யப்பட்டது" : "Moment logged");
     } catch {

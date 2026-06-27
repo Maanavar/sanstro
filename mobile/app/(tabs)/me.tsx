@@ -41,6 +41,7 @@ export default function MeScreen() {
   const { t, strings, lang, setLang } = useI18n();
   const { tier, user, clearSession } = useSession();
   const isTamil = lang === "ta";
+  const T = isTamil ? TamilType : EnType;
 
   const [rasi, setRasi] = useState<string | null>(null);
   const [pushOptedIn, setPushOptedIn] = useState(false);
@@ -102,7 +103,7 @@ export default function MeScreen() {
         <Animated.View style={styles.rasiCard} entering={FadeInDown.delay(entranceDelay.supporting).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}>
           <Text style={styles.rasiSymbol}>â­</Text>
           <View style={styles.rasiInfo}>
-            <Text style={[styles.rasiLabel, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
+            <Text style={[styles.rasiLabel, { fontFamily: T.subheading.fontFamily }]}>
               {isTamil ? `à®‰à®™à¯à®•à®³à¯ à®°à®¾à®šà®¿: ${rasiLabel}` : `Your Rasi: ${rasiLabel}`}
             </Text>
             {city && (
@@ -121,7 +122,7 @@ export default function MeScreen() {
           {/* Notifications */}
           <View style={styles.menuRow}>
             <Text style={styles.menuIcon}>ðŸ””</Text>
-            <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+            <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
               {t(strings.me.push_label)}
             </Text>
             <Switch
@@ -136,7 +137,7 @@ export default function MeScreen() {
           {/* Language */}
           <View style={styles.menuRow}>
             <Text style={styles.menuIcon}>ðŸŒ</Text>
-            <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+            <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
               {t(strings.me.language_label)}
             </Text>
             <View style={styles.langToggle}>
@@ -161,7 +162,7 @@ export default function MeScreen() {
             <>
               <View style={styles.menuRow}>
                 <Text style={styles.menuIcon}>ðŸ“</Text>
-                <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+                <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
                   {isTamil ? "à®¨à®•à®°à®®à¯" : "City"}
                 </Text>
                 <Text style={styles.menuValue}>{city}</Text>
@@ -173,7 +174,7 @@ export default function MeScreen() {
           {/* Privacy */}
           <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/privacy" as any)}>
             <Text style={styles.menuIcon}>ðŸ”’</Text>
-            <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+            <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
               {isTamil ? "à®¤à®©à®¿à®¯à¯à®°à®¿à®®à¯ˆ" : "Privacy Policy"}
             </Text>
             <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
@@ -183,7 +184,7 @@ export default function MeScreen() {
           {/* Terms */}
           <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/terms" as any)}>
             <Text style={styles.menuIcon}>ðŸ“‹</Text>
-            <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+            <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
               {isTamil ? "à®ªà®¯à®©à¯à®ªà®¾à®Ÿà¯à®Ÿà¯ à®µà®¿à®¤à®¿à®•à®³à¯" : "Terms of Use"}
             </Text>
             <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
@@ -200,7 +201,7 @@ export default function MeScreen() {
             </View>
             <View style={{ flex: 1 }}>
               {user.displayName && (
-                <Text style={[styles.identityName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
+                <Text style={[styles.identityName, { fontFamily: T.subheading.fontFamily }]}>
                   {user.displayName}
                 </Text>
               )}
@@ -222,7 +223,7 @@ export default function MeScreen() {
                   onPress={() => router.push({ pathname: "/jadhagam/[id]", params: { id: primaryChartId } })}
                 >
                   <Text style={styles.menuIcon}>ðŸ”¯</Text>
-                  <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+                  <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
                     {isTamil ? "à®Žà®©à¯ à®œà®¾à®¤à®•à®®à¯" : "My Jadhagam"}
                   </Text>
                   <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
@@ -232,7 +233,7 @@ export default function MeScreen() {
                   <View style={{ width: 28, alignItems: 'center' }}>
                     <Gift size={20} color={C.gold} strokeWidth={1.5} />
                   </View>
-                  <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+                  <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
                     {isTamil ? "Annual Wrapped" : "Annual Wrapped"}
                   </Text>
                   <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
@@ -245,7 +246,7 @@ export default function MeScreen() {
                   <View style={{ width: 28, alignItems: 'center' }}>
                     <Clock size={20} color={C.gold} strokeWidth={1.5} />
                   </View>
-                  <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+                  <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
                     {isTamil ? "Birth Time Rectification" : "Birth Time Rectification"}
                   </Text>
                   <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
@@ -253,7 +254,7 @@ export default function MeScreen() {
                 <View style={styles.divider} />
                 <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/dasha" as Href)}>
                   <Text style={styles.menuIcon}>ðŸª</Text>
-                  <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+                  <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
                     {isTamil ? "à®¤à®šà®¾ à®•à®¾à®²à®µà®°à®¿à®šà¯ˆ" : "Dasha Timeline"}
                   </Text>
                   <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
@@ -261,7 +262,7 @@ export default function MeScreen() {
                 <View style={styles.divider} />
                 <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/varshaphala" as Href)}>
                   <Text style={styles.menuIcon}>ðŸ“…</Text>
-                  <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+                  <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
                     {isTamil ? "à®µà®°à¯à®·à®ªà®²" : "Annual Prediction"}
                   </Text>
                   <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
@@ -269,7 +270,7 @@ export default function MeScreen() {
                 <View style={styles.divider} />
                 <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/profile-manager" as Href)}>
                   <Text style={styles.menuIcon}>👤</Text>
-                  <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+                  <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
                     {"Manage Birth Profiles"}
                   </Text>
                   <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
@@ -279,7 +280,7 @@ export default function MeScreen() {
             )}
             <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/transits" as Href)}>
               <Text style={styles.menuIcon}>ðŸŒ™</Text>
-              <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+              <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
                 {isTamil ? "à®ªà¯†à®¯à®°à¯à®šà¯à®šà®¿ / à®•à¯‹à®šà¯à®šà®¾à®°à®®à¯" : "Upcoming Transits"}
               </Text>
               <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
@@ -287,7 +288,7 @@ export default function MeScreen() {
             <View style={styles.divider} />
             <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/notifications/inbox")}>
               <Text style={styles.menuIcon}>ðŸ””</Text>
-              <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+              <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
                 {isTamil ? "à®…à®±à®¿à®µà®¿à®ªà¯à®ªà¯à®•à®³à¯" : "Notification Inbox"}
               </Text>
               <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
@@ -295,7 +296,7 @@ export default function MeScreen() {
             <View style={styles.divider} />
             <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/notifications/settings")}>
               <Text style={styles.menuIcon}>âš™ï¸</Text>
-              <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
+              <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
                 {isTamil ? "à®…à®±à®¿à®µà®¿à®ªà¯à®ªà¯ à®…à®®à¯ˆà®ªà¯à®ªà¯à®•à®³à¯" : "Notification Settings"}
               </Text>
               <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
@@ -306,7 +307,7 @@ export default function MeScreen() {
         {/* Registered non-premium: upgrade strip */}
         {tier === "registered" && (
           <TouchableOpacity style={styles.upgradeStrip} onPress={() => router.push("/premium")} activeOpacity={0.85}>
-            <Text style={[styles.upgradeText, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
+            <Text style={[styles.upgradeText, { fontFamily: T.subheading.fontFamily }]}>
               {isTamil ? "âœ¨ Premium-à®•à¯à®•à¯ à®®à¯‡à®®à¯à®ªà®Ÿà¯à®¤à¯à®¤à¯à®™à¯à®•à®³à¯" : "âœ¨ Upgrade to Premium"}
             </Text>
             <Text style={styles.upgradeArrow}>â€º</Text>
@@ -316,7 +317,7 @@ export default function MeScreen() {
         {/* Account CTA (guest only) */}
         {tier === "guest" && (
           <View style={styles.accountCta}>
-            <Text style={[styles.accountCtaHeading, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
+            <Text style={[styles.accountCtaHeading, { fontFamily: T.subheading.fontFamily }]}>
               {isTamil ? "à®‰à®™à¯à®•à®³à¯ à®œà®¾à®¤à®•à®®à¯ à®‡à®²à®µà®šà®®à®¾à®• à®‰à®°à¯à®µà®¾à®•à¯à®•à¯à®™à¯à®•à®³à¯" : "Create your birth chart â€” free"}
             </Text>
             <Text style={[styles.accountCtaDesc, isTamil ? TamilType.caption : EnType.caption]}>
