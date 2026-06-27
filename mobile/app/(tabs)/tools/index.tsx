@@ -94,6 +94,11 @@ const GROUPS: ToolGroup[] = [
         nameEn: "Daily Panchangam", nameTa: "தினசரி பஞ்சாங்கம்",
         descEn: "Tithi, nakshatra & time windows", descTa: "திதி, நட்சத்திரம் & நேர சாளரங்கள்",
       },
+      {
+        Icon: CalendarDays, key: "muhurtham-naal", route: "/muhurtham-naal/index",
+        nameEn: "Muhurtham Naal", nameTa: "முகூர்த்த நாட்கள்",
+        descEn: "2027 auspicious wedding dates", descTa: "2027 திருமண சுப நாட்கள்",
+      },
     ],
   },
   {
@@ -104,6 +109,16 @@ const GROUPS: ToolGroup[] = [
         Icon: BookOpen, key: "nakshatra-list", route: "/learn/nakshatra-list",
         nameEn: "27 Nakshatras", nameTa: "27 நட்சத்திரங்கள்",
         descEn: "Browse all lunar mansions", descTa: "அனைத்து நட்சத்திரங்களும்",
+      },
+      {
+        Icon: MapPin, key: "pancha-bhoota", route: "/temples/pancha-bhoota",
+        nameEn: "Pancha Bhoota Sthalams", nameTa: "பஞ்ச பூத ஸ்தலங்கள்",
+        descEn: "Five element temples of Shiva", descTa: "சிவனின் ஐம்பூத கோயில்கள்",
+      },
+      {
+        Icon: MapPin, key: "arupadai-veedu", route: "/temples/arupadai-veedu",
+        nameEn: "Arupadai Veedu", nameTa: "அறுபடை வீடு",
+        descEn: "Six sacred Murugan abodes", descTa: "முருகன் ஆறு திருப்பதிகள்",
       },
     ],
   },

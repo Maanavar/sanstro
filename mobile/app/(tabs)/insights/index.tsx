@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, Users } from "lucide-react-native";
+import { BookOpen, Clock, Link, List, Users } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
@@ -308,6 +308,45 @@ export default function InsightsScreen() {
               </Text>
             </TouchableOpacity>
 
+            {/* Specialist: Retrospective */}
+            <NavCard
+              icon={<Clock size={22} color={C.gold} strokeWidth={1.5} />}
+              title="Retrospective"
+              titleTa="பின்னோக்கு"
+              body="Analyse past events against your dasha timeline"
+              bodyTa="கடந்த நிகழ்வுகளை தசா கோட்சாரத்துடன் ஒப்பிடுங்கள்"
+              isTamil={isTamil}
+              onPress={() => (TIER_LIMITS[tier].retrospectiveEnabled ? router.push("/retrospective" as Href) : router.push("/premium" as Href))}
+              C={C}
+              locked={!TIER_LIMITS[tier].retrospectiveEnabled}
+            />
+
+            {/* Specialist: Synastry */}
+            <NavCard
+              icon={<Link size={22} color={C.gold} strokeWidth={1.5} />}
+              title="Synastry"
+              titleTa="இணக்க ஆய்வு"
+              body="Astrological compatibility with family members"
+              bodyTa="குடும்பத்தினருடன் ஜோதிட இணக்கம்"
+              isTamil={isTamil}
+              onPress={() => (TIER_LIMITS[tier].synastryEnabled ? router.push("/synastry" as Href) : router.push("/premium" as Href))}
+              C={C}
+              locked={!TIER_LIMITS[tier].synastryEnabled}
+            />
+
+            {/* Specialist: Life Event Log */}
+            <NavCard
+              icon={<List size={22} color={C.gold} strokeWidth={1.5} />}
+              title="Life Event Log"
+              titleTa="வாழ்க்கை நிகழ்வு பதிவு"
+              body="Log events and see the dasha-transit pattern"
+              bodyTa="நிகழ்வுகள் பதிவு செய்து தசா-கோட்சார பொருத்தம் காணுங்கள்"
+              isTamil={isTamil}
+              onPress={() => (TIER_LIMITS[tier].lifeEventLogEnabled ? router.push("/life-event-log" as Href) : router.push("/premium" as Href))}
+              C={C}
+              locked={!TIER_LIMITS[tier].lifeEventLogEnabled}
+            />
+
             {/* Learn Thirukanitham rail */}
             <SectionTitle title={isTamil ? "கற்றுக்கொள்ளுங்கள்" : "Learn Thirukanitham"} />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.learnRail}>
@@ -468,7 +507,7 @@ function InsightLink({ title, body, onPress, locked }: { title: string; body: st
 }
 
 function NavCard({
-  icon, title, titleTa, body, bodyTa, isTamil, onPress, C,
+  icon, title, titleTa, body, bodyTa, isTamil, onPress, C, locked,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -478,6 +517,7 @@ function NavCard({
   isTamil: boolean;
   onPress: () => void;
   C: ColorTokens;
+  locked?: boolean;
 }) {
   const styles = useMemo(() => makeStyles(C), [C]);
   return (
@@ -489,7 +529,7 @@ function NavCard({
     >
       <View style={styles.navCardIconWell}>{icon}</View>
       <View style={{ flex: 1 }}>
-        <Text style={styles.navCardTitle}>{isTamil ? titleTa : title}</Text>
+        <Text style={styles.navCardTitle}>{isTamil ? titleTa : title}{locked ? " 🔒" : ""}</Text>
         <Text style={styles.navCardBody}>{isTamil ? bodyTa : body}</Text>
       </View>
       <Text style={styles.navCardArrow}>{"->"}</Text>
