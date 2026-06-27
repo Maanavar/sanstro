@@ -22,8 +22,8 @@ const W = {
 } as const;
 
 const PLANET_COLORS: Record<string, string> = {
-  SUN: "#D08B4A", MOON: "#6B8DB8", MARS: "#CF6354", MERCURY: "#A99663",
-  JUPITER: "#93A56D", VENUS: "#C59AC3", SATURN: "#607089", RAHU: "#9F93C4", KETU: "#9A8679",
+  SUN: "var(--planet-sun)", MOON: "var(--planet-moon)", MARS: "var(--planet-mars)", MERCURY: "var(--planet-mercury)",
+  JUPITER: "var(--planet-jupiter)", VENUS: "var(--planet-venus)", SATURN: "var(--planet-saturn-soft)", RAHU: "var(--planet-rahu)", KETU: "var(--planet-ketu)",
 };
 
 function PlanetBadge({ planet }: { planet: string }) {
@@ -83,8 +83,8 @@ export function RemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, loadi
         padding: "var(--space-2_5) var(--space-3)",
         marginBottom: "var(--space-3)",
         borderRadius: "var(--radius-sm)",
-        background: "rgba(122,111,94,0.07)",
-        border: "1px solid rgba(122,111,94,0.18)",
+        background: "var(--cl-neutral-tint)",
+        border: "1px solid var(--cl-neutral-ring)",
         fontSize: "0.76rem",
         color: W.muted,
         lineHeight: 1.55,
@@ -106,7 +106,7 @@ export function RemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, loadi
                 padding: "5px 14px",
                 borderRadius: "var(--radius-pill)",
                 border: `1.5px solid ${isActive ? W.terracotta : W.borderLt}`,
-                background: isActive ? "rgba(184,90,44,0.1)" : W.surface,
+                background: isActive ? "var(--cl-brand-tint)" : W.surface,
                 color: isActive ? W.terracotta : W.muted,
                 fontWeight: isActive ? 700 : 500,
                 fontSize: "0.82rem",
@@ -184,8 +184,8 @@ export function RemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, loadi
                     marginTop: "var(--space-2)",
                     padding: "var(--space-2) var(--space-3)",
                     borderRadius: "6px",
-                    background: "rgba(92,118,84,0.1)",
-                    border: `1px solid rgba(92,118,84,0.3)`,
+                    background: "var(--cl-sage-tint)",
+                    border: "1px solid var(--cl-sage-edge)",
                     fontSize: "0.78rem",
                     color: W.sage,
                     display: "flex",
@@ -206,7 +206,7 @@ export function RemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, loadi
       {subTab === "gemstone" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
           {/* Methodology note */}
-          <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--color-info-light)", border: "1px solid rgba(122,111,94,0.18)", fontSize: "0.78rem", color: W.muted, lineHeight: 1.5 }}>
+          <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--color-info-light)", border: "1px solid var(--cl-neutral-ring)", fontSize: "0.78rem", color: W.muted, lineHeight: 1.5 }}>
             {lang === "ta"
               ? "கற்கள் திருகணிதம் அடிப்படையில் கணக்கிடப்படுகின்றன — ஒவ்வொரு கிரகத்தின் செயல்பாட்டு தன்மை (பயனளிப்பவர் / தீங்கு செய்பவர்), வலிமை, மற்றும் லக்னம் அடிப்படையில். ஒரு கல் 'பரிந்துரைக்கப்பட்டது' என்றால் அந்த கிரகம் உங்கள் ஜாதகத்தில் நேர்மறையான கிரகம் மற்றும் வலிமை குறைவாக உள்ளது."
               : "Gemstone recommendations follow Thirukanitham — each planet's functional nature (benefic/malefic for your Lagna), its strength, and whether strengthening it helps or harms your chart. 'Prescribed' means the planet is a functional benefic AND needs strengthening. 'Not prescribed' means the planet is either strong enough or would harm your chart if strengthened."}
@@ -219,8 +219,8 @@ export function RemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, loadi
             <>
               {/* Prescribed first, then optional, then not-prescribed */}
               {[
-                { filter: (i: typeof gemstoneAdvice[0]) => i.isGemstonePrescribed, groupLabel: lang === "ta" ? "பரிந்துரைக்கப்பட்டவை" : "Prescribed — wear these", tone: W.sage, bg: "rgba(92,118,84,0.07)", border: "rgba(92,118,84,0.28)" },
-                { filter: (i: typeof gemstoneAdvice[0]) => !i.isGemstonePrescribed && !!i.gemstoneNameEn, groupLabel: lang === "ta" ? "விருப்பப்பட்டால் (கவனமாக)" : "Optional — with caution", tone: W.terracotta, bg: "rgba(184,90,44,0.06)", border: "rgba(184,90,44,0.25)" },
+                { filter: (i: typeof gemstoneAdvice[0]) => i.isGemstonePrescribed, groupLabel: lang === "ta" ? "பரிந்துரைக்கப்பட்டவை" : "Prescribed — wear these", tone: W.sage, bg: "var(--cl-sage-tint)", border: "var(--cl-sage-ring)" },
+                { filter: (i: typeof gemstoneAdvice[0]) => !i.isGemstonePrescribed && !!i.gemstoneNameEn, groupLabel: lang === "ta" ? "விருப்பப்பட்டால் (கவனமாக)" : "Optional — with caution", tone: W.terracotta, bg: "var(--cl-brand-tint)", border: "var(--cl-brand-ring)" },
                 { filter: (i: typeof gemstoneAdvice[0]) => !i.isGemstonePrescribed && !i.gemstoneNameEn, groupLabel: lang === "ta" ? "பரிந்துரைக்கப்படாதவை" : "Not recommended", tone: W.muted, bg: "transparent", border: W.borderLt },
               ].map(({ filter, groupLabel, tone, bg, border }) => {
                 const group = gemstoneAdvice.filter(filter);

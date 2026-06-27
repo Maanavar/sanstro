@@ -67,20 +67,20 @@ const T = {
   border:      "var(--panel-tan-light)",
   accent:      "var(--panel-brand)",
   accentSoft:  "var(--chart-d1-lagna-bg)",
-  accentA10:   "rgba(184,90,44,0.10)",
-  accentA15:   "rgba(184,90,44,0.15)",
-  accentA20:   "rgba(184,90,44,0.20)",
-  accentA30:   "rgba(184,90,44,0.30)",
-  accentA40:   "rgba(184,90,44,0.40)",
+  accentA10:   "var(--panel-brand-a10)",
+  accentA15:   "var(--panel-brand-a15)",
+  accentA20:   "var(--panel-brand-a20)",
+  accentA30:   "var(--panel-brand-a30)",
+  accentA40:   "var(--panel-brand-a40)",
   sage:        "var(--chart-d9-active)",
   sageSoft:    "var(--chart-d9-active-bg)",
-  sageA15:     "rgba(92,118,84,0.15)",
-  sageA25:     "rgba(92,118,84,0.25)",
+  sageA15:     "var(--chart-d9-a15)",
+  sageA25:     "var(--chart-d9-a25)",
 };
 
 const DASHA_COLORS = [
-  "var(--panel-brand)", "var(--chart-d9-active)", "var(--planet-saturn)", "#7A8F5E",
-  "#C4714A", "#6B7A52", "#9E5024", "var(--panel-earth)",
+  "var(--panel-brand)", "var(--chart-d9-active)", "var(--planet-saturn)", "var(--dasha-earth-1)",
+  "var(--dasha-earth-2)", "var(--dasha-earth-3)", "var(--dasha-earth-4)", "var(--panel-earth)",
 ];
 
 const PLANET_GLYPHS: Record<string, string> = {
@@ -448,7 +448,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
               </p>
               <Link href={`/natchathiram/${data.slug}`}
                 style={{ fontSize:"0.8rem", fontWeight:600, color:T.accent, border:`1.5px solid ${T.accentA30}`, padding:"0.35rem 1rem", borderRadius:"999px", background:T.accentSoft, display:"flex", alignItems:"center", gap:"0.35rem" }}>
-                &#128196; {mtv(v.read_text)}
+                📄 {mtv(v.read_text)}
               </Link>
             </div>
 
@@ -593,7 +593,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
             </div>
             <div style={{ marginTop:"3rem" }}>
               <div style={{ display:"flex", alignItems:"center", gap:"0.75rem", padding:"0.85rem 1.25rem", background:T.surface, border:`1px solid ${T.accentA20}`, borderRadius:"0.75rem", fontSize:"0.82rem", color:T.ink2, boxShadow:`0 1px 4px ${T.accentA10}` }}>
-                <IconCircle size={34}><span style={{ fontSize:"0.85rem" }}>&#128196;</span></IconCircle>
+                <IconCircle size={34}><span style={{ fontSize:"0.85rem" }}>📄</span></IconCircle>
                 <span>
                   {mtv(v.nudge_want)}{" "}
                   <Link href={`/natchathiram/${data.slug}`} style={{ color:T.accent, fontWeight:600, textDecoration:"underline", textUnderlineOffset:3 }}>
@@ -707,7 +707,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
                   ))}
                 </div>
                 <div style={{ display:"flex", gap:"0.6rem", alignItems:"flex-start", padding:"0.875rem 1rem", background:T.surface, border:`1px solid ${T.border}`, borderRadius:10, marginBottom:"1.25rem" }}>
-                  <span style={{ color:T.accent, fontSize:"1rem", flexShrink:0 }}>&#9825;</span>
+                  <span style={{ color:T.accent, fontSize:"1rem", flexShrink:0 }}>♡</span>
                   <p style={{ fontSize:"0.78rem", color:T.muted, lineHeight:1.6, margin:0 }}>{compatNote}</p>
                 </div>
                 <Link href="/tools/marriage-porutham-calculator" className="cl-btn cl-btn--ghost" style={{ fontSize:"0.84rem", padding:"0.55rem 1.25rem" }}>
@@ -818,7 +818,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
             </div>
             <div style={{ marginTop:"3rem" }}>
               <div style={{ display:"flex", alignItems:"center", gap:"0.75rem", padding:"0.85rem 1.25rem", background:T.surface, border:`1px solid ${T.accentA20}`, borderRadius:"0.75rem", fontSize:"0.82rem", color:T.ink2, boxShadow:`0 1px 4px ${T.accentA10}` }}>
-                <IconCircle size={34}><span style={{ fontSize:"0.85rem" }}>&#128196;</span></IconCircle>
+                <IconCircle size={34}><span style={{ fontSize:"0.85rem" }}>📄</span></IconCircle>
                 <span>
                   {mtv(v.nudge_want)}{" "}
                   <Link href={`/natchathiram/${data.slug}`} style={{ color:T.accent, fontWeight:600, textDecoration:"underline", textUnderlineOffset:3 }}>

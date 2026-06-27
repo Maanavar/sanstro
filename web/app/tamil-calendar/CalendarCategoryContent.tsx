@@ -85,14 +85,14 @@ export function CalendarCategoryContent({ data, categories }: CalendarCategoryCo
             </p>
             <h1 className="cl-pub-h1">{tLang(data.title, lang)}</h1>
             <p className="cl-pub-lead" style={{ marginBottom: "14px" }}>{tLang(data.description, lang)}</p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center", fontSize: "0.88rem", color: "var(--cl-muted, #7A6F5E)" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center", fontSize: "0.88rem", color: "var(--cl-muted)" }}>
               <span>
-                <strong style={{ color: "var(--cl-ink, #1A1612)" }}>{data.count}</strong>{" "}
+                <strong style={{ color: "var(--cl-ink)" }}>{data.count}</strong>{" "}
                 {pick("dates listed", "தேதிகள்", lang)}
               </span>
               {nextDate && (
                 <span>
-                  {pick("Next:", "அடுத்தது:", lang)} <strong style={{ color: "var(--cl-ink, #1A1612)" }}>{nextDate}</strong>
+                  {pick("Next:", "அடுத்தது:", lang)} <strong style={{ color: "var(--cl-ink)" }}>{nextDate}</strong>
                 </span>
               )}
             </div>
@@ -105,13 +105,13 @@ export function CalendarCategoryContent({ data, categories }: CalendarCategoryCo
               position: "sticky",
               top: 0,
               zIndex: 20,
-              background: "var(--cl-surface, #FFF)",
-              borderBottom: "1px solid var(--cl-border, #E4DBC8)",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+              background: "var(--cl-surface)",
+              borderBottom: "1px solid var(--cl-border)",
+              boxShadow: "0 2px 8px var(--shadow-sticky-subtle)",
             }}
           >
             <div className="cl-container" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 0", overflowX: "auto" }}>
-              <span style={{ flexShrink: 0, fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--cl-muted, #7A6F5E)" }}>
+              <span style={{ flexShrink: 0, fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--cl-muted)" }}>
                 {pick("Categories:", "வகைகள்:", lang)}
               </span>
               {activeCategories.map((category) => {
@@ -128,9 +128,9 @@ export function CalendarCategoryContent({ data, categories }: CalendarCategoryCo
                       fontWeight: active ? 700 : 600,
                       whiteSpace: "nowrap",
                       textDecoration: "none",
-                      border: `1.5px solid ${active ? "#B85A2C" : "var(--cl-border, #E4DBC8)"}`,
-                      background: active ? "#B85A2C" : "var(--cl-bg, #FFF)",
-                      color: active ? "#FFF" : "var(--cl-ink, #1A1612)",
+                      border: `1.5px solid ${active ? "var(--chart-d1-active)" : "var(--cl-border)"}`,
+                      background: active ? "var(--chart-d1-active)" : "var(--cl-bg)",
+                      color: active ? "var(--cl-surface)" : "var(--cl-ink)",
                     }}
                   >
                     {tLang(category.categoryLabel, lang)}
@@ -146,7 +146,7 @@ export function CalendarCategoryContent({ data, categories }: CalendarCategoryCo
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ textAlign: "left", borderBottom: "2px solid var(--cl-border, #ddd)" }}>
+                  <tr style={{ textAlign: "left", borderBottom: "2px solid var(--cl-border)" }}>
                     <th style={{ padding: "10px 8px" }}>#</th>
                     <th style={{ padding: "10px 8px" }}>{pick("Date", "தேதி", lang)}</th>
                     <th style={{ padding: "10px 8px" }}>{pick("Weekday", "கிழமை", lang)}</th>
@@ -157,14 +157,14 @@ export function CalendarCategoryContent({ data, categories }: CalendarCategoryCo
                 </thead>
                 <tbody>
                   {data.events.map((event, index) => (
-                    <tr key={`${event.date}-${event.name.en}`} style={{ borderBottom: "1px solid var(--cl-border, #eee)" }}>
-                      <td style={{ padding: "10px 8px", color: "var(--cl-muted,#888)" }}>{index + 1}</td>
+                    <tr key={`${event.date}-${event.name.en}`} style={{ borderBottom: "1px solid var(--cl-border)" }}>
+                      <td style={{ padding: "10px 8px", color: "var(--cl-muted)" }}>{index + 1}</td>
                       <td style={{ padding: "10px 8px", fontWeight: 700, whiteSpace: "nowrap" }}>{formatShort(event.date, lang)}</td>
                       <td style={{ padding: "10px 8px", whiteSpace: "nowrap" }}>{tLang(event.weekday, lang)}</td>
                       <td style={{ padding: "10px 8px", minWidth: "220px" }}>
-                        <div style={{ fontWeight: 700, color: "var(--cl-ink, #1A1612)" }}>{tLang(event.name, lang)}</div>
+                        <div style={{ fontWeight: 700, color: "var(--cl-ink)" }}>{tLang(event.name, lang)}</div>
                         {event.note && (
-                          <div style={{ marginTop: "3px", fontSize: "0.8rem", color: "var(--cl-muted, #7A6F5E)", lineHeight: 1.35 }}>
+                          <div style={{ marginTop: "3px", fontSize: "0.8rem", color: "var(--cl-muted)", lineHeight: 1.35 }}>
                             {tLang(event.note, lang)}
                           </div>
                         )}
@@ -180,11 +180,11 @@ export function CalendarCategoryContent({ data, categories }: CalendarCategoryCo
                                 minHeight: "24px",
                                 padding: "3px 8px",
                                 borderRadius: "999px",
-                                background: "#F8F1E6",
-                                border: "1px solid #E5D4BA",
+                                background: "var(--cl-neutral-mid)",
+                                border: "1px solid var(--cl-neutral-ring)",
                                 fontSize: "0.72rem",
                                 fontWeight: 700,
-                                color: "#6F4B2A",
+                                color: "var(--cl-neutral-ink)",
                                 whiteSpace: "nowrap",
                               }}
                             >
@@ -204,7 +204,7 @@ export function CalendarCategoryContent({ data, categories }: CalendarCategoryCo
               </table>
             </div>
 
-            <p style={{ marginTop: "18px", color: "var(--cl-muted, #7A6F5E)", fontSize: "0.88rem", lineHeight: 1.55 }}>
+            <p style={{ marginTop: "18px", color: "var(--cl-muted)", fontSize: "0.88rem", lineHeight: 1.55 }}>
               {tLang(data.source, lang)}
             </p>
           </div>

@@ -2,6 +2,28 @@
    Self-contained so it renders consistently over both the public (cl-) site
    and the dashboard. */
 
+/* ── Component tokens — scoped to avoid global namespace pollution ── */
+.beta-banner,
+.beta-modal__overlay,
+.beta-modal {
+  --beta-gold:          #e5b84d;
+  --beta-gold-a16:      rgba(229, 184, 77, 0.16);
+  --beta-gold-a28:      rgba(229, 184, 77, 0.28);
+  --beta-gold-a90:      rgba(229, 184, 77, 0.90);
+  --beta-gold-soft:     #f1d98c;
+  --beta-ink:           #f4ecd8;
+  --beta-ink-a70:       rgba(244, 236, 216, 0.7);
+  --beta-on-gold:       #0a0800;
+  --beta-shadow:        rgba(0, 0, 0, 0.55);
+  --beta-white-a08:     rgba(255, 255, 255, 0.08);
+  --beta-white-a05:     rgba(255, 255, 255, 0.05);
+  --beta-sky-a12:       rgba(147, 197, 253, 0.12);
+  --beta-gold-dark-bg:  rgba(120, 90, 14, 0.14);
+  --beta-gold-dark-text:#785A0E;
+  --beta-check:         #4ade80;
+  --beta-overlay:       rgba(3, 5, 11, 0.78);
+}
+
 .beta-banner {
   position: relative;
   z-index: 60;
@@ -11,9 +33,9 @@
   gap: 12px;
   flex-wrap: wrap;
   padding: 8px 16px;
-  background: linear-gradient(90deg, rgba(229, 184, 77, 0.16), rgba(147, 197, 253, 0.12));
-  border-bottom: 1px solid rgba(229, 184, 77, 0.28);
-  color: #f4ecd8;
+  background: linear-gradient(90deg, var(--beta-gold-a16), var(--beta-sky-a12));
+  border-bottom: 1px solid var(--beta-gold-a28);
+  color: var(--beta-ink);
   font-size: 0.85rem;
   line-height: 1.35;
   text-align: center;
@@ -23,8 +45,8 @@
   display: inline-block;
   padding: 1px 8px;
   border-radius: 999px;
-  background: rgba(229, 184, 77, 0.9);
-  color: #0a0800;
+  background: var(--beta-gold-a90);
+  color: var(--beta-on-gold);
   font-weight: 700;
   font-size: 0.7rem;
   letter-spacing: 0.04em;
@@ -35,11 +57,11 @@
 
 .beta-banner__cta {
   font-weight: 600;
-  color: #f1d98c;
+  color: var(--beta-gold-soft);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.beta-banner__cta:hover { color: #fff; }
+.beta-banner__cta:hover { color: var(--beta-ink); }
 
 .beta-banner__close {
   position: absolute;
@@ -54,9 +76,9 @@
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: rgba(244, 236, 216, 0.7);
+  color: var(--beta-ink-a70);
 }
-.beta-banner__close:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.beta-banner__close:hover { background: var(--beta-white-a08); color: var(--beta-ink); }
 
 /* ── Welcome modal ─────────────────────────────────────────────── */
 
@@ -68,7 +90,7 @@
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(3, 5, 11, 0.78);
+  background: var(--beta-overlay);
   -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
   animation: beta-fade 0.18s ease-out;
@@ -79,8 +101,8 @@
   padding: 28px 26px 24px;
   border-radius: 18px;
   background: var(--color-surface, #111827);
-  border: 1px solid rgba(229, 184, 77, 0.28);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  border: 1px solid var(--beta-gold-a28);
+  box-shadow: 0 24px 60px var(--beta-shadow);
   color: var(--color-text, #e5e7eb);
   animation: beta-rise 0.22s ease-out;
 }
@@ -89,8 +111,8 @@
   display: inline-block;
   padding: 2px 10px;
   border-radius: 999px;
-  background: rgba(229, 184, 77, 0.16);
-  color: #e5b84d;
+  background: var(--beta-gold-a16);
+  color: var(--beta-gold);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -98,9 +120,9 @@
 }
 /* In light mode the modal background becomes parchment; switch to accessible dark gold */
 @media (prefers-color-scheme: light) {
-  .beta-modal__eyebrow { background: rgba(120, 90, 14, 0.14); color: #785A0E; }
+  .beta-modal__eyebrow { background: var(--beta-gold-dark-bg); color: var(--beta-gold-dark-text); }
 }
-[data-theme="light"] .beta-modal__eyebrow { background: rgba(120, 90, 14, 0.14); color: #785A0E; }
+[data-theme="light"] .beta-modal__eyebrow { background: var(--beta-gold-dark-bg); color: var(--beta-gold-dark-text); }
 
 .beta-modal__title {
   margin: 14px 0 8px;
@@ -116,7 +138,7 @@
 .beta-modal__check {
   flex: none;
   margin-top: 1px;
-  color: #4ade80;
+  color: var(--beta-check);
 }
 
 .beta-modal__actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -140,7 +162,7 @@
   color: var(--color-text, #e5e7eb);
   font-weight: 500;
 }
-.beta-modal__secondary:hover { background: rgba(255, 255, 255, 0.05); }
+.beta-modal__secondary:hover { background: var(--beta-white-a05); }
 
 @keyframes beta-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes beta-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }

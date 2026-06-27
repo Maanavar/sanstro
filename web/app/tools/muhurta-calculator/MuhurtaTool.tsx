@@ -69,14 +69,14 @@ const QUALITY_CONFIG = {
   excellent: {
     en: "Excellent",
     ta: "மிகவும் சிறந்தது",
-    color: "var(--cl-accent, #4f7c3e)",
-    bg: "rgba(79,124,62,0.08)",
+    color: "var(--cl-muhurta-green)",
+    bg: "var(--cl-muhurta-green-bg)",
   },
   good: {
     en: "Good",
     ta: "நல்லது",
-    color: "#7a6a1a",
-    bg: "rgba(200,180,40,0.10)",
+    color: "var(--cl-muhurta-caution)",
+    bg: "var(--cl-muhurta-caution-bg)",
   },
   fair: {
     en: "Fair",
@@ -234,8 +234,8 @@ export function MuhurtaTool() {
           type="submit"
           disabled={loading}
           style={{
-            background: loading ? "var(--cl-border)" : "var(--cl-accent, #4f7c3e)",
-            color: loading ? "var(--cl-ink-2)" : "#fff",
+            background: loading ? "var(--cl-border)" : "var(--cl-muhurta-green)",
+            color: loading ? "var(--cl-ink-2)" : "var(--cl-surface)",
             border: "none",
             borderRadius: "8px",
             padding: "11px 20px",
@@ -254,10 +254,10 @@ export function MuhurtaTool() {
       {error && (
         <p style={{
           marginTop: "16px",
-          color: "var(--cl-error, #c0392b)",
+          color: "var(--cl-error)",
           fontSize: "0.85rem",
-          background: "rgba(192,57,43,0.07)",
-          border: "1px solid rgba(192,57,43,0.2)",
+          background: "var(--cl-error-tint)",
+          border: "1px solid var(--cl-error-ring)",
           borderRadius: "8px",
           padding: "10px 14px",
         }}>
@@ -320,7 +320,7 @@ export function MuhurtaTool() {
                         {lang === "en" ? slot.reason : slot.reasonTa}
                       </p>
                       {slot.cautions.length > 0 && (
-                        <ul style={{ margin: "4px 0 0", paddingLeft: "16px", fontSize: "0.78rem", color: "#9a6010" }}>
+                        <ul style={{ margin: "4px 0 0", paddingLeft: "16px", fontSize: "0.78rem", color: "var(--cl-caution-ink)" }}>
                           {(lang === "en" ? slot.cautions : slot.cautionsTa).map((c) => (
                             <li key={c}>{c}</li>
                           ))}
@@ -356,8 +356,8 @@ export function MuhurtaTool() {
                   href="/dashboard"
                   style={{
                     display: "inline-block",
-                    background: "var(--cl-accent, #4f7c3e)",
-                    color: "#fff",
+                    background: "var(--cl-muhurta-green)",
+                    color: "var(--cl-surface)",
                     borderRadius: "8px",
                     padding: "10px 18px",
                     fontSize: "0.85rem",

@@ -184,7 +184,7 @@ function PrintRasiChart({ chart, d9LagnaRasi }: { chart: ChartCalculateResponseD
       display: "grid",
       gridTemplateColumns: `repeat(4, ${cellPx}px)`,
       gridTemplateRows: `repeat(4, ${cellPx}px)`,
-      border: "1.5px solid #333",
+      border: "1.5px solid var(--print-ink)",
       width: `${cellPx * 4 + 2}px`,
     }}>
       {RASI_GRID.map(({ rasi, col, row }) => {
@@ -193,9 +193,9 @@ function PrintRasiChart({ chart, d9LagnaRasi }: { chart: ChartCalculateResponseD
         return (
           <div key={rasi} style={{
             gridColumn: col + 1, gridRow: row + 1,
-            border: "0.5px solid #555", padding: "2px 3px", fontSize: "7.5px",
+            border: "0.5px solid var(--print-bdr)", padding: "2px 3px", fontSize: "7.5px",
             display: "flex", flexDirection: "column", justifyContent: "space-between",
-            background: isLagna ? "#fff9e6" : "#fff", position: "relative", minHeight: `${cellPx}px`,
+            background: isLagna ? "var(--print-lagna-bg)" : "var(--print-center)", position: "relative", minHeight: `${cellPx}px`,
           }}>
             {isLagna && (
               <div style={{
@@ -204,30 +204,30 @@ function PrintRasiChart({ chart, d9LagnaRasi }: { chart: ChartCalculateResponseD
                 borderColor: "transparent var(--chart-amber) transparent transparent",
               }} />
             )}
-            <span style={{ color: "#888", fontSize: "6.5px" }}>{RASI_NAMES_TA[rasi]}</span>
+            <span style={{ color: "var(--print-muted)", fontSize: "6.5px" }}>{RASI_NAMES_TA[rasi]}</span>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "1px" }}>
-              {occ.map((o, i) => <span key={i} style={{ fontWeight: 700, color: "#111", fontSize: "8px", lineHeight: 1.2 }}>{o}</span>)}
+              {occ.map((o, i) => <span key={i} style={{ fontWeight: 700, color: "var(--print-ink)", fontSize: "8px", lineHeight: 1.2 }}>{o}</span>)}
             </div>
           </div>
         );
       })}
       <div style={{
         gridColumn: "2 / 4", gridRow: "2 / 4",
-        border: "0.5px solid #555", display: "flex", alignItems: "center", justifyContent: "center",
-        background: "#fff", padding: "4px",
+        border: "0.5px solid var(--print-bdr)", display: "flex", alignItems: "center", justifyContent: "center",
+        background: "var(--print-center)", padding: "4px",
       }}>
-        <div style={{ textAlign: "center", fontSize: "7px", color: "#333", lineHeight: 1.4 }}>
+        <div style={{ textAlign: "center", fontSize: "7px", color: "var(--print-ink)", lineHeight: 1.4 }}>
           <div style={{ fontWeight: 700, fontSize: "7.5px" }}>{isD9 ? "நவாம்சம்" : "இராசி"}</div>
           <div>{chart.birthProfile.displayName}</div>
-          <div style={{ fontSize: "6.5px", color: "#666" }}>
+          <div style={{ fontSize: "6.5px", color: "var(--print-warm)" }}>
             {isD9 ? "நவாம்சம் / Male" : `${RASI_NAMES_TA[chart.lagna.rasi]} லக்னம்`}
           </div>
-          <div style={{ fontSize: "6px", color: "#888" }}>
+          <div style={{ fontSize: "6px", color: "var(--print-muted)" }}>
             {chart.birthProfile.birthDateLocal}
             {chart.birthProfile.birthTimeLocal ? ` - ${chart.birthProfile.birthTimeLocal}` : ""}
           </div>
           {chart.birthProfile.birthLatitude !== undefined && (
-            <div style={{ fontSize: "6px", color: "#888" }}>
+            <div style={{ fontSize: "6px", color: "var(--print-muted)" }}>
               Lat: {Number(chart.birthProfile.birthLatitude).toFixed(2)} N · Lon: {Number(chart.birthProfile.birthLongitude ?? 0).toFixed(1)} E
             </div>
           )}
@@ -266,17 +266,17 @@ function JathagamPrint({ chart, dasha, fatherName, motherName, gender }: {
   }).filter(Boolean) as typeof lagnaRow[];
   const allRows = [lagnaRow, ...planetRows];
 
-  const cellStyle: React.CSSProperties = { border: "0.5px solid #999", padding: "2px 4px", fontSize: "7.5px", textAlign: "center", verticalAlign: "middle" };
-  const headerCellStyle: React.CSSProperties = { ...cellStyle, background: "#f0f0f0", fontWeight: 700, fontSize: "7px" };
+  const cellStyle: React.CSSProperties = { border: "0.5px solid var(--print-foot-bdr)", padding: "2px 4px", fontSize: "7.5px", textAlign: "center", verticalAlign: "middle" };
+  const headerCellStyle: React.CSSProperties = { ...cellStyle, background: "var(--print-hdr)", fontWeight: 700, fontSize: "7px" };
 
   return (
-    <div style={{ fontFamily: "serif", color: "#111", background: "#fff", padding: "14px 18px", maxWidth: "740px", margin: "0 auto" }}>
+    <div style={{ fontFamily: "serif", color: "var(--print-ink)", background: "var(--print-center)", padding: "14px 18px", maxWidth: "740px", margin: "0 auto" }}>
       <div style={{ textAlign: "center", marginBottom: "8px" }}>
-        <div style={{ fontSize: "11px", color: "#555" }}>உ</div>
+        <div style={{ fontSize: "11px", color: "var(--print-warm)" }}>உ</div>
         <div style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "0.04em" }}>ஜாதக கணிதம்</div>
       </div>
 
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "8px", marginBottom: "8px", border: "0.5px solid #999" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "8px", marginBottom: "8px", border: "0.5px solid var(--print-foot-bdr)" }}>
         <tbody>
           <tr>
             <td style={{ ...cellStyle, textAlign: "left", width: "22%", fontWeight: 600 }}>பெயர்</td>
@@ -363,7 +363,7 @@ function JathagamPrint({ chart, dasha, fatherName, motherName, gender }: {
             <tr key={row.graha}>
               <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>
                 {row.nameTA}
-                {row.isRetrograde ? <sup style={{ fontSize: "6px", color: "#c00" }}>வ</sup> : null}
+                {row.isRetrograde ? <sup style={{ fontSize: "6px", color: "var(--dignity-neecha)" }}>வ</sup> : null}
               </td>
               <td style={cellStyle}>{degreesToDMS(row.absLong)}</td>
               <td style={{ ...cellStyle, textAlign: "left" }}>{row.nakshatraName}</td>
@@ -379,7 +379,7 @@ function JathagamPrint({ chart, dasha, fatherName, motherName, gender }: {
       </table>
 
       {dasha && (
-        <div style={{ marginTop: "8px", fontSize: "8px", color: "#111", lineHeight: 1.8, borderTop: "0.5px solid #aaa", paddingTop: "6px" }}>
+        <div style={{ marginTop: "8px", fontSize: "8px", color: "var(--print-ink)", lineHeight: 1.8, borderTop: "0.5px solid var(--print-foot-bdr)", paddingTop: "6px" }}>
           <div>
             <strong>பிறந்த கால தசை இருப்பு (Dasa at Birth):</strong>{" "}
             {dashaLordTA(dasha.openingDasha.lord)} தசை — இருப்பு {formatDashaBalance(dasha.openingDasha.balanceYearsAtBirth)}
@@ -393,7 +393,7 @@ function JathagamPrint({ chart, dasha, fatherName, motherName, gender }: {
         </div>
       )}
 
-      <div style={{ marginTop: "6px", fontSize: "7px", color: "#666", lineHeight: 1.5 }}>
+      <div style={{ marginTop: "6px", fontSize: "7px", color: "var(--print-warm)", lineHeight: 1.5 }}>
         <strong>குறிப்பு:</strong> கணிப்பு - Vinaadi AI | அயனாம்சம்: லஹிரி | கிரக நிலைகள் பக்காவான் ஆகும்.
       </div>
     </div>
@@ -486,10 +486,10 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
             position: fixed !important;
             top: 0 !important; left: 0 !important;
             width: 100% !important;
-            background: #fff !important;
+            background: var(--print-center) !important;
             display: block !important;
           }
-          body { background: #fff !important; margin: 0 !important; }
+          body { background: var(--print-center) !important; margin: 0 !important; }
         }
         @media screen {
           .cgp-print-only { display: none !important; }

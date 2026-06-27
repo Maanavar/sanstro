@@ -176,7 +176,7 @@ function MemberRowCard({
   return (
     <div style={{
       background: "var(--color-surface)",
-      border: `1px solid ${isChandrashtama ? "rgba(168,72,47,0.35)" : "var(--color-border)"}`,
+      border: `1px solid ${isChandrashtama ? "var(--cl-rust-35)" : "var(--color-border)"}`,
       borderRadius: "var(--radius-md)",
       padding: "var(--space-5) var(--space-6)",
       display: "flex",
@@ -210,12 +210,12 @@ function MemberRowCard({
           </span>
         )}
         {avoidW && (
-          <span style={{ padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 600, background: "var(--panel-warm-tint)", border: "1px solid rgba(168,72,47,0.3)", color: SCORE_LOW }}>
+          <span style={{ padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 600, background: "var(--panel-warm-tint)", border: "1px solid var(--cl-rust-30)", color: SCORE_LOW }}>
             {lang === "ta" ? "தவிர்" : "Avoid"} {formatClockLabel(avoidW.start)} – {formatClockLabel(avoidW.end)}
           </span>
         )}
         {isChandrashtama && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 700, background: "var(--panel-warm-tint)", color: SCORE_LOW, border: "1px solid rgba(168,72,47,0.4)" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 700, background: "var(--panel-warm-tint)", color: SCORE_LOW, border: "1px solid var(--cl-rust-edge)" }}>
             <AlertGlyph /> {t("label_chandrashtamam", lang)}
           </span>
         )}
@@ -268,7 +268,7 @@ function MemberDetailExpanded({
   return (
     <div style={{
       background: "var(--color-surface)",
-      border: `1px solid ${isChandrashtama ? "rgba(168,72,47,0.4)" : "var(--color-border)"}`,
+      border: `1px solid ${isChandrashtama ? "var(--cl-rust-edge)" : "var(--color-border)"}`,
       borderRadius: "var(--radius-lg)",
       padding: "var(--space-7)",
       display: "flex",
@@ -295,7 +295,7 @@ function MemberDetailExpanded({
               type="button"
               disabled={deletingId === member.familyMemberId}
               onClick={() => onDelete(member.familyMemberId, member.displayName)}
-              style={{ padding: "var(--space-0_75) var(--space-3)", borderRadius: "var(--radius-pill)", border: "1.5px solid rgba(168,72,47,0.3)", background: "transparent", color: SCORE_LOW, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: deletingId === member.familyMemberId ? 0.5 : 1 }}
+              style={{ padding: "var(--space-0_75) var(--space-3)", borderRadius: "var(--radius-pill)", border: "1.5px solid var(--cl-rust-30)", background: "transparent", color: SCORE_LOW, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: deletingId === member.familyMemberId ? 0.5 : 1 }}
             >
               {deletingId === member.familyMemberId ? "…" : (lang === "ta" ? "நீக்கு" : "Remove")}
             </button>
@@ -322,7 +322,7 @@ function MemberDetailExpanded({
           </span>
         )}
         {avoidW && (
-          <span style={{ padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 600, background: "var(--panel-warm-tint)", border: "1px solid rgba(168,72,47,0.3)", color: SCORE_LOW }}>
+          <span style={{ padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 600, background: "var(--panel-warm-tint)", border: "1px solid var(--cl-rust-30)", color: SCORE_LOW }}>
             {lang === "ta" ? "தவிர்க்கவும்" : "Avoid"} {formatClockLabel(avoidW.start)} – {formatClockLabel(avoidW.end)}
           </span>
         )}
@@ -332,7 +332,7 @@ function MemberDetailExpanded({
           </span>
         ))}
         {isChandrashtama && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 700, background: "var(--panel-warm-tint)", color: SCORE_LOW, border: "1px solid rgba(168,72,47,0.4)" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 700, background: "var(--panel-warm-tint)", color: SCORE_LOW, border: "1px solid var(--cl-rust-edge)" }}>
             <AlertGlyph /> {t("label_chandrashtamam", lang)}
           </span>
         )}
@@ -599,7 +599,7 @@ export function DashboardFamilyTab({
               const scoreBg = band.tone === "high" ? "var(--chart-d9-active-bg)" : band.tone === "low" ? "var(--panel-warm-tint)" : "var(--chart-d1-lagna-bg)";
               const relLabel = formatRelLabel(item.relationship);
               return (
-                <div key={`${item.memberId ?? item.displayName}-${idx}`} style={{ border: `1px solid ${item.chandrashtama ? "rgba(168,72,47,0.35)" : "var(--color-border)"}`, borderRadius: "var(--radius-md)", background: "var(--color-surface-soft)", padding: "var(--space-3) var(--space-3_5)", display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
+                <div key={`${item.memberId ?? item.displayName}-${idx}`} style={{ border: `1px solid ${item.chandrashtama ? "var(--cl-rust-35)" : "var(--color-border)"}`, borderRadius: "var(--radius-md)", background: "var(--color-surface-soft)", padding: "var(--space-3) var(--space-3_5)", display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-2)", marginBottom: "var(--space-0_5)" }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       {relLabel && <p className="cd-kicker" style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.65rem" }}>{relLabel}</p>}
@@ -617,12 +617,12 @@ export function DashboardFamilyTab({
                       {band.label}
                     </span>
                     {item.saniCycleActive && (
-                      <span style={{ padding: "2px 8px", borderRadius: "var(--radius-xs)", fontSize: "0.6875rem", fontWeight: 600, background: "rgba(255,193,7,0.12)", color: "rgb(184,90,44)", border: "1px solid rgba(184,90,44,0.3)" }}>
+                      <span style={{ padding: "2px 8px", borderRadius: "var(--radius-xs)", fontSize: "0.6875rem", fontWeight: 600, background: "var(--color-amber-chip-bg)", color: "var(--chart-d1-active)", border: "1px solid var(--underline-brand)" }}>
                         {lang === "ta" ? "சனி" : "Sani"}
                       </span>
                     )}
                     {item.chandrashtama && (
-                      <span style={{ padding: "2px 8px", borderRadius: "var(--radius-xs)", fontSize: "0.6875rem", fontWeight: 700, background: "var(--panel-warm-tint)", color: SCORE_LOW, border: "1px solid rgba(168,72,47,0.4)", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                      <span style={{ padding: "2px 8px", borderRadius: "var(--radius-xs)", fontSize: "0.6875rem", fontWeight: 700, background: "var(--panel-warm-tint)", color: SCORE_LOW, border: "1px solid var(--cl-rust-edge)", display: "inline-flex", alignItems: "center", gap: "3px" }}>
                         <AlertGlyph /> {t("label_chandrashtamam", lang)}
                       </span>
                     )}
@@ -642,7 +642,7 @@ export function DashboardFamilyTab({
       {/* ── ROW 2: Family Today card ── */}
       <div style={{
         background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)",
-        padding: "var(--space-6)", boxShadow: "0 2px 16px rgba(60,40,20,0.07)",
+        padding: "var(--space-6)", boxShadow: "0 2px 16px var(--shadow-faint)",
         display: "flex", flexDirection: "column", gap: "var(--space-4)",
       }}>
         <p className="cd-kicker--inline">{lang === "ta" ? "குடும்பம் இன்று" : "FAMILY TODAY"}</p>
@@ -658,7 +658,7 @@ export function DashboardFamilyTab({
           </div>
         </div>
         <div className="cd-responsive-grid-2" style={{ gap: "var(--space-2_5)" }}>
-          <div className="cd-time-slot" style={{ background: "var(--chart-d9-active-bg)", border: "1px solid rgba(92,118,84,0.3)" }}>
+          <div className="cd-time-slot" style={{ background: "var(--chart-d9-active-bg)", border: "1px solid var(--cl-sage-edge)" }}>
             <p className="cd-kicker" style={{ color: SCORE_HIGH }}>
               {lang === "ta" ? "பகிர்ந்த சிறந்த நேரம்" : "BEST SHARED"}
             </p>
@@ -666,7 +666,7 @@ export function DashboardFamilyTab({
               {bestWindow ? `${formatClockLabel(bestWindow.start)} – ${formatClockLabel(bestWindow.end)}` : "—"}
             </p>
           </div>
-          <div className="cd-time-slot" style={{ background: "var(--panel-warm-tint)", border: "1px solid rgba(168,72,47,0.3)" }}>
+          <div className="cd-time-slot" style={{ background: "var(--panel-warm-tint)", border: "1px solid var(--cl-rust-30)" }}>
             <p className="cd-kicker" style={{ color: SCORE_LOW }}>
               {lang === "ta" ? "தவிர்க்கவும்" : "AVOID"}
             </p>
@@ -677,7 +677,7 @@ export function DashboardFamilyTab({
         </div>
         <SevenDayBars scores={weekScores} labels={weekDayLabels} />
         {familyAggregate && familyAggregate.aggregateBreakdown.chandrashtamaCount > 0 && (
-          <div style={{ padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--panel-warm-tint)", border: "1px solid rgba(168,72,47,0.3)" }}>
+          <div style={{ padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--panel-warm-tint)", border: "1px solid var(--cl-rust-30)" }}>
             <p style={{ margin: 0, fontSize: "0.875rem", color: SCORE_LOW, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
               <AlertGlyph /> {familyAggregate.aggregateBreakdown.chandrashtamaCount} {t("member_chandrashtamam", lang)}
             </p>

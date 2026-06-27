@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { PublicFooter } from "@/components/public-footer";
@@ -102,7 +102,7 @@ export function TamilCalendarEventContent({ data, allEvents }: TamilCalendarEven
   }
 
   const isCaution = data.category === "INAUSPICIOUS";
-  const accent = isCaution ? "#8A2B16" : "#B85A2C";
+  const accent = isCaution ? "var(--planet-saturn)" : "var(--panel-brand)";
   const navEvents = allEvents.length > 0 ? allEvents : [{
     slug: data.slug,
     name: data.name,
@@ -171,11 +171,11 @@ export function TamilCalendarEventContent({ data, allEvents }: TamilCalendarEven
                   marginTop: "16px",
                   padding: "12px 18px",
                   borderRadius: "12px",
-                  background: isCaution ? "#FBE9E7" : "#F2E8D9",
-                  border: `1.5px solid ${isCaution ? "#E0A89C" : "#D9C6A6"}`,
+                  background: isCaution ? "var(--cl-brand-tint)" : "var(--cl-neutral-tint)",
+                  border: `1.5px solid ${isCaution ? "var(--cl-brand-edge)" : "var(--cl-border-2)"}`,
                 }}
               >
-                <div style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--cl-muted, #7A6F5E)" }}>
+                <div style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--cl-muted)" }}>
                   {pick(`Next ${eventName}`, `\u0b85\u0b9f\u0bc1\u0ba4\u0bcd\u0ba4 ${eventName}`, lang)}
                 </div>
                 <div style={{ fontSize: "1.15rem", fontWeight: 700, color: accent }}>{formatLong(data.nextDate, lang)}</div>
@@ -190,13 +190,13 @@ export function TamilCalendarEventContent({ data, allEvents }: TamilCalendarEven
               position: "sticky",
               top: 0,
               zIndex: 20,
-              background: "var(--cl-surface, #FFF)",
-              borderBottom: "1px solid var(--cl-border, #E4DBC8)",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+              background: "var(--cl-surface)",
+              borderBottom: "1px solid var(--cl-border)",
+              boxShadow: "0 2px 8px var(--shadow-sticky-subtle)",
             }}
           >
             <div className="cl-container" style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 0", overflowX: "auto" }}>
-              <span style={{ flexShrink: 0, fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--cl-muted, #7A6F5E)" }}>
+              <span style={{ flexShrink: 0, fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--cl-muted)" }}>
                 {pick("Jump to:", "\u0bae\u0bbe\u0bb1\u0bc1\u0b95:", lang)}
               </span>
               {navEvents.map((event) => {
@@ -214,9 +214,9 @@ export function TamilCalendarEventContent({ data, allEvents }: TamilCalendarEven
                       fontWeight: isActive ? 700 : 600,
                       whiteSpace: "nowrap",
                       textDecoration: "none",
-                      border: `1.5px solid ${isActive ? accent : (caution ? "#E0A89C" : "var(--cl-border, #E4DBC8)")}`,
-                      background: isActive ? accent : (caution ? "#FCEFEC" : "var(--cl-bg, #FFF)"),
-                      color: isActive ? "#FFF" : "var(--cl-ink, #1A1612)",
+                      border: `1.5px solid ${isActive ? accent : (caution ? "var(--cl-brand-edge)" : "var(--cl-border)")}`,
+                      background: isActive ? accent : (caution ? "var(--member-alert-bg)" : "var(--cl-bg)"),
+                      color: isActive ? "var(--cl-surface)" : "var(--cl-ink)",
                     }}
                   >
                     {tLang(event.name, lang)}
@@ -232,7 +232,7 @@ export function TamilCalendarEventContent({ data, allEvents }: TamilCalendarEven
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ textAlign: "left", borderBottom: "2px solid var(--cl-border, #ddd)" }}>
+                  <tr style={{ textAlign: "left", borderBottom: "2px solid var(--cl-border)" }}>
                     <th style={{ padding: "8px" }}>#</th>
                     <th style={{ padding: "8px" }}>{pick("Date", "\u0ba4\u0bc7\u0ba4\u0bbf", lang)}</th>
                     <th style={{ padding: "8px" }}>{pick("Weekday", "\u0b95\u0bbf\u0bb4\u0bae\u0bc8", lang)}</th>
@@ -242,8 +242,8 @@ export function TamilCalendarEventContent({ data, allEvents }: TamilCalendarEven
                 </thead>
                 <tbody>
                   {data.dates.map((date, index) => (
-                    <tr key={date.date} style={{ borderBottom: "1px solid var(--cl-border, #eee)" }}>
-                      <td style={{ padding: "8px", color: "var(--cl-muted,#888)" }}>{index + 1}</td>
+                    <tr key={date.date} style={{ borderBottom: "1px solid var(--cl-border)" }}>
+                      <td style={{ padding: "8px", color: "var(--cl-muted)" }}>{index + 1}</td>
                       <td style={{ padding: "8px", fontWeight: 600, whiteSpace: "nowrap" }}>{formatShort(date.date, lang)}</td>
                       <td style={{ padding: "8px" }}>{tLang(date.weekday, lang)}</td>
                       <td style={{ padding: "8px", whiteSpace: "nowrap" }}>{tLang(date.tamilDate, lang)}</td>

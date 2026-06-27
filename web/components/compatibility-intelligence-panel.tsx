@@ -38,7 +38,7 @@ const W = {
   terracotta: "var(--panel-brand)",
   sage: "var(--chart-d9-active)",
   rust: "var(--planet-saturn)",
-  gold: "#A0852A",
+  gold: "var(--color-gold-mid)",
 } as const;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -53,9 +53,9 @@ function overallColor(label: string): string {
 }
 
 function harmonyBadge(label: string): { bg: string; color: string } {
-  if (label === "STRONG" || label === "SUPPORTIVE" || label === "EXCELLENT") return { bg: "rgba(92,118,84,0.1)", color: W.sage };
-  if (label === "GOOD" || label === "MIXED") return { bg: "rgba(184,90,44,0.1)", color: W.terracotta };
-  return { bg: "rgba(168,72,47,0.1)", color: W.rust };
+  if (label === "STRONG" || label === "SUPPORTIVE" || label === "EXCELLENT") return { bg: "var(--cl-sage-10)", color: W.sage };
+  if (label === "GOOD" || label === "MIXED") return { bg: "var(--cl-brand-fill)", color: W.terracotta };
+  return { bg: "var(--cl-rust-soft)", color: W.rust };
 }
 
 function ScoreBar({ score, max, label }: { score: number; max: number; label: string }) {
@@ -196,7 +196,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
               : "8 அடுக்கு பகுப்பாய்வு: பொருத்தம் · 7ஆம் இடம் · நவாம்சம் · தசை நேரம் · செவ்வாய் தோஷம் · உணர்வு இணக்கம் · சினாஸ்ட்ரி · ஒட்டுமொத்த மதிப்பெண்"}
           </p>
           {error && (
-            <p style={{ margin: "0 0 12px", fontSize: "0.82rem", color: W.rust, background: "rgba(168,72,47,0.08)", border: "1px solid rgba(168,72,47,0.25)", borderRadius: "8px", padding: "10px 14px" }}>
+            <p style={{ margin: "0 0 12px", fontSize: "0.82rem", color: W.rust, background: "var(--ring-error)", border: "1px solid var(--cl-rust-25)", borderRadius: "8px", padding: "10px 14px" }}>
               {error}
             </p>
           )}
@@ -283,7 +283,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
       {(d.strengthsEn.length > 0 || d.risksEn.length > 0) && (
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
           {d.strengthsEn.length > 0 && (
-            <div style={{ flex: 1, minWidth: "240px", background: "rgba(92,118,84,0.06)", border: `1px solid rgba(92,118,84,0.25)`, borderRadius: "12px", padding: "14px 18px" }}>
+            <div style={{ flex: 1, minWidth: "240px", background: "var(--cl-sage-06)", border: `1px solid var(--cl-sage-25)`, borderRadius: "12px", padding: "14px 18px" }}>
               <p style={{ margin: "0 0 8px", fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: W.sage }}>
                 {en ? "Strengths" : "சாதகங்கள்"}
               </p>
@@ -295,7 +295,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
             </div>
           )}
           {d.risksEn.length > 0 && (
-            <div style={{ flex: 1, minWidth: "240px", background: "rgba(168,72,47,0.06)", border: `1px solid rgba(168,72,47,0.25)`, borderRadius: "12px", padding: "14px 18px" }}>
+            <div style={{ flex: 1, minWidth: "240px", background: "var(--cl-rust-06)", border: "1px solid var(--cl-rust-25)", borderRadius: "12px", padding: "14px 18px" }}>
               <p style={{ margin: "0 0 8px", fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: W.rust }}>
                 {en ? "Areas to Watch" : "கவனிக்க வேண்டியவை"}
               </p>
@@ -317,9 +317,9 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
             <span style={{ fontSize: "0.9rem", color: W.muted }}>/{d.poruthamMax}</span>
           </div>
           <Badge text={d.poruthamLabel} color={scoreColor(poruthamPct)} bg={`${scoreColor(poruthamPct)}18`} />
-          {d.rajjuDosha && <Badge text={en ? "⚠ Rajju Dosha" : "⚠ ரஜ்ஜு தோஷம்"} color={W.rust} bg="rgba(168,72,47,0.1)" />}
-          {d.vedhaDosha && <Badge text={en ? "⚠ Vedha Dosha" : "⚠ வேத தோஷம்"} color={W.rust} bg="rgba(168,72,47,0.1)" />}
-          {d.nadiDosha.hasNadiDosha && <Badge text={en ? "⚠ Nadi Dosha" : "⚠ நாடி தோஷம்"} color={W.rust} bg="rgba(168,72,47,0.1)" />}
+          {d.rajjuDosha && <Badge text={en ? "⚠ Rajju Dosha" : "⚠ ரஜ்ஜு தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
+          {d.vedhaDosha && <Badge text={en ? "⚠ Vedha Dosha" : "⚠ வேத தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
+          {d.nadiDosha.hasNadiDosha && <Badge text={en ? "⚠ Nadi Dosha" : "⚠ நாடி தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           {d.poruthamKutas.map(k => (
@@ -390,13 +390,13 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
             { label: d.personAName, sevvai: d.sevvaiA },
             { label: d.personBName, sevvai: d.sevvaiB },
           ].map(({ label, sevvai }, i) => (
-            <div key={i} style={{ flex: 1, minWidth: "200px", background: sevvai.hasDosham && !sevvai.isCancelled ? "rgba(168,72,47,0.05)" : W.surface, borderRadius: "10px", padding: "12px 16px", border: `1px solid ${sevvai.hasDosham && !sevvai.isCancelled ? "rgba(168,72,47,0.2)" : W.borderLt}` }}>
+            <div key={i} style={{ flex: 1, minWidth: "200px", background: sevvai.hasDosham && !sevvai.isCancelled ? "var(--cl-rust-faint)" : W.surface, borderRadius: "10px", padding: "12px 16px", border: `1px solid ${sevvai.hasDosham && !sevvai.isCancelled ? "var(--cl-rust-ring)" : W.borderLt}` }}>
               <p style={{ margin: "0 0 6px", fontSize: "0.78rem", fontWeight: 700, color: W.terracotta }}>{label}</p>
               <div style={{ display: "flex", gap: "6px", marginBottom: "8px", flexWrap: "wrap" }}>
                 <Badge
                   text={sevvai.hasDosham ? (sevvai.isCancelled ? (en ? "Cancelled" : "நீக்கப்பட்டது") : `${sevvai.severity}`) : (en ? "No Dosham" : "தோஷம் இல்லை")}
                   color={sevvai.hasDosham && !sevvai.isCancelled ? W.rust : W.sage}
-                  bg={sevvai.hasDosham && !sevvai.isCancelled ? "rgba(168,72,47,0.1)" : "rgba(92,118,84,0.1)"}
+                  bg={sevvai.hasDosham && !sevvai.isCancelled ? "var(--cl-rust-soft)" : "var(--cl-sage-10)"}
                 />
                 <span style={{ fontSize: "0.76rem", color: W.muted }}>
                   {en ? `Mars: House ${sevvai.marsHouse}` : `செவ்வாய்: ${sevvai.marsHouse}ஆம் இடம்`}

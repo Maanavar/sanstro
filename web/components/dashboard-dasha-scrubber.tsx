@@ -16,15 +16,15 @@ interface DashboardDashaScrubberProps {
 }
 
 const LORD_COLOR: Record<string, string> = {
-  SUN:     "#f97316",
+  SUN:     "var(--dasha-sun)",
   MOON:    "var(--color-violet)",
-  MARS:    "#ef4444",
+  MARS:    "var(--dasha-mars)",
   RAHU:    "var(--color-indigo)",
-  JUPITER: "#eab308",
+  JUPITER: "var(--dasha-jupiter)",
   SATURN:  "var(--color-faint)",
-  MERCURY: "#22c55e",
-  KETU:    "#e879f9",
-  VENUS:   "#ec4899",
+  MERCURY: "var(--dasha-mercury)",
+  KETU:    "var(--dasha-ketu)",
+  VENUS:   "var(--dasha-venus)",
 };
 
 function lordColor(lord: string): string {
@@ -140,7 +140,7 @@ export function DashboardDashaScrubber({
                   justifyContent: "center",
                   cursor: "pointer",
                   position: "relative",
-                  border: current ? "2px solid var(--color-on-accent, #fff)" : isSelected ? `2px solid ${color}` : "none",
+                  border: current ? "2px solid var(--color-on-accent)" : isSelected ? `2px solid ${color}` : "none",
                   boxSizing: "border-box",
                   transition: "opacity 0.15s",
                   zIndex: current || isSelected ? 2 : 1,
@@ -151,7 +151,7 @@ export function DashboardDashaScrubber({
                   style={{
                     fontSize: "0.625rem",
                     fontWeight: 700,
-                    color: past ? "var(--color-muted, var(--panel-mid-earth))" : "var(--color-on-accent, #fff)",
+                    color: past ? "var(--color-muted, var(--panel-mid-earth))" : "var(--color-on-accent)",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -166,7 +166,7 @@ export function DashboardDashaScrubber({
                 <span
                   style={{
                     fontSize: "0.625rem",
-                    color: past ? "var(--color-muted, var(--panel-mid-earth))" : "rgba(255,255,255,0.8)",
+                    color: past ? "var(--color-muted, var(--panel-mid-earth))" : "var(--veil-white-80)",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -192,7 +192,7 @@ export function DashboardDashaScrubber({
                       height: "0",
                       borderLeft: "5px solid transparent",
                       borderRight: "5px solid transparent",
-                      borderTop: "6px solid var(--color-on-accent, #fff)",
+                      borderTop: "6px solid var(--color-on-accent)",
                     }}
                   />
                   );
@@ -244,7 +244,7 @@ export function DashboardDashaScrubber({
                 </span>
               </strong>
               {current && (
-                <span style={{ fontSize: "0.625rem", background: color, color: "var(--color-on-accent, #fff)", padding: "var(--space-1) var(--space-2)", borderRadius: "var(--radius-md)", fontWeight: 600 }}>
+                <span style={{ fontSize: "0.625rem", background: color, color: "var(--color-on-accent)", padding: "var(--space-1) var(--space-2)", borderRadius: "var(--radius-md)", fontWeight: 600 }}>
                   {t("dasha_you_are_here", lang)}
                 </span>
               )}
@@ -282,7 +282,7 @@ export function DashboardDashaScrubber({
                           padding: "var(--space-1) var(--space-3)",
                           borderRadius: "var(--radius-md)",
                           background: aCurrent ? aColor : `${aColor}20`,
-                          color: aCurrent ? "var(--color-on-accent, #fff)" : "var(--color-text, #1e293b)",
+                          color: aCurrent ? "var(--color-on-accent)" : "var(--color-text)",
                           fontSize: "0.625rem",
                           fontWeight: aCurrent ? 700 : 400,
                           border: `1px solid ${aColor}44`,

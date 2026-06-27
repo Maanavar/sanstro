@@ -255,7 +255,7 @@ function RasiGrid({ chart, d9, lang }: { chart: ChartCalculateResponseData; d9?:
               gridColumn: col + 1, gridRow: row + 1,
               border: "1px solid var(--cl-border)",
               padding: "4px 5px",
-              background: isLagna ? "rgba(184,90,44,0.07)" : "var(--cl-surface)",
+              background: isLagna ? "var(--cl-brand-tint)" : "var(--cl-surface)",
               position: "relative", minHeight: `${cellSize}px`,
               display: "flex", flexDirection: "column", justifyContent: "space-between",
             }}>
@@ -263,7 +263,7 @@ function RasiGrid({ chart, d9, lang }: { chart: ChartCalculateResponseData; d9?:
                 <div style={{
                   position: "absolute", top: 0, right: 0, width: 0, height: 0,
                   borderStyle: "solid", borderWidth: "0 14px 14px 0",
-                  borderColor: "transparent #B85A2C transparent transparent",
+                  borderColor: "transparent var(--chart-d1-active) transparent transparent",
                 }} />
               )}
               <span style={{ fontSize: "0.55rem", color: "var(--cl-muted)", fontWeight: 500 }}>
@@ -273,7 +273,7 @@ function RasiGrid({ chart, d9, lang }: { chart: ChartCalculateResponseData; d9?:
                 {occ.map((o, i) => (
                   <span key={i} style={{
                     fontSize: "0.75rem", fontWeight: 700,
-                    color: o === lagnaLabel ? "#B85A2C" : "var(--cl-ink)",
+                    color: o === lagnaLabel ? "var(--chart-d1-active)" : "var(--cl-ink)",
                   }}>{o}</span>
                 ))}
               </div>
@@ -321,13 +321,13 @@ function PrintSouthChart({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "5px", alignItems: "center" }}>
-      <div style={{ fontSize: "7.5px", fontWeight: 700, letterSpacing: "0.06em", color: "#2f2720" }}>{title}</div>
+      <div style={{ fontSize: "7.5px", fontWeight: 700, letterSpacing: "0.06em", color: "var(--print-ink)" }}>{title}</div>
       <div style={{
         display: "grid",
         gridTemplateColumns: `repeat(4, ${cellSize}px)`,
         gridTemplateRows: `repeat(4, ${cellSize}px)`,
-        border: "1.5px solid #2f2720",
-        background: "#fff",
+        border: "1.5px solid var(--print-ink)",
+        background: "white",
       }}>
         {RASI_GRID.map(({ rasi, col, row }) => {
           const occ = getOcc(rasi);
@@ -335,26 +335,26 @@ function PrintSouthChart({
           return (
             <div key={`${title}-${rasi}`} style={{
               gridColumn: col + 1, gridRow: row + 1,
-              border: "0.75px solid #6b5d4d",
+              border: "0.75px solid var(--print-bdr)",
               padding: "3px",
               display: "flex", flexDirection: "column", justifyContent: "space-between",
               minHeight: `${cellSize}px`,
-              background: isLagna ? "#fbf1de" : "#fff",
+              background: isLagna ? "var(--print-lagna-bg)" : "white",
               position: "relative",
             }}>
               {isLagna && (
                 <div style={{
                   position: "absolute", top: 0, right: 0, width: 0, height: 0,
                   borderStyle: "solid", borderWidth: "0 10px 10px 0",
-                  borderColor: "transparent #b85a2c transparent transparent",
+                  borderColor: "transparent var(--print-lagna-accent) transparent transparent",
                 }} />
               )}
-              <span style={{ fontSize: "5.5px", color: "#7a6f5e" }}>{RASI_NAMES_TA[rasi]}</span>
+              <span style={{ fontSize: "5.5px", color: "var(--print-muted)" }}>{RASI_NAMES_TA[rasi]}</span>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "1px" }}>
                 {occ.map((item, index) => (
                   <span key={`${rasi}-${item}-${index}`} style={{
                     fontSize: "7px", fontWeight: 700,
-                    color: item === "ல" ? "#b85a2c" : "#2f2720",
+                    color: item === "ல" ? "var(--print-lagna-accent)" : "var(--print-ink)",
                   }}>{item}</span>
                 ))}
               </div>
@@ -363,15 +363,15 @@ function PrintSouthChart({
         })}
         <div style={{
           gridColumn: "2 / 4", gridRow: "2 / 4",
-          border: "0.75px solid #6b5d4d",
+          border: "0.75px solid var(--print-bdr)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          padding: "4px", textAlign: "center", background: "#fffdfa",
+          padding: "4px", textAlign: "center", background: "var(--print-center)",
         }}>
           <div>
-            <div style={{ fontSize: "7.5px", fontWeight: 700, color: "#2f2720" }}>
+            <div style={{ fontSize: "7.5px", fontWeight: 700, color: "var(--print-ink)" }}>
               {d9 ? "நவாம்சம்" : "இராசி"}
             </div>
-            <div style={{ fontSize: "6px", color: "#7a6f5e", marginTop: "2px" }}>
+            <div style={{ fontSize: "6px", color: "var(--print-muted)", marginTop: "2px" }}>
               {RASI_NAMES_TA[lagnaRasi]} லக்னம்
             </div>
           </div>
@@ -410,7 +410,7 @@ function PrintableJadhagamSheet({
     : "—";
 
   const cellSt: React.CSSProperties = {
-    border: "0.5px solid #6b5d4d",
+    border: "0.5px solid var(--print-bdr)",
     padding: "3px 5px",
     fontSize: "7.5px",
     verticalAlign: "middle",
@@ -418,7 +418,7 @@ function PrintableJadhagamSheet({
   const hdrSt: React.CSSProperties = {
     ...cellSt,
     fontWeight: 700,
-    background: "#f5eedd",
+    background: "var(--print-hdr)",
     whiteSpace: "nowrap",
     width: "1%",
   };
@@ -467,9 +467,9 @@ function PrintableJadhagamSheet({
     width: "100%",
     maxWidth: "780px",
     margin: "0 auto",
-    background: "#fff",
-    color: "#2f2720",
-    border: "1.5px solid #2f2720",
+    background: "white",
+    color: "var(--print-ink)",
+    border: "1.5px solid var(--print-ink)",
     padding: "14px 16px",
     boxSizing: "border-box",
     fontFamily: '"Noto Serif Tamil", "Latha", "Tamil MN", Georgia, serif',
@@ -479,15 +479,15 @@ function PrintableJadhagamSheet({
   return (
     <div className="jg-document-sheet" style={docStyle}>
       {/* ── Branding header ── */}
-      <div style={{ textAlign: "center", borderBottom: "1.5px solid #2f2720", paddingBottom: "8px", marginBottom: "10px" }}>
+      <div style={{ textAlign: "center", borderBottom: "1.5px solid var(--print-ink)", paddingBottom: "8px", marginBottom: "10px" }}>
         <div style={{ fontSize: "14px", fontWeight: 700, letterSpacing: "0.05em" }}>Vinaadi AI</div>
-        <div style={{ fontSize: "8px", marginTop: "2px", color: "#5a4a3a" }}>
+        <div style={{ fontSize: "8px", marginTop: "2px", color: "var(--print-warm)" }}>
           விண்ணாடி AI · thirukanitham-based jathagam · {chart.ayanamsa.type} {chart.ayanamsa.valueDegrees.toFixed(2)}°
         </div>
       </div>
 
       {/* ── Section 1: Two-column personal details ── */}
-      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "10px", border: "0.5px solid #6b5d4d" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "10px", border: "0.5px solid var(--print-bdr)" }}>
         <tbody>
           <tr>
             <td style={hdrSt}>பெயர்</td>
@@ -553,7 +553,7 @@ function PrintableJadhagamSheet({
         <thead>
           <tr>
             {["கிரகம்", "பாகை-கலை", "நட்சத்திரம்", "பாதம்", "நட்சத்திர அதிபதி", "ராசி", "நவாம்சம்", "நிலை"].map((h) => (
-              <th key={h} style={{ ...cellSt, background: "#f5eedd", fontWeight: 700, textAlign: "center" }}>{h}</th>
+              <th key={h} style={{ ...cellSt, background: "var(--print-hdr)", fontWeight: 700, textAlign: "center" }}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -562,7 +562,7 @@ function PrintableJadhagamSheet({
             <tr key={row.graha}>
               <td style={{ ...cellSt, fontWeight: 600 }}>
                 {row.nameTA}
-                {row.isRetrograde && <sup style={{ fontSize: "5.5px", color: "#a84830" }}>வ</sup>}
+                {row.isRetrograde && <sup style={{ fontSize: "5.5px", color: "var(--planet-saturn)" }}>வ</sup>}
               </td>
               <td style={{ ...cellSt, textAlign: "center", fontFamily: "monospace" }}>
                 {toDMS(row.absLong)}
@@ -591,7 +591,7 @@ function PrintableJadhagamSheet({
       </div>
 
       {/* ── Section 4: Dasha + Paavaga Maarudhal ── */}
-      <div style={{ borderTop: "0.5px solid #6b5d4d", paddingTop: "6px", fontSize: "7.5px", lineHeight: 1.9 }}>
+      <div style={{ borderTop: "0.5px solid var(--print-bdr)", paddingTop: "6px", fontSize: "7.5px", lineHeight: 1.9 }}>
         {dasha && (
           <>
             <div>
@@ -611,8 +611,8 @@ function PrintableJadhagamSheet({
       </div>
 
       {/* Footer — bottom-right attribution */}
-      <div style={{ marginTop: "10px", paddingTop: "5px", borderTop: "0.5px solid #b0a090", display: "flex", justifyContent: "flex-end" }}>
-        <span style={{ fontSize: "6.5px", color: "#9a8a7a" }}>
+      <div style={{ marginTop: "10px", paddingTop: "5px", borderTop: "0.5px solid var(--print-foot-bdr)", display: "flex", justifyContent: "flex-end" }}>
+        <span style={{ fontSize: "6.5px", color: "var(--print-foot)" }}>
           vinaadi.com · திருக்கணிதம் · {chart.ayanamsa.type} {chart.ayanamsa.valueDegrees.toFixed(2)}° · {chart.ephemerisBackend}
         </span>
       </div>
@@ -844,7 +844,7 @@ export function JadhagamTool() {
         </div>
 
         {error && (
-          <p style={{ margin: 0, fontSize: "0.82rem", color: "#A8482F", background: "rgba(168,72,47,0.08)", border: "1px solid rgba(168,72,47,0.25)", borderRadius: "8px", padding: "10px 14px" }}>
+          <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--planet-saturn)", background: "var(--cl-rust-tint)", border: "1px solid var(--cl-rust-ring)", borderRadius: "8px", padding: "10px 14px" }}>
             {error}
           </p>
         )}
@@ -897,8 +897,8 @@ export function JadhagamTool() {
             </p>
             <button type="button" onClick={handleExportPdf} style={{
               padding: "9px 16px", borderRadius: "999px",
-              border: "1px solid rgba(184,90,44,0.35)", background: "rgba(184,90,44,0.08)",
-              color: "#B85A2C", fontFamily: "inherit", fontSize: "0.84rem", fontWeight: 700, cursor: "pointer",
+              border: "1px solid var(--cl-brand-edge)", background: "var(--cl-brand-tint)",
+              color: "var(--chart-d1-active)", fontFamily: "inherit", fontSize: "0.84rem", fontWeight: 700, cursor: "pointer",
             }}>
               {en ? "Export PDF" : "PDF ஏற்றுமதி"}
             </button>
@@ -947,7 +947,7 @@ export function JadhagamTool() {
                 <tbody>
                   {/* Lagna row */}
                   <tr style={{ borderBottom: "1px solid var(--cl-border)" }}>
-                    <td style={{ padding: "9px 12px", fontWeight: 600, color: "#B85A2C" }}>
+                    <td style={{ padding: "9px 12px", fontWeight: 600, color: "var(--chart-d1-active)" }}>
                       {en ? "Lagna" : "லக்னம்"}
                     </td>
                     <td style={{ padding: "9px 12px", color: "var(--cl-ink-2)", fontFamily: "monospace", fontSize: "0.78rem" }}>
@@ -970,7 +970,7 @@ export function JadhagamTool() {
                       <tr key={g} style={{ borderBottom: "1px solid var(--cl-border)" }}>
                         <td style={{ padding: "9px 12px", fontWeight: 600, color: "var(--cl-ink)" }}>
                           {PLANET_LABELS[g] ?? g}
-                          {p.isRetrograde && <span style={{ fontSize: "0.68rem", color: "#A8482F", marginLeft: "4px" }}>(வ)</span>}
+                          {p.isRetrograde && <span style={{ fontSize: "0.68rem", color: "var(--planet-saturn)", marginLeft: "4px" }}>(வ)</span>}
                         </td>
                         <td style={{ padding: "9px 12px", color: "var(--cl-ink-2)", fontFamily: "monospace", fontSize: "0.78rem" }}>
                           {toDMS(p.absoluteLongitude)}
@@ -982,7 +982,7 @@ export function JadhagamTool() {
                         </td>
                         <td style={{ padding: "9px 12px", color: "var(--cl-ink-2)" }}>{RASI_NAMES[p.rasi]}</td>
                         <td style={{ padding: "9px 12px", color: "var(--cl-ink-2)" }}>{RASI_NAMES[p.d9Rasi]}</td>
-                        <td style={{ padding: "9px 12px", fontWeight: 500, color: nilai === "உச்சம்" ? "#2a7a2a" : nilai === "நீச்சம்" ? "#a83020" : "var(--cl-ink-2)" }}>
+                        <td style={{ padding: "9px 12px", fontWeight: 500, color: nilai === "உச்சம்" ? "var(--dignity-exalt)" : nilai === "நீச்சம்" ? "var(--dignity-neecha)" : "var(--cl-ink-2)" }}>
                           {nilai}
                         </td>
                       </tr>
@@ -1013,7 +1013,7 @@ export function JadhagamTool() {
 
           {/* Save CTA */}
           <div className="cl-mobile-card-split" style={{
-            background: "rgba(184,90,44,0.05)", border: "1px solid rgba(184,90,44,0.2)",
+            background: "var(--cl-brand-tint)", border: "1px solid var(--cl-brand-ring-md)",
             borderRadius: "14px", padding: "18px 22px",
           }}>
             <div>

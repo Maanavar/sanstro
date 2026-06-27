@@ -390,22 +390,22 @@ function JathagamPrint({
     return `${abbr}${p.isRetrograde ? "(வ)" : ""}-${p.houseFromLagna}`;
   }).filter(Boolean).join(", ");
 
-  const cSt: React.CSSProperties = { border: "0.5px solid #6b5d4d", padding: "3px 5px", fontSize: "7.5px", verticalAlign: "middle" };
-  const hSt: React.CSSProperties = { ...cSt, fontWeight: 700, background: "#f5eedd", whiteSpace: "nowrap" as const, width: "1%" };
+  const cSt: React.CSSProperties = { border: "0.5px solid var(--print-bdr)", padding: "3px 5px", fontSize: "7.5px", verticalAlign: "middle" };
+  const hSt: React.CSSProperties = { ...cSt, fontWeight: 700, background: "var(--print-hdr)", whiteSpace: "nowrap" as const, width: "1%" };
 
   return (
-    <div style={{ fontFamily: '"Noto Serif Tamil","Latha","Tamil MN",Georgia,serif', color: "#2f2720", background: "#fff", padding: "14px 16px", maxWidth: "780px", margin: "0 auto", border: "1.5px solid #2f2720", fontSize: "8px", boxSizing: "border-box" as const }}>
+    <div style={{ fontFamily: '"Noto Serif Tamil","Latha","Tamil MN",Georgia,serif', color: "var(--print-ink)", background: "var(--cl-surface)", padding: "14px 16px", maxWidth: "780px", margin: "0 auto", border: "1.5px solid var(--print-ink)", fontSize: "8px", boxSizing: "border-box" as const }}>
 
       {/* Header */}
-      <div style={{ textAlign: "center", borderBottom: "1.5px solid #2f2720", paddingBottom: "7px", marginBottom: "9px" }}>
+      <div style={{ textAlign: "center", borderBottom: "1.5px solid var(--print-ink)", paddingBottom: "7px", marginBottom: "9px" }}>
         <div style={{ fontSize: "13px", fontWeight: 700 }}>Vinaadi AI</div>
-        <div style={{ fontSize: "7.5px", color: "#5a4a3a", marginTop: "2px" }}>
+        <div style={{ fontSize: "7.5px", color: "var(--print-warm)", marginTop: "2px" }}>
           விண்ணாடி AI · திருக்கணிதம் · {chart.ayanamsa.type} {chart.ayanamsa.valueDegrees.toFixed(2)}°
         </div>
       </div>
 
       {/* Section 1 — personal details */}
-      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "9px", border: "0.5px solid #6b5d4d" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "9px", border: "0.5px solid var(--print-bdr)" }}>
         <tbody>
           <tr>
             <td style={hSt}>பெயர்</td><td style={cSt}>: {bp.displayName}</td>
@@ -453,7 +453,7 @@ function JathagamPrint({
         <thead>
           <tr>
             {["கிரகம்", "பாகை-கலை", "நட்சத்திரம்", "பாதம்", "நட்சத்திர அதிபதி", "ராசி", "நவாம்சம்", "நிலை"].map((h) => (
-              <th key={h} style={{ ...cSt, background: "#f5eedd", fontWeight: 700, textAlign: "center" }}>{h}</th>
+              <th key={h} style={{ ...cSt, background: "var(--print-hdr)", fontWeight: 700, textAlign: "center" }}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -464,7 +464,7 @@ function JathagamPrint({
             return (
               <tr key={row.graha}>
                 <td style={{ ...cSt, fontWeight: 600 }}>
-                  {row.nameTA}{row.isRetrograde && <sup style={{ fontSize: "5.5px", color: "#a84830" }}>வ</sup>}
+                  {row.nameTA}{row.isRetrograde && <sup style={{ fontSize: "5.5px", color: "var(--cl-rust)" }}>வ</sup>}
                 </td>
                 <td style={{ ...cSt, textAlign: "center", fontFamily: "monospace" }}>{toDMS(row.absLong)}</td>
                 <td style={cSt}>{row.nakshatraName}</td>
@@ -486,7 +486,7 @@ function JathagamPrint({
       </div>
 
       {/* Section 4 — dasha + paavagam */}
-      <div style={{ borderTop: "0.5px solid #6b5d4d", paddingTop: "6px", fontSize: "7.5px", lineHeight: 1.9 }}>
+      <div style={{ borderTop: "0.5px solid var(--print-bdr)", paddingTop: "6px", fontSize: "7.5px", lineHeight: 1.9 }}>
         {dasha && (
           <>
             <div>
@@ -504,8 +504,8 @@ function JathagamPrint({
       </div>
 
       {/* Footer — bottom-right */}
-      <div style={{ marginTop: "10px", paddingTop: "5px", borderTop: "0.5px solid #b0a090", display: "flex", justifyContent: "flex-end" }}>
-        <span style={{ fontSize: "6.5px", color: "#9a8a7a" }}>
+      <div style={{ marginTop: "10px", paddingTop: "5px", borderTop: "0.5px solid var(--print-foot-bdr)", display: "flex", justifyContent: "flex-end" }}>
+        <span style={{ fontSize: "6.5px", color: "var(--print-foot)" }}>
           vinaadi.com · திருக்கணிதம் · {chart.ayanamsa.type} {chart.ayanamsa.valueDegrees.toFixed(2)}° · {chart.ephemerisBackend}
         </span>
       </div>
@@ -637,8 +637,8 @@ export default function ChartGeneratePage() {
         @page { size: A4 portrait; margin: 0; }
         @media print {
           body {
-            background: #fff !important;
-            color: #2f2720 !important;
+            background: var(--cl-surface) !important;
+            color: var(--print-ink) !important;
           }
           .no-print {
             display: none !important;
@@ -653,8 +653,8 @@ export default function ChartGeneratePage() {
           }
           .print-card {
             border: none !important;
-            background: #fff !important;
-            color: #2f2720 !important;
+            background: var(--cl-surface) !important;
+            color: var(--print-ink) !important;
             box-shadow: none !important;
           }
           .screen-only {

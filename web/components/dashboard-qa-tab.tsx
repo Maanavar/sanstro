@@ -78,13 +78,13 @@ export function QATab({ lang }: { lang: Lang }) {
             <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "0.75rem", color: FAINT, letterSpacing: "0.05em" }}>{t("qa_total", lang)}</p>
           </div>
           {allPass && (
-            <div className="card" style={{ padding: "var(--space-4) var(--space-6)", flex: 2, minWidth: "200px", display: "flex", alignItems: "center", gap: "var(--space-2_5)", background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.3)" }}>
+            <div className="card" style={{ padding: "var(--space-4) var(--space-6)", flex: 2, minWidth: "200px", display: "flex", alignItems: "center", gap: "var(--space-2_5)", background: "var(--color-pass-bg)", border: "1px solid var(--color-pass-border)" }}>
               <span style={{ fontSize: "1.5rem" }}>✓</span>
               <p style={{ margin: 0, fontWeight: 700, color: "var(--color-positive)" }}>{t("qa_all_pass", lang)}</p>
             </div>
           )}
           {!allPass && result.total_failed > 0 && (
-            <div className="card" style={{ padding: "var(--space-4) var(--space-6)", flex: 2, minWidth: "200px", display: "flex", alignItems: "center", gap: "var(--space-2_5)", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(248,113,113,0.35)" }}>
+            <div className="card" style={{ padding: "var(--space-4) var(--space-6)", flex: 2, minWidth: "200px", display: "flex", alignItems: "center", gap: "var(--space-2_5)", background: "var(--member-alert-bg)", border: "1px solid var(--color-fail-border-strong)" }}>
               <span style={{ fontSize: "1.5rem" }}>⚠</span>
               <p style={{ margin: 0, fontWeight: 700, color: "var(--color-error-light)" }}>{t("qa_has_failures", lang)}</p>
             </div>
@@ -121,9 +121,9 @@ export function QATab({ lang }: { lang: Lang }) {
               fontWeight: 700,
               padding: "var(--space-0_5) var(--space-2)",
               borderRadius: "var(--radius-pill)",
-              background: mod.failed === 0 ? "rgba(74,222,128,0.15)" : "rgba(239,68,68,0.15)",
+              background: mod.failed === 0 ? "var(--color-pass-bg-strong)" : "var(--color-fail-bg-mid)",
               color: mod.failed === 0 ? "var(--color-positive)" : "var(--color-error-light)",
-              border: `1px solid ${mod.failed === 0 ? "rgba(74,222,128,0.3)" : "rgba(248,113,113,0.3)"}`,
+              border: `1px solid ${mod.failed === 0 ? "var(--color-pass-border)" : "var(--color-fail-border)"}`,
             }}>
               {mod.failed === 0 ? "PASS" : "FAIL"}
             </span>
@@ -145,13 +145,13 @@ export function QATab({ lang }: { lang: Lang }) {
                 </thead>
                 <tbody>
                   {mod.cases.map((c) => (
-                    <tr key={c.test_id} style={{ borderTop: `1px solid ${BORDER}`, background: c.passed ? "transparent" : "rgba(239,68,68,0.05)" }}>
+                    <tr key={c.test_id} style={{ borderTop: `1px solid ${BORDER}`, background: c.passed ? "transparent" : "var(--color-fail-tint)" }}>
                       <td style={{ padding: "var(--space-1_5) var(--space-3)", fontFamily: "monospace", color: MUTED, whiteSpace: "nowrap" }}>{c.test_id}</td>
                       <td style={{ padding: "var(--space-1_5) var(--space-3)", color: TEXT, maxWidth: "320px" }}>{c.description}</td>
                       <td style={{ padding: "var(--space-1_5) var(--space-3)", fontFamily: "monospace", color: MUTED, whiteSpace: "nowrap" }}>{String(c.expected)}</td>
                       <td style={{ padding: "var(--space-1_5) var(--space-3)", fontFamily: "monospace", color: c.passed ? MUTED : "var(--color-error-light)", whiteSpace: "nowrap" }}>{String(c.actual)}</td>
                       <td style={{ padding: "var(--space-1_5) var(--space-3)", whiteSpace: "nowrap" }}>
-                        <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "var(--space-0_5) var(--space-1_5)", borderRadius: "var(--radius-pill)", background: c.passed ? "rgba(74,222,128,0.12)" : "rgba(239,68,68,0.15)", color: c.passed ? "var(--color-positive)" : "var(--color-error-light)" }}>
+                        <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "var(--space-0_5) var(--space-1_5)", borderRadius: "var(--radius-pill)", background: c.passed ? "var(--color-pass-bg-mid)" : "var(--color-fail-bg-mid)", color: c.passed ? "var(--color-positive)" : "var(--color-error-light)" }}>
                           {c.passed ? "✓" : "✕"}
                         </span>
                       </td>
@@ -177,7 +177,7 @@ export function QATab({ lang }: { lang: Lang }) {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
               {regressions.failures.map((f) => (
-                <div key={f.test_id} style={{ borderRadius: "var(--radius-sm)", border: "1px solid rgba(248,113,113,0.25)", background: "rgba(239,68,68,0.06)", padding: "var(--space-2_5) var(--space-3_5)" }}>
+                <div key={f.test_id} style={{ borderRadius: "var(--radius-sm)", border: "1px solid var(--color-fail-border-light)", background: "var(--member-alert-bg)", padding: "var(--space-2_5) var(--space-3_5)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
                     <span style={{ fontFamily: "monospace", fontSize: "0.75rem", color: "var(--color-error-light)", fontWeight: 700 }}>{f.test_id}</span>
                     <span style={{ fontSize: "0.75rem", color: MUTED, fontFamily: "monospace" }}>{f.module}</span>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 
 
@@ -133,7 +133,7 @@ export function MemberCard({
     <div style={{
 
 
-      border: `1px solid ${isChandrashtama ? "rgba(248,113,113,0.45)" : "rgba(255,255,255,0.08)"}`,
+      border: `1px solid ${isChandrashtama ? "var(--member-alert-border)" : "var(--veil-white-08)"}`,
 
 
       borderRadius: "12px",
@@ -142,10 +142,10 @@ export function MemberCard({
       background: isChandrashtama
 
 
-        ? "rgba(239,68,68,0.06)"
+        ? "var(--member-alert-bg)"
 
 
-        : "rgba(255,255,255,0.025)",
+        : "var(--veil-white-025)",
 
 
       padding: "16px",
@@ -184,7 +184,7 @@ export function MemberCard({
                 background: "var(--panel-warm-tint)", color: "var(--color-accent-strong, var(--planet-saturn))",
 
 
-                border: "1px solid rgba(168,72,47,0.4)", animation: "pulse 2s infinite",
+                border: "1px solid var(--cl-rust-edge)", animation: "pulse 2s infinite",
 
 
               }}>
@@ -202,7 +202,7 @@ export function MemberCard({
           </div>
 
 
-          <p style={{ margin: "2px 0 0", fontSize: "0.875rem", color: "rgba(255,255,255,0.45)" }}>
+          <p style={{ margin: "2px 0 0", fontSize: "0.875rem", color: "var(--veil-white-45)" }}>
 
 
             {member.individualScore}/100 · weight {member.memberWeight.toFixed(2)}
@@ -285,7 +285,7 @@ export function MemberCard({
         {memberChart?.dailyGuidance?.scoreBreakdown && (
 
 
-          <span style={{ fontSize: "0.625rem", padding: "2px 8px", borderRadius: "var(--radius-pill)", background: "var(--chart-d1-lagna-bg)", border: "1px solid rgba(184,90,44,0.3)", color: "var(--color-accent, var(--panel-brand))", fontWeight: 600 }}>
+          <span style={{ fontSize: "0.625rem", padding: "2px 8px", borderRadius: "var(--radius-pill)", background: "var(--chart-d1-lagna-bg)", border: "1px solid var(--cl-brand-edge)", color: "var(--color-accent, var(--panel-brand))", fontWeight: 600 }}>
 
 
             {t("dasha_word", lang)} {memberChart.dailyGuidance.scoreBreakdown.dashaSupport}/100
@@ -333,7 +333,7 @@ export function MemberCard({
       ) : (
 
 
-        <p style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.3)", margin: 0 }}>
+        <p style={{ fontSize: "0.875rem", color: "var(--veil-white-30)", margin: 0 }}>
 
 
           {t("chart_loading", lang)}
@@ -354,7 +354,7 @@ export function MemberCard({
       {memberChart?.summary ? (
 
 
-        <p style={{ fontSize: "0.875rem", color: "rgba(255,255,255,0.55)", margin: 0 }}>
+        <p style={{ fontSize: "0.875rem", color: "var(--veil-white-55)", margin: 0 }}>
 
 
           {memberChart.summary.lagnaRasi} {t("label_lagnam", lang)} · {memberChart.summary.moonRasi} {t("identity_janma", lang)} · {memberChart.summary.janmaNakshatra}
@@ -405,7 +405,7 @@ export function MemberCard({
           }}>
 
 
-            <p style={{ margin: 0, fontSize: "0.75rem", color: "rgba(255,255,255,0.35)", fontWeight: 600, letterSpacing: "0.05em" }}>
+            <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--veil-white-35)", fontWeight: 600, letterSpacing: "0.05em" }}>
 
 
               {t("dasha_bhukti_antaram", lang)}
@@ -432,7 +432,7 @@ export function MemberCard({
               </span>
 
 
-              <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.35)" }}>
+              <span style={{ fontSize: "0.75rem", color: "var(--veil-white-35)" }}>
 
 
                 {d.current.mahadasha.startDate} → {d.current.mahadasha.endDate}
@@ -462,7 +462,7 @@ export function MemberCard({
               </span>
 
 
-              <span style={{ fontSize: "0.625rem", color: "rgba(255,255,255,0.3)" }}>
+              <span style={{ fontSize: "0.625rem", color: "var(--veil-white-30)" }}>
 
 
                 {d.current.antardasha.startDate} → {d.current.antardasha.endDate}
@@ -492,7 +492,7 @@ export function MemberCard({
               </span>
 
 
-              <span style={{ fontSize: "0.625rem", color: "rgba(255,255,255,0.25)" }}>
+              <span style={{ fontSize: "0.625rem", color: "var(--veil-white-25)" }}>
 
 
                 {d.current.pratyantardasha.startDate} → {d.current.pratyantardasha.endDate}
@@ -510,10 +510,10 @@ export function MemberCard({
             {memberChart.dashaAntar.length > 0 && (
 
 
-              <div style={{ marginTop: "4px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "6px", display: "flex", flexDirection: "column", gap: "2px" }}>
+              <div style={{ marginTop: "4px", borderTop: "1px solid var(--veil-white-06)", paddingTop: "6px", display: "flex", flexDirection: "column", gap: "2px" }}>
 
 
-                <p style={{ margin: "0 0 4px", fontSize: "0.625rem", color: "rgba(255,255,255,0.3)", letterSpacing: "0.04em" }}>
+                <p style={{ margin: "0 0 4px", fontSize: "0.625rem", color: "var(--veil-white-30)", letterSpacing: "0.04em" }}>
 
 
                   {tPlanetLord(d.current.mahadasha.lord, lang)} {t("dasha_word", lang)} — {t("dasha_all_bhukti", lang)}
@@ -564,7 +564,7 @@ export function MemberCard({
                       <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: bc, flexShrink: 0 }} />
 
 
-                      <span style={{ fontSize: "0.75rem", fontWeight: isRunning ? 700 : 400, color: isRunning ? bc : "rgba(255,255,255,0.5)", minWidth: "70px" }}>
+                      <span style={{ fontSize: "0.75rem", fontWeight: isRunning ? 700 : 400, color: isRunning ? bc : "var(--veil-white-50)", minWidth: "70px" }}>
 
 
                         {tPlanetLord(bh.lord, lang)} {t("bhukti_word", lang)}
@@ -573,7 +573,7 @@ export function MemberCard({
                       </span>
 
 
-                      <span style={{ fontSize: "0.625rem", color: "rgba(255,255,255,0.25)", flex: 1 }}>
+                      <span style={{ fontSize: "0.625rem", color: "var(--veil-white-25)", flex: 1 }}>
 
 
                         {String(bh.startDate)} → {String(bh.endDate)}
@@ -588,13 +588,13 @@ export function MemberCard({
                         fontSize: "0.625rem", fontWeight: 600, padding: "1px 5px", borderRadius: "999px",
 
 
-                        background: isRunning ? `${bc}33` : bst === "past" ? "rgba(255,255,255,0.04)" : "transparent",
+                        background: isRunning ? `${bc}33` : bst === "past" ? "var(--veil-white-04)" : "transparent",
 
 
-                        color: isRunning ? bc : bst === "past" ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.3)",
+                        color: isRunning ? bc : bst === "past" ? "var(--veil-white-20)" : "var(--veil-white-30)",
 
 
-                        border: `1px solid ${isRunning ? bc + "55" : "rgba(255,255,255,0.06)"}`,
+                        border: `1px solid ${isRunning ? bc + "55" : "var(--veil-white-06)"}`,
 
 
                       }}>

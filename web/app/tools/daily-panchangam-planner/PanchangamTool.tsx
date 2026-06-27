@@ -132,11 +132,11 @@ function festivalTagLabel(tag: string, lang: Lang): string {
 }
 
 function festivalTagTone(tag: string): { bg: string; border: string; color: string } {
-  if (tag === "hindu") return { bg: "rgba(184,90,44,0.09)", border: "rgba(184,90,44,0.24)", color: "#A8482F" };
-  if (tag === "muslim") return { bg: "rgba(92,118,84,0.09)", border: "rgba(92,118,84,0.24)", color: "#5C7654" };
-  if (tag === "christian") return { bg: "rgba(130,105,75,0.1)", border: "rgba(130,105,75,0.24)", color: "var(--cl-ink)" };
-  if (tag === "indian_govt") return { bg: "rgba(49,86,106,0.1)", border: "rgba(49,86,106,0.24)", color: "#31566A" };
-  if (tag === "tamilnadu_govt") return { bg: "rgba(122,92,20,0.12)", border: "rgba(122,92,20,0.24)", color: "#7A5C14" };
+  if (tag === "hindu") return { bg: "var(--cl-brand-tint)", border: "var(--cl-brand-ring)", color: "var(--planet-saturn)" };
+  if (tag === "muslim") return { bg: "var(--cl-sage-tint)", border: "var(--cl-sage-ring)", color: "var(--chart-d9-active)" };
+  if (tag === "christian") return { bg: "var(--cl-festival-christian-fill)", border: "var(--cl-festival-christian-border)", color: "var(--cl-ink)" };
+  if (tag === "indian_govt") return { bg: "var(--cl-festival-govt-fill)", border: "var(--cl-festival-govt-border)", color: "var(--cl-govt-ink)" };
+  if (tag === "tamilnadu_govt") return { bg: "var(--cl-festival-tn-fill)", border: "var(--cl-festival-tn-border)", color: "var(--cl-tn-ink)" };
   return { bg: "var(--cl-bg-2)", border: "var(--cl-border)", color: "var(--cl-muted)" };
 }
 
@@ -217,8 +217,8 @@ function formatChandrashtamaWindowSummary(
 
 function TimeSlot({ label, start, end, tone }: { label: string; start: string; end: string; tone: "best" | "hold" | "neutral" }) {
   const colors = {
-    best: { bg: "rgba(92,118,84,0.08)", border: "rgba(92,118,84,0.3)", text: "#5C7654" },
-    hold: { bg: "rgba(168,72,47,0.08)", border: "rgba(168,72,47,0.3)", text: "#A8482F" },
+    best: { bg: "var(--cl-sage-tint)", border: "var(--cl-sage-edge)", text: "var(--chart-d9-active)" },
+    hold: { bg: "var(--cl-rust-tint)", border: "var(--cl-rust-edge)", text: "var(--planet-saturn)" },
     neutral: { bg: "var(--cl-bg-2)", border: "var(--cl-border)", text: "var(--cl-muted)" },
   }[tone];
 
@@ -236,8 +236,8 @@ type PanchangamTimingSlot = PanchangamDailyResponseData["kalam"]["nallaNeram"][n
 
 function SummaryChip({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "best" | "hold" | "neutral" }) {
   const colors = {
-    best: { bg: "rgba(92,118,84,0.08)", border: "rgba(92,118,84,0.18)", label: "#5C7654", value: "var(--cl-ink)" },
-    hold: { bg: "rgba(168,72,47,0.07)", border: "rgba(168,72,47,0.18)", label: "#A8482F", value: "var(--cl-ink)" },
+    best: { bg: "var(--cl-sage-tint)", border: "var(--cl-sage-ring)", label: "var(--chart-d9-active)", value: "var(--cl-ink)" },
+    hold: { bg: "var(--cl-rust-tint)", border: "var(--cl-rust-ring)", label: "var(--planet-saturn)", value: "var(--cl-ink)" },
     neutral: { bg: "var(--cl-bg-2)", border: "var(--cl-border)", label: "var(--cl-muted)", value: "var(--cl-ink)" },
   }[tone];
 
@@ -283,8 +283,8 @@ function SlotStack({ slots, emptyLabel, lang }: { slots: PanchangamTimingSlot[];
               gap: "10px",
               padding: "7px 9px",
               borderRadius: "8px",
-              background: slot.warning ? "rgba(168,72,47,0.06)" : "rgba(92,118,84,0.07)",
-              border: `1px solid ${slot.warning ? "rgba(168,72,47,0.18)" : "rgba(92,118,84,0.18)"}`,
+              background: slot.warning ? "var(--cl-rust-tint)" : "var(--cl-sage-tint)",
+              border: `1px solid ${slot.warning ? "var(--cl-rust-ring)" : "var(--cl-sage-ring)"}`,
             }}
           >
             <span style={{ minWidth: 0, color: "var(--cl-muted)", fontSize: "0.72rem", fontWeight: 700, lineHeight: 1.35 }}>
@@ -535,8 +535,8 @@ export function PanchangamTool() {
               cursor: locating ? "wait" : "pointer",
               fontFamily: "inherit",
               border: cityKey === "Browser" ? "1.5px solid var(--cl-accent)" : "1.5px solid var(--cl-border)",
-              background: cityKey === "Browser" ? "rgba(184,90,44,0.08)" : "var(--cl-bg-2)",
-              color: cityKey === "Browser" ? "#B85A2C" : "var(--cl-ink)",
+              background: cityKey === "Browser" ? "var(--cl-brand-tint)" : "var(--cl-bg-2)",
+              color: cityKey === "Browser" ? "var(--chart-d1-active)" : "var(--cl-ink)",
               whiteSpace: "nowrap",
               width: "100%",
             }}
@@ -570,7 +570,7 @@ export function PanchangamTool() {
         </div>
 
         {error && (
-          <p style={{ margin: 0, fontSize: "0.82rem", color: "#A8482F", background: "rgba(168,72,47,0.08)", border: "1px solid rgba(168,72,47,0.25)", borderRadius: "8px", padding: "10px 14px" }}>
+          <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--planet-saturn)", background: "var(--cl-rust-tint)", border: "1px solid var(--cl-rust-ring)", borderRadius: "8px", padding: "10px 14px" }}>
             {error}
           </p>
         )}
@@ -747,7 +747,7 @@ export function PanchangamTool() {
                     { en: "Nalla Neram", ta: "நல்ல நேரம்" },
                     { en: "Gowri Nalla Neram", ta: "கௌரி நல்ல நேரம்" },
                   ].map((col) => (
-                    <th key={col.en} style={{ padding: "12px 16px", fontWeight: 700, textAlign: "left", borderBottom: "1px solid var(--cl-border)", background: "rgba(92,118,84,0.06)", width: "50%" }}>
+                    <th key={col.en} style={{ padding: "12px 16px", fontWeight: 700, textAlign: "left", borderBottom: "1px solid var(--cl-border)", background: "var(--cl-sage-tint)", width: "50%" }}>
                       <div>{col.en}</div>
                       <div style={{ fontSize: "0.78rem", fontWeight: 500, color: "var(--cl-muted)" }}>{col.ta}</div>
                     </th>
@@ -787,14 +787,14 @@ export function PanchangamTool() {
 
           {/* Subha muhurtham status */}
           <div style={{
-            background: data.subhaMuhurtham.isSubha ? "rgba(92,118,84,0.07)" : "rgba(168,72,47,0.05)",
-            border: `1px solid ${data.subhaMuhurtham.isSubha ? "rgba(92,118,84,0.26)" : "rgba(168,72,47,0.18)"}`,
+            background: data.subhaMuhurtham.isSubha ? "var(--cl-sage-tint)" : "var(--cl-rust-tint)",
+            border: `1px solid ${data.subhaMuhurtham.isSubha ? "var(--cl-sage-edge)" : "var(--cl-rust-ring)"}`,
             borderRadius: "16px",
             padding: "15px 18px",
           }}>
             <div className="cl-mobile-card-split" style={{ alignItems: "center", gap: "12px" }}>
               <div style={{ flex: "1 1 420px", minWidth: 0 }}>
-                <p style={{ margin: "0 0 4px", fontSize: "0.68rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: data.subhaMuhurtham.isSubha ? "#5C7654" : "#A8482F" }}>
+                <p style={{ margin: "0 0 4px", fontSize: "0.68rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: data.subhaMuhurtham.isSubha ? "var(--chart-d9-active)" : "var(--planet-saturn)" }}>
                   {en ? "Subha Muhurtham Check" : "சுப முகூர்த்தம் பரிசோதனை"}
                 </p>
                 <p style={{ margin: "0 0 4px", fontSize: "0.98rem", fontWeight: 700, color: "var(--cl-ink)" }}>
@@ -812,9 +812,9 @@ export function PanchangamTool() {
                 justifyContent: "center",
                 padding: "9px 13px",
                 borderRadius: "999px",
-                background: data.subhaMuhurtham.isSubha ? "rgba(92,118,84,0.1)" : "rgba(168,72,47,0.08)",
-                border: `1px solid ${data.subhaMuhurtham.isSubha ? "rgba(92,118,84,0.22)" : "rgba(168,72,47,0.16)"}`,
-                color: data.subhaMuhurtham.isSubha ? "#5C7654" : "#A8482F",
+                background: data.subhaMuhurtham.isSubha ? "var(--cl-sage-tint)" : "var(--cl-rust-fill)",
+                border: `1px solid ${data.subhaMuhurtham.isSubha ? "var(--cl-sage-ring)" : "var(--cl-rust-ring)"}`,
+                color: data.subhaMuhurtham.isSubha ? "var(--chart-d9-active)" : "var(--planet-saturn)",
                 fontSize: "0.76rem",
                 fontWeight: 800,
                 letterSpacing: "0.04em",
@@ -854,7 +854,7 @@ export function PanchangamTool() {
 
           {/* CTA */}
           <div className="cl-mobile-card-split" style={{
-            background: "rgba(184,90,44,0.05)", border: "1px solid rgba(184,90,44,0.2)",
+            background: "var(--cl-brand-tint)", border: "1px solid var(--cl-brand-ring-md)",
             borderRadius: "14px", padding: "18px 22px",
           }}>
             <div>

@@ -49,7 +49,7 @@ const SUGGESTED_QUESTIONS: Record<NonNullable<GoalTrack> | "DEFAULT", { ta: stri
 };
 
 function SignalChip({ signal }: { signal: string }) {
-  return <span style={{ display: "inline-block", fontSize: "11px", padding: "2px 8px", borderRadius: "12px", background: "rgba(184,90,44,0.12)", color: "var(--color-accent, var(--panel-brand))", margin: "2px 3px", fontFamily: "var(--font-mono)", letterSpacing: "0.02em" }}>{signal}</span>;
+  return <span style={{ display: "inline-block", fontSize: "11px", padding: "2px 8px", borderRadius: "12px", background: "var(--ring-brand)", color: "var(--color-accent, var(--panel-brand))", margin: "2px 3px", fontFamily: "var(--font-mono)", letterSpacing: "0.02em" }}>{signal}</span>;
 }
 
 function QuotaBar({ used, limit, lang }: { used: number; limit: number; lang: Lang }) {
@@ -60,7 +60,7 @@ function QuotaBar({ used, limit, lang }: { used: number; limit: number; lang: La
       <div style={{ fontSize: "12px", color: "var(--color-faint)", marginBottom: "4px", display: "flex", justifyContent: "space-between" }}>
         <span>{lang === "ta" ? `இன்று ${used} / ${limit} கேள்விகள் பயன்படுத்தப்பட்டன` : `${used} of ${limit} questions used today`}</span>
       </div>
-      <div style={{ height: "4px", borderRadius: "2px", background: "rgba(255,255,255,0.1)", overflow: "hidden" }}>
+      <div style={{ height: "4px", borderRadius: "2px", background: "var(--veil-white-10)", overflow: "hidden" }}>
         <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: "2px", transition: "width 0.3s ease" }} />
       </div>
     </div>
@@ -70,7 +70,7 @@ function QuotaBar({ used, limit, lang }: { used: number; limit: number; lang: La
 function AnswerCard({ entry, lang }: { entry: { question: string; data: AskVinaadiResponseData }; lang: Lang }) {
   const { question, data } = entry;
   return (
-    <div style={{ borderRadius: "12px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", padding: "16px", marginBottom: "12px" }}>
+    <div style={{ borderRadius: "12px", background: "var(--veil-white-04)", border: "1px solid var(--veil-white-08)", padding: "16px", marginBottom: "12px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "10px" }}>
         <p style={{ fontSize: "13px", color: "var(--color-faint)", margin: 0, fontStyle: "italic" }}>{question}</p>
         <ConfidenceBadge level={data.confidence as ConfidenceTier} reason={{ ta: "", en: data.confidence }} lang={lang} />
@@ -182,7 +182,7 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
                 key={`chip-${i}`}
                 disabled={limitReached}
                 onClick={() => void submit(lang === "ta" ? s.ta : s.en, true)}
-                style={{ fontSize: "12px", padding: "5px 10px", borderRadius: "20px", border: "1px solid rgba(184,90,44,0.35)", background: limitReached ? "rgba(184,90,44,0.05)" : "rgba(184,90,44,0.12)", color: "var(--color-accent, var(--panel-brand))", cursor: limitReached ? "not-allowed" : "pointer", opacity: limitReached ? 0.5 : 1 }}
+                style={{ fontSize: "12px", padding: "5px 10px", borderRadius: "20px", border: "1px solid var(--cl-brand-edge)", background: limitReached ? "var(--brand-tint-faint)" : "var(--ring-brand)", color: "var(--color-accent, var(--panel-brand))", cursor: limitReached ? "not-allowed" : "pointer", opacity: limitReached ? 0.5 : 1 }}
               >
                 {lang === "ta" ? s.ta : s.en}
               </button>
@@ -197,14 +197,14 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
       )}
 
       {showUpgrade && (
-        <div style={{ borderRadius: "12px", background: "rgba(184,90,44,0.08)", border: "1px solid rgba(184,90,44,0.3)", padding: "16px", marginBottom: "14px" }}>
+        <div style={{ borderRadius: "12px", background: "var(--glow-brand)", border: "1px solid var(--underline-brand)", padding: "16px", marginBottom: "14px" }}>
           <p style={{ margin: "0 0 12px", fontSize: "14px", lineHeight: 1.5, color: "var(--color-text, var(--panel-earth))" }}>
             {lang === "ta"
               ? "இன்று உங்கள் 3 இலவச கேள்விகளைப் பயன்படுத்திவிட்டீர்கள். வரம்பற்ற தினசரி வழிகாட்டுதலுக்கு மேம்படுத்துங்கள்."
               : "You've used your 3 free questions today. Upgrade for unlimited daily guidance."}
           </p>
           <div style={{ display: "flex", gap: "8px" }}>
-            <button onClick={goUpgrade} style={{ padding: "8px 18px", borderRadius: "8px", border: "none", background: "var(--color-accent, var(--panel-brand))", color: "#fff", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+            <button onClick={goUpgrade} style={{ padding: "8px 18px", borderRadius: "8px", border: "none", background: "var(--color-accent, var(--panel-brand))", color: "white", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
               {lang === "ta" ? "மேம்படுத்து" : "Upgrade"}
             </button>
             <button onClick={() => setShowUpgrade(false)} style={{ padding: "8px 18px", borderRadius: "8px", border: "1px solid var(--color-border, var(--panel-tan-light))", background: "transparent", color: "var(--color-muted, var(--panel-mid-earth))", fontSize: "13px", cursor: "pointer" }}>
@@ -231,7 +231,7 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
           maxLength={500}
           style={{ width: "100%", boxSizing: "border-box", padding: "10px 80px 10px 14px", borderRadius: "10px", border: "1px solid var(--color-border, var(--panel-tan-light))", background: "var(--color-surface-soft, var(--panel-cream))", color: "var(--color-text, var(--panel-earth))", fontSize: "14px", resize: "vertical", outline: "none", fontFamily: "inherit" }}
         />
-        <button onClick={() => void submit(question)} disabled={loading || !question.trim() || limitReached} style={{ position: "absolute", right: "8px", bottom: "8px", padding: "6px 14px", borderRadius: "8px", border: "none", background: loading ? "var(--color-faint, var(--color-faint))" : "var(--color-accent, var(--panel-brand))", color: "var(--color-on-accent, #fff)", fontSize: "13px", cursor: loading ? "wait" : "pointer" }}>
+        <button onClick={() => void submit(question)} disabled={loading || !question.trim() || limitReached} style={{ position: "absolute", right: "8px", bottom: "8px", padding: "6px 14px", borderRadius: "8px", border: "none", background: loading ? "var(--color-faint, var(--color-faint))" : "var(--color-accent, var(--panel-brand))", color: "var(--color-on-accent)", fontSize: "13px", cursor: loading ? "wait" : "pointer" }}>
           {loading ? "…" : (lang === "ta" ? "கேள்" : "Ask")}
         </button>
       </div>
@@ -241,7 +241,7 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
         {quota && <QuotaBar used={quota.used} limit={quota.limit} lang={lang} />}
       </div>
 
-      {error && <p style={{ fontSize: "13px", color: "var(--color-error-light)", marginTop: "8px", padding: "8px 12px", background: "rgba(248,113,113,0.08)", borderRadius: "8px" }}>{error}</p>}
+      {error && <p style={{ fontSize: "13px", color: "var(--color-error-light)", marginTop: "8px", padding: "8px 12px", background: "var(--color-error-bg)", borderRadius: "8px" }}>{error}</p>}
 
       {history.length > 0 && (
         <div style={{ marginTop: "16px" }}>

@@ -17,6 +17,23 @@
   --color-score-mid: #b85a2c;
   --color-score-low: #a8482f;
 
+  /* Semi-transparent surface derivations */
+  --color-bg-glass:         color-mix(in srgb, var(--color-bg) 95%, transparent);
+  --color-bg-glass-97:      color-mix(in srgb, var(--color-bg) 97%, transparent);
+  --color-hover-bg:         #ede5d4;
+  --color-shadow-warm:      rgb(60 40 20 / 16%);
+  --color-shadow-warm-md:   rgb(60 40 20 / 18%);
+  --color-accent-ring:      color-mix(in srgb, var(--color-accent) 12%, transparent);
+  --color-overlay-sm:       rgb(0 0 0 / 8%);
+  --color-shimmer-light:    rgb(255 255 255 / 45%);
+  /* Toast state colors */
+  --color-toast-success-bg:     #dce4d2;
+  --color-toast-success-border: color-mix(in srgb, var(--color-accent-alt) 50%, transparent);
+  --color-toast-success-text:   #2f5d35;
+  --color-toast-error-bg:       #f2d8cc;
+  --color-toast-error-border:   color-mix(in srgb, var(--color-accent-strong) 42%, transparent);
+  --color-toast-error-text:     #8f3724;
+
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 20px;
@@ -69,7 +86,7 @@
   position: sticky;
   top: 0;
   z-index: 60;
-  background: rgb(244 238 226 / 95%);
+  background: var(--color-bg-glass);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--color-border);
 }
@@ -213,7 +230,7 @@
 }
 
 .cd-icon-btn:hover {
-  background: #ede5d4;
+  background: var(--color-hover-bg);
   border-color: var(--color-border-strong);
 }
 
@@ -232,7 +249,7 @@
   padding: 0 4px;
   border-radius: var(--radius-pill);
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
   font-size: 0.625rem;
   font-weight: 800;
   display: flex;
@@ -254,7 +271,7 @@
 }
 
 .cd-lang-btn:hover {
-  background: #ede5d4;
+  background: var(--color-hover-bg);
 }
 
 .cd-avatar {
@@ -288,7 +305,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 6px;
-  box-shadow: 0 8px 32px rgb(60 40 20 / 16%);
+  box-shadow: 0 8px 32px var(--color-shadow-warm);
 }
 
 .cd-dropdown {
@@ -343,7 +360,7 @@
 }
 
 .cd-dropdown__btn--danger:hover {
-  background: #f2d8cc;
+  background: var(--color-toast-error-bg);
 }
 
 .cd-dropdown__divider {
@@ -395,7 +412,7 @@
 
 .cd-tabnav {
   border-bottom: 1px solid var(--color-border);
-  background: rgb(244 238 226 / 97%);
+  background: var(--color-bg-glass-97);
 }
 
 .cd-tabnav__inner {
@@ -434,7 +451,7 @@
   width: 40px;
   flex-shrink: 0;
   margin-left: -40px;
-  background: linear-gradient(to right, rgb(244 238 226 / 0%), rgb(244 238 226 / 97%));
+  background: linear-gradient(to right, transparent, var(--color-bg-glass-97));
   pointer-events: none;
 }
 
@@ -502,7 +519,7 @@
 
 .cd-date-input:focus {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px rgb(184 90 44 / 12%);
+  box-shadow: 0 0 0 2px var(--color-accent-ring);
 }
 
 .cd-toast {
@@ -516,7 +533,7 @@
   font-size: 0.875rem;
   font-weight: 500;
   white-space: nowrap;
-  box-shadow: 0 4px 20px rgb(60 40 20 / 18%);
+  box-shadow: 0 4px 20px var(--color-shadow-warm-md);
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -536,19 +553,19 @@
 }
 
 .cd-toast__close:hover {
-  background: rgb(0 0 0 / 8%);
+  background: var(--color-overlay-sm);
 }
 
 .cd-toast--success {
-  background: #dce4d2;
-  border: 1px solid rgb(92 118 84 / 50%);
-  color: #2f5d35;
+  background: var(--color-toast-success-bg);
+  border: 1px solid var(--color-toast-success-border);
+  color: var(--color-toast-success-text);
 }
 
 .cd-toast--error {
-  background: #f2d8cc;
-  border: 1px solid rgb(168 72 47 / 42%);
-  color: #8f3724;
+  background: var(--color-toast-error-bg);
+  border: 1px solid var(--color-toast-error-border);
+  color: var(--color-toast-error-text);
 }
 
 .cd-page {
@@ -568,7 +585,7 @@
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 45%), transparent);
+  background: linear-gradient(90deg, transparent, var(--color-shimmer-light), transparent);
   animation: cd-shimmer 1.1s infinite;
 }
 
@@ -876,12 +893,12 @@
 }
 
 .cd-rail-item--active {
-  background: rgba(184, 90, 44, 0.1);
+  background: var(--panel-brand-a10);
   color: var(--color-accent);
 }
 
 .cd-rail-item--active:hover {
-  background: rgba(184, 90, 44, 0.15);
+  background: var(--panel-brand-a15);
 }
 
 .cd-rail-item__icon {

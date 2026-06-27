@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
@@ -50,13 +50,13 @@ export function PithruDoshamContent() {
                   borderRadius: "14px",
                   padding: "20px",
                 }}>
-                  <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--cl-accent, #b4622d)", margin: "0 0 12px" }}>
+                  <h3 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--cl-accent)", margin: "0 0 12px" }}>
                     {mt(cat.heading, lang)}
                   </h3>
                   <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "8px" }}>
                     {cat.items.map((item, j) => (
                       <li key={j} style={{ fontSize: "0.9rem", color: "var(--cl-muted)", lineHeight: 1.55, paddingLeft: "1.1em", position: "relative" }}>
-                        <span style={{ position: "absolute", left: 0, top: "0.1em", color: "var(--cl-accent, #b4622d)" }}>·</span>
+                        <span style={{ position: "absolute", left: 0, top: "0.1em", color: "var(--cl-accent)" }}>·</span>
                         {mt(item, lang)}
                       </li>
                     ))}
@@ -90,8 +90,8 @@ export function PithruDoshamContent() {
                   content: counter(step); position: absolute; left: 16px; top: 16px;
                   width: 28px; height: 28px; border-radius: 999px;
                   display: flex; align-items: center; justify-content: center;
-                  font-size: 0.85rem; font-weight: 700; color: #fff;
-                  background: var(--cl-accent, #b4622d);
+                  font-size: 0.85rem; font-weight: 700; color: white;
+                  background: var(--cl-accent);
                 }
                 .cl-steps__t { font-weight: 700; color: var(--cl-ink); margin: 0 0 4px; }
                 .cl-steps__b { font-size: 0.92rem; color: var(--cl-muted); line-height: 1.55; margin: 0; }

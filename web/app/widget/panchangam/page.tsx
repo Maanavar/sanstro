@@ -49,8 +49,8 @@ export default function PanchangamWidget() {
 
   const widgetStyle: React.CSSProperties = {
     fontFamily: "system-ui, -apple-system, sans-serif",
-    background: "#0d1117",
-    color: "#e6edf3",
+    background: "var(--widget-bg)",
+    color: "var(--widget-text)",
     borderRadius: "12px",
     padding: "16px",
     maxWidth: "400px",
@@ -61,7 +61,7 @@ export default function PanchangamWidget() {
 
   if (loading) return (
     <div style={widgetStyle}>
-      <p style={{ color: "#8b949e", textAlign: "center", margin: "20px 0" }}>
+      <p style={{ color: "var(--widget-muted)", textAlign: "center", margin: "20px 0" }}>
         {en ? "Loading panchangam…" : "பஞ்சாங்கம் ஏற்றுகிறது…"}
       </p>
     </div>
@@ -69,14 +69,14 @@ export default function PanchangamWidget() {
 
   if (error || !data) return (
     <div style={widgetStyle}>
-      <p style={{ color: "#f87171", textAlign: "center", margin: "20px 0" }}>
+      <p style={{ color: "var(--widget-red)", textAlign: "center", margin: "20px 0" }}>
         {en ? "Could not load panchangam." : "பஞ்சாங்கம் ஏற்ற முடியவில்லை."}
       </p>
     </div>
   );
 
-  const accent = "#818cf8";
-  const muted = "#8b949e";
+  const accent = "var(--widget-indigo)";
+  const muted = "var(--widget-muted)";
 
   return (
     <div style={widgetStyle}>
@@ -86,7 +86,7 @@ export default function PanchangamWidget() {
           <p style={{ margin: 0, fontSize: "11px", color: muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
             {en ? "Daily Panchangam" : "தினசரி பஞ்சாங்கம்"}
           </p>
-          <p style={{ margin: "2px 0 0", fontWeight: 700, fontSize: "14px", color: "#e6edf3" }}>
+          <p style={{ margin: "2px 0 0", fontWeight: 700, fontSize: "14px", color: "var(--widget-text)" }}>
             {formatDateLabel(data.dateLocal)}
           </p>
         </div>
@@ -101,7 +101,7 @@ export default function PanchangamWidget() {
       </div>
 
       {/* Divider */}
-      <div style={{ height: "1px", background: "rgba(255,255,255,0.08)", marginBottom: "12px" }} />
+      <div style={{ height: "1px", background: "var(--widget-divider)", marginBottom: "12px" }} />
 
       {/* Five elements */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 120px), 1fr))", gap: "8px", marginBottom: "12px" }}>
@@ -113,28 +113,28 @@ export default function PanchangamWidget() {
           { lbl: en ? "Karana" : "கரணம்",      val: tKarana(data.karana.name, params.lang) },
           { lbl: en ? "Moon Phase" : "சந்திர கலை", val: data.moonPhaseLabel },
         ].map(item => (
-          <div key={item.lbl} style={{ background: "rgba(255,255,255,0.04)", borderRadius: "8px", padding: "8px 10px" }}>
+          <div key={item.lbl} style={{ background: "var(--widget-card-bg)", borderRadius: "8px", padding: "8px 10px" }}>
             <p style={{ margin: "0 0 2px", fontSize: "10px", color: muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{item.lbl}</p>
-            <p style={{ margin: 0, fontWeight: 600, fontSize: "12px", color: "#e6edf3" }}>{item.val}</p>
+            <p style={{ margin: 0, fontWeight: 600, fontSize: "12px", color: "var(--widget-text)" }}>{item.val}</p>
           </div>
         ))}
       </div>
 
       {/* Timings */}
-      <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: "8px", overflow: "hidden" }}>
+      <div style={{ background: "var(--widget-card-bg)", borderRadius: "8px", overflow: "hidden" }}>
         {[
-          { lbl: en ? "Rahu Kalam" : "ராகு காலம்", val: clockRange(data.kalam.rahuKalam.start, data.kalam.rahuKalam.end), color: "#f87171" },
-          { lbl: en ? "Yamagandam" : "எமகண்டம்", val: clockRange(data.kalam.yamagandam.start, data.kalam.yamagandam.end), color: "#fbbf24" },
+          { lbl: en ? "Rahu Kalam" : "ராகு காலம்", val: clockRange(data.kalam.rahuKalam.start, data.kalam.rahuKalam.end), color: "var(--widget-red)" },
+          { lbl: en ? "Yamagandam" : "எமகண்டம்", val: clockRange(data.kalam.yamagandam.start, data.kalam.yamagandam.end), color: "var(--widget-amber)" },
           ...(data.kalam.nallaNeram.slice(0, 2).map(s => ({
             lbl: en ? "Nalla Neram" : "நல்ல நேரம்",
             val: clockRange(s.start, s.end),
-            color: "#4ade80",
+            color: "var(--widget-green)",
           }))),
         ].map((item, i) => (
           <div key={i} style={{
             display: "flex", justifyContent: "space-between",
             padding: "7px 10px",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            borderBottom: "1px solid var(--widget-row-border)",
           }}>
             <span style={{ color: muted, fontSize: "12px" }}>{item.lbl}</span>
             <span style={{ color: item.color, fontWeight: 600, fontSize: "12px" }}>{item.val}</span>
@@ -143,7 +143,7 @@ export default function PanchangamWidget() {
       </div>
 
       {/* Sunrise row */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px", paddingTop: "10px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px", paddingTop: "10px", borderTop: "1px solid var(--widget-divider)" }}>
         <span style={{ color: muted, fontSize: "11px" }}>
           {en ? "Sunrise" : "சூரிய உதயம்"} {formatClockLabel(data.sunrise)}
         </span>

@@ -30,21 +30,21 @@ type Props = {
 
 /* ── palette helpers ─────────────────────────────────────── */
 function scoreTone(score: number) {
-  if (score >= 65) return { color: "var(--chart-d9-active)", bg: "var(--chart-d9-active-bg)", border: "rgba(92,118,84,0.3)" };
-  if (score >= 40) return { color: "var(--panel-brand)", bg: "var(--chart-d1-lagna-bg)", border: "rgba(184,90,44,0.3)" };
-  return { color: "var(--planet-saturn)", bg: "var(--panel-warm-tint)", border: "rgba(168,72,47,0.3)" };
+  if (score >= 65) return { color: "var(--chart-d9-active)", bg: "var(--chart-d9-active-bg)", border: "var(--cl-sage-edge)" };
+  if (score >= 40) return { color: "var(--panel-brand)", bg: "var(--chart-d1-lagna-bg)", border: "var(--underline-brand)" };
+  return { color: "var(--planet-saturn)", bg: "var(--panel-warm-tint)", border: "var(--border-error-soft)" };
 }
 
 function statusTone(status: "good" | "mixed" | "caution") {
-  if (status === "good")    return { color: "var(--chart-d9-active)",  bg: "var(--chart-d9-active-bg)",  border: "rgba(92,118,84,0.35)" };
-  if (status === "mixed")   return { color: "var(--panel-brand)",  bg: "var(--chart-d1-lagna-bg)",  border: "rgba(184,90,44,0.3)" };
-  return                           { color: "var(--planet-saturn)",  bg: "var(--panel-warm-tint)",  border: "rgba(168,72,47,0.3)" };
+  if (status === "good")    return { color: "var(--chart-d9-active)",  bg: "var(--chart-d9-active-bg)",  border: "var(--cl-sage-border)" };
+  if (status === "mixed")   return { color: "var(--panel-brand)",  bg: "var(--chart-d1-lagna-bg)",  border: "var(--underline-brand)" };
+  return                           { color: "var(--planet-saturn)",  bg: "var(--panel-warm-tint)",  border: "var(--border-error-soft)" };
 }
 
 function toneStyle(tone: string) {
-  if (tone === "supportive")  return { color: "var(--chart-d9-active)",  bg: "var(--chart-d9-active-bg)",  border: "rgba(92,118,84,0.35)" };
-  if (tone === "challenging") return { color: "var(--planet-saturn)",  bg: "var(--panel-warm-tint)",  border: "rgba(168,72,47,0.3)" };
-  return                             { color: "var(--panel-brand)",  bg: "var(--chart-d1-lagna-bg)",  border: "rgba(184,90,44,0.3)" };
+  if (tone === "supportive")  return { color: "var(--chart-d9-active)",  bg: "var(--chart-d9-active-bg)",  border: "var(--cl-sage-border)" };
+  if (tone === "challenging") return { color: "var(--planet-saturn)",  bg: "var(--panel-warm-tint)",  border: "var(--border-error-soft)" };
+  return                             { color: "var(--panel-brand)",  bg: "var(--chart-d1-lagna-bg)",  border: "var(--underline-brand)" };
 }
 
 function toneLabel(tone: string, lang: Lang): string {
@@ -127,8 +127,8 @@ function weightLabel(weight: PoruthamWeight, lang: Lang): string {
 }
 
 function weightTone(weight: PoruthamWeight) {
-  if (weight === "Critical") return { color: "var(--planet-saturn)", bg: "var(--panel-warm-tint)",  border: "rgba(168,72,47,0.3)" };
-  if (weight === "High")     return { color: "var(--panel-brand)", bg: "var(--chart-d1-lagna-bg)",  border: "rgba(184,90,44,0.3)" };
+  if (weight === "Critical") return { color: "var(--planet-saturn)", bg: "var(--panel-warm-tint)",  border: "var(--border-error-soft)" };
+  if (weight === "High")     return { color: "var(--panel-brand)", bg: "var(--chart-d1-lagna-bg)",  border: "var(--underline-brand)" };
   if (weight === "Medium")   return { color: "var(--panel-mid-earth)", bg: "var(--panel-cream)",  border: "var(--panel-tan-light)" };
   return                            { color: "var(--color-faint)", bg: "var(--panel-cream)",  border: "var(--panel-tan-light)" };
 }
@@ -373,7 +373,7 @@ export function SynastryPanel({
               )}
 
               {compatError && (
-                <div style={{ padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--panel-warm-tint)", border: "1px solid rgba(168,72,47,0.3)" }}>
+                <div style={{ padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--panel-warm-tint)", border: "1px solid var(--border-error-soft)" }}>
                   <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.875rem", fontWeight: 700, color: "var(--planet-saturn)" }}>
                     {lang === "ta" ? "இணக்கம் ஏற்றல் தோல்வி" : "Could not load compatibility"}
                   </p>
@@ -424,7 +424,7 @@ export function SynastryPanel({
 
                   {/* Caution */}
                   {synastry.caution && (
-                    <div style={{ padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--panel-warm-tint)", border: "1px solid rgba(168,72,47,0.3)" }}>
+                    <div style={{ padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--panel-warm-tint)", border: "1px solid var(--border-error-soft)" }}>
                       <p className="cd-kicker" style={{ color: "var(--planet-saturn)", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: "4px" }}>
                         <svg viewBox="0 0 24 24" fill="none" width="12" height="12" aria-hidden="true"><path d="M12 3L21 20H3L12 3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M12 9V13.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
                         {t("synastry_caution", lang)}
@@ -493,7 +493,7 @@ export function SynastryPanel({
 
                   {/* Timing indicators */}
                   {(synastry.timingIndicators ?? []).length > 0 && (
-                    <div style={{ padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--chart-d1-lagna-bg)", border: "1px solid rgba(184,90,44,0.25)" }}>
+                    <div style={{ padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--chart-d1-lagna-bg)", border: "1px solid var(--cl-brand-25)" }}>
                       <p className="cd-kicker" style={{ marginBottom: "var(--space-2_5)", letterSpacing: "0.1em", color: "var(--panel-brand)" }}>
                         {t("synastry_timing", lang)}
                       </p>
@@ -634,13 +634,13 @@ export function SynastryPanel({
                       {(porutham.rajjuDosha || porutham.vedhaDosha) && (
                         <div style={{ marginTop: "var(--space-2)", display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
                           {porutham.rajjuDosha && (
-                            <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", background: "var(--panel-warm-tint)", color: "var(--planet-saturn)", border: "1px solid rgba(168,72,47,0.35)" }}>
+                            <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", background: "var(--panel-warm-tint)", color: "var(--planet-saturn)", border: "1px solid var(--cl-rust-35)" }}>
                               <svg viewBox="0 0 24 24" fill="none" width="10" height="10" aria-hidden="true" style={{ flexShrink: 0 }}><path d="M12 3L21 20H3L12 3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M12 9V13.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
                               {lang === "ta" ? "ராஜ்ஜு தோஷம்" : "Rajju Dosha"}
                             </span>
                           )}
                           {porutham.vedhaDosha && (
-                            <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", background: "var(--panel-warm-tint)", color: "var(--planet-saturn)", border: "1px solid rgba(168,72,47,0.35)" }}>
+                            <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", background: "var(--panel-warm-tint)", color: "var(--planet-saturn)", border: "1px solid var(--cl-rust-35)" }}>
                               <svg viewBox="0 0 24 24" fill="none" width="10" height="10" aria-hidden="true" style={{ flexShrink: 0 }}><path d="M12 3L21 20H3L12 3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M12 9V13.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
                               {lang === "ta" ? "வேதா தோஷம்" : "Vedha Dosha"}
                             </span>
@@ -671,7 +671,7 @@ export function SynastryPanel({
                         <div key={k.name} style={{
                           padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)",
                           background: isCriticalFail ? "var(--panel-warm-tint)" : "var(--chart-cell-default)",
-                          border: `1px solid ${isCriticalFail ? "rgba(168,72,47,0.3)" : "var(--panel-tan-light)"}`,
+                          border: `1px solid ${isCriticalFail ? "var(--border-error-soft)" : "var(--panel-tan-light)"}`,
                         }}>
                           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-2_5)", flexWrap: "wrap", marginBottom: "var(--space-2)" }}>
                             <div style={{ flex: 1 }}>

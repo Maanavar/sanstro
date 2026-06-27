@@ -183,7 +183,7 @@ export default function LoginPage() {
   /* Password strength level 0-4 */
   const pwStrength = password.length < 1 ? 0 : password.length < 8 ? 1 : password.length < 12 ? 2 : password.length < 16 ? 3 : 4;
   const pwStrengthLabel = ["", "Weak", "Fair", "Good", "Strong"][pwStrength];
-  const pwStrengthColor = ["", "#A8482F", "#B85A2C", "#5C7654", "#3a6b40"][pwStrength];
+  const pwStrengthColor = ["", "var(--planet-saturn)", "var(--chart-d1-active)", "var(--chart-d9-active)", "var(--chart-d9-active-dark)"][pwStrength];
 
   return (
     <>
@@ -192,9 +192,9 @@ export default function LoginPage() {
         .ca-root {
           min-height: 100vh;
           display: flex;
-          background: #F4EEE2;
+          background: var(--panel-hover);
           font-family: var(--font-body), var(--font-tamil), system-ui, sans-serif;
-          color: #3D352B;
+          color: var(--panel-earth);
         }
 
         /* ── Left branding panel (desktop ≥1024px) ── */
@@ -205,8 +205,8 @@ export default function LoginPage() {
           flex-direction: column;
           justify-content: space-between;
           padding: 48px 52px;
-          background: #EDE5D4;
-          border-right: 1px solid #E4DBC8;
+          background: var(--cl-bg-2);
+          border-right: 1px solid var(--panel-tan-light);
           position: relative;
           overflow: hidden;
         }
@@ -218,7 +218,7 @@ export default function LoginPage() {
           width: 340px;
           height: 340px;
           border-radius: 50%;
-          background: radial-gradient(circle, rgba(184,90,44,0.08) 0%, transparent 70%);
+          background: radial-gradient(circle, var(--glow-brand) 0%, transparent 70%);
           pointer-events: none;
         }
         .ca-left::after {
@@ -229,7 +229,7 @@ export default function LoginPage() {
           width: 260px;
           height: 260px;
           border-radius: 50%;
-          background: radial-gradient(circle, rgba(92,118,84,0.07) 0%, transparent 70%);
+          background: radial-gradient(circle, var(--ring-success) 0%, transparent 70%);
           pointer-events: none;
         }
         @media (min-width: 1024px) {
@@ -264,16 +264,16 @@ export default function LoginPage() {
           font-size: 1.75rem;
           font-weight: 500;
           letter-spacing: -0.03em;
-          color: #1A1612;
+          color: var(--panel-earth-dark);
           line-height: 1;
           margin: 0;
           text-decoration: none;
         }
-        .ca-left-wordmark:hover { color: #3D352B; }
+        .ca-left-wordmark:hover { color: var(--panel-earth); }
         .ca-left-tagline {
           margin: 8px 0 0;
           font-size: 0.83rem;
-          color: #7A6F5E;
+          color: var(--panel-warm-muted);
           line-height: 1.6;
           max-width: 300px;
         }
@@ -286,12 +286,12 @@ export default function LoginPage() {
           font-weight: 500;
           letter-spacing: -0.04em;
           line-height: 1.05;
-          color: #1A1612;
+          color: var(--panel-earth-dark);
           margin: 0 0 8px;
         }
         .ca-left-headline em {
           font-style: italic;
-          color: #7A6F5E;
+          color: var(--panel-warm-muted);
         }
 
         .ca-left-features {
@@ -313,26 +313,26 @@ export default function LoginPage() {
           width: 7px;
           height: 7px;
           border-radius: 50%;
-          background: #B85A2C;
+          background: var(--chart-d1-active);
           flex-shrink: 0;
           margin-top: 0.45em;
         }
         .ca-left-feature-text {
           margin: 0;
           font-size: 0.84rem;
-          color: #3D352B;
+          color: var(--panel-earth);
           line-height: 1.55;
         }
 
         .ca-left-back {
           font-size: 0.78rem;
-          color: #A89D89;
+          color: var(--panel-faint);
           text-decoration: none;
           position: relative;
           z-index: 1;
           transition: color 150ms ease;
         }
-        .ca-left-back:hover { color: #1A1612; }
+        .ca-left-back:hover { color: var(--panel-earth-dark); }
 
         /* ── Right form panel ── */
         .ca-right {
@@ -353,21 +353,21 @@ export default function LoginPage() {
           width: 600px;
           height: 600px;
           border-radius: 50%;
-          border: 1px solid #E4DBC8;
+          border: 1px solid var(--panel-tan-light);
           pointer-events: none;
           opacity: 0.5;
         }
 
         .ca-card {
           width: min(440px, 100%);
-          background: #FFFFFF;
-          border: 1px solid #E4DBC8;
+          background: var(--cl-surface);
+          border: 1px solid var(--panel-tan-light);
           border-radius: 24px;
           padding: 36px 32px 28px;
           display: flex;
           flex-direction: column;
           gap: 24px;
-          box-shadow: 0 8px 40px rgba(60,40,20,0.12);
+          box-shadow: 0 8px 40px var(--shadow-card);
           position: relative;
           z-index: 1;
         }
@@ -385,10 +385,10 @@ export default function LoginPage() {
           font-size: 1.35rem;
           font-weight: 500;
           letter-spacing: -0.02em;
-          color: #1A1612;
+          color: var(--panel-earth-dark);
           transition: color 150ms ease;
         }
-        .ca-card-brand:hover .ca-card-brand-wordmark { color: #7A6F5E; }
+        .ca-card-brand:hover .ca-card-brand-wordmark { color: var(--panel-warm-muted); }
 
         /* Card heading */
         .ca-heading {
@@ -397,21 +397,21 @@ export default function LoginPage() {
           font-size: 1.6rem;
           font-weight: 500;
           letter-spacing: -0.03em;
-          color: #1A1612;
+          color: var(--panel-earth-dark);
           line-height: 1.1;
         }
         .ca-subheading {
           margin: 0;
           font-size: 0.85rem;
-          color: #7A6F5E;
+          color: var(--panel-warm-muted);
           line-height: 1.5;
         }
 
         /* Mode toggle tabs */
         .ca-tabs {
           display: flex;
-          background: #EDE5D4;
-          border: 1.5px solid #D4C8AE;
+          background: var(--cl-bg-2);
+          border: 1.5px solid var(--panel-tan);
           border-radius: 12px;
           padding: 4px;
           gap: 3px;
@@ -422,7 +422,7 @@ export default function LoginPage() {
           border-radius: 8px;
           border: none;
           background: transparent;
-          color: #7A6F5E;
+          color: var(--panel-warm-muted);
           font-size: 0.87rem;
           font-weight: 600;
           cursor: pointer;
@@ -431,13 +431,13 @@ export default function LoginPage() {
           min-height: 40px;
         }
         .ca-tab.active {
-          background: #FFFFFF;
-          color: #1A1612;
-          box-shadow: 0 1px 6px rgba(60,40,20,0.15);
+          background: var(--cl-surface);
+          color: var(--panel-earth-dark);
+          box-shadow: 0 1px 6px var(--shadow-tab);
         }
         .ca-tab:hover:not(.active) {
-          background: rgba(255,255,255,0.5);
-          color: #3D352B;
+          background: var(--veil-white-50);
+          color: var(--panel-earth);
         }
 
         /* Fields */
@@ -449,7 +449,7 @@ export default function LoginPage() {
         .ca-label {
           font-size: 0.8rem;
           font-weight: 500;
-          color: #3D352B;
+          color: var(--panel-earth);
           letter-spacing: 0.01em;
         }
         .ca-input-wrap { position: relative; }
@@ -457,9 +457,9 @@ export default function LoginPage() {
           width: 100%;
           padding: 11px 14px;
           border-radius: 10px;
-          border: 1.5px solid #D4C8AE;
-          background: #FFFFFF;
-          color: #1A1612;
+          border: 1.5px solid var(--panel-tan);
+          background: var(--cl-surface);
+          color: var(--panel-earth-dark);
           font-size: 0.9rem;
           font-family: inherit;
           transition: border-color 150ms ease, box-shadow 150ms ease;
@@ -468,23 +468,23 @@ export default function LoginPage() {
           -webkit-appearance: none;
           appearance: none;
         }
-        .ca-input::placeholder { color: #A89D89; }
-        .ca-input:hover { border-color: #B85A2C; }
+        .ca-input::placeholder { color: var(--panel-faint); }
+        .ca-input:hover { border-color: var(--chart-d1-active); }
         .ca-input:focus {
-          border-color: #B85A2C;
-          box-shadow: 0 0 0 3px rgba(184,90,44,0.12);
+          border-color: var(--chart-d1-active);
+          box-shadow: 0 0 0 3px var(--ring-brand);
         }
         .ca-input:-webkit-autofill,
         .ca-input:-webkit-autofill:hover,
         .ca-input:-webkit-autofill:focus {
-          -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset, 0 0 0 3px rgba(184,90,44,0.12);
-          -webkit-text-fill-color: #1A1612;
-          border-color: #B85A2C;
+          -webkit-box-shadow: 0 0 0 1000px var(--cl-surface) inset, 0 0 0 3px var(--ring-brand);
+          -webkit-text-fill-color: var(--panel-earth-dark);
+          border-color: var(--chart-d1-active);
           transition: background-color 9999s ease-in-out 0s;
         }
         .ca-input.has-icon { padding-right: 44px; }
-        .ca-input.is-error { border-color: #A8482F; box-shadow: 0 0 0 3px rgba(168,72,47,0.08); }
-        .ca-input.is-valid { border-color: #5C7654; box-shadow: 0 0 0 3px rgba(92,118,84,0.07); }
+        .ca-input.is-error { border-color: var(--planet-saturn); box-shadow: 0 0 0 3px var(--ring-error); }
+        .ca-input.is-valid { border-color: var(--chart-d9-active); box-shadow: 0 0 0 3px var(--ring-success); }
 
         /* Eye toggle */
         .ca-eye {
@@ -495,7 +495,7 @@ export default function LoginPage() {
           background: none;
           border: none;
           padding: 0;
-          color: #A89D89;
+          color: var(--panel-faint);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -504,16 +504,16 @@ export default function LoginPage() {
           min-height: 36px;
           transition: color 150ms ease;
         }
-        .ca-eye:hover { color: #3D352B; }
+        .ca-eye:hover { color: var(--panel-earth); }
 
         /* Hint text */
         .ca-hint {
           font-size: 0.74rem;
-          color: #A89D89;
+          color: var(--panel-faint);
           margin-top: 1px;
           line-height: 1.4;
         }
-        .ca-hint.is-error { color: #A8482F; }
+        .ca-hint.is-error { color: var(--planet-saturn); }
 
         /* Forgot password link */
         .ca-forgot {
@@ -528,18 +528,18 @@ export default function LoginPage() {
           font-family: inherit;
           font-size: 0.8rem;
           font-weight: 500;
-          color: #B85A2C;
+          color: var(--chart-d1-active);
           cursor: pointer;
           text-decoration: underline;
-          text-decoration-color: rgba(184,90,44,0.3);
+          text-decoration-color: var(--underline-brand);
           min-height: 36px;
           display: inline-flex;
           align-items: center;
           transition: color 150ms ease, text-decoration-color 150ms ease;
         }
         .ca-text-btn:hover {
-          color: #8c3e18;
-          text-decoration-color: rgba(184,90,44,0.7);
+          color: var(--planet-lagna);
+          text-decoration-color: var(--underline-brand-strong);
         }
 
         /* Password strength */
@@ -553,7 +553,7 @@ export default function LoginPage() {
           height: 3px;
           flex: 1;
           border-radius: 999px;
-          background: #E4DBC8;
+          background: var(--panel-tan-light);
           transition: background 200ms ease;
         }
         .ca-pw-label {
@@ -568,9 +568,9 @@ export default function LoginPage() {
         .ca-error {
           padding: 11px 14px;
           border-radius: 10px;
-          background: #F2D8CC;
-          border: 1px solid rgba(168,72,47,0.3);
-          color: #A8482F;
+          background: var(--panel-warm-tint);
+          border: 1px solid var(--border-error-soft);
+          color: var(--planet-saturn);
           font-size: 0.84rem;
           line-height: 1.5;
         }
@@ -581,8 +581,8 @@ export default function LoginPage() {
           padding: 13px 20px;
           border-radius: 999px;
           border: none;
-          background: #1A1612;
-          color: #F4EEE2;
+          background: var(--panel-earth-dark);
+          color: var(--panel-hover);
           font-size: 0.92rem;
           font-weight: 600;
           font-family: inherit;
@@ -593,9 +593,9 @@ export default function LoginPage() {
           margin-top: 4px;
         }
         .ca-btn:hover:not(:disabled) {
-          background: #3D352B;
+          background: var(--panel-earth);
           transform: translateY(-1px);
-          box-shadow: 0 4px 16px rgba(26,22,18,0.2);
+          box-shadow: 0 4px 16px var(--shadow-btn);
         }
         .ca-btn:active:not(:disabled) { transform: translateY(0); }
         .ca-btn:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -613,29 +613,29 @@ export default function LoginPage() {
           width: 52px;
           height: 52px;
           border-radius: 50%;
-          background: #DCE4D2;
-          border: 1px solid rgba(92,118,84,0.4);
+          background: var(--chart-d9-lagna-bg);
+          border: 1px solid var(--border-success-soft);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #5C7654;
+          color: var(--chart-d9-active);
         }
         .ca-success-title {
           margin: 0;
           font-family: var(--font-display), Georgia, serif;
           font-size: 1.2rem;
           font-weight: 500;
-          color: #1A1612;
+          color: var(--panel-earth-dark);
         }
         .ca-success-body {
           margin: 0;
           font-size: 0.85rem;
-          color: #7A6F5E;
+          color: var(--panel-warm-muted);
           line-height: 1.65;
           max-width: 300px;
         }
         .ca-email-strong {
-          color: #3D352B;
+          color: var(--panel-earth);
         }
         .ca-form {
           display: flex;
@@ -654,11 +654,11 @@ export default function LoginPage() {
         .ca-footer {
           text-align: center;
           font-size: 0.82rem;
-          color: #7A6F5E;
+          color: var(--panel-warm-muted);
           line-height: 1.5;
         }
         .ca-footer a {
-          color: #B85A2C;
+          color: var(--chart-d1-active);
           text-decoration: none;
           font-weight: 500;
         }
@@ -668,12 +668,12 @@ export default function LoginPage() {
         .ca-terms {
           margin: 0;
           font-size: 0.74rem;
-          color: #A89D89;
+          color: var(--panel-faint);
           text-align: center;
           line-height: 1.6;
         }
         .ca-terms a {
-          color: #7A6F5E;
+          color: var(--panel-warm-muted);
           text-decoration: underline;
         }
 
@@ -914,7 +914,7 @@ export default function LoginPage() {
                             key={i}
                             className="ca-pw-bar"
                             style={{
-                              background: i <= pwStrength ? pwStrengthColor : "#E4DBC8",
+                              background: i <= pwStrength ? pwStrengthColor : "var(--panel-tan-light)",
                             }}
                           />
                         ))}

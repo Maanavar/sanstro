@@ -26,9 +26,9 @@ type PredictionCardProps = {
 };
 
 function confidenceTone(confidence: string) {
-  if (confidence === "HIGH") return { bg: "var(--chart-d9-active-bg)", border: "rgba(92,118,84,0.35)", text: SCORE_HIGH };
-  if (confidence === "LOW") return { bg: "var(--panel-warm-tint)", border: "rgba(168,72,47,0.35)", text: SCORE_LOW };
-  return { bg: "var(--chart-d1-lagna-bg)", border: "rgba(184,90,44,0.35)", text: SCORE_MID };
+  if (confidence === "HIGH") return { bg: "var(--chart-d9-active-bg)", border: "var(--cl-sage-border)", text: SCORE_HIGH };
+  if (confidence === "LOW") return { bg: "var(--panel-warm-tint)", border: "var(--cl-rust-35)", text: SCORE_LOW };
+  return { bg: "var(--chart-d1-lagna-bg)", border: "var(--cl-brand-edge)", text: SCORE_MID };
 }
 
 function supportTone(value: string) {
@@ -120,13 +120,13 @@ function PredictionCard({ title, pred, lang, expanded, onToggle, featured, defer
 
   if (featured && expanded) {
     return (
-      <div style={{ borderRadius: "var(--radius-lg)", border: "1px solid var(--color-border)", background: "var(--color-surface)", overflow: "hidden", boxShadow: "0 2px 14px rgba(60,40,20,0.08)", fontFamily: "var(--font-body)" }}>
+      <div style={{ borderRadius: "var(--radius-lg)", border: "1px solid var(--color-border)", background: "var(--color-surface)", overflow: "hidden", boxShadow: "0 2px 14px var(--shadow-warm-08)", fontFamily: "var(--font-body)" }}>
         <div className="cd-featured-panel">
           <div style={{ padding: "var(--space-8)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
               <p className="cd-kicker--inline" style={{ letterSpacing: "0.1em" }}>{title}</p>
               {deferred && (
-                <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", background: "rgba(168,72,47,0.12)", color: SCORE_LOW, border: "1px solid rgba(168,72,47,0.3)" }}>
+                <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", background: "var(--cl-rust-fill)", color: SCORE_LOW, border: "1px solid var(--border-error-soft)" }}>
                   {lang === "ta" ? "பின்வரும் கட்டம்" : "Later phase"}
                 </span>
               )}
@@ -158,7 +158,7 @@ function PredictionCard({ title, pred, lang, expanded, onToggle, featured, defer
   }
 
   return (
-    <div style={{ borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface)", overflow: "hidden", boxShadow: expanded ? "0 2px 12px rgba(60,40,20,0.06)" : "none", fontFamily: "var(--font-body)" }}>
+    <div style={{ borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface)", overflow: "hidden", boxShadow: expanded ? "0 2px 12px var(--shadow-extra-soft)" : "none", fontFamily: "var(--font-body)" }}>
       <button
         type="button"
         onClick={onToggle}
@@ -181,7 +181,7 @@ function PredictionCard({ title, pred, lang, expanded, onToggle, featured, defer
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", margin: "0 0 var(--space-1)" }}>
             <p className="cd-kicker--inline" style={{ letterSpacing: "0.1em", color: SCORE_MID }}>{title}</p>
             {deferred && (
-              <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "2px 8px", borderRadius: "var(--radius-pill)", background: "rgba(168,72,47,0.12)", color: SCORE_LOW, border: "1px solid rgba(168,72,47,0.3)" }}>
+              <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "2px 8px", borderRadius: "var(--radius-pill)", background: "var(--cl-rust-fill)", color: SCORE_LOW, border: "1px solid var(--border-error-soft)" }}>
                 {lang === "ta" ? "பின்வரும் கட்டம்" : "Later phase"}
               </span>
             )}
@@ -264,7 +264,7 @@ export function PredictionDetailPanel({ lang, predictions, loading, maritalStatu
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", fontFamily: "var(--font-body)" }}>
       {isMarried && predictions?.marriage && (
-        <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.5, padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "rgba(92,118,84,0.07)", border: "1px solid rgba(92,118,84,0.2)" }}>
+        <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.5, padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--ring-success)", border: "1px solid var(--cl-sage-20)" }}>
           {lang === "ta"
             ? "நீங்கள் திருமணமானவர் — 7-ம் வீடு இங்கே உறவு தரம், பாலத்துவம் மற்றும் குடும்ப ஒற்றுமையைக் காட்டுகிறது; புதிய திருமணம் அல்ல."
             : "This person is married — the 7th-house reading here covers relationship quality, partnership, and family cohesion, not a new wedding."}

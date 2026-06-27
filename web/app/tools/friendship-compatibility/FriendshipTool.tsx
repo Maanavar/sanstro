@@ -103,8 +103,8 @@ export function FriendshipTool() {
               {([1, 2] as const).map((which) => {
                 const p = which === 1 ? p1 : p2;
                 return (
-                  <div key={which} style={{ background: "var(--cl-surface, #fff)", border: "1px solid var(--cl-border, #E4DBC8)", borderRadius: "16px", padding: "18px 20px" }}>
-                    <p style={{ margin: "0 0 12px", fontWeight: 700, color: "var(--cl-ink, #3D352B)" }}>
+                  <div key={which} style={{ background: "var(--cl-surface)", border: "1px solid var(--cl-border)", borderRadius: "16px", padding: "18px 20px" }}>
+                    <p style={{ margin: "0 0 12px", fontWeight: 700, color: "var(--cl-ink-2)" }}>
                       {lang === "ta" ? `நபர் ${which}` : `Person ${which}`}
                     </p>
                     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -128,14 +128,14 @@ export function FriendshipTool() {
               })}
             </div>
 
-            {error && <p style={{ color: "#A8482F", fontSize: "0.9rem" }}>{error}</p>}
+            {error && <p style={{ color: "var(--cl-rust)", fontSize: "0.9rem" }}>{error}</p>}
 
             <div style={{ display: "flex", justifyContent: "center" }}>
               <button
                 type="button"
                 onClick={() => void submit()}
                 disabled={loading}
-                style={{ padding: "13px 34px", borderRadius: "999px", border: "none", background: "var(--cl-ink, #1A1612)", color: "var(--cl-bg, #FBF7EF)", fontWeight: 700, fontSize: "1rem", cursor: loading ? "wait" : "pointer" }}
+                style={{ padding: "13px 34px", borderRadius: "999px", border: "none", background: "var(--cl-ink)", color: "var(--cl-bg)", fontWeight: 700, fontSize: "1rem", cursor: loading ? "wait" : "pointer" }}
               >
                 {loading ? (lang === "ta" ? "கணக்கிடுகிறது…" : "Calculating…") : (lang === "ta" ? "எங்கள் நட்பு பாணியைக் கண்டறி" : "Find Our Friendship Style")}
               </button>
@@ -144,30 +144,30 @@ export function FriendshipTool() {
             {report && (
               <div style={{ display: "flex", flexDirection: "column", gap: "20px", marginTop: "8px" }}>
                 <div style={{ textAlign: "center" }}>
-                  <p style={{ margin: "0 0 6px", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#B85A2C" }}>
+                  <p style={{ margin: "0 0 6px", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--chart-d1-active)" }}>
                     {report.scoreRange}
                   </p>
-                  <h2 style={{ margin: "0 0 8px", fontFamily: "var(--font-display, serif)", fontSize: "clamp(2rem, 5vw, 3rem)", color: "var(--cl-ink, #1A1612)" }}>
+                  <h2 style={{ margin: "0 0 8px", fontFamily: "var(--font-display, serif)", fontSize: "clamp(2rem, 5vw, 3rem)", color: "var(--cl-ink)" }}>
                     {lang === "ta" ? report.band.ta : report.band.en}
                   </h2>
-                  <p style={{ margin: "0 auto", maxWidth: "52ch", color: "var(--cl-ink-2, #5a4f42)", lineHeight: 1.6 }}>
+                  <p style={{ margin: "0 auto", maxWidth: "52ch", color: "var(--cl-ink-2)", lineHeight: 1.6 }}>
                     {lang === "ta" ? report.headline.ta : report.headline.en}
                   </p>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                   {report.sections.map((s) => (
-                    <div key={s.key} style={{ border: "1px solid var(--cl-border, #E4DBC8)", borderRadius: "12px", overflow: "hidden", background: "var(--cl-surface, #fff)" }}>
+                    <div key={s.key} style={{ border: "1px solid var(--cl-border)", borderRadius: "12px", overflow: "hidden", background: "var(--cl-surface)" }}>
                       <button
                         type="button"
                         onClick={() => setOpenSection((cur) => (cur === s.key ? null : s.key))}
-                        style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", background: "transparent", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.95rem", color: "var(--cl-ink, #1A1612)", fontFamily: "inherit" }}
+                        style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", background: "transparent", border: "none", cursor: "pointer", fontWeight: 700, fontSize: "0.95rem", color: "var(--cl-ink)", fontFamily: "inherit" }}
                       >
                         <span>{lang === "ta" ? s.title.ta : s.title.en}</span>
                         <span>{openSection === s.key ? "−" : "+"}</span>
                       </button>
                       {openSection === s.key && (
-                        <p style={{ margin: 0, padding: "0 18px 16px", color: "var(--cl-ink-2, #5a4f42)", lineHeight: 1.6, fontSize: "0.92rem" }}>
+                        <p style={{ margin: 0, padding: "0 18px 16px", color: "var(--cl-ink-2)", lineHeight: 1.6, fontSize: "0.92rem" }}>
                           {lang === "ta" ? s.text.ta : s.text.en}
                         </p>
                       )}
@@ -190,13 +190,13 @@ export function FriendshipTool() {
 
 const inputStyle: React.CSSProperties = {
   width: "100%", boxSizing: "border-box", padding: "9px 12px", borderRadius: "10px",
-  border: "1.5px solid #E4DBC8", background: "#fff", color: "#3D352B", fontSize: "0.875rem", fontFamily: "inherit", outline: "none",
+  border: "1.5px solid var(--cl-border)", background: "var(--cl-surface)", color: "var(--cl-ink-2)", fontSize: "0.875rem", fontFamily: "inherit", outline: "none",
 };
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1 }}>
-      <span style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#7A6F5E" }}>{label}</span>
+      <span style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--panel-warm-muted)" }}>{label}</span>
       {children}
     </label>
   );

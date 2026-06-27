@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 
@@ -57,15 +57,15 @@ const W = {
 } as const;
 
 const PLANET_COLORS: Record<string, string> = {
-  SUN: "#D08B4A",
-  MOON: "#6B8DB8",
-  MARS: "#CF6354",
-  MERCURY: "#A99663",
-  JUPITER: "#93A56D",
-  VENUS: "#C59AC3",
-  SATURN: "#607089",
-  RAHU: "#9F93C4",
-  KETU: "#9A8679",
+  SUN: "var(--planet-sun)",
+  MOON: "var(--planet-moon)",
+  MARS: "var(--planet-mars)",
+  MERCURY: "var(--planet-mercury)",
+  JUPITER: "var(--planet-jupiter)",
+  VENUS: "var(--planet-venus)",
+  SATURN: "var(--planet-saturn-soft)",
+  RAHU: "var(--planet-rahu)",
+  KETU: "var(--planet-ketu)",
 };
 
 function breakdownToneColor(tag: "STRONG" | "NEUTRAL" | "WEAK"): string {
@@ -91,9 +91,9 @@ function StatPill({
 }) {
   const palette =
     tone === "good"
-      ? { bg: "var(--chart-d9-active-bg)", border: "rgba(92,118,84,0.35)", color: W.sage }
+      ? { bg: "var(--chart-d9-active-bg)", border: "var(--cl-sage-edge)", color: W.sage }
       : tone === "warn"
-      ? { bg: "var(--chart-d1-lagna-bg)", border: "rgba(184,90,44,0.3)", color: W.terracotta }
+      ? { bg: "var(--chart-d1-lagna-bg)", border: "var(--cl-brand-edge)", color: W.terracotta }
       : { bg: W.surface, border: W.borderLt, color: W.inkMid };
 
   return (
@@ -133,12 +133,12 @@ function Flag({
 }) {
   const palette =
     tone === "danger"
-      ? { bg: "var(--panel-warm-tint)", border: "rgba(168,72,47,0.35)", color: W.rust }
+      ? { bg: "var(--panel-warm-tint)", border: "var(--cl-rust-edge)", color: W.rust }
       : tone === "focus"
-      ? { bg: "rgba(122,72,128,0.12)", border: "rgba(122,72,128,0.28)", color: "var(--planet-nodes)" }
+      ? { bg: "var(--planet-nodes-fill)", border: "var(--planet-nodes-border)", color: "var(--planet-nodes)" }
       : tone === "soft"
-      ? { bg: "rgba(92,118,84,0.14)", border: "rgba(92,118,84,0.28)", color: W.sage }
-      : { bg: "rgba(184,90,44,0.12)", border: "rgba(184,90,44,0.3)", color: W.terracotta };
+      ? { bg: "var(--cl-sage-mid)", border: "var(--cl-sage-ring)", color: W.sage }
+      : { bg: "var(--cl-brand-ring-sm)", border: "var(--cl-brand-edge)", color: W.terracotta };
 
   return (
     <span
@@ -298,7 +298,7 @@ export function DashboardTransitsTab({
                     style={{
                       padding: "var(--space-4) var(--space-4_5)",
                       borderRadius: "var(--radius-md)",
-                      background: hasFlag ? "#FFF9F4" : "#FFFEFC",
+                      background: hasFlag ? "var(--transit-flag-bg)" : "var(--transit-card-bg)",
                       border: `1px solid ${hasFlag ? `${planetColor}77` : W.borderLt}`,
                       minHeight: "116px",
                       display: "flex",
@@ -389,7 +389,7 @@ export function DashboardTransitsTab({
                   padding: "var(--space-3_5) var(--space-4)",
                   borderRadius: "var(--radius-md)",
                   background: personalSani.moonBasedCycle.isActive ? "var(--chart-d1-lagna-bg)" : W.surface,
-                  border: `1px solid ${personalSani.moonBasedCycle.isActive ? "rgba(184,90,44,0.28)" : W.borderLt}`,
+                  border: `1px solid ${personalSani.moonBasedCycle.isActive ? "var(--cl-brand-ring)" : W.borderLt}`,
                 }}
               >
                 <p
@@ -417,7 +417,7 @@ export function DashboardTransitsTab({
                   padding: "var(--space-3_5) var(--space-4)",
                   borderRadius: "var(--radius-md)",
                   background: personalSani.lagnaBasedCycle.isActive ? "var(--chart-d9-active-bg)" : W.surface,
-                  border: `1px solid ${personalSani.lagnaBasedCycle.isActive ? "rgba(92,118,84,0.3)" : W.borderLt}`,
+                  border: `1px solid ${personalSani.lagnaBasedCycle.isActive ? "var(--cl-sage-edge)" : W.borderLt}`,
                 }}
               >
                 <p
@@ -536,7 +536,7 @@ export function DashboardTransitsTab({
         <Surface title={t("journal_patterns_label", lang)}>
           <div className="surface__body">
             {!journalCorrelations.hasSufficientData ? (
-              <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--chart-d9-active-bg)", border: "1px solid rgba(92,118,84,0.25)" }}>
+              <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--chart-d9-active-bg)", border: "1px solid var(--cl-sage-ring)" }}>
                 <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.875rem", color: W.ink, lineHeight: 1.5 }}>
                   {journalCorrelations.entryCount} / {journalCorrelations.minimumEntriesRequired} {t("journal_entries_progress", lang)}
                 </p>

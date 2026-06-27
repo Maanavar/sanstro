@@ -22,8 +22,8 @@ const W = {
 } as const;
 
 const PLANET_COLORS: Record<string, string> = {
-  SUN: "#D08B4A", MOON: "#6B8DB8", MARS: "#CF6354", MERCURY: "#A99663",
-  JUPITER: "#93A56D", VENUS: "#C59AC3", SATURN: "#607089", RAHU: "#9F93C4", KETU: "#9A8679",
+  SUN: "var(--planet-sun)", MOON: "var(--planet-moon)", MARS: "var(--planet-mars)", MERCURY: "var(--planet-mercury)",
+  JUPITER: "var(--planet-jupiter)", VENUS: "var(--planet-venus)", SATURN: "var(--planet-saturn-soft)", RAHU: "var(--planet-rahu)", KETU: "var(--planet-ketu)",
 };
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];

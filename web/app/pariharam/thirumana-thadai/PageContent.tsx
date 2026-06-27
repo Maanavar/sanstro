@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
@@ -61,8 +61,8 @@ export function ThirumanaThadaiContent() {
                   content: counter(step); position: absolute; left: 16px; top: 16px;
                   width: 28px; height: 28px; border-radius: 999px;
                   display: flex; align-items: center; justify-content: center;
-                  font-size: 0.85rem; font-weight: 700; color: #fff;
-                  background: var(--cl-accent, #b4622d);
+                  font-size: 0.85rem; font-weight: 700; color: white;
+                  background: var(--cl-accent);
                 }
                 .cl-steps__t { font-weight: 700; color: var(--cl-ink); margin: 0 0 4px; }
                 .cl-steps__b { font-size: 0.92rem; color: var(--cl-muted); line-height: 1.55; margin: 0; }

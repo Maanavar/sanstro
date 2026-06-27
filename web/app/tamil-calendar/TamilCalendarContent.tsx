@@ -90,17 +90,17 @@ export function TamilCalendarContent({ events, categories }: TamilCalendarConten
                         display: "block",
                         padding: "16px 18px",
                         borderRadius: "14px",
-                        border: "1.5px solid var(--cl-border, #E4DBC8)",
-                        background: "var(--cl-surface, #FFF)",
+                        border: "1.5px solid var(--cl-border)",
+                        background: "var(--cl-surface)",
                         textDecoration: "none",
-                        color: "var(--cl-ink, #1A1612)",
+                        color: "var(--cl-ink)",
                       }}
                     >
                       <div style={{ fontWeight: 700, fontSize: "1.02rem" }}>{tLang(category.categoryLabel, lang)}</div>
-                      <div style={{ fontSize: "0.82rem", color: "var(--cl-muted, #7A6F5E)", margin: "6px 0 10px", lineHeight: 1.35 }}>
+                      <div style={{ fontSize: "0.82rem", color: "var(--cl-muted-2)", margin: "6px 0 10px", lineHeight: 1.35 }}>
                         {tLang(category.description, lang)}
                       </div>
-                      <div style={{ fontSize: "0.8rem", color: "var(--cl-ink, #3D352B)" }}>
+                      <div style={{ fontSize: "0.8rem", color: "var(--cl-ink-2)" }}>
                         <strong>{category.count}</strong>{" "}
                         {pick("dates in 2026", "தேதிகள் - 2026", lang)}
                         {category.nextDate && (
@@ -140,17 +140,17 @@ export function TamilCalendarContent({ events, categories }: TamilCalendarConten
                       display: "block",
                       padding: "18px 20px",
                       borderRadius: "14px",
-                      border: event.category === "INAUSPICIOUS" ? "1.5px solid #E0A89C" : "1.5px solid var(--cl-border, #E4DBC8)",
-                      background: event.category === "INAUSPICIOUS" ? "#FCEFEC" : "var(--cl-surface, #FFF)",
+                      border: event.category === "INAUSPICIOUS" ? "1.5px solid var(--cl-inauspicious-border)" : "1.5px solid var(--cl-border)",
+                      background: event.category === "INAUSPICIOUS" ? "var(--cl-inauspicious-bg)" : "var(--cl-surface)",
                       textDecoration: "none",
-                      color: "var(--cl-ink, #1A1612)",
+                      color: "var(--cl-ink)",
                     }}
                   >
                     <div style={{ fontWeight: 700, fontSize: "1.05rem" }}>{tLang(event.name, lang)}</div>
-                    <div style={{ fontSize: "0.82rem", color: "var(--cl-muted, #7A6F5E)", margin: "6px 0 10px" }}>
+                    <div style={{ fontSize: "0.82rem", color: "var(--cl-muted-2)", margin: "6px 0 10px" }}>
                       {tLang(event.tagline, lang)}
                     </div>
-                    <div style={{ fontSize: "0.8rem", color: "var(--cl-ink, #3D352B)" }}>
+                    <div style={{ fontSize: "0.8rem", color: "var(--cl-ink-2)" }}>
                       <strong>{event.count}</strong>{" "}
                       {pick("dates in 2026", "\u0ba8\u0bbe\u0b9f\u0bcd\u0b95\u0bb3\u0bcd - 2026", lang)}
                       {event.nextDate && (

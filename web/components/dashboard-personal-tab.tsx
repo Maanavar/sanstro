@@ -454,7 +454,7 @@ export function DashboardPersonalTab({
         "--color-text": "var(--panel-earth-dark)",
         "--color-muted": "var(--panel-mid-earth)",
         "--color-accent": "var(--panel-brand)",
-        "--color-accent-muted": "rgba(184,90,44,0.12)",
+        "--color-accent-muted": "var(--ring-brand)",
         "--color-accent-secondary": "var(--chart-d9-active)",
         "--color-alert-critical": "var(--planet-saturn)",
         "--color-alert-caution": "var(--panel-brand)",
@@ -522,13 +522,13 @@ export function DashboardPersonalTab({
             {personalDailyGuidance ? (
               <div className="surface__body">
                 {personalDailyGuidance.tithiCard && (
-                  <div style={{ marginBottom: "var(--space-2_5)", padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "rgba(245,158,11,0.07)", border: "1px solid rgba(251,191,36,0.22)" }}>
-                    <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, color: "#f59e0b", textTransform: "uppercase", letterSpacing: "0.06em" }}>🕉 {t("tithi_card_label", lang)}</p>
+                  <div style={{ marginBottom: "var(--space-2_5)", padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--color-amber-bg)", border: "1px solid var(--color-amber-border)" }}>
+                    <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-amber)", textTransform: "uppercase", letterSpacing: "0.06em" }}>🕉 {t("tithi_card_label", lang)}</p>
                     <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-text)", lineHeight: 1.5 }}>{tLang(personalDailyGuidance.tithiCard, lang)}</p>
                   </div>
                 )}
                 {personalDailyGuidance.contextInsight && (
-                  <div style={{ marginBottom: "var(--space-2_5)", padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "rgba(139,92,246,0.08)", border: "1px solid rgba(167,139,250,0.25)" }}>
+                  <div style={{ marginBottom: "var(--space-2_5)", padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--color-violet-bg)", border: "1px solid var(--color-violet-border)" }}>
                     <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-violet)", textTransform: "uppercase", letterSpacing: "0.06em" }}>📋 {t("context_insight_label", lang)}</p>
                     <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-text)", lineHeight: 1.5 }}>{tLang(personalDailyGuidance.contextInsight, lang)}</p>
                   </div>
@@ -579,7 +579,7 @@ export function DashboardPersonalTab({
                   <Metric label={t("label_moon_transit", lang)} value={`${personalDailyGuidance.scoreBreakdown.moonTransit}`} hint={`${t("dasha_word", lang)} ${personalDailyGuidance.scoreBreakdown.dashaSupport}`} />
                 </div>
                 {personalDailyGuidance.reasons && (
-                  <div style={{ marginTop: "var(--space-2_5)", paddingTop: "var(--space-2_5)", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                  <div style={{ marginTop: "var(--space-2_5)", paddingTop: "var(--space-2_5)", borderTop: "1px solid var(--veil-white-07)" }}>
                     <p className="surface__subhead" style={{ marginBottom: "var(--space-1_5)" }}>{t("why_this_prediction", lang)}</p>
                     {GUIDANCE_REASON_KEYS.map((key) => (
                       <div key={key} className="cd-responsive-detail-row" style={{ marginBottom: "var(--space-1)" }}>
@@ -590,7 +590,7 @@ export function DashboardPersonalTab({
                   </div>
                 )}
                 {!personalViewId && dailyGuidanceRange && (
-                  <div style={{ marginTop: "var(--space-2_5)", paddingTop: "var(--space-2)", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                  <div style={{ marginTop: "var(--space-2_5)", paddingTop: "var(--space-2)", borderTop: "1px solid var(--veil-white-07)" }}>
                     <p className="surface__subhead" style={{ marginBottom: "var(--space-1_5)" }}>{t("label_next_3_days", lang)}</p>
                     <div className="chip-row">
                       {dailyGuidanceRange.items.map((item) => {
@@ -678,7 +678,7 @@ export function DashboardPersonalTab({
               <tbody>
                 {personalChart.planets.map((planet) => (
                   <tr key={planet.graha}>
-                    <td style={{ fontWeight: 600 }}><span style={{ color: DASHA_COLORS[planet.graha] ?? "#93c5fd", marginRight: "var(--space-1)" }}>{GRAHA_ABBR[planet.graha] ?? planet.graha.slice(0, 2)}</span>{planet.graha}</td>
+                    <td style={{ fontWeight: 600 }}><span style={{ color: DASHA_COLORS[planet.graha] ?? "var(--color-accent-secondary)", marginRight: "var(--space-1)" }}>{GRAHA_ABBR[planet.graha] ?? planet.graha.slice(0, 2)}</span>{planet.graha}</td>
                     <td>{planet.rasiName}</td>
                     <td>{planet.degreeInRasi.toFixed(2)}°</td>
                     <td>{astroText(planet.nakshatraName)}</td>
@@ -692,7 +692,7 @@ export function DashboardPersonalTab({
                     </td>
                   </tr>
                 ))}
-                <tr style={{ borderTop: "1px solid rgba(255,255,255,0.12)", opacity: 0.75 }}>
+                <tr style={{ borderTop: "1px solid var(--veil-white-12)", opacity: 0.75 }}>
                   <td style={{ fontWeight: 600 }}><span style={{ color: "var(--chart-amber)", marginRight: "var(--space-1)" }}>ல</span>{t("label_lagnam", lang)}</td>
                   <td>{personalChart.lagna.rasiName}</td>
                   <td>{personalChart.lagna.degreeInRasi.toFixed(2)}°</td>
@@ -798,7 +798,7 @@ export function DashboardPersonalTab({
                         : "This sign-based dasha is used to time life-event periods such as marriage and career transitions."}
                     </p>
                     {charaDasha.currentPeriod && (
-                      <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", background: "rgba(92,118,84,0.12)", border: "1px solid rgba(92,118,84,0.35)" }}>
+                      <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--cl-sage-soft)", border: "1px solid var(--cl-sage-border)" }}>
                         <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-score-high)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                           {lang === "ta" ? "தற்போதைய சார தசை" : "Current Chara Dasha"}
                         </p>
@@ -832,7 +832,7 @@ export function DashboardPersonalTab({
                       <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
                         {solarReturn.srLagnaRasiName}
                         {solarReturn.lagnaMatchesNatal && (
-                          <span style={{ marginLeft: "var(--space-1_5)", fontSize: "0.625rem", padding: "2px 6px", borderRadius: "var(--radius-pill)", background: "rgba(92,118,84,0.15)", color: "var(--color-score-high)", border: "1px solid rgba(92,118,84,0.35)" }}>
+                          <span style={{ marginLeft: "var(--space-1_5)", fontSize: "0.625rem", padding: "2px 6px", borderRadius: "var(--radius-pill)", background: "var(--cl-sage-mid)", color: "var(--color-score-high)", border: "1px solid var(--cl-sage-border)" }}>
                             {lang === "ta" ? "நட்டாள்போல்" : "Same as natal"}
                           </span>
                         )}
