@@ -3643,6 +3643,27 @@ button:focus-visible,
   letter-spacing: -0.02em;
 }
 
+.cl-nav__brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cl-nav__tagline {
+  display: none;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--cl-muted);
+  letter-spacing: 0.025em;
+  white-space: nowrap;
+}
+
+@media (min-width: 820px) {
+  .cl-nav__tagline {
+    display: block;
+  }
+}
+
 .cl-nav__links {
   display: flex;
   align-items: center;
@@ -3818,6 +3839,25 @@ button:focus-visible,
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.cl-hero__guest-note {
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  color: var(--cl-muted);
+  line-height: 1.5;
+}
+
+.cl-hero__guest-note a {
+  color: var(--cl-ink-2);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 120ms ease;
+}
+
+.cl-hero__guest-note a:hover {
+  color: var(--cl-ink);
 }
 
 /* ── Today's reading card ─────────────────────────────────── */

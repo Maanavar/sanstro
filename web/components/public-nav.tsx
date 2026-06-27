@@ -142,7 +142,12 @@ export function PublicNav() {
               width={28} height={28}
               className="cl-nav__symbol" priority
             />
-            <span className="cl-nav__wordmark">Vinaadi</span>
+            <div className="cl-nav__brand-text">
+              <span className="cl-nav__wordmark">Vinaadi</span>
+              <span className="cl-nav__tagline">
+                {lang === "en" ? "Thirukanitham-precise astrology" : "திருக்கணித ஜோதிடம்"}
+              </span>
+            </div>
           </Link>
 
           <nav className="cl-nav__links" aria-label={lang === "en" ? "Primary navigation" : "முதன்மை வழிசெலுத்தல்"}>

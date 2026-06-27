@@ -120,6 +120,12 @@ export function HomeContent() {
               <Link href="/dashboard" className="cl-btn cl-btn--solid">{mt(HOME.hero_cta_start, lang)}</Link>
               <a href="#how-it-works" className="cl-btn cl-btn--ghost">{mt(HOME.hero_cta_how, lang)}</a>
             </div>
+            <p className="cl-hero__guest-note">
+              {lang === "en"
+                ? <><span>No account needed</span> — <Link href="/tools/daily-panchangam-planner">Try today&apos;s Panchangam free →</Link></>
+                : <><span>கணக்கு தேவையில்லை</span> — <Link href="/tools/daily-panchangam-planner">இன்றைய பஞ்சாங்கம் இலவசமாக பாருங்கள் →</Link></>
+              }
+            </p>
           </div>
 
           <div className="cl-hero__card-wrap" id="sample">
