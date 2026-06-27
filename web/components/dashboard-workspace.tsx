@@ -1252,10 +1252,12 @@ export function DashboardWorkspace() {
             formatScoreLabel={formatScoreLabel}
             nakshatraCard={personalMemberChart?.nakshatraCard ?? personal.nakshatraCard}
             peyarchiReport={personal.peyarchiReport}
+            lifeAreas={personal.lifeAreas}
             weekAhead={personal.weekAhead}
             familyAggregate={family.familyAggregate}
             onDateChange={setSelectedDate}
             onGoToFamily={() => setActiveTab("family")}
+            onGoToJournal={() => setActiveTab("journal")}
             onOpenPrasna={() => setShowPrasna(true)}
             showPrasna={showPrasna}
             onClosePrasna={() => setShowPrasna(false)}

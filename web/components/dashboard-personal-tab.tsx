@@ -9,6 +9,8 @@ import type { Lang } from "@/lib/i18n";
 import type {
   AmbientAlertItem,
   CharaDashaData,
+  LifeAreaData,
+  LifeAreasResponseData,
   LifeMode,
   ChartCalculateResponseData,
   ChartExplanationData,
@@ -48,6 +50,7 @@ import { ShareCardButton } from "./dashboard-share-card";
 import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
 import { PersonalHero } from "./dashboard-personal-hero";
 import { PersonalOverview } from "./dashboard-personal-overview";
+import { useStreak } from "@/hooks/useStreak";
 
 const EMOTIONAL_WEATHER_FIELDS = [
   { labelTa: "உணர்வு நிலை", labelEn: "Emotional tone", key: "toneText" as const },
@@ -99,7 +102,9 @@ type DashboardPersonalTabProps = {
   formatScoreLabel: (score: number) => string;
   nakshatraCard: NakshatraCardData | null;
   peyarchiReport: PeyarchiReportData | null;
+  lifeAreas?: LifeAreasResponseData | null;
   onGoToFamily?: () => void;
+  onGoToJournal?: () => void;
   onOpenPrasna?: () => void;
   showPrasna?: boolean;
   onClosePrasna?: () => void;
@@ -141,7 +146,9 @@ export function DashboardPersonalTab({
   formatScoreLabel,
   nakshatraCard,
   peyarchiReport,
+  lifeAreas,
   onGoToFamily,
+  onGoToJournal,
   onOpenPrasna,
   showPrasna = false,
   onClosePrasna,
@@ -149,6 +156,7 @@ export function DashboardPersonalTab({
   dashaMaha = null,
   dashaAntar,
 }: DashboardPersonalTabProps) {
+  const { days: streakDays } = useStreak();
   const displayName = personalMemberChart?.displayName ?? birthDisplayName;
   const isChandrashtama = personalTransit?.isChandrashtama ?? false;
   const bestWindow = personalDailyGuidance?.bestWindows[0] ?? null;
@@ -358,13 +366,12 @@ export function DashboardPersonalTab({
       {(isChandrashtama || ambientAlerts.length > 0 || peyarchiUpcoming.length > 0) && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           {isChandrashtama && (
-            <AlertBanner
-              variant="critical"
-              message={chandrashtamaWindowsSummary
-                ? `${t("chandrashtama_warning", lang)} — ${lang === "ta" ? "ஜன்ம நட்சத்திர நேரங்கள்" : "Janma star windows"}: ${chandrashtamaWindowsSummary}`
-                : t("chandrashtama_warning", lang)
-              }
-              dismissible={false}
+            <ChandrashtamaCard
+              lang={lang}
+              chandrashtamaEnds={personalDailyGuidance?.chandrashtamaEnds ?? null}
+              descriptionTa={null}
+              descriptionEn={null}
+              windowsSummary={chandrashtamaWindowsSummary}
             />
           )}
           {ambientAlerts.slice(0, 2).map((alert) => (
@@ -412,6 +419,21 @@ export function DashboardPersonalTab({
         )}
       </div>
 
+      {/* ── Streak badge ── */}
+      {streakDays > 1 && (
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: "6px",
+          padding: "4px 12px", borderRadius: "var(--radius-pill)",
+          background: "var(--color-amber-bg, #fffbeb)",
+          border: "1px solid var(--color-amber-border, #fde68a)",
+          fontSize: "0.75rem", fontWeight: 600, color: "var(--color-amber, #d97706)",
+          alignSelf: "flex-start",
+        }}>
+          <span aria-hidden="true">🔥</span>
+          {lang === "ta" ? `${streakDays} நாள் தொடர்ச்சி` : `${streakDays}-day streak`}
+        </div>
+      )}
+
       {/* ── HERO: Left headline + Right score card ── */}
       <PersonalHero
         lang={lang}
@@ -428,6 +450,36 @@ export function DashboardPersonalTab({
         personalChartSummary={personalChartSummary}
         astroText={astroText}
       />
+
+      {/* ── Life-area pulse + quick actions ── */}
+      {(lifeAreas?.areas?.length || onGoToJournal) && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+          {lifeAreas?.areas && lifeAreas.areas.length > 0 && (
+            <TodayLifeAreaPulse areas={lifeAreas.areas.slice(0, 4)} lang={lang} />
+          )}
+          {onGoToJournal && (
+            <div style={{ display: "flex", gap: "var(--space-2)" }}>
+              <button
+                type="button"
+                onClick={onGoToJournal}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: "6px",
+                  padding: "8px 16px", borderRadius: "var(--radius-pill)",
+                  background: "var(--panel-brand)", border: "none",
+                  color: "white", fontSize: "0.875rem", fontWeight: 600,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <rect x="1" y="2" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
+                  <path d="M4 5h6M4 7.5h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                </svg>
+                {lang === "ta" ? "தருணம் பதிவு" : "Log moment"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       <PersonalOverview
         lang={lang}
@@ -876,6 +928,164 @@ export function DashboardPersonalTab({
           longitude={personalChart.birthProfile.birthLongitude ?? 80.2707}
         />
       )}
+    </div>
+  );
+}
+
+const CHANDRASHTAMA_AVOID = {
+  ta: [
+    "முக்கியமான ஒப்பந்தங்கள் கையெழுத்திட வேண்டாம்",
+    "புதிய வியாபார முயற்சி தொடங்க வேண்டாம்",
+    "அதிக பண பரிவர்த்தனை தவிர்க்கவும்",
+    "தேவையற்ற சர்ச்சைகளில் ஈடுபட வேண்டாம்",
+  ],
+  en: [
+    "Don't sign important contracts or agreements",
+    "Don't launch a new business or major venture",
+    "Avoid large financial transactions or loans",
+    "Don't get drawn into unnecessary arguments",
+  ],
+};
+
+const CHANDRASHTAMA_CAN_DO = {
+  ta: [
+    "ஆன்மீக நடைமுறைகள் — தியானம், ஜபம், பூஜை",
+    "குடும்பத்தினருடன் அமைதியாக நேரம் செலவிடுங்கள்",
+    "ஓய்வு எடுங்கள் — உள் வலிமை திரட்டும் காலம்",
+    "ஆலய தரிசனம் & தர்மம் செய்வது நல்லது",
+  ],
+  en: [
+    "Spiritual practice — meditation, japa, puja",
+    "Spend quiet time with family and loved ones",
+    "Rest and restore — build inner reserves",
+    "Temple visit and charitable giving are beneficial",
+  ],
+};
+
+function ChandrashtamaCard({ lang, chandrashtamaEnds, descriptionTa, descriptionEn, windowsSummary }: {
+  lang: Lang;
+  chandrashtamaEnds: string | null | undefined;
+  descriptionTa: string | null | undefined;
+  descriptionEn: string | null | undefined;
+  windowsSummary: string;
+}) {
+  const isTa = lang === "ta";
+  const endLabel = chandrashtamaEnds
+    ? `${isTa ? "முடியும் நேரம்: " : "Ends: "}${new Date(chandrashtamaEnds).toLocaleString(isTa ? "ta-IN" : "en-IN")}`
+    : (isTa ? "இன்று கூடுதல் கவனம் தேவை." : "Extra care advised today.");
+  const description = isTa ? descriptionTa : descriptionEn;
+
+  return (
+    <div style={{
+      borderRadius: "var(--radius-md)",
+      border: "1px solid var(--color-amber-border, #d97706)",
+      background: "var(--color-amber-bg, #fffbeb)",
+      overflow: "hidden",
+    }}>
+      {/* Header row */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: "var(--space-2)",
+        padding: "var(--space-2_5) var(--space-4)",
+        background: "var(--color-amber, #d97706)", color: "white",
+      }}>
+        <span style={{ fontWeight: 800, fontSize: "1rem" }}>!</span>
+        <div style={{ flex: 1 }}>
+          <p style={{ margin: 0, fontWeight: 700, fontSize: "0.875rem" }}>
+            {isTa ? "சந்திராஷ்டமம் நடப்பு" : "Chandrashtama is active"}
+          </p>
+          <p style={{ margin: 0, fontSize: "0.75rem", opacity: 0.9 }}>
+            {windowsSummary ? `${isTa ? "ஜன்ம நட்சத்திர நேரங்கள்" : "Janma star windows"}: ${windowsSummary}` : endLabel}
+          </p>
+        </div>
+        <a
+          href="/learn/what-is-chandrashtama"
+          target="_blank"
+          rel="noopener"
+          style={{ fontSize: "0.75rem", color: "white", textDecoration: "underline", whiteSpace: "nowrap" }}
+        >
+          {isTa ? "அறிய →" : "Learn →"}
+        </a>
+      </div>
+
+      {description && (
+        <p style={{ margin: 0, padding: "var(--space-2_5) var(--space-4)", fontSize: "0.875rem", color: "var(--panel-earth-dark)", borderBottom: "1px solid var(--color-amber-border, #fde68a)" }}>
+          {description}
+        </p>
+      )}
+
+      {/* Do / Don't */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
+        <div style={{ padding: "var(--space-2_5) var(--space-4)", borderRight: "1px solid var(--color-amber-border, #fde68a)" }}>
+          <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--planet-saturn, #b45309)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            {isTa ? "தவிர்க்கவும்" : "Avoid"}
+          </p>
+          {(isTa ? CHANDRASHTAMA_AVOID.ta : CHANDRASHTAMA_AVOID.en).map((item) => (
+            <p key={item} style={{ margin: "0 0 4px", fontSize: "0.75rem", color: "var(--panel-earth)", lineHeight: 1.4 }}>
+              <span style={{ color: "var(--planet-saturn, #b45309)", marginRight: "4px" }}>✕</span>{item}
+            </p>
+          ))}
+        </div>
+        <div style={{ padding: "var(--space-2_5) var(--space-4)" }}>
+          <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--chart-d9-active-dark, #047857)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            {isTa ? "செய்யலாம்" : "Do"}
+          </p>
+          {(isTa ? CHANDRASHTAMA_CAN_DO.ta : CHANDRASHTAMA_CAN_DO.en).map((item) => (
+            <p key={item} style={{ margin: "0 0 4px", fontSize: "0.75rem", color: "var(--panel-earth)", lineHeight: 1.4 }}>
+              <span style={{ color: "var(--chart-d9-active-dark, #047857)", marginRight: "4px" }}>✓</span>{item}
+            </p>
+          ))}
+        </div>
+      </div>
+
+      <p style={{ margin: 0, padding: "var(--space-2) var(--space-4)", fontSize: "0.6875rem", color: "var(--panel-mid-earth)", borderTop: "1px solid var(--color-amber-border, #fde68a)", fontStyle: "italic" }}>
+        {isTa
+          ? "சந்திராஷ்டமம் 'கெட்ட நாள்' அல்ல — இது கவனமாக செயல்பட வேண்டிய காலம். சரியாக திட்டமிட்டால் நன்மை பெறலாம்."
+          : "Chandrashtama is not a 'bad day' — it's a time for awareness and care. With right planning, you can still thrive."}
+      </p>
+    </div>
+  );
+}
+
+function TodayLifeAreaPulse({ areas, lang }: { areas: LifeAreaData[]; lang: Lang }) {
+  return (
+    <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
+      {areas.map((area) => {
+        const score = Math.round(area.score);
+        const color = score >= 65
+          ? "var(--chart-d9-active-dark)"
+          : score >= 45
+          ? "var(--panel-brand)"
+          : "var(--planet-saturn)";
+        const bg = score >= 65
+          ? "var(--chart-d9-active-dark)"
+          : score >= 45
+          ? "var(--panel-brand)"
+          : "var(--planet-saturn)";
+        const rawLabel = lang === "ta" ? area.label.ta : area.label.en;
+        const label = rawLabel.length > 8 ? rawLabel.slice(0, 7) + "…" : rawLabel;
+        return (
+          <div
+            key={area.area}
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", minWidth: "52px" }}
+          >
+            <div style={{
+              width: "44px", height: "44px", borderRadius: "999px",
+              background: bg, display: "flex", alignItems: "center", justifyContent: "center",
+              color: "white", fontWeight: 800, fontSize: "0.9rem",
+              boxShadow: `0 2px 8px ${color}44`,
+            }}>
+              {score}
+            </div>
+            <span style={{
+              fontSize: "0.625rem", color: "var(--panel-mid-earth)",
+              textAlign: "center", maxWidth: "52px",
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {label}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
