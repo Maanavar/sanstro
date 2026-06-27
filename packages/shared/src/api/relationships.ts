@@ -30,8 +30,8 @@ export function getRelationshipSynastry(
   memberId: string,
   familyVaultId: string,
 ): Promise<{ success: boolean; data: SynastryData }> {
-  const q = new URLSearchParams({ familyVaultId });
   return getApiClient().get(
-    `/relationships/${encodeURIComponent(memberId)}/synastry?${q}`,
+    `/relationships/${encodeURIComponent(memberId)}/synastry`,
+    { familyVaultId },
   ) as Promise<{ success: boolean; data: SynastryData }>;
 }

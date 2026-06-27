@@ -29,6 +29,7 @@ export function getLifeAreas(
   date: string,
 ): Promise<{ success: boolean; data: LifeAreasData }> {
   return getApiClient().get(
-    `/charts/${encodeURIComponent(chartId)}/life-areas?date=${date}`,
+    `/charts/${encodeURIComponent(chartId)}/life-areas`,
+    { date },
   ) as Promise<{ success: boolean; data: LifeAreasData }>;
 }

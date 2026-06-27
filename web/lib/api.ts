@@ -1,3 +1,5 @@
+import { initApiClient, type ApiQueryParams } from "@vinaadi/shared/api/client";
+
 const BACKEND_PREFIX = "/api/backend";
 const API_V1_PREFIX = "/api/v1";
 const MUTATING_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
@@ -26,6 +28,13 @@ export function toQuery(params: Record<string, string | number | boolean | undef
   });
   const value = query.toString();
   return value.length > 0 ? `?${value}` : "";
+}
+
+function appendQuery(path: string, params?: ApiQueryParams) {
+  if (!params) return path;
+  const query = toQuery(params);
+  if (!query) return path;
+  return `${path}${path.includes("?") ? `&${query.slice(1)}` : query}`;
 }
 
 export async function apiFetchJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -72,6 +81,19 @@ export async function apiFetchJson<T>(path: string, init?: RequestInit): Promise
   }
   return (await response.json()) as T;
 }
+
+initApiClient({
+  get: (path, params) => apiFetchJson(appendQuery(path, params)),
+  post: (path, body) => apiFetchJson(path, {
+    method: "POST",
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  }),
+  patch: (path, body) => apiFetchJson(path, {
+    method: "PATCH",
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  }),
+  delete: (path) => apiFetchJson(path, { method: "DELETE" }),
+});
 
 export function readErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;

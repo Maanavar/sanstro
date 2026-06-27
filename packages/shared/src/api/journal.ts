@@ -45,8 +45,7 @@ export function listJournalEntries(
   chartId: string,
   limit = 100,
 ): Promise<{ success: boolean; data: JournalListData }> {
-  const q = new URLSearchParams({ chartId, limit: String(limit) });
-  return getApiClient().get(`/journal?${q}`) as Promise<{
+  return getApiClient().get("/journal", { chartId, limit }) as Promise<{
     success: boolean;
     data: JournalListData;
   }>;

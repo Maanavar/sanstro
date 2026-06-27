@@ -23,16 +23,16 @@ export interface CreateGoalPayload {
 }
 
 export const GOAL_TYPES = [
-  { key: "career", labelEn: "Career", labelTa: "தொழில்" },
-  { key: "marriage", labelEn: "Marriage", labelTa: "திருமணம்" },
-  { key: "education", labelEn: "Education", labelTa: "கல்வி" },
-  { key: "health", labelEn: "Health", labelTa: "உடல் நலம்" },
-  { key: "wealth", labelEn: "Wealth", labelTa: "செல்வம்" },
-  { key: "family", labelEn: "Family", labelTa: "குடும்பம்" },
-  { key: "spiritual", labelEn: "Spiritual", labelTa: "ஆன்மீகம்" },
-  { key: "property", labelEn: "Property", labelTa: "சொத்து" },
-  { key: "travel", labelEn: "Travel", labelTa: "பயணம்" },
-  { key: "general", labelEn: "General", labelTa: "பொது" },
+  { key: "career", labelEn: "Career", labelTa: "à®¤à¯Šà®´à®¿à®²à¯" },
+  { key: "marriage", labelEn: "Marriage", labelTa: "à®¤à®¿à®°à¯à®®à®£à®®à¯" },
+  { key: "education", labelEn: "Education", labelTa: "à®•à®²à¯à®µà®¿" },
+  { key: "health", labelEn: "Health", labelTa: "à®‰à®Ÿà®²à¯ à®¨à®²à®®à¯" },
+  { key: "wealth", labelEn: "Wealth", labelTa: "à®šà¯†à®²à¯à®µà®®à¯" },
+  { key: "family", labelEn: "Family", labelTa: "à®•à¯à®Ÿà¯à®®à¯à®ªà®®à¯" },
+  { key: "spiritual", labelEn: "Spiritual", labelTa: "à®†à®©à¯à®®à¯€à®•à®®à¯" },
+  { key: "property", labelEn: "Property", labelTa: "à®šà¯Šà®¤à¯à®¤à¯" },
+  { key: "travel", labelEn: "Travel", labelTa: "à®ªà®¯à®£à®®à¯" },
+  { key: "general", labelEn: "General", labelTa: "à®ªà¯Šà®¤à¯" },
 ] as const;
 
 export const goalsKeys = {
@@ -44,7 +44,8 @@ export function listGoals(
   activeOnly = true,
 ): Promise<{ success: boolean; data: GoalListData }> {
   return getApiClient().get(
-    `/goals?chartId=${encodeURIComponent(chartId)}&activeOnly=${activeOnly}`,
+    "/goals",
+    { chartId, activeOnly },
   ) as Promise<{ success: boolean; data: GoalListData }>;
 }
 

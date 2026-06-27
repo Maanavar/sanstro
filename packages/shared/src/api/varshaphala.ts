@@ -32,6 +32,7 @@ export function getVarshaphala(
   year: number,
 ): Promise<{ success: boolean; data: VarshaphalaData }> {
   return getApiClient().get(
-    `/varshaphala?chart_id=${encodeURIComponent(chartId)}&year=${year}`,
+    "/varshaphala",
+    { chart_id: chartId, year },
   ) as Promise<{ success: boolean; data: VarshaphalaData }>;
 }

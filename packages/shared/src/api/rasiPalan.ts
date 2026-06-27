@@ -38,14 +38,15 @@ export async function getRasiPalan(params: {
   lng?: number;
   timezone?: string;
 }): Promise<RasiPalanData> {
-  const qs = new URLSearchParams({ rasi: params.rasi });
-  if (params.date) qs.set("query_date", params.date);
-  if (params.lat != null) qs.set("lat", String(params.lat));
-  if (params.lng != null) qs.set("lng", String(params.lng));
-  if (params.timezone) qs.set("timezone", params.timezone);
-
   const json = (await getApiClient().get(
-    `/public/rasi-palan?${qs.toString()}`,
+    "/public/rasi-palan",
+    {
+      rasi: params.rasi,
+      query_date: params.date,
+      lat: params.lat,
+      lng: params.lng,
+      timezone: params.timezone,
+    },
   )) as RasiPalanResponse;
 
   return {

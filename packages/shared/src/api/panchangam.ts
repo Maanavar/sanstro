@@ -11,12 +11,11 @@ export function getPanchangamDay(
   date: string,
   params: PanchangamParams,
 ): Promise<{ data: PanchangamDailyResponseData }> {
-  const q = new URLSearchParams({
-    lat: String(params.lat),
-    lng: String(params.lng),
+  return getApiClient().get(`/panchangam/${date}`, {
+    lat: params.lat,
+    lng: params.lng,
     tz: params.tz,
-  });
-  return getApiClient().get(`/panchangam/${date}?${q}`) as Promise<{
+  }) as Promise<{
     data: PanchangamDailyResponseData;
   }>;
 }
@@ -24,12 +23,11 @@ export function getPanchangamDay(
 export function getPanchangamToday(
   params: PanchangamParams,
 ): Promise<{ data: PanchangamDailyResponseData }> {
-  const q = new URLSearchParams({
-    lat: String(params.lat),
-    lng: String(params.lng),
+  return getApiClient().get("/panchangam/today", {
+    lat: params.lat,
+    lng: params.lng,
     tz: params.tz,
-  });
-  return getApiClient().get(`/panchangam/today?${q}`) as Promise<{
+  }) as Promise<{
     data: PanchangamDailyResponseData;
   }>;
 }
@@ -39,12 +37,11 @@ export function getPanchangamMonth(
   month: number,
   params: PanchangamParams,
 ): Promise<{ data: PanchangamMonthlyData }> {
-  const q = new URLSearchParams({
-    lat: String(params.lat),
-    lng: String(params.lng),
+  return getApiClient().get(`/panchangam/month/${year}/${month}`, {
+    lat: params.lat,
+    lng: params.lng,
     tz: params.tz,
-  });
-  return getApiClient().get(`/panchangam/month/${year}/${month}?${q}`) as Promise<{
+  }) as Promise<{
     data: PanchangamMonthlyData;
   }>;
 }

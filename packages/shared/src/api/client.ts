@@ -1,4 +1,6 @@
-export type ApiGet = (path: string) => Promise<unknown>;
+export type ApiQueryParams = Record<string, string | number | boolean | undefined | null>;
+
+export type ApiGet = (path: string, params?: ApiQueryParams) => Promise<unknown>;
 export type ApiPost = (path: string, body?: unknown) => Promise<unknown>;
 export type ApiPatch = (path: string, body?: unknown) => Promise<unknown>;
 export type ApiDelete = (path: string) => Promise<void>;

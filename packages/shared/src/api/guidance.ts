@@ -11,6 +11,7 @@ export function getDailyGuidance(
   date: string,
 ): Promise<GuidanceEnvelope> {
   return getApiClient().get(
-    `/daily-guidance?chartId=${chartId}&date=${date}`,
+    "/daily-guidance",
+    { chartId, date },
   ) as Promise<GuidanceEnvelope>;
 }

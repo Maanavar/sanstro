@@ -28,6 +28,7 @@ export function getLifeEvents(
   yearsAhead = 3,
 ): Promise<{ success: boolean; data: LifeEventsData }> {
   return getApiClient().get(
-    `/charts/${encodeURIComponent(chartId)}/life-events?yearsAhead=${yearsAhead}`,
+    `/charts/${encodeURIComponent(chartId)}/life-events`,
+    { yearsAhead },
   ) as Promise<{ success: boolean; data: LifeEventsData }>;
 }

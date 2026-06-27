@@ -66,7 +66,8 @@ export function getNatchathiram(
   nakshatraNumber: number,
 ): Promise<{ success: boolean; data: NatchathiramData }> {
   return getApiClient().get(
-    `/public-tools/natchathiram?number=${nakshatraNumber}`,
+    "/public-tools/natchathiram",
+    { number: nakshatraNumber },
   ) as Promise<{ success: boolean; data: NatchathiramData }>;
 }
 
@@ -107,13 +108,12 @@ export function getPrashan(payload: {
 export function getMuhurta(
   params: MuhurtaPayload,
 ): Promise<{ success: boolean; data: MuhurtaResponseData }> {
-  const q = new URLSearchParams({
+  return getApiClient().get("/muhurta", {
     chartId: params.chartId,
     activity: params.activity,
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
-  });
-  return getApiClient().get(`/muhurta?${q}`) as Promise<{
+  }) as Promise<{
     success: boolean;
     data: MuhurtaResponseData;
   }>;

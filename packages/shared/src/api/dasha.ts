@@ -25,6 +25,7 @@ export function getDashaTimeline(
   chartId: string,
 ): Promise<{ success: boolean; data: DashaTimelineData }> {
   return getApiClient().get(
-    `/dasha/timeline?chart_id=${encodeURIComponent(chartId)}`,
+    "/dasha/timeline",
+    { chart_id: chartId },
   ) as Promise<{ success: boolean; data: DashaTimelineData }>;
 }

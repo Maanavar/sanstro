@@ -35,6 +35,7 @@ export function getAnnualWrapped(
   year: number,
 ): Promise<{ success: boolean; data: AnnualWrappedData }> {
   return getApiClient().get(
-    `/charts/${encodeURIComponent(chartId)}/annual-wrapped?year=${year}`,
+    `/charts/${encodeURIComponent(chartId)}/annual-wrapped`,
+    { year },
   ) as Promise<{ success: boolean; data: AnnualWrappedData }>;
 }

@@ -61,9 +61,9 @@ export function getFamilyVaultToday(
   vaultId: string,
   dateLocal = utcDateParam(),
 ): Promise<FamilyVaultTodayResponse> {
-  const q = new URLSearchParams({ date: dateLocal });
   return getApiClient().get(
-    `/family-vaults/${encodeURIComponent(vaultId)}/today?${q}`,
+    `/family-vaults/${encodeURIComponent(vaultId)}/today`,
+    { date: dateLocal },
   ) as Promise<FamilyVaultTodayResponse>;
 }
 

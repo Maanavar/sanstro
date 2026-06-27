@@ -1,13 +1,25 @@
 import { router } from "expo-router";
 import { getTokens, setTokens, clearTokens } from "@/lib/secureStore";
 import { ENV } from "@/lib/env";
-import { initApiClient } from "@vinaadi/shared/api/client";
+import { initApiClient, type ApiQueryParams } from "@vinaadi/shared/api/client";
 
 const API_V1_PREFIX = "/api/v1";
 
 function buildApiUrl(path: string): string {
   const bypass = path.startsWith("/api/") || path.startsWith("/public/");
   return ENV.API_BASE_URL + (bypass ? path : `${API_V1_PREFIX}${path}`);
+}
+
+function appendQuery(path: string, params?: ApiQueryParams): string {
+  if (!params) return path;
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") return;
+    query.set(key, String(value));
+  });
+  const queryString = query.toString();
+  if (!queryString) return path;
+  return `${path}${path.includes("?") ? "&" : "?"}${queryString}`;
 }
 
 // Single-flight 401 refresh - all concurrent 401s share one refresh Promise
@@ -71,8 +83,8 @@ export async function fetchWithAuth(
   }
 }
 
-export async function apiGet<T>(url: string): Promise<T> {
-  const res = await fetchWithAuth(url);
+export async function apiGet<T>(url: string, params?: ApiQueryParams): Promise<T> {
+  const res = await fetchWithAuth(appendQuery(url, params));
   if (!res.ok) throw new ApiError(res.status, await res.text());
   return res.json() as Promise<T>;
 }
@@ -126,7 +138,7 @@ export class ApiError extends Error {
 
 // Register mobile implementations with the shared API client
 initApiClient({
-  get: (path) => apiGet(path),
+  get: (path, params) => apiGet(path, params),
   post: (path, body) => apiPost(path, body),
   patch: (path, body) => apiPatch(path, body),
   delete: (path) => apiDelete(path),

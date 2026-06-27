@@ -23,8 +23,7 @@ export function getUpcomingTransits(
   rasi: string,
   limit = 12,
 ): Promise<{ success: boolean; data: TransitItem[] }> {
-  const q = new URLSearchParams({ rasi, limit: String(limit) });
-  return getApiClient().get(`/transits/upcoming?${q}`) as Promise<{
+  return getApiClient().get("/transits/upcoming", { rasi, limit }) as Promise<{
     success: boolean;
     data: TransitItem[];
   }>;
