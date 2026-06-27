@@ -50,14 +50,18 @@ export default function PanchangamDayScreen() {
   }, []);
 
   const dateStr = dateString(dayOffset);
-  const lat = prefs?.lat ?? 13.0827;
-  const lon = prefs?.lon ?? 80.2707;
-  const locationLabel = prefs?.city ?? "Chennai";
+  const prefsLoaded = prefs !== null;
+  const lat = prefs?.lat ?? undefined;
+  const lon = prefs?.lon ?? undefined;
+  const hasLocation = lat != null && lon != null;
+  const isLocationMissing = prefsLoaded && !hasLocation;
+  const locationLabel = prefs?.city ?? (isLocationMissing ? (isTamil ? "Ã Â®â€¡Ã Â®Å¸Ã Â®Â¤Ã Â¯ÂÃ Â®Â¤Ã Â¯Ë† Ã Â®â€¦Ã Â®Â®Ã Â¯Ë†Ã Â®â€¢Ã Â¯ÂÃ Â®â€¢Ã Â®ÂµÃ Â¯ÂÃ Â®Â®Ã Â¯Â" : "Set location") : "Chennai");
 
   const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["panchangam-day", dateStr, lat, lon],
-    queryFn: () => getPanchangamDay(dateStr, { lat, lng: lon, tz: TZ }),
+    queryFn: () => getPanchangamDay(dateStr, { lat: lat!, lng: lon!, tz: TZ }),
     staleTime: 1000 * 60 * 60 * 12,
+    enabled: hasLocation,
   });
   const p = data?.data;
 
@@ -80,7 +84,7 @@ export default function PanchangamDayScreen() {
         <View style={styles.headerActions}>
           <Text style={styles.locationLabel}>{locationLabel}</Text>
           <TouchableOpacity onPress={() => router.push("/(tabs)/panchangam/calendar")}>
-            <Text style={styles.calendarLink}>{isTamil ? "மாதம் ▸" : "Month ▸"}</Text>
+            <Text style={styles.calendarLink}>{isTamil ? "ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â®Ã‚Â¾ÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚Â ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸" : "Month ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸"}</Text>
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -109,14 +113,34 @@ export default function PanchangamDayScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
-        refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={C.saffron} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={hasLocation && isFetching}
+            onRefresh={() => { if (hasLocation) void refetch(); }}
+            tintColor={C.saffron}
+          />
+        }
       >
-        {isLoading ? (
+        {!prefsLoaded || isLoading ? (
           <>
             <SkeletonCard height={80} />
             <SkeletonCard height={200} />
             <SkeletonCard height={160} />
           </>
+        ) : isLocationMissing ? (
+          <TouchableOpacity
+            style={styles.locationPrompt}
+            activeOpacity={0.86}
+            onPress={() => router.push("/(onboarding)/location")}
+          >
+            <Text style={[styles.locationPromptTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
+              {isTamil ? "à®šà®°à®¿à®¯à®¾à®© à®ªà®žà¯à®šà®¾à®™à¯à®• à®¨à¯‡à®°à®™à¯à®•à®³à¯à®•à¯à®•à¯ à®‰à®™à¯à®•à®³à¯ à®¨à®•à®°à®¤à¯à®¤à¯ˆ à®…à®®à¯ˆà®•à¯à®•à®µà¯à®®à¯" : "Set your city for accurate Panchangam timings"}
+            </Text>
+            <Text style={styles.locationPromptBody}>
+              {isTamil ? "à®šà¯‚à®°à®¿à®¯à¯‹à®¤à®¯à®®à¯, à®°à®¾à®•à¯ à®•à®¾à®²à®®à¯, à®¨à®²à¯à®² à®¨à¯‡à®°à®®à¯ à®ªà¯‹à®©à¯à®±à®µà¯ˆ à®‡à®Ÿà®¤à¯à®¤à¯ˆ à®šà®¾à®°à¯à®¨à¯à®¤à®µà¯ˆ." : "Sunrise, Rahu Kalam, and Nalla Neram all depend on your location."}
+            </Text>
+            <Text style={styles.locationPromptCta}>{isTamil ? "à®‡à®Ÿà®¤à¯à®¤à¯ˆ à®ªà¯à®¤à¯à®ªà¯à®ªà®¿à®•à¯à®•à®µà¯à®®à¯" : "Update location"}</Text>
+          </TouchableOpacity>
         ) : isError ? (
           <ErrorCard onRetry={refetch} />
         ) : p ? (
@@ -127,8 +151,8 @@ export default function PanchangamDayScreen() {
                 {p.tamilDate ? (isTamil ? p.tamilDate.ta : p.tamilDate.en) : dateStr}
               </Text>
               <View style={styles.sunRow}>
-                <Text style={styles.sunText}>🌅 {isoToHHMM(p.sunrise)}</Text>
-                <Text style={styles.sunText}>🌇 {isoToHHMM(p.sunset)}</Text>
+                <Text style={styles.sunText}>ÃƒÂ°Ã…Â¸Ã…â€™Ã¢â‚¬Â¦ {isoToHHMM(p.sunrise)}</Text>
+                <Text style={styles.sunText}>ÃƒÂ°Ã…Â¸Ã…â€™Ã¢â‚¬Â¡ {isoToHHMM(p.sunset)}</Text>
               </View>
             </View>
 
@@ -145,11 +169,11 @@ export default function PanchangamDayScreen() {
             {/* Five elements */}
             <View style={styles.fiveCard}>
               <Text style={[styles.fiveTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-                {isTamil ? "பஞ்சாங்க அம்சங்கள்" : "Panchangam Elements"}
+                {isTamil ? "ÃƒÂ Ã‚Â®Ã‚ÂªÃƒÂ Ã‚Â®Ã…Â¾ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã…Â¡ÃƒÂ Ã‚Â®Ã‚Â¾ÃƒÂ Ã‚Â®Ã¢â€žÂ¢ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ ÃƒÂ Ã‚Â®Ã¢â‚¬Â¦ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã…Â¡ÃƒÂ Ã‚Â®Ã¢â€žÂ¢ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â®Ã‚Â³ÃƒÂ Ã‚Â¯Ã‚Â" : "Panchangam Elements"}
               </Text>
               {[
-                { label: t(strings.panchangam.tithi),     value: `${p.tithi.name} (${p.tithi.paksha === "SHUKLA" ? "வளர்பிறை" : "தேய்பிறை"})` },
-                { label: t(strings.panchangam.nakshatra), value: `${p.nakshatra.name}, ${isTamil ? "பாதம்" : "Pada"} ${p.nakshatra.pada}` },
+                { label: t(strings.panchangam.tithi),     value: `${p.tithi.name} (${p.tithi.paksha === "SHUKLA" ? "ÃƒÂ Ã‚Â®Ã‚ÂµÃƒÂ Ã‚Â®Ã‚Â³ÃƒÂ Ã‚Â®Ã‚Â°ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚ÂªÃƒÂ Ã‚Â®Ã‚Â¿ÃƒÂ Ã‚Â®Ã‚Â±ÃƒÂ Ã‚Â¯Ã‹â€ " : "ÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â¯Ã¢â‚¬Â¡ÃƒÂ Ã‚Â®Ã‚Â¯ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚ÂªÃƒÂ Ã‚Â®Ã‚Â¿ÃƒÂ Ã‚Â®Ã‚Â±ÃƒÂ Ã‚Â¯Ã‹â€ "})` },
+                { label: t(strings.panchangam.nakshatra), value: `${p.nakshatra.name}, ${isTamil ? "ÃƒÂ Ã‚Â®Ã‚ÂªÃƒÂ Ã‚Â®Ã‚Â¾ÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚Â" : "Pada"} ${p.nakshatra.pada}` },
                 { label: t(strings.panchangam.yoga),     value: p.yoga.name },
                 { label: t(strings.panchangam.karana),   value: p.karana.name },
                 { label: t(strings.panchangam.vara),     value: p.vara.weekday },
@@ -204,6 +228,17 @@ function makeStyles(C: ColorTokens) {
   headerActions: { flexDirection: "row", alignItems: "center", gap: S.sm },
   locationLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textTertiary },
   calendarLink: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: C.saffron },
+  locationPrompt: {
+    backgroundColor: C.surface,
+    borderRadius: RADIUS.card,
+    padding: S.base,
+    gap: S.sm,
+    borderWidth: 1,
+    borderColor: C.divider,
+  },
+  locationPromptTitle: { color: C.textPrimary },
+  locationPromptBody: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 20, color: C.textSecond },
+  locationPromptCta: { fontFamily: "Inter_700Bold", fontSize: 13, color: C.saffron },
 
   dayStrip: { paddingHorizontal: S.base, paddingVertical: S.sm, borderBottomWidth: 1, borderBottomColor: C.divider },
   dayChip: {

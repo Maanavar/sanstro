@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput,
   TouchableOpacity, useWindowDimensions, View,
@@ -187,8 +187,10 @@ export default function TodayTab() {
     });
   }, [tier, recordTodayVisit]);
 
-  const lat = prefs?.lat ?? 13.0827;
-  const lon = prefs?.lon ?? 80.2707;
+  const lat = prefs?.lat ?? undefined;
+  const lon = prefs?.lon ?? undefined;
+  const hasLocation = lat != null && lon != null;
+  const isLocationMissing = !!prefs && !hasLocation;
   const tz = "Asia/Kolkata";
 
   const {
@@ -199,9 +201,9 @@ export default function TodayTab() {
     refetch: refetchPanchangam,
   } = useQuery({
     queryKey: ["panchangam-today", lat, lon],
-    queryFn: () => getPanchangamToday({ lat, lng: lon, tz }),
+    queryFn: () => getPanchangamToday({ lat: lat!, lng: lon!, tz }),
     staleTime: STALE.panchangam,
-    enabled: !!prefs,
+    enabled: hasLocation,
   });
 
   const todayDateStr = new Date().toISOString().split("T")[0];
@@ -276,7 +278,7 @@ export default function TodayTab() {
   const today = new Date();
   const todayLabel = today.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
   const tamilDate = p?.tamilDate ? (isTamil ? p.tamilDate.ta : p.tamilDate.en) : todayLabel;
-  const cityName = prefs?.city ?? "Chennai";
+  const cityName = prefs?.city ?? (isLocationMissing ? (isTamil ? "இடத்தை அமைக்கவும்" : "Set location") : "Chennai");
   const areaPulse = lifeAreas.data?.data.areas ?? [];
   const nextEvent = useMemo(
     () => getNextEvent(lifeEvents.data?.data.windows ?? []),
@@ -307,7 +309,9 @@ export default function TodayTab() {
   }, [g, isTamil]);
 
   const refreshAll = () => {
-    refetchPanchangam();
+    if (hasLocation) {
+      refetchPanchangam();
+    }
     void refetchRasiPalan();
     refetchGuidance();
     lifeAreas.refetch();
@@ -393,10 +397,34 @@ export default function TodayTab() {
               </Text>
               <Text style={styles.engDate}>{todayLabel}</Text>
             </View>
-            <TouchableOpacity style={styles.cityChip}>
+            <TouchableOpacity
+              style={styles.cityChip}
+              activeOpacity={0.75}
+              onPress={() => router.push("/(onboarding)/location" as Href)}
+              accessibilityRole="button"
+              accessibilityLabel={isTamil ? "இடத்தை மாற்றவும்" : "Update location"}
+            >
               <Text style={styles.cityText}>{cityName}</Text>
             </TouchableOpacity>
           </View>
+        )}
+
+        {isLocationMissing && (
+          <TouchableOpacity
+            style={styles.signupPrompt}
+            activeOpacity={0.85}
+            onPress={() => router.push("/(onboarding)/location" as Href)}
+            accessibilityRole="button"
+            accessibilityLabel={isTamil ? "நகரத்தை அமைக்கவும்" : "Set your city"}
+          >
+            <Text style={[styles.promptHeading, isTamil ? TamilType.body : EnType.body]}>
+              {isTamil ? "பஞ்சாங்க நேரங்கள் உங்கள் நகரத்தை சார்ந்தவை." : "Panchangam timings depend on your city."}
+            </Text>
+            <Text style={styles.engDate}>
+              {isTamil ? "சரியான சூரியோதயம், ராகு காலம், நல்ல நேரம் பார்க்க இடத்தை அமைக்கவும்." : "Set your location to see correct sunrise, Rahu Kalam, and Nalla Neram."}
+            </Text>
+            <Text style={styles.promptCta}>{isTamil ? "இடத்தை புதுப்பிக்கவும்" : "Update location"}</Text>
+          </TouchableOpacity>
         )}
 
         {/* Registered: one-answer hero */}

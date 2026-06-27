@@ -18,7 +18,7 @@ import { SwipeRouteView } from "@/components/SwipeRouteView";
 
 const TZ = "Asia/Kolkata";
 
-const WEEKDAY_LABELS_TA = ["ஞா", "தி", "செ", "பு", "வி", "வெ", "ச"];
+const WEEKDAY_LABELS_TA = ["ÃƒÂ Ã‚Â®Ã…Â¾ÃƒÂ Ã‚Â®Ã‚Â¾", "ÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â®Ã‚Â¿", "ÃƒÂ Ã‚Â®Ã…Â¡ÃƒÂ Ã‚Â¯Ã¢â‚¬Â ", "ÃƒÂ Ã‚Â®Ã‚ÂªÃƒÂ Ã‚Â¯Ã‚Â", "ÃƒÂ Ã‚Â®Ã‚ÂµÃƒÂ Ã‚Â®Ã‚Â¿", "ÃƒÂ Ã‚Â®Ã‚ÂµÃƒÂ Ã‚Â¯Ã¢â‚¬Â ", "ÃƒÂ Ã‚Â®Ã…Â¡"];
 const WEEKDAY_LABELS_EN = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 export default function PanchangamCalendarScreen() {
@@ -33,14 +33,18 @@ export default function PanchangamCalendarScreen() {
     loadGuestPrefs().then(setPrefs);
   }, []);
 
-  const lat = prefs?.lat ?? 13.0827;
-  const lon = prefs?.lon ?? 80.2707;
-  const locationLabel = prefs?.city ?? "Chennai";
+  const prefsLoaded = prefs !== null;
+  const lat = prefs?.lat ?? undefined;
+  const lon = prefs?.lon ?? undefined;
+  const hasLocation = lat != null && lon != null;
+  const isLocationMissing = prefsLoaded && !hasLocation;
+  const locationLabel = prefs?.city ?? (isLocationMissing ? (isTamil ? "Ã Â®â€¡Ã Â®Å¸Ã Â®Â¤Ã Â¯ÂÃ Â®Â¤Ã Â¯Ë† Ã Â®â€¦Ã Â®Â®Ã Â¯Ë†Ã Â®â€¢Ã Â¯ÂÃ Â®â€¢Ã Â®ÂµÃ Â¯ÂÃ Â®Â®Ã Â¯Â" : "Set location") : "Chennai");
 
   const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["panchangam-month", year, month, lat, lon],
-    queryFn: () => getPanchangamMonth(year, month, { lat, lng: lon, tz: TZ }),
+    queryFn: () => getPanchangamMonth(year, month, { lat: lat!, lng: lon!, tz: TZ }),
     staleTime: 1000 * 60 * 60 * 12,
+    enabled: hasLocation,
   });
   const d = data?.data;
 
@@ -72,11 +76,11 @@ export default function PanchangamCalendarScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.back}>←</Text>
+          <Text style={styles.back}>ÃƒÂ¢Ã¢â‚¬Â Ã‚Â</Text>
         </TouchableOpacity>
         <View style={styles.monthNav}>
           <TouchableOpacity onPress={prevMonth} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={styles.navArrow}>‹</Text>
+            <Text style={styles.navArrow}>ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¹</Text>
           </TouchableOpacity>
           <View style={styles.monthTitleGroup}>
             <Text style={[styles.monthLabel, isTamil ? TamilType.heading : EnType.heading]}>
@@ -85,7 +89,7 @@ export default function PanchangamCalendarScreen() {
             <Text style={styles.locationLabel}>{locationLabel}</Text>
           </View>
           <TouchableOpacity onPress={nextMonth} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={styles.navArrow}>›</Text>
+            <Text style={styles.navArrow}>ÃƒÂ¢Ã¢â€šÂ¬Ã‚Âº</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -93,7 +97,13 @@ export default function PanchangamCalendarScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
-        refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={C.saffron} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={hasLocation && isFetching}
+            onRefresh={() => { if (hasLocation) void refetch(); }}
+            tintColor={C.saffron}
+          />
+        }
       >
         {/* Weekday headers */}
         <View style={styles.weekdayRow}>
@@ -102,8 +112,22 @@ export default function PanchangamCalendarScreen() {
           ))}
         </View>
 
-        {isLoading ? (
+        {!prefsLoaded || isLoading ? (
           <SkeletonCard height={280} />
+        ) : isLocationMissing ? (
+          <TouchableOpacity
+            style={styles.locationPrompt}
+            activeOpacity={0.86}
+            onPress={() => router.push("/(onboarding)/location")}
+          >
+            <Text style={[styles.locationPromptTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
+              {isTamil ? "à®‰à®™à¯à®•à®³à¯ à®¨à®•à®°à®¤à¯à®¤à¯ˆ à®…à®®à¯ˆà®¤à¯à®¤à¯ à®®à®¾à®¤ à®ªà®žà¯à®šà®¾à®™à¯à®•à®¤à¯à®¤à¯ˆ à®ªà®¾à®°à¯à®•à¯à®•à®µà¯à®®à¯" : "Set your city to load the monthly Panchangam"}
+            </Text>
+            <Text style={styles.locationPromptBody}>
+              {isTamil ? "à®®à¯à®¹à¯‚à®°à¯à®¤à¯à®¤ à®¨à®¾à®³à¯, à®¤à®¿à®°à¯à®¨à®¾à®³à¯, à®¤à®¿à®© à®¨à¯‡à®°à®™à¯à®•à®³à¯ à®…à®©à¯ˆà®¤à¯à®¤à¯à®®à¯ à®‡à®Ÿà®¤à¯à®¤à¯ˆ à®šà®¾à®°à¯à®¨à¯à®¤à®µà¯ˆ." : "Muhurtham days, festivals, and daily timings all shift by location."}
+            </Text>
+            <Text style={styles.locationPromptCta}>{isTamil ? "à®‡à®Ÿà®¤à¯à®¤à¯ˆ à®ªà¯à®¤à¯à®ªà¯à®ªà®¿à®•à¯à®•à®µà¯à®®à¯" : "Update location"}</Text>
+          </TouchableOpacity>
         ) : isError ? (
           <ErrorCard onRetry={refetch} />
         ) : (
@@ -132,7 +156,7 @@ export default function PanchangamCalendarScreen() {
           </View>
         )}
 
-        {/* Muhurtham Naal — auspicious days this month */}
+        {/* Muhurtham Naal ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â auspicious days this month */}
         {d && (() => {
           const muhurthamDays = d.entries.filter((e) => e.isSubhaMuhurtham);
           return muhurthamDays.length > 0 ? (
@@ -140,11 +164,11 @@ export default function PanchangamCalendarScreen() {
               <View style={styles.sectionHeaderRow}>
                 <View style={styles.sectionDot} />
                 <Text style={[styles.festivalTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-                  {isTamil ? "முகூர்த்த நாட்கள்" : "Muhurtham Naal"}
+                  {isTamil ? "ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¯Ã¢â‚¬Å¡ÃƒÂ Ã‚Â®Ã‚Â°ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚Â¤ ÃƒÂ Ã‚Â®Ã‚Â¨ÃƒÂ Ã‚Â®Ã‚Â¾ÃƒÂ Ã‚Â®Ã…Â¸ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â®Ã‚Â³ÃƒÂ Ã‚Â¯Ã‚Â" : "Muhurtham Naal"}
                 </Text>
               </View>
               <Text style={styles.sectionHint}>
-                {isTamil ? "இந்த மாதம் சுபமுகூர்த்த நாட்கள்" : "Auspicious days this month"}
+                {isTamil ? "ÃƒÂ Ã‚Â®Ã¢â‚¬Â¡ÃƒÂ Ã‚Â®Ã‚Â¨ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚Â¤ ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â®Ã‚Â¾ÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚Â ÃƒÂ Ã‚Â®Ã…Â¡ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚ÂªÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¯Ã¢â‚¬Å¡ÃƒÂ Ã‚Â®Ã‚Â°ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚Â¤ ÃƒÂ Ã‚Â®Ã‚Â¨ÃƒÂ Ã‚Â®Ã‚Â¾ÃƒÂ Ã‚Â®Ã…Â¸ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â®Ã‚Â³ÃƒÂ Ã‚Â¯Ã‚Â" : "Auspicious days this month"}
               </Text>
               {muhurthamDays.map((e) => (
                 <View key={`muhurtham-${e.dateLocal}`} style={[styles.festivalRow, styles.muhurthamRow]}>
@@ -207,6 +231,17 @@ const styles = StyleSheet.create({
   navArrow: { fontFamily: "Inter_700Bold", fontSize: 24, color: C.saffron, paddingHorizontal: S.sm },
   monthLabel: { color: C.textPrimary, textAlign: "center" },
   locationLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textTertiary, marginTop: 2 },
+  locationPrompt: {
+    backgroundColor: C.surface,
+    borderRadius: RADIUS.card,
+    padding: S.base,
+    gap: S.sm,
+    borderWidth: 1,
+    borderColor: C.divider,
+  },
+  locationPromptTitle: { color: C.textPrimary },
+  locationPromptBody: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 20, color: C.textSecond },
+  locationPromptCta: { fontFamily: "Inter_700Bold", fontSize: 13, color: C.saffron },
 
   scroll: { padding: S.base, gap: S.base },
   weekdayRow: { flexDirection: "row", marginBottom: S.sm },
