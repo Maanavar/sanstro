@@ -1,47 +1,7 @@
-import { apiGet, apiPost } from "./client";
-
-export interface JournalAnchorData {
-  activeDasha: string;
-  moonHouseFromMoon: number;
-  saturnHouseFromMoon: number;
-  moonRasi: string;
-  saturnRasi: string;
-}
-
-export interface JournalEntryData {
-  journalId: string;
-  chartId: string;
-  entryDate: string;
-  lifeArea: string;
-  noteText: string;
-  tags: string[];
-  anchor: JournalAnchorData;
-  createdAt: string;
-}
-
-export interface JournalCreatePayload {
-  chartId: string;
-  entryDate: string;
-  lifeArea: string;
-  noteText: string;
-}
-
-export interface JournalListData {
-  chartId: string;
-  totalCount: number;
-  items: JournalEntryData[];
-}
-
-export function createJournalEntry(
-  payload: JournalCreatePayload
-): Promise<{ success: boolean; data: JournalEntryData }> {
-  return apiPost("/journal", payload);
-}
-
-export function listJournalEntries(
-  chartId: string,
-  limit = 100
-): Promise<{ success: boolean; data: JournalListData }> {
-  const q = new URLSearchParams({ chartId, limit: String(limit) });
-  return apiGet(`/journal?${q}`);
-}
+export type {
+  JournalAnchorData,
+  JournalEntryData,
+  JournalCreatePayload,
+  JournalListData,
+} from "@vinaadi/shared/api/journal";
+export { createJournalEntry, listJournalEntries } from "@vinaadi/shared/api/journal";

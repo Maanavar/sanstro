@@ -1,11 +1,13 @@
 import { router } from "expo-router";
 import { getTokens, setTokens, clearTokens } from "@/lib/secureStore";
 import { ENV } from "@/lib/env";
+import { initApiClient } from "@vinaadi/shared/api/client";
 
 const API_V1_PREFIX = "/api/v1";
 
 function buildApiUrl(path: string): string {
-  return ENV.API_BASE_URL + (path.startsWith("/api/") ? path : `${API_V1_PREFIX}${path}`);
+  const bypass = path.startsWith("/api/") || path.startsWith("/public/");
+  return ENV.API_BASE_URL + (bypass ? path : `${API_V1_PREFIX}${path}`);
 }
 
 // Single-flight 401 refresh - all concurrent 401s share one refresh Promise
@@ -46,7 +48,7 @@ function getRefreshPromise(): Promise<void> {
 
 export async function fetchWithAuth(
   url: string,
-  init: RequestInit = {}
+  init: RequestInit = {},
 ): Promise<Response> {
   const tokens = await getTokens();
   const headers: Record<string, string> = {
@@ -101,7 +103,7 @@ export async function apiDelete(url: string): Promise<void> {
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
-    message: string
+    message: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -121,3 +123,11 @@ export class ApiError extends Error {
     }
   }
 }
+
+// Register mobile implementations with the shared API client
+initApiClient({
+  get: (path) => apiGet(path),
+  post: (path, body) => apiPost(path, body),
+  patch: (path, body) => apiPatch(path, body),
+  delete: (path) => apiDelete(path),
+});
