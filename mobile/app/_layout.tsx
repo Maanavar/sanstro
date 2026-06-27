@@ -119,6 +119,13 @@ function RootNavigation() {
       <Stack.Screen name="varshaphala" />
       <Stack.Screen name="rectification" />
       <Stack.Screen name="wrapped" />
+      <Stack.Screen name="privacy" />
+      <Stack.Screen name="terms" />
+      <Stack.Screen name="learn" />
+      <Stack.Screen name="vargas" />
+      <Stack.Screen name="goals" />
+      <Stack.Screen name="journal" />
+      <Stack.Screen name="profile-manager" />
     </Stack>
   );
 }

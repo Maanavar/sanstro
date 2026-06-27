@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
 import {
   RefreshControl, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View,
@@ -170,7 +170,7 @@ export default function MeScreen() {
           )}
 
           {/* Privacy */}
-          <TouchableOpacity style={styles.menuRow} onPress={() => Linking.openURL("https://vinaadi.app/privacy")}>
+          <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/privacy" as any)}>
             <Text style={styles.menuIcon}>ðŸ”’</Text>
             <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
               {isTamil ? "à®¤à®©à®¿à®¯à¯à®°à®¿à®®à¯ˆ" : "Privacy Policy"}
@@ -180,7 +180,7 @@ export default function MeScreen() {
           <View style={styles.divider} />
 
           {/* Terms */}
-          <TouchableOpacity style={styles.menuRow} onPress={() => Linking.openURL("https://vinaadi.app/terms")}>
+          <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/terms" as any)}>
             <Text style={styles.menuIcon}>ðŸ“‹</Text>
             <Text style={[styles.menuLabel, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
               {isTamil ? "à®ªà®¯à®©à¯à®ªà®¾à®Ÿà¯à®Ÿà¯ à®µà®¿à®¤à®¿à®•à®³à¯" : "Terms of Use"}

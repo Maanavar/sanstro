@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
   Heart, Clock, Star, FileText, Layers, Sparkles, MapPin, HelpCircle, Lock, BookOpen, Check,
-  TrendingUp, SlidersHorizontal, Award, Users, Shuffle,
+  TrendingUp, SlidersHorizontal, Award, Users, Shuffle, CalendarDays, UserCheck,
 } from "lucide-react-native";
 import type { LucideIcon } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
@@ -43,7 +43,7 @@ const GROUPS: ToolGroup[] = [
     labelTa: "உங்கள் ஜாதகம்",
     tools: [
       {
-        Icon: FileText, key: "jadhagam", locked: true,
+        Icon: FileText, key: "jadhagam", route: "/(tabs)/tools/jadhagam",
         nameEn: "Birth Chart",   nameTa: "ஜாதகம்",
         descEn: "Full natal chart", descTa: "ஜாதக விவரங்கள்",
       },
@@ -77,6 +77,33 @@ const GROUPS: ToolGroup[] = [
         Icon: Heart, key: "porutham", route: "/(tabs)/tools/porutham",
         nameEn: "Compatibility", nameTa: "பொருத்தம்",
         descEn: "10-point marriage matching", descTa: "10 பொருத்தம் சரிபார்க்க",
+      },
+      {
+        Icon: UserCheck, key: "friendship", route: "/(tabs)/tools/friendship",
+        nameEn: "Friendship Compat.", nameTa: "நட்பு பொருத்தம்",
+        descEn: "Family vault profile matching", descTa: "குடும்ப உறுப்பினர் பொருத்தம்",
+      },
+    ],
+  },
+  {
+    labelEn: "Calendar & Planning",
+    labelTa: "நாட்காட்டி & திட்டமிடல்",
+    tools: [
+      {
+        Icon: CalendarDays, key: "daily-panchangam", route: "/(tabs)/tools/daily-panchangam",
+        nameEn: "Daily Panchangam", nameTa: "தினசரி பஞ்சாங்கம்",
+        descEn: "Tithi, nakshatra & time windows", descTa: "திதி, நட்சத்திரம் & நேர சாளரங்கள்",
+      },
+    ],
+  },
+  {
+    labelEn: "Learn",
+    labelTa: "கற்றுக்கொள்",
+    tools: [
+      {
+        Icon: BookOpen, key: "nakshatra-list", route: "/learn/nakshatra-list",
+        nameEn: "27 Nakshatras", nameTa: "27 நட்சத்திரங்கள்",
+        descEn: "Browse all lunar mansions", descTa: "அனைத்து நட்சத்திரங்களும்",
       },
     ],
   },
@@ -205,14 +232,14 @@ export default function ToolsScreen() {
     <SafeAreaView style={styles.container}>
       <ScreenHeader
         title={t(strings.tools.title)}
-        subtitle="13 Jyotish tools, grouped by job"
-        subtitleTa="13 ஜோதிட கருவிகள்"
+        subtitle="16 Jyotish tools, grouped by job"
+        subtitleTa="16 ஜோதிட கருவிகள்"
         isTamil={isTamil}
         entering={FadeInDown.delay(entranceDelay.hero).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}
         badge={
           <View style={styles.toolCountPill}>
             <Sparkles size={15} color={C.goldOnLight} strokeWidth={1.5} />
-            <Text style={styles.toolCountText}>13</Text>
+            <Text style={styles.toolCountText}>16</Text>
           </View>
         }
       />
@@ -255,8 +282,8 @@ export default function ToolsScreen() {
               { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_600SemiBold" },
             ]}>
               {isTamil
-                ? "உங்கள் ஜாதகம் 60 வினாடியில் பெறுங்கள் →"
-                : "Get your birth chart in 60 seconds →"}
+                ? "ஜாதகம், நட்சத்திரம், பஞ்சாங்கம் — 60 வினாடியில் →"
+                : "Charts, nakshatras, panchangam — in 60 seconds →"}
             </Text>
           </TouchableOpacity>
           </Animated.View>
