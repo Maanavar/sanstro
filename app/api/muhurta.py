@@ -40,7 +40,7 @@ def get_muhurta(
 )
 def get_muhurtham_naals_for_chart(
     chart_id: UUID,
-    year: int = Query(default=2026, description="Calendar year of the muhurtham sheet"),
+    year: int = Query(default=2027, description="Calendar year of the muhurtham sheet"),
     recommended_only: bool = Query(default=False, alias="recommendedOnly"),
     session: Session = Depends(get_db),
     _current_user: User = Depends(get_current_user),

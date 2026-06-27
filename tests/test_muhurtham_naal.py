@@ -10,7 +10,7 @@ import uuid
 import pytest
 from fastapi import HTTPException
 
-from app.data.muhurtham_naals import get_muhurtham_naals
+from app.data.muhurtham_naals import available_years, get_muhurtham_naals
 from app.models import Chart
 from app.services import muhurtham_naal_service as svc
 
@@ -24,6 +24,17 @@ def test_2026_sheet_has_55_dates_with_expected_pirai_split():
     thei = sum(1 for n in naals if n.pirai == "THEIPIRAI")
     assert (valar, thei) == (25, 30)
     # every curated date resolves to an auspicious driving star
+    for n in naals:
+        assert n.nakshatra_name in svc.NAKSHATRA_NAMES
+
+
+def test_2027_sheet_has_74_dates_with_expected_pirai_split():
+    naals = get_muhurtham_naals(2027)
+    assert len(naals) == 74
+    valar = sum(1 for n in naals if n.pirai == "VALARPIRAI")
+    thei = sum(1 for n in naals if n.pirai == "THEIPIRAI")
+    assert (valar, thei) == (37, 37)
+    assert available_years() == [2026, 2027]
     for n in naals:
         assert n.nakshatra_name in svc.NAKSHATRA_NAMES
 

@@ -380,7 +380,7 @@ def public_friendship_compatibility(payload: FriendshipRequest) -> dict:
 
 @router.get("/muhurtham-naals", response_model=MuhurthamNaalListResponse)
 def public_muhurtham_naals(
-    year: int = 2026,
+    year: int = 2027,
     month: int | None = None,
     pirai: str | None = None,
     weekday: str | None = None,
