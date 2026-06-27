@@ -1,0 +1,12 @@
+{
+  "name": "@vinaadi/design-tokens",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.js"
+  },
+  "exports": {
+    "./dist/web/tokens.css": "./dist/web/tokens.css",
+    "./dist/mobile/tokens": "./dist/mobile/tokens.ts"
+  }
+}
