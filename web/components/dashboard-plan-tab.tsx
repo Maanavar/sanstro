@@ -639,7 +639,7 @@ export function DashboardPlanTab({
           {/* ── Verified almanac wedding dates, matched to the chart ──── */}
           <div style={{ marginTop: "var(--space-1)" }}>
             <p className="cd-kicker" style={{ marginBottom: "var(--space-1)", letterSpacing: "0.1em" }}>
-              {lang === "ta" ? "திருமணம் — 2026 முகூர்த்த நாட்கள்" : "Marriage — 2026 muhurtham dates"}
+              {lang === "ta" ? "திருமணம் — 2027 முகூர்த்த நாட்கள்" : "Marriage — 2027 muhurtham dates"}
             </p>
             <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.72rem", color: W.mutedLt, lineHeight: 1.5 }}>
               {lang === "ta"

@@ -13,7 +13,7 @@ import {
 } from "@/lib/muhurtham-naal";
 import { Surface } from "./dashboard-ui";
 
-const YEAR = 2026;
+const YEAR = 2027;
 
 const W = {
   ink: "var(--panel-earth-dark)",
