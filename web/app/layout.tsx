@@ -4,10 +4,12 @@ import { Fraunces, Inter, JetBrains_Mono, Noto_Sans_Tamil } from "next/font/goog
 import type { ReactNode } from "react";
 import { BetaSystem } from "@/components/beta-system";
 import { PostHogProvider } from "@/components/posthog-provider";
+import { QueryProvider } from "@/components/query-provider";
 import { LangProvider } from "@/components/lang-toggle";
 import { LANG_COOKIE_NAME, type Lang } from "@/lib/i18n";
 import { Toaster } from "sonner";
 
+import "@vinaadi/design-tokens/dist/web/tokens.css";
 import "./globals.css";
 
 const BASE = "https://vinaadi.com";
@@ -173,10 +175,12 @@ export default async function RootLayout({
       </head>
       <body>
         <LangProvider initialLang={initialLang}>
-          <PostHogProvider />
-          <BetaSystem />
-          {children}
-          <Toaster position="bottom-center" />
+          <QueryProvider>
+            <PostHogProvider />
+            <BetaSystem />
+            {children}
+            <Toaster position="bottom-center" />
+          </QueryProvider>
         </LangProvider>
       </body>
     </html>

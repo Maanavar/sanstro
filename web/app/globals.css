@@ -1,76 +1,25 @@
-/* ── Design Tokens — Warm Cosmic Minimalism ─────────────────
-   Generated from packages/design-tokens/tokens.json v1.0
-   Dark theme is primary (marketing shell + dashboard).
-   Light theme overrides are defined below, activated in Phase 5.
+/* ── Web-specific Extensions ─────────────────────────────────
+   Core design tokens are loaded from @vinaadi/design-tokens/dist/web/tokens.css
+   (imported in web/app/layout.tsx before this file).
+   Only web-specific, non-token values belong here.
+   Run: node packages/design-tokens/build.js  to regenerate tokens.
    ─────────────────────────────────────────────────────────── */
 :root {
-  color-scheme: light dark;
-
-  /* Surface tokens */
-  --surface-0: #0D0F1A;
-  --surface-1: #151825;
-  --surface-2: #1E2235;
-  --surface-3: #252A40;
-  --surface-4: #0A0C14;
-  --surface-5: #2A3050;
-
-  /* Text tokens */
-  --text-primary:   #F0EBE0;
-  --text-secondary: #B8A88A;
-  --text-tertiary:  #9A8A70;
-  --text-disabled:  #4A3E2E;
-
-  /* Accent */
-  --accent:        #C9971C;
-  --accent-hover:  #E0AE28;
-  --accent-subtle:    #1E1A0A;
-  --accent-on-light:  #8B6412;
-
-  /* Semantic */
-  --success:        #3DAA6A;
-  --success-subtle: #0A1E14;
-  --warning:        #E08A20;
-  --warning-subtle: #1E1200;
-  --error:          #E05040;
-  --error-subtle:   #1E0A08;
-  --info:           #5080E0;
-  --info-subtle:    #080E1E;
-  --overlay:        rgba(0, 0, 0, 0.7);
-
-  /* Spacing */
-  --space-xs:  4px;
-  --space-sm:  8px;
-  --space-md:  12px;
-  --space-lg:  16px;
-  --space-xl:  24px;
-  --space-2xl: 32px;
-  --space-3xl: 48px;
-  --space-4xl: 64px;
-
-  /* Radius */
-  --radius-sm:   6px;
-  --radius-md:   10px;
-  --radius-lg:   16px;
-  --radius-xl:   24px;
-  --radius-full: 9999px;
-
-  /* Duration */
-  --duration-fast:   150ms;
-  --duration-base:   250ms;
-  --duration-slow:   400ms;
-  --duration-slower: 600ms;
-  --easing-default:  cubic-bezier(0.4, 0, 0.2, 1);
-
-  /* Icon */
-  --icon-stroke: 1.5px;
-
   /* Skeleton shimmer */
   --shimmer-base: rgba(255,255,255,0.07);
   --shimmer-peak: rgba(255,255,255,0.15);
 
+  /* Web-specific accent variant (not in tokens.json) */
+  --accent-on-light: #8B6412;
+
   /* Warm panel context — parchment drawers, knowledge surfaces, light forms */
   --panel-brand:        #B05220;
   --panel-brand-border: rgba(184, 90, 44, 0.4);
+  --panel-brand-a10:    color-mix(in srgb, var(--panel-brand) 10%, transparent);
+  --panel-brand-a15:    color-mix(in srgb, var(--panel-brand) 15%, transparent);
+  --panel-brand-a20:    color-mix(in srgb, var(--panel-brand) 20%, transparent);
+  --panel-brand-a30:    color-mix(in srgb, var(--panel-brand) 30%, transparent);
+  --panel-brand-a40:    color-mix(in srgb, var(--panel-brand) 40%, transparent);
   --panel-cream:        #FAF5EA;
   --panel-earth:        #3D352B;
   --panel-tan:          #D4C8AE;
@@ -86,8 +35,19 @@
 
   /* Astrology / planet semantic colors */
   --planet-lagna:  #8c3e18;
+  --planet-sun:    #D08B4A;
+  --planet-moon:   #6B8DB8;
+  --planet-mars:   #CF6354;
+  --planet-mercury:#A99663;
+  --planet-jupiter:#93A56D;
+  --planet-venus:  #C59AC3;
+  --planet-saturn-soft: #607089;
+  --planet-rahu:   #9F93C4;
+  --planet-ketu:   #9A8679;
   --planet-saturn: #A8482F;
   --planet-nodes:  #5a4880;
+  --planet-nodes-fill:   rgba(122, 72, 128, 0.12);
+  --planet-nodes-border: rgba(122, 72, 128, 0.28);
   --planet-other:  #1e5a8c;
 
   /* Chart cell states — warm panel context */
@@ -103,6 +63,8 @@
   --chart-d9-active:        #5C7654;  /* D9 tab / accent */
   --chart-d9-active-dark:   #3a6b40;
   --chart-d9-active-bg:     #DCE4D2;
+  --chart-d9-a15:           color-mix(in srgb, var(--chart-d9-active) 15%, transparent);
+  --chart-d9-a25:           color-mix(in srgb, var(--chart-d9-active) 25%, transparent);
   --panel-earth-dark:       #1A1612;  /* darkest warm text — headings on light */
   /* Additional warm panel tints */
   --panel-warm-tint:  #F2D8CC;
@@ -118,6 +80,38 @@
   --color-indigo:      #6366F1;   /* indigo — premium/plan indicator */
   --color-violet:      #A78BFA;   /* violet — secondary accent */
   --chart-amber:       #E5B84D;   /* marketing gold / score amber */
+
+  /* ── Warm text extensions ── */
+  --panel-warm-muted:  #7A6F5E;   /* muted warm body / secondary labels */
+  --panel-faint:       #A89D89;   /* placeholder / disabled / captions */
+
+  /* ── Effect primitives — focus rings, soft borders, elevation shadows ──
+     Reusable across inputs, cards and buttons so component CSS never needs
+     literal rgba(). */
+  --ring-brand:          rgba(184, 90, 44, 0.12);
+  --ring-error:          rgba(168, 72, 47, 0.08);
+  --ring-success:        rgba(92, 118, 84, 0.07);
+  --border-error-soft:   rgba(168, 72, 47, 0.3);
+  --border-success-soft: rgba(92, 118, 84, 0.4);
+  --shadow-card:         rgba(60, 40, 20, 0.12);
+  --shadow-tab:          rgba(60, 40, 20, 0.15);
+  --shadow-btn:          rgba(26, 22, 18, 0.2);
+  --shadow-sticky-subtle: rgba(0, 0, 0, 0.04);
+  --glow-brand:          rgba(184, 90, 44, 0.08);
+  --veil-white-025:      rgba(255, 255, 255, 0.025);
+  --veil-white-04:       rgba(255, 255, 255, 0.04);
+  --veil-white-06:       rgba(255, 255, 255, 0.06);
+  --veil-white-08:       rgba(255, 255, 255, 0.08);
+  --veil-white-20:       rgba(255, 255, 255, 0.2);
+  --veil-white-25:       rgba(255, 255, 255, 0.25);
+  --veil-white-30:       rgba(255, 255, 255, 0.3);
+  --veil-white-35:       rgba(255, 255, 255, 0.35);
+  --veil-white-45:       rgba(255, 255, 255, 0.45);
+  --veil-white-50:       rgba(255, 255, 255, 0.5);
+  --veil-white-55:       rgba(255, 255, 255, 0.55);
+  --border-ink-faint:    rgba(0, 0, 0, 0.12);
+  --underline-brand:        rgba(184, 90, 44, 0.3);
+  --underline-brand-strong: rgba(184, 90, 44, 0.7);
 
   /* ── Backward-compat aliases — existing CSS classes reference these ── */
   --color-surface:   var(--surface-1);
@@ -157,58 +151,292 @@
   --cl-caution:     #8C3C22;
   --cl-caution-soft:#F2D8CC;
   --cl-shadow:      rgba(60,40,20,0.18);
+
+  /* ── Clarity shell — semantic tone fills (public tool pages) ── */
+  --cl-sage-tint:        rgba(92, 118, 84, 0.08);
+  --cl-sage-mid:         rgba(92, 118, 84, 0.15);
+  --cl-sage-ring:        rgba(92, 118, 84, 0.22);
+  --cl-sage-edge:        rgba(92, 118, 84, 0.30);
+  --cl-rust-tint:        rgba(168, 72, 47, 0.07);
+  --cl-rust-fill:        rgba(168, 72, 47, 0.12);
+  --cl-rust-mid:         rgba(168, 72, 47, 0.14);
+  --cl-rust-ring:        rgba(168, 72, 47, 0.20);
+  --cl-rust-edge:        rgba(168, 72, 47, 0.40);
+  --cl-brand-tint:       rgba(184, 90, 44, 0.07);
+  --cl-brand-ring-sm:    rgba(184, 90, 44, 0.15);
+  --cl-brand-ring-md:    rgba(184, 90, 44, 0.20);
+  --cl-brand-ring:       rgba(184, 90, 44, 0.24);
+  --cl-brand-edge:       rgba(184, 90, 44, 0.35);
+  --cl-brand-40:         rgba(184, 90, 44, 0.40);
+  /* Festival category tag palette */
+  --cl-festival-christian-bg:      #E7D3BE;
+  --cl-festival-christian-bdr:     rgba(75, 57, 45, 0.18);
+  --cl-festival-christian-fill:    rgba(130, 105, 75, 0.1);
+  --cl-festival-christian-border:  rgba(130, 105, 75, 0.24);
+  --cl-festival-govt-bg:           #DDEAF1;
+  --cl-festival-govt-fill:         rgba(49, 86, 106, 0.1);
+  --cl-festival-govt-border:       rgba(49, 86, 106, 0.24);
+  --cl-festival-tn-bg:             #F0E2B8;
+  --cl-festival-tn-fill:           rgba(122, 92, 20, 0.12);
+  --cl-festival-tn-border:         rgba(122, 92, 20, 0.24);
+  --cl-govt-ink:  #31566A;
+  --cl-tn-ink:    #7A5C14;
+  /* Neutral warm mid-tone */
+  --cl-neutral-tint:   rgba(120, 100, 60, 0.06);
+  --cl-neutral-mid:    rgba(120, 100, 60, 0.12);
+  --cl-neutral-ring:   rgba(120, 100, 60, 0.20);
+  --cl-neutral-ink:    #786432;
+
+  /* Transit/member dashboard surfaces */
+  --transit-card-bg:     #FFFEFC;
+  --transit-flag-bg:     #FFF9F4;
+  --member-alert-bg:     rgba(239, 68, 68, 0.06);
+  --member-alert-border: rgba(248, 113, 113, 0.45);
+
+  /* ── Monthly calendar — warm parchment palette ── */
+  --cal-page:        #F6F0E3;
+  --cal-line:        rgba(116, 91, 66, 0.16);
+  --cal-muted-card:  #EFEEE2;
+  --cal-selected:    #F4DDC8;
+  --cal-sel-bdr:     #CB7748;
+  --cal-festival:    #6B8661;
+  --cal-vratha:      #CC6A32;
+  --cal-global:      #4C7897;
+  --cal-dim:         #8E7B68;
+  --cal-nav-btn:     #FFFDF8;
+  --cal-ink:         #2E231B;
+  --cal-tab-bg:      #2F241D;
+  --cal-tab-badge:   #F2E8D9;
+  --cal-today-badge: #F2E4D6;
+  --cal-karinaal:    #8A2B16;
+  --cal-item-ink:    #2E241C;
+  /* Calendar cell highlights */
+  --cal-h-muhurtham:  #E8F3E0;
+  --cal-h-pournami:   #FFFCE8;
+  --cal-h-amavasai:   #EEEAF5;
+  --cal-h-chathurthi: #FFF0E6;
+  --cal-h-sashti:     #E6EEFF;
+  --cal-h-pradosham:  #F5E6FF;
+  --cal-b-pournami:   #C9A84C;
+  --cal-b-amavasai:   #7060B0;
+  --cal-b-sashti:     #3468B4;
+  --cal-b-pradosham:  #8B5CF6;
+  --cal-match:        #EEF5E8;
+  --cal-match-badge:  #C8E6C9;
+
+  /* ── Printed jathagam document ── */
+  --print-ink:       #2f2720;
+  --print-bdr:       #6b5d4d;
+  --print-hdr:       #f5eedd;
+  --print-lagna-bg:  #fbf1de;
+  --print-muted:     #7a6f5e;
+  --print-warm:      #5a4a3a;
+  --print-center:    #fffdfa;
+  --print-foot:      #9a8a7a;
+  --print-foot-bdr:  #b0a090;
+
+  /* ── Planet dignity indicators ── */
+  --dignity-exalt:   #2a7a2a;
+  --dignity-neecha:  #a83020;
+
+  /* ── Rasipalan — house lucky-colour swatches ── */
+  --rasi-h1:  #E8E8E8;
+  --rasi-h2:  #F5C842;
+  --rasi-h3:  #E05C3A;
+  --rasi-h4:  #C8E6B8;
+  --rasi-h5:  #F5A623;
+  --rasi-h6:  #4CAF50;
+  --rasi-h7:  #F4A8C0;
+  --rasi-h8:  #9E9E9E;
+  --rasi-h9:  #F5C518;
+  --rasi-h10: #E07020;
+  --rasi-h11: #3F5FA8;
+  --rasi-h12: #F5F0D8;
+
+  /* ── Veil extensions (white overlay at additional opacities) ── */
+  --veil-white-07:  rgba(255, 255, 255, 0.07);
+  --veil-white-10:  rgba(255, 255, 255, 0.10);
+  --veil-white-12:  rgba(255, 255, 255, 0.12);
+  --veil-white-80:  rgba(255, 255, 255, 0.80);
+
+  /* ── Amber (tithi/golden accent) ── */
+  --color-amber:        #f59e0b;
+  --color-amber-bg:     rgba(245, 158, 11, 0.07);
+  --color-amber-border: rgba(251, 191, 36, 0.22);
+  --color-amber-chip-bg: rgba(255, 193, 7, 0.12);
+
+  /* ── Violet (insight / context card) ── */
+  --color-violet-bg:     rgba(139, 92, 246, 0.08);
+  --color-violet-border: rgba(167, 139, 250, 0.25);
+
+  /* ── Error background (inline error messages) ── */
+  --color-error-bg: rgba(248, 113, 113, 0.08);
+
+  /* ── Brand: faint hover/disabled tint ── */
+  --brand-tint-faint: rgba(184, 90, 44, 0.05);
+
+  /* ── Sage tint extensions (success / D9 green) ── */
+  --cl-sage-soft:   rgba(92, 118, 84, 0.12);
+  --cl-sage-border: rgba(92, 118, 84, 0.35);
+
+  /* ── QA pass / fail traffic-light palette ── */
+  --color-pass-bg:            rgba(74, 222, 128, 0.08);
+  --color-pass-bg-mid:        rgba(74, 222, 128, 0.12);
+  --color-pass-bg-strong:     rgba(74, 222, 128, 0.15);
+  --color-pass-border:        rgba(74, 222, 128, 0.30);
+  --color-fail-tint:          rgba(239, 68, 68, 0.05);
+  --color-fail-bg-mid:        rgba(239, 68, 68, 0.15);
+  --color-fail-border-light:  rgba(248, 113, 113, 0.25);
+  --color-fail-border:        rgba(248, 113, 113, 0.30);
+  --color-fail-border-strong: rgba(248, 113, 113, 0.35);
+
+  /* ── Dasha scrubber — vivid planet colours for timeline bars ── */
+  --dasha-sun:     #f97316;
+  --dasha-mars:    #ef4444;
+  --dasha-jupiter: #eab308;
+  --dasha-mercury: #22c55e;
+  --dasha-ketu:    #e879f9;
+  --dasha-venus:   #ec4899;
+  --dasha-earth-1: #7A8F5E;   /* natchathiram dasha rotation — sage */
+  --dasha-earth-2: #C4714A;   /* natchathiram dasha rotation — clay */
+  --dasha-earth-3: #6B7A52;   /* natchathiram dasha rotation — moss */
+  --dasha-earth-4: #9E5024;   /* natchathiram dasha rotation — amber */
+
+  /* ── Clarity: inauspicious calendar event style ── */
+  --cl-inauspicious-border: #E0A89C;
+  --cl-inauspicious-bg:     #FCEFEC;
+
+  /* ── Clarity: Muhurta tool colours ── */
+  --cl-muhurta-green:      #4f7c3e;
+  --cl-muhurta-green-bg:   rgba(79, 124, 62, 0.08);
+  --cl-muhurta-caution:    #7a6a1a;
+  --cl-muhurta-caution-bg: rgba(200, 180, 40, 0.10);
+  --cl-caution-ink:        #9a6010;
+
+  /* ── Clarity: error semantic tokens ── */
+  --cl-error:      #c0392b;
+  --cl-error-tint: rgba(192, 57, 43, 0.07);
+  --cl-error-ring: rgba(192, 57, 43, 0.20);
+
+  /* ── Extended rust (168,72,47) tints ── */
+  --cl-rust:        #A8482F;
+  --cl-rust-faint:  rgba(168, 72, 47, 0.05);
+  --cl-rust-06:     rgba(168, 72, 47, 0.06);
+  --cl-rust-soft:   rgba(168, 72, 47, 0.10);
+  --cl-rust-15:     rgba(168, 72, 47, 0.15);
+  --cl-rust-25:     rgba(168, 72, 47, 0.25);
+  --cl-rust-30:     rgba(168, 72, 47, 0.30);
+  --cl-rust-35:     rgba(168, 72, 47, 0.35);
+
+  /* ── Extended sage (92,118,84) tints ── */
+  --cl-sage-06:  rgba(92, 118, 84, 0.06);
+  --cl-sage-10:  rgba(92, 118, 84, 0.10);
+  --cl-sage-18:  rgba(92, 118, 84, 0.18);
+  --cl-sage-20:  rgba(92, 118, 84, 0.20);
+  --cl-sage-25:  rgba(92, 118, 84, 0.25);
+  --cl-sage-28:  rgba(92, 118, 84, 0.28);
+  --cl-sage-40:  rgba(92, 118, 84, 0.40);
+  --cl-sage-45:  rgba(92, 118, 84, 0.45);
+  --cl-sage-50:  rgba(92, 118, 84, 0.50);
+
+  /* ── Extended brand (184,90,44) tints ── */
+  --cl-brand-fill: rgba(184, 90, 44, 0.10);
+  --cl-brand-18:   rgba(184, 90, 44, 0.18);
+  --cl-brand-25:   rgba(184, 90, 44, 0.25);
+  --cl-brand-28:   rgba(184, 90, 44, 0.28);
+
+  /* ── Earth gray (122,111,94) tints ── */
+  --color-earth-faint: rgba(122, 111, 94, 0.07);
+  --color-earth-soft:  rgba(122, 111, 94, 0.15);
+  --color-earth-mid:   rgba(122, 111, 94, 0.18);
+  --color-earth-ring:  rgba(122, 111, 94, 0.20);
+
+  /* ── Warm ink overlays (26,22,18) ── */
+  --ink-faint:         rgba(26, 22, 18, 0.12);
+  --ink-soft:          rgba(26, 22, 18, 0.18);
+  --ink-overlay:       rgba(26, 22, 18, 0.55);
+  --ink-overlay-heavy: rgba(26, 22, 18, 0.72);
+
+  /* ── Warm shadow (60,40,20) extra-soft ── */
+  --shadow-extra-soft: rgba(60, 40, 20, 0.06);
+  --shadow-faint:      rgba(60, 40, 20, 0.07);
+  --shadow-warm-08:    rgba(60, 40, 20, 0.08);
+
+  /* ── Black drop shadows ── */
+  --shadow-hairline: rgba(0, 0, 0, 0.03);
+  --shadow-drop:     rgba(0, 0, 0, 0.25);
+  --shadow-lift:     rgba(0, 0, 0, 0.30);
+
+  /* ── White veil extensions ── */
+  --veil-white-15:  rgba(255, 255, 255, 0.15);
+  --veil-white-75:  rgba(255, 255, 255, 0.75);
+
+  /* ── Warm ink medium shadow ── */
+  --ink-warm-24: rgba(61, 53, 43, 0.24);
+
+  /* ── Panel warm overlays ── */
+  --panel-cream-96: rgba(250, 245, 234, 0.96);
+  --cl-bg-98:       rgba(244, 238, 226, 0.98);
+
+  /* ── Panel tan tints ── */
+  --panel-tan-50: rgba(212, 200, 174, 0.50);
+  --panel-tan-60: rgba(212, 200, 174, 0.60);
+
+  /* ── Specific component colors ── */
+  --color-gold-mid:        #A0852A;
+  --color-warm-cream:      #F6EFE2;
+  --color-sage-dark:       #46603C;
+  --color-olive-green:     #4a7041;
+  --color-rust-dark:       #7a3412;
+  --color-purple-mid:      #7a4880;
+  --color-warm-taupe:      #6B4C2A;
+  --color-gold-amber:      #C6973A;
+  --color-teal:            #128196;
+  --color-warm-parch:      #F9F3E8;
+  --color-amber-warm:      #FFF7EB;
+  --color-rose-light:      #FCE7E2;
+  --color-sage-fill:       #EEF5E8;
+  --color-rust-fill:       #F9ECE7;
+  --color-error-dark:      #991B1B;
+
+  /* ── Annual-wrapped lifecycle palette ── */
+  --color-lifecycle-sun:    #D2873B;
+  --color-lifecycle-moon:   #668FA3;
+  --color-lifecycle-venus:  #956A8A;
+  --color-lifecycle-gray:   #6B7280;
+  --color-lifecycle-saturn: #7E6B99;
+
+  /* ── Panchangam embed-widget dark palette ── */
+  --widget-bg:         #0d1117;
+  --widget-text:       #e6edf3;
+  --widget-muted:      #8b949e;
+  --widget-green:      #4ade80;
+  --widget-amber:      #fbbf24;
+  --widget-indigo:     #818cf8;
+  --widget-red:        #f87171;
+  --widget-divider:    rgba(255,255,255,0.08);
+  --widget-card-bg:    rgba(255,255,255,0.04);
+  --widget-row-border: rgba(255,255,255,0.06);
 }
 
-/* Light theme token overrides — auto: system preference. */
+/* Light shimmer override */
 @media (prefers-color-scheme: light) {
   :root {
-    color-scheme: light;
-    --surface-0: #FAF7F2; --surface-1: #F3EEE5; --surface-2: #EAE3D6;
-    --surface-3: #DDD6C8; --surface-4: #CFC7B5; --surface-5: #B8AFA0;
-    --text-primary: #1C1008; --text-secondary: #4A3820;
-    --text-tertiary: #9A8A70; --text-disabled: #A89880;
-    --accent: #C9971C; --accent-hover: #A87D18; --accent-subtle: #FDF3DC;
-    --success: #2D7A4F; --success-subtle: #EAF5EF;
-    --warning: #B86A00; --warning-subtle: #FEF3E2;
-    --error: #C0392B;   --error-subtle:   #FDE8E6;
-    --info:  #1D5EA8;   --info-subtle:    #E8F0FC;
-    --overlay: rgba(28, 16, 8, 0.5);
-    --shimmer-base: #E4DDD4; --shimmer-peak: #EDE8E0;
+    --shimmer-base: #E4DDD4;
+    --shimmer-peak: #EDE8E0;
   }
 }
 
-/* Explicit light — overrides system preference when data-theme="light" is set.
-   Same values as the media-query block above; placed after so it wins on cascade order. */
 [data-theme="light"] {
   color-scheme: light;
-  --surface-0: #FAF7F2; --surface-1: #F3EEE5; --surface-2: #EAE3D6;
-  --surface-3: #DDD6C8; --surface-4: #CFC7B5; --surface-5: #B8AFA0;
-  --text-primary: #1C1008; --text-secondary: #4A3820;
-  --text-tertiary: #9A8A70; --text-disabled: #A89880;
-  --accent: #C9971C; --accent-hover: #A87D18; --accent-subtle: #FDF3DC;
-  --success: #2D7A4F; --success-subtle: #EAF5EF;
-  --warning: #B86A00; --warning-subtle: #FEF3E2;
-  --error: #C0392B;   --error-subtle:   #FDE8E6;
-  --info:  #1D5EA8;   --info-subtle:    #E8F0FC;
-  --overlay: rgba(28, 16, 8, 0.5);
-  --shimmer-base: var(--surface-1); --shimmer-peak: var(--surface-2);
+  --shimmer-base: var(--surface-1);
+  --shimmer-peak: var(--surface-2);
 }
 
-/* Explicit dark — overrides the auto-light media query when data-theme="dark" is set.
-   Restores all dark-theme vars that the light block overrides above. */
 [data-theme="dark"] {
   color-scheme: dark;
-  --surface-0: #0D0F1A; --surface-1: #151825; --surface-2: #1E2235;
-  --surface-3: #252A40; --surface-4: #0A0C14; --surface-5: #2A3050;
-  --text-primary: #F0EBE0; --text-secondary: #B8A88A;
-  --text-tertiary: #9A8A70; --text-disabled: #4A3E2E;
-  --accent: #C9971C; --accent-hover: #E0AE28; --accent-subtle: #1E1A0A;
-  --success: #3DAA6A; --success-subtle: #0A1E14;
-  --warning: #E08A20; --warning-subtle: #1E1200;
-  --error: #E05040;   --error-subtle:   #1E0A08;
-  --info:  #5080E0;   --info-subtle:    #080E1E;
-  --overlay: rgba(0, 0, 0, 0.7);
-  --shimmer-base: rgba(255,255,255,0.07); --shimmer-peak: rgba(255,255,255,0.15);
+  --shimmer-base: rgba(255,255,255,0.07);
+  --shimmer-peak: rgba(255,255,255,0.15);
 }
 
 *,
@@ -7044,4 +7272,3 @@ html[lang="ta"] :where(
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
-
