@@ -10,6 +10,13 @@ const SCAN_ROOTS = ["web", "mobile"];
 const SKIP_DIRS = new Set([".next", ".expo", "artifacts", "coverage", "node_modules", "playwright-report", "test-results"]);
 const SKIP_FILES = new Set([
   "mobile/src/theme/colors.ts",
+  // Canvas 2D share-card renderers: ctx.fillStyle / ctx.strokeStyle require
+  // literal color strings — CSS custom properties (var(--token)) do not resolve
+  // inside the Canvas API, so these files are exempt from the token ratchet.
+  "web/components/dashboard-share-card.tsx",
+  "web/components/friendship-result-card.tsx",
+  "web/components/panchangam-share-card.tsx",
+  "web/components/public-share-card.tsx",
 ]);
 
 function toRepoPath(filePath) {

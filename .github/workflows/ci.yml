@@ -125,6 +125,21 @@ jobs:
       - name: Build
         run: npm run build
 
+  design-tokens:
+    name: Design token ratchet (no new color literals)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      # Pure-Node fs scan — no install needed. Fails if any web/mobile source
+      # introduces a new hardcoded color literal beyond the ratchet baseline.
+      # To intentionally move the line: `pnpm qa:colors:update` and commit the
+      # regenerated scripts/color-literals-baseline.json.
+      - name: Color literal ratchet
+        run: node scripts/audit-color-literals.mjs
+
   e2e:
     name: Playwright e2e
     runs-on: ubuntu-latest
