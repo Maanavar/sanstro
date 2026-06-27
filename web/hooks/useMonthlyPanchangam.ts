@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
+import { STALE } from "@/lib/queryClient";
 import type { ApiEnvelope, PanchangamMonthlyData } from "@/lib/types";
 
 type Location = {
@@ -11,38 +13,50 @@ type Location = {
   timezone: string;
 };
 
+type MonthlyPanchangamRequest = {
+  year: number;
+  month: number;
+  location: Location;
+};
+
 export function useMonthlyPanchangam() {
-  const [data, setData] = useState<PanchangamMonthlyData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const requestId = useRef(0);
+  const [request, setRequest] = useState<MonthlyPanchangamRequest | null>(null);
 
-  const fetchMonth = useCallback(async (year: number, month: number, location: Location | null) => {
-    if (!location) {
-      setData(null);
-      setError(null);
-      return;
-    }
-
-    const currentRequest = ++requestId.current;
-    setIsLoading(true);
-    setError(null);
-    try {
+  const query = useQuery({
+    queryKey: [
+      "panchangam",
+      "monthly",
+      request?.year,
+      request?.month,
+      request?.location.lat,
+      request?.location.lng,
+      request?.location.timezone,
+    ],
+    queryFn: async () => {
+      if (!request) return null;
       const response = await apiFetchJson<ApiEnvelope<PanchangamMonthlyData>>(
-        `/api/v1/panchangam/monthly${toQuery({ year, month, lat: location.lat, lng: location.lng, timezone: location.timezone })}`,
+        `/api/v1/panchangam/monthly${toQuery({
+          year: request.year,
+          month: request.month,
+          lat: request.location.lat,
+          lng: request.location.lng,
+          timezone: request.location.timezone,
+        })}`,
       );
-      if (currentRequest !== requestId.current) return;
-      setData(response.data);
-    } catch (err) {
-      if (currentRequest !== requestId.current) return;
-      setData(null);
-      setError(readErrorMessage(err));
-    } finally {
-      if (currentRequest === requestId.current) {
-        setIsLoading(false);
-      }
-    }
+      return response.data;
+    },
+    enabled: request !== null,
+    staleTime: STALE.today,
+  });
+
+  const fetchMonth = useCallback((year: number, month: number, location: Location | null) => {
+    setRequest(location ? { year, month, location } : null);
   }, []);
 
-  return { monthlyPanchangam: data, isMonthlyPanchangamLoading: isLoading, monthlyPanchangamError: error, fetchMonthlyPanchangam: fetchMonth };
+  return {
+    monthlyPanchangam: query.data ?? null,
+    isMonthlyPanchangamLoading: query.isFetching,
+    monthlyPanchangamError: query.error ? readErrorMessage(query.error) : null,
+    fetchMonthlyPanchangam: fetchMonth,
+  };
 }
