@@ -146,6 +146,20 @@ export default async function PanchangamDatePage({ params }: Props) {
             <p className="cl-pub-lead" style={{ marginBottom: "20px" }}>
               Thirukanitham-based · Sunrise-adjusted timings
             </p>
+            <div
+              style={{
+                marginBottom: "20px",
+                maxWidth: "52rem",
+                padding: "12px 14px",
+                borderRadius: "12px",
+                border: "1px solid #E0C29E",
+                background: "#FFF7ED",
+                color: "#6C4B32",
+                lineHeight: 1.6,
+              }}
+            >
+              Showing panchangam for Chennai by default. <Link href="/tools/daily-panchangam-planner" style={{ color: "#8A4B1F", fontWeight: 700, textDecoration: "none" }}>Set your city</Link> for accurate sunrise, Rahu Kalam, and Nalla Neram.
+            </div>
 
             {/* Date navigation */}
             <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
