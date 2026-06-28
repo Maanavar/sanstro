@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput,
+  Modal, RefreshControl, ScrollView, Share, StyleSheet, Text, TextInput,
   TouchableOpacity, useWindowDimensions, View,
 } from "react-native";
+import { trackEvent } from "@/lib/analytics";
 import { useToast } from "@/context/ToastContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -29,7 +30,7 @@ import { useSession } from "@/hooks/useSession";
 import { useColors } from "@/hooks/useColors";
 import { TimeCard } from "@/components/TimeCard";
 import { ListItem } from "@/components/ListItem";
-import { ChipStrip } from "@/components/ChipStrip";
+import { ChipStrip, type ChipItem } from "@/components/ChipStrip";
 import { RasiPalanCard } from "@/components/RasiPalanCard";
 import { ScoreRing } from "@/components/ScoreRing";
 import { ThirukanithamBadge } from "@/components/ThirukanithamBadge";
@@ -37,16 +38,13 @@ import { NativeAdUnit } from "@/components/AdUnit";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { SharedTransitionView } from "@/components/SharedTransitionView";
-import { getPanchangamToday } from "@/api/panchangam";
-import { getRasiPalan } from "@/api/rasiPalan";
-import { getDailyGuidance } from "@/api/guidance";
-import { getLifeAreas, type LifeAreaData } from "@/api/lifeAreas";
-import { getLifeEvents, type LifeEventWindow } from "@/api/lifeEvents";
-import { getUpcomingTransits, type TransitItem } from "@/api/transits";
+import { getDailySnapshot } from "@/api/snapshot";
+import type { LifeAreaData } from "@/api/lifeAreas";
+import type { LifeEventWindow } from "@/api/lifeEvents";
+import type { TransitItem } from "@/api/transits";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
 import { useJournal } from "@/hooks/useJournal";
 import { useConversionPrompt } from "@/hooks/useConversionPrompt";
-import { STALE } from "@/lib/queryClient";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import { pushWidgetData } from "@/lib/widgetBridge";
 import { biText } from "@/lib/i18n";
@@ -75,22 +73,22 @@ type DetailSheetState = {
 } | null;
 
 
-const JOURNAL_MOMENTS = [
-  { key: "win", label: "Big win" },
-  { key: "hard_day", label: "Hard day" },
-  { key: "decision", label: "Decision" },
-  { key: "milestone", label: "Milestone" },
-  { key: "quiet", label: "Nothing yet" },
+const JOURNAL_MOMENTS: ChipItem[] = [
+  { key: "win",       label: "Big win",    labelTa: "வெற்றி" },
+  { key: "hard_day",  label: "Hard day",   labelTa: "கஷ்டமான நாள்" },
+  { key: "decision",  label: "Decision",   labelTa: "முடிவு" },
+  { key: "milestone", label: "Milestone",  labelTa: "மைல்கல்" },
+  { key: "quiet",     label: "Nothing yet",labelTa: "நல்லது இல்லை" },
 ];
 
-const JOURNAL_AREAS = [
-  { key: "career", label: "Career" },
-  { key: "love", label: "Love" },
-  { key: "health", label: "Health" },
-  { key: "money", label: "Money" },
-  { key: "family", label: "Family" },
-  { key: "spiritual", label: "Spiritual" },
-  { key: "general", label: "General" },
+const JOURNAL_AREAS: ChipItem[] = [
+  { key: "career",    label: "Career",    labelTa: "தொழில்" },
+  { key: "love",      label: "Love",      labelTa: "அன்பு" },
+  { key: "health",    label: "Health",    labelTa: "உடல்நலம்" },
+  { key: "money",     label: "Money",     labelTa: "பணம்" },
+  { key: "family",    label: "Family",    labelTa: "குடும்பம்" },
+  { key: "spiritual", label: "Spiritual", labelTa: "ஆன்மிகம்" },
+  { key: "general",   label: "General",   labelTa: "பொதுவான" },
 ];
 
 function formatTime(iso: string): string {
@@ -101,6 +99,13 @@ function formatTime(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+function msUntilMidnight(): number {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  return midnight.getTime() - now.getTime();
 }
 
 function dateDistanceLabel(date: string, isTamil: boolean): string {
@@ -198,72 +203,31 @@ export default function TodayTab() {
   const isLocationMissing = !!prefs && !hasLocation;
   const tz = "Asia/Kolkata";
 
-  const {
-    data: panchangamData,
-    isLoading: isPanchangamLoading,
-    isFetching: isPanchangamFetching,
-    isError,
-    refetch: refetchPanchangam,
-  } = useQuery({
-    queryKey: ["panchangam-today", lat, lon],
-    queryFn: () => getPanchangamToday({ lat: lat!, lng: lon!, tz }),
-    staleTime: STALE.panchangam,
-    enabled: hasLocation,
-  });
-
   const todayDateStr = new Date().toISOString().split("T")[0];
+
   const {
-    data: rasiPalanData,
-    isFetching: isRasiPalanFetching,
-    refetch: refetchRasiPalan,
+    data: snapshotData,
+    isLoading: isPanchangamLoading,
+    isFetching: isSnapshotFetching,
+    isError,
+    refetch: refetchSnapshot,
   } = useQuery({
-    queryKey: ["rasi-palan", prefs?.rasi, todayDateStr, lat, lon],
+    queryKey: ["daily-snapshot", lat, lon, prefs?.rasi, primaryChartId, todayDateStr],
     queryFn: () =>
-      getRasiPalan({
-        rasi: prefs!.rasi!,
-        date: todayDateStr,
-        lat,
-        lng: lon,
-        timezone: tz,
+      getDailySnapshot({
+        lat: lat ?? undefined,
+        lng: lon ?? undefined,
+        tz,
+        rasi: prefs?.rasi ?? undefined,
+        chartId: primaryChartId ?? undefined,
       }),
-    staleTime: STALE.rasiPalan,
-    enabled: !!prefs?.rasi,
+    enabled: !!prefs,
+    staleTime: msUntilMidnight(),
   });
 
-  const p = panchangamData?.data;
-
-  const {
-    data: guidanceData,
-    isFetching: isGuidanceFetching,
-    refetch: refetchGuidance,
-  } = useQuery({
-    queryKey: ["daily-guidance", primaryChartId, todayDateStr],
-    queryFn: () => getDailyGuidance(primaryChartId!, todayDateStr),
-    enabled: tier !== "guest" && !!primaryChartId,
-    staleTime: STALE.guidance,
-  });
-  const g = guidanceData?.data as ExtendedGuidance | undefined;
-
-  const lifeAreas = useQuery({
-    queryKey: ["today-life-areas", primaryChartId, todayDateStr],
-    queryFn: () => getLifeAreas(primaryChartId!, todayDateStr),
-    enabled: tier !== "guest" && !!primaryChartId,
-    staleTime: STALE.today,
-  });
-
-  const lifeEvents = useQuery({
-    queryKey: ["today-life-events", primaryChartId],
-    queryFn: () => getLifeEvents(primaryChartId!, 3),
-    enabled: tier !== "guest" && !!primaryChartId,
-    staleTime: STALE.today,
-  });
-
-  const transits = useQuery({
-    queryKey: ["today-transits", prefs?.rasi],
-    queryFn: () => getUpcomingTransits(prefs!.rasi!, 3),
-    enabled: !!prefs?.rasi,
-    staleTime: STALE.transits,
-  });
+  const p = snapshotData?.data.panchangam ?? undefined;
+  const rasiPalanData = snapshotData?.data.rasi_palan ?? null;
+  const g = (snapshotData?.data.guidance ?? undefined) as ExtendedGuidance | undefined;
 
   // Push today's snapshot to native widget storage whenever data freshens.
   useEffect(() => {
@@ -284,44 +248,38 @@ export default function TodayTab() {
   const todayLabel = today.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
   const tamilDate = p?.tamilDate ? (isTamil ? p.tamilDate.ta : p.tamilDate.en) : todayLabel;
   const cityName = prefs?.city ?? (isLocationMissing ? (isTamil ? "இடத்தை அமைக்கவும்" : "Set location") : "Chennai");
-  const areaPulse = lifeAreas.data?.data.areas ?? [];
+  const areaPulse = snapshotData?.data.life_areas ?? [];
   const nextEvent = useMemo(
-    () => getNextEvent(lifeEvents.data?.data.windows ?? []),
-    [lifeEvents.data]
+    () => getNextEvent((snapshotData?.data.life_events ?? []) as LifeEventWindow[]),
+    [snapshotData]
   );
-  const gowriSlots = getGowriSlots(p);
+  const gowriSlots = getGowriSlots(p as any);
   const primaryGowri = gowriSlots[0];
-  const cosmicAlert = getCosmicAlert(g, transits.data?.data[0], isTamil);
+  const cosmicAlert = getCosmicAlert(g, (snapshotData?.data.transits?.[0] ?? undefined) as TransitItem | undefined, isTamil);
   const bestActionWindow = g?.bestWindows?.[0] ?? null;
-  const refreshing = isPanchangamFetching || isRasiPalanFetching || isGuidanceFetching || lifeAreas.isFetching || lifeEvents.isFetching || transits.isFetching;
+  const hasDoshamWarning = !!(g?.is_chandrashtama || (g?.cautionWindows?.length ?? 0) > 0 || (g?.score !== undefined && g.score < SCORE_THRESHOLDS.MID));
+  const refreshing = isSnapshotFetching;
   const activityChips = useMemo(() => {
     if (!g) return [];
     const chips = [] as Array<{ label: string; ok: boolean; detail: string }>;
     if (g.bestWindows?.[0]) {
       const w = g.bestWindows[0];
-      chips.push({ label: "Start work", ok: true, detail: `${w.type}: ${formatTime(w.start)} - ${formatTime(w.end)}` });
+      chips.push({ label: t(strings.chips.start_work), ok: true, detail: `${w.type}: ${formatTime(w.start)} - ${formatTime(w.end)}` });
     }
     if (g.currentHoraLord) {
-      chips.push({ label: `${g.currentHoraLord} hora`, ok: true, detail: biText(g.actionSuggestion, isTamil, "Use this window for focused action.") });
+      chips.push({ label: `${g.currentHoraLord} ${t(strings.chips.hora_suffix)}`, ok: true, detail: biText(g.actionSuggestion, isTamil, "Use this window for focused action.") });
     }
-    chips.push({ label: "Travel", ok: g.score >= SCORE_THRESHOLDS.MID, detail: biText(g.reasons?.panchangam, isTamil, biText(g.actionSuggestion, isTamil)) });
-    chips.push({ label: "Contracts", ok: !g.cautionWindows?.length && g.score >= SCORE_THRESHOLDS.HIGH, detail: biText(g.cautionSuggestion, isTamil, "Check caution windows before signing.") });
+    chips.push({ label: t(strings.chips.travel),    ok: g.score >= SCORE_THRESHOLDS.MID, detail: biText(g.reasons?.panchangam, isTamil, biText(g.actionSuggestion, isTamil)) });
+    chips.push({ label: t(strings.chips.contracts), ok: !g.cautionWindows?.length && g.score >= SCORE_THRESHOLDS.HIGH, detail: biText(g.cautionSuggestion, isTamil, "Check caution windows before signing.") });
     if (g.cautionWindows?.[0]) {
       const w = g.cautionWindows[0];
-      chips.push({ label: "Avoid rush", ok: false, detail: `${w.type}: ${formatTime(w.start)} - ${formatTime(w.end)}` });
+      chips.push({ label: t(strings.chips.avoid_rush), ok: false, detail: `${w.type}: ${formatTime(w.start)} - ${formatTime(w.end)}` });
     }
     return chips.slice(0, 5);
-  }, [g, isTamil]);
+  }, [g, isTamil, t, strings]);
 
   const refreshAll = () => {
-    if (hasLocation) {
-      refetchPanchangam();
-    }
-    void refetchRasiPalan();
-    refetchGuidance();
-    lifeAreas.refetch();
-    lifeEvents.refetch();
-    transits.refetch();
+    void refetchSnapshot();
   };
 
   const saveJournalEntry = async () => {
@@ -447,7 +405,7 @@ export default function TodayTab() {
                   <View style={styles.heroKickerRow}>
                     <SunMedium size={16} color={C.gold} strokeWidth={1.5} />
                     <Text style={[styles.scoreHeroLabel, isTamil ? TamilType.caption : EnType.caption]}>
-                      {isTamil ? "Today" : "Today"} · {cityName}
+                      {t(strings.tabs.today)} · {cityName}
                     </Text>
                     <ThirukanithamBadge size="sm" style={{ alignSelf: "center" }} />
                   </View>
@@ -460,12 +418,18 @@ export default function TodayTab() {
                   </SharedTransitionView>
                   <View style={styles.scoreHeroCopy}>
                     <Text style={styles.scoreHeroNumber}>{g.score}</Text>
-                    <Text style={styles.scoreHeroState}>{g.score >= SCORE_THRESHOLDS.HIGH ? "Good window" : g.score >= SCORE_THRESHOLDS.MID ? "Move steadily" : "Go gently"}</Text>
+                    <Text style={styles.scoreHeroState}>
+                      {g.score >= SCORE_THRESHOLDS.HIGH
+                        ? t(strings.today.score_state_high)
+                        : g.score >= SCORE_THRESHOLDS.MID
+                          ? t(strings.today.score_state_mid)
+                          : t(strings.today.score_state_low)}
+                    </Text>
                   </View>
                 </View>
 
                 <View style={styles.bestWindowPanel}>
-                  <Text style={styles.bestWindowLabel}>{isTamil ? "Best window" : "Best window"}</Text>
+                  <Text style={styles.bestWindowLabel}>{t(strings.today.best_window)}</Text>
                   <Text style={styles.bestWindowTime}>
                     {bestActionWindow
                       ? `${formatTime(bestActionWindow.start)} - ${formatTime(bestActionWindow.end)}`
@@ -562,7 +526,7 @@ export default function TodayTab() {
                     )}
                   </View>
                   <SunMedium size={56} color={C.surface} strokeWidth={1.5} />
-                </View>
+                </View>
                 {p?.specialTithiDay && (
                   <View style={styles.heroBadge}>
                     <Text style={styles.heroBadgeText}>
@@ -709,6 +673,34 @@ export default function TodayTab() {
           >
             <View style={styles.quickActionInner}><Sparkles size={18} color={C.saffron} strokeWidth={1.5} /><Text style={[styles.quickActionText, styles.quickActionSecondaryText]}>{isTamil ? "Ask Vinaadi" : "Ask Vinaadi"}</Text></View>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.quickActionBtn, styles.quickActionSecondary]}
+            activeOpacity={0.86}
+            onPress={async () => {
+              trackEvent("share_card_opened");
+              const scoreText = g ? `Score: ${g.score}/100` : "";
+              const windowText = bestActionWindow
+                ? `Best window: ${formatTime(bestActionWindow.start)}–${formatTime(bestActionWindow.end)}`
+                : "";
+              const message = [
+                isTamil ? "இன்றைய விநாடி பஞ்சாங்கம்" : "My Vinaadi day — powered by Thirukanitham",
+                scoreText,
+                windowText,
+                "vinaadi.app",
+              ].filter(Boolean).join("\n");
+              try {
+                const result = await Share.share({ message });
+                if (result.action === Share.sharedAction) trackEvent("share_card_shared");
+              } catch {
+                // user cancelled — no-op
+              }
+            }}
+          >
+            <View style={styles.quickActionInner}>
+              <Bell size={18} color={C.saffron} strokeWidth={1.5} />
+              <Text style={[styles.quickActionText, styles.quickActionSecondaryText]}>{isTamil ? "பகிர்" : "Share"}</Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Decision prompt card — daily card surfacing the /ask-vinaadi decision mode */}
@@ -735,8 +727,8 @@ export default function TodayTab() {
               : "Ask Vinaadi — your dasha and transits reveal the right timing for your decision."}
           </Text>
         </TouchableOpacity>
-        {/* Ad unit â€” guest only */}
-        {tier === "guest" && <NativeAdUnit />}
+        {/* Ad unit — guest only, suppressed when dosham or caution window is active */}
+        {tier === “guest” && !hasDoshamWarning && <NativeAdUnit />}
 
         {/* Panchangam Details — collapsible */}
         {p && (
@@ -784,7 +776,7 @@ export default function TodayTab() {
           </View>
         )}
 
-        {isError && <ErrorCard onRetry={refetchPanchangam} />}
+        {isError && <ErrorCard onRetry={() => void refetchSnapshot()} />}
 
         {/* Soft Signup Prompt (shown after 3+ days) */}
         {tier === "guest" && showSignupPrompt && (
@@ -832,6 +824,7 @@ export default function TodayTab() {
                 items={JOURNAL_MOMENTS}
                 selected={journalMoment}
                 onSelect={setJournalMoment}
+                isTamil={isTamil}
                 layout="wrap"
               />
               <Text style={styles.journalStep}>{isTamil ? "Which area?" : "Which area?"}</Text>
@@ -839,6 +832,7 @@ export default function TodayTab() {
                 items={JOURNAL_AREAS}
                 selected={journalArea}
                 onSelect={setJournalArea}
+                isTamil={isTamil}
                 layout="wrap"
               />
               <TextInput

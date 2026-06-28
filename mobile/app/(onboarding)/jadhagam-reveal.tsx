@@ -1,8 +1,9 @@
-import React from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect } from "react";
+import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
+import { trackEvent } from "@/lib/analytics";
 import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
@@ -39,6 +40,10 @@ export default function JadhagamRevealScreen() {
   const { lang } = useI18n();
   const isTamil = lang === "ta";
   const { chartId } = useLocalSearchParams<{ chartId?: string; profileId?: string }>();
+
+  useEffect(() => {
+    trackEvent("onboarding_step_completed", { step: "jadhagam_reveal" });
+  }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ["chart-full", chartId],
@@ -112,6 +117,28 @@ export default function JadhagamRevealScreen() {
           </View>
         </View>
 
+        {/* Share prompt */}
+        <TouchableOpacity
+          style={styles.sharePrompt}
+          activeOpacity={0.82}
+          onPress={async () => {
+            trackEvent("share_card_opened");
+            const message = isTamil
+              ? "விநாடி AI மூலம் திருக்கணித ஜாதகம் பெற்றேன்! உங்கள் ஜாதகத்தையும் பாருங்கள்: vinaadi.app"
+              : "Just got my Thirukanitham jadhagam on Vinaadi! Check yours: vinaadi.app";
+            try {
+              const result = await Share.share({ message });
+              if (result.action === Share.sharedAction) trackEvent("share_card_shared");
+            } catch {
+              // user cancelled — no-op
+            }
+          }}
+        >
+          <Text style={[styles.sharePromptText, isTamil ? TamilType.bodySmall : EnType.bodySmall]}>
+            {isTamil ? "உங்கள் ஜாதகத்தை நண்பர்களுடன் பகிருங்கள் →" : "Share your jadhagam with friends →"}
+          </Text>
+        </TouchableOpacity>
+
         {/* Upsell */}
         <Text style={[styles.upsellHeading, isTamil ? TamilType.subheading : EnType.subheading]}>
           {isTamil ? "மேலும் விரிவான அறிக்கை வேண்டுமா?" : "Want a more detailed report?"}
@@ -159,11 +186,12 @@ export default function JadhagamRevealScreen() {
 
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={() =>
+          onPress={() => {
+            trackEvent("onboarding_complete", { report_upsell: true });
             chartId
               ? router.push({ pathname: "/jadhagam/upsell", params: { chartId } })
-              : router.replace("/(tabs)/today")
-          }
+              : router.replace("/(tabs)/today");
+          }}
           activeOpacity={0.85}
         >
           <Text style={styles.primaryBtnText}>
@@ -171,7 +199,10 @@ export default function JadhagamRevealScreen() {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.laterBtn} onPress={() => router.replace("/(tabs)/today")}>
+        <TouchableOpacity
+          style={styles.laterBtn}
+          onPress={() => { trackEvent("onboarding_complete"); router.replace("/(tabs)/today"); }}
+        >
           <Text style={styles.laterText}>{isTamil ? "பின்னர்" : "Maybe later"}</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -238,4 +269,9 @@ const styles = StyleSheet.create({
   primaryBtnText: { fontFamily: "NotoSansTamil_700Bold", fontSize: 16, lineHeight: 24, color: C.surface },
   laterBtn: { alignItems: "center", paddingVertical: S.sm },
   laterText: { fontFamily: "Inter_400Regular", fontSize: 14, color: C.textTertiary },
+  sharePrompt: {
+    borderWidth: 1, borderColor: C.gold, borderRadius: RADIUS.chip,
+    paddingHorizontal: S.base, paddingVertical: S.sm, alignItems: "center", marginBottom: S.xl,
+  },
+  sharePromptText: { color: C.gold },
 });

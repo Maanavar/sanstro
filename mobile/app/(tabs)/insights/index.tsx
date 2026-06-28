@@ -35,7 +35,7 @@ import { ShareCaptureView } from "@/components/share/ShareCaptureView";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import { biText } from "@/lib/i18n";
 import { scoreFillColor } from "@/lib/score";
-import { TIER_LIMITS } from "@vinaadi/shared";
+import { TIER_LIMITS, strings } from "@vinaadi/shared";
 import type { GuestPrefs } from "@/features/guest/guestStore";
 import type { LifeAreaData } from "@/api/lifeAreas";
 import type { LifeEventWindow } from "@/api/lifeEvents";
@@ -86,7 +86,7 @@ function topArea(entries: QuickJournalEntry[]) {
 export default function InsightsScreen() {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
-  const { lang } = useI18n();
+  const { lang, t } = useI18n();
   const { tier } = useSession();
   const isAuthenticated = tier !== "guest";
   const isTamil = lang === "ta";
@@ -159,10 +159,8 @@ export default function InsightsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <ScreenHeader
-          title="Explore"
-          titleTa="ஆராய்"
-          subtitle="Your personalised depth views"
-          subtitleTa="உங்கள் ஜோதிட ஆழம்"
+          title={t(strings.insights.screen_title)}
+          subtitle={t(strings.insights.screen_subtitle)}
           isTamil={isTamil}
           entering={FadeInDown.delay(entranceDelay.hero).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}
           badge={
@@ -176,30 +174,28 @@ export default function InsightsScreen() {
           <Animated.View style={{ gap: S.md }} entering={FadeInDown.delay(entranceDelay.supporting).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}>
             <AnimatedEmptyState
               variant="constellation"
-              title={isTamil ? "உங்கள் ஜாதகம் சேர்க்கவும்" : "Add your chart to unlock insights"}
-              body={isTamil
-                ? "தசா, வாழ்க்கைப் பகுதிகள், நிகழ்வு சாளரங்கள் மற்றும் ஆண்டு கணிப்புகள் உங்கள் பிறந்த ஜாதகத்திலிருந்து கணக்கிடப்படுகின்றன."
-                : "Dasha, life-area trends, event windows, and annual predictions are calculated from your birth chart."}
+              title={t(strings.insights.add_chart)}
+              body={t(strings.insights.add_chart_body)}
             />
             <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push("/(auth)/register")}>
-              <Text style={styles.primaryBtnText}>{isTamil ? "கணக்கு உருவாக்கு" : "Create account"}</Text>
+              <Text style={styles.primaryBtnText}>{t(strings.insights.create_account)}</Text>
             </TouchableOpacity>
           </Animated.View>
         ) : (
           <Animated.View style={{ gap: S.md }} entering={FadeInDown.delay(entranceDelay.supporting).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}>
-            <SectionLabel labelEn="Daily Depth" labelTa="நாளாந்த ஆழம்" isTamil={isTamil} />
+            <SectionLabel labelEn={strings.insights.timeline_label.en} labelTa={strings.insights.timeline_label.ta} isTamil={isTamil} />
             {dasha.isLoading ? (
               <SkeletonCard height={170} />
             ) : dasha.isError ? (
               <ErrorCard message={isTamil ? "Could not load dasha data." : "Could not load dasha data."} onRetry={dasha.refetch} />
             ) : currentDasha ? (
               <TouchableOpacity style={styles.dashaHero} activeOpacity={0.88} onPress={() => router.push("/dasha" as Href)}>
-                <Text style={styles.heroKicker}>{isTamil ? "Dasha now" : "Dasha now"}</Text>
+                <Text style={styles.heroKicker}>{t(strings.insights.dasha_now)}</Text>
                 <Text style={[styles.heroLord, type.display]}>
                   {isTamil ? currentDasha.maha_dasha.lord_ta : currentDasha.maha_dasha.lord}
                 </Text>
                 <Text style={styles.heroSub}>
-                  {isTamil ? currentDasha.antar_dasha.lord_ta : currentDasha.antar_dasha.lord} {isTamil ? "Antar Dasha" : "Antar Dasha"}
+                  {isTamil ? currentDasha.antar_dasha.lord_ta : currentDasha.antar_dasha.lord} {t(strings.insights.antar_dasha)}
                 </Text>
                 <View style={styles.heroMetaRow}>
                   <Text style={styles.heroMeta}>{fmt(currentDasha.maha_dasha.start_date)} - {fmt(currentDasha.maha_dasha.end_date)}</Text>
@@ -208,7 +204,7 @@ export default function InsightsScreen() {
               </TouchableOpacity>
             ) : null}
 
-            <SectionTitle title={isTamil ? "This period's outlook" : "This period's outlook"} action={isTamil ? "Score" : "Score"} onPress={() => router.push("/daily-score")} />
+            <SectionTitle title={t(strings.insights.period_outlook)} action={t(strings.insights.score)} onPress={() => router.push("/daily-score")} />
             {lifeAreas.isLoading ? (
               <SkeletonCard height={220} />
             ) : lifeAreas.isError ? (
@@ -221,26 +217,26 @@ export default function InsightsScreen() {
               </ScrollView>
             )}
 
-            <SectionTitle title={isTamil ? "Your life timeline" : "Your life timeline"} />
+            <SectionTitle title={t(strings.insights.life_timeline)} />
             <RiverTimeline events={events.slice(0, 5)} isTamil={isTamil} />
 
             <View style={styles.linkGrid}>
               <InsightLink
-                title={isTamil ? "Annual wrapped" : "Annual wrapped"}
+                title={t(strings.insights.annual_wrapped)}
                 body={String(currentYear)}
                 onPress={() => (TIER_LIMITS[tier].annualWrappedEnabled ? router.push("/wrapped" as Href) : router.push("/premium" as Href))}
               />
               <InsightLink
-                title={isTamil ? "Annual prediction" : "Annual prediction"}
+                title={t(strings.insights.annual_prediction)}
                 body={String(currentYear)}
                 onPress={() => (TIER_LIMITS[tier].varshaphalaEnabled ? router.push("/varshaphala" as Href) : router.push("/premium" as Href))}
                 locked={!TIER_LIMITS[tier].varshaphalaEnabled}
               />
-              <InsightLink title={isTamil ? "Transits" : "Transits"} body={`${transits.data?.data.length ?? 0} upcoming`} onPress={() => router.push("/transits" as Href)} />
+              <InsightLink title={t(strings.insights.transits)} body={`${transits.data?.data.length ?? 0} upcoming`} onPress={() => router.push("/transits" as Href)} />
             </View>
 
             {/* Family & Journal group */}
-            <SectionLabel labelEn="Family & Journal" labelTa="குடும்பம் & குறிப்பு" isTamil={isTamil} />
+            <SectionLabel labelEn={strings.insights.family_journal.en} labelTa={strings.insights.family_journal.ta} isTamil={isTamil} />
             <NavCard
               icon={<Users size={22} color={C.goldOnLight} strokeWidth={1.5} />}
               title="Family Vault"
@@ -262,11 +258,11 @@ export default function InsightsScreen() {
               C={C}
             />
 
-            <SectionTitle title={isTamil ? "Journal rhythm" : "Journal rhythm"} action={isTamil ? "Open" : "Open"} onPress={() => router.push("/journal" as Href)} />
+            <SectionTitle title={t(strings.insights.journal_rhythm)} action={t(strings.insights.open)} onPress={() => router.push("/journal" as Href)} />
             <JournalPanel entries={journalEntries} pattern={journalPattern} isTamil={isTamil} />
 
             {/* Specialist Tools group */}
-            <SectionLabel labelEn="Specialist Tools" labelTa="சிறப்பு கருவிகள்" isTamil={isTamil} />
+            <SectionLabel labelEn={strings.insights.specialist_tools.en} labelTa={strings.insights.specialist_tools.ta} isTamil={isTamil} />
 
             {/* Goals tile */}
             <TouchableOpacity
@@ -348,7 +344,7 @@ export default function InsightsScreen() {
             />
 
             {/* Learn Thirukanitham rail */}
-            <SectionTitle title={isTamil ? "கற்றுக்கொள்ளுங்கள்" : "Learn Thirukanitham"} />
+            <SectionTitle title={t(strings.insights.learn_section)} />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.learnRail}>
               {LEARN_CARDS.map((card) => (
                 <TouchableOpacity
@@ -411,7 +407,7 @@ function AreaStoryCard({ area, isTamil }: { area: LifeAreaData; isTamil: boolean
       </View>
       <Text numberOfLines={4} style={styles.areaBody}>{biText(area.narrative, isTamil)}</Text>
       <View style={styles.nextBlock}>
-        <Text style={styles.nextLabel}>{isTamil ? "Next 30 days" : "Next 30 days"}</Text>
+        <Text style={styles.nextLabel}>{isTamil ? strings.insights.next_30_days.ta : strings.insights.next_30_days.en}</Text>
         <Text numberOfLines={3} style={styles.nextText}>{biText(area.next30DayOutlook, isTamil)}</Text>
       </View>
     </ShareCaptureView>
@@ -424,7 +420,7 @@ function RiverTimeline({ events, isTamil }: { events: LifeEventWindow[]; isTamil
   if (!events.length) {
     return (
       <View style={styles.timelineEmpty}>
-        <Text style={styles.timelineEmptyText}>{isTamil ? "Upcoming event windows will appear here." : "Upcoming event windows will appear here."}</Text>
+        <Text style={styles.timelineEmptyText}>{isTamil ? strings.insights.no_events.ta : strings.insights.no_events.en}</Text>
       </View>
     );
   }
@@ -472,10 +468,10 @@ function JournalPanel({ entries, pattern, isTamil }: { entries: QuickJournalEntr
           return <View key={day} style={[styles.heatCell, { backgroundColor: C.saffron, opacity }]} />;
         })}
       </View>
-      <Text style={styles.patternTitle}>{isTamil ? "Patterns" : "Patterns"}</Text>
+      <Text style={styles.patternTitle}>{isTamil ? strings.insights.patterns.ta : strings.insights.patterns.en}</Text>
       <Text style={styles.patternBody}>
         {entries.length === 0
-          ? (isTamil ? "Log moments from Today; your rhythm will collect here." : "Log moments from Today; your rhythm will collect here.")
+          ? (isTamil ? strings.insights.log_moments_hint.ta : strings.insights.log_moments_hint.en)
           : pattern
             ? `${entries.length} moments logged. ${pattern[0]} leads with ${pattern[1]} entries; ${wins} wins or milestones captured.`
             : `${entries.length} moments logged.`}

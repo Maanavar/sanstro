@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Platform } from "react-native";
+import { Platform, View, Text } from "react-native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as ExpoFont from "expo-font";
@@ -9,8 +9,11 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 // Lazy-loaded to avoid crashing in Expo Go — JSI modules fail at import time when native bridge is absent.
 let Purchases: typeof import("react-native-purchases").default | null = null;
 try { Purchases = require("react-native-purchases").default; } catch { /* Expo Go */ }
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SessionProvider, useSession } from "@/state/sessionContext";
 import { LanguageProvider } from "@/state/languageContext";
+import { useI18n } from "@/hooks/useI18n";
+import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import { ToastProvider } from "@/context/ToastContext";
 import { ConfirmProvider } from "@/context/ConfirmContext";
 import { queryClient, asyncStoragePersister } from "@/lib/queryClient";
@@ -33,6 +36,24 @@ if (rcKey && Purchases) {
   } catch {
     // SDK unavailable in some environments (Expo Go web).
   }
+}
+
+function OfflineBanner() {
+  const isOffline = useOfflineStatus();
+  const { t } = useI18n();
+  const insets = useSafeAreaInsets();
+  if (!isOffline) return null;
+  return (
+    <View style={{
+      position: "absolute", top: insets.top, left: 0, right: 0,
+      backgroundColor: "#7C3AED", paddingVertical: 5,
+      alignItems: "center", zIndex: 9999,
+    }}>
+      <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>
+        {t({ ta: "இணைப்பு இல்லை", en: "No internet" })}
+      </Text>
+    </View>
+  );
 }
 
 function RootNavigation() {
@@ -103,30 +124,33 @@ function RootNavigation() {
   }, []);
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(onboarding)" />
-      <Stack.Screen name="jadhagam" />
-      <Stack.Screen name="notifications" />
-      <Stack.Screen name="daily-score" />
-      <Stack.Screen name="chandrashtama" />
-      <Stack.Screen name="premium" />
-      <Stack.Screen name="family-vault" />
-      <Stack.Screen name="ask-vinaadi" />
-      <Stack.Screen name="dasha" />
-      <Stack.Screen name="transits" />
-      <Stack.Screen name="varshaphala" />
-      <Stack.Screen name="rectification" />
-      <Stack.Screen name="wrapped" />
-      <Stack.Screen name="privacy" />
-      <Stack.Screen name="terms" />
-      <Stack.Screen name="learn" />
-      <Stack.Screen name="vargas" />
-      <Stack.Screen name="goals" />
-      <Stack.Screen name="journal" />
-      <Stack.Screen name="profile-manager" />
-    </Stack>
+    <View style={{ flex: 1 }}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(onboarding)" />
+        <Stack.Screen name="jadhagam" />
+        <Stack.Screen name="notifications" />
+        <Stack.Screen name="daily-score" />
+        <Stack.Screen name="chandrashtama" />
+        <Stack.Screen name="premium" />
+        <Stack.Screen name="family-vault" />
+        <Stack.Screen name="ask-vinaadi" />
+        <Stack.Screen name="dasha" />
+        <Stack.Screen name="transits" />
+        <Stack.Screen name="varshaphala" />
+        <Stack.Screen name="rectification" />
+        <Stack.Screen name="wrapped" />
+        <Stack.Screen name="privacy" />
+        <Stack.Screen name="terms" />
+        <Stack.Screen name="learn" />
+        <Stack.Screen name="vargas" />
+        <Stack.Screen name="goals" />
+        <Stack.Screen name="journal" />
+        <Stack.Screen name="profile-manager" />
+      </Stack>
+      <OfflineBanner />
+    </View>
   );
 }
 

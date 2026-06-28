@@ -1,16 +1,37 @@
 /** @type {import('jest').Config} */
+
+const sharedModuleNameMapper = {
+  "^@vinaadi/shared/(.*)$": "<rootDir>/../packages/shared/src/$1",
+  "^@vinaadi/shared$": "<rootDir>/../packages/shared/src/index.ts",
+  "^@/(.*)$": "<rootDir>/src/$1",
+};
+
 module.exports = {
-  // "node" environment: no jsdom / React Native setup — fine for pure TS utility tests.
-  // When component/render tests are added, split this into a separate project config
-  // with preset "jest-expo" and testEnvironment "jsdom".
-  testEnvironment: "node",
-  transform: {
-    "^.+\\.tsx?$": "babel-jest",
-  },
-  testMatch: ["**/__tests__/**/*.test.ts", "**/__tests__/**/*.test.tsx"],
-  // Resolve workspace packages to source so babel-jest can transpile them
-  moduleNameMapper: {
-    "^@vinaadi/shared/(.*)$": "<rootDir>/../packages/shared/src/$1",
-    "^@/(.*)$": "<rootDir>/$1",
-  },
+  projects: [
+    {
+      // Pure TypeScript utility tests — fast, no RN/jsdom overhead.
+      displayName: "utils",
+      testEnvironment: "node",
+      transform: { "^.+\\.tsx?$": "babel-jest" },
+      testMatch: ["<rootDir>/__tests__/**/*.test.ts"],
+      moduleNameMapper: sharedModuleNameMapper,
+    },
+    {
+      // React context / hook tests — pure React (no RN native), jsdom environment.
+      // sessionContext.tsx uses only React hooks, so @testing-library/react works here.
+      displayName: "react",
+      testEnvironment: "jsdom",
+      transform: { "^.+\\.tsx?$": "babel-jest" },
+      testMatch: ["<rootDir>/__tests__/**/*.react.test.tsx"],
+      moduleNameMapper: {
+        ...sharedModuleNameMapper,
+        // Pin React to the version installed locally under mobile/ so that
+        // @testing-library/react and sessionContext both reference the same copy.
+        "^react$": "<rootDir>/node_modules/react",
+        "^react/(.*)$": "<rootDir>/node_modules/react/$1",
+        "^react-dom$": "<rootDir>/node_modules/react-dom",
+        "^react-dom/(.*)$": "<rootDir>/node_modules/react-dom/$1",
+      },
+    },
+  ],
 };

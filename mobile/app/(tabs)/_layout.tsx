@@ -72,7 +72,7 @@ export default function TabLayout() {
         options={{
           tabBarIcon: ({ color, size }) => <InsightsIcon color={color} size={size} />,
           tabBarLabel: ({ focused }) => (
-            <TabLabel text={lang === "ta" ? "ஆராய்" : "Explore"} focused={focused} />
+            <TabLabel text={t(strings.tabs.insights)} focused={focused} />
           ),
           tabBarShowLabel: true,
         }}

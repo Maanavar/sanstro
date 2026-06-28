@@ -9,6 +9,7 @@ import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { saveGuestPrefs } from "@/features/guest/guestStore";
+import { trackEvent } from "@/lib/analytics";
 
 export default function LocationScreen() {
   const { t, strings, lang } = useI18n();
@@ -30,11 +31,13 @@ export default function LocationScreen() {
       }
     } finally {
       setLoading(false);
+      trackEvent("onboarding_step_completed", { step: "location_entry" });
       router.replace("/(onboarding)/rasi-picker");
     }
   }
 
   function handleSkip() {
+    trackEvent("onboarding_step_completed", { step: "location_entry", skipped: true });
     router.replace("/(onboarding)/rasi-picker");
   }
 

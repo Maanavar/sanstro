@@ -12,6 +12,7 @@ import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { saveGuestPrefs } from "@/features/guest/guestStore";
+import { trackEvent } from "@/lib/analytics";
 
 const RASI_IMAGES: Record<string, ImageSourcePropType> = {
   mesham:    require("../../assets/rasi/1Mesham.avif"),
@@ -40,7 +41,11 @@ export default function RasiPickerScreen() {
     if (!selectedRasi || saving) return;
     setSaving(true);
     await saveGuestPrefs({ rasi: selectedRasi, nakshatra: selectedNakshatra });
-    router.replace("/(tabs)/today");
+    trackEvent("onboarding_step_completed", { step: "rasi_picker", rasi: selectedRasi });
+    router.replace({
+      pathname: "/(onboarding)/jadhagam-teaser",
+      params: { rasi: selectedRasi, nakshatra: selectedNakshatra ?? undefined },
+    });
   }
 
   return (

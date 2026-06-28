@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import {
   Heart, Clock, Star, FileText, Layers, Sparkles, MapPin, HelpCircle, Lock, BookOpen, Check,
-  TrendingUp, SlidersHorizontal, Award, Users, Shuffle, CalendarDays, UserCheck,
+  TrendingUp, SlidersHorizontal, Award, Users, Shuffle, CalendarDays, UserCheck, ShoppingCart,
 } from "lucide-react-native";
 import type { LucideIcon } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
@@ -166,6 +166,11 @@ const GROUPS: ToolGroup[] = [
         Icon: Users, key: "family-vault", route: "/family-vault",
         nameEn: "Family Vault",  nameTa: "குடும்ப சேமிப்பு",
         descEn: "Charts for everyone you care about", descTa: "குடும்பத்தினர் ஜாதகங்கள்",
+      },
+      {
+        Icon: ShoppingCart, key: "reports", route: "/reports/index",
+        nameEn: "Buy Reports",   nameTa: "அறிக்கைகளை வாங்கு",
+        descEn: "One-time jadhagam & porutham reports", descTa: "ஒரு முறை ஜாதக & பொருத்த அறிக்கை",
       },
     ],
   },

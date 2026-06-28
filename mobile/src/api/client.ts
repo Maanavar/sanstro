@@ -58,6 +58,18 @@ function getRefreshPromise(): Promise<void> {
   return _refreshPromise;
 }
 
+function generateRequestId(): string {
+  // crypto.randomUUID() is available in Hermes (React Native >= 0.71)
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  // Fallback: lightweight hex UUID-v4
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
 export async function fetchWithAuth(
   url: string,
   init: RequestInit = {},
@@ -65,6 +77,7 @@ export async function fetchWithAuth(
   const tokens = await getTokens();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    "X-Request-ID": generateRequestId(),
     ...(init.headers as Record<string, string> | undefined),
   };
   if (tokens) headers["Authorization"] = `Bearer ${tokens.accessToken}`;

@@ -13,6 +13,7 @@ import { useSession } from "@/hooks/useSession";
 import { OnboardingProgressBar } from "@/components/OnboardingProgressBar";
 import { createBirthProfile } from "@/api/charts";
 import { setPrimaryChartId, setPrimaryProfileId } from "@/lib/userPrefs";
+import { trackEvent } from "@/lib/analytics";
 
 async function geocodeBirthPlace(place: string): Promise<{ lat: number; lon: number } | null> {
   try {
@@ -133,6 +134,7 @@ export default function BirthDetailsScreen() {
       const { birthProfileId, chartId } = res.data;
       await setPrimaryProfileId(birthProfileId);
       if (chartId) await setPrimaryChartId(chartId);
+      trackEvent("onboarding_step_completed", { step: "birth_time_place" });
       router.replace({
         pathname: "/(onboarding)/jadhagam-reveal",
         params: { chartId: chartId ?? "", profileId: birthProfileId },
@@ -146,7 +148,10 @@ export default function BirthDetailsScreen() {
 
   function handleNext() {
     if (step === 0) {
-      if (validateStep0()) setStep(1);
+      if (validateStep0()) {
+        trackEvent("onboarding_step_completed", { step: "birth_details" });
+        setStep(1);
+      }
     } else {
       handleSubmit();
     }
