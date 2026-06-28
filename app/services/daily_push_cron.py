@@ -1,8 +1,13 @@
 """
 Daily push notification cron.
 
-Runs once per day (wired at 06:00 UTC in main.py).  For each user who has
-opted into morning_alert or dasha_alert or pirantha_naal_alert, it:
+Runs every hour on the hour (trigger: ``minute=0`` in app/scheduler.py).
+``_morning_alert_due`` checks each user's preferred alert time against the
+current UTC clock, so each user receives the notification in a ±30-minute
+window around their chosen local time — not all at once.
+
+For each user who has opted into morning_alert, dasha_alert, or
+pirantha_naal_alert the function:
 
   1. Loads their primary birth profile + chart.
   2. Computes the panchangam-based daily score for today (local date).
@@ -12,6 +17,24 @@ opted into morning_alert or dasha_alert or pirantha_naal_alert, it:
 
 All delivery is opt-in and goes through dispatch_notification, which handles
 FCM/email routing, smart-silence suppression, and audit logging.
+
+Deployment model
+----------------
+Single-box (default)
+    ``JOTHIDAM_RUN_SCHEDULER_IN_WEB=true`` (the default).  APScheduler runs
+    inside the FastAPI lifespan.  A PostgreSQL advisory lock (SchedulerLease)
+    ensures only one worker fires the cron when uvicorn spawns multiple workers.
+    On SQLite the lock is a no-op (always granted).
+
+Dedicated worker (scaled deploy)
+    Set ``JOTHIDAM_RUN_SCHEDULER_IN_WEB=false`` on API processes, then start
+    one scheduler process per deployment::
+
+        python -m app.worker
+
+    The worker acquires the same advisory lock; replicated worker containers
+    elect a leader automatically.  A crashed leader releases the lock when its
+    DB connection drops and a replica takes over on next startup.
 
 Designed to be callable as a plain function (no async) so APScheduler can
 invoke it as a standard job.

@@ -1,3 +1,5 @@
+import pytest
+
 from app.calculations.yogas import (
     detect_adhi_yoga,
     detect_badhaka_dosham,
@@ -9,6 +11,7 @@ from app.calculations.yogas import (
     detect_kemadruma_yoga,
     detect_lakshmi_yoga,
     detect_neecha_bhanga,
+    detect_pancha_mahapurusha,
     detect_pitru_dosham,
     detect_putra_sarpa_dosham,
     detect_rahu_ketu_dosham,
@@ -548,3 +551,110 @@ def test_new_doshams_kalathra_putra_badhaka():
 
     badhaka = detect_badhaka_dosham({"SATURN": 1, "MOON": 1, "MARS": 1}, lagna_rasi=1, planet_scores={"SATURN": 20}, current_maha_lord="SATURN")
     assert badhaka.is_present is True
+
+
+# ─── D-05: Pancha Mahapurusha + Raja Yoga coverage ───────────────────────────
+
+@pytest.mark.no_db
+def test_d05_ruchaka_yoga_mars_own_sign_kendra():
+    """Mars in own sign (Mesha=1) and in 1st house (kendra from lagna=1) → Ruchaka present."""
+    planets = {
+        "SUN": 5, "MOON": 4, "MARS": 1, "MERCURY": 3,
+        "JUPITER": 9, "VENUS": 2, "SATURN": 11, "RAHU": 6, "KETU": 12,
+    }
+    results = detect_pancha_mahapurusha(planets, lagna_rasi=1)
+    ruchaka = next(r for r in results if r.name == "RUCHAKA_YOGA")
+    assert ruchaka.is_present is True
+    assert "mars_own_sign" in ruchaka.conditions_met or "mars_moolatrikona" in ruchaka.conditions_met
+    assert "mars_in_kendra" in ruchaka.conditions_met
+
+
+@pytest.mark.no_db
+def test_d05_ruchaka_yoga_absent_when_not_kendra():
+    """Mars in own sign (Mesha=1) but lagna=2 → 12th house (not kendra) → Ruchaka absent."""
+    planets = {
+        "SUN": 5, "MOON": 4, "MARS": 1, "MERCURY": 3,
+        "JUPITER": 9, "VENUS": 2, "SATURN": 11, "RAHU": 6, "KETU": 12,
+    }
+    results = detect_pancha_mahapurusha(planets, lagna_rasi=2)
+    ruchaka = next(r for r in results if r.name == "RUCHAKA_YOGA")
+    assert ruchaka.is_present is False
+
+
+@pytest.mark.no_db
+def test_d05_bhadra_yoga_mercury_own_sign_kendra():
+    """Mercury in own sign (Kanya=6) and in 1st house (kendra from lagna=6) → Bhadra present."""
+    planets = {
+        "SUN": 5, "MOON": 4, "MARS": 8, "MERCURY": 6,
+        "JUPITER": 9, "VENUS": 2, "SATURN": 11, "RAHU": 3, "KETU": 9,
+    }
+    results = detect_pancha_mahapurusha(planets, lagna_rasi=6)
+    bhadra = next(r for r in results if r.name == "BHADRA_YOGA")
+    assert bhadra.is_present is True
+    assert "mercury_in_kendra" in bhadra.conditions_met
+
+
+@pytest.mark.no_db
+def test_d05_hamsa_yoga_jupiter_exaltation_kendra():
+    """Jupiter in exaltation (Kadagam=4) with lagna=1 → 4th house (kendra) → Hamsa present."""
+    planets = {
+        "SUN": 5, "MOON": 2, "MARS": 8, "MERCURY": 3,
+        "JUPITER": 4, "VENUS": 7, "SATURN": 11, "RAHU": 6, "KETU": 12,
+    }
+    results = detect_pancha_mahapurusha(planets, lagna_rasi=1)
+    hamsa = next(r for r in results if r.name == "HAMSA_YOGA")
+    assert hamsa.is_present is True
+    assert "jupiter_exaltation" in hamsa.conditions_met
+    assert "jupiter_in_kendra" in hamsa.conditions_met
+
+
+@pytest.mark.no_db
+def test_d05_malavya_yoga_venus_own_sign_kendra():
+    """Venus in own sign (Thulam=7) and 1st house (lagna=7) → Malavya present."""
+    planets = {
+        "SUN": 5, "MOON": 4, "MARS": 1, "MERCURY": 3,
+        "JUPITER": 9, "VENUS": 7, "SATURN": 11, "RAHU": 6, "KETU": 12,
+    }
+    results = detect_pancha_mahapurusha(planets, lagna_rasi=7)
+    malavya = next(r for r in results if r.name == "MALAVYA_YOGA")
+    assert malavya.is_present is True
+    assert "venus_in_kendra" in malavya.conditions_met
+
+
+@pytest.mark.no_db
+def test_d05_sasa_yoga_saturn_own_sign_kendra():
+    """Saturn in own sign (Makara=10) and 1st house (lagna=10) → Sasa present."""
+    planets = {
+        "SUN": 5, "MOON": 4, "MARS": 1, "MERCURY": 3,
+        "JUPITER": 4, "VENUS": 2, "SATURN": 10, "RAHU": 6, "KETU": 12,
+    }
+    results = detect_pancha_mahapurusha(planets, lagna_rasi=10)
+    sasa = next(r for r in results if r.name == "SASA_YOGA")
+    assert sasa.is_present is True
+    assert "saturn_in_kendra" in sasa.conditions_met
+
+
+@pytest.mark.no_db
+def test_d05_raja_yoga_ninth_tenth_lord_conjunction():
+    """9th lord (Jupiter) and 10th lord (Saturn) conjunct for Mesha lagna → Raja Yoga."""
+    # Mesha(1) lagna: 9th house = Dhanu(9) lord = JUPITER; 10th house = Makara(10) lord = SATURN
+    planets = {
+        "SUN": 3, "MOON": 4, "MARS": 1, "MERCURY": 2,
+        "JUPITER": 5, "VENUS": 6, "SATURN": 5,  # Jupiter and Saturn conjunct in Simha(5)
+        "RAHU": 11, "KETU": 5,
+    }
+    results = detect_raja_yoga(planets, lagna_rasi=1)
+    assert any(r.is_present and "JUPITER_SATURN_link" in r.conditions_met for r in results)
+
+
+@pytest.mark.no_db
+def test_d05_raja_yoga_ninth_tenth_lord_mutual_seventh():
+    """9th lord (Jupiter) and 10th lord (Saturn) in mutual 7th → Raja Yoga via aspect."""
+    # Mesha(1): Jupiter=9th lord, Saturn=10th lord. Put them 7 apart: Jupiter=1, Saturn=7.
+    planets = {
+        "SUN": 3, "MOON": 4, "MARS": 8, "MERCURY": 2,
+        "JUPITER": 1, "VENUS": 6, "SATURN": 7,
+        "RAHU": 11, "KETU": 5,
+    }
+    results = detect_raja_yoga(planets, lagna_rasi=1)
+    assert any(r.is_present for r in results)

@@ -161,6 +161,46 @@ def get_current_user(
     return user
 
 
+def get_optional_user(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+    vinaadi_token: Annotated[str | None, Cookie()] = None,
+    db: Session = Depends(get_db),
+) -> User | None:
+    """Like get_current_user but returns None instead of raising for missing/invalid credentials.
+
+    Use this for endpoints that work for both guests and authenticated users.
+    """
+    token: str | None = credentials.credentials if credentials is not None else None
+    if token is None:
+        token = vinaadi_token
+    if token is None:
+        return None
+    try:
+        payload = decode_token(token)
+    except HTTPException:
+        return None
+    if payload.get("typ", TOKEN_TYPE_ACCESS) != TOKEN_TYPE_ACCESS:
+        return None
+    sub: str | None = payload.get("sub")
+    if not sub:
+        return None
+    try:
+        uid = UUID(sub)
+        user: User | None = db.get(User, uid)
+    except ValueError:
+        email = sub if "@" in sub else None
+        user = db.query(User).filter(User.email == email).first() if email else None
+    if user is None or user.is_suspended:
+        return None
+    try:
+        ver = int(payload.get("ver", 0))
+    except (TypeError, ValueError):
+        return None
+    if ver != int(getattr(user, "token_version", 0) or 0):
+        return None
+    return user
+
+
 def is_admin_user(user: User) -> bool:
     """True when the session itself grants admin — DB role or bootstrap email.
 

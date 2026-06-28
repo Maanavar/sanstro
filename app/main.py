@@ -15,6 +15,7 @@ from app.api.charts import router as charts_router
 from app.api.content import router as content_router
 from app.api.context import router as context_router
 from app.api.daily_guidance import router as daily_guidance_router
+from app.api.daily_snapshot import router as daily_snapshot_router
 from app.api.decisions import router as decisions_router
 from app.api.devices import router as devices_router
 from app.api.family_vaults import router as family_vaults_router
@@ -33,6 +34,8 @@ from app.api.panchangam import router as panchangam_router
 from app.api.prasna import router as prasna_router
 from app.api.predictions import router as predictions_router
 from app.api.public_tools import router as public_tools_router
+from app.api.reports import router as reports_router
+from app.api.stats import router as stats_router
 from app.api.qa import router as qa_router
 from app.api.rectification import router as rectification_router
 from app.api.relationships import router as relationships_router
@@ -187,6 +190,7 @@ def create_app() -> FastAPI:
     app.include_router(birth_profiles_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(charts_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(daily_guidance_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(daily_snapshot_router, prefix=settings.api_v1_prefix)
     app.include_router(context_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(decisions_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(family_vaults_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
@@ -217,6 +221,8 @@ def create_app() -> FastAPI:
     app.include_router(prasna_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(remedies_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(public_tools_router, prefix=settings.api_v1_prefix)
+    app.include_router(reports_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(stats_router, prefix=settings.api_v1_prefix)
     return app
 
 

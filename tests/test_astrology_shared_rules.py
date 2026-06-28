@@ -41,6 +41,13 @@ def test_chandrashtama_standard_is_eighth_rasi_not_eighth_nakshatra() -> None:
     assert is_chandrashtama("Kadagam", "Kumbam") is True
 
 
+def test_chandrashtama_mesha_moon_is_vrishchika() -> None:
+    # Workboard A-03: Moon in Mesha (rasi 1) → Chandrashtama when transit Moon is in Vrishchika (rasi 8)
+    assert chandrashtama_rasi_from_janma(1) == 8   # Mesham -> Vrishchikam
+    assert is_chandrashtama(1, 8) is True           # transit Moon in Vrishchika → chandrashtama
+    assert is_chandrashtama(1, 3) is False          # transit Moon in Mithuna → not chandrashtama
+
+
 def test_badhaka_lord_depends_on_lagna_not_always_saturn() -> None:
     assert get_badhaka_lord(1, SIGN_LORD) == "SATURN"   # movable: 11th from Mesham
     assert get_badhaka_lord(5, SIGN_LORD) == "MARS"     # fixed: 9th from Simmam
