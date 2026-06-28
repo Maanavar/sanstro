@@ -28,6 +28,8 @@ export const NAV = {
 
   feat_daily:     s("Daily Guidance",        "தினசரி வழிகாட்டுதல்"),
   feat_family:    s("Family Planning",       "குடும்ப திட்டமிடல்"),
+  feat_family_vault: s("For Families",       "குடும்பத்தினருக்கு"),
+  feat_family_vault_desc: s("Family Vault — all jadhagams in one place", "குடும்ப வால்ட் — எல்லா ஜாதகங்களும் ஒரே இடத்தில்"),
   feat_chart:     s("Chart Guidance",        "ஜாதகப் புரிதல்"),
   feat_timing:    s("Timing & Decisions",    "நல்ல நேரம் & முடிவுகள்"),
 
@@ -166,6 +168,7 @@ export const BETA = {
 export const HOME = {
   // Hero
   hero_eyebrow:   s("Thirukanitham-Precise Tamil Astrology", "திருக்கணித-துல்லிய தமிழ் ஜோதிடம்"),
+  hero_tagline:   s("Your birth second, calculated precisely", "உங்கள் பிறந்த விநாடி, திருகணித துல்லியத்தில்"),
   hero_h1:        s(
     "One calm guide for your chart, your day, and the people you plan with.",
     "உங்கள் ஜாதகம், இன்றைய நாள், குடும்ப முடிவுகள் அனைத்துக்கும் ஒரே அமைதியான வழிகாட்டல்."
@@ -174,8 +177,19 @@ export const HOME = {
     "Vinaadi turns Thirukanitham-based astrology into daily guidance, timing windows, family planning, and tools you can actually use — every morning, in plain language.",
     "திருக்கணிதம் அடிப்படையிலான ஜோதிடத்தை விநாடி எளிதாகப் புரியும் தினசரி வாசிப்பு, நல்ல நேரக் குறிப்பு, குடும்பத் திட்டமிடல், பயன்படும் கருவிகள் ஆகியதாக மாற்றுகிறது."
   ),
-  hero_cta_start: s("Start with today's guidance →", "இன்றைய வழிகாட்டுதலை தொடங்கு →"),
-  hero_cta_how:   s("See how it works",               "எப்படி வேலை செய்கிறது"),
+  hero_cta_start:     s("Start with today's guidance →", "இன்றைய வழிகாட்டுதலை தொடங்கு →"),
+  hero_cta_variant_a: s("Sign up free →",               "இலவசமாக பதிவு செய்யுங்கள் →"),
+  hero_cta_variant_b: s("Get my jadhagam free →",       "என் ஜாதகம் இலவசமாக பெறுங்கள் →"),
+  hero_cta_how:       s("See how it works",              "எப்படி வேலை செய்கிறது"),
+
+  // Social proof
+  social_counter_suffix: s("jadhagams generated for Tamil families worldwide", "தமிழ் குடும்பங்களுக்கு ஜாதகங்கள் உருவாக்கப்பட்டன"),
+  social_t1_quote: s("Finally, an astrology app that respects Thirukanitham. The daily guidance feels genuinely Tamil.", "இறுதியில் திருக்கணிதம் மதிக்கும் ஒரு ஜோதிட செயலி. தினசரி வழிகாட்டல் உண்மையிலேயே தமிழ்த்தன்மை கொண்டது."),
+  social_t1_name: s("Ramesh K., Chennai", "ரமேஷ் கே., சென்னை"),
+  social_t2_quote: s("Checked Porutham for my daughter's wedding. The 10-porutham breakdown was the most thorough I've seen.", "மகளின் திருமணத்திற்கு பொருத்தம் பார்த்தேன். பத்துப் பொருத்தம் விளக்கம் மிகவும் விரிவானது."),
+  social_t2_name: s("Lakshmi S., Madurai", "லக்ஷ்மி எஸ்., மதுரை"),
+  social_t3_quote: s("The panchangam timings match our family priest's calculations. That level of accuracy is rare online.", "பஞ்சாங்க நேரங்கள் எங்கள் குடும்பப் புரோகிதரின் கணக்கீடுகளுடன் பொருந்துகின்றன. இந்த துல்லியம் இணையத்தில் அரிது."),
+  social_t3_name: s("Suresh M., Coimbatore", "சுரேஷ் எம்., கோயம்புத்தூர்"),
 
   card_today:     s("Today's Reading",   "இன்றைய வாசிப்பு"),
   card_your_day:  s("Your day",          "உங்கள் நாள்"),
@@ -362,6 +376,19 @@ export const HOME = {
   learn4:        s("How to read a Jadhagam",       "ஜாதகம் படிப்பது எப்படி"),
   learn5:        s("Why birth time matters",       "பிறந்த நேரம் ஏன் முக்கியம்"),
 
+  // Section 9.5 — Discover
+  discover_eyebrow: s("Discover",                        "கண்டுபிடியுங்கள்"),
+  discover_h2:      s("Explore Tamil astrology resources", "தமிழ் ஜோதிட வளங்களை ஆராயுங்கள்"),
+  discover1_title:  s("Find temples near you",            "அருகிலுள்ள கோயில்களை கண்டறியுங்கள்"),
+  discover1_body:   s("Discover temples across Tamil Nadu and the world, with muhurtha guidance for visits.", "தமிழ்நாடு மற்றும் உலகம் முழுவதும் உள்ள கோயில்களை, பார்க்கும் முகூர்த்த வழிகாட்டலுடன் கண்டறியுங்கள்."),
+  discover1_cta:    s("Explore temples →",                "கோயில்களை பாருங்கள் →"),
+  discover2_title:  s("Today's panchangam",               "இன்றைய பஞ்சாங்கம்"),
+  discover2_body:   s("Tithi, nakshatra, Rahu kalam, and Nalla Neram — Thirukanitham-based, updated daily.", "திதி, நட்சத்திரம், ராகு காலம், நல்ல நேரம் — திருக்கணிதம் அடிப்படையில், தினமும் புதுப்பிக்கப்படும்."),
+  discover2_cta:    s("View panchangam →",                "பஞ்சாங்கம் பாருங்கள் →"),
+  discover3_title:  s("Tamil festival calendar 2026",     "தமிழ் பண்டிகை நாட்காட்டி 2026"),
+  discover3_body:   s("All major Tamil festivals with dates, significance, and auspicious timings for 2026.", "2026 ஆம் ஆண்டின் அனைத்து முக்கிய தமிழ் பண்டிகைகளும் தேதி, சிறப்பு, நல்ல நேரங்களுடன்."),
+  discover3_cta:    s("View festival calendar →",         "பண்டிகை நாட்காட்டி பாருங்கள் →"),
+
   // Section 10 — Commitment
   commit_eyebrow: s("Our commitment",   "எங்கள் உறுதிமொழி"),
   commit_h2:      s("Calm language, no fear.", "அமைதியான மொழி, பயம் இல்லை."),
@@ -425,6 +452,35 @@ export const FEAT_DAILY = {
   faq4_a: s("Chandrashtama occurs when the transiting Moon moves into the 8th sign from your birth Moon sign. It lasts roughly 2.5 days and repeats monthly. Vinaadi tracks it and flags it clearly in the reading — without dramatising it.", "சந்திராஷ்டமம் நகரும் சந்திரன் உங்கள் பிறப்பு சந்திர ராசியிலிருந்து 8வது ராசிக்கு செல்லும்போது நிகழ்கிறது. இது தோராயமாக 2.5 நாட்கள் நீடிக்கும், மாதாந்திரம் திரும்பும். விநாடி இதை கண்காணித்து, வாசிப்பில் தெளிவாகக் குறிப்பிடுகிறது — நாடகமயமாக்காமல்."),
 
   related_h2:   s("Related",         "தொடர்புடையவை"),
+};
+
+// ─── FAMILY VAULT LANDING PAGE (/family) ────────────────────────────────────
+
+export const FAMILY_PAGE = {
+  eyebrow:   s("Family Vault", "குடும்ப வால்ட்"),
+  h1:        s("Keep your whole family's jadhagam in one place.", "குடும்பத்தினரின் ஜாதகங்கள் அனைத்தும் ஒரே இடத்தில்."),
+  lead:      s(
+    "Your parents, children, and spouse — all accessible anytime. One tap to switch between charts, dasa periods, and today's guidance for every member.",
+    "உங்கள் பெற்றோர், குழந்தைகள், வாழ்க்கைத் துணை — எந்த நேரத்திலும் அணுகலாம். ஒரே தட்டலில் ஒவ்வொரு உறுப்பினரின் ஜாதகம், தசை, இன்றைய வழிகாட்டல் மாறுகிறது."
+  ),
+  cta_start: s("Start with your own jadhagam →", "உங்கள் ஜாதகத்துடன் தொடங்குங்கள் →"),
+
+  benefit1_title: s("One vault, every chart",          "ஒரே வால்ட், எல்லா ஜாதகங்கள்"),
+  benefit1_body:  s("Add profiles for parents, children, siblings, spouse — each gets a full Thirukanitham chart.", "பெற்றோர், குழந்தைகள், சகோதரர்கள், வாழ்க்கைத் துணை — ஒவ்வொருவருக்கும் முழுமையான திருக்கணித ஜாதகம்."),
+  benefit2_title: s("Side-by-side today",               "இன்றின் ஒப்பீடு"),
+  benefit2_body:  s("See the daily score for everyone at once — find the days that work for the whole family.", "குடும்பத்தினர் அனைவரின் தினசரி மதிப்பெண் ஒரே பார்வையில் — குடும்பம் முழுவதும் நல்ல நாட்களை கண்டறியுங்கள்."),
+  benefit3_title: s("Porutham in seconds",              "விரைவாக பொருத்தம்"),
+  benefit3_body:  s("Run Tamil 10-porutham and Ashtakoota compatibility between any two profiles in the vault.", "வால்ட்டில் உள்ள எந்த இரு சுயவிவரங்களுக்கும் தமிழ் 10-பொருத்தம் மற்றும் அஷ்டகூட பொருத்தம் உடனே கண்டறியுங்கள்."),
+  benefit4_title: s("Private & secure",                 "தனியுரிமை & பாதுகாப்பு"),
+  benefit4_body:  s("Birth details are encrypted at rest. Only you can access your family vault.", "பிறப்பு விவரங்கள் குறியாக்கம் செய்யப்பட்டு சேமிக்கப்படுகின்றன. உங்கள் வால்ட்டை நீங்கள் மட்டுமே அணுக முடியும்."),
+
+  how_h2:   s("How it works", "எப்படி வேலை செய்கிறது"),
+  step1:    s("Create your account and enter your birth details — free, no subscription required.", "கணக்கு உருவாக்கி உங்கள் பிறப்பு விவரங்கள் உள்ளிடுங்கள் — இலவசம், சந்தா தேவையில்லை."),
+  step2:    s("Add family members one by one — name, birth date, time, and place.", "ஒவ்வொரு குடும்ப உறுப்பினரையும் சேர்க்கவும் — பெயர், பிறந்த நாள், நேரம், இடம்."),
+  step3:    s("Browse charts, dasa timelines, daily guidance, and compatibility — all in one place.", "ஜாதகங்கள், தசை காலக்கோடு, தினசரி வழிகாட்டல், பொருத்தம் — அனைத்தும் ஒரே இடத்தில்."),
+
+  cta_banner_h: s("Your family's astrology, all in one place.", "உங்கள் குடும்பத்தின் ஜோதிடம், அனைத்தும் ஒரே இடத்தில்."),
+  cta_banner_b: s("Free to start. Add up to 4 family members on the free plan.", "தொடங்க இலவசம். இலவசத் திட்டத்தில் 4 குடும்ப உறுப்பினர் வரை சேர்க்கலாம்."),
 };
 
 export const FEAT_FAMILY = {

@@ -446,21 +446,24 @@ export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: Porut
           {/* Kuta breakdown */}
           <div className="card" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px", background: W.card, border: `1px solid ${W.borderLt}` }}>
             <p style={{ margin: "0 0 6px", fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-              {lang === "ta" ? "குட பொருத்தங்கள்" : "Kuta breakdown"}
+              {lang === "ta" ? "தமிழ் 10 பொருத்தங்கள்" : "Tamil 10 Poruthams"}
             </p>
             {porutham.kutas.map((k) => {
-              const kpct = k.maxScore > 0 ? k.score / k.maxScore : 0;
+              const pass = k.passed ?? k.score > 0;
               return (
                 <div key={k.name} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", borderRadius: "7px", background: W.surface, border: `1px solid ${W.borderLt}` }}>
                   <p style={{ margin: 0, minWidth: "140px", fontSize: "0.75rem", fontWeight: 600, color: W.inkMid }}>
                     {lang === "ta" ? k.nameTa : k.name}
                   </p>
-                  <div style={{ flex: 1, height: "5px", borderRadius: "3px", background: W.borderLt, overflow: "hidden" }}>
-                    <div style={{ height: "100%", borderRadius: "3px", width: `${Math.round(kpct * 100)}%`, background: scoreColor(kpct) }} />
-                  </div>
-                  <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 700, color: W.muted, minWidth: "40px", textAlign: "right" }}>
-                    {k.score}/{k.maxScore}
-                  </p>
+                  <div style={{ flex: 1 }} />
+                  <span style={{
+                    fontSize: "0.625rem", fontWeight: 700, padding: "2px 8px", borderRadius: "4px",
+                    background: pass ? "rgba(92,118,84,0.12)" : "rgba(180,60,40,0.10)",
+                    color: pass ? "var(--chart-d9-active)" : W.rust,
+                    border: `1px solid ${pass ? "rgba(92,118,84,0.3)" : "rgba(180,60,40,0.25)"}`,
+                  }}>
+                    {pass ? (lang === "ta" ? "✓ பொருத்தம்" : "✓ PASS") : (lang === "ta" ? "✗ பொருத்தமில்லை" : "✗ FAIL")}
+                  </span>
                 </div>
               );
             })}

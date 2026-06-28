@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { track } from "@/lib/analytics";
 
 type Mode = "login" | "signup" | "forgot";
 
@@ -132,6 +133,7 @@ export default function LoginPage() {
           const payload = await response.json().catch(() => ({} as { detail?: string }));
           throw new Error(payload.detail ?? "Unable to create account.");
         }
+        track("onboarding_step_completed", { step: "account_created" });
         setDone("signup");
       } else if (mode === "login") {
         const response = await fetch("/api/backend/api/v1/auth/login", {
@@ -146,7 +148,9 @@ export default function LoginPage() {
         }
         try {
           const profileCheck = await fetch("/api/backend/api/v1/birth-profiles/me/latest", { credentials: "include" });
-          router.push(profileCheck.ok ? "/dashboard" : "/dashboard?setup=1");
+          const dest = profileCheck.ok ? "/dashboard" : "/dashboard?setup=1";
+          track("onboarding_step_completed", { step: "login", has_profile: profileCheck.ok });
+          router.push(dest);
         } catch {
           router.push("/dashboard");
         }

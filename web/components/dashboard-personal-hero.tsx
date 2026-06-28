@@ -1,6 +1,8 @@
 "use client";
 
 import { formatClockLabel, getScoreBand, scoreColor, SCORE_HIGH, SCORE_MID, SCORE_LOW } from "@/lib/format";
+import { SCORE_THRESHOLDS } from "@vinaadi/shared/utils/score";
+import { ThirukanithamBadge } from "@/components/thirukanitham-badge";
 import { gowriCategoryLabel, gowriPeriodLabel, gowriPurposeLabel } from "@/lib/gowri";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -154,7 +156,10 @@ export function PersonalHero({
 
       {personalDailyGuidance && (
         <div className="cd-card--lg">
-          <p className="cd-kicker">{t("personal_today", lang)}</p>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "var(--space-2)" }}>
+            <p className="cd-kicker" style={{ margin: 0 }}>{t("personal_today", lang)}</p>
+            <ThirukanithamBadge size="sm" />
+          </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-3)" }}>
             <div>
               <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "3.5rem", fontWeight: 500, lineHeight: 1, color: "var(--panel-earth-dark)" }}>
@@ -165,7 +170,7 @@ export function PersonalHero({
                 className="cd-score-pill"
                 style={{
                   marginTop: "var(--space-2)",
-                  background: score !== null && score >= 65 ? "var(--chart-d9-active-bg)" : score !== null && score >= 45 ? "var(--chart-d1-lagna-bg)" : "var(--panel-warm-tint)",
+                  background: score !== null && score >= SCORE_THRESHOLDS.HIGH ? "var(--chart-d9-active-bg)" : score !== null && score >= SCORE_THRESHOLDS.MID ? "var(--chart-d1-lagna-bg)" : "var(--panel-warm-tint)",
                   color: score !== null ? scoreColor(score) : SCORE_MID,
                 }}
               >

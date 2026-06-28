@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 
@@ -139,6 +140,22 @@ export function DashboardLeftRail({ lang, activeTab, onTabChange }: DashboardLef
       })}
 
       <div style={{ flex: 1 }} />
+
+      {/* Buy Reports link */}
+      <Link
+        href="/dashboard/reports"
+        className="cd-rail-item"
+        title={lang === "ta" ? "அறிக்கைகளை வாங்கு" : "Buy Reports"}
+        style={{ textDecoration: "none" }}
+      >
+        <RailIcon>
+          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+        </RailIcon>
+        <span className={`cd-rail-item__label${expanded ? " cd-rail-item__label--inline" : ""}`} aria-hidden="true">
+          {lang === "ta" ? "அறிக்கைகள்" : "Reports"}
+        </span>
+      </Link>
 
       {/* Settings at bottom */}
       <button

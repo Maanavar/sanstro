@@ -5092,6 +5092,61 @@ button:focus-visible,
    MARKETING SITE EXPANSION — Homepage & Public Pages
    ══════════════════════════════════════════════════════════════ */
 
+/* ── Social Proof section ─────────────────────────────────────── */
+.cl-social-proof {
+  padding: 48px 0;
+  background: var(--cl-bg-2);
+  border-top: 1px solid var(--panel-tan-light);
+  border-bottom: 1px solid var(--panel-tan-light);
+}
+.cl-social-proof__counter {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 36px;
+}
+.cl-social-proof__number {
+  font-family: var(--cl-font-display);
+  font-size: clamp(2.2rem, 5vw, 3.2rem);
+  font-weight: 600;
+  color: var(--panel-earth-dark);
+  letter-spacing: -0.04em;
+}
+.cl-social-proof__label {
+  font-size: 0.9rem;
+  color: var(--panel-warm-muted);
+  max-width: 260px;
+  line-height: 1.4;
+}
+.cl-testimonials {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 20px;
+}
+.cl-testimonial {
+  margin: 0;
+  padding: 20px 22px;
+  background: var(--cl-surface);
+  border: 1px solid var(--panel-tan);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cl-testimonial__quote {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.65;
+  color: var(--panel-earth);
+  font-style: italic;
+}
+.cl-testimonial__name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--panel-warm-muted);
+}
+
 /* ── How Vinaadi Helps section ───────────────────────────────── */
 .cl-helps {
   padding: 80px 0;

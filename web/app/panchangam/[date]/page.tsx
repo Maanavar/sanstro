@@ -9,6 +9,7 @@ import { formatClockLabel, formatDateLabel, addDays } from "@/lib/format";
 import type { PanchangamDailyResponseData } from "@/lib/types";
 import { PanchangamShareButton } from "@/components/public-share-card";
 import { PanchangamShareCard } from "@/components/panchangam-share-card";
+import { ThirukanithamBadge } from "@/components/thirukanitham-badge";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
 const DEFAULT_LAT = "13.0827";
@@ -38,7 +39,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const dateLabel = formatDateLabel(date);
   const title = `Tamil Panchangam ${dateLabel} — Tithi, Nakshatra & Muhurtham | Vinaadi`;
 
-  let description = `Tamil panchangam for ${dateLabel}, ${DEFAULT_CITY}. Includes Tithi, Nakshatra, Rahu Kalam, Nalla Neram, and auspicious timings.`;
+  let description = `Tamil Panchangam for ${dateLabel}. Thirukanitham-based calculation. Set your city for local sunrise, Rahu Kalam, and Nalla Neram timings.`;
   if (data) {
     const tithi = tTithi(data.tithi.name, "en");
     const nakshatra = tNakshatra(data.nakshatra.name, "en");
@@ -48,13 +49,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const nallaNeram = data.kalam.nallaNeram[0]
       ? `${formatClockLabel(data.kalam.nallaNeram[0].start)}–${formatClockLabel(data.kalam.nallaNeram[0].end)}`
       : "not available";
-    description = `${vara} ${dateLabel}, ${DEFAULT_CITY}: Tithi ${tithi}, Nakshatra ${nakshatra}. Rahu Kalam ${rahuStart}–${rahuEnd}. Nalla Neram ${nallaNeram}. Thirukanitham-based calculation.`;
+    description = `${vara} ${dateLabel}: Tithi ${tithi}, Nakshatra ${nakshatra}. Rahu Kalam ${rahuStart}–${rahuEnd}. Nalla Neram ${nallaNeram}. Thirukanitham-based panchangam (default city: Chennai). Set your city for local timings.`;
   }
 
   return {
     title,
     description,
-    keywords: ["Tamil panchangam", `panchangam ${date}`, "Rahu kalam today", "Nalla neram", "Tithi Nakshatra today", DEFAULT_CITY.toLowerCase() + " panchangam"],
+    keywords: ["Tamil panchangam", `panchangam ${date}`, "Rahu kalam today", "Nalla neram", "Tithi Nakshatra today", "Thirukanitham panchangam"],
     alternates: { canonical: `https://vinaadi.com/panchangam/${date}` },
     openGraph: { title, description, url: `https://vinaadi.com/panchangam/${date}`, type: "website" },
     twitter: { card: "summary", title, description },
@@ -120,9 +121,9 @@ export default async function PanchangamDatePage({ params }: Props) {
   const PAGE_JSONLD = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: `Tamil Panchangam ${dateLabel} — ${DEFAULT_CITY}`,
+    name: `Tamil Panchangam ${dateLabel} — Thirukanitham Calculation`,
     url: `https://vinaadi.com/panchangam/${date}`,
-    description: `Daily Tamil panchangam for ${dateLabel}. Tithi, Nakshatra, Yoga, Karana, Rahu Kalam, Nalla Neram, and auspicious timings for ${DEFAULT_CITY}.`,
+    description: `Daily Tamil panchangam for ${dateLabel}. Tithi, Nakshatra, Yoga, Karana, Rahu Kalam, Nalla Neram, and auspicious timings. Thirukanitham-based sidereal calculation.`,
     datePublished: date,
     inLanguage: ["en", "ta"],
   };
@@ -143,9 +144,12 @@ export default async function PanchangamDatePage({ params }: Props) {
             <h1 className="cl-pub-h1" style={{ maxWidth: "28ch" }}>
               {dateLabel} — {DEFAULT_CITY}
             </h1>
-            <p className="cl-pub-lead" style={{ marginBottom: "20px" }}>
-              Thirukanitham-based · Sunrise-adjusted timings
-            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px", flexWrap: "wrap" }}>
+              <p className="cl-pub-lead" style={{ margin: 0 }}>
+                Thirukanitham-based · Sunrise-adjusted timings
+              </p>
+              <ThirukanithamBadge size="sm" />
+            </div>
             <div
               style={{
                 marginBottom: "20px",

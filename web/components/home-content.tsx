@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLang } from "@/components/lang-toggle";
 import { formatClockLabel } from "@/lib/format";
 import { HOME, mt } from "@/lib/marketing-i18n";
 import { useGuestStore, RASI_LIST } from "@/hooks/useGuestStore";
+import { getFeatureFlag, initAnalytics, track } from "@/lib/analytics";
 
 function makeSample(lang: "en" | "ta", rasiOverride?: { en: string; ta: string } | null) {
   const en = lang === "en";
@@ -32,6 +33,23 @@ export function HomeContent() {
   const [lang] = useLang();
   const { selectedRasi, setRasi } = useGuestStore();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [chartsGenerated, setChartsGenerated] = useState<number | null>(null);
+  const [ctaVariant, setCtaVariant] = useState<"A" | "B" | null>(null);
+
+  useEffect(() => {
+    fetch("/api/backend/api/v1/stats/public", { credentials: "include" })
+      .then((r) => r.json())
+      .then((j: { charts_generated?: number }) => {
+        if (typeof j.charts_generated === "number") setChartsGenerated(j.charts_generated);
+      })
+      .catch(() => { /* fail silently — static fallback shown */ });
+  }, []);
+
+  useEffect(() => {
+    initAnalytics();
+    const flag = getFeatureFlag("cta_primary");
+    setCtaVariant(flag === "variant_b" ? "B" : "A");
+  }, []);
   const SAMPLE = makeSample(lang, selectedRasi);
   const bestWindowLabel = `${formatClockLabel(SAMPLE.bestWindow.start)} - ${formatClockLabel(SAMPLE.bestWindow.end)}`;
   const holdWindowLabel = `${formatClockLabel(SAMPLE.holdWindow.start)} - ${formatClockLabel(SAMPLE.holdWindow.end)}`;
@@ -98,6 +116,12 @@ export function HomeContent() {
     { label: mt(HOME.learn5, lang), href: "/learn/why-birth-time-matters" },
   ];
 
+  const DISCOVER_CARDS = [
+    { title: mt(HOME.discover1_title, lang), body: mt(HOME.discover1_body, lang), cta: mt(HOME.discover1_cta, lang), href: "/temples" },
+    { title: mt(HOME.discover2_title, lang), body: mt(HOME.discover2_body, lang), cta: mt(HOME.discover2_cta, lang), href: "/panchangam" },
+    { title: mt(HOME.discover3_title, lang), body: mt(HOME.discover3_body, lang), cta: mt(HOME.discover3_cta, lang), href: "/calendar" },
+  ];
+
   const COMMIT_ITEMS = [
     mt(HOME.commit1, lang),
     mt(HOME.commit2, lang),
@@ -118,10 +142,21 @@ export function HomeContent() {
         <div className="cl-hero__inner">
           <div className="cl-hero__copy">
             <p className="cl-eyebrow">{mt(HOME.hero_eyebrow, lang)}</p>
+            <p className="cl-hero__tagline">{mt(HOME.hero_tagline, lang)}</p>
             <h1 className="cl-hero__h1">{mt(HOME.hero_h1, lang)}</h1>
             <p className="cl-hero__body">{mt(HOME.hero_body, lang)}</p>
             <div className="cl-hero__actions">
-              <Link href="/dashboard" className="cl-btn cl-btn--solid">{mt(HOME.hero_cta_start, lang)}</Link>
+              <Link
+                href="/dashboard"
+                className="cl-btn cl-btn--solid"
+                onClick={() => track("cta_clicked", { variant: ctaVariant ?? "A" })}
+              >
+                {ctaVariant === "B"
+                  ? mt(HOME.hero_cta_variant_b, lang)
+                  : ctaVariant === "A"
+                    ? mt(HOME.hero_cta_variant_a, lang)
+                    : mt(HOME.hero_cta_start, lang)}
+              </Link>
               <a href="#how-it-works" className="cl-btn cl-btn--ghost">{mt(HOME.hero_cta_how, lang)}</a>
             </div>
             {/* Guest rasi picker */}
@@ -240,6 +275,35 @@ export function HomeContent() {
                 <span className="cl-card-foot__badge">{mt(HOME.card_d1_ready, lang)}</span>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 1b — Social Proof */}
+      <section className="cl-social-proof">
+        <div className="cl-container">
+          {/* Chart counter */}
+          <div className="cl-social-proof__counter">
+            <span className="cl-social-proof__number">
+              {chartsGenerated != null ? chartsGenerated.toLocaleString() : "—"}
+            </span>
+            <span className="cl-social-proof__label">
+              {mt(HOME.social_counter_suffix, lang)}
+            </span>
+          </div>
+
+          {/* Testimonials */}
+          <div className="cl-testimonials">
+            {[
+              { quote: mt(HOME.social_t1_quote, lang), name: mt(HOME.social_t1_name, lang) },
+              { quote: mt(HOME.social_t2_quote, lang), name: mt(HOME.social_t2_name, lang) },
+              { quote: mt(HOME.social_t3_quote, lang), name: mt(HOME.social_t3_name, lang) },
+            ].map((t, i) => (
+              <blockquote key={i} className="cl-testimonial">
+                <p className="cl-testimonial__quote">&ldquo;{t.quote}&rdquo;</p>
+                <footer className="cl-testimonial__name">— {t.name}</footer>
+              </blockquote>
+            ))}
           </div>
         </div>
       </section>
@@ -432,6 +496,25 @@ export function HomeContent() {
           <div className="cl-learn-links">
             {LEARN_PILLS.map((pill) => (
               <Link key={pill.href} href={pill.href} className="cl-learn-pill">{pill.label}</Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 9.5 — Discover */}
+      <section className="cl-discover">
+        <div className="cl-container">
+          <div className="cl-discover__head">
+            <p className="cl-eyebrow">{mt(HOME.discover_eyebrow, lang)}</p>
+            <h2 className="cl-section-h2">{mt(HOME.discover_h2, lang)}</h2>
+          </div>
+          <div className="cl-discover-grid">
+            {DISCOVER_CARDS.map((card) => (
+              <Link key={card.href} href={card.href} className="cl-discover-card">
+                <h3 className="cl-discover-card__title">{card.title}</h3>
+                <p className="cl-discover-card__body">{card.body}</p>
+                <span className="cl-discover-card__cta">{card.cta}</span>
+              </Link>
             ))}
           </div>
         </div>

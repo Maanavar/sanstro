@@ -29,10 +29,11 @@ export function PublicNav() {
   function closeMobileMenu() { setMobileOpen(false); }
 
   const FEATURES = [
-    { href: "/features/daily-guidance",     label: mt(NAV.feat_daily,   lang) },
-    { href: "/features/family-planning",    label: mt(NAV.feat_family,  lang) },
-    { href: "/features/chart-guidance",     label: mt(NAV.feat_chart,   lang) },
-    { href: "/features/timing-and-decisions", label: mt(NAV.feat_timing, lang) },
+    { href: "/features/daily-guidance",       label: mt(NAV.feat_daily,          lang) },
+    { href: "/features/family-planning",      label: mt(NAV.feat_family,         lang) },
+    { href: "/family",                         label: mt(NAV.feat_family_vault,   lang), desc: mt(NAV.feat_family_vault_desc, lang) },
+    { href: "/features/chart-guidance",       label: mt(NAV.feat_chart,          lang) },
+    { href: "/features/timing-and-decisions", label: mt(NAV.feat_timing,         lang) },
   ];
 
   const TOOLS = [

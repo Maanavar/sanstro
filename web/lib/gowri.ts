@@ -7,41 +7,36 @@ export type GowriTimingSlot = PanchangamDailyResponseData["kalam"]["nallaNeram"]
 // GOWRI_GOOD_LABELS_EN/TA and GOWRI_GOOD_PURPOSE_EN/TA in app/calculations/panchangam.py —
 // the backend has no per-slot localized fields in the API response, so this table is the
 // single place the frontend defines that wording. Update both together.
+// Traditional Tamil Nadu 8-kala cycle: VILAMBHI, ANANDHA, ROGAM, LABHAM, AMIRTHAM, SHODAM, KALAM, VISHAM.
+// Good kalas (4): AMIRTHAM (best), LABHAM, VILAMBHI, ANANDHA.
 const GOWRI_CATEGORY_DETAILS = {
-  AMIRDHA: {
+  AMIRTHAM: {
     rank: 1,
-    nameEn: "Amirdha",
+    nameEn: "Amirtham",
     nameTa: "அமிர்தம்",
-    purposeEn: "best overall",
-    purposeTa: "மிகச் சிறந்த பொது நல்ல நேரம்",
+    purposeEn: "best overall — all auspicious activities",
+    purposeTa: "மிகச் சிறந்த பொது நல்ல நேரம் — அனைத்து மங்கலகர செயல்களுக்கும்",
   },
-  UTHI: {
+  LABHAM: {
     rank: 2,
-    nameEn: "Uthi / Uthiyogam",
-    nameTa: "உத்தி / உத்தியோகம்",
-    purposeEn: "new starts, jobs, official work, and applications",
-    purposeTa: "புதிய தொடக்கம், வேலை, அலுவல், விண்ணப்பங்களுக்கு நல்லது",
-  },
-  LAABAM: {
-    rank: 3,
-    nameEn: "Laabam",
+    nameEn: "Labham",
     nameTa: "லாபம்",
     purposeEn: "profit, business, deals, buying, and selling",
     purposeTa: "லாபம், வணிகம், ஒப்பந்தம், வாங்கல்/விற்பனைக்கு நல்லது",
   },
-  DHANAM: {
-    rank: 4,
-    nameEn: "Dhanam",
-    nameTa: "தனம்",
-    purposeEn: "money, finance, investments, and wealth matters",
-    purposeTa: "பணம், நிதி, முதலீடு, செல்வ விஷயங்களுக்கு நல்லது",
+  VILAMBHI: {
+    rank: 3,
+    nameEn: "Vilambhi",
+    nameTa: "விளம்பி",
+    purposeEn: "new starts, livelihood, official work, and applications",
+    purposeTa: "புதிய தொடக்கம், வாழ்வாதாரம், அலுவல், விண்ணப்பங்களுக்கு நல்லது",
   },
-  SUGAM: {
-    rank: 5,
-    nameEn: "Sugam",
-    nameTa: "சுகம்",
-    purposeEn: "comfort, health, family peace, travel, and routine good work",
-    purposeTa: "சுகம், ஆரோக்கியம், குடும்ப அமைதி, பயணம், வழக்கமான நல்ல செயல்களுக்கு நல்லது",
+  ANANDHA: {
+    rank: 4,
+    nameEn: "Anandha",
+    nameTa: "ஆனந்தம்",
+    purposeEn: "joyful occasions, celebrations, and family gatherings",
+    purposeTa: "மகிழ்ச்சியான நிகழ்வுகள், கொண்டாட்டங்கள், குடும்ப ஒன்று கூடல்களுக்கு நல்லது",
   },
 } as const;
 

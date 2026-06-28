@@ -7,6 +7,7 @@ const MUTATING_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 function buildHeaders(init?: RequestInit) {
   const headers = new Headers(init?.headers);
   headers.set("Content-Type", headers.get("Content-Type") ?? "application/json");
+  headers.set("X-Request-ID", crypto.randomUUID());
   const method = (init?.method ?? "GET").toUpperCase();
   if (MUTATING_METHODS.has(method)) {
     headers.set("X-Vinaadi-CSRF", "1");

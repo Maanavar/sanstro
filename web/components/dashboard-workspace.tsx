@@ -30,7 +30,7 @@ import { useJournalData } from "@/hooks/useJournalData";
 import type { EditMemberState } from "./dashboard-edit-member-modal";
 import { DashboardHero } from "./dashboard-hero";
 import { DashboardLeftRail } from "./dashboard-left-rail";
-import { DashboardPersonalTab } from "./dashboard-personal-tab";
+import { DashboardTodayTab as DashboardPersonalTab } from "./dashboard-today-tab";
 import { LifeModePicker } from "./life-mode-picker";
 import { DashboardAskVinaadiWidget } from "./dashboard-ask-vinaadi-widget";
 
