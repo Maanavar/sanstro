@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
 import {
   RefreshControl, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View,
@@ -10,7 +10,7 @@ import { ChevronRight, Gift, Clock } from "lucide-react-native";
 import { useColors } from "@/hooks/useColors";
 import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
-import { TamilType, EnType } from "@/theme/typography";
+import { TamilType, EnType, TamilFont, EnFont } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { loadGuestPrefs, saveGuestPrefs } from "@/features/guest/guestStore";
@@ -367,7 +367,7 @@ function makeStyles(C: ColorTokens) {
   rasiInfo: { flex: 1 },
   rasiLabel: { fontSize: 16, lineHeight: 22, color: C.textPrimary },
   rasiCity: { color: C.textSecond, marginTop: 2 },
-  changeLink: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: C.saffron },
+  changeLink: { fontFamily: EnFont.SemiBold, fontSize: 13, color: C.saffron },
 
   menuSection: {
     backgroundColor: C.surface,
@@ -384,8 +384,8 @@ function makeStyles(C: ColorTokens) {
   },
   menuIcon: { fontSize: 20, width: 28, textAlign: "center" },
   menuLabel: { flex: 1, fontSize: 15, lineHeight: 22, color: C.textPrimary },
-  menuValue: { fontFamily: "Inter_400Regular", fontSize: 13, color: C.textSecond },
-  menuArrow: { fontFamily: "Inter_700Bold", fontSize: 18, color: C.textTertiary },
+  menuValue: { fontFamily: EnFont.Regular, fontSize: 13, color: C.textSecond },
+  menuArrow: { fontFamily: EnFont.Bold, fontSize: 18, color: C.textTertiary },
   divider: { height: 1, backgroundColor: C.divider },
 
   langToggle: { flexDirection: "row", gap: S.xs },
@@ -394,7 +394,7 @@ function makeStyles(C: ColorTokens) {
     borderRadius: RADIUS.chip, borderWidth: 1, borderColor: C.divider,
   },
   langChipActive: { backgroundColor: C.saffron, borderColor: C.saffron },
-  langChipText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textPrimary },
+  langChipText: { fontFamily: EnFont.SemiBold, fontSize: 12, color: C.textPrimary },
   langChipTextActive: { color: C.surface },
 
   accountCta: {
@@ -415,10 +415,10 @@ function makeStyles(C: ColorTokens) {
     justifyContent: "center",
     marginTop: S.xs,
   },
-  accountCtaBtnText: { fontFamily: "NotoSansTamil_700Bold", fontSize: 15, lineHeight: 22, color: C.surface },
+  accountCtaBtnText: { fontFamily: TamilFont.Bold, fontSize: 15, lineHeight: 22, color: C.surface },
 
   signOutBtn: { alignItems: "center", paddingVertical: S.sm },
-  signOutText: { fontFamily: "Inter_600SemiBold", fontSize: 15, color: C.alert },
+  signOutText: { fontFamily: EnFont.SemiBold, fontSize: 15, color: C.alert },
 
   identityCard: {
     backgroundColor: C.goldMethodLight, borderRadius: RADIUS.card,
@@ -428,12 +428,12 @@ function makeStyles(C: ColorTokens) {
     width: 48, height: 48, borderRadius: 24,
     backgroundColor: C.saffron, alignItems: "center", justifyContent: "center",
   },
-  avatarLetter: { fontFamily: "Inter_800ExtraBold", fontSize: 22, color: C.surface },
+  avatarLetter: { fontFamily: EnFont.ExtraBold, fontSize: 22, color: C.surface },
   identityName: { fontSize: 16, lineHeight: 22, color: C.textPrimary },
-  identityEmail: { fontFamily: "Inter_400Regular", fontSize: 13, color: C.textSecond, marginTop: 1 },
+  identityEmail: { fontFamily: EnFont.Regular, fontSize: 13, color: C.textSecond, marginTop: 1 },
 
   menuSectionHeader: {
-    fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textTertiary,
+    fontFamily: EnFont.SemiBold, fontSize: 12, color: C.textTertiary,
     textTransform: "uppercase", letterSpacing: 0.6,
     paddingTop: S.md, paddingHorizontal: S.base,
   },
@@ -443,6 +443,6 @@ function makeStyles(C: ColorTokens) {
     padding: S.base, flexDirection: "row", alignItems: "center",
   },
   upgradeText: { flex: 1, fontSize: 15, lineHeight: 22, color: C.surface },
-  upgradeArrow: { fontFamily: "Inter_700Bold", fontSize: 22, color: C.surface },
+  upgradeArrow: { fontFamily: EnFont.Bold, fontSize: 22, color: C.surface },
   });
 }
