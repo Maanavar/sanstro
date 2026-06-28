@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
@@ -52,7 +53,7 @@ const DAILY_PRINCIPLES: Array<{ en: string; ta: string }> = [
 ];
 
 const TAB_DEFS: Array<{ id: Tab; labelEn: string; labelTaKey?: LabelKey }> = [
-  { id: "personal", labelEn: "Personal", labelTaKey: "tab_personal" },
+  { id: "personal", labelEn: "Today", labelTaKey: "tab_today" },
   { id: "calendar", labelEn: "Calendar", labelTaKey: "tab_calendar" },
   { id: "family", labelEn: "Family", labelTaKey: "tab_family" },
   { id: "life-areas", labelEn: "Life Area", labelTaKey: "tab_life_areas" },
@@ -241,7 +242,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                 type="button"
                 className="cd-icon-btn"
                 onClick={() => { setShowAlerts(false); setShowInbox((v) => !v); }}
-                aria-label={lang === "ta" ? "அறிவிப்புகள்" : "Notifications"}
+                aria-label={t("notif_section_title", lang)}
               >
                 <BellIcon />
                 {(alertCount + inboxUnreadCount) > 0 && (
@@ -268,7 +269,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                     {/* Sent notifications inbox */}
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
                       <p className="cd-alerts-head" style={{ margin: 0 }}>
-                        {lang === "ta" ? "அனுப்பிய அறிவிப்புகள்" : "Sent notifications"}
+                        {t("notif_sent", lang)}
                       </p>
                       {inboxUnreadCount > 0 && (
                         <button
@@ -276,17 +277,17 @@ export function DashboardHero(props: DashboardHeroProps) {
                           onClick={() => { onMarkAllRead(); }}
                           style={{ fontSize: "0.7rem", color: "var(--panel-brand)", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}
                         >
-                          {lang === "ta" ? "அனைத்தும் படித்தது" : "Mark all read"}
+                          {t("notif_mark_all_read", lang)}
                         </button>
                       )}
                     </div>
                     {inboxItems.length === 0 && alertItems.length === 0 ? (
                       <p className="cd-empty-note">
-                        {lang === "ta" ? "இன்று எந்த அறிவிப்பும் இல்லை." : "No notifications yet."}
+                        {t("notif_inbox_empty", lang)}
                       </p>
                     ) : inboxItems.length === 0 ? (
                       <p className="cd-empty-note" style={{ fontSize: "0.75rem" }}>
-                        {lang === "ta" ? "அனுப்பிய அறிவிப்புகள் இல்லை." : "No sent notifications yet."}
+                        {t("notif_sent_empty", lang)}
                       </p>
                     ) : (
                       inboxItems.map((n) => (
@@ -302,6 +303,23 @@ export function DashboardHero(props: DashboardHeroProps) {
                         </div>
                       ))
                     )}
+                    <div style={{ paddingTop: "10px", borderTop: "1px solid var(--color-border)" }}>
+                      <Link
+                        href="/notifications"
+                        onClick={() => setShowInbox(false)}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          color: "var(--panel-brand)",
+                          fontSize: "0.78rem",
+                          fontWeight: 700,
+                          textDecoration: "none",
+                        }}
+                      >
+                        {lang === "ta" ? "முழு அறிவிப்பு பெட்டி" : "Open full inbox"}
+                      </Link>
+                    </div>
                   </div>
                 </>
               )}
@@ -322,7 +340,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                 type="button"
                 className="cd-avatar"
                 onClick={onUserMenuToggle}
-                aria-label={lang === "ta" ? "கணக்கு" : "Account"}
+                aria-label={t("label_account", lang)}
                 title={userEmail ?? "Account"}
               >
                 {userEmail ? userEmail[0].toUpperCase() : "U"}
@@ -422,3 +440,4 @@ export function DashboardHero(props: DashboardHeroProps) {
     </>
   );
 }
+

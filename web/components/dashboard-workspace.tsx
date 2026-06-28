@@ -239,6 +239,7 @@ function formatScoreLabel(score: number) {
 export function DashboardWorkspace() {
   const [status, setStatus] = useState("Ready. Create a profile or family vault to begin.");
   const [activeTab, setActiveTab] = useState<Tab>("personal");
+  const [exploreReturnTab, setExploreReturnTab] = useState<Tab | null>(null);
   const [settingsSubTab, setSettingsSubTab] = useState<SettingsSubTab>("setup");
   const [selectedDate, setSelectedDate] = useState(todayIso());
   const [lang, setLang] = useState<Lang>("ta");
@@ -252,6 +253,21 @@ export function DashboardWorkspace() {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showRectification, setShowRectification] = useState(false);
+
+  const goToTab = useCallback((tab: Tab) => {
+    setExploreReturnTab(null);
+    setActiveTab(tab);
+  }, []);
+
+  const goToExploreDestination = useCallback((tab: Tab) => {
+    setExploreReturnTab(tab);
+    setActiveTab(tab);
+  }, []);
+
+  const returnToExplore = useCallback(() => {
+    setExploreReturnTab(null);
+    setActiveTab("explore");
+  }, []);
   const [showWrapped, setShowWrapped] = useState(false);
   const [showRetrospective, setShowRetrospective] = useState(false);
   const [showPorutham, setShowPorutham] = useState(false);
@@ -407,7 +423,7 @@ export function DashboardWorkspace() {
     chartId: personal.chartId,
     onError: (msg) => showToast(msg, "error"),
     onGoalAdded: (goalType) => {
-      showToast(lang === "ta" ? `இலக்கு சேர்க்கப்பட்டது: ${goalType}` : `Goal saved: ${goalType}`);
+      showToast(`${t("toast_goal_added", lang)}: ${goalType}`);
       if (personal.birthProfileId) {
         void personal.refreshPersonalBundle(personal.birthProfileId, selectedDate);
       }
@@ -424,7 +440,7 @@ export function DashboardWorkspace() {
         .finally(() => personal.setPredictionsLoading(false));
     },
     onGoalRemoved: () => {
-      showToast(lang === "ta" ? "இலக்கு நீக்கப்பட்டது" : "Goal removed");
+      showToast(t("toast_goal_removed", lang));
       if (personal.birthProfileId) {
         void personal.refreshPersonalBundle(personal.birthProfileId, selectedDate);
       }
@@ -721,9 +737,7 @@ export function DashboardWorkspace() {
     if (!form.displayName.trim()) errors.displayName = t("err_name_required", lang);
     if (!form.birthDateLocal) errors.birthDateLocal = t("err_date_required", lang);
     else if (!isBirthDateWithinBounds(form.birthDateLocal)) {
-      errors.birthDateLocal = lang === "ta"
-        ? "பிறந்த தேதி 1900 முதல் இன்றைய தேதிக்குள் இருக்க வேண்டும்."
-        : "Birth date must be between 1900 and today.";
+      errors.birthDateLocal = t("err_date_out_of_range", lang);
     }
     if (!form.birthPlace.trim()) errors.birthPlace = t("err_place_required", lang);
     if (!form.birthTimezone.trim()) errors.birthTimezone = t("err_tz_required", lang);
@@ -737,9 +751,7 @@ export function DashboardWorkspace() {
     if (!form.displayName.trim()) errors.memberDisplayName = t("err_name_required", lang);
     if (!form.birthDateLocal) errors.memberBirthDate = t("err_date_required", lang);
     else if (!isBirthDateWithinBounds(form.birthDateLocal)) {
-      errors.memberBirthDate = lang === "ta"
-        ? "பிறந்த தேதி 1900 முதல் இன்றைய தேதிக்குள் இருக்க வேண்டும்."
-        : "Birth date must be between 1900 and today.";
+      errors.memberBirthDate = t("err_date_out_of_range", lang);
     }
     if (!form.birthPlace.trim()) errors.memberBirthPlace = t("err_place_required", lang);
     if (!form.birthTimezone.trim()) errors.memberTimezone = t("err_tz_required", lang);
@@ -964,11 +976,7 @@ export function DashboardWorkspace() {
     const existingId = personal.birthProfileId;
     if (!existingId) return;
     const name = birthForm.displayName || "this profile";
-    if (!confirm(
-      lang === "ta"
-        ? `"${name}" ஜாதகம் மற்றும் அனைத்து கணக்கீட்டு தரவையும் நிரந்தரமாக நீக்கவா? இதை மீட்டெடுக்க முடியாது.`
-        : `Permanently delete "${name}" and all its chart data? This cannot be undone.`
-    )) return;
+    if (!confirm(t("confirm_delete_profile_body", lang).replace("%s", name))) return;
     setBusyEditingProfile(true);
     try {
       await apiFetchJson<unknown>(`/api/v1/birth-profiles/${existingId}`, { method: "DELETE" });
@@ -1089,13 +1097,13 @@ export function DashboardWorkspace() {
         inboxItems={inboxItems}
         inboxUnreadCount={inboxUnreadCount}
         onMarkAllRead={handleMarkAllRead}
-        onTabChange={(tab) => setActiveTab(tab)}
+        onTabChange={goToTab}
         onDateChange={setSelectedDate}
         onLangToggle={() => setLang((l) => l === "ta" ? "en" : "ta")}
         onUserMenuToggle={() => session.setShowUserMenu((v) => !v)}
         onUserMenuClose={() => session.setShowUserMenu(false)}
         onGoToSettings={() => {
-          setActiveTab("settings");
+          goToTab("settings");
           setSettingsSubTab("session");
           session.setShowUserMenu(false);
         }}
@@ -1136,9 +1144,36 @@ export function DashboardWorkspace() {
       <DashboardLeftRail
         lang={lang}
         activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab)}
+        onTabChange={goToTab}
       />
       <div className="cd-main-content">
+
+      {exploreReturnTab === activeTab && activeTab !== "explore" && (
+        <div style={{ padding: "var(--space-3) var(--space-3) 0" }}>
+          <button
+            type="button"
+            onClick={returnToExplore}
+            aria-label={lang === "ta" ? "ஆராய் பக்கத்துக்கு திரும்பு" : "Back to Explore"}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              minHeight: 36,
+              padding: "7px 12px",
+              borderRadius: "var(--radius-sm)",
+              border: "1px solid var(--panel-tan-light)",
+              background: "var(--panel-cream)",
+              color: "var(--panel-earth)",
+              fontSize: "0.82rem",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            <span aria-hidden="true">←</span>
+            {lang === "ta" ? "ஆராய் பக்கத்துக்கு திரும்பு" : "Back to Explore"}
+          </button>
+        </div>
+      )}
 
       {/* Onboarding banner: shown until profile + one family member added */}
       {!onboardingDone && session.hydrated && (
@@ -1146,7 +1181,7 @@ export function DashboardWorkspace() {
           <div className="cd-onboarding__card">
             <div className="cd-onboarding__content">
               <p className="cd-onboarding__title">
-                {lang === "ta" ? "தொடங்க சில படிகள் மீதம்" : "A few steps to get started"}
+                {t("onboarding_title", lang)}
               </p>
               <div className="cd-onboarding__steps">
                 <div className="cd-onboarding__step">
@@ -1154,7 +1189,7 @@ export function DashboardWorkspace() {
                     {personal.birthProfileId ? "✓" : "1"}
                   </span>
                   <span className={`cd-onboarding__step-text ${personal.birthProfileId ? "is-done" : ""}`}>
-                    {lang === "ta" ? "உங்கள் ஜாதக விவரங்களை சேர்க்கவும்" : "Add your birth profile"}
+                    {t("onboarding_step1", lang)}
                   </span>
                 </div>
                 {(() => {
@@ -1165,7 +1200,7 @@ export function DashboardWorkspace() {
                         {hasMember ? "✓" : "2"}
                       </span>
                       <span className={`cd-onboarding__step-text ${hasMember ? "is-done" : ""}`}>
-                        {lang === "ta" ? "குடும்ப வாஷி திறந்து ஒரு உறுப்பினரை சேர்க்கவும்" : "Open Family Vault and add one family member"}
+                        {t("onboarding_step2", lang)}
                       </span>
                     </div>
                   );
@@ -1174,10 +1209,10 @@ export function DashboardWorkspace() {
             </div>
             <button
               type="button"
-              onClick={() => { setActiveTab("settings"); setSettingsSubTab("setup"); }}
+              onClick={() => { goToTab("settings"); setSettingsSubTab("setup"); }}
               className="cd-onboarding__cta"
             >
-              {lang === "ta" ? "அமைவுக்கு செல்" : "Go to Setup"}
+              {t("onboarding_go_setup", lang)}
             </button>
           </div>
         </div>
@@ -1604,7 +1639,7 @@ export function DashboardWorkspace() {
         )}
 
         {activeTab === "explore" && (
-          <DashboardExploreTab lang={lang} onNavigate={setActiveTab} />
+          <DashboardExploreTab lang={lang} onNavigate={goToExploreDestination} />
         )}
 
         {ENABLE_QA_TAB && activeTab === "qa" && (

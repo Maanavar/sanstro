@@ -7,7 +7,7 @@ export const LANG_COOKIE_NAME = "jothidam-lang";
 const STRINGS = {
   // ── Tabs
   tab_today:      { ta: "இன்று",        en: "Today" },
-  tab_explore:    { ta: "ஆராய்",        en: "Explore" },
+  tab_explore:    { ta: "ஆராய்வு",       en: "Explore" },
   tab_tools:      { ta: "கருவிகள்",     en: "Tools" },
   tab_personal:   { ta: "தனிப்பட்ட",   en: "Personal" },
   tab_plan:       { ta: "திட்டமிடு",   en: "Plan" },
@@ -138,9 +138,9 @@ const STRINGS = {
   transits_tab_desc:  { ta: "விம்சோத்தரி தசை காலவரிசை, கிரகநகர்வு நிலைகள், குறிப்பேடு ஒப்பீடுகள்", en: "Vimshottari Dasa timeline, transit positions, journal comparisons" },
 
   // ── TODAY tab (Phase 2)
-  today_greeting:       { ta: "வணக்கம்",           en: "Good morning" },
+  today_greeting:       { ta: "காலை வணக்கம்",      en: "Good morning" },
   today_date_line:      { ta: "இன்றைய தேதி",       en: "Today" },
-  today_remedy_label:   { ta: "இன்றைய தீர்வு",     en: "Today's remedy" },
+  today_remedy_label:   { ta: "இன்றைய பரிகாரம்",   en: "Today's remedy" },
   today_family_section: { ta: "குடும்பம் இன்று",    en: "Family today" },
   today_week_ahead:     { ta: "வரும் வாரம்",        en: "Week ahead" },
   today_panchangam:     { ta: "பஞ்சாங்கம்",         en: "Panchangam" },
@@ -954,6 +954,31 @@ const STRINGS = {
   validation_medium:       { ta: "நடுத்தர நம்பகம் — %d/%d பொருந்தின",          en: "Moderate confidence — %d/%d matched" },
   validation_low:          { ta: "குறைவான நம்பகம் — %d/%d பொருந்தின",          en: "Low confidence — %d/%d matched" },
   validation_unvalidated:  { ta: "நிகழ்வுகள் பதிவு செய்யப்படவில்லை",            en: "No life events on record" },
+
+  // ── Toasts (goal track)
+  toast_goal_added:        { ta: "இலக்கு சேர்க்கப்பட்டது",   en: "Goal saved" },
+  toast_goal_removed:      { ta: "இலக்கு நீக்கப்பட்டது",     en: "Goal removed" },
+
+  // ── Validation (date range)
+  err_date_out_of_range:   { ta: "பிறந்த தேதி 1900 முதல் இன்றைய தேதிக்குள் இருக்க வேண்டும்.", en: "Birth date must be between 1900 and today." },
+
+  // ── Delete profile confirm dialog (%s = profile display name)
+  confirm_delete_profile_body: { ta: '"%s" ஜாதகம் மற்றும் அனைத்து கணக்கீட்டு தரவையும் நிரந்தரமாக நீக்கவா? இதை மீட்டெடுக்க முடியாது.', en: 'Permanently delete "%s" and all its chart data? This cannot be undone.' },
+
+  // ── Onboarding banner
+  onboarding_title:        { ta: "தொடங்க சில படிகள் மீதம்",                         en: "A few steps to get started" },
+  onboarding_step1:        { ta: "உங்கள் ஜாதக விவரங்களை சேர்க்கவும்",              en: "Add your birth profile" },
+  onboarding_step2:        { ta: "குடும்ப சேகரிப்பு திறந்து ஒரு உறுப்பினரை சேர்க்கவும்", en: "Open Family Vault and add one family member" },
+  onboarding_go_setup:     { ta: "அமைவுக்கு செல்",                                   en: "Go to Setup" },
+
+  // ── Notification inbox popover
+  notif_sent:              { ta: "அனுப்பிய அறிவிப்புகள்",             en: "Sent notifications" },
+  notif_mark_all_read:     { ta: "அனைத்தும் படித்தது",                 en: "Mark all read" },
+  notif_inbox_empty:       { ta: "இன்று எந்த அறிவிப்பும் இல்லை.",     en: "No notifications yet." },
+  notif_sent_empty:        { ta: "அனுப்பிய அறிவிப்புகள் இல்லை.",       en: "No sent notifications yet." },
+
+  // ── Account button aria-label
+  label_account:           { ta: "கணக்கு",   en: "Account" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;
