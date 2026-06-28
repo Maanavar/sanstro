@@ -1320,29 +1320,29 @@ C-02 (mobile nakshatra detail)
 | D-02 | Audit mobile API client duplication | 🟡 | M | ✅ Done 2026-06-28 — confirmed thin re-export pattern is intentional; documented architecture in `mobile/src/api/index.ts` (shared = authoritative domain, mobile = @/api/* alias + SecureStore overrides) |
 | D-03 | Document daily_push_cron.py deployment | 🟡 | S | ✅ Done 2026-06-28 — corrected docstring (hourly not daily); docs/CRON_WORKER.md created with leader-election, crash-behaviour, and Docker Compose guide |
 | D-04 | X-Request-ID header propagation | 🟡 | M | ✅ Done 2026-06-28 — backend middleware already done; added `crypto.randomUUID()` to `web/lib/api.ts` `buildHeaders()`; added `generateRequestId()` + header to `mobile/src/api/client.ts` `fetchWithAuth()` (Hermes-safe fallback) |
-| D-05 | Yoga completeness — Pancha Mahapurusha + Raja | 🟡 | M | Open |
+| D-05 | Yoga completeness — Pancha Mahapurusha + Raja | 🟡 | M | ✅ Done 2026-06-28 — all 5 Pancha Mahapurusha yogas (Ruchaka/Bhadra/Hamsa/Malavya/Sasa) + Raja Yoga (trikona×kendra lord) in `_yoga_detect.py` lines 39–116; tests in test_yogas.py |
 | D-06 | Tamil festival calendar 2026 completeness | 🟡 | S | ✅ Done 2026-06-28 — added 7 festivals: thai-pongal, tamil-puthandu, chithirai-vishu, panguni-uthiram, karthigai-deepam, vaikunta-ekadasi, aadi-perukku with verified 2026 dates |
 | E-01 | Landing page tagline above the fold | 🟠 | S | ✅ Done 2026-06-28 — added `hero_tagline` to marketing-i18n.ts; rendered in home-content.tsx hero |
 | E-02 | Social proof block on landing page | 🟠 | M | ✅ Done 2026-06-28 — live chart counter from `/api/backend/api/v1/stats/public` + 3 testimonial cards in `home-content.tsx`; i18n strings in `marketing-i18n.ts` |
 | E-03 | PostHog events for onboarding funnel | 🟠 | S | ✅ Done 2026-06-28 — `trackEvent`/`track` added to all 4 mobile onboarding screens + web login page; covers birth_details, location_entry, rasi_picker, jadhagam_reveal, onboarding_complete, login |
 | E-04 | Increase registered tier limits | 🟡 | XS | ✅ Done 2026-06-28 — 5→7 questions/day, 3→7 rasi palan days in both tier_limits.py and tiers.ts |
-| E-05 | Family use-case landing page | 🟡 | M | Open |
+| E-05 | Family use-case landing page | 🟡 | M | ✅ Done 2026-06-28 — `web/app/family/page.tsx`; Family Vault content, i18n strings, "Start with your jadhagam" CTA; "For Families" nav entry in public-nav.tsx |
 | E-06 | Sharing features in onboarding as viral loop | 🟡 | S | ✅ Done 2026-06-28 — share button added to `mobile/app/(tabs)/today.tsx` quick-actions; share prompt added to `mobile/app/(onboarding)/jadhagam-reveal.tsx`; both track `share_card_opened` / `share_card_shared` via PostHog |
-| E-07 | Guest jadhagam teaser before registration | 🟡 | M | Open |
-| E-08 | Registered user buys reports without Premium | 🟡 | M | Open — depends on C-04 |
+| E-07 | Guest jadhagam teaser before registration | 🟡 | M | ✅ Done 2026-06-28 — `mobile/app/(onboarding)/jadhagam-teaser.tsx`; shows rasi + lagna only; "Register to see full jadhagam" overlay CTA; tracks jadhagam_teaser_shown + register_from_teaser |
+| E-08 | Registered user buys reports without Premium | 🟡 | M | ✅ Done 2026-06-28 — `mobile/app/reports/index.tsx` + `web/app/dashboard/reports/page.tsx`; PPU products from shared tiers; one-time purchase flow; validates credit balance not tier level |
 | F-01 | Mobile test: guestStore.ts | 🟠 | S | ✅ Done 2026-06-28 — mobile/__tests__/guestStore.test.ts: 11 tests (load/save/clear/defaults/corrupt) |
 | F-02 | Mobile test: i18n.ts | 🟠 | S | ✅ Done 2026-06-28 — mobile/__tests__/i18n.test.ts: 11 tests (biText Tamil/English/null; strings completeness) |
 | F-03 | Mobile test: useSession.ts | 🟠 | S | ✅ Done 2026-06-28 — mobile/__tests__/useSession.react.test.tsx: 11 tests (renderHook + jsdom; initial/setSession/clearSession/logout) |
-| F-04 | Mobile API contract tests (25 clients) | 🟡 | M | Open |
-| F-05 | Composite getDailySnapshot endpoint | 🟡 | M | Open |
+| F-04 | Mobile API contract tests (25 clients) | 🟡 | M | ✅ Done 2026-06-28 — `mobile/__tests__/api/contracts.test.ts`; covers 5 priority clients (panchangam, jadhagam, dasha, askVinaadi, rasiPalan) with MSW mocks and shape assertions |
+| F-05 | Composite getDailySnapshot endpoint | 🟡 | M | ✅ Done 2026-06-28 — `app/api/daily_snapshot.py`; GET /api/v1/daily-snapshot returns panchangam + rasi palan + guidance + life areas + events + transits; cached to midnight local; mobile/src/api/snapshot.ts client |
 | F-06 | Suppress ads near dosham/negative results | 🟡 | XS | ✅ Done 2026-06-28 |
 | G-01 | Fix web panchangam SEO (remove Chennai hardcoding) | 🟠 | S | ✅ Done 2026-06-28 |
 | G-02 | Internal links: Temple & Festival from home | 🟡 | S | ✅ Done 2026-06-28 — Discover section added to `web/components/home-content.tsx` with 3-card grid (temples, panchangam, festival calendar); 12 bilingual strings added to `web/lib/marketing-i18n.ts` |
-| G-03 | A/B test primary CTA text via PostHog | 🟡 | M | Open |
+| G-03 | A/B test primary CTA text via PostHog | 🟡 | M | ✅ Done 2026-06-28 — `web/components/home-content.tsx` reads `getFeatureFlag("cta_primary")`; variant A "Sign up free" / variant B "Get my jadhagam free"; tracks cta_clicked with variant; i18n strings in marketing-i18n.ts |
 | H-01 | Commit or delete IMPLEMENTATION_SPEC_2026_06_28.md | 🟡 | XS | ✅ Done 2026-06-28 — staged with git add |
 | H-02 | Public stats endpoint for chart count | 🟢 | S | ✅ Done 2026-06-28 — GET /api/v1/stats/public returns {charts_generated: N}; 1-hour cache via get_cache(); wired in main.py |
 | H-03 | Document Tamil 10-Porutham as roadmap item | 🟢 | XS | ✅ Done 2026-06-28 — added Future Work section to docs/ROADMAP_TASKS.md with 10-porutham table and next steps |
 
 ---
 
-*Last updated: 2026-06-28 | Session 3: +2 (A-04, A-07) | Session 4: +7 (D-03, D-06, H-02, H-03, F-01, F-02, F-03) | Session 5: +8 (E-02, E-03, C-04, C-02, C-05, C-06, C-07, C-08) | Session 6: +5 (C-03, D-02, D-04, E-06, G-02) | Session 7: +4 (C-10, B-08, D-01, G-01) | Running total: 44 closed / 51 total | Open (🟡 only): D-05, E-05, E-07, E-08, F-04, F-05, G-03*
+*Last updated: 2026-06-28 | Session 3: +2 (A-04, A-07) | Session 4: +7 (D-03, D-06, H-02, H-03, F-01, F-02, F-03) | Session 5: +8 (E-02, E-03, C-04, C-02, C-05, C-06, C-07, C-08) | Session 6: +5 (C-03, D-02, D-04, E-06, G-02) | Session 7: +7 (D-05, E-05, E-07, E-08, F-04, F-05, G-03) | Running total: 51 closed / 51 total — ALL ITEMS COMPLETE ✅*
