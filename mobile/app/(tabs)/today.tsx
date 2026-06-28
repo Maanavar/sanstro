@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput,
   TouchableOpacity, useWindowDimensions, View,
@@ -9,6 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useQuery } from "@tanstack/react-query";
 import { FadeInDown } from "react-native-reanimated";
+import { entranceDelay, spring } from "@/theme/motion";
 import { router, type Href } from "expo-router";
 import {
   Bell,
@@ -22,7 +23,7 @@ import {
 } from "lucide-react-native";
 import { type ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
-import { TamilType, EnType } from "@/theme/typography";
+import { TamilType, EnType, TamilFont, EnFont } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { useColors } from "@/hooks/useColors";
@@ -52,6 +53,7 @@ import { biText } from "@/lib/i18n";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import type { GuestPrefs } from "@/features/guest/guestStore";
 import type { DailyGuidanceData } from "@vinaadi/shared";
+import { SCORE_THRESHOLDS } from "@vinaadi/shared/utils/score";
 type ExtendedGuidance = DailyGuidanceData & {
   is_chandrashtama?: boolean;
   chandrashtama_ends?: string | null;
@@ -302,8 +304,8 @@ export default function TodayTab() {
     if (g.currentHoraLord) {
       chips.push({ label: `${g.currentHoraLord} hora`, ok: true, detail: biText(g.actionSuggestion, isTamil, "Use this window for focused action.") });
     }
-    chips.push({ label: "Travel", ok: g.score >= 55, detail: biText(g.reasons?.panchangam, isTamil, biText(g.actionSuggestion, isTamil)) });
-    chips.push({ label: "Contracts", ok: !g.cautionWindows?.length && g.score >= 65, detail: biText(g.cautionSuggestion, isTamil, "Check caution windows before signing.") });
+    chips.push({ label: "Travel", ok: g.score >= SCORE_THRESHOLDS.MID, detail: biText(g.reasons?.panchangam, isTamil, biText(g.actionSuggestion, isTamil)) });
+    chips.push({ label: "Contracts", ok: !g.cautionWindows?.length && g.score >= SCORE_THRESHOLDS.HIGH, detail: biText(g.cautionSuggestion, isTamil, "Check caution windows before signing.") });
     if (g.cautionWindows?.[0]) {
       const w = g.cautionWindows[0];
       chips.push({ label: "Avoid rush", ok: false, detail: `${w.type}: ${formatTime(w.start)} - ${formatTime(w.end)}` });
@@ -453,12 +455,12 @@ export default function TodayTab() {
                 </View>
 
                 <View style={styles.scoreHeroMain}>
-                  <SharedTransitionView entering={FadeInDown.delay(80).springify()} sharedTransitionTag="score-ring">
+                  <SharedTransitionView entering={FadeInDown.delay(entranceDelay.hero).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)} sharedTransitionTag="score-ring">
                     <ScoreRing score={g.score} size={132} />
                   </SharedTransitionView>
                   <View style={styles.scoreHeroCopy}>
                     <Text style={styles.scoreHeroNumber}>{g.score}</Text>
-                    <Text style={styles.scoreHeroState}>{g.score >= 65 ? "Good window" : g.score >= 45 ? "Move steadily" : "Go gently"}</Text>
+                    <Text style={styles.scoreHeroState}>{g.score >= SCORE_THRESHOLDS.HIGH ? "Good window" : g.score >= SCORE_THRESHOLDS.MID ? "Move steadily" : "Go gently"}</Text>
                   </View>
                 </View>
 
@@ -490,7 +492,7 @@ export default function TodayTab() {
               setDetailSheet({
                 title: biText(area.label, isTamil, area.area),
                 body: `${biText(area.narrative, isTamil)}\n\n${biText(area.next30DayOutlook, isTamil)}`,
-                tone: area.score >= 55 ? "good" : "caution",
+                tone: area.score >= SCORE_THRESHOLDS.MID ? "good" : "caution",
               });
             }}
           />
@@ -875,7 +877,7 @@ function LifeAreaPulse({
   return (
     <View style={styles.areaPulseRow}>
       {areas.map((area) => {
-        const tone = area.score >= 65 ? C.green : area.score >= 45 ? C.gold : C.caution;
+        const tone = area.score >= SCORE_THRESHOLDS.HIGH ? C.green : area.score >= SCORE_THRESHOLDS.MID ? C.gold : C.caution;
         const score = Math.round(area.score);
         const rawLabel = biText(area.label, isTamil, area.area);
         const label = rawLabel.length > 7 ? rawLabel.slice(0, 6) + "…" : rawLabel;
@@ -946,7 +948,7 @@ function makeStyles(C: ColorTokens) {
     alignItems: "center",
   },
   offlineBannerText: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: EnFont.SemiBold,
     fontSize: 12,
     color: C.surface,
   },
@@ -959,15 +961,15 @@ function makeStyles(C: ColorTokens) {
     borderBottomWidth: 1,
     borderBottomColor: C.divider,
   },
-  logo: { fontFamily: "NotoSansTamil_700Bold", fontSize: 14, color: C.saffron, flex: 1 },
+  logo: { fontFamily: TamilFont.Bold, fontSize: 14, color: C.saffron, flex: 1 },
   headerCenter: { flex: 2, alignItems: "center" },
   tamilDate: { fontSize: 14, lineHeight: 20, color: C.textPrimary },
-  engDate: { fontFamily: "Inter_400Regular", fontSize: 11, color: C.textTertiary },
+  engDate: { fontFamily: EnFont.Regular, fontSize: 11, color: C.textTertiary },
   cityChip: {
     flex: 1,
     alignItems: "flex-end",
   },
-  cityText: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.textSecond },
+  cityText: { fontFamily: EnFont.Regular, fontSize: 12, color: C.textSecond },
 
   hero: { paddingHorizontal: S.base, paddingTop: S.base },
   heroCard: {
@@ -978,20 +980,20 @@ function makeStyles(C: ColorTokens) {
     overflow: "hidden",
   },
   heroLabel: {
-    fontFamily: "NotoSansTamil_400Regular",
+    fontFamily: TamilFont.Regular,
     fontSize: 13,
     color: `${C.surface}CC`,
     marginBottom: S.sm,
   },
   heroRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   heroRasi: {
-    fontFamily: "NotoSansTamil_700Bold",
+    fontFamily: TamilFont.Bold,
     fontSize: 28,
     lineHeight: 36,
     color: C.surface,
   },
   heroSub: {
-    fontFamily: "NotoSansTamil_400Regular",
+    fontFamily: TamilFont.Regular,
     fontSize: 14,
     lineHeight: 20,
     color: `${C.surface}D9`,
@@ -1007,7 +1009,7 @@ function makeStyles(C: ColorTokens) {
     marginTop: S.sm,
   },
   heroBadgeText: {
-    fontFamily: "NotoSansTamil_700Bold",
+    fontFamily: TamilFont.Bold,
     fontSize: 11,
     lineHeight: 16,
     color: C.surface,
@@ -1028,8 +1030,8 @@ function makeStyles(C: ColorTokens) {
   scoreHeroLabel: { color: C.indigoText },
   scoreHeroMain: { alignItems: "center", justifyContent: "center", flex: 1, minHeight: 120 },
   scoreHeroCopy: { position: "absolute", alignItems: "center", justifyContent: "center" },
-  scoreHeroNumber: { fontFamily: "Inter_800ExtraBold", fontSize: 40, lineHeight: 46, color: C.indigoText },
-  scoreHeroState: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.gold, textTransform: "uppercase", letterSpacing: 1 },
+  scoreHeroNumber: { fontFamily: EnFont.ExtraBold, fontSize: 40, lineHeight: 46, color: C.indigoText },
+  scoreHeroState: { fontFamily: EnFont.Bold, fontSize: 11, color: C.gold, textTransform: "uppercase", letterSpacing: 1 },
   bestWindowPanel: {
     backgroundColor: C.indigoSurface,
     borderRadius: RADIUS.lg,
@@ -1038,8 +1040,8 @@ function makeStyles(C: ColorTokens) {
     padding: S.md,
     gap: S.xs,
   },
-  bestWindowLabel: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.gold, textTransform: "uppercase", letterSpacing: 0 },
-  bestWindowTime: { fontFamily: "Inter_800ExtraBold", fontSize: 26, lineHeight: 32, color: C.indigoText },
+  bestWindowLabel: { fontFamily: EnFont.Bold, fontSize: 11, color: C.gold, textTransform: "uppercase", letterSpacing: 0 },
+  bestWindowTime: { fontFamily: EnFont.ExtraBold, fontSize: 26, lineHeight: 32, color: C.indigoText },
   scoreHeroText: { color: C.indigoText, opacity: 0.78 },
   windowChipRow: { flexDirection: "row", gap: S.xs, flexWrap: "wrap", marginTop: 4 },
   windowChip: {
@@ -1048,8 +1050,8 @@ function makeStyles(C: ColorTokens) {
     paddingHorizontal: S.sm,
     paddingVertical: 2,
   },
-  windowChipText: { fontFamily: "Inter_600SemiBold", fontSize: 11, color: C.indigoText },
-  scoreArrow: { fontFamily: "Inter_700Bold", fontSize: 22, color: C.textTertiary },
+  windowChipText: { fontFamily: EnFont.SemiBold, fontSize: 11, color: C.indigoText },
+  scoreArrow: { fontFamily: EnFont.Bold, fontSize: 22, color: C.textTertiary },
   chandraCard: {
     marginHorizontal: S.base, marginBottom: S.sm,
     backgroundColor: C.cautionLight, borderRadius: RADIUS.card,
@@ -1059,7 +1061,7 @@ function makeStyles(C: ColorTokens) {
   },
   chandraIcon: { fontSize: 18 },
   chandraText: { flex: 1, color: C.caution },
-  chandraArrow: { fontFamily: "Inter_700Bold", fontSize: 18, color: C.caution },
+  chandraArrow: { fontFamily: EnFont.Bold, fontSize: 18, color: C.caution },
   kalamRow: { paddingLeft: S.base, paddingVertical: S.base },
   areaPulseRow: {
     flexDirection: "row",
@@ -1085,12 +1087,12 @@ function makeStyles(C: ColorTokens) {
     elevation: 3,
   },
   areaDotScore: {
-    fontFamily: "Inter_800ExtraBold",
+    fontFamily: EnFont.ExtraBold,
     fontSize: 16,
     color: C.surface,
   },
   areaDotLabel: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: EnFont.SemiBold,
     fontSize: 10,
     color: C.textSecond,
     textAlign: "center",
@@ -1109,9 +1111,9 @@ function makeStyles(C: ColorTokens) {
   },
   cosmicAlertGood: { backgroundColor: C.greenLight, borderColor: `${C.green}2E` },
   cosmicDot: { width: 10, height: 10, borderRadius: 999 },
-  cosmicKicker: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.textTertiary, textTransform: "uppercase", letterSpacing: 0 },
+  cosmicKicker: { fontFamily: EnFont.Bold, fontSize: 11, color: C.textTertiary, textTransform: "uppercase", letterSpacing: 0 },
   cosmicTitle: { color: C.textPrimary, marginTop: 2 },
-  cosmicArrow: { fontFamily: "Inter_700Bold", fontSize: 16, color: C.textTertiary },
+  cosmicArrow: { fontFamily: EnFont.Bold, fontSize: 16, color: C.textTertiary },
   gowriCard: {
     width: 120,
     borderRadius: RADIUS.card,
@@ -1125,9 +1127,9 @@ function makeStyles(C: ColorTokens) {
     elevation: 2,
   },
   gowriChip: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", marginBottom: S.xs, backgroundColor: C.gold },
-  gowriChipText: { color: C.surface, fontFamily: "Inter_800ExtraBold", fontSize: 13 },
-  gowriTime: { fontFamily: "Inter_600SemiBold", fontSize: 14, lineHeight: 20, color: C.textPrimary, marginBottom: 2 },
-  gowriLabel: { fontFamily: "Inter_400Regular", fontSize: 11, lineHeight: 16, color: C.textSecond },
+  gowriChipText: { color: C.surface, fontFamily: EnFont.ExtraBold, fontSize: 13 },
+  gowriTime: { fontFamily: EnFont.SemiBold, fontSize: 14, lineHeight: 20, color: C.textPrimary, marginBottom: 2 },
+  gowriLabel: { fontFamily: EnFont.Regular, fontSize: 11, lineHeight: 16, color: C.textSecond },
   activityRow: { paddingLeft: S.base, marginBottom: S.xs },
   activityContent: { gap: S.xs, paddingRight: S.base },
   activityChip: {
@@ -1139,7 +1141,7 @@ function makeStyles(C: ColorTokens) {
     paddingVertical: S.xs,
   },
   activityChipCaution: { backgroundColor: C.cautionLight, borderColor: `${C.caution}2E` },
-  activityChipText: { fontFamily: "Inter_700Bold", fontSize: 12, color: C.green },
+  activityChipText: { fontFamily: EnFont.Bold, fontSize: 12, color: C.green },
   activityChipTextCaution: { color: C.caution },
   eventCountdown: {
     marginHorizontal: S.base,
@@ -1153,25 +1155,25 @@ function makeStyles(C: ColorTokens) {
     alignItems: "center",
     gap: S.md,
   },
-  eventKicker: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.saffron, textTransform: "uppercase", letterSpacing: 0 },
+  eventKicker: { fontFamily: EnFont.Bold, fontSize: 11, color: C.saffron, textTransform: "uppercase", letterSpacing: 0 },
   eventTitle: { color: C.textPrimary, marginTop: 3 },
-  eventMeta: { marginTop: 4, fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textSecond },
-  eventArrow: { fontFamily: "Inter_700Bold", fontSize: 18, color: C.textTertiary },
+  eventMeta: { marginTop: 4, fontFamily: EnFont.SemiBold, fontSize: 12, color: C.textSecond },
+  eventArrow: { fontFamily: EnFont.Bold, fontSize: 18, color: C.textTertiary },
   quickActions: { flexDirection: "row", gap: S.sm, marginHorizontal: S.base, marginTop: S.base },
   quickActionBtn: { flex: 1, minHeight: 48, borderRadius: RADIUS.button, backgroundColor: C.saffron, paddingVertical: S.sm, alignItems: "center", justifyContent: "center" },
   quickActionSecondary: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.divider },
   quickActionInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: S.xs },
-  quickActionText: { fontFamily: "Inter_800ExtraBold", fontSize: 13, color: C.surface },
+  quickActionText: { fontFamily: EnFont.ExtraBold, fontSize: 13, color: C.surface },
   quickActionSecondaryText: { color: C.saffron },
   modalScrim: { flex: 1, backgroundColor: C.deepIndigo, justifyContent: "flex-end" },
   detailSheet: { backgroundColor: C.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: S.lg, gap: S.sm },
   journalSheet: { backgroundColor: C.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: S.lg, gap: S.sm, maxHeight: "86%" },
   sheetHandle: { alignSelf: "center", width: 42, height: 4, borderRadius: 999, backgroundColor: C.gold, marginBottom: S.xs },
-  sheetTitle: { fontFamily: "Inter_800ExtraBold", fontSize: 20, lineHeight: 26, color: C.textPrimary },
-  sheetBody: { fontFamily: "Inter_400Regular", fontSize: 14, lineHeight: 22, color: C.textSecond },
+  sheetTitle: { fontFamily: EnFont.ExtraBold, fontSize: 20, lineHeight: 26, color: C.textPrimary },
+  sheetBody: { fontFamily: EnFont.Regular, fontSize: 14, lineHeight: 22, color: C.textSecond },
   sheetDoneBtn: { marginTop: S.sm, borderRadius: RADIUS.button, backgroundColor: C.saffron, paddingVertical: S.sm, alignItems: "center" },
-  sheetDoneText: { fontFamily: "Inter_800ExtraBold", fontSize: 14, color: C.surface },
-  journalStep: { marginTop: S.xs, fontFamily: "Inter_700Bold", fontSize: 13, color: C.textSecond },
+  sheetDoneText: { fontFamily: EnFont.ExtraBold, fontSize: 14, color: C.surface },
+  journalStep: { marginTop: S.xs, fontFamily: EnFont.Bold, fontSize: 13, color: C.textSecond },
   journalInput: {
     minHeight: 84,
     borderRadius: RADIUS.card,
@@ -1179,7 +1181,7 @@ function makeStyles(C: ColorTokens) {
     borderColor: C.divider,
     padding: S.md,
     color: C.textPrimary,
-    fontFamily: "Inter_400Regular",
+    fontFamily: EnFont.Regular,
     textAlignVertical: "top",
   },
   section: { paddingHorizontal: S.base, marginTop: S.base, gap: S.sm },
@@ -1208,7 +1210,7 @@ function makeStyles(C: ColorTokens) {
     elevation: 1,
   },
   datumLabel: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: EnFont.Regular,
     fontSize: 11,
     color: C.textTertiary,
     marginBottom: 3,
@@ -1226,7 +1228,7 @@ function makeStyles(C: ColorTokens) {
   promptDismissText: { color: C.textTertiary, fontSize: 14 },
   promptHeading: { color: C.textPrimary },
   promptCta: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: EnFont.SemiBold,
     fontSize: 14,
     color: C.saffron,
   },
@@ -1239,10 +1241,10 @@ function makeStyles(C: ColorTokens) {
     gap: S.xs,
   },
   decisionTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  decisionKicker: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.gold, textTransform: "uppercase", letterSpacing: 0 },
-  decisionArrow: { fontFamily: "Inter_700Bold", fontSize: 18, color: `${C.surface}80` },
-  decisionTitle: { fontFamily: "Inter_800ExtraBold", fontSize: 18, lineHeight: 24, color: C.surface },
-  decisionBody: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19, color: `${C.surface}B8` },
+  decisionKicker: { fontFamily: EnFont.Bold, fontSize: 11, color: C.gold, textTransform: "uppercase", letterSpacing: 0 },
+  decisionArrow: { fontFamily: EnFont.Bold, fontSize: 18, color: `${C.surface}80` },
+  decisionTitle: { fontFamily: EnFont.ExtraBold, fontSize: 18, lineHeight: 24, color: C.surface },
+  decisionBody: { fontFamily: EnFont.Regular, fontSize: 13, lineHeight: 19, color: `${C.surface}B8` },
 
   streakChip: {
     flexDirection: 'row',
@@ -1255,7 +1257,7 @@ function makeStyles(C: ColorTokens) {
     marginRight: S.sm,
   },
   streakText: {
-    fontFamily: "Inter_700Bold",
+    fontFamily: EnFont.Bold,
     fontSize: 13,
     color: C.surface,
   },
