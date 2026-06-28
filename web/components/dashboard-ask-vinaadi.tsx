@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
@@ -108,7 +108,7 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
 
   function goUpgrade() {
     if (onUpgrade) onUpgrade();
-    else if (typeof window !== "undefined") window.location.href = "/#pricing";
+    else if (typeof window !== "undefined") window.location.href = "/pricing";
   }
 
   async function submit(q: string, isChip = false) {

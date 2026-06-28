@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useState } from "react";
@@ -145,8 +145,8 @@ export function HomeContent() {
                     {lang === "ta" ? selectedRasi.ta : selectedRasi.en}
                   </span>
                   {" "}
-                  <Link href="/tools/daily-panchangam-planner" className="cl-guest-rasi__cta">
-                    {lang === "en" ? "See today's Panchangam →" : "இன்றைய பஞ்சாங்கம் பாருங்கள் →"}
+                  <Link href="/tools/indraiya-rasipalan" className="cl-guest-rasi__cta">
+                    {lang === "en" ? "See today's Rasi palan ->" : "இன்றைய ராசிபலன் பாருங்கள் ->"}
                   </Link>
                   {" · "}
                   <button

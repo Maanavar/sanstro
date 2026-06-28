@@ -36,6 +36,7 @@ export function PublicFooter() {
   const companyLinks = [
     { href: "/trust/about-vinaadi", label: mt(FOOTER.about, lang) },
     { href: "/trust/methodology", label: mt(FOOTER.methodology, lang) },
+    { href: "/pricing", label: lang === "en" ? "Pricing" : "விலை" },
     { href: "/privacy", label: mt(FOOTER.privacy, lang) },
     { href: "/terms", label: mt(FOOTER.terms, lang) },
   ];
