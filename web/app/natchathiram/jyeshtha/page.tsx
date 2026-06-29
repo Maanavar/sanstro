@@ -12,11 +12,13 @@ export const metadata: Metadata = {
     description: JYESHTHA.meta.description,
     url: "https://vinaadi.com/natchathiram/jyeshtha",
     type: "article",
+    images: [{ url: "/brand/vinaadi-og-image.png", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" }],
   },
   twitter: {
     card: "summary_large_image",
     title: JYESHTHA.meta.title,
     description: JYESHTHA.meta.description,
+    images: ["/brand/vinaadi-og-image.png"],
   },
 };
 

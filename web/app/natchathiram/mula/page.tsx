@@ -12,11 +12,13 @@ export const metadata: Metadata = {
     description: MULA.meta.description,
     url: "https://vinaadi.com/natchathiram/mula",
     type: "article",
+    images: [{ url: "/brand/vinaadi-og-image.png", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" }],
   },
   twitter: {
     card: "summary_large_image",
     title: MULA.meta.title,
     description: MULA.meta.description,
+    images: ["/brand/vinaadi-og-image.png"],
   },
 };
 

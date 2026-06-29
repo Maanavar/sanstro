@@ -23,6 +23,13 @@ export const metadata: Metadata = {
       "Personality traits, career paths, dasa timelines and spiritual guidance for all 27 birth stars. Based on Thirukanitham Vedic astrology.",
     url: "https://vinaadi.com/natchathiram",
     type: "website",
+    images: [{ url: "/brand/vinaadi-og-image.png", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "27 Nakshathirams — Birth Star Profiles | Vinaadi",
+    description: "Personality traits, career paths, dasa timelines and spiritual guidance for all 27 birth stars. Based on Thirukanitham Vedic astrology.",
+    images: ["/brand/vinaadi-og-image.png"],
   },
 };
 

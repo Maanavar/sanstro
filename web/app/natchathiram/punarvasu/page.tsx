@@ -12,11 +12,13 @@ export const metadata: Metadata = {
     description: PUNARVASU.meta.description,
     url: "https://vinaadi.com/natchathiram/punarvasu",
     type: "article",
+    images: [{ url: "/brand/vinaadi-og-image.png", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" }],
   },
   twitter: {
     card: "summary_large_image",
     title: PUNARVASU.meta.title,
     description: PUNARVASU.meta.description,
+    images: ["/brand/vinaadi-og-image.png"],
   },
 };
 

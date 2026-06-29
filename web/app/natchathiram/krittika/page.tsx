@@ -12,11 +12,13 @@ export const metadata: Metadata = {
     description: KRITTIKA.meta.description,
     url: "https://vinaadi.com/natchathiram/krittika",
     type: "article",
+    images: [{ url: "/brand/vinaadi-og-image.png", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" }],
   },
   twitter: {
     card: "summary_large_image",
     title: KRITTIKA.meta.title,
     description: KRITTIKA.meta.description,
+    images: ["/brand/vinaadi-og-image.png"],
   },
 };
 

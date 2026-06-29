@@ -12,11 +12,13 @@ export const metadata: Metadata = {
     description: AVITTAM.meta.description,
     url: "https://vinaadi.com/natchathiram/dhanishtha",
     type: "article",
+    images: [{ url: "/brand/vinaadi-og-image.png", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" }],
   },
   twitter: {
     card: "summary_large_image",
     title: AVITTAM.meta.title,
     description: AVITTAM.meta.description,
+    images: ["/brand/vinaadi-og-image.png"],
   },
 };
 

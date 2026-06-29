@@ -12,11 +12,13 @@ export const metadata: Metadata = {
     description: PURVA_PHALGUNI.meta.description,
     url: "https://vinaadi.com/natchathiram/purva-phalguni",
     type: "article",
+    images: [{ url: "/brand/vinaadi-og-image.png", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" }],
   },
   twitter: {
     card: "summary_large_image",
     title: PURVA_PHALGUNI.meta.title,
     description: PURVA_PHALGUNI.meta.description,
+    images: ["/brand/vinaadi-og-image.png"],
   },
 };
 
