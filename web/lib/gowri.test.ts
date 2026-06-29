@@ -8,11 +8,11 @@ import {
 } from "./gowri";
 
 describe("gowriCategoryRank", () => {
-  it("ranks AMIRDHA as 1 (best)", () => {
-    expect(gowriCategoryRank("AMIRDHA")).toBe(1);
+  it("ranks AMIRTHAM as 1 (best)", () => {
+    expect(gowriCategoryRank("AMIRTHAM")).toBe(1);
   });
-  it("ranks SUGAM as 5 (last good)", () => {
-    expect(gowriCategoryRank("SUGAM")).toBe(5);
+  it("ranks ANANDHA as 4 (last good)", () => {
+    expect(gowriCategoryRank("ANANDHA")).toBe(4);
   });
   it("returns 999 for unknown category", () => {
     expect(gowriCategoryRank("UNKNOWN")).toBe(999);
@@ -20,17 +20,17 @@ describe("gowriCategoryRank", () => {
     expect(gowriCategoryRank(undefined)).toBe(999);
   });
   it("is case-insensitive", () => {
-    expect(gowriCategoryRank("amirdha")).toBe(1);
-    expect(gowriCategoryRank("Laabam")).toBe(3);
+    expect(gowriCategoryRank("amirtham")).toBe(1);
+    expect(gowriCategoryRank("Labham")).toBe(2);
   });
 });
 
 describe("gowriCategoryLabel", () => {
   it("returns English label", () => {
-    expect(gowriCategoryLabel("UTHI", "en")).toBe("Uthi / Uthiyogam");
+    expect(gowriCategoryLabel("VILAMBHI", "en")).toBe("Vilambhi");
   });
   it("returns Tamil label", () => {
-    expect(gowriCategoryLabel("LAABAM", "ta")).toContain("லாபம்");
+    expect(gowriCategoryLabel("LABHAM", "ta")).toContain("லாபம்");
   });
   it("returns raw name for unknown category", () => {
     expect(gowriCategoryLabel("CUSTOM", "en")).toBe("CUSTOM");
@@ -39,11 +39,11 @@ describe("gowriCategoryLabel", () => {
 });
 
 describe("gowriPurposeLabel", () => {
-  it("describes DHANAM purpose in English", () => {
-    expect(gowriPurposeLabel("DHANAM", "en")).toContain("finance");
+  it("describes LABHAM purpose in English", () => {
+    expect(gowriPurposeLabel("LABHAM", "en")).toContain("profit");
   });
-  it("describes DHANAM purpose in Tamil", () => {
-    expect(gowriPurposeLabel("DHANAM", "ta")).toContain("நிதி");
+  it("describes LABHAM purpose in Tamil", () => {
+    expect(gowriPurposeLabel("LABHAM", "ta")).toContain("லாபம்");
   });
   it("returns empty string for unknown", () => {
     expect(gowriPurposeLabel("UNKNOWN", "en")).toBe("");
@@ -71,16 +71,16 @@ describe("gowriPeriodLabel", () => {
 describe("bestGowriSlot", () => {
   it("picks the highest-ranked slot", () => {
     const slots = [
-      { name: "SUGAM", start: "08:00", end: "09:00" },
-      { name: "AMIRDHA", start: "10:00", end: "11:00" },
-      { name: "LAABAM", start: "14:00", end: "15:00" },
+      { name: "ANANDHA", start: "08:00", end: "09:00" },
+      { name: "AMIRTHAM", start: "10:00", end: "11:00" },
+      { name: "LABHAM", start: "14:00", end: "15:00" },
     ];
-    expect(bestGowriSlot(slots)?.name).toBe("AMIRDHA");
+    expect(bestGowriSlot(slots)?.name).toBe("AMIRTHAM");
   });
   it("breaks ties by start time", () => {
     const slots = [
-      { name: "LAABAM", start: "14:00", end: "15:00" },
-      { name: "LAABAM", start: "08:00", end: "09:00" },
+      { name: "LABHAM", start: "14:00", end: "15:00" },
+      { name: "LABHAM", start: "08:00", end: "09:00" },
     ];
     expect(bestGowriSlot(slots)?.start).toBe("08:00");
   });
