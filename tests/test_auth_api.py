@@ -30,30 +30,38 @@ def test_register_sets_cookie_and_returns_user(raw_client):
         "/api/v1/auth/register",
         json={"email": "authuser@example.com", "password": "password123"},
     )
+    payload = assert_response(response, status=200, required_keys=("detail",))
+    assert payload["detail"]
 
-    payload = assert_response(response, status=200, required_keys=("email", "userId"))
-    assert payload["email"] == "authuser@example.com"
-    assert payload["userId"]
-    assert "vinaadi_token" in response.headers.get("set-cookie", "")
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "authuser@example.com", "password": "password123"},
+    )
+    login_payload = assert_response(login, status=200, required_keys=("email", "userId"))
+    assert login_payload["email"] == "authuser@example.com"
+    assert login_payload["userId"]
+    assert "vinaadi_token" in login.headers.get("set-cookie", "")
 
     me_response = raw_client.get("/api/v1/auth/me")
     me_payload = assert_response(me_response, status=200, required_keys=("email", "userId"))
     assert me_payload["email"] == "authuser@example.com"
-    assert me_payload["userId"] == payload["userId"]
+    assert me_payload["userId"] == login_payload["userId"]
 
 
-def test_register_duplicate_email_returns_409(raw_client):
+def test_register_duplicate_email_returns_neutral_response(raw_client):
     first = raw_client.post(
         "/api/v1/auth/register",
         json={"email": "duplicate@example.com", "password": "password123"},
     )
     assert first.status_code == 200
 
+    # Hardened endpoint: duplicate registration returns neutral 200 (no email enumeration)
     second = raw_client.post(
         "/api/v1/auth/register",
         json={"email": "duplicate@example.com", "password": "password123"},
     )
-    assert second.status_code == 409
+    assert second.status_code == 200
+    assert second.json()["detail"]
 
 
 def test_login_rejects_wrong_password_with_generic_message(raw_client):
@@ -100,7 +108,12 @@ def test_delete_me_handles_daily_scores_linked_by_birth_profile(raw_client):
         json={"email": "deleteuser@example.com", "password": "password123"},
     )
     assert register.status_code == 200
-    user_id = UUID(register.json()["userId"])
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "deleteuser@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    user_id = UUID(login.json()["userId"])
 
     with SessionLocal() as session:
         member = FamilyMember(
@@ -164,14 +177,24 @@ def test_delete_me_does_not_delete_other_users_profiles_or_charts(raw_client):
             json={"email": "delete-a@example.com", "password": "password123"},
         )
         assert reg_a.status_code == 200
-        user_a_id = UUID(reg_a.json()["userId"])
+        login_a = user_a_client.post(
+            "/api/v1/auth/login",
+            json={"email": "delete-a@example.com", "password": "password123"},
+        )
+        assert login_a.status_code == 200
+        user_a_id = UUID(login_a.json()["userId"])
 
         reg_b = user_b_client.post(
             "/api/v1/auth/register",
             json={"email": "delete-b@example.com", "password": "password123"},
         )
         assert reg_b.status_code == 200
-        user_b_id = UUID(reg_b.json()["userId"])
+        login_b = user_b_client.post(
+            "/api/v1/auth/login",
+            json={"email": "delete-b@example.com", "password": "password123"},
+        )
+        assert login_b.status_code == 200
+        user_b_id = UUID(login_b.json()["userId"])
 
         with SessionLocal() as session:
             profile_a = BirthProfile(
@@ -252,7 +275,9 @@ def test_deleted_user_cannot_login_until_registering_again(raw_client):
         json={"email": email, "password": password},
     )
     assert first_register.status_code == 200
-    first_user_id = first_register.json()["userId"]
+    first_login = raw_client.post("/api/v1/auth/login", json={"email": email, "password": password})
+    assert first_login.status_code == 200
+    first_user_id = first_login.json()["userId"]
 
     delete_response = raw_client.delete("/api/v1/auth/me", headers=CSRF_HEADERS)
     assert delete_response.status_code == 200
@@ -269,7 +294,9 @@ def test_deleted_user_cannot_login_until_registering_again(raw_client):
         json={"email": email, "password": password},
     )
     assert second_register.status_code == 200
-    assert second_register.json()["userId"] != first_user_id
+    second_login = raw_client.post("/api/v1/auth/login", json={"email": email, "password": password})
+    assert second_login.status_code == 200
+    assert second_login.json()["userId"] != first_user_id
 
     me_response = raw_client.get("/api/v1/auth/me")
     assert_response(me_response, status=200, required_keys=("email", "userId"))
@@ -315,7 +342,12 @@ def test_suspended_user_cannot_log_in_or_load_me(raw_client):
         json={"email": "suspended@example.com", "password": "password123"},
     )
     assert register.status_code == 200
-    user_id = UUID(register.json()["userId"])
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "suspended@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    user_id = UUID(login.json()["userId"])
 
     with SessionLocal() as session:
         user = session.get(User, user_id)
@@ -345,7 +377,12 @@ def test_suspended_user_cannot_patch_or_delete_me(raw_client):
         json={"email": "suspended-mutating@example.com", "password": "password123"},
     )
     assert register.status_code == 200
-    user_id = UUID(register.json()["userId"])
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "suspended-mutating@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    user_id = UUID(login.json()["userId"])
 
     with SessionLocal() as session:
         user = session.get(User, user_id)
@@ -373,11 +410,15 @@ def test_logout_when_already_logged_out_returns_204(raw_client):
 
 
 def test_cookie_auth_mutation_requires_csrf_header(raw_client):
-    register = raw_client.post(
+    raw_client.post(
         "/api/v1/auth/register",
         json={"email": "csrf-user@example.com", "password": "password123"},
     )
-    assert register.status_code == 200
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "csrf-user@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
 
     response = raw_client.patch("/api/v1/auth/me", json={"userMode": "TRADITIONAL"})
     assert response.status_code == 403

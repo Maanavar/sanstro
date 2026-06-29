@@ -66,21 +66,22 @@ def test_ask_vinaadi_counter_increments(client):
 
 
 def test_ask_vinaadi_rate_limit_raises(client):
-    """assert_chip_available raises 429 once the free daily allowance is spent."""
+    """assert_chip_available raises 429 once the allowance is spent."""
     from uuid import UUID
 
     from fastapi import HTTPException
 
-    from app.services.ask_vinaadi_usage_service import (
-        _daily_limit,
-        assert_chip_available,
-        consume_chip,
-    )
+    from app.core.subscription import is_premium
+    from app.core.tier_limits import ask_vinaadi_limit_for_tier
+    from app.services.ask_vinaadi_usage_service import assert_chip_available, consume_chip
     from tests.conftest import TEST_USER_ID, SessionLocal
 
     uid = UUID(TEST_USER_ID)
     with SessionLocal() as session, session.begin():
-        for _ in range(_daily_limit()):
+        tier = "premium" if is_premium(uid, session) else "registered"
+        daily_limit, monthly_limit = ask_vinaadi_limit_for_tier(tier)
+        limit = monthly_limit if monthly_limit is not None else daily_limit
+        for _ in range(limit):
             consume_chip(session, uid)
     with SessionLocal() as session:
         with pytest.raises(HTTPException) as exc:

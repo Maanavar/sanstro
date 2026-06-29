@@ -103,10 +103,12 @@ def _reset_db() -> None:
 
 def _make_test_user(session) -> User:
     from uuid import UUID
+    from app.models.subscription import Subscription
     uid = UUID(TEST_USER_ID)
     user = User(user_id=uid, email=TEST_USER_EMAIL)
     session.add(user)
     session.flush()
+    session.add(Subscription(user_id=uid, tier="premium", status="active"))
     return user
 
 

@@ -9,7 +9,12 @@ def _register_user(raw_client, email: str, password: str = "password123") -> dic
         json={"email": email, "password": password},
     )
     assert response.status_code == 200
-    return response.json()
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": password},
+    )
+    assert login.status_code == 200
+    return login.json()
 
 
 def _auth_headers(user_id: str) -> dict[str, str]:

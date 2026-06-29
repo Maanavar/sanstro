@@ -19,6 +19,9 @@ EXPECTED_COUNTS = {
     "navami": 24, "sashti": 12, "sankatahara-chathurthi": 13, "thiruvonam": 13,
     "maadha-sivarathiri": 12, "ekadhasi": 24, "chathurthi": 12, "chandra-darisanam": 12,
     "karinaal": 34,
+    # Major Tamil festivals (annual, one date each)
+    "thai-pongal": 1, "tamil-puthandu": 1, "chithirai-vishu": 1, "panguni-uthiram": 1,
+    "karthigai-deepam": 1, "vaikunta-ekadasi": 1, "aadi-perukku": 1,
 }
 
 
@@ -31,11 +34,12 @@ def test_data_matches_expected_counts_and_is_sorted():
 
 
 def test_list_events_has_all_14_with_metadata():
+    from app.services.panchangam_events_service import EVENT_ORDER
     out = svc.list_events(2026, reference=date(2026, 1, 1))
     assert out["year"] == 2026
-    assert len(out["events"]) == 14
+    assert len(out["events"]) == len(EVENT_ORDER)
     keys = {e["key"] for e in out["events"]}
-    assert keys == set(EXPECTED_COUNTS)
+    assert keys == set(EVENT_ORDER)
     for e in out["events"]:
         assert e["name"]["ta"] and e["name"]["en"]
         assert e["slug"] == f"{e['key']}-2026"
