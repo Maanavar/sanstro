@@ -3,10 +3,11 @@ from __future__ import annotations
 from datetime import date, datetime, time
 from uuid import UUID, uuid4
 
-from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, LargeBinary, Numeric, String, Time, text
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, LargeBinary, Numeric, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
+from app.services.encryption import EncryptedDate, EncryptedFloat, EncryptedTime
 
 
 class BirthProfile(TimestampMixin, Base):
@@ -22,12 +23,12 @@ class BirthProfile(TimestampMixin, Base):
         ForeignKey("family_members.family_member_id", ondelete="SET NULL"), nullable=True
     )
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    birth_date_local: Mapped[date] = mapped_column(Date, nullable=False)
-    birth_time_local: Mapped[time | None] = mapped_column(Time, nullable=True)
+    birth_date_local: Mapped[date] = mapped_column(EncryptedDate, nullable=False)
+    birth_time_local: Mapped[time | None] = mapped_column(EncryptedTime, nullable=True)
     birth_datetime_utc: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     birth_place: Mapped[str] = mapped_column(String(255), nullable=False)
-    birth_latitude: Mapped[float] = mapped_column(Numeric(9, 6), nullable=False)
-    birth_longitude: Mapped[float] = mapped_column(Numeric(9, 6), nullable=False)
+    birth_latitude: Mapped[float] = mapped_column(EncryptedFloat, nullable=False)
+    birth_longitude: Mapped[float] = mapped_column(EncryptedFloat, nullable=False)
     birth_timezone: Mapped[str] = mapped_column(String(64), nullable=False)
     current_place: Mapped[str | None] = mapped_column(String(255), nullable=True)
     current_latitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
