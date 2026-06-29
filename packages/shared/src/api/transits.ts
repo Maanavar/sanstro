@@ -1,18 +1,25 @@
 import { getApiClient } from "./client";
 
 export interface TransitItem {
+  alertId: string;
   planet: string;
-  planet_ta: string;
-  from_sign: string;
-  from_sign_ta: string;
-  to_sign: string;
-  to_sign_ta: string;
-  transit_date: string;
-  impact: "good" | "neutral" | "challenging";
-  summary_ta: string;
-  summary_en: string;
-  description_ta?: string;
-  description_en?: string;
+  fromRasi: string;
+  toRasi: string;
+  peyarchiDateUTC: string;
+  peyarchiDateLocal: string;
+  daysFromToday: number;
+  impactFromMoon: number;
+  impactFromLagna: number;
+  saniCycleAfter: string | null;
+  labelTa: string;
+  labelEn: string;
+}
+
+// Upachaya houses (3, 6, 10, 11) are favourable; dusthana (4, 8, 12) are challenging.
+export function moonHouseImpact(house: number): "good" | "neutral" | "challenging" {
+  if ([3, 6, 10, 11].includes(house)) return "good";
+  if ([4, 8, 12].includes(house)) return "challenging";
+  return "neutral";
 }
 
 export const transitsKeys = {
@@ -22,7 +29,7 @@ export const transitsKeys = {
 export function getUpcomingTransits(
   chartId: string,
   windowDays = 30,
-): Promise<{ success: boolean; data: TransitItem[] }> {
+): Promise<{ success: boolean; data: TransitItem[]; meta: unknown }> {
   const asOf = new Date().toISOString().slice(0, 10);
   return getApiClient().get(`/charts/${chartId}/peyarchi/upcoming`, {
     as_of: asOf,
@@ -30,5 +37,6 @@ export function getUpcomingTransits(
   }) as Promise<{
     success: boolean;
     data: TransitItem[];
+    meta: unknown;
   }>;
 }

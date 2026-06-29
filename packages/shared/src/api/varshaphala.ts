@@ -1,30 +1,25 @@
 import { getApiClient } from "./client";
 
-export interface MonthPrediction {
-  month: number;
+export interface VarshaphalaAreaOutlook {
+  area: string;
   score: number;
-  prediction_ta: string;
-  prediction_en: string;
-}
-
-export interface HouseSummary {
-  bhava: number;
-  title_ta: string;
-  title_en: string;
-  summary_ta: string;
-  summary_en: string;
+  narrativeTa: string;
+  narrativeEn: string;
+  favourableMonths: number[];
 }
 
 export interface VarshaphalaData {
+  chartId: string;
   year: number;
-  varsha_lagna: string;
-  varsha_lagna_ta: string;
-  muntha: string;
-  muntha_ta: string;
-  varshesh: string;
-  varshesh_ta: string;
-  monthly: MonthPrediction[];
-  houses: HouseSummary[];
+  solarReturnDate: string;
+  solarReturnLagnaRasi: number;
+  solarReturnLagnaName: string;
+  munthaRasi: number;
+  munthaRasiName: string;
+  munthaHouseFromSrLagna: number;
+  yearLord: string;
+  yearLordHouse: number;
+  areaOutlook: VarshaphalaAreaOutlook[];
 }
 
 export function getVarshaphala(
