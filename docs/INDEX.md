@@ -22,7 +22,6 @@ Quick map to the right document for each purpose.
 ## UX & Design
 - [UX_EXCELLENCE_AUDIT.md](UX_EXCELLENCE_AUDIT.md) — UX audit findings and recommendations
 - [BIRTH_PROFILE_MANAGEMENT.md](BIRTH_PROFILE_MANAGEMENT.md) — Birth profile management UX spec
-- [COMPLETE_SOLUTION_SUMMARY.md](COMPLETE_SOLUTION_SUMMARY.md) — High-level implementation summary (historical reference)
 
 ## Frontend
 - [FRONTEND.md](FRONTEND.md) — Current UI status, missing features, UI/UX backlog
