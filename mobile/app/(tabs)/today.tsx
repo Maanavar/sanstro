@@ -327,10 +327,10 @@ export default function TodayTab() {
         {tier !== "guest" ? (
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.logo}>à®µà®¿à®¨à®¾à®Ÿà®¿ AI</Text>
+              <Text style={styles.logo}>விநாடி AI</Text>
               {user?.displayName ? (
                 <Text style={[styles.greeting, isTamil ? TamilType.caption : EnType.caption]}>
-                  {isTamil ? `à®µà®£à®•à¯à®•à®®à¯, ${user.displayName}` : `Welcome back, ${user.displayName}`}
+                  {isTamil ? `வணக்கம், ${user.displayName}` : `Welcome back, ${user.displayName}`}
                 </Text>
               ) : null}
             </View>
@@ -350,7 +350,7 @@ export default function TodayTab() {
           </View>
         ) : (
           <View style={styles.header}>
-            <Text style={styles.logo}>à®µà®¿à®¨à®¾à®Ÿà®¿ AI</Text>
+            <Text style={styles.logo}>விநாடி AI</Text>
             <View style={styles.headerCenter}>
               <Text style={[styles.tamilDate, { fontFamily: T.subheading.fontFamily }]}>
                 {tamilDate}
@@ -505,7 +505,7 @@ export default function TodayTab() {
             ) : (
               <View style={styles.heroCard}>
                 <View style={[styles.heroKickerRow, { justifyContent: "space-between" }]}>
-                  <Text style={styles.heroLabel}>{isTamil ? "à®‡à®©à¯à®±à¯" : "Today"}</Text>
+                  <Text style={styles.heroLabel}>{isTamil ? "இன்று" : "Today"}</Text>
                   <ThirukanithamBadge size="sm" />
                 </View>
                 <View style={styles.heroRow}>
@@ -513,11 +513,11 @@ export default function TodayTab() {
                     <Text style={styles.heroRasi}>
                       {prefs?.rasi
                         ? (isTamil
-                          ? { mesham: "à®®à¯‡à®·à®®à¯", rishabam: "à®°à®¿à®·à®ªà®®à¯", mithunam: "à®®à®¿à®¤à¯à®©à®®à¯", katakam: "à®•à®Ÿà®•à®®à¯",
-                              simham: "à®šà®¿à®®à¯à®®à®®à¯", kanni: "à®•à®©à¯à®©à®¿", thulam: "à®¤à¯à®²à®¾à®®à¯", viruchigam: "à®µà®¿à®°à¯à®šà¯à®šà®¿à®•à®®à¯",
-                              dhanusu: "à®¤à®©à¯à®šà¯", makaram: "à®®à®•à®°à®®à¯", kumbam: "à®•à¯à®®à¯à®ªà®®à¯", meenam: "à®®à¯€à®©à®®à¯" }[prefs.rasi] ?? prefs.rasi
+                          ? { mesham: "மேஷம்", rishabam: "ரிஷபம்", mithunam: "மிதுனம்", katakam: "கடகம்",
+                              simham: "சிம்மம்", kanni: "கன்னி", thulam: "துலாம்", viruchigam: "விருச்சிகம்",
+                              dhanusu: "தனுசு", makaram: "மகரம்", kumbam: "கும்பம்", meenam: "மீனம்" }[prefs.rasi] ?? prefs.rasi
                           : prefs.rasi.charAt(0).toUpperCase() + prefs.rasi.slice(1))
-                        : (isTamil ? "à®°à®¾à®šà®¿ à®¤à¯‡à®°à¯à®µà¯ à®šà¯†à®¯à¯à®¯à®µà¯à®®à¯" : "Select your rasi")}
+                        : (isTamil ? "ராசி தேர்வு செய்யவும்" : "Select your rasi")}
                     </Text>
                     {p && (
                       <Text style={styles.heroSub}>
@@ -609,7 +609,7 @@ export default function TodayTab() {
         {/* Rasi Palan Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-            {isTamil ? "à®‡à®©à¯à®±à¯ˆà®¯ à®°à®¾à®šà®¿ à®ªà®²à®©à¯" : "Today's Rasi Palan"}
+            {isTamil ? "இன்றைய ராசி பலன்" : "Today's Rasi Palan"}
           </Text>
           {isPanchangamLoading ? (
             <SkeletonCard height={120} />
@@ -745,7 +745,7 @@ export default function TodayTab() {
               accessibilityState={{ expanded: panchangamExpanded }}
             >
               <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-                {isTamil ? "à®ªà®žà¯à®šà®¾à®™à¯à®• à®µà®¿à®µà®°à®®à¯" : "Panchangam Details"}
+                {isTamil ? "பஞ்சாங்க விவரம்" : "Panchangam Details"}
               </Text>
               <ChevronRight
                 size={16}
@@ -790,12 +790,12 @@ export default function TodayTab() {
             </TouchableOpacity>
             <Text style={[styles.promptHeading, isTamil ? TamilType.bodySmall : EnType.bodySmall]}>
               {isTamil
-                ? "à®‰à®™à¯à®•à®³à¯ à®œà®¾à®¤à®•à®¤à¯à®¤à®¿à®²à¯ à®‡à®©à¯à®±à¯ˆà®¯ à®¨à®¾à®³à¯ à®Žà®ªà¯à®ªà®Ÿà®¿?"
+                ? "உங்கள் ஜாதகத்தில் இன்றைய நாள் எப்படி?"
                 : "How does today look for YOUR birth chart?"}
             </Text>
             <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
               <Text style={styles.promptCta}>
-                {isTamil ? "à®‡à®²à®µà®šà®®à®¾à®• à®…à®±à®¿à®¨à¯à®¤à¯à®•à¯Šà®³à¯ â†’" : "Find out free â†’"}
+                {isTamil ? "இலவசமாக அறிந்துகொள் →" : "Find out free →"}
               </Text>
             </TouchableOpacity>
           </View>

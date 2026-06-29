@@ -83,7 +83,7 @@ export default function JadhagamTeaserScreen() {
 
   function handleRegister() {
     trackEvent("register_from_teaser", { source: "jadhagam_teaser" });
-    router.replace("/(tabs)/today");
+    router.push("/(auth)/register");
   }
 
   function handleSkip() {

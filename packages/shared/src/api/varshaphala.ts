@@ -32,7 +32,7 @@ export function getVarshaphala(
   year: number,
 ): Promise<{ success: boolean; data: VarshaphalaData }> {
   return getApiClient().get(
-    "/varshaphala",
-    { chart_id: chartId, year },
+    `/charts/${chartId}/varshaphala`,
+    { year },
   ) as Promise<{ success: boolean; data: VarshaphalaData }>;
 }

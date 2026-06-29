@@ -15,17 +15,59 @@ import { createBirthProfile } from "@/api/charts";
 import { setPrimaryChartId, setPrimaryProfileId } from "@/lib/userPrefs";
 import { trackEvent } from "@/lib/analytics";
 
-async function geocodeBirthPlace(place: string): Promise<{ lat: number; lon: number } | null> {
+interface GeoResult {
+  lat: number;
+  lon: number;
+  countryCode: string;
+  error?: "not_found" | "network";
+}
+
+const COUNTRY_TIMEZONE: Record<string, string> = {
+  in: "Asia/Kolkata",
+  gb: "Europe/London",
+  us: "America/New_York",
+  sg: "Asia/Singapore",
+  my: "Asia/Kuala_Lumpur",
+  au: "Australia/Sydney",
+  ca: "America/Toronto",
+  de: "Europe/Berlin",
+  fr: "Europe/Paris",
+  ae: "Asia/Dubai",
+  qa: "Asia/Qatar",
+  sa: "Asia/Riyadh",
+  nz: "Pacific/Auckland",
+  lk: "Asia/Colombo",
+  za: "Africa/Johannesburg",
+  jp: "Asia/Tokyo",
+  ch: "Europe/Zurich",
+  nl: "Europe/Amsterdam",
+  be: "Europe/Brussels",
+  it: "Europe/Rome",
+  se: "Europe/Stockholm",
+  no: "Europe/Oslo",
+  dk: "Europe/Copenhagen",
+};
+
+function countryCodeToTimezone(cc: string): string {
+  return COUNTRY_TIMEZONE[cc.toLowerCase()] ?? "Asia/Kolkata";
+}
+
+async function geocodeBirthPlace(place: string): Promise<GeoResult | null> {
   try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place)}&format=json&limit=1`;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place)}&format=json&limit=1&addressdetails=1`;
     const res = await fetch(url, {
       headers: { "User-Agent": "VinaadAI/1.0 (mobile@vinaadi.app)" },
     });
-    const data = (await res.json()) as Array<{ lat: string; lon: string }>;
-    if (!data.length) return null;
-    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+    const data = (await res.json()) as Array<{ lat: string; lon: string; address?: { country_code?: string } }>;
+    if (!data.length) return { lat: 0, lon: 0, countryCode: "in", error: "not_found" };
+    const item = data[0];
+    return {
+      lat: parseFloat(item.lat),
+      lon: parseFloat(item.lon),
+      countryCode: item.address?.country_code ?? "in",
+    };
   } catch {
-    return null;
+    return { lat: 0, lon: 0, countryCode: "in", error: "network" };
   }
 }
 
@@ -58,6 +100,7 @@ export default function BirthDetailsScreen() {
   const [birthAmPm, setBirthAmPm] = useState<"AM" | "PM">("AM");
   const [birthPlace, setBirthPlace] = useState("");
   const [birthTimeUnknown, setBirthTimeUnknown] = useState(false);
+  const [detectedTimezone, setDetectedTimezone] = useState<string | null>(null);
 
   function validateStep0(): boolean {
     if (!displayName.trim()) {
@@ -109,15 +152,26 @@ export default function BirthDetailsScreen() {
       }
 
       const geo = await geocodeBirthPlace(birthPlace.trim());
-      if (!geo) {
+      if (!geo || geo.error === "network") {
         setError(
           isTamil
-            ? "இடம் கிடைக்கவில்லை. சரியான நகரம் பெயர் கொடுங்கள்."
-            : "Location not found. Please enter a valid city name."
+            ? "இணைய இணைப்பு சிக்கல். மீண்டும் முயற்சிக்கவும்."
+            : "Network error. Check your connection and try again."
         );
         setLoading(false);
         return;
       }
+      if (geo.error === "not_found") {
+        setError(
+          isTamil
+            ? "இடம் கிடைக்கவில்லை. நகரம் பெயர் மட்டும் கொடுங்கள் (எ.கா.: Chennai, Madurai, Kumbakonam)."
+            : "City not found. Try just the city name (e.g., Chennai, Madurai, London, New York)."
+        );
+        setLoading(false);
+        return;
+      }
+
+      const birthTimezone = countryCodeToTimezone(geo.countryCode);
 
       const res = await createBirthProfile({
         displayName: displayName.trim(),
@@ -126,7 +180,7 @@ export default function BirthDetailsScreen() {
         birthPlace: birthPlace.trim(),
         birthLatitude: geo.lat,
         birthLongitude: geo.lon,
-        birthTimezone: "Asia/Kolkata",
+        birthTimezone,
         calculateNow: true,
         genderForTraditionalRules: gender === "other" ? null : gender,
       });
@@ -307,14 +361,30 @@ export default function BirthDetailsScreen() {
                 <TextInput
                   style={styles.input}
                   value={birthPlace}
-                  onChangeText={setBirthPlace}
-                  placeholder={isTamil ? "நகரம், மாவட்டம்" : "City, District"}
+                  onChangeText={(v) => { setBirthPlace(v); setDetectedTimezone(null); }}
+                  onBlur={async () => {
+                    if (!birthPlace.trim()) return;
+                    const geo = await geocodeBirthPlace(birthPlace.trim());
+                    if (geo && !geo.error) {
+                      setDetectedTimezone(countryCodeToTimezone(geo.countryCode));
+                    }
+                  }}
+                  placeholder={isTamil ? "நகரம் (எ.கா.: Chennai, London, Singapore)" : "City (e.g., Chennai, London, Singapore)"}
                   placeholderTextColor={C.textTertiary}
                   autoCapitalize="words"
                 />
-                <Text style={styles.placeSub}>
-                  {isTamil ? "எ.கா.: Chennai, Madurai, Coimbatore" : "e.g., Chennai, Madurai, Coimbatore"}
-                </Text>
+                {detectedTimezone && (
+                  <View style={styles.timezoneChip}>
+                    <Text style={styles.timezoneChipText}>
+                      🌐 {detectedTimezone}
+                    </Text>
+                  </View>
+                )}
+                {!detectedTimezone && (
+                  <Text style={styles.placeSub}>
+                    {isTamil ? "எ.கா.: Chennai, Madurai, London, New York" : "e.g., Chennai, Madurai, London, New York"}
+                  </Text>
+                )}
               </View>
             </>
           )}
@@ -393,6 +463,12 @@ const styles = StyleSheet.create({
   },
   unknownText: { color: C.textSecond },
   placeSub: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.textTertiary },
+  timezoneChip: {
+    flexDirection: "row", alignSelf: "flex-start",
+    backgroundColor: C.surfaceAlt, borderRadius: RADIUS.chip,
+    paddingHorizontal: S.md, paddingVertical: 4, borderWidth: 1, borderColor: C.divider,
+  },
+  timezoneChipText: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.textSecond },
   errorText: { fontFamily: "Inter_400Regular", fontSize: 13, color: C.alert, marginTop: S.sm },
   primaryBtn: {
     backgroundColor: C.saffron, borderRadius: RADIUS.button,

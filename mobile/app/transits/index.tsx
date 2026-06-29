@@ -19,6 +19,7 @@ import {
 } from "@/components/WhyThisResultSheet";
 import { getUpcomingTransits } from "@/api/transits";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
+import { getPrimaryChartId } from "@/lib/userPrefs";
 import type { TransitItem } from "@/api/transits";
 
 function impactColor(impact: TransitItem["impact"]): string {
@@ -63,18 +64,20 @@ export default function TransitsScreen() {
   const { lang } = useI18n();
   const isTamil = lang === "ta";
   const [rasi, setRasi] = useState<string | null>(null);
+  const [chartId, setChartId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<TransitItem | null>(null);
   const whyRef = useRef<WhySheetHandle>(null);
 
   useEffect(() => {
     loadGuestPrefs().then((p) => { if (p.rasi) setRasi(p.rasi); });
+    getPrimaryChartId().then(setChartId);
   }, []);
 
   const { data, isLoading, isError, isFetching, refetch } = useQuery({
-    queryKey: ["transits-upcoming", rasi],
-    queryFn: () => getUpcomingTransits(rasi!, 12),
-    enabled: !!rasi,
+    queryKey: ["transits-upcoming", chartId],
+    queryFn: () => getUpcomingTransits(chartId!, 30),
+    enabled: !!chartId,
     staleTime: 1000 * 60 * 60 * 4,
   });
 

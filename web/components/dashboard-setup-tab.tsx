@@ -871,6 +871,56 @@ export function DashboardSetupTab({
         </div>
       )}
 
+      {/* ── Premium upgrade nudge — shown once birth profile exists ── */}
+      {!!birthProfileId && (
+        <div style={{
+          background: "linear-gradient(135deg, #1A1208 0%, #2E2118 100%)",
+          borderRadius: "var(--radius-md)", padding: "var(--space-5) var(--space-6)",
+          display: "grid", gridTemplateColumns: "1fr auto", gap: "var(--space-4)",
+          alignItems: "center",
+        }}>
+          <div>
+            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#C8944A" }}>
+              {lang === "ta" ? "Premium" : "Go Premium"}
+            </p>
+            <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "1rem", fontWeight: 700, color: "#FFF7ED", lineHeight: 1.3 }}>
+              {lang === "ta"
+                ? "வரம்பற்ற வழிகாட்டல். விளம்பரங்கள் இல்லை."
+                : "Unlimited guidance. No ads."}
+            </p>
+            <p style={{ margin: 0, fontSize: "0.8125rem", color: "rgba(255,247,237,0.65)", lineHeight: 1.55 }}>
+              {lang === "ta"
+                ? "வருஷபலன், வர்கங்கள், ஒத்திசைவு — iOS மற்றும் Android ஆப்பில் சந்தா செய்யலாம்."
+                : "Varshaphala, vargas, synastry, and 5 reports/month — subscribe via the iOS or Android app."}
+            </p>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", minWidth: "120px" }}>
+            <a
+              href="https://apps.apple.com/app/vinaadi/id0000000000"
+              style={{
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)",
+                background: "#FFF7ED", color: "#2E2118", textDecoration: "none",
+                fontSize: "0.8125rem", fontWeight: 700, whiteSpace: "nowrap",
+              }}
+            >
+              App Store ↗
+            </a>
+            <a
+              href="https://play.google.com/store/apps/details?id=app.vinaadi"
+              style={{
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)",
+                border: "1px solid rgba(255,247,237,0.28)", color: "#FFF7ED", textDecoration: "none",
+                fontSize: "0.8125rem", fontWeight: 700, whiteSpace: "nowrap",
+              }}
+            >
+              Google Play ↗
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* ── Disclaimer ── */}
       <div style={{
         borderRadius: "var(--radius-md)", border: `1px solid ${W.borderLt}`,

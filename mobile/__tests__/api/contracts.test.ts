@@ -63,13 +63,13 @@ describe("panchangam API", () => {
     expect(result.data.sunrise).toBeDefined();
     expect(result.data.sunset).toBeDefined();
     expect(result.data.rahu_kalam).toBeDefined();
-    expect(mockGet).toHaveBeenCalledWith("/panchangam/2026-06-28", expect.objectContaining({ lat: 13.08, lng: 80.27, tz: "Asia/Kolkata" }));
+    expect(mockGet).toHaveBeenCalledWith("/panchangam/daily", expect.objectContaining({ date: "2026-06-28", lat: 13.08, lng: 80.27, timezone: "Asia/Kolkata" }));
   });
 
-  it("getPanchangamToday calls /panchangam/today with coords", async () => {
+  it("getPanchangamToday calls /panchangam/daily with today's date and coords", async () => {
     mockGet.mockResolvedValue(PANCHANGAM_RESPONSE);
     await getPanchangamToday({ lat: 13.08, lng: 80.27, tz: "Asia/Kolkata" });
-    expect(mockGet).toHaveBeenCalledWith("/panchangam/today", expect.objectContaining({ lat: 13.08 }));
+    expect(mockGet).toHaveBeenCalledWith("/panchangam/daily", expect.objectContaining({ lat: 13.08, timezone: "Asia/Kolkata" }));
   });
 });
 

@@ -9,7 +9,7 @@ export interface PoruthamPayload {
 export function getPorutham(
   payload: PoruthamPayload,
 ): Promise<{ success: boolean; data: DirectPoruthamData }> {
-  return getApiClient().post("/public-tools/porutham", payload) as Promise<{
+  return getApiClient().post("/public/porutham", payload) as Promise<{
     success: boolean;
     data: DirectPoruthamData;
   }>;

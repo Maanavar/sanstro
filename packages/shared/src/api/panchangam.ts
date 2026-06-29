@@ -11,10 +11,11 @@ export function getPanchangamDay(
   date: string,
   params: PanchangamParams,
 ): Promise<{ data: PanchangamDailyResponseData }> {
-  return getApiClient().get(`/panchangam/${date}`, {
+  return getApiClient().get("/panchangam/daily", {
+    date,
     lat: params.lat,
     lng: params.lng,
-    tz: params.tz,
+    timezone: params.tz,
   }) as Promise<{
     data: PanchangamDailyResponseData;
   }>;
@@ -23,10 +24,12 @@ export function getPanchangamDay(
 export function getPanchangamToday(
   params: PanchangamParams,
 ): Promise<{ data: PanchangamDailyResponseData }> {
-  return getApiClient().get("/panchangam/today", {
+  const today = new Date().toISOString().slice(0, 10);
+  return getApiClient().get("/panchangam/daily", {
+    date: today,
     lat: params.lat,
     lng: params.lng,
-    tz: params.tz,
+    timezone: params.tz,
   }) as Promise<{
     data: PanchangamDailyResponseData;
   }>;
@@ -37,10 +40,12 @@ export function getPanchangamMonth(
   month: number,
   params: PanchangamParams,
 ): Promise<{ data: PanchangamMonthlyData }> {
-  return getApiClient().get(`/panchangam/month/${year}/${month}`, {
+  return getApiClient().get("/panchangam/monthly", {
+    year,
+    month,
     lat: params.lat,
     lng: params.lng,
-    tz: params.tz,
+    timezone: params.tz,
   }) as Promise<{
     data: PanchangamMonthlyData;
   }>;

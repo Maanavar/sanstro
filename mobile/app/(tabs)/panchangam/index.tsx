@@ -55,7 +55,7 @@ export default function PanchangamDayScreen() {
   const lon = prefs?.lon ?? undefined;
   const hasLocation = lat != null && lon != null;
   const isLocationMissing = prefsLoaded && !hasLocation;
-  const locationLabel = prefs?.city ?? (isLocationMissing ? (isTamil ? "Ã Â®â€¡Ã Â®Å¸Ã Â®Â¤Ã Â¯ÂÃ Â®Â¤Ã Â¯Ë† Ã Â®â€¦Ã Â®Â®Ã Â¯Ë†Ã Â®â€¢Ã Â¯ÂÃ Â®â€¢Ã Â®ÂµÃ Â¯ÂÃ Â®Â®Ã Â¯Â" : "Set location") : "Chennai");
+  const locationLabel = prefs?.city ?? (isLocationMissing ? (isTamil ? "இடத்தை அமைக்கவும்" : "Set location") : "Chennai");
 
   const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["panchangam-day", dateStr, lat, lon],
@@ -84,7 +84,7 @@ export default function PanchangamDayScreen() {
         <View style={styles.headerActions}>
           <Text style={styles.locationLabel}>{locationLabel}</Text>
           <TouchableOpacity onPress={() => router.push("/(tabs)/panchangam/calendar")}>
-            <Text style={styles.calendarLink}>{isTamil ? "ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â®Ã‚Â¾ÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚Â ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸" : "Month ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸"}</Text>
+            <Text style={styles.calendarLink}>{isTamil ? "மாதம் ▸" : "Month ▸"}</Text>
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -134,12 +134,12 @@ export default function PanchangamDayScreen() {
             onPress={() => router.push("/(onboarding)/location")}
           >
             <Text style={[styles.locationPromptTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-              {isTamil ? "à®šà®°à®¿à®¯à®¾à®© à®ªà®žà¯à®šà®¾à®™à¯à®• à®¨à¯‡à®°à®™à¯à®•à®³à¯à®•à¯à®•à¯ à®‰à®™à¯à®•à®³à¯ à®¨à®•à®°à®¤à¯à®¤à¯ˆ à®…à®®à¯ˆà®•à¯à®•à®µà¯à®®à¯" : "Set your city for accurate Panchangam timings"}
+              {isTamil ? "சரியான பஞ்சாங்க நேரங்களுக்கு உங்கள் நகரத்தை அமைக்கவும்" : "Set your city for accurate Panchangam timings"}
             </Text>
             <Text style={styles.locationPromptBody}>
-              {isTamil ? "à®šà¯‚à®°à®¿à®¯à¯‹à®¤à®¯à®®à¯, à®°à®¾à®•à¯ à®•à®¾à®²à®®à¯, à®¨à®²à¯à®² à®¨à¯‡à®°à®®à¯ à®ªà¯‹à®©à¯à®±à®µà¯ˆ à®‡à®Ÿà®¤à¯à®¤à¯ˆ à®šà®¾à®°à¯à®¨à¯à®¤à®µà¯ˆ." : "Sunrise, Rahu Kalam, and Nalla Neram all depend on your location."}
+              {isTamil ? "சூரியோதயம், ராகு காலம், நல்ல நேரம் போன்றவை இடத்தை சார்ந்தவை." : "Sunrise, Rahu Kalam, and Nalla Neram all depend on your location."}
             </Text>
-            <Text style={styles.locationPromptCta}>{isTamil ? "à®‡à®Ÿà®¤à¯à®¤à¯ˆ à®ªà¯à®¤à¯à®ªà¯à®ªà®¿à®•à¯à®•à®µà¯à®®à¯" : "Update location"}</Text>
+            <Text style={styles.locationPromptCta}>{isTamil ? "இடத்தை புதுப்பிக்கவும்" : "Update location"}</Text>
           </TouchableOpacity>
         ) : isError ? (
           <ErrorCard onRetry={refetch} />
@@ -169,11 +169,11 @@ export default function PanchangamDayScreen() {
             {/* Five elements */}
             <View style={styles.fiveCard}>
               <Text style={[styles.fiveTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-                {isTamil ? "ÃƒÂ Ã‚Â®Ã‚ÂªÃƒÂ Ã‚Â®Ã…Â¾ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã…Â¡ÃƒÂ Ã‚Â®Ã‚Â¾ÃƒÂ Ã‚Â®Ã¢â€žÂ¢ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ ÃƒÂ Ã‚Â®Ã¢â‚¬Â¦ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã…Â¡ÃƒÂ Ã‚Â®Ã¢â€žÂ¢ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â®Ã‚Â³ÃƒÂ Ã‚Â¯Ã‚Â" : "Panchangam Elements"}
+                {isTamil ? "பஞ்சாங்க அம்சங்கள்" : "Panchangam Elements"}
               </Text>
               {[
-                { label: t(strings.panchangam.tithi),     value: `${p.tithi.name} (${p.tithi.paksha === "SHUKLA" ? "ÃƒÂ Ã‚Â®Ã‚ÂµÃƒÂ Ã‚Â®Ã‚Â³ÃƒÂ Ã‚Â®Ã‚Â°ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚ÂªÃƒÂ Ã‚Â®Ã‚Â¿ÃƒÂ Ã‚Â®Ã‚Â±ÃƒÂ Ã‚Â¯Ã‹â€ " : "ÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â¯Ã¢â‚¬Â¡ÃƒÂ Ã‚Â®Ã‚Â¯ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚ÂªÃƒÂ Ã‚Â®Ã‚Â¿ÃƒÂ Ã‚Â®Ã‚Â±ÃƒÂ Ã‚Â¯Ã‹â€ "})` },
-                { label: t(strings.panchangam.nakshatra), value: `${p.nakshatra.name}, ${isTamil ? "ÃƒÂ Ã‚Â®Ã‚ÂªÃƒÂ Ã‚Â®Ã‚Â¾ÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚Â" : "Pada"} ${p.nakshatra.pada}` },
+                { label: t(strings.panchangam.tithi),     value: `${p.tithi.name} (${p.tithi.paksha === "SHUKLA" ? "வளர்பிறை" : "தேய்பிறை"})` },
+                { label: t(strings.panchangam.nakshatra), value: `${p.nakshatra.name}, ${isTamil ? "பாதம்" : "Pada"} ${p.nakshatra.pada}` },
                 { label: t(strings.panchangam.yoga),     value: p.yoga.name },
                 { label: t(strings.panchangam.karana),   value: p.karana.name },
                 { label: t(strings.panchangam.vara),     value: p.vara.weekday },

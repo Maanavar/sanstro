@@ -15,10 +15,10 @@ import type { DailyGuidanceData } from "@vinaadi/shared";
 
 const AVOID = {
   ta: [
-    "à®®à¯à®•à¯à®•à®¿à®¯à®®à®¾à®© à®’à®ªà¯à®ªà®¨à¯à®¤à®™à¯à®•à®³à¯ à®•à¯ˆà®¯à¯†à®´à¯à®¤à¯à®¤à®¿à®Ÿ à®µà¯‡à®£à¯à®Ÿà®¾à®®à¯",
-    "à®ªà¯à®¤à®¿à®¯ à®¤à¯Šà®´à®¿à®²à¯ / à®µà®¿à®¯à®¾à®ªà®¾à®° à®®à¯à®¯à®±à¯à®šà®¿ à®¤à¯Šà®Ÿà®™à¯à®• à®µà¯‡à®£à¯à®Ÿà®¾à®®à¯",
-    "à®…à®¤à®¿à®• à®ªà®£ à®ªà®°à®¿à®µà®°à¯à®¤à¯à®¤à®©à¯ˆ à®¤à®µà®¿à®°à¯à®•à¯à®•à®µà¯à®®à¯",
-    "à®¤à¯‡à®µà¯ˆà®¯à®±à¯à®± à®šà®°à¯à®šà¯à®šà¯ˆà®•à®³à®¿à®²à¯ à®ˆà®Ÿà¯à®ªà®Ÿ à®µà¯‡à®£à¯à®Ÿà®¾à®®à¯",
+    "முக்கியமான ஒப்பந்தங்கள் கையெழுத்திட வேண்டாம்",
+    "புதிய தொழில் / வியாபார முயற்சி தொடங்க வேண்டாம்",
+    "அதிக பண பரிவர்த்தனை தவிர்க்கவும்",
+    "தேவையற்ற சர்ச்சைகளில் ஈடுபட வேண்டாம்",
   ],
   en: [
     "Don't sign important contracts or agreements",
@@ -43,10 +43,10 @@ type ChandrashtamaGuidance = DailyGuidanceData & {
 
 const CAN_DO = {
   ta: [
-    "à®†à®©à¯à®®à¯€à®• à®¨à®Ÿà¯ˆà®®à¯à®±à¯ˆà®•à®³à¯ â€” à®¤à®¿à®¯à®¾à®©à®®à¯, à®œà®ªà®®à¯, à®ªà¯‚à®œà¯ˆ",
-    "à®•à¯à®Ÿà¯à®®à¯à®ªà®¤à¯à®¤à®¿à®©à®°à¯à®Ÿà®©à¯ à®…à®®à¯ˆà®¤à®¿à®¯à®¾à®• à®¨à¯‡à®°à®®à¯ à®šà¯†à®²à®µà®¿à®Ÿà¯à®™à¯à®•à®³à¯",
-    "à®“à®¯à¯à®µà¯ à®Žà®Ÿà¯à®™à¯à®•à®³à¯ â€” à®µà®²à®¿à®®à¯ˆ à®¤à®¿à®°à®Ÿà¯à®Ÿà¯à®®à¯ à®•à®¾à®²à®®à¯",
-    "à®†à®²à®¯ à®¤à®°à®¿à®šà®©à®®à¯, à®¤à®°à¯à®®à®®à¯ à®šà¯†à®¯à¯à®µà®¤à¯ à®¨à®²à¯à®²à®¤à¯",
+    "ஆன்மீக நடைமுறைகள் — தியானம், ஜபம், பூஜை",
+    "குடும்பத்தினருடன் அமைதியாக நேரம் செலவிடுங்கள்",
+    "ஓய்வு எடுங்கள் — வலிமை திரட்டும் காலம்",
+    "ஆலய தரிசனம், தர்மம் செய்வது நல்லது",
   ],
   en: [
     "Spiritual practice â€” meditation, japa, puja",
@@ -84,19 +84,19 @@ export default function ChandrashtamaScreen() {
     ? (isTamil ? guidance.cautionSuggestion?.ta ?? guidance.text?.ta : guidance.cautionSuggestion?.en ?? guidance.text?.en)
     : null;
   const statusTitle = !primaryChartId
-    ? (isTamil ? "à®¤à®©à®¿à®ªà¯à®ªà®Ÿà¯à®Ÿ à®¨à®¿à®²à¯ˆà®•à¯à®•à¯ à®œà®¾à®¤à®•à®®à¯ à®¤à¯‡à®µà¯ˆ" : "Personal chart needed")
+    ? (isTamil ? "தனிப்பட்ட நிலைக்கு ஜாதகம் தேவை" : "Personal chart needed")
     : isActive
-      ? (isTamil ? "à®šà®¨à¯à®¤à®¿à®°à®¾à®·à¯à®Ÿà®®à®®à¯ à®šà¯†à®¯à®²à®¿à®²à¯ à®‰à®³à¯à®³à®¤à¯" : "Chandrashtama is active")
-      : (isTamil ? "à®šà®¨à¯à®¤à®¿à®°à®¾à®·à¯à®Ÿà®®à®®à¯ à®‡à®ªà¯à®ªà¯‹à®¤à¯ à®‡à®²à¯à®²à¯ˆ" : "No active Chandrashtama");
+      ? (isTamil ? "சந்திராஷ்டமம் செயலில் உள்ளது" : "Chandrashtama is active")
+      : (isTamil ? "சந்திராஷ்டமம் இப்போது இல்லை" : "No active Chandrashtama");
   const statusSub = !primaryChartId
-    ? (isTamil ? "à®‰à®™à¯à®•à®³à¯ à®œà®¾à®¤à®•à®¤à¯à®¤à¯ˆ à®‰à®°à¯à®µà®¾à®•à¯à®•à®¿à®¯ à®ªà®¿à®±à®•à¯ à®¤à®©à®¿à®ªà¯à®ªà®Ÿà¯à®Ÿ à®šà®¨à¯à®¤à®¿à®°à®¾à®·à¯à®Ÿà®®à®®à¯ à®¨à®¿à®²à¯ˆ à®‡à®™à¯à®•à¯‡ à®¤à¯†à®°à®¿à®¯à¯à®®à¯." : "Create your birth chart to see your personal Chandrashtama status here.")
+    ? (isTamil ? "உங்கள் ஜாதகத்தை உருவாக்கிய பிறகு தனிப்பட்ட சந்திராஷ்டமம் நிலை இங்கே தெரியும்." : "Create your birth chart to see your personal Chandrashtama status here.")
     : isActive
       ? (endDate
-        ? `${isTamil ? "à®®à¯à®Ÿà®¿à®¯à¯à®®à¯ à®¨à¯‡à®°à®®à¯: " : "Ends: "}${new Date(endDate).toLocaleString("en-IN")}`
-        : (isTamil ? "à®‡à®©à¯à®±à¯ à®•à¯‚à®Ÿà¯à®¤à®²à¯ à®•à®µà®©à®®à¯ à®¤à¯‡à®µà¯ˆ." : "Extra care is advised today."))
+        ? `${isTamil ? "முடியும் நேரம்: " : "Ends: "}${new Date(endDate).toLocaleString("en-IN")}`
+        : (isTamil ? "இன்று கூடுதல் கவனம் தேவை." : "Extra care is advised today."))
       : (nextBegins
-        ? `${isTamil ? "à®…à®Ÿà¯à®¤à¯à®¤ à®¤à¯Šà®Ÿà®•à¯à®•à®®à¯: " : "Next begins: "}${new Date(nextBegins).toLocaleString("en-IN")}`
-        : (isTamil ? "à®‡à®©à¯à®±à¯ˆà®¯ à®¨à®¿à®²à¯ˆ à®šà®¾à®¤à®¾à®°à®£à®®à®¾à®• à®‰à®³à¯à®³à®¤à¯." : "Today's status looks normal."));
+        ? `${isTamil ? "அடுத்த தொடக்கம்: " : "Next begins: "}${new Date(nextBegins).toLocaleString("en-IN")}`
+        : (isTamil ? "இன்றைய நிலை சாதாரணமாக உள்ளது." : "Today's status looks normal."));
 
   return (
     <SafeAreaView style={styles.container}>
@@ -105,7 +105,7 @@ export default function ChandrashtamaScreen() {
           <Text style={styles.backArrow}>â†</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, isTamil ? TamilType.heading : EnType.heading]}>
-          {isTamil ? "à®šà®¨à¯à®¤à®¿à®°à®¾à®·à¯à®Ÿà®®à®®à¯" : "Chandrashtama"}
+          {isTamil ? "சந்திராஷ்டமம்" : "Chandrashtama"}
         </Text>
       </View>
 
@@ -142,7 +142,7 @@ export default function ChandrashtamaScreen() {
         {/* What to avoid */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-            {isTamil ? "à®Žà®©à¯à®© à®¤à®µà®¿à®°à¯à®•à¯à®• à®µà¯‡à®£à¯à®Ÿà¯à®®à¯?" : "What to avoid?"}
+            {isTamil ? "என்ன தவிர்க்க வேண்டும்?" : "What to avoid?"}
           </Text>
           <View style={styles.bulletList}>
             {(isTamil ? AVOID.ta : AVOID.en).map((item, i) => (
@@ -157,7 +157,7 @@ export default function ChandrashtamaScreen() {
         {/* What you can do */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-            {isTamil ? "à®Žà®©à¯à®© à®šà¯†à®¯à¯à®¯à®²à®¾à®®à¯?" : "What you CAN do"}
+            {isTamil ? "என்ன செய்யலாம்?" : "What you CAN do"}
           </Text>
           <View style={styles.bulletList}>
             {(isTamil ? CAN_DO.ta : CAN_DO.en).map((item, i) => (
@@ -172,11 +172,11 @@ export default function ChandrashtamaScreen() {
         {/* Pariharam link */}
         <View style={styles.parikaraCard}>
           <Text style={[styles.parikaraQuestion, isTamil ? TamilType.body : EnType.body]}>
-            {isTamil ? "à®à®¤à®¾à®µà®¤à¯ à®ªà®°à®¿à®•à®¾à®°à®®à¯ à®‰à®¤à®µà¯à®®à®¾?" : "Looking for remedies?"}
+            {isTamil ? "ஏதாவது பரிகாரம் உதவுமா?" : "Looking for remedies?"}
           </Text>
           <TouchableOpacity>
             <Text style={styles.parikaraLink}>
-              {isTamil ? "à®ªà®°à®¿à®•à®¾à®°à®®à¯ à®ªà®±à¯à®±à®¿ à®…à®±à®¿à®¯ â†’" : "Learn about pariharam â†’"}
+              {isTamil ? "பரிகாரம் பற்றி அறிய →" : "Learn about pariharam →"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -185,7 +185,7 @@ export default function ChandrashtamaScreen() {
         <View style={styles.toneNote}>
           <Text style={[styles.toneText, isTamil ? TamilType.caption : EnType.caption]}>
             {isTamil
-              ? "à®šà®¨à¯à®¤à®¿à®°à®¾à®·à¯à®Ÿà®®à®®à¯ 'à®•à¯†à®Ÿà¯à®Ÿ à®¨à®¾à®³à¯' à®…à®²à¯à®² â€” à®‡à®¤à¯ à®•à®µà®©à®®à®¾à®• à®šà¯†à®¯à®²à¯à®ªà®Ÿ à®µà¯‡à®£à¯à®Ÿà®¿à®¯ à®•à®¾à®²à®®à¯. à®šà®°à®¿à®¯à®¾à®• à®¤à®¿à®Ÿà¯à®Ÿà®®à®¿à®Ÿà¯à®Ÿà®¾à®²à¯ à®¨à®©à¯à®®à¯ˆ à®ªà¯†à®±à®²à®¾à®®à¯."
+              ? "சந்திராஷ்டமம் 'கெட்ட நாள்' அல்ல — இது கவனமாக செயல்பட வேண்டிய காலம். சரியாக திட்டமிட்டால் நன்மை பெறலாம்."
               : "Chandrashtama is not a 'bad day' â€” it's a time for awareness and care. With right planning, you can still thrive."}
           </Text>
         </View>

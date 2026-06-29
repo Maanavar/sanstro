@@ -16,14 +16,18 @@ export interface TransitItem {
 }
 
 export const transitsKeys = {
-  upcoming: (rasi: string) => ["transits-upcoming", rasi] as const,
+  upcoming: (chartId: string) => ["transits-upcoming", chartId] as const,
 };
 
 export function getUpcomingTransits(
-  rasi: string,
-  limit = 12,
+  chartId: string,
+  windowDays = 30,
 ): Promise<{ success: boolean; data: TransitItem[] }> {
-  return getApiClient().get("/transits/upcoming", { rasi, limit }) as Promise<{
+  const asOf = new Date().toISOString().slice(0, 10);
+  return getApiClient().get(`/charts/${chartId}/peyarchi/upcoming`, {
+    as_of: asOf,
+    window_days: windowDays,
+  }) as Promise<{
     success: boolean;
     data: TransitItem[];
   }>;

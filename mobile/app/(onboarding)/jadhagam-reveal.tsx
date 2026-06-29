@@ -14,6 +14,7 @@ import { JadhagamChart, type JadhagamHouseData } from "@/components/JadhagamChar
 import { AnimatedEmptyState } from "@/components/AnimatedEmptyState";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import type { ChartCalculateResponseData } from "@vinaadi/shared";
+import { PPU_REPORT_PRODUCTS } from "@vinaadi/shared/constants";
 
 const PLANET_SHORT_TA: Record<string, string> = {
   Sun: "சூ", Moon: "சந்", Mars: "செ", Mercury: "பு",
@@ -139,33 +140,55 @@ export default function JadhagamRevealScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* Upsell */}
-        <Text style={[styles.upsellHeading, isTamil ? TamilType.subheading : EnType.subheading]}>
-          {isTamil ? "மேலும் விரிவான அறிக்கை வேண்டுமா?" : "Want a more detailed report?"}
-        </Text>
+        {/* Primary CTA — explore free features first */}
+        <TouchableOpacity
+          style={styles.primaryBtn}
+          onPress={() => {
+            trackEvent("onboarding_complete", { report_upsell: false });
+            router.replace("/(tabs)/today");
+          }}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.primaryBtnText}>
+            {isTamil ? "உங்கள் ஜாதகத்தை ஆராயுங்கள் →" : "Explore your Jadhagam →"}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Divider with soft upsell below the fold */}
+        <View style={styles.upsellDivider}>
+          <View style={styles.upsellDividerLine} />
+          <Text style={[styles.upsellDividerText, isTamil ? TamilType.caption : EnType.caption]}>
+            {isTamil ? "விரிவான எழுத்துரு அறிக்கை வேண்டுமா?" : "Want a full written report?"}
+          </Text>
+          <View style={styles.upsellDividerLine} />
+        </View>
 
         <View style={styles.upsellRow}>
           {[
             {
               pages: "5",
-              price: "₹99",
+              price: `₹${PPU_REPORT_PRODUCTS.DETAILED_5PAGE.priceINR}`,
+              label: isTamil ? PPU_REPORT_PRODUCTS.DETAILED_5PAGE.label.ta : PPU_REPORT_PRODUCTS.DETAILED_5PAGE.label.en,
               desc: isTamil ? "தசா · கிரக விளக்கம் · யோகங்கள்" : "Dasha · Planet analysis · Yogas",
+              best: false,
             },
             {
               pages: "10",
-              price: "₹249",
-              best: true,
+              price: `₹${PPU_REPORT_PRODUCTS.PORTRAIT_10PAGE.priceINR}`,
+              label: isTamil ? PPU_REPORT_PRODUCTS.PORTRAIT_10PAGE.label.ta : PPU_REPORT_PRODUCTS.PORTRAIT_10PAGE.label.en,
               desc: isTamil ? "+ பரிகாரம் · தொழில் · திருமண நேரம்" : "+ Remedies · Career · Marriage timing",
+              best: true,
             },
           ].map((opt) => (
             <TouchableOpacity
               key={opt.pages}
               style={[styles.upsellCard, opt.best && styles.upsellCardBest]}
-              onPress={() =>
+              onPress={() => {
+                trackEvent("onboarding_complete", { report_upsell: true, pages: opt.pages });
                 chartId
                   ? router.push({ pathname: "/jadhagam/upsell", params: { chartId } })
-                  : undefined
-              }
+                  : router.replace("/(tabs)/today");
+              }}
               activeOpacity={0.85}
             >
               {opt.best && (
@@ -185,25 +208,10 @@ export default function JadhagamRevealScreen() {
         </View>
 
         <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={() => {
-            trackEvent("onboarding_complete", { report_upsell: true });
-            chartId
-              ? router.push({ pathname: "/jadhagam/upsell", params: { chartId } })
-              : router.replace("/(tabs)/today");
-          }}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.primaryBtnText}>
-            {isTamil ? "விரிவான அறிக்கை பெறுங்கள்" : "Get Detailed Report"}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
           style={styles.laterBtn}
           onPress={() => { trackEvent("onboarding_complete"); router.replace("/(tabs)/today"); }}
         >
-          <Text style={styles.laterText}>{isTamil ? "பின்னர்" : "Maybe later"}</Text>
+          <Text style={styles.laterText}>{isTamil ? "இப்போது வேண்டாம்" : "Not now"}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -247,7 +255,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: S.md, paddingVertical: 4, alignSelf: "flex-start",
   },
   savedText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.green },
-  upsellHeading: { color: C.textPrimary, marginBottom: S.md },
+  upsellDivider: { flexDirection: "row", alignItems: "center", gap: S.sm, marginVertical: S.xl },
+  upsellDividerLine: { flex: 1, height: 1, backgroundColor: C.divider },
+  upsellDividerText: { color: C.textTertiary, textAlign: "center" },
   upsellRow: { flexDirection: "row", gap: S.sm, marginBottom: S.base },
   upsellCard: {
     flex: 1, backgroundColor: C.surface, borderRadius: RADIUS.card,

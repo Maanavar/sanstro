@@ -130,9 +130,9 @@ export default function InsightsScreen() {
   });
 
   const transits = useQuery({
-    queryKey: transitsKeys.upcoming(prefs?.rasi ?? ""),
-    queryFn: () => getUpcomingTransits(prefs?.rasi as string, 3),
-    enabled: !!prefs?.rasi,
+    queryKey: transitsKeys.upcoming(chartId ?? ""),
+    queryFn: () => getUpcomingTransits(chartId as string, 30),
+    enabled: !!chartId && isAuthenticated,
     staleTime: STALE_5MIN,
   });
 

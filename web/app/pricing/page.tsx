@@ -192,6 +192,75 @@ export default function PricingPage() {
               </div>
             </div>
           </div>
+
+          {/* ── Get Premium: Download the app ── */}
+          <div style={{ background: "linear-gradient(135deg, #1A1208 0%, #2E2118 60%, #3D2B1A 100%)", borderRadius: "20px", padding: "40px 32px", marginTop: "8px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "32px", alignItems: "center" }}>
+            <div>
+              <p style={{ margin: "0 0 8px", fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#C8944A" }}>Ready for Premium?</p>
+              <h2 style={{ margin: "0 0 12px", fontSize: "clamp(1.4rem, 2.8vw, 2rem)", color: "#FFF7ED", lineHeight: 1.2 }}>Subscribe via the Vinaadi app.</h2>
+              <p style={{ margin: "0 0 6px", color: "rgba(255,247,237,0.75)", lineHeight: 1.65, fontSize: "0.9375rem" }}>
+                Premium subscriptions are managed through the iOS App Store and Google Play Store.
+                Download the app to start your <strong style={{ color: "#FFF7ED" }}>7-day free trial</strong> — cancel any time.
+              </p>
+              <p style={{ margin: 0, color: "rgba(255,247,237,0.5)", fontSize: "0.8125rem", lineHeight: 1.55 }}>
+                Already subscribed on mobile? Log in here — your premium access syncs automatically.
+              </p>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {/* iOS App Store badge */}
+              <a
+                href="https://apps.apple.com/app/vinaadi/id0000000000"
+                style={{
+                  display: "flex", alignItems: "center", gap: "12px",
+                  background: "#FFF7ED", borderRadius: "12px",
+                  padding: "12px 20px", textDecoration: "none",
+                  border: "1px solid rgba(255,247,237,0.15)",
+                }}
+              >
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="#1A1208" aria-hidden="true">
+                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                </svg>
+                <div>
+                  <p style={{ margin: 0, fontSize: "0.625rem", color: "#6C4B32", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Download on the</p>
+                  <p style={{ margin: 0, fontSize: "1rem", color: "#2E2118", fontWeight: 800, lineHeight: 1.2 }}>App Store</p>
+                </div>
+              </a>
+              {/* Google Play badge */}
+              <a
+                href="https://play.google.com/store/apps/details?id=app.vinaadi"
+                style={{
+                  display: "flex", alignItems: "center", gap: "12px",
+                  background: "#FFF7ED", borderRadius: "12px",
+                  padding: "12px 20px", textDecoration: "none",
+                  border: "1px solid rgba(255,247,237,0.15)",
+                }}
+              >
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M3.18 23.76C2.48 23.36 2 22.6 2 21.7V2.3C2 1.4 2.48.64 3.18.24L13.88 12 3.18 23.76z" fill="#EA4335"/>
+                  <path d="M17.67 15.54L5.4 22.78l9.3-9.3 2.97 2.06z" fill="#FBBC05"/>
+                  <path d="M21.14 10.53c.55.3.86.84.86 1.47s-.31 1.17-.86 1.47l-3.47 2.07-3.23-3.23 3.23-3.23 3.47 2.45z" fill="#4285F4"/>
+                  <path d="M5.4 1.22L17.67 8.46l-2.97 2.07-9.3-9.31z" fill="#34A853"/>
+                </svg>
+                <div>
+                  <p style={{ margin: 0, fontSize: "0.625rem", color: "#6C4B32", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Get it on</p>
+                  <p style={{ margin: 0, fontSize: "1rem", color: "#2E2118", fontWeight: 800, lineHeight: 1.2 }}>Google Play</p>
+                </div>
+              </a>
+              <Link
+                href="/login"
+                style={{
+                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  minHeight: "44px", padding: "0 18px", borderRadius: "999px",
+                  border: "1px solid rgba(255,247,237,0.28)", color: "#FFF7ED",
+                  textDecoration: "none", fontWeight: 600, fontSize: "0.875rem",
+                }}
+              >
+                Already subscribed? Log in →
+              </Link>
+            </div>
+          </div>
+
+        </div>
         </section>
       </main>
       <PublicFooter />
