@@ -18,6 +18,7 @@ from app.api.daily_guidance import router as daily_guidance_router
 from app.api.daily_snapshot import router as daily_snapshot_router
 from app.api.decisions import router as decisions_router
 from app.api.devices import router as devices_router
+from app.api.geo import router as geo_router
 from app.api.family_vaults import router as family_vaults_router
 from app.api.feedback import router as feedback_router
 from app.api.goals import router as goals_router
@@ -33,6 +34,7 @@ from app.api.notifications import router as notifications_router
 from app.api.panchangam import router as panchangam_router
 from app.api.prasna import router as prasna_router
 from app.api.predictions import router as predictions_router
+from app.api.newsletter import router as newsletter_router
 from app.api.public_tools import router as public_tools_router
 from app.api.reports import router as reports_router
 from app.api.stats import router as stats_router
@@ -44,6 +46,7 @@ from app.api.retrospective import router as retrospective_router
 from app.api.settings import router as settings_router
 from app.api.share_card import router as share_card_router
 from app.api.transits import router as transits_router
+from app.api.users import router as users_router
 from app.api.webhooks import router as webhooks_router
 from app.api.whatif import router as whatif_router
 from app.core.auth import require_csrf_header
@@ -184,8 +187,11 @@ def create_app() -> FastAPI:
     app.include_router(mobile_auth_router, prefix=f"{settings.api_v1_prefix}/auth")
     # Device push-token registration (guests + registered users, no cookie CSRF risk)
     app.include_router(devices_router, prefix=settings.api_v1_prefix)
+    # Geocoding proxy — public, no auth, no CSRF (GET/POST, no cookie auth)
+    app.include_router(geo_router, prefix=settings.api_v1_prefix)
     # Third-party inbound webhooks (no cookie auth, validated by shared secret)
     app.include_router(webhooks_router, prefix=settings.api_v1_prefix)
+    app.include_router(users_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(alerts_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(birth_profiles_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(charts_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
@@ -220,6 +226,7 @@ def create_app() -> FastAPI:
     app.include_router(predictions_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(prasna_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(remedies_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(newsletter_router, prefix=settings.api_v1_prefix)
     app.include_router(public_tools_router, prefix=settings.api_v1_prefix)
     app.include_router(reports_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(stats_router, prefix=settings.api_v1_prefix)
