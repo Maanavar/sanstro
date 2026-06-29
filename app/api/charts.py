@@ -94,12 +94,14 @@ def get_chart(
 @router.get("/charts/{chart_id}/dasha", response_model=DashaTimelineResponse, tags=["charts"])
 def get_dasha(
     chart_id: UUID,
-    as_of: date = Query(alias="asOf"),
+    as_of: date | None = Query(default=None, alias="asOf"),
     level: str = Query(default="pratyantar"),
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> DashaTimelineResponse:
     _assert_chart_owner(session, chart_id, current_user)
+    if as_of is None:
+        as_of = date.today()
     return get_chart_dasha(session, chart_id, as_of, level=level)
 
 
@@ -319,3 +321,23 @@ def get_varshaphala_endpoint(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return response.model_dump(mode="json", by_alias=True)
+
+
+@router.get("/charts/{chart_id}/share", tags=["charts"])
+def get_chart_share_link(
+    chart_id: UUID,
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return a shareable deep-link URL for this chart (P4-11)."""
+    chart, _ = _load_chart_and_profile(session, current_user.user_id, chart_id)
+    if chart is None:
+        raise HTTPException(status_code=404, detail="Chart not found.")
+    url = f"https://vinaadi.com/jadhagam/{chart_id}"
+    return {
+        "success": True,
+        "data": {
+            "url": url,
+            "text": f"View my Jadhagam on Vinaadi: {url}",
+        },
+    }
