@@ -453,7 +453,7 @@ def _assess_gochar_support(
     if sani_cycle_active and scenario in ("job_change", "business_start", "property", "marriage"):
         if sani_cycle_type == "ASHTAMA_SANI":
             score = max(score - 12, 0)
-        elif sani_cycle_type in ("JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_3", "ARDHASHTAMA_SANI"):
+        elif sani_cycle_type in ("JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_2", "EZHARAI_SANI_PHASE_3", "ARDHASHTAMA_SANI"):
             score = max(score - 8, 0)
 
     ta_prim = _PLANET_TA[primary]
