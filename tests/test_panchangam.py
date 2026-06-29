@@ -291,3 +291,66 @@ def test_rahu_kalam_uses_daylight_division_chennai_2026_01_15():
     assert snapshot.rahu_kalam.slot == 6
     assert abs((snapshot.rahu_kalam.start - expected_start).total_seconds()) < 1
     assert abs((snapshot.rahu_kalam.end - expected_end).total_seconds()) < 1
+
+
+# ---------------------------------------------------------------------------
+# P2-03 — Tithi 15 / 30 boundary regression (Pournami + Amavasai)
+# ---------------------------------------------------------------------------
+
+def test_tithi_boundary_pournami_amavasai_q1_2026():
+    """Pournami (15) and Amavasai (30) dominant civil days are found and internally consistent
+    across Q1 2026.  The panchangam snapshot's special_tithi_day_number must agree with
+    dominant_special_tithi_for_civil_day() for every identified civil day. (P2-03)"""
+    tz = "Asia/Kolkata"
+    pournami_days: list[date] = []
+    amavasai_days: list[date] = []
+
+    for offset in range(90):  # Jan 1 – Mar 31, 2026
+        d = date(2026, 1, 1) + timedelta(days=offset)
+        dominant = dominant_special_tithi_for_civil_day(d, tz)
+        if dominant == 15:
+            pournami_days.append(d)
+        elif dominant == 30:
+            amavasai_days.append(d)
+
+    assert len(pournami_days) >= 3, f"Expected ≥3 Pournami civil days in Q1 2026, got {pournami_days}"
+    assert len(amavasai_days) >= 3, f"Expected ≥3 Amavasai civil days in Q1 2026, got {amavasai_days}"
+
+    for d in pournami_days[:3]:
+        snap = calculate_daily_panchangam(d, 13.0827, 80.2707, tz)
+        assert snap.special_tithi_day_number == 15, (
+            f"Pournami day {d}: snapshot.special_tithi_day_number={snap.special_tithi_day_number}"
+        )
+
+    for d in amavasai_days[:3]:
+        snap = calculate_daily_panchangam(d, 13.0827, 80.2707, tz)
+        assert snap.special_tithi_day_number == 30, (
+            f"Amavasai day {d}: snapshot.special_tithi_day_number={snap.special_tithi_day_number}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# P2-07 — Makara sankranti precision (Thai Pongal 2026)
+# ---------------------------------------------------------------------------
+
+def test_makara_sankranti_precision_2026():
+    """Thai Pongal 2026 — Makara (Capricorn) sankranti must fall on Jan 14 UTC within ±10 min (P2-07)."""
+    from app.calculations.tamil_calendar import _find_sankranti_jd
+    from app.calculations.ephemeris import sun_longitude_at_jd
+    from app.calculations.astro import normalize_longitude
+
+    # Jan 15, 2026 12:00 UTC — Sun is already in Makara (rasi index 9 = 270°-300°)
+    jd_after = 2461056.0
+
+    sankranti_jd = _find_sankranti_jd(9, jd_after)
+
+    # Must fall on Jan 14, 2026 UTC (JD 2461054.5–2461055.5)
+    assert 2461054.5 <= sankranti_jd < 2461055.5, (
+        f"Makara sankranti 2026 not on Jan 14 UTC: JD={sankranti_jd:.6f}"
+    )
+
+    # Sun sidereal longitude at the crossing instant must be at 270° ± 0.01°
+    sun_lon = normalize_longitude(sun_longitude_at_jd(sankranti_jd))
+    assert abs(sun_lon - 270.0) < 0.01, (
+        f"Sun longitude at Makara entry is {sun_lon:.4f}°, expected 270.00°"
+    )

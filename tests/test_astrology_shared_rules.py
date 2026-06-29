@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import pytest
+from datetime import UTC, date, datetime, time
 
 from app.calculations.astro import (
     chandrashtama_rasi_from_janma,
     is_chandrashtama,
+    local_datetime_to_utc,
     nakshatra_to_rasi,
 )
 from app.calculations.chart_strength import SIGN_LORD
@@ -52,6 +54,35 @@ def test_badhaka_lord_depends_on_lagna_not_always_saturn() -> None:
     assert get_badhaka_lord(1, SIGN_LORD) == "SATURN"   # movable: 11th from Mesham
     assert get_badhaka_lord(5, SIGN_LORD) == "MARS"     # fixed: 9th from Simmam
     assert get_badhaka_lord(3, SIGN_LORD) == "JUPITER"  # dual: 7th from Mithunam
+
+
+# ---------------------------------------------------------------------------
+# P2-08 — Historical timezone reconstruction uses ZoneInfo fold disambiguation
+# ---------------------------------------------------------------------------
+
+def test_historical_birth_utc_reconstruction_india_pre_1947() -> None:
+    """local_datetime_to_utc uses ZoneInfo (not pytz.replace) so historical Indian births
+    get correct UTC even for pre-1947 dates. IANA records IST (+05:30) from 1906-01-01. (P2-08)"""
+    local_dt = datetime.combine(date(1946, 6, 15), time(10, 30))
+    utc_dt = local_datetime_to_utc(local_dt, "Asia/Kolkata")
+
+    # IST = UTC+05:30 since 1906 per IANA tzdb
+    assert utc_dt.tzinfo is not None
+    expected_utc_hour = 5  # 10:30 IST − 5:30 = 05:00 UTC
+    assert utc_dt.hour == expected_utc_hour
+    assert utc_dt.minute == 0
+    assert utc_dt.tzinfo.utcoffset(utc_dt).total_seconds() == 0
+
+
+def test_historical_birth_utc_reconstruction_roundtrip() -> None:
+    """Round-trip: converting back from UTC to IST must recover the original local time."""
+    from zoneinfo import ZoneInfo
+
+    local_dt = datetime.combine(date(1940, 1, 1), time(6, 0))
+    utc_dt = local_datetime_to_utc(local_dt, "Asia/Kolkata")
+    ist = ZoneInfo("Asia/Kolkata")
+    recovered = utc_dt.astimezone(ist).replace(tzinfo=None)
+    assert recovered == local_dt
 
 
 def test_remedy_catalog_uses_tamil_navagraha_sthalam_circuit() -> None:
