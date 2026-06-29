@@ -19,6 +19,7 @@ from app.calculations.astro import (
     utc_datetime_to_julian_day,
     utc_datetime_to_local_datetime,
 )
+from app.constants.astrology import NAKSHATRA_NAMES
 from app.calculations.ephemeris import (
     calculate_lagna_degree,
     calculate_rise_transit_jd,
@@ -47,35 +48,6 @@ TITHI_NAMES = [
     "POURNAMI",     # 15 (Shukla) / AMAVASAI (Krishna) — handled by paksha logic
 ]
 
-NAKSHATRA_NAMES = [
-    "ASWINI",
-    "BHARANI",
-    "KARTHIGAI",
-    "ROHINI",
-    "MIRUGASEERIDAM",
-    "THIRUVATHIRAI",
-    "PUNARPOOSAM",
-    "POOSAM",
-    "AYILYAM",
-    "MAGAM",
-    "POORAM",
-    "UTHIRAM",
-    "HASTHAM",
-    "CHITHIRAI",
-    "SWATHI",
-    "VISAKAM",
-    "ANUSHAM",
-    "KETTAI",
-    "MOOLAM",
-    "POORADAM",
-    "UTHIRADAM",
-    "THIRUVONAM",
-    "AVITTAM",
-    "SADAYAM",
-    "POORATTATHI",
-    "UTHIRATTATHI",
-    "REVATHI",
-]
 
 YOGA_NAMES = [
     "VISHKAMBHA",

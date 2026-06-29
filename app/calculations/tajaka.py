@@ -3,12 +3,9 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from app.calculations.astro import normalize_longitude, rasi_from_degree, utc_datetime_to_julian_day
-from app.calculations.ephemeris import calculate_lagna_degree, calculate_sidereal_planets
+from app.calculations.ephemeris import calculate_lagna_degree, calculate_sidereal_planets, sun_longitude_at_jd
 
-
-def _sun_longitude_at_jd(jd: float) -> float:
-    snap = calculate_sidereal_planets(jd)
-    return normalize_longitude(snap.bodies["SUN"].absolute_longitude)
+_sun_longitude_at_jd = sun_longitude_at_jd  # internal alias kept for backward compat within file
 
 
 def _signed_angular_diff(current: float, target: float) -> float:

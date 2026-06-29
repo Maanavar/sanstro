@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+# TODO(product): decide fate — P2-04. API route GET /charts/{id}/chara-dasha already exists.
+# Decision needed: add a mobile Chara Dasha tab, or explicitly defer to roadmap?
+# See docs/ROADMAP_TASKS.md and docs/AUDIT_REMEDIATION_PLAN.md P2-04.
+
 from collections.abc import Mapping
 from datetime import date
 

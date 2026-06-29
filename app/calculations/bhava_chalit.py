@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+# TODO(product): decide fate — P2-05. Bhava Chalit powers house assignments in chart build
+# and is returned in ChartCalculateResponse.bhavaChalit. Decision: display it as an overlay
+# or alternate view in the Jadhagam screen, or keep as internal chart-build only?
+# See docs/ROADMAP_TASKS.md and AUDIT_REMEDIATION_PLAN.md P2-05.
+
 
 def compute_bhava_chalit(
     lagna_longitude: float,

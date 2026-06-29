@@ -4,6 +4,8 @@ from datetime import UTC, datetime, timedelta, timezone
 from math import floor
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from app.constants.astrology import NAKSHATRA_NAMES
+
 EPSILON_DEGREES = 1e-9
 NAKSHATRA_SIZE_DEGREES = 40 / 3
 PADA_SIZE_DEGREES = 10 / 3
@@ -31,35 +33,6 @@ RASI_NAME_TO_NUMBER.update(
         "thulaam": 7,
         "vrichigam": 8,
     }
-)
-NAKSHATRA_NAMES = (
-    "ASWINI",
-    "BHARANI",
-    "KARTHIGAI",
-    "ROHINI",
-    "MIRUGASEERIDAM",
-    "THIRUVATHIRAI",
-    "PUNARPOOSAM",
-    "POOSAM",
-    "AYILYAM",
-    "MAGAM",
-    "POORAM",
-    "UTHIRAM",
-    "HASTHAM",
-    "CHITHIRAI",
-    "SWATHI",
-    "VISAKAM",
-    "ANUSHAM",
-    "KETTAI",
-    "MOOLAM",
-    "POORADAM",
-    "UTHIRADAM",
-    "THIRUVONAM",
-    "AVITTAM",
-    "SADAYAM",
-    "POORATTATHI",
-    "UTHIRATTATHI",
-    "REVATHI",
 )
 NAKSHATRA_NAME_TO_NUMBER = {
     "".join(char for char in name.lower() if char.isalnum()): index + 1

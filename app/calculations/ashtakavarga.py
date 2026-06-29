@@ -4,6 +4,10 @@ Source: Formula Engine Spec §9.1-9.4, Thirukanitham / Brihat Parashara traditio
 
 BAV_TABLE[planet][reference_point] = list of houses (from that reference point's Rasi)
 that contribute 1 bindu when the planet transits there.
+
+TODO(product): decide fate — P2-05. This module drives internal scoring (life_areas, daily_guidance,
+wealth_service) but has no dedicated mobile UI grid. Decision: expose a bindu grid in the
+Jadhagam screen, or mark as internal-only? See docs/ROADMAP_TASKS.md and AUDIT_REMEDIATION_PLAN.md P2-05.
 """
 from __future__ import annotations
 

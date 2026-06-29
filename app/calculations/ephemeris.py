@@ -245,3 +245,10 @@ def calculate_rise_transit_jd(jd_start: float, latitude: float, longitude: float
             serr,
         )
         return float(tret[0])
+
+
+def sun_longitude_at_jd(jd: float) -> float:
+    """Return the sidereal (Lahiri) longitude of the Sun at the given Julian Day."""
+    from app.calculations.astro import normalize_longitude
+    snap = calculate_sidereal_planets(jd)
+    return normalize_longitude(snap.bodies["SUN"].absolute_longitude)
