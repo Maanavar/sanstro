@@ -5,12 +5,13 @@ import {
 } from "@vinaadi/shared/api/auth";
 import { setTokens, clearTokens } from "@/lib/secureStore";
 
-export type { RegisterResponse, MobileAuthResponse, MeResponse } from "@vinaadi/shared/api/auth";
+export type { RegisterResponse, MobileAuthResponse, MeResponse, SubscriptionInfo, SubscriptionInfoResponse } from "@vinaadi/shared/api/auth";
 export {
   register,
   getMe,
   updateMe,
   deleteAccount,
+  getMySubscription,
   registerPushToken,
   unregisterPushToken,
 } from "@vinaadi/shared/api/auth";

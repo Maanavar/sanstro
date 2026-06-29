@@ -63,3 +63,19 @@ export function registerPushToken(payload: {
 export function unregisterPushToken(deviceId: string): Promise<void> {
   return getApiClient().delete(`/devices/push-token?deviceId=${encodeURIComponent(deviceId)}`);
 }
+
+export interface SubscriptionInfo {
+  tier: string;
+  status: string;
+  provider: string | null;
+  current_period_end: string | null;
+}
+
+export interface SubscriptionInfoResponse {
+  success: boolean;
+  data: SubscriptionInfo | null;
+}
+
+export function getMySubscription(): Promise<SubscriptionInfoResponse> {
+  return getApiClient().get("/users/me/subscription") as Promise<SubscriptionInfoResponse>;
+}
