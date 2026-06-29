@@ -114,7 +114,7 @@ export default function JadhagamDetailScreen() {
     if (!id || isExporting) return;
     setIsExporting(true);
     try {
-      const res = await fetchWithAuth(`/charts/${id}/export/pdf`);
+      const res = await fetchWithAuth(`/charts/${id}/export/pdf?lang=${lang}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const buffer = await res.arrayBuffer();
       // Pure-JS base64 encoding — works on all RN platforms without btoa

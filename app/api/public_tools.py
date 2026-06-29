@@ -214,7 +214,7 @@ def public_compare(payload: PublicPoruthamRequest, request: Request) -> PublicCo
 
 @router.post("/compare/pdf")
 @public_endpoint_rate_limit("public_compare_pdf")
-def public_compare_pdf(payload: PublicPoruthamRequest, request: Request) -> Response:
+def public_compare_pdf(payload: PublicPoruthamRequest, request: Request, lang: str = "en") -> Response:
     """Generate a transient porutham PDF without creating saved profiles."""
     from app.schemas.relationships import VALID_COMPATIBILITY_CONTEXTS
     from app.services.pdf_export_service import generate_porutham_pdf
@@ -241,6 +241,7 @@ def public_compare_pdf(payload: PublicPoruthamRequest, request: Request) -> Resp
         porutham.data,
         chart_a.data.birth_profile.display_name or "Person_A",
         chart_b.data.birth_profile.display_name or "Person_B",
+        lang=lang if lang in {"en", "ta"} else "en",
     )
     return Response(
         content=pdf_bytes,

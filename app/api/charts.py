@@ -210,12 +210,13 @@ def get_event_windows(
 def export_chart_pdf(
     chart_id: UUID,
     as_of: date = Query(default=None, alias="asOf"),
+    lang: str = Query(default="en", pattern="^(en|ta)$"),
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Response:
     _assert_chart_owner(session, chart_id, current_user)
     report_date = as_of or datetime.now(tz=UTC).date()
-    pdf_bytes = generate_chart_pdf(session, chart_id, report_date)
+    pdf_bytes = generate_chart_pdf(session, chart_id, report_date, lang=lang)
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
