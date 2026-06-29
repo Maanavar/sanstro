@@ -577,7 +577,8 @@
 .cd-skeleton {
   position: relative;
   overflow: hidden;
-  background: var(--color-border);
+  background: var(--panel-tan, #D4C8AE);
+  border-radius: var(--radius-sm);
 }
 
 .cd-skeleton::after {
@@ -585,14 +586,48 @@
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, var(--color-shimmer-light), transparent);
-  animation: cd-shimmer 1.1s infinite;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+  animation: cd-shimmer 1.4s ease-in-out infinite;
 }
 
 @keyframes cd-shimmer {
   100% {
     transform: translateX(100%);
   }
+}
+
+/* Skeleton card components always use the cream/tan palette inside the dashboard
+   regardless of system theme — the dashboard shell has a fixed cream background */
+.cd-main-content .skel-card {
+  background: var(--panel-cream, #FAF5EA);
+  border-color: var(--panel-tan-light, #E4DBC8);
+}
+
+.cd-main-content .skel {
+  background: var(--panel-tan, #D4C8AE);
+}
+
+.cd-main-content .skel::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 100%
+  );
+}
+
+.cd-main-content .skel-metric-cell {
+  background: var(--panel-cream, #FAF5EA);
+  border-color: var(--panel-tan-light, #E4DBC8);
+}
+
+.cd-main-content .skel-transit-list {
+  background: var(--panel-cream, #FAF5EA);
+  border-color: var(--panel-tan-light, #E4DBC8);
+}
+
+.cd-main-content .skel-chart-corner {
+  background: var(--panel-tan-light, #E4DBC8);
 }
 
 @media (max-width: 900px) {

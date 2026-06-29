@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SkeletonDashboardCard, SkeletonDashaTimeline, SkeletonChartPanel, SkeletonMetricStrip } from "@/components/skeleton";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { formatClockLabel, formatDateLabel, getScoreBand, scoreColor, SCORE_HIGH } from "@/lib/format";
 import { gowriCategoryLabel, gowriPeriodLabel, gowriPurposeLabel } from "@/lib/gowri";
@@ -204,7 +205,7 @@ export function DashboardPersonalTab({
   async function downloadPersonalChartPdf() {
     if (!activeChartId) return;
     const asOf = selectedDate || new Date().toISOString().slice(0, 10);
-    const response = await fetch(`/api/backend/api/v1/charts/${activeChartId}/export/pdf?asOf=${asOf}`, {
+    const response = await fetch(`/api/backend/api/v1/charts/${activeChartId}/export/pdf?asOf=${asOf}&lang=${lang}`, {
       credentials: "include",
     });
     if (!response.ok) return;
@@ -266,13 +267,11 @@ export function DashboardPersonalTab({
 
   if (busyPersonal && !personalDailyGuidance && !personalChart) {
     return (
-      <div style={{ display: "grid", gap: "var(--space-4)" }}>
-        <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-6)", display: "grid", gap: "var(--space-3)" }}>
-          <div className="cd-skeleton" style={{ height: "14px", width: "28%", borderRadius: "var(--radius-sm)" }} />
-          <div className="cd-skeleton" style={{ height: "44px", width: "72%", borderRadius: "var(--radius-sm)" }} />
-          <div className="cd-skeleton" style={{ height: "12px", width: "86%", borderRadius: "var(--radius-sm)" }} />
-          <div className="cd-skeleton" style={{ height: "12px", width: "64%", borderRadius: "var(--radius-sm)" }} />
-        </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+        <SkeletonMetricStrip />
+        <SkeletonDashboardCard lines={4} showIcon />
+        <SkeletonDashaTimeline />
+        <SkeletonChartPanel />
       </div>
     );
   }

@@ -1,10 +1,11 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
 import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import { ConfidenceBadge } from "./dashboard-ui";
 import { NavamsaChart, RasiChart } from "./dashboard-charts";
+import { CompatibilityIntelligencePanel } from "./compatibility-intelligence-panel";
 import type { Lang } from "@/lib/i18n";
 import type {
   ApiEnvelope,
@@ -252,6 +253,7 @@ export function SynastryPanel({
   const [poruthamError, setPoruthamError]       = useState("");
   const [poruthamContext, setPoruthamContext]   = useState("GENERAL");
   const [poruthamPdfBusy, setPoruthamPdfBusy]   = useState(false);
+  const [showCiReport, setShowCiReport]         = useState(false);
 
   const compatMemberChart = memberCharts.find((m) => m.memberId === compatMemberId)?.chart ?? null;
   const poruthamMemberChart = memberCharts.find((m) => m.memberId === poruthamMemberId)?.chart ?? null;
@@ -279,6 +281,7 @@ export function SynastryPanel({
     setPoruthamMemberId(memberId);
     setPorutham(null);
     setPoruthamError("");
+    setShowCiReport(false);
     setPoruthamLoading(true);
     try {
       const r = await apiFetchJson<ApiEnvelope<PorutthamData>>(
@@ -297,7 +300,7 @@ export function SynastryPanel({
     setPoruthamPdfBusy(true);
     setPoruthamError("");
     try {
-      const response = await fetch("/api/backend/api/v1/relationships/compare/pdf", {
+      const response = await fetch(`/api/backend/api/v1/relationships/compare/pdf?lang=${lang}`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
@@ -711,6 +714,63 @@ export function SynastryPanel({
                       );
                     })}
                   </div>
+
+                  {/* Detailed Analysis (Compatibility Intelligence) — premium feature */}
+                  {poruthamContext === "MARRIAGE" && (
+                    <div style={{ marginTop: "var(--space-2)" }}>
+                      {!showCiReport ? (
+                        <div style={{
+                          background: "var(--cl-sage-06)", border: "1px solid var(--cl-sage-25)",
+                          borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-5)",
+                          display: "flex", gap: "var(--space-4)", alignItems: "center", flexWrap: "wrap",
+                        }}>
+                          <div style={{ flex: 1, minWidth: "200px" }}>
+                            <p style={{ margin: "0 0 var(--space-1)", fontWeight: 700, fontSize: "0.875rem", color: "var(--panel-earth-dark)" }}>
+                              {lang === "ta" ? "இணக்க நுண்ணறிவு அறிக்கை" : "Full Compatibility Intelligence Report"}
+                            </p>
+                            <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--color-faint)", lineHeight: 1.55 }}>
+                              {lang === "ta"
+                                ? "7ஆம் இடம் · நவாம்சம் · தசை இணக்கம் · செவ்வாய் தோஷம் · உணர்வு இணக்கம் · ஒட்டுமொத்த மதிப்பெண் (0–100) உள்ளிட்ட 8 அடுக்கு ஆழமான பகுப்பாய்வு"
+                                : "8-level deep analysis: 7th house · Navamsa · Dasha timing · Sevvai Dosham · Emotional compatibility · Overall score 0–100"}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowCiReport(true)}
+                            style={{
+                              padding: "var(--space-2) var(--space-5)",
+                              background: "var(--panel-earth-dark)", color: "var(--panel-cream)",
+                              border: "none", borderRadius: "var(--radius-pill)", fontFamily: "inherit",
+                              fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                            }}
+                          >
+                            {lang === "ta" ? "முழு அறிக்கை காண்க →" : "View Full Report →"}
+                          </button>
+                        </div>
+                      ) : (
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-3)" }}>
+                            <p style={{ margin: 0, fontWeight: 700, fontSize: "0.9rem", color: "var(--panel-earth-dark)" }}>
+                              {lang === "ta" ? "இணக்க நுண்ணறிவு அறிக்கை" : "Compatibility Intelligence Report"}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => setShowCiReport(false)}
+                              style={{ fontSize: "0.78rem", color: "var(--color-faint)", background: "none", border: "1px solid var(--panel-tan)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)", cursor: "pointer", fontFamily: "inherit" }}
+                            >
+                              {lang === "ta" ? "மறை" : "Hide"}
+                            </button>
+                          </div>
+                          <CompatibilityIntelligencePanel
+                            familyVaultId={familyVaultId}
+                            memberId={poruthamMemberId}
+                            chartIdA={ownerChart?.chartId}
+                            lang={lang}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </>
