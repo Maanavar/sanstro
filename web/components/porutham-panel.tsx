@@ -203,7 +203,7 @@ export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: Porut
     setDownloadingPdf(true);
     try {
       if (showCiReport && selectedVaultMemberIdB && familyVaultId) {
-        const params = new URLSearchParams({ familyVaultId });
+        const params = new URLSearchParams({ familyVaultId, lang });
         const response = await fetch(
           `/api/backend/api/v1/relationships/${selectedVaultMemberIdB}/compatibility-intelligence/direct/pdf?${params.toString()}`,
           {
@@ -232,7 +232,7 @@ export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: Porut
         a.click();
         URL.revokeObjectURL(url);
       } else {
-        const response = await fetch("/api/backend/api/v1/public/compare/pdf", {
+        const response = await fetch(`/api/backend/api/v1/public/compare/pdf?lang=${lang}`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },

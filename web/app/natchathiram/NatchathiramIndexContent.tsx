@@ -63,8 +63,10 @@ export function NatchathiramIndexContent() {
                     <NakshatraSigil number={n.number} name={romanNakshathiramName(n.name_en)} size="md" />
                   </span>
                   <span className="cl-natch-tile__body">
-                    <span className="cl-natch-tile__ta">{n.name_ta}</span>
-                    <span className="cl-natch-tile__en">{romanNakshathiramName(n.name_en)}</span>
+                    {lang === "ta"
+                      ? <span className="cl-natch-tile__ta">{n.name_ta}</span>
+                      : <span className="cl-natch-tile__en">{romanNakshathiramName(n.name_en)}</span>
+                    }
                   </span>
                 </Link>
               ))}
@@ -90,8 +92,10 @@ export function NatchathiramIndexContent() {
                     <span className="cl-natch-tile__status">
                       {lang === "en" ? "Coming soon" : "விரைவில்"}
                     </span>
-                    <span className="cl-natch-tile__ta">{n.name_ta}</span>
-                    <span className="cl-natch-tile__en">{romanNakshathiramName(n.name_en)}</span>
+                    {lang === "ta"
+                      ? <span className="cl-natch-tile__ta">{n.name_ta}</span>
+                      : <span className="cl-natch-tile__en">{romanNakshathiramName(n.name_en)}</span>
+                    }
                   </span>
                 </div>
               ))}

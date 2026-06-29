@@ -140,7 +140,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
     setDownloadingPdf(true);
     setError("");
     try {
-      const params = new URLSearchParams({ familyVaultId });
+      const params = new URLSearchParams({ familyVaultId, lang });
       let response: Response;
       if (personABirth) {
         response = await fetch(

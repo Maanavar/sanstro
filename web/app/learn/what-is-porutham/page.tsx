@@ -49,7 +49,7 @@ const FAQ_JSONLD = {
       name: "What are the 10 poruthams?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "The 10 poruthams are: Dinam (daily harmony), Ganam (temperament), Mahendram (longevity and support), Stree Deergham (prosperity), Yoni (physical compatibility), Rajju (life-force compatibility), Vedha (obstacles), Rasi (moon sign compatibility), Rasiyathipathi/Graha Maitri (planetary friendship), and Nadi (hereditary health). The maximum total score is 36 points.",
+        text: "The 10 poruthams are: Dinam (daily harmony), Ganam (temperament), Mahendram (longevity and support), Stree Deergham (prosperity), Yoni (physical compatibility), Rajju (life-force compatibility), Vedha (obstacles), Rasi (moon sign compatibility), Graha Maitri/Rasiyathipathi (planetary friendship), and Vasya (mutual attraction). The maximum total score is 10 points in the Tamil Thirukanitham system — one point per porutham.",
       },
     },
     {

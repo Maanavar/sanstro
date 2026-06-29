@@ -7,33 +7,33 @@ import { romanNakshathiramName } from "@/lib/tamil-astro";
 // ========== DATA ==========
 
 const NAKSHATRAS = [
-  { id: 0, en: "Ashwini",           ta: "அசுவினி" },
-  { id: 1, en: "Bharani",           ta: "பரணி" },
-  { id: 2, en: "Krittika",          ta: "கார்த்திகை" },
-  { id: 3, en: "Rohini",            ta: "ரோகிணி" },
-  { id: 4, en: "Mrigashira",        ta: "மிருகசீரிடம்" },
-  { id: 5, en: "Ardra",             ta: "திருவாதிரை" },
-  { id: 6, en: "Punarvasu",         ta: "புனர்பூசம்" },
-  { id: 7, en: "Pushya",            ta: "பூசம்" },
-  { id: 8, en: "Ashlesha",          ta: "ஆயில்யம்" },
-  { id: 9, en: "Magha",             ta: "மகம்" },
-  { id: 10, en: "Purva Phalguni",   ta: "பூரம்" },
-  { id: 11, en: "Uttara Phalguni",  ta: "உத்திரம்" },
-  { id: 12, en: "Hasta",            ta: "ஹஸ்தம்" },
-  { id: 13, en: "Chitra",           ta: "சித்திரை" },
-  { id: 14, en: "Swati",            ta: "சுவாதி" },
-  { id: 15, en: "Vishakha",         ta: "விசாகம்" },
-  { id: 16, en: "Anuradha",         ta: "அனுஷம்" },
-  { id: 17, en: "Jyeshtha",         ta: "கேட்டை" },
-  { id: 18, en: "Mula",             ta: "மூலம்" },
-  { id: 19, en: "Purva Ashadha",    ta: "பூராடம்" },
-  { id: 20, en: "Uttara Ashadha",   ta: "உத்திராடம்" },
-  { id: 21, en: "Shravana",         ta: "திருவோணம்" },
-  { id: 22, en: "Dhanishta",        ta: "அவிட்டம்" },
-  { id: 23, en: "Shatabhisha",      ta: "சதயம்" },
-  { id: 24, en: "Purva Bhadrapada", ta: "பூரட்டாதி" },
-  { id: 25, en: "Uttara Bhadrapada",ta: "உத்திரட்டாதி" },
-  { id: 26, en: "Revati",           ta: "ரேவதி" },
+  { id: 0, en: "Aswini",           ta: "அசுவினி" },
+  { id: 1, en: "Bharani",          ta: "பரணி" },
+  { id: 2, en: "Karthigai",        ta: "கார்த்திகை" },
+  { id: 3, en: "Rohini",           ta: "ரோகிணி" },
+  { id: 4, en: "Mirugaseeridam",   ta: "மிருகசீரிடம்" },
+  { id: 5, en: "Thiruvathirai",    ta: "திருவாதிரை" },
+  { id: 6, en: "Punarpoosam",      ta: "புனர்பூசம்" },
+  { id: 7, en: "Poosam",           ta: "பூசம்" },
+  { id: 8, en: "Ayilyam",          ta: "ஆயில்யம்" },
+  { id: 9, en: "Magam",            ta: "மகம்" },
+  { id: 10, en: "Pooram",          ta: "பூரம்" },
+  { id: 11, en: "Uthiram",         ta: "உத்திரம்" },
+  { id: 12, en: "Hastham",         ta: "ஹஸ்தம்" },
+  { id: 13, en: "Chithirai",       ta: "சித்திரை" },
+  { id: 14, en: "Swathi",          ta: "சுவாதி" },
+  { id: 15, en: "Visakam",         ta: "விசாகம்" },
+  { id: 16, en: "Anusham",         ta: "அனுஷம்" },
+  { id: 17, en: "Kettai",          ta: "கேட்டை" },
+  { id: 18, en: "Moolam",          ta: "மூலம்" },
+  { id: 19, en: "Pooradam",        ta: "பூராடம்" },
+  { id: 20, en: "Uthiradam",       ta: "உத்திராடம்" },
+  { id: 21, en: "Thiruvonam",      ta: "திருவோணம்" },
+  { id: 22, en: "Avittam",         ta: "அவிட்டம்" },
+  { id: 23, en: "Sadayam",         ta: "சதயம்" },
+  { id: 24, en: "Poorattathi",     ta: "பூரட்டாதி" },
+  { id: 25, en: "Uthirattathi",    ta: "உத்திரட்டாதி" },
+  { id: 26, en: "Revathi",         ta: "ரேவதி" },
 ];
 
 // Gana: 0=Deva, 1=Manushya, 2=Rakshasa
@@ -56,22 +56,44 @@ const RAJJU_NAMES_EN = ["Paada","Kati","Nabhi","Kantha","Siro"];
 const RAJJU_SEVERITY_TA = ["அலைச்சல்/பிரிவு","வறுமை","சந்ததி நஷ்டம்","மனைவிக்கு ஆபத்து","கணவனுக்கு ஆபத்து"];
 
 // Vedhai opposition pairs
-const VEDHAI_PAIRS: [number,number][] = [[0,17],[1,16],[2,15],[3,14],[5,21],[6,20],[7,19],[8,18],[9,26],[10,25],[11,24],[12,23],[13,22]];
+const VEDHAI_PAIRS: [number,number][] = [[0,17],[1,16],[2,15],[3,14],[4,22],[5,21],[6,20],[7,19],[8,18],[9,26],[10,25],[11,24],[12,23]];
 
 // Nadi: 0=Aadhi 1=Madhya 2=Anthya
 const NADI = NAKSHATRAS.map((_,i) => Math.floor((i % 9) / 3));
 const NADI_NAMES_TA = ["ஆதி நாடி","மத்திய நாடி","அந்திய நாடி"];
 
 // Rasi assignment (0-11 = Mesha…Meena)
-const RASI = [0,0,1,1,2,2,3,3,3,4,4,5,5,6,6,7,7,7,8,8,9,9,10,10,11,11,11];
+// Split nakshatras → primary rasi (where 3 of 4 padas fall):
+//   Karthigai: pada1=Mesha, pada2-4=Rishaba → Rishaba(1) ✓
+//   Punarpoosam: pada1-3=Mithuna, pada4=Kataka → Mithuna(2) [was Kataka]
+//   Uthiram: pada1=Simha, pada2-4=Kanni → Kanni(5) ✓
+//   Visakam: pada1-3=Thula, pada4=Vrischika → Thula(6) [was Vrischika]
+//   Uthiradam: pada1=Dhanus, pada2-4=Makara → Makara(9) ✓
+//   Poorattathi: pada1-3=Kumbha, pada4=Meena → Kumbha(10) [was Meena]
+const RASI = [0,0,1,1,2,2,2,3,3,4,4,5,5,6,6,6,7,7,8,8,9,9,10,10,10,11,11];
 const RASI_NAMES_TA = ["மேஷம்","ரிஷபம்","மிதுனம்","கடகம்","சிம்மம்","கன்னி","துலாம்","விருச்சிகம்","தனுசு","மகரம்","கும்பம்","மீனம்"];
 const RASI_NAMES_EN = ["Mesha","Rishaba","Mithuna","Kataka","Simha","Kanni","Thula","Vrischika","Dhanus","Makara","Kumbha","Meena"];
+
+// 50/50 split nakshatras: exactly 2 padas fall in each of two rasis.
+// Users must specify which pada group they belong to for rasi-based poruthams to be accurate.
+//   Mirugasiridam (4): padas 1-2 = Rishaba(1), padas 3-4 = Mithuna(2)
+//   Chithirai     (13): padas 1-2 = Kanni(5),   padas 3-4 = Thula(6)
+const SPLIT_NAK: Record<number, { early: [string, string, number]; late: [string, string, number] }> = {
+  4:  { early: ["பாதம் 1–2 · ரிஷபம்", "Padas 1–2 · Rishaba", 1], late: ["பாதம் 3–4 · மிதுனம்", "Padas 3–4 · Mithuna", 2] },
+  13: { early: ["பாதம் 1–2 · கன்னி",  "Padas 1–2 · Kanni",   5], late: ["பாதம் 3–4 · துலாம்",  "Padas 3–4 · Thula",  6] },
+};
+
+function getEffRasi(starIdx: number, split: "early" | "late" | null): number {
+  const s = SPLIT_NAK[starIdx];
+  if (s && split !== null) return s[split][2];
+  return RASI[starIdx];
+}
 
 // Rasi lords: 0=Mars 1=Venus 2=Mercury 3=Moon 4=Sun 5=Jupiter 6=Saturn
 const RASI_LORD = [0,1,2,3,4,2,1,0,5,6,6,5];
 const LORD_TA = ["செவ்வாய்","சுக்கிரன்","புதன்","சந்திரன்","சூரியன்","குரு","சனி"];
-const PLANET_FRIENDS: Record<number,number[]> = {0:[4,3,5],1:[2,6],2:[4,1,3],3:[4,2],4:[3,0,5],5:[4,3,0],6:[2,1]};
-const PLANET_ENEMIES: Record<number,number[]> = {0:[2],1:[4,3],2:[],3:[],4:[1,6],5:[2,1],6:[4,3,0]};
+const PLANET_FRIENDS: Record<number,number[]> = {0:[4,3,5],1:[2,6],2:[4,1],3:[4,2],4:[3,0,5],5:[4,3,0],6:[2,1]};
+const PLANET_ENEMIES: Record<number,number[]> = {0:[2],1:[4,3],2:[3],3:[],4:[1,6],5:[2,1],6:[4,3,0]};
 
 // Vasya rasi pairs
 const VASYA_MAP: Record<number,number[]> = {0:[4,7],1:[3,6],2:[5],3:[7,8],4:[6],5:[2,11],6:[9],7:[3],8:[11],9:[0],10:[0],11:[9]};
@@ -81,7 +103,7 @@ const VASYA_MAP: Record<number,number[]> = {0:[4,7],1:[3,6],2:[5],3:[7,8],4:[6],
 function calcDina(g: number, b: number) {
   const count = ((b - g + 27) % 27) + 1;
   const rem = count % 9;
-  return { match: [0,2,4,6,8].includes(rem), detail: `எண்: ${count}`, detailEn: `Count: ${count}` };
+  return { match: [2,4,6,8].includes(rem), detail: `எண்: ${count}`, detailEn: `Count: ${count}` };
 }
 function calcGana(g: number, b: number) {
   const gg = GANA[g], bg = GANA[b];
@@ -96,7 +118,7 @@ function calcMahendra(g: number, b: number) {
 }
 function calcStreeDheerga(g: number, b: number) {
   const count = ((b - g + 27) % 27) + 1;
-  return { match: count > 9, detail: `எண்: ${count}`, detailEn: `Count: ${count}` };
+  return { match: count > 7, detail: `எண்: ${count}`, detailEn: `Count: ${count}` };
 }
 function calcYoni(g: number, b: number) {
   const gy = YONI[g], by = YONI[b];
@@ -104,11 +126,10 @@ function calcYoni(g: number, b: number) {
   const enemy = YONI_ENEMIES.some(([a,c]) => (a===gy&&c===by)||(c===gy&&a===by));
   return { match: !enemy, detail: `${YONI_NAMES_TA[gy]} ↔ ${YONI_NAMES_TA[by]}`, detailEn: `${YONI_NAMES_EN[gy]} ↔ ${YONI_NAMES_EN[by]}` };
 }
-function calcRasi(g: number, b: number) {
-  const gr = RASI[g], br = RASI[b];
+function calcRasi(gr: number, br: number) {
   const fromG = ((br - gr + 12) % 12) + 1;
   const fromB = ((gr - br + 12) % 12) + 1;
-  const shashtashtaka = [6,8,12].includes(fromG) || [6,8,12].includes(fromB);
+  const shashtashtaka = [6,8].includes(fromG) || [6,8].includes(fromB);
   return {
     match: !shashtashtaka,
     detail: `${RASI_NAMES_TA[gr]} → ${RASI_NAMES_TA[br]} (${fromG}வது)`,
@@ -116,8 +137,8 @@ function calcRasi(g: number, b: number) {
     isShashtashtaka: shashtashtaka,
   };
 }
-function calcRasiyathipathi(g: number, b: number) {
-  const gl = RASI_LORD[RASI[g]], bl = RASI_LORD[RASI[b]];
+function calcRasiyathipathi(gr: number, br: number) {
+  const gl = RASI_LORD[gr], bl = RASI_LORD[br];
   if (gl === bl) return { match: true, detail: `${LORD_TA[gl]} (ஒரே)`, detailEn: `${LORD_TA[gl]} (same)` };
   const gFriend = PLANET_FRIENDS[gl]?.includes(bl);
   const bFriend = PLANET_FRIENDS[bl]?.includes(gl);
@@ -126,8 +147,7 @@ function calcRasiyathipathi(g: number, b: number) {
   if (gEnemy || bEnemy) return { match: false, detail: `${LORD_TA[gl]} + ${LORD_TA[bl]} — பகை`, detailEn: `${LORD_TA[gl]} + ${LORD_TA[bl]} — Enemy` };
   return { match: true, detail: `${LORD_TA[gl]} + ${LORD_TA[bl]} — ${gFriend||bFriend?"நட்பு":"சமம்"}`, detailEn: `${LORD_TA[gl]} + ${LORD_TA[bl]} — ${gFriend||bFriend?"Friendly":"Neutral"}` };
 }
-function calcVasya(g: number, b: number) {
-  const gr = RASI[g], br = RASI[b];
+function calcVasya(gr: number, br: number) {
   if (gr === br) return { match: true, detail: "ஒரே ராசி", detailEn: "Same Rasi" };
   const match = (VASYA_MAP[gr]||[]).includes(br) || (VASYA_MAP[br]||[]).includes(gr);
   return { match, detail: `${RASI_NAMES_TA[gr]} ↔ ${RASI_NAMES_TA[br]}`, detailEn: `${RASI_NAMES_EN[gr]} ↔ ${RASI_NAMES_EN[br]}` };
@@ -161,16 +181,18 @@ interface CompatibilityResult {
   rajjuFail: boolean; vedhaiFail: boolean; rasiFail: boolean;
 }
 
-function calcAll(g: number, b: number): CompatibilityResult {
+function calcAll(g: number, b: number, girlRasi?: number, boyRasi?: number): CompatibilityResult {
+  const gr = girlRasi ?? RASI[g];
+  const br = boyRasi  ?? RASI[b];
   const poruthams: PoruthamResult[] = [
     { name: "நாள்",           nameEn: "Dina",             ...calcDina(g,b) },
     { name: "கணம்",          nameEn: "Gana",             ...calcGana(g,b) },
     { name: "மகேந்திரம்",    nameEn: "Mahendra",         ...calcMahendra(g,b) },
     { name: "ஸ்திரீ தீர்க்கம்", nameEn: "Stree Dheerga", ...calcStreeDheerga(g,b) },
     { name: "யோனி",          nameEn: "Yoni",             ...calcYoni(g,b) },
-    { name: "ராசி",           nameEn: "Rasi",             ...calcRasi(g,b) },
-    { name: "ராசியதிபதி",    nameEn: "Rasiyathipathi",   ...calcRasiyathipathi(g,b) },
-    { name: "வஷ்யம்",        nameEn: "Vasya",            ...calcVasya(g,b) },
+    { name: "ராசி",           nameEn: "Rasi",             ...calcRasi(gr,br) },
+    { name: "ராசியதிபதி",    nameEn: "Rasiyathipathi",   ...calcRasiyathipathi(gr,br) },
+    { name: "வஷ்யம்",        nameEn: "Vasya",            ...calcVasya(gr,br) },
     { name: "ரஜ்ஜு",         nameEn: "Rajju",            ...calcRajju(g,b) },
     { name: "வேதை",          nameEn: "Vedhai",           ...calcVedhai(g,b) },
   ];
@@ -237,17 +259,25 @@ export function PoruthamTool() {
 
   const [girlStar, setGirlStar] = useState<number | null>(null);
   const [boyStar,  setBoyStar]  = useState<number | null>(null);
+  const [girlSplit, setGirlSplit] = useState<"early" | "late" | null>(null);
+  const [boySplit,  setBoySplit]  = useState<"early" | "late" | null>(null);
   const [view, setView] = useState<"selector" | "grid">("selector");
+
+  const girlEffRasi = girlStar !== null ? getEffRasi(girlStar, girlSplit) : undefined;
+  const boyEffRasi  = boyStar  !== null ? getEffRasi(boyStar,  boySplit)  : undefined;
+
+  const starEffRasi = (star: number) =>
+    star === girlStar ? (girlEffRasi ?? RASI[star]) : (boyEffRasi ?? RASI[star]);
 
   const compatibility = useMemo(() => {
     if (girlStar === null) return null;
-    return NAKSHATRAS.map((_, i) => ({ id: i, ...calcAll(girlStar, i) }));
-  }, [girlStar]);
+    return NAKSHATRAS.map((_, i) => ({ id: i, ...calcAll(girlStar, i, girlEffRasi) }));
+  }, [girlStar, girlEffRasi]);
 
   const detail = useMemo(() => {
     if (girlStar === null || boyStar === null) return null;
-    return calcAll(girlStar, boyStar);
-  }, [girlStar, boyStar]);
+    return calcAll(girlStar, boyStar, girlEffRasi, boyEffRasi);
+  }, [girlStar, boyStar, girlEffRasi, boyEffRasi]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -284,7 +314,7 @@ export function PoruthamTool() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(128px, 1fr))", gap: "6px" }}>
               {NAKSHATRAS.map((n, i) => (
                 <button key={i}
-                  onClick={() => { setGirlStar(i); setBoyStar(null); }}
+                  onClick={() => { setGirlStar(i); setBoyStar(null); setGirlSplit(null); setBoySplit(null); }}
                   style={{
                     ...BASE_STAR_BTN,
                     border: girlStar === i ? "2px solid var(--cl-accent)" : "1px solid var(--cl-border)",
@@ -296,6 +326,40 @@ export function PoruthamTool() {
               ))}
             </div>
           </div>
+
+          {/* Pada sub-selector — only for 50/50 split nakshatras (Mirugasiridam, Chithirai) */}
+          {girlStar !== null && SPLIT_NAK[girlStar] && (
+            <div style={{ padding: "12px 14px", background: "var(--cl-bg-2)", border: "1px solid var(--cl-accent)", borderRadius: "10px", fontSize: "12px" }}>
+              <div style={{ fontWeight: 700, color: "var(--cl-accent)", marginBottom: "8px" }}>
+                {ta
+                  ? `${NAKSHATRAS[girlStar].ta} இரண்டு ராசிகளில் பிரிகிறது — எந்த பாதம்?`
+                  : `${starNameEn(girlStar)} spans two rasis — which pada group?`}
+              </div>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                {(["early", "late"] as const).map(k => {
+                  const opt = SPLIT_NAK[girlStar][k];
+                  return (
+                    <button key={k} type="button"
+                      onClick={() => setGirlSplit(prev => prev === k ? null : k)}
+                      style={{
+                        padding: "7px 16px", borderRadius: "8px", fontSize: "12px", fontWeight: 600,
+                        cursor: "pointer", fontFamily: "inherit",
+                        border: `1.5px solid ${girlSplit === k ? "var(--cl-accent)" : "var(--cl-border)"}`,
+                        background: girlSplit === k ? "var(--cl-accent-soft)" : "var(--cl-surface)",
+                        color: girlSplit === k ? "var(--cl-accent)" : "var(--cl-ink)",
+                      }}>
+                      {ta ? opt[0] : opt[1]}
+                    </button>
+                  );
+                })}
+              </div>
+              {girlSplit === null && (
+                <div style={{ marginTop: "6px", fontSize: "11px", color: "var(--cl-muted)" }}>
+                  {ta ? "பாதம் தேர்வு செய்யாவிட்டால் மிதுனம் / துலாம் என்று கணக்கிடப்படும்." : "If not selected, the default (later rasi) is used for Rasi, Rasiyathipathi, and Vasya poruthams."}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Boy star results */}
           {girlStar !== null && compatibility && (
@@ -321,7 +385,7 @@ export function PoruthamTool() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(128px, 1fr))", gap: "6px" }}>
                 {compatibility.map((c) => (
                   <button key={c.id}
-                    onClick={() => setBoyStar(c.id)}
+                    onClick={() => { setBoyStar(c.id); setBoySplit(null); }}
                     style={{
                       ...BASE_STAR_BTN,
                       position: "relative",
@@ -355,6 +419,40 @@ export function PoruthamTool() {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Boy pada sub-selector — only for 50/50 split nakshatras */}
+          {boyStar !== null && SPLIT_NAK[boyStar] && (
+            <div style={{ padding: "12px 14px", background: "var(--cl-bg-2)", border: "1px solid var(--cl-sage)", borderRadius: "10px", fontSize: "12px" }}>
+              <div style={{ fontWeight: 700, color: "var(--cl-sage)", marginBottom: "8px" }}>
+                {ta
+                  ? `♂ ${NAKSHATRAS[boyStar].ta} இரண்டு ராசிகளில் பிரிகிறது — எந்த பாதம்?`
+                  : `♂ ${starNameEn(boyStar)} spans two rasis — which pada group?`}
+              </div>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                {(["early", "late"] as const).map(k => {
+                  const opt = SPLIT_NAK[boyStar][k];
+                  return (
+                    <button key={k} type="button"
+                      onClick={() => setBoySplit(prev => prev === k ? null : k)}
+                      style={{
+                        padding: "7px 16px", borderRadius: "8px", fontSize: "12px", fontWeight: 600,
+                        cursor: "pointer", fontFamily: "inherit",
+                        border: `1.5px solid ${boySplit === k ? "var(--cl-sage)" : "var(--cl-border)"}`,
+                        background: boySplit === k ? "var(--cl-sage-soft)" : "var(--cl-surface)",
+                        color: boySplit === k ? "var(--cl-sage)" : "var(--cl-ink)",
+                      }}>
+                      {ta ? opt[0] : opt[1]}
+                    </button>
+                  );
+                })}
+              </div>
+              {boySplit === null && (
+                <div style={{ marginTop: "6px", fontSize: "11px", color: "var(--cl-muted)" }}>
+                  {ta ? "பாதம் தேர்வு செய்யாவிட்டால் மிதுனம் / துலாம் என்று கணக்கிடப்படும்." : "If not selected, the default (later rasi) is used for Rasi, Rasiyathipathi, and Vasya poruthams."}
+                </div>
+              )}
             </div>
           )}
 
@@ -405,7 +503,7 @@ export function PoruthamTool() {
                 ] as const).map(({ star, color, sym }) => (
                   <div key={sym} style={{ background: "var(--cl-bg)", padding: "8px 10px", borderRadius: "8px", border: "1px solid var(--cl-border)" }}>
                     <div style={{ fontWeight: 700, color, marginBottom: 4 }}>{sym} {starNameEn(star)}</div>
-                    <div>{ta?"ராசி":"Rasi"}: {ta ? RASI_NAMES_TA[RASI[star]] : RASI_NAMES_EN[RASI[star]]}</div>
+                    <div>{ta?"ராசி":"Rasi"}: {ta ? RASI_NAMES_TA[starEffRasi(star)] : RASI_NAMES_EN[starEffRasi(star)]}</div>
                     <div>{ta?"கணம்":"Gana"}: {ta ? GANA_NAMES[GANA[star]] : GANA_NAMES_EN[GANA[star]]}</div>
                     <div>{ta?"யோனி":"Yoni"}: {ta ? YONI_NAMES_TA[YONI[star]] : YONI_NAMES_EN[YONI[star]]}</div>
                     <div>{ta?"நாடி":"Nadi"}: {NADI_NAMES_TA[NADI[star]]}</div>
@@ -585,10 +683,10 @@ export function PoruthamTool() {
             : "A full horoscope match also examines pada, dasha bhukti, Sevvai dosham, Nadi cancellation, navamsa, and dosha parihara. This public tool is only a quick birth-star preview."}
         </div>
         <div>
-          <strong>{ta?"டாஷ்போர்ட் வேறுபாடு:":"Dashboard difference:"}</strong>{" "}
+          <strong>{ta?"திருக்கணித முறை:":"Thirukanitham method:"}</strong>{" "}
           {ta
-            ? "இந்த நட்சத்திர முன்னோட்ட முடிவுகள் டாஷ்போர்டு முழு ஜாதக பொருத்தத்திலிருந்து மாறுபடலாம் — டாஷ்போர்ட் 36-புள்ளி எடை மதிப்பெண், முழு ஜாதக செவ்வாய் மற்றும் நாடி பகுப்பாய்வு, மற்றும் ரத்து விதிகளைப் பயன்படுத்துகிறது."
-            : "Results from this star-only preview may differ from your full chart match in the dashboard — the dashboard uses weighted 36-point scoring, full chart Sevvai and Nadi analysis, and cancellation rules."}
+            ? "இந்த கருவி 10 பொருத்தங்களை அடிப்படையாகக் கொண்ட திருக்கணித முறையில் வேலை செய்கிறது. டாஷ்போர்டு அதே திருக்கணித முறையில் முழு ஜாதக தரவுடன் — பாதம், தசா புக்தி, செவ்வாய் தோஷம், நாடி ரத்து விதிகள் — முழுமையான பகுப்பாய்வு செய்கிறது."
+            : "This tool uses Thirukanitham's 10-porutham system. The dashboard applies the same Thirukanitham method with full chart data — pada, dasha bhukti, Sevvai dosham, and Nadi cancellation rules — for a complete analysis."}
         </div>
       </div>
 
