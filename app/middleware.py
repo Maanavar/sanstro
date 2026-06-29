@@ -6,6 +6,12 @@ import time
 import uuid
 from ipaddress import ip_address
 
+try:
+    from jose import jwt as _jose_jwt
+    _JOSE_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    _JOSE_AVAILABLE = False
+
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -112,6 +118,32 @@ def _is_loopback_ip(value: str) -> bool:
         return False
 
 
+def _extract_user_id(request: Request) -> str | None:
+    """Attempt to extract a stable user identifier from the Bearer token.
+
+    Used to key authenticated rate limits by user rather than IP so that
+    users behind a shared NAT (office, mobile carrier) are not penalised
+    by the aggregate rate of their IP.
+    Returns None when no valid Bearer token is present (unauthenticated).
+    """
+    if not _JOSE_AVAILABLE:
+        return None
+    auth = request.headers.get("authorization", "")
+    if not auth.lower().startswith("bearer "):
+        return None
+    token = auth[7:]
+    try:
+        from app.core.config import get_settings
+        settings = get_settings()
+        if settings.jwt_secret is None:
+            return None
+        payload = _jose_jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        sub = payload.get("sub")
+        return f"uid:{sub}" if sub else None
+    except Exception:
+        return None
+
+
 def resolve_client_ip(request: Request, trusted_proxy_count: int) -> str:
     """Resolve the real client IP.
 
@@ -160,7 +192,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if self.exempt_loopback and _is_loopback_ip(client_ip):
             return await call_next(request)
 
-        result = self.backend.check(client_ip, self.max_requests, self.window_seconds)
+        # Use user_id as key for authenticated requests to avoid penalising
+        # multiple users behind a shared NAT (office, mobile carrier).
+        rate_key = _extract_user_id(request) or client_ip
+        result = self.backend.check(rate_key, self.max_requests, self.window_seconds)
         if not result.allowed:
             return JSONResponse(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
