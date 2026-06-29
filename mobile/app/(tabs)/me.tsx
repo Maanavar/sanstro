@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
 import {
-  RefreshControl, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View,
+  Platform, RefreshControl, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View,
   Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
-import { ChevronRight, Gift, Clock } from "lucide-react-native";
+import { ChevronRight, Gift, Clock, CreditCard } from "lucide-react-native";
+import { useQuery } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
 import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
@@ -14,11 +15,16 @@ import { TamilType, EnType, TamilFont, EnFont } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { loadGuestPrefs, saveGuestPrefs } from "@/features/guest/guestStore";
-import { logout } from "@/api/auth";
+import { logout, getMySubscription } from "@/api/auth";
 import { clearTokens } from "@/lib/secureStore";
 import { clearUserPrefs, getPrimaryChartId } from "@/lib/userPrefs";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { entranceDelay, spring, staggerInterval, duration } from "@/theme/motion";
+
+const MANAGE_SUB_URL =
+  Platform.OS === "ios"
+    ? "itms-apps://apps.apple.com/account/subscriptions"
+    : "https://play.google.com/store/account/subscriptions?package=ai.vinaadi.app";
 
 const RASI_NAMES: Record<string, { ta: string; en: string }> = {
   mesham: { ta: "மேஷம்", en: "Aries" },
@@ -48,6 +54,14 @@ export default function MeScreen() {
   const [city, setCity] = useState<string | null>(null);
   const [primaryChartId, setPrimaryChartId_] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  const { data: subData } = useQuery({
+    queryKey: ["my-subscription"],
+    queryFn: getMySubscription,
+    enabled: tier === "premium",
+    staleTime: 5 * 60 * 1000,
+  });
+  const sub = subData?.data ?? null;
 
   async function applyPrefs() {
     const [p, chartId] = await Promise.all([loadGuestPrefs(), getPrimaryChartId()]);
@@ -207,6 +221,46 @@ export default function MeScreen() {
               )}
               <Text style={styles.identityEmail}>{user.email}</Text>
             </View>
+          </Animated.View>
+        )}
+
+        {/* Premium: Subscription management section */}
+        {tier === "premium" && (
+          <Animated.View style={styles.menuSection} entering={FadeIn.delay(entranceDelay.tertiary).duration(duration.medium)}>
+            <Text style={styles.menuSectionHeader}>
+              {isTamil ? "சந்தா" : "Subscription"}
+            </Text>
+            <View style={styles.menuRow}>
+              <View style={{ width: 28, alignItems: "center" }}>
+                <CreditCard size={20} color={C.gold} strokeWidth={1.5} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
+                  {sub?.tier === "premium"
+                    ? (isTamil ? "Premium திட்டம்" : "Premium plan")
+                    : (isTamil ? "Premium" : "Premium")}
+                </Text>
+                {sub?.current_period_end ? (
+                  <Text style={[styles.menuValue, { marginTop: 2 }]}>
+                    {isTamil ? "புதுப்பிப்பு: " : "Renews: "}
+                    {new Date(sub.current_period_end).toLocaleDateString()}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+            <View style={styles.divider} />
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={async () => {
+                Haptics.selectionAsync();
+                await Linking.openURL(MANAGE_SUB_URL).catch(() => {});
+              }}
+            >
+              <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily, color: C.saffron }]}>
+                {isTamil ? "சந்தாவை நிர்வகிக்கவும்" : "Manage subscription"}
+              </Text>
+              <ChevronRight size={18} color={C.saffron} strokeWidth={1.5} />
+            </TouchableOpacity>
           </Animated.View>
         )}
 

@@ -192,13 +192,13 @@ export default function InsightsScreen() {
               <TouchableOpacity style={styles.dashaHero} activeOpacity={0.88} onPress={() => router.push("/dasha" as Href)}>
                 <Text style={styles.heroKicker}>{t(strings.insights.dasha_now)}</Text>
                 <Text style={[styles.heroLord, type.display]}>
-                  {isTamil ? currentDasha.maha_dasha.lord_ta : currentDasha.maha_dasha.lord}
+                  {isTamil ? currentDasha.current.mahadasha.lord : currentDasha.current.mahadasha.lord}
                 </Text>
                 <Text style={styles.heroSub}>
-                  {isTamil ? currentDasha.antar_dasha.lord_ta : currentDasha.antar_dasha.lord} {t(strings.insights.antar_dasha)}
+                  {isTamil ? currentDasha.current.antardasha.lord : currentDasha.current.antardasha.lord} {t(strings.insights.antar_dasha)}
                 </Text>
                 <View style={styles.heroMetaRow}>
-                  <Text style={styles.heroMeta}>{fmt(currentDasha.maha_dasha.start_date)} - {fmt(currentDasha.maha_dasha.end_date)}</Text>
+                  <Text style={styles.heroMeta}>{fmt(currentDasha.current.mahadasha.startDate)} - {fmt(currentDasha.current.mahadasha.endDate)}</Text>
                   <Text style={styles.heroLink}>{isTamil ? "Timeline" : "Timeline"}</Text>
                 </View>
               </TouchableOpacity>

@@ -8,7 +8,8 @@ import React, { useEffect, useMemo, useRef } from "react";
 import { Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -97,6 +98,7 @@ const TEASER_GRID = Array.from({ length: 4 }, (_, row) =>
 const RASI_SHORT_EN = ["", "Me", "Ri", "Mi", "Ka", "Si", "Kn", "Th", "Vi", "Dh", "Ma", "Ku", "Mn"];
 
 export default function JadhagamTeaserScreen() {
+  const C = useColors();
   const { lang } = useI18n();
   const isTamil = lang === "ta";
   const { rasi, nakshatra } = useLocalSearchParams<{ rasi?: string; nakshatra?: string }>();
@@ -129,6 +131,8 @@ export default function JadhagamTeaserScreen() {
       useNativeDriver: true,
     }).start();
   }, [moonReveal, moonRasiNumber]);
+
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   useEffect(() => {
     trackEvent("jadhagam_teaser_shown", { rasi: rasi ?? "unknown" });
@@ -280,7 +284,8 @@ export default function JadhagamTeaserScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
   scroll: { padding: S.base, paddingBottom: S.xxl, gap: S.base },
   header: { flexDirection: "row", alignItems: "center", gap: S.sm, marginBottom: S.sm },
@@ -399,4 +404,5 @@ const styles = StyleSheet.create({
   unlockText: { color: C.textPrimary, flex: 1, lineHeight: 18 },
   skipBtn: { alignItems: "center", paddingVertical: S.sm },
   skipText: { color: C.textTertiary, textDecorationLine: "underline" },
-});
+  });
+}

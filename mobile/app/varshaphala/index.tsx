@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Lock } from "lucide-react-native";
 import {
   ScrollView, StyleSheet, Text, TouchableOpacity, View,
@@ -17,16 +17,7 @@ import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { getVarshaphala } from "@/api/varshaphala";
 import { getPrimaryChartId } from "@/lib/userPrefs";
-import type { HouseSummary } from "@/api/varshaphala";
-
-const MONTH_NAMES_TA = [
-  "ஜனவரி", "பிப்ரவரி", "மார்ச்", "ஏப்ரல்", "மே", "ஜூன்",
-  "ஜூலை", "ஆகஸ்ட்", "செப்டம்பர்", "அக்டோபர்", "நவம்பர்", "டிசம்பர்",
-];
-const MONTH_NAMES_EN = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
+import type { VarshaphalaAreaOutlook } from "@/api/varshaphala";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_RANGE = [-3, -2, -1, 0, 1, 2, 3].map((n) => CURRENT_YEAR + n);
@@ -45,7 +36,7 @@ export default function VarshaphalaScreen() {
   const isTamil = lang === "ta";
   const [chartId, setChartId] = useState<string | null>(null);
   const [year, setYear] = useState(CURRENT_YEAR);
-  const [expandedBhava, setExpandedBhava] = useState<number | null>(null);
+  const [expandedArea, setExpandedArea] = useState<string | null>(null);
 
   useEffect(() => {
     if (tier !== "guest") getPrimaryChartId().then(setChartId);
@@ -118,7 +109,7 @@ export default function VarshaphalaScreen() {
                     {isTamil ? "வர்ஷ லக்னம்" : "Varsha Lagna"}
                   </Text>
                   <Text style={[styles.summaryValue, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                    {isTamil ? v.varsha_lagna_ta : v.varsha_lagna}
+                    {v.solarReturnLagnaName}
                   </Text>
                 </View>
                 <View style={styles.summaryItem}>
@@ -126,7 +117,7 @@ export default function VarshaphalaScreen() {
                     {isTamil ? "முந்தா" : "Muntha"}
                   </Text>
                   <Text style={[styles.summaryValue, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                    {isTamil ? v.muntha_ta : v.muntha}
+                    {v.munthaRasiName}
                   </Text>
                 </View>
                 <View style={styles.summaryItem}>
@@ -134,58 +125,47 @@ export default function VarshaphalaScreen() {
                     {isTamil ? "வர்ஷேஷ்" : "Varshesh"}
                   </Text>
                   <Text style={[styles.summaryValue, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                    {isTamil ? v.varshesh_ta : v.varshesh}
+                    {v.yearLord}
                   </Text>
                 </View>
               </View>
             </View>
 
-            {/* Monthly prediction grid */}
+            {/* Area outlook */}
             <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-              {isTamil ? "மாதாந்திர கணிப்பு" : "Monthly Predictions"}
+              {isTamil ? "வாழ்க்கை துறை பலன்கள்" : "Area Outlook"}
             </Text>
-            <View style={styles.monthGrid}>
-              {v.monthly.map((m) => (
-                <View key={m.month} style={[styles.monthCard, { borderTopColor: scoreColor(m.score, C) }]}>
-                  <Text style={styles.monthName}>
-                    {isTamil ? MONTH_NAMES_TA[m.month - 1] : MONTH_NAMES_EN[m.month - 1]}
-                  </Text>
-                  <View style={[styles.monthScore, { backgroundColor: scoreColor(m.score, C) + "22" }]}>
-                    <Text style={[styles.monthScoreText, { color: scoreColor(m.score, C) }]}>{m.score}/10</Text>
-                  </View>
-                  <Text style={[styles.monthPred, isTamil ? TamilType.caption : EnType.caption]} numberOfLines={3}>
-                    {isTamil ? m.prediction_ta : m.prediction_en}
-                  </Text>
-                </View>
-              ))}
-            </View>
-
-            {/* House-by-house accordion */}
-            <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-              {isTamil ? "பாவ பலன்கள்" : "House Results"}
-            </Text>
-            {v.houses.map((h: HouseSummary) => {
-              const isOpen = expandedBhava === h.bhava;
+            {v.areaOutlook.map((h: VarshaphalaAreaOutlook) => {
+              const isOpen = expandedArea === h.area;
               return (
                 <TouchableOpacity
-                  key={h.bhava}
+                  key={h.area}
                   style={styles.bhavaRow}
-                  onPress={() => setExpandedBhava(isOpen ? null : h.bhava)}
+                  onPress={() => setExpandedArea(isOpen ? null : h.area)}
                   activeOpacity={0.85}
                 >
                   <View style={styles.bhavaHeader}>
-                    <View style={styles.bhavaNum}>
-                      <Text style={styles.bhavaNumText}>{h.bhava}</Text>
+                    <View style={[styles.scoreChip, { backgroundColor: scoreColor(h.score, C) + "22" }]}>
+                      <Text style={[styles.scoreChipText, { color: scoreColor(h.score, C) }]}>{h.score}/10</Text>
                     </View>
                     <Text style={[styles.bhavaTitle, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                      {isTamil ? h.title_ta : h.title_en}
+                      {h.area}
                     </Text>
                     <Text style={styles.bhavaChevron}>{isOpen ? "▲" : "▼"}</Text>
                   </View>
                   {isOpen && (
-                    <Text style={[styles.bhavaSummary, isTamil ? TamilType.body : EnType.body]}>
-                      {isTamil ? h.summary_ta : h.summary_en}
-                    </Text>
+                    <>
+                      <Text style={[styles.bhavaSummary, isTamil ? TamilType.body : EnType.body]}>
+                        {isTamil ? h.narrativeTa : h.narrativeEn}
+                      </Text>
+                      {h.favourableMonths.length > 0 && (
+                        <Text style={[styles.favourableMonths, isTamil ? TamilType.caption : EnType.caption]}>
+                          {isTamil
+                            ? `சாதக மாதங்கள்: ${h.favourableMonths.join(", ")}`
+                            : `Favourable months: ${h.favourableMonths.join(", ")}`}
+                        </Text>
+                      )}
+                    </>
                   )}
                 </TouchableOpacity>
               );
@@ -236,30 +216,17 @@ function makeStyles(C: ColorTokens) {
   summaryLabel: { color: C.textTertiary },
   summaryValue: { fontSize: 15, lineHeight: 22, color: C.textPrimary },
 
-  monthGrid: { flexDirection: "row", flexWrap: "wrap", gap: S.sm },
-  monthCard: {
-    width: "30%", flexGrow: 1,
-    backgroundColor: C.surface, borderRadius: RADIUS.card,
-    borderTopWidth: 3, padding: S.sm, gap: S.xs,
-  },
-  monthName: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textSecond },
-  monthScore: { borderRadius: RADIUS.chip, paddingHorizontal: S.sm, paddingVertical: 2, alignSelf: "flex-start" },
-  monthScoreText: { fontFamily: "Inter_700Bold", fontSize: 11 },
-  monthPred: { color: C.textSecond, lineHeight: 16 },
-
   bhavaRow: {
     backgroundColor: C.surface, borderRadius: RADIUS.card, padding: S.md,
     shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 2, elevation: 1,
   },
   bhavaHeader: { flexDirection: "row", alignItems: "center", gap: S.sm },
-  bhavaNum: {
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: C.saffron + "22", alignItems: "center", justifyContent: "center",
-  },
-  bhavaNumText: { fontFamily: "Inter_700Bold", fontSize: 12, color: C.saffron },
+  scoreChip: { borderRadius: RADIUS.chip, paddingHorizontal: S.sm, paddingVertical: 2 },
+  scoreChipText: { fontFamily: "Inter_700Bold", fontSize: 11 },
   bhavaTitle: { flex: 1, fontSize: 15, lineHeight: 22, color: C.textPrimary },
   bhavaChevron: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.textTertiary },
   bhavaSummary: { color: C.textPrimary, marginTop: S.md, lineHeight: 22 },
+  favourableMonths: { color: C.textTertiary, marginTop: S.xs },
 
   guestWrap: { flex: 1, alignItems: "center", justifyContent: "center", padding: S.xxl, gap: S.md },
   guestTitle: { fontSize: 18, color: C.textPrimary, textAlign: "center" },

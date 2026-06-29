@@ -15,9 +15,9 @@ import { useSession } from "@/hooks/useSession";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { MethodologyStrip } from "@/components/MethodologyStrip";
-import { getDashaTimeline } from "@/api/dasha";
+import { getDashaTimeline, getCharaDasha } from "@/api/dasha";
 import { getPrimaryChartId } from "@/lib/userPrefs";
-import type { DashaPeriod } from "@/api/dasha";
+import type { DashaTimelineItem, CharaPeriod } from "@/api/dasha";
 
 function formatDate(iso: string): string {
   try {
@@ -54,6 +54,7 @@ export default function DashaScreen() {
   const isTamil = lang === "ta";
   const [chartId, setChartId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [tab, setTab] = useState<"vimshottari" | "jaimini">("vimshottari");
 
   useEffect(() => {
     if (tier !== "guest") getPrimaryChartId().then(setChartId);
@@ -62,11 +63,19 @@ export default function DashaScreen() {
   const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["dasha-timeline", chartId],
     queryFn: () => getDashaTimeline(chartId!),
-    enabled: !!chartId,
+    enabled: !!chartId && tab === "vimshottari",
+    staleTime: 1000 * 60 * 60 * 6,
+  });
+
+  const { data: charaData, isLoading: charaLoading, isError: charaError, refetch: charaRefetch } = useQuery({
+    queryKey: ["chara-dasha", chartId],
+    queryFn: () => getCharaDasha(chartId!),
+    enabled: !!chartId && tab === "jaimini",
     staleTime: 1000 * 60 * 60 * 6,
   });
 
   const d = data?.data;
+  const cd = charaData?.data;
 
   if (tier === "guest") {
     return (
@@ -112,23 +121,50 @@ export default function DashaScreen() {
 
       <MethodologyStrip />
 
-      {isLoading && (
-        <View style={{ padding: S.base, gap: S.md }}>
-          <SkeletonCard height={140} />
-          <SkeletonCard height={96} />
-          <SkeletonCard height={96} />
-        </View>
-      )}
-      {isError && (
-        <View style={{ padding: S.base }}>
-          <ErrorCard onRetry={refetch} />
-        </View>
+      {/* Tab switcher: Vimshottari / Jaimini Chara */}
+      <View style={styles.tabRow}>
+        <TouchableOpacity
+          style={[styles.tabBtn, tab === "vimshottari" && styles.tabBtnActive]}
+          onPress={() => setTab("vimshottari")}
+        >
+          <Text style={[styles.tabLabel, tab === "vimshottari" && styles.tabLabelActive, isTamil ? TamilType.caption : EnType.caption]}>
+            {isTamil ? "விம்சோத்தரி" : "Vimshottari"}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabBtn, tab === "jaimini" && styles.tabBtnActive]}
+          onPress={() => setTab("jaimini")}
+        >
+          <Text style={[styles.tabLabel, tab === "jaimini" && styles.tabLabelActive, isTamil ? TamilType.caption : EnType.caption]}>
+            {isTamil ? "ஜைமினி சர தசை" : "Jaimini Chara"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Vimshottari tab ── */}
+      {tab === "vimshottari" && (
+        <>
+          {isLoading && (
+            <View style={{ padding: S.base, gap: S.md }}>
+              <SkeletonCard height={140} />
+              <SkeletonCard height={96} />
+              <SkeletonCard height={96} />
+            </View>
+          )}
+          {isError && (
+            <View style={{ padding: S.base }}>
+              <ErrorCard onRetry={refetch} />
+            </View>
+          )}
+        </>
       )}
 
-      {d && (
+      {tab === "vimshottari" && isLoading === false && isError === false && d === undefined && null}
+
+      {tab === "vimshottari" && d && (
         <FlatList
-          data={d.current_timeline}
-          keyExtractor={(item) => item.start_date}
+          data={d.timeline}
+          keyExtractor={(item) => item.startDate}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={C.saffron} />}
@@ -137,32 +173,32 @@ export default function DashaScreen() {
               {/* Current dasha banner */}
               <View style={styles.banner}>
                 <View style={styles.bannerMain}>
-                  <Text style={styles.bannerLord}>{isTamil ? d.maha_dasha.lord_ta : d.maha_dasha.lord}</Text>
+                  <Text style={styles.bannerLord}>{isTamil ? d.current.mahadasha.lord : d.current.mahadasha.lord}</Text>
                   <Text style={styles.bannerLabel}>{isTamil ? "மஹா தசை" : "Maha Dasha"}</Text>
                   <Text style={styles.bannerDates}>
-                    {formatDate(d.maha_dasha.start_date)} – {formatDate(d.maha_dasha.end_date)}
+                    {formatDate(d.current.mahadasha.startDate)} – {formatDate(d.current.mahadasha.endDate)}
                   </Text>
-                  <Text style={styles.bannerRemaining}>{remainingLabel(d.maha_dasha.end_date, isTamil)}</Text>
+                  <Text style={styles.bannerRemaining}>{remainingLabel(d.current.mahadasha.endDate, isTamil)}</Text>
                   {/* Progress bar */}
                   <View style={styles.progressTrack}>
                     <View
                       style={[
                         styles.progressFill,
-                        { width: `${percentElapsed(d.maha_dasha.start_date, d.maha_dasha.end_date)}%` as any },
+                        { width: `${percentElapsed(d.current.mahadasha.startDate, d.current.mahadasha.endDate)}%` as any },
                       ]}
                     />
                   </View>
                   <Text style={styles.progressLabel}>
-                    {percentElapsed(d.maha_dasha.start_date, d.maha_dasha.end_date)}
+                    {percentElapsed(d.current.mahadasha.startDate, d.current.mahadasha.endDate)}
                     {isTamil ? "% கடந்தது" : "% elapsed"}
                   </Text>
                 </View>
                 <View style={styles.bannerDivider} />
                 <View style={styles.bannerSub}>
-                  <Text style={styles.bannerSubLord}>{isTamil ? d.antar_dasha.lord_ta : d.antar_dasha.lord}</Text>
+                  <Text style={styles.bannerSubLord}>{isTamil ? d.current.antardasha.lord : d.current.antardasha.lord}</Text>
                   <Text style={styles.bannerSubLabel}>{isTamil ? "அந்தர் தசை" : "Antar Dasha"}</Text>
                   <Text style={styles.bannerSubDates}>
-                    {formatDate(d.antar_dasha.start_date)} – {formatDate(d.antar_dasha.end_date)}
+                    {formatDate(d.current.antardasha.startDate)} – {formatDate(d.current.antardasha.endDate)}
                   </Text>
                 </View>
               </View>
@@ -175,13 +211,13 @@ export default function DashaScreen() {
               </Text>
             </>
           }
-          renderItem={({ item }: { item: DashaPeriod }) => {
-            const isActive = new Date(item.start_date) <= new Date() && new Date() <= new Date(item.end_date);
-            const isExpanded = expanded === item.start_date;
+          renderItem={({ item }: { item: DashaTimelineItem }) => {
+            const isActive = new Date(item.startDate) <= new Date() && new Date() <= new Date(item.endDate);
+            const isExpanded = expanded === item.startDate;
             return (
               <TouchableOpacity
                 style={[styles.periodCard, isActive && styles.periodCardActive]}
-                onPress={() => setExpanded(isExpanded ? null : item.start_date)}
+                onPress={() => setExpanded(isExpanded ? null : item.startDate)}
                 activeOpacity={0.85}
               >
                 <View style={styles.periodRow}>
@@ -191,14 +227,14 @@ export default function DashaScreen() {
                       fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold",
                       color: isActive ? C.saffron : C.textPrimary,
                     }]}>
-                      {isTamil ? item.lord_ta : item.lord}
+                      {isTamil ? item.lord : item.lord}
                     </Text>
                     <Text style={[styles.periodDates, isTamil ? TamilType.caption : EnType.caption]}>
-                      {formatDate(item.start_date)} – {formatDate(item.end_date)}
+                      {formatDate(item.startDate)} – {formatDate(item.endDate)}
                     </Text>
                   </View>
                   <View style={{ alignItems: "flex-end", gap: 2 }}>
-                    <Text style={styles.periodDuration}>{yearsLabel(item.start_date, item.end_date, isTamil)}</Text>
+                    <Text style={styles.periodDuration}>{yearsLabel(item.startDate, item.endDate, isTamil)}</Text>
                     {isActive && (
                       <View style={styles.activeBadge}>
                         <Text style={styles.activeBadgeText}>{isTamil ? "தற்போது" : "Active"}</Text>
@@ -208,34 +244,105 @@ export default function DashaScreen() {
                   </View>
                 </View>
 
-                {isExpanded && item.sub_periods && item.sub_periods.length > 0 && (
+                {isExpanded && (
                   <View style={styles.subList}>
-                    {item.sub_periods.map((sp, i) => {
-                      const spActive = new Date(sp.start_date) <= new Date() && new Date() <= new Date(sp.end_date);
-                      return (
-                        <View key={i} style={[styles.subRow, spActive && styles.subRowActive]}>
-                          <View style={{ flex: 1 }}>
-                            <Text style={[styles.subLord, {
-                              fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold",
-                              color: spActive ? C.saffron : C.textSecond,
-                            }]}>
-                              {isTamil ? sp.lord_ta : sp.lord}
-                            </Text>
-                            <Text style={[styles.subDates, isTamil ? TamilType.caption : EnType.caption]}>
-                              {formatDate(sp.start_date)} – {formatDate(sp.end_date)}
-                            </Text>
-                            {sp.prediction_ta && (
-                              <Text style={[styles.subPrediction, isTamil ? TamilType.caption : EnType.caption]}>
-                                {isTamil ? sp.prediction_ta : sp.prediction_en}
-                              </Text>
-                            )}
-                          </View>
-                        </View>
-                      );
-                    })}
+                    {item.transitionNote && (
+                      <Text style={[styles.subPrediction, isTamil ? TamilType.caption : EnType.caption]}>
+                        {isTamil ? item.transitionNote.noteTa : item.transitionNote.noteEn}
+                      </Text>
+                    )}
+                    {item.interpretation && (
+                      <Text style={[styles.subPrediction, isTamil ? TamilType.caption : EnType.caption]}>
+                        {isTamil ? item.interpretation.naturalDomainTa : item.interpretation.naturalDomainEn}
+                      </Text>
+                    )}
+                    {item.maturationStatus?.summary && (
+                      <Text style={[styles.subPrediction, isTamil ? TamilType.caption : EnType.caption]}>
+                        {String(item.maturationStatus.summary)}
+                      </Text>
+                    )}
                   </View>
                 )}
               </TouchableOpacity>
+            );
+          }}
+        />
+      )}
+
+      {/* ── Jaimini Chara Dasha tab ── */}
+      {tab === "jaimini" && charaLoading && (
+        <View style={{ padding: S.base, gap: S.md }}>
+          <SkeletonCard height={100} />
+          <SkeletonCard height={80} />
+          <SkeletonCard height={80} />
+        </View>
+      )}
+      {tab === "jaimini" && charaError && (
+        <View style={{ padding: S.base }}>
+          <ErrorCard onRetry={charaRefetch} />
+        </View>
+      )}
+      {tab === "jaimini" && cd && (
+        <FlatList
+          data={cd.periods}
+          keyExtractor={(item: CharaPeriod) => String(item.rasi)}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={charaLoading} onRefresh={charaRefetch} tintColor={C.saffron} />}
+          ListHeaderComponent={
+            cd.currentPeriod ? (
+              <View style={styles.banner}>
+                <View style={styles.bannerMain}>
+                  <Text style={styles.bannerLord}>{cd.currentPeriod.rasi_name}</Text>
+                  <Text style={styles.bannerLabel}>
+                    {isTamil ? "நடப்பு சர தசை" : "Current Chara Dasha"}
+                  </Text>
+                  <Text style={styles.bannerDates}>
+                    {formatDate(cd.currentPeriod.start_date)} – {formatDate(cd.currentPeriod.end_date)}
+                  </Text>
+                  <Text style={styles.bannerRemaining}>
+                    {remainingLabel(cd.currentPeriod.end_date, isTamil)}
+                  </Text>
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[styles.progressFill, {
+                        width: `${percentElapsed(cd.currentPeriod.start_date, cd.currentPeriod.end_date)}%` as any,
+                      }]}
+                    />
+                  </View>
+                </View>
+              </View>
+            ) : null
+          }
+          renderItem={({ item }: { item: CharaPeriod }) => {
+            const isActive = new Date(item.start_date) <= new Date() && new Date() <= new Date(item.end_date);
+            return (
+              <View style={[styles.periodCard, isActive && styles.periodCardActive]}>
+                <View style={styles.periodRow}>
+                  <View style={[styles.periodDot, isActive && { backgroundColor: C.saffron }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.periodLord, {
+                      fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold",
+                      color: isActive ? C.saffron : C.textPrimary,
+                    }]}>
+                      {item.rasi_name}
+                    </Text>
+                    <Text style={[styles.periodDates, isTamil ? TamilType.caption : EnType.caption]}>
+                      {formatDate(item.start_date)} – {formatDate(item.end_date)}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: "flex-end", gap: 2 }}>
+                    <Text style={styles.periodDuration}>
+                      {isTamil ? `${item.years} ஆண்டுகள்` : `${item.years} years`}
+                    </Text>
+                    {isActive && (
+                      <View style={styles.activeBadge}>
+                        <Text style={styles.activeBadgeText}>{isTamil ? "தற்போது" : "Active"}</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
             );
           }}
         />
@@ -256,6 +363,18 @@ function makeStyles(C: ColorTokens) {
   headerTitle: { color: C.textPrimary },
   list: { padding: S.base, gap: S.md, paddingBottom: S.xxl },
   sectionTitle: { color: C.textPrimary, marginTop: S.sm },
+  tabRow: {
+    flexDirection: "row", gap: 0,
+    borderBottomWidth: 1, borderBottomColor: C.divider,
+    backgroundColor: C.surface,
+  },
+  tabBtn: {
+    flex: 1, paddingVertical: S.md, alignItems: "center",
+    borderBottomWidth: 2, borderBottomColor: "transparent",
+  },
+  tabBtnActive: { borderBottomColor: C.saffron },
+  tabLabel: { color: C.textTertiary },
+  tabLabelActive: { color: C.saffron },
 
   banner: {
     backgroundColor: C.darkBg, borderRadius: RADIUS.card,

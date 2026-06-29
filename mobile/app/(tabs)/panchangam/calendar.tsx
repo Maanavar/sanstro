@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { C } from "@/theme/colors";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
@@ -22,12 +23,14 @@ const WEEKDAY_LABELS_TA = ["ஞா", "தி", "செ", "பு", "வி", "�
 const WEEKDAY_LABELS_EN = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 export default function PanchangamCalendarScreen() {
+  const C = useColors();
   const { t, strings, lang } = useI18n();
   const isTamil = lang === "ta";
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [prefs, setPrefs] = useState<GuestPrefs | null>(null);
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   useEffect(() => {
     loadGuestPrefs().then(setPrefs);
@@ -38,7 +41,10 @@ export default function PanchangamCalendarScreen() {
   const lon = prefs?.lon ?? undefined;
   const hasLocation = lat != null && lon != null;
   const isLocationMissing = prefsLoaded && !hasLocation;
-  const locationLabel = prefs?.city ?? (isLocationMissing ? (isTamil ? "இடத்தை அமைக்கவும்" : "Set location") : "Chennai");
+  const locationLabel = prefs?.city
+    ?? (prefs === null
+      ? (isTamil ? "இடம் ஏற்றுகிறது…" : "Loading location…")
+      : (isTamil ? "இடத்தை அமைக்கவும்" : "Set location"));
 
   const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["panchangam-month", year, month, lat, lon],
@@ -214,7 +220,7 @@ export default function PanchangamCalendarScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: ColorTokens) { return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
   header: {
     flexDirection: "row",
@@ -288,4 +294,4 @@ const styles = StyleSheet.create({
   muhurthamDate: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.textTertiary },
   festivalName: { fontSize: 14, lineHeight: 20, color: C.textPrimary, flex: 1 },
   festivalDate: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.textTertiary },
-});
+}); }

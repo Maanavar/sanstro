@@ -17,18 +17,18 @@ import {
   type WhySheetHandle,
   type WhyItem,
 } from "@/components/WhyThisResultSheet";
-import { getUpcomingTransits } from "@/api/transits";
+import { getUpcomingTransits, moonHouseImpact } from "@/api/transits";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import type { TransitItem } from "@/api/transits";
 
-function impactColor(impact: TransitItem["impact"]): string {
+function impactColor(impact: "good" | "neutral" | "challenging"): string {
   if (impact === "good") return C.green;
   if (impact === "challenging") return C.alert;
   return C.textTertiary;
 }
 
-function impactLabel(impact: TransitItem["impact"], isTamil: boolean): string {
+function impactLabel(impact: "good" | "neutral" | "challenging", isTamil: boolean): string {
   if (impact === "good") return isTamil ? "சாதகம்" : "Favorable";
   if (impact === "challenging") return isTamil ? "பாதகம்" : "Challenging";
   return isTamil ? "நடுத்தரம்" : "Neutral";
@@ -44,18 +44,19 @@ function daysUntil(iso: string): number {
   return Math.ceil((new Date(iso).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 }
 
+const MAJOR_PLANET_KEYS = ["SATURN", "JUPITER", "RAHU", "KETU"];
+
 function isPeyarchi(item: TransitItem): boolean {
-  // Major transits are Saturn, Jupiter, Rahu, Ketu sign changes
-  const majorPlanets = ["Saturn", "Jupiter", "Rahu", "Ketu", "சனி", "குரு", "ராகு", "கேது"];
-  return majorPlanets.some((p) => item.planet === p || item.planet_ta === p);
+  return MAJOR_PLANET_KEYS.includes(item.planet);
 }
 
 function transitHowItems(item: TransitItem, rasi: string): WhyItem[] {
+  const impact = moonHouseImpact(item.impactFromMoon);
   return [
     { label: "Your Rasi", value: rasi },
-    { label: "Transit", value: `${item.planet} moves from ${item.from_sign} to ${item.to_sign}` },
+    { label: "Transit", value: `${item.labelEn} moves from ${item.fromRasi} to ${item.toRasi}` },
     { label: "Basis", value: "Impact is assessed from your natal Moon sign (Chandran's rasi) and Lagna, per Thirukanitham rules" },
-    { label: "Impact rating", value: impactLabel(item.impact, false) },
+    { label: "Impact rating", value: impactLabel(impact, false) },
     { label: "Method", value: "Thirukanitham — precision sunrise-adjusted chart positions" },
   ];
 }
@@ -137,7 +138,7 @@ export default function TransitsScreen() {
       {!isLoading && !isError && items.length > 0 && (
         <FlatList
           data={items}
-          keyExtractor={(item, i) => `${item.transit_date}-${i}`}
+          keyExtractor={(item, i) => `${item.peyarchiDateLocal}-${i}`}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor={C.saffron} />}
@@ -163,28 +164,27 @@ export default function TransitsScreen() {
           }
           renderItem={({ item }: { item: TransitItem }) => {
             if (isPeyarchi(item)) return null;
-            const isExpanded = expanded === `${item.transit_date}-${item.planet}`;
-            const days = daysUntil(item.transit_date);
+            const impact = moonHouseImpact(item.impactFromMoon);
+            const isExpanded = expanded === `${item.peyarchiDateLocal}-${item.planet}`;
+            const days = daysUntil(item.peyarchiDateLocal);
             return (
               <TouchableOpacity
                 style={styles.card}
-                onPress={() => setExpanded(isExpanded ? null : `${item.transit_date}-${item.planet}`)}
+                onPress={() => setExpanded(isExpanded ? null : `${item.peyarchiDateLocal}-${item.planet}`)}
                 activeOpacity={0.85}
               >
                 <View style={styles.cardRow}>
-                  <View style={[styles.impactDot, { backgroundColor: impactColor(item.impact) }]} />
+                  <View style={[styles.impactDot, { backgroundColor: impactColor(impact) }]} />
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={[styles.planetName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                      {isTamil ? item.planet_ta : item.planet}
+                      {isTamil ? item.labelTa : item.labelEn}
                     </Text>
                     <Text style={[styles.transitRoute, isTamil ? TamilType.caption : EnType.caption]}>
-                      {isTamil
-                        ? `${item.from_sign_ta} → ${item.to_sign_ta}`
-                        : `${item.from_sign} → ${item.to_sign}`}
+                      {`${item.fromRasi} → ${item.toRasi}`}
                     </Text>
                   </View>
                   <View style={{ alignItems: "flex-end", gap: 4 }}>
-                    <Text style={styles.transitDate}>{formatDate(item.transit_date)}</Text>
+                    <Text style={styles.transitDate}>{formatDate(item.peyarchiDateLocal)}</Text>
                     {days >= 0 && (
                       <Text style={styles.daysUntil}>
                         {days === 0
@@ -192,9 +192,9 @@ export default function TransitsScreen() {
                           : isTamil ? `${days} நாட்களில்` : `in ${days}d`}
                       </Text>
                     )}
-                    <View style={[styles.impactBadge, { backgroundColor: impactColor(item.impact) + "22" }]}>
-                      <Text style={[styles.impactBadgeText, { color: impactColor(item.impact) }]}>
-                        {impactLabel(item.impact, isTamil)}
+                    <View style={[styles.impactBadge, { backgroundColor: impactColor(impact) + "22" }]}>
+                      <Text style={[styles.impactBadgeText, { color: impactColor(impact) }]}>
+                        {impactLabel(impact, isTamil)}
                       </Text>
                     </View>
                   </View>
@@ -202,17 +202,17 @@ export default function TransitsScreen() {
 
                 {!isExpanded && (
                   <Text style={[styles.summary, isTamil ? TamilType.caption : EnType.caption]} numberOfLines={2}>
-                    {isTamil ? item.summary_ta : item.summary_en}
+                    {isTamil ? item.labelTa : item.labelEn}
                   </Text>
                 )}
 
                 {isExpanded && (
                   <>
-                    {(item.description_ta || item.description_en) && (
-                      <Text style={[styles.description, isTamil ? TamilType.body : EnType.body]}>
-                        {isTamil ? item.description_ta : item.description_en}
-                      </Text>
-                    )}
+                    <Text style={[styles.description, isTamil ? TamilType.body : EnType.body]}>
+                      {isTamil
+                        ? `${item.labelTa}: ${item.fromRasi} → ${item.toRasi}`
+                        : `${item.labelEn}: ${item.fromRasi} → ${item.toRasi}`}
+                    </Text>
                     <TouchableOpacity onPress={() => openHow(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                       <Text style={styles.howLink}>
                         {isTamil ? "◉ எப்படி கணிக்கப்பட்டது?" : "◉ How was this calculated?"}
@@ -228,7 +228,7 @@ export default function TransitsScreen() {
 
       <WhyThisResultSheet
         ref={whyRef}
-        title={selectedItem ? `${selectedItem.planet} transit` : "How transits are calculated"}
+        title={selectedItem ? `${selectedItem.labelEn} transit` : "How transits are calculated"}
         items={selectedItem && rasi ? transitHowItems(selectedItem, rasi) : []}
       />
     </SafeAreaView>
@@ -236,34 +236,33 @@ export default function TransitsScreen() {
 }
 
 function PeyarchiCard({ item, isTamil, onHow }: { item: TransitItem; isTamil: boolean; onHow: () => void }) {
-  const days = daysUntil(item.transit_date);
+  const impact = moonHouseImpact(item.impactFromMoon);
+  const days = daysUntil(item.peyarchiDateLocal);
   return (
     <View style={styles.peyarchiCard}>
       <View style={styles.peyarchiStripe} />
       <View style={{ flex: 1, gap: S.xs }}>
         <View style={styles.peyarchiTop}>
           <Text style={[styles.peyarchiPlanet, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-            {isTamil ? item.planet_ta : item.planet}
+            {isTamil ? item.labelTa : item.labelEn}
           </Text>
           <View style={styles.peyarchiLabel}>
             <Text style={styles.peyarchiLabelText}>{isTamil ? "பெயர்ச்சி" : "Peyarchi"}</Text>
           </View>
         </View>
         <Text style={[styles.peyarchiRoute, isTamil ? TamilType.caption : EnType.caption]}>
-          {isTamil
-            ? `${item.from_sign_ta} → ${item.to_sign_ta}`
-            : `${item.from_sign} → ${item.to_sign}`}
+          {`${item.fromRasi} → ${item.toRasi}`}
         </Text>
         <View style={styles.peyarchiFooter}>
-          <Text style={styles.peyarchiDate}>{formatDate(item.transit_date)}</Text>
+          <Text style={styles.peyarchiDate}>{formatDate(item.peyarchiDateLocal)}</Text>
           {days >= 0 && (
             <Text style={styles.peyarchiDays}>
               {days === 0 ? (isTamil ? "இன்று" : "Today") : isTamil ? `${days} நாட்களில்` : `in ${days} days`}
             </Text>
           )}
-          <View style={[styles.impactBadge, { backgroundColor: impactColor(item.impact) + "22" }]}>
-            <Text style={[styles.impactBadgeText, { color: impactColor(item.impact) }]}>
-              {impactLabel(item.impact, isTamil)}
+          <View style={[styles.impactBadge, { backgroundColor: impactColor(impact) + "22" }]}>
+            <Text style={[styles.impactBadgeText, { color: impactColor(impact) }]}>
+              {impactLabel(impact, isTamil)}
             </Text>
           </View>
           <TouchableOpacity onPress={onHow} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>

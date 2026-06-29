@@ -11,6 +11,7 @@ import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { OnboardingProgressBar } from "@/components/OnboardingProgressBar";
+import { fetchWithAuth } from "@/api/client";
 import { createBirthProfile } from "@/api/charts";
 import { setPrimaryChartId, setPrimaryProfileId } from "@/lib/userPrefs";
 import { trackEvent } from "@/lib/analytics";
@@ -19,6 +20,7 @@ interface GeoResult {
   lat: number;
   lon: number;
   countryCode: string;
+  timezone?: string;
   error?: "not_found" | "network";
 }
 
@@ -60,17 +62,26 @@ function countryCodeToTimezone(cc: string): string {
 
 async function geocodeBirthPlace(place: string): Promise<GeoResult | null> {
   try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place)}&format=json&limit=1&addressdetails=1`;
-    const res = await fetch(url, {
-      headers: { "User-Agent": "VinaadAI/1.0 (mobile@vinaadi.app)" },
+    const res = await fetchWithAuth("/geo/geocode", {
+      method: "POST",
+      body: JSON.stringify({ query: place }),
     });
-    const data = (await res.json()) as Array<{ lat: string; lon: string; address?: { country_code?: string } }>;
-    if (!data.length) return { lat: 0, lon: 0, countryCode: "in", error: "not_found" };
-    const item = data[0];
+    if (!res.ok) return { lat: 0, lon: 0, countryCode: "in", error: "network" };
+    const data = (await res.json()) as {
+      lat: number | null;
+      lon: number | null;
+      countryCode: string | null;
+      timezone: string | null;
+      error?: string | null;
+    };
+    if (data.error === "not_found" || data.lat == null || data.lon == null) {
+      return { lat: 0, lon: 0, countryCode: "in", error: "not_found" };
+    }
     return {
-      lat: parseFloat(item.lat),
-      lon: parseFloat(item.lon),
-      countryCode: item.address?.country_code ?? "in",
+      lat: data.lat,
+      lon: data.lon,
+      countryCode: data.countryCode ?? "in",
+      timezone: data.timezone ?? undefined,
     };
   } catch {
     return { lat: 0, lon: 0, countryCode: "in", error: "network" };
@@ -203,7 +214,7 @@ export default function BirthDetailsScreen() {
         return;
       }
 
-      const birthTimezone = detectedTimezone?.trim() || countryCodeToTimezone(geo.countryCode);
+      const birthTimezone = detectedTimezone?.trim() || geo.timezone || countryCodeToTimezone(geo.countryCode);
       setGeocodeFailureCount(0);
       await submitWithLocation(geo, birthTimezone, birthPlace.trim());
     } catch {

@@ -1,5 +1,5 @@
-﻿import React, { useMemo } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useMemo } from "react";
+import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
@@ -15,6 +15,7 @@ import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { SharedTransitionView } from "@/components/SharedTransitionView";
 import type { DailyGuidanceData } from "@vinaadi/shared";
+import { formatTimeLang } from "@/lib/formatLocale";
 
 function formatTime(iso: string): string {
   try {
@@ -35,6 +36,7 @@ export default function DailyScoreScreen() {
   const styles = useMemo(() => makeStyles(C), [C]);
   const { lang } = useI18n();
   const isTamil = lang === "ta";
+  const fmt = (iso: string) => formatTimeLang(iso, lang);
   const { chartId } = useLocalSearchParams<{ chartId?: string }>();
   const today = new Date().toISOString().split("T")[0];
 
@@ -56,6 +58,19 @@ export default function DailyScoreScreen() {
         <Text style={[styles.headerTitle, isTamil ? TamilType.heading : EnType.heading]}>
           {isTamil ? "இன்றைய விரிவான நிலை" : "Today's Detailed Guidance"}
         </Text>
+        <TouchableOpacity
+          onPress={() => {
+            if (!g) return;
+            const scoreLabel = isTamil ? g.text?.ta : g.text?.en;
+            const msg = isTamil
+              ? `விநாடி மதிப்பு: ${g.score}/100 — ${scoreLabel ?? ""}. vinaadi.com`
+              : `My Vinaadi score: ${g.score}/100 — ${scoreLabel ?? ""}. vinaadi.com`;
+            void Share.share({ message: msg });
+          }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text style={styles.shareIcon}>↑</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -119,7 +134,7 @@ export default function DailyScoreScreen() {
                   <View key={i} style={styles.windowRow}>
                     <View style={[styles.windowDot, { backgroundColor: C.green }]} />
                     <Text style={styles.windowTime}>
-                      {formatTime(w.start)} – {formatTime(w.end)}
+                      {fmt(w.start)} – {fmt(w.end)}
                     </Text>
                     <Text style={[styles.windowType, isTamil ? TamilType.caption : EnType.caption]}>
                       {w.type}
@@ -139,7 +154,7 @@ export default function DailyScoreScreen() {
                   <View key={i} style={[styles.windowRow, { borderColor: C.caution }]}>
                     <View style={[styles.windowDot, { backgroundColor: C.caution }]} />
                     <Text style={styles.windowTime}>
-                      {formatTime(w.start)} – {formatTime(w.end)}
+                      {fmt(w.start)} – {fmt(w.end)}
                     </Text>
                     <Text style={[styles.windowType, isTamil ? TamilType.caption : EnType.caption]}>
                       {w.type}
@@ -189,6 +204,7 @@ function makeStyles(C: ColorTokens) {
   },
   backArrow: { fontFamily: "Inter_700Bold", fontSize: 20, color: C.textPrimary },
   headerTitle: { color: C.textPrimary, flex: 1 },
+  shareIcon: { fontFamily: "Inter_700Bold", fontSize: 20, color: C.saffron },
   scroll: { padding: S.base, gap: S.md, paddingBottom: S.xxl },
   scoreCard: {
     backgroundColor: C.darkBg, borderRadius: RADIUS.card,

@@ -125,36 +125,45 @@ describe("dasha API", () => {
   const DASHA_RESPONSE = {
     success: true,
     data: {
-      maha_dasha: {
-        lord: "MOON",
-        lord_ta: "சந்திரன்",
-        start_date: "2020-01-01",
-        end_date: "2030-01-01",
+      chartId: "chart-uuid-001",
+      openingDasha: {
+        lord: "SATURN",
+        balanceYearsAtBirth: 12.5,
       },
-      antar_dasha: {
-        lord: "MOON",
-        lord_ta: "சந்திரன்",
-        start_date: "2026-01-01",
-        end_date: "2026-07-01",
+      current: {
+        mahadasha: {
+          lord: "MOON",
+          startDate: "2020-01-01",
+          endDate: "2030-01-01",
+        },
+        antardasha: {
+          lord: "MARS",
+          startDate: "2026-01-01",
+          endDate: "2026-07-01",
+        },
+        pratyantardasha: {
+          lord: "RAHU",
+          startDate: "2026-04-01",
+          endDate: "2026-05-01",
+        },
       },
-      current_timeline: [],
+      timeline: [],
     },
   };
 
-  it("getDashaTimeline returns maha_dasha and antar_dasha with lord fields", async () => {
+  it("getDashaTimeline returns current dasha windows and maha timeline", async () => {
     mockGet.mockResolvedValue(DASHA_RESPONSE);
     const result = await getDashaTimeline("chart-uuid-001");
     expect(result.success).toBe(true);
-    expect(result.data.maha_dasha).toBeDefined();
-    expect(result.data.maha_dasha.lord).toBe("MOON");
-    expect(result.data.antar_dasha).toBeDefined();
-    expect(Array.isArray(result.data.current_timeline)).toBe(true);
-    expect(mockGet).toHaveBeenCalledWith("/dasha/timeline", { chart_id: "chart-uuid-001" });
+    expect(result.data.current.mahadasha).toBeDefined();
+    expect(result.data.current.mahadasha.lord).toBe("MOON");
+    expect(result.data.current.antardasha).toBeDefined();
+    expect(Array.isArray(result.data.timeline)).toBe(true);
+    expect(mockGet).toHaveBeenCalledWith("/charts/chart-uuid-001/dasha", { level: "maha" });
   });
 });
 
-// ─── ASK VINAADI ──────────────────────────────────────────────────────────────
-
+// Dasha tests above intentionally mirror the backend camelCase response.
 describe("askVinaadi API", () => {
   it("getDailyStatus returns questionsUsedToday and dailyLimit", async () => {
     mockGet.mockResolvedValue({ questionsUsedToday: 2, dailyLimit: 7, chipsRemaining: null });

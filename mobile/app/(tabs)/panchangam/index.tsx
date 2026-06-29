@@ -16,6 +16,7 @@ import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { getPanchangamDay } from "@/api/panchangam";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
+import { formatTimeLang } from "@/lib/formatLocale";
 import type { GuestPrefs } from "@/features/guest/guestStore";
 import { SwipeRouteView } from "@/components/SwipeRouteView";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
@@ -42,6 +43,7 @@ export default function PanchangamDayScreen() {
   const styles = useMemo(() => makeStyles(C), [C]);
   const { t, strings, lang } = useI18n();
   const isTamil = lang === "ta";
+  const fmt = (iso: string) => formatTimeLang(iso, lang);
   const [dayOffset, setDayOffset] = useState(0);
   const [prefs, setPrefs] = useState<GuestPrefs | null>(null);
 
@@ -55,7 +57,10 @@ export default function PanchangamDayScreen() {
   const lon = prefs?.lon ?? undefined;
   const hasLocation = lat != null && lon != null;
   const isLocationMissing = prefsLoaded && !hasLocation;
-  const locationLabel = prefs?.city ?? (isLocationMissing ? (isTamil ? "இடத்தை அமைக்கவும்" : "Set location") : "Chennai");
+  const locationLabel = prefs?.city
+    ?? (prefs === null
+      ? (isTamil ? "இடம் ஏற்றுகிறது…" : "Loading location…")
+      : (isTamil ? "இடத்தை அமைக்கவும்" : "Set location"));
 
   const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["panchangam-day", dateStr, lat, lon],
@@ -151,19 +156,19 @@ export default function PanchangamDayScreen() {
                 {p.tamilDate ? (isTamil ? p.tamilDate.ta : p.tamilDate.en) : dateStr}
               </Text>
               <View style={styles.sunRow}>
-                <Text style={styles.sunText}>ÃƒÂ°Ã…Â¸Ã…â€™Ã¢â‚¬Â¦ {isoToHHMM(p.sunrise)}</Text>
-                <Text style={styles.sunText}>ÃƒÂ°Ã…Â¸Ã…â€™Ã¢â‚¬Â¡ {isoToHHMM(p.sunset)}</Text>
+                <Text style={styles.sunText}>ÃƒÂ°Ã…Â¸Ã…â€™Ã¢â‚¬Â¦ {fmt(p.sunrise)}</Text>
+                <Text style={styles.sunText}>ÃƒÂ°Ã…Â¸Ã…â€™Ã¢â‚¬Â¡ {fmt(p.sunset)}</Text>
               </View>
             </View>
 
             {/* Primary timings */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.kalamRow}>
               {p.kalam.nallaNeram.slice(0, 2).map((slot, i) => (
-                <TimeCard key={`n-${i}`} kind="nalla_neram" start={isoToHHMM(slot.start)} end={isoToHHMM(slot.end)} />
+                <TimeCard key={`n-${i}`} kind="nalla_neram" start={fmt(slot.start)} end={fmt(slot.end)} />
               ))}
-              <TimeCard kind="rahu_kalam" start={isoToHHMM(p.kalam.rahuKalam.start)} end={isoToHHMM(p.kalam.rahuKalam.end)} />
-              <TimeCard kind="yamagandam" start={isoToHHMM(p.kalam.yamagandam.start)} end={isoToHHMM(p.kalam.yamagandam.end)} />
-              <TimeCard kind="kuligai" start={isoToHHMM(p.kalam.kuligai.start)} end={isoToHHMM(p.kalam.kuligai.end)} />
+              <TimeCard kind="rahu_kalam" start={fmt(p.kalam.rahuKalam.start)} end={fmt(p.kalam.rahuKalam.end)} />
+              <TimeCard kind="yamagandam" start={fmt(p.kalam.yamagandam.start)} end={fmt(p.kalam.yamagandam.end)} />
+              <TimeCard kind="kuligai" start={fmt(p.kalam.kuligai.start)} end={fmt(p.kalam.kuligai.end)} />
             </ScrollView>
 
             {/* Five elements */}

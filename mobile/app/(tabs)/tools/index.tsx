@@ -39,6 +39,27 @@ type ToolGroup = {
 
 const GROUPS: ToolGroup[] = [
   {
+    labelEn: "Matching & Nakshatra",
+    labelTa: "பொருத்தம் & நட்சத்திரம்",
+    tools: [
+      {
+        Icon: Heart, key: "porutham", route: "/(tabs)/tools/porutham",
+        nameEn: "Compatibility", nameTa: "பொருத்தம்",
+        descEn: "10-point marriage matching", descTa: "10 பொருத்தம் சரிபார்க்க",
+      },
+      {
+        Icon: Star, key: "natchathiram", route: "/(tabs)/tools/natchathiram",
+        nameEn: "Nakshatra",     nameTa: "நட்சத்திரம்",
+        descEn: "Traits, deity & padas", descTa: "பண்புகள், தெய்வம், பாதங்கள்",
+      },
+      {
+        Icon: UserCheck, key: "friendship", route: "/(tabs)/tools/friendship",
+        nameEn: "Friendship Compat.", nameTa: "நட்பு பொருத்தம்",
+        descEn: "Family vault profile matching", descTa: "குடும்ப உறுப்பினர் பொருத்தம்",
+      },
+    ],
+  },
+  {
     labelEn: "Your Chart",
     labelTa: "உங்கள் ஜாதகம்",
     tools: [
@@ -61,27 +82,6 @@ const GROUPS: ToolGroup[] = [
         Icon: MapPin, key: "pariharam", route: "/(tabs)/tools/pariharam",
         nameEn: "Remedies",     nameTa: "பரிகாரம்",
         descEn: "Temples, mantras & gemstones", descTa: "கோயில், மந்திரம், கல்லு",
-      },
-    ],
-  },
-  {
-    labelEn: "Nakshatra & Matching",
-    labelTa: "நட்சத்திரம் & பொருத்தம்",
-    tools: [
-      {
-        Icon: Star, key: "natchathiram", route: "/(tabs)/tools/natchathiram",
-        nameEn: "Nakshatra",     nameTa: "நட்சத்திரம்",
-        descEn: "Traits, deity & padas", descTa: "பண்புகள், தெய்வம், பாதங்கள்",
-      },
-      {
-        Icon: Heart, key: "porutham", route: "/(tabs)/tools/porutham",
-        nameEn: "Compatibility", nameTa: "பொருத்தம்",
-        descEn: "10-point marriage matching", descTa: "10 பொருத்தம் சரிபார்க்க",
-      },
-      {
-        Icon: UserCheck, key: "friendship", route: "/(tabs)/tools/friendship",
-        nameEn: "Friendship Compat.", nameTa: "நட்பு பொருத்தம்",
-        descEn: "Family vault profile matching", descTa: "குடும்ப உறுப்பினர் பொருத்தம்",
       },
     ],
   },

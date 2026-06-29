@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Modal, RefreshControl, ScrollView, Share, StyleSheet, Text, TextInput,
+  Linking, RefreshControl, ScrollView, Share, StyleSheet, Text, TextInput,
   TouchableOpacity, useWindowDimensions, View,
 } from "react-native";
+import BottomSheet, { BottomSheetView, BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import Svg, { Path } from "react-native-svg";
 import { trackEvent } from "@/lib/analytics";
 import { useToast } from "@/context/ToastContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -12,16 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { FadeInDown } from "react-native-reanimated";
 import { entranceDelay, spring } from "@/theme/motion";
 import { router, type Href } from "expo-router";
-import {
-  Bell,
-  BookOpen,
-  ChevronRight,
-  Flame,
-  Orbit,
-  Sparkles,
-  SunMedium,
-  X,
-} from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { type ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType, TamilFont, EnFont } from "@/theme/typography";
@@ -41,13 +34,16 @@ import { SharedTransitionView } from "@/components/SharedTransitionView";
 import { getDailySnapshot } from "@/api/snapshot";
 import type { LifeAreaData } from "@/api/lifeAreas";
 import type { LifeEventWindow } from "@/api/lifeEvents";
+import { moonHouseImpact } from "@/api/transits";
 import type { TransitItem } from "@/api/transits";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
 import { useJournal } from "@/hooks/useJournal";
 import { useConversionPrompt } from "@/hooks/useConversionPrompt";
+import { usePushNotificationOptIn } from "@/hooks/usePushNotificationOptIn";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import { pushWidgetData } from "@/lib/widgetBridge";
 import { biText } from "@/lib/i18n";
+import { formatTimeLang, formatDateLang } from "@/lib/formatLocale";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import type { GuestPrefs } from "@/features/guest/guestStore";
 import type { DailyGuidanceData } from "@vinaadi/shared";
@@ -73,12 +69,16 @@ type DetailSheetState = {
 } | null;
 
 
+function OrbitIcon({ size, color }: { size?: number; color?: string }) {
+  return <Ionicons name="planet-outline" size={size ?? 24} color={color} />;
+}
+
 const JOURNAL_MOMENTS: ChipItem[] = [
   { key: "win",       label: "Big win",    labelTa: "வெற்றி" },
   { key: "hard_day",  label: "Hard day",   labelTa: "கஷ்டமான நாள்" },
   { key: "decision",  label: "Decision",   labelTa: "முடிவு" },
   { key: "milestone", label: "Milestone",  labelTa: "மைல்கல்" },
-  { key: "quiet",     label: "Nothing yet",labelTa: "நல்லது இல்லை" },
+  { key: "quiet",     label: "Nothing yet",labelTa: "இன்னும் எதுவும் இல்லை" },
 ];
 
 const JOURNAL_AREAS: ChipItem[] = [
@@ -132,7 +132,7 @@ function getNextEvent(events: LifeEventWindow[]): LifeEventWindow | undefined {
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0];
 }
 
-function getCosmicAlert(g: ExtendedGuidance | undefined, transit: TransitItem | undefined, isTamil: boolean): DetailSheetState {
+function getCosmicAlert(g: ExtendedGuidance | undefined, transit: TransitItem | undefined, isTamil: boolean, lang: "en" | "ta" = "en"): DetailSheetState {
   if (g?.isChandrashtama ?? g?.is_chandrashtama) {
     const end = g.chandrashtamaEnds ?? g.chandrashtama_ends;
     return {
@@ -142,17 +142,18 @@ function getCosmicAlert(g: ExtendedGuidance | undefined, transit: TransitItem | 
     };
   }
   if (transit) {
+    const impact = moonHouseImpact(transit.impactFromMoon);
     return {
-      title: isTamil ? transit.planet_ta || transit.planet : `${transit.planet} transit`,
-      body: isTamil ? transit.summary_ta : transit.summary_en,
-      tone: transit.impact === "challenging" ? "caution" : transit.impact === "good" ? "good" : "neutral",
+      title: isTamil ? transit.labelTa : `${transit.labelEn} transit`,
+      body: `${transit.fromRasi} → ${transit.toRasi}`,
+      tone: impact === "challenging" ? "caution" : impact === "good" ? "good" : "neutral",
     };
   }
   if (g?.cautionWindows?.length) {
     const first = g.cautionWindows[0];
     return {
       title: isTamil ? "Timing caution" : "Timing caution",
-      body: `${first.type}: ${formatTime(first.start)} - ${formatTime(first.end)}`,
+      body: `${first.type}: ${formatTimeLang(first.start, lang)} - ${formatTimeLang(first.end, lang)}`,
       tone: "caution",
     };
   }
@@ -177,6 +178,8 @@ export default function TodayTab() {
   const [streakCount, setStreakCount] = useState(0);
   const [detailSheet, setDetailSheet] = useState<DetailSheetState>(null);
   const [journalOpen, setJournalOpen] = useState(false);
+  const detailSheetRef = useRef<BottomSheet>(null);
+  const journalSheetRef = useRef<BottomSheet>(null);
   const [journalMoment, setJournalMoment] = useState(JOURNAL_MOMENTS[0].key);
   const [journalArea, setJournalArea] = useState(JOURNAL_AREAS[0].key);
   const [journalNote, setJournalNote] = useState("");
@@ -228,6 +231,7 @@ export default function TodayTab() {
   const p = snapshotData?.data.panchangam ?? undefined;
   const rasiPalanData = snapshotData?.data.rasi_palan ?? null;
   const g = (snapshotData?.data.guidance ?? undefined) as ExtendedGuidance | undefined;
+  const { state: pushPromptState, dismiss: dismissPushPrompt, requestAndRegister: requestPushPermission } = usePushNotificationOptIn(!!g);
 
   // Push today's snapshot to native widget storage whenever data freshens.
   useEffect(() => {
@@ -244,8 +248,9 @@ export default function TodayTab() {
     });
   }, [p, g, lang]);
 
+  const fmt = (iso: string) => formatTimeLang(iso, lang);
   const today = new Date();
-  const todayLabel = today.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+  const todayLabel = formatDateLang(today, lang);
   const tamilDate = p?.tamilDate ? (isTamil ? p.tamilDate.ta : p.tamilDate.en) : todayLabel;
   const cityName = prefs?.city ?? (isLocationMissing ? (isTamil ? "இடத்தை அமைக்கவும்" : "Set location") : "Chennai");
   const areaPulse = snapshotData?.data.life_areas ?? [];
@@ -255,7 +260,7 @@ export default function TodayTab() {
   );
   const gowriSlots = getGowriSlots(p as any);
   const primaryGowri = gowriSlots[0];
-  const cosmicAlert = getCosmicAlert(g, (snapshotData?.data.transits?.[0] ?? undefined) as TransitItem | undefined, isTamil);
+  const cosmicAlert = getCosmicAlert(g, (snapshotData?.data.transits?.[0] ?? undefined) as TransitItem | undefined, isTamil, lang);
   const bestActionWindow = g?.bestWindows?.[0] ?? null;
   const hasDoshamWarning = !!(g?.is_chandrashtama || (g?.cautionWindows?.length ?? 0) > 0 || (g?.score !== undefined && g.score < SCORE_THRESHOLDS.MID));
   const refreshing = isSnapshotFetching;
@@ -264,7 +269,7 @@ export default function TodayTab() {
     const chips = [] as Array<{ label: string; ok: boolean; detail: string }>;
     if (g.bestWindows?.[0]) {
       const w = g.bestWindows[0];
-      chips.push({ label: t(strings.chips.start_work), ok: true, detail: `${w.type}: ${formatTime(w.start)} - ${formatTime(w.end)}` });
+      chips.push({ label: t(strings.chips.start_work), ok: true, detail: `${w.type}: ${fmt(w.start)} - ${fmt(w.end)}` });
     }
     if (g.currentHoraLord) {
       chips.push({ label: `${g.currentHoraLord} ${t(strings.chips.hora_suffix)}`, ok: true, detail: biText(g.actionSuggestion, isTamil, "Use this window for focused action.") });
@@ -273,10 +278,30 @@ export default function TodayTab() {
     chips.push({ label: t(strings.chips.contracts), ok: !g.cautionWindows?.length && g.score >= SCORE_THRESHOLDS.HIGH, detail: biText(g.cautionSuggestion, isTamil, "Check caution windows before signing.") });
     if (g.cautionWindows?.[0]) {
       const w = g.cautionWindows[0];
-      chips.push({ label: t(strings.chips.avoid_rush), ok: false, detail: `${w.type}: ${formatTime(w.start)} - ${formatTime(w.end)}` });
+      chips.push({ label: t(strings.chips.avoid_rush), ok: false, detail: `${w.type}: ${fmt(w.start)} - ${fmt(w.end)}` });
     }
     return chips.slice(0, 5);
   }, [g, isTamil, t, strings]);
+
+  const openDetailSheet = useCallback((sheet: DetailSheetState) => {
+    setDetailSheet(sheet);
+    detailSheetRef.current?.expand();
+  }, []);
+
+  const closeDetailSheet = useCallback(() => {
+    detailSheetRef.current?.close();
+    setDetailSheet(null);
+  }, []);
+
+  const openJournalSheet = useCallback(() => {
+    setJournalOpen(true);
+    journalSheetRef.current?.expand();
+  }, []);
+
+  const closeJournalSheet = useCallback(() => {
+    journalSheetRef.current?.close();
+    setJournalOpen(false);
+  }, []);
 
   const refreshAll = () => {
     void refetchSnapshot();
@@ -293,7 +318,7 @@ export default function TodayTab() {
       chartId: primaryChartId,
       dailyScore: g?.score ?? null,
       dashaContext: g?.contextInsight ?? null,
-      activeTransit: transits.data?.data[0] ?? null,
+      activeTransit: (snapshotData?.data.transits?.[0] ?? null) as TransitItem | null,
     };
     try {
       await saveEntry(entry);
@@ -336,7 +361,7 @@ export default function TodayTab() {
             </View>
             {streakCount >= 1 && (
               <View style={styles.streakChip} accessibilityLabel={`${streakCount}-day streak`}>
-                <Flame size={13} color={C.surface} strokeWidth={1.5} /><Text style={styles.streakText}>{streakCount}</Text>
+                <Ionicons name="flame-outline" size={13} color={C.surface} /><Text style={styles.streakText}>{streakCount}</Text>
               </View>
             )}
             <TouchableOpacity
@@ -345,7 +370,7 @@ export default function TodayTab() {
               accessibilityLabel="Notifications"
               accessibilityRole="button"
             >
-              <Bell size={22} color={C.textSecond} strokeWidth={1.5} />
+              <Ionicons name="notifications-outline" size={22} color={C.textSecond} />
             </TouchableOpacity>
           </View>
         ) : (
@@ -403,13 +428,13 @@ export default function TodayTab() {
               >
                 <View style={styles.scoreHeroTopRow}>
                   <View style={styles.heroKickerRow}>
-                    <SunMedium size={16} color={C.gold} strokeWidth={1.5} />
+                    <Ionicons name="sunny-outline" size={16} color={C.gold} />
                     <Text style={[styles.scoreHeroLabel, isTamil ? TamilType.caption : EnType.caption]}>
                       {t(strings.tabs.today)} · {cityName}
                     </Text>
                     <ThirukanithamBadge size="sm" style={{ alignSelf: "center" }} />
                   </View>
-                  <ChevronRight size={20} color={C.textTertiary} strokeWidth={1.5} />
+                  <Ionicons name="chevron-forward" size={20} color={C.textTertiary} />
                 </View>
 
                 <View style={styles.scoreHeroMain}>
@@ -432,9 +457,9 @@ export default function TodayTab() {
                   <Text style={styles.bestWindowLabel}>{t(strings.today.best_window)}</Text>
                   <Text style={styles.bestWindowTime}>
                     {bestActionWindow
-                      ? `${formatTime(bestActionWindow.start)} - ${formatTime(bestActionWindow.end)}`
+                      ? `${fmt(bestActionWindow.start)} - ${fmt(bestActionWindow.end)}`
                       : primaryGowri
-                        ? `${formatTime(primaryGowri.start)} - ${formatTime(primaryGowri.end)}`
+                        ? `${fmt(primaryGowri.start)} - ${fmt(primaryGowri.end)}`
                         : "Check timing"}
                   </Text>
                   <Text style={[styles.scoreHeroText, isTamil ? TamilType.bodySmall : EnType.bodySmall]} numberOfLines={3}>
@@ -445,6 +470,44 @@ export default function TodayTab() {
             )}
           </View>
         )}
+        {tier !== "guest" && pushPromptState === "should_show" && (
+          <View style={styles.pushPromptCard}>
+            <View style={styles.pushPromptBody}>
+              <Ionicons name="notifications-outline" size={20} color={C.saffron} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={[styles.pushPromptTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
+                  {isTamil ? "காலை வழிகாட்டுதல் அறிவிப்பு" : "Morning guidance notifications"}
+                </Text>
+                <Text style={[styles.pushPromptBody2, isTamil ? TamilType.caption : EnType.caption]}>
+                  {isTamil
+                    ? "நாள்தோறும் உங்கள் திருகணிதம் மதிப்பெண் மற்றும் சிறந்த நேரங்களை காலையிலேயே பெறுங்கள்."
+                    : "Get your daily Thirukanitham score and best windows every morning."}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.pushPromptActions}>
+              <TouchableOpacity
+                style={styles.pushPromptEnable}
+                activeOpacity={0.86}
+                onPress={() => { void requestPushPermission(); }}
+              >
+                <Text style={styles.pushPromptEnableText}>
+                  {isTamil ? "இயக்கு" : "Enable"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.pushPromptDismiss}
+                activeOpacity={0.86}
+                onPress={() => { void dismissPushPrompt(); }}
+              >
+                <Text style={styles.pushPromptDismissText}>
+                  {isTamil ? "பிறகு" : "Later"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {tier !== "guest" && areaPulse.length > 0 && (
           <LifeAreaPulse
             areas={areaPulse.slice(0, 4)}
@@ -453,7 +516,7 @@ export default function TodayTab() {
             styles={styles}
             onSelect={(area) => {
               Haptics.selectionAsync();
-              setDetailSheet({
+              openDetailSheet({
                 title: biText(area.label, isTamil, area.area),
                 body: `${biText(area.narrative, isTamil)}\n\n${biText(area.next30DayOutlook, isTamil)}`,
                 tone: area.score >= SCORE_THRESHOLDS.MID ? "good" : "caution",
@@ -468,7 +531,7 @@ export default function TodayTab() {
             activeOpacity={0.86}
             onPress={() => {
               Haptics.selectionAsync();
-              setDetailSheet(cosmicAlert);
+              openDetailSheet(cosmicAlert);
             }}
             accessibilityLabel={`Cosmic alert: ${cosmicAlert.title}`}
             accessibilityRole="button"
@@ -481,13 +544,13 @@ export default function TodayTab() {
                 {cosmicAlert.title}
               </Text>
             </View>
-            <ChevronRight size={16} color={C.textTertiary} strokeWidth={1.5} />
+            <Ionicons name="chevron-forward" size={16} color={C.textTertiary} />
           </TouchableOpacity>
         )}
         {/* Dasha Timeline quick-link (registered users with a chart) */}
         {tier !== "guest" && primaryChartId && (
           <ListItem
-            icon={Orbit}
+            icon={OrbitIcon}
             title="Dasha Timeline"
             titleTa="தசா காலவரிசை"
             subtitle="Your Maha & Antar Dasha periods"
@@ -525,7 +588,7 @@ export default function TodayTab() {
                       </Text>
                     )}
                   </View>
-                  <SunMedium size={56} color={C.surface} strokeWidth={1.5} />
+                  <Ionicons name="sunny-outline" size={56} color={C.surface} />
                 </View>
                 {p?.specialTithiDay && (
                   <View style={styles.heroBadge}>
@@ -555,8 +618,8 @@ export default function TodayTab() {
               <TimeCard
                 key={`nalla-${i}`}
                 kind="nalla_neram"
-                start={formatTime(slot.start)}
-                end={formatTime(slot.end)}
+                start={fmt(slot.start)}
+                end={fmt(slot.end)}
               />
             ))}
             {primaryGowri && (
@@ -566,9 +629,9 @@ export default function TodayTab() {
                 styles={styles}
                 onPress={() => {
                   Haptics.selectionAsync();
-                  setDetailSheet({
+                  openDetailSheet({
                     title: primaryGowri.name || primaryGowri.label || "Gowri",
-                    body: primaryGowri.purpose || primaryGowri.warning || `${formatTime(primaryGowri.start)} - ${formatTime(primaryGowri.end)}`,
+                    body: primaryGowri.purpose || primaryGowri.warning || `${fmt(primaryGowri.start)} - ${fmt(primaryGowri.end)}`,
                     tone: primaryGowri.warning ? "caution" : "good",
                   });
                 }}
@@ -576,18 +639,18 @@ export default function TodayTab() {
             )}
             <TimeCard
               kind="rahu_kalam"
-              start={formatTime(p.kalam.rahuKalam.start)}
-              end={formatTime(p.kalam.rahuKalam.end)}
+              start={fmt(p.kalam.rahuKalam.start)}
+              end={fmt(p.kalam.rahuKalam.end)}
             />
             <TimeCard
               kind="yamagandam"
-              start={formatTime(p.kalam.yamagandam.start)}
-              end={formatTime(p.kalam.yamagandam.end)}
+              start={fmt(p.kalam.yamagandam.start)}
+              end={fmt(p.kalam.yamagandam.end)}
             />
             <TimeCard
               kind="kuligai"
-              start={formatTime(p.kalam.kuligai.start)}
-              end={formatTime(p.kalam.kuligai.end)}
+              start={fmt(p.kalam.kuligai.start)}
+              end={fmt(p.kalam.kuligai.end)}
             />
           </ScrollView>
         ) : null}
@@ -598,7 +661,7 @@ export default function TodayTab() {
             styles={styles}
             onSelect={(chip) => {
               Haptics.selectionAsync();
-              setDetailSheet({
+              openDetailSheet({
                 title: chip.label,
                 body: chip.detail,
                 tone: chip.ok ? "good" : "caution",
@@ -651,7 +714,7 @@ export default function TodayTab() {
               </Text>
               <Text style={styles.eventMeta}>{dateDistanceLabel(nextEvent.startDate, isTamil)} - {nextEvent.confidence.toLowerCase()} confidence</Text>
             </View>
-            <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
+            <Ionicons name="chevron-forward" size={18} color={C.textTertiary} />
           </TouchableOpacity>
         )}
 
@@ -661,17 +724,17 @@ export default function TodayTab() {
             activeOpacity={0.86}
             onPress={() => {
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              setJournalOpen(true);
+              openJournalSheet();
             }}
           >
-            <View style={styles.quickActionInner}><BookOpen size={18} color={C.surface} strokeWidth={1.5} /><Text style={styles.quickActionText}>{isTamil ? "Log moment" : "Log moment"}</Text></View>
+            <View style={styles.quickActionInner}><Ionicons name="book-outline" size={18} color={C.surface} /><Text style={styles.quickActionText}>{isTamil ? "Log moment" : "Log moment"}</Text></View>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.quickActionBtn, styles.quickActionSecondary]}
             activeOpacity={0.86}
             onPress={() => router.push("/ask-vinaadi" as Href)}
           >
-            <View style={styles.quickActionInner}><Sparkles size={18} color={C.saffron} strokeWidth={1.5} /><Text style={[styles.quickActionText, styles.quickActionSecondaryText]}>{isTamil ? "Ask Vinaadi" : "Ask Vinaadi"}</Text></View>
+            <View style={styles.quickActionInner}><Ionicons name="sparkles-outline" size={18} color={C.saffron} /><Text style={[styles.quickActionText, styles.quickActionSecondaryText]}>{isTamil ? "Ask Vinaadi" : "Ask Vinaadi"}</Text></View>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.quickActionBtn, styles.quickActionSecondary]}
@@ -680,7 +743,7 @@ export default function TodayTab() {
               trackEvent("share_card_opened");
               const scoreText = g ? `Score: ${g.score}/100` : "";
               const windowText = bestActionWindow
-                ? `Best window: ${formatTime(bestActionWindow.start)}–${formatTime(bestActionWindow.end)}`
+                ? `Best window: ${fmt(bestActionWindow.start)}–${fmt(bestActionWindow.end)}`
                 : "";
               const message = [
                 isTamil ? "இன்றைய விநாடி பஞ்சாங்கம்" : "My Vinaadi day — powered by Thirukanitham",
@@ -697,8 +760,46 @@ export default function TodayTab() {
             }}
           >
             <View style={styles.quickActionInner}>
-              <Bell size={18} color={C.saffron} strokeWidth={1.5} />
+              <Ionicons name="share-outline" size={18} color={C.saffron} />
               <Text style={[styles.quickActionText, styles.quickActionSecondaryText]}>{isTamil ? "பகிர்" : "Share"}</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.quickActionBtn, styles.quickActionSecondary]}
+            activeOpacity={0.86}
+            onPress={async () => {
+              trackEvent("whatsapp_share_tapped");
+              const scoreText = g ? (isTamil ? `மதிப்பெண்: ${g.score}/100` : `Score: ${g.score}/100`) : "";
+              const windowText = bestActionWindow
+                ? (isTamil
+                    ? `சிறந்த நேரம்: ${fmt(bestActionWindow.start)}–${fmt(bestActionWindow.end)}`
+                    : `Best window: ${fmt(bestActionWindow.start)}–${fmt(bestActionWindow.end)}`)
+                : "";
+              const message = [
+                isTamil ? "இன்றைய விநாடி திருகணிதம்" : "My Vinaadi day — powered by Thirukanitham",
+                scoreText,
+                windowText,
+                "vinaadi.app",
+              ].filter(Boolean).join("\n");
+              const url = `whatsapp://send?text=${encodeURIComponent(message)}`;
+              try {
+                const supported = await Linking.canOpenURL(url);
+                if (supported) {
+                  await Linking.openURL(url);
+                } else {
+                  await Share.share({ message });
+                }
+              } catch {
+                await Share.share({ message }).catch(() => {});
+              }
+            }}
+          >
+            <View style={styles.quickActionInner}>
+              <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                <Path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" fill="#25D366"/>
+                <Path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.982-1.404A9.953 9.953 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.946 7.946 0 01-4.054-1.107l-.29-.172-3.005.847.81-2.962-.19-.304A7.944 7.944 0 014 12c0-4.418 3.582-8 8-8s8 3.582 8 8-3.582 8-8 8z" fill="#25D366"/>
+              </Svg>
+              <Text style={[styles.quickActionText, styles.quickActionSecondaryText]}>WhatsApp</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -714,7 +815,7 @@ export default function TodayTab() {
         >
           <View style={styles.decisionTop}>
             <Text style={styles.decisionKicker}>{isTamil ? "இன்றைய முடிவு" : "Decision of the day"}</Text>
-            <ChevronRight size={18} color={C.gold} strokeWidth={1.5} />
+            <Ionicons name="chevron-forward" size={18} color={C.gold} />
           </View>
           <Text style={styles.decisionTitle}>
             {isTamil
@@ -747,12 +848,9 @@ export default function TodayTab() {
               <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
                 {isTamil ? "பஞ்சாங்க விவரம்" : "Panchangam Details"}
               </Text>
-              <ChevronRight
-                size={16}
-                color={C.textTertiary}
-                strokeWidth={1.5}
-                style={{ transform: [{ rotate: panchangamExpanded ? "90deg" : "0deg" }] }}
-              />
+              <View style={{ transform: [{ rotate: panchangamExpanded ? "90deg" : "0deg" }] }}>
+                <Ionicons name="chevron-forward" size={16} color={C.textTertiary} />
+              </View>
             </TouchableOpacity>
             {panchangamExpanded && (
               <View style={styles.panchangamGrid}>
@@ -760,8 +858,8 @@ export default function TodayTab() {
                   { label: t(strings.panchangam.tithi), value: p.tithi.name },
                   { label: t(strings.panchangam.nakshatra), value: p.nakshatra.name },
                   { label: t(strings.panchangam.yoga), value: p.yoga.name },
-                  { label: t(strings.panchangam.sunrise), value: formatTime(p.sunrise) },
-                  { label: t(strings.panchangam.sunset), value: formatTime(p.sunset) },
+                  { label: t(strings.panchangam.sunrise), value: fmt(p.sunrise) },
+                  { label: t(strings.panchangam.sunset), value: fmt(p.sunset) },
                   { label: t(strings.panchangam.karana), value: p.karana.name },
                 ].map((item) => (
                   <View key={item.label} style={styles.datumCard}>
@@ -786,7 +884,7 @@ export default function TodayTab() {
               style={styles.promptDismiss}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <X size={16} color={C.textTertiary} strokeWidth={1.5} />
+              <Ionicons name="close" size={16} color={C.textTertiary} />
             </TouchableOpacity>
             <Text style={[styles.promptHeading, isTamil ? TamilType.bodySmall : EnType.bodySmall]}>
               {isTamil
@@ -801,56 +899,72 @@ export default function TodayTab() {
           </View>
         )}
 
-        <Modal transparent visible={!!detailSheet} animationType="slide" onRequestClose={() => setDetailSheet(null)}>
-          <TouchableOpacity style={styles.modalScrim} activeOpacity={1} onPress={() => setDetailSheet(null)}>
-            <TouchableOpacity activeOpacity={1} style={styles.detailSheet}>
-              <View style={[styles.sheetHandle, detailSheet?.tone === "caution" && { backgroundColor: C.caution }]} />
-              <Text style={styles.sheetTitle}>{detailSheet?.title}</Text>
-              <Text style={styles.sheetBody}>{detailSheet?.body}</Text>
-              <TouchableOpacity style={styles.sheetDoneBtn} onPress={() => setDetailSheet(null)}>
-                <Text style={styles.sheetDoneText}>{isTamil ? "Done" : "Done"}</Text>
-              </TouchableOpacity>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </Modal>
-
-        <Modal transparent visible={journalOpen} animationType="slide" onRequestClose={() => setJournalOpen(false)}>
-          <TouchableOpacity style={styles.modalScrim} activeOpacity={1} onPress={() => setJournalOpen(false)}>
-            <TouchableOpacity activeOpacity={1} style={styles.journalSheet}>
-              <View style={styles.sheetHandle} />
-              <Text style={styles.sheetTitle}>{isTamil ? "Log a moment" : "Log a moment"}</Text>
-              <Text style={styles.journalStep}>{isTamil ? "What happened?" : "What happened?"}</Text>
-              <ChipStrip
-                items={JOURNAL_MOMENTS}
-                selected={journalMoment}
-                onSelect={setJournalMoment}
-                isTamil={isTamil}
-                layout="wrap"
-              />
-              <Text style={styles.journalStep}>{isTamil ? "Which area?" : "Which area?"}</Text>
-              <ChipStrip
-                items={JOURNAL_AREAS}
-                selected={journalArea}
-                onSelect={setJournalArea}
-                isTamil={isTamil}
-                layout="wrap"
-              />
-              <TextInput
-                value={journalNote}
-                onChangeText={setJournalNote}
-                maxLength={200}
-                multiline
-                placeholder={isTamil ? "Optional note" : "Optional note"}
-                placeholderTextColor={C.textTertiary}
-                style={styles.journalInput}
-              />
-              <TouchableOpacity style={styles.sheetDoneBtn} onPress={saveJournalEntry}>
-                <Text style={styles.sheetDoneText}>{isTamil ? "Save" : "Save"}</Text>
-              </TouchableOpacity>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </Modal>
       </ScrollView>
+
+      {/* Detail sheet — slides up from bottom on both iOS and Android */}
+      <BottomSheet
+        ref={detailSheetRef}
+        index={-1}
+        snapPoints={["35%"]}
+        enablePanDownToClose
+        enableDynamicSizing={false}
+        onClose={closeDetailSheet}
+        backgroundStyle={{ backgroundColor: C.surface }}
+        handleIndicatorStyle={{ backgroundColor: C.gold, width: 42 }}
+      >
+        <BottomSheetView style={styles.bsDetailContent}>
+          <View style={[styles.sheetHandle, detailSheet?.tone === "caution" && { backgroundColor: C.caution }]} />
+          <Text style={styles.sheetTitle}>{detailSheet?.title}</Text>
+          <Text style={styles.sheetBody}>{detailSheet?.body}</Text>
+          <TouchableOpacity style={styles.sheetDoneBtn} onPress={closeDetailSheet}>
+            <Text style={styles.sheetDoneText}>{isTamil ? "Done" : "Done"}</Text>
+          </TouchableOpacity>
+        </BottomSheetView>
+      </BottomSheet>
+
+      {/* Journal sheet */}
+      <BottomSheet
+        ref={journalSheetRef}
+        index={-1}
+        snapPoints={["70%", "90%"]}
+        enablePanDownToClose
+        enableDynamicSizing={false}
+        onClose={closeJournalSheet}
+        backgroundStyle={{ backgroundColor: C.surface }}
+        handleIndicatorStyle={{ backgroundColor: C.gold, width: 42 }}
+      >
+        <BottomSheetScrollView contentContainerStyle={styles.bsJournalContent}>
+          <Text style={styles.sheetTitle}>{isTamil ? "Log a moment" : "Log a moment"}</Text>
+          <Text style={styles.journalStep}>{isTamil ? "What happened?" : "What happened?"}</Text>
+          <ChipStrip
+            items={JOURNAL_MOMENTS}
+            selected={journalMoment}
+            onSelect={setJournalMoment}
+            isTamil={isTamil}
+            layout="wrap"
+          />
+          <Text style={styles.journalStep}>{isTamil ? "Which area?" : "Which area?"}</Text>
+          <ChipStrip
+            items={JOURNAL_AREAS}
+            selected={journalArea}
+            onSelect={setJournalArea}
+            isTamil={isTamil}
+            layout="wrap"
+          />
+          <TextInput
+            value={journalNote}
+            onChangeText={setJournalNote}
+            maxLength={200}
+            multiline
+            placeholder={isTamil ? "Optional note" : "Optional note"}
+            placeholderTextColor={C.textTertiary}
+            style={styles.journalInput}
+          />
+          <TouchableOpacity style={styles.sheetDoneBtn} onPress={saveJournalEntry}>
+            <Text style={styles.sheetDoneText}>{isTamil ? "Save" : "Save"}</Text>
+          </TouchableOpacity>
+        </BottomSheetScrollView>
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -901,7 +1015,7 @@ function GowriCard({ slot, isTamil, onPress, styles }: { slot: GowriSlot; isTami
       <View style={styles.gowriChip}>
         <Text style={styles.gowriChipText}>G</Text>
       </View>
-      <Text style={styles.gowriTime}>{formatTime(slot.start)} - {formatTime(slot.end)}</Text>
+      <Text style={styles.gowriTime}>{fmt(slot.start)} - {fmt(slot.end)}</Text>
       <Text style={styles.gowriLabel} numberOfLines={1}>{slot.name || slot.label || (isTamil ? "Gowri" : "Gowri")}</Text>
     </TouchableOpacity>
   );
@@ -1159,9 +1273,8 @@ function makeStyles(C: ColorTokens) {
   quickActionInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: S.xs },
   quickActionText: { fontFamily: EnFont.ExtraBold, fontSize: 13, color: C.surface },
   quickActionSecondaryText: { color: C.saffron },
-  modalScrim: { flex: 1, backgroundColor: C.deepIndigo, justifyContent: "flex-end" },
-  detailSheet: { backgroundColor: C.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: S.lg, gap: S.sm },
-  journalSheet: { backgroundColor: C.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: S.lg, gap: S.sm, maxHeight: "86%" },
+  bsDetailContent: { padding: S.lg, gap: S.sm },
+  bsJournalContent: { padding: S.lg, gap: S.sm, paddingBottom: S.xxl },
   sheetHandle: { alignSelf: "center", width: 42, height: 4, borderRadius: 999, backgroundColor: C.gold, marginBottom: S.xs },
   sheetTitle: { fontFamily: EnFont.ExtraBold, fontSize: 20, lineHeight: 26, color: C.textPrimary },
   sheetBody: { fontFamily: EnFont.Regular, fontSize: 14, lineHeight: 22, color: C.textSecond },
@@ -1226,6 +1339,32 @@ function makeStyles(C: ColorTokens) {
     fontSize: 14,
     color: C.saffron,
   },
+  pushPromptCard: {
+    marginHorizontal: S.base,
+    marginTop: S.sm,
+    backgroundColor: C.surface,
+    borderRadius: RADIUS.card,
+    padding: S.base,
+    gap: S.sm,
+    borderWidth: 1,
+    borderColor: `${C.saffron}40`,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
+  },
+  pushPromptBody: { flexDirection: "row", alignItems: "flex-start", gap: S.sm },
+  pushPromptTitle: { color: C.textPrimary },
+  pushPromptBody2: { color: C.textSecond },
+  pushPromptActions: { flexDirection: "row", gap: S.sm },
+  pushPromptEnable: {
+    flex: 1, paddingVertical: 10, borderRadius: RADIUS.chip,
+    backgroundColor: C.saffron, alignItems: "center",
+  },
+  pushPromptEnableText: { fontFamily: EnFont.Bold, fontSize: 14, color: C.surface },
+  pushPromptDismiss: {
+    paddingVertical: 10, paddingHorizontal: S.md, borderRadius: RADIUS.chip,
+    borderWidth: 1, borderColor: C.divider, alignItems: "center",
+  },
+  pushPromptDismissText: { fontFamily: EnFont.Regular, fontSize: 14, color: C.textSecond },
+
   decisionCard: {
     marginHorizontal: S.base,
     marginTop: S.base,

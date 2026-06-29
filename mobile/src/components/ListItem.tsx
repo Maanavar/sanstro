@@ -6,16 +6,18 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
-import { ChevronRight } from "lucide-react-native";
-import type { LucideIcon } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 import type { ColorTokens } from "@/theme/colors";
 import { HIT_SLOP, RADIUS, S } from "@/theme/spacing";
 import { EnType, TamilType } from "@/theme/typography";
 
+/** Generic icon component shape accepted by ListItem (compatible with Ionicons and Lucide). */
+type IconComponent = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+
 type Props = {
-  /** Lucide icon displayed in the left icon well. Omit to skip the well. */
-  icon?: LucideIcon;
+  /** Icon component displayed in the left icon well. Omit to skip the well. */
+  icon?: IconComponent;
   /** Override icon color (defaults to C.goldOnLight). */
   iconColor?: string;
   /** Override icon well background (defaults to C.goldLight). */
@@ -67,7 +69,7 @@ export function ListItem({
 
   const defaultTrailing =
     trailing === undefined && onPress ? (
-      <ChevronRight size={18} color={C.textTertiary} strokeWidth={1.5} />
+      <Ionicons name="chevron-forward" size={18} color={C.textTertiary} />
     ) : null;
   const resolvedTrailing = trailing !== undefined ? trailing : defaultTrailing;
 
