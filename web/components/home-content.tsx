@@ -547,6 +547,142 @@ export function HomeContent() {
           <Link href="/dashboard" className="cl-btn cl-btn--solid">{mt(HOME.cta_btn, lang)}</Link>
         </div>
       </section>
+
+      {/* SECTION 12 — Email capture (P4-10) */}
+      <section className="cl-newsletter" id="newsletter">
+        <div className="cl-container cl-newsletter__inner">
+          <p className="cl-eyebrow">
+            {lang === "en" ? "Stay in the loop" : "தினசரி வழிகாட்டுதல்"}
+          </p>
+          <h2 className="cl-section-h2">
+            {lang === "en"
+              ? "Get your free daily astrology summary."
+              : "உங்கள் இலவச நாளிதழ் ஜோதிட சுருக்கம்."}
+          </h2>
+          <p className="cl-section-body">
+            {lang === "en"
+              ? "Daily Thirukanitham score, transit alerts, and timing highlights — delivered to your inbox."
+              : "தினசரி திருகணிதம் மதிப்பு, கோசார எச்சரிக்கைகள், மற்றும் சுப நேர தகவல்கள் — உங்கள் மின்னஞ்சலுக்கு."}
+          </p>
+          <NewsletterForm lang={lang} />
+        </div>
+      </section>
+
+      {/* SECTION 13 — Download the app (P4-02) */}
+      <section className="cl-app-dl" id="download-app">
+        <div className="cl-container">
+          <div className="cl-app-dl__inner">
+            <div className="cl-app-dl__copy">
+              <p className="cl-eyebrow">
+                {lang === "en" ? "Available on Mobile" : "மொபைல் பயன்பாடு"}
+              </p>
+              <h2 className="cl-section-h2">
+                {lang === "en" ? "Take Vinaadi everywhere." : "விநாடி உங்களுடன்."}
+              </h2>
+              <p className="cl-section-body">
+                {lang === "en"
+                  ? "Daily Thirukanitham guidance, Jadhagam, and family timing — all on your phone. Start with a free 7-day trial."
+                  : "தினசரி திருகணிதம் வழிகாட்டல், ஜாதகம், குடும்ப நேரங்கள் — உங்கள் கையில். 7 நாள் இலவச சோதனை."}
+              </p>
+            </div>
+            <div className="cl-app-dl__badges">
+              <a
+                href="https://play.google.com/store/apps/details?id=ai.vinaadi.app"
+                className="cl-store-badge"
+                aria-label="Get Vinaadi on Google Play"
+                onClick={() => track("app_dl_clicked", { store: "play" })}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M3.18 23.76C2.48 23.36 2 22.6 2 21.7V2.3C2 1.4 2.48.64 3.18.24L13.88 12 3.18 23.76z" fill="#EA4335"/>
+                  <path d="M17.67 15.54L5.4 22.78l9.3-9.3 2.97 2.06z" fill="#FBBC05"/>
+                  <path d="M21.14 10.53c.55.3.86.84.86 1.47s-.31 1.17-.86 1.47l-3.47 2.07-3.23-3.23 3.23-3.23 3.47 2.45z" fill="#4285F4"/>
+                  <path d="M5.4 1.22L17.67 8.46l-2.97 2.07-9.3-9.31z" fill="#34A853"/>
+                </svg>
+                <div>
+                  <p className="cl-store-badge__meta">
+                    {lang === "en" ? "Get it on" : "பதிவிறக்கம்"}
+                  </p>
+                  <p className="cl-store-badge__name">Google Play</p>
+                </div>
+              </a>
+              <a
+                href="https://apps.apple.com/app/vinaadi/id0000000000"
+                className="cl-store-badge"
+                aria-label="Download Vinaadi on the App Store"
+                onClick={() => track("app_dl_clicked", { store: "appstore" })}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="#2E2118" aria-hidden="true">
+                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                </svg>
+                <div>
+                  <p className="cl-store-badge__meta">
+                    {lang === "en" ? "Download on the" : "பதிவிறக்கம்"}
+                  </p>
+                  <p className="cl-store-badge__name">App Store</p>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
+  );
+}
+
+function NewsletterForm({ lang }: { lang: "en" | "ta" }) {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const ta = lang === "ta";
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/v1/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), source: "web_home" }),
+      });
+      setStatus(res.ok ? "done" : "error");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  if (status === "done") {
+    return (
+      <p className="cl-newsletter__confirm">
+        {ta ? "பதிவு செய்தமைக்கு நன்றி!" : "You're subscribed — thank you!"}
+      </p>
+    );
+  }
+
+  return (
+    <form className="cl-newsletter__form" onSubmit={handleSubmit}>
+      <input
+        type="email"
+        className="cl-newsletter__input"
+        placeholder={ta ? "மின்னஞ்சல் உள்ளிடுக" : "Your email address"}
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        disabled={status === "loading"}
+      />
+      <button
+        type="submit"
+        className="cl-btn cl-btn--solid cl-newsletter__btn"
+        disabled={status === "loading"}
+      >
+        {status === "loading"
+          ? (ta ? "பதிவு…" : "Subscribing…")
+          : (ta ? "பதிவு செய்" : "Subscribe")}
+      </button>
+      {status === "error" && (
+        <p className="cl-newsletter__error">
+          {ta ? "பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்." : "Something went wrong. Please try again."}
+        </p>
+      )}
+    </form>
   );
 }

@@ -207,14 +207,16 @@ export default function PricingPage() {
               </p>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {/* iOS App Store badge */}
-              <a
-                href="https://apps.apple.com/app/vinaadi/id0000000000"
+              {/* iOS App Store badge — listing pending, disabled until live */}
+              <div
+                aria-disabled="true"
+                title="App Store listing coming soon"
                 style={{
                   display: "flex", alignItems: "center", gap: "12px",
-                  background: "#FFF7ED", borderRadius: "12px",
-                  padding: "12px 20px", textDecoration: "none",
+                  background: "rgba(255,247,237,0.35)", borderRadius: "12px",
+                  padding: "12px 20px",
                   border: "1px solid rgba(255,247,237,0.15)",
+                  opacity: 0.55, cursor: "default",
                 }}
               >
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="#1A1208" aria-hidden="true">
@@ -223,8 +225,9 @@ export default function PricingPage() {
                 <div>
                   <p style={{ margin: 0, fontSize: "0.625rem", color: "#6C4B32", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Download on the</p>
                   <p style={{ margin: 0, fontSize: "1rem", color: "#2E2118", fontWeight: 800, lineHeight: 1.2 }}>App Store</p>
+                  <p style={{ margin: "2px 0 0", fontSize: "0.625rem", color: "#6C4B32", fontWeight: 500 }}>Coming soon</p>
                 </div>
-              </a>
+              </div>
               {/* Google Play badge */}
               <a
                 href="https://play.google.com/store/apps/details?id=ai.vinaadi.app"

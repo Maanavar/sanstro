@@ -4287,6 +4287,74 @@ button:focus-visible,
   margin: 0 auto 28px;
 }
 
+/* ── Newsletter email capture (P4-10) ─────────────────────── */
+.cl-newsletter {
+  padding: 72px 0;
+  background: var(--surface-1, #f7f3ee);
+  text-align: center;
+}
+.cl-newsletter__inner { max-width: 540px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.cl-newsletter__form { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 8px; width: 100%; max-width: 480px; }
+.cl-newsletter__input {
+  flex: 1; min-width: 200px; padding: 12px 16px; border: 1px solid var(--color-border, #d9d1c8);
+  border-radius: 10px; font-size: 0.95rem; background: #fff; color: var(--color-text);
+  font-family: inherit;
+}
+.cl-newsletter__input:focus { outline: none; border-color: var(--color-saffron, #c07a2c); }
+.cl-newsletter__btn { padding: 12px 24px; white-space: nowrap; }
+.cl-newsletter__confirm { font-size: 1rem; font-weight: 600; color: var(--color-saffron, #c07a2c); margin: 12px 0 0; }
+.cl-newsletter__error { font-size: 0.82rem; color: #c0392b; margin: 4px 0 0; width: 100%; text-align: center; }
+
+/* ── App download CTA ─────────────────────────────────────── */
+.cl-app-dl {
+  padding: 80px 0;
+  background: linear-gradient(135deg, #1A1208 0%, #2E2118 60%, #3D2B1A 100%);
+}
+.cl-app-dl .cl-eyebrow { color: #C8944A; }
+.cl-app-dl .cl-section-h2 { color: #FFF7ED; }
+.cl-app-dl .cl-section-body { color: rgba(255,247,237,0.75); max-width: 44ch; }
+.cl-app-dl__inner {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 40px;
+  align-items: center;
+}
+.cl-app-dl__badges {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.cl-store-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #FFF7ED;
+  border-radius: 12px;
+  padding: 12px 20px;
+  text-decoration: none;
+  border: 1px solid rgba(255,247,237,0.15);
+  min-width: 180px;
+  transition: opacity 0.15s;
+}
+.cl-store-badge:hover { opacity: 0.88; }
+.cl-store-badge__meta {
+  margin: 0;
+  font-size: 0.625rem;
+  color: #6C4B32;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+.cl-store-badge__name {
+  margin: 0;
+  font-size: 1rem;
+  color: #2E2118;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
 /* ── Footer ───────────────────────────────────────────────── */
 .cl-footer {
   background:
@@ -4545,8 +4613,16 @@ button:focus-visible,
   .cl-helps,
   .cl-daily,
   .cl-balance,
-  .cl-commit {
+  .cl-commit,
+  .cl-app-dl {
     padding: 56px 0;
+  }
+  .cl-app-dl__inner {
+    grid-template-columns: 1fr;
+  }
+  .cl-app-dl__badges {
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 }
 

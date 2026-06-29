@@ -101,7 +101,7 @@ export default function WrappedPage() {
           >
             ← {ta ? "திரும்பு" : "Back"}
           </button>
-          <div>
+          <div style={{ flex: 1 }}>
             <h1 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>
               {ta ? `${wrappedYear} ஆண்டு சுருக்கம்` : `${wrappedYear} Year in Review`}
             </h1>
@@ -109,6 +109,25 @@ export default function WrappedPage() {
               {ta ? "ஆண்டு ராப்ட்" : "Annual Wrapped"}
             </p>
           </div>
+          {wrapped && (
+            <button
+              type="button"
+              onClick={() => {
+                const summary = ta
+                  ? `${wrappedYear} ஆண்டு விநாடி சுருக்கம் — மதிப்பெண்: ${wrapped.averageScore}/100 | உச்சம்: ${wrapped.peakScore} | ${wrapped.dominantDashaLord} தசை | ${wrapped.highDays} நல்ல நாட்கள். vinaadi.com`
+                  : `My ${wrappedYear} Vinaadi Year Wrapped — Avg score: ${wrapped.averageScore}/100 | Peak: ${wrapped.peakScore} | ${wrapped.dominantDashaLord} Dasha | ${wrapped.highDays} high days. vinaadi.com`;
+                if (navigator.share) {
+                  void navigator.share({ title: ta ? "ஆண்டு சுருக்கம்" : "Year Wrapped", text: summary });
+                } else {
+                  void navigator.clipboard.writeText(summary);
+                  alert(ta ? "நகலெடுக்கப்பட்டது!" : "Copied to clipboard!");
+                }
+              }}
+              style={{ background: "var(--color-saffron, #c07a2c)", color: "#fff", border: "none", borderRadius: "8px", padding: "6px 14px", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
+            >
+              {ta ? "பகிர்" : "Share"}
+            </button>
+          )}
         </div>
 
         {loading && (
