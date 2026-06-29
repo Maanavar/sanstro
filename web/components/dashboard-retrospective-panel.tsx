@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
@@ -249,7 +249,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
           {result.caution && (
           <div style={{ padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: "#FCE7E2", border: `1px solid ${W.rust}44` }}>
               <p className="cd-kicker" style={{ color: W.rust }}>
-                âš  {t("retro_caution", lang)}
+                ⚠ {t("retro_caution", lang)}
               </p>
               <p style={{ margin: 0, fontSize: "0.75rem", color: W.rust, lineHeight: 1.5 }}>
                 {tLang(result.caution, lang)}

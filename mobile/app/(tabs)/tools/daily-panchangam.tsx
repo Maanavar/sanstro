@@ -64,7 +64,7 @@ function TimeBar({ label, labelTa, start, end, color, C, isTamil, styles }: Time
           {isTamil && labelTa ? labelTa : label}
         </Text>
         <Text style={[styles.timeBarRange, isTamil ? TamilType.caption : EnType.caption]}>
-          {isoToHHMM(start)} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ {isoToHHMM(end)}
+          {isoToHHMM(start)} - {isoToHHMM(end)}
         </Text>
       </View>
     </View>
@@ -114,7 +114,7 @@ export default function DailyPanchangamToolScreen() {
   const lon = prefs?.lon ?? undefined;
   const hasLocation = lat != null && lon != null;
   const isLocationMissing = prefsLoaded && !hasLocation;
-  const locationLabel = prefs?.city ?? (isLocationMissing ? (isTamil ? "Ã Â®â€¡Ã Â®Å¸Ã Â®Â¤Ã Â¯ÂÃ Â®Â¤Ã Â¯Ë† Ã Â®â€¦Ã Â®Â®Ã Â¯Ë†Ã Â®â€¢Ã Â¯ÂÃ Â®â€¢Ã Â®ÂµÃ Â¯ÂÃ Â®Â®Ã Â¯Â" : "Set location") : "Chennai");
+  const locationLabel = prefs?.city ?? (isLocationMissing ? (isTamil ? "இடத்தை அமைக்கவும்" : "Set location") : "Chennai");
 
   const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["panchangam-tool", iso, lat, lon],
@@ -139,11 +139,11 @@ export default function DailyPanchangamToolScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Text style={styles.back}>ÃƒÂ¢Ã¢â‚¬Â Ã‚Â</Text>
+          <Text style={styles.back}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={[styles.headerTitle, isTamil ? TamilType.heading : EnType.heading]}>
-            {isTamil ? "ÃƒÂ Ã‚Â®Ã‚ÂªÃƒÂ Ã‚Â®Ã…Â¾ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã…Â¡ÃƒÂ Ã‚Â®Ã‚Â¾ÃƒÂ Ã‚Â®Ã¢â€žÂ¢ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚Â" : "Daily Panchangam"}
+            {isTamil ? "பஞ்சாங்கம்" : "Daily Panchangam"}
           </Text>
           <Text style={styles.locationLabel}>{locationLabel}</Text>
         </View>
@@ -194,12 +194,12 @@ export default function DailyPanchangamToolScreen() {
             onPress={() => router.push("/(onboarding)/location")}
           >
             <Text style={[styles.locationPromptTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-              {isTamil ? "à®¤à®¿à®© à®ªà®žà¯à®šà®¾à®™à¯à®•à®¤à¯à®¤à®¿à®±à¯à®•à¯ à®‰à®™à¯à®•à®³à¯ à®¨à®•à®°à®¤à¯à®¤à¯ˆ à®…à®®à¯ˆà®•à¯à®•à®µà¯à®®à¯" : "Set your city for the daily Panchangam"}
+              {isTamil ? "தின பஞ்சாங்கத்திற்கு உங்கள் நகரத்தை அமைக்கவும்" : "Set your city for the daily Panchangam"}
             </Text>
             <Text style={styles.locationPromptBody}>
-              {isTamil ? "à®‡à®Ÿà®®à¯ à®‡à®²à¯à®²à®¾à®®à®²à¯ à®¤à®¿à®© à®¨à¯‡à®°à®™à¯à®•à®³à¯ à®¤à®µà®±à®¾à®• à®‡à®°à¯à®•à¯à®•à®²à®¾à®®à¯." : "Without your location, the day's time windows can be inaccurate."}
+              {isTamil ? "இடம் இல்லாமல் தின நேரங்கள் தவறாக இருக்கலாம்." : "Without your location, the day's time windows can be inaccurate."}
             </Text>
-            <Text style={styles.locationPromptCta}>{isTamil ? "à®‡à®Ÿà®¤à¯à®¤à¯ˆ à®ªà¯à®¤à¯à®ªà¯à®ªà®¿à®•à¯à®•à®µà¯à®®à¯" : "Update location"}</Text>
+            <Text style={styles.locationPromptCta}>{isTamil ? "இடத்தை புதுப்பிக்கவும்" : "Update location"}</Text>
           </TouchableOpacity>
         ) : null}
 
@@ -211,7 +211,7 @@ export default function DailyPanchangamToolScreen() {
             {p.subhaMuhurtham.isSubha && (
               <View style={styles.subhaBanner}>
                 <Text style={[styles.subhaBannerText, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                  {isTamil ? "ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ ÃƒÂ Ã‚Â®Ã¢â‚¬Â¡ÃƒÂ Ã‚Â®Ã‚Â©ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚Â±ÃƒÂ Ã‚Â¯Ã‚Â ÃƒÂ Ã‚Â®Ã…Â¡ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚Âª ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¯Ã¢â‚¬Å¡ÃƒÂ Ã‚Â®Ã‚Â°ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚Â¤ ÃƒÂ Ã‚Â®Ã‚Â¨ÃƒÂ Ã‚Â®Ã‚Â¾ÃƒÂ Ã‚Â®Ã‚Â³ÃƒÂ Ã‚Â¯Ã‚Â" : "ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ Auspicious Muhurtham Day"}
+                  {isTamil ? "✓ இன்று சுப முகூர்த்த நாள்" : "✓ Auspicious Muhurtham Day"}
                 </Text>
               </View>
             )}
@@ -231,33 +231,33 @@ export default function DailyPanchangamToolScreen() {
 
             {/* Panchangam summary cards */}
             <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-              {isTamil ? "ÃƒÂ Ã‚Â®Ã‚ÂªÃƒÂ Ã‚Â®Ã…Â¾ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã…Â¡ÃƒÂ Ã‚Â®Ã‚Â¾ÃƒÂ Ã‚Â®Ã¢â€žÂ¢ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ ÃƒÂ Ã‚Â®Ã‚ÂµÃƒÂ Ã‚Â®Ã‚Â¿ÃƒÂ Ã‚Â®Ã‚ÂµÃƒÂ Ã‚Â®Ã‚Â°ÃƒÂ Ã‚Â®Ã¢â€žÂ¢ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â®Ã‚Â³ÃƒÂ Ã‚Â¯Ã‚Â" : "Panchangam Details"}
+              {isTamil ? "பஞ்சாங்க விவரங்கள்" : "Panchangam Details"}
             </Text>
             <View style={styles.pGrid}>
               <PanchangamCard
-                label="Tithi" labelTa="ÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â®Ã‚Â¿ÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â®Ã‚Â¿"
+                label="Tithi" labelTa="திதி"
                 value={p.tithi.name}
-                sub={`${isTamil ? "ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã…Â¸ÃƒÂ Ã‚Â®Ã‚Â¿ÃƒÂ Ã‚Â®Ã‚ÂµÃƒÂ Ã‚Â¯Ã‚Â" : "Ends"} ${isoToHHMM(p.tithi.endsAt)}`}
+                sub={`${isTamil ? "முடிவு" : "Ends"} ${isoToHHMM(p.tithi.endsAt)}`}
                 isTamil={isTamil} styles={styles} C={C}
               />
               <PanchangamCard
-                label="Nakshatra" labelTa="ÃƒÂ Ã‚Â®Ã‚Â¨ÃƒÂ Ã‚Â®Ã…Â¸ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã…Â¡ÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â®Ã‚Â¿ÃƒÂ Ã‚Â®Ã‚Â°ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚Â"
+                label="Nakshatra" labelTa="நட்சத்திரம்"
                 value={p.nakshatra.name}
-                sub={`${isTamil ? "ÃƒÂ Ã‚Â®Ã‚ÂªÃƒÂ Ã‚Â®Ã‚Â¾ÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚Â" : "Pada"} ${p.nakshatra.pada}`}
+                sub={`${isTamil ? "பாதம்" : "Pada"} ${p.nakshatra.pada}`}
                 isTamil={isTamil} styles={styles} C={C}
               />
             </View>
             <View style={styles.pGrid}>
               <PanchangamCard
-                label="Yoga" labelTa="ÃƒÂ Ã‚Â®Ã‚Â¯ÃƒÂ Ã‚Â¯Ã¢â‚¬Â¹ÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚Â"
+                label="Yoga" labelTa="யோகம்"
                 value={p.yoga.name}
-                sub={`${isTamil ? "ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã…Â¸ÃƒÂ Ã‚Â®Ã‚Â¿ÃƒÂ Ã‚Â®Ã‚ÂµÃƒÂ Ã‚Â¯Ã‚Â" : "Ends"} ${isoToHHMM(p.yoga.endsAt)}`}
+                sub={`${isTamil ? "முடிவு" : "Ends"} ${isoToHHMM(p.yoga.endsAt)}`}
                 isTamil={isTamil} styles={styles} C={C}
               />
               <PanchangamCard
-                label="Karana" labelTa="ÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â®Ã‚Â°ÃƒÂ Ã‚Â®Ã‚Â£ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚Â"
+                label="Karana" labelTa="கரணம்"
                 value={p.karana.name}
-                sub={`${isTamil ? "ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã…Â¸ÃƒÂ Ã‚Â®Ã‚Â¿ÃƒÂ Ã‚Â®Ã‚ÂµÃƒÂ Ã‚Â¯Ã‚Â" : "Ends"} ${isoToHHMM(p.karana.endsAt)}`}
+                sub={`${isTamil ? "முடிவு" : "Ends"} ${isoToHHMM(p.karana.endsAt)}`}
                 isTamil={isTamil} styles={styles} C={C}
               />
             </View>
@@ -265,17 +265,17 @@ export default function DailyPanchangamToolScreen() {
             {/* Sunrise/Sunset */}
             <View style={styles.sunRow}>
               <View style={styles.sunItem}>
-                <Text style={styles.sunIcon}>ÃƒÂ°Ã…Â¸Ã…â€™Ã¢â‚¬Â¦</Text>
+                <Text style={styles.sunIcon}>🌅</Text>
                 <Text style={[styles.sunLabel, isTamil ? TamilType.caption : EnType.caption]}>
-                  {isTamil ? "ÃƒÂ Ã‚Â®Ã…Â¡ÃƒÂ Ã‚Â¯Ã¢â‚¬Å¡ÃƒÂ Ã‚Â®Ã‚Â°ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚Â¯ÃƒÂ Ã‚Â¯Ã¢â‚¬Â¹ÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â®Ã‚Â¯ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚Â" : "Sunrise"}
+                  {isTamil ? "சூர்யோதயம்" : "Sunrise"}
                 </Text>
                 <Text style={[styles.sunTime, { fontFamily: "Inter_700Bold" }]}>{isoToHHMM(p.sunrise)}</Text>
               </View>
               <View style={styles.sunDivider} />
               <View style={styles.sunItem}>
-                <Text style={styles.sunIcon}>ÃƒÂ°Ã…Â¸Ã…â€™Ã¢â‚¬Â¡</Text>
+                <Text style={styles.sunIcon}>🌇</Text>
                 <Text style={[styles.sunLabel, isTamil ? TamilType.caption : EnType.caption]}>
-                  {isTamil ? "ÃƒÂ Ã‚Â®Ã…Â¡ÃƒÂ Ã‚Â¯Ã¢â‚¬Å¡ÃƒÂ Ã‚Â®Ã‚Â°ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚Â¯ÃƒÂ Ã‚Â®Ã‚Â¾ÃƒÂ Ã‚Â®Ã‚Â¸ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â®Ã‚Â¯ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚Â" : "Sunset"}
+                  {isTamil ? "சூர்யாஸ்தமயம்" : "Sunset"}
                 </Text>
                 <Text style={[styles.sunTime, { fontFamily: "Inter_700Bold" }]}>{isoToHHMM(p.sunset)}</Text>
               </View>
@@ -283,21 +283,21 @@ export default function DailyPanchangamToolScreen() {
 
             {/* Time windows */}
             <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-              {isTamil ? "ÃƒÂ Ã‚Â®Ã‚Â¨ÃƒÂ Ã‚Â¯Ã¢â‚¬Â¡ÃƒÂ Ã‚Â®Ã‚Â° ÃƒÂ Ã‚Â®Ã…Â¡ÃƒÂ Ã‚Â®Ã‚Â¾ÃƒÂ Ã‚Â®Ã‚Â³ÃƒÂ Ã‚Â®Ã‚Â°ÃƒÂ Ã‚Â®Ã¢â€žÂ¢ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â®Ã‚Â³ÃƒÂ Ã‚Â¯Ã‚Â" : "Time Windows"}
+              {isTamil ? "நேர சாளரங்கள்" : "Time Windows"}
             </Text>
 
             <View style={styles.timeBarsCard}>
               {/* Inauspicious */}
               <Text style={[styles.timeGroupLabel, { color: C.alert, fontFamily: "Inter_600SemiBold" }]}>
-                {isTamil ? "ÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â®Ã‚ÂµÃƒÂ Ã‚Â®Ã‚Â¿ÃƒÂ Ã‚Â®Ã‚Â°ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ ÃƒÂ Ã‚Â®Ã‚ÂµÃƒÂ Ã‚Â¯Ã¢â‚¬Â¡ÃƒÂ Ã‚Â®Ã‚Â£ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã…Â¸ÃƒÂ Ã‚Â®Ã‚Â¿ÃƒÂ Ã‚Â®Ã‚Â¯ ÃƒÂ Ã‚Â®Ã‚Â¨ÃƒÂ Ã‚Â¯Ã¢â‚¬Â¡ÃƒÂ Ã‚Â®Ã‚Â°ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚Â" : "Avoid"}
+                {isTamil ? "தவிர்க்க வேண்டிய நேரம்" : "Avoid"}
               </Text>
-              <TimeBar label="Rahu Kalam" labelTa="ÃƒÂ Ã‚Â®Ã‚Â°ÃƒÂ Ã‚Â®Ã‚Â¾ÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¯Ã‚Â ÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â®Ã‚Â¾ÃƒÂ Ã‚Â®Ã‚Â²ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚Â"
+              <TimeBar label="Rahu Kalam" labelTa="ராகு காலம்"
                 start={p.kalam.rahuKalam.start} end={p.kalam.rahuKalam.end}
                 color={C.alert} C={C} isTamil={isTamil} styles={styles} />
-              <TimeBar label="Yamagandam" labelTa="ÃƒÂ Ã‚Â®Ã‚Â¯ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â®Ã‚Â£ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã…Â¸ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚Â"
+              <TimeBar label="Yamagandam" labelTa="யமகண்டம்"
                 start={p.kalam.yamagandam.start} end={p.kalam.yamagandam.end}
                 color={C.alert} C={C} isTamil={isTamil} styles={styles} />
-              <TimeBar label="Kuligai" labelTa="ÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚Â³ÃƒÂ Ã‚Â®Ã‚Â¿ÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¯Ã‹â€ "
+              <TimeBar label="Kuligai" labelTa="குளிகை"
                 start={p.kalam.kuligai.start} end={p.kalam.kuligai.end}
                 color={C.caution} C={C} isTamil={isTamil} styles={styles} />
 
@@ -305,18 +305,18 @@ export default function DailyPanchangamToolScreen() {
 
               {/* Auspicious */}
               <Text style={[styles.timeGroupLabel, { color: C.green, fontFamily: "Inter_600SemiBold" }]}>
-                {isTamil ? "ÃƒÂ Ã‚Â®Ã…Â¡ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚Âª ÃƒÂ Ã‚Â®Ã‚Â¨ÃƒÂ Ã‚Â¯Ã¢â‚¬Â¡ÃƒÂ Ã‚Â®Ã‚Â°ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚Â" : "Auspicious"}
+                {isTamil ? "சுப நேரம்" : "Auspicious"}
               </Text>
               {p.kalam.nallaNeram.map((slot, i) => (
                 <TimeBar key={i}
                   label={`Nalla Neram ${p.kalam.nallaNeram.length > 1 ? i + 1 : ""}`}
-                  labelTa={`ÃƒÂ Ã‚Â®Ã‚Â¨ÃƒÂ Ã‚Â®Ã‚Â²ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚Â² ÃƒÂ Ã‚Â®Ã‚Â¨ÃƒÂ Ã‚Â¯Ã¢â‚¬Â¡ÃƒÂ Ã‚Â®Ã‚Â°ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚Â${p.kalam.nallaNeram.length > 1 ? ` ${i + 1}` : ""}`}
+                  labelTa={`நல்ல நேரம்${p.kalam.nallaNeram.length > 1 ? ` ${i + 1}` : ""}`}
                   start={slot.start} end={slot.end}
                   color={C.green} C={C} isTamil={isTamil} styles={styles}
                 />
               ))}
               {!p.abhijit.isRestrictedByWeekday && (
-                <TimeBar label="Abhijit Muhurta" labelTa="ÃƒÂ Ã‚Â®Ã¢â‚¬Â¦ÃƒÂ Ã‚Â®Ã‚ÂªÃƒÂ Ã‚Â®Ã‚Â¿ÃƒÂ Ã‚Â®Ã…â€œÃƒÂ Ã‚Â®Ã‚Â¿ÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â¯Ã‚Â ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¯Ã¢â‚¬Å¡ÃƒÂ Ã‚Â®Ã‚Â°ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â¯Ã‚ÂÃƒÂ Ã‚Â®Ã‚Â¤ÃƒÂ Ã‚Â®Ã‚Â®ÃƒÂ Ã‚Â¯Ã‚Â"
+                <TimeBar label="Abhijit Muhurta" labelTa="அபிஜித் முகூர்த்தம்"
                   start={p.abhijit.start} end={p.abhijit.end}
                   color={C.amber} C={C} isTamil={isTamil} styles={styles} />
               )}

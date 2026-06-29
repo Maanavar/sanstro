@@ -21,8 +21,8 @@ import { ErrorCard } from "@/components/ErrorCard";
 import { RASI_LIST, type ChartCalculateResponseData } from "@vinaadi/shared";
 
 const PLANET_SHORT_TA: Record<string, string> = {
-  Sun: "à®šà¯‚", Moon: "à®šà®¨à¯", Mars: "à®šà¯†", Mercury: "à®ªà¯",
-  Jupiter: "à®•à¯", Venus: "à®šà¯", Saturn: "à®š", Rahu: "à®°à®¾", Ketu: "à®•à¯‡",
+  Sun: "சூ", Moon: "சந்", Mars: "செ", Mercury: "பு",
+  Jupiter: "கு", Venus: "சு", Saturn: "ச", Rahu: "ரா", Ketu: "கே",
 };
 const VARGA_OPTIONS = [
   { key: "D1", label: "D1 Rasi", meaning: "Birth chart - body, identity, life direction" },
@@ -117,7 +117,7 @@ export default function JadhagamDetailScreen() {
       const res = await fetchWithAuth(`/charts/${id}/export/pdf?lang=${lang}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const buffer = await res.arrayBuffer();
-      // Pure-JS base64 encoding — works on all RN platforms without btoa
+      // Pure-JS base64 encoding - works on all RN platforms without btoa
       const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
       const bytes = new Uint8Array(buffer);
       let b64 = "";
@@ -129,7 +129,7 @@ export default function JadhagamDetailScreen() {
         b64 += i + 2 < bytes.length ? alphabet[b2 & 63] : "=";
       }
       await Share?.open({
-        title: isTamil ? "à®œà®¾à®¤à®•à®®à¯ PDF" : "Jadhagam PDF",
+        title: isTamil ? "ஜாதகம் PDF" : "Jadhagam PDF",
         type: "application/pdf",
         url: `data:application/pdf;base64,${b64}`,
         filename: `jadhagam-${id}.pdf`,
@@ -151,12 +151,12 @@ export default function JadhagamDetailScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} accessibilityLabel={isTamil ? "Back" : "Back"} onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={styles.backArrow}>â†</Text>
+          <Text style={styles.backArrow}>←</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, isTamil ? TamilType.heading : EnType.heading]} numberOfLines={1}>
           {chart?.birthProfile?.displayName
-            ? `${chart.birthProfile.displayName} ${isTamil ? "à®œà®¾à®¤à®•à®®à¯" : "Jadhagam"}`
-            : (isTamil ? "à®œà®¾à®¤à®•à®®à¯" : "Jadhagam")}
+            ? `${chart.birthProfile.displayName} ${isTamil ? "ஜாதகம்" : "Jadhagam"}`
+            : (isTamil ? "ஜாதகம்" : "Jadhagam")}
         </Text>
         <ThirukanithamBadge />
       </View>
@@ -170,7 +170,7 @@ export default function JadhagamDetailScreen() {
             {/* Rasi chart */}
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-                {isTamil ? "à®°à¯‹à®œà®¾ à®šà®•à¯à®•à®°à®®à¯" : `${activeVargaMeta.label} Chart`}
+                {isTamil ? "ராசி சக்கரம்" : `${activeVargaMeta.label} Chart`}
               </Text>
               <ScrollView
                 horizontal
@@ -209,13 +209,13 @@ export default function JadhagamDetailScreen() {
             {/* Key chart data */}
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-                {isTamil ? "à®®à¯à®•à¯à®•à®¿à®¯ à®µà®¿à®µà®°à®™à¯à®•à®³à¯" : "Key Details"}
+                {isTamil ? "முக்கிய விவரங்கள்" : "Key Details"}
               </Text>
               <View style={styles.dataGrid}>
                 {[
-                  { label: isTamil ? "à®²à®•à¯à®©à®®à¯" : "Lagna", value: chart.lagna.rasiName },
-                  { label: isTamil ? "à®¨à®Ÿà¯à®šà®¤à¯à®¤à®¿à®°à®®à¯" : "Nakshatra", value: chart.lagna.nakshatraName },
-                  { label: isTamil ? "à®ªà®¾à®¤à®®à¯" : "Pada", value: String(chart.lagna.pada) },
+                  { label: isTamil ? "லக்னம்" : "Lagna", value: chart.lagna.rasiName },
+                  { label: isTamil ? "நட்சத்திரம்" : "Nakshatra", value: chart.lagna.nakshatraName },
+                  { label: isTamil ? "பாதம்" : "Pada", value: String(chart.lagna.pada) },
                 ].map((item) => (
                   <View key={item.label} style={styles.datumCard}>
                     <Text style={styles.datumLabel}>{item.label}</Text>
@@ -232,7 +232,7 @@ export default function JadhagamDetailScreen() {
             {/* Planet positions */}
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-                {isTamil ? "à®•à®¿à®°à®• à®¨à®¿à®²à¯ˆà®•à®³à¯" : `${activeVargaMeta.key} Planet Positions`}
+                {isTamil ? "கிரக நிலைகள்" : `${activeVargaMeta.key} Planet Positions`}
               </Text>
               <View style={styles.planetList}>
                 {chart.planets.map((p, i) => (
@@ -284,12 +284,12 @@ export default function JadhagamDetailScreen() {
               disabled={isExporting}
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel={isTamil ? "PDF à®à®±à¯à®±à¯à®®à®¤à®¿" : "Export as PDF"}
+              accessibilityLabel={isTamil ? "PDF ஏற்றுமதி" : "Export as PDF"}
             >
               <Text style={styles.exportBtnText}>
                 {isExporting
-                  ? (isTamil ? "à®à®±à¯à®±à¯à®®à®¤à®¿ à®šà¯†à®¯à¯à®•à®¿à®±à®¤à¯..." : "Exporting…")
-                  : (isTamil ? "PDF à®à®±à¯à®±à¯à®®à®¤à®¿" : "Export as PDF")}
+                  ? (isTamil ? "ஏற்றுமதி செய்கிறது..." : "Exporting...")
+                  : (isTamil ? "PDF ஏற்றுமதி" : "Export as PDF")}
               </Text>
             </TouchableOpacity>
 
@@ -301,13 +301,13 @@ export default function JadhagamDetailScreen() {
             >
               <View style={{ flex: 1 }}>
                 <Text style={[styles.upsellTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
-                  {isTamil ? "à®µà®¿à®°à®¿à®µà®¾à®© à®…à®±à®¿à®•à¯à®•à¯ˆ à®µà¯‡à®£à¯à®Ÿà¯à®®à®¾?" : "Want a detailed report?"}
+                  {isTamil ? "விரிவான அறிக்கை வேண்டுமா?" : "Want a detailed report?"}
                 </Text>
                 <Text style={[styles.upsellSub, isTamil ? TamilType.caption : EnType.caption]}>
-                  {isTamil ? "5 à®ªà®•à¯à®•à®®à¯ â‚¹99 Â· 10 à®ªà®•à¯à®•à®®à¯ â‚¹249" : "5-page â‚¹99 Â· 10-page â‚¹249"}
+                  {isTamil ? "5 பக்கம் ₹99 · 10 பக்கம் ₹249" : "5-page ₹99 · 10-page ₹249"}
                 </Text>
               </View>
-              <Text style={styles.upsellArrow}>â†’</Text>
+              <Text style={styles.upsellArrow}>→</Text>
             </TouchableOpacity>
           </>
         )}
