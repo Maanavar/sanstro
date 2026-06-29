@@ -11,9 +11,9 @@ The 10 Poruthams (Tamil → calculation rule):
   1. Dinam      (தினம்)           — count boy's nak from girl's; fail if count mod 9 ∈ {0,2,4,6,8}
   2. Ganam      (கணம்)            — Deva/Manushya/Rakshasa; Deva+Deva or Deva+Manushya = pass
   3. Mahendra   (மகேந்திரம்)      — count girl's nak from boy's; pass if result ∈ {4,7,10,13,16,19,22,25}
-  4. Stree Dirgham (ஸ்திரீ தீர்கம்) — count girl's nak from boy's; pass if result > 13
+  4. Stree Dirgham (ஸ்திரீ தீர்கம்) — count boy's nak from girl's; pass if count > 7 (≥ 8)
   5. Yoni       (யோனி)            — same or neutral animal pair = pass; hostile pair = fail
-  6. Rasi       (ராசி)            — pass unless 4th or 8th position between rasis
+  6. Rasi       (ராசி)            — pass unless 6th or 8th position (Shashtashtaka) between rasis
   7. Rasiyathipathi (ராசியாதிபதி) — rasi lords must not be enemies (avg relation ≥ 0.5)
   8. Vasya      (வாஸ்யம்)         — at least one rasi must be vasya of the other
   9. Rajju      (ராஜ்ஜு)          — same Rajju group = VETO (widowhood risk)
@@ -77,25 +77,40 @@ _NAKSHATRA_NADI: dict[int, str] = {
 }
 
 # ---------------------------------------------------------------------------
-# Graha Maitri (planet friendship) table
+# Graha Maitri (planet friendship) table — Parashari Permanent Friendship
+# Asymmetric: each entry (A, B) is A's view of B; 1.0=friend 0.5=neutral 0.0=enemy
 # ---------------------------------------------------------------------------
 _GRAHA_RELATION: dict[tuple[str, str], float] = {}
 
-def _gm(a: str, b: str, rel: float) -> None:
-    _GRAHA_RELATION[(a, b)] = rel
-    _GRAHA_RELATION[(b, a)] = rel
+def _gr(a: str, b: str, a_to_b: float, b_to_a: float) -> None:
+    _GRAHA_RELATION[(a, b)] = a_to_b
+    _GRAHA_RELATION[(b, a)] = b_to_a
 
 for _p in ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN"):
     _GRAHA_RELATION[(_p, _p)] = 1.0
 
-_gm("SUN", "MOON", 1.0); _gm("SUN", "MARS", 1.0); _gm("SUN", "JUPITER", 1.0)
-_gm("SUN", "MERCURY", 0.5); _gm("SUN", "VENUS", 0.0); _gm("SUN", "SATURN", 0.0)
-_gm("MOON", "MERCURY", 1.0); _gm("MOON", "MARS", 0.5); _gm("MOON", "JUPITER", 1.0)
-_gm("MOON", "VENUS", 0.5); _gm("MOON", "SATURN", 0.5)
-_gm("MARS", "JUPITER", 1.0); _gm("MARS", "VENUS", 0.5); _gm("MARS", "SATURN", 0.5)
-_gm("MARS", "MERCURY", 0.0); _gm("MERCURY", "JUPITER", 0.5); _gm("MERCURY", "VENUS", 1.0)
-_gm("MERCURY", "SATURN", 1.0); _gm("JUPITER", "VENUS", 0.0); _gm("JUPITER", "SATURN", 0.0)
-_gm("VENUS", "SATURN", 1.0)
+#                              A→B   B→A
+_gr("SUN",     "MOON",    1.0, 1.0)  # friends both ways
+_gr("SUN",     "MARS",    1.0, 1.0)  # friends both ways
+_gr("SUN",     "JUPITER", 1.0, 1.0)  # friends both ways
+_gr("SUN",     "MERCURY", 0.5, 1.0)  # Sun:neutral, Mercury:friend
+_gr("SUN",     "VENUS",   0.0, 0.0)  # enemies both ways
+_gr("SUN",     "SATURN",  0.0, 0.0)  # enemies both ways
+_gr("MOON",    "MERCURY", 1.0, 0.0)  # Moon:friend, Mercury:enemy
+_gr("MOON",    "MARS",    0.5, 1.0)  # Moon:neutral, Mars:friend
+_gr("MOON",    "JUPITER", 0.5, 1.0)  # Moon:neutral, Jupiter:friend
+_gr("MOON",    "VENUS",   0.5, 0.0)  # Moon:neutral, Venus:enemy
+_gr("MOON",    "SATURN",  0.5, 0.0)  # Moon:neutral, Saturn:enemy
+_gr("MARS",    "MERCURY", 0.0, 0.5)  # Mars:enemy, Mercury:neutral
+_gr("MARS",    "JUPITER", 1.0, 1.0)  # friends both ways
+_gr("MARS",    "VENUS",   0.5, 0.5)  # neutral both ways
+_gr("MARS",    "SATURN",  0.5, 0.0)  # Mars:neutral, Saturn:enemy
+_gr("MERCURY", "JUPITER", 0.5, 0.0)  # Mercury:neutral, Jupiter:enemy
+_gr("MERCURY", "VENUS",   1.0, 1.0)  # friends both ways
+_gr("MERCURY", "SATURN",  1.0, 1.0)  # friends both ways
+_gr("JUPITER", "VENUS",   0.0, 0.5)  # Jupiter:enemy, Venus:neutral
+_gr("JUPITER", "SATURN",  0.5, 0.5)  # neutral both ways
+_gr("VENUS",   "SATURN",  1.0, 1.0)  # friends both ways
 
 # ---------------------------------------------------------------------------
 # Rajju groups — "tent" cycle with period 9: Pada,Kati,Udara,Kanta,Sira,Kanta,Udara,Kati,Pada
@@ -117,21 +132,22 @@ _VEDHA_PAIRS: frozenset[frozenset[int]] = frozenset(
 )
 
 # ---------------------------------------------------------------------------
-# Vasya — rasi-to-rasi vasya table (Thirukanitham tradition)
+# Vasya — rasi-to-rasi vasya table (classical Tamil Thirukanitham tradition)
+# Key = rasi (1-based), Value = rasis it controls
 # ---------------------------------------------------------------------------
 _VASYA: dict[int, frozenset[int]] = {
-    1: frozenset({5, 8}),
-    2: frozenset({8, 11}),
-    3: frozenset({9, 6}),
-    4: frozenset({10, 1}),
-    5: frozenset({11, 2}),
-    6: frozenset({12, 3}),
-    7: frozenset({1, 4}),
-    8: frozenset({2, 7}),
-    9: frozenset({3, 6}),
-    10: frozenset({4, 7}),
-    11: frozenset({5, 1}),
-    12: frozenset({6, 9}),
+    1:  frozenset({5, 8}),   # Mesha   → Simha, Vrischika
+    2:  frozenset({4, 7}),   # Rishaba → Kataka, Thula
+    3:  frozenset({6}),      # Mithuna → Kanni
+    4:  frozenset({8, 9}),   # Kataka  → Vrischika, Dhanus
+    5:  frozenset({7}),      # Simha   → Thula
+    6:  frozenset({3, 12}),  # Kanni   → Mithuna, Meena
+    7:  frozenset({10}),     # Thula   → Makara
+    8:  frozenset({4}),      # Vrischika → Kataka
+    9:  frozenset({12}),     # Dhanus  → Meena
+    10: frozenset({1}),      # Makara  → Mesha
+    11: frozenset({1}),      # Kumbha  → Mesha
+    12: frozenset({10}),     # Meena   → Makara
 }
 
 
@@ -165,9 +181,9 @@ def _mahendra_score(nak_boy: int, nak_girl: int) -> int:
 
 
 def _stree_dirgha_score(nak_boy: int, nak_girl: int) -> int:
-    """Stree Dirgham: count girl's nak from boy's (0-based); PASS if > 13."""
-    diff = (nak_girl - nak_boy) % 27
-    return 1 if diff > 13 else 0
+    """Stree Dirgham: count boy's nak from girl's (0-based); PASS if count > 7 (1-indexed ≥ 8)."""
+    diff = (nak_boy - nak_girl) % 27
+    return 1 if diff > 6 else 0
 
 
 def _yoni_score(nak_boy: int, nak_girl: int) -> int:
@@ -180,21 +196,21 @@ def _yoni_score(nak_boy: int, nak_girl: int) -> int:
 
 
 def _rasi_score(rasi_boy: int, rasi_girl: int) -> int:
-    """Rasi: 4th or 8th position between rasis = FAIL; all others = PASS."""
+    """Rasi: Shashtashtaka (6th or 8th) position = FAIL; all others = PASS."""
     diff_bg = (rasi_boy - rasi_girl) % 12 + 1
     diff_gb = (rasi_girl - rasi_boy) % 12 + 1
-    if diff_bg in {4, 8} or diff_gb in {4, 8}:
+    if diff_bg in {6, 8} or diff_gb in {6, 8}:
         return 0
     return 1
 
 
 def _graha_maitri_kuta(rasi_boy: int, rasi_girl: int) -> int:
-    """Rasiyathipathi: rasi lords must not be enemies (avg relation ≥ 0.5) = PASS."""
+    """Rasiyathipathi: FAIL if either rasi lord considers the other an enemy."""
     lb = SIGN_LORD[rasi_boy]
     lg = SIGN_LORD[rasi_girl]
     ab = _GRAHA_RELATION.get((lb, lg), 0.5)
     ba = _GRAHA_RELATION.get((lg, lb), 0.5)
-    return 1 if (ab + ba) / 2.0 >= 0.5 else 0
+    return 0 if (ab == 0.0 or ba == 0.0) else 1
 
 
 def _rajju_score(nak_boy: int, nak_girl: int) -> int:
@@ -306,10 +322,10 @@ def compute_porutham(
         "Dinam":           _dinam_score(boy_nakshatra, girl_nakshatra),
         "Ganam":           _ganam_score(boy_nakshatra, girl_nakshatra),
         "Mahendra":        _mahendra_score(boy_nakshatra, girl_nakshatra),
-        "Stree Dirgham":   _stree_dirgha_score(boy_nakshatra, girl_nakshatra),
+        "Stree Dirgha":    _stree_dirgha_score(boy_nakshatra, girl_nakshatra),
         "Yoni":            _yoni_score(boy_nakshatra, girl_nakshatra),
         "Rasi":            _rasi_score(boy_rasi, girl_rasi),
-        "Rasiyathipathi":  _graha_maitri_kuta(boy_rasi, girl_rasi),
+        "Graha Maitri":    _graha_maitri_kuta(boy_rasi, girl_rasi),
         "Vasya":           _vasya_score(boy_rasi, girl_rasi),
         "Rajju":           _rajju_score(boy_nakshatra, girl_nakshatra),
         "Vedha":           _vedha_score(boy_nakshatra, girl_nakshatra),
@@ -317,8 +333,8 @@ def compute_porutham(
 
     _names_ta = {
         "Dinam": "தினம்", "Ganam": "கணம்", "Mahendra": "மகேந்திரம்",
-        "Stree Dirgham": "ஸ்திரீ தீர்கம்", "Yoni": "யோனி", "Rasi": "ராசி",
-        "Rasiyathipathi": "ராசியாதிபதி", "Vasya": "வாஸ்யம்",
+        "Stree Dirgha": "ஸ்திரீ தீர்கம்", "Yoni": "யோனி", "Rasi": "ராசி",
+        "Graha Maitri": "ராசியாதிபதி", "Vasya": "வாஸ்யம்",
         "Rajju": "ராஜ்ஜு", "Vedha": "வேதம்",
     }
 

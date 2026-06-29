@@ -90,24 +90,25 @@ def test_mahendra_position_7():
 
 
 # ---------------------------------------------------------------------------
-# Stree Dirgham (ஸ்திரீ தீர்கம்) — count girl's nak FROM boy's (0-based); pass if > 13
+# Stree Dirgham (ஸ்திரீ தீர்கம்) — count boy's nak FROM girl's (0-based); pass if > 6
+# Threshold: boy must be ≥ 8th nakshatra from girl (count > 7 in 1-indexed)
 # ---------------------------------------------------------------------------
 
 def test_stree_dirgha_good():
-    # boy=14, girl=1: (1-14)%27=14 > 13 → PASS
-    assert _stree_dirgha_score(14, 1) == 1
+    # boy=20 (Uthiradam), girl=1 (Aswini): (20-1)%27=19 > 6 → PASS
+    assert _stree_dirgha_score(20, 1) == 1
 
 
 def test_stree_dirgha_bad():
-    # boy=1, girl=10: (10-1)%27=9, 9 ≤ 13 → FAIL
-    assert _stree_dirgha_score(1, 10) == 0
+    # boy=4 (Rohini), girl=1 (Aswini): (4-1)%27=3 ≤ 6 → FAIL
+    assert _stree_dirgha_score(4, 1) == 0
 
 
 def test_stree_dirgha_boundary():
-    # boy=1, girl=15: (15-1)%27=14 > 13 → PASS
-    assert _stree_dirgha_score(1, 15) == 1
-    # boy=1, girl=14: (14-1)%27=13, 13 ≤ 13 → FAIL
-    assert _stree_dirgha_score(1, 14) == 0
+    # boy=8 (Poosam), girl=1 (Aswini): diff=7 > 6 → PASS (count=8, meets >7)
+    assert _stree_dirgha_score(8, 1) == 1
+    # boy=7 (Punarpoosam), girl=1 (Aswini): diff=6 ≤ 6 → FAIL (count=7, fails >7)
+    assert _stree_dirgha_score(7, 1) == 0
 
 
 # ---------------------------------------------------------------------------
@@ -130,26 +131,31 @@ def test_yoni_neutral():
 
 
 # ---------------------------------------------------------------------------
-# Rasi (ராசி) — 4th or 8th position = FAIL, else PASS
+# Rasi (ராசி) — Shashtashtaka (6th or 8th) = FAIL, else PASS
 # ---------------------------------------------------------------------------
 
 def test_rasi_seventh():
-    # boy=1, girl=7 → 7th position → PASS
+    # boy=1 (Mesha), girl=7 (Thula) → 7th position → PASS
     assert _rasi_score(1, 7) == 1
 
 
-def test_rasi_fourth():
-    # boy=1, girl=4 → 4th position → FAIL
-    assert _rasi_score(1, 4) == 0
+def test_rasi_sixth():
+    # boy=6 (Kanni), girl=1 (Mesha) → diff_bg=(6-1)%12+1=6 → Shashtashtaka → FAIL
+    assert _rasi_score(6, 1) == 0
 
 
 def test_rasi_eighth():
-    # boy=1, girl=8 → 8th from boy, 6th from girl — 8th is hostile → FAIL
+    # boy=1 (Mesha), girl=8 (Vrischika) → diff_bg=(1-8)%12+1=6 → Shashtashtaka → FAIL
     assert _rasi_score(1, 8) == 0
 
 
+def test_rasi_fourth_is_now_pass():
+    # 4th position is NOT Shashtashtaka → PASS under classical Thirukanitham
+    assert _rasi_score(1, 4) == 1
+
+
 def test_rasi_same():
-    # same rasi → diff_bg=12, diff_gb=12 → neither 4 nor 8 → PASS
+    # same rasi → diff_bg=1, diff_gb=1 → neither 6 nor 8 → PASS
     assert _rasi_score(3, 3) == 1
 
 
@@ -205,8 +211,8 @@ def test_vedha_non_pair():
 # ---------------------------------------------------------------------------
 
 def test_vasya_mutual():
-    # Rasi 3 vasya to 9; rasi 9 vasya to 3 → mutual → PASS
-    assert _vasya_score(3, 9) == 1
+    # Mithuna(3) vasya to Kanni(6); Kanni(6) vasya to Mithuna(3) → mutual → PASS
+    assert _vasya_score(3, 6) == 1
 
 
 def test_vasya_one_sided():
