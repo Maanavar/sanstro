@@ -1,4 +1,4 @@
-"""Notification inbox — list recent notifications for the current user."""
+"""Notification inbox: list recent due notifications for the current user."""
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
@@ -35,6 +35,13 @@ class NotificationListResponse(BaseModel):
     unread_count: int
 
 
+def _due_status_filter(now: datetime):
+    return or_(
+        Notification.status == "sent",
+        and_(Notification.status == "queued", Notification.send_at <= now),
+    )
+
+
 @router.get(
     "/notifications",
     response_model=NotificationListResponse,
@@ -46,11 +53,12 @@ def list_notifications(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> NotificationListResponse:
+    now = datetime.now(UTC)
     rows = session.execute(
         select(Notification)
         .where(
             Notification.user_id == current_user.user_id,
-            Notification.status.in_(["sent", "queued"]),
+            _due_status_filter(now),
         )
         .order_by(Notification.send_at.desc())
         .limit(limit)
@@ -76,6 +84,7 @@ def mark_read(
         select(Notification).where(
             Notification.notification_id == notification_id,
             Notification.user_id == current_user.user_id,
+            _due_status_filter(datetime.now(UTC)),
         )
     ).scalar_one_or_none()
 
@@ -96,15 +105,15 @@ def mark_all_read(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> NotificationListResponse:
+    now = datetime.now(UTC)
     rows = session.execute(
         select(Notification).where(
             Notification.user_id == current_user.user_id,
             Notification.read_at.is_(None),
-            Notification.status.in_(["sent", "queued"]),
+            _due_status_filter(now),
         )
     ).scalars().all()
 
-    now = datetime.now(UTC)
     for r in rows:
         r.read_at = now
     session.flush()

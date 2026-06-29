@@ -38,6 +38,7 @@ _HEAVY_SANI_CYCLES = {"JANMA_SANI", "ASHTAMA_SANI", "EZHARAI_SANI_PHASE_1", "EZH
 NotificationType = Literal[
     "MORNING_NALLA_NERAM",
     "DASHA_TRANSITION",
+    "JADHAGAM_D1_NUDGE",
     "PIRANTHA_NAAL",
     "PEYARCHI",
     "GENERAL",
@@ -201,3 +202,70 @@ def dispatch_notification(
         priority,
     )
     return result
+
+def dispatch_queued_notification(
+    session: Session,
+    notification: Notification,
+    *,
+    user_email: str | None = None,
+    title_ta: str | None = None,
+    title_en: str | None = None,
+    body_ta: str | None = None,
+    body_en: str | None = None,
+    sani_cycle: str | None = None,
+) -> str:
+    """Deliver an existing queued notification row and update it in place."""
+    pref = get_or_create_preferences(session, notification.user_id)
+
+    combined_title = (
+        f"{title_ta} / {title_en}"
+        if title_ta and title_en
+        else notification.title
+    )
+    combined_body = (
+        f"{body_ta}\n{body_en}"
+        if body_ta and body_en
+        else notification.body
+    )
+
+    def _finish(status: str, result: str, suppression_reason: str | None = None) -> str:
+        notification.status = status
+        notification.title = combined_title
+        notification.body = combined_body
+        notification.suppression_reason = suppression_reason
+        notification.sent_at = datetime.now(UTC) if status == "sent" else None
+        session.flush()
+        return result
+
+    channel = pref.notification_channel
+    if channel == "none":
+        logger.debug("queued_dispatch_in_app_only user=%s type=%s", notification.user_id, notification.type)
+        return _finish("sent", "in_app_only")
+
+    wants_push = channel in ("push", "both") and bool(get_flag("enable_push_notifications"))
+    if wants_push and pref.smart_silence_enabled and sani_cycle in _HEAVY_SANI_CYCLES:
+        user_tz = _resolve_user_timezone(session, notification.user_id)
+        if _push_count_today(session, notification.user_id, user_tz) >= 1:
+            logger.info("queued_smart_silence user=%s sani=%s", notification.user_id, sani_cycle)
+            return _finish("suppressed", "suppressed", f"smart_silence:{sani_cycle}")
+
+    push_ok = email_ok = False
+    if wants_push and pref.fcm_device_token:
+        push_ok = send_push(pref.fcm_device_token, combined_title, combined_body)
+
+    wants_email = channel in ("email", "both")
+    if wants_email and user_email:
+        msg = build_notification_email(user_email, combined_title, combined_body)
+        email_ok = send_email(msg)
+
+    if wants_push and wants_email:
+        sent = push_ok or email_ok
+        result = "sent_both" if (push_ok and email_ok) else ("sent_push" if push_ok else ("sent_email" if email_ok else "failed"))
+    elif wants_push:
+        sent = push_ok
+        result = "sent_push" if push_ok else "failed"
+    else:
+        sent = email_ok
+        result = "sent_email" if sent else "failed"
+
+    return _finish("sent" if sent else "failed", result, None if sent else "delivery_error")

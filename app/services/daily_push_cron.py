@@ -71,7 +71,7 @@ from app.services.daily_guidance_service import get_daily_guidance
 from app.services.dasha_transition_service import get_dasha_transition_alerts
 from app.services.location_service import resolve_effective_daily_location
 from app.services.nakshatra_content import build_nakshatra_perspective
-from app.services.notification_dispatch_service import dispatch_notification
+from app.services.notification_dispatch_service import dispatch_notification, dispatch_queued_notification
 from app.services.notification_service import build_morning_notification
 from app.services.pirantha_naal_service import next_janma_nakshatra_date
 
@@ -379,6 +379,62 @@ def _dispatch_for_user(
     return results
 
 
+
+
+def _payload_text(notification: Notification, field: str, lang: str) -> str | None:
+    value = (notification.payload or {}).get(field)
+    if isinstance(value, dict):
+        text_value = value.get(lang)
+        if isinstance(text_value, str) and text_value.strip():
+            return text_value
+    return None
+
+
+def _process_due_queued_notifications(session: Session, now_utc: datetime) -> dict[str, int]:
+    """Deliver due one-time onboarding notification rows."""
+    due_rows = session.execute(
+        select(Notification)
+        .where(
+            Notification.type == "JADHAGAM_D1_NUDGE",
+            Notification.status == "queued",
+            Notification.send_at <= now_utc,
+        )
+        .order_by(Notification.send_at.asc())
+        .limit(200)
+    ).scalars().all()
+
+    dispatched = skipped = errors = 0
+    for notification in due_rows:
+        user = session.get(User, notification.user_id)
+        if user is None:
+            notification.status = "failed"
+            notification.suppression_reason = "user_not_found"
+            skipped += 1
+            session.commit()
+            continue
+
+        try:
+            result = dispatch_queued_notification(
+                session,
+                notification,
+                user_email=user.email,
+                title_ta=_payload_text(notification, "title", "ta"),
+                title_en=_payload_text(notification, "title", "en"),
+                body_ta=_payload_text(notification, "body", "ta"),
+                body_en=_payload_text(notification, "body", "en"),
+            )
+            if result == "failed":
+                errors += 1
+            else:
+                dispatched += 1
+            session.commit()
+        except Exception as exc:
+            logger.error("queued_notification_error notification=%s exc=%s", notification.notification_id, exc)
+            session.rollback()
+            errors += 1
+
+    return {"dispatched": dispatched, "skipped": skipped, "errors": errors}
+
 # ---------------------------------------------------------------------------
 # Cron entry point
 # ---------------------------------------------------------------------------
@@ -394,6 +450,11 @@ def run_daily_push_cron(run_at_utc: datetime | None = None) -> dict[str, int]:
     dispatched = skipped = errors = 0
 
     with SessionLocal() as session:
+        queued_results = _process_due_queued_notifications(session, now_utc)
+        dispatched += queued_results['dispatched']
+        skipped += queued_results['skipped']
+        errors += queued_results['errors']
+
         # Fetch all users with at least one alert opt-in. The notification_channel
         # is intentionally NOT filtered here: the in-app inbox is decoupled from
         # push/email delivery (dispatch_notification persists an in-app row even

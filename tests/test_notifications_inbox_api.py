@@ -71,3 +71,48 @@ def test_notifications_mark_read_updates_unread_count(client):
     after = client.get("/api/v1/notifications")
     assert after.status_code == 200
     assert after.json()["unread_count"] == 0
+
+def test_notifications_inbox_hides_future_queued_until_due(client):
+    user_id = UUID(TEST_USER_ID)
+    future_id = uuid4()
+    due_id = uuid4()
+    now = datetime.now(UTC)
+    with SessionLocal() as session:
+        session.add(
+            Notification(
+                notification_id=future_id,
+                user_id=user_id,
+                chart_id=None,
+                type="JADHAGAM_D1_NUDGE",
+                priority=45,
+                title="Future",
+                body="Future body",
+                send_at=now + timedelta(hours=1),
+                status="queued",
+                payload={},
+                read_at=None,
+            )
+        )
+        session.add(
+            Notification(
+                notification_id=due_id,
+                user_id=user_id,
+                chart_id=None,
+                type="JADHAGAM_D1_NUDGE",
+                priority=45,
+                title="Due",
+                body="Due body",
+                send_at=now - timedelta(minutes=1),
+                status="queued",
+                payload={},
+                read_at=None,
+            )
+        )
+        session.commit()
+
+    response = client.get("/api/v1/notifications")
+
+    assert response.status_code == 200
+    ids = {item["notification_id"] for item in response.json()["data"]}
+    assert str(due_id) in ids
+    assert str(future_id) not in ids

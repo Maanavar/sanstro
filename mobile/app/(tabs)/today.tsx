@@ -728,7 +728,7 @@ export default function TodayTab() {
           </Text>
         </TouchableOpacity>
         {/* Ad unit — guest only, suppressed when dosham or caution window is active */}
-        {tier === “guest” && !hasDoshamWarning && <NativeAdUnit />}
+        {tier === "guest" && !hasDoshamWarning && <NativeAdUnit />}
 
         {/* Panchangam Details — collapsible */}
         {p && (

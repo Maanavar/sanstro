@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.error_codes import ErrorCode, get_error_message
 from app.models import BirthProfile, FamilyMember
 from app.models.chart import Chart
+from app.models.notification import Notification
 from app.schemas.birth_profiles import (
     BirthProfileCreate,
     BirthProfileCreateResult,
@@ -87,6 +88,47 @@ def _raise_duplicate_birth_profile() -> None:
     )
 
 
+
+
+def _schedule_post_chart_d1_nudge(session: Session, *, owner_user_id: UUID, chart_id: UUID) -> None:
+    """Queue the gentle D+1 onboarding nudge after a user's first chart reveal."""
+    existing = session.execute(
+        select(Notification.notification_id).where(
+            Notification.user_id == owner_user_id,
+            Notification.chart_id == chart_id,
+            Notification.type == "JADHAGAM_D1_NUDGE",
+            Notification.status.in_(["queued", "sent"]),
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        return
+
+    title_ta = "உங்கள் தசை காலம் தயாராக உள்ளது"
+    title_en = "Your first dasha period is ready"
+    body_ta = "உங்கள் ஜாதகத்தில் இப்போது இயங்கும் தசை, புக்தி மற்றும் அடுத்த கால சாளரத்தைப் பாருங்கள்."
+    body_en = "Explore your current maha dasha, antar dasha, and the next timing window in your chart."
+
+    session.add(
+        Notification(
+            user_id=owner_user_id,
+            chart_id=chart_id,
+            type="JADHAGAM_D1_NUDGE",
+            priority=45,
+            title=f"{title_ta} / {title_en}",
+            body=f"{body_ta}\n{body_en}",
+            language="ta-en",
+            send_at=datetime.now(UTC) + timedelta(days=1),
+            status="queued",
+            payload={
+                "title": {"ta": title_ta, "en": title_en},
+                "body": {"ta": body_ta, "en": body_en},
+                "deepLink": "/dasha",
+                "source": "onboarding_d1_nudge",
+            },
+        )
+    )
+
+
 def create_birth_profile(session: Session, payload: BirthProfileCreate, *, calculation_version: str) -> BirthProfileCreateResult:
     duplicate_profile = _find_duplicate_birth_profile(
         session,
@@ -132,6 +174,7 @@ def create_birth_profile(session: Session, payload: BirthProfileCreate, *, calcu
         )
         chart_id = chart_response.data.chart_id
         warnings = chart_response.data.warnings
+        _schedule_post_chart_d1_nudge(session, owner_user_id=payload.owner_user_id, chart_id=chart_id)
     elif payload.calculate_now and payload.birth_time_local is None:
         warnings = warnings + ["Birth time is required to calculate a Lagna-based chart, so the profile was saved without chart calculation."]
 

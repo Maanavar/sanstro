@@ -22,6 +22,12 @@ interface GeoResult {
   error?: "not_found" | "network";
 }
 
+const CHENNAI_GEO: GeoResult = {
+  lat: 13.0827,
+  lon: 80.2707,
+  countryCode: "in",
+};
+
 const COUNTRY_TIMEZONE: Record<string, string> = {
   in: "Asia/Kolkata",
   gb: "Europe/London",
@@ -101,6 +107,7 @@ export default function BirthDetailsScreen() {
   const [birthPlace, setBirthPlace] = useState("");
   const [birthTimeUnknown, setBirthTimeUnknown] = useState(false);
   const [detectedTimezone, setDetectedTimezone] = useState<string | null>(null);
+  const [geocodeFailureCount, setGeocodeFailureCount] = useState(0);
 
   function validateStep0(): boolean {
     if (!displayName.trim()) {
@@ -134,65 +141,84 @@ export default function BirthDetailsScreen() {
     return true;
   }
 
+  async function submitWithLocation(geo: GeoResult, birthTimezone: string, birthPlaceLabel: string) {
+    const day = parseInt(dobDay).toString().padStart(2, "0");
+    const month = parseInt(dobMonth).toString().padStart(2, "0");
+    const birthDateLocal = `${dobYear}-${month}-${day}`;
+
+    let birthTimeLocal: string | undefined;
+    if (!birthTimeUnknown && birthTimeHour && birthTimeMin) {
+      let h = parseInt(birthTimeHour);
+      const m = parseInt(birthTimeMin);
+      if (birthAmPm === "PM" && h !== 12) h += 12;
+      if (birthAmPm === "AM" && h === 12) h = 0;
+      birthTimeLocal = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:00`;
+    }
+
+    const res = await createBirthProfile({
+      displayName: displayName.trim(),
+      birthDateLocal,
+      birthTimeLocal,
+      birthPlace: birthPlaceLabel,
+      birthLatitude: geo.lat,
+      birthLongitude: geo.lon,
+      birthTimezone,
+      calculateNow: true,
+      genderForTraditionalRules: gender === "other" ? null : gender,
+    });
+
+    const { birthProfileId, chartId } = res.data;
+    await setPrimaryProfileId(birthProfileId);
+    if (chartId) await setPrimaryChartId(chartId);
+    trackEvent("onboarding_step_completed", { step: "birth_time_place" });
+    router.replace({
+      pathname: "/(onboarding)/jadhagam-reveal",
+      params: { chartId: chartId ?? "", profileId: birthProfileId },
+    });
+  }
+
   async function handleSubmit() {
     if (!validateStep1()) return;
     setLoading(true);
     try {
-      const day = parseInt(dobDay).toString().padStart(2, "0");
-      const month = parseInt(dobMonth).toString().padStart(2, "0");
-      const birthDateLocal = `${dobYear}-${month}-${day}`;
-
-      let birthTimeLocal: string | undefined;
-      if (!birthTimeUnknown && birthTimeHour && birthTimeMin) {
-        let h = parseInt(birthTimeHour);
-        const m = parseInt(birthTimeMin);
-        if (birthAmPm === "PM" && h !== 12) h += 12;
-        if (birthAmPm === "AM" && h === 12) h = 0;
-        birthTimeLocal = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:00`;
-      }
-
       const geo = await geocodeBirthPlace(birthPlace.trim());
       if (!geo || geo.error === "network") {
+        setGeocodeFailureCount((count) => count + 1);
         setError(
           isTamil
             ? "இணைய இணைப்பு சிக்கல். மீண்டும் முயற்சிக்கவும்."
-            : "Network error. Check your connection and try again."
+            : "No internet connection. Check your connection and try again."
         );
         setLoading(false);
         return;
       }
       if (geo.error === "not_found") {
+        setGeocodeFailureCount((count) => count + 1);
         setError(
           isTamil
             ? "இடம் கிடைக்கவில்லை. நகரம் பெயர் மட்டும் கொடுங்கள் (எ.கா.: Chennai, Madurai, Kumbakonam)."
-            : "City not found. Try just the city name (e.g., Chennai, Madurai, London, New York)."
+            : "City not found. Try just the city name (e.g., 'Chennai' not 'Chennai, Tamil Nadu')."
         );
         setLoading(false);
         return;
       }
 
-      const birthTimezone = countryCodeToTimezone(geo.countryCode);
+      const birthTimezone = detectedTimezone?.trim() || countryCodeToTimezone(geo.countryCode);
+      setGeocodeFailureCount(0);
+      await submitWithLocation(geo, birthTimezone, birthPlace.trim());
+    } catch {
+      setError(isTamil ? "சர்வர் பிழை. மீண்டும் முயற்சிக்கவும்." : "Server error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
-      const res = await createBirthProfile({
-        displayName: displayName.trim(),
-        birthDateLocal,
-        birthTimeLocal,
-        birthPlace: birthPlace.trim(),
-        birthLatitude: geo.lat,
-        birthLongitude: geo.lon,
-        birthTimezone,
-        calculateNow: true,
-        genderForTraditionalRules: gender === "other" ? null : gender,
-      });
-
-      const { birthProfileId, chartId } = res.data;
-      await setPrimaryProfileId(birthProfileId);
-      if (chartId) await setPrimaryChartId(chartId);
-      trackEvent("onboarding_step_completed", { step: "birth_time_place" });
-      router.replace({
-        pathname: "/(onboarding)/jadhagam-reveal",
-        params: { chartId: chartId ?? "", profileId: birthProfileId },
-      });
+  async function handleUseChennaiFallback() {
+    if (!validateStep1()) return;
+    setLoading(true);
+    try {
+      setDetectedTimezone("Asia/Kolkata");
+      await submitWithLocation(CHENNAI_GEO, "Asia/Kolkata", "Chennai");
     } catch {
       setError(isTamil ? "சர்வர் பிழை. மீண்டும் முயற்சிக்கவும்." : "Server error. Please try again.");
     } finally {
@@ -361,7 +387,7 @@ export default function BirthDetailsScreen() {
                 <TextInput
                   style={styles.input}
                   value={birthPlace}
-                  onChangeText={(v) => { setBirthPlace(v); setDetectedTimezone(null); }}
+                  onChangeText={(v) => { setBirthPlace(v); setDetectedTimezone(null); setGeocodeFailureCount(0); }}
                   onBlur={async () => {
                     if (!birthPlace.trim()) return;
                     const geo = await geocodeBirthPlace(birthPlace.trim());
@@ -369,15 +395,21 @@ export default function BirthDetailsScreen() {
                       setDetectedTimezone(countryCodeToTimezone(geo.countryCode));
                     }
                   }}
-                  placeholder={isTamil ? "நகரம் (எ.கா.: Chennai, London, Singapore)" : "City (e.g., Chennai, London, Singapore)"}
+                  placeholder={isTamil ? "Chennai, Madurai, Coimbatore, Kumbakonam, Erode" : "Chennai, Madurai, Coimbatore, Kumbakonam, Erode"}
                   placeholderTextColor={C.textTertiary}
                   autoCapitalize="words"
                 />
                 {detectedTimezone && (
                   <View style={styles.timezoneChip}>
-                    <Text style={styles.timezoneChipText}>
-                      🌐 {detectedTimezone}
-                    </Text>
+                    <Text style={styles.timezoneChipText}>Timezone</Text>
+                    <TextInput
+                      style={styles.timezoneInput}
+                      value={detectedTimezone}
+                      onChangeText={setDetectedTimezone}
+                      placeholder="Asia/Kolkata"
+                      placeholderTextColor={C.textTertiary}
+                      autoCapitalize="none"
+                    />
                   </View>
                 )}
                 {!detectedTimezone && (
@@ -389,7 +421,38 @@ export default function BirthDetailsScreen() {
             </>
           )}
 
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          {error ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setError(null);
+                  setDetectedTimezone(null);
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.retryText}>{isTamil ? "மீண்டும் முயற்சி" : "Try again"}</Text>
+              </TouchableOpacity>
+              {geocodeFailureCount >= 2 && (
+                <View style={styles.fallbackBox}>
+                  <Text style={[styles.fallbackText, isTamil ? TamilType.caption : EnType.caption]}>
+                    {isTamil
+                      ? "உங்கள் நகரம் கிடைக்கவில்லையா? இப்போது Chennai பிறந்த இடமாக பயன்படுத்தலாம்."
+                      : "Can't find your city? We'll use Chennai as your birth place for now."}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.fallbackBtn}
+                    onPress={handleUseChennaiFallback}
+                    disabled={loading}
+                  >
+                    <Text style={styles.fallbackBtnText}>
+                      {isTamil ? "Chennai பயன்படுத்தவும்" : "Use Chennai fallback"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          ) : null}
 
           <TouchableOpacity
             style={[styles.primaryBtn, loading && { opacity: 0.6 }]}
@@ -464,12 +527,39 @@ const styles = StyleSheet.create({
   unknownText: { color: C.textSecond },
   placeSub: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.textTertiary },
   timezoneChip: {
-    flexDirection: "row", alignSelf: "flex-start",
+    flexDirection: "row", alignSelf: "flex-start", alignItems: "center", gap: S.sm,
     backgroundColor: C.surfaceAlt, borderRadius: RADIUS.chip,
     paddingHorizontal: S.md, paddingVertical: 4, borderWidth: 1, borderColor: C.divider,
   },
   timezoneChipText: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.textSecond },
-  errorText: { fontFamily: "Inter_400Regular", fontSize: 13, color: C.alert, marginTop: S.sm },
+  timezoneInput: {
+    minWidth: 132,
+    padding: 0,
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 12,
+    color: C.textPrimary,
+  },
+  errorBox: { marginTop: S.sm, gap: S.sm },
+  errorText: { fontFamily: "Inter_400Regular", fontSize: 13, color: C.alert },
+  retryText: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: C.saffron },
+  fallbackBox: {
+    backgroundColor: C.surfaceAlt,
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
+    borderColor: C.divider,
+    padding: S.md,
+    gap: S.sm,
+  },
+  fallbackText: { color: C.textSecond },
+  fallbackBtn: {
+    backgroundColor: C.deepIndigo,
+    borderRadius: RADIUS.button,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: S.md,
+  },
+  fallbackBtnText: { fontFamily: "Inter_700Bold", fontSize: 14, color: C.surface },
   primaryBtn: {
     backgroundColor: C.saffron, borderRadius: RADIUS.button,
     height: 52, alignItems: "center", justifyContent: "center", marginTop: S.xl,

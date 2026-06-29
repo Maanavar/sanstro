@@ -7,6 +7,7 @@ from sqlalchemy import select
 from app.core.encryption import decrypt_bytes
 from app.db.session import SessionLocal
 from app.models.birth_profile import BirthProfile
+from app.models.notification import Notification
 
 
 def test_birth_profile_create_returns_profile_and_chart_ids(client):
@@ -243,3 +244,35 @@ def test_birth_profile_create_persists_encrypted_payload(client):
     assert decrypted["birth_longitude"] == payload["birthLongitude"]
     assert decrypted["birth_time_local"] == payload["birthTimeLocal"]
     assert decrypted["birth_date_local"] == payload["birthDateLocal"]
+
+def test_birth_profile_create_schedules_d1_jadhagam_nudge(client):
+    created = client.post(
+        "/api/v1/birth-profiles",
+        json={
+            "ownerUserId": "22222222-2222-2222-2222-222222222222",
+            "displayName": "D1 Nudge Profile",
+            "birthDateLocal": "1991-07-22",
+            "birthTimeLocal": "06:30:00",
+            "birthPlace": "Chennai, Tamil Nadu, India",
+            "birthLatitude": 13.0827,
+            "birthLongitude": 80.2707,
+            "birthTimezone": "Asia/Kolkata",
+            "calculateNow": True,
+        },
+    )
+
+    assert created.status_code == 200
+    chart_id = UUID(created.json()["data"]["chartId"])
+
+    with SessionLocal() as session:
+        notification = session.execute(
+            select(Notification).where(
+                Notification.chart_id == chart_id,
+                Notification.type == "JADHAGAM_D1_NUDGE",
+            )
+        ).scalar_one()
+
+        assert notification.status == "queued"
+        assert notification.send_at > datetime.now(UTC) + timedelta(hours=23)
+        assert notification.payload["deepLink"] == "/dasha"
+        assert notification.payload["source"] == "onboarding_d1_nudge"
