@@ -44,7 +44,7 @@ const PALETTE = {
   cream: "#FBF3E0",
   creamDeep: "#F4E4C1",
   gold: "#C99A3B",
-  goldBright: "var(--panel-golden)",
+  goldBright: "#E7BE57",
   maroon: "#8C1D1D",
   maroonDeep: "#6E1414",
   green: "#1E6B3A",
@@ -173,7 +173,7 @@ function drawPanchangamCard(ctx: CanvasRenderingContext2D, data: PanchangamCardD
   ctx.textAlign = "left";
   ctx.font = `bold 46px ${TAMIL_FONT}`;
   ctx.fillText("Vinaadi AI", 84, 118);
-  ctx.fillStyle = "var(--panel-warm-gold)";
+  ctx.fillStyle = "#FFE9C2";
   ctx.textAlign = "right";
   ctx.font = `28px ${TAMIL_FONT}`;
   const dateLine = lang === "ta" && data.tamilDate ? data.tamilDate.ta : data.date;

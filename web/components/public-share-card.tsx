@@ -180,7 +180,7 @@ function drawPoruthamCard(
   w: number, h: number,
 ) {
   const pct    = d.percentage;
-  const accent = pct >= 70 ? "var(--color-positive)" : pct >= 40 ? "var(--chart-amber)" : "var(--color-error-light)";
+  const accent = pct >= 70 ? "#3a6b40" : pct >= 40 ? "#E5B84D" : "#F87171";
   const bg     = pct >= 70 ? "#020d05" : pct >= 40 ? "#0c0800" : "#0c0202";
   const text   = pct >= 70 ? "#e2fcea" : pct >= 40 ? "#fef9c3" : "#fee2e2";
 
@@ -311,7 +311,7 @@ function drawPoruthamCard(
     ctx.fill();
 
     if (kpct > 0) {
-      const barColor = kpct >= 0.7 ? "var(--color-positive)" : kpct >= 0.4 ? accent : "var(--color-error-light)";
+      const barColor = kpct >= 0.7 ? "#3a6b40" : kpct >= 0.4 ? accent : "#F87171";
       ctx.fillStyle  = barColor;
       roundRect(ctx, px + labelW, by, barW * kpct, barH, 7);
       ctx.fill();
@@ -358,14 +358,14 @@ function drawPanchangamCard(
   d: PanchangamShareData,
   w: number, h: number,
 ) {
-  const accent = "var(--color-indigo)";
+  const accent = "#6366F1";
   const text   = "#e0e7ff";
 
   ctx.fillStyle = "#050616";
   ctx.fillRect(0, 0, w, h);
 
   const grd = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, 700);
-  grd.addColorStop(0, "var(--color-indigo)1c");
+  grd.addColorStop(0, "#6366F11c");
   grd.addColorStop(1, "transparent");
   ctx.fillStyle = grd;
   ctx.fillRect(0, 0, w, h);
@@ -471,7 +471,7 @@ function drawPanchangamCard(
   // Time info
   const timeY = divY + 32;
 
-  ctx.fillStyle = "var(--color-error-light)";
+  ctx.fillStyle = "#F87171";
   ctx.font      = "bold 28px system-ui, sans-serif";
   ctx.textAlign = "left";
   ctx.fillText("⚠", 56, timeY + 40);
@@ -481,7 +481,7 @@ function drawPanchangamCard(
     100, timeY + 40,
   );
 
-  ctx.fillStyle = "var(--color-positive)";
+  ctx.fillStyle = "#3a6b40";
   ctx.font      = "bold 28px system-ui, sans-serif";
   ctx.fillText("✓", 56, timeY + 96);
   ctx.font      = "28px system-ui, sans-serif";
@@ -509,7 +509,7 @@ function drawPanchangamCard(
     const rahuE  = toMinutes(d.rahuKalamEnd);
     const rahuX  = tlX + Math.max((rahuS - sunriseMin) / dayDur, 0) * tlW;
     const rahuW  = Math.max((rahuE - rahuS) / dayDur * tlW, 4);
-    ctx.fillStyle = "var(--color-error-light)aa";
+    ctx.fillStyle = "#F87171aa";
     roundRect(ctx, rahuX, tlY, rahuW, tlH, 4);
     ctx.fill();
 
@@ -519,7 +519,7 @@ function drawPanchangamCard(
       const nallaE = toMinutes(nParts[1]);
       const nallaX = tlX + Math.max((nallaS - sunriseMin) / dayDur, 0) * tlW;
       const nallaW = Math.max((nallaE - nallaS) / dayDur * tlW, 4);
-      ctx.fillStyle = "var(--color-positive)aa";
+      ctx.fillStyle = "#3a6b40aa";
       roundRect(ctx, nallaX, tlY, nallaW, tlH, 4);
       ctx.fill();
     }

@@ -225,8 +225,8 @@ export const HOME = {
   ),
   help5_title:    s("Check compatibility when needed", "தேவைப்படும்போது பொருத்தம் பாருங்கள்"),
   help5_body:     s(
-    "Use the public birth-star preview for a quick first look. Sign in for full chart-grade porutham with 36-point score, Nadi, Sevvai, D9, and dasa context.",
-    "விரைவான முதல் பார்வைக்கு பொதுப் பிறப்பு நட்சத்திரப் பொருத்தத்தைப் பயன்படுத்துங்கள். 36 மதிப்பெண், நாடி, செவ்வாய், நவாம்சம், தசை சூழல் உடன் முழு ஜாதகப் பொருத்தத்திற்கு உள்நுழையுங்கள்."
+    "Use the public birth-star preview for a quick first look. Sign in for full chart-grade porutham with traditional 10-factor Thirukanitham method, Rajju, Vedhai, Sevvai, D9, and dasa context.",
+    "விரைவான முதல் பார்வைக்கு பொதுப் பிறப்பு நட்சத்திரப் பொருத்தத்தைப் பயன்படுத்துங்கள். 10-கூறு திருக்கணித முறை, ரஜ்ஜு, வேதை, செவ்வாய், நவாம்சம், தசை சூழல் உடன் முழு ஜாதகப் பொருத்தத்திற்கு உள்நுழையுங்கள்."
   ),
   help6_title:    s("Use tools when you need them",   "தேவைப்படும் போது கருவிகளைப் பயன்படுத்துங்கள்"),
   help6_body:     s(
@@ -284,7 +284,7 @@ export const HOME = {
     "விரைவான பொதுக் கருவிகளும், உள்நுழைந்த பிறகு ஆழமான ஜாதக வாசிப்புகளும் விநாடியில் உள்ளன. முதல் பார்வைக்கு public பக்கங்களைப் பயன்படுத்துங்கள்; சேமித்த ஜாதகத்தின் அடிப்படையிலான காரண விளக்கத்திற்கு dashboard-ஐ பயன்படுத்துங்கள்."
   ),
   tool1_name: s("Marriage Porutham",          "திருமண பொருத்தம்"),
-  tool1_desc: s("Quick public birth-star porutham preview. Sign in for the full Tamil marriage match with 36-point score, Nadi, Sevvai, D9, and dasa context.", "விரைவான நட்சத்திரப் பொருத்த முதல் பார்வை. 36 மதிப்பெண், நாடி, செவ்வாய், நவாம்சம், தசை சூழல் உடன் முழு தமிழ் திருமணப் பொருத்தத்திற்கு உள்நுழையுங்கள்."),
+  tool1_desc: s("Quick public birth-star porutham preview. Sign in for the full Tamil marriage match using traditional 10-factor Thirukanitham method, Rajju, Vedhai, Sevvai, D9, and dasa context.", "விரைவான நட்சத்திரப் பொருத்த முதல் பார்வை. 10-கூறு திருக்கணித முறை, ரஜ்ஜு, வேதை, செவ்வாய், நவாம்சம், தசை சூழல் உடன் முழு தமிழ் திருமணப் பொருத்தத்திற்கு உள்நுழையுங்கள்."),
   tool1_cta:  s("Porutham calculator →",      "பொருத்தம் பார் →"),
   tool2_name: s("Jadhagam Generator",         "ஜாதகம் உருவாக்கு"),
   tool2_desc: s("South Indian birth chart in Thirukanitham format — D1 Rasi chart and D9 Navamsa, with Lahiri ayanamsa precision.", "திருக்கணிதம் முறையில் தென்னிந்திய ஜாதகம் — D1 ராசி கட்டம் மற்றும் D9 நவாம்சம், லாகிரி அயனாம்சத்துடன்."),
@@ -362,7 +362,7 @@ export const HOME = {
   hub4_body:   s("Plan important actions — ceremonies, travel, business, health — with astrological timing grounded in Thirukanitham.", "முக்கியமான செயல்களை திட்டமிடுங்கள் — விழாக்கள், பயணம், வியாபாரம், உடல்நலம் — திருக்கணிதம் அடிப்படையிலான ஜோதிட நேரத்தில்."),
   hub5_eye:    s("Tool",     "கருவி"),
   hub5_title:  s("Porutham Calculator", "பொருத்தம் பார்"),
-  hub5_body:   s("Quick birth-star porutham for visitors; full signed-in matching adds 36-point scoring, Nadi judgement, Sevvai, D9, and dasa context.", "வருகையாளர்களுக்கு விரைவான நட்சத்திரப் பொருத்தம்; உள்நுழைந்த பிறகு 36 மதிப்பெண், நாடி தீர்வு, செவ்வாய், நவாம்சம், தசை சூழல் உடன் முழு பொருத்தம்."),
+  hub5_body:   s("Quick birth-star porutham for visitors; full signed-in matching uses traditional 10-factor Thirukanitham scoring, Rajju, Vedhai, Nadi judgement, Sevvai, D9, and dasa context.", "வருகையாளர்களுக்கு விரைவான நட்சத்திரப் பொருத்தம்; உள்நுழைந்த பிறகு 10-கூறு திருக்கணித மதிப்பீடு, ரஜ்ஜு, வேதை, நாடி தீர்வு, செவ்வாய், நவாம்சம், தசை சூழல் உடன் முழு பொருத்தம்."),
   hub6_eye:    s("Method",   "முறை"),
   hub6_title:  s("Our Methodology", "எங்கள் கணக்கீட்டு முறை"),
   hub6_body:   s("How Vinaadi calculates — Thirukanitham, Lahiri ayanamsa, Drik ephemeris, multi-signal daily score.", "விநாடி எவ்வாறு கணக்கிடுகிறது — திருக்கணிதம், லாகிரி அயனாம்சம், திரிக் கோளக்கணிதம், பல சமிக்ஞை தினசரி மதிப்பெண்."),
@@ -615,8 +615,8 @@ export const TOOL_PORUTHAM = {
   eyebrow:    s("Tool · Marriage Porutham Calculator", "கருவி · திருமண பொருத்தம் கணக்கிடல்"),
   h1:         s("Quick Tamil birth-star porutham preview.", "விரைவான தமிழ் நட்சத்திரப் பொருத்த முதல் பார்வை."),
   lead:       s(
-    "Choose two birth stars and get a quick porutham preview with Rajju, Vedha, Rasi, and Nadi cautions. For the full 36-point chart-grade match with Sevvai dosham, D9, dasa, and cancellation rules, sign in and use the dashboard.",
-    "இரண்டு பிறப்பு நட்சத்திரங்களைத் தேர்வு செய்து ரஜ்ஜு, வேதம், ராசி, நாடி கவனங்களுடன் விரைவான பொருத்த முதல் பார்வையைப் பெறுங்கள். செவ்வாய் தோஷம், நவாம்சம், தசை, தோஷ நிவர்த்தி விதிகள் உடன் முழு 36 மதிப்பெண் ஜாதகப் பொருத்தத்திற்கு உள்நுழைந்து dashboard-ஐ பயன்படுத்துங்கள்."
+    "Choose two birth stars and get a quick porutham preview with Rajju, Vedhai, Rasi, and Nadi cautions. For the full traditional 10-factor Thirukanitham match with Sevvai dosham, D9, dasa, and cancellation rules, sign in and use the dashboard.",
+    "இரண்டு பிறப்பு நட்சத்திரங்களைத் தேர்வு செய்து ரஜ்ஜு, வேதை, ராசி, நாடி கவனங்களுடன் விரைவான பொருத்த முதல் பார்வையைப் பெறுங்கள். செவ்வாய் தோஷம், நவாம்சம், தசை, தோஷ நிவர்த்தி விதிகள் உடன் முழு 10-கூறு திருக்கணித பொருத்தத்திற்கு உள்நுழைந்து dashboard-ஐ பயன்படுத்துங்கள்."
   ),
 
   checks_h2: s("What Vinaadi checks",     "விநாடி என்ன சரிபார்க்கிறது"),
