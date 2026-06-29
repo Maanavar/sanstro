@@ -428,7 +428,7 @@ def build_daily_guidance_response(
     if chandrashtama:
         personal_safety_score -= 15
     if saturn_cycle.is_active:
-        if saturn_cycle.type in {"JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_3"}:
+        if saturn_cycle.type in {"JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_2", "EZHARAI_SANI_PHASE_3"}:
             # Sade Sati is a caution cycle, but never treated as flatly "bad".
             personal_safety_score -= 7
         elif saturn_cycle.type == "ARDHASHTAMA_SANI":

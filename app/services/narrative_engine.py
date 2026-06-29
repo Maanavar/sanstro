@@ -392,6 +392,8 @@ _SANI_CYCLE_WARN: dict[str, BiText] = {
                                 "Kantaka Sani (from Lagna) — structural restructuring and responsibility cycle"),
     "EZHARAI_SANI_PHASE_1": _bi("ஏழரை சனி — முதல் கட்டம். மாற்றங்களை ஏற்க தயாராகுங்கள்.",
                                 "Ezhara Sani — phase 1. Prepare to accept transitions."),
+    "EZHARAI_SANI_PHASE_2": _bi("ஏழரை சனி — இரண்டாம் கட்டம் (ஜன்ம சனி). உடல் மற்றும் முயற்சிகளில் கவனம்.",
+                                "Ezhara Sani — phase 2 (Janma Sani). Take care of health and efforts."),
     "EZHARAI_SANI_PHASE_3": _bi("ஏழரை சனி — மூன்றாம் கட்டம். குடும்ப, பொருள் விஷயங்களில் கவனம்.",
                                 "Ezhara Sani — phase 3. Attention to family and financial matters."),
 }

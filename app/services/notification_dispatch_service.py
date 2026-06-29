@@ -32,8 +32,32 @@ from app.services.location_service import resolve_effective_daily_timezone
 
 logger = logging.getLogger(__name__)
 
-# Heavy Sani cycle tags that trigger the smart silence rule
-_HEAVY_SANI_CYCLES = {"JANMA_SANI", "ASHTAMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_3"}
+_FCM_BODY_MAX_CHARS = 240
+
+
+def _truncate_body(body: str) -> str:
+    """Truncate notification body to FCM Android display limit (≤240 chars)."""
+    if len(body) <= _FCM_BODY_MAX_CHARS:
+        return body
+    truncated = body[: _FCM_BODY_MAX_CHARS - 1]
+    # Try to cut at the last sentence boundary
+    for sep in ("\n", "।", ".", "!", "?"):
+        pos = truncated.rfind(sep)
+        if pos > _FCM_BODY_MAX_CHARS // 2:
+            return truncated[: pos + 1] + "…"
+    return truncated + "…"
+
+
+# Heavy Sani cycle tags that trigger the smart silence rule.
+# JANMA_SANI is the code-level name for Ezhurai Sani Phase 2 (Saturn over natal Moon).
+# EZHARAI_SANI_PHASE_2 is kept as a forward-compatible alias.
+_HEAVY_SANI_CYCLES = {
+    "JANMA_SANI",           # Ezhurai Sani Phase 2 — peak
+    "ASHTAMA_SANI",
+    "EZHARAI_SANI_PHASE_1",
+    "EZHARAI_SANI_PHASE_2", # alias for JANMA_SANI naming convention
+    "EZHARAI_SANI_PHASE_3",
+}
 
 NotificationType = Literal[
     "MORNING_NALLA_NERAM",
@@ -171,12 +195,17 @@ def dispatch_notification(
 
     # Build language-merged strings: Tamil first, English below
     combined_title = f"{title_ta} / {title_en}"
-    combined_body = f"{body_ta}\n{body_en}"
+    combined_body = _truncate_body(f"{body_ta}\n{body_en}")
 
     push_ok = email_ok = False
 
     if wants_push and pref.fcm_device_token:
-        push_ok = send_push(pref.fcm_device_token, combined_title, combined_body)
+        fcm_result = send_push(pref.fcm_device_token, combined_title, combined_body)
+        push_ok = fcm_result == "sent"
+        if fcm_result == "invalid_token":
+            # Token is no longer registered; remove it so we stop trying
+            pref.fcm_device_token = None
+            session.flush()
 
     wants_email = channel in ("email", "both")
     if wants_email and user_email:
@@ -222,7 +251,7 @@ def dispatch_queued_notification(
         if title_ta and title_en
         else notification.title
     )
-    combined_body = (
+    combined_body = _truncate_body(
         f"{body_ta}\n{body_en}"
         if body_ta and body_en
         else notification.body
@@ -251,7 +280,11 @@ def dispatch_queued_notification(
 
     push_ok = email_ok = False
     if wants_push and pref.fcm_device_token:
-        push_ok = send_push(pref.fcm_device_token, combined_title, combined_body)
+        fcm_result = send_push(pref.fcm_device_token, combined_title, combined_body)
+        push_ok = fcm_result == "sent"
+        if fcm_result == "invalid_token":
+            pref.fcm_device_token = None
+            session.flush()
 
     wants_email = channel in ("email", "both")
     if wants_email and user_email:

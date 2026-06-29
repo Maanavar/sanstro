@@ -540,6 +540,7 @@ class _NarrativeBundle:
 _SANI_TYPE_LABEL_TA = {
     "JANMA_SANI":           "ஜன்ம சனி",
     "EZHARAI_SANI_PHASE_1": "ஏழரை சனி (தொடக்கம்)",
+    "EZHARAI_SANI_PHASE_2": "ஏழரை சனி (நடுவு — ஜன்ம சனி)",
     "EZHARAI_SANI_PHASE_3": "ஏழரை சனி (முடிவு)",
     "ARDHASHTAMA_SANI":     "அர்த்தாஷ்டம சனி",
     "ASHTAMA_SANI":         "அஷ்டம சனி",
@@ -549,6 +550,7 @@ _SANI_TYPE_LABEL_TA = {
 _SANI_TYPE_LABEL_EN = {
     "JANMA_SANI":           "Janma Sani",
     "EZHARAI_SANI_PHASE_1": "Sade Sati (beginning)",
+    "EZHARAI_SANI_PHASE_2": "Sade Sati (peak — Janma Sani)",
     "EZHARAI_SANI_PHASE_3": "Sade Sati (ending)",
     "ARDHASHTAMA_SANI":     "Ardhashtama Sani",
     "ASHTAMA_SANI":         "Ashtama Sani",
@@ -999,7 +1001,7 @@ def _score_area(
         jupiter_house_score=jupiter_house_score,
         saturn_house_score=saturn_house_score,
         double_transit_score=double_transit_score,
-        is_sade_sati=sani_cycle_type in {"JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_3"},
+        is_sade_sati=sani_cycle_type in {"JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_2", "EZHARAI_SANI_PHASE_3"},
         is_ashtama_sani=sani_cycle_type == "ASHTAMA_SANI",
         bav_delta=bav_delta,
         sav_delta=sav_delta,

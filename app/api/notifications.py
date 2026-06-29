@@ -90,6 +90,7 @@ def mark_read(
 
     if notif and notif.read_at is None:
         notif.read_at = datetime.now(UTC)
+        # flush stages the write; get_db() commits the transaction on request exit
         session.flush()
 
     return list_notifications(limit=30, session=session, current_user=current_user)
@@ -116,6 +117,7 @@ def mark_all_read(
 
     for r in rows:
         r.read_at = now
+    # flush stages the write; get_db() commits the transaction on request exit
     session.flush()
 
     return list_notifications(limit=30, session=session, current_user=current_user)

@@ -150,6 +150,19 @@ def _morning_alert_due(pref: UserNotificationPreference, now_utc: datetime, tz_n
     return delta <= 1800  # ±30 minutes
 
 
+def _morning_alert_in_catchup_window(pref: UserNotificationPreference, now_utc: datetime, tz_name: str) -> bool:
+    """True when the alert window was missed: it ended 30-120 minutes ago (server restart catch-up)."""
+    try:
+        tz = resolve_timezone(tz_name)
+        local_now = now_utc.astimezone(tz)
+    except Exception:
+        return False
+    alert_time = pref.morning_alert_time or time(6, 0)
+    alert_dt = datetime.combine(local_now.date(), alert_time)
+    elapsed = (local_now.replace(tzinfo=None) - alert_dt).total_seconds()
+    return 1800 < elapsed <= 7200  # missed 30 min–2 hours ago
+
+
 def _already_sent_today(
     session: Session,
     user_id: UUID,
@@ -211,8 +224,14 @@ def _dispatch_for_user(
 
     # ----------------------------------------------------------------
     # 1. Morning Nalla Neram (MORNING_NALLA_NERAM)
+    # Regular window ±30 min + catch-up window 30-120 min after (P2-09).
+    # The _already_sent_today check prevents double-sending on overlapping ticks.
     # ----------------------------------------------------------------
-    if pref.morning_alert_enabled and _morning_alert_due(pref, now_utc, tz_name) and not _already_sent_today(session, user.user_id, "MORNING_NALLA_NERAM", run_date, tz_name):
+    _alert_due = (
+        _morning_alert_due(pref, now_utc, tz_name)
+        or _morning_alert_in_catchup_window(pref, now_utc, tz_name)
+    )
+    if pref.morning_alert_enabled and _alert_due and not _already_sent_today(session, user.user_id, "MORNING_NALLA_NERAM", run_date, tz_name):
         try:
             panchang = calculate_daily_panchangam(run_date, lat, lon, tz_name)
             nalla_slot = best_gowri_slot(panchang.nalla_neram)

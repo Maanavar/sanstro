@@ -106,21 +106,25 @@ def _get_access_token() -> str:
     return access_token
 
 
+FCMResult = str  # "sent" | "invalid_token" | "failed"
+
+
 def send_push(
     device_token: str,
     title: str,
     body: str,
     data: dict[str, str] | None = None,
-) -> bool:
-    """
-    Send an FCM push notification to a single device token.
+) -> FCMResult:
+    """Send an FCM push notification to a single device token.
 
-    Returns True on success or when FCM is unconfigured (stub mode).
-    Returns False on delivery failure (logs error, does not raise).
+    Returns:
+      "sent"          — delivered successfully (or FCM not configured → stub).
+      "invalid_token" — FCM says the token is unregistered; caller should delete it.
+      "failed"        — transient error; token may still be valid.
     """
     if not _fcm_configured():
         logger.info("FCM not configured — skipping push to token %s…: %s", device_token[:12], title)
-        return True
+        return "sent"
 
     s = get_settings()
     project_id: str = s.fcm_project_id  # type: ignore[attr-defined]
@@ -129,7 +133,7 @@ def send_push(
         access_token = _get_access_token()
     except Exception as exc:
         logger.error("FCM token fetch failed: %s", exc)
-        return False
+        return "failed"
 
     message: dict[str, Any] = {
         "message": {
@@ -150,16 +154,16 @@ def send_push(
         )
         if resp.status_code == 200:
             logger.info("fcm_sent token=%s… title=%s", device_token[:12], title)
-            return True
+            return "sent"
 
-        # 404 = token invalid / unregistered — not worth retrying
+        # 404 = token invalid / unregistered — caller should remove it
         if resp.status_code == 404:
             logger.warning("fcm_token_invalid token=%s…", device_token[:12])
-            return False
+            return "invalid_token"
 
         logger.error("fcm_failed status=%d body=%s", resp.status_code, resp.text[:200])
-        return False
+        return "failed"
 
     except Exception as exc:
         logger.error("fcm_exception token=%s… exc=%s", device_token[:12], exc)
-        return False
+        return "failed"
