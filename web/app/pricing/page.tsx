@@ -191,7 +191,7 @@ export default function PricingPage() {
                 </div>
               </div>
             </div>
-          </div>
+
 
           {/* ── Get Premium: Download the app ── */}
           <div style={{ background: "linear-gradient(135deg, #1A1208 0%, #2E2118 60%, #3D2B1A 100%)", borderRadius: "20px", padding: "40px 32px", marginTop: "8px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "32px", alignItems: "center" }}>
@@ -227,7 +227,7 @@ export default function PricingPage() {
               </a>
               {/* Google Play badge */}
               <a
-                href="https://play.google.com/store/apps/details?id=app.vinaadi"
+                href="https://play.google.com/store/apps/details?id=ai.vinaadi.app"
                 style={{
                   display: "flex", alignItems: "center", gap: "12px",
                   background: "#FFF7ED", borderRadius: "12px",

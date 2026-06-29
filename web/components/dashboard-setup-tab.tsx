@@ -907,7 +907,7 @@ export function DashboardSetupTab({
               App Store ↗
             </a>
             <a
-              href="https://play.google.com/store/apps/details?id=app.vinaadi"
+              href="https://play.google.com/store/apps/details?id=ai.vinaadi.app"
               style={{
                 display: "inline-flex", alignItems: "center", justifyContent: "center",
                 padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)",
