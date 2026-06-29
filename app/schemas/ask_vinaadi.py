@@ -29,7 +29,8 @@ class AskVinaadiResponseData(BaseModel):
     confidence: str
     caveat: BiText | None = None
     questions_used_today: int = Field(alias="questionsUsedToday")
-    daily_limit: int = Field(alias="dailyLimit")
+    daily_limit: int | None = Field(alias="dailyLimit")
+    monthly_limit: int | None = Field(default=None, alias="monthlyLimit")
     chips_remaining: int | None = Field(default=None, alias="chipsRemaining")
 
     model_config = ConfigDict(populate_by_name=True)

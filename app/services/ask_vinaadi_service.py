@@ -282,6 +282,7 @@ def answer_question(
     daily_status = get_daily_status(session, owner_user_id)
     used_before = daily_status["chipsUsed"]
     daily_limit = daily_status["dailyLimit"]
+    monthly_limit = daily_status["monthlyLimit"]
 
     context_text, signals, caveat_en = _build_context_block(session, chart_id, owner_user_id)
 
@@ -313,6 +314,7 @@ def answer_question(
             caveat=caveat_bitext,
             questionsUsedToday=count,
             dailyLimit=daily_limit,
+            monthlyLimit=monthly_limit,
         ),
         meta=ResponseMeta(
             calculation_version="thirukanitham-2026-v1",
