@@ -55,7 +55,7 @@
 
 | Feature | Guest | Registered | Premium |
 |---|---|---|---|
-| Ask Vinaadi | **2 questions/day** | **5 questions/day** | **30 questions/month** + top-up pack |
+| Ask Vinaadi | **2 questions/day** | **7 questions/day** | **30 questions/month** + top-up pack |
 | Ask Vinaadi top-up pack (10 questions, ₹49) | No | No | Yes (when over monthly quota) |
 | Prasna (horary) | No | Yes | Yes |
 | Muhurta calculator | No | Yes | Yes (unlimited) |
