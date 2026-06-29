@@ -91,6 +91,7 @@ class BirthProfileCreate(BaseModel):
 
 class BirthProfileResponse(BirthProfileCreate):
     birth_profile_id: UUID = Field(alias="birthProfileId")
+    chart_id: UUID | None = Field(default=None, alias="chartId")
     birth_datetime_utc: datetime | None = Field(default=None, alias="birthDatetimeUtc")
     calculation_status: Literal["pending", "completed", "failed"] = Field(default="pending", alias="calculationStatus")
     warnings: list[str] = Field(default_factory=list, alias="warnings")
@@ -123,6 +124,7 @@ class BirthProfileUpdate(BaseModel):
     current_location_updated_at: datetime | None = Field(default=None, alias="currentLocationUpdatedAt")
     birth_time_source: str | None = Field(default=None, alias="birthTimeSource")
     birth_time_confidence_minutes: int | None = Field(default=None, alias="birthTimeConfidenceMinutes", ge=0)
+    gender_for_traditional_rules: str | None = Field(default=None, alias="genderForTraditionalRules")
     marital_status: str | None = Field(default=None, alias="maritalStatus")
     employment_type: str | None = Field(default=None, alias="employmentType")
     recalculate: bool = Field(default=True, alias="recalculate")

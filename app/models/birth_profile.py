@@ -47,6 +47,9 @@ class BirthProfile(TimestampMixin, Base):
     encrypted_birth_payload: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     marital_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
     employment_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    gender_for_traditional_rules: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="not_specified", server_default=text("'not_specified'")
+    )
 
     owner_user = relationship("User", back_populates="birth_profiles")
     family_member = relationship("FamilyMember", back_populates="birth_profiles")

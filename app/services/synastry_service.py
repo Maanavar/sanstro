@@ -46,6 +46,21 @@ _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
 _TRANSIT_ALERT_PLANETS = ("JUPITER", "SATURN", "MARS", "RAHU", "VENUS")
 
 
+def _assign_bride_groom(moon_a: Any, moon_b: Any, gender_a: str | None, gender_b: str | None) -> tuple[Any, Any]:
+    """Return (boy_moon, girl_moon).
+
+    When one person is explicitly 'female' and the other 'male', the female's
+    Moon is girl_nakshatra and the male's is boy_nakshatra.  In all other cases
+    (same gender, either unknown/not_specified) fall back to a=boy, b=girl so
+    the API behaves identically to the old default.
+    """
+    a_gender = (gender_a or "not_specified").lower()
+    b_gender = (gender_b or "not_specified").lower()
+    if a_gender == "female" and b_gender == "male":
+        return moon_b, moon_a  # boy=b, girl=a
+    return moon_a, moon_b
+
+
 @dataclass(frozen=True, slots=True)
 class _AspectEval:
     pair: str
@@ -556,11 +571,15 @@ def compare_chart_snapshots_direct(
     moon_a = _planet(snap_a, "MOON")
     moon_b = _planet(snap_b, "MOON")
 
+    gender_a = getattr(snap_a.data.birth_profile, "gender_for_traditional_rules", None)
+    gender_b = getattr(snap_b.data.birth_profile, "gender_for_traditional_rules", None)
+    boy_moon, girl_moon = _assign_bride_groom(moon_a, moon_b, gender_a, gender_b)
+
     result = compute_porutham(
-        boy_nakshatra=moon_a.nakshatra,
-        girl_nakshatra=moon_b.nakshatra,
-        boy_rasi=moon_a.rasi,
-        girl_rasi=moon_b.rasi,
+        boy_nakshatra=boy_moon.nakshatra,
+        girl_nakshatra=girl_moon.nakshatra,
+        boy_rasi=boy_moon.rasi,
+        girl_rasi=girl_moon.rasi,
     )
     shaped = _contextualize_porutham_result(result, compatibility_context)
 
@@ -573,10 +592,10 @@ def compare_chart_snapshots_direct(
     data = DirectPoruthamData(
         chart_id_a=snap_a.data.chart_id,
         chart_id_b=snap_b.data.chart_id,
-        boy_nakshatra=moon_a.nakshatra,
-        boy_nakshatra_name=NAKSHATRA_NAMES[moon_a.nakshatra - 1],
-        girl_nakshatra=moon_b.nakshatra,
-        girl_nakshatra_name=NAKSHATRA_NAMES[moon_b.nakshatra - 1],
+        boy_nakshatra=boy_moon.nakshatra,
+        boy_nakshatra_name=NAKSHATRA_NAMES[boy_moon.nakshatra - 1],
+        girl_nakshatra=girl_moon.nakshatra,
+        girl_nakshatra_name=NAKSHATRA_NAMES[girl_moon.nakshatra - 1],
         kutas=kutas,
         total_score=shaped["total_score"],
         max_score=shaped["max_score"],
@@ -603,11 +622,15 @@ def build_compatibility_intelligence_from_snapshots(
     moon_a = _planet(snap_a, "MOON")
     moon_b = _planet(snap_b, "MOON")
 
+    gender_a = getattr(snap_a.data.birth_profile, "gender_for_traditional_rules", None)
+    gender_b = getattr(snap_b.data.birth_profile, "gender_for_traditional_rules", None)
+    boy_moon, girl_moon = _assign_bride_groom(moon_a, moon_b, gender_a, gender_b)
+
     porutham_result = compute_porutham(
-        boy_nakshatra=moon_a.nakshatra,
-        girl_nakshatra=moon_b.nakshatra,
-        boy_rasi=moon_a.rasi,
-        girl_rasi=moon_b.rasi,
+        boy_nakshatra=boy_moon.nakshatra,
+        girl_nakshatra=girl_moon.nakshatra,
+        boy_rasi=boy_moon.rasi,
+        girl_rasi=girl_moon.rasi,
     )
     synastry_data = compute_synastry_score(snap_a, snap_b)
     today_jd = utc_datetime_to_julian_day(datetime.now(tz=UTC))
@@ -781,12 +804,15 @@ def get_porutham_for_member(
     owner_moon = _planet(owner_snap, "MOON")
     member_moon = _planet(member_snap, "MOON")
 
-    # Convention: owner=boy, member=girl for the kuta direction
+    gender_owner = getattr(owner_snap.data.birth_profile, "gender_for_traditional_rules", None)
+    gender_member = member.gender_for_traditional_rules
+    boy_moon, girl_moon = _assign_bride_groom(owner_moon, member_moon, gender_owner, gender_member)
+
     result = compute_porutham(
-        boy_nakshatra=owner_moon.nakshatra,
-        girl_nakshatra=member_moon.nakshatra,
-        boy_rasi=owner_moon.rasi,
-        girl_rasi=member_moon.rasi,
+        boy_nakshatra=boy_moon.nakshatra,
+        girl_nakshatra=girl_moon.nakshatra,
+        boy_rasi=boy_moon.rasi,
+        girl_rasi=girl_moon.rasi,
     )
     shaped = _contextualize_porutham_result(result, compatibility_context)
 
@@ -805,10 +831,10 @@ def get_porutham_for_member(
     data = PorutthamData(
         family_vault_id=family_vault_id,
         member_id=member_id,
-        boy_nakshatra=owner_moon.nakshatra,
-        boy_nakshatra_name=NAKSHATRA_NAMES[owner_moon.nakshatra - 1],
-        girl_nakshatra=member_moon.nakshatra,
-        girl_nakshatra_name=NAKSHATRA_NAMES[member_moon.nakshatra - 1],
+        boy_nakshatra=boy_moon.nakshatra,
+        boy_nakshatra_name=NAKSHATRA_NAMES[boy_moon.nakshatra - 1],
+        girl_nakshatra=girl_moon.nakshatra,
+        girl_nakshatra_name=NAKSHATRA_NAMES[girl_moon.nakshatra - 1],
         kutas=kutas,
         total_score=shaped["total_score"],
         max_score=shaped["max_score"],

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.error_codes import ErrorCode, get_error_message
 from app.models import BirthProfile, FamilyMember
+from app.models.chart import Chart
 from app.schemas.birth_profiles import (
     BirthProfileCreate,
     BirthProfileCreateResult,
@@ -152,9 +153,19 @@ def get_birth_profile(session: Session, birth_profile_id: UUID, *, calculation_v
     family_vault_id = family_member.family_vault_id if family_member is not None else None
     relationship_to_owner = family_member.relationship_to_owner if family_member is not None else "self"
 
+    chart_row = session.execute(
+        select(Chart.chart_id)
+        .where(Chart.birth_profile_id == birth_profile_id)
+        .where(Chart.calculation_version == calculation_version)
+        .where(Chart.archived_at.is_(None))
+        .order_by(Chart.created_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+
     return BirthProfileGetResponse(
         data=BirthProfileResponse(
             birth_profile_id=birth_profile.birth_profile_id,
+            chart_id=chart_row,
             owner_user_id=birth_profile.owner_user_id,
             family_vault_id=family_vault_id,
             family_member_id=birth_profile.family_member_id,
@@ -176,7 +187,7 @@ def get_birth_profile(session: Session, birth_profile_id: UUID, *, calculation_v
             calendar_input_type=birth_profile.calendar_input_type,
             calculate_now=False,
             language_preference="ta-en",
-            gender_for_traditional_rules=None,
+            gender_for_traditional_rules=birth_profile.gender_for_traditional_rules,
             marital_status=birth_profile.marital_status,
             employment_type=birth_profile.employment_type,
             birth_datetime_utc=birth_profile.birth_datetime_utc,
@@ -279,7 +290,7 @@ def list_birth_profiles_for_owner(
             calendar_input_type=birth_profile.calendar_input_type,
             calculate_now=False,
             language_preference="ta-en",
-            gender_for_traditional_rules=None,
+            gender_for_traditional_rules=birth_profile.gender_for_traditional_rules,
             marital_status=birth_profile.marital_status,
             employment_type=birth_profile.employment_type,
             birth_datetime_utc=birth_profile.birth_datetime_utc,

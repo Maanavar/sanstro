@@ -149,6 +149,7 @@ export interface BirthProfileResponse {
 
 export interface BirthProfileSnapshot {
   birthProfileId: string;
+  chartId?: string | null;
   ownerUserId?: string;
   familyVaultId?: string | null;
   familyMemberId?: string | null;
