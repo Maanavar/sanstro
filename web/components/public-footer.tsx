@@ -32,6 +32,8 @@ export function PublicFooter() {
     { href: "/yogam", label: mt(FOOTER.guide_yogam, lang) },
     { href: "/pariharam", label: mt(FOOTER.guide_pariharam, lang) },
     { href: "/temples", label: mt(FOOTER.guide_temples, lang) },
+    { href: "/panchangam", label: mt(FOOTER.guide_panchangam, lang) },
+    { href: "/tamil-calendar", label: mt(FOOTER.guide_calendar, lang) },
   ];
   const companyLinks = [
     { href: "/trust/about-vinaadi", label: mt(FOOTER.about, lang) },

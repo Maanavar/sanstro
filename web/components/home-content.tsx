@@ -99,36 +99,6 @@ export function HomeContent() {
     { title: mt(HOME.meth5_title, lang), body: mt(HOME.meth5_body, lang) },
   ];
 
-  const HUB_CARDS = [
-    { eyebrow: mt(HOME.hub1_eye, lang), title: mt(HOME.hub1_title, lang), body: mt(HOME.hub1_body, lang), href: "/features/daily-guidance" },
-    { eyebrow: mt(HOME.hub2_eye, lang), title: mt(HOME.hub2_title, lang), body: mt(HOME.hub2_body, lang), href: "/features/family-planning" },
-    { eyebrow: mt(HOME.hub3_eye, lang), title: mt(HOME.hub3_title, lang), body: mt(HOME.hub3_body, lang), href: "/features/chart-guidance" },
-    { eyebrow: mt(HOME.hub4_eye, lang), title: mt(HOME.hub4_title, lang), body: mt(HOME.hub4_body, lang), href: "/features/timing-and-decisions" },
-    { eyebrow: mt(HOME.hub5_eye, lang), title: mt(HOME.hub5_title, lang), body: mt(HOME.hub5_body, lang), href: "/tools/marriage-porutham-calculator" },
-    { eyebrow: mt(HOME.hub6_eye, lang), title: mt(HOME.hub6_title, lang), body: mt(HOME.hub6_body, lang), href: "/trust/methodology" },
-  ];
-
-  const LEARN_PILLS = [
-    { label: mt(HOME.learn1, lang), href: "/learn/what-is-porutham" },
-    { label: mt(HOME.learn2, lang), href: "/learn/what-is-thirukanitham" },
-    { label: mt(HOME.learn3, lang), href: "/learn/what-is-chandrashtama" },
-    { label: mt(HOME.learn4, lang), href: "/learn/how-to-read-a-jadhagam" },
-    { label: mt(HOME.learn5, lang), href: "/learn/why-birth-time-matters" },
-  ];
-
-  const DISCOVER_CARDS = [
-    { title: mt(HOME.discover1_title, lang), body: mt(HOME.discover1_body, lang), cta: mt(HOME.discover1_cta, lang), href: "/temples" },
-    { title: mt(HOME.discover2_title, lang), body: mt(HOME.discover2_body, lang), cta: mt(HOME.discover2_cta, lang), href: "/panchangam" },
-    { title: mt(HOME.discover3_title, lang), body: mt(HOME.discover3_body, lang), cta: mt(HOME.discover3_cta, lang), href: "/calendar" },
-  ];
-
-  const COMMIT_ITEMS = [
-    mt(HOME.commit1, lang),
-    mt(HOME.commit2, lang),
-    mt(HOME.commit3, lang),
-    mt(HOME.commit4, lang),
-  ];
-
   const FAMILY_MEMBERS = [
     { name: "Arjun", score: 64, band: "mid" },
     { name: "Priya", score: 81, band: "high" },
@@ -466,80 +436,8 @@ export function HomeContent() {
         </div>
       </section>
 
-      {/* SECTION 8 — Feature Hub */}
-      <section className="cl-feature-hub">
-        <div className="cl-container">
-          <div className="cl-feature-hub__head">
-            <p className="cl-eyebrow">{mt(HOME.hub_eyebrow, lang)}</p>
-            <h2 className="cl-section-h2">{mt(HOME.hub_h2, lang)}</h2>
-          </div>
-          <div className="cl-feature-hub-grid">
-            {HUB_CARDS.map((card) => (
-              <Link key={card.title} href={card.href} className="cl-fhub-card">
-                <p className="cl-fhub-card__eyebrow">{card.eyebrow}</p>
-                <h3 className="cl-fhub-card__title">{card.title}</h3>
-                <p className="cl-fhub-card__body">{card.body}</p>
-                <span className="cl-fhub-card__arrow">→</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 9 — Learn strip */}
-      <section className="cl-learn-strip">
-        <div className="cl-container">
-          <div className="cl-learn-strip__head">
-            <p className="cl-eyebrow">{mt(HOME.learn_eyebrow, lang)}</p>
-            <h2 className="cl-section-h2">{mt(HOME.learn_h2, lang)}</h2>
-          </div>
-          <div className="cl-learn-links">
-            {LEARN_PILLS.map((pill) => (
-              <Link key={pill.href} href={pill.href} className="cl-learn-pill">{pill.label}</Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 9.5 — Discover */}
-      <section className="cl-discover">
-        <div className="cl-container">
-          <div className="cl-discover__head">
-            <p className="cl-eyebrow">{mt(HOME.discover_eyebrow, lang)}</p>
-            <h2 className="cl-section-h2">{mt(HOME.discover_h2, lang)}</h2>
-          </div>
-          <div className="cl-discover-grid">
-            {DISCOVER_CARDS.map((card) => (
-              <Link key={card.href} href={card.href} className="cl-discover-card">
-                <h3 className="cl-discover-card__title">{card.title}</h3>
-                <p className="cl-discover-card__body">{card.body}</p>
-                <span className="cl-discover-card__cta">{card.cta}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 10 — Commitment */}
-      <section className="cl-commit" id="commitment">
-        <div className="cl-container cl-commit__inner">
-          <p className="cl-eyebrow cl-commit-eyebrow">{mt(HOME.commit_eyebrow, lang)}</p>
-          <h2 className="cl-section-h2 cl-commit-title">
-            <em>{mt(HOME.commit_h2, lang)}</em>
-          </h2>
-          <div className="cl-commit-grid">
-            {COMMIT_ITEMS.map((text) => (
-              <div key={text} className="cl-commit-item">
-                <span className="cl-commit-item__icon">✓</span>
-                <p className="cl-commit-item__text">{text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 11 — CTA */}
-      <section className="cl-pricing" id="pricing">
+      {/* SECTION 8 — CTA */}
+      <section className="cl-pricing" id="get-started">
         <div className="cl-container cl-pricing__inner">
           <p className="cl-eyebrow">{mt(HOME.cta_eyebrow, lang)}</p>
           <h2 className="cl-section-h2 cl-pricing__title">{mt(HOME.cta_h2, lang)}</h2>
@@ -548,79 +446,62 @@ export function HomeContent() {
         </div>
       </section>
 
-      {/* SECTION 12 — Email capture (P4-10) */}
-      <section className="cl-newsletter" id="newsletter">
-        <div className="cl-container cl-newsletter__inner">
-          <p className="cl-eyebrow">
-            {lang === "en" ? "Stay in the loop" : "தினசரி வழிகாட்டுதல்"}
-          </p>
-          <h2 className="cl-section-h2">
-            {lang === "en"
-              ? "Get your free daily astrology summary."
-              : "உங்கள் இலவச நாளிதழ் ஜோதிட சுருக்கம்."}
-          </h2>
-          <p className="cl-section-body">
-            {lang === "en"
-              ? "Daily Thirukanitham score, transit alerts, and timing highlights — delivered to your inbox."
-              : "தினசரி திருகணிதம் மதிப்பு, கோசார எச்சரிக்கைகள், மற்றும் சுப நேர தகவல்கள் — உங்கள் மின்னஞ்சலுக்கு."}
-          </p>
-          <NewsletterForm lang={lang} />
-        </div>
-      </section>
-
-      {/* SECTION 13 — Download the app (P4-02) */}
-      <section className="cl-app-dl" id="download-app">
+      {/* SECTION 9 — Stay connected (merged email capture + app download) */}
+      <section className="cl-connect" id="connect">
         <div className="cl-container">
-          <div className="cl-app-dl__inner">
-            <div className="cl-app-dl__copy">
-              <p className="cl-eyebrow">
-                {lang === "en" ? "Available on Mobile" : "மொபைல் பயன்பாடு"}
-              </p>
-              <h2 className="cl-section-h2">
-                {lang === "en" ? "Take Vinaadi everywhere." : "விநாடி உங்களுடன்."}
-              </h2>
-              <p className="cl-section-body">
-                {lang === "en"
-                  ? "Daily Thirukanitham guidance, Jadhagam, and family timing — all on your phone. Start with a free 7-day trial."
-                  : "தினசரி திருகணிதம் வழிகாட்டல், ஜாதகம், குடும்ப நேரங்கள் — உங்கள் கையில். 7 நாள் இலவச சோதனை."}
-              </p>
+          <div className="cl-connect__head">
+            <p className="cl-eyebrow">{mt(HOME.connect_eyebrow, lang)}</p>
+            <h2 className="cl-section-h2">{mt(HOME.connect_h2, lang)}</h2>
+            <p className="cl-section-body">{mt(HOME.connect_body, lang)}</p>
+          </div>
+          <div className="cl-connect-grid">
+            <div className="cl-connect-card cl-connect-card--email">
+              <span className="cl-connect-card__icon" aria-hidden="true">✉</span>
+              <h3 className="cl-connect-card__title">{mt(HOME.connect_email_title, lang)}</h3>
+              <p className="cl-connect-card__body">{mt(HOME.connect_email_body, lang)}</p>
+              <NewsletterForm lang={lang} />
             </div>
-            <div className="cl-app-dl__badges">
-              <a
-                href="https://play.google.com/store/apps/details?id=ai.vinaadi.app"
-                className="cl-store-badge"
-                aria-label="Get Vinaadi on Google Play"
-                onClick={() => track("app_dl_clicked", { store: "play" })}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M3.18 23.76C2.48 23.36 2 22.6 2 21.7V2.3C2 1.4 2.48.64 3.18.24L13.88 12 3.18 23.76z" fill="#EA4335"/>
-                  <path d="M17.67 15.54L5.4 22.78l9.3-9.3 2.97 2.06z" fill="#FBBC05"/>
-                  <path d="M21.14 10.53c.55.3.86.84.86 1.47s-.31 1.17-.86 1.47l-3.47 2.07-3.23-3.23 3.23-3.23 3.47 2.45z" fill="#4285F4"/>
-                  <path d="M5.4 1.22L17.67 8.46l-2.97 2.07-9.3-9.31z" fill="#34A853"/>
-                </svg>
-                <div>
-                  <p className="cl-store-badge__meta">
-                    {lang === "en" ? "Get it on" : "பதிவிறக்கம்"}
-                  </p>
-                  <p className="cl-store-badge__name">Google Play</p>
-                </div>
-              </a>
-              <a
-                href="https://apps.apple.com/app/vinaadi/id0000000000"
-                className="cl-store-badge"
-                aria-label="Download Vinaadi on the App Store"
-                onClick={() => track("app_dl_clicked", { store: "appstore" })}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="#2E2118" aria-hidden="true">
-                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-                </svg>
-                <div>
-                  <p className="cl-store-badge__meta">
-                    {lang === "en" ? "Download on the" : "பதிவிறக்கம்"}
-                  </p>
-                  <p className="cl-store-badge__name">App Store</p>
-                </div>
-              </a>
+            <div className="cl-connect-card cl-connect-card--app">
+              <span className="cl-connect-card__icon" aria-hidden="true">⊡</span>
+              <h3 className="cl-connect-card__title">{mt(HOME.connect_app_title, lang)}</h3>
+              <p className="cl-connect-card__body">{mt(HOME.connect_app_body, lang)}</p>
+              <div className="cl-connect-badges">
+                <a
+                  href="https://play.google.com/store/apps/details?id=ai.vinaadi.app"
+                  className="cl-store-badge"
+                  aria-label="Get Vinaadi on Google Play"
+                  onClick={() => track("app_dl_clicked", { store: "play" })}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M3.18 23.76C2.48 23.36 2 22.6 2 21.7V2.3C2 1.4 2.48.64 3.18.24L13.88 12 3.18 23.76z" fill="#EA4335"/>
+                    <path d="M17.67 15.54L5.4 22.78l9.3-9.3 2.97 2.06z" fill="#FBBC05"/>
+                    <path d="M21.14 10.53c.55.3.86.84.86 1.47s-.31 1.17-.86 1.47l-3.47 2.07-3.23-3.23 3.23-3.23 3.47 2.45z" fill="#4285F4"/>
+                    <path d="M5.4 1.22L17.67 8.46l-2.97 2.07-9.3-9.31z" fill="#34A853"/>
+                  </svg>
+                  <div>
+                    <p className="cl-store-badge__meta">
+                      {lang === "en" ? "Get it on" : "பதிவிறக்கம்"}
+                    </p>
+                    <p className="cl-store-badge__name">Google Play</p>
+                  </div>
+                </a>
+                <a
+                  href="https://apps.apple.com/app/vinaadi/id0000000000"
+                  className="cl-store-badge"
+                  aria-label="Download Vinaadi on the App Store"
+                  onClick={() => track("app_dl_clicked", { store: "appstore" })}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="#2E2118" aria-hidden="true">
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                  </svg>
+                  <div>
+                    <p className="cl-store-badge__meta">
+                      {lang === "en" ? "Download on the" : "பதிவிறக்கம்"}
+                    </p>
+                    <p className="cl-store-badge__name">App Store</p>
+                  </div>
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -652,17 +533,17 @@ function NewsletterForm({ lang }: { lang: "en" | "ta" }) {
 
   if (status === "done") {
     return (
-      <p className="cl-newsletter__confirm">
+      <p className="cl-connect-form__confirm">
         {ta ? "பதிவு செய்தமைக்கு நன்றி!" : "You're subscribed — thank you!"}
       </p>
     );
   }
 
   return (
-    <form className="cl-newsletter__form" onSubmit={handleSubmit}>
+    <form className="cl-connect-form" onSubmit={handleSubmit}>
       <input
         type="email"
-        className="cl-newsletter__input"
+        className="cl-connect-form__input"
         placeholder={ta ? "மின்னஞ்சல் உள்ளிடுக" : "Your email address"}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
@@ -671,7 +552,7 @@ function NewsletterForm({ lang }: { lang: "en" | "ta" }) {
       />
       <button
         type="submit"
-        className="cl-btn cl-btn--solid cl-newsletter__btn"
+        className="cl-btn cl-btn--solid cl-connect-form__btn"
         disabled={status === "loading"}
       >
         {status === "loading"
@@ -679,7 +560,7 @@ function NewsletterForm({ lang }: { lang: "en" | "ta" }) {
           : (ta ? "பதிவு செய்" : "Subscribe")}
       </button>
       {status === "error" && (
-        <p className="cl-newsletter__error">
+        <p className="cl-connect-form__error">
           {ta ? "பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்." : "Something went wrong. Please try again."}
         </p>
       )}

@@ -72,10 +72,12 @@ export const FOOTER = {
   col_guide:    s("Jothidam Guide", "ஜோதிட வழிகாட்டி"),
   col_company:  s("Company",   "நிறுவனம்"),
 
-  guide_dosham:    s("Dosham",          "தோஷம்"),
-  guide_yogam:     s("Yogam",           "யோகம்"),
-  guide_pariharam: s("Pariharam",       "பரிகாரம்"),
-  guide_temples:   s("Temples",         "கோயில்கள்"),
+  guide_dosham:     s("Dosham",          "தோஷம்"),
+  guide_yogam:      s("Yogam",           "யோகம்"),
+  guide_pariharam:  s("Pariharam",       "பரிகாரம்"),
+  guide_temples:    s("Temples",         "கோயில்கள்"),
+  guide_panchangam: s("Panchangam",      "பஞ்சாங்கம்"),
+  guide_calendar:   s("Tamil Calendar",  "தமிழ் நாட்காட்டி"),
 
   feat_daily:   s("Daily Guidance",       "தினசரி வழிகாட்டுதல்"),
   feat_family:  s("Family Planning",      "குடும்ப திட்டமிடல்"),
@@ -345,59 +347,7 @@ export const HOME = {
   ),
   method_link: s("Full methodology →", "முழு கணக்கீட்டு முறை →"),
 
-  // Section 8 — Feature Hub
-  hub_eyebrow: s("Features", "அம்சங்கள்"),
-  hub_h2:      s("Explore the ways Vinaadi can guide you", "விநாடி எந்தெந்த வழியில் உதவுகிறது என்பதைப் பாருங்கள்"),
-  hub1_eye:    s("Feature",  "அம்சம்"),
-  hub1_title:  s("Daily Guidance", "தினசரி வழிகாட்டுதல்"),
-  hub1_body:   s("One daily reading combining chart, dasa, transits, and panchangam. Your best window, caution window, and day tone.", "ஜாதகம், தசை, கிரகநகர்வு, பஞ்சாங்கம் சேர்ந்த தினசரி வாசிப்பு. நல்ல நேரம், கவன நேரம், நாளின் நிலை அனைத்தும் ஒரே இடத்தில்."),
-  hub2_eye:    s("Feature",  "அம்சம்"),
-  hub2_title:  s("Family Planning", "குடும்ப திட்டமிடல்"),
-  hub2_body:   s("Add family members, compare readings, and find the timing windows that work for the whole household.", "குடும்பத்தினரை சேர்க்கவும், வாசிப்புகளை ஒப்பிடவும், முழு வீட்டிற்கும் பொருந்தும் நேர சாளரங்களை கண்டறியுங்கள்."),
-  hub3_eye:    s("Feature",  "அம்சம்"),
-  hub3_title:  s("Chart Guidance", "ஜாதகப் புரிதல்"),
-  hub3_body:   s("Understand your jadhagam — lagna, planets, yogas, doshas, and what they mean in the context of your current dasa.", "உங்கள் ஜாதகம் — லக்னம், கிரகங்கள், யோகங்கள், தோஷங்கள், நடப்பு தசை சூழலில் அவற்றின் அர்த்தம்."),
-  hub4_eye:    s("Feature",  "அம்சம்"),
-  hub4_title:  s("Timing and Decisions", "நல்ல நேரம் & முடிவுகள்"),
-  hub4_body:   s("Plan important actions — ceremonies, travel, business, health — with astrological timing grounded in Thirukanitham.", "முக்கியமான செயல்களை திட்டமிடுங்கள் — விழாக்கள், பயணம், வியாபாரம், உடல்நலம் — திருக்கணிதம் அடிப்படையிலான ஜோதிட நேரத்தில்."),
-  hub5_eye:    s("Tool",     "கருவி"),
-  hub5_title:  s("Porutham Calculator", "பொருத்தம் பார்"),
-  hub5_body:   s("Quick birth-star porutham for visitors; full signed-in matching uses traditional 10-factor Thirukanitham scoring, Rajju, Vedhai, Nadi judgement, Sevvai, D9, and dasa context.", "வருகையாளர்களுக்கு விரைவான நட்சத்திரப் பொருத்தம்; உள்நுழைந்த பிறகு 10-கூறு திருக்கணித மதிப்பீடு, ரஜ்ஜு, வேதை, நாடி தீர்வு, செவ்வாய், நவாம்சம், தசை சூழல் உடன் முழு பொருத்தம்."),
-  hub6_eye:    s("Method",   "முறை"),
-  hub6_title:  s("Our Methodology", "எங்கள் கணக்கீட்டு முறை"),
-  hub6_body:   s("How Vinaadi calculates — Thirukanitham, Lahiri ayanamsa, Drik ephemeris, multi-signal daily score.", "விநாடி எவ்வாறு கணக்கிடுகிறது — திருக்கணிதம், லாகிரி அயனாம்சம், திரிக் கோளக்கணிதம், பல சமிக்ஞை தினசரி மதிப்பெண்."),
-
-  // Section 9 — Learn strip
-  learn_eyebrow: s("Learn",  "அறிந்து கொள்"),
-  learn_h2:      s("Learn the ideas behind the guidance", "இந்த வழிகாட்டலின் பின்னால் உள்ள கருத்துகளை அறிந்து கொள்ளுங்கள்"),
-  learn1:        s("What is Porutham?",           "பொருத்தம் என்றால் என்ன?"),
-  learn2:        s("What is Thirukanitham?",       "திருக்கணிதம் என்றால் என்ன?"),
-  learn3:        s("What is Chandrashtama?",       "சந்திராஷ்டமம் என்றால் என்ன?"),
-  learn4:        s("How to read a Jadhagam",       "ஜாதகம் படிப்பது எப்படி"),
-  learn5:        s("Why birth time matters",       "பிறந்த நேரம் ஏன் முக்கியம்"),
-
-  // Section 9.5 — Discover
-  discover_eyebrow: s("Discover",                        "கண்டுபிடியுங்கள்"),
-  discover_h2:      s("Explore Tamil astrology resources", "தமிழ் ஜோதிட வளங்களை ஆராயுங்கள்"),
-  discover1_title:  s("Find temples near you",            "அருகிலுள்ள கோயில்களை கண்டறியுங்கள்"),
-  discover1_body:   s("Discover temples across Tamil Nadu and the world, with muhurtha guidance for visits.", "தமிழ்நாடு மற்றும் உலகம் முழுவதும் உள்ள கோயில்களை, பார்க்கும் முகூர்த்த வழிகாட்டலுடன் கண்டறியுங்கள்."),
-  discover1_cta:    s("Explore temples →",                "கோயில்களை பாருங்கள் →"),
-  discover2_title:  s("Today's panchangam",               "இன்றைய பஞ்சாங்கம்"),
-  discover2_body:   s("Tithi, nakshatra, Rahu kalam, and Nalla Neram — Thirukanitham-based, updated daily.", "திதி, நட்சத்திரம், ராகு காலம், நல்ல நேரம் — திருக்கணிதம் அடிப்படையில், தினமும் புதுப்பிக்கப்படும்."),
-  discover2_cta:    s("View panchangam →",                "பஞ்சாங்கம் பாருங்கள் →"),
-  discover3_title:  s("Tamil festival calendar 2026",     "தமிழ் பண்டிகை நாட்காட்டி 2026"),
-  discover3_body:   s("All major Tamil festivals with dates, significance, and auspicious timings for 2026.", "2026 ஆம் ஆண்டின் அனைத்து முக்கிய தமிழ் பண்டிகைகளும் தேதி, சிறப்பு, நல்ல நேரங்களுடன்."),
-  discover3_cta:    s("View festival calendar →",         "பண்டிகை நாட்காட்டி பாருங்கள் →"),
-
-  // Section 10 — Commitment
-  commit_eyebrow: s("Our commitment",   "எங்கள் உறுதிமொழி"),
-  commit_h2:      s("Calm language, no fear.", "அமைதியான மொழி, பயம் இல்லை."),
-  commit1: s("No doom language or guaranteed bad predictions",   "அழிவு மொழி அல்லது உறுதியான மோசமான கணிப்புகள் இல்லை"),
-  commit2: s("Every verdict shows the reasoning behind it",     "ஒவ்வொரு தீர்ப்பும் அதன் பின்னால் உள்ள காரணத்தை காட்டுகிறது"),
-  commit3: s("Your data stays on our servers — never sold",     "உங்கள் தரவு எங்கள் சேவையகங்களில் இருக்கும் — ஒருபோதும் விற்கப்படாது"),
-  commit4: s("Jothidam is tradition, not science — we say so clearly", "ஜோதிடம் பாரம்பரியம், அறிவியல் அல்ல — நாங்கள் தெளிவாக சொல்கிறோம்"),
-
-  // Section 11 — CTA
+  // Section 10 — CTA
   cta_eyebrow: s("Early access",   "ஆரம்ப அணுகல்"),
   cta_h2:      s("Start with one reading. Stay for the clarity.", "ஒரு வாசிப்பில் தொடங்குங்கள். தெளிவாக முன்னேறுங்கள்."),
   cta_body:    s(
@@ -405,6 +355,18 @@ export const HOME = {
     "முழு அணுகல் — ஜாதகம், தினசரி வழிகாட்டுதல், குடும்ப சேகரிப்பு, அனைத்து கருவிகளும் — ஆரம்ப அணுகல் காலத்தில் இலவசம்."
   ),
   cta_btn: s("Get started free →", "இலவசமாக தொடங்குங்கள் →"),
+
+  // Section 11 — Stay connected (merged newsletter + app download)
+  connect_eyebrow: s("Stay connected", "இணைந்திருங்கள்"),
+  connect_h2:      s("Take Vinaadi with you", "விநாடி உங்களுடன்"),
+  connect_body:    s(
+    "Daily Thirukanitham guidance, wherever you check it — your inbox or your phone.",
+    "தினசரி திருக்கணித வழிகாட்டுதல், நீங்கள் எங்கு பார்த்தாலும் — மின்னஞ்சலிலோ அல்லது கைபேசியிலோ."
+  ),
+  connect_email_title: s("Daily email summary", "தினசரி மின்னஞ்சல் சுருக்கம்"),
+  connect_email_body:  s("Score, transit alerts, and timing highlights — delivered every morning.", "மதிப்பெண், கோசார எச்சரிக்கைகள், நல்ல நேர தகவல்கள் — ஒவ்வொரு காலையும்."),
+  connect_app_title:   s("Mobile app", "மொபைல் பயன்பாடு"),
+  connect_app_body:    s("Jadhagam, family timing, and daily guidance on your phone. Free 7-day trial.", "ஜாதகம், குடும்ப நேரங்கள், தினசரி வழிகாட்டுதல் — உங்கள் கையில். 7 நாள் இலவச சோதனை."),
 };
 
 // ─── FEATURES ────────────────────────────────────────────────────────────────
