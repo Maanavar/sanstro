@@ -79,12 +79,27 @@ Get-ChildItem -Recurse -Filter "*.py" -ErrorAction SilentlyContinue |
    .\restore-dev-db.ps1 -BackupFile backup_20260526_1400.sql
    ```
 7. **`dev.ps1` runs `alembic upgrade head` on startup** — this is safe for forward-only migrations. It will NOT drop data. If a migration fails, fix the migration file, do NOT manually drop tables.
+8. **`DROP TABLE` alone does not remove Postgres composite/enum types tied to a table's columns** — a leftover type can collide on recreation (`UniqueViolation`) the second time a test suite resets schema state in the same session. Test fixtures that reset schema must use `DROP SCHEMA ... CASCADE` + `CREATE SCHEMA`, not per-table `DROP TABLE`. This only reproduces against real Postgres, not SQLite.
 
 ### Migration authoring rules
 - Every migration must be **reversible** — always fill in the `downgrade()` function.
 - Use `render_as_batch=True` in `env.py` for SQLite compatibility (already set).
 - Test the migration on the test DB first: apply → verify → downgrade → verify.
 - Never use `op.drop_column` or `op.drop_table` on a column/table that still has live data without confirming with the user first.
+
+## API contracts — coordinate across surfaces
+
+API routes, query params, and response shapes are a shared contract across four locations, not backend-internal:
+- `app/api/` (backend)
+- `packages/shared/src/api/` (shared client)
+- `mobile/src/api/`
+- `web/`
+
+A change made only in the backend (e.g. renaming a param, moving a path segment to a query param) breaks the other consumers silently at runtime — there is no compile-time check across this boundary. Before changing a route path, query param name, or response shape, grep all four locations for callers and update them in the same change. Prefer query params over path segments for optional filters — easier to add without breaking existing callers.
+
+## Test & fixture data
+
+Never hardcode real personal data (real birth profiles, names, exact coordinates) in tests, fixtures, seed data, docs, or example payloads. Use a clearly-synthetic identity instead. Real-looking data in a diff should be flagged during review, not assumed to be a fixture.
 
 ## Before running any command
 
