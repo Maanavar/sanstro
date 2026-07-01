@@ -63,24 +63,35 @@ const NADI = NAKSHATRAS.map((_,i) => Math.floor((i % 9) / 3));
 const NADI_NAMES_TA = ["ஆதி நாடி","மத்திய நாடி","அந்திய நாடி"];
 
 // Rasi assignment (0-11 = Mesha…Meena)
-// Split nakshatras → primary rasi (where 3 of 4 padas fall):
-//   Karthigai: pada1=Mesha, pada2-4=Rishaba → Rishaba(1) ✓
-//   Punarpoosam: pada1-3=Mithuna, pada4=Kataka → Mithuna(2) [was Kataka]
-//   Uthiram: pada1=Simha, pada2-4=Kanni → Kanni(5) ✓
-//   Visakam: pada1-3=Thula, pada4=Vrischika → Thula(6) [was Vrischika]
-//   Uthiradam: pada1=Dhanus, pada2-4=Makara → Makara(9) ✓
-//   Poorattathi: pada1-3=Kumbha, pada4=Meena → Kumbha(10) [was Meena]
+// 9 nakshatras straddle a rasi boundary (a 30° rasi never divides evenly into
+// 13°20' nakshatras). Default below is the majority-pada rasi; SPLIT_NAK lets
+// the user override it with the exact pada when it changes the rasi:
+//   Karthigai    (2):  pada1=Mesha,      padas2-4=Rishaba   → Rishaba(1) ✓
+//   Mirugaseeridam(4): padas1-2=Rishaba, padas3-4=Mithuna   → Mithuna(2) (50/50, default = later)
+//   Punarpoosam  (6):  padas1-3=Mithuna, pada4=Kataka       → Mithuna(2) ✓
+//   Uthiram      (11): pada1=Simha,      padas2-4=Kanni     → Kanni(5) ✓
+//   Chithirai    (13): padas1-2=Kanni,   padas3-4=Thula     → Thula(6) (50/50, default = later)
+//   Visakam      (15): padas1-3=Thula,   pada4=Vrischika    → Thula(6) ✓
+//   Uthiradam    (20): pada1=Dhanus,     padas2-4=Makara    → Makara(9) ✓
+//   Avittam      (22): padas1-2=Makara,  padas3-4=Kumbha    → Kumbha(10) (50/50, default = later)
+//   Poorattathi  (24): padas1-3=Kumbha,  pada4=Meena        → Kumbha(10) ✓
 const RASI = [0,0,1,1,2,2,2,3,3,4,4,5,5,6,6,6,7,7,8,8,9,9,10,10,10,11,11];
 const RASI_NAMES_TA = ["மேஷம்","ரிஷபம்","மிதுனம்","கடகம்","சிம்மம்","கன்னி","துலாம்","விருச்சிகம்","தனுசு","மகரம்","கும்பம்","மீனம்"];
 const RASI_NAMES_EN = ["Mesha","Rishaba","Mithuna","Kataka","Simha","Kanni","Thula","Vrischika","Dhanus","Makara","Kumbha","Meena"];
 
-// 50/50 split nakshatras: exactly 2 padas fall in each of two rasis.
-// Users must specify which pada group they belong to for rasi-based poruthams to be accurate.
-//   Mirugasiridam (4): padas 1-2 = Rishaba(1), padas 3-4 = Mithuna(2)
-//   Chithirai     (13): padas 1-2 = Kanni(5),   padas 3-4 = Thula(6)
+// Nakshatras whose 4 padas fall across two rasis. Users must specify which pada
+// group they belong to for rasi-based poruthams (Rasi, Rasiyathipathi, Vasya)
+// to be accurate — without it, the majority-pada rasi above is assumed.
 const SPLIT_NAK: Record<number, { early: [string, string, number]; late: [string, string, number] }> = {
-  4:  { early: ["பாதம் 1–2 · ரிஷபம்", "Padas 1–2 · Rishaba", 1], late: ["பாதம் 3–4 · மிதுனம்", "Padas 3–4 · Mithuna", 2] },
-  13: { early: ["பாதம் 1–2 · கன்னி",  "Padas 1–2 · Kanni",   5], late: ["பாதம் 3–4 · துலாம்",  "Padas 3–4 · Thula",  6] },
+  2:  { early: ["பாதம் 1 · மேஷம்",     "Pada 1 · Mesha",       0], late: ["பாதம் 2–4 · ரிஷபம்",   "Padas 2–4 · Rishaba",   1] },
+  4:  { early: ["பாதம் 1–2 · ரிஷபம்",  "Padas 1–2 · Rishaba",  1], late: ["பாதம் 3–4 · மிதுனம்",  "Padas 3–4 · Mithuna",   2] },
+  6:  { early: ["பாதம் 1–3 · மிதுனம்", "Padas 1–3 · Mithuna",  2], late: ["பாதம் 4 · கடகம்",      "Pada 4 · Kataka",       3] },
+  11: { early: ["பாதம் 1 · சிம்மம்",   "Pada 1 · Simha",       4], late: ["பாதம் 2–4 · கன்னி",    "Padas 2–4 · Kanni",     5] },
+  13: { early: ["பாதம் 1–2 · கன்னி",   "Padas 1–2 · Kanni",    5], late: ["பாதம் 3–4 · துலாம்",   "Padas 3–4 · Thula",     6] },
+  15: { early: ["பாதம் 1–3 · துலாம்",  "Padas 1–3 · Thula",    6], late: ["பாதம் 4 · விருச்சிகம்", "Pada 4 · Vrischika",   7] },
+  20: { early: ["பாதம் 1 · தனுசு",     "Pada 1 · Dhanus",      8], late: ["பாதம் 2–4 · மகரம்",    "Padas 2–4 · Makara",    9] },
+  22: { early: ["பாதம் 1–2 · மகரம்",   "Padas 1–2 · Makara",   9], late: ["பாதம் 3–4 · கும்பம்",  "Padas 3–4 · Kumbha",   10] },
+  24: { early: ["பாதம் 1–3 · கும்பம்", "Padas 1–3 · Kumbha",  10], late: ["பாதம் 4 · மீனம்",      "Pada 4 · Meena",       11] },
 };
 
 function getEffRasi(starIdx: number, split: "early" | "late" | null): number {
@@ -327,7 +338,7 @@ export function PoruthamTool() {
             </div>
           </div>
 
-          {/* Pada sub-selector — only for 50/50 split nakshatras (Mirugasiridam, Chithirai) */}
+          {/* Pada sub-selector — shown for any nakshatra whose padas straddle two rasis */}
           {girlStar !== null && SPLIT_NAK[girlStar] && (
             <div style={{ padding: "12px 14px", background: "var(--cl-bg-2)", border: "1px solid var(--cl-accent)", borderRadius: "10px", fontSize: "12px" }}>
               <div style={{ fontWeight: 700, color: "var(--cl-accent)", marginBottom: "8px" }}>
@@ -355,7 +366,9 @@ export function PoruthamTool() {
               </div>
               {girlSplit === null && (
                 <div style={{ marginTop: "6px", fontSize: "11px", color: "var(--cl-muted)" }}>
-                  {ta ? "பாதம் தேர்வு செய்யாவிட்டால் மிதுனம் / துலாம் என்று கணக்கிடப்படும்." : "If not selected, the default (later rasi) is used for Rasi, Rasiyathipathi, and Vasya poruthams."}
+                  {ta
+                    ? `பாதம் தேர்வு செய்யாவிட்டால் ${RASI_NAMES_TA[RASI[girlStar]]} எனக் கணக்கிடப்படும்.`
+                    : `If not selected, ${RASI_NAMES_EN[RASI[girlStar]]} is used by default for Rasi, Rasiyathipathi, and Vasya poruthams.`}
                 </div>
               )}
             </div>
@@ -422,7 +435,7 @@ export function PoruthamTool() {
             </div>
           )}
 
-          {/* Boy pada sub-selector — only for 50/50 split nakshatras */}
+          {/* Boy pada sub-selector — shown for any nakshatra whose padas straddle two rasis */}
           {boyStar !== null && SPLIT_NAK[boyStar] && (
             <div style={{ padding: "12px 14px", background: "var(--cl-bg-2)", border: "1px solid var(--cl-sage)", borderRadius: "10px", fontSize: "12px" }}>
               <div style={{ fontWeight: 700, color: "var(--cl-sage)", marginBottom: "8px" }}>
@@ -450,7 +463,9 @@ export function PoruthamTool() {
               </div>
               {boySplit === null && (
                 <div style={{ marginTop: "6px", fontSize: "11px", color: "var(--cl-muted)" }}>
-                  {ta ? "பாதம் தேர்வு செய்யாவிட்டால் மிதுனம் / துலாம் என்று கணக்கிடப்படும்." : "If not selected, the default (later rasi) is used for Rasi, Rasiyathipathi, and Vasya poruthams."}
+                  {ta
+                    ? `பாதம் தேர்வு செய்யாவிட்டால் ${RASI_NAMES_TA[RASI[boyStar]]} எனக் கணக்கிடப்படும்.`
+                    : `If not selected, ${RASI_NAMES_EN[RASI[boyStar]]} is used by default for Rasi, Rasiyathipathi, and Vasya poruthams.`}
                 </div>
               )}
             </div>

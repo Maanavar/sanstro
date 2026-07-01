@@ -10,6 +10,7 @@ import type { PanchangamDailyResponseData } from "@/lib/types";
 import { PanchangamShareButton } from "@/components/public-share-card";
 import { PanchangamShareCard } from "@/components/panchangam-share-card";
 import { ThirukanithamBadge } from "@/components/thirukanitham-badge";
+import { PanchangamDatePicker } from "@/components/panchangam-date-picker";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
 const DEFAULT_LAT = "13.0827";
@@ -188,6 +189,7 @@ export default async function PanchangamDatePage({ params }: Props) {
               }}>
                 {formatDateLabel(nextDate)} →
               </Link>
+              <PanchangamDatePicker date={date} />
             </div>
 
             {data?.isKarinaal && (

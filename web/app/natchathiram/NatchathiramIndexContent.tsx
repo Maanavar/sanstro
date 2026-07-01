@@ -17,7 +17,6 @@ export function NatchathiramIndexContent() {
   const visualHref = (slug: string) => `/natchathiram/${slug}/visual`;
 
   const available = NATCHATHIRAM_LIST.filter((n) => n.available);
-  const upcoming = NATCHATHIRAM_LIST.filter((n) => !n.available);
 
   return (
     <div className="clarity-shell">
@@ -69,35 +68,6 @@ export function NatchathiramIndexContent() {
                     }
                   </span>
                 </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── Upcoming ── */}
-        <section className="cl-band cl-band--alt">
-          <div className="cl-container">
-            <h2 className="cl-section-h2">{text(mt(d.upcoming_h2, lang))}</h2>
-            <p style={{ opacity: 0.65, marginBottom: "1.5rem" }}>
-              {text(mt(d.upcoming_desc, lang))}
-            </p>
-            <div className="cl-natch-grid cl-natch-grid--small">
-              {upcoming.map((n) => (
-                <div key={n.slug} className="cl-natch-tile cl-natch-tile--muted">
-                  <span className="cl-natch-tile__num">{n.number}</span>
-                  <span className="cl-natch-tile__sigil">
-                    <NakshatraSigil number={n.number} name={romanNakshathiramName(n.name_en)} size="sm" />
-                  </span>
-                  <span className="cl-natch-tile__body">
-                    <span className="cl-natch-tile__status">
-                      {lang === "en" ? "Coming soon" : "விரைவில்"}
-                    </span>
-                    {lang === "ta"
-                      ? <span className="cl-natch-tile__ta">{n.name_ta}</span>
-                      : <span className="cl-natch-tile__en">{romanNakshathiramName(n.name_en)}</span>
-                    }
-                  </span>
-                </div>
               ))}
             </div>
           </div>
