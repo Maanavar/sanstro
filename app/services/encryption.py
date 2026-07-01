@@ -7,12 +7,13 @@ Generate a key with:
 """
 from __future__ import annotations
 
-import os
 from datetime import date, time
 
 from cryptography.fernet import Fernet, InvalidToken
 from sqlalchemy import LargeBinary
 from sqlalchemy.types import TypeDecorator
+
+from app.core.config import get_settings
 
 _KEY_ENV = "JOTHIDAM_ENCRYPTION_KEY"
 _fernet_cache: Fernet | None = None
@@ -22,7 +23,7 @@ def _get_fernet() -> Fernet:
     global _fernet_cache
     if _fernet_cache is not None:
         return _fernet_cache
-    key = os.environ.get(_KEY_ENV)
+    key = get_settings().encryption_key
     if not key:
         raise RuntimeError(
             f"Encryption key not set. Configure {_KEY_ENV} in the environment. "

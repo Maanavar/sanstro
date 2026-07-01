@@ -5,4 +5,4 @@ from app.services.fcm_service import send_push
 
 
 def send_push_to_token(token: str, *, title: str, message: str) -> bool:
-    return send_push(token, title, message)
+    return send_push(token, title, message) == "sent"

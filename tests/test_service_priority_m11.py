@@ -161,7 +161,7 @@ def test_dispatch_notification_both_channel_success(monkeypatch: pytest.MonkeyPa
     persisted: dict[str, str | None] = {}
 
     monkeypatch.setattr(nds, "get_or_create_preferences", lambda *_args, **_kwargs: pref)
-    monkeypatch.setattr(nds, "send_push", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(nds, "send_push", lambda *_args, **_kwargs: "sent")
     monkeypatch.setattr(nds, "build_notification_email", lambda *_args, **_kwargs: object())
     monkeypatch.setattr(nds, "send_email", lambda *_args, **_kwargs: True)
     monkeypatch.setattr(
