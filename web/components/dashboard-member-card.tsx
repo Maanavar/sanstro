@@ -120,8 +120,11 @@ export function MemberCard({
 
   const isChandrashtama = memberChart?.transit?.isChandrashtama ?? false;
 
-
-  const band = getScoreBand(member.individualScore);
+  const band = (() => {
+    const b = getScoreBand(member.individualScore);
+    if (isChandrashtama && b.tone === "high") return { ...b, label: "steady" };
+    return b;
+  })();
 
 
 
@@ -288,7 +291,7 @@ export function MemberCard({
           <span style={{ fontSize: "0.625rem", padding: "2px 8px", borderRadius: "var(--radius-pill)", background: "var(--chart-d1-lagna-bg)", border: "1px solid var(--cl-brand-edge)", color: "var(--color-accent, var(--panel-brand))", fontWeight: 600 }}>
 
 
-            {t("dasha_word", lang)} {memberChart.dailyGuidance.scoreBreakdown.dashaSupport}/100
+            {t("dasha_word", lang)} {Math.min(100, Math.round(memberChart.dailyGuidance.scoreBreakdown.dashaSupport / 0.19))}/100
 
 
           </span>

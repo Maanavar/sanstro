@@ -11,6 +11,7 @@ import { lunarSpecialTithiMeta } from "@/lib/lunar";
 import { festivalGlyph, nakshatraSymbol, rasiGlyph } from "@/lib/astro-symbols";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { useMonthlyPanchangam } from "@/hooks/useMonthlyPanchangam";
+import { PlaceCombobox } from "./place-combobox";
 import { DrawerPanel } from "./drawer-panel";
 import type {
   PanchangamDailyResponseData,
@@ -1400,9 +1401,10 @@ function DayDetailDrawer({
 export function CalendarTab({
   selectedDate,
   todayDate,
-  panchangam,
+  panchangam: defaultPanchangam,
   panchangamTimings,
   lang,
+  locationLabel,
   onSelectDate,
 }: {
   selectedDate: string;
@@ -1410,6 +1412,7 @@ export function CalendarTab({
   panchangam: PanchangamDailyResponseData | null;
   panchangamTimings: PanchangamTimingsData | null;
   lang: Lang;
+  locationLabel?: string | null;
   onSelectDate?: (date: string) => void;
 }) {
   const [view, setView] = useState<CalendarView>("panchangam");
@@ -1428,6 +1431,14 @@ export function CalendarTab({
   const [monthlyYear, setMonthlyYear] = useState(() => selectedDateObj.getFullYear());
   const [monthlyMonth, setMonthlyMonth] = useState(() => selectedDateObj.getMonth() + 1);
   const { monthlyPanchangam, isMonthlyPanchangamLoading, monthlyPanchangamError, fetchMonthlyPanchangam } = useMonthlyPanchangam();
+
+  const [overrideLocation, setOverrideLocation] = useState<{ lat: number; lng: number; timezone: string; label: string } | null>(null);
+  const [overridePanchangam, setOverridePanchangam] = useState<PanchangamDailyResponseData | null>(null);
+  const [overrideLoading, setOverrideLoading] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+
+  // Shadow the prop — all existing display code below uses this variable unchanged
+  const panchangam = overridePanchangam ?? defaultPanchangam;
   const monthlyLocation = panchangam?.location ?? null;
 
   useEffect(() => {
@@ -1470,6 +1481,30 @@ export function CalendarTab({
       });
     return () => controller.abort();
   }, [detailDate, selectedDate, panchangam, monthlyLocation, lang]);
+
+  useEffect(() => {
+    if (!overrideLocation) {
+      setOverrideLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    setOverrideLoading(true);
+    setOverridePanchangam(null);
+    const params = new URLSearchParams({
+      date: selectedDate,
+      lat: String(overrideLocation.lat),
+      lng: String(overrideLocation.lng),
+      timezone: overrideLocation.timezone,
+    });
+    apiFetchJson<{ data: PanchangamDailyResponseData }>(
+      `/api/v1/panchangam/daily?${params.toString()}`,
+      { signal: controller.signal },
+    )
+      .then((res) => setOverridePanchangam(res.data))
+      .catch((err) => { if (!controller.signal.aborted) console.error("Location override fetch:", readErrorMessage(err)); })
+      .finally(() => { if (!controller.signal.aborted) setOverrideLoading(false); });
+    return () => controller.abort();
+  }, [overrideLocation, selectedDate]);
 
   const goToAdjacentMonth = (delta: number) => {
     const next = new Date(monthlyYear, monthlyMonth - 1 + delta, 1);
@@ -1575,9 +1610,58 @@ export function CalendarTab({
                 <h2 style={{ margin: "0 0 var(--space-1_5)", fontFamily: "var(--font-display)", fontSize: "clamp(1.25rem, 2.5vw, 1.75rem)", color: W.ink, letterSpacing: "-0.015em", lineHeight: 1.2 }}>
                   {tTithi(tithiActive?.activeName ?? panchangam.tithi.name, lang)}. {tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang)}. {tYoga(panchangam.yoga.name, lang)}.
                 </h2>
-                <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>
-                  {lang === "ta" ? "சூர்யோதயம்" : "Sunrise"} {formatClockLabel(panchangam.sunrise)} · {lang === "ta" ? "சூர்யாஸ்தமனம்" : "Sunset"} {formatClockLabel(panchangam.sunset)}
-                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+                  <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>
+                    {lang === "ta" ? "சூர்யோதயம்" : "Sunrise"} {formatClockLabel(panchangam.sunrise)} · {lang === "ta" ? "சூர்யாஸ்தமனம்" : "Sunset"} {formatClockLabel(panchangam.sunset)}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowLocationPicker((v) => !v)}
+                    title={lang === "ta" ? "இடம் மாற்றவும்" : "Change location"}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: "3px",
+                      border: `1px solid ${W.borderLt}`,
+                      background: showLocationPicker ? W.surface : "transparent",
+                      borderRadius: "var(--radius-pill)", padding: "2px 7px",
+                      cursor: "pointer", fontSize: "0.72rem", color: W.muted,
+                      fontFamily: "inherit", lineHeight: 1.5,
+                    }}
+                  >
+                    <span aria-hidden="true">📍</span>
+                    <span>
+                      {overrideLoading
+                        ? (lang === "ta" ? "ஏற்றுகிறது…" : "Loading…")
+                        : (overrideLocation?.label ?? locationLabel ?? (lang === "ta" ? "இடம்" : "Location"))}
+                    </span>
+                    <span aria-hidden="true" style={{ fontSize: "0.6rem", opacity: 0.6 }}>{showLocationPicker ? "▲" : "▼"}</span>
+                  </button>
+                </div>
+                {showLocationPicker && (
+                  <div style={{ marginTop: "var(--space-2)", padding: "var(--space-3)", borderRadius: "var(--radius-md)", border: `1px solid ${W.borderLt}`, background: W.surface }}>
+                    <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.75rem", color: W.muted, fontWeight: 600 }}>
+                      {lang === "ta" ? "வேறு இடத்திற்கான பஞ்சாங்கம் காண்க" : "View panchangam for another location"}
+                    </p>
+                    <PlaceCombobox
+                      value={overrideLocation?.label ?? ""}
+                      onChange={(city) => {
+                        if (city) {
+                          setOverrideLocation({ lat: parseFloat(city.lat), lng: parseFloat(city.lng), timezone: city.timezone, label: city.name });
+                          setShowLocationPicker(false);
+                        }
+                      }}
+                      placeholder={lang === "ta" ? "நகரம் தேடுங்கள்…" : "Search city…"}
+                    />
+                    {overrideLocation && (
+                      <button
+                        type="button"
+                        onClick={() => { setOverrideLocation(null); setOverridePanchangam(null); setOverrideLoading(false); setShowLocationPicker(false); }}
+                        style={{ marginTop: "var(--space-2)", display: "block", fontSize: "0.75rem", color: W.muted, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}
+                      >
+                        {lang === "ta" ? "↩ பொதுவான இடத்திற்கு திரும்பு" : "↩ Reset to profile location"}
+                      </button>
+                    )}
+                  </div>
+                )}
                 {panchangam.specialTithiDay && (
                   <div style={{ marginTop: "var(--space-2)", display: "flex", flexWrap: "wrap", gap: "var(--space-1_5)" }}>
                     <LunarTithiBadge value={panchangam.specialTithiDay.name} lang={lang} />
@@ -1623,23 +1707,32 @@ export function CalendarTab({
                     </div>
                   </div>
 
-                  {/* ── Chandrashtamam ── */}
+                  {/* ── Today's Nakshatra ── */}
+                  <div style={{ borderRadius: "var(--radius-md)", border: `1px solid ${W.borderLt}`, background: W.surface, overflow: "hidden" }}>
+                    <p style={{ margin: 0, padding: "var(--space-1_5) var(--space-3)", fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: W.terracotta, fontWeight: 700, borderBottom: `1px solid ${W.borderLt}` }}>
+                      {lang === "ta" ? "இன்றைய நட்சத்திரம்" : "Today's Nakshatra"}
+                    </p>
+                    <div style={{ padding: "var(--space-2) var(--space-3)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-2)" }}>
+                      <span style={{ fontSize: "1rem", fontWeight: 700, color: W.ink }}>
+                        {tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang)}
+                      </span>
+                      <span style={{ fontSize: "0.75rem", color: W.muted, textAlign: "right" }}>
+                        {t("label_padam", lang)} {panchangam.nakshatra.pada} · {t("until_word", lang)} {formatClockLabel(panchangam.nakshatra.endsAt)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ── Chandrashtamam ──
+                       Distinct from "Today's Nakshatra" above: this panel reports which
+                       Janma Rasi is affected by the Moon's transit, not the nakshatra
+                       itself. Kept directly below so the two related-but-different facts
+                       read together. */}
                   {chandraName && (
                     <div style={{ borderRadius: "var(--radius-md)", border: `1px solid var(--cl-brand-ring)`, background: "var(--panel-warm-light)", overflow: "hidden" }}>
                       <p style={{ margin: 0, padding: "var(--space-1_5) var(--space-3)", fontSize: "0.7rem", letterSpacing: "0.14em", textTransform: "uppercase", color: W.terracotta, fontWeight: 700, borderBottom: `1px solid var(--cl-brand-ring-sm)` }}>
                         {t("label_chandrashtamam", lang)}
                       </p>
                       <div style={{ padding: "var(--space-2) var(--space-3)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-                        {todayMoonNakshatra && (
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
-                            <span style={{ color: W.muted }}>
-                              {lang === "ta" ? "இன்று சந்திர நட்சத்திரம்" : "Today's Moon Nakshatra"}
-                            </span>
-                            <span style={{ fontWeight: 600, textAlign: "right", color: W.inkMid }}>
-                              {tNakshatra(todayMoonNakshatra, lang)} ({moonRasiName})
-                            </span>
-                          </div>
-                        )}
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.875rem", color: W.rust }}>
                           <span style={{ color: W.muted }}>
                             {lang === "ta" ? "பாதிக்கப்படும் ராசி" : "Affected Rasi"}

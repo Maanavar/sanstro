@@ -187,7 +187,7 @@ export function DashboardTransitsTab({
     ? Number(personalSani.moonBasedCycle.isActive) + Number(personalSani.lagnaBasedCycle.isActive)
     : 0;
   const dashaSupportScore = personalDailyGuidance
-    ? Math.min(100, Math.round(personalDailyGuidance.scoreBreakdown.dashaSupport / 0.2))
+    ? Math.min(100, Math.round(personalDailyGuidance.scoreBreakdown.dashaSupport / 0.19))
     : null;
 
   return (

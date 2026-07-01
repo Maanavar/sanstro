@@ -12,12 +12,12 @@ import type { ApiEnvelope, BirthProfileSnapshot, DailyGuidanceData } from "@/lib
 type ProfileResponse = { data: BirthProfileSnapshot };
 
 const SCORE_SIGNALS = [
-  { key: "moonTransit",           max: 30, labelEn: "Moon transit",         labelTa: "சந்திர நகர்வு" },
-  { key: "dashaSupport",          max: 30, labelEn: "Dasha support",         labelTa: "தசை ஆதரவு" },
-  { key: "panchangam",            max: 20, labelEn: "Panchangam quality",    labelTa: "பஞ்சாங்க தரம்" },
-  { key: "gocharSupport",         max: 15, labelEn: "Gochar transits",       labelTa: "கோசார கிரகங்கள்" },
-  { key: "personalCautions",      max:  0, labelEn: "Personal cautions",     labelTa: "தனிப்பட்ட எச்சரிக்கைகள்" },
-  { key: "remedialActionSupport", max:  5, labelEn: "Remedial actions",      labelTa: "பரிகார உதவி" },
+  { key: "moonTransit",           max: 28, labelEn: "Moon transit",      labelTa: "சந்திர நகர்வு" },
+  { key: "gocharSupport",         max: 24, labelEn: "Gochar transits",   labelTa: "கோசார கிரகங்கள்" },
+  { key: "dashaSupport",          max: 19, labelEn: "Dasha support",     labelTa: "தசை ஆதரவு" },
+  { key: "panchangam",            max: 14, labelEn: "Panchangam quality", labelTa: "பஞ்சாங்க தரம்" },
+  { key: "personalCautions",      max:  9, labelEn: "Personal safety",   labelTa: "தனிப்பட்ட பாதுகாப்பு" },
+  { key: "remedialActionSupport", max:  6, labelEn: "Remedial actions",  labelTa: "பரிகார உதவி" },
 ] as const;
 
 const SIGNAL_DESC: Record<string, { en: string; ta: string }> = {
@@ -25,7 +25,7 @@ const SIGNAL_DESC: Record<string, { en: string; ta: string }> = {
   dashaSupport:          { en: "Your current Mahadasha and Antardasha period quality. Jupiter and Venus dashas tend to score high; Saturn and Rahu periods are more variable.", ta: "நடப்பு மகாதசை மற்றும் அந்தர் தசையின் தரம். குரு, சுக்கிர தசைகள் பொதுவாக அதிக மதிப்பெண் பெறும்." },
   panchangam:            { en: "The inherent quality of today based on Tithi, Nakshatra, Yoga, and Karana — independent of your personal chart.", ta: "தினத்தின் பஞ்சாங்க தரம் — திதி, நட்சத்திரம், யோகம், கரணம் ஆகியவை அடிப்படையில்." },
   gocharSupport:         { en: "How today's planetary positions interact with the sensitive points in your birth chart (gochar influences).", ta: "இன்றைய கிரக நிலைகள் உங்கள் ஜாதகத்தின் முக்கிய இடங்களை எவ்வாறு பாதிக்கின்றன." },
-  personalCautions:      { en: "Active personal cautions such as Chandrashtamam, Saturn return, or Rahu transit effects. This can reduce the overall score.", ta: "செயல்பாட்டு தனிப்பட்ட எச்சரிக்கைகள் — சந்திராஷ்டமம், சனி திரும்பல், ராகு நகர்வு. இது மொத்த மதிப்பெண்ணை குறைக்கும்." },
+  personalCautions:      { en: "Personal safety score (0–10). Starts high on clear days; drops when Saturn cycle (Ezhara Sani / Ashtama Sani), Chandrashtamam, or planetary combustion is active.", ta: "தனிப்பட்ட பாதுகாப்பு மதிப்பெண் (0–10). சனி சுழற்சி, சந்திராஷ்டமம் அல்லது கிரக அஸ்தமனம் இல்லாத நாளில் அதிகமாக இருக்கும்." },
   remedialActionSupport: { en: "Bonus points when you have completed remedial actions (pariharam) relevant to your chart.", ta: "உங்கள் ஜாதகத்திற்கு உரிய பரிகாரங்கள் செய்யும்போது கூடுதல் மதிப்பெண்." },
 };
 
@@ -65,7 +65,7 @@ function BreakdownBar({ value, max, label, labelTa, desc, descTa, ta }: {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontWeight: 700, fontSize: "0.85rem" }}>{ta ? labelTa : label}</span>
         <span style={{ fontWeight: 800, fontSize: "1rem", color: isNegative ? "var(--color-score-low, #A8482F)" : "var(--color-text)" }}>
-          {value >= 0 ? "+" : ""}{value}
+          {value}
           {max > 0 && <span style={{ fontWeight: 400, fontSize: "0.72rem", color: "var(--text-secondary)", marginLeft: "2px" }}>/{max}</span>}
         </span>
       </div>

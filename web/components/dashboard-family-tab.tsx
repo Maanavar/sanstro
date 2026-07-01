@@ -14,6 +14,7 @@ import type {
   DashaTimelineResponseData,
   FamilyAggregateData,
   FamilyAggregateMember,
+  FamilyCalendarData,
   FamilyVaultDetailData,
   FamilyVaultListItem,
   FamilyVaultTodayData,
@@ -30,7 +31,17 @@ import { DASHA_COLORS, dashaStatus } from "./dashboard-dasha";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import { ChartExplanationPanel } from "./dashboard-chart-explanation";
 
-const SCORE_CHIP_KEYS = ["moonTransit", "dashaSupport", "panchangam"] as const;
+const SCORE_CHIP_KEYS = ["moonTransit", "gocharSupport", "dashaSupport", "panchangam", "personalCautions", "remedialActionSupport"] as const;
+
+type ScoreChipMeta = { max: number; signed?: boolean; labelEn: string; labelTa: string; descEn: string; descTa: string };
+const SCORE_CHIP_META: Record<typeof SCORE_CHIP_KEYS[number], ScoreChipMeta> = {
+  moonTransit:           { max: 28,               labelEn: "Moon transit",        labelTa: "சந்திர நகர்வு",       descEn: "Moon's position relative to your natal Moon today",       descTa: "இன்று சந்திரன் உங்கள் ஜாதக சந்திரனிலிருந்து எந்த இடத்தில் உள்ளார்" },
+  gocharSupport:         { max: 24,               labelEn: "Gochar transits",     labelTa: "கோசார ஆதரவு",        descEn: "Today's transiting planets interacting with your chart",   descTa: "இன்றைய கோசார கிரகங்கள் உங்கள் ஜாதகத்தை எவ்வாறு பாதிக்கின்றன" },
+  dashaSupport:          { max: 19,               labelEn: "Dasa support",        labelTa: "தசை ஆதரவு",          descEn: "Current Mahadasha & Antardasha lord strength",             descTa: "நடப்பு மகாதசை மற்றும் அந்தர்தசை ஆதரவு" },
+  panchangam:            { max: 14,               labelEn: "Panchangam",          labelTa: "பஞ்சாங்கம்",         descEn: "Tithi, Yoga & Karana quality today",                       descTa: "இன்றைய திதி, யோகம், கரணம் தரம்" },
+  personalCautions:      { max:  9,               labelEn: "Personal safety",     labelTa: "தனிப்பட்ட பாதுகாப்பு",  descEn: "Personal safety score — lower when Saturn cycle, Chandrashtama or combustion is active", descTa: "தனிப்பட்ட பாதுகாப்பு — சனி சுழற்சி, சந்திராஷ்டமம் அல்லது கிரக அஸ்தமனம் உள்ளபோது குறையும்" },
+  remedialActionSupport: { max:  6,               labelEn: "Remedial support",    labelTa: "பரிகார ஆதரவு",       descEn: "Bonus when a personal hora window is available today",     descTa: "தனிப்பட்ட ஹோரா சாளரம் கிடைக்கும்போது கூடுதல் மதிப்பெண்" },
+};
 
 type MemberChartData = {
   memberId: string;
@@ -55,6 +66,7 @@ type DashboardFamilyTabProps = {
   vaults: FamilyVaultListItem[];
   familyDetail: FamilyVaultDetailData | null;
   familyAggregate: FamilyAggregateData | null;
+  familyCalendar: FamilyCalendarData | null;
   memberCharts: MemberChartData[];
   relationshipAlerts: RelationshipAlertItem[];
   alertsLoading: boolean;
@@ -338,15 +350,30 @@ function MemberDetailExpanded({
         )}
       </div>
 
-      {/* Score breakdown grid */}
+      {/* Score breakdown grid — 6 weighted components; values approximately sum to total (±1 rounding) */}
       {guidance?.scoreBreakdown && (
-        <div className="cd-responsive-grid-3" style={{ gap: "var(--space-2_5)" }}>
-          {SCORE_CHIP_KEYS.map((k) => (
-            <div key={k} style={{ padding: "var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--panel-cream)", border: "1px solid var(--color-border)" }}>
-              <p className="cd-kicker">{t(`reason_${k}` as Parameters<typeof t>[0], lang)}</p>
-              <p className="cd-time-value" style={{ fontWeight: 600 }}>{guidance.scoreBreakdown[k]}</p>
-            </div>
-          ))}
+        <div className="cd-score-chip-grid">
+          {SCORE_CHIP_KEYS.map((k) => {
+            const value = guidance.scoreBreakdown[k] ?? 0;
+            const meta = SCORE_CHIP_META[k];
+            const isNegative = value < 0;
+            const pct = Math.round(Math.max(0, value) / meta.max * 100);
+            const color = isNegative ? "var(--color-score-low, #A8482F)" : scoreColor(value / meta.max * 100);
+            const displayValue = meta.signed && value > 0 ? `+${value}` : `${value}`;
+            return (
+              <div key={k} className="cd-score-chip">
+                <p className="cd-kicker">{lang === "ta" ? meta.labelTa : meta.labelEn}</p>
+                <div className="cd-score-chip__value-row">
+                  <span className="cd-score-chip__value" style={{ color }}>{displayValue}</span>
+                  <span className="cd-score-chip__max">/ {meta.max}</span>
+                </div>
+                <div className="cd-score-chip__bar-track">
+                  <div className="cd-score-chip__bar-fill" style={{ width: `${pct}%`, background: color }} />
+                </div>
+                <p className="cd-score-chip__desc">{lang === "ta" ? meta.descTa : meta.descEn}</p>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -453,6 +480,7 @@ export function DashboardFamilyTab({
   vaults,
   familyDetail,
   familyAggregate,
+  familyCalendar,
   memberCharts,
   relationshipAlerts,
   alertsLoading,
@@ -515,20 +543,22 @@ export function DashboardFamilyTab({
   const todayMidCount = todayMembers.filter((m) => m.score >= 45 && m.score < 65).length;
   const todayLowCount = todayMembers.filter((m) => m.score < 45).length;
 
-  /* 7-day scores — family score with light variance */
+  /* 7-day scores — real family scores from calendar (selectedDate → +6 days) */
   const weekDayLabels = (() => {
     const days: string[] = [];
-    const now = new Date();
+    const base = new Date(selectedDate + "T00:00:00");
     for (let i = 0; i < 7; i++) {
-      const d = new Date(now);
-      d.setDate(now.getDate() - 3 + i);
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
       days.push(d.toLocaleDateString("en-IN", { weekday: "short" }).slice(0, 3));
     }
     return days;
   })();
   const weekScores = weekDayLabels.map((_, i) => {
-    const offsets = [-6, -4, -3, 0, -2, -3, -1];
-    return Math.max(30, Math.min(99, familyScore + (offsets[i] ?? 0)));
+    const calItem = familyCalendar?.items[i];
+    if (calItem != null) return Math.max(30, Math.min(99, calItem.familyScore));
+    // Calendar still loading — placeholder based on today's score
+    return Math.max(30, Math.min(99, familyScore + (i === 0 ? 0 : -2)));
   });
 
   return (
@@ -583,108 +613,124 @@ export function DashboardFamilyTab({
         </div>
       </div>
 
-      {/* ── Today Snapshot: full-width at-a-glance comparison of every member ── */}
-      {todayMembers.length > 0 && (
-        <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-4) var(--space-5)" }}>
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--space-2)", marginBottom: "var(--space-3)" }}>
-            <p className="cd-kicker--inline" style={{ margin: 0 }}>{lang === "ta" ? "இன்றைய சுருக்கம்" : "Today Snapshot"}</p>
-            <span style={{ fontSize: "0.75rem", color: "var(--color-faint)" }}>
-              {todayMembers.length} {lang === "ta" ? "பேர்" : "members"}
-            </span>
+      {/* ── Family Today — unified card: score | windows | members | 7-day ── */}
+      <div style={{
+        background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)",
+        overflow: "hidden", boxShadow: "0 2px 16px var(--shadow-faint)",
+      }}>
+        {/* ── Top 3-column row ── */}
+        <div style={{ display: "flex", alignItems: "stretch", flexWrap: "wrap" }}>
+
+          {/* Col 1: Score ring + label */}
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", padding: "var(--space-5) var(--space-6)", borderRight: "1px solid var(--color-border)", flexShrink: 0 }}>
+            <ScoreRing score={familyScore || 0} size={72} />
+            <div>
+              <p className="cd-kicker" style={{ margin: "0 0 var(--space-1_5)", color: "var(--color-muted)" }}>
+                {lang === "ta" ? "குடும்பம் இன்று" : "FAMILY TODAY"}
+              </p>
+              <span style={{ display: "inline-block", padding: "var(--space-0_75) var(--space-3)", borderRadius: "var(--radius-pill)", background: scoreBg, color: familyScoreColor, fontSize: "0.8125rem", fontWeight: 600, textTransform: "capitalize" }}>
+                {familyLabel || (busy.family ? "…" : "—")}
+              </span>
+            </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))", gap: "var(--space-2_5)" }}>
-            {todayMembers.map((item, idx) => {
-              const band = getScoreBand(item.score);
-              const toneColor = scoreColor(item.score);
-              const scoreBg = band.tone === "high" ? "var(--chart-d9-active-bg)" : band.tone === "low" ? "var(--panel-warm-tint)" : "var(--chart-d1-lagna-bg)";
-              const relLabel = formatRelLabel(item.relationship);
-              return (
-                <div key={`${item.memberId ?? item.displayName}-${idx}`} style={{ border: `1px solid ${item.chandrashtama ? "var(--cl-rust-35)" : "var(--color-border)"}`, borderRadius: "var(--radius-md)", background: "var(--color-surface-soft)", padding: "var(--space-3) var(--space-3_5)", display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-2)", marginBottom: "var(--space-0_5)" }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      {relLabel && <p className="cd-kicker" style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.65rem" }}>{relLabel}</p>}
-                      <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.displayName}</p>
+
+          {/* Col 2: Best shared + Avoid */}
+          <div style={{ display: "flex", gap: "var(--space-3)", padding: "var(--space-5) var(--space-6)", flex: "1 1 260px", borderRight: "1px solid var(--color-border)", alignItems: "center", flexWrap: "wrap" }}>
+            <div className="cd-time-slot" style={{ flex: 1, minWidth: "110px", background: "var(--chart-d9-active-bg)", border: "1px solid var(--cl-sage-edge)" }}>
+              <p className="cd-kicker" style={{ color: SCORE_HIGH }}>
+                {lang === "ta" ? "சிறந்த நேரம்" : "BEST SHARED"}
+              </p>
+              <p className="cd-time-value" style={{ fontSize: "0.9375rem", color: SCORE_HIGH }}>
+                {bestWindow ? `${formatClockLabel(bestWindow.start)} – ${formatClockLabel(bestWindow.end)}` : "—"}
+              </p>
+            </div>
+            <div className="cd-time-slot" style={{ flex: 1, minWidth: "110px", background: "var(--panel-warm-tint)", border: "1px solid var(--cl-rust-30)" }}>
+              <p className="cd-kicker" style={{ color: SCORE_LOW }}>
+                {lang === "ta" ? "தவிர்க்கவும்" : "AVOID"}
+              </p>
+              <p className="cd-time-value" style={{ fontSize: "0.9375rem", color: SCORE_LOW }}>
+                {avoidWindow ? `${formatClockLabel(avoidWindow.start)} – ${formatClockLabel(avoidWindow.end)}` : "—"}
+              </p>
+            </div>
+          </div>
+
+          {/* Col 3: Member comparison bars */}
+          {todayMembers.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: "var(--space-3)", padding: "var(--space-5) var(--space-6)", flex: "1 1 220px" }}>
+              {todayMembers.map((item, idx) => {
+                const toneColor = scoreColor(item.score);
+                const relLabel = formatRelLabel(item.relationship);
+                return (
+                  <div key={`bar-${item.memberId ?? item.displayName}-${idx}`} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+                    {/* Label + name */}
+                    <div style={{ minWidth: "90px" }}>
+                      {relLabel && <p className="cd-kicker" style={{ margin: "0 0 2px", fontSize: "0.6rem" }}>{relLabel.toUpperCase()}</p>}
+                      <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text-strong)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "110px" }}>{item.displayName}</p>
                     </div>
-                    <span style={{ fontSize: "1rem", fontWeight: 800, color: toneColor, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
+                    {/* Horizontal bar */}
+                    <div style={{ flex: 1, height: "6px", borderRadius: "3px", background: "var(--color-border)", overflow: "hidden", minWidth: "60px" }}>
+                      <div style={{ height: "100%", borderRadius: "3px", width: `${Math.max(0, Math.min(100, item.score))}%`, background: toneColor, transition: "width 400ms ease" }} />
+                    </div>
+                    {/* Score */}
+                    <span style={{ fontSize: "0.9375rem", fontWeight: 700, color: toneColor, fontVariantNumeric: "tabular-nums", minWidth: "24px", textAlign: "right" }}>
                       {item.score}
                     </span>
                   </div>
-                  <div style={{ height: "4px", borderRadius: "2px", background: "var(--color-border)", overflow: "hidden" }}>
-                    <div style={{ height: "100%", borderRadius: "2px", width: `${Math.max(0, Math.min(100, item.score))}%`, background: toneColor }} />
-                  </div>
-                  <div style={{ display: "flex", gap: "var(--space-1)", flexWrap: "wrap" }}>
-                    <span style={{ padding: "2px 8px", borderRadius: "var(--radius-xs)", fontSize: "0.6875rem", fontWeight: 600, background: scoreBg, color: toneColor, border: `1px solid ${toneColor}44` }}>
-                      {band.label}
-                    </span>
-                    {item.saniCycleActive && (
-                      <span style={{ padding: "2px 8px", borderRadius: "var(--radius-xs)", fontSize: "0.6875rem", fontWeight: 600, background: "var(--color-amber-chip-bg)", color: "var(--chart-d1-active)", border: "1px solid var(--underline-brand)" }}>
-                        {lang === "ta" ? "சனி" : "Sani"}
-                      </span>
-                    )}
-                    {item.chandrashtama && (
-                      <span style={{ padding: "2px 8px", borderRadius: "var(--radius-xs)", fontSize: "0.6875rem", fontWeight: 700, background: "var(--panel-warm-tint)", color: SCORE_LOW, border: "1px solid var(--cl-rust-edge)", display: "inline-flex", alignItems: "center", gap: "3px" }}>
-                        <AlertGlyph /> {t("label_chandrashtamam", lang)}
-                      </span>
-                    )}
-                  </div>
-                  {item.nallaNeramStart && item.nallaNeramStart !== "N/A" && (
-                    <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)" }}>
-                      {lang === "ta" ? "சிறந்த" : "Best"}: <span style={{ fontWeight: 600, color: "var(--color-text)" }}>{formatClockLabel(item.nallaNeramStart)}</span>
-                    </p>
-                  )}
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ── 7-day outlook — full width, dashed top border ── */}
+        <div style={{ padding: "var(--space-4) var(--space-6) var(--space-5)", borderTop: "1px dashed var(--color-border)" }}>
+          <p className="cd-kicker" style={{ margin: "0 0 var(--space-2_5)" }}>
+            {lang === "ta" ? "7-நாள் கணிப்பு" : "7-DAY OUTLOOK"}
+          </p>
+          {/* Score numbers */}
+          <div style={{ display: "flex", gap: "var(--space-1)", marginBottom: "var(--space-0_75)" }}>
+            {weekScores.map((s, i) => (
+              <span key={i} style={{ flex: 1, textAlign: "center", fontSize: "0.625rem", color: "var(--color-faint)", fontFamily: "var(--font-mono)" }}>{s}</span>
+            ))}
+          </div>
+          {/* Bars */}
+          <div style={{ display: "flex", gap: "var(--space-1)", alignItems: "flex-end", height: "44px" }}>
+            {weekScores.map((s, i) => {
+              const h = Math.max(8, (s / 100) * 40);
+              const c = scoreColor(s);
+              return (
+                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
+                  <div style={{ width: "100%", height: `${h}px`, borderRadius: "3px 3px 0 0", background: c }} />
+                </div>
+              );
+            })}
+          </div>
+          {/* Dots + day labels */}
+          <div style={{ display: "flex", gap: "var(--space-1)", marginTop: "var(--space-1_5)" }}>
+            {weekDayLabels.map((l, i) => {
+              const c = scoreColor(weekScores[i]);
+              return (
+                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "3px" }}>
+                  <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: c, display: "block" }} />
+                  <span style={{ fontSize: "0.625rem", color: c, fontWeight: 500 }}>{l}</span>
                 </div>
               );
             })}
           </div>
         </div>
-      )}
 
-      {/* ── ROW 2: Family Today card ── */}
-      <div style={{
-        background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)",
-        padding: "var(--space-6)", boxShadow: "0 2px 16px var(--shadow-faint)",
-        display: "flex", flexDirection: "column", gap: "var(--space-4)",
-      }}>
-        <p className="cd-kicker--inline">{lang === "ta" ? "குடும்பம் இன்று" : "FAMILY TODAY"}</p>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-          <div>
-            <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "3.4rem", fontWeight: 500, lineHeight: 1, color: "var(--color-text-strong)" }}>
-              {familyScore || "—"}
-              {familyScore > 0 && <span style={{ fontSize: "1.125rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>/100</span>}
-            </p>
-            <span style={{ display: "inline-block", marginTop: "var(--space-2)", padding: "var(--space-0_75) var(--space-3)", borderRadius: "var(--radius-pill)", background: scoreBg, color: familyScoreColor, fontSize: "0.75rem", fontWeight: 600, textTransform: "capitalize" }}>
-              {familyLabel || (busy.family ? "Loading…" : "—")}
-            </span>
-          </div>
-        </div>
-        <div className="cd-responsive-grid-2" style={{ gap: "var(--space-2_5)" }}>
-          <div className="cd-time-slot" style={{ background: "var(--chart-d9-active-bg)", border: "1px solid var(--cl-sage-edge)" }}>
-            <p className="cd-kicker" style={{ color: SCORE_HIGH }}>
-              {lang === "ta" ? "பகிர்ந்த சிறந்த நேரம்" : "BEST SHARED"}
-            </p>
-            <p className="cd-time-value" style={{ fontSize: "0.875rem", color: SCORE_HIGH }}>
-              {bestWindow ? `${formatClockLabel(bestWindow.start)} – ${formatClockLabel(bestWindow.end)}` : "—"}
-            </p>
-          </div>
-          <div className="cd-time-slot" style={{ background: "var(--panel-warm-tint)", border: "1px solid var(--cl-rust-30)" }}>
-            <p className="cd-kicker" style={{ color: SCORE_LOW }}>
-              {lang === "ta" ? "தவிர்க்கவும்" : "AVOID"}
-            </p>
-            <p className="cd-time-value" style={{ fontSize: "0.875rem", color: SCORE_LOW }}>
-              {avoidWindow ? `${formatClockLabel(avoidWindow.start)} – ${formatClockLabel(avoidWindow.end)}` : "—"}
-            </p>
-          </div>
-        </div>
-        <SevenDayBars scores={weekScores} labels={weekDayLabels} />
+        {/* ── Chandrashtama alert ── */}
         {familyAggregate && familyAggregate.aggregateBreakdown.chandrashtamaCount > 0 && (
-          <div style={{ padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--panel-warm-tint)", border: "1px solid var(--cl-rust-30)" }}>
+          <div style={{ margin: "0 var(--space-6) var(--space-5)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--panel-warm-tint)", border: "1px solid var(--cl-rust-30)" }}>
             <p style={{ margin: 0, fontSize: "0.875rem", color: SCORE_LOW, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
               <AlertGlyph /> {familyAggregate.aggregateBreakdown.chandrashtamaCount} {t("member_chandrashtamam", lang)}
             </p>
           </div>
         )}
+
+        {/* ── Empty state ── */}
         {!selectedVaultId && !busy.vaults && vaults.length === 0 && (
-          <div style={{ textAlign: "center", paddingTop: "var(--space-2)" }}>
+          <div style={{ textAlign: "center", padding: "var(--space-2) var(--space-6) var(--space-6)" }}>
             <p style={{ margin: "0 0 var(--space-3)", color: "var(--color-faint)", fontSize: "0.875rem" }}>{t("vaults_empty", lang)}</p>
             <button type="button" onClick={onOpenSetup}
               style={{ padding: "var(--space-2) var(--space-5)", borderRadius: "var(--radius-pill)", background: "var(--color-text-strong)", color: "var(--color-bg)", border: "none", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>

@@ -665,6 +665,7 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
     peyarchiUpcoming: bundle?.peyarchiUpcoming ?? [],
     panchangam: bundle?.panchangam ?? null,
     panchangamTimings: bundle?.panchangamTimings ?? null,
+    panchangamLocationLabel: bundle?.panchangamLocationLabel ?? null,
     lifeAreas,
     ambientAlerts: ambientAlertsQuery.data ?? [],
     nakshatraCard: nakshatraCardQuery.data ?? null,

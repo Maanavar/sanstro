@@ -4,16 +4,12 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { todayIso } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
   ChartSummaryData,
-  DailyGuidanceData,
-  FamilyAggregateData,
   FamilyVaultListItem,
   NotificationInboxItem,
-  TransitSnapshotData,
 } from "@/lib/types";
 
 type Tab = "onboarding" | "personal" | "tools" | "transits" | "plan" | "life-areas" | "family" | "calendar" | "journal" | "settings" | "qa" | "explore";
@@ -71,9 +67,6 @@ interface DashboardHeroProps {
   birthDisplayName: string;
   status: string;
   chartSummary: ChartSummaryData | null;
-  todayGuidance: DailyGuidanceData | null;
-  todayTransit: TransitSnapshotData | null;
-  familyAggregate: FamilyAggregateData | null;
   selectedVault: FamilyVaultListItem | null;
   selectedVaultId: string;
   selectedDate: string;
@@ -179,7 +172,6 @@ export function DashboardHero(props: DashboardHeroProps) {
     onSignOut,
   } = props;
 
-  const todayDate = useRef(todayIso());
   const [showAlerts, setShowAlerts] = useState(false);
   const [showInbox, setShowInbox] = useState(false);
   const activeTabRef = useRef<HTMLButtonElement>(null);
@@ -236,6 +228,20 @@ export function DashboardHero(props: DashboardHeroProps) {
                 {selectedVault.name}
               </span>
             )}
+
+            <label htmlFor="dashboard-date" className="cd-visually-hidden">
+              {lang === "ta" ? "தேதி தேர்வு" : "Select date"}
+            </label>
+            <div className="cd-date-field">
+              <input
+                id="dashboard-date"
+                className="cd-date-input"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => onDateChange(e.target.value)}
+                aria-label={lang === "ta" ? "தேதி தேர்வு" : "Select date"}
+              />
+            </div>
 
             <div className="cd-popover-anchor">
               <button
@@ -394,22 +400,6 @@ export function DashboardHero(props: DashboardHeroProps) {
             ))}
           </div>
 
-          <div className="cd-tabnav__right">
-            <label htmlFor="dashboard-date" className="cd-visually-hidden">
-              {lang === "ta" ? "தேதி தேர்வு" : "Select date"}
-            </label>
-            <div className="cd-date-field">
-              <input
-                id="dashboard-date"
-                className="cd-date-input"
-                type="date"
-                value={selectedDate}
-                max={todayDate.current}
-                onChange={(e) => onDateChange(e.target.value)}
-                aria-label={lang === "ta" ? "தேதி தேர்வு" : "Select date"}
-              />
-            </div>
-          </div>
         </div>
       </nav>
 

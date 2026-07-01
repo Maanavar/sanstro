@@ -234,6 +234,12 @@ function formatScoreLabel(score: number) {
   return `${score}/100 – ${band.label}`;
 }
 
+function memberScoreColor(score: number): string {
+  if (score >= 65) return "var(--color-score-high, #2e7d32)";
+  if (score >= 45) return "var(--color-score-mid, #c77f00)";
+  return "var(--color-score-low, #b71c1c)";
+}
+
 // ── Main component ────────────────────────────────────────
 
 export function DashboardWorkspace() {
@@ -1037,21 +1043,23 @@ export function DashboardWorkspace() {
   function handleEditFamilyMember(member: FamilyAggregateMember) {
     const mc = family.memberCharts.find((x) => x.memberId === member.familyMemberId);
     const bp = mc?.chart.birthProfile;
+    // Guard: member charts may still be loading — don't open with empty fields
+    if (!bp) return;
     setEditMember({
       memberId: member.familyMemberId,
       displayName: member.displayName,
-      relationshipToOwner: (bp?.relationshipToOwner as Relationship) ?? "other",
+      relationshipToOwner: (bp.relationshipToOwner as Relationship) ?? "other",
       memberWeight: member.memberWeight.toFixed(2),
-      birthDateLocal: bp?.birthDateLocal ?? "",
-      birthTimeLocal: bp?.birthTimeLocal ?? "",
-      birthPlace: bp?.birthPlace ?? "",
-      birthLatitude: bp?.birthLatitude?.toString() ?? "",
-      birthLongitude: bp?.birthLongitude?.toString() ?? "",
-      birthTimezone: bp?.birthTimezone ?? "",
-      currentPlace: bp?.currentPlace ?? "",
-      currentLatitude: bp?.currentLatitude?.toString() ?? "",
-      currentLongitude: bp?.currentLongitude?.toString() ?? "",
-      currentTimezone: bp?.currentTimezone ?? "",
+      birthDateLocal: bp.birthDateLocal ?? "",
+      birthTimeLocal: bp.birthTimeLocal ?? "",
+      birthPlace: bp.birthPlace ?? "",
+      birthLatitude: bp.birthLatitude?.toString() ?? "",
+      birthLongitude: bp.birthLongitude?.toString() ?? "",
+      birthTimezone: bp.birthTimezone ?? "",
+      currentPlace: bp.currentPlace ?? "",
+      currentLatitude: bp.currentLatitude?.toString() ?? "",
+      currentLongitude: bp.currentLongitude?.toString() ?? "",
+      currentTimezone: bp.currentTimezone ?? "",
     });
   }
 
@@ -1080,9 +1088,6 @@ export function DashboardWorkspace() {
         birthDisplayName={birthForm.displayName}
         status={status}
         chartSummary={personal.chartSummary}
-        todayGuidance={personal.todayGuidance}
-        todayTransit={personal.todayTransit}
-        familyAggregate={family.familyAggregate}
         selectedVault={selectedVault}
         selectedVaultId={family.selectedVaultId}
         selectedDate={selectedDate}
@@ -1220,6 +1225,48 @@ export function DashboardWorkspace() {
 
       {/* Tab content */}
       <div className="cd-page site__body">
+        {/* Household today strip — Today tab only */}
+        {activeTab === "personal" && family.familyAggregate && family.familyAggregate.members.length > 0 && (() => {
+          const fs = family.familyAggregate.familyScore;
+          return (
+            <div className="cd-household-strip">
+              <span className="cd-household-strip__kicker">
+                {lang === "ta" ? "குடும்பம்" : "Household"}
+              </span>
+              <span className={`cd-household-strip__hs-score cd-household-strip__hs-score--${getScoreBand(fs).tone}`}>
+                {fs}
+              </span>
+              {(() => {
+                const ownerBpId = personal.chart?.birthProfile.birthProfileId;
+                const ownerMemberId = ownerBpId
+                  ? (family.memberCharts.find((mc) => mc.chart.birthProfile.birthProfileId === ownerBpId)?.memberId ?? null)
+                  : null;
+                return family.familyAggregate.members.map((m) => {
+                  const isOwner = ownerMemberId !== null && m.familyMemberId === ownerMemberId;
+                  const displayScore = isOwner && personal.dailyGuidance?.score != null
+                    ? personal.dailyGuidance.score
+                    : m.individualScore;
+                  const band = getScoreBand(displayScore).tone;
+                  return (
+                    <React.Fragment key={m.familyMemberId}>
+                      <span className="cd-household-strip__sep" aria-hidden="true">·</span>
+                      <span className="cd-household-strip__member">
+                        <span className="cd-household-strip__member-name">{m.displayName}</span>
+                        <span className={`cd-household-strip__member-score cd-household-strip__member-score--${band}`}>
+                          {displayScore}
+                        </span>
+                      </span>
+                    </React.Fragment>
+                  );
+                });
+              })()}
+              <button type="button" className="cd-household-strip__link" onClick={() => goToTab("family")}>
+                {lang === "ta" ? "குடும்பம் →" : "Family →"}
+              </button>
+            </div>
+          );
+        })()}
+
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={activeTab === "settings" ? `settings-${settingsSubTab}` : activeTab}
@@ -1513,6 +1560,7 @@ export function DashboardWorkspace() {
             vaults={family.vaults}
             familyDetail={family.familyDetail}
             familyAggregate={family.familyAggregate}
+            familyCalendar={family.familyCalendar}
             memberCharts={family.memberCharts}
             relationshipAlerts={family.relationshipAlerts}
             alertsLoading={family.relationshipAlertsLoading}
@@ -1539,6 +1587,7 @@ export function DashboardWorkspace() {
             panchangam={personal.panchangam}
             panchangamTimings={personal.panchangamTimings}
             lang={lang}
+            locationLabel={personal.panchangamLocationLabel}
             onSelectDate={setSelectedDate}
           />
         )}

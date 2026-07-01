@@ -1,36 +1,40 @@
 "use client";
 
-import { formatClockLabel, getScoreBand, scoreColor, SCORE_HIGH, SCORE_MID, SCORE_LOW } from "@/lib/format";
+import { getScoreBand, scoreColor, SCORE_HIGH, SCORE_MID, SCORE_LOW } from "@/lib/format";
 import { SCORE_THRESHOLDS } from "@vinaadi/shared/utils/score";
 import { ThirukanithamBadge } from "@/components/thirukanitham-badge";
-import { gowriCategoryLabel, gowriPeriodLabel, gowriPurposeLabel } from "@/lib/gowri";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { DailyGuidanceData, ChartSummaryData, PanchangamDailyResponseData, PanchangamTimingsData } from "@/lib/types";
-function kalamSlotKey(
-  slot: PanchangamDailyResponseData["kalam"]["nallaNeram"][number],
-  index: number,
-): string {
-  return `${slot.period ?? "slot"}-${slot.name ?? slot.slot}-${slot.start}-${slot.end}-${index}`;
-}
+
+const SCORE_CHIP_KEYS = ["moonTransit", "gocharSupport", "dashaSupport", "panchangam", "personalCautions", "remedialActionSupport"] as const;
+type ScoreChipKey = typeof SCORE_CHIP_KEYS[number];
+const SCORE_CHIP_META: Record<ScoreChipKey, { max: number; labelEn: string; labelTa: string; descEn: string; descTa: string }> = {
+  moonTransit:           { max: 28, labelEn: "Moon transit",    labelTa: "சந்திர நகர்வு",          descEn: "Moon's position relative to your natal Moon today",                                           descTa: "இன்று சந்திரன் உங்கள் ஜாதக சந்திரனிலிருந்து எந்த இடத்தில் உள்ளார்" },
+  gocharSupport:         { max: 24, labelEn: "Gochar transits", labelTa: "கோசார ஆதரவு",            descEn: "Today's transiting planets interacting with your chart",                                      descTa: "இன்றைய கோசார கிரகங்கள் உங்கள் ஜாதகத்தை எவ்வாறு பாதிக்கின்றன" },
+  dashaSupport:          { max: 19, labelEn: "Dasa support",    labelTa: "தசை ஆதரவு",             descEn: "Current Mahadasha & Antardasha lord strength",                                                descTa: "நடப்பு மகாதசை மற்றும் அந்தர்தசை ஆதரவு" },
+  panchangam:            { max: 14, labelEn: "Panchangam",      labelTa: "பஞ்சாங்கம்",             descEn: "Tithi, Yoga & Karana quality today",                                                          descTa: "இன்றைய திதி, யோகம், கரணம் தரம்" },
+  personalCautions:      { max:  9, labelEn: "Personal safety", labelTa: "தனிப்பட்ட பாதுகாப்பு",   descEn: "Lower when Saturn cycle, Chandrashtama or combustion is active",                              descTa: "சனி சுழற்சி, சந்திராஷ்டமம் அல்லது கிரக அஸ்தமனம் உள்ளபோது குறையும்" },
+  remedialActionSupport: { max:  6, labelEn: "Remedial",        labelTa: "பரிகார ஆதரவு",           descEn: "Bonus when a personal hora window is available today",                                        descTa: "தனிப்பட்ட ஹோரா சாளரம் கிடைக்கும்போது கூடுதல் மதிப்பெண்" },
+};
 
 /* ── Score ring SVG ─────────────────────────────────────── */
 function ScoreRing({ score }: { score: number }) {
-  const r = 44;
+  const r = 52;
   const circ = 2 * Math.PI * r;
   const filled = (score / 100) * circ;
   const color = scoreColor(score);
   return (
-    <svg width="110" height="110" viewBox="0 0 110 110" style={{ display: "block" }}>
-      <circle cx="55" cy="55" r={r} fill="none" stroke="var(--panel-tan-light)" strokeWidth="8" />
+    <svg width="130" height="130" viewBox="0 0 130 130" style={{ display: "block" }}>
+      <circle cx="65" cy="65" r={r} fill="none" stroke="var(--panel-tan-light)" strokeWidth="8" />
       <circle
-        cx="55" cy="55" r={r}
+        cx="65" cy="65" r={r}
         fill="none"
         stroke={color}
         strokeWidth="8"
         strokeLinecap="round"
         strokeDasharray={`${filled} ${circ}`}
-        transform="rotate(-90 55 55)"
+        transform="rotate(-90 65 65)"
       />
     </svg>
   );
@@ -116,8 +120,8 @@ type HeroProps = {
 };
 
 export function PersonalHero({
-  lang, displayName, dateLabel, guidanceHeadline, score, personalScoreBand,
-  personalDailyGuidance, bestWindow, avoidWindow, panchangam, personalChartSummary, astroText,
+  lang, displayName, dateLabel, guidanceHeadline, score,
+  personalDailyGuidance, bestWindow, avoidWindow, personalChartSummary, astroText,
 }: HeroProps) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))", gap: "var(--space-7)", alignItems: "start" }}>
@@ -160,74 +164,66 @@ export function PersonalHero({
             <p className="cd-kicker" style={{ margin: 0 }}>{t("personal_today", lang)}</p>
             <ThirukanithamBadge size="sm" />
           </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-3)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-4)" }}>
             <div>
-              <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "3.5rem", fontWeight: 500, lineHeight: 1, color: "var(--panel-earth-dark)" }}>
-                {score}
-                <span style={{ fontSize: "1.25rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>/100</span>
-              </p>
-              <span
-                className="cd-score-pill"
-                style={{
-                  marginTop: "var(--space-2)",
-                  background: score !== null && score >= SCORE_THRESHOLDS.HIGH ? "var(--chart-d9-active-bg)" : score !== null && score >= SCORE_THRESHOLDS.MID ? "var(--chart-d1-lagna-bg)" : "var(--panel-warm-tint)",
-                  color: score !== null ? scoreColor(score) : SCORE_MID,
-                }}
-              >
+              <p style={{
+                margin: "0 0 var(--space-1_5)",
+                fontFamily: "var(--font-display)",
+                fontSize: "clamp(1.6rem, 3vw, 2.1rem)",
+                fontWeight: 500,
+                lineHeight: 1.1,
+                letterSpacing: "-0.02em",
+                color: score !== null ? scoreColor(score) : SCORE_MID,
+              }}>
                 {personalDailyGuidance.label}
-              </span>
+              </p>
+              <p style={{
+                margin: 0,
+                fontSize: "0.675rem",
+                fontWeight: 600,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: "var(--color-faint)",
+              }}>
+                {lang === "ta" ? "திருக்கணித மதிப்பெண்" : "Thirukanitham score"}
+              </p>
             </div>
             <div style={{ position: "relative", flexShrink: 0 }}>
               <ScoreRing score={score ?? 0} />
-              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 500, color: score !== null ? scoreColor(score) : SCORE_MID }}>
-                {score}
+              <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px" }}>
+                <span style={{ fontFamily: "var(--font-display)", fontSize: "1.75rem", fontWeight: 500, lineHeight: 1, color: score !== null ? scoreColor(score) : SCORE_MID }}>
+                  {score}
+                </span>
+                <span style={{ fontFamily: "var(--font-body)", fontSize: "0.625rem", color: "var(--color-faint)", lineHeight: 1 }}>
+                  /100
+                </span>
               </div>
             </div>
           </div>
 
-          <div className="cd-window-grid">
-            <div className="cd-time-slot">
-              <p className="cd-kicker">{lang === "ta" ? "நல்ல நேரம்" : "Nalla Neram"}</p>
-              {(panchangam?.kalam?.nallaNeram?.length ?? 0) > 0 ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
-                  {panchangam!.kalam.nallaNeram.map((w, idx) => {
-                    const lbl = gowriPeriodLabel(w.period, lang);
-                    const category = gowriCategoryLabel(w.name, lang);
-                    const purpose = gowriPurposeLabel(w.name, lang);
-                    return (
-                      <div key={kalamSlotKey(w, idx)} style={{ display: "grid", gap: "2px" }}>
-                        <div>{[lbl, category].filter(Boolean).map((part) => <span key={part} style={{ fontSize: "0.6rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-faint)", marginRight: "4px" }}>{part}</span>)}</div>
-                        <span className="cd-time-value" style={{ fontSize: "0.9rem" }}>{formatClockLabel(w.start)} – {formatClockLabel(w.end)}</span>
-                        {purpose && <span style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--color-muted)" }}>{purpose}</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : bestWindow ? (
-                <p className="cd-time-value">{formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)}</p>
-              ) : <p style={{ margin: 0, color: "var(--color-faint)", fontSize: "0.875rem" }}>—</p>}
+          {personalDailyGuidance.scoreBreakdown && (
+            <div className="cd-score-chip-grid">
+              {SCORE_CHIP_KEYS.map((k) => {
+                const value = (personalDailyGuidance.scoreBreakdown as Record<string, number>)[k] ?? 0;
+                const meta = SCORE_CHIP_META[k];
+                const pct = Math.round(Math.max(0, value) / meta.max * 100);
+                const color = scoreColor(value / meta.max * 100);
+                return (
+                  <div key={k} className="cd-score-chip">
+                    <p className="cd-kicker">{lang === "ta" ? meta.labelTa : meta.labelEn}</p>
+                    <div className="cd-score-chip__value-row">
+                      <span className="cd-score-chip__value" style={{ color }}>{value}</span>
+                      <span className="cd-score-chip__max">/ {meta.max}</span>
+                    </div>
+                    <div className="cd-score-chip__bar-track">
+                      <div className="cd-score-chip__bar-fill" style={{ width: `${pct}%`, background: color }} />
+                    </div>
+                    <p className="cd-score-chip__desc">{lang === "ta" ? meta.descTa : meta.descEn}</p>
+                  </div>
+                );
+              })}
             </div>
-            <div className="cd-time-slot">
-              <p className="cd-kicker">{lang === "ta" ? "யமகண்டம்" : "Yamagandam"}</p>
-              {panchangam?.kalam?.yamagandam ? (
-                <p className="cd-time-value">{formatClockLabel(panchangam.kalam.yamagandam.start)} – {formatClockLabel(panchangam.kalam.yamagandam.end)}</p>
-              ) : <p style={{ margin: 0, color: "var(--color-faint)", fontSize: "0.875rem" }}>—</p>}
-            </div>
-            <div className="cd-time-slot" style={{ background: "var(--chart-d9-active-bg)", border: "1px solid rgba(92,118,84,0.3)" }}>
-              <p className="cd-kicker" style={{ color: SCORE_HIGH }}>
-                {panchangam?.kalam?.kuligai ? (lang === "ta" ? "குளிகை" : "Kuligai") : t("action_best_window", lang)}
-              </p>
-              <p className="cd-time-value" style={{ color: SCORE_HIGH }}>
-                {panchangam?.kalam?.kuligai ? `${formatClockLabel(panchangam.kalam.kuligai.start)} – ${formatClockLabel(panchangam.kalam.kuligai.end)}` : bestWindow ? `${formatClockLabel(bestWindow.start)} – ${formatClockLabel(bestWindow.end)}` : "—"}
-              </p>
-            </div>
-            <div className="cd-time-slot" style={{ background: "var(--panel-warm-tint)", border: "1px solid rgba(168,72,47,0.3)" }}>
-              <p className="cd-kicker" style={{ color: SCORE_LOW }}>{lang === "ta" ? "ராகு காலம்" : "Rahu Kalam"}</p>
-              <p className="cd-time-value" style={{ color: SCORE_LOW }}>
-                {panchangam?.kalam?.rahuKalam ? `${formatClockLabel(panchangam.kalam.rahuKalam.start)} – ${formatClockLabel(panchangam.kalam.rahuKalam.end)}` : avoidWindow ? `${formatClockLabel(avoidWindow.start)} – ${formatClockLabel(avoidWindow.end)}` : "—"}
-              </p>
-            </div>
-          </div>
+          )}
 
           {personalChartSummary && (
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "var(--space-2_5)", borderTop: "1px solid var(--panel-tan-light)", flexWrap: "wrap", gap: "var(--space-1_5)" }}>
