@@ -141,9 +141,13 @@ def _latest_chart(session: Session, birth_profile: BirthProfile) -> Chart:
 
 
 def _find_duplicate_family_member(session: Session, family_vault_id: UUID, payload: FamilyMemberCreate) -> FamilyMember | None:
+    # BirthProfile.birth_date_local/birth_time_local/birth_latitude/birth_longitude are
+    # stored Fernet-encrypted, which is non-deterministic — equal plaintexts produce
+    # different ciphertext, so they can't be filtered in SQL. Narrow by the
+    # plaintext-comparable fields first, then compare the decrypted values in Python.
     normalized_name = payload.display_name.strip().lower()
-    existing = session.execute(
-        select(FamilyMember)
+    candidates = session.execute(
+        select(FamilyMember, BirthProfile)
         .join(BirthProfile, BirthProfile.family_member_id == FamilyMember.family_member_id)
         .where(
             FamilyMember.family_vault_id == family_vault_id,
@@ -153,16 +157,21 @@ def _find_duplicate_family_member(session: Session, family_vault_id: UUID, paylo
             func.lower(func.trim(BirthProfile.display_name)) == normalized_name,
             FamilyMember.relationship_to_owner == payload.relationship_to_owner,
             FamilyMember.date_of_birth_local == payload.birth_date_local,
-            BirthProfile.birth_date_local == payload.birth_date_local,
-            BirthProfile.birth_time_local == payload.birth_time_local,
             BirthProfile.birth_place == payload.birth_place,
-            BirthProfile.birth_latitude == payload.birth_latitude,
-            BirthProfile.birth_longitude == payload.birth_longitude,
             BirthProfile.birth_timezone == payload.birth_timezone,
         )
         .order_by(FamilyMember.created_at.desc())
-    ).scalar_one_or_none()
-    return existing
+    ).all()
+
+    for member, profile in candidates:
+        if (
+            profile.birth_date_local == payload.birth_date_local
+            and profile.birth_time_local == payload.birth_time_local
+            and float(profile.birth_latitude) == payload.birth_latitude
+            and float(profile.birth_longitude) == payload.birth_longitude
+        ):
+            return member
+    return None
 
 
 def _member_snapshot(session: Session, member: FamilyMember, on_date: date) -> _MemberSnapshot:
@@ -273,6 +282,86 @@ def _member_response(snapshot: _MemberSnapshot) -> FamilyAggregateMember:
         activeCycleTags=_member_active_tags(snapshot),
         bestWindows=snapshot.daily_guidance.data.best_windows,
         cautionWindows=snapshot.daily_guidance.data.caution_windows,
+    )
+
+
+def _owner_aggregate_member(
+    session: Session,
+    owner_user_id: UUID,
+    on_date: date,
+) -> FamilyAggregateMember | None:
+    """Build a FamilyAggregateMember for the vault owner's direct personal profile.
+
+    The owner's personal birth profile (family_member_id IS NULL) is not a FamilyMember
+    row, so _collect_member_snapshots never includes it. This fetches it separately so
+    the owner is counted in the family score aggregate alongside the family members they
+    manage. Returns None if the owner has no personal profile or valid chart.
+    """
+    birth_profile = session.execute(
+        select(BirthProfile)
+        .where(
+            BirthProfile.owner_user_id == owner_user_id,
+            BirthProfile.family_member_id.is_(None),
+            BirthProfile.deleted_at.is_(None),
+        )
+        .order_by(BirthProfile.created_at.asc())
+    ).scalars().first()
+    if birth_profile is None:
+        return None
+    try:
+        chart = _latest_chart(session, birth_profile)
+        chart_snapshot = load_persisted_chart_response(session, chart.chart_id)
+    except HTTPException:
+        return None
+    daily_location = resolve_effective_daily_location(birth_profile)
+    panchangam = calculate_daily_panchangam(
+        on_date,
+        daily_location.latitude,
+        daily_location.longitude,
+        daily_location.timezone,
+        session=session,
+    )
+    solar_noon_utc = panchangam.solar_noon.astimezone(UTC)
+    current_jd = utc_datetime_to_julian_day(solar_noon_utc)
+    transit_snapshot = calculate_sidereal_planets(current_jd)
+    midnight_jd = local_midnight_as_jd_for_profile(on_date, birth_profile)
+    midnight_snapshot = calculate_sidereal_planets(midnight_jd)
+    daily_guidance = build_daily_guidance_response(
+        chart_snapshot,
+        on_date,
+        panchangam=panchangam,
+        transit_snapshot=transit_snapshot,
+    )
+    gochar = build_transit_snapshot(chart_snapshot, solar_noon_utc, current_snapshot=transit_snapshot)
+    sani_cycle = build_sani_cycle_response(chart_snapshot, on_date, saturn_snapshot=midnight_snapshot)
+    score = daily_guidance.data.score
+    tags: list[str] = []
+    if score >= 80:
+        tags.append("STRONG_DAY")
+    elif score >= 50:
+        tags.append("NORMAL_DAY")
+    elif score >= 35:
+        tags.append("SUPPORT_DAY")
+    else:
+        tags.append("AVOID_NEW_START_DAY")
+    if gochar.data.is_chandrashtama:
+        tags.append("CHANDRASHTAMA")
+    if sani_cycle.data.moon_based_cycle.is_active and sani_cycle.data.moon_based_cycle.type:
+        tags.append(sani_cycle.data.moon_based_cycle.type)
+    if sani_cycle.data.lagna_based_cycle.is_active and sani_cycle.data.lagna_based_cycle.type:
+        tags.append(sani_cycle.data.lagna_based_cycle.type)
+    return FamilyAggregateMember(
+        familyMemberId=birth_profile.birth_profile_id,
+        displayName=birth_profile.display_name,
+        birthProfileId=birth_profile.birth_profile_id,
+        chartId=chart.chart_id,
+        individualScore=score,
+        label=daily_guidance.data.label,
+        memberWeight=1.0,
+        birthTimeConfidenceMinutes=int(birth_profile.birth_time_confidence_minutes or 0),
+        activeCycleTags=tags,
+        bestWindows=daily_guidance.data.best_windows,
+        cautionWindows=daily_guidance.data.caution_windows,
     )
 
 
@@ -421,7 +510,7 @@ def _family_breakdown(
 
     lowest_score_penalty = max(0, 55 - lowest_score) * 0.35
     high_stress_count_penalty = low_score_count * 4
-    chandrashtama_penalty = chandrashtama_count * 3
+    chandrashtama_penalty = chandrashtama_count * 8
     major_sani_penalty = major_sani_count * 4
     family_score_raw = (
         weighted_mean
@@ -816,6 +905,11 @@ def get_family_daily_aggregate(
         )
 
     member_summaries = [_member_response(snapshot) for snapshot in member_snapshots]
+    # Include the vault owner's personal score (family_member_id IS NULL profile) so
+    # the aggregate reflects all household members, not just the managed family members.
+    owner_member = _owner_aggregate_member(session, family_vault.owner_user_id, on_date)
+    if owner_member is not None:
+        member_summaries = [owner_member, *member_summaries]
     best_family_windows = _family_best_windows(member_snapshots)
     avoid_for_family_decisions = _family_avoid_windows(member_snapshots)
 

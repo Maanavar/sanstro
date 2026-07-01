@@ -57,28 +57,35 @@ def _find_duplicate_birth_profile(
     birth_timezone: str,
     exclude_birth_profile_id: UUID | None = None,
 ) -> BirthProfile | None:
+    # birth_date_local/birth_time_local/birth_latitude/birth_longitude are stored
+    # Fernet-encrypted, which is non-deterministic — equal plaintexts produce different
+    # ciphertext, so they can't be filtered in SQL. Narrow by the plaintext-comparable
+    # fields first, then compare the decrypted values in Python.
     conditions = [
         BirthProfile.owner_user_id == owner_user_id,
         BirthProfile.deleted_at.is_(None),
-        BirthProfile.birth_date_local == birth_date_local,
         BirthProfile.birth_place == birth_place,
-        BirthProfile.birth_latitude == birth_latitude,
-        BirthProfile.birth_longitude == birth_longitude,
         BirthProfile.birth_timezone == birth_timezone,
         func.lower(func.trim(BirthProfile.display_name)) == display_name.strip().lower(),
     ]
-    if birth_time_local is None:
-        conditions.append(BirthProfile.birth_time_local.is_(None))
-    else:
-        conditions.append(BirthProfile.birth_time_local == birth_time_local)
     if exclude_birth_profile_id is not None:
         conditions.append(BirthProfile.birth_profile_id != exclude_birth_profile_id)
 
-    return session.execute(
+    candidates = session.execute(
         select(BirthProfile)
         .where(*conditions)
         .order_by(BirthProfile.created_at.asc())
-    ).scalars().first()
+    ).scalars().all()
+
+    for candidate in candidates:
+        if (
+            candidate.birth_date_local == birth_date_local
+            and candidate.birth_time_local == birth_time_local
+            and float(candidate.birth_latitude) == birth_latitude
+            and float(candidate.birth_longitude) == birth_longitude
+        ):
+            return candidate
+    return None
 
 
 def _raise_duplicate_birth_profile() -> None:
