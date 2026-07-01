@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { LANG_COOKIE_NAME, LANG_STORAGE_KEY, type Lang } from "@/lib/i18n";
+import { apiFetchJson } from "@/lib/api";
 
 // ── Shared context ──────────────────────────────────────────────────────────
 
@@ -30,6 +31,19 @@ export function LangProvider({
     setLangState(resolved);
     persistLangPreference(resolved);
   }, [initialLang]);
+
+  // Sync to server-side preference once the authenticated session resolves.
+  useEffect(() => {
+    function onSessionLang(e: Event) {
+      const serverLang = (e as CustomEvent<Lang>).detail;
+      if (serverLang === "ta" || serverLang === "en") {
+        setLangState(serverLang);
+        persistLangPreference(serverLang);
+      }
+    }
+    window.addEventListener("vinaadi:lang-resolved", onSessionLang);
+    return () => window.removeEventListener("vinaadi:lang-resolved", onSessionLang);
+  }, []);
 
   function setLang(l: Lang) {
     setLangState(l);
@@ -62,6 +76,11 @@ export function LangToggle({ onChange }: LangToggleProps) {
     const next: Lang = lang === "en" ? "ta" : "en";
     setLang(next);
     onChange?.(next);
+    // Persist to server (fire-and-forget; silently ignored for unauthenticated users)
+    void apiFetchJson("/settings/ui", {
+      method: "PATCH",
+      body: JSON.stringify({ lang: next }),
+    }).catch(() => undefined);
   }
 
   return (

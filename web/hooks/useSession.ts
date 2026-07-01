@@ -7,12 +7,14 @@ import { identifyUser, resetAnalytics } from "@/lib/analytics";
 
 export type UserMode = "BEGINNER" | "BALANCED" | "TRADITIONAL";
 export type GoalTrack = "CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL" | null;
+export type Lang = "ta" | "en";
 
 type AuthSession = {
   userId: string;
   email: string;
   userMode?: UserMode;
   goalTrack?: GoalTrack;
+  lang?: Lang;
 };
 
 type UseSessionOptions = {
@@ -26,6 +28,7 @@ export function useSession(options: UseSessionOptions = {}) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userMode, setUserMode] = useState<UserMode>("BALANCED");
   const [goalTrack, setGoalTrack] = useState<GoalTrack>(null);
+  const [lang, setLang] = useState<Lang>("ta");
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   useEffect(() => {
@@ -41,6 +44,10 @@ export function useSession(options: UseSessionOptions = {}) {
         identifyUser(me.userId); // opaque UUID only — never email
         if (me.userMode) setUserMode(me.userMode);
         if (me.goalTrack !== undefined) setGoalTrack(me.goalTrack ?? null);
+        if (me.lang === "ta" || me.lang === "en") {
+          setLang(me.lang);
+          window.dispatchEvent(new CustomEvent("vinaadi:lang-resolved", { detail: me.lang }));
+        }
 
         const url = new URL(window.location.href);
         if (url.searchParams.get("setup") === "1") {
@@ -98,6 +105,7 @@ export function useSession(options: UseSessionOptions = {}) {
     userEmail,
     userMode,
     goalTrack,
+    lang,
     showUserMenu,
     setUserMode,
     setGoalTrack,
