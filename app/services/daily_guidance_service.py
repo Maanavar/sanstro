@@ -209,19 +209,31 @@ def build_daily_guidance_response(
     current_nakshatra = nakshatra_from_degree(moon.absolute_longitude)
     janma_nakshatra = natal_moon.nakshatra
     moon_score = 70
-    if current_nakshatra == janma_nakshatra:
-        moon_score -= 20
-    if current_nakshatra == ((janma_nakshatra + 8 - 1) % 27) + 1:
-        moon_score -= 15
-    if current_nakshatra == ((janma_nakshatra + 17 - 1) % 27) + 1:
-        moon_score -= 15
+
+    # Tarabalam — full 9-tara cycle repeating across all 27 nakshatras.
+    # tara_pos cycles 1-9 as today's nakshatra steps away from the birth star.
+    # Janma(1) Sampat(2) Vipat(3) Kshema(4) Pratyak(5) Sadhana(6) Naidhana(7) Mitra(8) Parama Mitra(9)
+    _tara_pos = ((current_nakshatra - janma_nakshatra) % 27) % 9 + 1
+    _TARA_DELTA: dict[int, int] = {
+        1: -20,  # Janma
+        2:  +8,  # Sampat
+        3: -15,  # Vipat
+        4:  +8,  # Kshema
+        5: -10,  # Pratyak
+        6:  +5,  # Sadhana
+        7: -15,  # Naidhana
+        8:  +8,  # Mitra
+        9: +12,  # Parama Mitra
+    }
+    moon_score += _TARA_DELTA[_tara_pos]
     # Chandrashtama = Moon in the 8th Rasi from natal Janma Rasi (per spec §4.11)
     # NOT the 8th Nakshatra — Nakshatra and Rasi boundaries do not align
     chandrashtama_rasi = ((natal_moon.rasi - 1 + 7) % 12) + 1
     chandrashtama = moon.rasi == chandrashtama_rasi
     if chandrashtama:
         moon_score -= 25
-    if current_nakshatra in AUSPICIOUS_DAILY_NAKSHATRAS:
+    # Chandrashtama nullifies the transit nakshatra's daily auspiciousness (Thirukanitham §4.11)
+    if current_nakshatra in AUSPICIOUS_DAILY_NAKSHATRAS and not chandrashtama:
         moon_score += 10
     moon_score = max(0, min(100, moon_score))
 
@@ -459,16 +471,19 @@ def build_daily_guidance_response(
     _has_personal_window = any("PERSONAL_HORA" in w.type for w in best_windows)
     remedial_support = 6 if _has_personal_window else (3 if best_windows else 0)
 
-    score = round(
-        moon_score * 0.30
-        + transit_score * 0.25
-        + dasha_score * 0.20
-        + panchangam_score * 0.15
-        + personal_safety_score * 0.10
-        + remedial_support
-    )
-    score = max(0, min(100, score))
+    # Weights (0.28+0.24+0.19+0.14+0.09 = 0.94) plus flat remedial max 6 → total max = 100.
+    # Each component is rounded first; total is their sum — no double-rounding discrepancy.
+    _moon_c     = round(moon_score * 0.28)
+    _transit_c  = round(transit_score * 0.24)
+    _dasha_c    = round(dasha_score * 0.19)
+    _panch_c    = round(panchangam_score * 0.14)
+    _personal_c = round(personal_safety_score * 0.09)
+    score = min(100, _moon_c + _transit_c + _dasha_c + _panch_c + _personal_c + remedial_support)
     label = _score_label(score)
+    # Chandrashtama is a prohibition period in Thirukanitham — no day in ashtama can be
+    # labelled positively even if dasha/transits are strong.
+    if chandrashtama and label in ("GOOD", "STRONG_SUPPORT"):
+        label = "BALANCED"
 
     # P1-B: Confidence tier — count of components scoring ≥60
     _conf_signals = sum(1 for s in (moon_score, dasha_score, transit_score) if s >= 60)
@@ -626,14 +641,11 @@ def build_daily_guidance_response(
             confidence=_confidence,
             confidenceReason=_conf_reason,
             scoreBreakdown=DailyGuidanceScoreBreakdown(
-                moonTransit=round(moon_score * 0.30),
-                dashaSupport=round(dasha_score * 0.20),
-                panchangam=round(panchangam_score * 0.15),
-                gocharSupport=round(transit_score * 0.25),
-                # Shortfall from an unafflicted day (baseline 60), scaled by the real
-                # 0.10 weight used in the score formula — keeps this driver dimensionally
-                # consistent with moonTransit/dashaSupport/etc. (≤0 = personal-safety drag).
-                personalCautions=round((personal_safety_score - 60) * 0.10),
+                moonTransit=_moon_c,
+                dashaSupport=_dasha_c,
+                panchangam=_panch_c,
+                gocharSupport=_transit_c,
+                personalCautions=_personal_c,
                 remedialActionSupport=remedial_support,
             ),
             bestWindows=best_windows,
