@@ -23,8 +23,18 @@ def test_nakshatra_to_rasi_uses_pada_boundaries_for_split_stars() -> None:
     assert nakshatra_to_rasi(5, 3) == 3   # Mirugaseeridam pada 3: Mithunam
     assert nakshatra_to_rasi(7, 3) == 3   # Punarpoosam pada 3: Mithunam
     assert nakshatra_to_rasi(7, 4) == 4   # Punarpoosam pada 4: Kadagam
+    assert nakshatra_to_rasi(12, 1) == 5  # Uthiram pada 1: Simmam
+    assert nakshatra_to_rasi(12, 2) == 6  # Uthiram pada 2: Kanni
+    assert nakshatra_to_rasi(14, 2) == 6  # Chithirai pada 2: Kanni
+    assert nakshatra_to_rasi(14, 3) == 7  # Chithirai pada 3: Thulam
+    assert nakshatra_to_rasi(16, 3) == 7  # Visakam pada 3: Thulam
+    assert nakshatra_to_rasi(16, 4) == 8  # Visakam pada 4: Viruchigam
     assert nakshatra_to_rasi(21, 1) == 9  # Uthiradam pada 1: Dhanusu
     assert nakshatra_to_rasi(21, 2) == 10 # Uthiradam pada 2: Magaram
+    assert nakshatra_to_rasi(23, 2) == 10 # Avittam pada 2: Magaram
+    assert nakshatra_to_rasi(23, 3) == 11 # Avittam pada 3: Kumbam
+    assert nakshatra_to_rasi(25, 3) == 11 # Poorattathi pada 3: Kumbam
+    assert nakshatra_to_rasi(25, 4) == 12 # Poorattathi pada 4: Meenam
 
 
 def test_nakshatra_to_rasi_preserves_legacy_invalid_pada_fallback() -> None:
