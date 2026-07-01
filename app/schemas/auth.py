@@ -58,6 +58,7 @@ class AuthUserResponse(BaseModel):
     email: str
     user_mode: Literal["BEGINNER", "BALANCED", "TRADITIONAL"] = Field(default="BALANCED", alias="userMode")
     goal_track: Literal["CAREER", "EXAM", "RELATIONSHIP", "FINANCIAL"] | None = Field(default=None, alias="goalTrack")
+    lang: Literal["ta", "en"] = Field(default="ta")
 
     model_config = ConfigDict(populate_by_name=True)
 

@@ -26,6 +26,7 @@ from app.middleware import resolve_client_ip
 from app.models.password_reset_token import PasswordResetToken
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
+from app.models.user_preference import UserPreference
 from app.schemas.auth import (
     AccountDeletionResult,
     AuthUserResponse,
@@ -282,14 +283,18 @@ def logout(
 @router.get("/me", response_model=AuthUserResponse)
 def me(
     user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
 ) -> AuthUserResponse:
     email = _require_user_email(user)
+    pref = session.query(UserPreference).filter_by(owner_user_id=user.user_id).first()
+    lang = getattr(pref, "dashboard_lang", "ta") if pref else "ta"
 
     return AuthUserResponse(
         userId=str(user.user_id),
         email=email,
         userMode=getattr(user, "user_mode", "BALANCED") or "BALANCED",
         goalTrack=getattr(user, "goal_track", None),
+        lang=lang,
     )
 
 
