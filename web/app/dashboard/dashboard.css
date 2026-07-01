@@ -813,11 +813,16 @@
 
 /* ── Tamil overrides: panchangam spec rows ──────────────────
    The fixed 120px label column is too narrow for long Tamil
-   labels like "அமிர்தாதி யோகம்" (~190px). Switch to max-content
-   so the column self-sizes. Also relax line-height on display-
-   size text so Tamil ascenders/descenders aren't clipped. */
+   labels like "அமிர்தாதி யோகம்" (~190px). Each row is its own
+   grid container, so `max-content` sized each row's label
+   column independently — the value column then started at a
+   different x-position per row, breaking vertical alignment.
+   Use a shared fixed width instead (wide enough for the
+   longest label) so every row lines up like the English mode.
+   Also relax line-height on display-size text so Tamil
+   ascenders/descenders aren't clipped. */
 .cd-shell[data-lang="ta"] .cd-detail-spec-row {
-  grid-template-columns: minmax(0, max-content) minmax(0, 1fr) auto;
+  grid-template-columns: 200px minmax(0, 1fr) auto;
 }
 
 .cd-shell[data-lang="ta"] .cd-detail-spec-row__label {
@@ -890,6 +895,7 @@
     flex: 1;
     min-width: 0;
     overflow-x: hidden;
+    min-height: calc(100vh - 54px);
   }
 }
 
@@ -1037,4 +1043,93 @@
   .cd-principle-strip {
     display: none;
   }
+}
+
+/* Household today banner — single-line inline strip, Today tab only */
+.cd-household-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1_5) var(--space-3_5);
+  margin: var(--space-3) var(--space-3) 0;
+  background: var(--panel-cream);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  max-width: calc(100% - var(--space-6));
+  overflow: hidden;
+}
+
+.cd-household-strip__kicker {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-faint);
+}
+
+.cd-household-strip__hs-score {
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.cd-household-strip__hs-score--high { color: var(--color-score-high, #5C7654); }
+.cd-household-strip__hs-score--mid  { color: var(--color-score-mid,  #B85A2C); }
+.cd-household-strip__hs-score--low  { color: var(--color-score-low,  #A8482F); }
+
+.cd-household-strip__sep {
+  color: var(--color-faint);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.cd-household-strip__member {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1_5);
+  flex-shrink: 0;
+}
+
+.cd-household-strip__member-name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text);
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cd-household-strip__member-score {
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.cd-household-strip__member-score--high { color: var(--color-score-high, #5C7654); }
+.cd-household-strip__member-score--mid  { color: var(--color-score-mid,  #B85A2C); }
+.cd-household-strip__member-score--low  { color: var(--color-score-low,  #A8482F); }
+
+.cd-household-strip__link {
+  flex-shrink: 0;
+  margin-left: var(--space-1);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  padding: 0;
+  letter-spacing: 0.02em;
+  font-family: inherit;
+  opacity: 0.85;
+  transition: opacity 120ms ease;
+}
+
+.cd-household-strip__link:hover {
+  opacity: 1;
 }

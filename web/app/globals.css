@@ -4228,53 +4228,14 @@ button:focus-visible,
   font-weight: 500;
 }
 
-/* ── Commitment section ───────────────────────────────────── */
-.cl-commit {
-  padding: 72px 0;
-  background: var(--cl-bg-2);
-  border-top: 1px solid var(--cl-border);
-  border-bottom: 1px solid var(--cl-border);
-}
-.cl-commit__inner { max-width: 800px; margin: 0 auto; }
-.cl-commit-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px 32px;
-}
-.cl-commit-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-.cl-commit-item__icon {
-  font-size: 1rem;
-  color: var(--cl-sage);
-  font-weight: 700;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-.cl-commit-item__text {
-  margin: 0;
-  font-size: 0.88rem;
-  color: var(--cl-ink-2);
-  line-height: 1.55;
-}
-
 /* ── Pricing section ──────────────────────────────────────── */
 .cl-pricing {
   padding: 80px 0;
+  background: var(--cl-bg-2);
 }
 .cl-balance-cta {
   margin-top: 28px;
   display: inline-flex;
-}
-.cl-commit-eyebrow {
-  text-align: center;
-  margin-bottom: 16px;
-}
-.cl-commit-title {
-  text-align: center;
-  margin-bottom: 32px;
 }
 .cl-pricing__inner {
   text-align: center;
@@ -4287,43 +4248,66 @@ button:focus-visible,
   margin: 0 auto 28px;
 }
 
-/* ── Newsletter email capture (P4-10) ─────────────────────── */
-.cl-newsletter {
-  padding: 72px 0;
-  background: var(--surface-1, #f7f3ee);
-  text-align: center;
-}
-.cl-newsletter__inner { max-width: 540px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.cl-newsletter__form { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 8px; width: 100%; max-width: 480px; }
-.cl-newsletter__input {
-  flex: 1; min-width: 200px; padding: 12px 16px; border: 1px solid var(--color-border, #d9d1c8);
-  border-radius: 10px; font-size: 0.95rem; background: #fff; color: var(--color-text);
-  font-family: inherit;
-}
-.cl-newsletter__input:focus { outline: none; border-color: var(--color-saffron, #c07a2c); }
-.cl-newsletter__btn { padding: 12px 24px; white-space: nowrap; }
-.cl-newsletter__confirm { font-size: 1rem; font-weight: 600; color: var(--color-saffron, #c07a2c); margin: 12px 0 0; }
-.cl-newsletter__error { font-size: 0.82rem; color: #c0392b; margin: 4px 0 0; width: 100%; text-align: center; }
-
-/* ── App download CTA ─────────────────────────────────────── */
-.cl-app-dl {
+/* ── Stay connected (merged email capture + app download) ─── */
+.cl-connect {
   padding: 80px 0;
   background: linear-gradient(135deg, #1A1208 0%, #2E2118 60%, #3D2B1A 100%);
 }
-.cl-app-dl .cl-eyebrow { color: #C8944A; }
-.cl-app-dl .cl-section-h2 { color: #FFF7ED; }
-.cl-app-dl .cl-section-body { color: rgba(255,247,237,0.75); max-width: 44ch; }
-.cl-app-dl__inner {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 40px;
-  align-items: center;
+.cl-connect__head {
+  max-width: 560px;
+  margin: 0 auto 44px;
+  text-align: center;
 }
-.cl-app-dl__badges {
+.cl-connect .cl-eyebrow { color: #C8944A; }
+.cl-connect .cl-section-h2 { color: #FFF7ED; }
+.cl-connect .cl-section-body { color: rgba(255,247,237,0.75); max-width: 44ch; margin: 0 auto; }
+.cl-connect-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  max-width: 880px;
+  margin: 0 auto;
+}
+.cl-connect-card {
+  background: rgba(255, 247, 237, 0.06);
+  border: 1px solid rgba(255, 247, 237, 0.14);
+  border-radius: 16px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cl-connect-card__icon {
+  font-size: 1.3rem;
+  color: #C8944A;
+}
+.cl-connect-card__title {
+  margin: 0;
+  font-family: var(--cl-font-display);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #FFF7ED;
+}
+.cl-connect-card__body {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: rgba(255, 247, 237, 0.72);
+  line-height: 1.6;
+}
+.cl-connect-form { display: flex; gap: 10px; flex-wrap: wrap; width: 100%; }
+.cl-connect-form__input {
+  flex: 1; min-width: 160px; padding: 12px 16px; border: 1px solid rgba(255, 247, 237, 0.2);
+  border-radius: 10px; font-size: 0.95rem; background: rgba(255, 247, 237, 0.92); color: #2E2118;
+  font-family: inherit;
+}
+.cl-connect-form__input:focus { outline: none; border-color: #C8944A; }
+.cl-connect-form__btn { padding: 12px 24px; white-space: nowrap; }
+.cl-connect-form__confirm { font-size: 0.95rem; font-weight: 600; color: #C8944A; margin: 0; }
+.cl-connect-form__error { font-size: 0.82rem; color: #E8A07A; margin: 0; width: 100%; }
+.cl-connect-badges {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  flex-shrink: 0;
 }
 .cl-store-badge {
   display: flex;
@@ -4334,7 +4318,6 @@ button:focus-visible,
   padding: 12px 20px;
   text-decoration: none;
   border: 1px solid rgba(255,247,237,0.15);
-  min-width: 180px;
   transition: opacity 0.15s;
 }
 .cl-store-badge:hover { opacity: 0.88; }
@@ -4534,9 +4517,6 @@ button:focus-visible,
   .cl-pillar-grid {
     grid-template-columns: 1fr;
   }
-  .cl-commit-grid {
-    grid-template-columns: 1fr;
-  }
   .cl-window-row {
     grid-template-columns: 1fr;
   }
@@ -4608,19 +4588,17 @@ button:focus-visible,
   .cl-how,
   .cl-method,
   .cl-feature-hub,
-  .cl-learn-strip,
   .cl-pricing,
   .cl-helps,
   .cl-daily,
   .cl-balance,
-  .cl-commit,
-  .cl-app-dl {
+  .cl-connect {
     padding: 56px 0;
   }
-  .cl-app-dl__inner {
+  .cl-connect-grid {
     grid-template-columns: 1fr;
   }
-  .cl-app-dl__badges {
+  .cl-connect-badges {
     flex-direction: row;
     flex-wrap: wrap;
   }
@@ -5172,8 +5150,8 @@ button:focus-visible,
 .cl-social-proof {
   padding: 48px 0;
   background: var(--cl-bg-2);
-  border-top: 1px solid var(--panel-tan-light);
-  border-bottom: 1px solid var(--panel-tan-light);
+  border-top: 1px solid var(--cl-border);
+  border-bottom: 1px solid var(--cl-border);
 }
 .cl-social-proof__counter {
   display: flex;
@@ -5186,12 +5164,12 @@ button:focus-visible,
   font-family: var(--cl-font-display);
   font-size: clamp(2.2rem, 5vw, 3.2rem);
   font-weight: 600;
-  color: var(--panel-earth-dark);
+  color: var(--cl-ink);
   letter-spacing: -0.04em;
 }
 .cl-social-proof__label {
   font-size: 0.9rem;
-  color: var(--panel-warm-muted);
+  color: var(--cl-muted);
   max-width: 260px;
   line-height: 1.4;
 }
@@ -5204,8 +5182,8 @@ button:focus-visible,
   margin: 0;
   padding: 20px 22px;
   background: var(--cl-surface);
-  border: 1px solid var(--panel-tan);
-  border-radius: 14px;
+  border: 1px solid var(--cl-border);
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -5214,13 +5192,13 @@ button:focus-visible,
   margin: 0;
   font-size: 0.86rem;
   line-height: 1.65;
-  color: var(--panel-earth);
+  color: var(--cl-ink-2);
   font-style: italic;
 }
 .cl-testimonial__name {
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--panel-warm-muted);
+  color: var(--cl-muted);
 }
 
 /* ── How Vinaadi Helps section ───────────────────────────────── */
@@ -5567,7 +5545,7 @@ button:focus-visible,
 }
 .cl-method-panel__link:hover { color: var(--cl-ink); }
 
-/* ── Features hub section ────────────────────────────────────── */
+/* ── Features hub section (used by /family page) ──────────────── */
 .cl-feature-hub {
   padding: 80px 0;
   background: var(--cl-bg-2);
@@ -5626,41 +5604,6 @@ button:focus-visible,
   color: var(--cl-accent);
   font-weight: 600;
   align-self: flex-start;
-}
-
-/* ── Learn section on homepage ───────────────────────────────── */
-.cl-learn-strip {
-  padding: 72px 0;
-  background: var(--cl-bg);
-}
-.cl-learn-strip__head {
-  max-width: 540px;
-  margin: 0 auto 40px;
-  text-align: center;
-}
-.cl-learn-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-}
-.cl-learn-pill {
-  font-size: 0.88rem;
-  font-weight: 500;
-  color: var(--cl-ink-2);
-  text-decoration: none;
-  background: var(--cl-surface);
-  border: 1px solid var(--cl-border);
-  border-radius: 999px;
-  padding: 0.5rem 1.2rem;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  transition: border-color 150ms ease, color 150ms ease;
-}
-.cl-learn-pill:hover {
-  border-color: var(--cl-accent);
-  color: var(--cl-ink);
 }
 
 /* ── CTA strip ───────────────────────────────────────────────── */
@@ -7307,6 +7250,68 @@ button:focus-visible,
   flex-wrap: wrap;
 }
 
+/* Score breakdown grid — 6-chip layout (3 cols desktop, 2 cols mobile) */
+.cd-score-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2_5, 10px);
+}
+
+@media (max-width: 600px) {
+  .cd-score-chip-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Score breakdown chip — used in family-tab score grid */
+.cd-score-chip {
+  padding: var(--space-3, 12px);
+  border-radius: var(--radius-md, 12px);
+  background: var(--panel-cream);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1_5, 6px);
+}
+
+.cd-score-chip__value-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1, 4px);
+}
+
+.cd-score-chip__value {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.cd-score-chip__max {
+  font-size: 0.7rem;
+  color: var(--color-faint, #7A6F5E);
+}
+
+.cd-score-chip__bar-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.cd-score-chip__bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.cd-score-chip__desc {
+  margin: 0;
+  font-size: 0.68rem;
+  color: var(--color-muted, #8A7E6E);
+  line-height: 1.45;
+}
+
 /* Score pill / label badge — use with color via style prop */
 .cd-score-pill {
   display: inline-block;
@@ -7478,7 +7483,6 @@ html[lang="ta"] :where(
   .cl-nav__signin,
   .cl-lang-toggle,
   .cl-pub-related-link,
-  .cl-learn-pill,
   .cd-btn-pill
 ) {
   line-height: 1.35;
