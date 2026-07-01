@@ -7,36 +7,43 @@ export type GowriTimingSlot = PanchangamDailyResponseData["kalam"]["nallaNeram"]
 // GOWRI_GOOD_LABELS_EN/TA and GOWRI_GOOD_PURPOSE_EN/TA in app/calculations/panchangam.py —
 // the backend has no per-slot localized fields in the API response, so this table is the
 // single place the frontend defines that wording. Update both together.
-// Traditional Tamil Nadu 8-kala cycle: VILAMBHI, ANANDHA, ROGAM, LABHAM, AMIRTHAM, SHODAM, KALAM, VISHAM.
-// Good kalas (4): AMIRTHAM (best), LABHAM, VILAMBHI, ANANDHA.
+// Traditional 8-kala cycle: AMIRTHAM, VISHAM, ROGAM, LABHAM, DHANAM, SUGAM, SORAM, UTHI.
+// Good kalas (5): AMIRTHAM (best), UTHI, LABHAM, DHANAM, SUGAM.
 const GOWRI_CATEGORY_DETAILS = {
   AMIRTHAM: {
     rank: 1,
     nameEn: "Amirtham",
     nameTa: "அமிர்தம்",
-    purposeEn: "best overall — all auspicious activities",
-    purposeTa: "மிகச் சிறந்த பொது நல்ல நேரம் — அனைத்து மங்கலகர செயல்களுக்கும்",
+    purposeEn: "best overall — any important activity",
+    purposeTa: "மிகச் சிறந்த பொது நல்ல நேரம் — அனைத்து முக்கிய செயல்களுக்கும்",
+  },
+  UTHI: {
+    rank: 2,
+    nameEn: "Uthi",
+    nameTa: "உத்தி",
+    purposeEn: "new starts, jobs, official work, and applications",
+    purposeTa: "புதிய தொடக்கம், வேலை, அலுவல், விண்ணப்பங்களுக்கு நல்லது",
   },
   LABHAM: {
-    rank: 2,
+    rank: 3,
     nameEn: "Labham",
     nameTa: "லாபம்",
     purposeEn: "profit, business, deals, buying, and selling",
     purposeTa: "லாபம், வணிகம், ஒப்பந்தம், வாங்கல்/விற்பனைக்கு நல்லது",
   },
-  VILAMBHI: {
-    rank: 3,
-    nameEn: "Vilambhi",
-    nameTa: "விளம்பி",
-    purposeEn: "new starts, livelihood, official work, and applications",
-    purposeTa: "புதிய தொடக்கம், வாழ்வாதாரம், அலுவல், விண்ணப்பங்களுக்கு நல்லது",
-  },
-  ANANDHA: {
+  DHANAM: {
     rank: 4,
-    nameEn: "Anandha",
-    nameTa: "ஆனந்தம்",
-    purposeEn: "joyful occasions, celebrations, and family gatherings",
-    purposeTa: "மகிழ்ச்சியான நிகழ்வுகள், கொண்டாட்டங்கள், குடும்ப ஒன்று கூடல்களுக்கு நல்லது",
+    nameEn: "Dhanam",
+    nameTa: "தனம்",
+    purposeEn: "money, finance, investments, and wealth matters",
+    purposeTa: "பணம், நிதி, முதலீடு போன்ற செல்வம் சார்ந்த விஷயங்களுக்கு நல்லது",
+  },
+  SUGAM: {
+    rank: 5,
+    nameEn: "Sugam",
+    nameTa: "சுகம்",
+    purposeEn: "comfort, health, family peace, travel, and routine good work",
+    purposeTa: "ஆறுதல், ஆரோக்கியம், குடும்ப அமைதி, பயணம், வழக்கமான நல்ல வேலைகளுக்கு நல்லது",
   },
 } as const;
 

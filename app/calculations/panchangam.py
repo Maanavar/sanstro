@@ -108,64 +108,71 @@ YAMA_SLOT = {6: 5, 0: 4, 1: 3, 2: 2, 3: 1, 4: 7, 5: 6}
 KULIGAI_SLOT = {6: 7, 0: 6, 1: 5, 2: 4, 3: 3, 4: 2, 5: 1}
 # Gowri Panchangam full engine tables. Day slots run sunrise->sunset; night slots
 # run sunset->next sunrise. Names are kept normalized for API consumers.
-# Traditional Tamil Nadu Gowri Panchangam kala names (per tamildailycalendar.com).
-# 8-kala cycle: VILAMBHI, ANANDHA, ROGAM, LABHAM, AMIRTHAM, SHODAM, KALAM, VISHAM.
-# Good kalas (4 of 8): AMIRTHAM (best), LABHAM, VILAMBHI, ANANDHA.
-# Bad kalas (4 of 8): ROGAM, SHODAM, KALAM, VISHAM.
-GOWRI_GOOD_NAMES = frozenset({"AMIRTHAM", "LABHAM", "VILAMBHI", "ANANDHA"})
+# Traditional Gowri Panchangam kala names, per the project's frozen spec
+# (docs/Jothidam_AI_Formula_Engine_Specification_v1_Thirukanitham_2026.md §4.8a),
+# cross-checked against drikpanchang.com's Tamil Gowri Panchangam for Chennai.
+# 8-kala cycle: AMIRTHAM, VISHAM, ROGAM, LABHAM, DHANAM, SUGAM, SORAM, UTHI.
+# Good kalas (5 of 8): AMIRTHAM (best), UTHI, LABHAM, DHANAM, SUGAM.
+# Bad kalas (3 of 8): ROGAM, SORAM, VISHAM.
+GOWRI_GOOD_NAMES = frozenset({"AMIRTHAM", "UTHI", "LABHAM", "DHANAM", "SUGAM"})
 GOWRI_GOOD_RANK = {
     "AMIRTHAM": 1,
-    "LABHAM": 2,
-    "VILAMBHI": 3,
-    "ANANDHA": 4,
+    "UTHI": 2,
+    "LABHAM": 3,
+    "DHANAM": 4,
+    "SUGAM": 5,
 }
 # NOTE: web/lib/gowri.ts (GOWRI_CATEGORY_DETAILS) duplicates these label/purpose strings
 # verbatim for the dashboard, since the API does not expose per-slot localized fields.
 # Keep both in sync when editing.
 GOWRI_GOOD_LABELS_EN = {
     "AMIRTHAM": "Amirtham",
-    "VILAMBHI": "Vilambhi",
+    "UTHI": "Uthi",
     "LABHAM": "Labham",
-    "ANANDHA": "Anandha",
+    "DHANAM": "Dhanam",
+    "SUGAM": "Sugam",
 }
 GOWRI_GOOD_LABELS_TA = {
     "AMIRTHAM": "அமிர்தம்",
-    "VILAMBHI": "விளம்பி",
+    "UTHI": "உத்தி",
     "LABHAM": "லாபம்",
-    "ANANDHA": "ஆனந்தம்",
+    "DHANAM": "தனம்",
+    "SUGAM": "சுகம்",
 }
 GOWRI_GOOD_PURPOSE_EN = {
-    "AMIRTHAM": "best overall — all auspicious activities",
-    "VILAMBHI": "new starts, livelihood, official work, and applications",
+    "AMIRTHAM": "best overall — any important activity",
+    "UTHI": "new starts, jobs, official work, and applications",
     "LABHAM": "profit, business, deals, buying, and selling",
-    "ANANDHA": "joyful occasions, celebrations, and family gatherings",
+    "DHANAM": "money, finance, investments, and wealth matters",
+    "SUGAM": "comfort, health, family peace, travel, and routine good work",
 }
 GOWRI_GOOD_PURPOSE_TA = {
-    "AMIRTHAM": "மிகச் சிறந்த பொது நல்ல நேரம் — அனைத்து மங்கலகர செயல்களுக்கும்",
-    "VILAMBHI": "புதிய தொடக்கம், வாழ்வாதாரம், அலுவல், விண்ணப்பங்களுக்கு நல்லது",
+    "AMIRTHAM": "மிகச் சிறந்த பொது நல்ல நேரம் — அனைத்து முக்கிய செயல்களுக்கும்",
+    "UTHI": "புதிய தொடக்கம், வேலை, அலுவல், விண்ணப்பங்களுக்கு நல்லது",
     "LABHAM": "லாபம், வணிகம், ஒப்பந்தம், வாங்கல்/விற்பனைக்கு நல்லது",
-    "ANANDHA": "மகிழ்ச்சியான நிகழ்வுகள், கொண்டாட்டங்கள், குடும்ப ஒன்று கூடல்களுக்கு நல்லது",
+    "DHANAM": "பணம், நிதி, முதலீடு போன்ற செல்வம் சார்ந்த விஷயங்களுக்கு நல்லது",
+    "SUGAM": "ஆறுதல், ஆரோக்கியம், குடும்ப அமைதி, பயணம், வழக்கமான நல்ல வேலைகளுக்கு நல்லது",
 }
 # Day-slot starting kala per weekday (0=Mon … 6=Sun), 8 kalas sunrise→sunset.
-# Starting kalas: Sun=Vilambhi, Mon=Anandha, Tue=Rogam, Wed=Labham,
-#                 Thu=Amirtham, Fri=Shodam, Sat=Kalam (Tamil Nadu tradition).
+# Starting kalas: Sun=Uthi, Mon=Amirtham, Tue=Rogam, Wed=Labham,
+#                 Thu=Dhanam, Fri=Sugam, Sat=Soram (Tamil Nadu tradition).
 GOWRI_DAY_TABLE = {
-    6: ("VILAMBHI", "ANANDHA", "ROGAM", "LABHAM", "AMIRTHAM", "SHODAM", "KALAM", "VISHAM"),
-    0: ("ANANDHA", "VISHAM", "ROGAM", "LABHAM", "AMIRTHAM", "SHODAM", "KALAM", "VILAMBHI"),
-    1: ("ROGAM", "LABHAM", "AMIRTHAM", "SHODAM", "KALAM", "VILAMBHI", "VISHAM", "ANANDHA"),
-    2: ("LABHAM", "AMIRTHAM", "SHODAM", "KALAM", "VISHAM", "VILAMBHI", "ANANDHA", "ROGAM"),
-    3: ("AMIRTHAM", "SHODAM", "KALAM", "VILAMBHI", "ANANDHA", "VISHAM", "ROGAM", "LABHAM"),
-    4: ("SHODAM", "KALAM", "VILAMBHI", "VISHAM", "ANANDHA", "ROGAM", "LABHAM", "AMIRTHAM"),
-    5: ("KALAM", "VILAMBHI", "VISHAM", "ANANDHA", "ROGAM", "LABHAM", "AMIRTHAM", "SHODAM"),
+    6: ("UTHI", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM"),
+    0: ("AMIRTHAM", "VISHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "UTHI"),
+    1: ("ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "UTHI", "VISHAM", "AMIRTHAM"),
+    2: ("LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM"),
+    3: ("DHANAM", "SUGAM", "SORAM", "UTHI", "AMIRTHAM", "VISHAM", "ROGAM", "LABHAM"),
+    4: ("SUGAM", "SORAM", "UTHI", "VISHAM", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM"),
+    5: ("SORAM", "UTHI", "VISHAM", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM"),
 }
 GOWRI_NIGHT_TABLE = {
-    6: ("AMIRTHAM", "SHODAM", "KALAM", "VISHAM", "VILAMBHI", "ANANDHA", "ROGAM", "LABHAM"),
-    0: ("SHODAM", "KALAM", "VILAMBHI", "ANANDHA", "VISHAM", "ROGAM", "LABHAM", "AMIRTHAM"),
-    1: ("KALAM", "VILAMBHI", "VISHAM", "ANANDHA", "ROGAM", "LABHAM", "AMIRTHAM", "SHODAM"),
-    2: ("VILAMBHI", "ANANDHA", "ROGAM", "LABHAM", "AMIRTHAM", "SHODAM", "KALAM", "VISHAM"),
-    3: ("ANANDHA", "VISHAM", "ROGAM", "LABHAM", "AMIRTHAM", "SHODAM", "KALAM", "VILAMBHI"),
-    4: ("ROGAM", "LABHAM", "AMIRTHAM", "SHODAM", "KALAM", "VILAMBHI", "VISHAM", "ANANDHA"),
-    5: ("LABHAM", "AMIRTHAM", "SHODAM", "KALAM", "VILAMBHI", "VISHAM", "ANANDHA", "ROGAM"),
+    6: ("DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM", "LABHAM"),
+    0: ("SUGAM", "SORAM", "UTHI", "AMIRTHAM", "VISHAM", "ROGAM", "LABHAM", "DHANAM"),
+    1: ("SORAM", "UTHI", "VISHAM", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM"),
+    2: ("UTHI", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM"),
+    3: ("AMIRTHAM", "VISHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "UTHI"),
+    4: ("ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "UTHI", "VISHAM", "AMIRTHAM"),
+    5: ("LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM"),
 }
 
 # Subha/ashubha nitya yoga names per Thirukanitha tradition.
@@ -287,7 +294,12 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # Tamil almanac clock-table convention.
 # v24: persist rasi-specific Chandrashtamam janma-nakshatra windows with local
 # start/end timestamps so clients can show the exact affected star timing.
-PANCHANGAM_CACHE_DATA_VERSION = 24
+# v25: corrected Gowri Panchangam category names — VILAMBHI/ANANDHA/SHODAM/KALAM
+# were not valid Gowri kala names (cross-checked against the frozen spec in
+# docs/Jothidam_AI_Formula_Engine_Specification_v1_Thirukanitham_2026.md §4.8a
+# and drikpanchang.com's Tamil Gowri Panchangam); renamed in place to
+# AMIRTHAM/UTHI/DHANAM/SUGAM/SORAM (rotation positions unchanged).
+PANCHANGAM_CACHE_DATA_VERSION = 25
 DOMINANT_SPECIAL_TITHIS = {15, 30}
 
 # Compact daily-calendar summary windows used by Tamil calendars for everyday

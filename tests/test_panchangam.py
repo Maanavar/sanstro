@@ -24,8 +24,8 @@ from app.services.panchangam_service import build_monthly_panchangam
 
 pytestmark = pytest.mark.no_db
 
-GOWRI_GOOD_NAMES = {"AMIRTHAM", "LABHAM", "VILAMBHI", "ANANDHA"}
-GOWRI_BAD_NAMES = {"ROGAM", "SHODAM", "KALAM", "VISHAM"}
+GOWRI_GOOD_NAMES = {"AMIRTHAM", "UTHI", "LABHAM", "DHANAM", "SUGAM"}
+GOWRI_BAD_NAMES = {"ROGAM", "SORAM", "VISHAM"}
 
 
 def test_subha_muhurtham_excludes_tuesday_and_saturday_per_tamil_tradition():
@@ -99,7 +99,7 @@ def test_daily_panchangam_uses_documented_2026_05_21_reference_case():
     assert snapshot.rahu_kalam.slot == 6
     assert snapshot.yamagandam.slot == 1
     assert snapshot.kuligai.slot == 3
-    assert snapshot.gowri_panchangam[0].name == "AMIRTHAM"
+    assert snapshot.gowri_panchangam[0].name == "DHANAM"
     assert snapshot.gowri_panchangam[0].period == "DAY"
     assert len(snapshot.gowri_nalla_neram) == 2
     assert {s.period for s in snapshot.gowri_nalla_neram} == {"DAY", "NIGHT"}
@@ -136,13 +136,13 @@ def test_daily_panchangam_is_stable_under_parallel_calls():
 
 def test_gowri_panchangam_names_match_full_gowri_engine():
     cases = [
-        (date(2026, 6, 7), "SUNDAY",    ("VILAMBHI", "ANANDHA",  "ROGAM",    "LABHAM")),
-        (date(2026, 6, 1), "MONDAY",    ("ANANDHA",  "VISHAM",   "ROGAM",    "LABHAM")),
-        (date(2026, 6, 2), "TUESDAY",   ("ROGAM",    "LABHAM",   "AMIRTHAM", "SHODAM")),
-        (date(2026, 6, 3), "WEDNESDAY", ("LABHAM",   "AMIRTHAM", "SHODAM",   "KALAM")),
-        (date(2026, 6, 4), "THURSDAY",  ("AMIRTHAM", "SHODAM",   "KALAM",    "VILAMBHI")),
-        (date(2026, 6, 5), "FRIDAY",    ("SHODAM",   "KALAM",    "VILAMBHI", "VISHAM")),
-        (date(2026, 6, 6), "SATURDAY",  ("KALAM",    "VILAMBHI", "VISHAM",   "ANANDHA")),
+        (date(2026, 6, 7), "SUNDAY",    ("UTHI",     "AMIRTHAM", "ROGAM",  "LABHAM")),
+        (date(2026, 6, 1), "MONDAY",    ("AMIRTHAM", "VISHAM",   "ROGAM",  "LABHAM")),
+        (date(2026, 6, 2), "TUESDAY",   ("ROGAM",    "LABHAM",   "DHANAM", "SUGAM")),
+        (date(2026, 6, 3), "WEDNESDAY", ("LABHAM",   "DHANAM",   "SUGAM",  "SORAM")),
+        (date(2026, 6, 4), "THURSDAY",  ("DHANAM",   "SUGAM",    "SORAM",  "UTHI")),
+        (date(2026, 6, 5), "FRIDAY",    ("SUGAM",    "SORAM",    "UTHI",   "VISHAM")),
+        (date(2026, 6, 6), "SATURDAY",  ("SORAM",    "UTHI",     "VISHAM", "AMIRTHAM")),
     ]
     for d, expected_weekday, expected_first_day_names in cases:
         snap = calculate_daily_panchangam(d, 9.9252, 78.1198, "Asia/Kolkata")
@@ -167,13 +167,14 @@ def test_saturday_night_gowri_table_ends_with_rogam():
 def test_best_gowri_slot_uses_category_ranking_before_time():
     snap = calculate_daily_panchangam(date(2026, 6, 6), 13.0827, 80.2707, "Asia/Kolkata")
 
-    # Saturday day kalas: KALAM, VILAMBHI, VISHAM, ANANDHA, ROGAM, LABHAM, AMIRTHAM, SHODAM.
-    # Good slots appear in time order: VILAMBHI (slot 2), ANANDHA (slot 4), LABHAM (slot 6), AMIRTHAM (slot 7).
-    # best_gowri_slot must pick AMIRTHAM (rank 1) even though VILAMBHI appears first in time.
+    # Saturday day kalas: SORAM, UTHI, VISHAM, AMIRTHAM, ROGAM, LABHAM, DHANAM, SUGAM.
+    # Good slots appear in time order: UTHI (slot 2), AMIRTHAM (slot 4), LABHAM (slot 6),
+    # DHANAM (slot 7), SUGAM (slot 8).
+    # best_gowri_slot must pick AMIRTHAM (rank 1) even though UTHI appears first in time.
     day_good_slots = [s for s in snap.gowri_panchangam if s.period == "DAY" and s.is_good]
-    assert day_good_slots[0].name == "VILAMBHI"
+    assert day_good_slots[0].name == "UTHI"
     assert best_gowri_slot(day_good_slots).name == "AMIRTHAM"
-    assert gowri_category_rank("AMIRTHAM") < gowri_category_rank("VILAMBHI")
+    assert gowri_category_rank("AMIRTHAM") < gowri_category_rank("UTHI")
     assert gowri_category_rank("LABHAM") < gowri_category_rank("ROGAM")
 
 
@@ -187,7 +188,7 @@ def test_nalla_and_gowri_nalla_neram_use_compact_tamil_calendar_windows():
     ]
     assert [(s.period, s.start.strftime("%H:%M"), s.end.strftime("%H:%M")) for s in snap.gowri_nalla_neram] == [
         ("DAY", "05:41", "07:18"),
-        ("NIGHT", "21:21", "22:44"),
+        ("NIGHT", "18:34", "19:57"),
     ]
     assert all(s.name is None and s.is_good is True for s in snap.nalla_neram + snap.gowri_nalla_neram)
 

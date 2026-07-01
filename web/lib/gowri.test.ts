@@ -11,8 +11,8 @@ describe("gowriCategoryRank", () => {
   it("ranks AMIRTHAM as 1 (best)", () => {
     expect(gowriCategoryRank("AMIRTHAM")).toBe(1);
   });
-  it("ranks ANANDHA as 4 (last good)", () => {
-    expect(gowriCategoryRank("ANANDHA")).toBe(4);
+  it("ranks SUGAM as 5 (last good)", () => {
+    expect(gowriCategoryRank("SUGAM")).toBe(5);
   });
   it("returns 999 for unknown category", () => {
     expect(gowriCategoryRank("UNKNOWN")).toBe(999);
@@ -21,13 +21,13 @@ describe("gowriCategoryRank", () => {
   });
   it("is case-insensitive", () => {
     expect(gowriCategoryRank("amirtham")).toBe(1);
-    expect(gowriCategoryRank("Labham")).toBe(2);
+    expect(gowriCategoryRank("Labham")).toBe(3);
   });
 });
 
 describe("gowriCategoryLabel", () => {
   it("returns English label", () => {
-    expect(gowriCategoryLabel("VILAMBHI", "en")).toBe("Vilambhi");
+    expect(gowriCategoryLabel("UTHI", "en")).toBe("Uthi");
   });
   it("returns Tamil label", () => {
     expect(gowriCategoryLabel("LABHAM", "ta")).toContain("லாபம்");
@@ -71,7 +71,7 @@ describe("gowriPeriodLabel", () => {
 describe("bestGowriSlot", () => {
   it("picks the highest-ranked slot", () => {
     const slots = [
-      { name: "ANANDHA", start: "08:00", end: "09:00" },
+      { name: "SUGAM", start: "08:00", end: "09:00" },
       { name: "AMIRTHAM", start: "10:00", end: "11:00" },
       { name: "LABHAM", start: "14:00", end: "15:00" },
     ];
