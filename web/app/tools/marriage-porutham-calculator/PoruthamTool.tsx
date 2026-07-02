@@ -59,7 +59,10 @@ const RAJJU_SEVERITY_TA = ["அலைச்சல்/பிரிவு","வற
 const VEDHAI_PAIRS: [number,number][] = [[0,17],[1,16],[2,15],[3,14],[4,22],[5,21],[6,20],[7,19],[8,18],[9,26],[10,25],[11,24],[12,23]];
 
 // Nadi: 0=Aadhi 1=Madhya 2=Anthya
-const NADI = NAKSHATRAS.map((_,i) => Math.floor((i % 9) / 3));
+// Classical assignment zigzags in a repeating 6-nakshatra cycle
+// (Aadhi, Madhya, Anthya, Anthya, Madhya, Aadhi) — NOT contiguous blocks of 3.
+const NADI_CYCLE = [0, 1, 2, 2, 1, 0];
+const NADI = NAKSHATRAS.map((_,i) => NADI_CYCLE[i % 6]);
 const NADI_NAMES_TA = ["ஆதி நாடி","மத்திய நாடி","அந்திய நாடி"];
 
 // Rasi assignment (0-11 = Mesha…Meena)
@@ -111,10 +114,11 @@ const VASYA_MAP: Record<number,number[]> = {0:[4,7],1:[3,6],2:[5],3:[7,8],4:[6],
 
 // ========== CALCULATIONS ==========
 
+// Classical good-count table (incl. 9th/18th/27th, Parama Mitra tara — a pass)
+const DINAM_GOOD = [2,4,6,8,9,11,13,15,18,20,24,26];
 function calcDina(g: number, b: number) {
   const count = ((b - g + 27) % 27) + 1;
-  const rem = count % 9;
-  return { match: [2,4,6,8].includes(rem), detail: `எண்: ${count}`, detailEn: `Count: ${count}` };
+  return { match: DINAM_GOOD.includes(count), detail: `எண்: ${count}`, detailEn: `Count: ${count}` };
 }
 function calcGana(g: number, b: number) {
   const gg = GANA[g], bg = GANA[b];

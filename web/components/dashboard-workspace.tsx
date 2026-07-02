@@ -138,6 +138,11 @@ const RectificationWizard = dynamic(
   { loading: LazyPanelFallback },
 );
 
+const DashboardTodayTabV2 = dynamic(
+  () => import("./dashboard-today-tab-v2").then((mod) => mod.DashboardTodayTabV2),
+  { loading: LazyPanelFallback },
+);
+
 type Tab = "onboarding" | "personal" | "tools" | "transits" | "plan" | "life-areas" | "family" | "calendar" | "journal" | "settings" | "qa" | "explore";
 type SettingsSubTab = "setup" | "session";
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
@@ -242,7 +247,9 @@ function memberScoreColor(score: number): string {
 
 // ── Main component ────────────────────────────────────────
 
-export function DashboardWorkspace() {
+export type TodayVariant = "classic" | "v2";
+
+export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?: TodayVariant } = {}) {
   const [status, setStatus] = useState("Ready. Create a profile or family vault to begin.");
   const [activeTab, setActiveTab] = useState<Tab>("personal");
   const [exploreReturnTab, setExploreReturnTab] = useState<Tab | null>(null);
@@ -1225,8 +1232,8 @@ export function DashboardWorkspace() {
 
       {/* Tab content */}
       <div className="cd-page site__body">
-        {/* Household today strip — Today tab only */}
-        {activeTab === "personal" && family.familyAggregate && family.familyAggregate.members.length > 0 && (() => {
+        {/* Household today strip — classic Today tab only (v2 has its own family pulse card) */}
+        {activeTab === "personal" && todayVariant !== "v2" && family.familyAggregate && family.familyAggregate.members.length > 0 && (() => {
           const fs = family.familyAggregate.familyScore;
           return (
             <div className="cd-household-strip">
@@ -1304,7 +1311,53 @@ export function DashboardWorkspace() {
           />
         )}
 
-        {activeTab === "personal" && (
+        {activeTab === "personal" && todayVariant === "v2" && (
+          <DashboardTodayTabV2
+            lang={lang}
+            activeLifeMode={activeLifeMode}
+            onChangeFocus={() => setLifeModePickerOpen(true)}
+            birthDisplayName={birthForm.displayName}
+            selectedDate={selectedDate}
+            todayDate={personal.todayDate}
+            personalViewId={personalViewId}
+            birthProfileId={personal.birthProfileId}
+            busyPersonal={personal.busyPersonal}
+            memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
+            onSelectPersonalView={setPersonalViewId}
+            onOpenEditProfile={() => setShowEditProfile(true)}
+            onRefreshPersonal={() => void personal.refreshPersonalBundle()}
+            personalMemberChart={personalMemberChart}
+            personalChart={personalChart}
+            personalChartExplanation={personalChartExplanation}
+            personalChartSummary={personalChartSummary}
+            personalDailyGuidance={personalDailyGuidance}
+            dailyGuidanceRange={personal.dailyGuidanceRange}
+            personalTransit={personalTransit}
+            personalSani={personalSani}
+            peyarchiUpcoming={personalPeyarchiUpcoming}
+            panchangam={personal.panchangam}
+            panchangamTimings={personal.panchangamTimings}
+            ambientAlerts={personal.ambientAlerts}
+            formatScoreLabel={formatScoreLabel}
+            nakshatraCard={personalMemberChart?.nakshatraCard ?? personal.nakshatraCard}
+            peyarchiReport={personal.peyarchiReport}
+            lifeAreas={personal.lifeAreas}
+            weekAhead={personal.weekAhead}
+            familyAggregate={family.familyAggregate}
+            onDateChange={setSelectedDate}
+            onGoToFamily={() => setActiveTab("family")}
+            onGoToJournal={() => setActiveTab("journal")}
+            onGoToCalendar={() => setActiveTab("calendar")}
+            onOpenPrasna={() => setShowPrasna(true)}
+            showPrasna={showPrasna}
+            onClosePrasna={() => setShowPrasna(false)}
+            dasha={personalDasha}
+            dashaMaha={personalDashaMaha}
+            dashaAntar={personalDashaAntar}
+          />
+        )}
+
+        {activeTab === "personal" && todayVariant !== "v2" && (
           <DashboardPersonalTab
             lang={lang}
             activeLifeMode={activeLifeMode}

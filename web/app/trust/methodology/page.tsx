@@ -84,7 +84,7 @@ export default function MethodologyPage() {
                   ? "Unlike generalized astrology apps that use approximate planetary data, Vinaadi uses Thirukanitham-based computation to produce birth charts, panchangam, and transit readings anchored to the exact Tamil astrological standard."
                   : "தோராயமான கிரகத் தரவை நம்பும் பல ஜோதிட ஆப்களிலிருந்து வேறுபட்டு, விநாடி திருக்கணிதக் கணக்கீட்டின் அடிப்படையில் ஜாதகம், பஞ்சாங்கம், கிரகநகர்வு வாசிப்பு ஆகிய அனைத்தையும் தமிழ் தரநிலைக்கேற்ப உருவாக்குகிறது."}</p>
 
-                <h2 id="lahiri">{lang === "en" ? "Lahiri ayanamsa (Chitra-paksha)" : "லாகிரி அயனாம்சம் (சித்திரப் பக்ষம்)"}</h2>
+                <h2 id="lahiri">{lang === "en" ? "Lahiri ayanamsa (Chitra-paksha)" : "லாகிரி அயனாம்சம் (சித்திரப் பக்ஷம்)"}</h2>
                 <p>{lang === "en"
                   ? "Tamil Jothidam uses the sidereal zodiac — the fixed star positions — rather than the tropical zodiac used in Western astrology. The difference between sidereal and tropical positions is called the ayanamsa. Vinaadi uses the Lahiri ayanamsa (also known as Chitra-paksha), the government-recognized standard in India."
                   : "தமிழ் ஜோதிடம் மேற்கத்திய வெப்பமண்டல ராசிக்கட்டத்தை அல்ல, நிலையான நட்சத்திர நிலைகளை அடிப்படையாகக் கொண்ட நட்சத்திர ராசிக்கட்டத்தையே பயன்படுத்துகிறது. இந்த இரண்டு முறைகளுக்கிடையிலான வேறுபாடே அயனாம்சம். இந்தியாவில் அரசாங்கம் அங்கீகரித்த லாகிரி அயனாம்சத்தையே (சித்திரப் பக்ஷம்) விநாடி பயன்படுத்துகிறது."}</p>

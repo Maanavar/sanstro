@@ -68,7 +68,7 @@ function kalamSlotKey(
   return `${slot.period ?? "slot"}-${slot.name ?? slot.slot}-${slot.start}-${slot.end}-${index}`;
 }
 
-type DashboardPersonalTabProps = {
+export type DashboardPersonalTabProps = {
   lang: Lang;
   activeLifeMode?: LifeMode;
   onChangeFocus?: () => void;
@@ -961,7 +961,7 @@ const CHANDRASHTAMA_CAN_DO = {
   ],
 };
 
-function ChandrashtamaCard({ lang, chandrashtamaEnds, descriptionTa, descriptionEn, windowsSummary }: {
+export function ChandrashtamaCard({ lang, chandrashtamaEnds, descriptionTa, descriptionEn, windowsSummary }: {
   lang: Lang;
   chandrashtamaEnds: string | null | undefined;
   descriptionTa: string | null | undefined;
