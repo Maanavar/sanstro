@@ -86,7 +86,17 @@ def house_from_reference(reference_rasi: int | str, target_rasi: int | str) -> i
 
 
 def nakshatra_to_rasi(nakshatra: int | str, pada: int = 1) -> int:
-    """Return rasi (1-12) using the standard 9-pada-per-rasi mapping."""
+    """Return rasi (1-12) using the standard 9-pada-per-rasi mapping.
+
+    Convention note (2026-07 audit): when `pada` is unknown/omitted this
+    defaults to pada 1, which for the 8 nakshatras that straddle two rasis
+    (Karthigai, Mirugaseeridam, Punarpoosam, Uthiram, Chithirai, Visakam,
+    Uthiradam, Avittam) can differ from
+    `web/app/tools/marriage-porutham-calculator/PoruthamTool.tsx`'s default,
+    which uses the majority-pada rasi (and the later half on exact 50/50
+    splits). Not changed — pass an explicit `pada` when it's known; this
+    default only matters when it genuinely isn't.
+    """
     if isinstance(nakshatra, str):
         normalized = "".join(char for char in nakshatra.strip().lower() if char.isalnum())
         nakshatra_number = NAKSHATRA_NAME_TO_NUMBER.get(normalized)

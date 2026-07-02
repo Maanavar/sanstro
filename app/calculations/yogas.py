@@ -51,6 +51,7 @@ from app.calculations._yoga_dosham import (
     detect_badhaka_dosham,
     detect_kalasarpa,
     detect_kalathra_dosham,
+    detect_marana_karaka_sthana,
     detect_pitru_dosham,
     detect_putra_sarpa_dosham,
     detect_rahu_ketu_dosham,
@@ -71,6 +72,7 @@ from app.calculations._yoga_detect import (
     detect_daridra_yoga,
     detect_dhana_yoga,
     detect_gaja_kesari,
+    detect_kartari_yoga,
     detect_kemadruma_yoga,
     detect_lakshmi_yoga,
     detect_nakshatra_cautions,
@@ -209,6 +211,7 @@ def detect_yogas_and_doshams(
     yogas.append(detect_lakshmi_yoga(planets_rasi, lagna_rasi, planet_scores))
     yogas.extend(detect_sunapha_anapha_durudhura(planets_rasi, moon_rasi))
     yogas.append(detect_vasumati_yoga(planets_rasi, moon_rasi))
+    yogas.append(detect_kartari_yoga(planets_rasi, lagna_rasi, "LAGNA"))
 
     kalasarpa = detect_kalasarpa(planets)
     kalasarpa_label = "KALA_SARPA_DOSHAM_CANDIDATE" if kalasarpa.is_present else "NO_DOSHAM"
@@ -255,6 +258,11 @@ def detect_yogas_and_doshams(
             planets_rasi,
             lagna_rasi,
             planet_scores=planet_scores,
+        ),
+        detect_marana_karaka_sthana(
+            planets,
+            lagna_rasi,
+            active_lords=active_lords,
         ),
         detect_badhaka_dosham(
             planets_rasi,

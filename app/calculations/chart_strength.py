@@ -20,6 +20,9 @@ DEBILITATION_RASI: dict[str, int] = {
 }
 
 # Moolatrikona: (rasi, degree_start_in_sign, degree_end_in_sign)
+# Convention note (2026-07 audit): Moon's zone here is 4°-30° Taurus; some
+# classical sources (e.g. BPHS) give 3°-30°. Not changed — documenting the
+# choice pending an astrologer's confirmation of which source this project follows.
 MOOLATRIKONA_ZONE: dict[str, tuple[int, float, float]] = {
     "SUN": (5, 0.0, 20.0),
     "MOON": (2, 4.0, 30.0),
@@ -73,15 +76,17 @@ SIGN_LORD: dict[int, str] = {
     7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
 }
 
-# Naisargika Bala natural hierarchy (0-1 scaled)
+# Naisargika Bala natural hierarchy (0-1 scaled).
+# Classical BPHS order (strongest to weakest): Sun > Moon > Venus > Jupiter >
+# Mercury > Mars > Saturn — NOT orbital-speed order.
 NAISARGIKA_BALA: dict[str, float] = {
     "SATURN": 0.143,
-    "JUPITER": 0.286,
-    "MARS": 0.429,
-    "SUN": 0.571,
+    "MARS": 0.286,
+    "MERCURY": 0.429,
+    "JUPITER": 0.571,
     "VENUS": 0.714,
-    "MERCURY": 0.857,
-    "MOON": 1.000,
+    "MOON": 0.857,
+    "SUN": 1.000,
     "RAHU": 0.143,
     "KETU": 0.143,
 }
@@ -239,6 +244,67 @@ def detect_planetary_wars(
 def _drik_bala_score(benefic_aspect_count: int, malefic_aspect_count: int) -> float:
     """Aspectual strength 0.0-1.0."""
     return max(0.0, min(1.0, 0.5 + benefic_aspect_count * 0.15 - malefic_aspect_count * 0.15))
+
+
+_BHAVA_BALA_BENEFICS: frozenset[str] = frozenset({"JUPITER", "VENUS", "MERCURY", "MOON"})
+_BHAVA_BALA_MALEFICS: frozenset[str] = frozenset({"SATURN", "MARS", "RAHU", "KETU", "SUN"})
+
+
+def compute_bhava_bala(
+    house_number: int,
+    lagna_rasi: int,
+    planets_rasi: dict[str, int],
+    planet_scores: dict[str, int],
+) -> int:
+    """Simplified Bhava Bala (house strength), 0-100 — a metric distinct from
+    per-planet Shadbala. A house's strength is not just its lord's strength;
+    it also depends on who occupies it and who aspects it. Combines:
+      - Bhavadhipati Bala (50%): strength of the house's own lord.
+      - Occupant Bala (25%): benefics occupying the house help it, malefics hurt it.
+      - Drishti Bala (25%): aspects landing on the house — 7th-house aspect for
+        all planets, plus Jupiter's extra 5th/9th, matching the simplified
+        aspect model already used elsewhere in the yoga/dosham engine.
+    """
+    house_rasi = ((lagna_rasi + house_number - 2) % 12) + 1
+    house_lord = SIGN_LORD[house_rasi]
+    bhavadhipati_score = planet_scores.get(house_lord, 50)
+
+    occupant_score = 50
+    for planet, rasi in planets_rasi.items():
+        if rasi != house_rasi:
+            continue
+        if planet in _BHAVA_BALA_BENEFICS:
+            occupant_score += 10
+        elif planet in _BHAVA_BALA_MALEFICS:
+            occupant_score -= 10
+    occupant_score = max(0, min(100, occupant_score))
+
+    drishti_score = 50
+    for planet, rasi in planets_rasi.items():
+        distance = house_from_reference(rasi, house_rasi)
+        aspects_house = distance == 7 or (planet == "JUPITER" and distance in {5, 9})
+        if not aspects_house:
+            continue
+        if planet in _BHAVA_BALA_BENEFICS:
+            drishti_score += 8
+        elif planet in _BHAVA_BALA_MALEFICS:
+            drishti_score -= 8
+    drishti_score = max(0, min(100, drishti_score))
+
+    total = round(bhavadhipati_score * 0.5 + occupant_score * 0.25 + drishti_score * 0.25)
+    return max(0, min(100, total))
+
+
+def compute_all_bhava_bala(
+    lagna_rasi: int,
+    planets_rasi: dict[str, int],
+    planet_scores: dict[str, int],
+) -> dict[int, int]:
+    """Bhava Bala for all 12 houses from Lagna. See compute_bhava_bala."""
+    return {
+        house: compute_bhava_bala(house, lagna_rasi, planets_rasi, planet_scores)
+        for house in range(1, 13)
+    }
 
 
 def compute_strength_breakdown(

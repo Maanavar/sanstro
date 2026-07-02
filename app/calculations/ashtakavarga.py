@@ -41,7 +41,10 @@ BAV_TABLE: dict[str, dict[str, list[int]]] = {
         "JUPITER": [6, 10, 11, 12],
         "VENUS":   [6, 8, 11, 12],
         "SATURN":  [1, 4, 7, 8, 9, 10, 11],
-        "LAGNA":   [1, 2, 4, 7, 8, 10, 11],
+        # Classical BPHS/Phala Deepika Mars-from-Lagna row is [1,3,6,10,11] — the spec
+        # doc's verbatim table duplicated the Mars-from-Mars row here by error; corrected
+        # per domain audit (Mars total 41→39 bindus, SAV 339→337).
+        "LAGNA":   [1, 3, 6, 10, 11],
     },
     "MERCURY": {
         "SUN":     [5, 6, 9, 11, 12],

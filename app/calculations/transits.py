@@ -32,7 +32,7 @@ GRAHA_LABELS = {
 MAJOR_GRAHAS = ("SANI", "GURU", "RAHU", "KETU")
 
 COMBUST_ORBS = {
-    "MERCURY": {"direct": 12.0, "retrograde": 14.0},
+    "MERCURY": {"direct": 14.0, "retrograde": 12.0},
     "VENUS": {"direct": 10.0, "retrograde": 8.0},
     "MARS": {"direct": 17.0, "retrograde": 17.0},
     "JUPITER": {"direct": 11.0, "retrograde": 11.0},
@@ -127,6 +127,28 @@ def classify_sani_cycle(position_from_moon: int) -> CycleAssessment:
     return mapping.get(position_from_moon, CycleAssessment(type=None, is_active=False))
 
 
+# Ezharai Sani (Sade Sati) severity grading by the natal Moon's nakshatra pada
+# (quarter, 1-4) — a classical Tamil convention grading the intensity of the
+# *entire* 7.5-year cycle, independent of which of the three phases is running.
+# Pada 1 is graded harshest (Iron) down to pada 4 (Gold, mildest).
+EZHARAI_SANI_MURTHI_BY_PADA: dict[int, dict[str, str]] = {
+    1: {"grade": "IRON",   "ta": "இரும்பு சனி", "en": "Iron (Irumbu) Murthi — most severe"},
+    2: {"grade": "COPPER", "ta": "செம்பு சனி",   "en": "Copper (Semmbu) Murthi — strong"},
+    3: {"grade": "SILVER", "ta": "வெள்ளி சனி",   "en": "Silver (Velli) Murthi — moderate"},
+    4: {"grade": "GOLD",   "ta": "பொன் சனி",     "en": "Gold (Ponnu) Murthi — mildest"},
+}
+
+
+def classify_ezharai_sani_murthi(moon_nakshatra_pada: int) -> dict[str, str]:
+    """Grade overall Ezharai Sani severity from the natal Moon's nakshatra pada.
+
+    Returns a dict with 'grade' (IRON/COPPER/SILVER/GOLD), 'ta', and 'en' keys.
+    """
+    if moon_nakshatra_pada not in EZHARAI_SANI_MURTHI_BY_PADA:
+        raise ValueError("moon_nakshatra_pada must be between 1 and 4")
+    return dict(EZHARAI_SANI_MURTHI_BY_PADA[moon_nakshatra_pada])
+
+
 def classify_kandaka_cycle(position_from_lagna: int) -> CycleAssessment:
     if position_from_lagna in {1, 4, 7, 10}:
         return CycleAssessment(
@@ -145,7 +167,7 @@ VEDHA_TABLE: dict[str, dict[int, int]] = {
     "MARS":    {3: 12, 6: 9, 11: 5},
     "MERCURY": {2: 5, 4: 3, 6: 9, 8: 1, 10: 8, 11: 12},
     "JUPITER": {2: 12, 5: 4, 7: 3, 9: 10, 11: 8},
-    "VENUS":   {1: 8, 2: 7, 3: 10, 4: 3, 5: 11, 8: 1, 9: 5, 11: 6, 12: 6},
+    "VENUS":   {1: 8, 2: 7, 3: 1, 4: 10, 5: 9, 8: 5, 9: 11, 11: 3, 12: 6},
     "SATURN":  {3: 12, 6: 9, 11: 5},
 }
 

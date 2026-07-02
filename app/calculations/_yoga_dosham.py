@@ -37,6 +37,22 @@ _MOVABLE_LAGNAS = {1, 4, 7, 10}
 _FIXED_LAGNAS = {2, 5, 8, 11}
 _DUAL_LAGNAS = {3, 6, 9, 12}
 
+# Marana Karaka Sthana — the house (from Lagna) in which each classical graha's
+# placement is traditionally treated as most adverse for matters that graha
+# signifies, chiefly used to flag extra-caution dasha/bhukti periods (health,
+# major decisions). This is NOT a death prediction; it is framed here purely as
+# a traditional caution indicator, consistent with how other doshams in this
+# module are framed (see _build_dosham_explanations).
+MARANA_KARAKA_STHANA: dict[str, int] = {
+    "SUN": 12,
+    "MOON": 8,
+    "MARS": 7,
+    "MERCURY": 7,
+    "JUPITER": 3,
+    "VENUS": 6,
+    "SATURN": 1,
+}
+
 
 def detect_sevvai_dosham(
     planets: Mapping[str, PlanetInput],
@@ -745,6 +761,123 @@ def detect_kalathra_dosham(
             f"Kalathra dosham: 7th lord ({seventh_lord}) is in {house_name_en}; marriage matters need attention."
             if is_present
             else f"7th lord ({seventh_lord}) is in {house_name_en}; no Kalathra dosham."
+        ),
+        explanation_what_ta=what_ta,
+        explanation_what_en=what_en,
+        explanation_why_ta=why_ta,
+        explanation_why_en=why_en,
+        explanation_how_ta=how_ta,
+        explanation_how_en=how_en,
+    )
+
+
+def detect_marana_karaka_sthana(
+    planets: Mapping[str, PlanetInput],
+    lagna_rasi: int,
+    *,
+    active_lords: Iterable[str] | None = None,
+) -> DoshamResult:
+    """Flag classical planets placed in their Marana Karaka Sthana (traditional
+    caution house). Framed as an extra-caution indicator for that planet's
+    dasha/bhukti, not a longevity/death prediction."""
+    active = set(active_lords or ())
+    missing_data = [planet for planet in MARANA_KARAKA_STHANA if planet not in planets]
+    if missing_data:
+        what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
+            "MARANA_KARAKA_STHANA",
+            "INCOMPLETE_DATA",
+            conditions_met=[],
+            cancellation_factors=[],
+            missing_data=missing_data,
+        )
+        return DoshamResult(
+            name="MARANA_KARAKA_STHANA",
+            is_present=False,
+            is_cancelled=False,
+            strength="WEAK",
+            label="INCOMPLETE_DATA",
+            category="LONGEVITY_CAUTION",
+            conditions_met=[],
+            cancellation_factors=[],
+            missing_data=missing_data,
+            dasha_activated=False,
+            description_ta="மரண காரக ஸ்தான பகுப்பாய்விற்கு சூரியன், சந்திரன், செவ்வாய், புதன், குரு, சுக்கிரன், சனி நிலைகள் தேவை.",
+            description_en="Marana Karaka Sthana analysis needs Sun, Moon, Mars, Mercury, Jupiter, Venus, and Saturn placements.",
+            explanation_what_ta=what_ta,
+            explanation_what_en=what_en,
+            explanation_why_ta=why_ta,
+            explanation_why_en=why_en,
+            explanation_how_ta=how_ta,
+            explanation_how_en=how_en,
+        )
+
+    jupiter_rasi = _planet_rasi(planets, "JUPITER") if "JUPITER" in planets else None
+    afflicted: list[str] = []
+    mitigated: set[str] = set()
+    cancellation_factors: list[str] = []
+
+    for planet, mks_house in MARANA_KARAKA_STHANA.items():
+        rasi = _planet_rasi(planets, planet)
+        if house_from_reference(lagna_rasi, rasi) != mks_house:
+            continue
+        afflicted.append(planet)
+        if rasi in OWN_SIGN_RASI.get(planet, set()) or rasi == EXALTATION_RASI.get(planet):
+            cancellation_factors.append(f"{planet.lower()}_dignified_in_mks")
+            mitigated.add(planet)
+        if jupiter_rasi is not None and planet != "JUPITER" and house_from_reference(jupiter_rasi, rasi) in {5, 7, 9}:
+            cancellation_factors.append(f"jupiter_aspects_{planet.lower()}_in_mks")
+            mitigated.add(planet)
+
+    conditions_met = [f"{planet.lower()}_in_marana_karaka_sthana" for planet in afflicted]
+    is_present = bool(afflicted)
+    is_cancelled = is_present and mitigated == set(afflicted)
+    dasha_activated = _is_active(active, *afflicted) if afflicted else False
+
+    if not is_present:
+        strength = "WEAK"
+    elif is_cancelled:
+        strength = "WEAK"
+    elif dasha_activated:
+        strength = "STRONG"
+    else:
+        strength = "PARTIAL"
+
+    if not is_present:
+        label = "NO_MARANA_KARAKA_STHANA"
+    elif is_cancelled:
+        label = "MARANA_KARAKA_STHANA_MITIGATED"
+    elif dasha_activated:
+        label = "ACTIVE_MARANA_KARAKA_STHANA"
+    else:
+        label = "MARANA_KARAKA_STHANA_CANDIDATE"
+
+    what_ta, what_en, why_ta, why_en, how_ta, how_en = _build_dosham_explanations(
+        "MARANA_KARAKA_STHANA",
+        label,
+        conditions_met=conditions_met,
+        cancellation_factors=cancellation_factors,
+        missing_data=[],
+    )
+    return DoshamResult(
+        name="MARANA_KARAKA_STHANA",
+        is_present=is_present,
+        is_cancelled=is_cancelled,
+        strength=strength,
+        label=label,
+        category="LONGEVITY_CAUTION",
+        conditions_met=conditions_met,
+        cancellation_factors=cancellation_factors,
+        missing_data=[],
+        dasha_activated=dasha_activated,
+        description_ta=(
+            "மரண காரக ஸ்தானம் — ஒரு கிரகம் அதற்குரிய குறிப்பிட்ட வீட்டில் இருக்கும்போது, "
+            "அந்த கிரகத்தின் தசை/புக்தியில் கூடுதல் கவனம் (உடல்நலம், முக்கிய முடிவுகள்) தேவை "
+            "என்பதைக் காட்டும் பாரம்பரிய குறிப்பான். இது இறப்பு கணிப்பு அல்ல."
+        ),
+        description_en=(
+            "Marana Karaka Sthana is a traditional caution indicator: when a planet occupies its "
+            "designated house, extra care (health, major decisions) is advised during that planet's "
+            "dasha/bhukti. This is not a longevity or death prediction."
         ),
         explanation_what_ta=what_ta,
         explanation_what_en=what_en,

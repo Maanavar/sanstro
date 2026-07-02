@@ -1,10 +1,13 @@
 """Tamil solar calendar (Thirukanitham) date conversion.
 
 The Tamil month is the sidereal rasi the Sun occupies: the Sun's entry into a
-rasi (sankranti) begins a new Tamil month. Per Thirukanitham tradition, the
-month's first civil day is the sankranti day itself if the sankranti instant
-falls before that day's sunrise; otherwise the first day is the day after.
-The day-of-month is the civil-day count since that first day (=1).
+rasi (sankranti) begins a new Tamil month. Per Thirukanitham tradition (the
+rule used by Tamil Nadu government calendars and virtually all published Tamil
+panchangams), the month's first civil day is the sankranti day itself if the
+sankranti instant falls before that day's sunset; otherwise the first day is
+the day after. This is the standard tie-breaker for Puthandu/Chithirai-1 and
+Thai-1/Pongal in edge years. The day-of-month is the civil-day count since
+that first day (=1).
 
     Mesha   -> Chithirai     Thula      -> Aippasi
     Rishaba -> Vaikasi       Vrischika  -> Karthigai
@@ -57,11 +60,9 @@ def _sunrise_jd(d: date, tz: ZoneInfo, latitude: float, longitude: float) -> flo
     return calculate_rise_transit_jd(_local_midnight_jd(d, tz), latitude, longitude, rise=True)
 
 
-def _solar_noon_jd(d: date, tz: ZoneInfo, latitude: float, longitude: float) -> float:
-    """Midpoint between sunrise and sunset (madhyahna), mirroring panchangam.py's solar_noon."""
+def _sunset_jd(d: date, tz: ZoneInfo, latitude: float, longitude: float) -> float:
     sunrise_jd = _sunrise_jd(d, tz, latitude, longitude)
-    sunset_jd = calculate_rise_transit_jd(sunrise_jd, latitude, longitude, rise=False)
-    return sunrise_jd + (sunset_jd - sunrise_jd) / 2
+    return calculate_rise_transit_jd(sunrise_jd, latitude, longitude, rise=False)
 
 
 def _sun_rasi_index_at_jd(jd: float) -> int:
@@ -105,25 +106,27 @@ def _find_sankranti_jd(rasi: int, before_jd: float) -> float:
 def tamil_solar_date(d: date, timezone_name: str, latitude: float, longitude: float) -> tuple[int, int]:
     """Return (month_index 0..11, day_of_month starting at 1) for civil date `d`.
 
-    The Tamil month is the sidereal rasi the Sun occupies at solar noon
-    (madhyahna) on `d`. A sankranti is assigned to its own civil day if the
-    crossing instant falls before that day's solar noon, otherwise to the
-    following day — the noon-cutoff rule used by Thirukanitham panchangams.
-    Using noon (rather than sunrise) for both the month lookup and the
-    cutoff check keeps the two self-consistent: a sankranti that crosses
-    after sunrise but before noon would otherwise be attributed to the new
-    month while the sunrise-based rasi lookup still reported the old one,
-    producing a day-count jump at the boundary.
+    The Tamil month is the sidereal rasi the Sun occupies at sunset on `d`. A
+    sankranti is assigned to its own civil day if the crossing instant falls
+    before that day's sunset, otherwise to the following day — the classical
+    sunset-cutoff rule used by Thirukanitham panchangams (2026-07 audit:
+    previously used solar noon, which self-consistently used the wrong
+    reference instant; the module header had separately and also incorrectly
+    claimed sunrise). Using sunset (rather than sunrise) for both the month
+    lookup and the cutoff check keeps the two self-consistent: a sankranti
+    that crosses after sunrise but before sunset would otherwise be
+    attributed to the new month while a sunrise-based rasi lookup still
+    reported the old one, producing a day-count jump at the boundary.
     """
     tz = ZoneInfo(timezone_name)
-    noon_jd = _solar_noon_jd(d, tz, latitude, longitude)
-    rasi = _sun_rasi_index_at_jd(noon_jd)
+    sunset_jd = _sunset_jd(d, tz, latitude, longitude)
+    rasi = _sun_rasi_index_at_jd(sunset_jd)
 
-    sankranti_jd = _find_sankranti_jd(rasi, noon_jd)
+    sankranti_jd = _find_sankranti_jd(rasi, sunset_jd)
     sankranti_date = julian_day_to_utc_datetime(sankranti_jd).astimezone(tz).date()
-    sankranti_noon_jd = _solar_noon_jd(sankranti_date, tz, latitude, longitude)
+    sankranti_sunset_jd = _sunset_jd(sankranti_date, tz, latitude, longitude)
 
-    if sankranti_jd < sankranti_noon_jd:
+    if sankranti_jd < sankranti_sunset_jd:
         month_start_date = sankranti_date
     else:
         month_start_date = sankranti_date + timedelta(days=1)

@@ -8,7 +8,7 @@ if either is present the union is traditionally considered inauspicious regardle
 of the overall score.
 
 The 10 Poruthams (Tamil → calculation rule):
-  1. Dinam      (தினம்)           — count boy's nak from girl's; fail if count mod 9 ∈ {0,2,4,6,8}
+  1. Dinam      (தினம்)           — count boy's nak from girl's (1-based, 1-27); pass only for the classical good-count table (incl. 9th/18th/27th, Parama Mitra tara)
   2. Ganam      (கணம்)            — Deva/Manushya/Rakshasa; Deva+Deva or Deva+Manushya = pass
   3. Mahendra   (மகேந்திரம்)      — count girl's nak from boy's; pass if result ∈ {4,7,10,13,16,19,22,25}
   4. Stree Dirgham (ஸ்திரீ தீர்கம்) — count boy's nak from girl's; pass if count > 7 (≥ 8)
@@ -70,10 +70,15 @@ _YONI_HOSTILE: frozenset[frozenset[int]] = frozenset(
 
 # ---------------------------------------------------------------------------
 # Nakshatra → Nadi mapping (1-indexed)
+# Classical assignment zigzags in a repeating 6-nakshatra cycle
+# (Aadhi, Madhya, Anthya, Anthya, Madhya, Aadhi) — NOT contiguous blocks of 3.
+# Aadhi   = 1,6,7,12,13,18,19,24,25
+# Madhya  = 2,5,8,11,14,17,20,23,26
+# Anthya  = 3,4,9,10,15,16,21,22,27
 # ---------------------------------------------------------------------------
+_NADI_CYCLE = ("AADHI", "MADHYA", "ANTHYA", "ANTHYA", "MADHYA", "AADHI")
 _NAKSHATRA_NADI: dict[int, str] = {
-    n: ("AADHI" if (n - 1) % 9 < 3 else "MADHYA" if (n - 1) % 9 < 6 else "ANTHYA")
-    for n in range(1, 28)
+    n: _NADI_CYCLE[(n - 1) % 6] for n in range(1, 28)
 }
 
 # ---------------------------------------------------------------------------
@@ -155,12 +160,15 @@ _VASYA: dict[int, frozenset[int]] = {
 # Individual porutham checks — each returns 1 (PASS) or 0 (FAIL)
 # ---------------------------------------------------------------------------
 
+# Spec §11.4 — count boy's nak from girl's (1-based, 1..27); these counts pass.
+# Includes the 9th/18th/27th count (Parama Mitra tara) as a pass.
+_DINAM_GOOD_COUNTS = frozenset({2, 4, 6, 8, 9, 11, 13, 15, 18, 20, 24, 26})
+
+
 def _dinam_score(nak_boy: int, nak_girl: int) -> int:
-    """Dinam: count boy's nak from girl's (0-based mod 27); fail if remainder mod 9 is even or zero."""
-    diff = (nak_boy - nak_girl) % 27
-    remainder = diff % 9
-    # inauspicious if remainder in {0,2,4,6,8} (0=same group or 9th, even=inauspicious)
-    return 1 if remainder in {1, 3, 5, 7} else 0
+    """Dinam: count boy's nak from girl's (1-based); PASS if count in the classical good-count table."""
+    count = ((nak_boy - nak_girl) % 27) + 1
+    return 1 if count in _DINAM_GOOD_COUNTS else 0
 
 
 def _ganam_score(nak_boy: int, nak_girl: int) -> int:
@@ -181,7 +189,12 @@ def _mahendra_score(nak_boy: int, nak_girl: int) -> int:
 
 
 def _stree_dirgha_score(nak_boy: int, nak_girl: int) -> int:
-    """Stree Dirgham: count boy's nak from girl's (0-based); PASS if count > 7 (1-indexed ≥ 8)."""
+    """Stree Dirgham: count boy's nak from girl's (0-based); PASS if count > 7 (1-indexed ≥ 8).
+
+    Convention note: this project uses the lenient ≥8 threshold. Some traditions
+    require a stricter ≥13 (half the 27-nakshatra circle) before passing. Not
+    changed — documenting the choice per the 2026-07 audit.
+    """
     diff = (nak_boy - nak_girl) % 27
     return 1 if diff > 6 else 0
 
@@ -196,7 +209,12 @@ def _yoni_score(nak_boy: int, nak_girl: int) -> int:
 
 
 def _rasi_score(rasi_boy: int, rasi_girl: int) -> int:
-    """Rasi: Shashtashtaka (6th or 8th) position = FAIL; all others = PASS."""
+    """Rasi: Shashtashtaka (6th or 8th) position = FAIL; all others = PASS.
+
+    Convention note: this project only fails Shashtashtaka (6/8). Some
+    traditions additionally fail Dwidwadasa (2nd/12th) position. Not changed —
+    documenting the choice per the 2026-07 audit.
+    """
     diff_bg = (rasi_boy - rasi_girl) % 12 + 1
     diff_gb = (rasi_girl - rasi_boy) % 12 + 1
     if diff_bg in {6, 8} or diff_gb in {6, 8}:
@@ -227,7 +245,9 @@ def _vedha_score(nak_boy: int, nak_girl: int) -> int:
 
 
 def _vasya_score(rasi_boy: int, rasi_girl: int) -> int:
-    """Vasya: at least one rasi must be vasya of the other = PASS; neither = FAIL."""
+    """Vasya: same rasi, or at least one rasi vasya of the other = PASS; else FAIL."""
+    if rasi_boy == rasi_girl:
+        return 1
     bg = rasi_girl in _VASYA.get(rasi_boy, frozenset())
     gb = rasi_boy in _VASYA.get(rasi_girl, frozenset())
     return 1 if (bg or gb) else 0

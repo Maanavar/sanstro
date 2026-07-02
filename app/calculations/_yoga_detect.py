@@ -470,19 +470,96 @@ def detect_kemadruma_yoga(planets: dict[str, int], moon_rasi: int, lagna_rasi: i
         p for p, rasi in planets.items()
         if p not in {"SUN", "RAHU", "KETU", "MOON"} and rasi in {second, twelfth}
     ]
-    conjunction = any(p != "MOON" and rasi == moon_rasi for p, rasi in planets.items())
-    moon_kendra_lagna = house_from_reference(lagna_rasi, moon_rasi) in KENDRA_HOUSES
     present = len(surrounding) == 0
-    cancelled = moon_kendra_lagna or conjunction
+
+    # Four classical Bhanga (cancellation) rules — any single one softens the yoga to
+    # PARTIAL; two or more void it (STRENGTH=WEAK), matching the graded-severity approach
+    # used elsewhere in this file rather than a single all-or-nothing cancellation flag.
+    moon_kendra_lagna = house_from_reference(lagna_rasi, moon_rasi) in KENDRA_HOUSES
+    planet_kendra_from_moon = any(
+        planet not in {"MOON", "RAHU", "KETU"} and house_from_reference(moon_rasi, rasi) in KENDRA_HOUSES
+        for planet, rasi in planets.items()
+    )
+    jupiter_rasi = planets.get("JUPITER")
+    jupiter_aspects_moon = jupiter_rasi is not None and house_from_reference(jupiter_rasi, moon_rasi) in {5, 7, 9}
+    sun_rasi = planets.get("SUN")
+    moon_full_opposite_sun = sun_rasi is not None and house_from_reference(sun_rasi, moon_rasi) == 7
+
+    cancellation_checks = [
+        ("moon_kendra_from_lagna", moon_kendra_lagna),
+        ("planet_kendra_from_moon", planet_kendra_from_moon),
+        ("jupiter_aspects_moon", jupiter_aspects_moon),
+        ("moon_full_opposite_sun", moon_full_opposite_sun),
+    ]
+    cancellation_factors = [name for name, ok in cancellation_checks if present and ok]
+
+    if not present:
+        strength = "WEAK"
+    elif not cancellation_factors:
+        strength = "STRONG"
+    elif len(cancellation_factors) == 1:
+        strength = "PARTIAL"
+    else:
+        strength = "WEAK"
+
     return YogaResult(
         name="KEMADRUMA_YOGA",
         is_present=present,
-        strength="PARTIAL" if present and cancelled else ("STRONG" if present else "WEAK"),
+        strength=strength,
         conditions_met=["no_planets_2nd_12th_from_moon"] if present else [],
-        cancellation_factors=[c for c, ok in [("moon_kendra_from_lagna", moon_kendra_lagna), ("moon_conjunction", conjunction)] if present and ok],
+        cancellation_factors=cancellation_factors,
         dasha_activated=False,
-        description_ta="கேமத்ரும யோகம் — சந்திரனைச் சுற்றி 2/12இல் கிரக ஆதரவு இல்லாமை.",
-        description_en="Kemadruma Yoga — absence of planets in 2nd/12th from Moon.",
+        description_ta="கேமத்ரும யோகம் — சந்திரனைச் சுற்றி 2/12இல் கிரக ஆதரவு இல்லாமை. நான்கு பங்க விதிகள் ஆராயப்படுகின்றன: லக்னத்திலிருந்து சந்திரன் கேந்திரத்தில், சந்திரனிலிருந்து ஒரு கிரகம் கேந்திரத்தில், குரு பார்வை சந்திரன் மீது, முழு நிலவு (சூரியனுக்கு எதிரே).",
+        description_en="Kemadruma Yoga — absence of planets in 2nd/12th from Moon. Checked against four classical cancellation (bhanga) rules: Moon in a kendra from Lagna, any planet in a kendra from Moon, Jupiter's aspect on Moon, and a full Moon (opposite the Sun).",
+    )
+
+
+def detect_kartari_yoga(planets: dict[str, int], target_rasi: int, target_label: str = "LAGNA") -> YogaResult:
+    """Papa/Shubha Kartari Yoga — a house 'hemmed' by malefics (Papa, afflicting)
+    or benefics (Shubha, protective) placed in the 2nd and 12th signs from it."""
+    second = ((target_rasi - 1 + 1) % 12) + 1
+    twelfth = ((target_rasi - 1 - 1) % 12) + 1
+
+    second_occupants = [planet for planet, rasi in planets.items() if rasi == second]
+    twelfth_occupants = [planet for planet, rasi in planets.items() if rasi == twelfth]
+
+    second_has_malefic = any(planet in NATURAL_MALEFICS for planet in second_occupants)
+    second_has_benefic = any(planet in NATURAL_BENEFICS for planet in second_occupants)
+    twelfth_has_malefic = any(planet in NATURAL_MALEFICS for planet in twelfth_occupants)
+    twelfth_has_benefic = any(planet in NATURAL_BENEFICS for planet in twelfth_occupants)
+
+    is_papa = bool(second_occupants and twelfth_occupants and second_has_malefic and twelfth_has_malefic
+                   and not second_has_benefic and not twelfth_has_benefic)
+    is_shubha = bool(second_occupants and twelfth_occupants and second_has_benefic and twelfth_has_benefic
+                      and not second_has_malefic and not twelfth_has_malefic)
+
+    label = target_label.replace("_", " ").title()
+    if is_papa:
+        name = "PAPA_KARTARI_YOGA"
+        conditions_met = [f"malefics_hemming_{target_label.lower()}"]
+        description_ta = f"பாப கர்த்தரி யோகம் — {label} இரு பக்கமும் (2/12) பாதக கிரகங்களால் சூழப்பட்டுள்ளது; அதன் பலன்கள் பலவீனமடையலாம்."
+        description_en = f"Papa Kartari Yoga — {label} is hemmed on both sides (2nd/12th) by malefic planets, weakening its significations."
+    elif is_shubha:
+        name = "SHUBHA_KARTARI_YOGA"
+        conditions_met = [f"benefics_hemming_{target_label.lower()}"]
+        description_ta = f"சுப கர்த்தரி யோகம் — {label} இரு பக்கமும் (2/12) சுப கிரகங்களால் சூழப்பட்டுள்ளது; அதன் பலன்கள் வலுப்படுத்தப்படுகின்றன."
+        description_en = f"Shubha Kartari Yoga — {label} is hemmed on both sides (2nd/12th) by benefic planets, protecting and strengthening its significations."
+    else:
+        name = "KARTARI_YOGA"
+        conditions_met = []
+        description_ta = f"{label}-ஐ சுற்றி கர்த்தரி (பாப/சுப) அமைப்பு இல்லை."
+        description_en = f"No Papa/Shubha Kartari (hemming) formation is present around {label}."
+
+    is_present = is_papa or is_shubha
+    return YogaResult(
+        name=name,
+        is_present=is_present,
+        strength="STRONG" if is_present else "WEAK",
+        conditions_met=conditions_met,
+        cancellation_factors=[],
+        dasha_activated=False,
+        description_ta=description_ta,
+        description_en=description_en,
     )
 
 

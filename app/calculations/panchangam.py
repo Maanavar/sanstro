@@ -158,20 +158,20 @@ GOWRI_GOOD_PURPOSE_TA = {
 #                 Thu=Dhanam, Fri=Sugam, Sat=Soram (Tamil Nadu tradition).
 GOWRI_DAY_TABLE = {
     6: ("UTHI", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM"),
-    0: ("AMIRTHAM", "VISHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "UTHI"),
-    1: ("ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "UTHI", "VISHAM", "AMIRTHAM"),
+    0: ("AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI"),
+    1: ("ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM"),
     2: ("LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM"),
-    3: ("DHANAM", "SUGAM", "SORAM", "UTHI", "AMIRTHAM", "VISHAM", "ROGAM", "LABHAM"),
-    4: ("SUGAM", "SORAM", "UTHI", "VISHAM", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM"),
-    5: ("SORAM", "UTHI", "VISHAM", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM"),
+    3: ("DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM", "LABHAM"),
+    4: ("SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM"),
+    5: ("SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM"),
 }
 GOWRI_NIGHT_TABLE = {
     6: ("DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM", "LABHAM"),
-    0: ("SUGAM", "SORAM", "UTHI", "AMIRTHAM", "VISHAM", "ROGAM", "LABHAM", "DHANAM"),
-    1: ("SORAM", "UTHI", "VISHAM", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM"),
+    0: ("SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM"),
+    1: ("SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM"),
     2: ("UTHI", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM"),
-    3: ("AMIRTHAM", "VISHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "UTHI"),
-    4: ("ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "UTHI", "VISHAM", "AMIRTHAM"),
+    3: ("AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI"),
+    4: ("ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM"),
     5: ("LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM"),
 }
 
@@ -235,6 +235,18 @@ SOOLAM_PARIGARAM_BY_DIRECTION = {
 
 # Nethiram (நேத்திரம்) and Jeevan (ஜீவன்): daily vitality/clarity indicators
 # derived from the current Sun nakshatra and the day's Moon nakshatra.
+#
+# UNVERIFIED (2026-07 audit): this uses a *symmetric* ring distance (shorter of
+# the two directions around the 27-nakshatra circle) from the Sun's nakshatra.
+# Traditional tara-style counts in this same codebase (see Dinam porutham,
+# `_dinam_score`) are *directional* (forward count only, wrapping mod 9/27), not
+# symmetric — so this formula's method is suspect by analogy. It was
+# deliberately left unchanged rather than "fixed" on a guess: a directional
+# rewrite would need its own verified threshold table, and no confident
+# classical source for those thresholds was found. Do not treat the current
+# distance<=1/9/8 and distance<=2/8 cutoffs below as authoritative; get an
+# astrologer's confirmation (ideally with worked example dates) before either
+# changing or trusting this.
 JEEVAN_LABELS = {0: "இல்லை", 0.5: "அரை வாழ்க்கை", 1: "முழு வாழ்க்கை"}
 NETHIRAM_LABELS = {0: "குருடு", 1: "ஒரு கண்", 2: "இரு கண்"}
 
@@ -264,7 +276,13 @@ def _nethiram_value(sun_nakshatra: int, reference_nakshatra: int) -> int:
     return 2
 
 # Amirdhadhi Yogam (அமிர்தாதி யோகம்): fixed weekday + nakshatra table used by
-# Tamil almanacs for Amirtha/Siddha/Marana daily yoga.
+# Tamil almanacs for Amirtha/Siddha/Marana daily yoga. 2026-07 audit: the 7
+# classical Amrita Siddhi Yoga anchor pairs (Sun+Hastham, Mon+Thiruvonam,
+# Tue+Ashwini, Wed+Anuradha, Thu+Pushya, Fri+Revathi, Sat+Rohini) were verified
+# against this table and must all read "A" — Tue+Ashwini and Wed+Anuradha were
+# found reading "C" and corrected. The remaining ~182 cells of this 7x27 grid
+# are not independently re-verified; treat as still-open if further discrepancies
+# surface.
 AMIRDHADHI_YOGAM_LABELS = {
     "A": "அமிர்தயோகம்",
     "C": "சித்தயோகம்",
@@ -273,25 +291,20 @@ AMIRDHADHI_YOGAM_LABELS = {
 AMIRDHADHI_YOGAM_TABLE = {
     6: ("C", "C", "C", "C", "C", "C", "C", "C", "C", "M", "C", "A", "A", "C", "C", "M", "M", "M", "A", "C", "A", "A", "M", "C", "C", "A", "A"),
     0: ("C", "C", "M", "A", "A", "C", "A", "C", "C", "M", "C", "C", "C", "C", "A", "M", "C", "C", "C", "C", "M", "A", "C", "C", "M", "C", "C"),
-    1: ("C", "C", "C", "A", "C", "M", "C", "C", "C", "C", "C", "A", "C", "C", "C", "M", "C", "C", "A", "C", "C", "C", "C", "M", "M", "A", "C"),
-    2: ("M", "C", "A", "C", "C", "C", "C", "C", "C", "C", "A", "A", "M", "C", "C", "C", "C", "C", "M", "A", "A", "C", "M", "C", "A", "C", "M"),
+    1: ("A", "C", "C", "A", "C", "M", "C", "C", "C", "C", "C", "A", "C", "C", "C", "M", "C", "C", "A", "C", "C", "C", "C", "M", "M", "A", "C"),
+    2: ("M", "C", "A", "C", "C", "C", "C", "C", "C", "C", "A", "A", "M", "C", "C", "C", "A", "C", "M", "A", "A", "C", "M", "C", "A", "C", "M"),
     3: ("A", "C", "M", "M", "M", "M", "A", "A", "C", "A", "C", "M", "C", "C", "A", "C", "C", "C", "C", "C", "C", "C", "C", "M", "C", "C", "C"),
     4: ("A", "C", "C", "M", "C", "C", "C", "M", "M", "M", "C", "C", "A", "C", "C", "C", "C", "M", "A", "C", "C", "M", "C", "C", "C", "C", "A"),
     5: ("C", "C", "A", "A", "C", "C", "C", "C", "M", "A", "C", "M", "M", "M", "A", "C", "C", "C", "C", "C", "C", "C", "C", "A", "M", "C", "M"),
 }
 
-# DRAFT — daily Chandrashtamam listing: nakshatra count-positions traditionally
-# called out as "in Chandrashtamam" relative to the Moon's current nakshatra.
-# This is the generic almanac convention (distinct from, and NOT a substitute
-# for, the natal-rasi-based is_chandrashtama check frozen in astro.py).
-CHANDRASHTAMAM_OFFSETS = (8, 12, 16, 21, 24)
-
 PANCHANGAM_CACHE_TTL_HOURS = 24
 DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # v22: persist the civil-day dominant tithi/nakshatra/yoga numbers in the cached
 # record so the monthly calendar reads them instead of re-walking the ephemeris.
-# v23: Gowri Nalla Neram morning (DAY) slots shifted +15 min to match the common
-# Tamil almanac clock-table convention.
+# v23: (historical, no-op) touched only GOWRI_NALLA_NERAM_SUMMARY_TABLE, a table
+# that was never read by any API path — the engine has always derived displayed
+# Gowri Nalla Neram times from ephemeris slots. That dead table was removed in v27.
 # v24: persist rasi-specific Chandrashtamam janma-nakshatra windows with local
 # start/end timestamps so clients can show the exact affected star timing.
 # v25: corrected Gowri Panchangam category names — VILAMBHI/ANANDHA/SHODAM/KALAM
@@ -299,7 +312,19 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # docs/Jothidam_AI_Formula_Engine_Specification_v1_Thirukanitham_2026.md §4.8a
 # and drikpanchang.com's Tamil Gowri Panchangam); renamed in place to
 # AMIRTHAM/UTHI/DHANAM/SUGAM/SORAM (rotation positions unchanged).
-PANCHANGAM_CACHE_DATA_VERSION = 25
+# v26: chandrashtamam_today_nakshatras was computed from a DRAFT generic-offset
+# table that contradicted the correctly-computed janma_nakshatra_windows in the
+# same payload; now derived from those windows so both fields agree.
+# v27: GOWRI_DAY_TABLE/GOWRI_NIGHT_TABLE had a transcription bug — 5 of 7 rows in
+# each table were not true rotations of the master 8-kala cycle (VISHAM displaced
+# from its correct slot); corrected to genuine rotations per spec §4.8a. Removed
+# the dead GOWRI_NALLA_NERAM_SUMMARY_TABLE.
+# v28: Subha Muhurtham "Rahu tithi" exclusion sets ({8,9} broad vs {8,14} strict)
+# were mutually inconsistent and didn't match the classical Rikta group; both now
+# use RIKTA_TITHIS_IN_PAKSHA = {4, 9, 14}.
+# v29: AMIRDHADHI_YOGAM_TABLE corrected at Tue+Ashwini and Wed+Anuradha (were
+# சித்தயோகம், should be அமிர்தயோகம் per the classical Amrita Siddhi Yoga pairs).
+PANCHANGAM_CACHE_DATA_VERSION = 29
 DOMINANT_SPECIAL_TITHIS = {15, 30}
 
 # Compact daily-calendar summary windows used by Tamil calendars for everyday
@@ -321,28 +346,6 @@ NALLA_NERAM_SUMMARY_TABLE = {
     # Sun
     6: ((7 * 60 + 30, 8 * 60 + 30, "AM"), (15 * 60 + 30, 16 * 60 + 30, "PM")),
 }
-
-# Morning (DAY) slots align with the common Tamil almanac clock-table convention,
-# which starts 15 minutes later than the earlier draft used here (e.g. Mon 9:30
-# not 9:15). Evening (NIGHT) slots already matched reference almanacs and are
-# left unchanged.
-GOWRI_NALLA_NERAM_SUMMARY_TABLE = {
-    # Mon
-    0: ((9 * 60 + 30, 10 * 60 + 30, "DAY"), (19 * 60 + 30, 20 * 60 + 30, "NIGHT")),
-    # Tue
-    1: ((10 * 60 + 45, 11 * 60 + 45, "DAY"), (19 * 60 + 30, 20 * 60 + 30, "NIGHT")),
-    # Wed
-    2: ((11 * 60 + 0, 12 * 60 + 0, "DAY"), (18 * 60 + 30, 19 * 60 + 30, "NIGHT")),
-    # Thu
-    3: ((6 * 60 + 45, 7 * 60 + 45, "DAY"), (18 * 60 + 30, 19 * 60 + 30, "NIGHT")),
-    # Fri
-    4: ((12 * 60 + 45, 13 * 60 + 45, "DAY"), (18 * 60 + 30, 19 * 60 + 30, "NIGHT")),
-    # Sat
-    5: ((10 * 60 + 45, 11 * 60 + 45, "DAY"), (21 * 60 + 30, 22 * 60 + 30, "NIGHT")),
-    # Sun
-    6: ((11 * 60 + 0, 12 * 60 + 0, "DAY"), (25 * 60 + 30, 26 * 60 + 30, "NIGHT")),
-}
-
 
 @dataclass(frozen=True, slots=True)
 class PanchangamSlot:
@@ -884,9 +887,15 @@ def _compute_gowri_nalla_neram(
     return summary_slots
 
 
-# Tithis universally treated as Rahu/rikta — excluded from muhurtham regardless
-# of paksha (Ashtami, Navami; Amavasai is handled separately via tithi_number == 30).
-RAHU_TITHIS_IN_PAKSHA = {8, 9}
+# Classical Rikta tithi group (4th/9th/14th of each paksha, per the
+# Nanda/Bhadra/Jaya/Rikta/Purna panchaka classification) — excluded from
+# muhurtham regardless of paksha. Amavasai is handled separately via
+# tithi_number == 30. 2026-07 audit: the broad and strict muhurtham checks
+# previously used different, non-classical sets ({8,9} and {8,14} respectively,
+# both mislabeled "Rahu tithi" — Rahu Kalam is a time-of-day concept unrelated
+# to tithi); standardized on the classical Rikta set here. Ashtami (8) is
+# deliberately excluded from this set — it's Jaya group, not Rikta.
+RIKTA_TITHIS_IN_PAKSHA = {4, 9, 14}
 MUHURTHAM_BLOCKED_WEEKDAYS = {1, 5}  # Tuesday, Saturday
 
 
@@ -902,15 +911,15 @@ def _compute_subha_muhurtham_broad(
 ) -> tuple[bool, str]:
     """Nakshatra-led Subha Muhurtham check matching how published Tamil almanacs list
     wedding-muhurtham dates — the day's nakshatra is the deciding factor, while
-    Tuesday, Saturday, Amavasai, and the Rahu tithis (Ashtami/Navami) are excluded."""
+    Tuesday, Saturday, Amavasai, and the Rikta tithis (4th/9th/14th) are excluded."""
     tithi_in_paksha = tithi_number if tithi_number <= 15 else tithi_number - 15
 
     if weekday_index in MUHURTHAM_BLOCKED_WEEKDAYS:
         return False, _muhurtham_weekday_block_reason(weekday_index)
     if tithi_number == 30:
         return False, "Inauspicious: Amavasai tithi"
-    if tithi_in_paksha in RAHU_TITHIS_IN_PAKSHA:
-        return False, f"Inauspicious: {_tithi_name(tithi_number)} (Rahu tithi)"
+    if tithi_in_paksha in RIKTA_TITHIS_IN_PAKSHA:
+        return False, f"Inauspicious: {_tithi_name(tithi_number)} (Rikta tithi)"
 
     if nakshatra_name in SUBHA_NAKSHATRAS:
         return True, f"Auspicious: {nakshatra_name} nakshatra"
@@ -954,9 +963,9 @@ def _compute_subha_muhurtham_strict(
     else:
         inauspicious.append("inauspicious nakshatra")
 
-    # Amavasai (30), Chaturdashi (14/29) and Ashtami (8/23) are always inauspicious
-    if tithi_in_paksha in {8, 14} or tithi_number == 30:
-        inauspicious.append("Rahu tithi / Amavasai")
+    # Amavasai (30) and the classical Rikta tithis (4th/9th/14th) are always inauspicious
+    if tithi_in_paksha in RIKTA_TITHIS_IN_PAKSHA or tithi_number == 30:
+        inauspicious.append("Rikta tithi / Amavasai")
 
     is_subha = len(inauspicious) == 0 and len(reasons) >= 2
     if is_subha:
@@ -999,16 +1008,6 @@ def _amirdhadhi_yogam_name(weekday_index: int, nakshatra_number: int) -> str:
 
 def _chandrashtamam_affected_janma_rasi(moon_rasi_number: int) -> int:
     return ((moon_rasi_number - 8) % 12) + 1
-
-
-def _chandrashtamam_today_nakshatras(nakshatra_number: int) -> tuple[str, ...]:
-    """Birth-nakshatra natives traditionally called out as affected by
-    Chandrashtamam today, per the generic almanac (nakshatra-count) convention.
-    Distinct from the natal-rasi-based is_chandrashtama check in astro.py."""
-    return tuple(
-        NAKSHATRA_NAMES[(nakshatra_number - 1 + offset) % 27]
-        for offset in CHANDRASHTAMAM_OFFSETS
-    )
 
 
 def _moon_rasi_number_at_jd(jd: float) -> int:
@@ -1515,6 +1514,10 @@ def calculate_daily_panchangam(
     yama = _slot_datetime(kalam_anchor, kalam_slot_duration, yama_slot)
     kuligai = _slot_datetime(kalam_anchor, kalam_slot_duration, kuligai_slot)
 
+    # Convention note: fixed ±24-min window around solar noon (the common clock-table
+    # simplification). Some traditions instead scale Abhijit to day-length/15 (varies
+    # with the sunrise-sunset span, wider in summer/narrower in winter). Not changed —
+    # documenting the choice per the 2026-07 audit.
     abhijit_start = solar_noon - timedelta(minutes=24)
     abhijit_end = solar_noon + timedelta(minutes=24)
     abhijit_restricted = date_local.weekday() == 2
@@ -1561,12 +1564,16 @@ def calculate_daily_panchangam(
     amirdhadhi_yogam_next_name = _amirdhadhi_yogam_name(weekday_index, nakshatra_number + 1)
     moon_rasi_number = rasi_from_degree(moon_longitude)
     affected_janma_rasi_number = _chandrashtamam_affected_janma_rasi(moon_rasi_number)
-    chandrashtamam_today_nakshatras = _chandrashtamam_today_nakshatras(nakshatra_number)
     chandrashtamam_janma_nakshatra_windows = _chandrashtamam_janma_nakshatra_windows(
         date_local,
         timezone_name,
         moon_rasi_number,
     )
+    # Derived from the correctly-computed rasi-based windows above (dedup, order
+    # preserved) so this list can never contradict janma_nakshatra_windows.
+    chandrashtamam_today_nakshatras = tuple(dict.fromkeys(
+        window.name for window in chandrashtamam_janma_nakshatra_windows
+    ))
 
     # Dominant state across the civil day (what the monthly calendar grid shows).
     # Computed once here so it lands in the cache record; the monthly endpoint then

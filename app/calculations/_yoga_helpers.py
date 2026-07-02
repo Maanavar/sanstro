@@ -253,6 +253,7 @@ def _build_dosham_explanations(
         "BADHAKA_DOSHAM": "Badhaka dosham is an obstruction pattern from the badhaka lord (the lord of the 11th/9th/7th house, set by your lagna type) that can bring delays and last-minute blocks when it is active.",
         "KALATHRA_DOSHAM": "Kalathra dosham is a marriage-sensitivity indicator formed when the 7th house or its lord is afflicted.",
         "PUTRA_SARPA_DOSHAM": "Putra Sarpa dosham is an indicator formed when the 5th house (children, creativity) or its lord is afflicted by the nodes or malefics.",
+        "MARANA_KARAKA_STHANA": "Marana Karaka Sthana flags a planet placed in its traditional caution house, indicating its dasha/bhukti calls for extra care rather than predicting death.",
     }
     what_ta_map = {
         "SEVVAI_DOSHAM": "செவ்வாய் தோஷம் என்பது செவ்வாயின் இடத்தை அடிப்படையாகக் கொண்ட திருமண இணக்கப் பார்வை குறிப்பான்.",
@@ -262,6 +263,7 @@ def _build_dosham_explanations(
         "BADHAKA_DOSHAM": "பாதக தோஷம் என்பது உங்கள் லக்னப்படி அமையும் பாதக அதிபதி செயல்படும்போது தடைகளையும் கடைசி-நிமிட இடையூறுகளையும் தரக்கூடிய தடை-வடிவம்.",
         "KALATHRA_DOSHAM": "களத்திர தோஷம் என்பது 7-ம் வீடு அல்லது அதன் அதிபதி பாதிக்கப்படும்போது உருவாகும் திருமண உணர்திறன் குறிப்பான்.",
         "PUTRA_SARPA_DOSHAM": "புத்ர சர்ப்ப தோஷம் என்பது சந்தானம்/படைப்பாற்றலை குறிக்கும் 5-ம் வீடு ராகு-கேது அல்லது பாதக கிரகங்களால் பாதிக்கப்படும்போது உருவாகும் குறிப்பான்.",
+        "MARANA_KARAKA_STHANA": "மரண காரக ஸ்தானம் என்பது ஒரு கிரகம் அதன் பாரம்பரிய கவன வீட்டில் இருப்பதைக் குறிக்கும்; அந்த கிரக தசை/புக்தியில் கூடுதல் கவனம் தேவை என்பதைக் காட்டுமே தவிர இறப்பு கணிப்பு அல்ல.",
     }
     what_en = what_en_map.get(dosham_name, "This is a traditional dosham indicator.")
     what_ta = what_ta_map.get(dosham_name, "இது ஒரு பாரம்பரிய தோஷ குறிப்பான்.")

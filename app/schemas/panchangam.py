@@ -160,8 +160,9 @@ class PanchangamChandrashtamamNakshatraWindow(BaseModel):
 class PanchangamChandrashtamamToday(BaseModel):
     """Rasi-based Chandrashtamam for the current Moon rasi.
 
-    nakshatras is retained for older clients that display the generic almanac
-    nakshatra-count list. janma_nakshatra_windows carries the rasi-specific
+    nakshatras is retained for older clients as a flat name list; it is derived
+    from janma_nakshatra_windows (not an independent computation) so the two
+    fields can never disagree. janma_nakshatra_windows carries the rasi-specific
     nakshatra timing windows that Tamil almanacs usually call out.
     """
 
