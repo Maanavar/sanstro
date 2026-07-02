@@ -21,28 +21,36 @@ from app.calculations.porutham import (
 )
 
 # ---------------------------------------------------------------------------
-# Dinam (தினம்) — count boy's nak from girl's; fail if (diff % 9) in {0,2,4,6,8}
+# Dinam (தினம்) — count boy's nak from girl's (1-based, 1-27); PASS only for
+# the classical good-count table (spec §11.4), which includes the 9th/18th/
+# 27th count (Parama Mitra tara — previously wrongly failed).
 # ---------------------------------------------------------------------------
 
 def test_dinam_same_nakshatra():
-    # diff=0, remainder=0 → even/zero → FAIL
+    # count=1 → not in DINAM_GOOD → FAIL
     assert _dinam_score(1, 1) == 0
 
 
 def test_dinam_pass_position():
-    # diff=(5-1)%27=4, 4%9=4 → even → FAIL; try diff=6 → 6%9=6 → even → FAIL
-    # diff=1: boy=2, girl=1 → 1%9=1 → ODD → PASS
+    # boy=2, girl=1 → count=2 → in DINAM_GOOD → PASS
     assert _dinam_score(2, 1) == 1
 
 
 def test_dinam_fail_position():
-    # diff=(3-1)%27=2, 2%9=2 → even → FAIL
+    # boy=3, girl=1 → count=3 → not in DINAM_GOOD → FAIL
     assert _dinam_score(3, 1) == 0
 
 
-def test_dinam_odd_remainder_passes():
-    # diff=7: boy=8, girl=1 → 7%9=7 → ODD → PASS
+def test_dinam_eighth_count_passes():
+    # boy=8, girl=1 → count=8 → in DINAM_GOOD → PASS
     assert _dinam_score(8, 1) == 1
+
+
+def test_dinam_ninth_count_parama_mitra_passes():
+    # boy=9, girl=1 → count=9 (Parama Mitra tara) → PASS.
+    # Regression: the old mod-9 formula failed remainder 0 / count 9, contradicting
+    # the site's own natchathiram compatible-star lists (Ashwini → Ayilyam).
+    assert _dinam_score(9, 1) == 1
 
 
 # ---------------------------------------------------------------------------
@@ -225,6 +233,12 @@ def test_vasya_none():
     assert _vasya_score(1, 3) == 0
 
 
+def test_vasya_same_rasi_passes():
+    # Same rasi is traditionally treated as an automatic Vasya pass (matches
+    # the public tool's calcVasya, which the backend previously disagreed with).
+    assert _vasya_score(4, 4) == 1
+
+
 # ---------------------------------------------------------------------------
 # compute_porutham integration
 # ---------------------------------------------------------------------------
@@ -313,13 +327,28 @@ def test_compute_porutham_no_dosha_case():
 
 
 def test_nadi_dosha_helper_flags_same_nadi():
-    out = check_nadi_dosha(1, 2)
-    assert out["boy_nadi"] == out["girl_nadi"]
+    # Ashwini(1) and Thiruvathirai/Ardra(6) — both AADHI under the correct
+    # zigzag mapping. This is the audit's headline false-negative: the old
+    # contiguous-block mapping put Ardra in MADHYA and missed this true dosha.
+    out = check_nadi_dosha(1, 6, boy_rasi=1, girl_rasi=1)
+    assert out["boy_nadi"] == out["girl_nadi"] == "AADHI"
     assert out["has_nadi_dosha"] is True
 
 
+def test_nadi_dosha_ashwini_bharani_are_different_nadi():
+    # Regression: the old contiguous-block mapping falsely flagged Ashwini(1)
+    # and Bharani(2) as same Nadi (both "block 1"). Correct zigzag: Ashwini is
+    # AADHI, Bharani is MADHYA — no dosha.
+    out = check_nadi_dosha(1, 2)
+    assert out["boy_nadi"] != out["girl_nadi"]
+    assert out["has_nadi_dosha"] is False
+
+
 def test_nadi_dosha_cancellation_uses_actual_rasi_for_split_nakshatra():
-    out = check_nadi_dosha(3, 2, boy_rasi=2, girl_rasi=1)
+    # Aswini(1, Mesha) and Punarpoosam(7) — both AADHI nadi. Punarpoosam
+    # straddles Mithuna (padas 1-3) and Kataka (pada 4); passing the actual
+    # pada-4 rasi surfaces a rasi difference the default majority-pada rasi hides.
+    out = check_nadi_dosha(1, 7, boy_rasi=1, girl_rasi=4)
     assert out["boy_nadi"] == out["girl_nadi"]
     assert out["has_nadi_dosha"] is False
     assert out["severity"] == "MILD"
@@ -328,14 +357,14 @@ def test_nadi_dosha_cancellation_uses_actual_rasi_for_split_nakshatra():
 
 def test_compute_porutham_passes_actual_rasi_to_nadi_cancellation():
     result = compute_porutham(
-        boy_nakshatra=3,
-        girl_nakshatra=2,
-        boy_rasi=2,
-        girl_rasi=1,
+        boy_nakshatra=1,
+        girl_nakshatra=7,
+        boy_rasi=1,
+        girl_rasi=4,
     )
     assert result.nadi_dosha["has_nadi_dosha"] is False
-    assert result.nadi_dosha["boy_rasi"] == 2
-    assert result.nadi_dosha["girl_rasi"] == 1
+    assert result.nadi_dosha["boy_rasi"] == 1
+    assert result.nadi_dosha["girl_rasi"] == 4
 
 
 def test_compute_porutham_includes_nadi_payload():

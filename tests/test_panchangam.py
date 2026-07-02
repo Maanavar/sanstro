@@ -137,12 +137,12 @@ def test_daily_panchangam_is_stable_under_parallel_calls():
 def test_gowri_panchangam_names_match_full_gowri_engine():
     cases = [
         (date(2026, 6, 7), "SUNDAY",    ("UTHI",     "AMIRTHAM", "ROGAM",  "LABHAM")),
-        (date(2026, 6, 1), "MONDAY",    ("AMIRTHAM", "VISHAM",   "ROGAM",  "LABHAM")),
+        (date(2026, 6, 1), "MONDAY",    ("AMIRTHAM", "ROGAM",    "LABHAM", "DHANAM")),
         (date(2026, 6, 2), "TUESDAY",   ("ROGAM",    "LABHAM",   "DHANAM", "SUGAM")),
         (date(2026, 6, 3), "WEDNESDAY", ("LABHAM",   "DHANAM",   "SUGAM",  "SORAM")),
-        (date(2026, 6, 4), "THURSDAY",  ("DHANAM",   "SUGAM",    "SORAM",  "UTHI")),
-        (date(2026, 6, 5), "FRIDAY",    ("SUGAM",    "SORAM",    "UTHI",   "VISHAM")),
-        (date(2026, 6, 6), "SATURDAY",  ("SORAM",    "UTHI",     "VISHAM", "AMIRTHAM")),
+        (date(2026, 6, 4), "THURSDAY",  ("DHANAM",   "SUGAM",    "SORAM",  "VISHAM")),
+        (date(2026, 6, 5), "FRIDAY",    ("SUGAM",    "SORAM",    "VISHAM", "UTHI")),
+        (date(2026, 6, 6), "SATURDAY",  ("SORAM",    "VISHAM",   "UTHI",   "AMIRTHAM")),
     ]
     for d, expected_weekday, expected_first_day_names in cases:
         snap = calculate_daily_panchangam(d, 9.9252, 78.1198, "Asia/Kolkata")
@@ -167,8 +167,8 @@ def test_saturday_night_gowri_table_ends_with_rogam():
 def test_best_gowri_slot_uses_category_ranking_before_time():
     snap = calculate_daily_panchangam(date(2026, 6, 6), 13.0827, 80.2707, "Asia/Kolkata")
 
-    # Saturday day kalas: SORAM, UTHI, VISHAM, AMIRTHAM, ROGAM, LABHAM, DHANAM, SUGAM.
-    # Good slots appear in time order: UTHI (slot 2), AMIRTHAM (slot 4), LABHAM (slot 6),
+    # Saturday day kalas: SORAM, VISHAM, UTHI, AMIRTHAM, ROGAM, LABHAM, DHANAM, SUGAM.
+    # Good slots appear in time order: UTHI (slot 3), AMIRTHAM (slot 4), LABHAM (slot 6),
     # DHANAM (slot 7), SUGAM (slot 8).
     # best_gowri_slot must pick AMIRTHAM (rank 1) even though UTHI appears first in time.
     day_good_slots = [s for s in snap.gowri_panchangam if s.period == "DAY" and s.is_good]

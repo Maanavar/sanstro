@@ -29,7 +29,7 @@ def test_daily_panchangam_endpoint_returns_structured_daily_data(client):
     assert body["data"]["kalam"]["yamagandam"]["slot"] == 1
     assert body["data"]["kalam"]["kuligai"]["slot"] == 3
     assert len(body["data"]["kalam"]["gowriPanchangam"]) == 16
-    assert body["data"]["kalam"]["gowriPanchangam"][0]["name"] == "AMIRTHAM"
+    assert body["data"]["kalam"]["gowriPanchangam"][0]["name"] == "DHANAM"
     assert body["data"]["kalam"]["gowriPanchangam"][0]["period"] == "DAY"
     assert body["data"]["yoga"]["endsAt"]
     assert body["data"]["yoga"]["nextName"]
