@@ -21,7 +21,7 @@ from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.functional_nature import get_dasha_modifier, get_transit_modifier
 from app.calculations.panchangam import calculate_daily_panchangam, calculate_daily_panchangam_range
-from app.calculations.transits import check_vedha, classify_kandaka_cycle, classify_sani_cycle, is_combust
+from app.calculations.transits import check_vedha, classify_ezharai_sani_murthi, classify_kandaka_cycle, classify_sani_cycle, is_combust
 from app.models import BirthProfile, Chart, JournalEntry
 from app.schemas.charts import ChartCalculateResponse
 from app.schemas.daily_guidance import (
@@ -442,7 +442,11 @@ def build_daily_guidance_response(
     if saturn_cycle.is_active:
         if saturn_cycle.type in {"JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_2", "EZHARAI_SANI_PHASE_3"}:
             # Sade Sati is a caution cycle, but never treated as flatly "bad".
-            personal_safety_score -= 7
+            # Severity is graded by the natal Moon's nakshatra pada (classical
+            # gold/silver/copper/iron Murthi scheme) rather than a flat penalty.
+            murthi_penalty = {"GOLD": 4, "SILVER": 6, "COPPER": 8, "IRON": 10}
+            murthi = classify_ezharai_sani_murthi(natal_moon.pada)
+            personal_safety_score -= murthi_penalty.get(murthi["grade"], 7)
         elif saturn_cycle.type == "ARDHASHTAMA_SANI":
             personal_safety_score -= 9
         elif saturn_cycle.type == "ASHTAMA_SANI":

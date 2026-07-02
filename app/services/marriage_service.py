@@ -6,7 +6,7 @@ from datetime import date
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import DEBILITATION_RASI, EXALTATION_RASI, OWN_SIGN_RASI
 from app.calculations.transits import get_jupiter_aspects
-from app.core.age_gate import MARRIAGE_UPPER_AGE, is_married_settled, is_seeking_marriage
+from app.core.age_gate import MARRIAGE_UPPER_AGE, SEVVAI_DOSHAM_SOFTENING_AGE, is_married_settled, is_seeking_marriage
 from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction, house_lord_for_lagna
 
 
@@ -407,8 +407,17 @@ def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPred
         challenges.append(BiText("வயது கட்டம் மாறுபட்டு உள்ளது.", "Age phase is outside peak range."))
 
     if not payload.sevvai_dosham_cancelled:
-        score -= 6
-        challenges.append(BiText("செவ்வாய் தோஷம் கவனத்துடன் அணுக வேண்டும்.", "Sevvai dosham requires caution."))
+        if payload.age >= SEVVAI_DOSHAM_SOFTENING_AGE:
+            # Traditional softening, not a cancellation — the dosham is still present,
+            # but its matching-relevance is treated as naturally reduced past this age.
+            score -= 3
+            challenges.append(BiText(
+                "செவ்வாய் தோஷம் உள்ளது; ஆனால் 28 வயதிற்குப் பின் பாரம்பரிய முறைப்படி தீவிரம் இயற்கையாகவே குறைகிறது.",
+                "Sevvai dosham is present, but traditional practice treats its severity as naturally softened past age 28.",
+            ))
+        else:
+            score -= 6
+            challenges.append(BiText("செவ்வாய் தோஷம் கவனத்துடன் அணுக வேண்டும்.", "Sevvai dosham requires caution."))
     else:
         supports.append(BiText("செவ்வாய் தோஷ ரத்து காரணம் உள்ளது.", "Sevvai dosham cancellation factors exist."))
     rahu_ketu_label = (payload.rahu_ketu_label or "").upper()

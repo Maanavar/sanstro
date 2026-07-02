@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga, compute_sarvashtakavarga
 from app.calculations.astro import house_from_reference, resolve_timezone, utc_datetime_to_julian_day
-from app.calculations.chart_strength import SIGN_LORD
+from app.calculations.chart_strength import SIGN_LORD, compute_bhava_bala
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.double_transit import score_double_transit
 from app.calculations.ephemeris import calculate_sidereal_planets
@@ -35,7 +35,8 @@ from app.calculations.karaka_chains import LIFE_AREA_KARAKA
 from app.calculations.maturation import maturation_multiplier
 from app.calculations.prediction_score import PredictionScoreInput, compute_prediction_score
 from app.calculations.remedies import get_area_remedy
-from app.calculations.transits import classify_kandaka_cycle, classify_sani_cycle
+from app.calculations.transits import classify_ezharai_sani_murthi, classify_kandaka_cycle, classify_sani_cycle
+from app.core.age_gate import get_house_locus
 from app.models import BirthProfile, Chart
 from app.models.user_life_events import UserLifeEvent
 from app.schemas.dasha import ResponseMeta
@@ -559,21 +560,32 @@ _SANI_TYPE_LABEL_EN = {
 }
 
 
-def _sani_label_ta(sani_type: str | None) -> str:
-    return _SANI_TYPE_LABEL_TA.get(sani_type or "", "சனி சுழற்சி")
+_SADE_SATI_SANI_TYPES = frozenset({"JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_2", "EZHARAI_SANI_PHASE_3"})
 
 
-def _sani_label_en(sani_type: str | None) -> str:
-    return _SANI_TYPE_LABEL_EN.get(sani_type or "", "Sani cycle")
+def _sani_label_ta(sani_type: str | None, moon_nakshatra_pada: int | None = None) -> str:
+    base = _SANI_TYPE_LABEL_TA.get(sani_type or "", "சனி சுழற்சி")
+    if sani_type in _SADE_SATI_SANI_TYPES and moon_nakshatra_pada:
+        grade = classify_ezharai_sani_murthi(moon_nakshatra_pada)
+        return f"{base} ({grade['ta']})"
+    return base
 
 
-def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_type: str | None, chandrashtama: bool, jupiter_house: int, saturn_house: int) -> _NarrativeBundle:
+def _sani_label_en(sani_type: str | None, moon_nakshatra_pada: int | None = None) -> str:
+    base = _SANI_TYPE_LABEL_EN.get(sani_type or "", "Sani cycle")
+    if sani_type in _SADE_SATI_SANI_TYPES and moon_nakshatra_pada:
+        grade = classify_ezharai_sani_murthi(moon_nakshatra_pada)
+        return f"{base} — {grade['en']}"
+    return base
+
+
+def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_type: str | None, chandrashtama: bool, jupiter_house: int, saturn_house: int, moon_nakshatra_pada: int | None = None, house_4_locus: str = "self") -> _NarrativeBundle:
     planet_ta = _PLANET_LABEL[maha_lord].ta
     planet_en = _PLANET_LABEL[maha_lord].en
     jup_h = jupiter_house
     sat_h = saturn_house
-    sani_ta = _sani_label_ta(sani_type) if sani_active else ""
-    sani_en = _sani_label_en(sani_type) if sani_active else ""
+    sani_ta = _sani_label_ta(sani_type, moon_nakshatra_pada) if sani_active else ""
+    sani_en = _sani_label_en(sani_type, moon_nakshatra_pada) if sani_active else ""
 
     match area:
         case "CAREER":
@@ -590,6 +602,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                 )
                 remedy = _t("வியாழக்கிழமை தட்சிணாமூர்த்தி தரிசனம். சனிக்கிழமை சனீஸ்வரன் வழிபாடு. ஒரு மாணவரின் கல்வி அல்லது தொழில் பயிற்சிக்கு நன்கொடை செய்வது தொழில் வழியில் சேவை.",
                             "Visit Dakshinamurthy temple on Thursdays. Worship Saneeswaran on Saturdays. Sponsoring a student's education or skills training is an effective career seva.")
+                return _NarrativeBundle(narr, outlook, remedy)
             elif score >= 50:
                 narr = _t(
                     f"தொழில் நடுநிலையான நிலையில் உள்ளது. {planet_ta} தசையில் படிப்படியான முன்னேற்றம் சாத்தியம். "
@@ -603,6 +616,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                 )
                 remedy = _t("சனிக்கிழமை விரதம் (உடல்நலம் இடம் தந்தால்) அல்லது ஹனுமான் வழிபாடு உதவும். தினக்கூலி தொழிலாளிக்கு உதவுவது தொழில் நிலைப்படுத்தலுக்கு சேவை.",
                             "Saturday fasting (only if your health permits) or Hanuman worship is helpful. Helping a daily wage worker or donating to a skills training program supports career stability.")
+                return _NarrativeBundle(narr, outlook, remedy)
             else:
                 narr = _t(
                     f"தொழிலில் தற்காலிக சவால்கள் உள்ளன. {planet_ta} தசையில் பொறுமை மிக முக்கியம். "
@@ -633,6 +647,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Good time for savings and investment in the next 30 days.")
                 remedy = _t("வெள்ளிக்கிழமை மகாலட்சுமி வழிபாடு. தான தர்மம் செய்யுங்கள். அன்னதானம் அல்லது ஒரு மாணவரின் கல்விக்கு நன்கொடை லட்சுமி கடாட்சத்தை செயல்பட வைக்கும்.",
                             "Worship Mahalakshmi on Fridays. Practice charity and giving. Annadhanam or sponsoring a student's education is the most effective Lakshmi seva for money flow.")
+                return _NarrativeBundle(narr, outlook, remedy)
             elif score >= 50:
                 narr = _t(
                     f"நிதி நிலை நடுநிலையாக உள்ளது. {planet_ta} தசையில் கவனமான நிதி முடிவுகள் தேவை.",
@@ -642,6 +657,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Avoid unnecessary expenses in the next 30 days.")
                 remedy = _t("வியாழக்கிழமை குரு வழிபாடு. மஞ்சள் தானம் உதவும். மஞ்சள் பொருட்கள் தானம் அல்லது கல்வி நன்கொடை நிதியை உறுதிப்படுத்தும்.",
                             "Jupiter worship on Thursdays. Donating yellow items is helpful. Donating yellow items or contributing to education funds helps stabilise finances.")
+                return _NarrativeBundle(narr, outlook, remedy)
             else:
                 narr = _t(
                     f"நிதியில் சவால்கள் உள்ளன. {sani_ta + ' — செலவுகள் அதிகரிக்கலாம்.' if sani_active else 'கவனமான நிதி மேலாண்மை தேவை.'}",
@@ -666,6 +682,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Continue exercise and healthy routines in the next 30 days.")
                 remedy = _t("ஞாயிற்றுக்கிழமை சூரியனை வணங்குங்கள். நீர் அதிகம் அருந்துங்கள். தாய்மார்கள் அல்லது நோயாளிகளுக்கு உணவு வழங்குவது சூரிய சேவை.",
                             "Worship the Sun on Sundays. Drink plenty of water. Offering food to mothers or patients who cannot afford care is a Sun seva that maintains health.")
+                return _NarrativeBundle(narr, outlook, remedy)
             elif score >= 50:
                 narr = _t(
                     f"உடல்நலம் நடுநிலையில் உள்ளது. {'சந்திராஷ்டமம் — மன அழுத்தம் கவனம்.' if chandrashtama else f'{planet_ta} தசையில் சாதாரண கவனம் தேவை.'}",
@@ -675,6 +692,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Pay attention to sleep and diet in the next 30 days.")
                 remedy = _t("திங்கட்கிழமை சந்திர வழிபாடு. யோகா அல்லது தியானம் உதவும். நோயாளிகளுக்கோ வயதான தனிமையில் இருப்பவருக்கோ உதவுவது சந்திர சேவை.",
                             "Moon worship on Mondays. Yoga or meditation will help. Helping a sick or isolated elderly person is an effective Moon seva for steady health.")
+                return _NarrativeBundle(narr, outlook, remedy)
             else:
                 narr = _t(
                     f"உடல்நலத்தில் கவனம் தேவை. {sani_ta + ' — ஓய்வு மிக முக்கியம்.' if sani_active else 'சக்தி குறைவு சாத்தியம்.'}",
@@ -714,6 +732,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Good time for marriage discussions in the next 30 days.")
                 remedy = _t("வெள்ளிக்கிழமை மகாலட்சுமி வழிபாடு. வெள்ளை அல்லது வண்ணப் பூக்கள் சமர்ப்பிக்கவும். ஆதரவற்ற பெண்ணுக்கு அல்லது இளம் தாய்க்கு உதவுவது சுக்கிர சேவை.",
                             "Worship Mahalakshmi on Fridays. Offer white or colourful flowers. Supporting an underprivileged woman or young mother is an effective Venus seva for relationships.")
+                return _NarrativeBundle(narr, outlook, remedy)
             elif score >= 50:
                 narr = _t(
                     f"உறவுகளில் நடுநிலை நிலை. {planet_ta} தசையில் பொறுமையும் புரிதலும் முக்கியம்.",
@@ -723,6 +742,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Maintain honest communication in relationships over the next 30 days.")
                 remedy = _t("வெள்ளிக்கிழமை விரதம் (உடல்நலம் இடம் தந்தால்) மற்றும் சுக்கிர வழிபாடு உதவும். பெண் குழந்தை கல்விக்கு உதவுவது அல்லது ஆதரவற்ற பெண்ணுக்கு மருந்து வழங்குவது சுக்கிர சேவை.",
                             "Friday fasting (only if your health permits) and Venus worship will help. Sponsoring a girl child's education or supporting a woman in need deepens Venus harmony.")
+                return _NarrativeBundle(narr, outlook, remedy)
             else:
                 narr = _t(
                     f"உறவுகளில் சவால்கள் உள்ளன. {'சந்திராஷ்டமம் — உணர்வு மோதல் தவிர்க்கவும்.' if chandrashtama else 'அமைதியான உரையாடல் தேவை.'}",
@@ -758,6 +778,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Good time to learn new skills and appear for exams in the next 30 days.")
                 remedy = _t("வியாழக்கிழமை சரஸ்வதி மற்றும் தட்சிணாமூர்த்தி வழிபாடு.",
                             "Worship Saraswati and Dakshinamurthy on Thursdays.")
+                return _NarrativeBundle(narr, outlook, remedy)
             elif score >= 50:
                 narr = _t(
                     f"கல்வியில் நடுநிலை ஆதரவு. {planet_ta} தசையில் தொடர்ச்சியான முயற்சி தேவை.",
@@ -767,6 +788,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Continue studies without distraction over the next 30 days.")
                 remedy = _t("புதன்கிழமை பெருமாள் (திருமால்) வழிபாடு. ஓலை எழுதுவது நல்லது.",
                             "Worship Perumal on Wednesdays. Writing on a leaf is auspicious.")
+                return _NarrativeBundle(narr, outlook, remedy)
             else:
                 narr = _t(
                     f"கல்வியில் கவன சிதறல் மற்றும் தடைகள் சாத்தியம். {planet_ta} தசையில் மிகுந்த முயற்சி தேவை.",
@@ -809,6 +831,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                     f"The next 30 days are supportive for progress. {action['en']}",
                 )
                 remedy = _t("தொடர்ச்சியான வழிபாடு மற்றும் ஒழுக்கமான முயற்சி தொடரவும்.", "Continue steady worship and disciplined effort.")
+                return _NarrativeBundle(narr, outlook, remedy)
             elif score >= 50:
                 narr = _t(
                     f"{area_text[0]} விஷயங்களில் நடுநிலை பலன். பொறுமையுடன் முன்னேறவும்.",
@@ -819,6 +842,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                     "Steady improvement is possible over the next 30 days.",
                 )
                 remedy = _t("நேரம் தவறாமல் பரிகாரத்தை பின்பற்றவும்.", "Follow remedies consistently and on schedule.")
+                return _NarrativeBundle(narr, outlook, remedy)
             else:
                 narr = _t(
                     f"{area_text[0]} விஷயங்களில் தற்கால சவால் உள்ளது. அவசர முடிவுகளைத் தவிர்க்கவும்.",
@@ -849,6 +873,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Good time for temple visits and meditation practice in the next 30 days.")
                 remedy = _t("வியாழக்கிழமை குரு வழிபாடு. கீதை அல்லது திருவாசகம் ஒரு அத்தியாயம் தினமும் படிக்கலாம்.",
                             "Guru worship on Thursdays. Read one chapter of Gita or Thiruvasagam daily.")
+                return _NarrativeBundle(narr, outlook, remedy)
             else:
                 narr = _t(
                     f"ஆன்மீக கவனம் சிதறும் காலம். {planet_ta} தசையில் நிலையான வழிபாட்டு வழக்கம் தேவை.",
@@ -858,6 +883,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Continue a short daily meditation practice over the next 30 days.")
                 remedy = _t("தினமும் காலையில் சூரியனை வணங்கி ஆரம்பிக்கவும். மவுன நேரம் வைத்திருங்கள்.",
                             "Begin each day by worshipping the Sun. Keep a period of silence daily.")
+                return _NarrativeBundle(narr, outlook, remedy)
 
         case "FAMILY_HARMONY":
             if score >= 70:
@@ -869,6 +895,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Good time for family events and travel in the next 30 days.")
                 remedy = _t("திங்கட்கிழமை குடும்பத்தினருடன் சந்திர வழிபாடு செய்யுங்கள்.",
                             "Perform Moon worship with family on Mondays.")
+                return _NarrativeBundle(narr, outlook, remedy)
             elif score >= 50:
                 narr = _t(
                     f"குடும்ப நலம் நடுநிலையில் உள்ளது. {planet_ta} தசையில் கவனமான தொடர்பு முக்கியம்.",
@@ -878,6 +905,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Allocate time for family members over the next 30 days.")
                 remedy = _t("திங்கட்கிழமை விரதம் (உடல்நலம் இடம் தந்தால்), சந்திர வழிபாடு உதவும்.",
                             "Monday fasting (only if your health permits) and Moon worship will help.")
+                return _NarrativeBundle(narr, outlook, remedy)
             else:
                 narr = _t(
                     f"குடும்பத்தில் மோதல் மற்றும் கருத்து வேறுபாடு சாத்தியம். {'சந்திராஷ்டமம் — உணர்வுகளை கவனமாக வெளிப்படுத்துங்கள்.' if chandrashtama else 'பொறுமை மிக முக்கியம்.'}",
@@ -887,18 +915,27 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Make family decisions together over the next 30 days.")
                 remedy = _t("திங்கட்கிழமை அம்மன் வழிபாடு. கடும் வார்த்தைகளை முற்றிலும் தவிர்க்கவும்.",
                             "Worship Amman on Mondays. Avoid harsh words completely.")
+                caution_ta = (
+                    "சந்திராஷ்டமம் நாட்களில் குடும்ப நடவடிக்கைகளில் கோபத்தை கட்டுப்படுத்துங்கள்."
+                    if chandrashtama
+                    else "குடும்ப உரையாடல்களில் அவசர பதில்களை தவிர்த்து பொறுமையுடன் நடந்துகொள்ளுங்கள்."
+                )
+                caution_en = (
+                    "Control anger in family interactions on Chandrashtamam days."
+                    if chandrashtama
+                    else "Avoid reactive speech in family interactions and respond with patience."
+                )
+                if house_4_locus == "family":
+                    # Gate-1 re-signification: before independence/marriage, the 4th
+                    # house reading centres on the parental home rather than the
+                    # native's own household.
+                    caution_ta += " இந்த வயதில் 4ஆம் இடம் பெற்றோர் இல்லத்தையே முதன்மையாக குறிக்கிறது."
+                    caution_en += " At this life stage, the 4th house primarily reflects the parental home, not your own household yet."
                 return _NarrativeBundle(
                     narr,
                     outlook,
                     remedy,
-                    caution=_t(
-                        "சந்திராஷ்டமம் நாட்களில் குடும்ப நடவடிக்கைகளில் கோபத்தை கட்டுப்படுத்துங்கள்."
-                        if chandrashtama
-                        else "குடும்ப உரையாடல்களில் அவசர பதில்களை தவிர்த்து பொறுமையுடன் நடந்துகொள்ளுங்கள்.",
-                        "Control anger in family interactions on Chandrashtamam days."
-                        if chandrashtama
-                        else "Avoid reactive speech in family interactions and respond with patience.",
-                    ),
+                    caution=_t(caution_ta, caution_en),
                 )
 
     # Default fallback
@@ -1151,6 +1188,9 @@ def _karaka_chain_score(
     primary_house_rasi = ((lagna_rasi + primary_house - 2) % 12) + 1
     house_lord = SIGN_LORD.get(primary_house_rasi, "SUN")
     lord_score = planet_scores.get(house_lord, 50)
+    # Bhava Bala: house strength as its own metric (lord + occupants + aspects),
+    # not just the lord's planet-level score — see chart_strength.compute_bhava_bala.
+    bhava_bala_score = compute_bhava_bala(primary_house, lagna_rasi, planet_rasis, planet_scores)
     if lord_score >= 65:
         supporting_factors.append(f"{house_lord}_lord_strong")
     elif lord_score <= 35:
@@ -1193,17 +1233,16 @@ def _karaka_chain_score(
             blocking_factors.append("house_av_weak")
 
     score = (
-        lord_score * 0.35
+        bhava_bala_score * 0.35
         + karaka_score_avg * 0.30
         + transit_support * 0.20
         + (15 if dasha_activation else 0)
     )
     score = max(10, min(95, round(score)))
 
-    lord_house = house_from_reference(lagna_rasi, planet_rasis.get(house_lord, lagna_rasi))
-    if lord_house in {1, 4, 7, 10, 5, 9}:
+    if bhava_bala_score >= 65:
         primary_house_strength = "STRONG"
-    elif lord_house in {6, 8, 12}:
+    elif bhava_bala_score <= 40:
         primary_house_strength = "WEAK"
     else:
         primary_house_strength = "NEUTRAL"
@@ -1403,6 +1442,8 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             area, score, maha_lord,
             sani_cycle.is_active, sani_cycle.type if sani_cycle.is_active else None,
             chandrashtama, jupiter_house, saturn_house,
+            moon_nakshatra_pada=natal_moon.pada,
+            house_4_locus=get_house_locus(4, current_age, getattr(birth_profile, "marital_status", None)),
         )
         detailed_reason = _build_area_reason(
             area_key=area,

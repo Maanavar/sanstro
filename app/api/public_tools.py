@@ -532,7 +532,12 @@ def _score_public_muhurta(snap) -> tuple[float, list[str], list[str], list[str],
 
     Returns (score, reasons_en, reasons_ta, cautions_en, cautions_ta).
     """
-    from app.calculations.panchangam import SUBHA_NAKSHATRAS, SUBHA_TITHIS_KRISHNA, SUBHA_TITHIS_SHUKLA
+    from app.calculations.panchangam import (
+        RIKTA_TITHIS_IN_PAKSHA,
+        SUBHA_NAKSHATRAS,
+        SUBHA_TITHIS_KRISHNA,
+        SUBHA_TITHIS_SHUKLA,
+    )
 
     score = 50.0
     reasons_en: list[str] = []
@@ -550,7 +555,7 @@ def _score_public_muhurta(snap) -> tuple[float, list[str], list[str], list[str],
         cautions_ta.append("அமாவாசை திதி — புதிய தொடக்கத்திற்கு ஏற்றதல்ல")
         score -= 5
 
-    if tithi_in_paksha in {8, 9}:
+    if tithi_in_paksha in RIKTA_TITHIS_IN_PAKSHA:
         cautions_en.append(f"Tithi {snap.tithi_name} ({tithi}) — generally avoided for auspicious starts")
         cautions_ta.append(f"{snap.tithi_name} திதி (எண் {tithi}) — சுப நிகழ்வுகளுக்கு தவிர்க்கவும்")
         score -= 15

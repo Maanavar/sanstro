@@ -7,7 +7,7 @@ Uses panchangam (tithi, nakshatra, yoga, kalam) + dasha support.
 Methodology (Thirukanitham):
 - Primary filters: avoid Rahu Kalam, Yamagandam, Kuligai
 - Avoid Chandrashtama days (8th rasi from Moon rasi)
-- Avoid Ashtami/Navami tithis for auspicious events
+- Avoid Rikta tithis (4th/9th/14th of each paksha) for auspicious events
 - Positive signals: auspicious tithi, nakshatra, yoga; Abhijit muhurta (except Wed)
 - Dasha support: check if dasha lord is relevant to the activity
 """
@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from app.calculations.astro import nakshatra_to_rasi, resolve_rasi, resolve_timezone, utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.panchangam import (
+    RIKTA_TITHIS_IN_PAKSHA,
     SUBHA_NAKSHATRAS,
     SUBHA_TITHIS_KRISHNA,
     SUBHA_TITHIS_SHUKLA,
@@ -158,7 +159,7 @@ def _score_panchangam(snapshot, activity: str, moon_rasi: int, lagna_rasi: int) 
         cautions.append(_t("அமாவாசை திதி — புதிய தொடக்கத்திற்கு ஏற்றதல்ல", "Amavasai tithi is generally not ideal for new starts"))
         score -= 5
 
-    if tithi_in_paksha in {8, 9}:
+    if tithi_in_paksha in RIKTA_TITHIS_IN_PAKSHA:
         cautions.append(_t(
             f"{snapshot.tithi_name} திதி (எண் {tithi}) — சுப நிகழ்வுகளுக்கு தவிர்க்கவும்",
             f"Tithi {snapshot.tithi_name} ({tithi}) is generally avoided for auspicious starts",
