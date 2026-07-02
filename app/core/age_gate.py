@@ -31,6 +31,12 @@ EDUCATION_LOWER_AGE = 6    # under-6: education/study windows not applicable
 CAREER_LOWER_AGE = 18      # under-18: career predictions not applicable
 MARRIAGE_UPPER_AGE = 50    # 50+: marriage timing not culturally applicable (Tamil/Indian)
 
+# Traditional Tamil convention: Sevvai (Chevvai) Dosham's marriage-matching
+# severity is treated as naturally softened — not fully cancelled — once the
+# native crosses this age. Applied as an interpretive overlay at scoring time,
+# not baked into the natal dosham calculation itself (which must stay age-independent).
+SEVVAI_DOSHAM_SOFTENING_AGE = 28
+
 
 def is_young_child(age: int) -> bool:
     """True for ages 0–5 — health/family only."""
@@ -118,3 +124,50 @@ MARRIED_TIMING_REDIRECT_KEYWORDS: tuple[str, ...] = (
 
 # 50+ users: same love/marriage keywords as minor redirect.
 SENIOR_MARRIAGE_REDIRECT_KEYWORDS = MINOR_REDIRECT_KEYWORDS
+
+
+# ── Gate 1: age-banded house re-signification (locus-shift) ─────────────────
+#
+# Classical house significations are not static labels — a house's *locus*
+# (whose life it primarily describes) shifts with age and marital status.
+# While the native is young and financially/domestically dependent on their
+# family of origin, family-linked houses (2nd, 4th, 10th) are read through
+# that family's life. Once the native crosses LOCUS_SHIFT_AGE, or marries
+# (which is treated as establishing an independent household regardless of
+# age), the same houses re-signify to describe the native's own life instead.
+#
+# This runs ahead of (and is independent from) the maturation/floor gates in
+# get_blocked_life_modes above — it changes *what a house means*, not whether
+# a life mode is shown at all.
+
+LOCUS_SHIFT_AGE = 21
+
+# House -> (family-of-origin signification, self signification)
+FAMILY_LOCUS_HOUSES: dict[int, tuple[str, str]] = {
+    2: ("family_wealth", "own_wealth"),          # 2nd: family's finances -> own finances/savings
+    4: ("parental_home", "own_home"),            # 4th: mother/parental home -> own home/domestic life
+    10: ("family_reputation", "own_career_reputation"),  # 10th: family's standing -> own career/public standing
+}
+
+
+def get_house_locus(house_number: int, age: int, marital_status: str | None = None) -> str:
+    """Return 'family' or 'self' — whose life a family-linked house's
+    signification currently describes (Gate-1 re-signification).
+
+    Houses outside FAMILY_LOCUS_HOUSES are unaffected and always read as 'self'.
+    """
+    if house_number not in FAMILY_LOCUS_HOUSES:
+        return "self"
+    if is_married_settled(marital_status):
+        return "self"
+    return "self" if age >= LOCUS_SHIFT_AGE else "family"
+
+
+def get_resignified_house_meaning(house_number: int, age: int, marital_status: str | None = None) -> str | None:
+    """Return the signification key for a family-linked house given the
+    current locus, or None if the house isn't subject to locus-shift."""
+    meanings = FAMILY_LOCUS_HOUSES.get(house_number)
+    if meanings is None:
+        return None
+    family_meaning, self_meaning = meanings
+    return family_meaning if get_house_locus(house_number, age, marital_status) == "family" else self_meaning
