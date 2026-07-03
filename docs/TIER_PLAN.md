@@ -55,8 +55,8 @@
 
 | Feature | Guest | Registered | Premium |
 |---|---|---|---|
-| Ask Vinaadi | **2 questions/day** | **7 questions/day** | **30 questions/month** + top-up pack |
-| Ask Vinaadi top-up pack (10 questions, ₹49) | No | No | Yes (when over monthly quota) |
+| Ask Vinaadi | **1 question/day** | **2 questions/day** | **5 questions/day** + top-up pack |
+| Ask Vinaadi top-up pack (10 questions, ₹49) | No | No | Yes (when over daily quota) |
 | Prasna (horary) | No | Yes | Yes |
 | Muhurta calculator | No | Yes | Yes (unlimited) |
 | Decision brief | No | Yes | Yes |
@@ -65,7 +65,7 @@
 | Retrospective | No | No | Yes |
 | Life event log | No | No | Yes |
 
-> **Why 30/month for premium (not unlimited):** LLM compute costs are real. Unlimited at ₹149/month is economically risky for power users. 30/month = 1/day average, which is generous. When they hit the limit they can buy a 10-question top-up at ₹49 — much better UX than a hard block.
+> **Why one per-day unit across all tiers:** A single unit makes the ladder legible at a glance — 1 → 2 → 5 questions/day — and Premium is strictly superior on every axis instead of trading 7/day for 30/month. Worst-case free-tier LLM cost drops below the previous 2/day + 7/day ladder. Unlimited at ₹149/month stays off the table because LLM compute costs are real; when Premium users hit 5/day they can buy a 10-question top-up at ₹49 — much better UX than a hard block.
 
 ### 2.4 Journal, Goals & Insights
 
@@ -75,9 +75,11 @@
 | Journal correlation insights | No | Yes | Yes |
 | Goals | No | **3 active** | Unlimited |
 | Insights tab — weekly trends | No | Current week | Full history |
-| Annual Wrapped | No | Yes (no social share) | Yes + social share export |
+| Annual Wrapped | No | Yes + share card export | Yes + full timeline & retrospective |
 | Streak tracking | No | Yes | Yes |
 | Retrospective | No | No | Yes |
+
+> **Why the Wrapped share card is free:** every shared card is an acquisition surface — the share *is* the marketing. Only the deep Wrapped content (full timeline, retrospective) stays Premium.
 
 ### 2.5 Family & Relationships
 
@@ -106,7 +108,7 @@
 |---|---|---|---|
 | Ads | Yes (standard) | Yes (reduced — 1/session) | No ads |
 | Offline mode / cached data | No | Yes | Yes |
-| Share cards (panchangam, score, wrapped) | No | Panchangam + score | All, including Annual Wrapped social export |
+| Share cards (panchangam, score, wrapped) | No | All, including Annual Wrapped share card | All, including Annual Wrapped share card |
 
 ### 2.8 Remedies & Pariharam
 
@@ -194,10 +196,9 @@ These are the moments where the app surfaces a conversion nudge. Each trigger ma
 | Birth profiles reach 3 | Registered | Hard gate | "Upgrade to Premium for unlimited charts" |
 | Family Vault — add 2nd profile | Registered | Hard gate | "Upgrade for Family Vault (5 profiles)" |
 | Ask Vinaadi daily limit reached | Guest / Registered | Hard gate | "Upgrade for more questions" |
-| Ask Vinaadi monthly limit reached | Premium | Soft (top-up offer) | "Buy 10 more questions for ₹49" |
+| Ask Vinaadi daily limit reached | Premium | Soft (top-up offer) | "Buy 10 more questions for ₹49" |
 | Dasha timeline — tap full tree | Registered | Hard gate | "Full dasha timeline — Premium only" |
 | Varshaphala / vargas / synastry | Registered | Hard gate | "Unlock with Premium" |
-| Annual Wrapped share button | Registered | Hard gate | "Share your Wrapped — Premium feature" |
 | PPU report CTA | Guest | Soft account creation | "Create free account to buy" |
 | Detailed reports over monthly quota | Premium | Soft (pay-per-use offer) | "Buy an additional report (₹99)" |
 
@@ -209,7 +210,7 @@ The backend enforces limits at the API layer. Key services:
 
 | Service | File | Current state | Required update |
 |---|---|---|---|
-| Ask Vinaadi chips | `app/services/ask_vinaadi_usage_service.py` | Hardcoded 3/day free, unlimited premium | Update to use `ask_vinaadi_limit_for_tier()` from `tier_limits.py` for 30/month premium |
+| Ask Vinaadi chips | `app/services/ask_vinaadi_usage_service.py` | Uses `ask_vinaadi_limit_for_tier()` — currently guest 2/day, registered 7/day, premium 30/month | Change the ladder in `app/core/tier_limits.py` + `packages/shared/src/constants/tiers.ts` to guest 1/day, registered 2/day, premium 5/day (premium ₹49 top-up unchanged, now triggered by the daily quota) |
 | Birth profiles | `app/services/birth_profile_service.py` | No count gate | Add check against `birth_profiles_max` from `get_limits(tier)` |
 | Family Vault | `app/services/family_vault_service.py` (TBC) | Unknown | Add check against `family_vault_profiles_max` |
 | Goals | `app/services/goals_service.py` (TBC) | Unknown | Add check against `goals_max` |
@@ -229,7 +230,7 @@ These features are often assumed to be "free" but are Premium-only:
 - Retrospective
 - Life event log
 - Birth time rectification
-- Annual Wrapped social share
+- Deep Wrapped content — full timeline & retrospective (the Wrapped share card itself is free for all registered users)
 - No ads (registered users still see ads, at reduced frequency)
 
 ---
