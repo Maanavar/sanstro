@@ -377,6 +377,7 @@ def generate_porutham_pdf(
     porutham: DirectPoruthamData,
     name_a: str,
     name_b: str,
+    lang: str = "en",
 ) -> bytes:
     """
     Build a single-page compatibility PDF from a direct Porutham response.
@@ -394,12 +395,14 @@ def generate_porutham_pdf(
     )
 
     styles = getSampleStyleSheet()
+    font_name, bold_font_name = _register_pdf_fonts(lang)
     title_style = ParagraphStyle(
         "PoruthamTitle",
         parent=styles["Heading1"],
         fontSize=18,
         textColor=colors.HexColor("#B85A2C"),
         spaceAfter=4,
+        fontName=bold_font_name,
     )
     body_style = ParagraphStyle("PoruthamBody", parent=styles["Normal"], fontSize=9, leading=13, fontName=font_name)
     small_style = ParagraphStyle("PoruthamSmall", parent=styles["Normal"], fontSize=8, textColor=colors.HexColor("#7A6F5E"), fontName=font_name)
