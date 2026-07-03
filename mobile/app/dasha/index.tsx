@@ -15,9 +15,9 @@ import { useSession } from "@/hooks/useSession";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { MethodologyStrip } from "@/components/MethodologyStrip";
-import { getDashaTimeline, getCharaDasha } from "@/api/dasha";
+import { getDashaTimeline, getCharaDasha, getYoginiDasha, getAshtottariDasha, getKalachakraDasha } from "@/api/dasha";
 import { getPrimaryChartId } from "@/lib/userPrefs";
-import type { DashaTimelineItem, CharaPeriod } from "@/api/dasha";
+import type { DashaTimelineItem, CharaPeriod, YoginiDashaPeriod, AshtottariDashaPeriod, KalachakraDashaPeriod } from "@/api/dasha";
 
 // Jaimini Chara Karakas (BPHS Ch. 32) — Atmakaraka can be any of these 8 grahas.
 const KARAKA_PLANET_LABELS: Record<string, { en: string; ta: string }> = {
@@ -30,6 +30,29 @@ const KARAKA_PLANET_LABELS: Record<string, { en: string; ta: string }> = {
   SATURN: { en: "Saturn", ta: "சனி" },
   RAHU: { en: "Rahu", ta: "ராகு" },
 };
+
+// Yogini Dasha (Devi Bhagavata / Muhurta Chintamani tradition) — 8 Yoginis,
+// fixed Mangala..Sankata order. See app/calculations/yogini_dasha.py.
+const YOGINI_LABELS: Record<string, { en: string; ta: string }> = {
+  MANGALA: { en: "Mangala", ta: "மங்களை" },
+  PINGALA: { en: "Pingala", ta: "பிங்களை" },
+  DHANYA: { en: "Dhanya", ta: "தன்யா" },
+  BHRAMARI: { en: "Bhramari", ta: "பிராமரி" },
+  BHADRIKA: { en: "Bhadrika", ta: "பத்ரிகை" },
+  ULKA: { en: "Ulka", ta: "உல்கா" },
+  SIDDHA: { en: "Siddha", ta: "சித்தா" },
+  SANKATA: { en: "Sankata", ta: "சங்கடா" },
+};
+
+// Ashtottari Dasha (Krittikadi convention, no Ketu, 8 lords) — lords are the
+// 8 classical planets, so this reuses KARAKA_PLANET_LABELS above rather than
+// a separate name table. See app/calculations/ashtottari_dasha.py.
+
+// Kalachakra Dasha (rasi-based, non-uniform period lengths) — experimental,
+// display only. Lords are rasis; the API already returns a display name
+// (rasiName) so no separate label table is needed, same as Jaimini Chara
+// Dasha's rasi_name. See app/calculations/kalachakra_dasha.py for the cited
+// Saravali source and its documented conventions/caveats.
 
 function formatDate(iso: string): string {
   try {
@@ -66,7 +89,7 @@ export default function DashaScreen() {
   const isTamil = lang === "ta";
   const [chartId, setChartId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [tab, setTab] = useState<"vimshottari" | "jaimini">("vimshottari");
+  const [tab, setTab] = useState<"vimshottari" | "jaimini" | "yogini" | "ashtottari" | "kalachakra">("vimshottari");
 
   useEffect(() => {
     if (tier !== "guest") getPrimaryChartId().then(setChartId);
@@ -86,8 +109,32 @@ export default function DashaScreen() {
     staleTime: 1000 * 60 * 60 * 6,
   });
 
+  const { data: yoginiData, isLoading: yoginiLoading, isError: yoginiError, refetch: yoginiRefetch } = useQuery({
+    queryKey: ["yogini-dasha", chartId],
+    queryFn: () => getYoginiDasha(chartId!),
+    enabled: !!chartId && tab === "yogini",
+    staleTime: 1000 * 60 * 60 * 6,
+  });
+
+  const { data: ashtottariData, isLoading: ashtottariLoading, isError: ashtottariError, refetch: ashtottariRefetch } = useQuery({
+    queryKey: ["ashtottari-dasha", chartId],
+    queryFn: () => getAshtottariDasha(chartId!),
+    enabled: !!chartId && tab === "ashtottari",
+    staleTime: 1000 * 60 * 60 * 6,
+  });
+
+  const { data: kalachakraData, isLoading: kalachakraLoading, isError: kalachakraError, refetch: kalachakraRefetch } = useQuery({
+    queryKey: ["kalachakra-dasha", chartId],
+    queryFn: () => getKalachakraDasha(chartId!),
+    enabled: !!chartId && tab === "kalachakra",
+    staleTime: 1000 * 60 * 60 * 6,
+  });
+
   const d = data?.data;
   const cd = charaData?.data;
+  const yd = yoginiData?.data;
+  const ad = ashtottariData?.data;
+  const kd = kalachakraData?.data;
 
   if (tier === "guest") {
     return (
@@ -149,6 +196,30 @@ export default function DashaScreen() {
         >
           <Text style={[styles.tabLabel, tab === "jaimini" && styles.tabLabelActive, isTamil ? TamilType.caption : EnType.caption]}>
             {isTamil ? "ஜைமினி சர தசை" : "Jaimini Chara"}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabBtn, tab === "yogini" && styles.tabBtnActive]}
+          onPress={() => setTab("yogini")}
+        >
+          <Text style={[styles.tabLabel, tab === "yogini" && styles.tabLabelActive, isTamil ? TamilType.caption : EnType.caption]}>
+            {isTamil ? "யோகினி தசை" : "Yogini"}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabBtn, tab === "ashtottari" && styles.tabBtnActive]}
+          onPress={() => setTab("ashtottari")}
+        >
+          <Text style={[styles.tabLabel, tab === "ashtottari" && styles.tabLabelActive, isTamil ? TamilType.caption : EnType.caption]}>
+            {isTamil ? "அஷ்டோத்தரி" : "Ashtottari"}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabBtn, tab === "kalachakra" && styles.tabBtnActive]}
+          onPress={() => setTab("kalachakra")}
+        >
+          <Text style={[styles.tabLabel, tab === "kalachakra" && styles.tabLabelActive, isTamil ? TamilType.caption : EnType.caption]}>
+            {isTamil ? "காலசக்ரா" : "Kalachakra"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -361,6 +432,288 @@ export default function DashaScreen() {
                     </Text>
                     <Text style={[styles.periodDates, isTamil ? TamilType.caption : EnType.caption]}>
                       {formatDate(item.start_date)} – {formatDate(item.end_date)}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: "flex-end", gap: 2 }}>
+                    <Text style={styles.periodDuration}>
+                      {isTamil ? `${item.years} ஆண்டுகள்` : `${item.years} years`}
+                    </Text>
+                    {isActive && (
+                      <View style={styles.activeBadge}>
+                        <Text style={styles.activeBadgeText}>{isTamil ? "தற்போது" : "Active"}</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+            );
+          }}
+        />
+      )}
+
+      {/* ── Yogini Dasha tab ── */}
+      {tab === "yogini" && yoginiLoading && (
+        <View style={{ padding: S.base, gap: S.md }}>
+          <SkeletonCard height={100} />
+          <SkeletonCard height={80} />
+          <SkeletonCard height={80} />
+        </View>
+      )}
+      {tab === "yogini" && yoginiError && (
+        <View style={{ padding: S.base }}>
+          <ErrorCard onRetry={yoginiRefetch} />
+        </View>
+      )}
+      {tab === "yogini" && yd && (
+        <FlatList
+          data={yd.mahadashas}
+          keyExtractor={(item: YoginiDashaPeriod) => item.startDate}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={yoginiLoading} onRefresh={yoginiRefetch} tintColor={C.saffron} />}
+          ListHeaderComponent={
+            <>
+              <View style={styles.banner}>
+                <View style={styles.bannerMain}>
+                  <Text style={styles.bannerLord}>
+                    {isTamil
+                      ? YOGINI_LABELS[yd.current.mahadasha.yogini]?.ta ?? yd.current.mahadasha.yogini
+                      : YOGINI_LABELS[yd.current.mahadasha.yogini]?.en ?? yd.current.mahadasha.yogini}
+                  </Text>
+                  <Text style={styles.bannerLabel}>{isTamil ? "யோகினி மஹா தசை" : "Yogini Maha Dasha"}</Text>
+                  <Text style={styles.bannerDates}>
+                    {formatDate(yd.current.mahadasha.startDate)} – {formatDate(yd.current.mahadasha.endDate)}
+                  </Text>
+                  <Text style={styles.bannerRemaining}>{remainingLabel(yd.current.mahadasha.endDate, isTamil)}</Text>
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[styles.progressFill, {
+                        width: `${percentElapsed(yd.current.mahadasha.startDate, yd.current.mahadasha.endDate)}%` as any,
+                      }]}
+                    />
+                  </View>
+                </View>
+                <View style={styles.bannerDivider} />
+                <View style={styles.bannerSub}>
+                  <Text style={styles.bannerSubLord}>
+                    {isTamil
+                      ? YOGINI_LABELS[yd.current.antardasha.yogini]?.ta ?? yd.current.antardasha.yogini
+                      : YOGINI_LABELS[yd.current.antardasha.yogini]?.en ?? yd.current.antardasha.yogini}
+                  </Text>
+                  <Text style={styles.bannerSubLabel}>{isTamil ? "அந்தர் தசை" : "Antar Dasha"}</Text>
+                  <Text style={styles.bannerSubDates}>
+                    {formatDate(yd.current.antardasha.startDate)} – {formatDate(yd.current.antardasha.endDate)}
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
+                {isTamil ? "36 ஆண்டு யோகினி தசை சுழற்சி" : "36-Year Yogini Dasha Cycle"}
+              </Text>
+            </>
+          }
+          renderItem={({ item }: { item: YoginiDashaPeriod }) => {
+            const isActive = new Date(item.startDate) <= new Date() && new Date() <= new Date(item.endDate);
+            const rulingLabel = KARAKA_PLANET_LABELS[item.rulingPlanet];
+            return (
+              <View style={[styles.periodCard, isActive && styles.periodCardActive]}>
+                <View style={styles.periodRow}>
+                  <View style={[styles.periodDot, isActive && { backgroundColor: C.saffron }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.periodLord, {
+                      fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold",
+                      color: isActive ? C.saffron : C.textPrimary,
+                    }]}>
+                      {isTamil ? YOGINI_LABELS[item.yogini]?.ta ?? item.yogini : YOGINI_LABELS[item.yogini]?.en ?? item.yogini}
+                    </Text>
+                    <Text style={[styles.periodDates, isTamil ? TamilType.caption : EnType.caption]}>
+                      {formatDate(item.startDate)} – {formatDate(item.endDate)}
+                      {rulingLabel ? ` · ${isTamil ? rulingLabel.ta : rulingLabel.en}` : ""}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: "flex-end", gap: 2 }}>
+                    <Text style={styles.periodDuration}>
+                      {isTamil ? `${item.years} ஆண்டுகள்` : `${item.years} years`}
+                    </Text>
+                    {isActive && (
+                      <View style={styles.activeBadge}>
+                        <Text style={styles.activeBadgeText}>{isTamil ? "தற்போது" : "Active"}</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+            );
+          }}
+        />
+      )}
+
+      {/* ── Ashtottari Dasha tab ── */}
+      {tab === "ashtottari" && ashtottariLoading && (
+        <View style={{ padding: S.base, gap: S.md }}>
+          <SkeletonCard height={100} />
+          <SkeletonCard height={80} />
+          <SkeletonCard height={80} />
+        </View>
+      )}
+      {tab === "ashtottari" && ashtottariError && (
+        <View style={{ padding: S.base }}>
+          <ErrorCard onRetry={ashtottariRefetch} />
+        </View>
+      )}
+      {tab === "ashtottari" && ad && (
+        <FlatList
+          data={ad.mahadashas}
+          keyExtractor={(item: AshtottariDashaPeriod, index) => `${item.startDate}-${index}`}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={ashtottariLoading} onRefresh={ashtottariRefetch} tintColor={C.saffron} />}
+          ListHeaderComponent={
+            <>
+              <View style={styles.banner}>
+                <View style={styles.bannerMain}>
+                  <Text style={styles.bannerLord}>
+                    {KARAKA_PLANET_LABELS[ad.current.mahadasha.lord]
+                      ? (isTamil ? KARAKA_PLANET_LABELS[ad.current.mahadasha.lord].ta : KARAKA_PLANET_LABELS[ad.current.mahadasha.lord].en)
+                      : ad.current.mahadasha.lord}
+                  </Text>
+                  <Text style={styles.bannerLabel}>{isTamil ? "அஷ்டோத்தரி மஹா தசை" : "Ashtottari Maha Dasha"}</Text>
+                  <Text style={styles.bannerDates}>
+                    {formatDate(ad.current.mahadasha.startDate)} – {formatDate(ad.current.mahadasha.endDate)}
+                  </Text>
+                  <Text style={styles.bannerRemaining}>{remainingLabel(ad.current.mahadasha.endDate, isTamil)}</Text>
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[styles.progressFill, {
+                        width: `${percentElapsed(ad.current.mahadasha.startDate, ad.current.mahadasha.endDate)}%` as any,
+                      }]}
+                    />
+                  </View>
+                </View>
+                <View style={styles.bannerDivider} />
+                <View style={styles.bannerSub}>
+                  <Text style={styles.bannerSubLord}>
+                    {KARAKA_PLANET_LABELS[ad.current.antardasha.lord]
+                      ? (isTamil ? KARAKA_PLANET_LABELS[ad.current.antardasha.lord].ta : KARAKA_PLANET_LABELS[ad.current.antardasha.lord].en)
+                      : ad.current.antardasha.lord}
+                  </Text>
+                  <Text style={styles.bannerSubLabel}>{isTamil ? "அந்தர் தசை" : "Antar Dasha"}</Text>
+                  <Text style={styles.bannerSubDates}>
+                    {formatDate(ad.current.antardasha.startDate)} – {formatDate(ad.current.antardasha.endDate)}
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
+                {isTamil ? "108 ஆண்டு அஷ்டோத்தரி தசை சுழற்சி" : "108-Year Ashtottari Dasha Cycle"}
+              </Text>
+            </>
+          }
+          renderItem={({ item }: { item: AshtottariDashaPeriod }) => {
+            const isActive = new Date(item.startDate) <= new Date() && new Date() <= new Date(item.endDate);
+            const label = KARAKA_PLANET_LABELS[item.lord];
+            return (
+              <View style={[styles.periodCard, isActive && styles.periodCardActive]}>
+                <View style={styles.periodRow}>
+                  <View style={[styles.periodDot, isActive && { backgroundColor: C.saffron }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.periodLord, {
+                      fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold",
+                      color: isActive ? C.saffron : C.textPrimary,
+                    }]}>
+                      {label ? (isTamil ? label.ta : label.en) : item.lord}
+                    </Text>
+                    <Text style={[styles.periodDates, isTamil ? TamilType.caption : EnType.caption]}>
+                      {formatDate(item.startDate)} – {formatDate(item.endDate)}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: "flex-end", gap: 2 }}>
+                    <Text style={styles.periodDuration}>
+                      {isTamil ? `${item.years} ஆண்டுகள்` : `${item.years} years`}
+                    </Text>
+                    {isActive && (
+                      <View style={styles.activeBadge}>
+                        <Text style={styles.activeBadgeText}>{isTamil ? "தற்போது" : "Active"}</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+            );
+          }}
+        />
+      )}
+
+      {/* ── Kalachakra Dasha tab (experimental, display only) ── */}
+      {tab === "kalachakra" && kalachakraLoading && (
+        <View style={{ padding: S.base, gap: S.md }}>
+          <SkeletonCard height={100} />
+          <SkeletonCard height={80} />
+          <SkeletonCard height={80} />
+        </View>
+      )}
+      {tab === "kalachakra" && kalachakraError && (
+        <View style={{ padding: S.base }}>
+          <ErrorCard onRetry={kalachakraRefetch} />
+        </View>
+      )}
+      {tab === "kalachakra" && kd && (
+        <FlatList
+          data={kd.mahadashas}
+          keyExtractor={(item: KalachakraDashaPeriod, index) => `${item.startDate}-${index}`}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={kalachakraLoading} onRefresh={kalachakraRefetch} tintColor={C.saffron} />}
+          ListHeaderComponent={
+            <>
+              <Text style={[styles.subPrediction, isTamil ? TamilType.caption : EnType.caption, { marginBottom: S.sm }]}>
+                {isTamil
+                  ? "இரண்டாம்நிலை/ஒப்பீட்டு தசை — சோதனை நிலையில் உள்ளது, மதிப்பெண் கணக்கீட்டில் பயன்படுத்தப்படவில்லை"
+                  : "Secondary/comparison dasha — experimental, display only, not used in any scoring path"}
+              </Text>
+              <View style={styles.banner}>
+                <View style={styles.bannerMain}>
+                  <Text style={styles.bannerLord}>{kd.current.mahadasha.rasiName ?? kd.current.mahadasha.rasiCode}</Text>
+                  <Text style={styles.bannerLabel}>{isTamil ? "காலசக்ரா மஹா தசை" : "Kalachakra Maha Dasha"}</Text>
+                  <Text style={styles.bannerDates}>
+                    {formatDate(kd.current.mahadasha.startDate)} – {formatDate(kd.current.mahadasha.endDate)}
+                  </Text>
+                  <Text style={styles.bannerRemaining}>{remainingLabel(kd.current.mahadasha.endDate, isTamil)}</Text>
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[styles.progressFill, {
+                        width: `${percentElapsed(kd.current.mahadasha.startDate, kd.current.mahadasha.endDate)}%` as any,
+                      }]}
+                    />
+                  </View>
+                </View>
+                <View style={styles.bannerDivider} />
+                <View style={styles.bannerSub}>
+                  <Text style={styles.bannerSubLord}>{kd.current.antardasha.rasiName ?? kd.current.antardasha.rasiCode}</Text>
+                  <Text style={styles.bannerSubLabel}>{isTamil ? "அந்தர் தசை" : "Antar Dasha"}</Text>
+                  <Text style={styles.bannerSubDates}>
+                    {formatDate(kd.current.antardasha.startDate)} – {formatDate(kd.current.antardasha.endDate)}
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
+                {isTamil ? "காலசக்ரா தசை காலவரிசை" : "Kalachakra Dasha Timeline"}
+              </Text>
+            </>
+          }
+          renderItem={({ item }: { item: KalachakraDashaPeriod }) => {
+            const isActive = new Date(item.startDate) <= new Date() && new Date() <= new Date(item.endDate);
+            return (
+              <View style={[styles.periodCard, isActive && styles.periodCardActive]}>
+                <View style={styles.periodRow}>
+                  <View style={[styles.periodDot, isActive && { backgroundColor: C.saffron }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.periodLord, {
+                      fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold",
+                      color: isActive ? C.saffron : C.textPrimary,
+                    }]}>
+                      {item.rasiName ?? item.rasiCode}
+                    </Text>
+                    <Text style={[styles.periodDates, isTamil ? TamilType.caption : EnType.caption]}>
+                      {formatDate(item.startDate)} – {formatDate(item.endDate)}
                     </Text>
                   </View>
                   <View style={{ alignItems: "flex-end", gap: 2 }}>
