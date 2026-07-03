@@ -45,6 +45,9 @@ import { DashboardActivityTimingCard } from "./dashboard-activity-timing-card";
 import { CollapsibleSection } from "./collapsible-section";
 import { VargasPanel } from "./dashboard-vargas-panel";
 import { ShadbalaPanel } from "./dashboard-shadbala-panel";
+import { YoginiDashaPanel } from "./dashboard-yogini-dasha-panel";
+import { AshtottariDashaPanel } from "./dashboard-ashtottari-dasha-panel";
+import { KalachakraDashaPanel } from "./dashboard-kalachakra-dasha-panel";
 import { MorningGuidanceCard } from "./morning-guidance-card";
 import { PrasnaWidget } from "./dashboard-prasna-widget";
 import { ChartExplanationPanel } from "./dashboard-chart-explanation";
@@ -833,6 +836,42 @@ export function DashboardPersonalTab({
           background: "var(--panel-cream)",
         }}>
           <ShadbalaPanel lang={lang} chartId={activeChartId} />
+        </div>
+      )}
+
+      {/* ── Yogini Dasha (36-year secondary/comparison dasha) ── */}
+      {activeChartId && (
+        <div style={{
+          padding: "var(--space-3_5) var(--space-4_5)",
+          borderRadius: "var(--radius-md)",
+          border: "1px solid var(--panel-tan-light)",
+          background: "var(--panel-cream)",
+        }}>
+          <YoginiDashaPanel lang={lang} chartId={activeChartId} />
+        </div>
+      )}
+
+      {/* ── Ashtottari Dasha (108-year secondary/comparison dasha) ── */}
+      {activeChartId && (
+        <div style={{
+          padding: "var(--space-3_5) var(--space-4_5)",
+          borderRadius: "var(--radius-md)",
+          border: "1px solid var(--panel-tan-light)",
+          background: "var(--panel-cream)",
+        }}>
+          <AshtottariDashaPanel lang={lang} chartId={activeChartId} />
+        </div>
+      )}
+
+      {/* ── Kalachakra Dasha (rasi-based, experimental/display-only) ── */}
+      {activeChartId && (
+        <div style={{
+          padding: "var(--space-3_5) var(--space-4_5)",
+          borderRadius: "var(--radius-md)",
+          border: "1px solid var(--panel-tan-light)",
+          background: "var(--panel-cream)",
+        }}>
+          <KalachakraDashaPanel lang={lang} chartId={activeChartId} />
         </div>
       )}
 
