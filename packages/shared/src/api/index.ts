@@ -16,6 +16,7 @@ export * from "./relationships";
 export * from "./porutham";
 export * from "./askVinaadi";
 export * from "./goals";
+export * from "./streak";
 export * from "./journal";
 export * from "./familyVault";
 export * from "./notifications";
