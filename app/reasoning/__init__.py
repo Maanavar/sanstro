@@ -18,6 +18,7 @@ from app.reasoning.calibration import (
     GradedPrediction,
     build_calibration_report,
 )
+from app.reasoning.contradiction import Reading, classify
 from app.reasoning.promise_gate import (
     GateGrade,
     GateResult,
@@ -47,8 +48,10 @@ __all__ = [
     "GateGrade",
     "GateResult",
     "GradedPrediction",
+    "Reading",
     "Verdict",
     "assess_promise",
+    "classify",
     "band_rank",
     "band_to_legacy_confidence",
     "build_calibration_report",

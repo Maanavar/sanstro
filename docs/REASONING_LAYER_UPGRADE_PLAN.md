@@ -1,7 +1,7 @@
 # Vinaadi AI — Reasoning Layer Upgrade Plan
 
 > **Author role:** Software architect + product designer + owner + chief Thirukanitham specialist
-> **Status:** PR-1 (Phase 0 + Phase 1) BUILT 2026-07-03 — flag `reasoning_gate` OFF; chief-specialist signed off on the four PR-1 threshold decisions 2026-07-03 (§11), golden-set expansion to ~20 still owed before beta. PR-2 (Phase 2) BUILT 2026-07-03 — flag `reasoning_bands` OFF (see §12). PR-3 (Phase 4 data spine) BUILT 2026-07-03 — flag `reasoning_calibration_log` OFF (see §13). Phases 3, 5, 6 not started.
+> **Status:** PR-1 (Phase 0 + Phase 1) BUILT 2026-07-03 — flag `reasoning_gate` **internal rollout** as of 2026-07-03 per §8 rollout order step 2 (thresholds signed off 2026-07-03, §11); watch for over-suppression before promoting to beta; golden-set expansion to ~20 still owed before beta (scaffold ready, see §7 / `tests/golden/reasoning/GOLDEN_SET_WORKSHEET.md`). PR-2 (Phase 2) BUILT 2026-07-03 — flag `reasoning_bands` OFF (see §12), next in rollout order after gate reaches beta. PR-3 (Phase 4 data spine) BUILT 2026-07-03 — flag `reasoning_calibration_log` **ON** as of 2026-07-03 per §8 rollout order step 1 (silent-launch collection started; see §13). PR-4 (Phase 3 contradiction engine) BUILT 2026-07-03 — flag `reasoning_contradiction` OFF, **pending chief-specialist sign-off on the reading templates and WEAK-gate framing** (review packet in §15); ships last per §8 since it's a no-op without the gate. PR-5 (Phase 5 chart signature + root-cause chains) BUILT 2026-07-04 — flag `reasoning_chart_signature` OFF (see §16); wired into `life_areas_service` only (chart-level dominant-graha framing + per-area causal chain for LOW-confidence areas), whatif/marriage surfaces deferred. Phase 6 not started.
 > **Created:** 2026-07-03
 > **Companion docs:** [`THIRUKANITHAM_DEPTH_EXPANSION_PLAN.md`](./THIRUKANITHAM_DEPTH_EXPANSION_PLAN.md) (knowledge layer), this doc (reasoning layer)
 
@@ -467,6 +467,9 @@ silent*).
 1. **Golden charts.** Build a fixture set of ~20 synthetic charts (never real birth data —
    `CLAUDE.md`), each hand-annotated by the specialist with expected `band`/`reading` per life area:
    e.g. "chart K: marriage = PROMISED_NOT_NOW, window ~2029". Store under `tests/golden/reasoning/`.
+   **Scaffold ready** — `tests/golden/reasoning/GOLDEN_SET_WORKSHEET.md` lays out the 20 slots (3
+   already annotated from the marriage golden set, 17 TODO) with the input schema and a coverage
+   table across all 6 `Reading` values and all 10 life areas; specialist fills in the TODO rows.
 2. **Gate tests.** Prove D1: a `BLOCKED` chart cannot be lifted by any dasha/transit combination
    (property test: vary timing inputs, assert band stays BLOCKED).
 3. **Ordinal tests.** Prove D2: no user-facing string contains `/100` (regex scan across all
@@ -483,6 +486,13 @@ silent*).
 
 - **Feature-flag each phase** via existing `feature_flags` service. Roll gate (Phase 1) to internal
   → beta → all, watching for over-suppression (too many BLOCKED/SILENT = gate too strict).
+- **Rollout sequencing (decided 2026-07-03):** `reasoning_calibration_log` ON first — silent, so
+  worth turning on early precisely because it's invisible; needs weeks of collection before hit-rates
+  mean anything (n≥30/bucket). **Done 2026-07-03** (default flipped in `feature_flags.py`, §13).
+  Then `reasoning_gate` internal → beta (watching for over-suppression). **Internal step done
+  2026-07-03** (default flipped in `feature_flags.py`; PR-1 thresholds already signed off, §11) —
+  watching for over-suppression (too many BLOCKED/SILENT) before promoting to beta. Then
+  `reasoning_bands`, then `reasoning_contradiction` last — it is a no-op without the gate anyway.
 - **Calibration is silent-launch:** log predictions for weeks *before* trusting hit-rates; you need
   n before you recalibrate.
 - **Biggest risk:** an over-strict promise gate makes the app feel negative. Mitigate with (a) WEAK
@@ -522,7 +532,7 @@ Phases 3, 5, 6 follow once 1/2/4 are proven in production.
 
 ## 11. Implementation status (updated 2026-07-03)
 
-**PR-1 (Phase 0 + Phase 1) — BUILT, flag-off.**
+**PR-1 (Phase 0 + Phase 1) — BUILT; flag `reasoning_gate` ON (internal rollout, flipped 2026-07-03).**
 
 | Piece | Where | Notes |
 |---|---|---|
@@ -540,7 +550,7 @@ Phases 3, 5, 6 follow once 1/2/4 are proven in production.
 1. ✅ `gate_from_l1` cut-points (PASS ≥16, WEAK ≥8 of L1's 30) — derived from the L1 formula's neutral point (~11), not from classical texts.
 2. ✅ Whatif natal gate cut-points (60/42) — derived from `_assess_natal_promise`'s 38/65 house-quality bases.
 3. ✅ Marriage BLOCKED criterion uses only debilitation/combustion as "fatal affliction" — no aspect-based affliction until aspect rules are unified across modules (2026-07 methodology audit).
-4. ✅ (decision) Golden set expands 3 → ~20 hand-annotated synthetic charts (§7) — **work still owed before beta**; specialist annotates, engineering scaffolds the fixture worksheet.
+4. ✅ (decision) Golden set expands 3 → ~20 hand-annotated synthetic charts (§7) — **scaffold ready 2026-07-03** at `tests/golden/reasoning/GOLDEN_SET_WORKSHEET.md` (3 done, 17 TODO slots spanning all 6 readings × all 10 life areas); **specialist annotation of the 17 TODO charts still owed before beta**.
 
 ---
 
@@ -563,7 +573,7 @@ Phases 3, 5, 6 follow once 1/2/4 are proven in production.
 
 ## 13. PR-3 implementation status (Phase 4 data spine, built 2026-07-03)
 
-**Flag:** `reasoning_calibration_log`, default **False**, independent of the other two reasoning flags. Silent-launch per §8: flag-on starts *collecting*; nobody reads hit-rates until n per bucket is meaningful, and any weight recalibration remains a manual owner + specialist decision.
+**Flag:** `reasoning_calibration_log`, default **True** (flipped 2026-07-03 — first flag turned on per §8 rollout order, precisely because it's invisible), independent of the other two reasoning flags. Silent-launch per §8: flag-on starts *collecting*; nobody reads hit-rates until n per bucket is meaningful, and any weight recalibration remains a manual owner + specialist decision.
 
 | Piece | Where | Notes |
 |---|---|---|
@@ -579,6 +589,140 @@ Phases 3, 5, 6 follow once 1/2/4 are proven in production.
 
 ---
 
+## 14. PR-4 implementation status (Phase 3 contradiction engine, built 2026-07-03)
+
+**Flag:** `reasoning_contradiction`, default **False**. Readings derive from the promise gate, so user-visible effect requires `reasoning_gate` ON as well; with the gate on but this flag off, readings are still computed and silently fill `PredictionLog.reading` (the column PR-3 left nullable), so calibration data accrues before the copy ships.
+
+| Piece | Where | Notes |
+|---|---|---|
+| Classifier kernel | `app/reasoning/contradiction.py` | `Reading` enum (plan sketch's five + `SILENT` per D4's "all silent → SILENT") and pure `classify(promise_grade, timing_band)`. Classifies from the **pre-cap** timing band (a WEAK gate caps the published band at LIKELY, but the reading is about what the timing itself says). BLOCKED → NOT_PROMISED regardless of timing; SILENT gate + timing ≥ LIKELY → ACTIVE_BUT_UNPROMISED (redirect), + timing ≤ WEAK → SILENT. |
+| Reading voice | `narrative_engine.py` — `READING_VOICE`, `reading_phrase()`, `promised_not_now_voice(window_opens)`, `active_but_unpromised_voice(dominant_area)` | NOT_PROMISED reuses `BLOCKED_VOICE`, SILENT reuses `SILENT_VOICE` (one vocabulary). All strings tone- and precision-validated (D6/D2). |
+| whatif | `whatif_service.py` — `_overall_verdict` now returns `(overall, verdict, band, reading)`; `_reading_summary` overrides the verdict-only summary for PROMISED_NOT_NOW ("plan toward the better window suggested below" — whatif computes no next-window date, the response's bestPeriodInWindow carries that), ACTIVE_BUT_UNPROMISED, NOT_PROMISED. PROMISED_AND_TIMED / MIXED keep the verdict copy. | Reading logged to `PredictionLog` whenever the gate ran; surfaced on the response only behind the flag. |
+| life-areas | `life_areas_service.py` — `_score_area` also returns `gate_grade`; reading classified from the pre-blend prediction total (the timing vote). PROMISED_NOT_NOW triggers `_find_next_improvement_date` even when the blended score ≥ 50 and prepends the dated window voice; NOT_PROMISED prepends the redirect voice; ACTIVE_BUT_UNPROMISED is completed in a post-pass naming the dominant (top-scoring ≥ 60) area. | Reading suppressed for phase-skipped areas, married RELATIONSHIPS harmony framing (married profiles are never promise-gated — PR-1 decision), and maraka-suppressed scores. |
+| Contract | `app/schemas/whatif.py`, `app/schemas/life_areas.py` — additive optional `reading`; `packages/shared/src/types/index.ts` — `ReasoningReading` type + `reading?` on `WhatIfData`/`LifeAreaData` (mobile/web consume via re-export; `tsc --noEmit` clean). |
+| Tests | `tests/reasoning/test_contradiction.py` (17: full classifier matrix incl. totality, voice tone/precision sweeps, summary template selection, flag-off byte-identical), `test_whatif_gate.py` updated for the 4-tuple, `test_prediction_log_api.py` (reading fills with gate on), `test_life_areas_api.py` (reading null flag-off, valid enum flag-on). |
+
+**Specialist review gate (§8):** Phase 3 changes what we *claim* — the reading templates and the WEAK-gate → ACTIVE_BUT_UNPROMISED framing need chief-specialist sign-off before flag-on (same discipline as the PR-1 thresholds).
+
+**Deliberately deferred from PR-4:** marriage surface readings (marriage_service has its own gate shape; wire when its narrative is next touched), naming the dominant area in whatif's redirect copy (whatif is single-scenario and has no cross-area scores — Phase 5 chart signature is the right tool), and Ask Vinaadi context injection (§9, after flag-on).
+
+**Full-suite verification (2026-07-04):** ran the whole suite (873 tests) to confirm the two 2026-07-03
+flag flips (`reasoning_calibration_log` → True, `reasoning_gate` → internal-on) introduced no
+regressions. One failure, unrelated to either flip: `test_whatif_gate.py::test_pass_gate_with_poor_timing_is_caution_not_blocked`
+still unpacked `_overall_verdict`'s old 3-tuple — missed when PR-4 added the `reading` 4th return
+value (every other call site in the file was updated). Fixed the unpack; suite is 873/873 green.
+No other module (chart calc, dasha, synastry, admin, notifications) regressed with the gate live.
+
+---
+
+## 15. PR-4 specialist review packet (pending sign-off)
+
+Two things block flag-on for `reasoning_contradiction` (and, since readings derive from the gate,
+carry implications for `reasoning_gate`'s beta rollout): the six reading templates below, and one
+framing decision. Both are extracted here verbatim from `app/services/narrative_engine.py` so they
+can be reviewed without reading code — same discipline as the §11 threshold sign-off.
+
+### 15.1 The six reading templates (`READING_VOICE`, `narrative_engine.py:1200`)
+
+| Reading | Fires when | தமிழ் | English |
+|---|---|---|---|
+| `PROMISED_AND_TIMED` | gate PASS + timing ≥ LIKELY | ஜாதக வாக்கும் கால ஆதரவும் இணைந்துள்ளன — முன்னேற ஏற்ற தருணம். | The chart's promise and the timing are aligned — a supportive moment to act. |
+| `PROMISED_NOT_NOW` | gate PASS + timing ≤ WEAK ("wait") | இது உங்கள் ஜாதகத்தில் வாக்களிக்கப்பட்டுள்ளது; ஆனால் தற்போதைய காலம் இன்னும் செயலூக்கம் பெறவில்லை. பொறுமையாக காத்திருப்பது பலன் தரும். | This is promised in your chart, but the timing isn't active yet. Waiting patiently will serve you. |
+| `ACTIVE_BUT_UNPROMISED` | gate WEAK/SILENT + timing ≥ LIKELY ("redirect") | இது ஒரு செயலூக்கமான காலம்; ஆனால் ஜாதகம் இந்த ஆற்றலை வேறு திசையில் காட்டுகிறது. | This is an active period, but your chart points the energy in a different direction. |
+| `NOT_PROMISED` | gate BLOCKED, any timing (reuses `BLOCKED_VOICE`) | இந்த விஷயத்தில் ஜாதகம் வலுவான வாக்கு தரவில்லை — ஜாதகம் ஆதரிக்கும் பகுதிகளில் கவனம் செலுத்துவது நல்லது. | The chart does not strongly promise this — redirecting focus to areas the chart does support is wiser. |
+| `MIXED` | anything else (fallback) | சமிக்ஞைகள் கலந்த நிலையில் உள்ளன — சிறிய, மீளக்கூடிய அடிகளுடன் முன்னேறலாம். | The signals are mixed — proceed with small, reversible steps. |
+| `SILENT` | gate SILENT + timing ≤ WEAK (reuses `SILENT_VOICE`) | இந்த கேள்விக்கு ஜாதகம் அமைதியாக உள்ளது — உறுதியான கணிப்பு தர போதிய சமிக்ஞை இல்லை. | The chart is quiet on this question — there isn't enough signal for a confident call. |
+
+`PROMISED_NOT_NOW` gains a concrete date when one is known (`promised_not_now_voice`):
+appends *"... 2029-06-15 அளவில் காலச் சாளரம் திறக்கத் தொடங்கும்."* / *"... The window begins to
+open around 15 June 2029."* `ACTIVE_BUT_UNPROMISED` gains a named area when one is known
+(`active_but_unpromised_voice`): *"...ஆனால் ஜாதகம் இந்த ஆற்றலை [area] பக்கம் காட்டுகிறது."* /
+*"...but your chart points the energy toward [area] instead."*
+
+**Review ask:** do these six read as non-fatalistic, honest, and in the register Vinaadi should
+speak in? (D6 tone rules already gate them mechanically — this is a judgment call the validator
+can't make.)
+
+### 15.2 The framing decision: WEAK gate + active timing
+
+This is the one open design question, not just a copy-editing pass.
+
+`classify()` (`app/reasoning/contradiction.py`) currently treats **WEAK** and **SILENT** gates
+identically when timing is active — both produce `ACTIVE_BUT_UNPROMISED` and therefore the same
+redirect voice as `NOT_PROMISED`/`BLOCKED`:
+
+```python
+if promise.grade in ("WEAK", "SILENT") and timing_band >= Band.LIKELY:
+    return Reading.ACTIVE_BUT_UNPROMISED
+```
+
+But `WEAK` and `SILENT` are not the same epistemic state (D3): **SILENT** means the chart is
+genuinely quiet — no promise signal either way. **WEAK** means one of the two promise conditions
+*did* hold (bhava lord clean but karaka undignified, or vice versa — plan §Phase 1) — there is
+partial promise, just not enough to PASS. Speaking to a WEAK chart in the same "your chart points
+the energy in a different direction" redirect voice implies zero promise, which overstates how
+little the chart supports the question.
+
+**Option A — keep current behaviour (WEAK folds into the redirect voice).**
+Simpler: one voice for "not enough promise," regardless of *how* not-enough. Risk: a chart that
+does have half a promise gets told, in a strong active period, that the energy points elsewhere —
+this may read as more dismissive than the underlying signal warrants.
+
+**Option B — give WEAK its own "partially promised" voice, distinct from SILENT/BLOCKED's redirect.**
+Draft (not yet in code — for review only):
+> *TA:* "இது ஒரு செயலூக்கமான காலம்; ஜாதகம் ஓரளவு ஆதரவு தருகிறது, ஆனால் முழுமையான உறுதி இல்லை."
+> *EN:* "This is an active period, and your chart offers partial support — though not a full promise."
+
+This would require `classify()` to distinguish `WEAK` from `SILENT` as separate branches (currently
+merged) and a seventh `READING_VOICE` entry, or a `WEAK`-specific variant of `ACTIVE_BUT_UNPROMISED`.
+
+**Decision (pending):**
+- [ ] Option A — ship as built.
+- [ ] Option B — split WEAK into its own voice; engineering implements after sign-off.
+
+### 15.3 Sign-off checklist
+
+| # | Item | Status |
+|---|---|---|
+| 1 | §15.1 — six reading templates read correctly in tone/register | ⬜ pending |
+| 2 | §15.2 — WEAK-gate framing: Option A or B | ⬜ pending |
+| 3 | Golden-set worksheet (§7, `tests/golden/reasoning/GOLDEN_SET_WORKSHEET.md`) — 17 TODO rows annotated | ⬜ pending |
+
+Until all three are checked, `reasoning_gate` stays internal-only and `reasoning_contradiction`
+stays off, per §8's astrological review gate.
+
+---
+
+## 16. PR-5 implementation status (Phase 5, built 2026-07-04)
+
+**Flag:** `reasoning_chart_signature`, default **False**, independent of the other reasoning
+flags. Flag-off output is unchanged (both new response fields are simply absent).
+
+| Piece | Where | Notes |
+|---|---|---|
+| Signature kernel | `app/reasoning/chart_signature.py` | Pure, no ephemeris/DB calls. `detect_signature()` tallies four signals — Atmakaraka (3 pts, via `jaimini_karakas.compute_char_karakas`), most-aspected planet (2 pts, via `calculations/aspects.py`'s `aspects_house`), current mahadasha lord (2 pts, +1 self-period bonus when antardasha matches), natal strength (1 pt, weakest/tie-breaking signal) — into one dominant graha + motif key. Ties broken by the same classical dignity order `jaimini_karakas.py` already documents (Sun..Saturn, Rahu, extended with Ketu). No signal at all → falls back to Sun rather than inventing a claim. The classifier owns no copy (mirrors `contradiction.py`'s split): `Signature.motif` is a plain string key. |
+| Framing voice | `narrative_engine.py` — `SIGNATURE_VOICE` (9 bilingual "your chart revolves around X" sentences, one per motif), `signature_framing(motif)` | One vocabulary entry per graha; unknown motif falls back to Jupiter's ("wisdom_and_growth"). Tone- (D6) and precision- (D2) validated. |
+| Root-cause chains | `narrative_engine.py` — `render_causal_chain(steps, conclusion)` | Pure formatting helper: joins ordered bilingual evidence with "→" and a "Because: ... → therefore: ..." frame. Accepts any `.ta`/`.en` object (BiText, LifeAreaText) — not a new bilingual type. Empty `steps` returns the conclusion unchanged. |
+| life-areas wiring | `life_areas_service.get_life_areas` | Computes the chart-level `Signature` once (reusing `natal_planet_rasis`/`natal_planet_scores`/`maha_lord`/`antar_lord` already loaded for scoring — no extra work) and attaches it as `chartSignature`. Per area, when `_area_confidence == "LOW"` **and** the area is neither phase-skipped nor the married-RELATIONSHIPS harmony framing (neither is a real promise/timing claim), builds a 2-step causal chain from `driver_reason` (karaka transit) → `detailed_reason` (dasha/sani/net-effect) → `_area_conf_reason` as the "therefore" conclusion — all three already computed for the existing narrative, so no new astrological logic. |
+| Contract | `app/schemas/life_areas.py` — `LifeAreaData.causal_chain` (alias `causalChain`), new `ChartSignatureData` model, `LifeAreasResponseData.chart_signature` (alias `chartSignature`); `packages/shared/src/types/index.ts` — matching `ChartSignatureData` interface + optional fields on `LifeAreaData`/`LifeAreasResponseData` (mobile/web consume via re-export; `tsc --noEmit` clean). | Both fields additive/optional; absent (not merely null) is not guaranteed — flag-off responses send explicit `null`. |
+| Tests | `tests/reasoning/test_chart_signature.py` (10 — signal weighting, self-period bonus, tie-break order, motif completeness, no-signal fallback), `tests/reasoning/test_signature_voice.py` (7 — framing/chain tone+precision, fallback, joining order), `tests/test_life_areas_api.py::test_life_areas_chart_signature_and_causal_chain_are_additive` (flag-off absent, flag-on well-formed, causal chain only on LOW-confidence areas) | 139 tests across the reasoning-adjacent suite (`tests/reasoning/`, `tests/golden/`, prediction-log, life-areas, admin, service-priority) green against the real Postgres test DB after this change; full 874-test suite unaffected bar one pre-existing, unrelated `test_perf_budget.py` timing flake. |
+
+**Deliberately deferred from PR-5:** wiring the signature framing sentence into whatif/marriage/
+daily-guidance narratives (plan §Phase 5 step 2 says "every narrative" — this PR ships the
+single richest-context surface first, matching how PR-4 deferred the marriage surface); richer
+multi-step root-cause chains that trace through varga/dasha-transition evidence rather than the
+two already-computed reason strings; and Shadbala as a signature signal (the natal strength score
+already used is a general-purpose proxy — pulling in the full experimental Shadbala pipeline for
+one weak-weighted tie-break signal was judged not worth the added DB/ephemeris dependency for a
+Phase that is itself off by default).
+
+**Astrological review gate:** per §8, Phase 5 changes what we *claim* (a new "dominant force"
+framing sentence and reordering of existing evidence into a causal narrative) and needs
+chief-specialist sign-off on the nine motif framings and the signal-weighting judgment call
+before flag-on — same discipline as §11/§15. Not yet requested.
+
+---
+
 ### Appendix A — Doctrine-to-code quick map
 
 | Doctrine | Enforced in | Primary file(s) |
@@ -589,3 +733,4 @@ Phases 3, 5, 6 follow once 1/2/4 are proven in production.
 | D4 contradiction | Phase 3 | `reasoning/contradiction.py` |
 | D5 calibration | Phase 4 | `models/prediction_log.py`, `reasoning/calibration.py`, `life_event_log_service.py` |
 | D6 tone/bilingual | all | `narrative_engine.tone_validator` |
+| — synthesis (chart signature + root-cause chains) | Phase 5 | `reasoning/chart_signature.py`, `narrative_engine.py`, `life_areas_service.py` |

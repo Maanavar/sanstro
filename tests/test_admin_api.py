@@ -347,7 +347,9 @@ def test_feature_flags_round_trip(raw_client):
         "max_birth_profiles_per_user",
         "reasoning_gate",
         "reasoning_bands",
+        "reasoning_contradiction",
         "reasoning_calibration_log",
+        "reasoning_chart_signature",
     } == names
 
     set_response = raw_client.patch(

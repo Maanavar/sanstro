@@ -8,7 +8,9 @@ on calculated values (score band, active planet, dasha lord, cycle type, etc.).
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 from typing import TYPE_CHECKING
 
 from app.calculations.astro import house_from_reference
@@ -1188,3 +1190,148 @@ def precision_validator(text: str) -> list[str]:
     renders an internal score when the reasoning_bands flag is on.
     """
     return [m.group(0) for pattern in _PRECISION_PATTERNS for m in pattern.finditer(text)]
+
+
+# ── Reading voice (Phase 3, D4) ────────────────────────────────────────────────
+# Contradiction readings get their own honest templates instead of the
+# band-only branch. "Promised but not now" (wait) versus "active but not
+# this" (redirect) is the discrimination that separates an expert reading
+# from an averaged one. Tone rules (D6) apply to every string here.
+
+READING_VOICE: dict[str, BiText] = {
+    "PROMISED_AND_TIMED": _bi(
+        "ஜாதக வாக்கும் கால ஆதரவும் இணைந்துள்ளன — முன்னேற ஏற்ற தருணம்.",
+        "The chart's promise and the timing are aligned — a supportive moment to act.",
+    ),
+    "PROMISED_NOT_NOW": _bi(
+        "இது உங்கள் ஜாதகத்தில் வாக்களிக்கப்பட்டுள்ளது; ஆனால் தற்போதைய காலம் இன்னும் செயலூக்கம் பெறவில்லை. பொறுமையாக காத்திருப்பது பலன் தரும்.",
+        "This is promised in your chart, but the timing isn't active yet. Waiting patiently will serve you.",
+    ),
+    "ACTIVE_BUT_UNPROMISED": _bi(
+        "இது ஒரு செயலூக்கமான காலம்; ஆனால் ஜாதகம் இந்த ஆற்றலை வேறு திசையில் காட்டுகிறது.",
+        "This is an active period, but your chart points the energy in a different direction.",
+    ),
+    "NOT_PROMISED": BLOCKED_VOICE,
+    "MIXED": _bi(
+        "சமிக்ஞைகள் கலந்த நிலையில் உள்ளன — சிறிய, மீளக்கூடிய அடிகளுடன் முன்னேறலாம்.",
+        "The signals are mixed — proceed with small, reversible steps.",
+    ),
+    "SILENT": SILENT_VOICE,
+}
+
+
+def reading_phrase(reading: str) -> BiText:
+    """Bilingual voice for a contradiction Reading (accepts the str value)."""
+    return READING_VOICE.get(reading, READING_VOICE["MIXED"])
+
+
+def promised_not_now_voice(window_opens: date | None) -> BiText:
+    """PROMISED_NOT_NOW, with the concrete next-window date when one is known."""
+    base = READING_VOICE["PROMISED_NOT_NOW"]
+    if window_opens is None:
+        return base
+    return _bi(
+        f"{base.ta} {window_opens.strftime('%d-%m-%Y')} அளவில் காலச் சாளரம் திறக்கத் தொடங்கும்.",
+        f"{base.en} The window begins to open around {window_opens.strftime('%d %B %Y')}.",
+    )
+
+
+def active_but_unpromised_voice(dominant_area: BiText | None) -> BiText:
+    """ACTIVE_BUT_UNPROMISED, naming where the chart points instead when known.
+
+    ``dominant_area`` is any bilingual label (``.ta``/``.en`` attributes).
+    """
+    if dominant_area is None:
+        return READING_VOICE["ACTIVE_BUT_UNPROMISED"]
+    return _bi(
+        f"இது ஒரு செயலூக்கமான காலம்; ஆனால் ஜாதகம் இந்த ஆற்றலை {dominant_area.ta} பக்கம் காட்டுகிறது.",
+        f"This is an active period, but your chart points the energy toward {dominant_area.en.lower()} instead.",
+    )
+
+
+# ── Chart signature voice (Phase 5, dominant-theme framing) ────────────────────
+# One framing sentence per dominant-graha motif (app.reasoning.chart_signature).
+# "This is a Saturn chart" is the frame every other reading sits inside for
+# that user — tone rules (D6) apply here exactly as everywhere else.
+
+SIGNATURE_VOICE: dict[str, BiText] = {
+    "authority_and_visibility": _bi(
+        "உங்கள் ஜாதகம் சூரியனை மையமாகக் கொண்டுள்ளது — அதிகாரம், தன்னம்பிக்கை மற்றும் அங்கீகாரம் "
+        "வழியாக முன்னேற்றம் வரும்.",
+        "Your chart revolves around the Sun — progress comes through authority, self-confidence, "
+        "and visibility.",
+    ),
+    "adaptability_and_care": _bi(
+        "உங்கள் ஜாதகம் சந்திரனை மையமாகக் கொண்டுள்ளது — மனநிலை உறுதி, பராமரிப்பு மற்றும் நெருங்கிய "
+        "உறவுகள் வழியாக பலன் கிடைக்கும்.",
+        "Your chart revolves around the Moon — outcomes flow through emotional steadiness, care, "
+        "and close relationships.",
+    ),
+    "courage_and_initiative": _bi(
+        "உங்கள் ஜாதகம் செவ்வாயை மையமாகக் கொண்டுள்ளது — தைரியம், முன்முயற்சி மற்றும் உறுதியான "
+        "செயல்பாடு வழியாக முன்னேற்றம் வரும்.",
+        "Your chart revolves around Mars — progress comes through courage, initiative, and "
+        "decisive action.",
+    ),
+    "intellect_and_communication": _bi(
+        "உங்கள் ஜாதகம் புதனை மையமாகக் கொண்டுள்ளது — அறிவு, தொடர்பு மற்றும் தகவமைப்புத் திறன் "
+        "வழியாக பலன் கிடைக்கும்.",
+        "Your chart revolves around Mercury — outcomes flow through intellect, communication, "
+        "and adaptability.",
+    ),
+    "wisdom_and_growth": _bi(
+        "உங்கள் ஜாதகம் குருவை மையமாகக் கொண்டுள்ளது — ஞானம், நெறிமுறை மற்றும் நிலையான வளர்ச்சி "
+        "வழியாக முன்னேற்றம் வரும்.",
+        "Your chart revolves around Jupiter — progress comes through wisdom, ethics, and steady "
+        "growth.",
+    ),
+    "harmony_and_relationship": _bi(
+        "உங்கள் ஜாதகம் சுக்கிரனை மையமாகக் கொண்டுள்ளது — உறவுகள், நல்லிணக்கம் மற்றும் நளினம் "
+        "வழியாக பலன் கிடைக்கும்.",
+        "Your chart revolves around Venus — outcomes flow through relationships, harmony, and "
+        "refinement.",
+    ),
+    "delay_then_reward": _bi(
+        "உங்கள் ஜாதகம் சனியை மையமாகக் கொண்டுள்ளது — தாமதத்திற்குப் பின் ஒழுக்கத்துடன் அர்த்தமுள்ள "
+        "பலன் கிடைக்கும்.",
+        "Your chart revolves around Saturn — meaningful gains arrive after delay and discipline.",
+    ),
+    "ambition_and_reinvention": _bi(
+        "உங்கள் ஜாதகம் ராகுவை மையமாகக் கொண்டுள்ளது — லட்சியம், புதிய பாதைகள் மற்றும் "
+        "மறுகண்டுபிடிப்பு வழியாக முன்னேற்றம் வரும்.",
+        "Your chart revolves around Rahu — progress comes through ambition, unconventional "
+        "paths, and reinvention.",
+    ),
+    "detachment_and_depth": _bi(
+        "உங்கள் ஜாதகம் கேதுவை மையமாகக் கொண்டுள்ளது — பற்றின்மை, உள்நோக்கு கவனம் மற்றும் ஆழமான "
+        "நிபுணத்துவம் வழியாக பலன் கிடைக்கும்.",
+        "Your chart revolves around Ketu — outcomes flow through detachment, inner focus, and "
+        "specialised depth.",
+    ),
+}
+
+_DEFAULT_SIGNATURE_MOTIF = "wisdom_and_growth"
+
+
+def signature_framing(motif: str) -> BiText:
+    """Bilingual framing sentence for a chart-signature motif (Phase 5)."""
+    return SIGNATURE_VOICE.get(motif, SIGNATURE_VOICE[_DEFAULT_SIGNATURE_MOTIF])
+
+
+def render_causal_chain(steps: Sequence[object], conclusion: object) -> BiText:
+    """Join ordered evidence into a "because ... -> therefore ..." chain (Phase 5).
+
+    Root-cause chains (plan §Phase 5) replace a flat, parallel factor list
+    with an ordered "why" for low-confidence readings. ``steps``/``conclusion``
+    accept any bilingual object exposing ``.ta``/``.en`` (BiText, or the
+    LifeAreaText/AstroFactor equivalents callers already build) — this stays
+    a formatting helper, not a new bilingual type.
+    """
+    if not steps:
+        return _bi(conclusion.ta, conclusion.en)
+    ta_chain = " → ".join(step.ta for step in steps)
+    en_chain = " → ".join(step.en for step in steps)
+    return _bi(
+        f"காரணம்: {ta_chain} → எனவே: {conclusion.ta}",
+        f"Because: {en_chain} → therefore: {conclusion.en}",
+    )

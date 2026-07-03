@@ -57,6 +57,10 @@ class WhatIfData(BaseModel):
     # Ordinal reasoning band (STRONG/LIKELY/MIXED/WEAK/BLOCKED/SILENT).
     # Additive — populated only when the reasoning_gate flag is on (Phase 1).
     band: str | None = Field(default=None)
+    # Contradiction reading (PROMISED_AND_TIMED / PROMISED_NOT_NOW /
+    # ACTIVE_BUT_UNPROMISED / NOT_PROMISED / MIXED / SILENT). Additive —
+    # populated only when the reasoning_contradiction flag is on (Phase 3, D4).
+    reading: str | None = Field(default=None)
     triple_confirmation: TripleConfirmation = Field(alias="tripleConfirmation")
     summary: WhatIfBiText
     best_period_in_window: WhatIfBiText = Field(alias="bestPeriodInWindow")

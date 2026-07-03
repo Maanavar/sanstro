@@ -27,6 +27,8 @@ from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.panchangam import calculate_daily_panchangam
 from app.calculations.transits import classify_sani_cycle
 from app.models import BirthProfile, Chart
+from app.reasoning.contradiction import Reading, classify
+from app.reasoning.promise_gate import GateGrade
 from app.reasoning.verdict import Band, cap_band
 from app.reasoning.timing_vote import timing_band_from_score, weighted_timing_vote
 from app.schemas.dasha import ResponseMeta
@@ -575,17 +577,21 @@ def _overall_verdict(
     panchangam_score: int = 70,
     *,
     use_reasoning_gate: bool = False,
-) -> tuple[int, str, str | None]:
-    """Returns (overall_score, verdict, band).
+) -> tuple[int, str, str | None, str | None]:
+    """Returns (overall_score, verdict, band, reading).
 
     Legacy path: four-pillar weighted sum + soft AND-floor (unchanged);
-    band is None.
+    band and reading are None.
 
     Reasoning-gate path (D1, plan Phase 1 step 3): promise is the GATE,
     not a vote member — its 0.25 weight is removed and the timing pillars
     are renormalised (dasha 0.45, gochar 0.35, panchangam 0.20). A chart
     whose natal promise is BLOCKED cannot be lifted by any dasha/gochar
     combination.
+
+    reading (D4, plan Phase 3) classifies gate-vs-timing disagreement
+    from the *pre-cap* timing band — "promised but not now" is about what
+    the timing itself says, not the published (possibly capped) band.
     """
     if not use_reasoning_gate:
         # Four-pillar formula: natal + dasha + gochar + panchangam
@@ -601,17 +607,20 @@ def _overall_verdict(
             verdict = "NEUTRAL"
         else:
             verdict = "CAUTION"
-        return overall, verdict, None
+        return overall, verdict, None, None
 
     if natal_score < _GATE_WEAK_MIN:
         # Gate BLOCKED — timing is not consulted (D1 veto).
-        return min(natal_score, 25), "CAUTION", Band.BLOCKED.value
+        reading = classify(GateGrade.BLOCKED, None)
+        return min(natal_score, 25), "CAUTION", Band.BLOCKED.value, reading.value
 
     timing_score = weighted_timing_vote(
         [(dasha_score, 0.45), (gochar_score, 0.35), (panchangam_score, 0.20)]
     )
     band = timing_band_from_score(timing_score)
-    if natal_score < _GATE_PASS_MIN:
+    gate_grade = GateGrade.PASS if natal_score >= _GATE_PASS_MIN else GateGrade.WEAK
+    reading = classify(gate_grade, band)
+    if gate_grade is GateGrade.WEAK:
         # Gate WEAK — proceed, but cap the band at LIKELY (plan §Phase 1).
         band = cap_band(band, Band.LIKELY)
 
@@ -621,7 +630,54 @@ def _overall_verdict(
         verdict = "NEUTRAL"
     else:
         verdict = "CAUTION"
-    return timing_score, verdict, band.value
+    return timing_score, verdict, band.value, reading.value
+
+
+def _reading_summary(
+    reading: str,
+    scenario_ta: str,
+    scenario_en: str,
+    target_str_ta: str,
+    target_str_en: str,
+) -> tuple[str, str] | None:
+    """Summary override for the discriminating readings (D4, plan Phase 3).
+
+    PROMISED_AND_TIMED / MIXED keep the verdict copy — alignment and genuine
+    middles are already what those templates say. Whatif has no computed
+    next-window date, so PROMISED_NOT_NOW points at the best-period guidance
+    the response already carries.
+    """
+    if reading == Reading.PROMISED_NOT_NOW.value:
+        return (
+            f"{target_str_ta} தேதிக்கு {scenario_ta} பற்றிய ஆய்வு: "
+            f"இது உங்கள் ஜாதகத்தில் வாக்களிக்கப்பட்டுள்ளது; ஆனால் இந்த தேதியை சுற்றிய காலம் "
+            f"இன்னும் செயலூக்கம் பெறவில்லை. அவசரப்படாமல், கீழே பரிந்துரைக்கப்படும் "
+            f"சிறந்த காலத்தை நோக்கி திட்டமிடுவது நல்லது.",
+            f"Analysis for {scenario_en} around {target_str_en}: "
+            f"This is promised in your chart, but the timing around this date isn't active yet. "
+            f"Rather than forcing it now, plan toward the better window suggested below.",
+        )
+    if reading == Reading.ACTIVE_BUT_UNPROMISED.value:
+        return (
+            f"{target_str_ta} தேதிக்கு {scenario_ta} பற்றிய ஆய்வு: "
+            f"இது ஒரு செயலூக்கமான காலம்; ஆனால் ஜாதகம் இந்த ஆற்றலை {scenario_ta} பக்கம் அல்லாமல் "
+            f"வேறு திசையில் காட்டுகிறது. ஜாதகம் வலுவாக ஆதரிக்கும் பகுதிகளில் இந்த காலத்தை "
+            f"பயன்படுத்துவது சிறந்த பலன் தரும்.",
+            f"Analysis for {scenario_en} around {target_str_en}: "
+            f"This is an active period, but your chart points its energy in a direction other than "
+            f"{scenario_en.lower()}. Using this period for the areas your chart strongly supports "
+            f"will serve you better.",
+        )
+    if reading == Reading.NOT_PROMISED.value:
+        return (
+            f"{target_str_ta} தேதிக்கு {scenario_ta} பற்றிய ஆய்வு: "
+            f"இந்த விஷயத்தில் ஜாதகம் வலுவான வாக்கு தரவில்லை — சாதகமான தசையிலும் இது "
+            f"முதன்மை பாதை அல்ல. ஜாதகம் ஆதரிக்கும் பகுதிகளில் கவனம் செலுத்துவது நல்லது.",
+            f"Analysis for {scenario_en} around {target_str_en}: "
+            f"The chart does not strongly promise this — even in a good dasha it is not the "
+            f"primary path. Redirecting focus to areas the chart does support is wiser.",
+        )
+    return None
 
 
 def _build_summary(
@@ -634,6 +690,7 @@ def _build_summary(
     target_date: date,
     sani_cycle_active: bool,
     sani_cycle_type: str | None,
+    reading: str | None = None,
 ) -> tuple[WhatIfBiText, WhatIfBiText, WhatIfBiText, WhatIfBiText, WhatIfBiText]:
     """Returns (summary, best_period, caution_note, remedy, disclaimer)."""
 
@@ -646,10 +703,20 @@ def _build_summary(
     target_str_ta = target_date.strftime("%d-%m-%Y")
 
     # ── Summary ──
+    # D4 (reasoning_contradiction, plan Phase 3): a disagreement reading is
+    # spoken as its own template instead of the verdict-only branch — the
+    # "promised but not now" vs "active but not this" discrimination.
+    summary_override = (
+        _reading_summary(reading, scenario_ta, scenario_en, target_str_ta, target_str_en)
+        if reading and get_flag("reasoning_contradiction")
+        else None
+    )
     # D2 (reasoning_bands): the verdict word carries the judgement; the numeric
     # score parenthetical only appears on the legacy (flag-off) path.
     sc = "" if get_flag("reasoning_bands") else f" ({overall_score}/100)"
-    if verdict == "FAVOURABLE":
+    if summary_override is not None:
+        summary_ta, summary_en = summary_override
+    elif verdict == "FAVOURABLE":
         summary_ta = (
             f"{target_str_ta} தேதிக்கு {scenario_ta} பற்றிய ஆய்வு: "
             f"மூன்று தூண்களும்{sc} சாதகமாக உள்ளன. "
@@ -857,7 +924,7 @@ def evaluate_whatif(
         timeline.current_mahadasha.lord,
     )
 
-    overall_score, verdict, band = _overall_verdict(
+    overall_score, verdict, band, reading = _overall_verdict(
         natal.score, dasha.score, gochar.score, panchang_score,
         use_reasoning_gate=bool(get_flag("reasoning_gate")),
     )
@@ -868,6 +935,7 @@ def evaluate_whatif(
         target_date,
         sani_cycle.is_active,
         sani_cycle.type if sani_cycle.is_active else None,
+        reading=reading,
     )
 
     triple = TripleConfirmation(
@@ -883,13 +951,16 @@ def evaluate_whatif(
 
     # D5 accountability (plan Phase 4): log the served claim so a later real
     # outcome can grade it. Legacy-path verdicts carry no Band — map them to
-    # a conservative ordinal equivalent for the log only.
+    # a conservative ordinal equivalent for the log only. The reading fills
+    # whenever the gate computed one (Phase 3), independent of whether the
+    # contradiction copy is user-visible yet.
     log_prediction(
         session,
         chart_id=chart_id,
         source="whatif",
         life_area=scenario_to_area(scenario),
         band=band or {"FAVOURABLE": "LIKELY", "NEUTRAL": "MIXED"}.get(verdict, "WEAK"),
+        reading=reading,
         calc_version=_CALC_VERSION,
         window_start=target_date,
         window_end=target_date,
@@ -904,6 +975,7 @@ def evaluate_whatif(
         overallScore=overall_score,
         verdict=verdict,
         band=band,
+        reading=reading if get_flag("reasoning_contradiction") else None,
         tripleConfirmation=triple,
         summary=summary,
         bestPeriodInWindow=best_period,

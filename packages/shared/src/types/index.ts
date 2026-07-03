@@ -61,12 +61,28 @@ export interface LifeAreaData {
   next30DayOutlook: BiText;
   caution: BiText | null;
   isGoalFocus: boolean;
+  /** Additive — present only when the reasoning_contradiction flag is on. */
+  reading?: ReasoningReading | null;
+  /**
+   * Root-cause chain ("because ... therefore ..."), replacing the flat
+   * factor list for LOW-confidence areas only. Additive — present only
+   * when the reasoning_chart_signature flag is on (plan Phase 5).
+   */
+  causalChain?: BiText | null;
+}
+
+/** Dominant-graha framing for the whole chart (plan Phase 5). */
+export interface ChartSignatureData {
+  dominant: string;
+  framing: BiText;
 }
 
 export interface LifeAreasResponseData {
   chartId: string;
   dateLocal: string;
   areas: LifeAreaData[];
+  /** Additive — present only when the reasoning_chart_signature flag is on. */
+  chartSignature?: ChartSignatureData | null;
 }
 
 export interface AskVinaadiAnswer {
@@ -825,11 +841,27 @@ export interface TripleConfirmation {
  */
 export type ReasoningBand = "STRONG" | "LIKELY" | "MIXED" | "WEAK" | "BLOCKED" | "SILENT";
 
+/**
+ * Contradiction reading (reasoning kernel Phase 3, D4): why the promise
+ * gate and the timing vote agree or disagree. PROMISED_NOT_NOW = wait
+ * (the window opens later); ACTIVE_BUT_UNPROMISED = redirect the period's
+ * energy elsewhere; NOT_PROMISED = the chart does not indicate this.
+ */
+export type ReasoningReading =
+  | "PROMISED_AND_TIMED"
+  | "PROMISED_NOT_NOW"
+  | "ACTIVE_BUT_UNPROMISED"
+  | "NOT_PROMISED"
+  | "MIXED"
+  | "SILENT";
+
 export interface WhatIfData {
   chartId: string; scenario: string; targetDate: string; overallScore: number;
   verdict: "FAVOURABLE" | "NEUTRAL" | "CAUTION";
   /** Additive — present only when the reasoning_gate flag is on. */
   band?: ReasoningBand | null;
+  /** Additive — present only when the reasoning_contradiction flag is on. */
+  reading?: ReasoningReading | null;
   tripleConfirmation: TripleConfirmation;
   summary: BiText; bestPeriodInWindow: BiText; cautionNote: BiText;
   remedy: BiText; disclaimer: BiText;

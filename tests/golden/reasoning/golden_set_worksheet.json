@@ -1,0 +1,92 @@
+{
+  "_comment": [
+    "Golden-set expansion 3 -> ~20 (docs/REASONING_LAYER_UPGRADE_PLAN.md §7, §11 item 4).",
+    "SYNTHETIC charts only (CLAUDE.md rule: never real birth data, names, or coordinates).",
+    "",
+    "Engineering scaffolds this worksheet; the chief Thirukanitham specialist annotates the",
+    "TODO rows (input placements + expected band/reading per life area). Once a row's status",
+    "flips to DONE, wire it into a parametrized pytest case mirroring",
+    "tests/reasoning/test_marriage_gate.py (K1-K3 below already do, via",
+    "tests/golden/reasoning/marriage_promise_gate.json, which remains the source of truth for",
+    "those three -- they are reproduced here only so this file is a complete 20-row picture).",
+    "",
+    "Coverage target: every Reading value (PROMISED_AND_TIMED, PROMISED_NOT_NOW,",
+    "ACTIVE_BUT_UNPROMISED, NOT_PROMISED, MIXED, SILENT) appears at least twice, and every",
+    "life area in app/services/life_areas_service.py::_AREA_ROUTING appears at least once.",
+    "'varga' below names the area's varga per _AREA_ROUTING (e.g. RELATIONSHIPS -> D9,",
+    "CAREER -> D10) -- the input's d_varga_rasi_by_planet map should place that area's karaka",
+    "in that varga, per the Phase 1 promise-gate spec (plan §Phase 1)."
+  ],
+  "schema": {
+    "name": "short_snake_case_id",
+    "status": "DONE | TODO",
+    "target_area": "one of _AREA_ROUTING's keys -- the life area this chart is annotated for",
+    "target_reading": "the Reading value this chart is meant to exercise (coverage bookkeeping)",
+    "annotation": "specialist's prose: which lord/karaka placements drive the gate grade, and why (blank until filled)",
+    "input": {
+      "lagna_rasi": "int 1-12",
+      "planets_rasi": "dict PLANET -> rasi 1-12, all nine grahas placed in D1",
+      "varga": "the varga code this row exercises, e.g. 'D9', 'D10'",
+      "varga_rasi_by_planet": "dict PLANET -> rasi 1-12 in that varga, at least for the area's karaka(s)",
+      "active_dasha_lords": "list of maha/antar lords currently running",
+      "transits": "dict PLANET -> rasi 1-12 (transit positions as of as_of_date)",
+      "as_of_date": "YYYY-MM-DD anchor date for the transits/dasha above",
+      "age": "int, synthetic native's age as of as_of_date",
+      "afflictions": "dict of area-relevant affliction flags, e.g. {\"karaka_combust\": false, \"dosham_cancelled\": true}"
+    },
+    "expected": {
+      "gate": "PASS | WEAK | BLOCKED | SILENT",
+      "band": "STRONG | LIKELY | MIXED | WEAK | BLOCKED | SILENT",
+      "reading": "PROMISED_AND_TIMED | PROMISED_NOT_NOW | ACTIVE_BUT_UNPROMISED | NOT_PROMISED | MIXED | SILENT",
+      "timing_window_claimed": "bool",
+      "window_note": "free text, e.g. 'opens ~2029 when Venus dasha begins' (optional)"
+    }
+  },
+  "coverage_table": [
+    {"id": "K1",  "area": "RELATIONSHIPS", "reading": "NOT_PROMISED",          "status": "DONE", "source": "tests/golden/reasoning/marriage_promise_gate.json#denied_marriage"},
+    {"id": "K2",  "area": "RELATIONSHIPS", "reading": "PROMISED_NOT_NOW",      "status": "DONE", "source": "tests/golden/reasoning/marriage_promise_gate.json#delayed_marriage"},
+    {"id": "K3",  "area": "RELATIONSHIPS", "reading": "PROMISED_AND_TIMED",    "status": "DONE", "source": "tests/golden/reasoning/marriage_promise_gate.json#promised_and_timed_marriage"},
+    {"id": "K4",  "area": "RELATIONSHIPS", "reading": "ACTIVE_BUT_UNPROMISED", "status": "TODO"},
+    {"id": "K5",  "area": "CAREER",        "reading": "PROMISED_AND_TIMED",    "status": "TODO"},
+    {"id": "K6",  "area": "CAREER",        "reading": "PROMISED_NOT_NOW",      "status": "TODO"},
+    {"id": "K7",  "area": "CAREER",        "reading": "NOT_PROMISED",          "status": "TODO"},
+    {"id": "K8",  "area": "HEALTH",        "reading": "NOT_PROMISED",          "status": "TODO", "note": "maraka_risk=True area -- extra care that BLOCKED reads as redirect, not doom (D6)"},
+    {"id": "K9",  "area": "HEALTH",        "reading": "MIXED",                 "status": "TODO"},
+    {"id": "K10", "area": "MONEY",         "reading": "PROMISED_AND_TIMED",    "status": "TODO"},
+    {"id": "K11", "area": "MONEY",         "reading": "SILENT",                "status": "TODO"},
+    {"id": "K12", "area": "EDUCATION",     "reading": "PROMISED_NOT_NOW",      "status": "TODO"},
+    {"id": "K13", "area": "EDUCATION",     "reading": "ACTIVE_BUT_UNPROMISED", "status": "TODO"},
+    {"id": "K14", "area": "CHILDREN",      "reading": "PROMISED_AND_TIMED",    "status": "TODO"},
+    {"id": "K15", "area": "CHILDREN",      "reading": "NOT_PROMISED",          "status": "TODO"},
+    {"id": "K16", "area": "PROPERTY",      "reading": "MIXED",                 "status": "TODO"},
+    {"id": "K17", "area": "FOREIGN",       "reading": "PROMISED_NOT_NOW",      "status": "TODO"},
+    {"id": "K18", "area": "FOREIGN",       "reading": "SILENT",                "status": "TODO"},
+    {"id": "K19", "area": "LITIGATION",    "reading": "NOT_PROMISED",          "status": "TODO"},
+    {"id": "K20", "area": "SPIRITUAL",     "reading": "PROMISED_AND_TIMED",    "status": "TODO"}
+  ],
+  "todo_template": {
+    "name": "REPLACE_ME",
+    "status": "TODO",
+    "target_area": "REPLACE_ME",
+    "target_reading": "REPLACE_ME",
+    "annotation": "",
+    "input": {
+      "lagna_rasi": null,
+      "planets_rasi": {"SUN": null, "MOON": null, "MARS": null, "MERCURY": null, "JUPITER": null, "VENUS": null, "SATURN": null, "RAHU": null, "KETU": null},
+      "varga": "REPLACE_ME",
+      "varga_rasi_by_planet": {},
+      "active_dasha_lords": [],
+      "transits": {},
+      "as_of_date": null,
+      "age": null,
+      "afflictions": {}
+    },
+    "expected": {
+      "gate": null,
+      "band": null,
+      "reading": null,
+      "timing_window_claimed": null,
+      "window_note": ""
+    }
+  }
+}

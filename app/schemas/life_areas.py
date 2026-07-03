@@ -41,10 +41,25 @@ class LifeAreaData(BaseModel):
     next_30_day_outlook: LifeAreaText = Field(alias="next30DayOutlook")
     caution: LifeAreaText | None = None
     is_goal_focus: bool = Field(default=False, alias="isGoalFocus")
+    # Contradiction reading (PROMISED_AND_TIMED / PROMISED_NOT_NOW /
+    # ACTIVE_BUT_UNPROMISED / NOT_PROMISED / MIXED / SILENT). Additive —
+    # populated only when the reasoning_contradiction flag is on (Phase 3, D4).
+    reading: str | None = Field(default=None)
     score_breakdown: dict[str, int] | None = Field(default=None, alias="scoreBreakdown")
     structured_remedy: dict[str, object] | None = Field(default=None, alias="structuredRemedy")
+    # Root-cause chain (plan Phase 5, D-synthesis): an ordered "because ...
+    # therefore ..." reading in place of the flat factor list, for LOW-
+    # confidence areas only. Additive — populated only when the
+    # reasoning_chart_signature flag is on.
+    causal_chain: LifeAreaText | None = Field(default=None, alias="causalChain")
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class ChartSignatureData(BaseModel):
+    """Dominant-graha framing for the whole chart (plan Phase 5)."""
+    dominant: str
+    framing: LifeAreaText
 
 
 class LifeAreasResponseData(BaseModel):
@@ -52,6 +67,8 @@ class LifeAreasResponseData(BaseModel):
     date_local: date = Field(alias="dateLocal")
     chart_validation_status: str | None = Field(default=None, alias="chartValidationStatus")
     areas: list[LifeAreaData]
+    # Additive — populated only when the reasoning_chart_signature flag is on.
+    chart_signature: ChartSignatureData | None = Field(default=None, alias="chartSignature")
 
     model_config = ConfigDict(populate_by_name=True)
 

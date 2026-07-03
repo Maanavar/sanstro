@@ -24,6 +24,22 @@ def calibration_log_on():
     feature_flags.reset_flag("reasoning_calibration_log")
 
 
+@pytest.fixture
+def gate_on():
+    feature_flags.set_flag("reasoning_gate", True)
+    yield
+    feature_flags.reset_flag("reasoning_gate")
+
+
+@pytest.fixture
+def calibration_log_off():
+    # Default flipped to True 2026-07-03 (plan §8 rollout order); this test
+    # exercises the flag-off path explicitly rather than relying on the default.
+    feature_flags.set_flag("reasoning_calibration_log", False)
+    yield
+    feature_flags.reset_flag("reasoning_calibration_log")
+
+
 def _create_chart(client) -> str:
     created = client.post(
         "/api/v1/birth-profiles",
@@ -70,7 +86,7 @@ def _rows(chart_id: str) -> list[PredictionLog]:
         ).scalars().all()
 
 
-def test_flag_off_serve_writes_nothing(client):
+def test_flag_off_serve_writes_nothing(client, calibration_log_off):
     chart_id = _create_chart(client)
     _whatif(client, chart_id)
     client.get(f"/api/v1/charts/{chart_id}/predictions/marriage")
@@ -93,6 +109,19 @@ def test_whatif_serve_logs_prediction_once(client, calibration_log_on):
     # Re-viewing the same claim must not inflate n (dedupe).
     _whatif(client, chart_id)
     assert len(_rows(chart_id)) == 1
+
+
+def test_whatif_serve_fills_reading_when_gate_on(client, calibration_log_on, gate_on):
+    # Phase 3: the reading column (nullable since PR-3) fills whenever the
+    # gate computed one — independent of the reasoning_contradiction copy flag.
+    chart_id = _create_chart(client)
+    _whatif(client, chart_id)
+    rows = _rows(chart_id)
+    assert len(rows) == 1
+    assert rows[0].reading in {
+        "PROMISED_AND_TIMED", "PROMISED_NOT_NOW", "ACTIVE_BUT_UNPROMISED",
+        "NOT_PROMISED", "MIXED", "SILENT",
+    }
 
 
 def test_marriage_serve_logs_prediction(client, calibration_log_on):

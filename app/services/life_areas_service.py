@@ -39,9 +39,14 @@ from app.calculations.transits import classify_ezharai_sani_murthi, classify_kan
 from app.core.age_gate import get_house_locus
 from app.models import BirthProfile, Chart
 from app.models.user_life_events import UserLifeEvent
+from app.reasoning.chart_signature import detect_signature
+from app.reasoning.contradiction import Reading, classify
+from app.reasoning.promise_gate import GateGrade
+from app.reasoning.timing_vote import timing_band_from_score
 from app.reasoning.verdict import legacy_confidence_to_band
 from app.schemas.dasha import ResponseMeta
 from app.schemas.life_areas import (
+    ChartSignatureData,
     LifeAreaData,
     LifeAreaDriver,
     LifeAreasResponse,
@@ -52,6 +57,13 @@ from app.services.chart_service import load_persisted_chart_response
 from app.services.feature_flags import get_flag
 from app.services.goals_service import get_active_goals_for_chart
 from app.services.location_service import resolve_effective_daily_timezone
+from app.services.narrative_engine import (
+    active_but_unpromised_voice,
+    promised_not_now_voice,
+    reading_phrase,
+    render_causal_chain,
+    signature_framing,
+)
 from app.services.prediction_log_service import log_prediction
 from app.services.rectification_service import validate_chart_against_events
 
@@ -514,7 +526,7 @@ def _find_next_improvement_date(
         saturn_house_from_lagna = house_from_reference(natal_lagna_rasi, saturn.rasi)
         sani_cycle = classify_sani_cycle(saturn_house_from_moon)
         kandaka_cycle = classify_kandaka_cycle(saturn_house_from_lagna)
-        projected, _ = _score_area(
+        projected, _, _ = _score_area(
             area,
             natal_moon_rasi,
             transit.bodies,
@@ -1073,7 +1085,7 @@ def _score_area(
         "l4": scored.l4_varga_confirmation,
         "l5": scored.l5_transit_support,
         "l6": scored.l6_ashtakavarga,
-    }
+    }, scored.gate_grade
 
 
 # ── Public service function ────────────────────────────────────────────────────
@@ -1356,6 +1368,35 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
     if _retired:
         area_label_override["CAREER"] = _t("வாழ்க்கை நோக்கம்", "Life Purpose / Legacy")
 
+    # D4 (plan Phase 3): whether contradiction readings are user-visible.
+    # Readings are computed whenever the gate runs (they also fill the
+    # calibration log), but only surface in copy/contract behind this flag.
+    contradiction_on = bool(get_flag("reasoning_contradiction"))
+
+    # Phase 5 (chart signature + root-cause chains): additive, off by default.
+    # Reuses natal longitudes/rasis/strength and the running dasha already
+    # computed above — no extra ephemeris or DB work.
+    signature_on = bool(get_flag("reasoning_chart_signature"))
+    chart_signature_data: ChartSignatureData | None = None
+    if signature_on:
+        planet_longitudes = {
+            p.graha: p.absolute_longitude
+            for p in chart_snapshot.data.planets
+            if p.graha in {"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU"}
+        }
+        signature = detect_signature(
+            planet_longitudes=planet_longitudes,
+            planet_rasis=natal_planet_rasis,
+            planet_strength=natal_planet_scores,
+            current_maha_lord=maha_lord,
+            current_antar_lord=antar_lord,
+        )
+        framing = signature_framing(signature.motif)
+        chart_signature_data = ChartSignatureData(
+            dominant=signature.dominant,
+            framing=_t(framing.ta, framing.en),
+        )
+
     areas: list[LifeAreaData] = []
     for area in (
         "CAREER",
@@ -1373,7 +1414,7 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
     ):
         effective_label = area_label_override.get(area, _AREA_LABELS[area])
 
-        score, score_breakdown = _score_area(
+        score, score_breakdown, gate_grade = _score_area(
             area,
             natal_moon.rasi,
             transit.bodies,
@@ -1404,6 +1445,20 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             native_age=current_age,
             sarvashtakavarga=sarvashtakavarga,
         )
+        # D4 (plan Phase 3): classify gate-vs-timing disagreement from the
+        # prediction score's own pieces — on the gate path `score` is still
+        # the timing vote here (L2–L6 rescaled; BLOCKED/SILENT skipped it),
+        # and gate_grade is the promise-gate outcome.
+        area_reading: str | None = None
+        if gate_grade is not None:
+            _grade = GateGrade(gate_grade)
+            _timing_band = (
+                timing_band_from_score(score)
+                if _grade in (GateGrade.PASS, GateGrade.WEAK)
+                else None
+            )
+            area_reading = classify(_grade, _timing_band).value
+
         score = max(0, min(100, round(score * 0.65 + chain_result["score"] * 0.35)))
 
         karakas = _AREA_KARAKA[area]
@@ -1504,10 +1559,13 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
         if area == "CAREER" and student_under_18:
             relevant_areas = set(relevant_areas)
             relevant_areas.discard("CAREER")
-        if area not in relevant_areas:
+        phase_skipped = area not in relevant_areas
+        if phase_skipped:
             skip_text = _phase_skip_text(phase)
             if phase in {"INFANT", "CHILD"}:
                 score = 0
+            # A phase-skipped area makes no claim — no reading either.
+            area_reading = None
             _area_confidence = "LOW"
             _area_conf_reason = skip_text
             driver_reason = skip_text
@@ -1522,6 +1580,10 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
         label = effective_label
         if married and area == "RELATIONSHIPS" and area in relevant_areas:
             label = _t("தாம்பத்ய ஒற்றுமை", "Married life harmony")
+            # Harmony framing is not a new-event promise — married profiles
+            # are never promise-gated (PR-1 marriage decision), so a
+            # promise/timing reading would be a category error here.
+            area_reading = None
             married_narrative, married_outlook, married_caution = _married_relationship_text(score)
             bundle = _NarrativeBundle(
                 narrative=married_narrative,
@@ -1530,7 +1592,12 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
                 caution=married_caution,
             )
 
-        if score < 50 or bundle.caution is not None:
+        next_improvement: date | None = None
+        if score < 50 or bundle.caution is not None or (
+            # PROMISED_NOT_NOW must answer "then when?" (plan Phase 3) —
+            # compute the window date even when the blended score sits ≥ 50.
+            contradiction_on and area_reading == Reading.PROMISED_NOT_NOW.value
+        ):
             next_improvement = _find_next_improvement_date(
                 area=area,
                 current_score=score,
@@ -1546,6 +1613,7 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
                 sav=sarvashtakavarga,
                 native_age=current_age,
             )
+        if score < 50 or bundle.caution is not None:
             bundle = _NarrativeBundle(
                 narrative=bundle.narrative,
                 outlook=_with_improvement_hint(bundle.outlook, next_improvement),
@@ -1569,6 +1637,31 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             )
             if maraka_guard.get("suppress_score_display"):
                 score = 0
+                # We chose not to show the claim — no reading to speak either.
+                area_reading = None
+
+        # D4 (plan Phase 3): speak the discriminating readings as a framing
+        # sentence. PROMISED_NOT_NOW carries the concrete next-window date;
+        # ACTIVE_BUT_UNPROMISED is completed in a post-pass below, once every
+        # area's score is known (it names where the chart points instead).
+        if contradiction_on and area_reading in (
+            Reading.PROMISED_NOT_NOW.value,
+            Reading.NOT_PROMISED.value,
+        ):
+            _voice = (
+                promised_not_now_voice(next_improvement)
+                if area_reading == Reading.PROMISED_NOT_NOW.value
+                else reading_phrase(area_reading)
+            )
+            bundle = _NarrativeBundle(
+                narrative=_t(
+                    f"{_voice.ta} {bundle.narrative.ta}",
+                    f"{_voice.en} {bundle.narrative.en}",
+                ),
+                outlook=bundle.outlook,
+                remedy=bundle.remedy,
+                caution=bundle.caution,
+            )
 
         # D5 accountability (plan Phase 4): only HIGH confidence (all three
         # signals aligned) is a material claim worth holding ourselves to —
@@ -1585,12 +1678,26 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
                 source="life_areas",
                 life_area=area,
                 band=legacy_confidence_to_band(_area_confidence).value,
+                reading=area_reading,
                 calc_version=chart_snapshot.meta.calculation_version,
                 window_start=on_date,
                 window_end=on_date + timedelta(days=30),
                 active_maha=maha_lord,
                 active_antar=antar_lord,
             )
+
+        # Phase 5 root-cause chain: for LOW confidence only, replace the flat
+        # factor list with an ordered "because ... therefore ..." reading
+        # built from evidence already computed above (karaka transit, dasha,
+        # sani cycle, and net effect) instead of averaging it away silently.
+        causal_chain_text: LifeAreaText | None = None
+        _married_harmony = married and area == "RELATIONSHIPS" and area in relevant_areas
+        if signature_on and _area_confidence == "LOW" and not phase_skipped and not _married_harmony:
+            chain = render_causal_chain(
+                steps=[driver_reason, detailed_reason],
+                conclusion=_area_conf_reason,
+            )
+            causal_chain_text = _t(chain.ta, chain.en)
 
         areas.append(LifeAreaData(
             area=area,
@@ -1599,6 +1706,7 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             trend=_trend(score, dasha_score),
             confidence=_area_confidence,
             confidenceReason=_area_conf_reason,
+            causalChain=causal_chain_text,
             primaryHouseStrength=chain_result["primary_house_strength"],
             karakaStatus=chain_result["karaka_status"],
             dashaActivation=chain_result["dasha_activation"],
@@ -1611,9 +1719,25 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             next30DayOutlook=bundle.outlook,
             caution=bundle.caution,
             isGoalFocus=is_goal_focus,
+            reading=area_reading if contradiction_on else None,
             scoreBreakdown=score_breakdown,
             structuredRemedy=structured_remedy,
         ))
+
+    # D4 post-pass: ACTIVE_BUT_UNPROMISED names where the chart points the
+    # period's energy instead ("toward [dominant area] rather than [asked
+    # area]") — resolvable only after every area is scored.
+    if contradiction_on:
+        redirects = [a for a in areas if a.reading == Reading.ACTIVE_BUT_UNPROMISED.value]
+        if redirects:
+            best = max(areas, key=lambda a: a.score)
+            for entry in redirects:
+                dominant = best.label if best.area != entry.area and best.score >= 60 else None
+                _voice = active_but_unpromised_voice(dominant)
+                entry.narrative = _t(
+                    f"{_voice.ta} {entry.narrative.ta}",
+                    f"{_voice.en} {entry.narrative.en}",
+                )
 
     return LifeAreasResponse(
         data=LifeAreasResponseData(
@@ -1621,6 +1745,7 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             dateLocal=on_date,
             chartValidationStatus=chart_validation_status,
             areas=areas,
+            chartSignature=chart_signature_data,
         ),
         meta=ResponseMeta(
             calculation_version=chart_snapshot.meta.calculation_version,
