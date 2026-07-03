@@ -21,7 +21,9 @@ from app.services.chart_service import load_persisted_chart_response
 from app.services.health_service import HealthAssessmentInput, assess_health_prediction
 from app.services.life_area_prediction_models import LifeAreaPrediction
 from app.services.location_service import resolve_effective_daily_timezone
+from app.reasoning.verdict import legacy_confidence_to_band
 from app.services.marriage_service import MarriageAssessmentInput, assess_marriage_prediction
+from app.services.prediction_log_service import log_prediction
 from app.services.wealth_service import WealthAssessmentInput, assess_wealth_prediction
 
 router = APIRouter()
@@ -52,6 +54,9 @@ class LifeAreaPredictionOut(BaseModel):
     timing_window_start: date | None = Field(alias="timingWindowStart")
     timing_window_end: date | None = Field(alias="timingWindowEnd")
     confidence: str
+    # Ordinal reasoning band (STRONG/LIKELY/MIXED/WEAK/BLOCKED/SILENT).
+    # Additive — populated only when the reasoning_gate flag is on (Phase 1).
+    band: str | None = None
     challenges: list[BiTextOut]
     supports: list[BiTextOut]
     model_config = ConfigDict(populate_by_name=True)
@@ -85,6 +90,7 @@ def _to_out(pred: LifeAreaPrediction) -> LifeAreaPredictionOut:
         timingWindowStart=pred.timing_window_start,
         timingWindowEnd=pred.timing_window_end,
         confidence=pred.confidence,
+        band=pred.band,
         challenges=[BiTextOut(ta=c.ta, en=c.en) for c in pred.challenges],
         supports=[BiTextOut(ta=s.ta, en=s.en) for s in pred.supports],
     )
@@ -197,6 +203,19 @@ def get_marriage_prediction(
     is_parental = relationship_to_owner in {"parent", "grandparent"}
     gated = age < 18 or is_past_prime_marriage_age(age) or is_married_settled(marital_status) or is_parental
     alt = "Relationship Harmony" if is_married_settled(marital_status) else None
+    if not gated:
+        # D5 accountability (plan Phase 4): age-gated responses claim nothing
+        # material, so only genuine timing calls are logged.
+        log_prediction(
+            session,
+            chart_id=chart_id,
+            source="marriage",
+            life_area="MARRIAGE",
+            band=result.band or legacy_confidence_to_band(result.confidence).value,
+            calc_version=snapshot.meta.calculation_version,
+            window_start=result.timing_window_start,
+            window_end=result.timing_window_end,
+        )
     return PredictionResponse(
         data=_to_out(result),
         age_gated=gated,

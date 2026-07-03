@@ -338,6 +338,8 @@ export interface DailyGuidanceData {
   label: string;
   confidence: ConfidenceTier;
   confidenceReason: BiText;
+  /** Additive ordinal band — present only when the reasoning_bands flag is on. */
+  band?: ReasoningBand | null;
   scoreBreakdown: {
     moonTransit: number;
     dashaSupport: number;
@@ -816,9 +818,18 @@ export interface TripleConfirmation {
   overallVerdict: "FAVOURABLE" | "NEUTRAL" | "CAUTION";
 }
 
+/**
+ * Ordinal reasoning band (reasoning kernel Phase 1).
+ * BLOCKED = the chart actively denies; SILENT = the chart is quiet
+ * (insufficient signal) — deliberately not the same as "no".
+ */
+export type ReasoningBand = "STRONG" | "LIKELY" | "MIXED" | "WEAK" | "BLOCKED" | "SILENT";
+
 export interface WhatIfData {
   chartId: string; scenario: string; targetDate: string; overallScore: number;
   verdict: "FAVOURABLE" | "NEUTRAL" | "CAUTION";
+  /** Additive — present only when the reasoning_gate flag is on. */
+  band?: ReasoningBand | null;
   tripleConfirmation: TripleConfirmation;
   summary: BiText; bestPeriodInWindow: BiText; cautionNote: BiText;
   remedy: BiText; disclaimer: BiText;
@@ -918,7 +929,10 @@ export interface LifeAreaPredictionData {
   astrologicalFactors: PredictionAstroFactor[];
   dashaSupport: "STRONG" | "PARTIAL" | "WEAK"; transitSupport: "STRONG" | "PARTIAL" | "WEAK";
   timingWindowStart: string | null; timingWindowEnd: string | null;
-  confidence: "HIGH" | "MEDIUM" | "LOW"; challenges: BiText[]; supports: BiText[];
+  confidence: "HIGH" | "MEDIUM" | "LOW";
+  /** Additive ordinal band — present only when the reasoning_gate flag is on. */
+  band?: ReasoningBand | null;
+  challenges: BiText[]; supports: BiText[];
 }
 
 export interface LifeAreaPredictionResponse {

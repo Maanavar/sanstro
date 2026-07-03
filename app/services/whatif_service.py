@@ -27,6 +27,8 @@ from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.panchangam import calculate_daily_panchangam
 from app.calculations.transits import classify_sani_cycle
 from app.models import BirthProfile, Chart
+from app.reasoning.verdict import Band, cap_band
+from app.reasoning.timing_vote import timing_band_from_score, weighted_timing_vote
 from app.schemas.dasha import ResponseMeta
 from app.schemas.whatif import (
     TripleConfirmation,
@@ -35,7 +37,9 @@ from app.schemas.whatif import (
     WhatIfResponse,
 )
 from app.services.chart_service import load_persisted_chart_response
+from app.services.feature_flags import get_flag
 from app.services.location_service import local_noon_as_utc_for_profile, resolve_effective_daily_location
+from app.services.prediction_log_service import log_prediction, scenario_to_area
 
 _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
 
@@ -373,6 +377,9 @@ def _assess_dasha_support(
     scenario_ta = _SCENARIO_LABEL_TA[scenario]
     scenario_en = _SCENARIO_LABEL_EN[scenario]
 
+    # D2 (reasoning_bands): the band word carries the judgement; the numeric
+    # index only appears on the legacy (flag-off) path. Tamil copy never had it.
+    idx = "" if get_flag("reasoning_bands") else f" (dasha index {score}/100)"
     if score >= 65:
         text_ta = (
             f"{ta_maha} மஹாதசையும் {ta_antar} அந்தர்தசையும் {scenario_ta}க்கு "
@@ -380,7 +387,7 @@ def _assess_dasha_support(
         )
         text_en = (
             f"{en_maha} Mahadasha and {en_antar} Antardasha provide strong support "
-            f"for {scenario_en} (dasha index {score}/100)."
+            f"for {scenario_en}{idx}."
         )
     elif score >= 45:
         text_ta = (
@@ -389,7 +396,7 @@ def _assess_dasha_support(
         )
         text_en = (
             f"{en_maha} Mahadasha offers moderate support for {scenario_en}. "
-            f"{en_antar} Antardasha encourages careful action (dasha index {score}/100)."
+            f"{en_antar} Antardasha encourages careful action{idx}."
         )
     else:
         text_ta = (
@@ -398,7 +405,7 @@ def _assess_dasha_support(
         )
         text_en = (
             f"Dasha support for {scenario_en} is lower in {en_maha} Mahadasha. "
-            f"View this as a preparation period rather than a setback (dasha index {score}/100)."
+            f"View this as a preparation period rather than a setback{idx}."
         )
 
     return _DashaAssessment(
@@ -461,6 +468,8 @@ def _assess_gochar_support(
     scenario_ta = _SCENARIO_LABEL_TA[scenario]
     scenario_en = _SCENARIO_LABEL_EN[scenario]
 
+    # D2 (reasoning_bands): no numeric index in copy on the banded path.
+    idx = "" if get_flag("reasoning_bands") else f" (gochar index {score}/100)"
     if score >= 65:
         text_ta = (
             f"கோசர நிலை சாதகமாக உள்ளது. {ta_prim} {h}ஆம் இடத்தில் கோசரிக்கிறது — "
@@ -468,7 +477,7 @@ def _assess_gochar_support(
         )
         text_en = (
             f"Transit position is favourable. {en_prim} transiting house {h} — "
-            f"planetary support for {scenario_en} is good (gochar index {score}/100)."
+            f"planetary support for {scenario_en} is good{idx}."
         )
     elif score >= 45:
         text_ta = (
@@ -477,7 +486,7 @@ def _assess_gochar_support(
         )
         text_en = (
             f"Transit position is neutral. {en_prim} is in house {h}. "
-            f"Planning ahead for a better transit window is advised (gochar index {score}/100)."
+            f"Planning ahead for a better transit window is advised{idx}."
         )
     else:
         sani_note_ta = (
@@ -494,7 +503,7 @@ def _assess_gochar_support(
         )
         text_en = (
             f"Transit position is challenging. {en_prim} is in house {h}.{sani_note_en} "
-            f"Waiting for a better planetary window is advisable (gochar index {score}/100)."
+            f"Waiting for a better planetary window is advisable{idx}."
         )
 
     return _GocharAssessment(
@@ -551,23 +560,68 @@ def _compute_panchangam_score(
 
 # ── Combined verdict and narrative ────────────────────────────────────────────
 
+# Natal-promise gate thresholds over _assess_natal_promise's 0-100 scale
+# (karaka base is 65 when well-housed, 38 when not, 50 when unknown):
+#   ≥ 60 → PASS (karakas well-placed), 42–59 → WEAK (mixed / unknown),
+#   < 42 → BLOCKED (every karaka in an unsupportive house).
+_GATE_PASS_MIN = 60
+_GATE_WEAK_MIN = 42
+
+
 def _overall_verdict(
-    natal_score: int, dasha_score: int, gochar_score: int, panchangam_score: int = 70
-) -> tuple[int, str]:
-    # Four-pillar formula: natal + dasha + gochar + panchangam
-    overall = round(
-        natal_score * 0.25
-        + dasha_score * 0.35
-        + gochar_score * 0.25
-        + panchangam_score * 0.15
+    natal_score: int,
+    dasha_score: int,
+    gochar_score: int,
+    panchangam_score: int = 70,
+    *,
+    use_reasoning_gate: bool = False,
+) -> tuple[int, str, str | None]:
+    """Returns (overall_score, verdict, band).
+
+    Legacy path: four-pillar weighted sum + soft AND-floor (unchanged);
+    band is None.
+
+    Reasoning-gate path (D1, plan Phase 1 step 3): promise is the GATE,
+    not a vote member — its 0.25 weight is removed and the timing pillars
+    are renormalised (dasha 0.45, gochar 0.35, panchangam 0.20). A chart
+    whose natal promise is BLOCKED cannot be lifted by any dasha/gochar
+    combination.
+    """
+    if not use_reasoning_gate:
+        # Four-pillar formula: natal + dasha + gochar + panchangam
+        overall = round(
+            natal_score * 0.25
+            + dasha_score * 0.35
+            + gochar_score * 0.25
+            + panchangam_score * 0.15
+        )
+        if overall >= 62 and natal_score >= 50 and dasha_score >= 50 and gochar_score >= 50:
+            verdict = "FAVOURABLE"
+        elif overall >= 45:
+            verdict = "NEUTRAL"
+        else:
+            verdict = "CAUTION"
+        return overall, verdict, None
+
+    if natal_score < _GATE_WEAK_MIN:
+        # Gate BLOCKED — timing is not consulted (D1 veto).
+        return min(natal_score, 25), "CAUTION", Band.BLOCKED.value
+
+    timing_score = weighted_timing_vote(
+        [(dasha_score, 0.45), (gochar_score, 0.35), (panchangam_score, 0.20)]
     )
-    if overall >= 62 and natal_score >= 50 and dasha_score >= 50 and gochar_score >= 50:
+    band = timing_band_from_score(timing_score)
+    if natal_score < _GATE_PASS_MIN:
+        # Gate WEAK — proceed, but cap the band at LIKELY (plan §Phase 1).
+        band = cap_band(band, Band.LIKELY)
+
+    if band in (Band.STRONG, Band.LIKELY):
         verdict = "FAVOURABLE"
-    elif overall >= 45:
+    elif band is Band.MIXED:
         verdict = "NEUTRAL"
     else:
         verdict = "CAUTION"
-    return overall, verdict
+    return timing_score, verdict, band.value
 
 
 def _build_summary(
@@ -592,42 +646,45 @@ def _build_summary(
     target_str_ta = target_date.strftime("%d-%m-%Y")
 
     # ── Summary ──
+    # D2 (reasoning_bands): the verdict word carries the judgement; the numeric
+    # score parenthetical only appears on the legacy (flag-off) path.
+    sc = "" if get_flag("reasoning_bands") else f" ({overall_score}/100)"
     if verdict == "FAVOURABLE":
         summary_ta = (
             f"{target_str_ta} தேதிக்கு {scenario_ta} பற்றிய ஆய்வு: "
-            f"மூன்று தூண்களும் ({overall_score}/100) சாதகமாக உள்ளன. "
+            f"மூன்று தூண்களும்{sc} சாதகமாக உள்ளன. "
             f"{ta_maha} தசை, கோசர கிரக நிலை, மற்றும் ஜாதக வாக்கு ஒருங்கிணைந்து ஆதரவளிக்கின்றன. "
             f"இது ஒரு சாதகமான காலகட்டமாக தெரிகிறது."
         )
         summary_en = (
             f"Analysis for {scenario_en} around {target_str_en}: "
-            f"All three pillars ({overall_score}/100) are aligned favourably. "
+            f"All three pillars{sc} are aligned favourably. "
             f"{en_maha} dasha, transit positions, and natal promise converge in support. "
             f"This appears to be a favourable period for this intent."
         )
     elif verdict == "NEUTRAL":
         summary_ta = (
             f"{target_str_ta} தேதிக்கு {scenario_ta} பற்றிய ஆய்வு: "
-            f"நடுநிலை ஆதரவு உள்ளது ({overall_score}/100). "
+            f"நடுநிலை ஆதரவு உள்ளது{sc}. "
             f"சில தூண்கள் ஆதரவளிக்கின்றன, சில கவனம் தேவைப்படுகின்றன. "
             f"கவனமான திட்டமிடலுடன் முன்னேறலாம்."
         )
         summary_en = (
             f"Analysis for {scenario_en} around {target_str_en}: "
-            f"Moderate support is present ({overall_score}/100). "
+            f"Moderate support is present{sc}. "
             f"Some pillars are supportive while others call for attention. "
             f"Careful planning can help you move forward."
         )
     else:
         summary_ta = (
             f"{target_str_ta} தேதிக்கு {scenario_ta} பற்றிய ஆய்வு: "
-            f"கவன நிலை ({overall_score}/100). "
+            f"கவன நிலை{sc}. "
             f"இந்த காலகட்டத்தில் முக்கிய நடவடிக்கைகளை ஒத்திவைப்பது கருத்தில் கொள்ளலாம். "
             f"சரியான கிரக நிலைக்காக காத்திருப்பது நல்லது."
         )
         summary_en = (
             f"Analysis for {scenario_en} around {target_str_en}: "
-            f"Caution is indicated ({overall_score}/100). "
+            f"Caution is indicated{sc}. "
             f"Consider postponing major steps during this period. "
             f"Waiting for a more supportive planetary window is advisable."
         )
@@ -800,7 +857,10 @@ def evaluate_whatif(
         timeline.current_mahadasha.lord,
     )
 
-    overall_score, verdict = _overall_verdict(natal.score, dasha.score, gochar.score, panchang_score)
+    overall_score, verdict, band = _overall_verdict(
+        natal.score, dasha.score, gochar.score, panchang_score,
+        use_reasoning_gate=bool(get_flag("reasoning_gate")),
+    )
 
     summary, best_period, caution_note, remedy, disclaimer = _build_summary(
         scenario, verdict, overall_score,
@@ -821,12 +881,29 @@ def evaluate_whatif(
         overallVerdict=verdict,
     )
 
+    # D5 accountability (plan Phase 4): log the served claim so a later real
+    # outcome can grade it. Legacy-path verdicts carry no Band — map them to
+    # a conservative ordinal equivalent for the log only.
+    log_prediction(
+        session,
+        chart_id=chart_id,
+        source="whatif",
+        life_area=scenario_to_area(scenario),
+        band=band or {"FAVOURABLE": "LIKELY", "NEUTRAL": "MIXED"}.get(verdict, "WEAK"),
+        calc_version=_CALC_VERSION,
+        window_start=target_date,
+        window_end=target_date,
+        active_maha=timeline.current_mahadasha.lord,
+        active_antar=timeline.current_antardasha.lord,
+    )
+
     data = WhatIfData(
         chartId=chart_id,
         scenario=scenario,
         targetDate=target_date,
         overallScore=overall_score,
         verdict=verdict,
+        band=band,
         tripleConfirmation=triple,
         summary=summary,
         bestPeriodInWindow=best_period,

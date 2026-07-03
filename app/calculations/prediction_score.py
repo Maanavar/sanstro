@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.reasoning.promise_gate import GateGrade, gate_from_l1
+from app.reasoning.timing_vote import combine_gate_and_timing
+
 
 @dataclass
 class PredictionScoreInput:
@@ -41,6 +44,11 @@ class PredictionScoreResult:
     interpretation: str
     interpretation_ta: str
     interpretation_en: str
+    # Reasoning-gate fields (Phase 1, additive; None on the legacy path).
+    # band is ordinal (STRONG/LIKELY/MIXED/WEAK/BLOCKED/SILENT — D2);
+    # gate_grade records the promise-gate outcome (PASS/WEAK/BLOCKED/SILENT).
+    band: str | None = None
+    gate_grade: str | None = None
 
 
 _YOGA_STRENGTH_BONUS = {"STRONG": 8, "PARTIAL": 4, "WEAK": 1, "NONE": 0}
@@ -66,7 +74,21 @@ _INTERPRETATION_SCALE = [
 ]
 
 
-def compute_prediction_score(inp: PredictionScoreInput) -> PredictionScoreResult:
+def compute_prediction_score(
+    inp: PredictionScoreInput, *, use_reasoning_gate: bool = False
+) -> PredictionScoreResult:
+    """Six-layer Thirukanitham prediction score.
+
+    Legacy path (default): flat additive total = L1+…+L6 (unchanged).
+
+    Reasoning-gate path (``use_reasoning_gate=True`` — D1, plan Phase 1):
+    L1 birth promise is converted into a hard GATE, not a vote member.
+      - BLOCKED/SILENT → return early with that band; total clamped near 0;
+        L2–L6 are skipped (no dasha/transit can manufacture an unpromised event).
+      - PASS/WEAK → total becomes the TIMING VOTE (L2–L6 rescaled to 0–100,
+        "when / how strong", never "whether"); L1 is never re-added.
+        A WEAK gate caps the band at LIKELY.
+    """
     lord_norm = inp.house_lord_strength / 100.0
     karak_norm = inp.karaka_strength / 100.0
     l1 = round(lord_norm * 14 + karak_norm * 8)
@@ -75,6 +97,38 @@ def compute_prediction_score(inp: PredictionScoreInput) -> PredictionScoreResult
     if inp.dosham_present and inp.dosham_cancelled:
         dosham_pen = dosham_pen // 2
     l1 = max(0, min(30, l1 + dosham_pen))
+
+    if use_reasoning_gate:
+        gate = gate_from_l1(
+            l1,
+            dosham_present=inp.dosham_present,
+            dosham_cancelled=inp.dosham_cancelled,
+            dosham_strength=inp.dosham_strength,
+        )
+        if not gate.proceeds_to_timing:
+            # D1 veto: the chart does not promise this — timing is not consulted.
+            total = min(l1, 10) if gate.grade is GateGrade.BLOCKED else min(l1, 20)
+            interp = _INTERPRETATION_SCALE[-1]
+            for row in _INTERPRETATION_SCALE:
+                if total >= row[0]:
+                    interp = row
+                    break
+            return PredictionScoreResult(
+                total=total,
+                l1_birth_promise=l1,
+                l2_planet_strength=0,
+                l3_dasha_activation=0,
+                l4_varga_confirmation=0,
+                l5_transit_support=0,
+                l6_ashtakavarga=0,
+                interpretation=interp[1],
+                interpretation_ta=interp[2],
+                interpretation_en=interp[3],
+                band=combine_gate_and_timing(gate, 0).value,
+                gate_grade=gate.grade.value,
+            )
+    else:
+        gate = None
 
     if inp.key_planet_strengths:
         avg = sum(inp.key_planet_strengths) / len(inp.key_planet_strengths)
@@ -107,7 +161,17 @@ def compute_prediction_score(inp: PredictionScoreInput) -> PredictionScoreResult
 
     l6 = max(0, min(5, 3 + inp.bav_delta // 2 + inp.sav_delta // 2))
 
-    total = max(0, min(100, l1 + l2 + l3 + l4 + l5 + l6))
+    band: str | None = None
+    gate_grade: str | None = None
+    if gate is not None:
+        # Timing vote: L2–L6 (max 70) rescaled to 0–100. L1 is NOT re-added —
+        # the gate already consumed it (re-adding is the banned averaging error).
+        timing_score = max(0, min(100, round((l2 + l3 + l4 + l5 + l6) / 70 * 100)))
+        total = timing_score
+        band = combine_gate_and_timing(gate, timing_score).value
+        gate_grade = gate.grade.value
+    else:
+        total = max(0, min(100, l1 + l2 + l3 + l4 + l5 + l6))
 
     interp = _INTERPRETATION_SCALE[-1]
     for row in _INTERPRETATION_SCALE:
@@ -126,5 +190,7 @@ def compute_prediction_score(inp: PredictionScoreInput) -> PredictionScoreResult
         interpretation=interp[1],
         interpretation_ta=interp[2],
         interpretation_en=interp[3],
+        band=band,
+        gate_grade=gate_grade,
     )
 

@@ -32,6 +32,9 @@ class LifeAreaPrediction:
     confidence: str
     challenges: list[BiText]
     supports: list[BiText]
+    # Ordinal reasoning band (STRONG/LIKELY/MIXED/WEAK/BLOCKED/SILENT).
+    # Additive — populated only when the reasoning_gate flag is on (Phase 1).
+    band: str | None = None
 
 
 def house_lord_for_lagna(lagna_rasi: int, house: int) -> str:

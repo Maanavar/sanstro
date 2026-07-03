@@ -39,6 +39,7 @@ from app.calculations.transits import classify_ezharai_sani_murthi, classify_kan
 from app.core.age_gate import get_house_locus
 from app.models import BirthProfile, Chart
 from app.models.user_life_events import UserLifeEvent
+from app.reasoning.verdict import legacy_confidence_to_band
 from app.schemas.dasha import ResponseMeta
 from app.schemas.life_areas import (
     LifeAreaData,
@@ -48,8 +49,10 @@ from app.schemas.life_areas import (
     LifeAreaText,
 )
 from app.services.chart_service import load_persisted_chart_response
+from app.services.feature_flags import get_flag
 from app.services.goals_service import get_active_goals_for_chart
 from app.services.location_service import resolve_effective_daily_timezone
+from app.services.prediction_log_service import log_prediction
 from app.services.rectification_service import validate_chart_against_events
 
 # ── Bilingual helper ───────────────────────────────────────────────────────────
@@ -467,6 +470,12 @@ def _build_area_reason(
         sani_en = f" {sani_label} is active, so patience and structure are important."
         sani_ta = f" {_sani_label_ta(sani_phase)} நடப்பில் இருப்பதால் பொறுமையுடன் திட்டமிட்டு செயல்பட வேண்டும்."
 
+    if get_flag("reasoning_bands"):
+        # D2: the level word carries the judgement; no numeric score in copy.
+        return _t(
+            f"{planet_ta} ({area_ta} காரகன்) சந்திரனிலிருந்து {karaka_house_from_moon}ஆம் இடத்தில் {transit_quality_ta} உள்ளது. {dasha_ta}{sani_ta} மொத்தப் பலன்: {area_ta} {level_ta}.",
+            f"{planet_en} (karaka for {area_en.lower()}) is in house {karaka_house_from_moon} from Moon and is {transit_quality_en}. {dasha_en}{sani_en} Net effect: {area_en.lower()} is {level_en}.",
+        )
     return _t(
         f"{planet_ta} ({area_ta} காரகன்) சந்திரனிலிருந்து {karaka_house_from_moon}ஆம் இடத்தில் {transit_quality_ta} உள்ளது. {dasha_ta}{sani_ta} மொத்தப் பலன்: {area_ta} {level_ta} ({score}/100).",
         f"{planet_en} (karaka for {area_en.lower()}) is in house {karaka_house_from_moon} from Moon and is {transit_quality_en}. {dasha_en}{sani_en} Net effect: {area_en.lower()} is {level_en} ({score}/100).",
@@ -939,8 +948,15 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                 )
 
     # Default fallback
-    narr = _t(f"{planet_ta} தசையில் இந்த துறையில் {score}/100 ஆதரவு உள்ளது.",
-              f"{score}/100 support in this area under {planet_en} dasa.")
+    if get_flag("reasoning_bands"):
+        # D2: band word, not a numeric score.
+        support_ta = "நல்ல" if score >= 60 else ("நடுநிலை" if score >= 45 else "குறைந்த")
+        support_en = "good" if score >= 60 else ("steady" if score >= 45 else "reduced")
+        narr = _t(f"{planet_ta} தசையில் இந்த துறையில் {support_ta} ஆதரவு உள்ளது.",
+                  f"{support_en.capitalize()} support in this area under {planet_en} dasa.")
+    else:
+        narr = _t(f"{planet_ta} தசையில் இந்த துறையில் {score}/100 ஆதரவு உள்ளது.",
+                  f"{score}/100 support in this area under {planet_en} dasa.")
     outlook = _t("அடுத்த 30 நாட்களில் நிலையான முன்னேற்றம் எதிர்பார்க்கலாம்.",
                  "Steady progress expected in the next 30 days.")
     remedy = _t("வழக்கமான வழிபாட்டை தொடரவும்.", "Continue regular worship practice.")
@@ -1019,6 +1035,7 @@ def _score_area(
     maha_conn = house_from_reference(lagna_rasi, natal_planet_rasis.get(maha_lord, lagna_rasi)) in relevant_houses
     antar_conn = house_from_reference(lagna_rasi, natal_planet_rasis.get(antar_lord, lagna_rasi)) in relevant_houses
 
+    use_gate = bool(get_flag("reasoning_gate"))
     inp = PredictionScoreInput(
         house_lord_strength=natal_planet_scores.get(house_lord, 50),
         karaka_strength=natal_planet_scores.get(primary_karaka, 50),
@@ -1043,7 +1060,7 @@ def _score_area(
         bav_delta=bav_delta,
         sav_delta=sav_delta,
     )
-    scored = compute_prediction_score(inp)
+    scored = compute_prediction_score(inp, use_reasoning_gate=use_gate)
     if kandaka_sani_active:
         scored.total = max(0, scored.total - _SANI_AREA_PENALTY["KANDAKA_SANI"].get(area, 0))
     if chandrashtama and area in ("HEALTH", "RELATIONSHIPS", "FAMILY_HARMONY", "EDUCATION"):
@@ -1552,6 +1569,28 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             )
             if maraka_guard.get("suppress_score_display"):
                 score = 0
+
+        # D5 accountability (plan Phase 4): only HIGH confidence (all three
+        # signals aligned) is a material claim worth holding ourselves to —
+        # logging all twelve areas every serve would drown the calibration
+        # report in non-claims. The window matches the 30-day outlook. A
+        # maraka-suppressed score means we chose not to show the claim, so
+        # it isn't logged either.
+        if _area_confidence == "HIGH" and not (
+            maraka_guard is not None and maraka_guard.get("suppress_score_display")
+        ):
+            log_prediction(
+                session,
+                chart_id=chart_id,
+                source="life_areas",
+                life_area=area,
+                band=legacy_confidence_to_band(_area_confidence).value,
+                calc_version=chart_snapshot.meta.calculation_version,
+                window_start=on_date,
+                window_end=on_date + timedelta(days=30),
+                active_maha=maha_lord,
+                active_antar=antar_lord,
+            )
 
         areas.append(LifeAreaData(
             area=area,

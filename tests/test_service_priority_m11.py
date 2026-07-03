@@ -80,16 +80,20 @@ def test_synastry_transit_activation_hits() -> None:
 
 
 def test_whatif_overall_verdict_thresholds() -> None:
-    score, verdict = ws._overall_verdict(70, 70, 70, 70)
+    # Legacy path (reasoning_gate off): band is None, thresholds unchanged.
+    score, verdict, band = ws._overall_verdict(70, 70, 70, 70)
     assert score >= 62
     assert verdict == "FAVOURABLE"
+    assert band is None
 
-    score, verdict = ws._overall_verdict(40, 80, 80, 70)
+    score, verdict, band = ws._overall_verdict(40, 80, 80, 70)
     assert score >= 45
     assert verdict == "NEUTRAL"
+    assert band is None
 
-    score, verdict = ws._overall_verdict(30, 30, 30, 30)
+    score, verdict, band = ws._overall_verdict(30, 30, 30, 30)
     assert verdict == "CAUTION"
+    assert band is None
 
 
 def test_whatif_strength_buckets() -> None:

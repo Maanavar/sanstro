@@ -7,6 +7,10 @@ from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import DEBILITATION_RASI, EXALTATION_RASI, OWN_SIGN_RASI
 from app.calculations.transits import get_jupiter_aspects
 from app.core.age_gate import MARRIAGE_UPPER_AGE, SEVVAI_DOSHAM_SOFTENING_AGE, is_married_settled, is_seeking_marriage
+from app.reasoning.promise_gate import GateGrade, GateResult, assess_promise
+from app.reasoning.timing_vote import combine_gate_and_timing
+from app.reasoning.verdict import band_to_legacy_confidence
+from app.services.feature_flags import get_flag
 from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction, house_lord_for_lagna
 
 
@@ -29,7 +33,113 @@ class MarriageAssessmentInput:
 _PARENTAL_RELATIONSHIPS: frozenset[str] = frozenset({"parent", "grandparent"})
 
 
-def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPrediction:
+def _dignity_label(planet: str, rasi: int | None, *, combust: bool = False) -> str:
+    """Collapse a rasi placement into the promise-gate dignity vocabulary."""
+    if rasi is None:
+        return "NEUTRAL"
+    if combust:
+        return "COMBUST"
+    if rasi == DEBILITATION_RASI.get(planet):
+        return "DEBILITATED"
+    if rasi == EXALTATION_RASI.get(planet):
+        return "EXALTED"
+    if rasi in OWN_SIGN_RASI.get(planet, frozenset()):
+        return "OWN"
+    return "NEUTRAL"
+
+
+def _marriage_promise_gate(payload: MarriageAssessmentInput) -> GateResult:
+    """D1 promise gate for marriage timing (plan §Phase 1 step 4).
+
+    Bhava = 7th house; karaka = Venus; varga = D9 (per _AREA_ROUTING).
+    Falls back to a NEUTRAL varga dignity when D9 data is unavailable so
+    missing data can never manufacture a BLOCKED reading (D3).
+    """
+    seventh_lord = house_lord_for_lagna(payload.lagna_rasi, 7)
+    seventh_lord_rasi = payload.planets_rasi.get(seventh_lord)
+    venus_rasi = payload.planets_rasi.get("VENUS")
+    if seventh_lord_rasi is None or venus_rasi is None:
+        return assess_promise(
+            bhava_lord_house=1, bhava_lord_afflicted=False,
+            karaka_dignity_d1="NEUTRAL", karaka_dignity_varga="NEUTRAL",
+            karaka_available=False,
+        )
+    seventh_lord_house = house_from_reference(payload.lagna_rasi, seventh_lord_rasi)
+    lord_afflicted = seventh_lord_rasi == DEBILITATION_RASI.get(seventh_lord) or (
+        seventh_lord == "VENUS" and payload.venus_combust
+    )
+    d9 = payload.d9_rasi_by_planet or {}
+    return assess_promise(
+        bhava_lord_house=seventh_lord_house,
+        bhava_lord_afflicted=lord_afflicted,
+        karaka_dignity_d1=_dignity_label("VENUS", venus_rasi, combust=payload.venus_combust),
+        karaka_dignity_varga=_dignity_label("VENUS", d9.get("VENUS")),
+        karaka_available=True,
+    )
+
+
+def _gated_marriage_prediction(payload: MarriageAssessmentInput, gate: GateResult) -> LifeAreaPrediction:
+    """BLOCKED/SILENT gate outcome → honest, non-fatalistic redirect (D3/D6).
+
+    No timing vote runs and no timing window is claimed: a strong Venus
+    dasha cannot lift an unpromised event (D1).
+    """
+    if gate.grade is GateGrade.BLOCKED:
+        main_ta = (
+            "தற்போதைய ஜாதக அமைப்பில் திருமண நேரத்திற்கு வலுவான வாக்கு தெரியவில்லை — "
+            "சாதகமான தசையிலும் இது தானாக மாறாது. "
+            "இது 'முடியாது' என்பதல்ல; ஜாதகம் வலுவாக ஆதரிக்கும் பகுதிகளில் கவனம் செலுத்தி, "
+            "பரிகாரங்களுடன் மறு ஆய்வு செய்வது நல்லது."
+        )
+        main_en = (
+            "The current chart configuration does not show a strong promise for marriage timing — "
+            "even a favourable dasha does not change this on its own. "
+            "This is not a 'never'; redirecting focus to the areas your chart strongly supports, "
+            "alongside remedies and a periodic re-assessment, is the wiser path."
+        )
+        factor_key = "promise_gate_blocked"
+    else:
+        main_ta = (
+            "இந்த கேள்விக்கு ஜாதகம் அமைதியாக உள்ளது — உறுதியான திருமண நேர கணிப்பு தர "
+            "போதிய சமிக்ஞை இல்லை. நேர்மையான பதில்: இப்போது உறுதியாக சொல்ல முடியாது."
+        )
+        main_en = (
+            "The chart is quiet on this question — there isn't enough signal for a confident "
+            "marriage-timing call. The honest answer: we cannot say with confidence right now."
+        )
+        factor_key = "promise_gate_silent"
+
+    return LifeAreaPrediction(
+        life_area="marriage",
+        main_prediction_ta=main_ta,
+        main_prediction_en=main_en,
+        astrological_factors=[
+            AstroFactor(
+                key=factor_key,
+                status="INFO",
+                detail=BiText(ta=gate.reason.ta, en=gate.reason.en),
+            )
+        ],
+        dasha_support="WEAK",
+        transit_support="WEAK",
+        timing_window_start=None,
+        timing_window_end=None,
+        confidence="LOW",
+        challenges=[BiText(
+            "ஜாதக வாக்கு இல்லாமல் நேர கணிப்பு தரப்படவில்லை.",
+            "No timing window is claimed without a natal promise.",
+        )],
+        supports=[BiText(
+            "குடும்ப நலன், தொழில் மற்றும் ஆன்மிக வளர்ச்சி பற்றி கேட்கலாம் — ஜாதகம் ஆதரிக்கும் பாதைகளை காட்டும்.",
+            "Ask about family well-being, career, and spiritual growth — the chart will show the paths it does support.",
+        )],
+        band=gate.grade.value,
+    )
+
+
+def assess_marriage_prediction(
+    payload: MarriageAssessmentInput, *, use_reasoning_gate: bool | None = None
+) -> LifeAreaPrediction:
     # Parent/grandparent profiles: marriage timing is not applicable — redirect to
     # family harmony and companionship guidance instead.
     if payload.relationship_to_owner in _PARENTAL_RELATIONSHIPS:
@@ -127,6 +237,18 @@ def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPred
 
     married_harmony_mode = is_married_settled(payload.marital_status)
 
+    # ── D1 astrological promise gate (reasoning_gate flag, plan Phase 1) ──
+    # Runs after the applicability gates above, before the score=50 block.
+    # Marriage-*timing* promise applies only when marriage is being sought;
+    # married profiles are read for harmony, not for a new-event promise.
+    if use_reasoning_gate is None:
+        use_reasoning_gate = bool(get_flag("reasoning_gate"))
+    gate: GateResult | None = None
+    if use_reasoning_gate and not married_harmony_mode:
+        gate = _marriage_promise_gate(payload)
+        if not gate.proceeds_to_timing:
+            return _gated_marriage_prediction(payload, gate)
+
     seventh_house_rasi = ((payload.lagna_rasi + 7 - 2) % 12) + 1
     seventh_lord = house_lord_for_lagna(payload.lagna_rasi, 7)
     second_lord = house_lord_for_lagna(payload.lagna_rasi, 2)
@@ -137,6 +259,17 @@ def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPred
     factors: list[AstroFactor] = []
     supports: list[BiText] = []
     challenges: list[BiText] = []
+    if gate is not None:
+        factors.append(AstroFactor(
+            key=f"promise_gate_{gate.grade.value.lower()}",
+            status="SUPPORT" if gate.grade is GateGrade.PASS else "CAUTION",
+            detail=BiText(ta=gate.reason.ta, en=gate.reason.en),
+        ))
+        if gate.grade is GateGrade.WEAK:
+            challenges.append(BiText(
+                "ஜாதக வாக்கு பகுதியளவே — நேர கணிப்பு எச்சரிக்கையுடன் வாசிக்கவும்.",
+                "Birth promise is partial — read the timing guidance with that caveat.",
+            ))
     score = 50
     factors.append(
         AstroFactor(
@@ -492,6 +625,19 @@ def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPred
             "Consolidating your situation is the better path right now.",
         )
 
+    band: str | None = None
+    if gate is not None:
+        band_enum = combine_gate_and_timing(gate, score)
+        band = band_enum.value
+        if get_flag("reasoning_bands"):
+            # Phase 2 (D2): one confidence vocabulary — legacy tier derives
+            # from the band instead of a parallel score-band table.
+            confidence = band_to_legacy_confidence(band_enum)
+        # WEAK gate caps the final confidence at MEDIUM (band ≤ LIKELY, D1) —
+        # stricter than the plain band→legacy map, kept from PR-1.
+        if gate.grade is GateGrade.WEAK and confidence == "HIGH":
+            confidence = "MEDIUM"
+
     return LifeAreaPrediction(
         life_area="marriage",
         main_prediction_ta=main[0],
@@ -504,4 +650,5 @@ def assess_marriage_prediction(payload: MarriageAssessmentInput) -> LifeAreaPred
         confidence=confidence,
         challenges=challenges,
         supports=supports,
+        band=band,
     )

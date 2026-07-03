@@ -54,6 +54,9 @@ class WhatIfData(BaseModel):
     target_date: date = Field(alias="targetDate")
     overall_score: int = Field(alias="overallScore")
     verdict: str                                     # FAVOURABLE / NEUTRAL / CAUTION
+    # Ordinal reasoning band (STRONG/LIKELY/MIXED/WEAK/BLOCKED/SILENT).
+    # Additive — populated only when the reasoning_gate flag is on (Phase 1).
+    band: str | None = Field(default=None)
     triple_confirmation: TripleConfirmation = Field(alias="tripleConfirmation")
     summary: WhatIfBiText
     best_period_in_window: WhatIfBiText = Field(alias="bestPeriodInWindow")

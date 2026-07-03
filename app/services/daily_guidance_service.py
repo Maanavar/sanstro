@@ -23,6 +23,7 @@ from app.calculations.functional_nature import get_dasha_modifier, get_transit_m
 from app.calculations.panchangam import calculate_daily_panchangam, calculate_daily_panchangam_range
 from app.calculations.transits import check_vedha, classify_ezharai_sani_murthi, classify_kandaka_cycle, classify_sani_cycle, is_combust
 from app.models import BirthProfile, Chart, JournalEntry
+from app.reasoning.verdict import Band, band_to_legacy_confidence
 from app.schemas.charts import ChartCalculateResponse
 from app.schemas.daily_guidance import (
     ActivityTimingData,
@@ -50,6 +51,7 @@ from app.schemas.dasha import ResponseMeta
 from app.services.chart_service import load_persisted_chart_response
 from app.services.context_service import get_context_row, should_surface_proactively
 from app.services.emotional_weather import TransitPoint, compute_emotional_weather
+from app.services.feature_flags import get_flag
 from app.services.goals_service import get_active_goals_for_chart
 from app.services.location_service import (
     local_noon_as_utc_for_profile,
@@ -489,26 +491,30 @@ def build_daily_guidance_response(
     if chandrashtama and label in ("GOOD", "STRONG_SUPPORT"):
         label = "BALANCED"
 
-    # P1-B: Confidence tier — count of components scoring ≥60
+    # P1-B: Confidence tier — count of components scoring ≥60, expressed as an
+    # ordinal Band (plan Phase 2, D2) with legacy HIGH/MED/LOW derived from it.
+    # 3 signals → LIKELY (not STRONG: daily alignment is timing-only evidence),
+    # 2 → MIXED, ≤1 → WEAK. band_to_legacy keeps the legacy tier byte-identical.
     _conf_signals = sum(1 for s in (moon_score, dasha_score, transit_score) if s >= 60)
     if _conf_signals >= 3:
-        _confidence = "HIGH"
+        _band = Band.LIKELY
         _conf_reason = DailyGuidanceText(
             ta="மூன்று சமிக்ஞைகளும் — சந்திரன், தசை, கோசாரம் — சீரமைக்கப்பட்டுள்ளன",
             en="All three signals — Moon, dasha, transits — are aligned",
         )
     elif _conf_signals == 2:
-        _confidence = "MEDIUM"
+        _band = Band.MIXED
         _conf_reason = DailyGuidanceText(
             ta="இரண்டு சமிக்ஞைகள் சீரமைக்கப்பட்டுள்ளன",
             en="Two of three signals are aligned",
         )
     else:
-        _confidence = "LOW"
+        _band = Band.WEAK
         _conf_reason = DailyGuidanceText(
             ta="சமிக்ஞைகள் கலந்த நிலையில் உள்ளன — குறிப்பு மட்டுமே",
             en="Mixed signals — indicative only",
         )
+    _confidence = band_to_legacy_confidence(_band)
     text, action, caution = _build_text(score, label, best_windows, caution_windows)
     nakshatra_perspective = build_nakshatra_perspective(janma_nakshatra, label)
     emotional_weather = compute_emotional_weather(
@@ -644,6 +650,7 @@ def build_daily_guidance_response(
             label=label,
             confidence=_confidence,
             confidenceReason=_conf_reason,
+            band=_band.value if get_flag("reasoning_bands") else None,
             scoreBreakdown=DailyGuidanceScoreBreakdown(
                 moonTransit=_moon_c,
                 dashaSupport=_dasha_c,

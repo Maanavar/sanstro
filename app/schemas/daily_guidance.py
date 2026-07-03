@@ -87,6 +87,10 @@ class DailyGuidanceData(BaseModel):
         default_factory=lambda: DailyGuidanceText(ta="இரண்டு சமிக்ஞைகள் சீரமைக்கப்பட்டுள்ளன", en="Two signals aligned"),
         alias="confidenceReason",
     )
+    # Ordinal reasoning band (STRONG/LIKELY/MIXED/WEAK/BLOCKED/SILENT).
+    # Additive; populated when the reasoning_bands flag is on. Legacy
+    # `confidence` stays derived from it (D2, plan Phase 2).
+    band: str | None = Field(default=None)
     score_breakdown: DailyGuidanceScoreBreakdown = Field(alias="scoreBreakdown")
     best_windows: list[DailyGuidanceWindow] = Field(alias="bestWindows")
     caution_windows: list[DailyGuidanceWindow] = Field(alias="cautionWindows")
