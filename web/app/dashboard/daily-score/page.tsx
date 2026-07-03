@@ -163,7 +163,7 @@ export default function DailyScorePage() {
             <div style={{ padding: "28px 24px", borderRadius: "16px", background: "var(--panel-earth-dark)", color: "var(--panel-hover)", display: "flex", gap: "24px", alignItems: "center", flexWrap: "wrap" }}>
               <ScoreRing score={score} />
               <div style={{ flex: 1, minWidth: "160px" }}>
-                <p style={{ margin: "0 0 4px", fontSize: "0.7rem", opacity: 0.6, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                <p style={{ margin: "0 0 4px", fontSize: "0.75rem", opacity: 0.78, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                   {ta ? "பல சமிக்ஞை தினசரி மதிப்பெண்" : "Multi-signal daily score"}
                 </p>
                 <p style={{ margin: "0 0 8px", fontSize: "1.1rem", fontWeight: 700 }}>

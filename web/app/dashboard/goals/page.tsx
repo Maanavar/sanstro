@@ -268,7 +268,7 @@ export default function GoalsPage() {
                         {goal.description}
                       </p>
                     )}
-                    <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-secondary)", opacity: 0.55 }}>
+                    <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-tertiary)" }}>
                       {new Date(goal.createdAt).toLocaleDateString(ta ? "ta-IN" : "en-IN", { year: "numeric", month: "short", day: "numeric" })}
                     </p>
                   </div>

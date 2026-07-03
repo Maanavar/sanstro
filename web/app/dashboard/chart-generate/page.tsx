@@ -790,7 +790,7 @@ export default function ChartGeneratePage() {
           <div className="card print-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px", border: "1px solid var(--color-border)" }}>
             <div style={{ padding: "12px 14px", borderRadius: "10px", background: "var(--panel-warm-gold)", border: "1px solid var(--panel-golden)" }}>
               <p style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: "var(--chart-amber)" }}>{chart.birthProfile.displayName}</p>
-              <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "var(--color-text)", opacity: 0.58 }}>{chart.birthProfile.birthDateLocal}</p>
+              <p style={{ margin: "2px 0 0", fontSize: "0.82rem", color: "var(--text-secondary)" }}>{chart.birthProfile.birthDateLocal}</p>
             </div>
 
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>

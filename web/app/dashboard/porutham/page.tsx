@@ -51,6 +51,7 @@ function PersonForm({
   form: BirthForm;
   onChange: (updated: BirthForm) => void;
 }) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "10px", minWidth: "260px" }}>
       <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: 700, color: accentColor }}>{label}</p>
@@ -77,26 +78,47 @@ function PersonForm({
           onChange={(city, raw) => onChange({
             ...form,
             birthPlace: raw,
-            ...(city ? { birthLatitude: city.lat, birthLongitude: city.lng, birthTimezone: city.timezone } : {}),
+            // Clear stale coordinates when the typed place no longer matches a known city,
+            // so a hidden lat/long can never silently belong to a previous selection.
+            ...(city
+              ? { birthLatitude: city.lat, birthLongitude: city.lng, birthTimezone: city.timezone }
+              : { birthLatitude: "", birthLongitude: "" }),
           })}
         />
       </Field>
 
-      <Field label={t("field_timezone", lang)} required>
-        <input className="input" value={form.birthTimezone}
-          onChange={(e) => onChange({ ...form, birthTimezone: e.target.value })} />
-      </Field>
+      {!showAdvanced && form.birthLatitude && form.birthLongitude && (
+        <p style={{ margin: "-4px 0 0", fontSize: "0.8rem", color: "var(--text-tertiary)" }}>
+          {form.birthLatitude}°, {form.birthLongitude}° · {form.birthTimezone}
+        </p>
+      )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "8px" }}>
-        <Field label={t("field_latitude", lang)} required>
-          <input className="input" inputMode="decimal" value={form.birthLatitude}
-            onChange={(e) => onChange({ ...form, birthLatitude: e.target.value })} />
-        </Field>
-        <Field label={t("field_longitude", lang)} required>
-          <input className="input" inputMode="decimal" value={form.birthLongitude}
-            onChange={(e) => onChange({ ...form, birthLongitude: e.target.value })} />
-        </Field>
-      </div>
+      <button type="button" onClick={() => setShowAdvanced((s) => !s)}
+        style={{ alignSelf: "flex-start", background: "transparent", border: "none", padding: 0, cursor: "pointer", fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)", textDecoration: "underline" }}>
+        {showAdvanced
+          ? (lang === "ta" ? "கூடுதல் விவரங்களை மறை" : "Hide advanced options")
+          : (lang === "ta" ? "கூடுதல் விவரங்கள் (ஆயத்தொலைவுகள், நேர மண்டலம்)" : "Advanced options (coordinates & timezone)")}
+      </button>
+
+      {showAdvanced && (
+        <>
+          <Field label={t("field_timezone", lang)} required>
+            <input className="input" value={form.birthTimezone}
+              onChange={(e) => onChange({ ...form, birthTimezone: e.target.value })} />
+          </Field>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "8px" }}>
+            <Field label={t("field_latitude", lang)} required>
+              <input className="input" inputMode="decimal" value={form.birthLatitude}
+                onChange={(e) => onChange({ ...form, birthLatitude: e.target.value })} />
+            </Field>
+            <Field label={t("field_longitude", lang)} required>
+              <input className="input" inputMode="decimal" value={form.birthLongitude}
+                onChange={(e) => onChange({ ...form, birthLongitude: e.target.value })} />
+            </Field>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -111,6 +133,7 @@ export default function PoruthamPage() {
   const [chartB, setChartB] = useState<ChartCalculateResponseData | null>(null);
   const [porutham, setPorutham] = useState<DirectPoruthamData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -126,10 +149,32 @@ export default function PoruthamPage() {
   }, []);
 
 
+  function buildComparePayload() {
+    const person = (f: BirthForm) => ({
+      displayName: f.displayName,
+      birthDateLocal: f.birthDateLocal,
+      birthTimeLocal: f.birthTimeLocal || null,
+      birthPlace: f.birthPlace,
+      birthLatitude: parseFloat(f.birthLatitude),
+      birthLongitude: parseFloat(f.birthLongitude),
+      birthTimezone: f.birthTimezone,
+    });
+    return { personA: person(formA), personB: person(formB), compatibilityContext: compatCtx };
+  }
+
   async function handleCompare() {
-    const valid = (f: BirthForm) => f.displayName && f.birthDateLocal && f.birthPlace && f.birthLatitude && f.birthLongitude && f.birthTimezone;
-    if (!valid(formA) || !valid(formB)) {
-      setError(lang === "ta" ? "????????? ??????????????????????????? ????????????????????? ???????????????????????????????????? ??????????????????????????????." : "Please fill all fields for both persons.");
+    const missingBasics = (f: BirthForm) => !f.displayName || !f.birthDateLocal || !f.birthPlace;
+    const missingCoords = (f: BirthForm) => !f.birthLatitude || !f.birthLongitude || !f.birthTimezone;
+    if (missingBasics(formA) || missingBasics(formB)) {
+      setError(lang === "ta"
+        ? "இரு நபர்களுக்கும் அனைத்து விவரங்களையும் நிரப்பவும்."
+        : "Please fill all fields for both persons.");
+      return;
+    }
+    if (missingCoords(formA) || missingCoords(formB)) {
+      setError(lang === "ta"
+        ? "பிறந்த இடத்தைப் பட்டியலிலிருந்து தேர்ந்தெடுக்கவும், அல்லது கூடுதல் விவரங்களில் ஆயத்தொலைவுகளை உள்ளிடவும்."
+        : "Select the birth place from the list, or enter coordinates under Advanced options.");
       return;
     }
     setError("");
@@ -140,27 +185,7 @@ export default function PoruthamPage() {
       const result = await apiFetchJson<PublicCompareResponse>("/api/v1/public/compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          personA: {
-            displayName: formA.displayName,
-            birthDateLocal: formA.birthDateLocal,
-            birthTimeLocal: formA.birthTimeLocal || null,
-            birthPlace: formA.birthPlace,
-            birthLatitude: parseFloat(formA.birthLatitude),
-            birthLongitude: parseFloat(formA.birthLongitude),
-            birthTimezone: formA.birthTimezone,
-          },
-          personB: {
-            displayName: formB.displayName,
-            birthDateLocal: formB.birthDateLocal,
-            birthTimeLocal: formB.birthTimeLocal || null,
-            birthPlace: formB.birthPlace,
-            birthLatitude: parseFloat(formB.birthLatitude),
-            birthLongitude: parseFloat(formB.birthLongitude),
-            birthTimezone: formB.birthTimezone,
-          },
-          compatibilityContext: compatCtx,
-        }),
+        body: JSON.stringify(buildComparePayload()),
       });
       setChartA(result.data.chartA);
       setChartB(result.data.chartB);
@@ -169,6 +194,31 @@ export default function PoruthamPage() {
       setError(readErrorMessage(err));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleDownloadPdf() {
+    if (!porutham || !chartA || !chartB || downloadingPdf) return;
+    setDownloadingPdf(true);
+    try {
+      const response = await fetch(`/api/backend/api/v1/public/compare/pdf?lang=${lang}`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
+        body: JSON.stringify(buildComparePayload()),
+      });
+      if (!response.ok) throw new Error(`${response.status}: PDF export failed`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `porutham_${chartA.birthProfile.displayName}_${chartB.birthProfile.displayName}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError(lang === "ta" ? "PDF பதிவிறக்கம் தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும்." : "PDF download failed. Please try again.");
+    } finally {
+      setDownloadingPdf(false);
     }
   }
 
@@ -222,7 +272,9 @@ export default function PoruthamPage() {
           <div className="card" style={{ padding: "20px", flex: 1, minWidth: "260px" }}>
             <PersonForm
               lang={lang}
-              label={lang === "ta" ? "நபர் 1 (ஆண்)" : "Person 1 (Boy)"}
+              label={compatCtx === "MARRIAGE"
+                ? (lang === "ta" ? "நபர் 1 (ஆண்)" : "Person 1 (Boy)")
+                : (lang === "ta" ? "நபர் 1" : "Person 1")}
               accentColor="var(--accent)"
               form={formA}
               onChange={setFormA}
@@ -231,7 +283,9 @@ export default function PoruthamPage() {
           <div className="card" style={{ padding: "20px", flex: 1, minWidth: "260px" }}>
             <PersonForm
               lang={lang}
-              label={lang === "ta" ? "நபர் 2 (பெண்)" : "Person 2 (Girl)"}
+              label={compatCtx === "MARRIAGE"
+                ? (lang === "ta" ? "நபர் 2 (பெண்)" : "Person 2 (Girl)")
+                : (lang === "ta" ? "நபர் 2" : "Person 2")}
               accentColor="var(--info)"
               form={formB}
               onChange={setFormB}
@@ -239,7 +293,7 @@ export default function PoruthamPage() {
           </div>
         </div>
 
-        {error && <p style={{ margin: 0, color: "var(--error)", fontSize: "0.78rem" }}>{error}</p>}
+        {error && <p style={{ margin: 0, color: "var(--error)", fontSize: "0.85rem" }}>{error}</p>}
 
         <button type="button" className="button button--primary"
           onClick={() => void handleCompare()} disabled={loading}
@@ -256,51 +310,57 @@ export default function PoruthamPage() {
             {/* Score header */}
             <div className="card" style={{ padding: "20px", display: "flex", gap: "20px", flexWrap: "wrap", alignItems: "center" }}>
               <div>
-                <p style={{ margin: "0 0 2px", fontSize: "0.65rem", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                <p style={{ margin: "0 0 2px", fontSize: "0.72rem", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                   {lang === "ta" ? "மொத்த பொருத்தம்" : "Total Score"}
                 </p>
                 <p style={{ margin: 0, fontSize: "2.4rem", fontWeight: 900, lineHeight: 1, color: scoreColor(pct) }}>
                   {porutham.totalScore}
-                  <span style={{ fontSize: "1rem", fontWeight: 400, color: "var(--color-text)", opacity: 0.4 }}>/{porutham.maxScore}</span>
+                  <span style={{ fontSize: "1rem", fontWeight: 400, color: "var(--text-secondary)" }}>/{porutham.maxScore}</span>
                 </p>
-                <p style={{ margin: "3px 0 0", fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+                <p style={{ margin: "3px 0 0", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
                   {porutham.label} · {porutham.percentage.toFixed(0)}%
                 </p>
                 {(porutham.rajjuDosha || porutham.vedhaDosha) && (
                   <div style={{ marginTop: "6px", display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                    {porutham.rajjuDosha && <span style={{ fontSize: "0.68rem", fontWeight: 700, padding: "3px 8px", borderRadius: "4px", background: "var(--warning-subtle)", color: "var(--warning)", border: "1px solid var(--warning)" }}>⚠ {lang === "ta" ? "ராஜ்ஜு தோஷம்" : "Rajju Dosha"}</span>}
-                    {porutham.vedhaDosha && <span style={{ fontSize: "0.68rem", fontWeight: 700, padding: "3px 8px", borderRadius: "4px", background: "var(--warning-subtle)", color: "var(--warning)", border: "1px solid var(--warning)" }}>⚠ {lang === "ta" ? "வேத தோஷம்" : "Vedha Dosha"}</span>}
+                    {porutham.rajjuDosha && <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "3px 8px", borderRadius: "4px", background: "var(--warning-subtle)", color: "var(--warning)", border: "1px solid var(--warning)" }}>⚠ {lang === "ta" ? "ராஜ்ஜு தோஷம்" : "Rajju Dosha"}</span>}
+                    {porutham.vedhaDosha && <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "3px 8px", borderRadius: "4px", background: "var(--warning-subtle)", color: "var(--warning)", border: "1px solid var(--warning)" }}>⚠ {lang === "ta" ? "வேத தோஷம்" : "Vedha Dosha"}</span>}
                   </div>
                 )}
               </div>
               <div style={{ flex: 1, minWidth: "200px" }}>
-                <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--color-text)", opacity: 0.85, lineHeight: 1.6 }}>
+                <p style={{ margin: 0, fontSize: "0.9rem", color: "var(--color-text)", lineHeight: 1.6 }}>
                   {lang === "ta" ? porutham.summary.ta : porutham.summary.en}
                 </p>
                 {porutham.contextNote && (
-                  <p style={{ margin: "8px 0 0", fontSize: "0.74rem", color: "var(--color-text)", opacity: 0.45, lineHeight: 1.4 }}>
+                  <p style={{ margin: "8px 0 0", fontSize: "0.82rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
                     {lang === "ta" ? porutham.contextNote.ta : porutham.contextNote.en}
                   </p>
                 )}
               </div>
+              <button type="button" onClick={() => void handleDownloadPdf()} disabled={downloadingPdf}
+                style={{ alignSelf: "flex-start", flexShrink: 0, background: "transparent", border: "1px solid var(--accent)", borderRadius: "8px", color: "var(--accent)", padding: "8px 16px", fontSize: "0.8rem", fontWeight: 600, cursor: downloadingPdf ? "wait" : "pointer", opacity: downloadingPdf ? 0.6 : 1 }}>
+                {downloadingPdf
+                  ? (lang === "ta" ? "தயாராகிறது…" : "Preparing…")
+                  : (lang === "ta" ? "⬇ PDF பதிவிறக்கு" : "⬇ Download PDF")}
+              </button>
             </div>
 
             {/* Kuta breakdown */}
             <div className="card" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
-              <p style={{ margin: "0 0 6px", fontSize: "0.7rem", fontWeight: 700, color: "var(--color-text)", opacity: 0.38, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              <p style={{ margin: "0 0 6px", fontSize: "0.72rem", fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                 {lang === "ta" ? "குட பொருத்தங்கள்" : "Kuta breakdown"}
               </p>
               {porutham.kutas.map((k) => {
                 const kpct = k.maxScore > 0 ? k.score / k.maxScore : 0;
                 return (
                   <div key={k.name} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 10px", borderRadius: "7px", background: "var(--color-surface-3)", border: "1px solid var(--color-border)" }}>
-                    <p style={{ margin: 0, minWidth: "140px", fontSize: "0.76rem", fontWeight: 600, color: "var(--color-text)", opacity: 0.8 }}>
+                    <p style={{ margin: 0, minWidth: "140px", fontSize: "0.82rem", fontWeight: 600, color: "var(--color-text)" }}>
                       {lang === "ta" ? k.nameTa : k.name}
                     </p>
                     <div style={{ flex: 1, height: "5px", borderRadius: "3px", background: "var(--color-border)", opacity: 0.15, overflow: "hidden" }}>
                       <div style={{ height: "100%", borderRadius: "3px", width: `${Math.round(kpct * 100)}%`, background: scoreColor(kpct) }} />
                     </div>
-                    <p style={{ margin: 0, fontSize: "0.74rem", fontWeight: 700, color: "var(--color-text)", opacity: 0.7, minWidth: "40px", textAlign: "right" }}>
+                    <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: "var(--text-secondary)", minWidth: "40px", textAlign: "right" }}>
                       {k.score}/{k.maxScore}
                     </p>
                   </div>
@@ -320,7 +380,7 @@ export default function PoruthamPage() {
               </div>
             </div>
 
-            <p style={{ margin: 0, fontSize: "0.68rem", color: "var(--color-text)", opacity: 0.25, fontStyle: "italic" }}>
+            <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-tertiary)", fontStyle: "italic" }}>
               {lang === "ta"
                 ? "இந்த ஜாதகங்கள் தற்காலிகமானவை. பக்கம் விட்டு சென்றதும் தானாக நீக்கப்படும்."
                 : "Preview only. This comparison is not saved to your account."}

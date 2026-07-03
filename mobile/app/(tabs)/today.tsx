@@ -32,6 +32,7 @@ import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { SharedTransitionView } from "@/components/SharedTransitionView";
 import { getDailySnapshot } from "@/api/snapshot";
+import { pingStreak } from "@/api/streak";
 import type { LifeAreaData } from "@/api/lifeAreas";
 import type { LifeEventWindow } from "@/api/lifeEvents";
 import { moonHouseImpact } from "@/api/transits";
@@ -192,12 +193,24 @@ export default function TodayTab() {
     loadGuestPrefs().then(setPrefs);
     if (tier !== "guest") {
       getPrimaryChartId().then(setPrimaryChartId);
-    }
-    void recordTodayVisit().then(() => {
+      // Server-side streak for signed-in users; the stored local value shows
+      // instantly and doubles as a one-time seed for the server row.
       void AsyncStorage.getItem("vinaadi_streak_days").then((val) => {
-        if (val) setStreakCount(Number(val));
+        const localDays = val ? Number(val) : NaN;
+        if (Number.isFinite(localDays) && localDays > 0) setStreakCount(localDays);
+        pingStreak(Number.isFinite(localDays) && localDays > 0 ? localDays : undefined)
+          .then((resp) => setStreakCount(resp.data.days))
+          .catch(() => {
+            // Offline — the locally stored value stands.
+          });
       });
-    });
+    } else {
+      void recordTodayVisit().then(() => {
+        void AsyncStorage.getItem("vinaadi_streak_days").then((val) => {
+          if (val) setStreakCount(Number(val));
+        });
+      });
+    }
   }, [tier, recordTodayVisit]);
 
   const lat = prefs?.lat ?? undefined;

@@ -7,38 +7,10 @@ import { LANG_STORAGE_KEY } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { scoreColor } from "@/lib/format";
 import type { ApiEnvelope, BirthProfileSnapshot } from "@/lib/types";
-
-interface BiText { ta: string; en: string }
-interface WrappedSlide {
-  slideId: string;
-  slideType: string;
-  headline: BiText;
-  body: BiText;
-  accentColor: string;
-  stat?: string | null;
-}
-interface AnnualWrappedData {
-  chartId: string;
-  year: number;
-  slides: WrappedSlide[];
-  totalDaysScored: number;
-  peakScore: number;
-  peakDate: string | null;
-  valleyScore: number;
-  valleyDate: string | null;
-  dominantDashaLord: string;
-  highDays: number;
-  cautionDays: number;
-  averageScore: number;
-  topLifeArea: string | null;
-}
+import { PLANET_EMOJI, WrappedShareCard } from "@/components/wrapped-share-card";
+import type { AnnualWrappedData } from "@/components/wrapped-share-card";
 
 type ProfileResponse = { data: BirthProfileSnapshot };
-
-const PLANET_EMOJI: Record<string, string> = {
-  Sun: "☀️", Moon: "🌙", Mars: "🔴", Mercury: "💚", Jupiter: "🟡",
-  Venus: "⭐", Saturn: "🪐", Rahu: "🌑", Ketu: "🌑",
-};
 
 export default function WrappedPage() {
   const router = useRouter();
@@ -109,25 +81,7 @@ export default function WrappedPage() {
               {ta ? "ஆண்டு ராப்ட்" : "Annual Wrapped"}
             </p>
           </div>
-          {wrapped && (
-            <button
-              type="button"
-              onClick={() => {
-                const summary = ta
-                  ? `${wrappedYear} ஆண்டு விநாடி சுருக்கம் — மதிப்பெண்: ${wrapped.averageScore}/100 | உச்சம்: ${wrapped.peakScore} | ${wrapped.dominantDashaLord} தசை | ${wrapped.highDays} நல்ல நாட்கள். vinaadi.com`
-                  : `My ${wrappedYear} Vinaadi Year Wrapped — Avg score: ${wrapped.averageScore}/100 | Peak: ${wrapped.peakScore} | ${wrapped.dominantDashaLord} Dasha | ${wrapped.highDays} high days. vinaadi.com`;
-                if (navigator.share) {
-                  void navigator.share({ title: ta ? "ஆண்டு சுருக்கம்" : "Year Wrapped", text: summary });
-                } else {
-                  void navigator.clipboard.writeText(summary);
-                  alert(ta ? "நகலெடுக்கப்பட்டது!" : "Copied to clipboard!");
-                }
-              }}
-              style={{ background: "var(--color-saffron, #c07a2c)", color: "#fff", border: "none", borderRadius: "8px", padding: "6px 14px", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
-            >
-              {ta ? "பகிர்" : "Share"}
-            </button>
-          )}
+          {wrapped && <WrappedShareCard wrapped={wrapped} lang={lang} year={wrappedYear} />}
         </div>
 
         {loading && (
@@ -169,7 +123,7 @@ export default function WrappedPage() {
                 }}
               >
                 {/* Slide number */}
-                <p style={{ margin: 0, fontSize: "0.7rem", opacity: 0.55, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                <p style={{ margin: 0, fontSize: "0.75rem", color: "rgba(255,255,255,0.85)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                   {slideIndex + 1} / {totalSlides}
                 </p>
 
