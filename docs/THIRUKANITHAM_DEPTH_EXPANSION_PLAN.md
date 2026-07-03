@@ -476,6 +476,36 @@ recorded in the PR description before merge.
 
 ### 4.3 Kalachakra Dasha (do last, flag for astrologer review before coding)
 
+> **Status (2026-07-03): BUILT, experimental — without astrologer
+> consultation.** No astrologer-provided worked example was available (per
+> a direct product decision to proceed with full ownership rather than wait
+> indefinitely), so this deviates from the recommendation below. Built
+> instead against a single well-documented, classically-cited secondary
+> source: Saravali's Kalachakra documentation
+> (saravali.github.io/astrology/kala_*.html, CC BY-SA 4.0), which itself
+> cites Parasara's *Hora Shastra* and Vaidhyanatha Dikshita's *Jataka
+> Parijata*. `app/calculations/kalachakra_dasha.py` implements the full
+> 4-chakra x 4-pada rasi-sequence table (every 9-rasi row cross-verified to
+> sum exactly to its stated Paramayus — 83/85/86/100 years), the
+> balance-at-birth formula, and the antardasha proportional-split formula —
+> the latter two reproduced against the source's own worked numeric
+> examples in `tests/test_kalachakra_dasha.py`. Documents a discovered
+> inconsistency in the source's own worked example (a pada mislabeled in
+> prose vs. its own table), and makes an explicit, cited convention choice
+> for cycle continuation (Portion Zero Method — the source's own named
+> South-Indian convention) where the source itself lists four disagreeing
+> methods. Wired behind `GET /charts/{id}/kalachakra-dasha`
+> (`kalachakra_dasha_service.py`) + all 4 surfaces (shared
+> `kalachakraDasha.ts`, mobile `app/dasha` Kalachakra tab, web
+> `dashboard-kalachakra-dasha-panel`), labeled experimental/display-only in
+> every surface's copy. **Still outstanding before this label can be
+> removed:** independent second-source cross-validation (Jagannatha Hora or
+> a second live calculator) of the full mahadasha/antardasha sequence for at
+> least one reference chart — none has been done yet. Treat any prediction
+> drawn from this dasha with the same caution the plan gives Ashtottari's
+> nakshatra-lord table, one level more cautious given the source itself
+> flags cycle-continuation as unresolved.
+
 The most structurally different of the three — rasi- and nakshatra-pada-
 based with non-uniform, direction-dependent period assignment (savya/apasavya
 groups depend on which of nine nakshatra groups the Moon falls in, and the
