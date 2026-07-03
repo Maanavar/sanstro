@@ -25,6 +25,8 @@ from app.models import (
 )
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
 from app.models.family_daily_score import FamilyDailyScore
+from app.models.prediction_log import PredictionLog
+from app.reasoning.calibration import GradedPrediction, build_calibration_report
 from app.services.audit_service import log_admin_action
 from app.services.feature_flags import all_flags, get_flag, reset_flag, set_flag
 from app.services.job_registry import get_all_jobs, get_job
@@ -153,6 +155,24 @@ class HealthDetailResponse(BaseModel):
     overall: str
     components: list[ComponentHealth]
     checked_at: str
+
+
+class CalibrationBucketOut(BaseModel):
+    key: str
+    hit: int
+    near: int
+    miss: int
+    n: int
+    hit_rate: float | None
+
+
+class CalibrationReportOut(BaseModel):
+    total_logged: int
+    total_open: int
+    total_graded: int
+    by_area_band: list[CalibrationBucketOut]
+    by_dasha_lord: list[CalibrationBucketOut]
+    as_of: str
 
 
 def _assert_admin_delete_enabled() -> None:
@@ -581,6 +601,51 @@ def reset_flag_value(flag_name: str, _: User = Depends(get_admin_user)) -> dict[
     reset_flag(flag_name)
     log_admin_action("reset_flag", target_type="flag", target_id=flag_name)
     return {"flag_name": flag_name, "reset": True, "current_value": all_flags()[flag_name]["value"]}
+
+
+@router.get(
+    "/calibration",
+    response_model=CalibrationReportOut,
+    summary="D5 prediction calibration report — hit/near/miss per area, band, and dasha lord",
+)
+def get_calibration_report(
+    session: Session = Depends(get_db),
+    _: User = Depends(get_admin_user),
+) -> CalibrationReportOut:
+    """Read-only aggregate over prediction_log (plan Phase 4 step 3).
+
+    Silent-launch: numbers are only meaningful once n per bucket is ~30+;
+    any weight recalibration stays a manual owner + specialist decision.
+    """
+    rows = session.execute(
+        select(
+            PredictionLog.life_area,
+            PredictionLog.band,
+            PredictionLog.outcome_grade,
+            PredictionLog.active_maha,
+        ).where(PredictionLog.deleted_at.is_(None))
+    ).all()
+    report = build_calibration_report(
+        [
+            GradedPrediction(life_area=r[0], band=r[1], outcome_grade=r[2], active_maha=r[3])
+            for r in rows
+        ]
+    )
+    def _out(buckets) -> list[CalibrationBucketOut]:
+        return [
+            CalibrationBucketOut(
+                key=b.key, hit=b.hit, near=b.near, miss=b.miss, n=b.n, hit_rate=b.hit_rate
+            )
+            for b in buckets
+        ]
+    return CalibrationReportOut(
+        total_logged=report.total_logged,
+        total_open=report.total_open,
+        total_graded=report.total_graded,
+        by_area_band=_out(report.by_area_band),
+        by_dasha_lord=_out(report.by_dasha_lord),
+        as_of=datetime.now(tz=UTC).isoformat(),
+    )
 
 
 @router.get("/health/detail", response_model=HealthDetailResponse, summary="Detailed system health for admin")

@@ -18,6 +18,7 @@ from app.models.notification import Notification
 from app.models.panchangam_cache import PanchangamCache
 from app.models.password_reset_token import PasswordResetToken
 from app.models.peyarchi_alert import PeyarchiAlert
+from app.models.prediction_log import PredictionLog
 from app.models.qa_golden_case import QaGoldenCase
 from app.models.refresh_token import RefreshToken
 from app.models.relationship_alert import RelationshipAlert
@@ -52,6 +53,7 @@ __all__ = [
     "PanchangamCache",
     "PasswordResetToken",
     "PeyarchiAlert",
+    "PredictionLog",
     "QaGoldenCase",
     "RefreshToken",
     "RelationshipAlert",

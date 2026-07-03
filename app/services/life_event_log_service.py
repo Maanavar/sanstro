@@ -143,6 +143,17 @@ def log_life_event(
     session.add(row)
     session.flush()  # get the id
 
+    # D5 accountability (plan Phase 4): grade any open predictions this real
+    # outcome resolves. Best-effort inside join_outcome — never blocks the log.
+    from app.services.prediction_log_service import join_outcome
+    join_outcome(
+        session,
+        chart_id=chart_id,
+        event_id=row.id,
+        event_type=row.event_type,
+        event_date=row.event_date,
+    )
+
     # Compute correlation
     try:
         from app.services.chart_service import load_persisted_chart_response
