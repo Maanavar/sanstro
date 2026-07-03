@@ -8,11 +8,28 @@ export interface CharaPeriod {
   end_date: string;
 }
 
+// Jaimini Chara Karakas (BPHS Ch. 32) — see app/calculations/jaimini_karakas.py
+// for the documented Rahu/tie-break conventions this project uses.
+export interface CharaKarakaMap {
+  ATMAKARAKA: string;
+  AMATYAKARAKA: string;
+  BHRATRUKARAKA: string;
+  MATRUKARAKA: string;
+  PITRUKARAKA: string;
+  PUTRAKARAKA: string;
+  GNATIKARAKA: string;
+  DAARAKARAKA: string;
+}
+
 export interface CharaDashaData {
   chartId: string;
   lagnaRasi: string;
   currentPeriod: CharaPeriod | null;
   periods: CharaPeriod[];
+  charKarakas: CharaKarakaMap | null;
+  atmakaraka: string | null;
+  karakamsaRasi: number | null;
+  karakamsaRasiName: string | null;
 }
 
 export const charaDashaKeys = {

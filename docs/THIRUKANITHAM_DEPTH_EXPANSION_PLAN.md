@@ -353,6 +353,24 @@ existing product score anywhere.
 
 ## Phase 3 — Jaimini Atmakaraka & Karakamsa
 
+> **Status (2026-07-03): BUILT.** `app/calculations/jaimini_karakas.py`
+> implements the 8-karaka scheme (BPHS Ch. 32): `compute_char_karakas` ranks
+> SUN..SATURN + RAHU by descending degree-within-sign; `compute_karakamsa`
+> looks up the Atmakaraka's D9 rasi. Documented conventions: Rahu's degree
+> counted forward (not reversed), ties broken by classical dignity order
+> (Sun > Moon > ... > Rahu). Wired into the existing
+> `GET /charts/{id}/chara-dasha` route (adds `charKarakas`, `atmakaraka`,
+> `karakamsaRasi`, `karakamsaRasiName` to the response — no new route, per
+> the "naturally pairs with Chara Dasha" note below) + all 4 surfaces
+> (`packages/shared/src/api/charaDasha.ts`, `packages/shared/src/types/index.ts`,
+> mobile `app/dasha/index.tsx`, web `dashboard-personal-tab.tsx` +
+> `dashboard-today-tab-v2.tsx`). Golden test in `tests/test_jaimini_karakas.py`
+> reuses the T003 reference chart from `test_golden_validation.py` (same
+> longitudes already cross-verified to 0.1 deg against a second ephemeris
+> source) — hand-derived ranking: Venus(25.97) > Rahu(22.79) >
+> Mercury(19.35) > Mars(19.08) > Jupiter(17.96) > Saturn(1.08) > Sun(0.76) >
+> Moon(0.01), Atmakaraka = Venus.
+
 **What:** the Char Karaka scheme (Atmakaraka = soul significator,
 Amatyakaraka, Bhratrukaraka, Matrukaraka, Pitrukaraka, Putrakaraka,
 Gnatikaraka, Daarakaraka) ranks the 7 classical planets (+ Rahu, by most

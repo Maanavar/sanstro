@@ -7,9 +7,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import resolve_rasi
+from app.calculations.astro import RASI_NAMES, resolve_rasi
 from app.calculations.event_windows import ChartData, EventType, find_event_windows
 from app.calculations.jaimini_dasha import calculate_chara_dasha, current_chara_dasha
+from app.calculations.jaimini_karakas import compute_char_karakas, compute_karakamsa
 from app.calculations.tajaka import calculate_tajaka_chart
 from app.core.auth import get_current_user
 from app.db.session import get_db
@@ -245,6 +246,14 @@ def get_chara_dasha(
     periods = calculate_chara_dasha(lagna_rasi, planet_rasi_map, birth_date)
     current = current_chara_dasha(lagna_rasi, planet_rasi_map, birth_date)
 
+    # Jaimini Chara Karakas + Karakamsa (BPHS Ch. 32) — see jaimini_karakas.py for
+    # the documented Rahu/tie-break conventions. Naturally pairs with Chara Dasha.
+    planet_longitudes = {p.graha: float(p.absolute_longitude) for p in planets}
+    d9_rasi_map = {p.graha: resolve_rasi(p.d9_rasi) for p in planets if p.d9_rasi}
+    char_karakas = compute_char_karakas(planet_longitudes)
+    atmakaraka = char_karakas.get("ATMAKARAKA")
+    karakamsa_rasi = compute_karakamsa(atmakaraka, d9_rasi_map) if atmakaraka and atmakaraka in d9_rasi_map else None
+
     return {
         "success": True,
         "data": {
@@ -252,6 +261,10 @@ def get_chara_dasha(
             "lagnaRasi": lagna_rasi,
             "currentPeriod": current,
             "periods": periods,
+            "charKarakas": char_karakas,
+            "atmakaraka": atmakaraka,
+            "karakamsaRasi": karakamsa_rasi,
+            "karakamsaRasiName": RASI_NAMES.get(karakamsa_rasi) if karakamsa_rasi else None,
         },
     }
 

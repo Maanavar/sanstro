@@ -152,6 +152,39 @@ def test_dasha_endpoint_honours_level_parameter(client, birth_profile_payload_fa
     assert all(item["level"] == "maha" for item in body["timeline"])
 
 
+def test_chara_dasha_endpoint_includes_atmakaraka_and_karakamsa(client, birth_profile_payload_factory):
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
+    birth_profile_id = created["data"]["birthProfileId"]
+    chart_id = client.post(
+        "/api/v1/charts/calculate",
+        json={
+            "birthProfileId": birth_profile_id,
+            "calculationVersion": "thirukanitham-2026-v1",
+            "forceRecalculate": False,
+        },
+    ).json()["data"]["chartId"]
+
+    response = client.get(f"/api/v1/charts/{chart_id}/chara-dasha")
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["chartId"] == chart_id
+    assert body["periods"]
+
+    karakas = body["charKarakas"]
+    expected_karakas = {
+        "ATMAKARAKA", "AMATYAKARAKA", "BHRATRUKARAKA", "MATRUKARAKA",
+        "PITRUKARAKA", "PUTRAKARAKA", "GNATIKARAKA", "DAARAKARAKA",
+    }
+    assert set(karakas.keys()) == expected_karakas
+    assert set(karakas.values()) == {
+        "SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU",
+    }
+    assert body["atmakaraka"] == karakas["ATMAKARAKA"]
+    assert body["karakamsaRasi"] in range(1, 13)
+    assert body["karakamsaRasiName"]
+
+
 def test_jadhagam_report_endpoint_returns_structured_payload(client, birth_profile_payload_factory):
     created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
     birth_profile_id = created["data"]["birthProfileId"]

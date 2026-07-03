@@ -862,6 +862,28 @@ export function DashboardPersonalTab({
                         ? "இது ராசி அடிப்படையிலான தசை. திருமணம், தொழில் மாற்றம் போன்ற நிகழ்வுகளின் நேரச் சிக்னலை காட்டும்."
                         : "This sign-based dasha is used to time life-event periods such as marriage and career transitions."}
                     </p>
+                    {charaDasha.atmakaraka && (
+                      <div style={{ display: "flex", gap: "var(--space-2)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                            {lang === "ta" ? "ஆத்மகாரகன்" : "Atmakaraka"}
+                          </p>
+                          <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                            {tPlanetLord(charaDasha.atmakaraka, lang)}
+                          </p>
+                        </div>
+                        {charaDasha.karakamsaRasiName && (
+                          <div style={{ flex: 1 }}>
+                            <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                              {lang === "ta" ? "காரகாம்சம்" : "Karakamsa"}
+                            </p>
+                            <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                              {charaDasha.karakamsaRasiName}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {charaDasha.currentPeriod && (
                       <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--cl-sage-soft)", border: "1px solid var(--cl-sage-border)" }}>
                         <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-score-high)", textTransform: "uppercase", letterSpacing: "0.08em" }}>

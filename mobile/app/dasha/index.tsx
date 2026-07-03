@@ -19,6 +19,18 @@ import { getDashaTimeline, getCharaDasha } from "@/api/dasha";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import type { DashaTimelineItem, CharaPeriod } from "@/api/dasha";
 
+// Jaimini Chara Karakas (BPHS Ch. 32) — Atmakaraka can be any of these 8 grahas.
+const KARAKA_PLANET_LABELS: Record<string, { en: string; ta: string }> = {
+  SUN: { en: "Sun", ta: "சூரியன்" },
+  MOON: { en: "Moon", ta: "சந்திரன்" },
+  MARS: { en: "Mars", ta: "செவ்வாய்" },
+  MERCURY: { en: "Mercury", ta: "புதன்" },
+  JUPITER: { en: "Jupiter", ta: "குரு" },
+  VENUS: { en: "Venus", ta: "சுக்ரன்" },
+  SATURN: { en: "Saturn", ta: "சனி" },
+  RAHU: { en: "Rahu", ta: "ராகு" },
+};
+
 function formatDate(iso: string): string {
   try {
     return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
@@ -290,29 +302,49 @@ export default function DashaScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={charaLoading} onRefresh={charaRefetch} tintColor={C.saffron} />}
           ListHeaderComponent={
-            cd.currentPeriod ? (
-              <View style={styles.banner}>
-                <View style={styles.bannerMain}>
-                  <Text style={styles.bannerLord}>{cd.currentPeriod.rasi_name}</Text>
-                  <Text style={styles.bannerLabel}>
-                    {isTamil ? "நடப்பு சர தசை" : "Current Chara Dasha"}
-                  </Text>
-                  <Text style={styles.bannerDates}>
-                    {formatDate(cd.currentPeriod.start_date)} – {formatDate(cd.currentPeriod.end_date)}
-                  </Text>
-                  <Text style={styles.bannerRemaining}>
-                    {remainingLabel(cd.currentPeriod.end_date, isTamil)}
-                  </Text>
-                  <View style={styles.progressTrack}>
-                    <View
-                      style={[styles.progressFill, {
-                        width: `${percentElapsed(cd.currentPeriod.start_date, cd.currentPeriod.end_date)}%` as any,
-                      }]}
-                    />
+            <>
+              {cd.atmakaraka && (
+                <View style={styles.karakaCard}>
+                  <View style={styles.karakaRow}>
+                    <Text style={styles.karakaLabel}>{isTamil ? "ஆத்மகாரகன்" : "Atmakaraka"}</Text>
+                    <Text style={styles.karakaValue}>
+                      {isTamil
+                        ? KARAKA_PLANET_LABELS[cd.atmakaraka]?.ta ?? cd.atmakaraka
+                        : KARAKA_PLANET_LABELS[cd.atmakaraka]?.en ?? cd.atmakaraka}
+                    </Text>
+                  </View>
+                  {cd.karakamsaRasiName && (
+                    <View style={styles.karakaRow}>
+                      <Text style={styles.karakaLabel}>{isTamil ? "காரகாம்சம்" : "Karakamsa"}</Text>
+                      <Text style={styles.karakaValue}>{cd.karakamsaRasiName}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+              {cd.currentPeriod && (
+                <View style={styles.banner}>
+                  <View style={styles.bannerMain}>
+                    <Text style={styles.bannerLord}>{cd.currentPeriod.rasi_name}</Text>
+                    <Text style={styles.bannerLabel}>
+                      {isTamil ? "நடப்பு சர தசை" : "Current Chara Dasha"}
+                    </Text>
+                    <Text style={styles.bannerDates}>
+                      {formatDate(cd.currentPeriod.start_date)} – {formatDate(cd.currentPeriod.end_date)}
+                    </Text>
+                    <Text style={styles.bannerRemaining}>
+                      {remainingLabel(cd.currentPeriod.end_date, isTamil)}
+                    </Text>
+                    <View style={styles.progressTrack}>
+                      <View
+                        style={[styles.progressFill, {
+                          width: `${percentElapsed(cd.currentPeriod.start_date, cd.currentPeriod.end_date)}%` as any,
+                        }]}
+                      />
+                    </View>
                   </View>
                 </View>
-              </View>
-            ) : null
+              )}
+            </>
           }
           renderItem={({ item }: { item: CharaPeriod }) => {
             const isActive = new Date(item.start_date) <= new Date() && new Date() <= new Date(item.end_date);
@@ -376,6 +408,14 @@ function makeStyles(C: ColorTokens) {
   tabLabel: { color: C.textTertiary },
   tabLabelActive: { color: C.saffron },
 
+  karakaCard: {
+    backgroundColor: C.surface, borderRadius: RADIUS.card,
+    padding: S.base, marginBottom: S.md, gap: S.xs,
+    borderWidth: 1, borderColor: C.divider,
+  },
+  karakaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  karakaLabel: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.textTertiary },
+  karakaValue: { fontFamily: "Inter_600SemiBold", fontSize: 14, color: C.textPrimary },
   banner: {
     backgroundColor: C.darkBg, borderRadius: RADIUS.card,
     padding: S.base, flexDirection: "row", marginBottom: S.md,

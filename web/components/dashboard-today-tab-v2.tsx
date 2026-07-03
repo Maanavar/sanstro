@@ -1211,6 +1211,20 @@ export function DashboardTodayTabV2({
                       ? "இது ராசி அடிப்படையிலான தசை. திருமணம், தொழில் மாற்றம் போன்ற நிகழ்வுகளின் நேரச் சிக்னலை காட்டும்."
                       : "This sign-based dasha is used to time life-event periods such as marriage and career transitions."}
                   </p>
+                  {charaDasha.atmakaraka && (
+                    <div className="t2-classical__grid">
+                      <div className="t2-fact">
+                        <span className="t2-fact__label">{isTa ? "ஆத்மகாரகன்" : "Atmakaraka"}</span>
+                        <span className="t2-fact__value">{tPlanetLord(charaDasha.atmakaraka, lang)}</span>
+                      </div>
+                      {charaDasha.karakamsaRasiName && (
+                        <div className="t2-fact">
+                          <span className="t2-fact__label">{isTa ? "காரகாம்சம்" : "Karakamsa"}</span>
+                          <span className="t2-fact__value">{charaDasha.karakamsaRasiName}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {charaDasha.currentPeriod && (
                     <div className="t2-classical__current">
                       <span className="t2-kicker">{isTa ? "தற்போதைய சார தசை" : "Current Chara Dasha"}</span>
