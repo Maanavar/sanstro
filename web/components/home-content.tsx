@@ -29,6 +29,10 @@ function makeSample(lang: "en" | "ta", rasiOverride?: { en: string; ta: string }
 
 const ARC_HOURS = ["6 am", "9 am", "12 pm", "3 pm", "6 pm"];
 
+// iOS app is not yet published — set the real store URL when it goes live to
+// re-render the App Store badge (null hides it; id0000000000 was a dead link).
+const APP_STORE_URL: string | null = null;
+
 export function HomeContent() {
   const [lang] = useLang();
   const { selectedRasi, setRasi } = useGuestStore();
@@ -485,22 +489,24 @@ export function HomeContent() {
                     <p className="cl-store-badge__name">Google Play</p>
                   </div>
                 </a>
-                <a
-                  href="https://apps.apple.com/app/vinaadi/id0000000000"
-                  className="cl-store-badge"
-                  aria-label="Download Vinaadi on the App Store"
-                  onClick={() => track("app_dl_clicked", { store: "appstore" })}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="#2E2118" aria-hidden="true">
-                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-                  </svg>
-                  <div>
-                    <p className="cl-store-badge__meta">
-                      {lang === "en" ? "Download on the" : "பதிவிறக்கம்"}
-                    </p>
-                    <p className="cl-store-badge__name">App Store</p>
-                  </div>
-                </a>
+                {APP_STORE_URL && (
+                  <a
+                    href={APP_STORE_URL}
+                    className="cl-store-badge"
+                    aria-label="Download Vinaadi on the App Store"
+                    onClick={() => track("app_dl_clicked", { store: "appstore" })}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="#2E2118" aria-hidden="true">
+                      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                    </svg>
+                    <div>
+                      <p className="cl-store-badge__meta">
+                        {lang === "en" ? "Download on the" : "பதிவிறக்கம்"}
+                      </p>
+                      <p className="cl-store-badge__name">App Store</p>
+                    </div>
+                  </a>
+                )}
               </div>
             </div>
           </div>
