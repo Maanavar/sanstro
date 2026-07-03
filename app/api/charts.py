@@ -42,6 +42,9 @@ from app.services.dasha_service import get_chart_dasha
 from app.services.pdf_export_service import generate_chart_pdf
 from app.services.shadbala_service import build_shadbala_response
 from app.services.tajaka_service import get_varshaphala
+from app.services.ashtottari_dasha_service import build_ashtottari_dasha_response
+from app.services.yogini_dasha_service import build_yogini_dasha_response
+from app.services.kalachakra_dasha_service import build_kalachakra_dasha_response
 
 router = APIRouter()
 
@@ -267,6 +270,67 @@ def get_chara_dasha(
             "karakamsaRasiName": RASI_NAMES.get(karakamsa_rasi) if karakamsa_rasi else None,
         },
     }
+
+
+@router.get("/charts/{chart_id}/yogini-dasha", tags=["charts"])
+def get_yogini_dasha(
+    chart_id: UUID,
+    as_of: date | None = Query(default=None, alias="asOf"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Yogini Dasha — 36-year secondary/comparison dasha (BPHS-adjacent,
+    Devi Bhagavata/Muhurta Chintamani tradition). See yogini_dasha.py for
+    the cited starting-offset convention. Advanced/additive, not a
+    replacement for the primary Vimshottari timeline."""
+    _assert_chart_owner(session, chart_id, current_user)
+    try:
+        data = build_yogini_dasha_response(session, chart_id, as_of)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"success": True, "data": data}
+
+
+@router.get("/charts/{chart_id}/ashtottari-dasha", tags=["charts"])
+def get_ashtottari_dasha(
+    chart_id: UUID,
+    as_of: date | None = Query(default=None, alias="asOf"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Ashtottari Dasha — 108-year secondary/comparison dasha (no Ketu, 8
+    lords). See ashtottari_dasha.py for the cited Krittikadi nakshatra-lord
+    convention and its documented uncertainty. Advanced/additive, display
+    only — not a replacement for the primary Vimshottari timeline, and not
+    used in any scoring path."""
+    _assert_chart_owner(session, chart_id, current_user)
+    try:
+        data = build_ashtottari_dasha_response(session, chart_id, as_of)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"success": True, "data": data}
+
+
+@router.get("/charts/{chart_id}/kalachakra-dasha", tags=["charts"])
+def get_kalachakra_dasha(
+    chart_id: UUID,
+    as_of: date | None = Query(default=None, alias="asOf"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Kalachakra Dasha — rasi-based Navamsa-Nakshatra dasha, non-uniform
+    period lengths (4-21 years). See kalachakra_dasha.py for the cited
+    Saravali source (itself citing Parasara's Hora Shastra and Vaidhyanatha
+    Dikshita's Jataka Parijata), the documented Portion-Zero cycle
+    convention, and a discovered inconsistency in the source's own worked
+    example. Experimental / display only — no independent second-source
+    cross-check has been done yet, not used in any scoring path."""
+    _assert_chart_owner(session, chart_id, current_user)
+    try:
+        data = build_kalachakra_dasha_response(session, chart_id, as_of)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"success": True, "data": data}
 
 
 @router.get("/charts/{chart_id}/solar-return", tags=["charts"])
