@@ -13,6 +13,7 @@ from app.services.pdf_export_service import (
     _styles,
     generate_chart_pdf,
     generate_compatibility_intelligence_pdf,
+    generate_porutham_pdf,
 )
 
 pytestmark = pytest.mark.no_db
@@ -297,4 +298,65 @@ def test_generate_compatibility_intelligence_pdf_returns_bytes():
     result = generate_compatibility_intelligence_pdf(report, "Arjun Kumar", "Anitha")
     assert isinstance(result, bytes)
     assert len(result) > 100
+    assert result[:4] == b"%PDF"
+
+
+def _make_direct_porutham(rajju_dosha=False, vedha_dosha=False):
+    from app.schemas.relationships import DirectPoruthamData
+
+    return DirectPoruthamData.model_validate({
+        "chartIdA": str(uuid4()),
+        "chartIdB": str(uuid4()),
+        "boyNakshatra": 1,
+        "boyNakshatraName": "ASWINI",
+        "girlNakshatra": 4,
+        "girlNakshatraName": "ROHINI",
+        "kutas": [
+            {"name": "Dinam", "nameTa": "தினம்", "score": 1, "maxScore": 1, "label": "Good"},
+            {"name": "Ganam", "nameTa": "கணம்", "score": 1, "maxScore": 1, "label": "Good"},
+            {"name": "Rajju", "nameTa": "ரஜ்ஜு", "score": 0 if rajju_dosha else 1, "maxScore": 1, "label": "Caution" if rajju_dosha else "Good"},
+        ],
+        "totalScore": 7,
+        "maxScore": 10,
+        "percentage": 70.0,
+        "label": "GOOD",
+        "rajjuDosha": rajju_dosha,
+        "vedhaDosha": vedha_dosha,
+        "nadiDosha": {
+            "boyNadi": "Madhya",
+            "girlNadi": "Adi",
+            "hasNadiDosha": False,
+            "cancellations": [],
+            "severity": "NONE",
+            "noteTa": "",
+            "noteEn": "No nadi dosha.",
+        },
+        "summary": {"ta": "நல்ல பொருத்தம்.", "en": "A good match overall."},
+        "compatibilityContext": "MARRIAGE",
+        "contextNote": {"ta": "", "en": "Marriage context applied."},
+    })
+
+
+def test_generate_porutham_pdf_returns_bytes_en():
+    result = generate_porutham_pdf(_make_direct_porutham(), "Arjun Kumar", "Anitha", lang="en")
+    assert isinstance(result, bytes)
+    assert len(result) > 100
+    assert result[:4] == b"%PDF"
+
+
+def test_generate_porutham_pdf_returns_bytes_ta():
+    result = generate_porutham_pdf(_make_direct_porutham(), "Arjun Kumar", "Anitha", lang="ta")
+    assert isinstance(result, bytes)
+    assert len(result) > 100
+    assert result[:4] == b"%PDF"
+
+
+def test_generate_porutham_pdf_with_doshas():
+    result = generate_porutham_pdf(
+        _make_direct_porutham(rajju_dosha=True, vedha_dosha=True),
+        "Arjun Kumar",
+        "Anitha",
+        lang="ta",
+    )
+    assert isinstance(result, bytes)
     assert result[:4] == b"%PDF"

@@ -52,6 +52,23 @@ def test_public_porutham_accepts_marketing_site_payload() -> None:
     assert body["data"]["girlNakshatraName"]
 
 
+@pytest.mark.parametrize("lang", ["en", "ta"])
+def test_public_compare_pdf_returns_pdf(lang: str) -> None:
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.post(
+            f"/api/v1/public/compare/pdf?lang={lang}",
+            json={
+                "personA": _birth_payload("Person A", "1990-01-01", "12:00"),
+                "personB": _birth_payload("Person B", "1992-02-02", "13:00"),
+                "compatibilityContext": "MARRIAGE",
+            },
+        )
+
+    assert response.status_code == 200, response.text
+    assert response.headers["content-type"].startswith("application/pdf")
+    assert response.content[:4] == b"%PDF"
+
+
 def test_public_panchangam_returns_daily_snapshot() -> None:
     with TestClient(app, raise_server_exceptions=False) as client:
         response = client.get(
