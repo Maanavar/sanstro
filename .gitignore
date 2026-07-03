@@ -55,3 +55,6 @@ web/tests/
 *.local
 *.local.*
 
+
+# Background task logs (transient)
+artifacts/
