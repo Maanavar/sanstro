@@ -39,6 +39,7 @@ from app.services.chart_service import (
 )
 from app.services.dasha_service import get_chart_dasha
 from app.services.pdf_export_service import generate_chart_pdf
+from app.services.shadbala_service import build_shadbala_response
 from app.services.tajaka_service import get_varshaphala
 
 router = APIRouter()
@@ -321,6 +322,22 @@ def get_varshaphala_endpoint(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return response.model_dump(mode="json", by_alias=True)
+
+
+@router.get("/charts/{chart_id}/shadbala", tags=["charts"])
+def get_shadbala(
+    chart_id: UUID,
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Full classical six-component Shadbala (Rupas) — advanced/experimental,
+    additive to the product strength score. See shadbala_service."""
+    _assert_chart_owner(session, chart_id, current_user)
+    try:
+        data = build_shadbala_response(session, chart_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"success": True, "data": data}
 
 
 @router.get("/charts/{chart_id}/share", tags=["charts"])

@@ -274,6 +274,24 @@ already computes).
 
 ## Phase 2 — Full classical Shadbala + Bhava Bala (the spec's own unbuilt contract)
 
+> **Status (2026-07-03): per-planet Shadbala BUILT (experimental).**
+> `app/calculations/shadbala.py` implements all six components in Virupas →
+> Rupas vs. the spec §8 required-Rupas table, with each sub-formula cited to
+> BPHS/B.V. Raman inline: Sthana (Uchcha, Saptavargaja over the 7 vargas,
+> Oja-Yugma, Kendradi, Drekkana), Dig (spec §8.1), Kala (Nathonnatha, Paksha,
+> Tribhaga, Vara, Hora, Ayana via computed declination), Chesta (Sun=Ayana,
+> Moon=Paksha, else speed-vs-mean), Naisargika, Drik. Wired behind
+> `GET /charts/{id}/shadbala` (`shadbala_service.py`) + all 4 surfaces
+> (shared `shadbala.ts`, mobile `app/shadbala`, web `dashboard-shadbala-panel`).
+> Golden/unit tests in `tests/test_shadbala.py` (hand-checked sub-components).
+> **Deliberately deferred** (documented, not guessed): Abda/Masa Bala (need
+> ahargana year/month lords), Yuddha Bala (needs disc diameters), and the
+> full epicyclic 8-fold Chesta (uses a documented speed approximation).
+> **Still TODO before removing the experimental label:** (1) classical
+> `compute_bhava_bala_classical` on top of this module (below), and (2)
+> Jagannatha Hora cross-validation of the Rupa totals for all 7 planets.
+
+
 **What:** the spec's §8 "Full Shadbala Engine Contract" is written but never
 implemented — Shashtiamsa-unit scoring with minimum-required Rupas per
 planet. Build it as a genuinely separate, additive module (per guiding

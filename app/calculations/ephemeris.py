@@ -194,6 +194,23 @@ def calculate_lagna_degree(jd_ut: float, latitude: float, longitude: float) -> f
         return normalize_longitude(float(ascmc[0]))
 
 
+def calculate_asc_mc(jd_ut: float, latitude: float, longitude: float) -> tuple[float, float]:
+    """Sidereal Ascendant and Midheaven longitudes (degrees). ascmc[0] is the
+    Ascendant, ascmc[1] the MC. Used by the Shadbala Dig Bala computation."""
+    with _SWISS_LOCK:
+        if _HAS_MODULE_API:
+            try:
+                _cusps, ascmc = swe_module.houses_ex(jd_ut, latitude, longitude, b"W", FLG_SIDEREAL)
+            except TypeError:
+                _cusps, ascmc = swe_module.houses_ex(jd_ut, FLG_SIDEREAL, latitude, longitude, b"W")
+            return normalize_longitude(float(ascmc[0])), normalize_longitude(float(ascmc[1]))
+
+        cusps = (c_double * 13)()
+        ascmc = (c_double * 10)()
+        _SWISS.swe_houses_ex(jd_ut, SEFLG_SIDEREAL, latitude, longitude, ord("W"), cusps, ascmc)
+        return normalize_longitude(float(ascmc[0])), normalize_longitude(float(ascmc[1]))
+
+
 def calculate_rise_transit_jd(jd_start: float, latitude: float, longitude: float, *, rise: bool) -> float:
     with _SWISS_LOCK:
         if _HAS_MODULE_API:

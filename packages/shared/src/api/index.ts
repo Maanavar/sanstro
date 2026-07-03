@@ -8,6 +8,7 @@ export * from "./varshaphala";
 export * from "./transits";
 export * from "./rasiPalan";
 export * from "./vargas";
+export * from "./shadbala";
 export * from "./lifeAreas";
 export * from "./lifeEvents";
 export * from "./rectification";

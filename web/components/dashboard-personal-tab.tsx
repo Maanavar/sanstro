@@ -44,6 +44,7 @@ import { AlertBanner } from "./alert-banner";
 import { DashboardActivityTimingCard } from "./dashboard-activity-timing-card";
 import { CollapsibleSection } from "./collapsible-section";
 import { VargasPanel } from "./dashboard-vargas-panel";
+import { ShadbalaPanel } from "./dashboard-shadbala-panel";
 import { MorningGuidanceCard } from "./morning-guidance-card";
 import { PrasnaWidget } from "./dashboard-prasna-widget";
 import { ChartExplanationPanel } from "./dashboard-chart-explanation";
@@ -820,6 +821,18 @@ export function DashboardPersonalTab({
             bhavaChalit={personalChart.bhavaChalit}
             vargaReliability={personalChart.vargaReliability}
           />
+        </div>
+      )}
+
+      {/* ── Shadbala (classical six-fold strength) ── */}
+      {activeChartId && (
+        <div style={{
+          padding: "var(--space-3_5) var(--space-4_5)",
+          borderRadius: "var(--radius-md)",
+          border: "1px solid var(--panel-tan-light)",
+          background: "var(--panel-cream)",
+        }}>
+          <ShadbalaPanel lang={lang} chartId={activeChartId} />
         </div>
       )}
 
