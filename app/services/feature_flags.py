@@ -14,6 +14,19 @@ def _defaults() -> dict[str, Any]:
         "enable_push_notifications": True,
         "maintenance_mode": False,
         "max_birth_profiles_per_user": 10,
+        # D1 reasoning gate (docs/REASONING_LAYER_UPGRADE_PLAN.md Phase 1).
+        # Rollout: internal → beta → all; watch for over-suppression
+        # (too many BLOCKED/SILENT means the gate is too strict).
+        "reasoning_gate": False,
+        # D2/D3 ordinal bands (docs/REASONING_LAYER_UPGRADE_PLAN.md Phase 2).
+        # Strips X/100 from user copy and speaks in Band words; SILENT voice.
+        # Independent of reasoning_gate so copy can roll out separately.
+        "reasoning_bands": False,
+        # D5 calibration data spine (docs/REASONING_LAYER_UPGRADE_PLAN.md Phase 4).
+        # Silent-launch: log material predictions on serve + join outcomes so
+        # hit-rates accrue for weeks before anyone trusts them. No user-facing
+        # behaviour change; the read side is admin-only.
+        "reasoning_calibration_log": False,
     }
 
 
