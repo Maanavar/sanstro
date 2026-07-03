@@ -45,6 +45,7 @@ from app.api.remedies import router as remedies_router
 from app.api.retrospective import router as retrospective_router
 from app.api.settings import router as settings_router
 from app.api.share_card import router as share_card_router
+from app.api.streak import router as streak_router
 from app.api.transits import router as transits_router
 from app.api.users import router as users_router
 from app.api.webhooks import router as webhooks_router
@@ -202,6 +203,7 @@ def create_app() -> FastAPI:
     app.include_router(family_vaults_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(transits_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(goals_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(streak_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(journal_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(life_areas_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(life_events_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)

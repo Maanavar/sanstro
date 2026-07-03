@@ -30,6 +30,7 @@ from app.models.user_goal import UserGoal
 from app.models.user_life_events import UserLifeEvent
 from app.models.user_notification_preference import UserNotificationPreference
 from app.models.user_preference import UserPreference
+from app.models.user_streak import UserStreak
 from app.models.varga_position import VargaPosition
 
 __all__ = [
@@ -63,5 +64,6 @@ __all__ = [
     "UserContext",
     "UserGoal",
     "UserLifeEvent",
+    "UserStreak",
     "VargaPosition",
 ]
