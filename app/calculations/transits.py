@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from app.calculations.aspects import aspect_target_rasis
 from app.calculations.astro import (
     RASI_NAMES as CANONICAL_RASI_NAMES,
 )
@@ -195,19 +196,18 @@ def transit_interpretation_key(graha: str, house_from_moon: int) -> str:
 
 
 def get_jupiter_aspects(transit_rasi: int) -> list[int]:
-    return [
-        ((transit_rasi - 1 + 4) % 12) + 1,
-        ((transit_rasi - 1 + 6) % 12) + 1,
-        ((transit_rasi - 1 + 8) % 12) + 1,
-    ]
+    """Rasis (1-12) Jupiter aspects (5th/7th/9th) transiting from transit_rasi."""
+    return aspect_target_rasis("JUPITER", transit_rasi)
 
 
 def get_saturn_aspects(transit_rasi: int) -> list[int]:
-    return [
-        ((transit_rasi - 1 + 2) % 12) + 1,
-        ((transit_rasi - 1 + 6) % 12) + 1,
-        ((transit_rasi - 1 + 9) % 12) + 1,
-    ]
+    """Rasis (1-12) Saturn aspects (3rd/7th/10th) transiting from transit_rasi."""
+    return aspect_target_rasis("SATURN", transit_rasi)
+
+
+def get_mars_aspects(transit_rasi: int) -> list[int]:
+    """Rasis (1-12) Mars aspects (4th/7th/8th) transiting from transit_rasi."""
+    return aspect_target_rasis("MARS", transit_rasi)
 
 
 def _extract_natal_rasi(natal_position: Any) -> int:

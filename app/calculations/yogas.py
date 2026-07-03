@@ -38,7 +38,6 @@ from app.calculations._yoga_helpers import (
     _is_active,
     _is_functional_benefic,
     _is_kendra_from,
-    _is_seventh_aspect,
     _marker_explain,
     _marker_explain_ta,
     _planet_is_strong,

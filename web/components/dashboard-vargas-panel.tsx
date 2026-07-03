@@ -25,7 +25,10 @@ const VARGA_TABS = [
   { key: "D9",  label: "D9" },
   { key: "D10", label: "D10" },
   { key: "D12", label: "D12" },
+  { key: "D27", label: "D27" },
   { key: "D30", label: "D30" },
+  { key: "D40", label: "D40" },
+  { key: "D45", label: "D45" },
   { key: "D60", label: "D60" },
 ] as const;
 
@@ -39,7 +42,10 @@ const VARGA_DESC: Record<VargaKey, { ta: string; en: string }> = {
   D9:  { ta: "நவாம்சம் — திருமணம்",          en: "Navamsa — Marriage" },
   D10: { ta: "தசாம்சம் — தொழில்",            en: "Dasamsha — Career" },
   D12: { ta: "துவாதசாம்சம் — பெற்றோர்",      en: "Dwadashamsa — Parents" },
+  D27: { ta: "பாம்சம் — பொது நலம்",          en: "Bhamsa — General well-being" },
   D30: { ta: "திரிம்சாம்சம் — உடல்நலம்",     en: "Trimsamsa — Health" },
+  D40: { ta: "காவேதாம்சம் — தாய்வழி",        en: "Khavedamsa — Maternal legacy" },
+  D45: { ta: "அக்ஷவேதாம்சம் — பண்பு",        en: "Akshavedamsa — Character" },
   D60: { ta: "ஷஷ்டியாம்சம் — ஆன்மீகம்",     en: "Shashtiamsa — Spiritual" },
 };
 
@@ -69,9 +75,10 @@ type Props = {
   vargas: Record<string, Record<string, number>> | undefined;
   d1Planets: Record<string, number>;
   bhavaChalit: Record<string, number> | undefined;
+  vargaReliability?: Record<string, string>;
 };
 
-export function VargasPanel({ lang, vargas, d1Planets, bhavaChalit }: Props) {
+export function VargasPanel({ lang, vargas, d1Planets, bhavaChalit, vargaReliability }: Props) {
   const [activeVarga, setActiveVarga] = useState<VargaKey>("D10");
 
   const hasVargas = vargas && Object.keys(vargas).length > 0;
@@ -118,6 +125,11 @@ export function VargasPanel({ lang, vargas, d1Planets, bhavaChalit }: Props) {
         {/* Active varga description */}
         <p style={{ fontSize: "0.8rem", color: W.muted, marginBottom: "var(--space-2)", fontStyle: "italic" }}>
           {VARGA_DESC[activeVarga][lang]}
+          {vargaReliability?.[activeVarga] === "LOW" && (
+            <span style={{ color: W.terracotta, fontWeight: 600, marginLeft: "var(--space-2)" }}>
+              {lang === "ta" ? "(பிறந்த நேரம் துல்லியமாக இல்லை)" : "(needs exact birth time)"}
+            </span>
+          )}
         </p>
 
         {/* Planet comparison table */}

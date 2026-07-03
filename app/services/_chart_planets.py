@@ -25,12 +25,25 @@ from app.calculations.panchangam import NAKSHATRA_NAMES
 from app.calculations.transits import RASI_NAMES, is_combust
 from app.schemas.charts import PlanetPosition
 
-# Maandhi (Mandhi) slot rules for chart longitude computation.
-# Day birth: Sun=7, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6 (traditional Tamil Panchangam Maandi order)
-MANDHI_DAY_SLOT = {6: 7, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6}
-# Night birth: day_slot + 4 (wrapping within 1-8).
-# Sun=3, Mon=5, Tue=6, Wed=7, Thu=8, Fri=1, Sat=2
-MANDHI_NIGHT_SLOT = {6: 3, 0: 5, 1: 6, 2: 7, 3: 8, 4: 1, 5: 2}
+# Maandhi (Mandhi/Gulika) slot rules for chart longitude computation.
+#
+# Day birth: the traditional Tamil Panchangam Kuligai order DESCENDS from
+# Sunday=7th eighth-of-the-day down to Saturday=1st: Sun=7, Mon=6, Tue=5,
+# Wed=4, Thu=3, Fri=2, Sat=1 — this is exactly panchangam.py's own
+# KULIGAI_SLOT table (used for muhurtham exclusions), already verified in
+# the 2026-07 audit. (Phase 1.2 finding: the table previously coded *here*
+# had Mon..Sat ASCENDING (1..6) instead, disagreeing with panchangam.py's
+# own already-correct table for the same classical rule. Independently
+# re-verified against drikpanchang.com published Gulika Kaal windows for
+# three weekdays: Thu 2026-01-01 New Delhi 09:49-11:07 AM (=3rd eighth of a
+# 621min day from 07:14 sunrise), Fri 2026-07-03 New Delhi 07:12-08:56 AM
+# (=2nd eighth of a 835min day from 05:28 sunrise), Sat 2026-07-04 New Delhi
+# 05:28-07:12 AM (=1st eighth) — all three confirm the descending order.
+# See tests/test_gulika.py.)
+MANDHI_DAY_SLOT = {6: 7, 0: 6, 1: 5, 2: 4, 3: 3, 4: 2, 5: 1}
+# Night birth: day_slot + 4 (wrapping within 1-8), recomputed from the
+# corrected MANDHI_DAY_SLOT above. Sun=3, Mon=2, Tue=1, Wed=8, Thu=7, Fri=6, Sat=5.
+MANDHI_NIGHT_SLOT = {6: 3, 0: 2, 1: 1, 2: 8, 3: 7, 4: 6, 5: 5}
 
 _PLANET_MEAN_DAILY_SPEED: dict[str, float] = {
     "MOON": 13.176,
@@ -44,7 +57,9 @@ _PLANET_MEAN_DAILY_SPEED: dict[str, float] = {
     "KETU": 0.053,
 }
 _NATAL_GRAHAS = frozenset({"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"})
-_VARGA_DIVISIONS = (2, 3, 4, 7, 10, 12, 16, 20, 24, 30, 40, 60)
+_VARGA_DIVISIONS = (2, 3, 4, 7, 10, 12, 16, 20, 24, 27, 30, 40, 45, 60)
+# Spec section 3.13: D60 requires exact birth time; >2 min uncertainty is unreliable.
+_LOW_RELIABILITY_VARGAS = frozenset({"D60"})
 # Classical Deva/Manushya/Rakshasa assignment — must match app.calculations.porutham._GANA.
 _NAKSHATRA_GANA = {
     1: "Deva", 2: "Manushya", 3: "Rakshasa", 4: "Manushya", 5: "Deva", 6: "Manushya",
@@ -81,6 +96,12 @@ def _compute_vargas(planet_longitudes: dict[str, float]) -> dict[str, dict[str, 
         f"D{division}": get_varga(division, planet_longitudes)
         for division in _VARGA_DIVISIONS
     }
+
+
+def _varga_reliability(confidence_minutes: int) -> dict[str, str]:
+    if confidence_minutes > 2:
+        return {varga: "LOW" for varga in _LOW_RELIABILITY_VARGAS}
+    return {}
 
 
 def _compute_nakshatra_analysis(planet_longitudes: dict[str, float]) -> dict[str, object]:
@@ -229,6 +250,11 @@ def _mandhi_planet_position(longitude: float, lagna_rasi: int) -> PlanetPosition
             "chesta": "NEUTRAL",
             "naisargika": "NEUTRAL",
             "drik": "NEUTRAL",
+            # Mandhi is a shadow upagraha, not a real graha — it has no
+            # classical Shadbala/avastha of its own, so these stay neutral.
+            "baladi": "NEUTRAL",
+            "jagradadi": "NEUTRAL",
+            "deeptadi": "NEUTRAL",
         },
     )
 

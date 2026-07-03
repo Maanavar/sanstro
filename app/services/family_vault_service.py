@@ -60,7 +60,7 @@ from app.services.daily_guidance_service import build_daily_guidance_response
 from app.services.location_service import local_midnight_as_jd_for_profile, resolve_effective_daily_location
 from app.services.transit_service import build_sani_cycle_response, build_transit_snapshot
 
-DEFAULT_CALCULATION_VERSION = "jothidam-formula-engine-v1.1-2026"
+DEFAULT_CALCULATION_VERSION = "jothidam-formula-engine-v1.2-2026"
 MAJOR_SANI_TAGS = {"JANMA_SANI", "ARDHASHTAMA_SANI", "ASHTAMA_SANI", "KANTAKA_SANI", "KANDAKA_SANI"}
 SUPPORTIVE_HORA_TAGS = {"JUPITER_HORA", "VENUS_HORA", "MERCURY_HORA"}
 

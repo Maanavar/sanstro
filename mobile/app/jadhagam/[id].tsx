@@ -22,7 +22,7 @@ import { RASI_LIST, type ChartCalculateResponseData } from "@vinaadi/shared";
 
 const PLANET_SHORT_TA: Record<string, string> = {
   Sun: "சூ", Moon: "சந்", Mars: "செ", Mercury: "பு",
-  Jupiter: "கு", Venus: "சு", Saturn: "ச", Rahu: "ரா", Ketu: "கே",
+  Jupiter: "கு", Venus: "சு", Saturn: "ச", Rahu: "ரா", Ketu: "கே", Mandhi: "மா",
 };
 const VARGA_OPTIONS = [
   { key: "D1", label: "D1 Rasi", meaning: "Birth chart - body, identity, life direction" },

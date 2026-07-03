@@ -5,6 +5,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from itertools import combinations
 
+from app.calculations.aspects import aspects_house
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import (
     DEBILITATION_RASI,
@@ -22,7 +23,6 @@ from app.calculations._yoga_helpers import (
     YogaResult,
     _house_lord,
     _is_active,
-    _is_seventh_aspect,
     _is_kendra_from,
     _planet_rasi,
 )
@@ -105,7 +105,7 @@ def detect_raja_yoga(
                 continue
             trikona_rasi = _planet_rasi(planets, trikona_lord)
             kendra_rasi = _planet_rasi(planets, kendra_lord)
-            if trikona_rasi == kendra_rasi or _is_seventh_aspect(trikona_rasi, kendra_rasi):
+            if trikona_rasi == kendra_rasi or aspects_house(trikona_lord, trikona_rasi, kendra_rasi):
                 results.append(
                     YogaResult(
                         name="RAJA_YOGA",
@@ -196,7 +196,7 @@ def detect_neecha_bhanga(
         exaltation_sign_lord = exaltation_owner_by_planet.get(planet)
         if exaltation_sign_lord is not None:
             exaltation_sign_lord_rasi = _planet_rasi(planets, exaltation_sign_lord)
-            if _is_seventh_aspect(exaltation_sign_lord_rasi, planet_rasi):
+            if aspects_house(exaltation_sign_lord, exaltation_sign_lord_rasi, planet_rasi):
                 conditions.append("exaltation_sign_lord_aspects_debilitated")
 
         if d9_rasi_map and d9_lagna_rasi and planet in d9_rasi_map:
@@ -481,7 +481,7 @@ def detect_kemadruma_yoga(planets: dict[str, int], moon_rasi: int, lagna_rasi: i
         for planet, rasi in planets.items()
     )
     jupiter_rasi = planets.get("JUPITER")
-    jupiter_aspects_moon = jupiter_rasi is not None and house_from_reference(jupiter_rasi, moon_rasi) in {5, 7, 9}
+    jupiter_aspects_moon = jupiter_rasi is not None and aspects_house("JUPITER", jupiter_rasi, moon_rasi)
     sun_rasi = planets.get("SUN")
     moon_full_opposite_sun = sun_rasi is not None and house_from_reference(sun_rasi, moon_rasi) == 7
 

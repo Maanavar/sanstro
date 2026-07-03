@@ -23,7 +23,7 @@ import { Lock } from "lucide-react-native";
 
 const PLANET_SHORT_TA: Record<string, string> = {
   Sun: "சூ", Moon: "சந்", Mars: "செ", Mercury: "பு",
-  Jupiter: "கு", Venus: "சு", Saturn: "ச", Rahu: "ரா", Ketu: "கே",
+  Jupiter: "கு", Venus: "சு", Saturn: "ச", Rahu: "ரா", Ketu: "கே", Mandhi: "மா",
 };
 
 const VARGA_OPTIONS = [

@@ -265,6 +265,7 @@ export interface ChartCalculateResponseData {
   ephemerisBackend: string;
   bhavaChalit?: Record<string, number>;
   vargas?: Record<string, Record<string, number>>;
+  vargaReliability?: Record<string, string>;
   nakshatraAnalysis?: Record<string, unknown>;
   birthPanchangamSignature?: Record<string, unknown>;
 }

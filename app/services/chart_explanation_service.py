@@ -7,6 +7,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.calculations.aspects import aspect_houses
 from app.calculations.astro import RASI_NAMES, house_from_reference, utc_datetime_to_julian_day
 from app.calculations.chart_strength import (
     _NATURAL_ENEMIES,
@@ -47,14 +48,6 @@ _NATAL_PLANETS = ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN"
 _KENDRA_HOUSES = frozenset({1, 4, 7, 10})
 _TRIKONA_HOUSES = frozenset({1, 5, 9})
 _DUSTHANA_HOUSES = frozenset({6, 8, 12})
-_ASPECT_HOUSES: dict[str, frozenset[int]] = {
-    "MARS": frozenset({4, 7, 8}),
-    "JUPITER": frozenset({5, 7, 9}),
-    "SATURN": frozenset({3, 7, 10}),
-    # Vinaadi documents the node tradition used here: Rahu/Ketu use 5th, 7th, and 9th aspects.
-    "RAHU": frozenset({5, 7, 9}),
-    "KETU": frozenset({5, 7, 9}),
-}
 
 _HOUSE_THEMES: dict[int, ChartExplanationText] = {
     1: ChartExplanationText(ta="உடல், தன்மை, வாழ்க்கை திசை", en="self, body, life direction"),
@@ -274,10 +267,6 @@ def _build_conjunctions(planets: list[PlanetPosition], lagna_rasi: int) -> list[
     return groups
 
 
-def _aspect_houses(planet: str) -> frozenset[int]:
-    return _ASPECT_HOUSES.get(planet, frozenset({7}))
-
-
 def _aspect_type(planet: str, aspect_house: int) -> str:
     if aspect_house == 7:
         return "STANDARD_7TH"
@@ -291,7 +280,7 @@ def _build_aspects(planets: list[PlanetPosition]) -> list[ChartExplanationAspect
             if source.graha == target.graha:
                 continue
             aspect_house = house_from_reference(source.rasi, target.rasi)
-            if aspect_house not in _aspect_houses(source.graha):
+            if aspect_house not in aspect_houses(source.graha):
                 continue
             aspects.append(
                 ChartExplanationAspect(
@@ -435,14 +424,14 @@ def _activation_signals(
             )
         )
 
-    for source in ("JUPITER", "SATURN", "RAHU", "KETU"):
+    for source in ("MARS", "JUPITER", "SATURN", "RAHU", "KETU"):
         body = transit_bodies.get(source)
         if body is None:
             continue
         aspect_house = house_from_reference(body.rasi, natal_planet.rasi)
         if aspect_house == 1:
             signal_type = "TRANSIT_CONJUNCTION"
-        elif aspect_house in _aspect_houses(source):
+        elif aspect_house in aspect_houses(source):
             signal_type = f"TRANSIT_ASPECT_{aspect_house}TH"
         else:
             continue

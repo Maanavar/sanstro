@@ -18,7 +18,7 @@ import { PPU_REPORT_PRODUCTS } from "@vinaadi/shared/constants";
 
 const PLANET_SHORT_TA: Record<string, string> = {
   Sun: "சூ", Moon: "சந்", Mars: "செ", Mercury: "பு",
-  Jupiter: "கு", Venus: "சு", Saturn: "ச", Rahu: "ரா", Ketu: "கே",
+  Jupiter: "கு", Venus: "சு", Saturn: "ச", Rahu: "ரா", Ketu: "கே", Mandhi: "மா",
 };
 
 function buildHouses(chart: ChartCalculateResponseData): JadhagamHouseData[] {

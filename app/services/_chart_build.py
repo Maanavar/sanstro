@@ -49,9 +49,10 @@ from app.services._chart_planets import (
     _paksha_is_shukla,
     _planet_position_from_snapshot,
     _speed_ratio,
+    _varga_reliability,
 )
 
-DEFAULT_CALCULATION_VERSION = "jothidam-formula-engine-v1.1-2026"
+DEFAULT_CALCULATION_VERSION = "jothidam-formula-engine-v1.2-2026"
 RASI_NUMBERS = {name: number for number, name in RASI_NAMES.items()}
 PLANET_ORDER = {
     "SUN": 0,
@@ -68,8 +69,17 @@ PLANET_ORDER = {
 
 
 def _public_planets(planets: list[PlanetPosition]) -> list[PlanetPosition]:
-    """Return the API planet set while keeping Mandhi internal-only."""
-    return [planet for planet in planets if planet.graha != "MANDHI"]
+    """Return the API planet set.
+
+    Mandhi (Gulika) is exposed here as an 8th pseudo-planet entry, same shape
+    as Rahu/Ketu — per docs/THIRUKANITHAM_DEPTH_EXPANSION_PLAN.md Phase 1.2,
+    classical Tamil Thirukanitham practice reads Gulika's house placement and
+    aspects like a graha, not just as a muhurtham time-window (see
+    panchangam.py: KULIGAI_SLOT for the time-window usage). Previously this
+    function filtered Mandhi out of every consumer of ChartCalculateResponse;
+    it no longer does.
+    """
+    return planets
 
 
 def _value(profile: Any, name: str, default: Any = None) -> Any:
@@ -390,6 +400,7 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
     planet_longitudes = {p.graha: p.absolute_longitude for p in public_planet_positions}
     planet_longitudes["LAGNA"] = lagna_degree
     vargas = _compute_vargas(planet_longitudes)
+    varga_reliability = _varga_reliability(int(_value(profile, "birth_time_confidence_minutes", 0) or 0))
     nakshatra_analysis = _compute_nakshatra_analysis(planet_longitudes)
     birth_panchangam_signature = _birth_panchangam_signature(profile)
 
@@ -410,8 +421,9 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
             ayanamsa=AyanamsaInfo(value_degrees=snapshot.ayanamsa_value_degrees),
             lagna=lagna,
             planets=public_planet_positions,
-            bhava_chalit={k: v for k, v in bhava_chalit_map.items() if k != "MANDHI"},
+            bhava_chalit=bhava_chalit_map,
             vargas=vargas,
+            varga_reliability=varga_reliability,
             nakshatra_analysis=nakshatra_analysis,
             birth_panchangam_signature=birth_panchangam_signature,
             yogas=yogas,
@@ -558,6 +570,7 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
     planet_longitudes = {p.graha: p.absolute_longitude for p in public_planet_positions}
     planet_longitudes["LAGNA"] = float(chart.lagna_longitude)
     vargas = _compute_vargas(planet_longitudes)
+    varga_reliability = _varga_reliability(int(_value(birth_profile, "birth_time_confidence_minutes", 0) or 0))
     nakshatra_analysis = _compute_nakshatra_analysis(planet_longitudes)
     birth_panchangam_signature = _birth_panchangam_signature(birth_profile)
 
@@ -570,8 +583,9 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             ayanamsa=AyanamsaInfo(value_degrees=float(chart.ayanamsa_value_degrees or 0.0)),
             lagna=lagna,
             planets=public_planet_positions,
-            bhava_chalit={k: v for k, v in bhava_chalit_map.items() if k != "MANDHI"},
+            bhava_chalit=bhava_chalit_map,
             vargas=vargas,
+            varga_reliability=varga_reliability,
             nakshatra_analysis=nakshatra_analysis,
             birth_panchangam_signature=birth_panchangam_signature,
             yogas=yogas,

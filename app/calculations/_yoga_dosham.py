@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 
+from app.calculations.aspects import aspects_house
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import EXALTATION_RASI, OWN_SIGN_RASI, SIGN_LORD
 from app.calculations._yoga_helpers import (
@@ -157,8 +158,7 @@ def detect_sevvai_dosham(
             mitigation_score += 1
 
     jupiter_rasi = _planet_rasi(planets, "JUPITER")
-    jupiter_to_mars = house_from_reference(jupiter_rasi, mars_rasi)
-    if jupiter_to_mars in {5, 7, 9}:
+    if aspects_house("JUPITER", jupiter_rasi, mars_rasi):
         cancellation_factors.append("jupiter_aspect_on_mars")
         mitigation_score += 1
 
@@ -198,7 +198,7 @@ def detect_sevvai_dosham(
         jupiter_aspect_7l = False
         if "JUPITER" in planets:
             jup_rasi = _planet_rasi(planets, "JUPITER")
-            jupiter_aspect_7l = house_from_reference(jup_rasi, seventh_lord_rasi) in {5, 7, 9}
+            jupiter_aspect_7l = aspects_house("JUPITER", jup_rasi, seventh_lord_rasi)
         if seventh_lord_is_strong and not conjunct_malefic and not seventh_lord_combust:
             cancellation_factors.append("benefic_strong_seventh_lord")
             mitigation_score += 1
@@ -353,8 +353,7 @@ def detect_rahu_ketu_dosham(
     jupiter_house_from_lagna = house_from_reference(lagna_rasi, jupiter_rasi)
     if jupiter_house_from_lagna in KENDRA_HOUSES | TRIKONA_HOUSES:
         cancellation_factors.append("jupiter_kendra_trikona_support")
-    jupiter_to_rahu = house_from_reference(jupiter_rasi, rahu_rasi)
-    if jupiter_to_rahu in {5, 7, 9}:
+    if aspects_house("JUPITER", jupiter_rasi, rahu_rasi):
         if "jupiter_kendra_trikona_support" not in cancellation_factors:
             cancellation_factors.append("jupiter_kendra_trikona_support")
 
@@ -374,7 +373,7 @@ def detect_rahu_ketu_dosham(
         jup_aspect_7l_rk = False
         if "JUPITER" in planets:
             jup_rasi_rk = _planet_rasi(planets, "JUPITER")
-            jup_aspect_7l_rk = house_from_reference(jup_rasi_rk, seventh_lord_rasi_rk) in {5, 7, 9}
+            jup_aspect_7l_rk = aspects_house("JUPITER", jup_rasi_rk, seventh_lord_rasi_rk)
         if base_strong and not conjunct_mal_rk and not seventh_combust_rk:
             cancellation_factors.append("strong_seventh_lord")
         if d9_strong_rk:
@@ -696,7 +695,7 @@ def detect_kalathra_dosham(
         cancellation_factors.append("seventh_lord_exalted")
     if "JUPITER" in planets:
         jupiter_rasi = _planet_rasi(planets, "JUPITER")
-        if house_from_reference(jupiter_rasi, seventh_lord_rasi) in {5, 7, 9}:
+        if aspects_house("JUPITER", jupiter_rasi, seventh_lord_rasi):
             cancellation_factors.append("jupiter_aspects_seventh_lord")
     if d9_rasi_map and seventh_lord in d9_rasi_map:
         d9_rasi = d9_rasi_map[seventh_lord]
@@ -824,7 +823,7 @@ def detect_marana_karaka_sthana(
         if rasi in OWN_SIGN_RASI.get(planet, set()) or rasi == EXALTATION_RASI.get(planet):
             cancellation_factors.append(f"{planet.lower()}_dignified_in_mks")
             mitigated.add(planet)
-        if jupiter_rasi is not None and planet != "JUPITER" and house_from_reference(jupiter_rasi, rasi) in {5, 7, 9}:
+        if jupiter_rasi is not None and planet != "JUPITER" and aspects_house("JUPITER", jupiter_rasi, rasi):
             cancellation_factors.append(f"jupiter_aspects_{planet.lower()}_in_mks")
             mitigated.add(planet)
 

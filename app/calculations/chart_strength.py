@@ -4,6 +4,7 @@ Implements a practical six-component Shadbala blend for production use.
 """
 from __future__ import annotations
 
+from app.calculations.aspects import aspects_house
 from app.calculations.astro import house_from_reference
 from app.calculations.transits import is_combust, is_gandanta
 
@@ -138,6 +139,71 @@ def _avastha_multiplier(natal_longitude: float, rasi: int) -> float:
     return _AVASTHA_MULTIPLIER_ODD[zone] if is_odd else _AVASTHA_MULTIPLIER_EVEN[zone]
 
 
+# Baladi avastha (5-stage: infant->old) — the classical names for the same
+# odd/even degree-zone rule already used by _avastha_multiplier above, in
+# the same strongest-to-weakest order the multiplier values already encode
+# (Yuva=1.00 peak, Mrita=0.25/0.50 weakest).
+_BALADI_LABELS_ODD = ("BALA", "KUMARA", "YUVA", "VRIDDHA", "MRITA")
+_BALADI_LABELS_EVEN = ("MRITA", "VRIDDHA", "YUVA", "KUMARA", "BALA")
+
+
+def _baladi_avastha(natal_longitude: float, rasi: int) -> str:
+    """Classical Baladi avastha label — same zone/reversal rule as
+    _avastha_multiplier, just the classical name instead of the multiplier."""
+    deg = natal_longitude % 30.0
+    zone = min(int(deg / 6.0), 4)
+    is_odd = (rasi % 2 == 1)
+    return _BALADI_LABELS_ODD[zone] if is_odd else _BALADI_LABELS_EVEN[zone]
+
+
+# Jagradadi avastha (3-stage: awake/dreaming/sleeping) — degree-in-sign
+# thirds (0-10 deg / 10-20 deg / 20-30 deg), reversed for even signs.
+# Source: this is the degree-band formulation of Jagradadi avastha
+# documented across multiple classical-astrology references (e.g.
+# astrobix.com/learn/288-jagradadi-avasthas.html), independently structured
+# the same way as this file's own Baladi avastha above (degree-zone +
+# odd/even reversal) — chosen over an alternate benefic/malefic-plus-
+# navamsa-parity formulation seen elsewhere because the degree-band rule
+# cleanly produces all three states from natal_longitude and rasi alone,
+# with no extra benefic/malefic classification input needed.
+_JAGRADADI_LABELS_ODD = ("JAGRAT", "SWAPNA", "SUSHUPTI")
+_JAGRADADI_LABELS_EVEN = ("SUSHUPTI", "SWAPNA", "JAGRAT")
+
+
+def _jagradadi_avastha(natal_longitude: float, rasi: int) -> str:
+    """Classical Jagradadi avastha label (awake/dreaming/sleeping)."""
+    deg = natal_longitude % 30.0
+    zone = min(int(deg / 10.0), 2)
+    is_odd = (rasi % 2 == 1)
+    return _JAGRADADI_LABELS_ODD[zone] if is_odd else _JAGRADADI_LABELS_EVEN[zone]
+
+
+# Deeptadi avastha (classically 9 dignity-driven stages: Deepta, Swastha,
+# Mudita, Shanta, Deena, Dukhita, Vikala, Khala, Kopa — BPHS). This is a
+# dignity-only relabeling of the existing 7-band _dignity_score (see that
+# function) into the closest classical names, in strength order. Vikala and
+# Kopa are deliberately not produced here — both are combustion-driven in
+# the classical scheme, and _dignity_score has no combustion input; the
+# weakest band (debilitated, score 15) maps to Khala instead. This mirrors
+# the project's own documented-simplification pattern (see MOOLATRIKONA_ZONE
+# above) rather than silently guessing a combustion rule.
+def _deeptadi_avastha(dignity_score: int) -> str:
+    """Classical Deeptadi avastha label, relabeled from the dignity score."""
+    if dignity_score >= 100:
+        return "DEEPTA"
+    if dignity_score >= 90:
+        return "SWASTHA"
+    if dignity_score >= 80:
+        return "MUDITA"
+    if dignity_score >= 60:
+        return "SHANTA"
+    if dignity_score >= 50:
+        return "DEENA"
+    if dignity_score >= 35:
+        return "DUKHITA"
+    return "KHALA"
+
+
 def _dik_bala_score(planet: str, house_from_lagna: int) -> float:
     """Directional strength 0.0-1.0."""
     dik_peak: dict[str, int] = {
@@ -216,7 +282,9 @@ def detect_planetary_wars(
     participants = {
         p: lon
         for p, lon in planet_longitudes.items()
-        if p not in {"SUN", "MOON", "RAHU", "KETU"}
+        # Mandhi/Gulika is a shadow upagraha, not a real graha — it doesn't
+        # participate in classical graha yuddha (planetary war).
+        if p not in {"SUN", "MOON", "RAHU", "KETU", "MANDHI"}
     }
     wars: dict[str, str] = {}
     names = sorted(participants.keys())
@@ -247,7 +315,9 @@ def _drik_bala_score(benefic_aspect_count: int, malefic_aspect_count: int) -> fl
 
 
 _BHAVA_BALA_BENEFICS: frozenset[str] = frozenset({"JUPITER", "VENUS", "MERCURY", "MOON"})
-_BHAVA_BALA_MALEFICS: frozenset[str] = frozenset({"SATURN", "MARS", "RAHU", "KETU", "SUN"})
+# Mandhi/Gulika occupies and aspects houses like a malefic graha in classical
+# Tamil Thirukanitham practice (see aspects.py's ASPECT_HOUSES documentation).
+_BHAVA_BALA_MALEFICS: frozenset[str] = frozenset({"SATURN", "MARS", "RAHU", "KETU", "SUN", "MANDHI"})
 
 
 def compute_bhava_bala(
@@ -261,9 +331,9 @@ def compute_bhava_bala(
     it also depends on who occupies it and who aspects it. Combines:
       - Bhavadhipati Bala (50%): strength of the house's own lord.
       - Occupant Bala (25%): benefics occupying the house help it, malefics hurt it.
-      - Drishti Bala (25%): aspects landing on the house — 7th-house aspect for
-        all planets, plus Jupiter's extra 5th/9th, matching the simplified
-        aspect model already used elsewhere in the yoga/dosham engine.
+      - Drishti Bala (25%): aspects landing on the house, using the shared
+        classical special-aspect table (Mars 4/7/8, Jupiter 5/7/9, Saturn
+        3/7/10, Rahu/Ketu 5/7/9, 7th only otherwise) from aspects.py.
     """
     house_rasi = ((lagna_rasi + house_number - 2) % 12) + 1
     house_lord = SIGN_LORD[house_rasi]
@@ -281,9 +351,8 @@ def compute_bhava_bala(
 
     drishti_score = 50
     for planet, rasi in planets_rasi.items():
-        distance = house_from_reference(rasi, house_rasi)
-        aspects_house = distance == 7 or (planet == "JUPITER" and distance in {5, 9})
-        if not aspects_house:
+        has_aspect = aspects_house(planet, rasi, house_rasi)
+        if not has_aspect:
             continue
         if planet in _BHAVA_BALA_BENEFICS:
             drishti_score += 8
@@ -321,7 +390,7 @@ def compute_strength_breakdown(
     malefic_aspect_count: int = 0,
     speed_ratio: float | None = None,
 ) -> dict[str, str]:
-    """Returns sthana/dik/kala/chesta/naisargika/drik labels."""
+    """Returns sthana/dik/kala/chesta/naisargika/drik/baladi/jagradadi/deeptadi labels."""
     house = house_from_reference(natal_lagna_rasi, natal_rasi)
     dignity = _dignity_score(planet, natal_rasi, natal_longitude)
 
@@ -349,6 +418,9 @@ def compute_strength_breakdown(
         "chesta": chesta,
         "naisargika": naisargika,
         "drik": drik,
+        "baladi": _baladi_avastha(natal_longitude, natal_rasi),
+        "jagradadi": _jagradadi_avastha(natal_longitude, natal_rasi),
+        "deeptadi": _deeptadi_avastha(dignity),
     }
 
 

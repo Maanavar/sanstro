@@ -41,6 +41,10 @@ const VARGA_CONTEXT: Record<string, { en: string; ta: string }> = {
   D3:  { en: "Siblings, courage, and communication.", ta: "உடன்பிறப்புகள் மற்றும் தைரியம்." },
   D7:  { en: "Children and progeny.", ta: "குழந்தைகள் மற்றும் சந்தானம்." },
   D12: { en: "Parents and ancestry.", ta: "பெற்றோர் மற்றும் மூதாதையர்." },
+  D27: { en: "Strengths, weaknesses, and general well-being.", ta: "பலம், பலவீனம், பொது நலம்." },
+  D40: { en: "Auspicious and inauspicious effects inherited maternally.", ta: "தாய்வழி பரம்பரை பலன்கள்." },
+  D45: { en: "Character and general life conduct.", ta: "பண்பு மற்றும் வாழ்க்கை நடத்தை." },
+  D60: { en: "Fine-grained overall karma — most sensitive to exact birth time.", ta: "நுண்ணிய ஒட்டுமொத்த கர்மா — பிறந்த நேரத்தில் மிகவும் உணர்திறன்." },
 };
 
 export default function VargasScreen() {
@@ -150,6 +154,13 @@ function VargaDetail({ varga, isTamil }: { varga: VargaData; isTamil: boolean })
           <View style={styles.methodBadge}>
             <Text style={styles.methodBadgeText}>Thirukanitham</Text>
           </View>
+          {varga.reliability === "LOW" && (
+            <View style={[styles.methodBadge, styles.lowReliabilityBadge]}>
+              <Text style={[styles.methodBadgeText, styles.lowReliabilityBadgeText]}>
+                {isTamil ? "பிறந்த நேரம் துல்லியமாக இல்லை" : "Needs exact birth time"}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
 
@@ -221,9 +232,11 @@ const styles = StyleSheet.create({
   heroKicker: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.gold, textTransform: "uppercase", letterSpacing: 0 },
   heroName: { fontFamily: "Inter_800ExtraBold", fontSize: 22, color: "#FFF" },
   heroPurpose: { fontFamily: "Inter_400Regular", fontSize: 14, lineHeight: 20, color: "rgba(255,255,255,0.72)" },
-  heroBadgeRow: { flexDirection: "row", marginTop: S.sm },
+  heroBadgeRow: { flexDirection: "row", marginTop: S.sm, gap: S.sm },
   methodBadge: { borderRadius: RADIUS.chip, borderWidth: 1, borderColor: C.gold, paddingHorizontal: S.sm, paddingVertical: 2 },
   methodBadgeText: { fontFamily: "Inter_700Bold", fontSize: 11, color: C.gold },
+  lowReliabilityBadge: { borderColor: "rgba(255,255,255,0.5)" },
+  lowReliabilityBadgeText: { color: "rgba(255,255,255,0.8)" },
   section: { backgroundColor: C.surface, borderRadius: RADIUS.card, borderWidth: 1, borderColor: C.divider, padding: S.md, gap: S.sm },
   sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 15, color: C.textPrimary },
   positionGrid: { gap: S.sm },

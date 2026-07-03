@@ -50,7 +50,10 @@ def test_chart_calculate_endpoint_uses_persisted_birth_profile(client, birth_pro
     assert "birthPanchangamSignature" in body["data"]
 
     planets = {planet["graha"]: planet for planet in body["data"]["planets"]}
-    assert len(planets) == 9
+    # 9 classical grahas + Mandhi/Gulika, exposed as a chart point per
+    # docs/THIRUKANITHAM_DEPTH_EXPANSION_PLAN.md Phase 1.2.
+    assert len(planets) == 10
+    assert "MANDHI" in planets
     assert planets["SUN"]["absoluteLongitude"] == pytest.approx(95.0158, abs=0.01)
     assert planets["MOON"]["absoluteLongitude"] == pytest.approx(223.5993, abs=0.01)
     assert planets["RAHU"]["absoluteLongitude"] == pytest.approx(264.6921, abs=0.01)

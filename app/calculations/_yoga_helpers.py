@@ -24,7 +24,9 @@ RAHU_KETU_MARRIAGE_HOUSES = {1, 2, 7, 8}
 RAHU_KETU_SARPA_HOUSES = {5, 9}
 SEVEN_PLANETS = ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN")
 NATURAL_BENEFICS = {"JUPITER", "VENUS", "MERCURY", "MOON"}
-NATURAL_MALEFICS = {"SATURN", "MARS", "RAHU", "KETU", "SUN"}
+# Mandhi/Gulika counts as a malefic occupant/aspect for yoga detection, same
+# as Rahu/Ketu — see docs/THIRUKANITHAM_DEPTH_EXPANSION_PLAN.md Phase 1.2.
+NATURAL_MALEFICS = {"SATURN", "MARS", "RAHU", "KETU", "SUN", "MANDHI"}
 
 HOUSE_SIGN_NIVARTHI: dict[int, frozenset[int]] = {
     2:  frozenset({3, 6}),
@@ -104,10 +106,6 @@ def _house_lord(lagna_rasi: int, house_number: int) -> str:
 
 def _is_kendra_from(reference_rasi: int, target_rasi: int) -> bool:
     return house_from_reference(reference_rasi, target_rasi) in KENDRA_HOUSES
-
-
-def _is_seventh_aspect(rasi_a: int, rasi_b: int) -> bool:
-    return house_from_reference(rasi_a, rasi_b) == 7
 
 
 def _is_functional_benefic(lagna_rasi: int, planet: str) -> bool:

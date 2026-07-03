@@ -818,6 +818,7 @@ export function DashboardPersonalTab({
             vargas={personalChart.vargas}
             d1Planets={Object.fromEntries(personalChart.planets.map(p => [p.graha, p.rasi]))}
             bhavaChalit={personalChart.bhavaChalit}
+            vargaReliability={personalChart.vargaReliability}
           />
         </div>
       )}

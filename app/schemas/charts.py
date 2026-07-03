@@ -61,6 +61,9 @@ class PlanetPosition(BaseModel):
             "chesta": "NEUTRAL",
             "naisargika": "NEUTRAL",
             "drik": "NEUTRAL",
+            "baladi": "YUVA",
+            "jagradadi": "SWAPNA",
+            "deeptadi": "DEENA",
         },
         alias="strengthBreakdown",
     )
@@ -125,6 +128,7 @@ class ChartCalculateResponseData(BaseModel):
     planets: list[PlanetPosition]
     bhava_chalit: dict[str, int] = Field(default_factory=dict, alias="bhavaChalit")
     vargas: dict[str, dict[str, int]] = Field(default_factory=dict)
+    varga_reliability: dict[str, str] = Field(default_factory=dict, alias="vargaReliability")
     nakshatra_analysis: dict[str, object] = Field(default_factory=dict, alias="nakshatraAnalysis")
     birth_panchangam_signature: dict[str, object] = Field(default_factory=dict, alias="birthPanchangamSignature")
     yogas: list[ChartYogaInsight] = Field(default_factory=list)
