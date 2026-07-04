@@ -12,8 +12,6 @@ export {
   updateMe,
   deleteAccount,
   getMySubscription,
-  registerPushToken,
-  unregisterPushToken,
   requestPasswordReset,
   confirmPasswordReset,
 } from "@vinaadi/shared/api/auth";

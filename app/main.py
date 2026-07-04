@@ -17,7 +17,6 @@ from app.api.context import router as context_router
 from app.api.daily_guidance import router as daily_guidance_router
 from app.api.daily_snapshot import router as daily_snapshot_router
 from app.api.decisions import router as decisions_router
-from app.api.devices import router as devices_router
 from app.api.geo import router as geo_router
 from app.api.family_vaults import router as family_vaults_router
 from app.api.feedback import router as feedback_router
@@ -186,8 +185,6 @@ def create_app() -> FastAPI:
     app.include_router(auth_router, prefix=f"{settings.api_v1_prefix}/auth", tags=["auth"])
     # Mobile-only: cookie-free Bearer + refresh-token auth (no CSRF needed — no cookies)
     app.include_router(mobile_auth_router, prefix=f"{settings.api_v1_prefix}/auth")
-    # Device push-token registration (guests + registered users, no cookie CSRF risk)
-    app.include_router(devices_router, prefix=settings.api_v1_prefix)
     # Geocoding proxy — public, no auth, no CSRF (GET/POST, no cookie auth)
     app.include_router(geo_router, prefix=settings.api_v1_prefix)
     # Third-party inbound webhooks (no cookie auth, validated by shared secret)

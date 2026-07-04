@@ -30,7 +30,6 @@ from app.reasoning.calibration import GradedPrediction, build_calibration_report
 from app.services.audit_service import log_admin_action
 from app.services.feature_flags import all_flags, get_flag, reset_flag, set_flag
 from app.services.job_registry import get_all_jobs, get_job
-from app.services.peyarchi_alert_service import daily_peyarchi_refresh
 from app.services.push_service import send_push_to_token
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -53,12 +52,6 @@ class AdminStats(BaseModel):
     total_family_vaults: int
     total_family_members: int
     as_of: str
-
-
-class PeyarchiRefreshResult(BaseModel):
-    charts_refreshed: int
-    notifications_marked: int
-    run_at_utc: str
 
 
 class UserSummary(BaseModel):
@@ -289,27 +282,6 @@ def get_admin_stats(session: Session = Depends(get_db), _: User = Depends(get_ad
         total_family_vaults=_count(FamilyVault, session),
         total_family_members=_count(FamilyMember, session),
         as_of=datetime.now(UTC).isoformat(),
-    )
-
-
-@router.post(
-    "/run-peyarchi-refresh",
-    response_model=PeyarchiRefreshResult,
-    summary="Run peyarchi alert refresh and notification marking now",
-)
-def run_peyarchi_refresh_now(_: User = Depends(get_admin_user)) -> PeyarchiRefreshResult:
-    run_at = datetime.now(UTC)
-    result = daily_peyarchi_refresh(run_at_utc=run_at)
-    log_admin_action(
-        "trigger_job",
-        target_type="job",
-        target_id="daily_peyarchi_refresh",
-        payload_summary=f"charts={result['charts_refreshed']}",
-    )
-    return PeyarchiRefreshResult(
-        charts_refreshed=int(result["charts_refreshed"]),
-        notifications_marked=int(result["notifications_marked"]),
-        run_at_utc=run_at.isoformat(),
     )
 
 

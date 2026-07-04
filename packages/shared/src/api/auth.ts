@@ -62,20 +62,6 @@ export function confirmPasswordReset(token: string, password: string): Promise<P
   return getApiClient().post("/auth/reset-password/confirm", { token, password }) as Promise<PasswordResetDetailResponse>;
 }
 
-export function registerPushToken(payload: {
-  deviceId: string;
-  fcmToken: string;
-  platform: "ios" | "android";
-  appVersion: string;
-  anonymousId?: string;
-}): Promise<void> {
-  return getApiClient().post("/devices/push-token", payload) as Promise<void>;
-}
-
-export function unregisterPushToken(deviceId: string): Promise<void> {
-  return getApiClient().delete(`/devices/push-token?deviceId=${encodeURIComponent(deviceId)}`);
-}
-
 export interface SubscriptionInfo {
   tier: string;
   status: string;
