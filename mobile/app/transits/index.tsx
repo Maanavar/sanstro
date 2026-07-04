@@ -51,7 +51,7 @@ function isPeyarchi(item: TransitItem): boolean {
 }
 
 function transitHowItems(item: TransitItem, rasi: string): WhyItem[] {
-  const impact = moonHouseImpact(item.impactFromMoon);
+  const impact = moonHouseImpact(item.planet, item.impactFromMoon);
   return [
     { label: "Your Rasi", value: rasi },
     { label: "Transit", value: `${item.labelEn} moves from ${item.fromRasi} to ${item.toRasi}` },
@@ -164,7 +164,7 @@ export default function TransitsScreen() {
           }
           renderItem={({ item }: { item: TransitItem }) => {
             if (isPeyarchi(item)) return null;
-            const impact = moonHouseImpact(item.impactFromMoon);
+            const impact = moonHouseImpact(item.planet, item.impactFromMoon);
             const isExpanded = expanded === `${item.peyarchiDateLocal}-${item.planet}`;
             const days = daysUntil(item.peyarchiDateLocal);
             return (
@@ -236,7 +236,7 @@ export default function TransitsScreen() {
 }
 
 function PeyarchiCard({ item, isTamil, onHow }: { item: TransitItem; isTamil: boolean; onHow: () => void }) {
-  const impact = moonHouseImpact(item.impactFromMoon);
+  const impact = moonHouseImpact(item.planet, item.impactFromMoon);
   const days = daysUntil(item.peyarchiDateLocal);
   return (
     <View style={styles.peyarchiCard}>

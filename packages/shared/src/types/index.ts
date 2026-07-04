@@ -133,6 +133,16 @@ export interface JournalSettingsData {
   nextRecommendedReviewDate: string;
 }
 
+/** Result of POST /journal/retention/apply (dryRun previews without archiving). */
+export interface JournalRetentionApplyData {
+  chartId: string;
+  keepDays: number;
+  thresholdDate: string;
+  matchedCount: number;
+  archivedCount: number;
+  dryRun: boolean;
+}
+
 export interface BirthProfileCreateResponseData {
   birthProfileId: string;
   chartId: string | null;

@@ -143,7 +143,7 @@ function getCosmicAlert(g: ExtendedGuidance | undefined, transit: TransitItem | 
     };
   }
   if (transit) {
-    const impact = moonHouseImpact(transit.impactFromMoon);
+    const impact = moonHouseImpact(transit.planet, transit.impactFromMoon);
     return {
       title: isTamil ? transit.labelTa : `${transit.labelEn} transit`,
       body: `${transit.fromRasi} → ${transit.toRasi}`,
