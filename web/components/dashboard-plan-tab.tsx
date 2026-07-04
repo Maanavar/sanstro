@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 
 import { apiFetchJson, toQuery } from "@/lib/api";
+import { bandPhrase, bandTone } from "@/lib/reasoning";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ActivityTimingData, GoalData, WhatIfData } from "@/lib/types";
@@ -12,6 +13,7 @@ import { DecisionPanel } from "./dashboard-decision-panel";
 import { DashboardMuhurtaPicker } from "./dashboard-muhurta-picker";
 import { DashboardMuhurthamNaal } from "./dashboard-muhurtham-naal";
 import { DashboardLifeEventLog } from "./dashboard-life-event-log";
+import { DashboardLifeEvents } from "./dashboard-life-events";
 import { EventWindowsPanel } from "./dashboard-event-windows";
 
 // Map a declared goal to the event-window engine's event type so we can show
@@ -142,10 +144,11 @@ export function DashboardPlanTab({
   onRunWhatIf,
   mode = "BALANCED",
 }: DashboardPlanTabProps) {
-  type PlanSubTab = "goals" | "whatif" | "muhurta" | "decisions";
+  type PlanSubTab = "goals" | "whatif" | "muhurta" | "decisions" | "events";
   const [planSubTab, setPlanSubTab] = useState<PlanSubTab>("goals");
   const PLAN_SUB_TABS: { key: PlanSubTab; label: string }[] = [
     { key: "goals", label: lang === "ta" ? "இலக்குகள்" : "Goals" },
+    { key: "events", label: lang === "ta" ? "வாழ்க்கை நிகழ்வுகள்" : "Life Events" },
     { key: "whatif", label: lang === "ta" ? "என்ன ஆகும்?" : "What-If" },
     { key: "muhurta", label: lang === "ta" ? "சிறந்த நாள் & முஹூர்த்தம்" : "Best Dates & Muhurta" },
     { key: "decisions", label: lang === "ta" ? "முடிவுகள்" : "Decisions" },
@@ -378,6 +381,19 @@ export function DashboardPlanTab({
         </Surface>
       )}
 
+      {planSubTab === "events" && (
+        <Surface title={lang === "ta" ? "வாழ்க்கை நிகழ்வு ஜன்னல்கள்" : "Life Event Windows"}>
+          <div className="surface__body">
+            <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.875rem", color: W.muted, lineHeight: 1.5 }}>
+              {lang === "ta"
+                ? "அடுத்த ஐந்து ஆண்டுகளில் தொழில், திருமணம், படிப்பு, இடமாற்றம் மற்றும் ஆரோக்கியம் தொடர்பான முக்கிய காலகட்டங்கள் — தசை மற்றும் கிரகநகர்வு ஆதரவு சேரும் இடங்களில்."
+                : "Key windows for career, marriage, studies, relocation, and health over the next five years — where dasha and transit support converge."}
+            </p>
+            <DashboardLifeEvents lang={lang} chartId={chartId || null} />
+          </div>
+        </Surface>
+      )}
+
       {planSubTab === "whatif" && (
         <Surface title={t("whatif_panel_title", lang)}>
           <div className="surface__body">
@@ -431,6 +447,15 @@ export function DashboardPlanTab({
                     <div style={{ padding: "var(--space-1_5) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: `${vc}18`, border: `1px solid ${vc}55` }}>
                       <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 800, color: vc }}>{t(verdictKey(r.verdict) as Parameters<typeof t>[0], lang)}</p>
                     </div>
+                    {/* Ordinal band chip (reasoning D2) — present only when the reasoning_gate flag is on */}
+                    {r.band && (() => {
+                      const bt = bandTone(r.band);
+                      return (
+                        <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", background: bt.bg, color: bt.text, border: `1px solid ${bt.border}` }}>
+                          {bandPhrase(r.band, lang)}
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   <p style={{ margin: 0, fontSize: "0.875rem", color: W.inkMid, lineHeight: 1.6 }}>{lang === "ta" ? r.summary.ta : r.summary.en}</p>
@@ -651,7 +676,7 @@ export function DashboardPlanTab({
         </>
       )}
 
-      {planSubTab === "goals" && <DashboardLifeEventLog lang={lang} chartId={chartId || null} />}
+      {(planSubTab === "goals" || planSubTab === "events") && <DashboardLifeEventLog lang={lang} chartId={chartId || null} />}
     </div>
   );
 }

@@ -1788,6 +1788,8 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
             onRefreshFamily={() => void family.refreshFamilyBundle()}
             onSaveJournalRetentionDays={(days) => void journal.saveJournalRetentionDays(days)}
             onAcknowledgeJournalReminder={() => void journal.acknowledgeJournalReminder()}
+            onApplyRetention={(dryRun) => journal.applyJournalRetention(personal.chartId, dryRun)}
+            busyRetentionApply={journal.busyRetentionApply}
             onSignOut={session.signOut}
           />
         )}

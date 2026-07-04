@@ -8,7 +8,7 @@ import { clearFcmTokenLocal, fetchFcmToken, hasFirebaseMessagingConfig } from "@
 import { formatDateTimeLabel } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import type { NotificationPreferenceData } from "@/lib/types";
+import type { JournalRetentionApplyData, NotificationPreferenceData } from "@/lib/types";
 
 type DashboardSettingsSessionTabProps = {
   lang: Lang;
@@ -37,6 +37,8 @@ type DashboardSettingsSessionTabProps = {
   onRefreshFamily: () => void;
   onSaveJournalRetentionDays: (days: number) => void;
   onAcknowledgeJournalReminder: () => void;
+  onApplyRetention: (dryRun: boolean) => Promise<JournalRetentionApplyData | null>;
+  busyRetentionApply: boolean;
   onSignOut: () => void;
 };
 
@@ -267,6 +269,8 @@ export function DashboardSettingsSessionTab({
   onRefreshFamily,
   onSaveJournalRetentionDays,
   onAcknowledgeJournalReminder,
+  onApplyRetention,
+  busyRetentionApply,
   onSignOut,
 }: DashboardSettingsSessionTabProps) {
   const { theme: currentTheme, setTheme } = useTheme();
@@ -393,6 +397,25 @@ export function DashboardSettingsSessionTab({
     } catch {
       setDeleteError(lang === "ta" ? "நீக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்." : "Could not delete account. Please try again.");
       setDeleteDeleting(false);
+    }
+  };
+
+  // Retention cleanup runs in two steps: a dry-run preview first, then the
+  // real apply only after the user has seen how many entries it touches.
+  const [retentionPreview, setRetentionPreview] = useState<JournalRetentionApplyData | null>(null);
+  const [retentionApplied, setRetentionApplied] = useState<JournalRetentionApplyData | null>(null);
+
+  const handleRetentionPreview = async () => {
+    setRetentionApplied(null);
+    const result = await onApplyRetention(true);
+    if (result) setRetentionPreview(result);
+  };
+
+  const handleRetentionApply = async () => {
+    const result = await onApplyRetention(false);
+    if (result) {
+      setRetentionPreview(null);
+      setRetentionApplied(result);
     }
   };
 
@@ -622,6 +645,61 @@ export function DashboardSettingsSessionTab({
             {busyJournalSettings ? t("settings_retention_saving", lang) : t("settings_retention_acknowledge", lang)}
           </ActionBtn>
         </div>
+
+        {/* Run cleanup now — dry-run preview first, archive only on confirm */}
+        {chartId && (
+          <div style={{ borderTop: `1px solid ${W.borderLt}`, paddingTop: "var(--space-3)", display: "grid", gap: "var(--space-2)" }}>
+            <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted, lineHeight: 1.5 }}>
+              {lang === "ta"
+                ? "தக்கவைப்பு காலத்தை கடந்த பழைய குறிப்புகளை இப்போதே காப்பகப்படுத்தலாம். முதலில் எத்தனை குறிப்புகள் பாதிக்கப்படும் என்பதை பார்க்கலாம் — உறுதிப்படுத்திய பிறகுதான் காப்பகம் நடக்கும்."
+                : "Archive entries older than your retention window now. Preview first — nothing is archived until you confirm."}
+            </p>
+
+            {!retentionPreview && (
+              <div>
+                <ActionBtn onClick={() => void handleRetentionPreview()} disabled={busyRetentionApply} variant="ghost">
+                  {busyRetentionApply
+                    ? (lang === "ta" ? "சரிபார்க்கிறது…" : "Checking…")
+                    : (lang === "ta" ? "சுத்தம் செய்வதை முன்னோட்டமிடு" : "Preview cleanup")}
+                </ActionBtn>
+              </div>
+            )}
+
+            {retentionPreview && retentionPreview.matchedCount === 0 && (
+              <p style={{ margin: 0, fontSize: "0.875rem", color: W.sage }}>
+                {lang === "ta"
+                  ? "காப்பகப்படுத்த பழைய குறிப்புகள் எதுவும் இல்லை."
+                  : "No entries are older than your retention window — nothing to clean up."}
+              </p>
+            )}
+
+            {retentionPreview && retentionPreview.matchedCount > 0 && (
+              <div style={{ display: "flex", gap: "var(--space-2_5)", alignItems: "center", flexWrap: "wrap" }}>
+                <p style={{ margin: 0, fontSize: "0.875rem", color: W.inkMid }}>
+                  {lang === "ta"
+                    ? `${retentionPreview.matchedCount} குறிப்புகள் (${fmtDate(retentionPreview.thresholdDate)} க்கு முந்தையவை) காப்பகப்படுத்தப்படும்.`
+                    : `${retentionPreview.matchedCount} entr${retentionPreview.matchedCount === 1 ? "y" : "ies"} older than ${fmtDate(retentionPreview.thresholdDate)} will be archived.`}
+                </p>
+                <ActionBtn onClick={() => void handleRetentionApply()} disabled={busyRetentionApply}>
+                  {busyRetentionApply
+                    ? (lang === "ta" ? "காப்பகப்படுத்துகிறது…" : "Archiving…")
+                    : (lang === "ta" ? "உறுதிப்படுத்து & காப்பகப்படுத்து" : "Confirm & archive")}
+                </ActionBtn>
+                <ActionBtn onClick={() => setRetentionPreview(null)} disabled={busyRetentionApply} variant="ghost">
+                  {lang === "ta" ? "ரத்து" : "Cancel"}
+                </ActionBtn>
+              </div>
+            )}
+
+            {retentionApplied && (
+              <p style={{ margin: 0, fontSize: "0.875rem", color: W.sage }}>
+                {lang === "ta"
+                  ? `${retentionApplied.archivedCount} குறிப்புகள் காப்பகப்படுத்தப்பட்டன.`
+                  : `Archived ${retentionApplied.archivedCount} entr${retentionApplied.archivedCount === 1 ? "y" : "ies"}.`}
+              </p>
+            )}
+          </div>
+        )}
       </SettingsCard>
 
       {/* ── Notifications ── */}

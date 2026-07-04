@@ -132,7 +132,16 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
         </span>
       </div>
 
-      {((area.supportingFactors?.length ?? 0) > 0 || (area.blockingFactors?.length ?? 0) > 0) && (
+      {/* Root-cause chain (reasoning Phase 5): when the server sends a
+          "because ... therefore ..." reading for LOW-confidence areas, it
+          replaces the flat factor list below. */}
+      {area.causalChain && (
+        <p style={{ margin: "var(--space-2_5) 0 0", fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.55, fontStyle: "italic" }}>
+          {tLang(area.causalChain, lang)}
+        </p>
+      )}
+
+      {!area.causalChain && ((area.supportingFactors?.length ?? 0) > 0 || (area.blockingFactors?.length ?? 0) > 0) && (
         <div style={{ marginTop: "var(--space-2_5)", display: "grid", gap: "var(--space-1)" }}>
           {(area.supportingFactors ?? []).slice(0, 3).map((factor) => (
             <p key={`support-${factor}`} style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-score-high)", lineHeight: 1.4 }}>

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 
 import { t } from "@/lib/i18n";
 import { SCORE_HIGH, SCORE_MID, SCORE_LOW } from "@/lib/format";
+import { bandPhrase, bandTone } from "@/lib/reasoning";
 import type { Lang } from "@/lib/i18n";
 import type { LifeAreaPredictionData, PredictionBundle } from "@/lib/types";
 
@@ -78,7 +79,10 @@ function predictionIsDeferred(pred: LifeAreaPredictionData): boolean {
 }
 
 function PredictionCard({ title, pred, lang, expanded, onToggle, featured, deferred = false }: PredictionCardProps) {
-  const tone = confidenceTone(pred.confidence);
+  // Ordinal band (reasoning D2) supersedes the legacy HIGH/MEDIUM/LOW chip
+  // when the server sends it — legacy confidence is derived from the band.
+  const tone = pred.band ? bandTone(pred.band) : confidenceTone(pred.confidence);
+  const chipLabel = pred.band ? bandPhrase(pred.band, lang) : confidenceLabel(pred.confidence, lang);
 
   const detailSection = (
     <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
@@ -130,7 +134,7 @@ function PredictionCard({ title, pred, lang, expanded, onToggle, featured, defer
                   {lang === "ta" ? "பின்வரும் கட்டம்" : "Later phase"}
                 </span>
               )}
-              <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", background: tone.bg, color: tone.text, border: `1px solid ${tone.border}` }}>{confidenceLabel(pred.confidence, lang)}</span>
+              <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", background: tone.bg, color: tone.text, border: `1px solid ${tone.border}` }}>{chipLabel}</span>
             </div>
 
             <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "clamp(1.25rem, 2vw, 1.75rem)", fontWeight: 500, lineHeight: 1.2, color: "var(--color-text-strong)", letterSpacing: "-0.02em" }}>
@@ -142,7 +146,7 @@ function PredictionCard({ title, pred, lang, expanded, onToggle, featured, defer
 
           <div className="cd-featured-panel__aside" style={{ padding: "var(--space-8)", background: "var(--color-surface-soft)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
             <p className="cd-kicker--inline" style={{ letterSpacing: "0.08em" }}>{t("pred_confidence", lang)}</p>
-            <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "2rem", lineHeight: 1, color: tone.text }}>{confidenceLabel(pred.confidence, lang)}</p>
+            <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: pred.band ? "1.35rem" : "2rem", lineHeight: 1.15, color: tone.text }}>{chipLabel}</p>
             <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
               {lang === "ta" ? pred.mainPredictionTa : pred.mainPredictionEn}
             </p>
@@ -190,7 +194,7 @@ function PredictionCard({ title, pred, lang, expanded, onToggle, featured, defer
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexShrink: 0 }}>
-          <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", background: tone.bg, color: tone.text, border: `1px solid ${tone.border}` }}>{confidenceLabel(pred.confidence, lang)}</span>
+          <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", background: tone.bg, color: tone.text, border: `1px solid ${tone.border}` }}>{chipLabel}</span>
           <Chevron open={expanded} />
         </div>
       </button>

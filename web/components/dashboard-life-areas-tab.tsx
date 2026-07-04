@@ -232,6 +232,27 @@ export function DashboardLifeAreasTab({
             <p style={{ margin: 0, color: "var(--color-faint)", fontSize: "0.875rem" }}>{t("life_areas_empty", lang)}</p>
           ) : (
             <>
+              {/* Chart signature — dominant-graha framing (reasoning Phase 5; present only when the flag is on) */}
+              {lifeAreas.chartSignature && (
+                <div style={{
+                  padding: "var(--space-3) var(--space-4)",
+                  borderRadius: "var(--radius-md)",
+                  background: "var(--chart-d1-lagna-bg)",
+                  border: "1px solid var(--cl-brand-28)",
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: "var(--space-3)",
+                  flexWrap: "wrap",
+                }}>
+                  <span style={{ fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--panel-brand)", whiteSpace: "nowrap" }}>
+                    {lang === "ta" ? "ஜாதக முத்திரை" : "Chart signature"}
+                  </span>
+                  <p style={{ margin: 0, flex: "1 1 24ch", fontSize: "0.875rem", color: "var(--panel-earth-dark)", lineHeight: 1.55 }}>
+                    {lang === "ta" ? lifeAreas.chartSignature.framing.ta : lifeAreas.chartSignature.framing.en}
+                  </p>
+                </div>
+              )}
+
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "var(--space-4)" }}>
                 {lifeAreas.areas.map((area: LifeAreaData) => {
                   const ageRelevant = currentAge === null || isAreaRelevantForAge(area.area, currentAge, maritalStatus);
