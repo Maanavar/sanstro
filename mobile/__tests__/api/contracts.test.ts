@@ -10,14 +10,18 @@ import { getChartFull, getChartSummary } from "@vinaadi/shared/api/charts";
 import { getDashaTimeline } from "@vinaadi/shared/api/dasha";
 import { getDailyStatus, askVinaadi } from "@vinaadi/shared/api/askVinaadi";
 import { getRasiPalan } from "@vinaadi/shared/api/rasiPalan";
+import { getDailyGuidance } from "@vinaadi/shared/api/guidance";
+import { registerFcmToken } from "@vinaadi/shared/api/notifications";
 
 const mockGet = jest.fn();
 const mockPost = jest.fn();
+const mockPut = jest.fn();
 
 const MOCK_CLIENT = {
   get: mockGet,
   post: mockPost,
   patch: jest.fn(),
+  put: mockPut,
   delete: jest.fn(),
 };
 
@@ -28,6 +32,7 @@ beforeAll(() => {
 beforeEach(() => {
   mockGet.mockReset();
   mockPost.mockReset();
+  mockPut.mockReset();
 });
 
 // ─── PANCHANGAM ───────────────────────────────────────────────────────────────
@@ -236,5 +241,45 @@ describe("rasiPalan API", () => {
     expect(result.rasiName).toEqual({ ta: "", en: "" });
     expect(result.date).toBe("");
     expect(result.tone).toBe("neutral");
+  });
+});
+
+// ─── DAILY GUIDANCE ───────────────────────────────────────────────────────────
+// Regression test for WIRE-7: getDailyGuidance previously called GET
+// /daily-guidance?chartId=...&date=..., but the backend route is
+// GET /charts/{chart_id}/daily-guidance (chart_id is a path param, not a query
+// param) — every real call would have 404'd.
+
+describe("guidance API", () => {
+  it("getDailyGuidance calls the chart-scoped path with date as a query param", async () => {
+    mockGet.mockResolvedValue({
+      success: true,
+      data: { score: 72, text: { ta: "நல்லது", en: "Good" } },
+    });
+    const result = await getDailyGuidance("chart-uuid-001", "2026-07-05");
+    expect(result.success).toBe(true);
+    expect(mockGet).toHaveBeenCalledWith(
+      "/charts/chart-uuid-001/daily-guidance",
+      { date: "2026-07-05" },
+    );
+  });
+});
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+// Regression test for WIRE-7: registerFcmToken previously sent PATCH, but the
+// backend route only accepts PUT (and DELETE) — every real call would have 405'd.
+
+describe("notifications API", () => {
+  it("registerFcmToken sends PUT (not PATCH) to the fcm-token endpoint", async () => {
+    mockPut.mockResolvedValue({
+      success: true,
+      data: { fcmTokenRegistered: true },
+    });
+    const result = await registerFcmToken("device-token-abc123");
+    expect(result.success).toBe(true);
+    expect(mockPut).toHaveBeenCalledWith(
+      "/settings/notifications/fcm-token",
+      { fcmDeviceToken: "device-token-abc123" },
+    );
   });
 });

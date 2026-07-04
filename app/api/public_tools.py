@@ -972,6 +972,25 @@ def _resolve_rasi_number(rasi: str) -> int:
     return n
 
 
+def _rasi_palan_prediction(janma_rasi: int, moon_house: int) -> dict:
+    """Build the ta/en prediction payload for one janma rasi given the Moon's house."""
+    pred_ta = _RASI_PALAN_TA[moon_house]
+    pred_en = _RASI_PALAN_EN[moon_house]
+    rasi_name_en = RASI_NAMES.get(janma_rasi, str(janma_rasi))
+    rasi_name_ta = _RASI_NAMES_TA.get(janma_rasi, rasi_name_en)
+    return {
+        "rasi": janma_rasi,
+        "rasiName": {"ta": rasi_name_ta, "en": rasi_name_en},
+        "moonHouse": moon_house,
+        "headline": {"ta": pred_ta["title"], "en": pred_en["title"]},
+        "body": {"ta": pred_ta["body"], "en": pred_en["body"]},
+        "luckyColor": {"ta": pred_ta["lucky_color"], "en": pred_en["lucky_color"]},
+        "luckyNumbers": pred_ta["lucky_numbers"],
+        "pariharam": {"ta": pred_ta["pariharam"], "en": pred_en["pariharam"]},
+        "tone": pred_ta["tone"],
+    }
+
+
 class PublicRasiPalanResponse(BaseModel):
     success: bool = True
     rasi: int
@@ -990,7 +1009,9 @@ class PublicRasiPalanResponse(BaseModel):
 
 
 @router.get("/rasi-palan", response_model=PublicRasiPalanResponse)
+@public_endpoint_rate_limit("public_panchangam")
 def public_rasi_palan(
+    request: Request,
     rasi: str,
     query_date: date | None = None,
     lang: str = "ta",
@@ -1014,27 +1035,72 @@ def public_rasi_palan(
     query = PanchangamDailyQuery(date=target_date, lat=lat, lng=lng, timezone=timezone)
     panchangam = calculate_panchangam(query, session)
     moon_rasi = panchangam.data.chandrashtamam_today.moon_rasi_number
-
     moon_house = ((moon_rasi - janma_rasi) % 12) + 1
-    pred_ta = _RASI_PALAN_TA[moon_house]
-    pred_en = _RASI_PALAN_EN[moon_house]
-
-    rasi_name_en = RASI_NAMES.get(janma_rasi, str(janma_rasi))
-    rasi_name_ta = _RASI_NAMES_TA.get(janma_rasi, rasi_name_en)
 
     return PublicRasiPalanResponse(
         success=True,
-        rasi=janma_rasi,
-        rasiName={"ta": rasi_name_ta, "en": rasi_name_en},
         date=target_date,
         moonRasi=moon_rasi,
-        moonHouse=moon_house,
-        headline={"ta": pred_ta["title"], "en": pred_en["title"]},
-        body={"ta": pred_ta["body"], "en": pred_en["body"]},
-        luckyColor={"ta": pred_ta["lucky_color"], "en": pred_en["lucky_color"]},
-        luckyNumbers=pred_ta["lucky_numbers"],
-        pariharam={"ta": pred_ta["pariharam"], "en": pred_en["pariharam"]},
-        tone=pred_ta["tone"],
+        **_rasi_palan_prediction(janma_rasi, moon_house),
+    )
+
+
+class PublicRasiPalanGridItem(BaseModel):
+    rasi: int
+    rasi_name: dict = Field(alias="rasiName")
+    moon_house: int = Field(alias="moonHouse")
+    headline: dict
+    body: dict
+    lucky_color: dict = Field(alias="luckyColor")
+    lucky_numbers: list[int] = Field(alias="luckyNumbers")
+    pariharam: dict
+    tone: str
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PublicRasiPalanGridResponse(BaseModel):
+    success: bool = True
+    date: date
+    moon_rasi: int = Field(alias="moonRasi")
+    nakshatra: str
+    results: list[PublicRasiPalanGridItem]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+@router.get("/rasi-palan/grid", response_model=PublicRasiPalanGridResponse)
+@public_endpoint_rate_limit("public_panchangam")
+def public_rasi_palan_grid(
+    request: Request,
+    query_date: date | None = None,
+    lat: float = 13.0827,
+    lng: float = 80.2707,
+    timezone: str = "Asia/Kolkata",
+    session: Session = Depends(get_db),
+) -> PublicRasiPalanGridResponse:
+    """Return today's rasi palan for all 12 janma rasis in a single call.
+
+    Computes the panchangam once (the Moon's current transit is independent of
+    which janma rasi is asked about) and derives all 12 predictions from it,
+    instead of forcing 12 separate `/rasi-palan` calls per page load.
+    """
+    target_date = query_date or date.today()
+    query = PanchangamDailyQuery(date=target_date, lat=lat, lng=lng, timezone=timezone)
+    panchangam = calculate_panchangam(query, session)
+    moon_rasi = panchangam.data.chandrashtamam_today.moon_rasi_number
+
+    results = [
+        PublicRasiPalanGridItem(**_rasi_palan_prediction(janma_rasi, ((moon_rasi - janma_rasi) % 12) + 1))
+        for janma_rasi in range(1, 13)
+    ]
+
+    return PublicRasiPalanGridResponse(
+        success=True,
+        date=target_date,
+        moonRasi=moon_rasi,
+        nakshatra=panchangam.data.nakshatra.name,
+        results=results,
     )
 
 

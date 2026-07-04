@@ -3,12 +3,14 @@ export type ApiQueryParams = Record<string, string | number | boolean | undefine
 export type ApiGet = (path: string, params?: ApiQueryParams) => Promise<unknown>;
 export type ApiPost = (path: string, body?: unknown) => Promise<unknown>;
 export type ApiPatch = (path: string, body?: unknown) => Promise<unknown>;
+export type ApiPut = (path: string, body?: unknown) => Promise<unknown>;
 export type ApiDelete = (path: string) => Promise<void>;
 
 export interface ApiClient {
   get: ApiGet;
   post: ApiPost;
   patch: ApiPatch;
+  put: ApiPut;
   delete: ApiDelete;
 }
 

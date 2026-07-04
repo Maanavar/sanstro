@@ -30,7 +30,7 @@ export function updateNotificationPreferences(
 export function registerFcmToken(
   token: string,
 ): Promise<{ success: boolean; data: NotificationPreferenceData }> {
-  return getApiClient().patch("/settings/notifications/fcm-token", { fcmDeviceToken: token }) as Promise<{
+  return getApiClient().put("/settings/notifications/fcm-token", { fcmDeviceToken: token }) as Promise<{
     success: boolean;
     data: NotificationPreferenceData;
   }>;

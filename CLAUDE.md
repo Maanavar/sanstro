@@ -97,6 +97,15 @@ API routes, query params, and response shapes are a shared contract across four 
 
 A change made only in the backend (e.g. renaming a param, moving a path segment to a query param) breaks the other consumers silently at runtime — there is no compile-time check across this boundary. Before changing a route path, query param name, or response shape, grep all four locations for callers and update them in the same change. Prefer query params over path segments for optional filters — easier to add without breaking existing callers.
 
+### `packages/shared/src/api/` forward policy
+
+`web/` mostly bypasses the shared client today (direct `apiFetchJson(...)` calls with hardcoded paths in hooks/components) — that's grandfathered, don't touch existing call sites as drive-by cleanup. But going forward:
+
+- Any **new** backend endpoint gets a typed wrapper added to `packages/shared/src/api/`, and any new web/mobile code consuming it **must** use that wrapper, not a fresh direct-fetch call. Don't grow the bypass pattern further.
+- When a shared wrapper already exists and is correct for what you're building, use it — don't add a second, parallel direct-fetch path to the same endpoint.
+- A wrapper's URL/method/params are unverified by the type system (they're a hand-typed string + `ApiClient.get/post/patch/put/delete` call, not generated from the FastAPI route) — when adding or touching one, actually re-read the backend route decorator and confirm the path shape (path param vs. query param) and HTTP verb before wiring it up. Two of these silently drifted wrong in the past (`getDailyGuidance` used a query param where the backend expected a path param; `registerFcmToken` sent `PATCH` where the backend only accepts `PUT`) and would have failed on first real use.
+- If a change adds a route (or ports one) that only mobile currently reaches through the shared client, that's fine — don't delete a wrapper just because `web/` doesn't call it yet; check `mobile/` for callers before deleting anything from `packages/shared/src/api/`.
+
 ## Test & fixture data
 
 Never hardcode real personal data (real birth profiles, names, exact coordinates) in tests, fixtures, seed data, docs, or example payloads. Use a clearly-synthetic identity instead. Real-looking data in a diff should be flagged during review, not assumed to be a fixture.

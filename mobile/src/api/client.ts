@@ -120,6 +120,15 @@ export async function apiPatch<T>(url: string, body?: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+export async function apiPut<T>(url: string, body?: unknown): Promise<T> {
+  const res = await fetchWithAuth(url, {
+    method: "PUT",
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) throw new ApiError(res.status, await res.text());
+  return res.json() as Promise<T>;
+}
+
 export async function apiDelete(url: string): Promise<void> {
   const res = await fetchWithAuth(url, { method: "DELETE" });
   if (!res.ok) throw new ApiError(res.status, await res.text());
@@ -154,5 +163,6 @@ initApiClient({
   get: (path, params) => apiGet(path, params),
   post: (path, body) => apiPost(path, body),
   patch: (path, body) => apiPatch(path, body),
+  put: (path, body) => apiPut(path, body),
   delete: (path) => apiDelete(path),
 });

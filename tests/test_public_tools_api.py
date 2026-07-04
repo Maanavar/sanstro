@@ -185,3 +185,80 @@ def test_public_panchangam_returns_daily_snapshot() -> None:
     assert body["data"]["dateLocal"] == "2026-06-02"
     assert body["data"]["tamilDate"]["en"]
     assert body["data"]["location"]["timezone"] == "Asia/Kolkata"
+
+
+def test_public_rasi_palan_returns_prediction_for_named_rasi() -> None:
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.get(
+            "/api/v1/public/rasi-palan"
+            "?rasi=mesham&query_date=2026-06-02&lat=13.0827&lng=80.2707&timezone=Asia%2FKolkata"
+        )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["success"] is True
+    assert body["rasi"] == 1
+    assert body["rasiName"] == {"ta": "மேஷம்", "en": "Mesham"}
+    assert body["date"] == "2026-06-02"
+    assert 1 <= body["moonHouse"] <= 12
+    assert body["headline"]["ta"] and body["headline"]["en"]
+    assert body["body"]["ta"] and body["body"]["en"]
+    assert isinstance(body["luckyNumbers"], list) and body["luckyNumbers"]
+    assert body["tone"] in {"positive", "neutral", "caution", "warn"}
+
+
+def test_public_rasi_palan_accepts_numeric_rasi() -> None:
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.get("/api/v1/public/rasi-palan?rasi=7&query_date=2026-06-02")
+
+    assert response.status_code == 200, response.text
+    assert response.json()["rasi"] == 7
+
+
+def test_public_rasi_palan_rejects_out_of_range_rasi() -> None:
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.get("/api/v1/public/rasi-palan?rasi=13&query_date=2026-06-02")
+
+    assert response.status_code == 422, response.text
+
+
+def test_public_rasi_palan_grid_returns_all_12_rasis() -> None:
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.get(
+            "/api/v1/public/rasi-palan/grid?query_date=2026-06-02&lat=13.0827&lng=80.2707&timezone=Asia%2FKolkata"
+        )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["success"] is True
+    assert body["date"] == "2026-06-02"
+    assert 1 <= body["moonRasi"] <= 12
+    assert body["nakshatra"]
+    assert len(body["results"]) == 12
+    assert {item["rasi"] for item in body["results"]} == set(range(1, 13))
+    for item in body["results"]:
+        assert 1 <= item["moonHouse"] <= 12
+        assert item["headline"]["ta"] and item["headline"]["en"]
+        assert item["tone"] in {"positive", "neutral", "caution", "warn"}
+
+
+def test_public_rasi_palan_grid_matches_single_lookup() -> None:
+    """A grid row must agree with the equivalent single /rasi-palan lookup —
+    both derive from the same Moon transit, computed once server-side for the
+    grid instead of once per rasi."""
+    with TestClient(app, raise_server_exceptions=False) as client:
+        grid = client.get(
+            "/api/v1/public/rasi-palan/grid?query_date=2026-06-02&lat=13.0827&lng=80.2707&timezone=Asia%2FKolkata"
+        ).json()
+        single = client.get(
+            "/api/v1/public/rasi-palan"
+            "?rasi=8&query_date=2026-06-02&lat=13.0827&lng=80.2707&timezone=Asia%2FKolkata"
+        ).json()
+
+    row = next(item for item in grid["results"] if item["rasi"] == 8)
+    assert row["moonHouse"] == single["moonHouse"]
+    assert row["headline"] == single["headline"]
+    assert row["body"] == single["body"]
+    assert row["luckyNumbers"] == single["luckyNumbers"]
+    assert row["tone"] == single["tone"]
+    assert grid["moonRasi"] == single["moonRasi"]

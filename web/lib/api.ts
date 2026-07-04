@@ -93,6 +93,10 @@ initApiClient({
     method: "PATCH",
     body: body !== undefined ? JSON.stringify(body) : undefined,
   }),
+  put: (path, body) => apiFetchJson(path, {
+    method: "PUT",
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  }),
   delete: (path) => apiFetchJson(path, { method: "DELETE" }),
 });
 
