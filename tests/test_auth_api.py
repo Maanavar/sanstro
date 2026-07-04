@@ -1,18 +1,32 @@
 from __future__ import annotations
 
-from datetime import date, time
+from datetime import UTC, date, datetime, time
 from decimal import Decimal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 
 from app.db.session import SessionLocal
 from app.main import app
+from app.models.ask_vinaadi_usage import AskVinaadiUsage
 from app.models.birth_profile import BirthProfile
 from app.models.chart import Chart
 from app.models.daily_score import DailyScore
 from app.models.family_member import FamilyMember
+from app.models.family_vault import FamilyVault
+from app.models.interpretation_output import InterpretationOutput
+from app.models.journal_entry import JournalEntry
+from app.models.notification import Notification
+from app.models.password_reset_token import PasswordResetToken
+from app.models.refresh_token import RefreshToken
+from app.models.retrospective_entry import RetrospectiveEntry
+from app.models.subscription import Subscription
 from app.models.user import User
+from app.models.user_context import UserContext
+from app.models.user_goal import UserGoal
+from app.models.user_notification_preference import UserNotificationPreference
+from app.models.user_preference import UserPreference
+from app.models.user_streak import UserStreak
 
 CSRF_HEADERS = {"X-Vinaadi-CSRF": "1"}
 
@@ -264,6 +278,142 @@ def test_delete_me_does_not_delete_other_users_profiles_or_charts(raw_client):
             assert session.get(Chart, chart_a_id) is None
             assert session.get(BirthProfile, profile_b_id) is not None
             assert session.get(Chart, chart_b_id) is not None
+
+
+def test_delete_me_leaves_no_orphaned_rows_across_every_owned_table(raw_client):
+    """WIRE-2 regression: DELETE /auth/me is the sole surviving deletion path
+    (docs/API_FRONTEND_WIRING_AUDIT_2026-07.md). Seed one row in every table
+    that carries a direct or transitive FK back to this user — including
+    interpretation_outputs and refresh/reset tokens, the two tables the retired
+    users.py anonymise-path variant was found to mishandle — and assert the
+    hard delete leaves zero orphans and zero live sessions behind.
+    """
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "full-erasure@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "full-erasure@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    user_id = UUID(login.json()["userId"])
+    now = datetime.now(UTC)
+
+    with SessionLocal() as session:
+        vault = FamilyVault(owner_user_id=user_id, name="Erasure Test Family")
+        session.add(vault)
+        session.flush()
+
+        member = FamilyMember(
+            owner_user_id=user_id,
+            family_vault_id=vault.family_vault_id,
+            display_name="Family Member",
+        )
+        session.add(member)
+        session.flush()
+
+        profile = BirthProfile(
+            owner_user_id=user_id,
+            family_member_id=member.family_member_id,
+            display_name="Erasure User",
+            birth_date_local=date(1991, 7, 22),
+            birth_time_local=time(6, 30),
+            birth_place="Chennai, Tamil Nadu, India",
+            birth_latitude=Decimal("13.082700"),
+            birth_longitude=Decimal("80.270700"),
+            birth_timezone="Asia/Kolkata",
+        )
+        session.add(profile)
+        session.flush()
+
+        chart = Chart(
+            birth_profile_id=profile.birth_profile_id,
+            calculation_version="test-v1",
+            julian_day=Decimal("2451545.00000000"),
+            lagna_rasi="Mesha",
+            lagna_longitude=Decimal("15.25000000"),
+            moon_rasi="Rishabha",
+            janma_nakshatra="Ashwini",
+            janma_pada=1,
+        )
+        session.add(chart)
+        session.flush()
+
+        session.add(Subscription(user_id=user_id, tier="premium", status="active"))
+        session.add(RefreshToken(
+            token_hash="a" * 64, user_id=user_id,
+            expires_at=now.replace(year=now.year + 1),
+        ))
+        session.add(PasswordResetToken(
+            user_id=user_id, jti_hash="b" * 64,
+            expires_at=now.replace(year=now.year + 1),
+        ))
+        session.add(UserStreak(user_id=user_id, current_days=1, longest_days=1, last_active_date=date.today()))
+        session.add(UserPreference(owner_user_id=user_id))
+        session.add(UserNotificationPreference(owner_user_id=user_id))
+        session.add(AskVinaadiUsage(user_id=user_id, usage_date=date.today(), chip_count=1))
+        session.add(UserContext(owner_user_id=user_id, chart_id=chart.chart_id))
+        session.add(UserGoal(owner_user_id=user_id, chart_id=chart.chart_id, goal_type="marriage"))
+        session.add(JournalEntry(
+            owner_user_id=user_id, chart_id=chart.chart_id, entry_date=date.today(),
+            note_text="test entry",
+        ))
+        session.add(RetrospectiveEntry(
+            owner_user_id=user_id, chart_id=chart.chart_id, event_date=date.today(),
+            event_type="job_change", event_description="test event",
+        ))
+        session.add(Notification(
+            user_id=user_id, family_vault_id=vault.family_vault_id, chart_id=chart.chart_id,
+            type="test", priority=50, title="t", body="b", send_at=now,
+        ))
+        interp_chart = InterpretationOutput(
+            chart_id=chart.chart_id, output_type="daily", language="ta-en",
+            structured_input={"birth_date": "1991-07-22"}, output_text={"ta": "..."},
+        )
+        interp_vault = InterpretationOutput(
+            family_vault_id=vault.family_vault_id, output_type="family_summary", language="ta-en",
+            structured_input={"members": 1}, output_text={"ta": "..."},
+        )
+        session.add_all([interp_chart, interp_vault])
+        session.commit()
+
+        owned_ids = {
+            "vault": vault.family_vault_id,
+            "member": member.family_member_id,
+            "profile": profile.birth_profile_id,
+            "chart": chart.chart_id,
+            "interp_chart": interp_chart.interpretation_output_id,
+            "interp_vault": interp_vault.interpretation_output_id,
+        }
+
+    delete_response = raw_client.delete("/api/v1/auth/me", headers=CSRF_HEADERS)
+    assert delete_response.status_code == 200
+
+    with SessionLocal() as session:
+        assert session.get(User, user_id) is None
+        assert session.get(FamilyVault, owned_ids["vault"]) is None
+        assert session.get(FamilyMember, owned_ids["member"]) is None
+        assert session.get(BirthProfile, owned_ids["profile"]) is None
+        assert session.get(Chart, owned_ids["chart"]) is None
+        assert session.query(Subscription).filter(Subscription.user_id == user_id).count() == 0
+        assert session.query(RefreshToken).filter(RefreshToken.user_id == user_id).count() == 0
+        assert session.query(PasswordResetToken).filter(PasswordResetToken.user_id == user_id).count() == 0
+        assert session.get(UserStreak, user_id) is None
+        assert session.query(UserPreference).filter(UserPreference.owner_user_id == user_id).count() == 0
+        assert session.query(UserNotificationPreference).filter(
+            UserNotificationPreference.owner_user_id == user_id
+        ).count() == 0
+        assert session.query(AskVinaadiUsage).filter(AskVinaadiUsage.user_id == user_id).count() == 0
+        assert session.query(UserContext).filter(UserContext.owner_user_id == user_id).count() == 0
+        assert session.query(UserGoal).filter(UserGoal.owner_user_id == user_id).count() == 0
+        assert session.query(JournalEntry).filter(JournalEntry.owner_user_id == user_id).count() == 0
+        assert session.query(RetrospectiveEntry).filter(RetrospectiveEntry.owner_user_id == user_id).count() == 0
+        assert session.query(Notification).filter(Notification.user_id == user_id).count() == 0
+        # The two rows the retired anonymise-path variant would have orphaned:
+        assert session.get(InterpretationOutput, owned_ids["interp_chart"]) is None
+        assert session.get(InterpretationOutput, owned_ids["interp_vault"]) is None
 
 
 def test_deleted_user_cannot_login_until_registering_again(raw_client):

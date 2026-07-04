@@ -18,6 +18,7 @@ Quick map to the right document for each purpose.
 - [HOW_TO_USE_CODEBASE.md](HOW_TO_USE_CODEBASE.md) — Codebase orientation: repo layout, service map, key patterns
 - [error-handling.md](error-handling.md) — Centralized error code system: backend ErrorCode enum, frontend formatters, migration status
 - [MASTER_FIX_LIST.md](MASTER_FIX_LIST.md) — Cumulative fix/issue tracking list
+- [API_FRONTEND_WIRING_AUDIT_2026-07.md](API_FRONTEND_WIRING_AUDIT_2026-07.md) — Endpoint-by-endpoint audit of what's actually wired to a real frontend vs. dead/unreachable; supersedes FRONTEND.md's missing-features list
 
 ## UX & Design
 - [UX_EXCELLENCE_AUDIT.md](UX_EXCELLENCE_AUDIT.md) — UX audit findings and recommendations
