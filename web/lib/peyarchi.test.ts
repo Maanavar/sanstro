@@ -24,4 +24,14 @@ describe("peyarchi tone classifier", () => {
   it("treats Saturn Ashtama Sani (8th) as caution", () => {
     expect(classifyPeyarchiToneFromMoon("SATURN", 8)).toBe("caution");
   });
+
+  it("treats only 3/6/11 from Moon as supportive for Saturn (classical gochara)", () => {
+    expect(classifyPeyarchiToneFromMoon("SATURN", 3)).toBe("supportive");
+    expect(classifyPeyarchiToneFromMoon("SATURN", 6)).toBe("supportive");
+    expect(classifyPeyarchiToneFromMoon("SATURN", 11)).toBe("supportive");
+  });
+
+  it("keeps Saturn 10th from Moon (kandaka kendra) neutral, never supportive", () => {
+    expect(classifyPeyarchiToneFromMoon("SATURN", 10)).toBe("neutral");
+  });
 });

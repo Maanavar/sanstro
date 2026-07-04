@@ -1,17 +1,16 @@
+import { moonHouseImpact } from "@vinaadi/shared/api/transits";
+
 export type PeyarchiTone = "supportive" | "neutral" | "caution";
 
+const TONE_BY_IMPACT: Record<ReturnType<typeof moonHouseImpact>, PeyarchiTone> = {
+  good: "supportive",
+  neutral: "neutral",
+  challenging: "caution",
+};
+
+// Thin vocabulary adapter over the shared gochara classifier — the house
+// tables live in packages/shared/src/api/transits.ts so web and mobile can
+// never disagree on a transit's tone.
 export function classifyPeyarchiToneFromMoon(planet: string, houseFromMoon: number): PeyarchiTone {
-  if (planet === "JUPITER") {
-    if ([2, 5, 7, 9, 11].includes(houseFromMoon)) return "supportive";
-    if ([1, 10].includes(houseFromMoon)) return "neutral";
-    return "caution";
-  }
-
-  if (planet === "SATURN") {
-    if ([3, 6, 10, 11].includes(houseFromMoon)) return "supportive";
-    if ([1, 2, 5, 7, 12].includes(houseFromMoon)) return "neutral";
-    return "caution";
-  }
-
-  return "neutral";
+  return TONE_BY_IMPACT[moonHouseImpact(planet, houseFromMoon)];
 }

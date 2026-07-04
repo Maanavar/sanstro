@@ -15,6 +15,7 @@ export type {
   MuhurtaResponseData,
   ApiEnvelope,
   JournalSettingsData,
+  JournalRetentionApplyData,
   BirthProfileCreateResponseData,
   BirthProfileResponse,
   BirthProfileSnapshot,
@@ -147,4 +148,7 @@ export type {
   QAValidationResponse,
   QAFailureRecord,
   QARegressionReport,
+  ReasoningBand,
+  ReasoningReading,
+  ChartSignatureData,
 } from "@vinaadi/shared";

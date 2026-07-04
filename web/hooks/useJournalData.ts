@@ -12,6 +12,7 @@ import type {
   ContextData,
   JournalEntryData,
   JournalListData,
+  JournalRetentionApplyData,
   JournalSettingsData,
   NotificationPreferenceData,
 } from "@/lib/types";
@@ -130,6 +131,36 @@ export function useJournalData({ lang, onStatus, onError }: UseJournalDataOption
     },
   });
 
+  const retentionApplyMutation = useMutation({
+    mutationFn: async ({ chartId, dryRun }: { chartId: string; dryRun: boolean }) => {
+      const response = await apiFetchJson<ApiEnvelope<JournalRetentionApplyData>>("/api/v1/journal/retention/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chartId, dryRun }),
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      // A real (non-dry-run) apply archives entries — refresh the list.
+      if (!data.dryRun) {
+        void queryClient.invalidateQueries({ queryKey: journalKeys.entries(data.chartId) });
+      }
+    },
+    onError: (error) => {
+      const message = readErrorMessage(error);
+      reportError(message);
+      reportStatus(message);
+    },
+  });
+
+  async function applyJournalRetention(chartId: string, dryRun: boolean): Promise<JournalRetentionApplyData | null> {
+    try {
+      return await retentionApplyMutation.mutateAsync({ chartId, dryRun });
+    } catch {
+      return null; // handled in mutation callbacks
+    }
+  }
+
   async function saveJournalRetentionDays(days: number) {
     try {
       await settingsMutation.mutateAsync({ journalRetentionDays: days });
@@ -167,6 +198,8 @@ export function useJournalData({ lang, onStatus, onError }: UseJournalDataOption
     journalTotal: journalList?.totalCount ?? 0,
     contextData: contextQuery.data ?? null,
     busyJournalSettings: settingsMutation.isPending,
+    busyRetentionApply: retentionApplyMutation.isPending,
+    applyJournalRetention,
     setContextData,
     setNotificationPrefs,
     loadJournalSettings,
