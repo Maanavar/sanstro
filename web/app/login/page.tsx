@@ -13,7 +13,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { track } from "@/lib/analytics";
 
-type Mode = "login" | "signup" | "forgot";
+type Mode = "login" | "signup" | "forgot" | "reset";
 
 function EyeIcon({ open }: { open: boolean }) {
   return open ? (
@@ -71,9 +71,11 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  const [resetToken, setResetToken] = useState<string | null>(null);
+
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState<"signup" | "forgot" | null>(null);
+  const [done, setDone] = useState<"signup" | "forgot" | "reset" | null>(null);
 
   const emailTouched = email.length > 0;
   const emailValid = isValidEmail(email);
@@ -84,6 +86,12 @@ export default function LoginPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const token = params.get("resetToken");
+    if (token) {
+      setResetToken(token);
+      setMode("reset");
+      return;
+    }
     if (params.get("mode") === "signup") {
       setMode("signup");
     }
@@ -102,6 +110,36 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (mode === "reset") {
+      if (!passwordValid) {
+        setError("Password must be at least 8 characters.");
+        return;
+      }
+      if (!confirmMatch) {
+        setError("Passwords do not match.");
+        return;
+      }
+      setLoading(true);
+      try {
+        const response = await fetch("/api/backend/api/v1/auth/reset-password/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
+          credentials: "include",
+          body: JSON.stringify({ token: resetToken, password }),
+        });
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({} as { detail?: string }));
+          throw new Error(payload.detail ?? "This reset link is invalid or has expired.");
+        }
+        setDone("reset");
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
 
     if (!isValidEmail(email)) {
       setError("Enter a valid email address.");
@@ -177,11 +215,13 @@ export default function LoginPage() {
   const title =
     mode === "login" ? "Welcome back"
     : mode === "signup" ? "Create your account"
+    : mode === "reset" ? "Set a new password"
     : "Reset your password";
 
   const subtitle =
     mode === "login" ? "Sign in to your Vinaadi workspace"
     : mode === "signup" ? "Start your morning reading practice"
+    : mode === "reset" ? "Choose a new password for your account"
     : "We'll send a reset link to your email";
 
   /* Password strength level 0-4 */
@@ -803,7 +843,7 @@ export default function LoginPage() {
             </div>
 
             {/* Mode tabs (login / signup only) */}
-            {mode !== "forgot" && (
+            {mode !== "forgot" && mode !== "reset" && (
               <div className="ca-tabs" role="tablist" aria-label="Authentication mode">
                 <button
                   type="button"
@@ -855,6 +895,19 @@ export default function LoginPage() {
               </div>
             )}
 
+            {done === "reset" && (
+              <div className="ca-success" role="status">
+                <div className="ca-success-icon" aria-hidden="true"><CheckIcon /></div>
+                <p className="ca-success-title">Password updated</p>
+                <p className="ca-success-body">
+                  Your password has been changed. Please sign in with your new password.
+                </p>
+                <button type="button" className="ca-text-btn" onClick={() => switchMode("login")}>
+                  Go to sign in →
+                </button>
+              </div>
+            )}
+
             {/* ── Form ── */}
             {!done && (
               <form
@@ -862,38 +915,40 @@ export default function LoginPage() {
                 className="ca-form"
                 noValidate
               >
-                {/* Email */}
-                <div className="ca-field">
-                  <label className="ca-label" htmlFor="ca-email">Email</label>
-                  <input
-                    id="ca-email"
-                    className={`ca-input${emailTouched && !emailValid ? " is-error" : emailTouched && emailValid ? " is-valid" : ""}`}
-                    type="email"
-                    autoComplete="email"
-                    required
-                    placeholder="you@example.com"
-                    value={email}
-                    aria-invalid={emailTouched && !emailValid}
-                    aria-describedby={emailTouched && !emailValid ? "ca-email-error" : undefined}
-                    onChange={(e) => { setEmail(e.target.value); setError(null); }}
-                  />
-                  {emailTouched && !emailValid && (
-                    <span id="ca-email-error" className="ca-hint is-error" role="alert">Enter a valid email address</span>
-                  )}
-                </div>
+                {/* Email — not shown for reset mode (identity comes from the token) */}
+                {mode !== "reset" && (
+                  <div className="ca-field">
+                    <label className="ca-label" htmlFor="ca-email">Email</label>
+                    <input
+                      id="ca-email"
+                      className={`ca-input${emailTouched && !emailValid ? " is-error" : emailTouched && emailValid ? " is-valid" : ""}`}
+                      type="email"
+                      autoComplete="email"
+                      required
+                      placeholder="you@example.com"
+                      value={email}
+                      aria-invalid={emailTouched && !emailValid}
+                      aria-describedby={emailTouched && !emailValid ? "ca-email-error" : undefined}
+                      onChange={(e) => { setEmail(e.target.value); setError(null); }}
+                    />
+                    {emailTouched && !emailValid && (
+                      <span id="ca-email-error" className="ca-hint is-error" role="alert">Enter a valid email address</span>
+                    )}
+                  </div>
+                )}
 
                 {/* Password */}
                 {mode !== "forgot" && (
                   <div className="ca-field">
-                    <label className="ca-label" htmlFor="ca-password">Password</label>
+                    <label className="ca-label" htmlFor="ca-password">{mode === "reset" ? "New password" : "Password"}</label>
                     <div className="ca-input-wrap">
                       <input
                         id="ca-password"
                         className={`ca-input has-icon${passwordTouched && !passwordValid ? " is-error" : passwordTouched && passwordValid ? " is-valid" : ""}`}
                         type={showPassword ? "text" : "password"}
-                        autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                        autoComplete={mode === "signup" || mode === "reset" ? "new-password" : "current-password"}
                         required
-                        placeholder={mode === "signup" ? "Min. 8 characters" : "••••••••"}
+                        placeholder={mode === "signup" || mode === "reset" ? "Min. 8 characters" : "••••••••"}
                         value={password}
                         aria-invalid={passwordTouched && !passwordValid ? "true" : undefined}
                         aria-describedby={passwordTouched && !passwordValid ? "ca-password-error" : undefined}
@@ -910,8 +965,8 @@ export default function LoginPage() {
                       </button>
                     </div>
 
-                    {/* Strength bars — signup only */}
-                    {mode === "signup" && passwordTouched && (
+                    {/* Strength bars — signup and reset */}
+                    {(mode === "signup" || mode === "reset") && passwordTouched && (
                       <div className="ca-pw-strength" aria-hidden="true">
                         {[1, 2, 3, 4].map((i) => (
                           <div
@@ -931,7 +986,7 @@ export default function LoginPage() {
                       </div>
                     )}
 
-                    {mode === "signup" && passwordTouched && !passwordValid && (
+                    {(mode === "signup" || mode === "reset") && passwordTouched && !passwordValid && (
                       <span id="ca-password-error" className="ca-hint is-error" role="alert">At least 8 characters required</span>
                     )}
 
@@ -950,10 +1005,10 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                {/* Confirm password — signup only */}
-                {mode === "signup" && (
+                {/* Confirm password — signup and reset */}
+                {(mode === "signup" || mode === "reset") && (
                   <div className="ca-field">
-                    <label className="ca-label" htmlFor="ca-confirm">Confirm password</label>
+                    <label className="ca-label" htmlFor="ca-confirm">{mode === "reset" ? "Confirm new password" : "Confirm password"}</label>
                     <div className="ca-input-wrap">
                       <input
                         id="ca-confirm"
@@ -994,11 +1049,13 @@ export default function LoginPage() {
                       ? "Sign in"
                       : mode === "signup"
                         ? "Create account"
-                        : "Send reset link"}
+                        : mode === "reset"
+                          ? "Update password"
+                          : "Send reset link"}
                 </button>
 
-                {/* Back to sign in — forgot mode */}
-                {mode === "forgot" && (
+                {/* Back to sign in — forgot/reset modes */}
+                {(mode === "forgot" || mode === "reset") && (
                   <p className="ca-center-row">
                     <button type="button" className="ca-text-btn" onClick={() => switchMode("login")}>
                       ← Back to sign in
@@ -1017,7 +1074,7 @@ export default function LoginPage() {
             )}
 
             {/* Footer switch hint */}
-            {!done && mode !== "forgot" && (
+            {!done && mode !== "forgot" && mode !== "reset" && (
               <p className="ca-footer">
                 {mode === "login" ? (
                   <>No account?{" "}

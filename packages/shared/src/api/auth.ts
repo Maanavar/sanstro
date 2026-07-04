@@ -50,6 +50,18 @@ export function deleteAccount(): Promise<void> {
   return getApiClient().delete("/auth/me");
 }
 
+export interface PasswordResetDetailResponse {
+  detail: string;
+}
+
+export function requestPasswordReset(email: string): Promise<PasswordResetDetailResponse> {
+  return getApiClient().post("/auth/forgot-password", { email }) as Promise<PasswordResetDetailResponse>;
+}
+
+export function confirmPasswordReset(token: string, password: string): Promise<PasswordResetDetailResponse> {
+  return getApiClient().post("/auth/reset-password/confirm", { token, password }) as Promise<PasswordResetDetailResponse>;
+}
+
 export function registerPushToken(payload: {
   deviceId: string;
   fcmToken: string;

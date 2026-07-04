@@ -5,7 +5,7 @@ import {
 } from "@vinaadi/shared/api/auth";
 import { setTokens, clearTokens } from "@/lib/secureStore";
 
-export type { RegisterResponse, MobileAuthResponse, MeResponse, SubscriptionInfo, SubscriptionInfoResponse } from "@vinaadi/shared/api/auth";
+export type { RegisterResponse, MobileAuthResponse, MeResponse, SubscriptionInfo, SubscriptionInfoResponse, PasswordResetDetailResponse } from "@vinaadi/shared/api/auth";
 export {
   register,
   getMe,
@@ -14,6 +14,8 @@ export {
   getMySubscription,
   registerPushToken,
   unregisterPushToken,
+  requestPasswordReset,
+  confirmPasswordReset,
 } from "@vinaadi/shared/api/auth";
 
 export async function login(

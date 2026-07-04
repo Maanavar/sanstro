@@ -172,10 +172,12 @@ npm run typecheck --workspace mobile
 
 ### SEC-4 Password Reset Token Is an Unscoped Full Access Token [MED]
 
-Status: `[ ]`
+Status: `[x]` — resolved 2026-07-04 (fix already existed in code, was untested; tests added, status corrected)
 
 Problem:
 Password reset links use a normal access JWT with only `sub`, `iat`, and `exp`. If leaked, the token grants full API access during its lifetime and is not single-use.
+
+**Resolution note:** This status marker was stale — the underlying fix (typed `pwreset` claim, single-use `password_reset_tokens` table with `jti_hash`, 15-minute TTL, refresh-token revocation on reset) was already implemented in `app/api/auth.py` before this pass, but had zero test coverage and this doc still said `[ ]`. Added 5 regression tests in `tests/test_auth_api.py` covering every "Done when" line below, then flipped this status. See docs/API_FRONTEND_WIRING_AUDIT_2026-07.md WIRE-1 (this fix shipped together with the web/mobile password-reset completion UI, per that doc's sequencing note).
 
 Primary files:
 

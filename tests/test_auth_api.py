@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from uuid import UUID, uuid4
 
@@ -114,6 +114,176 @@ def test_forgot_password_returns_generic_message(raw_client):
     )
     assert response.status_code == 200
     assert "If an account exists for this email" in response.json()["detail"]
+
+
+def test_reset_password_confirm_updates_password_and_kills_sessions(raw_client):
+    """SEC-4/WIRE-1: a completed reset must invalidate the old web session
+    and any mobile refresh tokens, not just the password hash."""
+    from app.api.auth import _issue_password_reset_token
+
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "reset-flow@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "reset-flow@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    user_id = UUID(login.json()["userId"])
+
+    with SessionLocal() as session:
+        user = session.get(User, user_id)
+        session.add(RefreshToken(
+            token_hash="c" * 64, user_id=user_id,
+            expires_at=datetime.now(UTC) + timedelta(days=60),
+        ))
+        reset_token = _issue_password_reset_token(session, user)
+        session.commit()
+
+    me_before = raw_client.get("/api/v1/auth/me")
+    assert me_before.status_code == 200
+
+    confirm = raw_client.post(
+        "/api/v1/auth/reset-password/confirm",
+        json={"token": reset_token, "password": "newpassword456"},
+    )
+    assert confirm.status_code == 200
+
+    me_after = raw_client.get("/api/v1/auth/me")
+    assert me_after.status_code == 401
+
+    relogin = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "reset-flow@example.com", "password": "newpassword456"},
+    )
+    assert relogin.status_code == 200
+
+    old_login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "reset-flow@example.com", "password": "password123"},
+    )
+    assert old_login.status_code == 401
+
+    with SessionLocal() as session:
+        refresh_rows = session.query(RefreshToken).filter(RefreshToken.user_id == user_id).all()
+        assert refresh_rows
+        assert all(r.revoked_at is not None for r in refresh_rows)
+
+
+def test_reset_password_token_cannot_access_authenticated_endpoints(raw_client):
+    """SEC-4: a pwreset-typed token must be rejected by get_current_user."""
+    from app.api.auth import _issue_password_reset_token
+
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "reset-scope@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "reset-scope@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    user_id = UUID(login.json()["userId"])
+
+    with SessionLocal() as session:
+        user = session.get(User, user_id)
+        reset_token = _issue_password_reset_token(session, user)
+        session.commit()
+
+    response = raw_client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {reset_token}"},
+    )
+    assert response.status_code == 401
+
+
+def test_reset_password_confirm_rejects_replay(raw_client):
+    from app.api.auth import _issue_password_reset_token
+
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "reset-replay@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "reset-replay@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    user_id = UUID(login.json()["userId"])
+
+    with SessionLocal() as session:
+        user = session.get(User, user_id)
+        reset_token = _issue_password_reset_token(session, user)
+        session.commit()
+
+    first = raw_client.post(
+        "/api/v1/auth/reset-password/confirm",
+        json={"token": reset_token, "password": "newpassword456"},
+    )
+    assert first.status_code == 200
+
+    replay = raw_client.post(
+        "/api/v1/auth/reset-password/confirm",
+        json={"token": reset_token, "password": "anotherpassword789"},
+    )
+    assert replay.status_code == 401
+
+
+def test_reset_password_confirm_rejects_expired_token(raw_client):
+    from app.api.auth import _issue_password_reset_token
+
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "reset-expired@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "reset-expired@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    user_id = UUID(login.json()["userId"])
+
+    with SessionLocal() as session:
+        user = session.get(User, user_id)
+        reset_token = _issue_password_reset_token(session, user)
+        session.flush()
+        session.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == user_id
+        ).update({"expires_at": datetime.now(UTC) - timedelta(minutes=1)})
+        session.commit()
+
+    response = raw_client.post(
+        "/api/v1/auth/reset-password/confirm",
+        json={"token": reset_token, "password": "newpassword456"},
+    )
+    assert response.status_code == 401
+
+
+def test_reset_password_confirm_rejects_normal_access_token(raw_client):
+    """A normal login-issued access token must not work as a reset token."""
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "reset-wrongtyp@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "reset-wrongtyp@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    access_token = raw_client.cookies.get("vinaadi_token")
+    assert access_token
+
+    response = raw_client.post(
+        "/api/v1/auth/reset-password/confirm",
+        json={"token": access_token, "password": "newpassword456"},
+    )
+    assert response.status_code == 401
 
 
 def test_delete_me_handles_daily_scores_linked_by_birth_profile(raw_client):

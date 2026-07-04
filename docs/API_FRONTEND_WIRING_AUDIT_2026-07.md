@@ -53,7 +53,7 @@ This document is a sibling to [MASTER_FIX_LIST.md](MASTER_FIX_LIST.md) (security
 
 ## P0 — Broken or contradictory user-facing behavior
 
-### WIRE-1 Password reset cannot be completed on web or mobile `[ ]`
+### WIRE-1 Password reset cannot be completed on web or mobile `[x]` — resolved 2026-07-04
 
 **Problem:** A user who forgets their password can request a reset, but no client can finish the flow.
 
@@ -86,6 +86,12 @@ $env:JOTHIDAM_TEST_DB_RESET_ACK = "I_UNDERSTAND_THIS_WIPES_TEST_DB"
 pytest tests/test_auth_api.py tests/test_auth.py -k reset
 ```
 Manually walk the flow in a browser with a synthetic test account (never a real email/identity).
+
+**Resolution (2026-07-04):**
+- **SEC-4 was already fixed in code** before this pass (typed `pwreset` claim, single-use `password_reset_tokens` row with `jti_hash`, 15-min TTL, refresh-token revocation + `token_version` bump on successful reset) — `docs/MASTER_FIX_LIST.md` just hadn't been updated and there was no test coverage. Added 5 tests to `tests/test_auth_api.py`: successful reset kills the old web session and mobile refresh tokens, a reset token can't hit `GET /auth/me`, replay is rejected, expired tokens are rejected, and a normal access token can't be used as a reset token. Flipped both docs' status markers.
+- **Web:** `web/app/login/page.tsx` now has a fourth mode (`reset`), entered automatically when the URL has `?resetToken=`. It renders a "set new password" form and posts to `POST /auth/reset-password/confirm`.
+- **Mobile:** added `mobile/app/(auth)/reset-password.tsx`, reachable via the `vinaadi://reset-password?token=...` deep link (registered scheme already exists). Added `requestPasswordReset`/`confirmPasswordReset` wrappers to `packages/shared/src/api/auth.ts`, re-exported through `mobile/src/api/auth.ts`.
+- **Known gap, recorded rather than silently deferred:** the emailed reset link is a plain `https://.../login?resetToken=...` URL (`app/services/email_service.py`), not the mobile deep link — so tapping it from a phone opens the mobile browser to the (fully working, responsive) web form rather than the native app. One-tap email→native-app requires Universal Links (iOS) / App Links (Android) domain-association files hosted at the production domain, which is an infra/deployment task outside a code-only pass. The native mobile screen is built and reachable today via the custom URL scheme for direct testing and for future use once domain association ships.
 
 ---
 
