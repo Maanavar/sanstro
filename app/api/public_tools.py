@@ -20,7 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import RASI_NAME_TO_NUMBER, RASI_NAMES
+from app.calculations.astro import RASI_NAME_TO_NUMBER, RASI_NAMES, nakshatra_to_rasi
 from app.calculations.porutham import compute_porutham
 from app.core.public_endpoint_limiter import public_endpoint_rate_limit
 from app.db.session import get_db
@@ -329,6 +329,197 @@ def public_porutham(payload: PublicPoruthamRequest, request: Request) -> PublicP
         context_note=None,
     )
     return PublicPoruthamResponse(data=data)
+
+
+# ── Public Porutham by nakshatra number (no birth chart needed) ──────────────
+#
+# Distinct from /compare and /porutham above: those need full birth details
+# because they derive the Moon's nakshatra/rasi from a computed chart. Tools
+# where the user already knows their birth star (the marketing site's quick
+# calculator, and the mobile app's porutham/friendship screens) only need
+# compute_porutham() itself — no ephemeris, no birth data, no persistence.
+#
+# `pada` defaults to 3 when omitted: nakshatra_to_rasi(nak, pada=3) reproduces
+# the classical majority-pada rasi (with the later rasi on an exact 2/2 pada
+# split) for every one of the 9 nakshatras that straddle a rasi boundary —
+# verified against the reference table in
+# web/app/tools/marriage-porutham-calculator/PoruthamTool.tsx during the
+# 2026-07 wiring audit. Pass pada=1/4 for an explicit early/late pada choice.
+
+
+class PublicPoruthamStarRequest(BaseModel):
+    boy_nakshatra_number: int = Field(alias="boyNakshatraNumber", ge=1, le=27)
+    girl_nakshatra_number: int = Field(alias="girlNakshatraNumber", ge=1, le=27)
+    boy_pada: int = Field(alias="boyPada", default=3, ge=1, le=4)
+    girl_pada: int = Field(alias="girlPada", default=3, ge=1, le=4)
+    compatibility_context: str = Field(alias="compatibilityContext", default="MARRIAGE")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PublicPoruthamStarData(BaseModel):
+    boy_nakshatra: int = Field(alias="boyNakshatra")
+    girl_nakshatra: int = Field(alias="girlNakshatra")
+    kutas: list[KutaResult]
+    total_score: int = Field(alias="totalScore")
+    max_score: int = Field(alias="maxScore")
+    percentage: float
+    label: str
+    rajju_dosha: bool = Field(alias="rajjuDosha")
+    vedha_dosha: bool = Field(alias="vedhaDosha")
+    nadi_dosha: NadiDoshaData = Field(alias="nadiDosha")
+    summary: RelationshipBiText
+    compatibility_context: str = Field(default="MARRIAGE", alias="compatibilityContext")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PublicPoruthamStarResponse(BaseModel):
+    success: bool = True
+    data: PublicPoruthamStarData
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PublicPoruthamGridRequest(BaseModel):
+    girl_nakshatra_number: int = Field(alias="girlNakshatraNumber", ge=1, le=27)
+    girl_pada: int = Field(alias="girlPada", default=3, ge=1, le=4)
+    compatibility_context: str = Field(alias="compatibilityContext", default="MARRIAGE")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PublicPoruthamGridItem(BaseModel):
+    boy_nakshatra: int = Field(alias="boyNakshatra")
+    total_score: int = Field(alias="totalScore")
+    max_score: int = Field(alias="maxScore")
+    percentage: float
+    label: str
+    rajju_dosha: bool = Field(alias="rajjuDosha")
+    vedha_dosha: bool = Field(alias="vedhaDosha")
+    nadi_caution: bool = Field(alias="nadiCaution")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PublicPoruthamGridResponse(BaseModel):
+    success: bool = True
+    girl_nakshatra_number: int = Field(alias="girlNakshatraNumber")
+    results: list[PublicPoruthamGridItem]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+def _validate_compatibility_context(value: str) -> None:
+    from app.schemas.relationships import VALID_COMPATIBILITY_CONTEXTS
+
+    if value not in VALID_COMPATIBILITY_CONTEXTS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"compatibilityContext must be one of: {sorted(VALID_COMPATIBILITY_CONTEXTS)}",
+        )
+
+
+def _compute_star_porutham(
+    boy_nakshatra: int,
+    girl_nakshatra: int,
+    boy_rasi: int,
+    girl_rasi: int,
+    compatibility_context: str,
+) -> PublicPoruthamStarData:
+    result = compute_porutham(
+        boy_nakshatra=boy_nakshatra,
+        girl_nakshatra=girl_nakshatra,
+        boy_rasi=boy_rasi,
+        girl_rasi=girl_rasi,
+    )
+    kutas = [
+        KutaResult(name=k.name, name_ta=k.name_ta, score=k.score, max_score=k.max_score, label=k.label)
+        for k in result.kutas
+    ]
+    nadi = result.nadi_dosha
+    nadi_data = NadiDoshaData(
+        boy_nadi=nadi["boy_nadi"],
+        girl_nadi=nadi["girl_nadi"],
+        has_nadi_dosha=nadi["has_nadi_dosha"],
+        cancellations=nadi.get("cancellations", []),
+        severity=nadi["severity"],
+        note_ta=nadi["note_ta"],
+        note_en=nadi["note_en"],
+    )
+    return PublicPoruthamStarData(
+        boy_nakshatra=boy_nakshatra,
+        girl_nakshatra=girl_nakshatra,
+        kutas=kutas,
+        total_score=result.total_score,
+        max_score=result.max_score,
+        percentage=result.percentage,
+        label=result.label,
+        rajju_dosha=result.rajju_dosha,
+        vedha_dosha=result.vedha_dosha,
+        nadi_dosha=nadi_data,
+        summary=RelationshipBiText(ta=result.summary_ta, en=result.summary_en),
+        compatibility_context=compatibility_context,
+    )
+
+
+@router.post("/porutham/by-star", response_model=PublicPoruthamStarResponse)
+@public_endpoint_rate_limit("public_porutham")
+def public_porutham_by_star(payload: PublicPoruthamStarRequest, request: Request) -> PublicPoruthamStarResponse:
+    """Calculate the 10-kuta Tamil porutham from nakshatra numbers alone.
+
+    No birth chart, no authentication, no persistence. Powers quick star-based
+    tools (public marketing-site calculator, mobile porutham/friendship screens)
+    where the user already knows their birth star.
+    """
+    _validate_compatibility_context(payload.compatibility_context)
+
+    boy_rasi = nakshatra_to_rasi(payload.boy_nakshatra_number, payload.boy_pada)
+    girl_rasi = nakshatra_to_rasi(payload.girl_nakshatra_number, payload.girl_pada)
+    data = _compute_star_porutham(
+        payload.boy_nakshatra_number,
+        payload.girl_nakshatra_number,
+        boy_rasi,
+        girl_rasi,
+        payload.compatibility_context,
+    )
+    return PublicPoruthamStarResponse(data=data)
+
+
+@router.post("/porutham/by-star/grid", response_model=PublicPoruthamGridResponse)
+@public_endpoint_rate_limit("public_porutham")
+def public_porutham_by_star_grid(payload: PublicPoruthamGridRequest, request: Request) -> PublicPoruthamGridResponse:
+    """Compare one nakshatra against all 27 possible partner nakshatras in one call.
+
+    Powers the "full grid" view of the public marriage-porutham-calculator so the
+    client doesn't have to make 27 separate requests against the per-IP rate limit.
+    Each candidate uses its own default (pada 3) rasi.
+    """
+    _validate_compatibility_context(payload.compatibility_context)
+
+    girl_rasi = nakshatra_to_rasi(payload.girl_nakshatra_number, payload.girl_pada)
+    results: list[PublicPoruthamGridItem] = []
+    for boy_nak in range(1, 28):
+        data = _compute_star_porutham(
+            boy_nak,
+            payload.girl_nakshatra_number,
+            nakshatra_to_rasi(boy_nak, 3),
+            girl_rasi,
+            payload.compatibility_context,
+        )
+        results.append(
+            PublicPoruthamGridItem(
+                boy_nakshatra=boy_nak,
+                total_score=data.total_score,
+                max_score=data.max_score,
+                percentage=data.percentage,
+                label=data.label,
+                rajju_dosha=data.rajju_dosha,
+                vedha_dosha=data.vedha_dosha,
+                nadi_caution=data.nadi_dosha.has_nadi_dosha,
+            )
+        )
+    return PublicPoruthamGridResponse(girl_nakshatra_number=payload.girl_nakshatra_number, results=results)
 
 
 # ── Public Friendship Compatibility (Feature 4) ───────────────────────────────

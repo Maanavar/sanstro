@@ -1,10 +1,19 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useLang } from "@/components/lang-toggle";
 import { romanNakshathiramName } from "@/lib/tamil-astro";
+import { readErrorMessage } from "@/lib/api";
+import { getPorutham, getPoruthamGrid } from "@vinaadi/shared/api/porutham";
+import type { PublicPoruthamGridItem, PublicPoruthamStarData } from "@vinaadi/shared";
 
-// ========== DATA ==========
+// ========== DISPLAY-ONLY REFERENCE DATA ==========
+// These tables are fixed classical nakshatra attributes (which gana/yoni/nadi/rajju
+// group a star belongs to, and which rasi its padas fall in) used only to label the
+// UI and to pick which rasi-pada to send the backend. They are verified byte-for-byte
+// identical to the backend's own tables (app/calculations/porutham.py) as of the
+// 2026-07 wiring audit. All PASS/FAIL compatibility judgments come from the API —
+// no porutham scoring rule is duplicated here.
 
 const NAKSHATRAS = [
   { id: 0, en: "Aswini",           ta: "அசுவினி" },
@@ -45,46 +54,30 @@ const GANA_NAMES_EN = ["Deva", "Manushya", "Rakshasa"];
 const YONI = [0,1,2,3,3,4,5,2,5,6,6,7,8,9,8,9,10,10,4,11,12,11,13,0,13,7,1];
 const YONI_NAMES_TA = ["குதிரை","யானை","ஆடு","பாம்பு","நாய்","பூனை","எலி","பசு","எருமை","புலி","மான்","குரங்கு","கீரி","சிங்கம்"];
 const YONI_NAMES_EN = ["Horse","Elephant","Goat","Serpent","Dog","Cat","Rat","Cow","Buffalo","Tiger","Deer","Monkey","Mongoose","Lion"];
-// Sworn-enemy yoni pairs (index pairs)
-const YONI_ENEMIES: [number, number][] = [[0,8],[1,13],[2,11],[3,12],[4,10],[5,6],[7,9]];
 
 // Rajju: 0=Paada 1=Kati 2=Nabhi 3=Kantha 4=Siro (repeating serpentine pattern within each 9)
 const RAJJU_PATTERN = [0,1,2,3,4,3,2,1,0];
 const RAJJU = NAKSHATRAS.map((_,i) => RAJJU_PATTERN[i % 9]);
 const RAJJU_NAMES_TA = ["பாத ரஜ்ஜு","கடி ரஜ்ஜு","நாபி ரஜ்ஜு","கண்ட ரஜ்ஜு","சிரோ ரஜ்ஜு"];
 const RAJJU_NAMES_EN = ["Paada","Kati","Nabhi","Kantha","Siro"];
-const RAJJU_SEVERITY_TA = ["அலைச்சல்/பிரிவு","வறுமை","சந்ததி நஷ்டம்","மனைவிக்கு ஆபத்து","கணவனுக்கு ஆபத்து"];
-
-// Vedhai opposition pairs
-const VEDHAI_PAIRS: [number,number][] = [[0,17],[1,16],[2,15],[3,14],[4,22],[5,21],[6,20],[7,19],[8,18],[9,26],[10,25],[11,24],[12,23]];
 
 // Nadi: 0=Aadhi 1=Madhya 2=Anthya
-// Classical assignment zigzags in a repeating 6-nakshatra cycle
-// (Aadhi, Madhya, Anthya, Anthya, Madhya, Aadhi) — NOT contiguous blocks of 3.
 const NADI_CYCLE = [0, 1, 2, 2, 1, 0];
 const NADI = NAKSHATRAS.map((_,i) => NADI_CYCLE[i % 6]);
 const NADI_NAMES_TA = ["ஆதி நாடி","மத்திய நாடி","அந்திய நாடி"];
+const NADI_NAMES_EN = ["Aadhi","Madhya","Anthya"];
 
-// Rasi assignment (0-11 = Mesha…Meena)
-// 9 nakshatras straddle a rasi boundary (a 30° rasi never divides evenly into
-// 13°20' nakshatras). Default below is the majority-pada rasi; SPLIT_NAK lets
-// the user override it with the exact pada when it changes the rasi:
-//   Karthigai    (2):  pada1=Mesha,      padas2-4=Rishaba   → Rishaba(1) ✓
-//   Mirugaseeridam(4): padas1-2=Rishaba, padas3-4=Mithuna   → Mithuna(2) (50/50, default = later)
-//   Punarpoosam  (6):  padas1-3=Mithuna, pada4=Kataka       → Mithuna(2) ✓
-//   Uthiram      (11): pada1=Simha,      padas2-4=Kanni     → Kanni(5) ✓
-//   Chithirai    (13): padas1-2=Kanni,   padas3-4=Thula     → Thula(6) (50/50, default = later)
-//   Visakam      (15): padas1-3=Thula,   pada4=Vrischika    → Thula(6) ✓
-//   Uthiradam    (20): pada1=Dhanus,     padas2-4=Makara    → Makara(9) ✓
-//   Avittam      (22): padas1-2=Makara,  padas3-4=Kumbha    → Kumbha(10) (50/50, default = later)
-//   Poorattathi  (24): padas1-3=Kumbha,  pada4=Meena        → Kumbha(10) ✓
+// Rasi assignment (0-11 = Mesha…Meena). 9 nakshatras straddle a rasi boundary (a 30°
+// rasi never divides evenly into 13°20' nakshatras); the value below is the majority-
+// pada rasi (later half on an exact 50/50 split) — this is also what the backend
+// resolves to by default (nakshatra_to_rasi(nak, pada=3)) when no pada is specified.
 const RASI = [0,0,1,1,2,2,2,3,3,4,4,5,5,6,6,6,7,7,8,8,9,9,10,10,10,11,11];
 const RASI_NAMES_TA = ["மேஷம்","ரிஷபம்","மிதுனம்","கடகம்","சிம்மம்","கன்னி","துலாம்","விருச்சிகம்","தனுசு","மகரம்","கும்பம்","மீனம்"];
 const RASI_NAMES_EN = ["Mesha","Rishaba","Mithuna","Kataka","Simha","Kanni","Thula","Vrischika","Dhanus","Makara","Kumbha","Meena"];
 
-// Nakshatras whose 4 padas fall across two rasis. Users must specify which pada
-// group they belong to for rasi-based poruthams (Rasi, Rasiyathipathi, Vasya)
-// to be accurate — without it, the majority-pada rasi above is assumed.
+// Nakshatras whose 4 padas fall across two rasis. Users can specify which pada group
+// they belong to; "early" maps to backend pada=1, "late" to pada=4 (either always
+// lands in the correct half regardless of exactly where the 2/2 vs 1/3 split falls).
 const SPLIT_NAK: Record<number, { early: [string, string, number]; late: [string, string, number] }> = {
   2:  { early: ["பாதம் 1 · மேஷம்",     "Pada 1 · Mesha",       0], late: ["பாதம் 2–4 · ரிஷபம்",   "Padas 2–4 · Rishaba",   1] },
   4:  { early: ["பாதம் 1–2 · ரிஷபம்",  "Padas 1–2 · Rishaba",  1], late: ["பாதம் 3–4 · மிதுனம்",  "Padas 3–4 · Mithuna",   2] },
@@ -103,159 +96,38 @@ function getEffRasi(starIdx: number, split: "early" | "late" | null): number {
   return RASI[starIdx];
 }
 
-// Rasi lords: 0=Mars 1=Venus 2=Mercury 3=Moon 4=Sun 5=Jupiter 6=Saturn
-const RASI_LORD = [0,1,2,3,4,2,1,0,5,6,6,5];
-const LORD_TA = ["செவ்வாய்","சுக்கிரன்","புதன்","சந்திரன்","சூரியன்","குரு","சனி"];
-const PLANET_FRIENDS: Record<number,number[]> = {0:[4,3,5],1:[2,6],2:[4,1],3:[4,2],4:[3,0,5],5:[4,3,0],6:[2,1]};
-const PLANET_ENEMIES: Record<number,number[]> = {0:[2],1:[4,3],2:[3],3:[],4:[1,6],5:[2,1],6:[4,3,0]};
-
-// Vasya rasi pairs
-const VASYA_MAP: Record<number,number[]> = {0:[4,7],1:[3,6],2:[5],3:[7,8],4:[6],5:[2,11],6:[9],7:[3],8:[11],9:[0],10:[0],11:[9]};
-
-// ========== CALCULATIONS ==========
-
-// Classical good-count table (incl. 9th/18th/27th, Parama Mitra tara — a pass)
-const DINAM_GOOD = [2,4,6,8,9,11,13,15,18,20,24,26];
-function calcDina(g: number, b: number) {
-  const count = ((b - g + 27) % 27) + 1;
-  return { match: DINAM_GOOD.includes(count), detail: `எண்: ${count}`, detailEn: `Count: ${count}` };
-}
-function calcGana(g: number, b: number) {
-  const gg = GANA[g], bg = GANA[b];
-  if (gg === bg) return { match: true, detail: `${GANA_NAMES[gg]} + ${GANA_NAMES[bg]}`, detailEn: `${GANA_NAMES_EN[gg]} + ${GANA_NAMES_EN[bg]}` };
-  const pair = [gg,bg].sort().join(",");
-  const ok = pair === "0,1";
-  return { match: ok, detail: `${GANA_NAMES[gg]} + ${GANA_NAMES[bg]}`, detailEn: `${GANA_NAMES_EN[gg]} + ${GANA_NAMES_EN[bg]}` };
-}
-function calcMahendra(g: number, b: number) {
-  const count = ((b - g + 27) % 27) + 1;
-  return { match: [4,7,10,13,16,19,22,25].includes(count), detail: `எண்: ${count}`, detailEn: `Count: ${count}` };
-}
-function calcStreeDheerga(g: number, b: number) {
-  const count = ((b - g + 27) % 27) + 1;
-  return { match: count > 7, detail: `எண்: ${count}`, detailEn: `Count: ${count}` };
-}
-function calcYoni(g: number, b: number) {
-  const gy = YONI[g], by = YONI[b];
-  if (gy === by) return { match: true, detail: `${YONI_NAMES_TA[gy]} யோனி`, detailEn: `${YONI_NAMES_EN[gy]} Yoni` };
-  const enemy = YONI_ENEMIES.some(([a,c]) => (a===gy&&c===by)||(c===gy&&a===by));
-  return { match: !enemy, detail: `${YONI_NAMES_TA[gy]} ↔ ${YONI_NAMES_TA[by]}`, detailEn: `${YONI_NAMES_EN[gy]} ↔ ${YONI_NAMES_EN[by]}` };
-}
-function calcRasi(gr: number, br: number) {
-  const fromG = ((br - gr + 12) % 12) + 1;
-  const fromB = ((gr - br + 12) % 12) + 1;
-  const shashtashtaka = [6,8].includes(fromG) || [6,8].includes(fromB);
-  return {
-    match: !shashtashtaka,
-    detail: `${RASI_NAMES_TA[gr]} → ${RASI_NAMES_TA[br]} (${fromG}வது)`,
-    detailEn: `${RASI_NAMES_EN[gr]} → ${RASI_NAMES_EN[br]} (${fromG}th)`,
-    isShashtashtaka: shashtashtaka,
-  };
-}
-function calcRasiyathipathi(gr: number, br: number) {
-  const gl = RASI_LORD[gr], bl = RASI_LORD[br];
-  if (gl === bl) return { match: true, detail: `${LORD_TA[gl]} (ஒரே)`, detailEn: `${LORD_TA[gl]} (same)` };
-  const gFriend = PLANET_FRIENDS[gl]?.includes(bl);
-  const bFriend = PLANET_FRIENDS[bl]?.includes(gl);
-  const gEnemy  = PLANET_ENEMIES[gl]?.includes(bl);
-  const bEnemy  = PLANET_ENEMIES[bl]?.includes(gl);
-  if (gEnemy || bEnemy) return { match: false, detail: `${LORD_TA[gl]} + ${LORD_TA[bl]} — பகை`, detailEn: `${LORD_TA[gl]} + ${LORD_TA[bl]} — Enemy` };
-  return { match: true, detail: `${LORD_TA[gl]} + ${LORD_TA[bl]} — ${gFriend||bFriend?"நட்பு":"சமம்"}`, detailEn: `${LORD_TA[gl]} + ${LORD_TA[bl]} — ${gFriend||bFriend?"Friendly":"Neutral"}` };
-}
-function calcVasya(gr: number, br: number) {
-  if (gr === br) return { match: true, detail: "ஒரே ராசி", detailEn: "Same Rasi" };
-  const match = (VASYA_MAP[gr]||[]).includes(br) || (VASYA_MAP[br]||[]).includes(gr);
-  return { match, detail: `${RASI_NAMES_TA[gr]} ↔ ${RASI_NAMES_TA[br]}`, detailEn: `${RASI_NAMES_EN[gr]} ↔ ${RASI_NAMES_EN[br]}` };
-}
-function calcRajju(g: number, b: number) {
-  const gr = RAJJU[g], br = RAJJU[b];
-  const same = gr === br;
-  const eka  = g === b;
-  if (!same) return { match: true, isCritical: true, detail: `${RAJJU_NAMES_TA[gr]} + ${RAJJU_NAMES_TA[br]} ✓`, detailEn: `${RAJJU_NAMES_EN[gr]} + ${RAJJU_NAMES_EN[br]} ✓` };
-  if (eka)  return { match: true, isCritical: true, detail: "ஏக நட்சத்திரம் — விதிவிலக்கு ✓", detailEn: "Same Birth Star - exception ✓" };
-  return { match: false, isCritical: true, detail: `${RAJJU_NAMES_TA[gr]} — ${RAJJU_SEVERITY_TA[gr]}`, detailEn: `${RAJJU_NAMES_EN[gr]} — ${RAJJU_SEVERITY_TA[gr]}` };
-}
-function calcVedhai(g: number, b: number) {
-  const isVedhai = VEDHAI_PAIRS.some(([a,c]) => (a===g&&c===b)||(c===g&&a===b));
-  return { match: !isVedhai, isCritical: true, detail: isVedhai ? "வேதை ஜோடி ⚠" : "வேதை இல்லை ✓", detailEn: isVedhai ? "Vedhai pair ⚠" : "No Vedhai ✓" };
+function splitToPada(split: "early" | "late" | null): number | undefined {
+  if (split === "early") return 1;
+  if (split === "late") return 4;
+  return undefined;
 }
 
-interface PoruthamResult {
-  name: string; nameEn: string;
-  match: boolean;
-  isCritical?: boolean;
-  detail: string; detailEn: string;
-  isShashtashtaka?: boolean;
-}
-interface CompatibilityResult {
-  poruthams: PoruthamResult[];
-  score: number;
-  criticalFail: boolean;
-  nadiCaution: boolean;
-  criticalWarnings: string[];
-  rajjuFail: boolean; vedhaiFail: boolean; rasiFail: boolean;
-}
+// ========== VERDICT LABEL/COLOR HELPERS (presentational only — thresholds mirror
+// the backend's own EXCELLENT/GOOD/AVERAGE/CAUTION cutoffs in app/calculations/porutham.py) ==========
 
-function calcAll(g: number, b: number, girlRasi?: number, boyRasi?: number): CompatibilityResult {
-  const gr = girlRasi ?? RASI[g];
-  const br = boyRasi  ?? RASI[b];
-  const poruthams: PoruthamResult[] = [
-    { name: "நாள்",           nameEn: "Dina",             ...calcDina(g,b) },
-    { name: "கணம்",          nameEn: "Gana",             ...calcGana(g,b) },
-    { name: "மகேந்திரம்",    nameEn: "Mahendra",         ...calcMahendra(g,b) },
-    { name: "ஸ்திரீ தீர்க்கம்", nameEn: "Stree Dheerga", ...calcStreeDheerga(g,b) },
-    { name: "யோனி",          nameEn: "Yoni",             ...calcYoni(g,b) },
-    { name: "ராசி",           nameEn: "Rasi",             ...calcRasi(gr,br) },
-    { name: "ராசியதிபதி",    nameEn: "Rasiyathipathi",   ...calcRasiyathipathi(gr,br) },
-    { name: "வஷ்யம்",        nameEn: "Vasya",            ...calcVasya(gr,br) },
-    { name: "ரஜ்ஜு",         nameEn: "Rajju",            ...calcRajju(g,b) },
-    { name: "வேதை",          nameEn: "Vedhai",           ...calcVedhai(g,b) },
-  ];
-  const score = poruthams.filter(p => p.match).length;
-  const rajjuFail  = !poruthams[8].match;
-  const vedhaiFail = !poruthams[9].match;
-  const rasiFail   = !!(poruthams[5] as PoruthamResult & {isShashtashtaka?: boolean}).isShashtashtaka;
-  const nadiCaution = NADI[g] === NADI[b];
-  const criticalFail = rajjuFail || vedhaiFail;
-  const criticalWarnings: string[] = [];
-  if (rajjuFail)  criticalWarnings.push("ரஜ்ஜு தோஷம்");
-  if (vedhaiFail) criticalWarnings.push("வேதை தோஷம்");
-  if (rasiFail)   criticalWarnings.push("ஆறு-எட்டு தோஷம்");
-  if (nadiCaution) criticalWarnings.push("Nadi caution");
-  return { poruthams, score, criticalFail, nadiCaution, criticalWarnings, rajjuFail, vedhaiFail, rasiFail };
-}
+const LABEL_TEXT: Record<string, [string, string]> = {
+  EXCELLENT: ["மிக நல்ல பொருத்தம்", "Excellent"],
+  GOOD:      ["நல்ல பொருத்தம்", "Good"],
+  AVERAGE:   ["சராசரி பொருத்தம்", "Average"],
+  CAUTION:   ["குறைவான பொருத்தம்", "Below Average"],
+};
 
-// ========== STYLE HELPERS ==========
+function verdictLabel(apiLabel: string, criticalFail: boolean, ta: boolean): string {
+  if (criticalFail) return ta ? "தோஷம் — தவிர்க்கவும்" : "Dosham - Avoid";
+  const entry = LABEL_TEXT[apiLabel] ?? LABEL_TEXT.CAUTION;
+  return entry[ta ? 0 : 1];
+}
 
 function scoreColor(score: number, criticalFail: boolean): string {
-  if (criticalFail || score <= 2) return "var(--cl-caution)";
-  if (score >= 8) return "var(--cl-sage)";
-  if (score >= 6) return "#4a7041";
-  if (score >= 5) return "var(--cl-accent)";
-  return "var(--cl-caution)";
+  if (criticalFail || score < 5) return "var(--cl-caution)";
+  if (score >= 9) return "var(--cl-sage)";
+  if (score >= 7) return "#4a7041";
+  return "var(--cl-accent)";
 }
 function scoreBg(score: number, criticalFail: boolean): string {
-  if (criticalFail || score <= 2) return "var(--cl-caution-soft)";
-  if (score >= 8) return "var(--cl-sage-soft)";
-  if (score >= 6) return "var(--cl-sage-soft)";
-  if (score >= 5) return "var(--cl-accent-soft)";
-  return "var(--cl-caution-soft)";
-}
-function scoreLabelTa(score: number, criticalFail: boolean): string {
-  if (criticalFail) return "தோஷம் — தவிர்க்கவும்";
-  if (score >= 8)  return "மிக நல்ல பொருத்தம்";
-  if (score >= 6)  return "நல்ல பொருத்தம்";
-  if (score >= 5)  return "சராசரி பொருத்தம்";
-  if (score >= 3)  return "குறைவான பொருத்தம்";
-  return "பொருத்தம் இல்லை";
-}
-function scoreLabelEn(score: number, criticalFail: boolean): string {
-  if (criticalFail) return "Dosham - Avoid";
-  if (score >= 8)  return "Excellent";
-  if (score >= 6)  return "Good";
-  if (score >= 5)  return "Average";
-  if (score >= 3)  return "Below Average";
-  return "Not Compatible";
+  if (criticalFail || score < 5) return "var(--cl-caution-soft)";
+  if (score >= 7) return "var(--cl-sage-soft)";
+  return "var(--cl-accent-soft)";
 }
 
 const BASE_STAR_BTN: React.CSSProperties = {
@@ -278,21 +150,51 @@ export function PoruthamTool() {
   const [boySplit,  setBoySplit]  = useState<"early" | "late" | null>(null);
   const [view, setView] = useState<"selector" | "grid">("selector");
 
+  const [gridData, setGridData] = useState<PublicPoruthamGridItem[] | null>(null);
+  const [gridLoading, setGridLoading] = useState(false);
+  const [gridError, setGridError] = useState("");
+
+  const [detailData, setDetailData] = useState<PublicPoruthamStarData | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState("");
+
   const girlEffRasi = girlStar !== null ? getEffRasi(girlStar, girlSplit) : undefined;
   const boyEffRasi  = boyStar  !== null ? getEffRasi(boyStar,  boySplit)  : undefined;
 
   const starEffRasi = (star: number) =>
     star === girlStar ? (girlEffRasi ?? RASI[star]) : (boyEffRasi ?? RASI[star]);
 
-  const compatibility = useMemo(() => {
-    if (girlStar === null) return null;
-    return NAKSHATRAS.map((_, i) => ({ id: i, ...calcAll(girlStar, i, girlEffRasi) }));
-  }, [girlStar, girlEffRasi]);
+  // Fetch all 27 boy-star comparisons in one call whenever the girl star (or her
+  // pada choice) changes — powers both the inline score grid and the "Full Grid" tab.
+  useEffect(() => {
+    if (girlStar === null) { setGridData(null); setGridError(""); return; }
+    let cancelled = false;
+    setGridLoading(true);
+    setGridError("");
+    getPoruthamGrid({ girlNakshatraNumber: girlStar + 1, girlPada: splitToPada(girlSplit) })
+      .then((res) => { if (!cancelled) setGridData(res.results); })
+      .catch((err) => { if (!cancelled) setGridError(readErrorMessage(err)); })
+      .finally(() => { if (!cancelled) setGridLoading(false); });
+    return () => { cancelled = true; };
+  }, [girlStar, girlSplit]);
 
-  const detail = useMemo(() => {
-    if (girlStar === null || boyStar === null) return null;
-    return calcAll(girlStar, boyStar, girlEffRasi, boyEffRasi);
-  }, [girlStar, boyStar, girlEffRasi, boyEffRasi]);
+  // Fetch the full 10-kuta breakdown for the selected pair.
+  useEffect(() => {
+    if (girlStar === null || boyStar === null) { setDetailData(null); setDetailError(""); return; }
+    let cancelled = false;
+    setDetailLoading(true);
+    setDetailError("");
+    getPorutham({
+      girlNakshatraNumber: girlStar + 1,
+      boyNakshatraNumber: boyStar + 1,
+      girlPada: splitToPada(girlSplit),
+      boyPada: splitToPada(boySplit),
+    })
+      .then((res) => { if (!cancelled) setDetailData(res.data); })
+      .catch((err) => { if (!cancelled) setDetailError(readErrorMessage(err)); })
+      .finally(() => { if (!cancelled) setDetailLoading(false); });
+    return () => { cancelled = true; };
+  }, [girlStar, boyStar, girlSplit, boySplit]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -379,7 +281,7 @@ export function PoruthamTool() {
           )}
 
           {/* Boy star results */}
-          {girlStar !== null && compatibility && (
+          {girlStar !== null && (
             <div>
               <p style={{ margin: "0 0 6px", fontSize: "0.78rem", fontWeight: 700, color: "var(--cl-sage)" }}>
                 ♂ {ta ? `${NAKSHATRAS[girlStar].ta} பெண்ணுக்கு — ஆண் நட்சத்திர பொருத்தம்` : `Compatibility for ${starNameEn(girlStar)} girl`}
@@ -388,8 +290,8 @@ export function PoruthamTool() {
               {/* Legend */}
               <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "10px", fontSize: "11px", color: "var(--cl-muted)" }}>
                 {[
-                  { bg: "var(--cl-sage-soft)", label: ta ? "8–10 மிக நல்லது" : "8–10 Excellent" },
-                  { bg: "var(--cl-accent-soft)", label: ta ? "5–7 சராசரி" : "5–7 Average" },
+                  { bg: "var(--cl-sage-soft)", label: ta ? "7–10 நல்லது" : "7–10 Good+" },
+                  { bg: "var(--cl-accent-soft)", label: ta ? "5–6 சராசரி" : "5–6 Average" },
                   { bg: "var(--cl-caution-soft)", label: ta ? "0–4 / தோஷம்" : "0–4 / Dosham" },
                 ].map(l => (
                   <span key={l.label} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
@@ -399,43 +301,56 @@ export function PoruthamTool() {
                 ))}
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(128px, 1fr))", gap: "6px" }}>
-                {compatibility.map((c) => (
-                  <button key={c.id}
-                    onClick={() => { setBoyStar(c.id); setBoySplit(null); }}
-                    style={{
-                      ...BASE_STAR_BTN,
-                      position: "relative",
-                      border: boyStar === c.id
-                        ? "2px solid var(--cl-sage)"
-                        : c.criticalFail
-                        ? "2px solid var(--cl-caution)"
-                        : c.nadiCaution
-                        ? "1px solid var(--cl-accent)"
-                        : "1px solid var(--cl-border)",
-                      background: scoreBg(c.score, c.criticalFail),
-                    }}>
-                    {(c.criticalFail || c.nadiCaution) && (
-                      <div style={{ position: "absolute", top: 2, left: 6, fontSize: 11 }}>⚠</div>
-                    )}
-                    <div style={{ position: "absolute", top: 4, right: 6, fontSize: 15, fontWeight: 800, color: scoreColor(c.score, c.criticalFail) }}>
-                      {c.score}
-                    </div>
-                    <div style={{ fontWeight: 600, color: c.criticalFail ? "var(--cl-caution)" : "var(--cl-ink)" }}>
-                      {ta ? NAKSHATRAS[c.id].ta : starNameEn(c.id)}
-                    </div>
-                    {ta && <div style={{ fontSize: 10, color: "var(--cl-muted)" }}>{starNameEn(c.id)}</div>}
-                    <div style={{ fontSize: 9, color: scoreColor(c.score, c.criticalFail), fontWeight: 600, marginTop: 2 }}>
-                      {c.score}/10 · {ta ? scoreLabelTa(c.score, c.criticalFail) : scoreLabelEn(c.score, c.criticalFail)}
-                    </div>
-                    {c.nadiCaution && !c.criticalFail && (
-                      <div style={{ fontSize: 9, color: "var(--cl-accent)", fontWeight: 600, marginTop: 2 }}>
-                        {ta ? "நாடி கவனம்" : "Nadi caution"}
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
+              {gridError && <p style={{ margin: "0 0 10px", color: "var(--cl-caution)", fontSize: "0.78rem" }}>{gridError}</p>}
+              {gridLoading && !gridData && (
+                <p style={{ margin: "0 0 10px", color: "var(--cl-muted)", fontSize: "0.78rem" }}>
+                  {ta ? "கணக்கிடுகிறது…" : "Calculating…"}
+                </p>
+              )}
+
+              {gridData && (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(128px, 1fr))", gap: "6px", opacity: gridLoading ? 0.6 : 1 }}>
+                  {gridData.map((c) => {
+                    const id = c.boyNakshatra - 1;
+                    const criticalFail = c.rajjuDosha || c.vedhaDosha;
+                    return (
+                      <button key={id}
+                        onClick={() => { setBoyStar(id); setBoySplit(null); }}
+                        style={{
+                          ...BASE_STAR_BTN,
+                          position: "relative",
+                          border: boyStar === id
+                            ? "2px solid var(--cl-sage)"
+                            : criticalFail
+                            ? "2px solid var(--cl-caution)"
+                            : c.nadiCaution
+                            ? "1px solid var(--cl-accent)"
+                            : "1px solid var(--cl-border)",
+                          background: scoreBg(c.totalScore, criticalFail),
+                        }}>
+                        {(criticalFail || c.nadiCaution) && (
+                          <div style={{ position: "absolute", top: 2, left: 6, fontSize: 11 }}>⚠</div>
+                        )}
+                        <div style={{ position: "absolute", top: 4, right: 6, fontSize: 15, fontWeight: 800, color: scoreColor(c.totalScore, criticalFail) }}>
+                          {c.totalScore}
+                        </div>
+                        <div style={{ fontWeight: 600, color: criticalFail ? "var(--cl-caution)" : "var(--cl-ink)" }}>
+                          {ta ? NAKSHATRAS[id].ta : starNameEn(id)}
+                        </div>
+                        {ta && <div style={{ fontSize: 10, color: "var(--cl-muted)" }}>{starNameEn(id)}</div>}
+                        <div style={{ fontSize: 9, color: scoreColor(c.totalScore, criticalFail), fontWeight: 600, marginTop: 2 }}>
+                          {c.totalScore}/10 · {verdictLabel(c.label, criticalFail, ta)}
+                        </div>
+                        {c.nadiCaution && !criticalFail && (
+                          <div style={{ fontSize: 9, color: "var(--cl-accent)", fontWeight: 600, marginTop: 2 }}>
+                            {ta ? "நாடி கவனம்" : "Nadi caution"}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -476,117 +391,120 @@ export function PoruthamTool() {
           )}
 
           {/* Detail breakdown */}
-          {detail && boyStar !== null && girlStar !== null && (
+          {boyStar !== null && girlStar !== null && (
             <div style={{ background: "var(--cl-surface)", border: "1px solid var(--cl-border)", borderRadius: "14px", padding: "18px" }}>
 
-              {/* Pair header */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px", marginBottom: "14px" }}>
-                <div style={{ fontSize: "0.9rem", fontWeight: 600 }}>
-                  <span style={{ color: "var(--cl-accent)" }}>♀ {ta ? NAKSHATRAS[girlStar].ta : starNameEn(girlStar)}</span>
-                  <span style={{ margin: "0 8px", color: "var(--cl-muted)" }}>×</span>
-                  <span style={{ color: "var(--cl-sage)" }}>♂ {ta ? NAKSHATRAS[boyStar].ta : starNameEn(boyStar)}</span>
-                </div>
-                <div style={{ background: scoreBg(detail.score, detail.criticalFail), color: scoreColor(detail.score, detail.criticalFail), padding: "5px 14px", borderRadius: "999px", fontWeight: 700, fontSize: "13px" }}>
-                  {detail.score}/10 — {ta ? scoreLabelTa(detail.score, detail.criticalFail) : scoreLabelEn(detail.score, detail.criticalFail)}
-                </div>
-              </div>
-
-              {/* Critical warning */}
-              {detail.criticalFail && (
-                <div style={{ background: "var(--cl-caution-soft)", border: "1px solid var(--cl-caution)", borderLeft: "4px solid var(--cl-caution)", borderRadius: "8px", padding: "10px 14px", marginBottom: "14px", fontSize: "12px", color: "var(--cl-caution)", lineHeight: 1.6 }}>
-                  <div style={{ fontWeight: 700, marginBottom: 4 }}>
-                    ⚠ {ta ? "முக்கிய தோஷம் — \"ரஜ்ஜு இல்லையேல் பொருத்தம் இல்லை\"" : "Critical Dosham - not recommended"}
-                  </div>
-                  {detail.rajjuFail  && <div>• <strong>{ta?"ரஜ்ஜு தோஷம்":"Rajju Dosham"}</strong> — {ta?"இருவரும் ஒரே ரஜ்ஜு குழு. இது மிக முக்கியமான பொருத்தம்; இல்லாமல் திருமணம் பரிந்துரைக்கப்படாது.":"Both share the same Rajju group — the most critical single check."}</div>}
-                  {detail.vedhaiFail && <div>• <strong>{ta?"வேதை தோஷம்":"Vedhai Dosham"}</strong> — {ta?"இந்த ஜோடி பகை நட்சத்திர ஜோடி.":"These birth stars are opposing pairs."}</div>}
-                  {detail.rasiFail   && <div>• <strong>{ta?"ஆறு-எட்டு":"6/8 Rasi"}</strong> — {ta?"ஷஷ்டாஷ்டக தோஷம்.":"Shashtashtaka — 6th/8th rasi opposition."}</div>}
-                </div>
+              {detailError && <p style={{ margin: 0, color: "var(--cl-caution)", fontSize: "0.8rem" }}>{detailError}</p>}
+              {detailLoading && !detailData && (
+                <p style={{ margin: 0, color: "var(--cl-muted)", fontSize: "0.8rem" }}>
+                  {ta ? "விரிவான பொருத்தம் கணக்கிடுகிறது…" : "Calculating detailed compatibility…"}
+                </p>
               )}
 
-              {detail.nadiCaution && (
-                <div style={{ background: "var(--cl-bg-2)", border: "1px solid var(--cl-border-2)", borderLeft: "4px solid var(--cl-accent)", borderRadius: "8px", padding: "10px 14px", marginBottom: "14px", fontSize: "12px", color: "var(--cl-ink-2)", lineHeight: 1.6 }}>
-                  <div style={{ fontWeight: 700, marginBottom: 4, color: "var(--cl-accent)" }}>
-                    {ta ? "நாடி கவனம்" : "Nadi caution"}
+              {detailData && (
+                <div style={{ opacity: detailLoading ? 0.6 : 1 }}>
+                  {/* Pair header */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px", marginBottom: "14px" }}>
+                    <div style={{ fontSize: "0.9rem", fontWeight: 600 }}>
+                      <span style={{ color: "var(--cl-accent)" }}>♀ {ta ? NAKSHATRAS[girlStar].ta : starNameEn(girlStar)}</span>
+                      <span style={{ margin: "0 8px", color: "var(--cl-muted)" }}>×</span>
+                      <span style={{ color: "var(--cl-sage)" }}>♂ {ta ? NAKSHATRAS[boyStar].ta : starNameEn(boyStar)}</span>
+                    </div>
+                    <div style={{
+                      background: scoreBg(detailData.totalScore, detailData.rajjuDosha || detailData.vedhaDosha),
+                      color: scoreColor(detailData.totalScore, detailData.rajjuDosha || detailData.vedhaDosha),
+                      padding: "5px 14px", borderRadius: "999px", fontWeight: 700, fontSize: "13px",
+                    }}>
+                      {detailData.totalScore}/10 — {verdictLabel(detailData.label, detailData.rajjuDosha || detailData.vedhaDosha, ta)}
+                    </div>
                   </div>
-                  {ta
-                    ? "இருவருக்கும் ஒரே நாடி வருகிறது. இது விரைவான நட்சத்திர அடிப்படையிலான எச்சரிக்கை மட்டும்; பாதம், ராசி, முழு ஜாதகம் பார்த்த பிறகே இறுதி முடிவு சொல்ல வேண்டும்."
-                    : "Both birth stars fall in the same Nadi group. Treat this as a quick star-based caution only; cancellation and final judgement need pada, rasi, and the full horoscope reading in the dashboard."}
-                </div>
-              )}
 
-              {/* Star info cards */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "8px", marginBottom: "14px", fontSize: "11px", color: "var(--cl-ink-2)" }}>
-                {([
-                  { star: girlStar, color: "var(--cl-accent)", sym: "♀" },
-                  { star: boyStar,  color: "var(--cl-sage)",   sym: "♂" },
-                ] as const).map(({ star, color, sym }) => (
-                  <div key={sym} style={{ background: "var(--cl-bg)", padding: "8px 10px", borderRadius: "8px", border: "1px solid var(--cl-border)" }}>
-                    <div style={{ fontWeight: 700, color, marginBottom: 4 }}>{sym} {starNameEn(star)}</div>
-                    <div>{ta?"ராசி":"Rasi"}: {ta ? RASI_NAMES_TA[starEffRasi(star)] : RASI_NAMES_EN[starEffRasi(star)]}</div>
-                    <div>{ta?"கணம்":"Gana"}: {ta ? GANA_NAMES[GANA[star]] : GANA_NAMES_EN[GANA[star]]}</div>
-                    <div>{ta?"யோனி":"Yoni"}: {ta ? YONI_NAMES_TA[YONI[star]] : YONI_NAMES_EN[YONI[star]]}</div>
-                    <div>{ta?"நாடி":"Nadi"}: {NADI_NAMES_TA[NADI[star]]}</div>
-                    <div>{ta?"ரஜ்ஜு":"Rajju"}: {ta ? RAJJU_NAMES_TA[RAJJU[star]] : RAJJU_NAMES_EN[RAJJU[star]]}</div>
+                  {/* Overall verdict — text already includes Rajju/Vedha dosha explanations when present */}
+                  <div style={{
+                    background: (detailData.rajjuDosha || detailData.vedhaDosha) ? "var(--cl-caution-soft)" : "var(--cl-bg-2)",
+                    border: `1px solid ${(detailData.rajjuDosha || detailData.vedhaDosha) ? "var(--cl-caution)" : "var(--cl-border-2)"}`,
+                    borderLeft: `4px solid ${(detailData.rajjuDosha || detailData.vedhaDosha) ? "var(--cl-caution)" : "var(--cl-accent)"}`,
+                    borderRadius: "8px", padding: "10px 14px", marginBottom: "14px", fontSize: "12px",
+                    color: (detailData.rajjuDosha || detailData.vedhaDosha) ? "var(--cl-caution)" : "var(--cl-ink-2)", lineHeight: 1.6,
+                  }}>
+                    {ta ? detailData.summary.ta : detailData.summary.en}
                   </div>
-                ))}
-              </div>
 
-              {/* Porutham table */}
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
-                  <thead>
-                    <tr style={{ background: "var(--cl-bg-2)" }}>
-                      <th style={{ padding: "7px 8px", textAlign: "left", borderBottom: "2px solid var(--cl-border-2)", fontSize: 11, color: "var(--cl-muted)" }}>#</th>
-                      <th style={{ padding: "7px 8px", textAlign: "left", borderBottom: "2px solid var(--cl-border-2)" }}>{ta?"பொருத்தம்":"Porutham"}</th>
-                      <th style={{ padding: "7px 8px", textAlign: "center", borderBottom: "2px solid var(--cl-border-2)" }}>{ta?"நிலை":"Status"}</th>
-                      <th style={{ padding: "7px 8px", textAlign: "left", borderBottom: "2px solid var(--cl-border-2)" }}>{ta?"விவரம்":"Detail"}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {detail.poruthams.map((p, i) => {
-                      const criticalRow = p.isCritical && !p.match;
-                      return (
-                        <tr key={i} style={{ background: criticalRow ? "var(--cl-caution-soft)" : i % 2 === 0 ? "var(--cl-surface)" : "var(--cl-bg)" }}>
-                          <td style={{ padding: "7px 8px", borderBottom: "1px solid var(--cl-border)", color: "var(--cl-muted)", fontSize: 11 }}>{i+1}</td>
-                          <td style={{ padding: "7px 8px", borderBottom: "1px solid var(--cl-border)" }}>
-                            <div style={{ fontWeight: 600, color: "var(--cl-ink)", display: "flex", alignItems: "center", gap: 4 }}>
-                              {ta ? p.name : p.nameEn}
-                              {p.isCritical && (
-                                <span style={{ fontSize: 8, background: "var(--cl-caution)", color: "var(--cl-surface)", padding: "1px 4px", borderRadius: 3, fontWeight: 700 }}>
-                                  {ta?"முக்கியம்":"Critical"}
-                                </span>
-                              )}
-                            </div>
-                            {ta && <div style={{ fontSize: 10, color: "var(--cl-muted)" }}>{p.nameEn}</div>}
-                          </td>
-                          <td style={{ padding: "7px 8px", textAlign: "center", borderBottom: "1px solid var(--cl-border)", fontSize: 15, fontWeight: 700, color: p.match ? "var(--cl-sage)" : "var(--cl-caution)" }}>
-                            {p.match ? "✓" : "✗"}
-                          </td>
-                          <td style={{ padding: "7px 8px", borderBottom: "1px solid var(--cl-border)", fontSize: 11, color: criticalRow ? "var(--cl-caution)" : "var(--cl-ink-2)", fontWeight: criticalRow ? 600 : 400 }}>
-                            {ta ? p.detail : p.detailEn}
-                          </td>
+                  {detailData.nadiDosha.hasNadiDosha && (
+                    <div style={{ background: "var(--cl-bg-2)", border: "1px solid var(--cl-border-2)", borderLeft: "4px solid var(--cl-accent)", borderRadius: "8px", padding: "10px 14px", marginBottom: "14px", fontSize: "12px", color: "var(--cl-ink-2)", lineHeight: 1.6 }}>
+                      <div style={{ fontWeight: 700, marginBottom: 4, color: "var(--cl-accent)" }}>
+                        {ta ? "நாடி தோஷம்" : "Nadi Dosha"}
+                      </div>
+                      {ta ? detailData.nadiDosha.noteTa : detailData.nadiDosha.noteEn}
+                    </div>
+                  )}
+
+                  {/* Star info cards */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "8px", marginBottom: "14px", fontSize: "11px", color: "var(--cl-ink-2)" }}>
+                    {([
+                      { star: girlStar, color: "var(--cl-accent)", sym: "♀" },
+                      { star: boyStar,  color: "var(--cl-sage)",   sym: "♂" },
+                    ] as const).map(({ star, color, sym }) => (
+                      <div key={sym} style={{ background: "var(--cl-bg)", padding: "8px 10px", borderRadius: "8px", border: "1px solid var(--cl-border)" }}>
+                        <div style={{ fontWeight: 700, color, marginBottom: 4 }}>{sym} {starNameEn(star)}</div>
+                        <div>{ta?"ராசி":"Rasi"}: {ta ? RASI_NAMES_TA[starEffRasi(star)] : RASI_NAMES_EN[starEffRasi(star)]}</div>
+                        <div>{ta?"கணம்":"Gana"}: {ta ? GANA_NAMES[GANA[star]] : GANA_NAMES_EN[GANA[star]]}</div>
+                        <div>{ta?"யோனி":"Yoni"}: {ta ? YONI_NAMES_TA[YONI[star]] : YONI_NAMES_EN[YONI[star]]}</div>
+                        <div>{ta?"நாடி":"Nadi"}: {ta ? NADI_NAMES_TA[NADI[star]] : NADI_NAMES_EN[NADI[star]]}</div>
+                        <div>{ta?"ரஜ்ஜு":"Rajju"}: {ta ? RAJJU_NAMES_TA[RAJJU[star]] : RAJJU_NAMES_EN[RAJJU[star]]}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Porutham table — pass/fail comes directly from the API response */}
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                      <thead>
+                        <tr style={{ background: "var(--cl-bg-2)" }}>
+                          <th style={{ padding: "7px 8px", textAlign: "left", borderBottom: "2px solid var(--cl-border-2)", fontSize: 11, color: "var(--cl-muted)" }}>#</th>
+                          <th style={{ padding: "7px 8px", textAlign: "left", borderBottom: "2px solid var(--cl-border-2)" }}>{ta?"பொருத்தம்":"Porutham"}</th>
+                          <th style={{ padding: "7px 8px", textAlign: "center", borderBottom: "2px solid var(--cl-border-2)" }}>{ta?"நிலை":"Status"}</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                      </thead>
+                      <tbody>
+                        {detailData.kutas.map((k, i) => {
+                          const pass = k.score >= k.maxScore;
+                          const isCritical = k.name === "Rajju" || k.name === "Vedha";
+                          const criticalRow = isCritical && !pass;
+                          return (
+                            <tr key={i} style={{ background: criticalRow ? "var(--cl-caution-soft)" : i % 2 === 0 ? "var(--cl-surface)" : "var(--cl-bg)" }}>
+                              <td style={{ padding: "7px 8px", borderBottom: "1px solid var(--cl-border)", color: "var(--cl-muted)", fontSize: 11 }}>{i+1}</td>
+                              <td style={{ padding: "7px 8px", borderBottom: "1px solid var(--cl-border)" }}>
+                                <div style={{ fontWeight: 600, color: "var(--cl-ink)", display: "flex", alignItems: "center", gap: 4 }}>
+                                  {ta ? k.nameTa : k.name}
+                                  {isCritical && (
+                                    <span style={{ fontSize: 8, background: "var(--cl-caution)", color: "var(--cl-surface)", padding: "1px 4px", borderRadius: 3, fontWeight: 700 }}>
+                                      {ta?"முக்கியம்":"Critical"}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td style={{ padding: "7px 8px", textAlign: "center", borderBottom: "1px solid var(--cl-border)", fontSize: 15, fontWeight: 700, color: pass ? "var(--cl-sage)" : "var(--cl-caution)" }}>
+                                {pass ? "✓" : "✗"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
 
-              {/* How to read the numbers */}
-              <div style={{ marginTop: "12px", padding: "10px 14px", background: "var(--cl-bg-2)", borderRadius: "8px", borderLeft: "3px solid var(--cl-border-2)", fontSize: "11px", color: "var(--cl-muted)", lineHeight: 1.7 }}>
-                <div style={{ marginBottom: 6 }}>
-                  <strong style={{ color: "var(--cl-ink-2)" }}>{ta ? "மொத்த மதிப்பெண் (x/10):" : "Overall score (x/10):"}</strong>{" "}
-                  {ta
-                    ? "10 பொருத்தங்களில் எத்தனை பொருந்துகின்றன என்பதே மதிப்பெண் — அதிகமானால் நல்லது. 8–10 மிக நல்லது, 6–7 நல்லது, 5 சராசரி, 0–4 குறைவு. ரஜ்ஜு அல்லது வேதை பொருந்தாவிட்டால், மதிப்பெண் எதுவாயினும் தோஷமாகவே கருதப்படும்."
-                    : "How many of the 10 poruthams pass — higher is better. 8–10 excellent, 6–7 good, 5 average, 0–4 weak. If Rajju or Vedhai fails, it counts as a dosham no matter how high the score is."}
+                  {/* How to read the numbers */}
+                  <div style={{ marginTop: "12px", padding: "10px 14px", background: "var(--cl-bg-2)", borderRadius: "8px", borderLeft: "3px solid var(--cl-border-2)", fontSize: "11px", color: "var(--cl-muted)", lineHeight: 1.7 }}>
+                    <div>
+                      <strong style={{ color: "var(--cl-ink-2)" }}>{ta ? "மொத்த மதிப்பெண் (x/10):" : "Overall score (x/10):"}</strong>{" "}
+                      {ta
+                        ? "10 பொருத்தங்களில் எத்தனை பொருந்துகின்றன என்பதே மதிப்பெண் — அதிகமானால் நல்லது. ரஜ்ஜு அல்லது வேதை பொருந்தாவிட்டால், மதிப்பெண் எதுவாயினும் தோஷமாகவே கருதப்படும்."
+                        : "How many of the 10 poruthams pass — higher is better. If Rajju or Vedhai fails, it counts as a dosham no matter how high the score is."}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <strong style={{ color: "var(--cl-ink-2)" }}>{ta ? "\"எண்\" என்றால் என்ன?" : "What does \"Count\" mean?"}</strong>{" "}
-                  {ta
-                    ? "பெண் நட்சத்திரத்திலிருந்து ஆண் நட்சத்திரம் வரை எண்ணும் எண்ணிக்கை (1–27). நாள், மகேந்திரம், ஸ்திரீ தீர்க்கம் ஆகிய மூன்று பொருத்தங்கள் மட்டுமே இந்த எண்ணை அடிப்படையாகக் கொண்டவை — மற்ற பொருத்தங்கள் கணம், யோனி, ராசி, ரஜ்ஜு போன்ற வேறு கூறுகளை ஒப்பிடுகின்றன, அதனால் அவற்றுக்கு எண் காட்டப்படுவதில்லை. இந்த எண்ணுக்கு தனியாக நல்லது/கெட்டது கிடையாது — ஒவ்வொரு பொருத்தமும் தன் விதிப்படி அதைச் சரிபார்த்து ✓ அல்லது ✗ காட்டுகிறது."
-                    : "The number of stars counted from the girl's birth star up to the boy's (1–27). Only Dina, Mahendra and Stree Dheerga are judged from this count — the other poruthams compare a different attribute (gana, yoni, rasi, rajju…), so no count is shown for them. The count itself isn't \"good\" or \"bad\" on its own — each porutham applies its own rule to it and shows ✓ or ✗ in the Status column."}
-                </div>
-              </div>
+              )}
             </div>
           )}
         </>
@@ -609,7 +527,7 @@ export function PoruthamTool() {
                 </button>
               ))}
             </div>
-          ) : compatibility && (
+          ) : (
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px", flexWrap: "wrap" }}>
                 <div style={{ background: "var(--cl-accent-soft)", padding: "5px 14px", borderRadius: "999px", fontWeight: 600, fontSize: "13px", color: "var(--cl-accent)" }}>
@@ -622,53 +540,67 @@ export function PoruthamTool() {
                 </button>
               </div>
 
+              {gridError && <p style={{ margin: "0 0 10px", color: "var(--cl-caution)", fontSize: "0.78rem" }}>{gridError}</p>}
+              {gridLoading && !gridData && (
+                <p style={{ margin: 0, color: "var(--cl-muted)", fontSize: "0.78rem" }}>
+                  {ta ? "கணக்கிடுகிறது…" : "Calculating…"}
+                </p>
+              )}
+
               {/* Grouped results */}
-              {[
-                { label: ta?"மிக நல்ல பொருத்தம் (8–10)":"Excellent Match (8–10)", items: compatibility.filter(c => !c.criticalFail && c.score >= 8) },
-                { label: ta?"நல்ல பொருத்தம் (6–7)":"Good Match (6–7)",           items: compatibility.filter(c => !c.criticalFail && c.score >= 6 && c.score < 8) },
-                { label: ta?"சராசரி (5)":"Average (5)",                           items: compatibility.filter(c => !c.criticalFail && c.score === 5) },
-                { label: ta?"குறைவு (0–4)":"Below Average (0–4)",                 items: compatibility.filter(c => !c.criticalFail && c.score < 5) },
-                { label: ta?"⚠ தோஷம் — தவிர்க்கவும்":"⚠ Dosham - Avoid",        items: compatibility.filter(c => c.criticalFail) },
+              {gridData && [
+                { label: ta?"மிக நல்ல பொருத்தம் (9–10)":"Excellent Match (9–10)", items: gridData.filter(c => !(c.rajjuDosha || c.vedhaDosha) && c.totalScore >= 9) },
+                { label: ta?"நல்ல பொருத்தம் (7–8)":"Good Match (7–8)",           items: gridData.filter(c => !(c.rajjuDosha || c.vedhaDosha) && c.totalScore >= 7 && c.totalScore < 9) },
+                { label: ta?"சராசரி (5–6)":"Average (5–6)",                      items: gridData.filter(c => !(c.rajjuDosha || c.vedhaDosha) && c.totalScore >= 5 && c.totalScore < 7) },
+                { label: ta?"குறைவு (0–4)":"Below Average (0–4)",                items: gridData.filter(c => !(c.rajjuDosha || c.vedhaDosha) && c.totalScore < 5) },
+                { label: ta?"⚠ தோஷம் — தவிர்க்கவும்":"⚠ Dosham - Avoid",       items: gridData.filter(c => c.rajjuDosha || c.vedhaDosha) },
               ].map(group => {
                 if (group.items.length === 0) return null;
                 const best = group.items[0];
-                const accent = best.criticalFail ? "var(--cl-caution)" : best.score >= 6 ? "var(--cl-sage)" : best.score >= 5 ? "var(--cl-accent)" : "var(--cl-caution)";
+                const bestCritical = best.rajjuDosha || best.vedhaDosha;
+                const accent = bestCritical ? "var(--cl-caution)" : best.totalScore >= 7 ? "var(--cl-sage)" : best.totalScore >= 5 ? "var(--cl-accent)" : "var(--cl-caution)";
                 return (
                   <div key={group.label} style={{ marginBottom: "16px" }}>
                     <div style={{ fontSize: "12px", fontWeight: 700, color: accent, marginBottom: "6px", paddingBottom: "4px", borderBottom: `2px solid color-mix(in srgb, ${accent} 20%, transparent)` }}>
                       {group.label} <span style={{ fontWeight: 400, fontSize: 11, color: "var(--cl-muted)" }}>({group.items.length})</span>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "6px" }}>
-                      {group.items.sort((a,b) => b.score - a.score).map(c => (
-                        <button key={c.id}
-                          onClick={() => { setBoyStar(c.id); setView("selector"); }}
-                          style={{
-                            ...BASE_STAR_BTN,
-                            border: c.criticalFail
-                              ? "2px solid var(--cl-caution)"
-                              : c.nadiCaution
-                              ? "1px solid var(--cl-accent)"
-                              : "1px solid var(--cl-border)",
-                            background: scoreBg(c.score, c.criticalFail),
-                            display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left", padding: "8px 10px",
-                          }}>
-                          <div>
-                            <div style={{ fontWeight: 600, color: c.criticalFail ? "var(--cl-caution)" : "var(--cl-ink)", fontSize: 12 }}>
-                              {(c.criticalFail || c.nadiCaution) && "⚠ "}♂ {ta ? NAKSHATRAS[c.id].ta : starNameEn(c.id)}
-                            </div>
-                            {ta && <div style={{ fontSize: 10, color: "var(--cl-muted)" }}>{starNameEn(c.id)}</div>}
-                            {c.criticalFail && (
-                              <div style={{ fontSize: 9, color: "var(--cl-caution)", marginTop: 2 }}>{c.criticalWarnings.join(", ")}</div>
-                            )}
-                            {c.nadiCaution && !c.criticalFail && (
-                              <div style={{ fontSize: 9, color: "var(--cl-accent)", marginTop: 2 }}>
-                                {ta ? "நாடி கவனம்" : "Nadi caution"}
+                      {group.items.sort((a,b) => b.totalScore - a.totalScore).map(c => {
+                        const id = c.boyNakshatra - 1;
+                        const criticalFail = c.rajjuDosha || c.vedhaDosha;
+                        return (
+                          <button key={id}
+                            onClick={() => { setBoyStar(id); setView("selector"); }}
+                            style={{
+                              ...BASE_STAR_BTN,
+                              border: criticalFail
+                                ? "2px solid var(--cl-caution)"
+                                : c.nadiCaution
+                                ? "1px solid var(--cl-accent)"
+                                : "1px solid var(--cl-border)",
+                              background: scoreBg(c.totalScore, criticalFail),
+                              display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left", padding: "8px 10px",
+                            }}>
+                            <div>
+                              <div style={{ fontWeight: 600, color: criticalFail ? "var(--cl-caution)" : "var(--cl-ink)", fontSize: 12 }}>
+                                {(criticalFail || c.nadiCaution) && "⚠ "}♂ {ta ? NAKSHATRAS[id].ta : starNameEn(id)}
                               </div>
-                            )}
-                          </div>
-                          <div style={{ fontWeight: 800, fontSize: 18, color: scoreColor(c.score, c.criticalFail), marginLeft: 6 }}>{c.score}</div>
-                        </button>
-                      ))}
+                              {ta && <div style={{ fontSize: 10, color: "var(--cl-muted)" }}>{starNameEn(id)}</div>}
+                              {criticalFail && (
+                                <div style={{ fontSize: 9, color: "var(--cl-caution)", marginTop: 2 }}>
+                                  {[c.rajjuDosha && (ta ? "ரஜ்ஜு தோஷம்" : "Rajju Dosha"), c.vedhaDosha && (ta ? "வேதை தோஷம்" : "Vedha Dosha")].filter(Boolean).join(", ")}
+                                </div>
+                              )}
+                              {c.nadiCaution && !criticalFail && (
+                                <div style={{ fontSize: 9, color: "var(--cl-accent)", marginTop: 2 }}>
+                                  {ta ? "நாடி கவனம்" : "Nadi caution"}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ fontWeight: 800, fontSize: 18, color: scoreColor(c.totalScore, criticalFail), marginLeft: 6 }}>{c.totalScore}</div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -688,12 +620,6 @@ export function PoruthamTool() {
           {ta
             ? "ரஜ்ஜு மற்றும் வேதை இரண்டும் கட்டாயம் பொருந்த வேண்டும். \"ரஜ்ஜு இல்லையேல் பொருத்தம் இல்லை\" என்பது நியதி."
             : "Rajju and Vedhai must both pass. \"Without Rajju there is no compatibility\" is the foundational rule."}
-        </div>
-        <div style={{ marginBottom: 6 }}>
-          <strong>{ta?"ஆறு-எட்டு (6/8 ராசி):":"6/8 Rasi (Shashtashtaka):"}</strong>{" "}
-          {ta
-            ? "பெண் ராசியிலிருந்து ஆண் ராசி 6வது அல்லது 8வது இடத்தில் இருந்தால் தோஷம்."
-            : "When the boy's rasi falls in the 6th or 8th position from the girl's rasi, it indicates Shashtashtaka dosham."}
         </div>
         <div style={{ marginBottom: 6 }}>
           <strong>{ta?"குறிப்பு:":"Note:"}</strong>{" "}

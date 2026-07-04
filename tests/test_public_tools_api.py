@@ -52,6 +52,110 @@ def test_public_porutham_accepts_marketing_site_payload() -> None:
     assert body["data"]["girlNakshatraName"]
 
 
+def test_public_porutham_by_star_matches_mobile_shared_wrapper_payload() -> None:
+    """packages/shared/src/api/porutham.ts's getPorutham() posts exactly this shape."""
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.post(
+            "/api/v1/public/porutham/by-star",
+            json={"boyNakshatraNumber": 1, "girlNakshatraNumber": 4},
+        )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["success"] is True
+    data = body["data"]
+    assert data["boyNakshatra"] == 1
+    assert data["girlNakshatra"] == 4
+    assert len(data["kutas"]) == 10
+    assert data["maxScore"] == 10
+    assert 0 <= data["totalScore"] <= 10
+    assert isinstance(data["rajjuDosha"], bool)
+    assert isinstance(data["vedhaDosha"], bool)
+    assert data["nadiDosha"]["boyNadi"]
+    assert data["summary"]["en"]
+
+
+def test_public_porutham_by_star_rejects_out_of_range_nakshatra() -> None:
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.post(
+            "/api/v1/public/porutham/by-star",
+            json={"boyNakshatraNumber": 28, "girlNakshatraNumber": 1},
+        )
+
+    assert response.status_code == 422, response.text
+
+
+def test_public_porutham_by_star_pada_changes_rasi_dependent_kutas() -> None:
+    """Uthiram (nakshatra 12) straddles Simha/Kanni — pada 1 vs pada 4 must differ."""
+    with TestClient(app, raise_server_exceptions=False) as client:
+        early = client.post(
+            "/api/v1/public/porutham/by-star",
+            json={"boyNakshatraNumber": 12, "girlNakshatraNumber": 1, "boyPada": 1},
+        ).json()["data"]
+        late = client.post(
+            "/api/v1/public/porutham/by-star",
+            json={"boyNakshatraNumber": 12, "girlNakshatraNumber": 1, "boyPada": 4},
+        ).json()["data"]
+
+    rasi_kutas_early = {k["name"]: k["score"] for k in early["kutas"] if k["name"] in {"Rasi", "Graha Maitri", "Vasya"}}
+    rasi_kutas_late = {k["name"]: k["score"] for k in late["kutas"] if k["name"] in {"Rasi", "Graha Maitri", "Vasya"}}
+    assert rasi_kutas_early != rasi_kutas_late
+
+
+def test_public_porutham_by_star_default_pada_matches_majority_rasi_convention() -> None:
+    """Default (no pada given) must equal explicit pada=3 — the majority/late-tiebreak rasi."""
+    with TestClient(app, raise_server_exceptions=False) as client:
+        default = client.post(
+            "/api/v1/public/porutham/by-star",
+            json={"boyNakshatraNumber": 12, "girlNakshatraNumber": 1},
+        ).json()["data"]
+        pada3 = client.post(
+            "/api/v1/public/porutham/by-star",
+            json={"boyNakshatraNumber": 12, "girlNakshatraNumber": 1, "boyPada": 3},
+        ).json()["data"]
+
+    assert default["totalScore"] == pada3["totalScore"]
+    assert default["kutas"] == pada3["kutas"]
+
+
+def test_public_porutham_by_star_grid_returns_all_27_candidates() -> None:
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.post(
+            "/api/v1/public/porutham/by-star/grid",
+            json={"girlNakshatraNumber": 4},
+        )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["success"] is True
+    assert body["girlNakshatraNumber"] == 4
+    assert len(body["results"]) == 27
+    boy_numbers = {item["boyNakshatra"] for item in body["results"]}
+    assert boy_numbers == set(range(1, 28))
+    for item in body["results"]:
+        assert 0 <= item["totalScore"] <= 10
+        assert isinstance(item["nadiCaution"], bool)
+
+
+def test_public_porutham_by_star_grid_matches_single_lookup() -> None:
+    """A grid row must agree with the equivalent single by-star lookup."""
+    with TestClient(app, raise_server_exceptions=False) as client:
+        grid = client.post(
+            "/api/v1/public/porutham/by-star/grid",
+            json={"girlNakshatraNumber": 4},
+        ).json()
+        single = client.post(
+            "/api/v1/public/porutham/by-star",
+            json={"boyNakshatraNumber": 1, "girlNakshatraNumber": 4},
+        ).json()["data"]
+
+    row = next(item for item in grid["results"] if item["boyNakshatra"] == 1)
+    assert row["totalScore"] == single["totalScore"]
+    assert row["rajjuDosha"] == single["rajjuDosha"]
+    assert row["vedhaDosha"] == single["vedhaDosha"]
+    assert row["nadiCaution"] == single["nadiDosha"]["hasNadiDosha"]
+
+
 @pytest.mark.parametrize("lang", ["en", "ta"])
 def test_public_compare_pdf_returns_pdf(lang: str) -> None:
     with TestClient(app, raise_server_exceptions=False) as client:

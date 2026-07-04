@@ -1103,6 +1103,21 @@ export interface DirectPoruthamData {
   compatibilityContext: string; contextNote: BiText | null;
 }
 
+// Porutham computed from nakshatra numbers alone (no birth chart) — powers
+// the public marriage-porutham-calculator and mobile porutham/friendship tools.
+export interface PublicPoruthamStarData {
+  boyNakshatra: number; girlNakshatra: number;
+  kutas: KutaResult[]; totalScore: number; maxScore: number; percentage: number; label: string;
+  rajjuDosha: boolean; vedhaDosha: boolean; nadiDosha: NadiDoshaResult;
+  summary: BiText; compatibilityContext: string;
+}
+
+// One row of a full 1-vs-27 nakshatra grid comparison (see getPoruthamGrid).
+export interface PublicPoruthamGridItem {
+  boyNakshatra: number; totalScore: number; maxScore: number; percentage: number; label: string;
+  rajjuDosha: boolean; vedhaDosha: boolean; nadiCaution: boolean;
+}
+
 export interface SevvaiDoshamDetail {
   hasDosham: boolean; marsHouse: number; isCancelled: boolean; severity: string;
   cancellationReasons: string[]; noteEn: string; noteTa: string; score: number;
