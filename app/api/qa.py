@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from app.core.auth import get_admin_user
 from app.models.user import User
@@ -28,17 +28,6 @@ def validate_golden_cases(_: User = Depends(get_admin_user)) -> QAValidationResp
     Failed cases are automatically recorded in the regression store so they
     can be inspected later via GET /qa/regressions.
     """
-    result = _run_and_store_validation()
-    return result
-
-
-@router.post(
-    "/validate-golden-case",
-    response_model=QAValidationResponse,
-    summary="Compatibility route: run internal golden test suite",
-)
-def validate_golden_case_post(_: User = Depends(get_admin_user)) -> QAValidationResponse:
-    """Backward-compatible POST route kept for older clients/docs."""
     result = _run_and_store_validation()
     return result
 
@@ -82,18 +71,6 @@ def list_regressions(_: User = Depends(get_admin_user)) -> QARegressionReport:
     """
     failures = sorted(_regression_store.values(), key=lambda r: r.last_seen, reverse=True)
     return QARegressionReport(total_stored=len(failures), failures=failures)
-
-
-@router.delete(
-    "/regressions/{test_id}",
-    summary="Clear a specific stored regression failure",
-)
-def clear_regression(test_id: str, _: User = Depends(get_admin_user)) -> dict[str, str]:
-    """Remove a failure from the regression store once it is acknowledged and fixed."""
-    if test_id not in _regression_store:
-        raise HTTPException(status_code=404, detail=f"No regression found for test_id '{test_id}'")
-    del _regression_store[test_id]
-    return {"cleared": test_id}
 
 
 @router.delete(

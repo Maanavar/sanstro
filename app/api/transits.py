@@ -66,7 +66,12 @@ def major_transits(
     return get_major_transits(session, chart_id, datetime)
 
 
-@router.get("/charts/{chart_id}/peyarchi", response_model=PeyarchiSummaryResponse, tags=["transits"])
+@router.get(
+    "/charts/{chart_id}/peyarchi",
+    response_model=PeyarchiSummaryResponse,
+    tags=["transits"],
+    include_in_schema=False,
+)
 def peyarchi_summary(
     chart_id: UUID,
     as_of: date = Query(alias="as_of"),
