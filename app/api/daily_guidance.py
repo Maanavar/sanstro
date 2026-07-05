@@ -106,11 +106,12 @@ def activity_timing(
     chart_id: UUID = Query(alias="chartId"),
     activity: str = Query(alias="activity"),
     month: str = Query(alias="month", description="Format: YYYY-MM"),
+    as_of: date | None = Query(default=None, alias="asOf", description="Optional specific date to also score, within `month`"),
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ActivityTimingResponse:
     _assert_chart_owner(session, chart_id, current_user)
-    return get_activity_timing(session, chart_id, activity, month)
+    return get_activity_timing(session, chart_id, activity, month, as_of=as_of)
 
 
 @router.get("/charts/{chart_id}/dasha/timeline", response_model=DashaStoryResponse, tags=["daily-guidance"])

@@ -979,11 +979,14 @@ def get_activity_timing(
     chart_id: UUID,
     activity: str,
     month: str,
+    as_of: date | None = None,
     calculation_version: str = "thirukanitham-2026-v1",
 ) -> ActivityTimingResponse:
     """
     FEATURE-08: Returns top 5 dates in the given month ranked by activity alignment.
-    month format: YYYY-MM
+    month format: YYYY-MM. If `as_of` falls within `month`, its own (unranked)
+    result is also returned as `date_result` — the month is already fully
+    computed below, so this reuses that work rather than adding a query.
     """
     chart = session.get(Chart, chart_id)
     if chart is None:
@@ -1008,6 +1011,7 @@ def get_activity_timing(
     base_cache_eligible = not active_goals and context_row is None
 
     results: list[tuple[int, ActivityTimingDayResult]] = []
+    date_result: ActivityTimingDayResult | None = None
     alignment_rank = {"SUPPORTS": 2, "NEUTRAL": 1, "CAUTION": 0}
 
     # Batch-load/compute the whole month up front instead of looping per-day
@@ -1082,14 +1086,17 @@ def get_activity_timing(
                 score = daily_response.data.score
 
             rank = alignment_rank.get(result.combined_alignment, 0) * 100 + score
-            results.append((rank, ActivityTimingDayResult(
+            day_result = ActivityTimingDayResult(
                 dateLocal=d,
                 score=score,
                 label=_score_label(score),
                 alignment=result.combined_alignment,
                 reasonTa=result.combined_ta,
                 reasonEn=result.combined_en,
-            )))
+            )
+            results.append((rank, day_result))
+            if as_of is not None and d == as_of:
+                date_result = day_result
         except Exception:  # noqa: S112 — skip an un-scorable candidate date, keep the rest
             continue
 
@@ -1102,6 +1109,7 @@ def get_activity_timing(
             activity=activity,
             month=month,
             topDates=top_dates,
+            dateResult=date_result,
         ),
         meta=ResponseMeta(
             calculation_version=calculation_version,

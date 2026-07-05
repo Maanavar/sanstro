@@ -995,6 +995,7 @@ export type WeekAheadData = {
 export type ActivityTimingData = {
   chartId: string; activity: string; month: string;
   topDates: { dateLocal: string; score: number; label: string; alignment: string; reasonTa: string; reasonEn: string }[];
+  dateResult: { dateLocal: string; score: number; label: string; alignment: string; reasonTa: string; reasonEn: string } | null;
 };
 
 export type DashaStoryData = {

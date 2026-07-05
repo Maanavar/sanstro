@@ -191,6 +191,7 @@ class ActivityTimingData(BaseModel):
     activity: str
     month: str
     top_dates: list[ActivityTimingDayResult] = Field(alias="topDates")
+    date_result: ActivityTimingDayResult | None = Field(default=None, alias="dateResult")
 
     model_config = ConfigDict(populate_by_name=True)
 
