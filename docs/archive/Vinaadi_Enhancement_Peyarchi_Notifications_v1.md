@@ -3,6 +3,8 @@
 **Date:** 22 May 2026  
 **Status:** Ready to implement  
 
+> **Archived 2026-07-05.** Enhancement 4 is marked "COMPLETED — do not re-implement"; Enhancement 3 Phase 1 (in-app banner) is confirmed built (`GET /charts/{id}/peyarchi/upcoming` in `app/api/transits.py`, `web/components/peyarchi-banner.tsx`). Only Enhancement 3 Phase 3 (web push) remains open, marked optional/later in the original spec. Kept for history; check with the team before picking up that one remaining item in case priorities have shifted.
+
 ---
 
 ## Context — what is already working

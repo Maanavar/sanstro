@@ -4,6 +4,8 @@
 > Audience: Coding agents, developers, product reviewers  
 > Status: Core fixes implemented; D+1 onboarding nudge implemented; store URL placeholders still need owner values
 
+> **Archived 2026-07-05.** All 9 issues resolved. The one remaining open item (App Store URL placeholder) has been carried forward to [docs/launch/GO_LIVE_CHECKLIST.md](../launch/GO_LIVE_CHECKLIST.md) section 2. Kept for history only; do not treat as current.
+
 ---
 
 ## How to Use This Document

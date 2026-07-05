@@ -2,6 +2,8 @@
 **Consolidated from:** IMPLEMENTATION_INSTRUCTIONS.md · IMPLEMENTATION_ROADMAP.md · Jothidam_AI_MVP_Sprint_Execution_Plan_v1.md · CODEX_FIX_INSTRUCTIONS.md  
 **Last updated:** 2026-05-26
 
+> **Archived 2026-07-05.** This is a frozen MVP-1 snapshot that lists the native mobile app under "deferred beyond MVP 1" — a full Expo app now exists (see `docs/mobile/`). For current implementation status, see [REFACTOR_PLAN.md](../REFACTOR_PLAN.md), [AGENT_INSTRUCTIONS.md](../AGENT_INSTRUCTIONS.md), and `docs/mobile/`. Kept for history only; do not treat as current.
+
 ---
 
 ## NON-NEGOTIABLE RULES (carry into every task)

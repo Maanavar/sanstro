@@ -53,6 +53,7 @@ Repo-specific checks:
 - [ ] `/beta` page content matches current launch strategy
 - [ ] Footer copy and beta line are correct in `web/components/public-footer.tsx`
 - [ ] Marketing copy is aligned in `web/lib/marketing-i18n.ts`
+- [ ] App Store URL placeholder replaced: `https://apps.apple.com/app/vinaadi/id0000000000` still appears in `web/app/pricing/page.tsx` and `web/components/dashboard-setup-tab.tsx` (bundle ID `ai.vinaadi.app`) — swap `id0000000000` for the real numeric App Store ID once the app is approved and listed (carried over from the now-archived `docs/archive/ONBOARDING_PRICING_FIXES.md`)
 
 ## 3. Legal, privacy, and policy readiness
 

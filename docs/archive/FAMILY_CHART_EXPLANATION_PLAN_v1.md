@@ -1,5 +1,7 @@
 # Family Tab — "Understand This Chart" Explanation Panel — Implementation Plan v1
 
+> **Archived 2026-07-05.** All phases (1 and 2) are marked `[x]` complete, including the `/charts/{chart_id}/explanation` endpoint (confirmed live in `app/api/charts.py`). Kept for history only; no open items remain.
+
 ## Goal
 
 Add a dedicated, per-person chart-explanation section in the Family tab, placed directly

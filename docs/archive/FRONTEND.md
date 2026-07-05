@@ -2,6 +2,8 @@
 **Consolidated from:** FRONTEND_MISSING_FEATURES_PROMPT.md · FRONTEND_SURFACE_GAP_PLAN.md · VINAADI_UIUX_MVP_BACKLOG_2026.md  
 **Last updated:** 2026-05-26
 
+> **Archived 2026-07-05.** Superseded by [API_FRONTEND_WIRING_AUDIT_2026-07.md](../API_FRONTEND_WIRING_AUDIT_2026-07.md), which states outright that this doc's missing-features list is stale — the features it names as missing are now built and wired. Kept for history only; do not treat as current.
+
 ---
 
 ## CURRENT FRONTEND STATUS (as of 2026-05-26)
