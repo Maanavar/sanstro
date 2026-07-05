@@ -70,6 +70,12 @@
   color-scheme: light;
 }
 
+/* Host for next/font CSS variables (Nova fonts) — must not affect layout,
+   since it wraps the entire dashboard route's children. */
+.cd-font-host {
+  display: contents;
+}
+
 .cd-visually-hidden {
   position: absolute;
   width: 1px;

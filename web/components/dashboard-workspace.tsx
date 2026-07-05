@@ -26,6 +26,7 @@ import { usePersonalData } from "@/hooks/usePersonalData";
 import { useFamilyData, type MemberChart } from "@/hooks/useFamilyData";
 import { usePlanData } from "@/hooks/usePlanData";
 import { useJournalData } from "@/hooks/useJournalData";
+import { useUiVariant } from "@/hooks/useUiVariant";
 
 import type { EditMemberState } from "./dashboard-edit-member-modal";
 import { DashboardHero } from "./dashboard-hero";
@@ -140,6 +141,11 @@ const RectificationWizard = dynamic(
 
 const DashboardTodayTabV2 = dynamic(
   () => import("./dashboard-today-tab-v2").then((mod) => mod.DashboardTodayTabV2),
+  { loading: LazyPanelFallback },
+);
+
+const DashboardTodayTabNova = dynamic(
+  () => import("./dashboard-today-tab-nova").then((mod) => mod.DashboardTodayTabNova),
   { loading: LazyPanelFallback },
 );
 
@@ -266,6 +272,8 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showRectification, setShowRectification] = useState(false);
+  const [askVinaadiOpen, setAskVinaadiOpen] = useState(false);
+  const { variant: uiVariant, setVariant: setUiVariant } = useUiVariant();
 
   const goToTab = useCallback((tab: Tab) => {
     setExploreReturnTab(null);
@@ -1239,8 +1247,8 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
 
       {/* Tab content */}
       <div className="cd-page site__body">
-        {/* Household today strip — classic Today tab only (v2 has its own family pulse card) */}
-        {activeTab === "personal" && todayVariant !== "v2" && family.familyAggregate && family.familyAggregate.members.length > 0 && (() => {
+        {/* Household today strip — classic Today tab only (v2 and Nova both have their own family pulse card) */}
+        {activeTab === "personal" && todayVariant !== "v2" && uiVariant !== "nova" && family.familyAggregate && family.familyAggregate.members.length > 0 && (() => {
           const fs = family.familyAggregate.familyScore;
           return (
             <div className="cd-household-strip">
@@ -1318,7 +1326,37 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
           />
         )}
 
-        {activeTab === "personal" && todayVariant === "v2" && (
+        {activeTab === "personal" && uiVariant === "nova" && (
+          <DashboardTodayTabNova
+            lang={lang}
+            activeLifeMode={activeLifeMode}
+            birthDisplayName={birthForm.displayName}
+            selectedDate={selectedDate}
+            todayDate={personal.todayDate}
+            personalMemberChart={personalMemberChart}
+            personalChart={personalChart}
+            personalChartExplanation={personalChartExplanation}
+            personalChartSummary={personalChartSummary}
+            personalDailyGuidance={personalDailyGuidance}
+            personalTransit={personalTransit}
+            personalSani={personalSani}
+            peyarchiUpcoming={personalPeyarchiUpcoming}
+            panchangam={personal.panchangam}
+            panchangamTimings={personal.panchangamTimings}
+            weekAhead={personal.weekAhead}
+            familyAggregate={family.familyAggregate}
+            lifeAreas={personal.lifeAreas}
+            dasha={personalDasha}
+            dashaAntar={personalDashaAntar}
+            nakshatraCard={personalMemberChart?.nakshatraCard ?? personal.nakshatraCard}
+            onGoToFamily={() => setActiveTab("family")}
+            onGoToJournal={() => setActiveTab("journal")}
+            onGoToCalendar={() => setActiveTab("calendar")}
+            onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
+          />
+        )}
+
+        {activeTab === "personal" && uiVariant !== "nova" && todayVariant === "v2" && (
           <DashboardTodayTabV2
             lang={lang}
             activeLifeMode={activeLifeMode}
@@ -1364,7 +1402,7 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
           />
         )}
 
-        {activeTab === "personal" && todayVariant !== "v2" && (
+        {activeTab === "personal" && uiVariant !== "nova" && todayVariant !== "v2" && (
           <DashboardPersonalTab
             lang={lang}
             activeLifeMode={activeLifeMode}
@@ -1799,6 +1837,8 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
             onApplyRetention={(dryRun) => journal.applyJournalRetention(personal.chartId, dryRun)}
             busyRetentionApply={journal.busyRetentionApply}
             onSignOut={session.signOut}
+            uiVariant={uiVariant}
+            onUiVariantChange={setUiVariant}
           />
         )}
 
@@ -1868,6 +1908,8 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
           chartId={personal.chartId}
           goalTrack={session.goalTrack}
           activeLifeMode={activeLifeMode}
+          open={askVinaadiOpen}
+          onOpenChange={setAskVinaadiOpen}
         />
       )}
 

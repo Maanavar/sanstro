@@ -58,3 +58,6 @@ web/tests/
 
 # Background task logs (transient)
 artifacts/
+
+# Claude Design source exports — reference-only, never commit
+/Astrology App Dashboard Redesign/

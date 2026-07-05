@@ -14,10 +14,11 @@ interface DashboardAskVinaadiWidgetProps {
   goalTrack?: GoalTrack;
   activeLifeMode?: LifeMode;
   onUpgrade?: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLifeMode, onUpgrade }: DashboardAskVinaadiWidgetProps) {
-  const [open, setOpen] = useState(false);
+export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLifeMode, onUpgrade, open, onOpenChange }: DashboardAskVinaadiWidgetProps) {
   const [chipsRemaining, setChipsRemaining] = useState<number | null>(null);
 
   // Counter badge — show remaining free chips when fewer than the daily allowance.
@@ -35,7 +36,7 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLife
     <>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => onOpenChange(!open)}
         title={lang === "ta" ? "வினாடி கேளுங்கள்" : "Ask Vinaadi"}
         style={{
           position: "fixed",
@@ -89,7 +90,7 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLife
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={() => onOpenChange(false)}
               style={{
                 border: "none",
                 background: "transparent",

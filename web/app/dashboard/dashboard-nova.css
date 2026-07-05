@@ -1,0 +1,278 @@
+/* ═══════════════════════════════════════════════════════════
+   NOVA LOOK — additive "new look" theme for the dashboard shell
+   Activated via [data-ui="nova"] on <html> (see useUiVariant.ts).
+   Source: Claude Design "Vinaadi Prototype" / "Design Tokens"
+   (D:\sanstro\Astrology App Dashboard Redesign\ — gitignored,
+   never referenced by path from shipped code; values only).
+
+   Strategy: .cd-shell already defines every --color-* and --radius-*
+   custom property that the rest of dashboard.css/globals.css
+   consumes (topbar, tabnav, chips, buttons, cards, tables...).
+   Redefining those same variable names under a higher-specificity
+   [data-ui="nova"] .cd-shell selector re-themes all of that
+   existing, working chrome for free — no per-component rewrite.
+   Classic is untouched: these rules only ever match when
+   [data-ui="nova"] is present on <html>.
+
+   The one thing variable overrides can't reach: globals.css's
+   legacy [style*="#hex"] attribute-selector hacks, which target
+   literal inline styles directly. Those are separately scoped to
+   html:not([data-ui="nova"]) at their source in globals.css.
+   ═══════════════════════════════════════════════════════════ */
+
+[data-ui="nova"] .cd-shell {
+  color-scheme: dark;
+  --cd-container-max: 1240px;
+
+  /* ── Backgrounds ── */
+  --color-bg:           #221a2c; /* bg-base */
+  --color-surface:      #2c2338; /* bg-card */
+  --color-surface-soft: #2e2440; /* bg-surface */
+  --color-surface-2:    #2e2440;
+  --color-surface-3:    #241b30; /* bg-deep */
+  --color-bg-glass:         color-mix(in srgb, #221a2c 95%, transparent);
+  --color-bg-glass-97:      color-mix(in srgb, #221a2c 97%, transparent);
+  --color-hover-bg:         rgba(212, 175, 95, 0.08);
+
+  /* ── Borders ── */
+  --color-border:        rgba(212, 175, 95, 0.22); /* border-mid */
+  --color-border-strong: rgba(212, 175, 95, 0.4);  /* border-strong */
+
+  /* ── Text (cream, opacity-stepped) ── */
+  --color-text-strong: #f3ecdd;
+  --color-text:         rgba(243, 236, 221, 0.85);
+  --color-muted:        rgba(243, 236, 221, 0.62);
+  --color-faint:        rgba(243, 236, 221, 0.45);
+
+  /* ── Accent — gold ── */
+  --color-accent:           #d4af5f;
+  --color-accent-strong:    #e7c87e;
+  --color-accent-muted:     rgba(212, 175, 95, 0.12);
+  --color-on-accent:        #221a2c;
+
+  /* ── Semantic ── */
+  --color-accent-alt:            #8fbf9a; /* green — success/favourable */
+  --color-accent-secondary:       #c9a9dd; /* purple */
+  --color-accent-secondary-muted: rgba(167, 139, 201, 0.22);
+  --color-score-high: #8fbf9a;
+  --color-score-mid:  #d4af5f;
+  --color-score-low:  #e08a72;
+  --color-high:        #8fbf9a;
+  --color-high-bg:     rgba(143, 191, 154, 0.14);
+  --color-high-border: rgba(143, 191, 154, 0.32);
+  --color-mid:         #d4af5f;
+  --color-mid-bg:      rgba(212, 175, 95, 0.1);
+  --color-mid-border:  rgba(212, 175, 95, 0.3);
+  --color-low:         #e08a72;
+  --color-low-bg:      rgba(179, 87, 61, 0.14);
+  --color-low-border:  rgba(179, 87, 61, 0.34);
+  --color-alert-critical: #b3573d;
+  --color-alert-caution:  #e08a72;
+  --color-positive:       #8fbf9a;
+
+  /* ── Shape ── */
+  --radius-lg: 14px; /* cards */
+  --radius-xl: 16px; /* hero sections */
+
+  /* ── Type: display font is Cormorant Garamond (headings/logo/score);
+     body font stays the system-ui stack per the source tokens (the
+     "UI" family is reserved for nav/labels/chips/data, not a serif
+     takeover of every string in the shell). Source Serif 4 (loaded as
+     --font-nova-prose in dashboard/layout.tsx) is applied selectively
+     to prose/guidance copy as each screen is built, not blanket here. ── */
+  --font-display: var(--font-nova-display), Georgia, serif;
+  --font-body: system-ui, -apple-system, sans-serif;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Nav shell reuse: top-bar-only layout, no left rail.
+   DashboardHero's cd-tabnav and DashboardLeftRail already both
+   exist and are always mounted (dashboard-workspace.tsx) — today
+   they're swapped purely by a >=1024px media query in dashboard.css.
+   These higher-specificity rules win at every viewport width
+   without needing !important.
+   ═══════════════════════════════════════════════════════════ */
+
+[data-ui="nova"] .cd-app-body {
+  display: block;
+}
+
+[data-ui="nova"] .cd-left-rail {
+  display: none;
+}
+
+[data-ui="nova"] .cd-tabnav {
+  display: block;
+}
+
+[data-ui="nova"] .cd-main-content {
+  min-width: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Gap fix (found building Phase 1's Deep Dive reuse): globals.css's
+   `.cd-shell .surface/.chip/.metric/.card/.table/.button--*/...`
+   rules hardcode literal Classic hex values directly (not var()
+   references), so they are NOT reached by the --color-* redefinitions
+   above via cascade — they win by specificity regardless of [data-ui].
+   These mirror the same selector list, reading Nova's own vars, at
+   one class-level higher specificity ([data-ui="nova"] .cd-shell .X
+   vs .cd-shell .X) so they win instead. Needed by any Nova screen
+   that reuses the shared Surface/Chip/Metric/CollapsibleSection
+   primitive library (dashboard-ui.tsx, collapsible-section.tsx),
+   not just the Today tab's Deep Dive panels.
+   ═══════════════════════════════════════════════════════════ */
+
+[data-ui="nova"] .cd-shell .card,
+[data-ui="nova"] .cd-shell .surface {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+[data-ui="nova"] .cd-shell .card--sm,
+[data-ui="nova"] .cd-shell .card--xs {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+}
+
+[data-ui="nova"] .cd-shell .chip {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+  color: var(--color-text-strong);
+}
+[data-ui="nova"] .cd-shell .chip--success {
+  background: var(--color-high-bg);
+  border-color: var(--color-high-border);
+  color: var(--color-high);
+}
+[data-ui="nova"] .cd-shell .chip--warning {
+  background: var(--color-low-bg);
+  border-color: var(--color-low-border);
+  color: var(--color-low);
+}
+[data-ui="nova"] .cd-shell .chip--accent {
+  background: var(--color-accent-muted);
+  border-color: var(--color-border-strong);
+  color: var(--color-accent-strong);
+}
+[data-ui="nova"] .cd-shell .chip--neutral {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+  color: var(--color-muted);
+}
+
+[data-ui="nova"] .cd-shell .metric {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+}
+[data-ui="nova"] .cd-shell .metric__label { color: var(--color-faint); }
+[data-ui="nova"] .cd-shell .metric__value { color: var(--color-text-strong); }
+[data-ui="nova"] .cd-shell .metric__hint  { color: var(--color-faint); }
+[data-ui="nova"] .cd-shell .metric--high  { border-color: var(--color-high-border); }
+[data-ui="nova"] .cd-shell .metric--low   { border-color: var(--color-low-border); }
+
+[data-ui="nova"] .cd-shell .table-wrap { border-color: var(--color-border); }
+[data-ui="nova"] .cd-shell .table th {
+  background: var(--color-surface-soft);
+  color: var(--color-faint);
+  border-color: var(--color-border);
+}
+[data-ui="nova"] .cd-shell .table td {
+  color: var(--color-text-strong);
+  border-color: var(--color-border);
+}
+
+[data-ui="nova"] .cd-shell .empty-state {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+  color: var(--color-faint);
+}
+
+[data-ui="nova"] .cd-shell .section-kicker  { color: var(--color-accent); }
+[data-ui="nova"] .cd-shell .section-title   { color: var(--color-text-strong); }
+[data-ui="nova"] .cd-shell .section-description { color: var(--color-muted); }
+
+[data-ui="nova"] .cd-shell .surface__title    { color: var(--color-faint); }
+[data-ui="nova"] .cd-shell .surface__headline { color: var(--color-text-strong); }
+[data-ui="nova"] .cd-shell .surface__subhead  { color: var(--color-faint); }
+[data-ui="nova"] .cd-shell .surface__text,
+[data-ui="nova"] .cd-shell .surface__body p   { color: var(--color-text); }
+
+[data-ui="nova"] .cd-shell .button--primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+[data-ui="nova"] .cd-shell .button--primary:hover {
+  background: var(--color-accent-strong);
+  border-color: var(--color-accent-strong);
+}
+[data-ui="nova"] .cd-shell .button--ghost,
+[data-ui="nova"] .cd-shell .button--secondary {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+[data-ui="nova"] .cd-shell .button--ghost:hover,
+[data-ui="nova"] .cd-shell .button--secondary:hover {
+  background: var(--color-hover-bg);
+}
+[data-ui="nova"] .cd-shell .button--solid {
+  background: var(--color-text-strong);
+  border-color: var(--color-text-strong);
+  color: var(--color-bg);
+}
+
+[data-ui="nova"] .cd-shell .snapshot-box {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+}
+[data-ui="nova"] .cd-shell .snapshot-kicker { color: var(--color-faint); }
+[data-ui="nova"] .cd-shell .snapshot-value  { color: var(--color-text-strong); }
+[data-ui="nova"] .cd-shell .snapshot-hint   { color: var(--color-muted); }
+[data-ui="nova"] .cd-shell .snapshot-action {
+  background: var(--color-high-bg);
+  border-color: var(--color-high-border);
+}
+
+[data-ui="nova"] .cd-shell .alert-banner--critical {
+  background: var(--color-low-bg);
+  border-color: var(--color-low-border);
+  color: var(--color-low);
+}
+[data-ui="nova"] .cd-shell .alert-banner--caution {
+  background: var(--color-mid-bg);
+  border-color: var(--color-mid-border);
+  color: var(--color-mid);
+}
+
+[data-ui="nova"] .cd-shell .collapsible__trigger { color: var(--color-text-strong); }
+[data-ui="nova"] .cd-shell .collapsible__arrow   { color: var(--color-faint); }
+
+[data-ui="nova"] .cd-shell .dasha-bar-bg {
+  background: var(--color-surface-2);
+  border-color: var(--color-border);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Responsive grid utilities for the Today tab's multi-column rows.
+   Nova primitives otherwise use inline styles (see dashboard-ui-nova.tsx),
+   but a @media breakpoint can't be expressed inline — these are the
+   one exception, used by dashboard-today-tab-nova.tsx and friends.
+   ═══════════════════════════════════════════════════════════ */
+
+.nova-grid-2,
+.nova-grid-3 {
+  display: grid;
+  gap: 16px;
+}
+.nova-grid-2 { grid-template-columns: 1fr 1fr; }
+.nova-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+.nova-grid-anticipation { grid-template-columns: 1.35fr 1fr; }
+
+@media (max-width: 860px) {
+  .nova-grid-2,
+  .nova-grid-3,
+  .nova-grid-anticipation {
+    grid-template-columns: 1fr;
+  }
+}

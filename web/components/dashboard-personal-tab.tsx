@@ -72,6 +72,22 @@ function kalamSlotKey(
   return `${slot.period ?? "slot"}-${slot.name ?? slot.slot}-${slot.start}-${slot.end}-${index}`;
 }
 
+export async function downloadJadhagamPdf(chartId: string, selectedDate: string, lang: Lang): Promise<void> {
+  if (!chartId) return;
+  const asOf = selectedDate || new Date().toISOString().slice(0, 10);
+  const response = await fetch(`/api/backend/api/v1/charts/${chartId}/export/pdf?asOf=${asOf}&lang=${lang}`, {
+    credentials: "include",
+  });
+  if (!response.ok) return;
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `jadhagam-${chartId}.pdf`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 export type DashboardPersonalTabProps = {
   lang: Lang;
   activeLifeMode?: LifeMode;
@@ -207,19 +223,7 @@ export function DashboardPersonalTab({
   }, [activeChartId, selectedDate]);
 
   async function downloadPersonalChartPdf() {
-    if (!activeChartId) return;
-    const asOf = selectedDate || new Date().toISOString().slice(0, 10);
-    const response = await fetch(`/api/backend/api/v1/charts/${activeChartId}/export/pdf?asOf=${asOf}&lang=${lang}`, {
-      credentials: "include",
-    });
-    if (!response.ok) return;
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `jadhagam-${activeChartId}.pdf`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    await downloadJadhagamPdf(activeChartId, selectedDate, lang);
   }
 
   async function handleSaveReminder() {

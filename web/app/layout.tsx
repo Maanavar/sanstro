@@ -163,7 +163,7 @@ export default async function RootLayout({
         <meta charSet="utf-8" />
         <meta name="color-scheme" content="light dark" />
         {/* Apply saved theme before first paint to prevent flash of wrong theme */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem("vinaadi-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}})();` }} />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem("vinaadi-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);var u=localStorage.getItem("vinaadi-ui-variant");if(u==="nova")document.documentElement.setAttribute("data-ui",u);}catch(e){}})();` }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG_JSONLD) }}

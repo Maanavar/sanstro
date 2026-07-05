@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Cormorant_Garamond, Source_Serif_4 } from "next/font/google";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
@@ -12,6 +13,27 @@ export const metadata: Metadata = {
   },
 };
 
+// Nova look only — scoped to the dashboard route so marketing pages never load
+// these fonts. `display: "contents"` keeps the wrapper out of layout entirely;
+// it exists only to host the two CSS variables the fonts export.
+const cormorantGaramond = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  display: "swap",
+  variable: "--font-nova-display",
+});
+
+const sourceSerif4 = Source_Serif_4({
+  subsets: ["latin"],
+  weight: ["400", "600"],
+  display: "swap",
+  variable: "--font-nova-prose",
+});
+
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  return <>{children}</>;
+  return (
+    <div className={`cd-font-host ${cormorantGaramond.variable} ${sourceSerif4.variable}`}>
+      {children}
+    </div>
+  );
 }
