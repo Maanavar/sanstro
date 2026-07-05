@@ -22,7 +22,7 @@ import type {
 
 import { DASHA_COLORS } from "./dashboard-dasha";
 
-type CalendarView = "panchangam" | "monthly";
+export type CalendarView = "panchangam" | "monthly";
 
 const W = {
   ink: "var(--color-text-strong)",
@@ -38,8 +38,8 @@ const W = {
   sage: "var(--color-score-high)",
 } as const;
 
-const RASI_NAMES_EN = ["", "Mesham", "Rishabam", "Mithunam", "Kadagam", "Simmam", "Kanni", "Thulam", "Viruchigam", "Dhanusu", "Magaram", "Kumbam", "Meenam"];
-const RASI_NAMES_TA = ["", "மேஷம்", "ரிஷபம்", "மிதுனம்", "கடகம்", "சிம்மம்", "கன்னி", "துலாம்", "விருச்சிகம்", "தனுசு", "மகரம்", "கும்பம்", "மீனம்"];
+export const RASI_NAMES_EN = ["", "Mesham", "Rishabam", "Mithunam", "Kadagam", "Simmam", "Kanni", "Thulam", "Viruchigam", "Dhanusu", "Magaram", "Kumbam", "Meenam"];
+export const RASI_NAMES_TA = ["", "மேஷம்", "ரிஷபம்", "மிதுனம்", "கடகம்", "சிம்மம்", "கன்னி", "துலாம்", "விருச்சிகம்", "தனுசு", "மகரம்", "கும்பம்", "மீனம்"];
 
 // Tamil solar months start dates (approximate Gregorian: month-day)
 // Chithirai begins ~Apr 14, then every ~30–31 days
@@ -57,7 +57,7 @@ const TAMIL_MONTH_STARTS: Array<[number, number]> = [
   [10, 18], [11, 16], [12, 16], [1, 14], [2, 13], [3, 14],
 ];
 
-function getTamilMonthDate(dateStr: string, lang: Lang): string {
+export function getTamilMonthDate(dateStr: string, lang: Lang): string {
   const d = new Date(`${dateStr}T00:00:00`);
   if (Number.isNaN(d.getTime())) return "";
   const month = d.getMonth() + 1; // 1-based
@@ -100,7 +100,7 @@ const NAKSHATRA_ORDER = [
   "UTHIRADAM", "THIRUVONAM", "AVITTAM", "SADAYAM", "POORATTATHI", "UTHIRATTATHI", "REVATHI",
 ];
 
-function parseHmToMinutes(hm: string): number {
+export function parseHmToMinutes(hm: string): number {
   const [h, m] = hm.split(":").map(Number);
   return (h ?? 0) * 60 + (m ?? 0);
 }
@@ -111,7 +111,7 @@ function parseHmToMinutes(hm: string): number {
 // card reflects what is actually running now. We only promote for a clear
 // daytime rollover — an endsAt before ~04:00 is an after-midnight boundary that
 // two-segment data can't disambiguate, so we leave those untouched.
-function activeLimb(
+export function activeLimb(
   name: string,
   endsAt: string,
   nextName: string,
@@ -127,7 +127,7 @@ function activeLimb(
   return { activeName: name, until: endsAt, upcomingName: nextName, rolledOver: false };
 }
 
-function moonRasiFromNakshatra(name: string, pada = 1): number {
+export function moonRasiFromNakshatra(name: string, pada = 1): number {
   const idx = NAKSHATRA_ORDER.indexOf(name.toUpperCase());
   if (idx < 0) return 0;
   const normalizedPada = Math.min(4, Math.max(1, Math.trunc(pada) || 1));
@@ -135,14 +135,14 @@ function moonRasiFromNakshatra(name: string, pada = 1): number {
   return Math.floor(absolutePada / 9) + 1;
 }
 
-function formatChandrashtamaWindowEdge(value: string, dateLocal: string): string {
+export function formatChandrashtamaWindowEdge(value: string, dateLocal: string): string {
   const clock = formatClockLabel(value);
   if (!value.includes("T")) return clock;
   const edgeDate = value.slice(0, 10);
   return edgeDate === dateLocal ? clock : `${clock}, ${formatDateLabel(edgeDate)}`;
 }
 
-function formatChandrashtamaWindowSummary(
+export function formatChandrashtamaWindowSummary(
   windows: PanchangamDailyResponseData["chandrashtamamToday"]["janmaNakshatraWindows"],
   dateLocal: string,
   lang: Lang,
@@ -152,16 +152,16 @@ function formatChandrashtamaWindowSummary(
     .join("; ");
 }
 
-function chandrashtamaAffectedNatalRasi(moonRasi: number): number {
+export function chandrashtamaAffectedNatalRasi(moonRasi: number): number {
   if (!moonRasi) return 0;
   return ((moonRasi - 1 - 7 + 12) % 12) + 1;
 }
 
-function rasiName(rasi: number, lang: Lang): string {
+export function rasiName(rasi: number, lang: Lang): string {
   return (lang === "ta" ? RASI_NAMES_TA[rasi] : RASI_NAMES_EN[rasi]) ?? "";
 }
 
-function formatHeaderDate(value: string, lang: Lang): string {
+export function formatHeaderDate(value: string, lang: Lang): string {
   const parsed = new Date(`${value}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) return formatDateLabel(value);
   return parsed.toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", {
@@ -171,13 +171,13 @@ function formatHeaderDate(value: string, lang: Lang): string {
   });
 }
 
-function tamilMonthOnly(value: string): string {
+export function tamilMonthOnly(value: string): string {
   const trimmed = value.trim();
   const splitAt = trimmed.lastIndexOf(" ");
   return splitAt > 0 ? trimmed.slice(0, splitAt) : trimmed;
 }
 
-function DayTimeline({
+export function DayTimeline({
   bestStart,
   bestEnd,
   avoidStart,
@@ -289,7 +289,7 @@ function HoraRow({
 type PanchangamKalamSlot = PanchangamDailyResponseData["kalam"]["nallaNeram"][number];
 type PanchangamAvoidWindow = { label: string; start: string; end: string };
 
-function timeWindowsOverlap(left: { start: string; end: string }, right: { start: string; end: string }): boolean {
+export function timeWindowsOverlap(left: { start: string; end: string }, right: { start: string; end: string }): boolean {
   const leftStart = parseHmToMinutes(left.start);
   let leftEnd = parseHmToMinutes(left.end);
   const rightStart = parseHmToMinutes(right.start);
@@ -403,7 +403,7 @@ function GowriNamedSlotPanel({
   );
 }
 
-function MoonPhaseMark({ kind, size = 10 }: { kind: "new" | "full"; size?: number }) {
+export function MoonPhaseMark({ kind, size = 10 }: { kind: "new" | "full"; size?: number }) {
   return (
     <span
       aria-hidden="true"
@@ -420,7 +420,7 @@ function MoonPhaseMark({ kind, size = 10 }: { kind: "new" | "full"; size?: numbe
   );
 }
 
-function LunarTithiBadge({
+export function LunarTithiBadge({
   value,
   lang,
   compact = false,
@@ -457,16 +457,16 @@ function LunarTithiBadge({
   );
 }
 
-const MONTH_LABELS_EN = [
+export const MONTH_LABELS_EN = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
-const MONTH_LABELS_TA = [
+export const MONTH_LABELS_TA = [
   "ஜனவரி", "பிப்ரவரி", "மார்ச்", "ஏப்ரல்", "மே", "ஜூன்",
   "ஜூலை", "ஆகஸ்ட்", "செப்டம்பர்", "அக்டோபர்", "நவம்பர்", "டிசம்பர்",
 ];
-const WEEKDAY_LABELS_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const WEEKDAY_LABELS_TA = ["ஞா", "தி", "செ", "பு", "வி", "வெ", "ச"];
+export const WEEKDAY_LABELS_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+export const WEEKDAY_LABELS_TA = ["ஞா", "தி", "செ", "பு", "வி", "வெ", "ச"];
 
 // Festival/observance icon glyphs keyed by a keyword found in the festival name.
 // Falls back to a generic sparkle when nothing matches.
@@ -481,7 +481,7 @@ const FESTIVAL_ICON_RULES: Array<[RegExp, string]> = [
   [/visakam|magam|uthiram/i, "⭐"],
 ];
 
-function festivalIcon(name: string): string {
+export function festivalIcon(name: string): string {
   // Prefer the local rule table (kept for backwards-compatible icons), then fall
   // back to the shared glyph map so every surface uses the same symbol set.
   for (const [pattern, icon] of FESTIVAL_ICON_RULES) {
@@ -490,14 +490,14 @@ function festivalIcon(name: string): string {
   return festivalGlyph(name);
 }
 
-function festivalImagePath(name: string): string | null {
+export function festivalImagePath(name: string): string | null {
   if (/chaturthi|chathurthi/i.test(name)) return "/calendar/chathurthi.png";
   if (/sashti/i.test(name)) return "/calendar/shasti.png";
   if (/ekadasi|ekadashi/i.test(name)) return "/calendar/ekadashi.png";
   return null;
 }
 
-function festivalTags(festival: Pick<PanchangamFestival, "category" | "tags">): string[] {
+export function festivalTags(festival: Pick<PanchangamFestival, "category" | "tags">): string[] {
   const tags = festival.tags && festival.tags.length > 0 ? festival.tags : [festival.category];
   return Array.from(new Set(tags.filter(Boolean)));
 }
@@ -520,7 +520,7 @@ function compactFestivalTagLabel(tag: string, lang: Lang): string {
   return festivalTagLabel(tag, lang);
 }
 
-const VRATHA_FESTIVAL_PATTERN = /ekadashi|ekadasi|pradosham|sashti|chaturthi|chathurthi|ashtami|amavas|pourn|vratam|vratham|thiruvonam/i;
+export const VRATHA_FESTIVAL_PATTERN = /ekadashi|ekadasi|pradosham|sashti|chaturthi|chathurthi|ashtami|amavas|pourn|vratam|vratham|thiruvonam/i;
 
 function festivalTagTone(tag: string): { bg: string; border: string; color: string } {
   if (tag === "hindu") return { bg: "var(--panel-warm-light)", border: "var(--cl-brand-ring)", color: W.rust };
@@ -661,7 +661,7 @@ function SubhaDatePillGroup({
   );
 }
 
-function MonthlyCalendarView({
+export function MonthlyCalendarView({
   lang,
   year,
   month,
@@ -1263,7 +1263,7 @@ function MonthlyCalendarView({
   );
 }
 
-function DayDetailDrawer({
+export function DayDetailDrawer({
   date,
   data,
   loading,

@@ -54,6 +54,11 @@ const CalendarTab = dynamic(
   { loading: LazyPanelFallback },
 );
 
+const DashboardCalendarTabNova = dynamic(
+  () => import("./dashboard-calendar-tab-nova").then((mod) => mod.DashboardCalendarTabNova),
+  { loading: LazyPanelFallback },
+);
+
 const DashboardTransitsTab = dynamic(
   () => import("./dashboard-transits-tab").then((mod) => mod.DashboardTransitsTab),
   { loading: LazyPanelFallback },
@@ -1679,7 +1684,19 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
           />
         )}
 
-        {activeTab === "calendar" && (
+        {activeTab === "calendar" && uiVariant === "nova" && (
+          <DashboardCalendarTabNova
+            selectedDate={selectedDate}
+            todayDate={personal.todayDate}
+            panchangam={personal.panchangam}
+            panchangamTimings={personal.panchangamTimings}
+            lang={lang}
+            locationLabel={personal.panchangamLocationLabel}
+            onSelectDate={setSelectedDate}
+          />
+        )}
+
+        {activeTab === "calendar" && uiVariant !== "nova" && (
           <CalendarTab
             selectedDate={selectedDate}
             todayDate={personal.todayDate}

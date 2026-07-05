@@ -20,6 +20,17 @@
    html:not([data-ui="nova"]) at their source in globals.css.
    ═══════════════════════════════════════════════════════════ */
 
+/* Nova's pages tend to be shorter/more compact than Classic's, so a
+   trackpad's momentum scrolling reaches the top/bottom edge sooner and
+   the browser's native elastic rubber-band overscroll becomes visible
+   and jarring (mouse-wheel scrolling has no momentum, so it stops flush
+   at the edge and never shows this). `overscroll-behavior-y: contain`
+   stops the rubber-band bounce at the page boundary without touching
+   Classic (scoped to <html data-ui="nova">). */
+:root[data-ui="nova"] {
+  overscroll-behavior-y: contain;
+}
+
 [data-ui="nova"] .cd-shell {
   color-scheme: dark;
   --cd-container-max: 1240px;
@@ -274,5 +285,13 @@
   .nova-grid-3,
   .nova-grid-anticipation {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Monthly calendar tab: grid + 300px sidebar, used by
+   dashboard-calendar-monthly-nova.tsx (screen 3, cal-monthly). */
+@media (max-width: 960px) {
+  .nova-cal-monthly-layout {
+    grid-template-columns: 1fr !important;
   }
 }
