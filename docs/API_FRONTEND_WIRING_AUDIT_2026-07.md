@@ -287,6 +287,15 @@ Two exports in the unused portion are provably broken and would fail immediately
 
 **Fix:** Add a per-row click handler in both surfaces calling the existing endpoint. **Primary files:** [web/app/notifications/page.tsx](../web/app/notifications/page.tsx), [web/components/dashboard-hero.tsx](../web/components/dashboard-hero.tsx).
 
+**Resolution (2026-07-05):**
+
+- **No contract change** — the endpoint already existed and was already covered by `tests/test_notifications_inbox_api.py`; this was pure frontend wiring, reusing the exact fetch pattern the existing "mark all read" handler already used.
+- **`web/components/dashboard-workspace.tsx`:** added `handleMarkOneRead(notificationId)`, calling `POST /api/v1/notifications/{id}/read` and updating `inboxItems`/`inboxUnreadCount` from the response, same shape as the existing `handleMarkAllRead`. Passed down as a new `onMarkOneRead` prop to `DashboardHero`.
+- **`web/components/dashboard-hero.tsx`:** the bell popover's per-notification row now shows a "Mark read" link (new i18n key `notif_mark_read`, ta: "படித்தது") next to the timestamp, visible only on unread items, calling `onMarkOneRead(n.notification_id)`.
+- **`web/app/notifications/page.tsx`:** added `handleMarkRead(notificationId)` (mirrors the page's existing `handleMarkAllRead`) and a "Mark read" button on each unread notification card, with a per-row `markingReadId` busy state.
+- **`web/lib/i18n.ts`:** added `notif_mark_read` string (en/ta).
+- **Verified:** `tsc --noEmit` and ESLint clean on all four changed files. No test harness exists for this pure-wiring change, so verified end-to-end with Playwright against the running dev server: registered a synthetic test account via `POST /auth/register`, seeded two synthetic unread notifications directly in `vinaadi_dev` (cleaned up afterward via cascade delete of the synthetic user — no leftover data), logged in, and drove both surfaces. Bell popover: clicking "படித்தது" on a row fired `POST /notifications/{id}/read -> 200` and the row's unread dot/link disappeared, the header's "mark all read" control and badge count updated accordingly (screenshotted before/after). Standalone `/notifications` page: clicking "Mark read" fired the same endpoint and removed the button from that row only, leaving the other unread row's button intact. No new console errors introduced (the only console 404s seen were `GET /birth-profiles/me/latest`, pre-existing and expected for a fresh account with no birth profile, unrelated to this change).
+
 ### WIRE-9 Feedback "reward qualified" toggle has no admin control `[ ]`
 
 **Problem:** `PATCH /feedback/{feedback_id}/reward` exists (`app/api/feedback.py`) to flag a feedback submission as qualifying for the "extended free access" perk described in its own docstring. `web/components/admin-console.tsx`'s Feedback tab (~line 1008-1038) displays feedback but has no button/handler for this — the `reward_qualified` field exists in the type but is never read or acted on.

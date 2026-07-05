@@ -77,6 +77,7 @@ interface DashboardHeroProps {
   inboxItems: NotificationInboxItem[];
   inboxUnreadCount: number;
   onMarkAllRead: () => void;
+  onMarkOneRead: (notificationId: string) => void;
   onTabChange: (tab: Tab) => void;
   onDateChange: (date: string) => void;
   onLangToggle: () => void;
@@ -163,6 +164,7 @@ export function DashboardHero(props: DashboardHeroProps) {
     inboxItems,
     inboxUnreadCount,
     onMarkAllRead,
+    onMarkOneRead,
     onTabChange,
     onDateChange,
     onLangToggle,
@@ -303,9 +305,20 @@ export function DashboardHero(props: DashboardHeroProps) {
                             {!n.read_at && <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--panel-brand)", flexShrink: 0, marginTop: "4px" }} />}
                           </p>
                           <p className="cd-alert-item__body">{n.body}</p>
-                          <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--color-faint)" }}>
-                            {new Date(n.send_at).toLocaleString()}
-                          </p>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                            <p style={{ margin: 0, fontSize: "0.65rem", color: "var(--color-faint)" }}>
+                              {new Date(n.send_at).toLocaleString()}
+                            </p>
+                            {!n.read_at && (
+                              <button
+                                type="button"
+                                onClick={() => onMarkOneRead(n.notification_id)}
+                                style={{ fontSize: "0.68rem", color: "var(--panel-brand)", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", flexShrink: 0 }}
+                              >
+                                {t("notif_mark_read", lang)}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       ))
                     )}

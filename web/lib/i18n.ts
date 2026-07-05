@@ -976,6 +976,7 @@ const STRINGS = {
   notif_mark_all_read:     { ta: "அனைத்தும் படித்தது",                 en: "Mark all read" },
   notif_inbox_empty:       { ta: "இன்று எந்த அறிவிப்பும் இல்லை.",     en: "No notifications yet." },
   notif_sent_empty:        { ta: "அனுப்பிய அறிவிப்புகள் இல்லை.",       en: "No sent notifications yet." },
+  notif_mark_read:         { ta: "படித்தது",                          en: "Mark read" },
 
   // ── Account button aria-label
   label_account:           { ta: "கணக்கு",   en: "Account" },

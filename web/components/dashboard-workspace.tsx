@@ -407,6 +407,12 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
       .catch(() => {});
   }
 
+  function handleMarkOneRead(notificationId: string) {
+    apiFetchJson<NotificationInboxResponse>(`/api/v1/notifications/${notificationId}/read`, { method: "POST" })
+      .then((r) => { setInboxItems(r.data); setInboxUnreadCount(r.unread_count); })
+      .catch(() => {});
+  }
+
   // ── Domain hooks ─────────────────────────────────────────
 
   const session = useSession({
@@ -1109,6 +1115,7 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
         inboxItems={inboxItems}
         inboxUnreadCount={inboxUnreadCount}
         onMarkAllRead={handleMarkAllRead}
+        onMarkOneRead={handleMarkOneRead}
         onTabChange={goToTab}
         onDateChange={setSelectedDate}
         onLangToggle={() => setLang((l) => l === "ta" ? "en" : "ta")}

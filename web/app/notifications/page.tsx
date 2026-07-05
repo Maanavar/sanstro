@@ -18,6 +18,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [markingAllRead, setMarkingAllRead] = useState(false);
+  const [markingReadId, setMarkingReadId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -56,6 +57,20 @@ export default function NotificationsPage() {
       setError(readErrorMessage(markError));
     } finally {
       setMarkingAllRead(false);
+    }
+  }
+
+  async function handleMarkRead(notificationId: string) {
+    setMarkingReadId(notificationId);
+    setError(null);
+    try {
+      const response = await apiFetchJson<NotificationInboxResponse>(`/api/v1/notifications/${notificationId}/read`, { method: "POST" });
+      setItems(response.data ?? []);
+      setUnreadCount(response.unread_count ?? 0);
+    } catch (markError) {
+      setError(readErrorMessage(markError));
+    } finally {
+      setMarkingReadId(null);
     }
   }
 
@@ -122,6 +137,16 @@ export default function NotificationsPage() {
                   </div>
                   <h2 style={{ margin: "0 0 6px", color: "var(--cl-ink)", fontSize: "1.05rem" }}>{item.title}</h2>
                   <p style={{ margin: 0, color: "var(--cl-muted)", lineHeight: 1.65 }}>{item.body}</p>
+                  {!item.read_at && (
+                    <button
+                      type="button"
+                      onClick={() => void handleMarkRead(item.notification_id)}
+                      disabled={markingReadId === item.notification_id}
+                      style={{ marginTop: "10px", fontSize: "0.78rem", fontWeight: 700, color: "#8A4B1F", background: "none", border: "none", padding: 0, cursor: markingReadId === item.notification_id ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+                    >
+                      {markingReadId === item.notification_id ? "Marking..." : "Mark read"}
+                    </button>
+                  )}
                 </article>
               ))}
             </div>
