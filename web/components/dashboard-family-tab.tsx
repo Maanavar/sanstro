@@ -14,7 +14,8 @@ import type {
   DashaTimelineResponseData,
   FamilyAggregateData,
   FamilyAggregateMember,
-  FamilyCalendarData,
+  FamilyCompositeTimelineData,
+  FamilyMemberData,
   FamilyVaultDetailData,
   FamilyVaultListItem,
   FamilyVaultTodayData,
@@ -66,7 +67,8 @@ type DashboardFamilyTabProps = {
   vaults: FamilyVaultListItem[];
   familyDetail: FamilyVaultDetailData | null;
   familyAggregate: FamilyAggregateData | null;
-  familyCalendar: FamilyCalendarData | null;
+  familyComposite: FamilyCompositeTimelineData | null;
+  familyMembers: FamilyMemberData[];
   memberCharts: MemberChartData[];
   relationshipAlerts: RelationshipAlertItem[];
   alertsLoading: boolean;
@@ -154,92 +156,11 @@ function formatRelLabel(rel: string | undefined | null): string | null {
   return rel.charAt(0).toUpperCase() + rel.slice(1).toLowerCase();
 }
 
-/* ── Compact member row card (right column) ─────────────── */
-function MemberRowCard({
-  member,
-  memberChart,
-  lang,
-}: {
-  member: FamilyAggregateMember;
-  memberChart: MemberChartData | undefined;
-  lang: Lang;
-}) {
-  const band = getScoreBand(member.individualScore);
-  const toneColor = scoreColor(member.individualScore);
-  const scoreBg   = band.tone === "high" ? "var(--chart-d9-active-bg)" : band.tone === "low" ? "var(--panel-warm-tint)" : "var(--chart-d1-lagna-bg)";
-  const isChandrashtama = memberChart?.transit?.isChandrashtama ?? false;
-
-  /* Prefer aggregate relationship (set at member-add time), fall back to birthProfile */
-  const relationship = (member as any).relationshipToOwner as string | undefined
-    ?? memberChart?.chart?.birthProfile?.relationshipToOwner ?? "";
-  const relLabel = formatRelLabel(relationship);
-
-  const dasha = memberChart?.dasha;
-  const summary = memberChart?.summary;
-  const bestW = memberChart?.dailyGuidance?.bestWindows[0];
-  const avoidW = memberChart?.dailyGuidance?.cautionWindows[0];
-
-  const identityParts: string[] = [];
-  if (summary?.lagnaRasi) identityParts.push(`${summary.lagnaRasi} ${t("label_lagnam", lang)}`);
-  if (summary?.janmaNakshatra) identityParts.push(`${summary.janmaNakshatra} ☉`);
-  if (dasha) identityParts.push(`${tPlanetLord(dasha.current.mahadasha.lord, lang)} ${t("dasha_word", lang)}`);
-  if (dasha) identityParts.push(`${tPlanetLord(dasha.current.antardasha.lord, lang)} ${t("bhukti_word", lang)}`);
-
-  return (
-    <div style={{
-      background: "var(--color-surface)",
-      border: `1px solid ${isChandrashtama ? "var(--cl-rust-35)" : "var(--color-border)"}`,
-      borderRadius: "var(--radius-md)",
-      padding: "var(--space-5) var(--space-6)",
-      display: "flex",
-      flexDirection: "column",
-      gap: "var(--space-2_5)",
-    }}>
-      {/* Top row: label + name + ring */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-3)" }}>
-        <div style={{ flex: 1 }}>
-          {relLabel && <p className="cd-kicker">{relLabel}</p>}
-          <p style={{ margin: "0 0 var(--space-0_75)", fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 500, color: "var(--color-text-strong)", lineHeight: 1.1, overflowWrap: "anywhere", wordBreak: "break-word" }}>
-            {member.displayName}
-          </p>
-          {identityParts.length > 0 && (
-            <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)" }}>
-              {identityParts.join(" · ")}
-            </p>
-          )}
-        </div>
-        <ScoreRing score={member.individualScore} size={64} />
-      </div>
-
-      {/* Status chips row */}
-      <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
-        <span style={{ padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 600, background: scoreBg, color: toneColor, border: `1px solid ${toneColor}44` }}>
-          {lang === "ta" ? "இன்று" : "Today"} {band.label.toLowerCase()}
-        </span>
-        {bestW && (
-          <span style={{ padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 600, background: "var(--panel-cream)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}>
-            {lang === "ta" ? "சிறந்த" : "Best"} {formatClockLabel(bestW.start)} – {formatClockLabel(bestW.end)}
-          </span>
-        )}
-        {avoidW && (
-          <span style={{ padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 600, background: "var(--panel-warm-tint)", border: "1px solid var(--cl-rust-30)", color: SCORE_LOW }}>
-            {lang === "ta" ? "தவிர்" : "Avoid"} {formatClockLabel(avoidW.start)} – {formatClockLabel(avoidW.end)}
-          </span>
-        )}
-        {isChandrashtama && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 700, background: "var(--panel-warm-tint)", color: SCORE_LOW, border: "1px solid var(--cl-rust-edge)" }}>
-            <AlertGlyph /> {t("label_chandrashtamam", lang)}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
 /* ── Expanded member detail (shown below name selector) ─── */
 function MemberDetailExpanded({
   member,
   memberChart,
+  relationshipToOwner,
   onDelete,
   onEdit,
   deletingId,
@@ -248,6 +169,7 @@ function MemberDetailExpanded({
 }: {
   member: FamilyAggregateMember;
   memberChart: MemberChartData | undefined;
+  relationshipToOwner: string | undefined;
   onDelete: (memberId: string, name: string) => void;
   onEdit: (member: FamilyAggregateMember) => void;
   deletingId: string;
@@ -259,9 +181,7 @@ function MemberDetailExpanded({
   const scoreBg   = band.tone === "high" ? "var(--chart-d9-active-bg)" : band.tone === "low" ? "var(--panel-warm-tint)" : "var(--chart-d1-lagna-bg)";
   const isChandrashtama = memberChart?.transit?.isChandrashtama ?? false;
 
-  const relationship = (member as any).relationshipToOwner as string | undefined
-    ?? memberChart?.chart?.birthProfile?.relationshipToOwner ?? "";
-  const relLabel = formatRelLabel(relationship);
+  const relLabel = formatRelLabel(relationshipToOwner);
 
   const summary = memberChart?.summary;
   const guidance = memberChart?.dailyGuidance;
@@ -480,7 +400,8 @@ export function DashboardFamilyTab({
   vaults,
   familyDetail,
   familyAggregate,
-  familyCalendar,
+  familyComposite,
+  familyMembers,
   memberCharts,
   relationshipAlerts,
   alertsLoading,
@@ -518,8 +439,8 @@ export function DashboardFamilyTab({
   const activeMemberChart = activeMember ? memberCharts.find((mc) => mc.memberId === activeMember.familyMemberId) : null;
 
   const memberOptions = members.map((m) => {
-    const mc = memberCharts.find((c) => c.memberId === m.familyMemberId);
-    return { memberId: m.familyMemberId, displayName: m.displayName, relationshipToOwner: mc?.chart?.birthProfile?.relationshipToOwner ?? "other" };
+    const fm = familyMembers.find((f) => f.familyMemberId === m.familyMemberId);
+    return { memberId: m.familyMemberId, displayName: m.displayName, relationshipToOwner: fm?.relationshipToOwner ?? "other" };
   });
   const memberChartsForSynastry = memberCharts.map((m) => ({
     memberId: m.memberId, displayName: m.displayName, chart: m.chart,
@@ -543,7 +464,7 @@ export function DashboardFamilyTab({
   const todayMidCount = todayMembers.filter((m) => m.score >= 45 && m.score < 65).length;
   const todayLowCount = todayMembers.filter((m) => m.score < 45).length;
 
-  /* 7-day scores — real family scores from calendar (selectedDate → +6 days) */
+  /* 7-day scores — real family + per-member scores from composite (selectedDate → +6 days) */
   const weekDayLabels = (() => {
     const days: string[] = [];
     const base = new Date(selectedDate + "T00:00:00");
@@ -555,11 +476,17 @@ export function DashboardFamilyTab({
     return days;
   })();
   const weekScores = weekDayLabels.map((_, i) => {
-    const calItem = familyCalendar?.items[i];
-    if (calItem != null) return Math.max(30, Math.min(99, calItem.familyScore));
-    // Calendar still loading — placeholder based on today's score
+    const compositeItem = familyComposite?.items[i];
+    if (compositeItem != null) return Math.max(30, Math.min(99, compositeItem.familyScore));
+    // Composite still loading — placeholder based on today's score
     return Math.max(30, Math.min(99, familyScore + (i === 0 ? 0 : -2)));
   });
+  /* Per-member 7-day trend, keyed by member so each row stays aligned across days */
+  const memberWeekTrends = members.map((m) => ({
+    familyMemberId: m.familyMemberId,
+    displayName: m.displayName,
+    scores: weekDayLabels.map((_, i) => familyComposite?.items[i]?.members.find((cm) => cm.familyMemberId === m.familyMemberId)?.individualScore ?? null),
+  }));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-7, 28px)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
@@ -717,6 +644,28 @@ export function DashboardFamilyTab({
               );
             })}
           </div>
+
+          {/* Per-member 7-day trend */}
+          {memberWeekTrends.length > 0 && (
+            <div style={{ marginTop: "var(--space-3)", paddingTop: "var(--space-3)", borderTop: "1px solid var(--color-border)", display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
+              {memberWeekTrends.map((trend) => (
+                <div key={trend.familyMemberId} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                  <span style={{ minWidth: "84px", maxWidth: "84px", fontSize: "0.75rem", color: "var(--color-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {trend.displayName}
+                  </span>
+                  <div style={{ display: "flex", gap: "var(--space-1)", flex: 1 }}>
+                    {trend.scores.map((s, i) => (
+                      <span key={i} style={{
+                        flex: 1, height: "4px", borderRadius: "2px",
+                        background: s == null ? "var(--color-border)" : scoreColor(s),
+                        opacity: s == null ? 0.4 : 1,
+                      }} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── Chandrashtama alert ── */}
@@ -784,6 +733,7 @@ export function DashboardFamilyTab({
             <MemberDetailExpanded
               member={activeMember}
               memberChart={activeMemberChart ?? undefined}
+              relationshipToOwner={familyMembers.find((fm) => fm.familyMemberId === activeMember.familyMemberId)?.relationshipToOwner}
               onDelete={onDeleteMember}
               onEdit={onEditMember}
               deletingId={busy.deletingMemberId}

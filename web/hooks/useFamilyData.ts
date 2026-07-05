@@ -16,7 +16,8 @@ import type {
   DashaTimelineResponseData,
   FamilyAggregateData,
   FamilyAggregateMember,
-  FamilyCalendarData,
+  FamilyCompositeTimelineData,
+  FamilyMemberData,
   FamilyVaultDetailData,
   FamilyVaultListData,
   FamilyVaultListItem,
@@ -54,7 +55,8 @@ type UseFamilyDataOptions = {
 type FamilyBundle = {
   detail: FamilyVaultDetailData | null;
   aggregate: FamilyAggregateData | null;
-  calendar: FamilyCalendarData | null;
+  composite: FamilyCompositeTimelineData | null;
+  members: FamilyMemberData[];
 };
 
 const MEMBER_CHART_CONCURRENCY = 2;
@@ -84,20 +86,24 @@ async function fetchVaults(ownerUserId: string): Promise<FamilyVaultListData> {
 }
 
 async function fetchFamilyBundle(vaultId: string, date: string): Promise<FamilyBundle> {
-  const [detailRes, aggregateRes, calendarRes] = await Promise.all([
+  const [detailRes, aggregateRes, compositeRes, membersRes] = await Promise.all([
     apiFetchJson<ApiEnvelope<FamilyVaultDetailData>>(`/api/v1/family-vaults/${vaultId}`),
     apiFetchJson<ApiEnvelope<FamilyAggregateData>>(
       `/api/v1/family-vaults/${vaultId}/daily-aggregate${toQuery({ date })}`,
     ),
-    apiFetchJson<ApiEnvelope<FamilyCalendarData>>(
-      `/api/v1/family-vaults/${vaultId}/calendar${toQuery({ from: date, to: addDays(date, 6) })}`,
+    apiFetchJson<ApiEnvelope<FamilyCompositeTimelineData>>(
+      `/api/v1/family-vaults/${vaultId}/composite${toQuery({ from: date, to: addDays(date, 6) })}`,
+    ),
+    apiFetchJson<ApiEnvelope<{ familyVaultId: string; totalCount: number; items: FamilyMemberData[] }>>(
+      `/api/v1/family-vaults/${vaultId}/members`,
     ),
   ]);
 
   return {
     detail: detailRes.data,
     aggregate: aggregateRes.data,
-    calendar: calendarRes.data,
+    composite: compositeRes.data,
+    members: membersRes.data.items,
   };
 }
 
@@ -347,7 +353,8 @@ export function useFamilyData({ ownerUserId, selectedDate, onStatus }: UseFamily
     queryClient.setQueryData<FamilyBundle>(familyKeys.bundle(selectedVaultId, selectedDate), (prev) => ({
       detail: partial.detail ?? prev?.detail ?? null,
       aggregate: partial.aggregate ?? prev?.aggregate ?? null,
-      calendar: partial.calendar ?? prev?.calendar ?? null,
+      composite: partial.composite ?? prev?.composite ?? null,
+      members: partial.members ?? prev?.members ?? [],
     }));
   }
 
@@ -358,7 +365,8 @@ export function useFamilyData({ ownerUserId, selectedDate, onStatus }: UseFamily
     vaults: vaultsQuery.data?.items ?? ([] as FamilyVaultListItem[]),
     familyDetail: bundle?.detail ?? null,
     familyAggregate: bundle?.aggregate ?? null,
-    familyCalendar: bundle?.calendar ?? null,
+    familyComposite: bundle?.composite ?? null,
+    familyMembers: bundle?.members ?? ([] as FamilyMemberData[]),
     memberCharts: memberChartsQuery.data ?? [],
     relationshipAlerts: relationshipAlertsQuery.data ?? [],
     relationshipAlertsLoading: relationshipAlertsQuery.isFetching,
@@ -368,7 +376,7 @@ export function useFamilyData({ ownerUserId, selectedDate, onStatus }: UseFamily
     setSelectedVaultId,
     setFamilyDetail: (detail: FamilyVaultDetailData | null) => updateFamilyBundle({ detail }),
     setFamilyAggregate: (aggregate: FamilyAggregateData | null) => updateFamilyBundle({ aggregate }),
-    setFamilyCalendar: (calendar: FamilyCalendarData | null) => updateFamilyBundle({ calendar }),
+    setFamilyComposite: (composite: FamilyCompositeTimelineData | null) => updateFamilyBundle({ composite }),
     loadVaults,
     refreshFamilyBundle,
     loadRelationshipAlerts,

@@ -830,6 +830,31 @@ export interface FamilyCalendarData {
   familyVaultId: string; fromDate: string; toDate: string; items: FamilyCalendarItem[];
 }
 
+export interface FamilyMemberData {
+  familyMemberId: string; familyVaultId: string; ownerUserId: string; displayName: string;
+  relationshipToOwner: string; memberWeight: number; genderForTraditionalRules: string;
+  dateOfBirthLocal: string | null; isMinor: boolean; birthProfileId: string | null;
+  maritalStatus: string | null; employmentType: string | null;
+}
+
+export interface FamilyMemberListData {
+  familyVaultId: string; totalCount: number; items: FamilyMemberData[];
+}
+
+export interface CompositeMemberScore {
+  familyMemberId: string; displayName: string; individualScore: number;
+  label: string; activeCycleTags: string[];
+}
+
+export interface CompositeTimelineItem {
+  dateLocal: string; familyScore: number; familyLabel: string;
+  members: CompositeMemberScore[]; supportNeedIndex: number; decisionReadinessIndex: number;
+}
+
+export interface FamilyCompositeTimelineData {
+  familyVaultId: string; fromDate: string; toDate: string; items: CompositeTimelineItem[];
+}
+
 export interface GoalData {
   goalId: string; chartId: string; goalType: string; description: string | null;
   isActive: boolean; languagePreference: string; createdAt: string;

@@ -1029,7 +1029,7 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
         family.setSelectedVaultId("");
         family.setFamilyDetail(null);
         family.setFamilyAggregate(null);
-        family.setFamilyCalendar(null);
+        family.setFamilyComposite(null);
       }
       await family.loadVaults(ownerUserId);
     } catch (error) {
@@ -1613,7 +1613,8 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
             vaults={family.vaults}
             familyDetail={family.familyDetail}
             familyAggregate={family.familyAggregate}
-            familyCalendar={family.familyCalendar}
+            familyComposite={family.familyComposite}
+            familyMembers={family.familyMembers}
             memberCharts={family.memberCharts}
             relationshipAlerts={family.relationshipAlerts}
             alertsLoading={family.relationshipAlertsLoading}

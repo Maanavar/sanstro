@@ -6,6 +6,7 @@ from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import utc_datetime_to_julian_day
@@ -585,13 +586,14 @@ def _persist_family_daily_score(
     support_need_index: int,
     decision_readiness_index: int,
 ) -> None:
-    existing = session.execute(
-        select(FamilyDailyScore).where(
-            FamilyDailyScore.family_vault_id == family_vault_id,
-            FamilyDailyScore.date_local == aggregate.date_local,
-            FamilyDailyScore.timezone == timezone_name,
-        )
-    ).scalar_one_or_none()
+    def _find_existing() -> FamilyDailyScore | None:
+        return session.execute(
+            select(FamilyDailyScore).where(
+                FamilyDailyScore.family_vault_id == family_vault_id,
+                FamilyDailyScore.date_local == aggregate.date_local,
+                FamilyDailyScore.timezone == timezone_name,
+            )
+        ).scalar_one_or_none()
 
     payload_breakdown = aggregate.aggregate_breakdown.model_dump(mode="json", by_alias=True)
     payload_members = [member.model_dump(mode="json", by_alias=True) for member in member_summaries]
@@ -600,32 +602,39 @@ def _persist_family_daily_score(
         window.model_dump(mode="json", by_alias=True) for window in aggregate.avoid_for_family_decisions
     ]
 
-    if existing is None:
-        existing = FamilyDailyScore(
-            family_vault_id=family_vault_id,
-            date_local=aggregate.date_local,
-            timezone=timezone_name,
-            family_score=aggregate.family_score,
-            family_label=aggregate.family_label,
-            aggregate_breakdown=payload_breakdown,
-            member_scores=payload_members,
-            best_family_windows=payload_best_windows,
-            avoid_for_family_decisions=payload_avoid_windows,
-            support_need_index=support_need_index,
-            decision_readiness_index=decision_readiness_index,
-        )
-        session.add(existing)
-    else:
-        existing.family_score = aggregate.family_score
-        existing.family_label = aggregate.family_label
-        existing.aggregate_breakdown = payload_breakdown
-        existing.member_scores = payload_members
-        existing.best_family_windows = payload_best_windows
-        existing.avoid_for_family_decisions = payload_avoid_windows
-        existing.support_need_index = support_need_index
-        existing.decision_readiness_index = decision_readiness_index
+    def _apply(row: FamilyDailyScore) -> None:
+        row.family_score = aggregate.family_score
+        row.family_label = aggregate.family_label
+        row.aggregate_breakdown = payload_breakdown
+        row.member_scores = payload_members
+        row.best_family_windows = payload_best_windows
+        row.avoid_for_family_decisions = payload_avoid_windows
+        row.support_need_index = support_need_index
+        row.decision_readiness_index = decision_readiness_index
 
-    session.flush()
+    existing = _find_existing()
+    if existing is not None:
+        _apply(existing)
+        session.flush()
+        return
+
+    existing = FamilyDailyScore(family_vault_id=family_vault_id, date_local=aggregate.date_local, timezone=timezone_name)
+    _apply(existing)
+    session.add(existing)
+    try:
+        session.flush()
+    except IntegrityError:
+        # Lost a race with a concurrent request computing the same vault/date/timezone
+        # cache row (daily-aggregate, composite and today can all compute the same day
+        # concurrently). Roll back and fall back to updating the row the other request
+        # just committed rather than 500ing - the aggregate we already computed and are
+        # about to return to the caller is unaffected either way.
+        session.rollback()
+        existing = _find_existing()
+        if existing is None:
+            raise
+        _apply(existing)
+        session.flush()
 
 
 def create_family_vault(session: Session, payload: FamilyVaultCreate, *, calculation_version: str = DEFAULT_CALCULATION_VERSION) -> FamilyVaultCreateResponse:
