@@ -75,6 +75,24 @@ type RetentionCohort = {
 
 type RetentionReport = { cohorts: RetentionCohort[] };
 
+type CalibrationBucket = {
+  key: string;
+  hit: number;
+  near: number;
+  miss: number;
+  n: number;
+  hit_rate: number | null;
+};
+
+type CalibrationReport = {
+  total_logged: number;
+  total_open: number;
+  total_graded: number;
+  by_area_band: CalibrationBucket[];
+  by_dasha_lord: CalibrationBucket[];
+  as_of: string;
+};
+
 type FeedbackItem = {
   id: string;
   submitted_at: string;
@@ -127,6 +145,7 @@ type AdminTab =
   | "health"
   | "users"
   | "analytics"
+  | "calibration"
   | "feedback"
   | "operations"
   | "notifications"
@@ -141,6 +160,7 @@ const tabs: Array<{ id: AdminTab; label: string }> = [
   { id: "health", label: "Health" },
   { id: "users", label: "Users" },
   { id: "analytics", label: "Analytics" },
+  { id: "calibration", label: "Calibration" },
   { id: "feedback", label: "Feedback" },
   { id: "operations", label: "Operations" },
   { id: "notifications", label: "Notifications" },
@@ -217,6 +237,7 @@ export function AdminConsole() {
   const [dailyMetrics, setDailyMetrics] = useState<DailyMetrics | null>(null);
   const [featureUsage, setFeatureUsage] = useState<FeatureUsage | null>(null);
   const [retention, setRetention] = useState<RetentionReport | null>(null);
+  const [calibration, setCalibration] = useState<CalibrationReport | null>(null);
   const [feedback, setFeedback] = useState<FeedbackResponse | null>(null);
   const [jobs, setJobs] = useState<JobInfo[]>([]);
   const [jobResults, setJobResults] = useState<Record<string, JobRunResult>>({});
@@ -268,6 +289,11 @@ export function AdminConsole() {
   useEffect(() => {
     if (!adminKey || activeTab !== "analytics") return;
     void loadAnalytics(adminKey);
+  }, [adminKey, activeTab]);
+
+  useEffect(() => {
+    if (!adminKey || activeTab !== "calibration") return;
+    void loadCalibration(adminKey);
   }, [adminKey, activeTab]);
 
   useEffect(() => {
@@ -389,6 +415,20 @@ export function AdminConsole() {
     }
   }
 
+  async function loadCalibration(key: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await adminFetchJson<CalibrationReport>("/api/v1/admin/calibration", key);
+      setCalibration(data);
+      setStatus("Calibration report refreshed.");
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function loadFeedback(key: string) {
     setLoading(true);
     setError(null);
@@ -396,6 +436,23 @@ export function AdminConsole() {
       const data = await adminFetchJson<FeedbackResponse>("/api/v1/feedback", key);
       setFeedback(data);
       setStatus("Feedback refreshed.");
+    } catch (err) {
+      setError(readErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function toggleRewardQualified(key: string, feedbackId: string, rewardQualified: boolean) {
+    setLoading(true);
+    setError(null);
+    try {
+      const updated = await adminFetchJson<FeedbackItem>(`/api/v1/feedback/${encodeURIComponent(feedbackId)}/reward`, key, {
+        method: "PATCH",
+        body: JSON.stringify({ reward_qualified: rewardQualified }),
+      });
+      setFeedback((prev) => (prev ? { ...prev, items: prev.items.map((item) => (item.id === updated.id ? updated : item)) } : prev));
+      setStatus(rewardQualified ? "Marked reward-qualified." : "Reward qualification removed.");
     } catch (err) {
       setError(readErrorMessage(err));
     } finally {
@@ -1005,6 +1062,112 @@ export function AdminConsole() {
             </section>
           ) : null}
 
+          {activeTab === "calibration" ? (
+            <section className="admin-section" aria-labelledby="calibration-title">
+              <div className="admin-section__header">
+                <div>
+                  <h2 id="calibration-title">Prediction Calibration (D5)</h2>
+                  <p>
+                    {calibration
+                      ? `Hit/near/miss rates as of ${formatDateTimeLabel(calibration.as_of)}. Read-only — any weight recalibration stays a manual owner + specialist decision.`
+                      : "Hit/near/miss rates per life area, band, and dasha lord."}
+                  </p>
+                </div>
+                <button className="admin-button" type="button" onClick={() => void loadCalibration(adminKey)} disabled={loading}>
+                  Refresh
+                </button>
+              </div>
+
+              {calibration ? (
+                <>
+                  <div className="admin-metrics">
+                    {[
+                      { label: "Total logged", value: calibration.total_logged },
+                      { label: "Still open", value: calibration.total_open, hint: "Not yet graded" },
+                      { label: "Graded", value: calibration.total_graded },
+                    ].map((row) => (
+                      <div className="admin-metric" key={row.label}>
+                        <span>{row.label}</span>
+                        <strong>{numberLabel(row.value)}</strong>
+                        {row.hint ? <small>{row.hint}</small> : null}
+                      </div>
+                    ))}
+                  </div>
+
+                  {calibration.total_graded < 30 ? (
+                    <div className="admin-empty">
+                      Fewer than 30 graded predictions so far — bucket numbers below are not statistically meaningful yet.
+                    </div>
+                  ) : null}
+
+                  <div className="admin-retention">
+                    <h3>By life area &times; band</h3>
+                    {calibration.by_area_band.length > 0 ? (
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>Life area / band</th>
+                            <th>Hit</th>
+                            <th>Near</th>
+                            <th>Miss</th>
+                            <th>N</th>
+                            <th>Hit rate</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {calibration.by_area_band.map((bucket) => (
+                            <tr key={bucket.key}>
+                              <td>{bucket.key}</td>
+                              <td>{numberLabel(bucket.hit)}</td>
+                              <td>{numberLabel(bucket.near)}</td>
+                              <td>{numberLabel(bucket.miss)}</td>
+                              <td>{numberLabel(bucket.n)}</td>
+                              <td>{bucket.hit_rate !== null ? `${Math.round(bucket.hit_rate * 100)}%` : "-"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div className="admin-empty">No graded predictions yet.</div>
+                    )}
+                  </div>
+
+                  <div className="admin-retention">
+                    <h3>By active dasha lord</h3>
+                    {calibration.by_dasha_lord.length > 0 ? (
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>Dasha lord</th>
+                            <th>Hit</th>
+                            <th>Near</th>
+                            <th>Miss</th>
+                            <th>N</th>
+                            <th>Hit rate</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {calibration.by_dasha_lord.map((bucket) => (
+                            <tr key={bucket.key}>
+                              <td>{bucket.key}</td>
+                              <td>{numberLabel(bucket.hit)}</td>
+                              <td>{numberLabel(bucket.near)}</td>
+                              <td>{numberLabel(bucket.miss)}</td>
+                              <td>{numberLabel(bucket.n)}</td>
+                              <td>{bucket.hit_rate !== null ? `${Math.round(bucket.hit_rate * 100)}%` : "-"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div className="admin-empty">No graded predictions yet.</div>
+                    )}
+                  </div>
+                </>
+              ) : null}
+            </section>
+          ) : null}
+
           {activeTab === "feedback" ? (
             <section className="admin-section" aria-labelledby="feedback-title">
               <div className="admin-section__header">
@@ -1024,11 +1187,22 @@ export function AdminConsole() {
                         <span className="admin-badge">{item.category}</span>
                         <span>{formatDateTimeLabel(item.submitted_at)}</span>
                         <span>{item.rating ? `${item.rating}/5` : "No rating"}</span>
+                        {item.reward_qualified ? (
+                          <span className="admin-badge admin-badge--ok">Reward-qualified</span>
+                        ) : null}
                       </div>
                       <p>{item.message}</p>
                       <footer>
                         <span>User {item.owner_user_id ?? "unknown"}</span>
                         <span>{item.page_context ?? "No page context"}</span>
+                        <button
+                          className="admin-button admin-button--quiet"
+                          type="button"
+                          disabled={loading}
+                          onClick={() => void toggleRewardQualified(adminKey, item.id, !item.reward_qualified)}
+                        >
+                          {item.reward_qualified ? "Remove reward flag" : "Mark reward-qualified"}
+                        </button>
                       </footer>
                     </article>
                   ))

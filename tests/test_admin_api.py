@@ -15,6 +15,7 @@ from app.models.chart import Chart
 from app.models.family_member import FamilyMember
 from app.models.family_vault import FamilyVault
 from app.models.feedback import Feedback
+from app.models.prediction_log import PredictionLog
 from app.models.subscription import Subscription
 from app.models.user import User
 from app.models.user_notification_preference import UserNotificationPreference
@@ -365,3 +366,97 @@ def test_feature_flags_round_trip(raw_client):
     assert reset_response.status_code == 200
     assert reset_response.json()["reset"] is True
     assert reset_response.json()["current_value"] is False
+
+
+def test_calibration_requires_admin(raw_client):
+    non_admin_user_id = _create_user("non-admin@example.com")
+    response = raw_client.get(
+        "/api/v1/admin/calibration",
+        headers={"Authorization": f"Bearer {create_access_token(subject=non_admin_user_id)}"},
+    )
+    assert response.status_code == 403
+
+
+def test_calibration_report_aggregates_prediction_log(raw_client):
+    admin_user_id = _create_user("admin@example.com")
+    target_user_id = UUID(_create_user("calibration-target@example.com"))
+    headers = _admin_headers(admin_user_id, "test-admin-key")
+
+    with SessionLocal() as session:
+        profile = BirthProfile(
+            owner_user_id=target_user_id,
+            display_name="Calibration Target",
+            birth_date_local=date(1990, 4, 12),
+            birth_time_local=time(9, 15),
+            birth_place="Madurai, Tamil Nadu, India",
+            birth_latitude=Decimal("9.925200"),
+            birth_longitude=Decimal("78.119800"),
+            birth_timezone="Asia/Kolkata",
+        )
+        session.add(profile)
+        session.flush()
+
+        chart = Chart(
+            birth_profile_id=profile.birth_profile_id,
+            calculation_version="test-v1",
+            julian_day=Decimal("2451545.00000000"),
+            lagna_rasi="Simha",
+            lagna_longitude=Decimal("135.00000000"),
+            moon_rasi="Kanni",
+            janma_nakshatra="Hastha",
+            janma_pada=2,
+        )
+        session.add(chart)
+        session.flush()
+
+        session.add_all(
+            [
+                PredictionLog(
+                    chart_id=chart.chart_id,
+                    source="life_areas",
+                    life_area="CAREER",
+                    band="STRONG",
+                    active_maha="JUPITER",
+                    outcome_grade="HIT",
+                    calc_version="test-v1",
+                ),
+                PredictionLog(
+                    chart_id=chart.chart_id,
+                    source="life_areas",
+                    life_area="CAREER",
+                    band="STRONG",
+                    active_maha="JUPITER",
+                    outcome_grade="MISS",
+                    calc_version="test-v1",
+                ),
+                PredictionLog(
+                    chart_id=chart.chart_id,
+                    source="whatif",
+                    life_area="MARRIAGE",
+                    band="LIKELY",
+                    active_maha="VENUS",
+                    outcome_grade=None,
+                    calc_version="test-v1",
+                ),
+            ]
+        )
+        session.commit()
+
+    response = raw_client.get("/api/v1/admin/calibration", headers=headers)
+    assert response.status_code == 200
+    body = response.json()
+
+    assert body["total_logged"] == 3
+    assert body["total_open"] == 1
+    assert body["total_graded"] == 2
+
+    area_band = {b["key"]: b for b in body["by_area_band"]}
+    assert area_band["CAREER/STRONG"]["hit"] == 1
+    assert area_band["CAREER/STRONG"]["miss"] == 1
+    assert area_band["CAREER/STRONG"]["n"] == 2
+    assert area_band["CAREER/STRONG"]["hit_rate"] == 0.5
+    assert "MARRIAGE/LIKELY" not in area_band  # open rows are excluded from buckets
+
+    dasha_lord = {b["key"]: b for b in body["by_dasha_lord"]}
+    assert dasha_lord["JUPITER"]["n"] == 2
+    assert "VENUS" not in dasha_lord
