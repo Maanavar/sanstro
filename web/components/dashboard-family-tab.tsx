@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetchJson } from "@/lib/api";
-import { getScoreBand, formatClockLabel, scoreColor, SCORE_HIGH, SCORE_MID, SCORE_LOW } from "@/lib/format";
+import { apiFetchJson, toQuery } from "@/lib/api";
+import { getScoreBand, formatClockLabel, formatDateLabel, scoreColor, SCORE_HIGH, SCORE_MID, SCORE_LOW } from "@/lib/format";
 import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
+  ApiEnvelope,
   ChartCalculateResponseData,
   ChartExplanationData,
   ChartSummaryData,
@@ -17,6 +18,9 @@ import type {
   FamilyCompositeTimelineData,
   FamilyMemberData,
   FamilyVaultDetailData,
+  FamilyVaultJournalData,
+  FamilyVaultJournalEntryData,
+  FamilyVaultJournalSummaryData,
   FamilyVaultListItem,
   FamilyVaultTodayData,
   PeyarchiEvent,
@@ -388,8 +392,122 @@ function MemberDetailExpanded({
   );
 }
 
+/* ── Family journal (read-only) ──────────────────────────── */
+const JOURNAL_AREA_KEY: Record<string, Parameters<typeof t>[0]> = {
+  career: "journal_area_career",
+  relationship: "journal_area_relationship",
+  health: "journal_area_health",
+  family: "journal_area_family",
+  finance: "journal_area_finance",
+  education: "journal_area_education",
+  spiritual: "journal_area_spiritual",
+  general: "journal_area_general",
+};
+
+function journalAreaLabel(lifeArea: string, lang: Lang): string {
+  const key = JOURNAL_AREA_KEY[lifeArea];
+  return key ? t(key, lang) : lifeArea;
+}
+
+function FamilyJournalPanel({
+  lang,
+  members,
+  journalData,
+  journalSummary,
+  loading,
+  memberFilter,
+  onMemberFilterChange,
+}: {
+  lang: Lang;
+  members: FamilyMemberData[];
+  journalData: FamilyVaultJournalData | null;
+  journalSummary: FamilyVaultJournalSummaryData | null;
+  loading: boolean;
+  memberFilter: string;
+  onMemberFilterChange: (memberId: string) => void;
+}) {
+  const entries = journalData?.items ?? [];
+
+  return (
+    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+      {/* Member filter */}
+      <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
+        <button type="button" onClick={() => onMemberFilterChange("all")}
+          style={{
+            padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", border: "1.5px solid",
+            borderColor: memberFilter === "all" ? "var(--color-text-strong)" : "var(--color-border-strong)",
+            background: memberFilter === "all" ? "var(--color-text-strong)" : "transparent",
+            color: memberFilter === "all" ? "var(--color-bg)" : "var(--color-muted)",
+            fontSize: "0.8125rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+          }}>
+          {lang === "ta" ? "அனைவரும்" : "All members"}
+        </button>
+        {members.map((m) => (
+          <button key={m.familyMemberId} type="button" onClick={() => onMemberFilterChange(m.familyMemberId)}
+            style={{
+              padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", border: "1.5px solid",
+              borderColor: memberFilter === m.familyMemberId ? "var(--color-text-strong)" : "var(--color-border-strong)",
+              background: memberFilter === m.familyMemberId ? "var(--color-text-strong)" : "transparent",
+              color: memberFilter === m.familyMemberId ? "var(--color-bg)" : "var(--color-muted)",
+              fontSize: "0.8125rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+            }}>
+            {m.displayName}
+          </button>
+        ))}
+      </div>
+
+      {/* Summary strip */}
+      {journalSummary && journalSummary.totalEntries > 0 && (
+        <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap", alignItems: "center" }}>
+          <span className="cd-kicker">
+            {journalSummary.totalEntries} {lang === "ta" ? "பதிவுகள்" : "entries"}
+          </span>
+          {journalSummary.lifeAreaCounts.map((item) => (
+            <span key={item.lifeArea} style={{ padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 600, background: "var(--panel-cream)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}>
+              {journalAreaLabel(item.lifeArea, lang)} · {item.count}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Entry list */}
+      {loading && entries.length === 0 ? (
+        <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-faint)" }}>
+          {lang === "ta" ? "ஏற்றுகிறது..." : "Loading..."}
+        </p>
+      ) : entries.length === 0 ? (
+        <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-faint)" }}>
+          {lang === "ta"
+            ? "இன்னும் குடும்ப ஜர்னல் பதிவுகள் இல்லை. உங்கள் தனிப்பட்ட ஜர்னலில் ஒரு உறுப்பினரின் ஜாதகத்திற்கு பதிவு செய்யவும்."
+            : "No family journal entries yet. Entries you write against a family member's chart in your personal Journal tab will show up here."}
+        </p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
+          {entries.map((entry: FamilyVaultJournalEntryData) => (
+            <div key={entry.journalId} style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: "var(--panel-cream)", border: "1px solid var(--color-border)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-2)", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>{entry.memberDisplayName}</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--color-faint)" }}>{formatDateLabel(entry.entryDate)}</span>
+                <span style={{ padding: "var(--space-0_75) var(--space-2)", borderRadius: "var(--radius-pill)", fontSize: "0.6875rem", fontWeight: 600, background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-muted)" }}>
+                  {journalAreaLabel(entry.lifeArea, lang)}
+                </span>
+                {entry.tags.map((tag) => (
+                  <span key={tag} style={{ padding: "var(--space-0_75) var(--space-2)", borderRadius: "var(--radius-pill)", fontSize: "0.6875rem", background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-muted)" }}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-text)", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{entry.noteText}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Main tab ───────────────────────────────────────────── */
-type FamilySubTab = "members" | "synastry";
+type FamilySubTab = "members" | "synastry" | "journal";
 
 export function DashboardFamilyTab({
   lang,
@@ -416,6 +534,10 @@ export function DashboardFamilyTab({
   const [subTab, setSubTab] = useState<FamilySubTab>("members");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [familyToday, setFamilyToday] = useState<FamilyVaultTodayData | null>(null);
+  const [journalMemberFilter, setJournalMemberFilter] = useState<string>("all");
+  const [journalData, setJournalData] = useState<FamilyVaultJournalData | null>(null);
+  const [journalSummary, setJournalSummary] = useState<FamilyVaultJournalSummaryData | null>(null);
+  const [journalLoading, setJournalLoading] = useState(false);
 
   useEffect(() => {
     if (!selectedVaultId) {
@@ -432,6 +554,33 @@ export function DashboardFamilyTab({
       .catch(() => { if (!signal.aborted) setFamilyToday(null); });
     return () => controller.abort();
   }, [selectedVaultId, busy.family]);
+
+  useEffect(() => {
+    if (!selectedVaultId || subTab !== "journal") return;
+    const controller = new AbortController();
+    const { signal } = controller;
+    setJournalLoading(true);
+    Promise.all([
+      apiFetchJson<ApiEnvelope<FamilyVaultJournalData>>(
+        `/api/v1/family-vaults/${selectedVaultId}/journal${toQuery({
+          familyMemberId: journalMemberFilter === "all" ? undefined : journalMemberFilter,
+          limit: 100,
+        })}`,
+        { signal },
+      ),
+      apiFetchJson<ApiEnvelope<FamilyVaultJournalSummaryData>>(
+        `/api/v1/family-vaults/${selectedVaultId}/journal/summary`, { signal },
+      ),
+    ])
+      .then(([entriesRes, summaryRes]) => {
+        if (signal.aborted) return;
+        setJournalData(entriesRes.data);
+        setJournalSummary(summaryRes.data);
+      })
+      .catch(() => { if (!signal.aborted) { setJournalData(null); setJournalSummary(null); } })
+      .finally(() => { if (!signal.aborted) setJournalLoading(false); });
+    return () => controller.abort();
+  }, [selectedVaultId, subTab, journalMemberFilter]);
 
   const members = familyAggregate?.members ?? [];
   const activeMemberId = selectedMemberId ?? members[0]?.familyMemberId ?? null;
@@ -726,6 +875,17 @@ export function DashboardFamilyTab({
                 {lang === "ta" ? "பொருத்தம்" : "Compatibility"}
               </button>
             )}
+            <button type="button"
+              onClick={() => setSubTab(subTab === "journal" ? "members" : "journal")}
+              style={{
+                padding: "var(--space-1_5) var(--space-4)", borderRadius: "var(--radius-pill)", border: "1.5px solid",
+                borderColor: subTab === "journal" ? "var(--color-text-strong)" : "var(--color-border-strong)",
+                background: subTab === "journal" ? "var(--color-text-strong)" : "transparent",
+                color: subTab === "journal" ? "var(--color-bg)" : "var(--color-muted)",
+                fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+              }}>
+              {lang === "ta" ? "ஜர்னல்" : "Journal"}
+            </button>
           </div>
 
           {/* Individual detail */}
@@ -764,6 +924,19 @@ export function DashboardFamilyTab({
                 alertsLoading={alertsLoading}
               />
             </div>
+          )}
+
+          {/* Family journal — read-only browse of the owner's own journal entries, filterable by member */}
+          {subTab === "journal" && (
+            <FamilyJournalPanel
+              lang={lang}
+              members={familyMembers}
+              journalData={journalData}
+              journalSummary={journalSummary}
+              loading={journalLoading}
+              memberFilter={journalMemberFilter}
+              onMemberFilterChange={setJournalMemberFilter}
+            />
           )}
         </div>
       )}

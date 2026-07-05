@@ -855,6 +855,24 @@ export interface FamilyCompositeTimelineData {
   familyVaultId: string; fromDate: string; toDate: string; items: CompositeTimelineItem[];
 }
 
+export interface FamilyVaultJournalEntryData {
+  journalId: string; familyVaultId: string; familyMemberId: string; memberDisplayName: string;
+  birthProfileId: string; chartId: string; entryDate: string; lifeArea: string;
+  noteText: string; tags: string[]; createdAt: string; deletedAt: string | null;
+}
+
+export interface FamilyVaultJournalData {
+  familyVaultId: string; includeArchived: boolean; totalCount: number;
+  items: FamilyVaultJournalEntryData[];
+}
+
+export interface FamilyVaultJournalLifeAreaCount { lifeArea: string; count: number }
+
+export interface FamilyVaultJournalSummaryData {
+  familyVaultId: string; includeArchived: boolean; fromDate: string | null; toDate: string | null;
+  totalEntries: number; lifeAreaCounts: FamilyVaultJournalLifeAreaCount[];
+}
+
 export interface GoalData {
   goalId: string; chartId: string; goalType: string; description: string | null;
   isActive: boolean; languagePreference: string; createdAt: string;
