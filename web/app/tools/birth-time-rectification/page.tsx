@@ -158,10 +158,10 @@ export default function BirthTimeRectificationPage() {
         <section className="cl-cta-strip">
           <div className="cl-container cl-cta-strip__inner">
             <div>
-              <h2 className="cl-cta-strip__title">{lang === "en" ? "Improve your birth time" : "உங்கள் பிறந்த நேரத்தை மேம்படுத்துங்கள்"}</h2>
-              <p className="cl-cta-strip__body">{lang === "en" ? "More accurate birth time means more accurate guidance." : "பிறப்பு நேரம் துல்லியமாக இருக்கும் போது, வழிகாட்டுதலும் அதே அளவு துல்லியமாகும்."}</p>
+              <h2 className="cl-cta-strip__title">{mt(d.cta_strip_h2, lang)}</h2>
+              <p className="cl-cta-strip__body">{mt(d.cta_strip_body, lang)}</p>
             </div>
-            <Link href="/dashboard" className="cl-btn cl-btn--solid">{lang === "en" ? "Open dashboard →" : "டேஷ்போர்டு திற →"}</Link>
+            <Link href="/dashboard" className="cl-btn cl-btn--solid">{mt(d.cta_start_free, lang)}</Link>
           </div>
         </section>
       </main>

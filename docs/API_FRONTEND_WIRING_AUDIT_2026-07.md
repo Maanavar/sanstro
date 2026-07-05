@@ -225,7 +225,7 @@ This turned out to need a different endpoint than either one this document names
 
 ---
 
-### WIRE-6 Birth-time-rectification public page has no interactive surface `[ ]`
+### WIRE-6 Birth-time-rectification public page has no interactive surface `[x]` — resolved 2026-07-05
 
 **Problem:** `web/app/tools/birth-time-rectification/page.tsx` is static marketing copy — hero text, step descriptions, FAQ — with no form, no input, no fetch call. It only links to `/dashboard`. The real, working rectification wizard (`web/components/dashboard-rectification-wizard.tsx`, calling `app/api/rectification.py`'s two endpoints) is authenticated-only, reachable from `dashboard-setup-tab.tsx`.
 
@@ -237,6 +237,14 @@ This turned out to need a different endpoint than either one this document names
 **Primary files:** [web/app/tools/birth-time-rectification/page.tsx](../web/app/tools/birth-time-rectification/page.tsx), [web/components/dashboard-rectification-wizard.tsx](../web/components/dashboard-rectification-wizard.tsx) (reference only, don't duplicate its logic).
 
 **Priority note:** This is UX/conversion polish, not a functional bug — rank it below WIRE-1 through WIRE-5.
+
+**Resolution (2026-07-05):**
+
+- **Confirmed the page collects zero birth details today** (re-read in full: hero, 3 content bands, FAQ, CTA strip — no `<form>`, no input, no fetch call anywhere), so item 2 of the decision (progressive-profiling handoff into signup) is moot per its own escape hatch — nothing to thread through. No fake preview was built, per item 3.
+- **Item 1 (make the CTA explicit) was the only actionable change.** Both CTAs on this page were the odd ones out compared to every other public tool page (`jadhagam-generator`, `indraiya-rasipalan`, `daily-panchangam-planner`, `muhurta-calculator`, `marriage-porutham-calculator`), all of which already follow a consistent pattern: a benefit-specific headline + "Create a free account for/to `<specific value>`" body + a "Get started free →" button. This page instead said "Try rectification →" (hero) and "Open dashboard →" (bottom strip) — copy that implied an interactive demo existed, which is exactly the false impression the audit flagged.
+- **Fix:** `web/lib/marketing-i18n.ts`'s `TOOL_BTR` — hero CTA (`cta_start`) changed to "Create your free chart to start rectification →" (the exact phrasing suggested in this doc's decision). Added `cta_strip_h2`/`cta_strip_body`/`cta_start_free` to bring the bottom CTA strip in line with the other five tool pages' pattern: headline "Save your chart, then narrow the birth time", body explicitly states rectification needs an existing chart + life events, button "Get started free →" (matching the other pages verbatim rather than inventing new button copy). `web/app/tools/birth-time-rectification/page.tsx` updated to consume these via `mt()` instead of the old inline hardcoded strings.
+- **Both CTAs still link to `/dashboard`** (unchanged target — matches every other tool page's convention; no separate signup route exists in this codebase for tool pages to link to instead).
+- **Verified:** `tsc --noEmit` clean on `web`; ESLint clean on both changed files (`page.tsx`, `marketing-i18n.ts`).
 
 ---
 
