@@ -18,14 +18,14 @@ interface BiText {
   en: string;
 }
 
-interface EventCorrelation {
+export interface EventCorrelation {
   mahaLord: string;
   antarLord: string;
   moonRasi: string;
   narrative: BiText;
 }
 
-interface LifeEventLogItem {
+export interface LifeEventLogItem {
   id: string;
   chartId: string;
   eventType: string;
@@ -34,7 +34,7 @@ interface LifeEventLogItem {
   correlation?: EventCorrelation | null;
 }
 
-const EVENT_TYPES = [
+export const EVENT_TYPES = [
   { id: "JOB_CHANGE", en: "Job change" },
   { id: "PROMOTION", en: "Promotion" },
   { id: "DEMOTION", en: "Demotion" },
@@ -67,7 +67,7 @@ const EVENT_TYPES = [
   { id: "OTHER", en: "Other" },
 ];
 
-const EVENT_ICON: Record<string, LucideIcon> = {
+export const EVENT_ICON: Record<string, LucideIcon> = {
   JOB_CHANGE:          Briefcase,
   PROMOTION:           TrendingUp,
   DEMOTION:            TrendingDown,
@@ -113,7 +113,7 @@ const W = {
   rust: "var(--planet-saturn)",
 } as const;
 
-function eventLabel(type: string): string {
+export function eventLabel(type: string): string {
   return EVENT_TYPES.find((e) => e.id === type)?.en ?? type;
 }
 

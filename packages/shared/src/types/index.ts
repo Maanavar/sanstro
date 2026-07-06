@@ -954,6 +954,7 @@ export type NakshatraCardData = {
   number: number; nameTa: string; nameEn: string; deityTa: string; deityEn: string;
   symbolTa: string; symbolEn: string; rulingPlanet: string;
   profile: BiText; strengths: BiText[]; cautions: BiText[]; compatibleGroups: string[];
+  ganam: BiText; yoni: BiText;
 };
 
 export type NotificationPreferenceData = {

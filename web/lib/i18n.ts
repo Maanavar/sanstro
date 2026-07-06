@@ -866,6 +866,9 @@ const STRINGS = {
   // ── P3-A: Shadow work prompts
   shadow_prompts_title:    { ta: "ஆழ்மன பயிற்சி",              en: "Shadow work" },
   shadow_prompts_cta:      { ta: "உங்கள் உள்நோக்கை ஆராயுங்கள்", en: "Explore your inner landscape today" },
+  shadow_prompts_desc:     { ta: "உங்கள் 8, 12ஆம் இடங்களின் அமைப்பை அடிப்படையாகக் கொண்ட ஆழமான சிந்தனை தூண்டல்கள்.", en: "Deep reflective prompts based on your 8th and 12th house placements" },
+  shadow_prompts_reflect_on: { ta: "சிந்தியுங்கள்…",             en: "Reflect on…" },
+  shadow_prompts_empty:    { ta: "தற்போது தூண்டல்கள் கிடைக்கவில்லை.", en: "No prompts available at the moment." },
 
   // ── Vargas (Divisional Charts)
   vargas_title:            { ta: "வர்க கட்டங்கள்",              en: "Divisional Charts" },

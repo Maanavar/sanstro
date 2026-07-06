@@ -26,25 +26,25 @@ type PredictionCardProps = {
   deferred?: boolean;
 };
 
-function confidenceTone(confidence: string) {
+export function confidenceTone(confidence: string) {
   if (confidence === "HIGH") return { bg: "var(--chart-d9-active-bg)", border: "var(--cl-sage-border)", text: SCORE_HIGH };
   if (confidence === "LOW") return { bg: "var(--panel-warm-tint)", border: "var(--cl-rust-35)", text: SCORE_LOW };
   return { bg: "var(--chart-d1-lagna-bg)", border: "var(--cl-brand-edge)", text: SCORE_MID };
 }
 
-function supportTone(value: string) {
+export function supportTone(value: string) {
   if (value === "STRONG") return SCORE_HIGH;
   if (value === "WEAK") return SCORE_LOW;
   return SCORE_MID;
 }
 
-function supportLabel(value: string, lang: Lang) {
+export function supportLabel(value: string, lang: Lang) {
   if (value === "STRONG") return t("pred_strong", lang);
   if (value === "PARTIAL") return t("pred_partial", lang);
   return t("pred_weak", lang);
 }
 
-function confidenceLabel(value: string, lang: Lang) {
+export function confidenceLabel(value: string, lang: Lang) {
   if (value === "HIGH") return t("pred_high", lang);
   if (value === "MEDIUM") return t("pred_medium", lang);
   return t("pred_low", lang);
@@ -71,7 +71,7 @@ function SupportList({ items, color, lang }: { items: { ta: string; en: string }
   );
 }
 
-function predictionIsDeferred(pred: LifeAreaPredictionData): boolean {
+export function predictionIsDeferred(pred: LifeAreaPredictionData): boolean {
   const factorKeys = pred.astrologicalFactors.map((factor) => factor.key);
   if (factorKeys.includes("age_phase_gate")) return true;
   const text = pred.mainPredictionEn.toLowerCase();

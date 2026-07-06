@@ -28,7 +28,7 @@ const ALWAYS_ON_AFTER_18 = new Set(["HEALTH", "SPIRITUAL", "MONEY", "CAREER"]);
 // Areas that unlock when the person is married
 const MARRIAGE_AREAS = new Set(["FAMILY_HARMONY", "CHILDREN"]);
 
-function isAreaRelevantForAge(areaKey: string, age: number, maritalStatus?: string): boolean {
+export function isAreaRelevantForAge(areaKey: string, age: number, maritalStatus?: string): boolean {
   const isMarried = maritalStatus === "married" || maritalStatus === "widowed" || maritalStatus === "divorced";
 
   // Health is relevant at every age

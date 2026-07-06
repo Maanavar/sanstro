@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { apiFetchJson } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { todayIso } from "@/lib/format";
 import { Surface } from "./dashboard-ui";
@@ -65,15 +66,15 @@ export function DashboardShadowPrompts({ lang, mode = "BALANCED", chartId }: Das
   }
 
   return (
-    <Surface title={lang === "ta" ? "????? ???????" : "Shadow Work"}>
+    <Surface title={t("shadow_prompts_title", lang)}>
       <div className="surface__body">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
           <div>
             <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 700, color: W.mutedLt, letterSpacing: "0.07em", textTransform: "uppercase" }}>
-              {lang === "ta" ? "????? ???????" : "Shadow Work"}
+              {t("shadow_prompts_title", lang)}
             </p>
             <p style={{ margin: "4px 0 0 0", fontSize: "0.875rem", color: W.muted, lineHeight: 1.5 }}>
-              {lang === "ta" ? "?????? 8??? ??????? 12??? ?? ??????????? ???????????? ????? ?????????" : "Deep reflective prompts based on your 8th and 12th house placements"}
+              {t("shadow_prompts_desc", lang)}
             </p>
           </div>
           <button
@@ -92,18 +93,18 @@ export function DashboardShadowPrompts({ lang, mode = "BALANCED", chartId }: Das
               fontFamily: "inherit",
             }}
           >
-            {lang === "ta" ? "??? ?????? ?????????" : "Explore inner landscape"}
+            {t("shadow_prompts_cta", lang)}
           </button>
         </div>
 
         {open && (
           <div style={{ marginTop: "14px" }}>
-            {loading && <p style={{ fontSize: "0.875rem", color: W.muted }}>{lang === "ta" ? "??????????..." : "Loading..."}</p>}
+            {loading && <p style={{ fontSize: "0.875rem", color: W.muted }}>{t("journal_prompts_loading", lang)}</p>}
 
             {!loading && prompts && prompts.length > 0 && (
               <div>
                 <p style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: W.mutedLt, marginBottom: "10px" }}>
-                  {lang === "ta" ? "?????????..." : "Reflect on..."}
+                  {t("shadow_prompts_reflect_on", lang)}
                 </p>
                 {prompts.map((p, i) => (
                   <div key={p.promptId} style={{ padding: "12px 14px", borderRadius: "10px", border: `1px solid ${W.borderLt}`, marginBottom: "8px", background: W.card, display: "flex", gap: "10px", alignItems: "flex-start" }}>
@@ -115,7 +116,7 @@ export function DashboardShadowPrompts({ lang, mode = "BALANCED", chartId }: Das
             )}
 
             {!loading && prompts && prompts.length === 0 && (
-              <p style={{ fontSize: "0.875rem", color: W.muted }}>{lang === "ta" ? "??????? ??????? ????????? ?????." : "No prompts available at the moment."}</p>
+              <p style={{ fontSize: "0.875rem", color: W.muted }}>{t("shadow_prompts_empty", lang)}</p>
             )}
           </div>
         )}

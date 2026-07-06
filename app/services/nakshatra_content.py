@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.calculations.porutham import GANA_BY_NAKSHATRA, YONI_BY_NAKSHATRA
+
 
 @dataclass(frozen=True)
 class NakshatraLens:
@@ -165,6 +167,25 @@ class NakshatraCompatGroup(BaseModel):
     porutham_basis: str
 
 
+# Display labels for the Gana/Yoni codes in app.calculations.porutham's
+# GANA_BY_NAKSHATRA / YONI_BY_NAKSHATRA tables (Deva=1/Manushya=2/Rakshasa=3;
+# 14 yoni animals) — same classical Porutham reference, just spelled out for
+# the personality-card UI instead of used as a bare match-scoring code.
+_GANA_LABELS: dict[int, tuple[str, str]] = {
+    1: ("தேவ கணம்", "Deva Gana"),
+    2: ("மனுஷ கணம்", "Manushya Gana"),
+    3: ("ராட்சத கணம்", "Rakshasa Gana"),
+}
+
+_YONI_LABELS: dict[int, tuple[str, str]] = {
+    1: ("குதிரை", "Horse"), 2: ("யானை", "Elephant"), 3: ("ஆடு", "Sheep"),
+    4: ("பாம்பு", "Serpent"), 5: ("நாய்", "Dog"), 6: ("பூனை", "Cat"),
+    7: ("எலி", "Rat"), 8: ("பசு", "Cow"), 9: ("எருமை", "Buffalo"),
+    10: ("புலி", "Tiger"), 11: ("மான்", "Deer"), 12: ("குரங்கு", "Monkey"),
+    13: ("சிங்கம்", "Lion"), 14: ("கீரி", "Mongoose"),
+}
+
+
 class NakshatraCard(BaseModel):
     number: int
     name_ta: str = Field(alias="nameTa")
@@ -179,16 +200,26 @@ class NakshatraCard(BaseModel):
     cautions: list[NakshatraBiText]
     compatible_groups: list[str] = Field(alias="compatibleGroups")
     compatible_groups_rich: list[NakshatraCompatGroup] = Field(alias="compatibleGroupsRich", default_factory=list)
+    # Ganam/Yoni are derived from the same classical tables the Porutham engine
+    # already uses (app.calculations.porutham) — not authored per-card below,
+    # so a default sentinel here is always overwritten in model_post_init.
+    ganam: NakshatraBiText = Field(default_factory=lambda: NakshatraBiText(ta="", en=""))
+    yoni: NakshatraBiText = Field(default_factory=lambda: NakshatraBiText(ta="", en=""))
 
     model_config = ConfigDict(populate_by_name=True)
 
     def model_post_init(self, __context: object) -> None:
-        if self.compatible_groups_rich:
-            return
-        self.compatible_groups_rich = [
-            _build_compat_group(code, index)
-            for index, code in enumerate(self.compatible_groups)
-        ]
+        if not self.compatible_groups_rich:
+            self.compatible_groups_rich = [
+                _build_compat_group(code, index)
+                for index, code in enumerate(self.compatible_groups)
+            ]
+        if not self.ganam.ta:
+            gana_ta, gana_en = _GANA_LABELS[GANA_BY_NAKSHATRA[self.number]]
+            self.ganam = NakshatraBiText(ta=gana_ta, en=gana_en)
+        if not self.yoni.ta:
+            yoni_ta, yoni_en = _YONI_LABELS[YONI_BY_NAKSHATRA[self.number]]
+            self.yoni = NakshatraBiText(ta=yoni_ta, en=yoni_en)
 
 
 class NakshatraCardResponse(BaseModel):

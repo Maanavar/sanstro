@@ -177,7 +177,7 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
           <p className="cd-kicker" style={{ margin: "0 0 var(--space-0_5)", color: "var(--color-score-mid)", letterSpacing: "0.08em" }}>
             {t("remedy_label", lang)}
           </p>
-          <p style={{ margin: 0, fontSize: "0.75rem", color: "#7a3412", lineHeight: 1.45 }}>{tLang(area.remedy, lang)}</p>
+          <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.45 }}>{tLang(area.remedy, lang)}</p>
         </div>
       )}
 

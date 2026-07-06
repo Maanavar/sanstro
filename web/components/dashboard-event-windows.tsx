@@ -7,7 +7,7 @@ import { tLang } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { EventWindowItem } from "@/lib/types";
 
-type EventType = "MARRIAGE" | "CAREER" | "FINANCE";
+export type EventType = "MARRIAGE" | "CAREER" | "FINANCE";
 
 type EventWindowsProps = {
   lang: Lang;
@@ -31,7 +31,7 @@ const MARRIED_MARRIAGE_LABEL = { ta: "உறவு & இணக்கம்", en:
 
 // Humanise the raw engine reason codes — users should never see tokens like
 // `7th_lord_dasha_active`.
-const REASON_LABELS: Record<string, { ta: string; en: string }> = {
+export const REASON_LABELS: Record<string, { ta: string; en: string }> = {
   "7th_lord_dasha_active": { ta: "தசை: உறவு/திருமணத்தை குறிக்கும் 7-ம் வீட்டு அதிபதி செயல்படுகிறார்", en: "Dasa: the 7th-house lord for marriage/partnership is active" },
   venus_dasha_active: { ta: "தசை: உறவு/திருமண காரகனான சுக்கிரன் செயல்படுகிறார்", en: "Dasa: Venus, the marriage/relationship significator, is active" },
   jupiter_supports_7th: { ta: "கிரகநகர்வு: குரு 7-ம் வீட்டை பார்க்கிறார் அல்லது அங்கே இருக்கிறார்", en: "Transit: Jupiter occupies or aspects the 7th house" },
@@ -48,14 +48,14 @@ const REASON_LABELS: Record<string, { ta: string; en: string }> = {
   jupiter_supports_11th: { ta: "கிரகநகர்வு: குரு 11-ம் வீட்டை ஆதரிக்கிறார்", en: "Transit: Jupiter supports the 11th house of gains" },
 };
 
-function humaniseReason(code: string, lang: Lang): string {
+export function humaniseReason(code: string, lang: Lang): string {
   const m = REASON_LABELS[code];
   if (m) return tLang(m, lang);
   // Fallback: turn snake_case into readable words rather than showing the token.
   return code.replace(/_/g, " ");
 }
 
-function scoreTone(score: number) {
+export function scoreTone(score: number) {
   if (score >= 65) return { color: "var(--color-score-high)", bg: "rgba(92,118,84,0.15)" };
   if (score >= 45) return { color: "var(--color-score-mid)", bg: "rgba(184,90,44,0.15)" };
   return { color: "var(--color-score-low)", bg: "rgba(168,72,47,0.15)" };

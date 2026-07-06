@@ -13,7 +13,7 @@ export const YOGA_DISPLAY: Record<string, { ta: string; en: string }> = {
   RAJA_YOGA:        { ta: "Raja Yoga",         en: "Raja Yoga" },
   DHANA_YOGA:       { ta: "Dhana Yoga",        en: "Dhana Yoga" },
   NEECHA_BHANGA_RAJA_YOGA: { ta: "Neecha Bhanga Raja Yoga", en: "Neecha Bhanga Raja Yoga" },
-  KALASARPA:        { ta: "Kala Sarpa Yoga",   en: "Kala Sarpa Yoga" },
+  KALASARPA:        { ta: "காலசர்ப்ப யோகம்",   en: "Kala Sarpa Yoga" },
   BUDHA_ADITYA_YOGA:   { ta: "Budha-Aditya Yoga",    en: "Budha-Aditya Yoga" },
   VIPAREETHA_RAJA_YOGA:{ ta: "Vipareetha Raja Yoga", en: "Vipareetha Raja Yoga" },
   PARIVARTANA_YOGA:    { ta: "Parivartana Yoga",     en: "Parivartana Yoga" },
@@ -26,12 +26,13 @@ export const YOGA_DISPLAY: Record<string, { ta: string; en: string }> = {
   DARIDRA_YOGA:        { ta: "Daridra Yoga",         en: "Daridra Yoga" },
   LAKSHMI_YOGA:        { ta: "Lakshmi Yoga",         en: "Lakshmi Yoga" },
   VASUMATI_YOGA:       { ta: "Vasumati Yoga",        en: "Vasumati Yoga" },
-  SEVVAI_DOSHAM:    { ta: "Sevvai Dosham",      en: "Sevvai Dosham" },
-  RAHU_KETU_DOSHAM: { ta: "Rahu-Ketu Dosham",  en: "Rahu-Ketu Dosham" },
-  PITRU_DOSHAM:     { ta: "Pitru Dosham",       en: "Pitru Dosham" },
-  KALATHRA_DOSHAM:  { ta: "Kalathra Dosham",    en: "Kalathra Dosham" },
-  PUTRA_SARPA_DOSHAM: { ta: "Putra Sarpa Dosham", en: "Putra Sarpa Dosham" },
-  BADHAKA_DOSHAM:   { ta: "Badhaka Dosham",     en: "Badhaka Dosham" },
+  SEVVAI_DOSHAM:    { ta: "செவ்வாய் தோஷம்",      en: "Sevvai Dosham" },
+  RAHU_KETU_DOSHAM: { ta: "ராகு-கேது தோஷம்",  en: "Rahu-Ketu Dosham" },
+  PITRU_DOSHAM:     { ta: "பித்ரு தோஷம்",       en: "Pitru Dosham" },
+  KALATHRA_DOSHAM:  { ta: "களத்திர தோஷம்",    en: "Kalathra Dosham" },
+  PUTRA_SARPA_DOSHAM: { ta: "புத்ர சர்ப்ப தோஷம்", en: "Putra Sarpa Dosham" },
+  BADHAKA_DOSHAM:   { ta: "பாதக தோஷம்",     en: "Badhaka Dosham" },
+  MARANA_KARAKA_STHANA: { ta: "மரண காரக ஸ்தானம்", en: "Marana Karaka Sthana" },
 };
 
 // ── Human-readable marker labels ─────────────────────────────────────────────
@@ -104,13 +105,13 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   jupiter_kendra:        { ta: "குரு கேந்திரத்தில் — சந்தான காரகன் பாதுகாக்கிறார்", en: "Jupiter is in a kendra — the progeny significator protects" },
 };
 
-function markerLabel(marker: string, lang: Lang): string {
+export function markerLabel(marker: string, lang: Lang): string {
   const entry = MARKER_LABELS[marker];
   if (!entry) return marker.replaceAll("_", " ");
   return lang === "ta" ? entry.ta : entry.en;
 }
 
-function displayName(name: string, lang: Lang): string {
+export function displayName(name: string, lang: Lang): string {
   const key = name.toUpperCase();
   const entry = YOGA_DISPLAY[key] ?? YOGA_DISPLAY[key.replace("GAJA_KESARI", "GAJA_KESARI_YOGA")];
   if (!entry) return name;
@@ -142,7 +143,7 @@ const YOGA_WHAT: Record<string, { ta: string; en: string }> = {
   },
 };
 
-const DOSHAM_WHAT: Record<string, { ta: string; en: string }> = {
+export const DOSHAM_WHAT: Record<string, { ta: string; en: string }> = {
   SEVVAI_DOSHAM: {
     ta: "செவ்வாய் (Mars) லக்னம், சந்திரன், அல்லது சுக்கிரனிலிருந்து 2, 4, 7, 8, அல்லது 12-ம் வீட்டில் இருக்கும்போது உருவாகும் பாரம்பரிய திருமண பொருத்த சுட்டி. இது ஒரு சாத்தியமான தாக்கம் மட்டுமே — நிவர்த்தி காரணங்கள் இருந்தால் தீவிரம் மிகவும் குறையும்.",
     en: "A traditional marriage-compatibility sensitivity indicator formed when Mars is in the 2nd, 4th, 7th, 8th, or 12th from your Lagna, Moon, or Venus. It is a tendency signal only — cancellation factors can significantly reduce its intensity.",
@@ -226,7 +227,7 @@ const YOGA_WHAT_EXTRA: Record<string, { ta: string; en: string }> = {
   },
 };
 
-function getWhat(name: string, isYoga: boolean, lang: Lang, fallback?: { ta?: string; en?: string }): string {
+export function getWhat(name: string, isYoga: boolean, lang: Lang, fallback?: { ta?: string; en?: string }): string {
   const key = name.toUpperCase();
   const entry = isYoga
     ? (YOGA_WHAT[key] ?? YOGA_WHAT[key.replace("GAJA_KESARI", "GAJA_KESARI_YOGA")] ?? YOGA_WHAT_EXTRA[key])
@@ -240,7 +241,7 @@ function getWhat(name: string, isYoga: boolean, lang: Lang, fallback?: { ta?: st
 
 // ── "Why you have this" — builds from actual chart conditions ─────────────────
 
-function buildWhyText(
+export function buildWhyText(
   conditionsMet: string[],
   cancellationFactors: string[],
   isPresent: boolean,
@@ -313,7 +314,7 @@ function buildWhyText(
 
 // ── Outcomes, Remedies, and Enhancement advice ──────────────────────────────
 
-const YOGA_OUTCOMES: Record<string, { ta: string; en: string }> = {
+export const YOGA_OUTCOMES: Record<string, { ta: string; en: string }> = {
   GAJA_KESARI_YOGA: {
     ta: "இந்த யோகம் உள்ளவர்களுக்கு தொழில்முறை மரியாதை, நல்ல நினைவாற்றல், மக்கள் தொடர்பு திறன், சமூக அங்கீகாரம் ஆகியவை சாத்தியம். கல்வி, ஆலோசனை, பொது சேவை, கற்பித்தல் துறைகளில் சிறப்பாக செயல்படலாம்.",
     en: "People with this yoga may experience professional respect, strong memory, good public relations skills, and social recognition. They can excel in education, counseling, public service, and teaching roles.",
@@ -336,7 +337,7 @@ const YOGA_OUTCOMES: Record<string, { ta: string; en: string }> = {
   },
 };
 
-const YOGA_REMEDIES: Record<string, { ta: string; en: string }> = {
+export const YOGA_REMEDIES: Record<string, { ta: string; en: string }> = {
   GAJA_KESARI_YOGA: {
     ta: "வியாழக்கிழமை குரு வழிபாடு, மஞ்சள் வஸ்திரம் அணிவது, குரு மந்திரம் ஜபிப்பது (ஓம் குரவே நமஹ), தட்சிணாமூர்த்தி வழிபாடு, கல்வி நிறுவனங்களில் தானம் செய்வது.",
     en: "Jupiter worship on Thursdays, wearing yellow cloth, chanting Jupiter mantra (Om Gurave Namah), Dakshinamurti worship, donating to educational institutions.",
@@ -359,7 +360,7 @@ const YOGA_REMEDIES: Record<string, { ta: string; en: string }> = {
   },
 };
 
-const YOGA_HOW_TO: Record<string, { ta: string; en: string }> = {
+export const YOGA_HOW_TO: Record<string, { ta: string; en: string }> = {
   GAJA_KESARI_YOGA: {
     ta: "யோகத்தை பலப்படுத்த: குரு தசை காலத்தில் முக்கிய முடிவுகள் எடுங்கள், வியாழக்கிழமை விரதம், ஆசிரியர்கள்/வழிகாட்டிகளை மரியாதையுடன் நடத்துங்கள், நிலையான கல்வி தொடருங்கள். ஒரு தகுதியான மாணவரின் கல்வி அல்லது ஆசிரியர் மேம்பாட்டிற்கு நன்கொடை செய்வது இந்த யோகத்தின் அருளை மேலும் செயல்படுத்தும்.",
     en: "To strengthen this yoga: make major decisions during Jupiter Dasha, observe Thursday fasts, treat teachers and mentors with respect, continue lifelong learning. Sponsoring a deserving student's education or donating to a teacher welfare fund brings this yoga's blessings into action.",
@@ -382,7 +383,7 @@ const YOGA_HOW_TO: Record<string, { ta: string; en: string }> = {
   },
 };
 
-const DOSHAM_OUTCOMES: Record<string, { ta: string; en: string }> = {
+export const DOSHAM_OUTCOMES: Record<string, { ta: string; en: string }> = {
   SEVVAI_DOSHAM: {
     ta: "திருமண வாழ்க்கையில் உணர்வு ரீதியான கடுமை, சுதந்திரத்திற்கான ஆசை, சில நேரங்களில் சண்டை-சச்சரவு, துணையுடன் ஒத்துழைக்கும் சவால் ஆகியவை சாத்தியம். செவ்வாய் பலமாக இருந்தால் இவை ஆற்றலாக மாறும்.",
     en: "Emotional intensity in married life, desire for independence, occasional conflicts, and challenges in adjustment with partner are possible. When Mars is strong, these become energetic drive and assertiveness.",
@@ -413,7 +414,7 @@ const DOSHAM_OUTCOMES: Record<string, { ta: string; en: string }> = {
   },
 };
 
-const DOSHAM_REMEDIES: Record<string, { ta: string; en: string }> = {
+export const DOSHAM_REMEDIES: Record<string, { ta: string; en: string }> = {
   SEVVAI_DOSHAM: {
     ta: "செவ்வாய்க்கிழமை திருவிடைமருதூர் அல்லது வைத்தீஸ்வரன் கோயில் வழிபாடு, முருகன் வழிபாடு, கரும்மாரியம்மன் வேண்டல், திருவெள்ளிக்கேணி வழிபாடு. ஒரே போன்ற செவ்வாய் நிலை உள்ள துணையை தேர்ந்தெடுப்பது பொருத்தத்தை சீர்படுத்தும்.",
     en: "Tuesday worship at Vaitheeswaran Koil or Thiruvidaimarudur, Murugan worship, Karumariamman vow, Thiruvellikeni visit. Choosing a partner with a similar Sevvai position can balance the compatibility.",
@@ -444,7 +445,7 @@ const DOSHAM_REMEDIES: Record<string, { ta: string; en: string }> = {
   },
 };
 
-const DOSHAM_HOW_TO: Record<string, { ta: string; en: string }> = {
+export const DOSHAM_HOW_TO: Record<string, { ta: string; en: string }> = {
   SEVVAI_DOSHAM: {
     ta: "தீவிரத்தை குறைக்க: திருமண பொருத்தம் முழுமையாக பார்க்கவும், நிவர்த்தி காரணங்கள் இருக்கின்றனவா சரிபார்க்கவும், வாழ்க்கையில் செவ்வாயின் ஆற்றலை விளையாட்டு/உடற்பயிற்சி/சாதனை வழியாக வெளிப்படுத்தவும்.",
     en: "To reduce impact: do thorough marriage compatibility matching, check for cancellation factors, channel Mars energy through sports/exercise/achievement in life rather than conflict.",
@@ -555,7 +556,7 @@ const DOSHAM_POWER_CONTEXT: Record<string, {
   },
 };
 
-function getYogaPowerContext(name: string, strength: string, dashaActivated: boolean, lang: Lang): string {
+export function getYogaPowerContext(name: string, strength: string, dashaActivated: boolean, lang: Lang): string {
   const key = name.toUpperCase().replace("GAJA_KESARI", "GAJA_KESARI_YOGA");
   const entry = YOGA_POWER_CONTEXT[key];
   if (!entry) {
@@ -574,7 +575,7 @@ function getYogaPowerContext(name: string, strength: string, dashaActivated: boo
   return base;
 }
 
-function getDoshamPowerContext(dosham: ChartDoshamInsight, lang: Lang): string {
+export function getDoshamPowerContext(dosham: ChartDoshamInsight, lang: Lang): string {
   const key = dosham.name.toUpperCase();
   const entry = DOSHAM_POWER_CONTEXT[key];
   const label = dosham.label.toUpperCase();
@@ -605,7 +606,7 @@ function getDoshamPowerContext(dosham: ChartDoshamInsight, lang: Lang): string {
 
 // ── Strength display ──────────────────────────────────────────────────────────
 
-function strengthBand(strength: string, present: boolean, lang: Lang): string {
+export function strengthBand(strength: string, present: boolean, lang: Lang): string {
   if (!present) return lang === "ta" ? "செயல்பாட்டில் இல்லை" : "Not active";
   if (strength === "STRONG") return lang === "ta" ? "வலுவான" : "Strong";
   if (strength === "PARTIAL") return lang === "ta" ? "மிதமான" : "Moderate";
@@ -814,7 +815,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
 // from the same signals the yoga badge uses (strength band + dasha activation +
 // cancellation). This gives doshams a score on par with yogas so the UI is
 // consistent ("some have scores, some don't" → all do now).
-function doshamSeverityScore(dosham: ChartDoshamInsight): number | null {
+export function doshamSeverityScore(dosham: ChartDoshamInsight): number | null {
   if (!dosham.isPresent) return null;
   let base = dosham.strength === "STRONG" ? 80 : dosham.strength === "PARTIAL" ? 55 : 35;
   if (dosham.dashaActivated) base += 10;

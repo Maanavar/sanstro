@@ -31,8 +31,10 @@ from app.calculations.chart_strength import SIGN_LORD
 # ---------------------------------------------------------------------------
 # Nakshatra → Gana mapping (1-based nakshatra index)
 # Deva=1, Manushya=2, Rakshasa=3
+# Public (also consumed by app.services.nakshatra_content for the per-star
+# profile card's Ganam attribute — same classical table, not duplicated).
 # ---------------------------------------------------------------------------
-_GANA: dict[int, int] = {
+GANA_BY_NAKSHATRA: dict[int, int] = {
     1: 1, 2: 2, 3: 3, 4: 2, 5: 1,
     6: 2, 7: 1, 8: 1, 9: 3,
     10: 3, 11: 2, 12: 2, 13: 1,
@@ -46,8 +48,10 @@ _GANA: dict[int, int] = {
 # Nakshatra → Yoni (animal symbol) mapping
 # 14 yoni symbols; 1=Horse 2=Elephant 3=Sheep 4=Serpent 5=Dog 6=Cat 7=Rat
 #                  8=Cow 9=Buffalo 10=Tiger 11=Deer 12=Monkey 13=Lion 14=Mongoose
+# Public (also consumed by app.services.nakshatra_content for the per-star
+# profile card's Yoni attribute — same classical table, not duplicated).
 # ---------------------------------------------------------------------------
-_YONI: dict[int, int] = {
+YONI_BY_NAKSHATRA: dict[int, int] = {
     1: 1,  2: 2,  3: 3,  4: 4,  5: 4,
     6: 5,  7: 6,  8: 3,  9: 6,  10: 7,
     11: 7, 12: 8, 13: 9, 14: 10, 15: 9,
@@ -173,8 +177,8 @@ def _dinam_score(nak_boy: int, nak_girl: int) -> int:
 
 def _ganam_score(nak_boy: int, nak_girl: int) -> int:
     """Ganam: same gana or Deva+Manushya = PASS; Rakshasa mix = FAIL."""
-    gb = _GANA[nak_boy]
-    gg = _GANA[nak_girl]
+    gb = GANA_BY_NAKSHATRA[nak_boy]
+    gg = GANA_BY_NAKSHATRA[nak_girl]
     if gb == gg:
         return 1
     if frozenset({gb, gg}) == frozenset({1, 2}):  # Deva + Manushya
@@ -201,8 +205,8 @@ def _stree_dirgha_score(nak_boy: int, nak_girl: int) -> int:
 
 def _yoni_score(nak_boy: int, nak_girl: int) -> int:
     """Yoni: hostile pair = FAIL; same or neutral = PASS."""
-    yb = _YONI[nak_boy]
-    yg = _YONI[nak_girl]
+    yb = YONI_BY_NAKSHATRA[nak_boy]
+    yg = YONI_BY_NAKSHATRA[nak_girl]
     if frozenset({yb, yg}) in _YONI_HOSTILE:
         return 0
     return 1

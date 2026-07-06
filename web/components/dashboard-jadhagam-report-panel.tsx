@@ -161,9 +161,19 @@ type Props = {
   report: JadhagamReportData | null;
   loading: boolean;
   onLoad: () => void;
+  /**
+   * Optional override for the "Yogas & Doshams" section's renderer — added
+   * for Life Areas Nova's Full-report re-skin (docs/DASHBOARD_UI_REVAMP_PLAN.md
+   * §6.8) so it can substitute NovaYogaDoshamPanel (Nova-token styled) for
+   * this file's own YogaDoshamPanel import (Classic-token, confirmed unsafe
+   * under Nova) without duplicating the rest of this component, which is
+   * already ~95% Nova-safe on its own. Classic callers omit this prop and
+   * get the exact previous behavior.
+   */
+  renderYogaDoshamPanel?: (props: { yogas: JadhagamReportData["yogaDoshamSummary"]["yogas"]; doshams: JadhagamReportData["yogaDoshamSummary"]["doshams"] }) => React.ReactNode;
 };
 
-export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
+export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaDoshamPanel }: Props) {
   const [showNavamsa, setShowNavamsa] = useState(false);
 
   if (!report && !loading) {
@@ -307,11 +317,15 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
 
       {/* ── Yogas & Doshams ── */}
       <Section title={`${t("yogas_title", lang)} & ${t("doshams_title", lang)}`} accent="rgba(167,139,250,0.3)">
-        <YogaDoshamPanel
-          lang={lang}
-          yogas={yogaDoshamSummary.yogas}
-          doshams={yogaDoshamSummary.doshams}
-        />
+        {renderYogaDoshamPanel ? (
+          renderYogaDoshamPanel({ yogas: yogaDoshamSummary.yogas, doshams: yogaDoshamSummary.doshams })
+        ) : (
+          <YogaDoshamPanel
+            lang={lang}
+            yogas={yogaDoshamSummary.yogas}
+            doshams={yogaDoshamSummary.doshams}
+          />
+        )}
       </Section>
 
       {/* ── Navamsa summary (collapsible) ── */}
@@ -383,7 +397,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
         <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", color: "var(--color-score-mid)", letterSpacing: "0.1em" }}>
           {t("jadhagam_remedies", lang)}
         </p>
-        <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.875rem", color: "#7a3412", lineHeight: 1.4 }}>
+        <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.875rem", color: "var(--color-text)", lineHeight: 1.4 }}>
           {lang === "ta"
             ? "இந்த பரிகாரங்கள் உங்கள் நடப்பு தசை மற்றும் பலவீனமான கிரகங்களின் அடிப்படையில் பரிந்துரைக்கப்படுகின்றன:"
             : "These remedies are suggested based on your current dasha and planets needing support:"}
