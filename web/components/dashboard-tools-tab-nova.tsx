@@ -1,0 +1,295 @@
+"use client";
+
+import type { CSSProperties } from "react";
+
+import type { Lang } from "@/lib/i18n";
+
+import { ChartGenerateInlinePanel } from "./chart-generate-inline-panel";
+import { DashboardAnnualWrapped } from "./dashboard-annual-wrapped";
+import { RetrospectivePanel } from "./dashboard-retrospective-panel";
+import { NovaPoruthamPanel, type PoruthamFamilyMember } from "./dashboard-tools-porutham-nova";
+
+/**
+ * Nova rebuild of the Tools tab (see docs/DASHBOARD_UI_REVAMP_PLAN.md §6.12).
+ * Confirmed via grep that `tool-card.tsx`/`tools-grid.tsx` (§3's original
+ * mapping guess) are dead code — Classic's real Tools tab is the inline
+ * "cd-tools-v3" markup in dashboard-workspace.tsx, which had never had a
+ * `uiVariant` branch at all (the reason "Tools doesn't look like the new
+ * design" — every other tab has had a Nova pass, this one hadn't). Reuses
+ * the exact same `showPorutham`/`showChartGenerate`/`showWrapped`/
+ * `showRetrospective` state and `activeTool`/`onOpenTool`/`onCloseTool`
+ * derivation Classic's branch already has (hoisted one level up in
+ * dashboard-workspace.tsx so both uiVariant branches share it, no second
+ * copy of the state).
+ */
+
+// Classic-literal token values, scoped locally so a deferred Classic panel
+// (chart generation / annual wrapped / retrospective — none captured in the
+// `tools`/`tools-porutham` mockup screens, and each 300-700 lines of its own
+// stateful UI) renders as an internally-consistent light "paper" island
+// instead of the broken dark-bg/dark-text combination it would otherwise
+// inherit (these files' own `--panel-earth` text color is NOT redirected by
+// dashboard-nova.css — see the 2026-07-06 browser-QA entry — while their
+// `--chart-cell-default`/`--panel-cream` backgrounds ARE, since those two
+// tokens are shared with other, already-migrated components). This is the
+// same "force back to Classic" trick dashboard-personal-tab.tsx itself
+// already uses in the opposite direction (line ~508, overriding Nova/dark
+// vars so Classic content reads correctly on a cream background).
+const CLASSIC_TOOL_ISLAND_STYLE: CSSProperties = {
+  "--panel-brand": "#B05220",
+  "--panel-cream": "#FAF5EA",
+  "--panel-earth": "#3D352B",
+  "--panel-earth-dark": "#1A1612",
+  "--panel-tan": "#D4C8AE",
+  "--panel-tan-light": "#E4DBC8",
+  "--panel-hover": "#F4EEE2",
+  "--panel-warm-light": "#F8E4D2",
+  "--chart-cell-default": "#FFFFFF",
+  "--chart-d9-active": "#5C7654",
+  "--chart-amber": "#E5B84D",
+  "--planet-saturn": "#A8482F",
+  "--dignity-neecha": "#a83020",
+  "--ring-brand": "rgba(184, 90, 44, 0.12)",
+  "--color-faint": "#9A8A70",
+  // dashboard-charts.tsx's own scoped fallback chain (see the Progress Log
+  // entry fixing the long-flagged chart-grid gap) inherits --chartgrid-* from
+  // the ambient Nova .cd-shell scope unless re-pinned here too.
+  "--chartgrid-ink": "#3D352B",
+  "--chartgrid-ink-strong": "#1A1612",
+  "--chartgrid-border": "#D4C8AE",
+  "--chartgrid-border-light": "#E4DBC8",
+  "--chartgrid-surface": "#FAF5EA",
+  background: "#FAF5EA",
+  border: "1px solid #E4DBC8",
+  borderRadius: "14px",
+  padding: "22px 24px",
+} as CSSProperties;
+
+function ClassicToolIsland({ children }: { children: React.ReactNode }) {
+  return <div style={CLASSIC_TOOL_ISLAND_STYLE}>{children}</div>;
+}
+
+type ToolCardSpec = {
+  id: string;
+  icon: string;
+  color: string;
+  nameEn: string;
+  nameTa: string;
+  descEn: string;
+  descTa: string;
+  metaEn: string;
+  metaTa: string;
+  disabled?: boolean;
+  kind: "inline" | "cross-nav" | "external";
+};
+
+export type DashboardToolsTabNovaProps = {
+  lang: Lang;
+  activeTool: string | null;
+  needsProfile: boolean;
+  onOpenTool: (toolId: string) => void;
+  onCloseTool: () => void;
+  showPorutham: boolean;
+  showChartGenerate: boolean;
+  showWrapped: boolean;
+  showRetrospective: boolean;
+  personalChartId: string;
+  familyMembersForPorutham: PoruthamFamilyMember[];
+  onGoToPlan: () => void;
+  onGoToCalendar: () => void;
+  onOpenAskVinaadi: () => void;
+};
+
+export function DashboardToolsTabNova({
+  lang,
+  activeTool,
+  needsProfile,
+  onOpenTool,
+  onCloseTool,
+  showPorutham,
+  showChartGenerate,
+  showWrapped,
+  showRetrospective,
+  personalChartId,
+  familyMembersForPorutham,
+  onGoToPlan,
+  onGoToCalendar,
+  onOpenAskVinaadi,
+}: DashboardToolsTabNovaProps) {
+  const TOOLS: ToolCardSpec[] = [
+    {
+      id: "chartgen", icon: "📜", color: "var(--color-accent-strong)",
+      nameEn: "Jadhagam Generator", nameTa: "ஜாதகம் உருவாக்கி",
+      descEn: "Full horoscope from birth details — D1 & D9 charts, dasa table, yogams — as a shareable PDF.",
+      descTa: "பிறந்த விவரங்களிலிருந்து முழு ஜாதகம் — D1 & D9 அட்டவணைகள், தசை அட்டவணை, யோகங்கள் — PDF ஆக.",
+      metaEn: "needs · birth details", metaTa: "தேவை · பிறப்பு விவரங்கள்", kind: "inline",
+    },
+    {
+      id: "wrapped", icon: "🗓", color: "var(--color-accent-secondary)",
+      nameEn: "Annual Wrapped", nameTa: "ஆண்டு சுருக்கம்",
+      descEn: "Review the dasa transitions and Jothidam themes that shaped a year.",
+      descTa: "ஒரு ஆண்டை வடிவமைத்த தசை மாற்றங்கள் மற்றும் ஜோதிட கருப்பொருள்கள்.",
+      metaEn: "uses · your saved chart", metaTa: "பயன்படுத்துவது · உங்கள் ஜாதகம்", disabled: needsProfile, kind: "inline",
+    },
+    {
+      id: "retro", icon: "🔍", color: "var(--color-high)",
+      nameEn: "Retrospective", nameTa: "பின்னோக்கு பார்வை",
+      descEn: "Enter a past event and compare it with dasha and transit signatures.",
+      descTa: "கடந்த நிகழ்வை தசை மற்றும் கிரகநகர்வு வடிவங்களுடன் ஒப்பிடு.",
+      metaEn: "uses · your saved chart", metaTa: "பயன்படுத்துவது · உங்கள் ஜாதகம்", disabled: needsProfile, kind: "inline",
+    },
+    {
+      id: "muhurta", icon: "☀", color: "var(--color-high)",
+      nameEn: "Muhurta Finder", nameTa: "முகூர்த்தம்",
+      descEn: "Best date and hour for a wedding, gruhapravesam or new venture — scored against your chart.",
+      descTa: "திருமணம், கிரகப்பிரவேசம் அல்லது புதிய முயற்சிக்கான சிறந்த தேதி/நேரம் — உங்கள் ஜாதகத்திற்கேற்ப.",
+      metaEn: "in · Plan tab", metaTa: "இதில் · Plan தாவல்", kind: "cross-nav",
+    },
+    {
+      id: "panchangam", icon: "◐", color: "var(--color-accent-secondary)",
+      nameEn: "Panchangam Planner", nameTa: "பஞ்சாங்கம்",
+      descEn: "Day-by-day almanac for any date and place — nalla neram, rahu kalam, tithi and star windows.",
+      descTa: "எந்த தேதி மற்றும் இடத்திற்கும் அன்றாட பஞ்சாங்கம் — நல்ல நேரம், ராகு காலம், திதி, நட்சத்திரம்.",
+      metaEn: "in · Calendar tab", metaTa: "இதில் · Calendar தாவல்", kind: "cross-nav",
+    },
+    {
+      id: "rasipalan", icon: "✦", color: "var(--color-accent-strong)",
+      nameEn: "Indraiya Rasipalan", nameTa: "இன்றைய ராசிபலன்",
+      descEn: "Today's palan for all 12 rasis — read one for a friend, or share the day's outlook.",
+      descTa: "12 ராசிகளுக்குமான இன்றைய பலன் — நண்பருக்காக படியுங்கள் அல்லது பகிருங்கள்.",
+      metaEn: "opens · vinaadi.com", metaTa: "திறக்கும் · vinaadi.com", kind: "external",
+    },
+  ];
+
+  const cardStyle = (tool: ToolCardSpec): CSSProperties => ({
+    background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "14px",
+    padding: "20px 22px", display: "flex", flexDirection: "column", gap: "9px", textAlign: "left",
+    cursor: tool.disabled ? "default" : "pointer", opacity: tool.disabled ? 0.55 : 1,
+    fontFamily: "inherit", width: "100%",
+  });
+
+  function renderCardBody(tool: ToolCardSpec) {
+    return (
+      <>
+        <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
+          <span style={{ flex: "none", width: "38px", height: "38px", borderRadius: "50%", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "16px", color: tool.color }}>{tool.icon}</span>
+          <div style={{ fontSize: "14.5px", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? tool.nameTa : tool.nameEn}</div>
+        </div>
+        <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-text)" }}>{lang === "ta" ? tool.descTa : tool.descEn}</div>
+        <div style={{ display: "flex", alignItems: "center", marginTop: "auto", paddingTop: "4px" }}>
+          <span style={{ fontSize: "11px", color: "var(--color-faint)" }}>{lang === "ta" ? tool.metaTa : tool.metaEn}</span>
+          <span style={{ marginLeft: "auto", fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600 }}>
+            {tool.disabled ? (lang === "ta" ? "ஜாதகம் தேவை" : "Needs profile") : (lang === "ta" ? "திற →" : "Open →")}
+          </span>
+        </div>
+      </>
+    );
+  }
+
+  if (activeTool) {
+    const tool = TOOLS.find((c) => c.id === activeTool) ?? { nameEn: "Marriage Porutham", nameTa: "பொருத்தம்" };
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--color-muted)" }}>
+          <button type="button" onClick={onCloseTool} style={{ color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+            <span aria-hidden="true">←</span> {lang === "ta" ? "கருவிகள்" : "Tools"}
+          </button>
+          <span>›</span>
+          <span style={{ color: "var(--color-text)" }}>{lang === "ta" ? tool.nameTa : tool.nameEn}</span>
+        </div>
+
+        {showPorutham && (
+          <NovaPoruthamPanel lang={lang} familyMembers={familyMembersForPorutham} onGoToMuhurta={onGoToPlan} onOpenAskVinaadi={onOpenAskVinaadi} />
+        )}
+        {showChartGenerate && (
+          <ClassicToolIsland><ChartGenerateInlinePanel lang={lang} /></ClassicToolIsland>
+        )}
+        {showWrapped && (
+          <ClassicToolIsland><DashboardAnnualWrapped chartId={personalChartId} lang={lang} /></ClassicToolIsland>
+        )}
+        {showRetrospective && personalChartId && (
+          <ClassicToolIsland><RetrospectivePanel chartId={personalChartId} lang={lang} /></ClassicToolIsland>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
+      <div>
+        <div style={{ fontSize: "11px", letterSpacing: "0.12em", color: "var(--color-accent)", textTransform: "uppercase", fontWeight: 700 }}>
+          {lang === "ta" ? "கருவிகள்" : "Tools"} · <span style={{ fontFamily: "var(--font-tamil), sans-serif", letterSpacing: 0, textTransform: "none" }}>கருவிகள்</span>
+        </div>
+        <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.6rem, 3vw, 2.1rem)", fontWeight: 600, marginTop: "6px", color: "var(--color-text-strong)" }}>
+          {lang === "ta" ? "உங்கள் ஜாதகங்களை அறிந்த கருவிகள்" : "Calculators that know your charts"}
+        </div>
+        <div style={{ fontSize: "13px", color: "var(--color-muted)", marginTop: "3px" }}>
+          {lang === "ta" ? "ஒவ்வொரு கருவியும் உங்கள் சேமிக்கப்பட்ட ஜாதகங்களைப் படிக்கும் — மீண்டும் தட்டச்சு தேவையில்லை." : "Every tool reads from your saved family charts — no re-typing birth details."}
+        </div>
+      </div>
+
+      {/* Hero tool: Porutham — Classic's own "most used" primary tool */}
+      <button type="button" onClick={() => onOpenTool("porutham")} style={{
+        background: "linear-gradient(120deg, var(--color-accent-muted), rgba(212,175,95,.05))",
+        border: "1px solid var(--color-border-strong)", borderRadius: "14px", padding: "24px 26px",
+        display: "flex", gap: "24px", alignItems: "center", flexWrap: "wrap", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%",
+      }}>
+        <div style={{ flex: "1", minWidth: "240px", display: "flex", flexDirection: "column", gap: "9px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-accent-strong)", fontWeight: 700 }}>
+              {lang === "ta" ? "அதிகம் பயன்படுத்தப்படுவது" : "Most used"}
+            </span>
+            <span style={{ fontFamily: "var(--font-tamil), sans-serif", fontSize: "12.5px", color: "var(--color-muted)" }}>திருமணப் பொருத்தம்</span>
+          </div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "26px", fontWeight: 600, color: "var(--color-text-strong)" }}>
+            {lang === "ta" ? "பொருத்தம் / இணக்கம்" : "Marriage Porutham"}
+          </div>
+          <div style={{ fontSize: "13px", lineHeight: 1.6, color: "var(--color-text)", maxWidth: "560px" }}>
+            {lang === "ta"
+              ? "தினம் முதல் வேதை வரை முழு 10 பொருத்த சோதனை — ரஜ்ஜு மற்றும் செவ்வாய் தோஷ குறுக்கு சோதனைகளுடன், எளிய வார்த்தைகளில் ஒரு தீர்ப்பு. திருமணம், நட்பு, வியாபாரம் அல்லது குடும்பம் — அனைத்திற்கும்."
+              : "The full 10-porutham match — Dinam to Vethai — with Rajju and Sevvai dosham cross-checks, and a verdict in plain words. Covers marriage, friendship, business, or family contexts."}
+          </div>
+        </div>
+        <span style={{ flex: "none", background: "var(--color-accent)", color: "var(--color-on-accent)", borderRadius: "9px", padding: "11px 22px", fontSize: "12.5px", fontWeight: 700 }}>
+          {lang === "ta" ? "பொருத்தம் ஓட்டு →" : "Run porutham →"}
+        </span>
+      </button>
+
+      {/* Tools grid */}
+      <div className="nova-grid-3">
+        {TOOLS.map((tool) => (
+          tool.kind === "external" ? (
+            <a key={tool.id} href="/tools/indraiya-rasipalan" target="_blank" rel="noopener noreferrer" style={{ ...cardStyle(tool), textDecoration: "none" }}>
+              {renderCardBody(tool)}
+            </a>
+          ) : (
+            <button
+              key={tool.id}
+              type="button"
+              disabled={tool.disabled}
+              onClick={() => {
+                if (tool.kind === "cross-nav") { if (tool.id === "muhurta") onGoToPlan(); else onGoToCalendar(); return; }
+                onOpenTool(tool.id);
+              }}
+              style={cardStyle(tool)}
+            >
+              {renderCardBody(tool)}
+            </button>
+          )
+        ))}
+      </div>
+
+      {/* Recent results — genuine stub, no tool-run history is tracked anywhere in the backend (confirmed by grep) */}
+      <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "14px", padding: "18px 22px", display: "flex", flexDirection: "column", gap: "6px" }}>
+        <span style={{ fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+          {lang === "ta" ? "சமீபத்திய முடிவுகள்" : "Recent results"}
+        </span>
+        <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-faint)" }}>
+          {lang === "ta"
+            ? "கருவி இயக்க வரலாறு இன்னும் சேமிக்கப்படவில்லை — விரைவில்."
+            : "Tool run history isn't tracked yet — coming soon."}
+        </p>
+      </div>
+    </div>
+  );
+}
