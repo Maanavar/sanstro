@@ -24,6 +24,8 @@ from app.schemas.relationships import (
     DashaHarmony,
     DirectPoruthamData,
     DirectPoruthamResponse,
+    DirectSynastryData,
+    DirectSynastryResponse,
     EmotionalCompatibility,
     KutaResult,
     NadiDoshaData,
@@ -876,6 +878,48 @@ def compare_charts_direct(
     snap_a = load_persisted_chart_response(session, chart_a.chart_id)
     snap_b = load_persisted_chart_response(session, chart_b.chart_id)
     return compare_chart_snapshots_direct(snap_a, snap_b, compatibility_context=compatibility_context)
+
+
+def compare_synastry_direct(
+    session: Session,
+    owner_user_id: UUID,
+    chart_id_a: UUID,
+    chart_id_b: UUID,
+) -> DirectSynastryResponse:
+    """Compute the same general Venus/Mars/Moon/Sun synastry score as
+    get_synastry_for_member, but for any two charts owned by the current user
+    (e.g. two family members, neither of whom is the vault owner) — mirrors
+    compare_charts_direct's Porutham pattern above."""
+    from app.models import Chart
+
+    def _assert_owned(cid: UUID) -> Chart:
+        chart = session.get(Chart, cid)
+        if chart is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Chart {cid} not found.")
+        profile = session.get(BirthProfile, chart.birth_profile_id)
+        if profile is None or profile.owner_user_id != owner_user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+        return chart
+
+    chart_a = _assert_owned(chart_id_a)
+    chart_b = _assert_owned(chart_id_b)
+
+    snap_a = load_persisted_chart_response(session, chart_a.chart_id)
+    snap_b = load_persisted_chart_response(session, chart_b.chart_id)
+    scored = compute_synastry_score(snap_a, snap_b)
+
+    data = DirectSynastryData(
+        chartIdA=chart_id_a,
+        chartIdB=chart_id_b,
+        score=scored.score,
+        label=scored.label,
+        harmonyNotes=scored.harmony_notes,
+        tensionNotes=scored.tension_notes,
+        keyAspects=scored.key_aspects,
+        summary=scored.summary,
+        timingIndicators=scored.timing_indicators,
+    )
+    return DirectSynastryResponse(data=data, meta=_meta())
 
 
 def get_compatibility_intelligence_for_member(

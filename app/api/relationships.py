@@ -16,6 +16,8 @@ from app.schemas.relationships import (
     CompatibilityIntelligenceResponse,
     DirectCompareRequest,
     DirectPoruthamResponse,
+    DirectSynastryRequest,
+    DirectSynastryResponse,
     PorutthamResponse,
     RelationshipAlertsResponse,
     SynastryResponse,
@@ -23,6 +25,7 @@ from app.schemas.relationships import (
 from app.services.chart_service import _chart_response_from_profile  # noqa: PLC2701
 from app.services.synastry_service import (
     compare_charts_direct,
+    compare_synastry_direct,
     get_compatibility_intelligence_for_member,
     get_compatibility_intelligence_for_member_with_snapshot,
     get_porutham_for_member,
@@ -180,6 +183,17 @@ def relationship_compatibility_intelligence_direct(
         member_id,
         person_a_snapshot=snap_a,
     )
+
+
+@router.post("/relationships/compare-synastry", response_model=DirectSynastryResponse, tags=["relationships"])
+def compare_synastry(
+    payload: DirectSynastryRequest,
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> DirectSynastryResponse:
+    """General (non-marriage) synastry for any two charts the current user owns —
+    used for family-bond pairs where neither person is the vault owner."""
+    return compare_synastry_direct(session, current_user.user_id, payload.chart_id_a, payload.chart_id_b)
 
 
 @router.post("/relationships/compare", response_model=DirectPoruthamResponse, tags=["relationships"])

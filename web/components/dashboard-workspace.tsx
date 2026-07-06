@@ -89,6 +89,11 @@ const DashboardFamilyTab = dynamic(
   { loading: LazyPanelFallback },
 );
 
+const DashboardFamilyTabNova = dynamic(
+  () => import("./dashboard-family-tab-nova").then((mod) => mod.DashboardFamilyTabNova),
+  { loading: LazyPanelFallback },
+);
+
 const FeedbackModal = dynamic(
   () => import("./dashboard-feedback-modal").then((mod) => mod.FeedbackModal),
   { loading: LazyPanelFallback },
@@ -1653,7 +1658,38 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
           );
         })()}
 
-        {activeTab === "family" && (
+        {activeTab === "family" && uiVariant === "nova" && (
+          <DashboardFamilyTabNova
+            lang={lang}
+            selectedDate={selectedDate}
+            selectedVaultId={family.selectedVaultId}
+            ownerChartId={personal.chartId}
+            ownerChart={personal.chart}
+            vaults={family.vaults}
+            familyDetail={family.familyDetail}
+            familyAggregate={family.familyAggregate}
+            familyComposite={family.familyComposite}
+            familyMembers={family.familyMembers}
+            memberCharts={family.memberCharts}
+            relationshipAlerts={family.relationshipAlerts}
+            alertsLoading={family.relationshipAlertsLoading}
+            busy={{
+              family: family.busyFamily,
+              vaults: family.busyVaults,
+              deletingVaultId,
+              deletingMemberId,
+              memberCharts: family.busyMemberCharts,
+            }}
+            onRefreshFamily={() => void family.refreshFamilyBundle()}
+            onOpenSetup={openSetupInSettings}
+            onSelectVault={handleSelectVault}
+            onDeleteVault={(vaultId, name) => void handleDeleteVault(vaultId, name)}
+            onDeleteMember={(memberId, name) => void handleDeleteMember(memberId, name)}
+            onEditMember={handleEditFamilyMember}
+          />
+        )}
+
+        {activeTab === "family" && uiVariant !== "nova" && (
           <DashboardFamilyTab
             lang={lang}
             selectedDate={selectedDate}

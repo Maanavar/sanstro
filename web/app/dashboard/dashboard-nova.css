@@ -81,6 +81,21 @@
   --color-alert-caution:  #e08a72;
   --color-positive:       #8fbf9a;
 
+  /* ── Classic-only custom properties (defined at bare :root in globals.css,
+     used directly by inline styles in components like dashboard-family-tab.tsx's
+     MemberDetailExpanded/ScoreRing) redirected to Nova's own high/mid/low triplet
+     above. Same free-inheritance mechanism as the --color-*/--radius-* block this
+     comment lives in — reused components need zero code changes. ── */
+  --chart-d9-active-bg: var(--color-high-bg);
+  --chart-d1-lagna-bg:  var(--color-mid-bg);
+  --panel-warm-tint:    var(--color-low-bg);
+  --cl-sage-edge:       var(--color-high-border);
+  --cl-rust-edge:       var(--color-low-border);
+  --cl-rust-30:         var(--color-low-border);
+  --panel-cream:        var(--color-surface-2);
+  --panel-mid-earth:    var(--color-muted);
+  --shadow-faint:       rgba(0, 0, 0, 0.35);
+
   /* ── Shape ── */
   --radius-lg: 14px; /* cards */
   --radius-xl: 16px; /* hero sections */
@@ -262,6 +277,30 @@
 [data-ui="nova"] .cd-shell .dasha-bar-bg {
   background: var(--color-surface-2);
   border-color: var(--color-border);
+}
+
+/* Dashboard shell footer (dashboard-workspace.tsx) — same gap-fix class
+   as above: globals.css's .cd-footer* rules hardcode literal Classic
+   cream/tan hex, not var()s, so they aren't reached by the --color-*
+   redefinitions. Border/background values match the mockup's own
+   footer (rgba(212,175,95,.13) hairline over rgba(0,0,0,.22)) since
+   Nova has no existing semantic token at that specific low opacity. */
+[data-ui="nova"] .cd-shell .cd-footer {
+  border-top-color: rgba(212, 175, 95, 0.13);
+  background: rgba(0, 0, 0, 0.22);
+}
+[data-ui="nova"] .cd-shell .cd-footer__wordmark {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 700;
+  color: var(--color-accent-strong);
+}
+[data-ui="nova"] .cd-shell .cd-footer__tagline { color: var(--color-muted); }
+[data-ui="nova"] .cd-shell .cd-footer__link { color: var(--color-faint); }
+[data-ui="nova"] .cd-shell .cd-footer__divider { background: rgba(212, 175, 95, 0.13); }
+[data-ui="nova"] .cd-shell .cd-footer__disclaimer { color: var(--color-muted); }
+[data-ui="nova"] .cd-shell .cd-footer__copy {
+  font-family: var(--font-display), Georgia, serif;
+  color: var(--color-faint);
 }
 
 /* ═══════════════════════════════════════════════════════════

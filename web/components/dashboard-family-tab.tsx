@@ -94,7 +94,7 @@ type DashboardFamilyTabProps = {
 
 
 /* ── Score ring ─────────────────────────────────────────── */
-function ScoreRing({ score, size = 72 }: { score: number; size?: number }) {
+export function ScoreRing({ score, size = 72 }: { score: number; size?: number }) {
   const r = size / 2 - 6;
   const circ = 2 * Math.PI * r;
   const filled = (score / 100) * circ;
@@ -155,13 +155,13 @@ function SevenDayBars({ scores, labels }: { scores: number[]; labels: string[] }
 }
 
 /* ── Format relationship label ───────────────────────────── */
-function formatRelLabel(rel: string | undefined | null): string | null {
+export function formatRelLabel(rel: string | undefined | null): string | null {
   if (!rel || rel === "other") return null;
   return rel.charAt(0).toUpperCase() + rel.slice(1).toLowerCase();
 }
 
 /* ── Expanded member detail (shown below name selector) ─── */
-function MemberDetailExpanded({
+export function MemberDetailExpanded({
   member,
   memberChart,
   relationshipToOwner,

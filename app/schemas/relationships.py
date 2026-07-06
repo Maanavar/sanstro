@@ -186,6 +186,39 @@ class DirectPoruthamResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class DirectSynastryRequest(BaseModel):
+    chart_id_a: UUID = Field(alias="chartIdA")
+    chart_id_b: UUID = Field(alias="chartIdB")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class DirectSynastryData(BaseModel):
+    """SynastryData without vault/member IDs — for direct chart-to-chart comparison
+    (e.g. two family members, neither of whom is the vault owner)."""
+    chart_id_a: UUID = Field(alias="chartIdA")
+    chart_id_b: UUID = Field(alias="chartIdB")
+    score: int
+    label: str
+    harmony_notes: list[RelationshipBiText] = Field(alias="harmonyNotes")
+    tension_notes: list[RelationshipBiText] = Field(alias="tensionNotes")
+    key_aspects: list[SynastryAspect] = Field(alias="keyAspects")
+    summary: RelationshipBiText
+    timing_indicators: list[SynastryTimingIndicator] = Field(
+        default_factory=list, alias="timingIndicators"
+    )
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class DirectSynastryResponse(BaseModel):
+    success: bool = True
+    data: DirectSynastryData
+    meta: ResponseMeta
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 # ---------------------------------------------------------------------------
 # Compatibility Intelligence Report (signed users — full 8-level analysis)
 # ---------------------------------------------------------------------------
