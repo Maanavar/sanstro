@@ -104,6 +104,11 @@ const DashboardLifeAreasTab = dynamic(
   { loading: LazyPanelFallback },
 );
 
+const DashboardLifeAreasTabNova = dynamic(
+  () => import("./dashboard-life-areas-tab-nova").then((mod) => mod.DashboardLifeAreasTabNova),
+  { loading: LazyPanelFallback },
+);
+
 const QATab = dynamic(
   () => import("./dashboard-qa-tab").then((mod) => mod.QATab),
   { loading: LazyPanelFallback },
@@ -121,6 +126,16 @@ const DashboardSettingsSessionTab = dynamic(
 
 const DashboardPlanTab = dynamic(
   () => import("./dashboard-plan-tab").then((mod) => mod.DashboardPlanTab),
+  { loading: LazyPanelFallback },
+);
+
+const DashboardJournalTabNova = dynamic(
+  () => import("./dashboard-journal-tab-nova").then((mod) => mod.DashboardJournalTabNova),
+  { loading: LazyPanelFallback },
+);
+
+const DashboardPlanTabNova = dynamic(
+  () => import("./dashboard-plan-tab-nova").then((mod) => mod.DashboardPlanTabNova),
   { loading: LazyPanelFallback },
 );
 
@@ -144,18 +159,23 @@ const DashboardExploreTab = dynamic(
   { loading: LazyPanelFallback },
 );
 
+const DashboardExploreTabNova = dynamic(
+  () => import("./dashboard-explore-tab-nova").then((mod) => mod.DashboardExploreTabNova),
+  { loading: LazyPanelFallback },
+);
+
 const RectificationWizard = dynamic(
   () => import("./dashboard-rectification-wizard").then((mod) => mod.RectificationWizard),
   { loading: LazyPanelFallback },
 );
 
-const DashboardTodayTabV2 = dynamic(
-  () => import("./dashboard-today-tab-v2").then((mod) => mod.DashboardTodayTabV2),
+const DashboardTodayTabNova = dynamic(
+  () => import("./dashboard-today-tab-nova").then((mod) => mod.DashboardTodayTabNova),
   { loading: LazyPanelFallback },
 );
 
-const DashboardTodayTabNova = dynamic(
-  () => import("./dashboard-today-tab-nova").then((mod) => mod.DashboardTodayTabNova),
+const DashboardToolsTabNova = dynamic(
+  () => import("./dashboard-tools-tab-nova").then((mod) => mod.DashboardToolsTabNova),
   { loading: LazyPanelFallback },
 );
 
@@ -263,9 +283,7 @@ function memberScoreColor(score: number): string {
 
 // ── Main component ────────────────────────────────────────
 
-export type TodayVariant = "classic" | "v2";
-
-export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?: TodayVariant } = {}) {
+export function DashboardWorkspace() {
   const [status, setStatus] = useState("Ready. Create a profile or family vault to begin.");
   const [activeTab, setActiveTab] = useState<Tab>("personal");
   const [exploreReturnTab, setExploreReturnTab] = useState<Tab | null>(null);
@@ -394,6 +412,12 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
   const [personalViewId, setPersonalViewId] = useState<string | null>(null);
   const [lifeAreasViewId, setLifeAreasViewId] = useState<string | null>(null);
   const [transitViewId, setTransitViewId] = useState<string | null>(null);
+
+  // Nova Plan tab's own "Goals & Windows" / "Transits & Dasha" toggle (see
+  // dashboard-plan-tab-nova.tsx) — lifted here (not local component state)
+  // so Life Areas Nova's "See the transits behind them →" link can switch
+  // straight into the Transits view from outside the Plan tab.
+  const [planView, setPlanView] = useState<"goals" | "transits">("goals");
 
   const [onboardingDone, setOnboardingDone] = useState(false);
 
@@ -1116,6 +1140,7 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
       <DashboardHero
         lang={lang}
         activeTab={activeTab}
+        uiVariant={uiVariant}
         birthDisplayName={birthForm.displayName}
         status={status}
         chartSummary={personal.chartSummary}
@@ -1257,8 +1282,8 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
 
       {/* Tab content */}
       <div className="cd-page site__body">
-        {/* Household today strip — classic Today tab only (v2 and Nova both have their own family pulse card) */}
-        {activeTab === "personal" && todayVariant !== "v2" && uiVariant !== "nova" && family.familyAggregate && family.familyAggregate.members.length > 0 && (() => {
+        {/* Household today strip — classic Today tab only (Nova has its own family pulse card) */}
+        {activeTab === "personal" && uiVariant !== "nova" && family.familyAggregate && family.familyAggregate.members.length > 0 && (() => {
           const fs = family.familyAggregate.familyScore;
           return (
             <div className="cd-household-strip">
@@ -1358,61 +1383,21 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
             lifeAreas={personal.lifeAreas}
             dasha={personalDasha}
             dashaAntar={personalDashaAntar}
+            dashaMaha={personalDashaMaha}
+            dailyGuidanceRange={personal.dailyGuidanceRange}
             nakshatraCard={personalMemberChart?.nakshatraCard ?? personal.nakshatraCard}
             onGoToFamily={() => setActiveTab("family")}
             onGoToJournal={() => setActiveTab("journal")}
             onGoToCalendar={() => setActiveTab("calendar")}
             onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
-          />
-        )}
-
-        {activeTab === "personal" && uiVariant !== "nova" && todayVariant === "v2" && (
-          <DashboardTodayTabV2
-            lang={lang}
-            activeLifeMode={activeLifeMode}
-            onChangeFocus={() => setLifeModePickerOpen(true)}
-            birthDisplayName={birthForm.displayName}
-            selectedDate={selectedDate}
-            todayDate={personal.todayDate}
-            personalViewId={personalViewId}
-            birthProfileId={personal.birthProfileId}
-            busyPersonal={personal.busyPersonal}
-            memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
-            onSelectPersonalView={setPersonalViewId}
-            onOpenEditProfile={() => setShowEditProfile(true)}
-            onRefreshPersonal={() => void personal.refreshPersonalBundle()}
-            personalMemberChart={personalMemberChart}
-            personalChart={personalChart}
-            personalChartExplanation={personalChartExplanation}
-            personalChartSummary={personalChartSummary}
-            personalDailyGuidance={personalDailyGuidance}
-            dailyGuidanceRange={personal.dailyGuidanceRange}
-            personalTransit={personalTransit}
-            personalSani={personalSani}
-            peyarchiUpcoming={personalPeyarchiUpcoming}
-            panchangam={personal.panchangam}
-            panchangamTimings={personal.panchangamTimings}
-            ambientAlerts={personal.ambientAlerts}
-            formatScoreLabel={formatScoreLabel}
-            nakshatraCard={personalMemberChart?.nakshatraCard ?? personal.nakshatraCard}
-            peyarchiReport={personal.peyarchiReport}
-            lifeAreas={personal.lifeAreas}
-            weekAhead={personal.weekAhead}
-            familyAggregate={family.familyAggregate}
             onDateChange={setSelectedDate}
-            onGoToFamily={() => setActiveTab("family")}
-            onGoToJournal={() => setActiveTab("journal")}
-            onGoToCalendar={() => setActiveTab("calendar")}
             onOpenPrasna={() => setShowPrasna(true)}
             showPrasna={showPrasna}
             onClosePrasna={() => setShowPrasna(false)}
-            dasha={personalDasha}
-            dashaMaha={personalDashaMaha}
-            dashaAntar={personalDashaAntar}
           />
         )}
 
-        {activeTab === "personal" && uiVariant !== "nova" && todayVariant !== "v2" && (
+        {activeTab === "personal" && uiVariant !== "nova" && (
           <DashboardPersonalTab
             lang={lang}
             activeLifeMode={activeLifeMode}
@@ -1536,6 +1521,51 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
             setShowWrapped(false);
             setShowRetrospective(false);
           };
+
+          if (uiVariant === "nova") {
+            return (
+              <DashboardToolsTabNova
+                lang={lang}
+                activeTool={activeTool}
+                needsProfile={needsProfile}
+                onOpenTool={openTool}
+                onCloseTool={closeTool}
+                showPorutham={showPorutham}
+                showChartGenerate={showChartGenerate}
+                showWrapped={showWrapped}
+                showRetrospective={showRetrospective}
+                personalChartId={personal.chartId}
+                familyMembersForPorutham={[
+                  ...(personal.chart ? [{
+                    memberId: `owner:${personal.chart.birthProfile.birthProfileId}`,
+                    displayName: personal.chart.birthProfile.displayName,
+                    birthDateLocal: personal.chart.birthProfile.birthDateLocal,
+                    birthTimeLocal: personal.chart.birthProfile.birthTimeLocal ?? "",
+                    birthPlace: personal.chart.birthProfile.birthPlace,
+                    birthLatitude: personal.chart.birthProfile.birthLatitude,
+                    birthLongitude: personal.chart.birthProfile.birthLongitude,
+                    birthTimezone: personal.chart.birthProfile.birthTimezone,
+                  }] : []),
+                  ...family.memberCharts
+                    .filter((mc) => mc.chart.birthProfile.birthProfileId !== personal.chart?.birthProfile.birthProfileId)
+                    .map((mc) => ({
+                      memberId: mc.memberId,
+                      displayName: mc.displayName,
+                      birthDateLocal: mc.chart.birthProfile.birthDateLocal,
+                      birthTimeLocal: mc.chart.birthProfile.birthTimeLocal ?? "",
+                      birthPlace: mc.chart.birthProfile.birthPlace,
+                      birthLatitude: mc.chart.birthProfile.birthLatitude,
+                      birthLongitude: mc.chart.birthProfile.birthLongitude,
+                      birthTimezone: mc.chart.birthProfile.birthTimezone,
+                    })),
+                ]}
+                onGoToPlan={() => goToTab("plan")}
+                onGoToCalendar={() => goToTab("calendar")}
+                onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
+              />
+            );
+          }
+
           return (
             <div className="cd-tools">
               {!activeTool && (
@@ -1745,7 +1775,7 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
           />
         )}
 
-        {activeTab === "life-areas" && (
+        {activeTab === "life-areas" && uiVariant !== "nova" && (
           <DashboardLifeAreasTab
             lang={lang}
             lifeAreas={personal.lifeAreas}
@@ -1777,6 +1807,41 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
           />
         )}
 
+        {activeTab === "life-areas" && uiVariant === "nova" && (
+          <DashboardLifeAreasTabNova
+            lang={lang}
+            lifeAreas={personal.lifeAreas}
+            predictions={personal.predictions}
+            predictionsLoading={personal.predictionsLoading}
+            yogas={(lifeAreasMemberChart?.chart ?? personal.chart)?.yogas ?? []}
+            doshams={(lifeAreasMemberChart?.chart ?? personal.chart)?.doshams ?? []}
+            jadhagamReport={personal.jadhagamReport}
+            jadhagamReportLoading={personal.jadhagamReportLoading}
+            onLoadJadhagamReport={() => void personal.loadJadhagamReport(resolveLifeAreasChartId())}
+            chartSummary={lifeAreasMemberChart?.summary ?? personal.chartSummary}
+            birthDisplayName={birthForm.displayName}
+            maritalStatus={(() => {
+              if (!lifeAreasViewId) return birthForm.maritalStatus || undefined;
+              const mc = family.memberCharts.find((m) => m.memberId === lifeAreasViewId);
+              const rel = mc?.chart.birthProfile.relationshipToOwner;
+              // Spouse/parent/grandparent are definitionally married — no need to ask
+              if (rel === "spouse" || rel === "parent" || rel === "grandparent") return "married";
+              return undefined;
+            })()}
+            memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
+            selectedMemberId={lifeAreasViewId}
+            onSelectMember={setLifeAreasViewId}
+            chartId={resolveLifeAreasChartId()}
+            remedyPlan={remedyPlan}
+            gemstoneAdvice={gemstoneAdvice}
+            remediesLoading={remediesLoading}
+            onLoadRemedies={() => void loadRemedies(resolveLifeAreasChartId())}
+            goals={plan.goals}
+            onGoToPlan={() => goToTab("plan")}
+            onGoToTransits={() => { setPlanView("transits"); goToTab("plan"); }}
+          />
+        )}
+
         {activeTab === "transits" && (
           <DashboardTransitsTab
             lang={lang}
@@ -1800,7 +1865,7 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
           />
         )}
 
-        {activeTab === "plan" && (
+        {activeTab === "plan" && uiVariant !== "nova" && (
           <DashboardPlanTab
             lang={lang}
             chartId={personal.chartId}
@@ -1824,7 +1889,53 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
           />
         )}
 
-        {activeTab === "journal" && (
+        {activeTab === "plan" && uiVariant === "nova" && (
+          <DashboardPlanTabNova
+            lang={lang}
+            chartId={personal.chartId}
+            hasBirthProfile={!!personal.birthProfileId}
+            goals={plan.goals}
+            goalsBusy={plan.goalsBusy}
+            addingGoalType={plan.addingGoalType}
+            onAddingGoalTypeChange={plan.setAddingGoalType}
+            removingGoalId={plan.removingGoalId}
+            onAddGoal={(goalType) => void plan.addGoal(goalType)}
+            onRemoveGoal={(goalId) => void plan.removeGoal(goalId)}
+            whatIfScenario={plan.whatIfScenario}
+            whatIfDate={plan.whatIfDate}
+            whatIfResult={plan.whatIfResult}
+            whatIfBusy={plan.whatIfBusy}
+            whatIfError={plan.whatIfError}
+            onWhatIfScenarioChange={plan.setWhatIfScenario}
+            onWhatIfDateChange={plan.setWhatIfDate}
+            onRunWhatIf={() => void plan.runWhatIf()}
+            mode={session.userMode}
+            onGoToLifeAreas={() => goToTab("life-areas")}
+            onGoToCalendar={() => goToTab("calendar")}
+            onGoToJournal={() => goToTab("journal")}
+            view={planView}
+            onViewChange={setPlanView}
+            selectedDate={selectedDate}
+            personalChart={transitChart}
+            personalDailyGuidance={transitDailyGuidance}
+            personalTransit={transitTransit}
+            personalSani={transitSani}
+            personalDasha={transitDasha}
+            personalDashaMaha={transitDashaMaha}
+            personalDashaAntar={transitDashaAntar}
+            dashaStory={transitViewId ? null : personal.dashaStory}
+            journalCorrelations={personal.journalCorrelations}
+            varshaphalaData={varshaphalaData}
+            varshaphalaLoading={varshaphalaLoading}
+            onLoadVarshaphala={(year) => void loadVarshaphala(year, transitChart?.chartId ?? personal.chartId)}
+            birthDisplayName={birthForm.displayName}
+            transitMemberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
+            selectedTransitMemberId={transitViewId}
+            onSelectTransitMember={setTransitViewId}
+          />
+        )}
+
+        {activeTab === "journal" && uiVariant !== "nova" && (
           <DashboardJournalTab
             lang={lang}
             chartId={personal.chartId}
@@ -1840,7 +1951,39 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
           />
         )}
 
-        {activeTab === "explore" && (
+        {activeTab === "journal" && uiVariant === "nova" && (
+          <DashboardJournalTabNova
+            lang={lang}
+            chartId={personal.chartId}
+            selectedDate={selectedDate}
+            hasBirthProfile={!!personal.birthProfileId}
+            journalEntries={journal.journalEntries}
+            journalTotal={journal.journalTotal}
+            contextData={journal.contextData}
+            onEntrySaved={() => journal.loadJournalEntries(personal.chartId)}
+            onEntryArchived={() => journal.loadJournalEntries(personal.chartId)}
+            onContextUpdated={(data) => journal.setContextData(data)}
+            mode={session.userMode}
+            chartSummary={personal.chartSummary}
+            journalCorrelations={personal.journalCorrelations}
+            onGoToTransits={() => { setPlanView("transits"); goToTab("plan"); }}
+          />
+        )}
+
+        {activeTab === "explore" && uiVariant === "nova" && (
+          <DashboardExploreTabNova
+            lang={lang}
+            personalChartSummary={personalChartSummary}
+            personalChart={personalChart}
+            personalDailyGuidance={personalDailyGuidance}
+            nakshatraCard={personalMemberChart?.nakshatraCard ?? personal.nakshatraCard}
+            memberCharts={family.memberCharts}
+            onNavigate={goToExploreDestination}
+            onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
+          />
+        )}
+
+        {activeTab === "explore" && uiVariant !== "nova" && (
           <DashboardExploreTab lang={lang} onNavigate={goToExploreDestination} />
         )}
 

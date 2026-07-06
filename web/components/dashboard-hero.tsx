@@ -11,6 +11,7 @@ import type {
   FamilyVaultListItem,
   NotificationInboxItem,
 } from "@/lib/types";
+import type { UiVariant } from "@/hooks/useUiVariant";
 
 type Tab = "onboarding" | "personal" | "tools" | "transits" | "plan" | "life-areas" | "family" | "calendar" | "journal" | "settings" | "qa" | "explore";
 type LabelKey = Parameters<typeof t>[0];
@@ -52,6 +53,7 @@ const TAB_DEFS: Array<{ id: Tab; labelEn: string; labelTaKey?: LabelKey }> = [
   { id: "personal", labelEn: "Today", labelTaKey: "tab_today" },
   { id: "calendar", labelEn: "Calendar", labelTaKey: "tab_calendar" },
   { id: "family", labelEn: "Family", labelTaKey: "tab_family" },
+  { id: "explore", labelEn: "Explore", labelTaKey: "tab_explore" },
   { id: "life-areas", labelEn: "Life Area", labelTaKey: "tab_life_areas" },
   { id: "plan", labelEn: "Plan", labelTaKey: "tab_plan" },
   { id: "transits", labelEn: "Transits", labelTaKey: "tab_transits" },
@@ -64,6 +66,7 @@ const TAB_DEFS: Array<{ id: Tab; labelEn: string; labelTaKey?: LabelKey }> = [
 interface DashboardHeroProps {
   lang: Lang;
   activeTab: Tab;
+  uiVariant?: UiVariant;
   birthDisplayName: string;
   status: string;
   chartSummary: ChartSummaryData | null;
@@ -152,6 +155,7 @@ export function DashboardHero(props: DashboardHeroProps) {
   const {
     lang,
     activeTab,
+    uiVariant = "classic",
     birthDisplayName,
     status,
     chartSummary,
@@ -181,9 +185,18 @@ export function DashboardHero(props: DashboardHeroProps) {
   const lagnaRasi = chartSummary?.lagnaRasi ?? "";
   // Settings is reachable from the avatar menu, so it is omitted from the tab
   // strip to keep the mobile nav compact. QA only shows outside production.
+  // Under Nova, "Transits & Dasha" lives inside the Plan tab's own toggle
+  // (see dashboard-plan-tab-nova.tsx) rather than as a separate destination —
+  // Classic's standalone Transits tab is untouched, so its pill stays for Classic.
   const tabs = useMemo(
-    () => TAB_DEFS.filter((tab) => tab.id !== "settings" && (SHOW_QA_TAB || tab.id !== "qa")),
-    [],
+    () =>
+      TAB_DEFS.filter(
+        (tab) =>
+          tab.id !== "settings" &&
+          (SHOW_QA_TAB || tab.id !== "qa") &&
+          (uiVariant !== "nova" || tab.id !== "transits"),
+      ),
+    [uiVariant],
   );
 
   // Keep the active tab scrolled into view on the mobile scrollable strip so the
@@ -283,7 +296,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                         <button
                           type="button"
                           onClick={() => { onMarkAllRead(); }}
-                          style={{ fontSize: "0.7rem", color: "var(--panel-brand)", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}
+                          style={{ fontSize: "0.7rem", color: "var(--color-accent, var(--panel-brand))", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}
                         >
                           {t("notif_mark_all_read", lang)}
                         </button>
@@ -302,7 +315,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                         <div key={n.notification_id} className="cd-alert-item" style={{ opacity: n.read_at ? 0.6 : 1 }}>
                           <p className="cd-alert-item__title" style={{ display: "flex", justifyContent: "space-between", gap: "8px" }}>
                             <span>{n.title}</span>
-                            {!n.read_at && <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--panel-brand)", flexShrink: 0, marginTop: "4px" }} />}
+                            {!n.read_at && <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--color-accent, var(--panel-brand))", flexShrink: 0, marginTop: "4px" }} />}
                           </p>
                           <p className="cd-alert-item__body">{n.body}</p>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
@@ -313,7 +326,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                               <button
                                 type="button"
                                 onClick={() => onMarkOneRead(n.notification_id)}
-                                style={{ fontSize: "0.68rem", color: "var(--panel-brand)", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", flexShrink: 0 }}
+                                style={{ fontSize: "0.68rem", color: "var(--color-accent, var(--panel-brand))", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit", flexShrink: 0 }}
                               >
                                 {t("notif_mark_read", lang)}
                               </button>
@@ -330,7 +343,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                           display: "inline-flex",
                           alignItems: "center",
                           gap: "6px",
-                          color: "var(--panel-brand)",
+                          color: "var(--color-accent, var(--panel-brand))",
                           fontSize: "0.78rem",
                           fontWeight: 700,
                           textDecoration: "none",
