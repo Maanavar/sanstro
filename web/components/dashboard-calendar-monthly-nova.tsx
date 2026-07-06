@@ -289,9 +289,15 @@ export function MonthlyCalendarViewNova({
                     : /pradhosam|pradosham/i.test(specialFestivalNames) ? "pradosham"
                     : null;
                   const tone = highlightType ? NOVA_CAL_HILITE[highlightType] : null;
-                  const cellBg = isSelected ? "var(--color-accent-muted)" : (tone?.bg ?? (hasFestival ? "var(--color-surface-soft)" : "rgba(243,236,221,0.03)"));
-                  const cellBorder = isSelected ? "var(--color-border-strong)" : (tone?.border ?? "var(--color-border)");
-                  const dateColor = isSelected ? "var(--color-accent-strong)" : "var(--color-text-strong)";
+                  // Selected/today are rings layered on top of the day's own highlight tint
+                  // (Pournami/Amavasai/Muhurtham/etc.), not a replacement for it — previously
+                  // isSelected fully overrode cellBg/cellBorder and isToday's badge was hidden
+                  // whenever the day was also selected, so on the default view (today ==
+                  // selectedDate on load) none of today/pournami/amavasai ever showed at all.
+                  const cellBg = tone?.bg ?? (isSelected ? "var(--color-accent-muted)" : hasFestival ? "var(--color-surface-soft)" : "rgba(243,236,221,0.03)");
+                  const cellBorder = tone?.border ?? (isSelected ? "var(--color-border-strong)" : "var(--color-border)");
+                  const selectionRing = isSelected ? "0 0 0 2px var(--color-accent-strong)" : isToday ? "0 0 0 1.5px var(--color-accent)" : "none";
+                  const dateColor = isSelected ? "var(--color-accent-strong)" : isToday ? "var(--color-accent)" : "var(--color-text-strong)";
 
                   return (
                     <button
@@ -304,6 +310,7 @@ export function MonthlyCalendarViewNova({
                       style={{
                         appearance: "none", width: "100%", position: "relative",
                         border: `1px solid ${cellBorder}`, borderRadius: "9px",
+                        boxShadow: selectionRing,
                         background: cellBg, padding: "9px", minHeight: "82px",
                         display: "flex", flexDirection: "column", gap: "4px",
                         overflow: "hidden", cursor: onSelectDate ? "pointer" : "default", textAlign: "left",
@@ -340,7 +347,7 @@ export function MonthlyCalendarViewNova({
                             <span aria-hidden="true">⚠</span>{lang === "ta" ? "கரிநாள்" : "Karinaal"}
                           </span>
                         )}
-                        {isToday && !isSelected && (
+                        {isToday && (
                           <span style={{ alignSelf: "flex-start", borderRadius: "999px", background: "var(--color-accent-muted)", color: "var(--color-accent-strong)", padding: "2px 8px", fontSize: "9.5px", fontWeight: 700 }}>
                             {lang === "ta" ? "இன்று" : "Today"}
                           </span>

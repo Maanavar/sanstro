@@ -17,11 +17,13 @@ import type {
   FamilyVaultDetailData,
   FamilyVaultListItem,
   FamilyVaultTodayData,
+  PanchangamDailyResponseData,
   RelationshipAlertItem,
 } from "@/lib/types";
 
 import { formatHeaderDate, getTamilMonthDate } from "./dashboard-calendar-tab";
 import { ScoreRing, formatRelLabel, MemberDetailExpanded } from "./dashboard-family-tab";
+import { DashboardFamilyMemberNova } from "./dashboard-family-member-nova";
 import type { MemberChart } from "@/hooks/useFamilyData";
 import { NovaScoreDial } from "./dashboard-ui-nova";
 import { SynastryMatrix } from "./synastry-matrix";
@@ -355,6 +357,7 @@ export type DashboardFamilyTabNovaProps = {
   memberCharts: MemberChart[];
   relationshipAlerts: RelationshipAlertItem[];
   alertsLoading: boolean;
+  panchangam: PanchangamDailyResponseData | null;
   busy: {
     family: boolean;
     vaults: boolean;
@@ -382,6 +385,7 @@ export function DashboardFamilyTabNova({
   memberCharts,
   relationshipAlerts,
   alertsLoading,
+  panchangam,
   busy,
   onRefreshFamily,
   onOpenSetup,
@@ -389,6 +393,7 @@ export function DashboardFamilyTabNova({
   onDeleteMember,
   onEditMember,
 }: DashboardFamilyTabNovaProps) {
+  const [detailView, setDetailView] = useState(false);
   const [familyToday, setFamilyToday] = useState<FamilyVaultTodayData | null>(null);
   const [relationFilter, setRelationFilter] = useState<RelationFilter>("all");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
@@ -463,6 +468,26 @@ export function DashboardFamilyTabNova({
 
   const activeMember = members.find((m) => m.familyMemberId === selectedMemberId) ?? null;
   const activeMemberChart = activeMember ? memberCharts.find((mc) => mc.memberId === activeMember.familyMemberId) : undefined;
+  const activeMemberIndex = activeMember ? members.findIndex((m) => m.familyMemberId === activeMember.familyMemberId) : -1;
+  const prevMember = activeMemberIndex > 0 ? members[activeMemberIndex - 1] : null;
+  const nextMember = activeMemberIndex >= 0 && activeMemberIndex < members.length - 1 ? members[activeMemberIndex + 1] : null;
+  const activeTodayItem = activeMember ? todayMembers.find((tm) => tm.memberId === activeMember.familyMemberId) : undefined;
+  const activeRelationLabel = activeMember
+    ? formatRelLabel(familyMembers.find((fm) => fm.familyMemberId === activeMember.familyMemberId)?.relationshipToOwner)
+    : null;
+  const relationshipParticipants = activeMember
+    ? [
+        ...(ownerChartId ? [{ id: "owner", displayName: ownerDisplayName, chartId: ownerChartId, relationLabel: lang === "ta" ? "நீங்கள்" : "You" }] : []),
+        ...memberCharts
+          .filter((mc) => mc.memberId !== activeMember.familyMemberId)
+          .map((mc) => ({
+            id: mc.memberId,
+            displayName: mc.displayName,
+            chartId: mc.chart.chartId,
+            relationLabel: formatRelLabel(familyMembers.find((fm) => fm.familyMemberId === mc.memberId)?.relationshipToOwner),
+          })),
+      ]
+    : [];
 
   const bondParticipants: BondParticipant[] = [
     ...(ownerChartId ? [{ id: "owner", displayName: ownerDisplayName, chartId: ownerChartId }] : []),
@@ -474,6 +499,30 @@ export function DashboardFamilyTabNova({
     return { memberId: m.familyMemberId, displayName: m.displayName, relationshipToOwner: fm?.relationshipToOwner ?? "other" };
   });
   const memberChartsForSynastry = memberCharts.map((m) => ({ memberId: m.memberId, displayName: m.displayName, chart: m.chart }));
+
+  if (detailView && activeMember) {
+    return (
+      <DashboardFamilyMemberNova
+        lang={lang}
+        selectedDate={selectedDate}
+        member={activeMember}
+        memberChart={activeMemberChart}
+        relationLabel={activeRelationLabel}
+        todayItem={activeTodayItem}
+        panchangam={panchangam}
+        bestFamilyWindow={bestWindow}
+        relationshipParticipants={relationshipParticipants}
+        onBack={() => setDetailView(false)}
+        onPrev={prevMember ? () => setSelectedMemberId(prevMember.familyMemberId) : null}
+        onNext={nextMember ? () => setSelectedMemberId(nextMember.familyMemberId) : null}
+        prevName={prevMember?.displayName ?? null}
+        nextName={nextMember?.displayName ?? null}
+        onEdit={() => onEditMember(activeMember)}
+        onDelete={() => onDeleteMember(activeMember.familyMemberId, activeMember.displayName)}
+        deleting={busy.deletingMemberId === activeMember.familyMemberId}
+      />
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "18px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
@@ -625,18 +674,31 @@ export function DashboardFamilyTabNova({
         </>
       )}
 
-      {/* ===== Inline expanded detail (in place of a not-yet-built dedicated screen) ===== */}
+      {/* ===== Inline expanded detail — a quick glance; "View full profile" opens the
+          dedicated family-member screen (Phase 5). Both patterns are kept deliberately
+          (user decision, see Progress Log) rather than replacing one with the other. ===== */}
       {activeMember && (
-        <MemberDetailExpanded
-          member={activeMember}
-          memberChart={activeMemberChart}
-          relationshipToOwner={familyMembers.find((fm) => fm.familyMemberId === activeMember.familyMemberId)?.relationshipToOwner}
-          onDelete={onDeleteMember}
-          onEdit={onEditMember}
-          deletingId={busy.deletingMemberId}
-          today={selectedDate}
-          lang={lang}
-        />
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button
+              type="button"
+              onClick={() => setDetailView(true)}
+              style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "7px 16px", cursor: "pointer", fontFamily: "inherit" }}
+            >
+              {lang === "ta" ? "முழு விவரம் காண் →" : "View full profile →"}
+            </button>
+          </div>
+          <MemberDetailExpanded
+            member={activeMember}
+            memberChart={activeMemberChart}
+            relationshipToOwner={familyMembers.find((fm) => fm.familyMemberId === activeMember.familyMemberId)?.relationshipToOwner}
+            onDelete={onDeleteMember}
+            onEdit={onEditMember}
+            deletingId={busy.deletingMemberId}
+            today={selectedDate}
+            lang={lang}
+          />
+        </div>
       )}
 
       {/* ===== Compatibility (existing Synastry Matrix/Panel, re-skinned for free — already var(--color-*)-driven) ===== */}

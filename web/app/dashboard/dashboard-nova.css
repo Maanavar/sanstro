@@ -84,7 +84,7 @@
   /* ── Classic-only custom properties (defined at bare :root in globals.css,
      used directly by inline styles in components like dashboard-family-tab.tsx's
      MemberDetailExpanded/ScoreRing) redirected to Nova's own high/mid/low triplet
-     above. Same free-inheritance mechanism as the --color-*/--radius-* block this
+     above. Same free-inheritance mechanism as the --color-* and --radius-* block this
      comment lives in — reused components need zero code changes. ── */
   --chart-d9-active-bg: var(--color-high-bg);
   --chart-d1-lagna-bg:  var(--color-mid-bg);
@@ -95,6 +95,43 @@
   --panel-cream:        var(--color-surface-2);
   --panel-mid-earth:    var(--color-muted);
   --shadow-faint:       rgba(0, 0, 0, 0.35);
+
+  /* ── Found building Phase 5 (family-member): dashboard-charts.tsx's
+     RasiChart/NavamsaChart/JathagamKattam read a much larger set of
+     Classic-only literal-hex vars than the block above covered — Phase 4's
+     progress log claimed these were "100% var(--color-*)-driven" but that
+     was wrong, they use --panel-tan/--chart-bg/--planet-*, etc. directly.
+     This means Phase 4's inline MemberDetailExpanded chart grids have been
+     rendering with Classic's tan/cream colors on Nova's dark background
+     since they shipped. Same mechanical redirect as above — but unlike the
+     --chart-*/--planet-* names below (grep-confirmed narrowly scoped to
+     dashboard-charts.tsx, or used consistently as accent-text colors
+     elsewhere), --panel-tan/--panel-tan-light/--panel-earth/--panel-earth-dark
+     turned out to be generic tokens reused across 50+ Classic components in
+     CONFLICTING roles (mostly text color, but sometimes a solid "selected
+     pill" background paired with --panel-hover as its text) — redirecting
+     them here broke every one of those "selected" pills app-wide (reported
+     2026-07-06: selected-tab background and text both went light, making
+     the label invisible on Life Areas' member/sub-tab pills and similar
+     spots elsewhere). Reverted these 4; the chart grid's outer border/
+     cell-border/body-text keep Classic's tan/cream look for now — a real
+     but minor, deliberately-deferred cosmetic gap (see Progress Log) until
+     a properly scoped fix (new dashboard-charts.tsx-only variable names,
+     not reusing shared Classic tokens) lands in a future pass. ── */
+  --chart-bg:              var(--color-surface-3);
+  --chart-cell-default:    var(--color-surface);
+  --chart-cell-selected:   var(--color-surface-soft);
+  --chart-d1-lagna-border: var(--color-mid-border);
+  --chart-d1-active:       var(--color-accent);
+  --chart-d1-active-text:  var(--color-mid);
+  --chart-d9-lagna-bg:     var(--color-high-bg);
+  --chart-d9-lagna-border: var(--color-high-border);
+  --chart-d9-active:       var(--color-high);
+  --chart-d9-active-dark:  var(--color-high);
+  --planet-lagna:          var(--color-accent-strong);
+  --planet-saturn:         var(--color-low);
+  --planet-nodes:          var(--color-accent-secondary);
+  --planet-other:          #7fa3c9; /* same one-off blue as NOVA_CAL_HILITE.sashti, dashboard-calendar-monthly-nova.tsx — Nova has no existing blue semantic slot */
 
   /* ── Shape ── */
   --radius-lg: 14px; /* cards */
@@ -137,7 +174,7 @@
 
 /* ═══════════════════════════════════════════════════════════
    Gap fix (found building Phase 1's Deep Dive reuse): globals.css's
-   `.cd-shell .surface/.chip/.metric/.card/.table/.button--*/...`
+   `.cd-shell .surface/.chip/.metric/.card/.table/.button--*` (etc.)
    rules hardcode literal Classic hex values directly (not var()
    references), so they are NOT reached by the --color-* redefinitions
    above via cascade — they win by specificity regardless of [data-ui].

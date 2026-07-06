@@ -7,7 +7,7 @@ import type { ChartYogaInsight, ChartDoshamInsight } from "@/lib/types";
 
 // ── Display name maps ────────────────────────────────────────────────────────
 
-const YOGA_DISPLAY: Record<string, { ta: string; en: string }> = {
+export const YOGA_DISPLAY: Record<string, { ta: string; en: string }> = {
   GAJA_KESARI_YOGA: { ta: "Gaja Kesari Yoga", en: "Gaja Kesari Yoga" },
   GAJA_KESARI:      { ta: "Gaja Kesari Yoga", en: "Gaja Kesari Yoga" },
   RAJA_YOGA:        { ta: "Raja Yoga",         en: "Raja Yoga" },

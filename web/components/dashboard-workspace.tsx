@@ -1673,6 +1673,7 @@ export function DashboardWorkspace({ todayVariant = "classic" }: { todayVariant?
             memberCharts={family.memberCharts}
             relationshipAlerts={family.relationshipAlerts}
             alertsLoading={family.relationshipAlertsLoading}
+            panchangam={personal.panchangam}
             busy={{
               family: family.busyFamily,
               vaults: family.busyVaults,
