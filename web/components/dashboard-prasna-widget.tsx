@@ -21,7 +21,7 @@ const W = {
   rust: "var(--planet-saturn)",
 } as const;
 
-const QUESTION_AREAS = [
+export const QUESTION_AREAS = [
   { key: "JOB",       labelKey: "prasna_area_job" as const },
   { key: "MARRIAGE",  labelKey: "prasna_area_marriage" as const },
   { key: "HEALTH",    labelKey: "prasna_area_health" as const },
@@ -40,7 +40,7 @@ function outlookColor(outlook: PrasnaResponse["outlook"]) {
   return W.muted;
 }
 
-function outlookLabel(outlook: PrasnaResponse["outlook"], lang: Lang): string {
+export function outlookLabel(outlook: PrasnaResponse["outlook"], lang: Lang): string {
   const map = {
     FAVOURABLE:   t("prasna_outlook_favourable", lang),
     UNFAVOURABLE: t("prasna_outlook_unfavourable", lang),

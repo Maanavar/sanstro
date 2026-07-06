@@ -10,7 +10,7 @@ import type { ActivityTimingData } from "@/lib/types";
 
 import { Chip, Surface } from "./dashboard-ui";
 
-const ACTIVITY_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
+export const ACTIVITY_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
   { value: "job_change", en: "Job change or new role", ta: "வேலை மாற்றம் / புதிய பொறுப்பு" },
   { value: "business_start", en: "Start a new business", ta: "புதிய தொழில் தொடங்குதல்" },
   { value: "marriage", en: "Marriage ceremony", ta: "திருமண நிகழ்வு" },
@@ -41,12 +41,12 @@ type DashboardActivityTimingCardProps = {
   onDateChange?: (date: string) => void;
 };
 
-function currentMonthIso() {
+export function currentMonthIso() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function formatShortDate(value: string, lang: Lang) {
+export function formatShortDate(value: string, lang: Lang) {
   try {
     return new Date(`${value}T12:00:00`).toLocaleDateString(
       lang === "ta" ? "ta-IN" : "en-IN",
@@ -57,7 +57,7 @@ function formatShortDate(value: string, lang: Lang) {
   }
 }
 
-function formatWeekday(value: string, lang: Lang) {
+export function formatWeekday(value: string, lang: Lang) {
   try {
     return new Date(`${value}T12:00:00`).toLocaleDateString(
       lang === "ta" ? "ta-IN" : "en-IN",
@@ -68,7 +68,7 @@ function formatWeekday(value: string, lang: Lang) {
   }
 }
 
-function alignmentTone(alignment: string): "success" | "warning" | "neutral" {
+export function alignmentTone(alignment: string): "success" | "warning" | "neutral" {
   if (alignment === "SUPPORTS") return "success";
   if (alignment === "CAUTION") return "warning";
   return "neutral";

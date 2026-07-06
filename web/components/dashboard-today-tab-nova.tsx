@@ -13,6 +13,7 @@ import type {
   ChartExplanationData,
   ChartSummaryData,
   DailyGuidanceData,
+  DailyGuidanceRangeData,
   DashaTimelineItem,
   DashaTimelineResponseData,
   FamilyAggregateData,
@@ -45,6 +46,15 @@ import { useStreak } from "@/hooks/useStreak";
 import { DashboardTodayRibbonNova } from "./dashboard-today-ribbon-nova";
 import { DashboardTodayDecideNova } from "./dashboard-today-decide-nova";
 import { DashboardTodayAnticipationRowNova, DashboardTodayGlanceRowNova } from "./dashboard-today-glance-nova";
+import {
+  NovaActivityTimingCard,
+  NovaChartContextGuidanceGochar,
+  NovaChartValidationChip,
+  NovaDasaBhuktiAntaramStrip,
+  NovaMorningGuidanceCard,
+  NovaPrasnaTrigger,
+  NovaPrasnaWidget,
+} from "./dashboard-today-deepdive-extras-nova";
 
 /**
  * Nova "Today" tab — Phase 1 of the dashboard revamp (see
@@ -52,16 +62,13 @@ import { DashboardTodayAnticipationRowNova, DashboardTodayGlanceRowNova } from "
  * below comes from the exact same hooks/data Classic's Today tab
  * (dashboard-personal-tab.tsx) already receives from dashboard-workspace.tsx.
  *
- * The Deep Dive section intentionally covers a bounded subset of Classic's
- * full detail (planet table, chart explanation, vargas, shadbala, the three
- * alternate dashas, classical timing, nakshatra card, PDF) — NOT yet carried
- * over: the two-col Chart Context/Guidance-detail/Gochar surfaces, the
- * Dasa-Bhukti-Antaram strip, DashboardActivityTimingCard (the single-activity
- * month browser — distinct from this file's 4-activity Decide grid),
- * MorningGuidanceCard, and the Prasna/Horary trigger. Nothing is lost for
- * users — Classic is still one Settings toggle away — but these should be
- * folded into Nova in a follow-up pass before Classic's Today tab is ever
- * retired for good.
+ * The Deep Dive section covers the full set of Classic's detail panels
+ * (see docs/DASHBOARD_UI_REVAMP_PLAN.md §8, Deep Dive completeness pass):
+ * chart validation chip, Chart Context/Guidance/Gochar two-col, Dasa-Bhukti-
+ * Antaram strip, activity timing month browser, planet table, chart
+ * explanation, vargas, shadbala, the three alternate dashas, classical
+ * timing, nakshatra card, morning guidance opt-in, Prasna/Horary trigger,
+ * and PDF download.
  */
 
 export type DashboardTodayTabNovaProps = {
@@ -85,11 +92,17 @@ export type DashboardTodayTabNovaProps = {
   lifeAreas?: LifeAreasResponseData | null;
   dasha: DashaTimelineResponseData | null;
   dashaAntar: DashaTimelineItem[];
+  dashaMaha?: DashaTimelineResponseData | null;
+  dailyGuidanceRange?: DailyGuidanceRangeData | null;
   nakshatraCard: NakshatraCardData | null;
   onGoToFamily?: () => void;
   onGoToJournal?: () => void;
   onGoToCalendar?: () => void;
   onOpenAskVinaadi: () => void;
+  onDateChange?: (date: string) => void;
+  onOpenPrasna?: () => void;
+  showPrasna?: boolean;
+  onClosePrasna?: () => void;
 };
 
 function greetingWord(lang: Lang): string {
@@ -125,11 +138,17 @@ export function DashboardTodayTabNova({
   lifeAreas,
   dasha,
   dashaAntar,
+  dashaMaha,
+  dailyGuidanceRange,
   nakshatraCard,
   onGoToFamily,
   onGoToJournal,
   onGoToCalendar,
   onOpenAskVinaadi,
+  onDateChange,
+  onOpenPrasna,
+  showPrasna = false,
+  onClosePrasna,
 }: DashboardTodayTabNovaProps) {
   const { days: streakDays } = useStreak();
   const displayName = personalMemberChart?.displayName ?? birthDisplayName;
@@ -358,17 +377,38 @@ export function DashboardTodayTabNova({
             defaultOpen={false}
           >
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", paddingBottom: "16px" }}>
-              {activeChartId && (
-                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                <NovaChartValidationChip lang={lang} validationStatus={personalChartSummary?.chartValidationStatus} />
+                {activeChartId && (
                   <button
                     type="button"
                     onClick={() => void downloadPdf()}
-                    style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "8px 16px", borderRadius: "999px", border: "1px solid var(--color-border-strong)", background: "none", color: "var(--color-accent-strong)", fontSize: "12.5px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "8px 16px", borderRadius: "999px", border: "1px solid var(--color-border-strong)", background: "none", color: "var(--color-accent-strong)", fontSize: "12.5px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginLeft: "auto" }}
                   >
                     ⤓ {lang === "ta" ? "PDF பதிவிறக்கம்" : "Download PDF"}
                   </button>
-                </div>
+                )}
+              </div>
+
+              {activeChartId && (
+                <NovaActivityTimingCard lang={lang} chartId={activeChartId} selectedDate={selectedDate} onDateChange={onDateChange} />
               )}
+
+              <NovaChartContextGuidanceGochar
+                lang={lang}
+                activeChartId={activeChartId}
+                selectedDate={selectedDate}
+                personalChart={personalChart}
+                personalChartSummary={personalChartSummary}
+                personalDailyGuidance={personalDailyGuidance}
+                personalTransit={personalTransit}
+                personalSani={personalSani}
+                panchangam={panchangam}
+                dailyGuidanceRange={dailyGuidanceRange}
+                astroText={astroText}
+              />
+
+              <NovaDasaBhuktiAntaramStrip lang={lang} personalChartSummary={personalChartSummary} dashaMaha={dashaMaha} />
 
               <Surface title={t("surface_planets", lang)}>
                 {personalChart ? (
@@ -495,6 +535,20 @@ export function DashboardTodayTabNova({
                     )}
                   </div>
                 </Surface>
+              )}
+
+              <NovaMorningGuidanceCard lang={lang} />
+
+              <NovaPrasnaTrigger lang={lang} onOpenPrasna={onOpenPrasna} />
+              {onClosePrasna && personalChart && (
+                <NovaPrasnaWidget
+                  lang={lang}
+                  open={showPrasna}
+                  onClose={onClosePrasna}
+                  timezone={personalChart.birthProfile.birthTimezone ?? "Asia/Kolkata"}
+                  latitude={personalChart.birthProfile.birthLatitude ?? 13.0827}
+                  longitude={personalChart.birthProfile.birthLongitude ?? 80.2707}
+                />
               )}
             </div>
           </CollapsibleSection>

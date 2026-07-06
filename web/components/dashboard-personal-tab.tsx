@@ -64,7 +64,7 @@ const EMOTIONAL_WEATHER_FIELDS = [
 ] as const;
 
 const SCORE_CHIP_KEYS = ["moonTransit", "dashaSupport", "panchangam"] as const;
-const GUIDANCE_REASON_KEYS = ["moonTransit", "dashaSupport", "panchangam", "gochar", "personalCaution"] as const;
+export const GUIDANCE_REASON_KEYS = ["moonTransit", "dashaSupport", "panchangam", "gochar", "personalCaution"] as const;
 function kalamSlotKey(
   slot: PanchangamDailyResponseData["kalam"]["nallaNeram"][number],
   index: number,

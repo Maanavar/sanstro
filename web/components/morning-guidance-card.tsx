@@ -21,13 +21,13 @@ const W = {
   sage:     "var(--chart-d9-active)",
 } as const;
 
-const TIME_PRESETS = [
+export const TIME_PRESETS = [
   { value: "06:00", labelEn: "6 am", labelTa: "காலை 6" },
   { value: "07:00", labelEn: "7 am", labelTa: "காலை 7" },
   { value: "08:00", labelEn: "8 am", labelTa: "காலை 8" },
 ];
 
-const CHANNEL_OPTS: { value: "email" | "push" | "both"; labelEn: string; labelTa: string }[] = [
+export const CHANNEL_OPTS: { value: "email" | "push" | "both"; labelEn: string; labelTa: string }[] = [
   { value: "email", labelEn: "Email", labelTa: "மின்னஞ்சல்" },
   { value: "push",  labelEn: "Push",  labelTa: "Push" },
   { value: "both",  labelEn: "Both",  labelTa: "இரண்டும்" },
