@@ -6,13 +6,13 @@ import { getKalachakraDasha, type KalachakraDashaData, type KalachakraDashaPerio
 import { CollapsibleSection } from "./collapsible-section";
 
 const W = {
-  ink: "var(--panel-earth-dark)",
+  ink: "var(--deepdive-ink, var(--panel-earth-dark))",
   muted: "var(--color-faint)",
-  border: "var(--panel-tan)",
-  borderLt: "var(--panel-tan-light)",
-  surface: "var(--panel-cream)",
-  surfaceMd: "var(--panel-hover)",
-  accent: "var(--panel-brand)",
+  border: "var(--deepdive-border, var(--panel-tan))",
+  borderLt: "var(--deepdive-border-light, var(--panel-tan-light))",
+  surface: "var(--deepdive-surface, var(--panel-cream))",
+  surfaceMd: "var(--deepdive-surface-strong, var(--panel-hover))",
+  accent: "var(--deepdive-accent, var(--panel-brand))",
 } as const;
 
 // Kalachakra Dasha — rasi-based, non-uniform period lengths (4-21 years).
@@ -64,7 +64,7 @@ export function KalachakraDashaPanel({ lang, chartId }: Props) {
         </p>
       )}
       {state === "error" && (
-        <p style={{ color: "var(--panel-brand)", fontSize: 13, margin: 0 }}>
+        <p style={{ color: "var(--deepdive-accent, var(--panel-brand))", fontSize: 13, margin: 0 }}>
           {isTamil ? "காலசக்ரா தசையை ஏற்ற முடியவில்லை." : "Could not load Kalachakra Dasha."}
         </p>
       )}

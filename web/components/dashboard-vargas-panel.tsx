@@ -6,15 +6,15 @@ import type { Lang } from "@/lib/i18n";
 import { CollapsibleSection } from "./collapsible-section";
 
 const W = {
-  ink: "var(--panel-earth-dark)",
-  inkMid: "var(--panel-earth)",
+  ink: "var(--deepdive-ink, var(--panel-earth-dark))",
+  inkMid: "var(--deepdive-ink-mid, var(--panel-earth))",
   muted: "var(--color-faint)",
-  border: "var(--panel-tan)",
-  borderLt: "var(--panel-tan-light)",
-  surface: "var(--panel-cream)",
-  surfaceMd: "var(--panel-hover)",
+  border: "var(--deepdive-border, var(--panel-tan))",
+  borderLt: "var(--deepdive-border-light, var(--panel-tan-light))",
+  surface: "var(--deepdive-surface, var(--panel-cream))",
+  surfaceMd: "var(--deepdive-surface-strong, var(--panel-hover))",
   sage: "var(--chart-d9-active)",
-  terracotta: "var(--panel-brand)",
+  terracotta: "var(--deepdive-accent, var(--panel-brand))",
 } as const;
 
 const VARGA_TABS = [

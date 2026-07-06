@@ -74,20 +74,20 @@ export function LifeModePicker({ lang, currentMode, blockedModes, onClose, onSel
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%", maxWidth: "640px", maxHeight: "88vh", overflowY: "auto",
-          background: "var(--panel-cream-light)", borderTopLeftRadius: "24px", borderTopRightRadius: "24px",
+          background: "var(--color-surface, var(--panel-cream-light))", borderTopLeftRadius: "24px", borderTopRightRadius: "24px",
           padding: "clamp(20px, 4vw, 32px)", boxShadow: "0 -12px 48px rgba(0,0,0,0.3)",
           fontFamily: "var(--font-body)",
         }}
       >
-        <div style={{ width: "40px", height: "4px", borderRadius: "2px", background: "var(--panel-tan)", margin: "0 auto 18px" }} />
+        <div style={{ width: "40px", height: "4px", borderRadius: "2px", background: "var(--color-border-strong, var(--panel-tan))", margin: "0 auto 18px" }} />
 
-        <p style={{ margin: "0 0 6px", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--panel-brand)" }}>
+        <p style={{ margin: "0 0 6px", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent, var(--panel-brand))" }}>
           {lang === "ta" ? "உங்கள் கவனம்" : "Your focus"}
         </p>
-        <h2 style={{ margin: "0 0 4px", fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem, 4vw, 2rem)", fontWeight: 500, color: "var(--panel-earth-dark)", letterSpacing: "-0.02em" }}>
+        <h2 style={{ margin: "0 0 4px", fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem, 4vw, 2rem)", fontWeight: 500, color: "var(--color-text-strong, var(--panel-earth-dark))", letterSpacing: "-0.02em" }}>
           {lang === "ta" ? "இப்போது எதில் கவனம்?" : "What are you focused on right now?"}
         </h2>
-        <p style={{ margin: "0 0 20px", fontSize: "0.875rem", color: "var(--panel-mid-earth)", lineHeight: 1.5 }}>
+        <p style={{ margin: "0 0 20px", fontSize: "0.875rem", color: "var(--color-muted, var(--panel-mid-earth))", lineHeight: 1.5 }}>
           {lang === "ta"
             ? "உங்கள் தேர்வைப் பொறுத்து தினசரி வழிகாட்டுதலை முன்னிலைப்படுத்துகிறோம். எப்போது வேண்டுமானாலும் மாற்றலாம்."
             : "We'll surface daily guidance around your choice. You can change it anytime."}
@@ -107,14 +107,14 @@ export function LifeModePicker({ lang, currentMode, blockedModes, onClose, onSel
                   display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "4px",
                   padding: "14px", borderRadius: "16px", cursor: saving ? "wait" : "pointer",
                   textAlign: "left", border: "1.5px solid",
-                  borderColor: isCurrent ? "var(--panel-brand)" : "#E4DAC6",
-                  background: saving === mode ? "var(--chart-d1-lagna-bg)" : isCurrent ? "#F7E8DA" : "var(--chart-cell-default)",
+                  borderColor: isCurrent ? "var(--color-accent, var(--panel-brand))" : "var(--color-border, #E4DAC6)",
+                  background: saving === mode ? "var(--chart-d1-lagna-bg)" : isCurrent ? "var(--color-mid-bg, #F7E8DA)" : "var(--chart-cell-default)",
                   opacity: saving !== null && saving !== mode ? 0.5 : 1,
                   transition: "all 0.12s ease", fontFamily: "inherit",
                 }}
               >
                 <meta.Icon size={22} strokeWidth={1.5} aria-hidden="true" />
-                <span style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--panel-earth-dark)" }}>
+                <span style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--color-text-strong, var(--panel-earth-dark))" }}>
                   {lang === "ta" ? meta.labelTa : meta.labelEn}
                 </span>
                 <span style={{ fontSize: "0.72rem", color: "var(--color-faint)", lineHeight: 1.35 }}>
@@ -125,7 +125,7 @@ export function LifeModePicker({ lang, currentMode, blockedModes, onClose, onSel
           })}
         </div>
 
-        {error && <p style={{ margin: "14px 0 0", fontSize: "0.8rem", color: "var(--planet-saturn)" }}>{error}</p>}
+        {error && <p style={{ margin: "14px 0 0", fontSize: "0.8rem", color: "var(--color-low, var(--planet-saturn))" }}>{error}</p>}
 
         <div style={{ display: "flex", justifyContent: "center", marginTop: "18px" }}>
           <button
@@ -157,7 +157,7 @@ export function LifeModeBadge({ mode, lang, onClick }: { mode: LifeMode; lang: L
       style={{
         display: "inline-flex", alignItems: "center", gap: "6px",
         padding: "4px 12px", borderRadius: "var(--radius-pill)",
-        border: "1.5px solid #E4DAC6", background: "var(--chart-cell-default)", cursor: "pointer",
+        border: "1.5px solid var(--color-border, #E4DAC6)", background: "var(--chart-cell-default)", cursor: "pointer",
         fontSize: "0.75rem", fontWeight: 700, color: "var(--planet-lagna)", fontFamily: "var(--font-body)",
       }}
     >

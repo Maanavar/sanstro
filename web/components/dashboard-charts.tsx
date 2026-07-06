@@ -46,20 +46,20 @@ function ExplainPanel({
   return (
     <div style={{
       marginTop: "8px",
-      border: "1px solid var(--panel-tan)",
+      border: "1px solid var(--chartgrid-border, var(--panel-tan))",
       borderRadius: "var(--radius-md)",
       padding: "10px",
-      background: "var(--panel-cream)",
+      background: "var(--chartgrid-surface, var(--panel-cream))",
       width: "100%",
       maxWidth: "296px",
     }}>
       <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
         {title}
       </p>
-      <p style={{ margin: "3px 0 0", fontSize: "0.875rem", color: "var(--panel-earth)", fontWeight: 600 }}>
+      <p style={{ margin: "3px 0 0", fontSize: "0.875rem", color: "var(--chartgrid-ink, var(--panel-earth))", fontWeight: 600 }}>
         {detail.rasiName} (Rasi {detail.rasi}) {detail.isLagna ? "• Lagna" : ""}
       </p>
-      <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "var(--panel-earth)" }}>
+      <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "var(--chartgrid-ink, var(--panel-earth))" }}>
         {subtitle}: {houseLabel} {detail.houseFromRef}
       </p>
       <div style={{ marginTop: "8px", display: "flex", gap: "6px", flexWrap: "wrap" }}>
@@ -69,11 +69,11 @@ function ExplainPanel({
           detail.occupants.map((occ) => (
             <span key={occ.key} style={{
               fontSize: "0.75rem",
-              border: "1px solid var(--panel-tan)",
+              border: "1px solid var(--chartgrid-border, var(--panel-tan))",
               borderRadius: "var(--radius-full)",
               padding: "3px 8px",
-              background: "var(--panel-cream)",
-              color: "var(--panel-earth)",
+              background: "var(--chartgrid-surface, var(--panel-cream))",
+              color: "var(--chartgrid-ink, var(--panel-earth))",
             }}>
               {occ.graha}{occ.isRetrograde ? " (R)" : ""}
               {occ.degreeInRasi !== null ? ` ${occ.degreeInRasi.toFixed(2)}°` : ""}
@@ -109,7 +109,7 @@ export function RasiChart({
         gridTemplateColumns: `repeat(4, ${cellSize}px)`,
         gridTemplateRows: `repeat(4, ${cellSize}px)`,
         gap: `${gap}px`,
-        border: "1.5px solid var(--panel-tan)",
+        border: "1.5px solid var(--chartgrid-border, var(--panel-tan))",
         borderRadius: "8px",
         overflow: "hidden",
         background: "var(--chart-bg)",
@@ -135,7 +135,7 @@ export function RasiChart({
                   ? "1.5px solid var(--chart-d1-lagna-border)"
                   : isSelected
                     ? "1.5px solid var(--chart-d1-active)"
-                    : "1px solid var(--panel-tan-light)",
+                    : "1px solid var(--chartgrid-border-light, var(--panel-tan-light))",
                 padding: "5px",
                 display: "flex",
                 flexDirection: "column",
@@ -157,8 +157,8 @@ export function RasiChart({
                     color: occupantColor(occ.abbr),
                     borderRadius: "3px",
                     padding: "1px 3px",
-                    background: "var(--panel-cream)",
-                    border: "1px solid var(--panel-tan-light)",
+                    background: "var(--chartgrid-surface, var(--panel-cream))",
+                    border: "1px solid var(--chartgrid-border-light, var(--panel-tan-light))",
                   }}>
                     {occ.abbr}{occ.isRetrograde ? <sup style={{ fontSize: "0.625rem", color: "var(--chart-d1-active)" }}>R</sup> : null}
                   </span>
@@ -170,8 +170,8 @@ export function RasiChart({
         <div style={{
           gridColumn: "2 / 4",
           gridRow: "2 / 4",
-          background: "var(--panel-cream)",
-          border: "1px solid var(--panel-tan-light)",
+          background: "var(--chartgrid-surface, var(--panel-cream))",
+          border: "1px solid var(--chartgrid-border-light, var(--panel-tan-light))",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -222,7 +222,7 @@ export function NavamsaChart({
         gridTemplateColumns: `repeat(4, ${cellSize}px)`,
         gridTemplateRows: `repeat(4, ${cellSize}px)`,
         gap: `${gap}px`,
-        border: "1.5px solid var(--panel-tan)",
+        border: "1.5px solid var(--chartgrid-border, var(--panel-tan))",
         borderRadius: "8px",
         overflow: "hidden",
         background: "var(--chart-bg)",
@@ -248,7 +248,7 @@ export function NavamsaChart({
                   ? "1.5px solid var(--chart-d9-lagna-border)"
                   : isSelected
                     ? "1.5px solid var(--chart-d9-active)"
-                    : "1px solid var(--panel-tan-light)",
+                    : "1px solid var(--chartgrid-border-light, var(--panel-tan-light))",
                 padding: "4px",
                 display: "flex",
                 flexDirection: "column",
@@ -269,8 +269,8 @@ export function NavamsaChart({
                     color: occupantColor(occ.abbr),
                     borderRadius: "3px",
                     padding: "1px 3px",
-                    background: "var(--panel-cream)",
-                    border: "1px solid var(--panel-tan-light)",
+                    background: "var(--chartgrid-surface, var(--panel-cream))",
+                    border: "1px solid var(--chartgrid-border-light, var(--panel-tan-light))",
                   }}>
                     {occ.abbr}
                   </span>
@@ -282,8 +282,8 @@ export function NavamsaChart({
         <div style={{
           gridColumn: "2 / 4",
           gridRow: "2 / 4",
-          background: "var(--panel-cream)",
-          border: "1px solid var(--panel-tan-light)",
+          background: "var(--chartgrid-surface, var(--panel-cream))",
+          border: "1px solid var(--chartgrid-border-light, var(--panel-tan-light))",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -321,7 +321,7 @@ export function JathagamKattam({
   return (
     <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px", alignItems: "center" }}>
       <div style={{ textAlign: "center" }}>
-        <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 700, color: "var(--panel-earth-dark)", letterSpacing: "0.02em" }}>
+        <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 700, color: "var(--chartgrid-ink-strong, var(--panel-earth-dark))", letterSpacing: "0.02em" }}>
           {t("label_jathagam_kattam", lang)}
         </p>
         <p style={{ margin: "3px 0 0", fontSize: "0.75rem", color: "var(--color-faint)", lineHeight: 1.35 }}>
@@ -339,8 +339,8 @@ export function JathagamKattam({
             fontSize: "0.75rem",
             fontWeight: 600,
             cursor: "pointer",
-            border: view === "D1" ? "1.5px solid var(--chart-d1-active)" : "1px solid var(--panel-tan)",
-            background: view === "D1" ? "var(--chart-d1-lagna-bg)" : "var(--panel-cream)",
+            border: view === "D1" ? "1.5px solid var(--chart-d1-active)" : "1px solid var(--chartgrid-border, var(--panel-tan))",
+            background: view === "D1" ? "var(--chart-d1-lagna-bg)" : "var(--chartgrid-surface, var(--panel-cream))",
             color: view === "D1" ? "var(--chart-d1-active-text)" : "var(--color-faint)",
           }}
         >
@@ -355,8 +355,8 @@ export function JathagamKattam({
             fontSize: "0.75rem",
             fontWeight: 600,
             cursor: "pointer",
-            border: view === "D9" ? "1.5px solid var(--chart-d9-active)" : "1px solid var(--panel-tan)",
-            background: view === "D9" ? "var(--chart-d9-active-bg)" : "var(--panel-cream)",
+            border: view === "D9" ? "1.5px solid var(--chart-d9-active)" : "1px solid var(--chartgrid-border, var(--panel-tan))",
+            background: view === "D9" ? "var(--chart-d9-active-bg)" : "var(--chartgrid-surface, var(--panel-cream))",
             color: view === "D9" ? "var(--chart-d9-active-dark)" : "var(--color-faint)",
           }}
         >

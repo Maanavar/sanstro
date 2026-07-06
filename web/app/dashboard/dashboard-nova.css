@@ -92,6 +92,20 @@
   --cl-sage-edge:       var(--color-high-border);
   --cl-rust-edge:       var(--color-low-border);
   --cl-rust-30:         var(--color-low-border);
+  /* Found building the Life Areas Predictions/Yogas-Doshams panel re-skin
+     (2026-07-06): these 3 near-miss siblings of the "-edge"/"-30" trio above
+     read the same rgba families but were never added to this block, leaving
+     dashboard-synastry-panel.tsx's Compatibility sub-view (already reused
+     verbatim under Nova, §6.3) and lib/reasoning.ts's bandTone() (used by
+     LifeAreaCard's causalChain path, also already shipped) with Classic's
+     warm sage/rust border color on badge/chip borders — low-visibility, same
+     class as the Phase 5 chart-grid gap. Grepped app-wide first: both are
+     also used by several Classic-only components and 2 marketing pages
+     (tamil-calendar, jadhagam-generator) that never set [data-ui="nova"],
+     so scoping the redirect here (not at bare :root) is safe. */
+  --cl-sage-border:     var(--color-high-border);
+  --cl-rust-35:         var(--color-low-border);
+  --cl-brand-edge:      var(--color-mid-border);
   --panel-cream:        var(--color-surface-2);
   --panel-mid-earth:    var(--color-muted);
   --shadow-faint:       rgba(0, 0, 0, 0.35);
@@ -104,7 +118,7 @@
      This means Phase 4's inline MemberDetailExpanded chart grids have been
      rendering with Classic's tan/cream colors on Nova's dark background
      since they shipped. Same mechanical redirect as above — but unlike the
-     --chart-*/--planet-* names below (grep-confirmed narrowly scoped to
+     --chart-* / --planet-* names below (grep-confirmed narrowly scoped to
      dashboard-charts.tsx, or used consistently as accent-text colors
      elsewhere), --panel-tan/--panel-tan-light/--panel-earth/--panel-earth-dark
      turned out to be generic tokens reused across 50+ Classic components in
@@ -113,11 +127,12 @@
      them here broke every one of those "selected" pills app-wide (reported
      2026-07-06: selected-tab background and text both went light, making
      the label invisible on Life Areas' member/sub-tab pills and similar
-     spots elsewhere). Reverted these 4; the chart grid's outer border/
-     cell-border/body-text keep Classic's tan/cream look for now — a real
-     but minor, deliberately-deferred cosmetic gap (see Progress Log) until
-     a properly scoped fix (new dashboard-charts.tsx-only variable names,
-     not reusing shared Classic tokens) lands in a future pass. ── */
+     spots elsewhere). Reverted these 4 — **the properly-scoped fix these
+     4 names still need has since landed** (2026-07-06, white-background-leak
+     audit): see the `--chartgrid-*`/`--deepdive-*` blocks further below,
+     which redirect brand-new, component-scoped names instead of these
+     shared ones, so dashboard-charts.tsx and ~10 other components can be
+     fixed without repeating this exact regression. ── */
   --chart-bg:              var(--color-surface-3);
   --chart-cell-default:    var(--color-surface);
   --chart-cell-selected:   var(--color-surface-soft);
@@ -132,6 +147,50 @@
   --planet-saturn:         var(--color-low);
   --planet-nodes:          var(--color-accent-secondary);
   --planet-other:          #7fa3c9; /* same one-off blue as NOVA_CAL_HILITE.sashti, dashboard-calendar-monthly-nova.tsx — Nova has no existing blue semantic slot */
+
+  /* ── Closes the "dashboard-charts.tsx chart-grid cosmetic gap" flagged since
+     Phase 5 (see Progress Log): RasiChart/NavamsaChart/JathagamKattam's
+     ExplainPanel and toggle chrome read --panel-tan/--panel-tan-light/
+     --panel-cream/--panel-earth/--panel-earth-dark directly, the same
+     generic tokens the 2026-07-06 browser-QA round found reused in
+     CONFLICTING roles across 50+ components (reverted from this block for
+     that reason). Rather than redirect those shared names again (which
+     would re-trigger the same regression), dashboard-charts.tsx itself was
+     changed to read new component-scoped names with a same-value fallback
+     (`var(--chartgrid-ink, var(--panel-earth))`) — Classic is a no-op (the
+     fallback resolves to the exact old value), and only these Nova
+     definitions, which no other component can ever reach, override it. ── */
+  --chartgrid-ink:          var(--color-text-strong);
+  --chartgrid-ink-strong:   var(--color-text-strong);
+  --chartgrid-border:       var(--color-border);
+  --chartgrid-border-light: var(--color-border);
+  --chartgrid-surface:      var(--color-surface-soft);
+
+  /* ── Same fix, same reasoning, for a second cluster of components found the
+     same way while auditing "white background leak" reports (2026-07-06):
+     dashboard-vargas-panel.tsx / dashboard-shadbala-panel.tsx / dashboard-
+     yogini-dasha-panel.tsx / dashboard-ashtottari-dasha-panel.tsx / dashboard-
+     kalachakra-dasha-panel.tsx have all been reused directly (unwrapped) in
+     Today Nova's Deep Dive section since Phase 1 (2026-07-05) without ever
+     being grepped for token safety — every one of them reads the identical
+     reverted `ink`/`border`/`borderLt`/`surface`/`surfaceMd`/`accent` W-map
+     this session already found unsafe elsewhere (their own `surface`/
+     `surfaceMd` — `--panel-cream`/`--panel-hover` — ARE redirected below,
+     while `ink`/`border` are not, the exact broken combo). Same fallback-
+     chain fix as `--chartgrid-*` above, one shared name set since all 5
+     files use the same convention. --cl-sage-soft (the "current period"
+     highlight fill in the 3 dasha panels) is a bare redirect rather than a
+     new scoped name — grepped first and confirmed its only other consumers
+     (dashboard-personal-tab.tsx, dashboard-plan-tab.tsx, a marketing tool
+     page) are Classic-only paths Nova never reaches, so no collision risk. ── */
+  --deepdive-ink:            var(--color-text-strong);
+  --deepdive-ink-mid:        var(--color-text);
+  --deepdive-border:         var(--color-border);
+  --deepdive-border-light:   var(--color-border);
+  --deepdive-surface:        var(--color-surface-soft);
+  --deepdive-surface-strong: var(--color-surface);
+  --deepdive-accent:         var(--color-mid);
+  --cl-sage-soft:            var(--color-high-bg);
 
   /* ── Shape ── */
   --radius-lg: 14px; /* cards */
@@ -348,20 +407,34 @@
    ═══════════════════════════════════════════════════════════ */
 
 .nova-grid-2,
-.nova-grid-3 {
+.nova-grid-3,
+.nova-grid-detail,
+.nova-grid-4 {
   display: grid;
   gap: 16px;
 }
 .nova-grid-2 { grid-template-columns: 1fr 1fr; }
 .nova-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
 .nova-grid-anticipation { grid-template-columns: 1.35fr 1fr; }
+.nova-grid-detail { grid-template-columns: 1.5fr 1fr; }
+.nova-grid-4 { grid-template-columns: repeat(4, 1fr); gap: 14px; }
 
 @media (max-width: 860px) {
   .nova-grid-2,
   .nova-grid-3,
-  .nova-grid-anticipation {
+  .nova-grid-anticipation,
+  .nova-grid-detail {
     grid-template-columns: 1fr;
   }
+}
+
+/* Life Areas tab (screen 11, life-areas): 4-up card rows need an extra
+   mid-width step (4 columns is too cramped to jump straight to 1). */
+@media (max-width: 1240px) {
+  .nova-grid-4 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px) {
+  .nova-grid-4 { grid-template-columns: 1fr; }
 }
 
 /* Monthly calendar tab: grid + 300px sidebar, used by

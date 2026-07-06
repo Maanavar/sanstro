@@ -6,14 +6,14 @@ import { getShadbala, type PlanetShadbala, type ShadbalaData } from "@vinaadi/sh
 import { CollapsibleSection } from "./collapsible-section";
 
 const W = {
-  ink: "var(--panel-earth-dark)",
+  ink: "var(--deepdive-ink, var(--panel-earth-dark))",
   muted: "var(--color-faint)",
-  border: "var(--panel-tan)",
-  borderLt: "var(--panel-tan-light)",
-  surface: "var(--panel-cream)",
-  surfaceMd: "var(--panel-hover)",
+  border: "var(--deepdive-border, var(--panel-tan))",
+  borderLt: "var(--deepdive-border-light, var(--panel-tan-light))",
+  surface: "var(--deepdive-surface, var(--panel-cream))",
+  surfaceMd: "var(--deepdive-surface-strong, var(--panel-hover))",
   strong: "#2E7D32",
-  weak: "var(--panel-brand)",
+  weak: "var(--deepdive-accent, var(--panel-brand))",
 } as const;
 
 const PLANET_LABEL: Record<string, { en: string; ta: string }> = {

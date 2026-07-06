@@ -47,16 +47,16 @@ type DashboardSettingsSessionTabProps = {
 
 /* ── Warm design tokens (match personal / family / life-areas tabs) ── */
 const W = {
-  ink:       "var(--panel-earth-dark)",
-  inkMid:    "var(--panel-earth)",
+  ink:       "var(--deepdive-ink, var(--panel-earth-dark))",
+  inkMid:    "var(--deepdive-ink-mid, var(--panel-earth))",
   muted:     "var(--color-faint)",
   mutedLt:   "var(--color-faint)",
-  border:    "var(--panel-tan)",
-  borderLt:  "var(--panel-tan-light)",
-  surface:   "var(--panel-cream)",
-  surfaceMd: "var(--panel-hover)",
+  border:    "var(--deepdive-border, var(--panel-tan))",
+  borderLt:  "var(--deepdive-border-light, var(--panel-tan-light))",
+  surface:   "var(--deepdive-surface, var(--panel-cream))",
+  surfaceMd: "var(--deepdive-surface-strong, var(--panel-hover))",
   card:      "var(--chart-cell-default)",
-  terracota: "var(--panel-brand)",
+  terracota: "var(--deepdive-accent, var(--panel-brand))",
   gold:      "#C6973A",
   sage:      "var(--chart-d9-active)",
   accent:    "var(--planet-lagna)",
@@ -188,7 +188,7 @@ function ActionBtn({
     variant === "primary"
       ? { background: W.ink, color: W.surfaceMd, border: `1.5px solid ${W.ink}` }
       : variant === "danger"
-      ? { background: "transparent", color: "var(--planet-saturn)", border: "1.5px solid var(--planet-saturn)" }
+      ? { background: "transparent", color: "var(--color-low, var(--planet-saturn))", border: "1.5px solid var(--color-low, var(--planet-saturn))" }
       : { background: "transparent", color: W.muted, border: `1.5px solid ${W.border}` };
 
   return (

@@ -6,13 +6,13 @@ import { getYoginiDasha, type YoginiDashaData, type YoginiDashaPeriod } from "@v
 import { CollapsibleSection } from "./collapsible-section";
 
 const W = {
-  ink: "var(--panel-earth-dark)",
+  ink: "var(--deepdive-ink, var(--panel-earth-dark))",
   muted: "var(--color-faint)",
-  border: "var(--panel-tan)",
-  borderLt: "var(--panel-tan-light)",
-  surface: "var(--panel-cream)",
-  surfaceMd: "var(--panel-hover)",
-  accent: "var(--panel-brand)",
+  border: "var(--deepdive-border, var(--panel-tan))",
+  borderLt: "var(--deepdive-border-light, var(--panel-tan-light))",
+  surface: "var(--deepdive-surface, var(--panel-cream))",
+  surfaceMd: "var(--deepdive-surface-strong, var(--panel-hover))",
+  accent: "var(--deepdive-accent, var(--panel-brand))",
 } as const;
 
 // Yogini Dasha (Devi Bhagavata / Muhurta Chintamani tradition) — 8 Yoginis,
@@ -93,7 +93,7 @@ export function YoginiDashaPanel({ lang, chartId }: Props) {
         </p>
       )}
       {state === "error" && (
-        <p style={{ color: "var(--panel-brand)", fontSize: 13, margin: 0 }}>
+        <p style={{ color: "var(--deepdive-accent, var(--panel-brand))", fontSize: 13, margin: 0 }}>
           {isTamil ? "யோகினி தசையை ஏற்ற முடியவில்லை." : "Could not load Yogini Dasha."}
         </p>
       )}

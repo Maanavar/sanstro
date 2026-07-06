@@ -40,16 +40,16 @@ interface EditMemberModalProps {
 
 /* ── Warm design tokens ── */
 const W = {
-  ink:      "var(--panel-earth-dark)",
-  inkMid:   "var(--panel-earth)",
+  ink:      "var(--deepdive-ink, var(--panel-earth-dark))",
+  inkMid:   "var(--deepdive-ink-mid, var(--panel-earth))",
   muted:    "var(--color-faint)",
   mutedLt:  "var(--color-faint)",
-  border:   "var(--panel-tan)",
-  borderLt: "var(--panel-tan-light)",
-  surface:  "var(--panel-cream)",
-  surfaceMd:"var(--panel-hover)",
+  border:   "var(--deepdive-border, var(--panel-tan))",
+  borderLt: "var(--deepdive-border-light, var(--panel-tan-light))",
+  surface:  "var(--deepdive-surface, var(--panel-cream))",
+  surfaceMd:"var(--deepdive-surface-strong, var(--panel-hover))",
   card:     "var(--chart-cell-default)",
-  terracota:"var(--panel-brand)",
+  terracota:"var(--deepdive-accent, var(--panel-brand))",
 } as const;
 
 function WField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
