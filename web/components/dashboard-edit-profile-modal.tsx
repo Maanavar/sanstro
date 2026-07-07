@@ -6,6 +6,7 @@ import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
 import { PlaceCombobox } from "./place-combobox";
+import { usePlaceCoordinatesConfirm, PlaceMatchedBadge, PlaceCoordinatesFooter } from "./place-coordinates-field";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
 
@@ -125,6 +126,7 @@ export function EditProfileModal({
 }: EditProfileModalProps) {
   const { nextBirthDateOrCurrent, applyPlaceSelection } = useBirthProfileForm();
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const coordsConfirm = usePlaceCoordinatesConfirm(birthForm.birthPlace, birthForm.birthLatitude, birthForm.birthLongitude);
 
   function handleValidatedSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -231,14 +233,24 @@ export function EditProfileModal({
               <WInput required hasError={!!fieldErrors.birthTimezone} value={birthForm.birthTimezone}
                 onChange={(e) => { onChange({ ...birthForm, birthTimezone: e.target.value }); clearError("birthTimezone"); }} />
             </WField>
-            <WField label={t("field_latitude", lang)} required>
-              <WInput required inputMode="decimal" value={birthForm.birthLatitude}
-                onChange={(e) => onChange({ ...birthForm, birthLatitude: e.target.value })} />
-            </WField>
-            <WField label={t("field_longitude", lang)} required>
-              <WInput required inputMode="decimal" value={birthForm.birthLongitude}
-                onChange={(e) => onChange({ ...birthForm, birthLongitude: e.target.value })} />
-            </WField>
+            {coordsConfirm.showRawFields ? (
+              <>
+                <WField label={t("field_latitude", lang)} required>
+                  <WInput required inputMode="decimal" value={birthForm.birthLatitude}
+                    onChange={(e) => onChange({ ...birthForm, birthLatitude: e.target.value })} />
+                </WField>
+                <WField label={t("field_longitude", lang)} required>
+                  <WInput required inputMode="decimal" value={birthForm.birthLongitude}
+                    onChange={(e) => onChange({ ...birthForm, birthLongitude: e.target.value })} />
+                </WField>
+                <PlaceCoordinatesFooter lang={lang} place={birthForm.birthPlace} matched={!!coordsConfirm.matched}
+                  onUseMatched={() => coordsConfirm.setEditing(false)} />
+              </>
+            ) : (
+              <PlaceMatchedBadge lang={lang} place={birthForm.birthPlace}
+                latitude={birthForm.birthLatitude} longitude={birthForm.birthLongitude}
+                onEditClick={() => coordsConfirm.setEditing(true)} />
+            )}
             <WField label={lang === "ta" ? "தினசரி நேரங்களுக்கான தற்போதைய நகரம்" : "Current City (Daily Timings)"}>
               <PlaceCombobox value={birthForm.currentPlace}
                 onChange={(city, raw) => onChange({

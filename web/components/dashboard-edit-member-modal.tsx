@@ -4,6 +4,7 @@ import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { PlaceCombobox } from "./place-combobox";
+import { usePlaceCoordinatesConfirm, PlaceMatchedBadge, PlaceCoordinatesFooter } from "./place-coordinates-field";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
 
@@ -93,6 +94,7 @@ function WSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
 }
 
 export function EditMemberModal({ lang, editMember, busySaving, onClose, onChange, onSave }: EditMemberModalProps) {
+  const coordsConfirm = usePlaceCoordinatesConfirm(editMember.birthPlace, editMember.birthLatitude, editMember.birthLongitude);
   return (
     <div
       style={{
@@ -177,14 +179,24 @@ export function EditMemberModal({ lang, editMember, busySaving, onClose, onChang
             <WInput value={editMember.birthTimezone}
               onChange={(e) => onChange({ ...editMember, birthTimezone: e.target.value })} />
           </WField>
-          <WField label={t("field_latitude", lang)}>
-            <WInput inputMode="decimal" value={editMember.birthLatitude}
-              onChange={(e) => onChange({ ...editMember, birthLatitude: e.target.value })} />
-          </WField>
-          <WField label={t("field_longitude", lang)}>
-            <WInput inputMode="decimal" value={editMember.birthLongitude}
-              onChange={(e) => onChange({ ...editMember, birthLongitude: e.target.value })} />
-          </WField>
+          {coordsConfirm.showRawFields ? (
+            <>
+              <WField label={t("field_latitude", lang)}>
+                <WInput inputMode="decimal" value={editMember.birthLatitude}
+                  onChange={(e) => onChange({ ...editMember, birthLatitude: e.target.value })} />
+              </WField>
+              <WField label={t("field_longitude", lang)}>
+                <WInput inputMode="decimal" value={editMember.birthLongitude}
+                  onChange={(e) => onChange({ ...editMember, birthLongitude: e.target.value })} />
+              </WField>
+              <PlaceCoordinatesFooter lang={lang} place={editMember.birthPlace} matched={!!coordsConfirm.matched}
+                onUseMatched={() => coordsConfirm.setEditing(false)} />
+            </>
+          ) : (
+            <PlaceMatchedBadge lang={lang} place={editMember.birthPlace}
+              latitude={editMember.birthLatitude} longitude={editMember.birthLongitude}
+              onEditClick={() => coordsConfirm.setEditing(true)} />
+          )}
           <WField label={lang === "ta" ? "தினசரி நேரங்களுக்கான தற்போதைய நகரம்" : "Current City (Daily Timings)"}>
             <PlaceCombobox value={editMember.currentPlace}
               onChange={(city, raw) => onChange({

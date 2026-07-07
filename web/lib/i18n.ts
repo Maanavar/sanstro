@@ -83,6 +83,12 @@ const STRINGS = {
   field_tz_helper:    { ta: "நகரத்தைத் தேர்வு செய்தவுடன் நேர மண்டலம் தானாக வரும்", en: "Auto-filled when city is selected" },
   field_weight_helper:{ ta: "உறவு முறையால் தானாக அமையும்", en: "Auto-set by relationship" },
 
+  // ── Place coordinate confirmation (#3/#16/#90 — trust in auto-filled lat/lng)
+  place_matched:       { ta: "தெரிந்த இடத்துடன் பொருந்தியது", en: "Matched to a known location" },
+  place_edit_coords:   { ta: "சரியான ஆயத்தொலைவுகளை திருத்து", en: "Edit exact coordinates" },
+  place_use_matched:   { ta: "பொருந்திய ஆயத்தொலைவுகளைப் பயன்படுத்து", en: "Use matched coordinates" },
+  place_unmatched_hint:{ ta: "இந்த இடத்தை பட்டியலில் காணவில்லை — பெயரை சரிபார்க்கவும் அல்லது கீழே ஆயத்தொலைவுகளை நேரடியாக உள்ளிடவும்.", en: "We couldn't match this place to a known city — check the spelling above, or enter coordinates directly below." },
+
   // ── Relationship options
   rel_self:        { ta: "தான் (Self)",       en: "Self" },
   rel_spouse:      { ta: "துணைவர் (Spouse)",  en: "Spouse" },

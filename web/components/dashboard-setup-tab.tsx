@@ -10,6 +10,7 @@ import type { FamilyVaultListItem, FamilyAggregateMember } from "@/lib/types";
 import { PlaceCombobox } from "./place-combobox";
 import { RectificationWizard } from "./dashboard-rectification-wizard";
 import { BirthProfilesManager } from "./birth-profiles-manager";
+import { usePlaceCoordinatesConfirm, PlaceMatchedBadge, PlaceCoordinatesFooter } from "./place-coordinates-field";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
 
@@ -265,6 +266,8 @@ export function DashboardSetupTab({
   const setupStep: 1 | 2 | 3 = !birthProfileId ? 1 : !selectedVaultId ? 2 : 3;
   const setupComplete = !!birthProfileId && !!selectedVaultId;
   const [showRectWizard, setShowRectWizard] = useState(false);
+  const ownCoordsConfirm = usePlaceCoordinatesConfirm(birthForm.birthPlace, birthForm.birthLatitude, birthForm.birthLongitude);
+  const memberCoordsConfirm = usePlaceCoordinatesConfirm(memberForm.birthPlace, memberForm.birthLatitude, memberForm.birthLongitude);
 
   const steps = [
     {
@@ -512,14 +515,24 @@ export function DashboardSetupTab({
                   <WInput value={birthForm.birthTimezone} error={!!formErrors.birthTimezone}
                     onChange={(e) => { onBirthFormChange({ ...birthForm, birthTimezone: e.target.value }); onFormErrorChange({ birthTimezone: "" }); }} />
                 </WField>
-                <WField label={t("field_latitude", lang)} error={formErrors.birthLatitude}>
-                  <WInput inputMode="decimal" value={birthForm.birthLatitude} error={!!formErrors.birthLatitude}
-                    onChange={(e) => { onBirthFormChange({ ...birthForm, birthLatitude: e.target.value }); onFormErrorChange({ birthLatitude: "" }); }} />
-                </WField>
-                <WField label={t("field_longitude", lang)} error={formErrors.birthLongitude}>
-                  <WInput inputMode="decimal" value={birthForm.birthLongitude} error={!!formErrors.birthLongitude}
-                    onChange={(e) => { onBirthFormChange({ ...birthForm, birthLongitude: e.target.value }); onFormErrorChange({ birthLongitude: "" }); }} />
-                </WField>
+                {ownCoordsConfirm.showRawFields ? (
+                  <>
+                    <WField label={t("field_latitude", lang)} error={formErrors.birthLatitude}>
+                      <WInput inputMode="decimal" value={birthForm.birthLatitude} error={!!formErrors.birthLatitude}
+                        onChange={(e) => { onBirthFormChange({ ...birthForm, birthLatitude: e.target.value }); onFormErrorChange({ birthLatitude: "" }); }} />
+                    </WField>
+                    <WField label={t("field_longitude", lang)} error={formErrors.birthLongitude}>
+                      <WInput inputMode="decimal" value={birthForm.birthLongitude} error={!!formErrors.birthLongitude}
+                        onChange={(e) => { onBirthFormChange({ ...birthForm, birthLongitude: e.target.value }); onFormErrorChange({ birthLongitude: "" }); }} />
+                    </WField>
+                    <PlaceCoordinatesFooter lang={lang} place={birthForm.birthPlace} matched={!!ownCoordsConfirm.matched}
+                      onUseMatched={() => ownCoordsConfirm.setEditing(false)} />
+                  </>
+                ) : (
+                  <PlaceMatchedBadge lang={lang} place={birthForm.birthPlace}
+                    latitude={birthForm.birthLatitude} longitude={birthForm.birthLongitude}
+                    onEditClick={() => ownCoordsConfirm.setEditing(true)} />
+                )}
                 <WField
                   label={lang === "ta" ? "நீங்கள் இப்போது வசிக்கும் ஊர்" : "Where you live now"}
                   hint={lang === "ta"
@@ -812,14 +825,24 @@ export function DashboardSetupTab({
                 <WInput value={memberForm.birthTimezone} error={!!formErrors.memberTimezone}
                   onChange={(e) => { onMemberFormChange({ ...memberForm, birthTimezone: e.target.value }); onFormErrorChange({ memberTimezone: "" }); }} />
               </WField>
-              <WField label={t("field_latitude", lang)}>
-                <WInput inputMode="decimal" value={memberForm.birthLatitude}
-                  onChange={(e) => onMemberFormChange({ ...memberForm, birthLatitude: e.target.value })} />
-              </WField>
-              <WField label={t("field_longitude", lang)}>
-                <WInput inputMode="decimal" value={memberForm.birthLongitude}
-                  onChange={(e) => onMemberFormChange({ ...memberForm, birthLongitude: e.target.value })} />
-              </WField>
+              {memberCoordsConfirm.showRawFields ? (
+                <>
+                  <WField label={t("field_latitude", lang)}>
+                    <WInput inputMode="decimal" value={memberForm.birthLatitude}
+                      onChange={(e) => onMemberFormChange({ ...memberForm, birthLatitude: e.target.value })} />
+                  </WField>
+                  <WField label={t("field_longitude", lang)}>
+                    <WInput inputMode="decimal" value={memberForm.birthLongitude}
+                      onChange={(e) => onMemberFormChange({ ...memberForm, birthLongitude: e.target.value })} />
+                  </WField>
+                  <PlaceCoordinatesFooter lang={lang} place={memberForm.birthPlace} matched={!!memberCoordsConfirm.matched}
+                    onUseMatched={() => memberCoordsConfirm.setEditing(false)} />
+                </>
+              ) : (
+                <PlaceMatchedBadge lang={lang} place={memberForm.birthPlace}
+                  latitude={memberForm.birthLatitude} longitude={memberForm.birthLongitude}
+                  onEditClick={() => memberCoordsConfirm.setEditing(true)} />
+              )}
               <WField
                 label={t("field_weight", lang)}
                 hint={lang === "ta"
