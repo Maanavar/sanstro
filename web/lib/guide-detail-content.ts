@@ -2102,6 +2102,15 @@ export function getGuideDetail(kind: GuideKind, slug: string): GuideDetail | und
   return TEMPLE_DETAILS[slug];
 }
 
+/** Ordered slugs for a guide kind — lets a browsable in-app viewer cycle
+ * through every entry without needing its own hardcoded list. */
+export function getGuideSlugs(kind: GuideKind): string[] {
+  if (kind === "dosham") return Object.keys(DOSHAM_DETAILS);
+  if (kind === "yogam") return Object.keys(YOGAM_DETAILS);
+  if (kind === "pariharam") return Object.keys(PARIHARAM_DETAILS);
+  return Object.keys(TEMPLE_DETAILS);
+}
+
 const GUIDE_VERIFY_NOTE: Record<GuideKind, BiText> = {
   dosham: b(
     "How an astrologer confirms this: the exact graha, house and strength are checked in your Thirukanitham chart, then cancellations and the running dasa are weighed before any dosham is called strong — never from a name alone.",

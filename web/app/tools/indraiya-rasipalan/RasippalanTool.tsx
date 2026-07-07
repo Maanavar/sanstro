@@ -145,7 +145,7 @@ function RasiCard({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function RasippalanTool() {
+export function RasippalanTool({ hideCta = false }: { hideCta?: boolean } = {}) {
   const [lang] = useLang();
   const en = lang === "en";
 
@@ -354,8 +354,11 @@ export function RasippalanTool() {
         </div>
       )}
 
-      {/* CTA */}
-      {data && (
+      {/* CTA — omitted when embedded in the dashboard (hideCta): "Get started
+          free" pointing back at /dashboard is a marketing-site upsell that
+          makes no sense for a user who's already logged in and viewing this
+          tool inside their own dashboard. */}
+      {data && !hideCta && (
         <div className="cl-mobile-card-split" style={{
           background: "var(--cl-brand-tint)", border: "1px solid var(--cl-brand-ring-md)",
           borderRadius: "14px", padding: "18px 22px",

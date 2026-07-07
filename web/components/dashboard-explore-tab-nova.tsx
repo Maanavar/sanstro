@@ -8,9 +8,11 @@ import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
 import type { ChartCalculateResponseData, ChartSummaryData, DailyGuidanceData, NakshatraCardData } from "@/lib/types";
 import type { MemberChart } from "@/hooks/useFamilyData";
 
-import { strengthBand } from "./dashboard-yoga-dosham-panel";
+import { displayName, strengthBand } from "./dashboard-yoga-dosham-panel";
 import { DashboardExploreNakshatramNova } from "./dashboard-explore-nakshatram-nova";
 import { DashboardExploreDoshamNova } from "./dashboard-explore-dosham-nova";
+import { DashboardExploreGuideNova } from "./dashboard-explore-guide-nova";
+import { DashboardExploreLearnNova } from "./dashboard-explore-learn-nova";
 
 /**
  * Nova "Explore" tab — Phase 6 of the dashboard revamp (see
@@ -54,7 +56,13 @@ type LibraryItem = {
   descEn: string;
   descTa: string;
   nav?: Tab;
-  href?: string;
+  /** Opens an already-built in-app detail screen instead of navigating to
+   * the marketing site. Natchathiram/Dosham are chart-relative (only
+   * openable once the personal chart data they need has loaded — otherwise
+   * the tile shows a disabled loading state, never an external link);
+   * Yogam/Pariharam/Temples are chart-independent library entries backed by
+   * `web/lib/guide-detail-content.ts` and always open in-app. */
+  openDetail?: "nakshatram" | "dosham" | "yogam" | "pariharam" | "temple";
 };
 
 const LIBRARY_ITEMS: LibraryItem[] = [
@@ -68,7 +76,7 @@ const LIBRARY_ITEMS: LibraryItem[] = [
     scriptTa: "நட்சத்திரம்",
     descEn: "All 27 birth stars — nature, padas, lords and what each asks of its people.",
     descTa: "அனைத்து 27 நட்சத்திரங்களும் — இயல்பு, பாதங்கள், அதிபதிகள்.",
-    href: "/natchathiram",
+    openDetail: "nakshatram",
   },
   {
     key: "dosham",
@@ -80,7 +88,7 @@ const LIBRARY_ITEMS: LibraryItem[] = [
     scriptTa: "தோஷம்",
     descEn: "Sevvai, Kala Sarpa, Naga and more — how each forms, when it cancels, without fear.",
     descTa: "செவ்வாய், கால சர்ப்பம், நாக தோஷம் — எப்படி உருவாகும், எப்போது நீங்கும்.",
-    href: "/dosham",
+    openDetail: "dosham",
   },
   {
     key: "yogam",
@@ -92,7 +100,7 @@ const LIBRARY_ITEMS: LibraryItem[] = [
     scriptTa: "யோகம்",
     descEn: "The fortunate combinations — Raja, Gaja Kesari, Dhana — and who carries them.",
     descTa: "சுப யோகங்கள் — ராஜ யோகம், கஜ கேசரி, தன யோகம் — யாருக்கு உண்டு.",
-    href: "/yogam",
+    openDetail: "yogam",
   },
   {
     key: "pariharam",
@@ -104,7 +112,7 @@ const LIBRARY_ITEMS: LibraryItem[] = [
     scriptTa: "பரிகாரம்",
     descEn: "Remedies by planet and dosham — what to do, where, and on which day.",
     descTa: "கிரகம் மற்றும் தோஷத்திற்கான பரிகாரங்கள் — என்ன, எங்கே, எந்த நாளில்.",
-    href: "/pariharam",
+    openDetail: "pariharam",
   },
   {
     key: "temples",
@@ -116,7 +124,7 @@ const LIBRARY_ITEMS: LibraryItem[] = [
     scriptTa: "கோயில்கள்",
     descEn: "Parihara sthalams by planet and star — Navagraha circuit, visiting guidance.",
     descTa: "கிரகம் மற்றும் நட்சத்திரத்திற்கான பரிகார ஸ்தலங்கள் — நவக்கிரக வழிபாடு.",
-    href: "/temples",
+    openDetail: "temple",
   },
   {
     key: "panchangam",
@@ -138,49 +146,53 @@ type LearnArticle = {
   kickerTa: string;
   titleEn: string;
   titleTa: string;
-  href: string;
+  /** Matches a slug in `dashboard-learn-content.ts` — opens the in-app
+   * Learn viewer at this article instead of navigating to the marketing
+   * site's `/learn/*` page. */
+  slug: string;
 };
 
 // Real, already-shipped /learn/* marketing articles — substituted for the
 // mockup's 3 example topics (Rahu Kalam / Guru Peyarchi / Dasa timeline),
 // none of which exist as articles anywhere in the codebase. Writing new
 // astrology explainer prose for those specific topics would be inventing
-// content, not re-skinning; these 5 are real, live pages instead.
+// content, not re-skinning; these 5 are real, already-shipped articles
+// instead, rendered in-app via dashboard-explore-learn-nova.tsx.
 const LEARN_ARTICLES: LearnArticle[] = [
   {
     key: "thirukanitham",
     kickerEn: "Method", kickerTa: "முறை",
     titleEn: "What is Thirukanitham?",
     titleTa: "திருக்கணிதம் என்றால் என்ன?",
-    href: "/learn/what-is-thirukanitham",
+    slug: "what-is-thirukanitham",
   },
   {
     key: "jadhagam",
     kickerEn: "Basics", kickerTa: "அடிப்படை",
     titleEn: "How to read a Jadhagam",
     titleTa: "ஜாதகத்தை எப்படி படிப்பது",
-    href: "/learn/how-to-read-a-jadhagam",
+    slug: "how-to-read-a-jadhagam",
   },
   {
     key: "chandrashtama",
     kickerEn: "Transits", kickerTa: "கிரக நகர்வு",
     titleEn: "What is Chandrashtama?",
     titleTa: "சந்திராஷ்டமம் என்றால் என்ன?",
-    href: "/learn/what-is-chandrashtama",
+    slug: "what-is-chandrashtama",
   },
   {
     key: "porutham",
     kickerEn: "Marriage", kickerTa: "திருமணம்",
     titleEn: "What is Porutham?",
     titleTa: "பொருத்தம் என்றால் என்ன?",
-    href: "/learn/what-is-porutham",
+    slug: "what-is-porutham",
   },
   {
     key: "birthtime",
     kickerEn: "Basics", kickerTa: "அடிப்படை",
     titleEn: "Why birth time matters",
     titleTa: "பிறந்த நேரம் ஏன் முக்கியம்",
-    href: "/learn/why-birth-time-matters",
+    slug: "why-birth-time-matters",
   },
 ];
 
@@ -214,6 +226,8 @@ export function DashboardExploreTabNova({
   const [query, setQuery] = useState("");
   const [nakshatramOpen, setNakshatramOpen] = useState(false);
   const [doshamOpen, setDoshamOpen] = useState(false);
+  const [guideKind, setGuideKind] = useState<"yogam" | "pariharam" | "temple" | null>(null);
+  const [learnSlug, setLearnSlug] = useState<string | null>(null);
   const astroText = (value: string) => (lang === "en" ? tamilizeAstroEnglish(value) : value);
 
   const doshams = personalChart?.doshams ?? [];
@@ -250,6 +264,28 @@ export function DashboardExploreTabNova({
         onBack={() => setDoshamOpen(false)}
         onOpenAskVinaadi={onOpenAskVinaadi}
         onNavigateToday={() => onNavigate("personal")}
+      />
+    );
+  }
+
+  if (guideKind) {
+    return (
+      <DashboardExploreGuideNova
+        lang={lang}
+        kind={guideKind}
+        onBack={() => setGuideKind(null)}
+        onOpenAskVinaadi={onOpenAskVinaadi}
+      />
+    );
+  }
+
+  if (learnSlug) {
+    return (
+      <DashboardExploreLearnNova
+        lang={lang}
+        initialSlug={learnSlug}
+        onBack={() => setLearnSlug(null)}
+        onOpenAskVinaadi={onOpenAskVinaadi}
       />
     );
   }
@@ -364,7 +400,7 @@ export function DashboardExploreTabNova({
                   </span>
                 </div>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: "24px", fontWeight: 600 }}>
-                  {activeDosham.label}
+                  {displayName(activeDosham.name, lang)}
                 </div>
                 <p style={{ fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-muted)", margin: 0 }}>
                   {lang === "ta" ? activeDosham.descriptionTa : astroText(activeDosham.descriptionEn)}
@@ -387,6 +423,15 @@ export function DashboardExploreTabNova({
         {filteredLibrary.length > 0 ? (
           <div className="nova-grid-3">
             {filteredLibrary.map((item) => {
+              const canOpenDetail =
+                (item.openDetail === "nakshatram" && !!nakshatraCard) ||
+                (item.openDetail === "dosham" && doshams.length > 0) ||
+                item.openDetail === "yogam" || item.openDetail === "pariharam" || item.openDetail === "temple";
+              // Natchathiram/Dosham are chart-relative — before the personal
+              // chart has loaded there's nothing to open yet. That used to
+              // fall back to an external marketing link; now it's just a
+              // disabled tile (no navigation anywhere) until the data is ready.
+              const isLoadingChartDetail = !!item.openDetail && !item.nav && !canOpenDetail;
               const inner = (
                 <>
                   <span style={{ flex: "none", width: "40px", height: "40px", borderRadius: "50%", background: item.iconBg, border: `1px solid ${item.iconColor}`, display: "grid", placeItems: "center", fontSize: "17px", color: item.iconColor }}>
@@ -400,8 +445,12 @@ export function DashboardExploreTabNova({
                     <div style={{ fontSize: "12px", lineHeight: 1.5, color: "var(--color-muted)" }}>
                       {lang === "ta" ? item.descTa : item.descEn}
                     </div>
-                    <div style={{ fontSize: "11.5px", color: "var(--color-accent-strong)", fontWeight: 600, marginTop: "4px" }}>
-                      {item.nav ? (lang === "ta" ? "நாட்காட்டியில் காண்க →" : "Open in Calendar →") : (lang === "ta" ? "உலாவுக →" : "Browse →")}
+                    <div style={{ fontSize: "11.5px", color: isLoadingChartDetail ? "var(--color-faint)" : "var(--color-accent-strong)", fontWeight: 600, marginTop: "4px" }}>
+                      {isLoadingChartDetail
+                        ? (lang === "ta" ? "ஜாதகம் ஏற்றப்படுகிறது…" : "Loading your chart…")
+                        : item.nav
+                          ? (lang === "ta" ? "நாட்காட்டியில் காண்க →" : "Open in Calendar →")
+                          : (lang === "ta" ? "உலாவுக →" : "Browse →")}
                     </div>
                   </div>
                 </>
@@ -411,10 +460,29 @@ export function DashboardExploreTabNova({
                 border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "18px 20px",
                 display: "flex", gap: "14px", alignItems: "flex-start", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
               };
-              return item.nav ? (
-                <button key={item.key} type="button" onClick={() => onNavigate(item.nav!)} style={tileStyle}>{inner}</button>
-              ) : (
-                <a key={item.key} href={item.href} target="_blank" rel="noopener" style={tileStyle}>{inner}</a>
+              if (item.nav) {
+                return <button key={item.key} type="button" onClick={() => onNavigate(item.nav!)} style={tileStyle}>{inner}</button>;
+              }
+              if (canOpenDetail) {
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => {
+                      if (item.openDetail === "nakshatram") setNakshatramOpen(true);
+                      else if (item.openDetail === "dosham") setDoshamOpen(true);
+                      else setGuideKind(item.openDetail as "yogam" | "pariharam" | "temple");
+                    }}
+                    style={tileStyle}
+                  >
+                    {inner}
+                  </button>
+                );
+              }
+              return (
+                <div key={item.key} style={{ ...tileStyle, cursor: "default", opacity: 0.6 }} aria-disabled="true">
+                  {inner}
+                </div>
               );
             })}
           </div>
@@ -431,12 +499,11 @@ export function DashboardExploreTabNova({
           <NovaKicker>{lang === "ta" ? "கற்றுக்கொள்ளுங்கள்" : "Learn"}</NovaKicker>
           <div className="nova-grid-3">
             {filteredLearn.map((a) => (
-              <a
+              <button
                 key={a.key}
-                href={a.href}
-                target="_blank"
-                rel="noopener"
-                style={{ textDecoration: "none", color: "var(--color-text)", background: "rgba(243, 236, 221, 0.03)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "8px" }}
+                type="button"
+                onClick={() => setLearnSlug(a.slug)}
+                style={{ textDecoration: "none", color: "var(--color-text)", background: "rgba(243, 236, 221, 0.03)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "8px", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%" }}
               >
                 <span style={{ fontSize: "10.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-secondary)", fontWeight: 700 }}>
                   {lang === "ta" ? a.kickerTa : a.kickerEn}
@@ -447,7 +514,7 @@ export function DashboardExploreTabNova({
                 <span style={{ fontSize: "11.5px", color: "var(--color-accent-strong)", fontWeight: 600, marginTop: "auto" }}>
                   {lang === "ta" ? "படிக்க →" : "Read →"}
                 </span>
-              </a>
+              </button>
             ))}
           </div>
         </div>

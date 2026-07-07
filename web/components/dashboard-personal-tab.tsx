@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { SkeletonDashboardCard, SkeletonDashaTimeline, SkeletonChartPanel, SkeletonMetricStrip } from "@/components/skeleton";
+import { DashboardLearnArticleModal } from "@/components/dashboard-learn-article-modal";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { formatClockLabel, formatDateLabel, getScoreBand, scoreColor, SCORE_HIGH } from "@/lib/format";
 import { gowriCategoryLabel, gowriPeriodLabel, gowriPurposeLabel } from "@/lib/gowri";
@@ -1047,6 +1048,7 @@ export function ChandrashtamaCard({ lang, chandrashtamaEnds, descriptionTa, desc
   descriptionEn: string | null | undefined;
   windowsSummary: string;
 }) {
+  const [showLearnModal, setShowLearnModal] = useState(false);
   const isTa = lang === "ta";
   const endLabel = chandrashtamaEnds
     ? `${isTa ? "முடியும் நேரம்: " : "Ends: "}${new Date(chandrashtamaEnds).toLocaleString(isTa ? "ta-IN" : "en-IN")}`
@@ -1075,15 +1077,18 @@ export function ChandrashtamaCard({ lang, chandrashtamaEnds, descriptionTa, desc
             {windowsSummary ? `${isTa ? "ஜன்ம நட்சத்திர நேரங்கள்" : "Janma star windows"}: ${windowsSummary}` : endLabel}
           </p>
         </div>
-        <a
-          href="/learn/what-is-chandrashtama"
-          target="_blank"
-          rel="noopener"
-          style={{ fontSize: "0.75rem", color: "white", textDecoration: "underline", whiteSpace: "nowrap" }}
+        <button
+          type="button"
+          onClick={() => setShowLearnModal(true)}
+          style={{ fontSize: "0.75rem", color: "white", textDecoration: "underline", whiteSpace: "nowrap", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}
         >
           {isTa ? "அறிய →" : "Learn →"}
-        </a>
+        </button>
       </div>
+
+      {showLearnModal && (
+        <DashboardLearnArticleModal slug="what-is-chandrashtama" lang={lang} onClose={() => setShowLearnModal(false)} />
+      )}
 
       {description && (
         <p style={{ margin: 0, padding: "var(--space-2_5) var(--space-4)", fontSize: "0.875rem", color: "var(--panel-earth-dark)", borderBottom: "1px solid var(--color-amber-border, #fde68a)" }}>

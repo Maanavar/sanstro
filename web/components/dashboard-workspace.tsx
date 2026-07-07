@@ -321,6 +321,7 @@ export function DashboardWorkspace() {
   const [showRetrospective, setShowRetrospective] = useState(false);
   const [showPorutham, setShowPorutham] = useState(false);
   const [showChartGenerate, setShowChartGenerate] = useState(false);
+  const [showRasipalan, setShowRasipalan] = useState(false);
   const [showPrasna, setShowPrasna] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -1443,7 +1444,7 @@ export function DashboardWorkspace() {
         )}
 
         {activeTab === "tools" && (() => {
-          const activeTool = showPorutham ? "porutham" : showChartGenerate ? "chartgen" : showWrapped ? "wrapped" : showRetrospective ? "retro" : null;
+          const activeTool = showPorutham ? "porutham" : showChartGenerate ? "chartgen" : showWrapped ? "wrapped" : showRetrospective ? "retro" : showRasipalan ? "rasipalan" : null;
           // Note: Find Birth Time (rectification) removed — results were unreliable
           const needsProfile = !personal.birthProfileId;
           const TOOL_LIST = [
@@ -1514,12 +1515,14 @@ export function DashboardWorkspace() {
             setShowChartGenerate(toolId === "chartgen");
             setShowWrapped(toolId === "wrapped");
             setShowRetrospective(toolId === "retro");
+            setShowRasipalan(toolId === "rasipalan");
           };
           const closeTool = () => {
             setShowPorutham(false);
             setShowChartGenerate(false);
             setShowWrapped(false);
             setShowRetrospective(false);
+            setShowRasipalan(false);
           };
 
           if (uiVariant === "nova") {
@@ -1534,6 +1537,7 @@ export function DashboardWorkspace() {
                 showChartGenerate={showChartGenerate}
                 showWrapped={showWrapped}
                 showRetrospective={showRetrospective}
+                showRasipalan={showRasipalan}
                 personalChartId={personal.chartId}
                 familyMembersForPorutham={[
                   ...(personal.chart ? [{

@@ -8,6 +8,7 @@ import { ChartGenerateInlinePanel } from "./chart-generate-inline-panel";
 import { DashboardAnnualWrapped } from "./dashboard-annual-wrapped";
 import { RetrospectivePanel } from "./dashboard-retrospective-panel";
 import { NovaPoruthamPanel, type PoruthamFamilyMember } from "./dashboard-tools-porutham-nova";
+import { RasippalanTool } from "@/app/tools/indraiya-rasipalan/RasippalanTool";
 
 /**
  * Nova rebuild of the Tools tab (see docs/DASHBOARD_UI_REVAMP_PLAN.md §6.12).
@@ -80,7 +81,7 @@ type ToolCardSpec = {
   metaEn: string;
   metaTa: string;
   disabled?: boolean;
-  kind: "inline" | "cross-nav" | "external";
+  kind: "inline" | "cross-nav";
 };
 
 export type DashboardToolsTabNovaProps = {
@@ -93,6 +94,7 @@ export type DashboardToolsTabNovaProps = {
   showChartGenerate: boolean;
   showWrapped: boolean;
   showRetrospective: boolean;
+  showRasipalan: boolean;
   personalChartId: string;
   familyMembersForPorutham: PoruthamFamilyMember[];
   onGoToPlan: () => void;
@@ -110,6 +112,7 @@ export function DashboardToolsTabNova({
   showChartGenerate,
   showWrapped,
   showRetrospective,
+  showRasipalan,
   personalChartId,
   familyMembersForPorutham,
   onGoToPlan,
@@ -157,7 +160,7 @@ export function DashboardToolsTabNova({
       nameEn: "Indraiya Rasipalan", nameTa: "இன்றைய ராசிபலன்",
       descEn: "Today's palan for all 12 rasis — read one for a friend, or share the day's outlook.",
       descTa: "12 ராசிகளுக்குமான இன்றைய பலன் — நண்பருக்காக படியுங்கள் அல்லது பகிருங்கள்.",
-      metaEn: "opens · vinaadi.com", metaTa: "திறக்கும் · vinaadi.com", kind: "external",
+      metaEn: "today's transits", metaTa: "இன்றைய கிரகநிலை", kind: "inline",
     },
   ];
 
@@ -210,6 +213,9 @@ export function DashboardToolsTabNova({
         {showRetrospective && personalChartId && (
           <ClassicToolIsland><RetrospectivePanel chartId={personalChartId} lang={lang} /></ClassicToolIsland>
         )}
+        {showRasipalan && (
+          <ClassicToolIsland><RasippalanTool hideCta /></ClassicToolIsland>
+        )}
       </div>
     );
   }
@@ -258,24 +264,18 @@ export function DashboardToolsTabNova({
       {/* Tools grid */}
       <div className="nova-grid-3">
         {TOOLS.map((tool) => (
-          tool.kind === "external" ? (
-            <a key={tool.id} href="/tools/indraiya-rasipalan" target="_blank" rel="noopener noreferrer" style={{ ...cardStyle(tool), textDecoration: "none" }}>
-              {renderCardBody(tool)}
-            </a>
-          ) : (
-            <button
-              key={tool.id}
-              type="button"
-              disabled={tool.disabled}
-              onClick={() => {
-                if (tool.kind === "cross-nav") { if (tool.id === "muhurta") onGoToPlan(); else onGoToCalendar(); return; }
-                onOpenTool(tool.id);
-              }}
-              style={cardStyle(tool)}
-            >
-              {renderCardBody(tool)}
-            </button>
-          )
+          <button
+            key={tool.id}
+            type="button"
+            disabled={tool.disabled}
+            onClick={() => {
+              if (tool.kind === "cross-nav") { if (tool.id === "muhurta") onGoToPlan(); else onGoToCalendar(); return; }
+              onOpenTool(tool.id);
+            }}
+            style={cardStyle(tool)}
+          >
+            {renderCardBody(tool)}
+          </button>
         ))}
       </div>
 
