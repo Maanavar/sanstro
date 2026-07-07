@@ -61,6 +61,8 @@ export type MemberFormState = {
   currentTimezone: string;
   memberWeight: string;
   calculateNow: boolean;
+  birthTimeSource: string;
+  birthTimeConfidenceMinutes: string;
 };
 
 type UserMode = "BEGINNER" | "BALANCED" | "TRADITIONAL";
@@ -813,6 +815,24 @@ export function DashboardSetupTab({
               <WField label={t("field_birth_time", lang)} hint={t("field_time_optional", lang)}>
                 <WInput type="time" step="1" value={memberForm.birthTimeLocal}
                   onChange={(e) => onMemberFormChange({ ...memberForm, birthTimeLocal: e.target.value })} />
+              </WField>
+              {/* Same reassurance the owner form gives — don't have their exact
+                  time on hand? Approximate is fine; this is what stopped P04
+                  from adding a member at all until she could "fetch her
+                  jathagam from the almirah" (#60). */}
+              <WField label={lang === "ta" ? "பிறந்த நேர மூலம்" : "Birth Time Source"} hint={lang === "ta" ? "சரியாக தெரியாவிட்டால் தோராயம் போதும் — பின்னர் திருத்தலாம்" : "Approximate is fine if you don't know exactly — refine it later"}>
+                <WSelect value={memberForm.birthTimeSource}
+                  onChange={(e) => {
+                    const src = e.target.value;
+                    const conf = src === "hospital_record" ? "5" : src === "family_memory" ? "15" : src === "elder_told" ? "30" : src === "approximate" ? "60" : "0";
+                    onMemberFormChange({ ...memberForm, birthTimeSource: src, birthTimeConfidenceMinutes: conf });
+                  }}>
+                  <option value="unknown">{lang === "ta" ? "தெரியாது" : "Unknown"}</option>
+                  <option value="hospital_record">{lang === "ta" ? "மருத்துவமனை பதிவு" : "Hospital Record (±5 min)"}</option>
+                  <option value="family_memory">{lang === "ta" ? "குடும்ப நினைவு" : "Family Memory (±15 min)"}</option>
+                  <option value="elder_told">{lang === "ta" ? "பெரியவர் சொன்னது" : "Elder's Account (±30 min)"}</option>
+                  <option value="approximate">{lang === "ta" ? "தோராயம்" : "Approximate (±1 hr)"}</option>
+                </WSelect>
               </WField>
               <WField label={t("field_birth_place", lang)} error={formErrors.memberBirthPlace}>
                 <PlaceCombobox value={memberForm.birthPlace}

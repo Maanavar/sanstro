@@ -89,6 +89,12 @@ const STRINGS = {
   place_use_matched:   { ta: "பொருந்திய ஆயத்தொலைவுகளைப் பயன்படுத்து", en: "Use matched coordinates" },
   place_unmatched_hint:{ ta: "இந்த இடத்தை பட்டியலில் காணவில்லை — பெயரை சரிபார்க்கவும் அல்லது கீழே ஆயத்தொலைவுகளை நேரடியாக உள்ளிடவும்.", en: "We couldn't match this place to a known city — check the spelling above, or enter coordinates directly below." },
 
+  // ── Family Vault cold-start (#4/#60 — empty on day 1, exact-time friction)
+  family_coldstart_title: { ta: "இன்னும் நீங்கள் மட்டும்தான்", en: "It's just you here so far" },
+  family_coldstart_body:  { ta: "மனைவி, பெற்றோர், குழந்தை — ஒருவரை சேர்த்தால் குடும்ப ஒற்றுமை மதிப்பெண், பகிர்ந்த சிறந்த நேரங்கள், பொருத்தம் ஆகியவை தெரியும்.", en: "Add a spouse, parent, or child to see family harmony, shared best-time windows, and compatibility together — the reason most people come here." },
+  family_coldstart_cta:   { ta: "முதல் உறுப்பினரைச் சேர் →", en: "Add your first family member →" },
+  family_coldstart_time_note: { ta: "அவர்களின் சரியான பிறந்த நேரம் கையில் இல்லையா? தோராயம் போதும் — பின்னர் திருத்தலாம்.", en: "Don't have their exact birth time on hand? Approximate is fine — you can refine it later." },
+
   // ── Relationship options
   rel_self:        { ta: "தான் (Self)",       en: "Self" },
   rel_spouse:      { ta: "துணைவர் (Spouse)",  en: "Spouse" },

@@ -600,6 +600,34 @@ export function DashboardFamilyTabNova({
         </div>
       </div>
 
+      {/* ===== Cold-start nudge — the vault has no one but the owner yet, so the
+          reason most family users came (shared harmony/best-times/compatibility)
+          isn't available. Reassures on birth-time precision too, since P04
+          deferred adding a member rather than guess an exact time she didn't
+          have on hand — the backend has always accepted an approximate one (#4/#60). */}
+      {members.length <= 1 && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap",
+          background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)",
+          borderRadius: "var(--radius-lg)", padding: "20px 24px",
+        }}>
+          <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: "17px", fontWeight: 600, color: "var(--color-text-strong)" }}>
+              {t("family_coldstart_title", lang)}
+            </div>
+            <p style={{ margin: "6px 0 0", fontSize: "13px", lineHeight: 1.55, color: "var(--color-muted)" }}>
+              {t("family_coldstart_body", lang)}
+            </p>
+            <p style={{ margin: "8px 0 0", fontSize: "12px", lineHeight: 1.5, color: "var(--color-faint)" }}>
+              🕒 {t("family_coldstart_time_note", lang)}
+            </p>
+          </div>
+          <button type="button" onClick={onOpenSetup} style={{ flexShrink: 0, fontSize: "13.5px", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", border: "none", borderRadius: "10px", padding: "12px 20px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+            {t("family_coldstart_cta", lang)}
+          </button>
+        </div>
+      )}
+
       {/* ===== Relation filter chips ===== */}
       {members.length > 0 && (
         <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>

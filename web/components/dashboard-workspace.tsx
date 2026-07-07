@@ -230,6 +230,8 @@ type MemberFormState = {
   currentTimezone: string;
   memberWeight: string;
   calculateNow: boolean;
+  birthTimeSource: string;
+  birthTimeConfidenceMinutes: string;
 };
 
 type PersistedState = {
@@ -263,6 +265,7 @@ const defaultMemberForm: MemberFormState = {
   birthPlace: "", birthLatitude: "", birthLongitude: "", birthTimezone: "",
   currentPlace: "", currentLatitude: "", currentLongitude: "", currentTimezone: "",
   memberWeight: RELATIONSHIP_WEIGHTS.spouse, calculateNow: true,
+  birthTimeSource: "unknown", birthTimeConfidenceMinutes: "0",
 };
 
 function parseNumber(value: string, fallback = 0): number {
@@ -941,6 +944,10 @@ export function DashboardWorkspace() {
             currentTimezone: memberForm.currentTimezone || undefined,
             calculateNow: memberForm.calculateNow,
             memberWeight: parseNumber(memberForm.memberWeight, 1),
+            birthTimeSource: memberForm.birthTimeSource || undefined,
+            birthTimeConfidenceMinutes: memberForm.birthTimeConfidenceMinutes
+              ? parseInt(memberForm.birthTimeConfidenceMinutes, 10)
+              : undefined,
           }),
         }
       );
