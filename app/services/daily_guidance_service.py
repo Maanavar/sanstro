@@ -20,7 +20,7 @@ from app.calculations.chart_strength import compute_natal_planet_score
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.functional_nature import get_dasha_modifier, get_transit_modifier
-from app.calculations.panchangam import calculate_daily_panchangam, calculate_daily_panchangam_range
+from app.calculations.panchangam import PanchangamSnapshot, calculate_daily_panchangam, calculate_daily_panchangam_range
 from app.calculations.transits import check_vedha, classify_ezharai_sani_murthi, classify_kandaka_cycle, classify_sani_cycle, is_combust
 from app.models import BirthProfile, Chart, JournalEntry
 from app.reasoning.verdict import Band, band_to_legacy_confidence
@@ -785,6 +785,8 @@ def get_daily_guidance_range(
     from_date: date,
     to_date: date,
     language: str = "ta-en",
+    *,
+    chart_snapshot: ChartCalculateResponse | None = None,
 ) -> DailyGuidanceRangeResponse:
     if to_date < from_date:
         raise HTTPException(status_code=422, detail="End date must be on or after start date.")
@@ -798,7 +800,11 @@ def get_daily_guidance_range(
     if chart is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chart not found.")
 
-    chart_snapshot = load_persisted_chart_response(session, chart.chart_id)
+    # Callers that already loaded the chart snapshot for their own purposes
+    # (e.g. get_week_ahead, which also needs it for the dasha-theme lookup)
+    # can pass it in to avoid paying for `_birth_panchangam_signature`'s
+    # ~1.2s recomputation twice in the same request.
+    chart_snapshot = chart_snapshot or load_persisted_chart_response(session, chart.chart_id)
     preloaded_cache = _load_daily_score_cache_range(
         session,
         birth_profile_id=chart_snapshot.data.birth_profile.birth_profile_id,
@@ -807,6 +813,15 @@ def get_daily_guidance_range(
         calculation_version=chart_snapshot.meta.calculation_version,
     )
 
+    # NOTE: threading was tried here and measured *slower* than the plain
+    # sequential loop (profiling showed the per-day cost is dominated by
+    # `_calc_ut`, a CPU-bound Swiss-Ephemeris/Moshier call made ~24k times for
+    # a single day's panchangam boundary root-finding — that doesn't release
+    # the GIL, so concurrent threads just add context-switch overhead on top
+    # of the same single-core work, and independent DB sessions per thread add
+    # connection overhead besides). The real fix for week-ahead's ~7x cost is
+    # the caching bug fixed in get_week_ahead() below (a second, uncached
+    # panchangam recompute per day) — see that function for the actual gain.
     items: list[DailyGuidanceData] = []
     current = from_date
     while current <= to_date:
@@ -849,10 +864,11 @@ def get_week_ahead(
     Returns a 7-day summary using the existing daily guidance engine.
     """
     week_end = week_start + timedelta(days=6)
-    range_response = get_daily_guidance_range(session, profile_id, week_start, week_end, language)
-    chart_id = range_response.data.chart_id
 
-    # Find the chart to get dasha info
+    # Find the chart to get dasha info — loaded once here and threaded into
+    # get_daily_guidance_range() below so its own internal chart-snapshot load
+    # (and the ~1.2s _birth_panchangam_signature recomputation that comes with
+    # it) isn't paid for twice in the same request.
     chart = session.execute(
         select(Chart)
         .where(Chart.birth_profile_id == profile_id, Chart.status == "completed")
@@ -862,6 +878,12 @@ def get_week_ahead(
     birth_profile = session.execute(
         select(BirthProfile).where(BirthProfile.birth_profile_id == profile_id)
     ).scalar_one_or_none()
+    chart_snapshot = load_persisted_chart_response(session, chart.chart_id) if chart is not None else None
+
+    range_response = get_daily_guidance_range(
+        session, profile_id, week_start, week_end, language, chart_snapshot=chart_snapshot,
+    )
+    chart_id = range_response.data.chart_id
 
     # Build per-day items
     day_items: list[WeekAheadDayItem] = []
@@ -870,18 +892,38 @@ def get_week_ahead(
     chandrashtama_days: list[date] = []
     special_tithi_days: list[date] = []
 
+    # This used to call calculate_daily_panchangam() once per day with no
+    # `session` argument, which silently skipped the PanchangamCache read/
+    # write entirely (calculate_daily_panchangam only checks the cache when
+    # `session is not None`) — every one of the 7 days recomputed a full
+    # sunrise/sunset/tithi/yoga/nakshatra root-find from scratch every single
+    # request, on top of the (properly cached) panchangam computation
+    # get_daily_guidance_range already did for the same 7 dates just above.
+    # Profiling one day's worth of this root-finding showed ~24k calls into
+    # the Swiss-Ephemeris/Moshier layer — the actual cost behind week-ahead's
+    # ~7x-a-single-day latency. Using the batched, session-aware range helper
+    # here fixes both: one bulk cache read instead of 7 uncached recomputes,
+    # and cache hits are now shared with anything else that already computed
+    # panchangam for these dates/location (Calendar tab, other family charts
+    # at the same place, a prior week-ahead call for an overlapping week).
+    panchangam_by_date: dict[date, PanchangamSnapshot] = {}
+    if birth_profile is not None:
+        daily_location = resolve_effective_daily_location(birth_profile)
+        panchangam_by_date = calculate_daily_panchangam_range(
+            week_start,
+            week_end,
+            daily_location.latitude,
+            daily_location.longitude,
+            daily_location.timezone,
+            session=session,
+        )
+
     for day_data in range_response.data.items:
         tithi_num = 0
         nakshatra_num = 0
         dominant_special_tithi_num: int | None = None
-        if birth_profile is not None:
-            daily_location = resolve_effective_daily_location(birth_profile)
-            panchangam = calculate_daily_panchangam(
-                day_data.date_local,
-                daily_location.latitude,
-                daily_location.longitude,
-                daily_location.timezone,
-            )
+        panchangam = panchangam_by_date.get(day_data.date_local)
+        if panchangam is not None:
             tithi_num = panchangam.tithi_number
             nakshatra_num = panchangam.nakshatra_number
             dominant_special_tithi_num = panchangam.special_tithi_day_number
@@ -918,7 +960,6 @@ def get_week_ahead(
     dasha_theme_en = "—"
     if chart is not None:
         try:
-            chart_snapshot = load_persisted_chart_response(session, chart.chart_id)
             if birth_profile and chart_snapshot:
                 from app.calculations.astro import utc_datetime_to_julian_day
                 jd = utc_datetime_to_julian_day(local_noon_as_utc_for_profile(week_start, birth_profile))
