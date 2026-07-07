@@ -7,7 +7,7 @@ import { apiFetchJson } from "@/lib/api";
 // ── Shared context ──────────────────────────────────────────────────────────
 
 type LangCtx = [Lang, (l: Lang) => void];
-const LangContext = createContext<LangCtx>(["en", () => {}]);
+const LangContext = createContext<LangCtx>(["ta", () => {}]);
 
 function persistLangPreference(lang: Lang) {
   localStorage.setItem(LANG_STORAGE_KEY, lang);
@@ -17,7 +17,7 @@ function persistLangPreference(lang: Lang) {
 
 export function LangProvider({
   children,
-  initialLang = "en",
+  initialLang = "ta",
 }: {
   children: React.ReactNode;
   initialLang?: Lang;

@@ -151,7 +151,11 @@ export default async function RootLayout({
 }>) {
   const cookieStore = await cookies();
   const langCookie = cookieStore.get(LANG_COOKIE_NAME)?.value;
-  const initialLang: Lang = langCookie === "ta" ? "ta" : "en";
+  // Tamil-first product: default to Tamil unless the visitor saved an explicit
+  // English preference (the toggle persists a cookie, so returning EN users are
+  // unaffected). See UX roadmap #8 — English-by-default was the widest-reach,
+  // smallest-fix issue for the core Tamil-first majority.
+  const initialLang: Lang = langCookie === "en" ? "en" : "ta";
 
   return (
     <html
