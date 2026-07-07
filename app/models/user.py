@@ -14,6 +14,9 @@ class User(TimestampMixin, Base):
     user_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Google's stable per-user subject id, once linked via SSO. Nullable — most
+    # accounts are still password-only. See app/api/auth.py oauth/google routes.
+    google_sub: Mapped[str | None] = mapped_column(String(255), nullable=True)
     user_mode: Mapped[str] = mapped_column(String(20), nullable=False, server_default="BALANCED")
     goal_track: Mapped[str | None] = mapped_column(String(20), nullable=True)
     is_suspended: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")

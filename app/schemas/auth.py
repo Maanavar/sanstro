@@ -80,3 +80,7 @@ class ForgotPasswordResponse(BaseModel):
 
 class AccountDeletionResult(BaseModel):
     detail: str
+
+
+class AuthProvidersResponse(BaseModel):
+    google: bool

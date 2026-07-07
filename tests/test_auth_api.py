@@ -4,8 +4,10 @@ from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from uuid import UUID, uuid4
 
+import pytest
 from fastapi.testclient import TestClient
 
+from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.main import app
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
@@ -756,3 +758,127 @@ def test_cookie_auth_mutation_requires_csrf_header(raw_client):
 def test_delete_me_requires_authentication(raw_client):
     response = raw_client.delete("/api/v1/auth/me")
     assert response.status_code == 401
+
+
+# ── Google SSO scaffold (#55) ──────────────────────────────────────────────
+
+
+@pytest.fixture
+def _google_oauth_configured_env(monkeypatch):
+    monkeypatch.setenv("JOTHIDAM_GOOGLE_CLIENT_ID", "test-client-id")
+    monkeypatch.setenv("JOTHIDAM_GOOGLE_CLIENT_SECRET", "test-client-secret")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
+def test_oauth_providers_reports_google_disabled_by_default(raw_client, monkeypatch):
+    monkeypatch.delenv("JOTHIDAM_GOOGLE_CLIENT_ID", raising=False)
+    monkeypatch.delenv("JOTHIDAM_GOOGLE_CLIENT_SECRET", raising=False)
+    get_settings.cache_clear()
+    response = raw_client.get("/api/v1/auth/oauth/providers")
+    assert response.status_code == 200
+    assert response.json() == {"google": False}
+    get_settings.cache_clear()
+
+
+def test_oauth_providers_reports_google_enabled_when_configured(raw_client, _google_oauth_configured_env):
+    response = raw_client.get("/api/v1/auth/oauth/providers")
+    assert response.status_code == 200
+    assert response.json() == {"google": True}
+
+
+def test_oauth_google_start_503_when_not_configured(raw_client, monkeypatch):
+    monkeypatch.delenv("JOTHIDAM_GOOGLE_CLIENT_ID", raising=False)
+    monkeypatch.delenv("JOTHIDAM_GOOGLE_CLIENT_SECRET", raising=False)
+    get_settings.cache_clear()
+    response = raw_client.get("/api/v1/auth/oauth/google/start", follow_redirects=False)
+    assert response.status_code == 503
+    get_settings.cache_clear()
+
+
+def test_oauth_google_start_redirects_to_google_with_state_cookie(raw_client, _google_oauth_configured_env):
+    response = raw_client.get("/api/v1/auth/oauth/google/start", follow_redirects=False)
+    assert response.status_code in (302, 307)
+    assert response.headers["location"].startswith("https://accounts.google.com/o/oauth2/v2/auth?")
+    assert "vinaadi_oauth_state" in response.headers.get("set-cookie", "")
+
+
+def test_oauth_google_callback_rejects_missing_state(raw_client, _google_oauth_configured_env):
+    response = raw_client.get(
+        "/api/v1/auth/oauth/google/callback",
+        params={"code": "some-code", "state": "mismatched"},
+        follow_redirects=False,
+    )
+    assert response.status_code in (302, 307)
+    assert "error=oauth_failed" in response.headers["location"]
+
+
+def test_oauth_google_callback_creates_new_user_on_success(raw_client, _google_oauth_configured_env, monkeypatch):
+    def fake_exchange(code, redirect_uri, settings):
+        assert code == "fake-code"
+        return "fake-access-token"
+
+    def fake_userinfo(access_token):
+        assert access_token == "fake-access-token"
+        return {"sub": "google-sub-123", "email": "oauth-newuser@example.com", "email_verified": True}
+
+    monkeypatch.setattr("app.api.auth._google_exchange_code_for_token", fake_exchange)
+    monkeypatch.setattr("app.api.auth._google_fetch_userinfo", fake_userinfo)
+
+    start = raw_client.get("/api/v1/auth/oauth/google/start", follow_redirects=False)
+    state = start.cookies.get("vinaadi_oauth_state")
+    assert state
+
+    callback = raw_client.get(
+        "/api/v1/auth/oauth/google/callback",
+        params={"code": "fake-code", "state": state},
+        follow_redirects=False,
+    )
+    assert callback.status_code in (302, 307)
+    assert callback.headers["location"].endswith("/dashboard")
+    assert "vinaadi_token" in callback.headers.get("set-cookie", "")
+
+    me = raw_client.get("/api/v1/auth/me")
+    assert me.status_code == 200
+    assert me.json()["email"] == "oauth-newuser@example.com"
+
+
+def test_oauth_google_callback_links_existing_password_account_by_email(
+    raw_client, _google_oauth_configured_env, monkeypatch
+):
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "oauth-linkme@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    raw_client.post("/api/v1/auth/logout", headers=CSRF_HEADERS)
+
+    def fake_exchange(code, redirect_uri, settings):
+        return "fake-access-token"
+
+    def fake_userinfo(access_token):
+        return {"sub": "google-sub-link-456", "email": "oauth-linkme@example.com", "email_verified": True}
+
+    monkeypatch.setattr("app.api.auth._google_exchange_code_for_token", fake_exchange)
+    monkeypatch.setattr("app.api.auth._google_fetch_userinfo", fake_userinfo)
+
+    start = raw_client.get("/api/v1/auth/oauth/google/start", follow_redirects=False)
+    state = start.cookies.get("vinaadi_oauth_state")
+
+    callback = raw_client.get(
+        "/api/v1/auth/oauth/google/callback",
+        params={"code": "fake-code", "state": state},
+        follow_redirects=False,
+    )
+    assert callback.status_code in (302, 307)
+
+    me = raw_client.get("/api/v1/auth/me")
+    assert me.status_code == 200
+    assert me.json()["email"] == "oauth-linkme@example.com"
+
+    with SessionLocal() as session:
+        linked = session.query(User).filter(User.email == "oauth-linkme@example.com").first()
+        assert linked is not None
+        assert linked.google_sub == "google-sub-link-456"
+        assert linked.hashed_password is not None  # password login still works

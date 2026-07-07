@@ -22,6 +22,7 @@ class AuthThrottleAction(str, Enum):
     LOGIN = "login"
     REGISTER = "register"
     FORGOT_PASSWORD = "forgot_password"
+    OAUTH = "oauth"
 
 
 class AuthThrottler:
@@ -39,6 +40,7 @@ class AuthThrottler:
         AuthThrottleAction.LOGIN: {"max_requests": 5, "window_seconds": 60},
         AuthThrottleAction.REGISTER: {"max_requests": 3, "window_seconds": 60},
         AuthThrottleAction.FORGOT_PASSWORD: {"max_requests": 3, "window_seconds": 60},
+        AuthThrottleAction.OAUTH: {"max_requests": 10, "window_seconds": 60},
     }
 
     def __init__(self) -> None:

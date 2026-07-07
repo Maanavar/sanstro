@@ -12,6 +12,9 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { track } from "@/lib/analytics";
+import { getAuthProviders } from "@vinaadi/shared/api/auth";
+import "@/lib/api"; // side effect: initializes the shared API client used by getAuthProviders
+import { GuestChartModal } from "@/components/dashboard-guest-chart-modal";
 
 type Mode = "login" | "signup" | "forgot" | "reset";
 
@@ -76,6 +79,8 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState<"signup" | "forgot" | "reset" | null>(null);
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+  const [showGuestChart, setShowGuestChart] = useState(false);
 
   const emailTouched = email.length > 0;
   const emailValid = isValidEmail(email);
@@ -95,6 +100,15 @@ export default function LoginPage() {
     if (params.get("mode") === "signup") {
       setMode("signup");
     }
+    if (params.get("error") === "oauth_failed") {
+      setError("Google sign-in didn't complete. Please try again or use email instead.");
+    }
+  }, []);
+
+  useEffect(() => {
+    getAuthProviders()
+      .then((providers) => setGoogleEnabled(providers.google))
+      .catch(() => setGoogleEnabled(false));
   }, []);
 
   function switchMode(next: Mode) {
@@ -449,6 +463,45 @@ export default function LoginPage() {
           font-size: 0.85rem;
           color: var(--panel-warm-muted);
           line-height: 1.5;
+        }
+
+        /* Google SSO button + divider */
+        .ca-google-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          width: 100%;
+          padding: 11px 16px;
+          border-radius: 999px;
+          border: 1.5px solid var(--panel-tan);
+          background: var(--cl-surface);
+          color: var(--panel-earth-dark);
+          font-size: 0.87rem;
+          font-weight: 600;
+          font-family: inherit;
+          text-decoration: none;
+          cursor: pointer;
+          min-height: 44px;
+          transition: border-color 150ms ease, background 150ms ease;
+        }
+        .ca-google-btn:hover {
+          border-color: var(--chart-d1-active);
+          background: var(--veil-white-50);
+        }
+        .ca-divider {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin: -4px 0;
+          font-size: 0.76rem;
+          color: var(--panel-faint);
+        }
+        .ca-divider::before, .ca-divider::after {
+          content: '';
+          flex: 1;
+          height: 1px;
+          background: var(--panel-tan-light);
         }
 
         /* Mode toggle tabs */
@@ -866,6 +919,25 @@ export default function LoginPage() {
               </div>
             )}
 
+            {/* Google SSO — only rendered once the backend confirms it's configured (#55) */}
+            {googleEnabled && mode !== "forgot" && mode !== "reset" && !done && (
+              <>
+                <a
+                  href="/api/backend/api/v1/auth/oauth/google/start"
+                  className="ca-google-btn"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.57-5.17 3.57-8.82Z"/>
+                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.07 7.94-2.9l-3.88-3.02c-1.08.72-2.45 1.15-4.06 1.15-3.13 0-5.78-2.11-6.73-4.96H1.26v3.11A11.998 11.998 0 0 0 12 24Z"/>
+                    <path fill="#FBBC05" d="M5.27 14.27a7.2 7.2 0 0 1 0-4.54v-3.1H1.26a12 12 0 0 0 0 10.75l4.01-3.11Z"/>
+                    <path fill="#EA4335" d="M12 4.77c1.76 0 3.34.6 4.58 1.79l3.44-3.44C17.94 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.26 6.63l4.01 3.1C6.22 6.88 8.87 4.77 12 4.77Z"/>
+                  </svg>
+                  Continue with Google
+                </a>
+                <div className="ca-divider"><span>or</span></div>
+              </>
+            )}
+
             {/* ── Success states ── */}
             {done === "signup" && (
               <div className="ca-success" role="status">
@@ -1092,9 +1164,24 @@ export default function LoginPage() {
               </p>
             )}
 
+            {/* No-account path (#5) — the guest chart preview already exists and
+                works end-to-end (POST /api/v1/public/chart), it just had no link
+                pointing to it anywhere in the product. */}
+            {!done && mode !== "forgot" && mode !== "reset" && (
+              <p className="ca-footer">
+                <button type="button" className="ca-text-btn" onClick={() => setShowGuestChart(true)}>
+                  Try a chart first — no account needed
+                </button>
+              </p>
+            )}
+
           </div>
         </main>
       </div>
+
+      {showGuestChart && (
+        <GuestChartModal lang="en" onClose={() => setShowGuestChart(false)} />
+      )}
     </>
   );
 }

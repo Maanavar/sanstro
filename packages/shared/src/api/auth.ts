@@ -77,3 +77,13 @@ export interface SubscriptionInfoResponse {
 export function getMySubscription(): Promise<SubscriptionInfoResponse> {
   return getApiClient().get("/users/me/subscription") as Promise<SubscriptionInfoResponse>;
 }
+
+export interface AuthProvidersResponse {
+  google: boolean;
+}
+
+/** Whether SSO providers are configured server-side (env vars set). The web
+ * login page only renders a provider's button when this reports it enabled. */
+export function getAuthProviders(): Promise<AuthProvidersResponse> {
+  return getApiClient().get("/auth/oauth/providers") as Promise<AuthProvidersResponse>;
+}

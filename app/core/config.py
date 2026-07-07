@@ -77,6 +77,16 @@ class Settings(BaseSettings):
     # If unset, POST /webhooks/revenuecat returns 503.
     revenuecat_webhook_secret: str | None = Field(default=None)
 
+    # Google SSO — from a Google Cloud Console OAuth 2.0 Client ID (Web application).
+    # Leave unset to disable: GET /auth/oauth/providers reports it unavailable and the
+    # frontend hides the "Continue with Google" button. Register the authorized redirect
+    # URI as "{public backend URL}/api/v1/auth/oauth/google/callback" (through the Next.js
+    # proxy in production, e.g. "https://app.vinaadi.ai/api/backend/api/v1/auth/oauth/google/callback").
+    google_client_id: str | None = Field(default=None)
+    google_client_secret: str | None = Field(default=None)
+    # Override only if the callback isn't reachable at {frontend_url}/api/backend/api/v1/auth/oauth/google/callback.
+    google_oauth_redirect_uri: str | None = Field(default=None)
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

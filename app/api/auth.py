@@ -3,11 +3,14 @@ from __future__ import annotations
 import hashlib
 import logging
 import secrets
+import urllib.parse
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import bcrypt
+import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -20,7 +23,7 @@ from app.core.auth import (
     require_csrf_header,
 )
 from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.db.session import get_db
 from app.middleware import resolve_client_ip
 from app.models.password_reset_token import PasswordResetToken
@@ -29,6 +32,7 @@ from app.models.user import User
 from app.models.user_preference import UserPreference
 from app.schemas.auth import (
     AccountDeletionResult,
+    AuthProvidersResponse,
     AuthUserResponse,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
@@ -47,6 +51,11 @@ router = APIRouter()
 _COOKIE_NAME = "vinaadi_token"
 _COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24
 _PASSWORD_RESET_TTL = timedelta(minutes=15)
+_OAUTH_STATE_COOKIE = "vinaadi_oauth_state"
+_OAUTH_STATE_MAX_AGE_SECONDS = 5 * 60
+_GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+_GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+_GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
 _REGISTER_NEUTRAL_DETAIL = "If this email can be used, your account is ready. Please sign in to continue."
 _RESET_NEUTRAL_DETAIL = "If an account exists for this email, you will receive a password reset link shortly."
 _logger = logging.getLogger(__name__)
@@ -85,6 +94,46 @@ def _set_auth_cookie(response: Response, token: str) -> None:
         max_age=_COOKIE_MAX_AGE_SECONDS,
         path="/",
     )
+
+
+def _google_oauth_configured(settings: Settings) -> bool:
+    return bool(settings.google_client_id and settings.google_client_secret)
+
+
+def _google_redirect_uri(settings: Settings) -> str:
+    if settings.google_oauth_redirect_uri:
+        return settings.google_oauth_redirect_uri
+    return f"{settings.frontend_url.rstrip('/')}/api/backend/api/v1/auth/oauth/google/callback"
+
+
+def _google_exchange_code_for_token(code: str, redirect_uri: str, settings: Settings) -> str | None:
+    """Exchanges an OAuth authorization code for a Google access token. Split out
+    from the callback route so tests can patch just the network call."""
+    with httpx.Client(timeout=10.0) as client:
+        token_res = client.post(
+            _GOOGLE_TOKEN_URL,
+            data={
+                "client_id": settings.google_client_id,
+                "client_secret": settings.google_client_secret,
+                "code": code,
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code",
+            },
+        )
+        token_res.raise_for_status()
+        return token_res.json().get("access_token")
+
+
+def _google_fetch_userinfo(access_token: str) -> dict:
+    """Fetches the Google userinfo payload for an access token. Split out from
+    the callback route so tests can patch just the network call."""
+    with httpx.Client(timeout=10.0) as client:
+        userinfo_res = client.get(
+            _GOOGLE_USERINFO_URL,
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        userinfo_res.raise_for_status()
+        return userinfo_res.json()
 
 
 def _hash_password(password: str) -> str:
@@ -427,3 +476,124 @@ def reset_password(
     ).update({"used_at": now}, synchronize_session=False)
     response.delete_cookie(key=_COOKIE_NAME, path="/")
     return ForgotPasswordResponse(detail="Password updated. Please sign in again.")
+
+
+# ── Google SSO (#55) ──────────────────────────────────────────────────────
+# Scaffolded ahead of real credentials: every route below degrades to a clear
+# error until JOTHIDAM_GOOGLE_CLIENT_ID / JOTHIDAM_GOOGLE_CLIENT_SECRET are set
+# (see app/core/config.py). The frontend calls GET /oauth/providers first and
+# only renders the "Continue with Google" button when it reports enabled.
+
+
+@router.get("/oauth/providers", response_model=AuthProvidersResponse)
+def oauth_providers() -> AuthProvidersResponse:
+    settings = get_settings()
+    return AuthProvidersResponse(google=_google_oauth_configured(settings))
+
+
+@router.get("/oauth/google/start")
+def oauth_google_start(request: Request, response: Response) -> RedirectResponse:
+    settings = get_settings()
+    if not _google_oauth_configured(settings):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google sign-in isn't configured yet.",
+        )
+
+    client_ip = _get_client_ip(request)
+    allowed, retry_after = _throttler.check(AuthThrottleAction.OAUTH, ip=client_ip)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many sign-in attempts. Please try again later.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    state = secrets.token_urlsafe(32)
+    params = {
+        "client_id": settings.google_client_id,
+        "redirect_uri": _google_redirect_uri(settings),
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "access_type": "online",
+        "prompt": "select_account",
+    }
+    redirect = RedirectResponse(url=f"{_GOOGLE_AUTH_URL}?{urllib.parse.urlencode(params)}")
+    redirect.set_cookie(
+        key=_OAUTH_STATE_COOKIE,
+        value=state,
+        httponly=True,
+        samesite="lax",
+        secure=settings.cookie_secure,
+        max_age=_OAUTH_STATE_MAX_AGE_SECONDS,
+        path="/",
+    )
+    return redirect
+
+
+@router.get("/oauth/google/callback")
+def oauth_google_callback(
+    request: Request,
+    code: str | None = None,
+    state: str | None = None,
+    error: str | None = None,
+    session: Session = Depends(get_db),
+) -> RedirectResponse:
+    settings = get_settings()
+    login_error_redirect = RedirectResponse(url=f"{settings.frontend_url.rstrip('/')}/login?error=oauth_failed")
+    login_error_redirect.delete_cookie(key=_OAUTH_STATE_COOKIE, path="/")
+
+    if not _google_oauth_configured(settings) or error:
+        return login_error_redirect
+
+    client_ip = _get_client_ip(request)
+    allowed, retry_after = _throttler.check(AuthThrottleAction.OAUTH, ip=client_ip)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many sign-in attempts. Please try again later.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    cookie_state = request.cookies.get(_OAUTH_STATE_COOKIE)
+    if not code or not state or not cookie_state or state != cookie_state:
+        return login_error_redirect
+
+    try:
+        access_token = _google_exchange_code_for_token(code, _google_redirect_uri(settings), settings)
+        if not access_token:
+            return login_error_redirect
+        userinfo = _google_fetch_userinfo(access_token)
+    except httpx.HTTPError:
+        _logger.warning("Google OAuth token/userinfo exchange failed", exc_info=True)
+        return login_error_redirect
+
+    google_sub = userinfo.get("sub")
+    email = userinfo.get("email")
+    email_verified = bool(userinfo.get("email_verified"))
+    if not google_sub or not email or not email_verified:
+        return login_error_redirect
+    email = email.strip().lower()
+
+    user = session.query(User).filter(User.google_sub == google_sub).first()
+    if user is None:
+        # Link to an existing password account with the same (Google-verified)
+        # email, rather than creating a duplicate — matches the register flow's
+        # existing-account handling.
+        user = session.query(User).filter(User.email == email).first()
+        if user is not None:
+            user.google_sub = google_sub
+        else:
+            user = User(user_id=uuid4(), email=email, google_sub=google_sub)
+            session.add(user)
+        session.flush()
+
+    if user.is_suspended:
+        return login_error_redirect
+
+    token = _issue_access_token_for_user(user)
+    success_redirect = RedirectResponse(url=f"{settings.frontend_url.rstrip('/')}/dashboard")
+    success_redirect.delete_cookie(key=_OAUTH_STATE_COOKIE, path="/")
+    _set_auth_cookie(success_redirect, token)
+    return success_redirect
