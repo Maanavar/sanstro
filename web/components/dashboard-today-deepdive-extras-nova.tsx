@@ -36,6 +36,7 @@ import { QUESTION_AREAS, outlookLabel } from "./dashboard-prasna-widget";
 import { JathagamKattam } from "./dashboard-charts";
 import { ShareCardButton } from "./dashboard-share-card";
 import { DrawerPanel } from "./drawer-panel";
+import { NovaSelect } from "./nova-select";
 import { Chip, Metric, Surface } from "./dashboard-ui";
 
 /**
@@ -356,11 +357,13 @@ export function NovaActivityTimingCard({
         <div className="cd-responsive-row" style={{ gap: "10px", alignItems: "flex-end" }}>
           <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--color-faint)" }}>{t("activity_label", lang)}</span>
-            <select style={{ ...novaFieldStyle, minWidth: "240px" }} value={activityType} onChange={(event) => setActivityType(event.target.value)}>
-              {ACTIVITY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{lang === "ta" ? option.ta : option.en}</option>
-              ))}
-            </select>
+            <NovaSelect
+              value={activityType}
+              onChange={setActivityType}
+              ariaLabel={t("activity_label", lang)}
+              containerStyle={{ minWidth: "240px" }}
+              options={ACTIVITY_OPTIONS.map((option) => ({ value: option.value, label: lang === "ta" ? option.ta : option.en }))}
+            />
           </div>
           <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--color-faint)" }}>{t("activity_month_label", lang)}</span>

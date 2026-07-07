@@ -7,6 +7,7 @@ import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, MuhurtaSlot, MuhurtaResponseData } from "@/lib/types";
 import { formatClockLabel, formatDateLabel, todayIso, addDays } from "@/lib/format";
+import { NovaSelect } from "./nova-select";
 
 /**
  * Nova re-skin of dashboard-muhurta-picker.tsx's DashboardMuhurtaPicker —
@@ -156,12 +157,13 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
           <label style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-faint)", display: "block", marginBottom: "4px" }}>
             {t("muhurta_activity", lang)}
           </label>
-          <select value={activity} onChange={(e) => setActivity(e.target.value)} style={fieldStyle}>
-            <option value="">{lang === "ta" ? "-- பயன்பாடு தேர்ந்தெடுக்கவும் --" : "-- Select an activity --"}</option>
-            {ACTIVITIES.map((a) => (
-              <option key={a.id} value={a.id}>{lang === "ta" ? a.ta : a.en}</option>
-            ))}
-          </select>
+          <NovaSelect
+            value={activity}
+            onChange={setActivity}
+            placeholder={lang === "ta" ? "-- பயன்பாடு தேர்ந்தெடுக்கவும் --" : "-- Select an activity --"}
+            ariaLabel={t("muhurta_activity", lang)}
+            options={ACTIVITIES.map((a) => ({ value: a.id, label: lang === "ta" ? a.ta : a.en }))}
+          />
         </div>
 
         <div style={{ flex: "1 1 130px" }}>

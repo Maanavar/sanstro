@@ -6,6 +6,7 @@ import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { t, tLang } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, DecisionBriefData } from "@/lib/types";
+import { NovaSelect } from "./nova-select";
 
 /**
  * Nova re-skin of dashboard-decision-panel.tsx's DecisionPanel (plus the
@@ -203,28 +204,25 @@ export function NovaPlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: Pro
             <label style={{ display: "block", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-faint)", marginBottom: "4px" }}>
               {t("decision_scenario", lang)}
             </label>
-            <select
-              style={fieldStyle}
+            <NovaSelect
               value={scenarioLabel}
-              onChange={(e) => {
+              onChange={(v) => {
                 const allOptions = SCENARIO_GROUPS.flatMap((g) => g.options);
-                const found = allOptions.find((o) => o.en === e.target.value);
+                const found = allOptions.find((o) => o.en === v);
                 if (found) {
                   setPriority(found.value);
                   setScenarioLabel(found.en);
                 }
               }}
-            >
-              {SCENARIO_GROUPS.map((group) => (
-                <optgroup key={group.groupEn} label={lang === "ta" ? group.groupTa : group.groupEn}>
-                  {group.options.map((opt) => (
-                    <option key={`${opt.value}-${opt.en}`} value={opt.en}>
-                      {lang === "ta" ? opt.ta : opt.en}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+              ariaLabel={t("decision_scenario", lang)}
+              options={SCENARIO_GROUPS.flatMap((group) =>
+                group.options.map((opt) => ({
+                  value: opt.en,
+                  label: lang === "ta" ? opt.ta : opt.en,
+                  group: lang === "ta" ? group.groupTa : group.groupEn,
+                })),
+              )}
+            />
           </div>
           <div style={{ flex: 1, minWidth: "160px" }}>
             <label style={{ display: "block", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-faint)", marginBottom: "4px" }}>
@@ -390,6 +388,13 @@ export function NovaPlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: Pro
               <p style={{ margin: 0, fontSize: "12px", color: "var(--color-text)", lineHeight: 1.5 }}>{tLang(result.caution, lang)}</p>
             </div>
           )}
+
+          {/* High-stakes risk framing — money/immigration decisions leaned on
+              astrology carry blame/liability if they "go wrong" (#32). */}
+          <p style={{ margin: 0, fontSize: "11.5px", color: "var(--color-muted)", lineHeight: 1.5, display: "flex", gap: "6px" }}>
+            <span aria-hidden="true">⚖</span>
+            <span>{t("safeguard_decision", lang)}</span>
+          </p>
         </div>
       )}
 

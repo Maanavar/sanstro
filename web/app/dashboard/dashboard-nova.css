@@ -166,6 +166,23 @@
   --chartgrid-border-light: var(--color-border);
   --chartgrid-surface:      var(--color-surface-soft);
 
+  /* ── place-combobox.tsx (birthplace/location autocomplete). Its field bg
+     rode --chart-cell-default (already redirected above, so that part was
+     fine) but its text/borders/active-option used --panel-earth/--panel-tan/
+     --panel-tan-light/--panel-hover — the shared "conflicting-role" tokens we
+     can't globally remap. Under Nova those stayed at Classic light values:
+     dark-on-dark invisible input text, tan borders, and a near-white
+     (--panel-hover #F4EEE2) highlighted-option row — the "white dropdown"
+     reported in the Nova Porutham tool (2026-07-07). Same component-scoped
+     fallback trick as --chartgrid-* above: place-combobox reads --pcbx-* with
+     the old values as fallback (Classic no-op), only these Nova definitions
+     override it. ── */
+  --pcbx-field-bg:         var(--color-surface);
+  --pcbx-field-border:     var(--color-border);
+  --pcbx-list-border:      var(--color-border);
+  --pcbx-ink:              var(--color-text-strong);
+  --pcbx-option-active-bg: var(--color-hover-bg);
+
   /* ── Same fix, same reasoning, for a second cluster of components found the
      same way while auditing "white background leak" reports (2026-07-06):
      dashboard-vargas-panel.tsx / dashboard-shadbala-panel.tsx / dashboard-

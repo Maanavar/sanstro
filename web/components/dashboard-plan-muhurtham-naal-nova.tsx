@@ -11,6 +11,7 @@ import {
   type MuhurthamNaalMatchContext,
   type MuhurthamNaalItem,
 } from "@/lib/muhurtham-naal";
+import { NovaSelect } from "./nova-select";
 
 /**
  * Nova re-skin of dashboard-muhurtham-naal.tsx's DashboardMuhurthamNaal —
@@ -225,24 +226,24 @@ export function NovaMuhurthamNaal({ lang, chartId }: { lang: Lang; chartId: stri
       <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "14px", alignItems: "center" }}>
         <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "11.5px", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
           {lang === "ta" ? "மாதம்" : "Month"}
-          <select
-            value={filterMonth}
-            onChange={(e) => setFilterMonth(Number(e.target.value))}
-            style={{ padding: "5px 8px", borderRadius: "8px", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", color: "var(--color-text)", fontSize: "13px", fontFamily: "inherit" }}
-          >
-            {MONTH_LABELS.map((m) => <option key={m.value} value={m.value}>{lang === "ta" ? m.ta : m.en}</option>)}
-          </select>
+          <NovaSelect
+            value={String(filterMonth)}
+            onChange={(v) => setFilterMonth(Number(v))}
+            ariaLabel={lang === "ta" ? "மாதம்" : "Month"}
+            style={{ padding: "5px 10px", fontSize: "13px" }}
+            options={MONTH_LABELS.map((m) => ({ value: String(m.value), label: lang === "ta" ? m.ta : m.en }))}
+          />
         </label>
 
         <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "11.5px", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
           {lang === "ta" ? "பிறை" : "Pirai"}
-          <select
+          <NovaSelect
             value={filterPirai}
-            onChange={(e) => setFilterPirai(e.target.value)}
-            style={{ padding: "5px 8px", borderRadius: "8px", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", color: "var(--color-text)", fontSize: "13px", fontFamily: "inherit" }}
-          >
-            {PIRAI_OPTIONS.map((p) => <option key={p.value} value={p.value}>{lang === "ta" ? p.ta : p.en}</option>)}
-          </select>
+            onChange={setFilterPirai}
+            ariaLabel={lang === "ta" ? "பிறை" : "Pirai"}
+            style={{ padding: "5px 10px", fontSize: "13px" }}
+            options={PIRAI_OPTIONS.map((p) => ({ value: p.value, label: lang === "ta" ? p.ta : p.en }))}
+          />
         </label>
 
         {showMatchCol && (

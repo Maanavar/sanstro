@@ -5,6 +5,7 @@ import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { WhatIfData } from "@/lib/types";
 import { verdictKey, strengthKey } from "./dashboard-plan-tab";
+import { NovaSelect } from "./nova-select";
 
 /**
  * Nova re-skin of dashboard-plan-tab.tsx's PlanWhatIfPanel — one of Plan's 4
@@ -108,11 +109,13 @@ export function NovaPlanWhatIfPanel({
       <div style={{ display: "flex", gap: "10px", alignItems: "flex-end", flexWrap: "wrap" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: "1 1 220px" }}>
           <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-faint)" }}>{t("whatif_scenario", lang)}</span>
-          <select style={{ ...fieldStyle, minWidth: "min(220px, 100%)" }} value={whatIfScenario} onChange={(e) => onWhatIfScenarioChange(e.target.value)}>
-            {WHATIF_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{lang === "ta" ? opt.ta : opt.en}</option>
-            ))}
-          </select>
+          <NovaSelect
+            value={whatIfScenario}
+            onChange={onWhatIfScenarioChange}
+            ariaLabel={t("whatif_scenario", lang)}
+            containerStyle={{ minWidth: "min(220px, 100%)" }}
+            options={WHATIF_OPTIONS.map((opt) => ({ value: opt.value, label: lang === "ta" ? opt.ta : opt.en }))}
+          />
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: "1 1 140px" }}>

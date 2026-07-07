@@ -9,6 +9,7 @@ import { formatDateLabel, todayIso } from "@/lib/format";
 import { EVENT_TYPES, EVENT_ICON, eventLabel } from "./dashboard-life-event-log";
 import type { LifeEventLogItem } from "./dashboard-life-event-log";
 import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
+import { NovaSelect } from "./nova-select";
 
 /**
  * Nova re-skin of `DashboardLifeEventLog` (Classic) — same API calls and
@@ -141,16 +142,13 @@ export function NovaLifeEventLogCard({ lang, chartId }: { lang: Lang; chartId: s
               <label style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-faint)", display: "block", marginBottom: "4px" }}>
                 {lang === "ta" ? "நிகழ்வு வகை" : "Event type"}
               </label>
-              <select
+              <NovaSelect
                 value={eventType}
-                onChange={(e) => setEventType(e.target.value)}
-                style={{ width: "100%", padding: "7px 10px", borderRadius: "9px", border: "1.5px solid var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)", fontSize: "0.875rem", fontFamily: "inherit" }}
-              >
-                <option value="">{lang === "ta" ? "— தேர்ந்தெடு —" : "— Select —"}</option>
-                {EVENT_TYPES.map((e) => (
-                  <option key={e.id} value={e.id}>{e.en}</option>
-                ))}
-              </select>
+                onChange={setEventType}
+                placeholder={lang === "ta" ? "— தேர்ந்தெடு —" : "— Select —"}
+                ariaLabel={lang === "ta" ? "நிகழ்வு வகை" : "Event type"}
+                options={EVENT_TYPES.map((e) => ({ value: e.id, label: e.en }))}
+              />
             </div>
             <div style={{ flex: "1 1 130px" }}>
               <label style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-faint)", display: "block", marginBottom: "4px" }}>

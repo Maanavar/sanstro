@@ -233,19 +233,6 @@ const SECTION_META: Array<{ id: SectionId; title: BiCopy; hint: BiCopy }> = [
   },
 ];
 
-const INITIAL_SECTIONS: Record<SectionId, boolean> = {
-  basics: true,
-  activation: true,
-  positions: false,
-  conjunctions: false,
-  drishti: false,
-  houses: false,
-  functional: false,
-  yogas: false,
-  summary: false,
-  peyarchi: false,
-};
-
 function tx(copy: BiCopy, lang: Lang): string {
   return copy[lang];
 }
@@ -640,53 +627,6 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function SectionFrame({
-  title,
-  hint,
-  open,
-  onToggle,
-  children,
-}: {
-  title: string;
-  hint: string;
-  open: boolean;
-  onToggle: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <div style={{ borderTop: "1px solid var(--color-border)" }}>
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={onToggle}
-        style={{
-          width: "100%",
-          border: "none",
-          background: "transparent",
-          padding: "var(--space-3) 0",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "var(--space-3)",
-          color: "var(--color-text-strong)",
-          cursor: "pointer",
-          fontFamily: "inherit",
-          textAlign: "left",
-        }}
-      >
-        <span style={{ display: "flex", flexDirection: "column", gap: "var(--space-0_5)", minWidth: 0 }}>
-          <span style={{ fontSize: "0.875rem", fontWeight: 700, lineHeight: 1.35 }}>{title}</span>
-          <span style={{ fontSize: "0.75rem", color: "var(--color-faint)", lineHeight: 1.35 }}>{hint}</span>
-        </span>
-        <span style={{ flexShrink: 0, color: "var(--color-muted)" }}>
-          <Chevron open={open} />
-        </span>
-      </button>
-      {open && <div style={{ padding: "0 0 var(--space-4)" }}>{children}</div>}
-    </div>
-  );
-}
-
 export function ChartExplanationPanel({
   lang,
   chart,
@@ -699,7 +639,10 @@ export function ChartExplanationPanel({
   dashaAntar,
 }: ChartExplanationPanelProps) {
   const [open, setOpen] = useState(false);
-  const [sectionOpen, setSectionOpen] = useState<Record<SectionId, boolean>>(INITIAL_SECTIONS);
+  // Sticky-tab redesign: only one section's content shows at a time (picked from
+  // the tab strip) instead of a 10-deep vertical accordion stack where sections
+  // were easy to miss and hard to jump between.
+  const [activeSection, setActiveSection] = useState<SectionId>("basics");
   const backend = explanation ?? null;
 
   const derived = useMemo(() => {
@@ -764,10 +707,6 @@ export function ChartExplanationPanel({
       ? `${derived.kendraPlanets.length} கிரகங்கள் கேந்திரத்தில்; ${moonPhrase}; ${saniShort}.`
       : `${derived.kendraPlanets.length} planets in Kendra; ${moonPhrase}; ${saniShort}.`;
   }, [backend, derived, lang]);
-
-  const setSection = (section: SectionId) => {
-    setSectionOpen((current) => ({ ...current, [section]: !current[section] }));
-  };
 
   const dashaLabel = dasha
     ? `${displayPlanet(dasha.current.mahadasha.lord, lang)} ${lang === "ta" ? "தசை" : "Dasa"} / ${displayPlanet(dasha.current.antardasha.lord, lang)} ${lang === "ta" ? "புக்தி" : "Bhukti"}`
@@ -854,15 +793,58 @@ export function ChartExplanationPanel({
       </div>
 
       {open && (
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          {SECTION_META.map((section) => (
-            <SectionFrame
-              key={section.id}
-              title={tx(section.title, lang)}
-              hint={tx(section.hint, lang)}
-              open={sectionOpen[section.id]}
-              onToggle={() => setSection(section.id)}
-            >
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+          {/* Sticky section tab strip — horizontally scrollable on narrow widths */}
+          <div
+            role="tablist"
+            style={{
+              position: "sticky",
+              top: 0,
+              zIndex: 2,
+              display: "flex",
+              gap: "var(--space-1_5)",
+              overflowX: "auto",
+              padding: "var(--space-1_5) 0",
+              background: "var(--color-surface-soft)",
+              borderBottom: "1px solid var(--color-border)",
+            }}
+          >
+            {SECTION_META.map((section) => {
+              const active = section.id === activeSection;
+              return (
+                <button
+                  key={section.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setActiveSection(section.id)}
+                  style={{
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                    padding: "var(--space-1_5) var(--space-3)",
+                    borderRadius: "var(--radius-pill)",
+                    border: "1.5px solid",
+                    borderColor: active ? "var(--color-text-strong)" : "var(--color-border)",
+                    background: active ? "var(--color-text-strong)" : "transparent",
+                    color: active ? "var(--color-bg)" : "var(--color-muted)",
+                    fontSize: "0.8125rem",
+                    fontWeight: active ? 700 : 600,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {tx(section.title, lang)}
+                </button>
+              );
+            })}
+          </div>
+          {/* Active section content — one section at a time */}
+          {SECTION_META.filter((section) => section.id === activeSection).map((section) => (
+            <div key={section.id} style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+              <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)", lineHeight: 1.35 }}>
+                {tx(section.hint, lang)}
+              </p>
+              <div style={{ display: "flex", flexDirection: "column" }}>
               {section.id === "basics" && (
                 <div style={{ display: "grid", gap: "var(--space-3)" }}>
                   <p style={{ margin: 0, fontSize: "0.875rem", lineHeight: 1.6, color: "var(--color-muted)" }}>
@@ -1493,7 +1475,8 @@ export function ChartExplanationPanel({
                   )}
                 </div>
               )}
-            </SectionFrame>
+              </div>
+            </div>
           ))}
         </div>
       )}

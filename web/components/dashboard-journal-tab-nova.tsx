@@ -22,6 +22,7 @@ import type {
 import { Chip } from "./dashboard-ui";
 import { NovaProgressBar } from "./dashboard-ui-nova";
 import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
+import { NovaSelect } from "./nova-select";
 import {
   AREA_KEY,
   CONTEXT_EVENT_TYPES,
@@ -399,6 +400,12 @@ export function DashboardJournalTabNova({
             <em style={{ fontStyle: "italic", color: "var(--color-accent-strong)" }}>{lang === "ta" ? "சிந்தனைகள்." : "reflections."}</em>
           </h1>
           <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)", lineHeight: 1.55, maxWidth: "520px" }}>{t("journal_tab_desc", lang)}</p>
+          {/* Duty-of-care safeguard — vulnerable users lean on reflection during
+              hard chapters ("cheaper than therapy") (#98). */}
+          <p style={{ margin: "8px 0 0", fontSize: "11.5px", color: "var(--color-faint)", lineHeight: 1.5, maxWidth: "520px", display: "flex", gap: "6px" }}>
+            <span aria-hidden="true">🕊</span>
+            <span>{t("safeguard_reflection", lang)}</span>
+          </p>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "10px" }}>
@@ -449,11 +456,12 @@ export function DashboardJournalTabNova({
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                 <span style={{ fontSize: "11px", color: "var(--color-faint)", fontWeight: 700 }}>{t("journal_life_area", lang)}</span>
-                <select style={fieldStyle} value={lifeArea} onChange={(e) => setLifeArea(e.target.value as LifeArea)}>
-                  {LIFE_AREAS.map((area) => (
-                    <option key={area} value={area}>{t(AREA_KEY[area], lang)}</option>
-                  ))}
-                </select>
+                <NovaSelect
+                  value={lifeArea}
+                  onChange={(v) => setLifeArea(v as LifeArea)}
+                  ariaLabel={t("journal_life_area", lang)}
+                  options={LIFE_AREAS.map((area) => ({ value: area, label: t(AREA_KEY[area], lang) }))}
+                />
               </div>
             </div>
 
@@ -577,11 +585,11 @@ export function DashboardJournalTabNova({
               )}
 
               <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
-                <select style={fieldStyle} value={ctxEventType} onChange={(e) => setCtxEventType(e.target.value as ContextEventType)}>
-                  {CONTEXT_EVENT_TYPES.map((type) => (
-                    <option key={type} value={type}>{t(CTX_TYPE_KEY[type], lang)}</option>
-                  ))}
-                </select>
+                <NovaSelect
+                  value={ctxEventType}
+                  onChange={(v) => setCtxEventType(v as ContextEventType)}
+                  options={CONTEXT_EVENT_TYPES.map((type) => ({ value: type, label: t(CTX_TYPE_KEY[type], lang) }))}
+                />
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "9px" }}>
                   <input style={fieldStyle} type="date" value={ctxEventDate} min={todayIso()} onChange={(e) => setCtxEventDate(e.target.value)} />
                   <input
@@ -680,11 +688,13 @@ export function DashboardJournalTabNova({
                     <div style={{ marginTop: "10px", padding: "12px", borderRadius: "9px", background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
                       <div style={{ display: "flex", gap: "9px", marginBottom: "8px", flexWrap: "wrap" }}>
                         <input type="date" value={editDate} max={todayIso()} onChange={(e) => setEditDate(e.target.value)} style={{ ...fieldStyle, minWidth: "140px" }} />
-                        <select value={editLifeArea} onChange={(e) => setEditLifeArea(e.target.value as LifeArea)} style={{ ...fieldStyle, minWidth: "160px" }}>
-                          {LIFE_AREAS.map((area) => (
-                            <option key={area} value={area}>{t(AREA_KEY[area], lang)}</option>
-                          ))}
-                        </select>
+                        <NovaSelect
+                          value={editLifeArea}
+                          onChange={(v) => setEditLifeArea(v as LifeArea)}
+                          ariaLabel={t("journal_life_area", lang)}
+                          containerStyle={{ minWidth: "160px" }}
+                          options={LIFE_AREAS.map((area) => ({ value: area, label: t(AREA_KEY[area], lang) }))}
+                        />
                       </div>
                       <textarea value={editNoteText} onChange={(e) => setEditNoteText(e.target.value)} rows={4} style={{ ...fieldStyle, width: "100%", resize: "vertical", lineHeight: 1.5, boxSizing: "border-box" }} />
                       <div style={{ display: "flex", gap: "8px", marginTop: "8px", flexWrap: "wrap" }}>

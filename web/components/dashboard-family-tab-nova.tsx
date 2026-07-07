@@ -117,25 +117,50 @@ function NovaFamilyRhythmCard({
   const isToday = selectedDate === new Date().toISOString().slice(0, 10);
   const nowPct = isToday ? timeToAxisPct(`${new Date().getHours()}:${new Date().getMinutes()}`) : null;
 
+  // Arc geometry — same "sun rides the drawn arc" math as the personal/panchangam
+  // DayTimeline (dashboard-personal-hero.tsx): for a quadratic arc with equal end
+  // heights y0=y2=ARC_BASE and control ARC_PEAK, the on-curve y at fraction t is
+  // ARC_BASE - 2·t(1-t)·(ARC_BASE-ARC_PEAK), so the sun sits exactly on the stroke.
+  const ARC_X0 = 20, ARC_X1 = 300, ARC_SPAN = ARC_X1 - ARC_X0; // 20..300 within a 320 viewBox
+  const ARC_BASE = 74, ARC_PEAK = 16;
+  const pctToX = (pct: number) => ARC_X0 + (pct / 100) * ARC_SPAN;
+  const sunX = nowPct != null ? pctToX(nowPct) : null;
+  const sunY = nowPct != null
+    ? ARC_BASE - 2 * (nowPct / 100) * (1 - nowPct / 100) * (ARC_BASE - ARC_PEAK)
+    : null;
+
   return (
     <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "22px 24px", display: "flex", flexDirection: "column", gap: "14px" }}>
       <div style={{ fontFamily: "var(--font-display)", fontSize: "20px", fontWeight: 600, color: "var(--color-accent-strong)" }}>
         {lang === "ta" ? "இன்றைய தாளம்" : "Today's rhythm"}
       </div>
       <div>
-        <svg width="100%" height="60" viewBox="0 0 300 60" style={{ display: "block" }}>
-          <path d="M6,52 Q150,-8 294,52" stroke="rgba(212,175,95,.35)" strokeWidth="1.5" fill="none" />
+        <svg viewBox="0 0 320 92" style={{ width: "100%", height: "auto", display: "block" }} preserveAspectRatio="xMidYMid meet">
+          {/* Day arc (dawn → noon → dusk) */}
+          <path d={`M${ARC_X0},${ARC_BASE} Q160,${ARC_PEAK} ${ARC_X1},${ARC_BASE}`} stroke="var(--color-border-strong)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+          {/* Horizon line */}
+          <rect x={ARC_X0} y={ARC_BASE - 1.5} width={ARC_SPAN} height="3" rx="1.5" fill="var(--color-border)" />
+          {/* Best shared window */}
           {bestStartPct != null && bestEndPct != null && (
-            <rect x={3 + bestStartPct * 2.88} y="40" width={Math.max(4, (bestEndPct - bestStartPct) * 2.88)} height="6" rx="3" fill="var(--color-high)" opacity="0.85" />
+            <rect x={pctToX(bestStartPct)} y={ARC_BASE - 2.5} width={Math.max(5, ((bestEndPct - bestStartPct) / 100) * ARC_SPAN)} height="5" rx="2.5" fill="var(--color-score-high, #5C7654)" />
           )}
+          {/* Avoid window */}
           {avoidStartPct != null && avoidEndPct != null && (
-            <rect x={3 + avoidStartPct * 2.88} y="40" width={Math.max(4, (avoidEndPct - avoidStartPct) * 2.88)} height="6" rx="3" fill="var(--color-low)" opacity="0.85" />
+            <rect x={pctToX(avoidStartPct)} y={ARC_BASE - 2.5} width={Math.max(5, ((avoidEndPct - avoidStartPct) / 100) * ARC_SPAN)} height="5" rx="2.5" fill="var(--color-score-low, #A8482F)" />
           )}
-          {nowPct != null && (
-            <circle cx={3 + nowPct * 2.88} cy="18" r="4.5" fill="var(--color-accent-strong)" />
+          {/* Hour ticks */}
+          {[0, 25, 50, 75, 100].map((pct) => (
+            <line key={pct} x1={pctToX(pct)} y1={ARC_BASE + 4} x2={pctToX(pct)} y2={ARC_BASE + 10} stroke="var(--color-faint)" strokeWidth="1.5" strokeLinecap="round" />
+          ))}
+          {/* Sun riding the arc at current time */}
+          {sunX != null && sunY != null && (
+            <g>
+              <circle cx={sunX} cy={sunY} r="10" fill="var(--color-accent)" opacity="0.18" />
+              <circle cx={sunX} cy={sunY} r="5.5" fill="var(--color-accent-strong)" stroke="var(--color-surface)" strokeWidth="1.5" />
+            </g>
           )}
         </svg>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--color-faint)", marginTop: "1px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--color-faint)", marginTop: "1px", padding: "0 6.25%" }}>
           <span>6a</span><span>9a</span><span>12p</span><span>3p</span><span>6p</span>
         </div>
       </div>
@@ -349,6 +374,7 @@ export type DashboardFamilyTabNovaProps = {
   selectedVaultId: string;
   ownerChartId: string;
   ownerChart: ChartCalculateResponseData | null;
+  ownerMemberChart: MemberChart | null;
   vaults: FamilyVaultListItem[];
   familyDetail: FamilyVaultDetailData | null;
   familyAggregate: FamilyAggregateData | null;
@@ -379,6 +405,7 @@ export function DashboardFamilyTabNova({
   selectedVaultId,
   ownerChartId,
   ownerChart,
+  ownerMemberChart,
   vaults,
   familyAggregate,
   familyMembers,
@@ -421,14 +448,15 @@ export function DashboardFamilyTabNova({
 
   const memberMeta = useMemo(() => {
     return (familyAggregate?.members ?? []).map((m) => {
+      const isOwnerRow = m.familyMemberId === m.birthProfileId;
       const fm = familyMembers.find((f) => f.familyMemberId === m.familyMemberId);
-      const chart = memberCharts.find((mc) => mc.memberId === m.familyMemberId);
+      const chart = isOwnerRow ? (ownerMemberChart ?? undefined) : memberCharts.find((mc) => mc.memberId === m.familyMemberId);
       const todayItem = (familyToday?.members ?? []).find((tm) => tm.memberId === m.familyMemberId);
       const bucket = ageBucket(chart?.summary?.currentAge);
       const careFlag = memberNeedsCare(m, todayItem);
-      return { member: m, familyMember: fm, chart, todayItem, bucket, careFlag };
+      return { member: m, familyMember: fm, chart, todayItem, bucket, careFlag, isSelf: isOwnerRow };
     });
-  }, [familyAggregate, familyMembers, memberCharts, familyToday]);
+  }, [familyAggregate, familyMembers, memberCharts, familyToday, ownerMemberChart]);
 
   const bucketCounts = useMemo(() => {
     const counts = { elder: 0, adult: 0, child: 0, needsCare: 0 };
@@ -467,7 +495,11 @@ export function DashboardFamilyTabNova({
   const dateLine = `${weekday} · ${formatHeaderDate(selectedDate, lang)} · ${getTamilMonthDate(selectedDate, lang)}`;
 
   const activeMember = members.find((m) => m.familyMemberId === selectedMemberId) ?? null;
-  const activeMemberChart = activeMember ? memberCharts.find((mc) => mc.memberId === activeMember.familyMemberId) : undefined;
+  const activeMemberChart = activeMember
+    ? (activeMember.familyMemberId === activeMember.birthProfileId
+        ? (ownerMemberChart ?? undefined)
+        : memberCharts.find((mc) => mc.memberId === activeMember.familyMemberId))
+    : undefined;
   const activeMemberIndex = activeMember ? members.findIndex((m) => m.familyMemberId === activeMember.familyMemberId) : -1;
   const prevMember = activeMemberIndex > 0 ? members[activeMemberIndex - 1] : null;
   const nextMember = activeMemberIndex >= 0 && activeMemberIndex < members.length - 1 ? members[activeMemberIndex + 1] : null;
@@ -657,7 +689,7 @@ export function DashboardFamilyTabNova({
             </div>
           </div>
           <div className="nova-grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
-            {filteredMeta.map(({ member, familyMember, chart, todayItem, careFlag }) => (
+            {filteredMeta.map(({ member, familyMember, chart, todayItem, careFlag, isSelf }) => (
               <NovaFamilyMemberCard
                 key={member.familyMemberId}
                 lang={lang}
@@ -665,7 +697,7 @@ export function DashboardFamilyTabNova({
                 todayItem={todayItem}
                 memberChart={chart}
                 relationLabel={formatRelLabel(familyMember?.relationshipToOwner)}
-                isSelf={false}
+                isSelf={isSelf}
                 needsCare={careFlag}
                 onOpen={() => setSelectedMemberId(member.familyMemberId)}
               />

@@ -212,7 +212,7 @@ export function DashboardLifeAreasTabNova({
                 key={mc.memberId}
                 type="button"
                 onClick={() => onSelectMember(mc.memberId)}
-                style={{ fontSize: "12px", fontWeight: 600, color: selectedMemberId === mc.memberId ? "var(--color-text-strong)" : "var(--color-muted)", background: "transparent", border: `1px solid ${selectedMemberId === mc.memberId ? "var(--color-border-strong)" : "var(--color-border)"}`, borderRadius: "999px", padding: "6px 14px", cursor: "pointer", fontFamily: "inherit" }}
+                style={{ fontSize: "12px", fontWeight: selectedMemberId === mc.memberId ? 700 : 600, color: selectedMemberId === mc.memberId ? "var(--color-on-accent)" : "var(--color-muted)", background: selectedMemberId === mc.memberId ? "var(--color-accent)" : "transparent", border: `1px solid ${selectedMemberId === mc.memberId ? "var(--color-border-strong)" : "var(--color-border)"}`, borderRadius: "999px", padding: "6px 14px", cursor: "pointer", fontFamily: "inherit" }}
               >
                 {mc.displayName}
               </button>

@@ -11,6 +11,7 @@ import type { ChartCalculateResponseData, ChartDoshamInsight, DirectPoruthamData
 import { RasiChart } from "./dashboard-charts";
 import { Field } from "./dashboard-ui";
 import { PlaceCombobox } from "./place-combobox";
+import { NovaSelect } from "./nova-select";
 
 /**
  * Nova rebuild of PoruthamPanel (see docs/DASHBOARD_UI_REVAMP_PLAN.md §6.12,
@@ -239,10 +240,13 @@ export function NovaPoruthamPanel({
                 <label style={{ display: "block", margin: "0 0 4px", fontSize: "0.7rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                   {lang === "ta" ? "குடும்பத்தினரை ஏற்றவும்" : "Load from family"}
                 </label>
-                <select style={{ ...novaFieldStyle, width: "100%" }} value="" onChange={(e) => loadMember(which, e.target.value)}>
-                  <option value="">{lang === "ta" ? "-- தேர்ந்தெடுக்கவும் --" : "-- Select member --"}</option>
-                  {familyMembers.map((m) => <option key={m.memberId} value={m.memberId}>{m.displayName}</option>)}
-                </select>
+                <NovaSelect
+                  value=""
+                  onChange={(v) => loadMember(which, v)}
+                  placeholder={lang === "ta" ? "-- தேர்ந்தெடுக்கவும் --" : "-- Select member --"}
+                  ariaLabel={lang === "ta" ? "குடும்பத்தினரை ஏற்றவும்" : "Load from family"}
+                  options={familyMembers.map((m) => ({ value: m.memberId, label: m.displayName }))}
+                />
               </div>
             )}
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>

@@ -24,50 +24,79 @@ import { RasippalanTool } from "@/app/tools/indraiya-rasipalan/RasippalanTool";
  * copy of the state).
  */
 
-// Classic-literal token values, scoped locally so a deferred Classic panel
-// (chart generation / annual wrapped / retrospective — none captured in the
-// `tools`/`tools-porutham` mockup screens, and each 300-700 lines of its own
-// stateful UI) renders as an internally-consistent light "paper" island
-// instead of the broken dark-bg/dark-text combination it would otherwise
-// inherit (these files' own `--panel-earth` text color is NOT redirected by
-// dashboard-nova.css — see the 2026-07-06 browser-QA entry — while their
-// `--chart-cell-default`/`--panel-cream` backgrounds ARE, since those two
-// tokens are shared with other, already-migrated components). This is the
-// same "force back to Classic" trick dashboard-personal-tab.tsx itself
-// already uses in the opposite direction (line ~508, overriding Nova/dark
-// vars so Classic content reads correctly on a cream background).
-const CLASSIC_TOOL_ISLAND_STYLE: CSSProperties = {
-  "--panel-brand": "#B05220",
-  "--panel-cream": "#FAF5EA",
-  "--panel-earth": "#3D352B",
-  "--panel-earth-dark": "#1A1612",
-  "--panel-tan": "#D4C8AE",
-  "--panel-tan-light": "#E4DBC8",
-  "--panel-hover": "#F4EEE2",
-  "--panel-warm-light": "#F8E4D2",
-  "--chart-cell-default": "#FFFFFF",
-  "--chart-d9-active": "#5C7654",
-  "--chart-amber": "#E5B84D",
-  "--planet-saturn": "#A8482F",
-  "--dignity-neecha": "#a83020",
-  "--ring-brand": "rgba(184, 90, 44, 0.12)",
-  "--color-faint": "#9A8A70",
-  // dashboard-charts.tsx's own scoped fallback chain (see the Progress Log
-  // entry fixing the long-flagged chart-grid gap) inherits --chartgrid-* from
-  // the ambient Nova .cd-shell scope unless re-pinned here too.
-  "--chartgrid-ink": "#3D352B",
-  "--chartgrid-ink-strong": "#1A1612",
-  "--chartgrid-border": "#D4C8AE",
-  "--chartgrid-border-light": "#E4DBC8",
-  "--chartgrid-surface": "#FAF5EA",
-  background: "#FAF5EA",
-  border: "1px solid #E4DBC8",
+// The deferred Classic panels (chart generation / annual wrapped /
+// retrospective / rasipalan — each 300-700 lines of its own stateful UI, none
+// captured in the Nova tools mockups) read the older `--panel-*`/`--chart-*`/
+// `--chartgrid-*` token family directly. Nova's base .cd-shell only redirects
+// *some* of those names (the ones shared with already-migrated components), so
+// left alone these panels render the broken dark-bg + near-black-text combo
+// that a partial redirect produces. Earlier this was worked around by forcing
+// the whole island back to Classic light values; per the 2026-07 UI pass it's
+// now reskinned to native Nova dark instead — every token this family uses is
+// mapped to its Nova --color-* equivalent, scoped locally to the island (via
+// var() so it tracks the ambient Nova palette) rather than blanket-redirecting
+// these widely-shared raw names in dashboard-nova.css, which the existing
+// --chartgrid-/--deepdive-/--yogadosham- scoped-fallback blocks deliberately
+// avoided doing. --color-faint is intentionally NOT pinned here — the panels
+// should inherit Nova's own faint on the dark surface.
+const NOVA_TOOL_ISLAND_STYLE: CSSProperties = {
+  "--panel-brand": "var(--color-accent)",
+  "--panel-cream": "var(--color-surface)",
+  "--panel-earth": "var(--color-text)",
+  "--panel-earth-dark": "var(--color-text-strong)",
+  "--panel-tan": "var(--color-border)",
+  "--panel-tan-light": "var(--color-border)",
+  "--panel-hover": "var(--color-surface-2)",
+  "--panel-warm-light": "var(--color-accent-muted)",
+  "--chart-cell-default": "var(--color-surface-soft)",
+  "--chart-d9-active": "var(--color-high)",
+  "--chart-amber": "var(--color-accent-strong)",
+  "--planet-saturn": "var(--color-low)",
+  "--dignity-neecha": "var(--color-low)",
+  "--ring-brand": "var(--color-accent-muted)",
+  "--chartgrid-ink": "var(--color-text-strong)",
+  "--chartgrid-ink-strong": "var(--color-text-strong)",
+  "--chartgrid-border": "var(--color-border)",
+  "--chartgrid-border-light": "var(--color-border)",
+  "--chartgrid-surface": "var(--color-surface-soft)",
+  // Rasipalan (indraiya-rasipalan/RasippalanTool) is the one panel here built
+  // on the older Classic `--cl-*` token family instead of --panel-*/--chart-*.
+  // Nova's base .cd-shell only redirects a handful of --cl-* names (sage-edge,
+  // rust-edge, brand-edge…), so the rest resolve to Classic *light* values and
+  // the tool renders the old light-on-dark look inside the Nova island. Map the
+  // full set it uses to their Nova --color-* equivalents (via var() so they
+  // track the ambient Nova palette), same approach as the --panel-*/--chart-*
+  // block above. Safe on the shared island: the other panels (chartgen /
+  // wrapped / retrospective) use no --cl-* tokens at all.
+  "--cl-surface": "var(--color-surface)",
+  "--cl-bg": "var(--color-bg)",
+  "--cl-bg-2": "var(--color-surface-soft)",
+  "--cl-border": "var(--color-border)",
+  "--cl-accent": "var(--color-accent)",
+  "--cl-ink": "var(--color-text-strong)",
+  "--cl-ink-2": "var(--color-text)",
+  "--cl-muted": "var(--color-muted)",
+  "--cl-brand-tint": "var(--color-accent-muted)",
+  "--cl-brand-ring-md": "var(--color-border-strong)",
+  "--cl-sage-tint": "var(--color-high-bg)",
+  "--cl-sage-mid": "var(--color-high-border)",
+  "--cl-neutral-tint": "var(--color-surface-soft)",
+  "--cl-neutral-ring": "var(--color-border)",
+  "--cl-neutral-mid": "var(--color-border-strong)",
+  "--cl-neutral-ink": "var(--color-text)",
+  "--cl-rust-tint": "var(--color-low-bg)",
+  "--cl-rust-fill": "var(--color-low-bg)",
+  "--cl-rust-ring": "var(--color-low-border)",
+  "--cl-rust-mid": "var(--color-low-border)",
+  "--veil-white-55": "var(--color-surface)",
+  background: "var(--color-surface)",
+  border: "1px solid var(--color-border)",
   borderRadius: "14px",
   padding: "22px 24px",
 } as CSSProperties;
 
-function ClassicToolIsland({ children }: { children: React.ReactNode }) {
-  return <div style={CLASSIC_TOOL_ISLAND_STYLE}>{children}</div>;
+function NovaToolIsland({ children }: { children: React.ReactNode }) {
+  return <div style={NOVA_TOOL_ISLAND_STYLE}>{children}</div>;
 }
 
 type ToolCardSpec = {
@@ -205,16 +234,16 @@ export function DashboardToolsTabNova({
           <NovaPoruthamPanel lang={lang} familyMembers={familyMembersForPorutham} onGoToMuhurta={onGoToPlan} onOpenAskVinaadi={onOpenAskVinaadi} />
         )}
         {showChartGenerate && (
-          <ClassicToolIsland><ChartGenerateInlinePanel lang={lang} /></ClassicToolIsland>
+          <NovaToolIsland><ChartGenerateInlinePanel lang={lang} /></NovaToolIsland>
         )}
         {showWrapped && (
-          <ClassicToolIsland><DashboardAnnualWrapped chartId={personalChartId} lang={lang} /></ClassicToolIsland>
+          <NovaToolIsland><DashboardAnnualWrapped chartId={personalChartId} lang={lang} /></NovaToolIsland>
         )}
         {showRetrospective && personalChartId && (
-          <ClassicToolIsland><RetrospectivePanel chartId={personalChartId} lang={lang} /></ClassicToolIsland>
+          <NovaToolIsland><RetrospectivePanel chartId={personalChartId} lang={lang} /></NovaToolIsland>
         )}
         {showRasipalan && (
-          <ClassicToolIsland><RasippalanTool hideCta /></ClassicToolIsland>
+          <NovaToolIsland><RasippalanTool hideCta /></NovaToolIsland>
         )}
       </div>
     );

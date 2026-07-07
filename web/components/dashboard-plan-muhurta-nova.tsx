@@ -8,6 +8,7 @@ import type { Lang } from "@/lib/i18n";
 import type { ActivityTimingData } from "@/lib/types";
 import { NovaMuhurtaPicker } from "./dashboard-plan-muhurta-picker-nova";
 import { NovaMuhurthamNaal } from "./dashboard-plan-muhurtham-naal-nova";
+import { NovaSelect } from "./nova-select";
 
 /**
  * Nova re-skin of dashboard-plan-tab.tsx's PlanMuhurtaPanel — the last of
@@ -111,11 +112,13 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
         <div style={{ display: "flex", gap: "10px", alignItems: "flex-end", flexWrap: "wrap", marginBottom: "16px" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: "1 1 220px" }}>
             <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-faint)" }}>{t("activity_label", lang)}</span>
-            <select style={{ ...fieldStyle, minWidth: "min(240px, 100%)" }} value={activityType} onChange={(e) => { setActivityType(e.target.value); setActivityTimingResult(null); }}>
-              {ACTIVITY_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{lang === "ta" ? opt.ta : opt.en}</option>
-              ))}
-            </select>
+            <NovaSelect
+              value={activityType}
+              onChange={(v) => { setActivityType(v); setActivityTimingResult(null); }}
+              ariaLabel={t("activity_label", lang)}
+              containerStyle={{ minWidth: "min(240px, 100%)" }}
+              options={ACTIVITY_OPTIONS.map((opt) => ({ value: opt.value, label: lang === "ta" ? opt.ta : opt.en }))}
+            />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: "1 1 130px" }}>
             <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-faint)" }}>{t("activity_month_label", lang)}</span>

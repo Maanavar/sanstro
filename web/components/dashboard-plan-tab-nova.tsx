@@ -37,6 +37,7 @@ import { NovaTransitsView } from "./dashboard-plan-transits-nova";
 import { NovaPlanWhatIfPanel } from "./dashboard-plan-whatif-nova";
 import { NovaPlanMuhurtaPanel } from "./dashboard-plan-muhurta-nova";
 import { NovaPlanDecisionsPanel } from "./dashboard-plan-decisions-nova";
+import { NovaSelect } from "./nova-select";
 
 /**
  * Nova Plan tab — Phase 10 of the dashboard revamp, mapped from the
@@ -448,15 +449,14 @@ export function DashboardPlanTabNova({
 
               {goals.length < 3 && (
                 <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  <select
+                  <NovaSelect
                     value={addingGoalType || "job_change"}
-                    onChange={(e) => onAddingGoalTypeChange(e.target.value)}
-                    style={{ flex: "1 1 200px", borderRadius: "9px", border: "1px solid var(--color-border)", background: "var(--color-surface)", color: "var(--color-muted)", fontSize: "12.5px", padding: "10px 13px", fontFamily: "inherit" }}
-                  >
-                    {GOAL_OPTIONS.map(([val, key]) => (
-                      <option key={val} value={val}>{t(key, lang)}</option>
-                    ))}
-                  </select>
+                    onChange={onAddingGoalTypeChange}
+                    ariaLabel={t("goals_add", lang)}
+                    containerStyle={{ flex: "1 1 200px" }}
+                    style={{ fontSize: "12.5px" }}
+                    options={GOAL_OPTIONS.map(([val, key]) => ({ value: val, label: t(key, lang) }))}
+                  />
                   <button
                     type="button"
                     onClick={() => onAddGoal(addingGoalType || "job_change")}
