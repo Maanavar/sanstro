@@ -276,7 +276,29 @@ export function useFamilyData({ ownerUserId, selectedDate, onStatus }: UseFamily
     staleTime: STALE.today,
   });
 
-  const members = familyBundleQuery.data?.aggregate?.members ?? [];
+  // "self" is a real, user-selectable relationshipToOwner value (dashboard-edit-member-modal.tsx's
+  // dropdown) — someone can end up with a family-member row that IS themselves. Every member-picker
+  // pill list across the app (Today/Life Areas/Transits/Plan, both Classic and Nova) already renders
+  // a dedicated owner pill from birthDisplayName *and* separately maps over family.memberCharts, so a
+  // self-tagged member duplicated the owner's own name in those pickers. Excluding it here (not from
+  // familyAggregate.members) keeps it visible in the Family tab's own roster/edit/delete UI, which
+  // reads familyAggregate.members directly — only the derived memberCharts used by pickers is filtered.
+  const selfMemberIds = new Set(
+    (familyBundleQuery.data?.members ?? [])
+      .filter((fm) => fm.relationshipToOwner === "self")
+      .map((fm) => fm.familyMemberId),
+  );
+  // The backend's daily-aggregate endpoint also injects a synthetic entry for the owner's own
+  // personal profile (family_vault_service.py's _owner_aggregate_member) so family-score averaging
+  // counts the owner alongside managed members. That synthetic entry isn't a real FamilyMember row
+  // (family_member_id is null for it), so it's absent from familyBundleQuery.data.members and
+  // selfMemberIds above never catches it — it duplicated the same owner-pill problem described
+  // above. It's structurally distinguishable: the backend sets familyMemberId = birthProfileId for
+  // it (both point at the owner's own birth_profile row), whereas real members always have two
+  // separate ids (their family_member_id vs. their birth_profile_id).
+  const members = (familyBundleQuery.data?.aggregate?.members ?? []).filter(
+    (m) => !selfMemberIds.has(m.familyMemberId) && m.familyMemberId !== m.birthProfileId,
+  );
   const memberChartsQuery = useQuery({
     queryKey: familyKeys.memberCharts(selectedVaultId, selectedDate, members),
     queryFn: async ({ signal }) => {
@@ -324,10 +346,14 @@ export function useFamilyData({ ownerUserId, selectedDate, onStatus }: UseFamily
     if (!nextVaultId) return;
     if (nextVaultId !== selectedVaultId) setSelectedVaultId(nextVaultId);
     try {
+      // staleTime: 0 (not STALE.today) — this is a user-triggered manual refresh, so it must
+      // always hit the network. fetchQuery() treats cached data younger than staleTime as
+      // fresh and returns it without calling queryFn, and the bundle is almost always still
+      // "fresh" here (it was fetched when the tab opened) — so the button did nothing.
       await queryClient.fetchQuery({
         queryKey: familyKeys.bundle(nextVaultId, nextDate),
         queryFn: () => fetchFamilyBundle(nextVaultId, nextDate),
-        staleTime: STALE.today,
+        staleTime: 0,
       });
       await queryClient.invalidateQueries({ queryKey: ["family", "member-charts", nextVaultId] });
       reportStatus("Family data refreshed.");
