@@ -37,6 +37,7 @@ backup_*.sql
 *.log
 test_run_*.txt
 web/artifacts/
+web/e2e/.artifacts/
 web/scripts/_debug-*.mjs
 web/scripts/_dump-*.mjs
 .coverage
