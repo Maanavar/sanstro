@@ -22,9 +22,23 @@ class AskVinaadiQuery(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class AskVinaadiVerdict(BaseModel):
+    """A plain go/stay answer led *before* the reasoning, for decision/voice
+    users who want a verdict, not a paragraph (UX #6). ``kind`` is one of
+    GO | WAIT | CAUTION | MIXED | NA; NA means the question was informational,
+    not a decision, and the client hides the chip."""
+
+    kind: str
+    ta: str
+    en: str
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class AskVinaadiResponseData(BaseModel):
     question: str
     answer: BiText
+    verdict: AskVinaadiVerdict | None = None
     signals_used: list[str] = Field(alias="signalsUsed")
     confidence: str
     caveat: BiText | None = None

@@ -30,7 +30,7 @@ from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.transits import classify_kandaka_cycle, classify_sani_cycle
 from app.core.config import get_settings
 from app.models import BirthProfile, Chart
-from app.schemas.ask_vinaadi import AskVinaadiResponse, AskVinaadiResponseData, BiText
+from app.schemas.ask_vinaadi import AskVinaadiResponse, AskVinaadiResponseData, AskVinaadiVerdict, BiText
 from app.schemas.dasha import ResponseMeta
 from app.services.chart_service import load_persisted_chart_response
 
@@ -73,8 +73,19 @@ YOGAS AND SPECIAL CONDITIONS:
 - If Chandrashtamam is active, always mention it when answering timing questions
 - If Janma Sani / Ashtama Sani / Ezhara Sani is active, name it specifically
 
+LEAD WITH A PLAIN VERDICT:
+- Many people ask a yes/no decision question ("should I travel / sign / start / go today?"). They need the answer FIRST, then the reasoning.
+- Set "verdict.kind" to one of:
+  - "GO" — favourable, go ahead
+  - "WAIT" — not now; a better window is coming
+  - "CAUTION" — possible but proceed carefully / with a remedy
+  - "MIXED" — genuinely two-sided, depends on specifics
+  - "NA" — the question is informational, not a decision (no go/stay applies)
+- "verdict.ta" / "verdict.en": a SHORT plain verdict, max 6 words, folk-readable — e.g. "இன்று சாதகம், போகலாம்" / "Favourable today, you can go"; "இன்னும் சில நாள் பொறுங்கள்" / "Wait a few more days". Never fatalistic.
+- The prose ta/en answer still carries the full reasoning. Keep the verdict consistent with the prose.
+
 RESPONSE FORMAT — respond ONLY as valid JSON (no other text):
-{"ta": "<Tamil answer in flowing prose, 250-350 words>", "en": "<English answer in flowing prose, 200-300 words>", "signals_used": ["SIGNAL1", "SIGNAL2"], "confidence": "HIGH|MEDIUM|LOW"}
+{"verdict": {"kind": "GO|WAIT|CAUTION|MIXED|NA", "ta": "<≤6-word Tamil verdict>", "en": "<≤6-word English verdict>"}, "ta": "<Tamil answer in flowing prose, 250-350 words>", "en": "<English answer in flowing prose, 200-300 words>", "signals_used": ["SIGNAL1", "SIGNAL2"], "confidence": "HIGH|MEDIUM|LOW"}
 
 CONSTRAINTS:
 - Never provide medical, legal, or financial advice — direct to professionals
@@ -296,6 +307,18 @@ def answer_question(
     if confidence not in ("HIGH", "MEDIUM", "LOW"):
         confidence = "MEDIUM"
 
+    # Lead-with-a-verdict (UX #6). Only surface it when the model returned a
+    # decision verdict with both labels; otherwise leave it None and the client
+    # shows prose only.
+    verdict: AskVinaadiVerdict | None = None
+    raw_verdict = result.get("verdict")
+    if isinstance(raw_verdict, dict):
+        kind = str(raw_verdict.get("kind", "")).upper()
+        v_ta = str(raw_verdict.get("ta", "")).strip()
+        v_en = str(raw_verdict.get("en", "")).strip()
+        if kind in ("GO", "WAIT", "CAUTION", "MIXED") and v_ta and v_en:
+            verdict = AskVinaadiVerdict(kind=kind, ta=v_ta, en=v_en)
+
     all_signals = list(dict.fromkeys(signals + claude_signals))
 
     caveat_bitext: BiText | None = None
@@ -309,6 +332,7 @@ def answer_question(
         data=AskVinaadiResponseData(
             question=question,
             answer=BiText(ta=ta_answer, en=en_answer),
+            verdict=verdict,
             signalsUsed=all_signals,
             confidence=confidence,
             caveat=caveat_bitext,

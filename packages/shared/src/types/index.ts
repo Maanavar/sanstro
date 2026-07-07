@@ -90,9 +90,18 @@ export interface AskVinaadiAnswer {
   en: string;
 }
 
+/** Plain go/stay verdict led before the reasoning, for decision/voice users
+ *  (UX #6). Absent when the question was informational, not a decision. */
+export interface AskVinaadiVerdict {
+  kind: "GO" | "WAIT" | "CAUTION" | "MIXED";
+  ta: string;
+  en: string;
+}
+
 export interface AskVinaadiResponseData {
   question: string;
   answer: AskVinaadiAnswer;
+  verdict?: AskVinaadiVerdict | null;
   signalsUsed: string[];
   confidence: ConfidenceTier;
   caveat: AskVinaadiAnswer | null;

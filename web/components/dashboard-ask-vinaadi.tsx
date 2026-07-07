@@ -75,6 +75,23 @@ function AnswerCard({ entry, lang }: { entry: { question: string; data: AskVinaa
         <p style={{ fontSize: "13px", color: "var(--color-faint)", margin: 0, fontStyle: "italic" }}>{question}</p>
         <ConfidenceBadge level={data.confidence as ConfidenceTier} reason={{ ta: "", en: data.confidence }} lang={lang} />
       </div>
+      {/* Lead with the plain go/stay verdict, then the reasoning (#6) */}
+      {data.verdict && (() => {
+        const v = data.verdict;
+        const palette: Record<string, { fg: string; bg: string; bd: string; icon: string }> = {
+          GO:      { fg: "var(--color-score-high, #5C7654)", bg: "var(--color-high-bg, rgba(92,118,84,0.1))", bd: "var(--color-high-border, rgba(92,118,84,0.35))", icon: "✓" },
+          WAIT:    { fg: "var(--color-score-mid, #B85A2C)",  bg: "var(--color-accent-muted, rgba(184,90,44,0.08))", bd: "rgba(184,90,44,0.35)", icon: "⏳" },
+          MIXED:   { fg: "var(--color-score-mid, #B85A2C)",  bg: "var(--color-accent-muted, rgba(184,90,44,0.08))", bd: "rgba(184,90,44,0.35)", icon: "≈" },
+          CAUTION: { fg: "var(--color-score-low, #A8482F)",  bg: "var(--color-low-bg, rgba(168,72,47,0.1))", bd: "var(--color-low-border, rgba(168,72,47,0.35))", icon: "⚠" },
+        };
+        const p = palette[v.kind] ?? palette.MIXED;
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "0 0 12px 0", padding: "11px 14px", background: p.bg, border: `1px solid ${p.bd}`, borderRadius: "10px" }}>
+            <span aria-hidden="true" style={{ fontSize: "18px", lineHeight: 1 }}>{p.icon}</span>
+            <span style={{ fontSize: "15.5px", fontWeight: 700, color: p.fg, lineHeight: 1.3 }}>{lang === "ta" ? v.ta : v.en}</span>
+          </div>
+        );
+      })()}
       <p style={{ fontSize: "15px", lineHeight: "1.65", margin: "0 0 10px 0", color: "var(--color-text, var(--panel-earth))" }}>{lang === "ta" ? data.answer.ta : data.answer.en}</p>
       {data.caveat && <p style={{ fontSize: "12px", color: "var(--color-muted, var(--panel-mid-earth))", margin: "0 0 10px 0", padding: "8px 10px", borderLeft: "3px solid var(--color-score-low, var(--planet-saturn))", borderRadius: "0 4px 4px 0" }}>⚠ {lang === "ta" ? data.caveat.ta : data.caveat.en}</p>}
       <div style={{ marginTop: "8px" }}>{data.signalsUsed.map((s) => <SignalChip key={s} signal={s} />)}</div>

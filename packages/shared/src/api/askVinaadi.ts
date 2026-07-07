@@ -7,9 +7,20 @@ export interface AskVinaadiDailyStatus {
   chipsRemaining: number | null;
 }
 
+export type AskVinaadiVerdictKind = "GO" | "WAIT" | "CAUTION" | "MIXED";
+
+/** A plain go/stay answer led before the reasoning, for decision/voice users
+ *  (UX #6). Absent when the question was informational, not a decision. */
+export interface AskVinaadiVerdict {
+  kind: AskVinaadiVerdictKind;
+  ta: string;
+  en: string;
+}
+
 export interface AskVinaadiAnswer {
   question: string;
   answer: BiText;
+  verdict?: AskVinaadiVerdict | null;
   signalsUsed: string[];
   confidence: string;
   caveat: BiText | null;
