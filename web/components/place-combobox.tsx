@@ -98,9 +98,15 @@ export function PlaceCombobox({ value, onChange, className = "", placeholder = "
           width: "100%",
           padding: "9px 12px",
           borderRadius: "10px",
-          border: "1.5px solid var(--panel-tan-light)",
-          background: "var(--chart-cell-default)",
-          color: "var(--panel-earth)",
+          // Scoped --pcbx-* names fall back to the exact Classic values, so
+          // Classic call sites are a pixel no-op. dashboard-nova.css redefines
+          // --pcbx-* under [data-ui="nova"] .cd-shell so the field + dropdown
+          // render on Nova's dark palette instead of the Classic light tokens
+          // (--panel-earth/--panel-tan/--panel-hover, which can't be globally
+          // remapped — see the reverted-block note in dashboard-nova.css).
+          border: "1.5px solid var(--pcbx-field-border, var(--panel-tan-light))",
+          background: "var(--pcbx-field-bg, var(--chart-cell-default))",
+          color: "var(--pcbx-ink, var(--panel-earth))",
           fontSize: "0.875rem",
           fontFamily: "inherit",
           outline: "none",
@@ -116,8 +122,8 @@ export function PlaceCombobox({ value, onChange, className = "", placeholder = "
             top: "100%",
             left: 0,
             right: 0,
-            background: "var(--chart-cell-default)",
-            border: "1.5px solid var(--panel-tan)",
+            background: "var(--pcbx-field-bg, var(--chart-cell-default))",
+            border: "1.5px solid var(--pcbx-list-border, var(--panel-tan))",
             borderRadius: "10px",
             marginTop: "4px",
             maxHeight: "220px",
@@ -139,9 +145,9 @@ export function PlaceCombobox({ value, onChange, className = "", placeholder = "
                 padding: "9px 14px",
                 cursor: "pointer",
                 fontSize: "0.875rem",
-                color: "var(--panel-earth)",
+                color: "var(--pcbx-ink, var(--panel-earth))",
                 fontFamily: "inherit",
-                background: idx === activeIndex ? "var(--panel-hover)" : "",
+                background: idx === activeIndex ? "var(--pcbx-option-active-bg, var(--panel-hover))" : "",
               }}
             >
               {city.name}

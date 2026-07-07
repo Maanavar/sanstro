@@ -68,6 +68,7 @@ type DashboardFamilyTabProps = {
   selectedVaultId: string;
   ownerChartId: string;
   ownerChart: ChartCalculateResponseData | null;
+  ownerMemberChart: MemberChartData | null;
   vaults: FamilyVaultListItem[];
   familyDetail: FamilyVaultDetailData | null;
   familyAggregate: FamilyAggregateData | null;
@@ -515,6 +516,7 @@ export function DashboardFamilyTab({
   selectedVaultId,
   ownerChartId,
   ownerChart,
+  ownerMemberChart,
   vaults,
   familyDetail,
   familyAggregate,
@@ -585,7 +587,11 @@ export function DashboardFamilyTab({
   const members = familyAggregate?.members ?? [];
   const activeMemberId = selectedMemberId ?? members[0]?.familyMemberId ?? null;
   const activeMember   = members.find((m) => m.familyMemberId === activeMemberId) ?? null;
-  const activeMemberChart = activeMember ? memberCharts.find((mc) => mc.memberId === activeMember.familyMemberId) : null;
+  const activeMemberChart = activeMember
+    ? (activeMember.familyMemberId === activeMember.birthProfileId
+        ? ownerMemberChart
+        : memberCharts.find((mc) => mc.memberId === activeMember.familyMemberId))
+    : null;
 
   const memberOptions = members.map((m) => {
     const fm = familyMembers.find((f) => f.familyMemberId === m.familyMemberId);

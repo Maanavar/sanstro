@@ -790,6 +790,31 @@ export function DashboardWorkspace() {
   const transitDasha = transitMemberChart?.dasha ?? personal.dasha;
   const transitDashaMaha = transitMemberChart?.dashaMaha ?? personal.dashaMaha;
   const transitDashaAntar = transitMemberChart?.dashaAntar ?? personal.dashaAntar;
+  // Backend's family-aggregate injects a synthetic "owner" row (familyMemberId === birthProfileId)
+  // so family-score averaging includes the owner alongside managed members. useFamilyData.ts
+  // deliberately excludes that row from family.memberCharts (to avoid duplicating the owner in
+  // member-picker pill lists elsewhere), so the Family tab's own member grid — which reads the
+  // *unfiltered* aggregate — can never resolve a chart for that row via memberCharts.find(...).
+  // The owner's own chart/dasha/dailyGuidance are already loaded here as `personal.*`; assembling
+  // them into a MemberChart-shaped object lets the Family tab render/click the owner's tile like
+  // any other member's, with no extra fetch.
+  const ownerMemberChart: MemberChart | null = !personal.chart ? null : {
+    memberId: personal.birthProfileId,
+    displayName: personal.chart.birthProfile.displayName,
+    chart: personal.chart,
+    explanation: personal.chartExplanation,
+    summary: personal.chartSummary,
+    transit: personal.transit,
+    sani: personal.sani,
+    peyarchiUpcoming: personal.peyarchiUpcoming,
+    dailyGuidance: personal.dailyGuidance,
+    weekAhead: personal.weekAhead,
+    dasha: personal.dasha,
+    dashaMaha: personal.dashaMaha,
+    dashaAntar: personal.dashaAntar,
+    nakshatraCard: personal.nakshatraCard,
+  };
+
   const journalRetentionDays = journal.journalSettings?.journalRetentionDays ?? 365;
 
   // ── Form validation ───────────────────────────────────────
@@ -1700,6 +1725,7 @@ export function DashboardWorkspace() {
             selectedVaultId={family.selectedVaultId}
             ownerChartId={personal.chartId}
             ownerChart={personal.chart}
+            ownerMemberChart={ownerMemberChart}
             vaults={family.vaults}
             familyDetail={family.familyDetail}
             familyAggregate={family.familyAggregate}
@@ -1732,6 +1758,7 @@ export function DashboardWorkspace() {
             selectedVaultId={family.selectedVaultId}
             ownerChartId={personal.chartId}
             ownerChart={personal.chart}
+            ownerMemberChart={ownerMemberChart}
             vaults={family.vaults}
             familyDetail={family.familyDetail}
             familyAggregate={family.familyAggregate}

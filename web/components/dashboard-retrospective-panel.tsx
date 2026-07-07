@@ -225,7 +225,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
 
           {/* Future recurrences */}
           {result.futureRecurrences.length > 0 && (
-          <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: "#FFF7EB", border: `1px solid ${W.border}` }}>
+          <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: "var(--color-accent-muted)", border: `1px solid ${W.border}` }}>
               <p className="cd-kicker" style={{ marginBottom: "var(--space-2)", color: W.terracotta }}>
                 {t("retro_future_recurrence", lang)}
               </p>
@@ -247,7 +247,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
 
           {/* Caution */}
           {result.caution && (
-          <div style={{ padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: "#FCE7E2", border: `1px solid ${W.rust}44` }}>
+          <div style={{ padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: "var(--color-low-bg)", border: `1px solid ${W.rust}44` }}>
               <p className="cd-kicker" style={{ color: W.rust }}>
                 ⚠ {t("retro_caution", lang)}
               </p>
