@@ -266,17 +266,38 @@ export function HomeContent() {
             </span>
           </div>
 
-          {/* Testimonials */}
+          {/* Verifiable trust proofs replace hand-written testimonials — the
+              rigor-seeking segment reads stock quotes as growth-hack theatre
+              (#22). Each claim is something the product actually does and the
+              user can check. */}
           <div className="cl-testimonials">
             {[
-              { quote: mt(HOME.social_t1_quote, lang), name: mt(HOME.social_t1_name, lang) },
-              { quote: mt(HOME.social_t2_quote, lang), name: mt(HOME.social_t2_name, lang) },
-              { quote: mt(HOME.social_t3_quote, lang), name: mt(HOME.social_t3_name, lang) },
-            ].map((t, i) => (
-              <blockquote key={i} className="cl-testimonial">
-                <p className="cl-testimonial__quote">&ldquo;{t.quote}&rdquo;</p>
-                <footer className="cl-testimonial__name">— {t.name}</footer>
-              </blockquote>
+              {
+                claim: lang === "en"
+                  ? "Every date is Drik Ganita — the same Thirukanitham your temple panchangam uses."
+                  : "ஒவ்வொரு தேதியும் திருகணிதம் (Drik Ganita) — உங்கள் கோயில் பஞ்சாங்கம் பயன்படுத்தும் அதே முறை.",
+                tag: lang === "en" ? "Method, not marketing" : "முறை, விளம்பரம் அல்ல",
+                href: "/trust/methodology",
+              },
+              {
+                claim: lang === "en"
+                  ? "Lahiri ayanamsa, South-Indian whole-sign houses, Vimshottari dasha — shown, not hidden."
+                  : "லஹிரி அயனாம்சம், தென்னிந்திய முழு-ராசி வீடுகள், விம்சோத்தரி தசை — மறைக்காமல் காட்டுகிறோம்.",
+                tag: lang === "en" ? "Transparent by default" : "வெளிப்படையானது",
+                href: "/trust/methodology",
+              },
+              {
+                claim: lang === "en"
+                  ? "Your birth details are encrypted and yours to delete anytime."
+                  : "உங்கள் பிறப்பு விவரங்கள் மறையாக்கம் — எப்போது வேண்டுமானாலும் நீக்கலாம்.",
+                tag: lang === "en" ? "Your data, your control" : "உங்கள் தரவு, உங்கள் கட்டுப்பாடு",
+                href: "/privacy",
+              },
+            ].map((p, i) => (
+              <a key={i} href={p.href} className="cl-testimonial" style={{ textDecoration: "none", display: "block" }}>
+                <p className="cl-testimonial__quote">{p.claim}</p>
+                <footer className="cl-testimonial__name">{p.tag} →</footer>
+              </a>
             ))}
           </div>
         </div>
