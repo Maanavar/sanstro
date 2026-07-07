@@ -547,9 +547,12 @@ export function DashboardSetupTab({
                   <WSelect value={birthForm.employmentType}
                     onChange={(e) => onBirthFormChange({ ...birthForm, employmentType: e.target.value })}>
                     <option value="">{lang === "ta" ? "தேர்ந்தெடுக்கவும்" : "Select…"}</option>
-                    <option value="employed_salaried">{lang === "ta" ? "சம்பளதாரர்" : "Salaried Employee"}</option>
-                    <option value="self_employed">{lang === "ta" ? "சுயதொழில்" : "Self-Employed / Freelancer"}</option>
-                    <option value="business_owner">{lang === "ta" ? "சொந்த தொழில்" : "Business Owner"}</option>
+                    {/* Category examples name common Tamil occupations so folk users
+                        recognise themselves — "no 'driver'/'teacher'" was a wide
+                        "this app doesn't understand me" miss (#23). */}
+                    <option value="employed_salaried">{lang === "ta" ? "சம்பளதாரர் (ஆசிரியர், அலுவலகம், தொழிற்சாலை)" : "Salaried (teacher, office, factory)"}</option>
+                    <option value="self_employed">{lang === "ta" ? "சுயதொழில் (டிரைவர், விவசாயி, மீனவர், நெசவாளர்)" : "Self-employed (driver, farmer, fisherman, weaver)"}</option>
+                    <option value="business_owner">{lang === "ta" ? "சொந்த தொழில் / வியாபாரம்" : "Business Owner / Trade"}</option>
                     <option value="student">{lang === "ta" ? "மாணவர்" : "Student"}</option>
                     <option value="unemployed">{lang === "ta" ? "வேலையில்லாதவர்" : "Unemployed / Seeking"}</option>
                     <option value="retired">{lang === "ta" ? "ஓய்வு பெற்றவர்" : "Retired"}</option>

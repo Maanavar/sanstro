@@ -103,9 +103,9 @@ const STRINGS = {
   // ── Employment type field + options
   field_employment_type:        { ta: "வேலை நிலை",            en: "Employment Status" },
   employment_select:            { ta: "தேர்ந்தெடுக்கவும்",   en: "Select…" },
-  employment_salaried:          { ta: "ஊழியர் (சம்பளம்)",    en: "Employed (salaried)" },
-  employment_self_employed:     { ta: "சுய தொழில்",           en: "Self-employed / Freelance" },
-  employment_business:          { ta: "வியாபாரம்",             en: "Business owner" },
+  employment_salaried:          { ta: "சம்பளதாரர் (ஆசிரியர், அலுவலகம், தொழிற்சாலை)", en: "Salaried (teacher, office, factory)" },
+  employment_self_employed:     { ta: "சுயதொழில் (டிரைவர், விவசாயி, மீனவர், நெசவாளர்)", en: "Self-employed (driver, farmer, fisherman, weaver)" },
+  employment_business:          { ta: "சொந்த தொழில் / வியாபாரம்", en: "Business Owner / Trade" },
   employment_student:           { ta: "மாணவர்",               en: "Student" },
   employment_retired:           { ta: "ஓய்வு பெற்றவர்",       en: "Retired" },
   employment_homemaker:         { ta: "இல்லத்தரசி/ர்",        en: "Homemaker" },
