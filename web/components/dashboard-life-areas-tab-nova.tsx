@@ -157,13 +157,15 @@ export function DashboardLifeAreasTabNova({
         .map((key) => ({
           key,
           label:
-            key === "attention" ? (lang === "ta" ? "கவனம் தேவை" : "Needs attention")
+            // Nurturing, non-clinical framing — "Needs attention" + red read as
+            // "something is wrong with my health" to folk mothers (#17/#99).
+            key === "attention" ? (lang === "ta" ? "கூடுதல் அக்கறை" : "Give extra care")
               : key === "steady" ? (lang === "ta" ? "நிலையான முன்னேற்றம்" : "Steady")
               : (lang === "ta" ? "ஆதரவானவை" : "Supportive"),
           color: key === "attention" ? "var(--color-low)" : key === "steady" ? "var(--color-accent-strong)" : "var(--color-high)",
           blurb:
             key === "attention"
-              ? (lang === "ta" ? "இந்த காலகட்டத்தில் இவைக்கு அதிக கவனம் தேவை." : "These need the most care under the current period.")
+              ? (lang === "ta" ? "இவை இப்போது ஒரு மென்மையான காலகட்டத்தில் — ஏதோ தவறு என்று அர்த்தம் இல்லை; சற்று அதிக பொறுமையுடன் அணுகுங்கள்." : "A gentler season for these — it doesn't mean anything is wrong, just move with a little more patience.")
               : key === "steady"
               ? (chartSummary?.currentMahadasha
                   ? (lang === "ta"

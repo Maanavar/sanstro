@@ -162,6 +162,14 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
         <div>
           <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "var(--color-text, var(--panel-earth))" }}>{lang === "ta" ? "வினாடி கேளுங்கள்" : "Ask Vinaadi"}</h3>
           <p style={{ margin: 0, fontSize: "12px", color: "var(--color-muted, var(--panel-mid-earth))" }}>{lang === "ta" ? "உங்கள் ஜாதகம் சார்ந்த கேள்விகளை கேளுங்கள்" : "Ask natural-language questions about your chart"}</p>
+          {/* Cost transparency — anxious-poor users won't ask twice "in case each
+              question costs money" unless we say plainly it doesn't (#18). */}
+          <p style={{ margin: "3px 0 0", fontSize: "11.5px", color: "var(--color-score-high, #5C7654)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+            {isPremium
+              ? (lang === "ta" ? "வரம்பற்ற கேள்விகள் — கூடுதல் கட்டணம் இல்லை" : "Unlimited questions — no extra charge")
+              : (lang === "ta" ? "இலவசம் — ஒவ்வொரு கேள்விக்கும் தனிக் கட்டணம் இல்லை" : "Free — no charge per question")}
+          </p>
         </div>
       </div>
 
