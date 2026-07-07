@@ -13,9 +13,14 @@ type NovaScoreDialProps = {
   max?: number;
   size?: number;
   label?: string;
+  /** When set, the ring + number take this colour so the dial reads good/okay/
+   *  caution at a glance (UX #64). Defaults to the neutral accent. */
+  color?: string;
 };
 
-export function NovaScoreDial({ score, max = 100, size = 118, label }: NovaScoreDialProps) {
+export function NovaScoreDial({ score, max = 100, size = 118, label, color }: NovaScoreDialProps) {
+  const arcColor = color ?? "var(--color-accent)";
+  const numberColor = color ?? "var(--color-accent-strong)";
   const r = size * 0.4;
   const cx = size / 2;
   const cy = size / 2;
@@ -33,7 +38,7 @@ export function NovaScoreDial({ score, max = 100, size = 118, label }: NovaScore
           cy={cy}
           r={r}
           fill="none"
-          stroke="var(--color-accent)"
+          stroke={arcColor}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={`${filled} ${circ}`}
@@ -50,7 +55,7 @@ export function NovaScoreDial({ score, max = 100, size = 118, label }: NovaScore
           justifyContent: "center",
         }}
       >
-        <span style={{ fontFamily: "var(--font-display)", fontSize: size * 0.32, fontWeight: 600, color: "var(--color-accent-strong)", lineHeight: 1 }}>
+        <span style={{ fontFamily: "var(--font-display)", fontSize: size * 0.32, fontWeight: 600, color: numberColor, lineHeight: 1 }}>
           {Math.round(score)}
         </span>
         {label ? (

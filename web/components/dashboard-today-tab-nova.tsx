@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { apiFetchJson } from "@/lib/api";
-import { formatClockLabel, formatDateLabel, scoreColor } from "@/lib/format";
+import { formatClockLabel, formatDateLabel, getScoreVerdict, scoreColor } from "@/lib/format";
 import { t, tLang, tNakshatra, tPlanetLord, tTithi, tWeekday } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
@@ -245,14 +245,34 @@ export function DashboardTodayTabNova({
             )}
           </div>
 
-          {personalDailyGuidance && (
+          {personalDailyGuidance && (() => {
+            const verdict = getScoreVerdict(score ?? 0, lang);
+            return (
             <div style={{ flex: "none", width: "210px", borderLeft: "1px solid var(--color-border)", paddingLeft: "26px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "10px" }}>
-              <NovaScoreDial score={score ?? 0} label={`/100 · ${personalDailyGuidance.label.toUpperCase()}`} />
+              <NovaScoreDial score={score ?? 0} color={verdict.color} label={lang === "ta" ? "100க்கு" : "out of 100"} />
+              {/* Plain-language verdict — the நல்ல நாள் / ஜாக்கிரதை folk users asked for (#9/#50) */}
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "20px", fontWeight: 700, color: verdict.color, lineHeight: 1.1, textAlign: "center" }}>
+                {verdict.verdict}
+              </div>
+              {/* Colour legend so amber/green/red is never guessed (#64) */}
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center", fontSize: "10.5px", color: "var(--color-faint)" }}>
+                {[
+                  { c: "var(--color-score-high, #5C7654)", t: lang === "ta" ? "நல்லது" : "Good" },
+                  { c: "var(--color-score-mid, #B85A2C)", t: lang === "ta" ? "பரவாயில்லை" : "Okay" },
+                  { c: "var(--color-score-low, #A8482F)", t: lang === "ta" ? "கவனம்" : "Caution" },
+                ].map((s) => (
+                  <span key={s.t} style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: s.c, flexShrink: 0 }} />
+                    {s.t}
+                  </span>
+                ))}
+              </div>
               <a href="#nova-deep-dive" style={{ fontSize: "11.5px", color: "var(--color-accent-secondary)", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "5px" }}>
                 {lang === "ta" ? "இந்த மதிப்பெண் ஏன்? →" : "See why this score →"}
               </a>
             </div>
-          )}
+            );
+          })()}
         </div>
       </div>
 

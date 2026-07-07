@@ -40,3 +40,22 @@ export function getScoreBand(score: number): ScoreBand {
   if (score >= 35) return { label: "soft caution", tone };
   return { label: "restorative", tone };
 }
+
+export interface ScoreVerdict {
+  /** Plain folk-language verdict — the நல்ல நாள் / ஜாக்கிரதை that low-literacy
+   *  users asked for (UX #9/#50). Weather-framed, never fatalist. */
+  verdict: string;
+  tone: "high" | "mid" | "low";
+  color: string;
+}
+
+/** A one-word, plain-language reading of the 0–100 daily score. Deliberately
+ *  three-way (good / okay / take-care) to answer the single question folk users
+ *  have, instead of an English-caps band label. Thresholds mirror scoreTone
+ *  (HIGH ≥65, MID 45–64, LOW <45). */
+export function getScoreVerdict(score: number, lang: "ta" | "en"): ScoreVerdict {
+  const tone = scoreTone(score);
+  if (tone === "high") return { verdict: lang === "ta" ? "நல்ல நாள்" : "Good day", tone, color: SCORE_HIGH };
+  if (tone === "mid") return { verdict: lang === "ta" ? "பரவாயில்லை" : "An okay day", tone, color: SCORE_MID };
+  return { verdict: lang === "ta" ? "ஜாக்கிரதை" : "Take care", tone, color: SCORE_LOW };
+}
