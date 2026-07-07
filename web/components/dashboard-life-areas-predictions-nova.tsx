@@ -277,16 +277,25 @@ export function NovaPredictionsPanel({ lang, predictions, loading, maritalStatus
       )}
       {orderedItems.map(({ key, title, pred }) => (
         pred ? (
-          <NovaPredictionCard
-            key={key}
-            title={title}
-            pred={pred}
-            lang={lang}
-            expanded={expanded[key]}
-            onToggle={() => toggle(key)}
-            featured={key === firstKey}
-            deferred={predictionIsDeferred(pred)}
-          />
+          <div key={key}>
+            <NovaPredictionCard
+              title={title}
+              pred={pred}
+              lang={lang}
+              expanded={expanded[key]}
+              onToggle={() => toggle(key)}
+              featured={key === firstKey}
+              deferred={predictionIsDeferred(pred)}
+            />
+            {/* Medical safeguard — folk users over-read the health card, clinicians
+                reject it; both need it framed as not-a-diagnosis (#31). */}
+            {key === "health" && expanded.health && (
+              <p style={{ margin: "8px 2px 0", fontSize: "11.5px", color: "var(--color-muted)", lineHeight: 1.5, display: "flex", gap: "6px" }}>
+                <span aria-hidden="true">⚕</span>
+                <span>{t("safeguard_health", lang)}</span>
+              </p>
+            )}
+          </div>
         ) : null
       ))}
     </div>
