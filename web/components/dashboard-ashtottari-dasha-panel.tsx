@@ -64,9 +64,10 @@ export function AshtottariDashaPanel({ lang, chartId }: Props) {
   }, [chartId]);
 
   const title = isTamil ? "அஷ்டோத்தரி தசை — 108 ஆண்டு சுழற்சி" : "Ashtottari Dasha — 108-Year Cycle";
+  // Experimental caveat, consistent with the other secondary engines (UX #40).
   const subtitle = isTamil
-    ? "இரண்டாம்நிலை/ஒப்பீட்டு தசை — காட்சிக்கு மட்டும், மதிப்பெண் கணக்கீட்டில் பயன்படுத்தப்படவில்லை"
-    : "Secondary/comparison dasha — display only, not used in any scoring path";
+    ? "இரண்டாம்நிலை/ஒப்பீட்டு தசை · சோதனை நிலை — காட்சிக்கு மட்டும், மதிப்பெண் கணக்கீட்டில் பயன்படுத்தப்படவில்லை"
+    : "Secondary/comparison dasha · Experimental — display only, not used in any scoring path";
 
   return (
     <CollapsibleSection title={title} defaultOpen={false}>

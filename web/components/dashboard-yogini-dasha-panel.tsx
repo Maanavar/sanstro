@@ -80,9 +80,11 @@ export function YoginiDashaPanel({ lang, chartId }: Props) {
   }, [chartId]);
 
   const title = isTamil ? "யோகினி தசை — 36 ஆண்டு சுழற்சி" : "Yogini Dasha — 36-Year Cycle";
+  // Consistent experimental caveat so unverified engines don't wear the same
+  // confidence as the validated core (UX #40).
   const subtitle = isTamil
-    ? "இரண்டாம்நிலை/ஒப்பீட்டு தசை (தேவி பாகவதம் / முஹூர்த்த சிந்தாமணி மரபு)"
-    : "Secondary/comparison dasha (Devi Bhagavata / Muhurta Chintamani tradition)";
+    ? "இரண்டாம்நிலை/ஒப்பீட்டு தசை (தேவி பாகவதம் / முஹூர்த்த சிந்தாமணி மரபு) · சோதனை நிலை, மதிப்பெண் கணக்கீட்டில் பயன்படுத்தப்படவில்லை"
+    : "Secondary/comparison dasha (Devi Bhagavata / Muhurta Chintamani tradition) · Experimental, not used in any scoring path";
 
   return (
     <CollapsibleSection title={title} defaultOpen={false}>
