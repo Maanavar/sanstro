@@ -91,3 +91,85 @@ export const TN_CITIES: CityEntry[] = [
   { name: "Kadayanallur, Tamil Nadu, India",         lat: "9.0833",   lng: "77.3500",  timezone: "Asia/Kolkata" },
   { name: "Thirumangalam, Tamil Nadu, India",        lat: "9.8167",   lng: "77.9833",  timezone: "Asia/Kolkata" },
 ];
+
+// Diaspora + wider-India hubs where Tamil families live. Needed so daily timings
+// (Rahu Kalam, muhurtham, sunrise) compute for the user's OWN sky, not Tamil Nadu.
+// Coordinates: city centroids; timezone: IANA zone names (resolved server-side via
+// zoneinfo/tzdata). Without lat/lng/timezone the backend falls back to birthplace,
+// so every entry MUST carry all three. See app/services/location_service.py.
+export const DIASPORA_CITIES: CityEntry[] = [
+  // Wider India (large Tamil populations outside TN)
+  { name: "Bengaluru (Bangalore), Karnataka, India",     lat: "12.9716",  lng: "77.5946",   timezone: "Asia/Kolkata" },
+  { name: "Hyderabad, Telangana, India",                 lat: "17.3850",  lng: "78.4867",   timezone: "Asia/Kolkata" },
+  { name: "Mumbai, Maharashtra, India",                  lat: "19.0760",  lng: "72.8777",   timezone: "Asia/Kolkata" },
+  { name: "Pune, Maharashtra, India",                    lat: "18.5204",  lng: "73.8567",   timezone: "Asia/Kolkata" },
+  { name: "Delhi, India",                                lat: "28.6139",  lng: "77.2090",   timezone: "Asia/Kolkata" },
+  { name: "Kochi (Cochin), Kerala, India",               lat: "9.9312",   lng: "76.2673",   timezone: "Asia/Kolkata" },
+  { name: "Thiruvananthapuram, Kerala, India",           lat: "8.5241",   lng: "76.9366",   timezone: "Asia/Kolkata" },
+  { name: "Puducherry (Pondicherry), India",             lat: "11.9139",  lng: "79.8145",   timezone: "Asia/Kolkata" },
+  // Gulf (labour + professional diaspora)
+  { name: "Dubai, United Arab Emirates",                 lat: "25.2048",  lng: "55.2708",   timezone: "Asia/Dubai" },
+  { name: "Abu Dhabi, United Arab Emirates",             lat: "24.4539",  lng: "54.3773",   timezone: "Asia/Dubai" },
+  { name: "Sharjah, United Arab Emirates",               lat: "25.3463",  lng: "55.4209",   timezone: "Asia/Dubai" },
+  { name: "Doha, Qatar",                                 lat: "25.2854",  lng: "51.5310",   timezone: "Asia/Qatar" },
+  { name: "Kuwait City, Kuwait",                         lat: "29.3759",  lng: "47.9774",   timezone: "Asia/Kuwait" },
+  { name: "Riyadh, Saudi Arabia",                        lat: "24.7136",  lng: "46.6753",   timezone: "Asia/Riyadh" },
+  { name: "Dammam, Saudi Arabia",                        lat: "26.4207",  lng: "50.0888",   timezone: "Asia/Riyadh" },
+  { name: "Jeddah, Saudi Arabia",                        lat: "21.4858",  lng: "39.1925",   timezone: "Asia/Riyadh" },
+  { name: "Muscat, Oman",                                lat: "23.5880",  lng: "58.3829",   timezone: "Asia/Muscat" },
+  { name: "Manama, Bahrain",                             lat: "26.2285",  lng: "50.5860",   timezone: "Asia/Bahrain" },
+  // Southeast Asia
+  { name: "Singapore",                                   lat: "1.3521",   lng: "103.8198",  timezone: "Asia/Singapore" },
+  { name: "Kuala Lumpur, Malaysia",                      lat: "3.1390",   lng: "101.6869",  timezone: "Asia/Kuala_Lumpur" },
+  { name: "George Town (Penang), Malaysia",              lat: "5.4141",   lng: "100.3288",  timezone: "Asia/Kuala_Lumpur" },
+  { name: "Ipoh, Malaysia",                              lat: "4.5975",   lng: "101.0901",  timezone: "Asia/Kuala_Lumpur" },
+  { name: "Johor Bahru, Malaysia",                       lat: "1.4927",   lng: "103.7414",  timezone: "Asia/Kuala_Lumpur" },
+  // Sri Lanka (Tamil homeland diaspora)
+  { name: "Colombo, Sri Lanka",                          lat: "6.9271",   lng: "79.8612",   timezone: "Asia/Colombo" },
+  { name: "Jaffna, Sri Lanka",                           lat: "9.6615",   lng: "80.0255",   timezone: "Asia/Colombo" },
+  { name: "Kandy, Sri Lanka",                            lat: "7.2906",   lng: "80.6337",   timezone: "Asia/Colombo" },
+  // United States
+  { name: "New York, NY, USA",                           lat: "40.7128",  lng: "-74.0060",  timezone: "America/New_York" },
+  { name: "Edison, NJ, USA",                             lat: "40.5187",  lng: "-74.4121",  timezone: "America/New_York" },
+  { name: "Washington, DC, USA",                         lat: "38.9072",  lng: "-77.0369",  timezone: "America/New_York" },
+  { name: "Atlanta, GA, USA",                            lat: "33.7490",  lng: "-84.3880",  timezone: "America/New_York" },
+  { name: "Chicago, IL, USA",                            lat: "41.8781",  lng: "-87.6298",  timezone: "America/Chicago" },
+  { name: "Dallas, TX, USA",                             lat: "32.7767",  lng: "-96.7970",  timezone: "America/Chicago" },
+  { name: "Houston, TX, USA",                            lat: "29.7604",  lng: "-95.3698",  timezone: "America/Chicago" },
+  { name: "Austin, TX, USA",                             lat: "30.2672",  lng: "-97.7431",  timezone: "America/Chicago" },
+  { name: "Phoenix, AZ, USA",                            lat: "33.4484",  lng: "-112.0740", timezone: "America/Phoenix" },
+  { name: "Seattle, WA, USA",                            lat: "47.6062",  lng: "-122.3321", timezone: "America/Los_Angeles" },
+  { name: "San Jose, CA, USA",                           lat: "37.3382",  lng: "-121.8863", timezone: "America/Los_Angeles" },
+  { name: "Fremont, CA, USA",                            lat: "37.5485",  lng: "-121.9886", timezone: "America/Los_Angeles" },
+  { name: "San Francisco, CA, USA",                      lat: "37.7749",  lng: "-122.4194", timezone: "America/Los_Angeles" },
+  { name: "Los Angeles, CA, USA",                        lat: "34.0522",  lng: "-118.2437", timezone: "America/Los_Angeles" },
+  // Canada
+  { name: "Toronto, ON, Canada",                         lat: "43.6532",  lng: "-79.3832",  timezone: "America/Toronto" },
+  { name: "Scarborough (Toronto), ON, Canada",           lat: "43.7764",  lng: "-79.2318",  timezone: "America/Toronto" },
+  { name: "Brampton, ON, Canada",                        lat: "43.7315",  lng: "-79.7624",  timezone: "America/Toronto" },
+  { name: "Montreal, QC, Canada",                        lat: "45.5017",  lng: "-73.5673",  timezone: "America/Toronto" },
+  { name: "Vancouver, BC, Canada",                       lat: "49.2827",  lng: "-123.1207", timezone: "America/Vancouver" },
+  // United Kingdom + Europe
+  { name: "London, United Kingdom",                      lat: "51.5074",  lng: "-0.1278",   timezone: "Europe/London" },
+  { name: "Leicester, United Kingdom",                   lat: "52.6369",  lng: "-1.1398",   timezone: "Europe/London" },
+  { name: "Birmingham, United Kingdom",                  lat: "52.4862",  lng: "-1.8904",   timezone: "Europe/London" },
+  { name: "Paris, France",                               lat: "48.8566",  lng: "2.3522",    timezone: "Europe/Paris" },
+  { name: "Zurich, Switzerland",                         lat: "47.3769",  lng: "8.5417",    timezone: "Europe/Zurich" },
+  { name: "Frankfurt, Germany",                          lat: "50.1109",  lng: "8.6821",    timezone: "Europe/Berlin" },
+  // Australia + New Zealand
+  { name: "Sydney, NSW, Australia",                      lat: "-33.8688", lng: "151.2093",  timezone: "Australia/Sydney" },
+  { name: "Melbourne, VIC, Australia",                   lat: "-37.8136", lng: "144.9631",  timezone: "Australia/Melbourne" },
+  { name: "Brisbane, QLD, Australia",                    lat: "-27.4698", lng: "153.0251",  timezone: "Australia/Brisbane" },
+  { name: "Perth, WA, Australia",                        lat: "-31.9505", lng: "115.8605",  timezone: "Australia/Perth" },
+  { name: "Adelaide, SA, Australia",                     lat: "-34.9285", lng: "138.6007",  timezone: "Australia/Adelaide" },
+  { name: "Auckland, New Zealand",                       lat: "-36.8485", lng: "174.7633",  timezone: "Pacific/Auckland" },
+  { name: "Wellington, New Zealand",                     lat: "-41.2865", lng: "174.7762",  timezone: "Pacific/Auckland" },
+  // Africa + Indian Ocean (Cavadee-observing diaspora)
+  { name: "Port Louis, Mauritius",                       lat: "-20.1609", lng: "57.5012",   timezone: "Indian/Mauritius" },
+  { name: "Durban, South Africa",                        lat: "-29.8587", lng: "31.0218",   timezone: "Africa/Johannesburg" },
+  { name: "Johannesburg, South Africa",                  lat: "-26.2041", lng: "28.0473",   timezone: "Africa/Johannesburg" },
+];
+
+// Combined dataset for the in-app place picker (onboarding + edit profile /
+// member). TN cities lead so Tamil-Nadu users match first; diaspora hubs follow.
+export const PLACE_CITIES: CityEntry[] = [...TN_CITIES, ...DIASPORA_CITIES];

@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useState } from "react";
 
-import { TN_CITIES } from "@/lib/tn-cities";
+import { PLACE_CITIES } from "@/lib/tn-cities";
 import type { CityEntry } from "@/lib/tn-cities";
 
 type PlaceComboboxProps = {
@@ -16,7 +16,7 @@ export function PlaceCombobox({ value, onChange, className = "", placeholder = "
   const [activeIndex, setActiveIndex] = useState(0);
   const listboxId = useId();
   const filtered = useMemo(
-    () => (query.length < 1 ? TN_CITIES : TN_CITIES.filter((city) => city.name.toLowerCase().includes(query.toLowerCase()))),
+    () => (query.length < 1 ? PLACE_CITIES : PLACE_CITIES.filter((city) => city.name.toLowerCase().includes(query.toLowerCase()))),
     [query],
   );
 
@@ -42,7 +42,7 @@ export function PlaceCombobox({ value, onChange, className = "", placeholder = "
     setQuery(text);
     setOpen(true);
     setActiveIndex(0);
-    const exact = TN_CITIES.find((city) => city.name.toLowerCase() === text.toLowerCase());
+    const exact = PLACE_CITIES.find((city) => city.name.toLowerCase() === text.toLowerCase());
     onChange(exact ?? null, text);
   }
 

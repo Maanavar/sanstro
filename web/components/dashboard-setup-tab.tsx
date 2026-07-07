@@ -438,6 +438,9 @@ export function DashboardSetupTab({
                 { lbl: lang === "ta" ? "பிறந்த நேரம்" : "BIRTH TIME", val: birthForm.birthTimeLocal || "—" },
                 { lbl: lang === "ta" ? "பிறந்த இடம்" : "BIRTH PLACE", val: birthForm.birthPlace },
                 { lbl: lang === "ta" ? "நேர மண்டலம்" : "TIMEZONE", val: birthForm.birthTimezone },
+                ...(birthForm.currentPlace
+                  ? [{ lbl: lang === "ta" ? "தினசரி நேரங்கள்" : "DAILY TIMINGS FOR", val: birthForm.currentPlace }]
+                  : []),
               ].map(({ lbl, val }) => (
                 <div key={lbl}>
                   <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.07em" }}>{lbl}</p>
@@ -516,6 +519,19 @@ export function DashboardSetupTab({
                 <WField label={t("field_longitude", lang)} error={formErrors.birthLongitude}>
                   <WInput inputMode="decimal" value={birthForm.birthLongitude} error={!!formErrors.birthLongitude}
                     onChange={(e) => { onBirthFormChange({ ...birthForm, birthLongitude: e.target.value }); onFormErrorChange({ birthLongitude: "" }); }} />
+                </WField>
+                <WField
+                  label={lang === "ta" ? "நீங்கள் இப்போது வசிக்கும் ஊர்" : "Where you live now"}
+                  hint={lang === "ta"
+                    ? "பிறந்த ஊரிலிருந்து வேறு இடத்தில் வசித்தால் மட்டும் — தினசரி நேரங்கள் (ராகு காலம், முகூர்த்தம், சூரிய உதயம்) உங்கள் ஊர் வானத்துக்கேற்ப கணிக்கப்படும். பிறந்த ஊரிலேயே இருந்தால் காலியாக விடுங்கள்."
+                    : "Only if you live somewhere other than your birthplace — daily timings (Rahu Kalam, muhurtham, sunrise) will be computed for your local sky. Leave blank to use your birthplace."}
+                >
+                  <PlaceCombobox value={birthForm.currentPlace}
+                    onChange={(city, raw) => onBirthFormChange({
+                      ...birthForm,
+                      currentPlace: raw,
+                      ...(city ? { currentLatitude: city.lat, currentLongitude: city.lng, currentTimezone: city.timezone } : {}),
+                    })} />
                 </WField>
                 <WField label={lang === "ta" ? "திருமண நிலை" : "Marital Status"}>
                   <WSelect value={birthForm.maritalStatus}
