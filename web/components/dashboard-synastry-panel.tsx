@@ -32,20 +32,20 @@ type Props = {
 /* ── palette helpers ─────────────────────────────────────── */
 function scoreTone(score: number) {
   if (score >= 65) return { color: "var(--chart-d9-active)", bg: "var(--chart-d9-active-bg)", border: "var(--cl-sage-edge)" };
-  if (score >= 40) return { color: "var(--panel-brand)", bg: "var(--chart-d1-lagna-bg)", border: "var(--underline-brand)" };
-  return { color: "var(--planet-saturn)", bg: "var(--panel-warm-tint)", border: "var(--border-error-soft)" };
+  if (score >= 40) return { color: "var(--synastry-accent, var(--panel-brand))", bg: "var(--chart-d1-lagna-bg)", border: "var(--synastry-accent-border, var(--underline-brand))" };
+  return { color: "var(--planet-saturn)", bg: "var(--panel-warm-tint)", border: "var(--synastry-caution-border, var(--border-error-soft))" };
 }
 
 function statusTone(status: "good" | "mixed" | "caution") {
   if (status === "good")    return { color: "var(--chart-d9-active)",  bg: "var(--chart-d9-active-bg)",  border: "var(--cl-sage-border)" };
-  if (status === "mixed")   return { color: "var(--panel-brand)",  bg: "var(--chart-d1-lagna-bg)",  border: "var(--underline-brand)" };
-  return                           { color: "var(--planet-saturn)",  bg: "var(--panel-warm-tint)",  border: "var(--border-error-soft)" };
+  if (status === "mixed")   return { color: "var(--synastry-accent, var(--panel-brand))",  bg: "var(--chart-d1-lagna-bg)",  border: "var(--synastry-accent-border, var(--underline-brand))" };
+  return                           { color: "var(--planet-saturn)",  bg: "var(--panel-warm-tint)",  border: "var(--synastry-caution-border, var(--border-error-soft))" };
 }
 
 function toneStyle(tone: string) {
   if (tone === "supportive")  return { color: "var(--chart-d9-active)",  bg: "var(--chart-d9-active-bg)",  border: "var(--cl-sage-border)" };
-  if (tone === "challenging") return { color: "var(--planet-saturn)",  bg: "var(--panel-warm-tint)",  border: "var(--border-error-soft)" };
-  return                             { color: "var(--panel-brand)",  bg: "var(--chart-d1-lagna-bg)",  border: "var(--underline-brand)" };
+  if (tone === "challenging") return { color: "var(--planet-saturn)",  bg: "var(--panel-warm-tint)",  border: "var(--synastry-caution-border, var(--border-error-soft))" };
+  return                             { color: "var(--synastry-accent, var(--panel-brand))",  bg: "var(--chart-d1-lagna-bg)",  border: "var(--synastry-accent-border, var(--underline-brand))" };
 }
 
 function toneLabel(tone: string, lang: Lang): string {
@@ -128,10 +128,10 @@ function weightLabel(weight: PoruthamWeight, lang: Lang): string {
 }
 
 function weightTone(weight: PoruthamWeight) {
-  if (weight === "Critical") return { color: "var(--planet-saturn)", bg: "var(--panel-warm-tint)",  border: "var(--border-error-soft)" };
-  if (weight === "High")     return { color: "var(--panel-brand)", bg: "var(--chart-d1-lagna-bg)",  border: "var(--underline-brand)" };
-  if (weight === "Medium")   return { color: "var(--panel-mid-earth)", bg: "var(--panel-cream)",  border: "var(--panel-tan-light)" };
-  return                            { color: "var(--color-faint)", bg: "var(--panel-cream)",  border: "var(--panel-tan-light)" };
+  if (weight === "Critical") return { color: "var(--planet-saturn)", bg: "var(--panel-warm-tint)",  border: "var(--synastry-caution-border, var(--border-error-soft))" };
+  if (weight === "High")     return { color: "var(--synastry-accent, var(--panel-brand))", bg: "var(--chart-d1-lagna-bg)",  border: "var(--synastry-accent-border, var(--underline-brand))" };
+  if (weight === "Medium")   return { color: "var(--panel-mid-earth)", bg: "var(--panel-cream)",  border: "var(--synastry-border-light, var(--panel-tan-light))" };
+  return                            { color: "var(--color-faint)", bg: "var(--panel-cream)",  border: "var(--synastry-border-light, var(--panel-tan-light))" };
 }
 
 function scoreStatusOf(score: number, max: number): "good" | "mixed" | "caution" {
@@ -161,9 +161,9 @@ function Pill({ active, onClick, children }: { active: boolean; onClick: () => v
       onClick={onClick}
       style={{
         padding: "var(--space-1) var(--space-3_5)", borderRadius: "var(--radius-pill)", border: "1.5px solid",
-        borderColor: active ? "var(--panel-earth-dark)" : "var(--panel-tan)",
-        background: active ? "var(--panel-earth-dark)" : "transparent",
-        color: active ? "var(--panel-hover)" : "var(--color-faint)",
+        borderColor: active ? "var(--synastry-ink-strong, var(--panel-earth-dark))" : "var(--synastry-border, var(--panel-tan))",
+        background: active ? "var(--synastry-ink-strong, var(--panel-earth-dark))" : "transparent",
+        color: active ? "var(--synastry-active-ink, var(--panel-hover))" : "var(--color-faint)",
         fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
         transition: "all 150ms ease",
       }}
@@ -180,7 +180,7 @@ function SmallScoreRing({ score }: { score: number }) {
   const { color } = scoreTone(score);
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: "block", flexShrink: 0 }}>
-      <circle cx={36} cy={36} r={r} fill="none" stroke="var(--panel-tan-light)" strokeWidth="6" />
+      <circle cx={36} cy={36} r={r} fill="none" stroke="var(--synastry-border-light, var(--panel-tan-light))" strokeWidth="6" />
       <circle cx={36} cy={36} r={r} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round"
         strokeDasharray={`${filled} ${circ}`} transform="rotate(-90 36 36)" />
       <text x={36} y={37} textAnchor="middle" dominantBaseline="middle"
@@ -204,8 +204,8 @@ function ChartComparisonCard({
         { chart: ownerChart,   fallbackName: lang === "ta" ? "நீங்கள்" : "You" },
         { chart: memberChart,  fallbackName: lang === "ta" ? "உறுப்பினர்" : "Member" },
       ].map(({ chart, fallbackName }) => (
-        <div key={fallbackName} style={{ border: "1px solid var(--panel-tan-light)", borderRadius: "var(--radius-md)", padding: "var(--space-3_5)", background: "var(--panel-cream)" }}>
-          <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.875rem", fontWeight: 700, color: "var(--panel-earth-dark)" }}>
+        <div key={fallbackName} style={{ border: "1px solid var(--synastry-border-light, var(--panel-tan-light))", borderRadius: "var(--radius-md)", padding: "var(--space-3_5)", background: "var(--panel-cream)" }}>
+          <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.875rem", fontWeight: 700, color: "var(--synastry-ink-strong, var(--panel-earth-dark))" }}>
             {chart?.birthProfile.displayName ?? fallbackName}
           </p>
           <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.75rem", color: "var(--color-faint)" }}>
@@ -332,7 +332,7 @@ export function SynastryPanel({
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "var(--panel-earth)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "var(--synastry-ink, var(--panel-earth))" }}>
 
       {/* Header */}
       <div>
@@ -376,7 +376,7 @@ export function SynastryPanel({
               )}
 
               {compatError && (
-                <div style={{ padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--panel-warm-tint)", border: "1px solid var(--border-error-soft)" }}>
+                <div style={{ padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--panel-warm-tint)", border: "1px solid var(--synastry-caution-border, var(--border-error-soft))" }}>
                   <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.875rem", fontWeight: 700, color: "var(--planet-saturn)" }}>
                     {lang === "ta" ? "இணக்கம் ஏற்றல் தோல்வி" : "Could not load compatibility"}
                   </p>
@@ -393,7 +393,7 @@ export function SynastryPanel({
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
 
                   {/* Score card */}
-                  <div style={{ background: "var(--chart-cell-default)", border: "1px solid var(--panel-tan-light)", borderRadius: "var(--radius-md)", padding: "var(--space-5)", display: "flex", alignItems: "flex-start", gap: "var(--space-4)", flexWrap: "wrap" }}>
+                  <div style={{ background: "var(--chart-cell-default)", border: "1px solid var(--synastry-border-light, var(--panel-tan-light))", borderRadius: "var(--radius-md)", padding: "var(--space-5)", display: "flex", alignItems: "flex-start", gap: "var(--space-4)", flexWrap: "wrap" }}>
                     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)", flexShrink: 0 }}>
                       <SmallScoreRing score={synastry.compatibilityScore} />
                       <span style={{
@@ -409,7 +409,7 @@ export function SynastryPanel({
                       <p className="cd-kicker" style={{ letterSpacing: "0.1em" }}>
                         {t("synastry_summary", lang)}
                       </p>
-                      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--panel-earth)", lineHeight: 1.55 }}>
+                      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--synastry-ink, var(--panel-earth))", lineHeight: 1.55 }}>
                         {tLang(synastry.summary, lang)}
                       </p>
                       <div style={{ marginTop: "var(--space-2)" }}>
@@ -427,7 +427,7 @@ export function SynastryPanel({
 
                   {/* Caution */}
                   {synastry.caution && (
-                    <div style={{ padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--panel-warm-tint)", border: "1px solid var(--border-error-soft)" }}>
+                    <div style={{ padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--panel-warm-tint)", border: "1px solid var(--synastry-caution-border, var(--border-error-soft))" }}>
                       <p className="cd-kicker" style={{ color: "var(--planet-saturn)", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: "4px" }}>
                         <svg viewBox="0 0 24 24" fill="none" width="12" height="12" aria-hidden="true"><path d="M12 3L21 20H3L12 3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M12 9V13.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
                         {t("synastry_caution", lang)}
@@ -439,7 +439,7 @@ export function SynastryPanel({
                   )}
 
                   {/* Chart comparison */}
-                  <div style={{ background: "var(--panel-cream)", border: "1px solid var(--panel-tan-light)", borderRadius: "var(--radius-md)", padding: "var(--space-4)" }}>
+                  <div style={{ background: "var(--panel-cream)", border: "1px solid var(--synastry-border-light, var(--panel-tan-light))", borderRadius: "var(--radius-md)", padding: "var(--space-4)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-3)", flexWrap: "wrap", gap: "var(--space-2)" }}>
                       <p className="cd-kicker--inline" style={{ letterSpacing: "0.1em" }}>
                         {lang === "ta" ? "இரு ஜாதக கட்ட ஒப்பீடு" : "Chart Comparison"}
@@ -477,7 +477,7 @@ export function SynastryPanel({
                                 {toneLabel(a.tone, lang)}
                               </span>
                               <div style={{ flex: 1 }}>
-                                <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.875rem", fontWeight: 700, color: "var(--panel-earth-dark)" }}>
+                                <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.875rem", fontWeight: 700, color: "var(--synastry-ink-strong, var(--panel-earth-dark))" }}>
                                   {a.planet1} – {a.aspectType} – {a.planet2}
                                   <span style={{ fontWeight: 400, color: "var(--color-faint)", marginLeft: "var(--space-1_5)", fontSize: "0.75rem" }}>
                                     {a.orb.toFixed(1)}°
@@ -497,16 +497,16 @@ export function SynastryPanel({
                   {/* Timing indicators */}
                   {(synastry.timingIndicators ?? []).length > 0 && (
                     <div style={{ padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--chart-d1-lagna-bg)", border: "1px solid var(--cl-brand-25)" }}>
-                      <p className="cd-kicker" style={{ marginBottom: "var(--space-2_5)", letterSpacing: "0.1em", color: "var(--panel-brand)" }}>
+                      <p className="cd-kicker" style={{ marginBottom: "var(--space-2_5)", letterSpacing: "0.1em", color: "var(--synastry-accent, var(--panel-brand))" }}>
                         {t("synastry_timing", lang)}
                       </p>
                       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                         {(synastry.timingIndicators ?? []).map((ti, i) => (
                           <div key={i} style={{ display: "flex", gap: "var(--space-2_5)", alignItems: "flex-start" }}>
-                            <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--panel-brand)", minWidth: "54px", paddingTop: "var(--space-0_5)" }}>
+                            <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--synastry-accent, var(--panel-brand))", minWidth: "54px", paddingTop: "var(--space-0_5)" }}>
                               {tPlanetLord(ti.planet, lang)}
                             </span>
-                            <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--panel-earth)", lineHeight: 1.45 }}>
+                            <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--synastry-ink, var(--panel-earth))", lineHeight: 1.45 }}>
                               {tLang(ti.description, lang)}
                             </p>
                           </div>
@@ -584,7 +584,7 @@ export function SynastryPanel({
 
                   {/* Marriage chart comparison */}
                   {poruthamContext === "MARRIAGE" && (
-                    <div style={{ background: "var(--panel-cream)", border: "1px solid var(--panel-tan-light)", borderRadius: "var(--radius-md)", padding: "var(--space-4)" }}>
+                    <div style={{ background: "var(--panel-cream)", border: "1px solid var(--synastry-border-light, var(--panel-tan-light))", borderRadius: "var(--radius-md)", padding: "var(--space-4)" }}>
                       <p className="cd-kicker" style={{ marginBottom: "var(--space-3)", letterSpacing: "0.1em" }}>
                         {lang === "ta" ? "திருமண ஜாதக கட்ட ஒப்பீடு (D1)" : "Marriage Chart Comparison (D1)"}
                       </p>
@@ -594,7 +594,7 @@ export function SynastryPanel({
 
                   {/* Context note */}
                   {porutham.contextNote && (
-                    <div style={{ padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-md)", background: "var(--panel-cream)", border: "1px solid var(--panel-tan-light)" }}>
+                    <div style={{ padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-md)", background: "var(--panel-cream)", border: "1px solid var(--synastry-border-light, var(--panel-tan-light))" }}>
                       <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-faint)", lineHeight: 1.5 }}>
                         {lang === "ta" ? porutham.contextNote.ta : porutham.contextNote.en}
                       </p>
@@ -609,9 +609,9 @@ export function SynastryPanel({
                       style={{
                         padding: "var(--space-1_5) var(--space-3_5)",
                         borderRadius: "var(--radius-pill)",
-                        border: "1px solid var(--panel-tan)",
+                        border: "1px solid var(--synastry-border, var(--panel-tan))",
                         background: "var(--panel-cream)",
-                        color: poruthamPdfBusy ? "var(--color-faint)" : "var(--panel-earth)",
+                        color: poruthamPdfBusy ? "var(--color-faint)" : "var(--synastry-ink, var(--panel-earth))",
                         fontSize: "0.75rem",
                         fontWeight: 700,
                         cursor: poruthamPdfBusy ? "wait" : "pointer",
@@ -625,9 +625,9 @@ export function SynastryPanel({
                   </div>
 
                   {/* Total score */}
-                  <div style={{ background: "var(--chart-cell-default)", border: "1px solid var(--panel-tan-light)", borderRadius: "var(--radius-md)", padding: "var(--space-5)", display: "flex", alignItems: "flex-start", gap: "var(--space-4)", flexWrap: "wrap" }}>
+                  <div style={{ background: "var(--chart-cell-default)", border: "1px solid var(--synastry-border-light, var(--panel-tan-light))", borderRadius: "var(--radius-md)", padding: "var(--space-5)", display: "flex", alignItems: "flex-start", gap: "var(--space-4)", flexWrap: "wrap" }}>
                     <div style={{ flexShrink: 0 }}>
-                      <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "2.8rem", fontWeight: 500, lineHeight: 1, color: "var(--panel-earth-dark)" }}>
+                      <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "2.8rem", fontWeight: 500, lineHeight: 1, color: "var(--synastry-ink-strong, var(--panel-earth-dark))" }}>
                         {porutham.totalScore}
                         <span style={{ fontSize: "1.125rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>/{porutham.maxScore}</span>
                       </p>
@@ -652,7 +652,7 @@ export function SynastryPanel({
                       )}
                     </div>
                     <div style={{ flex: 1, minWidth: "180px" }}>
-                      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--panel-earth)", lineHeight: 1.55 }}>
+                      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--synastry-ink, var(--panel-earth))", lineHeight: 1.55 }}>
                         {lang === "ta" ? porutham.summary.ta : porutham.summary.en}
                       </p>
                     </div>
@@ -674,11 +674,11 @@ export function SynastryPanel({
                         <div key={k.name} style={{
                           padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)",
                           background: isCriticalFail ? "var(--panel-warm-tint)" : "var(--chart-cell-default)",
-                          border: `1px solid ${isCriticalFail ? "var(--border-error-soft)" : "var(--panel-tan-light)"}`,
+                          border: `1px solid ${isCriticalFail ? "var(--synastry-caution-border, var(--border-error-soft))" : "var(--synastry-border-light, var(--panel-tan-light))"}`,
                         }}>
                           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-2_5)", flexWrap: "wrap", marginBottom: "var(--space-2)" }}>
                             <div style={{ flex: 1 }}>
-                              <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.875rem", fontWeight: 700, color: "var(--panel-earth-dark)" }}>
+                              <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.875rem", fontWeight: 700, color: "var(--synastry-ink-strong, var(--panel-earth-dark))" }}>
                                 {lang === "ta" ? meta.labelTa : meta.labelEn}
                               </p>
                               <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)", lineHeight: 1.35 }}>
@@ -692,14 +692,14 @@ export function SynastryPanel({
                               <span style={{ fontSize: "0.625rem", fontWeight: 700, padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", background: stTone.bg, color: stTone.color, border: `1px solid ${stTone.border}`, textTransform: "uppercase", letterSpacing: "0.04em" }}>
                                 {lang === "ta" ? (status === "good" ? "நல்லது" : status === "mixed" ? "கலப்பு" : "கவனம்") : (status === "good" ? "Good" : status === "mixed" ? "Mixed" : "Caution")}
                               </span>
-                              <span style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--panel-earth-dark)", fontFamily: "var(--font-mono)" }}>
+                              <span style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--synastry-ink-strong, var(--panel-earth-dark))", fontFamily: "var(--font-mono)" }}>
                                 {k.score}/{k.maxScore}
                               </span>
                             </div>
                           </div>
 
                           {/* Progress bar */}
-                          <div style={{ width: "100%", height: "5px", borderRadius: "3px", background: "var(--panel-tan-light)", overflow: "hidden" }}>
+                          <div style={{ width: "100%", height: "5px", borderRadius: "3px", background: "var(--synastry-border-light, var(--panel-tan-light))", overflow: "hidden" }}>
                             <div style={{ height: "100%", borderRadius: "3px", width: `${barPct}%`, background: stTone.color, transition: "width 400ms ease" }} />
                           </div>
 
@@ -720,12 +720,12 @@ export function SynastryPanel({
                     <div style={{ marginTop: "var(--space-2)" }}>
                       {!showCiReport ? (
                         <div style={{
-                          background: "var(--cl-sage-06)", border: "1px solid var(--cl-sage-25)",
+                          background: "var(--synastry-good-bg, var(--cl-sage-06))", border: "1px solid var(--synastry-good-border, var(--cl-sage-25))",
                           borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-5)",
                           display: "flex", gap: "var(--space-4)", alignItems: "center", flexWrap: "wrap",
                         }}>
                           <div style={{ flex: 1, minWidth: "200px" }}>
-                            <p style={{ margin: "0 0 var(--space-1)", fontWeight: 700, fontSize: "0.875rem", color: "var(--panel-earth-dark)" }}>
+                            <p style={{ margin: "0 0 var(--space-1)", fontWeight: 700, fontSize: "0.875rem", color: "var(--synastry-ink-strong, var(--panel-earth-dark))" }}>
                               {lang === "ta" ? "இணக்க நுண்ணறிவு அறிக்கை" : "Full Compatibility Intelligence Report"}
                             </p>
                             <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--color-faint)", lineHeight: 1.55 }}>
@@ -739,7 +739,7 @@ export function SynastryPanel({
                             onClick={() => setShowCiReport(true)}
                             style={{
                               padding: "var(--space-2) var(--space-5)",
-                              background: "var(--panel-earth-dark)", color: "var(--panel-cream)",
+                              background: "var(--synastry-ink-strong, var(--panel-earth-dark))", color: "var(--panel-cream)",
                               border: "none", borderRadius: "var(--radius-pill)", fontFamily: "inherit",
                               fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
                             }}
@@ -750,13 +750,13 @@ export function SynastryPanel({
                       ) : (
                         <div>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-3)" }}>
-                            <p style={{ margin: 0, fontWeight: 700, fontSize: "0.9rem", color: "var(--panel-earth-dark)" }}>
+                            <p style={{ margin: 0, fontWeight: 700, fontSize: "0.9rem", color: "var(--synastry-ink-strong, var(--panel-earth-dark))" }}>
                               {lang === "ta" ? "இணக்க நுண்ணறிவு அறிக்கை" : "Compatibility Intelligence Report"}
                             </p>
                             <button
                               type="button"
                               onClick={() => setShowCiReport(false)}
-                              style={{ fontSize: "0.78rem", color: "var(--color-faint)", background: "none", border: "1px solid var(--panel-tan)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)", cursor: "pointer", fontFamily: "inherit" }}
+                              style={{ fontSize: "0.78rem", color: "var(--color-faint)", background: "none", border: "1px solid var(--synastry-border, var(--panel-tan))", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)", cursor: "pointer", fontFamily: "inherit" }}
                             >
                               {lang === "ta" ? "மறை" : "Hide"}
                             </button>
@@ -794,16 +794,16 @@ export function SynastryPanel({
               return (
                 <div key={alert.alertId} style={{
                   padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)",
-                  background: "var(--chart-cell-default)", border: "1px solid var(--panel-tan-light)",
+                  background: "var(--chart-cell-default)", border: "1px solid var(--synastry-border-light, var(--panel-tan-light))",
                 }}>
                   <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center", flexWrap: "wrap", marginBottom: "var(--space-1_5)" }}>
-                    <span style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--panel-earth-dark)" }}>
+                    <span style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--synastry-ink-strong, var(--panel-earth-dark))" }}>
                       {alert.memberName}
                     </span>
-                    <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--panel-earth)" }}>
+                    <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--synastry-ink, var(--panel-earth))" }}>
                       {tLang(alert.title, lang)}
                     </span>
-                    <span style={{ fontSize: "0.625rem", padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", background: "var(--panel-cream)", border: "1px solid var(--panel-tan-light)", color: "var(--color-faint)" }}>
+                    <span style={{ fontSize: "0.625rem", padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", background: "var(--panel-cream)", border: "1px solid var(--synastry-border-light, var(--panel-tan-light))", color: "var(--color-faint)" }}>
                       {dayLabel}
                     </span>
                     <span style={{ fontSize: "0.625rem", color: "var(--color-faint)" }}>

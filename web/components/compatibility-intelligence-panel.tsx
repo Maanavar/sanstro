@@ -29,16 +29,16 @@ interface Props {
 // ── Palette ──────────────────────────────────────────────────────────────────
 
 const W = {
-  inkMid: "var(--panel-earth)",
+  inkMid: "var(--synastry-ink, var(--panel-earth))",
   muted: "var(--color-faint)",
-  border: "var(--panel-tan)",
-  borderLt: "var(--panel-tan-light)",
+  border: "var(--synastry-border, var(--panel-tan))",
+  borderLt: "var(--synastry-border-light, var(--panel-tan-light))",
   surface: "var(--panel-cream)",
   card: "var(--chart-cell-default)",
-  terracotta: "var(--panel-brand)",
+  terracotta: "var(--synastry-accent, var(--panel-brand))",
   sage: "var(--chart-d9-active)",
   rust: "var(--planet-saturn)",
-  gold: "var(--color-gold-mid)",
+  gold: "var(--synastry-accent, var(--color-gold-mid))",
 } as const;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -283,7 +283,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
       {(d.strengthsEn.length > 0 || d.risksEn.length > 0) && (
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
           {d.strengthsEn.length > 0 && (
-            <div style={{ flex: 1, minWidth: "240px", background: "var(--cl-sage-06)", border: `1px solid var(--cl-sage-25)`, borderRadius: "12px", padding: "14px 18px" }}>
+            <div style={{ flex: 1, minWidth: "240px", background: "var(--synastry-good-bg, var(--cl-sage-06))", border: `1px solid var(--synastry-good-border, var(--cl-sage-25))`, borderRadius: "12px", padding: "14px 18px" }}>
               <p style={{ margin: "0 0 8px", fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: W.sage }}>
                 {en ? "Strengths" : "சாதகங்கள்"}
               </p>

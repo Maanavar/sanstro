@@ -192,6 +192,48 @@
   --deepdive-accent:         var(--color-mid);
   --cl-sage-soft:            var(--color-high-bg);
 
+  /* ── Found investigating a "Dosham/Yogam headings render in black" report
+     (2026-07-06): dashboard-yoga-dosham-panel.tsx (YogaCard/DoshamCard, plus
+     the panel's own "Yogas"/"Doshams" section titles) reads --panel-earth/
+     --panel-earth-dark/--panel-tan/--panel-tan-light/--panel-warm-light
+     directly — the exact same reverted Classic-only token family flagged in
+     the --chartgrid- / --deepdive- comments above, just never grepped for
+     in this file. It's reused unwrapped in two Nova spots: Today Nova's Deep
+     Dive (via ChartExplanationPanel) and Family Nova's inline member expand
+     (via MemberDetailExpanded → ChartExplanationPanel). --panel-earth-dark
+     is `#1A1612` ("darkest warm text — headings on light") — near-black
+     Yoga/Dosham names and section headings on Nova's dark plum surfaces.
+     Same component-scoped fallback fix as above, new name set since no
+     existing block covers this file's tokens. ── */
+  --yogadosham-ink:          var(--color-text);
+  --yogadosham-ink-strong:   var(--color-text-strong);
+  --yogadosham-border:       var(--color-border);
+  --yogadosham-border-light: var(--color-border);
+  --yogadosham-remedy-bg:    var(--color-accent-muted);
+
+  /* ── Same audit, same session: the Family tab's "Compatibility" button opens
+     synastry-matrix.tsx / dashboard-synastry-panel.tsx / compatibility-
+     intelligence-panel.tsx (all reused unwrapped, per §6.3's "already
+     var(--color-*)-driven" claim — which, like Phase 4's chart-grid claim,
+     turned out wrong once actually grepped). dashboard-synastry-panel.tsx's
+     root wrapper even sets `color: var(--panel-earth)` on the whole panel,
+     so every unstyled paragraph inside inherits near-black text, not just
+     the few spots with an explicit color. Same component-scoped fallback
+     fix, new name set. --synastry-active-ink is the inverse case: the active
+     Pill's background is --panel-earth-dark (→ light cream under Nova via
+     --synastry-ink-strong below), so its text needs a dark ink, mirroring
+     the --color-on-accent pattern used for other selected-chip text. ── */
+  --synastry-ink:            var(--color-text);
+  --synastry-ink-strong:     var(--color-text-strong);
+  --synastry-active-ink:     var(--color-on-accent);
+  --synastry-border:         var(--color-border);
+  --synastry-border-light:   var(--color-border);
+  --synastry-accent:         var(--color-mid);
+  --synastry-accent-border:  var(--color-mid-border);
+  --synastry-caution-border: var(--color-low-border);
+  --synastry-good-bg:        var(--color-high-bg);
+  --synastry-good-border:    var(--color-high-border);
+
   /* ── Shape ── */
   --radius-lg: 14px; /* cards */
   --radius-xl: 16px; /* hero sections */

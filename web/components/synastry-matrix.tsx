@@ -20,7 +20,7 @@ interface SynastryMatrixProps {
 
 function scoreTone(score: number) {
   if (score >= 65) return { color: "var(--chart-d9-active)", bg: "var(--chart-d9-active-bg)", border: "rgba(92,118,84,0.35)" };
-  if (score >= 40) return { color: "var(--panel-brand)", bg: "var(--chart-d1-lagna-bg)", border: "rgba(184,90,44,0.3)" };
+  if (score >= 40) return { color: "var(--synastry-accent, var(--panel-brand))", bg: "var(--chart-d1-lagna-bg)", border: "rgba(184,90,44,0.3)" };
   return                  { color: "var(--planet-saturn)", bg: "var(--panel-warm-tint)", border: "rgba(168,72,47,0.3)" };
 }
 
@@ -69,8 +69,8 @@ export function SynastryMatrix({ lang, ownerChartId, familyVaultId, members }: S
             onClick={() => void loadAll()}
             style={{
               padding: "4px 14px", borderRadius: "999px",
-              border: "1.5px solid var(--panel-tan)", background: "transparent",
-              color: "var(--panel-earth)", fontSize: "0.75rem", fontWeight: 600,
+              border: "1.5px solid var(--synastry-border, var(--panel-tan))", background: "transparent",
+              color: "var(--synastry-ink, var(--panel-earth))", fontSize: "0.75rem", fontWeight: 600,
               cursor: "pointer", fontFamily: "inherit",
             }}
           >
@@ -88,7 +88,7 @@ export function SynastryMatrix({ lang, ownerChartId, familyVaultId, members }: S
           {members.map((m) => {
             const score = scores[m.memberId] ?? null;
             const busy  = loading[m.memberId] ?? false;
-            const tone  = score !== null ? scoreTone(score) : { color: "var(--color-faint)", bg: "var(--panel-cream)", border: "var(--panel-tan-light)" };
+            const tone  = score !== null ? scoreTone(score) : { color: "var(--color-faint)", bg: "var(--panel-cream)", border: "var(--synastry-border-light, var(--panel-tan-light))" };
             return (
               <div
                 key={m.memberId}
@@ -101,7 +101,7 @@ export function SynastryMatrix({ lang, ownerChartId, familyVaultId, members }: S
                   textAlign: "center",
                 }}
               >
-                <p style={{ margin: "0 0 5px", fontSize: "0.75rem", color: "var(--panel-earth)", fontWeight: 600 }}>
+                <p style={{ margin: "0 0 5px", fontSize: "0.75rem", color: "var(--synastry-ink, var(--panel-earth))", fontWeight: 600 }}>
                   {m.displayName}
                 </p>
                 {busy ? (
