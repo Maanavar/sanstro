@@ -40,7 +40,12 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLife
         title={lang === "ta" ? "வினாடி கேளுங்கள்" : "Ask Vinaadi"}
         style={{
           position: "fixed",
-          bottom: "196px",
+          // Stacked directly above the feedback FAB (bottom:24px, 44px tall)
+          // with just enough gap to read as two separate buttons — this used
+          // to sit at bottom:196px, leaving a ~128px dead zone between the
+          // two FABs that swallowed whatever page content scrolled under it
+          // (e.g. list rows, form fields, card icons on Plan/Journal/Tools).
+          bottom: "80px",
           right: "18px",
           zIndex: 160,
           border: "none",
@@ -74,7 +79,7 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLife
         <div
           style={{
             position: "fixed",
-            bottom: "260px",
+            bottom: "138px",
             right: "18px",
             width: "min(480px, calc(100vw - 32px))",
             maxHeight: "70vh",

@@ -1210,6 +1210,7 @@ export function DashboardWorkspace() {
         onTabChange={goToTab}
       />
       <div className="cd-main-content">
+      <div className="cd-main-content__body">
 
       {exploreReturnTab === activeTab && activeTab !== "explore" && (
         <div style={{ padding: "var(--space-3) var(--space-3) 0" }}>
@@ -2046,6 +2047,7 @@ export function DashboardWorkspace() {
           </motion.div>
         </AnimatePresence>
       </div>
+      </div>{/* cd-main-content__body */}
 
       {/* Dashboard footer */}
       <footer className="cd-footer">

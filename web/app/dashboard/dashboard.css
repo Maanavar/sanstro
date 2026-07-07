@@ -580,6 +580,18 @@
   padding: 28px 0 64px;
 }
 
+/* Reserve a lane on the right for the fixed Ask-Vinaadi pill + feedback FAB
+   (dashboard-ask-vinaadi-widget.tsx / .cd-feedback-fab, both `right: 18-24px`)
+   so full-width rows/cards (list rows, form fields, tool-grid icons) don't
+   render underneath them — those buttons are position:fixed and otherwise
+   overlap whatever content happens to scroll into their footprint. Only
+   applied at widths wide enough to afford it without squeezing content. */
+@media (min-width: 640px) {
+  .cd-page {
+    padding-right: 150px;
+  }
+}
+
 .cd-skeleton {
   position: relative;
   overflow: hidden;
@@ -859,6 +871,26 @@
 }
 
 .cd-main-content {
+  min-width: 0;
+  /* Sticky-footer fix: .cd-footer is the last child of .cd-main-content,
+     stacked in normal flow after whichever tab's content renders. Without
+     a flex column here, min-height only padded empty space AFTER the
+     footer on short pages (e.g. Family with one member), so the footer sat
+     right under the content instead of at the viewport bottom. Flex column
+     + the footer's own margin-top: auto (dashboard.css .cd-footer) pushes
+     it down to fill the remaining space instead. */
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 54px);
+}
+
+/* Wraps everything in .cd-main-content except .cd-footer (back-to-explore
+   banner, onboarding banner, the actual per-tab content). flex: 1 lets it
+   absorb the .cd-main-content flex column's leftover space on short pages,
+   so .cd-footer's own margin-top stays a fixed, untouched gap and still
+   lands at the very bottom instead of right under a short tab's content. */
+.cd-main-content__body {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
