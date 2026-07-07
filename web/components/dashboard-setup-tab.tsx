@@ -750,6 +750,22 @@ export function DashboardSetupTab({
             </div>
           </div>
 
+          {/* Data-custody reassurance at the exact fear point — entering a
+              relative's private birth details (#7/#43). The delete/rectify
+              controls already exist; surface that they do. */}
+          <div style={{
+            display: "flex", alignItems: "flex-start", gap: "var(--space-2)",
+            padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)",
+            background: W.sageLt, border: `1px solid ${W.sageBorder}`,
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={W.sage} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: "1px" }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <p style={{ margin: 0, fontSize: "0.8rem", color: W.inkMid, lineHeight: 1.5 }}>
+              {lang === "ta"
+                ? "இவர்களின் விவரங்கள் மறையாக்கம் செய்யப்பட்டு பாதுகாப்பாக சேமிக்கப்படுகின்றன — யாருக்கும் விற்கப்படுவதில்லை. எப்போது வேண்டுமானாலும் அமைப்புகளில் நீக்கலாம் அல்லது திருத்தலாம்."
+                : "Their details are encrypted and kept private — never sold or shared. You can delete or correct any member anytime from Settings."}
+            </p>
+          </div>
+
           <form id="form-member" onSubmit={onAddMember} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "var(--space-3)" }}>
               <WField label={t("field_name", lang)} error={formErrors.memberDisplayName}>
@@ -911,6 +927,13 @@ export function DashboardSetupTab({
               {lang === "ta"
                 ? "வருஷபலன், வர்கங்கள், ஒத்திசைவு — iOS மற்றும் Android ஆப்பில் சந்தா செய்யலாம்."
                 : "Varshaphala, vargas, synastry, and 5 reports/month — subscribe via the iOS or Android app."}
+            </p>
+            {/* Explicit free/paid boundary — counters the "free = hidden charges
+                later" reflex that keeps money-anxious users defensive (#19/#73). */}
+            <p style={{ margin: "var(--space-2) 0 0", fontSize: "0.75rem", color: "rgba(255,247,237,0.8)", lineHeight: 1.5 }}>
+              {lang === "ta"
+                ? "உங்கள் தினசரி மதிப்பெண், பஞ்சாங்கம், ஜாதகம், குடும்பக் கண்ணோட்டம் — எப்போதும் இலவசம். மறைமுக கட்டணங்கள் இல்லை; நீங்கள் தேர்ந்தெடுத்தால் மட்டுமே Premium."
+                : "Your daily score, panchangam, chart and family view stay free forever. No hidden charges — Premium is only if you choose it."}
             </p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", minWidth: "120px" }}>
