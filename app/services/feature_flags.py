@@ -45,6 +45,13 @@ def _defaults() -> dict[str, Any]:
         # causal chain instead of a flat factor list. Purely additive/optional
         # response fields; no change to any score or gate.
         "reasoning_chart_signature": False,
+        # Track A synthesis (humanization). Composes the six already-computed
+        # daily `reasons` + component scores into ONE prioritized, flowing
+        # briefing (verdict lead → 1-2 salient signals → one action) instead of
+        # the flat six-row stack. Populates the additive `briefing` field on
+        # daily guidance; nothing else changes. OFF until the Tamil connective
+        # copy has had a native review pass (Track B).
+        "daily_briefing_synth": False,
     }
 
 

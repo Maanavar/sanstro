@@ -82,6 +82,43 @@ def test_daily_guidance_endpoint_returns_daily_card(client, birth_profile_payloa
     assert "journalInsight" in body["data"]
 
 
+def test_daily_guidance_briefing_flag_gates_synthesis(client, birth_profile_payload_factory):
+    from app.services.feature_flags import reset_flag, set_flag
+
+    chart_id = _create_chart(client, birth_profile_payload_factory)
+
+    # Default (flag OFF): the synthesis field is present but null, and the
+    # existing six-row reasons stack is untouched.
+    off = client.get(
+        f"/api/v1/charts/{chart_id}/daily-guidance",
+        params={"date": "2026-05-21", "language": "ta-en"},
+    )
+    assert off.status_code == 200
+    assert off.json()["data"]["briefing"] is None
+
+    set_flag("daily_briefing_synth", True)
+    try:
+        # A different date, so this is not served from the flag-off cached row
+        # above (the daily-score cache is keyed by date, not by flag state).
+        on = client.get(
+            f"/api/v1/charts/{chart_id}/daily-guidance",
+            params={"date": "2026-06-11", "language": "ta-en"},
+        )
+    finally:
+        reset_flag("daily_briefing_synth")
+
+    assert on.status_code == 200
+    data = on.json()["data"]
+    briefing = data["briefing"]
+    assert briefing is not None
+    assert briefing["en"].strip()
+    assert briefing["ta"].strip()
+    # Synthesis leads with the verdict, so the day's label band is reflected in copy,
+    # and the six-row reasons stack still ships alongside it (additive, not a replacement).
+    assert data["reasons"]["moonTransit"]["en"].strip()
+    assert data["reasons"]["summary"]["en"].strip()
+
+
 def test_daily_guidance_all_text_fields_bilingual(client, birth_profile_payload_factory):
     chart_id = _create_chart(client, birth_profile_payload_factory)
     response = client.get(

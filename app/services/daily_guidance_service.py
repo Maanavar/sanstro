@@ -50,6 +50,7 @@ from app.schemas.daily_guidance import (
 from app.schemas.dasha import ResponseMeta
 from app.services.chart_service import load_persisted_chart_response
 from app.services.context_service import get_context_row, should_surface_proactively
+from app.services.daily_briefing_synth import BriefingInputs, synthesize_daily_briefing
 from app.services.emotional_weather import TransitPoint, compute_emotional_weather
 from app.services.feature_flags import get_flag
 from app.services.goals_service import get_active_goals_for_chart
@@ -642,6 +643,32 @@ def build_daily_guidance_response(
     )
     hora_lord = _current_hora_lord(panchangam, on_date, resolve_effective_daily_timezone(birth_profile))
 
+    # Track A synthesis: fold the six vetted reason fragments + component scores
+    # into one prioritized, flowing briefing. Reuses the already-computed pieces
+    # (no recompute, no model) and only surfaces behind the flag; `briefing`
+    # stays None otherwise, leaving the six-row `reasons` output untouched.
+    briefing: DailyGuidanceText | None = None
+    if get_flag("daily_briefing_synth"):
+        synthesized = synthesize_daily_briefing(BriefingInputs(
+            label=label,
+            moon_score=moon_score,
+            dasha_score=dasha_score,
+            transit_score=round(transit_score),
+            panchangam_score=panchangam_score,
+            personal_score=personal_safety_score,
+            moon_transit=reasons.moon_transit,
+            dasha_support=reasons.dasha_support,
+            gochar=reasons.gochar,
+            panchangam=reasons.panchangam,
+            personal_caution=reasons.personal_caution,
+            action=action_suggestion,  # the goal/track-enriched action, not the raw one
+            chandrashtama=chandrashtama,
+            sani_cycle_active=saturn_cycle.is_active,
+            best_window_label=best_label,
+            seed=f"{maha_lord}:{on_date.isoformat()}",
+        ))
+        briefing = DailyGuidanceText(ta=synthesized.ta, en=synthesized.en)
+
     return DailyGuidanceResponse(
         data=DailyGuidanceData(
             chartId=chart_id,
@@ -703,6 +730,7 @@ def build_daily_guidance_response(
                 personalCaution=DailyGuidanceText(ta=reasons.personal_caution.ta, en=reasons.personal_caution.en),
                 summary=DailyGuidanceText(ta=reasons.summary.ta, en=reasons.summary.en),
             ),
+            briefing=briefing,
             remedy=DailyGuidanceText(ta=reasons.remedy.ta, en=reasons.remedy.en),
             currentHoraLord=hora_lord,
             pratyantarNarrative=(

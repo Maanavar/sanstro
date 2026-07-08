@@ -102,6 +102,11 @@ class DailyGuidanceData(BaseModel):
     action_suggestion: DailyGuidanceSuggestion = Field(alias="actionSuggestion")
     caution_suggestion: DailyGuidanceSuggestion = Field(alias="cautionSuggestion")
     reasons: DailyGuidanceReasons
+    # Track A synthesis: the six `reasons` composed into one prioritized, flowing
+    # briefing (verdict lead → salient signals → one action). Populated only when
+    # the `daily_briefing_synth` flag is on; additive/optional so existing
+    # consumers and cached rows built before it are unaffected.
+    briefing: DailyGuidanceText | None = Field(default=None)
     remedy: DailyGuidanceText
     current_hora_lord: str | None = Field(default=None, alias="currentHoraLord")
     pratyantar_narrative: DailyGuidanceText | None = Field(default=None, alias="pratyantarNarrative")
