@@ -35,6 +35,8 @@ import { downloadJadhagamPdf } from "./dashboard-personal-tab";
 import { Chip, Surface } from "./dashboard-ui";
 import { NovaScoreDial } from "./dashboard-ui-nova";
 import { CollapsibleSection } from "./collapsible-section";
+import { GlossaryTerm } from "./glossary-term";
+import { AdvancedAstrologyGate } from "./advanced-astrology-gate";
 import { ChartExplanationPanel } from "./dashboard-chart-explanation";
 import { VargasPanel } from "./dashboard-vargas-panel";
 import { ShadbalaPanel } from "./dashboard-shadbala-panel";
@@ -103,6 +105,7 @@ export type DashboardTodayTabNovaProps = {
   onOpenPrasna?: () => void;
   showPrasna?: boolean;
   onClosePrasna?: () => void;
+  mode?: "BEGINNER" | "BALANCED" | "TRADITIONAL";
 };
 
 function greetingWord(lang: Lang): string {
@@ -149,6 +152,7 @@ export function DashboardTodayTabNova({
   onOpenPrasna,
   showPrasna = false,
   onClosePrasna,
+  mode,
 }: DashboardTodayTabNovaProps) {
   const { days: streakDays } = useStreak();
   const displayName = personalMemberChart?.displayName ?? birthDisplayName;
@@ -509,9 +513,11 @@ export function DashboardTodayTabNova({
               )}
 
               {activeChartId && <ShadbalaPanel lang={lang} chartId={activeChartId} />}
-              {activeChartId && <YoginiDashaPanel lang={lang} chartId={activeChartId} />}
-              {activeChartId && <AshtottariDashaPanel lang={lang} chartId={activeChartId} />}
-              {activeChartId && <KalachakraDashaPanel lang={lang} chartId={activeChartId} />}
+              <AdvancedAstrologyGate lang={lang} mode={mode}>
+                {activeChartId && <YoginiDashaPanel lang={lang} chartId={activeChartId} />}
+                {activeChartId && <AshtottariDashaPanel lang={lang} chartId={activeChartId} />}
+                {activeChartId && <KalachakraDashaPanel lang={lang} chartId={activeChartId} />}
+              </AdvancedAstrologyGate>
 
               {(charaDasha || solarReturn) && (
                 <Surface title={lang === "ta" ? "பாரம்பரிய கால நிர்ணயம்" : "Classical Timing"}>

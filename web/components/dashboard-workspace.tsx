@@ -1206,6 +1206,7 @@ export function DashboardWorkspace() {
           session.setShowUserMenu(false);
           session.signOut();
         }}
+        onAskVinaadi={personal.chartId ? () => setAskVinaadiOpen(true) : undefined}
       />
 
       {/* Edit member modal */}
@@ -1399,6 +1400,7 @@ export function DashboardWorkspace() {
           <DashboardTodayTabNova
             lang={lang}
             activeLifeMode={activeLifeMode}
+            mode={session.userMode}
             birthDisplayName={birthForm.displayName}
             selectedDate={selectedDate}
             todayDate={personal.todayDate}
@@ -1435,6 +1437,7 @@ export function DashboardWorkspace() {
           <DashboardPersonalTab
             lang={lang}
             activeLifeMode={activeLifeMode}
+            mode={session.userMode}
             onChangeFocus={() => setLifeModePickerOpen(true)}
             birthDisplayName={birthForm.displayName}
             selectedDate={selectedDate}
@@ -2147,6 +2150,7 @@ export function DashboardWorkspace() {
           activeLifeMode={activeLifeMode}
           open={askVinaadiOpen}
           onOpenChange={setAskVinaadiOpen}
+          hideLauncher={uiVariant === "nova"}
         />
       )}
 

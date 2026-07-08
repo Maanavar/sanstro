@@ -4,6 +4,7 @@ import { useState } from "react";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { CollapsibleSection } from "./collapsible-section";
+import { GlossaryTerm } from "./glossary-term";
 
 const W = {
   ink: "var(--deepdive-ink, var(--panel-earth-dark))",
@@ -94,6 +95,18 @@ export function VargasPanel({ lang, vargas, d1Planets, bhavaChalit, vargaReliabi
   return (
     <CollapsibleSection title={t("vargas_title", lang)} defaultOpen={false}>
       <div style={{ marginTop: "var(--space-3)" }}>
+        <p style={{ margin: "0 0 var(--space-2_5)", fontSize: 12, color: W.muted, lineHeight: 1.5 }}>
+          <GlossaryTerm term="varga" lang={lang}>
+            {lang === "ta" ? "பிரிவு கட்டங்கள்" : "Divisional charts"}
+          </GlossaryTerm>
+          {lang === "ta"
+            ? " — ஒவ்வொன்றும் ஒரு வாழ்க்கைத் துறையை (திருமணம், தொழில் போன்றவை) விரிவாகப் பார்க்கும். "
+            : " — each one zooms into a specific life area (marriage, career, and so on). "}
+          <GlossaryTerm term="navamsa" lang={lang}>
+            {lang === "ta" ? "D9 நவாம்சம்" : "D9 (Navamsa)"}
+          </GlossaryTerm>
+          {lang === "ta" ? " பாரம்பரியமாக மிக முக்கியமான வர்க்கம்." : " is traditionally the most important."}
+        </p>
 
         {/* Varga tab pills */}
         <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap", marginBottom: "var(--space-3)" }}>

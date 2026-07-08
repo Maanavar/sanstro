@@ -23,6 +23,7 @@ import type {
 } from "@/lib/types";
 
 import { formatChandrashtamaWindowSummary } from "./dashboard-calendar-tab";
+import { GlossaryTerm } from "./glossary-term";
 import { GUIDANCE_REASON_KEYS } from "./dashboard-personal-tab";
 import {
   ACTIVITY_OPTIONS,
@@ -231,7 +232,7 @@ export function NovaChartContextGuidanceGochar({
           )}
         </Surface>
 
-        <Surface title={t("surface_gochar", lang)}>
+        <Surface title={<GlossaryTerm term="gochar" lang={lang}>{t("surface_gochar", lang)}</GlossaryTerm>}>
           {personalTransit && personalSani && panchangam ? (
             <div className="stack">
               <div className="surface__metrics">

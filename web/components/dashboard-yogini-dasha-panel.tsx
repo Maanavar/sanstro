@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Lang } from "@/lib/i18n";
 import { getYoginiDasha, type YoginiDashaData, type YoginiDashaPeriod } from "@vinaadi/shared/api/yoginiDasha";
 import { CollapsibleSection } from "./collapsible-section";
+import { GlossaryTerm } from "./glossary-term";
 
 const W = {
   ink: "var(--deepdive-ink, var(--panel-earth-dark))",
@@ -82,13 +83,18 @@ export function YoginiDashaPanel({ lang, chartId }: Props) {
   const title = isTamil ? "யோகினி தசை — 36 ஆண்டு சுழற்சி" : "Yogini Dasha — 36-Year Cycle";
   // Consistent experimental caveat so unverified engines don't wear the same
   // confidence as the validated core (UX #40).
-  const subtitle = isTamil
-    ? "இரண்டாம்நிலை/ஒப்பீட்டு தசை (தேவி பாகவதம் / முஹூர்த்த சிந்தாமணி மரபு) · சோதனை நிலை, மதிப்பெண் கணக்கீட்டில் பயன்படுத்தப்படவில்லை"
-    : "Secondary/comparison dasha (Devi Bhagavata / Muhurta Chintamani tradition) · Experimental, not used in any scoring path";
+  const subtitleRest = isTamil
+    ? " (தேவி பாகவதம் / முஹூர்த்த சிந்தாமணி மரபு) · சோதனை நிலை, மதிப்பெண் கணக்கீட்டில் பயன்படுத்தப்படவில்லை"
+    : " (Devi Bhagavata / Muhurta Chintamani tradition) · Experimental, not used in any scoring path";
 
   return (
     <CollapsibleSection title={title} defaultOpen={false}>
-      <p style={{ color: W.muted, fontSize: 12, margin: "0 0 var(--space-2) 0" }}>{subtitle}</p>
+      <p style={{ color: W.muted, fontSize: 12, margin: "0 0 var(--space-2) 0" }}>
+        <GlossaryTerm term="yoginiDasha" lang={lang}>
+          {isTamil ? "இரண்டாம்நிலை/ஒப்பீட்டு தசை" : "Secondary/comparison dasha"}
+        </GlossaryTerm>
+        {subtitleRest}
+      </p>
       {state === "loading" && (
         <p style={{ color: W.muted, fontSize: 13, margin: 0 }}>
           {isTamil ? "ஏற்றுகிறது…" : "Loading…"}

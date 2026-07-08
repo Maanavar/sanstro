@@ -44,6 +44,8 @@ import { MemberChip } from "./member-chip";
 import { AlertBanner } from "./alert-banner";
 import { DashboardActivityTimingCard } from "./dashboard-activity-timing-card";
 import { CollapsibleSection } from "./collapsible-section";
+import { GlossaryTerm } from "./glossary-term";
+import { AdvancedAstrologyGate } from "./advanced-astrology-gate";
 import { VargasPanel } from "./dashboard-vargas-panel";
 import { ShadbalaPanel } from "./dashboard-shadbala-panel";
 import { YoginiDashaPanel } from "./dashboard-yogini-dasha-panel";
@@ -133,6 +135,7 @@ export type DashboardPersonalTabProps = {
   dasha: DashaTimelineResponseData | null;
   dashaMaha?: DashaTimelineResponseData | null;
   dashaAntar: DashaTimelineItem[];
+  mode?: "BEGINNER" | "BALANCED" | "TRADITIONAL";
 };
 
 
@@ -177,6 +180,7 @@ export function DashboardPersonalTab({
   dasha,
   dashaMaha = null,
   dashaAntar,
+  mode,
 }: DashboardPersonalTabProps) {
   const { days: streakDays } = useStreak();
   const displayName = personalMemberChart?.displayName ?? birthDisplayName;
@@ -844,41 +848,44 @@ export function DashboardPersonalTab({
         </div>
       )}
 
-      {/* ── Yogini Dasha (36-year secondary/comparison dasha) ── */}
-      {activeChartId && (
-        <div style={{
-          padding: "var(--space-3_5) var(--space-4_5)",
-          borderRadius: "var(--radius-md)",
-          border: "1px solid var(--panel-tan-light)",
-          background: "var(--panel-cream)",
-        }}>
-          <YoginiDashaPanel lang={lang} chartId={activeChartId} />
-        </div>
-      )}
+      {/* ── Yogini / Ashtottari / Kalachakra Dasha (experimental/comparison dashas) ──
+          Gated behind one extra toggle for BEGINNER mode (H8 #24) — none feed
+          the daily score, so hiding them by default doesn't lose anything a
+          beginner needs, while BALANCED/TRADITIONAL see them as before. */}
+      <AdvancedAstrologyGate lang={lang} mode={mode}>
+        {activeChartId && (
+          <div style={{
+            padding: "var(--space-3_5) var(--space-4_5)",
+            borderRadius: "var(--radius-md)",
+            border: "1px solid var(--panel-tan-light)",
+            background: "var(--panel-cream)",
+          }}>
+            <YoginiDashaPanel lang={lang} chartId={activeChartId} />
+          </div>
+        )}
 
-      {/* ── Ashtottari Dasha (108-year secondary/comparison dasha) ── */}
-      {activeChartId && (
-        <div style={{
-          padding: "var(--space-3_5) var(--space-4_5)",
-          borderRadius: "var(--radius-md)",
-          border: "1px solid var(--panel-tan-light)",
-          background: "var(--panel-cream)",
-        }}>
-          <AshtottariDashaPanel lang={lang} chartId={activeChartId} />
-        </div>
-      )}
+        {activeChartId && (
+          <div style={{
+            padding: "var(--space-3_5) var(--space-4_5)",
+            borderRadius: "var(--radius-md)",
+            border: "1px solid var(--panel-tan-light)",
+            background: "var(--panel-cream)",
+          }}>
+            <AshtottariDashaPanel lang={lang} chartId={activeChartId} />
+          </div>
+        )}
 
-      {/* ── Kalachakra Dasha (rasi-based, experimental/display-only) ── */}
-      {activeChartId && (
-        <div style={{
-          padding: "var(--space-3_5) var(--space-4_5)",
-          borderRadius: "var(--radius-md)",
-          border: "1px solid var(--panel-tan-light)",
-          background: "var(--panel-cream)",
-        }}>
-          <KalachakraDashaPanel lang={lang} chartId={activeChartId} />
-        </div>
-      )}
+        {activeChartId && (
+          <div style={{
+            padding: "var(--space-3_5) var(--space-4_5)",
+            borderRadius: "var(--radius-md)",
+            border: "1px solid var(--panel-tan-light)",
+            background: "var(--panel-cream)",
+          }}>
+            <KalachakraDashaPanel lang={lang} chartId={activeChartId} />
+          </div>
+        )}
+      </AdvancedAstrologyGate>
 
       {/* ── Classical Timing (Chara Dasha + Solar Return) ── */}
       {(charaDasha || solarReturn) && (
@@ -910,7 +917,9 @@ export function DashboardPersonalTab({
                       <div style={{ display: "flex", gap: "var(--space-2)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
                         <div style={{ flex: 1 }}>
                           <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                            {lang === "ta" ? "ஆத்மகாரகன்" : "Atmakaraka"}
+                            <GlossaryTerm term="atmakaraka" lang={lang}>
+                              {lang === "ta" ? "ஆத்மகாரகன்" : "Atmakaraka"}
+                            </GlossaryTerm>
                           </p>
                           <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
                             {tPlanetLord(charaDasha.atmakaraka, lang)}
@@ -919,7 +928,9 @@ export function DashboardPersonalTab({
                         {charaDasha.karakamsaRasiName && (
                           <div style={{ flex: 1 }}>
                             <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                              {lang === "ta" ? "காரகாம்சம்" : "Karakamsa"}
+                              <GlossaryTerm term="karakamsa" lang={lang}>
+                                {lang === "ta" ? "காரகாம்சம்" : "Karakamsa"}
+                              </GlossaryTerm>
                             </p>
                             <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
                               {charaDasha.karakamsaRasiName}

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import type { Lang } from "@/lib/i18n";
 import { getShadbala, type PlanetShadbala, type ShadbalaData } from "@vinaadi/shared/api/shadbala";
 import { CollapsibleSection } from "./collapsible-section";
+import { GlossaryTerm } from "./glossary-term";
+import type { GlossaryKey } from "@/lib/glossary";
 
 const W = {
   ink: "var(--deepdive-ink, var(--panel-earth-dark))",
@@ -26,13 +28,13 @@ const PLANET_LABEL: Record<string, { en: string; ta: string }> = {
   SATURN: { en: "Saturn", ta: "சனி" },
 };
 
-const COMPONENTS: [keyof PlanetShadbala, string][] = [
-  ["sthana", "Sthana"],
-  ["dig", "Dig"],
-  ["kala", "Kala"],
-  ["chesta", "Chesta"],
-  ["naisargika", "Naisargika"],
-  ["drik", "Drik"],
+const COMPONENTS: [keyof PlanetShadbala, string, GlossaryKey][] = [
+  ["sthana", "Sthana", "sthanaBala"],
+  ["dig", "Dig", "digBala"],
+  ["kala", "Kala", "kalaBala"],
+  ["chesta", "Chesta", "chestaBala"],
+  ["naisargika", "Naisargika", "naisargikaBala"],
+  ["drik", "Drik", "drikBala"],
 ];
 
 type Props = {
@@ -72,6 +74,13 @@ export function ShadbalaPanel({ lang, chartId }: Props) {
   return (
     <CollapsibleSection title={title} defaultOpen={false}>
       <p style={{ color: W.muted, fontSize: 12, margin: "0 0 var(--space-2) 0" }}>{subtitle}</p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: "var(--space-2_5)" }}>
+        {COMPONENTS.map(([key, name, glossaryKey]) => (
+          <GlossaryTerm key={key} term={glossaryKey} lang={lang}>
+            <span style={{ fontSize: 11, color: W.muted }}>{name} bala</span>
+          </GlossaryTerm>
+        ))}
+      </div>
       {state === "loading" && (
         <p style={{ color: W.muted, fontSize: 13, margin: 0 }}>
           {isTamil ? "ஏற்றுகிறது…" : "Loading…"}

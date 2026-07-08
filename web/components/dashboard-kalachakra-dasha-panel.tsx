@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Lang } from "@/lib/i18n";
 import { getKalachakraDasha, type KalachakraDashaData, type KalachakraDashaPeriod } from "@vinaadi/shared/api/kalachakraDasha";
 import { CollapsibleSection } from "./collapsible-section";
+import { GlossaryTerm } from "./glossary-term";
 
 const W = {
   ink: "var(--deepdive-ink, var(--panel-earth-dark))",
@@ -51,13 +52,18 @@ export function KalachakraDashaPanel({ lang, chartId }: Props) {
   }, [chartId]);
 
   const title = isTamil ? "காலசக்ரா தசை" : "Kalachakra Dasha";
-  const subtitle = isTamil
-    ? "இரண்டாம்நிலை/ஒப்பீட்டு தசை — சோதனை நிலையில் உள்ளது, மதிப்பெண் கணக்கீட்டில் பயன்படுத்தப்படவில்லை"
-    : "Secondary/comparison dasha — experimental, display only, not used in any scoring path";
+  const subtitleRest = isTamil
+    ? " — சோதனை நிலையில் உள்ளது, மதிப்பெண் கணக்கீட்டில் பயன்படுத்தப்படவில்லை"
+    : " — experimental, display only, not used in any scoring path";
 
   return (
     <CollapsibleSection title={title} defaultOpen={false}>
-      <p style={{ color: W.muted, fontSize: 12, margin: "0 0 var(--space-2) 0" }}>{subtitle}</p>
+      <p style={{ color: W.muted, fontSize: 12, margin: "0 0 var(--space-2) 0" }}>
+        <GlossaryTerm term="kalachakraDasha" lang={lang}>
+          {isTamil ? "இரண்டாம்நிலை/ஒப்பீட்டு தசை" : "Secondary/comparison dasha"}
+        </GlossaryTerm>
+        {subtitleRest}
+      </p>
       {state === "loading" && (
         <p style={{ color: W.muted, fontSize: 13, margin: 0 }}>
           {isTamil ? "ஏற்றுகிறது…" : "Loading…"}

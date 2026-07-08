@@ -108,7 +108,7 @@ export function Button({
   );
 }
 
-export function Surface({ title, children }: { title: string; children: ReactNode }) {
+export function Surface({ title, children }: { title: ReactNode; children: ReactNode }) {
   return (
     <div className="surface">
       <div className="surface__title">{title}</div>

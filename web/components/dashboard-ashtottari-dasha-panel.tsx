@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Lang } from "@/lib/i18n";
 import { getAshtottariDasha, type AshtottariDashaData, type AshtottariDashaPeriod } from "@vinaadi/shared/api/ashtottariDasha";
 import { CollapsibleSection } from "./collapsible-section";
+import { GlossaryTerm } from "./glossary-term";
 
 const W = {
   ink: "var(--deepdive-ink, var(--panel-earth-dark))",
@@ -65,13 +66,18 @@ export function AshtottariDashaPanel({ lang, chartId }: Props) {
 
   const title = isTamil ? "அஷ்டோத்தரி தசை — 108 ஆண்டு சுழற்சி" : "Ashtottari Dasha — 108-Year Cycle";
   // Experimental caveat, consistent with the other secondary engines (UX #40).
-  const subtitle = isTamil
-    ? "இரண்டாம்நிலை/ஒப்பீட்டு தசை · சோதனை நிலை — காட்சிக்கு மட்டும், மதிப்பெண் கணக்கீட்டில் பயன்படுத்தப்படவில்லை"
-    : "Secondary/comparison dasha · Experimental — display only, not used in any scoring path";
+  const subtitleRest = isTamil
+    ? " · சோதனை நிலை — காட்சிக்கு மட்டும், மதிப்பெண் கணக்கீட்டில் பயன்படுத்தப்படவில்லை"
+    : " · Experimental — display only, not used in any scoring path";
 
   return (
     <CollapsibleSection title={title} defaultOpen={false}>
-      <p style={{ color: W.muted, fontSize: 12, margin: "0 0 var(--space-2) 0" }}>{subtitle}</p>
+      <p style={{ color: W.muted, fontSize: 12, margin: "0 0 var(--space-2) 0" }}>
+        <GlossaryTerm term="ashtottariDasha" lang={lang}>
+          {isTamil ? "இரண்டாம்நிலை/ஒப்பீட்டு தசை" : "Secondary/comparison dasha"}
+        </GlossaryTerm>
+        {subtitleRest}
+      </p>
       {state === "loading" && (
         <p style={{ color: W.muted, fontSize: 13, margin: 0 }}>
           {isTamil ? "ஏற்றுகிறது…" : "Loading…"}
