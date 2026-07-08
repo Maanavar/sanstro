@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { formatClockLabel } from "@/lib/format";
@@ -695,6 +696,17 @@ export function DashboardCalendarTabNova({
                       <span className="cd-detail-spec-row__tag">5L</span>
                     </div>
                   ))}
+                </div>
+
+                <div style={{ marginTop: "14px", paddingTop: "12px", borderTop: "1px solid var(--color-border)" }}>
+                  <p style={{ margin: "0 0 6px", fontSize: "11.5px", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                    {lang === "ta"
+                      ? "இந்த நேரங்கள் திருக்கணிதம் (எபிமெரிஸ் அடிப்படையிலான வானியல்) முறையில், லாஹிரி அயனாம்சத்தில் கணக்கிடப்படுகின்றன. வாக்கிய முறையைப் பின்பற்றும் உங்கள் ஊர் பஞ்சாங்கம் அல்லது குருவின் கணக்கீட்டில் திதி/நட்சத்திர மாற்ற நேரங்களில் சிறிது வேறுபாடு இருக்கலாம்."
+                      : "These times use Drik-ganita (ephemeris-based) astronomy with Lahiri ayanamsa. If your local almanac or purohit follows the traditional Vakya method, tithi/nakshatra boundary times may differ slightly."}
+                  </p>
+                  <Link href="/trust/methodology#panchangam" style={{ fontSize: "11.5px", fontWeight: 700, color: "var(--color-accent)", textDecoration: "none" }}>
+                    {lang === "ta" ? "எங்கள் கணக்கீட்டு முறையைப் பார்க்க →" : "See our calculation methodology →"}
+                  </Link>
                 </div>
               </div>
 

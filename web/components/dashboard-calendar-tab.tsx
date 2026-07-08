@@ -11,6 +11,8 @@ import { lunarSpecialTithiMeta } from "@/lib/lunar";
 import { festivalGlyph, nakshatraSymbol, rasiGlyph } from "@/lib/astro-symbols";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { useMonthlyPanchangam } from "@/hooks/useMonthlyPanchangam";
+import Link from "next/link";
+
 import { PlaceCombobox } from "./place-combobox";
 import { DrawerPanel } from "./drawer-panel";
 import type {
@@ -1867,6 +1869,17 @@ export function CalendarTab({
                       <span className="cd-detail-spec-row__tag">5L</span>
                     </div>
                   ))}
+                </div>
+
+                <div style={{ marginTop: "var(--space-3)", paddingTop: "var(--space-2_5)", borderTop: `1px solid ${W.borderLt}` }}>
+                  <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.72rem", color: W.muted, lineHeight: 1.5 }}>
+                    {lang === "ta"
+                      ? "இந்த நேரங்கள் திருக்கணிதம் (எபிமெரிஸ் அடிப்படையிலான வானியல்) முறையில், லாஹிரி அயனாம்சத்தில் கணக்கிடப்படுகின்றன. வாக்கிய முறையைப் பின்பற்றும் உங்கள் ஊர் பஞ்சாங்கம் அல்லது குருவின் கணக்கீட்டில் திதி/நட்சத்திர மாற்ற நேரங்களில் சிறிது வேறுபாடு இருக்கலாம்."
+                      : "These times use Drik-ganita (ephemeris-based) astronomy with Lahiri ayanamsa. If your local almanac or purohit follows the traditional Vakya method, tithi/nakshatra boundary times may differ slightly."}
+                  </p>
+                  <Link href="/trust/methodology#panchangam" style={{ fontSize: "0.72rem", fontWeight: 700, color: W.terracotta, textDecoration: "none" }}>
+                    {lang === "ta" ? "எங்கள் கணக்கீட்டு முறையைப் பார்க்க →" : "See our calculation methodology →"}
+                  </Link>
                 </div>
 
                 {panchangam.hora.length > 0 && (
