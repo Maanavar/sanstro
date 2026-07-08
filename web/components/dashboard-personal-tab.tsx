@@ -52,6 +52,7 @@ import { ShadbalaPanel } from "./dashboard-shadbala-panel";
 import { YoginiDashaPanel } from "./dashboard-yogini-dasha-panel";
 import { AshtottariDashaPanel } from "./dashboard-ashtottari-dasha-panel";
 import { KalachakraDashaPanel } from "./dashboard-kalachakra-dasha-panel";
+import { AdvancedLensNote } from "./advanced-lens-note";
 import { MorningGuidanceCard } from "./morning-guidance-card";
 import { PrasnaWidget } from "./dashboard-prasna-widget";
 import { ChartExplanationPanel } from "./dashboard-chart-explanation";
@@ -878,6 +879,22 @@ export function DashboardPersonalTab({
             border: "1px solid var(--panel-tan-light)",
             background: "var(--panel-cream)",
           }}>
+            <AdvancedLensNote
+              lang={lang}
+              showDegreeNote
+              whatEn="Three alternative dasha systems — Yogini (an 8-Yogini, 36-year cycle), Ashtottari (a 108-year conditional dasha), and Kalachakra (a rasi-based dasha tied to your birth nakshatra pada). Astrologers use them as extra timing lenses alongside the main Vimshottari dasha."
+              whatTa="மூன்று மாற்று தசை முறைகள் — யோகினி (8 யோகினி, 36 ஆண்டு சுழற்சி), அஷ்டோத்தரி (108 ஆண்டு நிபந்தனை தசை), காலசக்கரம் (பிறப்பு நட்சத்திரப் பாதத்தை ஒட்டிய ராசி தசை). முதன்மை விம்ஷோத்தரி தசையுடன் கூடுதல் கால நிர்ணய பார்வைகளாக இவை பயன்படுத்தப்படுகின்றன."
+            />
+          </div>
+        )}
+
+        {activeChartId && (
+          <div style={{
+            padding: "var(--space-3_5) var(--space-4_5)",
+            borderRadius: "var(--radius-md)",
+            border: "1px solid var(--panel-tan-light)",
+            background: "var(--panel-cream)",
+          }}>
             <YoginiDashaPanel lang={lang} chartId={activeChartId} />
           </div>
         )}
@@ -920,6 +937,11 @@ export function DashboardPersonalTab({
         } as React.CSSProperties}>
           <Surface title={lang === "ta" ? "பாரம்பரிய கால நிர்ணயம்" : "Classical Timing"}>
             <div className="surface__body" style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
+              <AdvancedLensNote
+                lang={lang}
+                whatEn="Two 'when' techniques grouped together: Jaimini Chara Dasha (a sign/rasi-based dasha from the Jaimini system, read alongside the planet-based Vimshottari) and the Annual Chart / Varshaphala (your solar-return chart for the year, with Muntha as the year's progressed point). Unlike Divisional Charts and Shadbala — which describe the birth chart's structure and strength — these describe when periods unfold."
+                whatTa="இரண்டு கால நிர்ணய நுட்பங்கள்: ஜைமினி சார தசை (ஜைமினி முறையின் ராசி அடிப்படையிலான தசை) மற்றும் ஆண்டு ஜாதகம் / வர்ஷபலா (ஆண்டுக்கான சூரிய திரும்புகை ஜாதகம்; முந்தா அந்த ஆண்டின் முன்னேற்றப் புள்ளி). பிரிவு ஜாதகங்களும் ஷட்பலமும் ஜாதகத்தின் அமைப்பையும் பலத்தையும் விவரிக்கும் — இவை காலங்கள் எப்போது நிகழும் என்பதைக் காட்டுகின்றன."
+              />
               {charaDasha && (
                 <CollapsibleSection
                   title={lang === "ta" ? "ஜைமினி சார தசை" : "Jaimini Chara Dasha"}

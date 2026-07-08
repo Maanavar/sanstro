@@ -93,7 +93,12 @@ export function ShadbalaPanel({ lang, chartId }: Props) {
       )}
       {data && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
-          <p style={{ color: W.muted, fontSize: 12, margin: 0, lineHeight: 1.5 }}>{data.note}</p>
+          <p style={{ color: W.ink, fontSize: 12.5, margin: 0, lineHeight: 1.55 }}>
+            {isTamil
+              ? "ரூபம் என்பது கிரக பலத்தின் செம்மொழி அளவு. ஒவ்வொரு கிரகமும் ஆறு மூலங்களிலிருந்து (இடம், திசை, காலம், இயக்கம், இயற்கைத் தரம், பார்வை) பலம் பெறுகிறது; அது ரூபங்களாகக் கூட்டப்படுகிறது. ஒரு கிரகம் அதற்குத் தேவையான ரூபத்தைத் தாண்டினால், அதன் வீடு மற்றும் தசை பலன்களை முழுமையாகத் தரும் அளவு வலிமையானது; குறைவாக இருந்தால், அப்பலன்கள் மெதுவாக வரும், முயற்சியும் பரிகாரமும் உதவும்."
+              : "A Rupa is the classical unit of planetary strength. Each planet earns strength from six sources (position, direction, time, motion, natural rank, and aspects), summed in Rupas. Clear the required Rupas and the planet is strong enough to deliver its house and dasha results fully; below that, those results come slower and benefit from effort or remedies."}
+          </p>
+          {data.note && <p style={{ color: W.muted, fontSize: 12, margin: 0, lineHeight: 1.5 }}>{data.note}</p>}
           {data.planets.map((p) => (
             <PlanetCard key={p.graha} p={p} isTamil={isTamil} />
           ))}
@@ -135,7 +140,7 @@ function PlanetCard({ p, isTamil }: { p: PlanetShadbala; isTamil: boolean }) {
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
         <span style={{ fontSize: 20, fontWeight: 800, color: W.ink }}>{p.rupas.toFixed(2)}</span>
         <span style={{ fontSize: 12, color: W.muted }}>
-          {isTamil ? "தேவை" : "req"} {p.requiredRupas.toFixed(1)} {isTamil ? "ரூபம்" : "Rupas"}
+          {isTamil ? "தேவை" : "req"} {p.requiredRupas.toFixed(1)} {isTamil ? "ரூபம்" : "Rupas"} · {ratioPct}%
         </span>
       </div>
       <div style={{ height: 6, borderRadius: 3, background: W.surfaceMd, overflow: "hidden", marginTop: 6 }}>
@@ -167,6 +172,15 @@ function PlanetCard({ p, isTamil }: { p: PlanetShadbala; isTamil: boolean }) {
           </span>
         ))}
       </div>
+      <p style={{ color: W.muted, fontSize: 12, margin: "8px 0 0", lineHeight: 1.5 }}>
+        {p.isStrong
+          ? isTamil
+            ? `${label?.ta ?? p.graha} தேவையான பலத்தைத் தாண்டுகிறது — அதன் வீடு மற்றும் தசை பலன்கள் தானாகவே நிலைக்கும்.`
+            : `${label?.en ?? p.graha} clears its required strength — its house and dasha results tend to hold up on their own.`
+          : isTamil
+            ? `${label?.ta ?? p.graha} தேவையான பலத்திற்குக் குறைவு — அதன் பலன்கள் மெதுவாக வரும்; முயற்சி அல்லது பரிகாரம் உதவும்.`
+            : `${label?.en ?? p.graha} is below the required strength — its results come slower and benefit from conscious effort or remedies.`}
+      </p>
     </div>
   );
 }
