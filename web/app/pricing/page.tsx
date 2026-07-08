@@ -179,6 +179,10 @@ export default function PricingPage() {
                     <p style={{ margin: "0 0 4px", fontWeight: 700, color: "var(--cl-ink)" }}>Can I cancel?</p>
                     <p style={{ margin: 0, color: "var(--cl-muted)", lineHeight: 1.65 }}>Yes. Mobile subscriptions are managed in the App Store or Play Store and follow the platform&apos;s cancellation rules.</p>
                   </div>
+                  <div>
+                    <p style={{ margin: "0 0 4px", fontWeight: 700, color: "var(--cl-ink)" }}>Does this app use a lot of data?</p>
+                    <p style={{ margin: 0, color: "var(--cl-muted)", lineHeight: 1.65 }}>No. There is no video and no large downloads — Vinaadi is built to load quickly and work smoothly even on a slow or limited connection.</p>
+                  </div>
                 </div>
               </div>
 
