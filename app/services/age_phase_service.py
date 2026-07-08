@@ -1,5 +1,38 @@
 from __future__ import annotations
 
+from app.services.narrative_engine import PLANET_NAME
+
+# Tamil short names for the dosham codes the yoga/dosham engine produces
+# (app/calculations/_yoga_dosham.py) — mirrors the frontend's own
+# dashboard-yoga-dosham-panel.tsx DOSHAM_LABEL table so the two stay in sync.
+_DOSHAM_NAME_TA: dict[str, str] = {
+    "SEVVAI_DOSHAM": "செவ்வாய் தோஷம்",
+    "RAHU_KETU_DOSHAM": "ராகு-கேது தோஷம்",
+    "PITRU_DOSHAM": "பித்ரு தோஷம்",
+    "KALATHRA_DOSHAM": "களத்திர தோஷம்",
+    "PUTRA_SARPA_DOSHAM": "புத்ர சர்ப்ப தோஷம்",
+    "BADHAKA_DOSHAM": "பாதக தோஷம்",
+}
+
+
+def _planet_label(code: str, lang: str) -> str:
+    name = PLANET_NAME.get(code)
+    if name is None:
+        return code
+    return name.ta if lang == "ta" else name.en
+
+
+def _pretty_yoga_name(code: str) -> str:
+    # Yoga names are proper nouns kept transliterated in both languages —
+    # matches dashboard-yoga-dosham-panel.tsx's YOGA_LABEL convention.
+    return code.replace("_", " ").title()
+
+
+def _dosham_label(code: str, lang: str) -> str:
+    if lang == "ta":
+        return _DOSHAM_NAME_TA.get(code, code.replace("_", " ").title())
+    return code.replace("_", " ").title()
+
 
 # Maps age → list of active life focus areas.
 # Used by the jadhagam report to surface only the scenarios, components,
@@ -283,6 +316,35 @@ def get_age_based_remedies(
     return {"en": en, "ta": ta}
 
 
+# Lighter sibling of build_executive_summary — a one-paragraph chart gist
+# using only data /charts/{id}/summary already computes (no planet-strength/
+# yoga/dosham scoring, which is Jadhagam-report-only and more expensive).
+def build_chart_gist(
+    current_age: int,
+    lagna_rasi: str,
+    moon_rasi: str,
+    nakshatra: str,
+    mahadasha_lord: str,
+    antardasha_lord: str,
+) -> dict[str, str]:
+    phase_label = get_age_phase_label(current_age)
+    mahadasha_en = _planet_label(mahadasha_lord, "en")
+    mahadasha_ta = _planet_label(mahadasha_lord, "ta")
+    antardasha_en = _planet_label(antardasha_lord, "en")
+    antardasha_ta = _planet_label(antardasha_lord, "ta")
+
+    en = (
+        f"Born with {lagna_rasi} lagna and {moon_rasi} moon rasi (nakshatra: {nakshatra}), "
+        f"currently in the {phase_label['en'].lower()} stage of life, running {mahadasha_en} "
+        f"mahadasha — {antardasha_en} antardasha."
+    )
+    ta = (
+        f"{lagna_rasi} லக்னம் மற்றும் {moon_rasi} சந்திர ராசியில் (நட்சத்திரம்: {nakshatra}) பிறந்தவர், "
+        f"தற்போது {phase_label['ta']} நிலையில், {mahadasha_ta} மகாதசை — {antardasha_ta} அந்தரதசை நடக்கிறது."
+    )
+    return {"en": en, "ta": ta}
+
+
 # Generate a fully semantic executive summary based on the chart's actual data.
 def build_executive_summary(
     current_age: int,
@@ -296,28 +358,45 @@ def build_executive_summary(
     active_yogas: list[str],
     active_doshams: list[str],
 ) -> dict[str, str]:
-    strong_str = ", ".join(strong_planets[:3]) if strong_planets else "none dominant"
-    weak_str = ", ".join(weak_planets[:2]) if weak_planets else "well-balanced"
-    yoga_str = ", ".join(active_yogas[:2]) if active_yogas else "general chart pattern"
-    dosham_str = f" Notable doshams require careful matching: {', '.join(active_doshams[:2])}." if active_doshams else ""
+    strong_str_en = ", ".join(_planet_label(p, "en") for p in strong_planets[:3]) if strong_planets else "none dominant"
+    strong_str_ta = ", ".join(_planet_label(p, "ta") for p in strong_planets[:3]) if strong_planets else "குறிப்பிடத்தக்கவை இல்லை"
+    weak_str_en = ", ".join(_planet_label(p, "en") for p in weak_planets[:2]) if weak_planets else "well-balanced"
+    weak_str_ta = ", ".join(_planet_label(p, "ta") for p in weak_planets[:2]) if weak_planets else "சமநிலையானவை"
+    yoga_str = ", ".join(_pretty_yoga_name(y) for y in active_yogas[:2]) if active_yogas else None
+    yoga_str_en = yoga_str or "general chart pattern"
+    yoga_str_ta = yoga_str or "பொதுவான ஜாதக அமைப்பு"
+
+    dosham_str_en = (
+        f" Notable doshams require careful matching: {', '.join(_dosham_label(d, 'en') for d in active_doshams[:2])}."
+        if active_doshams else ""
+    )
+    dosham_str_ta = (
+        f" கவனமாக பொருத்தம் பார்க்க வேண்டிய தோஷங்கள்: {', '.join(_dosham_label(d, 'ta') for d in active_doshams[:2])}."
+        if active_doshams else ""
+    )
+
+    mahadasha_en = _planet_label(mahadasha_lord, "en")
+    mahadasha_ta = _planet_label(mahadasha_lord, "ta")
+    antardasha_en = _planet_label(antardasha_lord, "en")
+    antardasha_ta = _planet_label(antardasha_lord, "ta")
 
     phase_label = get_age_phase_label(current_age)
 
     en = (
         f"This chart belongs to a {phase_label['en'].lower()} person aged {current_age}, "
         f"born with {lagna_rasi} lagna and {moon_rasi} moon rasi (nakshatra: {nakshatra}). "
-        f"Currently running {mahadasha_lord} mahadasha — {antardasha_lord} antardasha. "
-        f"Strongest planets: {strong_str}. Planets needing support: {weak_str}. "
-        f"Active yogas: {yoga_str}.{dosham_str} "
+        f"Currently running {mahadasha_en} mahadasha — {antardasha_en} antardasha. "
+        f"Strongest planets: {strong_str_en}. Planets needing support: {weak_str_en}. "
+        f"Active yogas: {yoga_str_en}.{dosham_str_en} "
         f"Guidance and predictions presented are specific to the {phase_label['en'].lower()} stage of life."
     )
 
     ta = (
         f"இந்த ஜாதகம் {current_age} வயதான {phase_label['ta']} நிலையில் உள்ள ஒருவருக்கு சொந்தமானது, "
         f"{lagna_rasi} லக்னம் மற்றும் {moon_rasi} சந்திர ராசியில் (நட்சத்திரம்: {nakshatra}) பிறந்தவர். "
-        f"தற்போது {mahadasha_lord} மகாதசை — {antardasha_lord} அந்தரதசை நடக்கிறது. "
-        f"வலுவான கிரகங்கள்: {strong_str}. ஆதரவு தேவைப்படும் கிரகங்கள்: {weak_str}. "
-        f"நடப்பு யோகங்கள்: {yoga_str}.{dosham_str} "
+        f"தற்போது {mahadasha_ta} மகாதசை — {antardasha_ta} அந்தரதசை நடக்கிறது. "
+        f"வலுவான கிரகங்கள்: {strong_str_ta}. ஆதரவு தேவைப்படும் கிரகங்கள்: {weak_str_ta}. "
+        f"நடப்பு யோகங்கள்: {yoga_str_ta}.{dosham_str_ta} "
         f"வழிகாட்டல் மற்றும் கணிப்புகள் {phase_label['ta']} வாழ்க்கை நிலைக்கு குறிப்பிட்டவை."
     )
 

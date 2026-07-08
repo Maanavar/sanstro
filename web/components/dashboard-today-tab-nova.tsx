@@ -260,6 +260,11 @@ export function DashboardTodayTabNova({
             <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem, 3.4vw, 2.4rem)", fontWeight: 600, lineHeight: 1.08, color: "var(--color-text-strong)" }}>
               {greetingWord(lang)}, {displayName}.
             </div>
+            {personalChartSummary?.primaryLanguageText && (
+              <div style={{ fontFamily: "var(--font-nova-prose), Georgia, serif", fontSize: "13.5px", lineHeight: 1.5, color: "var(--color-muted)", maxWidth: "620px" }}>
+                {tLang(personalChartSummary.primaryLanguageText, lang)}
+              </div>
+            )}
             {personalDailyGuidance?.emotionalWeather && (
               <>
                 <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>

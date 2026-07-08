@@ -45,6 +45,7 @@ from app.services._chart_planets import (
     _speed_ratio,
 )
 from app.services.age_phase_service import (
+    build_chart_gist,
     build_executive_summary,
     build_year_guidance,
     get_active_life_phases,
@@ -54,16 +55,24 @@ from app.services.age_phase_service import (
 from app.services.rectification_service import validate_chart_against_events
 
 
-def _summary_text(language: str) -> ChartSummaryText:
-    text = ChartSummaryText(
-        ta="இது உங்கள் அடிப்படை ஜாதகச் சுருக்கம்.",
-        en="This is your base chart summary.",
+def _gist_text(
+    *,
+    current_age: int,
+    lagna_rasi: str,
+    moon_rasi: str,
+    nakshatra: str,
+    mahadasha_lord: str,
+    antardasha_lord: str,
+) -> ChartSummaryText:
+    gist = build_chart_gist(
+        current_age=current_age,
+        lagna_rasi=lagna_rasi,
+        moon_rasi=moon_rasi,
+        nakshatra=nakshatra,
+        mahadasha_lord=mahadasha_lord,
+        antardasha_lord=antardasha_lord,
     )
-    if language == "ta":
-        return ChartSummaryText(ta=text.ta, en=text.en)
-    if language == "en":
-        return ChartSummaryText(ta=text.ta, en=text.en)
-    return text
+    return ChartSummaryText(ta=gist["ta"], en=gist["en"])
 
 
 def _current_age(birth_date_local: date, today: date) -> int:
@@ -100,12 +109,13 @@ def get_chart_summary_from_snapshot(
         utc_datetime_to_julian_day(datetime.now(tz=UTC)),
     )
     today = datetime.now(tz=UTC).date()
+    current_age = _current_age(birth_profile.birth_date_local, today)
 
     return ChartSummaryResponse(
         data=ChartSummaryData(
             chart_id=chart_response.data.chart_id,
             display_name=birth_profile.display_name,
-            current_age=_current_age(birth_profile.birth_date_local, today),
+            current_age=current_age,
             lagna_rasi=chart_response.data.lagna.rasi_name,
             moon_rasi=moon.rasi_name,
             d9_lagna_rasi=RASI_NAMES[d9_lagna_rasi],
@@ -119,7 +129,14 @@ def get_chart_summary_from_snapshot(
             planets=chart_response.data.planets,
             yogas=chart_response.data.yogas,
             chart_validation_status=None,
-            primary_language_text=_summary_text(language),
+            primary_language_text=_gist_text(
+                current_age=current_age,
+                lagna_rasi=chart_response.data.lagna.rasi_name,
+                moon_rasi=moon.rasi_name,
+                nakshatra=moon.nakshatra_name,
+                mahadasha_lord=timeline.current_mahadasha.lord,
+                antardasha_lord=timeline.current_antardasha.lord,
+            ),
         ),
         meta=ResponseMeta(
             calculation_version=chart_response.meta.calculation_version,
@@ -163,11 +180,13 @@ def get_chart_summary(session: Session, chart_id: UUID, *, language: str = "ta-e
         )
         validation_status = report.confidence
 
+    current_age = _current_age(birth_profile.birth_date_local, today)
+
     return ChartSummaryResponse(
         data=ChartSummaryData(
             chart_id=chart_id,
             display_name=birth_profile.display_name,
-            current_age=_current_age(birth_profile.birth_date_local, today),
+            current_age=current_age,
             lagna_rasi=chart_response.data.lagna.rasi_name,
             moon_rasi=moon.rasi_name,
             d9_lagna_rasi=RASI_NAMES[d9_lagna_rasi],
@@ -181,7 +200,14 @@ def get_chart_summary(session: Session, chart_id: UUID, *, language: str = "ta-e
             planets=chart_response.data.planets,
             yogas=chart_response.data.yogas,
             chart_validation_status=validation_status,
-            primary_language_text=_summary_text(language),
+            primary_language_text=_gist_text(
+                current_age=current_age,
+                lagna_rasi=chart_response.data.lagna.rasi_name,
+                moon_rasi=moon.rasi_name,
+                nakshatra=moon.nakshatra_name,
+                mahadasha_lord=timeline.current_mahadasha.lord,
+                antardasha_lord=timeline.current_antardasha.lord,
+            ),
         ),
         meta=ResponseMeta(
             calculation_version=chart.calculation_version,
