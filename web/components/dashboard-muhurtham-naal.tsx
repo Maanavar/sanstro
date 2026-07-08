@@ -13,8 +13,6 @@ import {
 } from "@/lib/muhurtham-naal";
 import { Surface } from "./dashboard-ui";
 
-const YEAR = 2027;
-
 const W = {
   ink: "var(--panel-earth-dark)",
   inkMid: "var(--panel-earth)",
@@ -179,6 +177,7 @@ function NaalRow({ row, lang, showMatchCol }: { row: MergedRow; lang: Lang; show
 }
 
 export function DashboardMuhurthamNaal({ lang, chartId }: { lang: Lang; chartId: string | null }) {
+  const [year, setYear] = useState(() => new Date().getFullYear());
   const [allNaals, setAllNaals] = useState<MuhurthamNaalItem[]>([]);
   const [matches, setMatches] = useState<MuhurthamNaalMatchItem[]>([]);
   const [context, setContext] = useState<MuhurthamNaalMatchContext | null>(null);
@@ -195,8 +194,8 @@ export function DashboardMuhurthamNaal({ lang, chartId }: { lang: Lang; chartId:
     setLoading(true);
     setError(null);
 
-    const publicFetch = fetchPublicMuhurthamNaals(YEAR);
-    const chartFetch = chartId ? fetchChartMuhurthamNaals(chartId, YEAR) : Promise.resolve(null);
+    const publicFetch = fetchPublicMuhurthamNaals(year);
+    const chartFetch = chartId ? fetchChartMuhurthamNaals(chartId, year) : Promise.resolve(null);
 
     Promise.all([publicFetch, chartFetch])
       .then(([pub, chart]) => {
@@ -217,7 +216,7 @@ export function DashboardMuhurthamNaal({ lang, chartId }: { lang: Lang; chartId:
     return () => {
       active = false;
     };
-  }, [chartId]);
+  }, [chartId, year]);
 
   // Build a lookup from date → match item
   const matchByDate = useMemo(() => {
@@ -246,7 +245,31 @@ export function DashboardMuhurthamNaal({ lang, chartId }: { lang: Lang; chartId:
   }, [allNaals, matchByDate, filterMonth, filterPirai, recommendedOnly]);
 
   const showMatchCol = chartId !== null && matches.length > 0;
-  const title = lang === "ta" ? `${YEAR} திருமண முகூர்த்த நாட்கள்` : `${YEAR} Wedding Muhurtham Naal`;
+  const titleText = lang === "ta" ? `${year} திருமண முகூர்த்த நாட்கள்` : `${year} Wedding Muhurtham Naal`;
+  const title = (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", width: "100%" }}>
+      <span>{titleText}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <button
+          type="button"
+          onClick={() => setYear((y) => y - 1)}
+          aria-label={lang === "ta" ? "முந்தைய ஆண்டு" : "Previous year"}
+          style={{ border: `1px solid ${W.borderLt}`, background: W.card, color: W.inkMid, borderRadius: "6px", width: "24px", height: "24px", cursor: "pointer", fontFamily: "inherit", fontSize: "0.8rem", lineHeight: 1 }}
+        >
+          ‹
+        </button>
+        <span style={{ fontSize: "0.8rem", fontWeight: 700, color: W.inkMid, minWidth: "38px", textAlign: "center" }}>{year}</span>
+        <button
+          type="button"
+          onClick={() => setYear((y) => y + 1)}
+          aria-label={lang === "ta" ? "அடுத்த ஆண்டு" : "Next year"}
+          style={{ border: `1px solid ${W.borderLt}`, background: W.card, color: W.inkMid, borderRadius: "6px", width: "24px", height: "24px", cursor: "pointer", fontFamily: "inherit", fontSize: "0.8rem", lineHeight: 1 }}
+        >
+          ›
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <Surface title={title}>

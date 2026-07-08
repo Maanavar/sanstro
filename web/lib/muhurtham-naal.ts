@@ -80,7 +80,7 @@ export function fetchPublicMuhurthamNaals(
 
 export function fetchChartMuhurthamNaals(
   chartId: string,
-  year = LATEST_MUHURTHAM_NAAL_YEAR,
+  year: number = LATEST_MUHURTHAM_NAAL_YEAR,
   recommendedOnly = false,
 ): Promise<MuhurthamNaalMatchResponse> {
   const query = toQuery({ year, recommendedOnly });

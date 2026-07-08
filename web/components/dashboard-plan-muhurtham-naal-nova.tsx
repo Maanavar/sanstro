@@ -25,8 +25,6 @@ import { NovaSelect } from "./nova-select";
  * chart-personalised match), same filters, same behavior.
  */
 
-const YEAR = 2027;
-
 const QUALITY_META: Record<string, { label: { en: string; ta: string }; dot: string; bg: string }> = {
   GOOD: { label: { en: "Favourable", ta: "சாதகம்" }, dot: "var(--color-high)", bg: "var(--color-high-bg)" },
   NEUTRAL: { label: { en: "Neutral", ta: "நடுநிலை" }, dot: "var(--color-faint)", bg: "var(--color-surface-soft)" },
@@ -143,6 +141,7 @@ function NovaNaalRow({ row, lang, showMatchCol }: { row: MergedRow; lang: Lang; 
 }
 
 export function NovaMuhurthamNaal({ lang, chartId }: { lang: Lang; chartId: string | null }) {
+  const [year, setYear] = useState(() => new Date().getFullYear());
   const [allNaals, setAllNaals] = useState<MuhurthamNaalItem[]>([]);
   const [matches, setMatches] = useState<MuhurthamNaalMatchItem[]>([]);
   const [context, setContext] = useState<MuhurthamNaalMatchContext | null>(null);
@@ -158,8 +157,8 @@ export function NovaMuhurthamNaal({ lang, chartId }: { lang: Lang; chartId: stri
     setLoading(true);
     setError(null);
 
-    const publicFetch = fetchPublicMuhurthamNaals(YEAR);
-    const chartFetch = chartId ? fetchChartMuhurthamNaals(chartId, YEAR) : Promise.resolve(null);
+    const publicFetch = fetchPublicMuhurthamNaals(year);
+    const chartFetch = chartId ? fetchChartMuhurthamNaals(chartId, year) : Promise.resolve(null);
 
     Promise.all([publicFetch, chartFetch])
       .then(([pub, chart]) => {
@@ -174,7 +173,7 @@ export function NovaMuhurthamNaal({ lang, chartId }: { lang: Lang; chartId: stri
       .finally(() => { if (active) setLoading(false); });
 
     return () => { active = false; };
-  }, [chartId]);
+  }, [chartId, year]);
 
   const matchByDate = useMemo(() => {
     const map = new Map<string, MuhurthamNaalMatchItem>();
@@ -201,11 +200,32 @@ export function NovaMuhurthamNaal({ lang, chartId }: { lang: Lang; chartId: stri
   }, [allNaals, matchByDate, filterMonth, filterPirai, recommendedOnly]);
 
   const showMatchCol = chartId !== null && matches.length > 0;
-  const title = lang === "ta" ? `${YEAR} திருமண முகூர்த்த நாட்கள்` : `${YEAR} Wedding Muhurtham Naal`;
+  const title = lang === "ta" ? `${year} திருமண முகூர்த்த நாட்கள்` : `${year} Wedding Muhurtham Naal`;
 
   return (
     <div style={{ padding: "16px 18px", borderRadius: "12px", background: "var(--color-surface)", border: "1px solid var(--color-border)", fontFamily: "var(--font-body)" }}>
-      <p style={{ margin: "0 0 12px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-accent)" }}>{title}</p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", marginBottom: "12px" }}>
+        <p style={{ margin: 0, fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-accent)" }}>{title}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <button
+            type="button"
+            onClick={() => setYear((y) => y - 1)}
+            aria-label={lang === "ta" ? "முந்தைய ஆண்டு" : "Previous year"}
+            style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)", borderRadius: "6px", width: "24px", height: "24px", cursor: "pointer", fontFamily: "inherit", fontSize: "13px", lineHeight: 1 }}
+          >
+            ‹
+          </button>
+          <span style={{ fontSize: "12.5px", fontWeight: 700, color: "var(--color-text)", minWidth: "38px", textAlign: "center" }}>{year}</span>
+          <button
+            type="button"
+            onClick={() => setYear((y) => y + 1)}
+            aria-label={lang === "ta" ? "அடுத்த ஆண்டு" : "Next year"}
+            style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)", borderRadius: "6px", width: "24px", height: "24px", cursor: "pointer", fontFamily: "inherit", fontSize: "13px", lineHeight: 1 }}
+          >
+            ›
+          </button>
+        </div>
+      </div>
 
       {chartId && context && (
         <div style={{ padding: "10px 12px", marginBottom: "12px", borderRadius: "8px", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", fontSize: "13.5px", color: "var(--color-text)" }}>
