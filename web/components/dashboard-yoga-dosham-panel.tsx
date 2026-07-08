@@ -416,8 +416,8 @@ export const DOSHAM_OUTCOMES: Record<string, { ta: string; en: string }> = {
     en: "Possible delay in marriage, a need for extra care in choosing a partner, or adjustment/communication challenges after marriage. Tradition also notes attention to a partner's health. With full compatibility matching and cancellation factors present, these reduce considerably.",
   },
   PUTRA_SARPA_DOSHAM: {
-    ta: "குழந்தைப்பேறில் தாமதம் அல்லது மருத்துவ கவனம் தேவைப்படலாம்; படைப்புத் திறன், கல்வி, முதலீடு சம்பந்தப்பட்ட திட்டங்களில் தடைகள் வரலாம். வலுவான 5-ம் அதிபதி அல்லது குரு ஆதரவு இருந்தால் இவை மென்மையாகும்.",
-    en: "Possible delay or medical attention around having children; creative, educational, or speculative ventures may meet blocks. A strong 5th lord or Jupiter's support softens these.",
+    ta: "குழந்தைப்பேறில் தாமதம் அல்லது மருத்துவ கவனம் தேவைப்படலாம்; படைப்புத் திறன், கல்வி, முதலீடு சம்பந்தப்பட்ட திட்டங்களில் தடைகள் வரலாம். வலுவான 5-ம் அதிபதி அல்லது குரு ஆதரவு இருந்தால் இவை மென்மையாகும். இது ஒரு பாரம்பரிய சுட்டி மட்டுமே, மருத்துவ கணிப்பு அல்ல — பலர் பொறுமையுடனும் சரியான மருத்துவ கவனிப்புடனும் இயல்பாக கருத்தரிக்கின்றனர்.",
+    en: "Possible delay or medical attention around having children; creative, educational, or speculative ventures may meet blocks. A strong 5th lord or Jupiter's support softens these. This is a traditional reading, not a medical prediction — many people conceive naturally with time and the right care.",
   },
 };
 
