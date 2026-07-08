@@ -105,8 +105,21 @@ type Props = {
   onLoad: () => void;
 };
 
+const PRACTICE_MODE_KEY = "vinaadi-remedy-practice-mode";
+
+function readStoredPracticeMode(): "traditional" | "secular" {
+  if (typeof window === "undefined") return "traditional";
+  return window.localStorage.getItem(PRACTICE_MODE_KEY) === "secular" ? "secular" : "traditional";
+}
+
 export function NovaRemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, loading, onLoad }: Props) {
   const [subTab, setSubTab] = useState<"plan" | "gemstone">("plan");
+  const [practiceMode, setPracticeMode] = useState<"traditional" | "secular">(readStoredPracticeMode);
+
+  function choosePracticeMode(mode: "traditional" | "secular") {
+    setPracticeMode(mode);
+    if (typeof window !== "undefined") window.localStorage.setItem(PRACTICE_MODE_KEY, mode);
+  }
 
   if (!chartId) {
     return <p style={{ fontSize: "13px", color: "var(--color-faint)", padding: "10px 0", fontFamily: "var(--font-body)" }}>{t("remedies_empty", lang)}</p>;
@@ -155,6 +168,36 @@ export function NovaRemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, l
 
       {subTab === "plan" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          {remedyPlan && (
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
+              {(["traditional", "secular"] as const).map((mode) => {
+                const isActive = mode === practiceMode;
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => choosePracticeMode(mode)}
+                    style={{
+                      padding: "4px 12px",
+                      borderRadius: "999px",
+                      border: `1.5px solid ${isActive ? "var(--color-accent-strong)" : "var(--color-border)"}`,
+                      background: isActive ? "var(--color-accent-muted)" : "transparent",
+                      color: isActive ? "var(--color-accent-strong)" : "var(--color-faint)",
+                      fontWeight: isActive ? 700 : 500,
+                      fontSize: "12px",
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {mode === "traditional" ? t("remedies_mode_traditional", lang) : t("remedies_mode_secular", lang)}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {remedyPlan && practiceMode === "secular" && (
+            <p style={{ fontSize: "11px", color: "var(--color-faint)", margin: 0, lineHeight: 1.5 }}>{t("remedies_secular_note", lang)}</p>
+          )}
           {!remedyPlan && <p style={{ fontSize: "13px", color: "var(--color-faint)" }}>{t("remedies_empty", lang)}</p>}
           {remedyPlan?.map((item) => (
             <CollapsibleSection
@@ -171,19 +214,23 @@ export function NovaRemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, l
               }
             >
               <div style={{ marginTop: "10px", padding: "12px", background: "var(--color-surface-soft)", borderRadius: "10px", border: "1px solid var(--color-border)" }}>
-                <NovaRemedyRow label={t("remedies_day", lang)} value={item.day} />
-                <NovaRemedyRow label={t("remedies_temple", lang)} value={lang === "ta" ? item.templeTa : item.templeEn} />
-                <NovaRemedyRow label={t("remedies_mantra", lang)} value={`${item.mantraFullTa}${item.japaCount ? ` × ${item.japaCount.toLocaleString()}` : ""}`} />
-                <NovaRemedyRow label={t("remedies_daanam", lang)} value={lang === "ta" ? item.daanumItemsTa : item.daanumItemsEn} />
-                <NovaRemedyRow label={t("remedies_fasting", lang)} value={lang === "ta" ? item.fastingRuleTa : item.fastingRuleEn} />
-                {(item.fastingRuleTa || item.fastingRuleEn) && (
-                  <p style={{ margin: "-2px 0 8px", paddingLeft: "7rem", fontSize: "11px", color: "var(--color-mid)", lineHeight: 1.45 }}>
-                    ⚠ {t("remedies_fasting_caution", lang)}
-                  </p>
+                {practiceMode === "traditional" && (
+                  <>
+                    <NovaRemedyRow label={t("remedies_day", lang)} value={item.day} />
+                    <NovaRemedyRow label={t("remedies_temple", lang)} value={lang === "ta" ? item.templeTa : item.templeEn} />
+                    <NovaRemedyRow label={t("remedies_mantra", lang)} value={`${item.mantraFullTa}${item.japaCount ? ` × ${item.japaCount.toLocaleString()}` : ""}`} />
+                    <NovaRemedyRow label={t("remedies_daanam", lang)} value={lang === "ta" ? item.daanumItemsTa : item.daanumItemsEn} />
+                    <NovaRemedyRow label={t("remedies_fasting", lang)} value={lang === "ta" ? item.fastingRuleTa : item.fastingRuleEn} />
+                    {(item.fastingRuleTa || item.fastingRuleEn) && (
+                      <p style={{ margin: "-2px 0 8px", paddingLeft: "7rem", fontSize: "11px", color: "var(--color-mid)", lineHeight: 1.45 }}>
+                        ⚠ {t("remedies_fasting_caution", lang)}
+                      </p>
+                    )}
+                  </>
                 )}
                 <NovaRemedyRow label={t("remedies_behaviour", lang)} value={lang === "ta" ? item.behaviouralTa : item.behaviouralEn} />
                 <NovaRemedyRow label={t("remedies_seva", lang)} value={lang === "ta" ? item.sevaTa : item.sevaEn} />
-                {item.gemstoneTa && (
+                {practiceMode === "traditional" && item.gemstoneTa && (
                   <div style={{ marginTop: "8px", padding: "6px 12px", borderRadius: "6px", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", fontSize: "12px", color: "var(--color-high)", display: "flex", alignItems: "center", gap: "6px" }}>
                     <Gem size={12} strokeWidth={1.5} aria-hidden="true" />
                     {lang === "ta" ? item.gemstoneTa : item.gemstoneEn}
