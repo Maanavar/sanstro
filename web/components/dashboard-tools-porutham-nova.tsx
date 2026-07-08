@@ -12,6 +12,7 @@ import { RasiChart } from "./dashboard-charts";
 import { Field } from "./dashboard-ui";
 import { PlaceCombobox } from "./place-combobox";
 import { NovaSelect } from "./nova-select";
+import { PoruthamShareLinkButton } from "./porutham-share-link-button";
 
 /**
  * Nova rebuild of PoruthamPanel (see docs/DASHBOARD_UI_REVAMP_PLAN.md §6.12,
@@ -457,6 +458,7 @@ export function NovaPoruthamPanel({
                   style={{ padding: "8px 18px", borderRadius: "9px", border: "1px solid var(--color-border-strong)", background: "none", color: downloadingPdf ? "var(--color-faint)" : "var(--color-accent-strong)", cursor: downloadingPdf ? "wait" : "pointer", fontWeight: 600, fontSize: "12.5px", fontFamily: "inherit" }}>
                   {downloadingPdf ? (lang === "ta" ? "PDF பதிவிறக்குகிறது…" : "Downloading PDF…") : `⤓ ${lang === "ta" ? "PDF பதிவிறக்கம்" : "PDF"}`}
                 </button>
+                <PoruthamShareLinkButton lang={lang} formA={formA} formB={formB} compatibilityContext={compatCtx} />
               </div>
 
               <p style={{ margin: 0, fontSize: "11px", color: "var(--color-faint)", lineHeight: 1.55, background: "rgba(243,236,221,0.03)", border: "1px dashed var(--color-border-strong)", borderRadius: "12px", padding: "11px 14px" }}>

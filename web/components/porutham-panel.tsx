@@ -11,6 +11,7 @@ import { RasiChart } from "./dashboard-charts";
 import { Field } from "./dashboard-ui";
 import { PlaceCombobox } from "./place-combobox";
 import { CompatibilityIntelligencePanel } from "./compatibility-intelligence-panel";
+import { PoruthamShareLinkButton } from "./porutham-share-link-button";
 
 type PublicCompareResponse = { success: boolean; data: { chartA: ChartCalculateResponseData; chartB: ChartCalculateResponseData; porutham: DirectPoruthamData } };
 
@@ -492,6 +493,7 @@ export function PoruthamPanel({ lang, familyVaultId, familyMembers = [] }: Porut
                   ? (lang === "ta" ? "முழு அறிக்கை PDF பதிவிறக்கம்" : "Download Full Report PDF")
                   : (lang === "ta" ? "PDF பதிவிறக்கம்" : "Download PDF")}
             </button>
+            <PoruthamShareLinkButton lang={lang} formA={formA} formB={formB} compatibilityContext={compatCtx} />
           </div>
 
           {/* Side-by-side charts */}

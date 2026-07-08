@@ -33,6 +33,7 @@ class PublicEndpointLimiter:
         "public_panchangam": {"max_requests": 30, "window_seconds": 60},  # 30/min per IP (GET, lightweight)
         "public_muhurta": {"max_requests": 5, "window_seconds": 60},  # 5/min per IP (heavy computation)
         "public_compare_pdf": {"max_requests": 3, "window_seconds": 60},  # 3/min per IP (PDF generation)
+        "porutham_share_view": {"max_requests": 30, "window_seconds": 60},  # 30/min per IP
     }
 
     def __init__(self) -> None:

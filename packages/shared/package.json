@@ -29,6 +29,7 @@
     "./api/decisions": "./src/api/decisions.ts",
     "./api/relationships": "./src/api/relationships.ts",
     "./api/porutham": "./src/api/porutham.ts",
+    "./api/porutham-shares": "./src/api/porutham-shares.ts",
     "./api/askVinaadi": "./src/api/askVinaadi.ts",
     "./api/goals": "./src/api/goals.ts",
     "./api/journal": "./src/api/journal.ts",

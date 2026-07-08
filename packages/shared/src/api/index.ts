@@ -18,6 +18,7 @@ export * from "./rectification";
 export * from "./decisions";
 export * from "./relationships";
 export * from "./porutham";
+export * from "./porutham-shares";
 export * from "./askVinaadi";
 export * from "./goals";
 export * from "./streak";

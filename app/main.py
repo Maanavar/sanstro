@@ -31,6 +31,7 @@ from app.api.muhurta import router as muhurta_router
 from app.api.notification_preferences import router as notification_preferences_router
 from app.api.notifications import router as notifications_router
 from app.api.panchangam import router as panchangam_router
+from app.api.porutham_shares import router as porutham_shares_router
 from app.api.prasna import router as prasna_router
 from app.api.predictions import router as predictions_router
 from app.api.newsletter import router as newsletter_router
@@ -213,6 +214,7 @@ def create_app() -> FastAPI:
     app.include_router(panchangam_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(qa_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(relationships_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(porutham_shares_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(retrospective_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(settings_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(admin_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
