@@ -127,12 +127,137 @@ def _dignity_text(dignity: str) -> ChartExplanationText:
         "OWN_SIGN": _bi("சொந்த ராசி: நிலையான ஆதரவு கிடைக்கும்.", "Own sign: stable support is available."),
         "FRIEND_SIGN": _bi("நட்பு ராசி: சூழல் ஒத்துழைப்பாக இருக்கும்.", "Friendly sign: the setting is cooperative."),
         "ENEMY_SIGN": _bi("பகை ராசி: கவனமாக கையாளும் போது பலன் சமநிலையாகும்.", "Enemy sign: results balance better with careful handling."),
-        "NEUTRAL_SIGN": _bi("சம ராசி: பலன் தசை மற்றும் கோசாரம் மூலம் மாறும்.", "Neutral sign: results vary by dasha and transit."),
+        "NEUTRAL_SIGN": _bi("சம ராசி: கலந்த பலம் — வீடு, பார்வை, பலம் சேர்ந்து முடிவு செய்யும்.", "Neutral sign: mixed strength, decided together with house, aspects, and strength."),
     }
     return mapping[dignity]
 
 
-def _planet_explanation(planet: PlanetPosition, dignity: str, functional_nature: str) -> ChartExplanationText:
+_PERIOD_ROLE_TA = {
+    "MAHADASHA": "மகாதசை",
+    "BHUKTI": "புக்தி",
+    "ANTARAM": "அந்தரம்",
+}
+_PERIOD_ROLE_EN = {
+    "MAHADASHA": "Mahadasha",
+    "BHUKTI": "Bhukti",
+    "ANTARAM": "Antaram",
+}
+
+
+def _current_period_text(
+    current_role: str | None,
+    dasha_chain_ta: str,
+    dasha_chain_en: str,
+) -> tuple[str, str]:
+    """Concrete 'what is running now' sentence for a planet — never tells the reader
+    to go find their own dasha/transit; it states the live period and this planet's
+    role in it (see issue #2)."""
+    if current_role is not None:
+        ta = (
+            f"இந்த கிரகம் இப்போது நடப்பு {_PERIOD_ROLE_TA[current_role]} அதிபதி — "
+            f"அதனால் அதன் வீடு மற்றும் துறை விளைவுகள் இப்போது நேரடியாக இயங்குகின்றன ({dasha_chain_ta})."
+        )
+        en = (
+            f"This planet is currently your running {_PERIOD_ROLE_EN[current_role]} lord, "
+            f"so its house and life-area results are directly active right now ({dasha_chain_en})."
+        )
+        return ta, en
+    ta = (
+        f"நடப்பு தசை: {dasha_chain_ta}. இந்த கிரகம் இப்போது நேரடி தசை/புக்தி/அந்தர அதிபதி அல்ல; "
+        f"அது தசை அல்லது புக்தியாக வரும்போதும், கோசாரத்தில் குரு/சனி இதைத் தொடும்போதும் அதன் முழு பலன் வெளிப்படும்."
+    )
+    en = (
+        f"Current period: {dasha_chain_en}. This planet is not one of the active period lords right now; "
+        f"its full results surface when it becomes a dasha or bhukti lord, or when transiting Guru/Sani contact it."
+    )
+    return ta, en
+
+
+_TRANSIT_SOURCE_PLANETS = ("MARS", "JUPITER", "SATURN", "RAHU", "KETU")
+
+# Implication + traditional remedy for a transiting planet currently contacting a
+# natal planet (conjunction or special drishti). Used to answer "what does this
+# actually mean for me" instead of a bare house-number list (issue #3/#2).
+_TRANSIT_EFFECT: dict[str, ChartExplanationText] = {
+    "MARS": _bi(
+        "விரைவு, துணிவு, சில நேரம் மோதலைத் தூண்டும்; அவசர முடிவுகளைத் தவிர்த்து, ஒழுங்கான உடல் செயல்பாட்டின் மூலம் இந்த ஆற்றலைச் செலவிடுவது நல்லது",
+        "adds urgency and drive, sometimes friction; channel it through disciplined action rather than impulsive decisions",
+    ),
+    "JUPITER": _bi(
+        "வளர்ச்சி, வாய்ப்பு, ஆசீர்வாதத்தைக் கொண்டு வரும்; இந்தக் காலத்தை கற்றல் மற்றும் விரிவாக்கத்திற்குப் பயன்படுத்தலாம்",
+        "brings growth, opportunity, and blessings; a good window to learn, expand, or seek guidance in this area",
+    ),
+    "SATURN": _bi(
+        "பொறுப்பையும் சோதனையையும் கொண்டு வரும்; வேகமாக இல்லாமல் பொறுமையுடன் அணுகினால் நீடித்த பலன் கிடைக்கும்",
+        "brings responsibility and testing; a slower, patient approach here holds up better than pushing for quick results",
+    ),
+    "RAHU": _bi(
+        "ஆசையையும் திடீர் மாற்றத்தையும் பெரிதாக்கும்; குறுக்குவழிகளைத் தவிர்த்து தெளிவான இலக்குடன் செயல்படுவது நல்லது",
+        "amplifies desire and sudden change; stay grounded and avoid shortcuts in this area while it lasts",
+    ),
+    "KETU": _bi(
+        "பற்றின்மையையும் உள்முக சிந்தனையையும் தூண்டும்; இந்த விஷயத்தில் தெளிவின்மை தோன்றினால் அவசரப்படாமல் இருப்பது நல்லது",
+        "brings detachment and inward focus; if this area feels unclear right now, avoid forcing a decision",
+    ),
+}
+_TRANSIT_REMEDY: dict[str, ChartExplanationText] = {
+    "MARS": _bi("செவ்வாய்க்கிழமை அனுமன்/முருகன் வழிபாடு, சிவப்பு பருப்பு தானம் உதவும்.", "Tuesday prayer to Hanuman/Murugan and donating red lentils are traditional supports."),
+    "JUPITER": _bi("வியாழக்கிழமை குரு/விஷ்ணு வழிபாடு, மஞ்சள் நிற பொருள் தானம் உதவும்.", "Thursday prayer to Guru/Vishnu and offering yellow items are traditional supports."),
+    "SATURN": _bi("சனிக்கிழமை எள் எண்ணெய் விளக்கேற்றுவது, முதியோர்/ஏழைகளுக்கு உதவுவது நல்லது.", "A sesame-oil lamp for Shani on Saturdays and serving elders or those in need are traditional supports."),
+    "RAHU": _bi("துர்க்கை/பைரவர் வழிபாடு, தியானம்/நடைபயிற்சி போன்ற தரையிறங்கிய பழக்கங்கள் உதவும்.", "Prayer to Durga/Bhairava and grounding routines like meditation or walking help balance this."),
+    "KETU": _bi("விநாயகர் வழிபாடு, தனிமையைத் தவிர்த்து பொறுமையாக இருப்பது நல்லது.", "Prayer to Ganesha, and staying patient rather than isolating, are traditional supports."),
+}
+
+
+def _planet_transit_contacts(
+    natal_planet: PlanetPosition,
+    transit_bodies: dict[str, object],
+) -> list[tuple[str, int, str]]:
+    """(source_planet, aspect_house, signal_type) for every one of Mars/Jupiter/
+    Saturn/Rahu/Ketu currently conjunct or aspecting this natal planet's sign —
+    computed for every planet, not just the active dasha/bhukti/antaram lords, so
+    the position explanation can state real current gochar contact (issue #2)."""
+    contacts: list[tuple[str, int, str]] = []
+    for source in _TRANSIT_SOURCE_PLANETS:
+        if source == natal_planet.graha:
+            continue
+        body = transit_bodies.get(source)
+        if body is None:
+            continue
+        aspect_house = house_from_reference(body.rasi, natal_planet.rasi)
+        if aspect_house == 1:
+            contacts.append((source, aspect_house, "TRANSIT_CONJUNCTION"))
+        elif aspect_house in aspect_houses(source):
+            contacts.append((source, aspect_house, f"TRANSIT_ASPECT_{aspect_house}TH"))
+    return contacts
+
+
+def _planet_transit_contact_text(contacts: list[tuple[str, int, str]]) -> ChartExplanationText | None:
+    if not contacts:
+        return None
+    # A conjunction is the strongest single contact; otherwise report the first aspect found.
+    source, aspect_house, signal_type = next((c for c in contacts if c[2] == "TRANSIT_CONJUNCTION"), contacts[0])
+    effect = _TRANSIT_EFFECT[source]
+    remedy = _TRANSIT_REMEDY[source]
+    if signal_type == "TRANSIT_CONJUNCTION":
+        verb_ta, verb_en = "இணைந்து நிற்கிறது", "is conjunct with this planet"
+    else:
+        verb_ta, verb_en = f"{aspect_house}-ஆம் பார்வையில் பார்க்கிறது", f"aspects this planet by its {aspect_house}th-house drishti"
+    ta = f"கவனிக்க: இப்போது கோசார {source} இதை {verb_ta}; இது {effect.ta}. {remedy.ta}"
+    en = f"Right now: transiting {source} {verb_en}; this {effect.en}. {remedy.en}"
+    return _bi(ta, en)
+
+
+def _planet_explanation(
+    planet: PlanetPosition,
+    dignity: str,
+    functional_nature: str,
+    *,
+    current_role: str | None,
+    dasha_chain_ta: str,
+    dasha_chain_en: str,
+    transit_contact_text: ChartExplanationText | None = None,
+) -> ChartExplanationText:
     dignity_text = _dignity_text(dignity)
     theme = _HOUSE_THEMES[planet.house_from_lagna]
     fn_context_ta = {
@@ -142,8 +267,8 @@ def _planet_explanation(planet: PlanetPosition, dignity: str, functional_nature:
         "KENDRA": "இது கேந்திர அதிபதி; வெளிப்படையான செயல் மற்றும் பொறுப்பை இயக்குகிறது",
         "DUSTHANA": "இது துஷ்டான அதிபதி; இந்த வீட்டின் விஷயங்களில் ஒழுங்கும் கவனமும் தேவை",
         "MARAKA": "இது மாரக அதிபதி; கட்டுப்பாட்டுடனும் அளவுடனும் அணுகுவது நல்லது",
-        "NEUTRAL": "இது நடுநிலை கிரகம்; தசை மற்றும் கோசாரம் பலனை மாற்றும்",
-    }.get(functional_nature, "இந்த கிரகத்தின் பலன் தசை, கோசாரம், பார்வை ஆகியவற்றோடு சேர்ந்து படிக்கப்பட வேண்டும்")
+        "NEUTRAL": "இது நடுநிலை கிரகம்; லக்னத்திற்கு நல்லது-கெட்டது இரண்டையும் சூழ்நிலைக்கு ஏற்ப தரும்",
+    }.get(functional_nature, "இந்த கிரகத்தின் பலன் அதன் வீடு, பலம், பார்வை ஆகியவற்றோடு சேர்ந்து இயங்குகிறது")
     fn_context_en = {
         "YOGAKARAKA": "a Yogakaraka for this chart, able to open favourable results in the right period",
         "LAGNA_LORD": "the Lagna lord, shaping life direction and inner drive",
@@ -151,29 +276,54 @@ def _planet_explanation(planet: PlanetPosition, dignity: str, functional_nature:
         "KENDRA": "a Kendra lord, governing visible action and responsibility",
         "DUSTHANA": "a Dusthana lord, asking for care and discipline in its matters",
         "MARAKA": "a Maraka lord, best handled with restraint and proportion",
-        "NEUTRAL": "a neutral planet whose results shift with dasha and transit",
-    }.get(functional_nature, "a planet whose results should be read with dasha, transit, and aspects")
+        "NEUTRAL": "a neutral planet that gives mixed results for this Lagna depending on context",
+    }.get(functional_nature, "a planet whose role is read together with its house, strength, and aspects")
+    period_ta, period_en = _current_period_text(current_role, dasha_chain_ta, dasha_chain_en)
+    contact_ta = f" {transit_contact_text.ta}" if transit_contact_text else ""
+    contact_en = f" {transit_contact_text.en}" if transit_contact_text else ""
     ta = (
         f"{planet.graha} உங்கள் ஜாதகத்தில் {planet.house_from_lagna}ஆம் வீட்டில் நிற்கிறது; "
         f"அதனால் {theme.ta} துறை இயல்பாக கவனத்திற்கு வருகிறது. "
-        f"{dignity_text.ta} {fn_context_ta}. "
-        f"இதன் பலனை தனியாக அல்ல, நடப்பு தசை மற்றும் கோசார தொடுதலுடன் சேர்த்து பார்க்க வேண்டும்."
+        f"{dignity_text.ta} {fn_context_ta}. {period_ta}{contact_ta}"
     )
     en = (
         f"{planet.graha} stands in house {planet.house_from_lagna}, so the chart naturally draws attention to {theme.en}. "
-        f"{dignity_text.en} In functional terms it is {fn_context_en}. "
-        f"Read this as a living indicator that becomes clearer through the current dasha and gochar contacts."
+        f"{dignity_text.en} In functional terms it is {fn_context_en}. {period_en}{contact_en}"
     )
     return _bi(ta, en)
 
 
-def _build_planet_sections(planets: list[PlanetPosition], lagna_rasi: int) -> tuple[list[ChartExplanationPlanet], dict[str, str]]:
+def _build_planet_sections(
+    planets: list[PlanetPosition],
+    lagna_rasi: int,
+    timeline,
+    transit_bodies: dict[str, object],
+) -> tuple[list[ChartExplanationPlanet], dict[str, str]]:
     functional = {planet: get_functional_nature(lagna_rasi, planet).value for planet in _NATAL_PLANETS}
+    # Map each active period lord to its level so a planet's explanation can state,
+    # concretely, whether it is running right now (issue #2). Most-significant level
+    # wins if a graha somehow lords more than one level.
+    current_role_by_graha: dict[str, str] = {}
+    for level, period in (
+        ("ANTARAM", timeline.current_pratyantardasha),
+        ("BHUKTI", timeline.current_antardasha),
+        ("MAHADASHA", timeline.current_mahadasha),
+    ):
+        current_role_by_graha[period.lord] = level
+    dasha_chain_ta = (
+        f"{timeline.current_mahadasha.lord} மகாதசை / {timeline.current_antardasha.lord} புக்தி / "
+        f"{timeline.current_pratyantardasha.lord} அந்தரம்"
+    )
+    dasha_chain_en = (
+        f"{timeline.current_mahadasha.lord} Mahadasha / {timeline.current_antardasha.lord} Bhukti / "
+        f"{timeline.current_pratyantardasha.lord} Antaram"
+    )
     items: list[ChartExplanationPlanet] = []
     for planet in planets:
         dignity = _dignity_label(planet)
         dignity_score = _dignity_score(planet.graha, planet.rasi, planet.absolute_longitude)
         fn = functional.get(planet.graha, "NEUTRAL")
+        contacts = _planet_transit_contacts(planet, transit_bodies)
         items.append(
             ChartExplanationPlanet(
                 graha=planet.graha,
@@ -192,7 +342,15 @@ def _build_planet_sections(planets: list[PlanetPosition], lagna_rasi: int) -> tu
                 d9_rasi=planet.d9_rasi,
                 house_group=_house_group(planet.house_from_lagna),
                 functional_nature=fn,
-                explanation=_planet_explanation(planet, dignity, fn),
+                explanation=_planet_explanation(
+                    planet,
+                    dignity,
+                    fn,
+                    current_role=current_role_by_graha.get(planet.graha),
+                    dasha_chain_ta=dasha_chain_ta,
+                    dasha_chain_en=dasha_chain_en,
+                    transit_contact_text=_planet_transit_contact_text(contacts),
+                ),
             )
         )
     return items, functional
@@ -299,41 +457,59 @@ def _build_aspects(planets: list[PlanetPosition]) -> list[ChartExplanationAspect
     return aspects
 
 
+def _house_group_synthesis(name: str, group_planets: list[PlanetPosition]) -> ChartExplanationText:
+    """Personalized 'so what' for a Kendra/Trikona/Dusthana card — names the user's
+    own planets there and what that combination practically means for them, instead
+    of only the abstract group definition (issues #4/#5)."""
+    names = ", ".join(p.graha for p in group_planets)
+    count = len(group_planets)
+    plural_en = "s" if count != 1 else ""
+    if name == "KENDRA":
+        if count == 0:
+            return _bi(
+                "உங்கள் ஜாதகத்தில் கேந்திர வீடுகளில் (1/4/7/10) கிரகம் இல்லை; தொழில், வீடு, உறவுகள், ஆரோக்கியம் போன்ற வெளிப்படைத் துறைகள் அமைதியாக, குறைவான உடனடி அழுத்தத்துடன் இயங்கும்.",
+                "No planets sit in your Kendra houses (1/4/7/10); your visible life areas — career, home, relationships, health — tend to move quietly, without much immediate pressure.",
+            )
+        return _bi(
+            f"{names} ({count} கிரகங்கள்) கேந்திர வீடுகளில் (1/4/7/10) உள்ளன. இதனால் உங்கள் தொழில், வீடு, உறவுகள், ஆரோக்கியம் போன்ற வெளிப்படைத் துறைகள் நேரடியாகவும் தெளிவாகவும் செயல்படும்; இங்கு போடும் முயற்சி விரைவில் கண்முன் தெரியும்.",
+            f"{names} ({count} planet{plural_en}) sit in your Kendra houses (1/4/7/10). This means your visible life areas — career, home, relationships, health — tend to unfold directly and clearly; effort you put in here shows results you can see.",
+        )
+    if name == "TRIKONA":
+        if count == 0:
+            return _bi(
+                "உங்கள் ஜாதகத்தில் திரிகோண வீடுகளில் (1/5/9) கிரகம் இல்லை; நல்லூழ் தொடர்பான ஆதரவு பெரும்பாலும் தசை/கோசாரம் மூலம் மட்டுமே வெளிப்படும், நிலையான பின்புலமாக இல்லை.",
+                "No planets sit in your Trikona houses (1/5/9); grace-related support mostly surfaces only through dasha and transit timing, rather than as a steady background presence.",
+            )
+        return _bi(
+            f"{names} ({count} கிரகங்கள்) திரிகோண வீடுகளில் (1/5/9) உள்ளன. இது திறமை, புண்ணியம், நல்லூழ் ஆகியவை இயல்பாக ஆதரவளிக்கும் என்பதைக் காட்டுகிறது; கல்வி, ஆன்மீகம், நல்ல வாய்ப்புகள் தொடர்பான முயற்சிகள் சிறப்பாக பலனளிக்கும்.",
+            f"{names} ({count} planet{plural_en}) sit in your Trikona houses (1/5/9). This points to natural support from talent, grace, and good fortune; effort toward learning, spirituality, or good opportunities tends to pay off well.",
+        )
+    if count == 0:
+        return _bi(
+            "உங்கள் ஜாதகத்தில் துஷ்டான வீடுகளில் (6/8/12) கிரகம் இல்லை; சேவை, கடன், ஆரோக்கியம் போன்ற துறைகளில் நீண்டகால சிக்கல்கள் குறைவாக இருக்கும்.",
+            "No planets sit in your Dusthana houses (6/8/12); areas like service, debt, and health tend to carry fewer long-term complications for you.",
+        )
+    return _bi(
+        f"{names} ({count} கிரகங்கள்) துஷ்டான வீடுகளில் (6/8/12) உள்ளன. இது சேவை, ஆரோக்கியம், கடன், மறைமுக விஷயங்களில் கூடுதல் கவனமும் ஒழுங்கும் தேவை என்பதைக் காட்டுகிறது; ஒழுங்கான பழக்கமும் பொறுமையும் இந்தத் துறைகளை நிலைப்படுத்தும்.",
+        f"{names} ({count} planet{plural_en}) sit in your Dusthana houses (6/8/12). This means service, health, debt, or behind-the-scenes matters need extra care and structure; steady routines and patience stabilize these areas over time.",
+    )
+
+
 def _build_house_groups(planets: list[PlanetPosition]) -> list[ChartExplanationHouseGroup]:
     groups = [
-        (
-            "KENDRA",
-            [1, 4, 7, 10],
-            _bi(
-                "கேந்திர வீடுகள் வாழ்க்கையின் வெளிப்படைத் தூண்கள். இங்குள்ள கிரகங்கள் தெளிவாக செயல்படும்.",
-                "Kendra houses are visible pillars of life. Planets here act clearly.",
-            ),
-        ),
-        (
-            "TRIKONA",
-            [1, 5, 9],
-            _bi(
-                "திரிகோண வீடுகள் திறமை, புண்ணியம், வளர்ச்சி வழிகளை காட்டும்.",
-                "Trikona houses show talent, grace, and growth channels.",
-            ),
-        ),
-        (
-            "DUSTHANA",
-            [6, 8, 12],
-            _bi(
-                "துஷ்டான வீடுகள் கவனம், திருத்தம், ஒழுங்கு மூலம் சமநிலைப்படுத்தப்படும்.",
-                "Dusthana houses are balanced through care, correction, and discipline.",
-            ),
-        ),
+        ("KENDRA", [1, 4, 7, 10]),
+        ("TRIKONA", [1, 5, 9]),
+        ("DUSTHANA", [6, 8, 12]),
     ]
     result: list[ChartExplanationHouseGroup] = []
-    for name, houses, explanation in groups:
+    for name, houses in groups:
+        group_planets = [planet for planet in planets if planet.house_from_lagna in houses]
         result.append(
             ChartExplanationHouseGroup(
                 group=name,
                 houses=houses,
-                planets=[planet.graha for planet in planets if planet.house_from_lagna in houses],
-                explanation=explanation,
+                planets=[planet.graha for planet in group_planets],
+                explanation=_house_group_synthesis(name, group_planets),
             )
         )
     return result
@@ -478,10 +654,9 @@ def _build_current_activation_section(
     moon: PlanetPosition,
     timeline,
     as_of: date,
-    as_of_jd: float,
+    transit_bodies: dict[str, object],
 ) -> ChartExplanationCurrentActivationSection:
     natal_by_planet = {planet.graha: planet for planet in planets}
-    transit = calculate_sidereal_planets(as_of_jd)
     periods: list[tuple[str, DashaPeriod]] = [
         ("MAHADASHA", timeline.current_mahadasha),
         ("BHUKTI", timeline.current_antardasha),
@@ -494,7 +669,7 @@ def _build_current_activation_section(
 
     for level, period in periods:
         natal_planet = natal_by_planet.get(period.lord)
-        transit_body = transit.bodies.get(period.lord)
+        transit_body = transit_bodies.get(period.lord)
         if natal_planet is None or transit_body is None:
             continue
 
@@ -509,7 +684,7 @@ def _build_current_activation_section(
             transit_house_from_moon,
             transit_house_from_lagna,
         )
-        signals = _activation_signals(period.lord, natal_planet, transit.bodies)
+        signals = _activation_signals(period.lord, natal_planet, transit_bodies)
         tones.append(tone)
         all_signals.extend(signals)
 
@@ -706,8 +881,13 @@ def build_chart_explanation(
         moon.absolute_longitude,
         as_of_jd,
     )
+    # Computed once and shared by the planet positions and current-activation
+    # sections so every planet (not just the active dasha/bhukti/antaram lords)
+    # can report real current gochar contact (issue #2), without a second
+    # ephemeris call.
+    transit_bodies = calculate_sidereal_planets(as_of_jd).bodies
 
-    planet_sections, functional_nature = _build_planet_sections(planets, data.lagna.rasi)
+    planet_sections, functional_nature = _build_planet_sections(planets, data.lagna.rasi, timeline, transit_bodies)
     core_identity = ChartExplanationCoreIdentity(
         lagna_rasi=data.lagna.rasi_name,
         moon_rasi=moon.rasi_name,
@@ -745,7 +925,7 @@ def build_chart_explanation(
                 moon,
                 timeline,
                 as_of,
-                as_of_jd,
+                transit_bodies,
             ),
             summary=_summary_section(planets),
             peyarchi=_build_peyarchi_section(

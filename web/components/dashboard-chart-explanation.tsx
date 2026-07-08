@@ -403,6 +403,73 @@ function aspectHousesFromHouse(house: number, offsets: number[]): number[] {
   return offsets.map((offset) => ((house - 1 + offset) % 12) + 1);
 }
 
+// Issue #3: the transit Guru/Sani block used to print bare house numbers with no
+// interpretation, which read as if it contradicted the natal chart. It is actually
+// where Guru/Sani are transiting *right now* from the natal Lagna. Spell that out
+// and say what the aspect does to the touched life areas.
+function transitAspectSummary(graha: string, currentHouse: number, houses: number[], lang: Lang): string {
+  const themes = houses.map((h) => tx(HOUSE_MEANING[h], lang)).join("; ");
+  const houseList = houses.map((h) => ordinalHouse(h, lang)).join(", ");
+  if (graha === "JUPITER") {
+    return lang === "ta"
+      ? `குரு இப்போது உங்கள் லக்னத்திலிருந்து ${ordinalHouse(currentHouse, lang)} வழியாக சஞ்சரிக்கிறார் — இது இன்றைய வானநிலை, உங்கள் பிறப்பு நிலை அல்ல. அவரது பார்வை ${houseList} வீடுகளை ஆதரவாகத் தொடுகிறது (${themes}). இந்தத் துறைகளில் வளர்ச்சி, வாய்ப்பு, நம்பிக்கை பெருகும் காலம்.`
+      : `Guru (Jupiter) is transiting ${ordinalHouse(currentHouse, lang)} from your Lagna right now — this is today's sky, not your birth position. Its aspect falls supportively on ${houseList} (${themes}). Growth, opportunity, and confidence tend to build in those areas while this lasts.`;
+  }
+  return lang === "ta"
+    ? `சனி இப்போது உங்கள் லக்னத்திலிருந்து ${ordinalHouse(currentHouse, lang)} வழியாக சஞ்சரிக்கிறார் — இது இன்றைய வானநிலை, உங்கள் பிறப்பு நிலை அல்ல. அவரது பார்வை ${houseList} வீடுகளைத் தொடுகிறது (${themes}). இந்தத் துறைகளில் பொறுப்பு, பொறுமை, மெதுவான வேகம் தேவை; ஒழுங்கு உதவும்.`
+    : `Sani (Saturn) is transiting ${ordinalHouse(currentHouse, lang)} from your Lagna right now — today's sky, not your birth position. Its aspect falls on ${houseList} (${themes}). Those areas ask for responsibility, patience, and a slower pace; steady, disciplined effort pays off.`;
+}
+
+// Bilingual life-signification of each natal planet — used to explain what it
+// means when a transit touches it, not just its bare name (issue #3).
+const PLANET_SIGNIFICANCE: Record<string, BiCopy> = {
+  SUN: { ta: "தந்தை, அதிகாரம், நம்பிக்கை, ஆரோக்கியம்", en: "father, authority, confidence, health" },
+  MOON: { ta: "மனம், தாய், உணர்வுகள், பொது அபிப்ராயம்", en: "mind, mother, emotions, public image" },
+  MARS: { ta: "துணிவு, உடன்பிறப்புகள், சொத்து, ஆற்றல்", en: "courage, siblings, property, drive" },
+  MERCURY: { ta: "தொடர்பு, வணிகம், புத்தி, கல்வி", en: "communication, business, intellect, education" },
+  JUPITER: { ta: "ஞானம், செல்வம், குழந்தைகள், குரு", en: "wisdom, wealth, children, teachers/guru" },
+  VENUS: { ta: "உறவுகள், திருமணம், ஆடம்பரம், கலை", en: "relationships, marriage, comfort, the arts" },
+  SATURN: { ta: "ஒழுங்கு, தொழில், நீண்டகால பொறுப்பு", en: "discipline, career, long-term responsibility" },
+  RAHU: { ta: "ஆசை, வெளிநாடு, தொழில்நுட்பம், துணிச்சல்", en: "ambition, foreign links, technology, risk-taking" },
+  KETU: { ta: "பற்றின்மை, ஆன்மீகம், முந்தைய திறமைகள்", en: "detachment, spirituality, past-life talents" },
+};
+
+// Implication + a simple traditional remedy for a transiting Guru/Sani aspect
+// landing on a natal planet — mirrors chart_explanation_service.py's
+// _TRANSIT_EFFECT/_TRANSIT_REMEDY so the explanation reads consistently whether
+// it comes from the backend or this client-only panel.
+const TRANSIT_TOUCH_EFFECT: Record<"JUPITER" | "SATURN", BiCopy> = {
+  JUPITER: {
+    ta: "வளர்ச்சி, வாய்ப்பு, ஆசீர்வாதத்தைக் கொண்டு வரும்",
+    en: "brings growth, opportunity, and blessings",
+  },
+  SATURN: {
+    ta: "பொறுப்பையும் சோதனையையும் கொண்டு வரும்; பொறுமையுடன் அணுகினால் நீடித்த பலன் கிடைக்கும்",
+    en: "brings responsibility and testing; a patient approach here holds up better than pushing",
+  },
+};
+const TRANSIT_TOUCH_REMEDY: Record<"JUPITER" | "SATURN", BiCopy> = {
+  JUPITER: {
+    ta: "வியாழக்கிழமை குரு/விஷ்ணு வழிபாடு, மஞ்சள் நிற பொருள் தானம் உதவும்.",
+    en: "Thursday prayer to Guru/Vishnu and offering yellow items are traditional supports.",
+  },
+  SATURN: {
+    ta: "சனிக்கிழமை எள் எண்ணெய் விளக்கேற்றுவது, முதியோர்/ஏழைகளுக்கு உதவுவது நல்லது.",
+    en: "A sesame-oil lamp for Shani on Saturdays and serving elders or those in need are traditional supports.",
+  },
+};
+
+function touchedPlanetMeaning(sourceGraha: "JUPITER" | "SATURN", touchedGraha: string, lang: Lang): string {
+  const touched = normalizePlanet(touchedGraha);
+  const sig = PLANET_SIGNIFICANCE[touched];
+  const effect = TRANSIT_TOUCH_EFFECT[sourceGraha];
+  const remedy = TRANSIT_TOUCH_REMEDY[sourceGraha];
+  const sigText = sig ? tx(sig, lang) : "";
+  return lang === "ta"
+    ? `${displayPlanet(touched, lang)} (${sigText}) தொடர்பான விஷயங்களில் இது ${effect.ta}. ${remedy.ta}`
+    : `For matters tied to ${displayPlanet(touched, lang)} (${sigText}), this ${effect.en}. ${remedy.en}`;
+}
+
 function houseGroupFor(house: number): "kendra" | "trikona" | "dusthana" | "other" {
   if (DUSTHANA_HOUSES.has(house)) return "dusthana";
   if (KENDRA_HOUSES.has(house) && TRIKONA_HOUSES.has(house)) return "kendra";
@@ -423,6 +490,34 @@ function houseGroupLabel(group: string, lang: Lang): string {
   if (key === "trikona") return lang === "ta" ? "திரிகோணம்" : "Trikona";
   if (key === "dusthana") return lang === "ta" ? "துஷ்டானம்" : "Dusthana";
   return lang === "ta" ? "மற்ற வீடு" : "Other";
+}
+
+// Issue #4/#5: house-group taxonomy was shown with no "so what". These turn a
+// planet + its house group into one plain-language line about what it means for
+// that person's life area.
+function houseGroupEffect(group: "kendra" | "trikona" | "dusthana" | "other", lang: Lang): string {
+  if (group === "kendra")
+    return lang === "ta"
+      ? "வெளிப்படையான வாழ்க்கைத் தூண் — இந்தத் துறை பொதுவாகச் சுறுசுறுப்பாக, மற்றவர்களுக்குத் தெரியும்படி இயங்கும்"
+      : "a visible pillar of life — this area tends to stay active and public";
+  if (group === "trikona")
+    return lang === "ta"
+      ? "வளர்ச்சி வழி — திறமையும் புண்ணியமும் இந்தத் துறையை இயல்பாக ஆதரிக்கும்"
+      : "a growth channel — talent and grace naturally support this area";
+  if (group === "dusthana")
+    return lang === "ta"
+      ? "கவனமும் ஒழுங்கும் கேட்கும் இடம் — சேவை, ஓய்வு, திருத்தம் மூலம் வளரும்"
+      : "asks for care and discipline — it grows through service, rest, and correction";
+  return lang === "ta"
+    ? "சூழ்நிலையும் காலமும் சார்ந்து பலன் தரும் துறை"
+    : "an area that works through timing and context";
+}
+
+function planetHouseMeaning(graha: string, house: number, lang: Lang): string {
+  const group = houseGroupFor(house);
+  return lang === "ta"
+    ? `${displayPlanet(graha, lang)} — ${ordinalHouse(house, lang)} (${tx(HOUSE_MEANING[house], lang)}); ${houseGroupEffect(group, lang)}.`
+    : `${displayPlanet(graha, lang)} — ${ordinalHouse(house, lang)} (${tx(HOUSE_MEANING[house], lang)}); ${houseGroupEffect(group, lang)}.`;
 }
 
 function natureLabel(nature: string, lang: Lang): string {
@@ -465,8 +560,8 @@ function natureNote(nature: string, lang: Lang): string {
       en: "A role balanced through discipline, service, and correction.",
     },
     NEUTRAL: {
-      ta: "பலன் சூழ்நிலை, தசை, கிரகநகர்வு ஆகியவற்றைப் பொறுத்து மாறும்.",
-      en: "Results vary by context, dasa, and transit.",
+      ta: "இந்த லக்னத்திற்கு கலந்த பங்கு — வீடு, பலம், பார்வை சேர்ந்து முடிவை தரும்.",
+      en: "A mixed role for this Lagna — its house, strength, and aspects together decide the result.",
     },
   };
   return tx(notes[nature] ?? notes.NEUTRAL, lang);
@@ -1173,7 +1268,12 @@ export function ChartExplanationPanel({
 
                   <div style={{ display: "grid", gap: "var(--space-2)" }}>
                     <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
-                      {lang === "ta" ? "கிரகநகர்விலான குரு / சனி பார்வை" : "Transit Guru / Sani Aspects"}
+                      {lang === "ta" ? "இன்றைய குரு / சனி கோசாரப் பார்வை" : "Guru / Sani — Current Transit Aspects"}
+                    </p>
+                    <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)", lineHeight: 1.45 }}>
+                      {lang === "ta"
+                        ? "இது இன்றைய வானத்தில் குரு/சனி எங்கே சஞ்சரிக்கிறார்கள் என்பதைக் காட்டுகிறது — உங்கள் பிறப்பு ஜாதக நிலை அல்ல."
+                        : "This shows where Guru/Sani are moving in today's sky — not their positions in your birth chart."}
                     </p>
                     {[derived.jupiterTransit, derived.saturnTransit].filter(Boolean).length === 0 ? (
                       <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
@@ -1187,15 +1287,26 @@ export function ChartExplanationPanel({
                         const touched = chart.planets.filter((planet) => houses.includes(planet.houseFromLagna));
                         return (
                           <div key={graha} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", background: "var(--color-surface)" }}>
-                            <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
-                              {displayPlanet(graha, lang)} {lang === "ta" ? "லக்னத்திலிருந்து" : "from Lagna"} {ordinalHouse(item!.houseFromLagna, lang)};{" "}
-                              {lang === "ta" ? "பார்வை வீடுகள்" : "aspect houses"}: {houses.map((house) => ordinalHouse(house, lang)).join(", ")}.
+                            <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.8125rem", color: "var(--color-text)", lineHeight: 1.55 }}>
+                              {transitAspectSummary(graha, item!.houseFromLagna, houses, lang)}
                             </p>
-                            <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
+                            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.75rem", color: "var(--color-faint)", lineHeight: 1.4 }}>
                               {touched.length > 0
-                                ? touched.map((planet) => <Chip key={`${graha}-${planet.graha}`}>{displayPlanet(planet.graha, lang)}</Chip>)
-                                : <Chip>{lang === "ta" ? "நேரடி கிரக தொடுதல் இல்லை" : "No natal planet directly touched"}</Chip>}
-                            </div>
+                                ? (lang === "ta" ? "இந்தப் பார்வையில் வரும் உங்கள் கிரகங்கள்:" : "Your natal planets under this aspect:")
+                                : (lang === "ta" ? "இந்தப் பார்வையில் நேரடியாக எந்த ஜாதக கிரகமும் வரவில்லை." : "No natal planet falls directly under this aspect right now.")}
+                            </p>
+                            {touched.length > 0 && (
+                              <div style={{ display: "grid", gap: "var(--space-2)" }}>
+                                {touched.map((planet) => (
+                                  <div key={`${graha}-${planet.graha}`} style={{ borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-1_5)" }}>
+                                    <Chip>{displayPlanet(planet.graha, lang)} - {ordinalHouse(planet.houseFromLagna, lang)}</Chip>
+                                    <p style={{ margin: "var(--space-1) 0 0", fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.5 }}>
+                                      {touchedPlanetMeaning(graha as "JUPITER" | "SATURN", planet.graha, lang)}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         );
                       })
@@ -1215,10 +1326,17 @@ export function ChartExplanationPanel({
                         <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
                           {tx(group.explanation, lang)}
                         </p>
-                        <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
+                        <div style={{ display: "grid", gap: "var(--space-1)" }}>
                           {group.planets.length > 0
-                            ? group.planets.map((planet) => <Chip key={`${group.group}-${planet}`}>{displayPlanet(planet, lang)}</Chip>)
-                            : <Chip>{lang === "ta" ? "இங்கு கிரகம் இல்லை" : "No planet here"}</Chip>}
+                            ? group.planets.map((planet) => {
+                                const h = (backendPlanets ?? chart.planets).find((p) => normalizePlanet(p.graha) === normalizePlanet(planet))?.houseFromLagna;
+                                return (
+                                  <p key={`${group.group}-${planet}`} style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.5 }}>
+                                    {h ? planetHouseMeaning(planet, h, lang) : displayPlanet(planet, lang)}
+                                  </p>
+                                );
+                              })
+                            : <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)" }}>{lang === "ta" ? "இங்கு கிரகம் இல்லை" : "No planet here"}</p>}
                         </div>
                       </div>
                     ))
@@ -1238,28 +1356,28 @@ export function ChartExplanationPanel({
                           <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
                             {tx(HOUSE_GROUP_COPY[group], lang)}
                           </p>
-                          <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
+                          <div style={{ display: "grid", gap: "var(--space-1)" }}>
                             {planets.length > 0
                               ? planets.map((planet) => (
-                                  <Chip key={`${group}-${planet.graha}`}>
-                                    {displayPlanet(planet.graha, lang)} - {ordinalHouse(planet.houseFromLagna, lang)}
-                                  </Chip>
+                                  <p key={`${group}-${planet.graha}`} style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.5 }}>
+                                    {planetHouseMeaning(planet.graha, planet.houseFromLagna, lang)}
+                                  </p>
                                 ))
-                              : <Chip>{lang === "ta" ? "இங்கு கிரகம் இல்லை" : "No planet here"}</Chip>}
+                              : <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)" }}>{lang === "ta" ? "இங்கு கிரகம் இல்லை" : "No planet here"}</p>}
                           </div>
                         </div>
                       );
                     })
                   )}
-                  <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
-                    {(backendPlanets ?? chart.planets).map((planet) => {
-                      const group = houseGroupFor(planet.houseFromLagna);
-                      return (
-                        <Chip key={`house-${planet.graha}`}>
-                          {displayPlanet(planet.graha, lang)}: {ordinalHouse(planet.houseFromLagna, lang)} - {tx(HOUSE_MEANING[planet.houseFromLagna], lang)} - {houseGroupLabel("houseGroup" in planet ? planet.houseGroup : group, lang)}
-                        </Chip>
-                      );
-                    })}
+                  <div style={{ display: "grid", gap: "var(--space-1)" }}>
+                    <p style={{ margin: "var(--space-1) 0 0", fontSize: "0.6875rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      {lang === "ta" ? "எல்லா கிரகங்களும் — வீடு வாரியாக" : "All planets — by house"}
+                    </p>
+                    {(backendPlanets ?? chart.planets).map((planet) => (
+                      <p key={`house-${planet.graha}`} style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.5 }}>
+                        {planetHouseMeaning(planet.graha, planet.houseFromLagna, lang)}
+                      </p>
+                    ))}
                   </div>
                 </div>
               )}
