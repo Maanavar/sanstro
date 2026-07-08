@@ -16,9 +16,12 @@ interface DashboardAskVinaadiWidgetProps {
   onUpgrade?: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Nova puts "Ask Vinaadi" in the navbar (dashboard-hero.tsx), so the
+      floating launcher is suppressed there; the panel itself still works. */
+  hideLauncher?: boolean;
 }
 
-export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLifeMode, onUpgrade, open, onOpenChange }: DashboardAskVinaadiWidgetProps) {
+export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLifeMode, onUpgrade, open, onOpenChange, hideLauncher }: DashboardAskVinaadiWidgetProps) {
   const [chipsRemaining, setChipsRemaining] = useState<number | null>(null);
 
   // Counter badge — show remaining free chips when fewer than the daily allowance.
@@ -34,6 +37,7 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLife
 
   return (
     <>
+      {!hideLauncher && (
       <button
         type="button"
         onClick={() => onOpenChange(!open)}
@@ -74,12 +78,18 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLife
           </span>
         )}
       </button>
+      )}
 
       {open && (
         <div
           style={{
             position: "fixed",
-            bottom: "138px",
+            // Classic's trigger is the bottom-right launcher FAB, so the panel
+            // stacks just above it. Nova's trigger (cd-ask-nav-btn) lives in the
+            // topbar instead — anchoring to `bottom` there left the panel
+            // floating in the middle of the screen, disconnected from the
+            // button that opened it, so Nova anchors from the top instead.
+            ...(hideLauncher ? { top: "110px" } : { bottom: "138px" }),
             right: "18px",
             width: "min(480px, calc(100vw - 32px))",
             maxHeight: "70vh",

@@ -1236,13 +1236,13 @@ export function DashboardWorkspace() {
         />
       )}
 
-      <div className="cd-app-body">
+      <div className="cd-app-body" data-active-tab={activeTab}>
       <DashboardLeftRail
         lang={lang}
         activeTab={activeTab}
         onTabChange={goToTab}
       />
-      <div className="cd-main-content">
+      <div className="cd-main-content" data-active-tab={activeTab}>
       <div className="cd-main-content__body">
 
       {exploreReturnTab === activeTab && activeTab !== "explore" && (
@@ -1425,11 +1425,14 @@ export function DashboardWorkspace() {
             onGoToFamily={() => setActiveTab("family")}
             onGoToJournal={() => setActiveTab("journal")}
             onGoToCalendar={() => setActiveTab("calendar")}
+            onGoToLifeAreas={() => setActiveTab("life-areas")}
+            onGoToTransits={() => { setPlanView("transits"); setActiveTab("plan"); }}
             onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
             onDateChange={setSelectedDate}
             onOpenPrasna={() => setShowPrasna(true)}
             showPrasna={showPrasna}
             onClosePrasna={() => setShowPrasna(false)}
+            onOpenNotificationSettings={() => { goToTab("settings"); setSettingsSubTab("session"); }}
           />
         )}
 
@@ -1473,6 +1476,7 @@ export function DashboardWorkspace() {
             onOpenPrasna={() => setShowPrasna(true)}
             showPrasna={showPrasna}
             onClosePrasna={() => setShowPrasna(false)}
+            onOpenNotificationSettings={() => { goToTab("settings"); setSettingsSubTab("session"); }}
             dasha={personalDasha}
             dashaMaha={personalDashaMaha}
             dashaAntar={personalDashaAntar}

@@ -21,12 +21,37 @@ function timeToMinutes(value: string | undefined | null): number | null {
   return hh * 60 + mm;
 }
 
+const RAHU_BG = "#6b332e";
+const RAHU_FG = "#f3ecdd";
+const BEST_BG = "var(--color-accent)";
+const BEST_FG = "var(--color-on-accent)";
+const GOOD_BG = "#5f7a68";
+const GOOD_FG = "#f3ecdd";
+
+type PartOfDay = "morning" | "afternoon" | "evening";
+
+function partOfDay(startMin: number): PartOfDay {
+  const hour = Math.floor(startMin / 60) % 24;
+  if (hour < 12) return "morning";
+  if (hour < 17) return "afternoon";
+  return "evening";
+}
+
+const PART_OF_DAY_TEXT: Record<PartOfDay, { badge: { en: string; ta: string }; legend: { en: string; ta: string } }> = {
+  morning:   { badge: { en: "GOOD AM",  ta: "காலை" },   legend: { en: "Good morning",   ta: "காலை நல்ல நேரம்" } },
+  afternoon: { badge: { en: "GOOD DAY", ta: "மதியம்" }, legend: { en: "Good afternoon", ta: "மதிய நல்ல நேரம்" } },
+  evening:   { badge: { en: "GOOD EVE", ta: "மாலை" },   legend: { en: "Good evening",   ta: "மாலை நல்ல நேரம்" } },
+};
+
 type Segment = {
   key: string;
   startMin: number;
   endMin: number;
-  color: string;
-  label: string;
+  bg: string;
+  fg: string;
+  badge: string;
+  legendName: string;
+  legendTime: string;
 };
 
 export function DashboardTodayRibbonNova({
@@ -53,8 +78,11 @@ export function DashboardTodayRibbonNova({
       key: "rahu",
       startMin: rahuStart,
       endMin: rahuEnd,
-      color: "var(--color-low)",
-      label: `${lang === "ta" ? "ராகு காலம்" : "Rahu Kalam"} ${formatClockLabel(panchangam.kalam.rahuKalam.start)}–${formatClockLabel(panchangam.kalam.rahuKalam.end)}`,
+      bg: RAHU_BG,
+      fg: RAHU_FG,
+      badge: lang === "ta" ? "ராகு காலம்" : "RAHU KALAM",
+      legendName: lang === "ta" ? "ராகு காலம்" : "Rahu Kalam",
+      legendTime: `${formatClockLabel(panchangam.kalam.rahuKalam.start)} – ${formatClockLabel(panchangam.kalam.rahuKalam.end)}`,
     });
   }
 
@@ -62,13 +90,30 @@ export function DashboardTodayRibbonNova({
     const s = timeToMinutes(slot.start);
     const e = timeToMinutes(slot.end);
     if (s === null || e === null) return;
-    segments.push({
-      key: `nalla-${i}`,
-      startMin: s,
-      endMin: e,
-      color: "var(--color-high)",
-      label: `${lang === "ta" ? "நல்ல நேரம்" : "Nalla Neram"} ${formatClockLabel(slot.start)}–${formatClockLabel(slot.end)}`,
-    });
+    if (i === 0) {
+      segments.push({
+        key: `nalla-${i}`,
+        startMin: s,
+        endMin: e,
+        bg: BEST_BG,
+        fg: BEST_FG,
+        badge: lang === "ta" ? "சிறந்தது" : "BEST",
+        legendName: lang === "ta" ? "நல்ல நேரம்" : "Nalla Neram",
+        legendTime: `${formatClockLabel(slot.start)} – ${formatClockLabel(slot.end)}`,
+      });
+    } else {
+      const part = PART_OF_DAY_TEXT[partOfDay(s)];
+      segments.push({
+        key: `nalla-${i}`,
+        startMin: s,
+        endMin: e,
+        bg: GOOD_BG,
+        fg: GOOD_FG,
+        badge: lang === "ta" ? part.badge.ta : part.badge.en,
+        legendName: lang === "ta" ? part.legend.ta : part.legend.en,
+        legendTime: `${formatClockLabel(slot.start)} – ${formatClockLabel(slot.end)}`,
+      });
+    }
   });
 
   // Range: sunrise to the later of (sunset + 3h cushion) or the latest segment end,
@@ -102,33 +147,65 @@ export function DashboardTodayRibbonNova({
             {lang === "ta" ? "இன்றைய நேரப்பட்டி" : "Your day at a glance"}
           </span>
           <span style={{ fontSize: "11.5px", color: "var(--color-faint)" }}>
-            {formatClockLabel(panchangam.sunrise)} → {formatClockLabel(panchangam.sunset)}
+            {lang === "ta" ? "சூரிய உதயம்" : "sunrise"} {formatClockLabel(panchangam.sunrise)} → {formatClockLabel(panchangam.sunset)}
           </span>
         </div>
         {nowInRange && (
-          <span style={{ fontSize: "11.5px", color: "var(--color-high)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "6px" }}>
+          <span style={{ fontSize: "11.5px", color: "var(--color-text)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "6px" }}>
             <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "var(--color-high)", boxShadow: "0 0 0 3px var(--color-high-bg)" }} />
             {lang === "ta" ? "இப்போது" : "Now"} · {nowLabel}
           </span>
         )}
       </div>
 
-      <div style={{ position: "relative", height: "40px", borderRadius: "8px", overflow: "hidden", background: "rgba(243,236,221,0.05)" }}>
-        {segments.map((s) => (
-          <div
-            key={s.key}
-            title={s.label}
-            style={{
-              position: "absolute",
-              top: 0,
-              bottom: 0,
-              left: `${pct(s.startMin)}%`,
-              width: `${Math.max(pct(s.endMin) - pct(s.startMin), 1.5)}%`,
-              background: s.color,
-              opacity: 0.55,
-            }}
-          />
-        ))}
+      <div
+        style={{
+          position: "relative",
+          height: "44px",
+          borderRadius: "10px",
+          overflow: "hidden",
+          background: "var(--color-surface-3)",
+          backgroundImage:
+            "repeating-linear-gradient(90deg, rgba(243,236,221,0.07) 0px, rgba(243,236,221,0.07) 1px, transparent 1px, transparent 7px)",
+        }}
+      >
+        {segments.map((s) => {
+          const widthPct = pct(s.endMin) - pct(s.startMin);
+          return (
+            <div
+              key={s.key}
+              title={`${s.legendName} ${s.legendTime}`}
+              style={{
+                position: "absolute",
+                top: 0,
+                bottom: 0,
+                left: `${pct(s.startMin)}%`,
+                width: `${Math.max(widthPct, 1.5)}%`,
+                background: s.bg,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+              }}
+            >
+              {widthPct >= 6 && (
+                <span
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    color: s.fg,
+                    whiteSpace: "nowrap",
+                    padding: "0 6px",
+                  }}
+                >
+                  {s.badge}
+                </span>
+              )}
+            </div>
+          );
+        })}
         {nowInRange && (
           <div style={{ position: "absolute", top: "-4px", bottom: "-4px", left: `${nowPct}%`, width: "2px", background: "var(--color-high)", boxShadow: "0 0 8px var(--color-high)" }} />
         )}
@@ -143,8 +220,9 @@ export function DashboardTodayRibbonNova({
       <div style={{ display: "flex", gap: "20px", marginTop: "12px", fontSize: "12px", color: "var(--color-text)", flexWrap: "wrap", alignItems: "center" }}>
         {segments.map((s) => (
           <span key={`legend-${s.key}`} style={{ display: "flex", alignItems: "center", gap: "7px" }}>
-            <span style={{ width: "9px", height: "9px", borderRadius: "2px", background: s.color }} />
-            {s.label}
+            <span style={{ width: "9px", height: "9px", borderRadius: "2px", background: s.bg, flex: "none" }} />
+            <span style={{ color: "var(--color-text-strong)", fontWeight: 600 }}>{s.legendName}</span>
+            <span style={{ color: "var(--color-faint)" }}>{s.legendTime}</span>
           </span>
         ))}
         {onGoToCalendar && (

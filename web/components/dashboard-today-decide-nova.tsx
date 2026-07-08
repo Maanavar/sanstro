@@ -91,11 +91,19 @@ function DecideGrid({ lang, chartId, selectedDate }: { lang: Lang; chartId: stri
               }}>
                 {busy ? "…" : (display?.icon ?? "?")}
               </span>
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? a.labelTa : a.labelEn}</div>
                 <div style={{ fontSize: "11px", color: display?.color ?? "var(--color-faint)" }}>
                   {busy ? (lang === "ta" ? "கணக்கிடுகிறது…" : "Checking…") : (display?.text ?? (lang === "ta" ? "தரவு இல்லை" : "No data"))}
                 </div>
+                {!busy && dateResult && (
+                  <div style={{
+                    fontSize: "10.5px", color: "var(--color-faint)", lineHeight: 1.4, marginTop: "3px",
+                    display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                  }}>
+                    {lang === "ta" ? dateResult.reasonTa : dateResult.reasonEn}
+                  </div>
+                )}
               </div>
             </div>
           );

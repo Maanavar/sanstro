@@ -133,6 +133,7 @@ export type DashboardPersonalTabProps = {
   onOpenPrasna?: () => void;
   showPrasna?: boolean;
   onClosePrasna?: () => void;
+  onOpenNotificationSettings?: () => void;
   dasha: DashaTimelineResponseData | null;
   dashaMaha?: DashaTimelineResponseData | null;
   dashaAntar: DashaTimelineItem[];
@@ -178,6 +179,7 @@ export function DashboardPersonalTab({
   onOpenPrasna,
   showPrasna = false,
   onClosePrasna,
+  onOpenNotificationSettings,
   dasha,
   dashaMaha = null,
   dashaAntar,
@@ -1004,8 +1006,8 @@ export function DashboardPersonalTab({
         </div>
       )}
 
-      {/* ── Morning Guidance opt-in ── */}
-      <MorningGuidanceCard lang={lang} />
+      {/* ── Morning Guidance pointer (opt-in lives in Settings → Notifications) ── */}
+      <MorningGuidanceCard lang={lang} onOpenSettings={onOpenNotificationSettings} />
 
       {/* ── Prasna (Horary) ── */}
       {onOpenPrasna && (

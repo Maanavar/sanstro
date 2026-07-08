@@ -53,11 +53,11 @@ const TAB_DEFS: Array<{ id: Tab; labelEn: string; labelTaKey?: LabelKey }> = [
   { id: "personal", labelEn: "Today", labelTaKey: "tab_today" },
   { id: "calendar", labelEn: "Calendar", labelTaKey: "tab_calendar" },
   { id: "family", labelEn: "Family", labelTaKey: "tab_family" },
-  { id: "explore", labelEn: "Explore", labelTaKey: "tab_explore" },
   { id: "life-areas", labelEn: "Life Area", labelTaKey: "tab_life_areas" },
   { id: "plan", labelEn: "Plan", labelTaKey: "tab_plan" },
   { id: "transits", labelEn: "Transits", labelTaKey: "tab_transits" },
   { id: "journal", labelEn: "Journal", labelTaKey: "tab_journal" },
+  { id: "explore", labelEn: "Explore", labelTaKey: "tab_explore" },
   { id: "tools", labelEn: "Tools", labelTaKey: "tab_tools" },
   { id: "settings", labelEn: "Settings", labelTaKey: "tab_settings" },
   { id: "qa", labelEn: "QA" },
@@ -88,6 +88,8 @@ interface DashboardHeroProps {
   onUserMenuClose: () => void;
   onGoToSettings: () => void;
   onSignOut: () => void;
+  /** Nova navbar's "✦ Ask Vinaadi" button — omitted when no chart exists yet. */
+  onAskVinaadi?: () => void;
 }
 
 function Icon({ children }: { children: ReactNode }) {
@@ -176,6 +178,7 @@ export function DashboardHero(props: DashboardHeroProps) {
     onUserMenuClose,
     onGoToSettings,
     onSignOut,
+    onAskVinaadi,
   } = props;
 
   const [showAlerts, setShowAlerts] = useState(false);
@@ -207,6 +210,40 @@ export function DashboardHero(props: DashboardHeroProps) {
 
   const langToggleTitle = lang === "ta" ? "Switch to English" : "தமிழுக்கு மாறு";
 
+  // "05 · Jul · 2026" label for the Nova navbar's date pill. The native date
+  // input stays mounted underneath (invisible, full-pill hit area) so the OS
+  // picker and keyboard entry keep working — this span is display-only.
+  const novaDateLabel = useMemo(() => {
+    const parsed = new Date(`${selectedDate}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) return selectedDate;
+    const day = String(parsed.getDate()).padStart(2, "0");
+    const month = parsed.toLocaleDateString(lang === "ta" ? "ta-IN" : "en-GB", { month: "short" });
+    return `${day} · ${month} · ${parsed.getFullYear()}`;
+  }, [selectedDate, lang]);
+
+  // One tab strip, two homes: Classic renders it in the cd-tabnav row below
+  // the topbar; Nova renders it inline in the topbar itself (cd-topnav).
+  // Only one of the two navs is ever mounted, so the motion layoutId is safe.
+  const tabButtons = tabs.map((tab) => (
+    <button
+      key={tab.id}
+      type="button"
+      ref={activeTab === tab.id ? activeTabRef : undefined}
+      className={`cd-tab${activeTab === tab.id ? " cd-tab--active" : ""}`}
+      aria-current={activeTab === tab.id ? "page" : undefined}
+      onClick={() => onTabChange(tab.id)}
+    >
+      {lang === "ta" && tab.labelTaKey ? t(tab.labelTaKey, lang) : tab.labelEn}
+      {activeTab === tab.id && (
+        <motion.span
+          layoutId="cd-tab-indicator"
+          className="cd-tab__indicator"
+          transition={{ type: "spring", stiffness: 400, damping: 15, mass: 0.8 }}
+        />
+      )}
+    </button>
+  ));
+
   return (
     <>
       <header className="cd-topbar">
@@ -222,7 +259,7 @@ export function DashboardHero(props: DashboardHeroProps) {
               priority
             />
             <span className="cd-brand__name">Vinaadi</span>
-            {lagnaRasi && (
+            {uiVariant !== "nova" && lagnaRasi && (
               <span className="cd-brand__sub" title={birthDisplayName}>
                 {birthDisplayName ? `${birthDisplayName} · ` : ""}
                 {chartSummary
@@ -232,16 +269,31 @@ export function DashboardHero(props: DashboardHeroProps) {
             )}
           </div>
 
-          <div className="cd-topbar__right">
-            <span className="cd-status-pill" title={status}>
-              <span className="cd-status-dot" />
-              {status}
-            </span>
+          {uiVariant === "nova" && (
+            <nav className="cd-topnav" aria-label="Dashboard navigation">
+              <div className="cd-topnav__scroll">{tabButtons}</div>
+            </nav>
+          )}
 
-            {selectedVault && (
+          <div className="cd-topbar__right">
+            {uiVariant !== "nova" && (
+              <span className="cd-status-pill" title={status}>
+                <span className="cd-status-dot" />
+                {status}
+              </span>
+            )}
+
+            {uiVariant !== "nova" && selectedVault && (
               <span className="cd-vault-name" title={selectedVault.name}>
                 {selectedVault.name}
               </span>
+            )}
+
+            {uiVariant === "nova" && onAskVinaadi && (
+              <button type="button" className="cd-ask-nav-btn" onClick={onAskVinaadi}>
+                <span aria-hidden="true">✦</span>
+                {t("ask_panel_title", lang)}
+              </button>
             )}
 
             <label htmlFor="dashboard-date" className="cd-visually-hidden">
@@ -254,8 +306,19 @@ export function DashboardHero(props: DashboardHeroProps) {
                 type="date"
                 value={selectedDate}
                 onChange={(e) => onDateChange(e.target.value)}
+                onClick={uiVariant === "nova" ? (e) => {
+                  // The input is an invisible overlay under Nova, so a click
+                  // anywhere on the pill should open the picker directly.
+                  try { e.currentTarget.showPicker?.(); } catch { /* non-gesture call — ignore */ }
+                } : undefined}
                 aria-label={lang === "ta" ? "தேதி தேர்வு" : "Select date"}
               />
+              {uiVariant === "nova" && (
+                <span className="cd-date-display" aria-hidden="true">
+                  {novaDateLabel}
+                  <span className="cd-date-display__caret">▾</span>
+                </span>
+              )}
             </div>
 
             <div className="cd-popover-anchor">
@@ -400,34 +463,56 @@ export function DashboardHero(props: DashboardHeroProps) {
             </div>
           </div>
         </div>
+
+        {/* Nova identity sub-bar — the chart identity that Classic shows in
+            cd-brand__sub, plus the status + vault chips that Classic keeps in
+            the topbar right cluster. */}
+        {uiVariant === "nova" && (
+          <div className="cd-subbar">
+            <div className="cd-subbar__inner">
+              <div className="cd-subbar__identity">
+                {birthDisplayName && (
+                  <span className="cd-subbar__name" title={birthDisplayName}>
+                    {birthDisplayName}
+                  </span>
+                )}
+                {chartSummary && (
+                  <span className="cd-subbar__chart">
+                    {`${chartSummary.moonRasi} - ${chartSummary.janmaNakshatra} - ${chartSummary.lagnaRasi} ${lang === "ta" ? "லக்னம்" : "Lagnam"}`}
+                  </span>
+                )}
+              </div>
+              <div className="cd-subbar__right">
+                {status && (
+                  <span className="cd-subbar__status" title={status}>
+                    <span className="cd-subbar__status-check" aria-hidden="true">✓</span>
+                    {status}
+                  </span>
+                )}
+                {selectedVault && (
+                  <button
+                    type="button"
+                    className="cd-subbar__vault"
+                    title={selectedVault.name}
+                    onClick={() => onTabChange("family")}
+                  >
+                    {selectedVault.name}
+                    <span className="cd-subbar__vault-caret" aria-hidden="true">▾</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
-      <nav className="cd-tabnav" aria-label="Dashboard navigation">
-        <div className="cd-tabnav__inner">
-          <div className="cd-tabnav__scroll">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                ref={activeTab === tab.id ? activeTabRef : undefined}
-                className={`cd-tab${activeTab === tab.id ? " cd-tab--active" : ""}`}
-                aria-current={activeTab === tab.id ? "page" : undefined}
-                onClick={() => onTabChange(tab.id)}
-              >
-                {lang === "ta" && tab.labelTaKey ? t(tab.labelTaKey, lang) : tab.labelEn}
-                {activeTab === tab.id && (
-                  <motion.span
-                    layoutId="cd-tab-indicator"
-                    className="cd-tab__indicator"
-                    transition={{ type: "spring", stiffness: 400, damping: 15, mass: 0.8 }}
-                  />
-                )}
-              </button>
-            ))}
+      {uiVariant !== "nova" && (
+        <nav className="cd-tabnav" aria-label="Dashboard navigation">
+          <div className="cd-tabnav__inner">
+            <div className="cd-tabnav__scroll">{tabButtons}</div>
           </div>
-
-        </div>
-      </nav>
+        </nav>
+      )}
 
       {/* Daily principle strip — rotates by day of week */}
       {(() => {
@@ -435,15 +520,15 @@ export function DashboardHero(props: DashboardHeroProps) {
         return (
           <div className="cd-principle-strip" style={{
             padding: "8px 20px",
-            background: "rgba(184, 90, 44, 0.05)",
-            borderBottom: "1px solid rgba(184, 90, 44, 0.14)",
+            background: uiVariant === "nova" ? "var(--color-accent-muted)" : "rgba(184, 90, 44, 0.05)",
+            borderBottom: uiVariant === "nova" ? "1px solid var(--color-border)" : "1px solid rgba(184, 90, 44, 0.14)",
             textAlign: "center",
           }}>
             <p style={{
               margin: 0,
               fontSize: "0.72rem",
               fontStyle: "italic",
-              color: "#6B4C2A",
+              color: uiVariant === "nova" ? "var(--color-text)" : "#6B4C2A",
               letterSpacing: "0.01em",
               lineHeight: 1.55,
             }}>

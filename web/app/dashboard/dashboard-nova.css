@@ -266,10 +266,10 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   Nav shell reuse: top-bar-only layout, no left rail.
-   DashboardHero's cd-tabnav and DashboardLeftRail already both
-   exist and are always mounted (dashboard-workspace.tsx) — today
-   they're swapped purely by a >=1024px media query in dashboard.css.
+   Nav shell: top-bar-only layout, no left rail.
+   Under Nova the tab links render inline in the topbar itself
+   (cd-topnav, dashboard-hero.tsx) and the cd-tabnav strip is not
+   mounted at all, so only the left rail needs suppressing here.
    These higher-specificity rules win at every viewport width
    without needing !important.
    ═══════════════════════════════════════════════════════════ */
@@ -282,12 +282,283 @@
   display: none;
 }
 
-[data-ui="nova"] .cd-tabnav {
-  display: block;
-}
-
 [data-ui="nova"] .cd-main-content {
   min-width: 0;
+}
+
+/* Today tab (activeTab === "personal"): dashboard.css's .cd-app-body /
+   .cd-main-content stretch to calc(100vh - 54px) so short tabs (e.g. a
+   1-member Family view) don't leave the footer floating right under the
+   content. But Today's last block is the collapsible Deep Dive section —
+   collapsing it drops this tab's content well below viewport height, and
+   that same stretch turns into a big dead gap before the footer instead
+   of a normal short page. Let the footer follow content here instead. */
+[data-ui="nova"] .cd-app-body[data-active-tab="personal"],
+[data-ui="nova"] .cd-main-content[data-active-tab="personal"] {
+  min-height: 0;
+}
+[data-ui="nova"] .cd-main-content[data-active-tab="personal"] .cd-main-content__body {
+  flex: 0 0 auto;
+}
+
+/* .cd-page's 150px right padding (dashboard.css) exists to clear the
+   Classic floating "Ask Vinaadi" launcher pill, which used to run the full
+   height of the page next to scrollable content. Nova hides that launcher
+   entirely (hideLauncher={uiVariant === "nova"} in dashboard-workspace.tsx)
+   and moves the affordance into the topbar's cd-ask-nav-btn instead — the
+   only fixed element left over Nova content is the 44px feedback FAB
+   pinned at the very bottom-right corner (globals.css .cd-feedback-fab),
+   which is a normal floating-button overlap, not something that needs a
+   lane reserved across the whole scroll height. Without this override,
+   content grids stop well short of the topbar's right edge for no reason. */
+[data-ui="nova"] .cd-page {
+  padding-right: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Nova navbar (dashboard-hero.tsx, uiVariant === "nova"):
+   one topbar row — serif wordmark · inline tab links · right
+   cluster (Ask Vinaadi pill, date pill, bell, lang, avatar) —
+   plus the cd-subbar identity row underneath (name + lagna/rasi
+   on the left, refresh status + family-vault pill on the right).
+   cd-topnav / cd-subbar / cd-ask-nav-btn / cd-date-display only
+   ever render under Nova, but every rule stays [data-ui="nova"]-
+   prefixed for consistency with the rest of this file.
+   ═══════════════════════════════════════════════════════════ */
+
+/* Wordmark alone — the screenshot look is a serif "Vinaadi", no symbol. */
+[data-ui="nova"] .cd-brand__symbol {
+  display: none;
+}
+
+[data-ui="nova"] .cd-brand__name {
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* Inline tab links, stretched to the full topbar height so the active
+   underline (cd-tab__indicator) sits on the row's bottom edge. Reuses the
+   cd-tab button styling from dashboard.css; overflow scrolls horizontally
+   on narrow viewports, scrollbar hidden (same pattern as cd-tabnav__scroll). */
+[data-ui="nova"] .cd-topnav {
+  align-self: stretch;
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  margin: 0 var(--space-2);
+}
+
+[data-ui="nova"] .cd-topnav__scroll {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+}
+
+[data-ui="nova"] .cd-topnav__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+[data-ui="nova"] .cd-topnav .cd-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+[data-ui="nova"] .cd-topnav .cd-tab--active {
+  color: var(--color-accent-strong);
+}
+
+[data-ui="nova"] .cd-topnav .cd-tab__indicator {
+  bottom: 0;
+}
+
+/* "✦ Ask Vinaadi" — outlined gold pill in the right cluster. */
+[data-ui="nova"] .cd-ask-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--color-border-strong);
+  background: transparent;
+  color: var(--color-accent-strong);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+[data-ui="nova"] .cd-ask-nav-btn:hover {
+  background: var(--color-accent-muted);
+  border-color: var(--color-accent);
+}
+
+/* Date pill: the native input stays mounted as an invisible overlay that
+   fills the pill (keeps the OS picker + a11y), while cd-date-display
+   renders the "05 · Jul · 2026 ▾" face underneath it. The input is
+   positioned, the span is static, so the input paints on top and takes
+   the clicks (showPicker() opens the calendar — see dashboard-hero.tsx). */
+[data-ui="nova"] .cd-date-field {
+  position: relative;
+}
+
+[data-ui="nova"] .cd-date-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  cursor: pointer;
+}
+
+[data-ui="nova"] .cd-date-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-soft);
+  color: var(--color-text-strong);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+[data-ui="nova"] .cd-date-input:focus-visible ~ .cd-date-display {
+  border-color: var(--color-accent);
+}
+
+[data-ui="nova"] .cd-date-display__caret {
+  font-size: 0.6rem;
+  color: var(--color-muted);
+}
+
+/* Identity sub-bar — second header row. */
+[data-ui="nova"] .cd-subbar {
+  border-top: 1px solid var(--color-border);
+}
+
+[data-ui="nova"] .cd-subbar__inner {
+  width: min(var(--cd-container-max), calc(100% - 2 * var(--space-4)));
+  margin: 0 auto;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  padding: 4px 0;
+}
+
+[data-ui="nova"] .cd-subbar__identity {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+[data-ui="nova"] .cd-subbar__name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-strong);
+  white-space: nowrap;
+}
+
+[data-ui="nova"] .cd-subbar__chart {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-ui="nova"] .cd-subbar__right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+[data-ui="nova"] .cd-subbar__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+[data-ui="nova"] .cd-subbar__status-check {
+  color: var(--color-positive);
+  flex-shrink: 0;
+}
+
+[data-ui="nova"] .cd-subbar__vault {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-soft);
+  color: var(--color-text-strong);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: border-color 150ms ease;
+}
+
+[data-ui="nova"] .cd-subbar__vault:hover {
+  border-color: var(--color-border-strong);
+}
+
+[data-ui="nova"] .cd-subbar__vault-caret {
+  font-size: 0.6rem;
+  color: var(--color-muted);
+  flex-shrink: 0;
+}
+
+/* Narrow viewports: the chart summary is the first thing to go (the name
+   keeps the row meaningful), and the status text yields to the vault pill. */
+@media (max-width: 720px) {
+  [data-ui="nova"] .cd-subbar__chart,
+  [data-ui="nova"] .cd-subbar__status {
+    display: none;
+  }
+
+  /* dashboard.css wraps cd-topbar__right onto its own full-width line at
+     this width; let the inline nav take the remaining first-line space. */
+  [data-ui="nova"] .cd-topnav {
+    margin: 0;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -429,6 +700,15 @@
 [data-ui="nova"] .cd-shell .collapsible__trigger { color: var(--color-text-strong); }
 [data-ui="nova"] .cd-shell .collapsible__arrow   { color: var(--color-faint); }
 
+/* "See why this score →" (dashboard-today-tab-nova.tsx) jumps to this anchor via
+   native #hash scrolling, which aligns the target flush with the viewport top by
+   default — right under the sticky .cd-topbar (topnav + subbar, ~92px tall). That
+   left the collapsible's trigger row hidden/unclickable behind the header and made
+   the section look permanently "mid-open" with no way to toggle it. */
+#nova-deep-dive {
+  scroll-margin-top: 108px;
+}
+
 [data-ui="nova"] .cd-shell .dasha-bar-bg {
   background: var(--color-surface-2);
   border-color: var(--color-border);
@@ -467,6 +747,7 @@
 
 .nova-grid-2,
 .nova-grid-3,
+.nova-grid-anticipation,
 .nova-grid-detail,
 .nova-grid-4 {
   display: grid;

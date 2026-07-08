@@ -20,6 +20,19 @@ import type {
  * reused from the same hooks the Classic Today tab already consumes.
  */
 
+/** Continuous low->mid->high gradient for a 0-100 score, rather than the coarse
+ *  3-band scoreColor() tone. Needed because Nova's --color-score-mid equals its
+ *  accent gold, so any run of days clustered in the "mid" band (the common
+ *  case week to week) rendered as identical bars in the Week Ahead chart. */
+function weekBarColor(score: number): string {
+  if (score <= 50) {
+    const t = Math.round(Math.max(0, Math.min(1, score / 50)) * 100);
+    return `color-mix(in srgb, var(--color-score-mid) ${t}%, var(--color-score-low) ${100 - t}%)`;
+  }
+  const t = Math.round(Math.max(0, Math.min(1, (score - 50) / 50)) * 100);
+  return `color-mix(in srgb, var(--color-score-high) ${t}%, var(--color-score-mid) ${100 - t}%)`;
+}
+
 function daysAwayLabel(days: number, lang: Lang): string {
   if (days < 60) return lang === "ta" ? `${days} நாட்களில்` : `${days} days away`;
   const months = Math.round(days / 30);
@@ -112,8 +125,9 @@ export function DashboardTodayAnticipationRowNova({
                   style={{
                     height: `${Math.max(14, (day.score / 100) * 70)}px`,
                     borderRadius: "5px 5px 2px 2px",
-                    background: day.dateLocal === selectedDate ? "var(--color-accent)" : scoreColor(day.score),
-                    opacity: day.dateLocal === selectedDate ? 1 : 0.55,
+                    background: weekBarColor(day.score),
+                    opacity: day.dateLocal === selectedDate ? 1 : 0.82,
+                    boxShadow: day.dateLocal === selectedDate ? "0 0 0 2px var(--color-accent-strong)" : "none",
                   }}
                 />
               ))}
@@ -154,6 +168,8 @@ export function DashboardTodayGlanceRowNova({
   selectedDate,
   lifeAreas,
   onGoToFamily,
+  onGoToTransits,
+  onGoToLifeAreas,
 }: {
   lang: Lang;
   familyAggregate: FamilyAggregateData | null;
@@ -163,6 +179,8 @@ export function DashboardTodayGlanceRowNova({
   selectedDate: string;
   lifeAreas?: LifeAreasResponseData | null;
   onGoToFamily?: () => void;
+  onGoToTransits?: () => void;
+  onGoToLifeAreas?: () => void;
 }) {
   const currentAntarIdx = dashaAntar.findIndex((item) => item.startDate <= selectedDate && selectedDate <= item.endDate);
   const nextAntar = currentAntarIdx >= 0 ? dashaAntar[currentAntarIdx + 1] : null;
@@ -236,9 +254,16 @@ export function DashboardTodayGlanceRowNova({
 
       {/* Dasa chapter */}
       <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "20px 22px", display: "flex", flexDirection: "column", gap: "12px" }}>
-        <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
-          {lang === "ta" ? "உங்கள் தசை அத்தியாயம்" : "Your dasa chapter"}
-        </span>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+          <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+            {lang === "ta" ? "உங்கள் தசை அத்தியாயம்" : "Your dasa chapter"}
+          </span>
+          {onGoToTransits && (
+            <button type="button" onClick={onGoToTransits} style={{ fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
+              {lang === "ta" ? "திற →" : "Open →"}
+            </button>
+          )}
+        </div>
         {personalChartSummary ? (
           <>
             <div style={{ fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 600, color: "var(--color-accent-strong)" }}>
@@ -270,9 +295,16 @@ export function DashboardTodayGlanceRowNova({
 
       {/* Life areas */}
       <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "20px 22px", display: "flex", flexDirection: "column", gap: "11px" }}>
-        <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
-          {lang === "ta" ? "வாழ்க்கைத் துறைகள்" : "Life areas"}
-        </span>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+          <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+            {lang === "ta" ? "வாழ்க்கைத் துறைகள்" : "Life areas"}
+          </span>
+          {onGoToLifeAreas && (
+            <button type="button" onClick={onGoToLifeAreas} style={{ fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
+              {lang === "ta" ? "திற →" : "Open →"}
+            </button>
+          )}
+        </div>
         {lifeAreas?.areas && lifeAreas.areas.length > 0 ? (
           lifeAreas.areas.slice(0, 4).map((area) => {
             const color = scoreColor(area.score);

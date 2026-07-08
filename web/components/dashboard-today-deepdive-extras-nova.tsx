@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bell } from "lucide-react";
 
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
 import { formatClockLabel, getScoreBand } from "@/lib/format";
@@ -16,7 +15,6 @@ import type {
   DailyGuidanceData,
   DailyGuidanceRangeData,
   DashaTimelineResponseData,
-  NotificationPreferenceData,
   PanchangamDailyResponseData,
   PrasnaResponse,
   SaniCycleData,
@@ -33,7 +31,6 @@ import {
   formatShortDate,
   formatWeekday,
 } from "./dashboard-activity-timing-card";
-import { CHANNEL_OPTS, TIME_PRESETS } from "./morning-guidance-card";
 import { QUESTION_AREAS, outlookLabel } from "./dashboard-prasna-widget";
 import { JathagamKattam } from "./dashboard-charts";
 import { ShareCardButton } from "./dashboard-share-card";
@@ -438,179 +435,10 @@ export function NovaActivityTimingCard({
   );
 }
 
-// ───────────────────────── 5. Morning Guidance opt-in ─────────────────────────
-
-function NovaPill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        padding: "6px 14px", borderRadius: "999px", fontSize: "0.8125rem", fontWeight: 600, cursor: "pointer",
-        border: `1.5px solid ${active ? "var(--color-accent)" : "var(--color-border)"}`,
-        background: active ? "var(--color-accent)" : "transparent",
-        color: active ? "var(--color-on-accent)" : "var(--color-muted)",
-        fontFamily: "inherit", transition: "all 0.12s ease",
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-function NovaToggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <span
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      style={{
-        display: "inline-flex", width: "36px", height: "20px", borderRadius: "999px",
-        border: `1.5px solid ${checked ? "var(--color-accent)" : "var(--color-border)"}`,
-        background: checked ? "var(--color-accent)" : "var(--color-surface-soft)",
-        position: "relative", flexShrink: 0, cursor: "pointer", transition: "all 0.15s",
-      }}
-    >
-      <span style={{
-        position: "absolute", top: "2px", left: checked ? "16px" : "2px", width: "14px", height: "14px",
-        borderRadius: "50%", background: checked ? "var(--color-on-accent)" : "var(--color-faint)", transition: "left 0.15s",
-      }} />
-    </span>
-  );
-}
-
-export function NovaMorningGuidanceCard({ lang }: { lang: Lang }) {
-  const [prefs, setPrefs] = useState<NotificationPreferenceData | null>(null);
-  const [enabled, setEnabled] = useState(false);
-  const [time, setTime] = useState("06:00");
-  const [channel, setChannel] = useState<"none" | "email" | "push" | "both">("email");
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    apiFetchJson<{ success: boolean; data: NotificationPreferenceData }>("/api/v1/settings/notifications")
-      .then((r) => {
-        const p = r.data;
-        setPrefs(p);
-        setEnabled(p.morningAlertEnabled);
-        setTime(p.morningAlertTime || "06:00");
-        setChannel(p.notification_channel === "none" ? "email" : p.notification_channel);
-      })
-      .catch(() => {});
-  }, []);
-
-  function save(nextEnabled: boolean, nextTime: string, nextChannel: "none" | "email" | "push" | "both") {
-    setSaving(true);
-    setSaved(false);
-    apiFetchJson<{ success: boolean; data: NotificationPreferenceData }>("/api/v1/settings/notifications", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        morningAlertEnabled: nextEnabled,
-        morningAlertTime: nextTime,
-        notificationChannel: nextEnabled ? nextChannel : (prefs?.notification_channel ?? "none"),
-      }),
-    })
-      .then((r) => {
-        setPrefs(r.data);
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2500);
-      })
-      .catch(() => {})
-      .finally(() => setSaving(false));
-  }
-
-  function handleToggle(v: boolean) { setEnabled(v); save(v, time, channel); }
-  function handleTime(v: string) { setTime(v); if (enabled) save(true, v, channel); }
-  function handleChannel(v: "email" | "push" | "both") { setChannel(v); if (enabled) save(true, time, v); }
-
-  if (prefs === null) return null;
-
-  return (
-    <div style={{
-      background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "12px",
-      padding: "20px 24px", display: "flex", flexDirection: "column", gap: "16px",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <Bell size={20} color="var(--color-accent-strong)" strokeWidth={1.5} aria-hidden="true" style={{ flexShrink: 0 }} />
-        <div style={{ flex: 1 }}>
-          <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-strong)" }}>
-            {lang === "ta" ? "காலை வழிகாட்டல்" : "Morning Guidance"}
-          </p>
-          <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.4, marginTop: "2px" }}>
-            {lang === "ta" ? "ஒவ்வொரு நாளும் காலையில் உங்கள் ஜோதிட வழிகாட்டலை பெறுங்கள்" : "Receive your daily astrological guidance every morning"}
-          </p>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-          {saving && <span style={{ fontSize: "0.75rem", color: "var(--color-muted)" }}>…</span>}
-          {saved && !saving && (
-            <span style={{ fontSize: "0.75rem", color: "var(--color-high)", fontWeight: 600 }}>
-              {lang === "ta" ? "சேமிக்கப்பட்டது" : "Saved"}
-            </span>
-          )}
-          <NovaToggle checked={enabled} onChange={handleToggle} />
-        </div>
-      </div>
-
-      <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600, color: enabled ? "var(--color-text)" : "var(--color-muted)" }}>
-        {lang === "ta" ? "இன்றைய வழிகாட்டலை ஒவ்வொரு காலையும் அனுப்பவும்" : "Send me today's guidance every morning"}
-      </p>
-
-      {enabled && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-          <div>
-            <p style={{ margin: "0 0 8px", fontSize: "0.75rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              {lang === "ta" ? "நேரம்" : "Time"}
-            </p>
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              {TIME_PRESETS.map((p) => (
-                <NovaPill key={p.value} active={time === p.value} onClick={() => handleTime(p.value)}>
-                  {lang === "ta" ? p.labelTa : p.labelEn}
-                </NovaPill>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p style={{ margin: "0 0 8px", fontSize: "0.75rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              {lang === "ta" ? "வழிமுறை" : "Delivery"}
-            </p>
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              {CHANNEL_OPTS.map((opt) => (
-                <NovaPill key={opt.value} active={channel === opt.value} onClick={() => handleChannel(opt.value)}>
-                  {lang === "ta" ? opt.labelTa : opt.labelEn}
-                </NovaPill>
-              ))}
-            </div>
-          </div>
-          <div style={{ padding: "12px 16px", borderRadius: "10px", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)" }}>
-            <p style={{ margin: "0 0 6px", fontSize: "0.75rem", fontWeight: 700, color: "var(--color-text)" }}>
-              {lang === "ta" ? "உள்ளடக்கம்" : "Each morning includes"}
-            </p>
-            <ul style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: "2px" }}>
-              {(lang === "ta" ? [
-                "சந்திராஷ்டம எச்சரிக்கை (பொருந்தும் போது)",
-                "இன்றைய நல்ல நேரம்",
-                "ராகு காலம்",
-                "தசை / புக்தி சூழல்",
-                "ஒரு வழிகாட்டல் கருத்து",
-              ] : [
-                "Chandrashtama warning (if applicable)",
-                "Today's Nalla Neram",
-                "Rahu Kalam",
-                "Current Dasha / Bhukti context",
-                "One action guidance",
-              ]).map((item) => (
-                <li key={item} style={{ fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.4 }}>{item}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ───────────────────────── 6. Prasna (Horary) trigger + widget ─────────────────────────
+// ───────────────────────── 5. Prasna (Horary) trigger + widget ─────────────────────────
+// (Section "Morning Guidance opt-in" removed — the opt-in now lives only in
+// Settings → Notifications; the Today tab renders the compact
+// MorningGuidanceCard pointer from ./morning-guidance-card instead.)
 
 function novaOutlookColor(outlook: PrasnaResponse["outlook"]) {
   if (outlook === "FAVOURABLE") return "var(--color-high)";

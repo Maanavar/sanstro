@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { apiFetchJson } from "@/lib/api";
+import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { formatClockLabel, formatDateLabel, getScoreVerdict, scoreColor } from "@/lib/format";
 import { t, tLang, tNakshatra, tPlanetLord, tTithi, tWeekday } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -20,6 +20,7 @@ import type {
   LifeAreasResponseData,
   LifeMode,
   NakshatraCardData,
+  NotificationPreferenceData,
   PanchangamDailyResponseData,
   PanchangamTimingsData,
   PeyarchiEvent,
@@ -53,10 +54,10 @@ import {
   NovaChartContextGuidanceGochar,
   NovaChartValidationChip,
   NovaDasaBhuktiAntaramStrip,
-  NovaMorningGuidanceCard,
   NovaPrasnaTrigger,
   NovaPrasnaWidget,
 } from "./dashboard-today-deepdive-extras-nova";
+import { MorningGuidanceCard } from "./morning-guidance-card";
 
 /**
  * Nova "Today" tab — Phase 1 of the dashboard revamp (see
@@ -69,7 +70,8 @@ import {
  * chart validation chip, Chart Context/Guidance/Gochar two-col, Dasa-Bhukti-
  * Antaram strip, activity timing month browser, planet table, chart
  * explanation, vargas, shadbala, the three alternate dashas, classical
- * timing, nakshatra card, morning guidance opt-in, Prasna/Horary trigger,
+ * timing, nakshatra card, morning guidance settings pointer (the opt-in
+ * itself lives in Settings → Notifications), Prasna/Horary trigger,
  * and PDF download.
  */
 
@@ -100,11 +102,14 @@ export type DashboardTodayTabNovaProps = {
   onGoToFamily?: () => void;
   onGoToJournal?: () => void;
   onGoToCalendar?: () => void;
+  onGoToLifeAreas?: () => void;
+  onGoToTransits?: () => void;
   onOpenAskVinaadi: () => void;
   onDateChange?: (date: string) => void;
   onOpenPrasna?: () => void;
   showPrasna?: boolean;
   onClosePrasna?: () => void;
+  onOpenNotificationSettings?: () => void;
   mode?: "BEGINNER" | "BALANCED" | "TRADITIONAL";
 };
 
@@ -147,11 +152,14 @@ export function DashboardTodayTabNova({
   onGoToFamily,
   onGoToJournal,
   onGoToCalendar,
+  onGoToLifeAreas,
+  onGoToTransits,
   onOpenAskVinaadi,
   onDateChange,
   onOpenPrasna,
   showPrasna = false,
   onClosePrasna,
+  onOpenNotificationSettings,
   mode,
 }: DashboardTodayTabNovaProps) {
   const { days: streakDays } = useStreak();
@@ -161,6 +169,8 @@ export function DashboardTodayTabNova({
 
   const [charaDasha, setCharaDasha] = useState<CharaDashaData | null>(null);
   const [solarReturn, setSolarReturn] = useState<SolarReturnData | null>(null);
+  const [savingReminder, setSavingReminder] = useState(false);
+  const [reminderMessage, setReminderMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activeChartId) {
@@ -193,6 +203,32 @@ export function DashboardTodayTabNova({
 
   async function downloadPdf() {
     await downloadJadhagamPdf(activeChartId, selectedDate, lang);
+  }
+
+  async function handleSaveReminder() {
+    if (savingReminder) return;
+    setSavingReminder(true);
+    setReminderMessage(null);
+    try {
+      const current = await apiFetchJson<{ success: boolean; data: NotificationPreferenceData }>("/api/v1/settings/notifications");
+      const nextChannel = current.data.notification_channel === "none" ? "both" : current.data.notification_channel;
+      const nextTime = current.data.morningAlertTime || "06:00";
+      await apiFetchJson<{ success: boolean; data: NotificationPreferenceData }>("/api/v1/settings/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          notificationChannel: nextChannel,
+          morningAlertEnabled: true,
+          morningAlertTime: nextTime,
+        }),
+      });
+      setReminderMessage(lang === "ta" ? "காலை நினைவூட்டல் சேமிக்கப்பட்டது." : "Morning reminder saved.");
+    } catch (error) {
+      const message = readErrorMessage(error);
+      setReminderMessage(lang === "ta" ? `சேமிக்க முடியவில்லை: ${message}` : `Could not save reminder: ${message}`);
+    } finally {
+      setSavingReminder(false);
+    }
   }
 
   return (
@@ -344,6 +380,28 @@ export function DashboardTodayTabNova({
             <div style={{ fontSize: "13.5px", lineHeight: 1.55, color: "var(--color-text)" }}>
               {tLang(personalDailyGuidance.remedy, lang)}
             </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "auto" }}>
+              <button
+                type="button"
+                onClick={() => void handleSaveReminder()}
+                disabled={savingReminder}
+                style={{
+                  alignSelf: "flex-start", border: "1px solid var(--color-border-strong)",
+                  color: savingReminder ? "var(--color-faint)" : "var(--color-accent-strong)", background: "none",
+                  borderRadius: "999px", padding: "9px 16px", fontSize: "12.5px", fontWeight: 600,
+                  cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit",
+                }}
+              >
+                {savingReminder
+                  ? (lang === "ta" ? "சேமிக்கிறது…" : "Saving…")
+                  : (lang === "ta" ? "நினைவூட்டல் சேமி" : "Save reminder")}
+              </button>
+              {reminderMessage && (
+                <p style={{ margin: 0, fontSize: "11.5px", color: reminderMessage.includes("Could not") || reminderMessage.includes("முடியவில்லை") ? "var(--color-low)" : "var(--color-high)" }}>
+                  {reminderMessage}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -380,11 +438,13 @@ export function DashboardTodayTabNova({
         selectedDate={selectedDate}
         lifeAreas={lifeAreas}
         onGoToFamily={onGoToFamily}
+        onGoToTransits={onGoToTransits}
+        onGoToLifeAreas={onGoToLifeAreas}
       />
 
       {/* ===== 8. Deep dive (collapsed) ===== */}
       <div id="nova-deep-dive">
-        <div style={{ background: "rgba(243,236,221,0.03)", border: "1px dashed var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "6px 22px" }} className="cd-shell">
+        <div style={{ background: "rgba(243,236,221,0.03)", border: "1px dashed var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "6px 22px" }}>
           <CollapsibleSection
             title={
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "10px 0" }}>
@@ -563,7 +623,7 @@ export function DashboardTodayTabNova({
                 </Surface>
               )}
 
-              <NovaMorningGuidanceCard lang={lang} />
+              <MorningGuidanceCard lang={lang} onOpenSettings={onOpenNotificationSettings} />
 
               <NovaPrasnaTrigger lang={lang} onOpenPrasna={onOpenPrasna} />
               {onClosePrasna && personalChart && (
