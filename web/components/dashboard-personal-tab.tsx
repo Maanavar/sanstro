@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { SkeletonDashboardCard, SkeletonDashaTimeline, SkeletonChartPanel, SkeletonMetricStrip } from "@/components/skeleton";
 import { DashboardLearnArticleModal } from "@/components/dashboard-learn-article-modal";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
@@ -575,6 +576,16 @@ export function DashboardPersonalTab({
                   <ShareCardButton chartId={activeChartId} cardType="DAILY_VIBE" lang={lang} date={selectedDate} label={lang === "ta" ? "இன்றைய வைப் பகிர்" : "Share Today's Vibe"} />
                 </div>
               )}
+              <div style={{ marginTop: "var(--space-2)", paddingTop: "var(--space-2)", borderTop: "1px solid var(--color-border)" }}>
+                <p style={{ margin: 0, fontSize: "11px", color: "var(--color-muted)" }}>
+                  {lang === "ta"
+                    ? `${personalChart.ayanamsa.type === "LAHIRI" ? "லாகிரி அயனாம்சம்" : personalChart.ayanamsa.type} · முழு-ராசி வீட்டு முறை · `
+                    : `${personalChart.ayanamsa.type === "LAHIRI" ? "Lahiri ayanamsa" : personalChart.ayanamsa.type} · Whole-sign houses · `}
+                  <Link href="/trust/methodology#lahiri" style={{ fontWeight: 700, color: "var(--color-accent)", textDecoration: "none" }}>
+                    {lang === "ta" ? "முறையை பார்க்க →" : "See methodology →"}
+                  </Link>
+                </p>
+              </div>
             </div>
           ) : (
             <p className="empty-state">{t("chart_no_profile", lang)}</p>
