@@ -41,6 +41,7 @@ class MuhurtaResponseData(BaseModel):
     activity: str
     date_from: date = Field(alias="dateFrom")
     date_to: date = Field(alias="dateTo")
+    timezone: str = Field(description="IANA timezone the slot times are computed and expressed in")
     slots: list[MuhurtaSlot]
 
     model_config = {"populate_by_name": True}

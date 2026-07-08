@@ -126,6 +126,7 @@ export interface MuhurtaResponseData {
   activity: string;
   dateFrom: string;
   dateTo: string;
+  timezone: string;
   slots: MuhurtaSlot[];
 }
 

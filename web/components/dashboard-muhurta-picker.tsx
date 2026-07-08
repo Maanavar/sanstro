@@ -7,7 +7,10 @@ import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, MuhurtaSlot, MuhurtaResponseData } from "@/lib/types";
 import { formatClockLabel, formatDateLabel, todayIso, addDays } from "@/lib/format";
+import { convertMuhurtaTime } from "@/lib/timezone";
 import { Surface } from "./dashboard-ui";
+import { PlaceCombobox } from "./place-combobox";
+import type { CityEntry } from "@/lib/tn-cities";
 
 const ACTIVITIES: Array<{ id: string; en: string; ta: string }> = [
   { id: "JOB_START",   en: "Job start / New role",             ta: "வேலை தொடக்கம் / புதிய பதவி" },
@@ -63,9 +66,12 @@ interface DashboardMuhurtaPickerProps {
   initialDateFrom?: string;
 }
 
-function MuhurtaCard({ slot, lang }: { slot: MuhurtaSlot; lang: Lang }) {
+function MuhurtaCard({ slot, lang, sourceTz, compareCity }: { slot: MuhurtaSlot; lang: Lang; sourceTz: string; compareCity: CityEntry | null }) {
   const [expanded, setExpanded] = useState(false);
   const scoreColor = SCORE_COLOR(slot.score);
+  const compare = compareCity && compareCity.timezone !== sourceTz
+    ? convertMuhurtaTime(slot.date, slot.timeStart, sourceTz, compareCity.timezone)
+    : null;
 
   return (
     <div style={{ border: `1px solid ${W.borderLt}`, borderRadius: "10px", padding: "14px 16px", marginBottom: "10px", background: W.card }}>
@@ -82,6 +88,12 @@ function MuhurtaCard({ slot, lang }: { slot: MuhurtaSlot; lang: Lang }) {
             </div>
           )}
           <div style={{ fontSize: "0.875rem", color: W.muted }}>{formatClockLabel(slot.timeStart)} - {formatClockLabel(slot.timeEnd)}</div>
+          {compare && (
+            <div style={{ fontSize: "0.75rem", color: "var(--panel-brand)", marginTop: "2px" }}>
+              {compareCity!.name.split(",")[0]}: {compare.time12h} {compare.tzAbbr}
+              {compare.dayOffset !== 0 && (lang === "ta" ? (compare.dayOffset > 0 ? " (மறுநாள்)" : " (முந்தைய நாள்)") : (compare.dayOffset > 0 ? " (next day)" : " (previous day)"))}
+            </div>
+          )}
         </div>
         <div className="cd-ranked-card__cta" style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "8px", fontSize: "0.875rem", color: W.muted, maxWidth: "200px", textAlign: "right" }}>
           <span>{lang === "ta" ? slot.panchangamSupport.ta : slot.panchangamSupport.en}</span>
@@ -126,6 +138,8 @@ export function DashboardMuhurtaPicker({ lang, chartId, initialActivity, initial
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<MuhurtaResponseData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [compareCityQuery, setCompareCityQuery] = useState("");
+  const [compareCity, setCompareCity] = useState<CityEntry | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   // Sync when parent injects a pre-selected date (Best Dates click-through)
@@ -223,8 +237,26 @@ export function DashboardMuhurtaPicker({ lang, chartId, initialActivity, initial
             <p style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "10px", color: W.inkMid }}>
               {t("muhurta_results", lang)} {selectedActivity && <span style={{ color: W.muted, fontWeight: 400 }}>· {lang === "ta" ? selectedActivity.ta : selectedActivity.en}</span>}
             </p>
+
+            <div style={{ marginBottom: "12px" }}>
+              <label style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: W.mutedLt, display: "block", marginBottom: "4px" }}>
+                {lang === "ta" ? "மற்றொரு ஊருடன் ஒப்பிடவும் (விருப்பம்)" : "Compare with another city (optional)"}
+              </label>
+              <PlaceCombobox
+                value={compareCityQuery}
+                onChange={(city, raw) => { setCompareCityQuery(raw); setCompareCity(city); }}
+                placeholder={lang === "ta" ? "எ.கா. மெல்போர்ன், ஆஸ்திரேலியா" : "e.g. Melbourne, Australia"}
+                style={fieldStyle}
+              />
+              {compareCity && compareCity.timezone === result.timezone && (
+                <p style={{ fontSize: "0.75rem", color: W.muted, marginTop: "4px" }}>
+                  {lang === "ta" ? "இது உங்கள் நேரமண்டலமே." : "That's the same timezone as this reading."}
+                </p>
+              )}
+            </div>
+
             {result.slots.map((slot, i) => (
-              <MuhurtaCard key={`${slot.date}-${i}`} slot={slot} lang={lang} />
+              <MuhurtaCard key={`${slot.date}-${i}`} slot={slot} lang={lang} sourceTz={result.timezone} compareCity={compareCity} />
             ))}
           </div>
         )}

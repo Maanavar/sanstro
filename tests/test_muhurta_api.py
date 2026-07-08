@@ -43,6 +43,7 @@ def test_muhurta_happy_path(client):
     body = response.json()
     assert body["success"] is True
     assert body["data"]["activity"] == "SPIRITUAL"
+    assert body["data"]["timezone"] == "Asia/Kolkata"
     assert isinstance(body["data"]["slots"], list)
 
 

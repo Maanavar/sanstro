@@ -385,6 +385,7 @@ def find_best_muhurta_slots(
             activity=activity,
             dateFrom=date_from,
             dateTo=date_to,
+            timezone=tz_name,
             slots=slots,
         ),
         meta=ResponseMeta(
