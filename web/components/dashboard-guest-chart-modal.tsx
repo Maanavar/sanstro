@@ -18,9 +18,10 @@ import "./dashboard-guest-chart-modal.css";
 interface GuestChartModalProps {
   lang: Lang;
   onClose: () => void;
+  onCreateAccount?: () => void;
 }
 
-export function GuestChartModal({ lang, onClose }: GuestChartModalProps) {
+export function GuestChartModal({ lang, onClose, onCreateAccount }: GuestChartModalProps) {
   const [chart, setChart] = useState<ChartCalculateResponseData | null>(null);
   const [submitError, setSubmitError] = useState("");
   const [view, setView] = useState<"D1" | "D9">("D1");
@@ -235,6 +236,18 @@ export function GuestChartModal({ lang, onClose }: GuestChartModalProps) {
               {lang === "ta"
                 ? "இந்த ஜாதகம் தற்காலிகமானது. மூடியதும் தானாக நீக்கப்படும்."
                 : "Preview only. This chart is not saved to your account."}
+            </p>
+            <p className="gcm-preview-note">
+              {lang === "ta"
+                ? "இலவச கணக்கு உருவாக்கினால்: இந்த ஜாதகத்தை சேமிக்கலாம், தினசரி தனிப்பயன் வழிகாட்டுதலை பெறலாம், மேலும் குடும்ப உறுப்பினர்களை சேர்க்கலாம் — எப்போதும் இலவசம். "
+                : "Create a free account to save this chart, get daily personalised guidance, and add family members — free forever. "}
+              <button
+                type="button"
+                onClick={onCreateAccount ?? onClose}
+                style={{ fontWeight: 700, textDecoration: "underline", background: "none", border: "none", padding: 0, cursor: "pointer", color: "inherit", font: "inherit" }}
+              >
+                {lang === "ta" ? "இலவசக் கணக்கு உருவாக்க →" : "Create free account →"}
+              </button>
             </p>
           </div>
         )}

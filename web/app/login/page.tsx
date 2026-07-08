@@ -1180,7 +1180,11 @@ export default function LoginPage() {
       </div>
 
       {showGuestChart && (
-        <GuestChartModal lang="en" onClose={() => setShowGuestChart(false)} />
+        <GuestChartModal
+          lang="en"
+          onClose={() => setShowGuestChart(false)}
+          onCreateAccount={() => { setShowGuestChart(false); switchMode("signup"); }}
+        />
       )}
     </>
   );
