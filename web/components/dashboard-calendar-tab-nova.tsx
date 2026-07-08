@@ -407,6 +407,11 @@ export function DashboardCalendarTabNova({
 
   const tithiActive = panchangam ? activeLimb(panchangam.tithi.name, panchangam.tithi.endsAt, panchangam.tithi.nextName, currentNowMinutes) : null;
   const nakActive = panchangam ? activeLimb(panchangam.nakshatra.name, panchangam.nakshatra.endsAt, panchangam.nakshatra.nextName, currentNowMinutes) : null;
+  // Issue #9: yoga & karana were static (sunrise value only, hint "Yoga N" / "—")
+  // so they never advanced after their boundary. Give them the same live promotion
+  // + "until HH:MM · then next" treatment as tithi/nakshatra.
+  const yogaActive = panchangam ? activeLimb(panchangam.yoga.name, panchangam.yoga.endsAt, panchangam.yoga.nextName, currentNowMinutes) : null;
+  const karanaActive = panchangam ? activeLimb(panchangam.karana.name, panchangam.karana.endsAt, panchangam.karana.nextName, currentNowMinutes) : null;
 
   const tithiPaksha = panchangam
     ? `${panchangam.tithi.paksha === "SHUKLA" ? t("paksha_shukla", lang) : t("paksha_krishna", lang)} ${panchangam.tithi.number}`
@@ -451,8 +456,20 @@ export function DashboardCalendarTabNova({
             ? `${formatClockLabel(panchangam.nakshatra.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
             : `${t("label_padam", lang)} ${panchangam.nakshatra.pada} · ${formatClockLabel(panchangam.nakshatra.endsAt)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tNakshatra(panchangam.nakshatra.nextName, lang)}`,
         },
-        { key: lang === "ta" ? "யோகம்" : "Yoga", value: tYoga(panchangam.yoga.name, lang), hint: `${lang === "ta" ? "யோகம்" : "Yoga"} ${panchangam.yoga.number}` },
-        { key: lang === "ta" ? "கரணம்" : "Karana", value: tKarana(panchangam.karana.name, lang), hint: "—" },
+        {
+          key: lang === "ta" ? "யோகம்" : "Yoga",
+          value: tYoga(yogaActive?.activeName ?? panchangam.yoga.name, lang),
+          hint: yogaActive?.rolledOver
+            ? `${formatClockLabel(panchangam.yoga.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
+            : `${formatClockLabel(panchangam.yoga.endsAt)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tYoga(panchangam.yoga.nextName, lang)}`,
+        },
+        {
+          key: lang === "ta" ? "கரணம்" : "Karana",
+          value: tKarana(karanaActive?.activeName ?? panchangam.karana.name, lang),
+          hint: karanaActive?.rolledOver
+            ? `${formatClockLabel(panchangam.karana.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
+            : `${formatClockLabel(panchangam.karana.endsAt)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tKarana(panchangam.karana.nextName, lang)}`,
+        },
         { key: lang === "ta" ? "சந்திரன்" : "Moon", value: panchangam.moonPhaseLabel, hint: lang === "ta" ? "சந்திர கலை" : "Moon phase" },
         { key: lang === "ta" ? "சூலம்" : "Soolam", value: panchangam.soolam.direction, hint: `${lang === "ta" ? "பரிகாரம்" : "Parigaram"}: ${panchangam.soolam.parigaram}` },
         { key: lang === "ta" ? "லக்னம்" : "Lagnam", value: panchangam.lagnam.rasiName, hint: `${lang === "ta" ? "இருப்பு" : "Remaining"} ${panchangam.lagnam.nazhigai} ${lang === "ta" ? "நாழிகை" : "nazhigai"} ${panchangam.lagnam.vinadi} ${lang === "ta" ? "விநாடி" : "vinadi"} · ${formatClockLabel(panchangam.lagnam.endsAt)} ${t("until_word", lang)}` },
@@ -522,7 +539,7 @@ export function DashboardCalendarTabNova({
                   {lang === "ta" ? "இன்று — ஒரு பார்வையில்" : "Day at a glance"}
                 </div>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: "26px", fontWeight: 600, lineHeight: 1.25, color: "var(--color-text-strong)" }}>
-                  {tTithi(tithiActive?.activeName ?? panchangam.tithi.name, lang)}. {tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang)}. {tYoga(panchangam.yoga.name, lang)}.
+                  {tTithi(tithiActive?.activeName ?? panchangam.tithi.name, lang)}. {tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang)}. {tYoga(yogaActive?.activeName ?? panchangam.yoga.name, lang)}.
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "8px", fontSize: "12.5px", color: "var(--color-muted)", flexWrap: "wrap" }}>
                   <span>
@@ -715,6 +732,28 @@ export function DashboardCalendarTabNova({
                   <div style={{ fontSize: "11px", letterSpacing: "0.12em", color: "var(--color-accent)", textTransform: "uppercase", fontWeight: 700, marginBottom: "10px" }}>
                     {lang === "ta" ? "ஹோரை அட்டவணை" : "Hora Table"}
                   </div>
+                  {/* Issue #11: pin the currently-running hora to the top so the user
+                      never has to scroll the 24-row table to find "now". */}
+                  {(() => {
+                    const nowHora = panchangam.hora.find((h) => {
+                      const s = parseHmToMinutes(h.start);
+                      const e = parseHmToMinutes(h.end);
+                      return currentNowMinutes >= s && currentNowMinutes < e;
+                    });
+                    if (!nowHora) return null;
+                    return (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "9px", padding: "10px 13px", borderRadius: "10px", marginBottom: "10px", background: "var(--color-accent-muted)", border: "1px solid var(--color-accent)" }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: "9px", fontSize: "13px", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                          <span style={{ fontSize: "9.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-strong)", fontWeight: 800 }}>{lang === "ta" ? "இப்போது" : "Now"}</span>
+                          <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: DASHA_COLORS[nowHora.lord.toUpperCase()] ?? "var(--color-faint)", flexShrink: 0 }} />
+                          {tPlanetLord(nowHora.lord, lang)} {t("hora_word", lang)}
+                        </span>
+                        <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-accent-strong)" }}>
+                          {formatClockLabel(nowHora.start)} – {formatClockLabel(nowHora.end)}
+                        </span>
+                      </div>
+                    );
+                  })()}
                   <div style={{ display: "flex", flexDirection: "column", gap: "2px", maxHeight: "330px", overflowY: "auto", paddingRight: "4px" }}>
                     {panchangam.hora.map((h) => (
                       <NovaHoraRow key={h.index} hora={h} lang={lang} nowMinutes={currentNowMinutes} />
