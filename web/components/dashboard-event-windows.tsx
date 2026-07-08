@@ -66,6 +66,7 @@ export function EventWindowsPanel({ lang, chartId, isMarried = false, onlyEvent,
     evt === "MARRIAGE" && isMarried ? tLang(MARRIED_MARRIAGE_LABEL, lang) : tLang(EVENT_LABELS[evt], lang);
   const [event, setEvent] = useState<EventType>(onlyEvent ?? "MARRIAGE");
   const [windows, setWindows] = useState<EventWindowItem[]>([]);
+  const [ageGated, setAgeGated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
@@ -83,12 +84,14 @@ export function EventWindowsPanel({ lang, chartId, isMarried = false, onlyEvent,
     setError("");
     setEvent(evt);
     try {
-      const res = await apiFetchJson<{ data: { windows: EventWindowItem[] } }>(
+      const res = await apiFetchJson<{ data: { windows: EventWindowItem[]; ageGated?: boolean } }>(
         `/api/v1/charts/${chartId}/event-windows?event=${evt}&fromYear=${currentYear}&toYear=${currentYear + 20}`
       );
       setWindows(res.data?.windows ?? []);
+      setAgeGated(Boolean(res.data?.ageGated));
     } catch (err) {
       setWindows([]);
+      setAgeGated(false);
       setError(readErrorMessage(err));
     } finally {
       setLoading(false);
@@ -145,7 +148,14 @@ export function EventWindowsPanel({ lang, chartId, isMarried = false, onlyEvent,
         </p>
       )}
 
-      {!loading && loaded && windows.length === 0 && (
+      {!loading && loaded && windows.length === 0 && event === "MARRIAGE" && ageGated && (
+        <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)" }}>
+          {lang === "ta"
+            ? "இந்த சுயவிவரத்திற்கு திருமண நேரங்கள் காட்டப்படவில்லை."
+            : "Marriage timing isn't shown for this profile."}
+        </p>
+      )}
+      {!loading && loaded && windows.length === 0 && !(event === "MARRIAGE" && ageGated) && (
         <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)" }}>
           {lang === "ta" ? "குறிப்பிடத்தக்க நேரங்கள் இல்லை." : "No notable windows in this range."}
         </p>

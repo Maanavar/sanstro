@@ -170,15 +170,17 @@ const EVENT_ADVICE: Record<EventType, { future: BiText; active: BiText }> = {
   },
 };
 
+type EventWindowsQueryData = { windows: EventWindowItem[]; ageGated: boolean };
+
 function useEventWindowsQuery(chartId: string, event: EventType, enabled: boolean) {
   return useQuery({
     queryKey: ["event-windows", chartId, event],
-    queryFn: async () => {
+    queryFn: async (): Promise<EventWindowsQueryData> => {
       const currentYear = new Date().getFullYear();
-      const res = await apiFetchJson<{ data: { windows: EventWindowItem[] } }>(
+      const res = await apiFetchJson<{ data: { windows: EventWindowItem[]; ageGated?: boolean } }>(
         `/api/v1/charts/${chartId}/event-windows?event=${event}&fromYear=${currentYear}&toYear=${currentYear + 20}`,
       );
-      return res.data?.windows ?? [];
+      return { windows: res.data?.windows ?? [], ageGated: Boolean(res.data?.ageGated) };
     },
     enabled: enabled && !!chartId,
     staleTime: STALE.today,
@@ -318,7 +320,8 @@ export function DashboardPlanTabNova({
 
   const heroGroup = groups[0] ?? null;
   const heroQuery = heroGroup ? queryByEvent[heroGroup.event] : null;
-  const heroWindow = heroQuery?.data ? nearestWindow(heroQuery.data, todayStr) : null;
+  const heroAgeGated = heroGroup?.event === "MARRIAGE" && Boolean(heroQuery?.data?.ageGated);
+  const heroWindow = heroQuery?.data ? nearestWindow(heroQuery.data.windows, todayStr) : null;
 
   if (!hasBirthProfile) {
     return (
@@ -522,7 +525,13 @@ export function DashboardPlanTabNova({
                       </button>
                     </>
                   );
-                })() : (
+                })() : heroAgeGated ? (
+                  <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                    {lang === "ta"
+                      ? "இந்த சுயவிவரத்திற்கு திருமண நேரங்கள் காட்டப்படவில்லை."
+                      : "Marriage timing isn't shown for this profile."}
+                  </p>
+                ) : (
                   <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)", lineHeight: 1.5 }}>
                     {lang === "ta"
                       ? "அடுத்த 20 ஆண்டுகளில் குறிப்பிடத்தக்க ஆதரவான காலம் இல்லை."
@@ -536,7 +545,8 @@ export function DashboardPlanTabNova({
           {/* ── Supportive windows (one card per goal-mapped event type) ── */}
           {groups.map((group) => {
             const q = queryByEvent[group.event];
-            const windows = q.data ? chronological(q.data) : [];
+            const windows = q.data ? chronological(q.data.windows) : [];
+            const groupAgeGated = group.event === "MARRIAGE" && Boolean(q.data?.ageGated);
             return (
               <div key={group.event} style={novaDetailCardStyle}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
@@ -556,7 +566,15 @@ export function DashboardPlanTabNova({
 
                 {q.isLoading && <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)" }}>{lang === "ta" ? "கணக்கிடுகிறோம்…" : "Calculating…"}</p>}
 
-                {!q.isLoading && windows.length === 0 && (
+                {!q.isLoading && windows.length === 0 && groupAgeGated && (
+                  <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)" }}>
+                    {lang === "ta"
+                      ? "இந்த சுயவிவரத்திற்கு திருமண நேரங்கள் காட்டப்படவில்லை."
+                      : "Marriage timing isn't shown for this profile."}
+                  </p>
+                )}
+
+                {!q.isLoading && windows.length === 0 && !groupAgeGated && (
                   <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)" }}>
                     {lang === "ta" ? "அடுத்த 20 ஆண்டுகளில் குறிப்பிடத்தக்க காலம் இல்லை." : "No notable windows in the next 20 years."}
                   </p>

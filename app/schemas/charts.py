@@ -320,6 +320,8 @@ class EventWindowsData(BaseModel):
     from_year: int = Field(alias="fromYear")
     to_year: int = Field(alias="toYear")
     windows: list[EventWindowItem]
+    age_gated: bool = Field(default=False, alias="ageGated")
+    alternative_framing: str | None = Field(default=None, alias="alternativeFraming")
 
     model_config = ConfigDict(populate_by_name=True)
 

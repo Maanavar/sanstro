@@ -12,10 +12,12 @@ from app.calculations.event_windows import ChartData, EventType, find_event_wind
 from app.calculations.jaimini_dasha import calculate_chara_dasha, current_chara_dasha
 from app.calculations.jaimini_karakas import compute_char_karakas, compute_karakamsa
 from app.calculations.tajaka import calculate_tajaka_chart
+from app.core.age_gate import is_married_settled, is_minor, is_past_prime_marriage_age
 from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
 from app.models.chart_planet import ChartPlanet
+from app.models.family_member import FamilyMember
 from app.models.user import User
 from app.schemas.chart_explanation import ChartExplanationResponse
 from app.schemas.charts import (
@@ -164,6 +166,48 @@ def get_event_windows(
     if to_year - from_year > 20:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Range must not exceed 20 years.")
 
+    # Marriage-timing windows are subject to the same age/relationship gating
+    # as every other marriage surface (predictions.py, life_events.py) — this
+    # endpoint previously had none.
+    age_gated = False
+    alternative_framing: str | None = None
+    hard_blocked = False
+    if event == "MARRIAGE":
+        profile = session.get(BirthProfile, chart.birth_profile_id)
+        birth_age = date.today().year - profile.birth_date_local.year - (
+            (date.today().month, date.today().day) < (profile.birth_date_local.month, profile.birth_date_local.day)
+        )
+        relationship_to_owner = "self"
+        if profile.family_member_id is not None:
+            member = session.get(FamilyMember, profile.family_member_id)
+            if member is not None:
+                relationship_to_owner = member.relationship_to_owner or "self"
+
+        is_parental = relationship_to_owner in {"parent", "grandparent"}
+        if is_minor(profile.birth_date_local) or is_past_prime_marriage_age(birth_age) or is_parental:
+            hard_blocked = True
+            age_gated = True
+        elif is_married_settled(profile.marital_status):
+            age_gated = True
+            alternative_framing = "RELATIONSHIP_HARMONY"
+
+    if hard_blocked:
+        return EventWindowsResponse(
+            data=EventWindowsData(
+                chart_id=chart_id,
+                event=event,
+                from_year=from_year,
+                to_year=to_year,
+                windows=[],
+                age_gated=age_gated,
+                alternative_framing=alternative_framing,
+            ),
+            meta=ResponseMeta(
+                calculation_version="event-windows-v1.0-2026",
+                generated_at=datetime.now(tz=UTC),
+            ),
+        )
+
     moon_row = session.execute(
         select(ChartPlanet).where(
             ChartPlanet.chart_id == chart_id,
@@ -200,6 +244,8 @@ def get_event_windows(
             from_year=from_year,
             to_year=to_year,
             windows=items,
+            age_gated=age_gated,
+            alternative_framing=alternative_framing,
         ),
         meta=ResponseMeta(
             calculation_version="event-windows-v1.0-2026",
