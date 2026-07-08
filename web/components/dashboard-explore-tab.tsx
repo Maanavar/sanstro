@@ -57,14 +57,6 @@ const GROUPS: ExploreGroup[] = [
         descEn: "Career, love, health, money, family and spiritual outlook",
         descTa: "தொழில், அன்பு, உடல்நலம், பணம், குடும்பம்",
       },
-      {
-        tab: "plan",
-        icon: <CardIcon><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3" /><path d="M12 3v3M12 18v3M3 12h3M18 12h3" /></CardIcon>,
-        titleEn: "Plan & Goals",
-        titleTa: "திட்டமிடு & இலக்குகள்",
-        descEn: "Set intentions, find auspicious timing, and track what matters",
-        descTa: "நோக்கம் வகுத்து, சுப நேரம் காணுங்கள்",
-      },
     ],
   },
   {

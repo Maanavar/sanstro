@@ -71,6 +71,15 @@ function FamilyIcon() {
   );
 }
 
+function PlanIcon() {
+  return (
+    <RailIcon>
+      <circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3" />
+      <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+    </RailIcon>
+  );
+}
+
 function ToolsIcon() {
   return (
     <RailIcon>
@@ -99,6 +108,7 @@ const RAIL_ITEMS: RailItemDef[] = [
   { id: "personal", labelEn: "Today",      labelTaKey: "tab_personal",   icon: <TodayIcon /> },
   { id: "calendar", labelEn: "Panchangam", labelTaKey: "tab_calendar",   icon: <PanchangamIcon /> },
   { id: "family",   labelEn: "Family",     labelTaKey: "tab_family",     icon: <FamilyIcon /> },
+  { id: "plan",     labelEn: "Plan",       labelTaKey: "tab_plan",       icon: <PlanIcon /> },
   { id: "tools",    labelEn: "Tools",      labelTaKey: "tab_tools",      icon: <ToolsIcon /> },
   { id: "explore",  labelEn: "Explore",                                   icon: <ExploreIcon /> },
 ];
@@ -126,7 +136,7 @@ export function DashboardLeftRail({ lang, activeTab, onTabChange }: DashboardLef
         {expanded && <span className="cd-rail-item__label cd-rail-item__label--inline">Menu</span>}
       </button>
       {items.map((item, idx) => {
-        const EXPLORE_DEPTH_TABS: Tab[] = ["transits", "plan", "life-areas", "journal", "explore"];
+        const EXPLORE_DEPTH_TABS: Tab[] = ["transits", "life-areas", "journal", "explore"];
         const isActive =
           item.id === "explore"
             ? EXPLORE_DEPTH_TABS.includes(activeTab)
