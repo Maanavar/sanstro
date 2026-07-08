@@ -65,15 +65,19 @@
   --color-accent-alt:            #8fbf9a; /* green — success/favourable */
   --color-accent-secondary:       #c9a9dd; /* purple */
   --color-accent-secondary-muted: rgba(167, 139, 201, 0.22);
+  /* Score bands must read good / okay / caution — NOT the brand gold (issue #13).
+     --color-score-mid was #d4af5f, identical to --color-accent, so every mid-band
+     score on the Nova home rendered as plain gold. Retuned to a distinct
+     amber-orange so the three bands are clearly green / amber / coral. */
   --color-score-high: #8fbf9a;
-  --color-score-mid:  #d4af5f;
+  --color-score-mid:  #e39a3e;
   --color-score-low:  #e08a72;
   --color-high:        #8fbf9a;
   --color-high-bg:     rgba(143, 191, 154, 0.14);
   --color-high-border: rgba(143, 191, 154, 0.32);
-  --color-mid:         #d4af5f;
-  --color-mid-bg:      rgba(212, 175, 95, 0.1);
-  --color-mid-border:  rgba(212, 175, 95, 0.3);
+  --color-mid:         #e39a3e;
+  --color-mid-bg:      rgba(227, 154, 62, 0.12);
+  --color-mid-border:  rgba(227, 154, 62, 0.32);
   --color-low:         #e08a72;
   --color-low-bg:      rgba(179, 87, 61, 0.14);
   --color-low-border:  rgba(179, 87, 61, 0.34);

@@ -161,6 +161,18 @@ export function formatRelLabel(rel: string | undefined | null): string | null {
   return rel.charAt(0).toUpperCase() + rel.slice(1).toLowerCase();
 }
 
+// Issue #12: give each member card one more genuinely useful, at-a-glance fact —
+// their current age — computed from already-fetched birth data (no new fetch).
+function ageFromBirth(birthDate: string, today: string): number | null {
+  const b = new Date(birthDate);
+  const t = new Date(today);
+  if (Number.isNaN(b.getTime()) || Number.isNaN(t.getTime())) return null;
+  let age = t.getFullYear() - b.getFullYear();
+  const monthDiff = t.getMonth() - b.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && t.getDate() < b.getDate())) age -= 1;
+  return age >= 0 && age < 150 ? age : null;
+}
+
 /* ── Expanded member detail (shown below name selector) ─── */
 export function MemberDetailExpanded({
   member,
@@ -202,6 +214,9 @@ export function MemberDetailExpanded({
   if (summary?.moonRasi)   identityParts.push(`${summary.moonRasi} ${t("label_janma_rasi", lang)}`);
   if (summary?.janmaNakshatra) identityParts.push(summary.janmaNakshatra);
 
+  const birthDateLocal = memberChart?.chart?.birthProfile?.birthDateLocal ?? null;
+  const memberAge = birthDateLocal ? ageFromBirth(birthDateLocal, today) : null;
+
   return (
     <div style={{
       background: "var(--color-surface)",
@@ -240,6 +255,20 @@ export function MemberDetailExpanded({
           {identityParts.length > 0 && (
             <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)" }}>
               {identityParts.join(" · ")}
+            </p>
+          )}
+          {(dasha || memberAge !== null) && (
+            <p style={{ margin: "var(--space-0_75) 0 0", fontSize: "0.8125rem", color: "var(--color-muted)" }}>
+              {dasha && (
+                <>
+                  {t("dasha_word", lang)}:{" "}
+                  <b style={{ color: "var(--color-text-strong)", fontWeight: 600 }}>
+                    {tPlanetLord(dasha.current.mahadasha.lord, lang)}–{tPlanetLord(dasha.current.antardasha.lord, lang)}
+                  </b>
+                </>
+              )}
+              {dasha && memberAge !== null ? " · " : ""}
+              {memberAge !== null && <>{lang === "ta" ? "வயது" : "Age"} {memberAge}</>}
             </p>
           )}
         </div>
