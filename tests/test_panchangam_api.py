@@ -162,17 +162,15 @@ def test_monthly_panchangam_uses_cached_dominant_values(client, monkeypatch):
     first_entries = first.json()["data"]["entries"]
     assert first_entries
 
-    import app.services.panchangam_service as service_module
+    import app.calculations.panchangam as panchangam_module
 
-    def _unexpected_dominant_walk(*args, **kwargs):
-        raise AssertionError("Warm monthly load must read dominant values from the cache.")
+    def _unexpected_recompute(*args, **kwargs):
+        raise AssertionError("Warm monthly load must read snapshots from the cache, not re-walk the ephemeris.")
 
-    # The civil-day dominant tithi/nakshatra/yoga are the expensive per-day ephemeris
-    # walk. On a warm load they come off the cached snapshot, so these fallbacks must
-    # never be invoked.
-    monkeypatch.setattr(service_module, "dominant_tithi_for_civil_day", _unexpected_dominant_walk)
-    monkeypatch.setattr(service_module, "dominant_nakshatra_for_civil_day", _unexpected_dominant_walk)
-    monkeypatch.setattr(service_module, "dominant_yoga_for_civil_day", _unexpected_dominant_walk)
+    # The per-day sidereal ephemeris walk is the expensive part of building a
+    # snapshot. On a fully warm load every day is served from the cached snapshot,
+    # so the ephemeris must never be touched.
+    monkeypatch.setattr(panchangam_module, "calculate_sidereal_planets", _unexpected_recompute)
 
     second = client.get("/api/v1/panchangam/monthly", params=params)
     assert second.status_code == 200

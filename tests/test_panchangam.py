@@ -14,9 +14,7 @@ from app.calculations.panchangam import (
     _special_tithi_durations_for_civil_day,
     best_gowri_slot,
     calculate_daily_panchangam,
-    dominant_nakshatra_for_civil_day,
     dominant_special_tithi_for_civil_day,
-    dominant_tithi_for_civil_day,
     gowri_category_rank,
 )
 from app.schemas.panchangam import PanchangamMonthlyQuery
@@ -80,6 +78,36 @@ def test_sani_pradhosam_replaces_generic_pradhosam_on_saturday():
 
     assert "Sani Pradhosam" in festival_names
     assert "Pradhosam" not in festival_names
+
+
+def test_pradhosam_is_dated_from_pradhosha_kalam_tithi_not_sunrise():
+    """Issue #10: Pradhosam is a sunset (pradhosha-kalam) vrata. When Trayodashi
+    (13th) is only reached after sunrise but is present at sunset, Pradhosam is
+    observed that evening; when it has already passed by sunset, it is not — the
+    sunrise tithi must not decide it."""
+    # Sunrise still Dvadasi (12), but Trayodashi (13) prevails at pradhosha-kalam.
+    names_when_sunset_is_13 = {
+        item["name"]
+        for item in get_festivals_for_date(
+            date(2026, 3, 31), 12, "SHUKLA", "ASHWINI", pradhosham_tithi_number=13
+        )
+    }
+    assert "Pradhosam" in names_when_sunset_is_13
+
+    # Sunrise is Trayodashi (13), but by pradhosha-kalam it has advanced to Chaturdasi (14).
+    names_when_sunset_is_14 = {
+        item["name"]
+        for item in get_festivals_for_date(
+            date(2026, 3, 31), 13, "SHUKLA", "ASHWINI", pradhosham_tithi_number=14
+        )
+    }
+    assert "Pradhosam" not in names_when_sunset_is_14
+
+
+def test_snapshot_computes_pradhosha_kalam_tithi():
+    snapshot = calculate_daily_panchangam(date(2026, 6, 13), 13.0827, 80.2707, "Asia/Kolkata")
+    # Sunset tithi is a valid 1..30 tithi index and is derived at pradhosha-kalam.
+    assert 1 <= snapshot.pradhosham_tithi_number <= 30
 
 
 def test_daily_panchangam_uses_documented_2026_05_21_reference_case():
@@ -237,7 +265,10 @@ def test_amavasai_pournami_use_dominant_civil_day_marker():
     assert flagged[30]
 
 
-def test_monthly_builder_uses_dominant_civil_day_labels():
+def test_monthly_builder_uses_sunrise_governing_labels():
+    """Issue #9: the monthly grid names each day by the tithi/nakshatra present at
+    sunrise (உதய rule), matching the daily endpoint and the dashboard home — not a
+    separate longest-span (dominant) value."""
     response = build_monthly_panchangam(
         PanchangamMonthlyQuery(year=2026, month=6, lat=13.0827, lng=80.2707, timezone="Asia/Kolkata")
     )
@@ -245,13 +276,9 @@ def test_monthly_builder_uses_dominant_civil_day_labels():
     assert response.data.entries
     for entry in response.data.entries:
         day = date.fromisoformat(str(entry.date_local))
-        dominant_tithi = dominant_tithi_for_civil_day(day, "Asia/Kolkata")
-        dominant_nakshatra = dominant_nakshatra_for_civil_day(day, "Asia/Kolkata")
-
-        assert dominant_tithi is not None
-        assert dominant_nakshatra is not None
-        assert entry.tithi_number == dominant_tithi
-        assert entry.nakshatra_name == NAKSHATRA_NAMES[dominant_nakshatra - 1]
+        snapshot = calculate_daily_panchangam(day, 13.0827, 80.2707, "Asia/Kolkata")
+        assert entry.tithi_number == snapshot.tithi_number
+        assert entry.nakshatra_name == snapshot.nakshatra_name
 
 
 def test_monthly_builder_exposes_sunrise_based_tamil_muhurtham_days():
@@ -262,10 +289,14 @@ def test_monthly_builder_exposes_sunrise_based_tamil_muhurtham_days():
     june_7 = next(entry for entry in response.data.entries if str(entry.date_local) == "2026-06-07")
     june_18 = next(entry for entry in response.data.entries if str(entry.date_local) == "2026-06-18")
 
+    # Almanac (curated) muhurtham days are independent of the engine's own check.
     assert june_7.is_tamil_muhurtham_day is True
-    assert june_7.is_subha_muhurtham is False
-    assert june_7.is_subha_muhurtham_strict is False
     assert june_18.is_tamil_muhurtham_day is True
+    # The engine's broad/strict subha check now reads the sunrise-governing tithi &
+    # nakshatra (issue #9): 2026-06-07 has Avittam (a subha nakshatra) at sunrise, so
+    # the broad check passes; 2026-06-18 has a Rikta tithi (4th) at sunrise, so it fails.
+    assert june_7.is_subha_muhurtham is True
+    assert june_7.is_subha_muhurtham_strict is False
     assert june_18.is_subha_muhurtham is False
 
 

@@ -8,16 +8,10 @@ from sqlalchemy.orm import Session
 
 from app.calculations.festivals import get_festivals_for_date
 from app.calculations.panchangam import (
-    NAKSHATRA_NAMES,
     _compute_subha_muhurtham_broad,
     _compute_subha_muhurtham_strict,
-    _tithi_name,
-    _yoga_name,
     calculate_daily_panchangam,
     calculate_daily_panchangam_range,
-    dominant_nakshatra_for_civil_day,
-    dominant_tithi_for_civil_day,
-    dominant_yoga_for_civil_day,
 )
 from app.calculations.tamil_calendar import format_tamil_date, tamil_solar_date
 from app.data.muhurtham_naals import get_muhurtham_naals
@@ -144,6 +138,7 @@ def _build_festivals(
             weekday=snapshot.weekday,
             tamil_month_index=tamil_month_index,
             special_tithi_day_number=snapshot.special_tithi_day_number,
+            pradhosham_tithi_number=snapshot.pradhosham_tithi_number or None,
         )
     ]
 
@@ -341,37 +336,27 @@ def build_monthly_panchangam(query: PanchangamMonthlyQuery, session: Session | N
     for day_number in range(1, days_in_month + 1):
         date_local = date(query.year, query.month, day_number)
         snapshot = snapshots_by_date[date_local]
-        # Prefer the dominant values persisted on the cached snapshot (schema v22+);
-        # only re-walk the ephemeris for snapshots produced without the cache.
-        dominant_tithi_number = (
-            snapshot.dominant_tithi_number
-            or dominant_tithi_for_civil_day(date_local, snapshot.timezone_name)
-            or snapshot.tithi_number
-        )
-        dominant_tithi_paksha = "SHUKLA" if dominant_tithi_number <= 15 else "KRISHNA"
-        dominant_tithi_name = _tithi_name(dominant_tithi_number)
-        dominant_nakshatra_number = (
-            snapshot.dominant_nakshatra_number
-            or dominant_nakshatra_for_civil_day(date_local, snapshot.timezone_name)
-            or snapshot.nakshatra_number
-        )
-        dominant_nakshatra_name = NAKSHATRA_NAMES[dominant_nakshatra_number - 1]
-        dominant_yoga_number = (
-            snapshot.dominant_yoga_number
-            or dominant_yoga_for_civil_day(date_local, snapshot.timezone_name)
-            or snapshot.yoga_number
-        )
-        dominant_yoga_name = _yoga_name(dominant_yoga_number)
+        # Sunrise-governing (உதய) tithi / nakshatra / yoga: the value present at
+        # sunrise names the whole civil day. This is the classical Tamil rule the
+        # daily endpoint and the dashboard home already use — the monthly grid now
+        # matches them instead of showing a separate longest-span (dominant) value
+        # (issue #9). Boundary crossings are still surfaced per-day via the daily
+        # endpoint's *_ends_at / *_next_* fields.
+        governing_tithi_number = snapshot.tithi_number
+        governing_tithi_paksha = snapshot.tithi_paksha
+        governing_tithi_name = snapshot.tithi_name
+        governing_nakshatra_name = snapshot.nakshatra_name
+        governing_yoga_name = snapshot.yoga_name
         is_subha_muhurtham, _ = _compute_subha_muhurtham_broad(
-            dominant_tithi_number,
-            dominant_nakshatra_name,
+            governing_tithi_number,
+            governing_nakshatra_name,
             date_local.weekday(),
         )
         is_subha_muhurtham_strict, _ = _compute_subha_muhurtham_strict(
-            dominant_tithi_number,
-            dominant_tithi_paksha,
-            dominant_nakshatra_name,
-            dominant_yoga_name,
+            governing_tithi_number,
+            governing_tithi_paksha,
+            governing_nakshatra_name,
+            governing_yoga_name,
             date_local.weekday(),
             snapshot.abhijit_restricted,
         )
@@ -385,16 +370,16 @@ def build_monthly_panchangam(query: PanchangamMonthlyQuery, session: Session | N
                 date_local=snapshot.date_local,
                 tamil_date=tamil_date,
                 weekday=snapshot.weekday,
-                tithi_number=dominant_tithi_number,
-                tithi_name=dominant_tithi_name,
-                tithi_paksha=dominant_tithi_paksha,
-                nakshatra_name=dominant_nakshatra_name,
+                tithi_number=governing_tithi_number,
+                tithi_name=governing_tithi_name,
+                tithi_paksha=governing_tithi_paksha,
+                nakshatra_name=governing_nakshatra_name,
                 special_tithi_day_number=snapshot.special_tithi_day_number,
                 festivals=_build_festivals(
                     snapshot,
-                    tithi_number=dominant_tithi_number,
-                    tithi_paksha=dominant_tithi_paksha,
-                    nakshatra_name=dominant_nakshatra_name,
+                    tithi_number=governing_tithi_number,
+                    tithi_paksha=governing_tithi_paksha,
+                    nakshatra_name=governing_nakshatra_name,
                 ),
                 is_tamil_muhurtham_day=date_local in almanac_muhurtham_dates,
                 is_subha_muhurtham=is_subha_muhurtham,

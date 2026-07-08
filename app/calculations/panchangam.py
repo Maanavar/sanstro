@@ -324,7 +324,9 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # use RIKTA_TITHIS_IN_PAKSHA = {4, 9, 14}.
 # v29: AMIRDHADHI_YOGAM_TABLE corrected at Tue+Ashwini and Wed+Anuradha (were
 # சித்தயோகம், should be அமிர்தயோகம் per the classical Amrita Siddhi Yoga pairs).
-PANCHANGAM_CACHE_DATA_VERSION = 29
+# v30: persist pradhosham_tithi_number (tithi at pradhosha-kalam / sunset) so
+# Pradhosam is dated from the sunset tithi, not the sunrise tithi (issue #10).
+PANCHANGAM_CACHE_DATA_VERSION = 30
 DOMINANT_SPECIAL_TITHIS = {15, 30}
 
 # Compact daily-calendar summary windows used by Tamil calendars for everyday
@@ -483,6 +485,10 @@ class PanchangamSnapshot:
     dominant_tithi_number: int = 0
     dominant_nakshatra_number: int = 0
     dominant_yoga_number: int = 0
+    # Tithi prevailing at pradhosha-kalam (sunset). Pradhosam is a sunset-anchored
+    # observance, so it must be dated from this, not the sunrise tithi (issue #10).
+    # 0 means "not computed" — callers fall back to the sunrise tithi.
+    pradhosham_tithi_number: int = 0
 
 
 def _format_hhmm(moment: datetime) -> str:
@@ -1222,6 +1228,7 @@ def _serialize_snapshot(snapshot: PanchangamSnapshot) -> dict:
         "dominant_tithi_number": snapshot.dominant_tithi_number,
         "dominant_nakshatra_number": snapshot.dominant_nakshatra_number,
         "dominant_yoga_number": snapshot.dominant_yoga_number,
+        "pradhosham_tithi_number": snapshot.pradhosham_tithi_number,
     }
 
 
@@ -1331,6 +1338,7 @@ def _deserialize_snapshot(data: dict) -> PanchangamSnapshot:
         ),
         warnings=tuple(data.get("warnings", [])),
         dominant_tithi_number=int(data.get("dominant_tithi_number", 0)),
+        pradhosham_tithi_number=int(data.get("pradhosham_tithi_number", 0)),
         dominant_nakshatra_number=int(data.get("dominant_nakshatra_number", 0)),
         dominant_yoga_number=int(data.get("dominant_yoga_number", 0)),
     )
@@ -1582,6 +1590,10 @@ def calculate_daily_panchangam(
     dominant_nakshatra_number = dominant_nakshatra_for_civil_day(date_local, timezone_name) or nakshatra_number
     dominant_yoga_number = dominant_yoga_for_civil_day(date_local, timezone_name) or yoga_number
 
+    # Pradhosam is observed in the twilight around sunset, so its governing tithi is
+    # read at pradhosha-kalam (sunset), not at sunrise (issue #10).
+    pradhosham_tithi_number = _tithi_number_at_jd(sunset_jd)
+
     snapshot = PanchangamSnapshot(
         date_local=date_local,
         timezone_name=timezone_name,
@@ -1649,6 +1661,7 @@ def calculate_daily_panchangam(
         dominant_tithi_number=dominant_tithi_number,
         dominant_nakshatra_number=dominant_nakshatra_number,
         dominant_yoga_number=dominant_yoga_number,
+        pradhosham_tithi_number=pradhosham_tithi_number,
     )
 
     if use_cache and session is not None:

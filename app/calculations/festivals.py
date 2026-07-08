@@ -218,20 +218,28 @@ def _recurring_tithi_festivals(
     weekday: str | None,
     tamil_month_index: int | None,
     special_tithi_day_number: int | None,
+    pradhosham_tithi_number: int | None = None,
 ) -> list[dict]:
     """Recurring festivals defined by tithi/paksha/weekday/Tamil-month/nakshatra
     combinations rather than fixed Gregorian dates — these recur every lunar
     month (or every year on the matching Tamil-month occurrence) and so must
     be derived from the day's panchangam state, not looked up by date.
+
+    Most observances follow the udaya (sunrise) tithi passed in ``tithi_number``.
+    Pradhosam is the exception: it is a twilight/sunset vrata, so it is dated from
+    ``pradhosham_tithi_number`` (the tithi at pradhosha-kalam), falling back to the
+    sunrise tithi only when that is unavailable (issue #10).
     """
     results: list[dict] = []
     tithi_in_paksha = tithi_number if tithi_number <= 15 else tithi_number - 15
     nk_upper = nakshatra_name.upper()
 
-    # Pradhosam — trayodashi (13th tithi) of either paksha. On Saturdays the
-    # specific observance name replaces the generic one to avoid duplicate UI
-    # rows for the same vrata.
-    if tithi_in_paksha == 13:
+    # Pradhosam — trayodashi (13th tithi) of either paksha, judged at pradhosha-kalam
+    # (sunset). On Saturdays the specific observance name replaces the generic one to
+    # avoid duplicate UI rows for the same vrata.
+    pradhosham_tithi = pradhosham_tithi_number or tithi_number
+    pradhosham_in_paksha = pradhosham_tithi if pradhosham_tithi <= 15 else pradhosham_tithi - 15
+    if pradhosham_in_paksha == 13:
         if weekday == _WEEKDAY_SATURDAY:
             results.append({"name": "Sani Pradhosam", "category": "hindu"})
         else:
@@ -290,6 +298,7 @@ def get_festivals_for_date(
     weekday: str | None = None,
     tamil_month_index: int | None = None,
     special_tithi_day_number: int | None = None,
+    pradhosham_tithi_number: int | None = None,
 ) -> list[dict]:
     """Return list of {name, category} dicts for the given date + panchangam state."""
     results: list[dict] = []
@@ -327,6 +336,7 @@ def get_festivals_for_date(
             weekday,
             tamil_month_index,
             special_tithi_day_number,
+            pradhosham_tithi_number,
         )
     )
 
