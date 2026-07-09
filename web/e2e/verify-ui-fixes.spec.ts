@@ -67,6 +67,7 @@ async function dismissDialogs(maxAttempts = 15) {
 test.afterAll(async () => { await context.close(); });
 
 test("item 6 — Tools detail panel renders dark", async () => {
+  await dismissDialogs();
   await page.getByRole("button", { name: "Tools", exact: true }).first().click();
   await page.waitForTimeout(1200);
   // Open the Jadhagam Generator (chart-generate inline panel).
