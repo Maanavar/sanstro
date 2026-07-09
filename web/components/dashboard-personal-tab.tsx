@@ -620,7 +620,13 @@ export function DashboardPersonalTab({
                   <span>{formatScoreLabel(personalDailyGuidance.score)}</span>
                   <Chip tone={personalScoreBand?.tone === "high" ? "success" : personalScoreBand?.tone === "low" ? "warning" : "neutral"}>{personalDailyGuidance.label}</Chip>
                 </div>
-                <p className="surface__text">{tLang(personalDailyGuidance.text, lang)}</p>
+                {personalDailyGuidance.briefing ? (
+                  <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)" }}>
+                    <p style={{ margin: 0, fontSize: "0.9375rem", lineHeight: 1.55, color: "var(--color-text-strong)" }}>{tLang(personalDailyGuidance.briefing, lang)}</p>
+                  </div>
+                ) : (
+                  <p className="surface__text">{tLang(personalDailyGuidance.text, lang)}</p>
+                )}
                 {personalDailyGuidance.currentHoraLord && (
                   <div
                     style={{

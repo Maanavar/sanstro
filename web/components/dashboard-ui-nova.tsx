@@ -1,12 +1,110 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 /**
  * Nova-only shared primitives. Kept separate from `dashboard-ui.tsx` so the
  * widely-used Classic primitive library never grows variant branching —
  * these are imported only from screens rendered under [data-ui="nova"].
  */
+
+type NovaClampedTextProps = {
+  children: string;
+  lines?: number;
+  maxWidth?: string;
+  style?: CSSProperties;
+};
+
+/**
+ * Multi-line clamp that reveals the full text in a popover on hover, and
+ * toggles it (pinned open) on click/tap so it also works on touch — same
+ * click/tap-to-reveal convention as GlossaryTerm, applied to a paragraph
+ * instead of a single term. Only becomes interactive if the text actually
+ * overflows the clamp.
+ */
+export function NovaClampedText({ children, lines = 3, maxWidth, style }: NovaClampedTextProps) {
+  const [hovering, setHovering] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const [overflowing, setOverflowing] = useState(false);
+  const textRef = useRef<HTMLDivElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const open = overflowing && (hovering || pinned);
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (el) setOverflowing(el.scrollHeight > el.clientHeight + 1);
+  }, [children, lines]);
+
+  useEffect(() => {
+    if (!pinned) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setPinned(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPinned(false);
+    };
+    document.addEventListener("click", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("click", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [pinned]);
+
+  return (
+    <div
+      ref={wrapRef}
+      style={{ position: "relative", maxWidth }}
+      onMouseEnter={() => overflowing && setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+    >
+      <div
+        ref={textRef}
+        role="button"
+        tabIndex={overflowing ? 0 : -1}
+        aria-expanded={pinned}
+        onClick={() => overflowing && setPinned((v) => !v)}
+        onKeyDown={(e) => {
+          if (overflowing && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            setPinned((v) => !v);
+          }
+        }}
+        style={{
+          ...style,
+          display: "-webkit-box",
+          WebkitLineClamp: lines,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+          cursor: overflowing ? "pointer" : "default",
+        }}
+      >
+        {children}
+      </div>
+      {open && (
+        <div
+          role="tooltip"
+          style={{
+            position: "absolute",
+            zIndex: 40,
+            top: "calc(100% + 6px)",
+            left: 0,
+            right: 0,
+            padding: "12px 14px",
+            borderRadius: "var(--radius-md)",
+            border: "1px solid var(--color-border-strong)",
+            background: "var(--color-surface)",
+            boxShadow: "0 10px 28px rgba(0,0,0,0.22)",
+            whiteSpace: "pre-wrap",
+            ...style,
+          }}
+        >
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
 
 type NovaScoreDialProps = {
   score: number;

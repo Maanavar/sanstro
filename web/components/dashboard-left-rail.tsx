@@ -107,7 +107,7 @@ type RailItemDef = {
 const RAIL_ITEMS: RailItemDef[] = [
   { id: "personal", labelEn: "Today",      labelTaKey: "tab_personal",   icon: <TodayIcon /> },
   { id: "calendar", labelEn: "Panchangam", labelTaKey: "tab_calendar",   icon: <PanchangamIcon /> },
-  { id: "family",   labelEn: "Family",     labelTaKey: "tab_family",     icon: <FamilyIcon /> },
+  { id: "family",   labelEn: "Family & Charts", labelTaKey: "tab_family", icon: <FamilyIcon /> },
   { id: "plan",     labelEn: "Plan",       labelTaKey: "tab_plan",       icon: <PlanIcon /> },
   { id: "tools",    labelEn: "Tools",      labelTaKey: "tab_tools",      icon: <ToolsIcon /> },
   { id: "explore",  labelEn: "Explore",                                   icon: <ExploreIcon /> },

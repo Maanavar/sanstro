@@ -1413,16 +1413,12 @@ export function DashboardWorkspace() {
           <DashboardTodayTabNova
             lang={lang}
             activeLifeMode={activeLifeMode}
-            mode={session.userMode}
             birthDisplayName={birthForm.displayName}
             selectedDate={selectedDate}
             todayDate={personal.todayDate}
             personalMemberChart={personalMemberChart}
-            personalChart={personalChart}
-            personalChartExplanation={personalChartExplanation}
             personalChartSummary={personalChartSummary}
             personalDailyGuidance={personalDailyGuidance}
-            personalTransit={personalTransit}
             personalSani={personalSani}
             peyarchiUpcoming={personalPeyarchiUpcoming}
             panchangam={personal.panchangam}
@@ -1432,20 +1428,14 @@ export function DashboardWorkspace() {
             lifeAreas={personal.lifeAreas}
             dasha={personalDasha}
             dashaAntar={personalDashaAntar}
-            dashaMaha={personalDashaMaha}
             dailyGuidanceRange={personal.dailyGuidanceRange}
-            nakshatraCard={personalMemberChart?.nakshatraCard ?? personal.nakshatraCard}
             onGoToFamily={() => setActiveTab("family")}
             onGoToJournal={() => setActiveTab("journal")}
             onGoToCalendar={() => setActiveTab("calendar")}
             onGoToLifeAreas={() => setActiveTab("life-areas")}
             onGoToTransits={() => { setPlanView("transits"); setActiveTab("plan"); }}
+            onGoToCharts={() => setActiveTab("family")}
             onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
-            onDateChange={setSelectedDate}
-            onOpenPrasna={() => setShowPrasna(true)}
-            showPrasna={showPrasna}
-            onClosePrasna={() => setShowPrasna(false)}
-            onOpenNotificationSettings={() => { goToTab("settings"); setSettingsSubTab("session"); }}
           />
         )}
 
@@ -1818,6 +1808,13 @@ export function DashboardWorkspace() {
             relationshipAlerts={family.relationshipAlerts}
             alertsLoading={family.relationshipAlertsLoading}
             panchangam={personal.panchangam}
+            dailyGuidanceRange={personal.dailyGuidanceRange}
+            mode={session.userMode}
+            onDateChange={setSelectedDate}
+            onOpenPrasna={() => setShowPrasna(true)}
+            showPrasna={showPrasna}
+            onClosePrasna={() => setShowPrasna(false)}
+            onOpenNotificationSettings={() => { goToTab("settings"); setSettingsSubTab("session"); }}
             busy={{
               family: family.busyFamily,
               vaults: family.busyVaults,

@@ -3,42 +3,106 @@
 import { useEffect, useState } from "react";
 
 import { apiFetchJson, toQuery } from "@/lib/api";
-import { getChipsForMode } from "@/lib/ask-vinaadi-chips";
+import { formatClockLabel } from "@/lib/format";
 import type { Lang } from "@/lib/i18n";
-import type { ActivityTimingData, LifeMode } from "@/lib/types";
+import type { ActivityTimingData, DailyGuidanceWindow } from "@/lib/types";
 
 /**
- * Nova section 5 — "Ask + decide". Two halves:
- *  - Ask Vinaadi teaser: a compact preview (real quota + real suggested
- *    questions) that opens the existing FAB chat rather than duplicating it
- *    (resolution recorded in docs/DASHBOARD_UI_REVAMP_PLAN.md §6/§7).
- *  - Decide grid: today's real alignment for 4 activities, via the
- *    additive `dateResult` field on /api/v1/activity-timing.
+ * Nova "Is today okay for…?" decision strip — a promoted, full-width row of
+ * verdict pills for the user's frequent activities, using the same
+ * `dateResult` field on /api/v1/activity-timing the old 2×2 grid read. The
+ * old mid-page "Ask Vinaadi" teaser card that used to sit beside this grid
+ * is retired here: Ask Vinaadi now has a single, permanent home in the
+ * topbar (cd-ask-nav-btn, dashboard-hero.tsx) rather than a second entry
+ * point competing for space on this page.
  */
 
 const DECIDE_ACTIVITIES: Array<{ activity: string; labelEn: string; labelTa: string }> = [
   { activity: "travel", labelEn: "Travel", labelTa: "பயணம்" },
-  { activity: "property", labelEn: "Signing", labelTa: "ஒப்பந்தம் கையெழுத்து" },
+  { activity: "property", labelEn: "Signing", labelTa: "ஒப்பந்தம்" },
   { activity: "money", labelEn: "Buy gold", labelTa: "தங்கம் வாங்குதல்" },
   { activity: "job_change", labelEn: "New job", labelTa: "புதிய வேலை" },
 ];
 
-function alignmentDisplay(alignment: string, lang: Lang): { icon: string; color: string; bg: string; border: string; text: string } {
+function alignmentDisplay(alignment: string, hasBetterDate: boolean): { icon: string; color: string; bg: string; border: string } {
   if (alignment === "SUPPORTS") {
-    return { icon: "✓", color: "var(--color-high)", bg: "var(--color-high-bg)", border: "var(--color-high-border)", text: lang === "ta" ? "சாதகமானது" : "Favourable" };
+    return { icon: "✓", color: "var(--color-high)", bg: "var(--color-high-bg)", border: "var(--color-high-border)" };
   }
   if (alignment === "CAUTION") {
-    return { icon: "✕", color: "var(--color-low)", bg: "var(--color-low-bg)", border: "var(--color-low-border)", text: lang === "ta" ? "எச்சரிக்கை" : "Use caution" };
+    return { icon: "✕", color: "var(--color-low)", bg: "var(--color-low-bg)", border: "var(--color-low-border)" };
   }
-  return { icon: "~", color: "var(--color-mid)", bg: "var(--color-mid-bg)", border: "var(--color-mid-border)", text: lang === "ta" ? "வழக்கமானது" : "Routine" };
+  // NEUTRAL: a half-tone dot — filled further (◐) when we can point to a
+  // concretely better date, since that reads as "waitable", not "wrong".
+  return { icon: hasBetterDate ? "◐" : "~", color: "var(--color-mid)", bg: "var(--color-mid-bg)", border: "var(--color-mid-border)" };
 }
 
-function DecideGrid({ lang, chartId, selectedDate }: { lang: Lang; chartId: string; selectedDate: string }) {
+/** The chip's short cause comes structured from the backend
+ *  (shortReasonEn/Ta on /api/v1/activity-timing — the dominant Thirukanitham
+ *  signal, named the way users know it: "Navami — rikta tithi", never a raw
+ *  1-30 tithi index). This fallback only covers payloads from before that
+ *  field existed: first clause of the full reason, word-boundary-truncated. */
+function fallbackShort(reason: string | undefined): string | null {
+  if (!reason) return null;
+  const clause = reason.split(/[.;]/)[0]?.trim() ?? "";
+  const words = clause.split(/\s+/).slice(0, 4).join(" ");
+  return words.length < clause.length ? `${words}…` : words;
+}
+
+function shortHour(clock: string, lang: Lang): string {
+  const [time, period] = formatClockLabel(clock).split(" ");
+  const hour = time?.split(":")[0] ?? time;
+  if (lang === "ta") return `${hour} ${period === "am" ? "காலை" : "மாலை"}`;
+  return `${hour} ${period}`;
+}
+
+/** Plain-language qualifier for a SUPPORTS-aligned activity, framed against
+ *  the day's one real best window rather than re-deriving a second,
+ *  activity-specific window we don't have data for. */
+function supportsQualifier(bestWindow: DailyGuidanceWindow | null, now: Date, isToday: boolean, lang: Lang): string {
+  if (!bestWindow) return lang === "ta" ? "சாதகமான நாள்" : "favourable";
+  if (!isToday) {
+    return lang === "ta" ? `சிறந்த நேரம் ${shortHour(bestWindow.start, lang)}` : `best window ${shortHour(bestWindow.start, lang)}`;
+  }
+  const [sh, sm] = bestWindow.start.split(":").map(Number);
+  const [eh, em] = bestWindow.end.split(":").map(Number);
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const startMin = (sh ?? 0) * 60 + (sm ?? 0);
+  const endMin = (eh ?? 0) * 60 + (em ?? 0);
+  if (nowMin < startMin) return lang === "ta" ? `${shortHour(bestWindow.start, lang)} இல் நல்லது` : `fine after ${shortHour(bestWindow.start, lang)}`;
+  if (nowMin <= endMin) return lang === "ta" ? "சிறந்த நேரத்தில்" : "in best window";
+  return lang === "ta" ? "இன்று நல்லது" : "fine today";
+}
+
+function shortDate(dateLocal: string, lang: Lang): string {
+  return new Date(`${dateLocal}T12:00:00`).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { day: "numeric", month: "short" });
+}
+
+export function DashboardTodayDecideNova({
+  lang,
+  chartId,
+  selectedDate,
+  bestWindow,
+  now,
+  isToday,
+  onOpenAskVinaadi,
+}: {
+  lang: Lang;
+  chartId: string | null;
+  selectedDate: string;
+  activeLifeMode?: string;
+  bestWindow: DailyGuidanceWindow | null;
+  now: Date;
+  isToday: boolean;
+  onOpenAskVinaadi: () => void;
+}) {
   const [results, setResults] = useState<Record<string, ActivityTimingData | null>>({});
   const [busy, setBusy] = useState(true);
 
   useEffect(() => {
-    if (!chartId || !selectedDate) return;
+    if (!chartId || !selectedDate) {
+      setBusy(false);
+      return;
+    }
     const controller = new AbortController();
     setBusy(true);
     const month = selectedDate.slice(0, 7);
@@ -61,157 +125,110 @@ function DecideGrid({ lang, chartId, selectedDate }: { lang: Lang; chartId: stri
     return () => controller.abort();
   }, [chartId, selectedDate]);
 
+  // Precompute every pill's verdict + short cause once, so we can detect when
+  // the SAME dominant cause is about to repeat across several activities and
+  // hoist it into a single shared subtitle instead of printing it N times.
+  const pills = DECIDE_ACTIVITIES.map((a) => {
+    const data = results[a.activity];
+    const dateResult = data?.dateResult ?? null;
+    const reason = dateResult ? (lang === "ta" ? dateResult.reasonTa : dateResult.reasonEn) : undefined;
+    const short = dateResult
+      ? ((lang === "ta" ? dateResult.shortReasonTa : dateResult.shortReasonEn) || fallbackShort(reason))
+      : null;
+    // Next date this month, after the selected one, where the same activity
+    // actually SUPPORTS — lets a NEUTRAL/CAUTION verdict point to a concrete
+    // "better" day instead of a vague caveat.
+    const betterDate = (data?.topDates ?? [])
+      .filter((d) => d.dateLocal > selectedDate && d.alignment === "SUPPORTS")
+      .sort((x, y) => (x.dateLocal < y.dateLocal ? -1 : 1))[0] ?? null;
+    const display = dateResult ? alignmentDisplay(dateResult.alignment, Boolean(betterDate)) : null;
+    return { a, data, dateResult, reason, short, betterDate, display };
+  });
+
+  // The one cause carried by the most pills. Only hoisted when ≥2 activities
+  // would otherwise print the identical short reason ("Navami — rikta tithi"
+  // three times over) — the exact repetition users flagged. A pill "repeats"
+  // its cause only when its qualifier would actually show that short text
+  // (CAUTION, or a NEUTRAL with no concrete better day to point at instead).
+  const causeCounts = new Map<string, number>();
+  for (const p of pills) {
+    const showsCause = p.dateResult
+      && (p.dateResult.alignment === "CAUTION" || (p.dateResult.alignment === "NEUTRAL" && !p.betterDate));
+    if (showsCause && p.short) causeCounts.set(p.short, (causeCounts.get(p.short) ?? 0) + 1);
+  }
+  let sharedCause: string | null = null;
+  for (const [cause, count] of causeCounts) {
+    if (count >= 2 && count > (sharedCause ? (causeCounts.get(sharedCause) ?? 0) : 1)) sharedCause = cause;
+  }
+
   return (
-    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "20px 22px", display: "flex", flexDirection: "column", gap: "13px" }}>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-        <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
-          {lang === "ta" ? "இன்று இதற்கு ஏற்றதா…?" : "Is today right for…?"}
-        </span>
+    <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "14px 20px" }}>
+      <div style={{ flex: "none" }}>
+        <div style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700, whiteSpace: "nowrap" }}>
+          {lang === "ta" ? "இன்று நல்ல நாளா…?" : "Is today okay for…?"}
+        </div>
+        {!busy && sharedCause && (
+          <div style={{ fontSize: "11px", color: "var(--color-mid)", marginTop: "3px", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "5px" }}>
+            <span aria-hidden="true">◑</span>
+            <span>{lang === "ta" ? "இன்று: " : "Today: "}{sharedCause}</span>
+          </div>
+        )}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "9px" }}>
-        {DECIDE_ACTIVITIES.map((a) => {
-          const dateResult = results[a.activity]?.dateResult ?? null;
-          const display = dateResult ? alignmentDisplay(dateResult.alignment, lang) : null;
+
+      <div style={{ flex: 1, display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end", minWidth: 0 }}>
+        {chartId && pills.map(({ a, dateResult, reason, short, betterDate, display }) => {
+          let q: string | null = null;
+          if (dateResult) {
+            if (dateResult.alignment === "SUPPORTS") {
+              q = supportsQualifier(bestWindow, now, isToday, lang);
+            } else if (dateResult.alignment === "CAUTION") {
+              // Drop the cause from the pill when it's already stated once in the
+              // shared subtitle — the pill just reads "✕ Travel · defer".
+              const ownCause = short && short !== sharedCause;
+              q = ownCause ? `${lang === "ta" ? "ஒத்திவை" : "defer"} · ${short}` : (lang === "ta" ? "ஒத்திவை" : "defer");
+            } else if (betterDate) {
+              q = lang === "ta" ? `சிறந்தது ${shortDate(betterDate.dateLocal, lang)}` : `better ${shortDate(betterDate.dateLocal, lang)}`;
+            } else {
+              q = short && short !== sharedCause ? short : null;
+            }
+          }
+
+          // Tooltip carries the full chart-derived sentence, plus the concrete
+          // better day when the verdict says wait.
+          const tooltip = reason && dateResult && dateResult.alignment !== "SUPPORTS" && betterDate
+            ? `${reason} ${lang === "ta" ? `இந்த மாதம் சிறந்த நாள்: ${shortDate(betterDate.dateLocal, lang)}.` : `Better day this month: ${shortDate(betterDate.dateLocal, lang)}.`}`
+            : reason;
           return (
-            <div
+            <span
               key={a.activity}
-              title={dateResult ? (lang === "ta" ? dateResult.reasonTa : dateResult.reasonEn) : undefined}
+              title={tooltip}
               style={{
-                display: "flex", alignItems: "center", gap: "10px",
+                display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "12.5px",
                 background: display?.bg ?? "rgba(243,236,221,0.05)",
                 border: `1px solid ${display?.border ?? "var(--color-border)"}`,
-                borderRadius: "10px", padding: "11px 13px",
+                borderRadius: "999px", padding: "7px 13px", whiteSpace: "nowrap",
               }}
             >
-              <span style={{
-                flex: "none", width: "24px", height: "24px", borderRadius: "50%",
-                background: display ? `color-mix(in srgb, ${display.color} 24%, transparent)` : "rgba(243,236,221,0.1)",
-                display: "grid", placeItems: "center", fontSize: "13px",
-                color: display?.color ?? "var(--color-faint)",
-              }}>
+              <span style={{ color: display?.color ?? "var(--color-faint)", fontWeight: 700 }}>
                 {busy ? "…" : (display?.icon ?? "?")}
               </span>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? a.labelTa : a.labelEn}</div>
-                <div style={{ fontSize: "11px", color: display?.color ?? "var(--color-faint)" }}>
-                  {busy ? (lang === "ta" ? "கணக்கிடுகிறது…" : "Checking…") : (display?.text ?? (lang === "ta" ? "தரவு இல்லை" : "No data"))}
-                </div>
-                {!busy && dateResult && (
-                  <div style={{
-                    fontSize: "10.5px", color: "var(--color-faint)", lineHeight: 1.4, marginTop: "3px",
-                    display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
-                  }}>
-                    {lang === "ta" ? dateResult.reasonTa : dateResult.reasonEn}
-                  </div>
-                )}
-              </div>
-            </div>
+              <span style={{ color: "var(--color-text-strong)", fontWeight: 600 }}>{lang === "ta" ? a.labelTa : a.labelEn}</span>
+              {!busy && q && <span style={{ color: "var(--color-faint)" }}>· {q}</span>}
+            </span>
           );
         })}
+        <button
+          type="button"
+          onClick={onOpenAskVinaadi}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12.5px", color: "var(--color-accent-secondary)",
+            background: "none", border: "1px dashed var(--color-accent-secondary-muted)", borderRadius: "999px",
+            padding: "7px 13px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+          }}
+        >
+          + {lang === "ta" ? "உங்கள் கேள்வி" : "Ask your own"}
+        </button>
       </div>
-      <div style={{ fontSize: "11.5px", color: "var(--color-faint)", lineHeight: 1.5, background: "rgba(212,175,95,0.06)", borderRadius: "8px", padding: "9px 12px", marginTop: "auto" }}>
-        {lang === "ta"
-          ? "ஒவ்வொரு செயலும் உங்கள் இன்றைய பஞ்சாங்கத்திற்கு எதிராக மதிப்பிடப்படுகிறது."
-          : "Each activity is scored against today's panchangam for your chart."}
-      </div>
-    </div>
-  );
-}
-
-function AskVinaadiTeaser({
-  lang,
-  activeLifeMode,
-  onOpenAskVinaadi,
-}: {
-  lang: Lang;
-  activeLifeMode?: LifeMode;
-  onOpenAskVinaadi: () => void;
-}) {
-  const [chipsRemaining, setChipsRemaining] = useState<number | null>(null);
-
-  useEffect(() => {
-    apiFetchJson<{ chipsRemaining: number | null; isPremium: boolean; dailyLimit: number }>("/api/v1/ask-vinaadi/daily-status")
-      .then((s) => setChipsRemaining(s.isPremium ? null : s.chipsRemaining))
-      .catch(() => {});
-  }, []);
-
-  const chips = getChipsForMode(activeLifeMode ?? "BALANCED");
-
-  return (
-    <div style={{
-      background: "linear-gradient(160deg, rgba(167,139,201,0.14), var(--color-surface) 60%)",
-      border: "1px solid var(--color-accent-secondary-muted)", borderRadius: "var(--radius-lg)",
-      padding: "20px 22px", display: "flex", flexDirection: "column", gap: "13px",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-        <span style={{ width: "32px", height: "32px", borderRadius: "50%", background: "var(--color-accent-secondary-muted)", border: "1px solid var(--color-accent-secondary)", display: "grid", placeItems: "center", fontSize: "15px", color: "var(--color-accent-secondary)" }}>✦</span>
-        <div>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: "19px", fontWeight: 600, color: "var(--color-accent-secondary)", lineHeight: 1 }}>
-            {lang === "ta" ? "வினாடி கேளுங்கள்" : "Ask Vinaadi"}
-          </div>
-          <div style={{ fontSize: "11px", color: "var(--color-faint)" }}>
-            {lang === "ta" ? "உங்கள் ஜாதகத்திலிருந்து பதில்கள்" : "answers read from your chart"}
-            {chipsRemaining !== null && (
-              <> · <span style={{ color: "var(--color-high)" }}>{lang === "ta" ? `இன்று ${chipsRemaining} இலவசம்` : `${chipsRemaining} free today`}</span></>
-            )}
-          </div>
-        </div>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        {chips.map((c, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={onOpenAskVinaadi}
-            style={{
-              display: "flex", alignItems: "center", gap: "10px", textAlign: "left",
-              background: "rgba(243,236,221,0.05)", border: "1px solid var(--color-accent-secondary-muted)",
-              borderRadius: "10px", padding: "11px 13px", fontSize: "13px", color: "var(--color-text)",
-              cursor: "pointer", fontFamily: "inherit",
-            }}
-          >
-            <span style={{ color: "var(--color-accent-secondary)" }}>›</span>
-            {lang === "ta" ? c.ta : c.en}
-          </button>
-        ))}
-      </div>
-      <button
-        type="button"
-        onClick={onOpenAskVinaadi}
-        style={{
-          display: "flex", alignItems: "center", gap: "10px",
-          background: "var(--color-accent-secondary-muted)", border: "1px solid var(--color-accent-secondary)",
-          borderRadius: "999px", padding: "10px 16px", marginTop: "auto", cursor: "pointer", fontFamily: "inherit",
-        }}
-      >
-        <span style={{ flex: 1, textAlign: "left", fontSize: "13px", color: "var(--color-faint)" }}>
-          {lang === "ta" ? "உங்கள் நாள் பற்றி எதையும் கேளுங்கள்…" : "Ask anything about your day…"}
-        </span>
-        <span style={{ background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", borderRadius: "999px", padding: "6px 14px", fontSize: "12px", fontWeight: 700 }}>
-          {lang === "ta" ? "கேள் ✦" : "Ask ✦"}
-        </span>
-      </button>
-    </div>
-  );
-}
-
-export function DashboardTodayDecideNova({
-  lang,
-  chartId,
-  selectedDate,
-  activeLifeMode,
-  onOpenAskVinaadi,
-}: {
-  lang: Lang;
-  chartId: string | null;
-  selectedDate: string;
-  activeLifeMode?: LifeMode;
-  onOpenAskVinaadi: () => void;
-}) {
-  return (
-    <div className="nova-grid-2">
-      <AskVinaadiTeaser lang={lang} activeLifeMode={activeLifeMode} onOpenAskVinaadi={onOpenAskVinaadi} />
-      {chartId ? <DecideGrid lang={lang} chartId={chartId} selectedDate={selectedDate} /> : <div />}
     </div>
   );
 }

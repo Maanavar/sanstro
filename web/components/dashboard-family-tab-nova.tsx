@@ -10,6 +10,7 @@ import type { Lang } from "@/lib/i18n";
 import { compareSynastry } from "@vinaadi/shared/api/relationships";
 import type {
   ChartCalculateResponseData,
+  DailyGuidanceRangeData,
   FamilyAggregateData,
   FamilyAggregateMember,
   FamilyCompositeTimelineData,
@@ -29,6 +30,7 @@ import type { MemberChart } from "@/hooks/useFamilyData";
 import { NovaScoreDial } from "./dashboard-ui-nova";
 import { SynastryMatrix } from "./synastry-matrix";
 import { SynastryPanel } from "./dashboard-synastry-panel";
+import { DashboardChartsPanelNova } from "./dashboard-charts-panel-nova";
 
 /**
  * Nova "Family" tab — Phase 4 of the dashboard revamp (see
@@ -385,6 +387,16 @@ export type DashboardFamilyTabNovaProps = {
   relationshipAlerts: RelationshipAlertItem[];
   alertsLoading: boolean;
   panchangam: PanchangamDailyResponseData | null;
+  /** Owner-chart context for the "Your chart & explanations" deep-dive panel
+   *  (moved here out of the Today tab). Most of it rides on ownerMemberChart;
+   *  these are the few extras that bundle doesn't carry. */
+  dailyGuidanceRange?: DailyGuidanceRangeData | null;
+  mode?: "BEGINNER" | "BALANCED" | "TRADITIONAL";
+  onDateChange?: (date: string) => void;
+  onOpenPrasna?: () => void;
+  showPrasna?: boolean;
+  onClosePrasna?: () => void;
+  onOpenNotificationSettings?: () => void;
   busy: {
     family: boolean;
     vaults: boolean;
@@ -415,6 +427,13 @@ export function DashboardFamilyTabNova({
   relationshipAlerts,
   alertsLoading,
   panchangam,
+  dailyGuidanceRange,
+  mode,
+  onDateChange,
+  onOpenPrasna,
+  showPrasna,
+  onClosePrasna,
+  onOpenNotificationSettings,
   busy,
   onRefreshFamily,
   onOpenSetup,
@@ -833,6 +852,37 @@ export function DashboardFamilyTabNova({
           </p>
         </div>
       </div>
+
+      {/* ===== Your chart & explanations — the full astrology engine, moved off the
+          Today homepage into this "Family & Charts" tab. Fed by the owner's chart
+          bundle (ownerMemberChart). The Today tab's "Why this prediction?" bridge
+          card links here. ===== */}
+      {ownerChartId && ownerMemberChart && (
+        <DashboardChartsPanelNova
+          lang={lang}
+          activeChartId={ownerChartId}
+          selectedDate={selectedDate}
+          personalChart={ownerMemberChart.chart}
+          personalChartExplanation={ownerMemberChart.explanation}
+          personalChartSummary={ownerMemberChart.summary}
+          personalDailyGuidance={ownerMemberChart.dailyGuidance}
+          personalTransit={ownerMemberChart.transit}
+          personalSani={ownerMemberChart.sani}
+          peyarchiUpcoming={ownerMemberChart.peyarchiUpcoming}
+          panchangam={panchangam}
+          dasha={ownerMemberChart.dasha}
+          dashaAntar={ownerMemberChart.dashaAntar}
+          dashaMaha={ownerMemberChart.dashaMaha}
+          dailyGuidanceRange={dailyGuidanceRange}
+          nakshatraCard={ownerMemberChart.nakshatraCard}
+          mode={mode}
+          onDateChange={onDateChange}
+          onOpenPrasna={onOpenPrasna}
+          showPrasna={showPrasna}
+          onClosePrasna={onClosePrasna}
+          onOpenNotificationSettings={onOpenNotificationSettings}
+        />
+      )}
     </div>
   );
 }

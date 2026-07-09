@@ -72,6 +72,15 @@
   --color-score-high: #8fbf9a;
   --color-score-mid:  #e39a3e;
   --color-score-low:  #e08a72;
+  /* Four-band score palette (product-set 2026-07): ≥70 dark green · 60–70 light
+     green · 50–60 gold · <50 red. Drives every 0–100 score dot/tile/ring/dial
+     via scoreBandColor(). Two distinct greens: `strong` is the richer, more
+     saturated "best day" green; `good` reuses the softer sage so 60s and 70s
+     read apart at a glance on the dark surface. */
+  --color-score-strong: #46b478;
+  --color-score-good:   #8fbf9a;
+  --color-score-fair:   #e39a3e;
+  --color-score-weak:   #e0685a;
   --color-high:        #8fbf9a;
   --color-high-bg:     rgba(143, 191, 154, 0.14);
   --color-high-border: rgba(143, 191, 154, 0.32);
@@ -552,6 +561,28 @@
 
 /* Narrow viewports: the chart summary is the first thing to go (the name
    keeps the row meaningful), and the status text yields to the vault pill. */
+/* Nova merges the 9-tab strip into the topbar's own row (cd-topnav sits
+   between the brand and the identity cluster), which is far busier than
+   Classic's topbar — Classic never puts tabs there, so its wrap threshold
+   below (dashboard.css, 720px) was tuned for just "brand + a couple of
+   buttons" and leaves Nova's identity cluster (Ask Vinaadi, date, bell,
+   lang, avatar) with nowhere to shrink to between ~720-1024px. Measured
+   overflow: the avatar/lang buttons paint past the topbar's own width and
+   the page grows a horizontal scrollbar. Reuse the exact same wrap
+   treatment Classic gets at 720px, just starting from a wider breakpoint
+   sized for Nova's heavier row. */
+@media (max-width: 1024px) {
+  [data-ui="nova"] .cd-topbar__inner {
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
+  }
+
+  [data-ui="nova"] .cd-topbar__right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
 @media (max-width: 720px) {
   [data-ui="nova"] .cd-subbar__chart,
   [data-ui="nova"] .cd-subbar__status {
@@ -757,28 +788,55 @@
   display: grid;
   gap: 16px;
 }
-.nova-grid-2 { grid-template-columns: 1fr 1fr; }
-.nova-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
-.nova-grid-anticipation { grid-template-columns: 1.35fr 1fr; }
-.nova-grid-detail { grid-template-columns: 1.5fr 1fr; }
-.nova-grid-4 { grid-template-columns: repeat(4, 1fr); gap: 14px; }
+/* minmax(0, Nfr), not a bare Nfr: a grid track's default minimum sizing
+   function is `auto`, which floors the track at its content's min-content
+   width — a single unbreakable run inside a cell (a nowrap price/label
+   string, a long word) refuses to shrink and drags the whole row, and with
+   it document width, wider than the viewport. minmax(0, …) removes that
+   floor so cells shrink normally and rely on their own text-overflow
+   handling instead. This was shipping a real horizontal-overflow bug on
+   every viewport ⩽ ~1220px wide (tablet/mobile). */
+.nova-grid-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.nova-grid-3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); }
+.nova-grid-anticipation { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+.nova-grid-detail { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
+.nova-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+
+/* Today tab's Family/Life-areas/Dasa-chapter glance row (design 8a §4):
+   same 3-up idea as .nova-grid-3 but with an asymmetric ratio (Family gets
+   more room, Dasa chapter less). A media query can't be expressed via the
+   inline style dashboard-today-glance-nova.tsx used to set directly, so
+   that inline gridTemplateColumns permanently beat this file's 860px
+   single-column collapse below — on phones the 3 cards squeezed to
+   ~90px-wide slivers instead of stacking, clipping "Open →" et al. past
+   the viewport edge. Owning the ratio here restores the collapse. */
+.nova-grid-today-glance {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.15fr) minmax(0, 0.9fr);
+}
+@media (max-width: 860px) {
+  .nova-grid-today-glance {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 
 @media (max-width: 860px) {
   .nova-grid-2,
   .nova-grid-3,
   .nova-grid-anticipation,
   .nova-grid-detail {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 /* Life Areas tab (screen 11, life-areas): 4-up card rows need an extra
    mid-width step (4 columns is too cramped to jump straight to 1). */
 @media (max-width: 1240px) {
-  .nova-grid-4 { grid-template-columns: 1fr 1fr; }
+  .nova-grid-4 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
-  .nova-grid-4 { grid-template-columns: 1fr; }
+  .nova-grid-4 { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Monthly calendar tab: grid + 300px sidebar, used by

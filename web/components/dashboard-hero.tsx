@@ -52,7 +52,7 @@ const DAILY_PRINCIPLES: Array<{ en: string; ta: string }> = [
 const TAB_DEFS: Array<{ id: Tab; labelEn: string; labelTaKey?: LabelKey }> = [
   { id: "personal", labelEn: "Today", labelTaKey: "tab_today" },
   { id: "calendar", labelEn: "Calendar", labelTaKey: "tab_calendar" },
-  { id: "family", labelEn: "Family", labelTaKey: "tab_family" },
+  { id: "family", labelEn: "Family & Charts", labelTaKey: "tab_family" },
   { id: "life-areas", labelEn: "Life Area", labelTaKey: "tab_life_areas" },
   { id: "plan", labelEn: "Plan", labelTaKey: "tab_plan" },
   { id: "transits", labelEn: "Transits", labelTaKey: "tab_transits" },
