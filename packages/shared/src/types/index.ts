@@ -394,6 +394,10 @@ export interface DailyGuidanceData {
   actionSuggestion: BiText;
   cautionSuggestion: BiText;
   reasons: DailyGuidanceReasons;
+  /** Track A synthesis — the six `reasons` composed into one prioritized, flowing
+   *  briefing (verdict lead → salient signals → one action). Present only when the
+   *  `daily_briefing_synth` flag is on; additive so older cached rows stay valid. */
+  briefing?: BiText | null;
   remedy: BiText;
   currentHoraLord?: string | null;
   pratyantarNarrative?: BiText | null;
@@ -1003,10 +1007,17 @@ export type WeekAheadData = {
   days: WeekAheadDayItem[];
 };
 
+export type ActivityTimingDayResult = {
+  dateLocal: string; score: number; label: string; alignment: string;
+  reasonTa: string; reasonEn: string;
+  /** Compact named cause ("Navami — rikta tithi") for chip-sized UI. */
+  shortReasonTa?: string | null; shortReasonEn?: string | null;
+};
+
 export type ActivityTimingData = {
   chartId: string; activity: string; month: string;
-  topDates: { dateLocal: string; score: number; label: string; alignment: string; reasonTa: string; reasonEn: string }[];
-  dateResult: { dateLocal: string; score: number; label: string; alignment: string; reasonTa: string; reasonEn: string } | null;
+  topDates: ActivityTimingDayResult[];
+  dateResult: ActivityTimingDayResult | null;
 };
 
 export type DashaStoryData = {
