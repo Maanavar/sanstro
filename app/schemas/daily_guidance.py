@@ -187,6 +187,10 @@ class ActivityTimingDayResult(BaseModel):
     alignment: str
     reason_ta: str = Field(alias="reasonTa")
     reason_en: str = Field(alias="reasonEn")
+    # Compact named cause ("Navami — rikta tithi") for chip-sized UI; optional
+    # so older cached payloads still validate.
+    short_reason_ta: str | None = Field(default=None, alias="shortReasonTa")
+    short_reason_en: str | None = Field(default=None, alias="shortReasonEn")
 
     model_config = ConfigDict(populate_by_name=True)
 

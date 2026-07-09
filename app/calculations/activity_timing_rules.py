@@ -55,6 +55,11 @@ class TimingSignal:
     alignment: Alignment
     reason_ta: str
     reason_en: str
+    # 2-4 word noun-phrase naming the cause ("Navami — rikta tithi"), for
+    # compact UI chips. Always derived from the same panchangam inputs as
+    # reason_*, never freeform.
+    short_ta: str = ""
+    short_en: str = ""
 
 
 @dataclass(frozen=True)
@@ -65,6 +70,30 @@ class ActivityTimingResult:
     combined_alignment: Alignment
     combined_ta: str
     combined_en: str
+    # Short cause of the dominant signal (tithi > weekday > paksha within the
+    # combined alignment), so UIs can show a crisp "why" without parsing the
+    # combined sentences.
+    short_ta: str = ""
+    short_en: str = ""
+
+
+# Thirukanitham tithi display names — same 1-15 cycle for both pakshas
+# (spellings match TITHI_NAMES in app/calculations/panchangam.py).
+_TITHI_DISPLAY: list[tuple[str, str]] = [
+    ("பிரதமை", "Prathama"), ("துவிதியை", "Dvithiyai"), ("திரிதியை", "Thrithiyai"),
+    ("சதுர்த்தி", "Chathurthi"), ("பஞ்சமி", "Panchami"), ("சஷ்டி", "Shashti"),
+    ("சப்தமி", "Saptami"), ("அஷ்டமி", "Ashtami"), ("நவமி", "Navami"),
+    ("தசமி", "Dasami"), ("ஏகாதசி", "Ekadasi"), ("துவாதசி", "Dvadasi"),
+    ("திரயோதசி", "Thrayodasi"), ("சதுர்தசி", "Chathurdasi"), ("பௌர்ணமி", "Pournami"),
+]
+
+
+def _tithi_display(number: int) -> tuple[str, str]:
+    """(ta, en) display name for a 1-30 tithi number. Users know tithis by
+    name (Navami, Chaturthi…), never by the raw 1-30 index."""
+    if number == 30:
+        return ("அமாவாசை", "Amavasai")
+    return _TITHI_DISPLAY[(number - 1) % 15]
 
 
 # ── Paksha rules ───────────────────────────────────────────────────────────────
@@ -88,11 +117,15 @@ def _assess_paksha(activity: ActivityType, paksha: str) -> TimingSignal:
                 alignment="SUPPORTS",
                 reason_ta="வளர்பிறை காலம் — புதிய தொடக்கங்களுக்கு சிறந்தது.",
                 reason_en="Valarpirai (waxing moon) — ideal for new beginnings.",
+                short_ta="வளர்பிறை",
+                short_en="waxing moon",
             )
         return TimingSignal(
             alignment="CAUTION",
-            reason_ta="தேய்பிறை காலம் — இந்த செயலுக்கு வளர்பிறை நாட்களை தேர்வு செய்யுங்கள்.",
-            reason_en="Theipirai (waning moon) — prefer Valarpirai days for this activity.",
+            reason_ta="தேய்பிறை காலம் — புதிய தொடக்கங்கள் வலுவிழக்கும்; இந்த செயலுக்கு வளர்பிறை நாட்களை தேர்வு செய்யுங்கள்.",
+            reason_en="Theipirai (waning moon) — new beginnings lose strength now; pick a Valarpirai (waxing) day for this.",
+            short_ta="தேய்பிறை",
+            short_en="waning moon",
         )
 
     if activity in _BENEFITS_KRISHNA:
@@ -101,17 +134,23 @@ def _assess_paksha(activity: ActivityType, paksha: str) -> TimingSignal:
                 alignment="SUPPORTS",
                 reason_ta="தேய்பிறை காலம் — ஆன்மீக மற்றும் உள்நோக்கிய சேவைகளுக்கு சாதகம்.",
                 reason_en="Theipirai — favourable for spiritual and inward-focused activities.",
+                short_ta="தேய்பிறை சாதகம்",
+                short_en="waning moon suits this",
             )
         return TimingSignal(
             alignment="NEUTRAL",
             reason_ta="வளர்பிறை காலம் — இந்த செயலுக்கு இரு பக்கமும் பயனளிக்கும்.",
             reason_en="Valarpirai — either paksha is workable for this activity.",
+            short_ta="இரு பக்கமும் சரி",
+            short_en="any moon phase works",
         )
 
     return TimingSignal(
         alignment="NEUTRAL",
         reason_ta="பக்ஷம் இந்த செயலுக்கு நடுநிலையாக உள்ளது.",
         reason_en="Paksha is neutral for this activity.",
+        short_ta="பக்ஷம் நடுநிலை",
+        short_en="moon phase neutral",
     )
 
 
@@ -130,11 +169,15 @@ _HEAVY_SENSITIVE: set[ActivityType] = {
 
 
 def _assess_tithi(activity: ActivityType, tithi_number: int) -> TimingSignal:
+    tithi_ta, tithi_en = _tithi_display(tithi_number)
+
     if tithi_number in _POURNAMI:
         return TimingSignal(
             alignment="SUPPORTS",
             reason_ta="பௌர்ணமி திதி — அனைத்து நல்ல செயல்களுக்கும் சிறந்த நேரம்.",
-            reason_en="Pournami tithi — excellent for all auspicious activities.",
+            reason_en="Pournami (full moon) tithi — excellent for all auspicious activities.",
+            short_ta="பௌர்ணமி திதி",
+            short_en="Pournami tithi",
         )
 
     if tithi_number in _EKADASI_TITHIS:
@@ -143,46 +186,58 @@ def _assess_tithi(activity: ActivityType, tithi_number: int) -> TimingSignal:
                 alignment="SUPPORTS",
                 reason_ta="ஏகாதசி திதி — ஆன்மீக செயல்களுக்கு மிகவும் சாதகம்.",
                 reason_en="Ekadasi tithi — highly favourable for spiritual activities.",
+                short_ta="ஏகாதசி திதி",
+                short_en="Ekadasi tithi",
             )
         return TimingSignal(
             alignment="NEUTRAL",
             reason_ta="ஏகாதசி திதி — நடுநிலை; ஆன்மீக செயல்களில் கவனம் செலுத்துங்கள்.",
             reason_en="Ekadasi tithi — neutral; focus on spiritual observance today.",
+            short_ta="ஏகாதசி — ஆன்மீக நாள்",
+            short_en="Ekadasi — spiritual day",
         )
 
     if tithi_number in _RIKTA_TITHIS:
         if activity in _RIKTA_OK:
             return TimingSignal(
                 alignment="NEUTRAL",
-                reason_ta=f"ரிக்த திதி {tithi_number} — புதிய தொடக்கங்களை தவிர்க்கவும்; தொடர்ந்து வரும் பணிகள் சரி.",
-                reason_en=f"Rikta tithi {tithi_number} — avoid new starts; continuing tasks are fine.",
+                reason_ta=f"இன்று {tithi_ta} — ரிக்த (வெற்று) திதி. புதிய தொடக்கங்களை தவிர்க்கவும்; தொடர்ந்து வரும் பணிகள் சரி.",
+                reason_en=f"Today is {tithi_en}, a Rikta ('empty') tithi — avoid new starts; continuing and routine tasks are fine.",
+                short_ta=f"{tithi_ta} — புதியது வேண்டாம்",
+                short_en=f"{tithi_en} — no new starts",
             )
         return TimingSignal(
             alignment="CAUTION",
-            reason_ta=f"ரிக்த திதி {tithi_number} — இந்த செயலுக்கு புதிய தொடக்கம் சாதகமில்லை.",
-            reason_en=f"Rikta tithi {tithi_number} — not favourable for new starts of this activity.",
+            reason_ta=f"இன்று {tithi_ta} — ரிக்த (வெற்று) திதி. இன்று தொடங்கும் முயற்சிகள் நிலைக்காது; இந்த செயலுக்கு வலுவான நாளை தேர்வு செய்யுங்கள்.",
+            reason_en=f"Today is {tithi_en}, a Rikta ('empty') tithi — efforts begun now tend to fade. Pick a stronger day to start this.",
+            short_ta=f"{tithi_ta} — ரிக்த திதி",
+            short_en=f"{tithi_en} — rikta tithi",
         )
 
     if tithi_number in _HEAVY_TITHIS:
-        tithi_name = "அஷ்டமி" if tithi_number in {8, 23} else "அமாவாசை"
-        tithi_name_en = "Ashtami" if tithi_number in {8, 23} else "Amavasai"
         if activity in _HEAVY_SENSITIVE:
             return TimingSignal(
                 alignment="CAUTION",
-                reason_ta=f"{tithi_name} திதி — முக்கிய சமூக மற்றும் நிதி முடிவுகளை இன்று தவிர்க்கவும்.",
-                reason_en=f"{tithi_name_en} tithi — avoid major social and financial decisions today.",
+                reason_ta=f"{tithi_ta} திதி — கனமான நாள்; முக்கிய சமூக மற்றும் நிதி முடிவுகளை இன்று தவிர்க்கவும்.",
+                reason_en=f"{tithi_en} tithi — a heavy day; avoid major social and financial decisions today.",
+                short_ta=f"{tithi_ta} திதி",
+                short_en=f"{tithi_en} tithi",
             )
         return TimingSignal(
             alignment="NEUTRAL",
-            reason_ta=f"{tithi_name} திதி — சாதாரண பணிகள் தொடரலாம்; பெரிய புதிய தொடக்கங்கள் வேண்டாம்.",
-            reason_en=f"{tithi_name_en} tithi — routine tasks are fine; avoid major new beginnings.",
+            reason_ta=f"{tithi_ta} திதி — சாதாரண பணிகள் தொடரலாம்; பெரிய புதிய தொடக்கங்கள் வேண்டாம்.",
+            reason_en=f"{tithi_en} tithi — routine tasks are fine; avoid major new beginnings.",
+            short_ta=f"{tithi_ta} — வழக்கம் மட்டும்",
+            short_en=f"{tithi_en} — routine only",
         )
 
     # Auspicious tithi.
     return TimingSignal(
         alignment="SUPPORTS",
-        reason_ta=f"திதி {tithi_number} — சாதகமான திதி.",
-        reason_en=f"Tithi {tithi_number} — favourable tithi.",
+        reason_ta=f"{tithi_ta} திதி — இந்த செயலுக்கு சாதகமான திதி.",
+        reason_en=f"{tithi_en} tithi — favourable for this activity.",
+        short_ta=f"{tithi_ta} திதி சாதகம்",
+        short_en=f"{tithi_en} tithi favourable",
     )
 
 
@@ -227,6 +282,8 @@ def _assess_weekday(activity: ActivityType, weekday_lord: str) -> TimingSignal:
             alignment="CAUTION",
             reason_ta=f"{day_ta}க்கிழமை இந்த செயலுக்கு திருக்கணிதம் படி சாதகமில்லை.",
             reason_en=f"{day_en} is traditionally less favourable for this activity per Thirukanitham.",
+            short_ta=f"{day_ta}க்கிழமை சாதகமில்லை",
+            short_en=f"{day_en} unfavourable",
         )
 
     if activity in _WEEKDAY_SUPPORTS.get(lord, set()):
@@ -234,12 +291,16 @@ def _assess_weekday(activity: ActivityType, weekday_lord: str) -> TimingSignal:
             alignment="SUPPORTS",
             reason_ta=f"{day_ta}க்கிழமை இந்த செயலுக்கு சாதகமான நாள்.",
             reason_en=f"{day_en} is traditionally supportive for this activity.",
+            short_ta=f"{day_ta}க்கிழமை சாதகம்",
+            short_en=f"{day_en} supports this",
         )
 
     return TimingSignal(
         alignment="NEUTRAL",
         reason_ta=f"{day_ta}க்கிழமை இந்த செயலுக்கு நடுநிலையான நாள்.",
         reason_en=f"{day_en} is neutral for this activity.",
+        short_ta=f"{day_ta}க்கிழமை நடுநிலை",
+        short_en=f"{day_en} neutral",
     )
 
 
@@ -256,6 +317,23 @@ def _combine_alignments(a: Alignment, b: Alignment, c: Alignment) -> Alignment:
     if worst == 2:
         return "SUPPORTS"
     return "NEUTRAL"
+
+
+def _primary_signal(
+    combined: Alignment,
+    tithi_sig: TimingSignal,
+    weekday_sig: TimingSignal,
+    paksha_sig: TimingSignal,
+) -> TimingSignal:
+    """The one signal a compact UI should name as the cause of the combined
+    verdict. Among signals matching the verdict, tithi outranks weekday
+    outranks paksha — a named tithi (Rikta/Ashtami…) is the most specific,
+    calendar-verifiable cause."""
+    ordered = (tithi_sig, weekday_sig, paksha_sig)
+    for sig in ordered:
+        if sig.alignment == combined:
+            return sig
+    return tithi_sig
 
 
 def assess_activity_timing(
@@ -287,6 +365,8 @@ def assess_activity_timing(
         combined_ta = f"{tithi_sig.reason_ta} {weekday_sig.reason_ta} வழக்கமான முன்னேற்றம் தொடரலாம்."
         combined_en = f"{tithi_sig.reason_en} {weekday_sig.reason_en} Routine progress is fine."
 
+    primary = _primary_signal(combined, tithi_sig, weekday_sig, paksha_sig)
+
     return ActivityTimingResult(
         paksha_signal=paksha_sig,
         tithi_signal=tithi_sig,
@@ -294,4 +374,6 @@ def assess_activity_timing(
         combined_alignment=combined,
         combined_ta=combined_ta,
         combined_en=combined_en,
+        short_ta=primary.short_ta,
+        short_en=primary.short_en,
     )

@@ -404,7 +404,18 @@ def _format_time_range(start: str, end: str) -> str:
     return f"{_format_clock_label(start)} - {_format_clock_label(end)}"
 
 
+# A shared window must be long enough to actually use — a 4-minute sliver left
+# after clipping Yamagandam out of a Nalla Neram slot is not worth prescribing.
+_MIN_SHARED_WINDOW_MIN = 10
+
+
 def _intersect_windows(windows: list[list[DailyGuidanceWindow]]) -> list[DailyGuidanceWindow]:
+    """All time ranges common to every member's best-window list, earliest first.
+
+    (Previously returned only the single earliest overlap; it now returns every
+    common range so the caller can skip any that fall inside an inauspicious
+    period and still have later candidates to choose from.)
+    """
     if not windows:
         return []
 
@@ -425,16 +436,71 @@ def _intersect_windows(windows: list[list[DailyGuidanceWindow]]) -> list[DailyGu
             return []
 
     common_ranges.sort(key=lambda item: (item[0], item[1]))
-    start, end, window_type = common_ranges[0]
-    return [DailyGuidanceWindow(type=window_type, start=_format_minutes(start), end=_format_minutes(end))]
+    return [
+        DailyGuidanceWindow(type=window_type, start=_format_minutes(start), end=_format_minutes(end))
+        for start, end, window_type in common_ranges
+    ]
 
 
-def _family_best_windows(member_snapshots: list[_MemberSnapshot]) -> list[DailyGuidanceWindow]:
+def _clip_out_avoid(
+    window: DailyGuidanceWindow,
+    avoid_windows: list[DailyGuidanceWindow],
+) -> list[DailyGuidanceWindow]:
+    """Remove any overlap with Rahu Kalam / Yamagandam / Kuligai from `window`.
+
+    A single good window can be split into 0, 1 or 2 usable pieces once an
+    inauspicious span is carved out of the middle. Pieces shorter than
+    `_MIN_SHARED_WINDOW_MIN` are dropped as unusable.
+    """
+    segments: list[tuple[int, int]] = [(_minutes(window.start), _minutes(window.end))]
+    for avoid in avoid_windows:
+        avoid_start = _minutes(avoid.start)
+        avoid_end = _minutes(avoid.end)
+        remaining: list[tuple[int, int]] = []
+        for seg_start, seg_end in segments:
+            if avoid_end <= seg_start or avoid_start >= seg_end:
+                remaining.append((seg_start, seg_end))  # no overlap
+                continue
+            if seg_start < avoid_start:
+                remaining.append((seg_start, avoid_start))  # clean piece before
+            if avoid_end < seg_end:
+                remaining.append((avoid_end, seg_end))  # clean piece after
+        segments = remaining
+    return [
+        DailyGuidanceWindow(type=window.type, start=_format_minutes(s), end=_format_minutes(e))
+        for s, e in segments
+        if e - s >= _MIN_SHARED_WINDOW_MIN
+    ]
+
+
+def _family_best_windows(
+    member_snapshots: list[_MemberSnapshot],
+    avoid_windows: list[DailyGuidanceWindow],
+) -> list[DailyGuidanceWindow]:
+    """The earliest shared good window that does NOT overlap an inauspicious span.
+
+    A "good time for all N" that sits inside Yamagandam/Rahu Kalam/Kuligai is
+    self-contradictory — users spotted exactly this. So every candidate (the
+    windows common to all members, then a single-member fallback) is clipped
+    against the avoid list, and only a clean, usable remainder is prescribed.
+    If nothing clean survives, we return no shared window rather than a wrong one
+    (the UI simply omits the "good time for all" chip).
+    """
     common = _intersect_windows([snapshot.daily_guidance.data.best_windows for snapshot in member_snapshots])
-    if common:
-        return common
-    first_windows = member_snapshots[0].daily_guidance.data.best_windows
-    return first_windows[:1]
+    clean: list[DailyGuidanceWindow] = []
+    for window in common:
+        clean.extend(_clip_out_avoid(window, avoid_windows))
+    if clean:
+        clean.sort(key=lambda window: _minutes(window.start))
+        return clean[:1]
+
+    # No window common to everyone survived — offer the first member's own best
+    # window, still clipped, so at least it is never an inauspicious slot.
+    for window in member_snapshots[0].daily_guidance.data.best_windows:
+        pieces = _clip_out_avoid(window, avoid_windows)
+        if pieces:
+            return pieces[:1]
+    return []
 
 
 def _family_avoid_windows(member_snapshots: list[_MemberSnapshot]) -> list[DailyGuidanceWindow]:
@@ -919,8 +985,8 @@ def get_family_daily_aggregate(
     owner_member = _owner_aggregate_member(session, family_vault.owner_user_id, on_date)
     if owner_member is not None:
         member_summaries = [owner_member, *member_summaries]
-    best_family_windows = _family_best_windows(member_snapshots)
     avoid_for_family_decisions = _family_avoid_windows(member_snapshots)
+    best_family_windows = _family_best_windows(member_snapshots, avoid_for_family_decisions)
 
     breakdown, family_score, decision_readiness_index = _family_breakdown(
         member_summaries,
