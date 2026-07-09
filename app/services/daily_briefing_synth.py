@@ -65,8 +65,6 @@ class BriefingInputs:
     # forced-salience flags (a caution that must never be buried)
     chandrashtama: bool = False
     sani_cycle_active: bool = False
-    # optional concrete window, already formatted (e.g. "6:12 am-7:30 am")
-    best_window_label: str | None = None
     # stable seed for phrasing variation (e.g. maha lord + iso date)
     seed: str = ""
 
@@ -89,8 +87,8 @@ _OPENERS: dict[str, tuple[BiText, ...]] = {
                "Today shapes up well — you can carry your important tasks forward with confidence."),
     ),
     "BALANCED": (
-        BiText("இன்று சமநிலையான நாள் — பெரிதாக வற்புறுத்தாமல், எளிமையாக வைத்து தொடங்கியதை முடிப்பது நல்லது.",
-               "Today reads steady — not one to force big moves, but a good one to keep things simple and finish what's already on your plate."),
+        BiText("இன்று சமநிலையான நாள் — எளிமையாக வைத்து, தொடங்கியதை முடிப்பது நல்லது.",
+               "A steady day — keep things simple and finish what's already on your plate."),
         BiText("இன்று நடுநிலையான ஓட்டம் — சிறிய, உறுதியான அடிகள் இன்று சிறப்பாக வேலை செய்யும்.",
                "An even-keeled day — small, sure steps work better than sweeping ones right now."),
     ),
@@ -124,9 +122,6 @@ _CONNECTORS_CAUTION: tuple[BiText, ...] = (
 
 # Lead-in to the single concrete action.
 _ACTION_LEAD: BiText = BiText("இன்று செய்யலாம்: ", "What to do with it: ")
-
-# Appended when a concrete auspicious window exists.
-_WINDOW_LEAD: BiText = BiText("சிறந்த நேரம்: ", "Best window: ")
 
 # A driver whose score sits inside ±_NEUTRAL_BAND of 50 is "unremarkable" and is
 # dropped rather than stated — this is the "stop saying neutral things" rule.
@@ -230,12 +225,11 @@ def synthesize_daily_briefing(inp: BriefingInputs) -> BiText:
         ta_parts.append(conn.ta + _first_sentence(second.reason.ta))
         en_parts.append(conn.en + _first_sentence(second.reason.en))
 
-    # The single most useful action, led plainly.
+    # The single most useful action, led plainly. (The best-time window is not
+    # restated here — the action text already carries it on active days, and both
+    # dashboards surface it as a dedicated metric/chip; repeating it read as a
+    # duplicate, in two different clock formats.)
     ta_parts.append(_ACTION_LEAD.ta + _first_sentence(inp.action.ta))
     en_parts.append(_ACTION_LEAD.en + _first_sentence(inp.action.en))
-
-    if inp.best_window_label:
-        ta_parts.append(f"{_WINDOW_LEAD.ta}{inp.best_window_label}.")
-        en_parts.append(f"{_WINDOW_LEAD.en}{inp.best_window_label}.")
 
     return BiText(ta=" ".join(ta_parts), en=" ".join(en_parts))

@@ -117,10 +117,13 @@ def test_support_second_driver_uses_support_connector() -> None:
     assert not any(c.en.strip() in out.en for c in _CONNECTORS_CAUTION)
 
 
-def test_best_window_label_is_appended() -> None:
-    out = synthesize_daily_briefing(_inputs(best_window_label="6:12 am-7:30 am"))
-    assert "Best window: 6:12 am-7:30 am" in out.en
-    assert "6:12 am-7:30 am" in out.ta
+def test_no_window_line_appended() -> None:
+    # The briefing no longer carries its own best-window line — the action text
+    # already states it on active days and both dashboards show it as a metric,
+    # so restating it here duplicated the window (in two clock formats).
+    out = synthesize_daily_briefing(_inputs())
+    assert "Best window" not in out.en
+    assert "சிறந்த நேரம்" not in out.ta
 
 
 def test_deterministic_across_calls() -> None:
