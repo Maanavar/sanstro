@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { apiFetchJson } from "@/lib/api";
 import { formatClockLabel, scoreColor } from "@/lib/format";
@@ -24,7 +23,7 @@ import type {
 } from "@/lib/types";
 
 import { formatHeaderDate, getTamilMonthDate } from "./dashboard-calendar-tab";
-import { ScoreRing, formatRelLabel, MemberDetailExpanded, FamilySevenDayOutlook, FamilyJournalPanel, useFamilyJournal, ageFromBirth } from "./dashboard-family-tab";
+import { ScoreRing, formatRelLabel, MemberDetailExpanded, FamilySevenDayOutlook, ageFromBirth } from "./dashboard-family-tab";
 import { DashboardFamilyMemberNova } from "./dashboard-family-member-nova";
 import type { MemberChart } from "@/hooks/useFamilyData";
 import { NovaScoreDial } from "./dashboard-ui-nova";
@@ -387,12 +386,15 @@ export type DashboardFamilyTabNovaProps = {
   relationshipAlerts: RelationshipAlertItem[];
   alertsLoading: boolean;
   panchangam: PanchangamDailyResponseData | null;
-  /** Owner-chart context for the "Your chart & explanations" deep-dive panel
-   *  (moved here out of the Today tab). Most of it rides on ownerMemberChart;
-   *  these are the few extras that bundle doesn't carry. */
+  /** Owner-only extra for the chart & explanations deep-dive panel (moved
+   *  here out of the Today tab); only applied when the owner's own profile
+   *  is the one currently open — see chartsPanelChart/activeIsSelf below. */
   dailyGuidanceRange?: DailyGuidanceRangeData | null;
   mode?: "BEGINNER" | "BALANCED" | "TRADITIONAL";
   onDateChange?: (date: string) => void;
+  /** Navigates to the dedicated Journal tab — the family tab no longer embeds
+   *  its own journal panel (it duplicated that tab behind an invisible toggle). */
+  onGoToJournal?: () => void;
   onOpenPrasna?: () => void;
   showPrasna?: boolean;
   onClosePrasna?: () => void;
@@ -430,6 +432,7 @@ export function DashboardFamilyTabNova({
   dailyGuidanceRange,
   mode,
   onDateChange,
+  onGoToJournal,
   onOpenPrasna,
   showPrasna,
   onClosePrasna,
@@ -446,9 +449,18 @@ export function DashboardFamilyTabNova({
   const [relationFilter, setRelationFilter] = useState<RelationFilter>("all");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [synastrySubTab, setSynastrySubTab] = useState(false);
-  const [journalSubTab, setJournalSubTab] = useState(false);
-  const [journalMemberFilter, setJournalMemberFilter] = useState<string>("all");
-  const { journalData, journalSummary, journalLoading } = useFamilyJournal(selectedVaultId, journalSubTab, journalMemberFilter);
+
+  // Both header actions used to look dead: their targets render far below the
+  // fold, so a click produced no visible change. Scroll the opened section
+  // (or the freshly selected member's detail) into view instead.
+  const synastryRef = useRef<HTMLDivElement | null>(null);
+  const memberDetailRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (synastrySubTab) synastryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [synastrySubTab]);
+  useEffect(() => {
+    if (selectedMemberId) memberDetailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selectedMemberId]);
 
   useEffect(() => {
     if (!selectedVaultId) {
@@ -523,11 +535,18 @@ export function DashboardFamilyTabNova({
   const dateLine = `${weekday} · ${formatHeaderDate(selectedDate, lang)} · ${getTamilMonthDate(selectedDate, lang)}`;
 
   const activeMember = members.find((m) => m.familyMemberId === selectedMemberId) ?? null;
+  const activeIsSelf = activeMember ? activeMember.familyMemberId === activeMember.birthProfileId : true;
   const activeMemberChart = activeMember
-    ? (activeMember.familyMemberId === activeMember.birthProfileId
+    ? (activeIsSelf
         ? (ownerMemberChart ?? undefined)
         : memberCharts.find((mc) => mc.memberId === activeMember.familyMemberId))
     : undefined;
+  // Whichever profile is open drives the deep-dive chart panel below — the owner
+  // by default, or the selected member once a tile is clicked. This keeps the
+  // panel from always showing the owner's own chart under someone else's tile.
+  const chartsPanelChartId = activeMember ? activeMember.chartId : ownerChartId;
+  const chartsPanelChart = activeMember ? activeMemberChart : (ownerMemberChart ?? undefined);
+  const chartsPanelDisplayName = activeMember ? activeMember.displayName : ownerDisplayName;
   const activeMemberIndex = activeMember ? members.findIndex((m) => m.familyMemberId === activeMember.familyMemberId) : -1;
   const prevMember = activeMemberIndex > 0 ? members[activeMemberIndex - 1] : null;
   const nextMember = activeMemberIndex >= 0 && activeMemberIndex < members.length - 1 ? members[activeMemberIndex + 1] : null;
@@ -618,13 +637,22 @@ export function DashboardFamilyTabNova({
             {busy.family ? (lang === "ta" ? "புதுப்பிக்கிறது…" : "Refreshing…") : (lang === "ta" ? "புதுப்பி" : "Refresh")}
           </button>
           {memberCharts.length > 0 && (
-            <button type="button" onClick={() => setSynastrySubTab((v) => !v)} style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-accent-strong)", background: "transparent", border: "1px solid var(--color-border-strong)", borderRadius: "9px", padding: "8px 14px", cursor: "pointer", fontFamily: "inherit" }}>
+            <button type="button" onClick={() => setSynastrySubTab((v) => !v)}
+              style={{
+                fontSize: "12px", fontWeight: 600, fontFamily: "inherit", cursor: "pointer",
+                borderRadius: "9px", padding: "8px 14px",
+                border: `1px solid ${synastrySubTab ? "var(--color-accent)" : "var(--color-border-strong)"}`,
+                background: synastrySubTab ? "var(--color-accent-muted)" : "transparent",
+                color: "var(--color-accent-strong)",
+              }}>
               ◇ {lang === "ta" ? "பொருத்தம்" : "Compatibility"}
             </button>
           )}
-          <button type="button" onClick={() => setJournalSubTab((v) => !v)} style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-accent-strong)", background: "transparent", border: "1px solid var(--color-border-strong)", borderRadius: "9px", padding: "8px 14px", cursor: "pointer", fontFamily: "inherit" }}>
-            ✎ {lang === "ta" ? "ஜர்னல்" : "Journal"}
-          </button>
+          {onGoToJournal && (
+            <button type="button" onClick={onGoToJournal} style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-accent-strong)", background: "transparent", border: "1px solid var(--color-border-strong)", borderRadius: "9px", padding: "8px 14px", cursor: "pointer", fontFamily: "inherit" }}>
+              ✎ {lang === "ta" ? "ஜர்னல் →" : "Journal →"}
+            </button>
+          )}
           <button type="button" onClick={onOpenSetup} style={{ fontSize: "12px", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", border: "none", borderRadius: "9px", padding: "8px 14px", cursor: "pointer", fontFamily: "inherit" }}>
             + {lang === "ta" ? "உறுப்பினரைச் சேர்" : "Add member"}
           </button>
@@ -770,11 +798,17 @@ export function DashboardFamilyTabNova({
         </>
       )}
 
-      {/* ===== Inline expanded detail — a quick glance; "View full profile" opens the
-          dedicated family-member screen (Phase 5). Both patterns are kept deliberately
-          (user decision, see Progress Log) rather than replacing one with the other. ===== */}
+      {/* ===== Inline expanded detail — quick glance only (identity, score,
+          best/avoid, score breakdown). The D1/D9 pictorial chart, the full
+          chart-explanation tabs AND the Dasa·Bhukti·Antaram detail are
+          deliberately NOT repeated here — they live once, in reading order
+          (kattam → birth star → dasha), in the "Chart & explanations"
+          deep-dive panel (DashboardChartsPanelNova directly below). "View
+          full profile" opens the separate dedicated family-member screen
+          (Phase 5), which has its own compact D1/D9 + summary and doesn't
+          touch the deep-dive panel either. ===== */}
       {activeMember && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        <div ref={memberDetailRef} style={{ display: "flex", flexDirection: "column", gap: "10px", scrollMarginTop: "80px" }}>
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button
               type="button"
@@ -793,89 +827,41 @@ export function DashboardFamilyTabNova({
             deletingId={busy.deletingMemberId}
             today={selectedDate}
             lang={lang}
+            hideChartAndExplanation
           />
         </div>
       )}
 
-      {/* ===== Compatibility (existing Synastry Matrix/Panel, re-skinned for free — already var(--color-*)-driven) ===== */}
-      {synastrySubTab && (
-        <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "24px", display: "flex", flexDirection: "column", gap: "20px" }}>
-          {ownerChartId && memberCharts.length > 0 && (
-            <SynastryMatrix
-              lang={lang}
-              ownerChartId={ownerChartId}
-              familyVaultId={selectedVaultId}
-              members={memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName, chartId: mc.chart.chartId }))}
-            />
-          )}
-          <SynastryPanel
-            lang={lang}
-            chartId={ownerChartId}
-            familyVaultId={selectedVaultId}
-            memberOptions={memberOptions}
-            ownerChart={ownerChart}
-            memberCharts={memberChartsForSynastry}
-            relationshipAlerts={relationshipAlerts}
-            alertsLoading={alertsLoading}
-          />
-        </div>
-      )}
-
-      {/* ===== Family journal — reused verbatim from Classic (dashboard-family-tab.tsx);
-          it reads the older --panel-cream token, redirected locally to Nova's surface. ===== */}
-      {journalSubTab && (
-        <div style={{ "--panel-cream": "var(--color-surface-soft)" } as CSSProperties}>
-          <FamilyJournalPanel
-            lang={lang}
-            members={familyMembers}
-            journalData={journalData}
-            journalSummary={journalSummary}
-            loading={journalLoading}
-            memberFilter={journalMemberFilter}
-            onMemberFilterChange={setJournalMemberFilter}
-          />
-        </div>
-      )}
-
-      {/* ===== Bonds + shared events ===== */}
-      <div className="nova-grid-2" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: "18px" }}>
-        <NovaFamilyBondsCard lang={lang} participants={bondParticipants} />
-
-        {/* Shared muhurtham — genuine stub: no backend concept of a shared/cross-member
-            events feed exists yet (only per-person daily guidance/festivals). Not invented. */}
-        <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "22px 24px", display: "flex", flexDirection: "column", gap: "10px" }}>
-          <NovaKicker>{lang === "ta" ? "பகிரப்பட்ட முகூர்த்தம்" : "Shared muhurtham"}</NovaKicker>
-          <p style={{ margin: 0, fontSize: "12.5px", lineHeight: 1.6, color: "var(--color-faint)" }}>
-            {lang === "ta"
-              ? "இது விரைவில் வரும் — தற்போது தனிநபர் நாள்காட்டி மட்டுமே கிடைக்கிறது."
-              : "Coming soon — there's no cross-family shared-events feed yet. Check each member's own Calendar tab for now."}
-          </p>
-        </div>
-      </div>
-
-      {/* ===== Your chart & explanations — the full astrology engine, moved off the
-          Today homepage into this "Family & Charts" tab. Fed by the owner's chart
-          bundle (ownerMemberChart). The Today tab's "Why this prediction?" bridge
-          card links here. ===== */}
-      {ownerChartId && ownerMemberChart && (
+      {/* ===== Chart & explanations — the full astrology engine, moved off the
+          Today homepage into this "Family & Charts" tab. Sits directly under
+          the quick-glance card because both are about the same subject (the
+          owner by default, or the selected member once a tile is opened) —
+          previously this panel was pushed all the way down past Compatibility/
+          Journal/Bonds, which broke the "look at one person" flow by forcing a
+          scroll through unrelated family-wide content first. Prasna and
+          notification settings stay owner-only (gated inside the panel via
+          isSelf) since those are account-level, not per-person astrology. The
+          Today tab's "Why this prediction?" bridge card links here. ===== */}
+      {chartsPanelChartId && chartsPanelChart && (
         <DashboardChartsPanelNova
           lang={lang}
-          activeChartId={ownerChartId}
+          activeChartId={chartsPanelChartId}
           selectedDate={selectedDate}
-          personalChart={ownerMemberChart.chart}
-          personalChartExplanation={ownerMemberChart.explanation}
-          personalChartSummary={ownerMemberChart.summary}
-          personalDailyGuidance={ownerMemberChart.dailyGuidance}
-          personalTransit={ownerMemberChart.transit}
-          personalSani={ownerMemberChart.sani}
-          peyarchiUpcoming={ownerMemberChart.peyarchiUpcoming}
+          personalChart={chartsPanelChart.chart}
+          personalChartExplanation={chartsPanelChart.explanation}
+          personalChartSummary={chartsPanelChart.summary}
+          personalDailyGuidance={chartsPanelChart.dailyGuidance}
+          personalTransit={chartsPanelChart.transit}
+          personalSani={chartsPanelChart.sani}
+          peyarchiUpcoming={chartsPanelChart.peyarchiUpcoming}
           panchangam={panchangam}
-          dasha={ownerMemberChart.dasha}
-          dashaAntar={ownerMemberChart.dashaAntar}
-          dashaMaha={ownerMemberChart.dashaMaha}
-          dailyGuidanceRange={dailyGuidanceRange}
-          nakshatraCard={ownerMemberChart.nakshatraCard}
+          dasha={chartsPanelChart.dasha}
+          dashaAntar={chartsPanelChart.dashaAntar}
+          dailyGuidanceRange={activeIsSelf ? dailyGuidanceRange : undefined}
+          nakshatraCard={chartsPanelChart.nakshatraCard}
           mode={mode}
+          isSelf={activeIsSelf}
+          viewerDisplayName={chartsPanelDisplayName}
           onDateChange={onDateChange}
           onOpenPrasna={onOpenPrasna}
           showPrasna={showPrasna}
@@ -883,6 +869,60 @@ export function DashboardFamilyTabNova({
           onOpenNotificationSettings={onOpenNotificationSettings}
         />
       )}
+
+      {/* ===== Family connections — everything that's about the group rather than
+          one person (compatibility calculator, all-pairs bonds, shared muhurtham),
+          grouped under one heading so it reads as a single "family relationships"
+          zone at the bottom of the tab. Compatibility stays opt-in via the
+          header's toggle button, which scrolls here when opened (its target
+          being below the whole chart deep-dive is why the button used to look
+          dead). Bonds/Muhurtham stay always-on. The family journal panel that
+          used to sit after this zone is gone — the header's Journal button now
+          navigates to the dedicated Journal tab instead. ===== */}
+      <div ref={synastryRef} style={{ display: "flex", flexDirection: "column", gap: "18px", scrollMarginTop: "80px" }}>
+        <div style={{ fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 600, color: "var(--color-accent-strong)" }}>
+          {lang === "ta" ? "குடும்ப உறவுகள்" : "Family connections"}
+        </div>
+
+        {synastrySubTab && (
+          <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "24px", display: "flex", flexDirection: "column", gap: "20px" }}>
+            {ownerChartId && memberCharts.length > 0 && (
+              <SynastryMatrix
+                lang={lang}
+                ownerChartId={ownerChartId}
+                familyVaultId={selectedVaultId}
+                members={memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName, chartId: mc.chart.chartId }))}
+              />
+            )}
+            <SynastryPanel
+              lang={lang}
+              chartId={ownerChartId}
+              familyVaultId={selectedVaultId}
+              memberOptions={memberOptions}
+              ownerChart={ownerChart}
+              memberCharts={memberChartsForSynastry}
+              relationshipAlerts={relationshipAlerts}
+              alertsLoading={alertsLoading}
+            />
+          </div>
+        )}
+
+        <div className="nova-grid-2" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: "18px" }}>
+          <NovaFamilyBondsCard lang={lang} participants={bondParticipants} />
+
+          {/* Shared muhurtham — genuine stub: no backend concept of a shared/cross-member
+              events feed exists yet (only per-person daily guidance/festivals). Not invented. */}
+          <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "22px 24px", display: "flex", flexDirection: "column", gap: "10px" }}>
+            <NovaKicker>{lang === "ta" ? "பகிரப்பட்ட முகூர்த்தம்" : "Shared muhurtham"}</NovaKicker>
+            <p style={{ margin: 0, fontSize: "12.5px", lineHeight: 1.6, color: "var(--color-faint)" }}>
+              {lang === "ta"
+                ? "இது விரைவில் வரும் — தற்போது தனிநபர் நாள்காட்டி மட்டுமே கிடைக்கிறது."
+                : "Coming soon — there's no cross-family shared-events feed yet. Check each member's own Calendar tab for now."}
+            </p>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }

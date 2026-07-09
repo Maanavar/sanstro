@@ -14,7 +14,6 @@ import type {
   ChartValidationStatus,
   DailyGuidanceData,
   DailyGuidanceRangeData,
-  DashaTimelineResponseData,
   PanchangamDailyResponseData,
   PrasnaResponse,
   SaniCycleData,
@@ -33,7 +32,7 @@ import {
   formatWeekday,
 } from "./dashboard-activity-timing-card";
 import { QUESTION_AREAS, outlookLabel } from "./dashboard-prasna-widget";
-import { JathagamKattam } from "./dashboard-charts";
+import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import { ShareCardButton } from "./dashboard-share-card";
 import { DrawerPanel } from "./drawer-panel";
 import { NovaSelect } from "./nova-select";
@@ -91,19 +90,18 @@ export function NovaChartValidationChip({
   );
 }
 
-// ───────────────────────── 2. Chart Context / Guidance / Gochar two-col ─────────────────────────
+// ─────────────── 2a. Chart identity card (kattam + birth facts) ───────────────
+// Formerly the left column of one combined NovaChartContextGuidanceGochar
+// two-col. Split in two so the charts panel can lead with the kattam
+// (identity zone, first thing after the header) and render today's
+// guidance/gochar as its own later zone — see dashboard-charts-panel-nova.tsx.
 
-export function NovaChartContextGuidanceGochar({
+export function NovaChartIdentityCard({
   lang,
   activeChartId,
   selectedDate,
   personalChart,
   personalChartSummary,
-  personalDailyGuidance,
-  personalTransit,
-  personalSani,
-  panchangam,
-  dailyGuidanceRange,
   astroText,
 }: {
   lang: Lang;
@@ -111,22 +109,9 @@ export function NovaChartContextGuidanceGochar({
   selectedDate: string;
   personalChart: ChartCalculateResponseData | null;
   personalChartSummary: ChartSummaryData | null;
-  personalDailyGuidance: DailyGuidanceData | null;
-  personalTransit: TransitSnapshotData | null;
-  personalSani: SaniCycleData | null;
-  panchangam: PanchangamDailyResponseData | null;
-  dailyGuidanceRange?: DailyGuidanceRangeData | null;
   astroText: (value: string) => string;
 }) {
-  const bestWindow = personalDailyGuidance?.bestWindows[0] ?? null;
-  const avoidWindow = personalDailyGuidance?.cautionWindows[0] ?? null;
-  const personalScoreBand = personalDailyGuidance ? getScoreBand(personalDailyGuidance.score) : null;
-  const chandrashtamaWindowsSummary = panchangam
-    ? formatChandrashtamaWindowSummary(panchangam.chandrashtamamToday?.janmaNakshatraWindows ?? [], panchangam.dateLocal, lang)
-    : "";
-
   return (
-    <div className="two-col">
       <Surface title={t("surface_chart_context", lang)}>
         {personalChart ? (
           <div className="surface__body">
@@ -145,7 +130,10 @@ export function NovaChartContextGuidanceGochar({
               <Metric label={t("label_birth_date", lang)} value={personalChart.birthProfile.birthDateLocal} hint={personalChart.birthProfile.birthPlace ?? personalChart.birthProfile.birthProfileId.slice(0, 8)} />
               <Metric label={t("label_lagnam", lang)} value={personalChart.lagna.rasiName ?? `Raasi ${personalChart.lagna.rasi}`} hint={`${personalChart.lagna.degreeInRasi.toFixed(2)}° · ${astroText(personalChart.lagna.nakshatraName)} ${t("label_padam", lang)} ${personalChart.lagna.pada}`} tone="high" />
             </div>
-            <JathagamKattam chart={personalChart} lang={lang} />
+            <div style={{ display: "flex", gap: "14px", flexWrap: "wrap", justifyContent: "center", marginTop: "14px" }}>
+              <RasiChart chart={personalChart} label={t("label_d1", lang)} lang={lang} />
+              <NavamsaChart chart={personalChart} label={t("label_d9", lang)} lang={lang} />
+            </div>
             {activeChartId && (
               <div style={{ display: "flex", gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
                 <ShareCardButton chartId={activeChartId} cardType="NAKSHATRA" lang={lang} label={lang === "ta" ? "நட்சத்திர அட்டை பகிர்" : "Share Birth Star Card"} />
@@ -167,8 +155,37 @@ export function NovaChartContextGuidanceGochar({
           <p className="empty-state">{t("chart_no_profile", lang)}</p>
         )}
       </Surface>
+  );
+}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+// ─────────────── 2b. Today's guidance + gochar two-col ───────────────
+
+export function NovaGuidanceGocharRow({
+  lang,
+  personalDailyGuidance,
+  personalTransit,
+  personalSani,
+  panchangam,
+  dailyGuidanceRange,
+  astroText,
+}: {
+  lang: Lang;
+  personalDailyGuidance: DailyGuidanceData | null;
+  personalTransit: TransitSnapshotData | null;
+  personalSani: SaniCycleData | null;
+  panchangam: PanchangamDailyResponseData | null;
+  dailyGuidanceRange?: DailyGuidanceRangeData | null;
+  astroText: (value: string) => string;
+}) {
+  const bestWindow = personalDailyGuidance?.bestWindows[0] ?? null;
+  const avoidWindow = personalDailyGuidance?.cautionWindows[0] ?? null;
+  const personalScoreBand = personalDailyGuidance ? getScoreBand(personalDailyGuidance.score) : null;
+  const chandrashtamaWindowsSummary = panchangam
+    ? formatChandrashtamaWindowSummary(panchangam.chandrashtamamToday?.janmaNakshatraWindows ?? [], panchangam.dateLocal, lang)
+    : "";
+
+  return (
+    <div className="two-col">
         <Surface title={t("surface_guidance", lang)}>
           {personalDailyGuidance ? (
             <div className="surface__body">
@@ -292,41 +309,13 @@ export function NovaChartContextGuidanceGochar({
             </div>
           ) : <p className="empty-state">{t("gochar_empty", lang)}</p>}
         </Surface>
-      </div>
     </div>
   );
 }
 
-// ───────────────────────── 3. Dasa · Bhukti · Antaram strip ─────────────────────────
-
-export function NovaDasaBhuktiAntaramStrip({
-  lang,
-  personalChartSummary,
-  dashaMaha,
-}: {
-  lang: Lang;
-  personalChartSummary: ChartSummaryData | null;
-  dashaMaha?: DashaTimelineResponseData | null;
-}) {
-  if (!personalChartSummary) return null;
-  return (
-    <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", padding: "12px 16px", borderRadius: "10px", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
-      <span style={{ fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.1em", marginRight: "4px" }}>
-        {lang === "ta" ? "தசை நிலை" : "Dasa Position"}
-      </span>
-      {[
-        { label: lang === "ta" ? "தசை" : "Dasa", value: personalChartSummary.currentMahadasha },
-        { label: lang === "ta" ? "புக்தி" : "Bhukti", value: personalChartSummary.currentAntardasha },
-        { label: lang === "ta" ? "அந்தரம்" : "Antaram", value: dashaMaha?.current?.pratyantardasha?.lord ?? null },
-      ].map(({ label, value }) => value && (
-        <div key={label} style={{ display: "flex", flexDirection: "column", gap: "2px", alignItems: "center" }}>
-          <span style={{ fontSize: "0.5625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</span>
-          <span style={{ fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)", fontFamily: "var(--font-body)" }}>{tPlanetLord(value, lang)}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
+// (Section 3, the "Dasa Position" strip, was deleted — it duplicated the full
+// Dasa · Bhukti · Antaram detail that now renders once in the charts panel's
+// identity zone via DasaBhuktiAntaramDetail from dashboard-family-tab.tsx.)
 
 // ───────────────────────── 4. Activity Timing (single-activity month browser) ─────────────────────────
 

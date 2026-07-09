@@ -37,12 +37,13 @@ import { AshtottariDashaPanel } from "./dashboard-ashtottari-dasha-panel";
 import { KalachakraDashaPanel } from "./dashboard-kalachakra-dasha-panel";
 import {
   NovaActivityTimingCard,
-  NovaChartContextGuidanceGochar,
+  NovaChartIdentityCard,
   NovaChartValidationChip,
-  NovaDasaBhuktiAntaramStrip,
+  NovaGuidanceGocharRow,
   NovaPrasnaTrigger,
   NovaPrasnaWidget,
 } from "./dashboard-today-deepdive-extras-nova";
+import { DasaBhuktiAntaramDetail } from "./dashboard-family-tab";
 import { MorningGuidanceCard } from "./morning-guidance-card";
 
 /**
@@ -54,6 +55,11 @@ import { MorningGuidanceCard } from "./morning-guidance-card";
  * decision layer only; the Today tab links here via its "Why this prediction?"
  * bridge card. Every field comes from the same hooks/data as before — this is a
  * move, not new computation.
+ *
+ * Whoever's profile is currently open in the Family tab feeds this panel —
+ * it is not owner-only. `isSelf`/`viewerDisplayName` only control the title
+ * text and gate the account-level widgets (Prasna, notification settings)
+ * that don't make sense while looking at someone else's chart.
  */
 
 export type DashboardChartsPanelNovaProps = {
@@ -70,10 +76,13 @@ export type DashboardChartsPanelNovaProps = {
   panchangam: PanchangamDailyResponseData | null;
   dasha: DashaTimelineResponseData | null;
   dashaAntar: DashaTimelineItem[];
-  dashaMaha?: DashaTimelineResponseData | null;
   dailyGuidanceRange?: DailyGuidanceRangeData | null;
   nakshatraCard: NakshatraCardData | null;
   mode?: "BEGINNER" | "BALANCED" | "TRADITIONAL";
+  /** Whose chart this is. Defaults to the account owner. */
+  isSelf?: boolean;
+  /** Display name to use in the title when isSelf is false. */
+  viewerDisplayName?: string;
   onDateChange?: (date: string) => void;
   onOpenPrasna?: () => void;
   showPrasna?: boolean;
@@ -95,10 +104,11 @@ export function DashboardChartsPanelNova({
   panchangam,
   dasha,
   dashaAntar,
-  dashaMaha,
   dailyGuidanceRange,
   nakshatraCard,
   mode,
+  isSelf = true,
+  viewerDisplayName,
   onDateChange,
   onOpenPrasna,
   showPrasna = false,
@@ -143,7 +153,9 @@ export function DashboardChartsPanelNova({
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", borderTop: "1px solid var(--color-border)", paddingTop: "18px" }}>
         <div>
           <div style={{ fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 600, color: "var(--color-accent-strong)" }}>
-            {lang === "ta" ? "உங்கள் ஜாதகம் & விளக்கம்" : "Your chart & explanations"}
+            {isSelf
+              ? (lang === "ta" ? "உங்கள் ஜாதகம் & விளக்கம்" : "Your chart & explanations")
+              : (lang === "ta" ? `${viewerDisplayName} ஜாதகம் & விளக்கம்` : `${viewerDisplayName}'s chart & explanations`)}
           </div>
           <div style={{ fontSize: "12px", color: "var(--color-faint)", marginTop: "2px" }}>
             {lang === "ta"
@@ -165,16 +177,46 @@ export function DashboardChartsPanelNova({
         </div>
       </div>
 
-      {activeChartId && (
-        <NovaActivityTimingCard lang={lang} chartId={activeChartId} selectedDate={selectedDate} onDateChange={onDateChange} />
-      )}
+      {/* ===== 1. Identity — the kattam leads. Reading order follows a classical
+          consultation: jadhagam kattam (D1/D9) first, the person's birth-star
+          profile beside it, then the single Dasa·Bhukti·Antaram detail. The old
+          "Dasa Position" strip (a duplicate of the same data) is gone, and the
+          birth-star card no longer floats between the planets table and the
+          divisional charts. ===== */}
+      <div className="two-col">
+        <NovaChartIdentityCard
+          lang={lang}
+          activeChartId={activeChartId}
+          selectedDate={selectedDate}
+          personalChart={personalChart}
+          personalChartSummary={personalChartSummary}
+          astroText={astroText}
+        />
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          {nakshatraCard && (
+            <Surface title={t("nakshatra_card_label", lang)}>
+              <div className="surface__body">
+                <div className="surface__headline">
+                  <span>{lang === "ta" ? nakshatraCard.nameTa : astroText(nakshatraCard.nameEn)}</span>
+                  <Chip tone="accent">{t("nakshatra_ruling_planet", lang)}: {tPlanetLord(nakshatraCard.rulingPlanet, lang)}</Chip>
+                </div>
+                <p className="surface__text">{lang === "ta" ? nakshatraCard.profile.ta : astroText(nakshatraCard.profile.en)}</p>
+                {nakshatraCard.strengths.length > 0 && (
+                  <div className="chip-row">{nakshatraCard.strengths.map((s) => <Chip key={s.en} tone="success">{lang === "ta" ? s.ta : astroText(s.en)}</Chip>)}</div>
+                )}
+                {nakshatraCard.cautions.length > 0 && (
+                  <div className="chip-row">{nakshatraCard.cautions.map((c) => <Chip key={c.en} tone="warning">{lang === "ta" ? c.ta : astroText(c.en)}</Chip>)}</div>
+                )}
+              </div>
+            </Surface>
+          )}
+          <DasaBhuktiAntaramDetail lang={lang} today={selectedDate} dasha={dasha} dashaAntar={dashaAntar} />
+        </div>
+      </div>
 
-      <NovaChartContextGuidanceGochar
+      {/* ===== 2. Today for this person — guidance + gochar ===== */}
+      <NovaGuidanceGocharRow
         lang={lang}
-        activeChartId={activeChartId}
-        selectedDate={selectedDate}
-        personalChart={personalChart}
-        personalChartSummary={personalChartSummary}
         personalDailyGuidance={personalDailyGuidance}
         personalTransit={personalTransit}
         personalSani={personalSani}
@@ -183,8 +225,8 @@ export function DashboardChartsPanelNova({
         astroText={astroText}
       />
 
-      <NovaDasaBhuktiAntaramStrip lang={lang} personalChartSummary={personalChartSummary} dashaMaha={dashaMaha} />
-
+      {/* ===== 3. Reference — planet positions, explanation, divisional charts,
+          strength & alternate dashas ===== */}
       <Surface title={t("surface_planets", lang)}>
         {personalChart ? (
           <div className="table-wrap">
@@ -234,24 +276,6 @@ export function DashboardChartsPanelNova({
           </div>
         )}
       </Surface>
-
-      {nakshatraCard && (
-        <Surface title={t("nakshatra_card_label", lang)}>
-          <div className="surface__body">
-            <div className="surface__headline">
-              <span>{lang === "ta" ? nakshatraCard.nameTa : astroText(nakshatraCard.nameEn)}</span>
-              <Chip tone="accent">{t("nakshatra_ruling_planet", lang)}: {tPlanetLord(nakshatraCard.rulingPlanet, lang)}</Chip>
-            </div>
-            <p className="surface__text">{lang === "ta" ? nakshatraCard.profile.ta : astroText(nakshatraCard.profile.en)}</p>
-            {nakshatraCard.strengths.length > 0 && (
-              <div className="chip-row">{nakshatraCard.strengths.map((s) => <Chip key={s.en} tone="success">{lang === "ta" ? s.ta : astroText(s.en)}</Chip>)}</div>
-            )}
-            {nakshatraCard.cautions.length > 0 && (
-              <div className="chip-row">{nakshatraCard.cautions.map((c) => <Chip key={c.en} tone="warning">{lang === "ta" ? c.ta : astroText(c.en)}</Chip>)}</div>
-            )}
-          </div>
-        </Surface>
-      )}
 
       {personalChart && (
         <VargasPanel
@@ -314,10 +338,25 @@ export function DashboardChartsPanelNova({
         </Surface>
       )}
 
-      <MorningGuidanceCard lang={lang} onOpenSettings={onOpenNotificationSettings} />
-
-      <NovaPrasnaTrigger lang={lang} onOpenPrasna={onOpenPrasna} />
-      {onClosePrasna && personalChart && (
+      {/* ===== Tools — things you *do* with a chart (find a date, ask a question,
+          opt into daily nudges), grouped at the end deliberately: you read the
+          chart above first, then reach for a tool. Activity Timing used to sit
+          at the very top of this panel, ahead of the chart itself — moved here
+          next to Prasna/Morning Guidance since all three are the same kind of
+          thing (a utility action), not chart reference. Prasna/Morning
+          Guidance stay account-level (isSelf-gated); Activity Timing works for
+          whichever chart is open. ===== */}
+      {activeChartId && (
+        <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "18px", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+          <p style={{ margin: 0, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, color: "var(--color-accent)" }}>
+            {lang === "ta" ? "கருவிகள்" : "Tools"}
+          </p>
+          <NovaActivityTimingCard lang={lang} chartId={activeChartId} selectedDate={selectedDate} onDateChange={onDateChange} />
+          {isSelf && <MorningGuidanceCard lang={lang} onOpenSettings={onOpenNotificationSettings} />}
+          {isSelf && <NovaPrasnaTrigger lang={lang} onOpenPrasna={onOpenPrasna} />}
+        </div>
+      )}
+      {isSelf && onClosePrasna && personalChart && (
         <NovaPrasnaWidget
           lang={lang}
           open={showPrasna}

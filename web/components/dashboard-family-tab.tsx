@@ -183,6 +183,7 @@ export function MemberDetailExpanded({
   deletingId,
   today,
   lang,
+  hideChartAndExplanation = false,
 }: {
   member: FamilyAggregateMember;
   memberChart: MemberChartData | undefined;
@@ -192,6 +193,11 @@ export function MemberDetailExpanded({
   deletingId: string;
   today: string;
   lang: Lang;
+  /** Nova's Family tab renders its own D1/D9 pictorial + ChartExplanationPanel
+   *  further down the same page (the "Chart & explanations" deep-dive panel) —
+   *  set true there so this quick-glance card doesn't repeat both wholesale.
+   *  Classic has no such panel below, so it keeps the default (false). */
+  hideChartAndExplanation?: boolean;
 }) {
   const band = getScoreBand(member.individualScore);
   const toneColor = scoreColor(member.individualScore);
@@ -205,9 +211,6 @@ export function MemberDetailExpanded({
   const bestW = guidance?.bestWindows[0];
   const avoidW = guidance?.cautionWindows[0];
   const dasha = memberChart?.dasha;
-  const dashaColor   = dasha ? (DASHA_COLORS[dasha.current.mahadasha.lord]    ?? "var(--color-faint, var(--color-faint))") : "var(--color-faint)";
-  const bhuktiColor  = dasha ? (DASHA_COLORS[dasha.current.antardasha.lord]   ?? "var(--color-faint, var(--color-faint))") : "var(--color-faint)";
-  const antaramColor = dasha ? (DASHA_COLORS[dasha.current.pratyantardasha.lord] ?? "var(--color-faint, var(--color-faint))") : "var(--color-faint)";
 
   const identityParts: string[] = [];
   if (summary?.lagnaRasi) identityParts.push(`${summary.lagnaRasi} ${t("label_lagnam", lang)}`);
@@ -332,14 +335,14 @@ export function MemberDetailExpanded({
       )}
 
       {/* Charts row */}
-      {memberChart?.chart && (
+      {!hideChartAndExplanation && memberChart?.chart && (
         <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", justifyContent: "center" }}>
           <RasiChart chart={memberChart.chart} label={t("label_d1", lang)} lang={lang} />
           <NavamsaChart chart={memberChart.chart} label={t("label_d9", lang)} lang={lang} />
         </div>
       )}
 
-      {memberChart?.chart && (
+      {!hideChartAndExplanation && memberChart?.chart && (
         <ChartExplanationPanel
           lang={lang}
           chart={memberChart.chart}
@@ -353,71 +356,98 @@ export function MemberDetailExpanded({
         />
       )}
 
-      {/* Dasha · Bhukti · Antaram */}
-      {dasha && (
-        <div style={{ borderRadius: "var(--radius-md)", border: `1px solid ${dashaColor}44`, background: `${dashaColor}0d`, padding: "var(--space-3_5) var(--space-4)" }}>
-          <p className="cd-kicker" style={{ marginBottom: "var(--space-2_5)" }}>
-            {lang === "ta" ? "தசை · புக்தி · அந்தரம்" : "Dasa · Bhukti · Antaram"}
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
-            {[
-              { color: dashaColor,   lord: dasha.current.mahadasha.lord,       word: t("dasha_word", lang),   start: dasha.current.mahadasha.startDate,       end: dasha.current.mahadasha.endDate,       indent: 0 },
-              { color: bhuktiColor,  lord: dasha.current.antardasha.lord,      word: t("bhukti_word", lang),  start: dasha.current.antardasha.startDate,      end: dasha.current.antardasha.endDate,      indent: 16 },
-              { color: antaramColor, lord: dasha.current.pratyantardasha.lord, word: t("antaram_word", lang), start: dasha.current.pratyantardasha.startDate, end: dasha.current.pratyantardasha.endDate, indent: 32 },
-            ].map((row, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginLeft: `${row.indent}px` }}>
-                <div style={{ width: `${8 - i * 2}px`, height: `${8 - i * 2}px`, borderRadius: "50%", background: row.color, flexShrink: 0 }} />
-                <span style={{ fontSize: `${0.84 - i * 0.04}rem`, fontWeight: 600, color: row.color, minWidth: "88px" }}>
-                  {tPlanetLord(row.lord, lang)} {row.word}
-                </span>
-                <span style={{ fontSize: "0.625rem", color: "var(--color-faint)" }}>
-                  {String(row.start)} → {String(row.end)}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {memberChart?.dashaAntar && memberChart.dashaAntar.length > 0 && (
-            <div style={{ marginTop: "var(--space-2_5)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-2_5)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
-              <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", color: "var(--color-faint)", letterSpacing: "0.04em" }}>
-                {tPlanetLord(dasha.current.mahadasha.lord, lang)} {t("dasha_word", lang)} — {t("dasha_all_bhukti", lang)}
-              </p>
-              {memberChart.dashaAntar.map((bh) => {
-                const bst = dashaStatus(String(bh.startDate), String(bh.endDate), today);
-                const isRunning = bh.lord === dasha.current.antardasha.lord && bst === "active";
-                const bc = DASHA_COLORS[bh.lord] ?? "var(--color-faint, var(--color-faint))";
-                return (
-                  <div key={`${bh.lord}-${bh.startDate}`} style={{
-                    display: "flex", alignItems: "center", gap: "var(--space-1_5)",
-                    padding: isRunning ? "3px 8px" : "2px 4px",
-                    borderRadius: "var(--radius-xs)",
-                    background: isRunning ? `${bc}14` : "transparent",
-                    border: isRunning ? `1px solid ${bc}44` : "1px solid transparent",
-                    opacity: bst === "past" ? 0.45 : 1,
-                  }}>
-                    <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: bc, flexShrink: 0 }} />
-                    <span style={{ fontSize: "0.75rem", fontWeight: isRunning ? 700 : 400, color: isRunning ? bc : "var(--color-muted)", minWidth: "70px" }}>
-                      {tPlanetLord(bh.lord, lang)} {t("bhukti_word", lang)}
-                    </span>
-                    <span style={{ fontSize: "0.625rem", color: "var(--color-faint)", flex: 1 }}>
-                      {String(bh.startDate)} → {String(bh.endDate)}
-                    </span>
-                    <span style={{
-                      fontSize: "0.625rem", fontWeight: 600, padding: "1px var(--space-1_5)", borderRadius: "var(--radius-pill)",
-                      background: isRunning ? `${bc}22` : "var(--panel-cream)",
-                      color: isRunning ? bc : "var(--color-faint)",
-                      border: `1px solid ${isRunning ? bc + "55" : "var(--color-border)"}`,
-                    }}>
-                      {isRunning ? t("status_active", lang) : bst === "past" ? t("status_past", lang) : t("status_upcoming", lang)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+      {/* Dasha · Bhukti · Antaram — Nova hides it here (hideChartAndExplanation)
+          because its deep-dive panel below renders the same block once, in
+          reading order after the kattam. Classic keeps it inline. */}
+      {!hideChartAndExplanation && (
+        <DasaBhuktiAntaramDetail lang={lang} today={today} dasha={dasha ?? null} dashaAntar={memberChart?.dashaAntar} />
       )}
 
+    </div>
+  );
+}
+
+/* ── Dasa · Bhukti · Antaram detail (current stack + all bhuktis) ──
+   Shared by Classic's MemberDetailExpanded and Nova's chart deep-dive panel
+   (dashboard-charts-panel-nova.tsx) so the dasha story lives in exactly one
+   component. */
+export function DasaBhuktiAntaramDetail({
+  lang,
+  today,
+  dasha,
+  dashaAntar,
+}: {
+  lang: Lang;
+  today: string;
+  dasha: DashaTimelineResponseData | null;
+  dashaAntar?: DashaTimelineItem[] | null;
+}) {
+  if (!dasha) return null;
+  const dashaColor   = DASHA_COLORS[dasha.current.mahadasha.lord]       ?? "var(--color-faint)";
+  const bhuktiColor  = DASHA_COLORS[dasha.current.antardasha.lord]      ?? "var(--color-faint)";
+  const antaramColor = DASHA_COLORS[dasha.current.pratyantardasha.lord] ?? "var(--color-faint)";
+
+  return (
+    <div style={{ borderRadius: "var(--radius-md)", border: `1px solid ${dashaColor}44`, background: `${dashaColor}0d`, padding: "var(--space-3_5) var(--space-4)" }}>
+      <p className="cd-kicker" style={{ marginBottom: "var(--space-2_5)" }}>
+        {lang === "ta" ? "தசை · புக்தி · அந்தரம்" : "Dasa · Bhukti · Antaram"}
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
+        {[
+          { color: dashaColor,   lord: dasha.current.mahadasha.lord,       word: t("dasha_word", lang),   start: dasha.current.mahadasha.startDate,       end: dasha.current.mahadasha.endDate,       indent: 0 },
+          { color: bhuktiColor,  lord: dasha.current.antardasha.lord,      word: t("bhukti_word", lang),  start: dasha.current.antardasha.startDate,      end: dasha.current.antardasha.endDate,      indent: 16 },
+          { color: antaramColor, lord: dasha.current.pratyantardasha.lord, word: t("antaram_word", lang), start: dasha.current.pratyantardasha.startDate, end: dasha.current.pratyantardasha.endDate, indent: 32 },
+        ].map((row, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginLeft: `${row.indent}px` }}>
+            <div style={{ width: `${8 - i * 2}px`, height: `${8 - i * 2}px`, borderRadius: "50%", background: row.color, flexShrink: 0 }} />
+            <span style={{ fontSize: `${0.84 - i * 0.04}rem`, fontWeight: 600, color: row.color, minWidth: "88px" }}>
+              {tPlanetLord(row.lord, lang)} {row.word}
+            </span>
+            <span style={{ fontSize: "0.625rem", color: "var(--color-faint)" }}>
+              {String(row.start)} → {String(row.end)}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {dashaAntar && dashaAntar.length > 0 && (
+        <div style={{ marginTop: "var(--space-2_5)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-2_5)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
+          <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", color: "var(--color-faint)", letterSpacing: "0.04em" }}>
+            {tPlanetLord(dasha.current.mahadasha.lord, lang)} {t("dasha_word", lang)} — {t("dasha_all_bhukti", lang)}
+          </p>
+          {dashaAntar.map((bh) => {
+            const bst = dashaStatus(String(bh.startDate), String(bh.endDate), today);
+            const isRunning = bh.lord === dasha.current.antardasha.lord && bst === "active";
+            const bc = DASHA_COLORS[bh.lord] ?? "var(--color-faint)";
+            return (
+              <div key={`${bh.lord}-${bh.startDate}`} style={{
+                display: "flex", alignItems: "center", gap: "var(--space-1_5)",
+                padding: isRunning ? "3px 8px" : "2px 4px",
+                borderRadius: "var(--radius-xs)",
+                background: isRunning ? `${bc}14` : "transparent",
+                border: isRunning ? `1px solid ${bc}44` : "1px solid transparent",
+                opacity: bst === "past" ? 0.45 : 1,
+              }}>
+                <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: bc, flexShrink: 0 }} />
+                <span style={{ fontSize: "0.75rem", fontWeight: isRunning ? 700 : 400, color: isRunning ? bc : "var(--color-muted)", minWidth: "70px" }}>
+                  {tPlanetLord(bh.lord, lang)} {t("bhukti_word", lang)}
+                </span>
+                <span style={{ fontSize: "0.625rem", color: "var(--color-faint)", flex: 1 }}>
+                  {String(bh.startDate)} → {String(bh.endDate)}
+                </span>
+                <span style={{
+                  fontSize: "0.625rem", fontWeight: 600, padding: "1px var(--space-1_5)", borderRadius: "var(--radius-pill)",
+                  background: isRunning ? `${bc}22` : "var(--panel-cream)",
+                  color: isRunning ? bc : "var(--color-faint)",
+                  border: `1px solid ${isRunning ? bc + "55" : "var(--color-border)"}`,
+                }}>
+                  {isRunning ? t("status_active", lang) : bst === "past" ? t("status_past", lang) : t("status_upcoming", lang)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -1811,6 +1811,7 @@ export function DashboardWorkspace() {
             dailyGuidanceRange={personal.dailyGuidanceRange}
             mode={session.userMode}
             onDateChange={setSelectedDate}
+            onGoToJournal={() => goToTab("journal")}
             onOpenPrasna={() => setShowPrasna(true)}
             showPrasna={showPrasna}
             onClosePrasna={() => setShowPrasna(false)}
