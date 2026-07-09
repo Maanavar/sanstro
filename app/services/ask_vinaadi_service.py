@@ -210,6 +210,15 @@ def _build_context_block(
 
 # ── Claude API call ───────────────────────────────────────────────────────────
 
+def _is_credit_balance_error(exc: Exception) -> bool:
+    """True when Claude rejected the request because the org has no API credit left.
+
+    Anthropic reports this as a plain 400 invalid_request_error with no dedicated
+    error type, so we key off the message text rather than exc.type.
+    """
+    return "credit balance" in str(exc).lower()
+
+
 def _call_claude(context: str, question: str) -> dict:
     settings = get_settings()
     api_key = settings.anthropic_api_key
@@ -242,6 +251,65 @@ def _call_claude(context: str, question: str) -> dict:
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             detail="Vinaadi is taking too long to respond. Please try again.",
+        ) from exc
+    except anthropic.RateLimitError as exc:
+        logger.warning("Ask Vinaadi Claude request rate-limited: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Vinaadi is getting a lot of questions right now. Please try again in a moment.",
+        ) from exc
+    except (anthropic.AuthenticationError, anthropic.PermissionDeniedError) as exc:
+        # Bad/expired API key, or an account-level block (e.g. zero credit balance) —
+        # not something the caller can fix by retrying. Log the API's own error type
+        # so this is diagnosable from server logs instead of looking identical to
+        # every other Claude failure (this is what a $0 balance surfaces as).
+        logger.error(
+            "Ask Vinaadi Claude auth/permission failure (type=%s): %s",
+            getattr(exc, "type", None),
+            exc,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Ask Vinaadi is not configured on this instance.",
+        ) from exc
+    except anthropic.BadRequestError as exc:
+        if _is_credit_balance_error(exc):
+            # Permanent, operator-side condition — retrying will never succeed until
+            # credits are topped up, so don't tell the caller to "try again shortly".
+            logger.error(
+                "Ask Vinaadi Claude request rejected — organization credit balance is too low: %s",
+                exc,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Ask Vinaadi is not configured on this instance.",
+            ) from exc
+        logger.error(
+            "Ask Vinaadi Claude request failed (status=%s, type=%s): %s",
+            exc.status_code,
+            getattr(exc, "type", None),
+            exc,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Vinaadi could not be reached. Please try again shortly.",
+        ) from exc
+    except anthropic.APIConnectionError as exc:
+        logger.error("Ask Vinaadi could not reach the Claude API: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Vinaadi could not be reached. Please try again shortly.",
+        ) from exc
+    except anthropic.APIStatusError as exc:
+        logger.error(
+            "Ask Vinaadi Claude request failed (status=%s, type=%s): %s",
+            exc.status_code,
+            getattr(exc, "type", None),
+            exc,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Vinaadi could not be reached. Please try again shortly.",
         ) from exc
     except anthropic.APIError as exc:
         logger.error("Ask Vinaadi Claude request failed: %s", exc)
