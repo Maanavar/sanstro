@@ -135,17 +135,19 @@ def _enrich_action_with_goals(
 
     if timing.combined_alignment == "CAUTION":
         # Timing caution overrides positive dasha — do not encourage action today.
-        suffix_ta = f" {goal_ta} சம்பந்தமான முக்கிய முடிவுகளை இன்று ஒத்திவையுங்கள். {timing.combined_ta}"
-        suffix_en = f" Defer major {goal_en} decisions today. {timing.combined_en}"
+        # One crisp clause only: the detailed "why" (Rikta / waning moon /
+        # weekday) already surfaces in the decide strip and the "Why this
+        # prediction?" panel, so appending the full timing essay here just made
+        # the best-window tile a wall of repeated text. "move on {goal}" also
+        # reads grammatically for every label ("…move on starting a business"),
+        # unlike the old "Defer major {goal} decisions".
+        suffix_ta = f" {goal_ta} தொடர்பான முக்கிய முடிவுகளை இன்று ஒத்திவையுங்கள்."
+        suffix_en = f" Not the day to move on {goal_en} — hold the major steps."
         return DailyGuidanceSuggestion(ta=action.ta + suffix_ta, en=action.en + suffix_en)
 
     if timing.combined_alignment == "SUPPORTS" and maha_lord in affinity_lords and label in ("STRONG_SUPPORT", "GOOD"):
-        suffix_ta = (
-            f" {goal_ta} குறித்த முயற்சிகளுக்கு இன்று {planet_ta} தசையும் பஞ்சாங்கமும் ஆதரவளிக்கின்றன. {timing.combined_ta}"
-        )
-        suffix_en = (
-            f" {planet_en} dasa and today's Panchangam both support {goal_en} efforts. {timing.combined_en}"
-        )
+        suffix_ta = f" {goal_ta} குறித்த முயற்சிகளுக்கு இன்று {planet_ta} தசையும் பஞ்சாங்கமும் ஆதரவளிக்கின்றன."
+        suffix_en = f" {planet_en} dasa and today's Panchangam both support {goal_en} efforts."
         return DailyGuidanceSuggestion(ta=action.ta + suffix_ta, en=action.en + suffix_en)
 
     if maha_lord in affinity_lords and label in ("STRONG_SUPPORT", "GOOD"):

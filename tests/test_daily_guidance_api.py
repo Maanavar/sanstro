@@ -87,12 +87,17 @@ def test_daily_guidance_briefing_flag_gates_synthesis(client, birth_profile_payl
 
     chart_id = _create_chart(client, birth_profile_payload_factory)
 
-    # Default (flag OFF): the synthesis field is present but null, and the
-    # existing six-row reasons stack is untouched.
-    off = client.get(
-        f"/api/v1/charts/{chart_id}/daily-guidance",
-        params={"date": "2026-05-21", "language": "ta-en"},
-    )
+    # Flag OFF: the synthesis field is present but null, and the existing
+    # six-row reasons stack is untouched. Set explicitly rather than relying on
+    # the default, which now ships ON (this asserts the gate still works both ways).
+    set_flag("daily_briefing_synth", False)
+    try:
+        off = client.get(
+            f"/api/v1/charts/{chart_id}/daily-guidance",
+            params={"date": "2026-05-21", "language": "ta-en"},
+        )
+    finally:
+        reset_flag("daily_briefing_synth")
     assert off.status_code == 200
     assert off.json()["data"]["briefing"] is None
 

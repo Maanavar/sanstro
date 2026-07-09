@@ -664,7 +664,6 @@ def build_daily_guidance_response(
             action=action_suggestion,  # the goal/track-enriched action, not the raw one
             chandrashtama=chandrashtama,
             sani_cycle_active=saturn_cycle.is_active,
-            best_window_label=best_label,
             seed=f"{maha_lord}:{on_date.isoformat()}",
         ))
         briefing = DailyGuidanceText(ta=synthesized.ta, en=synthesized.en)
@@ -1162,6 +1161,8 @@ def get_activity_timing(
                 alignment=result.combined_alignment,
                 reasonTa=result.combined_ta,
                 reasonEn=result.combined_en,
+                shortReasonTa=result.short_ta,
+                shortReasonEn=result.short_en,
             )
             results.append((rank, day_result))
             if as_of is not None and d == as_of:

@@ -49,9 +49,11 @@ def _defaults() -> dict[str, Any]:
         # daily `reasons` + component scores into ONE prioritized, flowing
         # briefing (verdict lead → 1-2 salient signals → one action) instead of
         # the flat six-row stack. Populates the additive `briefing` field on
-        # daily guidance; nothing else changes. OFF until the Tamil connective
-        # copy has had a native review pass (Track B).
-        "daily_briefing_synth": False,
+        # daily guidance; nothing else changes. Tamil glue native-reviewed and
+        # approved 2026-07-09; enabled together with the DAILY_SCORE_ENGINE_VERSION
+        # bump so cached rows regenerate with the briefing. Frontend falls back to
+        # the six-row `reasons` if `briefing` is ever null.
+        "daily_briefing_synth": True,
     }
 
 

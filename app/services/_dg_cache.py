@@ -15,7 +15,7 @@ from app.schemas.dasha import ResponseMeta
 # Bump when the daily-score engine logic changes (scoring weights, dasha/porutham
 # corrections, transit rules, …) so previously cached rows self-invalidate instead
 # of being served stale. Combined with the chart calculation_version on load.
-DAILY_SCORE_ENGINE_VERSION = "2026-07-01-v4"
+DAILY_SCORE_ENGINE_VERSION = "2026-07-09-v5"
 
 
 def _cache_version(calculation_version: str) -> str:
