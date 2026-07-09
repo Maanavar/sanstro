@@ -11,7 +11,7 @@ const STRINGS = {
   tab_tools:      { ta: "கருவிகள்",     en: "Tools" },
   tab_personal:   { ta: "தனிப்பட்ட",   en: "Personal" },
   tab_plan:       { ta: "திட்டமிடு",   en: "Plan" },
-  tab_family:     { ta: "குடும்பம்",    en: "Family" },
+  tab_family:     { ta: "குடும்பம் & ஜாதகம்",    en: "Family & Charts" },
   tab_calendar:   { ta: "நகர்வு & நிகழ்வு", en: "Transits & Events" },
   tab_setup:      { ta: "அமைவு",        en: "Setup" },
   tab_settings:   { ta: "அமைவுகள்",     en: "Settings" },

@@ -22,7 +22,10 @@ describe("shared score thresholds", () => {
     expect(scoreTonePct(0.44)).toBe("low");
   });
 
-  it("maps mid-tier scores to the warm support color", () => {
-    expect(scoreColor(50)).toBe("var(--color-score-mid, #B85A2C)");
+  it("maps a 50-59 score to the four-band gold (fair) color", () => {
+    expect(scoreColor(50)).toBe("var(--color-score-fair, #C8892E)");
+    expect(scoreColor(72)).toBe("var(--color-score-strong, #3F7A4E)");
+    expect(scoreColor(63)).toBe("var(--color-score-good, #6B9E5E)");
+    expect(scoreColor(41)).toBe("var(--color-score-weak, #C04530)");
   });
 });
