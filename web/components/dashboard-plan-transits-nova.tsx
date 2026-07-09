@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { scoreColor } from "@/lib/format";
 import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
@@ -16,6 +17,7 @@ import type {
   VarshaphalaData,
 } from "@/lib/types";
 
+import { ageAtDate, dashaScore } from "./dashboard-dasha";
 import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 import { NovaProgressBar } from "./dashboard-ui-nova";
 import { VarshaphalaPanel } from "./dashboard-varshaphala-panel";
@@ -160,8 +162,25 @@ export function NovaTransitsView({
 
   const dasha = personalDashaMaha ?? personalDasha;
   const elapsedPct = dasha ? dashaElapsedPct(String(dasha.current.mahadasha.startDate), String(dasha.current.mahadasha.endDate), selectedDate) : 0;
+  const birthDateLocal = personalChart?.birthProfile.birthDateLocal;
+
+  // Cap the timeline at birth + 90 years, matching Classic's shared DashaTimeline
+  // (dashboard-dasha.tsx) — Vimshottari's own cycle runs to 120 years, so without
+  // this cap "upcoming mahadashas" can list periods well past a realistic lifespan.
+  const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
+  const birthMs = birthDateLocal
+    ? new Date(birthDateLocal).getTime()
+    : dasha?.timeline[0]?.startDate
+    ? new Date(String(dasha.timeline[0].startDate)).getTime()
+    : 0;
+  const cutoffMs = birthMs + 90 * MS_PER_YEAR;
+
   const upcomingMaha = dasha
-    ? dasha.timeline.filter((p) => p.level === "maha" && dashaStatus(String(p.startDate), String(p.endDate), selectedDate) !== "past" && p.lord !== dasha.current.mahadasha.lord)
+    ? dasha.timeline.filter((p) =>
+        p.level === "maha"
+        && dashaStatus(String(p.startDate), String(p.endDate), selectedDate) !== "past"
+        && p.lord !== dasha.current.mahadasha.lord
+        && new Date(String(p.startDate)).getTime() < cutoffMs)
     : [];
 
   return (
@@ -376,18 +395,28 @@ export function NovaTransitsView({
             <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "10px", display: "flex", flexDirection: "column", gap: "4px" }}>
               <span style={{ fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("bhukti_word", lang)}</span>
               {personalDashaAntar.map((bhukti) => {
-                const isCurrent = dashaStatus(String(bhukti.startDate), String(bhukti.endDate), selectedDate) === "active";
+                const bhuktiStatus = dashaStatus(String(bhukti.startDate), String(bhukti.endDate), selectedDate);
+                const isCurrent = bhuktiStatus === "active";
+                const bhuktiPast = bhuktiStatus === "past";
+                const bhuktiScore = isCurrent ? Math.round((dashaSupportScore ?? 50) * 0.9) : dashaScore(bhukti.lord);
+                const age = ageAtDate(birthDateLocal, String(bhukti.startDate));
                 return (
                   <div key={`${bhukti.lord}-${bhukti.startDate}`} style={{ display: "flex", alignItems: "center", gap: "8px", padding: isCurrent ? "7px 11px" : "4px 8px", borderRadius: "8px", background: isCurrent ? "var(--color-accent-muted)" : "transparent", border: isCurrent ? "1px solid var(--color-border-strong)" : "1px solid transparent" }}>
                     <span style={{ fontSize: isCurrent ? "13px" : "12px", fontWeight: isCurrent ? 700 : 500, color: isCurrent ? "var(--color-accent-strong)" : "var(--color-text)", minWidth: "80px" }}>
                       {tPlanetLord(bhukti.lord, lang)}
                     </span>
-                    <span style={{ fontSize: "11px", color: "var(--color-faint)", flex: 1 }}>{String(bhukti.startDate)} → {String(bhukti.endDate)}</span>
+                    <span style={{ fontSize: "11px", color: "var(--color-faint)", flex: 1 }}>
+                      {String(bhukti.startDate)} → {String(bhukti.endDate)}
+                      {age !== null && <span style={{ marginLeft: "4px", opacity: 0.6 }}>({age}{lang === "ta" ? "வ" : "yr"})</span>}
+                    </span>
                     {isCurrent && (
                       <span style={{ fontSize: "10px", fontWeight: 700, padding: "1px 8px", borderRadius: "999px", background: "var(--color-accent)", color: "var(--color-on-accent)" }}>
                         {t("status_active", lang)}
                       </span>
                     )}
+                    <span style={{ fontSize: "11px", fontWeight: 700, minWidth: "40px", textAlign: "right", color: isCurrent ? scoreColor(bhuktiScore) : "var(--color-faint)" }}>
+                      {isCurrent || !bhuktiPast ? `${bhuktiScore}/100` : "—"}
+                    </span>
                   </div>
                 );
               })}

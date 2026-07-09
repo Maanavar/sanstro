@@ -72,7 +72,7 @@ export function normalizeGoalType(goalType: string): string {
   return goalType === "financial" ? "money" : goalType;
 }
 
-const WHATIF_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
+export const WHATIF_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
   { value: "job_change", en: "Job change or new role", ta: "வேலை மாற்றம் / புதிய பொறுப்பு" },
   { value: "business_start", en: "Start a new business", ta: "புதிய தொழில் தொடங்குதல்" },
   { value: "marriage", en: "Marriage", ta: "திருமணம்" },
@@ -87,7 +87,7 @@ const WHATIF_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
   { value: "other", en: "General timing check", ta: "பொதுவான நேர சரிபார்ப்பு" },
 ];
 
-const ACTIVITY_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
+export const ACTIVITY_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
   { value: "job_change", en: "Job change or new role", ta: "வேலை மாற்றம் / புதிய பொறுப்பு" },
   { value: "business_start", en: "Start a new business", ta: "புதிய தொழில் தொடங்குதல்" },
   { value: "education", en: "Exam / Course start", ta: "தேர்வு / படிப்பு தொடக்கம்" },
@@ -300,7 +300,7 @@ export function PlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: { lang:
 }
 
 // Map Best Dates activity values → Muhurta picker activity IDs
-const ACTIVITY_TO_MUHURTA: Record<string, string> = {
+export const ACTIVITY_TO_MUHURTA: Record<string, string> = {
   job_change: "JOB_START",
   business_start: "JOB_START",
   education: "EXAM",

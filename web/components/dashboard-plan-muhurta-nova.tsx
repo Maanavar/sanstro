@@ -6,6 +6,7 @@ import { apiFetchJson, toQuery } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ActivityTimingData } from "@/lib/types";
+import { ACTIVITY_OPTIONS, ACTIVITY_TO_MUHURTA } from "./dashboard-plan-tab";
 import { NovaMuhurtaPicker } from "./dashboard-plan-muhurta-picker-nova";
 import { NovaMuhurthamNaal } from "./dashboard-plan-muhurtham-naal-nova";
 import { NovaSelect } from "./nova-select";
@@ -26,32 +27,6 @@ import { NovaSelect } from "./nova-select";
  * Same data/API calls, same activityType→muhurta-activity mapping, same
  * click-to-prefill interaction between Step 1 and Step 2.
  */
-
-const ACTIVITY_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
-  { value: "job_change", en: "Job change or new role", ta: "வேலை மாற்றம் / புதிய பொறுப்பு" },
-  { value: "business_start", en: "Start a new business", ta: "புதிய தொழில் தொடங்குதல்" },
-  { value: "education", en: "Exam / Course start", ta: "தேர்வு / படிப்பு தொடக்கம்" },
-  { value: "property", en: "Property purchase / registration", ta: "சொத்து வாங்கல் / பதிவு" },
-  { value: "money", en: "Investment or major financial decision", ta: "முதலீடு / நிதி முடிவு" },
-  { value: "travel", en: "Travel abroad or long journey", ta: "வெளிநாடு / நீண்ட பயணம்" },
-  { value: "health", en: "Medical procedure or surgery", ta: "மருத்துவ சிகிச்சை / அறுவை" },
-  { value: "spiritual", en: "Grihapravesh or religious event", ta: "புதுமனை புகு விழா / ஆன்மிக நிகழ்வு" },
-  { value: "child", en: "Child birth or naming ceremony", ta: "குழந்தை பிறப்பு / பெயரிடல் விழா" },
-  { value: "other", en: "General auspicious day", ta: "பொதுவான நல்ல நாள்" },
-];
-
-const ACTIVITY_TO_MUHURTA: Record<string, string> = {
-  job_change: "JOB_START",
-  business_start: "JOB_START",
-  education: "EXAM",
-  property: "PURCHASE",
-  money: "INVESTMENT",
-  travel: "TRAVEL",
-  health: "MEDICAL",
-  spiritual: "SPIRITUAL",
-  child: "SPIRITUAL",
-  other: "",
-};
 
 const fieldStyle: React.CSSProperties = {
   borderRadius: "10px",

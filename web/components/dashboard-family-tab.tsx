@@ -163,7 +163,7 @@ export function formatRelLabel(rel: string | undefined | null): string | null {
 
 // Issue #12: give each member card one more genuinely useful, at-a-glance fact —
 // their current age — computed from already-fetched birth data (no new fetch).
-function ageFromBirth(birthDate: string, today: string): number | null {
+export function ageFromBirth(birthDate: string, today: string): number | null {
   const b = new Date(birthDate);
   const t = new Date(today);
   if (Number.isNaN(b.getTime()) || Number.isNaN(t.getTime())) return null;
@@ -439,7 +439,43 @@ function journalAreaLabel(lifeArea: string, lang: Lang): string {
   return key ? t(key, lang) : lifeArea;
 }
 
-function FamilyJournalPanel({
+/* ── Family journal fetch (shared by Classic + Nova family tabs) ──────── */
+export function useFamilyJournal(selectedVaultId: string | null, open: boolean, memberFilter: string) {
+  const [journalData, setJournalData] = useState<FamilyVaultJournalData | null>(null);
+  const [journalSummary, setJournalSummary] = useState<FamilyVaultJournalSummaryData | null>(null);
+  const [journalLoading, setJournalLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedVaultId || !open) return;
+    const controller = new AbortController();
+    const { signal } = controller;
+    setJournalLoading(true);
+    Promise.all([
+      apiFetchJson<ApiEnvelope<FamilyVaultJournalData>>(
+        `/api/v1/family-vaults/${selectedVaultId}/journal${toQuery({
+          familyMemberId: memberFilter === "all" ? undefined : memberFilter,
+          limit: 100,
+        })}`,
+        { signal },
+      ),
+      apiFetchJson<ApiEnvelope<FamilyVaultJournalSummaryData>>(
+        `/api/v1/family-vaults/${selectedVaultId}/journal/summary`, { signal },
+      ),
+    ])
+      .then(([entriesRes, summaryRes]) => {
+        if (signal.aborted) return;
+        setJournalData(entriesRes.data);
+        setJournalSummary(summaryRes.data);
+      })
+      .catch(() => { if (!signal.aborted) { setJournalData(null); setJournalSummary(null); } })
+      .finally(() => { if (!signal.aborted) setJournalLoading(false); });
+    return () => controller.abort();
+  }, [selectedVaultId, open, memberFilter]);
+
+  return { journalData, journalSummary, journalLoading };
+}
+
+export function FamilyJournalPanel({
   lang,
   members,
   journalData,
@@ -536,6 +572,104 @@ function FamilyJournalPanel({
   );
 }
 
+/* ── 7-day family outlook (shared by Classic + Nova family tabs) ───────── */
+export function FamilySevenDayOutlook({
+  lang,
+  selectedDate,
+  familyScore,
+  familyComposite,
+  members,
+}: {
+  lang: Lang;
+  selectedDate: string;
+  familyScore: number;
+  familyComposite: FamilyCompositeTimelineData | null;
+  members: FamilyAggregateMember[];
+}) {
+  const weekDayLabels = (() => {
+    const days: string[] = [];
+    const base = new Date(selectedDate + "T00:00:00");
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
+      days.push(d.toLocaleDateString("en-IN", { weekday: "short" }).slice(0, 3));
+    }
+    return days;
+  })();
+  const weekScores = weekDayLabels.map((_, i) => {
+    const compositeItem = familyComposite?.items[i];
+    if (compositeItem != null) return Math.max(30, Math.min(99, compositeItem.familyScore));
+    // Composite still loading — placeholder based on today's score
+    return Math.max(30, Math.min(99, familyScore + (i === 0 ? 0 : -2)));
+  });
+  /* Per-member 7-day trend, keyed by member so each row stays aligned across days */
+  const memberWeekTrends = members.map((m) => ({
+    familyMemberId: m.familyMemberId,
+    displayName: m.displayName,
+    scores: weekDayLabels.map((_, i) => familyComposite?.items[i]?.members.find((cm) => cm.familyMemberId === m.familyMemberId)?.individualScore ?? null),
+  }));
+
+  return (
+    <>
+      <p className="cd-kicker" style={{ margin: "0 0 var(--space-2_5)" }}>
+        {lang === "ta" ? "7-நாள் கணிப்பு" : "7-DAY OUTLOOK"}
+      </p>
+      {/* Score numbers */}
+      <div style={{ display: "flex", gap: "var(--space-1)", marginBottom: "var(--space-0_75)" }}>
+        {weekScores.map((s, i) => (
+          <span key={i} style={{ flex: 1, textAlign: "center", fontSize: "0.625rem", color: "var(--color-faint)", fontFamily: "var(--font-mono)" }}>{s}</span>
+        ))}
+      </div>
+      {/* Bars */}
+      <div style={{ display: "flex", gap: "var(--space-1)", alignItems: "flex-end", height: "44px" }}>
+        {weekScores.map((s, i) => {
+          const h = Math.max(8, (s / 100) * 40);
+          const c = scoreColor(s);
+          return (
+            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
+              <div style={{ width: "100%", height: `${h}px`, borderRadius: "3px 3px 0 0", background: c }} />
+            </div>
+          );
+        })}
+      </div>
+      {/* Dots + day labels */}
+      <div style={{ display: "flex", gap: "var(--space-1)", marginTop: "var(--space-1_5)" }}>
+        {weekDayLabels.map((l, i) => {
+          const c = scoreColor(weekScores[i]);
+          return (
+            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "3px" }}>
+              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: c, display: "block" }} />
+              <span style={{ fontSize: "0.625rem", color: c, fontWeight: 500 }}>{l}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Per-member 7-day trend */}
+      {memberWeekTrends.length > 0 && (
+        <div style={{ marginTop: "var(--space-3)", paddingTop: "var(--space-3)", borderTop: "1px solid var(--color-border)", display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
+          {memberWeekTrends.map((trend) => (
+            <div key={trend.familyMemberId} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+              <span style={{ minWidth: "84px", maxWidth: "84px", fontSize: "0.75rem", color: "var(--color-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {trend.displayName}
+              </span>
+              <div style={{ display: "flex", gap: "var(--space-1)", flex: 1 }}>
+                {trend.scores.map((s, i) => (
+                  <span key={i} style={{
+                    flex: 1, height: "4px", borderRadius: "2px",
+                    background: s == null ? "var(--color-border)" : scoreColor(s),
+                    opacity: s == null ? 0.4 : 1,
+                  }} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 /* ── Main tab ───────────────────────────────────────────── */
 type FamilySubTab = "members" | "synastry" | "journal";
 
@@ -566,9 +700,7 @@ export function DashboardFamilyTab({
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [familyToday, setFamilyToday] = useState<FamilyVaultTodayData | null>(null);
   const [journalMemberFilter, setJournalMemberFilter] = useState<string>("all");
-  const [journalData, setJournalData] = useState<FamilyVaultJournalData | null>(null);
-  const [journalSummary, setJournalSummary] = useState<FamilyVaultJournalSummaryData | null>(null);
-  const [journalLoading, setJournalLoading] = useState(false);
+  const { journalData, journalSummary, journalLoading } = useFamilyJournal(selectedVaultId, subTab === "journal", journalMemberFilter);
 
   useEffect(() => {
     if (!selectedVaultId) {
@@ -585,33 +717,6 @@ export function DashboardFamilyTab({
       .catch(() => { if (!signal.aborted) setFamilyToday(null); });
     return () => controller.abort();
   }, [selectedVaultId, busy.family]);
-
-  useEffect(() => {
-    if (!selectedVaultId || subTab !== "journal") return;
-    const controller = new AbortController();
-    const { signal } = controller;
-    setJournalLoading(true);
-    Promise.all([
-      apiFetchJson<ApiEnvelope<FamilyVaultJournalData>>(
-        `/api/v1/family-vaults/${selectedVaultId}/journal${toQuery({
-          familyMemberId: journalMemberFilter === "all" ? undefined : journalMemberFilter,
-          limit: 100,
-        })}`,
-        { signal },
-      ),
-      apiFetchJson<ApiEnvelope<FamilyVaultJournalSummaryData>>(
-        `/api/v1/family-vaults/${selectedVaultId}/journal/summary`, { signal },
-      ),
-    ])
-      .then(([entriesRes, summaryRes]) => {
-        if (signal.aborted) return;
-        setJournalData(entriesRes.data);
-        setJournalSummary(summaryRes.data);
-      })
-      .catch(() => { if (!signal.aborted) { setJournalData(null); setJournalSummary(null); } })
-      .finally(() => { if (!signal.aborted) setJournalLoading(false); });
-    return () => controller.abort();
-  }, [selectedVaultId, subTab, journalMemberFilter]);
 
   const members = familyAggregate?.members ?? [];
   const activeMemberId = selectedMemberId ?? members[0]?.familyMemberId ?? null;
@@ -647,30 +752,6 @@ export function DashboardFamilyTab({
   const todayHighCount = todayMembers.filter((m) => m.score >= 65).length;
   const todayMidCount = todayMembers.filter((m) => m.score >= 45 && m.score < 65).length;
   const todayLowCount = todayMembers.filter((m) => m.score < 45).length;
-
-  /* 7-day scores — real family + per-member scores from composite (selectedDate → +6 days) */
-  const weekDayLabels = (() => {
-    const days: string[] = [];
-    const base = new Date(selectedDate + "T00:00:00");
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(base);
-      d.setDate(base.getDate() + i);
-      days.push(d.toLocaleDateString("en-IN", { weekday: "short" }).slice(0, 3));
-    }
-    return days;
-  })();
-  const weekScores = weekDayLabels.map((_, i) => {
-    const compositeItem = familyComposite?.items[i];
-    if (compositeItem != null) return Math.max(30, Math.min(99, compositeItem.familyScore));
-    // Composite still loading — placeholder based on today's score
-    return Math.max(30, Math.min(99, familyScore + (i === 0 ? 0 : -2)));
-  });
-  /* Per-member 7-day trend, keyed by member so each row stays aligned across days */
-  const memberWeekTrends = members.map((m) => ({
-    familyMemberId: m.familyMemberId,
-    displayName: m.displayName,
-    scores: weekDayLabels.map((_, i) => familyComposite?.items[i]?.members.find((cm) => cm.familyMemberId === m.familyMemberId)?.individualScore ?? null),
-  }));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-7, 28px)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
@@ -795,61 +876,7 @@ export function DashboardFamilyTab({
 
         {/* ── 7-day outlook — full width, dashed top border ── */}
         <div style={{ padding: "var(--space-4) var(--space-6) var(--space-5)", borderTop: "1px dashed var(--color-border)" }}>
-          <p className="cd-kicker" style={{ margin: "0 0 var(--space-2_5)" }}>
-            {lang === "ta" ? "7-நாள் கணிப்பு" : "7-DAY OUTLOOK"}
-          </p>
-          {/* Score numbers */}
-          <div style={{ display: "flex", gap: "var(--space-1)", marginBottom: "var(--space-0_75)" }}>
-            {weekScores.map((s, i) => (
-              <span key={i} style={{ flex: 1, textAlign: "center", fontSize: "0.625rem", color: "var(--color-faint)", fontFamily: "var(--font-mono)" }}>{s}</span>
-            ))}
-          </div>
-          {/* Bars */}
-          <div style={{ display: "flex", gap: "var(--space-1)", alignItems: "flex-end", height: "44px" }}>
-            {weekScores.map((s, i) => {
-              const h = Math.max(8, (s / 100) * 40);
-              const c = scoreColor(s);
-              return (
-                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
-                  <div style={{ width: "100%", height: `${h}px`, borderRadius: "3px 3px 0 0", background: c }} />
-                </div>
-              );
-            })}
-          </div>
-          {/* Dots + day labels */}
-          <div style={{ display: "flex", gap: "var(--space-1)", marginTop: "var(--space-1_5)" }}>
-            {weekDayLabels.map((l, i) => {
-              const c = scoreColor(weekScores[i]);
-              return (
-                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "3px" }}>
-                  <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: c, display: "block" }} />
-                  <span style={{ fontSize: "0.625rem", color: c, fontWeight: 500 }}>{l}</span>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Per-member 7-day trend */}
-          {memberWeekTrends.length > 0 && (
-            <div style={{ marginTop: "var(--space-3)", paddingTop: "var(--space-3)", borderTop: "1px solid var(--color-border)", display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
-              {memberWeekTrends.map((trend) => (
-                <div key={trend.familyMemberId} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-                  <span style={{ minWidth: "84px", maxWidth: "84px", fontSize: "0.75rem", color: "var(--color-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {trend.displayName}
-                  </span>
-                  <div style={{ display: "flex", gap: "var(--space-1)", flex: 1 }}>
-                    {trend.scores.map((s, i) => (
-                      <span key={i} style={{
-                        flex: 1, height: "4px", borderRadius: "2px",
-                        background: s == null ? "var(--color-border)" : scoreColor(s),
-                        opacity: s == null ? 0.4 : 1,
-                      }} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <FamilySevenDayOutlook lang={lang} selectedDate={selectedDate} familyScore={familyScore} familyComposite={familyComposite} members={members} />
         </div>
 
         {/* ── Chandrashtama alert ── */}

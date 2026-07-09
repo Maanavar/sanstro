@@ -637,7 +637,12 @@ export function DashboardPlanTabNova({
       )}
 
       {/* ===== Sub-tab: Life Events — reused verbatim, already Nova-safe ===== */}
-      {subTab === "events" && <PlanEventsPanel lang={lang} chartId={chartId} />}
+      {subTab === "events" && (
+        <>
+          <PlanEventsPanel lang={lang} chartId={chartId} />
+          <NovaLifeEventLogCard lang={lang} chartId={chartId || null} />
+        </>
+      )}
       {subTab === "whatif" && (
         <NovaPlanWhatIfPanel
           lang={lang}

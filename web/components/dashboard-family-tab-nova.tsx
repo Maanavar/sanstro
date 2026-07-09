@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 
 import { apiFetchJson } from "@/lib/api";
 import { formatClockLabel, scoreColor } from "@/lib/format";
@@ -22,7 +23,7 @@ import type {
 } from "@/lib/types";
 
 import { formatHeaderDate, getTamilMonthDate } from "./dashboard-calendar-tab";
-import { ScoreRing, formatRelLabel, MemberDetailExpanded } from "./dashboard-family-tab";
+import { ScoreRing, formatRelLabel, MemberDetailExpanded, FamilySevenDayOutlook, FamilyJournalPanel, useFamilyJournal, ageFromBirth } from "./dashboard-family-tab";
 import { DashboardFamilyMemberNova } from "./dashboard-family-member-nova";
 import type { MemberChart } from "@/hooks/useFamilyData";
 import { NovaScoreDial } from "./dashboard-ui-nova";
@@ -52,8 +53,8 @@ function ageBucket(age: number | null | undefined): RelationBucket {
   return "adult";
 }
 
-function memberNeedsCare(member: FamilyAggregateMember, todayItem: FamilyMemberTodayScore | undefined): boolean {
-  if (todayItem?.chandrashtama) return true;
+function memberNeedsCare(member: FamilyAggregateMember, isChandrashtama: boolean): boolean {
+  if (isChandrashtama) return true;
   if (member.individualScore < LOW_SCORE_THRESHOLD) return true;
   return member.activeCycleTags.some((tag) => tag.includes("SANI") || tag.includes("CHANDRASHTAMA"));
 }
@@ -408,6 +409,7 @@ export function DashboardFamilyTabNova({
   ownerMemberChart,
   vaults,
   familyAggregate,
+  familyComposite,
   familyMembers,
   memberCharts,
   relationshipAlerts,
@@ -425,6 +427,9 @@ export function DashboardFamilyTabNova({
   const [relationFilter, setRelationFilter] = useState<RelationFilter>("all");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [synastrySubTab, setSynastrySubTab] = useState(false);
+  const [journalSubTab, setJournalSubTab] = useState(false);
+  const [journalMemberFilter, setJournalMemberFilter] = useState<string>("all");
+  const { journalData, journalSummary, journalLoading } = useFamilyJournal(selectedVaultId, journalSubTab, journalMemberFilter);
 
   useEffect(() => {
     if (!selectedVaultId) {
@@ -452,11 +457,15 @@ export function DashboardFamilyTabNova({
       const fm = familyMembers.find((f) => f.familyMemberId === m.familyMemberId);
       const chart = isOwnerRow ? (ownerMemberChart ?? undefined) : memberCharts.find((mc) => mc.memberId === m.familyMemberId);
       const todayItem = (familyToday?.members ?? []).find((tm) => tm.memberId === m.familyMemberId);
-      const bucket = ageBucket(chart?.summary?.currentAge);
-      const careFlag = memberNeedsCare(m, todayItem);
+      // Age and chandrashtama both sourced from this member's own chart at the currently
+      // navigated selectedDate — same fields MemberDetailExpanded uses below on this same
+      // screen, so the grid badge/filter and the expanded card can never disagree.
+      const birthDateLocal = chart?.chart?.birthProfile?.birthDateLocal ?? null;
+      const bucket = ageBucket(birthDateLocal ? ageFromBirth(birthDateLocal, selectedDate) : null);
+      const careFlag = memberNeedsCare(m, chart?.transit?.isChandrashtama ?? false);
       return { member: m, familyMember: fm, chart, todayItem, bucket, careFlag, isSelf: isOwnerRow };
     });
-  }, [familyAggregate, familyMembers, memberCharts, familyToday, ownerMemberChart]);
+  }, [familyAggregate, familyMembers, memberCharts, familyToday, ownerMemberChart, selectedDate]);
 
   const bucketCounts = useMemo(() => {
     const counts = { elder: 0, adult: 0, child: 0, needsCare: 0 };
@@ -589,11 +598,14 @@ export function DashboardFamilyTabNova({
             style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-text)", background: "transparent", border: "1px solid var(--color-border-strong)", borderRadius: "9px", padding: "8px 14px", cursor: "pointer", fontFamily: "inherit" }}>
             {busy.family ? (lang === "ta" ? "புதுப்பிக்கிறது…" : "Refreshing…") : (lang === "ta" ? "புதுப்பி" : "Refresh")}
           </button>
-          {bondParticipants.length > 1 && (
+          {memberCharts.length > 0 && (
             <button type="button" onClick={() => setSynastrySubTab((v) => !v)} style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-accent-strong)", background: "transparent", border: "1px solid var(--color-border-strong)", borderRadius: "9px", padding: "8px 14px", cursor: "pointer", fontFamily: "inherit" }}>
               ◇ {lang === "ta" ? "பொருத்தம்" : "Compatibility"}
             </button>
           )}
+          <button type="button" onClick={() => setJournalSubTab((v) => !v)} style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-accent-strong)", background: "transparent", border: "1px solid var(--color-border-strong)", borderRadius: "9px", padding: "8px 14px", cursor: "pointer", fontFamily: "inherit" }}>
+            ✎ {lang === "ta" ? "ஜர்னல்" : "Journal"}
+          </button>
           <button type="button" onClick={onOpenSetup} style={{ fontSize: "12px", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", border: "none", borderRadius: "9px", padding: "8px 14px", cursor: "pointer", fontFamily: "inherit" }}>
             + {lang === "ta" ? "உறுப்பினரைச் சேர்" : "Add member"}
           </button>
@@ -705,6 +717,11 @@ export function DashboardFamilyTabNova({
         />
       </div>
 
+      {/* ===== 7-day outlook — shared derivation with Classic, see dashboard-family-tab.tsx ===== */}
+      <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "18px 22px" }}>
+        <FamilySevenDayOutlook lang={lang} selectedDate={selectedDate} familyScore={familyScore} familyComposite={familyComposite} members={members} />
+      </div>
+
       {/* ===== Members grid ===== */}
       {members.length > 0 && (
         <>
@@ -781,6 +798,22 @@ export function DashboardFamilyTabNova({
             memberCharts={memberChartsForSynastry}
             relationshipAlerts={relationshipAlerts}
             alertsLoading={alertsLoading}
+          />
+        </div>
+      )}
+
+      {/* ===== Family journal — reused verbatim from Classic (dashboard-family-tab.tsx);
+          it reads the older --panel-cream token, redirected locally to Nova's surface. ===== */}
+      {journalSubTab && (
+        <div style={{ "--panel-cream": "var(--color-surface-soft)" } as CSSProperties}>
+          <FamilyJournalPanel
+            lang={lang}
+            members={familyMembers}
+            journalData={journalData}
+            journalSummary={journalSummary}
+            loading={journalLoading}
+            memberFilter={journalMemberFilter}
+            onMemberFilterChange={setJournalMemberFilter}
           />
         </div>
       )}

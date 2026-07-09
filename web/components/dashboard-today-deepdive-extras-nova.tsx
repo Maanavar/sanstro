@@ -22,8 +22,9 @@ import type {
 } from "@/lib/types";
 
 import { formatChandrashtamaWindowSummary } from "./dashboard-calendar-tab";
+import { DASHA_COLORS } from "./dashboard-dasha";
 import { GlossaryTerm } from "./glossary-term";
-import { GUIDANCE_REASON_KEYS } from "./dashboard-personal-tab";
+import { ChandrashtamaCard, GUIDANCE_REASON_KEYS } from "./dashboard-personal-tab";
 import {
   ACTIVITY_OPTIONS,
   alignmentTone,
@@ -188,6 +189,22 @@ export function NovaChartContextGuidanceGochar({
                 <Chip tone={personalScoreBand?.tone === "high" ? "success" : personalScoreBand?.tone === "low" ? "warning" : "neutral"}>{personalDailyGuidance.label}</Chip>
               </div>
               <p className="surface__text">{tLang(personalDailyGuidance.text, lang)}</p>
+              {personalDailyGuidance.currentHoraLord && (
+                <div
+                  style={{
+                    marginTop: "6px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  <span style={{ color: "var(--color-faint)" }}>{lang === "ta" ? "தற்போதைய ஹோரா" : "Current hora"}</span>
+                  <strong style={{ color: DASHA_COLORS[personalDailyGuidance.currentHoraLord] ?? "var(--color-accent)" }}>
+                    {tPlanetLord(personalDailyGuidance.currentHoraLord, lang)}
+                  </strong>
+                </div>
+              )}
               {personalDailyGuidance.pratyantarNarrative && (
                 <div style={{ marginTop: "8px", padding: "10px 12px", borderRadius: "8px", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
                   <p style={{ margin: "0 0 3px", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
@@ -243,16 +260,24 @@ export function NovaChartContextGuidanceGochar({
         <Surface title={<GlossaryTerm term="gochar" lang={lang}>{t("surface_gochar", lang)}</GlossaryTerm>}>
           {personalTransit && personalSani && panchangam ? (
             <div className="stack">
-              <div className="surface__metrics">
-                <Metric
-                  label={t("label_chandrashtamam", lang)}
-                  value={personalTransit.isChandrashtama ? t("label_active", lang) : t("label_none", lang)}
-                  hint={personalTransit.isChandrashtama && chandrashtamaWindowsSummary
-                    ? chandrashtamaWindowsSummary
-                    : personalSani.confirmationSentence
-                  }
-                  tone={personalTransit.isChandrashtama ? "low" : "rest"}
+              {personalTransit.isChandrashtama && (
+                <ChandrashtamaCard
+                  lang={lang}
+                  chandrashtamaEnds={personalDailyGuidance?.chandrashtamaEnds ?? null}
+                  descriptionTa={null}
+                  descriptionEn={null}
+                  windowsSummary={chandrashtamaWindowsSummary}
                 />
+              )}
+              <div className="surface__metrics">
+                {!personalTransit.isChandrashtama && (
+                  <Metric
+                    label={t("label_chandrashtamam", lang)}
+                    value={t("label_none", lang)}
+                    hint={personalSani.confirmationSentence}
+                    tone="rest"
+                  />
+                )}
                 {personalSani.moonBasedCycle.isActive && <Metric label={t("label_sani_cycle", lang)} value={personalSani.moonBasedCycle.type ?? ""} hint={personalSani.moonBasedCycle.supportiveLabel ?? ""} tone="low" />}
               </div>
               <div className="surface__textBlock">

@@ -28,7 +28,7 @@ export function dashaStatus(startDate: string, endDate: string, today: string): 
   return "upcoming";
 }
 
-function dashaScore(lord: string): number {
+export function dashaScore(lord: string): number {
   const base: Record<string, number> = {
     JUPITER: 78,
     VENUS: 72,
@@ -43,7 +43,7 @@ function dashaScore(lord: string): number {
   return base[lord] ?? 55;
 }
 
-function ageAtDate(birthDateLocal: string | undefined, targetDate: string): number | null {
+export function ageAtDate(birthDateLocal: string | undefined, targetDate: string): number | null {
   if (!birthDateLocal) return null;
   const birth = new Date(birthDateLocal);
   const target = new Date(targetDate);

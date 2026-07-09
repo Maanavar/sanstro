@@ -6,6 +6,7 @@ import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { t, tLang } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, DecisionBriefData } from "@/lib/types";
+import { SCENARIO_GROUPS } from "./dashboard-decision-panel";
 import { NovaSelect } from "./nova-select";
 
 /**
@@ -31,75 +32,6 @@ import { NovaSelect } from "./nova-select";
  * (`verdictColor`/`strengthColor` in the Classic file) are rebuilt with
  * Nova's own high/mid/low semantic triplet.
  */
-
-const SCENARIO_GROUPS: Array<{ groupEn: string; groupTa: string; options: Array<{ value: string; en: string; ta: string }> }> = [
-  {
-    groupEn: "Career & Work",
-    groupTa: "தொழில் & வேலை",
-    options: [
-      { value: "career", en: "Job change / New role", ta: "வேலை மாற்றம் / புதிய பொறுப்பு" },
-      { value: "career", en: "Promotion / Raise", ta: "பதவி உயர்வு / சம்பள உயர்வு" },
-      { value: "career", en: "Start own business", ta: "சொந்த தொழில் தொடங்குதல்" },
-      { value: "career", en: "Resign / Quit", ta: "வேலை விட்டு வெளியேறுதல்" },
-    ],
-  },
-  {
-    groupEn: "Money & Property",
-    groupTa: "பணம் & சொத்து",
-    options: [
-      { value: "money", en: "Investment decision", ta: "முதலீட்டு முடிவு" },
-      { value: "money", en: "Buy / Sell property", ta: "சொத்து வாங்குதல் / விற்பனை" },
-      { value: "money", en: "Take a loan", ta: "கடன் வாங்குதல்" },
-      { value: "money", en: "Start savings / SIP", ta: "சேமிப்பு / SIP தொடங்குதல்" },
-    ],
-  },
-  {
-    groupEn: "Relationships",
-    groupTa: "உறவு",
-    options: [
-      { value: "relationship", en: "Marriage / Engagement", ta: "திருமணம் / நிச்சயதார்த்தம்" },
-      { value: "relationship", en: "Start a relationship", ta: "புதிய உறவு தொடங்குதல்" },
-      { value: "relationship", en: "Resolve family conflict", ta: "குடும்ப பிரச்சினை தீர்க்குதல்" },
-      { value: "family", en: "Children / Family planning", ta: "குழந்தை / குடும்ப திட்டம்" },
-    ],
-  },
-  {
-    groupEn: "Health & Wellbeing",
-    groupTa: "உடல்நலம்",
-    options: [
-      { value: "health", en: "Medical procedure / Surgery", ta: "மருத்துவ சிகிச்சை / அறுவை சிகிச்சை" },
-      { value: "health", en: "Start new health routine", ta: "புதிய உடல்நல திட்டம் தொடங்குதல்" },
-      { value: "health", en: "Mental health / Therapy", ta: "மன நலம் / சிகிச்சை" },
-    ],
-  },
-  {
-    groupEn: "Education & Learning",
-    groupTa: "கல்வி",
-    options: [
-      { value: "education", en: "Higher education / Abroad study", ta: "உயர் கல்வி / வெளிநாட்டு படிப்பு" },
-      { value: "education", en: "New course / Certification", ta: "புதிய படிப்பு / சான்றிதழ்" },
-      { value: "education", en: "Competitive exam", ta: "போட்டித் தேர்வு" },
-    ],
-  },
-  {
-    groupEn: "Relocation & Travel",
-    groupTa: "இடம் மாற்றம் & பயணம்",
-    options: [
-      { value: "career", en: "Relocate to new city", ta: "புதிய நகரத்திற்கு இடம் பெயர்தல்" },
-      { value: "career", en: "Move abroad / Emigrate", ta: "வெளிநாடு செல்லுதல்" },
-      { value: "spiritual", en: "Pilgrimage / Sacred travel", ta: "யாத்திரை / புண்ணிய பயணம்" },
-    ],
-  },
-  {
-    groupEn: "Spiritual & Personal",
-    groupTa: "ஆன்மீகம் & தனிப்பட்டது",
-    options: [
-      { value: "spiritual", en: "Spiritual initiation / Diksha", ta: "ஆன்மீக தீக்ஷை / துவக்கம்" },
-      { value: "spiritual", en: "Start meditation / Sadhana", ta: "தியானம் / சாதனா தொடங்குதல்" },
-      { value: "career", en: "Major life direction change", ta: "வாழ்க்கை திசை மாற்றம்" },
-    ],
-  },
-];
 
 function novaVerdictColor(verdict: string): string {
   if (verdict === "A" || verdict === "FAVOURABLE") return "var(--color-high)";

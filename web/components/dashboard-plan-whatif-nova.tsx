@@ -4,7 +4,7 @@ import { bandPhrase, bandTone } from "@/lib/reasoning";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { WhatIfData } from "@/lib/types";
-import { verdictKey, strengthKey } from "./dashboard-plan-tab";
+import { verdictKey, strengthKey, WHATIF_OPTIONS } from "./dashboard-plan-tab";
 import { NovaSelect } from "./nova-select";
 
 /**
@@ -37,21 +37,6 @@ function novaVerdictColor(v: string): string {
 function novaStrengthColor(s: string): string {
   return s === "STRONG" ? "var(--color-high)" : s === "WEAK" ? "var(--color-low)" : "var(--color-mid)";
 }
-
-const WHATIF_OPTIONS: Array<{ value: string; en: string; ta: string }> = [
-  { value: "job_change", en: "Job change or new role", ta: "வேலை மாற்றம் / புதிய பொறுப்பு" },
-  { value: "business_start", en: "Start a new business", ta: "புதிய தொழில் தொடங்குதல்" },
-  { value: "marriage", en: "Marriage", ta: "திருமணம்" },
-  { value: "education", en: "Education / Exam / Study", ta: "கல்வி / தேர்வு" },
-  { value: "property", en: "Buy property or land", ta: "சொத்து வாங்குதல்" },
-  { value: "money", en: "Investment or financial move", ta: "முதலீடு / நிதி முடிவு" },
-  { value: "travel_abroad", en: "Travel abroad or relocation", ta: "வெளிநாடு பயணம் / இடமாற்றம்" },
-  { value: "health", en: "Medical procedure or surgery", ta: "மருத்துவ சிகிச்சை / அறுவை" },
-  { value: "spiritual", en: "Spiritual initiation or pilgrimage", ta: "ஆன்மீக தொடக்கம் / புனித பயணம்" },
-  { value: "family_harmony", en: "Resolve family matter", ta: "குடும்ப பிரச்சினை தீர்க்க" },
-  { value: "child_birth", en: "Child birth or naming", ta: "குழந்தை பிறப்பு / பெயரிடல்" },
-  { value: "other", en: "General timing check", ta: "பொதுவான நேர சரிபார்ப்பு" },
-];
 
 const fieldStyle: React.CSSProperties = {
   borderRadius: "10px",
