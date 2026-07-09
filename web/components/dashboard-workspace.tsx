@@ -154,6 +154,11 @@ const RetrospectivePanel = dynamic(
   { loading: LazyPanelFallback },
 );
 
+const RasippalanTool = dynamic<{ hideCta?: boolean }>(
+  () => import("@/app/tools/indraiya-rasipalan/RasippalanTool").then((mod) => mod.RasippalanTool),
+  { loading: LazyPanelFallback },
+);
+
 const DashboardExploreTab = dynamic(
   () => import("./dashboard-explore-tab").then((mod) => mod.DashboardExploreTab),
   { loading: LazyPanelFallback },
@@ -785,6 +790,24 @@ export function DashboardWorkspace() {
   const personalSani = personalMemberChart?.sani ?? personal.sani;
   const personalPeyarchiUpcoming = personalMemberChart?.peyarchiUpcoming ?? personal.peyarchiUpcoming;
 
+  // The owner's row in familyAggregate is reconciled against their own live daily-guidance
+  // score, so the same person can't show two different "today" scores on one screen (this
+  // feeds both the classic household strip and Nova's family-today card).
+  const ownerBirthProfileId = personal.chart?.birthProfile.birthProfileId;
+  const ownerFamilyMemberId = ownerBirthProfileId
+    ? (family.memberCharts.find((mc) => mc.chart.birthProfile.birthProfileId === ownerBirthProfileId)?.memberId ?? null)
+    : null;
+  const familyAggregateForToday = family.familyAggregate
+    ? {
+        ...family.familyAggregate,
+        members: family.familyAggregate.members.map((m) =>
+          ownerFamilyMemberId !== null && m.familyMemberId === ownerFamilyMemberId && personal.dailyGuidance?.score != null
+            ? { ...m, individualScore: personal.dailyGuidance.score }
+            : m
+        ),
+      }
+    : family.familyAggregate;
+
   // Transit-tab specific resolved data (follows transitViewId selector)
   const transitChart = transitMemberChart?.chart ?? personal.chart;
   const transitDailyGuidance = transitMemberChart?.dailyGuidance ?? personal.dailyGuidance;
@@ -1318,8 +1341,8 @@ export function DashboardWorkspace() {
       {/* Tab content */}
       <div className="cd-page site__body">
         {/* Household today strip — classic Today tab only (Nova has its own family pulse card) */}
-        {activeTab === "personal" && uiVariant !== "nova" && family.familyAggregate && family.familyAggregate.members.length > 0 && (() => {
-          const fs = family.familyAggregate.familyScore;
+        {activeTab === "personal" && uiVariant !== "nova" && familyAggregateForToday && familyAggregateForToday.members.length > 0 && (() => {
+          const fs = familyAggregateForToday.familyScore;
           return (
             <div className="cd-household-strip">
               <span className="cd-household-strip__kicker">
@@ -1328,30 +1351,20 @@ export function DashboardWorkspace() {
               <span className={`cd-household-strip__hs-score cd-household-strip__hs-score--${getScoreBand(fs).tone}`}>
                 {fs}
               </span>
-              {(() => {
-                const ownerBpId = personal.chart?.birthProfile.birthProfileId;
-                const ownerMemberId = ownerBpId
-                  ? (family.memberCharts.find((mc) => mc.chart.birthProfile.birthProfileId === ownerBpId)?.memberId ?? null)
-                  : null;
-                return family.familyAggregate.members.map((m) => {
-                  const isOwner = ownerMemberId !== null && m.familyMemberId === ownerMemberId;
-                  const displayScore = isOwner && personal.dailyGuidance?.score != null
-                    ? personal.dailyGuidance.score
-                    : m.individualScore;
-                  const band = getScoreBand(displayScore).tone;
-                  return (
-                    <React.Fragment key={m.familyMemberId}>
-                      <span className="cd-household-strip__sep" aria-hidden="true">·</span>
-                      <span className="cd-household-strip__member">
-                        <span className="cd-household-strip__member-name">{m.displayName}</span>
-                        <span className={`cd-household-strip__member-score cd-household-strip__member-score--${band}`}>
-                          {displayScore}
-                        </span>
+              {familyAggregateForToday.members.map((m) => {
+                const band = getScoreBand(m.individualScore).tone;
+                return (
+                  <React.Fragment key={m.familyMemberId}>
+                    <span className="cd-household-strip__sep" aria-hidden="true">·</span>
+                    <span className="cd-household-strip__member">
+                      <span className="cd-household-strip__member-name">{m.displayName}</span>
+                      <span className={`cd-household-strip__member-score cd-household-strip__member-score--${band}`}>
+                        {m.individualScore}
                       </span>
-                    </React.Fragment>
-                  );
-                });
-              })()}
+                    </span>
+                  </React.Fragment>
+                );
+              })}
               <button type="button" className="cd-household-strip__link" onClick={() => goToTab("family")}>
                 {lang === "ta" ? "குடும்பம் →" : "Family →"}
               </button>
@@ -1415,7 +1428,7 @@ export function DashboardWorkspace() {
             panchangam={personal.panchangam}
             panchangamTimings={personal.panchangamTimings}
             weekAhead={personal.weekAhead}
-            familyAggregate={family.familyAggregate}
+            familyAggregate={familyAggregateForToday}
             lifeAreas={personal.lifeAreas}
             dasha={personalDasha}
             dashaAntar={personalDashaAntar}
@@ -1469,7 +1482,7 @@ export function DashboardWorkspace() {
             peyarchiReport={personal.peyarchiReport}
             lifeAreas={personal.lifeAreas}
             weekAhead={personal.weekAhead}
-            familyAggregate={family.familyAggregate}
+            familyAggregate={familyAggregateForToday}
             onDateChange={setSelectedDate}
             onGoToFamily={() => setActiveTab("family")}
             onGoToJournal={() => setActiveTab("journal")}
@@ -1502,6 +1515,7 @@ export function DashboardWorkspace() {
               specsEn: ["10 poruthams", "Rajju / Vedhai", "D1 charts", "PDF export"],
               specsTa: ["10 பொருத்தங்கள்", "ரஜ்ஜு / வேதை", "D1 கட்டம்", "PDF"],
               disabled: false,
+              kind: "inline" as const,
             },
             {
               id: "chartgen",
@@ -1517,6 +1531,7 @@ export function DashboardWorkspace() {
               specsEn: ["D1 rasi", "D9 navamsa", "Print ready", "Lahiri"],
               specsTa: ["D1 ராசி", "D9 நவாம்சம்", "அச்சிடல்", "லாகிரி"],
               disabled: false,
+              kind: "inline" as const,
             },
             {
               id: "wrapped",
@@ -1532,6 +1547,7 @@ export function DashboardWorkspace() {
               specsEn: ["Year review", "Dasha map", "Transit summary"],
               specsTa: ["ஆண்டு ஆய்வு", "தசை வரைபடம்", "கிரகநகர்வு சுருக்கம்"],
               disabled: needsProfile,
+              kind: "inline" as const,
             },
             {
               id: "retro",
@@ -1547,6 +1563,55 @@ export function DashboardWorkspace() {
               specsEn: ["Event lookup", "Recurrence map", "Dasha match"],
               specsTa: ["நிகழ்வு ஆய்வு", "மீளும் வரைபடம்", "தசை ஒப்பீடு"],
               disabled: needsProfile,
+              kind: "inline" as const,
+            },
+            {
+              id: "rasipalan",
+              icon: "RP",
+              num: "05",
+              tone: "accent",
+              nameEn: "Indraiya Rasipalan",
+              nameTa: "இன்றைய ராசிபலன்",
+              taglineEn: "Today's palan for all 12 rasis",
+              taglineTa: "12 ராசிகளுக்குமான இன்றைய பலன்",
+              descEn: "Today's palan for all 12 rasis — read one for a friend, or share the day's outlook.",
+              descTa: "12 ராசிகளுக்குமான இன்றைய பலன் — நண்பருக்காக படியுங்கள் அல்லது பகிருங்கள்.",
+              specsEn: ["Today's transits", "All 12 rasis"],
+              specsTa: ["இன்றைய கிரகநிலை", "12 ராசிகள்"],
+              disabled: false,
+              kind: "inline" as const,
+            },
+            {
+              id: "muhurta",
+              icon: "MU",
+              num: "06",
+              tone: "sage",
+              nameEn: "Muhurta Finder",
+              nameTa: "முகூர்த்தம்",
+              taglineEn: "Best date and hour, scored against your chart",
+              taglineTa: "உங்கள் ஜாதகத்திற்கேற்ப சிறந்த தேதி/நேரம்",
+              descEn: "Best date and hour for a wedding, gruhapravesam or new venture — scored against your chart.",
+              descTa: "திருமணம், கிரகப்பிரவேசம் அல்லது புதிய முயற்சிக்கான சிறந்த தேதி/நேரம்.",
+              specsEn: ["In Plan tab"],
+              specsTa: ["Plan தாவலில்"],
+              disabled: false,
+              kind: "cross-nav" as const,
+            },
+            {
+              id: "panchangam",
+              icon: "PC",
+              num: "07",
+              tone: "info",
+              nameEn: "Panchangam Planner",
+              nameTa: "பஞ்சாங்கம்",
+              taglineEn: "Day-by-day almanac for any date and place",
+              taglineTa: "எந்த தேதி மற்றும் இடத்திற்கும் அன்றாட பஞ்சாங்கம்",
+              descEn: "Day-by-day almanac for any date and place — nalla neram, rahu kalam, tithi and star windows.",
+              descTa: "நல்ல நேரம், ராகு காலம், திதி, நட்சத்திரம் — அன்றாட பஞ்சாங்கம்.",
+              specsEn: ["In Calendar tab"],
+              specsTa: ["Calendar தாவலில்"],
+              disabled: false,
+              kind: "cross-nav" as const,
             },
           ];
           const selectedTool = TOOL_LIST.find((tool) => tool.id === activeTool);
@@ -1630,7 +1695,10 @@ export function DashboardWorkspace() {
                         key={tool.id}
                         type="button"
                         disabled={tool.disabled}
-                        onClick={() => openTool(tool.id)}
+                        onClick={() => {
+                          if (tool.kind === "cross-nav") { if (tool.id === "muhurta") goToTab("plan"); else goToTab("calendar"); return; }
+                          openTool(tool.id);
+                        }}
                         className={`cd-tools-v3-card cd-tools-v3-card--${tool.tone}${tool.disabled ? " is-disabled" : ""}`}
                       >
                         <span className="cd-tools-v3-card__top">
@@ -1725,6 +1793,7 @@ export function DashboardWorkspace() {
                     {showChartGenerate && <ChartGenerateInlinePanel lang={lang} />}
                     {showWrapped && <DashboardAnnualWrapped chartId={personal.chartId} lang={lang} />}
                     {showRetrospective && personal.chartId && <RetrospectivePanel chartId={personal.chartId} lang={lang} />}
+                    {showRasipalan && <RasippalanTool hideCta />}
                   </div>
                 </div>
               )}
