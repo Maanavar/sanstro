@@ -148,13 +148,17 @@ def detect_signature(
     strongest_planet = _strongest(planet_strength) if planet_strength else None
     _add(strongest_planet, _STRENGTH_POINTS)
 
-    if tally:
-        top = max(tally.values())
-        dominant = _tie_break([p for p, v in tally.items() if v == top])
-    else:
-        # No signal at all (e.g. incomplete test data) — fall back to the
-        # Sun rather than inventing a claim from nothing.
-        dominant = "SUN"
+    if not tally:
+        # No signal at all — every input map was empty. A real persisted
+        # chart always yields an atmakaraka, so this means malformed data
+        # reached us; raise rather than silently fabricating a "Sun chart".
+        raise ValueError(
+            "detect_signature: no signals available (empty planet_longitudes/"
+            "planet_rasis/planet_strength/dasha) — cannot determine a dominant graha"
+        )
+
+    top = max(tally.values())
+    dominant = _tie_break([p for p, v in tally.items() if v == top])
 
     return Signature(
         dominant=dominant,

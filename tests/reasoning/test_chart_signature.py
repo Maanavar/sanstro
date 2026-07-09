@@ -127,11 +127,9 @@ def test_tie_break_follows_documented_dignity_order():
     assert sig.signals.strongest_planet == "MERCURY"
 
 
-def test_no_signals_falls_back_to_sun_not_a_fabricated_claim():
-    sig = detect_signature(planet_longitudes={}, planet_rasis={})
-    assert sig.dominant == "SUN"
-    assert sig.signals.atmakaraka is None
-    assert sig.signals.most_aspected is None
+def test_no_signals_raises_instead_of_fabricating_a_claim():
+    with pytest.raises(ValueError):
+        detect_signature(planet_longitudes={}, planet_rasis={})
 
 
 def test_every_eligible_planet_has_a_motif():

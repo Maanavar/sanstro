@@ -16,6 +16,7 @@ Whole Sign house system assumed throughout (consistent with chart engine).
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID
@@ -66,6 +67,8 @@ from app.services.narrative_engine import (
 )
 from app.services.prediction_log_service import log_prediction
 from app.services.rectification_service import validate_chart_against_events
+
+logger = logging.getLogger(__name__)
 
 # ── Bilingual helper ───────────────────────────────────────────────────────────
 
@@ -1384,18 +1387,24 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             for p in chart_snapshot.data.planets
             if p.graha in {"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU"}
         }
-        signature = detect_signature(
-            planet_longitudes=planet_longitudes,
-            planet_rasis=natal_planet_rasis,
-            planet_strength=natal_planet_scores,
-            current_maha_lord=maha_lord,
-            current_antar_lord=antar_lord,
-        )
-        framing = signature_framing(signature.motif)
-        chart_signature_data = ChartSignatureData(
-            dominant=signature.dominant,
-            framing=_t(framing.ta, framing.en),
-        )
+        try:
+            signature = detect_signature(
+                planet_longitudes=planet_longitudes,
+                planet_rasis=natal_planet_rasis,
+                planet_strength=natal_planet_scores,
+                current_maha_lord=maha_lord,
+                current_antar_lord=antar_lord,
+            )
+        except ValueError:
+            # Malformed/incomplete chart data — skip the optional signature
+            # overlay rather than failing the whole life-areas response.
+            logger.exception("chart signature detection failed for chart %s", chart_id)
+        else:
+            framing = signature_framing(signature.motif)
+            chart_signature_data = ChartSignatureData(
+                dominant=signature.dominant,
+                framing=_t(framing.ta, framing.en),
+            )
 
     areas: list[LifeAreaData] = []
     for area in (
