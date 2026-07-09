@@ -933,22 +933,26 @@ export function MonthlyCalendarView({
                   : /sashti/i.test(specialFestivalNames) ? "sashti" as const
                   : /pradhosam|pradosham/i.test(specialFestivalNames) ? "pradosham" as const
                   : null;
-                const cellBg = isSelected ? monthlyTheme.selected
-                  : highlightType === "muhurtham" ? "var(--cal-h-muhurtham)"
+                // Selected is a ring layered on top of the day's own highlight tint
+                // (Pournami/Amavasai/Muhurtham/etc.), not a replacement for it — matches
+                // dashboard-calendar-monthly-nova.tsx's layering.
+                const cellBg = highlightType === "muhurtham" ? "var(--cal-h-muhurtham)"
                   : highlightType === "pournami" ? "var(--cal-h-pournami)"
                   : highlightType === "amavasai" ? "var(--cal-h-amavasai)"
                   : highlightType === "chathurthi" ? "var(--cal-h-chathurthi)"
                   : highlightType === "sashti" ? "var(--cal-h-sashti)"
                   : highlightType === "pradosham" ? "var(--cal-h-pradosham)"
+                  : isSelected ? monthlyTheme.selected
                   : hasFestival ? monthlyTheme.mutedCard : monthlyTheme.card;
-                const cellBorderColor = isSelected ? monthlyTheme.selectedBorder
-                  : highlightType === "muhurtham" ? "var(--chart-d9-active)"
+                const cellBorderColor = highlightType === "muhurtham" ? "var(--chart-d9-active)"
                   : highlightType === "pournami" ? "var(--cal-b-pournami)"
                   : highlightType === "amavasai" ? "var(--cal-b-amavasai)"
                   : highlightType === "chathurthi" ? "var(--cal-sel-bdr)"
                   : highlightType === "sashti" ? "var(--cal-b-sashti)"
                   : highlightType === "pradosham" ? "var(--cal-b-pradosham)"
+                  : isSelected ? monthlyTheme.selectedBorder
                   : monthlyTheme.line;
+                const selectionRing = isSelected ? `0 0 0 2px ${monthlyTheme.selectedBorder}` : "none";
                 return (
                   <button
                     type="button"
@@ -964,6 +968,7 @@ export function MonthlyCalendarView({
                       position: "relative",
                       border: `1px solid ${cellBorderColor}`,
                       borderRadius: "16px",
+                      boxShadow: selectionRing,
                       background: cellBg,
                       padding: "12px 12px 10px",
                       minHeight: "148px",
@@ -1064,7 +1069,7 @@ export function MonthlyCalendarView({
                           <span aria-hidden="true">⚠</span>{lang === "ta" ? "கரிநாள்" : "Karinaal"}
                         </span>
                       ) : null}
-                      {isToday && !isSelected ? (
+                      {isToday ? (
                         <span style={{ display: "inline-flex", alignSelf: "flex-start", borderRadius: "999px", background: "var(--cal-today-badge)", color: W.terracotta, padding: "2px 8px", fontSize: "0.625rem", fontWeight: 700 }}>
                           {lang === "ta" ? "இன்று" : "Today"}
                         </span>
@@ -1525,6 +1530,12 @@ export function CalendarTab({
   const nakActive = panchangam
     ? activeLimb(panchangam.nakshatra.name, panchangam.nakshatra.endsAt, panchangam.nakshatra.nextName, currentNowMinutes)
     : null;
+  const yogaActive = panchangam
+    ? activeLimb(panchangam.yoga.name, panchangam.yoga.endsAt, panchangam.yoga.nextName, currentNowMinutes)
+    : null;
+  const karanaActive = panchangam
+    ? activeLimb(panchangam.karana.name, panchangam.karana.endsAt, panchangam.karana.nextName, currentNowMinutes)
+    : null;
 
   const tithiPaksha = panchangam
     ? `${panchangam.tithi.paksha === "SHUKLA" ? t("paksha_shukla", lang) : t("paksha_krishna", lang)} ${panchangam.tithi.number}`
@@ -1610,7 +1621,7 @@ export function CalendarTab({
                   {lang === "ta" ? "இன்று — ஒரு பார்வையில்" : "Day At A Glance"}
                 </p>
                 <h2 style={{ margin: "0 0 var(--space-1_5)", fontFamily: "var(--font-display)", fontSize: "clamp(1.25rem, 2.5vw, 1.75rem)", color: W.ink, letterSpacing: "-0.015em", lineHeight: 1.2 }}>
-                  {tTithi(tithiActive?.activeName ?? panchangam.tithi.name, lang)}. {tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang)}. {tYoga(panchangam.yoga.name, lang)}.
+                  {tTithi(tithiActive?.activeName ?? panchangam.tithi.name, lang)}. {tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang)}. {tYoga(yogaActive?.activeName ?? panchangam.yoga.name, lang)}.
                 </h2>
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
                   <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>
@@ -1851,8 +1862,20 @@ export function CalendarTab({
                         ? `${formatClockLabel(panchangam.nakshatra.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
                         : `${t("label_padam", lang)} ${panchangam.nakshatra.pada} · ${formatClockLabel(panchangam.nakshatra.endsAt)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tNakshatra(panchangam.nakshatra.nextName, lang)}`,
                     },
-                    { key: lang === "ta" ? "யோகம்" : "Yoga", value: tYoga(panchangam.yoga.name, lang), hint: `${lang === "ta" ? "யோகம்" : "Yoga"} ${panchangam.yoga.number}` },
-                    { key: lang === "ta" ? "கரணம்" : "Karana", value: tKarana(panchangam.karana.name, lang), hint: "—" },
+                    {
+                      key: lang === "ta" ? "யோகம்" : "Yoga",
+                      value: tYoga(yogaActive?.activeName ?? panchangam.yoga.name, lang),
+                      hint: yogaActive?.rolledOver
+                        ? `${formatClockLabel(panchangam.yoga.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
+                        : `${formatClockLabel(panchangam.yoga.endsAt)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tYoga(panchangam.yoga.nextName, lang)}`,
+                    },
+                    {
+                      key: lang === "ta" ? "கரணம்" : "Karana",
+                      value: tKarana(karanaActive?.activeName ?? panchangam.karana.name, lang),
+                      hint: karanaActive?.rolledOver
+                        ? `${formatClockLabel(panchangam.karana.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
+                        : `${formatClockLabel(panchangam.karana.endsAt)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tKarana(panchangam.karana.nextName, lang)}`,
+                    },
                     { key: lang === "ta" ? "சந்திரன்" : "Moon", value: panchangam.moonPhaseLabel, hint: lang === "ta" ? "சந்திர கலை" : "Moon phase" },
                     { key: lang === "ta" ? "சூலம்" : "Soolam", value: panchangam.soolam.direction, hint: `${lang === "ta" ? "பரிகாரம்" : "Parigaram"}: ${panchangam.soolam.parigaram}` },
                     { key: lang === "ta" ? "லக்னம்" : "Lagnam", value: panchangam.lagnam.rasiName, hint: `${lang === "ta" ? "இருப்பு" : "Remaining"} ${panchangam.lagnam.nazhigai} ${lang === "ta" ? "நாழிகை" : "nazhigai"} ${panchangam.lagnam.vinadi} ${lang === "ta" ? "விநாடி" : "vinadi"} · ${formatClockLabel(panchangam.lagnam.endsAt)} ${t("until_word", lang)}` },

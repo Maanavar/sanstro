@@ -193,7 +193,7 @@ export const HOME = {
   social_t3_quote: s("The panchangam timings match our family priest's calculations. That level of accuracy is rare online.", "பஞ்சாங்க நேரங்கள் எங்கள் குடும்பப் புரோகிதரின் கணக்கீடுகளுடன் பொருந்துகின்றன. இந்த துல்லியம் இணையத்தில் அரிது."),
   social_t3_name: s("Suresh M., Coimbatore", "சுரேஷ் எம்., கோயம்புத்தூர்"),
 
-  card_today:     s("Today's Reading",   "இன்றைய வாசிப்பு"),
+  card_today:     s("Today's Reading · Sample",   "இன்றைய வாசிப்பு · மாதிரி"),
   card_your_day:  s("Your day",          "உங்கள் நாள்"),
   card_best:      s("Best Window",       "சிறந்த நேரம்"),
   card_hold:      s("Hold",              "எச்சரிக்கை நேரம்"),

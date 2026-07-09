@@ -7,7 +7,7 @@ import { t, tLang } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, DecisionBriefData } from "@/lib/types";
 
-const SCENARIO_GROUPS: Array<{ groupEn: string; groupTa: string; options: Array<{ value: string; en: string; ta: string }> }> = [
+export const SCENARIO_GROUPS: Array<{ groupEn: string; groupTa: string; options: Array<{ value: string; en: string; ta: string }> }> = [
   {
     groupEn: "Career & Work",
     groupTa: "தொழில் & வேலை",
@@ -405,6 +405,13 @@ export function DecisionPanel({ lang, chartId }: Props) {
               <p style={{ margin: 0, fontSize: "0.75rem", color: W.inkMid, lineHeight: 1.5 }}>{tLang(result.caution, lang)}</p>
             </div>
           )}
+
+          {/* High-stakes risk framing — money/immigration decisions leaned on
+              astrology carry blame/liability if they "go wrong" (#32). */}
+          <p style={{ margin: 0, fontSize: "0.719rem", color: W.muted, lineHeight: 1.5, display: "flex", gap: "6px" }}>
+            <span aria-hidden="true">⚖</span>
+            <span>{t("safeguard_decision", lang)}</span>
+          </p>
         </div>
       )}
 
