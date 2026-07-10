@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { DOSHAM_DETAILS, YOGAM_DETAILS, TEMPLE_DETAILS, PARIHARAM_DETAILS } from "@/lib/guide-detail-content";
+import { DOSHAM_DETAILS, DRAFT_GUIDE_SLUGS, YOGAM_DETAILS, TEMPLE_DETAILS, PARIHARAM_DETAILS } from "@/lib/guide-detail-content";
 import { CALENDAR_CATEGORY_SLUGS } from "./tamil-calendar/calendar-category-api";
 
 const BASE = "https://vinaadi.com";
@@ -197,7 +197,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.8,
     },
-    ...guideEntries("dosham", Object.keys(DOSHAM_DETAILS)),
+    // Draft, not-yet-reviewed dosham slugs are excluded — see DRAFT_GUIDE_SLUGS.
+    ...guideEntries("dosham", Object.keys(DOSHAM_DETAILS).filter((slug) => !DRAFT_GUIDE_SLUGS.has(slug))),
     /* ── Yogam pages ── */
     {
       url: `${BASE}/yogam`,

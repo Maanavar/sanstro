@@ -8,10 +8,11 @@ import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
 import type { ChartCalculateResponseData, ChartSummaryData, DailyGuidanceData, NakshatraCardData } from "@/lib/types";
 import type { MemberChart } from "@/hooks/useFamilyData";
 
-import { displayName, strengthBand } from "./dashboard-yoga-dosham-panel";
-import { DashboardExploreNakshatramNova } from "./dashboard-explore-nakshatram-nova";
-import { DashboardExploreDoshamNova } from "./dashboard-explore-dosham-nova";
-import { DashboardExploreGuideNova } from "./dashboard-explore-guide-nova";
+import { displayName, getWhat, strengthBand } from "./dashboard-yoga-dosham-panel";
+import { DashboardExploreNakshatramNova, DashboardExploreNakshatramListNova } from "./dashboard-explore-nakshatram-nova";
+import { DashboardExploreDoshamNova, DashboardExploreDoshamListNova } from "./dashboard-explore-dosham-nova";
+import { DashboardExploreYogamNova, DashboardExploreYogamListNova } from "./dashboard-explore-yogam-nova";
+import { DashboardExploreGuideNova, DashboardExploreGuideListNova } from "./dashboard-explore-guide-nova";
 import { DashboardExploreLearnNova } from "./dashboard-explore-learn-nova";
 
 /**
@@ -36,6 +37,29 @@ import { DashboardExploreLearnNova } from "./dashboard-explore-learn-nova";
  */
 
 type Tab = "onboarding" | "personal" | "tools" | "transits" | "plan" | "life-areas" | "family" | "calendar" | "journal" | "settings" | "qa" | "explore";
+
+/**
+ * Explore's in-tab sub-screen state — hub tile click used to jump straight
+ * into ONE item's detail screen (own star, own active dosham, or a single
+ * hardcoded slug) with no index step. Now every kind has an explicit "list"
+ * screen between the hub and the detail screen, so back-navigation reads as
+ * hub -> list -> detail -> list -> hub regardless of how detail was entered
+ * (a hub tile always lands on "list" first; the "Start from your chart"
+ * shortcut cards below still jump straight to "detail" for the one item they
+ * name, but "back" from there still returns to "list" — not all the way to
+ * the hub — matching the same breadcrumb depth as browsing in).
+ */
+type GuideLibraryKind = "pariharam" | "temple";
+
+type ExploreSubview =
+  | { kind: "nakshatram"; screen: "list" }
+  | { kind: "nakshatram"; screen: "detail"; number: number }
+  | { kind: "dosham"; screen: "list" }
+  | { kind: "dosham"; screen: "detail"; index: number }
+  | { kind: "yogam"; screen: "list" }
+  | { kind: "yogam"; screen: "detail"; index: number }
+  | { kind: GuideLibraryKind; screen: "list" }
+  | { kind: GuideLibraryKind; screen: "detail"; slug: string };
 
 function NovaKicker({ children, color = "var(--color-accent)" }: { children: React.ReactNode; color?: string }) {
   return (
@@ -224,56 +248,111 @@ export function DashboardExploreTabNova({
   onOpenAskVinaadi,
 }: DashboardExploreTabNovaProps) {
   const [query, setQuery] = useState("");
-  const [nakshatramOpen, setNakshatramOpen] = useState(false);
-  const [doshamOpen, setDoshamOpen] = useState(false);
-  const [guideKind, setGuideKind] = useState<"yogam" | "pariharam" | "temple" | null>(null);
+  const [subview, setSubview] = useState<ExploreSubview | null>(null);
   const [learnSlug, setLearnSlug] = useState<string | null>(null);
   const astroText = (value: string) => (lang === "en" ? tamilizeAstroEnglish(value) : value);
 
   const doshams = personalChart?.doshams ?? [];
   const activeDosham = doshams.find((d) => d.isPresent && !d.isCancelled) ?? null;
-  const hasChartStarters = !!(personalChartSummary?.janmaNakshatra && nakshatraCard) || !!activeDosham;
+  const yogas = personalChart?.yogas ?? [];
+  const activeYoga = yogas.find((y) => y.isPresent && y.strength === "STRONG") ?? yogas.find((y) => y.isPresent) ?? null;
+  const hasChartStarters = !!(personalChartSummary?.janmaNakshatra && nakshatraCard) || !!activeDosham || !!activeYoga;
 
   const q = query.trim().toLowerCase();
   const filteredLibrary = q ? LIBRARY_ITEMS.filter((i) => matchesQuery(q, i.titleEn, i.descEn, i.titleTa, i.descTa)) : LIBRARY_ITEMS;
   const filteredLearn = q ? LEARN_ARTICLES.filter((a) => matchesQuery(q, a.titleEn, a.kickerEn, a.titleTa)) : LEARN_ARTICLES;
   const noMatches = q.length > 0 && filteredLibrary.length === 0 && filteredLearn.length === 0;
 
-  if (nakshatramOpen && nakshatraCard) {
+  if (subview?.kind === "nakshatram" && nakshatraCard) {
+    if (subview.screen === "list") {
+      return (
+        <DashboardExploreNakshatramListNova
+          lang={lang}
+          ownNumber={nakshatraCard.number}
+          onSelect={(number) => setSubview({ kind: "nakshatram", screen: "detail", number })}
+          onBack={() => setSubview(null)}
+        />
+      );
+    }
     return (
       <DashboardExploreNakshatramNova
         lang={lang}
-        initialNumber={nakshatraCard.number}
+        initialNumber={subview.number}
         ownNumber={nakshatraCard.number}
         ownPada={personalChartSummary?.janmaPada ?? null}
         personalDailyGuidance={personalDailyGuidance}
         memberCharts={memberCharts}
-        onBack={() => setNakshatramOpen(false)}
+        onBack={() => setSubview({ kind: "nakshatram", screen: "list" })}
         onOpenAskVinaadi={onOpenAskVinaadi}
       />
     );
   }
 
-  if (doshamOpen && doshams.length > 0) {
+  if (subview?.kind === "dosham" && doshams.length > 0) {
+    if (subview.screen === "list") {
+      return (
+        <DashboardExploreDoshamListNova
+          lang={lang}
+          doshams={doshams}
+          onSelect={(index) => setSubview({ kind: "dosham", screen: "detail", index })}
+          onBack={() => setSubview(null)}
+        />
+      );
+    }
     return (
       <DashboardExploreDoshamNova
         lang={lang}
         doshams={doshams}
-        initialIndex={activeDosham ? doshams.indexOf(activeDosham) : 0}
+        initialIndex={subview.index}
         memberCharts={memberCharts}
-        onBack={() => setDoshamOpen(false)}
+        onBack={() => setSubview({ kind: "dosham", screen: "list" })}
         onOpenAskVinaadi={onOpenAskVinaadi}
         onNavigateToday={() => onNavigate("personal")}
       />
     );
   }
 
-  if (guideKind) {
+  if (subview?.kind === "yogam" && yogas.length > 0) {
+    if (subview.screen === "list") {
+      return (
+        <DashboardExploreYogamListNova
+          lang={lang}
+          yogas={yogas}
+          onSelect={(index) => setSubview({ kind: "yogam", screen: "detail", index })}
+          onBack={() => setSubview(null)}
+        />
+      );
+    }
+    return (
+      <DashboardExploreYogamNova
+        lang={lang}
+        yogas={yogas}
+        initialIndex={subview.index}
+        memberCharts={memberCharts}
+        onBack={() => setSubview({ kind: "yogam", screen: "list" })}
+        onOpenAskVinaadi={onOpenAskVinaadi}
+        onNavigateToday={() => onNavigate("personal")}
+      />
+    );
+  }
+
+  if (subview?.kind === "pariharam" || subview?.kind === "temple") {
+    if (subview.screen === "list") {
+      return (
+        <DashboardExploreGuideListNova
+          lang={lang}
+          kind={subview.kind}
+          onSelect={(slug) => setSubview({ kind: subview.kind, screen: "detail", slug })}
+          onBack={() => setSubview(null)}
+        />
+      );
+    }
     return (
       <DashboardExploreGuideNova
         lang={lang}
-        kind={guideKind}
-        onBack={() => setGuideKind(null)}
+        kind={subview.kind}
+        initialSlug={subview.slug}
+        onBack={() => setSubview({ kind: subview.kind, screen: "list" })}
         onOpenAskVinaadi={onOpenAskVinaadi}
       />
     );
@@ -354,7 +433,7 @@ export function DashboardExploreTabNova({
             {personalChartSummary?.janmaNakshatra && nakshatraCard && (
               <button
                 type="button"
-                onClick={() => setNakshatramOpen(true)}
+                onClick={() => setSubview({ kind: "nakshatram", screen: "detail", number: nakshatraCard.number })}
                 style={{ ...cardStyle, background: "linear-gradient(120deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -388,7 +467,7 @@ export function DashboardExploreTabNova({
             {activeDosham && (
               <button
                 type="button"
-                onClick={() => setDoshamOpen(true)}
+                onClick={() => setSubview({ kind: "dosham", screen: "detail", index: doshams.indexOf(activeDosham) })}
                 style={{ ...cardStyle, border: "1px solid var(--color-low-border)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -404,6 +483,31 @@ export function DashboardExploreTabNova({
                 </div>
                 <p style={{ fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-muted)", margin: 0 }}>
                   {lang === "ta" ? activeDosham.descriptionTa : astroText(activeDosham.descriptionEn)}
+                </p>
+                <span style={{ fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, marginTop: "auto" }}>
+                  {lang === "ta" ? "முழு சுயவிவரப் பக்கத்தைக் காண் →" : "Read the full profile →"}
+                </span>
+              </button>
+            )}
+            {activeYoga && (
+              <button
+                type="button"
+                onClick={() => setSubview({ kind: "yogam", screen: "detail", index: yogas.indexOf(activeYoga) })}
+                style={{ ...cardStyle, background: "linear-gradient(120deg, var(--color-high-bg), transparent)", border: "1px solid var(--color-high-border)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: "10.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-high)", fontWeight: 700 }}>
+                    {lang === "ta" ? "உங்கள் ஜாதகத்தில் உள்ளது" : "Present in your chart"}
+                  </span>
+                  <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-high)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", borderRadius: "5px", padding: "2px 8px" }}>
+                    {strengthBand(activeYoga.strength, true, lang)}
+                  </span>
+                </div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: "24px", fontWeight: 600 }}>
+                  {displayName(activeYoga.name, lang)}
+                </div>
+                <p style={{ fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-muted)", margin: 0 }}>
+                  {astroText(getWhat(activeYoga.name, true, lang, { ta: activeYoga.descriptionTa, en: activeYoga.descriptionEn }))}
                 </p>
                 <span style={{ fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, marginTop: "auto" }}>
                   {lang === "ta" ? "முழு சுயவிவரப் பக்கத்தைக் காண் →" : "Read the full profile →"}
@@ -426,7 +530,8 @@ export function DashboardExploreTabNova({
               const canOpenDetail =
                 (item.openDetail === "nakshatram" && !!nakshatraCard) ||
                 (item.openDetail === "dosham" && doshams.length > 0) ||
-                item.openDetail === "yogam" || item.openDetail === "pariharam" || item.openDetail === "temple";
+                (item.openDetail === "yogam" && yogas.length > 0) ||
+                item.openDetail === "pariharam" || item.openDetail === "temple";
               // Natchathiram/Dosham are chart-relative — before the personal
               // chart has loaded there's nothing to open yet. That used to
               // fall back to an external marketing link; now it's just a
@@ -469,9 +574,10 @@ export function DashboardExploreTabNova({
                     key={item.key}
                     type="button"
                     onClick={() => {
-                      if (item.openDetail === "nakshatram") setNakshatramOpen(true);
-                      else if (item.openDetail === "dosham") setDoshamOpen(true);
-                      else setGuideKind(item.openDetail as "yogam" | "pariharam" | "temple");
+                      if (item.openDetail === "nakshatram") setSubview({ kind: "nakshatram", screen: "list" });
+                      else if (item.openDetail === "dosham") setSubview({ kind: "dosham", screen: "list" });
+                      else if (item.openDetail === "yogam") setSubview({ kind: "yogam", screen: "list" });
+                      else setSubview({ kind: item.openDetail as GuideLibraryKind, screen: "list" });
                     }}
                     style={tileStyle}
                   >

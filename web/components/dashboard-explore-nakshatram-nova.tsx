@@ -1,18 +1,75 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { apiFetchJson } from "@/lib/api";
 import { STALE } from "@/lib/queryClient";
 import { tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
+import { tamilizeAstroEnglish, normalizeTamilAstroText } from "@/lib/tamil-astro";
 import type { DailyGuidanceData, NakshatraCardData } from "@/lib/types";
 import type { MemberChart } from "@/hooks/useFamilyData";
+import { NATCHATHIRAM_LIST, NATCHATHIRAM_MAP, type NatchathiramEntry } from "@/lib/natchathiram-data";
+import { NATCHATHIRAM_EN, type NatchathiramEnSections } from "@/lib/natchathiram-data-en";
+import { CollapsibleSection } from "./collapsible-section";
 
 import { moonRasiFromNakshatra, rasiName } from "./dashboard-calendar-tab";
 import { NovaAskEntryChip, NovaAttributeBand, NovaDetailBreadcrumb, NovaDetailHero, NovaKicker, novaDetailCardStyle } from "./dashboard-explore-detail-nova";
+
+/**
+ * The signed-in Nakshatram screen used to show only the thin backend card
+ * (2-sentence profile + 3 strengths + 2 cautions, from
+ * app/services/nakshatra_content.py) — far less than the 7-section, ~90-line
+ * marketing article already live for every star at /natchathiram/[slug]
+ * (web/lib/natchathiram-data.ts + natchathiram-data-en.ts). Signed-in users
+ * looking at their OWN birth star were getting less depth than an anonymous
+ * visitor. Below reuses that same marketing content set (no new astrology
+ * claims — just surfacing what already exists) as a collapsible "full guide"
+ * beneath the existing personalised cards. FAQ is intentionally omitted here:
+ * the marketing FAQ entries are Tamil-only with no English translation yet,
+ * and showing untranslated Tamil under the English UI would read as broken.
+ */
+const SECTION_ORDER: { key: keyof NatchathiramEnSections; taLabel: string; enLabel: string }[] = [
+  { key: "personality", taLabel: "குண நலன்கள் — விரிவாக", enLabel: "Personality — in depth" },
+  { key: "career", taLabel: "தொழில் மற்றும் திறன்கள்", enLabel: "Career & skills" },
+  { key: "modern", taLabel: "இன்றைய காலத்தில்", enLabel: "In today's world" },
+  { key: "family", taLabel: "குடும்பம் மற்றும் உறவுகள்", enLabel: "Family & relationships" },
+  { key: "dasha", taLabel: "தசை பலன்கள்", enLabel: "Dasha journey" },
+  { key: "spiritual", taLabel: "ஆன்மீகம் மற்றும் வழிபாடு", enLabel: "Spiritual path" },
+  { key: "summary", taLabel: "முக்கியமான வழிகாட்டுதல்", enLabel: "Key takeaways" },
+];
+
+function NakshatraFullGuide({ slug, lang }: { slug: string; lang: Lang }) {
+  const richEntry: NatchathiramEntry | undefined = NATCHATHIRAM_MAP[slug];
+  if (!richEntry) return null;
+  const entry: NatchathiramEntry = richEntry;
+  const enSections = NATCHATHIRAM_EN[slug];
+
+  function sectionParas(key: keyof NatchathiramEnSections): string[] {
+    if (lang === "en" && enSections?.[key]?.length) return enSections[key].map(tamilizeAstroEnglish);
+    return entry.sections[key].paras.map(normalizeTamilAstroText);
+  }
+
+  return (
+    <div style={cardStyle}>
+      <NovaKicker>{lang === "ta" ? "முழுமையான நட்சத்திர வழிகாட்டி" : "Full nakshatra guide"}</NovaKicker>
+      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+        {SECTION_ORDER.map((section, i) => (
+          <CollapsibleSection key={section.key} title={lang === "ta" ? section.taLabel : section.enLabel} defaultOpen={i === 0}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {sectionParas(section.key).map((p, j) => (
+                <p key={j} style={{ margin: 0, fontFamily: "var(--font-prose, var(--font-body))", fontSize: "13px", lineHeight: 1.7, color: "var(--color-text)" }}>
+                  {p}
+                </p>
+              ))}
+            </div>
+          </CollapsibleSection>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /**
  * Nova personalised Nakshatram profile screen — Phase 7 of the dashboard
@@ -59,6 +116,84 @@ function wrapNakshatraNumber(n: number): number {
 
 const cardStyle = novaDetailCardStyle;
 
+/**
+ * List-first index for the Nakshatram library — Explore hub's "Natchathiram"
+ * tile used to jump straight into ONE star's detail screen (the user's own,
+ * or number 1 with no chart loaded) with no way to scan all 27 first except
+ * the detail screen's prev/next arrows. This renders the full 27-star grid
+ * from `NATCHATHIRAM_LIST` (name only — no per-star fetch needed) so a user
+ * can browse before committing to one; picking a tile hands off to the
+ * existing detail screen via `onSelect`. The user's own star is highlighted
+ * and auto-scrolled into view on mount, but still requires a click like any
+ * other tile — no auto-opening its detail.
+ */
+export function DashboardExploreNakshatramListNova({
+  lang,
+  ownNumber,
+  onSelect,
+  onBack,
+}: {
+  lang: Lang;
+  ownNumber: number | null;
+  onSelect: (number: number) => void;
+  onBack: () => void;
+}) {
+  const ownRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    ownRef.current?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+  }, []);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "18px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+      <NovaDetailBreadcrumb
+        onBack={onBack}
+        backLabel={lang === "ta" ? "ஆராய்வு" : "Explore"}
+        hubLabel={lang === "ta" ? "நட்சத்திரம்" : "Natchathiram"}
+        currentLabel={lang === "ta" ? "அனைத்து 27 நட்சத்திரங்களும்" : "All 27 stars"}
+      />
+      <div className="nova-grid-3">
+        {NATCHATHIRAM_LIST.map((n) => {
+          const isOwn = ownNumber === n.number;
+          return (
+            <button
+              key={n.number}
+              ref={isOwn ? ownRef : undefined}
+              type="button"
+              onClick={() => onSelect(n.number)}
+              style={{
+                ...cardStyle,
+                gap: "4px",
+                cursor: "pointer",
+                textAlign: "left",
+                fontFamily: "inherit",
+                width: "100%",
+                border: isOwn ? "1px solid var(--color-border-strong)" : "1px solid var(--color-border)",
+                background: isOwn ? "linear-gradient(120deg, var(--color-accent-muted), transparent)" : "var(--color-surface)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: "10.5px", color: "var(--color-faint)" }}>{n.number}</span>
+                {isOwn && (
+                  <span style={{ fontSize: "10px", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", borderRadius: "5px", padding: "2px 8px" }}>
+                    {lang === "ta" ? "நீங்கள்" : "YOU"}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "17px", fontWeight: 600, color: "var(--color-text-strong)" }}>
+                {lang === "ta" ? n.name_ta : n.name_en}
+              </div>
+              {lang !== "ta" && (
+                <span style={{ fontFamily: "'Noto Sans Tamil', sans-serif", fontSize: "12px", color: "var(--color-muted)" }}>{n.name_ta}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 interface DashboardExploreNakshatramNovaProps {
   lang: Lang;
   initialNumber: number;
@@ -101,6 +236,7 @@ export function DashboardExploreNakshatramNova({
 
   const rasiNum = moonRasiFromNakshatra(card.nameEn, 1);
   const rasiLabel = rasiNum ? rasiName(rasiNum, lang) : "";
+  const slug = NATCHATHIRAM_LIST.find((n) => n.number === card.number)?.slug ?? "";
 
   const membersOnStar = memberCharts.filter((mc) => mc.nakshatraCard?.number === viewedNumber);
   const upcomingDashaNotes = memberCharts
@@ -225,6 +361,8 @@ export function DashboardExploreNakshatramNova({
               </tbody>
             </table>
           </div>
+
+          <NakshatraFullGuide slug={slug} lang={lang} />
         </div>
 
         {/* RIGHT rail */}

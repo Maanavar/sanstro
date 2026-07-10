@@ -5,6 +5,8 @@ import { useState } from "react";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ChartYogaInsight, ChartDoshamInsight } from "@/lib/types";
+import { getDoshamGuideForEngineName, getYogaGuideForEngineName, type BiText } from "@/lib/guide-detail-content";
+import { CollapsibleSection } from "./collapsible-section";
 import {
   displayName,
   markerLabel,
@@ -14,6 +16,7 @@ import {
   doshamSeverityScore,
   getDoshamPowerContext,
   getYogaPowerContext,
+  resolveYogaKey,
   YOGA_OUTCOMES,
   YOGA_HOW_TO,
   YOGA_REMEDIES,
@@ -50,6 +53,68 @@ function NovaChevron({ open }: { open: boolean }) {
   );
 }
 
+/**
+ * Yogam sibling of `DoshamFullGuideInline` below — nests the same
+ * marketing-grade guide content (see that component's comment) behind its
+ * own collapsed toggle inside NovaYogaCard's open panel. Renders nothing
+ * when no guide exists for this yoga (all yoga types except the 5 in
+ * YOGA_ENGINE_NAME_TO_GUIDE_SLUG today).
+ */
+function YogaFullGuideInline({ engineName, lang }: { engineName: string; lang: Lang }) {
+  const content = getYogaGuideForEngineName(engineName);
+  if (!content) return null;
+  const text = (v: BiText) => (lang === "ta" ? v.ta : v.en);
+
+  return (
+    <CollapsibleSection title={lang === "ta" ? "முழுமையான யோக வழிகாட்டி" : "Full yogam guide"}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        {content.sections.map((section, i) => (
+          <div key={i}>
+            <p style={{ margin: "0 0 4px", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+              {text(section.heading)}
+            </p>
+            {section.body.map((p, j) => (
+              <p key={j} style={{ margin: j > 0 ? "6px 0 0" : 0, fontSize: "13px", color: "var(--color-text)", lineHeight: 1.55 }}>{text(p)}</p>
+            ))}
+          </div>
+        ))}
+
+        {content.bringCards && content.bringCards.length > 0 && (
+          <div>
+            <p style={{ margin: "0 0 4px", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+              {lang === "ta" ? "எதை கொண்டுவரலாம்" : "What it can bring"}
+            </p>
+            {content.bringCards.map((cat, i) => (
+              <div key={i} style={{ marginTop: i > 0 ? "8px" : 0 }}>
+                <p style={{ margin: "0 0 2px", fontSize: "12px", fontWeight: 700, color: "var(--color-accent-strong)" }}>{text(cat.heading)}</p>
+                <ul style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: "3px" }}>
+                  {cat.items.map((item, j) => (
+                    <li key={j} style={{ fontSize: "12px", color: "var(--color-muted)", lineHeight: 1.45 }}>{text(item)}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {content.faq && content.faq.length > 0 && (
+          <div>
+            <p style={{ margin: "0 0 4px", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+              {lang === "ta" ? "அடிக்கடி கேட்கப்படும் கேள்விகள்" : "Frequently asked questions"}
+            </p>
+            {content.faq.map((item, i) => (
+              <div key={i} style={{ marginTop: i > 0 ? "8px" : 0 }}>
+                <p style={{ margin: "0 0 2px", fontSize: "12.5px", fontWeight: 700, color: "var(--color-text-strong)" }}>{text(item.q)}</p>
+                <p style={{ margin: 0, fontSize: "12px", color: "var(--color-muted)", lineHeight: 1.5 }}>{text(item.a)}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </CollapsibleSection>
+  );
+}
+
 function NovaYogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
   const [open, setOpen] = useState(false);
   const color = yoga.isPresent
@@ -72,10 +137,9 @@ function NovaYogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
     : "var(--color-border)"
     : "var(--color-border)";
 
-  const key = yoga.name.toUpperCase().replace("GAJA_KESARI", "GAJA_KESARI_YOGA");
-  const outcomes = YOGA_OUTCOMES[key];
-  const howTo = YOGA_HOW_TO[key];
-  const remedies = YOGA_REMEDIES[key];
+  const outcomes = resolveYogaKey(YOGA_OUTCOMES, yoga.name);
+  const howTo = resolveYogaKey(YOGA_HOW_TO, yoga.name);
+  const remedies = resolveYogaKey(YOGA_REMEDIES, yoga.name);
 
   return (
     <div style={{ borderRadius: "12px", border: `1px solid ${cardBorder}`, background: "var(--color-surface)", overflow: "hidden", fontFamily: "var(--font-body)" }}>
@@ -200,9 +264,77 @@ function NovaYogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
               <p style={{ margin: 0, fontSize: "13px", color: "var(--color-text-strong)", lineHeight: 1.55 }}>{powerText}</p>
             </div>
           )}
+
+          <YogaFullGuideInline engineName={yoga.name} lang={lang} />
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * The quick-status accordion here only ever carried 1-2 sentence engine
+ * blurbs (DOSHAM_OUTCOMES/DOSHAM_HOW_TO/etc.) — much thinner than the
+ * marketing-grade guide already live for some dosham types (see
+ * dashboard-explore-dosham-nova.tsx's DoshamFullGuide for the fuller
+ * write-up). Rather than duplicate that much text inside this already-dense
+ * accordion row, this nests it behind its own collapsed toggle so a curious
+ * user can go deeper without the common "just checking my status" case
+ * having to scroll past it. Renders nothing when no guide exists for this
+ * dosham (Rahu-Ketu, Badhaka, Marana Karaka Sthana today).
+ */
+function DoshamFullGuideInline({ engineName, lang }: { engineName: string; lang: Lang }) {
+  const content = getDoshamGuideForEngineName(engineName);
+  if (!content) return null;
+  const text = (v: BiText) => (lang === "ta" ? v.ta : v.en);
+
+  return (
+    <CollapsibleSection title={lang === "ta" ? "முழுமையான தோஷ வழிகாட்டி" : "Full dosham guide"}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        {content.sections.map((section, i) => (
+          <div key={i}>
+            <p style={{ margin: "0 0 4px", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+              {text(section.heading)}
+            </p>
+            {section.body.map((p, j) => (
+              <p key={j} style={{ margin: j > 0 ? "6px 0 0" : 0, fontSize: "13px", color: "var(--color-text)", lineHeight: 1.55 }}>{text(p)}</p>
+            ))}
+          </div>
+        ))}
+
+        {content.bringCards && content.bringCards.length > 0 && (
+          <div>
+            <p style={{ margin: "0 0 4px", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+              {lang === "ta" ? "எதை கொண்டுவரலாம்" : "What it can bring"}
+            </p>
+            {content.bringCards.map((cat, i) => (
+              <div key={i} style={{ marginTop: i > 0 ? "8px" : 0 }}>
+                <p style={{ margin: "0 0 2px", fontSize: "12px", fontWeight: 700, color: "var(--color-accent-strong)" }}>{text(cat.heading)}</p>
+                <ul style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: "3px" }}>
+                  {cat.items.map((item, j) => (
+                    <li key={j} style={{ fontSize: "12px", color: "var(--color-muted)", lineHeight: 1.45 }}>{text(item)}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {content.faq && content.faq.length > 0 && (
+          <div>
+            <p style={{ margin: "0 0 4px", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+              {lang === "ta" ? "அடிக்கடி கேட்கப்படும் கேள்விகள்" : "Frequently asked questions"}
+            </p>
+            {content.faq.map((item, i) => (
+              <div key={i} style={{ marginTop: i > 0 ? "8px" : 0 }}>
+                <p style={{ margin: "0 0 2px", fontSize: "12.5px", fontWeight: 700, color: "var(--color-text-strong)" }}>{text(item.q)}</p>
+                <p style={{ margin: 0, fontSize: "12px", color: "var(--color-muted)", lineHeight: 1.5 }}>{text(item.a)}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </CollapsibleSection>
   );
 }
 
@@ -362,6 +494,8 @@ function NovaDoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: La
             </p>
             <p style={{ margin: 0, fontSize: "13px", color: "var(--color-text-strong)", lineHeight: 1.55 }}>{powerText}</p>
           </div>
+
+          <DoshamFullGuideInline engineName={dosham.name} lang={lang} />
         </div>
       )}
     </div>

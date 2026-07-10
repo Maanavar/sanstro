@@ -6,6 +6,8 @@ import type { Lang } from "@/lib/i18n";
 import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
 import type { ChartDoshamInsight } from "@/lib/types";
 import type { MemberChart } from "@/hooks/useFamilyData";
+import { getDoshamGuideForEngineName, type BiText } from "@/lib/guide-detail-content";
+import { CollapsibleSection } from "./collapsible-section";
 
 import {
   buildWhyText,
@@ -17,6 +19,77 @@ import {
   strengthBand,
 } from "./dashboard-yoga-dosham-panel";
 import { NovaAskEntryChip, NovaAttributeBand, NovaDetailBreadcrumb, NovaDetailHero, NovaKicker, novaDetailCardStyle } from "./dashboard-explore-detail-nova";
+
+/**
+ * Signed-in users looking at a dosham present in their OWN chart used to get
+ * only a 1-2 sentence engine-authored "what/why" blurb (DOSHAM_WHAT et al in
+ * dashboard-yoga-dosham-panel.tsx) — far less than the marketing-grade,
+ * multi-section guide already live for some doshams at /dosham/[slug]
+ * (web/lib/guide-detail-content.ts: what-it-is, calculation method,
+ * how-to-read-your-chart, cancellation rules, categorised "what it can
+ * bring", FAQ). Only 5 of the 8 dosham types the engine computes have that
+ * deep content today (see DOSHAM_ENGINE_NAME_TO_GUIDE_SLUG's own comment for
+ * which) — Rahu-Ketu, Badhaka and Marana Karaka Sthana don't yet, so this
+ * renders nothing for those rather than a wrong or empty-looking guide.
+ * Kept as an additive "full guide" card alongside the existing personalised
+ * cards, not a replacement — the existing Pariharam card above already
+ * covers remedies, so this omits the guide's own (largely overlapping)
+ * remedies block to avoid showing two redundant pariharam sections.
+ */
+function DoshamFullGuide({ engineName, lang }: { engineName: string; lang: Lang }) {
+  const content = getDoshamGuideForEngineName(engineName);
+  if (!content) return null;
+  const text = (v: BiText) => (lang === "ta" ? v.ta : v.en);
+
+  return (
+    <div style={cardStyle}>
+      <NovaKicker>{lang === "ta" ? "முழுமையான தோஷ வழிகாட்டி" : "Full dosham guide"}</NovaKicker>
+      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+        {content.sections.map((section, i) => (
+          <CollapsibleSection key={i} title={text(section.heading)} defaultOpen={i === 0}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {section.body.map((p, j) => (
+                <p key={j} style={{ margin: 0, fontFamily: "var(--font-prose, var(--font-body))", fontSize: "13px", lineHeight: 1.7, color: "var(--color-text)" }}>
+                  {text(p)}
+                </p>
+              ))}
+            </div>
+          </CollapsibleSection>
+        ))}
+
+        {content.bringCards && content.bringCards.length > 0 && (
+          <CollapsibleSection title={lang === "ta" ? "எதை கொண்டுவரலாம்" : "What it can bring"}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              {content.bringCards.map((cat, i) => (
+                <div key={i} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <div style={{ fontSize: "12.5px", fontWeight: 700, color: "var(--color-accent-strong)" }}>{text(cat.heading)}</div>
+                  <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                    {cat.items.map((item, j) => (
+                      <li key={j} style={{ fontSize: "12px", color: "var(--color-muted)", lineHeight: 1.5 }}>{text(item)}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </CollapsibleSection>
+        )}
+
+        {content.faq && content.faq.length > 0 && (
+          <CollapsibleSection title={lang === "ta" ? "அடிக்கடி கேட்கப்படும் கேள்விகள்" : "Frequently asked questions"}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              {content.faq.map((item, i) => (
+                <div key={i} style={{ borderTop: i > 0 ? "1px solid var(--color-border)" : "none", paddingTop: i > 0 ? "12px" : 0 }}>
+                  <p style={{ margin: "0 0 4px", fontSize: "13px", fontWeight: 700, color: "var(--color-text-strong)" }}>{text(item.q)}</p>
+                  <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-muted)", lineHeight: 1.6 }}>{text(item.a)}</p>
+                </div>
+              ))}
+            </div>
+          </CollapsibleSection>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /**
  * Nova personalised Dosham profile screen — Phase 8 of the dashboard
@@ -105,19 +178,90 @@ function wrapIndex(i: number, length: number): number {
   return ((i % length) + length) % length;
 }
 
-function doshamStatusLabel(d: ChartDoshamInsight, lang: Lang): string {
+export function doshamStatusLabel(d: ChartDoshamInsight, lang: Lang): string {
   if (!d.isPresent) return lang === "ta" ? "இல்லை" : "Absent";
   if (d.isCancelled) return lang === "ta" ? "நிவர்த்தி" : "Mitigated";
   return lang === "ta" ? "கவனம்" : "Active";
 }
 
-function doshamStatusColor(d: ChartDoshamInsight): string {
+export function doshamStatusColor(d: ChartDoshamInsight): string {
   if (!d.isPresent) return "var(--color-faint)";
   if (d.isCancelled) return "var(--color-high)";
   return "var(--color-low)";
 }
 
 const cardStyle = novaDetailCardStyle;
+
+/**
+ * List-first index for the Dosham library — Explore hub's "Dosham" tile
+ * used to jump straight into ONE dosham's detail screen (the strongest
+ * active one, or index 0) with no way to scan all 8 first except the detail
+ * screen's prev/next arrows. Unlike Nakshatram, every dosham here is already
+ * about the signed-in user's own chart (see the main component's own
+ * comment), so the list itself doubles as a status summary — each row shows
+ * its current isPresent/isCancelled/strength badge via the same
+ * doshamStatusLabel/doshamStatusColor helpers the detail screen uses,
+ * rather than being a bare menu of names.
+ */
+export function DashboardExploreDoshamListNova({
+  lang,
+  doshams,
+  onSelect,
+  onBack,
+}: {
+  lang: Lang;
+  doshams: ChartDoshamInsight[];
+  onSelect: (index: number) => void;
+  onBack: () => void;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "18px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+      <NovaDetailBreadcrumb
+        onBack={onBack}
+        backLabel={lang === "ta" ? "ஆராய்வு" : "Explore"}
+        hubLabel={lang === "ta" ? "தோஷம்" : "Dosham"}
+        currentLabel={lang === "ta" ? "அனைத்து தோஷங்களும்" : "All doshams"}
+      />
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        {doshams.map((d, i) => {
+          const color = doshamStatusColor(d);
+          return (
+            <button
+              key={d.name}
+              type="button"
+              onClick={() => onSelect(i)}
+              style={{
+                ...cardStyle,
+                gap: "6px",
+                cursor: "pointer",
+                textAlign: "left",
+                fontFamily: "inherit",
+                width: "100%",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <span style={{ fontSize: "14px", fontWeight: 600, color: d.isPresent ? "var(--color-text-strong)" : "var(--color-faint)" }}>
+                {displayName(d.name, lang)}
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                {d.isPresent && (
+                  <span style={{ fontSize: "10px", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px" }}>
+                    {strengthBand(d.strength, true, lang)}
+                  </span>
+                )}
+                <span style={{ fontSize: "10px", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px" }}>
+                  {doshamStatusLabel(d, lang)}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 interface DashboardExploreDoshamNovaProps {
   lang: Lang;
@@ -289,6 +433,8 @@ export function DashboardExploreDoshamNova({
               </div>
             </div>
           )}
+
+          <DoshamFullGuide engineName={dosham.name} lang={lang} />
         </div>
 
         {/* RIGHT rail */}

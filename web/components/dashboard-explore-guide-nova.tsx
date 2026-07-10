@@ -40,6 +40,70 @@ function wrapIndex(i: number, length: number): number {
 
 const cardStyle = novaDetailCardStyle;
 
+/**
+ * List-first index shared by Yogam/Pariharam/Temple — all three Explore hub
+ * tiles used to jump straight into ONE library entry's detail screen with no
+ * way to scan the full set first except the detail screen's prev/next
+ * arrows. Unlike Nakshatram/Dosham (bespoke list shapes — a plain 27-star
+ * grid vs. a per-dosham status list), these three kinds share the exact
+ * same underlying shape (`getGuideSlugs(kind)` + `GuideDetail.title`), so
+ * one generic list component is reused across all three rather than three
+ * near-identical copies.
+ */
+export function DashboardExploreGuideListNova({
+  lang,
+  kind,
+  onSelect,
+  onBack,
+}: {
+  lang: Lang;
+  kind: GuideKind;
+  onSelect: (slug: string) => void;
+  onBack: () => void;
+}) {
+  const slugs = getGuideSlugs(kind);
+  const text = (v: { en: string; ta: string }) => (lang === "ta" ? v.ta : v.en);
+  const kindLabel = KIND_LABEL[kind];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "18px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+      <NovaDetailBreadcrumb
+        onBack={onBack}
+        backLabel={lang === "ta" ? "ஆராய்வு" : "Explore"}
+        hubLabel={text(kindLabel)}
+        currentLabel={lang === "ta" ? "அனைத்து பதிவுகளும்" : "All entries"}
+      />
+      {slugs.length > 0 ? (
+        <div className="nova-grid-3">
+          {slugs.map((slug) => {
+            const content = getGuideDetail(kind, slug);
+            if (!content) return null;
+            return (
+              <button
+                key={slug}
+                type="button"
+                onClick={() => onSelect(slug)}
+                style={{ ...cardStyle, cursor: "pointer", textAlign: "left", fontFamily: "inherit", width: "100%" }}
+              >
+                <span style={{ fontFamily: "var(--font-display)", fontSize: "16px", fontWeight: 600, color: "var(--color-text-strong)" }}>
+                  {content.title.en}
+                </span>
+                <span style={{ fontFamily: "'Noto Sans Tamil', sans-serif", fontSize: "12.5px", color: "var(--color-muted)" }}>
+                  {content.title.ta}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-faint)" }}>
+          {lang === "ta" ? "தரவு இல்லை." : "No entries available."}
+        </p>
+      )}
+    </div>
+  );
+}
+
 interface DashboardExploreGuideNovaProps {
   lang: Lang;
   kind: GuideKind;

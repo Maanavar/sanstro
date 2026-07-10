@@ -1,3 +1,5 @@
+import { DOSHAM_SEVVAI, DOSHAM_SEVVAI_FAQ } from "./marketing-i18n";
+
 export type BiText = {
   en: string;
   ta: string;
@@ -350,6 +352,254 @@ export const DOSHAM_DETAILS: Record<string, GuideDetail> = {
       { href: "/dosham/sevvai-dosham", label: b("Sevvai dosham", "செவ்வாய் தோஷம்") },
     ],
   },
+  /**
+   * DRAFT — pending astrologer/content-author sign-off before this is
+   * treated as final (see CLAUDE.md's astrology-content review convention
+   * and the "Astrology Calc Accuracy" project memory). Written 2026-07 to
+   * close the 3-of-8-dosham-types content gap tracked by
+   * DOSHAM_ENGINE_NAME_TO_GUIDE_SLUG's own comment. Structurally grounded
+   * in the actual engine logic (app/calculations/_yoga_dosham.py
+   * detect_rahu_ketu_dosham / detect_badhaka_dosham /
+   * detect_marana_karaka_sthana) and in this file's own existing
+   * DOSHAM_WHAT / DOSHAM_OUTCOMES / DOSHAM_REMEDIES / DOSHAM_HOW_TO prose
+   * (dashboard-yoga-dosham-panel.tsx) rather than invented from scratch —
+   * but the Tamil translation and remedy specifics below have NOT been
+   * reviewed by an astrologer or Tamil content author. Do not surface these
+   * on the public /dosham hub grid or promote them until that review lands
+   * (they are reachable today only via direct URL and the signed-in
+   * dashboard's "Full dosham guide" card, same as every other entry here).
+   */
+  "rahu-ketu-dosham": {
+    slug: "rahu-ketu-dosham",
+    kind: "dosham",
+    topic: "dosham",
+    eyebrow: b("Dosham guide · lunar nodes", "தோஷ வழிகாட்டி · ராகு-கேது"),
+    title: b("Rahu-Ketu Dosham", "ராகு-கேது தோஷம்"),
+    lead: b(
+      "Rahu-Ketu dosham is read when the lunar nodes sit in the 1st, 2nd, 7th or 8th house from Lagna (marriage-sensitive houses) or touch the 7th lord, Venus or Moon. It should be judged from the full Thirukanitham chart together with Jupiter's support, not from the node placement alone.",
+      "ராகு-கேது தோஷம் என்பது ராகு அல்லது கேது லக்னத்திலிருந்து 1, 2, 7, 8-ஆம் பாவங்களில் (திருமண-உணர்வு வீடுகள்) இருக்கும்போது, அல்லது 7-ஆம் அதிபதி, சுக்கிரன், சந்திரன் ஆகியவற்றைத் தொடும்போது பார்க்கப்படுகிறது. நோடு இடம் மட்டும் வைத்து அல்ல, குருவின் ஆதரவுடன் முழு திருக்கணித ஜாதகத்தில் இதை தீர்மானிக்க வேண்டும்."
+    ),
+    quickFacts: [
+      { label: b("Ruling grahas", "ஆளும் கிரகங்கள்"), value: b("Rahu & Ketu (the nodal axis)", "ராகு & கேது (சந்திப்பு அச்சு)") },
+      { label: b("Houses watched", "பார்க்கும் பாவங்கள்"), value: b("1st, 2nd, 7th & 8th from Lagna", "லக்னத்திலிருந்து 1, 2, 7, 8-ஆம் பாவங்கள்") },
+      { label: b("Life areas", "வாழ்க்கைத் துறைகள்"), value: b("Marriage timing, relationship pattern", "திருமண காலம், உறவு தன்மை") },
+      { label: b("Severity depends on", "தீவிரம் சார்ந்தது"), value: b("Jupiter, 7th lord & Venus strength", "குரு, 7-ஆம் அதிபதி & சுக்கிரன் பலம்") },
+    ],
+    sections: [
+      {
+        heading: b("What it is", "என்ன என்பது"),
+        body: [
+          b(
+            "Rahu-Ketu dosham is a context-based sensitivity indicator formed when Rahu or Ketu occupies a marriage-sensitive house (1st, 2nd, 7th or 8th from Lagna), or when a node sits with the 7th lord, Venus, or the Moon. It is read alongside Naga/Sarpa and Kala Sarpa dosham but is specifically about marriage significators, not lineage or the whole-chart nodal enclosure.",
+            "ராகு அல்லது கேது லக்னத்திலிருந்து திருமண-உணர்வு வீடுகளில் (1, 2, 7, 8) இருக்கும்போது, அல்லது 7-ஆம் அதிபதி, சுக்கிரன், சந்திரன் ஆகியவற்றுடன் ஒரு நோடு சேரும்போது ராகு-கேது தோஷம் என்ற சூழல்-சார்ந்த உணர்திறன் சுட்டி உருவாகிறது. இது நாக/சர்ப்ப மற்றும் கால சர்ப்ப தோஷத்துடன் இணைந்து பார்க்கப்பட்டாலும், குறிப்பாக திருமண சுட்டிகளைப் பற்றியது — வம்சம் அல்லது முழு ஜாதக நோடு சூழல் அல்ல."
+          ),
+          b(
+            "It is a tendency signal, not a verdict. A strong Jupiter, a well-placed 7th lord, or a strong Venus can significantly reduce how much of this actually shows up in the marriage.",
+            "இது ஒரு போக்கு சுட்டி மட்டுமே; தீர்ப்பு அல்ல. பலமான குரு, நல்ல இடத்தில் உள்ள 7-ஆம் அதிபதி, அல்லது பலமான சுக்கிரன் — இவை திருமணத்தில் இது எவ்வளவு வெளிப்படும் என்பதை கணிசமாக குறைக்கும்."
+          ),
+        ],
+      },
+      {
+        heading: b("What it can bring", "எதை கொண்டுவரலாம்"),
+        body: [
+          b(
+            "Common experiences are delay in marriage matters, an unconventional or unexpected match, karma-driven bonds that feel destined, and emotional ups and downs around relationship decisions in certain periods.",
+            "வழக்கமான அனுபவங்கள்: திருமண விஷயங்களில் தாமதம், வழக்கத்திற்கு மாறான அல்லது எதிர்பாராத பொருத்தம், விதி போல் உணரப்படும் கர்ம-சார்ந்த பந்தங்கள், சில காலங்களில் உறவு முடிவுகளில் உணர்ச்சி ஏற்ற-இறக்கம்."
+          ),
+          b(
+            "Spiritual learning is often a companion theme — many charts with this dosham are also drawn to introspection, mantra or a guru at some point in the same period. When Jupiter and the 7th lord are strong, the dosham mostly shows as a slower, more thoughtful path to marriage rather than a blocked one.",
+            "ஆன்மீக கற்றல் பெரும்பாலும் இதனுடன் இணைந்து வரும் ஒரு தலைப்பு — இந்த தோஷம் உள்ள பல ஜாதகங்கள் அதே காலத்தில் சுய ஆய்வு, மந்திரம், அல்லது குருவை நோக்கியும் ஈர்க்கப்படுகின்றன. குருவும் 7-ஆம் அதிபதியும் பலமாக இருந்தால், இந்த தோஷம் பெரும்பாலும் தடைப்பட்ட பாதையாக அல்ல, மெதுவான, சிந்தனையுடன் கூடிய திருமணப் பாதையாகவே தெரியும்."
+          ),
+        ],
+      },
+      {
+        heading: b("Signs & who should look into it", "அறிகுறிகள் & யார் பார்க்க வேண்டும்"),
+        body: [
+          b(
+            "People check this when marriage feels unexplainably delayed, when a proposed match feels unconventional or hard to categorise, or when a matching report or astrologer flags nodal pressure on the 1st, 2nd, 7th or 8th house. As with any dosham, the full chart and — for marriage questions — both horoscopes should be compared before drawing a conclusion.",
+            "திருமணம் காரணமின்றி தாமதமாகும்போது, முன்மொழியப்பட்ட பொருத்தம் வழக்கத்திற்கு மாறாக அல்லது வகைப்படுத்த கடினமாக உணரும்போது, அல்லது பொருத்த அறிக்கை அல்லது ஜோதிடர் 1, 2, 7, 8-ஆம் பாவங்களில் நோடு அழுத்தத்தைச் சுட்டிக்காட்டும்போது மக்கள் இதைப் பார்க்கின்றனர். எந்த தோஷத்தையும் போலவே, முடிவுக்கு வருவதற்கு முன் முழு ஜாதகத்தையும் — திருமண கேள்விகளுக்கு — இரு ஜாதகங்களையும் ஒப்பிட வேண்டும்."
+          ),
+        ],
+      },
+    ],
+    remedies: {
+      heading: b("Remedies & what to do", "பரிகாரங்கள் & என்ன செய்வது"),
+      intro: b(
+        "Remedies aim to steady the nodal energy and strengthen Jupiter's protective counter-influence on the marriage houses; they work best paired with honest communication and, for marriage questions, a proper porutham check.",
+        "பரிகாரங்கள் நோடு சக்தியை அமைதிப்படுத்தி, திருமண பாவங்களின் மேல் குருவின் பாதுகாப்பு தாக்கத்தை பலப்படுத்த இலக்கு கொள்கின்றன; நேர்மையான தொடர்பு, திருமண கேள்விகளுக்கு முறையான பொருத்தப் பார்வையுடன் சேரும்போது சிறப்பாக பயன்படுகின்றன."
+      ),
+      items: [
+        b("Worship Rahu at Thirunageswaram and Ketu at Keezhaperumpallam, with naga prarthana.", "திருநாகேஸ்வரம் ராகு கோயில் மற்றும் கீழப்பெரும்பள்ளம் கேது கோயிலில் நாக பிரார்த்தனையுடன் தரிசனம் செய்யுங்கள்."),
+        b("Observe Naga Panchami fasting in the Aadi month, and visit Tiruvannamalai or Tirukovilur for Kala Bhairava worship.", "ஆடி மாதம் நாக பஞ்சமி விரதம் இருந்து, கால பைரவர் வழிபாட்டிற்காக திருவண்ணாமலை அல்லது திருக்கோவிலூர் தரிசனம் செய்யுங்கள்."),
+        b("Strengthen Jupiter with Thursday worship — a strong Guru is the natural counter-influence to nodal pressure on the marriage houses.", "வியாழக்கிழமை வழிபாட்டால் குருவை பலப்படுத்துங்கள் — பலமான குருவே திருமண பாவங்களின் மேல் நோடு அழுத்தத்திற்கு இயற்கையான எதிர் தாக்கம்."),
+      ],
+    },
+    faq: [
+      { q: b("Does Rahu-Ketu dosham mean my marriage is doomed?", "ராகு-கேது தோஷம் என் திருமணத்தை பாழாக்குமா?"), a: b("No. It is a sensitivity indicator, not a verdict. A strong Jupiter, 7th lord or Venus can significantly reduce its impact, and many charts with this pattern marry well once timing and match are right.", "இல்லை. இது ஒரு உணர்திறன் சுட்டி மட்டுமே; தீர்ப்பு அல்ல. பலமான குரு, 7-ஆம் அதிபதி, அல்லது சுக்கிரன் இதன் தாக்கத்தை கணிசமாக குறைக்கலாம்; காலமும் பொருத்தமும் சரியாக இருந்தால் இந்த அமைப்பு உள்ள பல ஜாதகங்களும் நன்றாகவே திருமணம் செய்கின்றன.") },
+      { q: b("How is this different from Naga/Sarpa dosham?", "இது நாக/சர்ப்ப தோஷத்திலிருந்து எப்படி வேறுபடும்?"), a: b("Rahu-Ketu dosham here focuses on the marriage houses (1st, 2nd, 7th, 8th) and marriage significators. Naga/Sarpa dosham is specifically about the 5th house, children and lineage — the two can overlap in one chart but are read from different house groups.", "இங்கு ராகு-கேது தோஷம் திருமண பாவங்களில் (1, 2, 7, 8) மற்றும் திருமண சுட்டிகளில் கவனம் செலுத்துகிறது. நாக/சர்ப்ப தோஷம் குறிப்பாக 5-ஆம் பாவம், சந்தானம், வம்சத்தைப் பற்றியது — இரண்டும் ஒரே ஜாதகத்தில் ஒன்று சேரலாம், ஆனால் வெவ்வேறு பாவக் குழுக்களிலிருந்து பார்க்கப்படுகின்றன.") },
+      { q: b("When is it felt most?", "எப்போது அதிகம் உணரப்படும்?"), a: b("Usually during Rahu or Ketu dasa-bhukti, and when transits activate the natal nodes or the 7th house. Outside these windows, a well-supported chart often carries it lightly.", "பொதுவாக ராகு அல்லது கேது தசை-புத்தியில், கோச்சாரம் ஜாதக நோடுகளை அல்லது 7-ஆம் பாவத்தை செயல்படுத்தும் போது. இந்த காலங்களுக்கு வெளியே, நல்ல ஆதரவுள்ள ஜாதகம் இதை இலகுவாகவே சுமக்கும்.") },
+    ],
+    ctaVariant: "marriage-pariharam",
+    related: [
+      { href: "/tools/marriage-porutham-calculator", label: b("Marriage Porutham", "திருமண பொருத்தம்") },
+      { href: "/temples/thirunageswaram", label: b("Thirunageswaram Rahu temple", "திருநாகேஸ்வரம் ராகு கோயில்") },
+      { href: "/dosham/naga-sarpa-dosham", label: b("Naga / Sarpa dosham", "நாக / சர்ப்ப தோஷம்") },
+    ],
+  },
+  "badhaka-dosham": {
+    slug: "badhaka-dosham",
+    kind: "dosham",
+    topic: "dosham",
+    eyebrow: b("Dosham guide · obstruction house", "தோஷ வழிகாட்டி · பாதக ஸ்தானம்"),
+    title: b("Badhaka Dosham", "பாதக தோஷம்"),
+    lead: b(
+      "Badhaka dosham is read from a fixed 'obstruction house' every Lagna carries — the 11th for movable signs, the 9th for fixed signs, the 7th for dual signs. It activates when that house's lord touches the Lagna, Moon or lagna lord, or runs as the current Mahadasha.",
+      "ஒவ்வொரு லக்னத்திற்கும் ஒரு நிலையான 'பாதக ஸ்தானம்' உண்டு — சர லக்னங்களுக்கு 11-ஆம் பாவம், ஸ்திர லக்னங்களுக்கு 9-ஆம் பாவம், உபய லக்னங்களுக்கு 7-ஆம் பாவம். அந்த பாவத்தின் அதிபதி லக்னம், சந்திரன், அல்லது லக்னாதிபதியை தொடும்போது, அல்லது தற்போதைய மகாதசையாக ஓடும்போது இது செயல்படுகிறது."
+    ),
+    quickFacts: [
+      { label: b("Theme", "தலைப்பு"), value: b("Obstruction & timing", "தடை & காலம்") },
+      { label: b("Badhaka house", "பாதக ஸ்தானம்"), value: b("11th (movable) · 9th (fixed) · 7th (dual)", "11 (சரம்) · 9 (ஸ்திரம்) · 7 (உபயம்)") },
+      { label: b("Life areas", "வாழ்க்கைத் துறைகள்"), value: b("Approvals, launches, finish-line timing", "ஒப்புதல்கள், தொடக்கங்கள், முடிவுக் கட்ட காலம்") },
+      { label: b("Eases when", "எப்போது குறையும்"), value: b("Badhaka lord is strong, or its dasha passes", "பாதக அதிபதி பலமாக இருக்கும்போது, அல்லது அதன் தசை முடியும்போது") },
+    ],
+    sections: [
+      {
+        heading: b("What it is", "என்ன என்பது"),
+        body: [
+          b(
+            "In Tamil Jothidam, every Lagna has one 'badhaka' (obstruction) house determined purely by sign type — the 11th house for movable (chara) Lagnas, the 9th for fixed (sthira) Lagnas, and the 7th for dual (dwiswabhava) Lagnas. The ruler of that house is called the badhaka lord for that chart.",
+            "தமிழ் ஜோதிடத்தில் ஒவ்வொரு லக்னத்திற்கும் ராசி வகையைப் பொறுத்து ஒரே ஒரு 'பாதக' (தடை) ஸ்தானம் உண்டு — சர லக்னங்களுக்கு 11-ஆம் பாவம், ஸ்திர லக்னங்களுக்கு 9-ஆம் பாவம், உபய லக்னங்களுக்கு 7-ஆம் பாவம். அந்த பாவத்தின் அதிபதியே அந்த ஜாதகத்திற்கான பாதக அதிபதி."
+          ),
+          b(
+            "The dosham is treated as active when the badhaka lord occupies the Lagna itself, sits with the Moon or the lagna lord, or is currently running as the Mahadasha. It is strongest when the badhaka lord's own dasha is running.",
+            "பாதக அதிபதி லக்னத்திலேயே இருந்தால், சந்திரன் அல்லது லக்னாதிபதியுடன் சேர்ந்திருந்தால், அல்லது தற்போது மகாதசையாக ஓடினால் இந்த தோஷம் செயல்பாட்டில் உள்ளதாகக் கருதப்படுகிறது. பாதக அதிபதியின் சொந்த தசையே ஓடும்போது இது மிகவும் வலுவாக இருக்கும்."
+          ),
+        ],
+      },
+      {
+        heading: b("What it can bring", "எதை கொண்டுவரலாம்"),
+        body: [
+          b(
+            "The classic signature is blocks, delays or last-minute hurdles right as an important matter is about to close — an approval that stalls, paperwork that gets held up, a deal that slips at the final step, or a launch that keeps getting pushed back.",
+            "இதன் அடையாள அறிகுறி: ஒரு முக்கிய காரியம் முடியும் தருணத்திலேயே வரும் தடைகள், தாமதங்கள், அல்லது கடைசி-நிமிட இடையூறுகள் — நிற்கும் ஒப்புதல், தாமதிக்கப்படும் ஆவணப்பணி, கடைசி கட்டத்தில் நழுவும் ஒப்பந்தம், அல்லது தொடர்ந்து பின்தள்ளப்படும் தொடக்கம்."
+          ),
+          b(
+            "It is not a fixed fate — it is an obstruction pattern tied to one specific dasha window. Once the badhaka lord's dasha-bhukti passes, or if the badhaka lord is dignified and strong, the blocks tend to clear on their own.",
+            "இது நிரந்தர விதி அல்ல — ஒரு குறிப்பிட்ட தசை காலத்துடன் இணைந்த தடை-வடிவம் மட்டுமே. பாதக அதிபதியின் தசை-புத்தி முடிந்ததும், அல்லது பாதக அதிபதி நல்ல நிலையில் பலமாக இருந்தால், தடைகள் தாமாகவே விலகும்."
+          ),
+        ],
+      },
+      {
+        heading: b("Signs & who should look into it", "அறிகுறிகள் & யார் பார்க்க வேண்டும்"),
+        body: [
+          b(
+            "People look into this when they notice a repeating pattern of last-minute setbacks on approvals, travel, exams or paperwork — especially if this pattern lines up with a specific dasha period. It is confirmed by checking whether the current Mahadasha lord is in fact the badhaka lord for that Lagna, not by the setbacks alone.",
+            "ஒப்புதல்கள், பயணம், தேர்வுகள், அல்லது ஆவணப்பணியில் மீண்டும் மீண்டும் வரும் கடைசி-நிமிட பின்னடைவுகளை — குறிப்பாக அது ஒரு குறிப்பிட்ட தசை காலத்துடன் பொருந்தினால் — கவனிக்கும்போது மக்கள் இதைப் பார்க்கின்றனர். பின்னடைவுகளை மட்டும் வைத்தல்ல, தற்போதைய மகாதசை அதிபதி உண்மையில் அந்த லக்னத்திற்கான பாதக அதிபதியா என்று சரிபார்த்தே இது உறுதி செய்யப்படுகிறது."
+          ),
+        ],
+      },
+    ],
+    remedies: {
+      heading: b("Remedies & what to do", "பரிகாரங்கள் & என்ன செய்வது"),
+      intro: b(
+        "Remedies here are as much about planning as prayer — steadying the badhaka lord's planet while building buffer time into important matters.",
+        "இங்கு பரிகாரங்கள் பிரார்த்தனை மட்டுமல்ல, திட்டமிடலும் சேர்ந்தவை — பாதக அதிபதியின் கிரகத்தை அமைதிப்படுத்தும் அதே வேளையில், முக்கிய காரியங்களில் கூடுதல் நேரத்தை திட்டமிடுங்கள்."
+      ),
+      items: [
+        b("Worship the planet that is your badhaka lord (this varies by Lagna) on its associated day.", "உங்கள் பாதக அதிபதியாக இருக்கும் கிரகத்தை (இது லக்னத்தைப் பொறுத்து மாறும்) அதற்குரிய நாளில் வழிபடுங்கள்."),
+        b("Ganesha worship and a Ganapati homam before major undertakings, since Ganesha is the traditional remover of obstacles.", "முக்கிய காரியங்களுக்கு முன் விநாயகர் வழிபாடும் கணபதி ஹோமமும் செய்யுங்கள் — விநாயகரே பாரம்பரிய தடை நீக்குபவர்."),
+        b("Build buffer time and a backup plan into important matters, and prefer finishing early over relying on a last-minute push, especially during the badhaka lord's dasha-bhukti.", "முக்கிய காரியங்களில் கூடுதல் நேரத்தையும் மாற்றுத் திட்டத்தையும் வையுங்கள்; குறிப்பாக பாதக அதிபதியின் தசை-புத்தியில், கடைசி-நிமிட அவசரத்தை நம்பாமல் முன்கூட்டியே முடிக்க முயலுங்கள்."),
+      ],
+    },
+    faq: [
+      { q: b("Does Badhaka dosham mean nothing important will succeed?", "பாதக தோஷம் என்றால் எந்த முக்கிய காரியமும் வெற்றியடையாதா?"), a: b("No. It is an obstruction pattern, not a block on success itself — most things still succeed, often with extra time or a second attempt. How disruptive it feels depends heavily on the strength of the badhaka lord.", "இல்லை. இது வெற்றியையே தடுக்கும் ஒன்றல்ல; ஒரு தடை-வடிவம் மட்டுமே — பெரும்பாலான காரியங்கள் கூடுதல் நேரத்துடன் அல்லது இரண்டாவது முயற்சியில் வெற்றியடைகின்றன. இது எவ்வளவு இடையூறாக உணரப்படும் என்பது பாதக அதிபதியின் பலத்தைப் பொறுத்தது.") },
+      { q: b("How do I know if it's active for me right now?", "இது இப்போது எனக்கு செயல்பாட்டில் உள்ளதா என்று எப்படி தெரிந்துகொள்வது?"), a: b("It is treated as active when the badhaka lord occupies your Lagna, sits with your Moon or lagna lord, or is currently running as your Mahadasha. Your current Mahadasha lord being the badhaka lord is the strongest single indicator.", "பாதக அதிபதி உங்கள் லக்னத்தில் இருந்தால், உங்கள் சந்திரன் அல்லது லக்னாதிபதியுடன் சேர்ந்திருந்தால், அல்லது தற்போது உங்கள் மகாதசையாக ஓடினால் இது செயல்பாட்டில் உள்ளதாகக் கருதப்படுகிறது. தற்போதைய மகாதசை அதிபதியே பாதக அதிபதியாக இருப்பது மிகவும் வலுவான தனிச் சுட்டி.") },
+      { q: b("Does it affect every Lagna the same way?", "இது எல்லா லக்னங்களையும் ஒரே மாதிரி பாதிக்குமா?"), a: b("No. The badhaka house itself differs by Lagna type — the 11th for movable signs, the 9th for fixed signs, the 7th for dual signs — so the badhaka lord, and therefore the exact remedy planet, is different for every Lagna.", "இல்லை. பாதக ஸ்தானமே லக்ன வகையைப் பொறுத்து மாறுபடும் — சரத்திற்கு 11, ஸ்திரத்திற்கு 9, உபயத்திற்கு 7 — எனவே பாதக அதிபதியும், அதனால் சரியான பரிகார கிரகமும் ஒவ்வொரு லக்னத்திற்கும் வேறுபடும்.") },
+    ],
+    ctaVariant: "dosham",
+    related: [
+      { href: "/pariharam", label: b("Pariharam guides", "பரிகார வழிகாட்டிகள்") },
+      { href: "/learn/what-is-thirukanitham", label: b("What is Thirukanitham?", "திருக்கணிதம் என்றால் என்ன?") },
+      { href: "/dosham/kala-sarpa-dosham", label: b("Kala Sarpa dosham", "கால சர்ப்ப தோஷம்") },
+    ],
+  },
+  "marana-karaka-sthana": {
+    slug: "marana-karaka-sthana",
+    kind: "dosham",
+    topic: "dosham",
+    eyebrow: b("Dosham guide · dasha caution", "தோஷ வழிகாட்டி · தசை எச்சரிக்கை"),
+    title: b("Marana Karaka Sthana", "மரண காரக ஸ்தானம்"),
+    lead: b(
+      "Marana Karaka Sthana flags a classical planet placed in its traditionally most sensitive house from Lagna, used to mark extra-caution dasha-bhukti periods for health and major decisions. Despite the name, it is not a death prediction.",
+      "மரண காரக ஸ்தானம் என்பது ஒரு பாரம்பரிய கிரகம் லக்னத்திலிருந்து அதற்கு மிகவும் உணர்திறன் வாய்ந்த வீட்டில் இருப்பதைக் குறிக்கும் சுட்டி; உடல்நலம், முக்கிய முடிவுகள் ஆகியவற்றில் கூடுதல் கவனம் தேவைப்படும் தசை-புத்தி காலங்களைக் குறிக்க பயன்படுகிறது. பெயரிருந்தும், இது இறப்பு கணிப்பு அல்ல."
+    ),
+    quickFacts: [
+      { label: b("Theme", "தலைப்பு"), value: b("Dasha-timing caution", "தசை-கால எச்சரிக்கை") },
+      { label: b("Houses (from Lagna)", "பாவங்கள் (லக்னத்திலிருந்து)"), value: b("Sun 12 · Moon 8 · Mars & Mercury 7 · Jupiter 3 · Venus 6 · Saturn 1", "சூரியன் 12 · சந்திரன் 8 · செவ்வாய் & புதன் 7 · குரு 3 · சுக்கிரன் 6 · சனி 1") },
+      { label: b("Life areas", "வாழ்க்கைத் துறைகள்"), value: b("Health, major decisions during that dasha", "உடல்நலம், அந்த தசையில் முக்கிய முடிவுகள்") },
+      { label: b("Eases when", "எப்போது குறையும்"), value: b("Planet is dignified, or Jupiter aspects it", "கிரகம் நல்ல நிலையில் இருக்கும்போது, அல்லது குரு அதை பார்க்கும்போது") },
+    ],
+    sections: [
+      {
+        heading: b("What it is", "என்ன என்பது"),
+        body: [
+          b(
+            "Each of the seven classical planets has one house, counted from the Lagna, that Tamil Jothidam treats as its most sensitive placement — the Sun in the 12th, the Moon in the 8th, Mars and Mercury in the 7th, Jupiter in the 3rd, Venus in the 6th, and Saturn in the 1st. When a planet sits in its own designated house, that placement is flagged.",
+            "ஏழு பாரம்பரிய கிரகங்களில் ஒவ்வொன்றுக்கும், லக்னத்திலிருந்து எண்ணும்போது, தமிழ் ஜோதிடம் மிகவும் உணர்திறன் வாய்ந்ததாகக் கருதும் ஒரு வீடு உண்டு — சூரியனுக்கு 12, சந்திரனுக்கு 8, செவ்வாய் மற்றும் புதனுக்கு 7, குருவுக்கு 3, சுக்கிரனுக்கு 6, சனிக்கு 1. ஒரு கிரகம் அதற்குரிய வீட்டிலேயே இருக்கும்போது அந்த இடம் குறிக்கப்படுகிறது."
+          ),
+          b(
+            "The traditional purpose of this marker is narrow and specific: it flags that planet's own dasha-bhukti as a period calling for extra care — not a general life prediction, and not about any other planet or house.",
+            "இந்த சுட்டியின் பாரம்பரிய நோக்கம் குறுகியது, குறிப்பிட்டது: அந்த கிரகத்தின் சொந்த தசை-புத்தியை கூடுதல் கவனம் தேவைப்படும் காலமாக மட்டுமே இது குறிக்கிறது — பொதுவான வாழ்க்கை கணிப்பு அல்ல, வேறு எந்த கிரகம் அல்லது பாவத்தைப் பற்றியும் அல்ல."
+          ),
+        ],
+      },
+      {
+        heading: b("What it can bring", "எதை கொண்டுவரலாம்"),
+        body: [
+          b(
+            "During the flagged planet's dasha or bhukti, tradition advises extra attention to health matters connected with that planet's significations, and a preference for careful, well-considered decisions over impulsive or high-risk ones.",
+            "குறிக்கப்பட்ட கிரகத்தின் தசை அல்லது புத்தியில், அந்த கிரகத்தின் காரகத்துவங்களுடன் தொடர்புடைய உடல்நல விஷயங்களில் கூடுதல் கவனம் செலுத்தவும், தூண்டுதலான அல்லது அதிக-அபாய முடிவுகளை விட கவனமான, நன்கு யோசிக்கப்பட்ட முடிவுகளை விரும்பவும் மரபு அறிவுறுத்துகிறது."
+          ),
+          b(
+            "This is best read as heightened sensitivity during one specific period, not a fixed outcome. When the planet is in its own sign or exaltation even in this house, or Jupiter aspects it, the traditional caution is considered much lighter.",
+            "இதை ஒரு நிலையான முடிவாக அல்ல, ஒரு குறிப்பிட்ட காலத்தில் அதிகரித்த உணர்திறனாகவே படிக்க வேண்டும். இந்த வீட்டில் இருந்தாலும் கிரகம் சொந்த ராசியில் அல்லது உச்சத்தில் இருந்தால், அல்லது குரு அதை பார்த்தால், பாரம்பரிய எச்சரிக்கை மிகவும் இலகுவாகக் கருதப்படுகிறது."
+          ),
+        ],
+      },
+      {
+        heading: b("Signs & who should look into it", "அறிகுறிகள் & யார் பார்க்க வேண்டும்"),
+        body: [
+          b(
+            "People typically look into this before or during a major dasha change, when planning significant health decisions, or when an astrologer flags a planet in its Marana Karaka Sthana as part of a fuller dasha-timing review. It should always be read together with that planet's overall strength, not as a standalone warning.",
+            "ஒரு முக்கிய தசை மாற்றத்திற்கு முன் அல்லது அதன் போது, முக்கிய உடல்நல முடிவுகளை திட்டமிடும்போது, அல்லது ஜோதிடர் ஒரு முழுமையான தசை-கால மதிப்பாய்வின் பகுதியாக மரண காரக ஸ்தானத்தில் உள்ள கிரகத்தைச் சுட்டிக்காட்டும்போது மக்கள் பொதுவாக இதைப் பார்க்கின்றனர். இதை எப்போதும் அந்த கிரகத்தின் ஒட்டுமொத்த பலத்துடன் சேர்த்தே படிக்க வேண்டும் — தனித்த எச்சரிக்கையாக அல்ல."
+          ),
+        ],
+      },
+    ],
+    remedies: {
+      heading: b("Remedies & what to do", "பரிகாரங்கள் & என்ன செய்வது"),
+      intro: b(
+        "Remedies here are about steadying the flagged planet and being sensibly cautious during its dasha-bhukti, not about fear.",
+        "இங்கு பரிகாரங்கள் குறிக்கப்பட்ட கிரகத்தை அமைதிப்படுத்துவதும், அதன் தசை-புத்தியில் நியாயமான எச்சரிக்கையுடன் இருப்பதும் — பயம் அல்ல."
+      ),
+      items: [
+        b("Worship the flagged planet on its associated day and continue that planet's usual remedies through its dasha-bhukti.", "குறிக்கப்பட்ட கிரகத்தை அதற்குரிய நாளில் வழிபட்டு, அதன் தசை-புத்தி முழுவதும் அந்த கிரகத்தின் வழக்கமான பரிகாரங்களைத் தொடருங்கள்."),
+        b("During that planet's dasha-bhukti, schedule routine health check-ups and avoid postponing them.", "அந்த கிரகத்தின் தசை-புத்தியில், வழக்கமான உடல்நல பரிசோதனைகளை திட்டமிட்டு, அவற்றை தள்ளிப்போடாதீர்கள்."),
+        b("Favour careful, well-considered decisions over impulsive or high-risk ones during that period, and lean on Jupiter's guidance (Thursday worship) if Jupiter aspects the planet.", "அந்த காலத்தில் தூண்டுதலான முடிவுகளை விட கவனமான, யோசிக்கப்பட்ட முடிவுகளை விரும்புங்கள்; குரு அந்த கிரகத்தை பார்த்தால், குருவின் வழிகாட்டுதலை (வியாழக்கிழமை வழிபாடு) நாடுங்கள்."),
+      ],
+    },
+    faq: [
+      { q: b("Does Marana Karaka Sthana predict death?", "மரண காரக ஸ்தானம் இறப்பை கணிக்குமா?"), a: b("No — despite the name, it is not used as a death prediction. It is a traditional caution marker for extra care during one planet's dasha-bhukti, nothing more specific than that.", "இல்லை — பெயரிருந்தும், இது இறப்பு கணிப்பாக பயன்படுத்தப்படுவதில்லை. இது ஒரு கிரகத்தின் தசை-புத்தியில் கூடுதல் கவனத்திற்கான பாரம்பரிய எச்சரிக்கை சுட்டி மட்டுமே; அதைவிட குறிப்பிட்டது எதுவும் அல்ல.") },
+      { q: b("Why does every planet have a different house for this?", "ஒவ்வொரு கிரகத்திற்கும் ஏன் வெவ்வேறு வீடு?"), a: b("This comes from a fixed classical table (Sun-12, Moon-8, Mars/Mercury-7, Jupiter-3, Venus-6, Saturn-1) rather than a calculation — each planet's designated house is traditionally considered its point of greatest strain relative to the Lagna.", "இது ஒரு கணக்கீட்டிலிருந்து அல்ல, ஒரு நிலையான பாரம்பரிய அட்டவணையிலிருந்து வருகிறது (சூரியன்-12, சந்திரன்-8, செவ்வாய்/புதன்-7, குரு-3, சுக்கிரன்-6, சனி-1) — ஒவ்வொரு கிரகத்தின் குறிக்கப்பட்ட வீடும் லக்னத்துடன் ஒப்பிடும்போது அதன் அதிக அழுத்த புள்ளியாக பாரம்பரியமாக கருதப்படுகிறது.") },
+      { q: b("Can this indicator be reduced?", "இந்த சுட்டியை குறைக்க முடியுமா?"), a: b("Yes. If the planet is in its own sign or exaltation even while in this house, or Jupiter aspects it, the traditional reading treats the caution as much milder.", "ஆம். இந்த வீட்டில் இருந்தாலும் கிரகம் சொந்த ராசியில் அல்லது உச்சத்தில் இருந்தால், அல்லது குரு அதை பார்த்தால், பாரம்பரிய வாசிப்பு எச்சரிக்கையை மிகவும் மென்மையாகக் கருதுகிறது.") },
+    ],
+    ctaVariant: "dosham",
+    related: [
+      { href: "/pariharam", label: b("Pariharam guides", "பரிகார வழிகாட்டிகள்") },
+      { href: "/learn/how-to-read-a-jadhagam", label: b("How to read a jadhagam", "ஜாதகத்தை எப்படி படிப்பது") },
+      { href: "/dosham/badhaka-dosham", label: b("Badhaka dosham", "பாதக தோஷம்") },
+    ],
+  },
 };
 
 const nagaSarpaSections = DOSHAM_DETAILS["naga-sarpa-dosham"].sections;
@@ -519,6 +769,125 @@ DOSHAM_DETAILS["kalathra-dosham"].sections = [
     ],
   },
 ];
+
+// Sevvai (Mangal) Dosham predates the unified GuideDetail shape above — its
+// rich content already exists in marketing-i18n.ts (DOSHAM_SEVVAI), backing
+// the standalone /dosham/sevvai-dosham marketing page. Reusing those same
+// bilingual strings here (not retyping them) makes that content available to
+// getGuideDetail("dosham", "sevvai-dosham") — e.g. for the signed-in
+// dashboard's Dosham detail screen — without a second, drifting copy.
+DOSHAM_DETAILS["sevvai-dosham"] = {
+  slug: "sevvai-dosham",
+  kind: "dosham",
+  topic: "dosham",
+  eyebrow: DOSHAM_SEVVAI.eyebrow,
+  title: DOSHAM_SEVVAI.h1,
+  lead: DOSHAM_SEVVAI.lead,
+  quickFacts: [
+    { label: b("Ruling graha", "ஆளும் கிரகம்"), value: b("Mars (Sevvai / Angaraka)", "செவ்வாய் (அங்காரகன்)") },
+    { label: b("Houses watched", "பார்க்கும் பாவங்கள்"), value: b("1, 2, 4, 7, 8, 12 from Lagna, Moon & Venus", "லக்னம், சந்திரன், சுக்கிரன் — 1,2,4,7,8,12") },
+    { label: b("Life areas", "வாழ்க்கைத் துறைகள்"), value: b("Marriage, partnership, temperament", "திருமணம், துணை, குணம்") },
+    { label: b("Severity depends on", "தீவிரம் சார்ந்தது"), value: b("Sign dignity, aspects, cancellations, dasa", "ராசி பலம், பார்வை, ரத்து காரணம், தசை") },
+  ],
+  sections: [
+    {
+      heading: DOSHAM_SEVVAI.what_h2,
+      body: [DOSHAM_SEVVAI.what_body],
+    },
+    {
+      heading: DOSHAM_SEVVAI.calc_h2,
+      body: [DOSHAM_SEVVAI.calc_body],
+    },
+    {
+      heading: DOSHAM_SEVVAI.howtoread_h2,
+      body: [
+        DOSHAM_SEVVAI.howtoread_intro,
+        ...DOSHAM_SEVVAI.howtoread_steps.map((step) => b(`${step.h.en} — ${step.b.en}`, `${step.h.ta} — ${step.b.ta}`)),
+      ],
+    },
+    {
+      heading: DOSHAM_SEVVAI.cancel_h2,
+      body: [DOSHAM_SEVVAI.cancel_body],
+    },
+  ],
+  bringCards: DOSHAM_SEVVAI.brings_categories,
+  remedies: {
+    heading: DOSHAM_SEVVAI.pariharam_h2,
+    intro: DOSHAM_SEVVAI.pariharam_body,
+    items: [
+      b(
+        "Worship Lord Anjaneya (Hanuman) and Lord Subramanya for Mars-related relief.",
+        "செவ்வாய் தொடர்பான நிவாரணத்துக்கு ஆஞ்சநேயரையும் (அனுமன்) முருகப்பெருமானையும் வழிபடுங்கள்."
+      ),
+      b(
+        "Light a red or sesame-oil lamp on Tuesdays, observe a Tuesday fast, and chant the Mangal mantra.",
+        "செவ்வாய்க்கிழமைகளில் சிவப்பு அல்லது நல்லெண்ணெய் விளக்கேற்றி, செவ்வாய் விரதம் இருந்து மங்கள மந்திரம் ஜெபியுங்கள்."
+      ),
+      b(
+        "Worship at Vaitheeswaran Koil (the temple of the planet Mars) and offer red lentils (masoor dal) or red cloth in charity.",
+        "செவ்வாய்க் கோயிலான வைத்தீஸ்வரன் கோயிலில் வழிபட்டு, மைசூர் பருப்பு அல்லது சிவப்பு ஆடையை தானமாக அளியுங்கள்."
+      ),
+    ],
+  },
+  slokam: {
+    label: DOSHAM_SEVVAI.slokam_label,
+    text: DOSHAM_SEVVAI.slokam_text,
+    meaning: DOSHAM_SEVVAI.slokam_meaning,
+  },
+  faq: DOSHAM_SEVVAI_FAQ,
+  ctaVariant: "dosham",
+  related: [
+    { href: "/pariharam/thirumana-thadai", label: b("Pariharam for marriage delay", "திருமணத் தடைக்கான பரிகாரம்") },
+    { href: "/tools/marriage-porutham-calculator", label: b("Marriage Porutham Calculator", "திருமணப் பொருத்தம் பார்") },
+    { href: "/temples", label: b("Temples & their power", "கோயில்களும் சக்தியும்") },
+  ],
+};
+
+/**
+ * Maps the engine's dosham enum names (ChartDoshamInsight.name, e.g.
+ * "SEVVAI_DOSHAM") to the guide-content slug that carries deep, marketing-
+ * grade explanation — so signed-in views (Explore Dosham detail, Life Areas
+ * yoga/dosham accordion) can offer a "full guide" for the doshams that have
+ * one, without guessing at slug spelling. Only doshams with a real
+ * DOSHAM_DETAILS entry are listed; callers should treat a missing mapping as
+ * "no full guide available", not fall back to a wrong/unrelated topic.
+ *
+ * RAHU_KETU_DOSHAM, BADHAKA_DOSHAM and MARANA_KARAKA_STHANA were added
+ * 2026-07 with DRAFT content (see the doc comment on their DOSHAM_DETAILS
+ * entries above) — pending astrologer/content-author sign-off, not yet
+ * final.
+ */
+export const DOSHAM_ENGINE_NAME_TO_GUIDE_SLUG: Record<string, string> = {
+  SEVVAI_DOSHAM: "sevvai-dosham",
+  PITRU_DOSHAM: "pithru-dosham",
+  KALATHRA_DOSHAM: "kalathra-dosham",
+  KALASARPA: "kala-sarpa-dosham",
+  PUTRA_SARPA_DOSHAM: "naga-sarpa-dosham",
+  RAHU_KETU_DOSHAM: "rahu-ketu-dosham",
+  BADHAKA_DOSHAM: "badhaka-dosham",
+  MARANA_KARAKA_STHANA: "marana-karaka-sthana",
+};
+
+export function getDoshamGuideForEngineName(name: string): GuideDetail | undefined {
+  const slug = DOSHAM_ENGINE_NAME_TO_GUIDE_SLUG[name.toUpperCase()];
+  return slug ? DOSHAM_DETAILS[slug] : undefined;
+}
+
+/**
+ * Slugs with real GuideDetail content that is NOT yet astrologer/content-
+ * author reviewed (see the DRAFT doc comments on their DOSHAM_DETAILS
+ * entries). Intentionally still returned by getGuideDetail/
+ * getDoshamGuideForEngineName — the signed-in dashboard's "Full dosham
+ * guide" card (an authenticated, in-app surface) is exactly what "draft for
+ * review" was scoped to reach. What this set exists to gate is the public,
+ * unauthenticated, search-indexed surface: web/app/dosham/[slug]/page.tsx
+ * builds a real SEO page (title/description/JSON-LD) for every
+ * DOSHAM_DETAILS key via generateStaticParams(), so without this check
+ * these 3 would go live and get indexed the moment this ships — a bigger
+ * blast radius than "reachable in the dashboard once logged in." That page
+ * checks this set directly; nothing else should need to.
+ */
+export const DRAFT_GUIDE_SLUGS = new Set<string>(["rahu-ketu-dosham", "badhaka-dosham", "marana-karaka-sthana"]);
 
 export const YOGAM_DETAILS: Record<string, GuideDetail> = {
   "gaja-kesari-yogam": {
@@ -1037,6 +1406,39 @@ export const YOGAM_DETAILS: Record<string, GuideDetail> = {
     ],
   },
 };
+
+/**
+ * Maps the engine's yoga enum names (ChartYogaInsight.name, e.g.
+ * "GAJA_KESARI_YOGA") to the guide-content slug that carries deep,
+ * marketing-grade explanation — same purpose as
+ * DOSHAM_ENGINE_NAME_TO_GUIDE_SLUG above, for the Yogam side. Only yogas
+ * with a real YOGAM_DETAILS entry are listed; the ~20 other yoga types the
+ * engine detects (Parivartana, Kemadruma, Ruchaka, etc.) have no deep guide
+ * content yet — callers should treat a missing mapping as "no full guide
+ * available", not fall back to a wrong/unrelated topic. Keys are tried
+ * directly first (the engine only ever emits GAJA_KESARI_YOGA), with the
+ * same defensive "GAJA_KESARI" -> "GAJA_KESARI_YOGA" fallback `displayName`
+ * in dashboard-yoga-dosham-panel.tsx uses for a hypothetical bare
+ * "GAJA_KESARI" input — unlike `NovaYogaCard`'s own local key lookup, this
+ * does NOT apply that replace unconditionally: doing so turns the real
+ * value "GAJA_KESARI_YOGA" into "GAJA_KESARI_YOGA_YOGA" (the replace
+ * matches the leading substring and appends the replacement after it),
+ * silently missing every lookup for the one yoga name that's actually ever
+ * emitted.
+ */
+export const YOGA_ENGINE_NAME_TO_GUIDE_SLUG: Record<string, string> = {
+  GAJA_KESARI_YOGA: "gaja-kesari-yogam",
+  DHANA_YOGA: "dhana-yogam",
+  BUDHA_ADITYA_YOGA: "budha-aditya-yogam",
+  NEECHA_BHANGA_RAJA_YOGA: "neecha-bhanga-raja-yogam",
+  RAJA_YOGA: "raja-yogam",
+};
+
+export function getYogaGuideForEngineName(name: string): GuideDetail | undefined {
+  const key = name.toUpperCase();
+  const slug = YOGA_ENGINE_NAME_TO_GUIDE_SLUG[key] ?? YOGA_ENGINE_NAME_TO_GUIDE_SLUG[key.replace("GAJA_KESARI", "GAJA_KESARI_YOGA")];
+  return slug ? YOGAM_DETAILS[slug] : undefined;
+}
 
 export const TEMPLE_DETAILS: Record<string, GuideDetail> = {
   "suryanar-koil": {
