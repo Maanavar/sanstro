@@ -160,14 +160,17 @@ export default async function RootLayout({
   return (
     <html
       lang={initialLang}
+      data-ui="nova"
       suppressHydrationWarning
       className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable} ${notoSansTamil.variable}`}
     >
       <head>
         <meta charSet="utf-8" />
         <meta name="color-scheme" content="light dark" />
-        {/* Apply saved theme before first paint to prevent flash of wrong theme */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem("vinaadi-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);var u=localStorage.getItem("vinaadi-ui-variant");if(u==="nova")document.documentElement.setAttribute("data-ui",u);}catch(e){}})();` }} />
+        {/* Apply saved theme before first paint to prevent flash of wrong theme.
+            data-ui="nova" is set statically on <html> above (Nova is the only
+            dashboard look now — see docs/NOVA_ONLY_MIGRATION_PLAN.md Phase 3). */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem("vinaadi-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}})();` }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG_JSONLD) }}
