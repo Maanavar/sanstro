@@ -5,9 +5,8 @@ import { useEffect, useState } from "react";
 const STORAGE_KEY = "vinaadi-evening-preview";
 
 /** Persists the Nova Today tab's "switch to tomorrow's preview after 8pm"
- *  toggle — same localStorage-hydration shape as useUiVariant. Defaults to
- *  on; users who don't want the evening switch can turn it off once and it
- *  sticks. */
+ *  toggle via localStorage-hydration. Defaults to on; users who don't want
+ *  the evening switch can turn it off once and it sticks. */
 export function useEveningPreview() {
   const [enabled, setEnabledState] = useState(true);
 

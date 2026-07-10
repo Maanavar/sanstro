@@ -102,9 +102,9 @@ test.beforeAll(async ({ browser }) => {
   // Free-tier family vaults cap at 1 additional member ("Family Vault limit reached (1
   // profile)"), so this synthetic account intentionally stops at owner + spouse.
 
-  await context.addInitScript(() => {
-    window.localStorage.setItem("vinaadi-ui-variant", "nova");
-  });
+  // Nova is now the only dashboard look (data-ui="nova" is set statically in
+  // app/layout.tsx — see docs/NOVA_ONLY_MIGRATION_PLAN.md Phase 3), so no
+  // localStorage forcing is needed.
 
   page = await context.newPage();
   page.on("console", (msg) => {

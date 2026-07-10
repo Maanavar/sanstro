@@ -43,7 +43,7 @@ test.beforeAll(async ({ browser }) => {
       birthLatitude: 9.9252, birthLongitude: 78.1198, genderForTraditionalRules: "female" },
     headers: CSRF_HEADERS,
   });
-  await context.addInitScript(() => window.localStorage.setItem("vinaadi-ui-variant", "nova"));
+  // Nova is the only dashboard look now (data-ui="nova" set in app/layout.tsx).
   page = await context.newPage();
   await page.goto("/dashboard");
   await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => {});
