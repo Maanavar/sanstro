@@ -8,7 +8,8 @@ import { LANG_STORAGE_KEY } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ChartCalculateResponseData, ChartSummaryData, DashaTimelineResponseData } from "@/lib/types";
 import { RasiChart, NavamsaChart } from "@/components/dashboard-charts";
-import { Field, PlaceCombobox } from "@/components/dashboard-ui";
+import { Field } from "@/components/dashboard-ui";
+import { PlaceCombobox } from "@/components/place-combobox";
 import {
   buildD1CellDetail,
   buildD9CellDetail,
@@ -259,7 +260,7 @@ function PrintRasiChart({ chart, d9LagnaRasi }: { chart: ChartCalculateResponseD
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
-              background: isLagna ? "var(--panel-cream)" : "var(--color-surface)",
+              background: isLagna ? "var(--color-mid-bg)" : "var(--color-surface)",
               position: "relative",
               minHeight: `${cellPx}px`,
             }}
@@ -273,7 +274,7 @@ function PrintRasiChart({ chart, d9LagnaRasi }: { chart: ChartCalculateResponseD
                 height: 0,
                 borderStyle: "solid",
                 borderWidth: "0 12px 12px 0",
-                borderColor: "transparent var(--chart-amber) transparent transparent",
+                borderColor: "transparent var(--color-accent) transparent transparent",
               }} />
             )}
             <span style={{ color: "var(--color-faint)", fontSize: "6.5px" }}>{RASI_NAMES_TA[rasi]}</span>
@@ -293,7 +294,7 @@ function PrintRasiChart({ chart, d9LagnaRasi }: { chart: ChartCalculateResponseD
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "var(--panel-cream)",
+        background: "var(--color-mid-bg)",
         padding: "4px",
       }}>
         <div style={{ textAlign: "center", fontSize: "7px", color: "var(--color-text)", lineHeight: 1.4 }}>
@@ -626,10 +627,11 @@ export default function ChartGeneratePage() {
 
   return (
     <div
+      className="cd-shell"
       style={{
         minHeight: "100vh",
-        background: printMode ? "var(--color-surface)" : "linear-gradient(180deg, var(--panel-warm-light) 0%, var(--surface-0) 92%)",
-        color: printMode ? "var(--color-text)" : "var(--text-primary)",
+        background: printMode ? "var(--color-surface)" : "var(--nova-hero-gradient, linear-gradient(180deg, var(--panel-warm-light) 0%, var(--surface-0) 92%))",
+        color: printMode ? "var(--color-text)" : "var(--color-text-strong)",
         padding: "24px 16px 42px",
       }}
     >
@@ -688,7 +690,7 @@ export default function ChartGeneratePage() {
               background: "transparent",
               border: "1px solid var(--color-border)",
               borderRadius: "8px",
-              color: "var(--text-secondary)",
+              color: "var(--color-muted)",
               padding: "6px 12px",
               fontSize: "0.8rem",
               cursor: "pointer",
@@ -696,7 +698,7 @@ export default function ChartGeneratePage() {
           >
             {"<-"} Back
           </button>
-          <h1 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>Generate Anyone&apos;s Chart</h1>
+          <h1 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "var(--color-text-strong)" }}>Generate Anyone&apos;s Chart</h1>
         </div>
 
         <p className="no-print" style={{ margin: 0, fontSize: "0.8rem", color: "var(--color-faint)" }}>
@@ -788,9 +790,9 @@ export default function ChartGeneratePage() {
 
         {chart && (
           <div className="card print-card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px", border: "1px solid var(--color-border)" }}>
-            <div style={{ padding: "12px 14px", borderRadius: "10px", background: "var(--panel-warm-gold)", border: "1px solid var(--panel-golden)" }}>
-              <p style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: "var(--chart-amber)" }}>{chart.birthProfile.displayName}</p>
-              <p style={{ margin: "2px 0 0", fontSize: "0.82rem", color: "var(--text-secondary)" }}>{chart.birthProfile.birthDateLocal}</p>
+            <div style={{ padding: "12px 14px", borderRadius: "10px", background: "var(--color-mid-bg)", border: "1px solid var(--color-mid-border)" }}>
+              <p style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: "var(--color-mid)" }}>{chart.birthProfile.displayName}</p>
+              <p style={{ margin: "2px 0 0", fontSize: "0.82rem", color: "var(--color-muted)" }}>{chart.birthProfile.birthDateLocal}</p>
             </div>
 
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -822,9 +824,9 @@ export default function ChartGeneratePage() {
                     fontSize: "0.74rem",
                     fontWeight: 700,
                     cursor: "pointer",
-                    border: view === v ? "1px solid var(--panel-golden)" : "1px solid var(--color-border)",
-                    background: view === v ? "var(--panel-warm-gold)" : "transparent",
-                    color: view === v ? "var(--chart-amber)" : "var(--color-text)",
+                    border: view === v ? "1px solid var(--color-accent)" : "1px solid var(--color-border)",
+                    background: view === v ? "var(--color-mid-bg)" : "transparent",
+                    color: view === v ? "var(--color-accent)" : "var(--color-text)",
                   }}
                 >
                   {v === "D1" ? t("label_d1", lang) : t("label_d9", lang)}

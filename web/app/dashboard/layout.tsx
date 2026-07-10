@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Source_Serif_4 } from "next/font/google";
 import type { ReactNode } from "react";
+// Loaded here (not just app/dashboard/page.tsx) so the standalone routes under
+// /dashboard/* (reports, goals, chart-generate, daily-score, porutham, wrapped)
+// also get .cd-shell's real Classic/Nova color system instead of falling through
+// to globals.css's unrelated "Clarity" .cd-shell block (same class name, a
+// different, always-light, unscoped legacy component-styling layer).
+import "./dashboard.css";
+import "./dashboard-nova.css";
 
 export const metadata: Metadata = {
   // Used as the browser tab label and, importantly, as the header stamped onto

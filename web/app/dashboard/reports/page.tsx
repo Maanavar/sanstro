@@ -91,21 +91,21 @@ export default function ReportsPage() {
       cursor: btnDisabled(productId) ? "default" : "pointer",
     };
     if (state === "queued") {
-      return { ...base, background: "var(--panel-green, #2d6a4f)", color: "#fff", opacity: 0.9 };
+      return { ...base, background: "var(--color-positive, #2d6a4f)", color: "#fff", opacity: 0.9 };
     }
     if (state === "error") {
-      return { ...base, background: "var(--panel-red, #9b2226)", color: "#fff" };
+      return { ...base, background: "var(--color-alert-critical, #9b2226)", color: "#fff" };
     }
     return {
       ...base,
-      background: state === "loading" ? "var(--panel-earth-dark)" : "var(--chart-amber, #d4a017)",
+      background: state === "loading" ? "var(--color-surface-3)" : "var(--color-accent, #d4a017)",
       color: "#fff",
       opacity: state === "loading" ? 0.7 : 1,
     };
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--surface-0)", color: "var(--color-text)", padding: "24px 16px 48px" }}>
+    <div className="cd-shell" style={{ minHeight: "100vh", background: "var(--color-bg)", color: "var(--color-text)", padding: "24px 16px 48px" }}>
       <div style={{ maxWidth: "820px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "28px" }}>
 
         {/* Header */}
@@ -113,15 +113,15 @@ export default function ReportsPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            style={{ background: "transparent", border: "1px solid var(--color-border)", borderRadius: "8px", color: "var(--text-secondary)", padding: "6px 12px", fontSize: "0.8rem", cursor: "pointer" }}
+            style={{ background: "transparent", border: "1px solid var(--color-border)", borderRadius: "8px", color: "var(--color-muted)", padding: "6px 12px", fontSize: "0.8rem", cursor: "pointer" }}
           >
             ← {ta ? "திரும்பு" : "Back"}
           </button>
           <div>
-            <h1 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700 }}>
+            <h1 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
               {ta ? "அறிக்கைகளை வாங்கு" : "Buy Reports"}
             </h1>
-            <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+            <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "var(--color-muted)" }}>
               {ta
                 ? "ஒவ்வொரு வாங்குதலும் ஒரு முறை மட்டுமே — மாத சந்தா தேவையில்லை."
                 : "One-time purchase per report — no subscription required."}
@@ -130,7 +130,7 @@ export default function ReportsPage() {
         </div>
 
         {/* Notice banner */}
-        <div style={{ padding: "12px 16px", borderRadius: "10px", background: "var(--panel-warm-tint)", border: "1px solid var(--panel-golden)", fontSize: "0.82rem", color: "var(--panel-earth)" }}>
+        <div style={{ padding: "12px 16px", borderRadius: "10px", background: "var(--color-mid-bg)", border: "1px solid var(--color-mid-border)", fontSize: "0.82rem", color: "var(--color-text)" }}>
           {ta
             ? "💳 கட்டண செயல்முறை விரைவில் இயக்கப்படும். இப்போது, வரிசையில் இணைவதற்கு கீழே உள்ள வாங்கு பொத்தானை அழுத்துங்கள்."
             : "💳 Payment processing coming soon. Press Buy to join the waitlist for your chosen report."}
@@ -156,24 +156,24 @@ export default function ReportsPage() {
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700 }}>
+                    <h3 style={{ margin: 0, fontSize: "0.95rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
                       {ta ? product.label.ta : product.label.en}
                     </h3>
-                    <span style={{ fontSize: "1.25rem", fontWeight: 800, color: "var(--chart-amber)", whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: "1.25rem", fontWeight: 800, color: "var(--color-accent-strong)", whiteSpace: "nowrap" }}>
                       ₹{product.priceINR}
                     </span>
                   </div>
                   {"pages" in product && (
-                    <span style={{ fontSize: "0.7rem", fontWeight: 700, padding: "2px 8px", borderRadius: "4px", background: "var(--panel-warm-gold)", color: "var(--panel-earth)", alignSelf: "flex-start" }}>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 700, padding: "2px 8px", borderRadius: "4px", background: "var(--color-mid-bg)", color: "var(--color-mid)", alignSelf: "flex-start" }}>
                       {product.pages} {ta ? "பக்கம்" : "pages"}
                     </span>
                   )}
                   {"questions" in product && (
-                    <span style={{ fontSize: "0.7rem", fontWeight: 700, padding: "2px 8px", borderRadius: "4px", background: "var(--panel-warm-gold)", color: "var(--panel-earth)", alignSelf: "flex-start" }}>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 700, padding: "2px 8px", borderRadius: "4px", background: "var(--color-mid-bg)", color: "var(--color-mid)", alignSelf: "flex-start" }}>
                       {product.questions} {ta ? "கேள்விகள்" : "questions"}
                     </span>
                   )}
-                  <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-secondary)", lineHeight: 1.55 }}>
+                  <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
                     {ta ? product.description.ta : product.description.en}
                   </p>
                   <button
@@ -191,16 +191,16 @@ export default function ReportsPage() {
         ))}
 
         {/* Upgrade CTA */}
-        <div style={{ padding: "20px", borderRadius: "14px", background: "var(--cl-bg-2)", border: "1px solid var(--panel-tan)", textAlign: "center" }}>
-          <p style={{ margin: "0 0 8px", fontWeight: 700 }}>
+        <div style={{ padding: "20px", borderRadius: "14px", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", textAlign: "center" }}>
+          <p style={{ margin: "0 0 8px", fontWeight: 700, color: "var(--color-text-strong)" }}>
             {ta ? "பிரீமியம் திட்டத்தில் மாதம் 5 விரிவான அறிக்கைகள் இலவசம்" : "Premium plan includes 5 detailed reports per month"}
           </p>
-          <p style={{ margin: "0 0 14px", fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+          <p style={{ margin: "0 0 14px", fontSize: "0.82rem", color: "var(--color-muted)" }}>
             {ta ? "மாத ₹149 அல்லது வருட ₹999 — 7 நாள் இலவச சோதனை" : "₹149/month or ₹999/year — 7-day free trial"}
           </p>
           <Link
             href="/pricing"
-            style={{ padding: "10px 22px", borderRadius: "999px", background: "var(--panel-earth-dark)", color: "var(--panel-hover)", fontWeight: 600, fontSize: "0.88rem", textDecoration: "none", display: "inline-block" }}
+            style={{ padding: "10px 22px", borderRadius: "999px", background: "var(--color-accent)", color: "var(--color-on-accent)", fontWeight: 600, fontSize: "0.88rem", textDecoration: "none", display: "inline-block" }}
           >
             {ta ? "பிரீமியம் பார்க்க →" : "View Premium →"}
           </Link>

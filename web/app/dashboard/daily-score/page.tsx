@@ -48,7 +48,7 @@ function ScoreRing({ score }: { score: number }) {
         style={{ transition: "stroke-dasharray 0.6s ease" }}
       />
       <text x="55" y="58" textAnchor="middle" dominantBaseline="middle" style={{ fontFamily: "inherit", fontSize: "1.6rem", fontWeight: 800, fill: color }}>{score}</text>
-      <text x="55" y="74" textAnchor="middle" style={{ fontFamily: "inherit", fontSize: "0.6rem", fill: "var(--text-secondary)" }}>/100</text>
+      <text x="55" y="74" textAnchor="middle" style={{ fontFamily: "inherit", fontSize: "0.6rem", fill: "var(--color-muted)" }}>/100</text>
     </svg>
   );
 }
@@ -66,7 +66,7 @@ function BreakdownBar({ value, max, label, labelTa, desc, descTa, ta }: {
         <span style={{ fontWeight: 700, fontSize: "0.85rem" }}>{ta ? labelTa : label}</span>
         <span style={{ fontWeight: 800, fontSize: "1rem", color: isNegative ? "var(--color-score-low, #A8482F)" : "var(--color-text)" }}>
           {value}
-          {max > 0 && <span style={{ fontWeight: 400, fontSize: "0.72rem", color: "var(--text-secondary)", marginLeft: "2px" }}>/{max}</span>}
+          {max > 0 && <span style={{ fontWeight: 400, fontSize: "0.72rem", color: "var(--color-muted)", marginLeft: "2px" }}>/{max}</span>}
         </span>
       </div>
       {max > 0 && (
@@ -74,7 +74,7 @@ function BreakdownBar({ value, max, label, labelTa, desc, descTa, ta }: {
           <div style={{ height: "100%", borderRadius: "3px", width: `${Math.round(pct * 100)}%`, background: color, transition: "width 0.5s ease" }} />
         </div>
       )}
-      <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: 1.55 }}>
+      <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
         {ta ? descTa : desc}
       </p>
     </div>
@@ -125,7 +125,7 @@ export default function DailyScorePage() {
   const today = todayIso();
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--surface-0)", color: "var(--color-text)", padding: "24px 16px 48px" }}>
+    <div className="cd-shell" style={{ minHeight: "100vh", background: "var(--color-bg)", color: "var(--color-text)", padding: "24px 16px 48px" }}>
       <div style={{ maxWidth: "680px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "20px" }}>
 
         {/* Header */}
@@ -133,26 +133,26 @@ export default function DailyScorePage() {
           <button
             type="button"
             onClick={() => router.back()}
-            style={{ background: "transparent", border: "1px solid var(--color-border)", borderRadius: "8px", color: "var(--text-secondary)", padding: "6px 12px", fontSize: "0.8rem", cursor: "pointer" }}
+            style={{ background: "transparent", border: "1px solid var(--color-border)", borderRadius: "8px", color: "var(--color-muted)", padding: "6px 12px", fontSize: "0.8rem", cursor: "pointer" }}
           >
             ← {ta ? "திரும்பு" : "Back"}
           </button>
           <div>
-            <h1 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>
+            <h1 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
               {ta ? "இன்றைய மதிப்பெண்" : "Today's Score"}
             </h1>
-            <p style={{ margin: "1px 0 0", fontSize: "0.75rem", color: "var(--text-secondary)" }}>{today}</p>
+            <p style={{ margin: "1px 0 0", fontSize: "0.75rem", color: "var(--color-muted)" }}>{today}</p>
           </div>
         </div>
 
         {loading && (
-          <div style={{ height: "200px", borderRadius: "14px", background: "var(--color-surface)", border: "1px solid var(--color-border)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)", fontSize: "0.85rem" }}>
+          <div style={{ height: "200px", borderRadius: "14px", background: "var(--color-surface)", border: "1px solid var(--color-border)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-muted)", fontSize: "0.85rem" }}>
             {ta ? "ஏற்றுகிறது…" : "Loading…"}
           </div>
         )}
 
         {error && (
-          <div style={{ padding: "16px", borderRadius: "10px", background: "var(--panel-warm-tint)", border: "1px solid var(--color-border)", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+          <div style={{ padding: "16px", borderRadius: "10px", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", fontSize: "0.85rem", color: "var(--color-text)" }}>
             {error}
           </div>
         )}
@@ -160,7 +160,7 @@ export default function DailyScorePage() {
         {guidance && breakdown && (
           <>
             {/* Score hero */}
-            <div style={{ padding: "28px 24px", borderRadius: "16px", background: "var(--panel-earth-dark)", color: "var(--panel-hover)", display: "flex", gap: "24px", alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ padding: "28px 24px", borderRadius: "16px", background: "var(--nova-hero-gradient, var(--color-surface-3))", color: "var(--color-text-strong)", display: "flex", gap: "24px", alignItems: "center", flexWrap: "wrap" }}>
               <ScoreRing score={score} />
               <div style={{ flex: 1, minWidth: "160px" }}>
                 <p style={{ margin: "0 0 4px", fontSize: "0.75rem", opacity: 0.78, textTransform: "uppercase", letterSpacing: "0.06em" }}>
@@ -173,7 +173,7 @@ export default function DailyScorePage() {
                   {ta ? guidance.text.ta : guidance.text.en}
                 </p>
                 {guidance.isChandrashtama && (
-                  <p style={{ margin: "10px 0 0", fontSize: "0.75rem", padding: "6px 10px", borderRadius: "8px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}>
+                  <p style={{ margin: "10px 0 0", fontSize: "0.75rem", padding: "6px 10px", borderRadius: "8px", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)" }}>
                     ⚠ {ta ? "சந்திராஷ்டமம் செயல்பாட்டில் உள்ளது" : "Chandrashtamam active"}
                   </p>
                 )}
@@ -182,7 +182,7 @@ export default function DailyScorePage() {
 
             {/* Score breakdown */}
             <div>
-              <p style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.9rem" }}>
+              <p style={{ margin: "0 0 12px", fontWeight: 700, fontSize: "0.9rem", color: "var(--color-text-strong)" }}>
                 {ta ? "மதிப்பெண் விவரம்" : "Score Breakdown"}
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -227,8 +227,8 @@ export default function DailyScorePage() {
 
             {/* Remedy */}
             {(guidance.remedy.en || guidance.remedy.ta) && (
-              <div style={{ padding: "16px", borderRadius: "12px", background: "var(--panel-warm-tint)", border: "1px solid var(--panel-golden, var(--color-border))" }}>
-                <p style={{ margin: "0 0 6px", fontSize: "0.7rem", fontWeight: 700, color: "var(--panel-earth, var(--color-text))", textTransform: "uppercase" }}>
+              <div style={{ padding: "16px", borderRadius: "12px", background: "var(--color-mid-bg)", border: "1px solid var(--color-mid-border)" }}>
+                <p style={{ margin: "0 0 6px", fontSize: "0.7rem", fontWeight: 700, color: "var(--color-mid)", textTransform: "uppercase" }}>
                   {ta ? "பரிகாரம்" : "Remedy"}
                 </p>
                 <p style={{ margin: 0, fontSize: "0.83rem", lineHeight: 1.6 }}>

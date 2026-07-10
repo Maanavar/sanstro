@@ -124,7 +124,7 @@ export default function GoalsPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--surface-0)", color: "var(--color-text)", padding: "24px 16px 48px" }}>
+    <div className="cd-shell" style={{ minHeight: "100vh", background: "var(--color-bg)", color: "var(--color-text)", padding: "24px 16px 48px" }}>
       <div style={{ maxWidth: "640px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "20px" }}>
 
         {/* Header */}
@@ -132,23 +132,23 @@ export default function GoalsPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            style={{ background: "transparent", border: "1px solid var(--color-border)", borderRadius: "8px", color: "var(--text-secondary)", padding: "6px 12px", fontSize: "0.8rem", cursor: "pointer" }}
+            style={{ background: "transparent", border: "1px solid var(--color-border)", borderRadius: "8px", color: "var(--color-muted)", padding: "6px 12px", fontSize: "0.8rem", cursor: "pointer" }}
           >
             ← {ta ? "திரும்பு" : "Back"}
           </button>
-          <h1 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>
+          <h1 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
             {ta ? "என் இலக்குகள்" : "My Goals"}
           </h1>
         </div>
 
         {error && (
-          <div style={{ padding: "12px 16px", borderRadius: "10px", background: "var(--panel-warm-tint)", border: "1px solid var(--color-border)", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+          <div style={{ padding: "12px 16px", borderRadius: "10px", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", fontSize: "0.85rem", color: "var(--color-text)" }}>
             {error}
           </div>
         )}
 
         {loading && (
-          <div style={{ height: "120px", borderRadius: "12px", background: "var(--color-surface)", border: "1px solid var(--color-border)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)", fontSize: "0.85rem" }}>
+          <div style={{ height: "120px", borderRadius: "12px", background: "var(--color-surface)", border: "1px solid var(--color-border)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-muted)", fontSize: "0.85rem" }}>
             {ta ? "ஏற்றுகிறது…" : "Loading…"}
           </div>
         )}
@@ -163,7 +163,7 @@ export default function GoalsPage() {
                 style={{
                   padding: "12px 20px", borderRadius: "12px",
                   border: "2px dashed var(--color-border)",
-                  background: "transparent", color: "var(--text-secondary)",
+                  background: "transparent", color: "var(--color-muted)",
                   fontWeight: 600, fontSize: "0.88rem", cursor: "pointer",
                   textAlign: "center",
                 }}
@@ -175,7 +175,7 @@ export default function GoalsPage() {
             {/* Create form */}
             {showCreate && (
               <div style={{ padding: "20px", borderRadius: "14px", background: "var(--color-surface)", border: "1px solid var(--color-border)", display: "flex", flexDirection: "column", gap: "14px" }}>
-                <p style={{ margin: 0, fontWeight: 700, fontSize: "0.95rem" }}>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: "0.95rem", color: "var(--color-text-strong)" }}>
                   {ta ? "இலக்கு வகை தேர்ந்தெடுக்கவும்" : "Select goal type"}
                 </p>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: "8px" }}>
@@ -186,8 +186,8 @@ export default function GoalsPage() {
                       onClick={() => setSelectedType(g.key)}
                       style={{
                         padding: "10px 6px", borderRadius: "10px", cursor: "pointer",
-                        border: selectedType === g.key ? "2px solid var(--chart-amber)" : "1px solid var(--color-border)",
-                        background: selectedType === g.key ? "var(--panel-warm-tint)" : "transparent",
+                        border: selectedType === g.key ? "2px solid var(--color-accent)" : "1px solid var(--color-border)",
+                        background: selectedType === g.key ? "var(--color-mid-bg)" : "transparent",
                         fontWeight: selectedType === g.key ? 700 : 400,
                         fontSize: "0.8rem", color: "var(--color-text)", textAlign: "center",
                       }}
@@ -199,7 +199,7 @@ export default function GoalsPage() {
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <label style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text-secondary)" }}>
+                  <label style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--color-muted)" }}>
                     {ta ? "விரிவான விளக்கம் (விருப்பப்படி)" : "Description (optional)"}
                   </label>
                   <textarea
@@ -210,7 +210,7 @@ export default function GoalsPage() {
                     style={{
                       width: "100%", boxSizing: "border-box", padding: "10px 12px",
                       borderRadius: "8px", border: "1px solid var(--color-border)",
-                      background: "var(--surface-0)", color: "var(--color-text)",
+                      background: "var(--color-bg)", color: "var(--color-text)",
                       fontSize: "0.85rem", resize: "vertical",
                     }}
                   />
@@ -229,7 +229,7 @@ export default function GoalsPage() {
                   <button
                     type="button"
                     onClick={() => { setShowCreate(false); setSelectedType(""); setDescription(""); }}
-                    style={{ padding: "10px 16px", borderRadius: "8px", border: "1px solid var(--color-border)", background: "transparent", color: "var(--text-secondary)", fontSize: "0.85rem", cursor: "pointer" }}
+                    style={{ padding: "10px 16px", borderRadius: "8px", border: "1px solid var(--color-border)", background: "transparent", color: "var(--color-muted)", fontSize: "0.85rem", cursor: "pointer" }}
                   >
                     {ta ? "ரத்து" : "Cancel"}
                   </button>
@@ -241,10 +241,10 @@ export default function GoalsPage() {
             {goals.length === 0 && !showCreate && (
               <div style={{ padding: "40px 24px", borderRadius: "14px", background: "var(--color-surface)", border: "1px solid var(--color-border)", textAlign: "center" }}>
                 <p style={{ margin: "0 0 8px", fontSize: "2rem" }}>🌱</p>
-                <p style={{ margin: "0 0 6px", fontWeight: 700 }}>
+                <p style={{ margin: "0 0 6px", fontWeight: 700, color: "var(--color-text-strong)" }}>
                   {ta ? "இன்னும் இலக்குகள் இல்லை" : "No goals yet"}
                 </p>
-                <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.82rem" }}>
+                <p style={{ margin: 0, color: "var(--color-muted)", fontSize: "0.82rem" }}>
                   {ta
                     ? "ஒரு இலக்கு சேர்க்கவும் — Vinaadi உங்கள் ஜாதகம் அந்த இலக்கை எவ்வாறு ஆதரிக்கிறது என்று காட்டும்."
                     : "Add a goal and Vinaadi will show how your chart supports it with daily and dasha context."}
@@ -260,15 +260,15 @@ export default function GoalsPage() {
                 >
                   <span style={{ fontSize: "1.6rem" }}>{GOAL_ICONS[goal.goalType] ?? "⭐"}</span>
                   <div style={{ flex: 1 }}>
-                    <p style={{ margin: "0 0 3px", fontWeight: 700, fontSize: "0.95rem" }}>
+                    <p style={{ margin: "0 0 3px", fontWeight: 700, fontSize: "0.95rem", color: "var(--color-text-strong)" }}>
                       {GOAL_TYPE_LABEL(goal.goalType)}
                     </p>
                     {goal.description && (
-                      <p style={{ margin: "0 0 4px", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                      <p style={{ margin: "0 0 4px", fontSize: "0.8rem", color: "var(--color-muted)" }}>
                         {goal.description}
                       </p>
                     )}
-                    <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-tertiary)" }}>
+                    <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--color-faint)" }}>
                       {new Date(goal.createdAt).toLocaleDateString(ta ? "ta-IN" : "en-IN", { year: "numeric", month: "short", day: "numeric" })}
                     </p>
                   </div>
@@ -276,7 +276,7 @@ export default function GoalsPage() {
                     type="button"
                     onClick={() => void handleDeactivate(goal.goalId)}
                     title={ta ? "நீக்கவும்" : "Remove"}
-                    style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--text-secondary)", fontSize: "1rem", padding: "4px 8px", borderRadius: "6px", opacity: 0.55 }}
+                    style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--color-muted)", fontSize: "1rem", padding: "4px 8px", borderRadius: "6px", opacity: 0.55 }}
                     aria-label={ta ? "நீக்கவும்" : "Remove goal"}
                   >
                     ×

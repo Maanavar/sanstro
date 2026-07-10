@@ -61,7 +61,7 @@ export default function WrappedPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--surface-0)", color: "var(--color-text)", padding: "24px 16px 48px" }}>
+    <div className="cd-shell" style={{ minHeight: "100vh", background: "var(--color-bg)", color: "var(--color-text)", padding: "24px 16px 48px" }}>
       <div style={{ maxWidth: "640px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "20px" }}>
 
         {/* Header */}
@@ -69,15 +69,15 @@ export default function WrappedPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            style={{ background: "transparent", border: "1px solid var(--color-border)", borderRadius: "8px", color: "var(--text-secondary)", padding: "6px 12px", fontSize: "0.8rem", cursor: "pointer" }}
+            style={{ background: "transparent", border: "1px solid var(--color-border)", borderRadius: "8px", color: "var(--color-muted)", padding: "6px 12px", fontSize: "0.8rem", cursor: "pointer" }}
           >
             ← {ta ? "திரும்பு" : "Back"}
           </button>
           <div style={{ flex: 1 }}>
-            <h1 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>
+            <h1 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
               {ta ? `${wrappedYear} ஆண்டு சுருக்கம்` : `${wrappedYear} Year in Review`}
             </h1>
-            <p style={{ margin: "1px 0 0", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+            <p style={{ margin: "1px 0 0", fontSize: "0.75rem", color: "var(--color-muted)" }}>
               {ta ? "ஆண்டு ராப்ட்" : "Annual Wrapped"}
             </p>
           </div>
@@ -85,7 +85,7 @@ export default function WrappedPage() {
         </div>
 
         {loading && (
-          <div style={{ height: "300px", borderRadius: "16px", background: "var(--panel-earth-dark)", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.6)", fontSize: "0.85rem" }}>
+          <div style={{ height: "300px", borderRadius: "16px", background: "var(--nova-hero-gradient, var(--color-surface-3))", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-muted)", fontSize: "0.85rem" }}>
             {ta ? "ஏற்றுகிறது…" : "Loading your year…"}
           </div>
         )}
@@ -93,10 +93,10 @@ export default function WrappedPage() {
         {error && (
           <div style={{ padding: "20px", borderRadius: "14px", background: "var(--color-surface)", border: "1px solid var(--color-border)", textAlign: "center" }}>
             <p style={{ margin: "0 0 8px", fontSize: "1.2rem" }}>📅</p>
-            <p style={{ margin: "0 0 6px", fontWeight: 700 }}>
+            <p style={{ margin: "0 0 6px", fontWeight: 700, color: "var(--color-text-strong)" }}>
               {ta ? "ஆண்டு சுருக்கம் இல்லை" : "Annual Wrapped not available"}
             </p>
-            <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.82rem" }}>
+            <p style={{ margin: 0, color: "var(--color-muted)", fontSize: "0.82rem" }}>
               {ta
                 ? `${wrappedYear} ஆண்டுக்கான தரவு இன்னும் கிடைக்கவில்லை. இந்த ஆண்டு முடிவில் மீண்டும் பாருங்கள்.`
                 : `Data for ${wrappedYear} isn't available yet. Check back at year-end.`}
@@ -113,7 +113,10 @@ export default function WrappedPage() {
                   minHeight: "320px",
                   borderRadius: "20px",
                   padding: "32px 28px",
-                  background: slide.accentColor || "var(--panel-earth-dark)",
+                  // Story-slide card is a deliberately theme-invariant vivid motif (like
+                  // Spotify Wrapped) — fixed dark plum fallback + white text stay legible
+                  // regardless of Nova Light/Dark, unlike the rest of this page's chrome.
+                  background: slide.accentColor || "#2c2338",
                   color: "#fff",
                   display: "flex",
                   flexDirection: "column",
@@ -193,12 +196,12 @@ export default function WrappedPage() {
                   { label: ta ? "உயர் நாட்கள்"    : "High days",        value: wrapped.highDays.toString(), accent: "var(--color-score-high, #5C7654)" },
                   { label: ta ? "எச்சரிக்கை நாட்கள்" : "Caution days", value: wrapped.cautionDays.toString(), accent: "var(--color-score-low, #A8482F)" },
                   { label: ta ? "உச்ச மதிப்பெண்"  : "Peak score",       value: `${wrapped.peakScore} (${formatDate(wrapped.peakDate)})`, accent: "var(--color-score-high, #5C7654)" },
-                  { label: ta ? "கணிக்கப்பட்ட நாட்கள்" : "Days scored",  value: wrapped.totalDaysScored.toString(), accent: "var(--text-secondary)" },
-                  { label: ta ? "முதன்மை தசை"    : "Dominant dasha",   value: `${PLANET_EMOJI[wrapped.dominantDashaLord] ?? "⭐"} ${wrapped.dominantDashaLord}`, accent: "var(--chart-amber)" },
-                  ...(wrapped.topLifeArea ? [{ label: ta ? "முதன்மை வாழ்க்கை பகுதி" : "Top life area", value: wrapped.topLifeArea, accent: "var(--text-secondary)" }] : []),
+                  { label: ta ? "கணிக்கப்பட்ட நாட்கள்" : "Days scored",  value: wrapped.totalDaysScored.toString(), accent: "var(--color-muted)" },
+                  { label: ta ? "முதன்மை தசை"    : "Dominant dasha",   value: `${PLANET_EMOJI[wrapped.dominantDashaLord] ?? "⭐"} ${wrapped.dominantDashaLord}`, accent: "var(--color-accent-strong)" },
+                  ...(wrapped.topLifeArea ? [{ label: ta ? "முதன்மை வாழ்க்கை பகுதி" : "Top life area", value: wrapped.topLifeArea, accent: "var(--color-muted)" }] : []),
                 ].map((item) => (
                   <div key={item.label} style={{ padding: "14px", borderRadius: "12px", background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-                    <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    <p style={{ margin: "0 0 4px", fontSize: "0.7rem", color: "var(--color-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                       {item.label}
                     </p>
                     <p style={{ margin: 0, fontWeight: 800, fontSize: "1.15rem", color: item.accent }}>
