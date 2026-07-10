@@ -383,6 +383,129 @@ export const NATCHATHIRAM_EN: Record<string, NatchathiramEnSections> = {
     ],
   },
 
+  /**
+   * DRAFT — pending astrologer/content-author sign-off before this is
+   * treated as final (see CLAUDE.md's astrology-content review convention
+   * and the "Astrology Calc Accuracy" project memory). Written 2026-07 as a
+   * translation/adaptation of the Tamil originals in natchathiram-data.ts
+   * (ASHLESHA / MAGHA / PURVA_PHALGUNI) to close 3 of the previously-8
+   * KNOWN_MISSING_ENGLISH_SLUGS tracked in natchathiram-data.test.ts — not
+   * independently authored or reviewed.
+   */
+  ashlesha: {
+    personality: [
+      "Ashlesha is the final nakshatra of Cancer rasi — the ninth among the 27 nakshatras. Its symbol is the coiled serpent, and the hidden power within it, the stillness before it strikes, and its sudden awakening all describe the temperament of those born under this star. They have a natural gift for uncovering what is not visible to the eye.",
+      "Ashlesha natives are exceptionally perceptive. They can sense a person's real intent, unspoken thoughts, and inner feelings before a word is even said. This deep power of perception makes them outstanding psychoanalysts and researchers.",
+      "Ashlesha natives feel a natural pull toward spirituality, occult knowledge, astrology, tantra, kundalini yoga, and Siddha texts — the deeper, hidden dimensions of existence. They show great interest in seeking out the unseen world, indirect truths, and secrets. Their mind coils and works deeply, like the serpent itself.",
+      "One important trait: they are deeply possessive. They hold the people they love very close. Yet at the same time, they carry an independent streak — a wish to do only what they themselves choose. If trust is broken, forgiveness comes hard; but once they do forgive, it is complete.",
+    ],
+    career: [
+      "Fields connected with research, psychology, mystery, and secrecy suit Ashlesha natives very well. Detective work, CID, police service, legal research, courtroom advocacy, psychological counselling, and psychiatry come naturally to them. Their gift for uncovering hidden matters becomes a real professional advantage.",
+      "Because of Mercury's influence, they also excel in commerce, communication, IT, software, writing, journalism, and information analysis. Since the Moon rules Cancer, they also carry a deep aptitude for medicine, mental health, and healing-related fields.",
+      "Their connection to the serpent deities gives them strong ability in herbal medicine, toxicology, kundalini yoga, tantra shastra, and spiritual healing — with a strong natural pull toward nature and herbs. Their drive to uncover ground-level truths also makes them skilled at audit, forensic accounting, and compliance work.",
+    ],
+    modern: [
+      "Ashlesha's deep research and mystery-solving ability today opens strong opportunities in cybersecurity, data forensics, and intelligence analysis. This gift for perceiving the unseen has taken new, broader forms in AI ethics, fraud detection, and investigative journalism.",
+      "Mercury's communication power, combined with Ashlesha's deep thinking, expresses well in content strategy, psychological marketing, user behaviour research, and neuromarketing. Their depth of thought is equally valuable in data science, machine learning, and pattern recognition.",
+      "Their spiritual-healing and psychological gifts have taken modern form in energy-healing platforms, mental health tech, trauma-informed therapy apps, and integrative medicine. Practices like kundalini and tantra find fresh expression within wellness technology.",
+    ],
+    family: [
+      "The family line of an Ashlesha native may carry karma connected to serpents — a past naga dosham, harm done to a snake, or neglected naga worship somewhere in the ancestry. Ashlesha is seen as the star that carries the karma to resolve this; naga worship can help settle this ancestral debt.",
+      "In relationships, Ashlesha natives form very deep bonds. Once they trust someone, they hold on and do not easily let go. But if that trust is betrayed, they are equally capable of cutting the relationship off completely. Affection matters greatly in a relationship — expressing love daily helps them build a healthy bond.",
+      "Married life may bring some challenges. Very high expectations of a partner, and a possessive streak, can wear a relationship down. But where the match is genuinely compatible, they are capable of sustaining an unusually deep bond for a lifetime. Openness and honesty in a relationship matter greatly to them.",
+    ],
+    dasha: [
+      "Ashlesha natives are born in Mercury dasha, which runs for 17 years (the exact length shifting slightly with the birth pada and degree). Education, early intellectual growth, gathering of knowledge, and one's circle of friends develop mainly during this Mercury period — a youth marked by curiosity across many subjects.",
+      "Mercury dasha is followed by Ketu dasha, 7 years long. This period can bring sudden changes and shifts in direction. Spiritual interest may deepen, and changes may occur within the family. It is wise to avoid unnecessary expenses during Ketu dasha.",
+      "Venus dasha, 20 years long, is when marriage, family, career growth, and creativity tend to flourish — generally a favourable period for Ashlesha natives, often bringing property such as a house or vehicle. The Sun dasha that follows, 6 years long, tends to bring government favour and support from those in authority.",
+    ],
+    spiritual: [
+      "Naga worship is very important for Ashlesha natives. Worshipping serpent deities such as Nagaraja, Naga Kanni, Adishesha, and Vasuki is especially significant. Observing a fast and worshipping the naga deity on Naga Panchami day is beneficial. Worship at naga-deity temples such as Nagercoil, Thirunageswaram, and Vettaikaraiyan brings excellent results.",
+      "Those born under Ashlesha do well to observe a Wednesday fast and recite the Mercury beeja mantra — 'Om Bram Breem Broum Sah Budhaya Namah' — daily. A Naga Sapa Nivarthi puja is especially suited to this family line.",
+      "Ashlesha natives have a natural aptitude for awakening kundalini energy. Yogasana, pranayama, and meditation are of great help to their spiritual growth. Performing Sarpa Samskara can help resolve naga dosham in the family line, where present.",
+    ],
+    summary: [
+      "Ashlesha natives possess distinctive qualities — sharp perception, deep thinking, an understanding of hidden matters, and a gift for healing. Directing these gifts in the right direction matters greatly.",
+      "Naga worship, an honest way of life, never deceiving others, and honouring the trust others place in them — these shape a fine life for Ashlesha natives. When their power is used constructively, Ashlesha becomes an exceptionally potent star. Consistently performing the remedies for serpent-related karma brings wellbeing to the family line.",
+    ],
+  },
+
+  magha: {
+    personality: [
+      "Magha is the first nakshatra of Leo rasi — the tenth among the 27 nakshatras. Its symbol is the throne or royal seat, so those born under Magha carry a natural quality of leadership. A quiet inner sense of 'I should be at the forefront' is visible in them. People tend to look on them with respect.",
+      "Ketu's influence can bring Magha natives deep memories or impressions connected to past lives. A pull toward spirituality, karma connected to ancestors, and a wish to protect the family lineage come naturally to them. They show strong interest in the past, in history, and in tradition.",
+      "Family honour matters greatly to Magha natives. They worry a great deal that their family name should not be tarnished, and that they should hold respect in society. This trait can be admirable at times, and can come across as pride at other times — but underneath it lies a genuine wish to elevate their lineage.",
+      "Since this is Ketu's nakshatra within the Sun's own sign, solar energy and Ketu's energy combine within them. Courage, bravery, and pride in authority sit on one side; spiritual liberation, seeking, and karmic resolution sit on the other. Together, these two forces give their lives a distinctive depth.",
+    ],
+    career: [
+      "Government service, positions of authority, the military, police, the judiciary, law, and politics all suit Magha natives well. A natural fitness — and appetite — for 'sitting in the big chair' comes easily to them. Government recognition and public respect tend to come to them naturally.",
+      "Ketu's spiritual power also makes them well suited to astrology, spiritual counselling, ancestral-karma purification, mantra, ritual worship, and research. They also carry a distinct gift for preserving family tradition, archaeology, and historical research.",
+      "Their considerable leadership ability suits them for senior positions such as CEO, Director, or Managing Partner. When they handle authority with integrity, they have the capacity to lead very large organisations. Their gift for bringing people together makes them fine administrators.",
+    ],
+    modern: [
+      "Magha's leadership and authority-oriented nature today expresses through corporate leadership, government policymaking, executive management, and strategic consulting. The wish to 'sit on the throne' has taken modern form in C-suite positions, board memberships, and political office.",
+      "Ketu's spiritual and research power flows today into ancestry-research platforms, genealogy technology, heritage preservation, and cultural anthropology. Magha natives naturally take an interest in fields such as DNA testing and family-history platforms.",
+      "Their gift for historical understanding and traditional knowledge finds modern expression in digital humanities, museum technology, cultural-heritage platforms, and historical AI. Magha's instinct to preserve the past adds distinct value to these fields.",
+    ],
+    family: [
+      "Ancestors matter greatly to Magha natives. Pitru tarpanam, sraddham, and other dharmic duties toward ancestors feel like a personal responsibility to them, and they believe that neglecting these can bring difficulty into the family. They hold deep affection and respect for grandparents.",
+      "They like to be the head of the family, and feel that all decisions should pass through them — which can sometimes create friction at home. But they also have a strong wish to keep the family united.",
+      "In married life, Magha natives prefer a dignified, respectable atmosphere. They wish for their partner to be a source of pride for them in society. Because they care about advancing the family lineage, they invest heavily in their children's education and success.",
+    ],
+    dasha: [
+      "Magha natives are born in Ketu dasha, which runs for 7 years — though depending on the birth pada and degree, Ketu dasha may last only a few months. During Ketu dasha, family changes, a spiritual atmosphere at home, or a strong bond with grandparents may appear in childhood.",
+      "Ketu dasha is followed by Venus dasha, 20 years long. Major life events — education, romance, marriage, and the start of a career — tend to happen during this period, which also tends to bring good comforts, a vehicle, or a home.",
+      "The Sun dasha that follows runs for 6 years. Since the Sun rules Leo, Sun dasha tends to bring Magha natives government favour, career advancement, and social recognition — a period of rising fame and authority in their work. The Moon dasha of 10 years that follows brings focus to family, mental wellbeing, and the bond with the mother.",
+    ],
+    spiritual: [
+      "Ancestor worship matters greatly to Magha natives. Regularly performing tarpanam, sraddham, and other pitru rites protects their family line. Performing tarpanam at ancestral pilgrimage sites such as Gaya, Rameswaram, or Kashi brings especially good results.",
+      "Since the Sun rules their sign, Sun worship is especially beneficial — reciting the Aditya Hridayam, worshipping the Sun on Sundays, and Surya Namaskaram all suit them well. Worship connected with Rama Pattabhishekam is also favourable.",
+      "Because of Ketu's influence, worship connected with liberation, freedom, and spiritual wisdom also suits them. Reciting the Ketu beeja mantra — 'Om Kem Ketave Namah' — daily is beneficial. Worship of Lord Ayyappan brings especially good results for them.",
+    ],
+    summary: [
+      "Magha natives carry the qualities of leadership, pride in their lineage, spiritual depth, and a strong connection to their ancestors. Used well, these qualities can carry them to a position of great standing in society.",
+      "Consistently honouring their ancestors, keeping ego in check, and treating others as equals shape a fine life for them. When they carry the responsibility of leadership with integrity, Magha brings very high rewards.",
+    ],
+  },
+
+  "purva-phalguni": {
+    personality: [
+      "Purva Phalguni is the second nakshatra of Leo rasi — eleventh among the 27 nakshatras. Its presiding deity is Bhaga Devan, the god of prosperity, marital happiness, beauty, and the arts. Those born under Purva Phalguni naturally carry beauty and charm.",
+      "With Venus's rulership combined with the Sun's rule over Leo, Purva Phalguni natives appear both dignified and attractive at once. They tend to be well known in their social circles, drawing people toward them. They speak with ease and carry a strong sense of humour.",
+      "Purva Phalguni natives like to experience life to the fullest. They feel a strong pull toward food, clothing, jewellery, art, music, dance, cinema, and travel — life's pleasures. A 'live life while you can' attitude tends to run strong in them.",
+      "As a Manushya-gana star, human relationships matter greatly to Purva Phalguni natives. They engage deeply in friendship, romance, family, and their social circle. Being alone is difficult for them — they like to have people around them.",
+    ],
+    career: [
+      "Creative fields — art, music, dance, film, drama, painting, and craft — suit Purva Phalguni natives very well. Because of Venus's rulership, fields such as the beauty industry, fashion, garment design, jewellery, and fragrance also suit them. Creativity is their greatest asset.",
+      "Entertainment, hospitality, event management, tourism, and wedding planning offer them a naturally comfortable working environment. A gift for delighting people comes naturally to them, along with a strong ability to charm clients.",
+      "Leo's leadership quality also lets them excel in administration, business management, brand management, public relations, and media. Communication and public-facing skill come naturally to them.",
+    ],
+    modern: [
+      "Purva Phalguni's beauty and artistic gift today takes new form in digital content creation, influencer marketing, social-media aesthetics, and fashion tech. Modern media platforms — Instagram, YouTube, podcasts — provide a natural stage for Purva Phalguni's charm and entertaining ability.",
+      "Venus's love of beauty and prosperity now extends into luxury brand management, beauty tech, wellness platforms, and sustainable fashion. Purva Phalguni natives are well suited to AI-powered styling, virtual try-on, and beauty apps.",
+      "Their gift for bringing people together and entertaining them has expanded into event tech, the experience economy, virtual events, and live-streaming platforms. Their human warmth also suits hospitality tech and travel platforms particularly well.",
+    ],
+    family: [
+      "Married life matters greatly to Purva Phalguni natives. Since Bhaga Devan is the deity of marital happiness, their married life is generally a good one. But because they carry considerable beauty and charm, several romantic connections before marriage are common.",
+      "They are deeply affectionate toward their children. They want their home to be a happy place, full of laughter and play, and take great interest in keeping it beautiful. Hospitality comes naturally to them.",
+      "They need to be careful with money. A 'spend today, worry about tomorrow later' attitude can appear in them. Without attention to saving and investment, financial strain can follow — spending in proportion to income is an important habit for them to build.",
+    ],
+    dasha: [
+      "Purva Phalguni natives are born in Venus dasha, which runs for 20 years — though depending on the birth pada and degree, it can last anywhere from 5 to 20 years. Education, youth, artistic interest, and romance tend to feature heavily during Venus dasha — a happy start to life is a hallmark of this star.",
+      "Venus dasha is followed by Sun dasha, 6 years long. Since the Sun rules Leo, Sun dasha brings Purva Phalguni natives government favour, career advancement, position, and major decisions — a period when important career changes tend to occur.",
+      "The Moon dasha of 10 years that follows brings focus to family, the bond with the mother, mental wellbeing, and emotional matters. For those already married, childbirth and family growth may occur during Moon dasha. The Mars dasha of 7 years that follows brings hard work, career expansion, and the acquisition of property.",
+    ],
+    spiritual: [
+      "Worship of Mahalakshmi is especially favourable for Purva Phalguni natives. Because of Venus's rulership, Friday Mahalakshmi puja, Thiruvilakku (lamp) worship, and reciting the Lalitha Sahasranamam bring excellent results.",
+      "Worship of Bhaga Devan also matters. Worship connected with prosperity and marital happiness — at Meenakshi Amman temple, Alambadi temple near Coimbatore, or Kathirgamam — is especially favourable. Offering sandal paste service (Santhana Sathu Sevai) brings them particular benefit.",
+      "Offerings connected with beauty and the arts are especially suited to Venus. Fragrant flowers, butter, lotus, and roses may be offered at the temple. Worship of Saraswati is also very good for them — it further nurtures their artistic gift.",
+    ],
+    summary: [
+      "Purva Phalguni natives carry the qualities of art, beauty, charm, a gift for bringing people together, and a natural sense of joy. Used in the right direction, these gifts can bring them great popularity and success in society.",
+      "Paying attention to saving and money management, avoiding excessive indulgence, and following spiritual guidance will further improve their lives. Purva Phalguni shines brightest when its natives share their artistic gift with the world.",
+    ],
+  },
+
   "uttara-phalguni": {
     personality: [
       "Uttara Phalguni spans two rashis — its first pada falls in Leo, and the remaining three padas fall in Virgo. The Sun rules Leo; Mercury rules Virgo. The nakshatra lord is the Sun, and its deity is Aryaman — the deity of contracts, marriage, and social agreements. This creates individuals who are dignified, organized, service-oriented, and naturally suited to responsibility.",
