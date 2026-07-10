@@ -118,9 +118,26 @@ export function markerLabel(marker: string, lang: Lang): string {
   return lang === "ta" ? entry.ta : entry.en;
 }
 
-export function displayName(name: string, lang: Lang): string {
+/**
+ * Looks up a yoga engine name (e.g. "GAJA_KESARI_YOGA") in a per-yoga
+ * dictionary. Tries the name directly first, and only falls back to a
+ * defensive "GAJA_KESARI" -> "GAJA_KESARI_YOGA" rewrite for a hypothetical
+ * bare "GAJA_KESARI" input the engine has never actually emitted. Applying
+ * that rewrite unconditionally (as every call site here used to) corrupts
+ * the real value "GAJA_KESARI_YOGA" into "GAJA_KESARI_YOGA_YOGA" — the
+ * string "GAJA_KESARI" matches the leading substring of "GAJA_KESARI_YOGA"
+ * and gets replaced, leaving the original "_YOGA" suffix still appended
+ * after it — which silently missed every dictionary lookup for the one
+ * yoga name that's actually ever emitted (Gaja Kesari Yoga's own outcomes/
+ * how-to/remedies/power-context never rendered as a result).
+ */
+export function resolveYogaKey<T>(dict: Record<string, T>, name: string): T | undefined {
   const key = name.toUpperCase();
-  const entry = YOGA_DISPLAY[key] ?? YOGA_DISPLAY[key.replace("GAJA_KESARI", "GAJA_KESARI_YOGA")];
+  return dict[key] ?? dict[key.replace("GAJA_KESARI", "GAJA_KESARI_YOGA")];
+}
+
+export function displayName(name: string, lang: Lang): string {
+  const entry = resolveYogaKey(YOGA_DISPLAY, name);
   if (!entry) return name;
   return lang === "ta" ? entry.ta : entry.en;
 }
@@ -564,8 +581,7 @@ const DOSHAM_POWER_CONTEXT: Record<string, {
 };
 
 export function getYogaPowerContext(name: string, strength: string, dashaActivated: boolean, lang: Lang): string {
-  const key = name.toUpperCase().replace("GAJA_KESARI", "GAJA_KESARI_YOGA");
-  const entry = YOGA_POWER_CONTEXT[key];
+  const entry = resolveYogaKey(YOGA_POWER_CONTEXT, name);
   if (!entry) {
     return lang === "ta"
       ? "இந்த யோகத்தின் தாக்கம் உங்கள் தற்போதைய தசை மற்றும் கிரகநகர்வு நிலையைப் பொறுத்து மாறுபடும்."
@@ -761,10 +777,9 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
           </div>
 
           {yoga.isPresent && (() => {
-            const key = yoga.name.toUpperCase().replace("GAJA_KESARI", "GAJA_KESARI_YOGA");
-            const outcomes = YOGA_OUTCOMES[key];
-            const howTo = YOGA_HOW_TO[key];
-            const remedies = YOGA_REMEDIES[key];
+            const outcomes = resolveYogaKey(YOGA_OUTCOMES, yoga.name);
+            const howTo = resolveYogaKey(YOGA_HOW_TO, yoga.name);
+            const remedies = resolveYogaKey(YOGA_REMEDIES, yoga.name);
             return (
               <>
                 {outcomes && (
