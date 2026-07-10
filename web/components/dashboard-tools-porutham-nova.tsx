@@ -9,6 +9,7 @@ import type { Lang } from "@/lib/i18n";
 import type { ChartCalculateResponseData, ChartDoshamInsight, DirectPoruthamData, KutaResult } from "@/lib/types";
 
 import { RasiChart } from "./dashboard-charts";
+import { CompatibilityIntelligencePanel } from "./compatibility-intelligence-panel";
 import { Field } from "./dashboard-ui";
 import { PlaceCombobox } from "./place-combobox";
 import { NovaSelect } from "./nova-select";
@@ -24,6 +25,12 @@ import { PoruthamShareLinkButton } from "./porutham-share-link-button";
  * layout follows the `tools-porutham` mockup screen: verdict hero (gauge +
  * names + narrative), then a two-column body (10-porutham table | cross-
  * checks + next-steps + disclaimer) instead of Classic's single-column list.
+ *
+ * Also ports Classic's Compatibility Intelligence upsell/report (the 8-level
+ * deep report gated to MARRIAGE + a real family-vault Person 2) and its
+ * dedicated PDF branch — the first pass here dropped that feature entirely,
+ * making Nova's tool noticeably shallower than Classic's for anyone with a
+ * family vault (reported 2026-07-09).
  */
 
 type BirthForm = {
@@ -95,8 +102,25 @@ function kutaGoverns(kuta: KutaResult) {
   return KUTA_GOVERNS.find((g) => key.includes(g.match));
 }
 
-function sevvaiStatus(doshams: ChartDoshamInsight[]): boolean {
-  return doshams.some((d) => d.name === "SEVVAI_DOSHAM" && d.isPresent);
+// Cross-check doshams — all four are computed by the same chart-calculate
+// pass that produces `chart.doshams` (app/calculations/yogas.py calls all
+// four detect_* functions together), so no new backend work is needed here.
+// "Dasa sandhi" and "Papasamyam" were dropped: grep-confirmed neither concept
+// exists anywhere in app/calculations, so those two cards were permanent
+// "not yet available" stubs — replaced with doshams that actually compute.
+// KALATHRA_DOSHAM (7th-lord affliction, category "MARRIAGE") is the closest
+// existing calculation to what's colloquially called "Mangalya dosham" —
+// there's no separately-named Mangalya calculation in this codebase, so it's
+// labelled "Mangalya (Kalathra)" rather than claimed as a distinct formula.
+const CROSS_CHECK_DOSHAMS: { name: string; labelEn: string; labelTa: string }[] = [
+  { name: "SEVVAI_DOSHAM", labelEn: "Sevvai dosham", labelTa: "செவ்வாய் தோஷம்" },
+  { name: "RAHU_KETU_DOSHAM", labelEn: "Rahu-Ketu dosham", labelTa: "ராகு-கேது தோஷம்" },
+  { name: "KALATHRA_DOSHAM", labelEn: "Mangalya (Kalathra) dosham", labelTa: "மாங்கல்ய (களத்திர) தோஷம்" },
+  { name: "PITRU_DOSHAM", labelEn: "Pitru dosham", labelTa: "பித்ரு தோஷம்" },
+];
+
+function doshamPresent(doshams: ChartDoshamInsight[], name: string): boolean {
+  return doshams.some((d) => d.name === name && d.isPresent);
 }
 
 export type PoruthamFamilyMember = {
@@ -112,11 +136,13 @@ export type PoruthamFamilyMember = {
 
 export function NovaPoruthamPanel({
   lang,
+  familyVaultId,
   familyMembers = [],
   onGoToMuhurta,
   onOpenAskVinaadi,
 }: {
   lang: Lang;
+  familyVaultId?: string;
   familyMembers?: PoruthamFamilyMember[];
   onGoToMuhurta?: () => void;
   onOpenAskVinaadi?: () => void;
@@ -124,6 +150,8 @@ export function NovaPoruthamPanel({
   const [formA, setFormA] = useState<BirthForm>(EMPTY_FORM);
   const [formB, setFormB] = useState<BirthForm>(EMPTY_FORM);
   const [compatCtx, setCompatCtx] = useState<CompatContext>("MARRIAGE");
+  const [selectedVaultMemberIdB, setSelectedVaultMemberIdB] = useState<string | null>(null);
+  const [showCiReport, setShowCiReport] = useState(false);
   const [chartA, setChartA] = useState<ChartCalculateResponseData | null>(null);
   const [chartB, setChartB] = useState<ChartCalculateResponseData | null>(null);
   const [porutham, setPorutham] = useState<DirectPoruthamData | null>(null);
@@ -164,24 +192,47 @@ export function NovaPoruthamPanel({
     if (!chartA || !chartB || !porutham || downloadingPdf) return;
     setDownloadingPdf(true);
     try {
-      const response = await fetch(`/api/backend/api/v1/public/compare/pdf?lang=${lang}`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
-        body: JSON.stringify({
-          personA: { displayName: formA.displayName, birthDateLocal: formA.birthDateLocal, birthTimeLocal: formA.birthTimeLocal || null, birthPlace: formA.birthPlace, birthLatitude: parseFloat(formA.birthLatitude), birthLongitude: parseFloat(formA.birthLongitude), birthTimezone: formA.birthTimezone },
-          personB: { displayName: formB.displayName, birthDateLocal: formB.birthDateLocal, birthTimeLocal: formB.birthTimeLocal || null, birthPlace: formB.birthPlace, birthLatitude: parseFloat(formB.birthLatitude), birthLongitude: parseFloat(formB.birthLongitude), birthTimezone: formB.birthTimezone },
-          compatibilityContext: compatCtx,
-        }),
-      });
-      if (!response.ok) throw new Error(`${response.status}: PDF export failed`);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `porutham_${chartA.birthProfile.displayName}_${chartB.birthProfile.displayName}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      if (showCiReport && selectedVaultMemberIdB && familyVaultId) {
+        const params = new URLSearchParams({ familyVaultId, lang });
+        const response = await fetch(
+          `/api/backend/api/v1/relationships/${selectedVaultMemberIdB}/compatibility-intelligence/direct/pdf?${params.toString()}`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
+            body: JSON.stringify({
+              personA: { displayName: formA.displayName, birthDateLocal: formA.birthDateLocal, birthTimeLocal: formA.birthTimeLocal || null, birthPlace: formA.birthPlace, birthLatitude: parseFloat(formA.birthLatitude), birthLongitude: parseFloat(formA.birthLongitude), birthTimezone: formA.birthTimezone },
+            }),
+          }
+        );
+        if (!response.ok) throw new Error(`${response.status}: PDF export failed`);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `compatibility_intelligence_${formA.displayName}_${formB.displayName}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        const response = await fetch(`/api/backend/api/v1/public/compare/pdf?lang=${lang}`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
+          body: JSON.stringify({
+            personA: { displayName: formA.displayName, birthDateLocal: formA.birthDateLocal, birthTimeLocal: formA.birthTimeLocal || null, birthPlace: formA.birthPlace, birthLatitude: parseFloat(formA.birthLatitude), birthLongitude: parseFloat(formA.birthLongitude), birthTimezone: formA.birthTimezone },
+            personB: { displayName: formB.displayName, birthDateLocal: formB.birthDateLocal, birthTimeLocal: formB.birthTimeLocal || null, birthPlace: formB.birthPlace, birthLatitude: parseFloat(formB.birthLatitude), birthLongitude: parseFloat(formB.birthLongitude), birthTimezone: formB.birthTimezone },
+            compatibilityContext: compatCtx,
+          }),
+        });
+        if (!response.ok) throw new Error(`${response.status}: PDF export failed`);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `porutham_${chartA.birthProfile.displayName}_${chartB.birthProfile.displayName}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
     } catch {
       setError(lang === "ta" ? "PDF பதிவிறக்கம் தோல்வியடைந்தது." : "PDF download failed.");
     } finally {
@@ -201,14 +252,19 @@ export function NovaPoruthamPanel({
       birthLongitude: m.birthLongitude != null ? String(m.birthLongitude) : "",
       birthTimezone: m.birthTimezone ?? "Asia/Kolkata",
     };
-    if (which === "A") setFormA(patch); else setFormB(patch);
+    if (which === "A") {
+      setFormA(patch);
+    } else {
+      setFormB(patch);
+      const isVaultMember = !m.memberId.startsWith("owner:");
+      setSelectedVaultMemberIdB(isVaultMember ? m.memberId : null);
+      setShowCiReport(false);
+    }
   }
 
   const pct = porutham ? porutham.totalScore / Math.max(1, porutham.maxScore) : 0;
   const scoreTone = pct >= 0.7 ? "var(--color-high)" : pct >= 0.45 ? "var(--color-mid)" : "var(--color-low)";
   const scoreToneBand = pct >= 0.7 ? "high" : pct >= 0.45 ? "mid" : "low";
-  const sevvaiA = chartA ? sevvaiStatus(chartA.doshams) : false;
-  const sevvaiB = chartB ? sevvaiStatus(chartB.doshams) : false;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
@@ -268,6 +324,9 @@ export function NovaPoruthamPanel({
                   value={form.birthPlace}
                   onChange={(city, raw) => setForm({ ...form, birthPlace: raw, ...(city ? { birthLatitude: city.lat, birthLongitude: city.lng, birthTimezone: city.timezone } : {}) })}
                 />
+              </Field>
+              <Field label={t("field_timezone", lang)}>
+                <input style={novaFieldStyle} value={form.birthTimezone} onChange={(e) => setForm({ ...form, birthTimezone: e.target.value })} />
               </Field>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 140px), 1fr))", gap: "8px" }}>
                 <Field label={t("field_latitude", lang)}>
@@ -404,32 +463,28 @@ export function NovaPoruthamPanel({
                 <span style={{ fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
                   {lang === "ta" ? "குறுக்கு சோதனைகள்" : "Cross-checks"}
                 </span>
-                <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", background: sevvaiA === sevvaiB ? "var(--color-high-bg)" : "var(--color-mid-bg)", border: sevvaiA === sevvaiB ? "1px solid var(--color-high-border)" : "1px solid var(--color-mid-border)", borderRadius: "10px", padding: "11px 13px" }}>
-                  <span style={{ flex: "none", width: "20px", height: "20px", borderRadius: "50%", background: sevvaiA === sevvaiB ? "var(--color-high-bg)" : "var(--color-mid-bg)", display: "grid", placeItems: "center", fontSize: "11px", color: sevvaiA === sevvaiB ? "var(--color-high)" : "var(--color-mid)" }}>{sevvaiA === sevvaiB ? "✓" : "~"}</span>
-                  <div>
-                    <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--color-text-strong)" }}>
-                      {lang === "ta" ? "செவ்வாய் தோஷம்" : "Sevvai dosham"} — {sevvaiA === sevvaiB ? (lang === "ta" ? "சமநிலை" : "balanced") : (lang === "ta" ? "ஒரே பக்கம்" : "one-sided")}
-                    </div>
-                    <div style={{ fontSize: "11px", lineHeight: 1.5, color: "var(--color-muted)", marginTop: "2px" }}>
-                      {sevvaiA && sevvaiB
-                        ? (lang === "ta" ? "இரு ஜாதகங்களிலும் உள்ளது; ஒன்றுக்கொன்று பதிலளிக்கின்றன." : "Both charts carry it; they answer each other.")
-                        : !sevvaiA && !sevvaiB
-                        ? (lang === "ta" ? "இரு ஜாதகங்களிலும் இல்லை." : "Present in neither chart.")
-                        : (lang === "ta" ? "ஒரு ஜாதகத்தில் மட்டும் உள்ளது — ஜோதிடருடன் கலந்தாலோசிக்கவும்." : "Present in only one chart — worth an astrologer's reading.")}
-                    </div>
-                  </div>
-                </div>
-                {(["Dasa sandhi", "Papasamyam"] as const).map((label) => (
-                  <div key={label} style={{ display: "flex", gap: "10px", alignItems: "flex-start", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", borderRadius: "10px", padding: "11px 13px" }}>
-                    <span style={{ flex: "none", width: "20px", height: "20px", borderRadius: "50%", background: "var(--color-surface-3)", display: "grid", placeItems: "center", fontSize: "11px", color: "var(--color-faint)" }}>—</span>
-                    <div>
-                      <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--color-text-strong)" }}>{label}</div>
-                      <div style={{ fontSize: "11px", lineHeight: 1.5, color: "var(--color-faint)", marginTop: "2px" }}>
-                        {lang === "ta" ? "இன்னும் கிடைக்கவில்லை — இந்த கணக்கீடு தற்போது இல்லை." : "Not yet available — this calculation doesn't exist yet."}
+                {CROSS_CHECK_DOSHAMS.map(({ name, labelEn, labelTa }) => {
+                  const a = doshamPresent(chartA.doshams, name);
+                  const b = doshamPresent(chartB.doshams, name);
+                  const balanced = a === b;
+                  return (
+                    <div key={name} style={{ display: "flex", gap: "10px", alignItems: "flex-start", background: balanced ? "var(--color-high-bg)" : "var(--color-mid-bg)", border: balanced ? "1px solid var(--color-high-border)" : "1px solid var(--color-mid-border)", borderRadius: "10px", padding: "11px 13px" }}>
+                      <span style={{ flex: "none", width: "20px", height: "20px", borderRadius: "50%", background: balanced ? "var(--color-high-bg)" : "var(--color-mid-bg)", display: "grid", placeItems: "center", fontSize: "11px", color: balanced ? "var(--color-high)" : "var(--color-mid)" }}>{balanced ? "✓" : "~"}</span>
+                      <div>
+                        <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                          {lang === "ta" ? labelTa : labelEn} — {balanced ? (lang === "ta" ? "சமநிலை" : "balanced") : (lang === "ta" ? "ஒரே பக்கம்" : "one-sided")}
+                        </div>
+                        <div style={{ fontSize: "11px", lineHeight: 1.5, color: "var(--color-muted)", marginTop: "2px" }}>
+                          {a && b
+                            ? (lang === "ta" ? "இரு ஜாதகங்களிலும் உள்ளது; ஒன்றுக்கொன்று பதிலளிக்கின்றன." : "Both charts carry it; they answer each other.")
+                            : !a && !b
+                            ? (lang === "ta" ? "இரு ஜாதகங்களிலும் இல்லை." : "Present in neither chart.")
+                            : (lang === "ta" ? "ஒரு ஜாதகத்தில் மட்டும் உள்ளது — ஜோதிடருடன் கலந்தாலோசிக்கவும்." : "Present in only one chart — worth an astrologer's reading.")}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div style={{ background: "linear-gradient(120deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "14px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -456,7 +511,11 @@ export function NovaPoruthamPanel({
               <div style={{ display: "flex", gap: "10px" }}>
                 <button type="button" onClick={() => void handleDownloadPdf()} disabled={downloadingPdf}
                   style={{ padding: "8px 18px", borderRadius: "9px", border: "1px solid var(--color-border-strong)", background: "none", color: downloadingPdf ? "var(--color-faint)" : "var(--color-accent-strong)", cursor: downloadingPdf ? "wait" : "pointer", fontWeight: 600, fontSize: "12.5px", fontFamily: "inherit" }}>
-                  {downloadingPdf ? (lang === "ta" ? "PDF பதிவிறக்குகிறது…" : "Downloading PDF…") : `⤓ ${lang === "ta" ? "PDF பதிவிறக்கம்" : "PDF"}`}
+                  {downloadingPdf
+                    ? (lang === "ta" ? "PDF பதிவிறக்குகிறது…" : "Downloading PDF…")
+                    : showCiReport
+                      ? `⤓ ${lang === "ta" ? "முழு அறிக்கை PDF" : "Full Report PDF"}`
+                      : `⤓ ${lang === "ta" ? "PDF பதிவிறக்கம்" : "PDF"}`}
                 </button>
                 <PoruthamShareLinkButton lang={lang} formA={formA} formB={formB} compatibilityContext={compatCtx} />
               </div>
@@ -480,6 +539,67 @@ export function NovaPoruthamPanel({
               <RasiChart chart={chartB} label={t("label_d1", lang)} lang={lang} showExplain={false} />
             </div>
           </div>
+
+          {/* Compatibility Intelligence upsell / report — ported from Classic
+              PoruthamPanel: the 8-level deep report (7th house, Navamsa, dasha
+              timing, Sevvai dosham, emotional match, 0-100 score) is what makes
+              Classic's tool "deeper" than this one was. Gated the same way
+              Classic gates it: MARRIAGE context + a real family-vault member
+              loaded as Person 2 (not the "owner:"-prefixed self entry). */}
+          {compatCtx === "MARRIAGE" && familyVaultId && selectedVaultMemberIdB && (
+            <div>
+              {!showCiReport ? (
+                <div style={{
+                  background: "linear-gradient(120deg, var(--color-high-bg), transparent)",
+                  border: "1px solid var(--color-high-border)", borderRadius: "14px", padding: "18px 20px",
+                  display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap",
+                }}>
+                  <div style={{ flex: 1, minWidth: "220px" }}>
+                    <p style={{ margin: "0 0 4px", fontWeight: 700, fontSize: "14px", color: "var(--color-text-strong)" }}>
+                      {lang === "ta" ? "இணக்க நுண்ணறிவு அறிக்கை" : "Full Compatibility Intelligence Report"}
+                    </p>
+                    <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                      {lang === "ta"
+                        ? "7ஆம் இடம் · நவாம்சம் · தசை இணக்கம் · செவ்வாய் தோஷம் · உணர்வு இணக்கம் · ஒட்டுமொத்த மதிப்பெண் (0–100) உள்ளிட்ட 8 அடுக்கு ஆழமான பகுப்பாய்வு"
+                        : "8-level deep analysis: 7th house · Navamsa · Dasha timing · Sevvai Dosham · Emotional · Overall score 0–100"}
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => setShowCiReport(true)} style={{
+                    padding: "9px 20px", background: "var(--color-accent)", color: "var(--color-on-accent)",
+                    border: "none", borderRadius: "999px", fontFamily: "inherit", fontSize: "12.5px", fontWeight: 700,
+                    cursor: "pointer", whiteSpace: "nowrap",
+                  }}>
+                    {lang === "ta" ? "முழு அறிக்கை காண்க →" : "View Full Report →"}
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: "14px", color: "var(--color-text-strong)" }}>
+                      {lang === "ta" ? "இணக்க நுண்ணறிவு அறிக்கை" : "Compatibility Intelligence Report"}
+                    </p>
+                    <button type="button" onClick={() => setShowCiReport(false)} style={{ fontSize: "12px", color: "var(--color-muted)", background: "none", border: "1px solid var(--color-border)", borderRadius: "999px", padding: "4px 12px", cursor: "pointer", fontFamily: "inherit" }}>
+                      {lang === "ta" ? "மறை" : "Hide"}
+                    </button>
+                  </div>
+                  <CompatibilityIntelligencePanel
+                    familyVaultId={familyVaultId}
+                    memberId={selectedVaultMemberIdB}
+                    personABirth={{
+                      displayName: formA.displayName,
+                      birthDateLocal: formA.birthDateLocal,
+                      birthTimeLocal: formA.birthTimeLocal || null,
+                      birthPlace: formA.birthPlace,
+                      birthLatitude: parseFloat(formA.birthLatitude),
+                      birthLongitude: parseFloat(formA.birthLongitude),
+                      birthTimezone: formA.birthTimezone,
+                    }}
+                    lang={lang}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

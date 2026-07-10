@@ -264,6 +264,17 @@
   --synastry-good-bg:        var(--color-high-bg);
   --synastry-good-border:    var(--color-high-border);
 
+  /* ── compatibility-intelligence-panel.tsx's own badge/harmony fills
+     (--cl-sage-10/--cl-brand-fill/--cl-rust-soft) are grep-confirmed used
+     nowhere else, so — unlike the shared --panel-* / --cl-*-edge tokens above —
+     they're safe to redirect directly rather than needing a new component-
+     scoped name. Newly reached from the Nova Porutham tool's Compatibility
+     Intelligence report (2026-07-09); same rgba-fill-behind-colored-text role
+     as --color-high-bg/--color-mid-bg/--color-low-bg elsewhere in this file. ── */
+  --cl-sage-10:    var(--color-high-bg);
+  --cl-brand-fill: var(--color-mid-bg);
+  --cl-rust-soft:  var(--color-low-bg);
+
   /* ── Shape ── */
   --radius-lg: 14px; /* cards */
   --radius-xl: 16px; /* hero sections */

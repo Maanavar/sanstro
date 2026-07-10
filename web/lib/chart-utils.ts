@@ -16,6 +16,14 @@ export const D1_RASI_NAMES = [
   "Meenam",
 ];
 
+// Classical, fixed rasi→ruling-planet mapping (never changes per-chart, so it's
+// safe to hardcode client-side — same tier of fact as GRAHA_ABBR/D1_RASI_NAMES
+// above). Keyed the same way DASHA_COLORS/tPlanetLord are (SUN/MOON/MARS/...).
+export const RASI_LORDS: Record<number, string> = {
+  1: "MARS", 2: "VENUS", 3: "MERCURY", 4: "MOON", 5: "SUN", 6: "MERCURY",
+  7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
+};
+
 export const GRAHA_ABBR: Record<string, string> = {
   SUN: "சூ",
   MOON: "சந்",

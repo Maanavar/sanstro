@@ -11,12 +11,9 @@ import type {
   ChartCalculateResponseData,
   ChartExplanationData,
   ChartSummaryData,
-  DailyGuidanceData,
-  DailyGuidanceRangeData,
   DashaTimelineItem,
   DashaTimelineResponseData,
   NakshatraCardData,
-  PanchangamDailyResponseData,
   PeyarchiEvent,
   SaniCycleData,
   SolarReturnData,
@@ -36,15 +33,14 @@ import { YoginiDashaPanel } from "./dashboard-yogini-dasha-panel";
 import { AshtottariDashaPanel } from "./dashboard-ashtottari-dasha-panel";
 import { KalachakraDashaPanel } from "./dashboard-kalachakra-dasha-panel";
 import {
-  NovaActivityTimingCard,
   NovaChartIdentityCard,
   NovaChartValidationChip,
-  NovaGuidanceGocharRow,
   NovaPrasnaTrigger,
   NovaPrasnaWidget,
+  NovaRasiTraitCard,
 } from "./dashboard-today-deepdive-extras-nova";
 import { DasaBhuktiAntaramDetail } from "./dashboard-family-tab";
-import { MorningGuidanceCard } from "./morning-guidance-card";
+import { ShareCardButton } from "./dashboard-share-card";
 
 /**
  * Nova "chart & explanations" deep-dive panel. This is the full astrology
@@ -60,6 +56,11 @@ import { MorningGuidanceCard } from "./morning-guidance-card";
  * it is not owner-only. `isSelf`/`viewerDisplayName` only control the title
  * text and gate the account-level widgets (Prasna, notification settings)
  * that don't make sense while looking at someone else's chart.
+ *
+ * Today's guidance + Gochar (transits/panchangam) previously lived here as
+ * their own zone (see git history) — moved to the Life Areas tab's Overview
+ * sub-tab on 2026-07-09 so the "how am I doing" landing page leads with
+ * today's snapshot. This panel keeps the reference material only.
  */
 
 export type DashboardChartsPanelNovaProps = {
@@ -69,25 +70,20 @@ export type DashboardChartsPanelNovaProps = {
   personalChart: ChartCalculateResponseData | null;
   personalChartExplanation: ChartExplanationData | null;
   personalChartSummary: ChartSummaryData | null;
-  personalDailyGuidance: DailyGuidanceData | null;
   personalTransit: TransitSnapshotData | null;
   personalSani: SaniCycleData | null;
   peyarchiUpcoming: PeyarchiEvent[];
-  panchangam: PanchangamDailyResponseData | null;
   dasha: DashaTimelineResponseData | null;
   dashaAntar: DashaTimelineItem[];
-  dailyGuidanceRange?: DailyGuidanceRangeData | null;
   nakshatraCard: NakshatraCardData | null;
   mode?: "BEGINNER" | "BALANCED" | "TRADITIONAL";
   /** Whose chart this is. Defaults to the account owner. */
   isSelf?: boolean;
   /** Display name to use in the title when isSelf is false. */
   viewerDisplayName?: string;
-  onDateChange?: (date: string) => void;
   onOpenPrasna?: () => void;
   showPrasna?: boolean;
   onClosePrasna?: () => void;
-  onOpenNotificationSettings?: () => void;
 };
 
 export function DashboardChartsPanelNova({
@@ -97,23 +93,18 @@ export function DashboardChartsPanelNova({
   personalChart,
   personalChartExplanation,
   personalChartSummary,
-  personalDailyGuidance,
   personalTransit,
   personalSani,
   peyarchiUpcoming,
-  panchangam,
   dasha,
   dashaAntar,
-  dailyGuidanceRange,
   nakshatraCard,
   mode,
   isSelf = true,
   viewerDisplayName,
-  onDateChange,
   onOpenPrasna,
   showPrasna = false,
   onClosePrasna,
-  onOpenNotificationSettings,
 }: DashboardChartsPanelNovaProps) {
   const astroText = (value: string) => (lang === "en" ? tamilizeAstroEnglish(value) : value);
 
@@ -166,6 +157,12 @@ export function DashboardChartsPanelNova({
         <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
           <NovaChartValidationChip lang={lang} validationStatus={personalChartSummary?.chartValidationStatus} />
           {activeChartId && (
+            <>
+              <ShareCardButton chartId={activeChartId} cardType="NAKSHATRA" lang={lang} label={lang === "ta" ? "நட்சத்திர அட்டை பகிர்" : "Share Birth Star Card"} />
+              <ShareCardButton chartId={activeChartId} cardType="DAILY_VIBE" lang={lang} date={selectedDate} label={lang === "ta" ? "இன்றைய வைப் பகிர்" : "Share Today's Vibe"} />
+            </>
+          )}
+          {activeChartId && (
             <button
               type="button"
               onClick={() => void downloadPdf()}
@@ -177,56 +174,52 @@ export function DashboardChartsPanelNova({
         </div>
       </div>
 
-      {/* ===== 1. Identity — the kattam leads. Reading order follows a classical
-          consultation: jadhagam kattam (D1/D9) first, the person's birth-star
-          profile beside it, then the single Dasa·Bhukti·Antaram detail. The old
-          "Dasa Position" strip (a duplicate of the same data) is gone, and the
-          birth-star card no longer floats between the planets table and the
-          divisional charts. ===== */}
-      <div className="two-col">
-        <NovaChartIdentityCard
-          lang={lang}
-          activeChartId={activeChartId}
-          selectedDate={selectedDate}
-          personalChart={personalChart}
-          personalChartSummary={personalChartSummary}
-          astroText={astroText}
-        />
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {nakshatraCard && (
-            <Surface title={t("nakshatra_card_label", lang)}>
-              <div className="surface__body">
-                <div className="surface__headline">
-                  <span>{lang === "ta" ? nakshatraCard.nameTa : astroText(nakshatraCard.nameEn)}</span>
-                  <Chip tone="accent">{t("nakshatra_ruling_planet", lang)}: {tPlanetLord(nakshatraCard.rulingPlanet, lang)}</Chip>
-                </div>
-                <p className="surface__text">{lang === "ta" ? nakshatraCard.profile.ta : astroText(nakshatraCard.profile.en)}</p>
-                {nakshatraCard.strengths.length > 0 && (
-                  <div className="chip-row">{nakshatraCard.strengths.map((s) => <Chip key={s.en} tone="success">{lang === "ta" ? s.ta : astroText(s.en)}</Chip>)}</div>
-                )}
-                {nakshatraCard.cautions.length > 0 && (
-                  <div className="chip-row">{nakshatraCard.cautions.map((c) => <Chip key={c.en} tone="warning">{lang === "ta" ? c.ta : astroText(c.en)}</Chip>)}</div>
-                )}
-              </div>
-            </Surface>
-          )}
-          <DasaBhuktiAntaramDetail lang={lang} today={selectedDate} dasha={dasha} dashaAntar={dashaAntar} />
-        </div>
-      </div>
-
-      {/* ===== 2. Today for this person — guidance + gochar ===== */}
-      <NovaGuidanceGocharRow
+      {/* ===== 1. Chart context — full width, no longer squeezed into a
+          two-col alongside the birth-star/dasa cards, so the D1 & D9 kattam
+          render at full size side by side (there's the room for it on this
+          full-page tab). Just the identity facts: rasi, nakshatram, lagnam,
+          dob. ===== */}
+      <NovaChartIdentityCard
         lang={lang}
-        personalDailyGuidance={personalDailyGuidance}
-        personalTransit={personalTransit}
-        personalSani={personalSani}
-        panchangam={panchangam}
-        dailyGuidanceRange={dailyGuidanceRange}
+        personalChart={personalChart}
+        personalChartSummary={personalChartSummary}
+        dasha={dasha}
         astroText={astroText}
       />
 
-      {/* ===== 3. Reference — planet positions, explanation, divisional charts,
-          strength & alternate dashas ===== */}
+      {/* ===== 2. Profile cards row — birth star, rasi and lagnam trait cards
+          share the same visual treatment (Surface box + ruling-planet chip +
+          profile + trait chips), followed by the Dasa·Bhukti·Antaram timeline
+          in the same neutral card styling so the row reads as one consistent
+          design language instead of a patchwork of different-looking boxes.
+          Placed ahead of the raw planet-positions table so the "who you are"
+          narrative reads before the reference data. ===== */}
+      <div className="nova-grid-4">
+        {nakshatraCard && (
+          <Surface title={t("nakshatra_card_label", lang)}>
+            <div className="surface__body">
+              <div className="surface__headline">
+                <span>{lang === "ta" ? nakshatraCard.nameTa : astroText(nakshatraCard.nameEn)}</span>
+                <Chip tone="accent">{t("nakshatra_ruling_planet", lang)}: {tPlanetLord(nakshatraCard.rulingPlanet, lang)}</Chip>
+              </div>
+              <p className="surface__text">{lang === "ta" ? nakshatraCard.profile.ta : astroText(nakshatraCard.profile.en)}</p>
+              {nakshatraCard.strengths.length > 0 && (
+                <div className="chip-row">{nakshatraCard.strengths.map((s) => <Chip key={s.en} tone="success">{lang === "ta" ? s.ta : astroText(s.en)}</Chip>)}</div>
+              )}
+              {nakshatraCard.cautions.length > 0 && (
+                <div className="chip-row">{nakshatraCard.cautions.map((c) => <Chip key={c.en} tone="warning">{lang === "ta" ? c.ta : astroText(c.en)}</Chip>)}</div>
+              )}
+            </div>
+          </Surface>
+        )}
+        <NovaRasiTraitCard lang={lang} rasi={personalChart?.planets.find((p) => p.graha === "MOON")?.rasi} titleKey="rasi_trait_card_label" astroText={astroText} />
+        <NovaRasiTraitCard lang={lang} rasi={personalChart?.lagna.rasi} titleKey="lagna_trait_card_label" astroText={astroText} />
+        <DasaBhuktiAntaramDetail lang={lang} today={selectedDate} dasha={dasha} dashaAntar={dashaAntar} />
+      </div>
+
+      {/* ===== 3. Planet positions — the detailed reference zone. Chart
+          explanation renders open (not collapsed) right underneath the
+          table. ===== */}
       <Surface title={t("surface_planets", lang)}>
         {personalChart ? (
           <div className="table-wrap">
@@ -277,6 +270,8 @@ export function DashboardChartsPanelNova({
         )}
       </Surface>
 
+      {/* ===== 3. Divisional charts, strength & alternate dashas, classical
+          timing — reference material, unchanged order. ===== */}
       {personalChart && (
         <VargasPanel
           lang={lang}
@@ -338,22 +333,16 @@ export function DashboardChartsPanelNova({
         </Surface>
       )}
 
-      {/* ===== Tools — things you *do* with a chart (find a date, ask a question,
-          opt into daily nudges), grouped at the end deliberately: you read the
-          chart above first, then reach for a tool. Activity Timing used to sit
-          at the very top of this panel, ahead of the chart itself — moved here
-          next to Prasna/Morning Guidance since all three are the same kind of
-          thing (a utility action), not chart reference. Prasna/Morning
-          Guidance stay account-level (isSelf-gated); Activity Timing works for
-          whichever chart is open. ===== */}
-      {activeChartId && (
+      {/* ===== Tools — Activity Timing moved to the Tools tab and Morning
+          Guidance moved to the Today homepage (both are account-level utility
+          actions, not chart reference material); Prasna stays here since it's
+          a direct "ask a question about this chart" action. ===== */}
+      {isSelf && onOpenPrasna && (
         <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "18px", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           <p style={{ margin: 0, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, color: "var(--color-accent)" }}>
             {lang === "ta" ? "கருவிகள்" : "Tools"}
           </p>
-          <NovaActivityTimingCard lang={lang} chartId={activeChartId} selectedDate={selectedDate} onDateChange={onDateChange} />
-          {isSelf && <MorningGuidanceCard lang={lang} onOpenSettings={onOpenNotificationSettings} />}
-          {isSelf && <NovaPrasnaTrigger lang={lang} onOpenPrasna={onOpenPrasna} />}
+          <NovaPrasnaTrigger lang={lang} onOpenPrasna={onOpenPrasna} />
         </div>
       )}
       {isSelf && onClosePrasna && personalChart && (

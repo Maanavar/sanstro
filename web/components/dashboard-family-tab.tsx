@@ -35,6 +35,7 @@ import { AlertGlyph } from "./icons";
 import { DASHA_COLORS, dashaStatus } from "./dashboard-dasha";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import { ChartExplanationPanel } from "./dashboard-chart-explanation";
+import { Chip, Surface } from "./dashboard-ui";
 
 const SCORE_CHIP_KEYS = ["moonTransit", "gocharSupport", "dashaSupport", "panchangam", "personalCautions", "remedialActionSupport"] as const;
 
@@ -388,67 +389,60 @@ export function DasaBhuktiAntaramDetail({
   const antaramColor = DASHA_COLORS[dasha.current.pratyantardasha.lord] ?? "var(--color-faint)";
 
   return (
-    <div style={{ borderRadius: "var(--radius-md)", border: `1px solid ${dashaColor}44`, background: `${dashaColor}0d`, padding: "var(--space-3_5) var(--space-4)" }}>
-      <p className="cd-kicker" style={{ marginBottom: "var(--space-2_5)" }}>
-        {lang === "ta" ? "தசை · புக்தி · அந்தரம்" : "Dasa · Bhukti · Antaram"}
-      </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
-        {[
-          { color: dashaColor,   lord: dasha.current.mahadasha.lord,       word: t("dasha_word", lang),   start: dasha.current.mahadasha.startDate,       end: dasha.current.mahadasha.endDate,       indent: 0 },
-          { color: bhuktiColor,  lord: dasha.current.antardasha.lord,      word: t("bhukti_word", lang),  start: dasha.current.antardasha.startDate,      end: dasha.current.antardasha.endDate,      indent: 16 },
-          { color: antaramColor, lord: dasha.current.pratyantardasha.lord, word: t("antaram_word", lang), start: dasha.current.pratyantardasha.startDate, end: dasha.current.pratyantardasha.endDate, indent: 32 },
-        ].map((row, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginLeft: `${row.indent}px` }}>
-            <div style={{ width: `${8 - i * 2}px`, height: `${8 - i * 2}px`, borderRadius: "50%", background: row.color, flexShrink: 0 }} />
-            <span style={{ fontSize: `${0.84 - i * 0.04}rem`, fontWeight: 600, color: row.color, minWidth: "88px" }}>
-              {tPlanetLord(row.lord, lang)} {row.word}
-            </span>
-            <span style={{ fontSize: "0.625rem", color: "var(--color-faint)" }}>
-              {String(row.start)} → {String(row.end)}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {dashaAntar && dashaAntar.length > 0 && (
-        <div style={{ marginTop: "var(--space-2_5)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-2_5)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
-          <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", color: "var(--color-faint)", letterSpacing: "0.04em" }}>
-            {tPlanetLord(dasha.current.mahadasha.lord, lang)} {t("dasha_word", lang)} — {t("dasha_all_bhukti", lang)}
-          </p>
-          {dashaAntar.map((bh) => {
-            const bst = dashaStatus(String(bh.startDate), String(bh.endDate), today);
-            const isRunning = bh.lord === dasha.current.antardasha.lord && bst === "active";
-            const bc = DASHA_COLORS[bh.lord] ?? "var(--color-faint)";
-            return (
-              <div key={`${bh.lord}-${bh.startDate}`} style={{
-                display: "flex", alignItems: "center", gap: "var(--space-1_5)",
-                padding: isRunning ? "3px 8px" : "2px 4px",
-                borderRadius: "var(--radius-xs)",
-                background: isRunning ? `${bc}14` : "transparent",
-                border: isRunning ? `1px solid ${bc}44` : "1px solid transparent",
-                opacity: bst === "past" ? 0.45 : 1,
-              }}>
-                <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: bc, flexShrink: 0 }} />
-                <span style={{ fontSize: "0.75rem", fontWeight: isRunning ? 700 : 400, color: isRunning ? bc : "var(--color-muted)", minWidth: "70px" }}>
-                  {tPlanetLord(bh.lord, lang)} {t("bhukti_word", lang)}
-                </span>
-                <span style={{ fontSize: "0.625rem", color: "var(--color-faint)", flex: 1 }}>
-                  {String(bh.startDate)} → {String(bh.endDate)}
-                </span>
-                <span style={{
-                  fontSize: "0.625rem", fontWeight: 600, padding: "1px var(--space-1_5)", borderRadius: "var(--radius-pill)",
-                  background: isRunning ? `${bc}22` : "var(--panel-cream)",
-                  color: isRunning ? bc : "var(--color-faint)",
-                  border: `1px solid ${isRunning ? bc + "55" : "var(--color-border)"}`,
-                }}>
-                  {isRunning ? t("status_active", lang) : bst === "past" ? t("status_past", lang) : t("status_upcoming", lang)}
-                </span>
-              </div>
-            );
-          })}
+    <Surface title={lang === "ta" ? "தசை · புக்தி · அந்தரம்" : "Dasa · Bhukti · Antaram"}>
+      <div className="surface__body">
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
+          {[
+            { color: dashaColor,   lord: dasha.current.mahadasha.lord,       word: t("dasha_word", lang),   start: dasha.current.mahadasha.startDate,       end: dasha.current.mahadasha.endDate,       indent: 0 },
+            { color: bhuktiColor,  lord: dasha.current.antardasha.lord,      word: t("bhukti_word", lang),  start: dasha.current.antardasha.startDate,      end: dasha.current.antardasha.endDate,      indent: 16 },
+            { color: antaramColor, lord: dasha.current.pratyantardasha.lord, word: t("antaram_word", lang), start: dasha.current.pratyantardasha.startDate, end: dasha.current.pratyantardasha.endDate, indent: 32 },
+          ].map((row, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginLeft: `${row.indent}px` }}>
+              <div style={{ width: `${8 - i * 2}px`, height: `${8 - i * 2}px`, borderRadius: "50%", background: row.color, flexShrink: 0 }} />
+              <span style={{ fontSize: `${0.84 - i * 0.04}rem`, fontWeight: 600, color: "var(--color-text-strong)", minWidth: "88px" }}>
+                {tPlanetLord(row.lord, lang)} {row.word}
+              </span>
+              <span style={{ fontSize: "0.625rem", color: "var(--color-faint)" }}>
+                {String(row.start)} → {String(row.end)}
+              </span>
+            </div>
+          ))}
         </div>
-      )}
-    </div>
+
+        {dashaAntar && dashaAntar.length > 0 && (
+          <div style={{ marginTop: "var(--space-2_5)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-2_5)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
+            <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", color: "var(--color-faint)", letterSpacing: "0.04em" }}>
+              {tPlanetLord(dasha.current.mahadasha.lord, lang)} {t("dasha_word", lang)} — {t("dasha_all_bhukti", lang)}
+            </p>
+            {dashaAntar.map((bh) => {
+              const bst = dashaStatus(String(bh.startDate), String(bh.endDate), today);
+              const isRunning = bh.lord === dasha.current.antardasha.lord && bst === "active";
+              const bc = DASHA_COLORS[bh.lord] ?? "var(--color-faint)";
+              return (
+                <div key={`${bh.lord}-${bh.startDate}`} style={{
+                  display: "flex", alignItems: "center", gap: "var(--space-1_5)",
+                  padding: "3px 8px",
+                  borderRadius: "var(--radius-xs)",
+                  background: isRunning ? "var(--color-accent-muted)" : "transparent",
+                  opacity: bst === "past" ? 0.5 : 1,
+                }}>
+                  <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: bc, flexShrink: 0 }} />
+                  <span style={{ fontSize: "0.75rem", fontWeight: isRunning ? 700 : 400, color: isRunning ? "var(--color-accent-strong)" : "var(--color-muted)", minWidth: "70px" }}>
+                    {tPlanetLord(bh.lord, lang)} {t("bhukti_word", lang)}
+                  </span>
+                  <span style={{ fontSize: "0.625rem", color: "var(--color-faint)", flex: 1 }}>
+                    {String(bh.startDate)} → {String(bh.endDate)}
+                  </span>
+                  <Chip tone={isRunning ? "accent" : "neutral"}>
+                    {isRunning ? t("status_active", lang) : bst === "past" ? t("status_past", lang) : t("status_upcoming", lang)}
+                  </Chip>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </Surface>
   );
 }
 

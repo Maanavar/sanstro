@@ -8,6 +8,7 @@ import { ChartGenerateInlinePanel } from "./chart-generate-inline-panel";
 import { DashboardAnnualWrapped } from "./dashboard-annual-wrapped";
 import { RetrospectivePanel } from "./dashboard-retrospective-panel";
 import { NovaPoruthamPanel, type PoruthamFamilyMember } from "./dashboard-tools-porutham-nova";
+import { NovaActivityTimingCard } from "./dashboard-today-deepdive-extras-nova";
 import { RasippalanTool } from "@/app/tools/indraiya-rasipalan/RasippalanTool";
 
 /**
@@ -124,7 +125,11 @@ export type DashboardToolsTabNovaProps = {
   showWrapped: boolean;
   showRetrospective: boolean;
   showRasipalan: boolean;
+  showActivityTiming: boolean;
   personalChartId: string;
+  selectedDate: string;
+  onDateChange: (date: string) => void;
+  familyVaultId?: string;
   familyMembersForPorutham: PoruthamFamilyMember[];
   onGoToPlan: () => void;
   onGoToCalendar: () => void;
@@ -142,7 +147,11 @@ export function DashboardToolsTabNova({
   showWrapped,
   showRetrospective,
   showRasipalan,
+  showActivityTiming,
   personalChartId,
+  selectedDate,
+  onDateChange,
+  familyVaultId,
   familyMembersForPorutham,
   onGoToPlan,
   onGoToCalendar,
@@ -191,6 +200,13 @@ export function DashboardToolsTabNova({
       descTa: "12 ராசிகளுக்குமான இன்றைய பலன் — நண்பருக்காக படியுங்கள் அல்லது பகிருங்கள்.",
       metaEn: "today's transits", metaTa: "இன்றைய கிரகநிலை", kind: "inline",
     },
+    {
+      id: "activityTiming", icon: "⏱", color: "var(--color-high)",
+      nameEn: "Activity Timing", nameTa: "செயல் நேரம்",
+      descEn: "Find the strongest dates this month for travel, signing, moving in, or any activity — scored against your chart.",
+      descTa: "பயணம், ஒப்பந்தம், வீடு மாறுதல் அல்லது எந்த செயலுக்கும் இந்த மாதம் சிறந்த தேதிகளைக் கண்டறியுங்கள் — உங்கள் ஜாதகத்திற்கேற்ப.",
+      metaEn: "uses · your saved chart", metaTa: "பயன்படுத்துவது · உங்கள் ஜாதகம்", disabled: needsProfile, kind: "inline",
+    },
   ];
 
   const cardStyle = (tool: ToolCardSpec): CSSProperties => ({
@@ -231,7 +247,7 @@ export function DashboardToolsTabNova({
         </div>
 
         {showPorutham && (
-          <NovaPoruthamPanel lang={lang} familyMembers={familyMembersForPorutham} onGoToMuhurta={onGoToPlan} onOpenAskVinaadi={onOpenAskVinaadi} />
+          <NovaPoruthamPanel lang={lang} familyVaultId={familyVaultId} familyMembers={familyMembersForPorutham} onGoToMuhurta={onGoToPlan} onOpenAskVinaadi={onOpenAskVinaadi} />
         )}
         {showChartGenerate && (
           <NovaToolIsland><ChartGenerateInlinePanel lang={lang} /></NovaToolIsland>
@@ -244,6 +260,9 @@ export function DashboardToolsTabNova({
         )}
         {showRasipalan && (
           <NovaToolIsland><RasippalanTool hideCta /></NovaToolIsland>
+        )}
+        {showActivityTiming && personalChartId && (
+          <NovaActivityTimingCard lang={lang} chartId={personalChartId} selectedDate={selectedDate} onDateChange={onDateChange} />
         )}
       </div>
     );

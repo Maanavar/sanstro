@@ -592,6 +592,10 @@ const STRINGS = {
   nakshatra_ruling_planet: { ta: "அதிபதி கிரகம்",        en: "Ruling Planet" },
   nakshatra_strengths:     { ta: "பலங்கள்",              en: "Strengths" },
   nakshatra_cautions:      { ta: "கவனிக்க",              en: "Cautions" },
+  rasi_trait_card_label:   { ta: "ராசி குணாதிசயம்",      en: "Rasi Profile" },
+  lagna_trait_card_label:  { ta: "லக்ன குணாதிசயம்",      en: "Lagnam Profile" },
+  rasi_trait_element:      { ta: "தத்துவம்",              en: "Element" },
+  rasi_running_dasha:      { ta: "நடப்பு",                en: "Running" },
 
   // ── ARCH-02: Notification preferences
   notif_section_title:     { ta: "அறிவிப்புகள்",                    en: "Notifications" },

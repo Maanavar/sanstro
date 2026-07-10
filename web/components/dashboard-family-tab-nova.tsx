@@ -9,7 +9,6 @@ import type { Lang } from "@/lib/i18n";
 import { compareSynastry } from "@vinaadi/shared/api/relationships";
 import type {
   ChartCalculateResponseData,
-  DailyGuidanceRangeData,
   FamilyAggregateData,
   FamilyAggregateMember,
   FamilyCompositeTimelineData,
@@ -386,19 +385,13 @@ export type DashboardFamilyTabNovaProps = {
   relationshipAlerts: RelationshipAlertItem[];
   alertsLoading: boolean;
   panchangam: PanchangamDailyResponseData | null;
-  /** Owner-only extra for the chart & explanations deep-dive panel (moved
-   *  here out of the Today tab); only applied when the owner's own profile
-   *  is the one currently open — see chartsPanelChart/activeIsSelf below. */
-  dailyGuidanceRange?: DailyGuidanceRangeData | null;
   mode?: "BEGINNER" | "BALANCED" | "TRADITIONAL";
-  onDateChange?: (date: string) => void;
   /** Navigates to the dedicated Journal tab — the family tab no longer embeds
    *  its own journal panel (it duplicated that tab behind an invisible toggle). */
   onGoToJournal?: () => void;
   onOpenPrasna?: () => void;
   showPrasna?: boolean;
   onClosePrasna?: () => void;
-  onOpenNotificationSettings?: () => void;
   busy: {
     family: boolean;
     vaults: boolean;
@@ -429,14 +422,11 @@ export function DashboardFamilyTabNova({
   relationshipAlerts,
   alertsLoading,
   panchangam,
-  dailyGuidanceRange,
   mode,
-  onDateChange,
   onGoToJournal,
   onOpenPrasna,
   showPrasna,
   onClosePrasna,
-  onOpenNotificationSettings,
   busy,
   onRefreshFamily,
   onOpenSetup,
@@ -687,41 +677,6 @@ export function DashboardFamilyTabNova({
         </div>
       )}
 
-      {/* ===== Relation filter chips ===== */}
-      {members.length > 0 && (
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-          {([
-            ["all", lang === "ta" ? `அனைவரும் ${members.length}` : `All ${members.length}`],
-            ["elder", lang === "ta" ? `மூத்தோர் ${bucketCounts.elder}` : `Elders ${bucketCounts.elder}`],
-            ["adult", lang === "ta" ? `பெரியவர்கள் ${bucketCounts.adult}` : `Adults ${bucketCounts.adult}`],
-            ["child", lang === "ta" ? `குழந்தைகள் ${bucketCounts.child}` : `Children ${bucketCounts.child}`],
-          ] as [RelationFilter, string][]).map(([key, label]) => (
-            <button key={key} type="button" onClick={() => setRelationFilter(key)}
-              style={{
-                fontSize: "12px", fontWeight: relationFilter === key ? 700 : 500,
-                color: relationFilter === key ? "var(--color-on-accent)" : "var(--color-text)",
-                background: relationFilter === key ? "var(--color-accent)" : "transparent",
-                border: `1px solid ${relationFilter === key ? "var(--color-accent)" : "var(--color-border-strong)"}`,
-                borderRadius: "999px", padding: "6px 14px", cursor: "pointer", fontFamily: "inherit",
-              }}>
-              {label}
-            </button>
-          ))}
-          {bucketCounts.needsCare > 0 && (
-            <button type="button" onClick={() => setRelationFilter(relationFilter === "needsCare" ? "all" : "needsCare")}
-              style={{
-                marginLeft: "auto", fontSize: "12px",
-                color: relationFilter === "needsCare" ? "var(--color-on-accent)" : "var(--color-low)",
-                background: relationFilter === "needsCare" ? "var(--color-low)" : "transparent",
-                border: `1px solid ${relationFilter === "needsCare" ? "var(--color-low)" : "var(--color-border)"}`,
-                borderRadius: "999px", padding: "6px 14px", cursor: "pointer", fontFamily: "inherit",
-              }}>
-              {lang === "ta" ? `கவனம் தேவை ${bucketCounts.needsCare}` : `Needs care ${bucketCounts.needsCare}`} <span style={{ color: "var(--color-low)" }}>●</span>
-            </button>
-          )}
-        </div>
-      )}
-
       {/* ===== Harmony hero + rhythm ===== */}
       <div className="nova-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 348px", gap: "18px" }}>
         <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "26px 28px", display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -769,15 +724,50 @@ export function DashboardFamilyTabNova({
         <FamilySevenDayOutlook lang={lang} selectedDate={selectedDate} familyScore={familyScore} familyComposite={familyComposite} members={members} />
       </div>
 
-      {/* ===== Members grid ===== */}
+      {/* ===== Members grid — relation filter chips live in this header (not as
+          their own top-of-page row) since they only ever control this grid;
+          keeping the control next to what it filters. ===== */}
       {members.length > 0 && (
         <>
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginTop: "4px" }}>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 600, color: "var(--color-accent-strong)" }}>
-              {lang === "ta" ? "உறுப்பினர்கள்" : "Members"}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px", flexWrap: "wrap", marginTop: "4px" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 600, color: "var(--color-accent-strong)" }}>
+                {lang === "ta" ? "உறுப்பினர்கள்" : "Members"}
+              </div>
+              <div style={{ fontSize: "11.5px", color: "var(--color-faint)" }}>
+                {lang === "ta" ? "முழு விவரத்தைத் திறக்க ஒரு கார்டைத் தட்டவும்" : "tap any card to open the full profile"}
+              </div>
             </div>
-            <div style={{ fontSize: "11.5px", color: "var(--color-faint)" }}>
-              {lang === "ta" ? "முழு விவரத்தைத் திறக்க ஒரு கார்டைத் தட்டவும்" : "tap any card to open the full profile"}
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+              {([
+                ["all", lang === "ta" ? `அனைவரும் ${members.length}` : `All ${members.length}`],
+                ["elder", lang === "ta" ? `மூத்தோர் ${bucketCounts.elder}` : `Elders ${bucketCounts.elder}`],
+                ["adult", lang === "ta" ? `பெரியவர்கள் ${bucketCounts.adult}` : `Adults ${bucketCounts.adult}`],
+                ["child", lang === "ta" ? `குழந்தைகள் ${bucketCounts.child}` : `Children ${bucketCounts.child}`],
+              ] as [RelationFilter, string][]).map(([key, label]) => (
+                <button key={key} type="button" onClick={() => setRelationFilter(key)}
+                  style={{
+                    fontSize: "12px", fontWeight: relationFilter === key ? 700 : 500,
+                    color: relationFilter === key ? "var(--color-on-accent)" : "var(--color-text)",
+                    background: relationFilter === key ? "var(--color-accent)" : "transparent",
+                    border: `1px solid ${relationFilter === key ? "var(--color-accent)" : "var(--color-border-strong)"}`,
+                    borderRadius: "999px", padding: "6px 14px", cursor: "pointer", fontFamily: "inherit",
+                  }}>
+                  {label}
+                </button>
+              ))}
+              {bucketCounts.needsCare > 0 && (
+                <button type="button" onClick={() => setRelationFilter(relationFilter === "needsCare" ? "all" : "needsCare")}
+                  style={{
+                    fontSize: "12px",
+                    color: relationFilter === "needsCare" ? "var(--color-on-accent)" : "var(--color-low)",
+                    background: relationFilter === "needsCare" ? "var(--color-low)" : "transparent",
+                    border: `1px solid ${relationFilter === "needsCare" ? "var(--color-low)" : "var(--color-border)"}`,
+                    borderRadius: "999px", padding: "6px 14px", cursor: "pointer", fontFamily: "inherit",
+                  }}>
+                  {lang === "ta" ? `கவனம் தேவை ${bucketCounts.needsCare}` : `Needs care ${bucketCounts.needsCare}`} <span style={{ color: "var(--color-low)" }}>●</span>
+                </button>
+              )}
             </div>
           </div>
           <div className="nova-grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
@@ -838,10 +828,11 @@ export function DashboardFamilyTabNova({
           owner by default, or the selected member once a tile is opened) —
           previously this panel was pushed all the way down past Compatibility/
           Journal/Bonds, which broke the "look at one person" flow by forcing a
-          scroll through unrelated family-wide content first. Prasna and
-          notification settings stay owner-only (gated inside the panel via
-          isSelf) since those are account-level, not per-person astrology. The
-          Today tab's "Why this prediction?" bridge card links here. ===== */}
+          scroll through unrelated family-wide content first. Prasna stays
+          owner-only (gated inside the panel via isSelf) since it's account-
+          level, not per-person astrology; Activity Timing lives in the Tools
+          tab and Morning Guidance on the Today homepage. The Today tab's
+          "Why this prediction?" bridge card links here. ===== */}
       {chartsPanelChartId && chartsPanelChart && (
         <DashboardChartsPanelNova
           lang={lang}
@@ -850,23 +841,18 @@ export function DashboardFamilyTabNova({
           personalChart={chartsPanelChart.chart}
           personalChartExplanation={chartsPanelChart.explanation}
           personalChartSummary={chartsPanelChart.summary}
-          personalDailyGuidance={chartsPanelChart.dailyGuidance}
           personalTransit={chartsPanelChart.transit}
           personalSani={chartsPanelChart.sani}
           peyarchiUpcoming={chartsPanelChart.peyarchiUpcoming}
-          panchangam={panchangam}
           dasha={chartsPanelChart.dasha}
           dashaAntar={chartsPanelChart.dashaAntar}
-          dailyGuidanceRange={activeIsSelf ? dailyGuidanceRange : undefined}
           nakshatraCard={chartsPanelChart.nakshatraCard}
           mode={mode}
           isSelf={activeIsSelf}
           viewerDisplayName={chartsPanelDisplayName}
-          onDateChange={onDateChange}
           onOpenPrasna={onOpenPrasna}
           showPrasna={showPrasna}
           onClosePrasna={onClosePrasna}
-          onOpenNotificationSettings={onOpenNotificationSettings}
         />
       )}
 

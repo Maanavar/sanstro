@@ -30,6 +30,7 @@ import { useEveningPreview } from "@/hooks/useEveningPreview";
 import { DashboardTodayRibbonNova } from "./dashboard-today-ribbon-nova";
 import { DashboardTodayDecideNova } from "./dashboard-today-decide-nova";
 import { DashboardTodayOneLinersNova, DashboardTodayGlanceRowNova } from "./dashboard-today-glance-nova";
+import { MorningGuidanceCard } from "./morning-guidance-card";
 
 /**
  * Nova "Today" tab — decision layer only (design 8a). Every field below
@@ -79,6 +80,7 @@ export type DashboardTodayTabNovaProps = {
   /** Opens the "Family & Charts" tab, where the full chart engine now lives. */
   onGoToCharts?: () => void;
   onOpenAskVinaadi: () => void;
+  onOpenNotificationSettings?: () => void;
 };
 
 function greetingWord(lang: Lang): string {
@@ -136,6 +138,7 @@ export function DashboardTodayTabNova({
   onGoToTransits,
   onGoToCharts,
   onOpenAskVinaadi,
+  onOpenNotificationSettings,
 }: DashboardTodayTabNovaProps) {
   const { days: streakDays } = useStreak();
   const { enabled: eveningPreviewOn, setEnabled: setEveningPreviewOn } = useEveningPreview();
@@ -532,6 +535,12 @@ export function DashboardTodayTabNova({
           </div>
         </div>
       )}
+
+      {/* ===== 7. Morning Guidance pointer — status + deep-link to Settings →
+          Notifications, where the actual opt-in (enable, delivery time,
+          channel) lives. Account-level, so it belongs on the homepage rather
+          than inside a specific person's chart deep-dive. ===== */}
+      <MorningGuidanceCard lang={lang} onOpenSettings={onOpenNotificationSettings} />
     </div>
   );
 }

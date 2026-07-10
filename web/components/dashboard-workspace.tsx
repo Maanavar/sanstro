@@ -330,6 +330,7 @@ export function DashboardWorkspace() {
   const [showPorutham, setShowPorutham] = useState(false);
   const [showChartGenerate, setShowChartGenerate] = useState(false);
   const [showRasipalan, setShowRasipalan] = useState(false);
+  const [showActivityTiming, setShowActivityTiming] = useState(false);
   const [showPrasna, setShowPrasna] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -816,6 +817,13 @@ export function DashboardWorkspace() {
   const transitDasha = transitMemberChart?.dasha ?? personal.dasha;
   const transitDashaMaha = transitMemberChart?.dashaMaha ?? personal.dashaMaha;
   const transitDashaAntar = transitMemberChart?.dashaAntar ?? personal.dashaAntar;
+
+  // Life Areas tab specific resolved data (follows lifeAreasViewId selector) —
+  // feeds the Overview sub-tab's guidance/gochar cards, moved here from
+  // Family & Charts on 2026-07-09.
+  const lifeAreasDailyGuidance = lifeAreasMemberChart?.dailyGuidance ?? personal.dailyGuidance;
+  const lifeAreasTransit = lifeAreasMemberChart?.transit ?? personal.transit;
+  const lifeAreasSani = lifeAreasMemberChart?.sani ?? personal.sani;
   // Backend's family-aggregate injects a synthetic "owner" row (familyMemberId === birthProfileId)
   // so family-score averaging includes the owner alongside managed members. useFamilyData.ts
   // deliberately excludes that row from family.memberCharts (to avoid duplicating the owner in
@@ -1436,6 +1444,7 @@ export function DashboardWorkspace() {
             onGoToTransits={() => { setPlanView("transits"); setActiveTab("plan"); }}
             onGoToCharts={() => setActiveTab("family")}
             onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
+            onOpenNotificationSettings={() => { goToTab("settings"); setSettingsSubTab("session"); }}
           />
         )}
 
@@ -1487,7 +1496,7 @@ export function DashboardWorkspace() {
         )}
 
         {activeTab === "tools" && (() => {
-          const activeTool = showPorutham ? "porutham" : showChartGenerate ? "chartgen" : showWrapped ? "wrapped" : showRetrospective ? "retro" : showRasipalan ? "rasipalan" : null;
+          const activeTool = showPorutham ? "porutham" : showChartGenerate ? "chartgen" : showWrapped ? "wrapped" : showRetrospective ? "retro" : showRasipalan ? "rasipalan" : showActivityTiming ? "activityTiming" : null;
           // Note: Find Birth Time (rectification) removed — results were unreliable
           const needsProfile = !personal.birthProfileId;
           const TOOL_LIST = [
@@ -1611,6 +1620,7 @@ export function DashboardWorkspace() {
             setShowWrapped(toolId === "wrapped");
             setShowRetrospective(toolId === "retro");
             setShowRasipalan(toolId === "rasipalan");
+            setShowActivityTiming(toolId === "activityTiming");
           };
           const closeTool = () => {
             setShowPorutham(false);
@@ -1618,6 +1628,7 @@ export function DashboardWorkspace() {
             setShowWrapped(false);
             setShowRetrospective(false);
             setShowRasipalan(false);
+            setShowActivityTiming(false);
           };
 
           if (uiVariant === "nova") {
@@ -1633,7 +1644,11 @@ export function DashboardWorkspace() {
                 showWrapped={showWrapped}
                 showRetrospective={showRetrospective}
                 showRasipalan={showRasipalan}
+                showActivityTiming={showActivityTiming}
                 personalChartId={personal.chartId}
+                selectedDate={selectedDate}
+                onDateChange={setSelectedDate}
+                familyVaultId={family.selectedVaultId ?? undefined}
                 familyMembersForPorutham={[
                   ...(personal.chart ? [{
                     memberId: `owner:${personal.chart.birthProfile.birthProfileId}`,
@@ -1808,14 +1823,11 @@ export function DashboardWorkspace() {
             relationshipAlerts={family.relationshipAlerts}
             alertsLoading={family.relationshipAlertsLoading}
             panchangam={personal.panchangam}
-            dailyGuidanceRange={personal.dailyGuidanceRange}
             mode={session.userMode}
-            onDateChange={setSelectedDate}
             onGoToJournal={() => goToTab("journal")}
             onOpenPrasna={() => setShowPrasna(true)}
             showPrasna={showPrasna}
             onClosePrasna={() => setShowPrasna(false)}
-            onOpenNotificationSettings={() => { goToTab("settings"); setSettingsSubTab("session"); }}
             busy={{
               family: family.busyFamily,
               vaults: family.busyVaults,
@@ -1923,6 +1935,11 @@ export function DashboardWorkspace() {
         {activeTab === "life-areas" && uiVariant === "nova" && (
           <DashboardLifeAreasTabNova
             lang={lang}
+            personalDailyGuidance={lifeAreasDailyGuidance}
+            dailyGuidanceRange={!lifeAreasViewId ? personal.dailyGuidanceRange : undefined}
+            personalTransit={lifeAreasTransit}
+            personalSani={lifeAreasSani}
+            panchangam={personal.panchangam}
             lifeAreas={personal.lifeAreas}
             predictions={personal.predictions}
             predictionsLoading={personal.predictionsLoading}

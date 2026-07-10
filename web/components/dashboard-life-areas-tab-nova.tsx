@@ -5,6 +5,7 @@ import { useState } from "react";
 import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { getScoreBand } from "@/lib/format";
+import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
 import type {
   LifeAreaData,
   LifeAreasResponseData,
@@ -16,6 +17,11 @@ import type {
   RemedyPlanItem,
   GemstoneAdviceItem,
   GoalData,
+  DailyGuidanceData,
+  DailyGuidanceRangeData,
+  TransitSnapshotData,
+  SaniCycleData,
+  PanchangamDailyResponseData,
 } from "@/lib/types";
 
 import { LifeAreaCard } from "./life-area-card";
@@ -28,6 +34,7 @@ import { EventWindowsPanel } from "./dashboard-event-windows";
 import { isAreaRelevantForAge } from "./dashboard-life-areas-tab";
 import { GOAL_OPTIONS } from "./dashboard-plan-tab";
 import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
+import { NovaGocharCard, NovaGuidanceCard } from "./dashboard-today-deepdive-extras-nova";
 
 /**
  * Nova Life Areas tab — Phase 9 of the dashboard revamp, mapped from the
@@ -87,6 +94,11 @@ function tierOf(area: LifeAreaData): Tier {
 
 type DashboardLifeAreasTabNovaProps = {
   lang: Lang;
+  personalDailyGuidance: DailyGuidanceData | null;
+  dailyGuidanceRange?: DailyGuidanceRangeData | null;
+  personalTransit: TransitSnapshotData | null;
+  personalSani: SaniCycleData | null;
+  panchangam: PanchangamDailyResponseData | null;
   lifeAreas: LifeAreasResponseData | null;
   predictions: PredictionBundle | null;
   predictionsLoading: boolean;
@@ -113,6 +125,11 @@ type DashboardLifeAreasTabNovaProps = {
 
 export function DashboardLifeAreasTabNova({
   lang,
+  personalDailyGuidance,
+  dailyGuidanceRange,
+  personalTransit,
+  personalSani,
+  panchangam,
   lifeAreas,
   predictions,
   predictionsLoading,
@@ -138,6 +155,7 @@ export function DashboardLifeAreasTabNova({
 }: DashboardLifeAreasTabNovaProps) {
   const [subTab, setSubTab] = useState<SubTab>("scores");
   const [selectedArea, setSelectedArea] = useState<LifeAreaData | null>(null);
+  const astroText = (value: string) => (lang === "en" ? tamilizeAstroEnglish(value) : value);
   const currentAge = chartSummary?.currentAge ?? null;
   const isMarried = maritalStatus === "married" || maritalStatus === "widowed" || maritalStatus === "divorced";
 
@@ -235,10 +253,30 @@ export function DashboardLifeAreasTabNova({
 
       {/* ===== Sub-tab: Overview ===== */}
       {subTab === "scores" && (
-        !lifeAreas ? (
-          <p style={{ margin: 0, color: "var(--color-faint)", fontSize: "13px" }}>{t("life_areas_empty", lang)}</p>
-        ) : (
-          <>
+        <>
+          {/* ===== Today's guidance & transits — moved here from "Family &
+              Charts" (2026-07-09) so the "how am I doing" landing page leads
+              with today's snapshot before the longer-arc life-domain scores
+              below. Resolved per the Overview tab's own member switcher
+              (selectedMemberId), same pattern as the Family/Transits tabs. ===== */}
+          <NovaGocharCard
+            lang={lang}
+            personalDailyGuidance={personalDailyGuidance}
+            personalTransit={personalTransit}
+            personalSani={personalSani}
+            panchangam={panchangam}
+          />
+          <NovaGuidanceCard
+            lang={lang}
+            personalDailyGuidance={personalDailyGuidance}
+            dailyGuidanceRange={dailyGuidanceRange}
+            astroText={astroText}
+          />
+
+          {!lifeAreas ? (
+            <p style={{ margin: 0, color: "var(--color-faint)", fontSize: "13px" }}>{t("life_areas_empty", lang)}</p>
+          ) : (
+            <>
             {lifeAreas.chartSignature && (
               <div style={{ ...cardStyle, flexDirection: "row", alignItems: "baseline", flexWrap: "wrap", background: "var(--color-accent-muted)" }}>
                 <span style={{ fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-strong)", whiteSpace: "nowrap" }}>
@@ -320,7 +358,8 @@ export function DashboardLifeAreasTabNova({
               </DrawerPanel>
             )}
           </>
-        )
+          )}
+        </>
       )}
 
       {/* ===== Sub-tab: Predictions ===== */}

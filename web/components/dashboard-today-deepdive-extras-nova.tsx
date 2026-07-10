@@ -7,6 +7,8 @@ import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
 import { formatClockLabel, getScoreBand } from "@/lib/format";
 import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { D1_RASI_NAMES, RASI_LORDS } from "@/lib/chart-utils";
+import { RASI_TRAITS } from "@/lib/rasi-traits";
 import type {
   ActivityTimingData,
   ChartCalculateResponseData,
@@ -14,6 +16,7 @@ import type {
   ChartValidationStatus,
   DailyGuidanceData,
   DailyGuidanceRangeData,
+  DashaTimelineResponseData,
   PanchangamDailyResponseData,
   PrasnaResponse,
   SaniCycleData,
@@ -33,7 +36,6 @@ import {
 } from "./dashboard-activity-timing-card";
 import { QUESTION_AREAS, outlookLabel } from "./dashboard-prasna-widget";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
-import { ShareCardButton } from "./dashboard-share-card";
 import { DrawerPanel } from "./drawer-panel";
 import { NovaSelect } from "./nova-select";
 import { Chip, Metric, Surface } from "./dashboard-ui";
@@ -98,17 +100,15 @@ export function NovaChartValidationChip({
 
 export function NovaChartIdentityCard({
   lang,
-  activeChartId,
-  selectedDate,
   personalChart,
   personalChartSummary,
+  dasha,
   astroText,
 }: {
   lang: Lang;
-  activeChartId: string;
-  selectedDate: string;
   personalChart: ChartCalculateResponseData | null;
   personalChartSummary: ChartSummaryData | null;
+  dasha?: DashaTimelineResponseData | null;
   astroText: (value: string) => string;
 }) {
   return (
@@ -118,7 +118,11 @@ export function NovaChartIdentityCard({
             <div className="surface__headline">
               <span>{personalChartSummary?.displayName ?? personalChart.birthProfile.displayName}</span>
               <Chip tone="accent">
-                {personalChartSummary ? `${personalChartSummary.currentMahadasha} ${t("dasha_word", lang)}` : personalChart.calculationVersion}
+                {dasha
+                  ? `${tPlanetLord(dasha.current.mahadasha.lord, lang)} ${t("dasha_word", lang)} · ${tPlanetLord(dasha.current.antardasha.lord, lang)} ${t("bhukti_word", lang)} · ${tPlanetLord(dasha.current.pratyantardasha.lord, lang)} ${t("antaram_word", lang)}`
+                  : personalChartSummary
+                  ? `${personalChartSummary.currentMahadasha} ${t("dasha_word", lang)}`
+                  : personalChart.calculationVersion}
               </Chip>
             </div>
             <p className="surface__text">
@@ -126,20 +130,10 @@ export function NovaChartIdentityCard({
                 ? `${personalChartSummary.lagnaRasi} ${t("label_lagnam", lang)} · ${personalChartSummary.moonRasi} ${t("label_janma_rasi", lang)} · ${astroText(personalChartSummary.janmaNakshatra)} ${t("label_nakshatra", lang)} ${t("label_padam", lang)} ${personalChartSummary.janmaPada}`
                 : t("chart_loading", lang)}
             </p>
-            <div className="surface__metrics">
-              <Metric label={t("label_birth_date", lang)} value={personalChart.birthProfile.birthDateLocal} hint={personalChart.birthProfile.birthPlace ?? personalChart.birthProfile.birthProfileId.slice(0, 8)} />
-              <Metric label={t("label_lagnam", lang)} value={personalChart.lagna.rasiName ?? `Raasi ${personalChart.lagna.rasi}`} hint={`${personalChart.lagna.degreeInRasi.toFixed(2)}° · ${astroText(personalChart.lagna.nakshatraName)} ${t("label_padam", lang)} ${personalChart.lagna.pada}`} tone="high" />
-            </div>
             <div style={{ display: "flex", gap: "14px", flexWrap: "wrap", justifyContent: "center", marginTop: "14px" }}>
               <RasiChart chart={personalChart} label={t("label_d1", lang)} lang={lang} />
               <NavamsaChart chart={personalChart} label={t("label_d9", lang)} lang={lang} />
             </div>
-            {activeChartId && (
-              <div style={{ display: "flex", gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
-                <ShareCardButton chartId={activeChartId} cardType="NAKSHATRA" lang={lang} label={lang === "ta" ? "நட்சத்திர அட்டை பகிர்" : "Share Birth Star Card"} />
-                <ShareCardButton chartId={activeChartId} cardType="DAILY_VIBE" lang={lang} date={selectedDate} label={lang === "ta" ? "இன்றைய வைப் பகிர்" : "Share Today's Vibe"} />
-              </div>
-            )}
             <div style={{ marginTop: "10px", paddingTop: "8px", borderTop: "1px solid var(--color-border)" }}>
               <p style={{ margin: 0, fontSize: "11px", color: "var(--color-muted)" }}>
                 {lang === "ta"
@@ -158,34 +152,74 @@ export function NovaChartIdentityCard({
   );
 }
 
-// ─────────────── 2b. Today's guidance + gochar two-col ───────────────
+// ─── 2a-2. Rasi / Lagnam trait card (classical, generic — no per-user calc) ───
+// Same visual/content shape as the nakshatra profile card above (headline +
+// ruling-planet chip + profile + strength chips + one caution chip), reused
+// for both the moon-rasi and lagna-rasi trait cards from RASI_TRAITS in
+// lib/rasi-traits.ts — see that file's header comment for why this is
+// hardcoded client-side rather than API-sourced like the nakshatra card.
+export function NovaRasiTraitCard({
+  lang,
+  rasi,
+  titleKey,
+  astroText,
+}: {
+  lang: Lang;
+  rasi: number | null | undefined;
+  titleKey: "rasi_trait_card_label" | "lagna_trait_card_label";
+  astroText: (value: string) => string;
+}) {
+  if (rasi == null) return null;
+  const entry = RASI_TRAITS[rasi];
+  if (!entry) return null;
+  const rasiName = D1_RASI_NAMES[rasi] ?? `Rasi ${rasi}`;
+  const lord = RASI_LORDS[rasi];
 
-export function NovaGuidanceGocharRow({
+  return (
+    <Surface title={t(titleKey, lang)}>
+      <div className="surface__body">
+        <div className="surface__headline">
+          <span>{rasiName}</span>
+          {lord && <Chip tone="accent">{t("nakshatra_ruling_planet", lang)}: {tPlanetLord(lord, lang)}</Chip>}
+        </div>
+        <p className="surface__text">{lang === "ta" ? entry.profile.ta : astroText(entry.profile.en)}</p>
+        <div className="chip-row">
+          <Chip>{t("rasi_trait_element", lang)}: {lang === "ta" ? entry.element.ta : astroText(entry.element.en)}</Chip>
+        </div>
+        {entry.traits.length > 0 && (
+          <div className="chip-row">{entry.traits.map((s) => <Chip key={s.en} tone="success">{lang === "ta" ? s.ta : astroText(s.en)}</Chip>)}</div>
+        )}
+        <div className="chip-row">
+          <Chip tone="warning">{lang === "ta" ? entry.caution.ta : astroText(entry.caution.en)}</Chip>
+        </div>
+      </div>
+    </Surface>
+  );
+}
+
+// ─────────────── 2b. Today's guidance card ───────────────
+// Split from the old combined "guidance + gochar" two-col (see git history)
+// so the charts panel can place guidance and gochar in different reading-order
+// zones — guidance stands alone as its own "why this score" section, while
+// gochar/transit content moves up next to the planet-positions reference
+// material. Same data/logic, just no longer forced side-by-side.
+
+export function NovaGuidanceCard({
   lang,
   personalDailyGuidance,
-  personalTransit,
-  personalSani,
-  panchangam,
   dailyGuidanceRange,
   astroText,
 }: {
   lang: Lang;
   personalDailyGuidance: DailyGuidanceData | null;
-  personalTransit: TransitSnapshotData | null;
-  personalSani: SaniCycleData | null;
-  panchangam: PanchangamDailyResponseData | null;
   dailyGuidanceRange?: DailyGuidanceRangeData | null;
   astroText: (value: string) => string;
 }) {
   const bestWindow = personalDailyGuidance?.bestWindows[0] ?? null;
   const avoidWindow = personalDailyGuidance?.cautionWindows[0] ?? null;
   const personalScoreBand = personalDailyGuidance ? getScoreBand(personalDailyGuidance.score) : null;
-  const chandrashtamaWindowsSummary = panchangam
-    ? formatChandrashtamaWindowSummary(panchangam.chandrashtamamToday?.janmaNakshatraWindows ?? [], panchangam.dateLocal, lang)
-    : "";
 
   return (
-    <div className="two-col">
         <Surface title={t("surface_guidance", lang)}>
           {personalDailyGuidance ? (
             <div className="surface__body">
@@ -273,7 +307,32 @@ export function NovaGuidanceGocharRow({
             <p className="empty-state">{t("guidance_empty", lang)}</p>
           )}
         </Surface>
+  );
+}
 
+// ─────────────── 2c. Transits & Panchangam card (gochar) ───────────────
+// The other half of the old combined row — now grouped with planet
+// positions/chart explanation as the "why" material for the same chart,
+// instead of sitting beside the guidance card.
+
+export function NovaGocharCard({
+  lang,
+  personalDailyGuidance,
+  personalTransit,
+  personalSani,
+  panchangam,
+}: {
+  lang: Lang;
+  personalDailyGuidance: DailyGuidanceData | null;
+  personalTransit: TransitSnapshotData | null;
+  personalSani: SaniCycleData | null;
+  panchangam: PanchangamDailyResponseData | null;
+}) {
+  const chandrashtamaWindowsSummary = panchangam
+    ? formatChandrashtamaWindowSummary(panchangam.chandrashtamamToday?.janmaNakshatraWindows ?? [], panchangam.dateLocal, lang)
+    : "";
+
+  return (
         <Surface title={<GlossaryTerm term="gochar" lang={lang}>{t("surface_gochar", lang)}</GlossaryTerm>}>
           {personalTransit && personalSani && panchangam ? (
             <div className="stack">
@@ -299,7 +358,6 @@ export function NovaGuidanceGocharRow({
               </div>
               <div className="surface__textBlock">
                 <p className="surface__subhead">{t("label_gochar_pos", lang)}</p>
-                <p className="surface__text">{t("label_janma_rasi_short", lang)} {personalTransit.janmaRasi} · {t("label_lagnam", lang)} {personalTransit.lagnaRasi}</p>
                 <div className="chip-row">
                   {personalTransit.transits.slice(0, 5).map((item) => (
                     <Chip key={item.graha}>{item.graha} · {item.currentRasi}</Chip>
@@ -309,7 +367,6 @@ export function NovaGuidanceGocharRow({
             </div>
           ) : <p className="empty-state">{t("gochar_empty", lang)}</p>}
         </Surface>
-    </div>
   );
 }
 
