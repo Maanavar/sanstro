@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 
 import { useTheme, type Theme } from "@/hooks/useTheme";
-import type { UiVariant } from "@/hooks/useUiVariant";
 import { apiFetchJson } from "@/lib/api";
 import { clearFcmTokenLocal, fetchFcmToken, hasFirebaseMessagingConfig } from "@/lib/firebase-messaging";
 import { formatDateTimeLabel } from "@/lib/format";
@@ -41,8 +40,6 @@ type DashboardSettingsSessionTabProps = {
   onApplyRetention: (dryRun: boolean) => Promise<JournalRetentionApplyData | null>;
   busyRetentionApply: boolean;
   onSignOut: () => void;
-  uiVariant: UiVariant;
-  onUiVariantChange: (variant: UiVariant) => void;
 };
 
 /* ── Warm design tokens (match personal / family / life-areas tabs) ── */
@@ -275,11 +272,8 @@ export function DashboardSettingsSessionTab({
   onApplyRetention,
   busyRetentionApply,
   onSignOut,
-  uiVariant,
-  onUiVariantChange,
 }: DashboardSettingsSessionTabProps) {
   const { theme: currentTheme, setTheme } = useTheme();
-  const setUiVariant = onUiVariantChange;
   const [retentionDraft, setRetentionDraft] = useState(journalRetentionDays);
   const [modeDraft, setModeDraft] = useState<"BEGINNER" | "BALANCED" | "TRADITIONAL">(userMode);
   const [trackDraft, setTrackDraft] = useState<"CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL" | "">(goalTrack ?? "");
@@ -587,26 +581,6 @@ export function DashboardSettingsSessionTab({
         </div>
       </SettingsCard>
 
-      {/* ── Look ── */}
-      <SettingsCard>
-        <SectionLabel>{lang === "ta" ? "பார்வை பாணி" : "Look"}</SectionLabel>
-        <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted, lineHeight: 1.55 }}>
-          {lang === "ta"
-            ? "Classic பழக்கமான தோற்றம். Nova புதிய இருண்ட பாணி — எப்போதும் இருண்டதாகவே இருக்கும்."
-            : "Classic is the familiar look. Nova is a new dark theme — it's always dark, regardless of the Appearance setting below."}
-        </p>
-        <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-          {([
-            { value: "classic", labelEn: "Classic", labelTa: "Classic" },
-            { value: "nova",    labelEn: "Nova",    labelTa: "Nova" },
-          ] as { value: UiVariant; labelEn: string; labelTa: string }[]).map(({ value, labelEn, labelTa }) => (
-            <PillBtn key={value} active={uiVariant === value} onClick={() => setUiVariant(value)}>
-              {lang === "ta" ? labelTa : labelEn}
-            </PillBtn>
-          ))}
-        </div>
-      </SettingsCard>
-
       {/* ── Appearance ── */}
       <SettingsCard>
         <SectionLabel>{lang === "ta" ? "தோற்றம்" : "Appearance"}</SectionLabel>
@@ -620,10 +594,7 @@ export function DashboardSettingsSessionTab({
             display: "flex",
             gap: "var(--space-2)",
             flexWrap: "wrap",
-            opacity: uiVariant === "nova" ? 0.4 : 1,
-            pointerEvents: uiVariant === "nova" ? "none" : "auto",
           }}
-          aria-disabled={uiVariant === "nova" ? "true" : "false"}
         >
           {([
             { value: "system", labelEn: "System", labelTa: "சாதனம்" },
@@ -635,13 +606,6 @@ export function DashboardSettingsSessionTab({
             </PillBtn>
           ))}
         </div>
-        {uiVariant === "nova" && (
-          <p style={{ margin: 0, fontSize: "0.75rem", color: W.muted }}>
-            {lang === "ta"
-              ? "Nova எப்போதும் இருண்டது — இந்த அமைப்பு தற்போது பொருந்தாது."
-              : "Nova is always dark — this setting doesn't apply while Nova is active."}
-          </p>
-        )}
       </SettingsCard>
 
       {/* ── Journal retention ── */}

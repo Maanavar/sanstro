@@ -6,8 +6,8 @@ import { apiFetchJson } from "@/lib/api";
 import type { Lang } from "@/lib/i18n";
 import { formatDateLabel, todayIso } from "@/lib/format";
 
-import { EVENT_TYPES, EVENT_ICON, eventLabel } from "./dashboard-life-event-log";
-import type { LifeEventLogItem } from "./dashboard-life-event-log";
+import { EVENT_TYPES, EVENT_ICON, eventLabel } from "./dashboard-plan-shared";
+import type { LifeEventLogItem } from "./dashboard-plan-shared";
 import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 import { NovaSelect } from "./nova-select";
 

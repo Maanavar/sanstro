@@ -6,7 +6,7 @@ import { apiFetchJson, toQuery } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ActivityTimingData } from "@/lib/types";
-import { ACTIVITY_OPTIONS, ACTIVITY_TO_MUHURTA } from "./dashboard-plan-tab";
+import { ACTIVITY_OPTIONS, ACTIVITY_TO_MUHURTA } from "./dashboard-plan-shared";
 import { NovaMuhurtaPicker } from "./dashboard-plan-muhurta-picker-nova";
 import { NovaMuhurthamNaal } from "./dashboard-plan-muhurtham-naal-nova";
 import { NovaSelect } from "./nova-select";

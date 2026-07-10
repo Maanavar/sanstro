@@ -28,7 +28,7 @@ import {
   GOAL_OPTIONS,
   normalizeGoalType,
   PlanEventsPanel,
-} from "./dashboard-plan-tab";
+} from "./dashboard-plan-shared";
 import type { EventType } from "./dashboard-event-windows";
 import { humaniseReason } from "./dashboard-event-windows";
 import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
@@ -484,7 +484,7 @@ export function DashboardPlanTabNova({
 
             {/* ── Nearest supportive window ── */}
             {heroGroup && (
-              <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(120deg,#2f2540,#271d34)", border: "1px solid var(--color-accent-secondary-muted)", borderRadius: "var(--radius-lg)", padding: "22px 24px", display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ position: "relative", overflow: "hidden", background: "var(--nova-hero-gradient)", border: "1px solid var(--color-accent-secondary-muted)", borderRadius: "var(--radius-lg)", padding: "22px 24px", display: "flex", flexDirection: "column", gap: "12px" }}>
                 <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent-secondary)", fontWeight: 700 }}>
                   {lang === "ta" ? "அருகிலுள்ள ஆதரவான காலம்" : "Nearest supportive window"}
                 </span>

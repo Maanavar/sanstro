@@ -22,11 +22,12 @@ import type {
 
 import { GRAHA_ABBR, RASI_NAMES } from "./dashboard-charts";
 import { DASHA_COLORS } from "./dashboard-dasha";
-import { downloadJadhagamPdf } from "./dashboard-personal-tab";
+import { downloadJadhagamPdf } from "./dashboard-personal-shared";
 import { Chip, Surface } from "./dashboard-ui";
 import { CollapsibleSection } from "./collapsible-section";
 import { AdvancedAstrologyGate } from "./advanced-astrology-gate";
 import { ChartExplanationPanel } from "./dashboard-chart-explanation";
+import { NovaYogaDoshamPanel } from "./dashboard-life-areas-yogas-doshams-nova";
 import { VargasPanel } from "./dashboard-vargas-panel";
 import { ShadbalaPanel } from "./dashboard-shadbala-panel";
 import { YoginiDashaPanel } from "./dashboard-yogini-dasha-panel";
@@ -39,7 +40,7 @@ import {
   NovaPrasnaWidget,
   NovaRasiTraitCard,
 } from "./dashboard-today-deepdive-extras-nova";
-import { DasaBhuktiAntaramDetail } from "./dashboard-family-tab";
+import { DasaBhuktiAntaramDetail } from "./dashboard-family-shared";
 import { ShareCardButton } from "./dashboard-share-card";
 
 /**
@@ -265,6 +266,7 @@ export function DashboardChartsPanelNova({
               peyarchiUpcoming={peyarchiUpcoming}
               dasha={dasha}
               dashaAntar={dashaAntar}
+              renderYogaDoshamPanel={({ lang: l, yogas, doshams }) => <NovaYogaDoshamPanel lang={l} yogas={yogas} doshams={doshams} />}
             />
           </div>
         )}

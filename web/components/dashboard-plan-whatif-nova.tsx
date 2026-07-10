@@ -4,7 +4,7 @@ import { bandPhrase, bandTone } from "@/lib/reasoning";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { WhatIfData } from "@/lib/types";
-import { verdictKey, strengthKey, WHATIF_OPTIONS } from "./dashboard-plan-tab";
+import { verdictKey, strengthKey, WHATIF_OPTIONS } from "./dashboard-plan-shared";
 import { NovaSelect } from "./nova-select";
 
 /**

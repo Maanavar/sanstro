@@ -31,8 +31,8 @@ import { NovaYogaDoshamPanel } from "./dashboard-life-areas-yogas-doshams-nova";
 import { NovaJadhagamReportPanel } from "./dashboard-life-areas-report-nova";
 import { NovaRemediesPanel } from "./dashboard-life-areas-remedies-nova";
 import { EventWindowsPanel } from "./dashboard-event-windows";
-import { isAreaRelevantForAge } from "./dashboard-life-areas-tab";
-import { GOAL_OPTIONS } from "./dashboard-plan-tab";
+import { isAreaRelevantForAge } from "./dashboard-life-areas-shared";
+import { GOAL_OPTIONS } from "./dashboard-plan-shared";
 import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 import { NovaGocharCard, NovaGuidanceCard } from "./dashboard-today-deepdive-extras-nova";
 

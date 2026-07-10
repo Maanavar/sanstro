@@ -86,10 +86,15 @@ export function Button({
   children: ReactNode; onClick?: () => void; type?: "button" | "submit";
   variant?: "primary" | "secondary" | "ghost"; disabled?: boolean; title?: string;
 }) {
+  // Component-scoped token names with the Classic values as fallback (Classic
+  // is a no-op; only Nova's dashboard-nova.css definitions override them). Same
+  // fallback-chain trick as --pcbx-*/--chartgrid-* — the raw --panel-* names are
+  // shared "conflicting-role" tokens that can't be globally remapped under Nova.
+  // See docs/NOVA_ONLY_MIGRATION_PLAN.md Phase 3 (dashboard-ui Button leak).
   const variantStyles: Record<"primary" | "secondary" | "ghost", CSSProperties> = {
-    primary:   { background: "var(--panel-brand)",  color: "var(--panel-cream)", border: "1.5px solid var(--panel-brand)" },
-    secondary: { background: "transparent",          color: "var(--panel-earth)", border: "1.5px solid var(--panel-tan)" },
-    ghost:     { background: "transparent",          color: "var(--panel-brand)", border: "1.5px solid var(--panel-brand-border)" },
+    primary:   { background: "var(--dui-btn-accent, var(--panel-brand))",  color: "var(--dui-btn-on-accent, var(--panel-cream))", border: "1.5px solid var(--dui-btn-accent, var(--panel-brand))" },
+    secondary: { background: "transparent",                                 color: "var(--dui-btn-ink, var(--panel-earth))",       border: "1.5px solid var(--dui-btn-border, var(--panel-tan))" },
+    ghost:     { background: "transparent",                                 color: "var(--dui-btn-accent, var(--panel-brand))",    border: "1.5px solid var(--dui-btn-accent-border, var(--panel-brand-border))" },
   };
   const fallbackStyle: CSSProperties = {
     padding: "8px 20px",

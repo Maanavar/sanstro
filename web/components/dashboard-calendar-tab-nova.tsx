@@ -33,8 +33,8 @@ import {
   parseHmToMinutes,
   rasiName,
   timeWindowsOverlap,
-} from "./dashboard-calendar-tab";
-import type { CalendarView } from "./dashboard-calendar-tab";
+} from "./dashboard-calendar-shared";
+import type { CalendarView } from "./dashboard-calendar-shared";
 import { MonthlyCalendarViewNova } from "./dashboard-calendar-monthly-nova";
 
 /**

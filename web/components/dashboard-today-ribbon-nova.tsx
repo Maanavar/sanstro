@@ -24,10 +24,14 @@ function timeToMinutes(value: string | undefined | null): number | null {
   return hh * 60 + mm;
 }
 
-const RAHU_BG = "#b3573d";
-const RAHU_FG = "#f3ecdd";
-const YAMA_BG = "rgba(179, 87, 61, 0.4)";
-const YAMA_FG = "rgba(243, 236, 221, 0.8)";
+// Was literal hex/rgba (Nova was always dark when these were written) —
+// each value happened to equal --color-alert-critical / --color-text-strong
+// at a given opacity, so these now reference those tokens directly and
+// stay correct under both Nova-dark and Nova-light (Phase 1).
+const RAHU_BG = "var(--color-alert-critical)";
+const RAHU_FG = "var(--color-text-strong)";
+const YAMA_BG = "color-mix(in srgb, var(--color-alert-critical) 40%, transparent)";
+const YAMA_FG = "color-mix(in srgb, var(--color-text-strong) 80%, transparent)";
 const BEST_BG = "var(--color-accent)";
 const BEST_FG = "var(--color-on-accent)";
 const GOOD_BG = "var(--color-high)";

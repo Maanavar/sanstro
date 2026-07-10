@@ -23,10 +23,10 @@ import type {
   TransitSnapshotData,
 } from "@/lib/types";
 
-import { formatChandrashtamaWindowSummary } from "./dashboard-calendar-tab";
+import { formatChandrashtamaWindowSummary } from "./dashboard-calendar-shared";
 import { DASHA_COLORS } from "./dashboard-dasha";
 import { GlossaryTerm } from "./glossary-term";
-import { ChandrashtamaCard, GUIDANCE_REASON_KEYS } from "./dashboard-personal-tab";
+import { ChandrashtamaCard, GUIDANCE_REASON_KEYS } from "./dashboard-personal-shared";
 import {
   ACTIVITY_OPTIONS,
   alignmentTone,

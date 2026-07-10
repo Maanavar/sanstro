@@ -26,12 +26,10 @@ import { usePersonalData } from "@/hooks/usePersonalData";
 import { useFamilyData, type MemberChart } from "@/hooks/useFamilyData";
 import { usePlanData } from "@/hooks/usePlanData";
 import { useJournalData } from "@/hooks/useJournalData";
-import { useUiVariant } from "@/hooks/useUiVariant";
 
 import type { EditMemberState } from "./dashboard-edit-member-modal";
 import { DashboardHero } from "./dashboard-hero";
 import { DashboardLeftRail } from "./dashboard-left-rail";
-import { DashboardTodayTab as DashboardPersonalTab } from "./dashboard-today-tab";
 import { LifeModePicker } from "./life-mode-picker";
 import { DashboardAskVinaadiWidget } from "./dashboard-ask-vinaadi-widget";
 
@@ -49,11 +47,6 @@ function LazyPanelFallback() {
   );
 }
 
-const CalendarTab = dynamic(
-  () => import("./dashboard-calendar-tab").then((mod) => mod.CalendarTab),
-  { loading: LazyPanelFallback },
-);
-
 const DashboardCalendarTabNova = dynamic(
   () => import("./dashboard-calendar-tab-nova").then((mod) => mod.DashboardCalendarTabNova),
   { loading: LazyPanelFallback },
@@ -61,16 +54,6 @@ const DashboardCalendarTabNova = dynamic(
 
 const DashboardTransitsTab = dynamic(
   () => import("./dashboard-transits-tab").then((mod) => mod.DashboardTransitsTab),
-  { loading: LazyPanelFallback },
-);
-
-const PoruthamPanel = dynamic(
-  () => import("./porutham-panel").then((mod) => mod.PoruthamPanel),
-  { loading: LazyPanelFallback },
-);
-
-const DashboardAnnualWrapped = dynamic(
-  () => import("./dashboard-annual-wrapped").then((mod) => mod.DashboardAnnualWrapped),
   { loading: LazyPanelFallback },
 );
 
@@ -84,11 +67,6 @@ const EditProfileModal = dynamic(
   { loading: LazyPanelFallback },
 );
 
-const DashboardFamilyTab = dynamic(
-  () => import("./dashboard-family-tab").then((mod) => mod.DashboardFamilyTab),
-  { loading: LazyPanelFallback },
-);
-
 const DashboardFamilyTabNova = dynamic(
   () => import("./dashboard-family-tab-nova").then((mod) => mod.DashboardFamilyTabNova),
   { loading: LazyPanelFallback },
@@ -96,11 +74,6 @@ const DashboardFamilyTabNova = dynamic(
 
 const FeedbackModal = dynamic(
   () => import("./dashboard-feedback-modal").then((mod) => mod.FeedbackModal),
-  { loading: LazyPanelFallback },
-);
-
-const DashboardLifeAreasTab = dynamic(
-  () => import("./dashboard-life-areas-tab").then((mod) => mod.DashboardLifeAreasTab),
   { loading: LazyPanelFallback },
 );
 
@@ -124,11 +97,6 @@ const DashboardSettingsSessionTab = dynamic(
   { loading: LazyPanelFallback },
 );
 
-const DashboardPlanTab = dynamic(
-  () => import("./dashboard-plan-tab").then((mod) => mod.DashboardPlanTab),
-  { loading: LazyPanelFallback },
-);
-
 const DashboardJournalTabNova = dynamic(
   () => import("./dashboard-journal-tab-nova").then((mod) => mod.DashboardJournalTabNova),
   { loading: LazyPanelFallback },
@@ -136,31 +104,6 @@ const DashboardJournalTabNova = dynamic(
 
 const DashboardPlanTabNova = dynamic(
   () => import("./dashboard-plan-tab-nova").then((mod) => mod.DashboardPlanTabNova),
-  { loading: LazyPanelFallback },
-);
-
-const DashboardJournalTab = dynamic(
-  () => import("./dashboard-journal-tab").then((mod) => mod.DashboardJournalTab),
-  { loading: LazyPanelFallback },
-);
-
-const ChartGenerateInlinePanel = dynamic(
-  () => import("./chart-generate-inline-panel").then((mod) => mod.ChartGenerateInlinePanel),
-  { loading: LazyPanelFallback },
-);
-
-const RetrospectivePanel = dynamic(
-  () => import("./dashboard-retrospective-panel").then((mod) => mod.RetrospectivePanel),
-  { loading: LazyPanelFallback },
-);
-
-const RasippalanTool = dynamic<{ hideCta?: boolean }>(
-  () => import("@/app/tools/indraiya-rasipalan/RasippalanTool").then((mod) => mod.RasippalanTool),
-  { loading: LazyPanelFallback },
-);
-
-const DashboardExploreTab = dynamic(
-  () => import("./dashboard-explore-tab").then((mod) => mod.DashboardExploreTab),
   { loading: LazyPanelFallback },
 );
 
@@ -309,7 +252,6 @@ export function DashboardWorkspace() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showRectification, setShowRectification] = useState(false);
   const [askVinaadiOpen, setAskVinaadiOpen] = useState(false);
-  const { variant: uiVariant, setVariant: setUiVariant } = useUiVariant();
 
   const goToTab = useCallback((tab: Tab) => {
     setExploreReturnTab(null);
@@ -1204,7 +1146,6 @@ export function DashboardWorkspace() {
       <DashboardHero
         lang={lang}
         activeTab={activeTab}
-        uiVariant={uiVariant}
         birthDisplayName={birthForm.displayName}
         status={status}
         chartSummary={personal.chartSummary}
@@ -1348,38 +1289,6 @@ export function DashboardWorkspace() {
 
       {/* Tab content */}
       <div className="cd-page site__body">
-        {/* Household today strip — classic Today tab only (Nova has its own family pulse card) */}
-        {activeTab === "personal" && uiVariant !== "nova" && familyAggregateForToday && familyAggregateForToday.members.length > 0 && (() => {
-          const fs = familyAggregateForToday.familyScore;
-          return (
-            <div className="cd-household-strip">
-              <span className="cd-household-strip__kicker">
-                {lang === "ta" ? "குடும்பம்" : "Household"}
-              </span>
-              <span className={`cd-household-strip__hs-score cd-household-strip__hs-score--${getScoreBand(fs).tone}`}>
-                {fs}
-              </span>
-              {familyAggregateForToday.members.map((m) => {
-                const band = getScoreBand(m.individualScore).tone;
-                return (
-                  <React.Fragment key={m.familyMemberId}>
-                    <span className="cd-household-strip__sep" aria-hidden="true">·</span>
-                    <span className="cd-household-strip__member">
-                      <span className="cd-household-strip__member-name">{m.displayName}</span>
-                      <span className={`cd-household-strip__member-score cd-household-strip__member-score--${band}`}>
-                        {m.individualScore}
-                      </span>
-                    </span>
-                  </React.Fragment>
-                );
-              })}
-              <button type="button" className="cd-household-strip__link" onClick={() => goToTab("family")}>
-                {lang === "ta" ? "குடும்பம் →" : "Family →"}
-              </button>
-            </div>
-          );
-        })()}
-
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={activeTab === "settings" ? `settings-${settingsSubTab}` : activeTab}
@@ -1417,7 +1326,7 @@ export function DashboardWorkspace() {
           />
         )}
 
-        {activeTab === "personal" && uiVariant === "nova" && (
+        {activeTab === "personal" && (
           <DashboardTodayTabNova
             lang={lang}
             activeLifeMode={activeLifeMode}
@@ -1448,172 +1357,10 @@ export function DashboardWorkspace() {
           />
         )}
 
-        {activeTab === "personal" && uiVariant !== "nova" && (
-          <DashboardPersonalTab
-            lang={lang}
-            activeLifeMode={activeLifeMode}
-            mode={session.userMode}
-            onChangeFocus={() => setLifeModePickerOpen(true)}
-            birthDisplayName={birthForm.displayName}
-            selectedDate={selectedDate}
-            todayDate={personal.todayDate}
-            personalViewId={personalViewId}
-            birthProfileId={personal.birthProfileId}
-            busyPersonal={personal.busyPersonal}
-            memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
-            onSelectPersonalView={setPersonalViewId}
-            onOpenEditProfile={() => setShowEditProfile(true)}
-            onRefreshPersonal={() => void personal.refreshPersonalBundle()}
-            personalMemberChart={personalMemberChart}
-            personalChart={personalChart}
-            personalChartExplanation={personalChartExplanation}
-            personalChartSummary={personalChartSummary}
-            personalDailyGuidance={personalDailyGuidance}
-            dailyGuidanceRange={personal.dailyGuidanceRange}
-            personalTransit={personalTransit}
-            personalSani={personalSani}
-            peyarchiUpcoming={personalPeyarchiUpcoming}
-            panchangam={personal.panchangam}
-            panchangamTimings={personal.panchangamTimings}
-            ambientAlerts={personal.ambientAlerts}
-            formatScoreLabel={formatScoreLabel}
-            nakshatraCard={personalMemberChart?.nakshatraCard ?? personal.nakshatraCard}
-            peyarchiReport={personal.peyarchiReport}
-            lifeAreas={personal.lifeAreas}
-            weekAhead={personal.weekAhead}
-            familyAggregate={familyAggregateForToday}
-            onDateChange={setSelectedDate}
-            onGoToFamily={() => setActiveTab("family")}
-            onGoToJournal={() => setActiveTab("journal")}
-            onOpenPrasna={() => setShowPrasna(true)}
-            showPrasna={showPrasna}
-            onClosePrasna={() => setShowPrasna(false)}
-            onOpenNotificationSettings={() => { goToTab("settings"); setSettingsSubTab("session"); }}
-            dasha={personalDasha}
-            dashaMaha={personalDashaMaha}
-            dashaAntar={personalDashaAntar}
-          />
-        )}
-
         {activeTab === "tools" && (() => {
           const activeTool = showPorutham ? "porutham" : showChartGenerate ? "chartgen" : showWrapped ? "wrapped" : showRetrospective ? "retro" : showRasipalan ? "rasipalan" : showActivityTiming ? "activityTiming" : null;
           // Note: Find Birth Time (rectification) removed — results were unreliable
           const needsProfile = !personal.birthProfileId;
-          const TOOL_LIST = [
-            {
-              id: "porutham",
-              icon: "CP",
-              num: "01",
-              tone: "accent",
-              nameEn: "Porutham / Compatibility",
-              nameTa: "பொருத்தம்",
-              taglineEn: "Traditional Tamil 10 Porutham · Thirukanitham",
-              taglineTa: "10 பொருத்தம் · திருக்கணித முறை",
-              descEn: "Traditional matching for marriage, friendship, business, or family contexts.",
-              descTa: "திருமணம், நட்பு, வியாபாரம் அல்லது குடும்ப சூழலுக்கான பாரம்பரிய பொருத்தம்.",
-              specsEn: ["10 poruthams", "Rajju / Vedhai", "D1 charts", "PDF export"],
-              specsTa: ["10 பொருத்தங்கள்", "ரஜ்ஜு / வேதை", "D1 கட்டம்", "PDF"],
-              disabled: false,
-              kind: "inline" as const,
-            },
-            {
-              id: "chartgen",
-              icon: "CH",
-              num: "02",
-              tone: "sage",
-              nameEn: "Generate Chart",
-              nameTa: "ஜாதகம் உருவாக்கு",
-              taglineEn: "D1 rasi · D9 navamsa · print ready",
-              taglineTa: "D1 ராசி · D9 நவாம்சம் · அச்சிட தயார்",
-              descEn: "Create a printable Thirukanitham birth chart for any person.",
-              descTa: "எவருக்கும் அச்சிடக்கூடிய திருக்கணித ஜாதகம் உருவாக்கு.",
-              specsEn: ["D1 rasi", "D9 navamsa", "Print ready", "Lahiri"],
-              specsTa: ["D1 ராசி", "D9 நவாம்சம்", "அச்சிடல்", "லாகிரி"],
-              disabled: false,
-              kind: "inline" as const,
-            },
-            {
-              id: "wrapped",
-              icon: "AW",
-              num: "03",
-              tone: "info",
-              nameEn: "Annual Wrapped",
-              nameTa: "ஆண்டு சுருக்கம்",
-              taglineEn: "Dasa map · key transits · year review",
-              taglineTa: "தசை வரைபடம் · முக்கிய கிரகநகர்வுகள்",
-              descEn: "Review the dasa transitions and Jothidam themes that shaped a year.",
-              descTa: "ஒரு ஆண்டை வடிவமைத்த தசை மாற்றங்கள் மற்றும் ஜோதிட கருப்பொருள்கள்.",
-              specsEn: ["Year review", "Dasha map", "Transit summary"],
-              specsTa: ["ஆண்டு ஆய்வு", "தசை வரைபடம்", "கிரகநகர்வு சுருக்கம்"],
-              disabled: needsProfile,
-              kind: "inline" as const,
-            },
-            {
-              id: "retro",
-              icon: "RT",
-              num: "04",
-              tone: "gold",
-              nameEn: "Retrospective",
-              nameTa: "பின்னோக்கு பார்வை",
-              taglineEn: "Event lookup · recurrence patterns",
-              taglineTa: "நிகழ்வு ஆய்வு · மீளும் வடிவங்கள்",
-              descEn: "Enter a past event and compare it with dasha and transit signatures.",
-              descTa: "கடந்த நிகழ்வை தசை மற்றும் கிரகநகர்வு வடிவங்களுடன் ஒப்பிடு.",
-              specsEn: ["Event lookup", "Recurrence map", "Dasha match"],
-              specsTa: ["நிகழ்வு ஆய்வு", "மீளும் வரைபடம்", "தசை ஒப்பீடு"],
-              disabled: needsProfile,
-              kind: "inline" as const,
-            },
-            {
-              id: "rasipalan",
-              icon: "RP",
-              num: "05",
-              tone: "accent",
-              nameEn: "Indraiya Rasipalan",
-              nameTa: "இன்றைய ராசிபலன்",
-              taglineEn: "Today's palan for all 12 rasis",
-              taglineTa: "12 ராசிகளுக்குமான இன்றைய பலன்",
-              descEn: "Today's palan for all 12 rasis — read one for a friend, or share the day's outlook.",
-              descTa: "12 ராசிகளுக்குமான இன்றைய பலன் — நண்பருக்காக படியுங்கள் அல்லது பகிருங்கள்.",
-              specsEn: ["Today's transits", "All 12 rasis"],
-              specsTa: ["இன்றைய கிரகநிலை", "12 ராசிகள்"],
-              disabled: false,
-              kind: "inline" as const,
-            },
-            {
-              id: "muhurta",
-              icon: "MU",
-              num: "06",
-              tone: "sage",
-              nameEn: "Muhurta Finder",
-              nameTa: "முகூர்த்தம்",
-              taglineEn: "Best date and hour, scored against your chart",
-              taglineTa: "உங்கள் ஜாதகத்திற்கேற்ப சிறந்த தேதி/நேரம்",
-              descEn: "Best date and hour for a wedding, gruhapravesam or new venture — scored against your chart.",
-              descTa: "திருமணம், கிரகப்பிரவேசம் அல்லது புதிய முயற்சிக்கான சிறந்த தேதி/நேரம்.",
-              specsEn: ["In Plan tab"],
-              specsTa: ["Plan தாவலில்"],
-              disabled: false,
-              kind: "cross-nav" as const,
-            },
-            {
-              id: "panchangam",
-              icon: "PC",
-              num: "07",
-              tone: "info",
-              nameEn: "Panchangam Planner",
-              nameTa: "பஞ்சாங்கம்",
-              taglineEn: "Day-by-day almanac for any date and place",
-              taglineTa: "எந்த தேதி மற்றும் இடத்திற்கும் அன்றாட பஞ்சாங்கம்",
-              descEn: "Day-by-day almanac for any date and place — nalla neram, rahu kalam, tithi and star windows.",
-              descTa: "நல்ல நேரம், ராகு காலம், திதி, நட்சத்திரம் — அன்றாட பஞ்சாங்கம்.",
-              specsEn: ["In Calendar tab"],
-              specsTa: ["Calendar தாவலில்"],
-              disabled: false,
-              kind: "cross-nav" as const,
-            },
-          ];
-          const selectedTool = TOOL_LIST.find((tool) => tool.id === activeTool);
           const openTool = (toolId: string) => {
             setShowPorutham(toolId === "porutham");
             setShowChartGenerate(toolId === "chartgen");
@@ -1631,182 +1378,55 @@ export function DashboardWorkspace() {
             setShowActivityTiming(false);
           };
 
-          if (uiVariant === "nova") {
-            return (
-              <DashboardToolsTabNova
-                lang={lang}
-                activeTool={activeTool}
-                needsProfile={needsProfile}
-                onOpenTool={openTool}
-                onCloseTool={closeTool}
-                showPorutham={showPorutham}
-                showChartGenerate={showChartGenerate}
-                showWrapped={showWrapped}
-                showRetrospective={showRetrospective}
-                showRasipalan={showRasipalan}
-                showActivityTiming={showActivityTiming}
-                personalChartId={personal.chartId}
-                selectedDate={selectedDate}
-                onDateChange={setSelectedDate}
-                familyVaultId={family.selectedVaultId ?? undefined}
-                familyMembersForPorutham={[
-                  ...(personal.chart ? [{
-                    memberId: `owner:${personal.chart.birthProfile.birthProfileId}`,
-                    displayName: personal.chart.birthProfile.displayName,
-                    birthDateLocal: personal.chart.birthProfile.birthDateLocal,
-                    birthTimeLocal: personal.chart.birthProfile.birthTimeLocal ?? "",
-                    birthPlace: personal.chart.birthProfile.birthPlace,
-                    birthLatitude: personal.chart.birthProfile.birthLatitude,
-                    birthLongitude: personal.chart.birthProfile.birthLongitude,
-                    birthTimezone: personal.chart.birthProfile.birthTimezone,
-                  }] : []),
-                  ...family.memberCharts
-                    .filter((mc) => mc.chart.birthProfile.birthProfileId !== personal.chart?.birthProfile.birthProfileId)
-                    .map((mc) => ({
-                      memberId: mc.memberId,
-                      displayName: mc.displayName,
-                      birthDateLocal: mc.chart.birthProfile.birthDateLocal,
-                      birthTimeLocal: mc.chart.birthProfile.birthTimeLocal ?? "",
-                      birthPlace: mc.chart.birthProfile.birthPlace,
-                      birthLatitude: mc.chart.birthProfile.birthLatitude,
-                      birthLongitude: mc.chart.birthProfile.birthLongitude,
-                      birthTimezone: mc.chart.birthProfile.birthTimezone,
-                    })),
-                ]}
-                onGoToPlan={() => goToTab("plan")}
-                onGoToCalendar={() => goToTab("calendar")}
-                onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
-              />
-            );
-          }
-
           return (
-            <div className="cd-tools">
-              {!activeTool && (
-                <>
-                  <div className="cd-tools-v3__hero">
-                    <p className="cd-tools-v3__eyebrow">{lang === "ta" ? "கருவிகள்" : "Tools"}</p>
-                    <h2 className="cd-tools-v3__title">{lang === "ta" ? "சிறப்பு கருவிகள்" : "Specialist Tools"}</h2>
-                    <p className="cd-tools-v3__subtitle">
-                      {lang === "ta"
-                        ? "பொருத்தம், ஜாதகம், ஆண்டு சுருக்கம், நிகழ்வு ஆய்வு போன்ற ஆழமான ஜோதிடப் பணிகளுக்கான அமைதியான கருவிகள்."
-                        : "Focused Jothidam workspaces for compatibility, chart generation, yearly review, and event analysis."}
-                    </p>
-                  </div>
-
-                  <div className="cd-tools-v3__grid">
-                    {TOOL_LIST.map((tool) => (
-                      <button
-                        key={tool.id}
-                        type="button"
-                        disabled={tool.disabled}
-                        onClick={() => {
-                          if (tool.kind === "cross-nav") { if (tool.id === "muhurta") goToTab("plan"); else goToTab("calendar"); return; }
-                          openTool(tool.id);
-                        }}
-                        className={`cd-tools-v3-card cd-tools-v3-card--${tool.tone}${tool.disabled ? " is-disabled" : ""}`}
-                      >
-                        <span className="cd-tools-v3-card__top">
-                          <span className="cd-tools-v3-card__icon" aria-hidden="true">{tool.icon}</span>
-                          <span className="cd-tools-v3-card__num">{tool.num}</span>
-                        </span>
-                        <span className="cd-tools-v3-card__body">
-                          <span className="cd-tools-v3-card__title">
-                            {lang === "ta" ? tool.nameTa : tool.nameEn}
-                          </span>
-                          <span className="cd-tools-v3-card__tagline">
-                            {lang === "ta" ? tool.taglineTa : tool.taglineEn}
-                          </span>
-                          <span className="cd-tools-v3-card__desc">
-                            {lang === "ta" ? tool.descTa : tool.descEn}
-                          </span>
-                        </span>
-                        <span className="cd-tools-v3-card__specs">
-                          {(lang === "ta" ? tool.specsTa : tool.specsEn).map((spec) => (
-                            <span key={spec} className="cd-tools-v3-card__chip">{spec}</span>
-                          ))}
-                        </span>
-                        <span className="cd-tools-v3-card__footer">
-                          <span>{tool.disabled ? (lang === "ta" ? "ஜாதகம் தேவை" : "Needs profile") : (lang === "ta" ? "கருவியை திற" : "Open tool")}</span>
-                          <span className="cd-tools-v3-card__arrow" aria-hidden="true">-&gt;</span>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {selectedTool && (
-                <div className="cd-tools-v3-detail">
-                  <div className="cd-tools-v3-detail__breadcrumb">
-                    <button type="button" onClick={closeTool} className="cd-tools-v3-detail__back">
-                      <span aria-hidden="true">&lt;-</span>
-                      <span>{lang === "ta" ? "கருவிகள்" : "Tools"}</span>
-                    </button>
-                    <span className="cd-tools-v3-detail__crumb-sep" aria-hidden="true">/</span>
-                    <span className="cd-tools-v3-detail__crumb-title">
-                      {lang === "ta" ? selectedTool.nameTa : selectedTool.nameEn}
-                    </span>
-                  </div>
-
-                  <div className="cd-tools-v3-detail__header">
-                    <span className={`cd-tools-v3-detail__icon cd-tools-v3-card--${selectedTool.tone}`} aria-hidden="true">
-                      {selectedTool.icon}
-                    </span>
-                    <div className="cd-tools-v3-detail__copy">
-                      <h2>{lang === "ta" ? selectedTool.nameTa : selectedTool.nameEn}</h2>
-                      <p>{lang === "ta" ? selectedTool.taglineTa : selectedTool.taglineEn}</p>
-                      <div className="cd-tools-v3-detail__chips">
-                        {(lang === "ta" ? selectedTool.specsTa : selectedTool.specsEn).map((spec) => (
-                          <span key={spec}>{spec}</span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="cd-tools-v3-panel">
-                    {showPorutham && (
-                      <PoruthamPanel
-                        lang={lang}
-                        familyVaultId={family.selectedVaultId ?? undefined}
-                        familyMembers={[
-                          ...(personal.chart ? [{
-                            memberId: `owner:${personal.chart.birthProfile.birthProfileId}`,
-                            displayName: personal.chart.birthProfile.displayName,
-                            birthDateLocal: personal.chart.birthProfile.birthDateLocal,
-                            birthTimeLocal: personal.chart.birthProfile.birthTimeLocal ?? "",
-                            birthPlace: personal.chart.birthProfile.birthPlace,
-                            birthLatitude: personal.chart.birthProfile.birthLatitude,
-                            birthLongitude: personal.chart.birthProfile.birthLongitude,
-                            birthTimezone: personal.chart.birthProfile.birthTimezone,
-                          }] : []),
-                          ...family.memberCharts
-                            .filter((mc) => mc.chart.birthProfile.birthProfileId !== personal.chart?.birthProfile.birthProfileId)
-                            .map((mc) => ({
-                              memberId: mc.memberId,
-                              displayName: mc.displayName,
-                              birthDateLocal: mc.chart.birthProfile.birthDateLocal,
-                              birthTimeLocal: mc.chart.birthProfile.birthTimeLocal ?? "",
-                              birthPlace: mc.chart.birthProfile.birthPlace,
-                              birthLatitude: mc.chart.birthProfile.birthLatitude,
-                              birthLongitude: mc.chart.birthProfile.birthLongitude,
-                              birthTimezone: mc.chart.birthProfile.birthTimezone,
-                            })),
-                        ]}
-                      />
-                    )}
-                    {showChartGenerate && <ChartGenerateInlinePanel lang={lang} />}
-                    {showWrapped && <DashboardAnnualWrapped chartId={personal.chartId} lang={lang} />}
-                    {showRetrospective && personal.chartId && <RetrospectivePanel chartId={personal.chartId} lang={lang} />}
-                    {showRasipalan && <RasippalanTool hideCta />}
-                  </div>
-                </div>
-              )}
-            </div>
+            <DashboardToolsTabNova
+              lang={lang}
+              activeTool={activeTool}
+              needsProfile={needsProfile}
+              onOpenTool={openTool}
+              onCloseTool={closeTool}
+              showPorutham={showPorutham}
+              showChartGenerate={showChartGenerate}
+              showWrapped={showWrapped}
+              showRetrospective={showRetrospective}
+              showRasipalan={showRasipalan}
+              showActivityTiming={showActivityTiming}
+              personalChartId={personal.chartId}
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
+              familyVaultId={family.selectedVaultId ?? undefined}
+              familyMembersForPorutham={[
+                ...(personal.chart ? [{
+                  memberId: `owner:${personal.chart.birthProfile.birthProfileId}`,
+                  displayName: personal.chart.birthProfile.displayName,
+                  birthDateLocal: personal.chart.birthProfile.birthDateLocal,
+                  birthTimeLocal: personal.chart.birthProfile.birthTimeLocal ?? "",
+                  birthPlace: personal.chart.birthProfile.birthPlace,
+                  birthLatitude: personal.chart.birthProfile.birthLatitude,
+                  birthLongitude: personal.chart.birthProfile.birthLongitude,
+                  birthTimezone: personal.chart.birthProfile.birthTimezone,
+                }] : []),
+                ...family.memberCharts
+                  .filter((mc) => mc.chart.birthProfile.birthProfileId !== personal.chart?.birthProfile.birthProfileId)
+                  .map((mc) => ({
+                    memberId: mc.memberId,
+                    displayName: mc.displayName,
+                    birthDateLocal: mc.chart.birthProfile.birthDateLocal,
+                    birthTimeLocal: mc.chart.birthProfile.birthTimeLocal ?? "",
+                    birthPlace: mc.chart.birthProfile.birthPlace,
+                    birthLatitude: mc.chart.birthProfile.birthLatitude,
+                    birthLongitude: mc.chart.birthProfile.birthLongitude,
+                    birthTimezone: mc.chart.birthProfile.birthTimezone,
+                  })),
+              ]}
+              onGoToPlan={() => goToTab("plan")}
+              onGoToCalendar={() => goToTab("calendar")}
+              onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
+            />
           );
         })()}
 
-        {activeTab === "family" && uiVariant === "nova" && (
+        {activeTab === "family" && (
           <DashboardFamilyTabNova
             lang={lang}
             selectedDate={selectedDate}
@@ -1844,39 +1464,7 @@ export function DashboardWorkspace() {
           />
         )}
 
-        {activeTab === "family" && uiVariant !== "nova" && (
-          <DashboardFamilyTab
-            lang={lang}
-            selectedDate={selectedDate}
-            selectedVaultId={family.selectedVaultId}
-            ownerChartId={personal.chartId}
-            ownerChart={personal.chart}
-            ownerMemberChart={ownerMemberChart}
-            vaults={family.vaults}
-            familyDetail={family.familyDetail}
-            familyAggregate={family.familyAggregate}
-            familyComposite={family.familyComposite}
-            familyMembers={family.familyMembers}
-            memberCharts={family.memberCharts}
-            relationshipAlerts={family.relationshipAlerts}
-            alertsLoading={family.relationshipAlertsLoading}
-            busy={{
-              family: family.busyFamily,
-              vaults: family.busyVaults,
-              deletingVaultId,
-              deletingMemberId,
-              memberCharts: family.busyMemberCharts,
-            }}
-            onRefreshFamily={() => void family.refreshFamilyBundle()}
-            onOpenSetup={openSetupInSettings}
-            onSelectVault={handleSelectVault}
-            onDeleteVault={(vaultId, name) => void handleDeleteVault(vaultId, name)}
-            onDeleteMember={(memberId, name) => void handleDeleteMember(memberId, name)}
-            onEditMember={handleEditFamilyMember}
-          />
-        )}
-
-        {activeTab === "calendar" && uiVariant === "nova" && (
+        {activeTab === "calendar" && (
           <DashboardCalendarTabNova
             selectedDate={selectedDate}
             todayDate={personal.todayDate}
@@ -1888,51 +1476,7 @@ export function DashboardWorkspace() {
           />
         )}
 
-        {activeTab === "calendar" && uiVariant !== "nova" && (
-          <CalendarTab
-            selectedDate={selectedDate}
-            todayDate={personal.todayDate}
-            panchangam={personal.panchangam}
-            panchangamTimings={personal.panchangamTimings}
-            lang={lang}
-            locationLabel={personal.panchangamLocationLabel}
-            onSelectDate={setSelectedDate}
-          />
-        )}
-
-        {activeTab === "life-areas" && uiVariant !== "nova" && (
-          <DashboardLifeAreasTab
-            lang={lang}
-            lifeAreas={personal.lifeAreas}
-            predictions={personal.predictions}
-            predictionsLoading={personal.predictionsLoading}
-            yogas={(lifeAreasMemberChart?.chart ?? personal.chart)?.yogas ?? []}
-            doshams={(lifeAreasMemberChart?.chart ?? personal.chart)?.doshams ?? []}
-            jadhagamReport={personal.jadhagamReport}
-            jadhagamReportLoading={personal.jadhagamReportLoading}
-            onLoadJadhagamReport={() => void personal.loadJadhagamReport(resolveLifeAreasChartId())}
-            chartSummary={lifeAreasMemberChart?.summary ?? personal.chartSummary}
-            birthDisplayName={birthForm.displayName}
-            maritalStatus={(() => {
-              if (!lifeAreasViewId) return birthForm.maritalStatus || undefined;
-              const mc = family.memberCharts.find((m) => m.memberId === lifeAreasViewId);
-              const rel = mc?.chart.birthProfile.relationshipToOwner;
-              // Spouse/parent/grandparent are definitionally married — no need to ask
-              if (rel === "spouse" || rel === "parent" || rel === "grandparent") return "married";
-              return undefined;
-            })()}
-            memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
-            selectedMemberId={lifeAreasViewId}
-            onSelectMember={setLifeAreasViewId}
-            chartId={resolveLifeAreasChartId()}
-            remedyPlan={remedyPlan}
-            gemstoneAdvice={gemstoneAdvice}
-            remediesLoading={remediesLoading}
-            onLoadRemedies={() => void loadRemedies(resolveLifeAreasChartId())}
-          />
-        )}
-
-        {activeTab === "life-areas" && uiVariant === "nova" && (
+        {activeTab === "life-areas" && (
           <DashboardLifeAreasTabNova
             lang={lang}
             personalDailyGuidance={lifeAreasDailyGuidance}
@@ -1995,31 +1539,7 @@ export function DashboardWorkspace() {
           />
         )}
 
-        {activeTab === "plan" && uiVariant !== "nova" && (
-          <DashboardPlanTab
-            lang={lang}
-            chartId={personal.chartId}
-            hasBirthProfile={!!personal.birthProfileId}
-            goals={plan.goals}
-            goalsBusy={plan.goalsBusy}
-            addingGoalType={plan.addingGoalType}
-            onAddingGoalTypeChange={plan.setAddingGoalType}
-            removingGoalId={plan.removingGoalId}
-            onAddGoal={(goalType) => void plan.addGoal(goalType)}
-            onRemoveGoal={(goalId) => void plan.removeGoal(goalId)}
-            whatIfScenario={plan.whatIfScenario}
-            whatIfDate={plan.whatIfDate}
-            whatIfResult={plan.whatIfResult}
-            whatIfBusy={plan.whatIfBusy}
-            whatIfError={plan.whatIfError}
-            onWhatIfScenarioChange={plan.setWhatIfScenario}
-            onWhatIfDateChange={plan.setWhatIfDate}
-            onRunWhatIf={() => void plan.runWhatIf()}
-            mode={session.userMode}
-          />
-        )}
-
-        {activeTab === "plan" && uiVariant === "nova" && (
+        {activeTab === "plan" && (
           <DashboardPlanTabNova
             lang={lang}
             chartId={personal.chartId}
@@ -2065,23 +1585,7 @@ export function DashboardWorkspace() {
           />
         )}
 
-        {activeTab === "journal" && uiVariant !== "nova" && (
-          <DashboardJournalTab
-            lang={lang}
-            chartId={personal.chartId}
-            selectedDate={selectedDate}
-            hasBirthProfile={!!personal.birthProfileId}
-            journalEntries={journal.journalEntries}
-            journalTotal={journal.journalTotal}
-            contextData={journal.contextData}
-            onEntrySaved={() => journal.loadJournalEntries(personal.chartId)}
-            onEntryArchived={() => journal.loadJournalEntries(personal.chartId)}
-            onContextUpdated={(data) => journal.setContextData(data)}
-            mode={session.userMode}
-          />
-        )}
-
-        {activeTab === "journal" && uiVariant === "nova" && (
+        {activeTab === "journal" && (
           <DashboardJournalTabNova
             lang={lang}
             chartId={personal.chartId}
@@ -2100,7 +1604,7 @@ export function DashboardWorkspace() {
           />
         )}
 
-        {activeTab === "explore" && uiVariant === "nova" && (
+        {activeTab === "explore" && (
           <DashboardExploreTabNova
             lang={lang}
             personalChartSummary={personalChartSummary}
@@ -2111,10 +1615,6 @@ export function DashboardWorkspace() {
             onNavigate={goToExploreDestination}
             onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
           />
-        )}
-
-        {activeTab === "explore" && uiVariant !== "nova" && (
-          <DashboardExploreTab lang={lang} onNavigate={goToExploreDestination} />
         )}
 
         {ENABLE_QA_TAB && activeTab === "qa" && (
@@ -2164,8 +1664,6 @@ export function DashboardWorkspace() {
             onApplyRetention={(dryRun) => journal.applyJournalRetention(personal.chartId, dryRun)}
             busyRetentionApply={journal.busyRetentionApply}
             onSignOut={session.signOut}
-            uiVariant={uiVariant}
-            onUiVariantChange={setUiVariant}
           />
         )}
 
@@ -2238,7 +1736,7 @@ export function DashboardWorkspace() {
           activeLifeMode={activeLifeMode}
           open={askVinaadiOpen}
           onOpenChange={setAskVinaadiOpen}
-          hideLauncher={uiVariant === "nova"}
+          hideLauncher
         />
       )}
 

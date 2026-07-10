@@ -12,7 +12,7 @@ import {
   supportTone,
   supportLabel,
   predictionIsDeferred,
-} from "./dashboard-prediction-panel";
+} from "./dashboard-life-areas-shared";
 
 /**
  * Nova re-skin of dashboard-prediction-panel.tsx's PredictionDetailPanel —

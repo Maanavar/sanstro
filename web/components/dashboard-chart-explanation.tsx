@@ -8,9 +8,11 @@ import { tNakshatra, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
   ChartCalculateResponseData,
+  ChartDoshamInsight,
   ChartExplanationData,
   ChartPlanet,
   ChartSummaryData,
+  ChartYogaInsight,
   DashaTimelineItem,
   DashaTimelineResponseData,
   PeyarchiEvent,
@@ -44,6 +46,12 @@ type ChartExplanationPanelProps = {
   peyarchiUpcoming: PeyarchiEvent[];
   dasha: DashaTimelineResponseData | null;
   dashaAntar: DashaTimelineItem[];
+  /** Nova passes a Nova-token-styled renderer here so the Yogas section shows
+   *  `NovaYogaDoshamPanel` instead of this file's Classic-token `YogaDoshamPanel`
+   *  (same pattern already used by JadhagamReportPanel — see
+   *  docs/NOVA_ONLY_MIGRATION_PLAN.md Phase 3, Yoga/Dosham parity fix). Classic
+   *  callers omit it and get the default. */
+  renderYogaDoshamPanel?: (props: { lang: Lang; yogas: ChartYogaInsight[]; doshams: ChartDoshamInsight[] }) => ReactNode;
 };
 
 const TAMIL_RASI_NAMES: Record<number, string> = {
@@ -732,6 +740,7 @@ export function ChartExplanationPanel({
   peyarchiUpcoming,
   dasha,
   dashaAntar,
+  renderYogaDoshamPanel,
 }: ChartExplanationPanelProps) {
   const [open, setOpen] = useState(false);
   // Sticky-tab redesign: only one section's content shows at a time (picked from
@@ -1415,11 +1424,19 @@ export function ChartExplanationPanel({
                       {tx(backendYogaDosham.explanation, lang)}
                     </p>
                   )}
-                  <YogaDoshamPanel
-                    lang={lang}
-                    yogas={backendYogaDosham?.yogas ?? chart.yogas ?? []}
-                    doshams={backendYogaDosham?.doshams ?? chart.doshams ?? []}
-                  />
+                  {renderYogaDoshamPanel
+                    ? renderYogaDoshamPanel({
+                        lang,
+                        yogas: backendYogaDosham?.yogas ?? chart.yogas ?? [],
+                        doshams: backendYogaDosham?.doshams ?? chart.doshams ?? [],
+                      })
+                    : (
+                      <YogaDoshamPanel
+                        lang={lang}
+                        yogas={backendYogaDosham?.yogas ?? chart.yogas ?? []}
+                        doshams={backendYogaDosham?.doshams ?? chart.doshams ?? []}
+                      />
+                    )}
                 </div>
               )}
 

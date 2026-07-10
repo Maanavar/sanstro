@@ -28,8 +28,8 @@ import {
   CONTEXT_EVENT_TYPES,
   CTX_TYPE_KEY,
   LIFE_AREAS,
-} from "./dashboard-journal-tab";
-import type { ContextEventType, LifeArea } from "./dashboard-journal-tab";
+} from "./dashboard-journal-shared";
+import type { ContextEventType, LifeArea } from "./dashboard-journal-shared";
 
 /**
  * Nova Journal tab — Phase 11 of the dashboard revamp, the last of the 4

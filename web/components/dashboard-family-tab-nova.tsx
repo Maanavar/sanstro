@@ -21,8 +21,8 @@ import type {
   RelationshipAlertItem,
 } from "@/lib/types";
 
-import { formatHeaderDate, getTamilMonthDate } from "./dashboard-calendar-tab";
-import { ScoreRing, formatRelLabel, MemberDetailExpanded, FamilySevenDayOutlook, ageFromBirth } from "./dashboard-family-tab";
+import { formatHeaderDate, getTamilMonthDate } from "./dashboard-calendar-shared";
+import { ScoreRing, formatRelLabel, MemberDetailExpanded, FamilySevenDayOutlook, ageFromBirth } from "./dashboard-family-shared";
 import { DashboardFamilyMemberNova } from "./dashboard-family-member-nova";
 import type { MemberChart } from "@/hooks/useFamilyData";
 import { NovaScoreDial } from "./dashboard-ui-nova";

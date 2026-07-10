@@ -20,7 +20,7 @@ import {
   VRATHA_FESTIVAL_PATTERN,
   WEEKDAY_LABELS_EN,
   WEEKDAY_LABELS_TA,
-} from "./dashboard-calendar-tab";
+} from "./dashboard-calendar-shared";
 
 /**
  * Nova "Calendar" tab, monthly grid view — Phase 3 of the dashboard revamp,
@@ -39,12 +39,19 @@ import {
 
 type NovaHighlightKind = "muhurtham" | "pournami" | "amavasai" | "chathurthi" | "sashti" | "pradosham";
 
+// dot/bg/border were literal hex until Phase 1 (Nova-Only Migration Plan) —
+// fine while Nova was always dark, but a light-tuned gold/blue never
+// existed, so under Light these would've stayed exactly as dark-tuned.
+// Reuses existing themed tokens (--color-accent-strong for pournami's gold,
+// --planet-other for sashti's one-off blue — same slot dashboard-nova.css's
+// own comment on --planet-other already earmarked for this) via color-mix()
+// instead of inventing new custom properties.
 const NOVA_CAL_HILITE: Record<NovaHighlightKind, { dot: string; bg: string; border: string }> = {
   muhurtham: { dot: "var(--color-high)", bg: "var(--color-high-bg)", border: "var(--color-high-border)" },
-  pournami: { dot: "#e0c468", bg: "rgba(224,196,104,0.16)", border: "rgba(224,196,104,0.4)" },
-  amavasai: { dot: "var(--color-accent-secondary)", bg: "var(--color-accent-secondary-muted)", border: "rgba(167,139,201,0.4)" },
+  pournami: { dot: "var(--color-accent-strong)", bg: "color-mix(in srgb, var(--color-accent-strong) 16%, transparent)", border: "color-mix(in srgb, var(--color-accent-strong) 40%, transparent)" },
+  amavasai: { dot: "var(--color-accent-secondary)", bg: "var(--color-accent-secondary-muted)", border: "color-mix(in srgb, var(--color-accent-secondary) 40%, transparent)" },
   chathurthi: { dot: "var(--color-low)", bg: "var(--color-low-bg)", border: "var(--color-low-border)" },
-  sashti: { dot: "#7fa3c9", bg: "rgba(127,163,201,0.16)", border: "rgba(127,163,201,0.4)" },
+  sashti: { dot: "var(--planet-other)", bg: "color-mix(in srgb, var(--planet-other) 16%, transparent)", border: "color-mix(in srgb, var(--planet-other) 40%, transparent)" },
   pradosham: { dot: "var(--color-accent)", bg: "var(--color-accent-muted)", border: "var(--color-border-strong)" },
 };
 

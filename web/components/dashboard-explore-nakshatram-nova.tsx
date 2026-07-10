@@ -14,7 +14,7 @@ import { NATCHATHIRAM_LIST, NATCHATHIRAM_MAP, type NatchathiramEntry } from "@/l
 import { NATCHATHIRAM_EN, type NatchathiramEnSections } from "@/lib/natchathiram-data-en";
 import { CollapsibleSection } from "./collapsible-section";
 
-import { moonRasiFromNakshatra, rasiName } from "./dashboard-calendar-tab";
+import { moonRasiFromNakshatra, rasiName } from "./dashboard-calendar-shared";
 import { NovaAskEntryChip, NovaAttributeBand, NovaDetailBreadcrumb, NovaDetailHero, NovaKicker, novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 
 /**

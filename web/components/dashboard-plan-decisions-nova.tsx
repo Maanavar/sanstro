@@ -6,7 +6,7 @@ import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { t, tLang } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, DecisionBriefData } from "@/lib/types";
-import { SCENARIO_GROUPS } from "./dashboard-decision-panel";
+import { SCENARIO_GROUPS } from "./dashboard-plan-shared";
 import { NovaSelect } from "./nova-select";
 
 /**
