@@ -21,6 +21,7 @@ const VARGA_META: Record<string, { label: string; labelTa: string }> = {
   D3: { label: "Dreshkana", labelTa: "திரேஷ்காணம்" },
   D7: { label: "Saptamsa", labelTa: "சப்தாம்சம்" },
   D12: { label: "Dvadashamsa", labelTa: "துவாதசாம்சம்" },
+  D24: { label: "Chaturvimsamsa", labelTa: "சதுர்விம்சாம்சம்" },
   D27: { label: "Bhamsa", labelTa: "பாம்சம்" },
   D40: { label: "Khavedamsa", labelTa: "காவேதாம்சம்" },
   D45: { label: "Akshavedamsa", labelTa: "அக்ஷவேதாம்சம்" },
@@ -43,7 +44,7 @@ export async function getVargas(
   };
   const raw = res.data?.vargas ?? {};
   const reliability = res.data?.vargaReliability ?? {};
-  const priority = ["D1", "D9", "D10", "D2", "D3", "D7", "D12", "D27", "D40", "D45", "D60"];
+  const priority = ["D1", "D9", "D10", "D2", "D3", "D7", "D12", "D24", "D27", "D40", "D45", "D60"];
   const vargas: VargaData[] = priority
     .filter((key) => raw[key])
     .map((key) => ({

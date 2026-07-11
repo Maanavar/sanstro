@@ -314,6 +314,24 @@ export interface ChartValidationStatus {
   unmatchedEvents: string[];
 }
 
+/** One house's bhava-lord (அதிபதி) placement reading — audit T3. */
+export interface AdhipathiReading {
+  house: number;
+  houseRasi: number;
+  lord: string;
+  lordRasi: number;
+  lordHouse: number;
+  strengthScore: number;
+  strengthBand: "STRONG" | "MODERATE" | "WEAK";
+  functionalNature: string;
+  adhipathiTa: string;
+  adhipathiEn: string;
+  significationsTa: string;
+  significationsEn: string;
+  readingTa: string;
+  readingEn: string;
+}
+
 export interface ChartSummaryData {
   chartId: string;
   displayName: string;
@@ -327,6 +345,7 @@ export interface ChartSummaryData {
   currentMahadasha: string;
   currentAntardasha: string;
   functionalNature?: Record<string, string>;
+  adhipathiReport?: AdhipathiReading[];
   ashtakavarga?: Record<string, Record<number, number>>;
   planets?: ChartPlanet[];
   yogas?: ChartYogaInsight[];
@@ -1089,11 +1108,13 @@ export interface JadhagamReportData {
   coreIdentity: JadhagamReportCoreIdentity;
   navamsamSummary: JadhagamReportNavamsaSummary;
   functionalNatureTable: Record<string, string>;
+  adhipathiReport?: AdhipathiReading[];
   yogaDoshamSummary: { yogas: ChartYogaInsight[]; doshams: ChartDoshamInsight[] };
   planetaryStrengthSummary: JadhagamReportPlanetStrengthSummary;
   dashaAnalysis: { currentMahadasha: string; currentAntardasha: string };
   lifeAreaPredictions: Array<{ area: string; status: string }>;
   ageWiseTimeline: { currentAge: number; activeFocusAreas: string[] };
+  primaryConcerns: Array<{ concern: string; confidence: string; rationaleEn: string; rationaleTa: string }>;
   currentYearGuidance: BiText; practicalGuidance: { ta: string[]; en: string[] };
   optionalRemedies: { ta: string[]; en: string[] }; executiveSummary: BiText;
 }
