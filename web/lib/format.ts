@@ -94,3 +94,40 @@ export function getScoreVerdict(score: number, lang: "ta" | "en"): ScoreVerdict 
   if (score >= 50) return { verdict: lang === "ta" ? "பரவாயில்லை" : "An okay day", tone: "mid", color };
   return { verdict: lang === "ta" ? "ஜாக்கிரதை" : "Take care", tone: "low", color };
 }
+
+/** Headline verdict from the backend label — the label already encodes the
+ *  canonical thresholds AND the chandrashtama cap, so word/colour can never
+ *  contradict the engine. Falls back to score-only when label is absent
+ *  (e.g. tomorrow-preview rows from older cached payloads). */
+export function getScoreVerdictFromGuidance(
+  label: string | null | undefined,
+  score: number,
+  lang: "ta" | "en",
+): ScoreVerdict {
+  switch (label) {
+    case "STRONG_SUPPORT":
+    case "GOOD": {
+      const tone: ScoreVerdict["tone"] = "high";
+      return {
+        verdict: lang === "ta" ? "நல்ல நாள்" : "Good day",
+        tone,
+        color: score >= 70 ? SCORE_STRONG : SCORE_GOOD,
+      };
+    }
+    case "BALANCED":
+      return {
+        verdict: lang === "ta" ? "பரவாயில்லை" : "An okay day",
+        tone: "mid",
+        color: SCORE_FAIR,
+      };
+    case "CAUTION":
+    case "RESTORATIVE":
+      return {
+        verdict: lang === "ta" ? "ஜாக்கிரதை" : "Take care",
+        tone: "low",
+        color: SCORE_WEAK,
+      };
+    default:
+      return getScoreVerdict(score, lang);
+  }
+}

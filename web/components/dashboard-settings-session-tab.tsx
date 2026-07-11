@@ -12,6 +12,7 @@ import type { JournalRetentionApplyData, NotificationPreferenceData } from "@/li
 
 type DashboardSettingsSessionTabProps = {
   lang: Lang;
+  onLangChange: (lang: Lang) => void;
   ownerUserId: string;
   selectedDate: string;
   selectedVaultId: string;
@@ -244,6 +245,7 @@ function ToggleRow({
 
 export function DashboardSettingsSessionTab({
   lang,
+  onLangChange,
   ownerUserId,
   selectedDate,
   selectedVaultId,
@@ -578,6 +580,26 @@ export function DashboardSettingsSessionTab({
               {lang === "ta" ? "சேமிக்கப்பட்டது" : "Saved"}
             </span>
           )}
+        </div>
+      </SettingsCard>
+
+      {/* ── Language ── */}
+      <SettingsCard>
+        <SectionLabel>{lang === "ta" ? "மொழி" : "Language"}</SectionLabel>
+        <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted, lineHeight: 1.55 }}>
+          {lang === "ta"
+            ? "தளம் ஏற்றப்படும்போது காட்டப்படும் இயல்பு மொழியைத் தேர்வு செய்யுங்கள். இது உங்கள் சாதனங்களில் ஒத்திசைக்கப்படும்."
+            : "Choose the default language the app loads in. This syncs across your devices."}
+        </p>
+        <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+          {([
+            { value: "en", label: "English" },
+            { value: "ta", label: "தமிழ்" },
+          ] as { value: Lang; label: string }[]).map(({ value, label }) => (
+            <PillBtn key={value} active={lang === value} onClick={() => onLangChange(value)}>
+              {label}
+            </PillBtn>
+          ))}
         </div>
       </SettingsCard>
 

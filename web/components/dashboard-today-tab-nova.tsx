@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
-import { addDays, formatClockLabel, formatDateLabel, getScoreVerdict } from "@/lib/format";
+import { addDays, formatClockLabel, formatDateLabel, getScoreVerdictFromGuidance } from "@/lib/format";
 import { tLang } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
@@ -410,7 +410,7 @@ export function DashboardTodayTabNova({
 
           {/* The ONLY score on the page — tomorrow's, while previewing tomorrow. */}
           {showEveningPreview && tomorrowGuidance ? (() => {
-            const verdict = getScoreVerdict(tomorrowGuidance.score, lang);
+            const verdict = getScoreVerdictFromGuidance(tomorrowGuidance.label, tomorrowGuidance.score, lang);
             return (
               <div style={{ flex: "none", width: "200px", borderLeft: "1px solid var(--color-border)", paddingLeft: "26px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "9px" }}>
                 <div style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent-secondary)", fontWeight: 700 }}>
@@ -421,7 +421,7 @@ export function DashboardTodayTabNova({
               </div>
             );
           })() : personalDailyGuidance && (() => {
-            const verdict = getScoreVerdict(score ?? 0, lang);
+            const verdict = getScoreVerdictFromGuidance(personalDailyGuidance.label, score ?? 0, lang);
             return (
               <div style={{ flex: "none", width: "200px", borderLeft: "1px solid var(--color-border)", paddingLeft: "26px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "9px" }}>
                 <NovaScoreDial score={score ?? 0} color={verdict.color} label={lang === "ta" ? "100க்கு" : "/ 100"} />

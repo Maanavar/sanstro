@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
 import { isBirthDateWithinBounds } from "@/lib/birth-date";
-import { getScoreBand, todayIso } from "@/lib/format";
+import { todayIso } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
@@ -221,17 +221,6 @@ function parseNumber(value: string, fallback = 0): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function formatScoreLabel(score: number) {
-  const band = getScoreBand(score);
-  return `${score}/100 – ${band.label}`;
-}
-
-function memberScoreColor(score: number): string {
-  if (score >= 65) return "var(--color-score-high, #2e7d32)";
-  if (score >= 45) return "var(--color-score-mid, #c77f00)";
-  return "var(--color-score-low, #b71c1c)";
-}
-
 // ── Main component ────────────────────────────────────────
 
 export function DashboardWorkspace() {
@@ -240,7 +229,7 @@ export function DashboardWorkspace() {
   const [exploreReturnTab, setExploreReturnTab] = useState<Tab | null>(null);
   const [settingsSubTab, setSettingsSubTab] = useState<SettingsSubTab>("setup");
   const [selectedDate, setSelectedDate] = useState(todayIso());
-  const [lang, setLang] = useState<Lang>("ta");
+  const [lang, setLang] = useState<Lang>("en");
 
   // UI-only state: forms, modals, toast
   const [ownerUserId, setOwnerUserId] = useState("");
@@ -1624,6 +1613,7 @@ export function DashboardWorkspace() {
         {activeTab === "settings" && settingsSubTab === "session" && (
           <DashboardSettingsSessionTab
             lang={lang}
+            onLangChange={setLang}
             ownerUserId={ownerUserId}
             selectedDate={selectedDate}
             selectedVaultId={family.selectedVaultId}

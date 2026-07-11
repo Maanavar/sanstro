@@ -20,15 +20,38 @@ import type {
  * data, reused from the same hooks the Classic Today tab already consumes.
  */
 
-// Generic, chart-independent read on the current antardasha (sub-period)
-// lord — natural benefics vs. natural malefics, the same broad-strokes split
-// classical Vedic astrology uses when no chart-specific strength data is at
-// hand. Deliberately three-way and weather-framed (never fatalist), matching
-// getScoreVerdict's tone elsewhere in this app.
+// Chart-independent read on the current antardasha (sub-period) lord —
+// natural benefics vs. natural malefics — used only as a fallback when the
+// chart's Lagna-dependent functional nature (below) isn't available (e.g.
+// older cached chart summaries). Deliberately three-way and weather-framed
+// (never fatalist), matching getScoreVerdict's tone elsewhere in this app.
 const _DASHA_BENEFIC = new Set(["JUPITER", "VENUS"]);
 const _DASHA_CHALLENGING = new Set(["SATURN", "MARS", "RAHU", "KETU"]);
 
-function dashaSentiment(antardashaLord: string, lang: Lang): { label: string; color: string } {
+// Lagna-dependent functional-nature bands, matching the doctrine the backend
+// uses everywhere else (dasha service, daily-guidance modifiers, remedies,
+// adhipathi report) — see app/calculations/functional_nature.py.
+const _NATURE_SUPPORTIVE = new Set(["YOGAKARAKA", "LAGNA_LORD", "TRIKONA"]);
+const _NATURE_STEADY = new Set(["KENDRA", "NEUTRAL"]);
+const _NATURE_TESTING = new Set(["MARAKA", "DUSTHANA", "UPACHAYA"]);
+
+function dashaSentiment(
+  antardashaLord: string,
+  functionalNature: string | undefined,
+  lang: Lang,
+): { label: string; color: string } {
+  if (functionalNature) {
+    if (_NATURE_SUPPORTIVE.has(functionalNature)) {
+      return { label: lang === "ta" ? "ஆதரவான காலம்" : "supportive period", color: "var(--color-high)" };
+    }
+    if (_NATURE_TESTING.has(functionalNature)) {
+      return { label: lang === "ta" ? "சவாலான காலம் · மெதுவாக செல்லுங்கள்" : "testing period · go gently", color: "var(--color-low)" };
+    }
+    if (_NATURE_STEADY.has(functionalNature)) {
+      return { label: lang === "ta" ? "நடுநிலையான காலம்" : "steady, mixed period", color: "var(--color-mid)" };
+    }
+  }
+  // Fallback: natural benefic/malefic split (no chart-specific data yet).
   if (_DASHA_BENEFIC.has(antardashaLord)) {
     return { label: lang === "ta" ? "ஆதரவான காலம்" : "supportive period", color: "var(--color-high)" };
   }
@@ -287,7 +310,11 @@ export function DashboardTodayGlanceRowNova({
               {tPlanetLord(personalChartSummary.currentMahadasha, lang)} <span style={{ color: "var(--color-faint)" }}>→</span> <span style={{ color: "var(--color-accent-strong)" }}>{tPlanetLord(personalChartSummary.currentAntardasha, lang)}</span>
             </div>
             {(() => {
-              const sentiment = dashaSentiment(personalChartSummary.currentAntardasha, lang);
+              const sentiment = dashaSentiment(
+                personalChartSummary.currentAntardasha,
+                personalChartSummary.functionalNature?.[personalChartSummary.currentAntardasha],
+                lang,
+              );
               return (
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: sentiment.color, fontWeight: 600 }}>
                   <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: sentiment.color, flex: "none" }} />

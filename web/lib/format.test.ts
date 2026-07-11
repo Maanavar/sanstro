@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { addDays, formatClockLabel, formatDateLabel, formatDateTimeLabel, getScoreBand, todayIso } from "./format";
+import {
+  addDays,
+  formatClockLabel,
+  formatDateLabel,
+  formatDateTimeLabel,
+  getScoreBand,
+  getScoreVerdictFromGuidance,
+  todayIso,
+  type ScoreVerdict,
+} from "./format";
 
 describe("format helpers", () => {
   it("classifies score bands", () => {
@@ -23,5 +32,36 @@ describe("format helpers", () => {
   it("formats date-time labels with am/pm", () => {
     expect(formatDateTimeLabel("not-a-date")).toBe("not-a-date");
     expect(formatDateTimeLabel("2026-05-21T13:40:00")).toMatch(/\bpm\b/);
+  });
+
+  it("derives the headline verdict from the backend label across boundary scores", () => {
+    const cases: Array<[string, number, ScoreVerdict["tone"]]> = [
+      ["RESTORATIVE", 34, "low"],
+      ["CAUTION", 35, "low"],
+      ["CAUTION", 49, "low"],
+      ["BALANCED", 50, "mid"],
+      ["BALANCED", 64, "mid"],
+      ["GOOD", 65, "high"],
+      ["GOOD", 79, "high"],
+      ["STRONG_SUPPORT", 80, "high"],
+    ];
+    for (const [label, score, tone] of cases) {
+      expect(getScoreVerdictFromGuidance(label, score, "en").tone).toBe(tone);
+    }
+  });
+
+  it("never shows Good day for a chandrashtama day demoted to BALANCED", () => {
+    const verdict = getScoreVerdictFromGuidance("BALANCED", 72, "en");
+    expect(verdict.tone).toBe("mid");
+    expect(verdict.verdict).not.toBe("Good day");
+  });
+
+  it("falls back to score-only verdict when label is missing", () => {
+    expect(getScoreVerdictFromGuidance(null, 72, "en")).toEqual(
+      expect.objectContaining({ tone: "high", verdict: "Good day" }),
+    );
+    expect(getScoreVerdictFromGuidance(undefined, 45, "en")).toEqual(
+      expect.objectContaining({ tone: "low", verdict: "Take care" }),
+    );
   });
 });

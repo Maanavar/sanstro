@@ -25,6 +25,7 @@ export type {
   ChartCalculateResponseData,
   ChartValidationStatus,
   ChartSummaryData,
+  AdhipathiReading,
   DailyGuidanceWindow,
   DailyGuidanceReasons,
   DailyGuidanceEmotionalWeather,

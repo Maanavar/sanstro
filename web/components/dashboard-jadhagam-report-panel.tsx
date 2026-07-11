@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import type { JadhagamReportData } from "@/lib/types";
+import type { AdhipathiReading, JadhagamReportData } from "@/lib/types";
 import { YogaDoshamPanel } from "./dashboard-yoga-dosham-panel";
 
 // ── Shared section wrapper ────────────────────────────────────────────────────
@@ -87,6 +87,36 @@ function NatureBadge({ planet, nature, lang }: { planet: string; nature: string;
   );
 }
 
+// ── Adhipathi (house-lord) placement row ──────────────────────────────────────
+
+const BAND_COLORS: Record<string, string> = {
+  STRONG: "var(--color-score-high)",
+  MODERATE: "var(--color-score-mid)",
+  WEAK: "var(--color-score-low)",
+};
+
+function AdhipathiRow({ item, lang }: { item: AdhipathiReading; lang: Lang }) {
+  const bandColor = BAND_COLORS[item.strengthBand] ?? "var(--color-faint)";
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", gap: "var(--space-0_75)",
+      borderBottom: "1px solid var(--color-bg)", paddingBottom: "var(--space-2)",
+    }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)" }}>
+        <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-text-strong)" }}>
+          {lang === "ta" ? item.adhipathiTa : item.adhipathiEn}
+        </span>
+        <span style={{ fontSize: "0.75rem", fontWeight: 700, color: bandColor, marginLeft: "auto" }}>
+          {item.strengthScore}
+        </span>
+      </div>
+      <span style={{ fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.45 }}>
+        {lang === "ta" ? item.readingTa : item.readingEn}
+      </span>
+    </div>
+  );
+}
+
 // ── Age-based focus badge ─────────────────────────────────────────────────────
 
 const FOCUS_AREA_COLORS: Record<string, string> = {
@@ -154,6 +184,25 @@ function FocusBadge({ area, lang }: { area: string; lang: Lang }) {
   );
 }
 
+const CONFIDENCE_LABELS: Record<string, { ta: string; en: string }> = {
+  high:   { ta: "உயர் நம்பகத்தன்மை",   en: "High confidence" },
+  medium: { ta: "நடுத்தர நம்பகத்தன்மை", en: "Medium confidence" },
+  low:    { ta: "குறைந்த நம்பகத்தன்மை", en: "Low confidence" },
+};
+
+function ConfidencePill({ confidence, lang }: { confidence: string; lang: Lang }) {
+  const label = CONFIDENCE_LABELS[confidence];
+  return (
+    <span style={{
+      fontSize: "0.6875rem", fontWeight: 600, color: "var(--color-faint)",
+      border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)",
+      padding: "var(--space-0_5) var(--space-2_5)", textTransform: "uppercase", letterSpacing: "0.04em",
+    }}>
+      {label ? (lang === "ta" ? label.ta : label.en) : confidence}
+    </span>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 type Props = {
@@ -209,8 +258,10 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaD
     coreIdentity,
     planetaryStrengthSummary,
     functionalNatureTable,
+    adhipathiReport,
     yogaDoshamSummary,
     ageWiseTimeline,
+    primaryConcerns,
     currentYearGuidance,
     practicalGuidance,
     optionalRemedies,
@@ -231,8 +282,37 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaD
     lang === "ta" ? (PLANET_NAMES_TA[p.planet] ?? p.planet) : p.planet
   );
 
+  const [topConcern, ...otherConcerns] = primaryConcerns ?? [];
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3_5)" }}>
+
+      {/* ── Primary concern — the veteran's "you came about X" opening statement ── */}
+      {topConcern && (
+        <div style={{
+          padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)",
+          background: "var(--color-surface)", border: "2px solid var(--color-score-high)",
+          fontFamily: "var(--font-body)", display: "flex", flexDirection: "column", gap: "var(--space-2)",
+        }}>
+          <p className="cd-kicker" style={{ margin: 0, color: "var(--color-score-high)", letterSpacing: "0.1em" }}>
+            {lang === "ta" ? "இப்போது முதன்மையான கவலை" : "The primary concern right now"}
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+            <FocusBadge area={topConcern.concern} lang={lang} />
+            <ConfidencePill confidence={topConcern.confidence} lang={lang} />
+          </div>
+          <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+            {lang === "ta" ? topConcern.rationaleTa : topConcern.rationaleEn}
+          </p>
+          {otherConcerns.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1_5)", marginTop: "var(--space-1)" }}>
+              {otherConcerns.map((c) => (
+                <FocusBadge key={c.concern} area={c.concern} lang={lang} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Executive summary ── */}
       <div style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", background: "var(--color-surface)", border: "1px solid var(--color-border)", fontFamily: "var(--font-body)" }}>
@@ -314,6 +394,22 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaD
           ))}
         </div>
       </Section>
+
+      {/* ── Adhipathi (bhava-lord placements) ── */}
+      {adhipathiReport && adhipathiReport.length > 0 && (
+        <Section title={lang === "ta" ? "அதிபதி நிலைகள்" : "Adhipathi (House Lords)"}>
+          <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.4 }}>
+            {lang === "ta"
+              ? "ஒவ்வொரு வீட்டின் அதிபதி எங்கு அமர்ந்துள்ளார், அவரது வலிமை என்ன என்பதை காட்டுகிறது:"
+              : "Where each house's lord sits, and how strong that lord is:"}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+            {adhipathiReport.map((item) => (
+              <AdhipathiRow key={item.house} item={item} lang={lang} />
+            ))}
+          </div>
+        </Section>
+      )}
 
       {/* ── Yogas & Doshams ── */}
       <Section title={`${t("yogas_title", lang)} & ${t("doshams_title", lang)}`} accent="rgba(167,139,250,0.3)">
