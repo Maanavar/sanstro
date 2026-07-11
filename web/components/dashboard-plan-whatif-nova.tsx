@@ -74,7 +74,7 @@ export function NovaPlanWhatIfPanel({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px", fontFamily: "var(--font-body)" }}>
       <div>
-        <p style={{ margin: "0 0 4px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-accent)" }}>
+        <p style={{ margin: "0 0 4px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
           {t("whatif_panel_title", lang)}
         </p>
         <p style={{ margin: "0 0 10px", fontSize: "14px", color: "var(--color-muted)", lineHeight: 1.5 }}>{t("whatif_panel_desc", lang)}</p>

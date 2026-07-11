@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { tNakshatra, tTithi, tWeekday, tKarana, tYoga, type Lang } from "@/lib/i18n";
+import { tNakshatra, tTithi, tWeekday, tKarana, tYoga, tMoonPhase, type Lang } from "@/lib/i18n";
 import { formatClockLabel, formatDateLabel } from "@/lib/format";
 import type { PanchangamDailyResponseData } from "@/lib/types";
 
@@ -111,7 +111,7 @@ export default function PanchangamWidget() {
           { lbl: en ? "Nakshatra" : "நட்சத்திரம்", val: tNakshatra(data.nakshatra.name, params.lang) },
           { lbl: en ? "Yoga" : "யோகம்",        val: tYoga(data.yoga.name, params.lang) },
           { lbl: en ? "Karana" : "கரணம்",      val: tKarana(data.karana.name, params.lang) },
-          { lbl: en ? "Moon Phase" : "சந்திர கலை", val: data.moonPhaseLabel },
+          { lbl: en ? "Moon Phase" : "சந்திர கலை", val: tMoonPhase(data.moonPhaseLabel, params.lang) },
         ].map(item => (
           <div key={item.lbl} style={{ background: "var(--widget-card-bg)", borderRadius: "8px", padding: "8px 10px" }}>
             <p style={{ margin: "0 0 2px", fontSize: "10px", color: muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{item.lbl}</p>

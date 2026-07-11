@@ -13,6 +13,7 @@ import {
   supportLabel,
   predictionIsDeferred,
 } from "./dashboard-life-areas-shared";
+import { NovaFadeIn } from "./dashboard-ui-nova";
 
 /**
  * Nova re-skin of dashboard-prediction-panel.tsx's PredictionDetailPanel —
@@ -135,7 +136,7 @@ function NovaPredictionCard({ title, pred, lang, expanded, onToggle, featured, d
         <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr" }}>
           <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "14px", borderRight: "1px solid var(--color-border)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-              <p style={{ margin: 0, fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent)" }}>{title}</p>
+              <p style={{ margin: 0, fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>{title}</p>
               {deferred && <NovaLaterPhaseBadge lang={lang} />}
               <span style={{ fontSize: "12px", fontWeight: 700, padding: "3px 10px", borderRadius: "999px", background: tone.bg, color: tone.text, border: `1px solid ${tone.border}` }}>{chipLabel}</span>
             </div>
@@ -148,7 +149,7 @@ function NovaPredictionCard({ title, pred, lang, expanded, onToggle, featured, d
           </div>
 
           <div style={{ padding: "24px", background: "var(--color-surface-soft)", display: "flex", flexDirection: "column", gap: "14px" }}>
-            <p style={{ margin: 0, fontSize: "11px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-accent)" }}>{t("pred_confidence", lang)}</p>
+            <p style={{ margin: 0, fontSize: "11px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>{t("pred_confidence", lang)}</p>
             <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: pred.band ? "1.35rem" : "2rem", lineHeight: 1.15, color: tone.text }}>{chipLabel}</p>
             <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)", lineHeight: 1.55 }}>
               {lang === "ta" ? pred.mainPredictionTa : pred.mainPredictionEn}
@@ -267,7 +268,7 @@ export function NovaPredictionsPanel({ lang, predictions, loading, maritalStatus
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "12px", fontFamily: "var(--font-body)" }}>
+    <NovaFadeIn style={{ display: "flex", flexDirection: "column", gap: "12px", fontFamily: "var(--font-body)" }}>
       {isMarried && predictions?.marriage && (
         <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)", lineHeight: 1.5, padding: "8px 12px", borderRadius: "8px", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)" }}>
           {lang === "ta"
@@ -298,6 +299,6 @@ export function NovaPredictionsPanel({ lang, predictions, loading, maritalStatus
           </div>
         ) : null
       ))}
-    </div>
+    </NovaFadeIn>
   );
 }

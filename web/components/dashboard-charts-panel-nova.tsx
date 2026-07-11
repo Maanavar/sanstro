@@ -341,7 +341,7 @@ export function DashboardChartsPanelNova({
           a direct "ask a question about this chart" action. ===== */}
       {isSelf && onOpenPrasna && (
         <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "18px", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-          <p style={{ margin: 0, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, color: "var(--color-accent)" }}>
+          <p style={{ margin: 0, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, color: "var(--color-text-accent)" }}>
             {lang === "ta" ? "கருவிகள்" : "Tools"}
           </p>
           <NovaPrasnaTrigger lang={lang} onOpenPrasna={onOpenPrasna} />

@@ -293,7 +293,7 @@ export function DashboardFamilyMemberNova({
         <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: "14px" }}>
           {insight && (
             <div style={{ textAlign: "right", maxWidth: "220px" }}>
-              <div style={{ fontSize: "10.5px", letterSpacing: "0.1em", color: "var(--color-accent)", textTransform: "uppercase", fontWeight: 700 }}>{lang === "ta" ? "இன்று" : "Today"}</div>
+              <div style={{ fontSize: "10.5px", letterSpacing: "0.1em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>{lang === "ta" ? "இன்று" : "Today"}</div>
               <div style={{ fontSize: "12px", color: "var(--color-muted)" }}>{insight}</div>
             </div>
           )}
@@ -438,7 +438,7 @@ export function DashboardFamilyMemberNova({
                       ...(showAllPlanets ? [lang === "ta" ? "பாகை" : "Degree"] : []),
                       lang === "ta" ? "குறிப்பு" : "Note",
                     ].map((header) => (
-                      <th key={header} style={{ textAlign: "left", fontSize: "0.65625rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700, padding: "10px 12px", borderBottom: "1px solid var(--color-border-strong)", whiteSpace: "nowrap" }}>
+                      <th key={header} style={{ textAlign: "left", fontSize: "0.65625rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700, padding: "10px 12px", borderBottom: "1px solid var(--color-border-strong)", whiteSpace: "nowrap" }}>
                         {header}
                       </th>
                     ))}
@@ -456,7 +456,7 @@ export function DashboardFamilyMemberNova({
                         {showAllPlanets && <td style={{ padding: "10px 12px", color: "var(--color-text)" }}>{planet.degreeInRasi.toFixed(2)}°</td>}
                         <td style={{ padding: "10px 12px" }}>
                           {isDasaLord ? (
-                            <span style={{ fontSize: "10px", fontWeight: 700, color: "var(--color-accent)" }}>{lang === "ta" ? "தசாதிபதி" : "DASA LORD"}</span>
+                            <span style={{ fontSize: "10px", fontWeight: 700, color: "var(--color-text-accent)" }}>{lang === "ta" ? "தசாதிபதி" : "DASA LORD"}</span>
                           ) : planet.isRetrograde ? (
                             <span style={{ fontSize: "10px", fontWeight: 700, color: "var(--color-low)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "5px", padding: "2px 7px" }}>{lang === "ta" ? "வக்ரம்" : "Retro"}</span>
                           ) : isStrongest ? (

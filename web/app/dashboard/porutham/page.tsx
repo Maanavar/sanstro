@@ -339,7 +339,7 @@ export default function PoruthamPage() {
                 )}
               </div>
               <button type="button" onClick={() => void handleDownloadPdf()} disabled={downloadingPdf}
-                style={{ alignSelf: "flex-start", flexShrink: 0, background: "transparent", border: "1px solid var(--color-accent)", borderRadius: "8px", color: "var(--color-accent)", padding: "8px 16px", fontSize: "0.8rem", fontWeight: 600, cursor: downloadingPdf ? "wait" : "pointer", opacity: downloadingPdf ? 0.6 : 1 }}>
+                style={{ alignSelf: "flex-start", flexShrink: 0, background: "transparent", border: "1px solid var(--color-accent)", borderRadius: "8px", color: "var(--color-text-accent)", padding: "8px 16px", fontSize: "0.8rem", fontWeight: 600, cursor: downloadingPdf ? "wait" : "pointer", opacity: downloadingPdf ? 0.6 : 1 }}>
                 {downloadingPdf
                   ? (lang === "ta" ? "தயாராகிறது…" : "Preparing…")
                   : (lang === "ta" ? "⬇ PDF பதிவிறக்கு" : "⬇ Download PDF")}

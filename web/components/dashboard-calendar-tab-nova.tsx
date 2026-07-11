@@ -6,7 +6,7 @@ import Link from "next/link";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { formatClockLabel } from "@/lib/format";
 import { bestGowriSlot, gowriCategoryLabel, gowriPeriodLabel, gowriPurposeLabel } from "@/lib/gowri";
-import { t, tKarana, tNakshatra, tPlanetLord, tTithi, tWeekday, tYoga } from "@/lib/i18n";
+import { t, tAmirdhadhiYogam, tJeevan, tKarana, tMoonPhase, tNakshatra, tNethiram, tParigaram, tPlanetLord, tSoolamDirection, tTithi, tWeekday, tYoga } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { rasiGlyph } from "@/lib/astro-symbols";
 import { useMonthlyPanchangam } from "@/hooks/useMonthlyPanchangam";
@@ -148,7 +148,7 @@ function NovaGowriDetailGrid({
   if (slots.length === 0) return null;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      <div style={{ fontSize: "10.5px", letterSpacing: "0.12em", color: "var(--color-accent)", textTransform: "uppercase", fontWeight: 700 }}>
+      <div style={{ fontSize: "10.5px", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
         {lang === "ta" ? "கௌரி நல்ல நேரம் விவரம்" : "Gowri Nalla Neram Details"}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "8px" }}>
@@ -293,7 +293,7 @@ function DayDetailDrawerNova({
 
           {data.festivals.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <p style={{ margin: 0, fontSize: "10.5px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+              <p style={{ margin: 0, fontSize: "10.5px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
                 {t("label_festivals", lang)}
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -470,12 +470,12 @@ export function DashboardCalendarTabNova({
             ? `${formatClockLabel(panchangam.karana.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
             : `${formatClockLabel(panchangam.karana.endsAt)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tKarana(panchangam.karana.nextName, lang)}`,
         },
-        { key: lang === "ta" ? "சந்திரன்" : "Moon", value: panchangam.moonPhaseLabel, hint: lang === "ta" ? "சந்திர கலை" : "Moon phase" },
-        { key: lang === "ta" ? "சூலம்" : "Soolam", value: panchangam.soolam.direction, hint: `${lang === "ta" ? "பரிகாரம்" : "Parigaram"}: ${panchangam.soolam.parigaram}` },
+        { key: lang === "ta" ? "சந்திரன்" : "Moon", value: tMoonPhase(panchangam.moonPhaseLabel, lang), hint: lang === "ta" ? "சந்திர கலை" : "Moon phase" },
+        { key: lang === "ta" ? "சூலம்" : "Soolam", value: tSoolamDirection(panchangam.soolam.direction, lang), hint: `${lang === "ta" ? "பரிகாரம்" : "Parigaram"}: ${tParigaram(panchangam.soolam.parigaram, lang)}` },
         { key: lang === "ta" ? "லக்னம்" : "Lagnam", value: panchangam.lagnam.rasiName, hint: `${lang === "ta" ? "இருப்பு" : "Remaining"} ${panchangam.lagnam.nazhigai} ${lang === "ta" ? "நாழிகை" : "nazhigai"} ${panchangam.lagnam.vinadi} ${lang === "ta" ? "விநாடி" : "vinadi"} · ${formatClockLabel(panchangam.lagnam.endsAt)} ${t("until_word", lang)}` },
-        { key: lang === "ta" ? "நேத்திரம்" : "Nethiram", value: panchangam.nethiram, hint: lang === "ta" ? "இன்று முழுவதும்" : "Throughout today" },
-        { key: lang === "ta" ? "ஜீவன்" : "Jeevan", value: panchangam.jeevan, hint: lang === "ta" ? "இன்று முழுவதும்" : "Throughout today" },
-        { key: lang === "ta" ? "அமிர்தாதி யோகம்" : "Amirdhadhi Yogam", value: panchangam.amirdhadhiYogam.name, hint: `${formatClockLabel(panchangam.amirdhadhiYogam.endsAt)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${panchangam.amirdhadhiYogam.nextName}` },
+        { key: lang === "ta" ? "நேத்திரம்" : "Nethiram", value: tNethiram(panchangam.nethiram, lang), hint: lang === "ta" ? "இன்று முழுவதும்" : "Throughout today" },
+        { key: lang === "ta" ? "ஜீவன்" : "Jeevan", value: tJeevan(panchangam.jeevan, lang), hint: lang === "ta" ? "இன்று முழுவதும்" : "Throughout today" },
+        { key: lang === "ta" ? "அமிர்தாதி யோகம்" : "Amirdhadhi Yogam", value: tAmirdhadhiYogam(panchangam.amirdhadhiYogam.name, lang), hint: `${formatClockLabel(panchangam.amirdhadhiYogam.endsAt)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tAmirdhadhiYogam(panchangam.amirdhadhiYogam.nextName, lang)}` },
       ]
     : [];
 
@@ -492,7 +492,7 @@ export function DashboardCalendarTabNova({
       {/* ===== Page header ===== */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontSize: "11px", letterSpacing: "0.12em", color: "var(--color-accent)", textTransform: "uppercase", fontWeight: 700 }}>
+          <div style={{ fontSize: "11px", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
             {lang === "ta" ? "கிரகநகர்வு & நிகழ்வுகள்" : "Transits & Events"}
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: "12px", marginTop: "6px", flexWrap: "wrap" }}>
@@ -535,7 +535,7 @@ export function DashboardCalendarTabNova({
             {/* ===== LEFT: Day at a glance ===== */}
             <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-xl)", padding: "24px 26px", display: "flex", flexDirection: "column", gap: "18px" }}>
               <div>
-                <div style={{ fontSize: "11px", letterSpacing: "0.12em", color: "var(--color-accent)", textTransform: "uppercase", fontWeight: 700, marginBottom: "8px" }}>
+                <div style={{ fontSize: "11px", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700, marginBottom: "8px" }}>
                   {lang === "ta" ? "இன்று — ஒரு பார்வையில்" : "Day at a glance"}
                 </div>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: "26px", fontWeight: 600, lineHeight: 1.25, color: "var(--color-text-strong)" }}>
@@ -614,7 +614,7 @@ export function DashboardCalendarTabNova({
 
               {/* ── Today's Nakshatra ── */}
               <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ fontSize: "10.5px", letterSpacing: "0.12em", color: "var(--color-accent)", textTransform: "uppercase", fontWeight: 700 }}>
+                <div style={{ fontSize: "10.5px", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
                   {lang === "ta" ? "இன்றைய நட்சத்திரம்" : "Today's Nakshatra"}
                 </div>
                 <div style={{ background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "10px", padding: "11px 15px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -655,7 +655,7 @@ export function DashboardCalendarTabNova({
 
               {/* ── Today's Events ── */}
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ fontSize: "10.5px", letterSpacing: "0.12em", color: "var(--color-accent)", textTransform: "uppercase", fontWeight: 700 }}>
+                <div style={{ fontSize: "10.5px", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
                   {lang === "ta" ? "இன்றைய நிகழ்வுகள்" : "Today's Events"}
                 </div>
                 {observanceFestivals.length === 0 && dailyFestivalEvents.length === 0 ? (
@@ -687,7 +687,7 @@ export function DashboardCalendarTabNova({
 
               {/* ── Today's Significance ── */}
               <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ fontSize: "10.5px", letterSpacing: "0.12em", color: "var(--color-accent)", textTransform: "uppercase", fontWeight: 700 }}>
+                <div style={{ fontSize: "10.5px", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
                   {lang === "ta" ? "இன்றைய சிறப்பு" : "Today's Significance"}
                 </div>
                 <div style={{ background: "var(--color-accent-muted)", border: "1px solid var(--color-border)", borderRadius: "10px", padding: "12px 15px", fontSize: "12.5px", color: "var(--color-text)" }}>
@@ -699,7 +699,7 @@ export function DashboardCalendarTabNova({
             {/* ===== RIGHT column ===== */}
             <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
               <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-xl)", padding: "20px 22px" }}>
-                <div style={{ fontSize: "11px", letterSpacing: "0.12em", color: "var(--color-accent)", textTransform: "uppercase", fontWeight: 700, marginBottom: "12px" }}>
+                <div style={{ fontSize: "11px", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700, marginBottom: "12px" }}>
                   {lang === "ta" ? "பஞ்சாங்கம் · ஐந்து அங்கங்கள்" : "Panchangam · Five Limbs"}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column" }}>
@@ -721,7 +721,7 @@ export function DashboardCalendarTabNova({
                       ? "இந்த நேரங்கள் திருக்கணிதம் (எபிமெரிஸ் அடிப்படையிலான வானியல்) முறையில், லாஹிரி அயனாம்சத்தில் கணக்கிடப்படுகின்றன. வாக்கிய முறையைப் பின்பற்றும் உங்கள் ஊர் பஞ்சாங்கம் அல்லது குருவின் கணக்கீட்டில் திதி/நட்சத்திர மாற்ற நேரங்களில் சிறிது வேறுபாடு இருக்கலாம்."
                       : "These times use Drik-ganita (ephemeris-based) astronomy with Lahiri ayanamsa. If your local almanac or purohit follows the traditional Vakya method, tithi/nakshatra boundary times may differ slightly."}
                   </p>
-                  <Link href="/trust/methodology#panchangam" style={{ fontSize: "11.5px", fontWeight: 700, color: "var(--color-accent)", textDecoration: "none" }}>
+                  <Link href="/trust/methodology#panchangam" style={{ fontSize: "11.5px", fontWeight: 700, color: "var(--color-text-accent)", textDecoration: "none" }}>
                     {lang === "ta" ? "எங்கள் கணக்கீட்டு முறையைப் பார்க்க →" : "See our calculation methodology →"}
                   </Link>
                 </div>
@@ -729,7 +729,7 @@ export function DashboardCalendarTabNova({
 
               {panchangam.hora.length > 0 && (
                 <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-xl)", padding: "20px 22px" }}>
-                  <div style={{ fontSize: "11px", letterSpacing: "0.12em", color: "var(--color-accent)", textTransform: "uppercase", fontWeight: 700, marginBottom: "10px" }}>
+                  <div style={{ fontSize: "11px", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700, marginBottom: "10px" }}>
                     {lang === "ta" ? "ஹோரை அட்டவணை" : "Hora Table"}
                   </div>
                   {/* Issue #11: pin the currently-running hora to the top so the user

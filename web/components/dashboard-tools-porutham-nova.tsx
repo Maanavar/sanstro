@@ -377,7 +377,7 @@ export function NovaPoruthamPanel({
               </div>
               <div style={{ flex: "1", minWidth: "260px", display: "flex", flexDirection: "column", gap: "10px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                  <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+                  <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
                     {lang === "ta" ? "பொருத்தம் முடிவு" : "Porutham Result"}
                   </span>
                   {(porutham.rajjuDosha || porutham.vedhaDosha) && (
@@ -391,7 +391,7 @@ export function NovaPoruthamPanel({
                     <div style={{ width: "34px", height: "34px", borderRadius: "50%", background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "13px", fontWeight: 700 }}>{chartA.birthProfile.displayName.charAt(0).toUpperCase()}</div>
                     <div style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--color-text-strong)" }}>{chartA.birthProfile.displayName}</div>
                   </div>
-                  <span style={{ fontFamily: "var(--font-display)", fontSize: "20px", color: "var(--color-accent)" }}>×</span>
+                  <span style={{ fontFamily: "var(--font-display)", fontSize: "20px", color: "var(--color-text-accent)" }}>×</span>
                   <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
                     <div style={{ width: "34px", height: "34px", borderRadius: "50%", background: "var(--color-high)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "13px", fontWeight: 700 }}>{chartB.birthProfile.displayName.charAt(0).toUpperCase()}</div>
                     <div style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--color-text-strong)" }}>{chartB.birthProfile.displayName}</div>
@@ -413,7 +413,7 @@ export function NovaPoruthamPanel({
             {/* LEFT: 10 porutham table */}
             <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "14px", padding: "20px 22px", display: "flex", flexDirection: "column", gap: "8px" }}>
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+                <span style={{ fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
                   {lang === "ta" ? "தமிழ் 10 பொருத்தங்கள்" : "The ten poruthams"}
                 </span>
                 <span style={{ fontSize: "11px", color: "var(--color-faint)" }}>✓ {lang === "ta" ? "பொருத்தம்" : "match"} · ✕ {lang === "ta" ? "இல்லை" : "no match"}</span>
@@ -460,7 +460,7 @@ export function NovaPoruthamPanel({
             {/* RIGHT rail */}
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "14px", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                <span style={{ fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+                <span style={{ fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
                   {lang === "ta" ? "குறுக்கு சோதனைகள்" : "Cross-checks"}
                 </span>
                 {CROSS_CHECK_DOSHAMS.map(({ name, labelEn, labelTa }) => {

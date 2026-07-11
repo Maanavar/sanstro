@@ -1,9 +1,11 @@
 "use client";
 
+import { motion, useReducedMotion } from "framer-motion";
 import { useState, type FormEvent } from "react";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { EASE_NOVA } from "@/lib/motion";
 import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
 import { PlaceCombobox } from "./place-combobox";
 import { usePlaceCoordinatesConfirm, PlaceMatchedBadge, PlaceCoordinatesFooter } from "./place-coordinates-field";
@@ -127,6 +129,7 @@ export function EditProfileModal({
   const { nextBirthDateOrCurrent, applyPlaceSelection } = useBirthProfileForm();
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const coordsConfirm = usePlaceCoordinatesConfirm(birthForm.birthPlace, birthForm.birthLatitude, birthForm.birthLongitude);
+  const reduce = useReducedMotion();
 
   function handleValidatedSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -141,7 +144,10 @@ export function EditProfileModal({
   }
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: reduce ? 0 : 0.18 }}
       style={{
         position: "fixed", inset: 0, zIndex: 200,
         background: "rgba(26,22,18,0.55)",
@@ -151,7 +157,11 @@ export function EditProfileModal({
       }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{
+      <motion.div
+        initial={reduce ? false : { opacity: 0, scale: 0.96, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: reduce ? 0 : 0.28, ease: EASE_NOVA }}
+        style={{
         width: "min(580px, 100%)",
         background: W.surface,
         border: `1.5px solid ${W.borderLt}`,
@@ -346,7 +356,7 @@ export function EditProfileModal({
             {busySaving ? t("btn_saving", lang) : t("btn_save_recalc", lang)}
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

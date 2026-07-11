@@ -70,7 +70,7 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
       </div>
 
       <div style={{ borderRadius: "12px", border: "1px solid var(--color-border)", background: "var(--color-surface)", padding: "16px 18px" }}>
-        <p style={{ margin: "0 0 6px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-accent)" }}>
+        <p style={{ margin: "0 0 6px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
           {lang === "ta" ? "படி 1 — சிறந்த நாட்கள் கண்டறிய (விரைவு மாத கண்ணோட்டம்)" : "Step 1 — Find Best Dates (quick month scan)"}
         </p>
         <p style={{ margin: "0 0 6px", fontSize: "12px", color: "var(--color-muted)", lineHeight: 1.5 }}>
@@ -178,7 +178,7 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
       </div>
 
       <div>
-        <p style={{ margin: "0 0 4px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-accent)" }}>
+        <p style={{ margin: "0 0 4px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
           {lang === "ta" ? "படி 2 — சரியான நேரம் கண்டறிய (முஹூர்த்தம்)" : "Step 2 — Find the right hour (Muhurta)"}
         </p>
         <p style={{ margin: "0 0 10px", fontSize: "11.5px", color: "var(--color-faint)", lineHeight: 1.5 }}>
@@ -190,7 +190,7 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
       </div>
 
       <div>
-        <p style={{ margin: "0 0 4px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-accent)" }}>
+        <p style={{ margin: "0 0 4px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
           {lang === "ta" ? "திருமணம் — 2027 முகூர்த்த நாட்கள்" : "Marriage — 2027 muhurtham dates"}
         </p>
         <p style={{ margin: "0 0 10px", fontSize: "11.5px", color: "var(--color-faint)", lineHeight: 1.5 }}>

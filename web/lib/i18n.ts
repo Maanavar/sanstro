@@ -1170,3 +1170,80 @@ export function tYoga(key: string | null | undefined, lang: Lang): string {
 export function tKarana(key: string | null | undefined, lang: Lang): string {
   return _lookupName(KARANA_NAMES, key, lang);
 }
+
+// The backend emits these panchangam sub-fields as fixed Tamil display strings
+// (see app/calculations/panchangam.py: SOOLAM_DIRECTION, SOOLAM_PARIGARAM_BY_DIRECTION,
+// NETHIRAM_LABELS, JEEVAN_LABELS, AMIRDHADHI_YOGAM_LABELS, moon-phase label) rather
+// than language-neutral keys, so they can't go through _lookupName (which uppercases
+// an English key). Match on the exact Tamil string the API sends; fall back to the
+// raw value if an unmapped string ever appears.
+const SOOLAM_DIRECTION_NAMES: PanchangamNameMap = {
+  "கிழக்கு": { ta: "கிழக்கு", en: "East" },
+  "மேற்கு": { ta: "மேற்கு", en: "West" },
+  "வடக்கு": { ta: "வடக்கு", en: "North" },
+  "தெற்கு": { ta: "தெற்கு", en: "South" },
+};
+
+const PARIGARAM_NAMES: PanchangamNameMap = {
+  "வெல்லம்": { ta: "வெல்லம்", en: "Jaggery" },
+  "தயிர்": { ta: "தயிர்", en: "Curd" },
+  "பால்": { ta: "பால்", en: "Milk" },
+  "எண்ணெய்": { ta: "எண்ணெய்", en: "Oil" },
+};
+
+const NETHIRAM_NAMES: PanchangamNameMap = {
+  "குருடு": { ta: "குருடு", en: "Blind" },
+  "ஒரு கண்": { ta: "ஒரு கண்", en: "One eye" },
+  "இரு கண்": { ta: "இரு கண்", en: "Two eyes" },
+};
+
+const JEEVAN_NAMES: PanchangamNameMap = {
+  "இல்லை": { ta: "இல்லை", en: "None" },
+  "அரை வாழ்க்கை": { ta: "அரை வாழ்க்கை", en: "Half life" },
+  "முழு வாழ்க்கை": { ta: "முழு வாழ்க்கை", en: "Full life" },
+};
+
+const AMIRDHADHI_YOGAM_NAMES: PanchangamNameMap = {
+  "அமிர்தயோகம்": { ta: "அமிர்தயோகம்", en: "Amirdha Yogam" },
+  "சித்தயோகம்": { ta: "சித்தயோகம்", en: "Siddha Yogam" },
+  "மரணயோகம்": { ta: "மரணயோகம்", en: "Marana Yogam" },
+};
+
+// Moon phase arrives as "வளர்பிறை (Waxing)" / "தேய்பிறை (Waning)" — one string
+// carrying both scripts. Strip to the language-appropriate half.
+const MOON_PHASE_NAMES: PanchangamNameMap = {
+  "வளர்பிறை (Waxing)": { ta: "வளர்பிறை", en: "Waxing" },
+  "தேய்பிறை (Waning)": { ta: "தேய்பிறை", en: "Waning" },
+};
+
+function _lookupExact(map: PanchangamNameMap, key: string | null | undefined, lang: Lang): string {
+  const rawKey = typeof key === "string" ? key.trim() : "";
+  if (!rawKey) return "";
+  const entry = map[rawKey];
+  if (!entry) return rawKey; // fallback: return the raw value unchanged
+  return entry[lang];
+}
+
+export function tSoolamDirection(key: string | null | undefined, lang: Lang): string {
+  return _lookupExact(SOOLAM_DIRECTION_NAMES, key, lang);
+}
+
+export function tParigaram(key: string | null | undefined, lang: Lang): string {
+  return _lookupExact(PARIGARAM_NAMES, key, lang);
+}
+
+export function tNethiram(key: string | null | undefined, lang: Lang): string {
+  return _lookupExact(NETHIRAM_NAMES, key, lang);
+}
+
+export function tJeevan(key: string | null | undefined, lang: Lang): string {
+  return _lookupExact(JEEVAN_NAMES, key, lang);
+}
+
+export function tAmirdhadhiYogam(key: string | null | undefined, lang: Lang): string {
+  return _lookupExact(AMIRDHADHI_YOGAM_NAMES, key, lang);
+}
+
+export function tMoonPhase(key: string | null | undefined, lang: Lang): string {
+  return _lookupExact(MOON_PHASE_NAMES, key, lang);
+}

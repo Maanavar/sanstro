@@ -1,8 +1,11 @@
 "use client";
 
+import { motion, useReducedMotion } from "framer-motion";
+
 import { formatClockLabel, getScoreBand, scoreColorScale } from "@/lib/format";
 import { tNakshatra, tPlanetLord, tTithi, tWeekday } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { DUR, EASE_NOVA } from "@/lib/motion";
 import type { PanchangamDailyResponseData, WeekAheadData } from "@/lib/types";
 
 /**
@@ -99,6 +102,12 @@ export function DashboardTodayRibbonNova({
   now: Date;
   onGoToCalendar?: () => void;
 }) {
+  // Page-turn: the whole ribbon re-reveals when the selected day changes, so
+  // switching dates reads as turning to a fresh page of the almanac rather than
+  // silently swapping numbers in place. Gated on reduced-motion in JS since the
+  // key-remount replays a framer transform the CSS guard can't reach.
+  const reduce = useReducedMotion();
+
   if (!panchangam) return null;
 
   const sunriseMin = timeToMinutes(panchangam.sunrise);
@@ -189,10 +198,16 @@ export function DashboardTodayRibbonNova({
   const { current: currentHora, next: nextHora } = findHorai(panchangam.hora, nowMin);
 
   return (
-    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "20px 24px 18px" }}>
+    <motion.div
+      key={selectedDate}
+      initial={reduce ? false : { opacity: 0, x: 14 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: reduce ? 0 : DUR.slow, ease: EASE_NOVA }}
+      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "20px 24px 18px" }}
+    >
       <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "14px", flexWrap: "wrap", rowGap: "10px" }}>
         <div>
-          <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+          <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
             {lang === "ta" ? "இன்றைய நாள்" : "Your day"}
           </span>
           <span style={{ fontSize: "11.5px", color: "var(--color-faint)", marginLeft: "10px" }}>
@@ -323,6 +338,6 @@ export function DashboardTodayRibbonNova({
           {" · "}{lang === "ta" ? "வாரம்" : "Vaaram"} <b style={{ color: "var(--color-text-strong)" }}>{tWeekday(panchangam.vara.weekday, lang)}</b>
         </span>
       </div>
-    </div>
+    </motion.div>
   );
 }

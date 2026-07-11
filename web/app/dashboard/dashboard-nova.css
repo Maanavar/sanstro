@@ -83,13 +83,25 @@
   --color-text-strong: #f3ecdd;
   --color-text:         rgba(243, 236, 221, 0.85);
   --color-muted:        rgba(243, 236, 221, 0.62);
-  --color-faint:        rgba(243, 236, 221, 0.45);
+  /* faint carries the highest-traffic small-text roles in the UI (metric
+     labels, captions, table headers, snapshot kickers — 200+ sites). At 0.45
+     it was AA-large-only (3.7–3.9:1) on both base and raised surfaces, and
+     those roles are small text (needs 4.5:1). 0.55 clears AA everywhere
+     (5.19:1 on bg, 4.89:1 on surface) with no perceptible loss of hierarchy. */
+  --color-faint:        rgba(243, 236, 221, 0.55);
 
   /* ── Accent — gold ── */
   --color-accent:           #d4af5f;
   --color-accent-strong:    #e7c87e;
   --color-accent-muted:     rgba(212, 175, 95, 0.12);
   --color-on-accent:        #221a2c;
+  /* Text-safe accent: the color we brand with (--color-accent gold) is a
+     fill/border color, not always a type color. On dark it passes as text
+     (8:1), but light-mode gold-on-cream is 2.48:1 (fail) — so kicker/label
+     TEXT reads this token, which resolves per-theme to a legible gold, while
+     borders/fills keep raw --color-accent. Dark = the lighter highlight gold
+     (10.4:1). Light override lives in the light block. */
+  --color-text-accent:      var(--color-accent-strong);
 
   /* ── Semantic ── */
   --color-accent-alt:            #8fbf9a; /* green — success/favourable */
@@ -121,6 +133,12 @@
   --color-low-bg:      rgba(179, 87, 61, 0.14);
   --color-low-border:  rgba(179, 87, 61, 0.34);
   --color-alert-critical: #b3573d;
+  /* alert-critical plays two roles: a fill/swatch (Rahu ribbon, calendar
+     legend dot) AND small alert TEXT (calendar "avoid" label, Chandrashtama
+     mark). As text #b3573d is 3.47:1 — a fail on the one surface where
+     legibility is non-negotiable. Text sites read this lightened sibling
+     (4.83:1 AA); the fill role keeps #b3573d. */
+  --color-alert-critical-text: #cf6f52;
   --color-alert-caution:  #e08a72;
   --color-positive:       #8fbf9a;
 
@@ -325,7 +343,16 @@
      ribbon-nova.tsx. Previously hardcoded literal hex directly in those
      files (broke under Light since they never varied by theme); moved
      here as Phase 1's dark value, with a light-tuned sibling below. ── */
-  --nova-hero-gradient: linear-gradient(120deg, #2f2540, #271d34);
+  /* Signature light: a single low-opacity gold aurora anchored top-left over a
+     directional plum. The old 6%-delta plum-on-plum gradient was imperceptible;
+     this gives the hero one restrained source of light without breaking the
+     dark editorial base. Gold held at 10% so it reads as glow, not tint. */
+  --nova-hero-gradient:
+    radial-gradient(130% 150% at 12% 0%, rgba(212, 175, 95, 0.10), transparent 46%),
+    linear-gradient(150deg, #33283f 0%, #271d34 62%);
+  /* Card lift — a whisper of shadow so cards sit above the base plane instead
+     of floating on it borderless-flat. Kept to 1px depth on dark. */
+  --nova-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.30);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -374,12 +401,26 @@
   --color-text-strong: var(--text-primary);   /* #1C1008 */
   --color-text:         var(--text-secondary); /* #4A3820 */
   --color-muted:        var(--text-tertiary);  /* #7A6448 */
-  --color-faint:        var(--text-disabled);  /* #A89880 */
+  /* Was --text-disabled #A89880 — 2.2–2.6:1 on cream, a hard fail for the
+     small-text roles faint carries. Reuse text-tertiary (#7A6448, 5.25:1 /
+     4.40:1 AA) rather than inventing hex. muted also reads text-tertiary; the
+     visible ladder step between them now comes from weight/size, not this
+     hue — acceptable trade for clearing AA on 200+ sites. */
+  --color-faint:        var(--text-tertiary);  /* #7A6448 */
 
   /* ── Accent — same #C9971C gold as Classic's light theme (falls through,
      see note above); accent-strong/on-accent have no Classic equivalent. ── */
   --color-accent-strong: var(--accent-hover); /* #A87D18 — darker gold reads better on cream than dark's lighter highlight gold would */
   --color-on-accent:     #221a2c;
+  /* Light-mode text-safe accent (see dark block). Brand gold #C9971C is
+     2.48:1 on cream and accent-strong #A87D18 only 3.50:1 (large-only) — so
+     kicker/label TEXT needs a dedicated darker gold. #8A6410 = 5.02:1 AA.
+     Fills/borders still use raw --color-accent. */
+  --color-text-accent:   #8A6410;
+  /* Light alert-critical (#C0392B) is already 5.1:1 as text, so the text
+     token just mirrors it — the split exists so the dark override has a home
+     and consumers can point at one name in both themes. */
+  --color-alert-critical-text: #C0392B;
 
   /* ── Semantic — darkened from Nova-dark's pastel green/purple for contrast on cream ── */
   --color-accent-alt:            #2f7d4e; /* green — success/favourable */
@@ -498,7 +539,10 @@
      monthly-nova.tsx, dashboard-plan-tab-nova.tsx, dashboard-today-
      ribbon-nova.tsx. Dark values are the literal hex those files used to
      hardcode before Phase 1; light values are hand-tuned here instead. ── */
-  --nova-hero-gradient: linear-gradient(120deg, var(--surface-1), var(--surface-2));
+  --nova-hero-gradient:
+    radial-gradient(130% 150% at 12% 0%, rgba(201, 151, 28, 0.08), transparent 46%),
+    linear-gradient(150deg, var(--surface-1), var(--surface-2));
+  --nova-card-shadow: 0 1px 3px rgba(28, 16, 8, 0.08);
 }
 
 /* globals.css's .card/.input/.select are a "dark glass" convention (fixed
@@ -863,6 +907,7 @@
 [data-ui="nova"] .cd-shell .surface {
   background: var(--color-surface);
   border-color: var(--color-border);
+  box-shadow: var(--nova-card-shadow);
 }
 [data-ui="nova"] .cd-shell .card--sm,
 [data-ui="nova"] .cd-shell .card--xs {
@@ -923,7 +968,7 @@
   color: var(--color-faint);
 }
 
-[data-ui="nova"] .cd-shell .section-kicker  { color: var(--color-accent); }
+[data-ui="nova"] .cd-shell .section-kicker  { color: var(--color-text-accent); }
 [data-ui="nova"] .cd-shell .section-title   { color: var(--color-text-strong); }
 [data-ui="nova"] .cd-shell .section-description { color: var(--color-muted); }
 
@@ -934,13 +979,20 @@
 [data-ui="nova"] .cd-shell .surface__body p   { color: var(--color-text); }
 
 [data-ui="nova"] .cd-shell .button--primary {
-  background: var(--color-accent);
+  /* Subtle top-lit gold gradient + a soft gold-tinted shadow give the primary
+     action real press-me affordance vs. the old flat fill. Restrained: one
+     tonal step of gold, 1px depth. */
+  background: linear-gradient(180deg, var(--color-accent-strong), var(--color-accent));
   border-color: var(--color-accent);
   color: var(--color-on-accent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.24), 0 2px 7px color-mix(in srgb, var(--color-accent) 20%, transparent);
+  transition: box-shadow 150ms ease, filter 150ms ease;
 }
 [data-ui="nova"] .cd-shell .button--primary:hover {
-  background: var(--color-accent-strong);
+  background: linear-gradient(180deg, var(--color-accent-strong), var(--color-accent-strong));
   border-color: var(--color-accent-strong);
+  filter: brightness(1.02);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.28), 0 5px 14px color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
 [data-ui="nova"] .cd-shell .button--ghost,
 [data-ui="nova"] .cd-shell .button--secondary {
@@ -1100,5 +1152,113 @@
 @media (max-width: 960px) {
   .nova-cal-monthly-layout {
     grid-template-columns: 1fr !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOTION — the "celestial reveal" language.
+   One easing family, one timing scale. The JS twins of these
+   tokens live in web/lib/motion.ts (EASE_NOVA / DUR) — keep the
+   two in sync. Every animation below is gated so it never runs
+   when the user prefers reduced motion (guard at the very end).
+   ═══════════════════════════════════════════════════════════ */
+:root[data-ui="nova"] {
+  /* Celestial settle: content decelerates into place, like a value
+     resolving. Mirrors EASE_NOVA in web/lib/motion.ts. */
+  --ease-nova: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 120ms;   /* press / hover feedback */
+  --dur-base: 220ms;   /* colour + shadow settles */
+  --dur-slow: 420ms;   /* content reveal */
+  --dur-reveal: 700ms; /* signature draws (score ring) */
+}
+
+/* The single reveal keyframe: fade + gentle rise. Reused by the tab-enter
+   stagger and any element tagged .nova-reveal. */
+@keyframes nova-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Stagger utility — put on a container to have its direct children rise in
+   sequence. `both` fill-mode holds the first frame (opacity 0) before the
+   delay elapses so nothing flashes at full opacity first. Applied to the
+   Today-tab glance row as the flagship; opt-in elsewhere. */
+[data-ui="nova"] .nova-stagger > * {
+  animation: nova-rise var(--dur-slow) var(--ease-nova) both;
+}
+[data-ui="nova"] .nova-stagger > *:nth-child(1) { animation-delay: 0ms; }
+[data-ui="nova"] .nova-stagger > *:nth-child(2) { animation-delay: 70ms; }
+[data-ui="nova"] .nova-stagger > *:nth-child(3) { animation-delay: 140ms; }
+[data-ui="nova"] .nova-stagger > *:nth-child(4) { animation-delay: 210ms; }
+[data-ui="nova"] .nova-stagger > *:nth-child(5) { animation-delay: 280ms; }
+[data-ui="nova"] .nova-stagger > *:nth-child(n + 6) { animation-delay: 340ms; }
+
+/* One-off reveal for a single element (no stagger). */
+[data-ui="nova"] .nova-reveal {
+  animation: nova-rise var(--dur-slow) var(--ease-nova) both;
+}
+
+/* ── Interaction feedback ──────────────────────────────────
+   Smooth the colour/shadow transitions the shell already changes on
+   hover, and add tactile press/lift. GPU-only props (transform, box-
+   shadow, opacity) so nothing thrashes layout. */
+[data-ui="nova"] .cd-shell .card,
+[data-ui="nova"] .cd-shell .surface,
+[data-ui="nova"] .cd-shell .chip,
+[data-ui="nova"] .cd-shell .button--primary,
+[data-ui="nova"] .cd-shell .button--secondary,
+[data-ui="nova"] .cd-shell .button--ghost,
+[data-ui="nova"] .cd-shell .button--solid {
+  transition:
+    transform var(--dur-fast) var(--ease-nova),
+    box-shadow var(--dur-base) var(--ease-nova),
+    border-color var(--dur-base) var(--ease-nova),
+    background var(--dur-base) var(--ease-nova),
+    filter var(--dur-base) var(--ease-nova);
+}
+
+/* Buttons depress on press for a physical "click". */
+[data-ui="nova"] .cd-shell .button--primary:active,
+[data-ui="nova"] .cd-shell .button--secondary:active,
+[data-ui="nova"] .cd-shell .button--ghost:active,
+[data-ui="nova"] .cd-shell .button--solid:active {
+  transform: translateY(1px);
+}
+
+/* Opt-in hover-lift for clickable cards/tiles. Not applied blanket to every
+   .card — a static content card that floats on hover reads as a bug — so a
+   surface only lifts when its author tags it .nova-interactive. */
+[data-ui="nova"] .cd-shell .nova-interactive {
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  [data-ui="nova"] .cd-shell .nova-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 6px 20px rgba(0, 0, 0, 0.28),
+      0 0 0 1px var(--color-border-strong);
+  }
+}
+
+/* ── Reduced-motion guard ──────────────────────────────────
+   First-class a11y path: honour the OS preference by collapsing every
+   Nova animation/transition to instant. Scoped to [data-ui="nova"] so it
+   only governs this dashboard. Keep this LAST so it wins the cascade. */
+@media (prefers-reduced-motion: reduce) {
+  [data-ui="nova"],
+  [data-ui="nova"] *,
+  [data-ui="nova"] *::before,
+  [data-ui="nova"] *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -350,7 +350,7 @@ export function MonthlyCalendarViewNova({
                           </span>
                         )}
                         {entry?.isKarinaal && (
-                          <span style={{ fontSize: "9.5px", fontWeight: 700, color: "var(--color-alert-critical)", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                          <span style={{ fontSize: "9.5px", fontWeight: 700, color: "var(--color-alert-critical-text, var(--color-alert-critical))", display: "inline-flex", alignItems: "center", gap: "3px" }}>
                             <span aria-hidden="true">⚠</span>{lang === "ta" ? "கரிநாள்" : "Karinaal"}
                           </span>
                         )}

@@ -81,7 +81,7 @@ function NovaNaalRow({ row, lang, showMatchCol }: { row: MergedRow; lang: Lang; 
         <div style={{ display: "grid", gridTemplateColumns: "minmax(110px,auto) minmax(0,1fr)", gap: "10px 16px", alignItems: "center" }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--color-text)" }}>{formatDate(naal.date, lang)}</div>
-            <div style={{ fontSize: "12.5px", color: "var(--color-accent)", fontWeight: 600 }}>{lang === "ta" ? naal.weekday.ta : naal.weekday.en}</div>
+            <div style={{ fontSize: "12.5px", color: "var(--color-text-accent)", fontWeight: 600 }}>{lang === "ta" ? naal.weekday.ta : naal.weekday.en}</div>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "5px 10px", alignItems: "center" }}>
             <span style={{ fontSize: "13px", color: "var(--color-text)", fontWeight: 600 }}>
@@ -205,7 +205,7 @@ export function NovaMuhurthamNaal({ lang, chartId }: { lang: Lang; chartId: stri
   return (
     <div style={{ padding: "16px 18px", borderRadius: "12px", background: "var(--color-surface)", border: "1px solid var(--color-border)", fontFamily: "var(--font-body)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", marginBottom: "12px" }}>
-        <p style={{ margin: 0, fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-accent)" }}>{title}</p>
+        <p style={{ margin: 0, fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>{title}</p>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <button
             type="button"

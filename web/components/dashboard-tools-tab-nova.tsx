@@ -271,7 +271,7 @@ export function DashboardToolsTabNova({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
       <div>
-        <div style={{ fontSize: "11px", letterSpacing: "0.12em", color: "var(--color-accent)", textTransform: "uppercase", fontWeight: 700 }}>
+        <div style={{ fontSize: "11px", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
           {lang === "ta" ? "கருவிகள்" : "Tools"} · <span style={{ fontFamily: "var(--font-tamil), sans-serif", letterSpacing: 0, textTransform: "none" }}>கருவிகள்</span>
         </div>
         <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.6rem, 3vw, 2.1rem)", fontWeight: 600, marginTop: "6px", color: "var(--color-text-strong)" }}>
@@ -329,7 +329,7 @@ export function DashboardToolsTabNova({
 
       {/* Recent results — genuine stub, no tool-run history is tracked anywhere in the backend (confirmed by grep) */}
       <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "14px", padding: "18px 22px", display: "flex", flexDirection: "column", gap: "6px" }}>
-        <span style={{ fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+        <span style={{ fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
           {lang === "ta" ? "சமீபத்திய முடிவுகள்" : "Recent results"}
         </span>
         <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-faint)" }}>

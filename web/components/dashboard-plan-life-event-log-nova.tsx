@@ -9,6 +9,7 @@ import { formatDateLabel, todayIso } from "@/lib/format";
 import { EVENT_TYPES, EVENT_ICON, eventLabel } from "./dashboard-plan-shared";
 import type { LifeEventLogItem } from "./dashboard-plan-shared";
 import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
+import { NovaReveal } from "./dashboard-ui-nova";
 import { NovaSelect } from "./nova-select";
 
 /**
@@ -113,7 +114,7 @@ export function NovaLifeEventLogCard({ lang, chartId }: { lang: Lang; chartId: s
   return (
     <div style={novaDetailCardStyle}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-        <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+        <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
           {lang === "ta" ? "வாழ்க்கை நிகழ்வு பதிவு" : "Life event log"}
         </span>
         <button
@@ -203,8 +204,10 @@ export function NovaLifeEventLogCard({ lang, chartId }: { lang: Lang; chartId: s
 
       {items.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "10px" }}>
-          {items.map((item) => (
-            <NovaEventCard key={item.id} item={item} lang={lang} />
+          {items.map((item, i) => (
+            <NovaReveal key={item.id} delay={Math.min(i * 0.05, 0.25)}>
+              <NovaEventCard item={item} lang={lang} />
+            </NovaReveal>
           ))}
         </div>
       )}

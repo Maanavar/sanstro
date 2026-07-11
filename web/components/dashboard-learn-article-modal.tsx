@@ -1,6 +1,9 @@
 "use client";
 
+import { motion, useReducedMotion } from "framer-motion";
+
 import type { Lang } from "@/lib/i18n";
+import { EASE_NOVA } from "@/lib/motion";
 import { getLearnArticle } from "./dashboard-learn-content";
 
 /**
@@ -15,13 +18,21 @@ import { getLearnArticle } from "./dashboard-learn-content";
 export function DashboardLearnArticleModal({ slug, lang, onClose }: { slug: string; lang: Lang; onClose: () => void }) {
   const article = getLearnArticle(slug);
   const text = (v: { en: string; ta: string }) => (lang === "ta" ? v.ta : v.en);
+  const reduce = useReducedMotion();
 
   return (
-    <div
+    <motion.div
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: reduce ? 0 : 0.18 }}
       style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(26,22,18,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}
     >
-      <div style={{
+      <motion.div
+        initial={reduce ? false : { opacity: 0, scale: 0.96, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: reduce ? 0 : 0.28, ease: EASE_NOVA }}
+        style={{
         width: "min(600px, 100%)", maxHeight: "80vh", overflowY: "auto",
         background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "16px",
         padding: "26px 28px", display: "flex", flexDirection: "column", gap: "16px",
@@ -30,7 +41,7 @@ export function DashboardLearnArticleModal({ slug, lang, onClose }: { slug: stri
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px" }}>
           <div>
             {article && (
-              <p style={{ margin: "0 0 4px", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700, color: "var(--color-accent)" }}>
+              <p style={{ margin: "0 0 4px", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700, color: "var(--color-text-accent)" }}>
                 {text(article.eyebrow)}
               </p>
             )}
@@ -63,7 +74,7 @@ export function DashboardLearnArticleModal({ slug, lang, onClose }: { slug: stri
             {lang === "ta" ? "கட்டுரை கிடைக்கவில்லை." : "Article not available."}
           </p>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

@@ -339,7 +339,7 @@ export function DashboardPlanTabNova({
       {/* ===== Header ===== */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
         <div>
-          <p style={{ margin: 0, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+          <p style={{ margin: 0, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
             {t("tab_plan", lang)}
           </p>
           <h1 style={{ margin: "6px 0 8px", fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem,3vw,2.4rem)", fontWeight: 600, lineHeight: 1.15, color: "var(--color-text-strong)" }}>
@@ -416,7 +416,7 @@ export function DashboardPlanTabNova({
             {/* ── My goals ── */}
             <div style={novaDetailCardStyle}>
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+                <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
                   {lang === "ta" ? "என் இலக்குகள்" : "My goals"}
                 </span>
                 <span style={{ fontSize: "12px", color: "var(--color-faint)" }}>
@@ -550,7 +550,7 @@ export function DashboardPlanTabNova({
             return (
               <div key={group.event} style={novaDetailCardStyle}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
-                  <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+                  <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
                     {group.goalLabels.join(" · ")} — {lang === "ta" ? "ஆதரவான காலங்கள்" : "supportive windows"}
                   </span>
                   <button type="button" onClick={() => onViewChange("transits")} style={{ background: "none", border: "none", padding: 0, fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
@@ -619,7 +619,7 @@ export function DashboardPlanTabNova({
             const label = labelKey ? t(labelKey, lang) : g.goalType;
             return (
               <div key={g.goalId} style={novaDetailCardStyle}>
-                <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+                <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
                   {label} — {lang === "ta" ? "ஆதரவான காலங்கள்" : "supportive windows"}
                 </span>
                 <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)", lineHeight: 1.5 }}>

@@ -76,7 +76,7 @@ const kickerStyle: CSSProperties = {
   fontSize: "11px",
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "var(--color-accent)",
+  color: "var(--color-text-accent)",
   fontWeight: 700,
 };
 

@@ -164,7 +164,7 @@ export function DashboardTodayDecideNova({
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "14px 20px" }}>
       <div style={{ flex: "none" }}>
-        <div style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700, whiteSpace: "nowrap" }}>
+        <div style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700, whiteSpace: "nowrap" }}>
           {lang === "ta" ? "இன்று நல்ல நாளா…?" : "Is today okay for…?"}
         </div>
         {!busy && sharedCause && (

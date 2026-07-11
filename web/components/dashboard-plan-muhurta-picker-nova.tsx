@@ -70,11 +70,11 @@ function NovaMuhurtaCard({ slot, lang, sourceTz, compareCity }: { slot: MuhurtaS
         <div style={{ flex: 1, minWidth: "160px" }}>
           <div style={{ fontWeight: 600, fontSize: "14px", color: "var(--color-text)" }}>{formatMuhurtaDate(slot.date, lang)}</div>
           {slot.tamilDate && (
-            <div style={{ fontSize: "13px", color: "var(--color-accent)", fontWeight: 600 }}>{lang === "ta" ? slot.tamilDate.ta : slot.tamilDate.en}</div>
+            <div style={{ fontSize: "13px", color: "var(--color-text-accent)", fontWeight: 600 }}>{lang === "ta" ? slot.tamilDate.ta : slot.tamilDate.en}</div>
           )}
           <div style={{ fontSize: "14px", color: "var(--color-muted)" }}>{formatClockLabel(slot.timeStart)} - {formatClockLabel(slot.timeEnd)}</div>
           {compare && (
-            <div style={{ fontSize: "12px", color: "var(--color-accent)", marginTop: "2px" }}>
+            <div style={{ fontSize: "12px", color: "var(--color-text-accent)", marginTop: "2px" }}>
               {compareCity!.name.split(",")[0]}: {compare.time12h} {compare.tzAbbr}
               {compare.dayOffset !== 0 && (lang === "ta" ? (compare.dayOffset > 0 ? " (மறுநாள்)" : " (முந்தைய நாள்)") : (compare.dayOffset > 0 ? " (next day)" : " (previous day)"))}
             </div>
@@ -164,7 +164,7 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
 
   return (
     <div ref={rootRef} style={{ padding: "16px 18px", borderRadius: "12px", background: "var(--color-surface)", border: "1px solid var(--color-border)", fontFamily: "var(--font-body)" }}>
-      <p style={{ margin: "0 0 12px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-accent)" }}>{t("muhurta_title", lang)}</p>
+      <p style={{ margin: "0 0 12px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>{t("muhurta_title", lang)}</p>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "14px", alignItems: "flex-end" }}>
         <div style={{ flex: "1 1 180px" }}>

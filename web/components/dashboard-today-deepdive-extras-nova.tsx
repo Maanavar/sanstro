@@ -139,7 +139,7 @@ export function NovaChartIdentityCard({
                 {lang === "ta"
                   ? `${personalChart.ayanamsa.type === "LAHIRI" ? "லாகிரி அயனாம்சம்" : personalChart.ayanamsa.type} · முழு-ராசி வீட்டு முறை · `
                   : `${personalChart.ayanamsa.type === "LAHIRI" ? "Lahiri ayanamsa" : personalChart.ayanamsa.type} · Whole-sign houses · `}
-                <Link href="/trust/methodology#lahiri" style={{ fontWeight: 700, color: "var(--color-accent)", textDecoration: "none" }}>
+                <Link href="/trust/methodology#lahiri" style={{ fontWeight: 700, color: "var(--color-text-accent)", textDecoration: "none" }}>
                   {lang === "ta" ? "முறையை பார்க்க →" : "See methodology →"}
                 </Link>
               </p>

@@ -202,7 +202,7 @@ export function DashboardLifeAreasTabNova({
       {/* ===== Header ===== */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
         <div>
-          <p style={{ margin: 0, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+          <p style={{ margin: 0, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
             {t("tab_life_areas", lang)}{currentAge !== null ? ` · ${lang === "ta" ? "வயது" : "Age"} ${currentAge}` : ""}
           </p>
           <h1 style={{ margin: "6px 0 8px", fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem,3vw,2.4rem)", fontWeight: 600, lineHeight: 1.15, color: "var(--color-text-strong)" }}>
@@ -290,7 +290,7 @@ export function DashboardLifeAreasTabNova({
 
             {activeGoals.length > 0 && (
               <div style={{ ...cardStyle, flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
-                <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700, flex: "none" }}>
+                <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700, flex: "none" }}>
                   {lang === "ta" ? "உங்கள் இலக்கு" : "Your focus"}
                 </span>
                 {activeGoals.map((g) => (

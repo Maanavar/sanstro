@@ -399,7 +399,7 @@ export function DashboardExploreTabNova({
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: "220px", display: "flex", alignItems: "center", gap: "11px", background: "rgba(243, 236, 221, 0.05)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "12px 18px" }}>
-            <span style={{ color: "var(--color-accent)", fontSize: "14px" }}>{"⌕"}</span>
+            <span style={{ color: "var(--color-text-accent)", fontSize: "14px" }}>{"⌕"}</span>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}

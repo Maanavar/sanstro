@@ -19,7 +19,7 @@ import type {
 
 import { ageAtDate, dashaScore } from "./dashboard-dasha";
 import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
-import { NovaProgressBar } from "./dashboard-ui-nova";
+import { NovaProgressBar, NovaReveal } from "./dashboard-ui-nova";
 import { VarshaphalaPanel } from "./dashboard-varshaphala-panel";
 
 /**
@@ -231,10 +231,11 @@ export function NovaTransitsView({
       )}
 
       {/* ===== Planetary positions ===== */}
+      <NovaReveal>
       {hasTransitSnapshot && personalTransit ? (
         <div style={novaDetailCardStyle}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "6px" }}>
-            <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+            <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
               {lang === "ta" ? "இன்றைய கிரக நிலைகள்" : "Planetary positions today"}
             </span>
             <span style={{ fontSize: "12px", color: "var(--color-faint)" }}>
@@ -305,6 +306,7 @@ export function NovaTransitsView({
           <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)" }}>{t("gochar_empty", lang)}</p>
         </div>
       )}
+      </NovaReveal>
 
       {/* ===== Saturn cycle status ===== */}
       {personalSani && (
@@ -341,10 +343,11 @@ export function NovaTransitsView({
       )}
 
       {/* ===== Dasa · Bhukti · Antaram ===== */}
+      <NovaReveal>
       {dasha ? (
         <div style={novaDetailCardStyle}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "6px" }}>
-            <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+            <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
               {t("surface_dasha", lang)}
             </span>
             <span style={{ fontSize: "12px", color: "var(--color-faint)" }}>{lang === "ta" ? "விம்சோத்தரி — 120 ஆண்டு சுழற்சி" : "Vimshottari — 120-year cycle"}</span>
@@ -475,11 +478,12 @@ export function NovaTransitsView({
           <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)" }}>{t("chart_no_profile", lang)}</p>
         </div>
       )}
+      </NovaReveal>
 
       {/* ===== Journal patterns ===== */}
       {journalCorrelations && (
         <div style={novaDetailCardStyle}>
-          <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>{t("journal_patterns_label", lang)}</span>
+          <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>{t("journal_patterns_label", lang)}</span>
           {!journalCorrelations.hasSufficientData ? (
             <>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "var(--color-text)" }}>

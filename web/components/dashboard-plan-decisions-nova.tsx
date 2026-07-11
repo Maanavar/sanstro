@@ -106,14 +106,14 @@ export function NovaPlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: Pro
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px", fontFamily: "var(--font-body)" }}>
       <div>
-        <p style={{ margin: "0 0 4px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-accent)" }}>
+        <p style={{ margin: "0 0 4px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
           {t("decision_panel_title", lang)}
         </p>
         <p style={{ margin: 0, fontSize: "14px", color: "var(--color-muted)" }}>{t("decision_panel_desc", lang)}</p>
       </div>
 
       <div style={{ padding: "14px", borderRadius: "12px", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
-        <p style={{ margin: "0 0 8px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-accent)" }}>
+        <p style={{ margin: "0 0 8px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
           {lang === "ta" ? "எதை எப்போது பயன்படுத்துவது?" : "When to use which tool?"}
         </p>
         <p style={{ margin: "0 0 6px", fontSize: "14px", color: "var(--color-text)", lineHeight: 1.5 }}>

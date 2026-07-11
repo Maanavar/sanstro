@@ -2269,6 +2269,20 @@ button:focus-visible,
 .day-strip__dot--low  { background: var(--color-alert-caution); }
 .day-strip__dot--rest { background: rgba(255, 255, 255, 0.2); }
 
+/* Gliding selection bar — one instance shared across cells via framer
+   layoutId="day-strip-active-bar" (see day-strip.tsx). Absolutely centred at
+   the cell's bottom edge; framer animates its box between cells on select. */
+.day-strip__glide {
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  bottom: 4px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--color-accent);
+  pointer-events: none;
+}
+
 /* 2-column tool card grid */
 .tool-grid {
   display: grid;

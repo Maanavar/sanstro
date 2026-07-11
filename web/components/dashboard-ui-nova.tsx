@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+
+import { DUR, EASE_NOVA, useCountUp } from "@/lib/motion";
 
 /**
  * Nova-only shared primitives. Kept separate from `dashboard-ui.tsx` so the
@@ -106,6 +109,73 @@ export function NovaClampedText({ children, lines = 3, maxWidth, style }: NovaCl
   );
 }
 
+type NovaRevealProps = {
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+  /** Extra delay (seconds) — pass an index-based value to stagger a list. */
+  delay?: number;
+};
+
+/**
+ * Fades + rises its children into place the first time they scroll into view
+ * (framer `whileInView`, fired once). Renders inert when the user prefers
+ * reduced motion. Use for content below the fold — timelines, long lists —
+ * where a scroll-triggered reveal reads better than an on-mount animation.
+ */
+export function NovaReveal({ children, className, style, delay = 0 }: NovaRevealProps) {
+  const reduce = useReducedMotion();
+  if (reduce) {
+    return (
+      <div className={className} style={style}>
+        {children}
+      </div>
+    );
+  }
+  return (
+    <motion.div
+      className={className}
+      style={style}
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.15 }}
+      transition={{ duration: 0.42, ease: EASE_NOVA, delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/**
+ * Fades its children in on mount — the settle half of a skeleton→content
+ * crossfade. Mount an async panel's real content inside this once its loading
+ * placeholder is gone (the placeholder unmounts, the content mounts and eases
+ * in) so data doesn't hard-cut into place. Renders inert under reduced motion.
+ * Unlike `NovaReveal`, this fires on mount, not on scroll — use it for
+ * above-the-fold content that resolves after a fetch.
+ */
+export function NovaFadeIn({ children, className, style }: Omit<NovaRevealProps, "delay">) {
+  const reduce = useReducedMotion();
+  if (reduce) {
+    return (
+      <div className={className} style={style}>
+        {children}
+      </div>
+    );
+  }
+  return (
+    <motion.div
+      className={className}
+      style={style}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: DUR.base, ease: EASE_NOVA }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 type NovaScoreDialProps = {
   score: number;
   max?: number;
@@ -119,6 +189,9 @@ type NovaScoreDialProps = {
 export function NovaScoreDial({ score, max = 100, size = 118, label, color }: NovaScoreDialProps) {
   const arcColor = color ?? "var(--color-accent)";
   const numberColor = color ?? "var(--color-accent-strong)";
+  const reduce = useReducedMotion();
+  // Signature moment: the number counts up while the ring sweeps to fill.
+  const displayScore = useCountUp(score);
   const r = size * 0.4;
   const cx = size / 2;
   const cy = size / 2;
@@ -126,22 +199,47 @@ export function NovaScoreDial({ score, max = 100, size = 118, label, color }: No
   const pct = Math.max(0, Math.min(1, score / max));
   const filled = pct * circ;
   const strokeWidth = size * 0.068;
+  // Unique per instance — multiple dials render on a page (Life Areas, Family),
+  // and duplicate SVG def ids would cross-reference the wrong gradient/filter.
+  const uid = useId().replace(/:/g, "");
+  const gradId = `nova-dial-grad-${uid}`;
+  const glowId = `nova-dial-glow-${uid}`;
+  // The arc runs from its band colour into a lightened tip so the progress
+  // reads as lit, not painted — the sheen the flat single-stroke ring lacked.
+  // color-mix keeps it token-driven (works with the var() the callers pass).
+  const tipColor = `color-mix(in srgb, ${arcColor}, #ffffff 34%)`;
 
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: "block" }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: "block", overflow: "visible" }}>
+        <defs>
+          <linearGradient id={gradId} gradientUnits="userSpaceOnUse" x1={0} y1={0} x2={size} y2={size}>
+            <stop offset="0%" stopColor={arcColor} />
+            <stop offset="100%" stopColor={tipColor} />
+          </linearGradient>
+          <filter id={glowId} x="-40%" y="-40%" width="180%" height="180%">
+            <feDropShadow dx="0" dy="0" stdDeviation={size * 0.03} floodColor={arcColor} floodOpacity="0.5" />
+          </filter>
+        </defs>
         <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--color-border)" strokeWidth={strokeWidth} />
-        <circle
-          cx={cx}
-          cy={cy}
-          r={r}
-          fill="none"
-          stroke={arcColor}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeDasharray={`${filled} ${circ}`}
-          transform={`rotate(-90 ${cx} ${cy})`}
-        />
+        {/* Rotation lives on the <g> so framer only animates the arc's
+            strokeDashoffset (draw-on) without fighting a transform prop. */}
+        <g transform={`rotate(-90 ${cx} ${cy})`}>
+          <motion.circle
+            cx={cx}
+            cy={cy}
+            r={r}
+            fill="none"
+            stroke={`url(#${gradId})`}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={circ}
+            initial={{ strokeDashoffset: circ }}
+            animate={{ strokeDashoffset: circ - filled }}
+            transition={reduce ? { duration: 0 } : { duration: 0.9, ease: EASE_NOVA }}
+            filter={`url(#${glowId})`}
+          />
+        </g>
       </svg>
       <div
         style={{
@@ -154,7 +252,7 @@ export function NovaScoreDial({ score, max = 100, size = 118, label, color }: No
         }}
       >
         <span style={{ fontFamily: "var(--font-display)", fontSize: size * 0.32, fontWeight: 600, color: numberColor, lineHeight: 1 }}>
-          {Math.round(score)}
+          {Math.round(displayScore)}
         </span>
         {label ? (
           <span style={{ fontSize: size * 0.085, color: "var(--color-faint)", marginTop: 2 }}>{label}</span>
@@ -230,7 +328,7 @@ export function NovaTable<Row extends Record<string, React.ReactNode>>({ columns
                   fontSize: "0.65625rem",
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
-                  color: "var(--color-accent)",
+                  color: "var(--color-text-accent)",
                   fontWeight: 700,
                   padding: "10px 12px",
                   borderBottom: "1px solid var(--color-border-strong)",

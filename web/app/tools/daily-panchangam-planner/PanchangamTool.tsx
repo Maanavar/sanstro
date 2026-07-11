@@ -5,7 +5,7 @@ import { readErrorMessage } from "@/lib/api";
 import { useLang } from "@/components/lang-toggle";
 import { addDays, formatClockLabel, formatDateLabel } from "@/lib/format";
 import { gowriCategoryLabel, gowriPeriodLabel, gowriPurposeLabel } from "@/lib/gowri";
-import { tKarana, tNakshatra, tPlanetLord, tTithi, tWeekday, tYoga, type Lang } from "@/lib/i18n";
+import { tAmirdhadhiYogam, tJeevan, tKarana, tMoonPhase, tNakshatra, tNethiram, tParigaram, tPlanetLord, tSoolamDirection, tTithi, tWeekday, tYoga, type Lang } from "@/lib/i18n";
 import { TN_CITIES, type CityEntry } from "@/lib/tn-cities";
 import type { PanchangamDailyResponseData, PanchangamFestival } from "@/lib/types";
 import { PanchangamShareButton } from "@/components/public-share-card";
@@ -32,12 +32,6 @@ const RASI_LABELS: Record<number, { en: string; ta: string }> = {
   10: { en: "Magaram", ta: "மகரம்" },
   11: { en: "Kumbam", ta: "கும்பம்" },
   12: { en: "Meenam", ta: "மீனம்" },
-};
-
-const AMIRDHADHI_EN: Record<string, string> = {
-  "அமிர்தயோகம்": "Amirdha Yogam",
-  "சித்தயோகம்": "Siddha Yogam",
-  "மரணயோகம்": "Marana Yogam",
 };
 
 function today(): string {
@@ -108,10 +102,6 @@ function limbRolledOver(
 
 function formatRasi(number: number, fallback: string, lang: Lang): string {
   return RASI_LABELS[number]?.[lang] ?? fallback;
-}
-
-function formatAmirdhadhiYogam(name: string, lang: Lang): string {
-  return lang === "en" ? (AMIRDHADHI_EN[name] ?? name) : name;
 }
 
 function festivalTags(festival: Pick<PanchangamFestival, "category" | "tags">): string[] {
@@ -621,12 +611,12 @@ export function PanchangamTool() {
                 },
                 { label: en ? "Yoga" : "யோகம்",          value: tYoga(yogaRolled ? data.yoga.nextName : data.yoga.name, lang),      sub: limbSub(yogaRolled, data.yoga.endsAt, tYoga(data.yoga.nextName, lang), yogaRolled ? "" : `${en ? "Yoga" : "யோகம்"} ${data.yoga.number} · `) },
                 { label: en ? "Karana" : "கரணம்",        value: tKarana(karanaRolled ? data.karana.nextName : data.karana.name, lang),    sub: limbSub(karanaRolled, data.karana.endsAt, tKarana(data.karana.nextName, lang)) },
-                { label: en ? "Moon Phase" : "சந்திர கலை", value: data.moonPhaseLabel, sub: "" },
+                { label: en ? "Moon Phase" : "சந்திர கலை", value: tMoonPhase(data.moonPhaseLabel, lang), sub: "" },
                 { label: en ? "Lagnam" : "லக்னம்",       value: formatRasi(data.lagnam.rasiNumber, data.lagnam.rasiName, lang), sub: `${en ? "Ends" : "முடிவு"} ${formatEndsAtLabel(data.lagnam.endsAt, data.sunrise, data.dateLocal, lang)} · ${data.lagnam.nazhigai} ${en ? "nazhigai" : "நாழிகை"} ${data.lagnam.vinadi} ${en ? "vinadi" : "விநாடி"}` },
-                { label: en ? "Soolam" : "சூலம்",        value: data.soolam.direction, sub: `${en ? "Parigaram" : "பரிகாரம்"}: ${data.soolam.parigaram}` },
-                { label: en ? "Nethiram" : "நேத்திரம்",   value: data.nethiram,       sub: "" },
-                { label: en ? "Jeevan" : "ஜீவன்",        value: data.jeevan,         sub: "" },
-                { label: en ? "Amirdhadhi Yogam" : "அமிர்தாதி யோகம்", value: formatAmirdhadhiYogam(amirdhadhiRolled ? data.amirdhadhiYogam.nextName : data.amirdhadhiYogam.name, lang), sub: limbSub(amirdhadhiRolled, data.amirdhadhiYogam.endsAt, formatAmirdhadhiYogam(data.amirdhadhiYogam.nextName, lang)) },
+                { label: en ? "Soolam" : "சூலம்",        value: tSoolamDirection(data.soolam.direction, lang), sub: `${en ? "Parigaram" : "பரிகாரம்"}: ${tParigaram(data.soolam.parigaram, lang)}` },
+                { label: en ? "Nethiram" : "நேத்திரம்",   value: tNethiram(data.nethiram, lang),       sub: "" },
+                { label: en ? "Jeevan" : "ஜீவன்",        value: tJeevan(data.jeevan, lang),         sub: "" },
+                { label: en ? "Amirdhadhi Yogam" : "அமிர்தாதி யோகம்", value: tAmirdhadhiYogam(amirdhadhiRolled ? data.amirdhadhiYogam.nextName : data.amirdhadhiYogam.name, lang), sub: limbSub(amirdhadhiRolled, data.amirdhadhiYogam.endsAt, tAmirdhadhiYogam(data.amirdhadhiYogam.nextName, lang)) },
               ].map((item) => (
                 <div key={item.label} style={{
                   background: "var(--cl-bg-2)", border: "1px solid var(--cl-border)",

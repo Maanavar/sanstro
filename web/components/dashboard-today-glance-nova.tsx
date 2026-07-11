@@ -190,11 +190,11 @@ export function DashboardTodayGlanceRowNova({
   }
 
   return (
-    <div className="nova-grid-today-glance">
+    <div className="nova-grid-today-glance nova-stagger">
       {/* Family today: avatars + status dots — never progress bars (design 8a §6). */}
       <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "14px" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-          <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+          <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
             {lang === "ta" ? "இன்று குடும்பம்" : "Family today"}
           </span>
           {onGoToFamily && (
@@ -257,7 +257,7 @@ export function DashboardTodayGlanceRowNova({
       {/* Life areas: 4 stat tiles in a row — never progress bars (design 8a §6). */}
       <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "14px" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-          <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+          <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
             {lang === "ta" ? "வாழ்க்கைத் துறைகள்" : "Life areas"}
           </span>
           {onGoToLifeAreas && (
@@ -295,7 +295,7 @@ export function DashboardTodayGlanceRowNova({
       {/* Dasa chapter */}
       <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "10px" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-          <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 700 }}>
+          <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
             {lang === "ta" ? "தசை அத்தியாயம்" : "Dasa chapter"}
           </span>
           {onGoToTransits && (
