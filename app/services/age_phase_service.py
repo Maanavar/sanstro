@@ -38,7 +38,13 @@ def _dosham_label(code: str, lang: str) -> str:
 # Used by the jadhagam report to surface only the scenarios, components,
 # and fortune probabilities that are RELEVANT to the person's current
 # stage of life rather than presenting a static all-at-once dump.
-def get_active_life_phases(current_age: int) -> list[str]:
+#
+# `gender` (from birth_profile.gender_for_traditional_rules) reorders — never adds/removes —
+# the focus codes for the two bands where classical tradition weights the ordering differently
+# by gender (24-34: marriage-timing surfaces earlier for women; 35-49: children surfaces earlier
+# for women). This is a deliberately minimal, first-pass delta pending astrologer sign-off — all
+# other bands and unknown/unspecified gender are unchanged from the age-only ordering.
+def get_active_life_phases(current_age: int, gender: str | None = None) -> list[str]:
     if current_age < 5:
         return ["health", "family_nurture"]
     if current_age < 12:
@@ -48,8 +54,12 @@ def get_active_life_phases(current_age: int) -> list[str]:
     if current_age < 24:
         return ["education", "health", "career_preparation"]
     if current_age < 35:
+        if gender == "female":
+            return ["marriage", "career", "wealth_foundation"]
         return ["career", "marriage", "wealth_foundation"]
     if current_age < 50:
+        if gender == "female":
+            return ["career_peak", "children", "wealth", "property"]
         return ["career_peak", "wealth", "property", "children"]
     if current_age < 65:
         return ["health", "spirituality", "family_legacy"]
@@ -84,6 +94,7 @@ def get_age_based_practical_guidance(
     lagna_rasi: str,
     strong_planets: list[str],
     weak_planets: list[str],
+    gender: str | None = None,
 ) -> dict[str, list[str]]:
     en: list[str] = []
     ta: list[str] = []
@@ -190,6 +201,9 @@ def get_age_based_practical_guidance(
     # Planetary strength overlay
     _add_planet_strength_guidance(en, ta, strong_planets, weak_planets, current_age)
 
+    # Gender-conditioned overlay (same two bands as get_active_life_phases)
+    _add_gender_guidance(en, ta, gender, current_age)
+
     return {"en": en, "ta": ta}
 
 
@@ -235,6 +249,25 @@ def _add_dasha_guidance(en: list[str], ta: list[str], mahadasha: str, antardasha
     if mahadasha in dasha_notes:
         en.append(dasha_notes[mahadasha][0])
         ta.append(dasha_notes[mahadasha][1])
+
+
+def _add_gender_guidance(en: list[str], ta: list[str], gender: str | None, current_age: int) -> None:
+    if gender not in ("male", "female"):
+        return
+    if 24 <= current_age < 35:
+        if gender == "female":
+            en.append("Marriage-timing questions typically weigh heaviest in this phase — evaluate Venus and the 7th house alongside career plans, not instead of them.")
+            ta.append("இந்த பருவத்தில் திருமண காலம் தொடர்பான கேள்விகள் முதன்மையாகும் — சுக்கிரன் மற்றும் 7ஆம் இடத்தை தொழில் திட்டங்களுடன் சேர்த்தே மதிப்பிடவும், தொழிலுக்கு பதிலாக அல்ல.")
+        else:
+            en.append("Career-establishment decisions made now set the pattern Saturn later tests for discipline — build steadily rather than chasing shortcuts.")
+            ta.append("இப்போது எடுக்கப்படும் தொழில் நிலைநாட்டல் முடிவுகள் பின்னர் சனி ஒழுக்கத்திற்காக சோதிக்கும் அமைப்பை நிர்ணயிக்கின்றன — குறுக்குவழிகளை தேடாமல் நிலையாக கட்டியெழுப்பவும்.")
+    elif 35 <= current_age < 50:
+        if gender == "female":
+            en.append("Children's education and settlement often move up in priority alongside career-peak responsibilities during this phase.")
+            ta.append("இந்த பருவத்தில் தொழில் உச்ச பொறுப்புகளுடன் குழந்தைகளின் கல்வியும் குடியேற்றமும் முன்னுரிமையில் முன்னேறுவது வழக்கம்.")
+        else:
+            en.append("This is typically framed as the primary provider-and-legacy building phase — wealth and property decisions carry long-term weight.")
+            ta.append("இது பொதுவாக முதன்மை பொறுப்பாளர் மற்றும் மரபு கட்டியெழுப்பும் பருவமாக கருதப்படுகிறது — செல்வம் மற்றும் சொத்து முடிவுகள் நீண்ட கால முக்கியத்துவம் கொண்டவை.")
 
 
 def _add_planet_strength_guidance(

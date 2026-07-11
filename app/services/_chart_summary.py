@@ -9,14 +9,17 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga
-from app.calculations.astro import navamsa_rasi_from_degree, utc_datetime_to_julian_day
+from app.calculations.astro import house_from_reference, navamsa_rasi_from_degree, utc_datetime_to_julian_day
 from app.calculations.chart_strength import compute_natal_planet_score, detect_planetary_wars
 from app.calculations.dasha import calculate_vimshottari_timeline
+from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.functional_nature import get_functional_nature
-from app.calculations.transits import RASI_NAMES, is_combust
+from app.calculations.house_lords import compute_house_lord_report
+from app.calculations.transits import RASI_NAMES, classify_sani_cycle, is_combust
 from app.models import Chart
 from app.models.user_life_events import UserLifeEvent
 from app.schemas.charts import (
+    AdhipathiReading,
     ChartCalculateResponse,
     ChartSummaryData,
     ChartSummaryResponse,
@@ -30,6 +33,7 @@ from app.schemas.charts import (
     JadhagamReportNavamsaSummary,
     JadhagamReportPlanetStrengthItem,
     JadhagamReportPlanetStrengthSummary,
+    JadhagamReportPrimaryConcern,
     JadhagamReportRasiSummary,
     JadhagamReportResponse,
     JadhagamReportYogaDoshamSummary,
@@ -52,6 +56,8 @@ from app.services.age_phase_service import (
     get_age_based_practical_guidance,
     get_age_based_remedies,
 )
+from app.services.location_service import local_midnight_as_jd_for_profile
+from app.services.primary_concern_service import infer_primary_concerns
 from app.services.rectification_service import validate_chart_against_events
 
 
@@ -82,11 +88,48 @@ def _current_age(birth_date_local: date, today: date) -> int:
     return age
 
 
-def _functional_nature_table(lagna_rasi: int) -> dict[str, str]:
+def _functional_nature_table(chart_response: ChartCalculateResponse) -> dict[str, str]:
+    lagna_rasi = chart_response.data.lagna.rasi
+    node_rasi_map = {
+        planet.graha: planet.rasi
+        for planet in chart_response.data.planets
+        if planet.graha in ("RAHU", "KETU")
+    }
     return {
-        planet: get_functional_nature(lagna_rasi, planet).value
+        planet: get_functional_nature(lagna_rasi, planet, node_rasi_map=node_rasi_map).value
         for planet in ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU")
     }
+
+
+def _adhipathi_report(chart_response: ChartCalculateResponse) -> list[AdhipathiReading]:
+    """Bhava-lord (அதிபதி) placement report from the persisted chart (audit T3)."""
+    planets = chart_response.data.planets
+    lagna_rasi = chart_response.data.lagna.rasi
+    planet_rasis = {p.graha: p.rasi for p in planets}
+    planet_scores = {p.graha: p.strength_score for p in planets}
+    node_rasi_map = {p.graha: p.rasi for p in planets if p.graha in ("RAHU", "KETU")}
+    readings = compute_house_lord_report(
+        lagna_rasi, planet_rasis, planet_scores, node_rasi_map=node_rasi_map
+    )
+    return [
+        AdhipathiReading(
+            house=r.house,
+            houseRasi=r.house_rasi,
+            lord=r.lord,
+            lordRasi=r.lord_rasi,
+            lordHouse=r.lord_house,
+            strengthScore=r.strength_score,
+            strengthBand=r.strength_band,
+            functionalNature=r.functional_nature,
+            adhipathiTa=r.adhipathi_ta,
+            adhipathiEn=r.adhipathi_en,
+            significationsTa=r.significations_ta,
+            significationsEn=r.significations_en,
+            readingTa=r.reading_ta,
+            readingEn=r.reading_en,
+        )
+        for r in readings
+    ]
 
 
 def _ashtakavarga_table(chart_response: ChartCalculateResponse) -> dict[str, dict[int, int]]:
@@ -124,7 +167,8 @@ def get_chart_summary_from_snapshot(
             janma_pada=moon.pada,
             current_mahadasha=timeline.current_mahadasha.lord,
             current_antardasha=timeline.current_antardasha.lord,
-            functional_nature=_functional_nature_table(chart_response.data.lagna.rasi),
+            functional_nature=_functional_nature_table(chart_response),
+            adhipathi_report=_adhipathi_report(chart_response),
             ashtakavarga=_ashtakavarga_table(chart_response),
             planets=chart_response.data.planets,
             yogas=chart_response.data.yogas,
@@ -195,7 +239,8 @@ def get_chart_summary(session: Session, chart_id: UUID, *, language: str = "ta-e
             janma_pada=moon.pada,
             current_mahadasha=timeline.current_mahadasha.lord,
             current_antardasha=timeline.current_antardasha.lord,
-            functional_nature=_functional_nature_table(chart_response.data.lagna.rasi),
+            functional_nature=_functional_nature_table(chart_response),
+            adhipathi_report=_adhipathi_report(chart_response),
             ashtakavarga=_ashtakavarga_table(chart_response),
             planets=chart_response.data.planets,
             yogas=chart_response.data.yogas,
@@ -231,7 +276,7 @@ def get_jadhagam_report(session: Session, chart_id: UUID) -> JadhagamReportRespo
     )
     today = datetime.now(tz=UTC).date()
     current_age = _current_age(birth_profile.birth_date_local, today)
-    functional_nature = _functional_nature_table(chart_response.data.lagna.rasi)
+    functional_nature = _functional_nature_table(chart_response)
 
     sun_lon = next(planet.absolute_longitude for planet in chart_response.data.planets if planet.graha == "SUN")
     moon_lon = next(planet.absolute_longitude for planet in chart_response.data.planets if planet.graha == "MOON")
@@ -280,7 +325,8 @@ def get_jadhagam_report(session: Session, chart_id: UUID) -> JadhagamReportRespo
     d9_by_planet = {planet.graha: planet.d9_rasi for planet in chart_response.data.planets}
     vargottama_planets = [planet.graha for planet in chart_response.data.planets if planet.is_vargottama]
 
-    active_focus = get_active_life_phases(current_age)
+    gender = _value(birth_profile, "gender_for_traditional_rules")
+    active_focus = get_active_life_phases(current_age, gender)
     life_area_predictions = [{"area": area, "status": "ACTIVE"} for area in active_focus]
 
     mahadasha_lord = timeline.current_mahadasha.lord
@@ -291,6 +337,19 @@ def get_jadhagam_report(session: Session, chart_id: UUID) -> JadhagamReportRespo
     active_yoga_names = [y.name for y in chart_response.data.yogas if y.is_present]
     active_dosham_names = [d.name for d in chart_response.data.doshams if d.is_present and not d.is_cancelled]
 
+    saturn_snapshot = calculate_sidereal_planets(local_midnight_as_jd_for_profile(today, birth_profile))
+    saturn_house_from_moon = house_from_reference(moon.rasi, saturn_snapshot.bodies["SATURN"].rasi)
+    sani_cycle = classify_sani_cycle(saturn_house_from_moon)
+
+    primary_concerns = infer_primary_concerns(
+        current_age=current_age,
+        gender=gender,
+        mahadasha_lord=mahadasha_lord,
+        antardasha_lord=antardasha_lord,
+        lagna_rasi=chart_response.data.lagna.rasi,
+        sani_cycle=sani_cycle,
+    )
+
     practical = get_age_based_practical_guidance(
         current_age=current_age,
         mahadasha_lord=mahadasha_lord,
@@ -298,6 +357,7 @@ def get_jadhagam_report(session: Session, chart_id: UUID) -> JadhagamReportRespo
         lagna_rasi=lagna_rasi_name,
         strong_planets=strong_planet_names,
         weak_planets=weak_planet_names,
+        gender=gender,
     )
     remedies = get_age_based_remedies(
         current_age=current_age,
@@ -352,6 +412,7 @@ def get_jadhagam_report(session: Session, chart_id: UUID) -> JadhagamReportRespo
                 vargottama_planets=vargottama_planets,
             ),
             functional_nature_table=functional_nature,
+            adhipathi_report=_adhipathi_report(chart_response),
             yoga_dosham_summary=JadhagamReportYogaDoshamSummary(
                 yogas=chart_response.data.yogas,
                 doshams=chart_response.data.doshams,
@@ -370,8 +431,16 @@ def get_jadhagam_report(session: Session, chart_id: UUID) -> JadhagamReportRespo
                 current_age=current_age,
                 active_focus_areas=active_focus,
             ),
+            primary_concerns=[
+                JadhagamReportPrimaryConcern(
+                    concern=candidate.concern,
+                    confidence=candidate.confidence,
+                    rationale_en=candidate.rationale_en,
+                    rationale_ta=candidate.rationale_ta,
+                )
+                for candidate in primary_concerns
+            ],
             current_year_guidance=year_guidance,
-            upcoming_periods=[],
             practical_guidance=practical,
             optional_remedies=remedies,
             executive_summary=JadhagamReportExecutiveSummary(

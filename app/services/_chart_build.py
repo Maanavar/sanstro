@@ -209,6 +209,7 @@ def _build_yoga_dosham_insights(
         d9_rasi_map=d9_rasi_map,
         d9_lagna_rasi=d9_lagna_rasi,
         bhava_chalit_map=bhava_chalit_map,
+        planet_scores_in=planet_scores,
     )
 
     yoga_models = [
