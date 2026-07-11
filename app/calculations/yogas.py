@@ -104,22 +104,40 @@ def detect_yogas_and_doshams(
     d9_rasi_map: Mapping[str, int] | None = None,
     d9_lagna_rasi: int | None = None,
     bhava_chalit_map: Mapping[str, int] | None = None,
+    planet_scores_in: Mapping[str, int] | None = None,
 ) -> tuple[list[YogaResult], list[DoshamResult], list[NakshatraCautionResult]]:
     _ = bhava_chalit_map
     planets_rasi = _planets_as_rasi_map(planets)
     lagna_nature_map = {
-        planet: get_functional_nature(lagna_rasi, planet).value
+        planet: get_functional_nature(lagna_rasi, planet, node_rasi_map=planets_rasi).value
         for planet in planets_rasi
     }
-    planet_scores = {
-        planet: int(value.get("strength_score", 50))
-        if isinstance(value, Mapping)
-        else 50
-        for planet, value in planets.items()
-    }
+    # Degree-based composite strength scores. Production call sites pass a
+    # rasi-only `planets` map, so the embedded-Mapping fallback below yields a
+    # uniform 50 for every planet — which silently kills strength-gated rules
+    # (Lakshmi, Daridra, Putra-Sarpa, Badhaka). Prefer the explicit
+    # `planet_scores_in` threaded from the real chart-strength computation.
+    if planet_scores_in is not None:
+        planet_scores = {
+            planet: int(score) if score is not None else 50
+            for planet, score in planet_scores_in.items()
+        }
+    else:
+        planet_scores = {
+            planet: int(value.get("strength_score", 50))
+            if isinstance(value, Mapping)
+            else 50
+            for planet, value in planets.items()
+        }
     yogas: list[YogaResult] = []
-    yogas.append(detect_gaja_kesari(planets, moon_rasi, active_lords=active_lords))
-    raja_list = detect_raja_yoga(planets, lagna_rasi, active_lords=active_lords)
+    yogas.append(detect_gaja_kesari(
+        planets, moon_rasi, active_lords=active_lords,
+        planet_scores=planet_scores, combust_planets=combust_planets,
+    ))
+    raja_list = detect_raja_yoga(
+        planets, lagna_rasi, active_lords=active_lords,
+        planet_scores=planet_scores, combust_planets=combust_planets,
+    )
 
     parivartana = detect_parivartana(planets, lagna_rasi)
     active_set = set(active_lords or ())
@@ -158,7 +176,10 @@ def detect_yogas_and_doshams(
             description_en="No Trikona-Kendra lord linkage found.",
         )
     )
-    yogas.append(detect_dhana_yoga(planets, lagna_rasi, active_lords=active_lords))
+    yogas.append(detect_dhana_yoga(
+        planets, lagna_rasi, active_lords=active_lords,
+        planet_scores=planet_scores, combust_planets=combust_planets,
+    ))
     neecha_list = detect_neecha_bhanga(
         planets, lagna_rasi,
         active_lords=active_lords,
@@ -181,7 +202,10 @@ def detect_yogas_and_doshams(
         )
     )
 
-    yogas.extend(detect_pancha_mahapurusha(planets, lagna_rasi, active_lords=active_lords))
+    yogas.extend(detect_pancha_mahapurusha(
+        planets, lagna_rasi, active_lords=active_lords,
+        planet_scores=planet_scores, combust_planets=combust_planets,
+    ))
     yogas.append(detect_budha_aditya(planets, combust_planets=combust_planets, active_lords=active_lords))
     yogas.append(detect_vipareetha_raja(planets, lagna_rasi, active_lords=active_lords))
 
@@ -200,7 +224,10 @@ def detect_yogas_and_doshams(
             description_en="No Parivartana Yoga present.",
         ))
 
-    yogas.append(detect_chandra_mangala(planets, active_lords=active_lords))
+    yogas.append(detect_chandra_mangala(
+        planets, active_lords=active_lords,
+        planet_scores=planet_scores, combust_planets=combust_planets,
+    ))
     yogas.append(detect_sakata_yoga(moon_rasi, planets_rasi.get("JUPITER", moon_rasi), lagna_rasi))
     yogas.append(detect_kemadruma_yoga(planets_rasi, moon_rasi, lagna_rasi))
     yogas.append(detect_chandala_yoga(planets_rasi.get("JUPITER", moon_rasi), planets_rasi.get("RAHU", moon_rasi)))

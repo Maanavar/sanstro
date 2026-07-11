@@ -1,7 +1,7 @@
 """Shared constants, dataclasses, and small utility functions for yoga/dosham detection."""
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 from app.calculations.astro import house_from_reference
@@ -97,6 +97,61 @@ def _planet_rasi(planets: Mapping[str, PlanetInput], planet: str) -> int:
 
 def _planets_as_rasi_map(planets: Mapping[str, PlanetInput]) -> dict[str, int]:
     return {planet: _planet_rasi(planets, planet) for planet in planets}
+
+
+# ── Degree-based strength gating for otherwise sign-only yogas (audit T6) ─────
+_STRENGTH_RANK: dict[str, int] = {"WEAK": 0, "PARTIAL": 1, "STRONG": 2}
+_RANK_STRENGTH: dict[int, str] = {0: "WEAK", 1: "PARTIAL", 2: "STRONG"}
+
+
+def gate_yoga_strength(
+    base_strength: str,
+    key_planets: Iterable[str],
+    planet_scores: Mapping[str, int] | None,
+    combust_planets: frozenset[str] = frozenset(),
+    *,
+    weak_threshold: int = 45,
+    floor: str = "PARTIAL",
+) -> tuple[str, list[str]]:
+    """Downgrade a *present* yoga's reported strength by its key planets' condition.
+
+    Whole-sign presence is decided by the caller and is NOT touched here — a
+    Gaja Kesari with a combust Jupiter is still "present", but should not read as
+    a full-strength yoga. This helper only ever *lowers* strength (never raises
+    it) and floors at ``floor`` so a genuinely present yoga is not hidden.
+
+    The composite ``planet_scores`` already fold in planetary war, gandanta, and
+    dignity (see chart_strength); combustion is passed separately because the
+    yoga engine receives it as its own flag set. Returns the modulated strength
+    plus human-readable factor notes for ``cancellation_factors``.
+    """
+    if base_strength == "WEAK":
+        return base_strength, []
+    scores = planet_scores or {}
+    keys = [p for p in key_planets if p]
+    if not keys:
+        return base_strength, []
+
+    notes: list[str] = []
+    downgrade = 0
+
+    weakest = min(keys, key=lambda p: scores.get(p, 50))
+    weakest_score = scores.get(weakest, 50)
+    if weakest_score < weak_threshold:
+        downgrade += 1
+        notes.append(f"weak_key_planet_{weakest.lower()}_{weakest_score}")
+
+    combust_keys = [p for p in keys if p in combust_planets]
+    if combust_keys:
+        downgrade += 1
+        notes.append("combust_key_planet_" + "_".join(p.lower() for p in combust_keys))
+
+    if downgrade == 0:
+        return base_strength, []
+
+    floor_rank = _STRENGTH_RANK[floor]
+    new_rank = max(floor_rank, _STRENGTH_RANK[base_strength] - downgrade)
+    return _RANK_STRENGTH[new_rank], notes
 
 
 def _house_lord(lagna_rasi: int, house_number: int) -> str:

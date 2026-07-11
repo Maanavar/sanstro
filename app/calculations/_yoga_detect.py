@@ -25,6 +25,7 @@ from app.calculations._yoga_helpers import (
     _is_active,
     _is_kendra_from,
     _planet_rasi,
+    gate_yoga_strength,
 )
 
 _PANCHA_MAHAPURUSHA: dict[str, tuple[str, str]] = {
@@ -71,17 +72,25 @@ def detect_gaja_kesari(
     moon_rasi: int,
     *,
     active_lords: Iterable[str] | None = None,
+    planet_scores: Mapping[str, int] | None = None,
+    combust_planets: frozenset[str] = frozenset(),
 ) -> YogaResult:
     active = set(active_lords or ())
     jupiter_rasi = _planet_rasi(planets, "JUPITER")
     house = house_from_reference(moon_rasi, jupiter_rasi)
     present = house in KENDRA_HOUSES
+    strength = "STRONG" if present else "WEAK"
+    gate_notes: list[str] = []
+    if present:
+        strength, gate_notes = gate_yoga_strength(
+            strength, ("JUPITER", "MOON"), planet_scores, combust_planets
+        )
     return YogaResult(
         name="GAJA_KESARI_YOGA",
         is_present=present,
-        strength="STRONG" if present else "WEAK",
+        strength=strength,
         conditions_met=["jupiter_in_kendra_from_moon"] if present else [],
-        cancellation_factors=[],
+        cancellation_factors=gate_notes,
         dasha_activated=_is_active(active, "JUPITER", "MOON"),
         description_ta="சந்திரத்திலிருந்து குரு கேந்திரத்தில் இருந்தால் கஜகேசரி யோகம்.",
         description_en="Gaja Kesari is present when Jupiter is in a Kendra from Moon.",
@@ -93,6 +102,8 @@ def detect_raja_yoga(
     lagna_rasi: int,
     *,
     active_lords: Iterable[str] | None = None,
+    planet_scores: Mapping[str, int] | None = None,
+    combust_planets: frozenset[str] = frozenset(),
 ) -> list[YogaResult]:
     active = set(active_lords or ())
     kendra_lords = {_house_lord(lagna_rasi, house) for house in (1, 4, 7, 10)}
@@ -106,13 +117,16 @@ def detect_raja_yoga(
             trikona_rasi = _planet_rasi(planets, trikona_lord)
             kendra_rasi = _planet_rasi(planets, kendra_lord)
             if trikona_rasi == kendra_rasi or aspects_house(trikona_lord, trikona_rasi, kendra_rasi):
+                strength, gate_notes = gate_yoga_strength(
+                    "STRONG", (trikona_lord, kendra_lord), planet_scores, combust_planets
+                )
                 results.append(
                     YogaResult(
                         name="RAJA_YOGA",
                         is_present=True,
-                        strength="STRONG",
+                        strength=strength,
                         conditions_met=[f"{trikona_lord}_{kendra_lord}_link"],
-                        cancellation_factors=[],
+                        cancellation_factors=gate_notes,
                         dasha_activated=_is_active(active, trikona_lord, kendra_lord),
                         description_ta="திரிகோண மற்றும் கேந்திர அதிபதிகள் இணைப்பு ராஜயோகமாக கருதப்படுகிறது.",
                         description_en="A Trikona and Kendra lord linkage is traditionally treated as Raja Yoga.",
@@ -126,6 +140,8 @@ def detect_dhana_yoga(
     lagna_rasi: int,
     *,
     active_lords: Iterable[str] | None = None,
+    planet_scores: Mapping[str, int] | None = None,
+    combust_planets: frozenset[str] = frozenset(),
 ) -> YogaResult:
     active = set(active_lords or ())
     second_lord = _house_lord(lagna_rasi, 2)
@@ -148,12 +164,16 @@ def detect_dhana_yoga(
         conditions.append("both_lords_in_strong_houses")
 
     present = len(conditions) > 0
+    base_strength = "STRONG" if "second_eleventh_conjunction" in conditions or "second_eleventh_exchange" in conditions else ("PARTIAL" if present else "WEAK")
+    strength, gate_notes = gate_yoga_strength(
+        base_strength, (second_lord, eleventh_lord), planet_scores, combust_planets
+    )
     return YogaResult(
         name="DHANA_YOGA",
         is_present=present,
-        strength="STRONG" if "second_eleventh_conjunction" in conditions or "second_eleventh_exchange" in conditions else ("PARTIAL" if present else "WEAK"),
+        strength=strength,
         conditions_met=conditions,
-        cancellation_factors=[],
+        cancellation_factors=gate_notes,
         dasha_activated=_is_active(active, second_lord, eleventh_lord),
         description_ta="2ம் மற்றும் 11ம் அதிபதிகளின் உறவு தனயோக சுட்டியாக பார்க்கப்படுகிறது.",
         description_en="A link between 2nd and 11th lords is treated as a Dhana Yoga indicator.",
@@ -229,6 +249,8 @@ def detect_pancha_mahapurusha(
     lagna_rasi: int,
     *,
     active_lords: Iterable[str] | None = None,
+    planet_scores: Mapping[str, int] | None = None,
+    combust_planets: frozenset[str] = frozenset(),
 ) -> list[YogaResult]:
     active = set(active_lords or ())
     results: list[YogaResult] = []
@@ -243,6 +265,8 @@ def detect_pancha_mahapurusha(
         in_kendra = house_from_reference(lagna_rasi, p_rasi) in KENDRA_HOUSES
         present = (in_own or in_exalt or in_mool) and in_kendra
         conditions: list[str] = []
+        gate_notes: list[str] = []
+        strength = "WEAK"
         if present:
             if in_own:
                 conditions.append(f"{planet.lower()}_own_sign")
@@ -251,12 +275,15 @@ def detect_pancha_mahapurusha(
             if in_mool:
                 conditions.append(f"{planet.lower()}_moolatrikona")
             conditions.append(f"{planet.lower()}_in_kendra")
+            strength, gate_notes = gate_yoga_strength(
+                "STRONG", (planet,), planet_scores, combust_planets
+            )
         results.append(YogaResult(
             name=yoga_name,
             is_present=present,
-            strength="STRONG" if present else "WEAK",
+            strength=strength,
             conditions_met=conditions,
-            cancellation_factors=[],
+            cancellation_factors=gate_notes,
             dasha_activated=_is_active(active, planet),
             description_ta=ta,
             description_en=_PANCHA_MAHAPURUSHA_EN[yoga_name],
@@ -385,6 +412,8 @@ def detect_chandra_mangala(
     planets: Mapping[str, PlanetInput],
     *,
     active_lords: Iterable[str] | None = None,
+    planet_scores: Mapping[str, int] | None = None,
+    combust_planets: frozenset[str] = frozenset(),
 ) -> YogaResult:
     active = set(active_lords or ())
     moon_rasi = _planet_rasi(planets, "MOON")
@@ -397,12 +426,16 @@ def detect_chandra_mangala(
         conditions.append("moon_mars_same_rasi")
     elif mutual_seventh:
         conditions.append("moon_mars_mutual_seventh")
+    base_strength = "STRONG" if conjunct else ("PARTIAL" if mutual_seventh else "WEAK")
+    strength, gate_notes = gate_yoga_strength(
+        base_strength, ("MOON", "MARS"), planet_scores, combust_planets
+    )
     return YogaResult(
         name="CHANDRA_MANGALA_YOGA",
         is_present=present,
-        strength="STRONG" if conjunct else ("PARTIAL" if mutual_seventh else "WEAK"),
+        strength=strength,
         conditions_met=conditions,
-        cancellation_factors=[],
+        cancellation_factors=gate_notes,
         dasha_activated=_is_active(active, "MOON", "MARS"),
         description_ta="சந்திர மங்கள யோகம் — சந்திரனும் செவ்வாயும் ஒரே ராசியில் அல்லது ஏழாம் பார்வையில் இருந்தால் இந்த யோகம் ஏற்படும்.",
         description_en="Chandra Mangala Yoga — Moon and Mars in same rasi or mutual 7th aspect.",
