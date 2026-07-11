@@ -299,7 +299,11 @@ def _build_planet_sections(
     timeline,
     transit_bodies: dict[str, object],
 ) -> tuple[list[ChartExplanationPlanet], dict[str, str]]:
-    functional = {planet: get_functional_nature(lagna_rasi, planet).value for planet in _NATAL_PLANETS}
+    node_rasi_map = {p.graha: p.rasi for p in planets if p.graha in ("RAHU", "KETU")}
+    functional = {
+        planet: get_functional_nature(lagna_rasi, planet, node_rasi_map=node_rasi_map).value
+        for planet in _NATAL_PLANETS
+    }
     # Map each active period lord to its level so a planet's explanation can state,
     # concretely, whether it is running right now (issue #2). Most-significant level
     # wins if a graha somehow lords more than one level.

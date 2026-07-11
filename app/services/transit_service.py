@@ -99,11 +99,6 @@ def get_gochar_current(session: Session, chart_id: UUID, as_of: datetime | date)
     return build_transit_snapshot(chart_snapshot, _to_utc_datetime(as_of))
 
 
-def get_major_transits(session: Session, chart_id: UUID, as_of: datetime) -> TransitSnapshotResponse:
-    chart_snapshot = load_persisted_chart_response(session, chart_id)
-    return build_transit_snapshot(chart_snapshot, _to_utc_datetime(as_of), major_only=True)
-
-
 def build_sani_cycle_response(chart_snapshot, on_date: date, *, saturn_snapshot=None) -> SaniCycleResponse:
     natal_moon = next(planet for planet in chart_snapshot.data.planets if planet.graha == "MOON")
     natal_lagna_rasi = chart_snapshot.data.lagna.rasi

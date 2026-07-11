@@ -99,22 +99,6 @@ def test_sani_cycle_endpoint_returns_valid_response(client):
     assert "confirmationSentence" in body["data"]
 
 
-def test_major_transits_endpoint_filters_to_major_grahas(client):
-    chart_id = _create_chart(client)
-
-    response = client.get(
-        f"/api/v1/charts/{chart_id}/transits/major",
-        params={"datetime": "2026-05-21T05:00:00Z"},
-    )
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["success"] is True
-
-    transits = [item["graha"] for item in body["data"]["transits"]]
-    assert transits == ["GURU", "SANI", "RAHU", "KETU"]
-
-
 def test_peyarchi_endpoint_returns_upcoming_events(client):
     chart_id = _create_chart(client)
 

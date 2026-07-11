@@ -13,7 +13,7 @@ from app.models.user import User
 from app.schemas.peyarchi import PeyarchiSummaryResponse
 from app.schemas.transits import SaniCycleResponse, TransitSnapshotResponse
 from app.services.peyarchi_service import get_peyarchi_summary
-from app.services.transit_service import get_gochar_current, get_major_transits, get_sani_cycle
+from app.services.transit_service import get_gochar_current, get_sani_cycle
 
 router = APIRouter()
 
@@ -53,17 +53,6 @@ def sani_cycle(
 ) -> SaniCycleResponse:
     _assert_chart_owner(session, chart_id, current_user)
     return get_sani_cycle(session, chart_id, date)
-
-
-@router.get("/charts/{chart_id}/transits/major", response_model=TransitSnapshotResponse, tags=["transits"])
-def major_transits(
-    chart_id: UUID,
-    datetime: datetime = Query(alias="datetime"),
-    session: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> TransitSnapshotResponse:
-    _assert_chart_owner(session, chart_id, current_user)
-    return get_major_transits(session, chart_id, datetime)
 
 
 @router.get(

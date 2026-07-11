@@ -1352,11 +1352,12 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
         p.graha: (p.strength_score if getattr(p, "strength_score", 0) > 0 else 50)
         for p in chart_snapshot.data.planets
     }
+    natal_planet_rasis = {p.graha: p.rasi for p in chart_snapshot.data.planets}
+    _node_rasi_map = {g: natal_planet_rasis[g] for g in ("RAHU", "KETU") if g in natal_planet_rasis}
     functional_nature_map = {
-        planet: get_functional_nature(natal_lagna_rasi, planet)
+        planet: get_functional_nature(natal_lagna_rasi, planet, node_rasi_map=_node_rasi_map)
         for planet in {"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"}
     }
-    natal_planet_rasis = {p.graha: p.rasi for p in chart_snapshot.data.planets}
     transit_planet_rasis = {g: b.rasi for g, b in transit.bodies.items()}
     natal_rasi_map = {p.graha: p.rasi for p in chart_snapshot.data.planets if p.graha != "MANDHI"}
     natal_rasi_map["LAGNA"] = natal_lagna_rasi

@@ -75,7 +75,7 @@ def get_ui_preferences(
     current_user: User = Depends(get_current_user),
 ) -> UiPrefsResponse:
     pref = session.query(UserPreference).filter_by(owner_user_id=current_user.user_id).first()
-    lang = getattr(pref, "dashboard_lang", "ta") if pref else "ta"
+    lang = getattr(pref, "dashboard_lang", "en") if pref else "en"
     return UiPrefsResponse(lang=lang, dashboard_mode=current_user.user_mode)
 
 

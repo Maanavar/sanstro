@@ -157,6 +157,26 @@ class ChartCalculateResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class AdhipathiReading(BaseModel):
+    """One house's bhava-lord (அதிபதி) placement reading — audit T3."""
+    house: int
+    house_rasi: int = Field(alias="houseRasi")
+    lord: str
+    lord_rasi: int = Field(alias="lordRasi")
+    lord_house: int = Field(alias="lordHouse")
+    strength_score: int = Field(alias="strengthScore")
+    strength_band: str = Field(alias="strengthBand")
+    functional_nature: str = Field(alias="functionalNature")
+    adhipathi_ta: str = Field(alias="adhipathiTa")
+    adhipathi_en: str = Field(alias="adhipathiEn")
+    significations_ta: str = Field(alias="significationsTa")
+    significations_en: str = Field(alias="significationsEn")
+    reading_ta: str = Field(alias="readingTa")
+    reading_en: str = Field(alias="readingEn")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class ChartSummaryText(BaseModel):
     ta: str
     en: str
@@ -175,6 +195,7 @@ class ChartSummaryData(BaseModel):
     current_mahadasha: str = Field(alias="currentMahadasha")
     current_antardasha: str = Field(alias="currentAntardasha")
     functional_nature: dict[str, str] = Field(alias="functionalNature")
+    adhipathi_report: list[AdhipathiReading] = Field(default_factory=list, alias="adhipathiReport")
     ashtakavarga: dict[str, dict[int, int]] = Field(alias="ashtakavarga")
     planets: list[PlanetPosition] = Field(default_factory=list)
     yogas: list[ChartYogaInsight] = Field(default_factory=list)
@@ -264,6 +285,15 @@ class JadhagamReportAgeWiseTimeline(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class JadhagamReportPrimaryConcern(BaseModel):
+    concern: str
+    confidence: str
+    rationale_en: str = Field(alias="rationaleEn")
+    rationale_ta: str = Field(alias="rationaleTa")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class JadhagamReportExecutiveSummary(BaseModel):
     ta: str
     en: str
@@ -278,13 +308,14 @@ class JadhagamReportData(BaseModel):
     rasi_chart_summary: JadhagamReportRasiSummary = Field(alias="rasiChartSummary")
     navamsam_summary: JadhagamReportNavamsaSummary = Field(alias="navamsamSummary")
     functional_nature_table: dict[str, str] = Field(alias="functionalNatureTable")
+    adhipathi_report: list[AdhipathiReading] = Field(default_factory=list, alias="adhipathiReport")
     yoga_dosham_summary: JadhagamReportYogaDoshamSummary = Field(alias="yogaDoshamSummary")
     planetary_strength_summary: JadhagamReportPlanetStrengthSummary = Field(alias="planetaryStrengthSummary")
     dasha_analysis: JadhagamReportDashaAnalysis = Field(alias="dashaAnalysis")
     life_area_predictions: list[dict[str, str]] = Field(alias="lifeAreaPredictions")
     age_wise_timeline: JadhagamReportAgeWiseTimeline = Field(alias="ageWiseTimeline")
+    primary_concerns: list[JadhagamReportPrimaryConcern] = Field(default_factory=list, alias="primaryConcerns")
     current_year_guidance: dict[str, str] = Field(alias="currentYearGuidance")
-    upcoming_periods: list[dict[str, str]] = Field(alias="upcomingPeriods")
     practical_guidance: dict[str, list[str]] = Field(alias="practicalGuidance")
     optional_remedies: dict[str, list[str]] = Field(alias="optionalRemedies")
     executive_summary: JadhagamReportExecutiveSummary = Field(alias="executiveSummary")

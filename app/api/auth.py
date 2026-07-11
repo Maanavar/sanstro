@@ -336,7 +336,7 @@ def me(
 ) -> AuthUserResponse:
     email = _require_user_email(user)
     pref = session.query(UserPreference).filter_by(owner_user_id=user.user_id).first()
-    lang = getattr(pref, "dashboard_lang", "ta") if pref else "ta"
+    lang = getattr(pref, "dashboard_lang", "en") if pref else "en"
 
     return AuthUserResponse(
         userId=str(user.user_id),

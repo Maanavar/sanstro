@@ -208,6 +208,12 @@ def test_jadhagam_report_endpoint_returns_structured_payload(client, birth_profi
     assert "JUPITER" in body["functionalNatureTable"]
     assert "planetaryStrengthSummary" in body
     assert "executiveSummary" in body
+    assert "primaryConcerns" in body
+    assert body["primaryConcerns"]
+    top_concern = body["primaryConcerns"][0]
+    assert top_concern["confidence"] in {"high", "medium", "low"}
+    assert top_concern["rationaleEn"]
+    assert top_concern["rationaleTa"]
 
 
 def test_chart_explanation_endpoint_returns_structured_payload(client, birth_profile_payload_factory):
