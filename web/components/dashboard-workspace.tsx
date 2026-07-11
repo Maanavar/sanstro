@@ -28,6 +28,7 @@ import { usePlanData } from "@/hooks/usePlanData";
 import { useJournalData } from "@/hooks/useJournalData";
 
 import type { EditMemberState } from "./dashboard-edit-member-modal";
+import { CelestialAmbientNova } from "./celestial-ambient-nova";
 import { DashboardHero } from "./dashboard-hero";
 import { DashboardLeftRail } from "./dashboard-left-rail";
 import { LifeModePicker } from "./life-mode-picker";
@@ -1277,10 +1278,14 @@ export function DashboardWorkspace() {
       )}
 
       {/* Tab content */}
-      <div className="cd-page site__body">
+      <div className="cd-page site__body" style={{ position: "relative" }}>
+        {/* Decorative celestial atmosphere at the top of the page — behind all
+            tab content (which is lifted to zIndex 1 below). */}
+        <CelestialAmbientNova />
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={activeTab === "settings" ? `settings-${settingsSubTab}` : activeTab}
+            style={{ position: "relative", zIndex: 1 }}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0, transition: { duration: 0.42, ease: [0.22, 1, 0.36, 1] } }}
             exit={{ opacity: 0, transition: { duration: 0.08 } }}

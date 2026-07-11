@@ -1246,6 +1246,49 @@
   }
 }
 
+/* ── Celestial hero glyph (sun / moon beside the greeting) ──
+   Ambient loops only — the base frame of each element is already a finished
+   picture, so the reduced-motion guard below can freeze all of these to a
+   correct still. */
+@keyframes nova-celestial-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes nova-celestial-breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.08);
+  }
+}
+@keyframes nova-celestial-twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+[data-ui="nova"] .nova-celestial__rays {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nova-celestial-spin 120s linear infinite;
+}
+[data-ui="nova"] .nova-celestial__glow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nova-celestial-breathe 6s var(--ease-nova) infinite;
+}
+[data-ui="nova"] .nova-celestial__star {
+  animation: nova-celestial-twinkle 3.6s ease-in-out infinite;
+}
+
 /* ── Reduced-motion guard ──────────────────────────────────
    First-class a11y path: honour the OS preference by collapsing every
    Nova animation/transition to instant. Scoped to [data-ui="nova"] so it

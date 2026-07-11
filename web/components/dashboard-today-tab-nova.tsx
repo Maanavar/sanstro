@@ -24,6 +24,9 @@ import type {
 } from "@/lib/types";
 
 import { NovaClampedText, NovaScoreDial } from "./dashboard-ui-nova";
+import { CelestialGlyphNova, MiniMoonGlyph } from "./celestial-glyph-nova";
+import { HeroSkyBackdrop } from "./celestial-ambient-nova";
+import { moonPhaseFromTithi } from "@/lib/lunar";
 import { useStreak } from "@/hooks/useStreak";
 import { useEveningPreview } from "@/hooks/useEveningPreview";
 
@@ -164,6 +167,12 @@ export function DashboardTodayTabNova({
 
   const isToday = selectedDate === todayDate;
 
+  // Real lunar phase for today, drawn straight from the tithi we already have —
+  // drives the hero moon's shape and size (thin crescent → full disc).
+  const moonPhase = panchangam ? moonPhaseFromTithi(panchangam.tithi.number, panchangam.tithi.paksha) : null;
+  // Sun by day, moon from dusk on — matches the greeting word's own cutoffs.
+  const heroCelestial: "sun" | "moon" = now.getHours() >= 17 ? "moon" : "sun";
+
   // After 8pm, the hero can swap to a preview of tomorrow + a journal
   // prompt for today — reuses the already-fetched 3-day dailyGuidanceRange
   // (today..+2), no extra network call. Gated by isToday so opening a past
@@ -227,7 +236,8 @@ export function DashboardTodayTabNova({
         background: "linear-gradient(135deg, var(--color-surface-soft), var(--color-surface-3))",
         border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-xl)", padding: "26px 28px",
       }}>
-        <div style={{ display: "flex", gap: "28px", alignItems: "stretch", flexWrap: "wrap" }}>
+        <HeroSkyBackdrop moon={moonPhase} />
+        <div style={{ position: "relative", zIndex: 1, display: "flex", gap: "28px", alignItems: "stretch", flexWrap: "wrap" }}>
           <div style={{ flex: "1", minWidth: "280px", display: "flex", flexDirection: "column", gap: "12px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
               <span style={{ fontSize: "12.5px", color: "var(--color-muted)" }}>
@@ -236,7 +246,7 @@ export function DashboardTodayTabNova({
               </span>
               {paksha && (
                 <span style={{ fontSize: "12px", color: "var(--color-accent-secondary)", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                  {wax ? "◐" : "◑"} {wax ? (lang === "ta" ? "வளர்பிறை" : "Waxing") : (lang === "ta" ? "தேய்பிறை" : "Waning")} · {wax ? (lang === "ta" ? "சுக்ல பக்ஷம்" : "Sukla Paksham") : (lang === "ta" ? "கிருஷ்ண பக்ஷம்" : "Krishna Paksham")}
+                  {moonPhase ? <MiniMoonGlyph phase={moonPhase} size={15} /> : (wax ? "◐" : "◑")} {wax ? (lang === "ta" ? "வளர்பிறை" : "Waxing") : (lang === "ta" ? "தேய்பிறை" : "Waning")} · {wax ? (lang === "ta" ? "சுக்ல பக்ஷம்" : "Sukla Paksham") : (lang === "ta" ? "கிருஷ்ண பக்ஷம்" : "Krishna Paksham")}
                 </span>
               )}
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>
@@ -276,8 +286,16 @@ export function DashboardTodayTabNova({
             </div>
             {showEveningPreview && tomorrowGuidance ? (
               <>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.7rem, 3.2vw, 2.25rem)", fontWeight: 600, lineHeight: 1.08, color: "var(--color-text-strong)" }}>
-                  🌙 {greetingWord(lang)}, {displayName}.
+                <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                  <CelestialGlyphNova
+                    variant="moon"
+                    moon={moonPhase}
+                    size={58}
+                    ariaLabel={lang === "ta" ? "இன்றைய நிலா" : "Tonight's moon"}
+                  />
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.7rem, 3.2vw, 2.25rem)", fontWeight: 600, lineHeight: 1.08, color: "var(--color-text-strong)" }}>
+                    {greetingWord(lang)}, {displayName}.
+                  </div>
                 </div>
                 <div style={{ fontSize: "13px", color: "var(--color-accent-secondary)", fontWeight: 600 }}>
                   {lang === "ta" ? "நாளையைப் பற்றி ஒரு முன்னோட்டம் — " : "A look ahead to tomorrow — "}
@@ -325,8 +343,18 @@ export function DashboardTodayTabNova({
               </>
             ) : (
               <>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.7rem, 3.2vw, 2.25rem)", fontWeight: 600, lineHeight: 1.08, color: "var(--color-text-strong)" }}>
-                  {greetingWord(lang)}, {displayName}.
+                <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                  <CelestialGlyphNova
+                    variant={heroCelestial}
+                    moon={moonPhase}
+                    size={58}
+                    ariaLabel={heroCelestial === "moon"
+                      ? (lang === "ta" ? "இன்றைய நிலா" : "Tonight's moon")
+                      : (lang === "ta" ? "இன்றைய சூரியன்" : "Today's sun")}
+                  />
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.7rem, 3.2vw, 2.25rem)", fontWeight: 600, lineHeight: 1.08, color: "var(--color-text-strong)" }}>
+                    {greetingWord(lang)}, {displayName}.
+                  </div>
                 </div>
                 {personalDailyGuidance && (
                   <NovaClampedText
