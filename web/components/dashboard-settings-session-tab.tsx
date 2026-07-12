@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useTheme, type Theme } from "@/hooks/useTheme";
 import { apiFetchJson } from "@/lib/api";
@@ -9,10 +9,21 @@ import { formatDateTimeLabel } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { JournalRetentionApplyData, NotificationPreferenceData } from "@/lib/types";
+import { SettingsRail, SETTINGS_C as C, type SettingsSectionId } from "./dashboard-settings-rail";
+
+type UserMode = "BEGINNER" | "BALANCED" | "TRADITIONAL";
+type GoalTrack = "CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL";
 
 type DashboardSettingsSessionTabProps = {
   lang: Lang;
+  section: SettingsSectionId;
+  onNavigate: (id: SettingsSectionId) => void;
   onLangChange: (lang: Lang) => void;
+  userDisplayName: string;
+  moonRasi: string;
+  janmaNakshatra: string;
+  lagnaRasi: string;
+  vaultName: string;
   ownerUserId: string;
   selectedDate: string;
   selectedVaultId: string;
@@ -27,12 +38,9 @@ type DashboardSettingsSessionTabProps = {
   busyJournalSettings: boolean;
   notificationPrefs: NotificationPreferenceData | null;
   onNotificationPrefsSaved: (prefs: NotificationPreferenceData) => void;
-  userMode: "BEGINNER" | "BALANCED" | "TRADITIONAL";
-  goalTrack: "CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL" | null;
-  onSaveUserSettings: (mode: "BEGINNER" | "BALANCED" | "TRADITIONAL", track: "CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL" | null) => void;
-  onOpenSetup: () => void;
-  onSettingsSubTabChange: (sub: "setup" | "session") => void;
-  onOwnerUserIdChange: (value: string) => void;
+  userMode: UserMode;
+  goalTrack: GoalTrack | null;
+  onSaveUserSettings: (mode: UserMode, track: GoalTrack | null) => void;
   onSelectedDateChange: (value: string) => void;
   onRefreshPersonal: () => void;
   onRefreshFamily: () => void;
@@ -43,43 +51,85 @@ type DashboardSettingsSessionTabProps = {
   onSignOut: () => void;
 };
 
-/* ── Warm design tokens (match personal / family / life-areas tabs) ── */
-const W = {
-  ink:       "var(--deepdive-ink, var(--panel-earth-dark))",
-  inkMid:    "var(--deepdive-ink-mid, var(--panel-earth))",
-  muted:     "var(--color-faint)",
-  mutedLt:   "var(--color-faint)",
-  border:    "var(--deepdive-border, var(--panel-tan))",
-  borderLt:  "var(--deepdive-border-light, var(--panel-tan-light))",
-  surface:   "var(--deepdive-surface, var(--panel-cream))",
-  surfaceMd: "var(--deepdive-surface-strong, var(--panel-hover))",
-  card:      "var(--chart-cell-default)",
-  terracota: "var(--deepdive-accent, var(--panel-brand))",
-  gold:      "#C6973A",
-  sage:      "var(--chart-d9-active)",
-  accent:    "var(--planet-lagna)",
-} as const;
+/* ═══════════════ Shared primitives (all colors theme-reactive) ═══════════════ */
 
-/* ── Pill toggle button ── */
-function PillBtn({
-  active, onClick, children,
-}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function PanelHeader({ title, desc, danger }: { title: string; desc: string; danger?: boolean }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      <div style={{ fontFamily: "var(--font-display, Georgia, serif)", fontSize: "clamp(1.8rem, 3.4vw, 2.15rem)", fontWeight: 600, lineHeight: 1.05, color: danger ? C.danger : C.text }}>
+        {title}
+      </div>
+      <div style={{ fontFamily: "var(--font-body, Georgia, serif)", fontSize: "15px", color: C.muted, maxWidth: "520px", lineHeight: 1.55 }}>
+        {desc}
+      </div>
+    </div>
+  );
+}
+
+function Card({ children, tone }: { children: React.ReactNode; tone?: "plain" | "danger" }) {
+  const base: React.CSSProperties = {
+    background: C.card,
+    border: `1px solid ${C.border}`,
+    borderRadius: "16px",
+    padding: "24px 26px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  };
+  if (tone === "danger") {
+    return <div style={{ ...base, background: C.dangerBg, border: `1px solid ${C.dangerBorder}` }}>{children}</div>;
+  }
+  return <div style={base}>{children}</div>;
+}
+
+function RowHeader({ title, desc }: { title: string; desc?: string }) {
+  return (
+    <div style={{ maxWidth: "360px" }}>
+      <div style={{ fontSize: "15px", fontWeight: 600, color: C.text }}>{title}</div>
+      {desc && <div style={{ fontSize: "12.5px", color: C.faint, marginTop: "3px", lineHeight: 1.5 }}>{desc}</div>}
+    </div>
+  );
+}
+
+function Segmented<T extends string>({ value, options, onChange }: {
+  value: T;
+  options: { v: T; label: React.ReactNode }[];
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div style={{ display: "inline-flex", background: C.surfaceSoft, border: `1px solid ${C.border}`, borderRadius: "11px", padding: "4px", gap: "4px", flexWrap: "wrap" }}>
+      {options.map((o) => {
+        const on = o.v === value;
+        return (
+          <button
+            key={o.v}
+            type="button"
+            onClick={() => onChange(o.v)}
+            style={{
+              padding: "9px 17px", borderRadius: "8px", fontSize: "12.5px", fontWeight: on ? 700 : 500,
+              color: on ? C.onAccent : C.muted, background: on ? C.accent : "transparent",
+              cursor: "pointer", border: "none", fontFamily: "inherit", transition: "background .15s, color .15s", whiteSpace: "nowrap",
+            }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
       onClick={onClick}
       style={{
-        padding: "var(--space-1_5) var(--space-4)",
-        borderRadius: "var(--radius-pill)",
-        fontSize: "0.875rem",
-        fontWeight: 600,
-        cursor: "pointer",
-        border: "1.5px solid",
-        borderColor: active ? W.ink : W.border,
-        background: active ? W.ink : "transparent",
-        color: active ? W.surfaceMd : W.muted,
-        fontFamily: "inherit",
-        transition: "all 0.12s ease",
+        padding: "9px 16px", borderRadius: "999px", fontSize: "12.5px", fontWeight: active ? 600 : 500,
+        background: active ? C.accentMuted : C.raised,
+        border: `1px solid ${active ? C.accent : C.border}`,
+        color: active ? C.text : C.muted,
+        cursor: "pointer", fontFamily: "inherit", transition: "background .15s, border-color .15s",
       }}
     >
       {children}
@@ -87,123 +137,34 @@ function PillBtn({
   );
 }
 
-/* ── Section card ── */
-function SettingsCard({ children }: { children: React.ReactNode }) {
+function Toggle({ checked, onChange, tone }: { checked: boolean; onChange: (v: boolean) => void; tone?: string }) {
   return (
-    <div style={{
-      background: W.surface,
-      border: `1px solid ${W.borderLt}`,
-      borderRadius: "var(--radius-md)",
-      padding: "var(--space-6)",
-      display: "flex",
-      flexDirection: "column",
-      gap: "var(--space-5)",
-    }}>
-      {children}
-    </div>
-  );
-}
-
-/* ── Section label ── */
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p style={{
-      margin: 0,
-      fontSize: "0.625rem",
-      fontWeight: 700,
-      letterSpacing: "0.1em",
-      textTransform: "uppercase",
-      color: W.terracota,
-    }}>
-      {children}
-    </p>
-  );
-}
-
-/* ── Field row ── */
-function FieldRow({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-      <label style={{ fontSize: "0.875rem", fontWeight: 600, color: W.inkMid }}>{label}</label>
-      {children}
-      {hint && <span style={{ fontSize: "0.75rem", color: W.mutedLt, lineHeight: 1.4 }}>{hint}</span>}
-    </div>
-  );
-}
-
-/* ── Input ── */
-function WarmInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
       style={{
-        width: "100%",
-        padding: "var(--space-2) var(--space-3)",
-        borderRadius: "var(--radius-md)",
-        border: `1.5px solid ${W.borderLt}`,
-        background: W.card,
-        color: W.inkMid,
-        fontSize: "0.875rem",
-        fontFamily: "inherit",
-        outline: "none",
-        ...(props.style ?? {}),
+        width: "44px", height: "25px", borderRadius: "999px",
+        background: checked ? (tone ?? C.sage) : C.offTrack,
+        position: "relative", cursor: "pointer", border: "none", flex: "none", transition: "background .2s", padding: 0,
       }}
-    />
+    >
+      <span style={{ position: "absolute", top: "2.5px", left: checked ? "21px" : "2.5px", width: "20px", height: "20px", borderRadius: "50%", background: "#fff", transition: "left .2s", boxShadow: "0 1px 3px rgba(0,0,0,.35)" }} />
+    </button>
   );
 }
 
-/* ── Select ── */
-function WarmSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      {...props}
-      style={{
-        width: "100%",
-        padding: "var(--space-2) var(--space-3)",
-        borderRadius: "var(--radius-md)",
-        border: `1.5px solid ${W.borderLt}`,
-        background: W.card,
-        color: W.inkMid,
-        fontSize: "0.875rem",
-        fontFamily: "inherit",
-        outline: "none",
-        ...(props.style ?? {}),
-      }}
-    />
-  );
-}
-
-/* ── Action button ── */
-function ActionBtn({
-  onClick, disabled, children, variant = "primary",
-}: {
-  onClick: () => void;
-  disabled?: boolean;
-  children: React.ReactNode;
-  variant?: "primary" | "ghost" | "danger";
-}) {
-  const styles: React.CSSProperties =
-    variant === "primary"
-      ? { background: W.ink, color: W.surfaceMd, border: `1.5px solid ${W.ink}` }
-      : variant === "danger"
-      ? { background: "transparent", color: "var(--color-low, var(--planet-saturn))", border: "1.5px solid var(--color-low, var(--planet-saturn))" }
-      : { background: "transparent", color: W.muted, border: `1.5px solid ${W.border}` };
-
+function PrimaryBtn({ onClick, disabled, children }: { onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
       style={{
-        padding: "var(--space-2) var(--space-5)",
-        borderRadius: "var(--radius-md)",
-        fontSize: "0.875rem",
-        fontWeight: 600,
-        cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.5 : 1,
-        fontFamily: "inherit",
-        transition: "opacity 0.12s",
-        ...styles,
+        alignSelf: "flex-start", background: C.accent, color: C.onAccent, fontWeight: 700, borderRadius: "10px",
+        padding: "11px 22px", fontSize: "13px", cursor: disabled ? "not-allowed" : "pointer", border: "none",
+        opacity: disabled ? 0.5 : 1, fontFamily: "inherit", whiteSpace: "nowrap", transition: "opacity .15s",
       }}
     >
       {children}
@@ -211,41 +172,46 @@ function ActionBtn({
   );
 }
 
-/* ── Toggle checkbox row ── */
-function ToggleRow({
-  checked, onChange, children,
-}: { checked: boolean; onChange: (v: boolean) => void; children: React.ReactNode }) {
+function GhostBtn({ onClick, disabled, children, danger }: { onClick: () => void; disabled?: boolean; children: React.ReactNode; danger?: boolean }) {
   return (
-    <label style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)", cursor: "pointer" }}>
-      <span style={{
-        display: "inline-flex",
-        width: "36px", height: "20px",
-        borderRadius: "var(--radius-pill)",
-        border: `1.5px solid ${checked ? W.terracota : W.border}`,
-        background: checked ? W.terracota : W.surfaceMd,
-        position: "relative",
-        flexShrink: 0,
-        transition: "all 0.15s",
-        cursor: "pointer",
-      }} onClick={() => onChange(!checked)}>
-        <span style={{
-          position: "absolute",
-          top: "2px",
-          left: checked ? "16px" : "2px",
-          width: "14px", height: "14px",
-          borderRadius: "50%",
-          background: checked ? "#fff" : W.mutedLt,
-          transition: "left 0.15s",
-        }} />
-      </span>
-      <span style={{ fontSize: "0.875rem", color: W.inkMid, lineHeight: 1.4 }}>{children}</span>
-    </label>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        alignSelf: "flex-start", background: "transparent",
+        border: `1px solid ${danger ? C.dangerBorder : C.border}`,
+        color: danger ? C.danger : C.accentText, borderRadius: "9px", padding: "9px 16px", fontSize: "12.5px",
+        fontWeight: 600, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.5 : 1,
+        fontFamily: "inherit", whiteSpace: "nowrap", transition: "opacity .15s",
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
+const KICKER: React.CSSProperties = {
+  fontSize: "10.5px", letterSpacing: ".12em", textTransform: "uppercase", color: C.faint, fontWeight: 700,
+};
+
+const fieldStyle: React.CSSProperties = {
+  width: "100%", background: C.surfaceSoft, border: `1px solid ${C.border}`, borderRadius: "10px",
+  padding: "11px 13px", fontSize: "14px", color: C.text, fontFamily: "inherit", outline: "none",
+};
+
+/* ═══════════════ Component ═══════════════ */
+
 export function DashboardSettingsSessionTab({
   lang,
+  section,
+  onNavigate,
   onLangChange,
+  userDisplayName,
+  moonRasi,
+  janmaNakshatra,
+  lagnaRasi,
+  vaultName,
   ownerUserId,
   selectedDate,
   selectedVaultId,
@@ -263,9 +229,6 @@ export function DashboardSettingsSessionTab({
   userMode,
   goalTrack,
   onSaveUserSettings,
-  onOpenSetup,
-  onSettingsSubTabChange,
-  onOwnerUserIdChange,
   onSelectedDateChange,
   onRefreshPersonal,
   onRefreshFamily,
@@ -276,11 +239,12 @@ export function DashboardSettingsSessionTab({
   onSignOut,
 }: DashboardSettingsSessionTabProps) {
   const { theme: currentTheme, setTheme } = useTheme();
-  const [retentionDraft, setRetentionDraft] = useState(journalRetentionDays);
-  const [modeDraft, setModeDraft] = useState<"BEGINNER" | "BALANCED" | "TRADITIONAL">(userMode);
-  const [trackDraft, setTrackDraft] = useState<"CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL" | "">(goalTrack ?? "");
+
+  const [modeDraft, setModeDraft] = useState<UserMode>(userMode);
+  const [trackDraft, setTrackDraft] = useState<GoalTrack | "">(goalTrack ?? "");
   const [userSettingsSaving, setUserSettingsSaving] = useState(false);
-  const [userSettingsSaved, setUserSettingsSaved] = useState(false);
+
+  const [retentionDraft, setRetentionDraft] = useState(journalRetentionDays);
 
   const [notifChannel, setNotifChannel] = useState<"none" | "email" | "push" | "both">("none");
   const [notifMorning, setNotifMorning] = useState(false);
@@ -289,13 +253,25 @@ export function DashboardSettingsSessionTab({
   const [notifPirantha, setNotifPirantha] = useState(false);
   const [notifSmartSilence, setNotifSmartSilence] = useState(false);
   const [notifSaving, setNotifSaving] = useState(false);
-  const [notifSaved, setNotifSaved] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
   const [pushMessage, setPushMessage] = useState("");
 
+  const [showIds, setShowIds] = useState(false);
   const [deleteConfirming, setDeleteConfirming] = useState(false);
   const [deleteDeleting, setDeleteDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+
+  const [retentionPreview, setRetentionPreview] = useState<JournalRetentionApplyData | null>(null);
+  const [retentionApplied, setRetentionApplied] = useState<JournalRetentionApplyData | null>(null);
+
+  const [toast, setToast] = useState("");
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flash = (msg: string) => {
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(""), 2100);
+  };
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   useEffect(() => { setModeDraft(userMode); }, [userMode]);
   useEffect(() => { setTrackDraft(goalTrack ?? ""); }, [goalTrack]);
@@ -314,21 +290,14 @@ export function DashboardSettingsSessionTab({
   const pushUnavailable = !hasFirebaseMessagingConfig();
 
   async function registerPushToken() {
-    if (pushUnavailable) {
-      setPushMessage(lang === "ta" ? "Push notifications unavailable." : "Push notifications unavailable.");
-      return;
-    }
+    if (pushUnavailable) { setPushMessage(lang === "ta" ? "Push notifications unavailable." : "Push notifications unavailable."); return; }
     if (!("serviceWorker" in navigator) || !("Notification" in window)) return;
     setPushBusy(true);
     setPushMessage("");
     try {
-      // Requires web Firebase config + VAPID key in env and firebase-messaging-sw.js in public/.
       await navigator.serviceWorker.register("/firebase-messaging-sw.js");
       const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        setPushMessage(lang === "ta" ? "அனுமதி தேவை." : "Notification permission is required.");
-        return;
-      }
+      if (permission !== "granted") { setPushMessage(lang === "ta" ? "அனுமதி தேவை." : "Notification permission is required."); return; }
       const swRegistration = await navigator.serviceWorker.ready;
       const token = await fetchFcmToken(swRegistration);
       await apiFetchJson("/api/v1/settings/notifications/fcm-token", {
@@ -360,11 +329,9 @@ export function DashboardSettingsSessionTab({
 
   const handleSaveUserSettings = async () => {
     setUserSettingsSaving(true);
-    setUserSettingsSaved(false);
     try {
       await onSaveUserSettings(modeDraft, trackDraft || null);
-      setUserSettingsSaved(true);
-      setTimeout(() => setUserSettingsSaved(false), 2500);
+      flash(lang === "ta" ? "விருப்பங்கள் சேமிக்கப்பட்டன" : "Preferences saved");
     } finally {
       setUserSettingsSaving(false);
     }
@@ -372,7 +339,6 @@ export function DashboardSettingsSessionTab({
 
   const handleSaveNotifications = () => {
     setNotifSaving(true);
-    setNotifSaved(false);
     apiFetchJson<{ success: boolean; data: NotificationPreferenceData }>("/api/v1/settings/notifications", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -385,7 +351,7 @@ export function DashboardSettingsSessionTab({
         smartSilenceEnabled: notifSmartSilence,
       }),
     })
-      .then((r) => { onNotificationPrefsSaved(r.data); setNotifSaved(true); setTimeout(() => setNotifSaved(false), 3000); })
+      .then((r) => { onNotificationPrefsSaved(r.data); flash(lang === "ta" ? "அறிவிப்பு அமைப்புகள் சேமிக்கப்பட்டன" : "Notification settings saved"); })
       .catch(() => {})
       .finally(() => setNotifSaving(false));
   };
@@ -402,23 +368,18 @@ export function DashboardSettingsSessionTab({
     }
   };
 
-  // Retention cleanup runs in two steps: a dry-run preview first, then the
-  // real apply only after the user has seen how many entries it touches.
-  const [retentionPreview, setRetentionPreview] = useState<JournalRetentionApplyData | null>(null);
-  const [retentionApplied, setRetentionApplied] = useState<JournalRetentionApplyData | null>(null);
-
   const handleRetentionPreview = async () => {
     setRetentionApplied(null);
     const result = await onApplyRetention(true);
     if (result) setRetentionPreview(result);
   };
-
   const handleRetentionApply = async () => {
     const result = await onApplyRetention(false);
-    if (result) {
-      setRetentionPreview(null);
-      setRetentionApplied(result);
-    }
+    if (result) { setRetentionPreview(null); setRetentionApplied(result); }
+  };
+
+  const copyId = async (value: string) => {
+    try { await navigator.clipboard.writeText(value); flash(lang === "ta" ? "நகலெடுக்கப்பட்டது" : "Copied to clipboard"); } catch { /* clipboard unavailable */ }
   };
 
   const retentionValid = Number.isFinite(retentionDraft) && retentionDraft >= 7 && retentionDraft <= 3650;
@@ -438,444 +399,471 @@ export function DashboardSettingsSessionTab({
     return Number.isNaN(d.getTime()) ? t("settings_retention_not_available", lang) : d.toLocaleDateString();
   };
 
-  return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
-      gap: "var(--space-8)",
-      fontFamily: "var(--font-body)",
-      color: W.ink,
-      maxWidth: "760px",
-    }}>
+  const chartLine = [moonRasi, janmaNakshatra, lagnaRasi ? `${lagnaRasi} ${lang === "ta" ? "லக்னம்" : "Lagnam"}` : ""]
+    .filter(Boolean)
+    .join(" · ");
 
-      {/* ── Settings sub-tab switcher ── */}
-      <div style={{ display: "flex", gap: "var(--space-1_5)" }}>
-        {([
-          { key: "setup",   label: lang === "ta" ? "ஆரம்ப நிலை" : "Onboarding" },
-          { key: "session", label: lang === "ta" ? "அமைப்புகள்" : "Settings" },
-        ] as const).map(({ key, label }) => (
+  const idFields = [
+    { label: lang === "ta" ? "உரிமையாளர் பயனர் ID" : "Owner user ID", value: ownerUserId },
+    { label: lang === "ta" ? "பிறப்பு விவர ID" : "Birth profile ID", value: birthProfileId },
+    { label: lang === "ta" ? "ஜாதக ID" : "Chart ID", value: chartId },
+    { label: lang === "ta" ? "கொட்டில் ID" : "Vault ID", value: selectedVaultId },
+  ].filter((f) => f.value);
+
+  const panelWrap: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "20px", animation: "vfade .3s ease" };
+
+  /* ── Panels ── */
+  const renderAccount = () => (
+    <div style={panelWrap}>
+      <PanelHeader
+        title={lang === "ta" ? "கணக்கு" : "Account"}
+        desc={lang === "ta"
+          ? "உங்கள் அடையாளம், இந்த அமர்வு படிக்கும் கொட்டில், மற்றும் ஒவ்வொரு கணிப்பும் நங்கூரமிடும் தேதி."
+          : "Your identity, the vault this session is reading from, and the date every forecast is anchored to."}
+      />
+
+      {/* identity hero */}
+      <div style={{ background: `linear-gradient(150deg, ${C.accentMuted}, ${C.card} 62%)`, border: `1px solid ${C.borderStrong}`, borderRadius: "18px", padding: "26px 28px", display: "flex", alignItems: "center", gap: "22px", flexWrap: "wrap" }}>
+        <div style={{ width: "64px", height: "64px", borderRadius: "50%", background: C.accent, color: C.onAccent, display: "grid", placeItems: "center", fontSize: "26px", fontFamily: "var(--font-display, serif)", fontWeight: 700, flex: "none" }}>
+          {(userDisplayName || "S").trim().charAt(0).toUpperCase() || "S"}
+        </div>
+        <div style={{ flex: 1, minWidth: "220px" }}>
+          <div style={{ fontFamily: "var(--font-display, Georgia, serif)", fontSize: "26px", fontWeight: 600, color: C.text, lineHeight: 1.1 }}>
+            {userDisplayName?.trim() || (lang === "ta" ? "உங்கள் கணக்கு" : "Your account")}
+          </div>
+          {chartLine && (
+            <div style={{ fontSize: "12px", letterSpacing: ".08em", textTransform: "uppercase", color: C.accentText, marginTop: "6px", fontWeight: 600 }}>{chartLine}</div>
+          )}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-end" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "12px", color: C.sage, background: C.sageBg, border: `1px solid ${C.sageBorder}`, borderRadius: "999px", padding: "6px 13px" }}>
+            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: busyFamily ? C.accent : C.sage }} />
+            {busyFamily ? (lang === "ta" ? "குடும்பத் தரவு புதுப்பிக்கப்படுகிறது…" : "Refreshing family data…") : (lang === "ta" ? "குடும்பத் தரவு தயார்" : "Family data loaded")}
+          </div>
+          {vaultName?.trim() && (
+            <div style={{ fontSize: "11.5px", color: C.faint }}>
+              {lang === "ta" ? "படிக்கிறது " : "Reading "}
+              <span style={{ color: C.purple, fontWeight: 600 }}>{vaultName}</span>
+              {lang === "ta" ? " கொட்டில்" : " vault"}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* session facts */}
+      <Card>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+          <div>
+            <div style={{ ...KICKER, marginBottom: "8px" }}>{lang === "ta" ? "தேர்ந்தெடுத்த தேதி" : "Selected date"}</div>
+            <input type="date" value={selectedDate} onChange={(e) => onSelectedDateChange(e.target.value)} style={fieldStyle} />
+            <div style={{ fontSize: "11.5px", color: C.faint, marginTop: "7px" }}>{lang === "ta" ? "அனைத்து கணிப்புகளையும் இயக்குகிறது." : "Drives all forecasts and transits."}</div>
+          </div>
+          <div>
+            <div style={{ ...KICKER, marginBottom: "8px" }}>{lang === "ta" ? "செயலில் உள்ள கொட்டில்" : "Active vault"}</div>
+            <div style={{ ...fieldStyle, padding: "12px 14px" }}>
+              {vaultName?.trim() || (lang === "ta" ? "தேர்ந்தெடுக்கப்படவில்லை" : "None selected")}
+            </div>
+            <div style={{ fontSize: "11.5px", color: C.faint, marginTop: "7px" }}>{lang === "ta" ? "குடும்பத் தாவலில் கொட்டில்களை மாற்றவும்." : "Switch vaults from the Family tab."}</div>
+          </div>
+        </div>
+
+        <div style={{ height: "1px", background: C.border }} />
+
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          <span style={{ ...KICKER, letterSpacing: ".14em", marginRight: "2px" }}>{lang === "ta" ? "விரைவு செயல்கள்" : "Quick actions"}</span>
+          <GhostBtn onClick={onRefreshPersonal} disabled={!birthProfileId || busyPersonal}>
+            {busyPersonal ? t("btn_refreshing", lang) : `↻ ${t("btn_refresh_personal", lang)}`}
+          </GhostBtn>
+          <GhostBtn onClick={onRefreshFamily} disabled={!selectedVaultId || busyFamily}>
+            {busyFamily ? t("btn_refreshing", lang) : `↻ ${t("btn_refresh_family", lang)}`}
+          </GhostBtn>
+          <GhostBtn onClick={() => onNavigate("setup")}>{lang === "ta" ? "அமைப்பு" : "Setup"}</GhostBtn>
+          <div style={{ marginLeft: "auto" }}>
+            <GhostBtn onClick={onSignOut} danger>{lang === "ta" ? "வெளியேறு" : "Sign out"}</GhostBtn>
+          </div>
+        </div>
+      </Card>
+
+      {/* support IDs disclosure */}
+      {idFields.length > 0 && (
+        <div style={{ background: C.raised, border: `1px solid ${C.border}`, borderRadius: "14px", overflow: "hidden" }}>
           <button
-            key={key}
             type="button"
-            onClick={() => onSettingsSubTabChange(key)}
-            style={{
-              padding: "var(--space-2) var(--space-4_5)", borderRadius: "var(--radius-pill)", fontSize: "0.875rem", fontWeight: 600,
-              cursor: "pointer", fontFamily: "inherit",
-              border: "1.5px solid",
-              borderColor: key === "session" ? W.ink : W.border,
-              background: key === "session" ? W.ink : "transparent",
-              color: key === "session" ? W.surfaceMd : W.muted,
-              transition: "all 0.12s ease",
-            }}
+            onClick={() => setShowIds((s) => !s)}
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 22px", cursor: "pointer", width: "100%", background: "transparent", border: "none", fontFamily: "inherit", textAlign: "left" }}
           >
-            {label}
+            <span>
+              <span style={{ display: "block", fontSize: "13.5px", fontWeight: 600, color: C.text }}>{lang === "ta" ? "ஆதரவு & டெவலப்பர் அடையாளங்கள்" : "Support & developer identifiers"}</span>
+              <span style={{ display: "block", fontSize: "11.5px", color: C.faint, marginTop: "2px" }}>{lang === "ta" ? "ஆதரவு கேட்கக்கூடிய படிக்க-மட்டும் ID-கள். திருத்த ஏதுமில்லை." : "Read-only IDs you may be asked for by support. Nothing to edit."}</span>
+            </span>
+            <span style={{ color: C.accentText, fontSize: "13px" }}>{showIds ? "▾" : "▸"}</span>
           </button>
-        ))}
-      </div>
-
-      {/* ── Hero ── */}
-      <div>
-        <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: W.terracota }}>
-          {t("settings_kicker", lang)}
-        </p>
-        <h1 style={{
-          margin: "0 0 var(--space-2_5)",
-          fontFamily: "var(--font-display)",
-          fontSize: "clamp(2rem, 4vw, 2.8rem)",
-          fontWeight: 500,
-          letterSpacing: "-0.03em",
-          lineHeight: 1.08,
-          color: W.ink,
-        }}>
-          {lang === "ta" ? "அமைப்புகள்" : "Settings"}
-          <br />
-          <em style={{ fontStyle: "italic", color: W.muted }}>
-            {lang === "ta" ? "& விருப்பத்தேர்வுகள்." : "& preferences."}
-          </em>
-        </h1>
-        <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted, lineHeight: 1.6 }}>
-          {t("settings_desc", lang)}
-        </p>
-      </div>
-
-      {/* ── Session info ── */}
-      <SettingsCard>
-        <SectionLabel>{lang === "ta" ? "அமர்வு" : "Session"}</SectionLabel>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--space-4)" }}>
-          <FieldRow label={t("settings_owner", lang)} hint={t("settings_owner_hint", lang)}>
-            <WarmInput value={ownerUserId} onChange={(e) => onOwnerUserIdChange(e.target.value)} />
-          </FieldRow>
-          <FieldRow label={t("settings_date", lang)}>
-            <WarmInput type="date" value={selectedDate} onChange={(e) => onSelectedDateChange(e.target.value)} />
-          </FieldRow>
-          <FieldRow label={t("settings_vault", lang)} hint={t("settings_vault_hint", lang)}>
-            <WarmInput value={selectedVaultId} readOnly style={{ background: W.surfaceMd, cursor: "default" }} />
-          </FieldRow>
-          <FieldRow label={t("settings_profile", lang)}>
-            <WarmInput value={birthProfileId} readOnly style={{ background: W.surfaceMd, cursor: "default" }} />
-          </FieldRow>
-          <FieldRow label={t("settings_chart", lang)}>
-            <WarmInput value={chartId} readOnly style={{ background: W.surfaceMd, cursor: "default" }} />
-          </FieldRow>
-        </div>
-
-        {/* Quick actions */}
-        <div style={{ paddingTop: "var(--space-1)", borderTop: `1px solid ${W.borderLt}` }}>
-          <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.75rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-            {t("settings_quick", lang)}
-          </p>
-          <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
-            <ActionBtn onClick={onRefreshPersonal} disabled={!birthProfileId || busyPersonal} variant="ghost">
-              {busyPersonal ? t("btn_refreshing", lang) : t("btn_refresh_personal", lang)}
-            </ActionBtn>
-            <ActionBtn onClick={onRefreshFamily} disabled={!selectedVaultId || busyFamily} variant="ghost">
-              {busyFamily ? t("btn_refreshing", lang) : t("btn_refresh_family", lang)}
-            </ActionBtn>
-            <ActionBtn onClick={onOpenSetup} variant="ghost">
-              {t("tab_setup", lang)}
-            </ActionBtn>
-            <ActionBtn onClick={onSignOut} variant="danger">
-              {lang === "ta" ? "வெளியேறு" : "Sign out"}
-            </ActionBtn>
-          </div>
-        </div>
-      </SettingsCard>
-
-      {/* ── Experience mode + Goal track ── */}
-      <SettingsCard>
-        <SectionLabel>{lang === "ta" ? "அனுபவ அமைப்பு" : "Experience mode"}</SectionLabel>
-
-        <div>
-          <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.875rem", color: W.muted }}>{t("mode_label", lang)}</p>
-          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-            {(["BEGINNER", "BALANCED", "TRADITIONAL"] as const).map((m) => (
-              <PillBtn key={m} active={modeDraft === m} onClick={() => setModeDraft(m)}>
-                {t(m === "BEGINNER" ? "mode_beginner" : m === "BALANCED" ? "mode_balanced" : "mode_traditional", lang)}
-              </PillBtn>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.875rem", color: W.muted }}>{t("track_label", lang)}</p>
-          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-            <PillBtn active={trackDraft === ""} onClick={() => setTrackDraft("")}>
-              {t("track_none", lang)}
-            </PillBtn>
-            {(["CAREER", "EXAM", "RELATIONSHIP", "FINANCIAL"] as const).map((tr) => (
-              <PillBtn key={tr} active={trackDraft === tr} onClick={() => setTrackDraft(tr)}>
-                {t(tr === "CAREER" ? "track_career" : tr === "EXAM" ? "track_exam" : tr === "RELATIONSHIP" ? "track_relationship" : "track_financial", lang)}
-              </PillBtn>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
-          <ActionBtn onClick={() => void handleSaveUserSettings()} disabled={userSettingsSaving}>
-            {userSettingsSaving ? t("notif_saving", lang) : lang === "ta" ? "சேமி" : "Save preferences"}
-          </ActionBtn>
-          {userSettingsSaved && (
-            <span style={{ fontSize: "0.875rem", color: W.sage, fontWeight: 600 }}>
-              <svg viewBox="0 0 24 24" fill="none" width="14" height="14" aria-hidden="true" style={{ flexShrink: 0 }}><path d="M5.5 12.5L10 17L18.5 8.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              {lang === "ta" ? "சேமிக்கப்பட்டது" : "Saved"}
-            </span>
+          {showIds && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1px", background: C.border, borderTop: `1px solid ${C.border}` }}>
+              {idFields.map((f) => (
+                <button
+                  key={f.label}
+                  type="button"
+                  onClick={() => copyId(f.value)}
+                  title={f.value}
+                  style={{ background: C.surfaceSoft, padding: "14px 22px", cursor: "pointer", display: "flex", flexDirection: "column", gap: "5px", border: "none", fontFamily: "inherit", textAlign: "left" }}
+                >
+                  <span style={{ fontSize: "10px", letterSpacing: ".12em", textTransform: "uppercase", color: C.faint, fontWeight: 700 }}>{f.label}</span>
+                  <span style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: "12px", color: C.textMid, display: "flex", alignItems: "center", gap: "8px" }}>
+                    {f.value.length > 24 ? `${f.value.slice(0, 24)}…` : f.value}
+                    <span style={{ color: C.accentText, fontSize: "11px" }}>⧉</span>
+                  </span>
+                </button>
+              ))}
+            </div>
           )}
         </div>
-      </SettingsCard>
+      )}
+    </div>
+  );
 
-      {/* ── Language ── */}
-      <SettingsCard>
-        <SectionLabel>{lang === "ta" ? "மொழி" : "Language"}</SectionLabel>
-        <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted, lineHeight: 1.55 }}>
-          {lang === "ta"
-            ? "தளம் ஏற்றப்படும்போது காட்டப்படும் இயல்பு மொழியைத் தேர்வு செய்யுங்கள். இது உங்கள் சாதனங்களில் ஒத்திசைக்கப்படும்."
-            : "Choose the default language the app loads in. This syncs across your devices."}
-        </p>
-        <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-          {([
-            { value: "en", label: "English" },
-            { value: "ta", label: "தமிழ்" },
-          ] as { value: Lang; label: string }[]).map(({ value, label }) => (
-            <PillBtn key={value} active={lang === value} onClick={() => onLangChange(value)}>
-              {label}
-            </PillBtn>
+  const detailDesc = modeDraft === "BEGINNER"
+    ? (lang === "ta" ? "எளிய மொழி முதலில் — ஜோதிட சொற்கள் தேவைப்படும்வரை மறைந்திருக்கும்." : "Plain language first — classical terms tucked away until you want them.")
+    : modeDraft === "BALANCED"
+    ? (lang === "ta" ? "எளிய மொழி வழிகாட்டல், ஜோதிட சொற்களுடன் இணைந்து." : "Plain-language guidance paired with the classical terms.")
+    : (lang === "ta" ? "முழு ஜோதிட சொற்களஞ்சியம், குறைந்த எளிமைப்படுத்தல்." : "Full Jothidam vocabulary, minimal simplification.");
+
+  const renderExperience = () => (
+    <div style={panelWrap}>
+      <PanelHeader
+        title={lang === "ta" ? "அனுபவம்" : "Experience"}
+        desc={lang === "ta" ? "விநாடி எவ்வளவு ஜோதிட ஆழம் காட்டுகிறது, எந்த வாழ்க்கைப் பகுதிகளுக்கு சாய்கிறது என்பதை சரிசெய்யுங்கள்." : "Tune how much classical depth Vinaadi shows, and which life areas it leans into for you."}
+      />
+
+      <Card>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "16px", flexWrap: "wrap" }}>
+          <RowHeader title={t("mode_label", lang)} desc={detailDesc} />
+          <Segmented<UserMode>
+            value={modeDraft}
+            onChange={setModeDraft}
+            options={[
+              { v: "BEGINNER", label: t("mode_beginner", lang) },
+              { v: "BALANCED", label: t("mode_balanced", lang) },
+              { v: "TRADITIONAL", label: t("mode_traditional", lang) },
+            ]}
+          />
+        </div>
+      </Card>
+
+      <Card>
+        <RowHeader title={t("track_label", lang)} desc={lang === "ta" ? "இப்போது முக்கியமான ஒன்றைத் தேர்வுசெய்யுங்கள் — வழிகாட்டலும் நேரமும் அதை நோக்கி சாயும்." : "Pick what matters right now — guidance and timing lean toward it."} />
+        <div style={{ display: "flex", gap: "9px", flexWrap: "wrap" }}>
+          <Chip active={trackDraft === ""} onClick={() => setTrackDraft("")}>{t("track_none", lang)}</Chip>
+          {(["CAREER", "EXAM", "RELATIONSHIP", "FINANCIAL"] as GoalTrack[]).map((tr) => (
+            <Chip key={tr} active={trackDraft === tr} onClick={() => setTrackDraft(tr)}>
+              {t(tr === "CAREER" ? "track_career" : tr === "EXAM" ? "track_exam" : tr === "RELATIONSHIP" ? "track_relationship" : "track_financial", lang)}
+            </Chip>
           ))}
         </div>
-      </SettingsCard>
+      </Card>
 
-      {/* ── Appearance ── */}
-      <SettingsCard>
-        <SectionLabel>{lang === "ta" ? "தோற்றம்" : "Appearance"}</SectionLabel>
-        <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted, lineHeight: 1.55 }}>
-          {lang === "ta"
-            ? "இருண்ட அல்லது வெளிர் பயன்முறையை தேர்வு செய்யுங்கள், அல்லது சாதன அமைப்பைப் பின்பற்றவும்."
-            : "Choose dark or light mode, or follow your device setting."}
-        </p>
-        <div
-          style={{
-            display: "flex",
-            gap: "var(--space-2)",
-            flexWrap: "wrap",
-          }}
-        >
-          {([
-            { value: "system", labelEn: "System", labelTa: "சாதனம்" },
-            { value: "light",  labelEn: "Light",  labelTa: "வெளிர்" },
-            { value: "dark",   labelEn: "Dark",   labelTa: "இருண்ட" },
-          ] as { value: Theme; labelEn: string; labelTa: string }[]).map(({ value, labelEn, labelTa }) => (
-            <PillBtn key={value} active={currentTheme === value} onClick={() => setTheme(value)}>
-              {lang === "ta" ? labelTa : labelEn}
-            </PillBtn>
-          ))}
+      <PrimaryBtn onClick={() => void handleSaveUserSettings()} disabled={userSettingsSaving}>
+        {userSettingsSaving ? t("notif_saving", lang) : (lang === "ta" ? "விருப்பங்களை சேமி" : "Save preferences")}
+      </PrimaryBtn>
+    </div>
+  );
+
+  const renderAppearance = () => (
+    <div style={panelWrap}>
+      <PanelHeader
+        title={lang === "ta" ? "தோற்றம்" : "Appearance"}
+        desc={lang === "ta" ? "தீம் மற்றும் மொழி. நீங்கள் உள்நுழையும் ஒவ்வொரு சாதனத்திலும் இவை ஒத்திசைக்கப்படும்." : "Theme and language. These sync across every device you sign in on."}
+      />
+
+      <Card>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+          <RowHeader title={lang === "ta" ? "தீம்" : "Theme"} desc={lang === "ta" ? "இருண்ட, வெளிர், அல்லது சாதன அமைப்பைப் பின்பற்றவும்." : "Dark, light, or follow your device setting."} />
+          <Segmented<Theme>
+            value={currentTheme}
+            onChange={setTheme}
+            options={[
+              { v: "system", label: lang === "ta" ? "சாதனம்" : "System" },
+              { v: "light", label: lang === "ta" ? "வெளிர்" : "Light" },
+              { v: "dark", label: lang === "ta" ? "இருண்ட" : "Dark" },
+            ]}
+          />
         </div>
-      </SettingsCard>
-
-      {/* ── Journal retention ── */}
-      <SettingsCard>
-        <SectionLabel>{lang === "ta" ? "குறிப்பேடு தக்கவைப்பு" : "Journal retention"}</SectionLabel>
-        <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted, lineHeight: 1.55 }}>
-          {t("settings_retention_desc", lang)}
-        </p>
-
-        <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-end", flexWrap: "wrap" }}>
-          <FieldRow label={t("settings_retention_days", lang)} hint={t("settings_retention_hint", lang)}>
-            <WarmInput
-              type="number"
-              min={7}
-              max={3650}
-              value={retentionDraft}
-              onChange={(e) => setRetentionDraft(Number.parseInt(e.target.value || "0", 10))}
-              style={{ maxWidth: "120px" }}
-            />
-          </FieldRow>
-          <ActionBtn onClick={() => onSaveJournalRetentionDays(retentionDraft)} disabled={!retentionValid || busyJournalSettings}>
-            {busyJournalSettings ? t("settings_retention_saving", lang) : t("settings_retention_save", lang)}
-          </ActionBtn>
+        <div style={{ fontSize: "11.5px", color: C.accentText, background: C.accentMuted, border: `1px solid ${C.border}`, borderRadius: "9px", padding: "9px 13px", lineHeight: 1.5 }}>
+          {lang === "ta" ? "Nova தோற்றம் செயலில் இருக்கும்போது, இந்த அமைப்பைப் பொருட்படுத்தாமல் ஆப் இருண்டதாகவே இருக்கும்." : "While the Nova look is active, the app stays dark regardless of this setting."}
         </div>
+      </Card>
 
-        <p style={{
-          margin: 0,
-          fontSize: "0.875rem",
-          color: retentionDraft <= 30 ? W.terracota : W.muted,
-          lineHeight: 1.5,
-        }}>
-          {retentionNotice}
-        </p>
-
-        <div style={{ display: "grid", gap: "var(--space-1)", fontSize: "0.875rem", color: W.mutedLt }}>
-          <p style={{ margin: 0 }}>{t("settings_retention_last_updated", lang)}: {fmt(journalLastUpdatedAt)}</p>
-          <p style={{ margin: 0 }}>{t("settings_retention_last_reviewed", lang)}: {fmt(journalLastRetentionReviewedAt)}</p>
-          <p style={{ margin: 0 }}>{t("settings_retention_next_review", lang)}: {fmtDate(journalNextRecommendedReviewDate)}</p>
+      <Card>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+          <RowHeader title={lang === "ta" ? "மொழி" : "Language"} desc={lang === "ta" ? "ஆப் ஏற்றப்படும் இயல்பு மொழி." : "Default language the app loads in."} />
+          <Segmented<Lang>
+            value={lang}
+            onChange={onLangChange}
+            options={[
+              { v: "en", label: "English" },
+              { v: "ta", label: <span style={{ fontFamily: "var(--font-tamil, 'Noto Sans Tamil', sans-serif)" }}>தமிழ்</span> },
+            ]}
+          />
         </div>
+      </Card>
+    </div>
+  );
 
-        <div>
-          <ActionBtn onClick={onAcknowledgeJournalReminder} disabled={busyJournalSettings} variant="ghost">
-            {busyJournalSettings ? t("settings_retention_saving", lang) : t("settings_retention_acknowledge", lang)}
-          </ActionBtn>
+  const notifRow = (title: string, desc: string, node: React.ReactNode, last?: boolean) => (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px", padding: "18px 0", borderBottom: last ? undefined : `1px solid ${C.border}` }}>
+      <div style={{ maxWidth: "70%" }}>
+        <div style={{ fontSize: "14px", fontWeight: 600, color: C.text }}>{title}</div>
+        <div style={{ fontSize: "12px", color: C.faint, marginTop: "2px" }}>{desc}</div>
+      </div>
+      {node}
+    </div>
+  );
+
+  const renderNotifications = () => (
+    <div style={panelWrap}>
+      <PanelHeader
+        title={lang === "ta" ? "அறிவிப்புகள்" : "Notifications"}
+        desc={lang === "ta" ? "விநாடி எப்படி, எத்தனை முறை உங்களை அடைகிறது என்பதைத் தேர்வுசெய்யுங்கள். அமைதி நேரங்களில் Smart silence அறிவிப்புகளைப் பிடித்து வைக்கும்." : "Choose how, and how often, Vinaadi reaches you. Smart silence holds alerts during your quiet hours."}
+      />
+
+      <Card>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+          <RowHeader title={t("notif_channel", lang)} desc={lang === "ta" ? "அறிவிப்புகள் எங்கு அனுப்பப்படும்." : "Where alerts are sent."} />
+          <Segmented<"none" | "push" | "email" | "both">
+            value={notifChannel}
+            onChange={setNotifChannel}
+            options={[
+              { v: "none", label: t("notif_channel_none", lang) },
+              { v: "push", label: t("notif_channel_push", lang) },
+              { v: "email", label: t("notif_channel_email", lang) },
+              { v: "both", label: t("notif_channel_both", lang) },
+            ]}
+          />
         </div>
+      </Card>
 
-        {/* Run cleanup now — dry-run preview first, archive only on confirm */}
-        {chartId && (
-          <div style={{ borderTop: `1px solid ${W.borderLt}`, paddingTop: "var(--space-3)", display: "grid", gap: "var(--space-2)" }}>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted, lineHeight: 1.5 }}>
-              {lang === "ta"
-                ? "தக்கவைப்பு காலத்தை கடந்த பழைய குறிப்புகளை இப்போதே காப்பகப்படுத்தலாம். முதலில் எத்தனை குறிப்புகள் பாதிக்கப்படும் என்பதை பார்க்கலாம் — உறுதிப்படுத்திய பிறகுதான் காப்பகம் நடக்கும்."
-                : "Archive entries older than your retention window now. Preview first — nothing is archived until you confirm."}
-            </p>
-
-            {!retentionPreview && (
-              <div>
-                <ActionBtn onClick={() => void handleRetentionPreview()} disabled={busyRetentionApply} variant="ghost">
-                  {busyRetentionApply
-                    ? (lang === "ta" ? "சரிபார்க்கிறது…" : "Checking…")
-                    : (lang === "ta" ? "சுத்தம் செய்வதை முன்னோட்டமிடு" : "Preview cleanup")}
-                </ActionBtn>
-              </div>
-            )}
-
-            {retentionPreview && retentionPreview.matchedCount === 0 && (
-              <p style={{ margin: 0, fontSize: "0.875rem", color: W.sage }}>
-                {lang === "ta"
-                  ? "காப்பகப்படுத்த பழைய குறிப்புகள் எதுவும் இல்லை."
-                  : "No entries are older than your retention window — nothing to clean up."}
-              </p>
-            )}
-
-            {retentionPreview && retentionPreview.matchedCount > 0 && (
-              <div style={{ display: "flex", gap: "var(--space-2_5)", alignItems: "center", flexWrap: "wrap" }}>
-                <p style={{ margin: 0, fontSize: "0.875rem", color: W.inkMid }}>
-                  {lang === "ta"
-                    ? `${retentionPreview.matchedCount} குறிப்புகள் (${fmtDate(retentionPreview.thresholdDate)} க்கு முந்தையவை) காப்பகப்படுத்தப்படும்.`
-                    : `${retentionPreview.matchedCount} entr${retentionPreview.matchedCount === 1 ? "y" : "ies"} older than ${fmtDate(retentionPreview.thresholdDate)} will be archived.`}
-                </p>
-                <ActionBtn onClick={() => void handleRetentionApply()} disabled={busyRetentionApply}>
-                  {busyRetentionApply
-                    ? (lang === "ta" ? "காப்பகப்படுத்துகிறது…" : "Archiving…")
-                    : (lang === "ta" ? "உறுதிப்படுத்து & காப்பகப்படுத்து" : "Confirm & archive")}
-                </ActionBtn>
-                <ActionBtn onClick={() => setRetentionPreview(null)} disabled={busyRetentionApply} variant="ghost">
-                  {lang === "ta" ? "ரத்து" : "Cancel"}
-                </ActionBtn>
-              </div>
-            )}
-
-            {retentionApplied && (
-              <p style={{ margin: 0, fontSize: "0.875rem", color: W.sage }}>
-                {lang === "ta"
-                  ? `${retentionApplied.archivedCount} குறிப்புகள் காப்பகப்படுத்தப்பட்டன.`
-                  : `Archived ${retentionApplied.archivedCount} entr${retentionApplied.archivedCount === 1 ? "y" : "ies"}.`}
-              </p>
-            )}
-          </div>
-        )}
-      </SettingsCard>
-
-      {/* ── Notifications ── */}
-      <SettingsCard>
-        <SectionLabel>{lang === "ta" ? "அறிவிப்புகள்" : "Notifications"}</SectionLabel>
-
-        <FieldRow label={t("notif_channel", lang)}>
-          <WarmSelect value={notifChannel} onChange={(e) => setNotifChannel(e.target.value as "none" | "email" | "push" | "both")} style={{ maxWidth: "240px" }}>
-            <option value="none">{t("notif_channel_none", lang)}</option>
-            <option value="email">{t("notif_channel_email", lang)}</option>
-            <option value="push">{t("notif_channel_push", lang)}</option>
-            <option value="both">{t("notif_channel_both", lang)}</option>
-          </WarmSelect>
-        </FieldRow>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3_5)" }}>
-          <ToggleRow checked={notifMorning} onChange={setNotifMorning}>
-            {t("notif_morning_alert", lang)}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "16px", padding: "6px 26px", display: "flex", flexDirection: "column" }}>
+        {notifRow(
+          t("notif_morning_alert", lang),
+          lang === "ta" ? "உங்கள் தினசரி வாசிப்பு, குறிப்பிட்ட நேரத்தில்." : "Your daily reading, delivered at a set time.",
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             {notifMorning && (
-              <WarmInput
-                type="time"
-                value={notifMorningTime}
-                onChange={(e) => setNotifMorningTime(e.target.value)}
-                style={{ maxWidth: "100px", marginLeft: "var(--space-2)", display: "inline-block" }}
-              />
+              <input type="time" value={notifMorningTime} onChange={(e) => setNotifMorningTime(e.target.value)} style={{ ...fieldStyle, width: "auto", padding: "7px 11px", fontSize: "12.5px" }} />
             )}
-          </ToggleRow>
-          <ToggleRow checked={notifDasha} onChange={setNotifDasha}>
-            {t("notif_dasha_alert", lang)}
-          </ToggleRow>
-          <ToggleRow checked={notifPirantha} onChange={setNotifPirantha}>
-            {t("notif_pirantha_alert", lang)}
-          </ToggleRow>
-          <ToggleRow checked={notifSmartSilence} onChange={setNotifSmartSilence}>
-            {t("notif_smart_silence", lang)}
-          </ToggleRow>
+            <Toggle checked={notifMorning} onChange={setNotifMorning} />
+          </div>,
+        )}
+        {notifRow(t("notif_dasha_alert", lang), lang === "ta" ? "ஒரு பெரிய கிரக காலம் மாறும்போது." : "When a major planetary period shifts.", <Toggle checked={notifDasha} onChange={setNotifDasha} />)}
+        {notifRow(t("notif_pirantha_alert", lang), lang === "ta" ? "குடும்ப உறுப்பினர்களுக்கான நட்சத்திரப் பிறந்தநாள் நினைவூட்டல்." : "Star-birthday reminders for family members.", <Toggle checked={notifPirantha} onChange={setNotifPirantha} />)}
+        {notifRow(t("notif_smart_silence", lang), lang === "ta" ? "ராகு காலம் & இரவில் அவசரமற்ற அறிவிப்புகளை இடைநிறுத்து." : "Pause non-urgent alerts during Rahu Kalam & night.", <Toggle checked={notifSmartSilence} onChange={setNotifSmartSilence} tone={C.accent} />, true)}
+      </div>
+
+      {(notificationPrefs && !notificationPrefs.fcmTokenRegistered) || pushUnavailable ? (
+        <div style={{ background: C.dangerBg, border: `1px solid ${C.dangerBorder}`, borderRadius: "10px", padding: "11px 15px", fontSize: "12px", color: C.dangerText, lineHeight: 1.5 }}>
+          {pushUnavailable
+            ? (lang === "ta" ? "Push notifications unavailable." : "Push notifications unavailable.")
+            : t("notif_fcm_not_registered", lang)}
+        </div>
+      ) : notificationPrefs?.fcmTokenRegistered ? (
+        <div style={{ fontSize: "12px", color: C.sage }}>{t("notif_fcm_registered", lang)}</div>
+      ) : null}
+
+      <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+        <PrimaryBtn onClick={handleSaveNotifications} disabled={notifSaving}>
+          {notifSaving ? t("notif_saving", lang) : t("btn_save_notifications", lang)}
+        </PrimaryBtn>
+        {!pushUnavailable && (
+          <>
+            <GhostBtn onClick={() => void registerPushToken()} disabled={pushBusy}>
+              {pushBusy ? (lang === "ta" ? "செயலாக்கம்…" : "Processing…") : (lang === "ta" ? "Push பதிவு" : "Register push")}
+            </GhostBtn>
+            <GhostBtn onClick={() => void unregisterPushToken()} disabled={pushBusy} danger>
+              {lang === "ta" ? "Push நீக்கு" : "Remove push"}
+            </GhostBtn>
+          </>
+        )}
+      </div>
+      {pushMessage && <div style={{ fontSize: "12px", color: C.muted }}>{pushMessage}</div>}
+    </div>
+  );
+
+  const renderJournal = () => (
+    <div style={panelWrap}>
+      <PanelHeader
+        title={lang === "ta" ? "குறிப்பேடு & தரவு" : "Journal & Data"}
+        desc={lang === "ta" ? "தக்கவைப்பு சுத்தம் செய்வதற்கு முன் உங்கள் குறிப்புகள் எவ்வளவு காலம் வைக்கப்படும். உங்கள் உறுதிப்படுத்தல் இல்லாமல் எதுவும் நீக்கப்படாது." : "How long your journal entries are kept before retention cleanup. Nothing is ever removed without your confirmation."}
+      />
+
+      <Card>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "12px" }}>
+          <div style={{ fontSize: "15px", fontWeight: 600, color: C.text }}>{lang === "ta" ? "தக்கவைப்பு காலம்" : "Retention window"}</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
+            <span style={{ fontFamily: "var(--font-display, serif)", fontSize: "34px", fontWeight: 600, color: C.accentText, lineHeight: 1 }}>{retentionDraft}</span>
+            <span style={{ fontSize: "13px", color: C.faint }}>{lang === "ta" ? "நாட்கள்" : "days"}</span>
+          </div>
+        </div>
+        <input
+          type="range"
+          min={7}
+          max={3650}
+          step={1}
+          value={retentionValid ? retentionDraft : 7}
+          onChange={(e) => setRetentionDraft(Number.parseInt(e.target.value, 10))}
+          style={{ width: "100%", accentColor: "var(--color-accent, #d4af5f)" }}
+        />
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: C.faint }}>
+          <span>{lang === "ta" ? "7 நாட்கள்" : "7 days"}</span>
+          <span>{lang === "ta" ? "நீண்ட வரலாறு →" : "Longer history kept before cleanup →"}</span>
+          <span>{lang === "ta" ? "3650 நாட்கள்" : "3650 days"}</span>
         </div>
 
-        {notificationPrefs && (
-          <p style={{ margin: 0, fontSize: "0.75rem", color: notificationPrefs.fcmTokenRegistered ? W.sage : W.mutedLt }}>
-            {notificationPrefs.fcmTokenRegistered ? t("notif_fcm_registered", lang) : t("notif_fcm_not_registered", lang)}
-          </p>
-        )}
-        {pushUnavailable && (
-          <p style={{ margin: 0, fontSize: "0.75rem", color: W.mutedLt }}>
-            {lang === "ta" ? "Push notifications unavailable." : "Push notifications unavailable."}
-          </p>
-        )}
+        <div style={{ height: "1px", background: C.border }} />
 
-        <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
-          <ActionBtn onClick={handleSaveNotifications} disabled={notifSaving}>
-            {notifSaving ? t("notif_saving", lang) : t("btn_save_notifications", lang)}
-          </ActionBtn>
-          {!pushUnavailable && (
-            <>
-              <ActionBtn onClick={() => void registerPushToken()} disabled={pushBusy} variant="ghost">
-                {pushBusy ? (lang === "ta" ? "செயலாக்கம்..." : "Processing...") : (lang === "ta" ? "Push பதிவு" : "Register push")}
-              </ActionBtn>
-              <ActionBtn onClick={() => void unregisterPushToken()} disabled={pushBusy} variant="danger">
-                {lang === "ta" ? "Push நீக்கு" : "Remove push"}
-              </ActionBtn>
-            </>
+        <div style={{ display: "flex", gap: "26px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+            <span style={{ ...KICKER, letterSpacing: ".1em" }}>{t("settings_retention_last_updated", lang)}</span>
+            <span style={{ fontSize: "13px", color: C.textMid }}>{fmt(journalLastUpdatedAt)}</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+            <span style={{ ...KICKER, letterSpacing: ".1em" }}>{t("settings_retention_next_review", lang)}</span>
+            <span style={{ fontSize: "13px", color: C.textMid }}>{fmtDate(journalNextRecommendedReviewDate)}</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+            <span style={{ ...KICKER, letterSpacing: ".1em" }}>{t("settings_retention_last_reviewed", lang)}</span>
+            <span style={{ fontSize: "13px", color: C.faint }}>{fmt(journalLastRetentionReviewedAt)}</span>
+          </div>
+        </div>
+
+        <div style={{ fontSize: "13px", color: retentionDraft <= 30 ? C.accentText : C.muted, lineHeight: 1.5 }}>{retentionNotice}</div>
+
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+          <PrimaryBtn onClick={() => onSaveJournalRetentionDays(retentionDraft)} disabled={!retentionValid || busyJournalSettings}>
+            {busyJournalSettings ? t("settings_retention_saving", lang) : t("settings_retention_save", lang)}
+          </PrimaryBtn>
+          <GhostBtn onClick={onAcknowledgeJournalReminder} disabled={busyJournalSettings}>{t("settings_retention_acknowledge", lang)}</GhostBtn>
+          {chartId && !retentionPreview && (
+            <GhostBtn onClick={() => void handleRetentionPreview()} disabled={busyRetentionApply}>
+              {busyRetentionApply ? (lang === "ta" ? "சரிபார்க்கிறது…" : "Checking…") : (lang === "ta" ? "சுத்தம் முன்னோட்டம்" : "Preview cleanup")}
+            </GhostBtn>
           )}
-          {notifSaved && (
-            <span style={{ fontSize: "0.875rem", color: W.sage, fontWeight: 600 }}>
-              {t("notif_saved", lang)}
+        </div>
+
+        {retentionPreview && retentionPreview.matchedCount === 0 && (
+          <div style={{ fontSize: "13px", color: C.sage }}>{lang === "ta" ? "காப்பகப்படுத்த பழைய குறிப்புகள் எதுவும் இல்லை." : "No entries are older than your retention window — nothing to clean up."}</div>
+        )}
+        {retentionPreview && retentionPreview.matchedCount > 0 && (
+          <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "13px", color: C.textMid }}>
+              {lang === "ta"
+                ? `${retentionPreview.matchedCount} குறிப்புகள் (${fmtDate(retentionPreview.thresholdDate)} க்கு முந்தையவை) காப்பகப்படுத்தப்படும்.`
+                : `${retentionPreview.matchedCount} entr${retentionPreview.matchedCount === 1 ? "y" : "ies"} older than ${fmtDate(retentionPreview.thresholdDate)} will be archived.`}
             </span>
-          )}
-        </div>
-        {pushMessage && <p style={{ margin: 0, fontSize: "0.75rem", color: W.muted }}>{pushMessage}</p>}
-      </SettingsCard>
+            <PrimaryBtn onClick={() => void handleRetentionApply()} disabled={busyRetentionApply}>
+              {busyRetentionApply ? (lang === "ta" ? "காப்பகப்படுத்துகிறது…" : "Archiving…") : (lang === "ta" ? "உறுதி & காப்பகம்" : "Confirm & archive")}
+            </PrimaryBtn>
+            <GhostBtn onClick={() => setRetentionPreview(null)} disabled={busyRetentionApply}>{lang === "ta" ? "ரத்து" : "Cancel"}</GhostBtn>
+          </div>
+        )}
+        {retentionApplied && (
+          <div style={{ fontSize: "13px", color: C.sage }}>
+            {lang === "ta"
+              ? `${retentionApplied.archivedCount} குறிப்புகள் காப்பகப்படுத்தப்பட்டன.`
+              : `Archived ${retentionApplied.archivedCount} entr${retentionApplied.archivedCount === 1 ? "y" : "ies"}.`}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
 
-      {/* ── Help & Feedback ── */}
-      <SettingsCard>
-        <SectionLabel>{lang === "ta" ? "உதவி & கருத்து" : "Help & feedback"}</SectionLabel>
-        <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted, lineHeight: 1.55 }}>
-          {lang === "ta"
-            ? "கேள்விகள் அல்லது பரிந்துரைகள் இருந்தால் தொடர்பு கொள்ளவும்."
-            : "Have questions or suggestions? We're here to help."}
-        </p>
-        <div>
-          <ActionBtn onClick={() => { window.location.href = "mailto:support@vinaadi.ai"; }} variant="ghost">
-            {lang === "ta" ? "✉ கருத்து அனுப்பு" : "✉ Send feedback"}
-          </ActionBtn>
-        </div>
-      </SettingsCard>
+  const renderPrivacy = () => (
+    <div style={panelWrap}>
+      <PanelHeader
+        title={lang === "ta" ? "தனியுரிமை & சட்டம்" : "Privacy & Legal"}
+        desc={lang === "ta" ? "விநாடி உங்கள் தரவை எவ்வாறு கையாளுகிறது, மற்றும் அது வழங்கும் வழிகாட்டலின் எல்லைகள்." : "How Vinaadi handles your data, and the boundaries of the guidance it offers."}
+      />
 
-      {/* ── Danger zone ── */}
-      <SettingsCard>
-        <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#991B1B" }}>
-          {t("danger_zone_title", lang)}
-        </p>
-        <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.875rem", color: W.muted, lineHeight: 1.55 }}>
-          {t("delete_account_warning", lang)}
-        </p>
+      <Card>
+        <div style={{ fontSize: "15px", fontWeight: 600, color: C.text }}>{lang === "ta" ? "உதவி & கருத்து" : "Help & feedback"}</div>
+        <div style={{ fontFamily: "var(--font-body, serif)", fontSize: "14px", color: C.muted, lineHeight: 1.6 }}>
+          {lang === "ta" ? "கேள்விகள் அல்லது பரிந்துரைகள்? நாங்கள் ஒரு சிறிய குழு — ஒவ்வொரு குறிப்பையும் படிக்கிறோம். உங்கள் கருத்து இறுதி வடிவத்தை வடிவமைக்கிறது." : "Questions or suggestions? We're a small team and read every note — your feedback shapes the final version."}
+        </div>
+        <GhostBtn onClick={() => { window.location.href = "mailto:support@vinaadi.ai"; }}>{lang === "ta" ? "✉ கருத்து அனுப்பு" : "✉ Send feedback"}</GhostBtn>
+      </Card>
+
+      <div style={{ background: C.raised, border: `1px solid ${C.border}`, borderRadius: "16px", padding: "24px 26px", display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div style={{ ...KICKER, letterSpacing: ".14em", color: C.purple }}>{lang === "ta" ? "வழிகாட்டல் மறுப்பு" : "Guidance disclaimer"}</div>
+        <div style={{ fontFamily: "var(--font-body, serif)", fontSize: "13.5px", lineHeight: 1.7, color: C.muted, display: "flex", flexDirection: "column", gap: "8px" }}>
+          <p style={{ margin: 0 }}>{t("disclaimer_astro", lang)}</p>
+          <p style={{ margin: 0 }}>{t("disclaimer_no_doom", lang)}</p>
+          <p style={{ margin: 0 }}>{t("disclaimer_data", lang)}</p>
+        </div>
+        <div style={{ display: "flex", gap: "20px", fontSize: "13px", fontWeight: 600, marginTop: "2px" }}>
+          <a href="/privacy" style={{ color: C.accentText, textDecoration: "none" }}>{t("privacy_link", lang)}</a>
+          <a href="/terms" style={{ color: C.accentText, textDecoration: "none" }}>{t("terms_link", lang)}</a>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderDanger = () => (
+    <div style={panelWrap}>
+      <PanelHeader
+        title={t("danger_zone_title", lang)}
+        desc={lang === "ta" ? "மீட்க முடியாத செயல்கள். தொடர்வதற்கு முன் ஒரு மூச்சு விடுங்கள்." : "Irreversible actions. Take a breath before you continue."}
+        danger
+      />
+      <Card tone="danger">
+        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          <div style={{ fontSize: "15px", fontWeight: 600, color: C.text }}>{t("delete_account_btn", lang)}</div>
+          <div style={{ fontFamily: "var(--font-body, serif)", fontSize: "14px", color: C.muted, lineHeight: 1.6, maxWidth: "560px" }}>{t("delete_account_warning", lang)}</div>
+        </div>
+        {deleteError && <div style={{ fontSize: "13px", color: C.danger }}>{deleteError}</div>}
         {!deleteConfirming ? (
-          <ActionBtn onClick={() => { setDeleteConfirming(true); setDeleteError(""); }} variant="danger">
-            {t("delete_account_btn", lang)}
-          </ActionBtn>
+          <GhostBtn onClick={() => { setDeleteConfirming(true); setDeleteError(""); }} danger>{t("delete_account_btn", lang)}</GhostBtn>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", padding: "var(--space-4)", background: "#FEF2F2", borderRadius: "var(--radius-md)", border: "1px solid #FECACA" }}>
-            <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600, color: "#991B1B" }}>
-              {t("delete_account_confirm_prompt", lang)}
-            </p>
-            {deleteError && (
-              <p style={{ margin: 0, fontSize: "0.8rem", color: "#991B1B" }}>{deleteError}</p>
-            )}
-            <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
-              <ActionBtn onClick={() => void handleDeleteAccount()} disabled={deleteDeleting} variant="danger">
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ fontSize: "14px", fontWeight: 600, color: C.danger }}>{t("delete_account_confirm_prompt", lang)}</div>
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => void handleDeleteAccount()}
+                disabled={deleteDeleting}
+                style={{ alignSelf: "flex-start", background: C.danger, border: `1px solid ${C.danger}`, color: "#fff", borderRadius: "10px", padding: "11px 22px", fontSize: "13px", fontWeight: 700, cursor: deleteDeleting ? "not-allowed" : "pointer", opacity: deleteDeleting ? 0.6 : 1, fontFamily: "inherit" }}
+              >
                 {deleteDeleting ? t("delete_account_deleting", lang) : t("delete_account_confirm_btn", lang)}
-              </ActionBtn>
-              <ActionBtn onClick={() => { setDeleteConfirming(false); setDeleteError(""); }} disabled={deleteDeleting} variant="ghost">
-                {t("delete_account_cancel", lang)}
-              </ActionBtn>
+              </button>
+              <GhostBtn onClick={() => { setDeleteConfirming(false); setDeleteError(""); }} disabled={deleteDeleting}>{t("delete_account_cancel", lang)}</GhostBtn>
             </div>
           </div>
         )}
-      </SettingsCard>
+      </Card>
+    </div>
+  );
 
-      {/* ── Privacy footer ── */}
-      <div style={{
-        borderRadius: "var(--radius-md)",
-        border: `1px solid ${W.borderLt}`,
-        background: W.surfaceMd,
-        padding: "var(--space-4) var(--space-5)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--space-2)",
-      }}>
-        <p style={{ margin: 0, fontSize: "0.75rem", color: W.mutedLt, lineHeight: 1.6 }}>
-          {t("disclaimer_astro", lang)}
-        </p>
-        <p style={{ margin: 0, fontSize: "0.75rem", color: W.mutedLt, lineHeight: 1.5 }}>
-          {t("disclaimer_no_doom", lang)}
-        </p>
-        <p style={{ margin: 0, fontSize: "0.75rem", color: W.mutedLt, lineHeight: 1.5 }}>
-          {t("disclaimer_data", lang)}
-        </p>
-        <div style={{ display: "flex", gap: "var(--space-4)", marginTop: "var(--space-1)" }}>
-          <span style={{ fontSize: "0.75rem", color: W.muted, textDecoration: "underline", cursor: "pointer" }}>
-            {t("privacy_link", lang)}
-          </span>
-          <span style={{ fontSize: "0.75rem", color: W.muted, textDecoration: "underline", cursor: "pointer" }}>
-            {t("terms_link", lang)}
-          </span>
-        </div>
+  const panel =
+    section === "account" ? renderAccount()
+    : section === "experience" ? renderExperience()
+    : section === "appearance" ? renderAppearance()
+    : section === "notifications" ? renderNotifications()
+    : section === "journal" ? renderJournal()
+    : section === "privacy" ? renderPrivacy()
+    : section === "danger" ? renderDanger()
+    : renderAccount();
+
+  return (
+    <div style={{ fontFamily: "var(--font-body, Georgia, serif)", color: C.text, maxWidth: "1180px", margin: "0 auto", width: "100%" }}>
+      <div className="vs-settings-grid">
+        <SettingsRail active={section} onNavigate={onNavigate} lang={lang} userDisplayName={userDisplayName} vaultName={vaultName} />
+        <div style={{ minWidth: 0 }}>{panel}</div>
       </div>
 
+      {/* toast */}
+      {toast && (
+        <div style={{ position: "fixed", left: "50%", bottom: "30px", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: "9px", background: C.card, border: `1px solid ${C.sageBorder}`, borderRadius: "999px", padding: "11px 20px", fontSize: "13px", color: C.text, boxShadow: "0 10px 34px rgba(0,0,0,.45)", zIndex: 40 }}>
+          <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: C.sage }} />
+          {toast}
+        </div>
+      )}
     </div>
   );
 }

@@ -1288,6 +1288,94 @@
 [data-ui="nova"] .nova-celestial__star {
   animation: nova-celestial-twinkle 3.6s ease-in-out infinite;
 }
+/* Note: the page sky's light-theme behaviour (drop stars + night indigo, keep a
+   soft daytime-gold crown) is handled in JS inside CelestialAmbientNova via
+   useIsLightTheme(), not a CSS display:none gate — so the gold crown can still
+   show on the cream canvas. */
+/* Special-day (Pournami / Amavasai) signature draw: a single gold light sweep
+   across the hero glyph tile. Runs once and settles transparent, so the
+   reduced-motion guard collapses it to a clean, invisible still. */
+@keyframes nova-celestial-shimmer {
+  0% {
+    transform: translateX(-160%) skewX(-16deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(320%) skewX(-16deg);
+    opacity: 0;
+  }
+}
+[data-ui="nova"] .nova-celestial__shimmer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 55%;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent,
+    rgba(255, 224, 150, 0.55) 50%,
+    transparent
+  );
+  transform: translateX(-160%) skewX(-16deg);
+  animation: nova-celestial-shimmer 1.9s var(--ease-nova) 0.25s 1 both;
+}
+
+/* ── Settings preferences shell (rail + panels) ───────────────
+   Two-column layout used by the redesigned Settings/Onboarding surface
+   (dashboard-settings-session-tab.tsx, dashboard-setup-tab.tsx). The left
+   rail is a sticky vertical nav on wide screens; on narrow screens it
+   collapses to a horizontally-scrolling row of chips above the content. */
+@keyframes vfade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.vs-settings-grid {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  gap: 44px;
+  align-items: start;
+}
+.vs-settings-rail {
+  position: sticky;
+  top: 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.vs-settings-railnav {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.vs-settings-railnav > button { width: 100%; }
+@media (max-width: 880px) {
+  .vs-settings-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .vs-settings-rail {
+    position: static;
+    top: auto;
+  }
+  .vs-settings-railnav {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+  .vs-settings-railnav::-webkit-scrollbar { display: none; }
+  .vs-settings-railnav > * { flex: 0 0 auto; }
+  .vs-settings-railnav > button { width: auto; }
+  .vs-settings-rail-heading,
+  .vs-settings-rail-divider,
+  .vs-settings-identity { display: none; }
+}
 
 /* ── Reduced-motion guard ──────────────────────────────────
    First-class a11y path: honour the OS preference by collapsing every

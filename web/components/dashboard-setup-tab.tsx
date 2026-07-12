@@ -11,6 +11,7 @@ import { PlaceCombobox } from "./place-combobox";
 import { RectificationWizard } from "./dashboard-rectification-wizard";
 import { BirthProfilesManager } from "./birth-profiles-manager";
 import { usePlaceCoordinatesConfirm, PlaceMatchedBadge, PlaceCoordinatesFooter } from "./place-coordinates-field";
+import { SettingsRail, type SettingsSectionId } from "./dashboard-settings-rail";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
 
@@ -69,7 +70,6 @@ type UserMode = "BEGINNER" | "BALANCED" | "TRADITIONAL";
 
 interface DashboardSetupTabProps {
   lang: Lang;
-  settingsSubTab: "setup" | "session";
   birthProfileId: string;
   selectedVaultId: string;
   selectedVault: FamilyVaultListItem | null;
@@ -81,7 +81,7 @@ interface DashboardSetupTabProps {
   formErrors: Record<string, string>;
   busy: { createProfile: boolean; createVault: boolean; addMember: boolean };
   userMode?: UserMode;
-  onSettingsSubTabChange: (sub: "setup" | "session") => void;
+  onNavigate: (id: SettingsSectionId) => void;
   onBirthFormChange: (next: BirthFormState) => void;
   onVaultFormChange: (next: VaultFormState) => void;
   onMemberFormChange: (next: MemberFormState) => void;
@@ -238,7 +238,6 @@ function StatusChip({ done, label }: { done: boolean; label: string }) {
 
 export function DashboardSetupTab({
   lang,
-  settingsSubTab,
   birthProfileId,
   selectedVaultId,
   selectedVault,
@@ -249,7 +248,7 @@ export function DashboardSetupTab({
   memberForm,
   formErrors,
   busy,
-  onSettingsSubTabChange,
+  onNavigate,
   onBirthFormChange,
   onVaultFormChange,
   onMemberFormChange,
@@ -293,41 +292,16 @@ export function DashboardSetupTab({
   ];
 
   return (
-    <div style={{
-      display: "flex", flexDirection: "column", gap: "var(--space-8)",
-      fontFamily: "var(--font-body)",
-      color: W.ink,
-    }}>
-
-      {/* ── Settings sub-tab switcher ── */}
-      <div style={{ display: "flex", gap: "var(--space-1_5)" }}>
-        {([
-          { key: "setup",   label: lang === "ta" ? "ஆரம்ப நிலை" : "Onboarding" },
-          { key: "session", label: lang === "ta" ? "அமைப்புகள்" : "Settings" },
-        ] as const).map(({ key, label }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onSettingsSubTabChange(key)}
-            style={{
-              padding: "var(--space-2) var(--space-4_5)", borderRadius: "var(--radius-pill)", fontSize: "0.875rem", fontWeight: 600,
-              cursor: "pointer", fontFamily: "inherit",
-              border: "1.5px solid",
-              borderColor: settingsSubTab === key ? W.ink : W.border,
-              background: settingsSubTab === key ? W.ink : "transparent",
-              color: settingsSubTab === key ? W.surfaceMd : W.muted,
-              transition: "all 0.12s ease",
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Breadcrumb ── */}
-      <p style={{ margin: "-20px 0 0", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: W.terracota }}>
-        {lang === "ta" ? "அமைப்புகள் · ஆரம்ப நிலை" : "Settings · Onboarding"}
-      </p>
+    <div style={{ fontFamily: "var(--font-body)", color: W.ink, maxWidth: "1180px", margin: "0 auto", width: "100%" }}>
+      <div className="vs-settings-grid">
+        <SettingsRail
+          active="setup"
+          onNavigate={onNavigate}
+          lang={lang}
+          userDisplayName={birthForm.displayName}
+          vaultName={selectedVault?.name ?? vaultForm.name ?? ""}
+        />
+        <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: "var(--space-8)" }}>
 
       {/* ── Hero headline ── */}
       <h1 style={{
@@ -1028,6 +1002,8 @@ export function DashboardSetupTab({
           onClose={() => setShowRectWizard(false)}
         />
       )}
+        </div>
+      </div>
     </div>
   );
 }

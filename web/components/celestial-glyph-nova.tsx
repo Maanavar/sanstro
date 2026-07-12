@@ -49,12 +49,16 @@ export function CelestialGlyphNova({
   moon,
   size = 60,
   ariaLabel,
+  special = false,
 }: {
   variant: Variant;
   /** Required when variant === "moon" — drives shape + size from the real phase. */
   moon?: MoonPhase | null;
   size?: number;
   ariaLabel?: string;
+  /** On a special tithi day (Pournami / Amavasai) play a one-time gold shimmer
+   *  across the tile — a restrained "signature draw" on the reveal. */
+  special?: boolean;
 }) {
   // Unique per instance so gradient/clip ids never collide when several
   // celestial elements (hero glyph, mini chip moon, ambient) coexist.
@@ -115,6 +119,9 @@ export function CelestialGlyphNova({
           <SunBody gid={gid} />
         )}
       </svg>
+      {/* One-time gold shimmer on Pournami / Amavasai. Ends transparent so the
+          reduced-motion guard freezes it to an invisible still. */}
+      {special && <span aria-hidden="true" className="nova-celestial__shimmer" />}
     </span>
   );
 }
@@ -152,6 +159,10 @@ function MoonBody({ gid, fraction, waxing }: { gid: string; fraction: number; wa
   // Disc grows with fullness: a small dark Amavasai, a large silver Pournami.
   const r = 20 + 8 * fraction; // 20 (new) … 28 (full)
   const lit = litMoonPath(50, 50, r, fraction, waxing);
+  // Earthshine: near new moon the lit sliver is almost nothing, so the disc can
+  // read as an empty hole. Lift the rim + a faint outer ring so an Amavasai moon
+  // still reads as a round dark body. 1 at new … 0 by the first slim crescent.
+  const earthshine = Math.max(0, 1 - fraction / 0.18);
   return (
     <>
       <defs>
@@ -181,8 +192,16 @@ function MoonBody({ gid, fraction, waxing }: { gid: string; fraction: number; wa
           style={{ animationDelay: `${s.delay}s` }}
         />
       ))}
+      {/* Earthshine ring — only near new moon, so Amavasai reads as a body. */}
+      {earthshine > 0 && (
+        <circle cx="50" cy="50" r={r + 2.5} fill="none" stroke="#c4bce6" strokeWidth={1.2} opacity={0.3 * earthshine} />
+      )}
       {/* Dark side of the disc, faintly visible so a crescent still reads round. */}
       <circle cx="50" cy="50" r={r} fill="#3a3556" opacity={0.55} />
+      {/* Rim, strengthened near new moon where the lit edge all but vanishes. */}
+      {earthshine > 0 && (
+        <circle cx="50" cy="50" r={r} fill="none" stroke="#8f88b5" strokeWidth={0.9} opacity={0.5 * earthshine} />
+      )}
       {/* Lit portion — the real phase shape. */}
       <path d={lit} fill={`url(#${gid}-disc)`} />
       {/* Two faint maria so the lit face isn't a flat plate. Clipped to the lit
@@ -211,6 +230,11 @@ export function MiniMoonGlyph({
   const gid = useId().replace(/:/g, "");
   const r = 15 + 3 * phase.fraction; // 15 (new) … 18 (full), within a 40-box
   const lit = litMoonPath(20, 20, r, phase.fraction, phase.waxing);
+  // Earthshine: at Amavasai the lit path is a near-empty sliver, so in the chip
+  // the dark disc can read as "nothing". A faint outer ring + a stronger rim the
+  // newer the moon keeps it reading as a round dark body. 1 at new … 0 by first
+  // slim crescent.
+  const earthshine = Math.max(0, 1 - phase.fraction / 0.18);
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true" style={{ display: "block", flex: "none" }}>
       <defs>
@@ -219,7 +243,11 @@ export function MiniMoonGlyph({
           <stop offset="100%" stopColor="#cdc7e4" />
         </radialGradient>
       </defs>
-      <circle cx="20" cy="20" r={r} fill="#3a3556" opacity={0.5} stroke="#8f88b5" strokeWidth="0.8" />
+      <circle cx="20" cy="20" r={r} fill="#3a3556" fillOpacity={0.5 + 0.12 * earthshine} />
+      {earthshine > 0 && (
+        <circle cx="20" cy="20" r={r + 1.4} fill="none" stroke="#c4bce6" strokeWidth="0.9" opacity={0.4 * earthshine} />
+      )}
+      <circle cx="20" cy="20" r={r} fill="none" stroke="#8f88b5" strokeWidth="0.8" strokeOpacity={0.5 + 0.4 * earthshine} />
       <path d={lit} fill={`url(#${gid}-d)`} />
     </svg>
   );

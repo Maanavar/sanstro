@@ -28,7 +28,9 @@ import { usePlanData } from "@/hooks/usePlanData";
 import { useJournalData } from "@/hooks/useJournalData";
 
 import type { EditMemberState } from "./dashboard-edit-member-modal";
+import type { SettingsSectionId } from "./dashboard-settings-rail";
 import { CelestialAmbientNova } from "./celestial-ambient-nova";
+import { moonPhaseFromTithi } from "@/lib/lunar";
 import { DashboardHero } from "./dashboard-hero";
 import { DashboardLeftRail } from "./dashboard-left-rail";
 import { LifeModePicker } from "./life-mode-picker";
@@ -229,6 +231,7 @@ export function DashboardWorkspace() {
   const [activeTab, setActiveTab] = useState<Tab>("personal");
   const [exploreReturnTab, setExploreReturnTab] = useState<Tab | null>(null);
   const [settingsSubTab, setSettingsSubTab] = useState<SettingsSubTab>("setup");
+  const [settingsSection, setSettingsSection] = useState<SettingsSectionId>("account");
   const [selectedDate, setSelectedDate] = useState(todayIso());
   const [lang, setLang] = useState<Lang>("en");
 
@@ -693,6 +696,18 @@ export function DashboardWorkspace() {
     setSettingsSubTab("setup");
   }
 
+  // Unified navigation for the Settings rail: "setup" routes to the onboarding
+  // sub-tab; every other id routes to the session panels and selects a section.
+  function navigateSettings(id: SettingsSectionId) {
+    setActiveTab("settings");
+    if (id === "setup") {
+      setSettingsSubTab("setup");
+    } else {
+      setSettingsSubTab("session");
+      setSettingsSection(id);
+    }
+  }
+
   // ── Derived / resolved state ──────────────────────────────
 
   function resolveLifeAreasChartId(): string {
@@ -1114,12 +1129,6 @@ export function DashboardWorkspace() {
     });
   }
 
-  function handleOwnerUserIdChange(value: string) {
-    setOwnerUserId(value);
-    setBirthForm((c) => ({ ...c, ownerUserId: value }));
-    setVaultForm((c) => ({ ...c, ownerUserId: value }));
-  }
-
   // ── Render ────────────────────────────────────────────────
 
   return (
@@ -1160,8 +1169,7 @@ export function DashboardWorkspace() {
         onUserMenuToggle={() => session.setShowUserMenu((v) => !v)}
         onUserMenuClose={() => session.setShowUserMenu(false)}
         onGoToSettings={() => {
-          goToTab("settings");
-          setSettingsSubTab("session");
+          navigateSettings("account");
           session.setShowUserMenu(false);
         }}
         onSignOut={() => {
@@ -1279,9 +1287,14 @@ export function DashboardWorkspace() {
 
       {/* Tab content */}
       <div className="cd-page site__body" style={{ position: "relative" }}>
-        {/* Decorative celestial atmosphere at the top of the page — behind all
-            tab content (which is lifted to zIndex 1 below). */}
-        <CelestialAmbientNova />
+        {/* Decorative celestial sky filling the whole content column — a crown
+            of light at the top plus a star field the full scroll height, behind
+            all tab content (which is lifted to zIndex 1 below). Moon-reactive:
+            the selected day's tithi lifts the night wash + star brightness
+            (Pournami luminous, Amavasai a deep new-moon night). */}
+        <CelestialAmbientNova
+          moon={personal.panchangam ? moonPhaseFromTithi(personal.panchangam.tithi.number, personal.panchangam.tithi.paksha) : null}
+        />
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={activeTab === "settings" ? `settings-${settingsSubTab}` : activeTab}
@@ -1294,7 +1307,6 @@ export function DashboardWorkspace() {
         {activeTab === "settings" && settingsSubTab === "setup" && (
           <DashboardSetupTab
             lang={lang}
-            settingsSubTab={settingsSubTab}
             birthProfileId={personal.birthProfileId}
             selectedVaultId={family.selectedVaultId}
             selectedVault={selectedVault}
@@ -1304,7 +1316,7 @@ export function DashboardWorkspace() {
             memberForm={memberForm}
             formErrors={formErrors}
             busy={{ createProfile: busyCreateProfile, createVault: busyCreateVault, addMember: busyAddMember }}
-            onSettingsSubTabChange={setSettingsSubTab}
+            onNavigate={navigateSettings}
             onBirthFormChange={setBirthForm}
             onVaultFormChange={setVaultForm}
             onMemberFormChange={setMemberForm}
@@ -1347,7 +1359,7 @@ export function DashboardWorkspace() {
             onGoToTransits={() => { setPlanView("transits"); setActiveTab("plan"); }}
             onGoToCharts={() => setActiveTab("family")}
             onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
-            onOpenNotificationSettings={() => { goToTab("settings"); setSettingsSubTab("session"); }}
+            onOpenNotificationSettings={() => navigateSettings("notifications")}
           />
         )}
 
@@ -1618,7 +1630,14 @@ export function DashboardWorkspace() {
         {activeTab === "settings" && settingsSubTab === "session" && (
           <DashboardSettingsSessionTab
             lang={lang}
+            section={settingsSection}
+            onNavigate={navigateSettings}
             onLangChange={setLang}
+            userDisplayName={birthForm.displayName}
+            moonRasi={personalChartSummary?.moonRasi ?? ""}
+            janmaNakshatra={personalChartSummary?.janmaNakshatra ?? ""}
+            lagnaRasi={personalChartSummary?.lagnaRasi ?? ""}
+            vaultName={selectedVault?.name ?? ""}
             ownerUserId={ownerUserId}
             selectedDate={selectedDate}
             selectedVaultId={family.selectedVaultId}
@@ -1648,9 +1667,6 @@ export function DashboardWorkspace() {
                 // ignore
               }
             }}
-            onOpenSetup={openSetupInSettings}
-            onSettingsSubTabChange={setSettingsSubTab}
-            onOwnerUserIdChange={handleOwnerUserIdChange}
             onSelectedDateChange={setSelectedDate}
             onRefreshPersonal={() => void personal.refreshPersonalBundle()}
             onRefreshFamily={() => void family.refreshFamilyBundle()}

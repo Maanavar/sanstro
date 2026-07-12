@@ -10,6 +10,7 @@ import type {
   ChartSummaryData,
   DailyGuidanceData,
   DailyGuidanceRangeData,
+  DailyGuidanceWindow,
   DashaTimelineItem,
   DashaTimelineResponseData,
   FamilyAggregateData,
@@ -116,6 +117,36 @@ function formatDuration(ms: number, lang: Lang): string {
   return lang === "ta" ? `${h}மணி ${m}நிமிடம்` : `${h}h ${m}m`;
 }
 
+/**
+ * Choose which best-window to feature in the hero. The backend always lists
+ * Abhijit first — a ~48-min slot fixed around solar noon, so it barely moves
+ * day to day and made the hero read "12:02–12:50" every single day. We instead
+ * prefer the user's own planetary-hora windows (PERSONAL_HORA — keyed to lagna
+ * lord + running dasha), which land at a different clock time each weekday, then
+ * any benefic hora, and only fall back to Abhijit when nothing personal exists.
+ * On today we surface the next window that hasn't ended yet, so the hero stays
+ * actionable as the day advances; on other dates we show the first.
+ */
+function pickFeaturedWindow(
+  windows: DailyGuidanceWindow[] | undefined,
+  now: Date,
+  isToday: boolean,
+  dateLocal: string,
+): DailyGuidanceWindow | null {
+  if (!windows || windows.length === 0) return null;
+  const personal = windows.filter((w) => w.type.includes("PERSONAL_HORA"));
+  const horas = windows.filter((w) => w.type.includes("HORA"));
+  const preferred = personal.length ? personal : horas.length ? horas : windows;
+  if (isToday) {
+    const upcoming = preferred.find((w) => {
+      const endMs = timeOnDateToMs(dateLocal, w.end);
+      return endMs === null || endMs >= now.getTime();
+    });
+    return upcoming ?? preferred[preferred.length - 1] ?? null;
+  }
+  return preferred[0] ?? null;
+}
+
 export function DashboardTodayTabNova({
   lang,
   activeLifeMode,
@@ -160,18 +191,23 @@ export function DashboardTodayTabNova({
   }, []);
 
   const score = personalDailyGuidance?.score ?? null;
-  const bestWindow = personalDailyGuidance?.bestWindows[0] ?? null;
   const weekday = panchangam ? panchangam.vara.weekday : "";
   const paksha = panchangam?.tithi.paksha;
   const wax = paksha === "SHUKLA";
 
   const isToday = selectedDate === todayDate;
 
+  // Feature a personalized, day-varying window rather than the always-noon
+  // Abhijit slot the backend lists first (see pickFeaturedWindow).
+  const bestWindow = pickFeaturedWindow(personalDailyGuidance?.bestWindows, now, isToday, selectedDate);
+
   // Real lunar phase for today, drawn straight from the tithi we already have —
   // drives the hero moon's shape and size (thin crescent → full disc).
   const moonPhase = panchangam ? moonPhaseFromTithi(panchangam.tithi.number, panchangam.tithi.paksha) : null;
   // Sun by day, moon from dusk on — matches the greeting word's own cutoffs.
   const heroCelestial: "sun" | "moon" = now.getHours() >= 17 ? "moon" : "sun";
+  // Pournami / Amavasai earn a one-time gold shimmer on the hero glyph.
+  const isSpecialTithi = Boolean(panchangam?.specialTithiDay);
 
   // After 8pm, the hero can swap to a preview of tomorrow + a journal
   // prompt for today — reuses the already-fetched 3-day dailyGuidanceRange
@@ -291,6 +327,7 @@ export function DashboardTodayTabNova({
                     variant="moon"
                     moon={moonPhase}
                     size={58}
+                    special={isSpecialTithi}
                     ariaLabel={lang === "ta" ? "இன்றைய நிலா" : "Tonight's moon"}
                   />
                   <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.7rem, 3.2vw, 2.25rem)", fontWeight: 600, lineHeight: 1.08, color: "var(--color-text-strong)" }}>
@@ -308,12 +345,15 @@ export function DashboardTodayTabNova({
                 >
                   {tLang(tomorrowGuidance.briefing ?? tomorrowGuidance.text, lang)}
                 </NovaClampedText>
-                {tomorrowGuidance.bestWindows[0] && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "9px", fontSize: "13px", color: "var(--color-high)", fontWeight: 600 }}>
-                    <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--color-high)", flex: "none" }} />
-                    {lang === "ta" ? "நாளை சிறந்த நேரம்" : "Tomorrow's best window"} · {formatClockLabel(tomorrowGuidance.bestWindows[0].start)} – {formatClockLabel(tomorrowGuidance.bestWindows[0].end)}
-                  </div>
-                )}
+                {(() => {
+                  const tw = pickFeaturedWindow(tomorrowGuidance.bestWindows, now, false, tomorrowIso);
+                  return tw ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: "9px", fontSize: "13px", color: "var(--color-high)", fontWeight: 600 }}>
+                      <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--color-high)", flex: "none" }} />
+                      {lang === "ta" ? "நாளை சிறந்த நேரம்" : "Tomorrow's best window"} · {formatClockLabel(tw.start)} – {formatClockLabel(tw.end)}
+                    </div>
+                  ) : null;
+                })()}
 
                 {/* Journal prompt — the evening half of design's "preview +
                     journal prompt" ask, replacing the best-window action tile. */}
@@ -348,6 +388,7 @@ export function DashboardTodayTabNova({
                     variant={heroCelestial}
                     moon={moonPhase}
                     size={58}
+                    special={isSpecialTithi}
                     ariaLabel={heroCelestial === "moon"
                       ? (lang === "ta" ? "இன்றைய நிலா" : "Tonight's moon")
                       : (lang === "ta" ? "இன்றைய சூரியன்" : "Today's sun")}
