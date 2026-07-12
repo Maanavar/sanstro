@@ -183,3 +183,60 @@ def test_age_modifier_affects_young_vs_senior_differently(client, birth_profile_
     # Both must return valid confidence values — the age modifier must not crash
     assert young_resp.json()["data"]["confidence"] in ("HIGH", "MEDIUM", "LOW")
     assert senior_resp.json()["data"]["confidence"] in ("HIGH", "MEDIUM", "LOW")
+
+
+def test_propensities_endpoint_flag_gated_and_shape(client, birth_profile_payload_factory):
+    """/propensities is 404 when the flag is off, and returns a grouped,
+    ordinal, disclaimer-bearing bundle when on."""
+    from app.services.feature_flags import reset_flag, set_flag
+
+    chart_id = _create_chart(
+        client,
+        _prediction_birth_profile_payload(birth_profile_payload_factory, birth_date_local="1994-03-15"),
+    )
+    params = {"asOf": "2026-05-24"}
+
+    # Flag off (default) → not available.
+    off = client.get(f"/api/v1/charts/{chart_id}/propensities", params=params)
+    assert off.status_code == 404
+
+    # Flag on → full bundle.
+    set_flag("propensity_insights", True)
+    try:
+        resp = client.get(f"/api/v1/charts/{chart_id}/propensities", params=params)
+    finally:
+        reset_flag("propensity_insights")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["success"] is True
+    results = body["results"]
+    assert len(results) == 23
+
+    keys = {r["key"] for r in results}
+    assert {"love", "higher_education", "government_job", "emotional_load"} <= keys
+    assert {"marriage_harmony", "foreign_settlement", "income_growth", "swabhava_profile"} <= keys
+    cats = {r["category"] for r in results}
+    assert cats == {
+        "RELATIONSHIPS", "EDUCATION", "CAREER", "WELLBEING",
+        "MARRIAGE", "WEALTH", "LIFE_PATH",
+    }
+
+    # Phase 2 contract: timingWindowStart/End are present on every card (null
+    # when the topic's bhukti/gochara/SAV gates didn't all clear), never a bare
+    # missing key — locks in the 4-surface contract (predictions.py / shared /
+    # web) added alongside the boolean windowNote.
+    for r in results:
+        assert "timingWindowStart" in r
+        assert "timingWindowEnd" in r
+        if r["timingWindowStart"] is not None:
+            assert r["timingWindowEnd"] is not None
+
+    # Ordinal levels only — never a percentage (D2).
+    for r in results:
+        assert not any(ch.isdigit() for ch in r["level"])
+
+    # Sensitive wellbeing cards carry a disclaimer + the reach-out block.
+    load = next(r for r in results if r["key"] == "emotional_load")
+    assert load["disclaimer"] is not None
+    assert load["showSupportResources"] is True

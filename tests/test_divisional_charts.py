@@ -3,6 +3,9 @@ import pytest
 from app.calculations.astro import navamsa_rasi_from_degree
 from app.calculations.divisional_charts import (
     compute_d2,
+    compute_d7,
+    compute_d10,
+    compute_d24,
     compute_d27,
     compute_d45,
     compute_d60,
@@ -124,3 +127,69 @@ def test_d60_depends_on_natal_rasi_not_just_degree_in_sign():
 
 def test_d60_dispatch_matches_direct_call():
     assert get_varga(60, {"P": 15.0}) == compute_d60({"P": 15.0})
+
+
+# ---------------------------------------------------------------------------
+# D7 / D10 / D24 — the three vargas the "Chances & Cautions" propensity engine
+# reads (children→D7, career→D10, education→D24). Golden values hand-computed
+# from the classical Parashari rules and cross-checked, so a silent regression
+# in the amsa math is caught rather than shipped as a confident wrong reading.
+# (Rasi numbers: 1=Aries … 12=Pisces. Amsa width shown per varga.)
+# ---------------------------------------------------------------------------
+
+# D7 Saptamsa — 7 amsas of 4°17′08″; odd signs count from the same sign,
+# even signs from the 7th sign.
+def test_d7_odd_sign_counts_from_same_sign():
+    # 5° Aries (odd) => amsa 1 => Aries + 1 = Taurus (2)
+    assert compute_d7({"P": 5.0})["P"] == 2
+
+
+def test_d7_even_sign_starts_from_seventh_sign():
+    # 5° Taurus (even) => amsa 1 => 7th-from-Taurus (Scorpio) + 1 = Sagittarius (9)
+    assert compute_d7({"P": 35.0})["P"] == 9
+
+
+def test_d7_odd_sign_mid_amsa():
+    # 25° Aries (odd) => amsa 5 => Aries + 5 = Virgo (6)
+    assert compute_d7({"P": 25.0})["P"] == 6
+
+
+# D10 Dasamsa — 10 amsas of 3°; odd signs count from the same sign, even signs
+# from the 9th sign.
+def test_d10_odd_sign_counts_from_same_sign():
+    # 5° Aries (odd) => amsa 1 => Aries + 1 = Taurus (2)
+    assert compute_d10({"P": 5.0})["P"] == 2
+
+
+def test_d10_even_sign_starts_from_ninth_sign():
+    # 5° Taurus (even) => amsa 1 => 9th-from-Taurus (Capricorn) + 1 = Aquarius (11)
+    assert compute_d10({"P": 35.0})["P"] == 11
+
+
+def test_d10_odd_sign_last_amsa():
+    # 28° Aries (odd) => amsa 9 => Aries + 9 = Capricorn (10)
+    assert compute_d10({"P": 28.0})["P"] == 10
+
+
+# D24 Chaturvimsamsa/Siddhamsa — 24 amsas of 1°15′; odd signs start from Leo,
+# even signs start from Cancer.
+def test_d24_odd_sign_starts_from_leo():
+    # 0°30′ Aries (odd) => amsa 0 => Leo (5)
+    assert compute_d24({"P": 0.5})["P"] == 5
+
+
+def test_d24_even_sign_starts_from_cancer():
+    # 0°30′ Taurus (even) => amsa 0 => Cancer (4)
+    assert compute_d24({"P": 30.5})["P"] == 4
+
+
+def test_d24_odd_sign_mid_amsa():
+    # 5° Aries (odd) => amsa 4 => Leo + 4 = Sagittarius (9)
+    assert compute_d24({"P": 5.0})["P"] == 9
+
+
+def test_d7_d10_d24_dispatch_matches_direct_call():
+    for lon in (5.0, 35.0, 65.0, 128.7):
+        assert get_varga(7, {"P": lon}) == compute_d7({"P": lon})
+        assert get_varga(10, {"P": lon}) == compute_d10({"P": lon})
+        assert get_varga(24, {"P": lon}) == compute_d24({"P": lon})

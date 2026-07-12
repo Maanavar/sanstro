@@ -27,6 +27,7 @@ import type {
 import { LifeAreaCard } from "./life-area-card";
 import { DrawerPanel } from "./drawer-panel";
 import { NovaPredictionsPanel } from "./dashboard-life-areas-predictions-nova";
+import { DashboardPropensitiesPanelNova } from "./dashboard-propensities-panel-nova";
 import { NovaYogaDoshamPanel } from "./dashboard-life-areas-yogas-doshams-nova";
 import { NovaJadhagamReportPanel } from "./dashboard-life-areas-report-nova";
 import { NovaRemediesPanel } from "./dashboard-life-areas-remedies-nova";
@@ -79,7 +80,7 @@ import { NovaGocharCard, NovaGuidanceCard } from "./dashboard-today-deepdive-ext
  */
 
 type MemberOption = { memberId: string; displayName: string };
-type SubTab = "scores" | "predictions" | "yogas" | "report" | "remedies";
+type SubTab = "scores" | "predictions" | "chances" | "yogas" | "report" | "remedies";
 type Tier = "attention" | "steady" | "supportive";
 
 const GOAL_LABEL_BY_TYPE = new Map(GOAL_OPTIONS);
@@ -162,6 +163,7 @@ export function DashboardLifeAreasTabNova({
   const SUB_TABS: { key: SubTab; label: string }[] = [
     { key: "scores", label: lang === "ta" ? "கண்ணோட்டம்" : "Overview" },
     { key: "predictions", label: t("predictions_tab_label", lang) },
+    { key: "chances", label: lang === "ta" ? "வாய்ப்புகள் & எச்சரிக்கைகள்" : "Chances & Cautions" },
     { key: "yogas", label: `${t("yogas_title", lang)} & ${t("doshams_title", lang)}` },
     { key: "remedies", label: t("remedies_title", lang) },
     { key: "report", label: lang === "ta" ? "முழு அறிக்கை" : "Full report" },
@@ -375,6 +377,11 @@ export function DashboardLifeAreasTabNova({
             </div>
           )}
         </div>
+      )}
+
+      {/* ===== Sub-tab: Chances & Cautions ===== */}
+      {subTab === "chances" && (lifeAreas?.chartId || chartId) && (
+        <DashboardPropensitiesPanelNova lang={lang} chartId={(lifeAreas?.chartId ?? chartId) as string} />
       )}
 
       {/* ===== Sub-tab: Yogas & Doshams ===== */}

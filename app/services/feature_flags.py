@@ -54,6 +54,11 @@ def _defaults() -> dict[str, Any]:
         # bump so cached rows regenerate with the briefing. Frontend falls back to
         # the six-row `reasons` if `briefing` is ever null.
         "daily_briefing_synth": True,
+        # "Chances & Cautions" life-propensity panel. Additive read-only
+        # endpoint (GET /charts/{id}/propensities). OFF by default —
+        # sensitive-tier copy (emotional load, prudence seasons) wants an
+        # astrologer/wording review before rollout past internal.
+        "propensity_insights": False,
     }
 
 

@@ -7,7 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.ashtakavarga import compute_bhinnashtakavarga, compute_sarvashtakavarga
+from app.calculations.astro import house_from_reference, resolve_timezone, utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.core.age_gate import is_married_settled, is_past_prime_marriage_age
@@ -16,14 +17,16 @@ from app.db.session import get_db
 from app.models import BirthProfile, Chart
 from app.models.family_member import FamilyMember
 from app.models.user import User
+from app.reasoning.verdict import legacy_confidence_to_band
 from app.services.career_service import CareerAssessmentInput, assess_career_prediction
 from app.services.chart_service import load_persisted_chart_response
+from app.services.feature_flags import get_flag
 from app.services.health_service import HealthAssessmentInput, assess_health_prediction
 from app.services.life_area_prediction_models import LifeAreaPrediction
 from app.services.location_service import resolve_effective_daily_timezone
-from app.reasoning.verdict import legacy_confidence_to_band
 from app.services.marriage_service import MarriageAssessmentInput, assess_marriage_prediction
 from app.services.prediction_log_service import log_prediction
+from app.services.propensity_service import assess_propensities, build_chart_input
 from app.services.wealth_service import WealthAssessmentInput, assess_wealth_prediction
 
 router = APIRouter()
@@ -157,6 +160,7 @@ def _load_chart_context(session: Session, chart_id: UUID, current_user: User, as
         getattr(profile, "employment_type", None),
         getattr(profile, "marital_status", None),
         relationship_to_owner,
+        timeline,
     )
 
 
@@ -174,7 +178,7 @@ def get_marriage_prediction(
     current_user: User = Depends(get_current_user),
 ) -> PredictionResponse:
     on_date = as_of or date.today()
-    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, _employment_type, marital_status, relationship_to_owner = _load_chart_context(
+    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, _employment_type, marital_status, relationship_to_owner, _timeline = _load_chart_context(
         session, chart_id, current_user, on_date
     )
 
@@ -236,7 +240,7 @@ def get_career_prediction(
     current_user: User = Depends(get_current_user),
 ) -> PredictionResponse:
     on_date = as_of or date.today()
-    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, employment_type, _marital_status, _rel = _load_chart_context(
+    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, employment_type, _marital_status, _rel, _timeline = _load_chart_context(
         session, chart_id, current_user, on_date
     )
 
@@ -266,7 +270,7 @@ def get_wealth_prediction(
     current_user: User = Depends(get_current_user),
 ) -> PredictionResponse:
     on_date = as_of or date.today()
-    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, _employment_type, _marital_status, _rel = _load_chart_context(
+    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, _employment_type, _marital_status, _rel, _timeline = _load_chart_context(
         session, chart_id, current_user, on_date
     )
 
@@ -309,7 +313,7 @@ def get_health_prediction(
     current_user: User = Depends(get_current_user),
 ) -> PredictionResponse:
     on_date = as_of or date.today()
-    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, _employment_type, _marital_status, _rel = _load_chart_context(
+    snapshot, planets_rasi, active_dasha_lords, transit, age, life_stage, _employment_type, _marital_status, _rel, _timeline = _load_chart_context(
         session, chart_id, current_user, on_date
     )
 
@@ -337,3 +341,133 @@ def get_health_prediction(
         rahu_ketu_label=rahu_ketu.label if rahu_ketu else None,
     )
     return PredictionResponse(data=_to_out(assess_health_prediction(payload)))
+
+
+# ── Propensities ("Chances & Cautions") ──────────────────────────────────────
+
+class PropensityCardOut(BaseModel):
+    key: str
+    category: str
+    tier: str
+    title: BiTextOut
+    level: str
+    summary: BiTextOut
+    factors: list[AstroFactorOut]
+    what_helps: list[BiTextOut] = Field(alias="whatHelps")
+    window_note: BiTextOut | None = Field(default=None, alias="windowNote")
+    # Phase 2 — concrete dates for window_note, narrowed from the currently
+    # running antardasha by a gochara + Sarvashtakavarga-bindu gate (see
+    # propensity_service._TimingSpec). Additive; None unless both the prose
+    # window fired and the two extra classical gates cleared.
+    timing_window_start: date | None = Field(default=None, alias="timingWindowStart")
+    timing_window_end: date | None = Field(default=None, alias="timingWindowEnd")
+    disclaimer: BiTextOut | None = None
+    show_support_resources: bool = Field(default=False, alias="showSupportResources")
+    deferred: bool = False
+    deferred_reason: BiTextOut | None = Field(default=None, alias="deferredReason")
+    band: str | None = None
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PropensityBundleOut(BaseModel):
+    success: bool = True
+    generated_for: str = Field(alias="generatedFor")
+    life_stage: str = Field(alias="lifeStage")
+    results: list[PropensityCardOut]
+    model_config = ConfigDict(populate_by_name=True)
+
+
+def _bi(bt) -> BiTextOut | None:
+    return BiTextOut(ta=bt.ta, en=bt.en) if bt is not None else None
+
+
+@router.get(
+    "/charts/{chart_id}/propensities",
+    response_model=PropensityBundleOut,
+    tags=["predictions"],
+)
+def get_propensities(
+    chart_id: UUID,
+    as_of: date = Query(default=None, alias="asOf"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> PropensityBundleOut:
+    if not bool(get_flag("propensity_insights")):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not available.")
+
+    on_date = as_of or date.today()
+    snapshot, _planets_rasi, active_dasha_lords, transit, age, life_stage, _emp, _mar, relationship, timeline = _load_chart_context(
+        session, chart_id, current_user, on_date
+    )
+
+    natal_moon_rasi = next(p.rasi for p in snapshot.data.planets if p.graha == "MOON")
+    yogas_present = {y.name.upper() for y in snapshot.data.yogas if y.is_present}
+    doshams_active = {
+        d.name.upper() for d in snapshot.data.doshams if d.is_present and not d.is_cancelled
+    }
+    lords = sorted(active_dasha_lords)
+
+    # Phase 2 — real timing evidence: each planet's current transiting house
+    # from Lagna (gochara gate), the Sarvashtakavarga bindu count per rasi
+    # (zero-bindu gate), and the currently-running antardasha's real dates.
+    transit_house_by_planet = {
+        graha: house_from_reference(snapshot.data.lagna.rasi, body.rasi)
+        for graha, body in transit.bodies.items()
+    }
+    natal_rasi_map = {p.graha: p.rasi for p in snapshot.data.planets if p.graha != "MANDHI"}
+    natal_rasi_map["LAGNA"] = snapshot.data.lagna.rasi
+    sav_bindus = compute_sarvashtakavarga(compute_bhinnashtakavarga(natal_rasi_map))
+
+    chart_input = build_chart_input(
+        lagna_rasi=snapshot.data.lagna.rasi,
+        planets=snapshot.data.planets,
+        active_dasha_lords=active_dasha_lords,
+        maha_lord=lords[0] if lords else "",
+        antar_lord=lords[-1] if lords else "",
+        yogas_present=yogas_present,
+        doshams_active=doshams_active,
+        age=age,
+        natal_moon_rasi=natal_moon_rasi,
+        transit_saturn_rasi=transit.bodies["SATURN"].rasi,
+        vargas=snapshot.data.vargas,
+        transit_house_by_planet=transit_house_by_planet,
+        sav_bindus=sav_bindus,
+        current_antardasha_start=timeline.current_antardasha.start_date,
+        current_antardasha_end=timeline.current_antardasha.end_date,
+    )
+
+    bundle = assess_propensities(
+        chart_input,
+        relationship_to_owner=relationship,
+        life_stage=life_stage,
+        as_of=on_date,
+    )
+
+    return PropensityBundleOut(
+        generatedFor=bundle.generated_for,
+        lifeStage=bundle.life_stage,
+        results=[
+            PropensityCardOut(
+                key=r.key,
+                category=r.category.value,
+                tier=r.tier.value,
+                title=BiTextOut(ta=r.title.ta, en=r.title.en),
+                level=r.level,
+                summary=BiTextOut(ta=r.summary.ta, en=r.summary.en),
+                factors=[
+                    AstroFactorOut(key=f.key, status=f.status, detail=BiTextOut(ta=f.detail.ta, en=f.detail.en))
+                    for f in r.factors
+                ],
+                whatHelps=[BiTextOut(ta=h.ta, en=h.en) for h in r.what_helps],
+                windowNote=_bi(r.window_note),
+                timingWindowStart=r.timing_window_start,
+                timingWindowEnd=r.timing_window_end,
+                disclaimer=_bi(r.disclaimer),
+                showSupportResources=r.show_support_resources,
+                deferred=r.deferred,
+                deferredReason=_bi(r.deferred_reason),
+                band=r.band,
+            )
+            for r in bundle.results
+        ],
+    )

@@ -27,3 +27,4 @@ export * from "./familyVault";
 export * from "./notifications";
 export * from "./tools";
 export * from "./annualWrapped";
+export * from "./propensities";

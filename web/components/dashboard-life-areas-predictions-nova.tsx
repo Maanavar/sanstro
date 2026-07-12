@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { t } from "@/lib/i18n";
 import { bandPhrase, bandTone } from "@/lib/reasoning";
 import type { Lang } from "@/lib/i18n";
-import type { LifeAreaPredictionData, PredictionBundle } from "@/lib/types";
+import type { LifeAreaPredictionData, PredictionAstroFactor, PredictionBundle } from "@/lib/types";
 import {
   confidenceTone,
   confidenceLabel,
@@ -78,6 +78,52 @@ function NovaSupportList({ items, color, lang }: { items: { ta: string; en: stri
   );
 }
 
+// Status → colour/glyph for each underlying astrological factor. SUPPORT reads
+// as a lift (green ✓), CAUTION as a drag (rust ⚠), NEUTRAL as context (·).
+function factorStatusStyle(status: PredictionAstroFactor["status"]): { color: string; glyph: string } {
+  if (status === "SUPPORT") return { color: "var(--color-high)", glyph: "✓" };
+  if (status === "CAUTION") return { color: "var(--color-low)", glyph: "⚠" };
+  return { color: "var(--color-muted)", glyph: "·" };
+}
+
+/**
+ * "Why this reading" — the detailed astrology behind a life-area prediction.
+ * Every service (career/wealth/health/marriage) already emits an ordered list
+ * of astrologicalFactors (house lords, ashtakavarga bindus, dhana/raja yogas,
+ * dasha activation, age-phase gates…); the panel simply never rendered them.
+ * This surfaces that chain for the root user, mirroring the Today tab's
+ * "Why this prediction?" breakdown so the score never feels like a black box.
+ */
+function NovaWhyThisReading({ factors, lang }: { factors: PredictionAstroFactor[]; lang: Lang }) {
+  if (!factors.length) return null;
+  return (
+    <div>
+      <p style={{ margin: "0 0 3px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
+        {lang === "ta" ? "இந்தக் கணிப்பு ஏன்" : "Why this reading"}
+      </p>
+      <p style={{ margin: "0 0 10px", fontSize: "11.5px", color: "var(--color-faint)" }}>
+        {lang === "ta" ? "இதற்குப் பின்னால் உள்ள ஜோதிடக் காரணிகள்" : "the astrological factors behind it"}
+      </p>
+      <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "8px" }}>
+        {factors.map((factor, index) => {
+          const s = factorStatusStyle(factor.status);
+          return (
+            <li key={`${factor.key}-${index}`} style={{ display: "flex", gap: "9px", alignItems: "flex-start", fontSize: "13px", lineHeight: 1.5, color: "var(--color-text)" }}>
+              <span
+                aria-hidden="true"
+                style={{ flexShrink: 0, marginTop: "1px", width: "18px", height: "18px", borderRadius: "50%", display: "grid", placeItems: "center", fontSize: "11px", fontWeight: 700, color: s.color, background: "color-mix(in srgb, currentColor 12%, transparent)" }}
+              >
+                {s.glyph}
+              </span>
+              <span>{lang === "ta" ? factor.detail.ta : factor.detail.en}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 function NovaPredictionDetail({ pred, lang }: { pred: LifeAreaPredictionData; lang: Lang }) {
   return (
     <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -114,6 +160,12 @@ function NovaPredictionDetail({ pred, lang }: { pred: LifeAreaPredictionData; la
           </div>
         )}
       </div>
+
+      {pred.astrologicalFactors.length > 0 && (
+        <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "16px" }}>
+          <NovaWhyThisReading factors={pred.astrologicalFactors} lang={lang} />
+        </div>
+      )}
     </div>
   );
 }
