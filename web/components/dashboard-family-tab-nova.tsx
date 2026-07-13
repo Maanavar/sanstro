@@ -69,7 +69,8 @@ const FAMILY_HERO_TEXT: Record<string, { en: string; ta: string }> = {
 
 function bondToneLine(score: number, lang: Lang): string {
   if (score >= 65) return lang === "ta" ? "அரவணைப்பான, ஆதரவான பொருத்தம்" : "warm and supportive";
-  if (score >= 40) return lang === "ta" ? "நிலையான, பொதுவாக இணக்கமான பொருத்தம்" : "steady, generally aligned";
+  if (score >= 50) return lang === "ta" ? "நிலையான, பொதுவாக இணக்கமான பொருத்தம்" : "steady, generally aligned";
+  if (score >= 40) return lang === "ta" ? "கலவையான பொருத்தம் — இன்று எளிமையாக வையுங்கள்" : "mixed — keep plans simple today";
   return lang === "ta" ? "பொறுமை தேவைப்படும் பொருத்தம்" : "needs a little patience";
 }
 
@@ -340,6 +341,10 @@ function NovaFamilyBondsCard({
           <div style={{ fontSize: "12.5px", lineHeight: 1.5, color: "var(--color-text)" }}>
             {lang === "ta" ? "இன்று வலுவான பொருத்தம்: " : "Strongest bond today: "}
             <b style={{ color: "var(--color-accent-strong)" }}>{strongest.a.displayName} ↔ {strongest.b.displayName}</b>
+            {" "}
+            <span style={{ fontWeight: 700, color: scoreColor(strongest.score) }}>
+              {strongest.score}<span style={{ color: "var(--color-faint)", fontWeight: 500 }}>/100</span>
+            </span>
             {" — "}{bondToneLine(strongest.score, lang)}.
           </div>
         </div>
@@ -563,9 +568,14 @@ export function DashboardFamilyTabNova({
     ...memberCharts.map((mc) => ({ id: mc.memberId, displayName: mc.displayName, chartId: mc.chart.chartId })),
   ];
 
-  const memberOptions = members.map((m) => {
-    const fm = familyMembers.find((f) => f.familyMemberId === m.familyMemberId);
-    return { memberId: m.familyMemberId, displayName: m.displayName, relationshipToOwner: fm?.relationshipToOwner ?? "other" };
+  // Built from memberCharts (not the raw `members` aggregate) — the aggregate includes a
+  // synthetic owner row (familyMemberId === birthProfileId, see useFamilyData.ts) that
+  // memberCharts already filters out. Using `members` here let the owner show up as a
+  // selectable comparison target in Relationship Compatibility/Porutham, i.e. comparing
+  // the root user against themselves.
+  const memberOptions = memberCharts.map((mc) => {
+    const fm = familyMembers.find((f) => f.familyMemberId === mc.memberId);
+    return { memberId: mc.memberId, displayName: mc.displayName, relationshipToOwner: fm?.relationshipToOwner ?? "other" };
   });
   const memberChartsForSynastry = memberCharts.map((m) => ({ memberId: m.memberId, displayName: m.displayName, chart: m.chart }));
 

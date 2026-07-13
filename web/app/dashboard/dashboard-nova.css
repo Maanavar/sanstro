@@ -142,6 +142,14 @@
   --color-alert-caution:  #e08a72;
   --color-positive:       #8fbf9a;
 
+  /* ── Toast state colors (error/success banners + dropdown danger button) ── */
+  --color-toast-error-bg:     var(--color-low-bg);
+  --color-toast-error-border: var(--color-low-border);
+  --color-toast-error-text:   var(--color-low);
+  --color-toast-success-bg:     var(--color-high-bg);
+  --color-toast-success-border: var(--color-high-border);
+  --color-toast-success-text:   var(--color-high);
+
   /* ── Classic-only custom properties (defined at bare :root in globals.css,
      used directly by inline styles in components like dashboard-family-tab.tsx's
      MemberDetailExpanded/ScoreRing) redirected to Nova's own high/mid/low triplet
@@ -451,6 +459,14 @@
   --color-alert-critical: #C0392B;
   --color-alert-caution:  #B3402C;
   --color-positive:       #2D7A4F;
+
+  /* ── Toast state colors (error/success banners + dropdown danger button) ── */
+  --color-toast-error-bg:     var(--color-low-bg);
+  --color-toast-error-border: var(--color-low-border);
+  --color-toast-error-text:   var(--color-low);
+  --color-toast-success-bg:     var(--color-high-bg);
+  --color-toast-success-border: var(--color-high-border);
+  --color-toast-success-text:   var(--color-high);
 
   /* ── Classic-token redirects — re-pointed at Nova-light's OWN high/mid/low
      triplet above (not Classic's originals) for the "conflicting roles"

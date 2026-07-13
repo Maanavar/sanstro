@@ -6,11 +6,12 @@ import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import { ConfidenceBadge } from "./dashboard-ui";
 import { NavamsaChart, RasiChart } from "./dashboard-charts";
 import { CompatibilityIntelligencePanel } from "./compatibility-intelligence-panel";
+import { getRelationshipSynastry } from "@vinaadi/shared/api/relationships";
 import type { Lang } from "@/lib/i18n";
+import type { SynastryData } from "@vinaadi/shared/api/relationships";
 import type {
   ApiEnvelope,
   ChartCalculateResponseData,
-  SynastryData,
   PorutthamData,
   RelationshipAlertItem,
 } from "@/lib/types";
@@ -43,15 +44,27 @@ function statusTone(status: "good" | "mixed" | "caution") {
 }
 
 function toneStyle(tone: string) {
-  if (tone === "supportive")  return { color: "var(--chart-d9-active)",  bg: "var(--chart-d9-active-bg)",  border: "var(--cl-sage-border)" };
-  if (tone === "challenging") return { color: "var(--planet-saturn)",  bg: "var(--panel-warm-tint)",  border: "var(--synastry-caution-border, var(--border-error-soft))" };
-  return                             { color: "var(--synastry-accent, var(--panel-brand))",  bg: "var(--chart-d1-lagna-bg)",  border: "var(--synastry-accent-border, var(--underline-brand))" };
+  if (tone === "harmony")  return { color: "var(--chart-d9-active)",  bg: "var(--chart-d9-active-bg)",  border: "var(--cl-sage-border)" };
+  if (tone === "tension")  return { color: "var(--planet-saturn)",  bg: "var(--panel-warm-tint)",  border: "var(--synastry-caution-border, var(--border-error-soft))" };
+  return                           { color: "var(--synastry-accent, var(--panel-brand))",  bg: "var(--chart-d1-lagna-bg)",  border: "var(--synastry-accent-border, var(--underline-brand))" };
 }
 
 function toneLabel(tone: string, lang: Lang): string {
-  if (tone === "supportive")  return t("synastry_aspect_supportive", lang);
-  if (tone === "challenging") return t("synastry_aspect_challenging", lang);
+  if (tone === "harmony")  return t("synastry_aspect_supportive", lang);
+  if (tone === "tension")  return t("synastry_aspect_challenging", lang);
   return t("synastry_aspect_neutral", lang);
+}
+
+/** Backend aspect pairs look like "A_VENUS-B_MARS" (A = owner, B = the compared member) —
+ *  render as readable planet names instead of the raw internal labels. */
+function formatSynastryPair(pair: string): string {
+  return pair
+    .split("-")
+    .map((token) => {
+      const planet = token.replace(/^[AB]_/, "");
+      return planet.charAt(0) + planet.slice(1).toLowerCase();
+    })
+    .join(" ↔ ");
 }
 
 type PoruthamWeight = "Low" | "Medium" | "High" | "Critical";
@@ -265,9 +278,7 @@ export function SynastryPanel({
     setCompatError("");
     setCompatLoading(true);
     try {
-      const r = await apiFetchJson<ApiEnvelope<SynastryData>>(
-        `/api/v1/relationships/${memberId}/synastry${toQuery({ familyVaultId })}`
-      );
+      const r = await getRelationshipSynastry(memberId, familyVaultId);
       setSynastry(r.data);
     } catch (err) {
       setCompatError(readErrorMessage(err));
@@ -395,14 +406,14 @@ export function SynastryPanel({
                   {/* Score card */}
                   <div style={{ background: "var(--chart-cell-default)", border: "1px solid var(--synastry-border-light, var(--panel-tan-light))", borderRadius: "var(--radius-md)", padding: "var(--space-5)", display: "flex", alignItems: "flex-start", gap: "var(--space-4)", flexWrap: "wrap" }}>
                     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)", flexShrink: 0 }}>
-                      <SmallScoreRing score={synastry.compatibilityScore} />
+                      <SmallScoreRing score={synastry.score} />
                       <span style={{
                         padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 600, textAlign: "center",
-                        background: scoreTone(synastry.compatibilityScore).bg,
-                        color: scoreTone(synastry.compatibilityScore).color,
-                        border: `1px solid ${scoreTone(synastry.compatibilityScore).border}`,
+                        background: scoreTone(synastry.score).bg,
+                        color: scoreTone(synastry.score).color,
+                        border: `1px solid ${scoreTone(synastry.score).border}`,
                       }}>
-                        {synastry.compatibilityLabel}
+                        {synastry.label}
                       </span>
                     </div>
                     <div style={{ flex: 1, minWidth: "180px" }}>
@@ -414,10 +425,10 @@ export function SynastryPanel({
                       </p>
                       <div style={{ marginTop: "var(--space-2)" }}>
                         <ConfidenceBadge
-                          level={synastry.compatibilityScore >= 70 ? "HIGH" : synastry.compatibilityScore >= 45 ? "MEDIUM" : "LOW"}
+                          level={synastry.score >= 70 ? "HIGH" : synastry.score >= 45 ? "MEDIUM" : "LOW"}
                           reason={{
-                            ta: synastry.compatibilityScore >= 70 ? "வலிமையான ஜாதக பொருத்தம்" : synastry.compatibilityScore >= 45 ? "மிதமான ஜாதக பொருத்தம்" : "கலந்த ஜாதக சமிக்ஞைகள்",
-                            en: synastry.compatibilityScore >= 70 ? "Strong chart compatibility" : synastry.compatibilityScore >= 45 ? "Moderate chart compatibility" : "Mixed chart signals",
+                            ta: synastry.score >= 70 ? "வலிமையான ஜாதக பொருத்தம்" : synastry.score >= 45 ? "மிதமான ஜாதக பொருத்தம்" : "கலந்த ஜாதக சமிக்ஞைகள்",
+                            en: synastry.score >= 70 ? "Strong chart compatibility" : synastry.score >= 45 ? "Moderate chart compatibility" : "Mixed chart signals",
                           }}
                           lang={lang}
                         />
@@ -425,16 +436,20 @@ export function SynastryPanel({
                     </div>
                   </div>
 
-                  {/* Caution */}
-                  {synastry.caution && (
+                  {/* Caution — tension-tone aspects called out */}
+                  {synastry.tensionNotes.length > 0 && (
                     <div style={{ padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--panel-warm-tint)", border: "1px solid var(--synastry-caution-border, var(--border-error-soft))" }}>
                       <p className="cd-kicker" style={{ color: "var(--planet-saturn)", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: "4px" }}>
                         <svg viewBox="0 0 24 24" fill="none" width="12" height="12" aria-hidden="true"><path d="M12 3L21 20H3L12 3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M12 9V13.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
                         {t("synastry_caution", lang)}
                       </p>
-                      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--planet-saturn)", lineHeight: 1.5 }}>
-                        {tLang(synastry.caution, lang)}
-                      </p>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                        {synastry.tensionNotes.map((note, i) => (
+                          <p key={i} style={{ margin: 0, fontSize: "0.875rem", color: "var(--planet-saturn)", lineHeight: 1.5 }}>
+                            {tLang(note, lang)}
+                          </p>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -454,13 +469,13 @@ export function SynastryPanel({
                   </div>
 
                   {/* Aspects */}
-                  {(synastry.aspects ?? []).length > 0 && (
+                  {synastry.keyAspects.length > 0 && (
                     <div>
                       <p className="cd-kicker" style={{ marginBottom: "var(--space-2_5)", letterSpacing: "0.1em" }}>
                         {t("synastry_aspects", lang)}
                       </p>
                       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                        {(synastry.aspects ?? []).map((a, i) => {
+                        {synastry.keyAspects.map((a, i) => {
                           const ts = toneStyle(a.tone);
                           return (
                             <div key={i} style={{
@@ -478,13 +493,13 @@ export function SynastryPanel({
                               </span>
                               <div style={{ flex: 1 }}>
                                 <p style={{ margin: "0 0 var(--space-0_75)", fontSize: "0.875rem", fontWeight: 700, color: "var(--synastry-ink-strong, var(--panel-earth-dark))" }}>
-                                  {a.planet1} – {a.aspectType} – {a.planet2}
+                                  {formatSynastryPair(a.pair)} · {a.aspect}
                                   <span style={{ fontWeight: 400, color: "var(--color-faint)", marginLeft: "var(--space-1_5)", fontSize: "0.75rem" }}>
-                                    {a.orb.toFixed(1)}°
+                                    {a.orbDegrees.toFixed(1)}°
                                   </span>
                                 </p>
                                 <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)", lineHeight: 1.45 }}>
-                                  {lang === "ta" ? a.descriptionTa : a.descriptionEn}
+                                  {tLang(a.note, lang)}
                                 </p>
                               </div>
                             </div>

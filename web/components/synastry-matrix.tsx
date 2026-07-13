@@ -1,9 +1,9 @@
 ﻿"use client";
 
 import { useState } from "react";
-import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
+import { readErrorMessage } from "@/lib/api";
 import type { Lang } from "@/lib/i18n";
-import type { ApiEnvelope, SynastryData } from "@/lib/types";
+import { getRelationshipSynastry } from "@vinaadi/shared/api/relationships";
 
 interface MatrixMember {
   memberId: string;
@@ -41,10 +41,8 @@ export function SynastryMatrix({ lang, ownerChartId, familyVaultId, members }: S
     await Promise.all(
       members.map(async (m) => {
         try {
-          const res = await apiFetchJson<ApiEnvelope<SynastryData>>(
-            `/api/v1/relationships/${m.memberId}/synastry${toQuery({ familyVaultId })}`
-          );
-          setScores((prev) => ({ ...prev, [m.memberId]: res.data?.compatibilityScore ?? null }));
+          const res = await getRelationshipSynastry(m.memberId, familyVaultId);
+          setScores((prev) => ({ ...prev, [m.memberId]: res.data?.score ?? null }));
         } catch (err) {
           setScores((prev) => ({ ...prev, [m.memberId]: null }));
           setError(readErrorMessage(err));
