@@ -15,6 +15,7 @@ import { track } from "@/lib/analytics";
 import { getAuthProviders } from "@vinaadi/shared/api/auth";
 import "@/lib/api"; // side effect: initializes the shared API client used by getAuthProviders
 import { GuestChartModal } from "@/components/dashboard-guest-chart-modal";
+import { LoginWelcomeNova } from "@/components/login-welcome-nova";
 
 type Mode = "login" | "signup" | "forgot" | "reset";
 
@@ -81,6 +82,8 @@ export default function LoginPage() {
   const [done, setDone] = useState<"signup" | "forgot" | "reset" | null>(null);
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const [showGuestChart, setShowGuestChart] = useState(false);
+  // Destination to open once the post-login celestial welcome finishes playing.
+  const [welcomeDest, setWelcomeDest] = useState<string | null>(null);
 
   const emailTouched = email.length > 0;
   const emailValid = isValidEmail(email);
@@ -198,14 +201,18 @@ export default function LoginPage() {
           const payload = await response.json().catch(() => ({} as { detail?: string }));
           throw new Error(payload.detail ?? "Incorrect email or password.");
         }
+        let dest = "/dashboard";
         try {
           const profileCheck = await fetch("/api/backend/api/v1/birth-profiles/me/latest", { credentials: "include" });
-          const dest = profileCheck.ok ? "/dashboard" : "/dashboard?setup=1";
+          dest = profileCheck.ok ? "/dashboard" : "/dashboard?setup=1";
           track("onboarding_step_completed", { step: "login", has_profile: profileCheck.ok });
-          router.push(dest);
         } catch {
-          router.push("/dashboard");
+          dest = "/dashboard";
         }
+        // Warm the dashboard route behind the welcome curtain so the hand-off is
+        // seamless, then play the celestial welcome; it navigates when it ends.
+        try { router.prefetch(dest); } catch { /* prefetch is best-effort */ }
+        setWelcomeDest(dest);
       } else {
         const response = await fetch("/api/backend/api/v1/auth/forgot-password", {
           method: "POST",
@@ -1184,6 +1191,15 @@ export default function LoginPage() {
           lang="en"
           onClose={() => setShowGuestChart(false)}
           onCreateAccount={() => { setShowGuestChart(false); switchMode("signup"); }}
+        />
+      )}
+
+      {welcomeDest && (
+        <LoginWelcomeNova
+          // No saved chart yet (routed to setup) ⇒ a genuine first arrival, so the
+          // curtain greets with "Welcome" rather than "Welcome back".
+          firstTime={welcomeDest.includes("setup=1")}
+          onDone={() => router.push(welcomeDest)}
         />
       )}
     </>
