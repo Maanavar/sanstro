@@ -44,6 +44,8 @@ _SCENARIO_KEYWORDS = {
     "family_harmony": {"family", "parents", "child", "home", "harmony"},
     "money": {"money", "finance", "investment", "loan", "savings", "wealth"},
     "child_birth": {"pregnancy", "baby", "childbirth", "conceive"},
+    "foreign_settlement": {"immigration", "visa", "pr", "citizenship", "settle abroad", "green card"},
+    "litigation": {"lawsuit", "litigation", "dispute", "court", "legal case", "sue"},
 }
 
 _RISK_MARKERS = {"quit", "resign", "loan", "startup", "relocate", "abroad", "new city", "new country"}
@@ -62,6 +64,8 @@ _SCENARIO_KARAKAS = {
     "family_harmony": ("Moon", "Jupiter"),
     "money":          ("Jupiter", "Venus"),
     "child_birth":    ("Jupiter", "Moon"),
+    "foreign_settlement": ("Rahu", "Saturn"),
+    "litigation":     ("Mars", "Saturn"),
     "other":          ("Jupiter", "Sun"),
 }
 

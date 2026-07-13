@@ -14,6 +14,7 @@ Rules (agents.md / formula spec):
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from uuid import UUID
@@ -27,6 +28,7 @@ from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.panchangam import calculate_daily_panchangam
 from app.calculations.transits import classify_sani_cycle
 from app.models import BirthProfile, Chart
+from app.reasoning.chart_signature import detect_signature
 from app.reasoning.contradiction import Reading, classify
 from app.reasoning.promise_gate import GateGrade
 from app.reasoning.verdict import Band, cap_band
@@ -35,13 +37,18 @@ from app.schemas.dasha import ResponseMeta
 from app.schemas.whatif import (
     TripleConfirmation,
     WhatIfBiText,
+    WhatIfChartSignature,
     WhatIfData,
     WhatIfResponse,
 )
 from app.services.chart_service import load_persisted_chart_response
 from app.services.feature_flags import get_flag
 from app.services.location_service import local_noon_as_utc_for_profile, resolve_effective_daily_location
+from app.services.narrative_engine import render_causal_chain, signature_framing
 from app.services.prediction_log_service import log_prediction, scenario_to_area
+from app.services.safety_filter import run_safety_pass
+
+logger = logging.getLogger(__name__)
 
 _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
 
@@ -73,6 +80,13 @@ _SCENARIO_KARAKA: dict[str, list[str]] = {
     "family_harmony":  ["MOON", "JUPITER"],      # 4th karaka
     "money":           ["JUPITER", "VENUS"],     # 2nd/11th karaka
     "child_birth":     ["JUPITER", "MOON"],      # 5th house karaka
+    # P2-3 parity: FOREIGN/LITIGATION already exist as full life_areas_service
+    # areas (docs/PREDICTION_TAXONOMY.md §1) but whatif's own scenario dicts
+    # never grew matching entries. foreign_settlement is Rahu-Saturn (long-term
+    # settlement/permanence), distinct from travel_abroad's Rahu-Jupiter
+    # (short trip/pilgrimage-adjacent) framing.
+    "foreign_settlement": ["RAHU", "SATURN"],    # 12th house karaka, settlement emphasis
+    "litigation":      ["MARS", "SATURN"],       # 6th house karaka (dispute houses)
     "other":           ["JUPITER", "SUN"],       # generic benefics
 }
 
@@ -92,6 +106,8 @@ _SCENARIO_NATAL_HOUSES: dict[str, list[int]] = {
     "family_harmony":  [4, 2, 7],
     "money":           [2, 11, 5],
     "child_birth":     [5, 2, 9],
+    "foreign_settlement": [12, 9, 3],
+    "litigation":      [6, 8, 7],
     "other":           [9, 5, 1],
 }
 
@@ -141,6 +157,14 @@ _DASHA_SCENARIO_SCORE: dict[str, dict[str, int]] = {
     "child_birth": {
         "SUN": 60, "MOON": 68, "MARS": 55, "MERCURY": 55,
         "JUPITER": 78, "VENUS": 65, "SATURN": 42, "RAHU": 48, "KETU": 42,
+    },
+    "foreign_settlement": {
+        "SUN": 50, "MOON": 55, "MARS": 52, "MERCURY": 55,
+        "JUPITER": 60, "VENUS": 55, "SATURN": 68, "RAHU": 78, "KETU": 45,
+    },
+    "litigation": {
+        "SUN": 55, "MOON": 50, "MARS": 42, "MERCURY": 68,
+        "JUPITER": 72, "VENUS": 58, "SATURN": 48, "RAHU": 40, "KETU": 38,
     },
     "other": {
         "SUN": 58, "MOON": 58, "MARS": 55, "MERCURY": 60,
@@ -227,6 +251,8 @@ _SCENARIO_LABEL_TA = {
     "family_harmony":  "குடும்ப நலம்",
     "money":           "பணம் / செல்வம்",
     "child_birth":     "குழந்தை பாக்கியம்",
+    "foreign_settlement": "வெளிநாட்டு குடியேற்றம்",
+    "litigation":      "சட்ட வழக்கு / சர்ச்சை",
     "other":           "பொது",
 }
 _SCENARIO_LABEL_EN = {
@@ -241,6 +267,8 @@ _SCENARIO_LABEL_EN = {
     "family_harmony":  "Family Harmony",
     "money":           "Money / Wealth",
     "child_birth":     "Child Birth",
+    "foreign_settlement": "Foreign Settlement / Immigration",
+    "litigation":      "Legal Dispute / Litigation",
     "other":           "General",
 }
 
@@ -379,9 +407,9 @@ def _assess_dasha_support(
     scenario_ta = _SCENARIO_LABEL_TA[scenario]
     scenario_en = _SCENARIO_LABEL_EN[scenario]
 
-    # D2 (reasoning_bands): the band word carries the judgement; the numeric
-    # index only appears on the legacy (flag-off) path. Tamil copy never had it.
-    idx = "" if get_flag("reasoning_bands") else f" (dasha index {score}/100)"
+    # D2/D7: the band word carries the judgement; the numeric index is kept
+    # alongside it (show both, 2026-07-13). English copy only — Tamil never had it.
+    idx = f" (dasha index {score}/100)"
     if score >= 65:
         text_ta = (
             f"{ta_maha} மஹாதசையும் {ta_antar} அந்தர்தசையும் {scenario_ta}க்கு "
@@ -470,8 +498,8 @@ def _assess_gochar_support(
     scenario_ta = _SCENARIO_LABEL_TA[scenario]
     scenario_en = _SCENARIO_LABEL_EN[scenario]
 
-    # D2 (reasoning_bands): no numeric index in copy on the banded path.
-    idx = "" if get_flag("reasoning_bands") else f" (gochar index {score}/100)"
+    # D2/D7: band word plus the numeric index (show both, 2026-07-13).
+    idx = f" (gochar index {score}/100)"
     if score >= 65:
         text_ta = (
             f"கோசர நிலை சாதகமாக உள்ளது. {ta_prim} {h}ஆம் இடத்தில் கோசரிக்கிறது — "
@@ -668,6 +696,16 @@ def _reading_summary(
             f"{scenario_en.lower()}. Using this period for the areas your chart strongly supports "
             f"will serve you better.",
         )
+    if reading == Reading.PARTIALLY_PROMISED.value:
+        return (
+            f"{target_str_ta} தேதிக்கு {scenario_ta} பற்றிய ஆய்வு: "
+            f"இது ஒரு செயலூக்கமான காலம்; ஜாதகம் {scenario_ta} விஷயத்தில் ஓரளவு ஆதரவு "
+            f"தருகிறது, ஆனால் முழுமையான உறுதி இல்லை. கவனமான, படிப்படியான அணுகுமுறை நல்லது.",
+            f"Analysis for {scenario_en} around {target_str_en}: "
+            f"This is an active period, and your chart offers partial support for "
+            f"{scenario_en.lower()} — though not a full promise. A careful, incremental "
+            f"approach serves you best here.",
+        )
     if reading == Reading.NOT_PROMISED.value:
         return (
             f"{target_str_ta} தேதிக்கு {scenario_ta} பற்றிய ஆய்வு: "
@@ -711,9 +749,9 @@ def _build_summary(
         if reading and get_flag("reasoning_contradiction")
         else None
     )
-    # D2 (reasoning_bands): the verdict word carries the judgement; the numeric
-    # score parenthetical only appears on the legacy (flag-off) path.
-    sc = "" if get_flag("reasoning_bands") else f" ({overall_score}/100)"
+    # D2/D7: the verdict word carries the judgement; the numeric score is kept
+    # alongside it (show both, 2026-07-13).
+    sc = f" ({overall_score}/100)"
     if summary_override is not None:
         summary_ta, summary_en = summary_override
     elif verdict == "FAVOURABLE":
@@ -968,6 +1006,62 @@ def evaluate_whatif(
         active_antar=timeline.current_antardasha.lord,
     )
 
+    # Phase 5 (D6, plan §Phase 5): chart-level dominant-graha framing +
+    # causal chain — extended here from life-areas-only (PR-5's original
+    # scope) to whatif per P0-4. Same shape as life_areas_service's own
+    # wiring: compute once, attach a framing sentence, and build a 2-step
+    # "because -> therefore" chain from evidence already computed above
+    # (natal/dasha/gochar reason text) for non-favourable verdicts only —
+    # whatif has no cross-area LOW/HIGH confidence tier the way life-areas
+    # does, so "not FAVOURABLE" is the equivalent low-confidence signal here.
+    chart_signature_out: WhatIfChartSignature | None = None
+    causal_chain_text: WhatIfBiText | None = None
+    if bool(get_flag("reasoning_chart_signature")):
+        planet_longitudes = {
+            p.graha: p.absolute_longitude
+            for p in chart_snapshot.data.planets
+            if p.graha in {"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU"}
+        }
+        planet_rasis = {
+            p.graha: p.rasi
+            for p in chart_snapshot.data.planets
+            if p.graha in {"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"}
+        }
+        try:
+            signature = detect_signature(
+                planet_longitudes=planet_longitudes,
+                planet_rasis=planet_rasis,
+                current_maha_lord=timeline.current_mahadasha.lord,
+                current_antar_lord=timeline.current_antardasha.lord,
+            )
+        except ValueError:
+            # Malformed/incomplete chart data — skip the optional overlay
+            # rather than failing the whole whatif response (mirrors
+            # life_areas_service's handling of the same exception).
+            logger.exception("chart signature detection failed for whatif chart %s", chart_id)
+        else:
+            framing = signature_framing(signature.motif)
+            chart_signature_out = WhatIfChartSignature(
+                dominant=signature.dominant,
+                framing=WhatIfBiText(ta=framing.ta, en=framing.en),
+            )
+            if verdict != "FAVOURABLE":
+                chain = render_causal_chain(
+                    steps=[
+                        WhatIfBiText(ta=natal.text_ta, en=natal.text_en),
+                        WhatIfBiText(ta=dasha.text_ta, en=dasha.text_en),
+                    ],
+                    conclusion=WhatIfBiText(ta=gochar.text_ta, en=gochar.text_en),
+                )
+                causal_chain_text = WhatIfBiText(ta=chain.ta, en=chain.en)
+
+    run_safety_pass(
+        summary, best_period, caution_note, remedy, disclaimer,
+        chart_signature_out.framing if chart_signature_out else None,
+        causal_chain_text,
+        source="whatif",
+    )
+
     data = WhatIfData(
         chartId=chart_id,
         scenario=scenario,
@@ -982,6 +1076,8 @@ def evaluate_whatif(
         cautionNote=caution_note,
         remedy=remedy,
         disclaimer=disclaimer,
+        chartSignature=chart_signature_out,
+        causalChain=causal_chain_text,
     )
 
     return WhatIfResponse(

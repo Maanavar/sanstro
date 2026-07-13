@@ -45,6 +45,8 @@ _SCENARIO_TO_AREA: dict[str, str] = {
     "family_harmony": "FAMILY_HARMONY",
     "money": "MONEY",
     "child_birth": "CHILDREN",
+    "foreign_settlement": "FOREIGN",
+    "litigation": "LITIGATION",
     "other": "OTHER",
 }
 

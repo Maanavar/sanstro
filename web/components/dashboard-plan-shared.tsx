@@ -61,6 +61,8 @@ export const WHATIF_OPTIONS: Array<{ value: string; en: string; ta: string }> = 
   { value: "spiritual", en: "Spiritual initiation or pilgrimage", ta: "ஆன்மீக தொடக்கம் / புனித பயணம்" },
   { value: "family_harmony", en: "Resolve family matter", ta: "குடும்ப பிரச்சினை தீர்க்க" },
   { value: "child_birth", en: "Child birth or naming", ta: "குழந்தை பிறப்பு / பெயரிடல்" },
+  { value: "foreign_settlement", en: "Foreign settlement / immigration", ta: "வெளிநாட்டு குடியேற்றம் / குடியுரிமை" },
+  { value: "litigation", en: "Legal dispute / litigation", ta: "சட்ட வழக்கு / சர்ச்சை" },
   { value: "other", en: "General timing check", ta: "பொதுவான நேர சரிபார்ப்பு" },
 ];
 

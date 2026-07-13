@@ -8,7 +8,14 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.models.user_goal import VALID_GOAL_TYPES
 from app.schemas.dasha import ResponseMeta
 
-VALID_SCENARIOS = VALID_GOAL_TYPES  # reuse same set
+# P2-3: whatif accepts two scenarios beyond the onboarding goal-track picker's
+# vocabulary (foreign_settlement, litigation — see docs/PREDICTION_TAXONOMY.md
+# §2/§5). Deliberately NOT added to VALID_GOAL_TYPES itself: that constant is
+# also the onboarding "what's your focus" picker (app/models/user.py
+# User.goal_track, consumed by daily_guidance_service/decisions_service/
+# activity_timing_rules) where "litigation" would be a nonsensical life-goal
+# option — so whatif keeps its own superset instead of widening the shared one.
+VALID_SCENARIOS = VALID_GOAL_TYPES | {"foreign_settlement", "litigation"}
 
 
 class WhatIfRequest(BaseModel):
@@ -48,6 +55,13 @@ class WhatIfBiText(BaseModel):
     en: str
 
 
+class WhatIfChartSignature(BaseModel):
+    """Dominant-graha framing for the whole chart (plan Phase 5), mirrors
+    app.schemas.life_areas.ChartSignatureData's shape for this surface."""
+    dominant: str
+    framing: WhatIfBiText
+
+
 class WhatIfData(BaseModel):
     chart_id: UUID = Field(alias="chartId")
     scenario: str
@@ -58,8 +72,9 @@ class WhatIfData(BaseModel):
     # Additive — populated only when the reasoning_gate flag is on (Phase 1).
     band: str | None = Field(default=None)
     # Contradiction reading (PROMISED_AND_TIMED / PROMISED_NOT_NOW /
-    # ACTIVE_BUT_UNPROMISED / NOT_PROMISED / MIXED / SILENT). Additive —
-    # populated only when the reasoning_contradiction flag is on (Phase 3, D4).
+    # ACTIVE_BUT_UNPROMISED / PARTIALLY_PROMISED / NOT_PROMISED / MIXED /
+    # SILENT). Additive — populated only when the reasoning_contradiction
+    # flag is on (Phase 3, D4).
     reading: str | None = Field(default=None)
     triple_confirmation: TripleConfirmation = Field(alias="tripleConfirmation")
     summary: WhatIfBiText
@@ -67,6 +82,12 @@ class WhatIfData(BaseModel):
     caution_note: WhatIfBiText = Field(alias="cautionNote")
     remedy: WhatIfBiText
     disclaimer: WhatIfBiText
+    # Chart-level dominant-graha framing + a LOW/WEAK-confidence causal
+    # chain (plan Phase 5). Additive — populated only when
+    # reasoning_chart_signature is on; causal_chain only for non-STRONG
+    # verdicts (mirrors life_areas_service's LOW-confidence-only rule).
+    chart_signature: WhatIfChartSignature | None = Field(default=None, alias="chartSignature")
+    causal_chain: WhatIfBiText | None = Field(default=None, alias="causalChain")
 
     model_config = ConfigDict(populate_by_name=True)
 

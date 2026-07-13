@@ -51,8 +51,10 @@ def test_pass_gate_favourable_when_timing_aligned():
 def test_weak_gate_caps_band_at_likely():
     overall, verdict, band, reading = _overall_verdict(50, 80, 75, 70, use_reasoning_gate=True)
     assert band == "LIKELY"  # STRONG timing capped by WEAK gate
-    # The reading sees the pre-cap timing: active period, partial promise.
-    assert reading == "ACTIVE_BUT_UNPROMISED"
+    # The reading sees the pre-cap timing: active period, partial promise —
+    # §15.2 Option B (2026-07-13) distinguishes a WEAK (partial) promise from
+    # a truly SILENT chart's full ACTIVE_BUT_UNPROMISED redirect.
+    assert reading == "PARTIALLY_PROMISED"
     assert verdict == "FAVOURABLE"
 
 
