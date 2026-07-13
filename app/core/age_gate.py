@@ -21,8 +21,18 @@ def compute_age(birth_date: date, *, as_of: date | None = None) -> int:
     )
 
 
+MINOR_AGE = 18  # under this age: a minor (Tamil/Indian legal majority)
+
+
 def is_minor(birth_date: date, *, as_of: date | None = None) -> bool:
-    return compute_age(birth_date, as_of=as_of) < 18
+    return compute_age(birth_date, as_of=as_of) < MINOR_AGE
+
+
+def is_minor_age(age: int) -> bool:
+    """Same as is_minor, but for callers that already have an int age
+    rather than a birth_date (e.g. propensities, already computed once
+    per request)."""
+    return age < MINOR_AGE
 
 
 # ── Age-band thresholds ──────────────────────────────────────────────────────
@@ -105,6 +115,17 @@ CAREER_REDIRECT_KEYWORDS: tuple[str, ...] = (
     "job", "career", "work", "employment", "salary", "promotion",
     "business", "office", "interview", "resign",
     "வேலை", "தொழில்", "வியாபாரம்", "சம்பளம்", "நேர்காணல்",
+)
+
+# Minors (< 18): wellbeing/fertility/health topic redirect (P1-2, D11 hard
+# gate) — mirrors propensity_service's WELLBEING/CAUTION hard-suppress so
+# Ask Vinaadi doesn't answer in free text what the propensity cards
+# deliberately withhold from the same viewer.
+WELLBEING_REDIRECT_KEYWORDS: tuple[str, ...] = (
+    "pregnant", "pregnancy", "conceive", "conception", "fertility", "child birth",
+    "have a baby", "have children", "accident", "self harm", "suicide", "depression",
+    "depressed", "lonely", "loneliness", "mental health", "anxiety",
+    "கர்ப்பம்", "குழந்தை பேறு", "விபத்து", "மனச்சோர்வு", "தனிமை", "பதற்றம்",
 )
 
 # Young children (< 6): study / education topic redirect.

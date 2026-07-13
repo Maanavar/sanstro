@@ -67,6 +67,7 @@ from app.services.narrative_engine import (
 )
 from app.services.prediction_log_service import log_prediction
 from app.services.rectification_service import validate_chart_against_events
+from app.services.safety_filter import run_safety_pass
 
 logger = logging.getLogger(__name__)
 
@@ -485,12 +486,8 @@ def _build_area_reason(
         sani_en = f" {sani_label} is active, so patience and structure are important."
         sani_ta = f" {_sani_label_ta(sani_phase)} நடப்பில் இருப்பதால் பொறுமையுடன் திட்டமிட்டு செயல்பட வேண்டும்."
 
-    if get_flag("reasoning_bands"):
-        # D2: the level word carries the judgement; no numeric score in copy.
-        return _t(
-            f"{planet_ta} ({area_ta} காரகன்) சந்திரனிலிருந்து {karaka_house_from_moon}ஆம் இடத்தில் {transit_quality_ta} உள்ளது. {dasha_ta}{sani_ta} மொத்தப் பலன்: {area_ta} {level_ta}.",
-            f"{planet_en} (karaka for {area_en.lower()}) is in house {karaka_house_from_moon} from Moon and is {transit_quality_en}. {dasha_en}{sani_en} Net effect: {area_en.lower()} is {level_en}.",
-        )
+    # D2/D7: the level word carries the judgement; the numeric score is kept
+    # alongside it (show both, 2026-07-13).
     return _t(
         f"{planet_ta} ({area_ta} காரகன்) சந்திரனிலிருந்து {karaka_house_from_moon}ஆம் இடத்தில் {transit_quality_ta} உள்ளது. {dasha_ta}{sani_ta} மொத்தப் பலன்: {area_ta} {level_ta} ({score}/100).",
         f"{planet_en} (karaka for {area_en.lower()}) is in house {karaka_house_from_moon} from Moon and is {transit_quality_en}. {dasha_en}{sani_en} Net effect: {area_en.lower()} is {level_en} ({score}/100).",
@@ -962,16 +959,11 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                     caution=_t(caution_ta, caution_en),
                 )
 
-    # Default fallback
-    if get_flag("reasoning_bands"):
-        # D2: band word, not a numeric score.
-        support_ta = "நல்ல" if score >= 60 else ("நடுநிலை" if score >= 45 else "குறைந்த")
-        support_en = "good" if score >= 60 else ("steady" if score >= 45 else "reduced")
-        narr = _t(f"{planet_ta} தசையில் இந்த துறையில் {support_ta} ஆதரவு உள்ளது.",
-                  f"{support_en.capitalize()} support in this area under {planet_en} dasa.")
-    else:
-        narr = _t(f"{planet_ta} தசையில் இந்த துறையில் {score}/100 ஆதரவு உள்ளது.",
-                  f"{score}/100 support in this area under {planet_en} dasa.")
+    # Default fallback — D2/D7: band word plus the numeric score (show both).
+    support_ta = "நல்ல" if score >= 60 else ("நடுநிலை" if score >= 45 else "குறைந்த")
+    support_en = "good" if score >= 60 else ("steady" if score >= 45 else "reduced")
+    narr = _t(f"{planet_ta} தசையில் இந்த துறையில் {support_ta} ஆதரவு உள்ளது ({score}/100).",
+              f"{support_en.capitalize()} support in this area under {planet_en} dasa ({score}/100).")
     outlook = _t("அடுத்த 30 நாட்களில் நிலையான முன்னேற்றம் எதிர்பார்க்கலாம்.",
                  "Steady progress expected in the next 30 days.")
     remedy = _t("வழக்கமான வழிபாட்டை தொடரவும்.", "Continue regular worship practice.")
@@ -1663,6 +1655,7 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
         if contradiction_on and area_reading in (
             Reading.PROMISED_NOT_NOW.value,
             Reading.NOT_PROMISED.value,
+            Reading.PARTIALLY_PROMISED.value,
         ):
             _voice = (
                 promised_not_now_voice(next_improvement)
@@ -1754,6 +1747,14 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
                     f"{_voice.ta} {entry.narrative.ta}",
                     f"{_voice.en} {entry.narrative.en}",
                 )
+
+    for _area in areas:
+        run_safety_pass(
+            _area.narrative, _area.remedy, _area.next_30_day_outlook, _area.caution,
+            _area.causal_chain, source="life_areas",
+        )
+    if chart_signature_data is not None:
+        run_safety_pass(chart_signature_data.framing, source="life_areas.chart_signature")
 
     return LifeAreasResponse(
         data=LifeAreasResponseData(

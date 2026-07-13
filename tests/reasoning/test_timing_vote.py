@@ -8,6 +8,7 @@ from app.reasoning.timing_vote import (
     weighted_timing_vote,
 )
 from app.reasoning.verdict import Band
+from app.services.feature_flags import get_flag, reset_flag, set_flag
 
 pytestmark = pytest.mark.no_db
 
@@ -61,3 +62,25 @@ def test_pass_gate_lets_timing_speak():
     gate = gate_from_l1(20)  # PASS
     assert combine_gate_and_timing(gate, 90) is Band.STRONG
     assert combine_gate_and_timing(gate, 30) is Band.WEAK
+
+
+def test_band_cutoff_flag_defaults_match_original_hardcoded_values():
+    """P3-2/P3-3: cutoffs moved from literals to admin-tunable flags.
+
+    Defaults must reproduce the pre-flag behaviour (75/60/45) byte-for-byte —
+    no threshold has actually changed, only the mechanism.
+    """
+    assert get_flag("timing_band_strong_cutoff") == 75
+    assert get_flag("timing_band_likely_cutoff") == 60
+    assert get_flag("timing_band_mixed_cutoff") == 45
+
+
+def test_band_thresholds_are_admin_tunable_via_flags():
+    set_flag("timing_band_strong_cutoff", 80)
+    try:
+        assert timing_band_from_score(79) is Band.LIKELY
+        assert timing_band_from_score(80) is Band.STRONG
+    finally:
+        reset_flag("timing_band_strong_cutoff")
+    # Reset restores the original hardcoded-equivalent default.
+    assert timing_band_from_score(75) is Band.STRONG

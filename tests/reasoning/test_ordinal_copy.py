@@ -1,8 +1,15 @@
-"""Phase 2 (D2/D3) — ordinal copy: band words in user strings, no X/100.
+"""Phase 2 (D2/D3/D7) — ordinal copy: band words AND numeric scores together.
 
-The precision_validator is the D2 enforcement tool: with the reasoning_bands
-flag ON, no user-facing narrative string may render an internal score. With
-the flag OFF, every legacy string must be byte-identical to PR-1 output.
+Product decision 2026-07-13 (P0-1, docs/PREDICTION_DOCTRINE_AND_ROADMAP.md):
+show both the band word and the numeric score in user copy, not one or the
+other. The `reasoning_bands` flag therefore no longer toggles score-bearing
+narrative text — those strings carry the score regardless of the flag. The
+flag still gates the `band` field's confidence-vocabulary unification (e.g.
+marriage's legacy `confidence` tier deriving from the `Band`).
+
+precision_validator remains a real enforcement tool for the epistemic-state
+voices (SILENT_VOICE/BLOCKED_VOICE/reading phrases) — those never claim a
+score in the first place and must stay that way.
 """
 from datetime import date
 
@@ -41,6 +48,13 @@ def bands_on():
     feature_flags.reset_flag("reasoning_bands")
 
 
+@pytest.fixture
+def bands_off():
+    feature_flags.set_flag("reasoning_bands", False)
+    yield
+    feature_flags.reset_flag("reasoning_bands")
+
+
 def _narrative_sweep() -> list[str]:
     """Every Phase 2 narrative output, both languages, across score bands."""
     texts: list[str] = []
@@ -70,9 +84,9 @@ def test_precision_validator_passes_clean_band_copy():
     assert precision_validator("தசை ஆதரவு வலுவானது — திட்டமிட்ட செயல்களுக்கு நல்ல நேரம்.") == []
 
 
-# ── Flag OFF: legacy copy keeps its numeric scores (regression) ────────────────
+# ── Score-bearing narrative keeps the number regardless of the flag ────────────
 
-def test_flag_off_legacy_strings_keep_scores():
+def test_flag_off_legacy_strings_keep_scores(bands_off):
     bi = dasha_support_reason("JUPITER", "VENUS", 72)
     assert "(72/100)" in bi.ta and "(72/100)" in bi.en
     bi = panchangam_reason(5, 2, "BAVA", "JUPITER", 63, 10)
@@ -83,25 +97,39 @@ def test_flag_off_legacy_strings_keep_scores():
     assert "82/100" in bi.ta and "82/100" in bi.en
 
 
-def test_flag_off_area_reason_keeps_score():
+def test_flag_on_strings_still_keep_scores(bands_on):
+    """D7: bands are additive, not a replacement — the score must survive."""
+    bi = dasha_support_reason("JUPITER", "VENUS", 72)
+    assert "(72/100)" in bi.ta and "(72/100)" in bi.en
+    bi = panchangam_reason(5, 2, "BAVA", "JUPITER", 63, 10)
+    assert "63/100" in bi.ta and "63/100" in bi.en
+    bi = gochar_reason(5, 3, None, False, False, 58)
+    assert "58/100" in bi.ta and "58/100" in bi.en
+    bi = daily_summary(82, "JUPITER", "VENUS", False, None, False, None)
+    assert "82/100" in bi.ta and "82/100" in bi.en
+
+
+def test_flag_off_area_reason_keeps_score(bands_off):
     bi = _build_area_reason("CAREER", 74, "JUPITER", 5, "JUPITER", "VENUS", True, False, None)
     assert "(74/100)" in bi.ta and "(74/100)" in bi.en
 
 
-# ── Flag ON: no user-facing string renders a score (D2) ────────────────────────
-
-def test_flag_on_narrative_sweep_is_precision_clean(bands_on):
-    for text in _narrative_sweep():
-        assert precision_validator(text) == [], f"score leaked in: {text!r}"
-
-
-def test_flag_on_area_reason_is_precision_clean(bands_on):
+def test_flag_on_area_reason_keeps_score(bands_on):
     for score in (20, 50, 80):
         bi = _build_area_reason("CAREER", score, "JUPITER", 5, "JUPITER", "VENUS", True, False, None)
-        assert precision_validator(bi.ta) == []
-        assert precision_validator(bi.en) == []
-        # The band word still carries the judgement.
+        assert f"({score}/100)" in bi.ta and f"({score}/100)" in bi.en
+        # The band/level word still carries the judgement alongside the score.
         assert ("strong" in bi.en) or ("moderate" in bi.en) or ("needs attention" in bi.en)
+
+
+def test_narrative_sweep_is_flag_independent():
+    """Same score-bearing copy regardless of reasoning_bands (D7 is additive)."""
+    feature_flags.set_flag("reasoning_bands", False)
+    off_texts = _narrative_sweep()
+    feature_flags.set_flag("reasoning_bands", True)
+    on_texts = _narrative_sweep()
+    feature_flags.reset_flag("reasoning_bands")
+    assert off_texts == on_texts
 
 
 def _whatif_summary(verdict: str) -> tuple[str, str]:
@@ -115,14 +143,13 @@ def _whatif_summary(verdict: str) -> tuple[str, str]:
 
 
 @pytest.mark.parametrize("verdict", ["FAVOURABLE", "NEUTRAL", "CAUTION"])
-def test_flag_on_whatif_summary_is_precision_clean(bands_on, verdict):
+def test_flag_on_whatif_summary_keeps_score(bands_on, verdict):
     ta, en = _whatif_summary(verdict)
-    assert precision_validator(ta) == []
-    assert precision_validator(en) == []
+    assert "(72/100)" in ta and "(72/100)" in en
 
 
 @pytest.mark.parametrize("verdict", ["FAVOURABLE", "NEUTRAL", "CAUTION"])
-def test_flag_off_whatif_summary_keeps_score(verdict):
+def test_flag_off_whatif_summary_keeps_score(bands_off, verdict):
     ta, en = _whatif_summary(verdict)
     assert "(72/100)" in ta and "(72/100)" in en
 
@@ -140,6 +167,8 @@ def test_band_phrase_unknown_falls_back_to_mixed():
 
 
 def test_silent_and_blocked_voices_pass_tone_and_precision():
+    """SILENT/BLOCKED are epistemic states, not scores — these never carry a
+    number, unlike the score-bearing narrative covered above."""
     for text in (SILENT_VOICE.ta, SILENT_VOICE.en, BLOCKED_VOICE.ta, BLOCKED_VOICE.en):
         assert tone_validator(text) == []
         assert precision_validator(text) == []

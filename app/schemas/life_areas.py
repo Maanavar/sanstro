@@ -42,8 +42,9 @@ class LifeAreaData(BaseModel):
     caution: LifeAreaText | None = None
     is_goal_focus: bool = Field(default=False, alias="isGoalFocus")
     # Contradiction reading (PROMISED_AND_TIMED / PROMISED_NOT_NOW /
-    # ACTIVE_BUT_UNPROMISED / NOT_PROMISED / MIXED / SILENT). Additive —
-    # populated only when the reasoning_contradiction flag is on (Phase 3, D4).
+    # ACTIVE_BUT_UNPROMISED / PARTIALLY_PROMISED / NOT_PROMISED / MIXED /
+    # SILENT). Additive — populated only when the reasoning_contradiction
+    # flag is on (Phase 3, D4).
     reading: str | None = Field(default=None)
     score_breakdown: dict[str, int] | None = Field(default=None, alias="scoreBreakdown")
     structured_remedy: dict[str, object] | None = Field(default=None, alias="structuredRemedy")

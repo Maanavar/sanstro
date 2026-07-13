@@ -3,15 +3,70 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
+import logging
+
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import DEBILITATION_RASI, EXALTATION_RASI, OWN_SIGN_RASI
 from app.calculations.transits import get_jupiter_aspects
 from app.core.age_gate import MARRIAGE_UPPER_AGE, SEVVAI_DOSHAM_SOFTENING_AGE, is_married_settled, is_seeking_marriage
+from app.reasoning.chart_signature import detect_signature
 from app.reasoning.promise_gate import GateGrade, GateResult, assess_promise
 from app.reasoning.timing_vote import combine_gate_and_timing
 from app.reasoning.verdict import band_to_legacy_confidence
 from app.services.feature_flags import get_flag
-from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction, house_lord_for_lagna
+from app.services.life_area_prediction_models import (
+    AstroFactor,
+    BiText,
+    ChartSignature,
+    LifeAreaPrediction,
+    house_lord_for_lagna,
+)
+from app.services.narrative_engine import render_causal_chain, signature_framing
+from app.services.safety_filter import check_text, run_safety_pass
+
+logger = logging.getLogger(__name__)
+
+
+def _safety_checked(result: LifeAreaPrediction) -> LifeAreaPrediction:
+    """D6/D15: serve-time tone/precision check before returning a marriage
+    reading. main_prediction is a plain ta/en string pair (not a BiText),
+    so it's checked directly; factor details, challenges, and supports are
+    BiText and go through run_safety_pass."""
+    check_text(result.main_prediction_ta, source="marriage", lang="ta")
+    check_text(result.main_prediction_en, source="marriage", lang="en")
+    run_safety_pass(
+        *(f.detail for f in result.astrological_factors),
+        *result.challenges,
+        *result.supports,
+        result.chart_signature.framing if result.chart_signature else None,
+        result.causal_chain,
+        source="marriage",
+    )
+    return result
+
+
+def _compute_chart_signature(payload: "MarriageAssessmentInput") -> ChartSignature | None:
+    """Phase 5 (D6, P0-4): chart-level dominant-graha framing, extended here
+    from life-areas-only (PR-5's original scope). Gated on
+    reasoning_chart_signature; skipped (None, not fabricated) on malformed
+    data — mirrors life_areas_service's own try/except around the same
+    ValueError."""
+    if not bool(get_flag("reasoning_chart_signature")):
+        return None
+    active = list(payload.active_dasha_lords)
+    maha_lord = active[0] if active else None
+    try:
+        signature = detect_signature(
+            planet_longitudes=payload.planet_longitudes or {},
+            planet_rasis=payload.planets_rasi,
+            current_maha_lord=maha_lord,
+            current_antar_lord=active[-1] if len(active) > 1 else maha_lord,
+        )
+    except ValueError:
+        logger.exception("chart signature detection failed for a marriage prediction")
+        return None
+    framing = signature_framing(signature.motif)
+    return ChartSignature(dominant=signature.dominant, framing=BiText(ta=framing.ta, en=framing.en))
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,6 +85,10 @@ class MarriageAssessmentInput:
     rahu_ketu_label: str | None = None
     d9_rasi_by_planet: dict[str, int] | None = None
     relationship_to_owner: str = "self"
+    # Absolute longitudes (for Atmakaraka in the chart-signature overlay,
+    # P0-4) — optional; when absent, the signature detector falls back to
+    # aspect/dasha/strength signals alone (see detect_signature()).
+    planet_longitudes: dict[str, float] | None = None
 _PARENTAL_RELATIONSHIPS: frozenset[str] = frozenset({"parent", "grandparent"})
 
 
@@ -109,7 +168,7 @@ def _gated_marriage_prediction(payload: MarriageAssessmentInput, gate: GateResul
         )
         factor_key = "promise_gate_silent"
 
-    return LifeAreaPrediction(
+    return _safety_checked(LifeAreaPrediction(
         life_area="marriage",
         main_prediction_ta=main_ta,
         main_prediction_en=main_en,
@@ -134,7 +193,12 @@ def _gated_marriage_prediction(payload: MarriageAssessmentInput, gate: GateResul
             "Ask about family well-being, career, and spiritual growth — the chart will show the paths it does support.",
         )],
         band=gate.grade.value,
-    )
+        chart_signature=_compute_chart_signature(payload),
+        # No causal_chain here — a BLOCKED/SILENT gate redirect has only one
+        # reason string (already shown as the single astrological_factor
+        # above), so a chain would just repeat it. Causal chains are for the
+        # scored path below, which has three distinct reason strings to link.
+    ))
 
 
 def assess_marriage_prediction(
@@ -638,7 +702,18 @@ def assess_marriage_prediction(
         if gate.grade is GateGrade.WEAK and confidence == "HIGH":
             confidence = "MEDIUM"
 
-    return LifeAreaPrediction(
+    # Phase 5 (D6, P0-4): LOW-confidence causal chain from the challenges
+    # already identified above, mirroring life_areas_service's rule (chain
+    # only for LOW confidence, never for a genuinely strong reading).
+    causal_chain: BiText | None = None
+    if bool(get_flag("reasoning_chart_signature")) and confidence == "LOW" and challenges:
+        chain = render_causal_chain(
+            steps=challenges[:2],
+            conclusion=BiText(ta=main[0], en=main[1]),
+        )
+        causal_chain = BiText(ta=chain.ta, en=chain.en)
+
+    return _safety_checked(LifeAreaPrediction(
         life_area="marriage",
         main_prediction_ta=main[0],
         main_prediction_en=main[1],
@@ -651,4 +726,6 @@ def assess_marriage_prediction(
         challenges=challenges,
         supports=supports,
         band=band,
-    )
+        chart_signature=_compute_chart_signature(payload),
+        causal_chain=causal_chain,
+    ))

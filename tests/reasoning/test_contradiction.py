@@ -40,6 +40,15 @@ def contradiction_on():
     feature_flags.reset_flag("reasoning_contradiction")
 
 
+@pytest.fixture
+def contradiction_off():
+    # Default flipped ON 2026-07-13 (P0-2) — this fixture is now needed for
+    # any test that specifically wants to prove flag-off behaviour.
+    feature_flags.set_flag("reasoning_contradiction", False)
+    yield
+    feature_flags.reset_flag("reasoning_contradiction")
+
+
 # ── Classifier matrix (plan §Phase 3 sketch + D3/D4 doctrine) ──────────────────
 
 def test_blocked_gate_is_not_promised_regardless_of_timing():
@@ -56,8 +65,13 @@ def test_pass_gate_readings():
 
 
 def test_weak_gate_readings():
-    assert classify(GateGrade.WEAK, Band.STRONG) is Reading.ACTIVE_BUT_UNPROMISED
-    assert classify(GateGrade.WEAK, Band.LIKELY) is Reading.ACTIVE_BUT_UNPROMISED
+    # §15.2 Option B (specialist decision, 2026-07-13): WEAK + active timing
+    # is a genuinely different epistemic state from SILENT + active timing —
+    # one of the two promise conditions did hold — so it gets its own
+    # "partial support" reading instead of ACTIVE_BUT_UNPROMISED's full
+    # redirect (which stays reserved for a truly quiet/blocked promise).
+    assert classify(GateGrade.WEAK, Band.STRONG) is Reading.PARTIALLY_PROMISED
+    assert classify(GateGrade.WEAK, Band.LIKELY) is Reading.PARTIALLY_PROMISED
     assert classify(GateGrade.WEAK, Band.MIXED) is Reading.MIXED
     assert classify(GateGrade.WEAK, Band.WEAK) is Reading.MIXED
     assert classify(GateGrade.WEAK, None) is Reading.MIXED
@@ -137,8 +151,8 @@ def _summary(verdict: str, reading: str | None):
     return summary
 
 
-def test_flag_off_summary_ignores_reading():
-    for reading in (None, "PROMISED_NOT_NOW", "ACTIVE_BUT_UNPROMISED", "NOT_PROMISED"):
+def test_flag_off_summary_ignores_reading(contradiction_off):
+    for reading in (None, "PROMISED_NOT_NOW", "ACTIVE_BUT_UNPROMISED", "PARTIALLY_PROMISED", "NOT_PROMISED"):
         summary = _summary("CAUTION", reading)
         assert summary == _summary("CAUTION", None)
 
@@ -182,8 +196,8 @@ def test_flag_on_reading_summaries_pass_tone_and_precision(contradiction_on):
 # ── Whatif response wiring: reading surfaces only behind the flag ──────────────
 
 def test_overall_verdict_reading_matches_classifier():
-    # PASS gate + weak timing → wait; WEAK gate + strong timing → redirect.
+    # PASS gate + weak timing → wait; WEAK gate + strong timing → partial promise.
     *_, reading_wait = _overall_verdict(70, 20, 20, 40, use_reasoning_gate=True)
-    *_, reading_redirect = _overall_verdict(50, 80, 75, 70, use_reasoning_gate=True)
+    *_, reading_partial = _overall_verdict(50, 80, 75, 70, use_reasoning_gate=True)
     assert reading_wait == Reading.PROMISED_NOT_NOW.value
-    assert reading_redirect == Reading.ACTIVE_BUT_UNPROMISED.value
+    assert reading_partial == Reading.PARTIALLY_PROMISED.value

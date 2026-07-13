@@ -15,15 +15,9 @@ from typing import TYPE_CHECKING
 
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import compute_natal_planet_score
-from app.services.feature_flags import get_flag
 
 if TYPE_CHECKING:
     from app.schemas.charts import PlanetPosition
-
-
-def _bands_on() -> bool:
-    """Phase 2 (D2 ordinal honesty): band words in user copy, no X/100."""
-    return bool(get_flag("reasoning_bands"))
 
 
 # ── Bilingual string helper ────────────────────────────────────────────────────
@@ -90,14 +84,8 @@ def build_strength_narrative(planets: list[PlanetPosition], lagna_rasi: int) -> 
     strongest_name = PLANET_NAME.get(strongest_planet, _bi(strongest_planet, strongest_planet))
     weakest_name = PLANET_NAME.get(weakest_planet, _bi(weakest_planet, weakest_planet))
 
-    if _bands_on():
-        # D2: the band words carry the judgement; no numeric score in copy.
-        return _bi(
-            f"{strongest_name.ta} {strongest_house}ஆம் இடத்தில் பலமாக உள்ளது. "
-            f"{weakest_name.ta} {weakest_house}ஆம் இடத்தில் கவனம் தேவை.",
-            f"{strongest_name.en} in house {strongest_house} is strong. "
-            f"{weakest_name.en} in house {weakest_house} needs caution.",
-        )
+    # D2/D7: band words carry the judgement; the numeric score stays alongside
+    # it (product decision 2026-07-13 — show both, not one or the other).
     return _bi(
         f"{strongest_name.ta} {strongest_house}ஆம் இடத்தில் ({strongest_score}/100) பலமாக உள்ளது. "
         f"{weakest_name.ta} {weakest_house}ஆம் இடத்தில் ({weakest_score}/100) கவனம் தேவை.",
@@ -300,10 +288,10 @@ def dasha_support_reason(maha_lord: str, antar_lord: str, dasha_score: int) -> B
     maha_quality_ta = maha.ta.split(" — ")[1] if " — " in maha.ta else "நல்ல வளர்ச்சி"
     maha_quality_en = maha.en.split(" — ")[1] if " — " in maha.en else "growth"
 
-    # D2: the band word ("strong/moderate/reduced") is the public confidence;
-    # the numeric score only appears on the legacy (flag-off) path.
-    score_suffix_ta = "" if _bands_on() else f" ({dasha_score}/100)"
-    score_suffix_en = "" if _bands_on() else f" ({dasha_score}/100)"
+    # D2/D7: the band word ("strong/moderate/reduced") carries the public
+    # confidence; the numeric score is kept alongside it (show both, 2026-07-13).
+    score_suffix_ta = f" ({dasha_score}/100)"
+    score_suffix_en = f" ({dasha_score}/100)"
     if dasha_score >= 65:
         return _bi(
             f"நடப்பில் {maha.ta}. இந்த தசை காலத்தில் {maha_quality_ta} கிடைக்கும். "
@@ -380,21 +368,16 @@ def panchangam_reason(
     notes_ta.append(f"நட்சத்திரம்: {nak_name.ta}")
     notes_en.append(f"Nakshatra: {nak_name.en}")
 
-    if _bands_on():
-        # D2: band word instead of a score tail.
-        if panchangam_score >= 65:
-            tail_ta, tail_en = "பஞ்சாங்கம் ஆதரவாக உள்ளது", "the Panchangam is supportive"
-        elif panchangam_score >= 45:
-            tail_ta, tail_en = "பஞ்சாங்கம் நடுநிலையாக உள்ளது", "the Panchangam is steady"
-        else:
-            tail_ta, tail_en = "பஞ்சாங்கம் கவனம் கோருகிறது", "the Panchangam calls for attention"
-        return _bi(
-            " · ".join(notes_ta) + f" — {tail_ta}.",
-            " · ".join(notes_en) + f" — {tail_en}.",
-        )
+    # D2/D7: band word tail plus the numeric score (show both, 2026-07-13).
+    if panchangam_score >= 65:
+        tail_ta, tail_en = "பஞ்சாங்கம் ஆதரவாக உள்ளது", "the Panchangam is supportive"
+    elif panchangam_score >= 45:
+        tail_ta, tail_en = "பஞ்சாங்கம் நடுநிலையாக உள்ளது", "the Panchangam is steady"
+    else:
+        tail_ta, tail_en = "பஞ்சாங்கம் கவனம் கோருகிறது", "the Panchangam calls for attention"
     return _bi(
-        " · ".join(notes_ta) + f" (பஞ்சாங்க மதிப்பெண்: {panchangam_score}/100).",
-        " · ".join(notes_en) + f" (Panchangam score: {panchangam_score}/100).",
+        " · ".join(notes_ta) + f" — {tail_ta} (பஞ்சாங்க மதிப்பெண்: {panchangam_score}/100).",
+        " · ".join(notes_en) + f" — {tail_en} (Panchangam score: {panchangam_score}/100).",
     )
 
 
@@ -469,21 +452,16 @@ def gochar_reason(
         notes_ta.append("சந்திராஷ்டமம் கோசார தாக்கத்தை பலவீனப்படுத்துகிறது")
         notes_en.append("Chandrashtamam weakens the overall transit support")
 
-    if _bands_on():
-        # D2: band word instead of a score tail.
-        if transit_score >= 65:
-            tail_ta, tail_en = "கோசார ஆதரவு வலுவாக உள்ளது", "transit support is strong"
-        elif transit_score >= 45:
-            tail_ta, tail_en = "கோசார ஆதரவு நடுநிலையாக உள்ளது", "transit support is steady"
-        else:
-            tail_ta, tail_en = "கோசாரம் கவனம் கோருகிறது", "transits call for attention"
-        return _bi(
-            " · ".join(notes_ta) + f" — {tail_ta}.",
-            " · ".join(notes_en) + f" — {tail_en}.",
-        )
+    # D2/D7: band word tail plus the numeric score (show both, 2026-07-13).
+    if transit_score >= 65:
+        tail_ta, tail_en = "கோசார ஆதரவு வலுவாக உள்ளது", "transit support is strong"
+    elif transit_score >= 45:
+        tail_ta, tail_en = "கோசார ஆதரவு நடுநிலையாக உள்ளது", "transit support is steady"
+    else:
+        tail_ta, tail_en = "கோசாரம் கவனம் கோருகிறது", "transits call for attention"
     return _bi(
-        " · ".join(notes_ta) + f" (கோசார மதிப்பெண்: {transit_score}/100).",
-        " · ".join(notes_en) + f" (Gochar score: {transit_score}/100).",
+        " · ".join(notes_ta) + f" — {tail_ta} (கோசார மதிப்பெண்: {transit_score}/100).",
+        " · ".join(notes_en) + f" — {tail_en} (Gochar score: {transit_score}/100).",
     )
 
 
@@ -532,11 +510,6 @@ def personal_caution_reason(
         notes_en.append("Abhijit muhurtam is not available today")
 
     if not notes_ta:
-        if _bands_on():
-            return _bi(
-                "மிதமான கவலை நிலை. வழக்கமான நடவடிக்கைகளை தொடரலாம்.",
-                "Mild caution level. Routine activities are fine.",
-            )
         return _bi(
             f"மிதமான கவலை நிலை ({personal_score}/100). வழக்கமான நடவடிக்கைகளை தொடரலாம்.",
             f"Mild caution level ({personal_score}/100). Routine activities are fine.",
@@ -669,41 +642,6 @@ _SUMMARY_TEMPLATES: dict[str, tuple[str, str]] = {
     ),
 }
 
-# Phase 2 (D2): same voice, no numeric score — the label word IS the judgement.
-_SUMMARY_TEMPLATES_BANDED: dict[str, tuple[str, str]] = {
-    "STRONG_SUPPORT": (
-        "இன்று மிகவும் ஆதரவான நாள். {dasha_char} நடப்பில் உள்ளது. "
-        "சிறந்த நேரம் பயன்படுத்தி திட்டமிட்ட முடிவுகளை எடுங்கள்.",
-        "Today is a strongly supportive day. {dasha_char} is active. "
-        "Use the best window to execute your planned decisions.",
-    ),
-    "GOOD": (
-        "இன்று நல்ல நாள். {dasha_char} நடப்பில் உள்ளது. "
-        "ராகு காலம் தவிர்த்து முக்கிய பணிகளை முன்னெடுங்கள்.",
-        "Today is a good day. {dasha_char} is active. "
-        "Proceed with important tasks, avoiding Rahu Kalam.",
-    ),
-    "BALANCED": (
-        "இன்று நிலையான நாள். {dasha_char} நடப்பில் உள்ளது. "
-        "படிப்படியாக செயல்பட்டு, எளிய முடிவுகளை மட்டும் எடுங்கள்.",
-        "Today is a steady day. {dasha_char} is active. "
-        "Move step by step and keep decisions simple.",
-    ),
-    "CAUTION": (
-        "இன்று கவனம் தேவைப்படும் நாள். {dasha_char} நடப்பில் உள்ளது. "
-        "வழக்கமான பணிகளுக்கு முன்னுரிமை கொடுங்கள், பெரிய முடிவுகளை ஒத்தி வையுங்கள்.",
-        "Today is a cautious day. {dasha_char} is active. "
-        "Prioritise routine tasks and defer major decisions.",
-    ),
-    "RESTORATIVE": (
-        "இன்று ஓய்வும் மீளச்சேர்க்கையும் தேவைப்படும் நாள். {dasha_char} நடப்பில் உள்ளது. "
-        "சிறிய பொறுப்புகளை மட்டும் ஏற்று, ஓய்வுக்கு முன்னுரிமை கொடுங்கள்.",
-        "Today is a restorative day. {dasha_char} is active. "
-        "Keep commitments small and prioritise rest.",
-    ),
-}
-
-
 def daily_summary(
     score: int,
     maha_lord: str,
@@ -717,10 +655,9 @@ def daily_summary(
     current_nakshatra: int | None = None,
 ) -> BiText:
     band = _band(score)
-    if _bands_on():
-        ta_tmpl, en_tmpl = _SUMMARY_TEMPLATES_BANDED[band]
-    else:
-        ta_tmpl, en_tmpl = _SUMMARY_TEMPLATES[band]
+    # D2/D7: the band word carries the judgement; the numeric score is kept
+    # alongside it (show both, 2026-07-13).
+    ta_tmpl, en_tmpl = _SUMMARY_TEMPLATES[band]
 
     maha_char = _DASHA_CHARACTER.get(maha_lord, _bi(maha_lord, maha_lord))
     dasha_char_ta = maha_char.ta.split(" — ")[0]  # just "குரு தசை"
@@ -1184,10 +1121,12 @@ _PRECISION_PATTERNS = (
 
 
 def precision_validator(text: str) -> list[str]:
-    """Return numeric-precision leaks found in `text` (D2: bands, not decimals).
+    """Return numeric-precision leaks found in `text`.
 
-    Companion to tone_validator; used in tests to prove no user-facing string
-    renders an internal score when the reasoning_bands flag is on.
+    Companion to tone_validator; used in tests to confirm the epistemic-state
+    voices (SILENT/BLOCKED/reading) stay band-only even though score-bearing
+    narrative strings elsewhere deliberately show both a band word and the
+    numeric score (product decision 2026-07-13).
     """
     return [m.group(0) for pattern in _PRECISION_PATTERNS for m in pattern.finditer(text)]
 
@@ -1210,6 +1149,14 @@ READING_VOICE: dict[str, BiText] = {
     "ACTIVE_BUT_UNPROMISED": _bi(
         "இது ஒரு செயலூக்கமான காலம்; ஆனால் ஜாதகம் இந்த ஆற்றலை வேறு திசையில் காட்டுகிறது.",
         "This is an active period, but your chart points the energy in a different direction.",
+    ),
+    # §15.2 Option B (specialist decision, 2026-07-13): WEAK gate + active
+    # timing is a genuinely different epistemic state from SILENT/BLOCKED's
+    # full redirect — one of the two promise conditions did hold. Draft
+    # text from the plan's own Option-B proposal.
+    "PARTIALLY_PROMISED": _bi(
+        "இது ஒரு செயலூக்கமான காலம்; ஜாதகம் ஓரளவு ஆதரவு தருகிறது, ஆனால் முழுமையான உறுதி இல்லை.",
+        "This is an active period, and your chart offers partial support — though not a full promise.",
     ),
     "NOT_PROMISED": BLOCKED_VOICE,
     "MIXED": _bi(

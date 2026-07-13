@@ -12,6 +12,7 @@ from collections.abc import Sequence
 
 from app.reasoning.promise_gate import GateGrade, GateResult
 from app.reasoning.verdict import Band, cap_band
+from app.services.feature_flags import get_flag
 
 
 def weighted_timing_vote(components: Sequence[tuple[float, float]]) -> int:
@@ -29,12 +30,16 @@ def weighted_timing_vote(components: Sequence[tuple[float, float]]) -> int:
 
 
 def timing_band_from_score(timing_score: int) -> Band:
-    """Map an internal 0–100 timing vote to an ordinal band (D2)."""
-    if timing_score >= 75:
+    """Map an internal 0–100 timing vote to an ordinal band (D2).
+
+    Cutoffs are admin-tunable flags (P3-2/P3-3 recalibration mechanism) —
+    see feature_flags.py for defaults and rollout rationale.
+    """
+    if timing_score >= get_flag("timing_band_strong_cutoff"):
         return Band.STRONG
-    if timing_score >= 60:
+    if timing_score >= get_flag("timing_band_likely_cutoff"):
         return Band.LIKELY
-    if timing_score >= 45:
+    if timing_score >= get_flag("timing_band_mixed_cutoff"):
         return Band.MIXED
     return Band.WEAK
 

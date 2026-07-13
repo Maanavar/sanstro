@@ -351,6 +351,11 @@ def test_feature_flags_round_trip(raw_client):
         "reasoning_contradiction",
         "reasoning_calibration_log",
         "reasoning_chart_signature",
+        "daily_briefing_synth",
+        "propensity_insights",
+        "timing_band_strong_cutoff",
+        "timing_band_likely_cutoff",
+        "timing_band_mixed_cutoff",
     } == names
 
     set_response = raw_client.patch(

@@ -25,6 +25,7 @@ class Reading(str, Enum):
     PROMISED_AND_TIMED = "PROMISED_AND_TIMED"        # aligned → act
     PROMISED_NOT_NOW = "PROMISED_NOT_NOW"            # wait — the window opens later
     ACTIVE_BUT_UNPROMISED = "ACTIVE_BUT_UNPROMISED"  # redirect the period's energy
+    PARTIALLY_PROMISED = "PARTIALLY_PROMISED"        # WEAK gate + active timing — partial support, not a full promise (§15.2 Option B)
     NOT_PROMISED = "NOT_PROMISED"                    # gate BLOCKED (non-fatalistic voice)
     MIXED = "MIXED"                                  # genuine middle — no story to force
     SILENT = "SILENT"                                # quiet on promise and timing (D3/D4)
@@ -67,8 +68,12 @@ def classify(promise_grade: GateGrade, timing_band: Band | None) -> Reading:
             return Reading.PROMISED_NOT_NOW
         return Reading.MIXED
 
-    # WEAK gate: the promise is partial. An active period still redirects
-    # (plan §Phase 3 sketch); anything less is a genuine middle.
+    # WEAK gate: the promise is partial (one of the two promise conditions
+    # held, unlike SILENT where neither did — D3). Specialist review §15.2
+    # (2026-07-13): folding this into the same redirect voice as a genuinely
+    # silent chart overstates how little the chart supports the question —
+    # WEAK + active timing gets its own "partial support" reading instead of
+    # ACTIVE_BUT_UNPROMISED's full redirect. Anything less is a genuine middle.
     if rank >= _LIKELY:
-        return Reading.ACTIVE_BUT_UNPROMISED
+        return Reading.PARTIALLY_PROMISED
     return Reading.MIXED

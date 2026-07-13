@@ -139,3 +139,34 @@ def test_scenario_to_area_covers_all_whatif_scenarios():
     assert scenario_to_area("marriage") == "MARRIAGE"
     assert scenario_to_area("job_change") == "CAREER"
     assert scenario_to_area("unknown_key") == "OTHER"
+
+
+def test_p23_new_scenarios_map_to_existing_life_areas():
+    """foreign_settlement/litigation (P2-3 whatif parity) must map to the
+    life_areas_service areas that already exist for them (docs/
+    PREDICTION_TAXONOMY.md §1/§5), not a fresh or missing bucket."""
+    assert scenario_to_area("foreign_settlement") == "FOREIGN"
+    assert scenario_to_area("litigation") == "LITIGATION"
+
+
+def test_whatif_scenario_dicts_have_no_missing_keys():
+    """Every VALID_SCENARIOS key must resolve in each of whatif_service's
+    scenario-keyed dicts — a KeyError here would only surface at request time
+    for whichever scenario the caller happened to pick."""
+    from app.schemas.whatif import VALID_SCENARIOS
+    from app.services.whatif_service import (
+        _DASHA_SCENARIO_SCORE,
+        _SCENARIO_KARAKA,
+        _SCENARIO_LABEL_EN,
+        _SCENARIO_LABEL_TA,
+        _SCENARIO_NATAL_HOUSES,
+    )
+    for scenario in VALID_SCENARIOS:
+        assert scenario in _SCENARIO_KARAKA, scenario
+        assert scenario in _SCENARIO_NATAL_HOUSES, scenario
+        assert scenario in _DASHA_SCENARIO_SCORE, scenario
+        assert scenario in _SCENARIO_LABEL_TA, scenario
+        assert scenario in _SCENARIO_LABEL_EN, scenario
+        assert set(_DASHA_SCENARIO_SCORE[scenario]) == {
+            "SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU",
+        }, scenario
