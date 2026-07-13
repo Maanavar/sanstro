@@ -196,22 +196,23 @@ def test_propensities_endpoint_flag_gated_and_shape(client, birth_profile_payloa
     )
     params = {"asOf": "2026-05-24"}
 
-    # Flag off (default) → not available.
-    off = client.get(f"/api/v1/charts/{chart_id}/propensities", params=params)
-    assert off.status_code == 404
-
-    # Flag on → full bundle.
-    set_flag("propensity_insights", True)
+    # Flag off → not available. `propensity_insights` defaults to True since
+    # P0-3 (2026-07-13), so this half needs an explicit override.
+    set_flag("propensity_insights", False)
     try:
-        resp = client.get(f"/api/v1/charts/{chart_id}/propensities", params=params)
+        off = client.get(f"/api/v1/charts/{chart_id}/propensities", params=params)
     finally:
         reset_flag("propensity_insights")
+    assert off.status_code == 404
+
+    # Flag on (default) → full bundle.
+    resp = client.get(f"/api/v1/charts/{chart_id}/propensities", params=params)
 
     assert resp.status_code == 200
     body = resp.json()
     assert body["success"] is True
     results = body["results"]
-    assert len(results) == 23
+    assert len(results) == 40
 
     keys = {r["key"] for r in results}
     assert {"love", "higher_education", "government_job", "emotional_load"} <= keys

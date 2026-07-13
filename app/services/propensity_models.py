@@ -180,3 +180,22 @@ DISCLAIMER_LEGAL = BiText(
         "the right guide, not this chart."
     ),
 )
+
+# P0-3 review (2026-07-13): folded from one-off inline BiText literals on
+# their respective _Spec entries into named constants, for the same reason
+# the five above exist — one shared, reviewed voice per disclaimer, not a
+# fresh ad-hoc string per card.
+DISCLAIMER_RELATIONSHIP_TENDENCY = BiText(
+    ta="இது ஒரு போக்கு மட்டுமே — உங்கள் தேர்வுகளே உறவை வடிவமைக்கும்.",
+    en="This is a tendency only — your choices shape the bond far more.",
+)
+
+DISCLAIMER_STUDY_CONTINUITY = BiText(
+    ta="இது ஒரு எச்சரிக்கை மட்டுமே — சரியான ஆதரவுடன் இதை எளிதில் கடக்கலாம்.",
+    en="This is a heads-up only — with the right support it is easily navigated.",
+)
+
+DISCLAIMER_CAREER_FORESIGHT = BiText(
+    ta="இது ஒரு முன்னெச்சரிக்கை காலம் மட்டுமே — தயாரிப்பே பாதுகாப்பு.",
+    en="This flags a season for foresight only — preparation is the protection.",
+)

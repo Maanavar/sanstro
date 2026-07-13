@@ -1123,3 +1123,484 @@ def eval_swabhava_profile(r: _Reader) -> Signals:
     s.help("இந்த போக்குகள் ஒரு தொடக்க புள்ளியே — வளர்ச்சி எப்போதும் சாத்தியம்.",
            "These tendencies are a starting point, not a limit — growth is always possible.")
     return s
+
+
+# ── Phase 4 (P2-2) evaluators — Career depth / Wealth / Property / Marriage
+# timing tranche. Same recipe as Phase 3: Bhava + lord + karaka [+ varga where
+# the technique genuinely fits + timing]. Deliberately scoped away from
+# Foreign/PR and Litigation sub-topics (P2-3's territory, docs/
+# PREDICTION_TAXONOMY.md §5) to avoid two tranches racing on the same houses.
+
+def eval_promotion_recognition(r: _Reader) -> Signals:
+    """10th (karma/status) read together with 11th (labha/rewards) and the
+    Sun (recognition karaka) — advancement and reward *within* an existing
+    role, distinct from government_job's entry-into-service signature and
+    job_disruption's stability caution."""
+    s = Signals()
+    tenth_lord = r.lord_of(10)
+    eleventh_lord = r.lord_of(11)
+    if r.is_strong("SUN"):
+        s.support("sun_strong", "சூரியன் வலு — அங்கீகாரம்/பதவி உயர்வு வாய்ப்பு.",
+                  "A strong Sun favours recognition and advancement.")
+    if r.benefic_hits(11) or r.is_strong(eleventh_lord):
+        s.support("eleventh_rewards", "11ஆம் வீடு (லாபம்) ஆதரவில் — பதவி உயர்வு பலன்.",
+                  "The 11th house of rewards is well supported — advancement bears fruit.")
+    if r.is_strong("JUPITER") and r.aspects_house("JUPITER", 10):
+        s.support("jupiter_mentor", "குரு பார்வை 10ல் — மேலதிகாரி ஆதரவு/வழிகாட்டல்.",
+                  "Jupiter's aspect on the 10th brings a supportive superior or mentor.")
+    if r.is_afflicted("SUN") and r.is_afflicted(tenth_lord):
+        s.caution("sun_tenth_afflicted", "சூரியன்/10ஆம் அதிபதி அழுத்தத்தில் — அங்கீகாரம் தாமதமாகலாம்.",
+                  "Both the Sun and the 10th lord are pressured — recognition may take longer to arrive.")
+    if r.dasha_touches({"SUN", eleventh_lord, tenth_lord}):
+        s.window = BiText("சூரியன்/10-11 அதிபதி தசை — பதவி உயர்வுக்கு நல்ல காலம்.",
+                          "A Sun/10th-11th-lord period favours recognition and advancement now.")
+    s.help("உங்கள் பங்களிப்புகளை தெளிவாக, தொடர்ந்து தெரியப்படுத்துங்கள்.",
+           "Make your contributions visible, consistently — recognition rarely finds silence.")
+    return s
+
+
+def eval_entrepreneurial_timing(r: _Reader) -> Signals:
+    """A *timing* read for launching a venture — when career_mode's static
+    enterprise-vs-salaried verdict already leans enterprise, this asks
+    whether now is a supported window, via 3rd-house self-effort + Mars/
+    Mercury dasha activity."""
+    s = Signals()
+    third_lord = r.lord_of(3)
+    eleventh_lord = r.lord_of(11)
+    if r.is_strong("MARS") and not r.is_afflicted("MARS"):
+        s.support("mars_ready", "செவ்வாய் வலுவாக, அழுத்தமின்றி — தொடங்குவதற்கான துணிவு.",
+                  "A strong, unafflicted Mars — the courage to start is well supported.")
+    if r.benefic_hits(3) or r.is_strong(third_lord):
+        s.support("third_supported", "3ஆம் வீடு (சுயமுயற்சி) ஆதரவில்.",
+                  "The 3rd house of self-effort is well supported.")
+    if r.is_strong(eleventh_lord):
+        s.support("eleventh_gains", "11ஆம் அதிபதி வலு — புதிய முயற்சியில் லாபம்.",
+                  "A strong 11th lord favours gains from a new venture.")
+    if r.is_afflicted(third_lord) and r.is_afflicted("MARS"):
+        s.caution("third_mars_afflicted", "3ஆம் அதிபதி/செவ்வாய் இருவரும் அழுத்தத்தில் — அவசரப்படாதீர்கள்.",
+                  "Both the 3rd lord and Mars are pressured — this isn't the season to rush a launch.")
+    if r.dasha_touches({"MARS", "MERCURY", third_lord, eleventh_lord}):
+        s.window = BiText("செவ்வாய்/புதன்/3-11 அதிபதி தசை — புதிய முயற்சி தொடங்க நல்ல காலம்.",
+                          "A Mars/Mercury/3rd-11th-lord period favours starting a new venture now.")
+    s.help("சிறிய அளவில் தொடங்கி, சந்தை ஆதரவை சோதித்து விரிவாக்குங்கள்.",
+           "Start small, test market support, and scale from there.")
+    return s
+
+
+def eval_workplace_conflict(r: _Reader) -> Signals:
+    """6th house (rivals, disputes, service friction) touching the 10th —
+    interpersonal workplace tension, distinct from job_disruption's
+    stability caution and litigation_season's formal-dispute framing."""
+    s = Signals()
+    sixth_lord = r.lord_of(6)
+    tenth_lord = r.lord_of(10)
+    if r.malefic_hits(6):
+        s.caution("sixth_malefic", "6ஆம் வீட்டில் பாப தாக்கம் — சக பணியாளர் மோதல் காலம்.",
+                  "Malefic pressure on the 6th — a season where colleague friction may surface.")
+    if r.conjunct(sixth_lord, tenth_lord) or r.aspects_house(sixth_lord, 10):
+        s.caution("sixth_touches_tenth", "6ஆம் அதிபதி 10ஆம் வீட்டுடன் தொடர்பு — பணியிட மன அழுத்தம்.",
+                  "The 6th lord's link to the 10th can bring workplace friction into focus.")
+    if r.conjunct("SATURN", "MARS") and (r.house_of("SATURN") == 10 or r.house_of("MARS") == 10):
+        s.caution("saturn_mars_tenth", "சனி-செவ்வாய் 10ல் — கருத்து வேறுபாடு கூர்மையாகலாம்.",
+                  "Saturn-Mars near the 10th can sharpen disagreements at work.")
+    if r.is_strong(sixth_lord) or r.benefic_hits(6):
+        s.support("sixth_managed", "6ஆம் வீடு கட்டுப்பாட்டில் — மோதல்களை அமைதியாக சமாளிக்கும் திறன்.",
+                  "The 6th house is well-managed — a real ability to defuse conflict calmly.")
+    if r.is_strong("JUPITER") and r.aspects_house("JUPITER", 10):
+        s.support("jupiter_shields_tenth", "குரு பார்வை 10ல் — பாதுகாப்பான பணியிடம்.",
+                  "Jupiter's aspect on the 10th offers a protective, fair workplace.")
+    if r.dasha_touches({"SATURN", "MARS", sixth_lord}):
+        s.window = BiText("சனி/செவ்வாய்/6 அதிபதி தசை — பணியிட உறவுகளில் கூடுதல் பொறுமை தேவை.",
+                          "During this Saturn/Mars/6th-lord period, extra patience with colleagues helps.")
+    s.help("கருத்து வேறுபாடுகளை ஆவணப்படுத்தி, அமைதியாக, நேரடியாக பேசி தீர்க்கவும்.",
+           "Document disagreements and address them calmly and directly, early.")
+    return s
+
+
+def eval_skill_mastery(r: _Reader) -> Signals:
+    """Mercury (skill/articulation) + 3rd house (effort) + Saturn
+    (discipline/mastery-through-practice) — deep craft development over
+    time, distinct from higher_education's formal-schooling signature and
+    competitive_edge's contest-winning read."""
+    s = Signals()
+    third_lord = r.lord_of(3)
+    if r.is_strong("MERCURY"):
+        s.support("mercury_strong", "புதன் வலு — திறமை கற்றலில் கூர்மை.",
+                  "A strong Mercury — sharp, quick skill acquisition.")
+    if r.benefic_hits(3) or r.is_strong(third_lord):
+        s.support("third_aptitude", "3ஆம் வீடு (முயற்சி/திறமை) இயல்பான ஆற்றல்.",
+                  "The 3rd house of effort and skill shows natural aptitude.")
+    if r.is_strong("SATURN") and r.aspects_house("SATURN", 3):
+        s.support("saturn_discipline", "சனி பார்வை 3ல் — தொடர் பயிற்சியால் தேர்ச்சி.",
+                  "Saturn's aspect on the 3rd rewards mastery built through steady, disciplined practice.")
+    if r.is_afflicted("MERCURY") and r.is_afflicted(third_lord):
+        s.caution("mercury_third_afflicted", "புதன்/3ஆம் அதிபதி அழுத்தத்தில் — கட்டமைக்கப்பட்ட பயிற்சி தேவை.",
+                  "Mercury and the 3rd lord are both pressured — structured, guided practice helps most.")
+    s.help("ஒரு திறமையில் ஆழமாக கவனம் செலுத்தி, தொடர்ந்து பயிற்சி செய்யுங்கள்.",
+           "Focus deeply on one craft and practice it consistently — mastery compounds slowly.")
+    return s
+
+
+def eval_career_networking_influence(r: _Reader) -> Signals:
+    """11th house (associations/network) + Mercury-Venus (charm,
+    communication) — how much social capital feeds career opportunity,
+    distinct from income_growth's 11th-house wealth-gains read."""
+    s = Signals()
+    eleventh_lord = r.lord_of(11)
+    if r.benefic_hits(11) or r.is_strong(eleventh_lord):
+        s.support("eleventh_network", "11ஆம் வீடு (நட்பு வட்டம்) ஆதரவில் — வலுவான தொடர்பு வலையமைப்பு.",
+                  "The 11th house of associations is well supported — a strong professional network.")
+    if r.conjunct("MERCURY", "VENUS"):
+        s.support("mercury_venus", "புதன்-சுக்கிரன் இணைப்பு — கவர்ச்சிகரமான தொடர்பாடல்.",
+                  "A Mercury-Venus link — persuasive, well-liked communication in professional circles.")
+    if r.is_strong("JUPITER") and r.aspects_house("JUPITER", 11):
+        s.support("jupiter_generous_ties", "குரு பார்வை 11ல் — தாராள மனப்பான்மையுள்ள தொடர்புகள்.",
+                  "Jupiter's aspect on the 11th brings wise, generous connections.")
+    if r.is_afflicted(eleventh_lord) and r.malefic_hits(11):
+        s.caution("eleventh_afflicted", "11ஆம் வீடு/அதிபதி அழுத்தத்தில் — தொடர்புகளை தீவிரமாக வளர்க்க வேண்டும்.",
+                  "The 11th house is pressured — networks here need deliberate, active cultivation.")
+    s.help("உண்மையான ஆர்வத்துடன் தொடர்புகளை பராமரிக்கவும் — கொடுத்து பெறும் உறவே நீடிக்கும்.",
+           "Nurture connections with genuine interest — reciprocal relationships are the ones that last.")
+    return s
+
+
+def eval_career_change_success(r: _Reader) -> Signals:
+    """9th house (fortune in a new direction) + Mercury-Jupiter adaptability
+    — whether a lateral career pivot lands well, distinct from
+    entrepreneurial_timing's launch-a-venture framing and job_disruption's
+    forced-change caution."""
+    s = Signals()
+    ninth_lord = r.lord_of(9)
+    tenth_lord = r.lord_of(10)
+    if r.benefic_hits(9) or r.is_strong(ninth_lord):
+        s.support("ninth_supported", "9ஆம் வீடு (புதிய திசை/அதிர்ஷ்டம்) ஆதரவில்.",
+                  "The 9th house of new direction and fortune is well supported.")
+    if r.is_strong("MERCURY") and r.is_strong("JUPITER"):
+        s.support("adaptability", "புதன்-குரு இருவரும் வலு — தழுவல் திறனும் விவேகமும்.",
+                  "Both Mercury and Jupiter are strong — real adaptability paired with sound judgement.")
+    if r.conjunct(ninth_lord, tenth_lord) or r.aspects_house(ninth_lord, 10):
+        s.support("ninth_tenth_link", "9-10 அதிபதிகள் தொடர்பில் — புதிய பாதைக்கு அதிர்ஷ்ட ஆதரவு.",
+                  "A link between the 9th and 10th lords — fortune actively supports the shift.")
+    if r.is_afflicted(ninth_lord):
+        s.caution("ninth_afflicted", "9ஆம் அதிபதி அழுத்தத்தில் — மாற்றத்திற்கு முன் அதிக தயாரிப்பு தேவை.",
+                  "The 9th lord is pressured — a pivot needs more groundwork before it lands well.")
+    if r.dasha_touches({"JUPITER", ninth_lord}):
+        s.window = BiText("குரு/9 அதிபதி தசை — தொழில் மாற்றத்திற்கு சாதக காலம்.",
+                          "A Jupiter/9th-lord period favours a career pivot now.")
+    s.help("புதிய திசைக்கு தாவுவதற்கு முன் திறன் இடைவெளியை நிரப்புங்கள்.",
+           "Close any real skill gaps before you leap — preparation is what makes a pivot land well.")
+    return s
+
+
+def eval_property_acquisition(r: _Reader) -> Signals:
+    """4th house (Bhoomi/fixed property) + Mars/Venus karaka (mirrors
+    life_areas_service._AREA_ROUTING["PROPERTY"]), with D4 (Chaturthamsa)
+    corroboration — the property varga."""
+    s = Signals()
+    fourth_lord = r.lord_of(4)
+    if r.benefic_hits(4):
+        s.support("fourth_benefic", "4ஆம் வீடு (சொத்து) சுப ஆதரவில்.",
+                  "The 4th house of property is benefic-supported.")
+    if r.is_strong("MARS") or r.is_strong("VENUS"):
+        s.support("karakas_strong", "செவ்வாய்/சுக்கிரன் வலு — சொத்து சேர்க்கை ஆதரவு.",
+                  "A strong Mars or Venus favours acquiring property.")
+    if r.is_strong(fourth_lord) and not r.is_afflicted(fourth_lord):
+        s.support("fourth_lord_stable", "4ஆம் அதிபதி நிலையாக — சொத்து விவகாரம் தடையின்றி.",
+                  "A stable, unafflicted 4th lord — property matters move without obstruction.")
+    if r.is_afflicted(fourth_lord) or (r.malefic_hits(4) and not r.benefic_hits(4)):
+        s.caution("fourth_afflicted", "4ஆம் வீடு/அதிபதி அழுத்தத்தில் — சொத்து சேர்க்கை தாமதமாகலாம்.",
+                  "Pressure on the 4th house/lord — acquiring property may take longer than hoped.")
+    if s.has_signal:
+        vote = r.varga_domain_vote("D4", {4}, ("MARS", "VENUS"))
+        if vote == "SUPPORT":
+            s.support("d4_confirms", "D4 (சதுர்த்தாம்சம்) சொத்து சேர்க்கையை உறுதிப்படுத்துகிறது.",
+                      "The D4 (Chaturthamsa) property chart confirms the acquisition outlook.")
+        elif vote == "CAUTION":
+            s.caution("d4_softens", "D4 (சதுர்த்தாம்சம்) — கூடுதல் பொறுமை/திட்டமிடல் தேவை.",
+                      "The D4 (Chaturthamsa) property chart counsels more patience and planning.")
+    if r.dasha_touches({"MARS", "VENUS", fourth_lord}):
+        s.window = BiText("செவ்வாய்/சுக்கிரன்/4 அதிபதி தசை — சொத்து சேர்க்கைக்கு நல்ல காலம்.",
+                          "A Mars/Venus/4th-lord period favours acquiring property now.")
+    s.help("சொத்து ஆவணங்களை முழுமையாக சரிபார்த்த பின்னரே முடிவெடுக்கவும்.",
+           "Verify all title documents fully before committing — due diligence is the real protection.")
+    return s
+
+
+def eval_property_investment_timing(r: _Reader) -> Signals:
+    """A *timing* read on real-estate investment specifically — 11th house
+    (gains) + Venus, corroborated by the Hora (D2) wealth-nature vote,
+    distinct from property_acquisition's general ownership-chance read."""
+    s = Signals()
+    fourth_lord = r.lord_of(4)
+    eleventh_lord = r.lord_of(11)
+    if r.benefic_hits(11):
+        s.support("eleventh_benefic", "11ஆம் வீடு (லாபம்) சுப ஆதரவில் — முதலீட்டு லாபம்.",
+                  "The 11th house of gains is benefic-supported — favourable for investment returns.")
+    if r.is_strong("VENUS"):
+        s.support("venus_strong", "சுக்கிரன் வலு — சொத்து முதலீட்டில் சாதகம்.",
+                  "A strong Venus favours property as an investment.")
+    if r.conjunct(fourth_lord, eleventh_lord) or r.house_of(fourth_lord) == r.house_of(eleventh_lord):
+        s.support("fourth_eleventh_link", "4-11 அதிபதிகள் தொடர்பில் — சொத்தில் இருந்து லாபம்.",
+                  "A link between the 4th and 11th lords — gains flow from property specifically.")
+    if r.is_afflicted(eleventh_lord):
+        s.caution("eleventh_afflicted", "11ஆம் அதிபதி அழுத்தத்தில் — முதலீட்டு லாபம் மெதுவாக இருக்கலாம்.",
+                  "The 11th lord is pressured — investment gains here may be slower than hoped.")
+    if s.has_signal:
+        vote = r.hora_wealth_vote(("VENUS", fourth_lord, eleventh_lord))
+        if vote == "SUPPORT":
+            s.support("hora_confirms", "ஹோரா (D2) சொத்து முதலீட்டு காலத்தை ஆதரிக்கிறது.",
+                      "The Hora (D2) chart supports the timing for a property investment.")
+        elif vote == "CAUTION":
+            s.caution("hora_softens", "ஹோரா (D2) — முதலீட்டில் கூடுதல் நிதி ஒழுக்கம் தேவை.",
+                      "The Hora (D2) chart counsels more financial discipline before investing.")
+    if r.dasha_touches({"VENUS", fourth_lord, eleventh_lord}):
+        s.window = BiText("சுக்கிரன்/4-11 அதிபதி தசை — சொத்து முதலீட்டிற்கு நல்ல காலம்.",
+                          "A Venus/4th-11th-lord period favours a property investment now.")
+    s.help("வாடகை வருமானம் மற்றும் மறுவிற்பனை மதிப்பை இரண்டையும் கணக்கில் எடுத்துக்கொள்ளுங்கள்.",
+           "Weigh both rental yield and resale value before committing.")
+    return s
+
+
+def eval_ancestral_property_stability(r: _Reader) -> Signals:
+    """Stability/continuity of property already held — 4th lord affliction
+    or malefic pressure on the 4th — distinct from property_acquisition's
+    forward-looking chance-of-acquiring read. A prudence-season signature
+    (D6, never a legal-dispute claim — that's litigation_season's territory,
+    see docs/PREDICTION_TAXONOMY.md §5)."""
+    s = Signals()
+    fourth_lord = r.lord_of(4)
+    if r.is_afflicted(fourth_lord):
+        s.caution("fourth_lord_afflicted", "4ஆம் அதிபதி அழுத்தத்தில் — சொத்து விவகாரங்களில் கவனம்.",
+                  "The 4th lord is pressured — property matters call for extra attention.")
+    if r.malefic_hits(4) and not r.benefic_hits(4):
+        s.caution("fourth_malefic", "4ஆம் வீட்டில் பாப தாக்கம், சுப நிவாரணம் இல்லை.",
+                  "Malefic pressure on the 4th with no benefic offset — keep property paperwork current.")
+    if "SATURN" in r.occupants(4) or "RAHU" in r.occupants(4):
+        s.caution("saturn_rahu_fourth", "சனி/ராகு 4ல் — சொத்து விவகாரம் நீடிக்கலாம்.",
+                  "Saturn/Rahu in the 4th can make property matters drag out.")
+    if r.is_strong(fourth_lord) or r.benefic_hits(4):
+        s.support("fourth_settled", "4ஆம் வீடு/அதிபதி நிலையாக — சொத்து விவகாரங்கள் அமைதியாக.",
+                  "A stable, well-supported 4th house — property matters stay settled.")
+    s.help("சொத்து ஆவணங்களை புதுப்பித்து வைத்து, குடும்பத்துடன் திறந்த உரையாடலை வைத்திருங்கள்.",
+           "Keep title documents current and maintain open communication within the family.")
+    return s
+
+
+def eval_windfall_gains(r: _Reader) -> Signals:
+    """11th house (gains) + Jupiter + Rahu — sudden, unearned, or
+    speculative gains, distinct from income_growth's steady-earnings read
+    and inheritance_lean's 8th-house channel."""
+    s = Signals()
+    eleventh_lord = r.lord_of(11)
+    if "RAHU" in r.occupants(11) or r.aspects_house("RAHU", 11):
+        s.support("rahu_eleventh", "ராகு 11ஆம் வீட்டுடன் தொடர்பு — எதிர்பாராத ஆதாய வாய்ப்பு.",
+                  "Rahu's link to the 11th favours a sudden or unexpected gain.")
+    if r.is_strong("JUPITER") and r.benefic_hits(11):
+        s.support("jupiter_eleventh", "குரு வலு, 11ல் சுப ஆதரவு — ஆசீர்வதிக்கப்பட்ட ஆதாயம்.",
+                  "A strong Jupiter with benefic support to the 11th favours a blessed windfall.")
+    if r.conjunct(eleventh_lord, "RAHU") or r.conjunct(eleventh_lord, "JUPITER"):
+        s.support("eleventh_lord_linked", "11ஆம் அதிபதி ராகு/குருவுடன் தொடர்பில்.",
+                  "The 11th lord's link to Rahu or Jupiter favours an unearned gain.")
+    if r.is_afflicted(eleventh_lord) and not r.is_strong("JUPITER"):
+        s.caution("eleventh_afflicted", "11ஆம் அதிபதி அழுத்தத்தில் — எதிர்பாராத ஆதாயம் பொறுமை கேட்கிறது.",
+                  "The 11th lord is pressured — an unearned gain here calls for patience, not pursuit.")
+    if r.dasha_touches({"RAHU", "JUPITER", eleventh_lord}):
+        s.window = BiText("ராகு/குரு/11 அதிபதி தசை — எதிர்பாராத ஆதாயத்திற்கு நல்ல காலம்.",
+                          "A Rahu/Jupiter/11th-lord period favours an unexpected gain now.")
+    s.help("எதிர்பாராத ஆதாயம் வந்தால், ஒரு பகுதியை உடனே சேமிப்பில் வைக்கவும்.",
+           "If a windfall arrives, set a portion aside in savings right away — don't spend it all at once.")
+    return s
+
+
+def eval_speculative_risk(r: _Reader) -> Signals:
+    """5th house (speculation, per classical BPHS significance) read for
+    Rahu/Mars affliction — a caution against over-leveraged speculative
+    risk, the mirror caution to windfall_gains's chance framing."""
+    s = Signals()
+    fifth_lord = r.lord_of(5)
+    if r.malefic_hits(5) and ("MARS" in r.malefics_in(5) or "RAHU" in r.occupants(5)):
+        s.caution("fifth_mars_rahu", "5ஆம் வீட்டில் செவ்வாய்/ராகு — ஊகவாதத்தில் அதிக ஆபத்து.",
+                  "Mars/Rahu in the 5th can tempt over-leveraged speculative risk.")
+    if r.conjunct("RAHU", "MARS"):
+        s.caution("rahu_mars", "ராகு-செவ்வாய் சேர்க்கை — அவசர முதலீட்டு முடிவுகள்.",
+                  "A Rahu-Mars combination can push hasty, high-risk investment decisions.")
+    if r.is_afflicted(fifth_lord):
+        s.caution("fifth_lord_afflicted", "5ஆம் அதிபதி அழுத்தத்தில் — ஊக முதலீட்டில் இழப்பு ஆபத்து.",
+                  "A pressured 5th lord raises the risk of loss in speculative investment.")
+    if r.is_strong("JUPITER") and r.aspects_house("JUPITER", 5):
+        s.support("jupiter_protects", "குரு பார்வை 5ல் — ஊக முடிவுகளில் விவேகம்.",
+                  "Jupiter's aspect on the 5th lends judgement against reckless speculation.")
+    if r.is_strong(fifth_lord):
+        s.support("fifth_lord_strong", "5ஆம் அதிபதி வலு — கணக்கிடப்பட்ட அபாயங்கள் மட்டுமே.",
+                  "A strong 5th lord keeps risk-taking calculated rather than reckless.")
+    s.help("ஊக முதலீட்டிற்கு இழக்கக்கூடிய தொகையை மட்டுமே ஒதுக்குங்கள்.",
+           "Only risk money you can genuinely afford to lose on speculative bets.")
+    return s
+
+
+def eval_early_marriage_readiness(r: _Reader) -> Signals:
+    """7th-house strength + Venus dignity — a timely-marriage lean, the
+    chance-tier counterpart to marriage_delay_watch. Distinct from
+    marriage_harmony (which reads the *tone* of a marriage already in
+    progress, not its timing)."""
+    s = Signals()
+    seventh_lord = r.lord_of(7)
+    if r.is_strong("VENUS") and not (r.pv("VENUS") and r.pv("VENUS").combust):
+        s.support("venus_strong", "சுக்கிரன் வலு, அழுத்தமின்றி — சரியான காலத்தில் திருமணம்.",
+                  "A strong, unafflicted Venus favours marriage arriving in good time.")
+    if r.benefic_hits(7):
+        s.support("seventh_benefic", "7ஆம் வீடு சுப ஆதரவில்.",
+                  "The 7th house of partnership is benefic-supported.")
+    seventh_lord_h = r.house_of(seventh_lord)
+    if seventh_lord_h is not None and seventh_lord_h in {1, 4, 5, 7, 9, 10, 11} and not r.is_afflicted(seventh_lord):
+        s.support("seventh_lord_placed", "7ஆம் அதிபதி நல்ல வீட்டில், அழுத்தமின்றி.",
+                  "The 7th lord sits in a strong house, free of affliction.")
+    if seventh_lord_h is not None and seventh_lord_h in DUSTHANA:
+        s.caution("seventh_lord_dusthana", "7ஆம் அதிபதி கஷ்ட வீட்டில் — சற்று காத்திருக்க வேண்டியிருக்கலாம்.",
+                  "The 7th lord sits in a difficult house — marriage may need a little more waiting.")
+    if r.dasha_touches({"VENUS", "JUPITER", seventh_lord}):
+        s.window = BiText("சுக்கிரன்/குரு/7 அதிபதி தசை — திருமணத்திற்கு சாதக காலம்.",
+                          "A Venus/Jupiter/7th-lord period favours marriage now.")
+    s.help("திருமண முடிவை அவசரப்படுத்தாமல், சரியான பொருத்தத்தில் கவனம் செலுத்துங்கள்.",
+           "Don't rush the decision — focus on genuine fit, and timing tends to follow.")
+    return s
+
+
+def eval_marriage_delay_watch(r: _Reader) -> Signals:
+    """7th lord in a dusthana, or Saturn touching the 7th/Venus — a
+    delay-proneness watch, the caution-tier counterpart to
+    early_marriage_readiness. Never a denial of marriage (D3/D6) — only a
+    tendency toward it taking longer to arrive."""
+    s = Signals()
+    seventh_lord = r.lord_of(7)
+    seventh_lord_h = r.house_of(seventh_lord)
+    if seventh_lord_h is not None and seventh_lord_h in DUSTHANA:
+        s.caution("seventh_lord_dusthana", "7ஆம் அதிபதி கஷ்ட வீட்டில் — திருமணம் தாமதமாகலாம்.",
+                  "The 7th lord in a difficult house can bring some delay to marriage timing.")
+    if r.aspects_house("SATURN", 7) or r.conjunct("SATURN", "VENUS"):
+        s.caution("saturn_seventh_venus", "சனி 7/சுக்கிரன் தொடர்பு — பொறுமை தேவைப்படும் காலம்.",
+                  "Saturn's touch on the 7th or Venus asks for patience with the timing.")
+    if r.is_afflicted("VENUS"):
+        s.caution("venus_afflicted", "சுக்கிரன் அழுத்தத்தில் — சரியான பொருத்தம் கிடைக்க நேரம் ஆகலாம்.",
+                  "An afflicted Venus can mean the right match takes a bit more time to find.")
+    if r.is_strong(seventh_lord) and seventh_lord_h not in DUSTHANA:
+        s.support("seventh_lord_strong", "7ஆம் அதிபதி வலுவாக, கஷ்ட வீட்டில் இல்லை.",
+                  "The 7th lord is strong and outside the difficult houses.")
+    if r.benefic_hits(7):
+        s.support("seventh_benefic", "7ஆம் வீடு சுப ஆதரவில்.",
+                  "The 7th house has benefic support.")
+    s.help("இந்த காலத்தை சுய வளர்ச்சி மற்றும் தெளிவான எதிர்பார்ப்புகளுக்கு பயன்படுத்துங்கள்.",
+           "Use this season for self-growth and getting clear on what you're looking for.")
+    return s
+
+
+def eval_spousal_support_strength(r: _Reader) -> Signals:
+    """Whether the 7th lord (or Venus, the general kalatra-comfort karaka)
+    connects to the 10th house of career — a classically supportive spouse
+    who actively backs the native's ambitions, distinct from
+    marriage_harmony's general companionship-tone read."""
+    s = Signals()
+    seventh_lord = r.lord_of(7)
+    if "VENUS" in r.occupants(10) or r.aspects_house("VENUS", 10):
+        s.support("venus_tenth", "சுக்கிரன் 10ஆம் வீட்டுடன் தொடர்பு — துணையின் ஆதரவு தொழிலில் தெரியும்.",
+                  "Venus's link to the 10th shows a partner's support reflected in career.")
+    if r.house_of(seventh_lord) == 10 or r.aspects_house(seventh_lord, 10):
+        s.support("seventh_lord_tenth", "7ஆம் அதிபதி 10ஆம் வீட்டுடன் தொடர்பில் — துணை தொழிலில் தீவிர பங்கு.",
+                  "The 7th lord's link to the 10th — the partner takes an active role in career life.")
+    if r.is_strong(seventh_lord) and not r.is_afflicted(seventh_lord):
+        s.support("seventh_lord_strong", "7ஆம் அதிபதி வலுவாக, அழுத்தமின்றி — உறுதியான ஆதரவு.",
+                  "A strong, unafflicted 7th lord — steady, dependable support from a partner.")
+    if r.is_afflicted(seventh_lord) and not (r.aspects_house("VENUS", 10) or "VENUS" in r.occupants(10)):
+        s.caution("seventh_lord_afflicted", "7ஆம் அதிபதி அழுத்தத்தில் — ஆதரவு வெளிப்படையாக தெரிய நேரம் ஆகலாம்.",
+                  "The 7th lord is pressured — a partner's support may take time to become visible.")
+    s.help("உங்கள் இலக்குகளை துணையுடன் தெளிவாக பகிர்ந்துகொள்ளுங்கள் — ஆதரவு தானாக வராது.",
+           "Share your goals openly with your partner — support tends to follow clear communication.")
+    return s
+
+
+# ── P2-3 evaluators — Foreign/PR sub-topic + Litigation sub-topics ───────────
+# docs/PREDICTION_TAXONOMY.md §5: the existing foreign_settlement card reads
+# general travel-or-settle-abroad; PR/immigration status is a distinct
+# question (formal residency, not just relocation). Similarly
+# litigation_season only reads whether a dispute tends to *arise* (6th house
+# rivalry) — these two add whether a dispute *resolves* favourably, and a
+# business/contract-specific dispute angle, both reusing DISCLAIMER_LEGAL
+# where the tier is CAUTION.
+
+def eval_pr_immigration_prospects(r: _Reader) -> Signals:
+    """9th (fortune/dharma abroad) linked to 12th (foreign residence), with
+    Saturn read for bureaucratic/legal permanence — distinct from
+    foreign_settlement's general travel-or-settle read: this specifically
+    asks whether formal residency/immigration status tends to go smoothly."""
+    s = Signals()
+    ninth_lord = r.lord_of(9)
+    twelfth_lord = r.lord_of(12)
+    if r.conjunct(ninth_lord, twelfth_lord) or r.house_of(ninth_lord) == 12 or r.house_of(twelfth_lord) == 9:
+        s.support("ninth_twelfth_link", "9-12 அதிபதிகள் தொடர்பில் — வெளிநாட்டு அதிர்ஷ்ட இணைப்பு.",
+                  "A link between the 9th and 12th lords — fortune actively supports a life abroad.")
+    if r.is_strong("SATURN") and not r.is_afflicted("SATURN"):
+        s.support("saturn_stable", "சனி வலுவாக, அழுத்தமின்றி — குடியுரிமை/அனுமதி செயல்முறை சீராக.",
+                  "A strong, unafflicted Saturn favours a smooth residency/immigration process.")
+    if r.benefic_hits(9):
+        s.support("ninth_benefic", "9ஆம் வீடு சுப ஆதரவில்.",
+                  "The 9th house of fortune is benefic-supported.")
+    if r.is_afflicted(twelfth_lord) or r.conjunct("SATURN", "KETU"):
+        s.caution("twelfth_afflicted", "12ஆம் அதிபதி அழுத்தத்தில் — ஆவண செயல்முறை நீடிக்கலாம்.",
+                  "The 12th lord is pressured — paperwork and process may take longer than hoped.")
+    if r.dasha_touches({"SATURN", "RAHU", ninth_lord, twelfth_lord}):
+        s.window = BiText("சனி/ராகு/9-12 அதிபதி தசை — குடியுரிமை முயற்சிக்கு நல்ல காலம்.",
+                          "A Saturn/Rahu/9th-12th-lord period favours an immigration attempt now.")
+    s.help("ஆவணங்களை முழுமையாக தயார் செய்து, செயல்முறை காலத்தில் பொறுமையாக இருங்கள்.",
+           "Prepare documentation thoroughly and stay patient through the process timeline.")
+    return s
+
+
+def eval_legal_outcome_favor(r: _Reader) -> Signals:
+    """Whether a dispute, once it arises, tends to resolve favourably — 6th
+    house (contest) strength + Sun/Mars fighting-capacity + Jupiter's
+    justice-aspect — the chance-tier counterpart to litigation_season's
+    general dispute-arising caution."""
+    s = Signals()
+    sixth_lord = r.lord_of(6)
+    if r.is_strong(sixth_lord):
+        s.support("sixth_lord_strong", "6ஆம் அதிபதி வலு — வழக்கில் மேலோங்கல்.",
+                  "A strong 6th lord favours prevailing in a dispute.")
+    if r.is_strong("SUN") or r.is_strong("MARS"):
+        s.support("fighting_karakas", "சூரியன்/செவ்வாய் வலு — உறுதியான வாதம்/நிலைப்பாடு.",
+                  "A strong Sun or Mars gives a firm, well-argued position.")
+    if r.is_strong("JUPITER") and r.aspects_house("JUPITER", 6):
+        s.support("jupiter_justice", "குரு பார்வை 6ல் — நியாயமான தீர்ப்பு சாத்தியம்.",
+                  "Jupiter's aspect on the 6th favours a fair, just outcome.")
+    if r.is_afflicted(sixth_lord) and not r.is_strong("MARS"):
+        s.caution("sixth_lord_weak", "6ஆம் அதிபதி பலவீனம் — சமரசம் சிறந்த பாதையாக இருக்கலாம்.",
+                  "A weak 6th lord — settlement may be the wiser path over a prolonged fight.")
+    s.help("சான்றுகளை முறையாக ஆவணப்படுத்தி, தகுதிவாய்ந்த வழக்கறிஞருடன் ஆலோசிக்கவும்.",
+           "Document evidence methodically and consult a qualified lawyer early.")
+    return s
+
+
+def eval_contract_dispute_risk(r: _Reader) -> Signals:
+    """7th house (partnership/agreements) read for Mercury (contract
+    communication) affliction and node involvement — a business/contractual
+    dispute caution, distinct from litigation_season's general 6th-house
+    rivalry framing."""
+    s = Signals()
+    seventh_lord = r.lord_of(7)
+    if r.is_afflicted("MERCURY") and (r.house_of("MERCURY") == 7 or r.conjunct("MERCURY", seventh_lord)):
+        s.caution("mercury_seventh_afflicted", "புதன் அழுத்தத்தில், 7ஆம் வீட்டுடன் தொடர்பில் — ஒப்பந்த புரிதல் இடைவெளி.",
+                  "A pressured Mercury linked to the 7th can bring gaps in contract understanding.")
+    if r.conjunct("RAHU", seventh_lord) or r.conjunct("KETU", seventh_lord):
+        s.caution("node_seventh_lord", "7ஆம் அதிபதி ராகு/கேதுவுடன் — ஒப்பந்த சர்ச்சை சாத்தியம்.",
+                  "The 7th lord linked to a node can bring contractual misunderstanding.")
+    if r.malefic_hits(7) and not r.benefic_hits(7):
+        s.caution("seventh_malefic_unmitigated", "7ஆம் வீட்டில் பாப தாக்கம், சுப நிவாரணம் இல்லை.",
+                  "Malefic pressure on the 7th with no benefic offset — put agreements in writing.")
+    if r.is_strong("MERCURY") and r.benefic_hits(7):
+        s.support("mercury_seventh_clear", "புதன் வலு, 7ல் சுப ஆதரவு — தெளிவான ஒப்பந்த புரிதல்.",
+                  "A strong Mercury with benefic support to the 7th favours clear contract understanding.")
+    if r.is_strong(seventh_lord) and not r.is_afflicted(seventh_lord):
+        s.support("seventh_lord_stable", "7ஆம் அதிபதி நிலையாக — ஒப்பந்த உறவுகள் உறுதியாக.",
+                  "A stable, unafflicted 7th lord — contractual relationships stay dependable.")
+    s.help("முக்கியமான ஒப்பந்தங்களை எழுத்தில், தெளிவாக, சாட்சிகளுடன் வைத்திருங்கள்.",
+           "Keep important agreements written, clear, and witnessed.")
+    return s

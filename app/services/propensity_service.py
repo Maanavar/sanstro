@@ -16,10 +16,13 @@ from app.calculations.propensities import PlanetView, PropensityChartInput, Sign
 from app.reasoning.verdict import Band
 from app.services.life_area_prediction_models import BiText
 from app.services.propensity_models import (
+    DISCLAIMER_CAREER_FORESIGHT,
     DISCLAIMER_FERTILITY,
     DISCLAIMER_LEGAL,
     DISCLAIMER_LOSS,
+    DISCLAIMER_RELATIONSHIP_TENDENCY,
     DISCLAIMER_SAFETY,
+    DISCLAIMER_STUDY_CONTINUITY,
     DISCLAIMER_WELLBEING,
     CautionLevel,
     ChanceLevel,
@@ -28,6 +31,7 @@ from app.services.propensity_models import (
     PropensityResult,
     PropensityTier,
 )
+from app.services.safety_filter import run_safety_pass
 
 Cat = PropensityCategory
 Tier = PropensityTier
@@ -70,9 +74,7 @@ _REGISTRY: list[_Spec] = [
           BiText("உறவு அழுத்த காலங்கள்", "Relationship-strain seasons"),
           BiText("உறவில் அழுத்தம்", "strain in close bonds"),
           P.eval_breakup, age_min=15,
-          disclaimer=BiText(
-              "இது ஒரு போக்கு மட்டுமே — உங்கள் தேர்வுகளே உறவை வடிவமைக்கும்.",
-              "This is a tendency only — your choices shape the bond far more.")),
+          disclaimer=DISCLAIMER_RELATIONSHIP_TENDENCY),
     _Spec("higher_education", Cat.EDUCATION, Tier.CHANCE,
           BiText("உயர் கல்வி வாய்ப்பு", "Higher-education chances"),
           BiText("உயர் கல்வி", "higher education"),
@@ -81,9 +83,7 @@ _REGISTRY: list[_Spec] = [
           BiText("படிப்பு தொடர்ச்சி கவனம்", "Study-continuity watch"),
           BiText("படிப்பை முடிப்பது", "completing formal study"),
           P.eval_dropout_risk, age_max=35,
-          disclaimer=BiText(
-              "இது ஒரு எச்சரிக்கை மட்டுமே — சரியான ஆதரவுடன் இதை எளிதில் கடக்கலாம்.",
-              "This is a heads-up only — with the right support it is easily navigated.")),
+          disclaimer=DISCLAIMER_STUDY_CONTINUITY),
     _Spec("career_mode", Cat.CAREER, Tier.CHANCE,
           BiText("தொழில் இயல்பு: சொந்த vs வேலை", "Work style: enterprise vs salaried"),
           BiText("உங்கள் தொழில் இயல்பு", "your natural work style"),
@@ -96,9 +96,7 @@ _REGISTRY: list[_Spec] = [
           BiText("தொழில் மாற்ற கவனம்", "Career-transition watch"),
           BiText("வேலை நிலைத்தன்மை", "work steadiness"),
           P.eval_job_loss, age_min=18,
-          disclaimer=BiText(
-              "இது ஒரு முன்னெச்சரிக்கை காலம் மட்டுமே — தயாரிப்பே பாதுகாப்பு.",
-              "This flags a season for foresight only — preparation is the protection."),
+          disclaimer=DISCLAIMER_CAREER_FORESIGHT,
           timing=_TimingSpec(house=10, karaka="SATURN")),
     _Spec("child_timing", Cat.WELLBEING, Tier.CAUTION,
           BiText("குழந்தை பேறு நேரம்", "Timing of children"),
@@ -171,6 +169,87 @@ _REGISTRY: list[_Spec] = [
           BiText("இயல்பு சுயவிவரம் (ஸ்வபாவம்)", "Temperament profile (Swabhava)"),
           BiText("உங்கள் இயல்பு", "your natural temperament"),
           P.eval_swabhava_profile),
+
+    # ── Phase 4 (P2-2) — Career depth / Wealth / Property / Marriage timing
+    # tranche (docs/PREDICTION_DOCTRINE_AND_ROADMAP.md P2-2, docs/
+    # PREDICTION_TAXONOMY.md §3). Deliberately scoped away from Foreign/PR
+    # and Litigation sub-topics — that's P2-3's territory.
+    _Spec("promotion_recognition", Cat.CAREER, Tier.CHANCE,
+          BiText("பதவி உயர்வு / அங்கீகார வாய்ப்பு", "Promotion & recognition chances"),
+          BiText("பதவி உயர்வு", "career recognition"),
+          P.eval_promotion_recognition, age_min=18, timing=_TimingSpec(house=11, karaka="SUN")),
+    _Spec("entrepreneurial_timing", Cat.CAREER, Tier.CHANCE,
+          BiText("புதிய தொழில் தொடங்கும் நேரம்", "Timing to start a venture"),
+          BiText("தொழில் தொடக்க நேரம்", "the timing to launch a venture"),
+          P.eval_entrepreneurial_timing, age_min=18, timing=_TimingSpec(house=3, karaka="MARS")),
+    _Spec("workplace_conflict", Cat.CAREER, Tier.CAUTION,
+          BiText("பணியிட மோதல் கவனம்", "Workplace-conflict watch"),
+          BiText("பணியிட உறவுகள்", "workplace relationships"),
+          P.eval_workplace_conflict, age_min=18,
+          disclaimer=DISCLAIMER_CAREER_FORESIGHT, timing=_TimingSpec(house=6, karaka="MARS")),
+    _Spec("skill_mastery", Cat.CAREER, Tier.CHANCE,
+          BiText("திறமை தேர்ச்சி வாய்ப்பு", "Skill-mastery chances"),
+          BiText("திறமை தேர்ச்சி", "mastering a skill"),
+          P.eval_skill_mastery, age_min=16),
+    _Spec("career_networking_influence", Cat.CAREER, Tier.CHANCE,
+          BiText("தொழில் தொடர்பு வலையமைப்பு", "Career-networking influence"),
+          BiText("தொழில் தொடர்புகள்", "your professional network"),
+          P.eval_career_networking_influence, age_min=18),
+    _Spec("career_change_success", Cat.CAREER, Tier.CHANCE,
+          BiText("தொழில் மாற்ற வெற்றி வாய்ப்பு", "Career-pivot success chances"),
+          BiText("தொழில் மாற்றம்", "a career pivot"),
+          P.eval_career_change_success, age_min=21, timing=_TimingSpec(house=9, karaka="JUPITER")),
+    _Spec("property_acquisition", Cat.WEALTH, Tier.CHANCE,
+          BiText("சொத்து சேர்க்கை வாய்ப்பு", "Property-acquisition chances"),
+          BiText("சொத்து சேர்க்கை", "acquiring property"),
+          P.eval_property_acquisition, age_min=18, timing=_TimingSpec(house=4, karaka="MARS")),
+    _Spec("property_investment_timing", Cat.WEALTH, Tier.CHANCE,
+          BiText("சொத்து முதலீட்டு நேரம்", "Property-investment timing"),
+          BiText("சொத்து முதலீடு", "a property investment"),
+          P.eval_property_investment_timing, age_min=18, timing=_TimingSpec(house=11, karaka="VENUS")),
+    _Spec("ancestral_property_stability", Cat.WEALTH, Tier.CAUTION,
+          BiText("பாரம்பரிய சொத்து நிலைத்தன்மை", "Ancestral-property stability"),
+          BiText("சொத்து நிலைத்தன்மை", "the stability of your property"),
+          P.eval_ancestral_property_stability, age_min=18, disclaimer=DISCLAIMER_LOSS),
+    _Spec("windfall_gains", Cat.WEALTH, Tier.CHANCE,
+          BiText("எதிர்பாராத ஆதாய வாய்ப்பு", "Windfall-gains chances"),
+          BiText("எதிர்பாராத ஆதாயம்", "an unexpected gain"),
+          P.eval_windfall_gains, age_min=18, timing=_TimingSpec(house=11, karaka="RAHU")),
+    _Spec("speculative_risk", Cat.WEALTH, Tier.CAUTION,
+          BiText("ஊக முதலீட்டு கவன காலங்கள்", "Speculative-investment watch"),
+          BiText("ஊக முதலீடு", "speculative investment"),
+          P.eval_speculative_risk, age_min=18, disclaimer=DISCLAIMER_LOSS),
+    _Spec("early_marriage_readiness", Cat.MARRIAGE, Tier.CHANCE,
+          BiText("சரியான காலத்தில் திருமண வாய்ப்பு", "Timely-marriage chances"),
+          BiText("திருமண நேரம்", "the timing of marriage"),
+          P.eval_early_marriage_readiness, age_min=18, age_max=49,
+          timing=_TimingSpec(house=7, karaka="VENUS")),
+    _Spec("marriage_delay_watch", Cat.MARRIAGE, Tier.CAUTION,
+          BiText("திருமண தாமத கவனம்", "Marriage-delay watch"),
+          BiText("திருமண நேரம்", "the timing of marriage"),
+          P.eval_marriage_delay_watch, age_min=18, age_max=49,
+          disclaimer=DISCLAIMER_RELATIONSHIP_TENDENCY),
+    _Spec("spousal_support_strength", Cat.MARRIAGE, Tier.CHANCE,
+          BiText("துணையின் தொழில் ஆதரவு", "Spousal career support"),
+          BiText("துணையின் ஆதரவு", "support from your partner"),
+          P.eval_spousal_support_strength, age_min=18),
+
+    # ── P2-3 — Foreign/PR sub-topic + Litigation sub-topics (docs/
+    # PREDICTION_TAXONOMY.md §5). Distinct from foreign_settlement's general
+    # travel-or-settle read and litigation_season's general dispute-arising
+    # caution — see each evaluator's docstring.
+    _Spec("pr_immigration_prospects", Cat.LIFE_PATH, Tier.CHANCE,
+          BiText("PR / குடியுரிமை வாய்ப்பு", "PR / immigration-status chances"),
+          BiText("குடியுரிமை நிலை", "formal residency or immigration status"),
+          P.eval_pr_immigration_prospects, age_min=18, timing=_TimingSpec(house=12, karaka="SATURN")),
+    _Spec("legal_outcome_favor", Cat.LIFE_PATH, Tier.CHANCE,
+          BiText("வழக்கு சாதக தீர்வு வாய்ப்பு", "Favourable dispute-resolution chances"),
+          BiText("வழக்கின் தீர்வு", "how a dispute resolves"),
+          P.eval_legal_outcome_favor, age_min=18),
+    _Spec("contract_dispute_risk", Cat.LIFE_PATH, Tier.CAUTION,
+          BiText("ஒப்பந்த சர்ச்சை கவனம்", "Contract-dispute watch"),
+          BiText("ஒப்பந்த உறவுகள்", "contractual relationships"),
+          P.eval_contract_dispute_risk, age_min=18, disclaimer=DISCLAIMER_LEGAL),
 ]
 
 
@@ -345,6 +424,26 @@ _DEFER_LATE = BiText(
     "இந்த பகுதி இப்போதைய வாழ்க்கை கட்டத்திற்கு முதன்மை கவனம் அல்ல.",
     "This area is no longer the primary focus for your current life stage.")
 
+# P1-2 (D11 hard gate): the age_min/age_max defer above is a soft "not the
+# right stage yet" note — it still describes what the card is about. The
+# sensitive WELLBEING/CAUTION cards (fertility, safety, emotional load,
+# loneliness, prudence — all carry a disclaimer) get a genuinely different,
+# warmer redirect instead when the viewer is a minor or has opted into
+# reduced sensitive content: no tendency language at all, just support.
+_SENSITIVE_HARD_SUPPRESS_REDIRECT = BiText(
+    "இந்த பகுதி தற்போது காட்டப்படவில்லை. ஏதேனும் கவலை இருந்தால், நம்பகமான "
+    "பெரியவரிடம் அல்லது நிபுணரிடம் பேசுவது சிறந்தது.",
+    "This section isn't shown right now. If anything is on your mind, talking "
+    "to a trusted adult or a professional is the best next step.",
+)
+
+
+def _is_sensitive_card(spec: _Spec) -> bool:
+    """The 5 WELLBEING/CAUTION cards carrying a disclaimer (child_timing,
+    accident_care, emotional_load, loneliness, resilience_watch) — the ones
+    D11's hard gate applies to."""
+    return spec.category is Cat.WELLBEING and spec.tier is Tier.CAUTION and spec.disclaimer is not None
+
 
 def assess_propensities(
     chart_input: PropensityChartInput,
@@ -352,16 +451,22 @@ def assess_propensities(
     relationship_to_owner: str = "self",
     life_stage: str = "young_adult",
     as_of: date | None = None,
+    is_minor: bool = False,
+    prefers_reduced_sensitive_content: bool = False,
 ) -> PropensityBundle:
     reader = _Reader(chart_input)
     age = chart_input.age
     results: list[PropensityResult] = []
+    hard_suppress_sensitive = is_minor or prefers_reduced_sensitive_content
 
     for spec in _REGISTRY:
         deferred = age < spec.age_min or age > spec.age_max
         deferred_reason = None
         if deferred:
             deferred_reason = _DEFER_EARLY if age < spec.age_min else _DEFER_LATE
+        if hard_suppress_sensitive and _is_sensitive_card(spec):
+            deferred = True
+            deferred_reason = _SENSITIVE_HARD_SUPPRESS_REDIRECT
 
         signals: Signals = spec.evaluator(reader)
 
@@ -427,6 +532,13 @@ def assess_propensities(
                 deferred_reason=deferred_reason,
                 band=band_val,
             )
+        )
+
+    for _result in results:
+        run_safety_pass(
+            _result.summary, _result.disclaimer, _result.window_note,
+            _result.deferred_reason, *(f.detail for f in _result.factors),
+            *_result.what_helps, source="propensities",
         )
 
     return PropensityBundle(

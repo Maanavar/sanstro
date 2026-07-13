@@ -65,9 +65,9 @@ def _base() -> dict[str, PlanetView]:
     }
 
 
-def test_returns_all_twentythree_cards():
+def test_returns_all_forty_cards():
     bundle = assess_propensities(_mk(_base()))
-    assert len(bundle.results) == 23
+    assert len(bundle.results) == 40
     keys = {r.key for r in bundle.results}
     assert {"love", "higher_education", "government_job", "emotional_load", "resilience_watch"} <= keys
     # Phase 3
@@ -76,6 +76,16 @@ def test_returns_all_twentythree_cards():
         "income_growth", "savings_capacity", "inheritance_lean",
         "litigation_season", "debt_watch", "competitive_edge", "swabhava_profile",
     } <= keys
+    # Phase 4 (P2-2) — Career depth / Wealth / Property / Marriage timing tranche
+    assert {
+        "promotion_recognition", "entrepreneurial_timing", "workplace_conflict",
+        "skill_mastery", "career_networking_influence", "career_change_success",
+        "property_acquisition", "property_investment_timing", "ancestral_property_stability",
+        "windfall_gains", "speculative_risk",
+        "early_marriage_readiness", "marriage_delay_watch", "spousal_support_strength",
+    } <= keys
+    # P2-3 — Foreign/PR + Litigation sub-topics
+    assert {"pr_immigration_prospects", "legal_outcome_favor", "contract_dispute_risk"} <= keys
 
 
 def test_every_caution_card_carries_a_disclaimer():
@@ -550,3 +560,95 @@ def test_timing_window_absent_without_a_boolean_window_or_as_of():
     assert r.window_note is None
     assert r.timing_window_start is None
     assert r.timing_window_end is None
+
+
+# ── Phase 4 (P2-2): Career depth / Wealth / Property / Marriage timing tranche
+
+def test_p22_categories_present():
+    bundle = assess_propensities(_mk(_base()))
+    new_career = {"promotion_recognition", "entrepreneurial_timing", "workplace_conflict",
+                  "skill_mastery", "career_networking_influence", "career_change_success"}
+    new_wealth = {"property_acquisition", "property_investment_timing", "ancestral_property_stability",
+                  "windfall_gains", "speculative_risk"}
+    new_marriage = {"early_marriage_readiness", "marriage_delay_watch", "spousal_support_strength"}
+    by_key = {r.key: r for r in bundle.results}
+    for key in new_career:
+        assert by_key[key].category.value == "CAREER", key
+    for key in new_wealth:
+        assert by_key[key].category.value == "WEALTH", key
+    for key in new_marriage:
+        assert by_key[key].category.value == "MARRIAGE", key
+
+
+def test_d4_confirms_property_acquisition_to_strong():
+    """A promising Rasi read (benefic Venus in the 4th + own-sign Mars) becomes
+    STRONG once the property varga (D4/Chaturthamsa) confirms it — a clean
+    benefic 4th and both karakas (Mars, Venus) in their own sign there."""
+    planets = {
+        "SUN": PlanetView(rasi=9, house=9, d9_rasi=9),
+        "MOON": PlanetView(rasi=3, house=3, d9_rasi=3),                  # 4th lord, neutral (not exalted-2/own-4)
+        "MARS": PlanetView(rasi=1, house=1, d9_rasi=1, strength=80),     # own sign -> strong
+        "MERCURY": PlanetView(rasi=6, house=6, d9_rasi=6),
+        "JUPITER": PlanetView(rasi=9, house=9, d9_rasi=9, strength=50),
+        "VENUS": PlanetView(rasi=4, house=4, d9_rasi=4, strength=50),    # benefic occupying the 4th
+        "SATURN": PlanetView(rasi=11, house=11, d9_rasi=11),
+        "RAHU": PlanetView(rasi=12, house=12, d9_rasi=12),
+        "KETU": PlanetView(rasi=6, house=6, d9_rasi=6),
+    }
+    d4 = {"LAGNA": 1, "JUPITER": 4, "MARS": 8, "VENUS": 7,
+          "SUN": 9, "MOON": 3, "MERCURY": 6, "SATURN": 11, "RAHU": 12, "KETU": 9}
+
+    assert _level(planets, "property_acquisition") == "PROMISING"
+    assert _level(planets, "property_acquisition", vargas={"D4": d4}) == "STRONG"
+
+
+def test_hora_confirms_property_investment_timing_to_strong():
+    """A promising base (benefic Jupiter in the 11th + strong Venus) becomes
+    STRONG once the Hora (D2) wealth-nature vote confirms it — the same
+    Ubhayachara auspicious pattern proven for income_growth in Phase 3."""
+    planets = {
+        "SUN": PlanetView(rasi=9, house=9, d9_rasi=9),
+        "MOON": PlanetView(rasi=2, house=2, d9_rasi=2),                  # 4th lord
+        "MARS": PlanetView(rasi=8, house=8, d9_rasi=8),
+        "MERCURY": PlanetView(rasi=6, house=6, d9_rasi=6),
+        "JUPITER": PlanetView(rasi=11, house=11, d9_rasi=11, strength=50),  # benefic occupying the 11th
+        "VENUS": PlanetView(rasi=7, house=7, d9_rasi=7, strength=70),    # own sign + strength -> strong
+        "SATURN": PlanetView(rasi=11, house=11, d9_rasi=11, strength=55),  # 11th lord, own sign, unafflicted
+        "RAHU": PlanetView(rasi=3, house=3, d9_rasi=3),
+        "KETU": PlanetView(rasi=9, house=9, d9_rasi=9),
+    }
+    d2_support = {"JUPITER": 4, "VENUS": 4, "SATURN": 5,
+                  "SUN": 5, "MOON": 4, "MARS": 5, "MERCURY": 4, "RAHU": 5, "KETU": 4}
+
+    assert _level(planets, "property_investment_timing") == "PROMISING"
+    assert _level(planets, "property_investment_timing", vargas={"D2": d2_support}) == "STRONG"
+
+
+def test_early_marriage_readiness_and_marriage_delay_watch_read_a_strong_seventh():
+    """A strong, unafflicted Venus and a well-placed 7th lord should lift the
+    chance-tier reading while leaving the mirror caution card quiet on risk
+    factors — proving the two P2-2 marriage-timing cards read the same
+    evidence from opposite tiers without contradicting each other."""
+    planets = _base()
+    planets["VENUS"] = PlanetView(rasi=2, house=2, d9_rasi=2, strength=75)  # own sign, strong, unafflicted
+    # 7th lord of lagna=1 is VENUS itself (Thula=7 owned by Venus); place VENUS
+    # (acting as its own 7th lord) in a benefic kendra house (2), well outside DUSTHANA.
+    bundle = assess_propensities(_mk(planets, dasha={"VENUS"}))
+    readiness = next(r for r in bundle.results if r.key == "early_marriage_readiness")
+    delay = next(r for r in bundle.results if r.key == "marriage_delay_watch")
+    assert readiness.tier is PropensityTier.CHANCE
+    assert readiness.level in {"STRONG", "PROMISING"}
+    assert delay.level in {"STEADY", "QUIET"}
+
+
+def test_marriage_delay_watch_flags_seventh_lord_in_dusthana():
+    """The 7th lord sitting in a dusthana (8th house) is the classical
+    delay-proneness signature — marriage_delay_watch must surface it as a
+    real caution, never silence (D3)."""
+    planets = _base()
+    # Lagna=1 -> 7th lord is VENUS (Thula). Place Venus in the 8th (dusthana).
+    planets["VENUS"] = PlanetView(rasi=8, house=8, d9_rasi=8, strength=30)
+    bundle = assess_propensities(_mk(planets))
+    delay = next(r for r in bundle.results if r.key == "marriage_delay_watch")
+    assert delay.tier is PropensityTier.CAUTION
+    assert delay.level in {"WATCHFUL", "EXTRA_CARE"}

@@ -11,7 +11,7 @@ from app.calculations.ashtakavarga import compute_bhinnashtakavarga, compute_sar
 from app.calculations.astro import house_from_reference, resolve_timezone, utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
-from app.core.age_gate import is_married_settled, is_past_prime_marriage_age
+from app.core.age_gate import is_married_settled, is_minor_age, is_past_prime_marriage_age
 from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
@@ -25,6 +25,7 @@ from app.services.health_service import HealthAssessmentInput, assess_health_pre
 from app.services.life_area_prediction_models import LifeAreaPrediction
 from app.services.location_service import resolve_effective_daily_timezone
 from app.services.marriage_service import MarriageAssessmentInput, assess_marriage_prediction
+from app.services.context_service import get_context_row
 from app.services.prediction_log_service import log_prediction
 from app.services.propensity_service import assess_propensities, build_chart_input
 from app.services.wealth_service import WealthAssessmentInput, assess_wealth_prediction
@@ -47,6 +48,13 @@ class AstroFactorOut(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class ChartSignatureOut(BaseModel):
+    """Dominant-graha framing for the whole chart (plan Phase 5)."""
+    dominant: str
+    framing: BiTextOut
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class LifeAreaPredictionOut(BaseModel):
     life_area: str = Field(alias="lifeArea")
     main_prediction_ta: str = Field(alias="mainPredictionTa")
@@ -62,6 +70,9 @@ class LifeAreaPredictionOut(BaseModel):
     band: str | None = None
     challenges: list[BiTextOut]
     supports: list[BiTextOut]
+    # Additive — populated only when reasoning_chart_signature is on (Phase 5, P0-4).
+    chart_signature: ChartSignatureOut | None = Field(default=None, alias="chartSignature")
+    causal_chain: BiTextOut | None = Field(default=None, alias="causalChain")
     model_config = ConfigDict(populate_by_name=True)
 
 
@@ -96,6 +107,19 @@ def _to_out(pred: LifeAreaPrediction) -> LifeAreaPredictionOut:
         band=pred.band,
         challenges=[BiTextOut(ta=c.ta, en=c.en) for c in pred.challenges],
         supports=[BiTextOut(ta=s.ta, en=s.en) for s in pred.supports],
+        chartSignature=(
+            ChartSignatureOut(
+                dominant=pred.chart_signature.dominant,
+                framing=BiTextOut(ta=pred.chart_signature.framing.ta, en=pred.chart_signature.framing.en),
+            )
+            if pred.chart_signature is not None
+            else None
+        ),
+        causalChain=(
+            BiTextOut(ta=pred.causal_chain.ta, en=pred.causal_chain.en)
+            if pred.causal_chain is not None
+            else None
+        ),
     )
 
 
@@ -187,6 +211,11 @@ def get_marriage_prediction(
     rahu_ketu = doshams_by_name.get("RAHU_KETU_DOSHAM")
     sevvai_cancelled = bool(sevvai and sevvai.is_cancelled)
     d9_rasi_by_planet = {p.graha: p.d9_rasi for p in snapshot.data.planets}
+    planet_longitudes = {
+        p.graha: p.absolute_longitude
+        for p in snapshot.data.planets
+        if p.graha in {"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU"}
+    }
 
     payload = MarriageAssessmentInput(
         as_of=on_date,
@@ -202,6 +231,7 @@ def get_marriage_prediction(
         rahu_ketu_label=rahu_ketu.label if rahu_ketu else None,
         d9_rasi_by_planet=d9_rasi_by_planet,
         relationship_to_owner=relationship_to_owner,
+        planet_longitudes=planet_longitudes,
     )
     result = assess_marriage_prediction(payload)
     is_parental = relationship_to_owner in {"parent", "grandparent"}
@@ -436,11 +466,23 @@ def get_propensities(
         current_antardasha_end=timeline.current_antardasha.end_date,
     )
 
+    # P1-2 (D11 hard gate): minors and viewers who've opted into reduced
+    # sensitive content get the WELLBEING/CAUTION cards hard-suppressed
+    # rather than merely soft-deferred (see propensity_service._is_sensitive_card).
+    context_row = get_context_row(session, current_user.user_id, chart_id)
+    prefers_reduced_sensitive_content = bool(
+        (context_row.life_situation or {}).get("prefers_reduced_sensitive_content", False)
+        if context_row is not None
+        else False
+    )
+
     bundle = assess_propensities(
         chart_input,
         relationship_to_owner=relationship,
         life_stage=life_stage,
         as_of=on_date,
+        is_minor=is_minor_age(age),
+        prefers_reduced_sensitive_content=prefers_reduced_sensitive_content,
     )
 
     return PropensityBundleOut(
