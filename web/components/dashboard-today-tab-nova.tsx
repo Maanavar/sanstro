@@ -25,6 +25,7 @@ import type {
 } from "@/lib/types";
 
 import { NovaClampedText, NovaScoreDial } from "./dashboard-ui-nova";
+import { bandPhrase, bandTone } from "@/lib/reasoning";
 import { CelestialGlyphNova, MiniMoonGlyph } from "./celestial-glyph-nova";
 import { HeroSkyBackdrop } from "./celestial-ambient-nova";
 import { moonPhaseFromTithi } from "@/lib/lunar";
@@ -495,6 +496,14 @@ export function DashboardTodayTabNova({
               <div style={{ flex: "none", width: "200px", borderLeft: "1px solid var(--color-border)", paddingLeft: "26px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "9px" }}>
                 <NovaScoreDial score={score ?? 0} color={verdict.color} label={lang === "ta" ? "100க்கு" : "/ 100"} />
                 <div style={{ fontSize: "11px", color: "var(--color-faint)", textAlign: "center" }}>{verdict.verdict}</div>
+                {personalDailyGuidance.band && (() => {
+                  const bt = bandTone(personalDailyGuidance.band);
+                  return (
+                    <span style={{ fontSize: "10.5px", fontWeight: 700, padding: "2px 9px", borderRadius: "999px", background: bt.bg, color: bt.text, border: `1px solid ${bt.border}` }}>
+                      {bandPhrase(personalDailyGuidance.band, lang)}
+                    </span>
+                  );
+                })()}
                 <a href="#nova-deep-dive" style={{ fontSize: "11.5px", color: "var(--color-accent-secondary)", fontWeight: 600, textDecoration: "none" }}>
                   {lang === "ta" ? "இந்த மதிப்பெண் ஏன்? →" : "Why this score →"}
                 </a>

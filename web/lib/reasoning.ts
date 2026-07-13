@@ -46,6 +46,11 @@ const READING_PHRASE: Record<ReasoningReading, { ta: string; en: string }> = {
   PROMISED_AND_TIMED:    { ta: "இணைந்த ஆதரவு",              en: "Aligned — act" },
   PROMISED_NOT_NOW:      { ta: "வாக்களிக்கப்பட்டது, இப்போது இல்லை", en: "Promised, not now" },
   ACTIVE_BUT_UNPROMISED: { ta: "செயலூக்கம் — வேறு திசை",        en: "Active — redirect" },
+  // §15.2 Option B (2026-07-13): WEAK gate + active timing — distinct from
+  // ACTIVE_BUT_UNPROMISED's full redirect (that's a SILENT gate). One of the
+  // two promise conditions did hold, so this reads as partial support, not
+  // a redirect.
+  PARTIALLY_PROMISED:    { ta: "செயலூக்கம், ஓரளவு ஆதரவு",      en: "Active, partial support" },
   NOT_PROMISED:          { ta: "இப்போது இல்லை",               en: "Not indicated" },
   MIXED:                 { ta: "கலவையான நிலை",                en: "Mixed signal" },
   SILENT:                { ta: "ஜாதகம் அமைதி",                en: "Chart is quiet" },

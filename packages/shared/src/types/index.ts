@@ -931,12 +931,16 @@ export type ReasoningBand = "STRONG" | "LIKELY" | "MIXED" | "WEAK" | "BLOCKED" |
  * Contradiction reading (reasoning kernel Phase 3, D4): why the promise
  * gate and the timing vote agree or disagree. PROMISED_NOT_NOW = wait
  * (the window opens later); ACTIVE_BUT_UNPROMISED = redirect the period's
- * energy elsewhere; NOT_PROMISED = the chart does not indicate this.
+ * energy elsewhere (gate SILENT, no promise signal at all);
+ * PARTIALLY_PROMISED = active period with partial support, not a full
+ * promise (gate WEAK — distinct from ACTIVE_BUT_UNPROMISED per §15.2
+ * Option B, 2026-07-13); NOT_PROMISED = the chart does not indicate this.
  */
 export type ReasoningReading =
   | "PROMISED_AND_TIMED"
   | "PROMISED_NOT_NOW"
   | "ACTIVE_BUT_UNPROMISED"
+  | "PARTIALLY_PROMISED"
   | "NOT_PROMISED"
   | "MIXED"
   | "SILENT";
@@ -951,6 +955,10 @@ export interface WhatIfData {
   tripleConfirmation: TripleConfirmation;
   summary: BiText; bestPeriodInWindow: BiText; cautionNote: BiText;
   remedy: BiText; disclaimer: BiText;
+  /** Additive — present only when the reasoning_chart_signature flag is on (Phase 5). */
+  chartSignature?: ChartSignatureData | null;
+  /** Additive — populated only for non-FAVOURABLE verdicts (Phase 5). */
+  causalChain?: BiText | null;
 }
 
 export interface RetrospectivePlanetarySnapshot {
@@ -1060,6 +1068,10 @@ export interface LifeAreaPredictionData {
   /** Additive ordinal band — present only when the reasoning_gate flag is on. */
   band?: ReasoningBand | null;
   challenges: BiText[]; supports: BiText[];
+  /** Additive — present only when the reasoning_chart_signature flag is on
+   *  (Phase 5, P0-4). Currently only populated by the marriage prediction. */
+  chartSignature?: ChartSignatureData | null;
+  causalChain?: BiText | null;
 }
 
 export interface LifeAreaPredictionResponse {
