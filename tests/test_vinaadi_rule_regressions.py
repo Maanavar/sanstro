@@ -27,13 +27,22 @@ def test_b10_shadow_prompts_component_uses_proxy_fetch_helper():
 
 def test_b11_no_hardcoded_white_text_color_in_primary_dashboard_tabs():
     # Rule B-11: prevent white-on-white text regressions in light mode.
+    # File list updated 2026-07-13: the Classic-tier files this rule originally
+    # named (dashboard-daily-snapshot.tsx, dashboard-plan-tab.tsx,
+    # dashboard-journal-tab.tsx, dashboard-personal-tab.tsx,
+    # dashboard-calendar-tab.tsx, dashboard-decision-panel.tsx) were deleted by
+    # the Nova-Only Migration (commit 047926d, 2026-07-11); this test kept
+    # referencing them and silently stopped checking anything. Repointed at
+    # their live Nova successors, per dashboard-workspace.tsx's actual tab
+    # wiring (activeTab "personal" now renders DashboardTodayTabNova).
+    # dashboard-daily-snapshot.tsx is dropped outright rather than remapped —
+    # it is dead code, not imported/rendered anywhere in the current tree.
     files = [
-        "web/components/dashboard-daily-snapshot.tsx",
-        "web/components/dashboard-plan-tab.tsx",
-        "web/components/dashboard-journal-tab.tsx",
-        "web/components/dashboard-personal-tab.tsx",
-        "web/components/dashboard-calendar-tab.tsx",
-        "web/components/dashboard-decision-panel.tsx",
+        "web/components/dashboard-today-tab-nova.tsx",
+        "web/components/dashboard-plan-tab-nova.tsx",
+        "web/components/dashboard-journal-tab-nova.tsx",
+        "web/components/dashboard-calendar-tab-nova.tsx",
+        "web/components/dashboard-plan-decisions-nova.tsx",
         "web/components/dashboard-synastry-panel.tsx",
     ]
     for rel in files:
