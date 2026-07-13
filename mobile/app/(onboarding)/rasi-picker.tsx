@@ -15,7 +15,7 @@ import { saveGuestPrefs } from "@/features/guest/guestStore";
 import { trackEvent } from "@/lib/analytics";
 
 const RASI_IMAGES: Record<string, ImageSourcePropType> = {
-  mesham:    require("../../assets/rasi/1Mesham.avif"),
+  mesham:    require("../../assets/rasi/.avif"),
   rishabam:  require("../../assets/rasi/2Rishabham.avif"),
   mithunam:  require("../../assets/rasi/3Midhunam.avif"),
   katakam:   require("../../assets/rasi/4Kadagam.avif"),

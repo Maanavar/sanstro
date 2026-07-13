@@ -242,10 +242,12 @@ export function DashboardChartsPanelNova({
                     <td style={{ textAlign: "center" }}>{planet.pada}</td>
                     <td style={{ textAlign: "center" }}>{planet.houseFromLagna}</td>
                     <td>{RASI_NAMES[planet.d9Rasi] ?? planet.d9Rasi}</td>
-                    <td className="table__flags">
-                      {planet.isRetrograde ? <Chip tone="warning">{t("flag_vakra", lang)}</Chip> : null}
-                      {planet.isCombust ? <Chip tone="warning">{t("flag_astam", lang)}</Chip> : null}
-                      {planet.isVargottama ? <Chip tone="success">{t("flag_vargottamam", lang)}</Chip> : null}
+                    <td>
+                      <div className="table__flags">
+                        {planet.isRetrograde ? <Chip tone="warning">{t("flag_vakra", lang)}</Chip> : null}
+                        {planet.isCombust ? <Chip tone="warning">{t("flag_astam", lang)}</Chip> : null}
+                        {planet.isVargottama ? <Chip tone="success">{t("flag_vargottamam", lang)}</Chip> : null}
+                      </div>
                     </td>
                   </tr>
                 ))}

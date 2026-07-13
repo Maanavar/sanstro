@@ -5,6 +5,7 @@ import { WarningGlyph } from "./icons";
 import { t, tLang } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { LifeAreaData } from "@/lib/types";
+import { readingPhrase, readingTone } from "@/lib/reasoning";
 
 interface LifeAreaCardProps {
   area: LifeAreaData;
@@ -91,6 +92,26 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
               }}
             >
               {lang === "ta" ? "உங்கள் இலக்கு" : "Your focus"}
+            </span>
+          )}
+          {/* D4 contradiction reading (reasoning Phase 3): additive, present
+              only when reasoning_contradiction is on. The server already
+              rewrites the narrative below for PROMISED_NOT_NOW/NOT_PROMISED/
+              ACTIVE_BUT_UNPROMISED; this chip surfaces the raw state for
+              every area, including the ones that don't change the copy. */}
+          {area.reading && (
+            <span
+              style={{
+                fontSize: "0.625rem",
+                fontWeight: 700,
+                padding: "2px 8px",
+                borderRadius: "999px",
+                background: readingTone(area.reading).bg,
+                color: readingTone(area.reading).text,
+                border: `1px solid ${readingTone(area.reading).border}`,
+              }}
+            >
+              {readingPhrase(area.reading, lang)}
             </span>
           )}
         </div>

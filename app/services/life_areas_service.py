@@ -1538,12 +1538,18 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             antar_relevant=antar_score >= 60,
             sani_phase=sani_cycle.type if sani_cycle.is_active else None,
         )
-        bundle = _NarrativeBundle(
-            narrative=_t(f"{detailed_reason.ta} {bundle.narrative.ta}", f"{detailed_reason.en} {bundle.narrative.en}"),
-            outlook=bundle.outlook,
-            remedy=bundle.remedy,
-            caution=bundle.caution,
-        )
+        # Phase 5: for LOW confidence with signature_on, the causal chain
+        # below (driver_reason -> detailed_reason -> conclusion) already
+        # speaks detailed_reason as a step. Don't also bake it into the
+        # narrative paragraph, or the card repeats the same sentence twice —
+        # once plain, once inside the "because ... therefore ..." block.
+        if not (signature_on and _area_confidence == "LOW"):
+            bundle = _NarrativeBundle(
+                narrative=_t(f"{detailed_reason.ta} {bundle.narrative.ta}", f"{detailed_reason.en} {bundle.narrative.en}"),
+                outlook=bundle.outlook,
+                remedy=bundle.remedy,
+                caution=bundle.caution,
+            )
         is_goal_focus = area in goal_focus_areas
         if is_goal_focus:
             bundle = _NarrativeBundle(

@@ -1,6 +1,6 @@
 "use client";
 
-import { bandPhrase, bandTone } from "@/lib/reasoning";
+import { bandPhrase, bandTone, readingPhrase, readingTone } from "@/lib/reasoning";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { WhatIfData } from "@/lib/types";
@@ -148,6 +148,14 @@ export function NovaPlanWhatIfPanel({
                 return (
                   <span style={{ fontSize: "12px", fontWeight: 700, padding: "4px 12px", borderRadius: "999px", background: bt.bg, color: bt.text, border: `1px solid ${bt.border}` }}>
                     {bandPhrase(r.band, lang)}
+                  </span>
+                );
+              })()}
+              {r.reading && (() => {
+                const rt = readingTone(r.reading);
+                return (
+                  <span style={{ fontSize: "12px", fontWeight: 700, padding: "4px 12px", borderRadius: "999px", background: rt.bg, color: rt.text, border: `1px solid ${rt.border}` }}>
+                    {readingPhrase(r.reading, lang)}
                   </span>
                 );
               })()}

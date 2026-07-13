@@ -1,6 +1,5 @@
 "use client";
 
-import { useId } from "react";
 import type { MoonPhase } from "@/lib/lunar";
 
 /**
@@ -60,9 +59,14 @@ export function CelestialGlyphNova({
    *  across the tile — a restrained "signature draw" on the reveal. */
   special?: boolean;
 }) {
-  // Unique per instance so gradient/clip ids never collide when several
-  // celestial elements (hero glyph, mini chip moon, ambient) coexist.
-  const gid = useId().replace(/:/g, "");
+  // Fixed per variant (not useId()) so gradient/clip ids never collide when
+  // several celestial elements (hero glyph, mini chip moon, ambient) coexist,
+  // while staying identical between server and client. This component is
+  // SSR'd via next/dynamic with a Suspense loading fallback; useId() breaks
+  // here because the boundary can suspend on the client (chunk still
+  // downloading at hydration time) without having suspended during SSR,
+  // which shifts useId()'s Suspense-fork path and produces different ids.
+  const gid = `celestial-${variant}`;
   const isNight = variant === "moon";
 
   // Sky tile: warm dawn-gold by day, deep indigo by night. Full-moon nights get
@@ -227,7 +231,8 @@ export function MiniMoonGlyph({
   phase: MoonPhase;
   size?: number;
 }) {
-  const gid = useId().replace(/:/g, "");
+  // Fixed, not useId() — see CelestialGlyphNova above for why.
+  const gid = "celestial-mini-moon";
   const r = 15 + 3 * phase.fraction; // 15 (new) … 18 (full), within a 40-box
   const lit = litMoonPath(20, 20, r, phase.fraction, phase.waxing);
   // Earthshine: at Amavasai the lit path is a near-empty sliver, so in the chip
