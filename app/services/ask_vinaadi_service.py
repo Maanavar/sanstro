@@ -28,13 +28,19 @@ from app.calculations.astro import (
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.transits import classify_kandaka_cycle, classify_sani_cycle
+from app.core.age_gate import CAREER_REDIRECT_KEYWORDS, MINOR_REDIRECT_KEYWORDS, STUDY_REDIRECT_KEYWORDS
 from app.core.config import get_settings
 from app.models import BirthProfile, Chart
+from app.reasoning.verdict import legacy_confidence_to_band
 from app.schemas.ask_vinaadi import AskVinaadiResponse, AskVinaadiResponseData, AskVinaadiVerdict, BiText
 from app.schemas.dasha import ResponseMeta
 from app.services.chart_service import load_persisted_chart_response
+from app.services.prediction_log_service import log_prediction
+from app.services.safety_filter import run_safety_pass
 
 logger = logging.getLogger("jothidam.ask_vinaadi")
+
+_CALC_VERSION = "thirukanitham-2026-v1"
 
 # Hard ceiling on how long we will wait for the Anthropic API before giving up,
 # so a hung request cannot pin a worker thread indefinitely.
@@ -95,14 +101,80 @@ CONSTRAINTS:
 """
 
 
+# ── Calibration-log area classifier (P1-3) ──────────────────────────────────
+#
+# Lightweight keyword match to route a freeform question to one of the
+# canonical life areas prediction_log_service._SCENARIO_TO_AREA already logs
+# for whatif/life-areas, so Ask Vinaadi's rows aggregate into the same
+# calibration buckets instead of a parallel, unjoinable taxonomy. Reuses
+# age_gate's redirect-keyword tuples where they already cover a canonical
+# area (same EN+TA term-list pattern); unmapped questions return None and
+# the caller skips logging rather than guessing.
+_HEALTH_AREA_KEYWORDS: tuple[str, ...] = (
+    "health", "illness", "sick", "disease", "surgery", "recovery", "medical",
+    "ஆரோக்கியம்", "உடல்நலம்", "நோய்",
+)
+_MONEY_AREA_KEYWORDS: tuple[str, ...] = (
+    "money", "income", "finance", "financial", "loan", "debt", "savings", "investment",
+    "பணம்", "வருமானம்", "கடன்",
+)
+_PROPERTY_AREA_KEYWORDS: tuple[str, ...] = (
+    "property", "house", "land", "flat", "apartment", "real estate",
+    "வீடு", "நிலம்", "சொத்து",
+)
+_FOREIGN_AREA_KEYWORDS: tuple[str, ...] = (
+    "abroad", "overseas", "visa", "immigration", "foreign country", "relocate", "settle abroad",
+    "வெளிநாடு", "வீசா",
+)
+_SPIRITUAL_AREA_KEYWORDS: tuple[str, ...] = (
+    "spiritual", "pooja", "temple", "meditation", "remedy",
+    "ஆன்மிகம்", "பூஜை", "கோவில்",
+)
+_FAMILY_HARMONY_AREA_KEYWORDS: tuple[str, ...] = (
+    "family", "parents", "siblings", "in-laws", "family harmony",
+    "குடும்பம்", "பெற்றோர்",
+)
+_CHILDREN_AREA_KEYWORDS: tuple[str, ...] = (
+    "children", "kids", "son", "daughter", "progeny",
+    "குழந்தைகள்", "மகன்", "மகள்",
+)
+
+# Order matters: first keyword match wins for questions that touch more than
+# one area. MARRIAGE/CAREER/EDUCATION reuse the exact tuples age_gate.py
+# already curated for the minor-redirect gate above.
+_AREA_CLASSIFIER_KEYWORDS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("MARRIAGE", MINOR_REDIRECT_KEYWORDS),
+    ("CAREER", CAREER_REDIRECT_KEYWORDS),
+    ("EDUCATION", STUDY_REDIRECT_KEYWORDS),
+    ("HEALTH", _HEALTH_AREA_KEYWORDS),
+    ("MONEY", _MONEY_AREA_KEYWORDS),
+    ("PROPERTY", _PROPERTY_AREA_KEYWORDS),
+    ("FOREIGN", _FOREIGN_AREA_KEYWORDS),
+    ("CHILDREN", _CHILDREN_AREA_KEYWORDS),
+    ("SPIRITUAL", _SPIRITUAL_AREA_KEYWORDS),
+    ("FAMILY_HARMONY", _FAMILY_HARMONY_AREA_KEYWORDS),
+)
+
+
+def _classify_life_area(question: str) -> str | None:
+    """Map a freeform question to a canonical life area for calibration
+    logging only — never shown to the user. None means no keyword matched
+    confidently; the caller must skip logging rather than guess an area."""
+    q_lower = question.lower()
+    for area, keywords in _AREA_CLASSIFIER_KEYWORDS:
+        if any(k in q_lower for k in keywords):
+            return area
+    return None
+
+
 # ── Context assembly ──────────────────────────────────────────────────────────
 
 def _build_context_block(
     session: Session,
     chart_id: UUID,
     owner_user_id: UUID,
-) -> tuple[str, list[str], str | None]:
-    """Returns (context_text, signals_list, caveat_en_or_None)."""
+) -> tuple[str, list[str], str | None, str, str]:
+    """Returns (context_text, signals_list, caveat_en_or_None, maha_lord, antar_lord)."""
     chart_snapshot = load_persisted_chart_response(session, chart_id)
 
     chart = session.get(Chart, chart_id)
@@ -205,7 +277,7 @@ def _build_context_block(
         + yogas_text
     )
 
-    return context_text, signals, caveat
+    return context_text, signals, caveat, maha_lord, antar_lord
 
 
 # ── Claude API call ───────────────────────────────────────────────────────────
@@ -363,7 +435,9 @@ def answer_question(
     daily_limit = daily_status["dailyLimit"]
     monthly_limit = daily_status["monthlyLimit"]
 
-    context_text, signals, caveat_en = _build_context_block(session, chart_id, owner_user_id)
+    context_text, signals, caveat_en, maha_lord, antar_lord = _build_context_block(
+        session, chart_id, owner_user_id
+    )
 
     result = _call_claude(context_text, question)
     count = used_before + 1
@@ -396,10 +470,36 @@ def answer_question(
             en=caveat_en,
         )
 
+    # P1-3/D15: this is the one surface with non-template, LLM-generated text
+    # rather than a pre-validated template, so this check can actually catch
+    # something real (fatalistic phrasing Claude introduced on its own).
+    answer_bitext = BiText(ta=ta_answer, en=en_answer)
+    run_safety_pass(answer_bitext, source="ask_vinaadi")
+
+    # P1-3/D5: log to the calibration spine only when the question maps
+    # confidently to an existing life area and Claude's own confidence is
+    # HIGH/MEDIUM — LOW and unmapped questions are skipped rather than
+    # polluting calibration buckets with noise. No timing window (this is
+    # conversational, not a scored claim) and no reading (no gate/
+    # contradiction classification runs on this surface).
+    if confidence in ("HIGH", "MEDIUM"):
+        life_area = _classify_life_area(question)
+        if life_area is not None:
+            log_prediction(
+                session,
+                chart_id=chart_id,
+                source="ask_vinaadi",
+                life_area=life_area,
+                band=legacy_confidence_to_band(confidence).value,
+                calc_version=_CALC_VERSION,
+                active_maha=maha_lord,
+                active_antar=antar_lord,
+            )
+
     return AskVinaadiResponse(
         data=AskVinaadiResponseData(
             question=question,
-            answer=BiText(ta=ta_answer, en=en_answer),
+            answer=answer_bitext,
             verdict=verdict,
             signalsUsed=all_signals,
             confidence=confidence,
@@ -409,7 +509,7 @@ def answer_question(
             monthlyLimit=monthly_limit,
         ),
         meta=ResponseMeta(
-            calculation_version="thirukanitham-2026-v1",
+            calculation_version=_CALC_VERSION,
             generated_at=datetime.now(tz=UTC),
         ),
     )

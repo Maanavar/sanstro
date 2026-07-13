@@ -12,6 +12,7 @@ from app.core.age_gate import (
     MINOR_REDIRECT_KEYWORDS,
     SENIOR_MARRIAGE_REDIRECT_KEYWORDS,
     STUDY_REDIRECT_KEYWORDS,
+    WELLBEING_REDIRECT_KEYWORDS,
     compute_age,
     is_married_settled,
     is_minor,
@@ -101,6 +102,38 @@ def _minor_career_redirect_response(question: str) -> AskVinaadiResponse:
         ),
         meta=ResponseMeta(
             calculation_version="minor-career-gate-redirect-v1",
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )
+
+
+def _minor_wellbeing_redirect_response(question: str) -> AskVinaadiResponse:
+    """P1-2/D11 hard gate mirrored here: propensity_service hard-suppresses
+    the sensitive WELLBEING/CAUTION cards for minors, so Ask Vinaadi must not
+    answer the same topics in free text instead."""
+    return AskVinaadiResponse(
+        data=AskVinaadiResponseData(
+            question=question,
+            answer=BiText(
+                ta=(
+                    "இந்த வயதில் இது போன்ற தனிப்பட்ட நல்வாழ்வு கேள்விகளை நாம் பார்ப்பதில்லை. "
+                    "ஏதேனும் கவலை இருந்தால் பெற்றோர் அல்லது நம்பகமான பெரியவருடன் பேசுவது நல்லது. "
+                    "படிப்பு, ஆரோக்கியமான பழக்கவழக்கங்கள் மற்றும் ஆன்மிக வளர்ச்சி பற்றி கேட்கலாம்."
+                ),
+                en=(
+                    "We don't cover personal wellbeing questions like this at your age. If something is "
+                    "worrying you, please talk to a parent or a trusted adult. You can ask about studies, "
+                    "healthy habits, and spiritual growth instead."
+                ),
+            ),
+            signalsUsed=[],
+            confidence="HIGH",
+            caveat=None,
+            questionsUsedToday=0,
+            dailyLimit=0,
+        ),
+        meta=ResponseMeta(
+            calculation_version="minor-wellbeing-gate-redirect-v1",
             generated_at=datetime.now(tz=UTC),
         ),
     )
@@ -218,6 +251,9 @@ def ask_vinaadi(
         # Under-18: block career/job topics.
         if any(k in q_lower for k in CAREER_REDIRECT_KEYWORDS):
             return _minor_career_redirect_response(payload.question)
+        # Under-18: block wellbeing/fertility/health-sensitive topics (P1-2, D11).
+        if any(k in q_lower for k in WELLBEING_REDIRECT_KEYWORDS):
+            return _minor_wellbeing_redirect_response(payload.question)
 
     # Under-6: additionally block study/education topics.
     if is_young_child(age):

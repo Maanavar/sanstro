@@ -61,6 +61,7 @@ from app.services.location_service import (
 )
 from app.services.nakshatra_content import build_nakshatra_perspective
 from app.services.narrative_engine import build_score_reasons, tithi_content_card
+from app.services.safety_filter import run_safety_pass
 
 # Sub-module imports — all symbols are re-exported here so existing consumers
 # that import directly from daily_guidance_service continue to work unchanged.
@@ -668,6 +669,13 @@ def build_daily_guidance_response(
         ))
         briefing = DailyGuidanceText(ta=synthesized.ta, en=synthesized.en)
 
+    run_safety_pass(
+        reasons.summary, reasons.remedy, reasons.caution, reasons.personal_caution,
+        nakshatra_perspective, briefing, emotional_weather.tone_text,
+        emotional_weather.physical_tendency_text, emotional_weather.best_use_of_day_text,
+        emotional_weather.avoid_before, source="daily_guidance",
+    )
+
     return DailyGuidanceResponse(
         data=DailyGuidanceData(
             chartId=chart_id,
@@ -676,7 +684,7 @@ def build_daily_guidance_response(
             label=label,
             confidence=_confidence,
             confidenceReason=_conf_reason,
-            band=_band.value if get_flag("reasoning_bands") else None,
+            band=_band.value,
             scoreBreakdown=DailyGuidanceScoreBreakdown(
                 moonTransit=_moon_c,
                 dashaSupport=_dasha_c,
