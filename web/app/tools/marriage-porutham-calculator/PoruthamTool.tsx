@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useLang } from "@/components/lang-toggle";
 import { romanNakshathiramName } from "@/lib/tamil-astro";
 import { readErrorMessage } from "@/lib/api";
+import { verdictPhrase } from "@/lib/verdict-lexicon";
 import { getPorutham, getPoruthamGrid } from "@vinaadi/shared/api/porutham";
 import type { PublicPoruthamGridItem, PublicPoruthamStarData } from "@vinaadi/shared";
 
@@ -105,17 +106,12 @@ function splitToPada(split: "early" | "late" | null): number | undefined {
 // ========== VERDICT LABEL/COLOR HELPERS (presentational only — thresholds mirror
 // the backend's own EXCELLENT/GOOD/AVERAGE/CAUTION cutoffs in app/calculations/porutham.py) ==========
 
-const LABEL_TEXT: Record<string, [string, string]> = {
-  EXCELLENT: ["மிக நல்ல பொருத்தம்", "Excellent"],
-  GOOD:      ["நல்ல பொருத்தம்", "Good"],
-  AVERAGE:   ["சராசரி பொருத்தம்", "Average"],
-  CAUTION:   ["குறைவான பொருத்தம்", "Below Average"],
-};
-
 function verdictLabel(apiLabel: string, criticalFail: boolean, ta: boolean): string {
   if (criticalFail) return ta ? "தோஷம் — தவிர்க்கவும்" : "Dosham - Avoid";
-  const entry = LABEL_TEXT[apiLabel] ?? LABEL_TEXT.CAUTION;
-  return entry[ta ? 0 : 1];
+  // Verdict words come from the shared verdict lexicon (C-5) so Porutham matches
+  // Today / compatibility. Falls back to the caution phrase for unknown labels.
+  const lang = ta ? "ta" : "en";
+  return verdictPhrase("porutham", apiLabel, lang) ?? verdictPhrase("porutham", "CAUTION", lang)!;
 }
 
 function scoreColor(score: number, criticalFail: boolean): string {

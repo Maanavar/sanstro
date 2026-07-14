@@ -6,6 +6,7 @@ export {
   formatDateTimeLabel,
 } from "@vinaadi/shared/utils/format";
 import { scoreTonePct } from "@vinaadi/shared/utils/score";
+import { verdictPhrase } from "./verdict-lexicon";
 
 export interface ScoreBand {
   label: string;
@@ -104,26 +105,37 @@ export function getScoreVerdictFromGuidance(
   score: number,
   lang: "ta" | "en",
 ): ScoreVerdict {
+  // Verdict words come from the shared verdict lexicon (C-5) so Today matches
+  // Porutham / compatibility. Tones and colours are unchanged.
+  const phrase = (l: string) => verdictPhrase("daily", l, lang) ?? "";
   switch (label) {
     case "STRONG_SUPPORT":
-    case "GOOD": {
-      const tone: ScoreVerdict["tone"] = "high";
       return {
-        verdict: lang === "ta" ? "நல்ல நாள்" : "Good day",
-        tone,
+        verdict: phrase("STRONG_SUPPORT"),
+        tone: "high",
         color: score >= 70 ? SCORE_STRONG : SCORE_GOOD,
       };
-    }
+    case "GOOD":
+      return {
+        verdict: phrase("GOOD"),
+        tone: "high",
+        color: score >= 70 ? SCORE_STRONG : SCORE_GOOD,
+      };
     case "BALANCED":
       return {
-        verdict: lang === "ta" ? "பரவாயில்லை" : "An okay day",
+        verdict: phrase("BALANCED"),
         tone: "mid",
         color: SCORE_FAIR,
       };
-    case "CAUTION":
     case "RESTORATIVE":
       return {
-        verdict: lang === "ta" ? "ஜாக்கிரதை" : "Take care",
+        verdict: phrase("RESTORATIVE"),
+        tone: "low",
+        color: SCORE_WEAK,
+      };
+    case "CAUTION":
+      return {
+        verdict: phrase("CAUTION"),
         tone: "low",
         color: SCORE_WEAK,
       };

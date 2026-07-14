@@ -64,8 +64,12 @@ _FN_DASHA_SCORE = {
     "DUSTHANA": 3,
 }
 
+# Tamil lead adjectives align with the shared verdict lexicon (C-5,
+# app/calculations/verdict_lexicon.py): EXCEPTIONAL → மிகச் சிறந்த (excellent
+# root), GOOD → நல்ல, MIXED → கலப்பான. STRONG / DIFFICULT / VERY_WEAK keep
+# distinct words since this scale has more tiers than the 4-rung ladder.
 _INTERPRETATION_SCALE = [
-    (91, "EXCEPTIONAL", "மிகவும் சிறப்பான காலம் — முழு நடவடிக்கை எடுக்கவும்", "Exceptional period — act fully, rare alignment"),
+    (91, "EXCEPTIONAL", "மிகச் சிறந்த காலம் — முழு நடவடிக்கை எடுக்கவும்", "Exceptional period — act fully, rare alignment"),
     (76, "STRONG", "வலிமையான ஆதரவு — நம்பிக்கையுடன் முன்னேறவும்", "Strong support — proceed with confidence"),
     (61, "GOOD", "நல்ல வாய்ப்பு — முயற்சியுடன் நல்ல பலன் கிடைக்கும்", "Good chance — result comes with sustained effort"),
     (41, "MIXED", "கலப்பான பலன் — கவனமான திட்டமிடல் தேவை", "Mixed — plan carefully, avoid impulsive decisions"),
