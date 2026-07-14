@@ -59,6 +59,21 @@ def test_table_matches_derivation_or_documented_override(lagna: int, planet: str
 
 
 @pytest.mark.no_db
+def test_pure_kendra_ownership_is_consistent_regardless_of_which_kendras():
+    """2026-07 audit A-2: a planet owning only kendra houses is KENDRA
+    (Kendradhipati Dosha) whether it owns {4,7} or {7,10} — the two pairs
+    must no longer disagree with each other."""
+    from app.calculations.functional_nature import FunctionalNature
+
+    # Kanni(6) Jupiter and Meenam(12) Mercury both own {4,7}.
+    assert get_functional_nature(6, "JUPITER") == FunctionalNature.KENDRA
+    assert get_functional_nature(12, "MERCURY") == FunctionalNature.KENDRA
+    # Mithunam(3) Jupiter and Dhanusu(9) Mercury both own {7,10}.
+    assert get_functional_nature(3, "JUPITER") == FunctionalNature.KENDRA
+    assert get_functional_nature(9, "MERCURY") == FunctionalNature.KENDRA
+
+
+@pytest.mark.no_db
 def test_every_override_is_actually_divergent():
     """No stale overrides: each listed override must still diverge from derivation."""
     for (lagna, planet), (value, _note) in KNOWN_FUNCTIONAL_NATURE_OVERRIDES.items():
@@ -73,7 +88,7 @@ def test_every_override_is_actually_divergent():
 @pytest.mark.no_db
 def test_override_count_is_small_and_pinned():
     """Guardrail: the set of hand-tuned deviations stays small and reviewed."""
-    assert len(KNOWN_FUNCTIONAL_NATURE_OVERRIDES) == 3
+    assert len(KNOWN_FUNCTIONAL_NATURE_OVERRIDES) == 1
 
 
 @pytest.mark.no_db

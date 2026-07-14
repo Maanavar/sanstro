@@ -64,11 +64,16 @@ FUNCTIONAL_DASHA_MODIFIER: dict[FunctionalNature, float] = {
 #
 # IMPORTANT: this table is now cross-checked by `derive_functional_nature`
 # (see below) and pinned by tests/test_functional_nature_derivation.py — every
-# cell must match the mechanical derivation except the 3 documented expert
-# overrides in KNOWN_FUNCTIONAL_NATURE_OVERRIDES. Two of those overrides are
-# internal contradictions (Lagna 6 Jupiter vs Lagna 12 Mercury both own {4,7};
-# Lagna 3 Jupiter vs Lagna 9 Mercury both own {7,10}) and still need astrologer
-# reconciliation — do NOT edit a cell without also updating the derivation/test.
+# cell must match the mechanical derivation except the 1 documented expert
+# override in KNOWN_FUNCTIONAL_NATURE_OVERRIDES — do NOT edit a cell without
+# also updating the derivation/test.
+#
+# 2026-07 audit A-2 resolved two internal contradictions (Lagna 6 Jupiter vs
+# Lagna 12 Mercury both owning {4,7}; Lagna 3 Jupiter vs Lagna 9 Mercury both
+# owning {7,10}): Kendradhipati Dosha doctrine does not subdivide by which two
+# kendras are owned, so all four cells now read KENDRA (matching the
+# mechanical derivation) — see the `derive_functional_nature` comment for the
+# citation. These two are no longer overrides.
 # Edge cases (planet owns Trikona + Dusthana simultaneously) follow the rule:
 #   Trikona+Dusthana → TRIKONA, except {5,8}/{6,9} which → NEUTRAL
 #   Trikona+Kendra   → YOGAKARAKA
@@ -166,7 +171,7 @@ FUNCTIONAL_NATURE_TABLE: dict[int, dict[str, str]] = {
         "SUN":     "TRIKONA",     # 9th lord (Simmam=9th from Dhanusu)
         "MOON":    "DUSTHANA",    # 8th lord (Kadagam=8th from Dhanusu)
         "MARS":    "TRIKONA",     # 5th+12th lord (5th=Trikona overrides 12th=Dusthana)
-        "MERCURY": "NEUTRAL",     # 7th+10th lord (Kendra+Kendra = Kendradhipati → Neutral)
+        "MERCURY": "KENDRA",      # 7th+10th lord (Kendra+Kendra = Kendradhipati)
         "JUPITER": "LAGNA_LORD",  # 1st+4th lord (Lagna+Kendra; Lagna overrides)
         "VENUS":   "DUSTHANA",    # 6th+11th lord (Dusthana+Upachaya → Dusthana)
         "SATURN":  "MARAKA",      # 2nd+3rd lord (Maraka+Upachaya → Maraka)
@@ -199,7 +204,7 @@ FUNCTIONAL_NATURE_TABLE: dict[int, dict[str, str]] = {
         "SUN":     "DUSTHANA",    # 6th lord (Simmam=6th from Meenam)
         "MOON":    "TRIKONA",     # 5th lord (Kadagam=5th from Meenam)
         "MARS":    "TRIKONA",     # 2nd+9th lord (9th=Trikona; 2nd adds Dhana quality → Trikona)
-        "MERCURY": "MARAKA",      # 4th+7th lord (Kendra+Maraka → Maraka)
+        "MERCURY": "KENDRA",      # 4th+7th lord (Kendra+Kendra = Kendradhipati)
         "JUPITER": "LAGNA_LORD",  # 1st+10th lord (Lagna+Kendra; Lagna overrides)
         "VENUS":   "DUSTHANA",    # 3rd+8th lord (Upachaya+Dusthana → Dusthana)
         "SATURN":  "DUSTHANA",    # 11th+12th lord (Upachaya+Dusthana → Dusthana)
@@ -244,26 +249,22 @@ def _house_from(lagna_rasi: int, rasi: int) -> int:
     return ((rasi - lagna_rasi) % 12) + 1
 
 
-# Cells where the hand-authored table intentionally (or inconsistently) diverges
-# from the mechanical derivation. Each entry: (lagna, planet) → (table_value, note).
-# These are NOT auto-reconciled — changing them alters production predictions and
-# needs astrologer sign-off. Two of them (#2, #3) are internal contradictions:
-# the same house-set gets a different verdict at another lagna.
+# Cells where the hand-authored table intentionally diverges from the
+# mechanical derivation. Each entry: (lagna, planet) → (table_value, note).
+# NOT auto-reconciled — changing this alters production predictions and needs
+# astrologer sign-off.
+#
+# 2026-07 audit A-2: this dict previously also carried (6, "JUPITER") and
+# (9, "MERCURY") as a pair of internal contradictions (same house-set, {4,7}
+# or {7,10}, yielding different verdicts at another lagna). Both are resolved
+# — see the FUNCTIONAL_NATURE_TABLE module comment and the
+# `derive_functional_nature` Kendradhipati citation — so they no longer
+# diverge from the derivation and were removed from this dict.
 KNOWN_FUNCTIONAL_NATURE_OVERRIDES: dict[tuple[int, str], tuple[str, str]] = {
     (1, "SATURN"): (
         "NEUTRAL",
         "10th+11th lord for Mesha: Kendra+Upachaya, treated as functional-neutral "
         "(mechanical rule yields KENDRA). Expert call, defensible.",
-    ),
-    (6, "JUPITER"): (
-        "KENDRA",
-        "4th+7th lord for Kanni → KENDRA, but Lagna 12 MERCURY owns the same {4,7} "
-        "and is tabled MARAKA. INTERNAL INCONSISTENCY — needs astrologer review.",
-    ),
-    (9, "MERCURY"): (
-        "NEUTRAL",
-        "7th+10th lord for Dhanusu → NEUTRAL, but Lagna 3 JUPITER owns the same "
-        "{7,10} and is tabled KENDRA. INTERNAL INCONSISTENCY — needs astrologer review.",
     ),
 }
 
@@ -299,9 +300,17 @@ def derive_functional_nature(lagna_rasi: int, planet: str) -> FunctionalNature:
             # Kendra + dusthana → dusthana, except {7,8} (maraka-7 + dusthana-8).
             return FunctionalNature.MARAKA if houses == {7, 8} else FunctionalNature.DUSTHANA
         if 7 in houses:
-            # 7th is both kendra and maraka; only the pure {7,10} double-kendra
-            # keeps kendra quality.
-            return FunctionalNature.KENDRA if houses == {7, 10} else FunctionalNature.MARAKA
+            # 7th is both kendra and maraka. Pure two-kendra ownership (no
+            # trikona/dusthana admixture) is Kendradhipati Dosha territory
+            # regardless of *which* second kendra is owned — {4,7} and {7,10}
+            # are treated the same (2026-07 audit A-2: previously only
+            # {7,10} kept KENDRA while {4,7} fell to MARAKA, producing two
+            # internally inconsistent table cells — see
+            # KNOWN_FUNCTIONAL_NATURE_OVERRIDES history). A sole 7th lord (no
+            # second kendra — only possible for Sun/Moon, which own a single
+            # sign) or 7th combined with a non-kendra house (e.g. {2,7}, both
+            # maraka) keeps the plain maraka reading.
+            return FunctionalNature.KENDRA if houses in ({7, 10}, {4, 7}) else FunctionalNature.MARAKA
         return FunctionalNature.KENDRA
     if has_dusthana:
         return FunctionalNature.DUSTHANA
