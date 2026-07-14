@@ -239,7 +239,7 @@ def detect_yogas_and_doshams(
     yogas.append(detect_vasumati_yoga(planets_rasi, moon_rasi))
     yogas.append(detect_kartari_yoga(planets_rasi, lagna_rasi, "LAGNA"))
 
-    kalasarpa = detect_kalasarpa(planets)
+    kalasarpa = detect_kalasarpa(planets, lagna_rasi)
     kalasarpa_label = "KALA_SARPA_DOSHAM_CANDIDATE" if kalasarpa.is_present else "NO_DOSHAM"
     kalasarpa_explanations = _build_dosham_explanations(
         "KALASARPA",
@@ -248,6 +248,13 @@ def detect_yogas_and_doshams(
         cancellation_factors=[],
         missing_data=[],
     )
+    # When a named naga is identified, lead the "what" explanation with the
+    # variant's meaning so the dosham card names the specific Kala Sarpa type.
+    kalasarpa_what_ta = kalasarpa_explanations[0]
+    kalasarpa_what_en = kalasarpa_explanations[1]
+    if kalasarpa.variant != "NONE":
+        kalasarpa_what_ta = f"{kalasarpa.variant_ta}: {kalasarpa.meaning_ta}"
+        kalasarpa_what_en = f"{kalasarpa.variant_en} Kala Sarpa: {kalasarpa.meaning_en}"
     doshams: list[DoshamResult] = [
         detect_sevvai_dosham(
             planets,
@@ -309,8 +316,10 @@ def detect_yogas_and_doshams(
             dasha_activated=_is_active(set(active_lords or ()), "RAHU", "KETU"),
             description_ta=kalasarpa.description_ta,
             description_en=kalasarpa.description_en,
-            explanation_what_ta=kalasarpa_explanations[0],
-            explanation_what_en=kalasarpa_explanations[1],
+            explanation_what_ta=kalasarpa_what_ta,
+            explanation_what_en=kalasarpa_what_en,
+            variant_ta=kalasarpa.variant_ta,
+            variant_en=kalasarpa.variant_en,
             explanation_why_ta=kalasarpa_explanations[2],
             explanation_why_en=kalasarpa_explanations[3],
             explanation_how_ta=kalasarpa_explanations[4],

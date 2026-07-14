@@ -18,7 +18,14 @@ PlanetInput = int | Mapping[str, int | float | str]
 
 KENDRA_HOUSES = {1, 4, 7, 10}
 TRIKONA_HOUSES = {1, 5, 9}
+# 2026-07 audit A-5: confirmed against mainstream Kuja/Chevvai Dosham
+# references (Mars in 1,2,4,7,8,12 from Lagna/Moon/Venus) as the standard
+# Tamil house set, including the 1st house — see docs/SEVVAIRAGU.MD §4.1.
 TAMIL_SEVVAI_HOUSES = {1, 2, 4, 7, 8, 12}
+# Intentionally identical to TAMIL_SEVVAI_HOUSES for now — no authentic source
+# was found describing what should differentiate "extended manglik" from the
+# Tamil standard set above. Placeholder pending a real ruling rather than a
+# guessed house list; open question tracked in docs/ASTROLOGER_REVIEW_QUEUE.md.
 EXTENDED_SEVVAI_HOUSES = {1, 2, 4, 7, 8, 12}
 RAHU_KETU_MARRIAGE_HOUSES = {1, 2, 7, 8}
 RAHU_KETU_SARPA_HOUSES = {5, 9}
@@ -75,6 +82,10 @@ class DoshamResult:
     explanation_why_en: str
     explanation_how_ta: str
     explanation_how_en: str
+    # Optional named sub-type (e.g. the specific Kala Sarpa naga). Empty for
+    # doshams that have no variant. Rendered as a badge on the dosham card.
+    variant_ta: str = ""
+    variant_en: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,6 +95,14 @@ class KalasarpaResult:
     conditions_met: list[str]
     description_ta: str
     description_en: str
+    # One of the 12 named nagas (Ananta..Sheshanaga), keyed on Rahu's house
+    # from lagna. "NONE" when no Kala Sarpa is present.
+    variant: str = "NONE"
+    variant_ta: str = ""
+    variant_en: str = ""
+    rahu_house: int | None = None
+    meaning_ta: str = ""
+    meaning_en: str = ""
 
 
 def _planet_rasi(planets: Mapping[str, PlanetInput], planet: str) -> int:

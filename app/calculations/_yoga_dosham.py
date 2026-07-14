@@ -581,7 +581,55 @@ def detect_pitru_dosham(
     )
 
 
-def detect_kalasarpa(planets: Mapping[str, PlanetInput]) -> KalasarpaResult:
+# The 12 named Kala Sarpa variants (nagas), keyed on the house Rahu occupies
+# from the lagna. This is the standard classical naming: the naga is fixed by
+# Rahu's house, so its life-area emphasis follows that house's significations
+# (i.e. the meaning is not a separate lookup table — it is the house domain,
+# which keeps this unambiguous and safe to ship live, unlike Tithi Shoonya).
+KALASARPA_NAGAS: dict[int, dict[str, str]] = {
+    1:  {"code": "ANANTA",       "en": "Ananta",       "ta": "அனந்த காலசர்ப்பம்",
+         "meaning_en": "Rahu in the 1st house — the self, identity and vitality carry the karmic knot; strong drive shadowed by restlessness.",
+         "meaning_ta": "ராகு லக்னத்தில் — சுயம், அடையாளம், உடல்நலம் மீது கர்ம முடிச்சு; பலமான உந்துதலுடன் அமைதியின்மை."},
+    2:  {"code": "KULIKA",       "en": "Kulika",       "ta": "குலிக காலசர்ப்பம்",
+         "meaning_en": "Rahu in the 2nd house — wealth, family and speech fluctuate; savings and family ties need conscious effort.",
+         "meaning_ta": "ராகு 2-ல் — செல்வம், குடும்பம், பேச்சு ஏற்ற இறக்கம்; சேமிப்பு, குடும்ப பந்தம் முயற்சி கேட்கும்."},
+    3:  {"code": "VASUKI",       "en": "Vasuki",       "ta": "வாசுகி காலசர்ப்பம்",
+         "meaning_en": "Rahu in the 3rd house — courage, siblings and communication are the arena; gains come through sustained effort.",
+         "meaning_ta": "ராகு 3-ல் — தைரியம், உடன்பிறப்பு, தொடர்பு; தொடர் முயற்சியால் வெற்றி."},
+    4:  {"code": "SHANKHAPALA",  "en": "Shankhapala",  "ta": "சங்கபால காலசர்ப்பம்",
+         "meaning_en": "Rahu in the 4th house — home, mother, property and peace of mind are tested; domestic stability needs tending.",
+         "meaning_ta": "ராகு 4-ல் — வீடு, தாய், சொத்து, மன அமைதி சோதிக்கப்படும்; குடும்ப ஸ்திரத்தன்மை கவனம் கேட்கும்."},
+    5:  {"code": "PADMA",        "en": "Padma",        "ta": "பத்ம காலசர்ப்பம்",
+         "meaning_en": "Rahu in the 5th house — children, education and romance may see delays; creativity blooms after patience.",
+         "meaning_ta": "ராகு 5-ல் — குழந்தை, கல்வி, காதலில் தாமதம் இருக்கலாம்; பொறுமைக்குப் பின் படைப்பாற்றல் மலரும்."},
+    6:  {"code": "MAHAPADMA",    "en": "Mahapadma",    "ta": "மகாபத்ம காலசர்ப்பம்",
+         "meaning_en": "Rahu in the 6th house — a fighter's placement; enemies, debts and illness are overcome through service and grit.",
+         "meaning_ta": "ராகு 6-ல் — போராளி அமைப்பு; எதிரி, கடன், நோய் சேவை மற்றும் விடாமுயற்சியால் வெல்லப்படும்."},
+    7:  {"code": "TAKSHAKA",     "en": "Takshaka",     "ta": "தக்ஷக காலசர்ப்பம்",
+         "meaning_en": "Rahu in the 7th house — marriage and partnerships carry turbulence; relationships mature through conscious work.",
+         "meaning_ta": "ராகு 7-ல் — திருமணம், கூட்டாண்மையில் கொந்தளிப்பு; உறவுகள் விழிப்புணர்வான முயற்சியால் முதிரும்."},
+    8:  {"code": "KARKOTAKA",    "en": "Karkotaka",    "ta": "கர்க்கோடக காலசர்ப்பம்",
+         "meaning_en": "Rahu in the 8th house — sudden events, inheritance and the occult; deep transformations and interest in hidden knowledge.",
+         "meaning_ta": "ராகு 8-ல் — திடீர் நிகழ்வுகள், வாரிசு, மறைபொருள்; ஆழமான மாற்றங்கள், மறைவான அறிவில் ஈடுபாடு."},
+    9:  {"code": "SHANKHACHUDA", "en": "Shankhachuda", "ta": "சங்கசூட காலசர்ப்பம்",
+         "meaning_en": "Rahu in the 9th house — fortune, father and beliefs shift; foreign links and unconventional dharma.",
+         "meaning_ta": "ராகு 9-ல் — அதிர்ஷ்டம், தந்தை, நம்பிக்கைகளில் மாற்றம்; வெளிநாட்டுத் தொடர்பு, மாற்று தர்மம்."},
+    10: {"code": "GHATAKA",      "en": "Ghataka",      "ta": "காடக காலசர்ப்பம்",
+         "meaning_en": "Rahu in the 10th house — career and public status swing; ambition is high, professional stability needs strategy.",
+         "meaning_ta": "ராகு 10-ல் — தொழில், அந்தஸ்து ஏற்ற இறக்கம்; லட்சியம் அதிகம், தொழில் ஸ்திரத்தன்மைக்கு திட்டம் தேவை."},
+    11: {"code": "VISHADHARA",   "en": "Vishadhara",   "ta": "விஷதர காலசர்ப்பம்",
+         "meaning_en": "Rahu in the 11th house — gains, networks and elder siblings; income often through unconventional or large-scale means.",
+         "meaning_ta": "ராகு 11-ல் — லாபம், தொடர்புகள், மூத்த உடன்பிறப்பு; மாற்று அல்லது பெரிய அளவிலான வருமானம்."},
+    12: {"code": "SHESHANAGA",   "en": "Sheshanaga",   "ta": "சேஷநாக காலசர்ப்பம்",
+         "meaning_en": "Rahu in the 12th house — expenses, foreign lands and moksha; a spiritually inclined, sometimes isolating placement.",
+         "meaning_ta": "ராகு 12-ல் — செலவு, வெளிநாடு, மோட்சம்; ஆன்மீக நாட்டமுள்ள, சில நேரம் தனிமைப்படுத்தும் அமைப்பு."},
+}
+
+
+def detect_kalasarpa(
+    planets: Mapping[str, PlanetInput],
+    lagna_rasi: int | None = None,
+) -> KalasarpaResult:
     rahu_rasi = _planet_rasi(planets, "RAHU")
     ketu_rasi = _planet_rasi(planets, "KETU")
     planet_rasis = [_planet_rasi(planets, planet) for planet in SEVEN_PLANETS]
@@ -592,28 +640,54 @@ def detect_kalasarpa(planets: Mapping[str, PlanetInput]) -> KalasarpaResult:
     in_rahu_arc = all(_distance(rahu_rasi, rasi) <= 6 for rasi in planet_rasis)
     in_ketu_arc = all(_distance(ketu_rasi, rasi) <= 6 for rasi in planet_rasis)
 
-    if in_rahu_arc:
+    if not (in_rahu_arc or in_ketu_arc):
+        return KalasarpaResult(
+            is_present=False,
+            pattern="NONE",
+            conditions_met=[],
+            description_ta="காலசர்ப்ப அமைப்பு இல்லை.",
+            description_en="Kalasarpa formation is not present.",
+        )
+
+    pattern = "ANULOMA" if in_rahu_arc else "VILOMA"
+    condition = (
+        "all_planets_between_rahu_and_ketu"
+        if in_rahu_arc
+        else "all_planets_between_ketu_and_rahu"
+    )
+    conditions_met = [condition]
+
+    # Name the naga from Rahu's house. When lagna is unknown (older callers),
+    # fall back to the un-named formation so behavior never regresses.
+    naga = KALASARPA_NAGAS.get(house_from_reference(lagna_rasi, rahu_rasi)) if lagna_rasi else None
+    if naga is None:
         return KalasarpaResult(
             is_present=True,
-            pattern="ANULOMA",
-            conditions_met=["all_planets_between_rahu_and_ketu"],
-            description_ta="அனைத்து 7 கிரகங்களும் ராகு-கேது இடைவட்டத்தில் உள்ளதால் காலசர்ப்ப அமைப்பு.",
-            description_en="All seven planets are contained within one Rahu-Ketu arc, indicating Kalasarpa formation.",
+            pattern=pattern,
+            conditions_met=conditions_met,
+            description_ta="அனைத்து 7 கிரகங்களும் ராகு-கேது அச்சின் ஒரு பக்கத்தில் உள்ளதால் காலசர்ப்ப அமைப்பு.",
+            description_en="All seven planets fall on one side of the Rahu-Ketu axis, indicating a Kalasarpa formation.",
         )
-    if in_ketu_arc:
-        return KalasarpaResult(
-            is_present=True,
-            pattern="VILOMA",
-            conditions_met=["all_planets_between_ketu_and_rahu"],
-            description_ta="அனைத்து 7 கிரகங்களும் கேது-ராகு இடைவட்டத்தில் உள்ளதால் காலசர்ப்ப அமைப்பு.",
-            description_en="All seven planets are contained within one Ketu-Rahu arc, indicating Kalasarpa formation.",
-        )
+
+    rahu_house = house_from_reference(lagna_rasi, rahu_rasi)
+    conditions_met.append(f"rahu_house_{rahu_house}")
+    conditions_met.append(f"variant_{naga['code'].lower()}")
     return KalasarpaResult(
-        is_present=False,
-        pattern="NONE",
-        conditions_met=[],
-        description_ta="காலசர்ப்ப அமைப்பு இல்லை.",
-        description_en="Kalasarpa formation is not present.",
+        is_present=True,
+        pattern=pattern,
+        conditions_met=conditions_met,
+        description_ta=(
+            f"{naga['ta']} — அனைத்து 7 கிரகங்களும் ராகு-கேது அச்சின் ஒரு பக்கத்தில். {naga['meaning_ta']}"
+        ),
+        description_en=(
+            f"{naga['en']} Kala Sarpa — all seven planets fall on one side of the Rahu-Ketu axis. {naga['meaning_en']}"
+        ),
+        variant=naga["code"],
+        variant_ta=naga["ta"],
+        variant_en=naga["en"],
+        rahu_house=rahu_house,
+        meaning_ta=naga["meaning_ta"],
+        meaning_en=naga["meaning_en"],
     )
 
 
