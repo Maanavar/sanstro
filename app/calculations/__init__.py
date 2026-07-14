@@ -38,6 +38,7 @@ from app.calculations.transits import (
     TransitPosition,
     classify_kandaka_cycle,
     classify_sani_cycle,
+    is_cazimi,
     is_combust,
     is_gandanta,
 )
@@ -72,6 +73,7 @@ __all__ = [
     "normalize_longitude",
     "classify_kandaka_cycle",
     "classify_sani_cycle",
+    "is_cazimi",
     "is_combust",
     "is_gandanta",
     "pada_from_degree",

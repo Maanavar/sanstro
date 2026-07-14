@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-# TODO(product): decide fate — P2-04. API route GET /charts/{id}/chara-dasha already exists.
-# Decision needed: add a mobile Chara Dasha tab, or explicitly defer to roadmap?
-# See docs/ROADMAP_TASKS.md and docs/AUDIT_REMEDIATION_PLAN.md P2-04.
+# P2-04 RESOLVED (2026-07-14): Chara Dasha is fully surfaced end-to-end.
+#   API   : GET /charts/{id}/chara-dasha (app/api/charts.py)
+#   shared: packages/shared/src/api/charaDasha.ts (getCharaDasha)
+#   web   : "Classical Timing" surface in web/components/dashboard-charts-panel-nova.tsx
+#   mobile: "Jaimini Chara" tab in mobile/app/dasha/index.tsx
+# No further product decision pending. See docs/ROADMAP_TASKS.md P2-04.
 
 from collections.abc import Mapping
 from datetime import date
