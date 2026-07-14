@@ -594,8 +594,11 @@ def generate_compatibility_intelligence_pdf(
         story.append(Paragraph(_label("warning_vedha", lang), body_style))
     if report.nadi_dosha.has_nadi_dosha:
         story.append(Paragraph(f"Warning: Nadi dosha present - {report.nadi_dosha.severity}.", body_style))
-        if report.nadi_dosha.cancellations:
-            story.append(Paragraph(f"Cancellations: {', '.join(report.nadi_dosha.cancellations)}", body_style))
+    if report.nadi_dosha.cancellations:
+        # Shown independently of has_nadi_dosha — a full Classical Exception
+        # cancellation (A-9 v2) clears has_nadi_dosha but the reason it was
+        # cleared is still worth surfacing.
+        story.append(Paragraph(f"Nadi Dosha notes: {', '.join(report.nadi_dosha.cancellations)}", body_style))
     porutham_rows = [["Kuta", "Score", "Max", "Label"]]
     for kuta in report.porutham_kutas:
         porutham_rows.append([kuta.name, str(kuta.score), str(kuta.max_score), kuta.label])

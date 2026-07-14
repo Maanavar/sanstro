@@ -97,6 +97,18 @@ def test_mahendra_position_7():
     assert _mahendra_score(1, 7) == 1
 
 
+def test_mahendra_good_set_symmetric_under_direction_reversal():
+    # 2026-07 audit A-6: code counts girl-from-boy, the reference spec counts
+    # boy-from-girl. Outcomes are identical only because MAHENDRA_GOOD is closed
+    # under c -> 29-c (the two count directions around a 27-star ring always sum
+    # to 29). Pin that closure so a future edit to the set can't silently break
+    # the equivalence without a test failure.
+    # diff = (girl - boy) % 27 + 1 sweeps 1..27 as girl varies with boy=1 fixed.
+    good_diffs = {((g - 1) % 27) + 1 for g in range(1, 28) if _mahendra_score(1, g) == 1}
+    assert good_diffs == {4, 7, 10, 13, 16, 19, 22, 25}
+    assert all((29 - c) in good_diffs for c in good_diffs)
+
+
 # ---------------------------------------------------------------------------
 # Stree Dirgham (ஸ்திரீ தீர்கம்) — count boy's nak FROM girl's (0-based); pass if > 6
 # Threshold: boy must be ≥ 8th nakshatra from girl (count > 7 in 1-indexed)
@@ -316,6 +328,25 @@ def test_compute_porutham_rajju_flagged():
     assert rajju_kuta.passed is False
 
 
+def test_compute_porutham_label_downgraded_on_rajju_veto():
+    # Same rajju group but otherwise strong match — label must not read GOOD/EXCELLENT.
+    result = compute_porutham(
+        boy_nakshatra=1, girl_nakshatra=10,
+        boy_rasi=1, girl_rasi=5,
+    )
+    assert result.rajju_dosha is True
+    assert result.label == "CAUTION"
+
+
+def test_compute_porutham_label_downgraded_on_vedha_veto():
+    result = compute_porutham(
+        boy_nakshatra=1, girl_nakshatra=18,
+        boy_rasi=1, girl_rasi=9,
+    )
+    assert result.vedha_dosha is True
+    assert result.label == "CAUTION"
+
+
 def test_compute_porutham_no_dosha_case():
     # Aswini(1) and Rohini(4) — different rajju, not vedha pair
     result = compute_porutham(
@@ -327,12 +358,17 @@ def test_compute_porutham_no_dosha_case():
 
 
 def test_nadi_dosha_helper_flags_same_nadi():
-    # Ashwini(1) and Thiruvathirai/Ardra(6) — both AADHI under the correct
-    # zigzag mapping. This is the audit's headline false-negative: the old
-    # contiguous-block mapping put Ardra in MADHYA and missed this true dosha.
-    out = check_nadi_dosha(1, 6, boy_rasi=1, girl_rasi=1)
+    # Ashwini(1, real rasi Mesha) and Thiruvathirai/Ardra(6, real rasi
+    # Mithuna) — both AADHI under the correct zigzag mapping. This is the
+    # audit's headline false-negative: the old contiguous-block mapping put
+    # Ardra in MADHYA and missed this true dosha. Real (not artificial-same)
+    # rasis are used so this isolates the same-nadi detection from the A-9 v2
+    # cancellation branches (different rasi, Mars/Mercury are not mutually
+    # friendly, so nothing here should cancel).
+    out = check_nadi_dosha(1, 6)
     assert out["boy_nadi"] == out["girl_nadi"] == "AADHI"
     assert out["has_nadi_dosha"] is True
+    assert out["mitigation"] == "NONE"
 
 
 def test_nadi_dosha_ashwini_bharani_are_different_nadi():
@@ -344,15 +380,19 @@ def test_nadi_dosha_ashwini_bharani_are_different_nadi():
     assert out["has_nadi_dosha"] is False
 
 
-def test_nadi_dosha_cancellation_uses_actual_rasi_for_split_nakshatra():
-    # Aswini(1, Mesha) and Punarpoosam(7) — both AADHI nadi. Punarpoosam
-    # straddles Mithuna (padas 1-3) and Kataka (pada 4); passing the actual
-    # pada-4 rasi surfaces a rasi difference the default majority-pada rasi hides.
+def test_nadi_dosha_different_rasi_alone_no_longer_cancels():
+    # A-9 v2 regression lock (2026-07-14 astrologer ruling): "different rasi
+    # alone" must NOT cancel Nadi Dosha. Aswini(1, Mesha/MARS) and
+    # Punarpoosam(7, pada-4 rasi Kataka/MOON) — both AADHI nadi, different
+    # rasi, but Mars/Moon are not MUTUALLY friendly (Mars→Moon is a friend,
+    # but Moon→Mars is only neutral) — so the friendly-lords branch doesn't
+    # apply either. The old rule wrongly cancelled this to MILD/cleared.
     out = check_nadi_dosha(1, 7, boy_rasi=1, girl_rasi=4)
     assert out["boy_nadi"] == out["girl_nadi"]
-    assert out["has_nadi_dosha"] is False
-    assert out["severity"] == "MILD"
-    assert out["cancellations"] == ["Different rasi — Nadi Dosha partially mitigated"]
+    assert out["has_nadi_dosha"] is True
+    assert out["severity"] == "SEVERE"
+    assert out["mitigation"] == "NONE"
+    assert out["cancellations"] == []
 
 
 def test_compute_porutham_passes_actual_rasi_to_nadi_cancellation():
@@ -362,7 +402,7 @@ def test_compute_porutham_passes_actual_rasi_to_nadi_cancellation():
         boy_rasi=1,
         girl_rasi=4,
     )
-    assert result.nadi_dosha["has_nadi_dosha"] is False
+    assert result.nadi_dosha["has_nadi_dosha"] is True
     assert result.nadi_dosha["boy_rasi"] == 1
     assert result.nadi_dosha["girl_rasi"] == 4
 

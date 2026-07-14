@@ -13,6 +13,7 @@ from app.calculations.astro import NAKSHATRA_NAMES, utc_datetime_to_julian_day
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.porutham import compute_porutham
 from app.calculations.transits import angular_distance
+from app.calculations.verdict_lexicon import verdict_phrase
 from app.db.session import SessionLocal
 from app.models import BirthProfile, Chart, FamilyMember, FamilyVault, RelationshipAlert
 from app.schemas.dasha import ResponseMeta
@@ -42,6 +43,7 @@ from app.schemas.relationships import (
     SynastryResponse,
 )
 from app.services.chart_service import load_persisted_chart_response
+from app.services.feature_flags import get_flag
 from app.services.location_service import local_noon_as_utc_for_profile
 
 _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
@@ -286,19 +288,21 @@ def compute_synastry_score(chart_a_snapshot: Any, chart_b_snapshot: Any) -> Syna
         for a in aspects
     ]
 
+    # Tamil script (was romanized) leading with the shared verdict word (C-5).
+    verdict_ta = verdict_phrase("synastry", label, "ta") or "கவனம் தேவை"
     if label == "SUPPORTIVE":
         summary = RelationshipBiText(
-            ta=f"Synastry score {score}/100. Inakkam nandraaga kaanappadugiradhu; uravugalai nilaiyaana paadhaiyil munnerka support ulladhu.",
+            ta=f"இணக்க மதிப்பெண் {score}/100 — {verdict_ta}. உறவு நிலையாக முன்னேற வலுவான ஆதரவு உள்ளது.",
             en=f"Synastry score {score}/100. Overall alignment looks supportive for steady relationship progress.",
         )
     elif label == "MIXED":
         summary = RelationshipBiText(
-            ta=f"Synastry score {score}/100. Inakkamum sila tension point-galum serntha nilai; thelivana pesudhal mukkiyam.",
+            ta=f"இணக்க மதிப்பெண் {score}/100 — {verdict_ta}. இணக்கமும் சில பதற்றப் புள்ளிகளும் சேர்ந்த நிலை; தெளிவான உரையாடல் முக்கியம்.",
             en=f"Synastry score {score}/100. Mixed pattern with both harmony and pressure points; clear communication is key.",
         )
     else:
         summary = RelationshipBiText(
-            ta=f"Synastry score {score}/100. Sila tension activation kaanappadugiradhu; porumai, varambu, amaidiyana nadai mukkiyam.",
+            ta=f"இணக்க மதிப்பெண் {score}/100 — {verdict_ta}. சில பதற்ற அறிகுறிகள் வலுவாக உள்ளன; பொறுமை, எல்லைகள், அமைதியான அணுகுமுறை முக்கியம்.",
             en=f"Synastry score {score}/100. Pressure signatures are stronger; patience, boundaries, and calm pacing matter.",
         )
 
@@ -533,7 +537,8 @@ def _contextualize_porutham_result(result, compatibility_context: str) -> dict[s
     if compatibility_context == "MARRIAGE":
         summary = RelationshipBiText(ta=result.summary_ta, en=result.summary_en)
     else:
-        factors = ", ".join(k.name for k in selected[:6])
+        factors_en = ", ".join(k.name for k in selected[:6])
+        factors_ta = ", ".join(k.name_ta for k in selected[:6])
         scope = _CONTEXT_TITLE_EN.get(compatibility_context, _CONTEXT_TITLE_EN["GENERAL"])
         scope_ta = {
             "FRIENDSHIP": "நட்பு பொருத்தம்",
@@ -543,11 +548,11 @@ def _contextualize_porutham_result(result, compatibility_context: str) -> dict[s
         }.get(compatibility_context, "பொது பொருத்தம்")
         en = (
             f"{scope}: {label.lower()} alignment ({total_score}/{max_score} · {percentage}%). "
-            f"Evaluated factors: {factors}."
+            f"Evaluated factors: {factors_en}."
         )
         ta = (
             f"{scope_ta}: {label.lower()} இணக்கம் ({total_score}/{max_score} · {percentage}%). "
-            f"மதிப்பிடப்பட்ட கூறுகள்: {factors}."
+            f"மதிப்பிடப்பட்ட கூறுகள்: {factors_ta}."
         )
         summary = RelationshipBiText(ta=ta, en=en)
 
@@ -582,6 +587,9 @@ def compare_chart_snapshots_direct(
         girl_nakshatra=girl_moon.nakshatra,
         boy_rasi=boy_moon.rasi,
         girl_rasi=girl_moon.rasi,
+        boy_pada=boy_moon.pada,
+        girl_pada=girl_moon.pada,
+        nadi_parihara_mode=get_flag("nadi_parihara_mode"),
     )
     shaped = _contextualize_porutham_result(result, compatibility_context)
 
@@ -633,6 +641,9 @@ def build_compatibility_intelligence_from_snapshots(
         girl_nakshatra=girl_moon.nakshatra,
         boy_rasi=boy_moon.rasi,
         girl_rasi=girl_moon.rasi,
+        boy_pada=boy_moon.pada,
+        girl_pada=girl_moon.pada,
+        nadi_parihara_mode=get_flag("nadi_parihara_mode"),
     )
     synastry_data = compute_synastry_score(snap_a, snap_b)
     today_jd = utc_datetime_to_julian_day(datetime.now(tz=UTC))
@@ -657,6 +668,9 @@ def build_compatibility_intelligence_from_snapshots(
         has_nadi_dosha=nadi["has_nadi_dosha"],
         cancellations=nadi.get("cancellations", []),
         severity=nadi["severity"],
+        mitigation=nadi.get("mitigation", "NONE"),
+        nadi_parihara_mode=nadi.get("nadi_parihara_mode", "strict"),
+        rajju_guard_warning=nadi.get("rajju_guard_warning"),
         note_ta=nadi["note_ta"],
         note_en=nadi["note_en"],
     )
@@ -815,6 +829,9 @@ def get_porutham_for_member(
         girl_nakshatra=girl_moon.nakshatra,
         boy_rasi=boy_moon.rasi,
         girl_rasi=girl_moon.rasi,
+        boy_pada=boy_moon.pada,
+        girl_pada=girl_moon.pada,
+        nadi_parihara_mode=get_flag("nadi_parihara_mode"),
     )
     shaped = _contextualize_porutham_result(result, compatibility_context)
 

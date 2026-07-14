@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from app.calculations.astro import RASI_NAME_TO_NUMBER, RASI_NAMES, nakshatra_to_rasi
 from app.calculations.porutham import compute_porutham
 from app.core.public_endpoint_limiter import public_endpoint_rate_limit
+from app.services.feature_flags import get_flag
 from app.db.session import get_db
 from app.schemas.birth_profiles import _validate_birth_date_bounds  # noqa: PLC2701 (shared validation)
 from app.schemas.charts import ChartCalculateResponseData, ChartSummaryData
@@ -285,6 +286,9 @@ def public_porutham(payload: PublicPoruthamRequest, request: Request) -> PublicP
         girl_nakshatra=moon_b.nakshatra,
         boy_rasi=moon_a.rasi,
         girl_rasi=moon_b.rasi,
+        boy_pada=moon_a.pada,
+        girl_pada=moon_b.pada,
+        nadi_parihara_mode=get_flag("nadi_parihara_mode"),
     )
 
     kutas = [
@@ -305,6 +309,9 @@ def public_porutham(payload: PublicPoruthamRequest, request: Request) -> PublicP
         has_nadi_dosha=nadi["has_nadi_dosha"],
         cancellations=nadi.get("cancellations", []),
         severity=nadi["severity"],
+        mitigation=nadi.get("mitigation", "NONE"),
+        nadi_parihara_mode=nadi.get("nadi_parihara_mode", "strict"),
+        rajju_guard_warning=nadi.get("rajju_guard_warning"),
         note_ta=nadi["note_ta"],
         note_en=nadi["note_en"],
     )
@@ -426,12 +433,18 @@ def _compute_star_porutham(
     boy_rasi: int,
     girl_rasi: int,
     compatibility_context: str,
+    *,
+    boy_pada: int = 1,
+    girl_pada: int = 1,
 ) -> PublicPoruthamStarData:
     result = compute_porutham(
         boy_nakshatra=boy_nakshatra,
         girl_nakshatra=girl_nakshatra,
         boy_rasi=boy_rasi,
         girl_rasi=girl_rasi,
+        boy_pada=boy_pada,
+        girl_pada=girl_pada,
+        nadi_parihara_mode=get_flag("nadi_parihara_mode"),
     )
     kutas = [
         KutaResult(name=k.name, name_ta=k.name_ta, score=k.score, max_score=k.max_score, label=k.label)
@@ -444,6 +457,9 @@ def _compute_star_porutham(
         has_nadi_dosha=nadi["has_nadi_dosha"],
         cancellations=nadi.get("cancellations", []),
         severity=nadi["severity"],
+        mitigation=nadi.get("mitigation", "NONE"),
+        nadi_parihara_mode=nadi.get("nadi_parihara_mode", "strict"),
+        rajju_guard_warning=nadi.get("rajju_guard_warning"),
         note_ta=nadi["note_ta"],
         note_en=nadi["note_en"],
     )
@@ -482,6 +498,8 @@ def public_porutham_by_star(payload: PublicPoruthamStarRequest, request: Request
         boy_rasi,
         girl_rasi,
         payload.compatibility_context,
+        boy_pada=payload.boy_pada,
+        girl_pada=payload.girl_pada,
     )
     return PublicPoruthamStarResponse(data=data)
 
@@ -506,6 +524,8 @@ def public_porutham_by_star_grid(payload: PublicPoruthamGridRequest, request: Re
             nakshatra_to_rasi(boy_nak, 3),
             girl_rasi,
             payload.compatibility_context,
+            boy_pada=3,  # matches this endpoint's own default-pada rasi assumption
+            girl_pada=payload.girl_pada,
         )
         results.append(
             PublicPoruthamGridItem(

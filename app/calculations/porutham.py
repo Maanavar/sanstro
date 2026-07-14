@@ -187,7 +187,18 @@ def _ganam_score(nak_boy: int, nak_girl: int) -> int:
 
 
 def _mahendra_score(nak_boy: int, nak_girl: int) -> int:
-    """Mahendra: count girl's nak from boy's (1-based); PASS if result ∈ {4,7,10,13,16,19,22,25}."""
+    """Mahendra: count girl's nak from boy's (1-based); PASS if result ∈ {4,7,10,13,16,19,22,25}.
+
+    Convention note: this project counts girl-from-boy. The reference spec
+    (§11.5) and some worked examples count boy-from-girl instead. The two
+    conventions produce identical PASS/FAIL outcomes here only because
+    {4,7,10,13,16,19,22,25} is closed under c -> 29-c (the two count
+    directions around a 27-star ring always sum to 29) — see
+    test_mahendra_good_set_symmetric_under_direction_reversal. That symmetry
+    is an accident of this particular set, not a general guarantee, so do not
+    assume any future edit to it preserves direction-independence without
+    re-checking. Not changed — documenting the choice per the 2026-07 audit.
+    """
     diff = (nak_girl - nak_boy) % 27 + 1
     return 1 if diff in {4, 7, 10, 13, 16, 19, 22, 25} else 0
 
@@ -285,6 +296,83 @@ class PorutthamResult:
     summary_ta: str
 
 
+# ---------------------------------------------------------------------------
+# Nadi Dosha cancellation (A-9 v2, astrologer ruling 2026-07-14)
+#
+# "Different rasi alone" does NOT cancel Nadi Dosha (the old rule was too
+# lenient and is retired). Cancellation requires one of:
+#   1. A Classical Exception (Parihāra) — applies in every mode:
+#        - same nakshatra, different pada (eka nakshatra – bhinna pada)
+#        - same rasi, different nakshatra (eka rasi – bhinna nakshatra)
+#   2. Rasi-lord friendship (rasi-adhipati maitri), when Moon signs differ —
+#      gated by the `nadi_parihara_mode` flag: `classical_lenient` grants a
+#      full cancel, `strict` (default) records only a disclosed partial
+#      mitigation — the dosha stays flagged.
+# Same nakshatra + same pada is an explicit non-exception (never cancels).
+# A Rajju hard-fail is surfaced independently of Nadi status in all modes —
+# see `rajju_failed` — and `compute_porutham` separately forces the overall
+# label to CAUTION whenever Rajju fails, so a Nadi exception can never imply
+# the match is clear.
+#
+# Tamil text below is a first-draft translation, not yet native-reviewed —
+# same posture as daily_briefing_synth's glue before its Tamil pass.
+# ---------------------------------------------------------------------------
+
+_NADI_PARIHARA_MODES = ("strict", "classical_lenient")
+
+_NADI_PRESENT_EN = "Nadi Dosha present — children's health needs extra caution. Seek remedial guidance."
+_NADI_PRESENT_TA = "நாடி தோஷம் உள்ளது — குழந்தைகள் உடல்நலத்தில் கவனம் தேவை. பரிகாரம் குறித்து ஆலோசிக்கவும்."
+_NADI_NONE_EN = "No Nadi Dosha."
+_NADI_NONE_TA = "நாடி தோஷம் இல்லை."
+
+_NADI_EXCEPTION_PADA_EN = "Classical Exception (Parihāra): same nakshatra, different pada."
+_NADI_EXCEPTION_PADA_TA = "பாரம்பரிய விதிவிலக்கு (பரிகாரம்): ஒரே நட்சத்திரம், வேறு பாதம்."
+_NADI_EXCEPTION_RASI_EN = "Classical Exception (Parihāra): same rasi, different nakshatra."
+_NADI_EXCEPTION_RASI_TA = "பாரம்பரிய விதிவிலக்கு (பரிகாரம்): ஒரே ராசி, வேறு நட்சத்திரம்."
+_NADI_LENIENT_CANCEL_EN = (
+    "Nadi Dosha may be considered cancelled when the Moon signs differ and the "
+    "respective Rasi lords are identical or mutually friendly, subject to the "
+    "tradition being followed. Different Rasi alone should not automatically "
+    "cancel the dosha."
+)
+_NADI_LENIENT_CANCEL_TA = (
+    "ராசிகள் வேறுபட்டு, அந்தந்த ராசி அதிபதிகள் ஒரே கிரகமாகவோ அல்லது பரஸ்பர "
+    "நண்பர்களாகவோ இருக்கும்போது, பின்பற்றப்படும் பாரம்பரியத்தைப் பொறுத்து நாடி "
+    "தோஷம் நீங்கியதாகக் கருதப்படலாம். வெறும் ராசி வேறுபாடு மட்டும் தோஷத்தை "
+    "தானாக நீக்காது."
+)
+_NADI_STRICT_PARTIAL_EN = (
+    "The Rasi lords are friendly, but under the strict reading followed here "
+    "this is only a partial mitigation, not a full clearance of Nadi Dosha."
+)
+_NADI_STRICT_PARTIAL_TA = (
+    "ராசி அதிபதிகள் நட்புடையவர்களாக இருந்தாலும், இங்கு பின்பற்றப்படும் கடுமையான "
+    "நடைமுறையின்படி இது ஒரு பகுதி தணிப்பு மட்டுமே — நாடி தோஷம் முழுமையாக நீங்கவில்லை."
+)
+_NADI_CLOSING_CLAUSE_EN = (
+    "This removes only the Nadi objection. Other mandatory poruthams "
+    "(Rajju, Vedhai, Mahendra, Yoni, etc.) are evaluated independently."
+)
+_NADI_CLOSING_CLAUSE_TA = (
+    "இது நாடி ஆட்சேபனையை மட்டுமே நீக்குகிறது. மற்ற கட்டாய பொருத்தங்கள் "
+    "(ராஜ்ஜு, வேதம், மகேந்திரம், யோனி போன்றவை) தனித்தனியாக மதிப்பிடப்படுகின்றன."
+)
+_NADI_RAJJU_WARNING_EN = "Rajju Dosha still applies regardless of the Nadi outcome above."
+_NADI_RAJJU_WARNING_TA = "மேலே உள்ள நாடி முடிவைப் பொருட்படுத்தாமல் ராஜ்ஜு தோஷம் இன்னும் பொருந்தும்."
+
+
+def _rasi_lords_mutually_friendly(rasi_a: int, rasi_b: int) -> bool:
+    """Rasi-adhipati maitri: identical lord, or friends in BOTH directions
+    (Parashari mitra tier — a one-way neutral/friend does not qualify)."""
+    lord_a = SIGN_LORD[rasi_a]
+    lord_b = SIGN_LORD[rasi_b]
+    if lord_a == lord_b:
+        return True
+    a_to_b = _GRAHA_RELATION.get((lord_a, lord_b), 0.5)
+    b_to_a = _GRAHA_RELATION.get((lord_b, lord_a), 0.5)
+    return a_to_b >= 1.0 and b_to_a >= 1.0
+
+
 def check_nadi_dosha(
     boy_nakshatra: int,
     girl_nakshatra: int,
@@ -293,20 +381,76 @@ def check_nadi_dosha(
     girl_rasi: int | None = None,
     boy_pada: int = 1,
     girl_pada: int = 1,
+    mode: str = "strict",
+    rajju_failed: bool = False,
 ) -> dict[str, object]:
+    if mode not in _NADI_PARIHARA_MODES:
+        mode = "strict"
+
     boy_nadi = _NAKSHATRA_NADI[boy_nakshatra]
     girl_nadi = _NAKSHATRA_NADI[girl_nakshatra]
     has_dosha = boy_nadi == girl_nadi
     boy_resolved_rasi = boy_rasi if boy_rasi is not None else nakshatra_to_rasi(boy_nakshatra, boy_pada)
     girl_resolved_rasi = girl_rasi if girl_rasi is not None else nakshatra_to_rasi(girl_nakshatra, girl_pada)
 
+    nadi_cancelled = False
+    mitigation = "NONE"
     cancellations: list[str] = []
-    if has_dosha and boy_nakshatra != girl_nakshatra:
-        if boy_resolved_rasi != girl_resolved_rasi:
-            cancellations.append("Different rasi — Nadi Dosha partially mitigated")
+    extra_en: list[str] = []
+    extra_ta: list[str] = []
 
-    final_has_dosha = has_dosha and not cancellations
+    if has_dosha:
+        same_nakshatra = boy_nakshatra == girl_nakshatra
+        same_pada = boy_pada == girl_pada
+        same_rasi = boy_resolved_rasi == girl_resolved_rasi
+
+        if same_nakshatra and same_pada:
+            pass  # explicit guard: identical star AND pada never cancels
+        elif same_nakshatra and not same_pada:
+            nadi_cancelled = True
+            mitigation = "FULL"
+            cancellations.append("Classical Exception (Parihāra): same nakshatra, different pada")
+            extra_en.append(_NADI_EXCEPTION_PADA_EN)
+            extra_ta.append(_NADI_EXCEPTION_PADA_TA)
+        elif same_rasi and not same_nakshatra:
+            nadi_cancelled = True
+            mitigation = "FULL"
+            cancellations.append("Classical Exception (Parihāra): same rasi, different nakshatra")
+            extra_en.append(_NADI_EXCEPTION_RASI_EN)
+            extra_ta.append(_NADI_EXCEPTION_RASI_TA)
+        elif not same_rasi and _rasi_lords_mutually_friendly(boy_resolved_rasi, girl_resolved_rasi):
+            if mode == "classical_lenient":
+                nadi_cancelled = True
+                mitigation = "FULL"
+                cancellations.append("Cancelled (lenient tradition): friendly/identical rasi lords")
+                extra_en.append(_NADI_LENIENT_CANCEL_EN)
+                extra_ta.append(_NADI_LENIENT_CANCEL_TA)
+            else:
+                mitigation = "MODERATE"
+                cancellations.append("Partial mitigation only: friendly rasi lords (strict mode)")
+                extra_en.append(_NADI_STRICT_PARTIAL_EN)
+                extra_ta.append(_NADI_STRICT_PARTIAL_TA)
+        # else: no cancellation, mitigation stays NONE (regression fix — a
+        # difference in rasi alone, with unrelated lords, no longer cancels)
+
+    if nadi_cancelled or mitigation != "NONE":
+        cancellations.append(_NADI_CLOSING_CLAUSE_EN)
+        extra_en.append(_NADI_CLOSING_CLAUSE_EN)
+        extra_ta.append(_NADI_CLOSING_CLAUSE_TA)
+
+    rajju_guard_warning: str | None = None
+    if rajju_failed:
+        rajju_guard_warning = _NADI_RAJJU_WARNING_EN
+        extra_en.append(_NADI_RAJJU_WARNING_EN)
+        extra_ta.append(_NADI_RAJJU_WARNING_TA)
+
+    final_has_dosha = has_dosha and not nadi_cancelled
     severity = "SEVERE" if final_has_dosha else ("MILD" if has_dosha else "NONE")
+
+    base_en = _NADI_PRESENT_EN if has_dosha else _NADI_NONE_EN
+    base_ta = _NADI_PRESENT_TA if has_dosha else _NADI_NONE_TA
+    note_en = " ".join([base_en, *extra_en])
+    note_ta = " ".join([base_ta, *extra_ta])
 
     return {
         "boy_nadi": boy_nadi,
@@ -316,14 +460,11 @@ def check_nadi_dosha(
         "has_nadi_dosha": final_has_dosha,
         "cancellations": cancellations,
         "severity": severity,
-        "note_ta": (
-            "நாடி தோஷம் உள்ளது — குழந்தைகள் உடல்நலத்தில் கவனம் தேவை. பரிகாரம் குறித்து ஆலோசிக்கவும்."
-            if has_dosha else "நாடி தோஷம் இல்லை."
-        ),
-        "note_en": (
-            "Nadi Dosha present — children's health needs extra caution. Seek remedial guidance."
-            if has_dosha else "No Nadi Dosha."
-        ),
+        "mitigation": mitigation,
+        "nadi_parihara_mode": mode,
+        "rajju_guard_warning": rajju_guard_warning,
+        "note_ta": note_ta,
+        "note_en": note_en,
     }
 
 
@@ -333,6 +474,9 @@ def compute_porutham(
     girl_nakshatra: int,
     boy_rasi: int,
     girl_rasi: int,
+    boy_pada: int = 1,
+    girl_pada: int = 1,
+    nadi_parihara_mode: str = "strict",
 ) -> PorutthamResult:
     """
     Compute all 10 Tamil Poruthams (pass/fail each, total out of 10).
@@ -341,6 +485,14 @@ def compute_porutham(
     ----------
     boy_nakshatra / girl_nakshatra : int  1–27
     boy_rasi / girl_rasi           : int  1–12
+    boy_pada / girl_pada           : int  1–4, real birth pada when known —
+        feeds the Nadi "same nakshatra, different pada" Classical Exception
+        (A-9 v2). Defaults to 1/1 (conservative: never spuriously grants the
+        exception) when the caller doesn't have real pada data.
+    nadi_parihara_mode             : "strict" (default) | "classical_lenient"
+        — resolved by the caller from the `nadi_parihara_mode` feature flag;
+        this module deliberately does not read flags itself (calculations
+        layer stays flag-agnostic).
     """
     scores = {
         "Dinam":           _dinam_score(boy_nakshatra, girl_nakshatra),
@@ -386,6 +538,10 @@ def compute_porutham(
         girl_nakshatra,
         boy_rasi=boy_rasi,
         girl_rasi=girl_rasi,
+        boy_pada=boy_pada,
+        girl_pada=girl_pada,
+        mode=nadi_parihara_mode,
+        rajju_failed=rajju_dosha,
     )
 
     if total >= 9:
@@ -440,6 +596,12 @@ def compute_porutham(
         suffix_ta = " ⚠ வேத தோஷம்: இந்த நட்சத்திரங்கள் வேத ஜோடி — பாரம்பரியமாக சாதகமற்றதாக கருதப்படுகிறது."
         summary_en += suffix_en
         summary_ta += suffix_ta
+
+    # A Rajju/Vedha veto is inauspicious regardless of the numeric score — the
+    # label must reflect that at the source, not rely on every consumer to
+    # re-derive it from rajju_dosha/vedha_dosha themselves (2026-07 audit A-4).
+    if (rajju_dosha or vedha_dosha) and label != "CAUTION":
+        label = "CAUTION"
 
     return PorutthamResult(
         kutas=kutas,

@@ -101,6 +101,17 @@ def _defaults() -> dict[str, Any]:
         "timing_band_strong_cutoff": 75,
         "timing_band_likely_cutoff": 60,
         "timing_band_mixed_cutoff": 45,
+        # Nadi Dosha cancellation rule (A-9 v2, astrologer live session ruling
+        # 2026-07-14, docs/ASTROLOGER_LIVE_SESSION_BACKLOG_2026-07.md). Gates
+        # the rasi-lord-friendship cancellation branch in
+        # app/calculations/porutham.py::check_nadi_dosha (the two Classical
+        # Exceptions — same nakshatra/different pada, same rasi/different
+        # nakshatra — apply in every mode regardless of this flag).
+        # "strict" (default): friendly rasi lords → partial mitigation only,
+        # dosha stays flagged. "classical_lenient": friendly rasi lords → full
+        # cancellation. Admin-editable via the existing PATCH /admin/flags
+        # mechanism; string value, not boolean.
+        "nadi_parihara_mode": "strict",
     }
 
 

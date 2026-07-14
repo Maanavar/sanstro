@@ -30,6 +30,13 @@ class NadiDoshaData(BaseModel):
     has_nadi_dosha: bool = Field(alias="hasNadiDosha")
     cancellations: list[str] = Field(default_factory=list)
     severity: str
+    # A-9 v2 (2026-07-14): internal mitigation tier (NONE/LIGHT/MODERATE/FULL),
+    # the active nadi_parihara_mode ("strict"/"classical_lenient"), and a
+    # Rajju-guard warning (non-null only when Rajju fails) — see
+    # app/calculations/porutham.py::check_nadi_dosha.
+    mitigation: str = "NONE"
+    nadi_parihara_mode: str = Field(default="strict", alias="nadiPariharaMode")
+    rajju_guard_warning: str | None = Field(default=None, alias="rajjuGuardWarning")
     note_ta: str = Field(alias="noteTa")
     note_en: str = Field(alias="noteEn")
 

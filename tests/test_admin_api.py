@@ -356,6 +356,7 @@ def test_feature_flags_round_trip(raw_client):
         "timing_band_strong_cutoff",
         "timing_band_likely_cutoff",
         "timing_band_mixed_cutoff",
+        "nadi_parihara_mode",
     } == names
 
     set_response = raw_client.patch(
