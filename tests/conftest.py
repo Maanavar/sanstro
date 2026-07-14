@@ -1,5 +1,15 @@
 import os
 
+# Must run before any `app.*` import touches app.core.config.get_settings()
+# (lru_cache'd — first call wins). Tests reset the DB schema between every
+# `client`/`raw_client` fixture use (DROP SCHEMA public CASCADE); a real
+# APScheduler + its session-level Postgres advisory-lock connection
+# (app.core.leader_lock.SchedulerLease) racing that reset is a confirmed
+# source of intermittent "relation X does not exist" failures — the
+# scheduler's `shutdown(wait=False)` doesn't wait for in-flight jobs/queries
+# before the next test's reset runs. Tests have no need for real cron jobs.
+os.environ.setdefault("JOTHIDAM_RUN_SCHEDULER_IN_WEB", "false")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
