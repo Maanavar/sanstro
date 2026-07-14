@@ -207,6 +207,16 @@ first-draft translation, **not yet native-reviewed** — flagged the same way
 `daily_briefing_synth`'s glue was before its Tamil pass; needs the same
 treatment before being treated as final.
 
+**Tamil native-review — DONE (2026-07-15):** all 6 new v2 sentences extracted
+to `docs/tamil-review-nadi-dosha.md` (tickable, with the composed `note_ta`
+paragraphs a user actually sees) and confirmed a single-source surface (all
+Tamil Nadi text lives in `porutham.py`; other tree hits were "விநாடி" brand-name
+false positives + pre-existing PDF field labels). Reviewer **approved all 6
+as-is — no corrections.** Locked with golden tests in
+`tests/test_nadi_dosha_v2.py` (exact-constant lock + composed-order lock, 18
+tests green); the "first-draft / not yet native-reviewed" caveat removed from
+`porutham.py`. Review doc = RESOLVED. **A-9 fully closed.**
+
 **Verified 2026-07-14:** new test file `tests/test_nadi_dosha_v2.py` (17
 tests, every acceptance check in the ruling) + `tests/test_porutham.py`'s 2
 updated tests + 1 admin-flags test (new flag name added to its expected set)

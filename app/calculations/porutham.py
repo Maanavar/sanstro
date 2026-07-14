@@ -314,8 +314,11 @@ class PorutthamResult:
 # label to CAUTION whenever Rajju fails, so a Nadi exception can never imply
 # the match is clear.
 #
-# Tamil text below is a first-draft translation, not yet native-reviewed —
-# same posture as daily_briefing_synth's glue before its Tamil pass.
+# Tamil text below was native-reviewed and approved as-is on 2026-07-15 (A-9
+# Tamil pass, docs/tamil-review-nadi-dosha.md, status RESOLVED) — all six new v2
+# sentences confirmed native-quality, no corrections. Locked by
+# tests/test_nadi_dosha_v2.py::test_nadi_v2_tamil_strings_native_reviewed_locked;
+# any edit here must go through review + update that golden test.
 # ---------------------------------------------------------------------------
 
 _NADI_PARIHARA_MODES = ("strict", "classical_lenient")

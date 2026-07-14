@@ -16,7 +16,16 @@ Rasi/lord fixtures used throughout:
 """
 from __future__ import annotations
 
-from app.calculations.porutham import check_nadi_dosha, compute_porutham
+from app.calculations.porutham import (
+    _NADI_CLOSING_CLAUSE_TA,
+    _NADI_EXCEPTION_PADA_TA,
+    _NADI_EXCEPTION_RASI_TA,
+    _NADI_LENIENT_CANCEL_TA,
+    _NADI_RAJJU_WARNING_TA,
+    _NADI_STRICT_PARTIAL_TA,
+    check_nadi_dosha,
+    compute_porutham,
+)
 
 # Ashwini(1) and Thiruvathirai/Ardra(6) are both AADHI nadi (see
 # test_nadi_dosha_helper_flags_same_nadi in test_porutham.py).
@@ -157,3 +166,43 @@ def test_no_dosha_case_has_no_mitigation_or_notes():
     assert out["mitigation"] == "NONE"
     assert out["cancellations"] == []
     assert out["rajju_guard_warning"] is None
+
+
+# --------------------------------------------------------------------------- #
+# Native-Tamil review lock (A-9 Tamil pass, 2026-07-15). The six new v2
+# user-facing Tamil sentences were reviewed and approved as-is (no corrections);
+# docs/tamil-review-nadi-dosha.md is RESOLVED. These golden asserts catch any
+# silent edit to the approved text — a change here must go back through review.
+# --------------------------------------------------------------------------- #
+def test_nadi_v2_tamil_strings_native_reviewed_locked():
+    assert _NADI_EXCEPTION_PADA_TA == "பாரம்பரிய விதிவிலக்கு (பரிகாரம்): ஒரே நட்சத்திரம், வேறு பாதம்."
+    assert _NADI_EXCEPTION_RASI_TA == "பாரம்பரிய விதிவிலக்கு (பரிகாரம்): ஒரே ராசி, வேறு நட்சத்திரம்."
+    assert _NADI_LENIENT_CANCEL_TA == (
+        "ராசிகள் வேறுபட்டு, அந்தந்த ராசி அதிபதிகள் ஒரே கிரகமாகவோ அல்லது பரஸ்பர "
+        "நண்பர்களாகவோ இருக்கும்போது, பின்பற்றப்படும் பாரம்பரியத்தைப் பொறுத்து நாடி "
+        "தோஷம் நீங்கியதாகக் கருதப்படலாம். வெறும் ராசி வேறுபாடு மட்டும் தோஷத்தை "
+        "தானாக நீக்காது."
+    )
+    assert _NADI_STRICT_PARTIAL_TA == (
+        "ராசி அதிபதிகள் நட்புடையவர்களாக இருந்தாலும், இங்கு பின்பற்றப்படும் கடுமையான "
+        "நடைமுறையின்படி இது ஒரு பகுதி தணிப்பு மட்டுமே — நாடி தோஷம் முழுமையாக நீங்கவில்லை."
+    )
+    assert _NADI_CLOSING_CLAUSE_TA == (
+        "இது நாடி ஆட்சேபனையை மட்டுமே நீக்குகிறது. மற்ற கட்டாய பொருத்தங்கள் "
+        "(ராஜ்ஜு, வேதம், மகேந்திரம், யோனி போன்றவை) தனித்தனியாக மதிப்பிடப்படுகின்றன."
+    )
+    assert _NADI_RAJJU_WARNING_TA == "மேலே உள்ள நாடி முடிவைப் பொருட்படுத்தாமல் ராஜ்ஜு தோஷம் இன்னும் பொருந்தும்."
+
+
+def test_nadi_note_ta_composes_reviewed_fragments_in_order():
+    # Same rasi + different nakshatra -> full cancel via Classical Exception, with
+    # Rajju also failing: the user-visible Tamil paragraph joins base + exception
+    # + closing + rajju-warning in that order (locks composition, not just each
+    # fragment). Mirrors composed example C in the review doc.
+    out = check_nadi_dosha(_BOY_NAK, _GIRL_NAK, boy_rasi=1, girl_rasi=1, rajju_failed=True)
+    assert out["note_ta"] == " ".join([
+        "நாடி தோஷம் உள்ளது — குழந்தைகள் உடல்நலத்தில் கவனம் தேவை. பரிகாரம் குறித்து ஆலோசிக்கவும்.",
+        _NADI_EXCEPTION_RASI_TA,
+        _NADI_CLOSING_CLAUSE_TA,
+        _NADI_RAJJU_WARNING_TA,
+    ])
