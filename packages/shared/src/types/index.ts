@@ -226,6 +226,8 @@ export interface ChartPlanet {
   speedDegPerDay: number;
   isRetrograde: boolean;
   isCombust: boolean;
+  /** Cazimi — planet within 0°17' of the Sun (heart of the Sun): empowered, not burnt. */
+  isCazimi?: boolean;
   d9Rasi: number;
   isVargottama: boolean;
   showRetrogradeBadge: boolean;
@@ -272,6 +274,25 @@ export interface ChartDoshamInsight {
   explanationWhyEn: string;
   explanationHowTa: string;
   explanationHowEn: string;
+  /** Optional named sub-type, e.g. the specific Kala Sarpa naga (Ananta..Sheshanaga). */
+  variantTa?: string;
+  variantEn?: string;
+}
+
+/**
+ * One birth-time junction/edge condition — the "Border Alert" module.
+ * severity: BOOST = empowering (e.g. Cazimi), ALERT = needs attention
+ * (Sankranti / Grahana birth), INFO = neutral note.
+ */
+export interface ChartBirthCondition {
+  code: string;
+  isPresent: boolean;
+  severity: "BOOST" | "ALERT" | "INFO";
+  titleTa: string;
+  titleEn: string;
+  descriptionTa: string;
+  descriptionEn: string;
+  detail?: Record<string, unknown>;
 }
 
 export interface ChartCalculateResponseData {
@@ -303,6 +324,7 @@ export interface ChartCalculateResponseData {
   vargas?: Record<string, Record<string, number>>;
   vargaReliability?: Record<string, string>;
   nakshatraAnalysis?: Record<string, unknown>;
+  birthConditions?: ChartBirthCondition[];
   birthPanchangamSignature?: Record<string, unknown>;
 }
 
@@ -598,6 +620,7 @@ export interface ChartExplanationPlanet {
   strengthScore: number;
   isRetrograde: boolean;
   isCombust: boolean;
+  isCazimi: boolean;
   isVargottama: boolean;
   d9Rasi: number;
   houseGroup: "KENDRA" | "TRIKONA" | "DUSTHANA" | "OTHER";
@@ -1253,7 +1276,12 @@ export interface CompatibilityScoreBreakdown {
 
 export interface NadiDoshaResult {
   boyNadi: string; girlNadi: string; hasNadiDosha: boolean;
-  cancellations: string[]; severity: string; noteTa: string; noteEn: string;
+  cancellations: string[]; severity: string;
+  // A-9 v2 (2026-07-14): internal mitigation tier, active parihara mode, and
+  // a Rajju-guard warning (non-null only when Rajju fails). Additive/optional
+  // — no consumer renders these yet.
+  mitigation?: string; nadiPariharaMode?: string; rajjuGuardWarning?: string | null;
+  noteTa: string; noteEn: string;
 }
 
 export interface CompatibilityIntelligenceData {

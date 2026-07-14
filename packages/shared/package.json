@@ -39,6 +39,10 @@
     "./api/annualWrapped": "./src/api/annualWrapped.ts",
     "./api/yoginiDasha": "./src/api/yoginiDasha.ts",
     "./api/ashtottariDasha": "./src/api/ashtottariDasha.ts",
+    "./api/conditionalDashas": "./src/api/conditionalDashas.ts",
+    "./api/activityTiming": "./src/api/activityTiming.ts",
+    "./api/dashboardBundle": "./src/api/dashboardBundle.ts",
+    "./api/reports": "./src/api/reports.ts",
     "./data/nakshatras": "./src/data/nakshatras.ts",
     "./data/legal": "./src/data/legal.ts"
   },

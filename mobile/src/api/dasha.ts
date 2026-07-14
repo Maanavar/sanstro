@@ -8,3 +8,10 @@ export type { AshtottariDashaPeriod, AshtottariDashaData } from "@vinaadi/shared
 export { ashtottariDashaKeys, getAshtottariDasha } from "@vinaadi/shared/api/ashtottariDasha";
 export type { KalachakraDashaPeriod, KalachakraDashaData } from "@vinaadi/shared/api/kalachakraDasha";
 export { kalachakraDashaKeys, getKalachakraDasha } from "@vinaadi/shared/api/kalachakraDasha";
+export type {
+  ConditionalDashaPeriod,
+  ConditionalDashaSystem,
+  ConditionalDashaApplicabilityResult,
+  ConditionalDashasData,
+} from "@vinaadi/shared/api/conditionalDashas";
+export { conditionalDashasKeys, getConditionalDashas } from "@vinaadi/shared/api/conditionalDashas";

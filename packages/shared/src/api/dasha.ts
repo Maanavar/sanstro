@@ -46,15 +46,25 @@ export interface DashaTimelineData {
 }
 
 export const dashaKeys = {
-  timeline: (chartId: string, level: DashaLevel = "maha") => ["dasha-timeline", chartId, level] as const,
+  timeline: (chartId: string, level: DashaLevel | readonly DashaLevel[] = "maha") =>
+    ["dasha-timeline", chartId, Array.isArray(level) ? level.join(",") : level] as const,
 };
 
+/**
+ * Dasha timeline. `level` accepts one level or a list — with a list, the
+ * backend returns every requested level's rows concatenated in `timeline`
+ * (each row carries its own `level` tag), so callers rendering maha + antar +
+ * pratyantar views need a single request instead of three (DASH-04).
+ * Backend: GET /api/v1/charts/{chart_id}/dasha (app/api/charts.py::get_dasha,
+ * comma-separated `level` handled in app/services/dasha_service.py).
+ */
 export function getDashaTimeline(
   chartId: string,
-  level: DashaLevel = "maha",
+  level: DashaLevel | readonly DashaLevel[] = "maha",
+  asOf?: string,
 ): Promise<{ success: boolean; data: DashaTimelineData }> {
   return getApiClient().get(
     `/charts/${chartId}/dasha`,
-    { level },
+    { level: Array.isArray(level) ? level.join(",") : (level as string), asOf },
   ) as Promise<{ success: boolean; data: DashaTimelineData }>;
 }
