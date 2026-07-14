@@ -14,6 +14,7 @@ from app.calculations.astro import house_from_reference, local_datetime_to_utc
 from app.calculations.ashtakavarga import get_av_bindu
 from app.calculations.chart_strength import compute_natal_planet_score
 from app.models import BirthProfile
+from app.services.narrative_engine import PLANET_NAME
 
 SIGN_LORDS: dict[int, str] = {
     1: "MARS",
@@ -265,14 +266,16 @@ def _pratyantar_narrative(
     score = planet_scores.get(pratyantar_lord, 50)
     quality = "strong" if score >= 65 else ("challenging" if score <= 35 else "moderate")
     quality_ta = "வலுவான" if score >= 65 else ("சவாலான" if score <= 35 else "மிதமான")
+    pratyantar_lord_ta = PLANET_NAME[pratyantar_lord].ta if pratyantar_lord in PLANET_NAME else pratyantar_lord
+    antardasha_lord_ta = PLANET_NAME[antardasha_lord].ta if antardasha_lord in PLANET_NAME else antardasha_lord
     en = (
         f"{pratyantar_lord.capitalize()} Pratyantar ({pratyantar_days_remaining}d remaining) "
         f"brings a {quality} short-term influence within the "
         f"{antardasha_lord.capitalize()} Antardasha of {mahadasha_lord.capitalize()} Mahadasha."
     )
     ta = (
-        f"{pratyantar_lord} பிரத்யந்தர தசை ({pratyantar_days_remaining} நாள் மீதம்) - "
-        f"{antardasha_lord} அந்தர தசையில் குறுகிய கால {quality_ta} தாக்கம்."
+        f"{pratyantar_lord_ta} பிரத்யந்தர தசை ({pratyantar_days_remaining} நாள் மீதம்) - "
+        f"{antardasha_lord_ta} அந்தர தசையில் குறுகிய கால {quality_ta} தாக்கம்."
     )
     return {"en": en, "ta": ta}
 

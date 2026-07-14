@@ -465,19 +465,21 @@ def _build_area_reason(
     transit_quality_ta = "சாதகமான இடத்தில்" if transit_quality_en == "well-placed" else "சவாலான இடத்தில்"
     level_en = "strong" if score >= 70 else ("moderate" if score >= 45 else "needs attention")
     level_ta = "வலிமையாக" if score >= 70 else ("மிதமாக" if score >= 45 else "கவனம் தேவை")
+    maha_lord_ta = _PLANET_LABEL[maha_lord].ta if maha_lord in _PLANET_LABEL else maha_lord
+    antar_lord_ta = _PLANET_LABEL[antar_lord].ta if antar_lord in _PLANET_LABEL else antar_lord
 
     if maha_relevant and antar_relevant:
         dasha_en = f"{maha_lord} mahadasha and {antar_lord} antardasha both support {area_en.lower()}."
-        dasha_ta = f"{maha_lord} மகாதசையும் {antar_lord} அந்தர்தசையும் {area_ta}க்கு ஆதரவு அளிக்கின்றன."
+        dasha_ta = f"{maha_lord_ta} மகாதசையும் {antar_lord_ta} அந்தர்தசையும் {area_ta}க்கு ஆதரவு அளிக்கின்றன."
     elif maha_relevant:
         dasha_en = f"{maha_lord} mahadasha supports {area_en.lower()}; {antar_lord} antardasha is neutral."
-        dasha_ta = f"{maha_lord} மகாதசை {area_ta}க்கு ஆதரவு; {antar_lord} அந்தர்தசை நடுநிலை."
+        dasha_ta = f"{maha_lord_ta} மகாதசை {area_ta}க்கு ஆதரவு; {antar_lord_ta} அந்தர்தசை நடுநிலை."
     elif antar_relevant:
         dasha_en = f"{maha_lord} mahadasha is neutral; {antar_lord} antardasha adds support for {area_en.lower()}."
-        dasha_ta = f"{maha_lord} மகாதசை நடுநிலை; {antar_lord} அந்தர்தசை {area_ta}க்கு துணை."
+        dasha_ta = f"{maha_lord_ta} மகாதசை நடுநிலை; {antar_lord_ta} அந்தர்தசை {area_ta}க்கு துணை."
     else:
         dasha_en = f"Neither {maha_lord} mahadasha nor {antar_lord} antardasha is strongly aligned with {area_en.lower()}."
-        dasha_ta = f"{maha_lord} மகாதசையும் {antar_lord} அந்தர்தசையும் {area_ta}க்கு வலுவான இணைப்பில் இல்லை."
+        dasha_ta = f"{maha_lord_ta} மகாதசையும் {antar_lord_ta} அந்தர்தசையும் {area_ta}க்கு வலுவான இணைப்பில் இல்லை."
 
     sani_en = ""
     sani_ta = ""

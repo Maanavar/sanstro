@@ -6,6 +6,11 @@ from datetime import date
 from app.calculations.astro import house_from_reference
 from app.calculations.transits import classify_kandaka_cycle
 from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction, house_lord_for_lagna
+from app.services.narrative_engine import PLANET_NAME
+
+
+def _lord_ta(lord: str) -> str:
+    return PLANET_NAME[lord].ta if lord in PLANET_NAME else lord
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,7 +82,7 @@ def assess_career_prediction(payload: CareerAssessmentInput) -> LifeAreaPredicti
                 key="tenth_house_occupancy",
                 status="SUPPORT",
                 detail=BiText(
-                    ta=f"10ம் வீட்டில் கிரகங்கள்: {', '.join(planets_in_10th)}.",
+                    ta=f"10ம் வீட்டில் கிரகங்கள்: {', '.join(_lord_ta(p) for p in planets_in_10th)}.",
                     en=f"Planets in 10th house: {', '.join(planets_in_10th)}.",
                 ),
             )
@@ -189,7 +194,7 @@ def assess_career_prediction(payload: CareerAssessmentInput) -> LifeAreaPredicti
             key="employment_second_lord",
             status="SUPPORT" if second_lord in payload.active_dasha_lords else "CAUTION",
             detail=BiText(
-                ta=f"சுயதொழில் — 2ம் அதிபதி ({second_lord}) தசை நிலை பரிசீலிக்கப்பட்டது.",
+                ta=f"சுயதொழில் — 2ம் அதிபதி ({_lord_ta(second_lord)}) தசை நிலை பரிசீலிக்கப்பட்டது.",
                 en=f"Self-employed — 2nd lord ({second_lord}) dasha status evaluated.",
             ),
         ))
@@ -214,7 +219,7 @@ def assess_career_prediction(payload: CareerAssessmentInput) -> LifeAreaPredicti
             key="employment_seventh_house",
             status="SUPPORT" if (seventh_lord in payload.active_dasha_lords or business_planets) else "CAUTION",
             detail=BiText(
-                ta=f"வியாபாரம் — 7ம் அதிபதி ({seventh_lord}), 7ம் வீட்டு கிரகங்கள்: {', '.join(business_planets) or 'இல்லை'}.",
+                ta=f"வியாபாரம் — 7ம் அதிபதி ({_lord_ta(seventh_lord)}), 7ம் வீட்டு கிரகங்கள்: {', '.join(_lord_ta(p) for p in business_planets) or 'இல்லை'}.",
                 en=f"Business — 7th lord ({seventh_lord}), planets in 7th: {', '.join(business_planets) or 'none'}.",
             ),
         ))

@@ -35,6 +35,7 @@ from app.models import BirthProfile, Chart
 from app.schemas.muhurta import BiText, MuhurtaResponse, MuhurtaResponseData, MuhurtaSlot, ResponseMeta
 from app.services.chart_service import load_persisted_chart_response
 from app.services.location_service import resolve_effective_daily_location
+from app.services.narrative_engine import PLANET_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -248,15 +249,18 @@ def _overlaps(start_a: datetime, end_a: datetime, start_b: datetime, end_b: date
 def _dasha_support(maha_lord: str, antar_lord: str, activity: str) -> BiText:
     """Generate dasha support text for the activity."""
     favorable = _ACTIVITY_LORDS.get(activity, set())
-    lords_active = []
+    lords_active_en = []
+    lords_active_ta = []
     if maha_lord in favorable:
-        lords_active.append(maha_lord.capitalize())
+        lords_active_en.append(maha_lord.capitalize())
+        lords_active_ta.append(PLANET_NAME[maha_lord].ta if maha_lord in PLANET_NAME else maha_lord)
     if antar_lord in favorable:
-        lords_active.append(antar_lord.capitalize())
+        lords_active_en.append(antar_lord.capitalize())
+        lords_active_ta.append(PLANET_NAME[antar_lord].ta if antar_lord in PLANET_NAME else antar_lord)
 
-    if lords_active:
-        en = f"{' and '.join(lords_active)} dasha supports this activity"
-        ta = f"{' மற்றும் '.join(lords_active)} தசை இந்த செயலை ஆதரிக்கிறது"
+    if lords_active_en:
+        en = f"{' and '.join(lords_active_en)} dasha supports this activity"
+        ta = f"{' மற்றும் '.join(lords_active_ta)} தசை இந்த செயலை ஆதரிக்கிறது"
         return _t(ta, en)
     return _t(
         "தசை நடுநிலையானது — கிரக சஞ்சாரம் முக்கிய காரணி",

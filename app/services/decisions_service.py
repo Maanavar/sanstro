@@ -18,7 +18,12 @@ from app.schemas.decisions import (
 )
 from app.services.chart_service import load_persisted_chart_response
 from app.services.location_service import resolve_effective_daily_timezone
+from app.services.narrative_engine import PLANET_NAME
 from app.services.whatif_service import evaluate_whatif
+
+
+def _karaka_ta(karaka: str) -> str:
+    return PLANET_NAME[karaka.upper()].ta if karaka.upper() in PLANET_NAME else karaka
 
 _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
 
@@ -200,6 +205,7 @@ def _reasoning(
 ) -> tuple[DecisionBiText, DecisionBiText | None]:
     delta = abs(option_a.score - option_b.score)
     primary_karaka, _ = _SCENARIO_KARAKAS.get(scenario, ("Jupiter", "Sun"))
+    primary_karaka_ta = _karaka_ta(primary_karaka)
 
     if recommended == "DEFER":
         return (
@@ -207,7 +213,7 @@ def _reasoning(
                 ta=(
                     f"இரண்டு விருப்பங்களும் கிட்டத்தட்ட சமம் "
                     f"(A: {option_a.score}, B: {option_b.score} — வித்தியாசம் {delta}). "
-                    f"தற்போதைய {primary_karaka} நிலை இரண்டையும் ஒரே மாதிரி பாதிக்கிறது. "
+                    f"தற்போதைய {primary_karaka_ta} நிலை இரண்டையும் ஒரே மாதிரி பாதிக்கிறது. "
                     f"சற்று காத்திருந்து கிரக நிலை மாற்றம் ஆனதும் மீண்டும் பார்க்கவும்."
                 ),
                 en=(
@@ -225,11 +231,12 @@ def _reasoning(
     chosen = option_a if recommended == "A" else option_b
     other = option_b if recommended == "A" else option_a
     margin_label = "clearly" if delta > 10 else "narrowly"
+    margin_label_ta = "தெளிவாக" if delta > 10 else "சிறிதளவு வித்தியாசத்தில்"
     return (
         DecisionBiText(
             ta=(
-                f"'{chosen.label}' ({chosen.score}) '{other.label}' ({other.score}) ஐ விட {margin_label} முன்னணியில் உள்ளது. "
-                f"{primary_karaka} தசை-கோசர நிலை இந்த விருப்பத்திற்கு சற்று சாதகமாக உள்ளது."
+                f"'{chosen.label}' ({chosen.score}) '{other.label}' ({other.score}) ஐ விட {margin_label_ta} முன்னணியில் உள்ளது. "
+                f"{primary_karaka_ta} தசை-கோசர நிலை இந்த விருப்பத்திற்கு சற்று சாதகமாக உள்ளது."
             ),
             en=(
                 f"'{chosen.label}' ({chosen.score}) leads '{other.label}' ({other.score}) {margin_label} (delta: {delta}). "

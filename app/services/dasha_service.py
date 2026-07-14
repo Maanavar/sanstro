@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
-from typing import Literal
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -23,6 +22,7 @@ from app.schemas.dasha import (
 )
 from app.services.chart_service import load_persisted_chart_response
 from app.services.location_service import local_midnight_as_jd_for_profile
+from app.services.narrative_engine import PLANET_NAME
 
 # Natural domain text per planet (Tamil + English)
 _PLANET_DOMAIN: dict[str, tuple[str, str]] = {
@@ -38,7 +38,7 @@ _PLANET_DOMAIN: dict[str, tuple[str, str]] = {
                 "Wisdom, dharma, wealth, children, spiritual growth"),
     "VENUS":   ("திருமணம், கலை, ஆடம்பரம், உறவுகள், சுகம்",
                 "Marriage, arts, luxury, relationships, pleasure"),
-    "SATURN":  ("ஒழுக்கம், நீடித்த உழைப்பு, வயது, கர்மா, தொழிலாளர்",
+    "SATURN":  ("ஒழுக்கம், நீடித்த உழைப்பு, வயது, கர்மா, சேவை",
                 "Discipline, sustained effort, longevity, karma, service"),
     "RAHU":    ("எதிர்பாராத மாற்றம், வெளிநாடு, சேர்க்கை, புதுமை",
                 "Unexpected change, foreign matters, obsession, innovation"),
@@ -83,17 +83,19 @@ def _dasha_transition_note(
 ) -> DashaTransitionNote:
     out_fn = get_functional_nature(lagna_rasi, outgoing_lord, node_rasi_map=node_rasi_map)
     in_fn = get_functional_nature(lagna_rasi, incoming_lord, node_rasi_map=node_rasi_map)
+    outgoing_ta = PLANET_NAME[outgoing_lord].ta if outgoing_lord in PLANET_NAME else outgoing_lord
+    incoming_ta = PLANET_NAME[incoming_lord].ta if incoming_lord in PLANET_NAME else incoming_lord
 
     if (out_fn in (FunctionalNature.YOGAKARAKA, FunctionalNature.TRIKONA)
             and in_fn in (FunctionalNature.DUSTHANA, FunctionalNature.MARAKA)):
-        ta = f"{outgoing_lord} தசையிலிருந்து {incoming_lord} தசைக்கு மாற்றம் — சவாலான கட்டம் தொடங்கலாம். கவனமாக இருங்கள்."
+        ta = f"{outgoing_ta} தசையிலிருந்து {incoming_ta} தசைக்கு மாற்றம் — சவாலான கட்டம் தொடங்கலாம். கவனமாக இருங்கள்."
         en = f"Transition from {outgoing_lord} to {incoming_lord} dasha — a more challenging phase begins. Exercise caution."
     elif (out_fn in (FunctionalNature.DUSTHANA, FunctionalNature.MARAKA)
             and in_fn in (FunctionalNature.YOGAKARAKA, FunctionalNature.TRIKONA)):
-        ta = f"{incoming_lord} தசை தொடங்குகிறது — நிலைமை மேம்படும் காலம். புதிய வாய்ப்புகளுக்கு தயாராகுங்கள்."
+        ta = f"{incoming_ta} தசை தொடங்குகிறது — நிலைமை மேம்படும் காலம். புதிய வாய்ப்புகளுக்கு தயாராகுங்கள்."
         en = f"{incoming_lord} dasha begins — conditions improve significantly. Prepare for new opportunities."
     else:
-        ta = f"{incoming_lord} தசை தொடங்குகிறது — {_PLANET_DOMAIN.get(incoming_lord, ('இந்த கிரக', 'this planet'))[0]} சார்ந்த அம்சங்கள் வலுப்படும்."
+        ta = f"{incoming_ta} தசை தொடங்குகிறது — {_PLANET_DOMAIN.get(incoming_lord, ('இந்த கிரக', 'this planet'))[0]} சார்ந்த அம்சங்கள் வலுப்படும்."
         en = f"{incoming_lord} dasha begins — {_PLANET_DOMAIN.get(incoming_lord, ('', 'this planet'))[1]} themes strengthen."
 
     return DashaTransitionNote(
@@ -116,6 +118,7 @@ def _build_dasha_interpretation(
     house_text_en = "This dasha activates " + ", ".join(house_parts_en) + "." if house_parts_en else ""
 
     domain = _PLANET_DOMAIN.get(lord, ("", ""))
+    lord_ta = PLANET_NAME[lord].ta if lord in PLANET_NAME else lord
     func_nature = get_functional_nature(lagna_rasi, lord, node_rasi_map=node_rasi_map)
     func_text = _FUNCTIONAL_NATURE_TEXT.get(func_nature, ("", ""))
 
@@ -123,11 +126,12 @@ def _build_dasha_interpretation(
     rel_en = ""
     if maha_lord and maha_lord != lord:
         maha_domain = _PLANET_DOMAIN.get(maha_lord, ("", ""))
+        maha_lord_ta = PLANET_NAME[maha_lord].ta if maha_lord in PLANET_NAME else maha_lord
         maha_func = get_functional_nature(lagna_rasi, maha_lord, node_rasi_map=node_rasi_map)
         maha_func_text = _FUNCTIONAL_NATURE_TEXT.get(maha_func, ("", ""))
         rel_ta = (
-            f"இந்த அந்தர்தசை {maha_lord} மகாதசையின் உள்ளே இயங்குகிறது. "
-            f"மகாதசை அதிபதி {maha_lord}: {maha_domain[0]}. {maha_func_text[0]}."
+            f"இந்த அந்தர்தசை {maha_lord_ta} மகாதசையின் உள்ளே இயங்குகிறது. "
+            f"மகாதசை அதிபதி {maha_lord_ta}: {maha_domain[0]}. {maha_func_text[0]}."
         )
         rel_en = (
             f"This antardasha operates within the {maha_lord} Mahadasha. "
@@ -138,7 +142,7 @@ def _build_dasha_interpretation(
         activated_houses=houses,
         house_text_ta=house_text_ta,
         house_text_en=house_text_en,
-        natural_domain_ta=f"{lord}: {domain[0]}. {func_text[0]}.",
+        natural_domain_ta=f"{lord_ta}: {domain[0]}. {func_text[0]}.",
         natural_domain_en=f"{lord}: {domain[1]}. {func_text[1]}.",
         relationship_to_maha_ta=rel_ta,
         relationship_to_maha_en=rel_en,
@@ -165,7 +169,7 @@ def _serialize_period(
 
 def _timeline_for_level(
     timeline,
-    level: Literal["maha", "antar", "pratyantar", "sookshma", "prana"],
+    level: str,
     lagna_rasi: int,
     birth_date: date,
     node_rasi_map: dict[str, int] | None = None,
@@ -239,8 +243,17 @@ def get_chart_dasha_from_snapshot(
     chart_snapshot,
     as_of: date,
     *,
-    level: Literal["maha", "antar", "pratyantar", "sookshma", "prana"] = "pratyantar",
+    level: str = "pratyantar",
 ) -> DashaTimelineResponse:
+    """Dasha timeline for a chart.
+
+    ``level`` accepts a single level ("maha", "antar", "pratyantar", "sookshma",
+    "prana") or a comma-separated list ("maha,antar,pratyantar"). With a list,
+    the response ``timeline`` is the concatenation of each level's rows (every
+    row already carries its ``level`` tag), letting clients fetch all the views
+    they render in one request instead of three (DASH-04). ``current`` is
+    level-independent and always present.
+    """
     moon = next(planet for planet in chart_snapshot.data.planets if planet.graha == "MOON")
     birth_jd = chart_snapshot.data.julian_day
     as_of_jd = local_midnight_as_jd_for_profile(as_of, chart_snapshot.data.birth_profile)
@@ -294,9 +307,13 @@ def get_chart_dasha_from_snapshot(
                     maturationStatus=maturation_status(pratyantar_lord, birth_date, as_of),
                 ),
             ),
-            timeline=_timeline_for_level(
-                timeline, level, lagna_rasi, birth_date, node_rasi_map=node_rasi_map
-            ),
+            timeline=[
+                row
+                for part in ([p.strip() for p in level.split(",") if p.strip()] or ["pratyantar"])
+                for row in _timeline_for_level(
+                    timeline, part, lagna_rasi, birth_date, node_rasi_map=node_rasi_map
+                )
+            ],
         ),
         meta=ResponseMeta(
             calculation_version=chart_snapshot.meta.calculation_version,
@@ -310,7 +327,7 @@ def get_chart_dasha(
     chart_id: UUID,
     as_of: date,
     *,
-    level: Literal["maha", "antar", "pratyantar", "sookshma", "prana"] = "pratyantar",
+    level: str = "pratyantar",
 ) -> DashaTimelineResponse:
     chart_snapshot = load_persisted_chart_response(session, chart_id)
     return get_chart_dasha_from_snapshot(chart_snapshot, as_of, level=level)
