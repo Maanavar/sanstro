@@ -16,33 +16,33 @@ checked (Satyori, AstroSight, Astro121, ModernAstro, astrosutras.in):
        — identical machinery to `dasha.py`, just an 8-lord cycle over a
        108-year total instead of 9 over 120.
 
-What is genuinely contested (checked amatyakaraka.com, astrosutras.in, and
-others): the *exact* nakshatra-to-lord table. Sources agree the count starts
-from Krittika ("Krittikadi", the default/unconditional variant — the named
-alternative "Ardradi" starts from Ardra but is explicitly conditional on
-Rahu's placement relative to the lagna lord, which this project's product
-decision below deliberately does not evaluate) but no source found gives the
-full 27-row table with a citable chapter/verse, and one source describes a
-28-pada sub-structure that looks like a different granularity of the same
-system rather than a simple whole-nakshatra table.
+The *exact* nakshatra-to-lord table was the genuinely contested piece. It is
+now the authoritative **Ardra-adi grouping** (classical Jataka Parijata /
+B.V. Raman lineage), supplied by the astrologer in the live review session
+(2026-07-14, EC-6). Unlike Vimshottari's even 9-apart cycle, this is a
+*non-uniform* grouping — runs of 3/3/3/4/3/4/3/4 nakshatras per lord — so it
+is encoded as an explicit 27-row table (`NAK_LORD` below), not a modulo of the
+run-order sequence. Anchor: the reckoning starts at Ardra (n=6 → Sun).
+Ashwini (1), Bharani (2), and Revati (27) all → **Rahu**, which is stable
+across every Ardra-adi source; the prior `SEQUENCE[(n - 3) % 8]` Krittikadi
+derivation was wrong (it gave Bharani → Venus, and only coincidentally matched
+Rahu at Ashwini).
 
-Documented project convention (analogous to `dasha.py`'s own genuinely
-verified mechanism — Vimshottari's nakshatra-lord assignment is exactly
-`SEQUENCE[(n - 1) % 9]`, confirmed by Ashwini/Magha/Moola, exactly 9 apart,
-all three belonging to Ketu): this module derives the Ashtottari
-nakshatra-lord table the same way, `SEQUENCE[(n - 3) % 8]` — offsetting the
-mod-9 Vimshottari mechanism to start the 8-lord cycle at Krittika (n=3, per
-the Krittikadi convention) instead of Ashwini (n=1). This is this project's
-own reasoned derivation, not a directly-quoted classical table — flag for a
-second-pass cross-check against a live Jagannatha Hora chart before treating
-as more than "display-only secondary dasha," the same posture Phase 1 took
-for D27/D40/D45.
+Still worth a JHora cross-check: the internal group *boundaries* (Krittika,
+Ashlesha, Hasta, Revati…) can vary between commentaries — validate all 27 rows
+against a live Jagannatha Hora Ashtottari chart before treating this as more
+than a "display-only secondary dasha." Ashwini/Bharani/Revati → Rahu are the
+locked anchors regardless.
 
 Product decision (per the Depth Expansion Plan's own recommendation): run
 unconditionally for every chart and label as a secondary/comparison dasha
 rather than implying classical applicability conditions (Rahu-kendra-from-
 lagna-lord, or day/night+paksha rules — sources disagree on which) have been
 evaluated. This sidesteps the applicability debate without hiding it.
+NOTE (EC-6 follow-up): the Ardra-adi grouping is classically *conditional* on
+Rahu's placement relative to the lagna lord; the reference recommends gating
+the whole system on applicability. That gate is deliberately still deferred
+here (unconditional, display-only) — flagged for a separate product call.
 """
 from __future__ import annotations
 
@@ -70,10 +70,19 @@ ASHTOTTARI_YEARS: Final[dict[str, int]] = {
 
 TOTAL_CYCLE_YEARS: Final[float] = 108.0
 
-# Krittikadi convention: nakshatra 3 (Krittika) opens the 8-lord cycle.
-# See module docstring for the derivation and its documented uncertainty.
+# Ardra-adi grouping (authoritative, live session 2026-07-14 — EC-6). Explicit
+# 27-row table because the grouping is non-uniform (runs of 3/3/3/4/3/4/3/4):
+#   Rahu {1,2,27} · Venus {3-5} · Sun {6-8} · Moon {9-12} · Mars {13-15} ·
+#   Mercury {16-19} · Saturn {20-22} · Jupiter {23-26}.
+# Ashwini/Bharani/Revati → Rahu are stable anchors; interior boundaries pending
+# a Jagannatha Hora cross-check (see module docstring).
 NAK_LORD: Final[dict[int, str]] = {
-    n: ASHTOTTARI_SEQUENCE[(n - 3) % 8] for n in range(1, 28)
+    1: "RAHU", 2: "RAHU", 3: "VENUS", 4: "VENUS", 5: "VENUS",
+    6: "SUN", 7: "SUN", 8: "SUN", 9: "MOON", 10: "MOON",
+    11: "MOON", 12: "MOON", 13: "MARS", 14: "MARS", 15: "MARS",
+    16: "MERCURY", 17: "MERCURY", 18: "MERCURY", 19: "MERCURY", 20: "SATURN",
+    21: "SATURN", 22: "SATURN", 23: "JUPITER", 24: "JUPITER", 25: "JUPITER",
+    26: "JUPITER", 27: "RAHU",
 }
 
 # 3 cycles (324 years) gives generous margin past any human lifespan for

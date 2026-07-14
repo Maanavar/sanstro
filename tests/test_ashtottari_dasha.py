@@ -40,38 +40,40 @@ def test_sequence_fixed_order_matches_every_source_checked() -> None:
     ]
 
 
-def test_nak_lord_table_derivation_krittikadi_convention() -> None:
-    # Documented convention: NAK_LORD[n] = SEQUENCE[(n - 3) % 8] — the 8-lord
-    # cycle opens at Krittika (n=3), per the Krittikadi variant. Regression
-    # guard for this project's own derived table (see module docstring for
-    # why no directly-quoted classical table was used instead).
-    assert NAK_LORD[3] == "SUN"  # Krittika opens the cycle
-    assert NAK_LORD[4] == "MOON"
-    assert NAK_LORD[10] == "VENUS"
-    assert NAK_LORD[11] == "SUN"  # cycle wraps every 8 nakshatras
-    assert NAK_LORD[1] == "RAHU"  # Ashwini: (1 - 3) % 8 == 6 -> RAHU
-    assert NAK_LORD[27] == "SUN"  # Revati: (27 - 3) % 8 == 0 -> SUN
-    # 27 nakshatras over an 8-lord cycle can't divide evenly (27 = 3*8 + 3);
-    # the 3 extra nakshatras land on whichever lords the wrap-around hits —
-    # here Sun, Rahu, Venus get 4 nakshatras each, the rest get 3.
+def test_nak_lord_ardra_adi_grouping() -> None:
+    # Authoritative Ardra-adi grouping (live session 2026-07-14, EC-6). The
+    # anchors Ashwini/Bharani/Revati -> Rahu are stable across every Ardra-adi
+    # source; the interior boundaries are the adopted table pending a JHora
+    # cross-check.
+    assert NAK_LORD[1] == "RAHU"    # Ashwini  [stable anchor]
+    assert NAK_LORD[2] == "RAHU"    # Bharani  [stable anchor]
+    assert NAK_LORD[27] == "RAHU"   # Revati   [stable anchor]
+    assert NAK_LORD[6] == "SUN"     # Ardra — the reckoning anchor
+    assert NAK_LORD[9] == "MOON"    # Ashlesha
+    assert NAK_LORD[13] == "MARS"   # Hasta
+    assert NAK_LORD[19] == "MERCURY"  # Mula
+    assert NAK_LORD[20] == "SATURN"   # Purva Ashadha
+    assert NAK_LORD[23] == "JUPITER"  # Dhanishta
+    # Non-uniform grouping: runs of 3/3/3/4/3/4/3/4 -> Moon, Mercury, Jupiter
+    # get 4 nakshatras each; the rest 3. (Rahu's 3 include the Revati wrap.)
     from collections import Counter
     counts = Counter(NAK_LORD.values())
-    assert counts["SUN"] == counts["RAHU"] == counts["VENUS"] == 4
-    for lord in ("MOON", "MARS", "MERCURY", "SATURN", "JUPITER"):
+    assert counts["MOON"] == counts["MERCURY"] == counts["JUPITER"] == 4
+    for lord in ("SUN", "MARS", "SATURN", "VENUS", "RAHU"):
         assert counts[lord] == 3
     assert sum(counts.values()) == 27
 
 
 def test_opening_ashtottari_against_t003_reference_chart() -> None:
     # Moon at 240.01137891 deg -> nakshatra 19 (Moola, 240.0-253.33 deg).
-    # NAK_LORD[19] = SEQUENCE[(19 - 3) % 8] = SEQUENCE[0] = SUN (6 years).
+    # Ardra-adi table: NAK_LORD[19] = MERCURY (17 years).
     # fraction_elapsed = 0.01137891 / 13.33333 = 0.00085342
-    # balance_years = (1 - 0.00085342) * 6 = 5.99487948
+    # balance_years = (1 - 0.00085342) * 17 = 16.98549189
     birth_jd = _t003_birth_jd()
     opening_lord, balance_years, opening_end_jd = calculate_opening_ashtottari(_T003_MOON_LONGITUDE, birth_jd)
 
-    assert opening_lord == "SUN"
-    assert balance_years == pytest.approx(5.99487948, abs=1e-4)
+    assert opening_lord == "MERCURY"
+    assert balance_years == pytest.approx(16.98549189, abs=1e-4)
     assert opening_end_jd == pytest.approx(birth_jd + balance_years * JULIAN_YEAR_DAYS)
 
 
@@ -95,13 +97,13 @@ def test_timeline_current_mahadasha_at_birth_is_opening_lord() -> None:
     birth_jd = _t003_birth_jd()
     timeline = calculate_ashtottari_timeline(birth_jd, _T003_MOON_LONGITUDE, as_of_jd=birth_jd)
 
-    assert timeline.opening_lord == "SUN"
-    assert timeline.current_mahadasha.lord == "SUN"
+    assert timeline.opening_lord == "MERCURY"
+    assert timeline.current_mahadasha.lord == "MERCURY"
     assert timeline.current_mahadasha.level == "maha"
     assert timeline.current_antardasha.level == "antar"
     # Opening antardasha at birth must itself be the mahadasha's own lord
     # (the mahadasha lord leads its own antardasha sequence).
-    assert timeline.current_antardasha.lord == "SUN"
+    assert timeline.current_antardasha.lord == "MERCURY"
 
 
 def test_antardashas_span_full_unclipped_mahadasha() -> None:
@@ -109,9 +111,9 @@ def test_antardashas_span_full_unclipped_mahadasha() -> None:
     timeline = calculate_ashtottari_timeline(birth_jd, _T003_MOON_LONGITUDE, as_of_jd=birth_jd)
 
     total_days = sum(p.end_jd - p.start_jd for p in timeline.antardashas)
-    expected_days = ASHTOTTARI_YEARS["SUN"] * JULIAN_YEAR_DAYS
+    expected_days = ASHTOTTARI_YEARS["MERCURY"] * JULIAN_YEAR_DAYS
     assert total_days == pytest.approx(expected_days, abs=1e-6)
-    assert [p.lord for p in timeline.antardashas] == _sequence_from("SUN")
+    assert [p.lord for p in timeline.antardashas] == _sequence_from("MERCURY")
 
 
 def test_mahadasha_sequence_wraps_in_fixed_order_after_opening() -> None:
@@ -119,7 +121,7 @@ def test_mahadasha_sequence_wraps_in_fixed_order_after_opening() -> None:
     timeline = calculate_ashtottari_timeline(birth_jd, _T003_MOON_LONGITUDE, as_of_jd=birth_jd)
 
     lords = [p.lord for p in timeline.mahadashas[:8]]
-    assert lords == _sequence_from("SUN")
+    assert lords == _sequence_from("MERCURY")
     # A cyclic 8-lord sequence repeating forever: cycle 2 reproduces the
     # exact same relative order as cycle 1.
     assert [p.lord for p in timeline.mahadashas[8:16]] == lords
