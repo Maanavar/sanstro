@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.core.auth import get_current_user
+from app.core.auth import get_current_user, require_csrf_header
 from app.core.subscription import is_premium
 from app.core.tier_limits import (
     PPU_PORUTHAM_IDS,
@@ -37,7 +37,14 @@ class PurchaseResponse(BaseModel):
     product_id: str
 
 
-@router.post("/reports/purchase", response_model=PurchaseResponse, tags=["reports"])
+@router.post(
+    "/reports/purchase",
+    response_model=PurchaseResponse,
+    tags=["reports"],
+    # State-changing cookie-authenticated POST — same CSRF gate as logout and
+    # PATCH /me (DASH-07; the web client sends X-Vinaadi-CSRF via apiFetchJson).
+    dependencies=[Depends(require_csrf_header)],
+)
 def purchase_report(
     body: PurchaseRequest,
     session: Session = Depends(get_db),

@@ -213,6 +213,27 @@ class ActivityTimingResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class ActivityTimingBatchData(BaseModel):
+    """Several activities' timings for one chart+month in a single response
+    (DASH-04: the dashboard Decide strip previously issued one request per
+    activity). ``results`` is keyed by the requested activity id; a failed or
+    unknown activity maps to ``None`` so one bad activity never sinks the rest."""
+
+    chart_id: UUID = Field(alias="chartId")
+    month: str
+    results: dict[str, ActivityTimingData | None]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ActivityTimingBatchResponse(BaseModel):
+    success: bool = True
+    data: ActivityTimingBatchData
+    meta: ResponseMeta
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class DashaStoryPeriod(BaseModel):
     lord: str
     start_date: date = Field(alias="startDate")

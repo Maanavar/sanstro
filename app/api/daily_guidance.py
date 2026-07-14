@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -11,6 +11,9 @@ from app.db.session import get_db
 from app.models import BirthProfile, Chart
 from app.models.user import User
 from app.schemas.daily_guidance import (
+    ActivityTimingBatchData,
+    ActivityTimingBatchResponse,
+    ActivityTimingData,
     ActivityTimingResponse,
     DailyGuidanceRangeResponse,
     DailyGuidanceResponse,
@@ -19,6 +22,7 @@ from app.schemas.daily_guidance import (
     PeyarchiReportResponse,
     WeekAheadResponse,
 )
+from app.schemas.dasha import ResponseMeta
 from app.services.daily_guidance_service import (
     get_activity_timing,
     get_daily_guidance,
@@ -112,6 +116,50 @@ def activity_timing(
 ) -> ActivityTimingResponse:
     _assert_chart_owner(session, chart_id, current_user)
     return get_activity_timing(session, chart_id, activity, month, as_of=as_of)
+
+
+@router.get("/activity-timing/batch", response_model=ActivityTimingBatchResponse, tags=["daily-guidance"])
+def activity_timing_batch(
+    chart_id: UUID = Query(alias="chartId"),
+    activities: str = Query(alias="activities", description="Comma-separated activity ids (max 12)"),
+    month: str = Query(alias="month", description="Format: YYYY-MM"),
+    as_of: date | None = Query(default=None, alias="asOf", description="Optional specific date to also score, within `month`"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ActivityTimingBatchResponse:
+    """Timings for several activities in one round trip (DASH-04). A failed or
+    unknown activity yields ``null`` under its key instead of failing the batch,
+    matching the per-request `.catch(() => null)` the Decide strip used before."""
+    _assert_chart_owner(session, chart_id, current_user)
+    names = [name.strip() for name in activities.split(",") if name.strip()]
+    if not names:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="`activities` must contain at least one activity id.",
+        )
+    if len(names) > 12:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="`activities` accepts at most 12 activity ids per request.",
+        )
+    results: dict[str, ActivityTimingData | None] = {}
+    meta: ResponseMeta | None = None
+    for name in names:
+        try:
+            response = get_activity_timing(session, chart_id, name, month, as_of=as_of)
+        except HTTPException:
+            results[name] = None
+            continue
+        results[name] = response.data
+        meta = meta or response.meta
+    return ActivityTimingBatchResponse(
+        data=ActivityTimingBatchData(chartId=chart_id, month=month, results=results),
+        meta=meta
+        or ResponseMeta(
+            calculation_version="thirukanitham-2026-v1",
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )
 
 
 @router.get("/charts/{chart_id}/dasha/timeline", response_model=DashaStoryResponse, tags=["daily-guidance"])

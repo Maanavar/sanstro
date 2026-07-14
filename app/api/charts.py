@@ -30,8 +30,10 @@ from app.schemas.charts import (
     JadhagamReportResponse,
     ResponseMeta,
 )
+from app.schemas.dashboard_bundle import ChartDashboardBundleResponse
 from app.schemas.dasha import DashaTimelineResponse
 from app.services.chart_explanation_service import build_chart_explanation
+from app.services.dashboard_bundle_service import get_chart_dashboard_bundle
 from app.services.chart_service import (
     calculate_chart as calculate_chart_snapshot,
 )
@@ -47,6 +49,7 @@ from app.services.tajaka_service import get_varshaphala
 from app.services.ashtottari_dasha_service import build_ashtottari_dasha_response
 from app.services.yogini_dasha_service import build_yogini_dasha_response
 from app.services.kalachakra_dasha_service import build_kalachakra_dasha_response
+from app.services.conditional_dashas_service import build_conditional_dashas_response
 
 router = APIRouter()
 
@@ -110,6 +113,29 @@ def get_dasha(
     if as_of is None:
         as_of = date.today()
     return get_chart_dasha(session, chart_id, as_of, level=level)
+
+
+@router.get(
+    "/charts/{chart_id}/dashboard-bundle",
+    response_model=ChartDashboardBundleResponse,
+    tags=["charts"],
+    summary="Everything the dashboard needs for one chart+date in a single response (DASH-04)",
+)
+def get_dashboard_bundle(
+    chart_id: UUID,
+    date_value: date | None = Query(default=None, alias="date"),
+    language: str = Query(default="ta-en"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ChartDashboardBundleResponse:
+    _assert_chart_owner(session, chart_id, current_user)
+    return get_chart_dashboard_bundle(
+        session,
+        chart_id,
+        date_value or date.today(),
+        owner_user_id=current_user.user_id,
+        language=language,
+    )
 
 
 @router.get("/charts/{chart_id}/summary", response_model=ChartSummaryResponse, tags=["charts"])
@@ -374,6 +400,30 @@ def get_kalachakra_dasha(
     _assert_chart_owner(session, chart_id, current_user)
     try:
         data = build_kalachakra_dasha_response(session, chart_id, as_of)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"success": True, "data": data}
+
+
+@router.get("/charts/{chart_id}/conditional-dashas", tags=["charts"])
+def get_conditional_dashas(
+    chart_id: UUID,
+    as_of: date | None = Query(default=None, alias="asOf"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Conditional nakshatra dashas — the seven Parashari *conditional* udu
+    dashas (Shodashottari 116y, Dwadashottari 112y, Panchottari 105y,
+    Shatabdika 100y, Chaturashiti-sama 84y, Dwisaptati-sama 72y, Shashtihayani
+    60y), each a Vimshottari variant selected classically by a birth condition,
+    plus an INFORMATIONAL applicability report. Tables anchored to a single
+    cited source (satyori/Santhanam BPHS); see conditional_dashas.py for the
+    documented single-source posture and the divergences logged for the
+    astrologer pass. Advanced/additive, display only — not used in any scoring
+    path, and the applicability report never auto-hides a system."""
+    _assert_chart_owner(session, chart_id, current_user)
+    try:
+        data = build_conditional_dashas_response(session, chart_id, as_of)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"success": True, "data": data}
