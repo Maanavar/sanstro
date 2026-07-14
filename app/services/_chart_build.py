@@ -1,11 +1,13 @@
 """Assemble ChartCalculateResponse from a birth profile or a persisted Chart record."""
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import UTC, datetime, time
 from typing import Any
 from uuid import UUID, uuid4
 
 from app.calculations.birth_conditions import (
+    birth_condition_strength_penalties,
     detect_birth_conditions,
     sun_rasi_day_bounds,
     tithi_number_from_longitudes,
@@ -161,18 +163,21 @@ def _birth_panchangam_signature(profile: Any) -> dict[str, object]:
 def _build_birth_conditions(
     planet_positions: list[PlanetPosition],
     birth_time_local: time | None,
-) -> list[ChartBirthCondition]:
-    """Assemble the Border-Alert list from already-built planet positions.
+) -> tuple[list[ChartBirthCondition], dict[str, float]]:
+    """Assemble the Border-Alert list (and its natal strength penalties) from planets.
 
     Everything here is derived from the planet longitudes/speeds plus the birth
     time, so it works identically on the fresh-calc and persisted-record paths
-    with no extra ephemeris or panchangam call.
+    with no extra ephemeris or panchangam call. Returns the display flags plus the
+    EC-7.2 per-graha strength-penalty map (empty when no scoring boundary birth is
+    present); the caller applies the map to the luminaries via
+    ``_apply_birth_condition_penalties``.
     """
     longitudes = {p.graha: p.absolute_longitude for p in planet_positions}
     sun = next((p for p in planet_positions if p.graha == "SUN"), None)
     moon_lon = longitudes.get("MOON")
     if sun is None or moon_lon is None:
-        return []
+        return [], {}
 
     tithi_number = tithi_number_from_longitudes(sun.absolute_longitude, moon_lon)
     if birth_time_local is None:
@@ -193,7 +198,7 @@ def _build_birth_conditions(
         sun_rasi_day_end=sun_end,
         cazimi_planets=cazimi_planets,
     )
-    return [
+    conditions = [
         ChartBirthCondition(
             code=f.code,
             is_present=f.is_present,
@@ -206,6 +211,27 @@ def _build_birth_conditions(
         )
         for f in flags
     ]
+    return conditions, birth_condition_strength_penalties(flags)
+
+
+def _apply_birth_condition_penalties(
+    planets: list[PlanetPosition],
+    penalties: Mapping[str, float],
+) -> None:
+    """Lower the afflicted luminaries' natal strength for verified boundary births.
+
+    EC-7.2: Grahana/Sankranti births are natal constants, so they are scored once
+    here on the persisted natal ``strength_score`` (which daily + prediction read)
+    rather than as a flat daily-tone offset. Floored at the same 10 as the scorer;
+    the six-fold ``strength_breakdown`` is left untouched, consistent with the
+    other score-only natal modifiers (cazimi/gandanta/war are likewise not in it).
+    """
+    if not penalties:
+        return
+    for planet in planets:
+        penalty = penalties.get(planet.graha)
+        if penalty and planet.strength_score is not None:
+            planet.strength_score = max(10, int(round(planet.strength_score - penalty)))
 
 
 def _active_dasha_lords(birth_jd: float, moon_longitude: float) -> set[str]:
@@ -461,7 +487,8 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
     vargas = _compute_vargas(planet_longitudes)
     varga_reliability = _varga_reliability(int(_value(profile, "birth_time_confidence_minutes", 0) or 0))
     nakshatra_analysis = _compute_nakshatra_analysis(planet_longitudes)
-    birth_conditions = _build_birth_conditions(public_planet_positions, birth_time_local)
+    birth_conditions, bc_penalties = _build_birth_conditions(public_planet_positions, birth_time_local)
+    _apply_birth_condition_penalties(public_planet_positions, bc_penalties)
     birth_panchangam_signature = _birth_panchangam_signature(profile)
 
     birth_profile_response = _birth_profile_response(
@@ -635,9 +662,10 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
     vargas = _compute_vargas(planet_longitudes)
     varga_reliability = _varga_reliability(int(_value(birth_profile, "birth_time_confidence_minutes", 0) or 0))
     nakshatra_analysis = _compute_nakshatra_analysis(planet_longitudes)
-    birth_conditions = _build_birth_conditions(
+    birth_conditions, bc_penalties = _build_birth_conditions(
         public_planet_positions, _value(birth_profile, "birth_time_local")
     )
+    _apply_birth_condition_penalties(public_planet_positions, bc_penalties)
     birth_panchangam_signature = _birth_panchangam_signature(birth_profile)
 
     return ChartCalculateResponse(

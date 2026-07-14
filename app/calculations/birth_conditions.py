@@ -61,6 +61,24 @@ SOLAR_SYZYGY_ORB = 13.0       # Sun-Moon separation near 0° (New Moon)
 LUNAR_ECLIPSE_NODE_ORB = 12.0
 LUNAR_SYZYGY_ORB = 13.0       # Sun-Moon separation near 180° (Full Moon)
 
+# EC-7.2 — natal strength penalties for the *verified* boundary births. These are
+# natal constants (true every day of life), so they belong in the per-planet natal
+# strength (which flows once into daily + prediction) rather than as a flat daily-
+# tone offset, which would only re-baseline the whole life uniformly. Applied to
+# the afflicted luminary/luminaries in chart_strength via _chart_build, on the same
+# natal-modifier ladder as cazimi (+10) / gandanta (-10) / planetary war (-15):
+#   * Grahana Janma shadows the luminaries — both Sun and Moon for a solar eclipse
+#     (New Moon on the node), the Moon alone for a lunar (Full Moon on the node;
+#     the Sun is the light source, not the shadowed body). -10 each, on par with
+#     gandanta — a serious classical natal affliction.
+#   * Sankranti birth is a milder Sun-specific ingress junction (temperamental
+#     friction, not a deep affliction). -5 on the Sun, half of gandanta.
+# Dagda Rasi is deliberately NOT scored here — it is a per-sign table verdict that
+# stays display-only. Cazimi is scored separately inside chart_strength itself
+# (it is already resolved per-planet there), so it is absent from this map.
+GRAHANA_LUMINARY_PENALTY = 10.0
+SANKRANTI_SUN_PENALTY = 5.0
+
 # --- Astrologer-gated tables (see module docstring) -------------------------
 # NOTE: the former TITHI_SHOONYA table/flag was retired 2026-07-14 (EC-1). It was
 # keyed tithi -> rasi(s), which the astrologer confirmed is the *same* phenomenon
@@ -333,3 +351,30 @@ def detect_birth_conditions(
         )
 
     return flags
+
+
+def birth_condition_strength_penalties(
+    flags: Sequence[BirthConditionFlag],
+) -> dict[str, float]:
+    """Per-graha natal strength penalty from the verified boundary births (EC-7.2).
+
+    Derived from the already-detected Border-Alert flags so eclipse/sankranti
+    detection stays single-source. Only the luminaries are ever penalised — see
+    GRAHANA_LUMINARY_PENALTY / SANKRANTI_SUN_PENALTY for the magnitudes and the
+    astrology behind them. Grahana shadows the luminaries (Sun+Moon for a solar
+    eclipse, Moon alone for a lunar); Sankranti nudges the Sun. Dagda Rasi and
+    Cazimi are intentionally not in this map (display-only table verdict, and a
+    per-planet modifier already resolved inside chart_strength, respectively).
+    Returns an empty map when no scoring boundary condition is present.
+    """
+    penalties: dict[str, float] = {}
+    for flag in flags:
+        if not flag.is_present:
+            continue
+        if flag.code == "SANKRANTI_BIRTH":
+            penalties["SUN"] = penalties.get("SUN", 0.0) + SANKRANTI_SUN_PENALTY
+        elif flag.code == "GRAHANA_BIRTH":
+            penalties["MOON"] = penalties.get("MOON", 0.0) + GRAHANA_LUMINARY_PENALTY
+            if flag.detail.get("eclipse_type") == "SOLAR":
+                penalties["SUN"] = penalties.get("SUN", 0.0) + GRAHANA_LUMINARY_PENALTY
+    return penalties

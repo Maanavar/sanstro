@@ -792,3 +792,55 @@ penalty together; and a magnitude regression lock (`+10 / −22`). 93 test_calcu
 + 61 combustion-consumer tests (birth_conditions / chart_explanation_edge / yoga
 strength gate / gulika / pdf_export / phase4_predictions) green. No route/schema/type
 surface touched. **Sub-item 2 (birth-condition scoring) stays NEEDS RESEARCH.**
+
+**Decision v2 — sub-item 2 (2026-07-15):** ✅ IMPLEMENTED — **score both at natal
+strength** (user ruling, recommended option). The verified boundary births now
+carry a scoring weight instead of staying display-only:
+
+1. **Placement = per-planet *natal* strength, not the daily tone.** The crux:
+   Sankranti/Grahana are *natal constants* (true every day of the person's life),
+   whereas the daily/prediction scores are *time-varying*. A flat caution on the
+   whole-chart daily tone would only re-baseline the entire life uniformly — it
+   never differentiates a good day from a bad one, i.e. astrologically and
+   mathematically inert. The correct home is the per-planet natal `strength_score`,
+   which already carries the sibling natal modifiers (cazimi +10 / gandanta −10 /
+   planetary war −15 / combustion max −22) and flows **once** into both prediction
+   and daily scores — the double-count-safe single lever. This mirrors how Cazimi
+   is already both scored (in strength) and displayed (as a Border-Alert BOOST).
+
+2. **Astrological attachment = the afflicted luminary/luminaries.**
+   - **Grahana Janma** shadows the luminaries: **Sun + Moon** for a solar eclipse
+     (New Moon on the node), **Moon alone** for a lunar (Full Moon on the node; the
+     Sun is the light source, not the shadowed body). **−10 per shadowed luminary**,
+     on par with gandanta — a serious classical natal affliction.
+   - **Sankranti birth** is the Sun crossing a sign boundary — a Sun-specific
+     ingress junction, milder (temperamental friction, not deep affliction).
+     **−5 on the Sun**, half of gandanta. Penalties stack when both coincide.
+   - **Dagda Rasi stays display-only** (a per-sign table verdict, not a per-planet
+     natal affliction) and is intentionally absent from the penalty map.
+
+3. **Implementation (single-source, both build paths).** New
+   `birth_condition_strength_penalties(flags) -> dict[str, float]` +
+   `GRAHANA_LUMINARY_PENALTY=10.0` / `SANKRANTI_SUN_PENALTY=5.0` constants in
+   `app/calculations/birth_conditions.py` — derived from the *already-detected*
+   Border-Alert flags, so eclipse/sankranti geometry stays detected exactly once
+   (no duplicated detection). `_chart_build._build_birth_conditions` now returns
+   `(conditions, penalty_map)`; new `_apply_birth_condition_penalties` lowers the
+   luminaries' `strength_score` (floored at the same 10 as the scorer) at **both**
+   build paths (`_chart_response_from_profile` fresh-calc + `_chart_response_from_record`
+   record→response). Gotcha handled: the record path *recomputes* strength on every
+   response build (not a stored column), so there is no stale-DB-score migration —
+   both paths apply the hook and every reader of the persisted `strength_score`
+   (daily `_dg_scoring`, `_chart_summary` adhipathi/house-lords, yoga strength gate,
+   PDF) inherits it. The six-fold `strength_breakdown` is deliberately left
+   untouched — consistent with cazimi/gandanta/war, which are likewise score-only
+   modifiers not decomposed into the breakdown.
+
+Golden tests added to `tests/test_birth_conditions.py` (EC-7.2 section): magnitude
+lock (+5 / +10); per-condition maps (Sankranti→Sun-only, solar→both luminaries,
+lunar→Moon-only, stacking, absent-flags ignored, cazimi/Dagda never score);
+detection→penalty single-source path; and the apply hook's subtract + floor-at-10
+behavior. **190 targeted tests green** (26 birth_conditions + 115 strength/house-lords/
+yoga-gate/calculations + 49 chart-build/explanation/charts-api/d9/gulika/pdf/phase4).
+No route/schema/type surface — an existing `strength_score` value shifts, same
+posture as sub-item 1's graded combustion. **EC-7 fully resolved.** NOT COMMITTED.

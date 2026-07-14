@@ -7,13 +7,30 @@ future table addition is a deliberate, tested change.
 """
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 from app.calculations import birth_conditions as bc
 from app.calculations.chart_strength import compute_natal_planet_score
 from app.calculations.transits import is_cazimi, is_combust
+from app.services._chart_build import _apply_birth_condition_penalties
 
 pytestmark = pytest.mark.no_db
+
+
+def _flag(code: str, *, present: bool = True, **detail: object) -> bc.BirthConditionFlag:
+    """Minimal BirthConditionFlag for penalty-map tests (text fields don't matter)."""
+    return bc.BirthConditionFlag(
+        code=code,
+        is_present=present,
+        severity="ALERT",
+        title_ta="",
+        title_en="",
+        description_ta="",
+        description_en="",
+        detail=dict(detail),
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -179,3 +196,84 @@ def test_detect_birth_conditions_empty_when_clean() -> None:
         cazimi_planets=[],
     )
     assert flags == []
+
+
+# --------------------------------------------------------------------------- #
+# EC-7.2 — birth-condition scoring (Sankranti/Grahana natal strength penalties)
+# --------------------------------------------------------------------------- #
+def test_penalty_magnitudes_are_locked() -> None:
+    # The astrologer-approved magnitudes: Grahana on par with gandanta (-10),
+    # Sankranti half of that (-5). Regression lock so a silent retune is caught.
+    assert bc.GRAHANA_LUMINARY_PENALTY == 10.0
+    assert bc.SANKRANTI_SUN_PENALTY == 5.0
+
+
+def test_penalties_empty_when_no_boundary_condition() -> None:
+    # Cazimi and Dagda are present but must NOT score here — cazimi is resolved
+    # per-planet inside chart_strength, Dagda stays display-only.
+    flags = [_flag("CAZIMI"), _flag("DAGDA_RASI", burnt_rasis=[7, 10])]
+    assert bc.birth_condition_strength_penalties(flags) == {}
+
+
+def test_penalties_sankranti_hits_sun_only() -> None:
+    flags = [_flag("SANKRANTI_BIRTH", from_rasi=1, to_rasi=2)]
+    assert bc.birth_condition_strength_penalties(flags) == {"SUN": 5.0}
+
+
+def test_penalties_solar_eclipse_hits_both_luminaries() -> None:
+    # Solar eclipse (New Moon on the node) shadows both Sun and Moon.
+    flags = [_flag("GRAHANA_BIRTH", eclipse_type="SOLAR", near_node="Rahu")]
+    assert bc.birth_condition_strength_penalties(flags) == {"SUN": 10.0, "MOON": 10.0}
+
+
+def test_penalties_lunar_eclipse_hits_moon_only() -> None:
+    # Lunar eclipse (Full Moon on the node) shadows the Moon; the Sun is the
+    # light source, not the shadowed body.
+    flags = [_flag("GRAHANA_BIRTH", eclipse_type="LUNAR", near_node="Rahu")]
+    assert bc.birth_condition_strength_penalties(flags) == {"MOON": 10.0}
+
+
+def test_penalties_stack_when_sankranti_and_solar_eclipse_coincide() -> None:
+    flags = [
+        _flag("SANKRANTI_BIRTH", from_rasi=1, to_rasi=2),
+        _flag("GRAHANA_BIRTH", eclipse_type="SOLAR"),
+    ]
+    assert bc.birth_condition_strength_penalties(flags) == {"SUN": 15.0, "MOON": 10.0}
+
+
+def test_penalties_ignore_absent_flags() -> None:
+    flags = [_flag("GRAHANA_BIRTH", present=False, eclipse_type="SOLAR")]
+    assert bc.birth_condition_strength_penalties(flags) == {}
+
+
+def test_penalties_derive_from_real_detection_single_source() -> None:
+    # End-to-end: detection -> penalty map (no duplicated eclipse geometry).
+    # Cazimi Mercury + Sankranti day + solar eclipse, same scenario as the
+    # aggregator test above. Only Sun/Moon are penalised; Mercury (cazimi) is not.
+    longitudes = {"SUN": 50.0, "MOON": 51.0, "MERCURY": 50.0 + 5.0 / 60.0, "RAHU": 52.0}
+    flags = bc.detect_birth_conditions(
+        planet_longitudes=longitudes,
+        tithi_number=bc.tithi_number_from_longitudes(50.0, 51.0),
+        sun_rasi_day_start=1,
+        sun_rasi_day_end=2,
+        cazimi_planets=["MERCURY"],
+    )
+    assert bc.birth_condition_strength_penalties(flags) == {"SUN": 15.0, "MOON": 10.0}
+
+
+def test_apply_penalties_lowers_luminaries_and_floors_at_10() -> None:
+    planets = [
+        SimpleNamespace(graha="SUN", strength_score=60),
+        SimpleNamespace(graha="MOON", strength_score=14),   # will floor at 10
+        SimpleNamespace(graha="MARS", strength_score=70),   # untouched
+    ]
+    _apply_birth_condition_penalties(planets, {"SUN": 15.0, "MOON": 10.0})
+    assert planets[0].strength_score == 45   # 60 - 15
+    assert planets[1].strength_score == 10   # max(10, 14 - 10) -> 10 (floored)
+    assert planets[2].strength_score == 70   # unaffected
+
+
+def test_apply_penalties_noop_on_empty_map() -> None:
+    planets = [SimpleNamespace(graha="SUN", strength_score=60)]
+    _apply_birth_condition_penalties(planets, {})
+    assert planets[0].strength_score == 60
