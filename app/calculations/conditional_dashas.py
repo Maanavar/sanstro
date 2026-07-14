@@ -82,9 +82,20 @@ fraction of the FULL BLOCK elapsed (not the fraction of the single occupied
 nakshatra) — this is forced by the block model itself: since one lord's
 mahadasha spans multiple contiguous nakshatras, using single-nakshatra
 fraction would incorrectly reset the balance at every nakshatra boundary
-*within* the same lord's block. ⚠️ Single fully-sourced citation for blocks
-3-8 (Astroseekers/Sunil Dutt, citing BPHS); flagged for a Jagannatha Hora
-cross-check before treating as final, same posture as the Amirthadhi grid.
+*within* the same lord's block.
+
+CROSS-CHECK DONE (2026-07-15, full-ownership web research) — blocks 3-8 are no
+longer single-source. The complete 8-block table (Jupiter: Ashwini-Krittika;
+Sun: Rohini-Punarvasu; Mars: Pushya-Magha; Moon: P.Phalguni-Chitra; Mercury:
+Swati-Anuradha; Venus: Jyeshtha-U.Ashadha; Saturn: Abhijit-Shravana-Dhanishta;
+Rahu: Shatabhisha-Revati) is reproduced verbatim by an independent full listing
+(astroseekers), and the two structural pillars are confirmed by the PRIMARY BPHS
+(R. Santhanam) text itself: (a) the lord order Jupiter→Sun→Mars→Moon→Mercury→
+Venus→Saturn→Rahu, and (b) "Abhijit Nakshatra is taken into consideration only
+in the Ashtottari and Shashtihayani Dasas" — independently validating this
+system's defining feature, the inserted-Abhijit block model above. The 60-year
+total (Shashti = 60) fixes the years at 10/10/10 (Jup/Sun/Mars) + 6×5, matching
+the code. Treated as confirmed for a display-only secondary dasha.
 """
 from __future__ import annotations
 

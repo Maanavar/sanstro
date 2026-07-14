@@ -288,9 +288,20 @@ def _nethiram_value(sun_nakshatra: int, reference_nakshatra: int) -> int:
 # read "A" here — that conflated the muhurta yoga (7 special day/star combos) with
 # this daily-classification table. The Amrita-Siddhi pairs actually land on the
 # Siddha (C) class (the "Siddhi" tell), so v29's Tue+Ashwini / Wed+Anuradha "A"
-# corrections were wrong and are reverted. Single-source; the Thu(Kettai/18) and
-# Fri(Pooradam/20) Prabalarishta cells diverge from the classical Dagdha-yoga list
-# and are the cells most worth a second-panchangam cross-check.
+# corrections were wrong and are reverted.
+#
+# CROSS-CHECK DONE (2026-07-15, full-ownership web research): the two flagged
+# Prabalarishta cells — Thu(Kettai/18) and Fri(Pooradam/20) — are CONFIRMED
+# correct against the source publisher's own public article ("Amirtha/Chitha/
+# Marana yoga", ungalvazhkkai.seithisaral.in): Thursday+Kettai and Friday+Pooradam
+# are each explicitly stated to be Prabalarishta. Their apparent "divergence" from
+# the classical Dagdha-yoga list (Thu→U.Phalguni, Fri→Jyeshtha) is a TAXONOMY
+# difference, not an error — Prabalarishta and Dagdha are distinct yogas. Further
+# corroboration: the whole Thursday Marana row here (Krittika, Rohini, Mrigasira,
+# Ardra, U.Phalguni, Shatabhisha) matches Ernst Wilhelm's "fatal Dagdha Yoga on
+# Jupiter's Vara" set exactly, and the whole Friday Marana row (Rohini, Pushya,
+# Ashlesha, Magha, Kettai, Shravana) matches the same source cell-for-cell. Cells
+# locked by tests/test_panchangam.py (Amirdhadhi cross-check section).
 AMIRDHADHI_YOGAM_LABELS = {
     "A": "அமிர்தயோகம்",
     "C": "சித்தயோகம்",

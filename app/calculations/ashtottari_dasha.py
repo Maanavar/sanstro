@@ -28,11 +28,30 @@ across every Ardra-adi source; the prior `SEQUENCE[(n - 3) % 8]` Krittikadi
 derivation was wrong (it gave Bharani → Venus, and only coincidentally matched
 Rahu at Ashwini).
 
-Still worth a JHora cross-check: the internal group *boundaries* (Krittika,
-Ashlesha, Hasta, Revati…) can vary between commentaries — validate all 27 rows
-against a live Jagannatha Hora Ashtottari chart before treating this as more
-than a "display-only secondary dasha." Ashwini/Bharani/Revati → Rahu are the
-locked anchors regardless.
+CROSS-CHECK DONE (2026-07-15, full-ownership web research) — the interior
+boundaries are NOT a "pending, will-converge" question; they are a genuine
+**two-tradition fork**, and this matters enough to state precisely:
+
+  * v1 (THIS TABLE) — the B.V. Raman / Jataka Parijata lineage: 27 nakshatras,
+    no Abhijit, groups Sun{3} Moon{4} Mars{3} Mercury{4} Saturn{3} Jupiter{4}
+    Rahu{3} Venus{3} (Moon/Mercury/Jupiter get 4, the rest 3).
+  * v2 — the primary BPHS (R. Santhanam, Ch. 47) and astro121: **28** nakshatras
+    WITH Abhijit, groups Sun{4} Moon{3} Mars{4} Mercury{3} Saturn{4, incl.
+    Abhijit} Jupiter{3} Rahu{4} Venus{3} (malefics Sun/Mars/Saturn/Rahu get 4,
+    benefics get 3). Santhanam's text: "From 4 nakshatras from Ardra commences
+    the Dasa of the Sun, from 3 after that the Moon; 4 after that Mars…".
+
+The two disagree on many interior cells (e.g. Ashlesha→Moon in v1 vs Sun in v2;
+Vishakha→Mercury in v1 vs Mars in v2; U.Bhadra→Jupiter in v1 vs Rahu in v2), but
+BOTH keep Ashwini/Bharani/Revati → Rahu (the locked anchors). JHora itself ships
+Ashtottari as a *multi-option* dasha, confirming there is no single canonical
+partition. We deliberately keep **v1 (Raman)**: it is the lineage the live-session
+astrologer supplied (2026-07-14) and the de-facto standard in South-Indian / Tamil
+practice, which suits a Tamil Thirukanitham product; v1 is internally consistent
+as a 27-nakshatra system, so its omission of Abhijit is correct FOR THAT tradition
+(Abhijit belongs to the BPHS 28-nak v2, not to Raman's v1). This is a display-only
+secondary dasha and never feeds scoring, so the tradition choice is disclosed, not
+load-bearing. The v1 partition + anchors are locked by tests/test_ashtottari_dasha.py.
 
 Product decision (per the Depth Expansion Plan's own recommendation): run
 unconditionally for every chart and label as a secondary/comparison dasha
@@ -74,8 +93,10 @@ TOTAL_CYCLE_YEARS: Final[float] = 108.0
 # 27-row table because the grouping is non-uniform (runs of 3/3/3/4/3/4/3/4):
 #   Rahu {1,2,27} · Venus {3-5} · Sun {6-8} · Moon {9-12} · Mars {13-15} ·
 #   Mercury {16-19} · Saturn {20-22} · Jupiter {23-26}.
-# Ashwini/Bharani/Revati → Rahu are stable anchors; interior boundaries pending
-# a Jagannatha Hora cross-check (see module docstring).
+# Ashwini/Bharani/Revati → Rahu are stable anchors. Interior boundaries are the
+# B.V. Raman / Jataka Parijata partition, deliberately kept over the divergent
+# BPHS-Santhanam 28-nakshatra (Abhijit) partition — see module docstring for the
+# full two-tradition fork and why Raman is kept for this Tamil product.
 NAK_LORD: Final[dict[int, str]] = {
     1: "RAHU", 2: "RAHU", 3: "VENUS", 4: "VENUS", 5: "VENUS",
     6: "SUN", 7: "SUN", 8: "SUN", 9: "MOON", 10: "MOON",

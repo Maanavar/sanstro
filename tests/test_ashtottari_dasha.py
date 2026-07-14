@@ -43,8 +43,10 @@ def test_sequence_fixed_order_matches_every_source_checked() -> None:
 def test_nak_lord_ardra_adi_grouping() -> None:
     # Authoritative Ardra-adi grouping (live session 2026-07-14, EC-6). The
     # anchors Ashwini/Bharani/Revati -> Rahu are stable across every Ardra-adi
-    # source; the interior boundaries are the adopted table pending a JHora
-    # cross-check.
+    # source. Interior boundaries: CROSS-CHECK DONE 2026-07-15 (full-ownership web
+    # research) found a genuine two-tradition fork — this is the B.V. Raman /
+    # Jataka Parijata 27-nakshatra partition (kept, Tamil-appropriate), NOT the
+    # BPHS-Santhanam 28-nakshatra (Abhijit) partition. See module docstring.
     assert NAK_LORD[1] == "RAHU"    # Ashwini  [stable anchor]
     assert NAK_LORD[2] == "RAHU"    # Bharani  [stable anchor]
     assert NAK_LORD[27] == "RAHU"   # Revati   [stable anchor]
@@ -54,6 +56,17 @@ def test_nak_lord_ardra_adi_grouping() -> None:
     assert NAK_LORD[19] == "MERCURY"  # Mula
     assert NAK_LORD[20] == "SATURN"   # Purva Ashadha
     assert NAK_LORD[23] == "JUPITER"  # Dhanishta
+
+
+def test_nak_lord_keeps_raman_v1_not_bphs_santhanam_v2() -> None:
+    # Explicit fork lock (EC-6 cross-check, 2026-07-15). These three cells are the
+    # ones where the kept B.V. Raman partition (v1) disagrees with the primary
+    # BPHS-Santhanam partition (v2, Sun4/Moon3/Mars4/... with Abhijit). If someone
+    # later flips the table to the BPHS reading, this trips loudly and forces the
+    # tradition choice back through review rather than a silent swap.
+    assert NAK_LORD[9] == "MOON"      # v1; BPHS-Santhanam v2 -> SUN
+    assert NAK_LORD[16] == "MERCURY"  # v1 (Vishakha); v2 -> MARS
+    assert NAK_LORD[26] == "JUPITER"  # v1 (U.Bhadra); v2 -> RAHU
     # Non-uniform grouping: runs of 3/3/3/4/3/4/3/4 -> Moon, Mercury, Jupiter
     # get 4 nakshatras each; the rest 3. (Rahu's 3 include the Revati wrap.)
     from collections import Counter

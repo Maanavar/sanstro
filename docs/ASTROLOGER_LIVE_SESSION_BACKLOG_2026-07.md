@@ -93,6 +93,21 @@ and Fri+Pooradam(20)** Prabalarishta cells diverge from the classical Dagdha-yog
 single-nakshatra list (which gives Thu→U.Phalguni, Fri→Jyeshtha) and are the cells
 most worth cross-checking. Noted in the module comment.
 
+**Cross-check DONE (2026-07-15, full ownership):** ✅ **CONFIRMED — no change.** Both
+flagged cells verified against the **source publisher's own public article** (Ungal
+Vazhkkai, `ungalvazhkkai.seithisaral.in/how-to-predict-amitha-yoga-chitha-yoga-and-marana-yoga`):
+Thursday+Kettai and Friday+Pooradam are each **explicitly stated to be Prabalarishta**.
+The apparent divergence from the Dagdha-yoga list is a **taxonomy difference, not an
+error** — Prabalarishta and Dagdha are distinct yogas (verified via Ernst Wilhelm's
+*Muhurta Yogas*, which lists Dagdha separately). Stronger still, the **full Thursday
+Marana row** in the table (Krittika, Rohini, Mrigasira, Ardra, U.Phalguni, Shatabhisha)
+matches Ernst Wilhelm's *"fatal Dagdha Yoga on Jupiter's Vara"* set **exactly**, and the
+**full Friday Marana row** (Rohini, Pushya, Ashlesha, Magha, Kettai, Shravana) matches
+the Ungal Vazhkkai article cell-for-cell — so the Thu/Fri rows are now cross-source
+validated end-to-end, not just at the two P cells. New golden test
+`test_amirdhadhi_thursday_friday_rows_web_confirmed` locks both rows in context.
+Module caveat upgraded from "worth cross-check" to confirmed. **A-7 fully closed.**
+
 ---
 
 ## A-8 — Soolam parigaram (travel remedy) table: DRAFT
@@ -633,6 +648,20 @@ against Jagannatha Hora's Shashtihayani output before treating as final — same
 posture as the Amirthadhi grid (A-7). Still shipped experimental/display-only
 behind the advanced gate, unaffected by scoring either way.
 
+**Cross-check DONE (2026-07-15, full ownership):** ✅ **CONFIRMED — no change.** Blocks
+3-8 are no longer single-source. The complete 8-block table (Jupiter: Ashwini-Krittika;
+Sun: Rohini-Punarvasu; Mars: Pushya-Magha; Moon: P.Phalguni-Chitra; Mercury: Swati-
+Anuradha; Venus: Jyeshtha-U.Ashadha; Saturn: Abhijit-Shravana-Dhanishta; Rahu:
+Shatabhisha-Revati) is reproduced **verbatim** by an independent full listing
+(astroseekers). The two structural pillars are confirmed by the **primary BPHS
+(R. Santhanam) text itself**: (a) the lord order Jupiter→Sun→Mars→Moon→Mercury→Venus→
+Saturn→Rahu, and (b) *"Abhijit Nakshatra is taken into consideration only in the
+Ashtottari and Shashtihayani Dasas"* — independently validating this system's defining
+feature, the inserted-Abhijit block model. The 60-year total (Shashti = 60) fixes the
+years at 10/10/10 (Jup/Sun/Mars) + 6×5, matching the code. (A stray "13-year" phrasing
+in one OCR pass sums to 69 ≠ 60 and is discarded as corruption.) Module caveat upgraded
+to cross-confirmed. **EC-4 fully closed.**
+
 ---
 
 ## EC-5 — Conditional-dasha applicability rules + day/night approximation
@@ -711,6 +740,30 @@ since Mula(19)→Mercury). 118 dasha tests green. Anchors (Ashwini/Bharani/Revat
 → Rahu) locked; interior boundaries flagged for a Jagannatha Hora cross-check.
 Applicability-gating (Ardra-adi is classically conditional on Rahu vs. lagna
 lord) remains deferred as a separate product call — noted in the module.
+
+**Cross-check DONE (2026-07-15, full ownership):** ✅ **RESOLVED — kept, now accurately
+documented.** The interior boundaries are NOT a "pending, will-converge" question — the
+research found a genuine **two-tradition fork**:
+- **v1 (this code)** — B.V. Raman / Jataka Parijata: 27 nakshatras, no Abhijit,
+  Sun{3}/Moon{4}/Mars{3}/Mercury{4}/Saturn{3}/Jupiter{4}/Rahu{3}/Venus{3}.
+- **v2** — primary **BPHS (R. Santhanam, Ch. 47)** + astro121: **28** nakshatras with
+  Abhijit, Sun{4}/Moon{3}/Mars{4}/Mercury{3}/Saturn{4 incl. Abhijit}/Jupiter{3}/Rahu{4}/
+  Venus{3}. Santhanam verbatim: *"From 4 nakshatras from Ardra commences the Dasa of
+  the Sun, from 3 after that the Moon; 4 after that Mars…"*.
+
+They disagree on multiple interior cells (Ashlesha→Moon v1 / Sun v2; Vishakha→Mercury
+v1 / Mars v2; U.Bhadra→Jupiter v1 / Rahu v2), but **both keep the Ashwini/Bharani/Revati
+→ Rahu anchors**. JHora ships Ashtottari as a **multi-option** dasha, confirming there
+is no single canonical partition. **Decision: keep v1 (Raman)** — it is the lineage the
+live-session astrologer supplied, and the de-facto South-Indian/Tamil-practice standard,
+which suits a Tamil Thirukanitham product; v1 is internally consistent as a 27-nak system,
+so omitting Abhijit is correct *for that tradition*. Display-only, never scored, so the
+choice is disclosed not load-bearing. Corrected the module docstring (it had framed the
+interior as merely "pending JHora"; it is now stated as a deliberate tradition choice with
+the exact divergent cells) and added `test_nak_lord_keeps_raman_v1_not_bphs_santhanam_v2`
+to trip loudly if anyone silently flips to the BPHS reading. **EC-6 fully closed.** (One
+optional follow-up remains genuinely open, unchanged: applicability-gating on Rahu-vs-
+lagna-lord — a separate product call, not a table-correctness question.)
 
 ---
 

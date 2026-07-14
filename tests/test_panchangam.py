@@ -360,6 +360,27 @@ def test_amirdhadhi_yogam_amrita_siddhi_pairs_read_siddha_not_amirtha():
     assert _amirdhadhi_yogam_name(5, 4) == "அமிர்தயோகம்"   # Sat+Rohini
 
 
+def test_amirdhadhi_thursday_friday_rows_web_confirmed():
+    # Cross-check DONE 2026-07-15 (full-ownership web research). The Thursday and
+    # Friday rows were verified cell-for-cell against the source publisher's own
+    # public article (ungalvazhkkai.seithisaral.in), and the Thursday Marana set
+    # additionally matches Ernst Wilhelm's "fatal Dagdha Yoga on Jupiter's Vara"
+    # exactly. This locks the two flagged Prabalarishta cells IN CONTEXT with the
+    # surrounding Marana cells they were suspected of conflicting with.
+    #
+    # Thursday (weekday 3): Marana on Krittika(3), Rohini(4), Mrigasira(5),
+    # Ardra(6), U.Phalguni(12), Shatabhisha(24); Prabalarishta on Kettai(18).
+    for nak in (3, 4, 5, 6, 12, 24):
+        assert _amirdhadhi_yogam_name(3, nak) == "மரணயோகம்", f"Thu+{nak}"
+    assert _amirdhadhi_yogam_name(3, 18) == "பிரபலாரிஷ்ட யோகம்"  # Thu+Kettai
+    #
+    # Friday (weekday 4): Marana on Rohini(4), Pushya(8), Ashlesha(9), Magha(10),
+    # Kettai(18), Shravana(22); Prabalarishta on Pooradam(20).
+    for nak in (4, 8, 9, 10, 18, 22):
+        assert _amirdhadhi_yogam_name(4, nak) == "மரணயோகம்", f"Fri+{nak}"
+    assert _amirdhadhi_yogam_name(4, 20) == "பிரபலாரிஷ்ட யோகம்"  # Fri+Pooradam
+
+
 def test_soolam_parigaram_direction_food_mapping():
     # A-8, 2026-07-14: astrologer-corrected direction->food table. East/West were
     # swapped vs the prior DRAFT (East->Curd not Jaggery, West->Jaggery not Curd);
