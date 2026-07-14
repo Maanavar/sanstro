@@ -41,6 +41,7 @@ class ChartExplanationPlanet(BaseModel):
     strength_score: int = Field(alias="strengthScore")
     is_retrograde: bool = Field(alias="isRetrograde")
     is_combust: bool = Field(alias="isCombust")
+    is_cazimi: bool = Field(default=False, alias="isCazimi")
     is_vargottama: bool = Field(alias="isVargottama")
     d9_rasi: int = Field(alias="d9Rasi")
     house_group: str = Field(alias="houseGroup")

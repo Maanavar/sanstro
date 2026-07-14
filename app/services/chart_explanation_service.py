@@ -40,8 +40,9 @@ from app.schemas.chart_explanation import (
     ChartExplanationText,
     ChartExplanationYogaDoshamSection,
 )
-from app.schemas.charts import PlanetPosition, ResponseMeta
+from app.schemas.charts import ChartBirthCondition, PlanetPosition, ResponseMeta
 from app.services.chart_service import load_persisted_chart_response
+from app.services.narrative_engine import PLANET_NAME
 from app.services.peyarchi_service import get_peyarchi_summary
 
 _NATAL_PLANETS = ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU")
@@ -281,14 +282,27 @@ def _planet_explanation(
     period_ta, period_en = _current_period_text(current_role, dasha_chain_ta, dasha_chain_en)
     contact_ta = f" {transit_contact_text.ta}" if transit_contact_text else ""
     contact_en = f" {transit_contact_text.en}" if transit_contact_text else ""
+    # Cazimi (heart of the Sun) — a verified strength override: it lifts the
+    # combustion penalty, so the "Why" text names the reason the planet reads
+    # strong. Mutually exclusive with combustion (see transits.is_cazimi).
+    cazimi_ta = (
+        " இந்த கிரகம் சூரியனின் இதயத்தில் (கசிமி) அமைந்துள்ளது — எரிப்பு (அஸ்தமன) தோஷம் நீங்கி, மாறாக பலம் பெற்றதாகக் கணிக்கப்படுகிறது."
+        if getattr(planet, "is_cazimi", False)
+        else ""
+    )
+    cazimi_en = (
+        " This planet is cazimi (in the heart of the Sun): the usual combustion penalty is lifted and it is read as strengthened, not weakened."
+        if getattr(planet, "is_cazimi", False)
+        else ""
+    )
     ta = (
         f"{planet.graha} உங்கள் ஜாதகத்தில் {planet.house_from_lagna}ஆம் வீட்டில் நிற்கிறது; "
         f"அதனால் {theme.ta} துறை இயல்பாக கவனத்திற்கு வருகிறது. "
-        f"{dignity_text.ta} {fn_context_ta}. {period_ta}{contact_ta}"
+        f"{dignity_text.ta} {fn_context_ta}. {period_ta}{contact_ta}{cazimi_ta}"
     )
     en = (
         f"{planet.graha} stands in house {planet.house_from_lagna}, so the chart naturally draws attention to {theme.en}. "
-        f"{dignity_text.en} In functional terms it is {fn_context_en}. {period_en}{contact_en}"
+        f"{dignity_text.en} In functional terms it is {fn_context_en}. {period_en}{contact_en}{cazimi_en}"
     )
     return _bi(ta, en)
 
@@ -314,9 +328,12 @@ def _build_planet_sections(
         ("MAHADASHA", timeline.current_mahadasha),
     ):
         current_role_by_graha[period.lord] = level
+    def _lord_ta(lord: str) -> str:
+        return PLANET_NAME[lord].ta if lord in PLANET_NAME else lord
+
     dasha_chain_ta = (
-        f"{timeline.current_mahadasha.lord} மகாதசை / {timeline.current_antardasha.lord} புக்தி / "
-        f"{timeline.current_pratyantardasha.lord} அந்தரம்"
+        f"{_lord_ta(timeline.current_mahadasha.lord)} மகாதசை / {_lord_ta(timeline.current_antardasha.lord)} புக்தி / "
+        f"{_lord_ta(timeline.current_pratyantardasha.lord)} அந்தரம்"
     )
     dasha_chain_en = (
         f"{timeline.current_mahadasha.lord} Mahadasha / {timeline.current_antardasha.lord} Bhukti / "
@@ -342,6 +359,7 @@ def _build_planet_sections(
                 strength_score=planet.strength_score,
                 is_retrograde=planet.is_retrograde,
                 is_combust=planet.is_combust,
+                is_cazimi=planet.is_cazimi,
                 is_vargottama=planet.is_vargottama,
                 d9_rasi=planet.d9_rasi,
                 house_group=_house_group(planet.house_from_lagna),
@@ -754,7 +772,10 @@ def _build_current_activation_section(
     )
 
 
-def _summary_section(planets: list[PlanetPosition]) -> ChartExplanationSummarySection:
+def _summary_section(
+    planets: list[PlanetPosition],
+    birth_conditions: list[ChartBirthCondition] | None = None,
+) -> ChartExplanationSummarySection:
     scored = [planet for planet in planets if planet.strength_score is not None]
     strongest = max(scored, key=lambda planet: planet.strength_score, default=None)
     weakest = min(scored, key=lambda planet: planet.strength_score, default=None)
@@ -786,6 +807,22 @@ def _summary_section(planets: list[PlanetPosition]) -> ChartExplanationSummarySe
                 f"{weakest.graha} appears to need the most support; a slower plan helps that area.",
             )
         )
+    # Border-Alert birth conditions (Sankranti/Grahana boundary births, Cazimi,
+    # etc. — app/calculations/birth_conditions.py + transits.is_cazimi). These
+    # are verified, display-safe qualitative factors, so they belong in the
+    # "Why this prediction?" reasoning. BOOST reads as a positive; ALERT/INFO as
+    # a caution/note. They do NOT change the score here — only name the factor.
+    for condition in birth_conditions or []:
+        if not condition.is_present:
+            continue
+        text = _bi(
+            f"பிறப்பு நேர நிலை — {condition.title_ta}: {condition.description_ta}",
+            f"Birth-time condition — {condition.title_en}: {condition.description_en}",
+        )
+        if condition.severity == "BOOST":
+            positives.append(text)
+        else:
+            cautions.append(text)
     return ChartExplanationSummarySection(
         strongest_planet=strongest.graha if strongest else None,
         weakest_planet=weakest.graha if weakest else None,
@@ -931,7 +968,7 @@ def build_chart_explanation(
                 as_of,
                 transit_bodies,
             ),
-            summary=_summary_section(planets),
+            summary=_summary_section(planets, data.birth_conditions),
             peyarchi=_build_peyarchi_section(
                 session,
                 chart_id,

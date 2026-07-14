@@ -1,10 +1,15 @@
 """Assemble ChartCalculateResponse from a birth profile or a persisted Chart record."""
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time
 from typing import Any
 from uuid import UUID, uuid4
 
+from app.calculations.birth_conditions import (
+    detect_birth_conditions,
+    sun_rasi_day_bounds,
+    tithi_number_from_longitudes,
+)
 from app.calculations.astro import (
     degree_in_rasi,
     local_datetime_to_utc,
@@ -22,13 +27,14 @@ from app.calculations.chart_strength import (
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_lagna_degree, calculate_sidereal_planets
 from app.calculations.panchangam import NAKSHATRA_NAMES, calculate_daily_panchangam
-from app.calculations.transits import RASI_NAMES, is_combust
+from app.calculations.transits import RASI_NAMES, is_cazimi, is_combust
 from app.calculations.yoga_activation import yoga_activation_score
 from app.calculations.yogas import detect_yogas_and_doshams
 from app.models import Chart
 from app.schemas.birth_profiles import BirthProfileResponse
 from app.schemas.charts import (
     AyanamsaInfo,
+    ChartBirthCondition,
     ChartCalculateResponse,
     ChartCalculateResponseData,
     ChartDoshamInsight,
@@ -152,6 +158,56 @@ def _birth_panchangam_signature(profile: Any) -> dict[str, object]:
     }
 
 
+def _build_birth_conditions(
+    planet_positions: list[PlanetPosition],
+    birth_time_local: time | None,
+) -> list[ChartBirthCondition]:
+    """Assemble the Border-Alert list from already-built planet positions.
+
+    Everything here is derived from the planet longitudes/speeds plus the birth
+    time, so it works identically on the fresh-calc and persisted-record paths
+    with no extra ephemeris or panchangam call.
+    """
+    longitudes = {p.graha: p.absolute_longitude for p in planet_positions}
+    sun = next((p for p in planet_positions if p.graha == "SUN"), None)
+    moon_lon = longitudes.get("MOON")
+    if sun is None or moon_lon is None:
+        return []
+
+    tithi_number = tithi_number_from_longitudes(sun.absolute_longitude, moon_lon)
+    if birth_time_local is None:
+        day_fraction = 0.5
+    else:
+        day_fraction = (
+            birth_time_local.hour * 3600 + birth_time_local.minute * 60 + birth_time_local.second
+        ) / 86400.0
+    sun_start, sun_end = sun_rasi_day_bounds(
+        sun.absolute_longitude, sun.speed_deg_per_day, day_fraction
+    )
+    cazimi_planets = [p.graha for p in planet_positions if p.is_cazimi]
+
+    flags = detect_birth_conditions(
+        planet_longitudes=longitudes,
+        tithi_number=tithi_number,
+        sun_rasi_day_start=sun_start,
+        sun_rasi_day_end=sun_end,
+        cazimi_planets=cazimi_planets,
+    )
+    return [
+        ChartBirthCondition(
+            code=f.code,
+            is_present=f.is_present,
+            severity=f.severity,
+            title_ta=f.title_ta,
+            title_en=f.title_en,
+            description_ta=f.description_ta,
+            description_en=f.description_en,
+            detail=f.detail,
+        )
+        for f in flags
+    ]
+
+
 def _active_dasha_lords(birth_jd: float, moon_longitude: float) -> set[str]:
     timeline = calculate_vimshottari_timeline(
         birth_jd,
@@ -254,6 +310,8 @@ def _build_yoga_dosham_insights(
             explanationWhyEn=item.explanation_why_en,
             explanationHowTa=item.explanation_how_ta,
             explanationHowEn=item.explanation_how_en,
+            variantTa=item.variant_ta,
+            variantEn=item.variant_en,
         )
         for item in doshams
     ]
@@ -403,6 +461,7 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
     vargas = _compute_vargas(planet_longitudes)
     varga_reliability = _varga_reliability(int(_value(profile, "birth_time_confidence_minutes", 0) or 0))
     nakshatra_analysis = _compute_nakshatra_analysis(planet_longitudes)
+    birth_conditions = _build_birth_conditions(public_planet_positions, birth_time_local)
     birth_panchangam_signature = _birth_panchangam_signature(profile)
 
     birth_profile_response = _birth_profile_response(
@@ -426,6 +485,7 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
             vargas=vargas,
             varga_reliability=varga_reliability,
             nakshatra_analysis=nakshatra_analysis,
+            birth_conditions=birth_conditions,
             birth_panchangam_signature=birth_panchangam_signature,
             yogas=yogas,
             doshams=doshams,
@@ -498,14 +558,16 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
     combust_planets = {
         p.graha
         for p in planet_positions
-        if p.graha in _NATAL_GRAHAS and is_combust(p.graha, p.absolute_longitude, sun_degree, p.is_retrograde)
+        if p.graha in _NATAL_GRAHAS
+        and is_combust(p.graha, p.absolute_longitude, sun_degree, p.is_retrograde)
+        and not is_cazimi(p.graha, p.absolute_longitude, sun_degree)
     }
     for planet in planet_positions:
-        planet.is_combust = is_combust(
-            planet.graha,
-            planet.absolute_longitude,
-            sun_degree,
-            planet.is_retrograde,
+        planet.is_cazimi = is_cazimi(planet.graha, planet.absolute_longitude, sun_degree)
+        # Cazimi overrides combustion — a heart-of-Sun planet is empowered, not burnt.
+        planet.is_combust = (
+            is_combust(planet.graha, planet.absolute_longitude, sun_degree, planet.is_retrograde)
+            and not planet.is_cazimi
         )
         if planet.graha == "MANDHI":
             continue
@@ -573,6 +635,9 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
     vargas = _compute_vargas(planet_longitudes)
     varga_reliability = _varga_reliability(int(_value(birth_profile, "birth_time_confidence_minutes", 0) or 0))
     nakshatra_analysis = _compute_nakshatra_analysis(planet_longitudes)
+    birth_conditions = _build_birth_conditions(
+        public_planet_positions, _value(birth_profile, "birth_time_local")
+    )
     birth_panchangam_signature = _birth_panchangam_signature(birth_profile)
 
     return ChartCalculateResponse(
@@ -588,6 +653,7 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             vargas=vargas,
             varga_reliability=varga_reliability,
             nakshatra_analysis=nakshatra_analysis,
+            birth_conditions=birth_conditions,
             birth_panchangam_signature=birth_panchangam_signature,
             yogas=yogas,
             doshams=doshams,

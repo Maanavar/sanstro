@@ -49,6 +49,7 @@ class PlanetPosition(BaseModel):
     speed_deg_per_day: float = Field(alias="speedDegPerDay")
     is_retrograde: bool = Field(alias="isRetrograde")
     is_combust: bool = Field(alias="isCombust")
+    is_cazimi: bool = Field(default=False, alias="isCazimi")
     d9_rasi: int = Field(alias="d9Rasi")
     is_vargottama: bool = Field(alias="isVargottama")
     show_retrograde_badge: bool = Field(alias="showRetrogradeBadge")
@@ -105,6 +106,8 @@ class ChartDoshamInsight(BaseModel):
     explanation_why_en: str = Field(default="", alias="explanationWhyEn")
     explanation_how_ta: str = Field(default="", alias="explanationHowTa")
     explanation_how_en: str = Field(default="", alias="explanationHowEn")
+    variant_ta: str = Field(default="", alias="variantTa")
+    variant_en: str = Field(default="", alias="variantEn")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -114,6 +117,20 @@ class ChartNakshatraCaution(BaseModel):
     nakshatra_number: int = Field(alias="nakshatraNumber")
     description_ta: str = Field(alias="descriptionTa")
     description_en: str = Field(alias="descriptionEn")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ChartBirthCondition(BaseModel):
+    """One birth-time junction/edge condition — the "Border Alert" module."""
+    code: str
+    is_present: bool = Field(alias="isPresent")
+    severity: str  # "BOOST" | "ALERT" | "INFO"
+    title_ta: str = Field(alias="titleTa")
+    title_en: str = Field(alias="titleEn")
+    description_ta: str = Field(alias="descriptionTa")
+    description_en: str = Field(alias="descriptionEn")
+    detail: dict[str, object] = Field(default_factory=dict)
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -130,6 +147,7 @@ class ChartCalculateResponseData(BaseModel):
     vargas: dict[str, dict[str, int]] = Field(default_factory=dict)
     varga_reliability: dict[str, str] = Field(default_factory=dict, alias="vargaReliability")
     nakshatra_analysis: dict[str, object] = Field(default_factory=dict, alias="nakshatraAnalysis")
+    birth_conditions: list[ChartBirthCondition] = Field(default_factory=list, alias="birthConditions")
     birth_panchangam_signature: dict[str, object] = Field(default_factory=dict, alias="birthPanchangamSignature")
     yogas: list[ChartYogaInsight] = Field(default_factory=list)
     doshams: list[ChartDoshamInsight] = Field(default_factory=list)

@@ -6,7 +6,16 @@ from __future__ import annotations
 
 from app.calculations.aspects import aspects_house
 from app.calculations.astro import house_from_reference
-from app.calculations.transits import is_combust, is_gandanta
+from app.calculations.transits import combustion_severity, is_cazimi, is_gandanta
+
+# Cazimi / combustion magnitudes on this module's 0-100 composite strength scale
+# (see the block near the end of ``natal_strength_score``). Combustion is applied
+# as a gradient — ``MAX_COMBUSTION_PENALTY`` is the worst case at the cazimi
+# boundary, scaled down towards 0 at the combustion orb edge by
+# ``combustion_severity``. Cazimi (within 0°17') overrides the penalty with a
+# fixed bonus. EC-7.1 ruling (2026-07-15).
+CAZIMI_BONUS = 10.0
+MAX_COMBUSTION_PENALTY = 22.0
 
 # Exaltation rasi (1-based)
 EXALTATION_RASI: dict[str, int] = {
@@ -484,8 +493,20 @@ def compute_natal_planet_score(
         shadbala += 5.0
 
     if planet not in {"SUN", "RAHU", "KETU"}:
-        if is_combust(planet, natal_longitude, sun_longitude, is_retrograde):
-            shadbala -= 20.0
+        if is_cazimi(planet, natal_longitude, sun_longitude):
+            # Cazimi (heart of the Sun, within 0°17') — the planet is empowered,
+            # not burnt. Not a native Parashari concept (it is a Western/Tajika
+            # import), but classical usage flips a tightly-conjunct planet from
+            # weak to fortified, and the product surfaces it as a BOOST. Kept as
+            # the single strongest positive modifier (above retrograde +8).
+            shadbala += CAZIMI_BONUS
+        else:
+            # Combustion is a gradient, not a hard boundary: full weight only
+            # near an exact conjunction, tapering to nothing at the orb edge.
+            severity = combustion_severity(
+                planet, natal_longitude, sun_longitude, is_retrograde
+            )
+            shadbala -= MAX_COMBUSTION_PENALTY * severity
 
     deg_in_sign = natal_longitude % 30
     if deg_in_sign <= 1.0 or deg_in_sign >= 29.0:

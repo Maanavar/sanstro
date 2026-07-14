@@ -41,6 +41,14 @@ COMBUST_ORBS = {
     # Moon near Sun = Amavasai (New Moon), not combustion in Vedic/Tamil Jyothidam.
 }
 
+# Cazimi ("in the heart of the Sun") — the rare exceptional sub-condition of
+# combustion. A planet within 0°17' (17 arc-minutes = 0.2833°) of the Sun's
+# exact longitude is not burnt but supercharged: it sits in the Sun's heart and
+# gains, rather than loses, indicative strength. This is a much tighter orb than
+# the 8°-17° combustion orbs above, so every cazimi planet is also inside the
+# combustion range — cazimi is the override that flips that penalty to a bonus.
+CAZIMI_ORB = 17.0 / 60.0  # 0°17' in decimal degrees
+
 # Gandanta zones: last 3°20' of water signs (Kadagam, Viruchigam, Meenam) and
 # first 3°20' of fire signs (Simmam, Dhanusu, Mesham). Six zones total.
 # Meenam end (356°40'–360°) and Mesham start (0°–3°20') are kept separate because
@@ -90,6 +98,56 @@ def is_combust(graha: str, degree: float, sun_degree: float, is_retrograde: bool
     motion_state = "retrograde" if is_retrograde else "direct"
     sep = angular_distance(degree, sun_degree)
     return sep <= COMBUST_ORBS[graha][motion_state]
+
+
+def is_cazimi(graha: str, degree: float, sun_degree: float) -> bool:
+    """True when ``graha`` sits in the heart of the Sun (within 0°17').
+
+    Same eligible bodies as combustion (excludes the Sun itself and the shadow
+    nodes). A cazimi planet is astronomically inside its combustion orb, so
+    callers that apply a combustion penalty must check this first and invert it.
+    """
+    if graha in {"SUN", "RAHU", "KETU"}:
+        return False
+    if graha not in COMBUST_ORBS:
+        return False
+    return angular_distance(degree, sun_degree) <= CAZIMI_ORB
+
+
+def combustion_severity(
+    graha: str, degree: float, sun_degree: float, is_retrograde: bool
+) -> float:
+    """Graded combustion intensity in ``[0.0, 1.0]``.
+
+    Classical combustion is a gradient, not a hard boundary: "the closer the
+    planet is to the Sun, the more intense the combustion." This returns how
+    burnt the planet is:
+
+    * ``0.0`` — at or beyond the combustion orb edge (barely / not combust), or
+      a body that never combusts (Sun / nodes / Moon), or a cazimi planet
+      (the caller applies the cazimi bonus instead of a penalty).
+    * ``1.0`` — at the cazimi boundary (0°17'), i.e. maximally burnt just
+      *outside* the heart of the Sun.
+
+    The taper is linear between the cazimi boundary and the planet's (motion-
+    dependent) combustion orb, so a planet near the orb edge is only lightly
+    penalised while one nearly conjunct the Sun takes the full weight.
+    """
+    if graha in {"SUN", "RAHU", "KETU"}:
+        return 0.0
+    if graha not in COMBUST_ORBS:
+        return 0.0
+
+    motion_state = "retrograde" if is_retrograde else "direct"
+    orb = COMBUST_ORBS[graha][motion_state]
+    sep = angular_distance(degree, sun_degree)
+    if sep > orb or sep <= CAZIMI_ORB:
+        return 0.0
+
+    span = orb - CAZIMI_ORB
+    if span <= 0:
+        return 1.0
+    return (orb - sep) / span
 
 
 def is_gandanta(degree: float) -> bool:

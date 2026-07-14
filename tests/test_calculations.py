@@ -444,6 +444,63 @@ def test_combust_planet_lower_score():
     assert clear > combust
 
 
+# ---------------------------------------------------------------------------
+# EC-7.1 — Graded combustion + calibrated cazimi (2026-07-15 astrologer ruling)
+# Combustion is a gradient, not a hard boundary: full weight near an exact
+# conjunction, tapering to zero at the planet's combustion orb edge. Cazimi
+# (within 0°17') flips the penalty to a fixed bonus.
+# ---------------------------------------------------------------------------
+
+def test_combustion_severity_is_graded_by_nearness():
+    from app.calculations.transits import combustion_severity, CAZIMI_ORB
+
+    # Mercury direct: 14° combustion orb.
+    orb = 14.0
+    # Just outside the cazimi boundary — maximally burnt.
+    near = combustion_severity("MERCURY", CAZIMI_ORB + 1e-4, 0.0, False)
+    # Midpoint of the taper band ≈ 0.5.
+    mid_sep = (orb + CAZIMI_ORB) / 2.0
+    mid = combustion_severity("MERCURY", mid_sep, 0.0, False)
+    assert near == pytest.approx(1.0, abs=1e-3)
+    assert mid == pytest.approx(0.5, abs=1e-3)
+    # At and beyond the orb edge → no combustion.
+    assert combustion_severity("MERCURY", orb, 0.0, False) == 0.0
+    assert combustion_severity("MERCURY", orb + 0.5, 0.0, False) == 0.0
+    # Inside the cazimi heart → 0.0 (caller applies the bonus, not a penalty).
+    assert combustion_severity("MERCURY", CAZIMI_ORB / 2.0, 0.0, False) == 0.0
+    # Non-combusting bodies never register severity.
+    assert combustion_severity("SUN", 0.05, 0.0, False) == 0.0
+    assert combustion_severity("RAHU", 0.05, 0.0, False) == 0.0
+    assert combustion_severity("MOON", 0.05, 0.0, False) == 0.0
+
+
+def test_graded_combustion_scoring_orders_by_depth():
+    from app.calculations.chart_strength import compute_natal_planet_score
+
+    # Same Mercury, only the Sun's separation changes (sun_longitude feeds only
+    # the combustion/cazimi term in this scorer).
+    natal = 5 * 30 + 2.0  # 152.0
+    deep_combust    = compute_natal_planet_score("MERCURY", 5, natal, 1, natal - 1.0, False)   # sep 1°
+    shallow_combust = compute_natal_planet_score("MERCURY", 5, natal, 1, natal - 12.5, False)  # sep 12.5° (< 14° orb)
+    not_combust     = compute_natal_planet_score("MERCURY", 5, natal, 1, natal - 60.0, False)  # far
+    cazimi          = compute_natal_planet_score("MERCURY", 5, natal, 1, natal - 0.1, False)   # sep 0.1° (< 0°17')
+
+    # Graded, not flat: a shallowly-combust planet outscores a deeply-combust one.
+    assert shallow_combust > deep_combust
+    # A non-combust planet outscores any combust one.
+    assert not_combust > shallow_combust
+    # Cazimi flips weak→fortified: it outscores the plain non-combust baseline.
+    assert cazimi > not_combust
+
+
+def test_ec71_magnitudes_locked():
+    # Regression lock on the EC-7.1 ruling. Change deliberately with sourcing.
+    from app.calculations.chart_strength import CAZIMI_BONUS, MAX_COMBUSTION_PENALTY
+
+    assert CAZIMI_BONUS == 10.0
+    assert MAX_COMBUSTION_PENALTY == 22.0
+
+
 def test_vargottama_bonus_improves_natal_strength():
     from app.calculations.chart_strength import compute_natal_planet_score
     without_bonus = compute_natal_planet_score("JUPITER", 2, 2 * 30 + 0.0, 1, 0.0, False, False)

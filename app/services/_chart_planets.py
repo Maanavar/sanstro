@@ -22,7 +22,7 @@ from app.calculations.divisional_charts import get_varga
 from app.calculations.ephemeris import calculate_lagna_degree, calculate_rise_transit_jd
 from app.calculations.nakshatra_analysis import build_dispositor_chain, gandanta_detail, pushkara_check
 from app.calculations.panchangam import NAKSHATRA_NAMES
-from app.calculations.transits import RASI_NAMES, is_combust
+from app.calculations.transits import RASI_NAMES, is_cazimi, is_combust
 from app.schemas.charts import PlanetPosition
 
 # Maandhi (Mandhi/Gulika) slot rules for chart longitude computation.
@@ -239,6 +239,7 @@ def _mandhi_planet_position(longitude: float, lagna_rasi: int) -> PlanetPosition
         speed_deg_per_day=0.0,
         is_retrograde=False,
         is_combust=False,
+        is_cazimi=False,
         d9_rasi=d9_rasi,
         is_vargottama=rasi == d9_rasi,
         show_retrograde_badge=False,
@@ -303,7 +304,14 @@ def _planet_position_from_snapshot(
         house_from_lagna=house_from_reference(lagna_rasi, body.rasi),  # type: ignore[attr-defined]
         speed_deg_per_day=body.speed_deg_per_day,  # type: ignore[attr-defined]
         is_retrograde=body.is_retrograde,  # type: ignore[attr-defined]
-        is_combust=is_combust(body.graha, body.absolute_longitude, sun_degree, body.is_retrograde),  # type: ignore[attr-defined]
+        # Cazimi and combust are mutually exclusive: a planet in the heart of the
+        # Sun is empowered, not burnt, so it must not read as combust to yoga
+        # detection or the combust badge even though it sits inside the orb.
+        is_combust=(
+            is_combust(body.graha, body.absolute_longitude, sun_degree, body.is_retrograde)  # type: ignore[attr-defined]
+            and not is_cazimi(body.graha, body.absolute_longitude, sun_degree)  # type: ignore[attr-defined]
+        ),
+        is_cazimi=is_cazimi(body.graha, body.absolute_longitude, sun_degree),  # type: ignore[attr-defined]
         d9_rasi=d9_rasi,
         is_vargottama=is_vargottama,
         show_retrograde_badge=body.show_retrograde_badge and body.graha not in {"RAHU", "KETU"},  # type: ignore[attr-defined]
