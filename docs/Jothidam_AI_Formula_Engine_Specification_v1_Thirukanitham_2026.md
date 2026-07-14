@@ -1389,8 +1389,17 @@ mahendra_pass = count in MAHENDRA_GOOD
 ### 11.6 Sthree Deergham
 
 ```python
-sthree_deergham_pass = count >= 14
+sthree_deergham_pass = count >= 8
 ```
+
+Correction (2026-07 audit A-1): this section previously read `count >= 14`.
+Tamil marriage-matching references describe a two-tier reading of this
+count — the boy's star ≥14 (13+) from the girl's is *Uthamam* (the excellence
+tier), but ≥8 (7+) is already *Madhyamam* and an accepted, commonly-passed
+match. `>= 14` was the excellence threshold, not the minimum pass/fail bar;
+the shipped code's `>= 8` (`app/calculations/porutham.py::_stree_dirgha_score`)
+matches common practice for a binary pass/fail kuta and was kept. This spec
+line is corrected to match the code, not the other way around.
 
 ### 11.7 Gana
 
