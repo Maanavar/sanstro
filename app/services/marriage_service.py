@@ -490,7 +490,7 @@ def assess_marriage_prediction(
         )
     else:
         score -= 8
-        challenges.append(BiText("7ம் அதிபதி சிரமமான வீட்டில்.", "7th lord is in a challenging house."))
+        challenges.append(BiText("7ம் அதிபதி கஷ்ட வீட்டில்.", "7th lord is in a challenging house."))
         factors.append(
             AstroFactor(
                 key="seventh_lord_placement",

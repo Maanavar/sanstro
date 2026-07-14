@@ -23,8 +23,9 @@ text (cacheable, testable) while different days/charts don't share one cadence.
 Flag-gated by ``daily_briefing_synth`` — OFF by default. The six-row output is
 untouched until this is switched on.
 
-NOTE: the Tamil connective glue below is first-draft and marked for a native
-review pass (Track B). The English is production-intent.
+NOTE: the Tamil connective glue below was native-reviewed and corrected on
+2026-07-14 (live astrologer/native-Tamil session, C-3/C-4). The English is
+production-intent.
 """
 from __future__ import annotations
 
@@ -71,37 +72,38 @@ class BriefingInputs:
 
 # ── Verdict openers — the first sentence carries the judgement ──────────────────
 # Two variants per band so consecutive days don't repeat cadence; chosen by a
-# stable hash of the seed. English is production-intent; Tamil = review pass.
+# stable hash of the seed. English is production-intent; Tamil native-reviewed
+# 2026-07-14.
 
 _OPENERS: dict[str, tuple[BiText, ...]] = {
     "STRONG_SUPPORT": (
-        BiText("இன்று உங்களுக்கு மிகவும் சாதகமான நாள் — முக்கியமானதை முன்னெடுக்க ஏற்ற தருணம்.",
+        BiText("இன்று உங்களுக்கு மிகவும் சாதகமான நாள் — முக்கியமான விஷயங்களை முன்னெடுக்க ஏற்ற நேரம்.",
                "Today reads strongly in your favour — a genuinely good day to move on what matters."),
-        BiText("இன்று வலுவான ஆதரவு உள்ளது — திட்டமிட்டதைச் செயல்படுத்த இதுவே சரியான நேரம்.",
+        BiText("இன்று வலுவான சாதகமான சூழல் உள்ளது — திட்டமிட்டதைச் செயல்படுத்த இது நல்ல நேரம்.",
                "The day is strongly with you — the right window to act on what you've planned."),
     ),
     "GOOD": (
-        BiText("இன்று நல்ல நாள் — நிலையான வேகம் உங்கள் பக்கம் உள்ளது.",
+        BiText("இன்று நல்ல நாள் — முன்னேற்றம் உங்கள் பக்கம் உள்ளது.",
                "A good day — steady momentum is on your side."),
-        BiText("இன்று சாதகமாக அமைகிறது — முக்கிய பணிகளை நம்பிக்கையுடன் தொடரலாம்.",
+        BiText("இன்று சாதகமாக அமைகிறது — முக்கியமான பணிகளை நம்பிக்கையுடன் தொடரலாம்.",
                "Today shapes up well — you can carry your important tasks forward with confidence."),
     ),
     "BALANCED": (
-        BiText("இன்று சமநிலையான நாள் — எளிமையாக வைத்து, தொடங்கியதை முடிப்பது நல்லது.",
+        BiText("இன்று சமநிலையான நாள் — விஷயங்களை எளிமையாக வைத்து, தொடங்கியவற்றை முடிப்பது நல்லது.",
                "A steady day — keep things simple and finish what's already on your plate."),
-        BiText("இன்று நடுநிலையான ஓட்டம் — சிறிய, உறுதியான அடிகள் இன்று சிறப்பாக வேலை செய்யும்.",
+        BiText("இன்று சமநிலையான ஓட்டம் — சிறிய, உறுதியான முயற்சிகள் நல்ல பலன் தரும்.",
                "An even-keeled day — small, sure steps work better than sweeping ones right now."),
     ),
     "CAUTION": (
-        BiText("இன்று சற்று கவனத்துடன் அணுகுங்கள் — புதிய பெரிய முடிவுகளை விட வழக்கமான பணிகளுக்கு முன்னுரிமை.",
+        BiText("இன்று சற்று கவனமாக இருங்கள் — புதிய பெரிய முடிவுகளை விட வழக்கமான பணிகளுக்கு முன்னுரிமை கொடுங்கள்.",
                "Today asks for a lighter touch — favour routine over big new decisions."),
-        BiText("இன்று பொறுமை உதவும் — அவசர முடிவுகளைத் தவிர்த்து, நடப்பதை நிலைப்படுத்துங்கள்.",
+        BiText("இன்று பொறுமையாக இருப்பது நல்லது — அவசர முடிவுகளைத் தவிர்த்து, ஏற்கனவே நடந்து கொண்டிருப்பவற்றில் கவனம் செலுத்துங்கள்.",
                "Patience serves you today — avoid rushed calls and steady what's already moving."),
     ),
     "RESTORATIVE": (
-        BiText("இன்று மெதுவாக, ஓய்வுக்கு முன்னுரிமை தரும் நாள் — பொறுப்புகளைச் சிறியதாக வையுங்கள்.",
+        BiText("இன்று மெதுவாகச் செல்ல வேண்டிய நாள் — ஓய்வுக்கு முன்னுரிமை கொடுத்து, பொறுப்புகளை குறைவாக வைத்துக்கொள்ளுங்கள்.",
                "A day to slow down and restore — keep commitments small."),
-        BiText("இன்று உங்களை மீட்டெடுக்கும் நாள் — புதிதாக எதையும் சுமக்காமல் ஓய்வெடுங்கள்.",
+        BiText("இன்று உடலையும் மனதையும் புத்துணர்ச்சி பெறச் செய்யும் நாள் — புதிய பொறுப்புகளை ஏற்காமல் ஓய்வெடுங்கள்.",
                "A recharging day — don't take on anything new; let yourself rest."),
     ),
 }
@@ -113,15 +115,15 @@ _OPENERS: dict[str, tuple[BiText, ...]] = {
 # are kept separate and chosen by the second driver's direction.
 _CONNECTORS_SUPPORT: tuple[BiText, ...] = (
     BiText("அதே நேரத்தில், ", "At the same time, "),
-    BiText("அதனுடன், ", "Alongside that, "),
+    BiText("மேலும், ", "Alongside that, "),
 )
 _CONNECTORS_CAUTION: tuple[BiText, ...] = (
-    BiText("கவனிக்க வேண்டிய ஒன்று — ", "One thing worth noting — "),
-    BiText("அதே வேளையில், கவனமாக — ", "That said, tread carefully — "),
+    BiText("கவனிக்க வேண்டிய விஷயம் — ", "One thing worth noting — "),
+    BiText("அதே நேரத்தில், சற்று கவனமாக இருங்கள் — ", "That said, tread carefully — "),
 )
 
 # Lead-in to the single concrete action.
-_ACTION_LEAD: BiText = BiText("இன்று செய்யலாம்: ", "What to do with it: ")
+_ACTION_LEAD: BiText = BiText("இன்று செய்ய வேண்டியது: ", "What to do with it: ")
 
 # A driver whose score sits inside ±_NEUTRAL_BAND of 50 is "unremarkable" and is
 # dropped rather than stated — this is the "stop saying neutral things" rule.

@@ -136,6 +136,53 @@ def test_strong_venus_and_fifth_support_lifts_love():
     assert love.window_note is not None  # Venus dasha active
 
 
+def test_native_tamil_review_corrections_locked():
+    """Native-Tamil review pass (C-4, 2026-07-14) corrected 14 propensity Tamil
+    strings. Lock them at source level — most render only for specific charts, so
+    an assertion on the module text is the robust regression guard. If a string is
+    intentionally re-reworded later, update this test in the same change."""
+    import inspect
+
+    from app.calculations import propensities
+    from app.services import propensity_service
+
+    prop_src = inspect.getsource(propensities)
+    svc_src = inspect.getsource(propensity_service)
+
+    # Old wordings that must never come back (keyed to the review table).
+    banned = [
+        "சடே சதி",                    # #1/#2 — Hindi name; TN uses ஏழரை சனி
+        "மதிப்புகளை பகிரும்",          # #3 — English calque
+        "இணை ஆலோசனை",                 # #4 — unparseable coinage
+        "பிடிவாதம் எல்லை",            # #5 — grammatically stranded
+        "காதல் காலம் சாதகம்",          # #6 — clumsy
+        "தூரம்/தாமதம் உணர்வு",         # #7 — தாமதம் = delay, wrong sense
+        "செல்லுபடியாகும் — உங்கள்",     # #8 — "valid" like currency
+        "பகிரப்பட்ட நேரம்",            # #9 — calque
+        "சிரமமான வீட்டில்",            # #10 — standardise on கஷ்ட வீடு
+        "பாபக் கிரகம்",               # #11 — sandhi
+        "சனி மேலோங்கல்",              # #12 — lost the "over Mars" contrast
+        "காலஅட்டவணை",                # #13 — missing space
+        "குடியுரிமை",                 # #14 — citizenship, not PR
+    ]
+    for bad in banned:
+        assert bad not in prop_src, f"banned Tamil wording resurfaced in propensities.py: {bad}"
+        assert bad not in svc_src, f"banned Tamil wording resurfaced in propensity_service.py: {bad}"
+
+    # Corrected wordings that must be present.
+    assert "ஏழரை சனி காலம் — வேலையில் நிலைமாற்றம்" in prop_src
+    assert "ஏழரை சனி காலம் — உணர்வு சுமை" in prop_src
+    assert "தம்பதியர் ஆலோசனை" in prop_src
+    assert "உறுதி பிடிவாதமாக மாறலாம்" in prop_src
+    assert "தூரம்/விலகல் உணர்வு" in prop_src
+    assert "கஷ்ட வீட்டில்" in prop_src
+    assert "பாப கிரகம் — உறவில் அழுத்தம்" in prop_src
+    assert "செவ்வாயை விட சனி வலு" in prop_src
+    assert "கால அட்டவணை உதவும்" in prop_src
+    assert "நிரந்தர குடியிருப்பு" in prop_src
+    assert "நிரந்தர குடியிருப்பு (PR) வாய்ப்பு" in svc_src
+
+
 def test_moon_saturn_raises_emotional_load_care():
     planets = _base()
     # Moon conjunct Saturn in the 8th — classic heavy-mind signature

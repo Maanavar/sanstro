@@ -239,8 +239,8 @@ _REGISTRY: list[_Spec] = [
     # travel-or-settle read and litigation_season's general dispute-arising
     # caution — see each evaluator's docstring.
     _Spec("pr_immigration_prospects", Cat.LIFE_PATH, Tier.CHANCE,
-          BiText("PR / குடியுரிமை வாய்ப்பு", "PR / immigration-status chances"),
-          BiText("குடியுரிமை நிலை", "formal residency or immigration status"),
+          BiText("நிரந்தர குடியிருப்பு (PR) வாய்ப்பு", "PR / immigration-status chances"),
+          BiText("நிரந்தர குடியிருப்பு நிலை", "formal residency or immigration status"),
           P.eval_pr_immigration_prospects, age_min=18, timing=_TimingSpec(house=12, karaka="SATURN")),
     _Spec("legal_outcome_favor", Cat.LIFE_PATH, Tier.CHANCE,
           BiText("வழக்கு சாதக தீர்வு வாய்ப்பு", "Favourable dispute-resolution chances"),

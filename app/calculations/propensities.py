@@ -439,12 +439,12 @@ def eval_love(r: _Reader) -> Signals:
         s.caution("venus_weak", "சுக்கிரன் பலவீனம் — உறவில் பொறுமை தேவை.",
                   "Venus is weak — relationships need patience.")
     if seventh_lord_h is not None and seventh_lord_h in DUSTHANA:
-        s.caution("seventh_lord_dusthana", "7ஆம் அதிபதி சிரமமான வீட்டில்.",
+        s.caution("seventh_lord_dusthana", "7ஆம் அதிபதி கஷ்ட வீட்டில்.",
                   "The 7th lord sits in a difficult house.")
     if r.dasha_touches({"VENUS", r.lord_of(5), r.lord_of(7)}):
-        s.window = BiText("சுக்கிரன்/5-7 அதிபதி தசை — காதல் காலம் சாதகம்.",
+        s.window = BiText("சுக்கிரன்/5-7 அதிபதி தசை — காதலுக்கு சாதகமான காலம்.",
                           "A Venus or 5th/7th-lord period favours romance now.")
-    s.help("உங்கள் மதிப்புகளை பகிரும் இடங்களில் கலந்துகொள்ளுங்கள்.",
+    s.help("உங்கள் விருப்பங்களுக்கு ஏற்ற இடங்களில் நேரம் செலவிடுங்கள் — தொடர்பு தானாக வரும்.",
            "Spend time in settings that share your values — connection follows.")
     s.help("அவசரப்படாமல் நம்பிக்கையை வளர்க்கவும்.", "Let trust build without rushing.")
     return s
@@ -456,10 +456,10 @@ def eval_breakup(r: _Reader) -> Signals:
         s.caution("mars_venus", "செவ்வாய்-சுக்கிரன் சேர்க்கை — உணர்ச்சி வேகம்.",
                   "Mars with Venus can bring heat and friction in bonds.")
     if r.malefics_in(7) or "RAHU" in r.occupants(7):
-        s.caution("seventh_malefic", "7ஆம் வீட்டில் பாபக் கிரகம் — உறவில் அழுத்தம்.",
+        s.caution("seventh_malefic", "7ஆம் வீட்டில் பாப கிரகம் — உறவில் அழுத்தம்.",
                   "A malefic in the 7th can strain partnership.")
     if r.conjunct("SATURN", "VENUS") or r.aspects_house("SATURN", 7):
-        s.caution("saturn_seventh", "சனி பார்வை 7ல் — தூரம்/தாமதம் உணர்வு.",
+        s.caution("saturn_seventh", "சனி பார்வை 7ல் — தூரம்/விலகல் உணர்வு.",
                   "Saturn touching the 7th can bring distance or coolness.")
     if "KALATHRA_DOSHAM" in r.c.doshams_active:
         s.caution("kalathra", "களத்திர தோஷம் செயலில்.", "Kalathra dosham is active.")
@@ -471,7 +471,7 @@ def eval_breakup(r: _Reader) -> Signals:
                   "Jupiter's grace on the 7th protects with maturity.")
     s.help("கடினமான காலத்தில் திறந்த, அமைதியான உரையாடலைத் தேர்ந்தெடுங்கள்.",
            "In strained seasons choose open, calm conversation over reaction.")
-    s.help("தேவைப்பட்டால் இணை ஆலோசனை பயனளிக்கும்.",
+    s.help("தேவைப்பட்டால் தம்பதியர் ஆலோசனை (couples counselling) பயனளிக்கும்.",
            "Couples counselling helps when things feel stuck.")
     return s
 
@@ -533,7 +533,7 @@ def eval_dropout_risk(r: _Reader) -> Signals:
     if r.is_strong("JUPITER"):
         s.support("jupiter_guides", "குரு வலு — வழிகாட்டல் கிடைக்கும்.",
                   "A strong Jupiter draws good mentorship.")
-    s.help("வழிகாட்டி/மென்டார் மற்றும் கட்டமைக்கப்பட்ட காலஅட்டவணை உதவும்.",
+    s.help("வழிகாட்டி/மென்டார் மற்றும் கட்டமைக்கப்பட்ட கால அட்டவணை உதவும்.",
            "A mentor and a structured timetable make the difference here.")
     s.help("படிப்பை சிறு இலக்குகளாக பிரிக்கவும்.", "Break study into small, finishable goals.")
     return s
@@ -560,7 +560,7 @@ def eval_career_mode(r: _Reader) -> Signals:
         s.caution("service_signature", "10-6/சனி அமைப்பு — நிலையான வேலைக்கு ஏற்றது.",
                   "A 10th-6th / Saturn pattern — suits steady salaried service.")
     if r.is_strong("SATURN") and not r.is_strong("MARS"):
-        s.caution("saturn_over_mars", "சனி மேலோங்கல் — ஒழுங்கான அமைப்பு விருப்பம்.",
+        s.caution("saturn_over_mars", "செவ்வாயை விட சனி வலு — ஒழுங்கான அமைப்பு விருப்பம்.",
                   "Saturn over Mars — thrives inside structure and routine.")
     # NOTE (astrologer review 2026-07-12): deliberately NO D10 vote here. The
     # Dasamsa refines career *strength/status*, not the enterprise-vs-salaried
@@ -568,7 +568,7 @@ def eval_career_mode(r: _Reader) -> Signals:
     # modern heuristic, not a classical rule, and a confident-sounding vote would
     # violate the QUIET-is-silence doctrine. D10 stays wired to the strength reads
     # (government_job, job_loss) where it is classically sound.
-    s.help("இரண்டு பாதைகளும் செல்லுபடியாகும் — உங்கள் இயல்பான தாளத்தை மதிக்கவும்.",
+    s.help("இரண்டு பாதைகளும் சரியானவை — உங்கள் இயல்பான தாளத்தை மதிக்கவும்.",
            "Both paths are valid — honour the rhythm that fits your temperament.")
     return s
 
@@ -619,7 +619,7 @@ def eval_job_loss(r: _Reader) -> Signals:
         s.caution("tenth_malefic", "10ஆம் வீட்டில் பாப தாக்கம்.",
                   "Malefic pressure on the 10th house of work.")
     if r.c.sade_sati_active:
-        s.caution("sade_sati", "சடே சதி காலம் — வேலையில் நிலைமாற்றம் சாத்தியம்.",
+        s.caution("sade_sati", "ஏழரை சனி காலம் — வேலையில் நிலைமாற்றம் சாத்தியம்.",
                   "A Sade-Sati season can reshuffle work — stay adaptable.")
     if r.c.saturn_transit_house == 10:
         s.caution("saturn_transit_tenth", "சனி பெயர்ச்சி 10ல் — பொறுப்பு/அழுத்தம் மாற்றம்.",
@@ -728,7 +728,7 @@ def eval_depression_vuln(r: _Reader) -> Signals:
         s.caution("kemadruma", "கேமத்ரும யோகம் — மன ஆதரவு உணர்வு குறைவு.",
                   "Kemadruma yoga can leave the mind feeling unsupported.")
     if r.c.sade_sati_active:
-        s.caution("sade_sati", "சடே சதி காலம் — உணர்வு சுமை அதிகரிக்கலாம்.",
+        s.caution("sade_sati", "ஏழரை சனி காலம் — உணர்வு சுமை அதிகரிக்கலாம்.",
                   "A Sade-Sati season can raise emotional load.")
     if r.is_strong("MOON") or r.is_strong("JUPITER"):
         s.support("moon_jupiter_steady", "சந்திரன்/குரு வலு — மன உறுதி ஆதரவு.",
@@ -775,7 +775,7 @@ def eval_stubbornness(r: _Reader) -> Signals:
         s.note("sun_mars", "சூரியன்-செவ்வாய் வலு — தன்னம்பிக்கை/உறுதி.",
                "Strong Sun and Mars — confidence and firm will.")
     if r.conjunct("SUN", "MARS") or r.conjunct("MARS", "RAHU"):
-        s.caution("ego_edge", "சூரியன்/செவ்வாய்-ராகு — பிடிவாதம் எல்லை.",
+        s.caution("ego_edge", "சூரியன்/செவ்வாய்-ராகு — உறுதி பிடிவாதமாக மாறலாம்.",
                   "Sun/Mars-Rahu heat can tip conviction into rigidity.")
     if r.is_strong("MERCURY") or r.is_strong("JUPITER"):
         s.support("wisdom_balance", "புதன்/குரு வலு — திறந்த மனது சமநிலை.",
@@ -846,7 +846,7 @@ def eval_marriage_harmony(r: _Reader) -> Signals:
     if r.malefic_hits(7) and not r.benefic_hits(7):
         s.caution("seventh_malefic_unmitigated", "7ஆம் வீட்டில் பாப தாக்கம், சுப நிவாரணம் இல்லை.",
                   "Malefic pressure on the 7th with no benefic offset — patience and communication help most.")
-    s.help("திறந்த தொடர்பு மற்றும் பகிரப்பட்ட நேரம் பிணைப்பை வலுப்படுத்தும்.",
+    s.help("திறந்த உரையாடலும் ஒன்றாக செலவிடும் நேரமும் பிணைப்பை வலுப்படுத்தும்.",
            "Open communication and shared time are what steady a bond most.")
     return s
 
@@ -1539,7 +1539,7 @@ def eval_pr_immigration_prospects(r: _Reader) -> Signals:
         s.support("ninth_twelfth_link", "9-12 அதிபதிகள் தொடர்பில் — வெளிநாட்டு அதிர்ஷ்ட இணைப்பு.",
                   "A link between the 9th and 12th lords — fortune actively supports a life abroad.")
     if r.is_strong("SATURN") and not r.is_afflicted("SATURN"):
-        s.support("saturn_stable", "சனி வலுவாக, அழுத்தமின்றி — குடியுரிமை/அனுமதி செயல்முறை சீராக.",
+        s.support("saturn_stable", "சனி வலுவாக, அழுத்தமின்றி — நிரந்தர குடியிருப்பு/அனுமதி செயல்முறை சீராக.",
                   "A strong, unafflicted Saturn favours a smooth residency/immigration process.")
     if r.benefic_hits(9):
         s.support("ninth_benefic", "9ஆம் வீடு சுப ஆதரவில்.",
@@ -1548,7 +1548,7 @@ def eval_pr_immigration_prospects(r: _Reader) -> Signals:
         s.caution("twelfth_afflicted", "12ஆம் அதிபதி அழுத்தத்தில் — ஆவண செயல்முறை நீடிக்கலாம்.",
                   "The 12th lord is pressured — paperwork and process may take longer than hoped.")
     if r.dasha_touches({"SATURN", "RAHU", ninth_lord, twelfth_lord}):
-        s.window = BiText("சனி/ராகு/9-12 அதிபதி தசை — குடியுரிமை முயற்சிக்கு நல்ல காலம்.",
+        s.window = BiText("சனி/ராகு/9-12 அதிபதி தசை — நிரந்தர குடியிருப்பு முயற்சிக்கு நல்ல காலம்.",
                           "A Saturn/Rahu/9th-12th-lord period favours an immigration attempt now.")
     s.help("ஆவணங்களை முழுமையாக தயார் செய்து, செயல்முறை காலத்தில் பொறுமையாக இருங்கள்.",
            "Prepare documentation thoroughly and stay patient through the process timeline.")

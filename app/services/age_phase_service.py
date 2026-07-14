@@ -118,7 +118,7 @@ def get_age_based_practical_guidance(
         ta += [
             "கல்வி மற்றும் திறன் அடிப்படை இப்போது முதன்மை கவனம்.",
             "இப்போது செய்யும் உடல் ஆரோக்கிய முயற்சிகள் அடுத்த இரண்டு தசாப்தங்களில் பலன் தரும்.",
-            "நீண்ட கால கட்டுப்பாடுகளை இப்போது தவிர்க்கவும் — இது ஆராய்ச்சி காலம்.",
+            "நீண்ட கால உறுதிமொழிகளை இப்போது தவிர்க்கவும் — இது கண்டறியும் காலம்.",
         ]
     elif current_age < 24:
         en += [
@@ -128,7 +128,7 @@ def get_age_based_practical_guidance(
         ]
         ta += [
             "தொழில் அடிப்படையும் கல்வி முடிப்பும் மையக் கவனம்.",
-            "நீண்ட கால உறவுகளை கவனமாக மதிப்பிடவும் — அவசர கட்டுப்பாடுகளை தவிர்க்கவும்.",
+            "நீண்ட கால உறவுகளை கவனமாக மதிப்பிடவும் — அவசர முடிவுகளைத் தவிர்க்கவும்.",
             "இப்போதே நிதி பழக்கங்களை உருவாக்கவும்: சிறிய, தொடர்ந்த சேமிப்பு வளரும்.",
         ]
     elif current_age < 30:
@@ -139,8 +139,8 @@ def get_age_based_practical_guidance(
         ]
         ta += [
             "இது தொழில் தொடக்கத்திற்கான முக்கியமான காலம் — திறன் மேம்பாடு மற்றும் புலப்படுவதை முன்னுரிமை கொடுங்கள்.",
-            "திருமண வாய்ப்புகளை பகிர்ந்த மதிப்புகள் மற்றும் வாழ்க்கை இலக்குகள் உட்பட முழுமையாக மதிப்பிடவும்.",
-            "திட்டமிட்ட நிதி திட்டமிடலை தொடங்கவும்; இந்த காலத்தில் ஊகமான முதலீடுகளை தவிர்க்கவும்.",
+            "திருமண வாய்ப்புகளை ஒத்த மதிப்புகள் மற்றும் வாழ்க்கை இலக்குகள் உட்பட முழுமையாக மதிப்பிடவும்.",
+            "முறையான நிதித் திட்டமிடலைத் தொடங்கவும்; இந்த காலத்தில் ஊகமான முதலீடுகளைத் தவிர்க்கவும்.",
         ]
     elif current_age < 40:
         en += [
@@ -164,8 +164,8 @@ def get_age_based_practical_guidance(
         ]
         ta += [
             "உச்ச தொழில் காலம் — இப்போது மூலோபாய முடிவுகள் நீண்ட கால தொழில் மரபை தீர்மானிக்கின்றன.",
-            "இந்த காலத்தில் ஊக வளர்ச்சியை விட செல்வம் ஒருங்கிணைப்பு அதிக முக்கியம்.",
-            "குழந்தைகளின் உயர்கல்வியும் குடியேற்றமும் செயலில் உள்ள முன்னுரிமை.",
+            "இந்த காலத்தில் தீவிர வளர்ச்சியை விட செல்வத்தைத் திரட்டிப் பாதுகாப்பது அதிக முக்கியம்.",
+            "குழந்தைகளின் உயர்கல்வியும் வாழ்க்கை நிலைப்பாடும் செயலில் உள்ள முன்னுரிமை.",
             "தடுப்பு உடல்நல பரிசோதனைகள் அவசியமாகின்றன — அவற்றை தள்ளி வைக்காதீர்கள்.",
         ]
     elif current_age < 60:
@@ -178,7 +178,7 @@ def get_age_based_practical_guidance(
         ta += [
             "திரட்டப்பட்ட செல்வத்தை பாதுகாப்பது மற்றும் ஒழுங்கமைப்பது மையமான நிதி பணி.",
             "ஆரோக்கியத்திற்கு முன்னோக்கிய கவனம் தேவை — வழக்கமான பரிசோதனைகளும் வாழ்க்கை முறை ஒழுக்கமும்.",
-            "ஆன்மீக மற்றும் தர்ம நடைமுறைகள் இயற்கையாகவே ஆழமடைகின்றன — அவற்றில் முதலீடு செய்ய இது நல்ல நேரம்.",
+            "ஆன்மீக மற்றும் தர்ம நடைமுறைகள் இயற்கையாகவே ஆழமடைகின்றன — அவற்றில் ஈடுபட இது நல்ல காலம்.",
             "குழந்தைகளின் வாழ்க்கை மாற்றங்களை (திருமணம், தொழில்) ஆதரிப்பது செயலில் உள்ள கவனம்.",
         ]
     else:
@@ -192,7 +192,7 @@ def get_age_based_practical_guidance(
             "ஆரோக்கிய பாதுகாப்பும் தினசரி வழக்கமான நிலைத்தன்மையும் முதன்மை கவனம்.",
             "ஆன்மீக நடைமுறையும் குடும்ப மரபுடன் தொடர்பும் இப்போது ஆழமான திருப்தியை தருகின்றன.",
             "நிதி மேலாண்மை பொறுப்புகளை அடுத்த தலைமுறைக்கு ஒப்படைப்பது புத்திசாலித்தனம்.",
-            "சமூக தொடர்பு மற்றும் நோக்கத்தை பராமரிப்பது தனிமைப்படுத்தலை தடுக்கிறது மற்றும் நலன்புரிவை ஆதரிக்கிறது.",
+            "சமூக தொடர்பையும் நோக்கத்தையும் பராமரிப்பது தனிமையைத் தடுக்கிறது, நல்வாழ்வை ஆதரிக்கிறது.",
         ]
 
     # Dasha-specific overlay
@@ -239,11 +239,11 @@ def _add_dasha_guidance(en: list[str], ta: list[str], mahadasha: str, antardasha
         ),
         "RAHU": (
             "Rahu Mahadasha brings ambitious drives and unconventional paths — focus and discernment are crucial.",
-            "ராகு மகாதசை ஆர்வமிக்க இயக்கங்களையும் வழக்கத்திற்கு மாறான பாதைகளையும் கொண்டுவருகிறது — கவனம் மற்றும் நுண்ணறிவு முக்கியம்.",
+            "ராகு மகாதசை பேராசையான உந்துதல்களையும் வழக்கத்திற்கு மாறான பாதைகளையும் கொண்டுவருகிறது — கவனமும் விவேகமும் முக்கியம்.",
         ),
         "KETU": (
             "Ketu Mahadasha fosters detachment, spiritual insight, and completion of past karma.",
-            "கேது மகாதசை பிரிவு, ஆன்மீக நுண்ணறிவு மற்றும் கடந்த கால கர்மத்தின் நிறைவை வளர்க்கிறது.",
+            "கேது மகாதசை பற்றின்மை, ஆன்மீக நுண்ணறிவு மற்றும் கடந்த கால கர்மத்தின் நிறைவை வளர்க்கிறது.",
         ),
     }
     if mahadasha in dasha_notes:
@@ -264,7 +264,7 @@ def _add_gender_guidance(en: list[str], ta: list[str], gender: str | None, curre
     elif 35 <= current_age < 50:
         if gender == "female":
             en.append("Children's education and settlement often move up in priority alongside career-peak responsibilities during this phase.")
-            ta.append("இந்த பருவத்தில் தொழில் உச்ச பொறுப்புகளுடன் குழந்தைகளின் கல்வியும் குடியேற்றமும் முன்னுரிமையில் முன்னேறுவது வழக்கம்.")
+            ta.append("இந்த பருவத்தில் தொழில் உச்ச பொறுப்புகளுடன் குழந்தைகளின் கல்வியும் வாழ்க்கை நிலைப்பாடும் முன்னுரிமையில் முன்னேறுவது வழக்கம்.")
         else:
             en.append("This is typically framed as the primary provider-and-legacy building phase — wealth and property decisions carry long-term weight.")
             ta.append("இது பொதுவாக முதன்மை பொறுப்பாளர் மற்றும் மரபு கட்டியெழுப்பும் பருவமாக கருதப்படுகிறது — செல்வம் மற்றும் சொத்து முடிவுகள் நீண்ட கால முக்கியத்துவம் கொண்டவை.")
@@ -288,7 +288,7 @@ def _add_planet_strength_guidance(
         ta.append("பலவீனமான சனி கடமைகள் மற்றும் நீண்ட கால திட்டமிடலில் கூடுதல் ஒழுக்கம் தேவை என்பதை குறிக்கிறது.")
     if "MARS" in weak_planets:
         en.append("Weak Mars calls for measured action — avoid impulsive decisions and physical overexertion.")
-        ta.append("பலவீனமான செவ்வாய் கண்ணளவிய செயல்பாட்டை கோருகிறது — தன்னிச்சையான முடிவுகள் மற்றும் உடல் அதிக உழைப்பை தவிர்க்கவும்.")
+        ta.append("பலவீனமான செவ்வாய் அளவான செயல்பாட்டைக் கோருகிறது — தன்னிச்சையான முடிவுகளையும் உடல் அதிக உழைப்பையும் தவிர்க்கவும்.")
 
 
 # Return age-appropriate optional remedies (not generic).
@@ -318,8 +318,8 @@ def get_age_based_remedies(
     # Dasha-specific remedy
     dasha_remedies: dict[str, tuple[str, str]] = {
         "SUN": ("Offer water (arghya) to the rising Sun on Sundays.", "ஞாயிற்றுக்கிழமைகளில் உதய சூரியனுக்கு அர்க்கியம் செலுத்தவும்."),
-        "MOON": ("Fasting (only if your health permits) or simple sattvic food on Mondays and offering milk to Shiva/Goddess.", "திங்கட்கிழமைகளில் விரதம் (உடல்நலம் இடம் தந்தால்) அல்லது சாத்வீக உணவு மற்றும் சிவன்/தேவிக்கு பால் படைத்தல்."),
-        "MARS": ("Hanuman puja on Tuesdays and reciting Anjaneya stotra supports Mars.", "செவ்வாய்க்கிழமைகளில் ஆஞ்சநேய பூஜை மற்றும் அஞ்சநேய ஸ்தோத்திரம் செவ்வாயை ஆதரிக்கும்."),
+        "MOON": ("Fasting (only if your health permits) or simple sattvic food on Mondays and offering milk to Shiva/Goddess.", "திங்கட்கிழமைகளில் விரதம் (உடல்நிலை அனுமதித்தால்) அல்லது சாத்வீக உணவு மற்றும் சிவன்/தேவிக்கு பால் படைத்தல்."),
+        "MARS": ("Hanuman puja on Tuesdays and reciting Anjaneya stotra supports Mars.", "செவ்வாய்க்கிழமைகளில் ஆஞ்சநேயர் பூஜை மற்றும் ஆஞ்சநேய ஸ்தோத்திரம் செவ்வாயை ஆதரிக்கும்."),
         "MERCURY": ("Reciting Vishnu sahasranamam on Wednesdays supports Mercury.", "புதன்கிழமைகளில் விஷ்ணு சஹஸ்ரநாமம் புதனை ஆதரிக்கும்."),
         "JUPITER": ("Guru puja on Thursdays and reading Devi Bhagavatam or Guru stotram.", "வியாழக்கிழமைகளில் குரு பூஜை மற்றும் தேவி பாகவதம் அல்லது குரு ஸ்தோத்திரம் படிக்கவும்."),
         "VENUS": ("Lakshmi puja on Fridays and offering white flowers to the Goddess.", "வெள்ளிக்கிழமைகளில் லட்சுமி பூஜை மற்றும் தேவிக்கு வெள்ளை பூக்கள் படைத்தல்."),
@@ -336,7 +336,7 @@ def get_age_based_remedies(
         planet_remedies: dict[str, tuple[str, str]] = {
             "SUN": ("Offer water to the Sun at sunrise to strengthen solar energy in the chart.", "ஜாதகத்தில் சூரிய சக்தியை வலுப்படுத்த சூரிய உதயத்தில் நீர் அர்ப்பணிக்கவும்."),
             "MOON": ("White or silver objects, milk offerings on Mondays support Moon.", "வெள்ளை அல்லது வெள்ளி பொருட்கள், திங்கட்கிழமைகளில் பால் படைத்தல் சந்திரனை ஆதரிக்கும்."),
-            "MARS": ("Coral gemstone (in silver/gold, after proper muhurtha) may strengthen Mars.", "மூங்கில் மவுல் (சரியான முகூர்த்தத்திற்கு பின் வெள்ளி/தங்கத்தில்) செவ்வாயை வலுப்படுத்தலாம்."),
+            "MARS": ("Coral gemstone (in silver/gold, after proper muhurtha) may strengthen Mars.", "பவளக் கல் (சரியான முகூர்த்தத்திற்குப் பின் வெள்ளி/தங்கத்தில்) செவ்வாயை வலுப்படுத்தலாம்."),
             "MERCURY": ("Green moong dal offering on Wednesdays supports Mercury.", "புதன்கிழமைகளில் பச்சை பாசிப்பருப்பு படைத்தல் புதனை ஆதரிக்கும்."),
             "JUPITER": ("Yellow sapphire or yellow topaz (after consultation) supports Jupiter.", "மஞ்சள் நீலம் அல்லது மஞ்சள் புஷ்பராகம் (ஆலோசனையின் பின்) குருவை ஆதரிக்கும்."),
             "VENUS": ("White sapphire or diamond (after proper consultation) strengthens Venus.", "வெள்ளை நீலம் அல்லது வைரம் (சரியான ஆலோசனையின் பின்) சுக்கிரனை வலுப்படுத்தும்."),
@@ -455,7 +455,7 @@ def build_year_guidance(
         ),
         "MARS": (
             "Mars drives action and initiative this year — ideal for new ventures, property decisions, and physical health goals. Channel energy without aggression.",
-            "செவ்வாய் இந்த ஆண்டு செயல் மற்றும் முன்முயற்சியை ஊக்குவிக்கிறது — புதிய முயற்சிகள், சொத்து முடிவுகள் மற்றும் உடல் ஆரோக்கிய இலக்குகளுக்கு சிறந்தது. ஆக்கிரமிப்பு இல்லாமல் சக்தியை வழிப்படுத்தவும்.",
+            "செவ்வாய் இந்த ஆண்டு செயல் மற்றும் முன்முயற்சியை ஊக்குவிக்கிறது — புதிய முயற்சிகள், சொத்து முடிவுகள் மற்றும் உடல் ஆரோக்கிய இலக்குகளுக்கு சிறந்தது. ஆக்ரோஷம் இல்லாமல் சக்தியை வழிப்படுத்தவும்.",
         ),
         "MERCURY": (
             "Mercury year favours communication, business deals, writing, and intellectual work. Sharpen clarity in agreements and avoid verbal misunderstandings.",
@@ -467,7 +467,7 @@ def build_year_guidance(
         ),
         "VENUS": (
             "Venus year supports relationship harmony, creative pursuits, beauty, and material comfort. Be discerning in financial indulgences.",
-            "சுக்கிர ஆண்டு உறவு நல்லிணக்கம், படைப்பாற்றல் நடவடிக்கைகள், அழகு மற்றும் பொருள் ஆறுதலை ஆதரிக்கிறது. நிதி அனுபவங்களில் நுண்ணறிவுடன் இருக்கவும்.",
+            "சுக்கிர ஆண்டு உறவு நல்லிணக்கம், படைப்பாற்றல் நடவடிக்கைகள், அழகு மற்றும் பொருள் ஆறுதலை ஆதரிக்கிறது. நிதி ஆடம்பரங்களில் நுண்ணறிவுடன் இருக்கவும்.",
         ),
         "SATURN": (
             "Saturn demands disciplined, patient, sustained effort this year. Shortcuts and careless decisions will create long-lasting complications. Build carefully.",
@@ -475,11 +475,11 @@ def build_year_guidance(
         ),
         "RAHU": (
             "Rahu year brings ambition and disruption in equal measure. Unconventional opportunities arise but require careful discrimination. Focus your intent precisely.",
-            "ராகு ஆண்டு சம அளவில் ஆர்வமும் குழப்பமும் கொண்டுவருகிறது. வழக்கத்திற்கு மாறான வாய்ப்புகள் எழுகின்றன ஆனால் கவனமான பகுத்தறிவு தேவை. உங்கள் நோக்கத்தை துல்லியமாக கவனமாக வைக்கவும்.",
+            "ராகு ஆண்டு சம அளவில் ஆர்வமும் குழப்பமும் கொண்டுவருகிறது. வழக்கத்திற்கு மாறான வாய்ப்புகள் எழுகின்றன ஆனால் கவனமான விவேகம் தேவை. உங்கள் நோக்கத்தைத் துல்லியமாகக் கவனமாக வைக்கவும்.",
         ),
         "KETU": (
             "Ketu year fosters spiritual depth, letting go, and completion of long-standing matters. Avoid starting many new initiatives — this is a year of completion.",
-            "கேது ஆண்டு ஆன்மீக ஆழம், விட்டுக்கொடுத்தல் மற்றும் நீண்ட காலமாக உள்ள விஷயங்களை முடிப்பதை வளர்க்கிறது. பல புதிய முயற்சிகளை தொடங்குவதை தவிர்க்கவும் — இது நிறைவு ஆண்டு.",
+            "கேது ஆண்டு ஆன்மீக ஆழம், கைவிடுதல் மற்றும் நீண்ட காலமாக உள்ள விஷயங்களை முடிப்பதை வளர்க்கிறது. பல புதிய முயற்சிகளை தொடங்குவதை தவிர்க்கவும் — இது நிறைவு ஆண்டு.",
         ),
     }
 
@@ -492,10 +492,10 @@ def build_year_guidance(
     # Age-phase modifier
     if current_age < 25:
         suffix_en = " At this life stage, prioritise learning and avoid locking in irreversible commitments."
-        suffix_ta = " இந்த வாழ்க்கை நிலையில், கற்றலை முன்னுரிமை கொடுங்கள் மற்றும் திரும்ப முடியாத கடமைகளை தவிர்க்கவும்."
+        suffix_ta = " இந்த வாழ்க்கை நிலையில், கற்றலை முன்னுரிமை கொடுங்கள் மற்றும் திரும்ப முடியாத உறுதிமொழிகளைத் தவிர்க்கவும்."
     elif current_age < 45:
         suffix_en = " In this building phase, use the dasha energy to consolidate career and family foundations."
-        suffix_ta = " இந்த கட்டுமான காலத்தில், தொழில் மற்றும் குடும்ப அடித்தளங்களை ஒருங்கிணைக்க தசை சக்தியை பயன்படுத்தவும்."
+        suffix_ta = " இந்த கட்டுமான காலத்தில், தொழில் மற்றும் குடும்ப அடித்தளங்களை ஒருங்கிணைக்க தசா சக்தியைப் பயன்படுத்தவும்."
     else:
         suffix_en = " In this mature phase, prioritise quality over quantity in all decisions."
         suffix_ta = " இந்த முதிர்ச்சி காலத்தில், அனைத்து முடிவுகளிலும் அளவை விட தரத்தை முன்னுரிமை கொடுங்கள்."
