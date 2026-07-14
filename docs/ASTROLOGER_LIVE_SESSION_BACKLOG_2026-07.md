@@ -761,9 +761,44 @@ so omitting Abhijit is correct *for that tradition*. Display-only, never scored,
 choice is disclosed not load-bearing. Corrected the module docstring (it had framed the
 interior as merely "pending JHora"; it is now stated as a deliberate tradition choice with
 the exact divergent cells) and added `test_nak_lord_keeps_raman_v1_not_bphs_santhanam_v2`
-to trip loudly if anyone silently flips to the BPHS reading. **EC-6 fully closed.** (One
-optional follow-up remains genuinely open, unchanged: applicability-gating on Rahu-vs-
-lagna-lord — a separate product call, not a table-correctness question.)
+to trip loudly if anyone silently flips to the BPHS reading. **EC-6 fully closed.**
+
+**Applicability follow-up RESOLVED (2026-07-15, full ownership):** ✅ The last open
+sub-item — applicability-gating on Rahu-vs-lagna-lord — is now closed as an **informational
+verdict**, not a hard gate. Web-sourced the classical rule (BPHS Ch. 47 / Satyori /
+astrosutras.in): PRIMARY = Rahu in a kendra (1/4/7/10) or trikona (5/9) **from the lagna
+lord**, excepting Rahu in the lagna itself (relative-house set {1,4,5,7,9,10}); SECONDARY
+(disputed as co-requirement vs. alternate path) = day-birth+Krishna OR night-birth+Shukla.
+**Decision:** don't hard-gate — hiding the system for ~75% of charts on a *contested*
+reading is the wrong call for a display-only, never-scored secondary dasha. Instead mirror
+the sibling conditional-dasha selector: `evaluate_ashtottari_applicability` returns the
+PRIMARY positional rule as the definitive `applicable` boolean, and surfaces the SECONDARY
+paksha condition **separately** (`paksha_supports`) so it strengthens rather than negates.
+Wired end-to-end: calculations (`ashtottari_dasha.py`) → service (reuses the now-public
+`derive_day_night_birth` from `conditional_dashas_service`) → shared type
+(`AshtottariDashaApplicability`, optional) → web panel (Applies/Does-not-apply/Needs-review
+chip + rule text) + mobile parity note. 6 new golden tests (`test_ashtottari_dasha.py`,
+16 pass); web+shared tsc/eslint clean. Also fixed stale "Krittikadi" → "Ardra-adi" comments
+on the shared/web/mobile Ashtottari surfaces. **EC-6 now has zero open sub-items.**
+
+**Astrologer review of this follow-up (2026-07-15) — 3 refinements applied, wording pinned:**
+- **Frame-conflation trap (the one real code risk):** confirmed the qualifying test and the
+  exception run in *different reference frames* — qualifying = Rahu's house counted FROM the
+  lagnesha in {1,4,5,7,9,10}; exception = Rahu's ABSOLUTE house == 1. "1st from the lagnesha"
+  (Rahu conjunct lagnesha) qualifies; "Rahu in the ascendant" excepts — different cells
+  whenever the lagnesha isn't in the 1st. Added discriminating golden
+  `test_applicability_exception_and_qualifier_use_different_frames` (lagnesha in 5th, Rahu in
+  ascendant -> Rahu is 9th/trikona from lagnesha yet excepted -> False; + control where the
+  same relative geometry with Rahu NOT in the 1st -> True). Locks the frames apart.
+- **Paksha honesty (applying the A-9 lesson):** demoting paksha to `paksha_supports` is the
+  alternate-path/non-binding tradition choice, not neutral. `paksha_supports=False` now reads
+  (web + mobile) "some traditions require this as a co-condition; treated as supportive only
+  here, so it does not change the verdict above". If ever scored/gated, promote to the
+  `nadi_parihara_mode` mode-flag pattern.
+- **No universality overclaim:** rule copy now says "the most widely accepted of several
+  applicability traditions", not "the classical rule". Source wording pinned (Satyori verbatim:
+  kendra/trikona "reckoned from the lord of the lagna ... with Rahu in the lagna itself usually
+  excepted"; paksha "a second stream ... not a requirement"; "genuinely disputed"). 19 tests green.
 
 ---
 

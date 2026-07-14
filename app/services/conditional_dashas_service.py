@@ -37,7 +37,7 @@ from app.services.location_service import local_midnight_as_jd_for_profile
 logger = logging.getLogger(__name__)
 
 
-def _derive_day_night_birth(data, sun_house: int | None) -> tuple[bool | None, bool]:
+def derive_day_night_birth(data, sun_house: int | None) -> tuple[bool | None, bool]:
     """Return (is_day_birth, is_approximate) for the birth moment.
 
     Precise path (EC-5.2): a day birth is one where the birth instant falls
@@ -140,7 +140,7 @@ def build_conditional_dashas_response(session: Session, chart_id: UUID, as_of: d
     # approximation (Sun in houses 7-12 = above the horizon) only when the
     # ephemeris rise/set can't be resolved — `is_day_birth_approximate` says which.
     sun_house = planet_house.get("SUN")
-    is_day_birth, is_day_birth_approximate = _derive_day_night_birth(data, sun_house)
+    is_day_birth, is_day_birth_approximate = derive_day_night_birth(data, sun_house)
 
     applicability = evaluate_applicability(
         lagna_rasi=lagna_rasi,

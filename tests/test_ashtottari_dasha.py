@@ -13,6 +13,7 @@ from app.calculations.ashtottari_dasha import (
     TOTAL_CYCLE_YEARS,
     calculate_ashtottari_timeline,
     calculate_opening_ashtottari,
+    evaluate_ashtottari_applicability,
     _sequence_from,
 )
 
@@ -138,3 +139,117 @@ def test_mahadasha_sequence_wraps_in_fixed_order_after_opening() -> None:
     # A cyclic 8-lord sequence repeating forever: cycle 2 reproduces the
     # exact same relative order as cycle 1.
     assert [p.lord for p in timeline.mahadashas[8:16]] == lords
+
+
+# --- Applicability (informational; EC-6 resolution 2026-07-15) ----------------
+# Primary rule: Rahu in a kendra (1/4/7/10) or trikona (5/9) FROM THE LAGNA LORD,
+# excepting Rahu placed in the lagna itself. Aries lagna -> lagna lord Mars.
+
+
+def test_applicability_true_when_rahu_kendra_from_lagna_lord() -> None:
+    # Mars (Aries lord) in house 1; Rahu in house 4 -> 4th from the lagna lord
+    # (a kendra), and Rahu is not in the lagna. -> applies.
+    result = evaluate_ashtottari_applicability(
+        lagna_rasi=1,
+        planet_house={"MARS": 1, "RAHU": 4},
+        paksha=None,
+        is_day_birth=None,
+    )
+    assert result.applicable is True
+    assert "house 4" in result.reason
+
+
+def test_applicability_true_when_rahu_trikona_from_lagna_lord() -> None:
+    # Rahu in house 5 -> 5th (trikona) from the lagna lord in house 1.
+    result = evaluate_ashtottari_applicability(
+        lagna_rasi=1,
+        planet_house={"MARS": 1, "RAHU": 5},
+        paksha=None,
+        is_day_birth=None,
+    )
+    assert result.applicable is True
+
+
+def test_applicability_false_when_rahu_not_kendra_trikona() -> None:
+    # Rahu in house 3 -> 3rd from the lagna lord: neither kendra nor trikona.
+    result = evaluate_ashtottari_applicability(
+        lagna_rasi=1,
+        planet_house={"MARS": 1, "RAHU": 3},
+        paksha=None,
+        is_day_birth=None,
+    )
+    assert result.applicable is False
+
+
+def test_applicability_false_when_rahu_in_lagna_even_if_conjunct_lord() -> None:
+    # BPHS exception: Rahu in the lagna disqualifies the system, even though a
+    # naive count (Rahu conjunct the lagna lord in house 1 -> 1st) would pass.
+    result = evaluate_ashtottari_applicability(
+        lagna_rasi=1,
+        planet_house={"MARS": 1, "RAHU": 1},
+        paksha=None,
+        is_day_birth=None,
+    )
+    assert result.applicable is False
+    assert "lagna" in result.reason.lower()
+
+
+def test_applicability_exception_and_qualifier_use_different_frames() -> None:
+    # The frame-conflation trap: with the lagna lord in the 5th and Rahu in the
+    # ascendant, Rahu is 9th FROM THE LAGNA LORD -> a trikona, which the
+    # QUALIFYING test (relative frame) would pass. But the EXCEPTION test is in the
+    # ABSOLUTE frame (Rahu's house == 1 = Rahu in the lagna), and it must win. If
+    # the two tests were ever collapsed into one reference frame, this flips to
+    # True and the bug ships. Exception is checked first, so the verdict is False.
+    result = evaluate_ashtottari_applicability(
+        lagna_rasi=1,  # Aries -> lagna lord Mars
+        planet_house={"MARS": 5, "RAHU": 1},
+        paksha=None,
+        is_day_birth=None,
+    )
+    assert result.applicable is False
+    assert "lagna" in result.reason.lower()
+
+    # Control: same relative geometry (Rahu 9th from the lagnesha) but Rahu NOT in
+    # the ascendant -> the exception does not fire and the qualifier passes.
+    control = evaluate_ashtottari_applicability(
+        lagna_rasi=1,
+        planet_house={"MARS": 8, "RAHU": 4},  # (4 - 8) % 12 + 1 = 9 -> trikona
+        paksha=None,
+        is_day_birth=None,
+    )
+    assert control.applicable is True
+
+
+def test_applicability_indeterminate_when_rahu_missing() -> None:
+    result = evaluate_ashtottari_applicability(
+        lagna_rasi=1,
+        planet_house={"MARS": 1},
+        paksha="SHUKLA",
+        is_day_birth=False,
+    )
+    assert result.applicable is None
+
+
+def test_applicability_paksha_secondary_is_separate_from_primary() -> None:
+    # Night birth in Shukla Paksha supports the secondary condition; day birth in
+    # Shukla does not. Either way the secondary is reported independently of the
+    # (here indeterminate) positional verdict, never folded into it.
+    supports = evaluate_ashtottari_applicability(
+        lagna_rasi=1, planet_house={"MARS": 1, "RAHU": 4},
+        paksha="SHUKLA", is_day_birth=False,
+    )
+    assert supports.applicable is True
+    assert supports.paksha_supports is True
+
+    no_support = evaluate_ashtottari_applicability(
+        lagna_rasi=1, planet_house={"MARS": 1, "RAHU": 4},
+        paksha="SHUKLA", is_day_birth=True,
+    )
+    assert no_support.paksha_supports is False
+
+    unknown = evaluate_ashtottari_applicability(
+        lagna_rasi=1, planet_house={"MARS": 1, "RAHU": 4},
+        paksha=None, is_day_birth=None,
+    )
+    assert unknown.paksha_supports is None

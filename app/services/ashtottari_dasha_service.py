@@ -15,9 +15,12 @@ from sqlalchemy.orm import Session
 from app.calculations.ashtottari_dasha import (
     ASHTOTTARI_YEARS,
     calculate_ashtottari_timeline,
+    evaluate_ashtottari_applicability,
 )
+from app.calculations.astro import normalize_longitude
 from app.calculations.dasha import DashaPeriod
 from app.services.chart_service import load_persisted_chart_response
+from app.services.conditional_dashas_service import derive_day_night_birth
 from app.services.location_service import local_midnight_as_jd_for_profile
 
 
@@ -36,14 +39,31 @@ def build_ashtottari_dasha_response(session: Session, chart_id: UUID, as_of: dat
     if as_of is None:
         as_of = date.today()
 
-    moon = next(planet for planet in chart_snapshot.data.planets if planet.graha == "MOON")
-    birth_jd = chart_snapshot.data.julian_day
-    as_of_jd = local_midnight_as_jd_for_profile(as_of, chart_snapshot.data.birth_profile)
+    data = chart_snapshot.data
+    planets = {planet.graha: planet for planet in data.planets}
+    moon = planets["MOON"]
+    sun = planets["SUN"]
+    birth_jd = data.julian_day
+    as_of_jd = local_midnight_as_jd_for_profile(as_of, data.birth_profile)
 
     timeline = calculate_ashtottari_timeline(birth_jd, moon.absolute_longitude, as_of_jd)
 
+    # --- Informational applicability verdict (never gates the timeline; EC-6) ---
+    planet_house = {graha: p.house_from_lagna for graha, p in planets.items()}
+    # Paksha from Sun-Moon elongation (Shukla: waxing 0-180°, Krishna: 180-360°).
+    elongation = normalize_longitude(moon.absolute_longitude - sun.absolute_longitude)
+    paksha = "SHUKLA" if elongation < 180.0 else "KRISHNA"
+    is_day_birth, is_day_birth_approximate = derive_day_night_birth(data, planet_house.get("SUN"))
+
+    applicability = evaluate_ashtottari_applicability(
+        lagna_rasi=data.lagna.rasi,
+        planet_house=planet_house,
+        paksha=paksha,
+        is_day_birth=is_day_birth,
+    )
+
     return {
-        "chartId": str(chart_snapshot.data.chart_id),
+        "chartId": str(data.chart_id),
         "openingLord": {
             "lord": timeline.opening_lord,
             "balanceYearsAtBirth": round(timeline.balance_years_at_birth, 4),
@@ -54,4 +74,15 @@ def build_ashtottari_dasha_response(session: Session, chart_id: UUID, as_of: dat
         },
         "mahadashas": [_serialize_period(period) for period in timeline.mahadashas],
         "antardashas": [_serialize_period(period) for period in timeline.antardashas],
+        "applicability": {
+            "ruleEn": applicability.rule_en,
+            "ruleTa": applicability.rule_ta,
+            "applicable": applicability.applicable,
+            "reason": applicability.reason,
+            "paksha": paksha,
+            "isDayBirth": is_day_birth,
+            "isDayBirthApproximate": is_day_birth_approximate,
+            "pakshaSupports": applicability.paksha_supports,
+            "pakshaReason": applicability.paksha_reason,
+        },
     }

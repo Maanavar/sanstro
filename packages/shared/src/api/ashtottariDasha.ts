@@ -3,8 +3,8 @@ import { getApiClient } from "./client";
 /**
  * Ashtottari Dasha — 108-year secondary/comparison dasha (8 lords, no
  * Ketu). See app/calculations/ashtottari_dasha.py for the documented
- * Krittikadi nakshatra-lord convention this project uses, and its noted
- * uncertainty. Backend: GET /charts/{id}/ashtottari-dasha
+ * Ardra-adi (B.V. Raman / Jataka Parijata) nakshatra-lord convention this
+ * project uses. Backend: GET /charts/{id}/ashtottari-dasha
  * (app/services/ashtottari_dasha_service.py).
  */
 export interface AshtottariDashaPeriod {
@@ -13,6 +13,24 @@ export interface AshtottariDashaPeriod {
   years: number;
   startDate: string;
   endDate: string;
+}
+
+/**
+ * Informational classical-applicability verdict — never hides the timeline.
+ * `applicable` is the primary positional rule (Rahu kendra/trikona from the
+ * lagna lord, Rahu not in lagna); `pakshaSupports` is the disputed secondary
+ * day/night+paksha condition, surfaced separately. `null` = indeterminate.
+ */
+export interface AshtottariDashaApplicability {
+  ruleEn: string;
+  ruleTa: string;
+  applicable: boolean | null;
+  reason: string;
+  paksha: "SHUKLA" | "KRISHNA";
+  isDayBirth: boolean | null;
+  isDayBirthApproximate: boolean;
+  pakshaSupports: boolean | null;
+  pakshaReason: string;
 }
 
 export interface AshtottariDashaData {
@@ -27,6 +45,7 @@ export interface AshtottariDashaData {
   };
   mahadashas: AshtottariDashaPeriod[];
   antardashas: AshtottariDashaPeriod[];
+  applicability?: AshtottariDashaApplicability;
 }
 
 export const ashtottariDashaKeys = {

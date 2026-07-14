@@ -54,17 +54,49 @@ secondary dasha and never feeds scoring, so the tradition choice is disclosed, n
 load-bearing. The v1 partition + anchors are locked by tests/test_ashtottari_dasha.py.
 
 Product decision (per the Depth Expansion Plan's own recommendation): run
-unconditionally for every chart and label as a secondary/comparison dasha
-rather than implying classical applicability conditions (Rahu-kendra-from-
-lagna-lord, or day/night+paksha rules — sources disagree on which) have been
-evaluated. This sidesteps the applicability debate without hiding it.
-NOTE (EC-6 follow-up): the Ardra-adi grouping is classically *conditional* on
-Rahu's placement relative to the lagna lord; the reference recommends gating
-the whole system on applicability. That gate is deliberately still deferred
-here (unconditional, display-only) — flagged for a separate product call.
+unconditionally for every chart and label as a secondary/comparison dasha.
+The timeline is NEVER hidden or gated on classical applicability — those rules
+are disputed and this is display-only, non-load-bearing output.
+
+APPLICABILITY (EC-6 follow-up, resolved 2026-07-15 — full-ownership astrologer
+call): rather than either hard-gating (which would silently hide the system for
+~75% of charts on a *contested* reading) or leaving applicability unspoken, we
+surface it as an **informational verdict**, exactly the pattern the sibling
+conditional-dasha family already uses (`conditional_dashas.evaluate_applicability`
++ its web selector). `evaluate_ashtottari_applicability` below computes:
+
+  * PRIMARY (the `applicable` boolean): Rahu occupies a kendra (1/4/7/10) or
+    trikona (5/9) FROM THE LAGNA LORD, excepting Rahu placed in the lagna itself
+    (BPHS / Parashari). Union of qualifying relative houses = {1,4,5,7,9,10}.
+    This is the *dominant / most widely accepted* applicability doctrine, NOT the
+    only one — a few parampara-s trigger Ashtottari on entirely different grounds
+    (e.g. lagna in a Rahu nakshatra). For a definitive boolean we pick this one;
+    UI copy must say "most widely accepted", not claim universality.
+  * SECONDARY (`paksha_supports`, surfaced *separately*): day birth in Krishna
+    Paksha, OR night birth in Shukla Paksha. Sources genuinely dispute whether
+    this is a co-requirement, an alternate pathway, or a primary-plus-confirmation
+    pair. Reporting it separately and treating it as *supportive not gating* is
+    itself the alternate-path / non-binding reading — a deliberate tradition
+    choice (cf. the mode-flag pattern used for `nadi_parihara_mode`), not a
+    neutral "less strong". So `paksha_supports=False` must be surfaced as "some
+    traditions require this as a co-condition; this reading treats it as supportive
+    only", lest a strict practitioner see a green-ish verdict the engine internally
+    knows they'd reject. If this ever gets scored or gated, promote it to a mode
+    flag then. (Two conditions as a co-requirement classically qualify ~25% of
+    charts: paksha alone ~50%, the Rahu set 6/12 houses ~50%, intersection ~25%.)
+
+Two reference frames, easy to conflate (kept strictly separate below): the
+QUALIFYING test counts Rahu's house FROM the lagna lord's house; the EXCEPTION
+test is Rahu's ABSOLUTE house == 1. "1st from the lagnesha" (Rahu conjunct the
+lagnesha) qualifies; "Rahu in the ascendant" excepts — different cells whenever
+the lagnesha is not itself in the 1st. The exception is checked first so it wins.
+
+Sources: BPHS Ch. 47 (R. Santhanam); Satyori; astrosutras.in; corroborating
+practitioner notes — reviewed & wording-pinned 2026-07-15.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Final
 
@@ -109,6 +141,98 @@ NAK_LORD: Final[dict[int, str]] = {
 # 3 cycles (324 years) gives generous margin past any human lifespan for
 # _find_period to resolve a running Mahadasha at any as_of date.
 _MAHADASHA_CYCLES: Final[int] = 3
+
+# --- Applicability (informational only; see module docstring, EC-6) ----------
+# Kendra (1/4/7/10) ∪ trikona (1/5/9) relative houses, measured FROM the lagna
+# lord. The 1st is shared by both; the union is {1,4,5,7,9,10}.
+_KENDRA_TRIKONA: Final[frozenset[int]] = frozenset({1, 4, 5, 7, 9, 10})
+
+# Traditional 7-planet sign lordship; equals chart_strength.SIGN_LORD (kept
+# local so this leaf module stays free of the heavier chart_strength import,
+# matching conditional_dashas._SIGN_LORD).
+_SIGN_LORD: Final[dict[int, str]] = {
+    1: "MARS", 2: "VENUS", 3: "MERCURY", 4: "MOON", 5: "SUN", 6: "MERCURY",
+    7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
+}
+
+# Descriptive, and careful NOT to claim universality — this is the dominant, not
+# the only, applicability doctrine (a few parampara-s trigger differently).
+_RULE_EN: Final[str] = (
+    "Rahu in a kendra (1/4/7/10) or trikona (5/9) from the lagna lord, and not in "
+    "the lagna itself — the most widely accepted of several applicability traditions."
+)
+_RULE_TA: Final[str] = (
+    "ராகு லக்னாதிபதியிலிருந்து கேந்திரம் (1/4/7/10) அல்லது திரிகோணத்தில் (5/9), "
+    "லக்னத்தில் இல்லாமல் — பல பாரம்பரியங்களில் இதுவே பரவலாக ஏற்கப்பட்டது."
+)
+
+
+@dataclass(frozen=True, slots=True)
+class AshtottariApplicability:
+    """Informational classical-applicability verdict for Ashtottari.
+
+    NEVER gates whether the timeline renders (Ashtottari is unconditional,
+    display-only — see module docstring). `applicable` is the PRIMARY positional
+    rule (Rahu kendra/trikona from the lagna lord, Rahu not in lagna), the reading
+    every source agrees on. `paksha_supports` is the disputed SECONDARY condition,
+    reported separately so it strengthens rather than gates. `None` on either =
+    indeterminate (a required datum was missing).
+    """
+
+    applicable: bool | None
+    reason: str
+    rule_en: str
+    rule_ta: str
+    paksha_supports: bool | None
+    paksha_reason: str
+
+
+def evaluate_ashtottari_applicability(
+    *,
+    lagna_rasi: int,
+    planet_house: Mapping[str, int],
+    paksha: str | None,
+    is_day_birth: bool | None,
+) -> AshtottariApplicability:
+    """Classical applicability of Ashtottari for a chart (informational).
+
+    `planet_house` maps each graha to its house-from-lagna (1..12). `paksha` is
+    "SHUKLA"/"KRISHNA"; `is_day_birth` the (possibly approximate) day/night flag.
+    """
+    lagna_lord = _SIGN_LORD[lagna_rasi]
+    lagna_lord_house = planet_house.get(lagna_lord)
+    rahu_house = planet_house.get("RAHU")
+
+    if lagna_lord_house is None or rahu_house is None:
+        applicable: bool | None = None
+        reason = "Rahu or lagna-lord position unavailable"
+    elif rahu_house == 1:
+        # BPHS exception: Rahu in the lagna itself disqualifies the system.
+        applicable = False
+        reason = "Rahu is in the lagna (excepted)"
+    else:
+        relative_house = (rahu_house - lagna_lord_house) % 12 + 1
+        applicable = relative_house in _KENDRA_TRIKONA
+        reason = f"Rahu is house {relative_house} from the lagna lord ({lagna_lord.title()})"
+
+    if paksha is None or is_day_birth is None:
+        paksha_supports: bool | None = None
+        paksha_reason = "paksha / day-night not available"
+    else:
+        paksha_supports = (is_day_birth and paksha == "KRISHNA") or (
+            not is_day_birth and paksha == "SHUKLA"
+        )
+        day_word = "day" if is_day_birth else "night"
+        paksha_reason = f"{day_word} birth in {paksha.title()} Paksha"
+
+    return AshtottariApplicability(
+        applicable=applicable,
+        reason=reason,
+        rule_en=_RULE_EN,
+        rule_ta=_RULE_TA,
+        paksha_supports=paksha_supports,
+        paksha_reason=paksha_reason,
+    )
 
 
 @dataclass(frozen=True, slots=True)

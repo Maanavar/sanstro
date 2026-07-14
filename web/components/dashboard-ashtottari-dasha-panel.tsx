@@ -17,8 +17,8 @@ const W = {
 } as const;
 
 // Ashtottari Dasha — 108-year secondary/comparison dasha, 8 lords, no Ketu.
-// See app/calculations/ashtottari_dasha.py for the documented Krittikadi
-// nakshatra-lord convention this project uses, and its noted uncertainty.
+// See app/calculations/ashtottari_dasha.py for the documented Ardra-adi
+// (B.V. Raman / Jataka Parijata) nakshatra-lord convention this project uses.
 const LORD_LABEL: Record<string, { en: string; ta: string }> = {
   SUN: { en: "Sun", ta: "சூரியன்" },
   MOON: { en: "Moon", ta: "சந்திரன்" },
@@ -33,6 +33,37 @@ const LORD_LABEL: Record<string, { en: string; ta: string }> = {
 function lordName(lord: string, isTamil: boolean): string {
   const label = LORD_LABEL[lord];
   return isTamil ? label?.ta ?? lord : label?.en ?? lord;
+}
+
+// Applies / Does not apply / Needs review — informational, never hides the
+// timeline (parity with the conditional-dasha selector). See app/calculations/
+// ashtottari_dasha.py for the classical rule and why it is disclosed, not gated.
+function StatusChip({ applicable, lang }: { applicable: boolean | null; lang: Lang }) {
+  const isTamil = lang === "ta";
+  const config =
+    applicable === true
+      ? { label: isTamil ? "பொருந்தும்" : "Applies", bg: "var(--color-high-bg)", fg: "var(--color-high)", bd: "var(--color-high-border)" }
+      : applicable === false
+        ? { label: isTamil ? "பொருந்தாது" : "Does not apply", bg: "var(--color-surface-soft)", fg: "var(--color-muted)", bd: "var(--color-border)" }
+        : { label: isTamil ? "மதிப்பாய்வு தேவை" : "Needs review", bg: "var(--cl-sage-soft)", fg: "var(--color-text-strong)", bd: "var(--cl-sage-border)" };
+  return (
+    <span
+      style={{
+        fontSize: "0.625rem",
+        fontWeight: 700,
+        textTransform: "uppercase",
+        letterSpacing: "0.06em",
+        padding: "2px 8px",
+        borderRadius: "999px",
+        background: config.bg,
+        color: config.fg,
+        border: `1px solid ${config.bd}`,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {config.label}
+    </span>
+  );
 }
 
 type Props = {
@@ -90,6 +121,47 @@ export function AshtottariDashaPanel({ lang, chartId }: Props) {
       )}
       {data && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
+          {data.applicability && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "var(--space-1)",
+                padding: "var(--space-2) var(--space-3)",
+                borderRadius: "var(--radius-md)",
+                border: `1px solid ${W.borderLt}`,
+                background: "var(--color-surface-soft)",
+              }}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "0.6875rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  {isTamil ? "பாரம்பரிய பொருத்தம்" : "Classical applicability"}
+                </span>
+                <StatusChip applicable={data.applicability.applicable} lang={lang} />
+              </span>
+              <p style={{ margin: 0, fontSize: "0.7rem", color: W.muted, lineHeight: 1.5 }}>
+                {isTamil ? data.applicability.ruleTa : data.applicability.ruleEn}
+                {data.applicability.reason ? ` · ${data.applicability.reason}` : ""}
+              </p>
+              {data.applicability.pakshaSupports !== null && (
+                <p style={{ margin: 0, fontSize: "0.7rem", color: W.muted, lineHeight: 1.5 }}>
+                  {isTamil ? "இரண்டாம்நிலை (பக்ஷம்/பகல்-இரவு): " : "Secondary (paksha / day-night): "}
+                  {data.applicability.pakshaSupports ? (isTamil ? "ஆதரிக்கிறது" : "supports") : (isTamil ? "பூர்த்தியாகவில்லை" : "not met")}
+                  {data.applicability.pakshaReason ? ` · ${data.applicability.pakshaReason}` : ""}
+                  {data.applicability.isDayBirthApproximate ? (isTamil ? " (தோராயம்)" : " (approx.)") : ""}
+                  {/* Honesty on the tradition choice: paksha is disclosed as supportive, */}
+                  {/* not a gate. When unmet, say so plainly — some lineages require it. */}
+                  {!data.applicability.pakshaSupports && (
+                    <span>
+                      {isTamil
+                        ? " — சில பாரம்பரியங்களில் இது கட்டாய இணை-நிபந்தனை; இங்கு ஆதரவாக மட்டுமே கருதப்படுகிறது, மேலே உள்ள முடிவை மாற்றாது."
+                        : " — some traditions require this as a co-condition; this reading treats it as supportive only, so it does not change the verdict above."}
+                    </span>
+                  )}
+                </p>
+              )}
+            </div>
+          )}
           <div
             style={{
               display: "flex",

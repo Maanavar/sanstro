@@ -371,10 +371,11 @@ def get_ashtottari_dasha(
     current_user: User = Depends(get_current_user),
 ):
     """Ashtottari Dasha — 108-year secondary/comparison dasha (no Ketu, 8
-    lords). See ashtottari_dasha.py for the cited Krittikadi nakshatra-lord
-    convention and its documented uncertainty. Advanced/additive, display
-    only — not a replacement for the primary Vimshottari timeline, and not
-    used in any scoring path."""
+    lords). See ashtottari_dasha.py for the cited Ardra-adi (B.V. Raman /
+    Jataka Parijata) nakshatra-lord convention. The response also carries an
+    informational classical-applicability verdict (never gates the timeline).
+    Advanced/additive, display only — not a replacement for the primary
+    Vimshottari timeline, and not used in any scoring path."""
     _assert_chart_owner(session, chart_id, current_user)
     try:
         data = build_ashtottari_dasha_response(session, chart_id, as_of)

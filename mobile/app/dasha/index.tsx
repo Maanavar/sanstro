@@ -602,6 +602,36 @@ export default function DashaScreen() {
                   </Text>
                 </View>
               </View>
+              {ad.applicability && (
+                <View style={styles.applicabilityBox}>
+                  <Text style={[styles.applicabilityHead, isTamil ? TamilType.caption : EnType.caption]}>
+                    {isTamil ? "பாரம்பரிய பொருத்தம்: " : "Classical applicability: "}
+                    {ad.applicability.applicable === true
+                      ? (isTamil ? "பொருந்தும்" : "Applies")
+                      : ad.applicability.applicable === false
+                        ? (isTamil ? "பொருந்தாது" : "Does not apply")
+                        : (isTamil ? "மதிப்பாய்வு தேவை" : "Needs review")}
+                  </Text>
+                  <Text style={[styles.applicabilityBody, isTamil ? TamilType.caption : EnType.caption]}>
+                    {isTamil ? ad.applicability.ruleTa : ad.applicability.ruleEn}
+                    {ad.applicability.reason ? ` · ${ad.applicability.reason}` : ""}
+                  </Text>
+                  {ad.applicability.pakshaSupports !== null && (
+                    <Text style={[styles.applicabilityBody, isTamil ? TamilType.caption : EnType.caption]}>
+                      {isTamil ? "இரண்டாம்நிலை (பக்ஷம்/பகல்-இரவு): " : "Secondary (paksha / day-night): "}
+                      {ad.applicability.pakshaSupports
+                        ? (isTamil ? "ஆதரிக்கிறது" : "supports")
+                        : (isTamil ? "பூர்த்தியாகவில்லை" : "not met")}
+                      {ad.applicability.pakshaReason ? ` · ${ad.applicability.pakshaReason}` : ""}
+                      {!ad.applicability.pakshaSupports
+                        ? (isTamil
+                            ? " — சில பாரம்பரியங்களில் இது கட்டாய இணை-நிபந்தனை; இங்கு ஆதரவாக மட்டுமே கருதப்படுகிறது, மேலே உள்ள முடிவை மாற்றாது."
+                            : " — some traditions require this as a co-condition; treated as supportive only here, so it does not change the verdict above.")
+                        : ""}
+                    </Text>
+                  )}
+                </View>
+              )}
               <Text style={[styles.sectionTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
                 {isTamil ? "108 ஆண்டு அஷ்டோத்தரி தசை சுழற்சி" : "108-Year Ashtottari Dasha Cycle"}
               </Text>
@@ -748,6 +778,13 @@ function makeStyles(C: ColorTokens) {
   headerTitle: { color: C.textPrimary },
   list: { padding: S.base, gap: S.md, paddingBottom: S.xxl },
   sectionTitle: { color: C.textPrimary, marginTop: S.sm },
+  applicabilityBox: {
+    backgroundColor: C.surface, borderRadius: RADIUS.card,
+    padding: S.base, marginBottom: S.md, gap: S.xs,
+    borderWidth: 1, borderColor: C.divider,
+  },
+  applicabilityHead: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textPrimary },
+  applicabilityBody: { fontFamily: "Inter_400Regular", fontSize: 11, color: C.textTertiary, lineHeight: 16 },
   tabRow: {
     flexDirection: "row", gap: 0,
     borderBottomWidth: 1, borderBottomColor: C.divider,
