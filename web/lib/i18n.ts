@@ -240,6 +240,11 @@ const STRINGS = {
   flag_vakra:       { ta: "வக்ரம்",    en: "Retrograde" },
   flag_astam:       { ta: "அஸ்தம்",   en: "Combust" },
   flag_vargottamam: { ta: "வர்கோத்தமம்", en: "Vargottama" },
+  flag_cazimi:      { ta: "கசிமி",     en: "Cazimi" },
+
+  // ── Border Alert (birth-time junction conditions)
+  surface_border_alert: { ta: "எல்லை எச்சரிக்கை — பிறப்பு நுண் நிலைகள்", en: "Border Alert — birth-time conditions" },
+  border_alert_empty:   { ta: "இந்த ஜாதகத்தில் சிறப்பு எல்லை நிலைகள் எதுவும் இல்லை.", en: "No special junction conditions in this chart." },
 
   // ── Dasha surface
   surface_dasha:    { ta: "தசை · புக்தி · அந்தரம்", en: "Dasa · Bhukti · Antaram" },
@@ -984,6 +989,18 @@ const STRINGS = {
   toast_goal_added:        { ta: "இலக்கு சேர்க்கப்பட்டது",   en: "Goal saved" },
   toast_goal_removed:      { ta: "இலக்கு நீக்கப்பட்டது",     en: "Goal removed" },
 
+  // ── Toasts (family vault, %s = name)
+  toast_member_removed:    { ta: "%s நீக்கப்பட்டார்.",        en: "%s removed." },
+  toast_vault_deleted:     { ta: '"%s" சேகரிப்பு நீக்கப்பட்டது.', en: 'Vault "%s" deleted.' },
+
+  // ── Today tab: fail-soft retry chip (DASH-02) + reminder consent (DASH-06)
+  today_sections_failed:   { ta: "சில பகுதிகளை ஏற்ற முடியவில்லை.", en: "Some sections couldn't load." },
+  today_retry:             { ta: "மீண்டும் முயற்சி",              en: "Retry" },
+  reminder_pick_channel:   { ta: "முதலில் அறிவிப்பு வழியைத் தேர்ந்தெடுங்கள் — அமைப்புகள் திறக்கிறது.", en: "Choose how you'd like to be reminded — opening notification settings." },
+  reminder_channel_off:    { ta: "அறிவிப்புகள் அணைக்கப்பட்டுள்ளன. அமைப்புகள் → அறிவிப்புகளில் ஒரு வழியைத் தேர்ந்தெடுங்கள்.", en: "Notifications are off. Pick a channel in Settings → Notifications first." },
+  reminder_saved:          { ta: "காலை நினைவூட்டல் சேமிக்கப்பட்டது.", en: "Morning reminder saved." },
+  reminder_save_failed:    { ta: "சேமிக்க முடியவில்லை: %s",        en: "Could not save reminder: %s" },
+
   // ── Validation (date range)
   err_date_out_of_range:   { ta: "பிறந்த தேதி 1900 முதல் இன்றைய தேதிக்குள் இருக்க வேண்டும்.", en: "Birth date must be between 1900 and today." },
 
@@ -1187,8 +1204,8 @@ const SOOLAM_DIRECTION_NAMES: PanchangamNameMap = {
 const PARIGARAM_NAMES: PanchangamNameMap = {
   "வெல்லம்": { ta: "வெல்லம்", en: "Jaggery" },
   "தயிர்": { ta: "தயிர்", en: "Curd" },
-  "பால்": { ta: "பால்", en: "Milk" },
-  "எண்ணெய்": { ta: "எண்ணெய்", en: "Oil" },
+  "பசும்பால்": { ta: "பசும்பால்", en: "Fresh milk" },
+  "நல்லெண்ணெய்": { ta: "நல்லெண்ணெய்", en: "Sesame oil" },
 };
 
 const NETHIRAM_NAMES: PanchangamNameMap = {
@@ -1207,6 +1224,7 @@ const AMIRDHADHI_YOGAM_NAMES: PanchangamNameMap = {
   "அமிர்தயோகம்": { ta: "அமிர்தயோகம்", en: "Amirdha Yogam" },
   "சித்தயோகம்": { ta: "சித்தயோகம்", en: "Siddha Yogam" },
   "மரணயோகம்": { ta: "மரணயோகம்", en: "Marana Yogam" },
+  "பிரபலாரிஷ்ட யோகம்": { ta: "பிரபலாரிஷ்ட யோகம்", en: "Prabalarishta Yogam" },
 };
 
 // Moon phase arrives as "வளர்பிறை (Waxing)" / "தேய்பிறை (Waning)" — one string

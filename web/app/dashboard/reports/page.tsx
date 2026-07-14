@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { apiFetchJson } from "@/lib/api";
 import { LANG_STORAGE_KEY, type Lang } from "@/lib/i18n";
+import { purchaseReport } from "@vinaadi/shared/api/reports";
 import { PPU_REPORT_PRODUCTS, PPU_PORUTHAM_PRODUCTS, PPU_TOPUP_PRODUCTS } from "@vinaadi/shared/constants/tiers";
 
 type Section = { heading: { en: string; ta: string }; products: typeof PPU_REPORT_PRODUCTS | typeof PPU_PORUTHAM_PRODUCTS | typeof PPU_TOPUP_PRODUCTS };
@@ -29,13 +31,15 @@ export default function ReportsPage() {
   const router = useRouter();
   const [lang, setLang] = useState<Lang>("ta");
   const [buyState, setBuyState] = useState<Record<string, BuyState>>({});
+  // Announced via the aria-live region below so screen readers hear the
+  // outcome of the async action (DASH-08).
+  const [announcement, setAnnouncement] = useState("");
 
   useEffect(() => {
     const stored = localStorage.getItem(LANG_STORAGE_KEY);
     if (stored === "ta" || stored === "en") setLang(stored as Lang);
-    void fetch("/api/backend/api/v1/settings/ui", { credentials: "include" })
-      .then((r) => r.json())
-      .then((j: { data?: { lang?: string } }) => {
+    void apiFetchJson<{ data?: { lang?: string } }>("/api/v1/settings/ui")
+      .then((j) => {
         const dbLang = j.data?.lang;
         if (dbLang === "ta" || dbLang === "en") setLang(dbLang as Lang);
       })
@@ -44,25 +48,18 @@ export default function ReportsPage() {
 
   const ta = lang === "ta";
 
+  // Goes through the shared purchaseReport wrapper (DASH-07) — apiFetchJson
+  // underneath sends the real X-Vinaadi-CSRF header the backend now enforces;
+  // the old hand-rolled fetch sent a made-up "X-CSRF-Token" that nothing read.
   async function handleBuy(productId: string) {
     setBuyState((s) => ({ ...s, [productId]: "loading" }));
     try {
-      const res = await fetch("/api/backend/api/v1/reports/purchase", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRF-Token": "1",
-        },
-        body: JSON.stringify({ product_id: productId }),
-      });
-      if (!res.ok) {
-        setBuyState((s) => ({ ...s, [productId]: "error" }));
-        return;
-      }
+      await purchaseReport(productId);
       setBuyState((s) => ({ ...s, [productId]: "queued" }));
+      setAnnouncement(ta ? "பட்டியலில் சேர்க்கப்பட்டது." : "Added to waitlist.");
     } catch {
       setBuyState((s) => ({ ...s, [productId]: "error" }));
+      setAnnouncement(ta ? "சேர்க்க முடியவில்லை. மீண்டும் முயற்சி செய்யவும்." : "Could not join the waitlist. Please retry.");
     }
   }
 
@@ -71,7 +68,9 @@ export default function ReportsPage() {
     if (state === "loading") return ta ? "…" : "…";
     if (state === "queued") return ta ? "✓ பட்டியலில் சேர்க்கப்பட்டது" : "✓ Added to waitlist";
     if (state === "error") return ta ? "மீண்டும் முயற்சி செய்யவும்" : "Retry";
-    return ta ? "வாங்கு →" : "Buy →";
+    // "Join waitlist", not "Buy" — payment isn't live yet and the button must
+    // not promise what the endpoint doesn't do (DASH-07).
+    return ta ? "பட்டியலில் சேர் →" : "Join waitlist →";
   }
 
   function btnDisabled(productId: string) {
@@ -106,6 +105,14 @@ export default function ReportsPage() {
 
   return (
     <div className="cd-shell" style={{ minHeight: "100vh", background: "var(--color-bg)", color: "var(--color-text)", padding: "24px 16px 48px" }}>
+      {/* Screen-reader announcement for async purchase outcomes (DASH-08). */}
+      <p
+        role="status"
+        aria-live="polite"
+        style={{ position: "absolute", width: "1px", height: "1px", padding: 0, margin: "-1px", overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: 0 }}
+      >
+        {announcement}
+      </p>
       <div style={{ maxWidth: "820px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "28px" }}>
 
         {/* Header */}

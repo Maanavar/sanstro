@@ -11,8 +11,9 @@ import type {
   FamilyVaultListItem,
   NotificationInboxItem,
 } from "@/lib/types";
+import type { Tab } from "@/lib/dashboard-tabs";
+import type { StatusMessage } from "./dashboard-ui-nova";
 
-type Tab = "onboarding" | "personal" | "tools" | "transits" | "plan" | "life-areas" | "family" | "calendar" | "journal" | "settings" | "qa" | "explore";
 type LabelKey = Parameters<typeof t>[0];
 
 const SHOW_QA_TAB = process.env.NODE_ENV !== "production";
@@ -48,16 +49,21 @@ const DAILY_PRINCIPLES: Array<{ en: string; ta: string }> = [
   },
 ];
 
+// IA model (DASH-13): this strip mirrors the left rail exactly — six
+// first-class destinations (Today · Calendar · Family & Charts · Plan · Tools
+// · Explore). Depth surfaces (Life Areas, Journal, Transits) live under
+// Explore / Plan and highlight NOTHING while active — marking Explore as
+// current-page while the user is actually on Life Areas/Journal misled about
+// where they were (user feedback 2026-07-14); the depth page's own heading +
+// the "Back to Explore" banner carry the orientation instead. Same rule in
+// dashboard-left-rail.tsx — the two navs must never disagree.
 const TAB_DEFS: Array<{ id: Tab; labelEn: string; labelTaKey?: LabelKey }> = [
   { id: "personal", labelEn: "Today", labelTaKey: "tab_today" },
   { id: "calendar", labelEn: "Calendar", labelTaKey: "tab_calendar" },
   { id: "family", labelEn: "Family & Charts", labelTaKey: "tab_family" },
-  { id: "life-areas", labelEn: "Life Area", labelTaKey: "tab_life_areas" },
   { id: "plan", labelEn: "Plan", labelTaKey: "tab_plan" },
-  { id: "transits", labelEn: "Transits", labelTaKey: "tab_transits" },
-  { id: "journal", labelEn: "Journal", labelTaKey: "tab_journal" },
-  { id: "explore", labelEn: "Explore", labelTaKey: "tab_explore" },
   { id: "tools", labelEn: "Tools", labelTaKey: "tab_tools" },
+  { id: "explore", labelEn: "Explore", labelTaKey: "tab_explore" },
   { id: "settings", labelEn: "Settings", labelTaKey: "tab_settings" },
   { id: "qa", labelEn: "QA" },
 ];
@@ -66,7 +72,8 @@ interface DashboardHeroProps {
   lang: Lang;
   activeTab: Tab;
   birthDisplayName: string;
-  status: string;
+  /** Tone travels with the message (DASH-08) — never inferred from wording. */
+  status: StatusMessage | null;
   chartSummary: ChartSummaryData | null;
   selectedVault: FamilyVaultListItem | null;
   selectedVaultId: string;
@@ -191,8 +198,7 @@ export function DashboardHero(props: DashboardHeroProps) {
       TAB_DEFS.filter(
         (tab) =>
           tab.id !== "settings" &&
-          (SHOW_QA_TAB || tab.id !== "qa") &&
-          tab.id !== "transits",
+          (SHOW_QA_TAB || tab.id !== "qa"),
       ),
     [],
   );
@@ -219,25 +225,28 @@ export function DashboardHero(props: DashboardHeroProps) {
   // One tab strip, two homes: Classic renders it in the cd-tabnav row below
   // the topbar; Nova renders it inline in the topbar itself (cd-topnav).
   // Only one of the two navs is ever mounted, so the motion layoutId is safe.
-  const tabButtons = tabs.map((tab) => (
-    <button
-      key={tab.id}
-      type="button"
-      ref={activeTab === tab.id ? activeTabRef : undefined}
-      className={`cd-tab${activeTab === tab.id ? " cd-tab--active" : ""}`}
-      aria-current={activeTab === tab.id ? "page" : undefined}
-      onClick={() => onTabChange(tab.id)}
-    >
-      {lang === "ta" && tab.labelTaKey ? t(tab.labelTaKey, lang) : tab.labelEn}
-      {activeTab === tab.id && (
-        <motion.span
-          layoutId="cd-tab-indicator"
-          className="cd-tab__indicator"
-          transition={{ type: "spring", stiffness: 400, damping: 15, mass: 0.8 }}
-        />
-      )}
-    </button>
-  ));
+  const tabButtons = tabs.map((tab) => {
+    const isActive = activeTab === tab.id;
+    return (
+      <button
+        key={tab.id}
+        type="button"
+        ref={isActive ? activeTabRef : undefined}
+        className={`cd-tab${isActive ? " cd-tab--active" : ""}`}
+        aria-current={isActive ? "page" : undefined}
+        onClick={() => onTabChange(tab.id)}
+      >
+        {lang === "ta" && tab.labelTaKey ? t(tab.labelTaKey, lang) : tab.labelEn}
+        {isActive && (
+          <motion.span
+            layoutId="cd-tab-indicator"
+            className="cd-tab__indicator"
+            transition={{ type: "spring", stiffness: 400, damping: 15, mass: 0.8 }}
+          />
+        )}
+      </button>
+    );
+  });
 
   return (
     <>
@@ -450,10 +459,20 @@ export function DashboardHero(props: DashboardHeroProps) {
               )}
             </div>
             <div className="cd-subbar__right">
+              {/* aria-live so async outcomes are announced; ✓/⚠ follows the
+                  message's own tone instead of always showing a check (DASH-08). */}
               {status && (
-                <span className="cd-subbar__status" title={status}>
-                  <span className="cd-subbar__status-check" aria-hidden="true">✓</span>
-                  {status}
+                <span
+                  className="cd-subbar__status"
+                  title={status.text}
+                  role="status"
+                  aria-live="polite"
+                  style={status.tone === "error" ? { color: "var(--color-low, #C0392B)" } : undefined}
+                >
+                  <span className="cd-subbar__status-check" aria-hidden="true">
+                    {status.tone === "error" ? "⚠" : "✓"}
+                  </span>
+                  {status.text}
                 </span>
               )}
               {selectedVault && (

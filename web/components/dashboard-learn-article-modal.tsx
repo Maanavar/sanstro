@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import type { Lang } from "@/lib/i18n";
 import { EASE_NOVA } from "@/lib/motion";
 import { getLearnArticle } from "./dashboard-learn-content";
+import { ModalShell } from "./modal-shell";
 
 /**
  * Classic's single-article read-in-place modal — used by the Chandrashtama
@@ -21,12 +22,10 @@ export function DashboardLearnArticleModal({ slug, lang, onClose }: { slug: stri
   const reduce = useReducedMotion();
 
   return (
-    <motion.div
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: reduce ? 0 : 0.18 }}
-      style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(26,22,18,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }}
+    <ModalShell
+      label={article ? text(article.title) : (lang === "ta" ? "கட்டுரை" : "Article")}
+      onClose={onClose}
+      overlayStyle={{ zIndex: 400, backdropFilter: "none", padding: "24px" }}
     >
       <motion.div
         initial={reduce ? false : { opacity: 0, scale: 0.96, y: 8 }}
@@ -75,6 +74,6 @@ export function DashboardLearnArticleModal({ slug, lang, onClose }: { slug: stri
           </p>
         )}
       </motion.div>
-    </motion.div>
+    </ModalShell>
   );
 }

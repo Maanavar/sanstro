@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { formatDateLabel } from "@/lib/format";
 import { D1_RASI_NAMES } from "@/lib/chart-utils";
@@ -747,6 +747,27 @@ export function ChartExplanationPanel({
   // the tab strip) instead of a 10-deep vertical accordion stack where sections
   // were easy to miss and hard to jump between.
   const [activeSection, setActiveSection] = useState<SectionId>("basics");
+
+  // Same scroll-anchoring workaround as collapsible-section.tsx: swapping a
+  // section (or toggling the whole panel) unmounts a large block, and the
+  // browser's native anchoring can land the viewport somewhere unrelated.
+  // Pin the clicked control's viewport position across the state change.
+  const toggleRef = useRef<HTMLButtonElement | null>(null);
+  const tablistRef = useRef<HTMLDivElement | null>(null);
+  const anchorEl = useRef<HTMLElement | null>(null);
+  const anchorTop = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    if (anchorTop.current === null || !anchorEl.current) return;
+    const drift = anchorEl.current.getBoundingClientRect().top - anchorTop.current;
+    if (drift !== 0) window.scrollBy(0, drift);
+    anchorEl.current = null;
+    anchorTop.current = null;
+  }, [open, activeSection]);
+  function pinTo(el: HTMLElement | null) {
+    anchorEl.current = el;
+    anchorTop.current = el ? el.getBoundingClientRect().top : null;
+  }
+
   const backend = explanation ?? null;
 
   const derived = useMemo(() => {
@@ -868,10 +889,15 @@ export function ChartExplanationPanel({
           </p>
         </div>
         <button
+          ref={toggleRef}
           type="button"
           aria-expanded={open}
-          onClick={() => setOpen((value) => !value)}
+          onClick={() => {
+            pinTo(toggleRef.current);
+            setOpen((value) => !value);
+          }}
           style={{
+            overflowAnchor: "none",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -897,9 +923,10 @@ export function ChartExplanationPanel({
       </div>
 
       {open && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", overflowAnchor: "none" }}>
           {/* Sticky section tab strip — horizontally scrollable on narrow widths */}
           <div
+            ref={tablistRef}
             role="tablist"
             style={{
               position: "sticky",
@@ -921,7 +948,10 @@ export function ChartExplanationPanel({
                   type="button"
                   role="tab"
                   aria-selected={active}
-                  onClick={() => setActiveSection(section.id)}
+                  onClick={() => {
+                    pinTo(tablistRef.current);
+                    setActiveSection(section.id);
+                  }}
                   style={{
                     whiteSpace: "nowrap",
                     flexShrink: 0,
@@ -1070,6 +1100,7 @@ export function ChartExplanationPanel({
                       const color = strengthColor(planet.strengthScore);
                       const flags = [
                         planet.isRetrograde ? (lang === "ta" ? "வக்கிரம்" : "Retrograde") : null,
+                        planet.isCazimi ? (lang === "ta" ? "கசிமி" : "Cazimi") : null,
                         planet.isCombust ? (lang === "ta" ? "அஸ்தம்" : "Combust") : null,
                         planet.isVargottama ? (lang === "ta" ? "வர்கோத்தமம்" : "Vargottama") : null,
                       ].filter(Boolean) as string[];

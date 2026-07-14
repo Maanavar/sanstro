@@ -3,9 +3,13 @@
 import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { addDays, todayIso } from "@/lib/format";
+import { todayIso } from "@/lib/format";
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
 import { STALE } from "@/lib/queryClient";
+import {
+  getChartDashboardBundle,
+  type ChartDashboardBundleData,
+} from "@vinaadi/shared/api/dashboardBundle";
 import type {
   AmbientAlertItem,
   ApiEnvelope,
@@ -35,16 +39,33 @@ import type {
 
 type UsePersonalDataOptions = {
   selectedDate: string;
-  onStatus?: (message: string) => void;
+  /** Tone rides along so the hero can render ✓/⚠ without sniffing wording (DASH-08). */
+  onStatus?: (message: string, tone?: "success" | "error") => void;
+  /** Life-area predictions are only fetched while their surface (the Life
+   *  Areas tab) is visible — they are 4 extra requests per chart+date and
+   *  nothing on the Today surface reads them (DASH-04). Defaults to true. */
+  predictionsEnabled?: boolean;
 };
 
 type RefreshLifeAreasInsightsOptions = {
   preloadedLifeAreas?: LifeAreasResponseData | null;
   requestId?: number;
   signal?: AbortSignal;
+  /** Bypass the react-query cache — used after goal changes, whose effects
+   *  the cached insights wouldn't reflect. */
+  force?: boolean;
 };
 
-type ChartBundle = {
+type RefreshPersonalBundleOptions = {
+  /** Re-POST /charts/calculate even if a fresh chart is cached. Only profile
+   *  edits change the chart, so only those paths should pass this (DASH-04:
+   *  date paging must never re-run the calculation). */
+  forceChart?: boolean;
+  /** Refetch the day bundle even if cached — manual refresh, goal changes. */
+  forceDay?: boolean;
+};
+
+export type ChartBundle = {
   chartSummary: ChartSummaryData | null;
   chartExplanation: ChartExplanationData | null;
   dailyGuidance: DailyGuidanceData | null;
@@ -58,7 +79,15 @@ type ChartBundle = {
   panchangam: PanchangamDailyResponseData | null;
   panchangamTimings: PanchangamTimingsData | null;
   lifeAreas: LifeAreasResponseData | null;
+  weekAhead: WeekAheadData | null;
+  nakshatraCard: NakshatraCardData | null;
   panchangamLocationLabel: string | null;
+  /** IANA timezone the panchangam was computed for — "now" on the Today
+   *  surface is computed in this zone, not the browser's (DASH-01). */
+  panchangamTimezone: string | null;
+  /** Bundle sections the backend could not compute (name -> short note).
+   *  Non-empty means some cards render a gap/retry state (DASH-02). */
+  sectionErrors: Record<string, string>;
 };
 
 type LifeAreaInsights = {
@@ -91,15 +120,6 @@ function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === "AbortError";
 }
 
-async function withFallback<T>(promise: Promise<T>, fallback: T): Promise<T> {
-  try {
-    return await promise;
-  } catch (error) {
-    if (isAbortError(error)) throw error;
-    return fallback;
-  }
-}
-
 async function calculateChart(birthProfileId: string, signal?: AbortSignal): Promise<ApiEnvelope<ChartCalculateResponseData>> {
   return apiFetchJson<ApiEnvelope<ChartCalculateResponseData>>("/api/v1/charts/calculate", {
     method: "POST",
@@ -111,111 +131,54 @@ async function calculateChart(birthProfileId: string, signal?: AbortSignal): Pro
   });
 }
 
-async function fetchChartBundle(
-  chart: ChartCalculateResponseData,
-  birthProfileId: string,
-  date: string,
-  signal?: AbortSignal,
-): Promise<ChartBundle> {
-  const chartPath = `/api/v1/charts/${chart.chartId}`;
-  const profile = chart.birthProfile;
-  const hasCurrentLocation =
-    profile.currentLatitude != null &&
-    profile.currentLongitude != null &&
-    !!profile.currentTimezone;
-  const lat = hasCurrentLocation ? profile.currentLatitude : profile.birthLatitude;
-  const lng = hasCurrentLocation ? profile.currentLongitude : profile.birthLongitude;
-  const tz = hasCurrentLocation ? profile.currentTimezone : profile.birthTimezone;
-  const hasPanchangamLocation =
-    typeof lat === "number" &&
-    Number.isFinite(lat) &&
-    typeof lng === "number" &&
-    Number.isFinite(lng) &&
-    !!tz;
-  const emptyPanchangam = { data: null } as ApiEnvelope<PanchangamDailyResponseData | null>;
-  const emptyTimings = { data: null } as ApiEnvelope<PanchangamTimingsData | null>;
-
-  const [
-    summaryRes,
-    daily,
-    dailyRange,
-    dashaRes,
-    dashaMahaRes,
-    dashaAntarRes,
-    transitRes,
-    saniRes,
-    peyarchiRes,
-    explanationRes,
-    panchangamRes,
-    timingsRes,
-    lifeAreasRes,
-  ] = await Promise.all([
-    apiFetchJson<ApiEnvelope<ChartSummaryData>>(`${chartPath}/summary${toQuery({ language: "ta-en" })}`, { signal }),
-    apiFetchJson<ApiEnvelope<DailyGuidanceData>>(`${chartPath}/daily-guidance${toQuery({ date, language: "ta-en" })}`, { signal }),
-    apiFetchJson<ApiEnvelope<DailyGuidanceRangeData>>(
-      `/api/v1/daily-guidance/range${toQuery({
-        profileId: birthProfileId,
-        from: date,
-        to: addDays(date, 2),
-        language: "ta-en",
-      })}`,
-      { signal },
-    ),
-    apiFetchJson<ApiEnvelope<DashaTimelineResponseData>>(`${chartPath}/dasha${toQuery({ asOf: date, level: "pratyantar" })}`, { signal }),
-    apiFetchJson<ApiEnvelope<DashaTimelineResponseData>>(`${chartPath}/dasha${toQuery({ asOf: date, level: "maha" })}`, { signal }),
-    apiFetchJson<ApiEnvelope<DashaTimelineResponseData>>(`${chartPath}/dasha${toQuery({ asOf: date, level: "antar" })}`, { signal }),
-    apiFetchJson<ApiEnvelope<TransitSnapshotData>>(`${chartPath}/gochar/current${toQuery({ date })}`, { signal }),
-    apiFetchJson<ApiEnvelope<SaniCycleData>>(`${chartPath}/sani-cycle${toQuery({ date })}`, { signal }),
-    apiFetchJson<ApiEnvelope<PeyarchiEvent[]>>(
-      `${chartPath}/peyarchi/upcoming${toQuery({ as_of: date, window_days: 30 })}`,
-      { signal },
-    ),
-    withFallback(
-      apiFetchJson<ApiEnvelope<ChartExplanationData>>(
-        `${chartPath}/explanation${toQuery({ asOf: date, peyarchiWindowDays: 700 })}`,
-        { signal },
-      ),
-      { data: null } as ApiEnvelope<ChartExplanationData | null>,
-    ),
-    hasPanchangamLocation
-      ? withFallback(
-          apiFetchJson<ApiEnvelope<PanchangamDailyResponseData>>(
-            `/api/v1/panchangam/daily${toQuery({ date, lat, lng, timezone: tz })}`,
-            { signal },
-          ),
-          emptyPanchangam,
-        )
-      : Promise.resolve(emptyPanchangam),
-    hasPanchangamLocation
-      ? withFallback(
-          apiFetchJson<ApiEnvelope<PanchangamTimingsData>>(
-            `/api/v1/panchangam/timings${toQuery({ date, lat, lng, timezone: tz })}`,
-            { signal },
-          ),
-          emptyTimings,
-        )
-      : Promise.resolve(emptyTimings),
-    apiFetchJson<ApiEnvelope<LifeAreasResponseData>>(`${chartPath}/life-areas${toQuery({ asOf: date })}`, { signal }),
-  ]);
-
+/** Splits the combined maha+antar+pratyantar dasha timeline the bundle carries
+ *  into the three shapes the dashboard components consume. Exported for tests. */
+export function splitDashaTimeline(dasha: DashaTimelineResponseData | null): {
+  dasha: DashaTimelineResponseData | null;
+  dashaMaha: DashaTimelineResponseData | null;
+  dashaAntar: DashaTimelineItem[];
+} {
+  if (!dasha) return { dasha: null, dashaMaha: null, dashaAntar: [] };
+  const timeline = dasha.timeline ?? [];
   return {
-    chartSummary: summaryRes.data,
-    chartExplanation: explanationRes.data,
-    dailyGuidance: daily.data,
-    dailyGuidanceRange: dailyRange.data,
-    dasha: dashaRes.data,
-    dashaMaha: dashaMahaRes.data,
-    dashaAntar: dashaAntarRes.data.timeline,
-    transit: transitRes.data,
-    sani: saniRes.data,
-    peyarchiUpcoming: peyarchiRes.data,
-    panchangam: panchangamRes.data,
-    panchangamTimings: timingsRes.data,
-    lifeAreas: lifeAreasRes.data,
-    panchangamLocationLabel: hasPanchangamLocation
-      ? hasCurrentLocation ? "current location" : "birth location"
-      : null,
+    dasha: { ...dasha, timeline: timeline.filter((item) => item.level === "pratyantar") },
+    dashaMaha: { ...dasha, timeline: timeline.filter((item) => item.level === "maha") },
+    dashaAntar: timeline.filter((item) => item.level === "antar"),
   };
+}
+
+/** Maps the composite dashboard-bundle response onto the ChartBundle shape the
+ *  dashboard consumes. Null sections stay null — the backend isolates section
+ *  failures instead of failing the request (DASH-02). Exported for tests. */
+export function mapDashboardBundle(data: ChartDashboardBundleData): ChartBundle {
+  const dashaSplit = splitDashaTimeline(data.dasha);
+  return {
+    chartSummary: data.summary,
+    chartExplanation: data.explanation,
+    dailyGuidance: data.dailyGuidance,
+    dailyGuidanceRange: data.dailyGuidanceRange,
+    dasha: dashaSplit.dasha,
+    dashaMaha: dashaSplit.dashaMaha,
+    dashaAntar: dashaSplit.dashaAntar,
+    transit: data.transit,
+    sani: data.sani,
+    peyarchiUpcoming: data.peyarchiUpcoming ?? [],
+    panchangam: data.panchangam,
+    panchangamTimings: data.panchangamTimings,
+    lifeAreas: data.lifeAreas,
+    weekAhead: data.weekAhead,
+    nakshatraCard: data.nakshatraCard,
+    panchangamLocationLabel: data.panchangamLocation ? `${data.panchangamLocation} location` : null,
+    panchangamTimezone: data.panchangamTimezone,
+    sectionErrors: data.errors ?? {},
+  };
+}
+
+/** One request for the whole per-chart day bundle (DASH-04) — replaces the 13
+ *  parallel requests this function used to fan out. */
+async function fetchChartBundle(chartId: string, date: string): Promise<ChartBundle> {
+  const response = await getChartDashboardBundle(chartId, date);
+  return mapDashboardBundle(response.data);
 }
 
 async function fetchLifeAreaInsights(
@@ -225,6 +188,9 @@ async function fetchLifeAreaInsights(
   signal?: AbortSignal,
 ): Promise<LifeAreaInsights> {
   const predQuery = toQuery({ asOf: date });
+  // The personal chart's life-areas always arrive preloaded from the bundle;
+  // this fetch branch only serves family-member charts (DASH-16: never fetch
+  // /life-areas in parallel with a bundle that already carries it).
   const lifeAreasPromise = preloadedLifeAreas === undefined
     ? apiFetchJson<ApiEnvelope<LifeAreasResponseData>>(
         `/api/v1/charts/${chartId}/life-areas${toQuery({ asOf: date })}`,
@@ -275,7 +241,7 @@ async function fetchLifeAreaInsights(
   };
 }
 
-export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptions) {
+export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = true }: UsePersonalDataOptions) {
   const todayDate = useRef(todayIso());
   const personalRequestIdRef = useRef(0);
   const queryClient = useQueryClient();
@@ -296,7 +262,7 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
     queryKey: personalKeys.chartCalculate(birthProfileId),
     queryFn: ({ signal }) => calculateChart(birthProfileId, signal),
     enabled: false,
-    staleTime: STALE.today,
+    staleTime: STALE.session,
   });
 
   const chart = chartQuery.data?.data ?? null;
@@ -304,8 +270,8 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
 
   const bundleQuery = useQuery({
     queryKey: personalKeys.chartBundle(effectiveChartId, selectedDate),
-    queryFn: ({ signal }) => fetchChartBundle(chart as ChartCalculateResponseData, birthProfileId, selectedDate, signal),
-    enabled: !!chart && !!effectiveChartId && !!birthProfileId,
+    queryFn: () => fetchChartBundle(effectiveChartId, selectedDate),
+    enabled: !!effectiveChartId,
     staleTime: STALE.today,
   });
 
@@ -326,6 +292,8 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
     staleTime: STALE.today,
   });
 
+  // Fallback only: the bundle already carries weekAhead/nakshatraCard; these
+  // fire solely when that section failed server-side.
   const weekAheadQuery = useQuery({
     queryKey: personalKeys.weekAhead(birthProfileId, selectedDate),
     queryFn: async ({ signal }) => {
@@ -335,7 +303,7 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
       );
       return response.data;
     },
-    enabled: !!birthProfileId,
+    enabled: !!birthProfileId && !!bundle && !bundle.weekAhead,
     staleTime: STALE.today,
   });
 
@@ -348,7 +316,9 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
       );
       return response.data;
     },
-    enabled: typeof moonNakshatra === "number" && moonNakshatra >= 1 && moonNakshatra <= 27,
+    enabled:
+      typeof moonNakshatra === "number" && moonNakshatra >= 1 && moonNakshatra <= 27 &&
+      !!bundle && !bundle.nakshatraCard,
     staleTime: STALE.static,
   });
 
@@ -394,15 +364,18 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
     staleTime: STALE.today,
   });
 
+  // Gated on the bundle so the preloaded life-areas are always available
+  // (DASH-16 — never a second /life-areas in flight), and on the predictions
+  // surface being open (DASH-04 — 4 requests that only the Life Areas tab reads).
   const lifeAreaInsightsQuery = useQuery({
     queryKey: personalKeys.lifeAreaInsights(effectiveChartId, selectedDate),
-    queryFn: ({ signal }) => fetchLifeAreaInsights(effectiveChartId, selectedDate, bundle?.lifeAreas, signal),
-    enabled: !!effectiveChartId,
+    queryFn: ({ signal }) => fetchLifeAreaInsights(effectiveChartId, selectedDate, bundle?.lifeAreas ?? null, signal),
+    enabled: !!effectiveChartId && !!bundle && predictionsEnabled,
     staleTime: STALE.today,
   });
 
-  function reportStatus(message: string) {
-    onStatus?.(message);
+  function reportStatus(message: string, tone: "success" | "error" = "success") {
+    onStatus?.(message, tone);
   }
 
   function beginPersonalRequest() {
@@ -449,14 +422,14 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
       const insights = await queryClient.fetchQuery({
         queryKey: personalKeys.lifeAreaInsights(targetChartId, onDate),
         queryFn: () => fetchLifeAreaInsights(targetChartId, onDate, options.preloadedLifeAreas, options.signal),
-        staleTime: STALE.today,
+        staleTime: options.force ? 0 : STALE.today,
       });
       if (!isPersonalRequestCurrent(requestId)) return;
       setLifeAreasOverride(insights.lifeAreas);
       setPredictionsOverride(insights.predictions);
     } catch (error) {
       if (isAbortError(error) || !isPersonalRequestCurrent(requestId)) return;
-      reportStatus(readErrorMessage(error));
+      reportStatus(readErrorMessage(error), "error");
     }
   }
 
@@ -478,13 +451,10 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
   }
 
   async function prefetchSecondaryQueries(
-    nextChart: ChartCalculateResponseData,
-    nextBirthProfileId: string,
+    nextChartId: string,
     nextDate: string,
     nextBundle: ChartBundle,
   ) {
-    const nextChartId = nextChart.chartId;
-    const nextMoonNakshatra = nextChart.planets.find((planet) => planet.graha === "MOON")?.nakshatra ?? null;
     const nextPeyarchiPlanet = nextBundle.peyarchiUpcoming[0]?.planet ?? null;
 
     await Promise.allSettled([
@@ -498,28 +468,6 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
         },
         staleTime: STALE.today,
       }),
-      queryClient.prefetchQuery({
-        queryKey: personalKeys.weekAhead(nextBirthProfileId, nextDate),
-        queryFn: async () => {
-          const response = await apiFetchJson<ApiEnvelope<WeekAheadData>>(
-            `/api/v1/daily-guidance/week-ahead${toQuery({ profileId: nextBirthProfileId, weekStart: nextDate, language: "ta-en" })}`,
-          );
-          return response.data;
-        },
-        staleTime: STALE.today,
-      }),
-      nextMoonNakshatra && nextMoonNakshatra >= 1 && nextMoonNakshatra <= 27
-        ? queryClient.prefetchQuery({
-            queryKey: personalKeys.nakshatraCard(nextMoonNakshatra),
-            queryFn: async () => {
-              const response = await apiFetchJson<{ success: boolean; data: NakshatraCardData }>(
-                `/api/v1/content/nakshatra/${nextMoonNakshatra}`,
-              );
-              return response.data;
-            },
-            staleTime: STALE.static,
-          })
-        : Promise.resolve(),
       queryClient.prefetchQuery({
         queryKey: personalKeys.dashaStory(nextChartId, nextDate),
         queryFn: async () => {
@@ -555,11 +503,6 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
         },
         staleTime: STALE.today,
       }),
-      queryClient.prefetchQuery({
-        queryKey: personalKeys.lifeAreaInsights(nextChartId, nextDate),
-        queryFn: () => fetchLifeAreaInsights(nextChartId, nextDate, nextBundle.lifeAreas),
-        staleTime: STALE.today,
-      }),
     ]);
   }
 
@@ -567,12 +510,13 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
     nextBirthProfileId = birthProfileId,
     nextDate = selectedDate,
     allowRecovery = true,
+    options: RefreshPersonalBundleOptions = {},
   ) {
     if (!nextBirthProfileId) {
       if (allowRecovery) {
         const recovered = await loadLatestBirthProfileForCurrentUser();
         if (recovered) {
-          await refreshPersonalBundle(recovered.birthProfileId, nextDate, false);
+          await refreshPersonalBundle(recovered.birthProfileId, nextDate, false, options);
         }
       }
       return;
@@ -581,10 +525,13 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
     const requestId = beginPersonalRequest();
     setBusyPersonalState(true);
     try {
+      // Cached for the session unless a profile edit forces a re-run — the
+      // chart is a function of the birth data, not of the selected date
+      // (DASH-04: no POST /charts/calculate on date paging).
       const chartResponse = await queryClient.fetchQuery({
         queryKey: personalKeys.chartCalculate(nextBirthProfileId),
         queryFn: ({ signal }) => calculateChart(nextBirthProfileId, signal),
-        staleTime: 0,
+        staleTime: options.forceChart ? 0 : STALE.session,
       });
       if (!isPersonalRequestCurrent(requestId)) return;
 
@@ -597,8 +544,8 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
 
       const nextBundle = await queryClient.fetchQuery({
         queryKey: personalKeys.chartBundle(chartResponse.data.chartId, nextDate),
-        queryFn: ({ signal }) => fetchChartBundle(chartResponse.data, nextBirthProfileId, nextDate, signal),
-        staleTime: STALE.today,
+        queryFn: () => fetchChartBundle(chartResponse.data.chartId, nextDate),
+        staleTime: options.forceDay ? 0 : STALE.today,
       });
       if (!isPersonalRequestCurrent(requestId)) return;
 
@@ -609,7 +556,14 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
         setTodayTransitSnapshot(nextBundle.transit);
       }
 
-      void prefetchSecondaryQueries(chartResponse.data, nextBirthProfileId, nextDate, nextBundle);
+      void prefetchSecondaryQueries(chartResponse.data.chartId, nextDate, nextBundle);
+      if (options.forceDay) {
+        void refreshLifeAreasInsights(chartResponse.data.chartId, nextDate, {
+          preloadedLifeAreas: nextBundle.lifeAreas,
+          requestId,
+          force: true,
+        });
+      }
 
       reportStatus(
         nextBundle.panchangamLocationLabel
@@ -624,11 +578,11 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
         setChartId("");
         const recovered = await loadLatestBirthProfileForCurrentUser();
         if (recovered && recovered.birthProfileId !== nextBirthProfileId) {
-          await refreshPersonalBundle(recovered.birthProfileId, nextDate, false);
+          await refreshPersonalBundle(recovered.birthProfileId, nextDate, false, options);
           return;
         }
       }
-      reportStatus(message);
+      reportStatus(message, "error");
     } finally {
       if (isPersonalRequestCurrent(requestId)) {
         setBusyPersonalState(false);
@@ -666,11 +620,13 @@ export function usePersonalData({ selectedDate, onStatus }: UsePersonalDataOptio
     panchangam: bundle?.panchangam ?? null,
     panchangamTimings: bundle?.panchangamTimings ?? null,
     panchangamLocationLabel: bundle?.panchangamLocationLabel ?? null,
+    panchangamTimezone: bundle?.panchangamTimezone ?? null,
+    bundleSectionErrors: bundle?.sectionErrors ?? {},
     lifeAreas,
     ambientAlerts: ambientAlertsQuery.data ?? [],
-    nakshatraCard: nakshatraCardQuery.data ?? null,
+    nakshatraCard: bundle?.nakshatraCard ?? nakshatraCardQuery.data ?? null,
     peyarchiReport: peyarchiReportQuery.data ?? null,
-    weekAhead: weekAheadQuery.data ?? null,
+    weekAhead: bundle?.weekAhead ?? weekAheadQuery.data ?? null,
     dashaStory: dashaStoryQuery.data ?? null,
     journalCorrelations: journalCorrelationsQuery.data ?? null,
     predictions,

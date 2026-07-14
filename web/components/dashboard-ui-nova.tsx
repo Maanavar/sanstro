@@ -11,6 +11,33 @@ import { DUR, EASE_NOVA, useCountUp } from "@/lib/motion";
  * these are imported only from screens rendered under [data-ui="nova"].
  */
 
+/** Explicit outcome state for transient async status messages (DASH-08).
+ *  Tone is carried as data, never inferred by sniffing the message text —
+ *  wording-independent, so it works identically in Tamil. */
+export type StatusMessage = { text: string; tone: "success" | "error" };
+
+/**
+ * Screen-reader-announced status line (DASH-08). The aria-live region is
+ * always mounted (empty when idle) so assistive tech reliably announces
+ * content changes; tone drives color via tokens, not message wording.
+ */
+export function StatusLive({ status, style }: { status: StatusMessage | null; style?: CSSProperties }) {
+  return (
+    <p
+      role="status"
+      aria-live="polite"
+      style={{
+        margin: 0,
+        fontSize: "11.5px",
+        color: status?.tone === "error" ? "var(--color-low)" : "var(--color-high)",
+        ...style,
+      }}
+    >
+      {status?.text ?? ""}
+    </p>
+  );
+}
+
 type NovaClampedTextProps = {
   children: string;
   lines?: number;

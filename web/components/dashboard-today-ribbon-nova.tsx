@@ -6,6 +6,7 @@ import { formatClockLabel, getScoreBand, scoreColorScale } from "@/lib/format";
 import { tNakshatra, tPlanetLord, tTithi, tWeekday } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { DUR, EASE_NOVA } from "@/lib/motion";
+import { formatClockInZone, minutesOfDayInZone } from "@/lib/tz";
 import type { PanchangamDailyResponseData, WeekAheadData } from "@/lib/types";
 
 /**
@@ -93,6 +94,7 @@ export function DashboardTodayRibbonNova({
   weekAhead,
   selectedDate,
   now,
+  timeZone,
   onGoToCalendar,
 }: {
   lang: Lang;
@@ -100,6 +102,10 @@ export function DashboardTodayRibbonNova({
   weekAhead: WeekAheadData | null;
   selectedDate: string;
   now: Date;
+  /** Panchangam timezone — the NOW marker and Horai lookup are computed in
+   *  this zone, since every time on this card is wall-clock at the panchangam
+   *  location, not the browser's (DASH-01). */
+  timeZone?: string | null;
   onGoToCalendar?: () => void;
 }) {
   // Page-turn: the whole ribbon re-reveals when the selected day changes, so
@@ -185,10 +191,10 @@ export function DashboardTodayRibbonNova({
     return Math.max(0, Math.min(100, ((minutes - rangeStart) / rangeSpan) * 100));
   }
 
-  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const nowMin = minutesOfDayInZone(now, timeZone);
   const nowInRange = nowMin >= rangeStart && nowMin <= rangeEnd;
   const nowPct = pct(nowMin);
-  const nowLabel = now.toLocaleTimeString(lang === "ta" ? "ta-IN" : "en-IN", { hour: "numeric", minute: "2-digit" });
+  const nowLabel = formatClockInZone(now, lang === "ta" ? "ta-IN" : "en-IN", timeZone);
 
   const ticks: number[] = [];
   for (let m = Math.ceil(rangeStart / 60) * 60; m <= rangeEnd; m += 180) {
@@ -275,7 +281,7 @@ export function DashboardTodayRibbonNova({
             siblings with their own smaller corner radius) so the bar's left
             and right ends are always evenly rounded, no matter which segment
             happens to sit at either edge. */}
-        <div style={{ position: "absolute", inset: "14px 0", borderRadius: "8px", overflow: "hidden", background: "rgba(243,236,221,0.09)" }}>
+        <div style={{ position: "absolute", inset: "14px 0", borderRadius: "8px", overflow: "hidden", background: "color-mix(in srgb, var(--color-text-strong) 9%, transparent)" }}>
           {segments.map((s) => {
             const widthPct = pct(s.endMin) - pct(s.startMin);
             return (
@@ -324,7 +330,7 @@ export function DashboardTodayRibbonNova({
         ))}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", marginTop: "12px", paddingTop: "12px", borderTop: "1px solid rgba(243,236,221,0.08)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", marginTop: "12px", paddingTop: "12px", borderTop: "1px solid color-mix(in srgb, var(--color-text-strong) 8%, transparent)" }}>
         {segments.map((s) => (
           <span key={`legend-${s.key}`} style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--color-text)" }}>
             <span style={{ width: "8px", height: "8px", borderRadius: "2px", background: s.bg, flex: "none" }} />

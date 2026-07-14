@@ -12,6 +12,7 @@ import { guestChartSchema, type GuestChartFormValues } from "@/lib/schemas";
 import { ValidatedField, ValidatedInput } from "@/components/form/ValidatedField";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import { Field } from "./dashboard-ui";
+import { ModalShell } from "./modal-shell";
 import { PlaceCombobox } from "./place-combobox";
 import "./dashboard-guest-chart-modal.css";
 
@@ -21,10 +22,35 @@ interface GuestChartModalProps {
   onCreateAccount?: () => void;
 }
 
+const MONTHS_EN = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function formatBirthDate(iso: string): string {
+  const parts = iso.split("-").map(Number);
+  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return iso;
+  const [y, m, d] = parts;
+  if (m < 1 || m > 12) return iso;
+  return `${d} ${MONTHS_EN[m - 1]} ${y}`;
+}
+
+function formatBirthTime(hhmm: string | null): string | null {
+  if (!hhmm) return null;
+  const [hStr, mStr] = hhmm.split(":");
+  const h = Number(hStr);
+  const m = Number(mStr);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  const period = h < 12 ? "AM" : "PM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
 export function GuestChartModal({ lang, onClose, onCreateAccount }: GuestChartModalProps) {
   const [chart, setChart] = useState<ChartCalculateResponseData | null>(null);
   const [submitError, setSubmitError] = useState("");
   const [view, setView] = useState<"D1" | "D9">("D1");
+  const [showManualLocation, setShowManualLocation] = useState(false);
 
   const {
     register,
@@ -45,7 +71,16 @@ export function GuestChartModal({ lang, onClose, onCreateAccount }: GuestChartMo
     },
   });
 
-  const birthPlace = watch("birthPlace");
+  const [birthPlace, birthLatitude, birthLongitude, birthTimezone] = watch([
+    "birthPlace",
+    "birthLatitude",
+    "birthLongitude",
+    "birthTimezone",
+  ]);
+
+  const locationResolved = birthLatitude !== "" && birthLongitude !== "";
+  const hasLocationError = !!(errors.birthLatitude || errors.birthLongitude || errors.birthTimezone);
+  const manualLocationOpen = showManualLocation || hasLocationError;
 
   async function onSubmit(values: GuestChartFormValues) {
     setSubmitError("");
@@ -71,129 +106,167 @@ export function GuestChartModal({ lang, onClose, onCreateAccount }: GuestChartMo
     }
   }
 
+  const profileDate = chart ? formatBirthDate(chart.birthProfile.birthDateLocal) : "";
+  const profileTime = chart ? formatBirthTime(chart.birthProfile.birthTimeLocal) : null;
+  const profileInitial = chart ? chart.birthProfile.displayName.trim().charAt(0).toUpperCase() || "?" : "";
+
   return (
-    <div
-      className="gcm-overlay"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    <ModalShell
+      label={lang === "ta" ? "யாரின் ஜாதகமும் காண்க" : "Generate Anyone's Chart"}
+      onClose={onClose}
+      overlayClassName="gcm-overlay"
+      panelClassName="gcm-panel"
     >
-      <div className="gcm-panel">
         <div className="gcm-header">
-          <h3 className="gcm-title">
-            {lang === "ta" ? "யாரின் ஜாதகமும் காண்க" : "Generate Anyone's Chart"}
-          </h3>
+          <div>
+            <h3 className="gcm-title">
+              {lang === "ta" ? "யாரின் ஜாதகமும் காண்க" : "Generate Anyone's Chart"}
+            </h3>
+            <p className="gcm-subtitle">
+              {lang === "ta"
+                ? "இலவச முன்னோட்ட ஜாதகம் — கணக்கு தேவையில்லை."
+                : "A free preview chart for anyone — no account needed."}
+            </p>
+          </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
             className="gcm-close"
           >
-            <svg viewBox="0 0 24 24" fill="none" width="14" height="14" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" width="15" height="15" aria-hidden="true">
               <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </button>
         </div>
 
         <form className="gcm-form" onSubmit={handleSubmit(onSubmit)} noValidate>
-          <div className="gcm-full-col">
-            <ValidatedField
+          <ValidatedField
+            id="displayName"
+            label={lang === "ta" ? "பெயர்" : "Name"}
+            error={errors.displayName?.message}
+            required
+          >
+            <ValidatedInput
               id="displayName"
-              label={lang === "ta" ? "பெயர்" : "Name"}
-              error={errors.displayName?.message}
-              required
-            >
-              <ValidatedInput
-                id="displayName"
-                error={!!errors.displayName}
-                placeholder={lang === "ta" ? "எ.கா. ராமேஷ் குமார்" : "e.g. Ramesh Kumar"}
-                {...register("displayName")}
-              />
-            </ValidatedField>
-          </div>
+              error={!!errors.displayName}
+              placeholder={lang === "ta" ? "எ.கா. ராமேஷ் குமார்" : "e.g. Ramesh Kumar"}
+              {...register("displayName")}
+            />
+          </ValidatedField>
 
-          <ValidatedField
-            id="birthDateLocal"
-            label={lang === "ta" ? "பிறந்த தேதி" : "Birth Date"}
-            error={errors.birthDateLocal?.message}
-            required
-          >
-            <ValidatedInput
+          <div className="gcm-row-2">
+            <ValidatedField
               id="birthDateLocal"
-              type="date"
-              min={MIN_BIRTH_DATE}
-              max={maxBirthDateIso()}
-              error={!!errors.birthDateLocal}
-              {...register("birthDateLocal")}
-            />
-          </ValidatedField>
-
-          <Field label={lang === "ta" ? "பிறந்த நேரம்" : "Birth Time"}>
-            <input className="input" type="time" {...register("birthTimeLocal")} />
-          </Field>
-
-          <div className="gcm-full-col">
-            <ValidatedField
-              id="birthPlace"
-              label={t("field_birth_place", lang)}
-              helper={errors.birthLatitude?.message ?? t("field_place_helper", lang)}
-              error={errors.birthPlace?.message}
+              label={lang === "ta" ? "பிறந்த தேதி" : "Birth Date"}
+              error={errors.birthDateLocal?.message}
               required
             >
-              <PlaceCombobox
-                value={birthPlace}
-                onChange={(city, raw) => {
-                  setValue("birthPlace", raw, { shouldValidate: true });
-                  if (city) {
-                    setValue("birthLatitude", city.lat, { shouldValidate: true });
-                    setValue("birthLongitude", city.lng, { shouldValidate: true });
-                    setValue("birthTimezone", city.timezone, { shouldValidate: true });
-                  }
-                }}
+              <ValidatedInput
+                id="birthDateLocal"
+                type="date"
+                min={MIN_BIRTH_DATE}
+                max={maxBirthDateIso()}
+                error={!!errors.birthDateLocal}
+                {...register("birthDateLocal")}
               />
             </ValidatedField>
+
+            <Field label={lang === "ta" ? "பிறந்த நேரம்" : "Birth Time"}>
+              <input className="input" type="time" {...register("birthTimeLocal")} />
+            </Field>
           </div>
 
           <ValidatedField
-            id="birthTimezone"
-            label={t("field_timezone", lang)}
-            helper={t("field_tz_helper", lang)}
-            error={errors.birthTimezone?.message}
+            id="birthPlace"
+            label={t("field_birth_place", lang)}
+            helper={t("field_place_helper", lang)}
+            error={errors.birthPlace?.message}
             required
           >
-            <ValidatedInput
-              id="birthTimezone"
-              error={!!errors.birthTimezone}
-              {...register("birthTimezone")}
+            <PlaceCombobox
+              value={birthPlace}
+              onChange={(city, raw) => {
+                setValue("birthPlace", raw, { shouldValidate: true });
+                if (city) {
+                  setValue("birthLatitude", city.lat, { shouldValidate: true });
+                  setValue("birthLongitude", city.lng, { shouldValidate: true });
+                  setValue("birthTimezone", city.timezone, { shouldValidate: true });
+                }
+              }}
             />
           </ValidatedField>
 
-          <div className="gcm-coord-grid">
-            <ValidatedField
-              id="birthLatitude"
-              label={t("field_latitude", lang)}
-              error={errors.birthLatitude?.message}
-              required
+          {locationResolved && !manualLocationOpen ? (
+            <p className="gcm-location-status">
+              <svg viewBox="0 0 24 24" fill="none" width="13" height="13" aria-hidden="true">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {lang === "ta" ? "இடம் கண்டறியப்பட்டது" : "Location detected"} · {birthTimezone}
+              <button
+                type="button"
+                className="gcm-location-edit"
+                onClick={() => setShowManualLocation(true)}
+              >
+                {lang === "ta" ? "மாற்ற" : "Edit"}
+              </button>
+            </p>
+          ) : (
+            <button
+              type="button"
+              className="gcm-location-manual-toggle"
+              onClick={() => setShowManualLocation((v) => !v)}
+              aria-expanded={manualLocationOpen}
             >
-              <ValidatedInput
-                id="birthLatitude"
-                inputMode="decimal"
-                error={!!errors.birthLatitude}
-                {...register("birthLatitude")}
-              />
-            </ValidatedField>
-            <ValidatedField
-              id="birthLongitude"
-              label={t("field_longitude", lang)}
-              error={errors.birthLongitude?.message}
-              required
-            >
-              <ValidatedInput
-                id="birthLongitude"
-                inputMode="decimal"
-                error={!!errors.birthLongitude}
-                {...register("birthLongitude")}
-              />
-            </ValidatedField>
-          </div>
+              {manualLocationOpen
+                ? (lang === "ta" ? "தானியங்கு கண்டறிதலைப் பயன்படுத்த" : "Use auto-detect instead")
+                : (lang === "ta" ? "நகரம் கிடைக்கவில்லையா? கைமுறையாக இடத்தை உள்ளிடவும்" : "Can't find your city? Enter location manually")}
+            </button>
+          )}
+
+          {manualLocationOpen && (
+            <div className="gcm-manual-location">
+              <ValidatedField
+                id="birthTimezone"
+                label={t("field_timezone", lang)}
+                helper={t("field_tz_helper", lang)}
+                error={errors.birthTimezone?.message}
+              >
+                <ValidatedInput
+                  id="birthTimezone"
+                  error={!!errors.birthTimezone}
+                  {...register("birthTimezone")}
+                />
+              </ValidatedField>
+
+              <div className="gcm-coord-grid">
+                <ValidatedField
+                  id="birthLatitude"
+                  label={t("field_latitude", lang)}
+                  error={errors.birthLatitude?.message}
+                >
+                  <ValidatedInput
+                    id="birthLatitude"
+                    inputMode="decimal"
+                    error={!!errors.birthLatitude}
+                    {...register("birthLatitude")}
+                  />
+                </ValidatedField>
+                <ValidatedField
+                  id="birthLongitude"
+                  label={t("field_longitude", lang)}
+                  error={errors.birthLongitude?.message}
+                >
+                  <ValidatedInput
+                    id="birthLongitude"
+                    inputMode="decimal"
+                    error={!!errors.birthLongitude}
+                    {...register("birthLongitude")}
+                  />
+                </ValidatedField>
+              </div>
+            </div>
+          )}
 
           {submitError && (
             <p className="gcm-submit-error">{submitError}</p>
@@ -209,15 +282,22 @@ export function GuestChartModal({ lang, onClose, onCreateAccount }: GuestChartMo
         {chart && (
           <div className="gcm-chart-section">
             <div className="gcm-profile-card">
-              <p className="gcm-profile-name">{chart.birthProfile.displayName}</p>
-              <p className="gcm-profile-date">{chart.birthProfile.birthDateLocal}</p>
+              <span className="gcm-profile-avatar" aria-hidden="true">{profileInitial}</span>
+              <div>
+                <p className="gcm-profile-name">{chart.birthProfile.displayName}</p>
+                <p className="gcm-profile-date">
+                  {profileDate}{profileTime ? ` · ${profileTime}` : ""}{chart.birthProfile.birthPlace ? ` · ${chart.birthProfile.birthPlace}` : ""}
+                </p>
+              </div>
             </div>
 
-            <div className="gcm-view-tabs">
+            <div className="gcm-view-tabs" role="tablist">
               {(["D1", "D9"] as const).map((v) => (
                 <button
                   key={v}
                   type="button"
+                  role="tab"
+                  aria-selected={view === v}
                   className="gcm-view-tab"
                   data-active={view === v}
                   onClick={() => setView(v)}
@@ -235,23 +315,28 @@ export function GuestChartModal({ lang, onClose, onCreateAccount }: GuestChartMo
             <p className="gcm-preview-note">
               {lang === "ta"
                 ? "இந்த ஜாதகம் தற்காலிகமானது. மூடியதும் தானாக நீக்கப்படும்."
-                : "Preview only. This chart is not saved to your account."}
+                : "Preview only — this chart isn't saved anywhere."}
             </p>
-            <p className="gcm-preview-note">
-              {lang === "ta"
-                ? "இலவச கணக்கு உருவாக்கினால்: இந்த ஜாதகத்தை சேமிக்கலாம், தினசரி தனிப்பயன் வழிகாட்டுதலை பெறலாம், மேலும் குடும்ப உறுப்பினர்களை சேர்க்கலாம் — எப்போதும் இலவசம். "
-                : "Create a free account to save this chart, get daily personalised guidance, and add family members — free forever. "}
+
+            <div className="gcm-cta-card">
+              <p className="gcm-cta-text">
+                {lang === "ta"
+                  ? "இலவச கணக்கு உருவாக்கினால்: இந்த ஜாதகத்தை சேமிக்கலாம், தினசரி தனிப்பயன் வழிகாட்டுதலை பெறலாம், மேலும் குடும்ப உறுப்பினர்களை சேர்க்கலாம் — எப்போதும் இலவசம்."
+                  : "Create a free account to save this chart, get daily personalised guidance, and add family members — free forever."}
+              </p>
               <button
                 type="button"
+                className="gcm-cta-btn"
                 onClick={onCreateAccount ?? onClose}
-                style={{ fontWeight: 700, textDecoration: "underline", background: "none", border: "none", padding: 0, cursor: "pointer", color: "inherit", font: "inherit" }}
               >
-                {lang === "ta" ? "இலவசக் கணக்கு உருவாக்க →" : "Create free account →"}
+                {lang === "ta" ? "இலவசக் கணக்கு உருவாக்க" : "Create free account"}
+                <svg viewBox="0 0 24 24" fill="none" width="15" height="15" aria-hidden="true">
+                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </button>
-            </p>
+            </div>
           </div>
         )}
-      </div>
-    </div>
+    </ModalShell>
   );
 }

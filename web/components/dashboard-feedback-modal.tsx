@@ -9,6 +9,7 @@ import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { feedbackSchema, type FeedbackFormValues } from "@/lib/schemas";
 import { ValidatedField, ValidatedTextarea } from "@/components/form/ValidatedField";
+import { ModalShell } from "./modal-shell";
 import "./dashboard-feedback-modal.css";
 
 export function FeedbackModal({ lang, onClose }: { lang: Lang; onClose: () => void }) {
@@ -63,11 +64,12 @@ export function FeedbackModal({ lang, onClose }: { lang: Lang; onClose: () => vo
   }
 
   return (
-    <div
-      className="fbm-overlay"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    <ModalShell
+      label={t("feedback_title", lang)}
+      onClose={onClose}
+      overlayClassName="fbm-overlay"
+      panelClassName="card fbm-panel"
     >
-      <div className="card fbm-panel">
         <div className="fbm-header">
           <h3 className="fbm-title">{t("feedback_title", lang)}</h3>
           <button type="button" className="button button--ghost" onClick={onClose} aria-label="Close">
@@ -175,7 +177,6 @@ export function FeedbackModal({ lang, onClose }: { lang: Lang; onClose: () => vo
             </div>
           </form>
         )}
-      </div>
-    </div>
+    </ModalShell>
   );
 }

@@ -6,6 +6,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { addDays } from "@/lib/format";
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
 import { STALE } from "@/lib/queryClient";
+import { getChartDashboardBundle } from "@vinaadi/shared/api/dashboardBundle";
+import { splitDashaTimeline } from "@/hooks/usePersonalData";
 import type {
   ApiEnvelope,
   ChartCalculateResponseData,
@@ -49,7 +51,8 @@ export type MemberChart = {
 type UseFamilyDataOptions = {
   ownerUserId: string;
   selectedDate: string;
-  onStatus?: (message: string) => void;
+  /** Tone rides along so the hero can render ✓/⚠ without sniffing wording (DASH-08). */
+  onStatus?: (message: string, tone?: "success" | "error") => void;
 };
 
 type FamilyBundle = {
@@ -107,97 +110,32 @@ async function fetchFamilyBundle(vaultId: string, date: string): Promise<FamilyB
   };
 }
 
-async function loadMemberChart(member: FamilyAggregateMember, nextDate: string, signal: AbortSignal): Promise<MemberChart> {
-  const chartId = member.chartId;
-  const [
-    chartRes,
-    summaryRes,
-    dailyRes,
-    transitRes,
-    saniRes,
-    peyarchiRes,
-    explanationRes,
-    dashaRes,
-    dashaMahaRes,
-    dashaAntarRes,
-    weekAheadRes,
-  ] = await Promise.all([
-    apiFetchJson<ApiEnvelope<ChartCalculateResponseData>>(`/api/v1/charts/${chartId}`, { signal }),
-    apiFetchJson<ApiEnvelope<ChartSummaryData>>(
-      `/api/v1/charts/${chartId}/summary${toQuery({ language: "ta-en" })}`,
-      { signal },
-    ),
-    apiFetchJson<ApiEnvelope<DailyGuidanceData>>(
-      `/api/v1/charts/${chartId}/daily-guidance${toQuery({ date: nextDate, language: "ta-en" })}`,
-      { signal },
-    ),
-    apiFetchJson<ApiEnvelope<TransitSnapshotData>>(
-      `/api/v1/charts/${chartId}/gochar/current${toQuery({ date: nextDate })}`,
-      { signal },
-    ),
-    apiFetchJson<ApiEnvelope<SaniCycleData>>(
-      `/api/v1/charts/${chartId}/sani-cycle${toQuery({ date: nextDate })}`,
-      { signal },
-    ),
-    apiFetchJson<ApiEnvelope<PeyarchiEvent[]>>(
-      `/api/v1/charts/${chartId}/peyarchi/upcoming${toQuery({ as_of: nextDate, window_days: 30 })}`,
-      { signal },
-    ),
-    apiFetchJson<ApiEnvelope<ChartExplanationData>>(
-      `/api/v1/charts/${chartId}/explanation${toQuery({ asOf: nextDate, peyarchiWindowDays: 700 })}`,
-      { signal },
-    ).catch((error) => {
-      if (isAbortError(error)) throw error;
-      return { data: null } as ApiEnvelope<ChartExplanationData | null>;
-    }),
-    apiFetchJson<ApiEnvelope<DashaTimelineResponseData>>(
-      `/api/v1/charts/${chartId}/dasha${toQuery({ asOf: nextDate, level: "pratyantar" })}`,
-      { signal },
-    ),
-    apiFetchJson<ApiEnvelope<DashaTimelineResponseData>>(
-      `/api/v1/charts/${chartId}/dasha${toQuery({ asOf: nextDate, level: "maha" })}`,
-      { signal },
-    ),
-    apiFetchJson<ApiEnvelope<DashaTimelineResponseData>>(
-      `/api/v1/charts/${chartId}/dasha${toQuery({ asOf: nextDate, level: "antar" })}`,
-      { signal },
-    ),
-    apiFetchJson<ApiEnvelope<WeekAheadData>>(
-      `/api/v1/charts/${chartId}/week-ahead${toQuery({ weekStart: nextDate, language: "ta-en" })}`,
-      { signal },
-    ).catch((error) => {
-      if (isAbortError(error)) throw error;
-      return { data: null } as ApiEnvelope<WeekAheadData | null>;
-    }),
-  ]);
-
-  const moonPlanet = chartRes.data.planets.find((p) => p.graha === "MOON");
-  let nakshatraCard: NakshatraCardData | null = null;
-  if (moonPlanet && moonPlanet.nakshatra >= 1 && moonPlanet.nakshatra <= 27) {
-    nakshatraCard = await apiFetchJson<{ success: boolean; data: NakshatraCardData }>(
-      `/api/v1/content/nakshatra/${moonPlanet.nakshatra}`,
-      { signal },
-    ).then((response) => response.data).catch((error) => {
-      if (isAbortError(error)) throw error;
-      return null;
-    });
+// One dashboard-bundle request per member (DASH-04 — previously ~12 requests
+// per member per date). Sections the backend could not compute arrive null and
+// render as gaps, matching the old per-call fallbacks (DASH-02).
+async function loadMemberChart(member: FamilyAggregateMember, nextDate: string): Promise<MemberChart> {
+  const response = await getChartDashboardBundle(member.chartId, nextDate);
+  const data = response.data;
+  if (!data.chart) {
+    throw new Error(`Chart data unavailable for ${member.displayName}.`);
   }
+  const dashaSplit = splitDashaTimeline(data.dasha);
 
   return {
     memberId: member.familyMemberId,
     displayName: member.displayName,
-    chart: chartRes.data,
-    explanation: explanationRes.data,
-    summary: summaryRes.data,
-    transit: transitRes.data,
-    sani: saniRes.data,
-    peyarchiUpcoming: peyarchiRes.data,
-    dailyGuidance: dailyRes.data,
-    weekAhead: weekAheadRes.data,
-    dasha: dashaRes.data,
-    dashaMaha: dashaMahaRes.data,
-    dashaAntar: dashaAntarRes.data.timeline,
-    nakshatraCard,
+    chart: data.chart,
+    explanation: data.explanation,
+    summary: data.summary,
+    transit: data.transit,
+    sani: data.sani,
+    peyarchiUpcoming: data.peyarchiUpcoming ?? [],
+    dailyGuidance: data.dailyGuidance,
+    weekAhead: data.weekAhead,
+    dasha: dashaSplit.dasha,
+    dashaMaha: dashaSplit.dashaMaha,
+    dashaAntar: dashaSplit.dashaAntar,
+    nakshatraCard: data.nakshatraCard,
   };
 }
 
@@ -210,12 +148,15 @@ async function loadMemberChartsData(
   const errors: string[] = [];
 
   for (let start = 0; start < members.length; start += MEMBER_CHART_CONCURRENCY) {
+    // The shared bundle wrapper can't thread an AbortSignal into fetch, so
+    // honor cancellation between chunks instead of mid-request.
+    if (signal.aborted) break;
     const chunk = members.slice(start, start + MEMBER_CHART_CONCURRENCY);
     const chunkResults = await Promise.all(
       chunk.map(async (member, offset) => {
         try {
           return {
-            chart: await loadMemberChart(member, nextDate, signal),
+            chart: await loadMemberChart(member, nextDate),
             error: null,
             index: start + offset,
           };
@@ -248,8 +189,8 @@ export function useFamilyData({ ownerUserId, selectedDate, onStatus }: UseFamily
   const [selectedVaultId, setSelectedVaultId] = useState("");
   const effectiveOwnerUserId = requestedOwnerUserId || ownerUserId;
 
-  function reportStatus(message: string) {
-    onStatus?.(message);
+  function reportStatus(message: string, tone: "success" | "error" = "success") {
+    onStatus?.(message, tone);
   }
 
   const vaultsQuery = useQuery({
@@ -305,7 +246,7 @@ export function useFamilyData({ ownerUserId, selectedDate, onStatus }: UseFamily
       if (members.length === 0) return [];
       const result = await loadMemberChartsData(members, selectedDate, signal);
       if (result.errors.length > 0) {
-        reportStatus(`Some family charts failed to load: ${result.errors.join("; ")}`);
+        reportStatus(`Some family charts failed to load: ${result.errors.join("; ")}`, "error");
       }
       return result.charts;
     },
@@ -338,7 +279,7 @@ export function useFamilyData({ ownerUserId, selectedDate, onStatus }: UseFamily
       const next = data.items.find((item) => item.familyVaultId === selectedVaultId) ?? data.items[0];
       setSelectedVaultId(next?.familyVaultId ?? "");
     } catch (error) {
-      reportStatus(readErrorMessage(error));
+      reportStatus(readErrorMessage(error), "error");
     }
   }
 
@@ -363,7 +304,7 @@ export function useFamilyData({ ownerUserId, selectedDate, onStatus }: UseFamily
         setSelectedVaultId("");
         await loadVaults(ownerUserId);
       } else {
-        reportStatus(message);
+        reportStatus(message, "error");
       }
     }
   }

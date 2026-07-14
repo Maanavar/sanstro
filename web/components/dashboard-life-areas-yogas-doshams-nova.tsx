@@ -384,6 +384,14 @@ function NovaDoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: La
           <span style={{ fontSize: "14px", fontWeight: 600, color: dosham.isPresent ? "var(--color-text-strong)" : "var(--color-faint)" }}>
             {displayName(dosham.name, lang)}
           </span>
+          {dosham.isPresent && (dosham.variantEn || dosham.variantTa) && (
+            <span
+              title={lang === "ta" ? "இந்த ஜாதகத்தின் குறிப்பிட்ட காலசர்ப்ப வகை" : "The specific Kala Sarpa naga for this chart"}
+              style={{ fontSize: "10px", fontWeight: 700, color: "var(--color-accent-secondary)", border: "1px solid var(--color-accent-secondary)", borderRadius: "999px", padding: "2px 8px" }}
+            >
+              {lang === "ta" ? dosham.variantTa : `${dosham.variantEn} Kala Sarpa`}
+            </span>
+          )}
           {dosham.isPresent && dosham.dashaActivated && (
             <span style={{ fontSize: "10px", fontWeight: 700, color: "var(--color-mid)", border: "1px solid var(--color-mid-border)", borderRadius: "999px", padding: "2px 8px" }}>
               {t("yoga_dasha_activated", lang)}

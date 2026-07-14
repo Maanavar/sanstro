@@ -5,8 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-
-type Tab = "onboarding" | "personal" | "tools" | "transits" | "plan" | "life-areas" | "family" | "calendar" | "journal" | "settings" | "qa" | "explore";
+import type { Tab } from "@/lib/dashboard-tabs";
 
 interface DashboardLeftRailProps {
   lang: Lang;
@@ -104,6 +103,14 @@ type RailItemDef = {
   icon: React.ReactNode;
 };
 
+// IA model (DASH-13): six first-class destinations, mirrored exactly by the
+// hero tab strip (dashboard-hero.tsx TAB_DEFS). Depth surfaces (Life Areas,
+// Journal, Transits) live under Explore/Plan but highlight NOTHING while
+// active — marking Explore as current-page while the user is actually on
+// Life Areas/Journal misled about where they were (user feedback 2026-07-14).
+// The depth page's own heading + the "Back to Explore" banner carry the
+// orientation instead. Same rule in dashboard-hero.tsx — the two navs must
+// never disagree.
 const RAIL_ITEMS: RailItemDef[] = [
   { id: "personal", labelEn: "Today",      labelTaKey: "tab_personal",   icon: <TodayIcon /> },
   { id: "calendar", labelEn: "Panchangam", labelTaKey: "tab_calendar",   icon: <PanchangamIcon /> },
@@ -113,11 +120,8 @@ const RAIL_ITEMS: RailItemDef[] = [
   { id: "explore",  labelEn: "Explore",                                   icon: <ExploreIcon /> },
 ];
 
-const SHOW_QA_TAB = process.env.NODE_ENV !== "production";
-
 export function DashboardLeftRail({ lang, activeTab, onTabChange }: DashboardLeftRailProps) {
   const [expanded, setExpanded] = useState(false);
-  const items = RAIL_ITEMS.filter((item) => SHOW_QA_TAB || item.id !== "qa");
 
   return (
     <nav className="cd-left-rail" data-expanded={expanded ? "true" : "false"} aria-label="Dashboard navigation">
@@ -135,19 +139,12 @@ export function DashboardLeftRail({ lang, activeTab, onTabChange }: DashboardLef
         </svg>
         {expanded && <span className="cd-rail-item__label cd-rail-item__label--inline">Menu</span>}
       </button>
-      {items.map((item, idx) => {
-        const EXPLORE_DEPTH_TABS: Tab[] = ["transits", "life-areas", "journal", "explore"];
-        const isActive =
-          item.id === "explore"
-            ? EXPLORE_DEPTH_TABS.includes(activeTab)
-            : activeTab === item.id;
+      {RAIL_ITEMS.map((item) => {
+        const isActive = activeTab === item.id;
         const label = lang === "ta" && item.labelTaKey ? t(item.labelTaKey, lang) : item.labelEn;
-
-        const showDivider = false;
 
         return (
           <div key={item.id}>
-            {showDivider && <div className="cd-rail-divider" aria-hidden="true" />}
             <button
               type="button"
               className={`cd-rail-item${isActive ? " cd-rail-item--active" : ""}`}

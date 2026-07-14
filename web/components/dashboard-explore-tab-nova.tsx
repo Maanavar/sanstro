@@ -36,7 +36,7 @@ import { DashboardExploreLearnNova } from "./dashboard-explore-learn-nova";
  * family/family-member, not a new route.
  */
 
-type Tab = "onboarding" | "personal" | "tools" | "transits" | "plan" | "life-areas" | "family" | "calendar" | "journal" | "settings" | "qa" | "explore";
+import type { Tab } from "@/lib/dashboard-tabs";
 
 /**
  * Explore's in-tab sub-screen state — hub tile click used to jump straight

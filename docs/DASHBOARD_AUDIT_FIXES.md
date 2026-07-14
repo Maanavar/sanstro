@@ -44,7 +44,19 @@ Status legend: `[ ]` open · `[x]` done · `[~]` partially done / needs decision
 
 ## P0 — correctness defects visible to users
 
-### DASH-01 `[ ]` Browser-clock vs panchangam-clock mismatch (diaspora-facing wrong guidance)
+### DASH-01 `[x]` Browser-clock vs panchangam-clock mismatch (diaspora-facing wrong guidance)
+
+> **Done 2026-07-13.** New `web/lib/tz.ts` (zone-aware `timeOnDateToMs`,
+> `minutesOfDayInZone`, `hourInZone`, `formatClockInZone`; local-clock fallback
+> when no zone) + `web/lib/today-windows.ts` (`pickFeaturedWindow` moved out of
+> the Today tab, zone-aware). The dashboard-bundle response carries
+> `panchangamTimezone` (server picks current-else-birth location); threaded to
+> the Today tab, ribbon (NOW marker + Horai lookup + NOW label) and Decide
+> strip. Hero sun→moon swap now uses `panchangam.sunset` (17:00-in-zone
+> fallback); greeting + evening-preview cutoffs use the zone hour. Unit tests:
+> `web/lib/tz.test.ts`, `web/lib/today-windows.test.ts` (incl. a
+> Toronto-browser/Chennai-panchangam case). Playwright `timezoneId` pass not
+> yet run.
 
 - **Files:** `web/components/dashboard-today-ribbon-nova.tsx` (`nowMin`, NOW marker,
   "Horai now" chip), `web/components/dashboard-today-tab-nova.tsx`
@@ -73,7 +85,19 @@ Status legend: `[ ]` open · `[x]` done · `[~]` partially done / needs decision
   Horai-now chip, and countdown match Chennai clock time. Unit tests for the new
   zone-aware helper (export it from `web/lib/format.ts` or a new `web/lib/tz.ts`).
 
-### DASH-02 `[ ]` Chart bundle is fail-fast: one bad call blanks the Today tab
+### DASH-02 `[x]` Chart bundle is fail-fast: one bad call blanks the Today tab
+
+> **Done 2026-07-13** — solved at the source instead of client-side
+> `withFallback`: the new `GET /charts/{id}/dashboard-bundle` (see DASH-04)
+> isolates every section server-side (`app/services/
+> dashboard_bundle_service.py::safe`) — a section that raises returns `null`
+> plus a note under `errors`, never a failed request. The Today tab shows a
+> "Some sections couldn't load · Retry" chip (retry re-runs
+> `refreshPersonalBundle` with `forceDay`). Tests:
+> `tests/test_dashboard_bundle_api.py::test_dashboard_bundle_isolates_a_failing_section`
+> (monkeypatched sani 500 → sani null, neighbors intact) and
+> `web/hooks/usePersonalData.test.tsx` (`mapDashboardBundle` with a failed
+> section).
 
 - **Files:** `web/hooks/usePersonalData.ts` (`fetchChartBundle`),
   consumers in `dashboard-today-tab-nova.tsx` and tab components.
@@ -89,7 +113,11 @@ Status legend: `[ ]` open · `[x]` done · `[~]` partially done / needs decision
   Today tab still renders hero/score/ribbon, with a graceful gap or retry chip where
   the missing data would go. Unit test `fetchChartBundle` with one rejected call.
 
-### DASH-03 `[ ]` Lat/lng of exactly 0 rejected by profile validation
+### DASH-03 `[x]` Lat/lng of exactly 0 rejected by profile validation
+
+> **Done 2026-07-13.** New `web/lib/validation.ts`
+> (`parseLatitude`/`parseLongitude` — explicit empty/NaN/range checks, 0 valid)
+> used by `validateBirthForm`; unit tests in `web/lib/validation.test.ts`.
 
 - **Files:** `web/components/dashboard-workspace.tsx` (`validateBirthForm`,
   ~lines 812-813).
@@ -104,7 +132,31 @@ Status legend: `[ ]` open · `[x]` done · `[~]` partially done / needs decision
 
 ## P1 — resilience, consent, and platform hygiene
 
-### DASH-04 `[ ]` Date-change network storm (~28 requests solo, ~75 with a family of 4)
+### DASH-04 `[x]` Date-change network storm (~28 requests solo, ~75 with a family of 4)
+
+> **Done 2026-07-13.** All four sub-items:
+> 1. `/charts/calculate` cached for the session (`STALE.session`), keyed by
+>    profile; only profile-edit paths pass `forceChart` (goal changes and
+>    manual refresh pass `forceDay` so their cache-bypass semantics survive).
+> 2. Backend `level` accepts a comma list (`maha,antar,pratyantar`) — one
+>    dasha request; `splitDashaTimeline` fans it back out client-side. Shared
+>    wrapper `getDashaTimeline` updated (single level unchanged for mobile).
+> 3. New `GET /api/v1/charts/{id}/dashboard-bundle?date=` composes chart +
+>    summary + daily guidance (+3-day range) + combined dasha + transit + sani
+>    + peyarchi + explanation + panchangam daily/timings + life-areas +
+>    week-ahead + nakshatra card, all failure-isolated. Typed wrapper
+>    `packages/shared/src/api/dashboardBundle.ts`. `fetchChartBundle` (web) is
+>    now ONE request, and the same endpoint serves `useFamilyData.
+>    loadMemberChart` (~12→1 per member). Old endpoints untouched for mobile.
+> 4. `GET /activity-timing/batch?activities=a,b,c` (max 12, per-activity null
+>    on failure) + shared wrapper `getActivityTimingBatch`; Decide strip is one
+>    request.
+> Also: life-area predictions (4 calls) now only fetch while the Life Areas
+> tab is open (`predictionsEnabled`), and bundle-provided weekAhead/
+> nakshatraCard disable their standalone queries. Date paging on Today is now
+> bundle + activity-batch + ambient + dasha-story (+ peyarchi-report when one
+> is upcoming) ≈ 4–5 requests, no calculate POST. Devtools count not yet
+> re-measured in a live browser. Tests: `tests/test_dashboard_bundle_api.py`.
 
 - **Files:** `web/hooks/usePersonalData.ts`, `web/hooks/useFamilyData.ts`,
   `web/components/dashboard-today-decide-nova.tsx`; backend `app/api/`.
@@ -131,7 +183,18 @@ Status legend: `[ ]` open · `[x]` done · `[~]` partially done / needs decision
 - **Acceptance:** with devtools open, paging one day on Today issues ≤ 5 requests
   for a solo profile; no `POST /charts/calculate` fires on date paging.
 
-### DASH-05 `[ ]` Modals have no dialog semantics; destructive ops use native `confirm()`
+### DASH-05 `[x]` Modals have no dialog semantics; destructive ops use native `confirm()`
+
+> **Done 2026-07-13.** New `web/components/modal-shell.tsx`: `ModalShell`
+> (drawer-panel's dialog behavior extracted — role="dialog"/aria-modal, focus
+> into panel + restore to trigger, Tab trap, Escape, backdrop click; style- or
+> class-driven skins) + `ConfirmDialog` (destructive-styled, bilingual via
+> `t()`, optional type-the-name arming). All five modals migrated
+> (edit-member, edit-profile, feedback, learn-article, guest-chart). The three
+> `confirm()` calls replaced: delete-profile / remove-member (bilingual keys
+> already existed) / delete-vault (requires typing the vault name). axe run in
+> `tests/visual/quality-gates.spec.ts` not yet re-executed (browser pass
+> pending).
 
 - **Files:** `dashboard-edit-member-modal.tsx`, `dashboard-edit-profile-modal.tsx`,
   `dashboard-feedback-modal.tsx`, `dashboard-learn-article-modal.tsx`,
@@ -150,7 +213,12 @@ Status legend: `[ ]` open · `[x]` done · `[~]` partially done / needs decision
   trigger on close; axe (`tests/visual/quality-gates.spec.ts`) passes; deleting a
   vault shows a bilingual in-app dialog, not a browser popup.
 
-### DASH-06 `[ ]` "Remind me" silently flips notification channel none→both
+### DASH-06 `[x]` "Remind me" silently flips notification channel none→both
+
+> **Done 2026-07-13.** Channel `none` now routes to Settings → Notifications
+> (via the existing `onOpenNotificationSettings`) with an explanatory status;
+> no PATCH fires. Users with a channel keep it — the PATCH re-sends their
+> current channel, never upgrades it.
 
 - **Files:** `web/components/dashboard-today-tab-nova.tsx` (`handleSaveReminder`).
 - **Problem:** one tap on "Remind me" PATCHes
@@ -164,7 +232,16 @@ Status legend: `[ ]` open · `[x]` done · `[~]` partially done / needs decision
   notifications settings (or sees an explicit channel choice); no PATCH with
   `both` fires without the user seeing the word.
 
-### DASH-07 `[ ]` Reports page: misleading CTA, bogus CSRF header, bypasses shared client
+### DASH-07 `[x]` Reports page: misleading CTA, bogus CSRF header, bypasses shared client
+
+> **Done 2026-07-13.** CTA is "Join waitlist →" (ta: "பட்டியலில் சேர் →");
+> new shared wrapper `packages/shared/src/api/reports.ts::purchaseReport`
+> (apiFetchJson underneath sends the real `X-Vinaadi-CSRF`); fake
+> `X-CSRF-Token` gone; the page's settings/ui fetch also moved onto
+> `apiFetchJson`. Backend: `/reports/purchase` now has
+> `dependencies=[Depends(require_csrf_header)]`. Test:
+> `tests/test_dashboard_bundle_api.py::test_reports_purchase_requires_csrf_header`
+> (403 without header for cookie-auth, 200 queued with it).
 
 - **Files:** `web/app/dashboard/reports/page.tsx`; backend `app/api/reports.py`.
 - **Problems:**
@@ -185,7 +262,15 @@ Status legend: `[ ]` open · `[x]` done · `[~]` partially done / needs decision
 - **Acceptance:** purchase click sends `X-Vinaadi-CSRF: 1` and succeeds; CTA and
   result copy agree; backend test asserts 403 without the header.
 
-### DASH-08 `[ ]` Async status not announced; error detection by string-sniffing
+### DASH-08 `[x]` Async status not announced; error detection by string-sniffing
+
+> **Done 2026-07-13.** `StatusMessage = { text, tone }` +
+> `<StatusLive>` (always-mounted `role="status"` aria-live region) in
+> `dashboard-ui-nova.tsx`. Reminder status uses it; the workspace `status` is
+> now a `StatusMessage` (hooks' `onStatus` carries tone; hero renders ✓/⚠ +
+> aria-live instead of an unconditional ✓); reports page announces purchase
+> outcomes via a visually-hidden live region. No tone is inferred from wording
+> anywhere on these paths — works identically in Tamil.
 
 - **Files:** `dashboard-today-tab-nova.tsx` (`reminderMessage` and its
   `includes("Could not")` tone check), `dashboard-workspace.tsx` (hero `status`),
@@ -201,7 +286,19 @@ Status legend: `[ ]` open · `[x]` done · `[~]` partially done / needs decision
 
 ## P2 — architecture, tests, product polish
 
-### DASH-09 `[ ]` Test the riskiest logic (hooks + workspace gates)
+### DASH-09 `[~]` Test the riskiest logic (hooks + workspace gates)
+
+> **Mostly done 2026-07-13.** New: `web/hooks/usePersonalData.test.tsx`
+> (renderHook + mocked `apiFetchJson`/bundle wrapper — happy path,
+> 403-recovery via /me/latest, race guard that fails if
+> `isPersonalRequestCurrent` is removed, `mapDashboardBundle` partial-failure,
+> `splitDashaTimeline`), `web/lib/tz.test.ts`, `web/lib/today-windows.test.ts`
+> (`pickFeaturedWindow`/`timeOnDateToMs`, pairs with DASH-01),
+> `web/lib/dashboard-tabs.test.ts` (restore sanitizer, pairs with DASH-11),
+> `web/lib/validation.test.ts` (pairs with DASH-03).
+> **Remaining:** onboarding-gate transition tests and a full
+> localStorage-restore test at the workspace-component level (the restore
+> *logic* is covered via `sanitizeRestoredTab`).
 
 - **Files:** `web/hooks/usePersonalData.ts`, `useFamilyData.ts`, `usePlanData.ts`,
   `useJournalData.ts`; `dashboard-workspace.tsx`.
@@ -218,7 +315,12 @@ Status legend: `[ ]` open · `[x]` done · `[~]` partially done / needs decision
 - **Acceptance:** new test files run in the default `npx vitest run`; the race-guard
   test fails if `isPersonalRequestCurrent` checks are removed.
 
-### DASH-10 `[ ]` Thirukanitham sign-offs needed (queue for jyotishi review)
+### DASH-10 `[x]` Thirukanitham sign-offs needed (queue for jyotishi review)
+
+> **Done 2026-07-13 — queued, no behavior changed.** Both items recorded in
+> the new standing list `docs/ASTROLOGER_REVIEW_QUEUE.md` (created this
+> session; also gathers the previously scattered pending sign-offs).
+> `pickFeaturedWindow` carries a do-not-fix-without-review note.
 
 - **Items:**
   1. **Abhijit demotion** — `pickFeaturedWindow` (Today tab) never features the
@@ -235,7 +337,13 @@ Status legend: `[ ]` open · `[x]` done · `[~]` partially done / needs decision
   astrologer-review list (same queue as the propensity suites / A-04) and implement
   whatever the reviewer decides, mirroring copy in `ta` and `en`.
 
-### DASH-11 `[ ]` Sanitize persisted `activeTab`; single shared `Tab` type
+### DASH-11 `[x]` Sanitize persisted `activeTab`; single shared `Tab` type
+
+> **Done 2026-07-13.** `web/lib/dashboard-tabs.ts` owns the `Tab` union
+> (imported by workspace / left-rail / hero / explore-tab) and
+> `sanitizeRestoredTab` (allowlist restore; `"transits"` → `plan` +
+> `planView: "transits"`; settings/onboarding refused; qa dev-gated). Unit
+> tests in `web/lib/dashboard-tabs.test.ts`.
 
 - **Files:** `dashboard-workspace.tsx` (localStorage restore), the duplicated
   `type Tab = …` unions in `dashboard-workspace.tsx`, `dashboard-left-rail.tsx`,
@@ -250,7 +358,10 @@ Status legend: `[ ]` open · `[x]` done · `[~]` partially done / needs decision
 - **Acceptance:** seeding localStorage with `activeTab: "transits"` lands the user
   on Plan → Transits view; tsc fails if a tab id is added in one file but not others.
 
-### DASH-12 `[ ]` Debounce localStorage persistence
+### DASH-12 `[x]` Debounce localStorage persistence
+
+> **Done 2026-07-13.** Trailing 500ms `setTimeout` in the persistence effect
+> (cleared on every dep change) — typing writes at most once per quiet period.
 
 - **Files:** `dashboard-workspace.tsx` persistence effect (~lines 540-558).
 - **Problem:** the effect serializes and writes the whole persisted state on every
@@ -260,7 +371,14 @@ Status legend: `[ ]` open · `[x]` done · `[~]` partially done / needs decision
 - **Acceptance:** typing a 20-char name causes ≤ 2 localStorage writes (verify via
   a spy in a unit test or Performance panel).
 
-### DASH-13 `[ ]` Footer fake links; rail/hero IA mismatch
+### DASH-13 `[x]` Footer fake links; rail/hero IA mismatch
+
+> **Done 2026-07-13.** Footer labels are real `goToTab` buttons. IA decision:
+> the rail's model is canonical — Life Areas/Journal removed from the hero
+> strip (still reachable via Explore and cross-links), and the hero's Explore
+> tab now highlights for depth tabs exactly like the rail
+> (`EXPLORE_DEPTH_TABS`, documented in both component headers). The rail's
+> no-op `SHOW_QA_TAB` filter and `showDivider` deleted.
 
 - **Files:** `dashboard-workspace.tsx` footer (~lines 1700-1707),
   `dashboard-left-rail.tsx`, `dashboard-hero.tsx`.
@@ -275,7 +393,14 @@ Status legend: `[ ]` open · `[x]` done · `[~]` partially done / needs decision
 - **Acceptance:** every element styled as a link/button navigates; active-state
   highlighting is consistent between rail and hero for every reachable tab.
 
-### DASH-14 `[ ]` Color literals in new dashboard code
+### DASH-14 `[x]` Color literals in new dashboard code
+
+> **Done 2026-07-13.** Acceptance grep returns zero matches in both files
+> (also cleaned the ribbon + decide strip literals touched for DASH-01).
+> Propensities tones now `--deepdive-good/-warn/-info` (new theme-aware tokens
+> in dashboard-nova.css, both theme blocks) with `color-mix()` tints; Today
+> tab cream rgba → `color-mix(… var(--color-text-strong) …)`, `#221a2c`
+> fallback dropped.
 
 - **Files:** `dashboard-propensities-panel-nova.tsx` (`W.good = "#2E7D32"`,
   `#B8860B`, `#3A6EA5`, rgba literals in `TONES`), `dashboard-today-tab-nova.tsx`
@@ -289,7 +414,13 @@ Status legend: `[ ]` open · `[x]` done · `[~]` partially done / needs decision
   returns only `var(--…)` fallbacks that themselves reference tokens (ideally zero
   matches).
 
-### DASH-15 `[ ]` i18n consolidation (long-running cleanup)
+### DASH-15 `[~]` i18n consolidation (long-running cleanup — policy in force)
+
+> **Policy applied 2026-07-13:** every string added this session is bilingual;
+> the new Today-tab strings (retry chip, reminder consent/saved/failed) and
+> the previously-English-only member-remove/vault-delete toasts + confirm
+> dialogs go through `t()` with new keys in `web/lib/i18n.ts`. The 1,530-strong
+> backlog of inline ternaries remains a per-PR ratchet, not a rewrite.
 
 - **Scope:** 1,530 inline `lang === "ta" ?` ternaries vs 658 `t()` calls across
   dashboard components.
@@ -300,7 +431,13 @@ Status legend: `[ ]` open · `[x]` done · `[~]` partially done / needs decision
 - **Acceptance:** ratchet-style: count of inline ternaries in touched files does
   not grow in any PR.
 
-### DASH-16 `[ ]` Life-areas duplicate fetch race
+### DASH-16 `[x]` Life-areas duplicate fetch race
+
+> **Done 2026-07-13.** `lifeAreaInsightsQuery` is gated on the bundle (and on
+> the Life Areas tab being open — DASH-04) and always receives the bundle's
+> preloaded life-areas; the workspace effect no longer kicks a second personal
+> fetch (it only serves family-member charts now). Cold load fires **zero**
+> client `/life-areas` requests — the bundle computes it server-side.
 
 - **Files:** `web/hooks/usePersonalData.ts` (`lifeAreaInsightsQuery` +
   `fetchLifeAreaInsights` `preloadedLifeAreas`).
@@ -317,7 +454,19 @@ Status legend: `[ ]` open · `[x]` done · `[~]` partially done / needs decision
 
 ## P3 — dead-code deletion (LAST — ask the user before EVERY file)
 
-### DASH-17 `[~]` Delete dead dashboard code (~4,400 lines)
+### DASH-17 `[x]` Delete dead dashboard code (~4,400 lines)
+
+> **Done 2026-07-13 — every one of the 13 files below individually approved by
+> the user (per-file, 4 batched question rounds), references re-verified via
+> repo-wide grep immediately before deletion.** All 13 `git rm`'d. Extras that
+> went with them: the `DashboardTransitsTab` dynamic import + `activeTab ===
+> "transits"` render branch in `dashboard-workspace.tsx` (hero `TAB_DEFS`
+> entry had already gone with DASH-13); rule test `test_b10` (it read
+> `dashboard-shadow-prompts.tsx`'s source — user approved deleting both);
+> stale "still shipping/untouched" comments in the two Plan-transits Nova
+> files corrected. Verified after deletion: `next build` (regenerates
+> `.next/types`, which briefly 2307s on stale page stubs until rebuilt),
+> tsc clean, vitest 136/136, `tests/test_vinaadi_rule_regressions.py` 2 passed.
 
 > **Guardrail (user instruction 2026-07-13): do this task last, and ask the user
 > for explicit approval for each individual file before deleting it. Never

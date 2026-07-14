@@ -33,6 +33,7 @@ import { ShadbalaPanel } from "./dashboard-shadbala-panel";
 import { YoginiDashaPanel } from "./dashboard-yogini-dasha-panel";
 import { AshtottariDashaPanel } from "./dashboard-ashtottari-dasha-panel";
 import { KalachakraDashaPanel } from "./dashboard-kalachakra-dasha-panel";
+import { ConditionalDashasPanel } from "./dashboard-conditional-dashas-panel";
 import {
   NovaChartIdentityCard,
   NovaChartValidationChip,
@@ -140,7 +141,13 @@ export function DashboardChartsPanelNova({
   }
 
   return (
-    <div id="nova-charts-panel" style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+    // overflowAnchor none: this panel is a stack of expanding/collapsing
+    // blocks (chart explanation, vargas, Shadbala, the alternate dashas).
+    // Native scroll anchoring picks anchor nodes inside whichever block is
+    // unmounting and throws the viewport to an unrelated spot; the panels'
+    // own trigger-pinning (collapsible-section.tsx, chart-explanation) is
+    // the single deliberate scroll correction instead.
+    <div id="nova-charts-panel" style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", overflowAnchor: "none" }}>
       {/* Section header — this is the primary purpose of the Charts side of the tab */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", borderTop: "1px solid var(--color-border)", paddingTop: "18px" }}>
         <div>
@@ -218,6 +225,44 @@ export function DashboardChartsPanelNova({
         <DasaBhuktiAntaramDetail lang={lang} today={selectedDate} dasha={dasha} dashaAntar={dashaAntar} />
       </div>
 
+      {/* ===== Border Alert — birth-time junction/edge conditions (Cazimi,
+          Sankranti birth, Grahana Janma…). Rendered only when the chart
+          actually carries one, so it reads as a genuine alert, not clutter. ===== */}
+      {personalChart && personalChart.birthConditions && personalChart.birthConditions.length > 0 && (
+        <Surface title={t("surface_border_alert", lang)}>
+          <div style={{ display: "grid", gap: "var(--space-3)" }}>
+            {personalChart.birthConditions.map((condition) => {
+              const accent = condition.severity === "BOOST"
+                ? "var(--color-success, #3fb950)"
+                : condition.severity === "ALERT"
+                  ? "var(--color-warning, #d29922)"
+                  : "var(--color-accent-secondary)";
+              return (
+                <div
+                  key={condition.code}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "6px",
+                    padding: "var(--space-3)",
+                    borderRadius: "var(--radius-md, 10px)",
+                    background: "var(--color-surface-raised, rgba(255,255,255,0.03))",
+                    borderInlineStart: `3px solid ${accent}`,
+                  }}
+                >
+                  <Chip tone={condition.severity === "BOOST" ? "success" : "warning"}>
+                    {lang === "ta" ? condition.titleTa : condition.titleEn}
+                  </Chip>
+                  <p style={{ margin: 0, fontSize: "0.9rem", color: "var(--color-text-secondary)" }}>
+                    {lang === "ta" ? condition.descriptionTa : condition.descriptionEn}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </Surface>
+      )}
+
       {/* ===== 3. Planet positions — the detailed reference zone. Chart
           explanation renders open (not collapsed) right underneath the
           table. ===== */}
@@ -246,6 +291,7 @@ export function DashboardChartsPanelNova({
                       <div className="table__flags">
                         {planet.isRetrograde ? <Chip tone="warning">{t("flag_vakra", lang)}</Chip> : null}
                         {planet.isCombust ? <Chip tone="warning">{t("flag_astam", lang)}</Chip> : null}
+                        {planet.isCazimi ? <Chip tone="success">{t("flag_cazimi", lang)}</Chip> : null}
                         {planet.isVargottama ? <Chip tone="success">{t("flag_vargottamam", lang)}</Chip> : null}
                       </div>
                     </td>
@@ -291,6 +337,7 @@ export function DashboardChartsPanelNova({
         {activeChartId && <YoginiDashaPanel lang={lang} chartId={activeChartId} />}
         {activeChartId && <AshtottariDashaPanel lang={lang} chartId={activeChartId} />}
         {activeChartId && <KalachakraDashaPanel lang={lang} chartId={activeChartId} />}
+        {activeChartId && <ConditionalDashasPanel lang={lang} chartId={activeChartId} />}
       </AdvancedAstrologyGate>
 
       {(charaDasha || solarReturn) && (

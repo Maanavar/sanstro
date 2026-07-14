@@ -7,9 +7,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
 import { isBirthDateWithinBounds } from "@/lib/birth-date";
+import { sanitizeRestoredTab, type Tab } from "@/lib/dashboard-tabs";
 import { todayIso } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { parseLatitude, parseLongitude } from "@/lib/validation";
 import type {
   ApiEnvelope,
   BirthProfileCreateResponseData,
@@ -29,6 +31,8 @@ import { useJournalData } from "@/hooks/useJournalData";
 
 import type { EditMemberState } from "./dashboard-edit-member-modal";
 import type { SettingsSectionId } from "./dashboard-settings-rail";
+import { ConfirmDialog, type ConfirmDialogState } from "./modal-shell";
+import type { StatusMessage } from "./dashboard-ui-nova";
 import { CelestialAmbientNova } from "./celestial-ambient-nova";
 import { moonPhaseFromTithi } from "@/lib/lunar";
 import { DashboardHero } from "./dashboard-hero";
@@ -52,11 +56,6 @@ function LazyPanelFallback() {
 
 const DashboardCalendarTabNova = dynamic(
   () => import("./dashboard-calendar-tab-nova").then((mod) => mod.DashboardCalendarTabNova),
-  { loading: LazyPanelFallback },
-);
-
-const DashboardTransitsTab = dynamic(
-  () => import("./dashboard-transits-tab").then((mod) => mod.DashboardTransitsTab),
   { loading: LazyPanelFallback },
 );
 
@@ -130,7 +129,6 @@ const DashboardToolsTabNova = dynamic(
   { loading: LazyPanelFallback },
 );
 
-type Tab = "onboarding" | "personal" | "tools" | "transits" | "plan" | "life-areas" | "family" | "calendar" | "journal" | "settings" | "qa" | "explore";
 type SettingsSubTab = "setup" | "session";
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
 
@@ -227,8 +225,19 @@ function parseNumber(value: string, fallback = 0): number {
 // ── Main component ────────────────────────────────────────
 
 export function DashboardWorkspace() {
-  const [status, setStatus] = useState("Ready. Create a profile or family vault to begin.");
+  // Status carries an explicit tone (DASH-08) — the hero renders ✓/⚠ and an
+  // aria-live announcement from it instead of guessing from the wording.
+  const [status, setStatusMessage] = useState<StatusMessage | null>({
+    text: "Ready. Create a profile or family vault to begin.",
+    tone: "success",
+  });
+  const setStatus = useCallback((text: string, tone: "success" | "error" = "success") => {
+    setStatusMessage(text ? { text, tone } : null);
+  }, []);
   const [activeTab, setActiveTab] = useState<Tab>("personal");
+  // In-design confirmation dialog for destructive actions (DASH-05) —
+  // replaces the browser confirm() popups.
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
   const [exploreReturnTab, setExploreReturnTab] = useState<Tab | null>(null);
   const [settingsSubTab, setSettingsSubTab] = useState<SettingsSubTab>("setup");
   const [settingsSection, setSettingsSection] = useState<SettingsSectionId>("account");
@@ -417,6 +426,10 @@ export function DashboardWorkspace() {
   const personal = usePersonalData({
     selectedDate,
     onStatus: setStatus,
+    // Life-area predictions are 4 extra requests per chart+date that only the
+    // Life Areas tab renders — don't fetch them while paging dates on Today
+    // (DASH-04).
+    predictionsEnabled: activeTab === "life-areas",
   });
 
   const family = useFamilyData({
@@ -428,38 +441,41 @@ export function DashboardWorkspace() {
   const plan = usePlanData({
     chartId: personal.chartId,
     onError: (msg) => showToast(msg, "error"),
+    // Goal changes alter what the day bundle and life-area insights compute,
+    // so both refreshes bypass the cache (forceDay / force — DASH-04); the
+    // chart itself is untouched, so no forceChart.
     onGoalAdded: (goalType) => {
       showToast(`${t("toast_goal_added", lang)}: ${goalType}`);
       if (personal.birthProfileId) {
-        void personal.refreshPersonalBundle(personal.birthProfileId, selectedDate);
+        void personal.refreshPersonalBundle(personal.birthProfileId, selectedDate, true, { forceDay: true });
       }
       const targetChartId = (() => {
         if (!lifeAreasViewId) return personal.chartId;
         const member = family.memberCharts.find((mc) => mc.memberId === lifeAreasViewId);
         return member?.chart.chartId ?? personal.chartId;
       })();
-      if (!targetChartId) return;
+      if (!targetChartId || targetChartId === personal.chartId) return;
       personal.setPredictionsLoading(true);
       personal.setJadhagamReport(null);
       void personal
-        .refreshLifeAreasInsights(targetChartId, selectedDate)
+        .refreshLifeAreasInsights(targetChartId, selectedDate, { force: true })
         .finally(() => personal.setPredictionsLoading(false));
     },
     onGoalRemoved: () => {
       showToast(t("toast_goal_removed", lang));
       if (personal.birthProfileId) {
-        void personal.refreshPersonalBundle(personal.birthProfileId, selectedDate);
+        void personal.refreshPersonalBundle(personal.birthProfileId, selectedDate, true, { forceDay: true });
       }
       const targetChartId = (() => {
         if (!lifeAreasViewId) return personal.chartId;
         const member = family.memberCharts.find((mc) => mc.memberId === lifeAreasViewId);
         return member?.chart.chartId ?? personal.chartId;
       })();
-      if (!targetChartId) return;
+      if (!targetChartId || targetChartId === personal.chartId) return;
       personal.setPredictionsLoading(true);
       personal.setJadhagamReport(null);
       void personal
-        .refreshLifeAreasInsights(targetChartId, selectedDate)
+        .refreshLifeAreasInsights(targetChartId, selectedDate, { force: true })
         .finally(() => personal.setPredictionsLoading(false));
     },
   });
@@ -493,15 +509,15 @@ export function DashboardWorkspace() {
           if (parsed.birthForm) setBirthForm((c) => ({ ...c, ...parsed.birthForm }));
           if (parsed.vaultForm) setVaultForm((c) => ({ ...c, ...parsed.vaultForm }));
           if (parsed.memberForm) setMemberForm((c) => ({ ...c, ...parsed.memberForm }));
-          if (parsed.activeTab === "onboarding" || parsed.activeTab === "settings") {
-            // Don't restore settings from localStorage — the onboarding gate
-            // decides whether to show settings based on profile existence.
-            // Restoring "settings" here causes newly-onboarded users to land
-            // back on the setup tab even after they have a birth profile.
-          } else if (parsed.activeTab === "qa" && !ENABLE_QA_TAB) {
-            setActiveTab("personal");
-          } else if (parsed.activeTab) {
-            setActiveTab(parsed.activeTab);
+          // Allowlist restore (DASH-11): only tabs the rail/hero actually
+          // offer come back; the retired "transits" tab maps to Plan →
+          // Transits so stale localStorage can't strand anyone on a ghost
+          // tab. Settings/onboarding stay excluded — the onboarding gate
+          // decides those from profile existence.
+          const restored = sanitizeRestoredTab(parsed.activeTab, { qaEnabled: ENABLE_QA_TAB });
+          if (restored) {
+            if (restored.planView) setPlanView(restored.planView);
+            setActiveTab(restored.tab);
           }
           if (parsed.lang === "ta" || parsed.lang === "en") setLang(parsed.lang);
           setStatus("Session restored.");
@@ -537,20 +553,27 @@ export function DashboardWorkspace() {
 
   // ── Persistence ────────────────────────────────────────
 
+  // Debounced (DASH-12): birthForm/vaultForm/memberForm are dependencies, so
+  // without the delay every keystroke in any form serialized and wrote the
+  // whole persisted state. Trailing-edge write after 500ms of quiet; the
+  // timer also flushes stale-closure-free because each effect run recreates it.
   useEffect(() => {
     if (!session.hydrated) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      ownerUserId,
-      selectedDate,
-      selectedVaultId: family.selectedVaultId,
-      birthProfileId: personal.birthProfileId,
-      chartId: personal.chartId,
-      birthForm,
-      vaultForm,
-      memberForm,
-      activeTab,
-      lang,
-    } as PersistedState));
+    const timer = window.setTimeout(() => {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        ownerUserId,
+        selectedDate,
+        selectedVaultId: family.selectedVaultId,
+        birthProfileId: personal.birthProfileId,
+        chartId: personal.chartId,
+        birthForm,
+        vaultForm,
+        memberForm,
+        activeTab,
+        lang,
+      } as PersistedState));
+    }, 500);
+    return () => window.clearTimeout(timer);
   }, [
     session.hydrated, ownerUserId, selectedDate,
     family.selectedVaultId, personal.birthProfileId, personal.chartId,
@@ -675,12 +698,20 @@ export function DashboardWorkspace() {
     if (!session.hydrated) return;
     const targetChartId = lifeAreasResolvedChartId;
     if (!targetChartId) return;
-    personal.setPredictionsLoading(true);
     personal.setJadhagamReport(null);
     // Remedies & gemstone advice are per-chart — clear the previous member's
     // data so a switched member never shows another person's remedies/stones.
     setRemedyPlan(null);
     setGemstoneAdvice(null);
+    if (!lifeAreasViewId || targetChartId === personal.chartId) {
+      // Personal chart: the bundle already carries life-areas and the gated
+      // insights query in usePersonalData fetches the predictions — kicking
+      // off a second fetch here raced it and double-fetched /life-areas
+      // (DASH-16). Just drop any member override so the query data shows.
+      personal.setLifeAreas(null);
+      return;
+    }
+    personal.setPredictionsLoading(true);
     void personal.refreshLifeAreasInsights(targetChartId, selectedDate)
       .finally(() => personal.setPredictionsLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -809,8 +840,10 @@ export function DashboardWorkspace() {
     }
     if (!form.birthPlace.trim()) errors.birthPlace = t("err_place_required", lang);
     if (!form.birthTimezone.trim()) errors.birthTimezone = t("err_tz_required", lang);
-    if (!form.birthLatitude || !parseNumber(form.birthLatitude)) errors.birthLatitude = t("err_lat_required", lang);
-    if (!form.birthLongitude || !parseNumber(form.birthLongitude)) errors.birthLongitude = t("err_lng_required", lang);
+    // parseLatitude/parseLongitude, not truthiness — a coordinate of exactly 0
+    // (equator/prime meridian) is valid (DASH-03).
+    if (parseLatitude(form.birthLatitude) === null) errors.birthLatitude = t("err_lat_required", lang);
+    if (parseLongitude(form.birthLongitude) === null) errors.birthLongitude = t("err_lng_required", lang);
     return errors;
   }
 
@@ -867,7 +900,7 @@ export function DashboardWorkspace() {
       setActiveTab("personal");
     } catch (error) {
       const msg = readErrorMessage(error);
-      showToast(msg, "error"); setStatus(msg);
+      showToast(msg, "error"); setStatus(msg, "error");
     } finally { setBusyCreateProfile(false); }
   }
 
@@ -890,7 +923,7 @@ export function DashboardWorkspace() {
       setActiveTab("family");
     } catch (error) {
       const msg = readErrorMessage(error);
-      showToast(msg, "error"); setStatus(msg);
+      showToast(msg, "error"); setStatus(msg, "error");
     } finally { setBusyCreateVault(false); }
   }
 
@@ -937,7 +970,7 @@ export function DashboardWorkspace() {
       setActiveTab("personal");
     } catch (error) {
       const msg = readErrorMessage(error);
-      showToast(msg, "error"); setStatus(msg);
+      showToast(msg, "error"); setStatus(msg, "error");
     } finally { setBusyAddMember(false); }
   }
 
@@ -973,7 +1006,7 @@ export function DashboardWorkspace() {
       await family.refreshFamilyBundle(family.selectedVaultId, selectedDate);
     } catch (error) {
       const msg = readErrorMessage(error);
-      showToast(msg, "error"); setStatus(msg);
+      showToast(msg, "error"); setStatus(msg, "error");
     } finally { setBusyEditingMember(false); }
   }
 
@@ -1008,7 +1041,9 @@ export function DashboardWorkspace() {
         if (chartId) personal.setChartId(chartId);
         setShowEditProfile(false);
         showToast(`${birthForm.displayName} profile updated.`);
-        await personal.refreshPersonalBundle(profileId, selectedDate);
+        // Profile edits change the chart — this is the one path that must
+        // bypass the session-cached /charts/calculate result (DASH-04).
+        await personal.refreshPersonalBundle(profileId, selectedDate, true, { forceChart: true, forceDay: true });
       } else {
         // First-time creation
         const response = await apiFetchJson<ApiEnvelope<BirthProfileCreateResponseData>>("/api/v1/birth-profiles", {
@@ -1036,7 +1071,7 @@ export function DashboardWorkspace() {
         if (response.data.chartId) personal.setChartId(response.data.chartId);
         setShowEditProfile(false);
         showToast(`${birthForm.displayName} profile created.`);
-        await personal.refreshPersonalBundle(response.data.birthProfileId, selectedDate);
+        await personal.refreshPersonalBundle(response.data.birthProfileId, selectedDate, true, { forceChart: true, forceDay: true });
       }
     } catch (error) {
       const msg = readErrorMessage(error);
@@ -1044,59 +1079,91 @@ export function DashboardWorkspace() {
     } finally { setBusyEditingProfile(false); }
   }
 
-  async function handleDeleteProfile() {
+  // The three destructive flows below confirm through the in-design
+  // ConfirmDialog (bilingual, destructive-styled) instead of browser
+  // confirm() popups (DASH-05). Vault deletion — the most destructive —
+  // additionally requires typing the vault name.
+
+  function handleDeleteProfile() {
     const existingId = personal.birthProfileId;
     if (!existingId) return;
-    const name = birthForm.displayName || "this profile";
-    if (!confirm(t("confirm_delete_profile_body", lang).replace("%s", name))) return;
-    setBusyEditingProfile(true);
-    try {
-      await apiFetchJson<unknown>(`/api/v1/birth-profiles/${existingId}`, { method: "DELETE" });
-      // Sign out and redirect — user must not stay on the dashboard after deleting their profile
-      session.signOut();
-    } catch (error) {
-      showToast(readErrorMessage(error), "error");
-      setBusyEditingProfile(false);
-    }
+    const name = birthForm.displayName || (lang === "ta" ? "இந்த ஜாதகம்" : "this profile");
+    setConfirmDialog({
+      title: t("btn_delete_profile", lang),
+      body: t("confirm_delete_profile_body", lang).replace("%s", name),
+      confirmLabel: t("btn_delete_profile", lang),
+      onConfirm: () => {
+        setBusyEditingProfile(true);
+        void apiFetchJson<unknown>(`/api/v1/birth-profiles/${existingId}`, { method: "DELETE" })
+          .then(() => {
+            // Sign out and redirect — user must not stay on the dashboard
+            // after deleting their profile.
+            session.signOut();
+          })
+          .catch((error) => {
+            showToast(readErrorMessage(error), "error");
+            setBusyEditingProfile(false);
+          });
+      },
+    });
   }
 
-  async function handleDeleteMember(memberId: string, displayName: string) {
-    if (!confirm(`Remove "${displayName}" from the vault?`)) return;
-    setDeletingMemberId(memberId);
-    try {
-      await apiFetchJson<unknown>(`/api/v1/family-vaults/${family.selectedVaultId}/members/${memberId}`, { method: "DELETE" });
-      showToast(`${displayName} removed.`);
-      setStatus(`${displayName} removed.`);
-      await family.loadVaults(ownerUserId);
-      await family.refreshFamilyBundle(family.selectedVaultId, selectedDate);
-    } catch (error) {
-      const msg = readErrorMessage(error);
-      showToast(msg, "error"); setStatus(msg);
-    } finally {
-      setDeletingMemberId("");
-    }
+  function handleDeleteMember(memberId: string, displayName: string) {
+    setConfirmDialog({
+      title: `${t("btn_remove", lang)} — ${displayName}`,
+      body: t("confirm_remove_member", lang),
+      confirmLabel: t("btn_remove", lang),
+      onConfirm: () => {
+        setDeletingMemberId(memberId);
+        void (async () => {
+          try {
+            await apiFetchJson<unknown>(`/api/v1/family-vaults/${family.selectedVaultId}/members/${memberId}`, { method: "DELETE" });
+            const removedMsg = t("toast_member_removed", lang).replace("%s", displayName);
+            showToast(removedMsg);
+            setStatus(removedMsg);
+            await family.loadVaults(ownerUserId);
+            await family.refreshFamilyBundle(family.selectedVaultId, selectedDate);
+          } catch (error) {
+            const msg = readErrorMessage(error);
+            showToast(msg, "error"); setStatus(msg, "error");
+          } finally {
+            setDeletingMemberId("");
+          }
+        })();
+      },
+    });
   }
 
-  async function handleDeleteVault(vaultId: string, vaultName: string) {
-    if (!confirm(`Delete vault "${vaultName}" and all its members? This cannot be undone.`)) return;
-    setDeletingVaultId(vaultId);
-    try {
-      await apiFetchJson<unknown>(`/api/v1/family-vaults/${vaultId}`, { method: "DELETE" });
-      showToast(`Vault "${vaultName}" deleted.`);
-      setStatus(`Vault "${vaultName}" deleted.`);
-      if (family.selectedVaultId === vaultId) {
-        family.setSelectedVaultId("");
-        family.setFamilyDetail(null);
-        family.setFamilyAggregate(null);
-        family.setFamilyComposite(null);
-      }
-      await family.loadVaults(ownerUserId);
-    } catch (error) {
-      const msg = readErrorMessage(error);
-      showToast(msg, "error"); setStatus(msg);
-    } finally {
-      setDeletingVaultId("");
-    }
+  function handleDeleteVault(vaultId: string, vaultName: string) {
+    setConfirmDialog({
+      title: `${t("btn_delete", lang)} — ${vaultName}`,
+      body: t("confirm_delete_vault", lang),
+      confirmLabel: t("btn_delete", lang),
+      typeToConfirm: vaultName,
+      onConfirm: () => {
+        setDeletingVaultId(vaultId);
+        void (async () => {
+          try {
+            await apiFetchJson<unknown>(`/api/v1/family-vaults/${vaultId}`, { method: "DELETE" });
+            const deletedMsg = t("toast_vault_deleted", lang).replace("%s", vaultName);
+            showToast(deletedMsg);
+            setStatus(deletedMsg);
+            if (family.selectedVaultId === vaultId) {
+              family.setSelectedVaultId("");
+              family.setFamilyDetail(null);
+              family.setFamilyAggregate(null);
+              family.setFamilyComposite(null);
+            }
+            await family.loadVaults(ownerUserId);
+          } catch (error) {
+            const msg = readErrorMessage(error);
+            showToast(msg, "error"); setStatus(msg, "error");
+          } finally {
+            setDeletingVaultId("");
+          }
+        })();
+      },
+    });
   }
 
   function handleSelectVault(item: FamilyVaultListItem) {
@@ -1178,6 +1245,15 @@ export function DashboardWorkspace() {
         }}
         onAskVinaadi={personal.chartId ? () => setAskVinaadiOpen(true) : undefined}
       />
+
+      {/* Destructive-action confirmation (DASH-05) */}
+      {confirmDialog && (
+        <ConfirmDialog
+          lang={lang}
+          state={confirmDialog}
+          onClose={() => setConfirmDialog(null)}
+        />
+      )}
 
       {/* Edit member modal */}
       {editMember && (
@@ -1352,6 +1428,9 @@ export function DashboardWorkspace() {
             dasha={personalDasha}
             dashaAntar={personalDashaAntar}
             dailyGuidanceRange={personal.dailyGuidanceRange}
+            panchangamTimezone={personal.panchangamTimezone}
+            bundleSectionErrors={personal.bundleSectionErrors}
+            onRetryBundle={() => void personal.refreshPersonalBundle(undefined, undefined, true, { forceDay: true })}
             onGoToFamily={() => setActiveTab("family")}
             onGoToJournal={() => setActiveTab("journal")}
             onGoToCalendar={() => setActiveTab("calendar")}
@@ -1522,29 +1601,6 @@ export function DashboardWorkspace() {
           />
         )}
 
-        {activeTab === "transits" && (
-          <DashboardTransitsTab
-            lang={lang}
-            selectedDate={selectedDate}
-            personalChart={transitChart}
-            personalDailyGuidance={transitDailyGuidance}
-            personalTransit={transitTransit}
-            personalSani={transitSani}
-            personalDasha={transitDasha}
-            personalDashaMaha={transitDashaMaha}
-            personalDashaAntar={transitDashaAntar}
-            dashaStory={transitViewId ? null : personal.dashaStory}
-            journalCorrelations={personal.journalCorrelations}
-            varshaphalaData={varshaphalaData}
-            varshaphalaLoading={varshaphalaLoading}
-            onLoadVarshaphala={(year) => void loadVarshaphala(year, transitChart?.chartId ?? personal.chartId)}
-            birthDisplayName={birthForm.displayName}
-            memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
-            selectedMemberId={transitViewId}
-            onSelectMember={setTransitViewId}
-          />
-        )}
-
         {activeTab === "plan" && (
           <DashboardPlanTabNova
             lang={lang}
@@ -1668,7 +1724,7 @@ export function DashboardWorkspace() {
               }
             }}
             onSelectedDateChange={setSelectedDate}
-            onRefreshPersonal={() => void personal.refreshPersonalBundle()}
+            onRefreshPersonal={() => void personal.refreshPersonalBundle(undefined, undefined, true, { forceDay: true })}
             onRefreshFamily={() => void family.refreshFamilyBundle()}
             onSaveJournalRetentionDays={(days) => void journal.saveJournalRetentionDays(days)}
             onAcknowledgeJournalReminder={() => void journal.acknowledgeJournalReminder()}
@@ -1697,12 +1753,25 @@ export function DashboardWorkspace() {
                 {lang === "ta" ? "ஜோதிட வழிகாட்டி · தினமும் காலை" : "Jothidam guidance · every morning"}
               </p>
             </div>
+            {/* Real navigation, not link-styled spans (DASH-13) — every
+                element styled as a link must actually go somewhere. */}
             <div className="cd-footer__links">
-              {(lang === "ta"
-                ? ["தனிப்பட்ட", "வாழ்க்கை", "நாட்காட்டி", "குறிப்பேடு", "அமைப்புகள்"]
-                : ["Personal", "Life Areas", "Calendar", "Journal", "Settings"]
-              ).map((label) => (
-                <span key={label} className="cd-footer__link">{label}</span>
+              {([
+                { tab: "personal" as Tab, ta: "தனிப்பட்ட", en: "Personal" },
+                { tab: "life-areas" as Tab, ta: "வாழ்க்கை", en: "Life Areas" },
+                { tab: "calendar" as Tab, ta: "நாட்காட்டி", en: "Calendar" },
+                { tab: "journal" as Tab, ta: "குறிப்பேடு", en: "Journal" },
+                { tab: "settings" as Tab, ta: "அமைப்புகள்", en: "Settings" },
+              ]).map((link) => (
+                <button
+                  key={link.tab}
+                  type="button"
+                  className="cd-footer__link"
+                  onClick={() => goToTab(link.tab)}
+                  style={{ background: "none", border: "none", padding: 0, font: "inherit", cursor: "pointer" }}
+                >
+                  {lang === "ta" ? link.ta : link.en}
+                </button>
               ))}
             </div>
           </div>

@@ -16,13 +16,10 @@ def test_b05_jupiter_seventh_from_moon_is_supportive_in_scoring_tables():
     assert TRANSIT_BASE_SCORE["JUPITER"][7] >= 65
 
 
-def test_b10_shadow_prompts_component_uses_proxy_fetch_helper():
-    # Rule B-10: shadow prompts must use apiFetchJson via Next proxy.
-    src = _read("web/components/dashboard-shadow-prompts.tsx")
-    assert "apiFetchJson" in src
-    assert "promptType=SHADOW" in src
-    assert "fetch('/api/v1/" not in src
-    assert 'fetch("/api/v1/' not in src
+# Rule B-10 (shadow prompts must use apiFetchJson via Next proxy) retired
+# 2026-07-13: dashboard-shadow-prompts.tsx was deleted with the shadow-prompts
+# feature (DASH-17, user-approved) — the rule guarded a file that no longer
+# exists and the pattern it enforced is covered by the api-client conventions.
 
 
 def test_b11_no_hardcoded_white_text_color_in_primary_dashboard_tabs():

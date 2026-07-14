@@ -276,6 +276,11 @@
   --deepdive-surface:        var(--color-surface-soft);
   --deepdive-surface-strong: var(--color-surface);
   --deepdive-accent:         var(--color-mid);
+  /* Propensities panel tone colors (DASH-14) — were raw hex in
+     dashboard-propensities-panel-nova.tsx, illegible on the dark theme. */
+  --deepdive-good:           var(--color-high);
+  --deepdive-warn:           var(--color-mid);
+  --deepdive-info:           #8fb4dc; /* info blue, dark-theme-legible */
   --cl-sage-soft:            var(--color-high-bg);
 
   /* ── Found investigating a "Dosham/Yogam headings render in black" report
@@ -520,6 +525,10 @@
   --deepdive-surface:        var(--color-surface-soft);
   --deepdive-surface-strong: var(--color-surface);
   --deepdive-accent:         var(--color-mid);
+  /* Propensities panel tone colors (DASH-14) — light-theme values. */
+  --deepdive-good:           var(--color-high);
+  --deepdive-warn:           var(--color-mid);
+  --deepdive-info:           #3A6EA5; /* info blue */
   --cl-sage-soft:            var(--color-high-bg);
 
   --yogadosham-ink:          var(--color-text);

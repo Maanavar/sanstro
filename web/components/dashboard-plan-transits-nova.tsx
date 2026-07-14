@@ -33,10 +33,9 @@ import { VarshaphalaPanel } from "./dashboard-varshaphala-panel";
  * standalone tab; now switches this view in place instead). Rendered by
  * dashboard-plan-tab-nova.tsx when its `view` prop is "transits".
  *
- * Reuses the exact same data/derivations as the pre-existing Classic
- * dashboard-transits-tab.tsx (still shipping unchanged for Classic users —
- * its own separate tab, Explore-hub card, and render path are untouched)
- * but rebuilt fresh with Nova tokens rather than gap-fixed: its
+ * Reuses the exact same data/derivations as the old Classic
+ * dashboard-transits-tab.tsx (deleted 2026-07-13, DASH-17 — this view is its
+ * sole successor) but rebuilt fresh with Nova tokens rather than gap-fixed: its
  * `W`/`PLANET_COLORS`/`DASHA_COLORS` palettes read Classic-only custom
  * properties (`--panel-earth-dark`, `--planet-sun`, `--chart-cell-default`,
  * etc., confirmed via grep to be defined at bare `:root` with no

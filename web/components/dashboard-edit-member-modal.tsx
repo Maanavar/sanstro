@@ -5,6 +5,7 @@ import type { Lang } from "@/lib/i18n";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { PlaceCombobox } from "./place-combobox";
 import { usePlaceCoordinatesConfirm, PlaceMatchedBadge, PlaceCoordinatesFooter } from "./place-coordinates-field";
+import { ModalShell } from "./modal-shell";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
 
@@ -96,17 +97,10 @@ function WSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
 export function EditMemberModal({ lang, editMember, busySaving, onClose, onChange, onSave }: EditMemberModalProps) {
   const coordsConfirm = usePlaceCoordinatesConfirm(editMember.birthPlace, editMember.birthLatitude, editMember.birthLongitude);
   return (
-    <div
-      style={{
-        position: "fixed", inset: 0, zIndex: 200,
-        background: "rgba(26,22,18,0.55)",
-        backdropFilter: "blur(4px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "16px", overflowY: "auto",
-      }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div style={{
+    <ModalShell
+      label={lang === "ta" ? "உறுப்பினர் திருத்து" : "Edit member"}
+      onClose={onClose}
+      panelStyle={{
         width: "min(580px, 100%)",
         background: W.surface,
         border: `1.5px solid ${W.borderLt}`,
@@ -114,7 +108,8 @@ export function EditMemberModal({ lang, editMember, busySaving, onClose, onChang
         padding: "28px",
         display: "flex", flexDirection: "column", gap: "20px",
         boxShadow: "0 24px 64px rgba(26,22,18,0.18)",
-      }}>
+      }}
+    >
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
@@ -255,7 +250,6 @@ export function EditMemberModal({ lang, editMember, busySaving, onClose, onChang
             {busySaving ? t("btn_saving", lang) : t("btn_save_recalc", lang)}
           </button>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }

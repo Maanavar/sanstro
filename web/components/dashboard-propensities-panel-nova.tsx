@@ -29,10 +29,12 @@ const W = {
   borderLt: "var(--deepdive-border-light, var(--panel-tan-light))",
   surface: "var(--deepdive-surface, var(--panel-cream))",
   surfaceMd: "var(--deepdive-surface-strong, var(--panel-hover))",
-  good: "#2E7D32",
-  warn: "#B8860B",
+  // Theme-aware tone tokens (DASH-14) — defined per theme in
+  // dashboard-nova.css; the old raw hex values ignored the dark theme.
+  good: "var(--deepdive-good, var(--color-high))",
+  warn: "var(--deepdive-warn, var(--color-mid))",
   care: "var(--deepdive-accent, var(--panel-brand))",
-  info: "#3A6EA5",
+  info: "var(--deepdive-info, var(--color-accent-secondary))",
 } as const;
 
 const CATEGORY_ORDER: PropensityCategory[] = [
@@ -77,10 +79,10 @@ const LEVEL_META: Record<string, { en: string; ta: string; tone: keyof typeof TO
 };
 
 const TONES = {
-  good: { fg: W.good, bg: "rgba(46,125,50,0.12)" },
-  warn: { fg: W.warn, bg: "rgba(184,134,11,0.13)" },
-  care: { fg: W.care, bg: "rgba(198,40,40,0.10)" },
-  info: { fg: W.info, bg: "rgba(58,110,165,0.12)" },
+  good: { fg: W.good, bg: `color-mix(in srgb, ${W.good} 12%, transparent)` },
+  warn: { fg: W.warn, bg: `color-mix(in srgb, ${W.warn} 13%, transparent)` },
+  care: { fg: W.care, bg: "color-mix(in srgb, var(--color-low) 10%, transparent)" },
+  info: { fg: W.info, bg: `color-mix(in srgb, ${W.info} 12%, transparent)` },
   muted: { fg: W.muted, bg: "var(--deepdive-surface-strong, var(--panel-hover))" },
 } as const;
 
@@ -300,8 +302,8 @@ function PropensityCardView({ card, isTamil }: { card: PropensityCard; isTamil: 
           {card.showSupportResources && (
             <div
               style={{
-                background: "rgba(58,110,165,0.08)",
-                border: `1px solid rgba(58,110,165,0.25)`,
+                background: `color-mix(in srgb, ${W.info} 8%, transparent)`,
+                border: `1px solid color-mix(in srgb, ${W.info} 25%, transparent)`,
                 borderRadius: "var(--radius-sm)",
                 padding: "var(--space-2_5)",
                 fontSize: 12,

@@ -55,7 +55,8 @@ import { NovaSelect } from "./nova-select";
  * in its own top nav, only a "Plan · Transits & Dasha" breadcrumb back, so
  * treating it as a second view inside Plan (rather than the standalone tab
  * this initiative originally built) is what the mockup itself shows.
- * Classic's separate `dashboard-transits-tab.tsx` tab is untouched.
+ * (Classic's separate `dashboard-transits-tab.tsx` was deleted 2026-07-13,
+ * DASH-17 — this view is the only transits surface now.)
  *
  * The mockup's static export only expands the "Goals" pill (same
  * one-sub-tab-captured pattern as Phase 9's Life Areas Overview) — Life

@@ -7,6 +7,7 @@ import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { EASE_NOVA } from "@/lib/motion";
 import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
+import { ModalShell } from "./modal-shell";
 import { PlaceCombobox } from "./place-combobox";
 import { usePlaceCoordinatesConfirm, PlaceMatchedBadge, PlaceCoordinatesFooter } from "./place-coordinates-field";
 
@@ -144,19 +145,7 @@ export function EditProfileModal({
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: reduce ? 0 : 0.18 }}
-      style={{
-        position: "fixed", inset: 0, zIndex: 200,
-        background: "rgba(26,22,18,0.55)",
-        backdropFilter: "blur(4px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "16px", overflowY: "auto",
-      }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
+    <ModalShell label={t("modal_edit_profile_title", lang)} onClose={onClose}>
       <motion.div
         initial={reduce ? false : { opacity: 0, scale: 0.96, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -357,6 +346,6 @@ export function EditProfileModal({
           </button>
         </div>
       </motion.div>
-    </motion.div>
+    </ModalShell>
   );
 }

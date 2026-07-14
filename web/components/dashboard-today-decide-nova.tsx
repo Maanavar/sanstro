@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 
-import { apiFetchJson, toQuery } from "@/lib/api";
+import { getActivityTimingBatch } from "@vinaadi/shared/api/activityTiming";
 import { formatClockLabel } from "@/lib/format";
 import type { Lang } from "@/lib/i18n";
+import { minutesOfDayInZone } from "@/lib/tz";
 import type { ActivityTimingData, DailyGuidanceWindow } from "@/lib/types";
 
 /**
@@ -57,15 +58,23 @@ function shortHour(clock: string, lang: Lang): string {
 
 /** Plain-language qualifier for a SUPPORTS-aligned activity, framed against
  *  the day's one real best window rather than re-deriving a second,
- *  activity-specific window we don't have data for. */
-function supportsQualifier(bestWindow: DailyGuidanceWindow | null, now: Date, isToday: boolean, lang: Lang): string {
+ *  activity-specific window we don't have data for. Window times are
+ *  wall-clock at the panchangam location, so "now" is read in that zone
+ *  (DASH-01). */
+function supportsQualifier(
+  bestWindow: DailyGuidanceWindow | null,
+  now: Date,
+  isToday: boolean,
+  lang: Lang,
+  timeZone?: string | null,
+): string {
   if (!bestWindow) return lang === "ta" ? "சாதகமான நாள்" : "favourable";
   if (!isToday) {
     return lang === "ta" ? `சிறந்த நேரம் ${shortHour(bestWindow.start, lang)}` : `best window ${shortHour(bestWindow.start, lang)}`;
   }
   const [sh, sm] = bestWindow.start.split(":").map(Number);
   const [eh, em] = bestWindow.end.split(":").map(Number);
-  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const nowMin = minutesOfDayInZone(now, timeZone);
   const startMin = (sh ?? 0) * 60 + (sm ?? 0);
   const endMin = (eh ?? 0) * 60 + (em ?? 0);
   if (nowMin < startMin) return lang === "ta" ? `${shortHour(bestWindow.start, lang)} இல் நல்லது` : `fine after ${shortHour(bestWindow.start, lang)}`;
@@ -84,6 +93,7 @@ export function DashboardTodayDecideNova({
   bestWindow,
   now,
   isToday,
+  timeZone,
   onOpenAskVinaadi,
 }: {
   lang: Lang;
@@ -93,6 +103,8 @@ export function DashboardTodayDecideNova({
   bestWindow: DailyGuidanceWindow | null;
   now: Date;
   isToday: boolean;
+  /** Panchangam timezone — "now" comparisons happen in this zone (DASH-01). */
+  timeZone?: string | null;
   onOpenAskVinaadi: () => void;
 }) {
   const [results, setResults] = useState<Record<string, ActivityTimingData | null>>({});
@@ -103,26 +115,27 @@ export function DashboardTodayDecideNova({
       setBusy(false);
       return;
     }
-    const controller = new AbortController();
+    let cancelled = false;
     setBusy(true);
     const month = selectedDate.slice(0, 7);
 
-    Promise.all(
-      DECIDE_ACTIVITIES.map((a) =>
-        apiFetchJson<{ success: boolean; data: ActivityTimingData }>(
-          `/api/v1/activity-timing${toQuery({ chartId, activity: a.activity, month, asOf: selectedDate })}`,
-          { signal: controller.signal },
-        )
-          .then((res) => [a.activity, res.data ?? null] as const)
-          .catch(() => [a.activity, null] as const),
-      ),
-    ).then((entries) => {
-      if (controller.signal.aborted) return;
-      setResults(Object.fromEntries(entries));
-      setBusy(false);
-    });
+    // One batched request for all pills (DASH-04) — a failed activity comes
+    // back null under its key, same as the old per-request catch.
+    getActivityTimingBatch(chartId, DECIDE_ACTIVITIES.map((a) => a.activity), month, selectedDate)
+      .then((response) => {
+        if (cancelled) return;
+        setResults(response.data.results ?? {});
+        setBusy(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setResults({});
+        setBusy(false);
+      });
 
-    return () => controller.abort();
+    return () => {
+      cancelled = true;
+    };
   }, [chartId, selectedDate]);
 
   // Precompute every pill's verdict + short cause once, so we can detect when
@@ -180,7 +193,7 @@ export function DashboardTodayDecideNova({
           let q: string | null = null;
           if (dateResult) {
             if (dateResult.alignment === "SUPPORTS") {
-              q = supportsQualifier(bestWindow, now, isToday, lang);
+              q = supportsQualifier(bestWindow, now, isToday, lang, timeZone);
             } else if (dateResult.alignment === "CAUTION") {
               // Drop the cause from the pill when it's already stated once in the
               // shared subtitle — the pill just reads "✕ Travel · defer".
@@ -204,7 +217,7 @@ export function DashboardTodayDecideNova({
               title={tooltip}
               style={{
                 display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "12.5px",
-                background: display?.bg ?? "rgba(243,236,221,0.05)",
+                background: display?.bg ?? "color-mix(in srgb, var(--color-text-strong) 5%, transparent)",
                 border: `1px solid ${display?.border ?? "var(--color-border)"}`,
                 borderRadius: "999px", padding: "7px 13px", whiteSpace: "nowrap",
               }}

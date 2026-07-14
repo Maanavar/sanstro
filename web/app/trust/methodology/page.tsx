@@ -103,6 +103,9 @@ export default function MethodologyPage() {
                 <p>{lang === "en"
                   ? "Daily guidance integrates the Vimshottari Dasa system — a 120-year planetary period cycle tied to the birth star. Dasa periods define the dominant planetary influence over each phase of life, and the sub-period (bhukti) adds granularity to daily and weekly guidance."
                   : "தினசரி வழிகாட்டுதலில் விம்சோத்தரி தசை முறை இணைக்கப்பட்டுள்ளது. பிறப்பு நட்சத்திரத்தை அடிப்படையாகக் கொண்ட 120 ஆண்டு கிரகச் சுழற்சி இது. வாழ்க்கையின் ஒவ்வொரு கட்டத்திலும் எந்த கிரகத்தின் ஆதிக்கம் வேலை செய்கிறது என்பதை தசை காட்டும்; புக்தி அதனை இன்னும் நுணுக்கமாக விளக்குகிறது."}</p>
+                <p>{lang === "en"
+                  ? "Dasa periods are computed using the standard 365.25-day solar year, the convention used across mainstream Vimshottari implementations. This affects period boundary dates by at most a day or two over a multi-year mahadasha and does not change which planet's period is running."
+                  : "தசைக் காலங்கள் 365.25 நாள் கொண்ட நிலையான சூரிய ஆண்டைப் பயன்படுத்தியே கணக்கிடப்படுகின்றன — இது விம்சோத்தரி முறையில் பொதுவாகப் பின்பற்றப்படும் மரபு. இதனால் பல ஆண்டுகள் நீளும் மகாதசையின் தொடக்க/முடிவு தேதியில் ஓரிரு நாள் வேறுபாடு வரலாம்; எந்தக் கிரகத்தின் தசை நடக்கிறது என்பதில் மாற்றம் இல்லை."}</p>
 
                 <h2 id="gochar">{lang === "en" ? "Transits" : "கிரகநகர்வு"}</h2>
                 <p>{lang === "en"
@@ -121,6 +124,9 @@ export default function MethodologyPage() {
                 <p>{lang === "en"
                   ? "Vinaadi's daily score combines: current dasa and bhukti period quality, transit influences on your birth chart, panchangam quality for the day, the Moon's star position, and Ashtakavarga contributions where applicable."
                   : "விநாடியின் தினசரி மதிப்பெண் பல சுட்டிகளை ஒன்றாகப் பார்க்கிறது: நடப்பு தசை, புக்தி தரம், ஜாதகத்தின் மீது படும் கிரகநகர்வு தாக்கம், நாளுக்கான பஞ்சாங்க நிலை, சந்திர நட்சத்திரம், தேவையான இடங்களில் அஷ்டகவர்க பங்களிப்பு."}</p>
+                <p>{lang === "en"
+                  ? "How much each of these five signals contributes to the final number is a product calibration Vinaadi's team set, not a value handed down by any classical text — the underlying dasa, transit, and panchangam readings themselves are traditional; the blend weighting is ours, and we may adjust it as the product matures."
+                  : "இந்த ஐந்து சுட்டிகளும் இறுதி மதிப்பெண்ணில் எவ்வளவு பங்கு வகிக்கின்றன என்பது விநாடி குழு அமைத்த ஒரு தயாரிப்பு அளவீடு — இது எந்த சாஸ்திர நூலிலிருந்தும் வந்தது அல்ல. தசை, கிரகநகர்வு, பஞ்சாங்கம் ஆகியவற்றின் அடிப்படைக் கணக்குகள் பாரம்பரியமானவை; அவற்றை எவ்வளவு எடையுடன் இணைக்கிறோம் என்பது மட்டும் எங்கள் தயாரிப்பு முடிவு — தயாரிப்பு முதிர்ச்சியடையும்போது இது மாறவும் வாய்ப்புள்ளது."}</p>
 
                 <h2 id="porutham">{lang === "en" ? "Porutham (marriage compatibility)" : "பொருத்தம் (திருமண பொருத்தம்)"}</h2>
                 <p>{lang === "en"

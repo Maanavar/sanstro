@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { addDays, formatClockLabel, formatDateLabel, getScoreVerdictFromGuidance } from "@/lib/format";
-import { tLang } from "@/lib/i18n";
+import { t, tLang } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { hourInZone, minutesOfDayInZone, timeOnDateToMs } from "@/lib/tz";
+import { pickFeaturedWindow } from "@/lib/today-windows";
 import type {
   ChartSummaryData,
   DailyGuidanceData,
   DailyGuidanceRangeData,
-  DailyGuidanceWindow,
   DashaTimelineItem,
   DashaTimelineResponseData,
   FamilyAggregateData,
@@ -24,11 +25,11 @@ import type {
   WeekAheadData,
 } from "@/lib/types";
 
-import { NovaClampedText, NovaScoreDial } from "./dashboard-ui-nova";
+import { NovaClampedText, NovaScoreDial, StatusLive, type StatusMessage } from "./dashboard-ui-nova";
 import { bandPhrase, bandTone } from "@/lib/reasoning";
 import { CelestialGlyphNova, MiniMoonGlyph } from "./celestial-glyph-nova";
 import { HeroSkyBackdrop } from "./celestial-ambient-nova";
-import { moonPhaseFromTithi } from "@/lib/lunar";
+import { lunarSpecialTithiMeta, moonPhaseFromTithi } from "@/lib/lunar";
 import { useStreak } from "@/hooks/useStreak";
 import { useEveningPreview } from "@/hooks/useEveningPreview";
 
@@ -77,6 +78,14 @@ export type DashboardTodayTabNovaProps = {
   /** 3-day window starting at selectedDate (today..+2) — reused here purely
    *  to read tomorrow's item for the evening preview swap, no extra fetch. */
   dailyGuidanceRange?: DailyGuidanceRangeData | null;
+  /** IANA timezone the panchangam was computed for — every "now" comparison
+   *  on this surface happens in this zone, not the browser's (DASH-01). */
+  panchangamTimezone?: string | null;
+  /** Bundle sections the backend could not compute (DASH-02) — non-empty
+   *  shows the "some sections couldn't load" retry chip. */
+  bundleSectionErrors?: Record<string, string>;
+  /** Re-runs the day bundle fetch (DASH-02 retry affordance). */
+  onRetryBundle?: () => void;
   onGoToFamily?: () => void;
   onGoToJournal?: () => void;
   onGoToCalendar?: () => void;
@@ -88,8 +97,9 @@ export type DashboardTodayTabNovaProps = {
   onOpenNotificationSettings?: () => void;
 };
 
-function greetingWord(lang: Lang): string {
-  const hour = new Date().getHours();
+/** Greeting keyed to the hour in the panchangam timezone (DASH-01) so it
+ *  agrees with the hero sun/moon glyph and the ribbon's NOW marker. */
+function greetingWord(lang: Lang, hour: number): string {
   if (lang === "ta") {
     if (hour < 12) return "காலை வணக்கம்";
     if (hour < 17) return "மதிய வணக்கம்";
@@ -100,13 +110,15 @@ function greetingWord(lang: Lang): string {
   return "Good evening";
 }
 
-function timeOnDateToMs(dateLocal: string, clock: string): number | null {
-  const timePart = clock.includes("T") ? clock.split("T")[1] : clock;
-  const [hh, mm] = (timePart ?? "").split(":");
-  if (hh === undefined || mm === undefined) return null;
-  const d = new Date(`${dateLocal}T${hh.padStart(2, "0")}:${mm.padStart(2, "0")}:00`);
-  const t = d.getTime();
-  return Number.isNaN(t) ? null : t;
+/** "HH:MM" (or ISO with time part) → minutes since midnight; null if unparseable. */
+function clockToMinutes(value: string | undefined | null): number | null {
+  if (!value) return null;
+  const timePart = value.includes("T") ? value.split("T")[1] : value;
+  const [hhStr, mmStr] = (timePart ?? "").split(":");
+  const hh = Number.parseInt(hhStr ?? "", 10);
+  const mm = Number.parseInt(mmStr ?? "0", 10);
+  if (!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
+  return hh * 60 + mm;
 }
 
 function formatDuration(ms: number, lang: Lang): string {
@@ -116,36 +128,6 @@ function formatDuration(ms: number, lang: Lang): string {
   if (h <= 0) return lang === "ta" ? `${m} நிமிடம்` : `${m}m`;
   if (m <= 0) return lang === "ta" ? `${h} மணி` : `${h}h`;
   return lang === "ta" ? `${h}மணி ${m}நிமிடம்` : `${h}h ${m}m`;
-}
-
-/**
- * Choose which best-window to feature in the hero. The backend always lists
- * Abhijit first — a ~48-min slot fixed around solar noon, so it barely moves
- * day to day and made the hero read "12:02–12:50" every single day. We instead
- * prefer the user's own planetary-hora windows (PERSONAL_HORA — keyed to lagna
- * lord + running dasha), which land at a different clock time each weekday, then
- * any benefic hora, and only fall back to Abhijit when nothing personal exists.
- * On today we surface the next window that hasn't ended yet, so the hero stays
- * actionable as the day advances; on other dates we show the first.
- */
-function pickFeaturedWindow(
-  windows: DailyGuidanceWindow[] | undefined,
-  now: Date,
-  isToday: boolean,
-  dateLocal: string,
-): DailyGuidanceWindow | null {
-  if (!windows || windows.length === 0) return null;
-  const personal = windows.filter((w) => w.type.includes("PERSONAL_HORA"));
-  const horas = windows.filter((w) => w.type.includes("HORA"));
-  const preferred = personal.length ? personal : horas.length ? horas : windows;
-  if (isToday) {
-    const upcoming = preferred.find((w) => {
-      const endMs = timeOnDateToMs(dateLocal, w.end);
-      return endMs === null || endMs >= now.getTime();
-    });
-    return upcoming ?? preferred[preferred.length - 1] ?? null;
-  }
-  return preferred[0] ?? null;
 }
 
 export function DashboardTodayTabNova({
@@ -166,6 +148,9 @@ export function DashboardTodayTabNova({
   dasha,
   dashaAntar,
   dailyGuidanceRange,
+  panchangamTimezone,
+  bundleSectionErrors,
+  onRetryBundle,
   onGoToFamily,
   onGoToJournal,
   onGoToCalendar,
@@ -180,7 +165,7 @@ export function DashboardTodayTabNova({
   const displayName = personalMemberChart?.displayName ?? birthDisplayName;
   const activeChartId = personalChartSummary?.chartId ?? "";
   const [savingReminder, setSavingReminder] = useState(false);
-  const [reminderMessage, setReminderMessage] = useState<string | null>(null);
+  const [reminderStatus, setReminderStatus] = useState<StatusMessage | null>(null);
 
   // Drives the timeline's NOW marker and the best-window countdown — ticks
   // once a minute, matching design 8a's "updates each minute" spec without
@@ -191,39 +176,51 @@ export function DashboardTodayTabNova({
     return () => clearInterval(id);
   }, []);
 
+  // Hour/minute of "now" in the panchangam timezone (DASH-01) — a Toronto
+  // browser with a Chennai panchangam must compare against Chennai's clock.
+  const zoneHour = hourInZone(now, panchangamTimezone);
+  const zoneMinutes = minutesOfDayInZone(now, panchangamTimezone);
+
   const score = personalDailyGuidance?.score ?? null;
   const weekday = panchangam ? panchangam.vara.weekday : "";
   const paksha = panchangam?.tithi.paksha;
   const wax = paksha === "SHUKLA";
+  // Amavasai/Pournami are the two tithis where "which fortnight" (paksha) stops
+  // being the useful label — show the actual new/full moon instead of "Waning"/
+  // "Waxing" so this chip agrees with the calendar tab's LunarTithiBadge.
+  const specialTithiMeta = lunarSpecialTithiMeta(panchangam?.specialTithiDay?.name, lang);
 
   const isToday = selectedDate === todayDate;
 
   // Feature a personalized, day-varying window rather than the always-noon
-  // Abhijit slot the backend lists first (see pickFeaturedWindow).
-  const bestWindow = pickFeaturedWindow(personalDailyGuidance?.bestWindows, now, isToday, selectedDate);
+  // Abhijit slot the backend lists first (see lib/today-windows.ts).
+  const bestWindow = pickFeaturedWindow(personalDailyGuidance?.bestWindows, now, isToday, selectedDate, panchangamTimezone);
 
   // Real lunar phase for today, drawn straight from the tithi we already have —
   // drives the hero moon's shape and size (thin crescent → full disc).
   const moonPhase = panchangam ? moonPhaseFromTithi(panchangam.tithi.number, panchangam.tithi.paksha) : null;
-  // Sun by day, moon from dusk on — matches the greeting word's own cutoffs.
-  const heroCelestial: "sun" | "moon" = now.getHours() >= 17 ? "moon" : "sun";
+  // Sun by day, moon from dusk on — the actual panchangam sunset when we have
+  // it, else 17:00 in the panchangam zone (DASH-01).
+  const sunsetMin = clockToMinutes(panchangam?.sunset);
+  const heroCelestial: "sun" | "moon" =
+    sunsetMin !== null ? (zoneMinutes >= sunsetMin ? "moon" : "sun") : zoneHour >= 17 ? "moon" : "sun";
   // Pournami / Amavasai earn a one-time gold shimmer on the hero glyph.
   const isSpecialTithi = Boolean(panchangam?.specialTithiDay);
 
-  // After 8pm, the hero can swap to a preview of tomorrow + a journal
-  // prompt for today — reuses the already-fetched 3-day dailyGuidanceRange
-  // (today..+2), no extra network call. Gated by isToday so opening a past
-  // or future date from the calendar never triggers it.
+  // After 8pm (panchangam-local), the hero can swap to a preview of tomorrow +
+  // a journal prompt for today — reuses the already-fetched 3-day
+  // dailyGuidanceRange (today..+2), no extra network call. Gated by isToday so
+  // opening a past or future date from the calendar never triggers it.
   const tomorrowIso = addDays(selectedDate, 1);
   const tomorrowGuidance = dailyGuidanceRange?.items.find((item) => item.dateLocal === tomorrowIso) ?? null;
-  const showEveningPreview = eveningPreviewOn && isToday && now.getHours() >= 20 && tomorrowGuidance !== null;
+  const showEveningPreview = eveningPreviewOn && isToday && zoneHour >= 20 && tomorrowGuidance !== null;
   const tomorrowWeekday = new Date(`${tomorrowIso}T12:00:00`).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { weekday: "long" });
 
   let windowPhase: "before" | "during" | "after" | null = null;
   let windowCountdown: string | null = null;
   if (bestWindow && isToday) {
-    const startMs = timeOnDateToMs(selectedDate, bestWindow.start);
-    const endMs = timeOnDateToMs(selectedDate, bestWindow.end);
+    const startMs = timeOnDateToMs(selectedDate, bestWindow.start, panchangamTimezone);
+    const endMs = timeOnDateToMs(selectedDate, bestWindow.end, panchangamTimezone);
     if (startMs !== null && endMs !== null) {
       const nowMs = now.getTime();
       if (nowMs < startMs) {
@@ -241,24 +238,36 @@ export function DashboardTodayTabNova({
   async function handleSaveReminder() {
     if (savingReminder) return;
     setSavingReminder(true);
-    setReminderMessage(null);
+    setReminderStatus(null);
     try {
       const current = await apiFetchJson<{ success: boolean; data: NotificationPreferenceData }>("/api/v1/settings/notifications");
-      const nextChannel = current.data.notification_channel === "none" ? "both" : current.data.notification_channel;
+      if (current.data.notification_channel === "none") {
+        // The user has notifications off — never silently enable a channel
+        // for them (DASH-06). Send them to Settings → Notifications to choose.
+        if (onOpenNotificationSettings) {
+          setReminderStatus({ text: t("reminder_pick_channel", lang), tone: "success" });
+          onOpenNotificationSettings();
+        } else {
+          setReminderStatus({ text: t("reminder_channel_off", lang), tone: "error" });
+        }
+        return;
+      }
       const nextTime = current.data.morningAlertTime || "06:00";
       await apiFetchJson<{ success: boolean; data: NotificationPreferenceData }>("/api/v1/settings/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          notificationChannel: nextChannel,
+          notificationChannel: current.data.notification_channel,
           morningAlertEnabled: true,
           morningAlertTime: nextTime,
         }),
       });
-      setReminderMessage(lang === "ta" ? "காலை நினைவூட்டல் சேமிக்கப்பட்டது." : "Morning reminder saved.");
+      setReminderStatus({ text: t("reminder_saved", lang), tone: "success" });
     } catch (error) {
-      const message = readErrorMessage(error);
-      setReminderMessage(lang === "ta" ? `சேமிக்க முடியவில்லை: ${message}` : `Could not save reminder: ${message}`);
+      setReminderStatus({
+        text: t("reminder_save_failed", lang).replace("%s", readErrorMessage(error)),
+        tone: "error",
+      });
     } finally {
       setSavingReminder(false);
     }
@@ -283,7 +292,7 @@ export function DashboardTodayTabNova({
               </span>
               {paksha && (
                 <span style={{ fontSize: "12px", color: "var(--color-accent-secondary)", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                  {moonPhase ? <MiniMoonGlyph phase={moonPhase} size={15} /> : (wax ? "◐" : "◑")} {wax ? (lang === "ta" ? "வளர்பிறை" : "Waxing") : (lang === "ta" ? "தேய்பிறை" : "Waning")} · {wax ? (lang === "ta" ? "சுக்ல பக்ஷம்" : "Sukla Paksham") : (lang === "ta" ? "கிருஷ்ண பக்ஷம்" : "Krishna Paksham")}
+                  {moonPhase ? <MiniMoonGlyph phase={moonPhase} size={15} /> : (wax ? "◐" : "◑")} {specialTithiMeta ? specialTithiMeta.label : wax ? (lang === "ta" ? "வளர்பிறை" : "Waxing") : (lang === "ta" ? "தேய்பிறை" : "Waning")} · {wax ? (lang === "ta" ? "சுக்ல பக்ஷம்" : "Sukla Paksham") : (lang === "ta" ? "கிருஷ்ண பக்ஷம்" : "Krishna Paksham")}
                 </span>
               )}
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>
@@ -309,12 +318,12 @@ export function DashboardTodayTabNova({
                   🌙 {lang === "ta" ? "மாலை முன்னோட்டம்" : "Evening preview"}
                   <span style={{
                     display: "inline-block", width: "20px", height: "11px", borderRadius: "999px",
-                    background: eveningPreviewOn ? "var(--color-high)" : "rgba(243,236,221,0.18)",
+                    background: eveningPreviewOn ? "var(--color-high)" : "color-mix(in srgb, var(--color-text-strong) 18%, transparent)",
                     position: "relative", flex: "none", transition: "background 0.15s",
                   }}>
                     <span style={{
                       position: "absolute", top: "1.5px", left: eveningPreviewOn ? "10px" : "1.5px",
-                      width: "8px", height: "8px", borderRadius: "50%", background: "var(--color-on-accent, #221a2c)",
+                      width: "8px", height: "8px", borderRadius: "50%", background: "var(--color-on-accent)",
                       transition: "left 0.15s",
                     }} />
                   </span>
@@ -332,7 +341,7 @@ export function DashboardTodayTabNova({
                     ariaLabel={lang === "ta" ? "இன்றைய நிலா" : "Tonight's moon"}
                   />
                   <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.7rem, 3.2vw, 2.25rem)", fontWeight: 600, lineHeight: 1.08, color: "var(--color-text-strong)" }}>
-                    {greetingWord(lang)}, {displayName}.
+                    {greetingWord(lang, zoneHour)}, {displayName}.
                   </div>
                 </div>
                 <div style={{ fontSize: "13px", color: "var(--color-accent-secondary)", fontWeight: 600 }}>
@@ -347,7 +356,7 @@ export function DashboardTodayTabNova({
                   {tLang(tomorrowGuidance.briefing ?? tomorrowGuidance.text, lang)}
                 </NovaClampedText>
                 {(() => {
-                  const tw = pickFeaturedWindow(tomorrowGuidance.bestWindows, now, false, tomorrowIso);
+                  const tw = pickFeaturedWindow(tomorrowGuidance.bestWindows, now, false, tomorrowIso, panchangamTimezone);
                   return tw ? (
                     <div style={{ display: "flex", alignItems: "center", gap: "9px", fontSize: "13px", color: "var(--color-high)", fontWeight: 600 }}>
                       <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--color-high)", flex: "none" }} />
@@ -395,7 +404,7 @@ export function DashboardTodayTabNova({
                       : (lang === "ta" ? "இன்றைய சூரியன்" : "Today's sun")}
                   />
                   <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.7rem, 3.2vw, 2.25rem)", fontWeight: 600, lineHeight: 1.08, color: "var(--color-text-strong)" }}>
-                    {greetingWord(lang)}, {displayName}.
+                    {greetingWord(lang, zoneHour)}, {displayName}.
                   </div>
                 </div>
                 {personalDailyGuidance && (
@@ -469,11 +478,7 @@ export function DashboardTodayTabNova({
                     </div>
                   </div>
                 )}
-                {reminderMessage && (
-                  <p style={{ margin: 0, fontSize: "11.5px", color: reminderMessage.includes("Could not") || reminderMessage.includes("முடியவில்லை") ? "var(--color-low)" : "var(--color-high)" }}>
-                    {reminderMessage}
-                  </p>
-                )}
+                <StatusLive status={reminderStatus} />
               </>
             )}
           </div>
@@ -513,6 +518,31 @@ export function DashboardTodayTabNova({
         </div>
       </div>
 
+      {/* Fail-soft notice (DASH-02): the day bundle loaded but some sections
+          couldn't be computed — offer a one-tap retry instead of blanking. */}
+      {onRetryBundle && bundleSectionErrors && Object.keys(bundleSectionErrors).length > 0 && (
+        <div
+          role="status"
+          style={{
+            display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap",
+            background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)",
+            borderRadius: "var(--radius-lg)", padding: "10px 16px", fontSize: "12.5px", color: "var(--color-text)",
+          }}
+        >
+          <span aria-hidden="true" style={{ color: "var(--color-low)" }}>⚠</span>
+          <span style={{ flex: 1, minWidth: "180px" }}>
+            {t("today_sections_failed", lang)}
+          </span>
+          <button
+            type="button"
+            onClick={onRetryBundle}
+            style={{ fontSize: "12px", fontWeight: 700, color: "var(--color-accent-strong)", background: "none", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "5px 14px", cursor: "pointer", fontFamily: "inherit" }}
+          >
+            {t("today_retry", lang)}
+          </button>
+        </div>
+      )}
+
       {/* ===== 2. "Is today okay for…?" promoted decision strip. ===== */}
       <DashboardTodayDecideNova
         lang={lang}
@@ -522,6 +552,7 @@ export function DashboardTodayTabNova({
         bestWindow={bestWindow}
         now={now}
         isToday={isToday}
+        timeZone={panchangamTimezone}
         onOpenAskVinaadi={onOpenAskVinaadi}
       />
 
@@ -533,6 +564,7 @@ export function DashboardTodayTabNova({
         weekAhead={weekAhead}
         selectedDate={selectedDate}
         now={now}
+        timeZone={panchangamTimezone}
         onGoToCalendar={onGoToCalendar}
       />
 
@@ -560,7 +592,7 @@ export function DashboardTodayTabNova({
           personalSani={personalSani}
           remedy={personalDailyGuidance.remedy}
           savingReminder={savingReminder}
-          reminderMessage={reminderMessage}
+          reminderMessage={reminderStatus?.text ?? null}
           onSaveReminder={() => void handleSaveReminder()}
           onGoToCalendar={onGoToCalendar}
         />
@@ -598,7 +630,7 @@ export function DashboardTodayTabNova({
                 { label: lang === "ta" ? "பஞ்சாங்கம்" : "Panchangam", text: personalDailyGuidance.reasons.panchangam },
                 { label: lang === "ta" ? "கோசாரம்" : "Transit", text: personalDailyGuidance.reasons.gochar },
               ].filter((tile) => tile.text).map((tile) => (
-                <div key={tile.label} style={{ background: "rgba(243,236,221,0.04)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "12px 14px", fontSize: "12px", lineHeight: 1.5, color: "var(--color-muted)" }}>
+                <div key={tile.label} style={{ background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "12px 14px", fontSize: "12px", lineHeight: 1.5, color: "var(--color-muted)" }}>
                   <b style={{ color: "var(--color-accent-strong)" }}>{tile.label}</b> — {tLang(tile.text, lang)}
                 </div>
               ))}
