@@ -5,7 +5,7 @@ import { readErrorMessage } from "@/lib/api";
 import { useLang } from "@/components/lang-toggle";
 import { addDays, formatClockLabel, formatDateLabel } from "@/lib/format";
 import { gowriCategoryLabel, gowriPeriodLabel, gowriPurposeLabel } from "@/lib/gowri";
-import { tAmirdhadhiYogam, tJeevan, tKarana, tMoonPhase, tNakshatra, tNethiram, tParigaram, tPlanetLord, tSoolamDirection, tTithi, tWeekday, tYoga, type Lang } from "@/lib/i18n";
+import { tAmirdhadhiYogam, tKarana, tMoonPhase, tNakshatra, tParigaram, tPlanetLord, tSoolamDirection, tTithi, tWeekday, tYoga, type Lang } from "@/lib/i18n";
 import { TN_CITIES, type CityEntry } from "@/lib/tn-cities";
 import type { PanchangamDailyResponseData, PanchangamFestival } from "@/lib/types";
 import { PanchangamShareButton } from "@/components/public-share-card";
@@ -614,8 +614,11 @@ export function PanchangamTool() {
                 { label: en ? "Moon Phase" : "சந்திர கலை", value: tMoonPhase(data.moonPhaseLabel, lang), sub: "" },
                 { label: en ? "Lagnam" : "லக்னம்",       value: formatRasi(data.lagnam.rasiNumber, data.lagnam.rasiName, lang), sub: `${en ? "Ends" : "முடிவு"} ${formatEndsAtLabel(data.lagnam.endsAt, data.sunrise, data.dateLocal, lang)} · ${data.lagnam.nazhigai} ${en ? "nazhigai" : "நாழிகை"} ${data.lagnam.vinadi} ${en ? "vinadi" : "விநாடி"}` },
                 { label: en ? "Soolam" : "சூலம்",        value: tSoolamDirection(data.soolam.direction, lang), sub: `${en ? "Parigaram" : "பரிகாரம்"}: ${tParigaram(data.soolam.parigaram, lang)}` },
-                { label: en ? "Nethiram" : "நேத்திரம்",   value: tNethiram(data.nethiram, lang),       sub: "" },
-                { label: en ? "Jeevan" : "ஜீவன்",        value: tJeevan(data.jeevan, lang),         sub: "" },
+                // Nethiram/Jeevan removed from display (2026-07 audit A-3/C-2):
+                // formula is self-flagged unverified and renders harsh Tamil
+                // ("குருடு" = blind) for a daily-visible field. Backend still
+                // computes both; can return here once verified against worked
+                // almanac dates (see docs/ASTROLOGER_REVIEW_QUEUE.md).
                 { label: en ? "Amirdhadhi Yogam" : "அமிர்தாதி யோகம்", value: tAmirdhadhiYogam(amirdhadhiRolled ? data.amirdhadhiYogam.nextName : data.amirdhadhiYogam.name, lang), sub: limbSub(amirdhadhiRolled, data.amirdhadhiYogam.endsAt, tAmirdhadhiYogam(data.amirdhadhiYogam.nextName, lang)) },
               ].map((item) => (
                 <div key={item.label} style={{

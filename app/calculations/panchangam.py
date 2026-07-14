@@ -213,10 +213,13 @@ SUBHA_NAKSHATRAS = {
     "THIRUVONAM",     # 22 — Shravana
     "AVITTAM",        # 23 — Dhanishtha
 }
-# DRAFT — verify against Thirukanitham before relying on these tables.
 # Soolam (சூலம்): the inauspicious travel direction for the day, by weekday
 # (0=Mon..6=Sun, matching RAHU_SLOT). Parigaram is the remedy food traditionally
 # eaten before travelling in the Soolam direction to nullify its effect.
+# SOOLAM_DIRECTION verified 2026-07 audit. SOOLAM_PARIGARAM_BY_DIRECTION corrected
+# 2026-07-14 (astrologer-supplied): East/West were swapped (East->Curd not Jaggery,
+# West->Jaggery not Curd), and North/South refined to more specific Tamil words
+# (பசும்பால்=fresh/raw milk, நல்லெண்ணெய்=sesame oil) rather than generic பால்/எண்ணெய்.
 SOOLAM_DIRECTION = {
     0: "கிழக்கு",   # Monday — East
     1: "வடக்கு",    # Tuesday — North
@@ -227,10 +230,10 @@ SOOLAM_DIRECTION = {
     6: "மேற்கு",    # Sunday — West
 }
 SOOLAM_PARIGARAM_BY_DIRECTION = {
-    "கிழக்கு": "வெல்லம்",
-    "மேற்கு": "தயிர்",
-    "வடக்கு": "பால்",
-    "தெற்கு": "எண்ணெய்",
+    "கிழக்கு": "தயிர்",
+    "மேற்கு": "வெல்லம்",
+    "வடக்கு": "பசும்பால்",
+    "தெற்கு": "நல்லெண்ணெய்",
 }
 
 # Nethiram (நேத்திரம்) and Jeevan (ஜீவன்): daily vitality/clarity indicators
@@ -276,26 +279,32 @@ def _nethiram_value(sun_nakshatra: int, reference_nakshatra: int) -> int:
     return 2
 
 # Amirdhadhi Yogam (அமிர்தாதி யோகம்): fixed weekday + nakshatra table used by
-# Tamil almanacs for Amirtha/Siddha/Marana daily yoga. 2026-07 audit: the 7
-# classical Amrita Siddhi Yoga anchor pairs (Sun+Hastham, Mon+Thiruvonam,
-# Tue+Ashwini, Wed+Anuradha, Thu+Pushya, Fri+Revathi, Sat+Rohini) were verified
-# against this table and must all read "A" — Tue+Ashwini and Wed+Anuradha were
-# found reading "C" and corrected. The remaining ~182 cells of this 7x27 grid
-# are not independently re-verified; treat as still-open if further discrepancies
-# surface.
+# Tamil almanacs to grade each day's yoga. Four classes: Amirtha (A, auspicious),
+# Siddha (C, neutral-good), Marana (M, inauspicious), and Prabalarishta (P, a
+# 4th class ~3x worse than Marana). Full 7x27 grid re-sourced 2026-07-14 from the
+# Ungal Vazhkkai Vazhikatti panchangam (astrologer-supplied), internally
+# consistent (every row covers 27 nakshatras once). NOTE: this REVERSES the
+# 2026-07 audit's premise that the seven Amrita Siddhi *Yoga* muhurta pairs must
+# read "A" here — that conflated the muhurta yoga (7 special day/star combos) with
+# this daily-classification table. The Amrita-Siddhi pairs actually land on the
+# Siddha (C) class (the "Siddhi" tell), so v29's Tue+Ashwini / Wed+Anuradha "A"
+# corrections were wrong and are reverted. Single-source; the Thu(Kettai/18) and
+# Fri(Pooradam/20) Prabalarishta cells diverge from the classical Dagdha-yoga list
+# and are the cells most worth a second-panchangam cross-check.
 AMIRDHADHI_YOGAM_LABELS = {
     "A": "அமிர்தயோகம்",
     "C": "சித்தயோகம்",
     "M": "மரணயோகம்",
+    "P": "பிரபலாரிஷ்ட யோகம்",
 }
 AMIRDHADHI_YOGAM_TABLE = {
-    6: ("C", "C", "C", "C", "C", "C", "C", "C", "C", "M", "C", "A", "A", "C", "C", "M", "M", "M", "A", "C", "A", "A", "M", "C", "C", "A", "A"),
-    0: ("C", "C", "M", "A", "A", "C", "A", "C", "C", "M", "C", "C", "C", "C", "A", "M", "C", "C", "C", "C", "M", "A", "C", "C", "M", "C", "C"),
-    1: ("A", "C", "C", "A", "C", "M", "C", "C", "C", "C", "C", "A", "C", "C", "C", "M", "C", "C", "A", "C", "C", "C", "C", "M", "M", "A", "C"),
-    2: ("M", "C", "A", "C", "C", "C", "C", "C", "C", "C", "A", "A", "M", "C", "C", "C", "A", "C", "M", "A", "A", "C", "M", "C", "A", "C", "M"),
-    3: ("A", "C", "M", "M", "M", "M", "A", "A", "C", "A", "C", "M", "C", "C", "A", "C", "C", "C", "C", "C", "C", "C", "C", "M", "C", "C", "C"),
-    4: ("A", "C", "C", "M", "C", "C", "C", "M", "M", "M", "C", "C", "A", "C", "C", "C", "C", "M", "A", "C", "C", "M", "C", "C", "C", "C", "A"),
-    5: ("C", "C", "A", "A", "C", "C", "C", "C", "M", "A", "C", "M", "M", "M", "A", "C", "C", "C", "C", "C", "C", "C", "C", "A", "M", "C", "M"),
+    6: ("C", "P", "C", "C", "C", "C", "C", "C", "C", "M", "C", "A", "C", "C", "C", "M", "M", "M", "A", "C", "A", "A", "M", "C", "C", "A", "A"),  # Sun
+    0: ("C", "C", "M", "A", "C", "C", "A", "C", "C", "M", "C", "C", "C", "P", "A", "M", "C", "C", "C", "M", "M", "A", "C", "C", "M", "C", "C"),  # Mon
+    1: ("C", "C", "C", "A", "C", "M", "C", "C", "C", "C", "C", "A", "C", "C", "C", "M", "C", "M", "A", "C", "P", "C", "C", "M", "M", "A", "C"),  # Tue
+    2: ("M", "C", "A", "C", "C", "C", "C", "C", "C", "C", "A", "A", "M", "C", "C", "C", "C", "C", "M", "A", "A", "C", "P", "C", "A", "C", "M"),  # Wed
+    3: ("A", "C", "M", "M", "M", "M", "A", "C", "C", "A", "C", "M", "C", "C", "A", "C", "C", "P", "C", "C", "C", "C", "C", "M", "C", "C", "C"),  # Thu
+    4: ("A", "C", "C", "M", "C", "C", "C", "M", "M", "M", "C", "C", "A", "C", "C", "C", "C", "M", "A", "P", "C", "M", "C", "C", "C", "C", "C"),  # Fri
+    5: ("C", "C", "C", "A", "C", "C", "C", "C", "M", "A", "C", "M", "M", "M", "C", "C", "C", "C", "C", "C", "C", "C", "C", "A", "M", "C", "P"),  # Sat
 }
 
 PANCHANGAM_CACHE_TTL_HOURS = 24
@@ -326,7 +335,15 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # சித்தயோகம், should be அமிர்தயோகம் per the classical Amrita Siddhi Yoga pairs).
 # v30: persist pradhosham_tithi_number (tithi at pradhosha-kalam / sunset) so
 # Pradhosam is dated from the sunset tithi, not the sunrise tithi (issue #10).
-PANCHANGAM_CACHE_DATA_VERSION = 30
+# v31: AMIRDHADHI_YOGAM_TABLE fully re-sourced from the Ungal Vazhkkai Vazhikatti
+# panchangam (17 cells changed vs v30); added a 4th class Prabalarishta (P). This
+# reverts v29's Tue+Ashwini / Wed+Anuradha "A" corrections (the Amrita-Siddhi-Yoga
+# muhurta pairs land on Siddha/C, not Amirtha/A). Persisted amirdhadhi_yogam_name
+# strings change, so cached snapshots must recompute.
+# v32: SOOLAM_PARIGARAM_BY_DIRECTION corrected (A-8, 2026-07-14) — East/West foods
+# were swapped, North/South refined to பசும்பால்/நல்லெண்ணெய். Persisted
+# soolam_parigaram values change, so cached snapshots must recompute.
+PANCHANGAM_CACHE_DATA_VERSION = 32
 DOMINANT_SPECIAL_TITHIS = {15, 30}
 
 # Compact daily-calendar summary windows used by Tamil calendars for everyday

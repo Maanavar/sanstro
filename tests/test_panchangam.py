@@ -5,7 +5,11 @@ import pytest
 
 from app.calculations.festivals import get_festivals_for_date
 from app.calculations.panchangam import (
+    AMIRDHADHI_YOGAM_LABELS,
+    AMIRDHADHI_YOGAM_TABLE,
     NAKSHATRA_NAMES,
+    SOOLAM_DIRECTION,
+    SOOLAM_PARIGARAM_BY_DIRECTION,
     _amirdhadhi_yogam_name,
     _compute_subha_muhurtham_broad,
     _compute_subha_muhurtham_strict,
@@ -311,6 +315,62 @@ def test_amirdhadhi_yogam_uses_weekday_nakshatra_table():
     assert _amirdhadhi_yogam_name(0, 25) == "மரணயோகம்"
     assert _amirdhadhi_yogam_name(3, 11) == "சித்தயோகம்"
     assert _amirdhadhi_yogam_name(3, 12) == "மரணயோகம்"
+
+
+def test_amirdhadhi_yogam_grid_is_structurally_sound():
+    # Re-sourced 2026-07-14 from the Ungal Vazhkkai Vazhikatti panchangam.
+    # Every weekday row must cover all 27 nakshatras exactly once, using only
+    # the four known classes.
+    assert set(AMIRDHADHI_YOGAM_TABLE) == {0, 1, 2, 3, 4, 5, 6}
+    for weekday, row in AMIRDHADHI_YOGAM_TABLE.items():
+        assert len(row) == 27, f"weekday {weekday} row has {len(row)} cells"
+        assert set(row) <= set(AMIRDHADHI_YOGAM_LABELS), f"weekday {weekday} has unknown class"
+        # Exactly one Prabalarishta (P) cell per weekday in this source.
+        assert row.count("P") == 1, f"weekday {weekday} P-count={row.count('P')}"
+
+
+def test_amirdhadhi_yogam_prabalarishta_cells():
+    # The seven 4th-class (Prabalarishta) cells, one per weekday.
+    # (weekday_index, nakshatra_number 1..27) per the reference source.
+    prabalarishta = {
+        (6, 2): "Sun+Bharani",
+        (0, 14): "Mon+Chithirai",
+        (1, 21): "Tue+Uthiradam",
+        (2, 23): "Wed+Avittam",
+        (3, 18): "Thu+Kettai",
+        (4, 20): "Fri+Pooradam",
+        (5, 27): "Sat+Revathi",
+    }
+    for (weekday, nak), label in prabalarishta.items():
+        assert _amirdhadhi_yogam_name(weekday, nak) == "பிரபலாரிஷ்ட யோகம்", label
+
+
+def test_amirdhadhi_yogam_amrita_siddhi_pairs_read_siddha_not_amirtha():
+    # Regression lock: the Amrita-Siddhi *Yoga* muhurta pairs are NOT the
+    # Amirtha (A) cells of this daily-classification table — they land on Siddha
+    # (C). This reverses the 2026-07 audit's v29 premise. (weekday, nakshatra):
+    # Sun+Hasta(13), Tue+Ashwini(1), Wed+Anuradha(17), Thu+Pushya(8),
+    # Fri+Revathi(27) all read Siddha; Mon+Shravana(22), Sat+Rohini(4) read Amirtha.
+    assert _amirdhadhi_yogam_name(6, 13) == "சித்தயோகம்"  # Sun+Hasta
+    assert _amirdhadhi_yogam_name(1, 1) == "சித்தயோகம்"   # Tue+Ashwini (was wrongly "A" in v29)
+    assert _amirdhadhi_yogam_name(2, 17) == "சித்தயோகம்"  # Wed+Anuradha (was wrongly "A" in v29)
+    assert _amirdhadhi_yogam_name(3, 8) == "சித்தயோகம்"   # Thu+Pushya
+    assert _amirdhadhi_yogam_name(4, 27) == "சித்தயோகம்"  # Fri+Revathi
+    assert _amirdhadhi_yogam_name(0, 22) == "அமிர்தயோகம்"  # Mon+Shravana
+    assert _amirdhadhi_yogam_name(5, 4) == "அமிர்தயோகம்"   # Sat+Rohini
+
+
+def test_soolam_parigaram_direction_food_mapping():
+    # A-8, 2026-07-14: astrologer-corrected direction->food table. East/West were
+    # swapped vs the prior DRAFT (East->Curd not Jaggery, West->Jaggery not Curd);
+    # North/South refined to the specific traditional words.
+    assert SOOLAM_PARIGARAM_BY_DIRECTION["கிழக்கு"] == "தயிர்"       # East -> Curd
+    assert SOOLAM_PARIGARAM_BY_DIRECTION["மேற்கு"] == "வெல்லம்"      # West -> Jaggery
+    assert SOOLAM_PARIGARAM_BY_DIRECTION["வடக்கு"] == "பசும்பால்"    # North -> fresh milk
+    assert SOOLAM_PARIGARAM_BY_DIRECTION["தெற்கு"] == "நல்லெண்ணெய்"  # South -> sesame oil
+    # Every direction in the weekday table has a parigaram entry.
+    for direction in SOOLAM_DIRECTION.values():
+        assert direction in SOOLAM_PARIGARAM_BY_DIRECTION
 
 
 def test_rahu_kalam_uses_daylight_division_chennai_2026_01_15():
