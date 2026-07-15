@@ -1,12 +1,14 @@
 import pytest
 
 from app.calculations.astro import navamsa_rasi_from_degree
+from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.divisional_charts import (
     compute_d2,
     compute_d7,
     compute_d10,
     compute_d24,
     compute_d27,
+    compute_d30,
     compute_d45,
     compute_d60,
     get_varga,
@@ -31,6 +33,45 @@ def test_d9_dispatch_matches_existing_navamsa():
 def test_get_varga_unsupported_raises():
     with pytest.raises(ValueError):
         get_varga(5, {"SUN": 10.0})
+
+
+# ---------------------------------------------------------------------------
+# D30 (Trimsamsa) — WI-03: even-sign targets previously repeated the odd-sign
+# set (Libra/Gemini/Sag/Aquarius/Aries) instead of each lord's own even sign.
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "longitude,expected_rasi",
+    [
+        (33.0, 2),    # 3 deg Taurus (even) -> Venus segment -> Taurus (2)
+        (100.0, 6),   # 10 deg Cancer (even) -> Mercury segment -> Virgo (6)
+        (165.0, 12),  # 15 deg Virgo (even) -> Jupiter segment -> Pisces (12)
+        (232.0, 10),  # 22 deg Scorpio (even) -> Saturn segment -> Capricorn (10)
+        (358.0, 8),   # 28 deg Pisces (even) -> Mars segment -> Scorpio (8)
+        (3.0, 1),     # 3 deg Aries (odd) -> unchanged -> Aries (1)
+    ],
+)
+def test_d30_even_sign_targets(longitude, expected_rasi):
+    out = compute_d30({"P": longitude})
+    assert out["P"] == expected_rasi
+
+
+@pytest.mark.parametrize(
+    "old_odd_sign_target,new_even_sign_target",
+    [
+        (7, 2),    # Venus: Libra (odd) vs Taurus (even)
+        (3, 6),    # Mercury: Gemini (odd) vs Virgo (even)
+        (9, 12),   # Jupiter: Sagittarius (odd) vs Pisces (even)
+        (11, 10),  # Saturn: Aquarius (odd) vs Capricorn (even)
+        (1, 8),    # Mars: Aries (odd) vs Scorpio (even)
+    ],
+)
+def test_d30_even_sign_fix_preserves_lord_saptavargaja_invariance(old_odd_sign_target, new_even_sign_target):
+    # The old (buggy) even-sign table reused the odd-sign targets above; the
+    # fixed table points at each lord's own even sign instead. Both targets
+    # share the same sign lord, so Saptavargaja bala (which only reads the
+    # D30 lord, not the raw sign number) is unaffected by this fix.
+    assert SIGN_LORD[old_odd_sign_target] == SIGN_LORD[new_even_sign_target]
 
 
 # ---------------------------------------------------------------------------

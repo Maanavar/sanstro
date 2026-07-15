@@ -140,12 +140,14 @@ def compute_d30(planet_longitudes: dict[str, float]) -> dict[str, int]:
         (7.0, 3),   # Mercury
         (5.0, 7),   # Venus
     ]
+    # Even signs: each lord's portion maps to the lord's OWN EVEN sign (BPHS
+    # Trimsamsa), not a repeat of the odd-sign targets (WI-03).
     even_segments = [
-        (5.0, 7),   # Venus
-        (7.0, 3),   # Mercury
-        (8.0, 9),   # Jupiter
-        (5.0, 11),  # Saturn
-        (5.0, 1),   # Mars
+        (5.0, 2),   # Venus  -> Taurus
+        (7.0, 6),   # Mercury-> Virgo
+        (8.0, 12),  # Jupiter-> Pisces
+        (5.0, 10),  # Saturn -> Capricorn
+        (5.0, 8),   # Mars   -> Scorpio
     ]
 
     def _d30(lon: float) -> int:
