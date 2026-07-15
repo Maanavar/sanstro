@@ -233,7 +233,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 - **Acceptance criteria:** 3 golden sequence tests pass; the old formula is deleted; the "Experimental" label is removed from UI in the same change that ships validated rules.
 
 ## WI-11 — `bhava_chalit.py`: rename to equal-house (Doctrine §6) ✅❌
-- [ ] **Status:** NOT STARTED
+- [x] **Status:** DONE (2026-07-16, commits `6834794`+`7d42472`) — full coordinated rename across app/schemas, shared TS types, and the 2 web consumers (no mobile consumer existed) rather than a deprecated-duplicate field, since consumer count was small. tsc/eslint/vitest/pytest all green.
 - **Priority:** P1 — launch gate (trust issue). Chosen path: **rename** (minimal); true Sripati is an optional follow-up, not part of this WI.
 - **Change:**
   1. `git mv app/calculations/bhava_chalit.py app/calculations/equal_bhava.py`; function `compute_bhava_chalit` → `compute_equal_bhava` (keep a deprecated alias `compute_bhava_chalit = compute_equal_bhava` for one release if external callers exist).
@@ -391,7 +391,7 @@ Follow the established pattern: present each as an open request for the authorit
 - [x] WI-08 Murthi default → ingress-Moon method; pada rule as labeled variant
 - [x] WI-09 Jaimini Rahu = 30° − advancement; 8-karaka documented; migration check  *(before WI-10)*
 - [ ] WI-10 Chara Dasha → full Rao/BPHS rules, JHora-validated golden sequences *(interim: "Experimental" label)*
-- [ ] WI-11 `bhava_chalit.py` → `equal_bhava.py` rename + API field strategy
+- [x] WI-11 `bhava_chalit.py` → `equal_bhava.py` rename + API field strategy
 - [ ] WI-12 Festival rules engine + algorithmic Smarta Ekadashi; 2026 parity gate; 2027 asserted non-empty
 
 ## Phase C — Consistency & docs
