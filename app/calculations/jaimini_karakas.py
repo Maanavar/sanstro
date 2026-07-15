@@ -1,21 +1,27 @@
 from __future__ import annotations
 
 # Jaimini Chara Karakas (BPHS Ch. 32) — the 8 grahas SUN..SATURN + RAHU are ranked
-# by descending degree-within-sign (0-30 deg); the highest gets ATMAKARAKA ("soul
-# significator"), down to DAARAKARAKA. KETU is excluded — this is the standard
-# 8-karaka scheme, not the 7-karaka variant some texts use (which drops
-# Daarakaraka and folds spouse significations into another karaka).
+# by descending effective degree-within-sign (0-30 deg); the highest gets
+# ATMAKARAKA ("soul significator"), down to DAARAKARAKA. KETU is excluded — the
+# 8-karaka scheme (Sun..Saturn + Rahu) is the ratified default (Doctrine §4,
+# Rao/Rath mainstream for Chara Karakas), not the 7-karaka (planets-only)
+# variant some texts use (which drops Daarakaraka and folds spouse
+# significations into another karaka). This is now doctrine, not accident.
 #
 # Documented conventions (per this project's own precedent of naming such
 # choices explicitly — see aspects.py, ashtakavarga.py):
-#   - RAHU's degree is counted forward (0-30 in its own sign, same direction as
-#     the other 7 grahas), not reversed. Some sources reverse Rahu's motion for
-#     Jaimini purposes; this project does not, matching common Tamil practice.
-#   - Ties (two grahas at the exact same degree-within-sign) are vanishingly
-#     rare with real ephemeris data. When they occur, the earlier graha in
-#     classical dignity order (Sun > Moon > Mars > Mercury > Jupiter > Venus >
-#     Saturn > Rahu) keeps the higher karaka — a documented tie-break, not an
-#     accident of dict ordering.
+#   - RAHU's effective degree = 30 - (degrees traversed in its rasi), i.e. its
+#     degree is counted in REVERSE (WI-09, Doctrine §4). Rahu's perpetual
+#     retrograde motion is the doctrinal basis: BPHS commentarial tradition,
+#     K.N. Rao, Sanjay Rath, and JHora all reverse it. The previous
+#     forward-counting convention was a minority reading that silently
+#     produces different Atmakaraka/Amatyakaraka assignments from every
+#     reference chart a knowledgeable user checks.
+#   - Ties (two grahas at the exact same effective degree-within-sign) are
+#     vanishingly rare with real ephemeris data. When they occur, the earlier
+#     graha in classical dignity order (Sun > Moon > Mars > Mercury > Jupiter >
+#     Venus > Saturn > Rahu) keeps the higher karaka — a documented tie-break,
+#     not an accident of dict ordering.
 from collections.abc import Mapping
 
 CHARA_KARAKA_ORDER: list[str] = [
@@ -34,10 +40,19 @@ _KARAKA_CANDIDATES: tuple[str, ...] = (
 )
 
 
+def _karaka_degree(planet: str, longitude: float) -> float:
+    """Effective degree-within-sign for Chara Karaka ranking. Rahu's degree is
+    reversed (30 - advancement) per its perpetual retrograde motion (WI-09,
+    Doctrine §4); all other grahas count forward as usual."""
+    deg = longitude % 30.0
+    return 30.0 - deg if planet == "RAHU" else deg
+
+
 def compute_char_karakas(planet_longitudes: Mapping[str, float]) -> dict[str, str]:
-    """Rank SUN..SATURN + RAHU by descending degree-within-sign into the 8 Chara Karakas."""
+    """Rank SUN..SATURN + RAHU by descending effective degree-within-sign
+    (Rahu reversed) into the 8 Chara Karakas."""
     candidates = [
-        (planet, planet_longitudes[planet] % 30.0)
+        (planet, _karaka_degree(planet, planet_longitudes[planet]))
         for planet in _KARAKA_CANDIDATES
         if planet in planet_longitudes
     ]
