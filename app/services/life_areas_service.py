@@ -36,7 +36,7 @@ from app.calculations.karaka_chains import LIFE_AREA_KARAKA
 from app.calculations.maturation import maturation_multiplier
 from app.calculations.prediction_score import PredictionScoreInput, compute_prediction_score
 from app.calculations.remedies import get_area_remedy
-from app.calculations.transits import classify_ezharai_sani_murthi, classify_kandaka_cycle, classify_sani_cycle
+from app.calculations.transits import classify_ezharai_sani_murthi_ingress, classify_kandaka_cycle, classify_sani_cycle, find_saturn_ingress_jd
 from app.core.age_gate import get_house_locus
 from app.models import BirthProfile, Chart
 from app.models.user_life_events import UserLifeEvent
@@ -586,29 +586,27 @@ _SANI_TYPE_LABEL_EN = {
 _SADE_SATI_SANI_TYPES = frozenset({"JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_2", "EZHARAI_SANI_PHASE_3"})
 
 
-def _sani_label_ta(sani_type: str | None, moon_nakshatra_pada: int | None = None) -> str:
+def _sani_label_ta(sani_type: str | None, murthi: dict[str, str] | None = None) -> str:
     base = _SANI_TYPE_LABEL_TA.get(sani_type or "", "சனி சுழற்சி")
-    if sani_type in _SADE_SATI_SANI_TYPES and moon_nakshatra_pada:
-        grade = classify_ezharai_sani_murthi(moon_nakshatra_pada)
-        return f"{base} ({grade['ta']})"
+    if sani_type in _SADE_SATI_SANI_TYPES and murthi:
+        return f"{base} ({murthi['ta']})"
     return base
 
 
-def _sani_label_en(sani_type: str | None, moon_nakshatra_pada: int | None = None) -> str:
+def _sani_label_en(sani_type: str | None, murthi: dict[str, str] | None = None) -> str:
     base = _SANI_TYPE_LABEL_EN.get(sani_type or "", "Sani cycle")
-    if sani_type in _SADE_SATI_SANI_TYPES and moon_nakshatra_pada:
-        grade = classify_ezharai_sani_murthi(moon_nakshatra_pada)
-        return f"{base} — {grade['en']}"
+    if sani_type in _SADE_SATI_SANI_TYPES and murthi:
+        return f"{base} — {murthi['en']}"
     return base
 
 
-def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_type: str | None, chandrashtama: bool, jupiter_house: int, saturn_house: int, moon_nakshatra_pada: int | None = None, house_4_locus: str = "self") -> _NarrativeBundle:
+def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_type: str | None, chandrashtama: bool, jupiter_house: int, saturn_house: int, murthi: dict[str, str] | None = None, house_4_locus: str = "self") -> _NarrativeBundle:
     planet_ta = _PLANET_LABEL[maha_lord].ta
     planet_en = _PLANET_LABEL[maha_lord].en
     jup_h = jupiter_house
     sat_h = saturn_house
-    sani_ta = _sani_label_ta(sani_type, moon_nakshatra_pada) if sani_active else ""
-    sani_en = _sani_label_en(sani_type, moon_nakshatra_pada) if sani_active else ""
+    sani_ta = _sani_label_ta(sani_type, murthi) if sani_active else ""
+    sani_en = _sani_label_en(sani_type, murthi) if sani_active else ""
 
     match area:
         case "CAREER":
@@ -1342,6 +1340,15 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
 
     sani_cycle = classify_sani_cycle(saturn_house_from_moon)
     kandaka_cycle = classify_kandaka_cycle(saturn_house_from_lagna)
+    # Ezharai Sani Murthi grade — ingress-Moon method (Doctrine §3, WI-08),
+    # computed once per request (not per life-area) and only when a Sade Sati
+    # phase is actually active, since it requires a Saturn-ingress ephemeris
+    # search.
+    ezharai_murthi: dict[str, str] | None = None
+    if sani_cycle.is_active and sani_cycle.type in _SADE_SATI_SANI_TYPES:
+        _ingress_jd = find_saturn_ingress_jd(saturn.rasi, transit.jd_ut)
+        _ingress_moon_rasi = calculate_sidereal_planets(_ingress_jd).bodies["MOON"].rasi
+        ezharai_murthi = classify_ezharai_sani_murthi_ingress(natal_moon.rasi, _ingress_moon_rasi)
     natal_planet_scores = {
         p.graha: (p.strength_score if getattr(p, "strength_score", 0) > 0 else 50)
         for p in chart_snapshot.data.planets
@@ -1518,7 +1525,7 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             area, score, maha_lord,
             sani_cycle.is_active, sani_cycle.type if sani_cycle.is_active else None,
             chandrashtama, jupiter_house, saturn_house,
-            moon_nakshatra_pada=natal_moon.pada,
+            murthi=ezharai_murthi,
             house_4_locus=get_house_locus(4, current_age, getattr(birth_profile, "marital_status", None)),
         )
         detailed_reason = _build_area_reason(

@@ -21,7 +21,7 @@ from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.functional_nature import get_dasha_modifier, get_transit_modifier
 from app.calculations.panchangam import PanchangamSnapshot, calculate_daily_panchangam, calculate_daily_panchangam_range
-from app.calculations.transits import check_vedha, classify_ezharai_sani_murthi, classify_kandaka_cycle, classify_sani_cycle, is_combust
+from app.calculations.transits import check_vedha, classify_ezharai_sani_murthi_ingress, classify_kandaka_cycle, classify_sani_cycle, find_saturn_ingress_jd, is_combust
 from app.models import BirthProfile, Chart, JournalEntry
 from app.reasoning.verdict import Band, band_to_legacy_confidence
 from app.schemas.charts import ChartCalculateResponse
@@ -446,10 +446,14 @@ def build_daily_guidance_response(
     if saturn_cycle.is_active:
         if saturn_cycle.type in {"JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_2", "EZHARAI_SANI_PHASE_3"}:
             # Sade Sati is a caution cycle, but never treated as flatly "bad".
-            # Severity is graded by the natal Moon's nakshatra pada (classical
-            # gold/silver/copper/iron Murthi scheme) rather than a flat penalty.
+            # Severity is graded by the ingress-Moon method (Doctrine §3,
+            # WI-08 — the default printed-panchangam convention): count the
+            # transiting Moon's rasi, at the instant Saturn entered its
+            # current rasi, from the natal Moon's rasi.
             murthi_penalty = {"GOLD": 4, "SILVER": 6, "COPPER": 8, "IRON": 10}
-            murthi = classify_ezharai_sani_murthi(natal_moon.pada)
+            ingress_jd = find_saturn_ingress_jd(saturn.rasi, transit_snapshot.jd_ut)
+            ingress_moon_rasi = calculate_sidereal_planets(ingress_jd).bodies["MOON"].rasi
+            murthi = classify_ezharai_sani_murthi_ingress(natal_moon.rasi, ingress_moon_rasi)
             personal_safety_score -= murthi_penalty.get(murthi["grade"], 7)
         elif saturn_cycle.type == "ARDHASHTAMA_SANI":
             personal_safety_score -= 9

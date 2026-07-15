@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Any
 
 from app.calculations.aspects import aspect_target_rasis
@@ -13,7 +14,7 @@ from app.calculations.astro import (
     house_from_reference,
     normalize_longitude,
 )
-from app.calculations.ephemeris import EphemerisSnapshot
+from app.calculations.ephemeris import EphemerisSnapshot, calculate_sidereal_planets
 
 # Transit-facing labels remain uppercase for backward compatibility in stored/output payloads.
 RASI_NAMES = {number: name.upper() for number, name in CANONICAL_RASI_NAMES.items()}
@@ -202,10 +203,88 @@ def classify_ezharai_sani_murthi(moon_nakshatra_pada: int) -> dict[str, str]:
     """Grade overall Ezharai Sani severity from the natal Moon's nakshatra pada.
 
     Returns a dict with 'grade' (IRON/COPPER/SILVER/GOLD), 'ta', and 'en' keys.
+
+    Doctrine §3 (WI-08): this is the "Traditional Pada Murthi — regional
+    variant" — authentic minority Tamil practice (family lineages, some
+    temple astrologers, some Nadi traditions), but NOT what printed
+    panchangams publish. `classify_ezharai_sani_murthi_ingress` below is the
+    ratified default; this function is kept for back-compat and must only
+    ever be surfaced under an explicit "regional variant" label, never as an
+    unlabeled default.
     """
     if moon_nakshatra_pada not in EZHARAI_SANI_MURTHI_BY_PADA:
         raise ValueError("moon_nakshatra_pada must be between 1 and 4")
     return dict(EZHARAI_SANI_MURTHI_BY_PADA[moon_nakshatra_pada])
+
+
+# Ezharai Sani (Sade Sati) severity grading by the DEFAULT ingress-Moon method
+# (Doctrine §3, ratified 2026-07): at the moment Saturn enters a new rasi,
+# count the transiting Moon's rasi from the native's janma rasi. This is what
+# printed panchangams publish and what users expect; keyed on the inclusive
+# 1-based count `((moon - janma) % 12) + 1`.
+EZHARAI_SANI_MURTHI_BY_INGRESS_COUNT: dict[int, dict[str, str]] = {
+    1: {"grade": "GOLD",   "ta": "பொன் சனி",     "en": "Gold (Ponnu) Murthi — mildest"},
+    6: {"grade": "GOLD",   "ta": "பொன் சனி",     "en": "Gold (Ponnu) Murthi — mildest"},
+    11: {"grade": "GOLD",  "ta": "பொன் சனி",     "en": "Gold (Ponnu) Murthi — mildest"},
+    2: {"grade": "SILVER", "ta": "வெள்ளி சனி",   "en": "Silver (Velli) Murthi — moderate"},
+    5: {"grade": "SILVER", "ta": "வெள்ளி சனி",   "en": "Silver (Velli) Murthi — moderate"},
+    9: {"grade": "SILVER", "ta": "வெள்ளி சனி",   "en": "Silver (Velli) Murthi — moderate"},
+    3: {"grade": "COPPER", "ta": "செம்பு சனி",   "en": "Copper (Semmbu) Murthi — strong"},
+    7: {"grade": "COPPER", "ta": "செம்பு சனி",   "en": "Copper (Semmbu) Murthi — strong"},
+    10: {"grade": "COPPER", "ta": "செம்பு சனி",  "en": "Copper (Semmbu) Murthi — strong"},
+    4: {"grade": "IRON",   "ta": "இரும்பு சனி", "en": "Iron (Irumbu) Murthi — most severe"},
+    8: {"grade": "IRON",   "ta": "இரும்பு சனி", "en": "Iron (Irumbu) Murthi — most severe"},
+    12: {"grade": "IRON",  "ta": "இரும்பு சனி", "en": "Iron (Irumbu) Murthi — most severe"},
+}
+
+
+def classify_ezharai_sani_murthi_ingress(janma_rasi: int, ingress_moon_rasi: int) -> dict[str, str]:
+    """Grade overall Ezharai Sani severity by the DEFAULT ingress-Moon method
+    (Doctrine §3): count the transiting Moon's rasi (at the instant Saturn
+    entered its current rasi) from the native's janma rasi.
+
+    Returns a dict with 'grade' (GOLD/SILVER/COPPER/IRON), 'ta', and 'en' keys.
+    """
+    count = ((ingress_moon_rasi - janma_rasi) % 12) + 1
+    return dict(EZHARAI_SANI_MURTHI_BY_INGRESS_COUNT[count])
+
+
+_SATURN_INGRESS_STEP_DAYS = 30.0
+_SATURN_INGRESS_MAX_STEPS = 40  # ~1200 days walk-back cap (Saturn: ~2.5 yr/rasi)
+
+
+@lru_cache(maxsize=64)
+def find_saturn_ingress_jd(current_rasi: int, before_jd: float) -> float:
+    """Find the JD when Saturn entered `current_rasi`.
+
+    `before_jd` must fall within `current_rasi` (Saturn is already in that
+    rasi at that instant). Walks backward ~30 days at a time (Saturn spends
+    ~2.5 years per rasi) until the rasi differs, then bisects the bracketed
+    window to the exact crossing instant — mirroring the boundary-finding
+    approach `tamil_calendar._find_sankranti_jd` uses for the Sun.
+
+    Known simplification: like the Sun-sankranti finder, this assumes a
+    single forward crossing and does not special-case a retrograde loop that
+    briefly re-enters the previous sign very close to the boundary — a rare
+    edge case, not handled here.
+    """
+    hi = before_jd
+    lo = before_jd - _SATURN_INGRESS_STEP_DAYS
+    steps = 0
+    while calculate_sidereal_planets(lo).bodies["SATURN"].rasi == current_rasi:
+        hi = lo
+        lo -= _SATURN_INGRESS_STEP_DAYS
+        steps += 1
+        if steps > _SATURN_INGRESS_MAX_STEPS:
+            raise ValueError("saturn ingress search exceeded maximum walk-back window")
+
+    for _ in range(64):
+        mid = (lo + hi) / 2
+        if calculate_sidereal_planets(mid).bodies["SATURN"].rasi == current_rasi:
+            hi = mid
+        else:
+            lo = mid
+    return hi
 
 
 def classify_kandaka_cycle(position_from_lagna: int) -> CycleAssessment:
