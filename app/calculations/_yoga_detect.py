@@ -694,11 +694,18 @@ def detect_lakshmi_yoga(planets: dict[str, int], lagna_rasi: int, planet_scores:
     )
 
 
+_SUNAPHA_ANAPHA_EXCLUDED = frozenset({"SUN", "MOON", "RAHU", "KETU", "MANDHI"})
+
+
 def detect_sunapha_anapha_durudhura(planets: dict[str, int], moon_rasi: int) -> list[YogaResult]:
+    # Classical: formed by planets OTHER THAN the Sun in the 2nd/12th from
+    # Moon. Nodes (Rahu/Ketu) never form these; Moon is the reference point,
+    # not a candidate; Mandhi is an upagraha, not a graha (WI-15). Matches
+    # Kemadruma's exclusion pattern in this same file.
     second = ((moon_rasi - 1 + 1) % 12) + 1
     twelfth = ((moon_rasi - 1 - 1) % 12) + 1
-    has_second = any(p != "SUN" and r == second for p, r in planets.items())
-    has_twelfth = any(p != "SUN" and r == twelfth for p, r in planets.items())
+    has_second = any(p not in _SUNAPHA_ANAPHA_EXCLUDED and r == second for p, r in planets.items())
+    has_twelfth = any(p not in _SUNAPHA_ANAPHA_EXCLUDED and r == twelfth for p, r in planets.items())
     out: list[YogaResult] = []
     if has_second:
         out.append(YogaResult("SUNAPHA_YOGA", True, "PARTIAL", ["planets_in_2nd_from_moon"], [], False, "சுனபா யோகம்.", "Sunapha Yoga."))

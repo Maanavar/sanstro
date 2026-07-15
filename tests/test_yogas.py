@@ -541,6 +541,27 @@ def test_adhi_daridra_lakshmi_vasumati_and_sunapha_family():
     assert any(x.name == "DURUDHURA_YOGA" for x in tri)
 
 
+def test_sunapha_excludes_nodes_and_mandhi_wi15():
+    # WI-15: a lone Rahu in the 2nd from Moon must NOT form Sunapha (nodes
+    # never form these yogas — only planets other than the Sun do). With
+    # nothing else occupying the 2nd/12th, Kemadruma is present instead —
+    # asserting both together locks the consistency between the two yogas.
+    planets = {"MOON": 1, "RAHU": 2, "SUN": 5}
+    result = detect_sunapha_anapha_durudhura(planets, moon_rasi=1)
+    assert result == []
+
+    kemadruma = detect_kemadruma_yoga(planets, moon_rasi=1, lagna_rasi=3)
+    assert kemadruma.is_present is True
+
+
+def test_sunapha_excludes_mandhi_upagraha_wi15():
+    # Mandhi (an upagraha, not a graha) in the 12th from Moon must not form
+    # Anapha either.
+    planets = {"MOON": 1, "MANDHI": 12, "SUN": 5}
+    result = detect_sunapha_anapha_durudhura(planets, moon_rasi=1)
+    assert result == []
+
+
 def test_new_doshams_kalathra_putra_badhaka():
     planets = {"VENUS": 7, "JUPITER": 7, "SATURN": 7, "MOON": 7, "MARS": 2}
     kalathra = detect_kalathra_dosham(planets, lagna_rasi=1, moon_rasi=7, is_male=True, planet_scores={"VENUS": 30})
