@@ -28,6 +28,7 @@ from app.calculations.chart_strength import (
     OWN_SIGN_RASI,
     SIGN_LORD,
 )
+from app.calculations._yoga_dosham import detect_sevvai_dosham
 from app.calculations.dasha import calculate_vimshottari_timeline
 
 # ---------------------------------------------------------------------------
@@ -197,80 +198,38 @@ class CompatibilityIntelligenceResult:
 
 
 # ---------------------------------------------------------------------------
-# Level 5: Sevvai Dosham
+# Level 5: Sevvai Dosham — delegates to the main dosham engine's
+# detect_sevvai_dosham (Lagna + Moon + Venus references, nivarthi rules) so
+# this report and the Jadhagam card can never disagree on has_dosham/
+# is_cancelled for the same chart (WI-13).
 # ---------------------------------------------------------------------------
-
-_SEVVAI_HOUSES = frozenset({1, 2, 4, 7, 8, 12})
-_SEVVAI_SEVERE = frozenset({7, 8})
-_SEVVAI_MODERATE = frozenset({1, 4})
-_SEVVAI_MILD = frozenset({2, 12})
-
 
 def _compute_sevvai(snap: Any) -> SevvaiDoshamDetail:
     mars = _get_planet(snap, "MARS")
-    h = mars.house_from_lagna
-    has_dosham = h in _SEVVAI_HOUSES
+    lagna_rasi = snap.data.lagna.rasi
+    planets_rasi_map = {p.graha: p.rasi for p in snap.data.planets}
+    gender = getattr(snap.data.birth_profile, "gender_for_traditional_rules", None)
 
-    if not has_dosham:
-        return SevvaiDoshamDetail(
-            has_dosham=False, mars_house=h, is_cancelled=False,
-            severity="NONE", cancellation_reasons=[],
-            note_en=f"No Sevvai Dosham — Mars is in house {h}.",
-            note_ta=f"செவ்வாய் தோஷம் இல்லை — செவ்வாய் {h}ஆம் இடத்தில்.",
-            score=5,
-        )
+    result = detect_sevvai_dosham(planets_rasi_map, lagna_rasi, gender=gender)
 
-    # Severity
-    if h in _SEVVAI_SEVERE:
-        severity = "SEVERE"
-    elif h in _SEVVAI_MODERATE:
-        severity = "MODERATE"
+    if not result.is_present:
+        severity, score = "NONE", 5
+    elif result.is_cancelled:
+        severity, score = "NONE", 4
+    elif result.strength == "STRONG":
+        severity, score = "SEVERE", 0
     else:
-        severity = "MILD"
-
-    cancellations: list[str] = []
-
-    # Mars in own sign
-    if mars.rasi in OWN_SIGN_RASI.get("MARS", frozenset()):
-        cancellations.append("Mars in own sign (Aries/Scorpio) — dosham significantly reduced")
-
-    # Mars exalted (Capricorn = rasi 10)
-    if mars.rasi == EXALTATION_RASI.get("MARS"):
-        cancellations.append("Mars exalted in Capricorn — dosham considerably mitigated")
-
-    # Mars in 1st house with strong lagna lord
-    if h == 1:
-        cancellations.append("Mars in 1st house — Lagna placement is disputed as full dosham by many schools")
-
-    # Jupiter conjunction or aspect (houses differ by 5, 7, 9 for Vedic aspect)
-    try:
-        jupiter = _get_planet(snap, "JUPITER")
-        if jupiter.house_from_lagna == h:
-            cancellations.append("Jupiter conjunct Mars — cancels dosham")
-        elif abs(jupiter.house_from_lagna - h) in {4, 6, 8}:
-            cancellations.append("Jupiter aspects Mars — partial mitigation")
-    except ValueError:
-        pass
-
-    is_cancelled = bool(cancellations and severity != "SEVERE")
-    final_severity = "NONE" if is_cancelled else severity
-
-    score_map = {"NONE": 5, "MILD": 4, "MODERATE": 2, "SEVERE": 0}
-    score = score_map.get(final_severity, 2)
-    if is_cancelled:
-        score = 4
-
-    if is_cancelled:
-        note_en = f"Sevvai Dosham (Mars in house {h}) is cancelled: {'; '.join(cancellations)}."
-        note_ta = f"செவ்வாய் தோஷம் ({h}ஆம் இடம்) நீக்கப்படுகிறது: {'; '.join(cancellations)}."
-    else:
-        note_en = f"Sevvai Dosham present — Mars in house {h} ({severity}). Matching partner's dosham level is recommended."
-        note_ta = f"செவ்வாய் தோஷம் உள்ளது — {h}ஆம் இடத்தில் செவ்வாய் ({severity}). இணைவரின் தோஷ நிலையுடன் பொருத்துவது பரிந்துரைக்கப்படுகிறது."
+        severity, score = "MODERATE", 2
 
     return SevvaiDoshamDetail(
-        has_dosham=has_dosham, mars_house=h, is_cancelled=is_cancelled,
-        severity=final_severity, cancellation_reasons=cancellations,
-        note_en=note_en, note_ta=note_ta, score=score,
+        has_dosham=result.is_present,
+        mars_house=mars.house_from_lagna,
+        is_cancelled=result.is_cancelled,
+        severity=severity,
+        cancellation_reasons=list(result.cancellation_factors),
+        note_en=result.explanation_why_en,
+        note_ta=result.explanation_why_ta,
+        score=score,
     )
 
 

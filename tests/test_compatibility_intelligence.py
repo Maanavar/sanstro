@@ -1,5 +1,5 @@
 """Unit tests for app.calculations.compatibility_intelligence — WI-04, WI-05,
-WI-20, WI-21 (docs/CALC_AUDIT_REMEDIATION_PLAN_2026-07.md).
+WI-13, WI-20, WI-21 (docs/CALC_AUDIT_REMEDIATION_PLAN_2026-07.md).
 """
 from __future__ import annotations
 
@@ -8,6 +8,8 @@ from types import SimpleNamespace
 import pytest
 
 from app.calculations import compatibility_intelligence as ci_module
+from app.calculations._yoga_dosham import detect_sevvai_dosham
+from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.compatibility_intelligence import (
     ChartMarriageStrength,
@@ -16,6 +18,7 @@ from app.calculations.compatibility_intelligence import (
     NavamsaCompatibility,
     SevvaiDoshamDetail,
     _compute_navamsa,
+    _compute_sevvai,
     _d9_dignified,
     _graha_relation,
     _moon_harmony_label,
@@ -73,6 +76,50 @@ def test_seventh_lord_own_sign_not_in_kendra_trikona_scores_three():
     snap_b = _snap(1, [_planet("VENUS", 0)])
     result = _compute_navamsa(snap_a, snap_b)
     assert result.score == 3
+
+
+# ---------------------------------------------------------------------------
+# WI-13 — Compatibility Sevvai delegates to the main dosham engine
+# (detect_sevvai_dosham), so the CI report and the Jadhagam card can never
+# disagree on has_dosham/is_cancelled for the same chart.
+# ---------------------------------------------------------------------------
+
+def _sevvai_snap(lagna_rasi: int, planet_rasis: dict[str, int]) -> SimpleNamespace:
+    planets = [
+        SimpleNamespace(
+            graha=graha, rasi=rasi,
+            house_from_lagna=house_from_reference(lagna_rasi, rasi),
+        )
+        for graha, rasi in planet_rasis.items()
+    ]
+    return SimpleNamespace(data=SimpleNamespace(
+        lagna=SimpleNamespace(rasi=lagna_rasi),
+        planets=planets,
+        birth_profile=SimpleNamespace(gender_for_traditional_rules=None),
+    ))
+
+
+def test_compute_sevvai_agrees_with_main_engine_mars_clean_from_lagna_but_seventh_from_moon():
+    # Regression for the pre-WI-13 disagreement case: Mars is clean from
+    # Lagna (house 3, not a Sevvai house) but sits in the 7th house from
+    # Moon (a Sevvai house) — the compatibility report's old inline
+    # lagna-only check would have missed this; the main engine (which also
+    # checks the Moon and Venus references) correctly flags it.
+    lagna_rasi = 1
+    planet_rasis = {
+        "SUN": 5, "MOON": 9, "MARS": 3, "MERCURY": 6,
+        "JUPITER": 2, "VENUS": 6, "SATURN": 11, "RAHU": 4, "KETU": 10,
+    }
+    assert house_from_reference(lagna_rasi, planet_rasis["MARS"]) == 3       # clean from Lagna
+    assert house_from_reference(planet_rasis["MOON"], planet_rasis["MARS"]) == 7  # 7th from Moon
+
+    snap = _sevvai_snap(lagna_rasi, planet_rasis)
+    detail = _compute_sevvai(snap)
+    raw = detect_sevvai_dosham(planet_rasis, lagna_rasi)
+
+    assert detail.has_dosham == raw.is_present
+    assert detail.is_cancelled == raw.is_cancelled
+    assert detail.has_dosham is True  # the actual regression: caught via Moon reference
 
 
 # ---------------------------------------------------------------------------
