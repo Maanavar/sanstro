@@ -236,8 +236,10 @@ def _kala_bala_score(
     d9_rasi: int | None,
 ) -> float:
     """Temporal strength 0.0-1.0."""
-    diurnal = frozenset({"SUN", "JUPITER", "SATURN"})
-    nocturnal = frozenset({"MOON", "MARS", "VENUS"})
+    # Nathonnatha rule (BPHS) — day-strong: Sun, Jupiter, Venus; night-strong:
+    # Moon, Mars, Saturn. Must match shadbala._nathonnatha_bala (WI-01).
+    diurnal = frozenset({"SUN", "JUPITER", "VENUS"})
+    nocturnal = frozenset({"MOON", "MARS", "SATURN"})
 
     if planet in diurnal:
         natha = 1.0 if is_daytime else 0.4

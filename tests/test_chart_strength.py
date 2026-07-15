@@ -5,10 +5,12 @@ from app.calculations.chart_strength import (
     _chesta_bala_score,
     _deeptadi_avastha,
     _jagradadi_avastha,
+    _kala_bala_score,
     compute_natal_planet_score,
     compute_strength_breakdown,
     detect_planetary_wars,
 )
+from app.calculations.shadbala import _nathonnatha_bala, ShadbalaContext
 
 pytestmark = pytest.mark.no_db
 
@@ -85,6 +87,46 @@ def test_deeptadi_avastha_dignity_bands():
     assert _deeptadi_avastha(50) == "DEENA"
     assert _deeptadi_avastha(35) == "DUKHITA"
     assert _deeptadi_avastha(15) == "KHALA"
+
+
+# ---------------------------------------------------------------------------
+# WI-01 — Kala Bala day/night sets must agree with shadbala._nathonnatha_bala
+# (docs/CALC_AUDIT_REMEDIATION_PLAN_2026-07.md)
+# ---------------------------------------------------------------------------
+
+def test_kala_bala_and_nathonnatha_classify_all_grahas_identically():
+    day_ctx = ShadbalaContext(
+        asc_longitude=0.0, mc_longitude=0.0, weekday=0,
+        birth_clock_hours=12.0, sunrise_hours=6.0, sunset_hours=18.0,
+    )
+    night_ctx = ShadbalaContext(
+        asc_longitude=0.0, mc_longitude=0.0, weekday=0,
+        birth_clock_hours=0.0, sunrise_hours=6.0, sunset_hours=18.0,
+    )
+    for planet in ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN"):
+        kala_day = _kala_bala_score(planet, is_daytime=True, paksha_is_shukla=True,
+                                     is_vargottama=False, d9_rasi=None)
+        kala_night = _kala_bala_score(planet, is_daytime=False, paksha_is_shukla=True,
+                                       is_vargottama=False, d9_rasi=None)
+        natha_day = _nathonnatha_bala(planet, day_ctx)
+        natha_night = _nathonnatha_bala(planet, night_ctx)
+        # Both engines must agree on which half (day vs night) is stronger.
+        assert (kala_day > kala_night) == (natha_day > natha_night)
+        assert (kala_day < kala_night) == (natha_day < natha_night)
+
+
+def test_kala_bala_venus_stronger_by_day_saturn_stronger_by_night():
+    venus_day = _kala_bala_score("VENUS", is_daytime=True, paksha_is_shukla=True,
+                                  is_vargottama=False, d9_rasi=None)
+    saturn_day = _kala_bala_score("SATURN", is_daytime=True, paksha_is_shukla=True,
+                                   is_vargottama=False, d9_rasi=None)
+    assert venus_day > saturn_day
+
+    venus_night = _kala_bala_score("VENUS", is_daytime=False, paksha_is_shukla=True,
+                                    is_vargottama=False, d9_rasi=None)
+    saturn_night = _kala_bala_score("SATURN", is_daytime=False, paksha_is_shukla=True,
+                                     is_vargottama=False, d9_rasi=None)
+    assert saturn_night > venus_night
 
 
 def test_compute_strength_breakdown_includes_avastha_labels():

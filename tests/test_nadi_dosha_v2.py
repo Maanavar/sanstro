@@ -16,16 +16,25 @@ Rasi/lord fixtures used throughout:
 """
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.no_db
+
+from app.calculations.chart_strength import _NATURAL_ENEMIES, _NATURAL_FRIENDS
 from app.calculations.porutham import (
+    _GRAHA_RELATION,
     _NADI_CLOSING_CLAUSE_TA,
     _NADI_EXCEPTION_PADA_TA,
     _NADI_EXCEPTION_RASI_TA,
     _NADI_LENIENT_CANCEL_TA,
     _NADI_RAJJU_WARNING_TA,
     _NADI_STRICT_PARTIAL_TA,
+    _rasi_lords_mutually_friendly,
     check_nadi_dosha,
     compute_porutham,
 )
+
+_CLASSICAL_GRAHAS = ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN")
 
 # Ashwini(1) and Thiruvathirai/Ardra(6) are both AADHI nadi (see
 # test_nadi_dosha_helper_flags_same_nadi in test_porutham.py).
@@ -77,6 +86,69 @@ def test_friendly_rasi_lords_only_partial_mitigation_in_strict_mode():
     assert out["has_nadi_dosha"] is True  # NOT cancelled
     assert out["mitigation"] == "MODERATE"
     assert any("partial mitigation" in n.lower() for n in out["cancellations"])
+
+
+def test_mercury_saturn_lords_are_not_mutually_friendly():
+    # Hastham(13) and Poorattathi(25) are both AADHI nadi. Kanni(6)=MERCURY,
+    # Kumbha(11)=SATURN: Saturn->Mercury is a friend but Mercury->Saturn is
+    # only NEUTRAL (Parashari; matches chart_strength._NATURAL_FRIENDS), so
+    # the rasi-lord-friendship branch must not apply in either mode.
+    # Regression for the 2026-07 audit find: the relation table coded the pair
+    # as friends both ways, wrongly granting MODERATE mitigation (strict) or a
+    # FULL cancel (lenient) to Mithuna/Kanni × Makara/Kumbha couples.
+    for mode in ("strict", "classical_lenient"):
+        out = check_nadi_dosha(13, 25, boy_rasi=6, girl_rasi=11, mode=mode)
+        assert out["has_nadi_dosha"] is True, mode
+        assert out["mitigation"] == "NONE", mode
+        assert out["cancellations"] == [], mode
+
+
+def test_mercury_saturn_rasi_pairs_not_mutually_friendly():
+    # WI-02 acceptance bullet 1: Mercury-sign x Saturn-sign, both directions
+    # (Mithuna/Kanni = MERCURY; Makara/Kumbha = SATURN). Mercury only regards
+    # Saturn as neutral, so none of these four pairs qualify as mutually
+    # friendly regardless of which rasi is passed first.
+    assert _rasi_lords_mutually_friendly(3, 10) is False
+    assert _rasi_lords_mutually_friendly(3, 11) is False
+    assert _rasi_lords_mutually_friendly(6, 10) is False
+    assert _rasi_lords_mutually_friendly(6, 11) is False
+
+
+def test_kanni_magaram_nadi_pair_not_cancelled_by_friendship_branch():
+    # Kanni(6)=MERCURY, Magaram(10)=SATURN. Hastham(13) and Poorattathi(25)
+    # are both AADHI nadi with no classical (same-nakshatra/same-rasi)
+    # exception in play, so the only path to cancellation is the rasi-lord
+    # friendship branch — which must not fire here (WI-02 acceptance bullet 2).
+    out_strict = check_nadi_dosha(13, 25, boy_rasi=6, girl_rasi=10, mode="strict")
+    assert out_strict["has_nadi_dosha"] is True
+    assert out_strict["mitigation"] == "NONE"
+
+    out_lenient = check_nadi_dosha(13, 25, boy_rasi=6, girl_rasi=10, mode="classical_lenient")
+    assert out_lenient["has_nadi_dosha"] is True
+    assert out_lenient["mitigation"] == "NONE"
+
+
+def test_graha_relation_matches_chart_strength_natural_friends_and_enemies():
+    # WI-02 acceptance bullet 3: for the 7 classical grahas, porutham's
+    # _GRAHA_RELATION must agree with chart_strength's independently-maintained
+    # _NATURAL_FRIENDS/_NATURAL_ENEMIES tables — 1.0 iff friend, 0.0 iff enemy.
+    # This is what would have caught the original Mercury->Saturn miscode.
+    for a in _CLASSICAL_GRAHAS:
+        for b in _CLASSICAL_GRAHAS:
+            if a == b:
+                continue
+            relation = _GRAHA_RELATION.get((a, b))
+            assert relation is not None, f"missing relation for ({a}, {b})"
+            is_friend = b in _NATURAL_FRIENDS.get(a, frozenset())
+            is_enemy = b in _NATURAL_ENEMIES.get(a, frozenset())
+            if relation == 1.0:
+                assert is_friend, f"({a}, {b}) = 1.0 but not a friend in chart_strength"
+            if is_friend:
+                assert relation == 1.0, f"({a}, {b}) is a friend in chart_strength but relation={relation}"
+            if relation == 0.0:
+                assert is_enemy, f"({a}, {b}) = 0.0 but not an enemy in chart_strength"
+            if is_enemy:
+                assert relation == 0.0, f"({a}, {b}) is an enemy in chart_strength but relation={relation}"
 
 
 def test_default_mode_is_strict():

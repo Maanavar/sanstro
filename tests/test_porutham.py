@@ -22,8 +22,10 @@ from app.calculations.porutham import (
 
 # ---------------------------------------------------------------------------
 # Dinam (தினம்) — count boy's nak from girl's (1-based, 1-27); PASS only for
-# the classical good-count table (spec §11.4), which includes the 9th/18th/
-# 27th count (Parama Mitra tara — previously wrongly failed).
+# the published Tamil 12-count table (spec §11.4): {2,4,6,8,9,11,13,15,18,20,
+# 24,26}, incl. the 9th/18th count (Parama Mitra tara). NOT the pure mod-9
+# tara rule — 17/22/27 are deliberately excluded (WI-19, OQ-2 pending
+# astrologer confirmation of the 12-count set as final).
 # ---------------------------------------------------------------------------
 
 def test_dinam_same_nakshatra():
@@ -180,7 +182,8 @@ def test_rasi_same():
 
 
 # ---------------------------------------------------------------------------
-# Rasiyathipathi (ராசியாதிபதி) — lords avg ≥ 0.5 = PASS
+# Rasiyathipathi (ராசியாதிபதி) — FAIL only if either lord regards the other as
+# an enemy (one-way enmity fails; friend/neutral combinations all pass)
 # ---------------------------------------------------------------------------
 
 def test_graha_maitri_same_lord():
@@ -191,6 +194,21 @@ def test_graha_maitri_same_lord():
 def test_graha_maitri_enemies():
     # Rasi 1 (MARS) and Rasi 3 (MERCURY) → Mars and Mercury are enemies → FAIL
     assert _graha_maitri_kuta(1, 3) == 0
+
+
+def test_graha_maitri_one_way_enemy_fails():
+    # Kataka (MOON) × Mithuna (MERCURY): Moon holds Mercury a friend, but
+    # Mercury holds Moon an ENEMY — one-way enmity fails (adhamam). An
+    # "average ≥ 0.5" rule would wrongly pass this pair.
+    assert _graha_maitri_kuta(4, 3) == 0
+
+
+def test_graha_maitri_mercury_saturn_signs_pass():
+    # Kanni (MERCURY) × Makara (SATURN): Saturn holds Mercury a friend and
+    # Mercury holds Saturn neutral — no enmity either way → PASS (madhyamam).
+    # Locks that correcting the Mercury→Saturn cell to neutral (2026-07 audit)
+    # does not change this kuta's verdict.
+    assert _graha_maitri_kuta(6, 10) == 1
 
 
 # ---------------------------------------------------------------------------

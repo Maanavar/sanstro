@@ -8,13 +8,13 @@ if either is present the union is traditionally considered inauspicious regardle
 of the overall score.
 
 The 10 Poruthams (Tamil → calculation rule):
-  1. Dinam      (தினம்)           — count boy's nak from girl's (1-based, 1-27); pass only for the classical good-count table (incl. 9th/18th/27th, Parama Mitra tara)
+  1. Dinam      (தினம்)           — count boy's nak from girl's (1-based, 1-27); pass only for the classical good-count table (incl. the 9th/18th counts, Parama Mitra tara)
   2. Ganam      (கணம்)            — Deva/Manushya/Rakshasa; Deva+Deva or Deva+Manushya = pass
   3. Mahendra   (மகேந்திரம்)      — count girl's nak from boy's; pass if result ∈ {4,7,10,13,16,19,22,25}
   4. Stree Dirgham (ஸ்திரீ தீர்கம்) — count boy's nak from girl's; pass if count > 7 (≥ 8)
   5. Yoni       (யோனி)            — same or neutral animal pair = pass; hostile pair = fail
   6. Rasi       (ராசி)            — pass unless 6th or 8th position (Shashtashtaka) between rasis
-  7. Rasiyathipathi (ராசியாதிபதி) — rasi lords must not be enemies (avg relation ≥ 0.5)
+  7. Rasiyathipathi (ராசியாதிபதி) — FAIL if either rasi lord regards the other as an enemy (one-way enmity fails)
   8. Vasya      (வாஸ்யம்)         — at least one rasi must be vasya of the other
   9. Rajju      (ராஜ்ஜு)          — same Rajju group = VETO (widowhood risk)
  10. Vedha      (வேதம்)           — Vedha nakshatra pair = VETO
@@ -116,7 +116,7 @@ _gr("MARS",    "VENUS",   0.5, 0.5)  # neutral both ways
 _gr("MARS",    "SATURN",  0.5, 0.0)  # Mars:neutral, Saturn:enemy
 _gr("MERCURY", "JUPITER", 0.5, 0.0)  # Mercury:neutral, Jupiter:enemy
 _gr("MERCURY", "VENUS",   1.0, 1.0)  # friends both ways
-_gr("MERCURY", "SATURN",  1.0, 1.0)  # friends both ways
+_gr("MERCURY", "SATURN",  0.5, 1.0)  # Mercury:neutral, Saturn:friend (Parashari; matches chart_strength._NATURAL_FRIENDS)
 _gr("JUPITER", "VENUS",   0.0, 0.5)  # Jupiter:enemy, Venus:neutral
 _gr("JUPITER", "SATURN",  0.5, 0.5)  # neutral both ways
 _gr("VENUS",   "SATURN",  1.0, 1.0)  # friends both ways
@@ -165,7 +165,9 @@ _VASYA: dict[int, frozenset[int]] = {
 # ---------------------------------------------------------------------------
 
 # Spec §11.4 — count boy's nak from girl's (1-based, 1..27); these counts pass.
-# Includes the 9th/18th/27th count (Parama Mitra tara) as a pass.
+# Includes the 9th/18th counts (Parama Mitra tara) as a pass. 17/22/27 are
+# deliberately absent: a pure tara-mod-9 rule would pass them, but the locked
+# spec table is the 12-count Tamil variant — the product stance.
 _DINAM_GOOD_COUNTS = frozenset({2, 4, 6, 8, 9, 11, 13, 15, 18, 20, 24, 26})
 
 
