@@ -137,7 +137,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 - **Tamil note:** no new Tamil strings needed (labels are enum values).
 
 ## WI-06 — Pushkara Navamsa + Pushkara Bhaga tables are wrong ✅❌
-- [ ] **Status:** NOT STARTED
+- [x] **Status:** DONE (2026-07-16, commit `6fe7ad2`) — element-keyed navamsa table + standard bhaga degrees implemented; golden tests added. OQ-3 (printed-source cross-check) still open on the astrologer queue.
 - **Priority:** P0 — surfaced in every chart payload via `app/services/_chart_planets.py:110`.
 - **File:** `app/calculations/nakshatra_analysis.py` (`_PUSHKARA_NAVAMSA`, `_PUSHKARA_BHAGA`, `pushkara_check`).
 - **Problem:** current navamsa table has one entry per sign matching no known tradition; classical Pushkara Navamsa assigns **two navamsas per sign by element**. Bhaga degrees diverge from the standard list on 9 of 12 signs.
@@ -384,7 +384,7 @@ Follow the established pattern: present each as an open request for the authorit
 - [x] WI-03 D30 even-sign targets → Taurus/Virgo/Pisces/Capricorn/Scorpio
 - [x] WI-04 Compatibility navamsa rasi-vs-house category error → dignity check
 - [x] WI-05 Moon-harmony table → Doctrine §10 ratified table (EXCELLENT=trikona only; TENSE=shadashtaka only; GOOD=same/upachaya/kendra/samasaptama; MIXED=dwirdwadasa) + symmetry fix
-- [ ] WI-06 Pushkara navamsa (2-per-sign, by element) + standard bhaga degrees
+- [x] WI-06 Pushkara navamsa (2-per-sign, by element) + standard bhaga degrees
 
 ## Phase B — Doctrine launch gates
 - [ ] WI-07 Hindu sunrise (disc center, no refraction) + cache v33 + validation harness  *(before WI-12)*
