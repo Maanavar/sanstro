@@ -6,6 +6,16 @@ from typing import Final
 
 from app.calculations.astro import degree_in_rasi, normalize_longitude, rasi_from_degree
 
+# Rahu/Ketu node type: MEAN node (SE_MEAN_NODE / MEAN_NODE below), deliberate
+# default (Doctrine §2) — classical computation, the Vakya tradition, and the
+# majority of Tamil practice use the mean node; Rahu is doctrinally always
+# vakri (retrograde), and the true node's occasional direct motion is awkward
+# within that framework. CAVEAT: JHora defaults to the TRUE node, not mean —
+# do not cite JHora as supporting this choice. Users comparing against
+# out-of-box JHora will see Rahu/Ketu differ by up to ~1.5deg+, occasionally
+# flipping nakshatra pada (which can shift a Vimshottari dasha start). A
+# true-node settings toggle is a possible future follow-up (needs product
+# sign-off) — not implemented here; this module only computes mean node.
 try:
     import swisseph as swe_module  # type: ignore[import-not-found]
 
