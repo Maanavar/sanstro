@@ -53,12 +53,20 @@ def _seventh_house_rasi(lagna_rasi: int) -> int:
 
 
 def _graha_relation(a: str, b: str) -> str:
+    """Compound relationship (Doctrine §11): enemy in either direction wins
+    over friend in either direction — matches porutham._graha_maitri_kuta's
+    existing enemy-priority logic, so the two modules cannot silently
+    diverge on the same relationship concept."""
     if a == b:
         return "friend"
-    if b in _NATURAL_FRIENDS.get(a, frozenset()) or a in _NATURAL_FRIENDS.get(b, frozenset()):
-        return "friend"
-    if b in _NATURAL_ENEMIES.get(a, frozenset()) or a in _NATURAL_ENEMIES.get(b, frozenset()):
+    a_enemy_b = b in _NATURAL_ENEMIES.get(a, frozenset())
+    b_enemy_a = a in _NATURAL_ENEMIES.get(b, frozenset())
+    if a_enemy_b or b_enemy_a:
         return "enemy"
+    a_friend_b = b in _NATURAL_FRIENDS.get(a, frozenset())
+    b_friend_a = a in _NATURAL_FRIENDS.get(b, frozenset())
+    if a_friend_b and b_friend_a:
+        return "friend"
     return "neutral"
 
 
@@ -397,6 +405,12 @@ def _compute_chart_marriage_strength(snap: Any) -> ChartMarriageStrength:
 # Level 4: Navamsa (D9)
 # ---------------------------------------------------------------------------
 
+def _d9_dignified(planet: str, d9_rasi: int) -> bool:
+    """Is this planet in its own sign or exaltation sign in the D9 (WI-04)."""
+    return (d9_rasi in OWN_SIGN_RASI.get(planet, frozenset())
+            or d9_rasi == EXALTATION_RASI.get(planet))
+
+
 def _compute_navamsa(snap_a: Any, snap_b: Any) -> NavamsaCompatibility:
     venus_a = _get_planet(snap_a, "VENUS")
     venus_b = _get_planet(snap_b, "VENUS")
@@ -442,10 +456,14 @@ def _compute_navamsa(snap_a: Any, snap_b: Any) -> NavamsaCompatibility:
     elif vb_d9 == EXALTATION_RASI.get("VENUS"):
         score += 3
 
-    # 7th lords D9
-    if sla_d9 and sla_d9 in (_KENDRAS | _TRIKONAS):
+    # 7th lords D9 — dignity check (own sign or exaltation), not a
+    # kendra/trikona house test: sla_d9/slb_d9 are D9 SIGN numbers (1-12), and
+    # _KENDRAS|_TRIKONAS is a set of HOUSE positions — comparing a sign number
+    # against a house set is a category error that awarded points on 6 of 12
+    # signs regardless of dignity (WI-04).
+    if sla_d9 and _d9_dignified(seventh_lord_a, sla_d9):
         score += 3
-    if slb_d9 and slb_d9 in (_KENDRAS | _TRIKONAS):
+    if slb_d9 and _d9_dignified(seventh_lord_b, slb_d9):
         score += 3
 
     score = max(0, min(20, score))
@@ -583,20 +601,32 @@ def _compute_dasha_harmony(snap_a: Any, snap_b: Any, today_jd: float) -> DashaHa
 # Level 7: Emotional Compatibility
 # ---------------------------------------------------------------------------
 
+# Doctrine §10 (ratified 2026-07-16) — reconciled, symmetric table. Keys are
+# the inclusive 1-based count (a-b) % 12 + 1; the table is kept verbatim in
+# both directions (k and 14-k share a value) even though the lookup below
+# only ever indexes the smaller-side keys 1-7 (see _moon_harmony_label).
 _MOON_HARMONY_TABLE: dict[int, str] = {
-    1: "GOOD",   # same rasi
-    2: "EXCELLENT", 12: "EXCELLENT",
-    5: "EXCELLENT", 9: "EXCELLENT",  # trikona
-    3: "GOOD", 11: "GOOD",
-    4: "MIXED", 8: "MIXED",   # kendra (some tension)
-    6: "TENSE", 7: "TENSE",
-    10: "MIXED",
+    1: "GOOD",                        # same rasi
+    2: "MIXED", 12: "MIXED",          # dwirdwadasa
+    3: "GOOD", 11: "GOOD",            # upachaya
+    4: "GOOD", 10: "GOOD",            # kendra
+    5: "EXCELLENT", 9: "EXCELLENT",   # trikona
+    6: "TENSE", 8: "TENSE",           # shadashtaka
+    7: "GOOD",                        # samasaptama
 }
 
 
 def _moon_harmony_label(rasi_a: int, rasi_b: int) -> str:
-    diff = (rasi_a - rasi_b) % 12 + 1
-    return _MOON_HARMONY_TABLE.get(diff, "MIXED")
+    """Symmetric lookup: harmony(a, b) == harmony(b, a) for all rasi pairs.
+
+    Folds to the smaller directional distance using the 0-indexed difference
+    (0..11) before mapping into the table — NOT by folding the 1-based count
+    directly (e.g. min(count, 13-count)), which is a trap that wrongly
+    collapses samasaptama (7) into the shadashtaka (6/8) bucket (WI-05).
+    """
+    d = (rasi_a - rasi_b) % 12
+    normalized = min(d, 12 - d)
+    return _MOON_HARMONY_TABLE.get(normalized + 1, "MIXED")
 
 
 def _compute_emotional_compatibility(snap_a: Any, snap_b: Any) -> EmotionalCompatibility:
@@ -755,6 +785,16 @@ def compute_compatibility_intelligence(
     elif overall_score >= 50:
         overall_label = "AVERAGE"
     else:
+        overall_label = "CAUTION"
+
+    # Doctrine §12 — Rajju/Vedha veto hard-caps the headline label at CAUTION
+    # regardless of the weighted 0-100 score (WI-21). Porutham is only 20 of
+    # the 100 weighted points, so a Rajju/Vedha dosha can otherwise be
+    # outweighed by the other 7 levels; the traditional veto must still
+    # govern the headline verdict, matching the porutham engine's own
+    # shipped label-veto. overall_score itself and the full breakdown are
+    # unaffected — only the label is capped.
+    if porutham_result.rajju_dosha or porutham_result.vedha_dosha:
         overall_label = "CAUTION"
 
     # Strengths and risks
