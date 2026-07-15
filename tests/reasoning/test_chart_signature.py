@@ -61,13 +61,15 @@ def test_dasha_lord_can_overturn_a_weak_atmakaraka():
 
 
 def test_dasha_lord_alone_wins_when_atmakaraka_is_absent_from_tally():
-    # Give every planet the same degree-within-sign so Atmakaraka is
-    # whichever the candidate list resolves to first for ties in
-    # compute_char_karakas — instead, isolate the dasha signal by making it
-    # the only non-zero contributor for a planet that never sits in any
-    # aspect/strength/atmakaraka contention.
+    # Make RAHU win Atmakaraka (3 pts) while VENUS carries the only dasha
+    # signal (2 pts), to prove the Atmakaraka signal outweighs dasha alone.
+    # WI-09 (Doctrine §4): Rahu's effective degree-within-sign for Chara
+    # Karaka ranking is now 30 - advancement (reversed), so a LOW forward
+    # degree (0.1) gives RAHU the highest effective degree (29.9), beating
+    # JUPITER's 28 — the reverse of what a high forward degree would have
+    # done before this fix.
     sig = detect_signature(
-        planet_longitudes=_longitudes(RAHU=7 * 30 + 29.9),  # RAHU now wins Atmakaraka
+        planet_longitudes=_longitudes(RAHU=7 * 30 + 0.1),  # RAHU now wins Atmakaraka
         planet_rasis=_rasis(),
         current_maha_lord="VENUS",
         current_antar_lord="MOON",
