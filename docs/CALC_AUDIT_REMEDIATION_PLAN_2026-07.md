@@ -273,7 +273,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 # PHASE C — Consistency, exemptions, documentation
 
 ## WI-13 — Unify the two Sevvai engines ✅❌
-- [ ] **Status:** NOT STARTED
+- [x] **Status:** DONE (2026-07-16, commit `c1c437b`) — `_compute_sevvai` now delegates to `detect_sevvai_dosham`; cross-engine regression test for the Mars-clean-from-Lagna-but-7th-from-Moon disagreement case.
 - **Priority:** P2 — same person can read "dosham" on the Jadhagam card and "no dosham" in the compatibility report.
 - **Files:** `app/calculations/compatibility_intelligence.py` (`_compute_sevvai`, ~line 201) vs `app/calculations/_yoga_dosham.py` (`detect_sevvai_dosham` — the authoritative Tamil-standard engine: Lagna + Moon + Venus references, nivarthi rules).
 - **Fix:** `_compute_sevvai` must delegate to `detect_sevvai_dosham` (build the `planets` rasi map + lagna from the snapshot; map the returned `DoshamResult` onto `SevvaiDoshamDetail`, deriving `score` from `is_present/is_cancelled/strength`). Keep `_apply_mutual_sevvai_cancellation` (equivalently pass `partner_has_sevvai_dosham=True` on the second pass — either, but not both).
@@ -395,7 +395,7 @@ Follow the established pattern: present each as an open request for the authorit
 - [ ] WI-12 Festival rules engine + algorithmic Smarta Ekadashi; 2026 parity gate; 2027 asserted non-empty
 
 ## Phase C — Consistency & docs
-- [ ] WI-13 Compatibility Sevvai delegates to the main dosham engine
+- [x] WI-13 Compatibility Sevvai delegates to the main dosham engine
 - [ ] WI-14 Vedha exemptions: Sun↔Saturn, Moon↔Mercury
 - [ ] WI-15 Sunapha/Anapha/Durudhura exclude nodes + Mandhi
 - [ ] WI-16 Fix stale Ashtottari note in `conditional_dashas.py` docstring
