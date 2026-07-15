@@ -182,7 +182,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 - **Migration:** cache version bump handles persisted snapshots. Nothing else stored derives sunrise.
 
 ## WI-08 — Ezharai Sani Murthi: default to ingress-Moon method (Doctrine §3) ✅❌
-- [ ] **Status:** NOT STARTED
+- [x] **Status:** DONE (2026-07-16, commit `0948921`) — `classify_ezharai_sani_murthi_ingress` + `find_saturn_ingress_jd` added; both service call sites (`daily_guidance_service.py`, `life_areas_service.py`) switched to the ingress method; pada function kept, documented as regional variant, no longer called from any default path. No API/shared/web/mobile sweep needed (grade only ever feeds composed narrative strings, no standalone field existed). OQ-6 (golden murthi dates) still open on the astrologer queue.
 - **Priority:** P1 — launch gate.
 - **Files:** `app/calculations/transits.py` (murthi section, ~lines 189–208) + every consumer of `classify_ezharai_sani_murthi` (grep `ezharai`, `murthi` across `app/`, `packages/shared/`, `web/`, `mobile/`).
 - **Change:**
@@ -388,7 +388,7 @@ Follow the established pattern: present each as an open request for the authorit
 
 ## Phase B — Doctrine launch gates
 - [ ] WI-07 Hindu sunrise (disc center, no refraction) + cache v33 + validation harness  *(before WI-12)*
-- [ ] WI-08 Murthi default → ingress-Moon method; pada rule as labeled variant
+- [x] WI-08 Murthi default → ingress-Moon method; pada rule as labeled variant
 - [x] WI-09 Jaimini Rahu = 30° − advancement; 8-karaka documented; migration check  *(before WI-10)*
 - [ ] WI-10 Chara Dasha → full Rao/BPHS rules, JHora-validated golden sequences *(interim: "Experimental" label)*
 - [ ] WI-11 `bhava_chalit.py` → `equal_bhava.py` rename + API field strategy
