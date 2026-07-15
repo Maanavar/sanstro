@@ -199,7 +199,7 @@ function MetricPill({ label, value, accent }: { label: string; value: string; ac
 function AspectList({ lang, title, pairs, tone }: {
   lang: Lang;
   title: string;
-  pairs: { planet1: string; planet2: string; orb: number }[];
+  pairs: { pair: string; kind: string }[];
   tone: string;
 }) {
   return (
@@ -209,21 +209,35 @@ function AspectList({ lang, title, pairs, tone }: {
       background: W.surface,
       border: `1px solid ${W.borderLt}`,
     }}>
-      <p style={{ fontSize: "0.72rem", fontWeight: 700, color: tone, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-2)" }}>
-        {title}
-      </p>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1_5)", flexWrap: "wrap", marginBottom: "var(--space-2)" }}>
+        <p style={{ fontSize: "0.72rem", fontWeight: 700, color: tone, textTransform: "uppercase", letterSpacing: "0.08em", margin: 0 }}>
+          {title}
+        </p>
+        {/* Doctrine §9: same-rasi +-5deg approximation, NOT real Tajika (no
+            applying/separating speed-order, deeptamsa orbs, or perfection
+            logic) — display-only, must never read as complete Tajika. */}
+        <span style={{
+          fontSize: "0.62rem", fontWeight: 700, color: W.muted,
+          padding: "1px 6px", borderRadius: "var(--radius-pill)",
+          border: `1px solid ${W.borderLt}`, textTransform: "uppercase", letterSpacing: "0.04em",
+        }}>
+          {t("varshaphala_simplified_badge", lang)}
+        </span>
+      </div>
       {pairs.length === 0 ? (
         <p style={{ fontSize: "0.75rem", color: W.muted }}>{t("varshaphala_no_pairs", lang)}</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
-          {pairs.map((p, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
-              <PlanetTag planet={p.planet1} />
-              <span style={{ color: tone, fontWeight: 700, fontSize: "0.8rem" }}>↔</span>
-              <PlanetTag planet={p.planet2} />
-              <span style={{ fontSize: "0.7rem", color: W.muted }}>{p.orb != null ? p.orb.toFixed(1) : "?"}°</span>
-            </div>
-          ))}
+          {pairs.map((p, i) => {
+            const [planet1, planet2] = p.pair.split("-");
+            return (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+                <PlanetTag planet={planet1} />
+                <span style={{ color: tone, fontWeight: 700, fontSize: "0.8rem" }}>↔</span>
+                <PlanetTag planet={planet2} />
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -306,6 +306,41 @@ def test_varshaphala_endpoint_returns_annual_outlook(client, birth_profile_paylo
     assert isinstance(data["areaOutlook"], list) and len(data["areaOutlook"]) >= 5
 
 
+def test_varshaphala_area_outlook_scores_ignore_itthasala_isarafa_wi18(
+    client, birth_profile_payload_factory, monkeypatch,
+):
+    # Doctrine §9 / WI-18: itthasala_pairs/isarafa_pairs are the "Simplified"
+    # Tajaka approximation and must be display-only — the area_outlook scores
+    # must be identical whether or not any pairs are present.
+    import app.services.tajaka_service as tajaka_service_module
+
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
+    chart_id = created["data"]["chartId"]
+
+    real_calculate_tajaka_chart = tajaka_service_module.calculate_tajaka_chart
+
+    def _inject_pairs(pairs):
+        def _wrapped(*args, **kwargs):
+            result = real_calculate_tajaka_chart(*args, **kwargs)
+            result["itthasala_pairs"] = pairs
+            result["isarafa_pairs"] = pairs
+            return result
+        return _wrapped
+
+    monkeypatch.setattr(tajaka_service_module, "calculate_tajaka_chart", _inject_pairs([]))
+    no_pairs = client.get(f"/api/v1/charts/{chart_id}/varshaphala", params={"year": 2026}).json()["data"]
+
+    monkeypatch.setattr(
+        tajaka_service_module, "calculate_tajaka_chart",
+        _inject_pairs(["SUN-SATURN", "MOON-VENUS", "MARS-JUPITER", "MERCURY-VENUS", "RAHU-MARS"]),
+    )
+    with_pairs = client.get(f"/api/v1/charts/{chart_id}/varshaphala", params={"year": 2026}).json()["data"]
+
+    no_pairs_scores = {row["area"]: row["score"] for row in no_pairs["areaOutlook"]}
+    with_pairs_scores = {row["area"]: row["score"] for row in with_pairs["areaOutlook"]}
+    assert no_pairs_scores == with_pairs_scores
+
+
 def test_chart_calculate_rejects_inline_birth_profile(client):
     response = client.post(
         "/api/v1/charts/calculate",

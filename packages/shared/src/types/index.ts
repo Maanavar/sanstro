@@ -1342,7 +1342,11 @@ export interface AnnualWrappedData {
 
 export interface TajakaPlanetPosition { planet: string; rasi: number; rasiName: string; house: number; longitude: number }
 
-export interface TajakaAspect { planet1: string; planet2: string; aspectType: string; orb: number }
+// Matches the backend TajakaAspect schema exactly: pair is a hyphen-joined
+// "PLANET1-PLANET2" string (see tajaka.py _detect_itthasala/_detect_isarafa),
+// kind is "ITTHASALA" or "ISARAFA". No orb value is computed (Doctrine §9 —
+// this is the "Simplified" same-rasi +-5deg approximation, not real Tajika).
+export interface TajakaAspect { pair: string; kind: string }
 
 export interface VarshaphalaAreaOutlook {
   area: string; score: number; narrativeTa: string; narrativeEn: string; favourableMonths: number[];

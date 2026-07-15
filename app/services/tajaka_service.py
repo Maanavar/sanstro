@@ -87,8 +87,13 @@ def get_varshaphala(
     itthasala = [TajakaAspect(pair=item, kind="ITTHASALA") for item in itthasala_raw]
     isarafa = [TajakaAspect(pair=item, kind="ISARAFA") for item in isarafa_raw]
 
+    # WI-18 (Doctrine §9): itthasala_raw/isarafa_raw are the "Simplified"
+    # same-rasi +-5deg Tajaka approximation (no applying/separating speed
+    # order, deeptamsa orbs, or perfection logic) — display-only. They must
+    # NOT feed area_outlook scoring below; only year_lord_house/muntha_house
+    # (unrelated to Tajika) contribute to the score.
     area_outlook: list[VarshaphalaAreaOutlook] = []
-    for area, karaka in _AREA_KARAKA.items():
+    for area in _AREA_KARAKA:
         score = 55
         if year_lord_house in {1, 4, 5, 7, 9, 10, 11}:
             score += 8
@@ -98,10 +103,6 @@ def get_varshaphala(
             score += 6
         elif muntha_house in {6, 8, 12}:
             score -= 8
-        if any(karaka in pair for pair in itthasala_raw):
-            score += 8
-        if any(karaka in pair for pair in isarafa_raw):
-            score -= 5
         score = max(20, min(90, score))
 
         if score >= 70:

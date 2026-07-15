@@ -74,6 +74,24 @@ def calculate_muntha(natal_lagna_rasi: int, birth_year: int, return_year: int) -
     return ((natal_lagna_rasi - 1 + years_elapsed) % 12) + 1
 
 
+# Doctrine §9 (ratified): this same-rasi +-5deg approximation is kept,
+# prominently labeled "Simplified", DISPLAY-ONLY — no interpretive/scoring
+# layer may consume itthasala_pairs/isarafa_pairs (tajaka_service.py's
+# area_outlook scoring must not read them; WI-18 removed a prior violation).
+# Never present this as complete Tajika.
+#
+# What "real" Tajika would require (deferred, not implemented):
+#   - Applying vs. separating determined by relative speed ordering (not
+#     same-rasi closeness).
+#   - Deeptamsa orbs per planet: Sun 15deg, Moon 12deg, Mars 8deg,
+#     Mercury 7deg, Jupiter 9deg, Venus 7deg, Saturn 9deg.
+#   - Aspect typology (not just conjunction-like same-rasi proximity).
+#   - Full perfection logic (translation/collection of light, prohibition).
+# Varshaphala is a North Indian specialty; Tamil Thirukanitham annual work
+# leans on dasha-bhukti, gochara, and Ashtakavarga instead — legitimate to
+# keep this module below the fold indefinitely.
+
+
 def _detect_itthasala(planets_snapshot) -> list[str]:
     """Simple Tajaka Itthasala detector using same-rasi closeness."""
     hits: list[str] = []

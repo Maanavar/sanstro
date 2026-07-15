@@ -923,6 +923,10 @@ const STRINGS = {
   varshaphala_house:       { ta: "வீடு",                         en: "House" },
   varshaphala_itthasala:   { ta: "இத்தாஸல (பொருந்தும் அம்சம்)", en: "Itthasala (Applying)" },
   varshaphala_isarafa:     { ta: "இஸாரஃபா (விலகும் அம்சம்)",   en: "Isarafa (Separating)" },
+  // WI-18 (Doctrine §9): prominent label that this is the simplified
+  // same-rasi approximation, not full classical Tajika. New Tamil string,
+  // pending native review.
+  varshaphala_simplified_badge: { ta: "எளிமையாக்கப்பட்டது",     en: "Simplified" },
   varshaphala_area_outlook:{ ta: "இந்த ஆண்டு துறை நிலை",        en: "Area outlook this year" },
   varshaphala_fav_months:  { ta: "சாதகமான மாதங்கள்",            en: "Favourable months" },
   varshaphala_load:        { ta: "ஆண்டு கட்டம் காண்",           en: "View Annual Chart" },
