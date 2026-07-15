@@ -280,7 +280,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 - **Acceptance criteria:** for the same synthetic chart, the compatibility report's `has_dosham/is_cancelled` equals the main engine's `is_present/is_cancelled` — add a cross-engine consistency test with a chart that has Mars clean from Lagna but in the 7th from Moon (previously the disagreement case).
 
 ## WI-14 — Transit Vedha: add classical Sun↔Saturn and Moon↔Mercury exemptions ✅❌
-- [ ] **Status:** NOT STARTED
+- [x] **Status:** DONE (2026-07-16, commit `5a25d88`) — `_VEDHA_EXEMPT_PAIRS` added; both-direction tests for each pair + an unrelated-planet-still-blocks control.
 - **Priority:** P2.
 - **File:** `app/calculations/transits.py`, `check_vedha` (~line 234).
 - **Fix:**
@@ -293,7 +293,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 - **Acceptance criteria:** Saturn occupying Sun's vedha house does NOT cancel Sun's transit benefit (and vice versa); same for Moon/Mercury; an unrelated planet in the same house still does.
 
 ## WI-15 — Sunapha/Anapha/Durudhura: exclude nodes (and Mandhi) ✅❌
-- [ ] **Status:** NOT STARTED
+- [x] **Status:** DONE (2026-07-16, commit `4e4e89e`) — exclusion set widened to {SUN,MOON,RAHU,KETU,MANDHI}; lone-Rahu-forms-Kemadruma-not-Sunapha consistency test + Mandhi test added.
 - **Priority:** P2.
 - **File:** `app/calculations/_yoga_detect.py`, `detect_sunapha_anapha_durudhura` (~lines 697–709).
 - **Fix:** exclusion set `{"SUN", "MOON", "RAHU", "KETU", "MANDHI"}` instead of `{"SUN"}` (classical: planets other than the Sun form these; nodes never do; Moon is the reference; Mandhi is an upagraha). Matches Kemadruma's existing exclusions in the same file.
@@ -396,8 +396,8 @@ Follow the established pattern: present each as an open request for the authorit
 
 ## Phase C — Consistency & docs
 - [x] WI-13 Compatibility Sevvai delegates to the main dosham engine
-- [ ] WI-14 Vedha exemptions: Sun↔Saturn, Moon↔Mercury
-- [ ] WI-15 Sunapha/Anapha/Durudhura exclude nodes + Mandhi
+- [x] WI-14 Vedha exemptions: Sun↔Saturn, Moon↔Mercury
+- [x] WI-15 Sunapha/Anapha/Durudhura exclude nodes + Mandhi
 - [ ] WI-16 Fix stale Ashtottari note in `conditional_dashas.py` docstring
 - [ ] WI-17 Mean-node FAQ/doc note (JHora true-node divergence)
 - [ ] WI-18 Tajaka "Simplified" label verification + deferred-spec comment
