@@ -300,13 +300,13 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 - **Acceptance criteria:** a lone Rahu in the 2nd from Moon → no Sunapha (and, with nothing else in 2nd/12th, Kemadruma present — assert both together to lock the consistency).
 
 ## WI-16 — Stale Ashtottari note in conditional_dashas docstring ✅❌
-- [ ] **Status:** NOT STARTED
+- [x] **Status:** DONE (2026-07-16, commit `43e6d64`) — doc-only, rewritten to describe two different both-correct mechanisms.
 - **Priority:** P2 (doc-only).
 - **File:** `app/calculations/conditional_dashas.py`, module docstring lines ~44–49.
 - **Fix:** the paragraph claiming `ashtottari_dasha.py` uses `(n - 3) % 8` (with a "latent bug") is stale — Ashtottari has used the explicit Ardra-adi `NAK_LORD` table since 2026-07-14 (EC-6). Rewrite that sentence to say the two modules use different, both-correct mechanisms (uniform count-mod-N here; explicit non-uniform table there). No code change.
 
 ## WI-17 — Mean-node documentation + optional true-node toggle (Doctrine §2) ✅❌
-- [ ] **Status:** NOT STARTED
+- [x] **Status:** DONE (2026-07-16, commit `4814cce`) — docs/FAQ_COMPARISON_WITH_OTHER_SOFTWARE.md added + ephemeris.py comment. Toggle intentionally NOT built (needs product sign-off).
 - **Priority:** P2. Code is already compliant (mean node everywhere, consistent).
 - **Required (small):** add a doc/FAQ note — user-facing help or `docs/` — stating: mean node is the deliberate default per Tamil/Vakya practice; **JHora defaults to TRUE node**, so out-of-box JHora comparisons will show Rahu/Ketu differing up to ~1.5°+, occasionally flipping nakshatra pada (which can shift a Vimshottari start). Add the same caveat to `ephemeris.py`'s Rahu section as a comment.
 - **Optional (separate follow-up, needs product sign-off):** settings toggle for true node + a boundary warning when mean-vs-true changes the Moon's pada. Do NOT build the toggle as part of this WI without explicit approval.
@@ -398,8 +398,8 @@ Follow the established pattern: present each as an open request for the authorit
 - [x] WI-13 Compatibility Sevvai delegates to the main dosham engine
 - [x] WI-14 Vedha exemptions: Sun↔Saturn, Moon↔Mercury
 - [x] WI-15 Sunapha/Anapha/Durudhura exclude nodes + Mandhi
-- [ ] WI-16 Fix stale Ashtottari note in `conditional_dashas.py` docstring
-- [ ] WI-17 Mean-node FAQ/doc note (JHora true-node divergence)
+- [x] WI-16 Fix stale Ashtottari note in `conditional_dashas.py` docstring
+- [x] WI-17 Mean-node FAQ/doc note (JHora true-node divergence)
 - [ ] WI-18 Tajaka "Simplified" label verification + deferred-spec comment
 - [x] WI-19 Dinam comment corrected to match the published 12-count set
 - [x] WI-20 `_graha_relation` compound rule (enemy-either-direction, friend-both-directions, else neutral) — Doctrine §11 (see WI-20 note: doc's own prose example is internally inconsistent, flagged for amendment)
