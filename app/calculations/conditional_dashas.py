@@ -43,10 +43,12 @@ from the system's start nakshatra to the Moon's janma nakshatra, divide by N
 (the lord count), and the remainder selects the opening lord from the cycle."
 That is exactly `SEQUENCE[((n - start) % 27) % N]` — the forward count is
 taken mod 27 FIRST (so pre-start births wrap a full circle) and only then mod
-N. NB this differs from `ashtottari_dasha.py`'s `(n - 3) % 8`, which omits the
-mod-27 step and therefore mis-assigns the opening lord for births whose
-nakshatra precedes the start nakshatra; that is a latent bug in the (equally
-gated/experimental) Ashtottari module, logged for the same astrologer pass.
+N. This differs from `ashtottari_dasha.py`, but not because of a bug: Ashtottari
+uses the explicit, non-uniform Ardra-adi `NAK_LORD` lookup table (fixed since
+the 2026-07-14 EC-6 astrologer session), because its 8 lords are NOT evenly
+spaced across the 27 nakshatras the way this module's uniform-count-mod-N
+lords are. Two different, both-correct mechanisms for two structurally
+different lord layouts, not a mechanism this module's tables should mimic.
 
 Dwadashottari counting-direction exception (astrologer-confirmed, EC-3,
 2026-07-14): BPHS phrases six of the seven systems "count from the anchor
