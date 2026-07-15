@@ -203,7 +203,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
   - The pada variant is never returned unlabeled.
 
 ## WI-09 — Jaimini Rahu degree: 30° − advancement; document 8-karaka scheme (Doctrine §4) ✅❌
-- [ ] **Status:** NOT STARTED
+- [x] **Status:** DONE (2026-07-16, commit `0cb71aa`) — `_karaka_degree` helper reverses Rahu; docstring updated; T003 regression + tie-break + new Atmakaraka-flip golden test all updated/added. No migration needed (karakas computed per-request from stored longitudes, never persisted themselves).
 - **Priority:** P1 — launch gate. **Do before/with WI-10.**
 - **File:** `app/calculations/jaimini_karakas.py`.
 - **Change:**
@@ -389,7 +389,7 @@ Follow the established pattern: present each as an open request for the authorit
 ## Phase B — Doctrine launch gates
 - [ ] WI-07 Hindu sunrise (disc center, no refraction) + cache v33 + validation harness  *(before WI-12)*
 - [ ] WI-08 Murthi default → ingress-Moon method; pada rule as labeled variant
-- [ ] WI-09 Jaimini Rahu = 30° − advancement; 8-karaka documented; migration check  *(before WI-10)*
+- [x] WI-09 Jaimini Rahu = 30° − advancement; 8-karaka documented; migration check  *(before WI-10)*
 - [ ] WI-10 Chara Dasha → full Rao/BPHS rules, JHora-validated golden sequences *(interim: "Experimental" label)*
 - [ ] WI-11 `bhava_chalit.py` → `equal_bhava.py` rename + API field strategy
 - [ ] WI-12 Festival rules engine + algorithmic Smarta Ekadashi; 2026 parity gate; 2027 asserted non-empty
