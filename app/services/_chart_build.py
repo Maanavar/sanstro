@@ -20,7 +20,7 @@ from app.calculations.astro import (
     pada_from_degree,
     utc_datetime_to_julian_day,
 )
-from app.calculations.bhava_chalit import compute_bhava_chalit
+from app.calculations.equal_bhava import compute_equal_bhava
 from app.calculations.chart_strength import (
     compute_natal_planet_score,
     compute_strength_breakdown,
@@ -163,6 +163,7 @@ def _birth_panchangam_signature(profile: Any) -> dict[str, object]:
 def _build_birth_conditions(
     planet_positions: list[PlanetPosition],
     birth_time_local: time | None,
+    lagna_rasi: int | None = None,
 ) -> tuple[list[ChartBirthCondition], dict[str, float]]:
     """Assemble the Border-Alert list (and its natal strength penalties) from planets.
 
@@ -197,6 +198,7 @@ def _build_birth_conditions(
         sun_rasi_day_start=sun_start,
         sun_rasi_day_end=sun_end,
         cazimi_planets=cazimi_planets,
+        lagna_rasi=lagna_rasi,
     )
     conditions = [
         ChartBirthCondition(
@@ -264,7 +266,7 @@ def _build_yoga_dosham_insights(
     birth_jd: float,
     gender: str | None = None,
     d9_lagna_rasi: int | None = None,
-    bhava_chalit_map: dict[str, int] | None = None,
+    equal_bhava_map: dict[str, int] | None = None,
 ) -> tuple[list[ChartYogaInsight], list[ChartDoshamInsight], list[ChartNakshatraCaution]]:
     planet_map: dict[str, int] = {planet.graha: planet.rasi for planet in planets}
     active_lords = _active_dasha_lords(birth_jd, next(planet.absolute_longitude for planet in planets if planet.graha == "MOON"))
@@ -290,7 +292,7 @@ def _build_yoga_dosham_insights(
         janma_nakshatra=janma_nakshatra,
         d9_rasi_map=d9_rasi_map,
         d9_lagna_rasi=d9_lagna_rasi,
-        bhava_chalit_map=bhava_chalit_map,
+        equal_bhava_map=equal_bhava_map,
         planet_scores_in=planet_scores,
     )
 
@@ -466,7 +468,7 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
     if mandhi_lng is not None:
         planet_positions.append(_mandhi_planet_position(mandhi_lng, lagna_rasi))
 
-    bhava_chalit_map = compute_bhava_chalit(
+    equal_bhava_map = compute_equal_bhava(
         lagna_degree,
         {p.graha: p.absolute_longitude for p in planet_positions},
     )
@@ -479,7 +481,7 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
         birth_jd=julian_day,
         gender=_value(profile, "gender_for_traditional_rules"),
         d9_lagna_rasi=navamsa_rasi_from_degree(lagna_degree),
-        bhava_chalit_map=bhava_chalit_map,
+        equal_bhava_map=equal_bhava_map,
     )
     public_planet_positions = _public_planets(planet_positions)
     planet_longitudes = {p.graha: p.absolute_longitude for p in public_planet_positions}
@@ -487,7 +489,9 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
     vargas = _compute_vargas(planet_longitudes)
     varga_reliability = _varga_reliability(int(_value(profile, "birth_time_confidence_minutes", 0) or 0))
     nakshatra_analysis = _compute_nakshatra_analysis(planet_longitudes)
-    birth_conditions, bc_penalties = _build_birth_conditions(public_planet_positions, birth_time_local)
+    birth_conditions, bc_penalties = _build_birth_conditions(
+        public_planet_positions, birth_time_local, lagna_rasi=lagna_rasi
+    )
     _apply_birth_condition_penalties(public_planet_positions, bc_penalties)
     birth_panchangam_signature = _birth_panchangam_signature(profile)
 
@@ -508,7 +512,7 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
             ayanamsa=AyanamsaInfo(value_degrees=snapshot.ayanamsa_value_degrees),
             lagna=lagna,
             planets=public_planet_positions,
-            bhava_chalit=bhava_chalit_map,
+            equal_bhava=equal_bhava_map,
             vargas=vargas,
             varga_reliability=varga_reliability,
             nakshatra_analysis=nakshatra_analysis,
@@ -635,12 +639,12 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             malefic_aspect_count=malefic_aspects,
             speed_ratio=speed_ratio,
         )
-    bhava_chalit_map = {
+    equal_bhava_map = {
         p.graha: (int(p_row.bhava_house) if getattr(p_row, "bhava_house", None) is not None else 0)
         for p, p_row in zip(planet_positions, planets, strict=False)
     }
-    if not all(v in range(1, 13) for v in bhava_chalit_map.values()):
-        bhava_chalit_map = compute_bhava_chalit(
+    if not all(v in range(1, 13) for v in equal_bhava_map.values()):
+        equal_bhava_map = compute_equal_bhava(
             float(chart.lagna_longitude),
             {p.graha: p.absolute_longitude for p in planet_positions},
         )
@@ -654,7 +658,7 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
         birth_jd=float(chart.julian_day),
         gender=_value(birth_profile, "gender_for_traditional_rules"),
         d9_lagna_rasi=d9_lagna_rasi_val,
-        bhava_chalit_map=bhava_chalit_map,
+        equal_bhava_map=equal_bhava_map,
     )
     public_planet_positions = _public_planets(planet_positions)
     planet_longitudes = {p.graha: p.absolute_longitude for p in public_planet_positions}
@@ -663,7 +667,7 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
     varga_reliability = _varga_reliability(int(_value(birth_profile, "birth_time_confidence_minutes", 0) or 0))
     nakshatra_analysis = _compute_nakshatra_analysis(planet_longitudes)
     birth_conditions, bc_penalties = _build_birth_conditions(
-        public_planet_positions, _value(birth_profile, "birth_time_local")
+        public_planet_positions, _value(birth_profile, "birth_time_local"), lagna_rasi=lagna_rasi
     )
     _apply_birth_condition_penalties(public_planet_positions, bc_penalties)
     birth_panchangam_signature = _birth_panchangam_signature(birth_profile)
@@ -677,7 +681,7 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             ayanamsa=AyanamsaInfo(value_degrees=float(chart.ayanamsa_value_degrees or 0.0)),
             lagna=lagna,
             planets=public_planet_positions,
-            bhava_chalit=bhava_chalit_map,
+            equal_bhava=equal_bhava_map,
             vargas=vargas,
             varga_reliability=varga_reliability,
             nakshatra_analysis=nakshatra_analysis,

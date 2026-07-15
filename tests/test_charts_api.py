@@ -44,7 +44,7 @@ def test_chart_calculate_endpoint_uses_persisted_birth_profile(client, birth_pro
     assert all("dashaActivated" in item for item in body["data"]["yogas"])
     assert all(item["descriptionTa"] and item["descriptionEn"] for item in body["data"]["yogas"])
     assert all(item["descriptionTa"] and item["descriptionEn"] for item in body["data"]["doshams"])
-    assert "bhavaChalit" in body["data"]
+    assert "equalBhava" in body["data"]
     assert "vargas" in body["data"]
     assert "nakshatraAnalysis" in body["data"]
     assert "birthPanchangamSignature" in body["data"]

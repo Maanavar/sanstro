@@ -103,10 +103,10 @@ def detect_yogas_and_doshams(
     janma_nakshatra: int | None = None,
     d9_rasi_map: Mapping[str, int] | None = None,
     d9_lagna_rasi: int | None = None,
-    bhava_chalit_map: Mapping[str, int] | None = None,
+    equal_bhava_map: Mapping[str, int] | None = None,
     planet_scores_in: Mapping[str, int] | None = None,
 ) -> tuple[list[YogaResult], list[DoshamResult], list[NakshatraCautionResult]]:
-    _ = bhava_chalit_map
+    _ = equal_bhava_map
     planets_rasi = _planets_as_rasi_map(planets)
     lagna_nature_map = {
         planet: get_functional_nature(lagna_rasi, planet, node_rasi_map=planets_rasi).value

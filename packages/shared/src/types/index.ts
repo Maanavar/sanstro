@@ -320,7 +320,7 @@ export interface ChartCalculateResponseData {
   calculationStatus: "completed";
   warnings: string[];
   ephemerisBackend: string;
-  bhavaChalit?: Record<string, number>;
+  equalBhava?: Record<string, number>;
   vargas?: Record<string, Record<string, number>>;
   vargaReliability?: Record<string, string>;
   nakshatraAnalysis?: Record<string, unknown>;

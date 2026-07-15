@@ -594,7 +594,7 @@ const STRINGS = {
   nakshatra_card_label:    { ta: "நட்சத்திர குணாதிசயம்", en: "Birth Star Profile" },
   nakshatra_deity:         { ta: "தேவதை",                en: "Deity" },
   nakshatra_symbol:        { ta: "சின்னம்",               en: "Symbol" },
-  nakshatra_ruling_planet: { ta: "அதிபதி கிரகம்",        en: "Ruling Planet" },
+  nakshatra_ruling_planet: { ta: "அதிபதி",        en: "Ruling Planet" },
   nakshatra_strengths:     { ta: "பலங்கள்",              en: "Strengths" },
   nakshatra_cautions:      { ta: "கவனிக்க",              en: "Cautions" },
   rasi_trait_card_label:   { ta: "ராசி குணாதிசயம்",      en: "Rasi Profile" },
@@ -909,8 +909,11 @@ const STRINGS = {
   vargas_desc_d12:         { ta: "பெற்றோர் — துவாதசாம்சம்",    en: "Parents — Dwadashamsa" },
   vargas_desc_d30:         { ta: "உடல்நலம் — திரிம்சாம்சம்",   en: "Health — Trimsamsa" },
   vargas_desc_d60:         { ta: "முழு ஆன்மீக — ஷஷ்டியாம்சம்", en: "Spiritual — Shashtiamsa" },
-  bhava_chalit_title:      { ta: "பாவ சாலித்",                  en: "Bhava Chalit" },
-  bhava_chalit_desc:       { ta: "ராசி வீட்டிலிருந்து பாவ வீட்டில் மாற்றம் உள்ள கிரகங்கள் மட்டும்", en: "Planets that differ between Rasi and Bhava house" },
+  // WI-11 (Doctrine §6): renamed from "Bhava Chalit" — this is equal-house
+  // from the Lagna degree, NOT Sripati chalit. New Tamil string, pending
+  // native review.
+  equal_bhava_title:       { ta: "சம பாவம்",                    en: "Equal Bhava (House)" },
+  equal_bhava_desc:        { ta: "ராசி வீட்டிலிருந்து பாவ வீட்டில் மாற்றம் உள்ள கிரகங்கள் மட்டும்", en: "Planets that differ between Rasi and equal-house (a secondary lens, not Sripati chalit)" },
 
   // ── Varshaphala (Annual Chart)
   varshaphala_title:       { ta: "வர்ஷபல — ஆண்டு கட்டம்",      en: "Varshaphala — Annual Chart" },

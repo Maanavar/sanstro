@@ -44,7 +44,7 @@ def _persist_chart_planets(
     session: Session,
     chart_id: UUID,
     planets: list,
-    bhava_chalit_map: dict[str, int] | None = None,
+    equal_bhava_map: dict[str, int] | None = None,
 ) -> None:
     existing_planets = session.execute(select(ChartPlanet).where(ChartPlanet.chart_id == chart_id)).scalars().all()
     for row in existing_planets:
@@ -61,7 +61,7 @@ def _persist_chart_planets(
                 nakshatra=NAKSHATRA_NAMES[planet.nakshatra - 1],
                 pada=planet.pada,
                 house_from_lagna=planet.house_from_lagna,
-                bhava_house=(bhava_chalit_map or {}).get(planet.graha),
+                bhava_house=(equal_bhava_map or {}).get(planet.graha),
                 speed_deg_per_day=planet.speed_deg_per_day,
                 is_retrograde=planet.is_retrograde,
                 is_combust=planet.is_combust,
@@ -98,7 +98,7 @@ def _persist_chart_record(session: Session, birth_profile_id: UUID, response: Ch
     )
     session.add(chart)
     session.flush()
-    _persist_chart_planets(session, chart.chart_id, data.planets, data.bhava_chalit)
+    _persist_chart_planets(session, chart.chart_id, data.planets, data.equal_bhava)
     return chart
 
 
@@ -176,7 +176,7 @@ def load_persisted_chart_response(session: Session, chart_id: UUID) -> ChartCalc
         return _chart_response_from_record(chart)
 
     response = _chart_response_from_profile(birth_profile, chart.calculation_version, chart_id=chart.chart_id)
-    _persist_chart_planets(session, chart.chart_id, response.data.planets, response.data.bhava_chalit)
+    _persist_chart_planets(session, chart.chart_id, response.data.planets, response.data.equal_bhava)
     session.flush()
     return response
 

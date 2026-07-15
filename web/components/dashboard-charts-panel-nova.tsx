@@ -327,7 +327,7 @@ export function DashboardChartsPanelNova({
           lang={lang}
           vargas={personalChart.vargas}
           d1Planets={Object.fromEntries(personalChart.planets.map((p) => [p.graha, p.rasi]))}
-          bhavaChalit={personalChart.bhavaChalit}
+          equalBhava={personalChart.equalBhava}
           vargaReliability={personalChart.vargaReliability}
         />
       )}

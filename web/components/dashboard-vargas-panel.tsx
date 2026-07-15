@@ -77,20 +77,20 @@ type Props = {
   lang: Lang;
   vargas: Record<string, Record<string, number>> | undefined;
   d1Planets: Record<string, number>;
-  bhavaChalit: Record<string, number> | undefined;
+  equalBhava: Record<string, number> | undefined;
   vargaReliability?: Record<string, string>;
 };
 
-export function VargasPanel({ lang, vargas, d1Planets, bhavaChalit, vargaReliability }: Props) {
+export function VargasPanel({ lang, vargas, d1Planets, equalBhava, vargaReliability }: Props) {
   const [activeVarga, setActiveVarga] = useState<VargaKey>("D10");
 
   const hasVargas = vargas && Object.keys(vargas).length > 0;
   const currentVarga = hasVargas ? vargas![activeVarga] : null;
 
-  const bhavaChanges = bhavaChalit
-    ? Object.entries(bhavaChalit).filter(([planet, bhavaHouse]) => {
+  const equalBhavaChanges = equalBhava
+    ? Object.entries(equalBhava).filter(([planet, equalHouse]) => {
         const d1House = d1Planets[planet];
-        return d1House !== undefined && d1House !== bhavaHouse;
+        return d1House !== undefined && d1House !== equalHouse;
       })
     : [];
 
@@ -202,17 +202,17 @@ export function VargasPanel({ lang, vargas, d1Planets, bhavaChalit, vargaReliabi
           </p>
         )}
 
-        {/* Bhava Chalit diff — only planets that changed */}
-        {bhavaChanges.length > 0 && (
+        {/* Equal Bhava diff — only planets that changed */}
+        {equalBhavaChanges.length > 0 && (
           <div style={{ marginTop: "var(--space-4)", paddingTop: "var(--space-3)", borderTop: `1px solid ${W.borderLt}` }}>
             <p style={{ fontSize: "0.78rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-2)" }}>
-              {t("bhava_chalit_title", lang)}
+              {t("equal_bhava_title", lang)}
             </p>
             <p style={{ fontSize: "0.75rem", color: W.muted, marginBottom: "var(--space-2)", fontStyle: "italic" }}>
-              {t("bhava_chalit_desc", lang)}
+              {t("equal_bhava_desc", lang)}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
-              {bhavaChanges.map(([planet, bhavaHouse]) => (
+              {equalBhavaChanges.map(([planet, equalHouse]) => (
                 <span
                   key={planet}
                   style={{
@@ -225,7 +225,7 @@ export function VargasPanel({ lang, vargas, d1Planets, bhavaChalit, vargaReliabi
                     fontWeight: 600,
                   }}
                 >
-                  {PLANET_ABBR[planet] ?? planet}: H{d1Planets[planet]} → H{bhavaHouse}
+                  {PLANET_ABBR[planet] ?? planet}: H{d1Planets[planet]} → H{equalHouse}
                 </span>
               ))}
             </div>

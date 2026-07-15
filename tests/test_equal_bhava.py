@@ -1,8 +1,12 @@
-from app.calculations.bhava_chalit import compute_bhava_chalit
+import pytest
+
+from app.calculations.equal_bhava import compute_equal_bhava
+
+pytestmark = pytest.mark.no_db
 
 
-def test_bhava_chalit_equal_house_boundaries():
-    result = compute_bhava_chalit(
+def test_equal_bhava_equal_house_boundaries():
+    result = compute_equal_bhava(
         lagna_longitude=0.0,
         planet_longitudes={
             "SUN": 29.0,   # still in 1st house

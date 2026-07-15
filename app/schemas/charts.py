@@ -143,7 +143,7 @@ class ChartCalculateResponseData(BaseModel):
     ayanamsa: AyanamsaInfo
     lagna: LagnaPosition
     planets: list[PlanetPosition]
-    bhava_chalit: dict[str, int] = Field(default_factory=dict, alias="bhavaChalit")
+    equal_bhava: dict[str, int] = Field(default_factory=dict, alias="equalBhava")
     vargas: dict[str, dict[str, int]] = Field(default_factory=dict)
     varga_reliability: dict[str, str] = Field(default_factory=dict, alias="vargaReliability")
     nakshatra_analysis: dict[str, object] = Field(default_factory=dict, alias="nakshatraAnalysis")
