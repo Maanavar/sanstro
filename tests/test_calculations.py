@@ -557,3 +557,34 @@ def test_vedha_returns_false_for_planet_with_no_table():
     # MARS has no Vedha table entry
     all_houses = {"MARS": 5, "JUPITER": 7}
     assert check_vedha("MARS", 5, all_houses) is False
+
+
+# ---------------------------------------------------------------------------
+# WI-14 — classical Sun<->Saturn and Moon<->Mercury Vedha exemptions
+# ---------------------------------------------------------------------------
+
+def test_vedha_sun_saturn_exemption_both_directions():
+    from app.calculations.transits import check_vedha
+    # Sun in house 3 from Moon; Sun's Vedha house = 9. Saturn occupying 9
+    # must NOT cancel Sun's transit benefit (classical exemption).
+    assert check_vedha("SUN", 3, {"SATURN": 9}) is False
+    # Saturn in house 6 from Moon; Saturn's Vedha house = 9. Sun occupying 9
+    # must NOT cancel Saturn's transit benefit either.
+    assert check_vedha("SATURN", 6, {"SUN": 9}) is False
+
+
+def test_vedha_moon_mercury_exemption_both_directions():
+    from app.calculations.transits import check_vedha
+    # Moon in house 1 from Moon (i.e. conjunct); Moon's Vedha house = 5.
+    # Mercury occupying 5 must NOT cancel Moon's transit benefit.
+    assert check_vedha("MOON", 1, {"MERCURY": 5}) is False
+    # Mercury in house 2 from Moon; Mercury's Vedha house = 5. Moon occupying
+    # 5 must NOT cancel Mercury's transit benefit either.
+    assert check_vedha("MERCURY", 2, {"MOON": 5}) is False
+
+
+def test_vedha_unrelated_planet_still_blocks_despite_exemptions():
+    from app.calculations.transits import check_vedha
+    # Sun's Vedha house (9) occupied by an unrelated planet (Jupiter, not
+    # part of any exempt pair) still blocks as normal.
+    assert check_vedha("SUN", 3, {"JUPITER": 9}) is True

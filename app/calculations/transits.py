@@ -310,6 +310,11 @@ VEDHA_TABLE: dict[str, dict[int, int]] = {
 }
 
 
+# Classical exemptions: these pairs never vedha-cancel each other, regardless
+# of house placement (WI-14).
+_VEDHA_EXEMPT_PAIRS = frozenset({frozenset({"SUN", "SATURN"}), frozenset({"MOON", "MERCURY"})})
+
+
 def check_vedha(
     planet: str,
     house_from_moon: int,
@@ -323,7 +328,11 @@ def check_vedha(
     if vedha_house is None:
         return False
     for other_planet, other_house in all_transit_houses.items():
-        if other_planet != planet and other_house == vedha_house:
+        if other_planet == planet:
+            continue
+        if frozenset({planet, other_planet}) in _VEDHA_EXEMPT_PAIRS:
+            continue
+        if other_house == vedha_house:
             return True
     return False
 
