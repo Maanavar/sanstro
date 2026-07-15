@@ -97,7 +97,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
   - `SIGN_LORD[new] == SIGN_LORD[old]` for every even-sign degree (proves Saptavargaja invariance) — one parametrized test.
 
 ## WI-04 — Compatibility Navamsa: rasi compared against house sets (category error) ✅❌
-- [ ] **Status:** NOT STARTED
+- [x] **Status:** DONE (2026-07-16, commit `0569f84`) — replaced with `_d9_dignified` (own sign or exaltation); regression tests for both the debilitation-in-kendra trap and the own-sign-not-in-kendra false negative.
 - **Priority:** P0 — meaningless +3/+3 in the couple's Navamsa score.
 - **File:** `app/calculations/compatibility_intelligence.py`, `_compute_navamsa` (~lines 446–449).
 - **Problem:** `sla_d9` / `slb_d9` are D9 **sign numbers** (1–12) of each person's 7th lord, but are tested with `in (_KENDRAS | _TRIKONAS)` — house sets. The couple gets points whenever the sign happens to be numbered 1/4/5/7/9/10.
@@ -116,7 +116,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 - **Acceptance criteria:** a 7th lord in its D9 debilitation sign numbered 1–10 scores 0 for this component; a 7th lord in own D9 sign scores +3. Update any pinned compatibility fixture scores, citing WI-04.
 
 ## WI-05 — Moon-harmony table inverts classical rasi doctrine ✅❌
-- [ ] **Status:** NOT STARTED — **table below supersedes the original draft**, ratified as Doctrine §10 (2026-07-16, two independent Thirukanitham reviews reconciled)
+- [x] **Status:** DONE (2026-07-16, commit `0569f84`) — ratified table implemented verbatim; lookup made structurally symmetric (0-indexed fold, not the 1-based-count trap); symmetry verified for all 144 pairs + consistency vs porutham's Shashtashtaka veto.
 - **Priority:** P0 — 2/12 (dwirdwadasa) rated EXCELLENT in the original code; 7 (samasaptama) rated TENSE; lookup was also direction-dependent (not symmetric). Contradicts this repo's own porutham rasi logic.
 - **File:** `app/calculations/compatibility_intelligence.py`, `_MOON_HARMONY_TABLE` (~lines 586–594).
 - **Fix (verbatim — Doctrine §10 ratified table, count is inclusive `(a-b) % 12 + 1`):**
@@ -324,7 +324,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 - **Fix:** correct the comment to describe the set as-is ("the published Tamil 12-count dinam table; note this is NOT the pure mod-9 tara rule — 17/22/27 are deliberately excluded"). Do NOT change the set (that is OQ-2, astrologer's call).
 
 ## WI-20 — `_graha_relation` compound friendship rule (Doctrine §11) ✅❌
-- [ ] **Status:** NOT STARTED
+- [x] **Status:** DONE (2026-07-16, commit `0569f84`) — implemented per the verbatim fix code + the 3-bullet rule + porutham precedent. **Doc inconsistency found and flagged in the commit message:** this WI's own prose example ("Moon×Mercury... should be neutral") contradicts its own rule/code/precedent, all three of which say "enemy" for that exact pair (porutham._graha_maitri_kuta FAILs it). Implemented as "enemy"; the prose sentence above needs an astrologer/doc-owner amendment.
 - **Priority:** P1 — Level 6 Dasha Harmony verdict text can currently call an inimical pairing "friendly."
 - **File:** `app/calculations/compatibility_intelligence.py`, `_graha_relation` (~lines 55–62).
 - **Problem:** checks `b in _NATURAL_FRIENDS[a] or a in _NATURAL_FRIENDS[b]` **before** checking enmity, so a one-way-friend pairing is labelled "friend" even when the other direction is an enemy. Example: Moon regards Mercury as a friend, but Mercury regards Moon as an enemy (`_NATURAL_ENEMIES["MERCURY"] == {"MOON"}`) — currently resolves to "friend"; should be neutral.
@@ -347,7 +347,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 - **Ripple:** Level 6 Dasha Harmony `harmony_label` and its EN/TA note text may change for any dasha-lord pair that was previously a one-way-friend read as "friend." Update pinned CI fixtures, citing WI-20.
 
 ## WI-21 — Rajju/Vedha veto caps the CI overall label (Doctrine §12) ✅❌
-- [ ] **Status:** NOT STARTED
+- [x] **Status:** DONE (2026-07-16, commit `0569f84`) — label hard-capped on Rajju/Vedha; `overall_score` and breakdown unchanged; tested with a stubbed strongest-possible fixture (pre-cap 100) for both Rajju and Vedha, plus a no-veto control. Did not add a separate "Traditional Verdict" text field — the plan's own Web/API sweep note says this is backend-only since `overallLabel` is already rendered/colored by the web panel.
 - **Priority:** P1 — brand-trust issue: a Rajju-dosha couple can currently see "EXCELLENT" as the Compatibility Intelligence headline.
 - **File:** `app/calculations/compatibility_intelligence.py`, `compute_compatibility_intelligence` (~lines 739–758, the overall-label assignment).
 - **Problem:** Porutham is only 20 of the CI report's 100 weighted points; a Rajju/Vedha dosha zeroes that component, but the other 7 levels can still push the weighted total into GOOD/EXCELLENT territory, and the veto is relegated to a single risk bullet rather than shaping the headline verdict.
@@ -381,9 +381,9 @@ Follow the established pattern: present each as an open request for the authorit
 ## Phase A — P0 bugs
 - [x] WI-01 Kala Bala Venus/Saturn day-night swap (`chart_strength.py`)
 - [x] WI-02 Mercury→Saturn maitri 1.0 → 0.5 — data fix + full acceptance criteria done
-- [ ] WI-03 D30 even-sign targets → Taurus/Virgo/Pisces/Capricorn/Scorpio
-- [ ] WI-04 Compatibility navamsa rasi-vs-house category error → dignity check
-- [ ] WI-05 Moon-harmony table → Doctrine §10 ratified table (EXCELLENT=trikona only; TENSE=shadashtaka only; GOOD=same/upachaya/kendra/samasaptama; MIXED=dwirdwadasa) + symmetry fix
+- [x] WI-03 D30 even-sign targets → Taurus/Virgo/Pisces/Capricorn/Scorpio
+- [x] WI-04 Compatibility navamsa rasi-vs-house category error → dignity check
+- [x] WI-05 Moon-harmony table → Doctrine §10 ratified table (EXCELLENT=trikona only; TENSE=shadashtaka only; GOOD=same/upachaya/kendra/samasaptama; MIXED=dwirdwadasa) + symmetry fix
 - [ ] WI-06 Pushkara navamsa (2-per-sign, by element) + standard bhaga degrees
 
 ## Phase B — Doctrine launch gates
@@ -402,8 +402,8 @@ Follow the established pattern: present each as an open request for the authorit
 - [ ] WI-17 Mean-node FAQ/doc note (JHora true-node divergence)
 - [ ] WI-18 Tajaka "Simplified" label verification + deferred-spec comment
 - [x] WI-19 Dinam comment corrected to match the published 12-count set
-- [ ] WI-20 `_graha_relation` compound rule (enemy-either-direction, friend-both-directions, else neutral) — Doctrine §11
-- [ ] WI-21 Rajju/Vedha veto hard-caps the CI overall label at CAUTION — Doctrine §12
+- [x] WI-20 `_graha_relation` compound rule (enemy-either-direction, friend-both-directions, else neutral) — Doctrine §11 (see WI-20 note: doc's own prose example is internally inconsistent, flagged for amendment)
+- [x] WI-21 Rajju/Vedha veto hard-caps the CI overall label at CAUTION — Doctrine §12
 
 ## Blocked on astrologer (no code until ruled)
 - [ ] OQ-1 Graha yuddha rule · OQ-2 Dinam set · OQ-3 Pushkara cross-check · OQ-4 Extended Sevvai set · OQ-5 Jeevan/Nethiram tables · OQ-6 Murthi golden dates
