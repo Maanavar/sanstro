@@ -312,7 +312,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 - **Optional (separate follow-up, needs product sign-off):** settings toggle for true node + a boundary warning when mean-vs-true changes the Moon's pada. Do NOT build the toggle as part of this WI without explicit approval.
 
 ## WI-18 — Tajaka "Simplified" labeling audit (Doctrine §9) ✅❌
-- [ ] **Status:** NOT STARTED
+- [x] **Status:** DONE (2026-07-16, commit `478c8d6`) — audit found a REAL violation (area_outlook scoring consumed itthasala/isarafa) beyond the expected labeling gap; fixed + regression test. Also fixed a pre-existing unrelated TajakaAspect shape mismatch (shared TS type didn't match backend, pairs rendered blank) discovered during the same audit. "Simplified" badge added (new Tamil string, pending native review).
 - **Priority:** P2 (verification, likely tiny).
 - **Task:** confirm (a) no interpretive/scoring layer consumes `itthasala_pairs`/`isarafa_pairs` (grep `app/services/`, `web/`, `mobile/`); (b) wherever they render, the UI label says "Simplified" prominently. Add the label if missing (EN + TA; new Tamil string → flag for native review). Add a comment in `tajaka.py` citing Doctrine §9 with the deferred deeptamsa-orb spec (Sun 15°, Moon 12°, Mars 8°, Mercury 7°, Jupiter 9°, Venus 7°, Saturn 9°) so a future implementer has it in place.
 
@@ -400,7 +400,7 @@ Follow the established pattern: present each as an open request for the authorit
 - [x] WI-15 Sunapha/Anapha/Durudhura exclude nodes + Mandhi
 - [x] WI-16 Fix stale Ashtottari note in `conditional_dashas.py` docstring
 - [x] WI-17 Mean-node FAQ/doc note (JHora true-node divergence)
-- [ ] WI-18 Tajaka "Simplified" label verification + deferred-spec comment
+- [x] WI-18 Tajaka "Simplified" label verification + deferred-spec comment
 - [x] WI-19 Dinam comment corrected to match the published 12-count set
 - [x] WI-20 `_graha_relation` compound rule (enemy-either-direction, friend-both-directions, else neutral) — Doctrine §11 (see WI-20 note: doc's own prose example is internally inconsistent, flagged for amendment)
 - [x] WI-21 Rajju/Vedha veto hard-caps the CI overall label at CAUTION — Doctrine §12
