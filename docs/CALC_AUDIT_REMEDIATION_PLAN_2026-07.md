@@ -42,7 +42,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 # PHASE A — P0 correctness bugs (wrong output today; mechanical fixes)
 
 ## WI-01 — Kala Bala day/night sets swap Venus and Saturn ✅❌
-- [x] **Status:** DONE (2026-07-16, commit `1f2f3b2`) — `chart_strength._kala_bala_score` now matches `shadbala._nathonnatha_bala`; cross-module consistency test + day/night direction test added (`tests/test_chart_strength.py`).
+- [x] **Status:** DONE (2026-07-15, commit `1f2f3b2`) — `chart_strength._kala_bala_score` now matches `shadbala._nathonnatha_bala`; cross-module consistency test + day/night direction test added (`tests/test_chart_strength.py`).
 - **Priority:** P0 — affects every composite planet `strength_score` product-wide (yogas, house lords, propensities, predictions).
 - **File:** `app/calculations/chart_strength.py`, `_kala_bala_score` (~lines 239–249).
 - **Problem:** `diurnal = {SUN, JUPITER, SATURN}` / `nocturnal = {MOON, MARS, VENUS}`. Classical Nathonnatha rule — confirmed by this repo's own classical engine `shadbala.py:343-360`, which is correct — is:
@@ -60,7 +60,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 - **Ripple:** composite scores shift ±~4–5 points for Venus/Saturn. Expect snapshot/threshold test updates in strength-gated yoga tests, house-lord bands, and possibly propensity fixtures. Update expected values, citing WI-01.
 
 ## WI-02 — Graha Maitri: Mercury→Saturn wrongly marked friend (corrupts Nadi parihara) ✅❌
-- [x] **Status:** DONE (2026-07-16, commit `1f2f3b2`) — data fix (`porutham.py` line 119, `_gr("MERCURY", "SATURN", 0.5, 1.0)`) confirmed live; all remaining acceptance criteria added: the four explicit `_rasi_lords_mutually_friendly(3,10)/(3,11)/(6,10)/(6,11)` assertions, a Kanni×Magaram Nadi-pair regression, and the full 7-graha cross-module consistency test (`porutham._GRAHA_RELATION` vs `chart_strength._NATURAL_FRIENDS`/`_NATURAL_ENEMIES`) in `tests/test_nadi_dosha_v2.py`.
+- [x] **Status:** DONE (2026-07-15, commit `1f2f3b2`) — data fix (`porutham.py` line 119, `_gr("MERCURY", "SATURN", 0.5, 1.0)`) confirmed live; all remaining acceptance criteria added: the four explicit `_rasi_lords_mutually_friendly(3,10)/(3,11)/(6,10)/(6,11)` assertions, a Kanni×Magaram Nadi-pair regression, and the full 7-graha cross-module consistency test (`porutham._GRAHA_RELATION` vs `chart_strength._NATURAL_FRIENDS`/`_NATURAL_ENEMIES`) in `tests/test_nadi_dosha_v2.py`.
 - **Priority:** P0 — issues wrong Nadi Dosha cancellation/mitigation verdicts in marriage matching (A-9 v2 flow).
 - **File:** `app/calculations/porutham.py`, line ~119.
 - **Problem:** `_gr("MERCURY", "SATURN", 1.0, 1.0)`. Per BPHS naisargika maitri, Mercury regards Saturn as **neutral**; only Saturn→Mercury is a friend. Consequence: `_rasi_lords_mutually_friendly()` (requires ≥1.0 both ways) wrongly qualifies Mithunam/Kanni × Magaram/Kumbam Moon-sign pairs, granting a full Nadi cancel (lenient mode) or partial mitigation (strict mode) where classically neither applies. Also contradicts `chart_strength._NATURAL_FRIENDS["MERCURY"] == {SUN, VENUS}` (which is correct).
@@ -97,7 +97,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
   - `SIGN_LORD[new] == SIGN_LORD[old]` for every even-sign degree (proves Saptavargaja invariance) — one parametrized test.
 
 ## WI-04 — Compatibility Navamsa: rasi compared against house sets (category error) ✅❌
-- [x] **Status:** DONE (2026-07-16, commit `0569f84`) — replaced with `_d9_dignified` (own sign or exaltation); regression tests for both the debilitation-in-kendra trap and the own-sign-not-in-kendra false negative.
+- [x] **Status:** DONE (2026-07-15, commit `0569f84`) — replaced with `_d9_dignified` (own sign or exaltation); regression tests for both the debilitation-in-kendra trap and the own-sign-not-in-kendra false negative.
 - **Priority:** P0 — meaningless +3/+3 in the couple's Navamsa score.
 - **File:** `app/calculations/compatibility_intelligence.py`, `_compute_navamsa` (~lines 446–449).
 - **Problem:** `sla_d9` / `slb_d9` are D9 **sign numbers** (1–12) of each person's 7th lord, but are tested with `in (_KENDRAS | _TRIKONAS)` — house sets. The couple gets points whenever the sign happens to be numbered 1/4/5/7/9/10.
@@ -116,7 +116,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 - **Acceptance criteria:** a 7th lord in its D9 debilitation sign numbered 1–10 scores 0 for this component; a 7th lord in own D9 sign scores +3. Update any pinned compatibility fixture scores, citing WI-04.
 
 ## WI-05 — Moon-harmony table inverts classical rasi doctrine ✅❌
-- [x] **Status:** DONE (2026-07-16, commit `0569f84`) — ratified table implemented verbatim; lookup made structurally symmetric (0-indexed fold, not the 1-based-count trap); symmetry verified for all 144 pairs + consistency vs porutham's Shashtashtaka veto.
+- [x] **Status:** DONE (2026-07-15, commit `0569f84`) — ratified table implemented verbatim; lookup made structurally symmetric (0-indexed fold, not the 1-based-count trap); symmetry verified for all 144 pairs + consistency vs porutham's Shashtashtaka veto.
 - **Priority:** P0 — 2/12 (dwirdwadasa) rated EXCELLENT in the original code; 7 (samasaptama) rated TENSE; lookup was also direction-dependent (not symmetric). Contradicts this repo's own porutham rasi logic.
 - **File:** `app/calculations/compatibility_intelligence.py`, `_MOON_HARMONY_TABLE` (~lines 586–594).
 - **Fix (verbatim — Doctrine §10 ratified table, count is inclusive `(a-b) % 12 + 1`):**
@@ -137,7 +137,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 - **Tamil note:** no new Tamil strings needed (labels are enum values).
 
 ## WI-06 — Pushkara Navamsa + Pushkara Bhaga tables are wrong ✅❌
-- [x] **Status:** DONE (2026-07-16, commit `6fe7ad2`) — element-keyed navamsa table + standard bhaga degrees implemented; golden tests added. OQ-3 (printed-source cross-check) still open on the astrologer queue.
+- [x] **Status:** DONE (2026-07-15, commit `6fe7ad2`) — element-keyed navamsa table + standard bhaga degrees implemented; golden tests added. OQ-3 (printed-source cross-check) still open on the astrologer queue.
 - **Priority:** P0 — surfaced in every chart payload via `app/services/_chart_planets.py:110`.
 - **File:** `app/calculations/nakshatra_analysis.py` (`_PUSHKARA_NAVAMSA`, `_PUSHKARA_BHAGA`, `pushkara_check`).
 - **Problem:** current navamsa table has one entry per sign matching no known tradition; classical Pushkara Navamsa assigns **two navamsas per sign by element**. Bhaga degrees diverge from the standard list on 9 of 12 signs.
@@ -182,7 +182,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 - **Migration:** cache version bump handles persisted snapshots. Nothing else stored derives sunrise.
 
 ## WI-08 — Ezharai Sani Murthi: default to ingress-Moon method (Doctrine §3) ✅❌
-- [x] **Status:** DONE (2026-07-16, commit `0948921`) — `classify_ezharai_sani_murthi_ingress` + `find_saturn_ingress_jd` added; both service call sites (`daily_guidance_service.py`, `life_areas_service.py`) switched to the ingress method; pada function kept, documented as regional variant, no longer called from any default path. No API/shared/web/mobile sweep needed (grade only ever feeds composed narrative strings, no standalone field existed). OQ-6 (golden murthi dates) still open on the astrologer queue.
+- [x] **Status:** DONE (2026-07-15, commit `0948921`) — `classify_ezharai_sani_murthi_ingress` + `find_saturn_ingress_jd` added; both service call sites (`daily_guidance_service.py`, `life_areas_service.py`) switched to the ingress method; pada function kept, documented as regional variant, no longer called from any default path. No API/shared/web/mobile sweep needed (grade only ever feeds composed narrative strings, no standalone field existed). OQ-6 (golden murthi dates) still open on the astrologer queue.
 - **Priority:** P1 — launch gate.
 - **Files:** `app/calculations/transits.py` (murthi section, ~lines 189–208) + every consumer of `classify_ezharai_sani_murthi` (grep `ezharai`, `murthi` across `app/`, `packages/shared/`, `web/`, `mobile/`).
 - **Change:**
@@ -203,7 +203,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
   - The pada variant is never returned unlabeled.
 
 ## WI-09 — Jaimini Rahu degree: 30° − advancement; document 8-karaka scheme (Doctrine §4) ✅❌
-- [x] **Status:** DONE (2026-07-16, commit `0cb71aa`) — `_karaka_degree` helper reverses Rahu; docstring updated; T003 regression + tie-break + new Atmakaraka-flip golden test all updated/added. No migration needed (karakas computed per-request from stored longitudes, never persisted themselves).
+- [x] **Status:** DONE (2026-07-15, commit `0cb71aa`) — `_karaka_degree` helper reverses Rahu; docstring updated; T003 regression + tie-break + new Atmakaraka-flip golden test all updated/added. No migration needed (karakas computed per-request from stored longitudes, never persisted themselves).
 - **Priority:** P1 — launch gate. **Do before/with WI-10.**
 - **File:** `app/calculations/jaimini_karakas.py`.
 - **Change:**
@@ -233,7 +233,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 - **Acceptance criteria:** 3 golden sequence tests pass; the old formula is deleted; the "Experimental" label is removed from UI in the same change that ships validated rules.
 
 ## WI-11 — `bhava_chalit.py`: rename to equal-house (Doctrine §6) ✅❌
-- [x] **Status:** DONE (2026-07-16, commits `6834794`+`7d42472`) — full coordinated rename across app/schemas, shared TS types, and the 2 web consumers (no mobile consumer existed) rather than a deprecated-duplicate field, since consumer count was small. tsc/eslint/vitest/pytest all green.
+- [x] **Status:** DONE (2026-07-15, commits `6834794`+`7d42472`) — full coordinated rename across app/schemas, shared TS types, and the 2 web consumers (no mobile consumer existed) rather than a deprecated-duplicate field, since consumer count was small. tsc/eslint/vitest/pytest all green.
 - **Priority:** P1 — launch gate (trust issue). Chosen path: **rename** (minimal); true Sripati is an optional follow-up, not part of this WI.
 - **Change:**
   1. `git mv app/calculations/bhava_chalit.py app/calculations/equal_bhava.py`; function `compute_bhava_chalit` → `compute_equal_bhava` (keep a deprecated alias `compute_bhava_chalit = compute_equal_bhava` for one release if external callers exist).
@@ -273,14 +273,14 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 # PHASE C — Consistency, exemptions, documentation
 
 ## WI-13 — Unify the two Sevvai engines ✅❌
-- [x] **Status:** DONE (2026-07-16, commit `c1c437b`) — `_compute_sevvai` now delegates to `detect_sevvai_dosham`; cross-engine regression test for the Mars-clean-from-Lagna-but-7th-from-Moon disagreement case.
+- [x] **Status:** DONE (2026-07-15, commit `c1c437b`) — `_compute_sevvai` now delegates to `detect_sevvai_dosham`; cross-engine regression test for the Mars-clean-from-Lagna-but-7th-from-Moon disagreement case.
 - **Priority:** P2 — same person can read "dosham" on the Jadhagam card and "no dosham" in the compatibility report.
 - **Files:** `app/calculations/compatibility_intelligence.py` (`_compute_sevvai`, ~line 201) vs `app/calculations/_yoga_dosham.py` (`detect_sevvai_dosham` — the authoritative Tamil-standard engine: Lagna + Moon + Venus references, nivarthi rules).
 - **Fix:** `_compute_sevvai` must delegate to `detect_sevvai_dosham` (build the `planets` rasi map + lagna from the snapshot; map the returned `DoshamResult` onto `SevvaiDoshamDetail`, deriving `score` from `is_present/is_cancelled/strength`). Keep `_apply_mutual_sevvai_cancellation` (equivalently pass `partner_has_sevvai_dosham=True` on the second pass — either, but not both).
 - **Acceptance criteria:** for the same synthetic chart, the compatibility report's `has_dosham/is_cancelled` equals the main engine's `is_present/is_cancelled` — add a cross-engine consistency test with a chart that has Mars clean from Lagna but in the 7th from Moon (previously the disagreement case).
 
 ## WI-14 — Transit Vedha: add classical Sun↔Saturn and Moon↔Mercury exemptions ✅❌
-- [x] **Status:** DONE (2026-07-16, commit `5a25d88`) — `_VEDHA_EXEMPT_PAIRS` added; both-direction tests for each pair + an unrelated-planet-still-blocks control.
+- [x] **Status:** DONE (2026-07-15, commit `5a25d88`) — `_VEDHA_EXEMPT_PAIRS` added; both-direction tests for each pair + an unrelated-planet-still-blocks control.
 - **Priority:** P2.
 - **File:** `app/calculations/transits.py`, `check_vedha` (~line 234).
 - **Fix:**
@@ -293,38 +293,38 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 - **Acceptance criteria:** Saturn occupying Sun's vedha house does NOT cancel Sun's transit benefit (and vice versa); same for Moon/Mercury; an unrelated planet in the same house still does.
 
 ## WI-15 — Sunapha/Anapha/Durudhura: exclude nodes (and Mandhi) ✅❌
-- [x] **Status:** DONE (2026-07-16, commit `4e4e89e`) — exclusion set widened to {SUN,MOON,RAHU,KETU,MANDHI}; lone-Rahu-forms-Kemadruma-not-Sunapha consistency test + Mandhi test added.
+- [x] **Status:** DONE (2026-07-15, commit `4e4e89e`) — exclusion set widened to {SUN,MOON,RAHU,KETU,MANDHI}; lone-Rahu-forms-Kemadruma-not-Sunapha consistency test + Mandhi test added.
 - **Priority:** P2.
 - **File:** `app/calculations/_yoga_detect.py`, `detect_sunapha_anapha_durudhura` (~lines 697–709).
 - **Fix:** exclusion set `{"SUN", "MOON", "RAHU", "KETU", "MANDHI"}` instead of `{"SUN"}` (classical: planets other than the Sun form these; nodes never do; Moon is the reference; Mandhi is an upagraha). Matches Kemadruma's existing exclusions in the same file.
 - **Acceptance criteria:** a lone Rahu in the 2nd from Moon → no Sunapha (and, with nothing else in 2nd/12th, Kemadruma present — assert both together to lock the consistency).
 
 ## WI-16 — Stale Ashtottari note in conditional_dashas docstring ✅❌
-- [x] **Status:** DONE (2026-07-16, commit `43e6d64`) — doc-only, rewritten to describe two different both-correct mechanisms.
+- [x] **Status:** DONE (2026-07-15, commit `43e6d64`) — doc-only, rewritten to describe two different both-correct mechanisms.
 - **Priority:** P2 (doc-only).
 - **File:** `app/calculations/conditional_dashas.py`, module docstring lines ~44–49.
 - **Fix:** the paragraph claiming `ashtottari_dasha.py` uses `(n - 3) % 8` (with a "latent bug") is stale — Ashtottari has used the explicit Ardra-adi `NAK_LORD` table since 2026-07-14 (EC-6). Rewrite that sentence to say the two modules use different, both-correct mechanisms (uniform count-mod-N here; explicit non-uniform table there). No code change.
 
 ## WI-17 — Mean-node documentation + optional true-node toggle (Doctrine §2) ✅❌
-- [x] **Status:** DONE (2026-07-16, commit `4814cce`) — docs/FAQ_COMPARISON_WITH_OTHER_SOFTWARE.md added + ephemeris.py comment. Toggle intentionally NOT built (needs product sign-off).
+- [x] **Status:** DONE (2026-07-15, commit `4814cce`) — docs/FAQ_COMPARISON_WITH_OTHER_SOFTWARE.md added + ephemeris.py comment. Toggle intentionally NOT built (needs product sign-off).
 - **Priority:** P2. Code is already compliant (mean node everywhere, consistent).
 - **Required (small):** add a doc/FAQ note — user-facing help or `docs/` — stating: mean node is the deliberate default per Tamil/Vakya practice; **JHora defaults to TRUE node**, so out-of-box JHora comparisons will show Rahu/Ketu differing up to ~1.5°+, occasionally flipping nakshatra pada (which can shift a Vimshottari start). Add the same caveat to `ephemeris.py`'s Rahu section as a comment.
 - **Optional (separate follow-up, needs product sign-off):** settings toggle for true node + a boundary warning when mean-vs-true changes the Moon's pada. Do NOT build the toggle as part of this WI without explicit approval.
 
 ## WI-18 — Tajaka "Simplified" labeling audit (Doctrine §9) ✅❌
-- [x] **Status:** DONE (2026-07-16, commit `478c8d6`) — audit found a REAL violation (area_outlook scoring consumed itthasala/isarafa) beyond the expected labeling gap; fixed + regression test. Also fixed a pre-existing unrelated TajakaAspect shape mismatch (shared TS type didn't match backend, pairs rendered blank) discovered during the same audit. "Simplified" badge added (new Tamil string, pending native review).
+- [x] **Status:** DONE (2026-07-15, commit `478c8d6`) — audit found a REAL violation (area_outlook scoring consumed itthasala/isarafa) beyond the expected labeling gap; fixed + regression test. Also fixed a pre-existing unrelated TajakaAspect shape mismatch (shared TS type didn't match backend, pairs rendered blank) discovered during the same audit. "Simplified" badge added (new Tamil string, pending native review).
 - **Priority:** P2 (verification, likely tiny).
 - **Task:** confirm (a) no interpretive/scoring layer consumes `itthasala_pairs`/`isarafa_pairs` (grep `app/services/`, `web/`, `mobile/`); (b) wherever they render, the UI label says "Simplified" prominently. Add the label if missing (EN + TA; new Tamil string → flag for native review). Add a comment in `tajaka.py` citing Doctrine §9 with the deferred deeptamsa-orb spec (Sun 15°, Moon 12°, Mars 8°, Mercury 7°, Jupiter 9°, Venus 7°, Saturn 9°) so a future implementer has it in place.
 
 ## WI-19 — Dinam comment/set mismatch: fix the comment ✅❌
-- [x] **Status:** DONE (2026-07-16, commit `1f2f3b2`) — comment in `porutham.py` (already corrected in an earlier session) and the matching stale comment in `tests/test_porutham.py` both now describe the published 12-count set as-is, noting 17/22/27 are deliberately excluded. Set itself unchanged (OQ-2 still pending astrologer confirmation).
+- [x] **Status:** DONE (2026-07-15, commit `1f2f3b2`) — comment in `porutham.py` (already corrected in an earlier session) and the matching stale comment in `tests/test_porutham.py` both now describe the published 12-count set as-is, noting 17/22/27 are deliberately excluded. Set itself unchanged (OQ-2 still pending astrologer confirmation).
 - **Priority:** P2 (doc-only pending OQ-2).
 - **File:** `app/calculations/porutham.py`, lines ~167–175.
 - **Problem:** comment says the good-count set includes "9th/18th/**27th** (Parama Mitra tara)" but `_DINAM_GOOD_COUNTS = {2,4,6,8,9,11,13,15,18,20,24,26}` has no 27 (nor 17/22, which a pure tara-mod-9 rule would include). The 12-count **set matches the widely published Tamil dinam list** and is presumed correct.
 - **Fix:** correct the comment to describe the set as-is ("the published Tamil 12-count dinam table; note this is NOT the pure mod-9 tara rule — 17/22/27 are deliberately excluded"). Do NOT change the set (that is OQ-2, astrologer's call).
 
 ## WI-20 — `_graha_relation` compound friendship rule (Doctrine §11) ✅❌
-- [x] **Status:** DONE (2026-07-16, commit `0569f84`) — implemented per the verbatim fix code + the 3-bullet rule + porutham precedent. **Doc inconsistency found and flagged in the commit message:** this WI's own prose example ("Moon×Mercury... should be neutral") contradicts its own rule/code/precedent, all three of which say "enemy" for that exact pair (porutham._graha_maitri_kuta FAILs it). Implemented as "enemy"; the prose sentence above needs an astrologer/doc-owner amendment.
+- [x] **Status:** DONE (2026-07-15, commit `0569f84`) — implemented per the verbatim fix code + the 3-bullet rule + porutham precedent. **Doc inconsistency found and flagged in the commit message:** this WI's own prose example ("Moon×Mercury... should be neutral") contradicts its own rule/code/precedent, all three of which say "enemy" for that exact pair (porutham._graha_maitri_kuta FAILs it). Implemented as "enemy"; the prose sentence above needs an astrologer/doc-owner amendment.
 - **Priority:** P1 — Level 6 Dasha Harmony verdict text can currently call an inimical pairing "friendly."
 - **File:** `app/calculations/compatibility_intelligence.py`, `_graha_relation` (~lines 55–62).
 - **Problem:** checks `b in _NATURAL_FRIENDS[a] or a in _NATURAL_FRIENDS[b]` **before** checking enmity, so a one-way-friend pairing is labelled "friend" even when the other direction is an enemy. Example: Moon regards Mercury as a friend, but Mercury regards Moon as an enemy (`_NATURAL_ENEMIES["MERCURY"] == {"MOON"}`) — currently resolves to "friend"; should be neutral.
@@ -347,7 +347,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 - **Ripple:** Level 6 Dasha Harmony `harmony_label` and its EN/TA note text may change for any dasha-lord pair that was previously a one-way-friend read as "friend." Update pinned CI fixtures, citing WI-20.
 
 ## WI-21 — Rajju/Vedha veto caps the CI overall label (Doctrine §12) ✅❌
-- [x] **Status:** DONE (2026-07-16, commit `0569f84`) — label hard-capped on Rajju/Vedha; `overall_score` and breakdown unchanged; tested with a stubbed strongest-possible fixture (pre-cap 100) for both Rajju and Vedha, plus a no-veto control. Did not add a separate "Traditional Verdict" text field — the plan's own Web/API sweep note says this is backend-only since `overallLabel` is already rendered/colored by the web panel.
+- [x] **Status:** DONE (2026-07-15, commit `0569f84`) — label hard-capped on Rajju/Vedha; `overall_score` and breakdown unchanged; tested with a stubbed strongest-possible fixture (pre-cap 100) for both Rajju and Vedha, plus a no-veto control. Did not add a separate "Traditional Verdict" text field — the plan's own Web/API sweep note says this is backend-only since `overallLabel` is already rendered/colored by the web panel.
 - **Priority:** P1 — brand-trust issue: a Rajju-dosha couple can currently see "EXCELLENT" as the Compatibility Intelligence headline.
 - **File:** `app/calculations/compatibility_intelligence.py`, `compute_compatibility_intelligence` (~lines 739–758, the overall-label assignment).
 - **Problem:** Porutham is only 20 of the CI report's 100 weighted points; a Rajju/Vedha dosha zeroes that component, but the other 7 levels can still push the weighted total into GOOD/EXCELLENT territory, and the veto is relegated to a single risk bullet rather than shaping the headline verdict.
