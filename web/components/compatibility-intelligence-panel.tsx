@@ -68,6 +68,31 @@ function poruthamLabelBadge(label: string): { bg: string; color: string } {
   return { bg: "var(--cl-rust-soft)", color: W.rust };
 }
 
+// Plain-language meaning of the Level-7 harmony labels, so a reader with no
+// astrology background understands what "TENSE" or "STRONG" actually implies.
+// Moon = how the two people sense/process feelings; Venus = how they express
+// affection and attraction.
+function moonGloss(label: string, en: boolean): string {
+  const map: Record<string, [string, string]> = {
+    EXCELLENT: ["You read each other's moods easily and feel understood.", "ஒருவரை ஒருவர் எளிதில் உணர்ந்து புரிந்துகொள்வீர்கள்."],
+    GOOD: ["Comfortable emotional understanding between you.", "வசதியான உணர்வுப் புரிதல் உள்ளது."],
+    MIXED: ["Your emotional styles differ a little — some tuning-in helps.", "உணர்வுப் பாணிகள் சற்று வேறுபடுகின்றன — கொஞ்சம் ஒத்திசைவு உதவும்."],
+    TENSE: ["You process feelings quite differently — this needs patient, open talk.", "உணர்வுகளை மிகவும் வேறுவிதமாக அணுகுகிறீர்கள் — பொறுமையான, திறந்த உரையாடல் தேவை."],
+  };
+  const pair = map[label] ?? map.MIXED!;
+  return en ? pair[0] : pair[1];
+}
+function venusGloss(label: string, en: boolean): string {
+  const map: Record<string, [string, string]> = {
+    STRONG: ["Warm, easy attraction and shared tastes in affection.", "வெதுவெதுப்பான, எளிதான ஈர்ப்பும் பொதுவான ரசனையும் உள்ளன."],
+    GOOD: ["Affection and romance flow well between you.", "பாசமும் காதலும் நன்றாக வெளிப்படுகின்றன."],
+    MIXED: ["Different love-languages to bridge with small effort.", "வெவ்வேறு அன்பு மொழிகளை சிறு முயற்சியால் இணைக்கலாம்."],
+    TENSE: ["Your romance styles differ — showing love takes conscious effort.", "காதல் பாணிகள் வேறுபடுகின்றன — அன்பைக் காட்ட உணர்வுபூர்வ முயற்சி தேவை."],
+  };
+  const pair = map[label] ?? map.MIXED!;
+  return en ? pair[0] : pair[1];
+}
+
 function ScoreBar({ score, max, label }: { score: number; max: number; label: string }) {
   const pct = max > 0 ? score / max : 0;
   return (
@@ -441,14 +466,34 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
 
       {/* ── Emotional Compatibility ── */}
       <SectionCard title={en ? "Level 7 — Emotional Compatibility" : "நிலை 7 — உணர்வு இணக்கம்"}>
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "10px" }}>
-          <div>
-            <span style={{ fontSize: "0.74rem", color: W.muted, marginRight: "6px" }}>{en ? "Moon harmony:" : "சந்திர இணக்கம்:"}</span>
-            <Badge text={d.emotional.moonMoonHarmony} {...harmonyBadge(d.emotional.moonMoonHarmony)} />
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "12px" }}>
+          {/* Emotional wavelength (Moon) */}
+          <div style={{ background: W.surface, borderRadius: "10px", padding: "12px 14px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "5px" }}>
+              <span style={{ fontSize: "0.8rem", fontWeight: 700, color: W.inkMid }}>
+                {en ? "Emotional wavelength" : "உணர்வுத் தாளம்"}
+              </span>
+              <Badge text={d.emotional.moonMoonHarmony} {...harmonyBadge(d.emotional.moonMoonHarmony)} />
+            </div>
+            <p style={{ margin: 0, fontSize: "0.78rem", color: W.muted, lineHeight: 1.55 }}>
+              {en
+                ? `How you each sense and process feelings (Moon). ${moonGloss(d.emotional.moonMoonHarmony, true)}`
+                : `உணர்வுகளை நீங்கள் எப்படி உணர்ந்து அணுகுகிறீர்கள் (சந்திரன்). ${moonGloss(d.emotional.moonMoonHarmony, false)}`}
+            </p>
           </div>
-          <div>
-            <span style={{ fontSize: "0.74rem", color: W.muted, marginRight: "6px" }}>{en ? "Venus harmony:" : "சுக்கிர இணக்கம்:"}</span>
-            <Badge text={d.emotional.venusMarsHarmony} {...harmonyBadge(d.emotional.venusMarsHarmony)} />
+          {/* Affection & romance (Venus) */}
+          <div style={{ background: W.surface, borderRadius: "10px", padding: "12px 14px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "5px" }}>
+              <span style={{ fontSize: "0.8rem", fontWeight: 700, color: W.inkMid }}>
+                {en ? "Affection & romance style" : "அன்பு & காதல் பாணி"}
+              </span>
+              <Badge text={d.emotional.venusMarsHarmony} {...harmonyBadge(d.emotional.venusMarsHarmony)} />
+            </div>
+            <p style={{ margin: 0, fontSize: "0.78rem", color: W.muted, lineHeight: 1.55 }}>
+              {en
+                ? `How you express love and attraction (Venus). ${venusGloss(d.emotional.venusMarsHarmony, true)}`
+                : `அன்பையும் ஈர்ப்பையும் எப்படி வெளிப்படுத்துகிறீர்கள் (சுக்கிரன்). ${venusGloss(d.emotional.venusMarsHarmony, false)}`}
+            </p>
           </div>
         </div>
         <ScoreBar score={d.emotional.score} max={10} label="" />

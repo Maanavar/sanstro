@@ -211,22 +211,78 @@ def _aspect_between(a: float, b: float) -> tuple[str, float] | None:
     return None
 
 
+# Plain-language meaning for each synastry pair, keyed by the semantic pairing
+# rather than the raw A_/B_ token (which must never reach the UI). Written for a
+# reader with no astrology background: it says what the pairing governs and what
+# a supportive vs. a straining aspect implies for the relationship. The heading
+# in the UI already shows the readable planets + aspect ("Venus ↔ Venus ·
+# conjunction"), so these notes deliberately do not restate the aspect name.
+# Tamil below is written in-script; flag for the standard native-review pass
+# before it is treated as locked (see the Nadi Tamil review convention).
+_PAIR_MEANING: dict[str, dict[str, str]] = {
+    # Venus ↔ Venus — tastes, affection style, what each finds beautiful.
+    "VENUS_VENUS": {
+        "harmony_en": "You're drawn to similar things — tastes, style and the way you each show love feel familiar, so affection comes easily.",
+        "tension_en": "You show love and value pleasures differently — small give-and-take around romance and tastes keeps this warm.",
+        "harmony_ta": "இருவரின் ரசனை, பாணி மற்றும் அன்பு காட்டும் விதம் ஒத்துப்போகிறது — பாசம் இயல்பாக வெளிப்படும்.",
+        "tension_ta": "அன்பு காட்டும் விதமும் விருப்பங்களும் வேறுபடுகின்றன — காதல், ரசனை விஷயங்களில் சிறு சமரசம் இதை இதமாக வைக்கும்.",
+    },
+    # Venus ↔ Mars — romantic and physical chemistry / attraction.
+    "VENUS_MARS": {
+        "harmony_en": "There's natural romantic and physical chemistry here — attraction and desire flow easily between you.",
+        "tension_en": "The attraction is real, but your styles of desire differ — a little patience and pacing lets the spark settle.",
+        "harmony_ta": "இயல்பான காதல் மற்றும் உடல் ஈர்ப்பு உள்ளது — கவர்ச்சியும் விருப்பமும் எளிதாக பாய்கின்றன.",
+        "tension_ta": "ஈர்ப்பு உண்மைதான், ஆனால் விருப்ப வெளிப்பாட்டு பாணி வேறுபடுகிறது — சிறிது பொறுமையும் நிதானமும் இதை சமன்செய்யும்.",
+    },
+    # Moon ↔ Moon — emotional rhythm, feeling understood.
+    "MOON_MOON": {
+        "harmony_en": "Your emotional rhythms are in sync — you tend to feel understood and at ease with one another.",
+        "tension_en": "You process feelings on different wavelengths — saying what you need out loud prevents quiet misreads.",
+        "harmony_ta": "உங்கள் உணர்வுத் தாளம் ஒத்திசைகிறது — ஒருவரை ஒருவர் புரிந்துகொண்டு நிம்மதியாக உணர்வீர்கள்.",
+        "tension_ta": "உணர்வுகளை வெவ்வேறு விதமாக அணுகுகிறீர்கள் — தேவைகளை வெளிப்படையாகச் சொல்வது தவறான புரிதலைத் தவிர்க்கும்.",
+    },
+    # Sun ↔ Moon — one partner's identity nourishing the other's feelings.
+    "SUN_MOON": {
+        "harmony_en": "One partner's sense of self naturally nourishes the other's emotional world — a steadying, supportive fit.",
+        "tension_en": "Identity and emotional needs can pull in different directions here — mutual respect keeps it balanced.",
+        "harmony_ta": "ஒருவரின் ஆளுமை மற்றொருவரின் உணர்வு உலகை இயல்பாக ஊக்குவிக்கிறது — நிலையான, ஆதரவான பொருத்தம்.",
+        "tension_ta": "ஆளுமையும் உணர்வுத் தேவைகளும் வெவ்வேறு திசையில் இழுக்கலாம் — பரஸ்பர மரியாதை சமநிலையைக் காக்கும்.",
+    },
+}
+
+
+def _pair_meaning_key(pair: str) -> str:
+    """Map a raw synastry pair token (e.g. 'A_VENUS-B_MARS') to its semantic key,
+    order-independent so 'A_SUN-B_MOON' and 'B_SUN-A_MOON' share one meaning."""
+    planets = frozenset(tok.split("_", 1)[1] for tok in pair.split("-"))
+    if planets == {"VENUS"}:
+        return "VENUS_VENUS"
+    if planets == {"MOON"}:
+        return "MOON_MOON"
+    if planets == {"VENUS", "MARS"}:
+        return "VENUS_MARS"
+    if planets == {"SUN", "MOON"}:
+        return "SUN_MOON"
+    return "MOON_MOON"  # defensive fallback; every current check maps above
+
+
 def _aspect_eval(pair: str, a: float, b: float) -> _AspectEval | None:
     out = _aspect_between(a, b)
     if out is None:
         return None
     aspect, orb = out
 
+    meaning = _PAIR_MEANING[_pair_meaning_key(pair)]
     if aspect in {"conjunction", "trine", "sextile"}:
         tone = "harmony"
         delta = 8 if aspect != "sextile" else 5
-        note_en = f"{pair} shows {aspect} support; this is traditionally associated with smoother understanding."
-        note_ta = f"{pair} il {aspect} support kaanappadugiradhu; idhu inakkamaana puridhaludan traditionally associated."
+        note_en = meaning["harmony_en"]
+        note_ta = meaning["harmony_ta"]
     else:
         tone = "tension"
         delta = -7 if aspect == "square" else -5
-        note_en = f"{pair} shows {aspect} pressure; this is traditionally associated with differences needing patience."
-        note_ta = f"{pair} il {aspect} pressure kaanappadugiradhu; idhu porumai thevaiana vithyasangaludan traditionally associated."
+        note_en = meaning["tension_en"]
+        note_ta = meaning["tension_ta"]
 
     return _AspectEval(
         pair=pair,
