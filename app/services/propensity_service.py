@@ -13,6 +13,7 @@ from datetime import date
 
 from app.calculations import propensities as P
 from app.calculations.propensities import PlanetView, PropensityChartInput, Signals, _Reader
+from app.core.age_gate import is_married_settled
 from app.reasoning.verdict import Band
 from app.services.life_area_prediction_models import BiText
 from app.services.propensity_models import (
@@ -61,6 +62,17 @@ class _Spec:
     disclaimer: BiText | None = None
     show_support_resources: bool = False
     timing: _TimingSpec | None = None
+    # Life-context gates. A suppressed card is dropped from the bundle entirely
+    # (not a deferred stub) — these are "no longer / not your situation", not a
+    # "come back at the right age".
+    #   married → the marriage-TIMING cards + the new-romance (Bhava-5) chance
+    #     stop applying; the section speaks through married-life harmony instead
+    #     (mirrors the Ask-Vinaadi and life-areas married-mode gates).
+    #   retired → the cards that presuppose an active job / career striving stop
+    #     applying (a second-innings venture, skills, and network still can, so
+    #     those stay on).
+    suppress_when_married: bool = False
+    suppress_when_retired: bool = False
 
 
 # ── Registry — the 13 propensities, order = display order ────────────────────
@@ -69,7 +81,8 @@ _REGISTRY: list[_Spec] = [
     _Spec("love", Cat.RELATIONSHIPS, Tier.CHANCE,
           BiText("காதல் / அன்பு வாய்ப்பு", "Love & romance"),
           BiText("காதல் வாய்ப்பு", "the chance of romance"),
-          P.eval_love, age_min=15, timing=_TimingSpec(house=5, karaka="VENUS")),
+          P.eval_love, age_min=15, timing=_TimingSpec(house=5, karaka="VENUS"),
+          suppress_when_married=True),
     _Spec("relationship_strain", Cat.RELATIONSHIPS, Tier.CAUTION,
           BiText("உறவு அழுத்த காலங்கள்", "Relationship-strain seasons"),
           BiText("உறவில் அழுத்தம்", "strain in close bonds"),
@@ -78,26 +91,33 @@ _REGISTRY: list[_Spec] = [
     _Spec("higher_education", Cat.EDUCATION, Tier.CHANCE,
           BiText("உயர் கல்வி வாய்ப்பு", "Higher-education chances"),
           BiText("உயர் கல்வி", "higher education"),
-          P.eval_higher_education, timing=_TimingSpec(house=9, karaka="JUPITER")),
+          P.eval_higher_education, age_max=45, timing=_TimingSpec(house=9, karaka="JUPITER")),
     _Spec("dropout_risk", Cat.EDUCATION, Tier.CAUTION,
           BiText("படிப்பு தொடர்ச்சி கவனம்", "Study-continuity watch"),
           BiText("படிப்பை முடிப்பது", "completing formal study"),
           P.eval_dropout_risk, age_max=35,
           disclaimer=DISCLAIMER_STUDY_CONTINUITY),
+    _Spec("degree_interruption_watch", Cat.EDUCATION, Tier.CAUTION,
+          BiText("பட்டப்படிப்பு தொடர்ச்சி கவனம்", "Degree-interruption watch"),
+          BiText("பட்டப்படிப்பை முடிப்பது", "completing your degree"),
+          P.eval_degree_interruption, age_min=17, age_max=40,
+          disclaimer=DISCLAIMER_STUDY_CONTINUITY,
+          timing=_TimingSpec(house=9, karaka="JUPITER")),
     _Spec("career_mode", Cat.CAREER, Tier.CHANCE,
           BiText("தொழில் இயல்பு: சொந்த vs வேலை", "Work style: enterprise vs salaried"),
           BiText("உங்கள் தொழில் இயல்பு", "your natural work style"),
-          P.eval_career_mode, age_min=16),
+          P.eval_career_mode, age_min=16, suppress_when_retired=True),
     _Spec("government_job", Cat.CAREER, Tier.CHANCE,
           BiText("அரசு வேலை வாய்ப்பு", "Government-service chances"),
           BiText("அரசு வேலை", "a government-service path"),
-          P.eval_government_job, age_min=16, timing=_TimingSpec(house=10, karaka="SUN")),
+          P.eval_government_job, age_min=16, timing=_TimingSpec(house=10, karaka="SUN"),
+          suppress_when_retired=True),
     _Spec("job_disruption", Cat.CAREER, Tier.CAUTION,
           BiText("தொழில் மாற்ற கவனம்", "Career-transition watch"),
           BiText("வேலை நிலைத்தன்மை", "work steadiness"),
           P.eval_job_loss, age_min=18,
           disclaimer=DISCLAIMER_CAREER_FORESIGHT,
-          timing=_TimingSpec(house=10, karaka="SATURN")),
+          timing=_TimingSpec(house=10, karaka="SATURN"), suppress_when_retired=True),
     _Spec("child_timing", Cat.WELLBEING, Tier.CAUTION,
           BiText("குழந்தை பேறு நேரம்", "Timing of children"),
           BiText("குழந்தை பேறு நேரம்", "the timing of children"),
@@ -164,7 +184,7 @@ _REGISTRY: list[_Spec] = [
     _Spec("competitive_edge", Cat.CAREER, Tier.CHANCE,
           BiText("போட்டி / தேர்வு வாய்ப்பு", "Competitive-exam / rivalry edge"),
           BiText("போட்டித் தேர்வு", "competitive exams and contests"),
-          P.eval_competitive_edge, age_min=16),
+          P.eval_competitive_edge, age_min=16, suppress_when_retired=True),
     _Spec("swabhava_profile", Cat.WELLBEING, Tier.PROFILE,
           BiText("இயல்பு சுயவிவரம் (ஸ்வபாவம்)", "Temperament profile (Swabhava)"),
           BiText("உங்கள் இயல்பு", "your natural temperament"),
@@ -177,7 +197,8 @@ _REGISTRY: list[_Spec] = [
     _Spec("promotion_recognition", Cat.CAREER, Tier.CHANCE,
           BiText("பதவி உயர்வு / அங்கீகார வாய்ப்பு", "Promotion & recognition chances"),
           BiText("பதவி உயர்வு", "career recognition"),
-          P.eval_promotion_recognition, age_min=18, timing=_TimingSpec(house=11, karaka="SUN")),
+          P.eval_promotion_recognition, age_min=18, timing=_TimingSpec(house=11, karaka="SUN"),
+          suppress_when_retired=True),
     _Spec("entrepreneurial_timing", Cat.CAREER, Tier.CHANCE,
           BiText("புதிய தொழில் தொடங்கும் நேரம்", "Timing to start a venture"),
           BiText("தொழில் தொடக்க நேரம்", "the timing to launch a venture"),
@@ -186,7 +207,8 @@ _REGISTRY: list[_Spec] = [
           BiText("பணியிட மோதல் கவனம்", "Workplace-conflict watch"),
           BiText("பணியிட உறவுகள்", "workplace relationships"),
           P.eval_workplace_conflict, age_min=18,
-          disclaimer=DISCLAIMER_CAREER_FORESIGHT, timing=_TimingSpec(house=6, karaka="MARS")),
+          disclaimer=DISCLAIMER_CAREER_FORESIGHT, timing=_TimingSpec(house=6, karaka="MARS"),
+          suppress_when_retired=True),
     _Spec("skill_mastery", Cat.CAREER, Tier.CHANCE,
           BiText("திறமை தேர்ச்சி வாய்ப்பு", "Skill-mastery chances"),
           BiText("திறமை தேர்ச்சி", "mastering a skill"),
@@ -198,7 +220,8 @@ _REGISTRY: list[_Spec] = [
     _Spec("career_change_success", Cat.CAREER, Tier.CHANCE,
           BiText("தொழில் மாற்ற வெற்றி வாய்ப்பு", "Career-pivot success chances"),
           BiText("தொழில் மாற்றம்", "a career pivot"),
-          P.eval_career_change_success, age_min=21, timing=_TimingSpec(house=9, karaka="JUPITER")),
+          P.eval_career_change_success, age_min=21, timing=_TimingSpec(house=9, karaka="JUPITER"),
+          suppress_when_retired=True),
     _Spec("property_acquisition", Cat.WEALTH, Tier.CHANCE,
           BiText("சொத்து சேர்க்கை வாய்ப்பு", "Property-acquisition chances"),
           BiText("சொத்து சேர்க்கை", "acquiring property"),
@@ -223,12 +246,12 @@ _REGISTRY: list[_Spec] = [
           BiText("சரியான காலத்தில் திருமண வாய்ப்பு", "Timely-marriage chances"),
           BiText("திருமண நேரம்", "the timing of marriage"),
           P.eval_early_marriage_readiness, age_min=18, age_max=49,
-          timing=_TimingSpec(house=7, karaka="VENUS")),
+          timing=_TimingSpec(house=7, karaka="VENUS"), suppress_when_married=True),
     _Spec("marriage_delay_watch", Cat.MARRIAGE, Tier.CAUTION,
           BiText("திருமண தாமத கவனம்", "Marriage-delay watch"),
           BiText("திருமண நேரம்", "the timing of marriage"),
           P.eval_marriage_delay_watch, age_min=18, age_max=49,
-          disclaimer=DISCLAIMER_RELATIONSHIP_TENDENCY),
+          disclaimer=DISCLAIMER_RELATIONSHIP_TENDENCY, suppress_when_married=True),
     _Spec("spousal_support_strength", Cat.MARRIAGE, Tier.CHANCE,
           BiText("துணையின் தொழில் ஆதரவு", "Spousal career support"),
           BiText("துணையின் ஆதரவு", "support from your partner"),
@@ -453,13 +476,27 @@ def assess_propensities(
     as_of: date | None = None,
     is_minor: bool = False,
     prefers_reduced_sensitive_content: bool = False,
+    marital_status: str | None = None,
+    employment_type: str | None = None,
 ) -> PropensityBundle:
     reader = _Reader(chart_input)
     age = chart_input.age
     results: list[PropensityResult] = []
     hard_suppress_sensitive = is_minor or prefers_reduced_sensitive_content
+    married = is_married_settled(marital_status)
+    retired = (employment_type or "").strip().lower() == "retired"
 
     for spec in _REGISTRY:
+        # Life-context suppression — drop cards that no longer describe this
+        # native's situation. A settled marriage retires the marriage-timing +
+        # new-romance cards (the Marriage section still speaks through harmony /
+        # partnership / spousal support); retirement retires the active-job
+        # cards (a venture, skills, and network still can apply, so they stay).
+        if married and spec.suppress_when_married:
+            continue
+        if retired and spec.suppress_when_retired:
+            continue
+
         deferred = age < spec.age_min or age > spec.age_max
         deferred_reason = None
         if deferred:

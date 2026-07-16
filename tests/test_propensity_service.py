@@ -65,11 +65,12 @@ def _base() -> dict[str, PlanetView]:
     }
 
 
-def test_returns_all_forty_cards():
+def test_returns_all_cards():
     bundle = assess_propensities(_mk(_base()))
-    assert len(bundle.results) == 40
+    assert len(bundle.results) == 41
     keys = {r.key for r in bundle.results}
     assert {"love", "higher_education", "government_job", "emotional_load", "resilience_watch"} <= keys
+    assert "degree_interruption_watch" in keys
     # Phase 3
     assert {
         "marriage_harmony", "business_partnership_fit", "foreign_settlement",
@@ -699,3 +700,91 @@ def test_marriage_delay_watch_flags_seventh_lord_in_dusthana():
     delay = next(r for r in bundle.results if r.key == "marriage_delay_watch")
     assert delay.tier is PropensityTier.CAUTION
     assert delay.level in {"WATCHFUL", "EXTRA_CARE"}
+
+
+# ── Marital-status gating: married → drop the marriage-TIMING cards ───────────
+
+def test_married_drops_marriage_timing_and_romance_but_keeps_harmony():
+    """A settled marriage retires the two marriage-TIMING cards AND the Bhava-5
+    new-romance chance (an "affair-chance" card is wrong for a married native),
+    while the harmony / partnership / spousal-support cards stay."""
+    bundle = assess_propensities(_mk(_base()), marital_status="married")
+    keys = {r.key for r in bundle.results}
+    assert "early_marriage_readiness" not in keys
+    assert "marriage_delay_watch" not in keys
+    assert "love" not in keys
+    # The relationship story still speaks — harmony, partnership, spousal support,
+    # and the general strain-watch (which applies to any bond).
+    assert {"marriage_harmony", "business_partnership_fit",
+            "spousal_support_strength", "relationship_strain"} <= keys
+
+
+def test_retired_drops_active_job_cards_but_keeps_venture_and_skills():
+    """Retirement retires the cards that presuppose an ongoing job/career
+    striving, while a second-innings venture, skill-mastery, and networking —
+    which retirees genuinely pursue — stay on."""
+    bundle = assess_propensities(_mk(_base(), age=63), employment_type="retired")
+    keys = {r.key for r in bundle.results}
+    dropped = {"career_mode", "government_job", "job_disruption", "competitive_edge",
+               "promotion_recognition", "workplace_conflict", "career_change_success"}
+    assert dropped.isdisjoint(keys)
+    assert {"entrepreneurial_timing", "skill_mastery", "career_networking_influence"} <= keys
+
+
+def test_non_retired_keeps_all_career_cards():
+    bundle = assess_propensities(_mk(_base()), employment_type="employed_salaried")
+    keys = {r.key for r in bundle.results}
+    assert {"career_mode", "government_job", "job_disruption",
+            "promotion_recognition", "workplace_conflict"} <= keys
+
+
+def test_higher_education_capped_for_seniors():
+    """higher_education now carries an age_max (45) so a 70-year-old sees it
+    soft-deferred, not as a live 'higher-education chance'."""
+    card = next(r for r in assess_propensities(_mk(_base(), age=70)).results
+                if r.key == "higher_education")
+    assert card.deferred is True
+
+
+@pytest.mark.parametrize("status", [None, "single", "divorced", "widowed", "breakup"])
+def test_non_married_statuses_keep_marriage_timing_cards(status):
+    """Only an active marriage gates the timing cards — single keeps them, and
+    divorced/widowed/breakup are seeking marriage again, so they keep them too."""
+    bundle = assess_propensities(_mk(_base()), marital_status=status)
+    keys = {r.key for r in bundle.results}
+    assert {"early_marriage_readiness", "marriage_delay_watch"} <= keys
+
+
+# ── Degree-interruption (higher-education continuity) ─────────────────────────
+
+def test_degree_interruption_is_education_caution_with_disclaimer():
+    card = next(r for r in assess_propensities(_mk(_base())).results
+                if r.key == "degree_interruption_watch")
+    assert card.category.value == "EDUCATION"
+    assert card.tier is PropensityTier.CAUTION
+    assert card.disclaimer is not None
+
+
+def test_degree_interruption_flags_afflicted_ninth():
+    """Malefics loading the 9th house of higher study (Saturn there, Rahu there)
+    with the vidya-karaka Jupiter also pressured is the classic degree-
+    discontinuity signature — it must surface, never stay silent (D3)."""
+    planets = _base()
+    # Lagna=1 (Mesha) → 9th house is rasi 9 (Dhanus). Load it with malefics and
+    # pressure Jupiter so the higher-study path reads as at-risk.
+    planets["SATURN"] = PlanetView(rasi=9, house=9, d9_rasi=9, strength=35)
+    planets["RAHU"] = PlanetView(rasi=9, house=9, d9_rasi=9, strength=40)
+    planets["JUPITER"] = PlanetView(rasi=6, house=6, d9_rasi=6, strength=30)  # dusthana → afflicted
+    card = next(r for r in assess_propensities(_mk(planets)).results
+                if r.key == "degree_interruption_watch")
+    assert card.level in {"WATCHFUL", "EXTRA_CARE"}
+
+
+def test_degree_interruption_stays_calm_on_a_protected_ninth():
+    """A strong, benefic-supported 9th with a strong Jupiter should not
+    manufacture a caution — a clean higher-study path reads STEADY/QUIET."""
+    planets = _base()
+    planets["JUPITER"] = PlanetView(rasi=9, house=9, d9_rasi=9, strength=80)  # benefic in the 9th, strong
+    card = next(r for r in assess_propensities(_mk(planets)).results
+                if r.key == "degree_interruption_watch")
+    assert card.level in {"STEADY", "QUIET"}

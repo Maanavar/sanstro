@@ -539,6 +539,56 @@ def eval_dropout_risk(r: _Reader) -> Signals:
     return s
 
 
+def eval_degree_interruption(r: _Reader) -> Signals:
+    """Bhava 9 (higher learning / a degree) continuity — the higher-education
+    mirror of `eval_dropout_risk`, which reads Bhava 4 (formal schooling). This
+    reads the 9th house of advanced study, its lord, and Jupiter (the vidya-karaka
+    for higher learning), plus the classical discontinuity signatures — Rahu/Ketu
+    scattering or redirecting the course, Saturn stalling it — that most often sit
+    behind a paused, switched, or abandoned degree. Corroborated by D24."""
+    s = Signals()
+    ninth_lord = r.lord_of(9)
+    ninth_lord_h = r.house_of(ninth_lord)
+    if r.malefic_hits(9) and not r.benefic_hits(9):
+        s.caution("ninth_malefic", "9ஆம் வீடு (உயர்படிப்பு/பட்டம்) பாப தாக்கம் — படிப்பு இடையூறு வாய்ப்பு.",
+                  "Malefic pressure on the 9th house of a degree can interrupt higher study.")
+    if ninth_lord_h is not None and ninth_lord_h in DUSTHANA:
+        s.caution("ninth_lord_dusthana", "9ஆம் அதிபதி கஷ்ட வீட்டில் — பட்டப்படிப்பில் தடை.",
+                  "The 9th lord sits in a difficult house — the degree path can stall.")
+    if "RAHU" in r.occupants(9) or "KETU" in r.occupants(9):
+        s.caution("node_ninth", "ராகு/கேது 9ல் — கவனச்சிதறல் அல்லது திசைமாற்றம்.",
+                  "Rahu/Ketu in the 9th can scatter focus or redirect the course midway.")
+    if "SATURN" in r.occupants(9) or r.aspects_house("SATURN", 9):
+        s.caution("saturn_ninth", "சனி தாக்கம் 9ல் — தாமதம்/இடைநிறுத்தம் சாத்தியம்.",
+                  "Saturn touching the 9th can bring delay or a pause in the degree.")
+    if r.is_afflicted("JUPITER"):
+        s.caution("jupiter_afflicted", "குரு (வித்யா காரகன்) அழுத்தத்தில்.",
+                  "Jupiter, the karaka of higher learning, is under pressure.")
+    if r.is_strong(ninth_lord) or r.benefic_hits(9):
+        s.support("ninth_protected", "9ஆம் வீடு பாதுகாப்பில் — படிப்பு தொடர்ந்து முடியும்.",
+                  "The 9th house is protected — the degree runs through to completion.")
+    if r.is_strong("JUPITER"):
+        s.support("jupiter_sustains", "குரு வலு — படிப்பை முடிக்கும் விடாமுயற்சி.",
+                  "A strong Jupiter sustains the resolve to see the degree through.")
+    # D24 (Chaturvimsamsa) — the education varga corroborates the continuity read.
+    if s.has_signal:
+        vote = r.varga_domain_vote("D24", {9}, ("JUPITER",))
+        if vote == "SUPPORT":
+            s.support("d24_confirms", "D24 (சதுர்விம்சாம்சம்) படிப்பு தொடர்ச்சியை ஆதரிக்கிறது.",
+                      "The D24 education chart supports finishing the degree.")
+        elif vote == "CAUTION":
+            s.caution("d24_softens", "D24 (சதுர்விம்சாம்சம்) — கூடுதல் விடாமுயற்சி தேவை என்கிறது.",
+                      "The D24 education chart asks for extra diligence to the finish.")
+    if r.dasha_touches({"JUPITER", ninth_lord}) and (r.malefic_hits(9) or r.is_afflicted("JUPITER")):
+        s.window = BiText("குரு/9 அதிபதி தசையில் படிப்பு தொடர்ச்சியில் கவனம் தேவை.",
+                          "Watch study continuity through this Jupiter/9th-lord period.")
+    s.help("பாடத்திட்டத்தை சிறு கட்டங்களாகப் பிரித்து, வழிகாட்டியுடன் தொடர்பில் இருங்கள்.",
+           "Break the syllabus into stages and stay in touch with a mentor or advisor.")
+    s.help("இடைவேளை தேவைப்பட்டால், முழுமையாக விலகுவதற்குப் பதிலாக முறையான இடைநிறுத்தத்தை (deferral) பரிசீலிக்கவும்.",
+           "If a break becomes necessary, a formal deferral beats dropping out outright.")
+    return s
+
+
 def eval_career_mode(r: _Reader) -> Signals:
     """One verdict spanning entrepreneur-fit vs salaried-fit.
 

@@ -426,7 +426,7 @@ def get_propensities(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not available.")
 
     on_date = as_of or date.today()
-    snapshot, _planets_rasi, active_dasha_lords, transit, age, life_stage, _emp, _mar, relationship, timeline = _load_chart_context(
+    snapshot, _planets_rasi, active_dasha_lords, transit, age, life_stage, employment_type, marital_status, relationship, timeline = _load_chart_context(
         session, chart_id, current_user, on_date
     )
 
@@ -483,6 +483,8 @@ def get_propensities(
         as_of=on_date,
         is_minor=is_minor_age(age),
         prefers_reduced_sensitive_content=prefers_reduced_sensitive_content,
+        marital_status=marital_status,
+        employment_type=employment_type,
     )
 
     return PropensityBundleOut(

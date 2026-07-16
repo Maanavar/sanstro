@@ -212,11 +212,16 @@ def test_propensities_endpoint_flag_gated_and_shape(client, birth_profile_payloa
     body = resp.json()
     assert body["success"] is True
     results = body["results"]
-    assert len(results) == 40
+    # 41 for an unmarried adult: the full set incl. the higher-education
+    # degree-interruption card and both marriage-TIMING cards.
+    assert len(results) == 41
 
     keys = {r["key"] for r in results}
     assert {"love", "higher_education", "government_job", "emotional_load"} <= keys
     assert {"marriage_harmony", "foreign_settlement", "income_growth", "swabhava_profile"} <= keys
+    assert "degree_interruption_watch" in keys
+    # Unmarried → the marriage-TIMING cards are present.
+    assert {"early_marriage_readiness", "marriage_delay_watch"} <= keys
     cats = {r["category"] for r in results}
     assert cats == {
         "RELATIONSHIPS", "EDUCATION", "CAREER", "WELLBEING",
@@ -241,3 +246,26 @@ def test_propensities_endpoint_flag_gated_and_shape(client, birth_profile_payloa
     load = next(r for r in results if r["key"] == "emotional_load")
     assert load["disclaimer"] is not None
     assert load["showSupportResources"] is True
+
+
+def test_propensities_married_profile_drops_marriage_timing_cards(client, birth_profile_payload_factory):
+    """End-to-end: a married profile's bundle omits the marriage-TIMING cards
+    (they don't even appear as deferred stubs) while keeping married-life
+    harmony — proving the marital_status gate is wired predictions → service."""
+    chart_id = _create_chart(
+        client,
+        _prediction_birth_profile_payload(
+            birth_profile_payload_factory,
+            birth_date_local="1990-03-15",
+            marital_status="married",
+        ),
+    )
+    resp = client.get(
+        f"/api/v1/charts/{chart_id}/propensities", params={"asOf": "2026-05-24"}
+    )
+    assert resp.status_code == 200
+    keys = {r["key"] for r in resp.json()["results"]}
+    assert "early_marriage_readiness" not in keys
+    assert "marriage_delay_watch" not in keys
+    assert "love" not in keys
+    assert "marriage_harmony" in keys
