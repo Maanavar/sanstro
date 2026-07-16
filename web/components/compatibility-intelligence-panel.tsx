@@ -58,6 +58,16 @@ function harmonyBadge(label: string): { bg: string; color: string } {
   return { bg: "var(--cl-rust-soft)", color: W.rust };
 }
 
+// Porutham verdict badge tones keyed on the label itself — the engine forces
+// CAUTION on a Rajju/Vedha veto even at 9/10, so colouring this badge by
+// percentage could render a green "CAUTION" (2026-07 porutham audit).
+function poruthamLabelBadge(label: string): { bg: string; color: string } {
+  if (label === "EXCELLENT") return { bg: "var(--cl-sage-10)", color: W.sage };
+  if (label === "GOOD") return { bg: "var(--cl-brand-fill)", color: W.gold };
+  if (label === "AVERAGE") return { bg: "var(--cl-brand-fill)", color: W.terracotta };
+  return { bg: "var(--cl-rust-soft)", color: W.rust };
+}
+
 function ScoreBar({ score, max, label }: { score: number; max: number; label: string }) {
   const pct = max > 0 ? score / max : 0;
   return (
@@ -316,7 +326,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
             <span style={{ fontSize: "2rem", fontWeight: 700, color: scoreColor(poruthamPct) }}>{d.poruthamScore}</span>
             <span style={{ fontSize: "0.9rem", color: W.muted }}>/{d.poruthamMax}</span>
           </div>
-          <Badge text={d.poruthamLabel} color={scoreColor(poruthamPct)} bg={`${scoreColor(poruthamPct)}18`} />
+          <Badge text={d.poruthamLabel} {...poruthamLabelBadge(d.poruthamLabel)} />
           {d.rajjuDosha && <Badge text={en ? "⚠ Rajju Dosha" : "⚠ ரஜ்ஜு தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
           {d.vedhaDosha && <Badge text={en ? "⚠ Vedha Dosha" : "⚠ வேத தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
           {d.nadiDosha.hasNadiDosha && <Badge text={en ? "⚠ Nadi Dosha" : "⚠ நாடி தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}

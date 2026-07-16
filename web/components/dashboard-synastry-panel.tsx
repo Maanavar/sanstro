@@ -1,18 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
-import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
+import { readErrorMessage } from "@/lib/api";
 import { t, tLang, tPlanetLord } from "@/lib/i18n";
+import { verdictPhrase } from "@/lib/verdict-lexicon";
 import { ConfidenceBadge } from "./dashboard-ui";
 import { NavamsaChart, RasiChart } from "./dashboard-charts";
 import { CompatibilityIntelligencePanel } from "./compatibility-intelligence-panel";
-import { getRelationshipSynastry } from "@vinaadi/shared/api/relationships";
+import { compareSynastry, compareCharts } from "@vinaadi/shared/api/relationships";
 import type { Lang } from "@/lib/i18n";
-import type { SynastryData } from "@vinaadi/shared/api/relationships";
+import type { DirectSynastryData } from "@vinaadi/shared/api/relationships";
 import type {
-  ApiEnvelope,
   ChartCalculateResponseData,
-  PorutthamData,
+  DirectPoruthamData,
   RelationshipAlertItem,
 } from "@/lib/types";
 
@@ -73,8 +73,12 @@ type PoruthamMeta = { labelEn: string; labelTa: string; checksEn: string; checks
 const PORUTHAM_META: Record<string, PoruthamMeta> = {
   "Dinam":        { labelEn: "Dinam",                       labelTa: "தினம்",                      checksEn: "Daily harmony and day-star compatibility",          checksTa: "நாள் தோறும் ஒத்திசைவு மற்றும் தின நட்சத்திர பொருத்தம்", weight: "Medium" },
   "Ganam":        { labelEn: "Ganam",                       labelTa: "கணம்",                       checksEn: "Temperament match (Deva/Manushya/Rakshasa nature)",  checksTa: "இயல்பு பொருத்தம் (தேவ/மனுஷ்ய/ராக்ஷச குணம்)",             weight: "High" },
-  "Mahendra":     { labelEn: "Mahendra",                    labelTa: "மகேந்திரம்",                checksEn: "Longevity and prosperity support",                   checksTa: "இணை வாழ்க்கை நீட்சி மற்றும் வளர்ச்சி ஆதரம்",            weight: "High" },
-  "Stree Dirgha": { labelEn: "Stree Dheergam",              labelTa: "ஸ்த்ரீ தீர்கம்",           checksEn: "Traditional spouse longevity indication",            checksTa: "பாரம்பரியமாக துணைவர் ஆயுள் குறியீடு",                     weight: "High" },
+  // Meanings below follow the classical assignments (and the Tools tab's
+  // KUTA_GOVERNS): Mahendra governs progeny/lineage and Stree Dirgham the
+  // bride's long-term prosperity — longevity of the bond is Rajju's domain.
+  // The earlier "longevity" wording on both rows was off (2026-07 audit).
+  "Mahendra":     { labelEn: "Mahendra",                    labelTa: "மகேந்திரம்",                checksEn: "Progeny, lineage and protective support",            checksTa: "சந்ததி வளர்ச்சி மற்றும் பாதுகாப்பு ஆதரவு",               weight: "High" },
+  "Stree Dirgha": { labelEn: "Stree Dheergam",              labelTa: "ஸ்த்ரீ தீர்கம்",           checksEn: "The bride's long-term prosperity and wellbeing",     checksTa: "மணமகளின் நீண்டகால செழுமை மற்றும் நலன்",                  weight: "High" },
   "Yoni":         { labelEn: "Yoni",                        labelTa: "யோனி",                       checksEn: "Physical and emotional intimacy compatibility",      checksTa: "உடல்/உணர்வு நெருக்கம் பொருத்தம்",                        weight: "Medium" },
   "Rasi":         { labelEn: "Rasi",                        labelTa: "ராசி",                       checksEn: "General sign-level compatibility",                   checksTa: "பொதுவான ராசி அடிப்படையிலான பொருத்தம்",                   weight: "High" },
   "Graha Maitri": { labelEn: "Rasiyathipam (Graha Maitri)", labelTa: "ராசியதிபதி (கிரக மைத்திரி)", checksEn: "Rasi-lord friendship and mutual support",           checksTa: "ராசி அதிபதிகளின் நட்பு மற்றும் ஒத்துழைப்பு",              weight: "Medium" },
@@ -254,14 +258,14 @@ export function SynastryPanel({
 
   /* Compatibility state */
   const [compatMemberId, setCompatMemberId]     = useState("");
-  const [synastry, setSynastry]                 = useState<SynastryData | null>(null);
+  const [synastry, setSynastry]                 = useState<DirectSynastryData | null>(null);
   const [compatLoading, setCompatLoading]       = useState(false);
   const [compatError, setCompatError]           = useState("");
   const [kattamView, setKattamView]             = useState<"D1" | "D9">("D1");
 
   /* Porutham state */
   const [poruthamMemberId, setPoruthamMemberId] = useState("");
-  const [porutham, setPorutham]                 = useState<PorutthamData | null>(null);
+  const [porutham, setPorutham]                 = useState<DirectPoruthamData | null>(null);
   const [poruthamLoading, setPoruthamLoading]   = useState(false);
   const [poruthamError, setPoruthamError]       = useState("");
   const [poruthamContext, setPoruthamContext]   = useState("GENERAL");
@@ -271,14 +275,24 @@ export function SynastryPanel({
   const compatMemberChart = memberCharts.find((m) => m.memberId === compatMemberId)?.chart ?? null;
   const poruthamMemberChart = memberCharts.find((m) => m.memberId === poruthamMemberId)?.chart ?? null;
 
+  // Pin both scores to the SAME two charts the rest of the dashboard shows —
+  // the owner's active chart (this panel's `chartId`) and the member's loaded
+  // chart — via the direct compare endpoints. The older per-member vault
+  // endpoints resolved "the owner's chart" a different way (the "self"
+  // family-member's latest chart), so the same pair could score e.g. 43 here and
+  // 54 in the Family-bonds card. Routing every surface through the pinned charts
+  // makes a given pair show one consistent number everywhere.
+  const ownerChartId = ownerChart?.chartId ?? chartId;
+
   async function loadSynastry(memberId: string) {
-    if (!memberId || !chartId) return;
+    const memberChart = memberCharts.find((m) => m.memberId === memberId)?.chart ?? null;
+    if (!memberId || !ownerChartId || !memberChart) return;
     setCompatMemberId(memberId);
     setSynastry(null);
     setCompatError("");
     setCompatLoading(true);
     try {
-      const r = await getRelationshipSynastry(memberId, familyVaultId);
+      const r = await compareSynastry(ownerChartId, memberChart.chartId);
       setSynastry(r.data);
     } catch (err) {
       setCompatError(readErrorMessage(err));
@@ -288,16 +302,15 @@ export function SynastryPanel({
   }
 
   async function loadPorutham(memberId: string, context: string) {
-    if (!memberId || !familyVaultId) return;
+    const memberChart = memberCharts.find((m) => m.memberId === memberId)?.chart ?? null;
+    if (!memberId || !ownerChartId || !memberChart) return;
     setPoruthamMemberId(memberId);
     setPorutham(null);
     setPoruthamError("");
     setShowCiReport(false);
     setPoruthamLoading(true);
     try {
-      const r = await apiFetchJson<ApiEnvelope<PorutthamData>>(
-        `/api/v1/relationships/${memberId}/porutham${toQuery({ familyVaultId, compatibilityContext: context })}`
-      );
+      const r = await compareCharts(ownerChartId, memberChart.chartId, context);
       setPorutham(r.data);
     } catch (err) {
       setPoruthamError(readErrorMessage(err));
@@ -647,7 +660,7 @@ export function SynastryPanel({
                         <span style={{ fontSize: "1.125rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>/{porutham.maxScore}</span>
                       </p>
                       <p style={{ margin: "var(--space-1) 0 0", fontSize: "0.75rem", color: "var(--color-faint)" }}>
-                        {porutham.label} · {porutham.percentage.toFixed(0)}%
+                        {(verdictPhrase("porutham", porutham.label, lang) ?? porutham.label)} · {porutham.percentage.toFixed(0)}%
                       </p>
                       {(porutham.rajjuDosha || porutham.vedhaDosha) && (
                         <div style={{ marginTop: "var(--space-2)", display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { t } from "@/lib/i18n";
+import { verdictPhrase } from "@/lib/verdict-lexicon";
 import type { Lang } from "@/lib/i18n";
 import type { ChartCalculateResponseData, ChartDoshamInsight, DirectPoruthamData, KutaResult } from "@/lib/types";
 
@@ -83,14 +84,21 @@ function contextLabel(ctx: CompatContext, lang: Lang): string {
 // (e.g. "Vedha" vs "Vethai") still resolve; unmatched rows just show no
 // governs text rather than a guess.
 const KUTA_GOVERNS: { match: string; critical?: boolean; en: string; ta: string }[] = [
+  // match strings are substrings of the backend kuta names (compute_porutham:
+  // "Dinam", "Ganam", "Mahendra", "Stree Dirgha", "Yoni", "Rasi",
+  // "Graha Maitri", "Vasya", "Rajju", "Vedha") — the earlier "sthree"/
+  // "deergh"/"rasi athipathi"/"vasiyam" spellings matched none of them, so
+  // those three rows silently showed no governs text (2026-07 porutham audit).
   { match: "dinam", en: "Health & daily wellbeing", ta: "ஆரோக்கியம்" },
   { match: "ganam", en: "Temperament match", ta: "குணநலன் பொருத்தம்" },
   { match: "mahendra", en: "Progeny & lineage", ta: "சந்ததி" },
-  { match: "sthree", en: "The bride's prosperity", ta: "மனைவியின் செழுமை" },
-  { match: "deergh", en: "The bride's prosperity", ta: "மனைவியின் செழுமை" },
+  { match: "stree", en: "The bride's prosperity", ta: "மனைவியின் செழுமை" },
+  { match: "dirgha", en: "The bride's prosperity", ta: "மனைவியின் செழுமை" },
   { match: "yoni", en: "Physical harmony", ta: "உடல் இணக்கம்" },
-  { match: "rasi athipathi", en: "Friendship of sign lords", ta: "ராசி அதிபதி நட்பு" },
+  { match: "maitri", en: "Friendship of sign lords", ta: "ராசி அதிபதி நட்பு" },
+  { match: "athipathi", en: "Friendship of sign lords", ta: "ராசி அதிபதி நட்பு" },
   { match: "rasi", en: "Growth of the family", ta: "குடும்ப வளர்ச்சி" },
+  { match: "vasya", en: "Mutual attraction", ta: "பரஸ்பர ஈர்ப்பு" },
   { match: "vasiyam", en: "Mutual attraction", ta: "பரஸ்பர ஈர்ப்பு" },
   { match: "rajju", critical: true, en: "Longevity of the bond", ta: "பந்த ஆயுள்" },
   { match: "vethai", critical: true, en: "Freedom from affliction", ta: "பாதிப்பு இன்மை" },
@@ -263,8 +271,11 @@ export function NovaPoruthamPanel({
   }
 
   const pct = porutham ? porutham.totalScore / Math.max(1, porutham.maxScore) : 0;
-  const scoreTone = pct >= 0.7 ? "var(--color-high)" : pct >= 0.45 ? "var(--color-mid)" : "var(--color-low)";
-  const scoreToneBand = pct >= 0.7 ? "high" : pct >= 0.45 ? "mid" : "low";
+  // A Rajju/Vedha veto is inauspicious regardless of the numeric score — the
+  // dial and verdict chip must not read green just because 9/10 kutas passed.
+  const criticalFail = porutham ? porutham.rajjuDosha || porutham.vedhaDosha : false;
+  const scoreTone = criticalFail ? "var(--color-low)" : pct >= 0.7 ? "var(--color-high)" : pct >= 0.45 ? "var(--color-mid)" : "var(--color-low)";
+  const scoreToneBand = criticalFail ? "low" : pct >= 0.7 ? "high" : pct >= 0.45 ? "mid" : "low";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
@@ -308,7 +319,18 @@ export function NovaPoruthamPanel({
             )}
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: accent }}>
-                {which === "A" ? (lang === "ta" ? "நபர் 1" : "Person 1") : (lang === "ta" ? "நபர் 2" : "Person 2")}
+                {/* /public/compare carries no gender, so the engine always
+                    counts Person 1 as the boy and Person 2 as the girl for the
+                    direction-sensitive poruthams (Dinam, Mahendra, Stree
+                    Dirgham) — say so in the MARRIAGE context instead of the
+                    neutral "Person 1/2" that invites entering the bride first. */}
+                {which === "A"
+                  ? (compatCtx === "MARRIAGE"
+                      ? (lang === "ta" ? "♂ மணமகன் — நபர் 1" : "♂ Groom — Person 1")
+                      : (lang === "ta" ? "நபர் 1" : "Person 1"))
+                  : (compatCtx === "MARRIAGE"
+                      ? (lang === "ta" ? "♀ மணமகள் — நபர் 2" : "♀ Bride — Person 2")
+                      : (lang === "ta" ? "நபர் 2" : "Person 2"))}
               </p>
               <Field label={lang === "ta" ? "பெயர்" : "Name"}>
                 <input style={novaFieldStyle} value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder={lang === "ta" ? "பெயர் உள்ளிடவும்" : "Enter name"} />
@@ -372,7 +394,12 @@ export function NovaPoruthamPanel({
                   </div>
                 </div>
                 <span style={{ fontSize: "11px", fontWeight: 700, color: scoreTone, background: `${scoreTone}22`, border: `1px solid ${scoreTone}55`, borderRadius: "999px", padding: "4px 12px" }}>
-                  {porutham.label}
+                  {/* Same verdict wording as the marketing calculator: shared
+                      lexicon phrase, and the marriage-critical override text
+                      verbatim from PoruthamTool.tsx's verdictLabel. */}
+                  {criticalFail && compatCtx === "MARRIAGE"
+                    ? (lang === "ta" ? "தோஷம் — தவிர்க்கவும்" : "Dosham - Avoid")
+                    : (verdictPhrase("porutham", porutham.label, lang) ?? porutham.label)}
                 </span>
               </div>
               <div style={{ flex: "1", minWidth: "260px", display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -451,9 +478,12 @@ export function NovaPoruthamPanel({
                 })}
               </div>
               <p style={{ margin: "4px 0 0", fontSize: "11px", color: "var(--color-faint)", fontStyle: "italic", borderTop: "1px solid var(--color-border)", paddingTop: "10px" }}>
+                {/* The engine is strict pass/fail (1 point per porutham, no
+                    half scores) — the earlier "partial matches score half"
+                    copy misdescribed the calculation (2026-07 audit). */}
                 {lang === "ta"
-                  ? "பகுதி பொருத்தங்கள் பாதி மதிப்பெண் பெறுகின்றன. இது குடும்பங்களுக்கிடையேயான உரையாடலுக்கான வழிகாட்டி — கட்டாய நிபந்தனை அல்ல."
-                  : "Partial matches score half. A porutham is guidance for conversation between families — not a gate."}
+                  ? "ஒவ்வொரு பொருத்தமும் பொருந்தும்/பொருந்தாது என்ற நேரடிச் சோதனை — தலா ஒரு மதிப்பெண். இது குடும்பங்களுக்கிடையேயான உரையாடலுக்கான வழிகாட்டி — கட்டாய நிபந்தனை அல்ல."
+                  : "Each porutham is a strict pass/fail check — one point each. A porutham is guidance for conversation between families — not a gate."}
               </p>
             </div>
 

@@ -1,5 +1,5 @@
 import { getApiClient } from "./client";
-import type { BiText } from "../types";
+import type { BiText, DirectPoruthamData } from "../types";
 
 export interface SynastryAspect {
   pair: string;
@@ -58,4 +58,22 @@ export function compareSynastry(
     chartIdA,
     chartIdB,
   }) as Promise<{ success: boolean; data: DirectSynastryData }>;
+}
+
+/** Porutham for any two charts the current user owns, pinned to explicit chart
+ * IDs. Every relationship surface (Porutham sub-tab, the Compatibility
+ * Intelligence report, family bonds) should score the SAME two charts through
+ * this path so a given pair shows one consistent number instead of diverging by
+ * which "owner chart" each surface happened to resolve. Backend: POST
+ * /relationships/compare. */
+export function compareCharts(
+  chartIdA: string,
+  chartIdB: string,
+  compatibilityContext = "GENERAL",
+): Promise<{ success: boolean; data: DirectPoruthamData }> {
+  return getApiClient().post("/relationships/compare", {
+    chartIdA,
+    chartIdB,
+    compatibilityContext,
+  }) as Promise<{ success: boolean; data: DirectPoruthamData }>;
 }

@@ -512,11 +512,15 @@ _CONTEXT_NOTE: dict[str, dict[str, str]] = {
 
 
 def _label_for_percentage(percentage: float) -> str:
-    if percentage >= 80:
+    # Mirrors compute_porutham's rungs (9/7/5 out of 10 → 90/70/50%) so a
+    # context-masked subset never grades more generously than the engine —
+    # the old 80/60/40 rungs read 8/10 as EXCELLENT while the engine (and the
+    # by-star marketing tool) call it GOOD (2026-07 porutham audit).
+    if percentage >= 90:
         return "EXCELLENT"
-    if percentage >= 60:
+    if percentage >= 70:
         return "GOOD"
-    if percentage >= 40:
+    if percentage >= 50:
         return "AVERAGE"
     return "CAUTION"
 
@@ -530,9 +534,22 @@ def _contextualize_porutham_result(result, compatibility_context: str) -> dict[s
     total_score = sum(k.score for k in selected)
     max_score = sum(k.max_score for k in selected)
     percentage = round((total_score / max_score) * 100, 1) if max_score > 0 else 0.0
-    label = _label_for_percentage(percentage)
     rajju_dosha = any(k.name == "Rajju" and k.score == 0 for k in selected)
     vedha_dosha = any(k.name == "Vedha" and k.score == 0 for k in selected)
+    if compatibility_context == "MARRIAGE":
+        # All 10 kutas are selected, so the engine's label — including the A-4
+        # Rajju/Vedha → CAUTION veto downgrade — is authoritative. Re-deriving
+        # it from percentage here is what let a Rajju-dosha match read
+        # EXCELLENT on dashboard surfaces while the by-star marketing tool
+        # correctly said CAUTION (2026-07 porutham audit).
+        label = result.label
+    else:
+        label = _label_for_percentage(percentage)
+        # A failed veto kuta that this context evaluates (Vedha in
+        # FRIENDSHIP/FAMILY; both in none of the masked contexts today carry
+        # Rajju) caps the label the same way the engine does for MARRIAGE.
+        if rajju_dosha or vedha_dosha:
+            label = "CAUTION"
 
     if compatibility_context == "MARRIAGE":
         summary = RelationshipBiText(ta=result.summary_ta, en=result.summary_en)
