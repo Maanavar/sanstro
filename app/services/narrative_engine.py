@@ -390,8 +390,13 @@ _TRANSIT_QUALITY: dict[str, dict[int, BiText]] = {
     },
     "SATURN": {
         **{h: _bi("சனி சாதகமான இடத்தில்", "Saturn transit is favourable") for h in (3, 6, 11)},
-        **{h: _bi("சனி கஷ்டமான இடத்தில் — ஜன்ம சனி / அஷ்டம சனி கவனம்",
-                  "Saturn transit is challenging — watch Janma Sani / Ashtama Sani") for h in (1, 4, 8, 12)},
+        # Generic on purpose: houses 1/4/8/12 each map to a *different* Sani
+        # cycle (1=Janma, 4=Ardhashtama, 8=Ashtama), so naming a fixed pair
+        # here mislabelled the other houses (e.g. an Ardhashtama native saw
+        # "watch Janma Sani / Ashtama Sani"). The actual running cycle is
+        # appended authoritatively from _SANI_CYCLE_WARN in gochar_reason, so
+        # this line stays cycle-agnostic — symmetric with Jupiter's above.
+        **{h: _bi("சனி கஷ்டமான இடத்தில்", "Saturn transit is challenging") for h in (1, 4, 8, 12)},
     },
 }
 
