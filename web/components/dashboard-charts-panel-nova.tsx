@@ -346,6 +346,11 @@ export function DashboardChartsPanelNova({
             {charaDasha && (
               <CollapsibleSection title={lang === "ta" ? "ஜைமினி சார தசை" : "Jaimini Chara Dasha"} defaultOpen={false}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", paddingTop: "var(--space-2)" }}>
+                  <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)" }}>
+                    {lang === "ta"
+                      ? "வெளியிடப்பட்ட BPHS/ஜைமினி மூலங்களிலிருந்து பெறப்பட்டது — JHora அல்லது வேறு குறிப்பு மென்பொருளுடன் சரிபார்க்கப்படவில்லை."
+                      : "Derived from published BPHS/Jaimini sources — not cross-checked against JHora or another reference chart software."}
+                  </p>
                   {charaDasha.currentPeriod && (
                     <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)" }}>
                       <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-high)", textTransform: "uppercase", letterSpacing: "0.08em" }}>

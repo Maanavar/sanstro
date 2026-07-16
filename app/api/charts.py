@@ -318,12 +318,15 @@ def get_chara_dasha(
     lagna_rasi = resolve_rasi(chart.lagna_rasi)
     birth_date = birth_profile.birth_date_local
 
-    periods = calculate_chara_dasha(lagna_rasi, planet_rasi_map, birth_date)
-    current = current_chara_dasha(lagna_rasi, planet_rasi_map, birth_date)
+    # planet_longitudes feeds the Scorpio/Aquarius co-lord degree tiebreak
+    # (WI-10) below, ahead of its other use for Chara Karakas/Karakamsa.
+    planet_longitudes = {p.graha: float(p.absolute_longitude) for p in planets}
+
+    periods = calculate_chara_dasha(lagna_rasi, planet_rasi_map, birth_date, planet_longitudes)
+    current = current_chara_dasha(lagna_rasi, planet_rasi_map, birth_date, planet_longitudes=planet_longitudes)
 
     # Jaimini Chara Karakas + Karakamsa (BPHS Ch. 32) — see jaimini_karakas.py for
     # the documented Rahu/tie-break conventions. Naturally pairs with Chara Dasha.
-    planet_longitudes = {p.graha: float(p.absolute_longitude) for p in planets}
     d9_rasi_map = {p.graha: resolve_rasi(p.d9_rasi) for p in planets if p.d9_rasi}
     char_karakas = compute_char_karakas(planet_longitudes)
     atmakaraka = char_karakas.get("ATMAKARAKA")

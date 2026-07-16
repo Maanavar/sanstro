@@ -374,6 +374,11 @@ export default function DashaScreen() {
           refreshControl={<RefreshControl refreshing={charaLoading} onRefresh={charaRefetch} tintColor={C.saffron} />}
           ListHeaderComponent={
             <>
+              <Text style={[styles.subPrediction, isTamil ? TamilType.caption : EnType.caption, { marginBottom: S.sm }]}>
+                {isTamil
+                  ? "வெளியிடப்பட்ட BPHS/ஜைமினி மூலங்களிலிருந்து பெறப்பட்டது — JHora அல்லது வேறு குறிப்பு மென்பொருளுடன் சரிபார்க்கப்படவில்லை."
+                  : "Derived from published BPHS/Jaimini sources — not cross-checked against JHora or another reference chart software."}
+              </Text>
               {cd.atmakaraka && (
                 <View style={styles.karakaCard}>
                   <View style={styles.karakaRow}>
