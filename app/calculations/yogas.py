@@ -14,7 +14,6 @@ from app.calculations.functional_nature import get_functional_nature
 
 # ── Re-export everything from sub-modules so callers don't need to change ──────
 from app.calculations._yoga_helpers import (
-    EXTENDED_SEVVAI_HOUSES,
     FEMALE_HIGH_ATTENTION_SEVVAI_HOUSES,
     HOUSE_SIGN_NIVARTHI,
     KADAGAM_SIMMAM_LAGNA_EXCEPTION,
@@ -95,7 +94,6 @@ def detect_yogas_and_doshams(
     *,
     active_lords: Iterable[str] | None = None,
     current_maha_lord: str | None = None,
-    sevvai_mode: str = "tamil_standard",
     gender: str | None = None,
     partner_has_sevvai_dosham: bool = False,
     combust_planets: frozenset[str] = frozenset(),
@@ -259,7 +257,6 @@ def detect_yogas_and_doshams(
         detect_sevvai_dosham(
             planets,
             lagna_rasi,
-            sevvai_mode=sevvai_mode,
             gender=gender,
             partner_has_sevvai_dosham=partner_has_sevvai_dosham,
             active_lords=active_lords,

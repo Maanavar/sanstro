@@ -128,7 +128,7 @@ def test_sevvai_tamil_mode_treats_first_house_as_dosham():
         "RAHU": 11,
         "KETU": 5,
     }
-    result = detect_sevvai_dosham(planets, lagna_rasi=1, sevvai_mode="tamil_standard")
+    result = detect_sevvai_dosham(planets, lagna_rasi=1)
     assert result.is_present is True
 
 
@@ -145,12 +145,15 @@ def test_sevvai_tamil_mode_no_dosham_when_mars_in_neutral_house():
         "RAHU": 2,
         "KETU": 8,
     }
-    result = detect_sevvai_dosham(planets, lagna_rasi=1, sevvai_mode="tamil_standard")
+    result = detect_sevvai_dosham(planets, lagna_rasi=1)
     assert result.is_present is False
     assert result.label == "NO_SEVVAI_DOSHAM"
 
 
-def test_sevvai_extended_mode_treats_first_house_as_candidate():
+def test_sevvai_standard_mode_treats_first_house_as_candidate():
+    # OQ-4/A-5 (2026-07-16): house 1 is part of the single Tamil-standard set,
+    # not a separate "extended" mode — the dead extended_manglik mode was
+    # removed since no authentic source ever differentiated it.
     planets = {
         "SUN": 3,
         "MOON": 4,
@@ -162,7 +165,7 @@ def test_sevvai_extended_mode_treats_first_house_as_candidate():
         "RAHU": 11,
         "KETU": 5,
     }
-    result = detect_sevvai_dosham(planets, lagna_rasi=1, sevvai_mode="extended_manglik")
+    result = detect_sevvai_dosham(planets, lagna_rasi=1)
     assert result.is_present is True
     assert result.label in {"ACTIVE_SEVVAI_DOSHAM", "STRONG_ACTIVE_SEVVAI_DOSHAM", "SEVVAI_DOSHAM_WITH_NIVARTHI"}
 

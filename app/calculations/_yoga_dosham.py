@@ -7,7 +7,6 @@ from app.calculations.aspects import aspects_house
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import EXALTATION_RASI, OWN_SIGN_RASI, SIGN_LORD
 from app.calculations._yoga_helpers import (
-    EXTENDED_SEVVAI_HOUSES,
     FEMALE_HIGH_ATTENTION_SEVVAI_HOUSES,
     HOUSE_SIGN_NIVARTHI,
     KADAGAM_SIMMAM_LAGNA_EXCEPTION,
@@ -59,7 +58,6 @@ def detect_sevvai_dosham(
     planets: Mapping[str, PlanetInput],
     lagna_rasi: int,
     *,
-    sevvai_mode: str = "tamil_standard",
     gender: str | None = None,
     partner_has_sevvai_dosham: bool = False,
     active_lords: Iterable[str] | None = None,
@@ -103,20 +101,19 @@ def detect_sevvai_dosham(
     venus_rasi = _planet_rasi(planets, "VENUS")
     conditions_met: list[str] = []
     severity_notes: list[str] = []
-    sevvai_houses = EXTENDED_SEVVAI_HOUSES if sevvai_mode == "extended_manglik" else TAMIL_SEVVAI_HOUSES
     house_hits: dict[str, int] = {}
 
     lagna_house = house_from_reference(lagna_rasi, mars_rasi)
     moon_house = house_from_reference(moon_rasi, mars_rasi)
     venus_house = house_from_reference(venus_rasi, mars_rasi)
 
-    if lagna_house in sevvai_houses:
+    if lagna_house in TAMIL_SEVVAI_HOUSES:
         conditions_met.append("from_lagna")
         house_hits["from_lagna"] = lagna_house
-    if moon_house in sevvai_houses:
+    if moon_house in TAMIL_SEVVAI_HOUSES:
         conditions_met.append("from_moon")
         house_hits["from_moon"] = moon_house
-    if venus_house in sevvai_houses:
+    if venus_house in TAMIL_SEVVAI_HOUSES:
         conditions_met.append("from_venus")
         house_hits["from_venus"] = venus_house
 

@@ -22,11 +22,6 @@ TRIKONA_HOUSES = {1, 5, 9}
 # references (Mars in 1,2,4,7,8,12 from Lagna/Moon/Venus) as the standard
 # Tamil house set, including the 1st house — see docs/SEVVAIRAGU.MD §4.1.
 TAMIL_SEVVAI_HOUSES = {1, 2, 4, 7, 8, 12}
-# Intentionally identical to TAMIL_SEVVAI_HOUSES for now — no authentic source
-# was found describing what should differentiate "extended manglik" from the
-# Tamil standard set above. Placeholder pending a real ruling rather than a
-# guessed house list; open question tracked in docs/ASTROLOGER_REVIEW_QUEUE.md.
-EXTENDED_SEVVAI_HOUSES = {1, 2, 4, 7, 8, 12}
 RAHU_KETU_MARRIAGE_HOUSES = {1, 2, 7, 8}
 RAHU_KETU_SARPA_HOUSES = {5, 9}
 SEVEN_PLANETS = ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN")
