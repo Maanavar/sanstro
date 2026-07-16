@@ -18,7 +18,6 @@ def test_ashubha_nitya_yogas_block_subha_muhurtham(yoga_name: str) -> None:
         "ROHINI",
         yoga_name,
         weekday_index=0,
-        abhijit_restricted=False,
     )
 
     assert is_subha is False
@@ -33,7 +32,6 @@ def test_variyana_is_the_matching_subha_nitya_yoga_spelling() -> None:
         "ROHINI",
         "VARIYANA",
         weekday_index=0,
-        abhijit_restricted=False,
     )
 
     assert is_subha is True

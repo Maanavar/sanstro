@@ -141,6 +141,7 @@ def _build_festivals(
             tamil_month_index=tamil_month_index,
             special_tithi_day_number=snapshot.special_tithi_day_number,
             pradhosham_tithi_number=snapshot.pradhosham_tithi_number or None,
+            nishita_tithi_number=snapshot.nishita_tithi_number or None,
             tamil_day_of_month=tamil_day_of_month,
             previous_day_tithi_number=previous_day_snapshot.tithi_number if previous_day_snapshot else None,
             previous_day_tithi_paksha=previous_day_snapshot.tithi_paksha if previous_day_snapshot else None,
@@ -399,7 +400,6 @@ def build_monthly_panchangam(query: PanchangamMonthlyQuery, session: Session | N
             governing_nakshatra_name,
             governing_yoga_name,
             date_local.weekday(),
-            snapshot.abhijit_restricted,
         )
 
         tamil_date = _build_tamil_date(snapshot)

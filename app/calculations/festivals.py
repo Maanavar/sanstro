@@ -221,6 +221,7 @@ def _recurring_tithi_festivals(
     tamil_month_index: int | None,
     special_tithi_day_number: int | None,
     pradhosham_tithi_number: int | None = None,
+    nishita_tithi_number: int | None = None,
     tamil_day_of_month: int | None = None,
     previous_day_tithi_number: int | None = None,
     previous_day_tithi_paksha: str | None = None,
@@ -234,6 +235,10 @@ def _recurring_tithi_festivals(
     Pradhosam is the exception: it is a twilight/sunset vrata, so it is dated from
     ``pradhosham_tithi_number`` (the tithi at pradhosha-kalam), falling back to the
     sunrise tithi only when that is unavailable (issue #10).
+
+    Sivarathiri is likewise a nishita (midnight) vrata, dated from
+    ``nishita_tithi_number`` (the tithi at nishita-kalam), falling back to the
+    sunrise tithi only when that is unavailable (M-2).
 
     ``previous_day_tithi_number``/``previous_day_tithi_paksha`` (WI-12) are the
     prior civil day's own sunrise tithi/paksha — needed only for the Ekadashi
@@ -302,9 +307,13 @@ def _recurring_tithi_festivals(
             if tamil_month_index == _MONTH_AAVANI:
                 results.append({"name": "Vinayagar Chaturthi", "category": "hindu"})
 
-    # Sashti — 6th tithi, Shukla paksha (Skanda Sashti tradition).
+    # Sashti — 6th tithi, Shukla paksha (Skanda Sashti tradition). The Aippasi
+    # occurrence is the flagship Skanda Sashti (L-13) — Tamil users search for
+    # it by that name, not the generic "Sashti".
     if tithi_in_paksha == 6 and tithi_paksha == "SHUKLA":
         results.append({"name": "Sashti", "category": "hindu"})
+        if tamil_month_index == _MONTH_AIPPASI:
+            results.append({"name": "Skanda Sashti", "category": "hindu"})
 
     # Theipirai Ashtami — 8th tithi, Krishna paksha (waning-fortnight Ashtami).
     # Aavani + Krishna Ashtami is additionally Krishna Jayanthi. Simplification
@@ -318,10 +327,16 @@ def _recurring_tithi_festivals(
         if tamil_month_index == _MONTH_AAVANI:
             results.append({"name": "Krishna Jayanthi", "category": "hindu"})
 
-    # Sivarathiri — 14th tithi, Krishna paksha, in the Tamil month of Maasi.
+    # Sivarathiri — 14th tithi, Krishna paksha, in the Tamil month of Maasi,
+    # judged at nishita-kalam (local midnight), not the sunrise tithi (M-2):
+    # Krishna Chaturdashi is defined by the tithi prevailing at midnight, and
+    # on the true vrata day the sunrise tithi is usually still Trayodashi.
+    nishita_tithi = nishita_tithi_number or tithi_number
+    nishita_in_paksha = nishita_tithi if nishita_tithi <= 15 else nishita_tithi - 15
+    nishita_paksha = "SHUKLA" if nishita_tithi <= 15 else "KRISHNA"
     if (
-        tithi_in_paksha == 14
-        and tithi_paksha == "KRISHNA"
+        nishita_in_paksha == 14
+        and nishita_paksha == "KRISHNA"
         and tamil_month_index == _MONTH_MAASI
     ):
         results.append({"name": "Sivarathiri", "category": "hindu"})
@@ -351,10 +366,19 @@ def _recurring_tithi_festivals(
             results.append({"name": "Maasi Magam", "category": "hindu"})
         if tamil_month_index == _MONTH_PANGUNI and nk_upper == "UTHIRAM":
             results.append({"name": "Panguni Uthiram", "category": "hindu"})
-        # Karthigai Deepam — Karthigai month, Krithigai nakshatra, near the
-        # full moon (the "full-moon proximity" doctrine calls for).
-        if tamil_month_index == _MONTH_KARTHIGAI and nk_upper == "KARTHIGAI":
-            results.append({"name": "Karthigai Deepam", "category": "hindu"})
+
+    # Karthigai Deepam — nakshatra-anchored (L-14): the classical rule is the
+    # Krittika day of the Karthigai month, with full-moon proximity merely
+    # descriptive, not a hard requirement. The previous pournami-dominant-day
+    # AND-gate silently dropped the festival in kshaya years where Krittika's
+    # governing sunrise didn't land on the same civil day as the dominant
+    # Pournami tithi. Known, accepted edge case: on the rare month where
+    # Krittika's ~day-long span covers two consecutive sunrises, both days
+    # label Karthigai Deepam rather than picking one via cross-day state this
+    # per-day function doesn't have (same class of simplification as the
+    # Ashtami/Rohini tie-break noted above).
+    if tamil_month_index == _MONTH_KARTHIGAI and nk_upper == "KARTHIGAI":
+        results.append({"name": "Karthigai Deepam", "category": "hindu"})
 
     if special_tithi_day_number == 30 and tamil_month_index == _MONTH_PURATTASI:
         results.append({"name": "Mahalaya Amavasai", "category": "hindu"})
@@ -389,6 +413,7 @@ def get_festivals_for_date(
     tamil_month_index: int | None = None,
     special_tithi_day_number: int | None = None,
     pradhosham_tithi_number: int | None = None,
+    nishita_tithi_number: int | None = None,
     tamil_day_of_month: int | None = None,
     previous_day_tithi_number: int | None = None,
     previous_day_tithi_paksha: str | None = None,
@@ -430,6 +455,7 @@ def get_festivals_for_date(
             tamil_month_index,
             special_tithi_day_number,
             pradhosham_tithi_number,
+            nishita_tithi_number,
             tamil_day_of_month,
             previous_day_tithi_number,
             previous_day_tithi_paksha,

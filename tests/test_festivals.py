@@ -59,6 +59,8 @@ from app.calculations.festivals import get_festivals_for_date
 from app.calculations.panchangam import calculate_daily_panchangam
 from app.calculations.tamil_calendar import tamil_solar_date
 
+pytestmark = pytest.mark.no_db
+
 CHENNAI = (13.0827, 80.2707, "Asia/Kolkata")
 
 # The 24 dates that were hardcoded as Ekadashi in _YEARLY_FESTIVALS[2026]
@@ -91,6 +93,7 @@ def _festival_names_for(d: date, *, previous_day: date | None = None) -> set[str
         tamil_month_index=tamil_month_index,
         special_tithi_day_number=snap.special_tithi_day_number,
         pradhosham_tithi_number=snap.pradhosham_tithi_number or None,
+        nishita_tithi_number=snap.nishita_tithi_number or None,
         tamil_day_of_month=tamil_day_of_month,
         previous_day_tithi_number=prev_snap.tithi_number if prev_snap else None,
         previous_day_tithi_paksha=prev_snap.tithi_paksha if prev_snap else None,
@@ -183,6 +186,37 @@ def test_karthigai_deepam() -> None:
     assert "Karthigai Deepam" in _festival_names_for(date(2026, 11, 24))
 
 
+def test_l13_aippasi_shukla_sashti_is_named_skanda_sashti() -> None:
+    from app.calculations.festivals import _MONTH_AIPPASI, _recurring_tithi_festivals
+
+    results = _recurring_tithi_festivals(6, "SHUKLA", "ROHINI", "MONDAY", _MONTH_AIPPASI, None)
+    names = {r["name"] for r in results}
+    assert "Sashti" in names
+    assert "Skanda Sashti" in names
+
+
+def test_l13_non_aippasi_shukla_sashti_stays_generic() -> None:
+    from app.calculations.festivals import _MONTH_VAIKASI, _recurring_tithi_festivals
+
+    results = _recurring_tithi_festivals(6, "SHUKLA", "ROHINI", "MONDAY", _MONTH_VAIKASI, None)
+    names = {r["name"] for r in results}
+    assert "Sashti" in names
+    assert "Skanda Sashti" not in names
+
+
+def test_l14_karthigai_deepam_fires_on_nakshatra_alone_even_off_pournami_day() -> None:
+    """L-14: previously required special_tithi_day_number == 15 (the
+    pournami-dominant civil day) in addition to Krittika nakshatra — the
+    fix re-anchors on the nakshatra alone (with pournami no longer a hard
+    gate), fixing the kshaya-year silent-skip regression."""
+    from app.calculations.festivals import _MONTH_KARTHIGAI, _recurring_tithi_festivals
+
+    # special_tithi_day_number=10 (NOT the pournami-dominant day) — under the
+    # old AND-gate this would never fire.
+    results = _recurring_tithi_festivals(1, "SHUKLA", "KARTHIGAI", "MONDAY", _MONTH_KARTHIGAI, 10)
+    assert any(r["name"] == "Karthigai Deepam" for r in results)
+
+
 def test_sankatahara_chaturthi_fires_every_krishna_chaturthi_not_only_tuesday() -> None:
     """WI-12 fix: previously only the Tuesday occurrence was labeled at all."""
     from app.calculations.festivals import _recurring_tithi_festivals
@@ -202,6 +236,17 @@ def test_karthigai_vratam_nakshatra_spelling_fixed() -> None:
 
     assert "KARTHIGAI" in _NAKSHATRA_FESTIVALS
     assert "KRITHIGAI" not in _NAKSHATRA_FESTIVALS
+
+
+def test_sivarathiri_2026_matches_nishita_not_sunrise_tithi() -> None:
+    """M-2: Sivarathiri (Krishna Chaturdashi) is a nishita (midnight) vrata,
+    not a sunrise-tithi one. Astrologer-curated docs/calendar_categories_2026.py
+    has "Maha Sivarathiri" on 2026-02-15; the old sunrise-tithi rule instead
+    fires a day late, on 2026-02-16 (verified: sunrise tithi on 02-15 is still
+    Trayodashi/13, only reaching Chaturdashi/14 at 02-16's sunrise, while the
+    nishita tithi already reads Chaturdashi/14 on 02-15's midnight)."""
+    assert "Sivarathiri" in _festival_names_for(date(2026, 2, 15))
+    assert "Sivarathiri" not in _festival_names_for(date(2026, 2, 16))
 
 
 def test_2027_produces_nonempty_hindu_festivals() -> None:

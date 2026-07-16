@@ -370,7 +370,11 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # validation against printed panchangam references is pending (see WI-07 in
 # docs/CALC_AUDIT_REMEDIATION_PLAN_2026-07.md) — do not mark the doctrine
 # launch-gate closed until that cross-check lands.
-PANCHANGAM_CACHE_DATA_VERSION = 33
+# v34: persist nishita_tithi_number (tithi at nishita-kalam / local midnight
+# following sunrise) so Sivarathiri is dated from the nishita tithi, not the
+# sunrise tithi (M-2, docs/ASTROLOGY_FULL_CODE_AUDIT_2026-07-16.md) — same
+# error class as v30's Pradhosam fix.
+PANCHANGAM_CACHE_DATA_VERSION = 34
 DOMINANT_SPECIAL_TITHIS = {15, 30}
 
 # Compact daily-calendar summary windows used by Tamil calendars for everyday
@@ -533,6 +537,11 @@ class PanchangamSnapshot:
     # observance, so it must be dated from this, not the sunrise tithi (issue #10).
     # 0 means "not computed" — callers fall back to the sunrise tithi.
     pradhosham_tithi_number: int = 0
+    # Tithi prevailing at nishita-kalam (local midnight following this day's
+    # sunrise). Nishita-anchored observances (Sivarathiri) must be dated from
+    # this, not the sunrise tithi (M-2). 0 means "not computed" — callers fall
+    # back to the sunrise tithi.
+    nishita_tithi_number: int = 0
 
 
 def _format_hhmm(moment: datetime) -> str:
@@ -983,7 +992,6 @@ def _compute_subha_muhurtham_strict(
     nakshatra_name: str,
     yoga_name: str,
     weekday_index: int,
-    abhijit_restricted: bool,
 ) -> tuple[bool, str]:
     """Stricter Subha Muhurtham check requiring auspicious tithi + nakshatra + nitya yoga
     together — closer to the combination rules many traditional almanacs apply."""
@@ -1273,6 +1281,7 @@ def _serialize_snapshot(snapshot: PanchangamSnapshot) -> dict:
         "dominant_nakshatra_number": snapshot.dominant_nakshatra_number,
         "dominant_yoga_number": snapshot.dominant_yoga_number,
         "pradhosham_tithi_number": snapshot.pradhosham_tithi_number,
+        "nishita_tithi_number": snapshot.nishita_tithi_number,
     }
 
 
@@ -1383,6 +1392,7 @@ def _deserialize_snapshot(data: dict) -> PanchangamSnapshot:
         warnings=tuple(data.get("warnings", [])),
         dominant_tithi_number=int(data.get("dominant_tithi_number", 0)),
         pradhosham_tithi_number=int(data.get("pradhosham_tithi_number", 0)),
+        nishita_tithi_number=int(data.get("nishita_tithi_number", 0)),
         dominant_nakshatra_number=int(data.get("dominant_nakshatra_number", 0)),
         dominant_yoga_number=int(data.get("dominant_yoga_number", 0)),
     )
@@ -1588,7 +1598,7 @@ def calculate_daily_panchangam(
     )
     is_subha_strict, subha_strict_reason = _compute_subha_muhurtham_strict(
         tithi_number, tithi_paksha, NAKSHATRA_NAMES[nakshatra_number - 1],
-        yoga_name_str, weekday_index, abhijit_restricted,
+        yoga_name_str, weekday_index,
     )
 
     moon_phase_label = _moon_phase_label(tithi_paksha)
@@ -1613,7 +1623,13 @@ def calculate_daily_panchangam(
     lagna_vinadi = int((lagna_remaining_seconds % 1440) // 24)
 
     amirdhadhi_yogam_name = _amirdhadhi_yogam_name(weekday_index, nakshatra_number)
-    amirdhadhi_yogam_next_name = _amirdhadhi_yogam_name(weekday_index, nakshatra_number + 1)
+    # L-1: the next nakshatra's Amirdhadhi row is looked up by weekday, and
+    # the current nakshatra can end after local midnight — the "next" preview
+    # must then use the following day's vara row, not today's.
+    next_weekday_index = (
+        nakshatra_ends_at.weekday() if nakshatra_ends_at.date() != date_local else weekday_index
+    )
+    amirdhadhi_yogam_next_name = _amirdhadhi_yogam_name(next_weekday_index, nakshatra_number + 1)
     moon_rasi_number = rasi_from_degree(moon_longitude)
     affected_janma_rasi_number = _chandrashtamam_affected_janma_rasi(moon_rasi_number)
     chandrashtamam_janma_nakshatra_windows = _chandrashtamam_janma_nakshatra_windows(
@@ -1637,6 +1653,13 @@ def calculate_daily_panchangam(
     # Pradhosam is observed in the twilight around sunset, so its governing tithi is
     # read at pradhosha-kalam (sunset), not at sunrise (issue #10).
     pradhosham_tithi_number = _tithi_number_at_jd(sunset_jd)
+
+    # Nishita-anchored observances (e.g. Sivarathiri, M-2) are governed by the tithi
+    # prevailing at nishita-kalam (local midnight following this civil day's sunrise),
+    # which is very commonly still one tithi behind the sunrise tithi — same error
+    # class as pradhosham_tithi_number above, generalized to the midnight instant.
+    next_midnight_jd = utc_datetime_to_julian_day((local_midnight + timedelta(days=1)).astimezone(UTC))
+    nishita_tithi_number = _tithi_number_at_jd(next_midnight_jd)
 
     snapshot = PanchangamSnapshot(
         date_local=date_local,
@@ -1706,6 +1729,7 @@ def calculate_daily_panchangam(
         dominant_nakshatra_number=dominant_nakshatra_number,
         dominant_yoga_number=dominant_yoga_number,
         pradhosham_tithi_number=pradhosham_tithi_number,
+        nishita_tithi_number=nishita_tithi_number,
     )
 
     if use_cache and session is not None:

@@ -32,14 +32,14 @@ GOWRI_BAD_NAMES = {"ROGAM", "SORAM", "VISHAM"}
 
 def test_subha_muhurtham_excludes_tuesday_and_saturday_per_tamil_tradition():
     monday_broad, _ = _compute_subha_muhurtham_broad(5, "ROHINI", 0)
-    monday_strict, _ = _compute_subha_muhurtham_strict(5, "SHUKLA", "ROHINI", "SIDDHA", 0, False)
+    monday_strict, _ = _compute_subha_muhurtham_strict(5, "SHUKLA", "ROHINI", "SIDDHA", 0)
     tuesday_broad, tuesday_reason = _compute_subha_muhurtham_broad(5, "ROHINI", 1)
     saturday_broad, saturday_reason = _compute_subha_muhurtham_broad(5, "ROHINI", 5)
     tuesday_strict, tuesday_strict_reason = _compute_subha_muhurtham_strict(
-        5, "SHUKLA", "ROHINI", "SIDDHA", 1, False
+        5, "SHUKLA", "ROHINI", "SIDDHA", 1
     )
     saturday_strict, saturday_strict_reason = _compute_subha_muhurtham_strict(
-        5, "SHUKLA", "ROHINI", "SIDDHA", 5, False
+        5, "SHUKLA", "ROHINI", "SIDDHA", 5
     )
 
     assert monday_broad is True
