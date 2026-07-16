@@ -188,24 +188,32 @@ def _jagradadi_avastha(natal_longitude: float, rasi: int) -> str:
 
 
 # Deeptadi avastha (classically 9 dignity-driven stages: Deepta, Swastha,
-# Mudita, Shanta, Deena, Dukhita, Vikala, Khala, Kopa — BPHS). This is a
-# dignity-only relabeling of the existing 7-band _dignity_score (see that
-# function) into the closest classical names, in strength order. Vikala and
-# Kopa are deliberately not produced here — both are combustion-driven in
-# the classical scheme, and _dignity_score has no combustion input; the
-# weakest band (debilitated, score 15) maps to Khala instead. This mirrors
-# the project's own documented-simplification pattern (see MOOLATRIKONA_ZONE
-# above) rather than silently guessing a combustion rule.
+# Mudita, Shanta, Deena, Dukhita, Vikala, Khala, Kopa — BPHS: Deepta =
+# exalted, Swastha = own sign, Mudita = friend's sign, Shanta = benefic
+# varga, Deena = neutral, Dukhita = enemy sign). This is a dignity-only
+# relabeling of the existing 7-band _dignity_score (see that function) into
+# the closest classical names, in strength order.
+#
+# Two simplifications, both deliberate (M-1, docs/ASTROLOGY_FULL_CODE_AUDIT_2026-07-16.md):
+# - Moolatrikona (90) and own sign (80) both map to SWASTHA — MT is a
+#   stronger form of own-sign dignity, not a distinct classical Deeptadi
+#   rung, so the two collapse onto the same label rather than MT displacing
+#   own sign's SWASTHA down a rung (the bug this replaces).
+# - Shanta (benefic varga) has no corresponding input here — this scorer
+#   only classifies own/MT/friend/neutral/enemy/debilitated, not varga
+#   placement — so the neutral band (50) uses Deena, matching the source's
+#   own "Deena = neutral" pairing, and Shanta is simply never produced.
+# - Vikala and Kopa are likewise never produced — both are combustion-driven
+#   in the classical scheme and _dignity_score has no combustion input; the
+#   weakest band (debilitated, score 15) maps to Khala instead.
 def _deeptadi_avastha(dignity_score: int) -> str:
     """Classical Deeptadi avastha label, relabeled from the dignity score."""
     if dignity_score >= 100:
         return "DEEPTA"
-    if dignity_score >= 90:
-        return "SWASTHA"
     if dignity_score >= 80:
-        return "MUDITA"
+        return "SWASTHA"
     if dignity_score >= 60:
-        return "SHANTA"
+        return "MUDITA"
     if dignity_score >= 50:
         return "DEENA"
     if dignity_score >= 35:

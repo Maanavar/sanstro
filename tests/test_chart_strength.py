@@ -98,10 +98,16 @@ def test_jagradadi_avastha_even_sign_reverses_thirds():
 
 
 def test_deeptadi_avastha_dignity_bands():
+    """M-1: Deepta=exalted, Swastha=Moolatrikona/own sign (both collapse to
+    the same label — MT is a stronger form of own-sign dignity, not a
+    distinct classical rung), Mudita=friend's sign, Deena=neutral,
+    Dukhita=enemy sign, Khala=debilitated. Own sign must render Swastha, not
+    Mudita — a Tamil-literate user checking a planet in own sign expects
+    ஸ்வஸ்த (Swastha)."""
     assert _deeptadi_avastha(100) == "DEEPTA"
     assert _deeptadi_avastha(90) == "SWASTHA"
-    assert _deeptadi_avastha(80) == "MUDITA"
-    assert _deeptadi_avastha(60) == "SHANTA"
+    assert _deeptadi_avastha(80) == "SWASTHA"
+    assert _deeptadi_avastha(60) == "MUDITA"
     assert _deeptadi_avastha(50) == "DEENA"
     assert _deeptadi_avastha(35) == "DUKHITA"
     assert _deeptadi_avastha(15) == "KHALA"
@@ -149,7 +155,7 @@ def test_kala_bala_venus_stronger_by_day_saturn_stronger_by_night():
 
 def test_compute_strength_breakdown_includes_avastha_labels():
     # 20 deg Aries: Mars own-sign but outside its 0-12 deg Moolatrikona zone,
-    # so dignity_score is the plain own-sign band (80) -> MUDITA.
+    # so dignity_score is the plain own-sign band (80) -> SWASTHA (M-1).
     breakdown = compute_strength_breakdown(
         planet="MARS",
         natal_rasi=1,
@@ -159,4 +165,4 @@ def test_compute_strength_breakdown_includes_avastha_labels():
     )
     assert breakdown["baladi"] == _baladi_avastha(20.0, 1)
     assert breakdown["jagradadi"] == _jagradadi_avastha(20.0, 1)
-    assert breakdown["deeptadi"] == "MUDITA"
+    assert breakdown["deeptadi"] == "SWASTHA"
