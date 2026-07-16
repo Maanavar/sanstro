@@ -26,31 +26,6 @@ decision inline and move it to "Resolved".
   `mobile` callers first per the API-contract rule) · supply a real
   differentiated house/chart-reference list for `extended_manglik`.
 
-### 2026-07-14 · Nethiram/Jeevan display removed pending verification (audit A-3/C-2) — ✅ RESOLVED 2026-07-16 (A-3), ⬜ C-2 still open
-
-- **Where:** `app/calculations/panchangam.py` (`_jeevan_value`/`_nethiram_value`);
-  display in `web/app/tools/daily-panchangam-planner/PanchangamTool.tsx`,
-  `web/app/panchangam/[date]/page.tsx`, `web/components/dashboard-calendar-tab-nova.tsx`.
-- **Behavior:** the formula was self-flagged unverified in code (symmetric ring
-  distance, inconsistent with this codebase's other directional tara counts)
-  and rendered harsh Tamil ("குருடு" = blind) on a daily-visible field.
-  Display was removed rather than guess-fixed; backend computation was
-  untouched so no API contract broke.
-- **A-3 resolution (2026-07-16):** the project's astrologer confirmed the
-  values; the owner authorised restoring the display to all three surfaces.
-  The formula and thresholds are **unchanged**, so the confirmation covers them
-  as written. Doctrine §7 updated to match.
-- **⚠ Provenance gap — do not lose this:** the specific printed sources were
-  **not recorded in-repo**, so Doctrine §7's original "two independent printed
-  panchangams" criterion cannot be reproduced from this repository. Status is
-  *confirmed-by-review*, not *independently verified*. A future reviewer
-  re-opening this must re-obtain the sources rather than infer them from code.
-- **⬜ C-2 still open:** the labels are unchanged — Nethiram "குருடு" (Blind),
-  Jeevan "இல்லை" (None). C-2 objected to these on copy grounds *independent*
-  of the formula, so A-3's resolution does not close it. **Question for
-  reviewer:** keep the classical terms verbatim (current behaviour), or soften
-  the daily-visible rendering while keeping the classical term as a subtitle?
-
 ### 2026-07-13 · Abhijit demotion in the Today hero (DASH-10.1)
 
 - **Where:** `web/lib/today-windows.ts` (`pickFeaturedWindow`; moved from
@@ -87,6 +62,43 @@ decision inline and move it to "Resolved".
   `project_kalachakra_dasha_status_2026-07`).
 
 ## Resolved
+
+### 2026-07-14 · Nethiram/Jeevan display removed pending verification (audit A-3/C-2) — ✅ RESOLVED 2026-07-16 (A-3 + C-2)
+
+- **Where:** `app/calculations/panchangam.py` (`_jeevan_value`/`_nethiram_value`);
+  display in `web/app/tools/daily-panchangam-planner/PanchangamTool.tsx`,
+  `web/app/panchangam/[date]/page.tsx`, `web/components/dashboard-calendar-tab-nova.tsx`.
+- **Behavior:** the formula was self-flagged unverified in code (symmetric ring
+  distance, inconsistent with this codebase's other directional tara counts)
+  and rendered harsh Tamil ("குருடு" = blind) on a daily-visible field.
+  Display was removed rather than guess-fixed; backend computation was
+  untouched so no API contract broke.
+- **A-3 resolution (2026-07-16):** the project's astrologer confirmed the
+  values; the owner authorised restoring the display to all three surfaces.
+  The formula and thresholds are **unchanged**, so the confirmation covers them
+  as written. Doctrine §7 updated to match.
+- **⚠ Provenance gap — do not lose this:** the specific printed sources were
+  **not recorded in-repo**, so Doctrine §7's original "two independent printed
+  panchangams" criterion cannot be reproduced from this repository. Status is
+  *confirmed-by-review*, not *independently verified*. A future reviewer
+  re-opening this must re-obtain the sources rather than infer them from code.
+- **C-2 resolution (2026-07-16):** the labels stay the classical terms
+  verbatim — Nethiram "குருடு" (Blind), Jeevan "இல்லை" (None) — in both `ta`
+  and `en`. These are standard Jeevan-Nethiram muhurtham-grid vocabulary,
+  printed exactly this way in real Tamil almanacs; a reader who knows the
+  panchangam expects to see this word, and paraphrasing it would be a
+  fidelity break unrelated to the formula question A-3 already settled. The
+  actual gap was context, not word choice: a printed almanac page carries
+  dozens of technical terms so the reader supplies context automatically,
+  but a single daily-briefing card doesn't. Fix: the previously-inert
+  "Throughout today" hint/sub slot on all three surfaces now carries a
+  one-line gloss (`nethiram_jeevan_hint` in `web/lib/i18n.ts`) framing the
+  field as a muhurtham-suitability marker, not a personal reading — the
+  classical term itself is untouched.
+- **Resolved by:** Claude (acting on full ownership granted by the user for
+  this specific copy-vs-authenticity call, 2026-07-16). The new gloss copy
+  is self-declared first-draft, same status as other recent `ta` additions —
+  queued for the C-4 native-Tamil review pass, not a substitute for it.
 
 ### 2026-07-14 · Functional-nature Kendra/Maraka contradiction (audit A-2)
 

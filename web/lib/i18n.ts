@@ -325,6 +325,11 @@ const STRINGS = {
   lord_word:        { ta: "அதிபதி",   en: "lord" },
   until_word:       { ta: "வரை",     en: "until" },
   slot_word:        { ta: "இடை",     en: "slot" },
+  // Jeevan/Nethiram render classical panchangam terms verbatim (see Doctrine §7,
+  // panchangam.py JEEVAN_LABELS/NETHIRAM_LABELS) — this hint exists so a reader
+  // unfamiliar with the muhurtham grid doesn't mistake the term for a personal
+  // claim. Self-declared first-draft copy, queued for the C-4 native-Tamil pass.
+  nethiram_jeevan_hint: { ta: "இன்று முழுவதும் — முகூர்த்தத் தகுதிக் குறி, தனிநபர் கணிப்பு அல்ல", en: "Throughout today — a muhurtham-suitability marker, not a personal reading" },
 
   // ── Settings tab
   settings_kicker:  { ta: "அமைவுகள்",   en: "Settings" },

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { tNakshatra, tTithi, tWeekday, tYoga, tKarana, tPlanetLord, tMoonPhase, tSoolamDirection, tParigaram, tNethiram, tJeevan, tAmirdhadhiYogam } from "@/lib/i18n";
+import { t, tNakshatra, tTithi, tWeekday, tYoga, tKarana, tPlanetLord, tMoonPhase, tSoolamDirection, tParigaram, tNethiram, tJeevan, tAmirdhadhiYogam } from "@/lib/i18n";
 import { formatClockLabel, formatDateLabel, addDays, formatHijriDate } from "@/lib/format";
 import type { PanchangamDailyResponseData } from "@/lib/types";
 import { PanchangamShareButton } from "@/components/public-share-card";
@@ -316,8 +316,8 @@ export default async function PanchangamDatePage({ params }: Props) {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
                   <DataCard label="Moon Phase" labelTa="சந்திர கலை" value={tMoonPhase(data.moonPhaseLabel, "en")} />
                   <DataCard label="Soolam" labelTa="சூலம்" value={tSoolamDirection(data.soolam.direction, "en")} sub={`Parigaram: ${tParigaram(data.soolam.parigaram, "en")}`} />
-                  {data.nethiram && <DataCard label="Nethiram" labelTa="நேத்திரம்" value={tNethiram(data.nethiram, "en")} />}
-                  {data.jeevan && <DataCard label="Jeevan" labelTa="ஜீவன்" value={tJeevan(data.jeevan, "en")} />}
+                  {data.nethiram && <DataCard label="Nethiram" labelTa="நேத்திரம்" value={tNethiram(data.nethiram, "en")} sub={t("nethiram_jeevan_hint", "en")} />}
+                  {data.jeevan && <DataCard label="Jeevan" labelTa="ஜீவன்" value={tJeevan(data.jeevan, "en")} sub={t("nethiram_jeevan_hint", "en")} />}
                   <DataCard label="Amirdhadhi Yogam" labelTa="அமிர்தாதி யோகம்" value={tAmirdhadhiYogam(data.amirdhadhiYogam.name, "en")} sub={`Ends ${formatClockLabel(data.amirdhadhiYogam.endsAt)}`} />
                 </div>
               </div>

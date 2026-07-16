@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-07-15T18:38:04.593Z",
-  "total": 1878,
+  "generatedAt": "2026-07-16T03:27:25.309Z",
+  "total": 1876,
   "entries": [
     {
       "file": "web/components/advanced-astrology-gate.tsx",
@@ -418,1021 +418,1009 @@
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 272,
+      "line": 274,
       "en": "Sunrise",
       "ta": "சூர்யோதயம்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 272,
+      "line": 274,
       "en": "Sunset",
       "ta": "சூர்யாஸ்தமனம்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 287,
+      "line": 289,
       "en": "Avoid",
       "ta": "தவிர்க்க வேண்டிய நேரம்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 310,
+      "line": 312,
       "en": "Open full day view →",
       "ta": "முழு நாள் விவரம் →"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 439,
+      "line": 442,
       "en": "Move steadily and keep the day intentional.",
       "ta": "இன்று அமைதியாக முன்னேறுங்கள்."
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 444,
+      "line": 447,
       "en": "Vara",
       "ta": "வாரம்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 446,
+      "line": 449,
       "en": "Tithi",
       "ta": "திதி"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 449,
+      "line": 452,
       "en": "active since",
       "ta": "முதல் தற்போது செயலில்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 450,
+      "line": 453,
       "en": "then",
       "ta": "பின்பு"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 453,
+      "line": 456,
       "en": "Nakshatra",
       "ta": "நட்சத்திரம்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 456,
+      "line": 459,
       "en": "active since",
       "ta": "முதல் தற்போது செயலில்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 457,
+      "line": 460,
       "en": "then",
       "ta": "பின்பு"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 460,
+      "line": 463,
       "en": "Yoga",
       "ta": "யோகம்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 463,
+      "line": 466,
       "en": "active since",
       "ta": "முதல் தற்போது செயலில்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 464,
+      "line": 467,
       "en": "then",
       "ta": "பின்பு"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 467,
+      "line": 470,
       "en": "Karana",
       "ta": "கரணம்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 470,
+      "line": 473,
       "en": "active since",
       "ta": "முதல் தற்போது செயலில்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 471,
+      "line": 474,
       "en": "then",
       "ta": "பின்பு"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 473,
+      "line": 476,
       "en": "Moon",
       "ta": "சந்திரன்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 473,
+      "line": 476,
       "en": "Moon phase",
       "ta": "சந்திர கலை"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 474,
+      "line": 477,
       "en": "Soolam",
       "ta": "சூலம்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 474,
+      "line": 477,
       "en": "Parigaram",
       "ta": "பரிகாரம்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 475,
+      "line": 478,
       "en": "Lagnam",
       "ta": "லக்னம்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 475,
+      "line": 478,
       "en": "Remaining",
       "ta": "இருப்பு"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 475,
+      "line": 478,
       "en": "nazhigai",
       "ta": "நாழிகை"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 475,
+      "line": 478,
       "en": "vinadi",
       "ta": "விநாடி"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 476,
+      "line": 479,
       "en": "Nethiram",
       "ta": "நேத்திரம்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 476,
-      "en": "Throughout today",
-      "ta": "இன்று முழுவதும்"
-    },
-    {
-      "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 477,
+      "line": 480,
       "en": "Jeevan",
       "ta": "ஜீவன்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 477,
-      "en": "Throughout today",
-      "ta": "இன்று முழுவதும்"
-    },
-    {
-      "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 478,
+      "line": 481,
       "en": "Amirdhadhi Yogam",
       "ta": "அமிர்தாதி யோகம்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 478,
+      "line": 481,
       "en": "then",
       "ta": "பின்பு"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 496,
+      "line": 499,
       "en": "Transits & Events",
       "ta": "கிரகநகர்வு & நிகழ்வுகள்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 539,
+      "line": 545,
       "en": "Day at a glance",
       "ta": "இன்று — ஒரு பார்வையில்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 546,
+      "line": 552,
       "en": "Sunrise",
       "ta": "சூர்யோதயம்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 546,
+      "line": 552,
       "en": "Sunset",
       "ta": "சூர்யாஸ்தமனம்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 553,
+      "line": 559,
       "en": "Loading…",
       "ta": "ஏற்றுகிறது…"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 553,
+      "line": 559,
       "en": "Location",
       "ta": "இடம்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 559,
+      "line": 565,
       "en": "View panchangam for another location",
       "ta": "வேறு இடத்திற்கான பஞ்சாங்கம் காண்க"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 569,
+      "line": 575,
       "en": "Search city…",
       "ta": "நகரம் தேடுங்கள்…"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 577,
+      "line": 583,
       "en": "↩ Reset to profile location",
       "ta": "↩ பொதுவான இடத்திற்கு திரும்பு"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 599,
+      "line": 605,
       "en": "Auspicious",
       "ta": "நல்ல நேரங்கள்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 608,
+      "line": 614,
       "en": "Avoid",
       "ta": "தவிர்க்க வேண்டிய நேரம்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 618,
+      "line": 624,
       "en": "Today's Nakshatra",
       "ta": "இன்றைய நட்சத்திரம்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 638,
+      "line": 644,
       "en": "Affected Rasi",
       "ta": "பாதிக்கப்படும் ராசி"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 643,
+      "line": 649,
       "en": "Today's Janma Nakshatra Windows",
       "ta": "இன்றைய ஜன்ம நட்சத்திர நேரங்கள்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 659,
+      "line": 665,
       "en": "Today's Events",
       "ta": "இன்றைய நிகழ்வுகள்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 668,
+      "line": 674,
       "en": "World Observance",
       "ta": "உலக தினங்கள்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 676,
+      "line": 682,
       "en": "Festivals",
       "ta": "திருவிழாக்கள்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 691,
+      "line": 697,
       "en": "Today's Significance",
       "ta": "இன்றைய சிறப்பு"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 703,
+      "line": 709,
       "en": "Panchangam · Five Limbs",
       "ta": "பஞ்சாங்கம் · ஐந்து அங்கங்கள்"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 720,
+      "line": 726,
       "en": "These times use Drik-ganita (ephemeris-based) astronomy with Lahiri ayanamsa. If your local almanac or purohit follows the traditional Vakya method, tithi/nakshatra boundary times may differ slightly.",
       "ta": "இந்த நேரங்கள் திருக்கணிதம் (எபிமெரிஸ் அடிப்படையிலான வானியல்) முறையில், லாஹிரி அயனாம்சத்தில் கணக்கிடப்படுகின்றன. வாக்கிய முறையைப் பின்பற்றும் உங்கள் ஊர் பஞ்சாங்கம் அல்லது குருவின் கணக்கீட்டில் திதி/நட்சத்திர மாற்ற நேரங்களில் சிறிது வேறுபாடு இருக்கலாம்."
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 725,
+      "line": 731,
       "en": "See our calculation methodology →",
       "ta": "எங்கள் கணக்கீட்டு முறையைப் பார்க்க →"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 733,
+      "line": 739,
       "en": "Hora Table",
       "ta": "ஹோரை அட்டவணை"
     },
     {
       "file": "web/components/dashboard-calendar-tab-nova.tsx",
-      "line": 747,
+      "line": 753,
       "en": "Now",
       "ta": "இப்போது"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 249,
+      "line": 70,
       "en": "Unknown",
       "ta": "தெரியவில்லை"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 276,
+      "line": 97,
       "en": "No score",
       "ta": "பலம் இல்லை"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 277,
+      "line": 98,
       "en": "Strong",
       "ta": "வலுவானது"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 278,
+      "line": 99,
       "en": "Moderate",
       "ta": "மிதமானது"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 279,
+      "line": 100,
       "en": "Needs support",
       "ta": "ஆதரவு தேவை"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 287,
+      "line": 108,
       "en": "Debilitated - needs steady support",
       "ta": "நீசம் - மெதுவாக சமநிலைப்படுத்த வேண்டியது"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 290,
+      "line": 111,
       "en": "Exalted - naturally strong",
       "ta": "உச்சம் - இயல்பான பலம் அதிகம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 293,
+      "line": 114,
       "en": "Moolatrikona - focused strength",
       "ta": "மூலத்திரிகோணம் - தெளிவான சக்தி"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 296,
+      "line": 117,
       "en": "Own sign - stable strength",
       "ta": "சொந்த ராசி - நிலையான பலம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 301,
+      "line": 122,
       "en": "Friendly sign - supportive setting",
       "ta": "நட்பு ராசி - ஆதரவு சூழல்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 304,
+      "line": 125,
       "en": "Enemy sign - handle with care",
       "ta": "பகை ராசி - கவனமான கையாளல் தேவை"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 306,
+      "line": 127,
       "en": "Neutral sign - mixed strength",
       "ta": "சம ராசி - கலந்த பலம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 311,
+      "line": 132,
       "en": "Retrograde",
       "ta": "வக்கிரம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 312,
+      "line": 133,
       "en": "Combust",
       "ta": "அஸ்தம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 313,
+      "line": 134,
       "en": "Vargottama",
       "ta": "வர்கோத்தமம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 337,
+      "line": 158,
       "en": "Friendly company",
       "ta": "நட்பு கூட்டம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 338,
+      "line": 159,
       "en": "Company needing care",
       "ta": "கவனத்துடன் கையாள வேண்டிய கூட்டம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 339,
+      "line": 160,
       "en": "Neutral company",
       "ta": "சமநிலை கூட்டம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 350,
+      "line": 171,
       "en": "Mahadasa",
       "ta": "மகாதசை"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 351,
+      "line": 172,
       "en": "Bhukti",
       "ta": "புக்தி"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 352,
+      "line": 173,
       "en": "Antaram",
       "ta": "அந்தரம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 357,
+      "line": 178,
       "en": "Support",
       "ta": "ஆதரவு"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 358,
+      "line": 179,
       "en": "Care",
       "ta": "கவனம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 359,
+      "line": 180,
       "en": "Steady",
       "ta": "சமநிலை"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 369,
+      "line": 190,
       "en": "Natal sign return",
       "ta": "சுய ராசி கிரகநகர்வு"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 370,
+      "line": 191,
       "en": "Transit conjunction",
       "ta": "கிரகநகர்வு சேர்க்கை"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 371,
+      "line": 192,
       "en": "Transit aspect",
       "ta": "கிரகநகர்வு பார்வை"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 497,
+      "line": 318,
       "en": "Kendra",
       "ta": "கேந்திரம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 498,
+      "line": 319,
       "en": "Trikona",
       "ta": "திரிகோணம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 499,
+      "line": 320,
       "en": "Dusthana",
       "ta": "துஷ்டானம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 500,
+      "line": 321,
       "en": "Other",
       "ta": "மற்ற வீடு"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 508,
+      "line": 329,
       "en": "a visible pillar of life — this area tends to stay active and public",
       "ta": "வெளிப்படையான வாழ்க்கைத் தூண் — இந்தத் துறை பொதுவாகச் சுறுசுறுப்பாக, மற்றவர்களுக்குத் தெரியும்படி இயங்கும்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 512,
+      "line": 333,
       "en": "a growth channel — talent and grace naturally support this area",
       "ta": "வளர்ச்சி வழி — திறமையும் புண்ணியமும் இந்தத் துறையை இயல்பாக ஆதரிக்கும்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 516,
+      "line": 337,
       "en": "asks for care and discipline — it grows through service, rest, and correction",
       "ta": "கவனமும் ஒழுங்கும் கேட்கும் இடம் — சேவை, ஓய்வு, திருத்தம் மூலம் வளரும்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 519,
+      "line": 340,
       "en": "an area that works through timing and context",
       "ta": "சூழ்நிலையும் காலமும் சார்ந்து பலன் தரும் துறை"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 631,
+      "line": 452,
       "en": "From the natal Moon, this is traditionally considered supportive.",
       "ta": "சந்திர ராசியிலிருந்து இது ஆதரவு தரும் இடமாக கருதப்படுகிறது."
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 636,
+      "line": 457,
       "en": "From the natal Moon, this calls for care and measured choices.",
       "ta": "சந்திர ராசியிலிருந்து இது கவனமும் அளவான முடிவுகளும் கேட்கும் இடம்."
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 640,
+      "line": 461,
       "en": "From the natal Moon, this is mixed and needs balanced judgment.",
       "ta": "சந்திர ராசியிலிருந்து இது கலந்த, சமநிலை பார்வை தேவைப்படும் இடம்."
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 811,
+      "line": 632,
       "en": "key planet",
       "ta": "முக்கிய கிரகம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 820,
+      "line": 641,
       "en": "Moon placement loading",
       "ta": "சந்திர நிலை ஏற்றப்படுகிறது"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 828,
+      "line": 649,
       "en": "Saturn transit loading",
       "ta": "சனி கிரகநகர்வு ஏற்றப்படுகிறது"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 837,
+      "line": 658,
       "en": "Dasa",
       "ta": "தசை"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 837,
+      "line": 658,
       "en": "Bhukti",
       "ta": "புக்தி"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 840,
+      "line": 661,
       "en": "Dasa data unavailable",
       "ta": "தசை தரவு இல்லை"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 885,
+      "line": 706,
       "en": "Chart Explanation",
       "ta": "ஜாதக விளக்கம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 920,
+      "line": 741,
       "en": "Close explanation",
       "ta": "விளக்கத்தை மூடு"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 921,
+      "line": 742,
       "en": "Open chart explanation",
       "ta": "ஜாதக விளக்கம் திற"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 987,
+      "line": 808,
       "en": "This D1 chart reads the 12 houses from the Lagna and shows the Moon sign, planets, and nakshatras. D9 Navamsa adds a second layer for deeper planetary strength.",
       "ta": "இந்த D1 ஜாதகம் லக்னத்தை மையமாக வைத்து 12 வீடுகள், சந்திர ராசி, கிரக நிலைகள், நட்சத்திரங்கள் ஆகியவற்றை காட்டுகிறது. D9 நவாம்சம் கிரகத்தின் உள்ளார்ந்த பலத்தை கூடுதல் அடுக்காக பார்க்க உதவும்."
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 993,
+      "line": 814,
       "en": "Lagna",
       "ta": "லக்னம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 996,
+      "line": 817,
       "en": "Pada",
       "ta": "பாதம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 999,
+      "line": 820,
       "en": "Moon",
       "ta": "சந்திரன்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1002,
+      "line": 823,
+      "en": "Pada",
+      "ta": "பாதம்"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 825,
+      "en": "Pada",
+      "ta": "பாதம்"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 826,
+      "en": "Moon data unavailable",
+      "ta": "சந்திர தரவு இல்லை"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 830,
+      "en": "Current Dasa",
+      "ta": "நடப்பு தசை"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 836,
+      "en": "Current Antaram",
+      "ta": "நடப்பு அந்தரம்"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 839,
+      "en": "Unavailable",
+      "ta": "தரவு இல்லை"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 854,
+      "en": "Dasa chain",
+      "ta": "தசைச் சங்கிலி"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 858,
+      "en": "Transit status",
+      "ta": "கிரகநகர்வு நிலை"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 877,
+      "en": "Natal",
+      "ta": "பிறப்பு"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 878,
+      "en": "From Moon",
+      "ta": "சந்திரனிலிருந்து"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 881,
+      "en": "Transit",
+      "ta": "கிரகநகர்வு"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 882,
+      "en": "Retrograde",
+      "ta": "வக்கிரம்"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 894,
+      "en": "No direct major transit contact",
+      "ta": "நேரடி பெரிய கிரகநகர்வு தொடுதல் இல்லை"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 902,
+      "en": "Current Dasa",
+      "ta": "நடப்பு தசை"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 904,
+      "en": "Current Antaram",
+      "ta": "நடப்பு அந்தரம்"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 905,
+      "en": "Unavailable",
+      "ta": "தரவு இல்லை"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 908,
+      "en": "Full Dasa activation detail appears when backend explanation data is available.",
+      "ta": "முழு தசை செயல்பாட்டு விளக்கம் backend தரவு கிடைக்கும் போது காட்டப்படும்."
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 923,
+      "en": "Retrograde",
+      "ta": "வக்கிரம்"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 924,
+      "en": "Cazimi",
+      "ta": "கசிமி"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 925,
+      "en": "Combust",
+      "ta": "அஸ்தம்"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 926,
+      "en": "Vargottama",
+      "ta": "வர்கோத்தமம்"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 950,
+      "en": "Pada",
+      "ta": "பாதம்"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 961,
+      "en": "No special flag",
+      "ta": "சிறப்பு குறி இல்லை"
+    },
+    {
+      "file": "web/components/dashboard-chart-explanation.tsx",
+      "line": 995,
       "en": "Pada",
       "ta": "பாதம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
       "line": 1004,
-      "en": "Pada",
-      "ta": "பாதம்"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1005,
-      "en": "Moon data unavailable",
-      "ta": "சந்திர தரவு இல்லை"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1009,
-      "en": "Current Dasa",
-      "ta": "நடப்பு தசை"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1015,
-      "en": "Current Antaram",
-      "ta": "நடப்பு அந்தரம்"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1018,
-      "en": "Unavailable",
-      "ta": "தரவு இல்லை"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1033,
-      "en": "Dasa chain",
-      "ta": "தசைச் சங்கிலி"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1037,
-      "en": "Transit status",
-      "ta": "கிரகநகர்வு நிலை"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1056,
-      "en": "Natal",
-      "ta": "பிறப்பு"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1057,
-      "en": "From Moon",
-      "ta": "சந்திரனிலிருந்து"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1060,
-      "en": "Transit",
-      "ta": "கிரகநகர்வு"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1061,
-      "en": "Retrograde",
-      "ta": "வக்கிரம்"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1073,
-      "en": "No direct major transit contact",
-      "ta": "நேரடி பெரிய கிரகநகர்வு தொடுதல் இல்லை"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1081,
-      "en": "Current Dasa",
-      "ta": "நடப்பு தசை"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1083,
-      "en": "Current Antaram",
-      "ta": "நடப்பு அந்தரம்"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1084,
-      "en": "Unavailable",
-      "ta": "தரவு இல்லை"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1087,
-      "en": "Full Dasa activation detail appears when backend explanation data is available.",
-      "ta": "முழு தசை செயல்பாட்டு விளக்கம் backend தரவு கிடைக்கும் போது காட்டப்படும்."
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1102,
-      "en": "Retrograde",
-      "ta": "வக்கிரம்"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1103,
-      "en": "Cazimi",
-      "ta": "கசிமி"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1104,
-      "en": "Combust",
-      "ta": "அஸ்தம்"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1105,
-      "en": "Vargottama",
-      "ta": "வர்கோத்தமம்"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1129,
-      "en": "Pada",
-      "ta": "பாதம்"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1140,
       "en": "No special flag",
       "ta": "சிறப்பு குறி இல்லை"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1174,
-      "en": "Pada",
-      "ta": "பாதம்"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1183,
-      "en": "No special flag",
-      "ta": "சிறப்பு குறி இல்லை"
-    },
-    {
-      "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1198,
+      "line": 1019,
       "en": "No sign has two or more planets together, so there is no major conjunction cluster.",
       "ta": "ஒரே ராசியில் இரண்டு அல்லது அதற்கு மேற்பட்ட கிரகங்கள் இல்லை. அதனால் பெரிய கூட்ட அழுத்தம் குறைவு."
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1229,
+      "line": 1050,
       "en": "No sign has two or more planets together, so there is no major conjunction cluster.",
       "ta": "ஒரே ராசியில் இரண்டு அல்லது அதற்கு மேற்பட்ட கிரகங்கள் இல்லை. அதனால் பெரிய கூட்ட அழுத்தம் குறைவு."
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1270,
+      "line": 1091,
       "en": "Natal Drishti",
       "ta": "ஜாதக திருஷ்டி"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1275,
+      "line": 1096,
       "en": "No direct natal drishti contacts were found in this calculation.",
       "ta": "இந்த கணக்கில் நேரடி கிரக திருஷ்டி தொடுதல்கள் இல்லை."
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1283,
+      "line": 1104,
       "en": "looks at",
       "ta": "பார்க்கிறது"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1294,
+      "line": 1115,
       "en": "No major planet pair is in a simple mutual 7th-house aspect.",
       "ta": "எளிய 7-ஆம் பார்வையில் முக்கிய கிரக ஜோடி இல்லை."
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1302,
+      "line": 1123,
       "en": "looks at",
       "ta": "பார்க்கிறது"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1311,
+      "line": 1132,
       "en": "Guru / Sani — Current Transit Aspects",
       "ta": "இன்றைய குரு / சனி கோசாரப் பார்வை"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1314,
+      "line": 1135,
       "en": "This shows where Guru/Sani are moving in today's sky — not their positions in your birth chart.",
       "ta": "இது இன்றைய வானத்தில் குரு/சனி எங்கே சஞ்சரிக்கிறார்கள் என்பதைக் காட்டுகிறது — உங்கள் பிறப்பு ஜாதக நிலை அல்ல."
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1320,
+      "line": 1141,
       "en": "Transit Guru/Sani data is unavailable.",
       "ta": "கிரகநகர்விலான குரு/சனி தரவு இல்லை."
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1335,
+      "line": 1156,
       "en": "Your natal planets under this aspect:",
       "ta": "இந்தப் பார்வையில் வரும் உங்கள் கிரகங்கள்:"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1336,
+      "line": 1157,
       "en": "No natal planet falls directly under this aspect right now.",
       "ta": "இந்தப் பார்வையில் நேரடியாக எந்த ஜாதக கிரகமும் வரவில்லை."
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1379,
+      "line": 1200,
       "en": "No planet here",
       "ta": "இங்கு கிரகம் இல்லை"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1406,
+      "line": 1227,
       "en": "No planet here",
       "ta": "இங்கு கிரகம் இல்லை"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1414,
+      "line": 1235,
       "en": "All planets — by house",
       "ta": "எல்லா கிரகங்களும் — வீடு வாரியாக"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1443,
+      "line": 1264,
       "en": "Functional nature data was not included in this summary.",
       "ta": "இந்த சுருக்கத்தில் செயல்பாட்டு தன்மை தரவு இல்லை."
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1478,
+      "line": 1299,
       "en": "Strongest planet",
       "ta": "மிக வலுவான கிரகம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1484,
+      "line": 1305,
       "en": "No strength scores available",
       "ta": "பலம் மதிப்பெண் இல்லை"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1488,
+      "line": 1309,
       "en": "Planet needing support",
       "ta": "ஆதரவு தேவைப்படும் கிரகம்"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1494,
+      "line": 1315,
       "en": "No strength scores available",
       "ta": "பலம் மதிப்பெண் இல்லை"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1542,
+      "line": 1363,
       "en": "from Moon",
       "ta": "சந்திரனிலிருந்து"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1543,
+      "line": 1364,
       "en": "from Lagna",
       "ta": "லக்னத்திலிருந்து"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1557,
+      "line": 1378,
       "en": "No major peyarchi event in this window.",
       "ta": "இந்த காலச்சாளரத்தில் பெரிய பெயர்ச்சி நிகழ்வு இல்லை."
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1570,
+      "line": 1391,
       "en": "Sani / Saturn",
       "ta": "சனி"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1579,
+      "line": 1400,
       "en": "from Moon",
       "ta": "சந்திரனிலிருந்து"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1580,
+      "line": 1401,
       "en": "from Lagna",
       "ta": "லக்னத்திலிருந்து"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1587,
+      "line": 1408,
       "en": "Guru / Jupiter",
       "ta": "குரு"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1593,
+      "line": 1414,
       "en": "from Moon",
       "ta": "சந்திரனிலிருந்து"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1597,
+      "line": 1418,
       "en": "Life area from Lagna",
       "ta": "லக்னத்திலிருந்து இது தொடும் துறை"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1603,
+      "line": 1424,
       "en": "No upcoming Jupiter peyarchi in this window.",
       "ta": "அடுத்த பெயர்ச்சி தரவு இந்த சாளரத்தில் இல்லை."
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1610,
+      "line": 1431,
       "en": "Rahu / Ketu",
       "ta": "ராகு / கேது"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1616,
+      "line": 1437,
       "en": "Rahu amplifies",
       "ta": "ராகு பெரிதாக்கும் பகுதி"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1617,
+      "line": 1438,
       "en": "from Moon",
       "ta": "சந்திரனிலிருந்து"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1618,
+      "line": 1439,
       "en": "from Lagna",
       "ta": "லக்னத்திலிருந்து"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1623,
+      "line": 1444,
       "en": "Ketu releases",
       "ta": "கேது விடுவிக்கும் பகுதி"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1624,
+      "line": 1445,
       "en": "from Moon",
       "ta": "சந்திரனிலிருந்து"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1625,
+      "line": 1446,
       "en": "from Lagna",
       "ta": "லக்னத்திலிருந்து"
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1629,
+      "line": 1450,
       "en": "This axis activates both amplification and release. Slower verification before decisions is helpful.",
       "ta": "இந்த அச்சு ஆசை மற்றும் விடுவிப்பு ஆகிய இரண்டையும் ஒன்றாக இயக்கும். முடிவுகளை மெதுவாக சரிபார்த்து எடுப்பது உதவும்."
     },
     {
       "file": "web/components/dashboard-chart-explanation.tsx",
-      "line": 1636,
+      "line": 1457,
       "en": "No Rahu/Ketu peyarchi in this window.",
       "ta": "ராகு/கேது பெயர்ச்சி தரவு இந்த சாளரத்தில் இல்லை."
     },
