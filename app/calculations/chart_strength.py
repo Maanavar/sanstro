@@ -288,7 +288,7 @@ def detect_planetary_wars(
     """
     Returns {loser_planet: winner_planet}.
     War participants: non-luminaries, non-nodes within 1 degree.
-    Loser: lower degree-within-sign.
+    Loser: lower absolute zodiacal longitude (trailing in the forward direction).
     """
     participants = {
         p: lon
@@ -301,21 +301,34 @@ def detect_planetary_wars(
     names = sorted(participants.keys())
     for i, p1 in enumerate(names):
         lon1 = participants[p1] % 360.0
-        deg1 = lon1 % 30.0
         for p2 in names[i + 1:]:
             lon2 = participants[p2] % 360.0
-            deg2 = lon2 % 30.0
             sep = abs(lon1 - lon2)
             sep = min(sep, 360.0 - sep)
             if sep > 1.0:
                 continue
-            if deg1 < deg2:
-                loser, winner = p1, p2
-            elif deg2 < deg1:
-                loser, winner = p2, p1
-            else:
+            if lon1 == lon2:
                 # Exact tie: skip assigning an artificial loser.
                 continue
+            # OQ-1 fix (2026-07-16): the previous code gated the war on
+            # absolute-longitude separation but decided the winner by
+            # degree-within-sign, which flips inconsistently at every sign
+            # boundary (e.g. 29.5 deg Gemini vs 0.3 deg Cancer are ~0.8 deg
+            # apart per the separation check above, but 29.5 vs 0.3
+            # degree-within-sign gave the wrong answer). Now both the gate
+            # and the winner decision use the same frame: absolute zodiacal
+            # longitude, with the trailing planet in the short forward arc
+            # (handles the 0/360 Aries seam the same as any other boundary)
+            # losing. Surya Siddhanta's declination/latitude-based
+            # alternative ("the northern planet wins") is a real classical
+            # variant but is deferred — it needs ephemeris latitude data not
+            # currently passed into this function. See OQ-1,
+            # docs/CALC_AUDIT_REMEDIATION_PLAN_2026-07.md.
+            forward_gap = (lon2 - lon1) % 360.0
+            if forward_gap <= 180.0:
+                loser, winner = p1, p2
+            else:
+                loser, winner = p2, p1
             wars[loser] = winner
     return wars
 

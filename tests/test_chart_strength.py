@@ -20,6 +20,24 @@ def test_detect_planetary_war_marks_lower_degree_as_loser():
     assert wars["MARS"] == "MERCURY"
 
 
+def test_detect_planetary_war_sign_boundary_uses_absolute_longitude():
+    # OQ-1 (2026-07-16): Mercury at 29.5 deg Gemini (abs 89.5) and Jupiter at
+    # 0.3 deg Cancer (abs 90.3) are ~0.8 deg apart — a war — but the OLD code
+    # compared degree-within-sign (29.5 vs 0.3) and would have wrongly made
+    # the higher-absolute-longitude planet (Jupiter) the loser. Fixed: the
+    # trailing planet in absolute zodiacal longitude (Mercury) loses.
+    wars = detect_planetary_wars({"MERCURY": 89.5, "JUPITER": 90.3})
+    assert wars["MERCURY"] == "JUPITER"
+
+
+def test_detect_planetary_war_handles_zero_aries_seam():
+    # Same boundary bug, at the 0/360 Aries seam instead of an interior sign
+    # boundary: Saturn at 359.9 deg (29.9 Pisces) trails Venus at 0.2 deg
+    # (0.2 Aries) by the short forward arc (~0.3 deg), so Saturn loses.
+    wars = detect_planetary_wars({"SATURN": 359.9, "VENUS": 0.2})
+    assert wars["SATURN"] == "VENUS"
+
+
 def test_chesta_bala_rules():
     assert _chesta_bala_score("MARS", True, 1.0) == 1.0
     assert _chesta_bala_score("SUN", False, 1.0) == 0.5
