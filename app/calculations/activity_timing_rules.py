@@ -160,6 +160,12 @@ _RIKTA_TITHIS = {4, 9, 14, 19, 24, 29}
 _HEAVY_TITHIS = {8, 23, 30}
 _EKADASI_TITHIS = {11, 26}
 _POURNAMI = {15}
+# Tithis classically favourable for new beginnings/auspicious activity, once
+# Rikta/Heavy/Ekadasi/Pournami are excluded (M-5). Explicit rather than a
+# catch-all fallthrough: Prathama (1, opens the paksha) and 18/25/27/28 are
+# NOT in this set and read NEUTRAL below, not SUPPORTS — Shukla Pratipada in
+# particular is excluded from most muhurtha lists.
+_AUSPICIOUS_TITHIS = {2, 3, 5, 6, 7, 10, 12, 13, 16, 17, 20, 21, 22}
 # Activities where even Rikta tithis are acceptable (completion/reduction tasks).
 _RIKTA_OK: set[ActivityType] = {"health", "spiritual", "family_harmony", "money", "other"}
 # Activities harmed by heavy tithis (Ashtami, Amavasai).
@@ -231,13 +237,24 @@ def _assess_tithi(activity: ActivityType, tithi_number: int) -> TimingSignal:
             short_en=f"{tithi_en} — routine only",
         )
 
-    # Auspicious tithi.
+    if tithi_number in _AUSPICIOUS_TITHIS:
+        return TimingSignal(
+            alignment="SUPPORTS",
+            reason_ta=f"{tithi_ta} திதி — இந்த செயலுக்கு சாதகமான திதி.",
+            reason_en=f"{tithi_en} tithi — favourable for this activity.",
+            short_ta=f"{tithi_ta} திதி சாதகம்",
+            short_en=f"{tithi_en} tithi favourable",
+        )
+
+    # Neither classically auspicious nor in the caution/neutral sets above
+    # (e.g. Prathama, which opens the paksha) — honest NEUTRAL, not a
+    # favourable default (M-5).
     return TimingSignal(
-        alignment="SUPPORTS",
-        reason_ta=f"{tithi_ta} திதி — இந்த செயலுக்கு சாதகமான திதி.",
-        reason_en=f"{tithi_en} tithi — favourable for this activity.",
-        short_ta=f"{tithi_ta} திதி சாதகம்",
-        short_en=f"{tithi_en} tithi favourable",
+        alignment="NEUTRAL",
+        reason_ta=f"{tithi_ta} திதி — இந்த செயலுக்கு குறிப்பாக சாதகமும் இல்லை, பாதகமும் இல்லை.",
+        reason_en=f"{tithi_en} tithi — neither particularly favourable nor unfavourable for this activity.",
+        short_ta=f"{tithi_ta} — நடுநிலை",
+        short_en=f"{tithi_en} — neutral",
     )
 
 
