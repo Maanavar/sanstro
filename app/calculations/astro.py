@@ -160,6 +160,14 @@ def resolve_timezone(timezone_name: str) -> timezone | ZoneInfo:
 
 
 def utc_datetime_to_julian_day(utc_datetime: datetime) -> float:
+    """Meeus Gregorian-calendar JD conversion.
+
+    L-17 (docs/ASTROLOGY_FULL_CODE_AUDIT_2026-07-16.md): the Gregorian
+    leap-year correction below is applied unconditionally, i.e. proleptic
+    Gregorian for any date before the 1582-10-15 Gregorian reform. No action
+    needed for birth charts (all realistic birth dates postdate the reform);
+    noted for completeness only.
+    """
     if utc_datetime.tzinfo is None:
         raise ValueError("utc_datetime_to_julian_day requires a timezone-aware UTC datetime.")
 

@@ -185,7 +185,10 @@ def detect_grahana_birth(
             return True, "SOLAR", near
 
     # Lunar eclipse: Full Moon (Sun-Moon opposition) with the Moon near a node.
-    if angular_distance(elongation, 180.0) <= 0.0 or elongation >= 180.0 - LUNAR_SYZYGY_ORB:
+    # (L-12: dropped the `angular_distance(elongation, 180.0) <= 0.0` clause —
+    # it was only ever true at exactly elongation == 180.0, a single point
+    # already covered by the orb check below.)
+    if elongation >= 180.0 - LUNAR_SYZYGY_ORB:
         if min(moon_to_rahu, moon_to_ketu) <= LUNAR_ECLIPSE_NODE_ORB:
             near = 1 if moon_to_rahu <= moon_to_ketu else -1
             return True, "LUNAR", near

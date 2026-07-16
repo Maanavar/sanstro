@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 from threading import RLock
 from typing import Final
 
@@ -307,8 +308,16 @@ def calculate_rise_transit_jd(jd_start: float, latitude: float, longitude: float
         return float(tret[0])
 
 
+@lru_cache(maxsize=256)
 def sun_longitude_at_jd(jd: float) -> float:
-    """Return the sidereal (Lahiri) longitude of the Sun at the given Julian Day."""
+    """Return the sidereal (Lahiri) longitude of the Sun at the given Julian Day.
+
+    Memoized (L-16, docs/ASTROLOGY_FULL_CODE_AUDIT_2026-07-16.md): a
+    sankranti search bisects this ~64x per call and callers frequently
+    re-request the same instant across independent code paths (tithi,
+    nakshatra, festival lookups); find_saturn_ingress_jd (transits.py) uses
+    the same lru_cache pattern for its own boundary-finding search.
+    """
     from app.calculations.astro import normalize_longitude
     snap = calculate_sidereal_planets(jd)
     return normalize_longitude(snap.bodies["SUN"].absolute_longitude)
