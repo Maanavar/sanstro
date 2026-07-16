@@ -31,6 +31,7 @@ import { CelestialGlyphNova, MiniMoonGlyph } from "./celestial-glyph-nova";
 import { HeroSkyBackdrop } from "./celestial-ambient-nova";
 import { lunarSpecialTithiMeta, moonPhaseFromTithi } from "@/lib/lunar";
 import { useStreak } from "@/hooks/useStreak";
+import { StreakChip } from "./streak-chip";
 import { useEveningPreview } from "@/hooks/useEveningPreview";
 
 import { DashboardTodayRibbonNova } from "./dashboard-today-ribbon-nova";
@@ -160,7 +161,7 @@ export function DashboardTodayTabNova({
   onOpenAskVinaadi,
   onOpenNotificationSettings,
 }: DashboardTodayTabNovaProps) {
-  const { days: streakDays } = useStreak();
+  const { days: streakDays, best: streakBest, forgiven: streakForgiven } = useStreak();
   const { enabled: eveningPreviewOn, setEnabled: setEveningPreviewOn } = useEveningPreview();
   const displayName = personalMemberChart?.displayName ?? birthDisplayName;
   const activeChartId = personalChartSummary?.chartId ?? "";
@@ -296,11 +297,7 @@ export function DashboardTodayTabNova({
                 </span>
               )}
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px" }}>
-                {streakDays > 1 && (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "11.5px", fontWeight: 700, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "5px 12px" }}>
-                    ✦ {lang === "ta" ? `${streakDays} நாள் தொடர்ச்சி` : `${streakDays}-day check-in streak`}
-                  </span>
-                )}
+                <StreakChip days={streakDays} best={streakBest} forgiven={streakForgiven} lang={lang} />
                 <button
                   type="button"
                   onClick={() => setEveningPreviewOn(!eveningPreviewOn)}
@@ -416,6 +413,32 @@ export function DashboardTodayTabNova({
                     {tLang(personalDailyGuidance.briefing ?? personalDailyGuidance.text, lang)}
                   </NovaClampedText>
                 )}
+                {/* Chandrashtama hero flag — when the transiting Moon is in the
+                    8th from the user's Janma Rasi today. Previously this only
+                    surfaced woven into the briefing prose + a card buried in
+                    the deep-dive; this amber pill makes it legible at a glance
+                    and taps through to the full ChandrashtamaCard. Amber (not
+                    red) and "awareness, not alarm" copy keep the app's
+                    non-fatalist doctrine — chandrashtama is a day for care,
+                    not a "bad day". */}
+                {personalDailyGuidance?.isChandrashtama && (
+                  <a
+                    href="#nova-deep-dive"
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: "9px", alignSelf: "flex-start",
+                      textDecoration: "none", fontFamily: "inherit",
+                      background: "var(--color-mid-bg)", border: "1px solid var(--color-mid-border)",
+                      borderRadius: "999px", padding: "6px 14px", maxWidth: "100%",
+                    }}
+                  >
+                    <span aria-hidden="true" style={{ fontSize: "14px", flex: "none" }}>🌘</span>
+                    <span style={{ fontSize: "12.5px", color: "var(--color-text)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <b style={{ color: "var(--color-mid)", fontWeight: 700 }}>{lang === "ta" ? "இன்று சந்திராஷ்டமம்" : "Chandrashtama today"}</b>
+                      <span style={{ color: "var(--color-muted)" }}> — {lang === "ta" ? "கவனம் தேவை, பயம் அல்ல" : "a day for awareness, not alarm"}</span>
+                    </span>
+                    <span style={{ color: "var(--color-mid)", fontWeight: 700, flex: "none" }}>→</span>
+                  </a>
+                )}
                 {personalDailyGuidance?.emotionalWeather && (
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                     {[
@@ -440,7 +463,7 @@ export function DashboardTodayTabNova({
                   }}>
                     <span style={{ width: "9px", height: "9px", borderRadius: "50%", background: "var(--color-high)", boxShadow: "0 0 0 4px var(--color-high-bg)", flex: "none" }} />
                     <div style={{ flex: 1, minWidth: "180px" }}>
-                      <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--color-high)" }}>
+                      <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--color-high)", fontVariantNumeric: "tabular-nums" }}>
                         {lang === "ta" ? "சிறந்த நேரம்" : "Best window"} · {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)}
                         {windowCountdown && (
                           <span style={{ fontWeight: 400, color: "var(--color-faint)" }}>
@@ -491,16 +514,18 @@ export function DashboardTodayTabNova({
                 <div style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent-secondary)", fontWeight: 700 }}>
                   {lang === "ta" ? "நாளை" : "Tomorrow"}
                 </div>
+                {/* UXD-19 — lead with the calm verdict phrase; the number supports it. */}
+                <div style={{ fontFamily: "var(--font-display)", fontSize: "16px", fontWeight: 700, color: verdict.color, textAlign: "center", lineHeight: 1.15 }}>{verdict.verdict}</div>
                 <NovaScoreDial score={tomorrowGuidance.score} color={verdict.color} label={lang === "ta" ? "100க்கு" : "/ 100"} />
-                <div style={{ fontSize: "11px", color: "var(--color-faint)", textAlign: "center" }}>{verdict.verdict}</div>
               </div>
             );
           })() : personalDailyGuidance && (() => {
             const verdict = getScoreVerdictFromGuidance(personalDailyGuidance.label, score ?? 0, lang);
             return (
               <div style={{ flex: "none", width: "200px", borderLeft: "1px solid var(--color-border)", paddingLeft: "26px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "9px" }}>
+                {/* UXD-19 — the verdict phrase leads; the dial number supports it. */}
+                <div style={{ fontFamily: "var(--font-display)", fontSize: "16px", fontWeight: 700, color: verdict.color, textAlign: "center", lineHeight: 1.15 }}>{verdict.verdict}</div>
                 <NovaScoreDial score={score ?? 0} color={verdict.color} label={lang === "ta" ? "100க்கு" : "/ 100"} />
-                <div style={{ fontSize: "11px", color: "var(--color-faint)", textAlign: "center" }}>{verdict.verdict}</div>
                 {personalDailyGuidance.band && (() => {
                   const bt = bandTone(personalDailyGuidance.band);
                   return (

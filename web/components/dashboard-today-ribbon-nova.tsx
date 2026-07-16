@@ -28,18 +28,20 @@ function timeToMinutes(value: string | undefined | null): number | null {
   return hh * 60 + mm;
 }
 
-// Was literal hex/rgba (Nova was always dark when these were written) —
-// each value happened to equal --color-alert-critical / --color-text-strong
-// at a given opacity, so these now reference those tokens directly and
-// stay correct under both Nova-dark and Nova-light (Phase 1).
-const RAHU_BG = "var(--color-alert-critical)";
-const RAHU_FG = "var(--color-text-strong)";
-const YAMA_BG = "color-mix(in srgb, var(--color-alert-critical) 40%, transparent)";
-const YAMA_FG = "color-mix(in srgb, var(--color-text-strong) 80%, transparent)";
-const BEST_BG = "var(--color-accent)";
-const BEST_FG = "var(--color-on-accent)";
-const GOOD_BG = "var(--color-high)";
-const GOOD_FG = "var(--color-on-accent)";
+// Segment fills/inks resolve through the --ribbon-* token set defined in
+// dashboard-nova.css. Earlier these were literal hex/rgba pinned to
+// text-strong / alert-critical at fixed opacities — fine while Nova was
+// always dark, but under Light the translucent fills washed out on cream
+// and dark type landed on saturated fills. The tokens flip per theme so
+// every segment stays legible in both modes (see the ribbon block there).
+const RAHU_BG = "var(--ribbon-rahu-bg)";
+const RAHU_FG = "var(--ribbon-rahu-fg)";
+const YAMA_BG = "var(--ribbon-yama-bg)";
+const YAMA_FG = "var(--ribbon-yama-fg)";
+const BEST_BG = "var(--ribbon-best-bg)";
+const BEST_FG = "var(--ribbon-best-fg)";
+const GOOD_BG = "var(--ribbon-good-bg)";
+const GOOD_FG = "var(--ribbon-good-fg)";
 
 type PartOfDay = "morning" | "afternoon" | "evening";
 
@@ -281,7 +283,7 @@ export function DashboardTodayRibbonNova({
             siblings with their own smaller corner radius) so the bar's left
             and right ends are always evenly rounded, no matter which segment
             happens to sit at either edge. */}
-        <div style={{ position: "absolute", inset: "14px 0", borderRadius: "8px", overflow: "hidden", background: "color-mix(in srgb, var(--color-text-strong) 9%, transparent)" }}>
+        <div style={{ position: "absolute", inset: "14px 0", borderRadius: "8px", overflow: "hidden", background: "var(--ribbon-track-bg)", boxShadow: "inset 0 0 0 1px var(--ribbon-track-border)" }}>
           {segments.map((s) => {
             const widthPct = pct(s.endMin) - pct(s.startMin);
             return (
@@ -312,11 +314,11 @@ export function DashboardTodayRibbonNova({
         </div>
         {nowInRange && (
           <>
-            <div style={{ position: "absolute", top: 0, bottom: 0, left: `${nowPct}%`, width: "2px", background: "var(--color-text-strong)", borderRadius: "2px" }} />
+            <div style={{ position: "absolute", top: 0, bottom: 0, left: `${nowPct}%`, width: "2px", background: "var(--ribbon-now-bg)", borderRadius: "2px", boxShadow: "0 0 0 1px var(--ribbon-track-bg)" }} />
             <div style={{
               position: "absolute", top: "-4px", left: `${nowPct}%`, transform: "translateX(-50%)",
-              fontSize: "9.5px", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-text-strong)",
-              borderRadius: "4px", padding: "1px 6px", whiteSpace: "nowrap",
+              fontSize: "9.5px", fontWeight: 700, color: "var(--ribbon-now-fg)", background: "var(--ribbon-now-bg)",
+              borderRadius: "4px", padding: "1px 6px", whiteSpace: "nowrap", boxShadow: "0 1px 3px rgba(0, 0, 0, 0.22)",
             }}>
               {lang === "ta" ? "இப்போது" : "NOW"} {nowLabel}
             </div>

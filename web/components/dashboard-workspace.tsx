@@ -5,7 +5,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { toast } from "sonner";
-import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
+import { apiFetchJson, toQuery } from "@/lib/api";
+import { getFriendlyErrorMessage } from "@/lib/error-messages";
 import { isBirthDateWithinBounds } from "@/lib/birth-date";
 import { sanitizeRestoredTab, type Tab } from "@/lib/dashboard-tabs";
 import { todayIso } from "@/lib/format";
@@ -36,7 +37,6 @@ import type { StatusMessage } from "./dashboard-ui-nova";
 import { CelestialAmbientNova } from "./celestial-ambient-nova";
 import { moonPhaseFromTithi } from "@/lib/lunar";
 import { DashboardHero } from "./dashboard-hero";
-import { DashboardLeftRail } from "./dashboard-left-rail";
 import { LifeModePicker } from "./life-mode-picker";
 import { DashboardAskVinaadiWidget } from "./dashboard-ask-vinaadi-widget";
 
@@ -54,6 +54,34 @@ function LazyPanelFallback() {
   );
 }
 
+// UXD-12 — modals load as an overlay, so their loading state should be a
+// modal-shaped skeleton (dimmed backdrop + centered panel), not the inline
+// dashboard-card skeleton the tab panels use.
+function LazyModalFallback() {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        position: "fixed", inset: 0, zIndex: 200,
+        background: "rgba(26,22,18,0.55)", backdropFilter: "blur(4px)",
+        display: "flex", alignItems: "center", justifyContent: "center", padding: "16px",
+      }}
+    >
+      <div
+        style={{
+          width: "min(480px, 100%)",
+          background: "var(--color-surface, var(--panel-cream))",
+          border: "1px solid var(--color-border, var(--panel-tan-light))",
+          borderRadius: "16px", padding: "24px",
+          boxShadow: "0 24px 64px rgba(26,22,18,0.28)",
+        }}
+      >
+        <SkeletonDashboardCard lines={5} showIcon />
+      </div>
+    </div>
+  );
+}
+
 const DashboardCalendarTabNova = dynamic(
   () => import("./dashboard-calendar-tab-nova").then((mod) => mod.DashboardCalendarTabNova),
   { loading: LazyPanelFallback },
@@ -61,12 +89,12 @@ const DashboardCalendarTabNova = dynamic(
 
 const EditMemberModal = dynamic(
   () => import("./dashboard-edit-member-modal").then((mod) => mod.EditMemberModal),
-  { loading: LazyPanelFallback },
+  { loading: LazyModalFallback },
 );
 
 const EditProfileModal = dynamic(
   () => import("./dashboard-edit-profile-modal").then((mod) => mod.EditProfileModal),
-  { loading: LazyPanelFallback },
+  { loading: LazyModalFallback },
 );
 
 const DashboardFamilyTabNova = dynamic(
@@ -76,7 +104,7 @@ const DashboardFamilyTabNova = dynamic(
 
 const FeedbackModal = dynamic(
   () => import("./dashboard-feedback-modal").then((mod) => mod.FeedbackModal),
-  { loading: LazyPanelFallback },
+  { loading: LazyModalFallback },
 );
 
 const DashboardLifeAreasTabNova = dynamic(
@@ -116,7 +144,7 @@ const DashboardExploreTabNova = dynamic(
 
 const RectificationWizard = dynamic(
   () => import("./dashboard-rectification-wizard").then((mod) => mod.RectificationWizard),
-  { loading: LazyPanelFallback },
+  { loading: LazyModalFallback },
 );
 
 const DashboardTodayTabNova = dynamic(
@@ -227,10 +255,9 @@ function parseNumber(value: string, fallback = 0): number {
 export function DashboardWorkspace() {
   // Status carries an explicit tone (DASH-08) — the hero renders ✓/⚠ and an
   // aria-live announcement from it instead of guessing from the wording.
-  const [status, setStatusMessage] = useState<StatusMessage | null>({
-    text: "Ready. Create a profile or family vault to begin.",
-    tone: "success",
-  });
+  // UXD-05 — no jargon "Create a profile or family vault to begin" sentence at
+  // minute zero; the onboarding checklist below is the sole first-run guide.
+  const [status, setStatusMessage] = useState<StatusMessage | null>(null);
   const setStatus = useCallback((text: string, tone: "success" | "error" = "success") => {
     setStatusMessage(text ? { text, tone } : null);
   }, []);
@@ -899,7 +926,7 @@ export function DashboardWorkspace() {
       setStatus(`Profile created – ${response.data.birthProfileId.slice(0, 8)}`);
       setActiveTab("personal");
     } catch (error) {
-      const msg = readErrorMessage(error);
+      const msg = getFriendlyErrorMessage(error);
       showToast(msg, "error"); setStatus(msg, "error");
     } finally { setBusyCreateProfile(false); }
   }
@@ -922,7 +949,7 @@ export function DashboardWorkspace() {
       await family.loadVaults(response.data.ownerUserId);
       setActiveTab("family");
     } catch (error) {
-      const msg = readErrorMessage(error);
+      const msg = getFriendlyErrorMessage(error);
       showToast(msg, "error"); setStatus(msg, "error");
     } finally { setBusyCreateVault(false); }
   }
@@ -969,7 +996,7 @@ export function DashboardWorkspace() {
       await family.refreshFamilyBundle(family.selectedVaultId, selectedDate);
       setActiveTab("personal");
     } catch (error) {
-      const msg = readErrorMessage(error);
+      const msg = getFriendlyErrorMessage(error);
       showToast(msg, "error"); setStatus(msg, "error");
     } finally { setBusyAddMember(false); }
   }
@@ -1005,7 +1032,7 @@ export function DashboardWorkspace() {
       setEditMember(null);
       await family.refreshFamilyBundle(family.selectedVaultId, selectedDate);
     } catch (error) {
-      const msg = readErrorMessage(error);
+      const msg = getFriendlyErrorMessage(error);
       showToast(msg, "error"); setStatus(msg, "error");
     } finally { setBusyEditingMember(false); }
   }
@@ -1074,7 +1101,7 @@ export function DashboardWorkspace() {
         await personal.refreshPersonalBundle(response.data.birthProfileId, selectedDate, true, { forceChart: true, forceDay: true });
       }
     } catch (error) {
-      const msg = readErrorMessage(error);
+      const msg = getFriendlyErrorMessage(error);
       showToast(msg, "error");
     } finally { setBusyEditingProfile(false); }
   }
@@ -1101,7 +1128,7 @@ export function DashboardWorkspace() {
             session.signOut();
           })
           .catch((error) => {
-            showToast(readErrorMessage(error), "error");
+            showToast(getFriendlyErrorMessage(error), "error");
             setBusyEditingProfile(false);
           });
       },
@@ -1124,7 +1151,7 @@ export function DashboardWorkspace() {
             await family.loadVaults(ownerUserId);
             await family.refreshFamilyBundle(family.selectedVaultId, selectedDate);
           } catch (error) {
-            const msg = readErrorMessage(error);
+            const msg = getFriendlyErrorMessage(error);
             showToast(msg, "error"); setStatus(msg, "error");
           } finally {
             setDeletingMemberId("");
@@ -1156,7 +1183,7 @@ export function DashboardWorkspace() {
             }
             await family.loadVaults(ownerUserId);
           } catch (error) {
-            const msg = readErrorMessage(error);
+            const msg = getFriendlyErrorMessage(error);
             showToast(msg, "error"); setStatus(msg, "error");
           } finally {
             setDeletingVaultId("");
@@ -1215,6 +1242,8 @@ export function DashboardWorkspace() {
         birthDisplayName={birthForm.displayName}
         status={status}
         chartSummary={personal.chartSummary}
+        birthTimeConfidenceMinutes={personal.chart?.birthProfile.birthTimeConfidenceMinutes ?? null}
+        birthTimeLocal={personal.chart?.birthProfile.birthTimeLocal ?? null}
         selectedVault={selectedVault}
         selectedVaultId={family.selectedVaultId}
         selectedDate={selectedDate}
@@ -1283,11 +1312,6 @@ export function DashboardWorkspace() {
       )}
 
       <div className="cd-app-body" data-active-tab={activeTab}>
-      <DashboardLeftRail
-        lang={lang}
-        activeTab={activeTab}
-        onTabChange={goToTab}
-      />
       <div className="cd-main-content" data-active-tab={activeTab}>
       <div className="cd-main-content__body">
 

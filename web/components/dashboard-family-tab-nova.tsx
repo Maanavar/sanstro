@@ -70,7 +70,7 @@ const FAMILY_HERO_TEXT: Record<string, { en: string; ta: string }> = {
 function bondToneLine(score: number, lang: Lang): string {
   if (score >= 65) return lang === "ta" ? "அரவணைப்பான, ஆதரவான பொருத்தம்" : "warm and supportive";
   if (score >= 50) return lang === "ta" ? "நிலையான, பொதுவாக இணக்கமான பொருத்தம்" : "steady, generally aligned";
-  if (score >= 40) return lang === "ta" ? "கலவையான பொருத்தம் — இன்று எளிமையாக வையுங்கள்" : "mixed — keep plans simple today";
+  if (score >= 40) return lang === "ta" ? "கலவையான பொருத்தம் — எளிமையாக வையுங்கள்" : "mixed — keep things simple";
   return lang === "ta" ? "பொறுமை தேவைப்படும் பொருத்தம்" : "needs a little patience";
 }
 
@@ -323,7 +323,7 @@ function NovaFamilyBondsCard({
   return (
     <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "22px 24px", display: "flex", flexDirection: "column", gap: "14px" }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-        <NovaKicker>{lang === "ta" ? "இன்றைய குடும்ப பொருத்தம்" : "Family bonds today"}</NovaKicker>
+        <NovaKicker>{lang === "ta" ? "குடும்ப பொருத்தம்" : "Family bonds"}</NovaKicker>
         {!loaded && (
           <button type="button" onClick={() => void loadBonds()} style={{ fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
             {lang === "ta" ? "ஏற்று →" : "Load bonds →"}
@@ -339,7 +339,7 @@ function NovaFamilyBondsCard({
         <div style={{ display: "flex", alignItems: "center", gap: "10px", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "10px", padding: "11px 14px" }}>
           <span style={{ fontSize: "15px" }}>✦</span>
           <div style={{ fontSize: "12.5px", lineHeight: 1.5, color: "var(--color-text)" }}>
-            {lang === "ta" ? "இன்று வலுவான பொருத்தம்: " : "Strongest bond today: "}
+            {lang === "ta" ? "வலுவான பொருத்தம்: " : "Strongest bond: "}
             <b style={{ color: "var(--color-accent-strong)" }}>{strongest.a.displayName} ↔ {strongest.b.displayName}</b>
             {" "}
             <span style={{ fontWeight: 700, color: scoreColor(strongest.score) }}>

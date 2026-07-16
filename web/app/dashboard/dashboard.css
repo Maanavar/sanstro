@@ -1044,6 +1044,41 @@
   opacity: 1;
 }
 
+/* ── Setup "Improve accuracy" drawer (UXD-06) ──────────────────────
+   Optional birth-detail enrichments, collapsed by default so first-run
+   chart creation shows only the four core fields. Native <details> for
+   built-in keyboard/screen-reader support; we swap the marker for a chevron. */
+.setup-advanced {
+  border-top: 1px solid var(--deepdive-border-light, var(--panel-tan-light, #e4dbc8));
+  padding-top: var(--space-3, 12px);
+}
+.setup-advanced > summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--deepdive-accent, var(--panel-brand, #b85a2c));
+}
+.setup-advanced > summary::-webkit-details-marker { display: none; }
+.setup-advanced > summary:focus-visible {
+  outline: 2px solid var(--deepdive-accent, var(--panel-brand, #b85a2c));
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+.setup-advanced__chev {
+  transition: transform 160ms ease;
+  flex-shrink: 0;
+}
+.setup-advanced[open] > summary .setup-advanced__chev { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) {
+  .setup-advanced__chev { transition: none; }
+}
+
 /* Toggle button sits at top, aligned same as items */
 .cd-rail-toggle {
   margin-bottom: var(--space-1);

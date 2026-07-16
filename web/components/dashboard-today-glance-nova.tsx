@@ -1,6 +1,6 @@
 "use client";
 
-import { formatClockLabel, getScoreBand, scoreColorAlpha, scoreColorScale } from "@/lib/format";
+import { formatClockLabel, getScoreBand, getScoreVerdict, scoreColorAlpha, scoreColorScale } from "@/lib/format";
 import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
@@ -273,6 +273,9 @@ export function DashboardTodayGlanceRowNova({
                 const score = Math.round(area.score);
                 const color = scoreColorScale(score);
                 const band = getScoreBand(score);
+                // UXD-14 — pair the band colour with its verdict word so the tile
+                // is readable without relying on hue (colour-blind safe).
+                const verdictWord = getScoreVerdict(score, lang).verdict;
                 return (
                   <div
                     key={area.area}
@@ -282,6 +285,7 @@ export function DashboardTodayGlanceRowNova({
                     <span style={{ position: "absolute", top: "7px", right: "7px", width: "6px", height: "6px", borderRadius: "50%", background: color }} />
                     <div style={{ fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 700, color, lineHeight: 1 }}>{score}</div>
                     <div style={{ fontSize: "10px", color: "var(--color-faint)", marginTop: "4px" }}>{lang === "ta" ? area.label.ta : area.label.en}</div>
+                    <div style={{ fontSize: "9.5px", fontWeight: 700, color, marginTop: "2px", lineHeight: 1.15 }}>{verdictWord}</div>
                   </div>
                 );
               })}
@@ -322,13 +326,24 @@ export function DashboardTodayGlanceRowNova({
                 </div>
               );
             })()}
-            {nextAntar ? (
+            {/* Two different clocks, so label each: the sub-period (antardasha,
+                the "→ X" above) ends on nextAntar.startDate — often months
+                out — while yearsLeft is how much of the whole mahadasha
+                *chapter* remains (typically years). Joining them with a bare
+                "·" read as a contradiction ("until Jan 2027 · 9.7 yrs left").
+                The progress bar below tracks the chapter, so it sits with the
+                chapter line. */}
+            {nextAntar && (
               <div style={{ fontSize: "11.5px", color: "var(--color-muted)" }}>
-                {lang === "ta" ? "வரை" : "until"} {new Date(nextAntar.startDate).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { month: "short", year: "numeric" })}
-                {yearsLeft !== null && <> · {yearsLeft.toFixed(1)} {lang === "ta" ? "ஆண்டுகள் மீதம்" : "yrs left"}</>}
+                {lang === "ta" ? "உட் தசை " : "Sub-period until "}
+                {new Date(nextAntar.startDate).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { month: "short", year: "numeric" })}
+                {lang === "ta" ? " வரை" : ""}
               </div>
-            ) : yearsLeft !== null && (
-              <div style={{ fontSize: "11.5px", color: "var(--color-muted)" }}>{yearsLeft.toFixed(1)} {lang === "ta" ? "ஆண்டுகள் மீதம்" : "yrs left"}</div>
+            )}
+            {yearsLeft !== null && (
+              <div style={{ fontSize: "11.5px", color: "var(--color-faint)" }}>
+                {lang === "ta" ? "அத்தியாயம் · " : "Chapter · "}{yearsLeft.toFixed(1)} {lang === "ta" ? "ஆண்டுகள் மீதம்" : "yrs left"}
+              </div>
             )}
             {elapsedPct !== null && (
               <div style={{ marginTop: "2px", height: "5px", borderRadius: "3px", background: "rgba(243,236,221,0.12)", overflow: "hidden" }}>

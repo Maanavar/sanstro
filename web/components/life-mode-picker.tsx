@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BookOpen, Briefcase, Heart, Home, Coins, Leaf, Star, Flame, Scale } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { apiFetchJson } from "@/lib/api";
+import { ModalShell } from "@/components/modal-shell";
 import type { Lang } from "@/lib/i18n";
 import type { LifeMode, LifeModeStatus } from "@/lib/types";
 
@@ -60,25 +61,23 @@ export function LifeModePicker({ lang, currentMode, blockedModes, onClose, onSel
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      style={{
-        position: "fixed", inset: 0, zIndex: 9998,
-        background: "rgba(26,22,18,0.55)", backdropFilter: "blur(4px)",
-        display: "flex", alignItems: "flex-end", justifyContent: "center",
+    <ModalShell
+      label={lang === "ta" ? "இப்போது எதில் கவனம்?" : "What are you focused on right now?"}
+      onClose={onClose}
+      overlayStyle={{
+        zIndex: 9998,
+        alignItems: "flex-end",
+        padding: 0,
+        background: "rgba(26,22,18,0.55)",
+        backdropFilter: "blur(4px)",
       }}
-      onClick={onClose}
+      panelStyle={{
+        width: "100%", maxWidth: "640px", maxHeight: "88vh", overflowY: "auto",
+        background: "var(--color-surface, var(--panel-cream-light))", borderTopLeftRadius: "24px", borderTopRightRadius: "24px",
+        padding: "clamp(20px, 4vw, 32px)", boxShadow: "0 -12px 48px rgba(0,0,0,0.3)",
+        fontFamily: "var(--font-body)",
+      }}
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%", maxWidth: "640px", maxHeight: "88vh", overflowY: "auto",
-          background: "var(--color-surface, var(--panel-cream-light))", borderTopLeftRadius: "24px", borderTopRightRadius: "24px",
-          padding: "clamp(20px, 4vw, 32px)", boxShadow: "0 -12px 48px rgba(0,0,0,0.3)",
-          fontFamily: "var(--font-body)",
-        }}
-      >
         <div style={{ width: "40px", height: "4px", borderRadius: "2px", background: "var(--color-border-strong, var(--panel-tan))", margin: "0 auto 18px" }} />
 
         <p style={{ margin: "0 0 6px", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent, var(--panel-brand))" }}>
@@ -131,7 +130,7 @@ export function LifeModePicker({ lang, currentMode, blockedModes, onClose, onSel
           <button
             type="button"
             disabled={saving !== null}
-            onClick={() => void choose("BALANCED")}
+            onClick={onClose}
             style={{
               padding: "8px 18px", borderRadius: "var(--radius-pill)", background: "transparent",
               border: "none", color: "var(--color-faint)", fontSize: "0.8rem", fontWeight: 600,
@@ -141,8 +140,7 @@ export function LifeModePicker({ lang, currentMode, blockedModes, onClose, onSel
             {lang === "ta" ? "இப்போது தவிர்க்கவும்" : "Skip for now"}
           </button>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }
 

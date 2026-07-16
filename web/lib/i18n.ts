@@ -1017,7 +1017,7 @@ const STRINGS = {
   // ── Onboarding banner
   onboarding_title:        { ta: "தொடங்க சில படிகள் மீதம்",                         en: "A few steps to get started" },
   onboarding_step1:        { ta: "உங்கள் ஜாதக விவரங்களை சேர்க்கவும்",              en: "Add your birth profile" },
-  onboarding_step2:        { ta: "குடும்ப சேகரிப்பு திறந்து ஒரு உறுப்பினரை சேர்க்கவும்", en: "Open Family Vault and add one family member" },
+  onboarding_step2:        { ta: "ஒப்பிட ஒரு குடும்ப உறுப்பினரைச் சேர்க்கவும்", en: "Add a family member to compare charts" },
   onboarding_go_setup:     { ta: "அமைவுக்கு செல்",                                   en: "Go to Setup" },
 
   // ── Notification inbox popover

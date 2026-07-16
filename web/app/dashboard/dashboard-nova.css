@@ -37,6 +37,11 @@
 [data-ui="nova"] .cd-shell {
   --cd-container-max: 1240px;
 
+  /* UXD-07 — gold keyboard-focus ring on the Nova shell (the global rule in
+     globals.css reads var(--focus-ring); here it resolves to the active
+     theme's gold accent, dark or light). */
+  --focus-ring: var(--color-accent, #d4af5f);
+
   /* ── Shape ── */
   --radius-lg: 14px; /* cards */
   --radius-xl: 16px; /* hero sections */
@@ -366,6 +371,13 @@
   /* Card lift — a whisper of shadow so cards sit above the base plane instead
      of floating on it borderless-flat. Kept to 1px depth on dark. */
   --nova-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.30);
+
+  /* "Your day" timeline — dark-mode-specific inks (the rest of the ribbon
+     token set is mode-invariant and lives in the shared block below the
+     Light palette). Empty rail is a faint light-on-dark wash; Rahu carries
+     the cream ink that reads on the rust fill. */
+  --ribbon-track-bg: color-mix(in srgb, var(--color-text-strong) 10%, transparent);
+  --ribbon-rahu-fg:  var(--color-text-strong);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -421,14 +433,19 @@
      hue — acceptable trade for clearing AA on 200+ sites. */
   --color-faint:        var(--text-tertiary);  /* #7A6448 */
 
-  /* ── Accent — same #C9971C gold as Classic's light theme (falls through,
-     see note above); accent-strong/on-accent have no Classic equivalent. ── */
+  /* ── Accent — deepened bronze-gold in light so accent FILLS (selected
+     tabs, CTAs, selected chips, badges) can carry white on-accent text.
+     Classic's light gold #C9971C is a *light* fill (lum ~0.35): white on it
+     is only 2.64:1 (fail) and near-black text on it, while AA-valid, reads
+     muddy. #8A6410 is dark enough that white = 5.3:1 AA and the pill reads
+     as a rich amber with crisp white type — the look we want for light mode.
+     accent-strong/on-accent have no Classic equivalent. ── */
+  --color-accent:        #8A6410; /* deep bronze-gold fill (was falling through to Classic #C9971C) */
   --color-accent-strong: var(--accent-hover); /* #A87D18 — darker gold reads better on cream than dark's lighter highlight gold would */
-  --color-on-accent:     #221a2c;
-  /* Light-mode text-safe accent (see dark block). Brand gold #C9971C is
-     2.48:1 on cream and accent-strong #A87D18 only 3.50:1 (large-only) — so
-     kicker/label TEXT needs a dedicated darker gold. #8A6410 = 5.02:1 AA.
-     Fills/borders still use raw --color-accent. */
+  --color-on-accent:     #FFFFFF; /* white type on the deep-gold fill (5.3:1 AA) */
+  /* Light-mode text-safe accent. With --color-accent now deepened to #8A6410
+     (5.02:1 as text on cream) fills and accent-as-text coincide; kept as its
+     own token so the fill can be retuned without silently breaking text. */
   --color-text-accent:   #8A6410;
   /* Light alert-critical (#C0392B) is already 5.1:1 as text, so the text
      token just mirrors it — the split exists so the dark override has a home
@@ -568,6 +585,39 @@
     radial-gradient(130% 150% at 12% 0%, rgba(201, 151, 28, 0.08), transparent 46%),
     linear-gradient(150deg, var(--surface-1), var(--surface-2));
   --nova-card-shadow: 0 1px 3px rgba(28, 16, 8, 0.08);
+
+  /* "Your day" timeline — light-mode-specific inks (mode-invariant tokens
+     live in the shared block below). The empty rail is an opaque warm
+     greige (surface-soft) so the spine reads as a defined channel on cream
+     rather than the near-invisible 9%-ink wash it used to be. Rahu carries
+     white on its saturated red — near-black type was a muddy ~3:1. */
+  --ribbon-track-bg: var(--color-surface-soft);
+  --ribbon-rahu-fg:  #FFFFFF;
+}
+
+/* ── "Your day" panchangam timeline (dashboard-today-ribbon-nova.tsx) —
+   mode-invariant ribbon tokens. These were literal hex/rgba pinned to
+   --color-text-strong / --color-alert-critical at fixed opacities back
+   when Nova was always dark; under Light the translucent fills washed out
+   on cream and dark type landed on saturated fills. Every value here is an
+   expression over --color-* tokens that already flip correctly per theme,
+   so one definition serves both modes; only --ribbon-track-bg and
+   --ribbon-rahu-fg genuinely differ and are overridden in the two palette
+   blocks above. Lower specificity than those blocks, so the overrides win.
+   Yama blends 46% toward --color-surface: opaque and one clear step lighter
+   than Rahu's solid fill on either base, with --color-text-strong ink that
+   contrasts in both. ── */
+[data-ui="nova"] .cd-shell {
+  --ribbon-track-border: color-mix(in srgb, var(--color-text-strong) 14%, transparent);
+  --ribbon-rahu-bg:  var(--color-alert-critical);
+  --ribbon-yama-bg:  color-mix(in srgb, var(--color-alert-critical) 46%, var(--color-surface));
+  --ribbon-yama-fg:  var(--color-text-strong);
+  --ribbon-best-bg:  var(--color-accent);
+  --ribbon-best-fg:  var(--color-on-accent);
+  --ribbon-good-bg:  var(--color-high);
+  --ribbon-good-fg:  var(--color-on-accent);
+  --ribbon-now-bg:   var(--color-text-strong);
+  --ribbon-now-fg:   var(--color-on-accent);
 }
 
 /* globals.css's .card/.input/.select are a "dark glass" convention (fixed
@@ -678,6 +728,7 @@
   min-width: 0;
   flex: 1 1 auto;
   margin: 0 var(--space-2);
+  position: relative; /* anchor for the UXD-02 scroll fade + chevron */
 }
 
 [data-ui="nova"] .cd-topnav__scroll {
@@ -688,11 +739,41 @@
   overscroll-behavior-x: contain;
   scrollbar-width: none;
   scroll-behavior: smooth;
+  /* UXD-02 — theme-agnostic edge fade: the tab strip fades to transparent on
+     whichever side has more content off-screen, signalling that it scrolls.
+     Widths are driven by data-scroll-start/end on .cd-topnav (0 = no fade). */
+  --fade-l: 0px;
+  --fade-r: 0px;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
 }
+
+[data-ui="nova"] .cd-topnav[data-scroll-start="false"] .cd-topnav__scroll { --fade-l: 22px; }
+[data-ui="nova"] .cd-topnav[data-scroll-end="false"] .cd-topnav__scroll { --fade-r: 28px; }
 
 [data-ui="nova"] .cd-topnav__scroll::-webkit-scrollbar {
   display: none;
 }
+
+/* Right-edge chevron: appears only when tabs overflow to the right; tap scrolls
+   the strip forward. aria-hidden — keyboard users Tab through the tabs. */
+[data-ui="nova"] .cd-topnav__more {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 26px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-accent-strong);
+  cursor: pointer;
+  z-index: 2;
+}
+[data-ui="nova"] .cd-topnav[data-scroll-end="false"] .cd-topnav__more { display: inline-flex; }
 
 [data-ui="nova"] .cd-topnav .cd-tab {
   display: inline-flex;
@@ -747,9 +828,29 @@
   position: absolute;
   inset: 0;
   width: 100%;
+  height: 100%;
   min-height: 0;
   padding: 0;
   border: none;
+  opacity: 0;
+  cursor: pointer;
+  /* UXD-16 — reset the iOS Safari date-control chrome so the invisible input
+     genuinely fills the pill (its intrinsic sizing otherwise shrinks the tap
+     target); 16px font stops iOS zoom-on-focus. Tapping the overlay opens the
+     OS picker natively, which is the fallback when showPicker() is absent. */
+  -webkit-appearance: none;
+  appearance: none;
+  font-size: 16px;
+}
+/* iOS renders an inner date/edit box that can intercept/limit the tap area. */
+[data-ui="nova"] .cd-date-input::-webkit-date-and-time-value { text-align: left; }
+[data-ui="nova"] .cd-date-input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
   opacity: 0;
   cursor: pointer;
 }
@@ -808,6 +909,19 @@
   text-transform: uppercase;
   color: var(--color-text-strong);
   white-space: nowrap;
+}
+
+[data-ui="nova"] .cd-subbar__caveat {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-fair, #e39a3e);
+  background: color-mix(in srgb, var(--color-fair, #e39a3e) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-fair, #e39a3e) 30%, transparent);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+  cursor: help;
 }
 
 [data-ui="nova"] .cd-subbar__chart {
@@ -902,9 +1016,19 @@
 }
 
 @media (max-width: 720px) {
-  [data-ui="nova"] .cd-subbar__chart,
+  /* UXD-02 — status yields to the vault pill, but the chart identity is
+     restacked onto its own line under the name (not dropped), so a phone user
+     still sees which chart they're reading. */
   [data-ui="nova"] .cd-subbar__status {
     display: none;
+  }
+  [data-ui="nova"] .cd-subbar__identity {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+  [data-ui="nova"] .cd-subbar__chart {
+    flex-basis: 100%;
+    white-space: normal;
   }
 
   /* dashboard.css wraps cd-topbar__right onto its own full-width line at

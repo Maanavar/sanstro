@@ -14,6 +14,16 @@ import { SettingsRail, SETTINGS_C as C, type SettingsSectionId } from "./dashboa
 type UserMode = "BEGINNER" | "BALANCED" | "TRADITIONAL";
 type GoalTrack = "CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL";
 
+// Mirrors the backend FeedbackPayload.category literal (app/api/feedback.py).
+type FeedbackCategory = "suggestion" | "bug" | "calculation" | "review" | "other";
+const FEEDBACK_CATEGORIES: { v: FeedbackCategory; en: string; ta: string }[] = [
+  { v: "suggestion",  en: "Suggestion",       ta: "பரிந்துரை" },
+  { v: "bug",         en: "Something's broken", ta: "பிழை" },
+  { v: "calculation", en: "Calculation looks off", ta: "கணிப்பு சரியில்லை" },
+  { v: "review",      en: "A review / praise", ta: "மதிப்பீடு" },
+  { v: "other",       en: "Other",            ta: "மற்றவை" },
+];
+
 type DashboardSettingsSessionTabProps = {
   lang: Lang;
   section: SettingsSectionId;
@@ -264,6 +274,17 @@ export function DashboardSettingsSessionTab({
   const [retentionPreview, setRetentionPreview] = useState<JournalRetentionApplyData | null>(null);
   const [retentionApplied, setRetentionApplied] = useState<JournalRetentionApplyData | null>(null);
 
+  // In-app feedback modal — replaces the old mailto: link, which silently did
+  // nothing on any device without a configured mail client. Posts to the
+  // existing /feedback endpoint (persisted to the feedback table).
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackCategory, setFeedbackCategory] = useState<FeedbackCategory>("suggestion");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackContact, setFeedbackContact] = useState(false);
+  const [feedbackSending, setFeedbackSending] = useState(false);
+  const [feedbackDone, setFeedbackDone] = useState(false);
+  const [feedbackError, setFeedbackError] = useState("");
+
   const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flash = (msg: string) => {
@@ -272,6 +293,40 @@ export function DashboardSettingsSessionTab({
     toastTimer.current = setTimeout(() => setToast(""), 2100);
   };
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
+
+  const openFeedback = () => {
+    setFeedbackError("");
+    setFeedbackDone(false);
+    setFeedbackOpen(true);
+  };
+
+  const submitFeedback = async () => {
+    const message = feedbackMessage.trim();
+    if (!message) return;
+    setFeedbackSending(true);
+    setFeedbackError("");
+    try {
+      await apiFetchJson<{ received: boolean }>("/api/v1/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: feedbackCategory,
+          message,
+          page_context: "settings",
+          is_review: feedbackCategory === "review",
+          allow_contact: feedbackContact,
+        }),
+      });
+      setFeedbackDone(true);
+      setFeedbackMessage("");
+    } catch {
+      setFeedbackError(lang === "ta"
+        ? "அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும்."
+        : "Couldn't send that — please try again.");
+    } finally {
+      setFeedbackSending(false);
+    }
+  };
 
   useEffect(() => { setModeDraft(userMode); }, [userMode]);
   useEffect(() => { setTrackDraft(goalTrack ?? ""); }, [goalTrack]);
@@ -787,7 +842,7 @@ export function DashboardSettingsSessionTab({
         <div style={{ fontFamily: "var(--font-body, serif)", fontSize: "14px", color: C.muted, lineHeight: 1.6 }}>
           {lang === "ta" ? "கேள்விகள் அல்லது பரிந்துரைகள்? நாங்கள் ஒரு சிறிய குழு — ஒவ்வொரு குறிப்பையும் படிக்கிறோம். உங்கள் கருத்து இறுதி வடிவத்தை வடிவமைக்கிறது." : "Questions or suggestions? We're a small team and read every note — your feedback shapes the final version."}
         </div>
-        <GhostBtn onClick={() => { window.location.href = "mailto:support@vinaadi.ai"; }}>{lang === "ta" ? "✉ கருத்து அனுப்பு" : "✉ Send feedback"}</GhostBtn>
+        <GhostBtn onClick={openFeedback}>{lang === "ta" ? "✉ கருத்து அனுப்பு" : "✉ Send feedback"}</GhostBtn>
       </Card>
 
       <div style={{ background: C.raised, border: `1px solid ${C.border}`, borderRadius: "16px", padding: "24px 26px", display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -798,8 +853,8 @@ export function DashboardSettingsSessionTab({
           <p style={{ margin: 0 }}>{t("disclaimer_data", lang)}</p>
         </div>
         <div style={{ display: "flex", gap: "20px", fontSize: "13px", fontWeight: 600, marginTop: "2px" }}>
-          <a href="/privacy" style={{ color: C.accentText, textDecoration: "none" }}>{t("privacy_link", lang)}</a>
-          <a href="/terms" style={{ color: C.accentText, textDecoration: "none" }}>{t("terms_link", lang)}</a>
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: C.accentText, textDecoration: "none" }}>{t("privacy_link", lang)} ↗</a>
+          <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: C.accentText, textDecoration: "none" }}>{t("terms_link", lang)} ↗</a>
         </div>
       </div>
     </div>
@@ -856,6 +911,114 @@ export function DashboardSettingsSessionTab({
         <SettingsRail active={section} onNavigate={onNavigate} lang={lang} userDisplayName={userDisplayName} vaultName={vaultName} />
         <div style={{ minWidth: 0 }}>{panel}</div>
       </div>
+
+      {/* In-app feedback modal */}
+      {feedbackOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={lang === "ta" ? "கருத்து அனுப்பு" : "Send feedback"}
+          onClick={() => { if (!feedbackSending) setFeedbackOpen(false); }}
+          style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,.5)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: "min(480px, 100%)", background: C.card, border: `1px solid ${C.borderStrong}`, borderRadius: "18px", padding: "26px 28px", display: "flex", flexDirection: "column", gap: "16px", boxShadow: "0 24px 60px rgba(0,0,0,.5)", maxHeight: "90vh", overflowY: "auto" }}
+          >
+            {feedbackDone ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px", alignItems: "flex-start" }}>
+                <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: C.sageBg, color: C.sage, display: "grid", placeItems: "center", fontSize: "20px" }}>✓</div>
+                <div style={{ fontFamily: "var(--font-display, Georgia, serif)", fontSize: "20px", fontWeight: 600, color: C.text }}>
+                  {lang === "ta" ? "நன்றி!" : "Thank you."}
+                </div>
+                <div style={{ fontSize: "14px", color: C.muted, lineHeight: 1.55 }}>
+                  {lang === "ta" ? "உங்கள் குறிப்பு எங்களை சென்றடைந்தது — ஒவ்வொன்றையும் படிக்கிறோம்." : "Your note reached us — we read every one."}
+                </div>
+                <PrimaryBtn onClick={() => setFeedbackOpen(false)}>{lang === "ta" ? "மூடு" : "Done"}</PrimaryBtn>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: "var(--font-display, Georgia, serif)", fontSize: "21px", fontWeight: 600, color: C.text }}>
+                      {lang === "ta" ? "கருத்து அனுப்பு" : "Send feedback"}
+                    </div>
+                    <div style={{ fontSize: "13px", color: C.muted, marginTop: "3px", lineHeight: 1.5 }}>
+                      {lang === "ta" ? "நாங்கள் ஒரு சிறிய குழு — ஒவ்வொரு குறிப்பையும் படிக்கிறோம்." : "We're a small team and read every note."}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFeedbackOpen(false)}
+                    aria-label={lang === "ta" ? "மூடு" : "Close"}
+                    style={{ flex: "none", background: "none", border: "none", color: C.faint, fontSize: "22px", lineHeight: 1, cursor: "pointer", padding: "2px 4px" }}
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <div style={{ ...KICKER }}>{lang === "ta" ? "வகை" : "About"}</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                    {FEEDBACK_CATEGORIES.map((c) => {
+                      const on = c.v === feedbackCategory;
+                      return (
+                        <button
+                          key={c.v}
+                          type="button"
+                          onClick={() => setFeedbackCategory(c.v)}
+                          style={{
+                            padding: "8px 14px", borderRadius: "999px", fontSize: "12.5px", fontWeight: on ? 600 : 500,
+                            background: on ? C.accentMuted : C.raised, border: `1px solid ${on ? C.accent : C.border}`,
+                            color: on ? C.text : C.muted, cursor: "pointer", fontFamily: "inherit",
+                          }}
+                        >
+                          {lang === "ta" ? c.ta : c.en}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <textarea
+                  value={feedbackMessage}
+                  onChange={(e) => setFeedbackMessage(e.target.value)}
+                  maxLength={2000}
+                  rows={5}
+                  autoFocus
+                  placeholder={lang === "ta" ? "என்ன நடந்தது அல்லது என்ன மேம்படுத்தலாம்?" : "What happened, or what would make this better?"}
+                  style={{
+                    width: "100%", boxSizing: "border-box", resize: "vertical", minHeight: "110px",
+                    background: C.surfaceSoft, border: `1px solid ${C.border}`, borderRadius: "11px",
+                    padding: "12px 14px", fontSize: "14px", color: C.text, fontFamily: "inherit", lineHeight: 1.5,
+                  }}
+                />
+
+                <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "13px", color: C.muted }}>
+                  <input
+                    type="checkbox"
+                    checked={feedbackContact}
+                    onChange={(e) => setFeedbackContact(e.target.checked)}
+                    style={{ width: "16px", height: "16px", accentColor: "var(--color-accent)", cursor: "pointer" }}
+                  />
+                  {lang === "ta" ? "இது குறித்து என்னைத் தொடர்பு கொள்ளலாம்" : "You can contact me about this"}
+                </label>
+
+                {feedbackError && (
+                  <div style={{ fontSize: "12.5px", color: C.danger }}>{feedbackError}</div>
+                )}
+
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "2px" }}>
+                  <PrimaryBtn onClick={() => void submitFeedback()} disabled={feedbackSending || !feedbackMessage.trim()}>
+                    {feedbackSending ? (lang === "ta" ? "அனுப்புகிறது…" : "Sending…") : (lang === "ta" ? "அனுப்பு" : "Send")}
+                  </PrimaryBtn>
+                  <span style={{ fontSize: "11.5px", color: C.faint, marginLeft: "auto" }}>{feedbackMessage.length}/2000</span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* toast */}
       {toast && (

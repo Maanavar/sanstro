@@ -1,8 +1,9 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { Bell, Settings, LogOut, Check, X } from "lucide-react";
 import Image from "next/image";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -75,6 +76,10 @@ interface DashboardHeroProps {
   /** Tone travels with the message (DASH-08) — never inferred from wording. */
   status: StatusMessage | null;
   chartSummary: ChartSummaryData | null;
+  /** UXD-15 — surfaced as a caveat when the birth time is missing/approximate,
+   *  since lagna & houses depend on it. Null when unknown. */
+  birthTimeConfidenceMinutes?: number | null;
+  birthTimeLocal?: string | null;
   selectedVault: FamilyVaultListItem | null;
   selectedVaultId: string;
   selectedDate: string;
@@ -97,65 +102,27 @@ interface DashboardHeroProps {
   onAskVinaadi?: () => void;
 }
 
-function Icon({ children }: { children: ReactNode }) {
-  return (
-    <svg
-      className="cd-icon"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-      focusable="false"
-    >
-      {children}
-    </svg>
-  );
-}
-
+/* Nova navbar glyphs — lucide (SHD-02). `.cd-icon` controls size (18px) and
+   stroke-width (2), so these render at the same size/weight as the previous
+   hand-rolled set. */
 function BellIcon() {
-  return (
-    <Icon>
-      <path d="M15 17H9" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M18 16V11C18 7.686 15.314 5 12 5C8.686 5 6 7.686 6 11V16L4.5 17.5H19.5L18 16Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M10.25 19C10.7 19.6 11.3 20 12 20C12.7 20 13.3 19.6 13.75 19" stroke="currentColor" strokeLinecap="round" />
-    </Icon>
-  );
+  return <Bell className="cd-icon" aria-hidden="true" focusable="false" />;
 }
 
 function SettingsIcon() {
-  return (
-    <Icon>
-      <path d="M12 15.2A3.2 3.2 0 1 0 12 8.8A3.2 3.2 0 0 0 12 15.2Z" stroke="currentColor" />
-      <path d="M19.4 15.1L20.2 13.7L18.9 11.9L19 10.1L17.2 9.3L16.1 7.7L14.2 8L12.7 7L11.3 7L9.8 8L7.9 7.7L6.8 9.3L5 10.1L5.1 11.9L3.8 13.7L4.6 15.1L4.5 16.9L6.3 17.7L7.4 19.3L9.3 19L10.8 20H13.2L14.7 19L16.6 19.3L17.7 17.7L19.5 16.9L19.4 15.1Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-    </Icon>
-  );
+  return <Settings className="cd-icon" aria-hidden="true" focusable="false" />;
 }
 
 function SignOutIcon() {
-  return (
-    <Icon>
-      <path d="M10 5H7C5.895 5 5 5.895 5 7V17C5 18.105 5.895 19 7 19H10" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M14 16L18 12L14 8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M18 12H9" stroke="currentColor" strokeLinecap="round" />
-    </Icon>
-  );
+  return <LogOut className="cd-icon" aria-hidden="true" focusable="false" />;
 }
 
 function CheckIcon() {
-  return (
-    <Icon>
-      <path d="M5.5 12.5L10 17L18.5 8.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-    </Icon>
-  );
+  return <Check className="cd-icon" aria-hidden="true" focusable="false" />;
 }
 
 function CloseIcon() {
-  return (
-    <Icon>
-      <path d="M6 6L18 18" stroke="currentColor" strokeLinecap="round" />
-      <path d="M18 6L6 18" stroke="currentColor" strokeLinecap="round" />
-    </Icon>
-  );
+  return <X className="cd-icon" aria-hidden="true" focusable="false" />;
 }
 
 export function DashboardHero(props: DashboardHeroProps) {
@@ -165,6 +132,8 @@ export function DashboardHero(props: DashboardHeroProps) {
     birthDisplayName,
     status,
     chartSummary,
+    birthTimeConfidenceMinutes,
+    birthTimeLocal,
     selectedVault,
     selectedDate,
     userEmail,
@@ -207,6 +176,26 @@ export function DashboardHero(props: DashboardHeroProps) {
   // user can always see where they are, even when tabs overflow the viewport.
   useEffect(() => {
     activeTabRef.current?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  }, [activeTab]);
+
+  // UXD-02 — edge fade + chevron affordance so overflowing tabs are discoverable
+  // on narrow viewports (the strip scrolls with its scrollbar hidden). Tracks
+  // whether the strip is scrolled to the start/end and exposes that as data
+  // attributes the CSS fades/chevron key off.
+  const topnavScrollRef = useRef<HTMLDivElement>(null);
+  const [topnavEdges, setTopnavEdges] = useState({ atStart: true, atEnd: true });
+  useEffect(() => {
+    const el = topnavScrollRef.current;
+    if (!el) return;
+    const update = () => {
+      const atStart = el.scrollLeft <= 1;
+      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1;
+      setTopnavEdges((p) => (p.atStart === atStart && p.atEnd === atEnd ? p : { atStart, atEnd }));
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => { el.removeEventListener("scroll", update); window.removeEventListener("resize", update); };
   }, [activeTab]);
 
   const langToggleTitle = lang === "ta" ? "Switch to English" : "தமிழுக்கு மாறு";
@@ -265,8 +254,27 @@ export function DashboardHero(props: DashboardHeroProps) {
             <span className="cd-brand__name">Vinaadi</span>
           </div>
 
-          <nav className="cd-topnav" aria-label="Dashboard navigation">
-            <div className="cd-topnav__scroll">{tabButtons}</div>
+          <nav
+            className="cd-topnav"
+            aria-label="Dashboard navigation"
+            data-scroll-start={topnavEdges.atStart}
+            data-scroll-end={topnavEdges.atEnd}
+          >
+            <div className="cd-topnav__scroll" ref={topnavScrollRef}>{tabButtons}</div>
+            <button
+              type="button"
+              className="cd-topnav__more"
+              aria-hidden="true"
+              tabIndex={-1}
+              onClick={() => {
+                const el = topnavScrollRef.current;
+                el?.scrollBy({ left: Math.round(el.clientWidth * 0.7), behavior: "smooth" });
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M9 6l6 6-6 6" />
+              </svg>
+            </button>
           </nav>
 
           <div className="cd-topbar__right">
@@ -455,6 +463,20 @@ export function DashboardHero(props: DashboardHeroProps) {
               {chartSummary && (
                 <span className="cd-subbar__chart">
                   {`${chartSummary.moonRasi} - ${chartSummary.janmaNakshatra} - ${chartSummary.lagnaRasi} ${lang === "ta" ? "லக்னம்" : "Lagnam"}`}
+                </span>
+              )}
+              {/* UXD-15 — birth-time uncertainty is collected but was never shown;
+                  lagna & houses depend on it, so flag low-confidence/missing time. */}
+              {chartSummary && (birthTimeLocal == null || (birthTimeConfidenceMinutes != null && birthTimeConfidenceMinutes >= 60)) && (
+                <span
+                  className="cd-subbar__caveat"
+                  title={birthTimeLocal == null
+                    ? (lang === "ta" ? "பிறப்பு நேரம் இல்லை — லக்னமும் பாவங்களும் தோராயம்." : "No birth time on file — lagna and houses are estimated.")
+                    : (lang === "ta" ? "பிறப்பு நேரம் தோராயம் — லக்னம் சார்ந்த பலன்கள் மாறலாம்." : "Birth time approximate — lagna-dependent results may shift.")}
+                >
+                  ≈ {birthTimeLocal == null
+                    ? (lang === "ta" ? "நேரம் தோராயம்" : "time estimated")
+                    : (lang === "ta" ? "நேரம் தோராயம்" : "time approximate")}
                 </span>
               )}
             </div>

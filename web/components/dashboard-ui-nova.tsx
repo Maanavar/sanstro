@@ -278,7 +278,7 @@ export function NovaScoreDial({ score, max = 100, size = 118, label, color }: No
           justifyContent: "center",
         }}
       >
-        <span style={{ fontFamily: "var(--font-display)", fontSize: size * 0.32, fontWeight: 600, color: numberColor, lineHeight: 1 }}>
+        <span style={{ fontFamily: "var(--font-display)", fontSize: size * 0.32, fontWeight: 600, color: numberColor, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
           {Math.round(displayScore)}
         </span>
         {label ? (

@@ -163,8 +163,9 @@ function NovaYogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
           {yoga.isPresent ? (
             <span
               title={lang === "ta" ? "ஜாதக பலம் (நேட்டல் சார்ட்)" : "Natal chart strength — how strong this yoga is in your birth chart"}
-              style={{ fontSize: "10px", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px" }}
+              style={{ fontSize: "10px", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px", display: "inline-flex", alignItems: "center", gap: "4px" }}
             >
+              <span style={{ fontWeight: 700, opacity: 0.65, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: "9px" }}>{lang === "ta" ? "ஜாதகம்" : "Chart"}</span>
               {strengthBand(yoga.strength, yoga.isPresent, lang)}
             </span>
           ) : (
@@ -182,8 +183,12 @@ function NovaYogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
                 color: yoga.isCurrentlyActive ? "var(--color-high)" : "var(--color-faint)",
                 border: `1px solid ${yoga.isCurrentlyActive ? "var(--color-high-border)" : "var(--color-border)"}`,
                 flexShrink: 0,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
               }}
             >
+              <span style={{ fontWeight: 700, opacity: 0.65, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: "9px" }}>{lang === "ta" ? "இன்று" : "Today"}</span>
               {`${yoga.activationScore}/100`}
             </span>
           )}
@@ -523,6 +528,13 @@ export function NovaYogaDoshamPanel({ lang, yogas, doshams }: Props) {
 
   const presentYogas = yogas.filter((y) => y.isPresent);
   const absentYogas = yogas.filter((y) => !y.isPresent);
+  // Doshams: "present" (Active or Mitigated) stay in the open list; only the
+  // ones that don't apply to this chart get tucked into the collapsed group.
+  const presentDoshams = doshams.filter((d) => d.isPresent);
+  const absentDoshams = doshams.filter((d) => !d.isPresent);
+
+  const absentTitle = (n: number) =>
+    lang === "ta" ? `உங்கள் ஜாதகத்தில் இல்லாதவை (${n})` : `Not present in your chart (${n})`;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "28px", fontFamily: "var(--font-body)" }}>
@@ -538,7 +550,13 @@ export function NovaYogaDoshamPanel({ lang, yogas, doshams }: Props) {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {presentYogas.map((y, i) => <NovaYogaCard key={`present-${y.name}-${i}`} yoga={y} lang={lang} />)}
-            {absentYogas.map((y, i) => <NovaYogaCard key={`absent-${y.name}-${i}`} yoga={y} lang={lang} />)}
+            {absentYogas.length > 0 && (
+              <CollapsibleSection title={absentTitle(absentYogas.length)}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px" }}>
+                  {absentYogas.map((y, i) => <NovaYogaCard key={`absent-${y.name}-${i}`} yoga={y} lang={lang} />)}
+                </div>
+              </CollapsibleSection>
+            )}
           </div>
         </div>
       )}
@@ -547,7 +565,14 @@ export function NovaYogaDoshamPanel({ lang, yogas, doshams }: Props) {
         <div>
           <p style={{ margin: "0 0 12px", fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 500, color: "var(--color-text-strong)" }}>{t("doshams_title", lang)}</p>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {doshams.map((d) => <NovaDoshamCard key={d.name} dosham={d} lang={lang} />)}
+            {presentDoshams.map((d) => <NovaDoshamCard key={d.name} dosham={d} lang={lang} />)}
+            {absentDoshams.length > 0 && (
+              <CollapsibleSection title={absentTitle(absentDoshams.length)}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px" }}>
+                  {absentDoshams.map((d) => <NovaDoshamCard key={d.name} dosham={d} lang={lang} />)}
+                </div>
+              </CollapsibleSection>
+            )}
           </div>
         </div>
       )}

@@ -12,6 +12,9 @@ import { RectificationWizard } from "./dashboard-rectification-wizard";
 import { BirthProfilesManager } from "./birth-profiles-manager";
 import { usePlaceCoordinatesConfirm, PlaceMatchedBadge, PlaceCoordinatesFooter } from "./place-coordinates-field";
 import { SettingsRail, type SettingsSectionId } from "./dashboard-settings-rail";
+// UXD-11 / SHD-03 — consolidated onto the shared form primitives; aliased so the
+// 28 existing call sites stay unchanged and the rendered styling is identical.
+import { TextInput as WInput, Select as WSelect } from "./dashboard-ui";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
 
@@ -117,42 +120,8 @@ const W = {
   dimBorder:"rgba(212,200,174,0.5)",
 } as const;
 
-/* ── Shared primitives ── */
-
-function WInput(props: React.InputHTMLAttributes<HTMLInputElement> & { error?: boolean }) {
-  const { error, style, ...rest } = props;
-  return (
-    <input
-      {...rest}
-      style={{
-        width: "100%", padding: "var(--space-2) var(--space-3)",
-        borderRadius: "var(--radius-md)",
-        border: `1.5px solid ${error ? "var(--color-low, var(--planet-saturn))" : W.borderLt}`,
-        background: rest.readOnly ? W.surfaceMd : W.card,
-        color: W.inkMid, fontSize: "0.875rem", fontFamily: "inherit",
-        outline: "none", cursor: rest.readOnly ? "default" : undefined,
-        ...style,
-      }}
-    />
-  );
-}
-
-function WSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      {...props}
-      style={{
-        width: "100%", padding: "var(--space-2) var(--space-3)",
-        borderRadius: "var(--radius-md)",
-        border: `1.5px solid ${W.borderLt}`,
-        background: W.card,
-        color: W.inkMid, fontSize: "0.875rem", fontFamily: "inherit",
-        outline: "none",
-        ...(props.style ?? {}),
-      }}
-    />
-  );
-}
+/* ── Shared primitives ──
+   WInput/WSelect now come from dashboard-ui (see aliased import above). */
 
 function WField({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: React.ReactNode }) {
   return (
@@ -439,18 +408,6 @@ export function DashboardSetupTab({
                     onChange={(e) => { onBirthFormChange({ ...birthForm, displayName: e.target.value }); onFormErrorChange({ displayName: "" }); }}
                   />
                 </WField>
-                <WField label={t("field_relationship", lang)}>
-                  <WSelect value={birthForm.relationshipToOwner}
-                    onChange={(e) => onBirthFormChange({ ...birthForm, relationshipToOwner: e.target.value as Relationship })}>
-                    <option value="self">{t("rel_self", lang)}</option>
-                    <option value="spouse">{t("rel_spouse", lang)}</option>
-                    <option value="child">{t("rel_child", lang)}</option>
-                    <option value="parent">{t("rel_parent", lang)}</option>
-                    <option value="sibling">{t("rel_sibling", lang)}</option>
-                    <option value="grandparent">{t("rel_grandparent", lang)}</option>
-                    <option value="other">{t("rel_other", lang)}</option>
-                  </WSelect>
-                </WField>
                 <WField label={t("field_birth_date", lang)} error={formErrors.birthDateLocal}>
                   <WInput type="date" value={birthForm.birthDateLocal} error={!!formErrors.birthDateLocal} min={MIN_BIRTH_DATE} max={maxBirthDateIso()}
                     onChange={(e) => {
@@ -466,20 +423,6 @@ export function DashboardSetupTab({
                   <WInput type="time" step="1" value={birthForm.birthTimeLocal}
                     onChange={(e) => onBirthFormChange({ ...birthForm, birthTimeLocal: e.target.value })} />
                 </WField>
-                <WField label={lang === "ta" ? "பிறந்த நேர மூலம்" : "Birth Time Source"}>
-                  <WSelect value={birthForm.birthTimeSource}
-                    onChange={(e) => {
-                      const src = e.target.value;
-                      const conf = src === "hospital_record" ? "5" : src === "family_memory" ? "15" : src === "elder_told" ? "30" : src === "approximate" ? "60" : "0";
-                      onBirthFormChange({ ...birthForm, birthTimeSource: src, birthTimeConfidenceMinutes: conf });
-                    }}>
-                    <option value="unknown">{lang === "ta" ? "தெரியாது" : "Unknown"}</option>
-                    <option value="hospital_record">{lang === "ta" ? "மருத்துவமனை பதிவு" : "Hospital Record (±5 min)"}</option>
-                    <option value="family_memory">{lang === "ta" ? "குடும்ப நினைவு" : "Family Memory (±15 min)"}</option>
-                    <option value="elder_told">{lang === "ta" ? "பெரியவர் சொன்னது" : "Elder's Account (±30 min)"}</option>
-                    <option value="approximate">{lang === "ta" ? "தோராயம்" : "Approximate (±1 hr)"}</option>
-                  </WSelect>
-                </WField>
                 <WField label={t("field_birth_place", lang)} hint={t("field_place_helper", lang)} error={formErrors.birthPlace}>
                   <PlaceCombobox value={birthForm.birthPlace}
                     onChange={(city, raw) => {
@@ -487,10 +430,12 @@ export function DashboardSetupTab({
                       onFormErrorChange({ birthPlace: "", birthTimezone: "" });
                     }} />
                 </WField>
+              {(!birthForm.birthTimezone || formErrors.birthTimezone) && (
                 <WField label={t("field_timezone", lang)} hint={t("field_tz_helper", lang)} error={formErrors.birthTimezone}>
                   <WInput value={birthForm.birthTimezone} error={!!formErrors.birthTimezone}
                     onChange={(e) => { onBirthFormChange({ ...birthForm, birthTimezone: e.target.value }); onFormErrorChange({ birthTimezone: "" }); }} />
                 </WField>
+              )}
                 {ownCoordsConfirm.showRawFields ? (
                   <>
                     <WField label={t("field_latitude", lang)} error={formErrors.birthLatitude}>
@@ -509,6 +454,41 @@ export function DashboardSetupTab({
                     latitude={birthForm.birthLatitude} longitude={birthForm.birthLongitude}
                     onEditClick={() => ownCoordsConfirm.setEditing(true)} />
                 )}
+              </div>
+
+              <details className="setup-advanced">
+                <summary>
+                  <svg className="setup-advanced__chev" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M3 1l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  {/* i18n: Tamil label pending native review (CLAUDE.md new-Tamil rule) */}
+                  {lang === "ta" ? "மேலும் விவரங்கள் (விருப்பம்)" : "More details (optional)"}
+                </summary>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "var(--space-3)", marginTop: "var(--space-3)" }}>
+                <WField label={t("field_relationship", lang)}>
+                  <WSelect value={birthForm.relationshipToOwner}
+                    onChange={(e) => onBirthFormChange({ ...birthForm, relationshipToOwner: e.target.value as Relationship })}>
+                    <option value="self">{t("rel_self", lang)}</option>
+                    <option value="spouse">{t("rel_spouse", lang)}</option>
+                    <option value="child">{t("rel_child", lang)}</option>
+                    <option value="parent">{t("rel_parent", lang)}</option>
+                    <option value="sibling">{t("rel_sibling", lang)}</option>
+                    <option value="grandparent">{t("rel_grandparent", lang)}</option>
+                    <option value="other">{t("rel_other", lang)}</option>
+                  </WSelect>
+                </WField>
+                <WField label={lang === "ta" ? "பிறந்த நேர மூலம்" : "Birth Time Source"}>
+                  <WSelect value={birthForm.birthTimeSource}
+                    onChange={(e) => {
+                      const src = e.target.value;
+                      const conf = src === "hospital_record" ? "5" : src === "family_memory" ? "15" : src === "elder_told" ? "30" : src === "approximate" ? "60" : "0";
+                      onBirthFormChange({ ...birthForm, birthTimeSource: src, birthTimeConfidenceMinutes: conf });
+                    }}>
+                    <option value="unknown">{lang === "ta" ? "தெரியாது" : "Unknown"}</option>
+                    <option value="hospital_record">{lang === "ta" ? "மருத்துவமனை பதிவு" : "Hospital Record (±5 min)"}</option>
+                    <option value="family_memory">{lang === "ta" ? "குடும்ப நினைவு" : "Family Memory (±15 min)"}</option>
+                    <option value="elder_told">{lang === "ta" ? "பெரியவர் சொன்னது" : "Elder's Account (±30 min)"}</option>
+                    <option value="approximate">{lang === "ta" ? "தோராயம்" : "Approximate (±1 hr)"}</option>
+                  </WSelect>
+                </WField>
                 <WField
                   label={lang === "ta" ? "நீங்கள் இப்போது வசிக்கும் ஊர்" : "Where you live now"}
                   hint={lang === "ta"
@@ -548,7 +528,8 @@ export function DashboardSetupTab({
                     <option value="homemaker">{lang === "ta" ? "இல்லத்தரசி / இல்லத்தரசர்" : "Homemaker"}</option>
                   </WSelect>
                 </WField>
-              </div>
+                </div>
+              </details>
 
               {/* Calculate toggle */}
               <label style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", cursor: "pointer", fontSize: "0.875rem", color: W.muted }}>

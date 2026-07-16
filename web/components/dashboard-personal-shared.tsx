@@ -107,7 +107,7 @@ export function ChandrashtamaCard({ lang, chandrashtamaEnds, descriptionTa, desc
       )}
 
       {description && (
-        <p style={{ margin: 0, padding: "var(--space-2_5) var(--space-4)", fontSize: "0.875rem", color: "var(--panel-earth-dark)", borderBottom: "1px solid var(--color-amber-border, #fde68a)" }}>
+        <p style={{ margin: 0, padding: "var(--space-2_5) var(--space-4)", fontSize: "0.875rem", color: "var(--color-text-strong)", borderBottom: "1px solid var(--color-amber-border, #fde68a)" }}>
           {description}
         </p>
       )}
@@ -119,7 +119,7 @@ export function ChandrashtamaCard({ lang, chandrashtamaEnds, descriptionTa, desc
             {isTa ? "தவிர்க்கவும்" : "Avoid"}
           </p>
           {(isTa ? CHANDRASHTAMA_AVOID.ta : CHANDRASHTAMA_AVOID.en).map((item) => (
-            <p key={item} style={{ margin: "0 0 4px", fontSize: "0.75rem", color: "var(--panel-earth)", lineHeight: 1.4 }}>
+            <p key={item} style={{ margin: "0 0 4px", fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.4 }}>
               <span style={{ color: "var(--planet-saturn, #b45309)", marginRight: "4px" }}>✕</span>{item}
             </p>
           ))}
@@ -129,7 +129,7 @@ export function ChandrashtamaCard({ lang, chandrashtamaEnds, descriptionTa, desc
             {isTa ? "செய்யலாம்" : "Do"}
           </p>
           {(isTa ? CHANDRASHTAMA_CAN_DO.ta : CHANDRASHTAMA_CAN_DO.en).map((item) => (
-            <p key={item} style={{ margin: "0 0 4px", fontSize: "0.75rem", color: "var(--panel-earth)", lineHeight: 1.4 }}>
+            <p key={item} style={{ margin: "0 0 4px", fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.4 }}>
               <span style={{ color: "var(--chart-d9-active-dark, #047857)", marginRight: "4px" }}>✓</span>{item}
             </p>
           ))}
