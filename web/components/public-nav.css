@@ -1,0 +1,81 @@
+/* Public marketing nav — dropdown + mobile disclosure styles.
+   Extracted from an inline <style> block in public-nav.tsx (MKT-17).
+   Base .cl-nav / .cl-nav__link / .cl-nav__signin live in globals.css;
+   these are the dropdown, actions, and mobile-sheet layers only. */
+
+.cl-nav-dropdown { position: relative; }
+.cl-nav-dropdown__trigger {
+  background: none; border: none; cursor: pointer;
+  font-family: inherit;
+  display: inline-flex; align-items: center; gap: 5px; padding: 0;
+  min-height: 44px;
+}
+.cl-nav-dropdown__chevron { transition: transform 150ms ease; opacity: 0.6; }
+.cl-nav-dropdown__menu {
+  position: absolute; top: 100%; left: 50%;
+  transform: translateX(-50%); padding-top: 12px;
+  min-width: 240px; z-index: 200;
+  opacity: 0; pointer-events: none; visibility: hidden;
+  transition: opacity 120ms ease, visibility 120ms ease;
+}
+.cl-nav-dropdown__menu-inner {
+  background: var(--cl-surface); border: 1px solid var(--cl-border);
+  border-radius: 14px; box-shadow: 0 8px 32px var(--cl-shadow);
+  padding: 8px; display: flex; flex-direction: column; gap: 2px;
+}
+.cl-nav-dropdown__menu[data-open="true"] {
+  opacity: 1; pointer-events: auto; visibility: visible;
+}
+.cl-nav-dropdown__trigger[aria-expanded="true"] .cl-nav-dropdown__chevron { transform: rotate(180deg); }
+.cl-nav-dropdown__item {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 10px 12px; border-radius: 10px;
+  text-decoration: none; transition: background 120ms ease;
+}
+.cl-nav-dropdown__item:hover { background: var(--cl-bg-2); }
+.cl-nav-dropdown__item-label { font-size: 0.88rem; font-weight: 600; color: var(--cl-ink); line-height: 1.2; }
+.cl-nav-dropdown__item-desc  { font-size: 0.75rem; color: var(--cl-muted); line-height: 1.3; }
+.cl-nav__actions { display: flex; align-items: center; gap: 8px; }
+.cl-nav__menu-btn {
+  display: none; min-width: 44px; min-height: 44px;
+  border-radius: 999px; border: 1.5px solid var(--cl-border);
+  background: var(--cl-surface); color: var(--cl-ink);
+  cursor: pointer; align-items: center; justify-content: center;
+}
+.cl-nav__mobile { display: none; }
+@media (max-width: 1024px) {
+  .cl-nav__menu-btn { display: inline-flex; }
+  .cl-nav__links { display: none; }
+  .cl-nav-dropdown__menu { left: auto; right: 0; transform: none; }
+  .cl-nav__mobile {
+    display: block; border-top: 1px solid var(--cl-border);
+    background: rgba(244, 238, 226, 0.98);
+  }
+  .cl-nav__mobile-inner {
+    width: min(1200px, calc(100% - 40px)); margin: 0 auto;
+    padding: 16px 0 18px; display: grid; gap: 14px;
+  }
+  .cl-nav__mobile-group { display: grid; gap: 8px; }
+  .cl-nav__mobile-label {
+    margin: 0; font-size: 0.68rem; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--cl-muted);
+  }
+  .cl-nav__mobile-link {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 12px 14px; border-radius: 12px;
+    background: var(--cl-surface); border: 1px solid var(--cl-border);
+    color: var(--cl-ink); font-size: 0.9rem; font-weight: 500; text-decoration: none;
+  }
+  .cl-nav__mobile-link span:first-child { min-width: 0; overflow-wrap: anywhere; }
+  .cl-nav__mobile-link span:last-child { color: var(--cl-muted); font-size: 0.78rem; font-weight: 400; max-width: 24ch; text-align: right; }
+}
+@media (max-width: 560px) {
+  .cl-nav__mobile-link {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .cl-nav__mobile-link span:last-child {
+    max-width: none;
+    text-align: left;
+  }
+}

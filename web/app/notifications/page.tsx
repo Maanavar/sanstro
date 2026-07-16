@@ -107,7 +107,7 @@ export default function NotificationsPage() {
 
         <div style={{ background: "var(--cl-surface)", border: "1px solid var(--cl-border)", borderRadius: "18px", padding: "24px", display: "grid", gap: "16px" }}>
           <p style={{ margin: 0, color: "var(--cl-muted)", lineHeight: 1.65 }}>
-            This inbox mirrors the same backend notification history used on mobile, so desktop users can catch up on Chandrashtama alerts, timing reminders, and daily nudges in one place.
+            This inbox mirrors your notification history from the app, so you can catch up on Chandrashtama alerts, timing reminders, and daily nudges in one place.
           </p>
 
           {error && (

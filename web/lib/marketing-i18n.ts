@@ -900,7 +900,7 @@ export const NATCHATHIRAM_DETAIL = {
   fig_label_suffix:  s("Nakshathiram profile", "நட்சத்திர விவரம்"),
   // Fact card labels
   fact_rasi:         s("Rasi (Sign)",   "ராசி"),
-  fact_planet:       s("Ruling Planet", "அதிபதி கிரகம்"),
+  fact_planet:       s("Ruling Planet", "அதிபதி"),
   fact_deity:        s("Deity / Worship Form", "தெய்வம் / வழிபாட்டு வடிவு"),
   fact_gana:         s("Gana",          "கணம்"),
   fact_symbol:       s("Symbol",        "சின்னம்"),

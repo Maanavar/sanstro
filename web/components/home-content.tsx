@@ -4,14 +4,16 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useLang } from "@/components/lang-toggle";
 import { formatClockLabel } from "@/lib/format";
+import { tNakshatra, tTithi, tYoga } from "@/lib/i18n";
+import type { PanchangamDailyResponseData } from "@/lib/types";
 import { HOME, mt } from "@/lib/marketing-i18n";
+import { MarketingIcon, type MarketingIconName } from "@/components/marketing-icons";
 import { useGuestStore, RASI_LIST } from "@/hooks/useGuestStore";
 import { getFeatureFlag, initAnalytics, track } from "@/lib/analytics";
 
 function makeSample(lang: "en" | "ta", rasiOverride?: { en: string; ta: string } | null) {
   const en = lang === "en";
   return {
-    dayLabel:   en ? "Tuesday, 26 May"      : "செவ்வாய், 26 மே",
     score: 64,
     summary:    en
       ? "Moon Dasa · Moon Bhukti. Saturn refines home and inner stability. A measured day — good for steady work, cautious for new ventures."
@@ -38,33 +40,85 @@ export function HomeContent() {
   const { selectedRasi, setRasi } = useGuestStore();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [chartsGenerated, setChartsGenerated] = useState<number | null>(null);
-  const [ctaVariant, setCtaVariant] = useState<"A" | "B" | null>(null);
+  const [countError, setCountError] = useState(false);
+  const [displayCount, setDisplayCount] = useState(0);
+  // MKT-10 — default to the control label ("A") instead of a generic "start"
+  // placeholder, so only the (minority) variant-B bucket ever sees the label
+  // swap after the flag resolves, not every visitor.
+  const [ctaVariant, setCtaVariant] = useState<"A" | "B">("A");
+  const [panchangam, setPanchangam] = useState<PanchangamDailyResponseData | null>(null);
 
   useEffect(() => {
     fetch("/api/backend/api/v1/stats/public", { credentials: "include" })
       .then((r) => r.json())
       .then((j: { charts_generated?: number }) => {
         if (typeof j.charts_generated === "number") setChartsGenerated(j.charts_generated);
+        else setCountError(true);
       })
-      .catch(() => { /* fail silently — static fallback shown */ });
+      .catch(() => { setCountError(true); /* numberless fallback shown */ });
+  }, []);
+
+  // MKT-11 — count-up to the real figure once it arrives (respecting reduced
+  // motion), so the counter animates in rather than snapping / showing a dash.
+  useEffect(() => {
+    if (chartsGenerated == null) return;
+    const target = chartsGenerated;
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      setDisplayCount(target);
+      return;
+    }
+    const duration = 900;
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplayCount(Math.round(target * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [chartsGenerated]);
+
+  // MKT-04 — the hero "Today's Reading · Sample" card shows today's real
+  // panchangam (Chennai default) instead of a hardcoded stale date. Score /
+  // windows / dasha stay illustrative (a guest has no chart), but the date and
+  // tithi/nakshatra/yoga are the true values for the visitor's day.
+  useEffect(() => {
+    const iso = new Date().toISOString().slice(0, 10);
+    const qs = new URLSearchParams({ date: iso, lat: "13.0827", lng: "80.2707", timezone: "Asia/Kolkata" }).toString();
+    fetch(`/api/backend/api/v1/public/panchangam?${qs}`)
+      .then((r) => r.json())
+      .then((j: { data?: PanchangamDailyResponseData }) => setPanchangam(j.data ?? null))
+      .catch(() => { /* fail silently — sample falls back to today's date only */ });
   }, []);
 
   useEffect(() => {
     initAnalytics();
     const flag = getFeatureFlag("cta_primary");
-    setCtaVariant(flag === "variant_b" ? "B" : "A");
+    if (flag === "variant_b") setCtaVariant("B");
   }, []);
   const SAMPLE = makeSample(lang, selectedRasi);
   const bestWindowLabel = `${formatClockLabel(SAMPLE.bestWindow.start)} - ${formatClockLabel(SAMPLE.bestWindow.end)}`;
   const holdWindowLabel = `${formatClockLabel(SAMPLE.holdWindow.start)} - ${formatClockLabel(SAMPLE.holdWindow.end)}`;
 
-  const HELPS = [
-    { icon: "◎", title: mt(HOME.help1_title, lang), body: mt(HOME.help1_body, lang) },
-    { icon: "⊕", title: mt(HOME.help2_title, lang), body: mt(HOME.help2_body, lang) },
-    { icon: "☽", title: mt(HOME.help3_title, lang), body: mt(HOME.help3_body, lang) },
-    { icon: "◈", title: mt(HOME.help4_title, lang), body: mt(HOME.help4_body, lang) },
-    { icon: "✦", title: mt(HOME.help5_title, lang), body: mt(HOME.help5_body, lang) },
-    { icon: "⊛", title: mt(HOME.help6_title, lang), body: mt(HOME.help6_body, lang) },
+  // Real, current date for the sample card (suppressHydrationWarning guards the
+  // rare server/client timezone day-flip). Panchangam facts fill in once fetched.
+  const todayLabel = new Intl.DateTimeFormat(lang === "ta" ? "ta-IN" : "en-GB", {
+    weekday: "long", day: "numeric", month: "long",
+  }).format(new Date());
+  const sampleNakshatra = panchangam ? tNakshatra(panchangam.nakshatra.name, lang) : SAMPLE.nakshatra;
+  const samplePanchangam = panchangam
+    ? `${tTithi(panchangam.tithi.name, lang)} · ${tNakshatra(panchangam.nakshatra.name, lang)} · ${tYoga(panchangam.yoga.name, lang)}`
+    : SAMPLE.panchangam;
+
+  const HELPS: { icon: MarketingIconName; title: string; body: string }[] = [
+    { icon: "sun",      title: mt(HOME.help1_title, lang), body: mt(HOME.help1_body, lang) },
+    { icon: "calendar", title: mt(HOME.help2_title, lang), body: mt(HOME.help2_body, lang) },
+    { icon: "users",    title: mt(HOME.help3_title, lang), body: mt(HOME.help3_body, lang) },
+    { icon: "grid",     title: mt(HOME.help4_title, lang), body: mt(HOME.help4_body, lang) },
+    { icon: "rings",    title: mt(HOME.help5_title, lang), body: mt(HOME.help5_body, lang) },
+    { icon: "sliders",  title: mt(HOME.help6_title, lang), body: mt(HOME.help6_body, lang) },
   ];
 
   const DAILY_SIGS = [
@@ -82,11 +136,11 @@ export function HomeContent() {
     mt(HOME.family_item4, lang),
   ];
 
-  const TOOLS = [
-    { icon: "⊕", name: mt(HOME.tool1_name, lang), desc: mt(HOME.tool1_desc, lang), href: "/tools/marriage-porutham-calculator", cta: mt(HOME.tool1_cta, lang) },
-    { icon: "◈", name: mt(HOME.tool2_name, lang), desc: mt(HOME.tool2_desc, lang), href: "/tools/jadhagam-generator",           cta: mt(HOME.tool2_cta, lang) },
-    { icon: "☽", name: mt(HOME.tool3_name, lang), desc: mt(HOME.tool3_desc, lang), href: "/tools/daily-panchangam-planner",     cta: mt(HOME.tool3_cta, lang) },
-    { icon: "◎", name: mt(HOME.tool4_name, lang), desc: mt(HOME.tool4_desc, lang), href: "/tools/birth-time-rectification",     cta: mt(HOME.tool4_cta, lang) },
+  const TOOLS: { icon: MarketingIconName; name: string; desc: string; href: string; cta: string }[] = [
+    { icon: "rings",  name: mt(HOME.tool1_name, lang), desc: mt(HOME.tool1_desc, lang), href: "/tools/marriage-porutham-calculator", cta: mt(HOME.tool1_cta, lang) },
+    { icon: "grid",   name: mt(HOME.tool2_name, lang), desc: mt(HOME.tool2_desc, lang), href: "/tools/jadhagam-generator",           cta: mt(HOME.tool2_cta, lang) },
+    { icon: "moon",   name: mt(HOME.tool3_name, lang), desc: mt(HOME.tool3_desc, lang), href: "/tools/daily-panchangam-planner",     cta: mt(HOME.tool3_cta, lang) },
+    { icon: "target", name: mt(HOME.tool4_name, lang), desc: mt(HOME.tool4_desc, lang), href: "/tools/birth-time-rectification",     cta: mt(HOME.tool4_cta, lang) },
   ];
 
   const HOW_STEPS = [
@@ -123,13 +177,11 @@ export function HomeContent() {
               <Link
                 href="/dashboard"
                 className="cl-btn cl-btn--solid"
-                onClick={() => track("cta_clicked", { variant: ctaVariant ?? "A" })}
+                onClick={() => track("cta_clicked", { variant: ctaVariant })}
               >
                 {ctaVariant === "B"
                   ? mt(HOME.hero_cta_variant_b, lang)
-                  : ctaVariant === "A"
-                    ? mt(HOME.hero_cta_variant_a, lang)
-                    : mt(HOME.hero_cta_start, lang)}
+                  : mt(HOME.hero_cta_variant_a, lang)}
               </Link>
               <a href="#how-it-works" className="cl-btn cl-btn--ghost">{mt(HOME.hero_cta_how, lang)}</a>
             </div>
@@ -205,7 +257,7 @@ export function HomeContent() {
             <div className="cl-reading-card">
               <div className="cl-card-head">
                 <div>
-                  <p className="cl-card-date">{SAMPLE.dayLabel}</p>
+                  <p className="cl-card-date" suppressHydrationWarning>{todayLabel}</p>
                   <h2 className="cl-card-title">{mt(HOME.card_your_day, lang)}</h2>
                 </div>
                 <div className="cl-dial" aria-label={`Day score ${SAMPLE.score}`}>
@@ -245,7 +297,7 @@ export function HomeContent() {
                 </div>
               </div>
               <div className="cl-card-foot">
-                <span className="cl-card-foot__meta">{SAMPLE.lagna} · {SAMPLE.nakshatra} · {SAMPLE.rasi}</span>
+                <span className="cl-card-foot__meta">{SAMPLE.lagna} · {sampleNakshatra} · {SAMPLE.rasi}</span>
                 <span className="cl-card-foot__badge">{mt(HOME.card_d1_ready, lang)}</span>
               </div>
             </div>
@@ -256,14 +308,23 @@ export function HomeContent() {
       {/* SECTION 1b — Social Proof */}
       <section className="cl-social-proof">
         <div className="cl-container">
-          {/* Chart counter */}
+          {/* Chart counter (MKT-11) — count-up on arrival; a numberless
+              sentence (never a lonely dash) if the stat fails to load. */}
           <div className="cl-social-proof__counter">
-            <span className="cl-social-proof__number">
-              {chartsGenerated != null ? chartsGenerated.toLocaleString() : "—"}
-            </span>
-            <span className="cl-social-proof__label">
-              {mt(HOME.social_counter_suffix, lang)}
-            </span>
+            {chartsGenerated != null ? (
+              <>
+                <span className="cl-social-proof__number">{displayCount.toLocaleString()}</span>
+                <span className="cl-social-proof__label">{mt(HOME.social_counter_suffix, lang)}</span>
+              </>
+            ) : countError ? (
+              <span className="cl-social-proof__label">
+                {lang === "en"
+                  ? "Jadhagams generated for Tamil families worldwide"
+                  : "தமிழ் குடும்பங்களுக்கு ஜாதகங்கள் உருவாக்கப்படுகின்றன"}
+              </span>
+            ) : (
+              <span className="cl-social-proof__number" aria-hidden="true" style={{ opacity: 0 }}>0000</span>
+            )}
           </div>
 
           {/* Verifiable trust proofs replace hand-written testimonials — the
@@ -313,7 +374,7 @@ export function HomeContent() {
           <div className="cl-helps-grid">
             {HELPS.map((item) => (
               <div key={item.title} className="cl-helps-card">
-                <span className="cl-helps-card__icon">{item.icon}</span>
+                <span className="cl-helps-card__icon"><MarketingIcon name={item.icon} size={26} /></span>
                 <h3 className="cl-helps-card__title">{item.title}</h3>
                 <p className="cl-helps-card__body">{item.body}</p>
               </div>
@@ -356,7 +417,7 @@ export function HomeContent() {
             </div>
             <p className="cl-daily-card__summary">{SAMPLE.summary}</p>
             <div className="cl-daily-card__signals">
-              {[SAMPLE.dasha, SAMPLE.transit, SAMPLE.panchangam].map((chip) => (
+              {[SAMPLE.dasha, SAMPLE.transit, samplePanchangam].map((chip) => (
                 <span key={chip} className="cl-daily-card__chip">{chip}</span>
               ))}
             </div>
@@ -408,7 +469,7 @@ export function HomeContent() {
           <div className="cl-tools-grid">
             {TOOLS.map((tool) => (
               <Link key={tool.name} href={tool.href} className="cl-tool-card">
-                <span className="cl-tool-card__icon">{tool.icon}</span>
+                <span className="cl-tool-card__icon"><MarketingIcon name={tool.icon} size={24} /></span>
                 <h3 className="cl-tool-card__name">{tool.name}</h3>
                 <p className="cl-tool-card__desc">{tool.desc}</p>
                 <span className="cl-tool-card__link">{tool.cta}</span>
@@ -481,13 +542,13 @@ export function HomeContent() {
           </div>
           <div className="cl-connect-grid">
             <div className="cl-connect-card cl-connect-card--email">
-              <span className="cl-connect-card__icon" aria-hidden="true">✉</span>
+              <span className="cl-connect-card__icon"><MarketingIcon name="mail" size={22} /></span>
               <h3 className="cl-connect-card__title">{mt(HOME.connect_email_title, lang)}</h3>
               <p className="cl-connect-card__body">{mt(HOME.connect_email_body, lang)}</p>
               <NewsletterForm lang={lang} />
             </div>
             <div className="cl-connect-card cl-connect-card--app">
-              <span className="cl-connect-card__icon" aria-hidden="true">⊡</span>
+              <span className="cl-connect-card__icon"><MarketingIcon name="phone" size={22} /></span>
               <h3 className="cl-connect-card__title">{mt(HOME.connect_app_title, lang)}</h3>
               <p className="cl-connect-card__body">{mt(HOME.connect_app_body, lang)}</p>
               <div className="cl-connect-badges">
@@ -568,7 +629,14 @@ function NewsletterForm({ lang }: { lang: "en" | "ta" }) {
 
   return (
     <form className="cl-connect-form" onSubmit={handleSubmit}>
+      <label
+        htmlFor="newsletter-email"
+        style={{ width: "100%", fontSize: "0.82rem", fontWeight: 600, color: "var(--cl-bg)" }}
+      >
+        {ta ? "மின்னஞ்சல் முகவரி" : "Email address"}
+      </label>
       <input
+        id="newsletter-email"
         type="email"
         className="cl-connect-form__input"
         placeholder={ta ? "மின்னஞ்சல் உள்ளிடுக" : "Your email address"}
