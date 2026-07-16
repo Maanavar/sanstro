@@ -4,57 +4,28 @@ import { useEffect, useState } from "react";
 
 import "@/lib/api"; // side effect: registers the shared API client
 import { pingStreak } from "@vinaadi/shared/api/streak";
+import { computeStreak, todayIso, type StreakState } from "./streak-logic";
 
 const STORAGE_KEY = "vinaadi-streak";
 
-type StreakState = {
+export type StreakResult = {
   days: number;
-  lastVisit: string; // local date "YYYY-MM-DD"
+  best: number;
+  /** True when today's visit kept an otherwise-broken streak via the grace day. */
+  forgiven: boolean;
 };
 
-function toLocalIso(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function todayIso(): string {
-  return toLocalIso(new Date());
-}
-
-function yesterdayIso(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return toLocalIso(d);
-}
-
-function readLocalStreak(): StreakState {
-  const today = todayIso();
-  let state: StreakState = { days: 1, lastVisit: today };
-
+function readStored(): StreakState | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<StreakState>;
-      if (parsed.lastVisit === today) {
-        // Same day — no change needed, just surface current streak
-        state = { days: parsed.days ?? 1, lastVisit: today };
-      } else if (parsed.lastVisit === yesterdayIso()) {
-        // Consecutive day — increment
-        state = { days: (parsed.days ?? 1) + 1, lastVisit: today };
-      } else {
-        // Gap — reset to 1
-        state = { days: 1, lastVisit: today };
-      }
-    }
+    if (!raw) return null;
+    return JSON.parse(raw) as StreakState;
   } catch {
-    state = { days: 1, lastVisit: today };
+    return null;
   }
-  return state;
 }
 
-function writeLocalStreak(state: StreakState): void {
+function writeStored(state: StreakState): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
@@ -78,23 +49,25 @@ function pingServerOnce(localDays: number): Promise<number> {
   return inflight.promise;
 }
 
-export function useStreak(): { days: number } {
-  const [days, setDays] = useState(0);
+export function useStreak(): StreakResult {
+  const [result, setResult] = useState<StreakResult>({ days: 0, best: 0, forgiven: false });
 
   useEffect(() => {
     let cancelled = false;
 
     // Local streak first — instant value, and the guest fallback.
-    const local = readLocalStreak();
-    writeLocalStreak(local);
-    setDays(local.days);
+    const { state, forgiven } = computeStreak(readStored(), todayIso());
+    writeStored(state);
+    setResult({ days: state.days, best: state.best, forgiven });
 
     // Server streak for signed-in users; local value doubles as one-time seed.
-    pingServerOnce(local.days)
+    // (The server is authoritative for `days`; `best`/`forgiven` stay local — a
+    // server-side grace day is the backend follow-up for full multi-device parity.)
+    pingServerOnce(state.days)
       .then((serverDays) => {
         if (cancelled) return;
-        setDays(serverDays);
-        writeLocalStreak({ days: serverDays, lastVisit: todayIso() });
+        setResult((prev) => ({ ...prev, days: serverDays, best: Math.max(prev.best, serverDays) }));
+        writeStored({ ...state, days: serverDays, best: Math.max(state.best, serverDays) });
       })
       .catch(() => {
         // Guest or offline — the localStorage value stands.
@@ -105,5 +78,5 @@ export function useStreak(): { days: number } {
     };
   }, []);
 
-  return { days };
+  return result;
 }

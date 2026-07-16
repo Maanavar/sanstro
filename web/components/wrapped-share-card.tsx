@@ -181,7 +181,7 @@ function drawWrappedCard(
   );
 }
 
-export function WrappedShareCard({ wrapped, lang, year }: { wrapped: AnnualWrappedData; lang: Lang; year: number }) {
+export function WrappedShareCard({ wrapped, lang, year, label }: { wrapped: AnnualWrappedData; lang: Lang; year: number; label?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
@@ -243,7 +243,7 @@ export function WrappedShareCard({ wrapped, lang, year }: { wrapped: AnnualWrapp
         disabled={loading}
         style={{ background: "var(--color-saffron, #c07a2c)", color: "#fff", border: "none", borderRadius: "8px", padding: "6px 14px", fontSize: "0.8rem", fontWeight: 600, cursor: loading ? "wait" : "pointer", flexShrink: 0, opacity: loading ? 0.6 : 1 }}
       >
-        {loading ? "…" : (ta ? "பகிர்" : "Share")}
+        {loading ? "…" : label ?? (ta ? "பகிர்" : "Share")}
       </button>
 
       {/* Preview modal */}

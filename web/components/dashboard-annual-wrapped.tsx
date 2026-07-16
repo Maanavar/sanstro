@@ -5,6 +5,7 @@ import { apiFetchJson } from "@/lib/api";
 import type { Lang } from "@/lib/i18n";
 import type { AnnualWrappedData, ApiEnvelope, WrappedSlide } from "@/lib/types";
 import { ShareCardButton } from "./dashboard-share-card";
+import { WrappedShareCard } from "./wrapped-share-card";
 
 const W = {
   inkMid: "var(--panel-earth)",
@@ -346,8 +347,10 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
               </button>
             </div>
 
-            {/* Share DASHA_ERA card from within the wrapped view */}
-            <div style={{ paddingTop: "4px", display: "flex", justifyContent: "center" }}>
+            {/* Share the full 9:16 year-in-review image (UXD-18) — the primary
+                share; the dasha-era card stays as a secondary option. */}
+            <div style={{ paddingTop: "4px", display: "flex", justifyContent: "center", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              <WrappedShareCard wrapped={data} lang={lang} year={data.year} label={lang === "ta" ? "ஆண்டைப் பகிர்" : "Share your year"} />
               <ShareCardButton chartId={chartId} cardType="DASHA_ERA" lang={lang} label={lang === "ta" ? "தசை அட்டை பகிர்" : "Share Dasa Card"} />
             </div>
 
