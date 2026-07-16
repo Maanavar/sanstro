@@ -117,6 +117,12 @@ def _planet_aspects(planet: str, from_house: int, target_house: int) -> bool:
         return True
     if planet == "SATURN" and diff in (2, 9):      # 3rd & 10th
         return True
+    # Rahu/Ketu get the same 5th & 9th special aspect as Jupiter (M-3): this
+    # must match app/calculations/aspects.py's node row (5, 7, 9) exactly —
+    # that module's own docstring exists specifically to stop this kind of
+    # drift, and every propensity card's malefic_hits() depends on it.
+    if planet in ("RAHU", "KETU") and diff in (4, 8):  # 5th & 9th
+        return True
     return False
 
 

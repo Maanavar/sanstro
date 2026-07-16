@@ -339,8 +339,12 @@ def test_afflicted_d10_deepens_job_disruption_watch():
         "JUPITER": PlanetView(rasi=9, house=9, d9_rasi=9),
         "VENUS": PlanetView(rasi=11, house=11, d9_rasi=11),
         "SATURN": PlanetView(rasi=3, house=3, d9_rasi=3),   # 10th/11th lord, not strong, clean
-        "RAHU": PlanetView(rasi=12, house=12, d9_rasi=12),
-        "KETU": PlanetView(rasi=6, house=6, d9_rasi=6),
+        # Houses 1/7 (not 12/6, M-3): with the node-aspect fix, a node 6
+        # houses from here would give the 10th house a spurious 5th/9th
+        # special-aspect hit and deepen the base (no-D10) level on its own,
+        # defeating this test's isolation of the D10-only effect.
+        "RAHU": PlanetView(rasi=1, house=1, d9_rasi=1),
+        "KETU": PlanetView(rasi=7, house=7, d9_rasi=7),
     }
     # D10 10th (rasi 10) holds Mars with no benefic; Saturn (lord of the D10 10th)
     # sits debilitated in rasi 1 → the varga confirms instability.
@@ -788,3 +792,22 @@ def test_degree_interruption_stays_calm_on_a_protected_ninth():
     card = next(r for r in assess_propensities(_mk(planets)).results
                 if r.key == "degree_interruption_watch")
     assert card.level in {"STEADY", "QUIET"}
+
+
+# ── M-3: node-drishti parity with app/calculations/aspects.py ────────────────
+
+def test_node_aspects_match_canonical_aspects_module():
+    """propensities._planet_aspects must agree with aspects.aspect_houses for
+    every graha, including Rahu/Ketu (5/7/9) — that module's docstring exists
+    specifically to stop this drift, and malefic_hits()/benefic_hits() depend
+    on it across every propensity card."""
+    from app.calculations.aspects import aspect_houses
+    from app.calculations.propensities import _planet_aspects
+
+    for planet in ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"):
+        expected_counts = aspect_houses(planet)  # 1-indexed house counts, e.g. {5, 7, 9}
+        for count in range(1, 13):
+            diff = count - 1
+            assert _planet_aspects(planet, 1, 1 + diff) == (count in expected_counts), (
+                f"{planet} house-count {count}"
+            )
