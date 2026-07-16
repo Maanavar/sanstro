@@ -37,8 +37,11 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 const notoSansTamil = Noto_Sans_Tamil({
+  // SHD-04 — 700 is loaded so the UI's 700/800 Tamil headings/chips render a real
+  // bold cut instead of the browser synthesising faux-bold on the script the
+  // brand is named after.
   subsets: ["tamil"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
   variable: "--font-tamil",
 });
@@ -166,11 +169,18 @@ export default async function RootLayout({
     >
       <head>
         <meta charSet="utf-8" />
-        <meta name="color-scheme" content="light dark" />
+        {/* MKT-19 — public pages are light-only; the Nova dashboard opts back
+            into dark via `color-scheme: dark` on its own shell. Declaring "light
+            dark" here made dark-OS visitors get dark native form controls on the
+            cream marketing pages. */}
+        <meta name="color-scheme" content="light" />
         {/* Apply saved theme before first paint to prevent flash of wrong theme.
             data-ui="nova" is set statically on <html> above (Nova is the only
             dashboard look now — see docs/NOVA_ONLY_MIGRATION_PLAN.md Phase 3). */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem("vinaadi-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}})();` }} />
+        {/* UXD-03 — resolve the theme before first paint. Explicit light/dark win;
+            "system" (or unset) follows the OS via prefers-color-scheme. Kept in
+            sync with hooks/useTheme.ts. */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem("vinaadi-theme");var r=(t==="light"||t==="dark")?t:((window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches)?"light":"dark");document.documentElement.setAttribute("data-theme",r);}catch(e){}})();` }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG_JSONLD) }}

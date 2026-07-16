@@ -2,7 +2,7 @@
 
 
 import { cloneElement, isValidElement, useEffect, useId, useState } from "react";
-import type { CSSProperties, InputHTMLAttributes, ReactNode } from "react";
+import type { CSSProperties, InputHTMLAttributes, SelectHTMLAttributes, ReactNode } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { TN_CITIES } from "@/lib/tn-cities";
 import type { CityEntry } from "@/lib/tn-cities";
@@ -73,6 +73,48 @@ export function Field({
       ) : null}
       {helper && !error ? <span id={helperId} className="field__helper">{helper}</span> : null}
     </label>
+  );
+}
+
+/* ── Sanctioned form controls (SHD-03) ──────────────────────────────
+   One styled text input + select, warm "deep-dive" surface. Consolidates
+   the per-file WInput/WSelect copies (UXD-11). Non-error styling is
+   pixel-identical to the setup-tab original; `error` also sets aria-invalid. */
+export function TextInput(props: InputHTMLAttributes<HTMLInputElement> & { error?: boolean }) {
+  const { error, style, ...rest } = props;
+  return (
+    <input
+      {...rest}
+      aria-invalid={error || rest["aria-invalid"] || undefined}
+      style={{
+        width: "100%", padding: "var(--space-2) var(--space-3)",
+        borderRadius: "var(--radius-md)",
+        border: `1.5px solid ${error ? "var(--color-low, var(--planet-saturn))" : "var(--deepdive-border-light, var(--panel-tan-light))"}`,
+        background: rest.readOnly ? "var(--deepdive-surface-strong, var(--panel-hover))" : "var(--chart-cell-default)",
+        color: "var(--deepdive-ink-mid, var(--panel-earth))", fontSize: "0.875rem", fontFamily: "inherit",
+        outline: "none", cursor: rest.readOnly ? "default" : undefined,
+        ...style,
+      }}
+    />
+  );
+}
+
+export function Select(props: SelectHTMLAttributes<HTMLSelectElement> & { error?: boolean }) {
+  const { error, style, ...rest } = props;
+  return (
+    <select
+      {...rest}
+      aria-invalid={error || rest["aria-invalid"] || undefined}
+      style={{
+        width: "100%", padding: "var(--space-2) var(--space-3)",
+        borderRadius: "var(--radius-md)",
+        border: `1.5px solid ${error ? "var(--color-low, var(--planet-saturn))" : "var(--deepdive-border-light, var(--panel-tan-light))"}`,
+        background: "var(--chart-cell-default)",
+        color: "var(--deepdive-ink-mid, var(--panel-earth))", fontSize: "0.875rem", fontFamily: "inherit",
+        outline: "none",
+        ...style,
+      }}
+    />
   );
 }
 

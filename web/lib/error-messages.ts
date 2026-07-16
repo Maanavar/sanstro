@@ -278,6 +278,22 @@ function extractUserMessage(errorText: string): string {
   return cleaned || "An error occurred. Please try again.";
 }
 
+/** One-line friendly message for toasts / status lines (UXD-17). Routes the raw
+ *  backend `detail` through the pattern map and, when nothing matches, returns a
+ *  cleaned message — never the raw "409: /api/v1/...: detail" wire string. Pair
+ *  with getTechnicalDetail() if a surface wants a "technical details" disclosure. */
+export function getFriendlyErrorMessage(error: unknown): string {
+  const info = formatErrorMessage(error);
+  return info.suggestion ? `${info.message} ${info.suggestion}` : info.message;
+}
+
+/** The raw underlying message, for an optional "technical details" disclosure. */
+export function getTechnicalDetail(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return "";
+}
+
 export function getErrorTitle(error: unknown): string {
   return formatErrorMessage(error).title;
 }

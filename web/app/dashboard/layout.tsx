@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Source_Serif_4 } from "next/font/google";
+import { Fraunces, Source_Serif_4 } from "next/font/google";
 import type { ReactNode } from "react";
 // Loaded here (not just app/dashboard/page.tsx) so the standalone routes under
 // /dashboard/* (reports, goals, chart-generate, daily-score, porutham, wrapped)
@@ -20,10 +20,12 @@ export const metadata: Metadata = {
   },
 };
 
-// Nova look only — scoped to the dashboard route so marketing pages never load
-// these fonts. `display: "contents"` keeps the wrapper out of layout entirely;
-// it exists only to host the two CSS variables the fonts export.
-const cormorantGaramond = Cormorant_Garamond({
+// SHD-01 — one display serif across both surfaces. The dashboard's Nova display
+// font is now Fraunces (the same serif that carries the marketing brand and
+// reads better at UI sizes than Cormorant's hairlines), keeping the exported
+// `--font-nova-display` variable name so nothing downstream changes. This drops
+// Cormorant Garamond, taking the product from six loaded families toward four.
+const frauncesNova = Fraunces({
   subsets: ["latin"],
   weight: ["500", "600", "700"],
   display: "swap",
@@ -39,7 +41,7 @@ const sourceSerif4 = Source_Serif_4({
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <div className={`cd-font-host ${cormorantGaramond.variable} ${sourceSerif4.variable}`}>
+    <div className={`cd-font-host ${frauncesNova.variable} ${sourceSerif4.variable}`}>
       {children}
     </div>
   );

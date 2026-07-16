@@ -146,6 +146,9 @@
   --cl-border-2:    #D4C8AE;
   --cl-accent:      #8B4014;
   --cl-accent-soft: #F0D9C4;
+  /* UXD-07 — global keyboard-focus ring colour (ink on light surfaces; Nova
+     redefines it to gold on its dark shell). */
+  --focus-ring:     #1A1612;
   --cl-sage:        #44614A;
   --cl-sage-soft:   #DCE4D2;
   --cl-caution:     #8C3C22;
@@ -427,6 +430,16 @@
   }
 }
 
+/* ── UXD-07 — one global keyboard-focus ring ──────────────────────────────
+   Applies only to :focus-visible (keyboard / programmatic focus), so mouse
+   clicks stay clean. `!important` so the many inline `outline:none` style
+   props across inputs/tools can't hide the ring from keyboard users. Nova
+   redefines --focus-ring to gold on its dark shell (dashboard-nova.css). */
+:focus-visible {
+  outline: 2px solid var(--focus-ring, #1A1612) !important;
+  outline-offset: 2px;
+}
+
 [data-theme="light"] {
   color-scheme: light;
   --shimmer-base: var(--surface-1);
@@ -437,6 +450,15 @@
   color-scheme: dark;
   --shimmer-base: rgba(255,255,255,0.07);
   --shimmer-peak: rgba(255,255,255,0.15);
+}
+
+/* UXD-03 — the theme attribute is a dashboard concern. Now that "System" follows
+   the OS, a dark-OS visitor carries data-theme="dark" on the public site too;
+   keep the marketing surface (no .cd-shell) on a light color-scheme so cream
+   pages never get dark native form controls (upholds MKT-19). The dashboard,
+   which renders .cd-shell, keeps the dark color-scheme above. */
+html:not(:has(.cd-shell)) {
+  color-scheme: light;
 }
 
 *,
@@ -3537,6 +3559,30 @@ button:focus-visible,
   border-color: var(--cl-ink);
 }
 .cl-btn--ghost:hover { background: rgba(26,22,18,0.06); }
+
+/* ── MKT-18 — one orchestrated hero entrance ──────────────────────────────
+   The public site was fully static; a single calm, staggered reveal of the
+   hero copy and the sample card gives it life without anything else moving.
+   CSS-only (no JS/bundle cost) and fully gated on prefers-reduced-motion, so
+   reduced-motion visitors get the final state with zero animation. */
+@keyframes cl-hero-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes cl-hero-card-in {
+  from { opacity: 0; transform: translateY(22px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cl-hero__copy > * { animation: cl-hero-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .cl-hero__copy .cl-eyebrow       { animation-delay: 0.05s; }
+  .cl-hero__copy .cl-hero__tagline { animation-delay: 0.12s; }
+  .cl-hero__copy .cl-hero__h1      { animation-delay: 0.19s; }
+  .cl-hero__copy .cl-hero__body    { animation-delay: 0.28s; }
+  .cl-hero__copy .cl-hero__actions { animation-delay: 0.37s; }
+  .cl-hero__copy .cl-guest-rasi    { animation-delay: 0.45s; }
+  .cl-hero__card-wrap { animation: cl-hero-card-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both; }
+}
 
 /* ── Hero section ─────────────────────────────────────────── */
 .cl-hero {
