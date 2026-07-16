@@ -10,58 +10,92 @@ decision inline and move it to "Resolved".
 
 ## Open
 
-### 2026-07-14 · Sevvai "extended_manglik" mode has no verified differentiation (audit A-5)
-
-- **Where:** `app/calculations/_yoga_helpers.py` (`TAMIL_SEVVAI_HOUSES`,
-  `EXTENDED_SEVVAI_HOUSES`), `docs/SEVVAIRAGU.MD` §4.1.
-- **Behavior:** both constants are currently the identical set
-  `{1,2,4,7,8,12}`. `TAMIL_SEVVAI_HOUSES` is now confirmed correct against
-  mainstream Kuja/Chevvai Dosham references (house 1 included in the
-  standard set, not just "extended"). No authentic source was found
-  describing what should make `extended_manglik` wider or otherwise
-  different — the frozen spec doc's implied version (adding just house 1)
-  no longer holds once house 1 is confirmed part of the standard set.
-- **Options for reviewer:** confirm the two modes are genuinely redundant and
-  the API parameter should be removed (checking `app/api`, `packages/shared`,
-  `mobile` callers first per the API-contract rule) · supply a real
-  differentiated house/chart-reference list for `extended_manglik`.
-
-### 2026-07-13 · Abhijit demotion in the Today hero (DASH-10.1)
-
-- **Where:** `web/lib/today-windows.ts` (`pickFeaturedWindow`; moved from
-  `dashboard-today-tab-nova.tsx` during DASH-01).
-- **Behavior:** the hero's featured best-window never shows the Abhijit
-  window when any PERSONAL_HORA window exists. Classically Abhijit is the
-  universal daily auspicious window; hiding it entirely is a doctrine
-  deviation made for UX variety (it sat at ~12:02–12:50 every day).
-- **Options for reviewer:** keep as-is · show Abhijit as a secondary chip ·
-  feature it on days with no strong personal hora.
-
-### 2026-07-13 · UPACHAYA grouped with MARAKA/DUSTHANA copy (DASH-10.2)
-
-- **Where:** `web/components/dashboard-today-glance-nova.tsx`
-  (`dashaSentiment`).
-- **Behavior:** UPACHAYA house activations read "testing period · go gently",
-  same as MARAKA/DUSTHANA. Upachaya houses (3/6/10/11) classically improve
-  with effort — "go gently" may be miscalibrated.
-- **Options for reviewer:** keep · separate "grows with effort" phrasing for
-  UPACHAYA (needs `ta` + `en` wording from the reviewer).
-
 ### Carried over from earlier sessions (pointers, not restated here)
 
-- Propensity suites: 40 signature definitions need native-Tamil/jyotishi
-  post-hoc review (see memory `project_propensity_insights_2026-07`).
 - Reasoning layer PR-4 + PR-5 specialist sign-off
   (`docs/REASONING_LAYER_UPGRADE_PLAN.md` §15.3, §16).
 - A-04 (former AGENT_WORKBOARD) astrologer review.
-- Degree/adhipathi audit: T9/T10 astrologer-gated items remain open; the 2
-  functional-nature table cells flagged there are the same ones resolved
-  below under 2026-07-14 (audit A-2) (see memory
-  `project_thirukanitham_degree_adhipathi_audit_2026-07`).
+- T9 (Ayurdaya/longevity engine, `docs/thirukanitham_degree_adhipathi_audit_2026-07.md`):
+  a new module, not a fix — explicitly gated "requires an astrologer worked
+  example before coding," same discipline as Jeevan/Nethiram and Kalachakra.
+  Do not start without that worked example.
+- T10 remainder: the Jeevan/Nethiram half of T10 is **closed** (see Resolved,
+  2026-07-16). What's still open is the full 189-cell Amirdhadhi Yogam table
+  (182 of 189 cells unverified, only the 7 Amrita-Siddhi anchors checked) —
+  needs a printed panchangam appendix to cross-check against; guessing the
+  remaining cells would mean presenting fabricated correspondences as fact.
 - Kalachakra dasha shipped experimental without astrologer check (see memory
   `project_kalachakra_dasha_status_2026-07`).
 
+### Corrected 2026-07-16 (stale entries removed)
+
+- ~~Propensity suites: 40 signature definitions need native-Tamil/jyotishi
+  post-hoc review~~ — **already done.** `docs/ASTROLOGER_LIVE_SESSION_BACKLOG_2026-07.md`
+  records a full native-Tamil review pass: 40 propensity cards (14 corrections
+  applied, golden-locked), plus 86 age_phase en/ta pairs (21 corrections
+  applied) — both 2026-07-14/15, tests green. This bullet had gone stale after
+  that session closed it; removing rather than re-carrying it forward.
+
 ## Resolved
+
+### 2026-07-13 · UPACHAYA grouped with MARAKA/DUSTHANA copy (DASH-10.2) — ✅ RESOLVED 2026-07-16
+
+- **Where:** `web/components/dashboard-today-glance-nova.tsx`
+  (`dashaSentiment`).
+- **Was:** UPACHAYA house activations read "testing period · go gently",
+  the same copy as MARAKA/DUSTHANA.
+- **Decision:** chosen option from the reviewer list — separate "grows with
+  effort" phrasing for UPACHAYA. Upachaya houses (3/6/10/11) classically
+  improve with effort/time; they aren't a caution category the way
+  Maraka/Dusthana are, and grouping them together miscalibrated the tone.
+- **Resolved by:** Claude (full ownership grant, 2026-07-16). New
+  `_NATURE_GROWTH` branch with en "grows with effort" / new `ta`
+  "முயற்சியால் வளரும் காலம்" (flagged pending native review, matching this
+  repo's convention for new Tamil copy), reusing the existing neutral
+  `--color-mid` token rather than `--color-low` (which reads as a warning) or
+  a newly invented token. `docs/dashboard-i18n-catalog.json` regenerated via
+  `npm run i18n:dashboard:json`. `dashboard-today-glance-nova.test.tsx`
+  (5 tests, extended) and `tsc`/`eslint` on touched files green.
+
+### 2026-07-13 · Abhijit demotion in the Today hero (DASH-10.1) — ✅ RESOLVED 2026-07-16
+
+- **Where:** `web/lib/today-windows.ts` (`pickFeaturedWindow`, new
+  `findSecondaryAbhijitWindow`), `web/components/dashboard-today-tab-nova.tsx`.
+- **Was:** the hero's featured best-window never showed the Abhijit window
+  at all when any PERSONAL_HORA window existed for the day.
+- **Decision:** keep the personal-hora-first hero (more actionable, varies
+  day to day — the reason DASH-01 built this in the first place), but never
+  let Abhijit disappear outright, since it's a universally auspicious daily
+  muhurtham in Tamil panchangam tradition, independent of the native's chart.
+  Chosen option from the reviewer list: show it as a secondary line rather
+  than keep hiding it or promote it back to featured status.
+- **Resolved by:** Claude (full ownership grant, 2026-07-16). New
+  `findSecondaryAbhijitWindow` surfaces the Abhijit window whenever one
+  exists and isn't already the featured pick; rendered as a small muted line
+  under the "Best window" tile in the Today hero. `web/lib/today-windows.test.ts`
+  (11 tests, extended) and `tsc`/`eslint` on the touched files green.
+
+### 2026-07-14 · Sevvai "extended_manglik" mode has no verified differentiation (audit A-5) — ✅ RESOLVED 2026-07-16
+
+- **Where:** `app/calculations/_yoga_helpers.py` (`TAMIL_SEVVAI_HOUSES`,
+  formerly also `EXTENDED_SEVVAI_HOUSES`), `app/calculations/_yoga_dosham.py`
+  (`detect_sevvai_dosham`), `app/calculations/yogas.py`
+  (`detect_yogas_and_doshams`), `tests/test_yogas.py`.
+- **Was:** both constants were the identical set `{1,2,4,7,8,12}` behind a
+  `sevvai_mode` parameter defaulting to `"tamil_standard"`.
+- **Decision:** remove the mode rather than guess a differentiated house list.
+  `TAMIL_SEVVAI_HOUSES` is confirmed correct (house 1 included in the standard
+  set); no authentic source differentiates an "extended" variant; and a grep
+  across `app/api/`, `packages/shared/src/api/`, `web/`, `mobile/` confirmed
+  `sevvai_mode`/`extended_manglik` was unreachable from every real surface —
+  exercised only by direct unit-test calls. Removing a parameter nobody could
+  actually set is safe and honest; inventing a house list to keep the choice
+  alive would not be.
+- **Resolved by:** Claude (full ownership grant, 2026-07-16). Deleted
+  `EXTENDED_SEVVAI_HOUSES` and the `sevvai_mode` parameter/threading entirely;
+  `tests/test_yogas.py::test_sevvai_standard_mode_treats_first_house_as_candidate`
+  (renamed from the old `_extended_mode_` test) still locks house-1 coverage
+  under the single remaining mode. `tests/test_yogas.py` (39 tests) green.
 
 ### 2026-07-14 · Nethiram/Jeevan display removed pending verification (audit A-3/C-2) — ✅ RESOLVED 2026-07-16 (A-3 + C-2)
 

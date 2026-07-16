@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-07-16T03:27:25.309Z",
-  "total": 1876,
+  "generatedAt": "2026-07-16T07:16:45.889Z",
+  "total": 1878,
   "entries": [
     {
       "file": "web/components/advanced-astrology-gate.tsx",
@@ -1468,31 +1468,37 @@
     },
     {
       "file": "web/components/dashboard-charts-panel-nova.tsx",
-      "line": 352,
+      "line": 350,
+      "en": "Derived from published BPHS/Jaimini sources — not cross-checked against JHora or another reference chart software.",
+      "ta": "வெளியிடப்பட்ட BPHS/ஜைமினி மூலங்களிலிருந்து பெறப்பட்டது — JHora அல்லது வேறு குறிப்பு மென்பொருளுடன் சரிபார்க்கப்படவில்லை."
+    },
+    {
+      "file": "web/components/dashboard-charts-panel-nova.tsx",
+      "line": 357,
       "en": "Current Chara Dasha",
       "ta": "தற்போதைய சார தசை"
     },
     {
       "file": "web/components/dashboard-charts-panel-nova.tsx",
-      "line": 362,
+      "line": 367,
       "en": "yrs",
       "ta": "ஆண்டுகள்"
     },
     {
       "file": "web/components/dashboard-charts-panel-nova.tsx",
-      "line": 373,
+      "line": 378,
       "en": "SR Lagna",
       "ta": "வருட லக்னம்"
     },
     {
       "file": "web/components/dashboard-charts-panel-nova.tsx",
-      "line": 377,
+      "line": 382,
       "en": "Muntha",
       "ta": "முந்தா"
     },
     {
       "file": "web/components/dashboard-charts-panel-nova.tsx",
-      "line": 394,
+      "line": 399,
       "en": "Tools",
       "ta": "கருவிகள்"
     },
@@ -6112,151 +6118,157 @@
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 45,
+      "line": 52,
       "en": "supportive period",
       "ta": "ஆதரவான காலம்"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 48,
+      "line": 57,
+      "en": "grows with effort",
+      "ta": "முயற்சியால் வளரும் காலம்"
+    },
+    {
+      "file": "web/components/dashboard-today-glance-nova.tsx",
+      "line": 60,
       "en": "testing period · go gently",
       "ta": "சவாலான காலம் · மெதுவாக செல்லுங்கள்"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 51,
+      "line": 63,
       "en": "steady, mixed period",
       "ta": "நடுநிலையான காலம்"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 56,
+      "line": 68,
       "en": "supportive period",
       "ta": "ஆதரவான காலம்"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 59,
+      "line": 71,
       "en": "testing period · go gently",
       "ta": "சவாலான காலம் · மெதுவாக செல்லுங்கள்"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 61,
+      "line": 73,
       "en": "steady, mixed period",
       "ta": "நடுநிலையான காலம்"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 110,
+      "line": 122,
       "en": "Coming up",
       "ta": "வரவிருப்பது"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 114,
+      "line": 126,
       "en": "No major transit shifts this week.",
       "ta": "இந்த வாரம் பெரிய மாற்றம் இல்லை."
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 128,
+      "line": 140,
       "en": "Remedy",
       "ta": "பரிகாரம்"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 130,
+      "line": 142,
       "en": "No specific remedy today.",
       "ta": "இன்று குறிப்பிட்ட பரிகாரம் இல்லை."
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 145,
+      "line": 157,
       "en": "Saving…",
       "ta": "…"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 146,
+      "line": 158,
       "en": "Save reminder",
       "ta": "நினைவூட்டல்"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 198,
+      "line": 210,
       "en": "Family today",
       "ta": "இன்று குடும்பம்"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 202,
+      "line": 214,
       "en": "Family →",
       "ta": "குடும்பம் →"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 246,
+      "line": 258,
       "en": "— gentle day",
       "ta": "— மென்மையான நாள்"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 253,
+      "line": 265,
       "en": "No family members yet",
       "ta": "குடும்ப உறுப்பினர்கள் இல்லை"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 261,
+      "line": 273,
       "en": "Life areas",
       "ta": "வாழ்க்கைத் துறைகள்"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 265,
+      "line": 277,
       "en": "All areas →",
       "ta": "அனைத்தும் →"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 303,
+      "line": 315,
       "en": "Dasa chapter",
       "ta": "தசை அத்தியாயம்"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 307,
+      "line": 319,
       "en": "Open →",
       "ta": "திற →"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 338,
+      "line": 350,
       "en": "Sub-period until",
       "ta": "உட் தசை"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 339,
+      "line": 351,
       "en": "en-IN",
       "ta": "ta-IN"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 340,
+      "line": 352,
       "en": "",
       "ta": "வரை"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 345,
+      "line": 357,
       "en": "Chapter ·",
       "ta": "அத்தியாயம் ·"
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 345,
+      "line": 357,
       "en": "yrs left",
       "ta": "ஆண்டுகள் மீதம்"
     },
@@ -6370,187 +6382,187 @@
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 218,
+      "line": 221,
       "en": "en-IN",
       "ta": "ta-IN"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 296,
+      "line": 299,
       "en": "Waxing",
       "ta": "வளர்பிறை"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 296,
+      "line": 299,
       "en": "Waning",
       "ta": "தேய்பிறை"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 296,
+      "line": 299,
       "en": "Sukla Paksham",
       "ta": "சுக்ல பக்ஷம்"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 296,
+      "line": 299,
       "en": "Krishna Paksham",
       "ta": "கிருஷ்ண பக்ஷம்"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 304,
+      "line": 307,
       "en": "After 8pm, preview tomorrow here instead of today",
       "ta": "இரவு 8 மணிக்குப் பின் நாளையை முன்னோட்டமாகக் காட்டு"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 315,
+      "line": 318,
       "en": "Evening preview",
       "ta": "மாலை முன்னோட்டம்"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 338,
+      "line": 341,
       "en": "Tonight's moon",
       "ta": "இன்றைய நிலா"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 345,
+      "line": 348,
       "en": "A look ahead to tomorrow —",
       "ta": "நாளையைப் பற்றி ஒரு முன்னோட்டம் —"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 360,
+      "line": 363,
       "en": "Tomorrow's best window",
       "ta": "நாளை சிறந்த நேரம்"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 374,
+      "line": 377,
       "en": "How did today go?",
       "ta": "இன்று எப்படி இருந்தது?"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 377,
+      "line": 380,
       "en": "Log a quick note before the day closes.",
       "ta": "நாள் முடிவதற்குள் ஒரு சிறு குறிப்பு பதிவு செய்யுங்கள்."
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 386,
+      "line": 389,
       "en": "Write a quick note →",
       "ta": "குறிப்பு எழுத →"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 400,
+      "line": 403,
       "en": "Tonight's moon",
       "ta": "இன்றைய நிலா"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 401,
+      "line": 404,
       "en": "Today's sun",
       "ta": "இன்றைய சூரியன்"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 436,
+      "line": 439,
       "en": "Chandrashtama today",
       "ta": "இன்று சந்திராஷ்டமம்"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 437,
+      "line": 440,
       "en": "a day for awareness, not alarm",
       "ta": "கவனம் தேவை, பயம் அல்ல"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 467,
+      "line": 470,
       "en": "Best window",
       "ta": "சிறந்த நேரம்"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 490,
+      "line": 493,
       "en": "Saving…",
       "ta": "…"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 490,
+      "line": 493,
       "en": "Remind me",
       "ta": "நினைவூட்டு"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 498,
+      "line": 501,
       "en": "Log a moment",
       "ta": "தருணம் பதிவு"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 515,
+      "line": 526,
       "en": "Tomorrow",
       "ta": "நாளை"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 519,
+      "line": 530,
       "en": "/ 100",
       "ta": "100க்கு"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 528,
+      "line": 539,
       "en": "/ 100",
       "ta": "100க்கு"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 538,
+      "line": 549,
       "en": "Why this score →",
       "ta": "இந்த மதிப்பெண் ஏன்? →"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 636,
+      "line": 647,
       "en": "Why this prediction?",
       "ta": "இந்த கணிப்பு ஏன்?"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 639,
+      "line": 650,
       "en": "the astrology behind today",
       "ta": "இன்றைய ஜோதிடத்தின் அடிப்படை"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 647,
+      "line": 658,
       "en": "Open Chart & Explanations →",
       "ta": "ஜாதகம் & விளக்கம் திற →"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 654,
+      "line": 665,
       "en": "Dasa layer",
       "ta": "தசை அடுக்கு"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 655,
+      "line": 666,
       "en": "Panchangam",
       "ta": "பஞ்சாங்கம்"
     },
     {
       "file": "web/components/dashboard-today-tab-nova.tsx",
-      "line": 656,
+      "line": 667,
       "en": "Transit",
       "ta": "கோசாரம்"
     },
@@ -11298,7 +11310,7 @@
     },
     {
       "file": "web/components/dashboard-today-glance-nova.tsx",
-      "line": 340,
+      "line": 352,
       "en": "",
       "ta": "வரை"
     }
