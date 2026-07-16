@@ -76,7 +76,7 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 - **Note:** do NOT touch the native-reviewed Tamil strings in this file; the golden test `test_nadi_v2_tamil_strings_native_reviewed_locked` must keep passing.
 
 ## WI-03 — D30 (Trimsamsa) even-sign targets use the odd-sign set ✅❌
-- [ ] **Status:** NOT STARTED
+- [x] **Status:** DONE (2026-07-15, commit `a2adb54`) — even_segments corrected to each lord's own even sign; golden cases for all 5 lords + odd-sign unchanged-path + lord-invariance test. (This section's status line was briefly out of sync with the master checklist below due to a concurrent edit to this same file from unrelated parallel work — code and tests were never affected.)
 - **Priority:** P0 (display correctness; contained — lords are identical so Shadbala Saptavargaja is unaffected).
 - **File:** `app/calculations/divisional_charts.py`, `compute_d30` (~lines 135–160).
 - **Problem:** `even_segments` maps to Libra/Gemini/Sag/Aquarius/Aries (the odd-sign set). Classical BPHS Trimsamsa for **even signs** maps each lord's portion to the lord's **even** sign.
