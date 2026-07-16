@@ -5,7 +5,7 @@ import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { tNakshatra, tTithi, tWeekday, tYoga, tKarana, tPlanetLord, tMoonPhase, tSoolamDirection, tParigaram, tAmirdhadhiYogam } from "@/lib/i18n";
-import { formatClockLabel, formatDateLabel, addDays } from "@/lib/format";
+import { formatClockLabel, formatDateLabel, addDays, formatHijriDate } from "@/lib/format";
 import type { PanchangamDailyResponseData } from "@/lib/types";
 import { PanchangamShareButton } from "@/components/public-share-card";
 import { PanchangamShareCard } from "@/components/panchangam-share-card";
@@ -118,6 +118,7 @@ export default async function PanchangamDatePage({ params }: Props) {
   const prevDate = addDays(date, -1);
   const nextDate = addDays(date, 1);
   const dateLabel = formatDateLabel(date);
+  const hijri = formatHijriDate(date);
 
   const PAGE_JSONLD = {
     "@context": "https://schema.org",
@@ -224,6 +225,9 @@ export default async function PanchangamDatePage({ params }: Props) {
                   <DataCard label="Karana" labelTa="கரணம்" value={tKarana(data.karana.name, "en")} sub={`Ends ${formatClockLabel(data.karana.endsAt)} · then ${tKarana(data.karana.nextName, "en")}`} />
                   {data.tamilDate && (
                     <DataCard label="Tamil Date" labelTa="தமிழ் தேதி" value={data.tamilDate.en ?? ""} sub={data.tamilDate.ta ?? undefined} />
+                  )}
+                  {hijri && (
+                    <DataCard label="Islamic Date" labelTa="இஸ்லாமிய தேதி" value={hijri.en} sub={`${hijri.ta} · பிறைப் பார்வையால் ±1 நாள் மாறலாம்`} />
                   )}
                 </div>
               </div>

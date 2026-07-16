@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
-import { formatClockLabel } from "@/lib/format";
+import { formatClockLabel, formatHijriDate } from "@/lib/format";
 import { bestGowriSlot, gowriCategoryLabel, gowriPeriodLabel, gowriPurposeLabel } from "@/lib/gowri";
 import { t, tAmirdhadhiYogam, tKarana, tMoonPhase, tNakshatra, tParigaram, tPlanetLord, tSoolamDirection, tTithi, tWeekday, tYoga } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -256,10 +256,12 @@ function DayDetailDrawerNova({
 }) {
   const headerDate = formatHeaderDate(date, lang);
   const tamilDate = getTamilMonthDate(date, lang);
+  const hijri = formatHijriDate(date);
+  const hijriLabel = hijri ? (lang === "ta" ? hijri.ta : hijri.en) : "";
   const tithiPaksha = data ? `${data.tithi.paksha === "SHUKLA" ? t("paksha_shukla", lang) : t("paksha_krishna", lang)} ${data.tithi.number}` : "";
 
   return (
-    <DrawerPanel title={`${headerDate}${tamilDate ? ` · ${tamilDate}` : ""}`} onClose={onClose}>
+    <DrawerPanel title={`${headerDate}${tamilDate ? ` · ${tamilDate}` : ""}${hijriLabel ? ` · ${hijriLabel}` : ""}`} onClose={onClose}>
       {loading && <p style={{ fontSize: "0.875rem", color: "var(--color-muted)" }}>{t("cal_monthly_loading", lang)}</p>}
       {error && !loading && <p className="empty-state">{error}</p>}
       {data && !loading && (
@@ -403,6 +405,7 @@ export function DashboardCalendarTabNova({
 
   const headerDate = formatHeaderDate(selectedDate, lang);
   const tamilHeaderDate = getTamilMonthDate(selectedDate, lang);
+  const hijriHeaderDate = formatHijriDate(selectedDate);
   const currentNowMinutes = selectedDate === todayDate ? new Date().getHours() * 60 + new Date().getMinutes() : -1;
 
   const tithiActive = panchangam ? activeLimb(panchangam.tithi.name, panchangam.tithi.endsAt, panchangam.tithi.nextName, currentNowMinutes) : null;
@@ -501,6 +504,9 @@ export function DashboardCalendarTabNova({
             </div>
             {tamilHeaderDate && (
               <div style={{ fontSize: "15px", color: "var(--color-accent-strong)", fontWeight: 600 }}>{tamilHeaderDate}</div>
+            )}
+            {hijriHeaderDate && (
+              <div style={{ fontSize: "13px", color: "var(--color-high)", fontWeight: 600 }}>{lang === "ta" ? hijriHeaderDate.ta : hijriHeaderDate.en}</div>
             )}
           </div>
           <div style={{ fontSize: "12.5px", color: "var(--color-muted)", marginTop: "2px" }}>{panchangamMeta}</div>
@@ -721,7 +727,7 @@ export function DashboardCalendarTabNova({
                       ? "இந்த நேரங்கள் திருக்கணிதம் (எபிமெரிஸ் அடிப்படையிலான வானியல்) முறையில், லாஹிரி அயனாம்சத்தில் கணக்கிடப்படுகின்றன. வாக்கிய முறையைப் பின்பற்றும் உங்கள் ஊர் பஞ்சாங்கம் அல்லது குருவின் கணக்கீட்டில் திதி/நட்சத்திர மாற்ற நேரங்களில் சிறிது வேறுபாடு இருக்கலாம்."
                       : "These times use Drik-ganita (ephemeris-based) astronomy with Lahiri ayanamsa. If your local almanac or purohit follows the traditional Vakya method, tithi/nakshatra boundary times may differ slightly."}
                   </p>
-                  <Link href="/trust/methodology#panchangam" style={{ fontSize: "11.5px", fontWeight: 700, color: "var(--color-text-accent)", textDecoration: "none" }}>
+                  <Link href="/trust/methodology#panchangam" target="_blank" rel="noopener noreferrer" style={{ fontSize: "11.5px", fontWeight: 700, color: "var(--color-text-accent)", textDecoration: "none" }}>
                     {lang === "ta" ? "எங்கள் கணக்கீட்டு முறையைப் பார்க்க →" : "See our calculation methodology →"}
                   </Link>
                 </div>

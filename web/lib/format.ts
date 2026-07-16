@@ -13,6 +13,67 @@ export interface ScoreBand {
   tone: "high" | "mid" | "low";
 }
 
+// ── Hijri (Islamic) calendar ─────────────────────────────────────────────────
+// Derived civilly from the Gregorian date via Intl's Umm al-Qura calendar. India
+// / Tamil Nadu follow local moon sighting, which runs ~1 day behind the Saudi
+// Umm al-Qura civil calendar, so we convert the day BEFORE and read its Hijri
+// date — this reproduces the India-observed dates exactly (cross-checked against
+// this repo's own 2026 Muslim festival table: Ramadan begins 19 Feb, Eid ul-Fitr
+// 21 Mar, Bakrid = Dhu al-Hijjah 10 on 28 May, Hijri New Year 17 Jun). Sighting
+// still varies locally by ±1 day, surfaced as a caveat in the UI and matching the
+// "subject to local moon sighting" framing on the Muslim festivals pages.
+const HIJRI_INDIA_SIGHTING_OFFSET_DAYS = -1;
+const HIJRI_MONTHS: readonly { en: string; ta: string }[] = [
+  { en: "Muharram", ta: "முஹர்ரம்" },
+  { en: "Safar", ta: "சஃபர்" },
+  { en: "Rabi al-Awwal", ta: "ரபியுல் அவ்வல்" },
+  { en: "Rabi al-Thani", ta: "ரபியுல் ஆகிர்" },
+  { en: "Jumada al-Awwal", ta: "ஜமாதுல் அவ்வல்" },
+  { en: "Jumada al-Thani", ta: "ஜமாதுல் ஆகிர்" },
+  { en: "Rajab", ta: "ரஜப்" },
+  { en: "Shaban", ta: "ஷஅபான்" },
+  { en: "Ramadan", ta: "ரமலான்" },
+  { en: "Shawwal", ta: "ஷவ்வால்" },
+  { en: "Dhu al-Qadah", ta: "துல்கஅதா" },
+  { en: "Dhu al-Hijjah", ta: "துல்ஹஜ்" },
+];
+
+export interface HijriDate {
+  /** e.g. "Safar 1, 1448 AH" */
+  en: string;
+  /** e.g. "சஃபர் 1, 1448 ஹிஜ்ரி" */
+  ta: string;
+}
+
+/** Convert an ISO (YYYY-MM-DD) Gregorian date to its Umm al-Qura Hijri date.
+ *  Returns null on malformed input or if the runtime lacks the Islamic
+ *  calendar (older/no-ICU builds). */
+export function formatHijriDate(isoDate: string): HijriDate | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return null;
+  try {
+    const dt = new Date(`${isoDate}T12:00:00Z`); // noon UTC avoids a TZ day-flip
+    dt.setUTCDate(dt.getUTCDate() + HIJRI_INDIA_SIGHTING_OFFSET_DAYS);
+    const parts = new Intl.DateTimeFormat("en-US-u-ca-islamic-umalqura", {
+      day: "numeric",
+      month: "numeric",
+      year: "numeric",
+      timeZone: "UTC",
+    }).formatToParts(dt);
+    const get = (t: string) => parts.find((p) => p.type === t)?.value;
+    const monthNum = Number(get("month"));
+    const day = get("day");
+    const year = get("year");
+    const month = HIJRI_MONTHS[monthNum - 1];
+    if (!month || !day || !year) return null;
+    return {
+      en: `${month.en} ${day}, ${year} AH`,
+      ta: `${month.ta} ${day}, ${year} ஹிஜ்ரி`,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export const SCORE_HIGH = "var(--color-score-high, #5C7654)";
 export const SCORE_MID = "var(--color-score-mid, #B85A2C)";
 export const SCORE_LOW = "var(--color-score-low, #A8482F)";
