@@ -12,7 +12,7 @@
   position: fixed;
   inset: 0;
   z-index: 400;
-  background: rgba(26, 22, 18, 0.55);
+  background: var(--ink-overlay);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   display: flex;

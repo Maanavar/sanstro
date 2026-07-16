@@ -68,7 +68,7 @@ export function LifeModePicker({ lang, currentMode, blockedModes, onClose, onSel
         zIndex: 9998,
         alignItems: "flex-end",
         padding: 0,
-        background: "rgba(26,22,18,0.55)",
+        background: "var(--ink-overlay)",
         backdropFilter: "blur(4px)",
       }}
       panelStyle={{

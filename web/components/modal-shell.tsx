@@ -69,7 +69,7 @@ export function ModalShell({
     ? undefined
     : {
         position: "fixed", inset: 0, zIndex: 200,
-        background: "rgba(26,22,18,0.55)",
+        background: "var(--ink-overlay)",
         backdropFilter: "blur(4px)",
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: "16px", overflowY: "auto",
