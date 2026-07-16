@@ -1,52 +1,99 @@
 # docs/ Index — Vinaadi AI
 
-Quick map to the right document for each purpose.
+Quick map to the right document for each purpose. **Last regenerated: 2026-07-16.**
+
+> Files under [archive/](archive/) are historical and **superseded** — kept for
+> reference only, do not treat as current. Everything else is live.
 
 ## Start Here
-- [README.md](../README.md) — Project setup: prerequisites, Docker, backend, web, mobile, quick reference
-- [AGENT_INSTRUCTIONS.md](AGENT_INSTRUCTIONS.md) — **Single canonical reference** for any agent/Claude working on this codebase: stack map, mandatory astrology/coding rules, Tamil astrology + cultural rules, content tone rules, UI/UX rules, anti-patterns
+- [../README.md](../README.md) — Project setup: prerequisites, Docker, backend, web, mobile, quick reference
+- [../CLAUDE.md](../CLAUDE.md) — Workspace rules: path conventions, PowerShell/shell rules, DB safety, encoding
+- [AGENT_INSTRUCTIONS.md](AGENT_INSTRUCTIONS.md) — **Canonical agent reference**: stack map, mandatory astrology/coding rules, Tamil + cultural rules, tone rules, UI/UX rules, anti-patterns
+- [../AGENTS.md](../AGENTS.md) — Agent work guide scoped to mobile-app gap closure (bugs → features → polish)
+- [HOW_TO_USE_CODEBASE.md](HOW_TO_USE_CODEBASE.md) — Codebase orientation: repo layout, service map, key patterns
 
 ## Canonical Specifications (source of truth — do not modify lightly)
 - [Jothidam_AI_Product_Specification_v7_FULL_Master_Build_Thirukanitham_2026.md](Jothidam_AI_Product_Specification_v7_FULL_Master_Build_Thirukanitham_2026.md) — **Master product spec**: full feature list, business logic, user flows
-- [Jothidam_AI_Formula_Engine_Specification_v1_Thirukanitham_2026.md](Jothidam_AI_Formula_Engine_Specification_v1_Thirukanitham_2026.md) — **Calculation formulas**: Lahiri ayanamsa, dasha, divisional charts, dosha rules — source of truth for all astrology math
+- [Jothidam_AI_Formula_Engine_Specification_v1_Thirukanitham_2026.md](Jothidam_AI_Formula_Engine_Specification_v1_Thirukanitham_2026.md) — **Calculation formulas**: ayanamsa, dasha, divisional charts, dosha rules — source of truth for astrology math
 - [Jothidam_AI_Technical_API_Database_Spec_v1_Thirukanitham_2026.md](Jothidam_AI_Technical_API_Database_Spec_v1_Thirukanitham_2026.md) — API endpoints, request/response schemas, PostgreSQL schema
+- [Jothidam_AI_OpenAPI_v1_Thirukanitham_2026.yaml](Jothidam_AI_OpenAPI_v1_Thirukanitham_2026.yaml) — OpenAPI contract for the v1 API
+- [Jothidam_AI_PostgreSQL_Schema_v1_Thirukanitham_2026.sql](Jothidam_AI_PostgreSQL_Schema_v1_Thirukanitham_2026.sql) — Reference PostgreSQL schema DDL
 - [Jothidam_AI_QA_Golden_Test_Cases_v1_Thirukanitham_2026.md](Jothidam_AI_QA_Golden_Test_Cases_v1_Thirukanitham_2026.md) — QA golden test case definitions
+- [DOCTRINE_DECISIONS_V1.md](DOCTRINE_DECISIONS_V1.md) — **Ratified calculation doctrine v1.0**: the authoritative astrology decisions all modules follow
 
-## Implementation
-- [IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md) — Non-negotiable rules, MVP scope, stack context, all implementation phases
-- [REFACTOR_PLAN.md](REFACTOR_PLAN.md) — Production-readiness refactor plan (phases 0–5; some DONE, some DEFERRED)
-- [HOW_TO_USE_CODEBASE.md](HOW_TO_USE_CODEBASE.md) — Codebase orientation: repo layout, service map, key patterns
-- [error-handling.md](error-handling.md) — Centralized error code system: backend ErrorCode enum, frontend formatters, migration status
-- [MASTER_FIX_LIST.md](MASTER_FIX_LIST.md) — Cumulative fix/issue tracking list
-- [API_FRONTEND_WIRING_AUDIT_2026-07.md](API_FRONTEND_WIRING_AUDIT_2026-07.md) — Endpoint-by-endpoint audit of what's actually wired to a real frontend vs. dead/unreachable; supersedes FRONTEND.md's missing-features list
+## Astrology Calculation — Audits & Reviews
+- [ASTROLOGY_FULL_CODE_AUDIT_2026-07-16.md](ASTROLOGY_FULL_CODE_AUDIT_2026-07-16.md) — Full line-by-line re-audit of every calc + reasoning module (5 medium, ~17 low findings; no critical)
+- [ASTROLOGY_AUDIT_TODOS_2026-07-16.md](ASTROLOGY_AUDIT_TODOS_2026-07-16.md) — Actionable checklist from the full-code audit (M-1..M-5, L-1..L-17, AR-1..AR-7), with suggested landing order
+- [PROSE_REASONING_AUDIT_2026-07-16.md](PROSE_REASONING_AUDIT_2026-07-16.md) — Astrologer-lens audit of every reasoning/fortune *presentation* surface (RP-01..RP-17): enum-in-Tamil leaks, Thanglish nakshatra lens, register bugs, machine-print structure
+- [CALC_AUDIT_REMEDIATION_PLAN_2026-07.md](CALC_AUDIT_REMEDIATION_PLAN_2026-07.md) — 44-module calc audit → Doctrine v1.0 + remediation work items
+- [AUDIT_REMEDIATION_PLAN.md](AUDIT_REMEDIATION_PLAN.md) — Earlier broad calc/logic audit and remediation plan
+- [THIRUKANITHAM_DEGREE_ADHIPATHI_AUDIT_2026-07.md](THIRUKANITHAM_DEGREE_ADHIPATHI_AUDIT_2026-07.md) — Degree-strength + house-lord (adhipathi) audit
+- [THIRUKANITHAM_DEPTH_EXPANSION_PLAN.md](THIRUKANITHAM_DEPTH_EXPANSION_PLAN.md) — Deep-technique expansion plan (aspects, vargas, Gulika, Shadbala, extra dashas)
+- [THIRUKANITHAM_VETERAN_PROTOCOL_AUDIT_2026-07.md](THIRUKANITHAM_VETERAN_PROTOCOL_AUDIT_2026-07.md) — Veteran-astrologer protocol audit
+- [SEVVAIRAGU.MD](SEVVAIRAGU.MD) — Sevvai/Rahu dosha validation rules (Tamil-specific, with test scenarios)
+- [FAQ_COMPARISON_WITH_OTHER_SOFTWARE.md](FAQ_COMPARISON_WITH_OTHER_SOFTWARE.md) — Why Vinaadi's output deliberately differs from JHora / Parashara Light etc.
+- [ASTROLOGER_REVIEW_QUEUE.md](ASTROLOGER_REVIEW_QUEUE.md) — Open items awaiting astrologer sign-off
+- [ASTROLOGER_LIVE_SESSION_BACKLOG_2026-07.md](ASTROLOGER_LIVE_SESSION_BACKLOG_2026-07.md) — Backlog worked through in the live Tamil-reader astrologer session
+- [STAKEHOLDER_AUDIT_ASTROLOGER_CUSTOMER_2026-07.md](STAKEHOLDER_AUDIT_ASTROLOGER_CUSTOMER_2026-07.md) — Combined jyotishi + customer audit findings
+- [PROPENSITY_ASTROLOGER_REVIEW_2026-07.md](PROPENSITY_ASTROLOGER_REVIEW_2026-07.md) — Astrologer review of the propensity ("chances & cautions") card set
 
-## UX & Design
-- [UX_EXCELLENCE_AUDIT.md](UX_EXCELLENCE_AUDIT.md) — UX audit findings and recommendations
-- [BIRTH_PROFILE_MANAGEMENT.md](BIRTH_PROFILE_MANAGEMENT.md) — Birth profile management UX spec
-
-## Frontend
-- [FRONTEND.md](FRONTEND.md) — Current UI status, missing features, UI/UX backlog
-
-## Mobile
-- [mobile/00-INDEX.md](mobile/00-INDEX.md) — Mobile docs index (10 spec files covering market, personas, PRD, screens, design, API, analytics, risks)
-- [mobile/MOBILE_DECISIONS.md](mobile/MOBILE_DECISIONS.md) — **Owner-level decisions**: scope, monetization, GTM, access model (LOCKED)
-- [mobile/MOBILE_DESIGN_BRIEF.md](mobile/MOBILE_DESIGN_BRIEF.md) — Design authority: color, typography, all screens across phases A/B/C
-- [mobile/MOBILE_BUILD_SPEC.md](mobile/MOBILE_BUILD_SPEC.md) — **Coding agent reference**: tech stack, non-negotiables, screen-by-screen build spec
-- [MOBILE_PRODUCT_DESIGN.md](MOBILE_PRODUCT_DESIGN.md) — Mobile product design overview
-- [MOBILE_UX_2026.md](MOBILE_UX_2026.md) — Mobile UX principles and screen patterns for 2026
-
-## Marketing, SEO, and Public Site
-- [MARKETING_PLAN.md](MARKETING_PLAN.md) — Growth strategy, site IA, homepage content blueprint, SEO roadmap
-- [PUBLIC_SITE_QA_CHECKLIST.md](PUBLIC_SITE_QA_CHECKLIST.md) — Repeatable QA checklist before any public-site deploy
-- [launch/GO_LIVE_CHECKLIST.md](launch/GO_LIVE_CHECKLIST.md) — Master go-live checklist: product, engineering, infra, legal, analytics, support
-- [launch/BETA_LAUNCH_CHECKLIST.md](launch/BETA_LAUNCH_CHECKLIST.md) — Narrower checklist for the current public beta flow
-
-## Roadmap & Features
-- [VINAADI_ENHANCEMENT_ROADMAP_v1.md](VINAADI_ENHANCEMENT_ROADMAP_v1.md) — Enhancement roadmap and decisions log
-- [FAMILY_CHART_EXPLANATION_PLAN_v1.md](FAMILY_CHART_EXPLANATION_PLAN_v1.md) — Per-person chart explanation panel implementation plan
-- [Vinaadi_Enhancement_Peyarchi_Notifications_v1.md](Vinaadi_Enhancement_Peyarchi_Notifications_v1.md) — Peyarchi (transit) notifications feature spec
+## Prediction & Reasoning Engine
+- [PREDICTION_DOCTRINE_AND_ROADMAP.md](PREDICTION_DOCTRINE_AND_ROADMAP.md) — Prediction doctrine and the P0–P3 roadmap
+- [PREDICTION_ONTOLOGY_EXPANSION_PLAN_2026-07.md](PREDICTION_ONTOLOGY_EXPANSION_PLAN_2026-07.md) — Plan to expand the prediction ontology / signatures
+- [PREDICTION_TAXONOMY.md](PREDICTION_TAXONOMY.md) — Taxonomy of prediction categories
+- [REASONING_LAYER_UPGRADE_PLAN.md](REASONING_LAYER_UPGRADE_PLAN.md) — Reasoning-layer upgrade plan (calibration, explanation surfaces)
 
 ## Content & Tamil Astrology Reference
 - [NATCHATHIRAM_DASHA_WRITING_GUIDE.md](NATCHATHIRAM_DASHA_WRITING_GUIDE.md) — Rules and patterns for writing dasha content for all 27 nakshatrams
-- [SEVVAIRAGU.MD](SEVVAIRAGU.MD) — Sevvai/Rahu dosha validation rules (Tamil-specific, includes test scenarios)
+- [tamil-review-age-phase.md](tamil-review-age-phase.md) — Native-Tamil review notes: age-phase content
+- [tamil-review-daily-briefing.md](tamil-review-daily-briefing.md) — Native-Tamil review notes: daily briefing
+- [tamil-review-nadi-dosha.md](tamil-review-nadi-dosha.md) — Native-Tamil review notes: Nadi dosha copy
+- [tamil-review-propensity-cards.md](tamil-review-propensity-cards.md) — Native-Tamil review notes: propensity cards
+
+## Implementation & Engineering
+- [REFACTOR_PLAN.md](REFACTOR_PLAN.md) — Production-readiness refactor plan (phases 0–5; some DONE, some DEFERRED)
+- [error-handling.md](error-handling.md) — Centralized error-code system: backend ErrorCode enum, frontend formatters
+- [MASTER_FIX_LIST.md](MASTER_FIX_LIST.md) — Cumulative fix/issue tracking list
+- [API_FRONTEND_WIRING_AUDIT_2026-07.md](API_FRONTEND_WIRING_AUDIT_2026-07.md) — Endpoint-by-endpoint audit of what's wired to a real frontend vs. dead/unreachable
+- [CRON_WORKER.md](CRON_WORKER.md) — Cron/scheduler worker design and operation
+
+## Dashboard & Web UX
+- [DASHBOARD_UI_REVAMP_PLAN.md](DASHBOARD_UI_REVAMP_PLAN.md) — Dashboard UI revamp plan (largest design doc)
+- [DASHBOARD_AUDIT_FIXES.md](DASHBOARD_AUDIT_FIXES.md) — Dashboard audit findings and fix statuses (DASH-01..17)
+- [DASHBOARD_CONSISTENCY_AUDIT_2026-07.md](DASHBOARD_CONSISTENCY_AUDIT_2026-07.md) — Dashboard consistency audit
+- [DASHBOARD_IA_CARDSORT_2026-07-15.md](DASHBOARD_IA_CARDSORT_2026-07-15.md) — Dashboard information-architecture card-sort results
+- [NOVA_ONLY_MIGRATION_PLAN.md](NOVA_ONLY_MIGRATION_PLAN.md) — Plan for removing the Classic UI and going Nova-only
+- [UX_EXCELLENCE_AUDIT.md](UX_EXCELLENCE_AUDIT.md) — UX excellence audit findings and recommendations
+- [WEB_UX_AUDIT_2026-07-15.md](WEB_UX_AUDIT_2026-07-15.md) — Web-only UX backlog (MKT/UXD/SHD items)
+- [BIRTH_PROFILE_MANAGEMENT.md](BIRTH_PROFILE_MANAGEMENT.md) — Birth-profile management UX spec
+- [dashboard-i18n-catalog.json](dashboard-i18n-catalog.json) — Generated dashboard i18n string catalog (consumed by `web/lib/dashboard-i18n.ts`)
+
+## Roadmap & Product
+- [VINAADI_ENHANCEMENT_ROADMAP_v1.md](VINAADI_ENHANCEMENT_ROADMAP_v1.md) — Enhancement roadmap and decisions log
+- [ROADMAP_TASKS.md](ROADMAP_TASKS.md) — Roadmap task list
+- [TIER_PLAN.md](TIER_PLAN.md) — Guest/registered/premium tiers, pay-per-use catalogue, product decisions
+
+## Marketing, SEO, Public Site & Launch
+- [MARKETING_PLAN.md](MARKETING_PLAN.md) — Growth strategy, site IA, homepage blueprint, SEO roadmap
+- [PUBLIC_SITE_QA_CHECKLIST.md](PUBLIC_SITE_QA_CHECKLIST.md) — Repeatable QA checklist before any public-site deploy
+- [RELEASE_GATE_BROWSER_PASS.md](RELEASE_GATE_BROWSER_PASS.md) — Release-gate live browser-pass checklist
+- [launch/GO_LIVE_CHECKLIST.md](launch/GO_LIVE_CHECKLIST.md) — Master go-live checklist: product, engineering, infra, legal, analytics, support
+- [launch/BETA_LAUNCH_CHECKLIST.md](launch/BETA_LAUNCH_CHECKLIST.md) — Narrower checklist for the current public beta flow
+
+## Mobile
+- [mobile/00-INDEX.md](mobile/00-INDEX.md) — **Mobile docs index** for the numbered spec set (`01`–`12`: market, personas, PRD, screens, design, API, analytics, risks, gap closure)
+- [mobile/MOBILE_DECISIONS.md](mobile/MOBILE_DECISIONS.md) — **Owner-level decisions**: scope, monetization, GTM, access model (LOCKED)
+- [mobile/MOBILE_DESIGN_BRIEF.md](mobile/MOBILE_DESIGN_BRIEF.md) — Design authority: color, typography, all screens across phases A/B/C
+- [mobile/MOBILE_BUILD_SPEC.md](mobile/MOBILE_BUILD_SPEC.md) — **Coding-agent reference**: tech stack, non-negotiables, screen-by-screen build spec
+- [MOBILE_PRODUCT_DESIGN.md](MOBILE_PRODUCT_DESIGN.md) — Mobile product design overview
+- [MOBILE_UX_2026.md](MOBILE_UX_2026.md) — Mobile UX principles and screen patterns for 2026
+
+## Admin
 - [admin/ADMIN_FULL_IMPLEMENTATION.md](admin/ADMIN_FULL_IMPLEMENTATION.md) — Admin panel full implementation reference
+
+## Archive (historical — superseded, do not treat as current)
+- [archive/FRONTEND.md](archive/FRONTEND.md) — Old frontend status/gap list; superseded by [API_FRONTEND_WIRING_AUDIT_2026-07.md](API_FRONTEND_WIRING_AUDIT_2026-07.md)
+- [archive/IMPLEMENTATION_GUIDE.md](archive/IMPLEMENTATION_GUIDE.md) — Frozen MVP-1 implementation snapshot; see [REFACTOR_PLAN.md](REFACTOR_PLAN.md) and [AGENT_INSTRUCTIONS.md](AGENT_INSTRUCTIONS.md) for current
+- [archive/ONBOARDING_PRICING_FIXES.md](archive/ONBOARDING_PRICING_FIXES.md) — Historical onboarding/pricing fix notes
+- [archive/FAMILY_CHART_EXPLANATION_PLAN_v1.md](archive/FAMILY_CHART_EXPLANATION_PLAN_v1.md) — Per-person chart-explanation panel plan (implemented)
+- [archive/Vinaadi_Enhancement_Peyarchi_Notifications_v1.md](archive/Vinaadi_Enhancement_Peyarchi_Notifications_v1.md) — Peyarchi (transit) notifications feature spec
