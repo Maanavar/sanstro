@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 
 from app.calculations.astro import house_from_reference, utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
+from app.calculations.display_names import sani_cycle_en, sani_cycle_ta
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.panchangam import calculate_daily_panchangam
 from app.calculations.transits import classify_sani_cycle
@@ -31,8 +32,8 @@ from app.models import BirthProfile, Chart
 from app.reasoning.chart_signature import detect_signature
 from app.reasoning.contradiction import Reading, classify
 from app.reasoning.promise_gate import GateGrade
-from app.reasoning.verdict import Band, cap_band
 from app.reasoning.timing_vote import timing_band_from_score, weighted_timing_vote
+from app.reasoning.verdict import Band, cap_band
 from app.schemas.dasha import ResponseMeta
 from app.schemas.whatif import (
     TripleConfirmation,
@@ -520,11 +521,11 @@ def _assess_gochar_support(
         )
     else:
         sani_note_ta = (
-            f" {sani_cycle_type.replace('_', ' ')} நடப்பில் உள்ளது — கவனமான நடவடிக்கை தேவை."
+            f" {sani_cycle_ta(sani_cycle_type)} நடப்பில் உள்ளது — கவனமான நடவடிக்கை தேவை."
             if sani_cycle_active and sani_cycle_type else ""
         )
         sani_note_en = (
-            f" {sani_cycle_type.replace('_', ' ')} is active — careful action is needed."
+            f" {sani_cycle_en(sani_cycle_type)} is active — careful action is needed."
             if sani_cycle_active and sani_cycle_type else ""
         )
         text_ta = (

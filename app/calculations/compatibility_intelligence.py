@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from app.calculations._yoga_dosham import detect_sevvai_dosham
 from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.chart_strength import (
     _NATURAL_ENEMIES,
@@ -28,8 +29,8 @@ from app.calculations.chart_strength import (
     OWN_SIGN_RASI,
     SIGN_LORD,
 )
-from app.calculations._yoga_dosham import detect_sevvai_dosham
 from app.calculations.dasha import calculate_vimshottari_timeline
+from app.calculations.display_names import planet_en, planet_ta
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -314,34 +315,39 @@ def _compute_chart_marriage_strength(snap: Any) -> ChartMarriageStrength:
     score = max(0, min(10, score))
 
     # Build notes
+    seventh_lord_ta, seventh_lord_en = planet_ta(seventh_lord), planet_en(seventh_lord)
+    malefics_ta = ", ".join(planet_ta(p) for p in malefics_in_7th)
+    malefics_en = ", ".join(planet_en(p) for p in malefics_in_7th)
     if score >= 8:
         note_en = (
-            f"Strong marriage indicators: 7th lord {seventh_lord} in house {seventh_lord_house} "
+            f"Strong marriage indicators: 7th lord {seventh_lord_en} in house {seventh_lord_house} "
             f"with strength {seventh_lord_strength}/100; Venus strength {venus.strength_score}/100."
         )
         note_ta = (
-            f"திருமண அறிகுறிகள் வலுவானவை: 7ஆம் அதிபதி {seventh_lord} {seventh_lord_house}ஆம் இடத்தில், "
+            f"திருமண அறிகுறிகள் வலுவானவை: 7ஆம் அதிபதி {seventh_lord_ta} {seventh_lord_house}ஆம் இடத்தில், "
             f"வலிமை {seventh_lord_strength}/100; சுக்கிர வலிமை {venus.strength_score}/100."
         )
     elif score >= 5:
         note_en = (
-            f"Moderate marriage strength: 7th lord {seventh_lord} in house {seventh_lord_house}; "
+            f"Moderate marriage strength: 7th lord {seventh_lord_en} in house {seventh_lord_house}; "
             f"Venus in house {venus.house_from_lagna}."
-            + (f" Note: {', '.join(malefics_in_7th)} in 7th house." if malefics_in_7th else "")
+            + (f" Note: {malefics_en} in 7th house." if malefics_in_7th else "")
         )
         note_ta = (
-            f"நடுத்தர திருமண வலிமை: 7ஆம் அதிபதி {seventh_lord} {seventh_lord_house}ஆம் இடத்தில்; "
+            f"நடுத்தர திருமண வலிமை: 7ஆம் அதிபதி {seventh_lord_ta} {seventh_lord_house}ஆம் இடத்தில்; "
             f"சுக்கிரன் {venus.house_from_lagna}ஆம் இடத்தில்."
+            + (f" கவனிக்க: 7ஆம் வீட்டில் {malefics_ta}." if malefics_in_7th else "")
         )
     else:
         note_en = (
-            f"Marriage house needs attention: 7th lord {seventh_lord} in house {seventh_lord_house} "
+            f"Marriage house needs attention: 7th lord {seventh_lord_en} in house {seventh_lord_house} "
             f"(strength {seventh_lord_strength}/100)."
-            + (f" {', '.join(malefics_in_7th)} in 7th house — remedies advised." if malefics_in_7th else "")
+            + (f" {malefics_en} in 7th house — remedies advised." if malefics_in_7th else "")
         )
         note_ta = (
-            f"திருமண இடம் கவனம் தேவை: 7ஆம் அதிபதி {seventh_lord} {seventh_lord_house}ஆம் இடத்தில் "
+            f"திருமண இடம் கவனம் தேவை: 7ஆம் அதிபதி {seventh_lord_ta} {seventh_lord_house}ஆம் இடத்தில் "
             f"(வலிமை {seventh_lord_strength}/100)."
+            + (f" 7ஆம் வீட்டில் {malefics_ta} — பரிகாரம் பரிந்துரை." if malefics_in_7th else "")
         )
 
     return ChartMarriageStrength(
@@ -486,26 +492,29 @@ def _compute_dasha_harmony(snap_a: Any, snap_b: Any, today_jd: float) -> DashaHa
     both_supportive = maha_a in _MARRIAGE_DASHAS and maha_b in _MARRIAGE_DASHAS
     one_supportive = maha_a in _MARRIAGE_DASHAS or maha_b in _MARRIAGE_DASHAS
 
+    maha_a_ta, maha_a_en = planet_ta(maha_a), planet_en(maha_a)
+    maha_b_ta, maha_b_en = planet_ta(maha_b), planet_en(maha_b)
+
     if relation == "friend" and both_supportive:
         score = 15
         harmony_label = "SUPPORTIVE"
         note_en = (
-            f"Both partners are in supportive dashas ({maha_a} and {maha_b}) and their dasha lords "
+            f"Both partners are in supportive dashas ({maha_a_en} and {maha_b_en}) and their dasha lords "
             f"are mutually friendly — an auspicious time for marriage planning."
         )
         note_ta = (
-            f"இரு நபர்களும் சாதகமான தசைகளில் உள்ளனர் ({maha_a} மற்றும் {maha_b}); தசை அதிபதிகள் "
+            f"இரு நபர்களும் சாதகமான தசைகளில் உள்ளனர் ({maha_a_ta} மற்றும் {maha_b_ta}); தசை அதிபதிகள் "
             f"நண்பர்கள் — திருமண திட்டமிடலுக்கு நல்ல காலம்."
         )
     elif relation == "friend":
         score = 12
         harmony_label = "SUPPORTIVE"
         note_en = (
-            f"Dasha lords {maha_a} and {maha_b} are friendly planets — supportive period for the relationship, "
+            f"Dasha lords {maha_a_en} and {maha_b_en} are friendly planets — supportive period for the relationship, "
             f"though timing may need checking against transit support."
         )
         note_ta = (
-            f"தசை அதிபதிகள் {maha_a} மற்றும் {maha_b} நண்பர்கள் — உறவுக்கு சாதகமான காலம்; "
+            f"தசை அதிபதிகள் {maha_a_ta} மற்றும் {maha_b_ta} நண்பர்கள் — உறவுக்கு சாதகமான காலம்; "
             f"கோச்சார ஆதரவையும் சரிபார்க்கவும்."
         )
     elif relation == "neutral":
@@ -513,32 +522,34 @@ def _compute_dasha_harmony(snap_a: Any, snap_b: Any, today_jd: float) -> DashaHa
         harmony_label = "MIXED"
         if one_supportive:
             score = 10
+            supportive_en = maha_a_en if maha_a in _MARRIAGE_DASHAS else maha_b_en
+            supportive_ta = maha_a_ta if maha_a in _MARRIAGE_DASHAS else maha_b_ta
             note_en = (
-                f"One partner is in a marriage-supportive dasha ({maha_a if maha_a in _MARRIAGE_DASHAS else maha_b}); "
+                f"One partner is in a marriage-supportive dasha ({supportive_en}); "
                 f"the dasha lords are neutral to each other. Moderately favourable."
             )
             note_ta = (
-                "ஒரு நபர் திருமண சாதகமான தசையில் உள்ளார்; தசை அதிபதிகள் நடுநிலையானவர்கள். "
+                f"ஒரு நபர் திருமண சாதகமான தசையில் ({supportive_ta}) உள்ளார்; தசை அதிபதிகள் நடுநிலையானவர்கள். "
                 "நடுத்தர சாதகம்."
             )
         else:
             note_en = (
-                f"Dasha lords {maha_a} and {maha_b} are neutral — stable but not particularly activated "
+                f"Dasha lords {maha_a_en} and {maha_b_en} are neutral — stable but not particularly activated "
                 f"for relationship matters in this period."
             )
             note_ta = (
-                f"தசை அதிபதிகள் {maha_a} மற்றும் {maha_b} நடுநிலையானவர்கள் — நிலையான ஆனால் "
+                f"தசை அதிபதிகள் {maha_a_ta} மற்றும் {maha_b_ta} நடுநிலையானவர்கள் — நிலையான ஆனால் "
                 f"திருமண விஷயங்களுக்கு குறிப்பாக செயல்படவில்லை."
             )
     else:  # enemy
         score = 4
         harmony_label = "CHALLENGING"
         note_en = (
-            f"Dasha lords {maha_a} and {maha_b} are in an inimical relationship — this period may "
+            f"Dasha lords {maha_a_en} and {maha_b_en} are in an inimical relationship — this period may "
             f"bring friction; patience and communication are especially important."
         )
         note_ta = (
-            f"தசை அதிபதிகள் {maha_a} மற்றும் {maha_b} எதிர் தன்மை கொண்டவர்கள் — இந்த காலம் "
+            f"தசை அதிபதிகள் {maha_a_ta} மற்றும் {maha_b_ta} எதிர் தன்மை கொண்டவர்கள் — இந்த காலம் "
             f"சில மோதல்களை கொண்டுவரலாம்; பொறுமை மற்றும் தொடர்பு முக்கியம்."
         )
 
@@ -630,14 +641,21 @@ def _compute_emotional_compatibility(snap_a: Any, snap_b: Any) -> EmotionalCompa
         else "Different emotional styles — intentional communication and empathy bridge the gap."
     )
 
+    _HARMONY_TA = {
+        "EXCELLENT": "மிகச் சிறந்த", "GOOD": "நல்ல", "STRONG": "வலுவான",
+        "MIXED": "கலப்பான", "TENSE": "இறுக்கமான",
+    }
+    moon_harmony_ta = _HARMONY_TA.get(moon_harmony, "கலப்பான")
+    venus_harmony_ta = _HARMONY_TA.get(venus_mars_harmony, "கலப்பான")
+
     if score >= 8:
         note_en = (
             f"Strong emotional resonance: Moon positions show {moon_harmony.lower()} harmony; "
             f"Venus compatibility is {venus_mars_harmony.lower()}. The relationship will feel emotionally nourishing."
         )
         note_ta = (
-            f"வலுவான உணர்வு இணக்கம்: சந்திர நிலைகள் {moon_harmony.lower()} இணக்கம் காட்டுகின்றன; "
-            f"சுக்கிர இணக்கம் {venus_mars_harmony.lower()}. உறவு உணர்வு ரீதியாக நல்லதாக இருக்கும்."
+            f"வலுவான உணர்வு இணக்கம்: சந்திர நிலைகள் {moon_harmony_ta} இணக்கம் காட்டுகின்றன; "
+            f"சுக்கிர இணக்கம் {venus_harmony_ta}. உறவு உணர்வு ரீதியாக நல்லதாக இருக்கும்."
         )
     elif score >= 5:
         note_en = (
@@ -645,8 +663,8 @@ def _compute_emotional_compatibility(snap_a: Any, snap_b: Any) -> EmotionalCompa
             f"Venus shows {venus_mars_harmony.lower()} alignment. Mutual understanding grows with time."
         )
         note_ta = (
-            f"நடுத்தர உணர்வு இணக்கம்: சந்திர இணக்கம் {moon_harmony.lower()}, "
-            f"சுக்கிரன் {venus_mars_harmony.lower()} அமைப்பு. பரஸ்பர புரிதல் நேரத்துடன் வளரும்."
+            f"நடுத்தர உணர்வு இணக்கம்: சந்திர இணக்கம் {moon_harmony_ta}, "
+            f"சுக்கிர இணக்கம் {venus_harmony_ta}. பரஸ்பர புரிதல் நேரத்துடன் வளரும்."
         )
     else:
         note_en = (
@@ -654,7 +672,7 @@ def _compute_emotional_compatibility(snap_a: Any, snap_b: Any) -> EmotionalCompa
             f"Building shared emotional vocabulary is the key investment for this relationship."
         )
         note_ta = (
-            f"உணர்வு வேறுபாடுகளுக்கு கவனம் தேவை: சந்திர இணக்கம் {moon_harmony.lower()}. "
+            f"உணர்வு வேறுபாடுகளுக்கு கவனம் தேவை: சந்திர இணக்கம் {moon_harmony_ta}. "
             f"பகிரப்பட்ட உணர்வு மொழியை உருவாக்குவது இந்த உறவிற்கான முக்கிய முதலீடு."
         )
 
@@ -777,33 +795,42 @@ def compute_compatibility_intelligence(
         risks_ta.append("ஒரு அல்லது இரு ஜாதகங்களிலும் 7ஆம் இடம் அல்லது சுக்கிரன் கவனம் தேவை")
 
     if navamsa.harmony_label in {"STRONG", "GOOD"}:
+        navamsa_ta = "வலுவானது" if navamsa.harmony_label == "STRONG" else "நல்லது"
         strengths_en.append(f"Navamsa (D9) alignment is {navamsa.harmony_label.lower()}")
-        strengths_ta.append(f"நவாம்ச (D9) இணக்கம் {navamsa.harmony_label.lower()}")
+        strengths_ta.append(f"நவாம்ச (D9) இணக்கம் {navamsa_ta}")
     elif navamsa.harmony_label == "WEAK":
         risks_en.append("Navamsa (D9) placement shows weaker marriage potential")
         risks_ta.append("நவாம்ச (D9) நிலை பலவீனமான திருமண சாத்தியத்தை காட்டுகிறது")
 
+    dasha_pair_ta = f"{planet_ta(dasha.person_a_maha_lord)} × {planet_ta(dasha.person_b_maha_lord)}"
+    dasha_pair_en = f"{planet_en(dasha.person_a_maha_lord)} × {planet_en(dasha.person_b_maha_lord)}"
     if dasha.harmony_label == "SUPPORTIVE":
-        strengths_en.append(f"Dasha period is supportive ({dasha.person_a_maha_lord} × {dasha.person_b_maha_lord})")
-        strengths_ta.append(f"தசை காலம் சாதகமானது ({dasha.person_a_maha_lord} × {dasha.person_b_maha_lord})")
+        strengths_en.append(f"Dasha period is supportive ({dasha_pair_en})")
+        strengths_ta.append(f"தசை காலம் சாதகமானது ({dasha_pair_ta})")
     elif dasha.harmony_label == "CHALLENGING":
-        risks_en.append(f"Current dasha lords are in tension ({dasha.person_a_maha_lord} × {dasha.person_b_maha_lord})")
-        risks_ta.append(f"தற்போதைய தசை அதிபதிகள் மோதலில் உள்ளனர் ({dasha.person_a_maha_lord} × {dasha.person_b_maha_lord})")
+        risks_en.append(f"Current dasha lords are in tension ({dasha_pair_en})")
+        risks_ta.append(f"தற்போதைய தசை அதிபதிகள் மோதலில் உள்ளனர் ({dasha_pair_ta})")
 
+    _SEVERITY_TA = {"SEVERE": "தீவிரம்", "MODERATE": "நடுத்தரம்", "MILD": "லேசானது", "NONE": "இல்லை"}
     if sevvai_a.has_dosham and not sevvai_a.is_cancelled:
-        risks_en.append(f"Person A has active Sevvai Dosham ({sevvai_a.severity}) — matching recommended")
-        risks_ta.append(f"நபர் A-க்கு செவ்வாய் தோஷம் உள்ளது ({sevvai_a.severity}) — பொருத்தம் பரிந்துரை")
+        severity_a_ta = _SEVERITY_TA.get(sevvai_a.severity, sevvai_a.severity)
+        risks_en.append(f"Person A has active Sevvai Dosham ({sevvai_a.severity.lower()}) — matching recommended")
+        risks_ta.append(f"நபர் A-க்கு செவ்வாய் தோஷம் உள்ளது ({severity_a_ta}) — பொருத்தம் பரிந்துரை")
     if sevvai_b.has_dosham and not sevvai_b.is_cancelled:
-        risks_en.append(f"Person B has active Sevvai Dosham ({sevvai_b.severity}) — matching recommended")
-        risks_ta.append(f"நபர் B-க்கு செவ்வாய் தோஷம் உள்ளது ({sevvai_b.severity}) — பொருத்தம் பரிந்துரை")
+        severity_b_ta = _SEVERITY_TA.get(sevvai_b.severity, sevvai_b.severity)
+        risks_en.append(f"Person B has active Sevvai Dosham ({sevvai_b.severity.lower()}) — matching recommended")
+        risks_ta.append(f"நபர் B-க்கு செவ்வாய் தோஷம் உள்ளது ({severity_b_ta}) — பொருத்தம் பரிந்துரை")
 
     if porutham_result.rajju_dosha:
         risks_en.append("Rajju Dosha is present — health/longevity remedies advised")
         risks_ta.append("ரஜ்ஜு தோஷம் உள்ளது — ஆரோக்யம்/ஆயுள் பரிகாரம் பரிந்துரை")
 
     if emotional.score >= 8:
+        moon_harmony_summary_ta = {
+            "EXCELLENT": "மிகச் சிறந்தது", "GOOD": "நல்லது", "MIXED": "கலப்பானது", "TENSE": "இறுக்கமானது",
+        }.get(emotional.moon_moon_harmony, "நல்லது")
         strengths_en.append(f"Strong emotional resonance — Moon harmony is {emotional.moon_moon_harmony.lower()}")
-        strengths_ta.append(f"வலுவான உணர்வு இணக்கம் — சந்திர இணக்கம் {emotional.moon_moon_harmony.lower()}")
+        strengths_ta.append(f"வலுவான உணர்வு இணக்கம் — சந்திர இணக்கம் {moon_harmony_summary_ta}")
     elif emotional.score <= 3:
         risks_en.append("Emotional styles differ significantly — communication investment needed")
         risks_ta.append("உணர்வு முறைகள் வேறுபட்டுள்ளன — தொடர்பு முயற்சி தேவை")

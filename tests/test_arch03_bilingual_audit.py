@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import date
 from types import SimpleNamespace
 from typing import Any
@@ -7,10 +8,19 @@ from typing import Any
 import pytest
 from fastapi import HTTPException
 
+import app.services.chart_explanation_service as chart_explanation_service
 import app.services.dasha_service as dasha_service
 import app.services.emotional_weather as emotional_weather
 import app.services.nakshatra_content as nakshatra_content
 import app.services.narrative_engine as narrative_engine
+
+# RP-01 script purity: a Tamil string must actually be written in Tamil script
+# (catches Thanglish/romanized regressions) and must not contain a raw internal
+# enum code — an ALL-CAPS Latin run of 3+ letters ("SUN", "MAHADASHA",
+# "ASHTAMA_SANI"). Short varga codes like D9/D24 and "am/pm" clock suffixes
+# stay legal by construction.
+_TAMIL_SCRIPT = re.compile(r"[஀-௿]")
+_CAPS_ENUM_LEAK = re.compile(r"[A-Z]{3,}")
 
 
 def _assert_bilingual_text(text: Any) -> None:
@@ -18,6 +28,9 @@ def _assert_bilingual_text(text: Any) -> None:
     assert hasattr(text, "en"), "English field missing"
     assert isinstance(text.ta, str) and text.ta.strip(), "Tamil text empty"
     assert isinstance(text.en, str) and text.en.strip(), "English text empty"
+    assert _TAMIL_SCRIPT.search(text.ta), f"Tamil field is not in Tamil script: {text.ta!r}"
+    leaks = _CAPS_ENUM_LEAK.findall(text.ta)
+    assert not leaks, f"Raw enum code leaked into Tamil text {leaks}: {text.ta!r}"
 
 
 def test_narrative_engine_catalog_entries_are_bilingual_non_empty():
@@ -187,6 +200,26 @@ def test_nakshatra_content_catalog_and_overlays_are_bilingual_non_empty():
 
     for label in ("STRONG_SUPPORT", "GOOD", "BALANCED", "CAUTION", "RESTORATIVE"):
         _assert_bilingual_text(nakshatra_content.build_nakshatra_perspective(21, label))
+
+
+def test_chart_explanation_composers_use_display_names_not_enum_codes():
+    """RP-01 regression: the pure-text composers must render planet/period
+    display names, never the internal enum codes."""
+    for relation in ("FRIENDLY", "HOSTILE", "NEUTRAL"):
+        _assert_bilingual_text(chart_explanation_service._relationship_text("SUN", "MARS", relation))
+    for signal_type in ("TRANSIT_CONJUNCTION", "DASHA_LORD_RETURN", "TRANSIT_ASPECT_7TH"):
+        _assert_bilingual_text(
+            chart_explanation_service._activation_signal_text("SATURN", "JUPITER", signal_type)
+        )
+
+
+def test_display_names_yoga_table_is_tamil_script():
+    from app.calculations.display_names import YOGA_NAME_EN, YOGA_NAME_TA
+
+    assert set(YOGA_NAME_TA) == set(range(1, 28))
+    assert set(YOGA_NAME_EN) == set(range(1, 28))
+    for name in YOGA_NAME_TA.values():
+        assert _TAMIL_SCRIPT.search(name), f"Yoga name not in Tamil script: {name!r}"
 
 
 def test_emotional_weather_templates_are_bilingual_non_empty():

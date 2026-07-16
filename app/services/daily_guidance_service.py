@@ -60,7 +60,7 @@ from app.services.location_service import (
     resolve_effective_daily_timezone,
 )
 from app.services.nakshatra_content import build_nakshatra_perspective
-from app.services.narrative_engine import build_score_reasons, tithi_content_card
+from app.services.narrative_engine import build_score_reasons, gochar_spoken, panchangam_spoken, tithi_content_card
 from app.services.safety_filter import run_safety_pass
 
 # Sub-module imports — all symbols are re-exported here so existing consumers
@@ -654,6 +654,9 @@ def build_daily_guidance_response(
     # stays None otherwise, leaving the six-row `reasons` output untouched.
     briefing: DailyGuidanceText | None = None
     if get_flag("daily_briefing_synth"):
+        # RP-10: the briefing weaves the *spoken* panchangam/gochar leads (one
+        # flowing sentence each), not the chip-joined tile fragments — those
+        # stay on the six-row "Why this prediction?" output untouched.
         synthesized = synthesize_daily_briefing(BriefingInputs(
             label=label,
             moon_score=moon_score,
@@ -663,8 +666,20 @@ def build_daily_guidance_response(
             personal_score=personal_safety_score,
             moon_transit=reasons.moon_transit,
             dasha_support=reasons.dasha_support,
-            gochar=reasons.gochar,
-            panchangam=reasons.panchangam,
+            gochar=gochar_spoken(
+                jupiter_house=jupiter_house,
+                saturn_house=saturn_house,
+                sani_cycle_type=saturn_cycle.type if saturn_cycle.is_active else None,
+                sani_cycle_active=saturn_cycle.is_active,
+                transit_score=round(transit_score),
+            ),
+            panchangam=panchangam_spoken(
+                tithi_number=panchangam.tithi_number,
+                yoga_number=panchangam.yoga_number,
+                karana_name=panchangam.karana_name,
+                panchangam_score=panchangam_score,
+                nakshatra_number=panchangam.nakshatra_number,
+            ),
             personal_caution=reasons.personal_caution,
             action=action_suggestion,  # the goal/track-enriched action, not the raw one
             chandrashtama=chandrashtama,

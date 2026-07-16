@@ -16,6 +16,7 @@ Whole Sign house system assumed throughout (consistent with chart engine).
 """
 from __future__ import annotations
 
+import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
@@ -29,6 +30,7 @@ from app.calculations.ashtakavarga import compute_bhinnashtakavarga, compute_sar
 from app.calculations.astro import house_from_reference, resolve_timezone, utc_datetime_to_julian_day
 from app.calculations.chart_strength import SIGN_LORD, compute_bhava_bala
 from app.calculations.dasha import calculate_vimshottari_timeline
+from app.calculations.display_names import planet_en as dn_planet_en
 from app.calculations.double_transit import score_double_transit
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.functional_nature import FunctionalNature, get_functional_nature
@@ -36,7 +38,12 @@ from app.calculations.karaka_chains import LIFE_AREA_KARAKA
 from app.calculations.maturation import maturation_multiplier
 from app.calculations.prediction_score import PredictionScoreInput, compute_prediction_score
 from app.calculations.remedies import get_area_remedy
-from app.calculations.transits import classify_ezharai_sani_murthi_ingress, classify_kandaka_cycle, classify_sani_cycle, find_saturn_ingress_jd
+from app.calculations.transits import (
+    classify_ezharai_sani_murthi_ingress,
+    classify_kandaka_cycle,
+    classify_sani_cycle,
+    find_saturn_ingress_jd,
+)
 from app.core.age_gate import get_house_locus
 from app.models import BirthProfile, Chart
 from app.models.user_life_events import UserLifeEvent
@@ -463,22 +470,22 @@ def _build_area_reason(
     planet_ta = _PLANET_LABEL[karaka_planet].ta
     transit_quality_en = "well-placed" if karaka_house_from_moon in {1, 2, 3, 4, 5, 7, 9, 10, 11} else "in a challenging position"
     transit_quality_ta = "சாதகமான இடத்தில்" if transit_quality_en == "well-placed" else "சவாலான இடத்தில்"
-    level_en = "strong" if score >= 70 else ("moderate" if score >= 45 else "needs attention")
-    level_ta = "வலிமையாக" if score >= 70 else ("மிதமாக" if score >= 45 else "கவனம் தேவை")
     maha_lord_ta = _PLANET_LABEL[maha_lord].ta if maha_lord in _PLANET_LABEL else maha_lord
     antar_lord_ta = _PLANET_LABEL[antar_lord].ta if antar_lord in _PLANET_LABEL else antar_lord
+    maha_lord_en = dn_planet_en(maha_lord)
+    antar_lord_en = dn_planet_en(antar_lord)
 
     if maha_relevant and antar_relevant:
-        dasha_en = f"{maha_lord} mahadasha and {antar_lord} antardasha both support {area_en.lower()}."
+        dasha_en = f"{maha_lord_en} mahadasha and {antar_lord_en} antardasha both support {area_en.lower()}."
         dasha_ta = f"{maha_lord_ta} மகாதசையும் {antar_lord_ta} அந்தர்தசையும் {area_ta}க்கு ஆதரவு அளிக்கின்றன."
     elif maha_relevant:
-        dasha_en = f"{maha_lord} mahadasha supports {area_en.lower()}; {antar_lord} antardasha is neutral."
+        dasha_en = f"{maha_lord_en} mahadasha supports {area_en.lower()}; {antar_lord_en} antardasha is neutral."
         dasha_ta = f"{maha_lord_ta} மகாதசை {area_ta}க்கு ஆதரவு; {antar_lord_ta} அந்தர்தசை நடுநிலை."
     elif antar_relevant:
-        dasha_en = f"{maha_lord} mahadasha is neutral; {antar_lord} antardasha adds support for {area_en.lower()}."
+        dasha_en = f"{maha_lord_en} mahadasha is neutral; {antar_lord_en} antardasha adds support for {area_en.lower()}."
         dasha_ta = f"{maha_lord_ta} மகாதசை நடுநிலை; {antar_lord_ta} அந்தர்தசை {area_ta}க்கு துணை."
     else:
-        dasha_en = f"Neither {maha_lord} mahadasha nor {antar_lord} antardasha is strongly aligned with {area_en.lower()}."
+        dasha_en = f"Neither {maha_lord_en} mahadasha nor {antar_lord_en} antardasha is strongly aligned with {area_en.lower()}."
         dasha_ta = f"{maha_lord_ta} மகாதசையும் {antar_lord_ta} அந்தர்தசையும் {area_ta}க்கு வலுவான இணைப்பில் இல்லை."
 
     sani_en = ""
@@ -488,11 +495,37 @@ def _build_area_reason(
         sani_en = f" {sani_label} is active, so patience and structure are important."
         sani_ta = f" {_sani_label_ta(sani_phase)} நடப்பில் இருப்பதால் பொறுமையுடன் திட்டமிட்டு செயல்பட வேண்டும்."
 
+    # RP-11: three seeded skeletons keyed by area, so the cards on one page
+    # don't all read as one mail-merged template.
+    _OPENERS = (
+        ("{planet_ta} ({area_ta} காரகன்) சந்திரனிலிருந்து {house}ஆம் இடத்தில் {quality_ta} உள்ளது.",
+         "{planet_en} (karaka for {area_en}) is in house {house} from Moon and is {quality_en}."),
+        ("{area_ta} காரகனான {planet_ta} இப்போது சந்திரனிலிருந்து {house}ஆம் இடத்தில் {quality_ta} உள்ளது.",
+         "{planet_en}, the karaka for {area_en}, currently sits in house {house} from Moon — {quality_en}."),
+        ("சந்திரனிலிருந்து {house}ஆம் இடத்தில் இருக்கும் {planet_ta} ({area_ta} காரகன்) இப்போது {quality_ta} உள்ளது.",
+         "From the Moon, {planet_en} — the karaka for {area_en} — occupies house {house} and is {quality_en}."),
+    )
+    digest = hashlib.sha256(area_key.encode("utf-8")).digest()
+    opener_ta, opener_en = _OPENERS[int.from_bytes(digest[:8], "big") % len(_OPENERS)]
+    opener_ta = opener_ta.format(planet_ta=planet_ta, area_ta=area_ta, house=karaka_house_from_moon, quality_ta=transit_quality_ta)
+    opener_en = opener_en.format(planet_en=planet_en, area_en=area_en.lower(), house=karaka_house_from_moon, quality_en=transit_quality_en)
+
     # D2/D7: the level word carries the judgement; the numeric score is kept
-    # alongside it (show both, 2026-07-13).
+    # alongside it (show both, 2026-07-13). RP-11 also fixes the previously
+    # dangling close ("தொழில் வலிமையாக (72/100)") into a full clause.
+    if score >= 70:
+        close_ta = f"மொத்தமாக, {area_ta} பலன் வலுவாக உள்ளது ({score}/100)."
+        close_en = f"Overall, {area_en.lower()} is strong right now ({score}/100)."
+    elif score >= 45:
+        close_ta = f"மொத்தமாக, {area_ta} பலன் மிதமாக உள்ளது ({score}/100)."
+        close_en = f"Overall, {area_en.lower()} is moderate and steady ({score}/100)."
+    else:
+        close_ta = f"மொத்தமாக, {area_ta} பகுதி இப்போது கூடுதல் நிதானம் கேட்கிறது ({score}/100)."
+        close_en = f"Overall, {area_en.lower()} needs attention — extra patience helps right now ({score}/100)."
+
     return _t(
-        f"{planet_ta} ({area_ta} காரகன்) சந்திரனிலிருந்து {karaka_house_from_moon}ஆம் இடத்தில் {transit_quality_ta} உள்ளது. {dasha_ta}{sani_ta} மொத்தப் பலன்: {area_ta} {level_ta} ({score}/100).",
-        f"{planet_en} (karaka for {area_en.lower()}) is in house {karaka_house_from_moon} from Moon and is {transit_quality_en}. {dasha_en}{sani_en} Net effect: {area_en.lower()} is {level_en} ({score}/100).",
+        f"{opener_ta} {dasha_ta}{sani_ta} {close_ta}",
+        f"{opener_en} {dasha_en}{sani_en} {close_en}",
     )
 
 

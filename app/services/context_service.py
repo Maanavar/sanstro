@@ -188,7 +188,7 @@ def should_surface_proactively(
     if job_status in {"stressed", "pressure", "overload"} and saturn_house_from_moon in {4, 8, 10}:
         return ProactiveContextResult(
             should_surface=True,
-            ta="Neenga kuritha velai azhutham nilaiyai paarthaal, inru thittamitta siru adigal moolam nadavadikkai edukka vendum.",
+            ta="நீங்கள் குறிப்பிட்ட வேலை அழுத்த நிலையை கருத்தில் கொண்டு, இன்று பெரிய சுமைகளை ஏற்காமல் திட்டமிட்ட சிறிய அடிகளாக செயல்படுங்கள்.",
             en="Given your stated job-pressure context, use structured small steps today instead of overloaded commitments.",
         )
 
@@ -196,7 +196,7 @@ def should_surface_proactively(
     if has_today_event and score_label in {"CAUTION", "RESTORATIVE"}:
         return ProactiveContextResult(
             should_surface=True,
-            ta="Inru ungal active event iruppathaal, mukkiya paniyai nalla nerathil thodangi matra panigalai ilaguvaga vaithukkolungal.",
+            ta="இன்று உங்களுக்கு முக்கிய நிகழ்வு இருப்பதால், மிக முக்கியமான வேலையை சாதகமான நேரத்தில் தொடங்கி, மற்றவற்றை இலகுவாக வைத்துக்கொள்ளுங்கள்.",
             en="You have an active event today; start the most important task in a supportive window and keep the rest lightweight.",
         )
 

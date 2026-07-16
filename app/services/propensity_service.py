@@ -8,6 +8,7 @@ never read as doom (D6).
 """
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, replace
 from datetime import date
 
@@ -323,28 +324,75 @@ def _grade_caution(s: Signals) -> CautionLevel:
 
 
 # Summary composition — level phrasing × the spec's topic phrase.
-_CHANCE_PHRASE: dict[ChanceLevel, tuple[str, str]] = {
-    ChanceLevel.STRONG: ("உங்கள் ஜாதகம் இதற்கு வலுவாக ஆதரவளிக்கிறது.",
-                         "your chart leans strongly in favour."),
-    ChanceLevel.PROMISING: ("நம்பிக்கைக்குரிய, ஆதரிக்கத்தக்க போக்கு.",
-                            "a promising, supportable leaning."),
-    ChanceLevel.MIXED: ("கலவையான சமிக்ஞைகள் — முயற்சி முடிவை சாய்க்கும்.",
-                        "signals are mixed — effort tilts the outcome."),
-    ChanceLevel.LIMITED: ("இயற்கை ஆதரவு குறைவு — கூடுதல் முயற்சி தேவை.",
-                          "natural support is limited — it will take extra effort."),
-    ChanceLevel.QUIET: ("இங்கு ஜாதகம் அமைதி — வலுவான சமிக்ஞை இல்லை.",
-                        "the chart is quiet here — no strong signal either way."),
+# RP-14: each level carries 2 phrasings, chosen deterministically per card key
+# (same _pick trick daily_briefing_synth uses), so 40 cards on one screen don't
+# all stamp the identical predicate. Word choice also rotates away from
+# "கவனம்" where an honest synonym exists (RP-13).
+_CHANCE_PHRASE: dict[ChanceLevel, tuple[tuple[str, str], ...]] = {
+    ChanceLevel.STRONG: (
+        ("உங்கள் ஜாதகம் இதற்கு வலுவாக ஆதரவளிக்கிறது.",
+         "your chart leans strongly in favour."),
+        ("இதற்கு உங்கள் ஜாதகத்தில் திடமான ஆதரவு இருக்கிறது.",
+         "your chart gives this solid backing."),
+    ),
+    ChanceLevel.PROMISING: (
+        ("நம்பிக்கைக்குரிய, ஆதரிக்கத்தக்க போக்கு.",
+         "a promising, supportable leaning."),
+        ("நல்ல சாய்வு தெரிகிறது — உங்கள் முயற்சி இதை உறுதிப்படுத்தும்.",
+         "a healthy lean — your effort will confirm it."),
+    ),
+    ChanceLevel.MIXED: (
+        ("கலவையான சமிக்ஞைகள் — முயற்சி முடிவை சாய்க்கும்.",
+         "signals are mixed — effort tilts the outcome."),
+        ("இரு பக்க சமிக்ஞைகளும் உள்ளன; உங்கள் முயற்சியே முடிவை தீர்மானிக்கும்.",
+         "signals point both ways; your effort decides the outcome."),
+    ),
+    ChanceLevel.LIMITED: (
+        ("இயற்கை ஆதரவு குறைவு — கூடுதல் முயற்சி தேவை.",
+         "natural support is limited — it will take extra effort."),
+        ("ஜாதக ஆதரவு இங்கு மெலிதாகவே உள்ளது; விடாமுயற்சியே வழி.",
+         "chart support here is thin; persistence is the way through."),
+    ),
+    ChanceLevel.QUIET: (
+        ("இங்கு ஜாதகம் அமைதி — வலுவான சமிக்ஞை இல்லை.",
+         "the chart is quiet here — no strong signal either way."),
+        ("இந்தக் கேள்விக்கு ஜாதகம் மௌனமாக உள்ளது.",
+         "the chart stays silent on this one."),
+    ),
 }
-_CAUTION_PHRASE: dict[CautionLevel, tuple[str, str]] = {
-    CautionLevel.STEADY: ("நன்கு ஆதரிக்கப்பட்டது — கவலைக்கு இடமில்லை.",
-                          "well supported — little to watch."),
-    CautionLevel.WATCHFUL: ("கவனமாக இருக்க வேண்டிய காலம்.",
-                            "a season to stay mindful."),
-    CautionLevel.EXTRA_CARE: ("கூடுதல் கவனமும் ஆதரவும் தேவைப்படும் காலம்.",
-                              "a season that deserves extra care and support."),
-    CautionLevel.QUIET: ("இங்கு ஜாதகம் அமைதியாக உள்ளது.",
-                         "the chart is quiet here."),
+_CAUTION_PHRASE: dict[CautionLevel, tuple[tuple[str, str], ...]] = {
+    CautionLevel.STEADY: (
+        ("நன்கு ஆதரிக்கப்பட்டது — கவலைக்கு இடமில்லை.",
+         "well supported — little to watch."),
+        ("நிலை உறுதியாக உள்ளது — தனியாக எச்சரிக்கை எதுவும் இல்லை.",
+         "steady ground — nothing in particular to guard."),
+    ),
+    CautionLevel.WATCHFUL: (
+        ("கவனமாக இருக்க வேண்டிய காலம்.",
+         "a season to stay mindful."),
+        ("விழிப்புடன் நடக்க வேண்டிய பருவம்.",
+         "a stretch that rewards alertness."),
+    ),
+    CautionLevel.EXTRA_CARE: (
+        ("கூடுதல் கவனமும் ஆதரவும் தேவைப்படும் காலம்.",
+         "a season that deserves extra care and support."),
+        ("இந்தக் காலத்தில் கூடுதல் நிதானமும் நெருங்கிய ஆதரவும் உதவும்.",
+         "a period where extra steadiness and close support help."),
+    ),
+    CautionLevel.QUIET: (
+        ("இங்கு ஜாதகம் அமைதியாக உள்ளது.",
+         "the chart is quiet here."),
+        ("இந்த விஷயத்தில் தனிச் சமிக்ஞை இல்லை.",
+         "no distinct signal on this front."),
+    ),
 }
+
+
+def _pick_phrase(variants: tuple[tuple[str, str], ...], seed: str) -> tuple[str, str]:
+    """Deterministic per-seed choice — stable for a given card, varied across
+    cards. Content hash, not builtin hash() (which is salted per process)."""
+    digest = hashlib.sha256(seed.encode("utf-8")).digest()
+    return variants[int.from_bytes(digest[:8], "big") % len(variants)]
 
 
 # career_mode is directional, not a strength — its own small grader.
@@ -375,9 +423,10 @@ _PROFILE_SUMMARY = BiText(
 def _summary(spec: _Spec, level_val: str) -> BiText:
     topic = spec.topic
     if spec.tier is Tier.CHANCE:
-        ta, en = _CHANCE_PHRASE[ChanceLevel(level_val)]
+        variants = _CHANCE_PHRASE[ChanceLevel(level_val)]
     else:
-        ta, en = _CAUTION_PHRASE[CautionLevel(level_val)]
+        variants = _CAUTION_PHRASE[CautionLevel(level_val)]
+    ta, en = _pick_phrase(variants, f"{spec.key}:{level_val}")
     return BiText(ta=f"{topic.ta} — {ta}", en=f"Regarding {topic.en}, {en}")
 
 

@@ -1,0 +1,90 @@
+"""Shared bilingual display names for calculation-layer prose (RP-01).
+
+User-facing sentences composed in the calculations/services layers must never
+interpolate internal enum codes ("SUN", "MAHADASHA", "ASHTAMA_SANI") into Tamil
+or English prose. This module is the one canonical lookup for those names at
+the calculations level, so `app/calculations/*` modules don't have to reach up
+into `app/services/narrative_engine.py` (which keeps its own richer BiText
+catalogue for the daily engine).
+
+Keep spellings aligned with narrative_engine.PLANET_NAME — the tables are a
+hand-maintained pair (test_arch03_bilingual_audit asserts script purity on the
+rendered output, not table equality).
+"""
+from __future__ import annotations
+
+PLANET_TA: dict[str, str] = {
+    "SUN": "சூரியன்", "MOON": "சந்திரன்", "MARS": "செவ்வாய்",
+    "MERCURY": "புதன்", "JUPITER": "குரு", "VENUS": "சுக்கிரன்",
+    "SATURN": "சனி", "RAHU": "ராகு", "KETU": "கேது",
+}
+
+PLANET_EN: dict[str, str] = {
+    "SUN": "Sun", "MOON": "Moon", "MARS": "Mars",
+    "MERCURY": "Mercury", "JUPITER": "Jupiter", "VENUS": "Venus",
+    "SATURN": "Saturn", "RAHU": "Rahu", "KETU": "Ketu",
+}
+
+
+def planet_ta(graha: str) -> str:
+    """Tamil display name for a planet enum code (falls back to the code)."""
+    return PLANET_TA.get(graha, graha)
+
+
+def planet_en(graha: str) -> str:
+    """Plain English display name for a planet enum code."""
+    return PLANET_EN.get(graha, graha.title() if graha.isupper() else graha)
+
+
+# Nitya-yoga display names, 1..27, in the Tamil panchangam spelling used by
+# printed Tamil almanacs. English keeps the familiar transliteration.
+YOGA_NAME_TA: dict[int, str] = {
+    1: "விஷ்கம்பம்", 2: "பிரீதி", 3: "ஆயுஷ்மான்", 4: "சௌபாக்யம்", 5: "சோபனம்",
+    6: "அதிகண்டம்", 7: "சுகர்மம்", 8: "திருதி", 9: "சூலம்", 10: "கண்டம்",
+    11: "விருத்தி", 12: "துருவம்", 13: "வியாகாதம்", 14: "ஹர்ஷணம்", 15: "வஜ்ரம்",
+    16: "சித்தி", 17: "வியதீபாதம்", 18: "வரீயான்", 19: "பரிகம்", 20: "சிவம்",
+    21: "சித்தம்", 22: "சாத்யம்", 23: "சுபம்", 24: "சுக்லம்", 25: "பிரம்மம்",
+    26: "இந்திரம்", 27: "வைதிருதி",
+}
+
+YOGA_NAME_EN: dict[int, str] = {
+    1: "Vishkambha", 2: "Priti", 3: "Ayushman", 4: "Saubhagya", 5: "Shobhana",
+    6: "Atiganda", 7: "Sukarma", 8: "Dhriti", 9: "Shoola", 10: "Ganda",
+    11: "Vriddhi", 12: "Dhruva", 13: "Vyaghata", 14: "Harshana", 15: "Vajra",
+    16: "Siddhi", 17: "Vyatipata", 18: "Variyana", 19: "Parigha", 20: "Shiva",
+    21: "Siddha", 22: "Sadhya", 23: "Shubha", 24: "Shukla", 25: "Brahma",
+    26: "Indra", 27: "Vaidhriti",
+}
+
+
+# Sani cycle type → short display label (the full advisory sentences live in
+# narrative_engine._SANI_CYCLE_WARN; this is just the name of the cycle).
+SANI_CYCLE_TA: dict[str, str] = {
+    "JANMA_SANI": "ஜன்ம சனி",
+    "ARDHASHTAMA_SANI": "அர்த்தாஷ்டம சனி",
+    "ASHTAMA_SANI": "அஷ்டம சனி",
+    "KANTAKA_SANI": "கண்டக சனி",
+    "KANDAKA_SANI": "கண்டக சனி (லக்னம்)",
+    "EZHARAI_SANI_PHASE_1": "ஏழரை சனி (தொடக்கம்)",
+    "EZHARAI_SANI_PHASE_2": "ஏழரை சனி (நடுவு — ஜன்ம சனி)",
+    "EZHARAI_SANI_PHASE_3": "ஏழரை சனி (முடிவு)",
+}
+
+SANI_CYCLE_EN: dict[str, str] = {
+    "JANMA_SANI": "Janma Sani",
+    "ARDHASHTAMA_SANI": "Ardhashtama Sani",
+    "ASHTAMA_SANI": "Ashtama Sani",
+    "KANTAKA_SANI": "Kantaka Sani",
+    "KANDAKA_SANI": "Kantaka Sani (from Lagna)",
+    "EZHARAI_SANI_PHASE_1": "Ezharai Sani (opening phase)",
+    "EZHARAI_SANI_PHASE_2": "Ezharai Sani (middle — Janma Sani)",
+    "EZHARAI_SANI_PHASE_3": "Ezharai Sani (closing phase)",
+}
+
+
+def sani_cycle_ta(cycle_type: str) -> str:
+    return SANI_CYCLE_TA.get(cycle_type, "சனி சுழற்சி")
+
+
+def sani_cycle_en(cycle_type: str) -> str:
+    return SANI_CYCLE_EN.get(cycle_type, cycle_type.replace("_", " ").title())

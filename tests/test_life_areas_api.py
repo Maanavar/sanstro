@@ -81,7 +81,9 @@ def test_life_areas_chart_signature_and_causal_chain_are_additive(client, birth_
             if chain is not None:
                 assert area["confidence"] == "LOW"
                 assert chain["ta"] and chain["en"]
-                assert "→" in chain["en"]
+                # RP-09: spoken "Because … therefore …" prose, never an arrow chain.
+                assert "→" not in chain["en"]
+                assert chain["en"].startswith("Because") and "therefore" in chain["en"]
     finally:
         feature_flags.reset_flag("reasoning_chart_signature")
 

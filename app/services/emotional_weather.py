@@ -29,16 +29,18 @@ class EmotionalWeatherResult:
     best_use_of_day_text: BiLabel
 
 
+# RP-02 class fix (2026-07-16): the `ta` column was rewritten from romanized
+# Thanglish into Tamil script, contemporary register; PENDING NATIVE-TAMIL REVIEW.
 _TONE_MAP: dict[str, EmotionalWeatherResult] = {
     "SUN": EmotionalWeatherResult(
         tone="confident",
         physical_tendency="energised",
         best_use_of_day="leadership",
         avoid_before=None,
-        tone_text=BiLabel(ta="Inru aatma nambikkai adhigamaaga irukkalaam; thelivaana mudivugalukku nalla naal.", en="Confidence and clarity may be higher today — good for clear, decisive action."),
-        physical_tendency_text=BiLabel(ta="Udalil vetri aaval adhigamaaga irukkalaam.", en="Physical drive and initiative may feel elevated."),
+        tone_text=BiLabel(ta="இன்று தன்னம்பிக்கை கூடுதலாக இருக்கலாம்; தெளிவான முடிவுகளுக்கு நல்ல நாள்.", en="Confidence and clarity may be higher today — good for clear, decisive action."),
+        physical_tendency_text=BiLabel(ta="உடலில் உற்சாகமும் முன்முயற்சியும் கூடுதலாக இருக்கலாம்.", en="Physical drive and initiative may feel elevated."),
         best_use_of_day_text=BiLabel(
-            ta="Thalamai, karuthu solludhal, public presence-kku inru nalla support.",
+            ta="தலைமை ஏற்பது, கருத்து சொல்வது, மேடையில் நிற்பது — இவற்றுக்கு இன்று நல்ல ஆதரவு.",
             en="Supportive for leadership, public presence, and speaking your mind.",
         ),
     ),
@@ -47,13 +49,13 @@ _TONE_MAP: dict[str, EmotionalWeatherResult] = {
         physical_tendency="low_energy",
         best_use_of_day="deep_work",
         avoid_before=BiLabel(
-            ta="Mukkiya pechugalai saayangaalam varai thalli vaikkalaam.",
+            ta="உணர்வுபூர்வமான முக்கிய பேச்சுகளை முடிந்தால் மாலை வரை தள்ளி வைக்கலாம்.",
             en="Delay emotionally heavy conversations until the evening if possible.",
         ),
-        tone_text=BiLabel(ta="Inru mananilai konjam heavy-a irukka vaippu.", en="Emotional tone may feel heavier today."),
-        physical_tendency_text=BiLabel(ta="Udal nilaiyil sila mandam anubavikkalaam.", en="Energy may feel slower or lower."),
+        tone_text=BiLabel(ta="இன்று மனநிலை சற்று கனமாக இருக்க வாய்ப்பு.", en="Emotional tone may feel heavier today."),
+        physical_tendency_text=BiLabel(ta="உடல் சக்தி சற்று மந்தமாக உணரப்படலாம்.", en="Energy may feel slower or lower."),
         best_use_of_day_text=BiLabel(
-            ta="Azhamaana, amaidhiyana seyalgalukku inru nalla naal.",
+            ta="ஆழமான, அமைதியான, கவனம் தேவைப்படும் வேலைகளுக்கு இன்று நல்ல நாள்.",
             en="Best used for focused, deep, low-noise work.",
         ),
     ),
@@ -62,10 +64,10 @@ _TONE_MAP: dict[str, EmotionalWeatherResult] = {
         physical_tendency="focused",
         best_use_of_day="people_facing",
         avoid_before=None,
-        tone_text=BiLabel(ta="Inru visthaaramum nambikkaiyum adhigamaaga irukkalaam.", en="Tone is likely more open and expansive today."),
-        physical_tendency_text=BiLabel(ta="Udal-manasu oru nilaiyil focused-a irukkum.", en="Body and mind can stay purposeful and focused."),
+        tone_text=BiLabel(ta="இன்று மனம் திறந்ததாகவும் நம்பிக்கையுடனும் இருக்கலாம்.", en="Tone is likely more open and expansive today."),
+        physical_tendency_text=BiLabel(ta="உடலும் மனமும் ஒரு நோக்கத்துடன் ஒன்றிணைந்து இயங்கும்.", en="Body and mind can stay purposeful and focused."),
         best_use_of_day_text=BiLabel(
-            ta="Kootani, kalandha pesudhal, mentor-udan uraiyadal polavatrai munnerunga.",
+            ta="கூட்டு முயற்சி, கலந்துரையாடல், வழிகாட்டியுடன் உரையாடல் — இவற்றை இன்று முன்னெடுக்கலாம்.",
             en="Good day for collaboration, guidance, and people-facing work.",
         ),
     ),
@@ -74,13 +76,13 @@ _TONE_MAP: dict[str, EmotionalWeatherResult] = {
         physical_tendency="hyperactive",
         best_use_of_day="execution_sprints",
         avoid_before=BiLabel(
-            ta="Avasara uraiyaadalgalai matrum veegamaana mudivugalai kuraiyungal.",
+            ta="அவசர உரையாடல்களையும் வேகமான முடிவுகளையும் குறைக்கவும்.",
             en="Reduce rushed discussions and impulsive calls.",
         ),
-        tone_text=BiLabel(ta="Inru ulloor urjham adhigamaaga, konjam restless-a irukkalaam.", en="Emotional tone may feel restless with high internal drive."),
-        physical_tendency_text=BiLabel(ta="Udalil adhiga veegam allathu tension anubavikkalaam.", en="Physical tendency may be overactive or tense."),
+        tone_text=BiLabel(ta="இன்று உள் உந்துதல் அதிகமாக, மனம் சற்று அமைதியிழந்து இருக்கலாம்.", en="Emotional tone may feel restless with high internal drive."),
+        physical_tendency_text=BiLabel(ta="உடலில் அதிக வேகம் அல்லது இறுக்கம் உணரப்படலாம்.", en="Physical tendency may be overactive or tense."),
         best_use_of_day_text=BiLabel(
-            ta="Siru execution sprint-gal, pending task closure-kku inru sariyana naal.",
+            ta="சிறு சிறு வேலைகளை வேகமாக முடிக்கவும், நிலுவையில் உள்ளவற்றை முடித்து வைக்கவும் இன்று சரியான நாள்.",
             en="Use for short execution sprints and pending task closure.",
         ),
     ),
@@ -89,10 +91,10 @@ _TONE_MAP: dict[str, EmotionalWeatherResult] = {
         physical_tendency="balanced",
         best_use_of_day="creative",
         avoid_before=None,
-        tone_text=BiLabel(ta="Inru mananilai samamaaga, amaidhiyudan irukkalaam.", en="Tone is likely calm and balanced today."),
-        physical_tendency_text=BiLabel(ta="Udal-manasu inakkamaaga nadakkum saathiyam.", en="Body-mind rhythm can feel more balanced."),
+        tone_text=BiLabel(ta="இன்று மனநிலை சமமாக, அமைதியுடன் இருக்கலாம்.", en="Tone is likely calm and balanced today."),
+        physical_tendency_text=BiLabel(ta="உடலும் மனமும் இணக்கமாக இயங்கும் சாத்தியம்.", en="Body-mind rhythm can feel more balanced."),
         best_use_of_day_text=BiLabel(
-            ta="Creative seyalgal, uravugalil inakkam, nalla presentation velaihalukku inru nalla support.",
+            ta="படைப்பு வேலைகள், உறவுகளில் இணக்கம், நல்ல முன்வைப்பு — இவற்றுக்கு இன்று நல்ல ஆதரவு.",
             en="Supportive for creative tasks, harmonising relationships, and presentation work.",
         ),
     ),
@@ -101,13 +103,13 @@ _TONE_MAP: dict[str, EmotionalWeatherResult] = {
         physical_tendency="anxious",
         best_use_of_day="single_task_routine",
         avoid_before=BiLabel(
-            ta="Periya puthiya commitment-galai inru sila neram thalli yosithu sei.",
+            ta="பெரிய புதிய பொறுப்புகளை இன்று சற்று தள்ளி வைத்து யோசித்து முடிவெடுங்கள்.",
             en="Pause before making major new commitments today.",
         ),
-        tone_text=BiLabel(ta="Inru mananilai konjam scattered-a maaralaam.", en="Tone may become scattered or mentally noisy today."),
-        physical_tendency_text=BiLabel(ta="Neradiyaana kaaranam illamal siru anxiety varalaam.", en="Mild anxiety or over-alertness can appear."),
+        tone_text=BiLabel(ta="இன்று மனம் சற்று சிதறலாக மாறலாம்.", en="Tone may become scattered or mentally noisy today."),
+        physical_tendency_text=BiLabel(ta="நேரடியான காரணம் இல்லாமல் சிறு பதற்றம் வரலாம்.", en="Mild anxiety or over-alertness can appear."),
         best_use_of_day_text=BiLabel(
-            ta="Oru nerathil oru pani; routine checklist approach moolam nalam peralaam.",
+            ta="ஒரு நேரத்தில் ஒரு வேலை; பட்டியல் போட்டு ஒவ்வொன்றாக முடிப்பது இன்று நலம் தரும்.",
             en="Best with one-task-at-a-time routine and checklist discipline.",
         ),
     ),
@@ -118,10 +120,10 @@ _DEFAULT_RESULT = EmotionalWeatherResult(
     physical_tendency="steady",
     best_use_of_day="balanced_routine",
     avoid_before=None,
-    tone_text=BiLabel(ta="Inru mananilai sadharana amaidhiyaaga irukkalaam.", en="Emotional tone is likely steady and calm."),
-    physical_tendency_text=BiLabel(ta="Udal nilai sadharana nadaiyil irukkum.", en="Physical tendency should remain fairly steady."),
+    tone_text=BiLabel(ta="இன்று மனநிலை பொதுவாக அமைதியாக இருக்கலாம்.", en="Emotional tone is likely steady and calm."),
+    physical_tendency_text=BiLabel(ta="உடல் நிலை வழக்கமான நடையில் இருக்கும்.", en="Physical tendency should remain fairly steady."),
     best_use_of_day_text=BiLabel(
-        ta="Nithana routine, siru-mudivugal, pathivu seyalgalukku inru nalla naal.",
+        ta="நிதானமான வழக்கமான வேலைகள், சிறு முடிவுகள், படிப்படியான முன்னேற்றம் — இவற்றுக்கு இன்று நல்ல நாள்.",
         en="Well suited for routine progress and practical step-by-step decisions.",
     ),
 )

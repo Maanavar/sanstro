@@ -13,121 +13,123 @@ class NakshatraLens:
     en: str
 
 
-# Compact, supportive archetype lens lines for all 27 nakshatras.
+# Compact, supportive archetype lines for all 27 janma nakshatras.
 # These are interpretation overlays only and never alter computed astrology.
+# RP-02 (2026-07-16): the `ta` column was rewritten from romanized Thanglish
+# into Tamil script, contemporary register; PENDING NATIVE-TAMIL REVIEW.
 NAKSHATRA_LENS: dict[int, NakshatraLens] = {
     1: NakshatraLens(
-        ta="Aswini janma nakshatra lens: vegam irundhalum mudivugalai amaidiyudan sei.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் அசுவினி — இயல்பான வேகம் இருக்கட்டும்; ஆனால் முடிவுகளை நிதானமாக எடுங்கள்.",
         en="Aswini lens: keep your natural speed, but make decisions with calm pacing.",
     ),
     2: NakshatraLens(
-        ta="Bharani janma nakshatra lens: poruppu ungal balam; alavukku mel sumaiyai yetrukkaadhe.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் பரணி — பொறுப்பு உங்கள் பலம்; தேவைக்கு மேல் சுமையை ஏற்காதீர்கள்.",
         en="Bharani lens: responsibility is your strength; avoid carrying more than needed.",
     ),
     3: NakshatraLens(
-        ta="Karthigai janma nakshatra lens: thelivu mukkiyam; thevai illadha sandaiyai thaviru.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் கார்த்திகை — தெளிவு முக்கியம்; தேவையில்லாத மோதலைத் தவிர்க்கவும்.",
         en="Karthigai lens: clarity is key; avoid unnecessary conflict.",
     ),
     4: NakshatraLens(
-        ta="Rohini janma nakshatra lens: nilaiyum nalamum serntha nithana nadai inru nanmai tharalaam.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் ரோகிணி — நிதானமான, உறுதியான முயற்சி இன்று நல்ல பலன் தரும்.",
         en="Rohini lens: steady and grounded effort can bring good outcomes today.",
     ),
     5: NakshatraLens(
-        ta="Mirugaseeridam janma nakshatra lens: thedal ungal thanmai; oru nerathil oru seyalthittam.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் மிருகசீரிடம் — தேடும் ஆர்வம் உங்கள் வரம்; ஒரு நேரத்தில் ஒரு வேலையில் கவனம் வையுங்கள்.",
         en="Mirugaseeridam lens: curiosity is your gift; focus on one clear task at a time.",
     ),
     6: NakshatraLens(
-        ta="Thiruvathirai janma nakshatra lens: aazhamana sindhanaiyai payanpadutthu; adhiga overthinking-ai kuraithidu.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் திருவாதிரை — ஆழ்ந்த சிந்தனையைப் பயன்படுத்துங்கள்; அளவுக்கு மீறி யோசிப்பதைத் தவிர்க்கவும்.",
         en="Thiruvathirai lens: use depth of thought well, while reducing overthinking.",
     ),
     7: NakshatraLens(
-        ta="Punarpoosam janma nakshatra lens: thirumba amaikkum sakthi ungalidam ulladhu; nambikkaiyai kaappaatu.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் புனர்பூசம் — மீண்டு எழும் சக்தி உங்களிடம் உண்டு; நம்பிக்கையை காத்துக்கொள்ளுங்கள்.",
         en="Punarpoosam lens: you recover and rebuild well; protect your optimism.",
     ),
     8: NakshatraLens(
-        ta="Poosam janma nakshatra lens: paramarippu ungal balam; ungal thani nerathaiyum kaappaatu.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் பூசம் — பிறரை பராமரிப்பது உங்கள் பலம்; உங்களுக்கான ஓய்வு நேரத்தையும் காத்துக்கொள்ளுங்கள்.",
         en="Poosam lens: nurturing is your strength; also preserve your own recovery time.",
     ),
     9: NakshatraLens(
-        ta="Ayilyam janma nakshatra lens: unarvu thelivu mukkiyam; maru artham seivadarku mun kelvi ketka.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் ஆயில்யம் — உணர்வுகளில் தெளிவு முக்கியம்; ஊகிப்பதற்கு முன் கேட்டுத் தெளியுங்கள்.",
         en="Ayilyam lens: emotional clarity matters; ask before assuming intent.",
     ),
     10: NakshatraLens(
-        ta="Magam janma nakshatra lens: mariyadhaiyum panivum serntha nadavadikkai inru migavum payanulladhu.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் மகம் — கண்ணியத்துடன் பணிவும் சேர்ந்தால் இன்று நல்ல பலன்.",
         en="Magam lens: dignity with humility is especially effective today.",
     ),
     11: NakshatraLens(
-        ta="Pooram janma nakshatra lens: uravugalil inbam irukkattum, aana varambugal thelivaga irukkattum.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் பூரம் — உறவுகளில் மகிழ்ச்சி இருக்கட்டும்; அதே நேரம் எல்லைகள் தெளிவாக இருக்கட்டும்.",
         en="Pooram lens: enjoy connection, while keeping boundaries clear.",
     ),
     12: NakshatraLens(
-        ta="Uthiram janma nakshatra lens: oppandham, poruppu, mudivu - ivatrail neethi nilaiyai pidithu nadakka.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் உத்திரம் — ஒப்பந்தங்களிலும் முடிவுகளிலும் நியாயத்தை உறுதியாகப் பிடித்துக்கொள்ளுங்கள்.",
         en="Uthiram lens: in commitments and decisions, hold firm to fairness.",
     ),
     13: NakshatraLens(
-        ta="Hastham janma nakshatra lens: kaiyil ulladhai nandraaga mudikka; adhiga multitasking-ai thaviru.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் அஸ்தம் — கையில் இருப்பதை முழுமையாக முடியுங்கள்; பல வேலைகளை ஒரே நேரத்தில் இழுக்காதீர்கள்.",
         en="Hastham lens: finish what is in your hands well; avoid excessive multitasking.",
     ),
     14: NakshatraLens(
-        ta="Chithirai janma nakshatra lens: tharam mukkiyam; perfectionism-ai alavukku ullae vaithu sei.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் சித்திரை — தரம் முக்கியம்தான்; ஆனால் முழுமை வேட்கையை அளவுக்குள் வையுங்கள்.",
         en="Chithirai lens: quality matters; keep perfectionism within healthy limits.",
     ),
     15: NakshatraLens(
-        ta="Swathi janma nakshatra lens: suya nilaiyai kaappaatum bodhuvum uravugalil inakkam kaappaatu.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் சுவாதி — சுதந்திரத்தை காத்துக்கொண்டே உறவுகளில் இணக்கத்தையும் பேணுங்கள்.",
         en="Swathi lens: preserve independence while maintaining harmony in relationships.",
     ),
     16: NakshatraLens(
-        ta="Visakam janma nakshatra lens: ilakku balam ulladhu; avasarathai vida nilaiyana munneram thedu.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் விசாகம் — இலக்கில் உங்கள் கவனம் வலுவானது; அவசரத்தை விட நிலையான முன்னேற்றத்தைத் தேர்வு செய்யுங்கள்.",
         en="Visakam lens: your goal focus is strong; choose steady progress over haste.",
     ),
     17: NakshatraLens(
-        ta="Anusham janma nakshatra lens: natpu, anbu, anushasanam - moondrum samamaaga nadathinaal inru nanmai.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் அனுசம் — நட்பு, அன்பு, ஒழுக்கம் மூன்றும் சமநிலையில் இருந்தால் இன்று நல்ல ஆதரவு.",
         en="Anusham lens: friendship, warmth, and discipline in balance can support today.",
     ),
     18: NakshatraLens(
-        ta="Kettai janma nakshatra lens: balathudan pesu, aana urudhiyai karunaiyudan serthu velipaduththu.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் கேட்டை — உறுதியாகப் பேசுங்கள்; ஆனால் உறுதியோடு கருணையும் சேர்ந்திருக்கட்டும்.",
         en="Kettai lens: speak with strength, but pair firmness with compassion.",
     ),
     19: NakshatraLens(
-        ta="Moolam janma nakshatra lens: veru karanathai purindhu thirutham seyyum nadai inru mikka payanulladhu.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் மூலம் — அடிப்படைக் காரணத்தைப் புரிந்து திருத்தும் அணுகுமுறை இன்று மிகவும் பயனுள்ளது.",
         en="Moolam lens: root-cause understanding and correction are highly useful today.",
     ),
     20: NakshatraLens(
-        ta="Pooradam janma nakshatra lens: nambikkai ungal urudhi; aana sollum seyalum onraaga irukka vendum.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் பூராடம் — உறுதியான நம்பிக்கை உங்கள் பலம்; சொல்லும் செயலும் ஒன்றாக இருக்கட்டும்.",
         en="Pooradam lens: conviction is your strength; keep words and actions aligned.",
     ),
     21: NakshatraLens(
-        ta="Uthiradam janma nakshatra lens: thaamadham irundhaalum nilaiyana vetri varum; porumaiyum ozhukkamum pidithu nadakka.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் உத்திராடம் — பலன் தாமதமானாலும் நிலைத்து நிற்கும்; பொறுமையையும் ஒழுக்கத்தையும் கைவிடாதீர்கள்.",
         en="Uthiradam lens: results may be delayed but durable; stay with discipline and patience.",
     ),
     22: NakshatraLens(
-        ta="Thiruvonam janma nakshatra lens: kettu purindhu seyyum thiran inru ungalukku valuvana aadharavu.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் திருவோணம் — செயல்படும் முன் கவனமாகக் கேட்பது இன்று உங்களுக்கு வலுவான ஆதரவு.",
         en="Thiruvonam lens: listening carefully before acting gives you strong support today.",
     ),
     23: NakshatraLens(
-        ta="Avittam janma nakshatra lens: kuzhu seyalgalil rhythm kaappaatu; over-commit seivathai kuraithidu.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் அவிட்டம் — குழு வேலைகளில் தாளம் தவறாதீர்கள்; அளவுக்கு மேல் பொறுப்புகளை ஏற்பதைத் தவிர்க்கவும்.",
         en="Avittam lens: keep rhythm in team efforts; reduce over-commitment.",
     ),
     24: NakshatraLens(
-        ta="Sadayam janma nakshatra lens: pudhu yosanaigalai varaverka, aana unmai saripaarppuudan munneru.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் சதயம் — புதிய யோசனைகளை வரவேற்கலாம்; ஆனால் சரிபார்த்த பின் முன்னேறுங்கள்.",
         en="Sadayam lens: welcome new ideas, and move forward with verification.",
     ),
     25: NakshatraLens(
-        ta="Poorattathi janma nakshatra lens: aazhamana paarvai ungal balam; manadhaara oivukku neram kodu.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் பூரட்டாதி — ஆழமான பார்வை உங்கள் பலம்; மனதுக்கு ஓய்வு நேரமும் கொடுங்கள்.",
         en="Poorattathi lens: deep insight is your strength; give the mind recovery space.",
     ),
     26: NakshatraLens(
-        ta="Uthirattathi janma nakshatra lens: nithanam, neenda paarvai, poruppu - inru ivai moolam nalla nadai varalaam.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் உத்திரட்டாதி — நிதானம், நீண்ட பார்வை, பொறுப்பு — இவை மூன்றும் இன்று நல்ல வழி காட்டும்.",
         en="Uthirattathi lens: patience, long view, and responsibility can carry the day.",
     ),
     27: NakshatraLens(
-        ta="Revathi janma nakshatra lens: karunaiyum vazhikaattudhalum ungal balam; varambaiyum urudhiyaaga kaappaatu.",
+        ta="உங்கள் ஜன்ம நட்சத்திரம் ரேவதி — கருணையும் வழிகாட்டுதலும் உங்கள் பலம்; உங்கள் எல்லைகளையும் உறுதியாக காத்துக்கொள்ளுங்கள்.",
         en="Revathi lens: compassion and guidance are your strengths; keep boundaries firm.",
     ),
 }
 
 DEFAULT_LENS = NakshatraLens(
-    ta="Janma nakshatra lens: amaidiyana, nilaiyana nadai inru nanmaiyai perukka udavum.",
+    ta="இன்று அமைதியான, நிலையான அணுகுமுறை நாளை மேம்படுத்த உதவும்.",
     en="Janma nakshatra lens: a calm, steady approach can improve today.",
 )
 
@@ -137,13 +139,13 @@ def build_nakshatra_perspective(nakshatra_number: int, score_label: str) -> Naks
 
     if score_label in {"CAUTION", "RESTORATIVE"}:
         return NakshatraLens(
-            ta=f"{base.ta} Inru periya mudivugalai vida siru, urudhiyaana seyalgalai munneru.",
+            ta=f"{base.ta} இன்று பெரிய புதிய முடிவுகளை விட சிறிய, உறுதியான அடிகளே நல்லது.",
             en=f"{base.en} Today, prefer small and stable steps over major new commitments.",
         )
 
     if score_label in {"STRONG_SUPPORT", "GOOD"}:
         return NakshatraLens(
-            ta=f"{base.ta} Inru nalla nerangalil mukkiya seyalgalai mudhalil nirvaagam seyyalaam.",
+            ta=f"{base.ta} இன்று சாதகமான நேரங்களை முதலில் உங்கள் மிக முக்கியமான வேலைகளுக்குப் பயன்படுத்துங்கள்.",
             en=f"{base.en} Use supportive windows first for your highest-priority actions today.",
         )
 

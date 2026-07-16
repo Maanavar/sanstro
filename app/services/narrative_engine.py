@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import compute_natal_planet_score
+from app.calculations.display_names import YOGA_NAME_EN, YOGA_NAME_TA
 
 if TYPE_CHECKING:
     from app.schemas.charts import PlanetPosition
@@ -156,15 +157,15 @@ NAKSHATRA_NAME: dict[int, BiText] = {
 _NAK_QUALITY: dict[int, BiText] = {
     1: _bi("வேகமான தொடக்கம் மற்றும் குணப்படுத்தும் எண்ணம்", "quick starts and healing intent"),
     2: _bi("பொறுப்பு, எல்லை, ஆழமான முடிவு", "responsibility, boundaries, and deep choices"),
-    3: _bi("தெளிவு, தீச்சக்தி, வெட்டியான முடிவு", "clarity, fire, and decisive cutting through"),
+    3: _bi("தெளிவு, துணிவு, தீர்க்கமான முடிவு", "clarity, fire, and decisive cutting through"),
     4: _bi("வளர்ச்சி, அழகு, உறவு மென்மை", "growth, beauty, and relational softness"),
-    5: _bi("தேடல், ஆர்வம், மென்மையான விசாரணை", "seeking, curiosity, and gentle inquiry"),
+    5: _bi("தேடல், ஆர்வம், அறிய விரும்பும் மனது", "seeking, curiosity, and gentle inquiry"),
     6: _bi("மாற்றம், உண்மை, உள்ளழுத்த சுத்திகரிப்பு", "change, truth, and inner cleansing"),
     7: _bi("மீளெழுச்சி, பாதுகாப்பு, நம்பிக்கை", "renewal, protection, and restored hope"),
     8: _bi("பராமரிப்பு, குரு அருள், ஒழுங்கான வளர்ப்பு", "nourishment, guidance, and disciplined care"),
     9: _bi("உணர்ச்சி ஆழம், உள்ளுணர்வு, பாதுகாப்பு தேவை", "emotional depth, instinct, and a need for care"),
     10: _bi("மரபு, கௌரவம், குடும்ப அடையாளம்", "lineage, dignity, and family identity"),
-    11: _bi("படைப்பு, மகிழ்ச்சி, மனதள திறப்பு", "creativity, pleasure, and emotional opening"),
+    11: _bi("படைப்பு, மகிழ்ச்சி, உள்ளம் திறத்தல்", "creativity, pleasure, and emotional opening"),
     12: _bi("ஒப்பந்தம், நிலைநிறுத்தல், பொறுப்பான உறுதி", "agreements, steadiness, and responsible commitment"),
     13: _bi("திறமை, கைநுணுக்கம், நடைமுறை தீர்வு", "skill, craftsmanship, and practical solutions"),
     14: _bi("வடிவமைப்பு, அழகு, துல்லிய செயல்", "design, beauty, and precise action"),
@@ -173,7 +174,7 @@ _NAK_QUALITY: dict[int, BiText] = {
     17: _bi("நட்பு, பக்தி, உறவின் நம்பிக்கை", "friendship, devotion, and relational trust"),
     18: _bi("ஆழமான கவனம், மரியாதை, உள்ளக கட்டுப்பாடு", "deep focus, respect, and inner discipline"),
     19: _bi("வேர் தேடல், உண்மை, பழையதை விடுதல்", "root-seeking, truth, and releasing the old"),
-    20: _bi("நம்பிக்கை, நீர் தன்மை, மன உறுதி", "confidence, fluidity, and emotional resolve"),
+    20: _bi("நம்பிக்கை, நெகிழ்வுத் தன்மை, மன உறுதி", "confidence, fluidity, and emotional resolve"),
     21: _bi("நிலைத்த வெற்றி, தர்மம், நீண்ட முயற்சி", "lasting success, dharma, and sustained effort"),
     22: _bi("கேட்பது, கற்றல், ஒழுங்கான தொடர்பு", "listening, learning, and ordered communication"),
     23: _bi("இசைவு, ஆற்றல், குழு ஒத்துழைப்பு", "rhythm, energy, and group cooperation"),
@@ -282,11 +283,21 @@ def moon_transit_reason(
 # ── Dasha support reasoning ────────────────────────────────────────────────────
 
 def dasha_support_reason(maha_lord: str, antar_lord: str, dasha_score: int) -> BiText:
+    """RP-12: spoken sentences, not stacked em-dash fragments — the same
+    catalogue tails, inflected the way an astrologer would actually say them."""
     maha = _DASHA_CHARACTER.get(maha_lord, _bi(maha_lord, maha_lord))
     antar = _ANTARA_NOTE.get(antar_lord, _bi(antar_lord, antar_lord))
 
+    maha_name_ta = maha.ta.split(" — ")[0]        # "சனி தசை"
+    maha_name_en = maha.en.split(" — ")[0]        # "Saturn dasa"
     maha_quality_ta = maha.ta.split(" — ")[1] if " — " in maha.ta else "நல்ல வளர்ச்சி"
     maha_quality_en = maha.en.split(" — ")[1] if " — " in maha.en else "growth"
+    antar_name_ta = antar.ta.split(" — ")[0]      # "கேது புக்தி"
+    antar_name_en = antar.en.split(" — ")[0]      # "Ketu bhukti"
+    antar_tail_ta = antar.ta.split(" — ")[1] if " — " in antar.ta else ""
+    antar_tail_en = antar.en.split(" — ")[1] if " — " in antar.en else ""
+    antar_clause_ta = f"உள்ளே {antar_name_ta} நடக்கிறது" + (f"; {antar_tail_ta}" if antar_tail_ta else "")
+    antar_clause_en = f"Within it runs the {antar_name_en}" + (f" — {antar_tail_en}" if antar_tail_en else "")
 
     # D2/D7: the band word ("strong/moderate/reduced") carries the public
     # confidence; the numeric score is kept alongside it (show both, 2026-07-13).
@@ -294,22 +305,24 @@ def dasha_support_reason(maha_lord: str, antar_lord: str, dasha_score: int) -> B
     score_suffix_en = f" ({dasha_score}/100)"
     if dasha_score >= 65:
         return _bi(
-            f"நடப்பில் {maha.ta}. இந்த தசை காலத்தில் {maha_quality_ta} கிடைக்கும். "
-            f"உள்ளே {antar.ta}. தசை ஆதரவு வலுவானது{score_suffix_ta} — திட்டமிட்ட செயல்களுக்கு நல்ல நேரம்.",
-            f"Currently in {maha.en}. This dasha period supports {maha_quality_en}. "
-            f"Sub-period: {antar.en}. Dasha support is strong{score_suffix_en} — a favourable time for planned action.",
+            f"இப்போது உங்களுக்கு {maha_name_ta} நடக்கிறது — இந்தக் காலம் {maha_quality_ta} "
+            f"சார்ந்த விஷயங்களை முன்னிலைப்படுத்தும். {antar_clause_ta}. "
+            f"தசை ஆதரவு வலுவாக உள்ளது{score_suffix_ta} — திட்டமிட்டதைச் செயல்படுத்த நல்ல நேரம்.",
+            f"You are currently in the {maha_name_en} — a period that brings {maha_quality_en} to the fore. "
+            f"{antar_clause_en}. Dasha support is strong{score_suffix_en} — a favourable time for planned action.",
         )
     if dasha_score >= 50:
         return _bi(
-            f"நடப்பில் {maha.ta}. {antar.ta}. "
-            f"தசை ஆதரவு மிதமானது{score_suffix_ta} — முடிவுகளில் அவசரம் வேண்டாம், பொறுமையுடன் செயல்படுங்கள்.",
-            f"Currently in {maha.en}. {antar.en}. "
-            f"Dasha support is moderate{score_suffix_en} — avoid rushing decisions; steady effort works better.",
+            f"இப்போது உங்களுக்கு {maha_name_ta} நடக்கிறது. {antar_clause_ta}. "
+            f"தசை ஆதரவு மிதமானது{score_suffix_ta} — அவசரப்படாமல், நிதானமான முயற்சி நல்ல பலன் தரும்.",
+            f"You are currently in the {maha_name_en}. {antar_clause_en}. "
+            f"Dasha support is moderate{score_suffix_en} — steady, unhurried effort works better than rushing.",
         )
     return _bi(
-        f"நடப்பில் {maha.ta}. {antar.ta}. "
-        f"தசை ஆதரவு குறைவு{score_suffix_ta} — பெரிய புதிய முயற்சிகளை ஒத்திவைத்து, தற்போதுள்ளதை நிலைநிறுத்துவதில் கவனம் செலுத்துங்கள்.",
-        f"Currently in {maha.en}. {antar.en}. "
+        f"இப்போது உங்களுக்கு {maha_name_ta} நடக்கிறது. {antar_clause_ta}. "
+        f"தசை ஆதரவு குறைவாக உள்ளது{score_suffix_ta} — பெரிய புதிய முயற்சிகளை ஒத்திவைத்து, "
+        f"இருப்பதை நிலைப்படுத்துவதில் முனையுங்கள்.",
+        f"You are currently in the {maha_name_en}. {antar_clause_en}. "
         f"Dasha support is reduced{score_suffix_en} — defer major new ventures and focus on consolidating what you have.",
     )
 
@@ -319,16 +332,6 @@ def dasha_support_reason(maha_lord: str, antar_lord: str, dasha_score: int) -> B
 _TITHI_CAUTION = {4, 9, 14, 19, 24, 29}
 _TITHI_MILD = {8, 23, 30}
 _YOGA_CAUTION = {1, 6, 9, 10, 17, 27}
-
-# Yoga names aligned with YOGA_NAMES in panchangam.py (Tamil Thirukanitham spelling)
-_YOGA_NAME: dict[int, str] = {
-    1: "Vishkambha", 2: "Priti", 3: "Ayushman", 4: "Saubhagya", 5: "Shobhana",
-    6: "Atiganda", 7: "Sukarma", 8: "Dhriti", 9: "Shoola", 10: "Ganda",
-    11: "Vriddhi", 12: "Dhruva", 13: "Vyaghata", 14: "Harshana", 15: "Vajra",
-    16: "Siddhi", 17: "Vyatipata", 18: "Variyana", 19: "Parigha", 20: "Shiva",
-    21: "Siddha", 22: "Sadhya", 23: "Shubha", 24: "Shukla", 25: "Brahma",
-    26: "Indra", 27: "Vaidhriti",
-}
 
 
 def panchangam_reason(
@@ -352,16 +355,17 @@ def panchangam_reason(
         notes_ta.append(f"திதி {tithi_number} — சாதகமானது")
         notes_en.append(f"Tithi {tithi_number} — favourable")
 
-    yoga_name = _YOGA_NAME.get(yoga_number, str(yoga_number))
+    yoga_name_ta = YOGA_NAME_TA.get(yoga_number, str(yoga_number))
+    yoga_name_en = YOGA_NAME_EN.get(yoga_number, str(yoga_number))
     if yoga_number in _YOGA_CAUTION:
-        notes_ta.append(f"யோகம்: {yoga_name} — முக்கியமான பணிகளை தவிர்க்கவும்")
-        notes_en.append(f"Yoga: {yoga_name} — avoid important tasks")
+        notes_ta.append(f"யோகம்: {yoga_name_ta} — முக்கியமான பணிகளை தவிர்க்கவும்")
+        notes_en.append(f"Yoga: {yoga_name_en} — avoid important tasks")
     else:
-        notes_ta.append(f"யோகம்: {yoga_name} — சாதாரண நாள்")
-        notes_en.append(f"Yoga: {yoga_name} — ordinary day")
+        notes_ta.append(f"யோகம்: {yoga_name_ta} — சாதாரண நாள்")
+        notes_en.append(f"Yoga: {yoga_name_en} — ordinary day")
 
     if karana_name == "VISHTI":
-        notes_ta.append("கரணம் விஷ்டி — தீய கரணம், புது துவக்கங்கள் தவிர்க்கவும்")
+        notes_ta.append("கரணம் விஷ்டி — பாரம்பரியப்படி கவனம் தேவைப்படும் கரணம்; ஏற்கனவே தொடங்கியவற்றை முடிப்பது நல்லது")
         notes_en.append("Karana Vishti — a traditionally cautious karana; prefer completing existing tasks")
 
     nak_name = NAKSHATRA_NAME.get(nakshatra_number, _bi(str(nakshatra_number), str(nakshatra_number)))
@@ -467,6 +471,76 @@ def gochar_reason(
     return _bi(
         " · ".join(notes_ta) + f" — {tail_ta} (கோசார மதிப்பெண்: {transit_score}/100).",
         " · ".join(notes_en) + f" — {tail_en} (Gochar score: {transit_score}/100).",
+    )
+
+
+# ── Spoken leads for the woven briefing (RP-10) ────────────────────────────────
+# panchangam_reason/gochar_reason join chip fragments with " · " — right for the
+# "Why this prediction?" tiles, wrong inside the flowing briefing, where the
+# synthesizer's _first_sentence would inherit the telegraphic register. These
+# builders say the ONE most salient fact as a full sentence; the synthesizer
+# consumes these, the tiles keep the chip variants.
+
+def panchangam_spoken(
+    tithi_number: int,
+    yoga_number: int,
+    karana_name: str,
+    panchangam_score: int,
+    nakshatra_number: int,
+) -> BiText:
+    yoga_ta = YOGA_NAME_TA.get(yoga_number, str(yoga_number))
+    yoga_en = YOGA_NAME_EN.get(yoga_number, str(yoga_number))
+    if tithi_number in _TITHI_CAUTION:
+        return _bi(
+            f"பஞ்சாங்கப்படி இன்று {tithi_number}ஆம் திதி ரிக்த திதி என்பதால் புதிய தொடக்கங்களுக்கு சாதகம் இல்லை.",
+            f"By the Panchangam, today's tithi {tithi_number} is a Rikta tithi, so it doesn't favour new beginnings.",
+        )
+    if yoga_number in _YOGA_CAUTION:
+        return _bi(
+            f"இன்றைய {yoga_ta} யோகம் சற்று நிதானம் கேட்கிறது — முக்கியமான பணிகளை சிறந்த நேரத்தில் செய்யுங்கள்.",
+            f"Today's {yoga_en} yoga asks for a lighter touch — keep key tasks to the better windows.",
+        )
+    if karana_name == "VISHTI":
+        return _bi(
+            "இன்று விஷ்டி கரணம் என்பதால் புதிய தொடக்கங்களை விட, நடப்பதை முடிப்பது நல்லது.",
+            "With Vishti karana today, finishing what's underway beats starting something new.",
+        )
+    nak = NAKSHATRA_NAME.get(nakshatra_number)
+    if panchangam_score >= 65 and nak is not None:
+        return _bi(
+            f"இன்றைய பஞ்சாங்கம் ({nak.ta} நட்சத்திரம், {tithi_number}ஆம் திதி) நல்ல ஆதரவு தருகிறது.",
+            f"Today's Panchangam ({nak.en} nakshatra, tithi {tithi_number}) lends good support.",
+        )
+    return _bi(
+        "இன்றைய பஞ்சாங்கம் பெரிய தடையும் இல்லாமல், தனிச்சிறப்பும் இல்லாமல் நடுநிலையாக உள்ளது.",
+        "Today's Panchangam sits even — no major obstacle, no special lift.",
+    )
+
+
+def gochar_spoken(
+    jupiter_house: int,
+    saturn_house: int,
+    sani_cycle_type: str | None,
+    sani_cycle_active: bool,
+    transit_score: int,
+) -> BiText:
+    if sani_cycle_active and sani_cycle_type:
+        warn = _SANI_CYCLE_WARN.get(sani_cycle_type)
+        if warn:
+            return warn
+    jup_ta = "ஆதரவாக" if jupiter_house in (2, 5, 7, 9, 11) else ("சவாலாக" if jupiter_house in (4, 8, 12) else "நடுநிலையாக")
+    jup_en = "supportive" if jupiter_house in (2, 5, 7, 9, 11) else ("challenging" if jupiter_house in (4, 8, 12) else "neutral")
+    sat_ta = "சாதகமாக" if saturn_house in (3, 6, 11) else ("சவாலாக" if saturn_house in (1, 4, 8, 12) else "நடுநிலையாக")
+    sat_en = "favourable" if saturn_house in (3, 6, 11) else ("challenging" if saturn_house in (1, 4, 8, 12) else "neutral")
+    if transit_score >= 65:
+        tail_ta, tail_en = "மொத்தக் கோசார ஆதரவு நல்லது", "overall transit support is good"
+    elif transit_score >= 45:
+        tail_ta, tail_en = "மொத்தத்தில் நடுநிலையான ஓட்டம்", "overall an even current"
+    else:
+        tail_ta, tail_en = "நிதானமான நகர்வே இன்று நல்லது", "a measured pace serves best today"
+    return _bi(
+        f"கோசாரத்தில் குரு {jupiter_house}ஆம் இடத்தில் {jup_ta}வும், சனி {saturn_house}ஆம் இடத்தில் {sat_ta}வும் உள்ளனர் — {tail_ta}.",
+        f"In transit, Jupiter in house {jupiter_house} reads {jup_en} and Saturn in house {saturn_house} reads {sat_en} — {tail_en}.",
     )
 
 
@@ -675,7 +749,7 @@ def daily_summary(
         nak = NAKSHATRA_NAME.get(current_nakshatra)
         quality = _NAK_QUALITY.get(current_nakshatra)
         if nak and quality:
-            ta += f" சந்திரன் {nak.ta} வழியாக {quality.ta} நிறத்தை சேர்க்கிறது."
+            ta += f" சந்திரன் {nak.ta} வழியாக {quality.ta} சாயலைச் சேர்க்கிறது."
             en += f" Moon through {nak.en} adds a tone of {quality.en}."
 
     if jupiter_house is not None and saturn_house is not None:
@@ -992,7 +1066,7 @@ _SHADOW_PROMPTS_8TH: dict[str, tuple[tuple[str, str], ...]] = {
     "MARS": (
         ("என் கோபம் அல்லது ஆக்ரோஷம் உண்மையில் என்ன பாதுகாக்கிறது?",
          "What is my anger or frustration really protecting?"),
-        ("நான் எங்கு ஆற்றலை மிகவும் கடுமையாக உட்புகுத்துகிறேன்?",
+        ("நான் எங்கு அதிக அழுத்தம் கொடுத்து முயற்சிக்கிறேன்? சற்று தளர்த்தினால் எப்படி இருக்கும்?",
          "Where am I pushing too hard, and what would softening feel like?"),
     ),
     "RAHU": (
@@ -1002,7 +1076,7 @@ _SHADOW_PROMPTS_8TH: dict[str, tuple[tuple[str, str], ...]] = {
          "What part of myself am I hiding, and am I ready to acknowledge it?"),
     ),
     "DEFAULT": (
-        ("என்னிடம் உள்ள இருண்ட அல்லது ஒளிவிலக்கப்பட்ட பகுதி என்ன?",
+        ("எனக்குள் மறைந்திருக்கும், நான் ஏற்றுக்கொள்ள வேண்டிய பகுதி எது?",
          "What hidden or shadowed part of me needs acknowledgement today?"),
         ("நான் அடிக்கடி தவிர்க்கும் உணர்வு எது?",
          "Which emotion do I most often avoid, and what would it say if I listened?"),
@@ -1013,11 +1087,11 @@ _SHADOW_PROMPTS_12TH: dict[str, tuple[tuple[str, str], ...]] = {
     "JUPITER": (
         ("என்னில் ஆன்மீக தேடல் எந்த திசையில் உள்ளது?",
          "In which direction is my spiritual longing pointing?"),
-        ("நான் கொடுத்தது மற்றும் தியாகிப்பது, அது என்னை எப்படி உணர வைக்கிறது?",
+        ("நான் விட்டுக்கொடுத்தது அல்லது தியாகம் செய்தது எது? அதை நினைக்கும்போது என் மனம் என்ன சொல்கிறது?",
          "What have I given up or sacrificed, and how does that feel in my body?"),
     ),
     "VENUS": (
-        ("நான் எந்த உறவில் அல்லது அனுபவத்தில் தன்னை இழந்தேன்?",
+        ("நான் எந்த உறவில் அல்லது அனுபவத்தில் என்னையே இழந்தேன்? இப்போது என்ன மிச்சம் இருக்கிறது?",
          "In which relationship or experience have I lost myself, and what remains?"),
         ("என்னில் ஒளிந்திருக்கும் ஆசை என்ன?",
          "What desire within me is hiding in the shadows?"),
@@ -1281,9 +1355,10 @@ def render_causal_chain(steps: Sequence[object], conclusion: object) -> BiText:
     """
     if not steps:
         return _bi(conclusion.ta, conclusion.en)
-    ta_chain = " → ".join(step.ta for step in steps)
-    en_chain = " → ".join(step.en for step in steps)
+    # Spoken prose, not an arrow chain (RP-09) — arrow glyphs read machine-printed.
+    ta_chain = "; ".join(step.ta for step in steps)
+    en_chain = "; ".join(step.en for step in steps)
     return _bi(
-        f"காரணம்: {ta_chain} → எனவே: {conclusion.ta}",
-        f"Because: {en_chain} → therefore: {conclusion.en}",
+        f"காரணம்: {ta_chain}. எனவே: {conclusion.ta}",
+        f"Because {en_chain} — therefore {conclusion.en}",
     )

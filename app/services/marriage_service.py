@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import date
 
-import logging
-
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import DEBILITATION_RASI, EXALTATION_RASI, OWN_SIGN_RASI
+from app.calculations.display_names import planet_en, planet_ta
 from app.calculations.transits import get_jupiter_aspects
 from app.core.age_gate import MARRIAGE_UPPER_AGE, SEVVAI_DOSHAM_SOFTENING_AGE, is_married_settled, is_seeking_marriage
 from app.reasoning.chart_signature import detect_signature
@@ -45,7 +45,7 @@ def _safety_checked(result: LifeAreaPrediction) -> LifeAreaPrediction:
     return result
 
 
-def _compute_chart_signature(payload: "MarriageAssessmentInput") -> ChartSignature | None:
+def _compute_chart_signature(payload: MarriageAssessmentInput) -> ChartSignature | None:
     """Phase 5 (D6, P0-4): chart-level dominant-graha framing, extended here
     from life-areas-only (PR-5's original scope). Gated on
     reasoning_chart_signature; skipped (None, not fabricated) on malformed
@@ -335,13 +335,24 @@ def assess_marriage_prediction(
                 "Birth promise is partial — read the timing guidance with that caveat.",
             ))
     score = 50
+    _LIFE_STAGE_LABEL = {
+        "child": ("குழந்தை பருவம்", "Childhood"),
+        "student": ("மாணவர் பருவம்", "Student years"),
+        "young_adult": ("இளம் வயது", "Young adulthood"),
+        "mid_life": ("நடு வயது", "Mid-life"),
+        "senior": ("மூத்த பருவம்", "Senior years"),
+    }
+    stage_ta, stage_en = _LIFE_STAGE_LABEL.get(
+        payload.life_stage,
+        (payload.life_stage.replace("_", " "), payload.life_stage.replace("_", " ")),
+    )
     factors.append(
         AstroFactor(
             key="life_stage",
             status="INFO",
             detail=BiText(
-                ta=f"வாழ்க்கை கட்டம்: {payload.life_stage}.",
-                en=f"Life stage: {payload.life_stage}.",
+                ta=f"வாழ்க்கை கட்டம்: {stage_ta}.",
+                en=f"Life stage: {stage_en}.",
             ),
         )
     )
@@ -459,8 +470,8 @@ def assess_marriage_prediction(
                 key="seventh_house_occupancy",
                 status="SUPPORT",
                 detail=BiText(
-                    ta=f"7ம் வீட்டில் கிரகங்கள் உள்ளன: {', '.join(planets_in_7th)}.",
-                    en=f"Planets occupy the 7th house: {', '.join(planets_in_7th)}.",
+                    ta=f"7ம் வீட்டில் கிரகங்கள் உள்ளன: {', '.join(planet_ta(p) for p in planets_in_7th)}.",
+                    en=f"Planets occupy the 7th house: {', '.join(planet_en(p) for p in planets_in_7th)}.",
                 ),
             )
         )

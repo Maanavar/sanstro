@@ -50,7 +50,8 @@ def test_render_causal_chain_joins_steps_and_conclusion():
     conclusion = _Bi("முடிவு", "conclusion")
     chain = render_causal_chain(steps, conclusion)
     assert "reason one" in chain.en and "reason two" in chain.en and "conclusion" in chain.en
-    assert "→" in chain.en
+    # RP-09: spoken prose, never an arrow chain.
+    assert "→" not in chain.en and "→" not in chain.ta
     assert chain.en.index("reason one") < chain.en.index("reason two") < chain.en.index("conclusion")
     assert "காரணம் ஒன்று" in chain.ta and "முடிவு" in chain.ta
 
