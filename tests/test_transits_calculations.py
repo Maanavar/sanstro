@@ -171,3 +171,42 @@ def test_find_saturn_ingress_jd_locates_actual_sign_boundary():
     just_before = calculate_sidereal_planets(ingress_jd - 0.01).bodies["SATURN"].rasi
     assert just_before != current_rasi
 
+
+# OQ-6 (partial close, 2026-07-16): no printed panchangam available to cross-
+# check against, so these do NOT claim to be externally-verified golden
+# dates — they lock the murthi grade this repo's OWN ephemeris pipeline
+# (find_saturn_ingress_jd -> real Moon rasi at that instant ->
+# classify_ezharai_sani_murthi_ingress) produces for two real historical
+# Saturn ingresses, self-computed via the commands in this comment:
+#   probe 2024-06-15 -> Saturn already in Kumbham (11); ingress ~early 2023
+#   probe 2020-03-01 -> Saturn already in Makaram (10); ingress ~Jan 2020
+# If an astrologer later supplies printed-panchangam reference values that
+# disagree with the grades below, that is a real finding against this
+# pipeline, not a broken test — OQ-6 itself stays open for that check.
+def test_ezharai_sani_murthi_self_computed_kumbham_ingress_2023():
+    probe_jd = utc_datetime_to_julian_day(datetime(2024, 6, 15, 12, 0, tzinfo=UTC))
+    saturn_rasi = calculate_sidereal_planets(probe_jd).bodies["SATURN"].rasi
+    assert saturn_rasi == 11  # Kumbham (Aquarius)
+
+    ingress_jd = find_saturn_ingress_jd(saturn_rasi, probe_jd)
+    moon_rasi_at_ingress = calculate_sidereal_planets(ingress_jd).bodies["MOON"].rasi
+    assert moon_rasi_at_ingress == 8  # self-computed, not printed-source-verified
+
+    assert classify_ezharai_sani_murthi_ingress(1, moon_rasi_at_ingress)["grade"] == "IRON"
+    assert classify_ezharai_sani_murthi_ingress(6, moon_rasi_at_ingress)["grade"] == "COPPER"
+    assert classify_ezharai_sani_murthi_ingress(9, moon_rasi_at_ingress)["grade"] == "IRON"
+
+
+def test_ezharai_sani_murthi_self_computed_makaram_ingress_2020():
+    probe_jd = utc_datetime_to_julian_day(datetime(2020, 3, 1, 12, 0, tzinfo=UTC))
+    saturn_rasi = calculate_sidereal_planets(probe_jd).bodies["SATURN"].rasi
+    assert saturn_rasi == 10  # Makaram (Capricorn)
+
+    ingress_jd = find_saturn_ingress_jd(saturn_rasi, probe_jd)
+    moon_rasi_at_ingress = calculate_sidereal_planets(ingress_jd).bodies["MOON"].rasi
+    assert moon_rasi_at_ingress == 10  # self-computed, not printed-source-verified
+
+    assert classify_ezharai_sani_murthi_ingress(1, moon_rasi_at_ingress)["grade"] == "COPPER"
+    assert classify_ezharai_sani_murthi_ingress(6, moon_rasi_at_ingress)["grade"] == "SILVER"
+    assert classify_ezharai_sani_murthi_ingress(9, moon_rasi_at_ingress)["grade"] == "SILVER"
+
