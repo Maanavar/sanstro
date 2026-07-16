@@ -198,6 +198,42 @@ def test_detect_birth_conditions_empty_when_clean() -> None:
     assert flags == []
 
 
+def test_dagda_rasi_names_chart_occupants() -> None:
+    # Tithi 1 burns Tula (7) and Makara (10). Put Jupiter in Tula and the lagna
+    # in Makara so the note lands on real chart points and reads as "here is
+    # where it shows up for you", not an abstract almanac line.
+    flags = bc.detect_birth_conditions(
+        planet_longitudes={"SUN": 10.0, "MOON": 22.0, "JUPITER": 185.0},
+        tithi_number=1,
+        sun_rasi_day_start=1,
+        sun_rasi_day_end=1,
+        cazimi_planets=[],
+        lagna_rasi=10,
+    )
+    dagda = next(f for f in flags if f.code == "DAGDA_RASI")
+    assert dagda.detail["occupied_by"] == ["LAGNA", "JUPITER"]
+    assert "Jupiter" in dagda.description_en
+    assert "Lagna" in dagda.description_en
+    # Framed as delay/effort, not a hard verdict.
+    assert "not denial" in dagda.description_en
+
+
+def test_dagda_rasi_academic_when_no_occupant() -> None:
+    # Same burnt signs (Tula/Makara), but nothing in the chart occupies them and
+    # the lagna is elsewhere, so the note stays light instead of over-claiming.
+    flags = bc.detect_birth_conditions(
+        planet_longitudes={"SUN": 10.0, "MOON": 22.0},
+        tithi_number=1,
+        sun_rasi_day_start=1,
+        sun_rasi_day_end=1,
+        cazimi_planets=[],
+        lagna_rasi=2,
+    )
+    dagda = next(f for f in flags if f.code == "DAGDA_RASI")
+    assert dagda.detail["occupied_by"] == []
+    assert "mostly academic" in dagda.description_en
+
+
 # --------------------------------------------------------------------------- #
 # EC-7.2 — birth-condition scoring (Sankranti/Grahana natal strength penalties)
 # --------------------------------------------------------------------------- #

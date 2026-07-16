@@ -225,6 +225,32 @@ def _rasi_label_ta(rasi: int) -> str:
     return RASI_NAMES_TA.get(rasi, str(rasi))
 
 
+# The nine classical bodies checked for burnt-sign occupancy. Mandhi/Gulika and
+# other sub-points are display-only and deliberately excluded so the Dagda note
+# reports where it genuinely lands rather than over-flagging.
+_DAGDA_OCCUPANT_GRAHAS: tuple[str, ...] = (
+    "SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU",
+)
+
+
+def _join_en(items: Sequence[str]) -> str:
+    """Human 'a, b and c' join for readable prose."""
+    parts = list(items)
+    if len(parts) <= 1:
+        return parts[0] if parts else ""
+    if len(parts) == 2:
+        return f"{parts[0]} and {parts[1]}"
+    return f"{', '.join(parts[:-1])} and {parts[-1]}"
+
+
+def _join_ta(items: Sequence[str]) -> str:
+    """Tamil 'a, b மற்றும் c' join."""
+    parts = list(items)
+    if len(parts) <= 1:
+        return parts[0] if parts else ""
+    return f"{', '.join(parts[:-1])} மற்றும் {parts[-1]}"
+
+
 def detect_birth_conditions(
     *,
     planet_longitudes: Mapping[str, float],
@@ -232,12 +258,15 @@ def detect_birth_conditions(
     sun_rasi_day_start: int,
     sun_rasi_day_end: int,
     cazimi_planets: Sequence[str] = (),
+    lagna_rasi: int | None = None,
 ) -> list[BirthConditionFlag]:
     """Roll up every birth-time junction condition into one Border-Alert list.
 
     Only conditions that are actually present are returned. ``cazimi_planets``
     is the list of grahas already flagged cazimi on their PlanetPosition, passed
-    in so this module and the per-planet flag never disagree.
+    in so this module and the per-planet flag never disagree. ``lagna_rasi`` (when
+    known) lets the Dagda note say whether a burnt sign actually falls on the
+    ascendant, turning an abstract almanac verdict into a chart-specific one.
     """
     flags: list[BirthConditionFlag] = []
 
@@ -254,15 +283,19 @@ def detect_birth_conditions(
                 code="CAZIMI",
                 is_present=True,
                 severity="BOOST",
-                title_ta="கசிமி — சூரிய இதயம்",
-                title_en="Cazimi — Heart of the Sun",
+                title_ta="கசிமி — சூரிய இதயம் (பலமூட்டும் நிலை)",
+                title_en="Cazimi — Heart of the Sun (a strengthening condition)",
                 description_ta=(
-                    f"{names_ta} சூரியனின் இதயத்தில் (0°17'-க்குள்) அமர்ந்து, "
-                    "எரிந்து போகாமல் அசாதாரணமான பலம் பெறுகிறது."
+                    "ஒரு கிரகம் சூரியனுக்கு மிக அருகில் வரும்போது பொதுவாக பலம் இழக்கும் "
+                    f"('எரிந்து போவது'). ஆனால் {names_ta} சரியாக சூரியனின் மையத்தில் "
+                    "அமர்ந்திருப்பதால் நேர்மாறாக நடக்கிறது — அந்தக் கிரகம் அசாதாரணமான "
+                    "பலமும் தெளிவும் பெற்று உங்கள் வாழ்வில் வலுவாகச் செயல்படுகிறது."
                 ),
                 description_en=(
-                    f"{names_en} sits in the heart of the Sun (within 0°17'), so it is "
-                    "not burnt by combustion but made exceptionally strong."
+                    "When a planet sits very close to the Sun it usually loses strength "
+                    f"(it gets 'burnt'). But {names_en} sits at the exact centre of the Sun — "
+                    "a rare sweet spot that does the opposite, making that planet unusually "
+                    "strong and clear in how it shapes your life."
                 ),
                 detail={"planets": list(cazimi_planets)},
             )
@@ -278,14 +311,18 @@ def detect_birth_conditions(
                 title_ta="சங்கராந்தி பிறப்பு",
                 title_en="Sankranti Birth",
                 description_ta=(
-                    f"சூரியன் {_rasi_label_ta(sun_rasi_day_start)}-லிருந்து "
-                    f"{_rasi_label_ta(sun_rasi_day_end)}-க்கு மாறும் சங்கராந்தி நாளில் பிறப்பு — "
-                    "உள் முரண்பாடும் அமைதியற்ற தன்மையும் தரக்கூடியது."
+                    f"சூரியன் ஒரு ராசியிலிருந்து ({_rasi_label_ta(sun_rasi_day_start)}) "
+                    f"அடுத்த ராசிக்கு ({_rasi_label_ta(sun_rasi_day_end)}) மாறிய நாளில் "
+                    "நீங்கள் பிறந்தீர்கள் — இந்த மாற்ற நாள் 'சங்கராந்தி' எனப்படும். இந்தத் "
+                    "திருப்புமுனையில் பிறப்பது பாரம்பரியமாக உள்முரண்பாடு மற்றும் அமைதியற்ற, "
+                    "பல மாற்றங்கள் நிறைந்த வாழ்க்கையுடன் தொடர்புபடுத்தப்படுகிறது."
                 ),
                 description_en=(
-                    f"Born on the sankranti day the Sun crosses from "
-                    f"{_rasi_label(sun_rasi_day_start)} into {_rasi_label(sun_rasi_day_end)} — "
-                    "classically linked to inner friction and a restless life."
+                    "You were born on the day the Sun moved from one zodiac sign "
+                    f"({_rasi_label(sun_rasi_day_start)}) into the next "
+                    f"({_rasi_label(sun_rasi_day_end)}) — this changeover day is called "
+                    "Sankranti. Being born right at this 'turning point' is traditionally "
+                    "linked to an inner restlessness and a life with many changes."
                 ),
                 detail={
                     "from_rasi": sun_rasi_day_start,
@@ -299,24 +336,31 @@ def detect_birth_conditions(
         present, eclipse_type, near_node = detect_grahana_birth(sun_lon, moon_lon, rahu_lon)
         if present:
             node_en = "Rahu" if near_node == 1 else "Ketu"
-            node_ta = "ராகு" if near_node == 1 else "கேது"
             if eclipse_type == "SOLAR":
                 desc_en = (
-                    f"Born at/near a solar eclipse — a New Moon on the {node_en} axis. "
-                    "The Sun and Moon are both shadowed, marking an intense, karmic birth."
+                    "You were born at or very near a solar eclipse — the moment the Sun is "
+                    "briefly covered. Both the Sun (your core self) and the Moon (your "
+                    "emotions) were shadowed at that moment, traditionally the mark of an "
+                    "intense life with deep, karmic lessons to work through."
                 )
                 desc_ta = (
-                    f"சூரிய கிரகணத்தின் போது பிறப்பு — {node_ta} அச்சில் அமாவாசை. "
-                    "சூரியனும் சந்திரனும் மறைக்கப்பட்டு தீவிர கர்ம பிறப்பைக் குறிக்கிறது."
+                    "சூரிய கிரகணத்தின் போது அல்லது அதற்கு மிக அருகில் நீங்கள் பிறந்தீர்கள் — "
+                    "சூரியன் சிறிது நேரம் மறைக்கப்படும் தருணம். அப்போது சூரியனும் (உங்கள் "
+                    "அடிப்படை ஆளுமை) சந்திரனும் (உங்கள் உணர்வுகள்) மறைக்கப்பட்டிருந்தன — "
+                    "பாரம்பரியமாக இது ஆழமான கர்மப் பாடங்கள் கொண்ட தீவிர வாழ்க்கையைக் குறிக்கிறது."
                 )
             else:
                 desc_en = (
-                    f"Born at/near a lunar eclipse — a Full Moon on the {node_en} axis. "
-                    "The Moon is shadowed, classically an emotionally intense, karmic birth."
+                    "You were born at or very near a lunar eclipse — when the full Moon is "
+                    "briefly shadowed. The Moon governs your emotions, so a shadowed Moon at "
+                    "birth is traditionally read as an emotionally intense, deeply karmic "
+                    "start to life."
                 )
                 desc_ta = (
-                    f"சந்திர கிரகணத்தின் போது பிறப்பு — {node_ta} அச்சில் பௌர்ணமி. "
-                    "சந்திரன் மறைக்கப்பட்டு உணர்ச்சிகரமான கர்ம பிறப்பைக் குறிக்கிறது."
+                    "சந்திர கிரகணத்தின் போது அல்லது அதற்கு மிக அருகில் நீங்கள் பிறந்தீர்கள் — "
+                    "முழு நிலவு சிறிது நேரம் மறைக்கப்படும் தருணம். சந்திரன் உங்கள் உணர்வுகளை "
+                    "ஆளுவதால், பிறப்பின்போது மறைந்த சந்திரன் பாரம்பரியமாக உணர்ச்சிகரமான, "
+                    "ஆழமான கர்மத் தொடக்கமாகக் கருதப்படுகிறது."
                 )
             flags.append(
                 BirthConditionFlag(
@@ -334,19 +378,87 @@ def detect_birth_conditions(
     # --- Dagda rasi (tithi-keyed; EC-2) --------------------------------------
     burnt = dagda_rasi(tithi_number)
     if burnt:
-        labels_en = ", ".join(_rasi_label(r) for r in burnt)
-        labels_ta = ", ".join(_rasi_label_ta(r) for r in burnt)
-        plural_en = "signs are" if len(burnt) > 1 else "sign is"
+        burnt_set = set(burnt)
+        labels_en = _join_en([_rasi_label(r) for r in burnt])
+        labels_ta = _join_ta([_rasi_label_ta(r) for r in burnt])
+        many_signs = len(burnt) > 1
+
+        # Where the burnt sign(s) actually land in *this* chart. The verdict only
+        # bites on a planet or the lagna that occupies a burnt sign (and the
+        # houses that sign rules from the ascendant) — naming the occupants turns
+        # an abstract almanac note into "here is where it shows up for you".
+        occupants_en: list[str] = []
+        occupants_ta: list[str] = []
+        occupant_codes: list[str] = []
+        if lagna_rasi is not None and lagna_rasi in burnt_set:
+            occupants_en.append("your Lagna (ascendant)")
+            occupants_ta.append("உங்கள் லக்னம்")
+            occupant_codes.append("LAGNA")
+        for graha in _DAGDA_OCCUPANT_GRAHAS:
+            lon = planet_longitudes.get(graha)
+            if lon is not None and _rasi_of(lon) in burnt_set:
+                occupants_en.append(graha.title())
+                occupants_ta.append(GRAHA_LABELS_TA.get(graha, graha.title()))
+                occupant_codes.append(graha)
+
+        # Common opening — what a burnt sign is and *why* these signs are yours.
+        what_why_en = (
+            f"A 'burnt' sign (dagda — also called shoonya, 'void') is one the classical "
+            f"almanac treats as temporarily drained of its usual strength for a person born "
+            f"on your lunar day (tithi). Each tithi burns a different set of signs, and yours "
+            f"burns {labels_en}."
+        )
+        what_why_ta = (
+            f"'தக்த ராசி' (எரிந்த ராசி; 'சூன்ய ராசி' என்றும் அழைக்கப்படும்) என்பது உங்கள் பிறந்த "
+            f"திதியின் அடிப்படையில் சிறிது காலம் தன் வழக்கமான பலம் குறைந்ததாகக் கருதப்படும் ராசி. "
+            f"ஒவ்வொரு திதியும் வெவ்வேறு ராசிகளை 'எரிந்ததாக' ஆக்குகிறது; உங்கள் திதியில் {labels_ta} "
+            f"ராசி எரிந்ததாகக் கருதப்படுகிறது."
+        )
+
+        if occupants_en:
+            occ_en = _join_en(occupants_en)
+            occ_ta = _join_ta(occupants_ta)
+            sit_en = "sits" if len(occupants_en) == 1 else "sit"
+            desc_en = (
+                f"{what_why_en} In your chart {occ_en} {sit_en} in a burnt sign — so the parts "
+                "of life those points touch tend to unfold a little more slowly and ask for "
+                "extra patience and steady effort before they bear fruit. This points to delay "
+                "and effort, not denial: it is one weighting factor a jyotishi balances against "
+                "each planet's dignity, your running dasha, and the aspects on it."
+            )
+            desc_ta = (
+                f"{what_why_ta} உங்கள் ஜாதகத்தில் {occ_ta} இந்த எரிந்த ராசியில் அமைந்துள்ளதால், "
+                "அவை தொடர்பான வாழ்க்கை அம்சங்கள் சற்று மெதுவாகவே வெளிப்படும்; பலனளிக்க கூடுதல் "
+                "பொறுமையும் நிலையான முயற்சியும் தேவைப்படும். இது தடை அல்ல, தாமதம் மட்டுமே — கிரக "
+                "பலம், நடப்பு தசை, பார்வைகள் அனைத்தையும் சேர்த்தே ஜோதிடர் இதை எடைபோடுவார்."
+            )
+        else:
+            these_signs_en = "these signs" if many_signs else "this sign"
+            desc_en = (
+                f"{what_why_en} In your chart no planet sits in {these_signs_en}, and "
+                f"{'they are' if many_signs else 'it is'} not your ascendant — so the effect "
+                f"stays light and mostly academic here. It softens, very slightly, the general "
+                f"matters {labels_en} would govern, but with no planet or ascendant point there "
+                "to carry it, a jyotishi would simply note it and weigh it against the rest of "
+                "the chart."
+            )
+            desc_ta = (
+                f"{what_why_ta} உங்கள் ஜாதகத்தில் இந்த ராசியில் எந்தக் கிரகமும் இல்லை, லக்னமும் "
+                "அல்ல — எனவே இதன் தாக்கம் மிகக் குறைவே. இது அந்த ராசியின் பொதுப் பலன்களை சற்றே "
+                "மென்மையாக்கும் அளவுதான்; அதைச் சுமக்க அங்கே கிரகமோ லக்னமோ இல்லாததால், ஜோதிடர் "
+                "இதைக் கவனத்தில் கொண்டு மற்ற ஜாதக அம்சங்களுடன் சேர்த்து எடைபோடும் சிறு குறிப்பு மட்டுமே."
+            )
+
         flags.append(
             BirthConditionFlag(
                 code="DAGDA_RASI",
                 is_present=True,
                 severity="ALERT",
-                title_ta="தக்த ராசி",
-                title_en="Dagda Rasi (Burnt Sign)",
-                description_ta=f"{labels_ta} ராசி இந்தப் பிறப்பில் தக்தமாகிறது (எரிந்தது).",
-                description_en=f"The {labels_en} {plural_en} burnt (dagda) for this birth.",
-                detail={"burnt_rasis": list(burnt)},
+                title_ta="தக்த ராசி (எரிந்த ராசி)",
+                title_en="Dagda Rasi (a 'burnt' sign for your birth day)",
+                description_ta=desc_ta,
+                description_en=desc_en,
+                detail={"burnt_rasis": list(burnt), "occupied_by": occupant_codes},
             )
         )
 
