@@ -130,6 +130,8 @@ def test_kanni_lagna_direct_order_dual_sign_bug_fix() -> None:
 
 
 def test_full_sequence_length() -> None:
+    """L-8: the full sequence spans 3 repeated 12-sign cycles (36 periods),
+    not just one — a single pass can total fewer years than a native's age."""
     planet_map = {
         "MARS": 5,
         "VENUS": 3,
@@ -140,7 +142,13 @@ def test_full_sequence_length() -> None:
         "SATURN": 6,
     }
     periods = calculate_chara_dasha(1, planet_map, date(1990, 1, 1))
-    assert len(periods) == 12
+    assert len(periods) == 36
+    # Each cycle repeats the same natal-derived rasi order and per-rasi years.
+    first_cycle = periods[:12]
+    second_cycle = periods[12:24]
+    assert [p["rasi"] for p in first_cycle] == [p["rasi"] for p in second_cycle]
+    assert [p["years"] for p in first_cycle] == [p["years"] for p in second_cycle]
+    assert second_cycle[0]["start_date"] == first_cycle[-1]["end_date"]
 
 
 def test_current_period_within_range() -> None:
@@ -158,6 +166,26 @@ def test_current_period_within_range() -> None:
     current = current_chara_dasha(1, planet_map, birth, as_of=today)
     assert current is not None
     assert current["start_date"] <= today < current["end_date"]
+
+
+def test_l8_older_native_past_one_cycle_still_gets_a_running_period() -> None:
+    """L-8: this chart's first 12-sign cycle totals 70 years (born 1990 ->
+    cycle ends 2060-01-01). Before the fix, an 80-year-old native (as_of
+    2070) fell past the end of the single-pass sequence and got None."""
+    planet_map = {
+        "MARS": 5,
+        "VENUS": 3,
+        "MERCURY": 8,
+        "MOON": 2,
+        "SUN": 10,
+        "JUPITER": 1,
+        "SATURN": 6,
+    }
+    birth = date(1990, 1, 1)
+    past_first_cycle = date(2070, 1, 1)
+    current = current_chara_dasha(1, planet_map, birth, as_of=past_first_cycle)
+    assert current is not None
+    assert current["start_date"] <= past_first_cycle < current["end_date"]
 
 
 # --- Antardasha direction (pivots on the running mahadasha rasi, not Lagna) ---

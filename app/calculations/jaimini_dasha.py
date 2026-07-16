@@ -21,8 +21,21 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import date, timedelta
+from typing import Final
 
 from app.calculations.astro import RASI_NAMES
+
+# L-8: a single 12-sign pass can fall short of a native's age (periods can be
+# as short as 1 year each), leaving current_chara_dasha() returning None for
+# older users. Repeat the (fixed, natal-derived) 12-rasi cycle 3 times — the
+# same convention ashtottari_dasha.py's _MAHADASHA_CYCLES uses for its own
+# fixed-length cycle. A chart where every single rasi bottoms out at the
+# minimum 1-year period (total 12 years/cycle, 36 years across 3) is a
+# theoretical extreme that essentially never occurs in a real chart — a
+# lord occupying its own sign alone already forces that one rasi to 12
+# years — so this is treated the same as the project's other documented,
+# not-exhaustively-adversarial simplifications rather than padded further.
+_MAHADASHA_CYCLES: Final[int] = 3
 
 _SIGN_LORD: dict[int, str] = {
     1: "MARS",
@@ -201,25 +214,29 @@ def calculate_chara_dasha(
     planet_longitudes: Mapping[str, float] | None = None,
 ) -> list[dict]:
     """
-    Calculate the complete Jaimini Chara Dasha sequence.
+    Calculate the complete Jaimini Chara Dasha sequence, repeated across
+    _MAHADASHA_CYCLES 12-sign passes (L-8) so a running period can always be
+    resolved for a native of any age. Each pass uses the same natal-derived
+    rasi order and per-rasi years — only the calendar dates advance.
     """
     rasi_order = _dasha_sequence_order(lagna_rasi)
     periods: list[dict] = []
     current = birth_date
 
-    for rasi in rasi_order:
-        years = _chara_period_years(rasi, planet_rasi_map, planet_longitudes)
-        end = _add_years(current, years)
-        periods.append(
-            {
-                "rasi": rasi,
-                "rasi_name": RASI_NAMES.get(rasi, str(rasi)),
-                "years": years,
-                "start_date": current,
-                "end_date": end,
-            }
-        )
-        current = end
+    for _cycle in range(_MAHADASHA_CYCLES):
+        for rasi in rasi_order:
+            years = _chara_period_years(rasi, planet_rasi_map, planet_longitudes)
+            end = _add_years(current, years)
+            periods.append(
+                {
+                    "rasi": rasi,
+                    "rasi_name": RASI_NAMES.get(rasi, str(rasi)),
+                    "years": years,
+                    "start_date": current,
+                    "end_date": end,
+                }
+            )
+            current = end
 
     return periods
 

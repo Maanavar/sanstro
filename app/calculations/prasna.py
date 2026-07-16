@@ -132,7 +132,12 @@ def prasna_outlook(
     negatives = len(prasna_chart.get("negative_indicators", []))
     karaka_house = int(prasna_chart.get("karaka_house", 0))
 
-    if karaka_house in {3, 6, 10, 11} and positives >= negatives:
+    # DELAY houses are the pure upachaya set {3, 6, 11} (L-15) — matching
+    # this module's own karaka-placement split above, which already treats
+    # the 10th as kendra (positive), not upachaya. The 10th was previously
+    # double-counted in both sets, so a 10th-house karaka could earn a
+    # positive indicator and a DELAY verdict at the same time.
+    if karaka_house in {3, 6, 11} and positives >= negatives:
         return "DELAY"
     if positives >= 2 and negatives == 0:
         return "FAVOURABLE"
