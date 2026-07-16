@@ -7,7 +7,7 @@ import { addDays, formatClockLabel, formatDateLabel, getScoreVerdictFromGuidance
 import { t, tLang } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { hourInZone, minutesOfDayInZone, timeOnDateToMs } from "@/lib/tz";
-import { pickFeaturedWindow } from "@/lib/today-windows";
+import { findSecondaryAbhijitWindow, pickFeaturedWindow } from "@/lib/today-windows";
 import type {
   ChartSummaryData,
   DailyGuidanceData,
@@ -196,6 +196,9 @@ export function DashboardTodayTabNova({
   // Feature a personalized, day-varying window rather than the always-noon
   // Abhijit slot the backend lists first (see lib/today-windows.ts).
   const bestWindow = pickFeaturedWindow(personalDailyGuidance?.bestWindows, now, isToday, selectedDate, panchangamTimezone);
+  // DASH-10.1 (2026-07-16): Abhijit never fully disappears — surfaced as a
+  // small secondary line when a personal window won the hero instead.
+  const secondaryAbhijitWindow = findSecondaryAbhijitWindow(personalDailyGuidance?.bestWindows, bestWindow);
 
   // Real lunar phase for today, drawn straight from the tithi we already have —
   // drives the hero moon's shape and size (thin crescent → full disc).
@@ -499,6 +502,14 @@ export function DashboardTodayTabNova({
                         </button>
                       )}
                     </div>
+                  </div>
+                )}
+                {secondaryAbhijitWindow && (
+                  <div style={{ fontSize: "12px", color: "var(--color-muted)", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span aria-hidden="true">✦</span>
+                    {lang === "ta"
+                      ? `இன்று அபிஜித் முகூர்த்தமும் நல்லது · ${formatClockLabel(secondaryAbhijitWindow.start)} – ${formatClockLabel(secondaryAbhijitWindow.end)}`
+                      : `Abhijit muhurtham is also auspicious today · ${formatClockLabel(secondaryAbhijitWindow.start)} – ${formatClockLabel(secondaryAbhijitWindow.end)}`}
                   </div>
                 )}
                 <StatusLive status={reminderStatus} />

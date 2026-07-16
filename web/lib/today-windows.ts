@@ -14,9 +14,12 @@ import type { DailyGuidanceWindow } from "@/lib/types";
  * given — window times are wall-clock at the panchangam location, not the
  * browser's (DASH-01).
  *
- * NOTE (DASH-10): hiding Abhijit whenever any PERSONAL_HORA window exists is a
- * doctrine deviation queued for jyotishi sign-off — do not "fix" it here
- * without that review.
+ * RULING (DASH-10.1, 2026-07-16): the hero still leads with the personal
+ * window (more actionable, varies day to day), but Abhijit — a universally
+ * auspicious daily muhurtham in Tamil panchangam tradition — should never
+ * fully vanish just because a personal window exists. See
+ * `findSecondaryAbhijitWindow` below, which callers use to surface it as a
+ * small secondary line when it isn't already the featured window.
  */
 export function pickFeaturedWindow(
   windows: DailyGuidanceWindow[] | undefined,
@@ -37,4 +40,21 @@ export function pickFeaturedWindow(
     return upcoming ?? preferred[preferred.length - 1] ?? null;
   }
   return preferred[0] ?? null;
+}
+
+/**
+ * Find the day's Abhijit window when one exists and isn't already the
+ * featured window — DASH-10.1 (2026-07-16). Abhijit is a fixed ~48-minute
+ * slot around solar noon, always auspicious regardless of the native's
+ * chart, so it's worth a secondary mention even on days where a personal
+ * hora window rightly wins the hero's headline pick.
+ */
+export function findSecondaryAbhijitWindow(
+  windows: DailyGuidanceWindow[] | undefined,
+  featured: DailyGuidanceWindow | null,
+): DailyGuidanceWindow | null {
+  if (!windows || windows.length === 0) return null;
+  const abhijit = windows.find((w) => w.type === "ABHIJIT");
+  if (!abhijit || abhijit === featured) return null;
+  return abhijit;
 }

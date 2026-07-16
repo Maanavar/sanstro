@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { pickFeaturedWindow } from "./today-windows";
+import { findSecondaryAbhijitWindow, pickFeaturedWindow } from "./today-windows";
 import type { DailyGuidanceWindow } from "./types";
 
-const ABHIJIT: DailyGuidanceWindow = { type: "ABHIJIT_MUHURTA", start: "12:02", end: "12:50" };
+// Matches the real backend type string (app/services/_dg_hora.py:87) — must
+// stay exact since findSecondaryAbhijitWindow matches on it.
+const ABHIJIT: DailyGuidanceWindow = { type: "ABHIJIT", start: "12:02", end: "12:50" };
 const PERSONAL_AM: DailyGuidanceWindow = { type: "PERSONAL_HORA", start: "08:00", end: "09:00" };
 const PERSONAL_PM: DailyGuidanceWindow = { type: "PERSONAL_HORA", start: "15:00", end: "16:00" };
 const BENEFIC_HORA: DailyGuidanceWindow = { type: "BENEFIC_HORA", start: "10:00", end: "11:00" };
@@ -19,7 +21,7 @@ describe("pickFeaturedWindow", () => {
     expect(pickFeaturedWindow([], CHENNAI_NOON, true, DATE, TZ)).toBeNull();
   });
 
-  it("prefers PERSONAL_HORA over Abhijit (DASH-10 doctrine deviation, queued)", () => {
+  it("prefers PERSONAL_HORA over Abhijit for the hero (DASH-10.1 ruling: shown as a secondary line instead, see findSecondaryAbhijitWindow)", () => {
     const picked = pickFeaturedWindow([ABHIJIT, PERSONAL_AM, PERSONAL_PM], CHENNAI_NOON, false, DATE, TZ);
     expect(picked).toBe(PERSONAL_AM);
   });
@@ -51,5 +53,26 @@ describe("pickFeaturedWindow", () => {
   it("on other dates, returns the first preferred window", () => {
     const picked = pickFeaturedWindow([ABHIJIT, PERSONAL_PM, PERSONAL_AM], CHENNAI_NOON, false, DATE, TZ);
     expect(picked).toBe(PERSONAL_PM);
+  });
+});
+
+describe("findSecondaryAbhijitWindow", () => {
+  it("returns null when there are no windows", () => {
+    expect(findSecondaryAbhijitWindow(undefined, null)).toBeNull();
+    expect(findSecondaryAbhijitWindow([], null)).toBeNull();
+  });
+
+  it("returns null when there's no Abhijit window", () => {
+    expect(findSecondaryAbhijitWindow([PERSONAL_AM, BENEFIC_HORA], PERSONAL_AM)).toBeNull();
+  });
+
+  it("returns Abhijit when a personal window won the hero instead (DASH-10.1)", () => {
+    const featured = pickFeaturedWindow([ABHIJIT, PERSONAL_AM], CHENNAI_NOON, false, DATE, TZ);
+    expect(findSecondaryAbhijitWindow([ABHIJIT, PERSONAL_AM], featured)).toBe(ABHIJIT);
+  });
+
+  it("returns null when Abhijit is itself the featured window (no duplicate line)", () => {
+    const featured = pickFeaturedWindow([ABHIJIT], CHENNAI_NOON, false, DATE, TZ);
+    expect(findSecondaryAbhijitWindow([ABHIJIT], featured)).toBeNull();
   });
 });
