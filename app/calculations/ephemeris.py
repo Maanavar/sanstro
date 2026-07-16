@@ -29,6 +29,7 @@ except ImportError:  # pragma: no cover - exercised in this environment via swis
     from ctypes import c_double, create_string_buffer
 
     from swisseph_ffi import (  # type: ignore[import-not-found]
+        SE_BIT_HINDU_RISING,
         SE_CALC_RISE,
         SE_CALC_SET,
         SE_JUPITER,
@@ -45,6 +46,8 @@ except ImportError:  # pragma: no cover - exercised in this environment via swis
         SEFLG_SWIEPH,
         SwissEph,
     )
+
+    _RSMI_HINDU_RISING: Final[int] = SE_BIT_HINDU_RISING
 
     _SWISS = SwissEph()
 
@@ -76,6 +79,24 @@ else:
         SUN,
         VENUS,
     )
+
+    try:
+        from swisseph import BIT_HINDU_RISING as _RSMI_HINDU_RISING  # type: ignore[import-not-found]
+    except ImportError:
+        try:
+            from swisseph import (  # type: ignore[import-not-found]
+                BIT_DISC_CENTER,
+                BIT_GEOCTR_NO_ECL_LAT,
+                BIT_NO_REFRACTION,
+            )
+
+            _RSMI_HINDU_RISING = BIT_DISC_CENTER | BIT_NO_REFRACTION | BIT_GEOCTR_NO_ECL_LAT
+        except ImportError:
+            # Hardcoded per the Swiss Ephemeris C header (swephexp.h) — same
+            # combination as swisseph_ffi's SE_BIT_HINDU_RISING: disc-center
+            # (256) | no-refraction (512) | geocentric-no-ecliptic-latitude
+            # (128) = 896.
+            _RSMI_HINDU_RISING = 896
 
     PLANET_IDS = {
         "SUN": SUN,
@@ -222,6 +243,18 @@ def calculate_asc_mc(jd_ut: float, latitude: float, longitude: float) -> tuple[f
 
 
 def calculate_rise_transit_jd(jd_start: float, latitude: float, longitude: float, *, rise: bool) -> float:
+    """Hindu sunrise/sunset (Doctrine §1, WI-07): geometric rise/set of the
+    Sun's disc CENTER with NO atmospheric refraction, matching every printed
+    Tamil panchangam's definition of udaya/asthamana — not Swiss Ephemeris's
+    default (upper limb + refraction), which sits ~2-4 minutes earlier. This
+    is the single anchor every sunrise-derived field inherits (Rahu kalam,
+    Yamagandam, Kuligai, horai, udaya tithi/nakshatra, sunrise lagna, Gowri,
+    tamil_calendar's sunset cutoff) — see PANCHANGAM_CACHE_DATA_VERSION v33
+    in panchangam.py.
+    """
+    rsmi_rise = CALC_RISE if _HAS_MODULE_API else SE_CALC_RISE
+    rsmi_set = CALC_SET if _HAS_MODULE_API else SE_CALC_SET
+    rsmi = (rsmi_rise if rise else rsmi_set) | _RSMI_HINDU_RISING
     with _SWISS_LOCK:
         if _HAS_MODULE_API:
             if not hasattr(swe_module, "rise_trans"):
@@ -232,7 +265,7 @@ def calculate_rise_transit_jd(jd_start: float, latitude: float, longitude: float
                     jd_start,
                     SUN,
                     None,
-                    CALC_RISE if rise else CALC_SET,
+                    rsmi,
                     geopos,
                     0.0,
                     0.0,
@@ -243,7 +276,7 @@ def calculate_rise_transit_jd(jd_start: float, latitude: float, longitude: float
                     jd_start,
                     SUN,
                     None,
-                    CALC_RISE if rise else CALC_SET,
+                    rsmi,
                     FLG_SWIEPH,
                     geopos,
                     0.0,
@@ -264,7 +297,7 @@ def calculate_rise_transit_jd(jd_start: float, latitude: float, longitude: float
             SE_SUN,
             None,
             SEFLG_SWIEPH,
-            SE_CALC_RISE if rise else SE_CALC_SET,
+            rsmi,
             geopos,
             0.0,
             0.0,

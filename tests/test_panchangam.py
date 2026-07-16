@@ -117,8 +117,12 @@ def test_snapshot_computes_pradhosha_kalam_tithi():
 def test_daily_panchangam_uses_documented_2026_05_21_reference_case():
     snapshot = calculate_daily_panchangam(date(2026, 5, 21), 9.9252, 78.1198, "Asia/Kolkata")
 
-    expected_sunrise = datetime(2026, 5, 21, 5, 53, tzinfo=timezone(timedelta(hours=5, minutes=30)))
-    expected_sunset = datetime(2026, 5, 21, 18, 33, tzinfo=timezone(timedelta(hours=5, minutes=30)))
+    # WI-07 (2026-07-16): sunrise/sunset switched to Hindu sunrise (disc
+    # center, no refraction, geocentric — SE_BIT_HINDU_RISING). Both times
+    # move ~4-6 min toward solar noon versus the old refracted-upper-limb
+    # values (sunrise later, sunset earlier) — see panchangam.py v33 note.
+    expected_sunrise = datetime(2026, 5, 21, 5, 59, tzinfo=timezone(timedelta(hours=5, minutes=30)))
+    expected_sunset = datetime(2026, 5, 21, 18, 29, tzinfo=timezone(timedelta(hours=5, minutes=30)))
 
     assert snapshot.weekday == "THURSDAY"
     assert snapshot.weekday_lord == "GURU"
@@ -218,9 +222,11 @@ def test_nalla_and_gowri_nalla_neram_use_compact_tamil_calendar_windows():
         ("AM", "06:30", "07:30"),
         ("PM", "16:30", "17:30"),
     ]
+    # WI-07 (2026-07-16): Hindu sunrise/sunset shift these windows a few
+    # minutes toward solar noon versus the old refracted-upper-limb values.
     assert [(s.period, s.start.strftime("%H:%M"), s.end.strftime("%H:%M")) for s in snap.gowri_nalla_neram] == [
-        ("DAY", "05:41", "07:18"),
-        ("NIGHT", "18:34", "19:57"),
+        ("DAY", "05:45", "07:21"),
+        ("NIGHT", "18:30", "19:54"),
     ]
     assert all(s.name is None and s.is_good is True for s in snap.nalla_neram + snap.gowri_nalla_neram)
 

@@ -360,7 +360,17 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # v32: SOOLAM_PARIGARAM_BY_DIRECTION corrected (A-8, 2026-07-14) — East/West foods
 # were swapped, North/South refined to பசும்பால்/நல்லெண்ணெய். Persisted
 # soolam_parigaram values change, so cached snapshots must recompute.
-PANCHANGAM_CACHE_DATA_VERSION = 32
+# v33: sunrise/sunset switched to Hindu sunrise (disc center, no refraction,
+# geocentric — SE_BIT_HINDU_RISING) per Doctrine §1 (WI-07, 2026-07-16),
+# replacing Swiss Ephemeris's default upper-limb+refracted rise/set. Every
+# sunrise-anchored field changes by roughly 2-4 minutes later: sunrise,
+# sunset, Rahu kalam, Yamagandam, Kuligai, all eight kalam divisions, horai,
+# udaya tithi/nakshatra, sunrise lagna, Gowri Panchangam, and the Tamil solar
+# calendar's sunset cutoff. Cached snapshots must recompute. Code-complete;
+# validation against printed panchangam references is pending (see WI-07 in
+# docs/CALC_AUDIT_REMEDIATION_PLAN_2026-07.md) — do not mark the doctrine
+# launch-gate closed until that cross-check lands.
+PANCHANGAM_CACHE_DATA_VERSION = 33
 DOMINANT_SPECIAL_TITHIS = {15, 30}
 
 # Compact daily-calendar summary windows used by Tamil calendars for everyday
