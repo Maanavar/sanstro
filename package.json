@@ -16,6 +16,8 @@
     "scripts":  {
                     "qa:colors":  "node scripts/audit-color-literals.mjs",
                     "qa:colors:update":  "node scripts/audit-color-literals.mjs --update-baseline",
+                    "i18n:dashboard":  "node scripts/extract-dashboard-i18n.mjs",
+                    "i18n:dashboard:json":  "node scripts/extract-dashboard-i18n.mjs --json > docs/dashboard-i18n-catalog.json",
                     "qa:phase7":  "pnpm qa:colors \u0026\u0026 pnpm --filter mobile qa:touch-targets \u0026\u0026 pnpm --filter jothidam-ai-web test:visual"
                 }
 }
