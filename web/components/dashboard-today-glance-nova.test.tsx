@@ -73,4 +73,27 @@ describe("DashboardTodayGlanceRowNova — dasha sentiment doctrine", () => {
     );
     expect(screen.getByText("supportive period")).toBeInTheDocument();
   });
+
+  it("shows 'grows with effort' (not 'testing period') for Upachaya — DASH-10.2 ruling", () => {
+    renderGlance(
+      baseChartSummary({
+        currentMahadasha: "MARS",
+        currentAntardasha: "MARS",
+        functionalNature: { MARS: "UPACHAYA" },
+      }),
+    );
+    expect(screen.getByText("grows with effort")).toBeInTheDocument();
+    expect(screen.queryByText("testing period · go gently")).not.toBeInTheDocument();
+  });
+
+  it("still shows testing for Dusthana (Upachaya split-out doesn't affect it)", () => {
+    renderGlance(
+      baseChartSummary({
+        currentMahadasha: "MARS",
+        currentAntardasha: "MARS",
+        functionalNature: { MARS: "DUSTHANA" },
+      }),
+    );
+    expect(screen.getByText("testing period · go gently")).toBeInTheDocument();
+  });
 });

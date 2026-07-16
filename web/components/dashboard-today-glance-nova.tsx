@@ -33,7 +33,14 @@ const _DASHA_CHALLENGING = new Set(["SATURN", "MARS", "RAHU", "KETU"]);
 // adhipathi report) — see app/calculations/functional_nature.py.
 const _NATURE_SUPPORTIVE = new Set(["YOGAKARAKA", "LAGNA_LORD", "TRIKONA"]);
 const _NATURE_STEADY = new Set(["KENDRA", "NEUTRAL"]);
-const _NATURE_TESTING = new Set(["MARAKA", "DUSTHANA", "UPACHAYA"]);
+const _NATURE_TESTING = new Set(["MARAKA", "DUSTHANA"]);
+// DASH-10.2 ruling (2026-07-16): Upachaya houses (3/6/10/11) classically
+// improve with effort/time rather than warranting caution — bucketing them
+// with Maraka/Dusthana's "go gently" copy was a miscalibration. Split out
+// with its own "grows with effort" framing; reuses the neutral --color-mid
+// tone (not --color-low, which reads as a warning) rather than adding a new
+// color token for a single category.
+const _NATURE_GROWTH = new Set(["UPACHAYA"]);
 
 function dashaSentiment(
   antardashaLord: string,
@@ -43,6 +50,11 @@ function dashaSentiment(
   if (functionalNature) {
     if (_NATURE_SUPPORTIVE.has(functionalNature)) {
       return { label: lang === "ta" ? "ஆதரவான காலம்" : "supportive period", color: "var(--color-high)" };
+    }
+    if (_NATURE_GROWTH.has(functionalNature)) {
+      // New `ta` string — pending native review, matching this repo's
+      // convention for newly added Tamil copy.
+      return { label: lang === "ta" ? "முயற்சியால் வளரும் காலம்" : "grows with effort", color: "var(--color-mid)" };
     }
     if (_NATURE_TESTING.has(functionalNature)) {
       return { label: lang === "ta" ? "சவாலான காலம் · மெதுவாக செல்லுங்கள்" : "testing period · go gently", color: "var(--color-low)" };
