@@ -75,58 +75,50 @@ _FIXED_FESTIVALS: list[FestivalEntry] = [
 # ---------------------------------------------------------------------------
 _YEARLY_FESTIVALS: dict[int, list[FestivalEntry]] = {
     2026: [
-        # Hindu — solar / fixed Tamil calendar
-        ("01-14", "Bhogi", "hindu"),
-        ("01-15", "Thai Pongal / Makar Sankranti", "hindu"),
+        # Hindu — solar / fixed Tamil calendar. Bhogi/Mattu Pongal/Kaanum
+        # Pongal are simple day-offsets from Pongal itself (day-1/+1/+2) —
+        # WI-12 (2026-07-16): corrected to stay consistent with the verified
+        # Pongal date below (was one day late here, an error independent of
+        # WI-12/WI-07 — the Makar Sankranti crossing for 2026 is 2026-01-14
+        # 15:07 IST, hours before sunset under either sunrise definition).
+        # These three remain hardcoded (not in Doctrine §8's starter rule
+        # set) — only their dates were corrected, not their reckoning.
+        ("01-13", "Bhogi", "hindu"),
         ("01-15", "Pongal", "tamilnadu_govt"),
-        ("01-16", "Mattu Pongal", "hindu"),
+        ("01-15", "Mattu Pongal", "hindu"),
         ("01-16", "Thiruvalluvar Day", "tamilnadu_govt"),
-        ("01-17", "Kaanum Pongal / Uzhavar Thirunal", "hindu"),
+        ("01-16", "Kaanum Pongal / Uzhavar Thirunal", "hindu"),
         ("01-17", "Uzhavar Thirunal", "tamilnadu_govt"),
-        ("02-01", "Thai Poosam", "hindu"),
         ("02-01", "Thai Poosam", "tamilnadu_govt"),
-        ("04-14", "Tamil New Year (Puthandu) / Ambedkar Jayanti", "hindu"),
         ("04-14", "Tamil New Year (Puthandu) / Ambedkar Jayanti", "tamilnadu_govt"),
-        ("08-03", "Aadi Perukku", "hindu"),
-        ("09-04", "Krishna Jayanthi", "hindu"),
         ("09-04", "Krishna Jayanthi", "indian_govt"),
         ("09-04", "Krishna Jayanthi", "tamilnadu_govt"),
-        ("09-14", "Vinayagar Chaturthi", "hindu"),
+        # Vinayagar Chaturthi (WI-12): this gazetted govt-holiday date
+        # (09-14) is kept as-is — it's an administrative record, not
+        # something to override from a tithi calculation. The "hindu" tag
+        # for the same name now comes from the algorithmic engine at 09-15
+        # (sunrise-tithi rule; classical practice actually uses the
+        # MADHYAHNA/midday-prevailing tithi for this specific festival, a
+        # documented simplification — see tests/test_festivals.py). The two
+        # tags may render as adjacent-day entries instead of one merged row;
+        # that's a real government-date-vs-computed-date difference, not a
+        # bug.
         ("09-14", "Vinayagar Chaturthi", "tamilnadu_govt"),
         ("10-19", "Ayudha Pooja", "hindu"),
         ("10-19", "Ayudha Pooja", "tamilnadu_govt"),
         ("10-20", "Vijayadasami", "hindu"),
         ("10-20", "Vijayadasami", "indian_govt"),
         ("10-20", "Vijayadasami", "tamilnadu_govt"),
-        ("11-08", "Deepavali", "hindu"),
         ("11-08", "Deepavali", "indian_govt"),
         ("11-08", "Deepavali", "tamilnadu_govt"),
-        ("11-24", "Karthigai Deepam", "hindu"),
-        # Hindu — Ekadashis 2026 (exact dates)
-        ("01-14", "Shattila Ekadashi", "hindu"),
-        ("01-29", "Jaya Ekadashi", "hindu"),
-        ("02-13", "Vijaya Ekadashi", "hindu"),
-        ("02-27", "Amalaki Ekadashi", "hindu"),
-        ("03-15", "Papmochani Ekadashi", "hindu"),
-        ("03-29", "Kamada Ekadashi", "hindu"),
-        ("04-13", "Varuthini Ekadashi", "hindu"),
-        ("04-27", "Mohini Ekadashi", "hindu"),
-        ("05-13", "Apara Ekadashi", "hindu"),
-        ("05-27", "Padmini Ekadashi", "hindu"),
-        ("06-11", "Parama Ekadashi", "hindu"),
-        ("06-25", "Nirjala Ekadashi", "hindu"),
-        ("07-10", "Yogini Ekadashi", "hindu"),
-        ("07-25", "Devshayani Ekadashi", "hindu"),
-        ("08-09", "Kamika Ekadashi", "hindu"),
-        ("08-23", "Putrada Ekadashi", "hindu"),
-        ("09-07", "Aja Ekadashi", "hindu"),
-        ("09-22", "Parivartini Ekadashi", "hindu"),
-        ("10-06", "Indira Ekadashi", "hindu"),
-        ("10-22", "Papankusha Ekadashi", "hindu"),
-        ("11-05", "Rama Ekadashi", "hindu"),
-        ("11-20", "Devutthana Ekadashi", "hindu"),
-        ("12-05", "Utpanna Ekadashi", "hindu"),
-        ("12-20", "Vaikuntha Ekadashi / Mokshada", "hindu"),
+        # Hindu — Ekadashis, Puthandu, Aadi Perukku, Krishna Jayanthi (hindu
+        # tag), Vinayagar Chaturthi (hindu tag), Deepavali (hindu tag),
+        # Karthigai Deepam now all computed algorithmically (WI-12,
+        # Doctrine §8) — see _recurring_tithi_festivals. Parity against this
+        # 2026 list verified in tests/test_festivals.py, including 4
+        # explained exceptions (2 pre-existing hardcode date errors here
+        # corrected by the engine, 1 Smarta-vs-Vaishnava divergence, 1
+        # documented tithi-kshaya gap).
         # Other Hindu / Indian gazetted / Tamil Nadu public holidays
         ("03-04", "Holi", "hindu"),
         ("03-04", "Holi", "indian_govt"),
@@ -194,7 +186,10 @@ _YEARLY_FESTIVALS: dict[int, list[FestivalEntry]] = {
 _NAKSHATRA_FESTIVALS: dict[str, str] = {
     "THIRUVONAM": "Thiruvonam Vratam",
     "ROHINI":     "Rohini Vratam",
-    "KRITHIGAI":  "Krithigai Vratam",
+    # WI-12 (2026-07-16): was "KRITHIGAI", which never matched the canonical
+    # nakshatra spelling used everywhere else in this codebase (constants/
+    # astrology.py, nakshatra_content.py) — this row silently never fired.
+    "KARTHIGAI":  "Karthigai Vratam",
 }
 
 # ---------------------------------------------------------------------------
@@ -202,8 +197,15 @@ _NAKSHATRA_FESTIVALS: dict[str, str] = {
 # 0=Chithirai .. 11=Panguni). Named here so the recurring-festival rules below
 # read naturally without importing the full Tamil calendar module.
 # ---------------------------------------------------------------------------
+_MONTH_CHITHIRAI = 0
 _MONTH_VAIKASI = 1
+_MONTH_AADI = 3
+_MONTH_AAVANI = 4
 _MONTH_PURATTASI = 5
+_MONTH_AIPPASI = 6
+_MONTH_KARTHIGAI = 7
+_MONTH_MARGAZHI = 8
+_MONTH_THAI = 9
 _MONTH_MAASI = 10
 _MONTH_PANGUNI = 11
 
@@ -219,6 +221,9 @@ def _recurring_tithi_festivals(
     tamil_month_index: int | None,
     special_tithi_day_number: int | None,
     pradhosham_tithi_number: int | None = None,
+    tamil_day_of_month: int | None = None,
+    previous_day_tithi_number: int | None = None,
+    previous_day_tithi_paksha: str | None = None,
 ) -> list[dict]:
     """Recurring festivals defined by tithi/paksha/weekday/Tamil-month/nakshatra
     combinations rather than fixed Gregorian dates — these recur every lunar
@@ -229,6 +234,12 @@ def _recurring_tithi_festivals(
     Pradhosam is the exception: it is a twilight/sunset vrata, so it is dated from
     ``pradhosham_tithi_number`` (the tithi at pradhosha-kalam), falling back to the
     sunrise tithi only when that is unavailable (issue #10).
+
+    ``previous_day_tithi_number``/``previous_day_tithi_paksha`` (WI-12) are the
+    prior civil day's own sunrise tithi/paksha — needed only for the Ekadashi
+    two-consecutive-sunrise dedup below. Omit them (default None) to skip that
+    dedup, which just means an unusually long Ekadashi tithi could be labeled
+    on both sunrises it governs, instead of only the first (Smarta rule).
     """
     results: list[dict] = []
     tithi_in_paksha = tithi_number if tithi_number <= 15 else tithi_number - 15
@@ -245,21 +256,67 @@ def _recurring_tithi_festivals(
         else:
             results.append({"name": "Pradhosam", "category": "hindu"})
 
-    # Chathurthi (4th tithi) — Sangadahara Chathurthi when it falls on a
-    # Tuesday in Krishna paksha, otherwise the generic Chathurthi observance.
+    # Ekadashi (Doctrine §8, WI-12): 11th tithi of either paksha at today's Hindu
+    # sunrise (Smarta reckoning). Dashami-viddha rejection needs no extra code
+    # under the pure udaya rule: a day whose sunrise tithi is still Dashami (10)
+    # is simply not Ekadashi here, regardless of what tithi runs later that day —
+    # whatever the NEXT day's own sunrise tithi turns out to be governs that next
+    # day, via this same rule applied to it. The one case that DOES need extra
+    # state: when Ekadashi is unusually long and governs two sunrises in a row,
+    # Smarta takes only the FIRST — so suppress today's label if yesterday's
+    # sunrise tithi (same paksha) was already 11.
+    if tithi_in_paksha == 11:
+        previous_in_paksha = None
+        if previous_day_tithi_number is not None:
+            previous_in_paksha = (
+                previous_day_tithi_number if previous_day_tithi_number <= 15 else previous_day_tithi_number - 15
+            )
+        already_observed_yesterday = (
+            previous_in_paksha == 11 and previous_day_tithi_paksha == tithi_paksha
+        )
+        if not already_observed_yesterday:
+            if tithi_paksha == "SHUKLA" and tamil_month_index == _MONTH_MARGAZHI:
+                # The one Puranic name doctrine calls out explicitly; the other
+                # 23 Ekadashis/year keep a generic paksha-qualified name below —
+                # a full lunar-month-keyed name table is a documented follow-up,
+                # not required to close the "silent 2027" regression this WI
+                # exists to fix.
+                results.append({"name": "Vaikunta Ekadashi", "category": "hindu"})
+            else:
+                ekadashi_name = "Ekadashi (Shukla)" if tithi_paksha == "SHUKLA" else "Ekadashi (Krishna)"
+                results.append({"name": ekadashi_name, "category": "hindu"})
+
+    # Chathurthi (4th tithi). Every Krishna-paksha Chaturthi is Sankatahara
+    # Chaturthi (monthly Ganesha vrata) — WI-12 fix: previously only the Tuesday
+    # occurrence was labeled at all (ordinary Krishna Chaturthi fell through to
+    # the bare "Chathurthi" name); the Tuesday occurrence is additionally the
+    # highest-merit "Angarki" variant, not the only occasion that counts.
     if tithi_in_paksha == 4:
-        if tithi_paksha == "KRISHNA" and weekday == _WEEKDAY_TUESDAY:
-            results.append({"name": "Sangadahara Chathurthi", "category": "hindu"})
+        if tithi_paksha == "KRISHNA":
+            if weekday == _WEEKDAY_TUESDAY:
+                results.append({"name": "Angarki Sankatahara Chaturthi", "category": "hindu"})
+            else:
+                results.append({"name": "Sankatahara Chaturthi", "category": "hindu"})
         else:
             results.append({"name": "Chathurthi", "category": "hindu"})
+            if tamil_month_index == _MONTH_AAVANI:
+                results.append({"name": "Vinayagar Chaturthi", "category": "hindu"})
 
     # Sashti — 6th tithi, Shukla paksha (Skanda Sashti tradition).
     if tithi_in_paksha == 6 and tithi_paksha == "SHUKLA":
         results.append({"name": "Sashti", "category": "hindu"})
 
     # Theipirai Ashtami — 8th tithi, Krishna paksha (waning-fortnight Ashtami).
+    # Aavani + Krishna Ashtami is additionally Krishna Jayanthi. Simplification
+    # (documented, not guessed): doctrine notes a "Rohini preference" tie-break
+    # for the rare case where Ashtami spans two Aavani sunrises with only one
+    # coinciding with Rohini nakshatra — not implemented; every Aavani Krishna
+    # Ashtami is labeled, matching this function's existing udaya-only pattern
+    # for every other tithi-anchored observance.
     if tithi_in_paksha == 8 and tithi_paksha == "KRISHNA":
         results.append({"name": "Theipirai Ashtami", "category": "hindu"})
+        if tamil_month_index == _MONTH_AAVANI:
+            results.append({"name": "Krishna Jayanthi", "category": "hindu"})
 
     # Sivarathiri — 14th tithi, Krishna paksha, in the Tamil month of Maasi.
     if (
@@ -268,6 +325,21 @@ def _recurring_tithi_festivals(
         and tamil_month_index == _MONTH_MAASI
     ):
         results.append({"name": "Sivarathiri", "category": "hindu"})
+
+    # Deepavali (TN) — Aippasi, Krishna Chaturdashi (Naraka Chaturdashi).
+    # Simplification (documented, not guessed): observed classically at the
+    # tithi prevailing shortly before dawn specifically (abhyanga snanam),
+    # not necessarily the udaya tithi; this function uses the same
+    # udaya-only convention as every other tithi rule here rather than
+    # modeling a separate pre-dawn instant. Named plain "Deepavali" (not
+    # "...Naraka Chaturdashi") so it dedupes by name with the govt-holiday
+    # hardcode rows for the same date instead of rendering as two rows.
+    if (
+        tithi_in_paksha == 14
+        and tithi_paksha == "KRISHNA"
+        and tamil_month_index == _MONTH_AIPPASI
+    ):
+        results.append({"name": "Deepavali", "category": "hindu"})
 
     # Festivals anchored to the dominant Pournami (15) / Amavasai (30) day —
     # gated on special_tithi_day_number so they fire only on the civil day
@@ -279,6 +351,10 @@ def _recurring_tithi_festivals(
             results.append({"name": "Maasi Magam", "category": "hindu"})
         if tamil_month_index == _MONTH_PANGUNI and nk_upper == "UTHIRAM":
             results.append({"name": "Panguni Uthiram", "category": "hindu"})
+        # Karthigai Deepam — Karthigai month, Krithigai nakshatra, near the
+        # full moon (the "full-moon proximity" doctrine calls for).
+        if tamil_month_index == _MONTH_KARTHIGAI and nk_upper == "KARTHIGAI":
+            results.append({"name": "Karthigai Deepam", "category": "hindu"})
 
     if special_tithi_day_number == 30 and tamil_month_index == _MONTH_PURATTASI:
         results.append({"name": "Mahalaya Amavasai", "category": "hindu"})
@@ -286,6 +362,20 @@ def _recurring_tithi_festivals(
     # Vaigasi Visakam — Moon in Visakam nakshatra during the Tamil month of Vaikasi.
     if tamil_month_index == _MONTH_VAIKASI and nk_upper == "VISAKAM":
         results.append({"name": "Vaigasi Visakam", "category": "hindu"})
+
+    # Thai Poosam — Thai month, Poosam nakshatra day.
+    if tamil_month_index == _MONTH_THAI and nk_upper == "POOSAM":
+        results.append({"name": "Thai Poosam", "category": "hindu"})
+
+    # Solar-day yearly festivals (fixed Tamil-month + day-of-month, not
+    # tithi-anchored) — need the Tamil calendar day-of-month, not just month.
+    if tamil_day_of_month is not None:
+        if tamil_month_index == _MONTH_CHITHIRAI and tamil_day_of_month == 1:
+            results.append({"name": "Puthandu (Tamil New Year)", "category": "hindu"})
+        if tamil_month_index == _MONTH_THAI and tamil_day_of_month == 1:
+            results.append({"name": "Thai Pongal", "category": "hindu"})
+        if tamil_month_index == _MONTH_AADI and tamil_day_of_month == 18:
+            results.append({"name": "Aadi Perukku", "category": "hindu"})
 
     return results
 
@@ -299,6 +389,9 @@ def get_festivals_for_date(
     tamil_month_index: int | None = None,
     special_tithi_day_number: int | None = None,
     pradhosham_tithi_number: int | None = None,
+    tamil_day_of_month: int | None = None,
+    previous_day_tithi_number: int | None = None,
+    previous_day_tithi_paksha: str | None = None,
 ) -> list[dict]:
     """Return list of {name, category} dicts for the given date + panchangam state."""
     results: list[dict] = []
@@ -337,6 +430,9 @@ def get_festivals_for_date(
             tamil_month_index,
             special_tithi_day_number,
             pradhosham_tithi_number,
+            tamil_day_of_month,
+            previous_day_tithi_number,
+            previous_day_tithi_paksha,
         )
     )
 
@@ -359,6 +455,15 @@ def get_festivals_for_date(
         if existing is None:
             existing = {"name": name, "category": category, "tags": []}
             deduped_by_name[name] = existing
+        elif category == "hindu":
+            # WI-12 (2026-07-16): a religious-calendar tag is more specific
+            # than a govt-holiday tag for the same festival name — prefer it
+            # as the primary category regardless of arrival order. Matters
+            # now that the algorithmic engine's "hindu" rows are appended
+            # after the fixed/yearly govt rows for several dates (Thai
+            # Poosam, Krishna Jayanthi, Deepavali) where "hindu" used to be
+            # listed first in the removed hardcode.
+            existing["category"] = "hindu"
         for tag in tags:
             if tag not in existing["tags"]:
                 existing["tags"].append(tag)

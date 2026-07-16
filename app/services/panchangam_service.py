@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import calendar
 import logging
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -116,9 +116,10 @@ def _build_festivals(
     tithi_number: int | None = None,
     tithi_paksha: str | None = None,
     nakshatra_name: str | None = None,
+    previous_day_snapshot=None,
 ) -> list[PanchangamFestival]:
     try:
-        tamil_month_index, _ = tamil_solar_date(
+        tamil_month_index, tamil_day_of_month = tamil_solar_date(
             snapshot.date_local,
             snapshot.timezone_name,
             snapshot.latitude,
@@ -127,6 +128,7 @@ def _build_festivals(
     except Exception as exc:
         logger.debug("Tamil month lookup failed for %s: %s", snapshot.date_local, exc)
         tamil_month_index = None
+        tamil_day_of_month = None
 
     return [
         PanchangamFestival(name=f["name"], category=f["category"], tags=f.get("tags", [f["category"]]))
@@ -139,8 +141,39 @@ def _build_festivals(
             tamil_month_index=tamil_month_index,
             special_tithi_day_number=snapshot.special_tithi_day_number,
             pradhosham_tithi_number=snapshot.pradhosham_tithi_number or None,
+            tamil_day_of_month=tamil_day_of_month,
+            previous_day_tithi_number=previous_day_snapshot.tithi_number if previous_day_snapshot else None,
+            previous_day_tithi_paksha=previous_day_snapshot.tithi_paksha if previous_day_snapshot else None,
         )
     ]
+
+
+def _previous_day_snapshot(snapshot, session: Session | None):
+    """Yesterday's snapshot, for the Ekadashi two-consecutive-sunrise dedup
+    (WI-12) — best-effort: on any failure, festivals still compute, just
+    without that one dedup refinement (see _build_festivals' docstring note
+    on the equivalent parameter in festivals.py).
+
+    Only fetched when today's own sunrise tithi is 11 (Ekadashi) — the only
+    case _recurring_tithi_festivals actually consults it — so the other
+    ~26 days of every lunar month pay no extra ephemeris call or cache write
+    per request (a real cost: this doubles panchangam cache rows otherwise,
+    see tests/test_panchangam_api.py's cache-row-count assertions).
+    """
+    tithi_in_paksha = snapshot.tithi_number if snapshot.tithi_number <= 15 else snapshot.tithi_number - 15
+    if tithi_in_paksha != 11:
+        return None
+    try:
+        return calculate_daily_panchangam(
+            snapshot.date_local - timedelta(days=1),
+            snapshot.latitude,
+            snapshot.longitude,
+            snapshot.timezone_name,
+            session=session,
+        )
+    except Exception as exc:
+        logger.debug("Previous-day panchangam lookup failed for %s: %s", snapshot.date_local, exc)
+        return None
 
 
 def _build_tamil_date(snapshot) -> BiText | None:
@@ -167,6 +200,7 @@ def _build_special_tithi_day(snapshot) -> PanchangamSpecialTithiDay | None:
 
 def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = None) -> PanchangamDailyResponse:
     snapshot = calculate_daily_panchangam(query.date, query.lat, query.lng, query.timezone, session=session)
+    previous_day_snapshot = _previous_day_snapshot(snapshot, session)
 
     return PanchangamDailyResponse(
         data=PanchangamDailyResponseData(
@@ -215,7 +249,7 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
                 is_subha_strict=snapshot.is_subha_muhurtham_strict,
                 strict_reason=snapshot.subha_muhurtham_strict_reason,
             ),
-            festivals=_build_festivals(snapshot),
+            festivals=_build_festivals(snapshot, previous_day_snapshot=previous_day_snapshot),
             hora=[
                 PanchangamHoraEntry(
                     index=entry.index,
@@ -274,6 +308,7 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
 
 def calculate_panchangam_timings(query: PanchangamDailyQuery, session: Session | None = None) -> PanchangamTimingsResponse:
     snapshot = calculate_daily_panchangam(query.date, query.lat, query.lng, query.timezone, session=session)
+    previous_day_snapshot = _previous_day_snapshot(snapshot, session)
 
     return PanchangamTimingsResponse(
         data=PanchangamTimingsData(
@@ -294,7 +329,7 @@ def calculate_panchangam_timings(query: PanchangamDailyQuery, session: Session |
                 is_subha_strict=snapshot.is_subha_muhurtham_strict,
                 strict_reason=snapshot.subha_muhurtham_strict_reason,
             ),
-            festivals=_build_festivals(snapshot),
+            festivals=_build_festivals(snapshot, previous_day_snapshot=previous_day_snapshot),
             hora=[
                 PanchangamHoraEntry(
                     index=entry.index,
@@ -332,6 +367,12 @@ def build_monthly_panchangam(query: PanchangamMonthlyQuery, session: Session | N
     snapshots_by_date = calculate_daily_panchangam_range(
         first_day, last_day, query.lat, query.lng, query.timezone, session=session,
     )
+
+    # Ekadashi two-consecutive-sunrise dedup (WI-12) needs the prior civil
+    # day's snapshot. Only day 1 needs an extra ephemeris call (the last day
+    # of the previous month, outside this range) — every other day reuses
+    # the previous loop iteration's already-computed snapshot for free.
+    previous_snapshot = _previous_day_snapshot(snapshots_by_date[first_day], session)
 
     for day_number in range(1, days_in_month + 1):
         date_local = date(query.year, query.month, day_number)
@@ -380,6 +421,7 @@ def build_monthly_panchangam(query: PanchangamMonthlyQuery, session: Session | N
                     tithi_number=governing_tithi_number,
                     tithi_paksha=governing_tithi_paksha,
                     nakshatra_name=governing_nakshatra_name,
+                    previous_day_snapshot=previous_snapshot,
                 ),
                 is_tamil_muhurtham_day=date_local in almanac_muhurtham_dates,
                 is_subha_muhurtham=is_subha_muhurtham,
@@ -387,6 +429,7 @@ def build_monthly_panchangam(query: PanchangamMonthlyQuery, session: Session | N
                 is_karinaal=is_karinaal(date_local),
             )
         )
+        previous_snapshot = snapshot
 
     return PanchangamMonthlyResponse(
         data=PanchangamMonthlyData(
