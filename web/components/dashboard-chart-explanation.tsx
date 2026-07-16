@@ -21,20 +21,28 @@ import type {
 } from "@/lib/types";
 
 import { YogaDoshamPanel } from "./dashboard-yoga-dosham-panel";
+import {
+  type BiCopy,
+  type RelationshipTone,
+  type SectionId,
+  TAMIL_RASI_NAMES,
+  KENDRA_HOUSES,
+  TRIKONA_HOUSES,
+  DUSTHANA_HOUSES,
+  EXALTATION_RASI,
+  DEBILITATION_RASI,
+  MOOLATRIKONA_ZONE,
+  OWN_SIGN_RASI,
+  SIGN_LORD,
+  NATURAL_FRIENDS,
+  NATURAL_ENEMIES,
+  HOUSE_MEANING,
+  HOUSE_GROUP_COPY,
+  SECTION_META,
+} from "./dashboard-chart-explanation-data";
 
-type BiCopy = { ta: string; en: string };
-type RelationshipTone = "friendly" | "neutral" | "hostile";
-type SectionId =
-  | "basics"
-  | "activation"
-  | "positions"
-  | "conjunctions"
-  | "drishti"
-  | "houses"
-  | "functional"
-  | "yogas"
-  | "summary"
-  | "peyarchi";
+
+
 
 type ChartExplanationPanelProps = {
   lang: Lang;
@@ -53,193 +61,6 @@ type ChartExplanationPanelProps = {
    *  callers omit it and get the default. */
   renderYogaDoshamPanel?: (props: { lang: Lang; yogas: ChartYogaInsight[]; doshams: ChartDoshamInsight[] }) => ReactNode;
 };
-
-const TAMIL_RASI_NAMES: Record<number, string> = {
-  1: "மேஷம்",
-  2: "ரிஷபம்",
-  3: "மிதுனம்",
-  4: "கடகம்",
-  5: "சிம்மம்",
-  6: "கன்னி",
-  7: "துலாம்",
-  8: "விருச்சிகம்",
-  9: "தனுசு",
-  10: "மகரம்",
-  11: "கும்பம்",
-  12: "மீனம்",
-};
-
-const KENDRA_HOUSES = new Set([1, 4, 7, 10]);
-const TRIKONA_HOUSES = new Set([1, 5, 9]);
-const DUSTHANA_HOUSES = new Set([6, 8, 12]);
-
-const EXALTATION_RASI: Record<string, number> = {
-  SUN: 1,
-  MOON: 2,
-  MARS: 10,
-  MERCURY: 6,
-  JUPITER: 4,
-  VENUS: 12,
-  SATURN: 7,
-};
-
-const DEBILITATION_RASI: Record<string, number> = {
-  SUN: 7,
-  MOON: 8,
-  MARS: 4,
-  MERCURY: 12,
-  JUPITER: 10,
-  VENUS: 6,
-  SATURN: 1,
-};
-
-const MOOLATRIKONA_ZONE: Record<string, { rasi: number; start: number; end: number }> = {
-  SUN: { rasi: 5, start: 0, end: 20 },
-  MOON: { rasi: 2, start: 4, end: 30 },
-  MARS: { rasi: 1, start: 0, end: 12 },
-  MERCURY: { rasi: 6, start: 16, end: 20 },
-  JUPITER: { rasi: 9, start: 0, end: 10 },
-  VENUS: { rasi: 7, start: 0, end: 15 },
-  SATURN: { rasi: 11, start: 0, end: 20 },
-};
-
-const OWN_SIGN_RASI: Record<string, number[]> = {
-  SUN: [5],
-  MOON: [4],
-  MARS: [1, 8],
-  MERCURY: [3, 6],
-  JUPITER: [9, 12],
-  VENUS: [2, 7],
-  SATURN: [10, 11],
-  RAHU: [],
-  KETU: [],
-};
-
-const SIGN_LORD: Record<number, string> = {
-  1: "MARS",
-  2: "VENUS",
-  3: "MERCURY",
-  4: "MOON",
-  5: "SUN",
-  6: "MERCURY",
-  7: "VENUS",
-  8: "MARS",
-  9: "JUPITER",
-  10: "SATURN",
-  11: "SATURN",
-  12: "JUPITER",
-};
-
-const NATURAL_FRIENDS: Record<string, string[]> = {
-  SUN: ["MOON", "MARS", "JUPITER"],
-  MOON: ["SUN", "MERCURY"],
-  MARS: ["SUN", "MOON", "JUPITER"],
-  MERCURY: ["SUN", "VENUS"],
-  JUPITER: ["SUN", "MOON", "MARS"],
-  VENUS: ["MERCURY", "SATURN"],
-  SATURN: ["MERCURY", "VENUS"],
-  RAHU: ["VENUS", "SATURN"],
-  KETU: ["MARS", "VENUS"],
-};
-
-const NATURAL_ENEMIES: Record<string, string[]> = {
-  SUN: ["VENUS", "SATURN", "RAHU", "KETU"],
-  MOON: ["RAHU", "KETU"],
-  MARS: ["MERCURY", "RAHU"],
-  MERCURY: ["MOON"],
-  JUPITER: ["MERCURY", "VENUS", "RAHU", "KETU"],
-  VENUS: ["SUN", "MOON", "RAHU", "KETU"],
-  SATURN: ["SUN", "MOON", "MARS"],
-  RAHU: ["SUN", "MOON", "MARS", "JUPITER"],
-  KETU: ["SUN", "MOON", "JUPITER", "RAHU"],
-};
-
-const HOUSE_MEANING: Record<number, BiCopy> = {
-  1: { ta: "உடல், தன்மை, வாழ்க்கை திசை", en: "self, body, life direction" },
-  2: { ta: "குடும்பம், பேச்சு, பண அடித்தளம்", en: "family, speech, money base" },
-  3: { ta: "முயற்சி, துணிவு, தொடர்பு", en: "effort, courage, communication" },
-  4: { ta: "வீடு, மன அமைதி, சொத்து", en: "home, inner peace, property" },
-  5: { ta: "கல்வி, புத்தி, குழந்தைகள்", en: "learning, intelligence, children" },
-  6: { ta: "சேவை, பழக்கங்கள், ஒழுங்கு", en: "service, habits, discipline" },
-  7: { ta: "உறவுகள், கூட்டாண்மை", en: "relationships, partnership" },
-  8: { ta: "ஆழமான மாற்றம், ஆராய்ச்சி, கவனம்", en: "deep change, research, careful renewal" },
-  9: { ta: "தர்மம், ஆசீர்வாதம், உயர்கல்வி", en: "dharma, grace, higher learning" },
-  10: { ta: "தொழில், பொறுப்பு, வெளிப்படை செயல்", en: "career, responsibility, public work" },
-  11: { ta: "லாபம், நண்பர்கள், வலையமைப்பு", en: "gains, friends, networks" },
-  12: { ta: "ஓய்வு, வெளிநாடு, ஆன்மீக விடுவிப்பு", en: "rest, foreign links, spiritual release" },
-};
-
-const HOUSE_GROUP_COPY: Record<"kendra" | "trikona" | "dusthana" | "other", BiCopy> = {
-  kendra: {
-    ta: "கேந்திரம்: வாழ்க்கையின் முக்கிய தூண்கள். இங்கு உள்ள கிரகங்கள் வெளிப்படையாக வேலை செய்கின்றன.",
-    en: "Kendra: the main pillars of life. Planets here tend to act visibly.",
-  },
-  trikona: {
-    ta: "திரிகோணம்: திறமை, புண்ணியம், ஆதரவு. இங்கு உள்ள கிரகங்கள் வளர்ச்சிக்கான வழிகளை காட்டும்.",
-    en: "Trikona: talent, grace, support. Planets here point to growth channels.",
-  },
-  dusthana: {
-    ta: "துஷ்டானம்: கவனமும் திருத்தமும் தேவைப்படும் இடங்கள். நல்ல ஒழுங்கு இதை சமநிலைப்படுத்தும்.",
-    en: "Dusthana: areas needing care and refinement. Good routines help balance them.",
-  },
-  other: {
-    ta: "மற்ற வீடுகள்: சூழ்நிலைக்கு ஏற்ப விளைவு தரும் இடங்கள்.",
-    en: "Other houses: areas that work through context and timing.",
-  },
-};
-
-const SECTION_META: Array<{ id: SectionId; title: BiCopy; hint: BiCopy }> = [
-  {
-    id: "basics",
-    title: { ta: "ஜாதக அடிப்படை", en: "Chart Basics" },
-    hint: { ta: "லக்னம், சந்திரன், நடப்பு தசை", en: "Lagna, Moon, current Dasa" },
-  },
-  {
-    id: "activation",
-    title: { ta: "நடப்பு தசை செயல்பாடு", en: "Current Period Activation" },
-    hint: { ta: "தசை / புக்தி / அந்தரம் + கிரகநகர்வு", en: "Dasa / Bhukti / Antaram + transit" },
-  },
-  {
-    id: "positions",
-    title: { ta: "கிரக நிலைகள்", en: "Planet Positions" },
-    hint: { ta: "வீடு, ராசி, நட்சத்திரம், பலம்", en: "House, sign, nakshatra, strength" },
-  },
-  {
-    id: "conjunctions",
-    title: { ta: "ஒன்றாக நிற்கும் கிரகங்கள்", en: "Friends Standing Together" },
-    hint: { ta: "ஒரே ராசியில் உள்ள கூட்டங்கள்", en: "Groups sharing one sign" },
-  },
-  {
-    id: "drishti",
-    title: { ta: "திருஷ்டி / பார்வை", en: "Drishti / Aspects" },
-    hint: { ta: "7-ஆம் பார்வை மற்றும் கிரகநகர்விலான குரு/சனி பார்வை", en: "7th aspect and Guru/Sani transit aspects" },
-  },
-  {
-    id: "houses",
-    title: { ta: "கேந்திரம் / திரிகோணம் / துஷ்டானம்", en: "Kendra / Trikona / Dusthana" },
-    hint: { ta: "கிரகங்கள் எந்த வீட்டு குழுவில் உள்ளன", en: "Which house group each planet occupies" },
-  },
-  {
-    id: "functional",
-    title: { ta: "செயல்பாட்டு தன்மை", en: "Functional Nature" },
-    hint: { ta: "லக்னத்திற்கு கிரகத்தின் பங்கு", en: "Each planet's role for the Lagna" },
-  },
-  {
-    id: "yogas",
-    title: { ta: "யோகங்கள் / தோஷங்கள்", en: "Yogas / Doshams" },
-    hint: { ta: "ஏற்கனவே கணிக்கப்பட்ட யோக/தோஷ விளக்கம்", en: "Existing yoga and dosham interpretation" },
-  },
-  {
-    id: "summary",
-    title: { ta: "நன்மை / கவனச் சுருக்கம்", en: "Positive / Caution Summary" },
-    hint: { ta: "வலுவானது, ஆதரவு தேவைப்படுவது, நடைமுறை குறிப்பு", en: "Strongest, needs support, practical notes" },
-  },
-  {
-    id: "peyarchi",
-    title: { ta: "வரும் பெயர்ச்சி", en: "Upcoming Peyarchi" },
-    hint: { ta: "குரு, சனி, ராகு, கேது இந்த ஜாதகத்தில் தொடும் வீடுகள்", en: "Guru, Sani, Rahu, Ketu houses for this chart" },
-  },
-];
 
 function tx(copy: BiCopy, lang: Lang): string {
   return copy[lang];
