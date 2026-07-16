@@ -382,7 +382,10 @@ def detect_rahu_ketu_dosham(
         if d9_7th_lord in d9_rasi_map:
             d9_7th_lord_house = house_from_reference(d9_lagna_rasi, d9_rasi_map[d9_7th_lord])
             if d9_7th_lord_house in KENDRA_HOUSES | TRIKONA_HOUSES:
-                conditions_met.append("d9_seventh_lord_strong")
+                # Protective marker (L-4): a strong D9 7th lord is a
+                # cancellation signal, not a trigger — belongs under
+                # cancellation_factors, not conditions_met ("Triggered factors").
+                cancellation_factors.append("d9_seventh_lord_strong")
 
     if _planet_is_strong(planets, "VENUS", lagna_rasi) and venus_rasi not in {rahu_rasi, ketu_rasi}:
         cancellation_factors.append("strong_venus")
@@ -627,6 +630,15 @@ def detect_kalasarpa(
     planets: Mapping[str, PlanetInput],
     lagna_rasi: int | None = None,
 ) -> KalasarpaResult:
+    """Rasi-granular arc test (L-7, docs/ASTROLOGY_FULL_CODE_AUDIT_2026-07-16.md):
+    a planet is treated as "inside" the Rahu-Ketu arc based on whole-sign
+    distance alone. A planet in the same sign as a node but past its exact
+    degree is still counted inside the arc — degree-exact Kala Sarpa (the
+    stricter classical test some traditions use) isn't modeled here. This is
+    a documented simplification, not a decided ruling — AR-3 is the open
+    astrologer-review question on whether to switch to exact node/planet
+    longitudes when available.
+    """
     rahu_rasi = _planet_rasi(planets, "RAHU")
     ketu_rasi = _planet_rasi(planets, "KETU")
     planet_rasis = [_planet_rasi(planets, planet) for planet in SEVEN_PLANETS]
@@ -961,9 +973,16 @@ def detect_marana_karaka_sthana(
 def detect_putra_sarpa_dosham(planets: dict[str, int], lagna_rasi: int, planet_scores: dict[str, int]) -> DoshamResult:
     fifth_lord = _house_lord(lagna_rasi, 5)
     fifth_rasi = planets.get(fifth_lord, lagna_rasi)
+    fifth_house_rasi = ((lagna_rasi + 5 - 2) % 12) + 1
     afflicted = any(planets.get(p) == fifth_rasi for p in {"RAHU", "KETU", "SATURN"})
+    # Nodes/Saturn occupying the 5th house itself, not just conjunct its lord
+    # elsewhere (L-5) — the dosham's own description promises "5th house …
+    # afflicted", which the lord-conjunction check alone doesn't cover.
+    fifth_house_occupied_by_malefic = any(
+        planets.get(p) == fifth_house_rasi for p in {"RAHU", "KETU", "SATURN"}
+    )
     guru_afflicted = any(planets.get(p) == planets.get("JUPITER") for p in {"RAHU", "KETU"})
-    present = afflicted or guru_afflicted
+    present = afflicted or fifth_house_occupied_by_malefic or guru_afflicted
     cancellation = []
     if planet_scores.get(fifth_lord, 50) >= 65:
         cancellation.append("strong_fifth_lord")
@@ -986,7 +1005,9 @@ def detect_putra_sarpa_dosham(planets: dict[str, int], lagna_rasi: int, planet_s
     return DoshamResult(
         name="PUTRA_SARPA_DOSHAM",
         is_present=present,
-        is_cancelled=bool(cancellation),
+        # is_cancelled must never be True when is_present is False (L-5) —
+        # there's nothing to cancel if the dosham was never triggered.
+        is_cancelled=present and bool(cancellation),
         strength="STRONG" if label == "STRONG_ACTIVE_DOSHAM" else ("PARTIAL" if present else "WEAK"),
         label=label,
         category="CHILDREN",

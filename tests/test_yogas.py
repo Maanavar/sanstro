@@ -20,7 +20,56 @@ from app.calculations.yogas import (
     detect_sevvai_dosham,
     detect_sunapha_anapha_durudhura,
     detect_vasumati_yoga,
+    detect_vipareetha_raja,
 )
+
+# ── M-4: Vipareetha Raja Yoga must fire on own-dusthana placements too ───────
+# (docs/ASTROLOGY_FULL_CODE_AUDIT_2026-07-16.md) — Harsha (6th lord in 6th),
+# Sarala (8th lord in 8th), Vimala (12th lord in 12th). Lagna=1 (Mesha):
+# 6th=Virgo/Mercury, 8th=Scorpio/Mars, 12th=Pisces/Jupiter.
+
+
+def _vry_base_planets(**overrides: int) -> dict[str, int]:
+    planets = {
+        "SUN": 5, "MOON": 4, "MARS": 1, "MERCURY": 3,
+        "JUPITER": 9, "VENUS": 2, "SATURN": 10, "RAHU": 11, "KETU": 5,
+    }
+    planets.update(overrides)
+    return planets
+
+
+def test_vry_harsha_sixth_lord_in_own_sixth():
+    planets = _vry_base_planets(MERCURY=6)  # Mercury (6th lord) in Virgo (6th)
+    result = detect_vipareetha_raja(planets, lagna_rasi=1)
+    assert result.is_present is True
+    assert "mercury_lord_of_6_in_6" in result.conditions_met
+
+
+def test_vry_sarala_eighth_lord_in_own_eighth():
+    planets = _vry_base_planets(MARS=8)  # Mars (8th lord) in Scorpio (8th)
+    result = detect_vipareetha_raja(planets, lagna_rasi=1)
+    assert result.is_present is True
+    assert "mars_lord_of_8_in_8" in result.conditions_met
+
+
+def test_vry_vimala_twelfth_lord_in_own_twelfth():
+    planets = _vry_base_planets(JUPITER=12)  # Jupiter (12th lord) in Pisces (12th)
+    result = detect_vipareetha_raja(planets, lagna_rasi=1)
+    assert result.is_present is True
+    assert "jupiter_lord_of_12_in_12" in result.conditions_met
+
+
+def test_vry_still_fires_on_cross_dusthana_placement():
+    planets = _vry_base_planets(MERCURY=8)  # 6th lord in 8th (cross-dusthana)
+    result = detect_vipareetha_raja(planets, lagna_rasi=1)
+    assert result.is_present is True
+    assert "mercury_lord_of_6_in_8" in result.conditions_met
+
+
+def test_vry_absent_when_no_dusthana_lord_in_dusthana():
+    planets = _vry_base_planets()
+    result = detect_vipareetha_raja(planets, lagna_rasi=1)
+    assert result.is_present is False
 
 
 def test_t090_sevvai_dosham_detection():
@@ -575,6 +624,89 @@ def test_new_doshams_kalathra_putra_badhaka():
 
     badhaka = detect_badhaka_dosham({"SATURN": 1, "MOON": 1, "MARS": 1}, lagna_rasi=1, planet_scores={"SATURN": 20}, current_maha_lord="SATURN")
     assert badhaka.is_present is True
+
+
+# ── Batch A: dosham presentational fixes ─────────────────────────────────────
+
+def test_l4_d9_seventh_lord_strong_is_a_cancellation_not_a_trigger():
+    """L-4: d9_seventh_lord_strong is a protective marker and must render
+    under cancellation_factors, never under conditions_met ("Triggered
+    factors")."""
+    from app.calculations.yogas import detect_rahu_ketu_dosham
+
+    planets = {"RAHU": 1, "KETU": 7, "VENUS": 5, "JUPITER": 3}
+    result = detect_rahu_ketu_dosham(
+        planets,
+        lagna_rasi=1,
+        d9_rasi_map={"VENUS": 1},  # D9 7th lord (Venus, for D9 lagna=1) in D9 kendra
+        d9_lagna_rasi=1,
+    )
+    assert result.is_present is True
+    assert "d9_seventh_lord_strong" in result.cancellation_factors
+    assert "d9_seventh_lord_strong" not in result.conditions_met
+
+
+def test_l5_putra_sarpa_flags_nodes_occupying_fifth_house_itself():
+    """L-5: nodes/Saturn sitting IN the 5th house must trigger the dosham,
+    not only when conjunct the 5th lord's placement elsewhere."""
+    # Lagna=1 -> 5th lord is Sun (Leo). Sun sits in the 9th (not conjunct
+    # Rahu), but Rahu occupies the 5th house itself.
+    planets = {"SUN": 9, "RAHU": 5, "JUPITER": 8}
+    result = detect_putra_sarpa_dosham(planets, lagna_rasi=1, planet_scores={"SUN": 70})
+    assert result.is_present is True
+
+
+def test_l5_putra_sarpa_never_cancelled_when_not_present():
+    """L-5: is_cancelled must never be True while is_present is False."""
+    # Lagna=1 -> 5th lord Sun at rasi 9 (not the 5th house, rasi 5). Nodes
+    # avoid both Sun's rasi (9) and the 5th house itself (5); Jupiter isn't
+    # conjunct either node — nothing affronts the 5th.
+    planets = {"SUN": 9, "JUPITER": 1, "RAHU": 3, "KETU": 11}
+    result = detect_putra_sarpa_dosham(planets, lagna_rasi=1, planet_scores={"SUN": 70})
+    assert result.is_present is False
+    assert result.is_cancelled is False
+
+
+# ── Batch B: yoga completeness fixes ──────────────────────────────────────────
+
+def test_l2_parivartana_second_eleventh_exchange_grades_maha():
+    """L-2: a 2nd<->11th (dhana/labha) sign exchange must grade MAHA/STRONG,
+    not KAHALA/WEAK — Maha-parivartana houses are kendra+trikona+{2,11}."""
+    from app.calculations.yogas import detect_parivartana
+
+    # Lagna=1 -> 2nd house is Taurus (Venus), 11th house is Aquarius (Saturn).
+    # Venus in Aquarius, Saturn in Taurus: mutual sign exchange.
+    planets = {"VENUS": 11, "SATURN": 2}
+    results = detect_parivartana(planets, lagna_rasi=1)
+    assert len(results) == 1
+    assert results[0].sub_type == "MAHA"
+
+
+def test_l3_raja_yoga_detects_kendra_lord_special_aspect_onto_trikona_lord():
+    """L-3: the trikona<->kendra link must also fire when only the KENDRA
+    lord casts a special aspect (Mars/Jupiter/Saturn) onto the trikona
+    lord — not only the reverse direction."""
+    # Lagna=1: Sun (5th/trikona lord) at rasi 5; Saturn (10th/kendra lord) at
+    # rasi 8. Saturn's 10th-house special aspect (count 10 from rasi 8) lands
+    # on rasi 5, but Sun (no special aspect, default 7th only) does not
+    # aspect back — the pre-fix trikona-lord-only check would have missed
+    # this pair entirely.
+    planets = {"SUN": 5, "SATURN": 8, "MARS": 6, "MOON": 6, "VENUS": 6, "JUPITER": 6}
+    results = detect_raja_yoga(planets, lagna_rasi=1)
+    assert any(r.is_present and "SUN_SATURN_link" in r.conditions_met for r in results)
+
+
+def test_l6_daridra_conditions_met_reflects_only_fired_triggers():
+    """L-6: conditions_met must list only the trigger(s) that actually fired,
+    not both trigger strings whenever either condition is true."""
+    # Lagna=1 -> 11th lord is Saturn (Aquarius). Placed in the 6th (dusthana)
+    # but strong (score 70, >=40), so only in_dusthana fires, not
+    # weak+malefic-conjunct.
+    dusthana_only_planets = {"SATURN": 6}
+    result = detect_daridra_yoga(dusthana_only_planets, lagna_rasi=1, planet_scores={"SATURN": 70})
+    assert result.is_present is True
+    assert result.conditions_met == ["eleventh_lord_in_6"]
+    assert "eleventh_lord_weak_malefic_conj" not in result.conditions_met
 
 
 # ─── D-05: Pancha Mahapurusha + Raja Yoga coverage ───────────────────────────

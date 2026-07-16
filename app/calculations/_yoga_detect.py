@@ -116,7 +116,16 @@ def detect_raja_yoga(
                 continue
             trikona_rasi = _planet_rasi(planets, trikona_lord)
             kendra_rasi = _planet_rasi(planets, kendra_lord)
-            if trikona_rasi == kendra_rasi or aspects_house(trikona_lord, trikona_rasi, kendra_rasi):
+            # L-3: the link is bidirectional — a kendra lord's special aspect
+            # (Mars/Jupiter/Saturn) onto the trikona lord counts too, not
+            # only the trikona-lord-to-kendra-lord direction. Conjunction
+            # and the plain 7th aspect are already symmetric; this only
+            # matters for the asymmetric special aspects.
+            if (
+                trikona_rasi == kendra_rasi
+                or aspects_house(trikona_lord, trikona_rasi, kendra_rasi)
+                or aspects_house(kendra_lord, kendra_rasi, trikona_rasi)
+            ):
                 strength, gate_notes = gate_yoga_strength(
                     "STRONG", (trikona_lord, kendra_lord), planet_scores, combust_planets
                 )
@@ -342,7 +351,12 @@ def detect_vipareetha_raja(
             continue
         lord_rasi = _planet_rasi(planets, lord)
         lord_house = house_from_reference(lagna_rasi, lord_rasi)
-        if lord_house in dusthana and lord_house != house_num:
+        # Own-dusthana (lord_house == house_num) counts too (M-4): the
+        # 6th/8th/12th lord in its own house is exactly the canonical
+        # Harsha/Sarala/Vimala yogas, not just cross-dusthana placements —
+        # this project follows the inclusive school rather than gating
+        # own-house on strength.
+        if lord_house in dusthana:
             conditions.append(f"{lord.lower()}_lord_of_{house_num}_in_{lord_house}")
     present = len(conditions) > 0
     return YogaResult(
@@ -361,7 +375,11 @@ def detect_parivartana(
     planets: Mapping[str, PlanetInput],
     lagna_rasi: int,
 ) -> list[ParivartanaResult]:
-    kendra_trikona = {1, 4, 5, 7, 9, 10}
+    # Maha-parivartana houses (L-2): classical Maha grade is a dhana-house
+    # exchange — kendra {1,4,7,10}, trikona {1,5,9}, PLUS the 2nd and 11th
+    # (dhana/labha) — not kendra/trikona alone. A 2<->11 exchange must grade
+    # MAHA/STRONG, not KAHALA/WEAK.
+    maha_houses = {1, 2, 4, 5, 7, 9, 10, 11}
     dusthana = {6, 8, 12}
     results: list[ParivartanaResult] = []
     planet_list = [p for p in ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN") if p in planets]
@@ -371,7 +389,7 @@ def detect_parivartana(
         if SIGN_LORD.get(p1_rasi) == p2 and SIGN_LORD.get(p2_rasi) == p1:
             p1_house = house_from_reference(lagna_rasi, p1_rasi)
             p2_house = house_from_reference(lagna_rasi, p2_rasi)
-            both_kt = p1_house in kendra_trikona and p2_house in kendra_trikona
+            both_kt = p1_house in maha_houses and p2_house in maha_houses
             either_dusthana = p1_house in dusthana or p2_house in dusthana
             if both_kt:
                 sub_type = "MAHA"
@@ -662,12 +680,21 @@ def detect_daridra_yoga(planets: dict[str, int], lagna_rasi: int, planet_scores:
     malefic_conj = any(
         planets.get(m) == eleventh_rasi for m in NATURAL_MALEFICS if m != eleventh_lord
     )
-    present = eleventh_house in {6, 8, 12} or (weak and malefic_conj)
+    in_dusthana = eleventh_house in {6, 8, 12}
+    weak_malefic_conj = weak and malefic_conj
+    present = in_dusthana or weak_malefic_conj
+    # L-6: list only the condition(s) that actually fired, not both strings
+    # unconditionally whenever either one is true.
+    conditions_met: list[str] = []
+    if in_dusthana:
+        conditions_met.append(f"eleventh_lord_in_{eleventh_house}")
+    if weak_malefic_conj:
+        conditions_met.append("eleventh_lord_weak_malefic_conj")
     return YogaResult(
         name="DARIDRA_YOGA",
         is_present=present,
-        strength="STRONG" if present and eleventh_house in {6, 8, 12} else ("PARTIAL" if present else "WEAK"),
-        conditions_met=[f"eleventh_lord_in_{eleventh_house}", "eleventh_lord_weak_malefic_conj"] if present else [],
+        strength="STRONG" if present and in_dusthana else ("PARTIAL" if present else "WEAK"),
+        conditions_met=conditions_met,
         cancellation_factors=[],
         dasha_activated=False,
         description_ta="தரித்ர யோகம் — 11ஆம் அதிபதி துஷ்டானத்தில்/பலஹீனம்.",
