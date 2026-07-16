@@ -366,6 +366,90 @@ def _owner_aggregate_member(
     )
 
 
+def _owner_day_view(
+    session: Session,
+    owner_user_id: UUID,
+    on_date: date,
+) -> "FamilyMemberDayView | None":
+    """Build a FamilyMemberDayView for the vault owner's own personal profile.
+
+    Mirrors _owner_aggregate_member: the owner's personal birth profile
+    (family_member_id IS NULL) is not a FamilyMember row, so the members loop in
+    get_family_vault_today never emits a card for it — which left the owner's own
+    tile in the Family grid with no day highlight while every managed member had
+    one. Returns None when the owner has no personal profile or valid chart.
+
+    memberId is set to the birth_profile_id (not a family_member_id) so it lines
+    up with _owner_aggregate_member's familyMemberId — the web grid matches the
+    today highlight to the aggregate row on that id and flags it as "You".
+    """
+    birth_profile = session.execute(
+        select(BirthProfile)
+        .where(
+            BirthProfile.owner_user_id == owner_user_id,
+            BirthProfile.family_member_id.is_(None),
+            BirthProfile.deleted_at.is_(None),
+        )
+        .order_by(BirthProfile.created_at.asc())
+    ).scalars().first()
+    if birth_profile is None:
+        return None
+    try:
+        chart = _latest_chart(session, birth_profile)
+        chart_snapshot = load_persisted_chart_response(session, chart.chart_id)
+    except HTTPException:
+        return None
+    daily_location = resolve_effective_daily_location(birth_profile)
+    panchangam = calculate_daily_panchangam(
+        on_date,
+        daily_location.latitude,
+        daily_location.longitude,
+        daily_location.timezone,
+        session=session,
+    )
+    solar_noon_utc = panchangam.solar_noon.astimezone(UTC)
+    current_jd = utc_datetime_to_julian_day(solar_noon_utc)
+    transit_snapshot = calculate_sidereal_planets(current_jd)
+    midnight_jd = local_midnight_as_jd_for_profile(on_date, birth_profile)
+    midnight_snapshot = calculate_sidereal_planets(midnight_jd)
+    daily_guidance = build_daily_guidance_response(
+        chart_snapshot,
+        on_date,
+        panchangam=panchangam,
+        transit_snapshot=transit_snapshot,
+    )
+    gochar = build_transit_snapshot(chart_snapshot, solar_noon_utc, current_snapshot=transit_snapshot)
+    sani_cycle = build_sani_cycle_response(chart_snapshot, on_date, saturn_snapshot=midnight_snapshot)
+
+    label = daily_guidance.data.label
+    highlight = _SCORE_HIGHLIGHT.get(label, _SCORE_HIGHLIGHT["BALANCED"])
+    sani_active = sani_cycle.data.moon_based_cycle.is_active or sani_cycle.data.lagna_based_cycle.is_active
+    sani_type = (
+        sani_cycle.data.moon_based_cycle.type
+        if sani_cycle.data.moon_based_cycle.is_active
+        else (sani_cycle.data.lagna_based_cycle.type if sani_cycle.data.lagna_based_cycle.is_active else None)
+    )
+    nalla_neram_start = daily_guidance.data.best_windows[0].start if daily_guidance.data.best_windows else "N/A"
+
+    return FamilyMemberDayView(
+        memberId=birth_profile.birth_profile_id,
+        profileId=birth_profile.birth_profile_id,
+        chartId=chart.chart_id,
+        name=birth_profile.display_name,
+        relationship="self",
+        score=daily_guidance.data.score,
+        label=label,
+        highlightTa=highlight["ta"],
+        highlightEn=highlight["en"],
+        chandrashtama=gochar.data.is_chandrashtama,
+        saniCycleActive=sani_active,
+        saniCycleType=sani_type,
+        nallaNeramStart=nalla_neram_start,
+        rahuKalamStart=panchangam.rahu_kalam.start.strftime("%H:%M"),
+        rahuKalamEnd=panchangam.rahu_kalam.end.strftime("%H:%M"),
+    )
+
+
 def _family_label(score: int) -> str:
     if score >= 80:
         return "STRONG_FAMILY_DAY"
@@ -1431,7 +1515,7 @@ def get_family_vault_today(
     FEATURE-04: Combined today view for all members in a family vault.
     Calls the existing score engine for each member and assembles a concise per-member card.
     """
-    _load_family_vault(session, family_vault_id)
+    family_vault = _load_family_vault(session, family_vault_id)
 
     members = session.execute(
         select(FamilyMember)
@@ -1443,6 +1527,14 @@ def get_family_vault_today(
     ).scalars().all()
 
     day_views: list[FamilyMemberDayView] = []
+    # Owner's own profile first — it's not a FamilyMember row, so without this the
+    # owner's grid tile had a score but no day highlight (unlike every managed
+    # member). Mirrors _owner_aggregate_member prepending the owner to the score
+    # aggregate; the web grid sorts owner-first anyway.
+    owner_day_view = _owner_day_view(session, family_vault.owner_user_id, on_date)
+    if owner_day_view is not None:
+        day_views.append(owner_day_view)
+
     for member in members:
         try:
             snapshot = _member_snapshot(session, member, on_date)

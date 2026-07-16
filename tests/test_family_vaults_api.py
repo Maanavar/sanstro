@@ -349,6 +349,48 @@ def test_deleting_member_profile_does_not_break_family_summary_or_calendar(
     assert len(calendar.json()["data"]["items"]) == 2
 
 
+def test_family_vault_today_includes_owner_with_highlight(
+    client,
+    birth_profile_payload_factory,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+):
+    """The /today view must include the vault owner's own profile with a day
+    highlight, not just the managed FamilyMember rows. Before the owner day-view
+    fix the owner's grid tile showed a score but no guidance line, unlike every
+    other member."""
+    # Owner's own personal profile (family_member_id IS NULL) — created via the
+    # birth-profiles endpoint, exactly the row _owner_day_view looks up.
+    owner = client.post(
+        "/api/v1/birth-profiles",
+        json=birth_profile_payload_factory(display_name="Owner Self"),
+    )
+    assert owner.status_code == 200
+
+    vault = client.post("/api/v1/family-vaults", json=family_vault_payload_factory())
+    assert vault.status_code == 200
+    vault_id = vault.json()["data"]["familyVaultId"]
+
+    member = client.post(
+        f"/api/v1/family-vaults/{vault_id}/members",
+        json=family_member_payload_factory(display_name="Anitha", relationship_to_owner="spouse"),
+    )
+    assert member.status_code == 200
+
+    today = client.get(f"/api/v1/family-vaults/{vault_id}/today", params={"date": "2026-05-21"})
+    assert today.status_code == 200
+    members = today.json()["data"]["members"]
+
+    # Owner ("self") appears alongside the managed member...
+    relationships = [m["relationship"] for m in members]
+    assert "self" in relationships
+    assert "spouse" in relationships
+    # ...and every card, owner included, carries a non-empty bilingual highlight.
+    assert all(m["highlightEn"] and m["highlightTa"] for m in members)
+    owner_view = next(m for m in members if m["relationship"] == "self")
+    assert owner_view["displayName"] == "Owner Self"
+
+
 def test_delete_family_vault_soft_deletes_row(client, family_vault_payload_factory):
     vault = client.post("/api/v1/family-vaults", json=family_vault_payload_factory("Soft Delete Vault"))
     assert vault.status_code == 200
