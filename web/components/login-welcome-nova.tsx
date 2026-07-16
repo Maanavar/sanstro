@@ -85,12 +85,22 @@ function pt(r: number, deg: number): [number, number] {
 export function LoginWelcomeNova({
   onDone,
   firstTime = false,
+  grand = false,
+  milestoneLabel,
 }: {
   onDone: () => void;
   /** True when the account has no birth chart yet (heading to setup) — a genuine
    *  first arrival, not a return. Shifts the greeting so we don't tell a brand-new
    *  user "Welcome back" / "Casting today's sky" when we have no sky to cast. */
   firstTime?: boolean;
+  /** UXD-21 — reserve the biggest animation for the biggest moments. A grand
+   *  arrival (a genuine first login, or a milestone) layers a radiant ray-burst +
+   *  aurora shimmer over the wheel and holds a beat longer; routine returns keep
+   *  the calmer standard reveal so the grand one stands out. */
+  grand?: boolean;
+  /** Optional caption shown under the greeting on grand arrivals, e.g. "Your
+   *  first chart" or "30-day streak". */
+  milestoneLabel?: string;
 }) {
   const reduce = useReducedMotion() ?? false;
   const [leaving, setLeaving] = useState(false);
@@ -137,12 +147,13 @@ export function LoginWelcomeNova({
     window.setTimeout(finish, reduce ? 320 : 520);
   }, [finish, reduce]);
 
-  // Auto-advance after the wheel has settled.
+  // Auto-advance after the wheel has settled. A grand arrival lingers a beat
+  // longer so the extra flourish has room to breathe.
   useEffect(() => {
-    const hold = reduce ? 480 : 2050;
+    const hold = reduce ? 480 : grand ? 2650 : 2050;
     const t = window.setTimeout(beginExit, hold);
     return () => window.clearTimeout(t);
-  }, [beginExit, reduce]);
+  }, [beginExit, reduce, grand]);
 
   // Skip on key press.
   useEffect(() => {
@@ -290,6 +301,25 @@ export function LoginWelcomeNova({
             {/* Soft glow behind the hub, breathing. */}
             <circle cx={CX} cy={CY} r={64} fill="url(#lwn-hub-glow)" className="lwn-breathe" />
 
+            {/* Grand arrivals only — a radiant ray-burst blooms from the hub so the
+                biggest moments read as bigger (UXD-21). Reduced-motion drops it. */}
+            {grand && !reduce && (
+              <motion.g
+                initial={{ opacity: 0, scale: 0.6 }}
+                animate={{ opacity: [0, 0.85, 0.42], scale: [0.6, 1.14, 1] }}
+                transition={{ duration: 1.7, delay: 0.75, ease: EASE_NOVA, times: [0, 0.6, 1] }}
+                style={{ transformBox: "fill-box", transformOrigin: "center" }}
+              >
+                {Array.from({ length: 24 }, (_, i) => {
+                  const [x1, y1] = pt(24, i * 15);
+                  const [x2, y2] = pt(i % 2 ? 106 : 94, i * 15);
+                  return (
+                    <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={accent} strokeWidth={i % 2 ? 0.7 : 1.2} strokeLinecap="round" opacity={0.5} />
+                  );
+                })}
+              </motion.g>
+            )}
+
             {/* Outer ring of 27 nakshatra dots — slowly, endlessly turning. */}
             <motion.g className="lwn-spin" variants={dotsParent} initial="hidden" animate="show">
               {Array.from({ length: NAKSHATRA_COUNT }, (_, i) => {
@@ -436,6 +466,30 @@ export function LoginWelcomeNova({
           >
             {subtitle}
           </div>
+          {grand && milestoneLabel && (
+            <motion.div
+              initial={{ opacity: 0, scale: reduce ? 1 : 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: d(0.5), delay: delay(1.3), ease: EASE_NOVA }}
+              style={{
+                marginTop: 14,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 16px",
+                borderRadius: 999,
+                fontSize: "0.8rem",
+                fontWeight: 600,
+                letterSpacing: "0.02em",
+                color: glyphFill,
+                background: "rgba(255,255,255,0.06)",
+                border: `1px solid ${ringStroke}`,
+                boxShadow: `0 2px 18px ${accent}55`,
+              }}
+            >
+              ✦ {milestoneLabel}
+            </motion.div>
+          )}
         </motion.div>
 
         {/* Skip hint */}

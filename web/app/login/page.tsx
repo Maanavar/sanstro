@@ -12,42 +12,27 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { track } from "@/lib/analytics";
+import { estimatePasswordStrength } from "@/lib/password-strength";
 import { getAuthProviders } from "@vinaadi/shared/api/auth";
 import "@/lib/api"; // side effect: initializes the shared API client used by getAuthProviders
 import { GuestChartModal } from "@/components/dashboard-guest-chart-modal";
 import { LoginWelcomeNova } from "@/components/login-welcome-nova";
+import { Eye, EyeOff, Check, Mail } from "lucide-react";
+import "./login.css";
 
 type Mode = "login" | "signup" | "forgot" | "reset";
 
+/* Auth glyphs — lucide (SHD-02). */
 function EyeIcon({ open }: { open: boolean }) {
-  return open ? (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-      <circle cx="12" cy="12" r="3"/>
-    </svg>
-  ) : (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-      <line x1="1" y1="1" x2="23" y2="23"/>
-    </svg>
-  );
+  return open ? <Eye size={18} aria-hidden="true" /> : <EyeOff size={18} aria-hidden="true" />;
 }
 
 function CheckIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12"/>
-    </svg>
-  );
+  return <Check size={20} strokeWidth={2.5} aria-hidden="true" />;
 }
 
 function MailIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-      <polyline points="22,6 12,13 2,6"/>
-    </svg>
-  );
+  return <Mail size={20} aria-hidden="true" />;
 }
 
 function isValidEmail(email: string): boolean {
@@ -59,10 +44,10 @@ function isStrongPassword(pw: string): boolean {
 }
 
 const leftPanelFeatures = [
-  { icon: "◎", text: "Thirukanitham accuracy — Lahiri ayanamsa, Drik ephemeris" },
-  { icon: "☽", text: "Daily Dasa, Gochar & Panchangam in plain language" },
-  { icon: "⊕", text: "Family vault — group charts, shared fortune windows" },
-  { icon: "✦", text: "Yogas & Dosham explained transparently, not just a verdict" },
+  { text: "Thirukanitham accuracy — Lahiri ayanamsa, Drik ephemeris" },
+  { text: "Daily Dasa, Gochar & Panchangam in plain language" },
+  { text: "Family vault — group charts, shared fortune windows" },
+  { text: "Yogas & Dosham explained transparently, not just a verdict" },
 ];
 
 export default function LoginPage() {
@@ -245,600 +230,14 @@ export default function LoginPage() {
     : mode === "reset" ? "Choose a new password for your account"
     : "We'll send a reset link to your email";
 
-  /* Password strength level 0-4 */
-  const pwStrength = password.length < 1 ? 0 : password.length < 8 ? 1 : password.length < 12 ? 2 : password.length < 16 ? 3 : 4;
-  const pwStrengthLabel = ["", "Weak", "Fair", "Good", "Strong"][pwStrength];
+  /* Password strength 0-4 — entropy-aware (UXD-22), not length-only. */
+  const pwStrengthResult = estimatePasswordStrength(password, "en");
+  const pwStrength = pwStrengthResult.score;
+  const pwStrengthLabel = pwStrengthResult.label;
   const pwStrengthColor = ["", "var(--planet-saturn)", "var(--chart-d1-active)", "var(--chart-d9-active)", "var(--chart-d9-active-dark)"][pwStrength];
 
   return (
     <>
-      <style>{`
-        /* ── Clarity Auth — warm cream design system ── */
-        .ca-root {
-          min-height: 100vh;
-          display: flex;
-          background: var(--panel-hover);
-          font-family: var(--font-body), var(--font-tamil), system-ui, sans-serif;
-          color: var(--panel-earth);
-        }
-
-        /* ── Left branding panel (desktop ≥1024px) ── */
-        .ca-left {
-          display: none;
-          width: 420px;
-          flex-shrink: 0;
-          flex-direction: column;
-          justify-content: space-between;
-          padding: 48px 52px;
-          background: var(--cl-bg-2);
-          border-right: 1px solid var(--panel-tan-light);
-          position: relative;
-          overflow: hidden;
-        }
-        .ca-left::before {
-          content: '';
-          position: absolute;
-          top: -100px;
-          right: -80px;
-          width: 340px;
-          height: 340px;
-          border-radius: 50%;
-          background: radial-gradient(circle, var(--glow-brand) 0%, transparent 70%);
-          pointer-events: none;
-        }
-        .ca-left::after {
-          content: '';
-          position: absolute;
-          bottom: -60px;
-          left: -60px;
-          width: 260px;
-          height: 260px;
-          border-radius: 50%;
-          background: radial-gradient(circle, var(--ring-success) 0%, transparent 70%);
-          pointer-events: none;
-        }
-        @media (min-width: 1024px) {
-          .ca-left { display: flex; }
-          .ca-right { padding: 32px 64px; }
-          .ca-card-brand { display: none; }
-        }
-
-        .ca-left-brand {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          position: relative;
-          z-index: 1;
-        }
-        .ca-brand-link {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          text-decoration: none;
-        }
-        .ca-brand-icon-lg {
-          width: 36px;
-          height: 36px;
-        }
-        .ca-brand-icon-sm {
-          width: 24px;
-          height: 24px;
-        }
-        .ca-left-wordmark {
-          font-family: var(--font-display), Georgia, serif;
-          font-size: 1.75rem;
-          font-weight: 500;
-          letter-spacing: -0.03em;
-          color: var(--panel-earth-dark);
-          line-height: 1;
-          margin: 0;
-          text-decoration: none;
-        }
-        .ca-left-wordmark:hover { color: var(--panel-earth); }
-        .ca-left-tagline {
-          margin: 8px 0 0;
-          font-size: 0.83rem;
-          color: var(--panel-warm-muted);
-          line-height: 1.6;
-          max-width: 300px;
-        }
-
-        .ca-left-headline {
-          position: relative;
-          z-index: 1;
-          font-family: var(--font-display), Georgia, serif;
-          font-size: clamp(2rem, 3vw, 2.5rem);
-          font-weight: 500;
-          letter-spacing: -0.04em;
-          line-height: 1.05;
-          color: var(--panel-earth-dark);
-          margin: 0 0 8px;
-        }
-        .ca-left-headline em {
-          font-style: italic;
-          color: var(--panel-warm-muted);
-        }
-
-        .ca-left-features {
-          list-style: none;
-          margin: 0;
-          padding: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          position: relative;
-          z-index: 1;
-        }
-        .ca-left-feature {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-        }
-        .ca-left-feature-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: var(--chart-d1-active);
-          flex-shrink: 0;
-          margin-top: 0.45em;
-        }
-        .ca-left-feature-text {
-          margin: 0;
-          font-size: 0.84rem;
-          color: var(--panel-earth);
-          line-height: 1.55;
-        }
-
-        .ca-left-back {
-          font-size: 0.78rem;
-          color: var(--panel-faint);
-          text-decoration: none;
-          position: relative;
-          z-index: 1;
-          transition: color 150ms ease;
-        }
-        .ca-left-back:hover { color: var(--panel-earth-dark); }
-
-        /* ── Right form panel ── */
-        .ca-right {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 24px 20px;
-          position: relative;
-        }
-
-        /* Subtle decorative arc behind the form */
-        .ca-right::before {
-          content: '';
-          position: absolute;
-          top: -200px;
-          right: -200px;
-          width: 600px;
-          height: 600px;
-          border-radius: 50%;
-          border: 1px solid var(--panel-tan-light);
-          pointer-events: none;
-          opacity: 0.5;
-        }
-
-        .ca-card {
-          width: min(440px, 100%);
-          background: var(--cl-surface);
-          border: 1px solid var(--panel-tan-light);
-          border-radius: 24px;
-          padding: 36px 32px 28px;
-          display: flex;
-          flex-direction: column;
-          gap: 24px;
-          box-shadow: 0 8px 40px var(--shadow-card);
-          position: relative;
-          z-index: 1;
-        }
-
-        /* Mobile brand shown inside card */
-        .ca-card-brand {
-          display: flex;
-          align-items: center;
-          gap: 9px;
-          margin-bottom: 4px;
-          text-decoration: none;
-        }
-        .ca-card-brand-wordmark {
-          font-family: var(--font-display), Georgia, serif;
-          font-size: 1.35rem;
-          font-weight: 500;
-          letter-spacing: -0.02em;
-          color: var(--panel-earth-dark);
-          transition: color 150ms ease;
-        }
-        .ca-card-brand:hover .ca-card-brand-wordmark { color: var(--panel-warm-muted); }
-
-        /* Card heading */
-        .ca-heading {
-          margin: 0 0 4px;
-          font-family: var(--font-display), Georgia, serif;
-          font-size: 1.6rem;
-          font-weight: 500;
-          letter-spacing: -0.03em;
-          color: var(--panel-earth-dark);
-          line-height: 1.1;
-        }
-        .ca-subheading {
-          margin: 0;
-          font-size: 0.85rem;
-          color: var(--panel-warm-muted);
-          line-height: 1.5;
-        }
-
-        /* Google SSO button + divider */
-        .ca-google-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          width: 100%;
-          padding: 11px 16px;
-          border-radius: 999px;
-          border: 1.5px solid var(--panel-tan);
-          background: var(--cl-surface);
-          color: var(--panel-earth-dark);
-          font-size: 0.87rem;
-          font-weight: 600;
-          font-family: inherit;
-          text-decoration: none;
-          cursor: pointer;
-          min-height: 44px;
-          transition: border-color 150ms ease, background 150ms ease;
-        }
-        .ca-google-btn:hover {
-          border-color: var(--chart-d1-active);
-          background: var(--veil-white-50);
-        }
-        .ca-divider {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin: -4px 0;
-          font-size: 0.76rem;
-          color: var(--panel-faint);
-        }
-        .ca-divider::before, .ca-divider::after {
-          content: '';
-          flex: 1;
-          height: 1px;
-          background: var(--panel-tan-light);
-        }
-
-        /* Mode toggle tabs */
-        .ca-tabs {
-          display: flex;
-          background: var(--cl-bg-2);
-          border: 1.5px solid var(--panel-tan);
-          border-radius: 12px;
-          padding: 4px;
-          gap: 3px;
-        }
-        .ca-tab {
-          flex: 1;
-          padding: 9px 14px;
-          border-radius: 8px;
-          border: none;
-          background: transparent;
-          color: var(--panel-warm-muted);
-          font-size: 0.87rem;
-          font-weight: 600;
-          cursor: pointer;
-          font-family: inherit;
-          transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
-          min-height: 40px;
-        }
-        .ca-tab.active {
-          background: var(--cl-surface);
-          color: var(--panel-earth-dark);
-          box-shadow: 0 1px 6px var(--shadow-tab);
-        }
-        .ca-tab:hover:not(.active) {
-          background: var(--veil-white-50);
-          color: var(--panel-earth);
-        }
-
-        /* Fields */
-        .ca-field {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-        .ca-label {
-          font-size: 0.8rem;
-          font-weight: 500;
-          color: var(--panel-earth);
-          letter-spacing: 0.01em;
-        }
-        .ca-input-wrap { position: relative; }
-        .ca-input {
-          width: 100%;
-          padding: 11px 14px;
-          border-radius: 10px;
-          border: 1.5px solid var(--panel-tan);
-          background: var(--cl-surface);
-          color: var(--panel-earth-dark);
-          font-size: 0.9rem;
-          font-family: inherit;
-          transition: border-color 150ms ease, box-shadow 150ms ease;
-          outline: none;
-          box-sizing: border-box;
-          -webkit-appearance: none;
-          appearance: none;
-        }
-        .ca-input::placeholder { color: var(--panel-faint); }
-        .ca-input:hover { border-color: var(--chart-d1-active); }
-        .ca-input:focus {
-          border-color: var(--chart-d1-active);
-          box-shadow: 0 0 0 3px var(--ring-brand);
-        }
-        .ca-input:-webkit-autofill,
-        .ca-input:-webkit-autofill:hover,
-        .ca-input:-webkit-autofill:focus {
-          -webkit-box-shadow: 0 0 0 1000px var(--cl-surface) inset, 0 0 0 3px var(--ring-brand);
-          -webkit-text-fill-color: var(--panel-earth-dark);
-          border-color: var(--chart-d1-active);
-          transition: background-color 9999s ease-in-out 0s;
-        }
-        .ca-input.has-icon { padding-right: 44px; }
-        .ca-input.is-error { border-color: var(--planet-saturn); box-shadow: 0 0 0 3px var(--ring-error); }
-        .ca-input.is-valid { border-color: var(--chart-d9-active); box-shadow: 0 0 0 3px var(--ring-success); }
-
-        /* Eye toggle */
-        .ca-eye {
-          position: absolute;
-          right: 12px;
-          top: 50%;
-          transform: translateY(-50%);
-          background: none;
-          border: none;
-          padding: 0;
-          color: var(--panel-faint);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-width: 36px;
-          min-height: 36px;
-          transition: color 150ms ease;
-        }
-        .ca-eye:hover { color: var(--panel-earth); }
-
-        /* Hint text */
-        .ca-hint {
-          font-size: 0.74rem;
-          color: var(--panel-faint);
-          margin-top: 1px;
-          line-height: 1.4;
-        }
-        .ca-hint.is-error { color: var(--planet-saturn); }
-
-        /* Forgot password link */
-        .ca-forgot {
-          display: flex;
-          justify-content: flex-end;
-          margin-top: -4px;
-        }
-        .ca-text-btn {
-          background: none;
-          border: none;
-          padding: 0;
-          font-family: inherit;
-          font-size: 0.8rem;
-          font-weight: 500;
-          color: var(--chart-d1-active);
-          cursor: pointer;
-          text-decoration: underline;
-          text-decoration-color: var(--underline-brand);
-          min-height: 36px;
-          display: inline-flex;
-          align-items: center;
-          transition: color 150ms ease, text-decoration-color 150ms ease;
-        }
-        .ca-text-btn:hover {
-          color: var(--planet-lagna);
-          text-decoration-color: var(--underline-brand-strong);
-        }
-
-        /* Password strength */
-        .ca-pw-strength {
-          display: flex;
-          gap: 4px;
-          margin-top: 4px;
-          align-items: center;
-        }
-        .ca-pw-bar {
-          height: 3px;
-          flex: 1;
-          border-radius: 999px;
-          background: var(--panel-tan-light);
-          transition: background 200ms ease;
-        }
-        .ca-pw-label {
-          font-size: 0.7rem;
-          font-weight: 600;
-          min-width: 36px;
-          text-align: right;
-          transition: color 200ms ease;
-        }
-
-        /* Error banner */
-        .ca-error {
-          padding: 11px 14px;
-          border-radius: 10px;
-          background: var(--panel-warm-tint);
-          border: 1px solid var(--border-error-soft);
-          color: var(--planet-saturn);
-          font-size: 0.84rem;
-          line-height: 1.5;
-        }
-
-        /* Submit button */
-        .ca-btn {
-          width: 100%;
-          padding: 13px 20px;
-          border-radius: 999px;
-          border: none;
-          background: var(--panel-earth-dark);
-          color: var(--panel-hover);
-          font-size: 0.92rem;
-          font-weight: 600;
-          font-family: inherit;
-          cursor: pointer;
-          transition: background 150ms ease, transform 120ms ease, box-shadow 150ms ease;
-          letter-spacing: 0.01em;
-          min-height: 48px;
-          margin-top: 4px;
-        }
-        .ca-btn:hover:not(:disabled) {
-          background: var(--panel-earth);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 16px var(--shadow-btn);
-        }
-        .ca-btn:active:not(:disabled) { transform: translateY(0); }
-        .ca-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
-        /* Success state */
-        .ca-success {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 14px;
-          text-align: center;
-          padding: 8px 0;
-        }
-        .ca-success-icon {
-          width: 52px;
-          height: 52px;
-          border-radius: 50%;
-          background: var(--chart-d9-lagna-bg);
-          border: 1px solid var(--border-success-soft);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--chart-d9-active);
-        }
-        .ca-success-title {
-          margin: 0;
-          font-family: var(--font-display), Georgia, serif;
-          font-size: 1.2rem;
-          font-weight: 500;
-          color: var(--panel-earth-dark);
-        }
-        .ca-success-body {
-          margin: 0;
-          font-size: 0.85rem;
-          color: var(--panel-warm-muted);
-          line-height: 1.65;
-          max-width: 300px;
-        }
-        .ca-email-strong {
-          color: var(--panel-earth);
-        }
-        .ca-form {
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-        }
-        .ca-center-row {
-          margin: 0;
-          text-align: center;
-        }
-        .ca-footer-switch {
-          font-size: 0.82rem;
-        }
-
-        /* Footer row */
-        .ca-footer {
-          text-align: center;
-          font-size: 0.82rem;
-          color: var(--panel-warm-muted);
-          line-height: 1.5;
-        }
-        .ca-footer a {
-          color: var(--chart-d1-active);
-          text-decoration: none;
-          font-weight: 500;
-        }
-        .ca-footer a:hover { text-decoration: underline; }
-
-        /* Terms */
-        .ca-terms {
-          margin: 0;
-          font-size: 0.74rem;
-          color: var(--panel-faint);
-          text-align: center;
-          line-height: 1.6;
-        }
-        .ca-terms a {
-          color: var(--panel-warm-muted);
-          text-decoration: underline;
-        }
-
-        @media (max-width: 640px) {
-          .ca-right {
-            padding: 18px 14px;
-          }
-
-          .ca-card {
-            padding: 28px 20px 22px;
-            border-radius: 20px;
-            gap: 20px;
-          }
-
-          .ca-heading {
-            font-size: 1.4rem;
-          }
-
-          .ca-tabs {
-            gap: 4px;
-          }
-
-          .ca-tab {
-            padding-inline: 10px;
-            font-size: 0.82rem;
-          }
-        }
-
-        @media (max-width: 420px) {
-          .ca-root {
-            min-height: 100dvh;
-          }
-
-          .ca-right {
-            padding: 12px;
-          }
-
-          .ca-card {
-            padding: 24px 16px 18px;
-            border-radius: 18px;
-          }
-
-          .ca-subheading,
-          .ca-footer,
-          .ca-terms {
-            font-size: 0.78rem;
-          }
-
-          .ca-btn {
-            min-height: 46px;
-          }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .ca-btn, .ca-tab, .ca-input, .ca-text-btn, .ca-pw-bar {
-            transition: none !important;
-          }
-          .ca-btn:hover:not(:disabled) { transform: none; }
-        }
-      `}</style>
-
       <div className="ca-root">
 
         {/* ── Left branding panel (desktop ≥1024px) ── */}
@@ -929,6 +328,10 @@ export default function LoginPage() {
             {/* Google SSO — only rendered once the backend confirms it's configured (#55) */}
             {googleEnabled && mode !== "forgot" && mode !== "reset" && !done && (
               <>
+                {/* Full-page redirect to the backend OAuth start route (a proxied
+                    API path, not a Next page) — a client-side <Link> would break
+                    the OAuth flow, so the native <a> is intentional. */}
+                {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                 <a
                   href="/api/backend/api/v1/auth/oauth/google/start"
                   className="ca-google-btn"
@@ -1030,7 +433,7 @@ export default function LoginPage() {
                         placeholder={mode === "signup" || mode === "reset" ? "Min. 8 characters" : "••••••••"}
                         value={password}
                         aria-invalid={passwordTouched && !passwordValid ? "true" : undefined}
-                        aria-describedby={passwordTouched && !passwordValid ? "ca-password-error" : undefined}
+                        aria-describedby={(mode === "signup" || mode === "reset") && password.length > 0 ? "ca-password-reqs" : undefined}
                         onChange={(e) => { setPassword(e.target.value); setError(null); }}
                       />
                       <button
@@ -1065,8 +468,31 @@ export default function LoginPage() {
                       </div>
                     )}
 
-                    {(mode === "signup" || mode === "reset") && passwordTouched && !passwordValid && (
-                      <span id="ca-password-error" className="ca-hint is-error" role="alert">At least 8 characters required</span>
+                    {/* UXD-22 — requirements shown up front as the user types, not
+                        only as a post-submit error. */}
+                    {(mode === "signup" || mode === "reset") && password.length > 0 && (
+                      <ul id="ca-password-reqs" style={{ listStyle: "none", margin: "8px 0 0", padding: 0, display: "grid", gap: "4px" }}>
+                        {pwStrengthResult.requirements.map((req) => (
+                          <li
+                            key={req.label}
+                            style={{
+                              display: "flex", alignItems: "center", gap: "7px",
+                              fontSize: "0.72rem", lineHeight: 1.3,
+                              color: req.met ? "var(--color-positive, #3F7A4E)" : "var(--color-muted, #7A6F5E)",
+                            }}
+                          >
+                            <span
+                              aria-hidden="true"
+                              style={{
+                                width: "12px", height: "12px", flexShrink: 0, borderRadius: "50%",
+                                background: req.met ? "var(--color-positive, #3F7A4E)" : "transparent",
+                                border: req.met ? "none" : "1.5px solid currentColor",
+                              }}
+                            />
+                            {req.label}
+                          </li>
+                        ))}
+                      </ul>
                     )}
 
                     {/* Forgot link — login only */}
@@ -1199,6 +625,10 @@ export default function LoginPage() {
           // No saved chart yet (routed to setup) ⇒ a genuine first arrival, so the
           // curtain greets with "Welcome" rather than "Welcome back".
           firstTime={welcomeDest.includes("setup=1")}
+          // UXD-21 — reserve the grand ray-burst reveal for the biggest arrival:
+          // a first-ever login. Routine returns get the calmer standard reveal.
+          grand={welcomeDest.includes("setup=1")}
+          milestoneLabel={welcomeDest.includes("setup=1") ? "Your first sky awaits" : undefined}
           onDone={() => router.push(welcomeDest)}
         />
       )}
