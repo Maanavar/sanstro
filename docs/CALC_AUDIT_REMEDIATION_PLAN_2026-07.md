@@ -371,7 +371,7 @@ Follow the established pattern: present each as an open request for the authorit
 - **OQ-2 — Dinam good-count set.** Confirm the published 12-count set {2,4,6,8,9,11,13,15,18,20,24,26} is final (i.e., 17/22/27 deliberately excluded), or supply the corrected table. WI-19 fixes only the comment.
 - **OQ-3 — Pushkara tables cross-check.** After WI-06, confirm the element-based navamsa pairs + standard bhaga degrees against a printed source (C.S. Patel or a Tamil panchangam appendix).
 - **OQ-4 — `EXTENDED_SEVVAI_HOUSES`** is still a placeholder identical to the Tamil-standard set (`_yoga_helpers.py:29`, tracked in ASTROLOGER_REVIEW_QUEUE). Needs the authentic "extended manglik" house list or removal of the mode.
-- **OQ-5 — Jeevan/Nethiram unlock (Doctrine §7).** Needs the tables from ≥2 independent printed panchangams. Stays gated until then — no code action.
+- **OQ-5 — Jeevan/Nethiram unlock (Doctrine §7).** ✅ **Closed 2026-07-16** — astrologer confirmed the values; display restored to all three surfaces, formula/thresholds unchanged. Note the ≥2-printed-sources criterion was *not* recorded in-repo: status is confirmed-by-review, not independently verified (see Doctrine §7 and ASTROLOGER_REVIEW_QUEUE). C-2 (harsh label copy) remains open on separate grounds.
 - **OQ-6 — Murthi golden dates (supports WI-08/WI-07 validation).** Request 3–4 known Saturn-ingress murthi verdicts from a printed panchangam to lock as golden tests.
 
 ---

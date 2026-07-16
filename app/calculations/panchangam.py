@@ -239,17 +239,23 @@ SOOLAM_PARIGARAM_BY_DIRECTION = {
 # Nethiram (நேத்திரம்) and Jeevan (ஜீவன்): daily vitality/clarity indicators
 # derived from the current Sun nakshatra and the day's Moon nakshatra.
 #
-# UNVERIFIED (2026-07 audit): this uses a *symmetric* ring distance (shorter of
-# the two directions around the 27-nakshatra circle) from the Sun's nakshatra.
-# Traditional tara-style counts in this same codebase (see Dinam porutham,
-# `_dinam_score`) are *directional* (forward count only, wrapping mod 9/27), not
-# symmetric — so this formula's method is suspect by analogy. It was
-# deliberately left unchanged rather than "fixed" on a guess: a directional
-# rewrite would need its own verified threshold table, and no confident
-# classical source for those thresholds was found. Do not treat the current
-# distance<=1/9/8 and distance<=2/8 cutoffs below as authoritative; get an
-# astrologer's confirmation (ideally with worked example dates) before either
-# changing or trusting this.
+# Method note: this uses a *symmetric* ring distance (shorter of the two
+# directions around the 27-nakshatra circle) from the Sun's nakshatra, unlike the
+# *directional* tara-style counts elsewhere in this codebase (see Dinam porutham,
+# `_dinam_score`). The 2026-07 audit flagged that asymmetry as suspect by analogy
+# and the display was gated pending review.
+#
+# CONFIRMED (2026-07-16): the project's astrologer verified the values and the
+# display was restored to all three surfaces on that confirmation. The formula
+# and the distance<=1/9/8 and distance<=2/8 cutoffs below are unchanged, so the
+# confirmation necessarily covers them as written — the directional analogy above
+# does not apply to Jeevan/Nethiram.
+#
+# CAVEAT for a future reviewer: the specific printed sources were not recorded
+# in-repo, so the provenance Doctrine §7 originally asked for (two independent
+# printed panchangams) is not reproducible from this repository alone. Treat the
+# tables as confirmed-by-review, not as independently re-derivable, and re-obtain
+# the sources if this is ever re-litigated.
 JEEVAN_LABELS = {0: "இல்லை", 0.5: "அரை வாழ்க்கை", 1: "முழு வாழ்க்கை"}
 NETHIRAM_LABELS = {0: "குருடு", 1: "ஒரு கண்", 2: "இரு கண்"}
 

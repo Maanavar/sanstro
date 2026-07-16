@@ -26,20 +26,30 @@ decision inline and move it to "Resolved".
   `mobile` callers first per the API-contract rule) · supply a real
   differentiated house/chart-reference list for `extended_manglik`.
 
-### 2026-07-14 · Nethiram/Jeevan display removed pending verification (audit A-3/C-2)
+### 2026-07-14 · Nethiram/Jeevan display removed pending verification (audit A-3/C-2) — ✅ RESOLVED 2026-07-16 (A-3), ⬜ C-2 still open
 
-- **Where:** `app/calculations/panchangam.py` (`_jeevan_value`/`_nethiram_value`,
-  still computed); display removed from
-  `web/app/tools/daily-panchangam-planner/PanchangamTool.tsx`,
+- **Where:** `app/calculations/panchangam.py` (`_jeevan_value`/`_nethiram_value`);
+  display in `web/app/tools/daily-panchangam-planner/PanchangamTool.tsx`,
   `web/app/panchangam/[date]/page.tsx`, `web/components/dashboard-calendar-tab-nova.tsx`.
-- **Behavior:** the formula is self-flagged unverified in code (symmetric ring
+- **Behavior:** the formula was self-flagged unverified in code (symmetric ring
   distance, inconsistent with this codebase's other directional tara counts)
   and rendered harsh Tamil ("குருடு" = blind) on a daily-visible field.
-  Display was removed rather than guess-fixed; backend computation is
+  Display was removed rather than guess-fixed; backend computation was
   untouched so no API contract broke.
-- **Options for reviewer:** supply worked almanac dates to verify or correct
-  the formula, after which display can return · confirm the fields should
-  stay hidden permanently.
+- **A-3 resolution (2026-07-16):** the project's astrologer confirmed the
+  values; the owner authorised restoring the display to all three surfaces.
+  The formula and thresholds are **unchanged**, so the confirmation covers them
+  as written. Doctrine §7 updated to match.
+- **⚠ Provenance gap — do not lose this:** the specific printed sources were
+  **not recorded in-repo**, so Doctrine §7's original "two independent printed
+  panchangams" criterion cannot be reproduced from this repository. Status is
+  *confirmed-by-review*, not *independently verified*. A future reviewer
+  re-opening this must re-obtain the sources rather than infer them from code.
+- **⬜ C-2 still open:** the labels are unchanged — Nethiram "குருடு" (Blind),
+  Jeevan "இல்லை" (None). C-2 objected to these on copy grounds *independent*
+  of the formula, so A-3's resolution does not close it. **Question for
+  reviewer:** keep the classical terms verbatim (current behaviour), or soften
+  the daily-visible rendering while keeping the classical term as a subtitle?
 
 ### 2026-07-13 · Abhijit demotion in the Today hero (DASH-10.1)
 

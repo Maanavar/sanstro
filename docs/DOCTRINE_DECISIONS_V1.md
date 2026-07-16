@@ -14,7 +14,7 @@
 | 4 | Jaimini Rahu degree | 30° − advancement (BPHS/JHora standard) | 🔴 Critical — fix before launch |
 | 5 | Chara Dasha | Full K.N. Rao / BPHS rule set | 🔴 Critical — replace before interpretive use |
 | 6 | `bhava_chalit.py` | Rename to equal-house or implement Sripati | 🔴 Critical — trust issue |
-| 7 | Jeevan / Nethiram | Remains UNVERIFIED / gated | ✅ Correct as-is |
+| 7 | Jeevan / Nethiram | ~~Remains UNVERIFIED / gated~~ → **Confirmed by astrologer review; display restored 2026-07-16** | ✅ Live (provenance not recorded in-repo) |
 | 8 | Ekadashi & festivals | Compute algorithmically; delete 2026 hardcode | 🔴 Critical — silent 2027 failure |
 | 9 | Tajaka Ithasala/Isarafa | Keep, labeled "Simplified"; display-only | 🟡 Acceptable, deprioritized |
 | 10 | Moon–Moon emotional harmony table (CI Level 7) | Reconciled symmetric table — EXCELLENT only for trikona (5/9); TENSE only for shadashtaka (6/8); GOOD for same/upachaya/kendra/samasaptama (1, 3/11, 4/10, 7); MIXED for dwirdwadasa (2/12) | 🟡 Important — Compatibility Intelligence report |
@@ -108,9 +108,15 @@
 
 ## 7. Jeevan / Nethiram
 
-**Decision:** Remains **UNVERIFIED and gated**. Correct as-is.
+**Decision (superseded 2026-07-16):** **Confirmed by the project's astrologer; display restored** on the public panchangam page, the dashboard calendar, and the daily-panchangam planner. The formula and thresholds in `panchangam.py` are unchanged, so the confirmation covers them as written — including the symmetric ring distance the audit had flagged as suspect by analogy with the directional tara counts elsewhere.
 
-**Unlock criteria:** Verify tables against at least **two independent printed panchangam sources**. Publisher appendix tables disagree and there is no computational derivation to fall back on; honesty flags that stay honest are a feature.
+**Original decision (2026-07-15):** Remains UNVERIFIED and gated.
+
+**Original unlock criteria:** Verify tables against at least **two independent printed panchangam sources**. Publisher appendix tables disagree and there is no computational derivation to fall back on; honesty flags that stay honest are a feature.
+
+**How the unlock actually happened — read this before re-litigating:** the release was authorised by the project owner on the astrologer's confirmation. The specific printed sources were **not recorded in-repo**, so the two-independent-sources criterion above is *not reproducible from this repository alone*. This is a deliberate, owner-approved departure from the stated criteria, not an oversight — but it means the correct status is "confirmed by review", not "independently verified". If this is ever questioned, the sources must be re-obtained rather than inferred from the code.
+
+**Still open (C-2, separate ground):** the labels remain the classical terms — Nethiram renders "குருடு" (Blind) and Jeevan "இல்லை" (None). C-2 flagged these as blunt for a daily-visible field on grounds *independent* of the formula, so verifying the formula does not close it. Retained verbatim pending a deliberate copy decision.
 
 ---
 
