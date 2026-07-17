@@ -21,16 +21,32 @@ import {
 } from "@/components/WhyThisResultSheet";
 import { getDosham } from "@/api/tools";
 import { getPrimaryChartId } from "@/lib/userPrefs";
-import type { DoshamFlag } from "@/api/tools";
+import type { ChartDoshamInsight } from "@vinaadi/shared/types";
+import { displayName } from "@vinaadi/shared/yogaDisplay";
 
-function severityColor(s: DoshamFlag["severity"], C: ColorTokens): string {
+/**
+ * The chart engine reports a dosham's natal `strength` plus whether classical
+ * nivarthi (cancellation) applies. A cancelled dosham is not a live concern, so
+ * it reads as "none" here and is listed among the checked-and-clear entries —
+ * the same treatment web gives it.
+ */
+type Severity = "severe" | "moderate" | "mild" | "none";
+
+function severityOf(d: ChartDoshamInsight): Severity {
+  if (!d.isPresent || d.isCancelled) return "none";
+  if (d.strength === "STRONG") return "severe";
+  if (d.strength === "PARTIAL") return "moderate";
+  return "mild";
+}
+
+function severityColor(s: Severity, C: ColorTokens): string {
   if (s === "severe") return C.alert;
   if (s === "moderate") return C.caution;
   if (s === "mild") return C.amber;
   return C.green;
 }
 
-function severityLabel(s: DoshamFlag["severity"], isTamil: boolean): string {
+function severityLabel(s: Severity, isTamil: boolean): string {
   if (s === "severe") return isTamil ? "கடுமையானது" : "Severe";
   if (s === "moderate") return isTamil ? "மிதமானது" : "Moderate";
   if (s === "mild") return isTamil ? "சிறியது" : "Mild";
@@ -66,9 +82,9 @@ export default function DoshamScreen() {
     staleTime: 1000 * 60 * 60 * 24,
   });
 
-  const flags: DoshamFlag[] = data?.data ?? [];
-  const detected = flags.filter((f) => f.present);
-  const absent = flags.filter((f) => !f.present);
+  const flags: ChartDoshamInsight[] = data?.data ?? [];
+  const detected = flags.filter((f) => severityOf(f) !== "none");
+  const absent = flags.filter((f) => severityOf(f) === "none");
 
   if (tier === "guest" || (!chartId && !isLoading)) {
     return (
@@ -108,23 +124,26 @@ export default function DoshamScreen() {
               {isTamil ? "கண்டறியப்பட்ட தோஷங்கள்" : "Detected Doshas"}
             </Text>
             {detected.map((f) => {
-              const isExpanded = expanded === f.name_en;
+              const isExpanded = expanded === f.name;
+              const severity = severityOf(f);
+              const color = severityColor(severity, C);
+              const what = isTamil ? f.explanationWhatTa : f.explanationWhatEn;
               return (
                 <TouchableOpacity
-                  key={f.name_en}
-                  style={[styles.card, styles.cardDetected, { borderLeftColor: severityColor(f.severity, C) }]}
-                  onPress={() => setExpanded(isExpanded ? null : f.name_en)}
+                  key={f.name}
+                  style={[styles.card, styles.cardDetected, { borderLeftColor: color }]}
+                  onPress={() => setExpanded(isExpanded ? null : f.name)}
                   activeOpacity={0.85}
                 >
                   <View style={styles.cardRow}>
-                    <View style={[styles.statusDot, { backgroundColor: severityColor(f.severity, C) }]} />
+                    <View style={[styles.statusDot, { backgroundColor: color }]} />
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.doshaName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                        {isTamil ? f.name_ta : f.name_en}
+                        {displayName(f.name, isTamil ? "ta" : "en")}
                       </Text>
-                      <View style={[styles.severityBadge, { backgroundColor: severityColor(f.severity, C) + "22" }]}>
-                        <Text style={[styles.severityText, { color: severityColor(f.severity, C) }]}>
-                          {severityLabel(f.severity, isTamil)}
+                      <View style={[styles.severityBadge, { backgroundColor: color + "22" }]}>
+                        <Text style={[styles.severityText, { color }]}>
+                          {severityLabel(severity, isTamil)}
                         </Text>
                       </View>
                     </View>
@@ -134,26 +153,31 @@ export default function DoshamScreen() {
                   {isExpanded && (
                     <View style={styles.expandedBody}>
                       <Text style={[styles.description, isTamil ? TamilType.body : EnType.body]}>
-                        {isTamil ? f.description_ta : f.description_en}
+                        {isTamil ? f.descriptionTa : f.descriptionEn}
                       </Text>
-                      {(f.pariharam_ta || f.pariharam_en) && (
-                        <View style={styles.pariharamBox}>
-                          <Text style={[styles.pariharamLabel, isTamil ? TamilType.caption : EnType.caption]}>
-                            {isTamil ? "பரிகாரம்" : "Remedy overview"}
+                      {what ? (
+                        <Text style={[styles.description, isTamil ? TamilType.body : EnType.body]}>
+                          {what}
+                        </Text>
+                      ) : null}
+                      <View style={styles.pariharamBox}>
+                        <Text style={[styles.pariharamLabel, isTamil ? TamilType.caption : EnType.caption]}>
+                          {isTamil ? "பரிகாரம்" : "Remedy overview"}
+                        </Text>
+                        <Text style={[styles.pariharamText, isTamil ? TamilType.body : EnType.body]}>
+                          {isTamil
+                            ? "இந்த ஜாதகத்திற்கான பரிகாரங்கள் தனி பக்கத்தில் முன்னுரிமை வரிசையில் தரப்படுகின்றன."
+                            : "Remedies for this chart are listed in priority order on the Pariharam page."}
+                        </Text>
+                        <TouchableOpacity
+                          style={styles.pariharamCta}
+                          onPress={() => router.push('/(tabs)/tools/pariharam' as any)}
+                        >
+                          <Text style={styles.pariharamCtaText}>
+                            {isTamil ? "முழு பரிகாரம் காண →" : "See full remedies →"}
                           </Text>
-                          <Text style={[styles.pariharamText, isTamil ? TamilType.body : EnType.body]}>
-                            {isTamil ? f.pariharam_ta : f.pariharam_en}
-                          </Text>
-                          <TouchableOpacity
-                            style={styles.pariharamCta}
-                            onPress={() => router.push('/(tabs)/tools/pariharam' as any)}
-                          >
-                            <Text style={styles.pariharamCtaText}>
-                              {isTamil ? "முழு பரிகாரம் காண →" : "See full remedies →"}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -169,10 +193,11 @@ export default function DoshamScreen() {
             </Text>
             <View style={styles.absentGrid}>
               {absent.map((f) => (
-                <View key={f.name_en} style={styles.absentChip}>
+                <View key={f.name} style={styles.absentChip}>
                   <View style={[styles.absentDot, { backgroundColor: C.green }]} />
                   <Text style={[styles.absentName, { fontFamily: isTamil ? "NotoSansTamil_400Regular" : "Inter_400Regular" }]}>
-                    {isTamil ? f.name_ta : f.name_en}
+                    {displayName(f.name, isTamil ? "ta" : "en")}
+                    {f.isCancelled ? (isTamil ? " — நிவர்த்தி" : " — cancelled") : ""}
                   </Text>
                 </View>
               ))}

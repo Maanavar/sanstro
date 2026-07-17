@@ -12,6 +12,7 @@ import { getDailyStatus, askVinaadi } from "@vinaadi/shared/api/askVinaadi";
 import { getRasiPalan } from "@vinaadi/shared/api/rasiPalan";
 import { getDailyGuidance } from "@vinaadi/shared/api/guidance";
 import { registerFcmToken } from "@vinaadi/shared/api/notifications";
+import { askPrasna, getMuhurta, getNatchathiram, getDosham } from "@vinaadi/shared/api/tools";
 
 const mockGet = jest.fn();
 const mockPost = jest.fn();
@@ -262,6 +263,85 @@ describe("guidance API", () => {
       "/charts/chart-uuid-001/daily-guidance",
       { date: "2026-07-05" },
     );
+  });
+});
+
+// ─── TOOLS ────────────────────────────────────────────────────────────────────
+// Parity audit 2026-07-17 §2a: these wrappers targeted an older URL scheme that
+// no route has served in a long time (`/public-tools/prashan`, a bare
+// `/muhurta`, `/charts/{id}/dosham`), so 9 mobile screens hard-404ed.
+// tests/test_api_wrapper_route_contract.py checks the paths against the real
+// FastAPI route table; these pin the call shape the screens depend on.
+
+describe("tools API", () => {
+  it("askPrasna posts the question AREA to /prasna and returns the payload FLAT", async () => {
+    // POST /prasna has no { success, data } envelope. Both web widgets assumed
+    // one and read res.data, so every ask silently rendered nothing (§8.3).
+    const FLAT_PRASNA = {
+      prasnaLagnaRasi: 3,
+      prasnaLagnaName: "Mithunam",
+      moonRasi: 7,
+      moonNakshatraName: "Visakam",
+      questionArea: "MARRIAGE",
+      karaka: "VENUS",
+      karakaHouse: 5,
+      outlook: "FAVOURABLE",
+      outlookTa: "சாதகம்",
+      outlookEn: "Favourable",
+      positiveIndicators: ["VENUS in kendra from Prasna Lagna"],
+      negativeIndicators: [],
+      cautionTa: "",
+      cautionEn: "",
+    };
+    mockPost.mockResolvedValue(FLAT_PRASNA);
+
+    const result = await askPrasna({
+      questionArea: "MARRIAGE",
+      timezoneName: "Asia/Kolkata",
+      latitude: 13.0827,
+      longitude: 80.2707,
+    });
+
+    // Read straight off the response — nothing to unwrap.
+    expect(result.outlook).toBe("FAVOURABLE");
+    expect(result.questionArea).toBe("MARRIAGE");
+    expect((result as unknown as { data?: unknown }).data).toBeUndefined();
+    expect(mockPost).toHaveBeenCalledWith(
+      "/prasna",
+      expect.objectContaining({ questionArea: "MARRIAGE" }),
+    );
+  });
+
+  it("getMuhurta puts the chart id in the PATH, not a query param", async () => {
+    mockGet.mockResolvedValue({ success: true, data: { slots: [] } });
+    await getMuhurta({
+      chartId: "chart-uuid-001",
+      activity: "MARRIAGE",
+      dateFrom: "2026-08-01",
+      dateTo: "2026-08-30",
+    });
+    expect(mockGet).toHaveBeenCalledWith(
+      "/charts/chart-uuid-001/muhurta",
+      { activity: "MARRIAGE", dateFrom: "2026-08-01", dateTo: "2026-08-30" },
+    );
+  });
+
+  it("getNatchathiram reads the content route", async () => {
+    mockGet.mockResolvedValue({ success: true, data: { number: 1, nameEn: "Aswini" } });
+    const result = await getNatchathiram(1);
+    expect(result.data.nameEn).toBe("Aswini");
+    expect(mockGet).toHaveBeenCalledWith("/content/nakshatra/1");
+  });
+
+  it("getDosham reads doshams off the full chart (there is no /dosham route)", async () => {
+    mockGet.mockResolvedValue({
+      success: true,
+      data: { doshams: [{ name: "SEVVAI_DOSHAM", isPresent: true }], yogas: [] },
+    });
+    const result = await getDosham("chart-uuid-001");
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0].name).toBe("SEVVAI_DOSHAM");
+    expect(mockGet).toHaveBeenCalledWith("/charts/chart-uuid-001");
   });
 });
 

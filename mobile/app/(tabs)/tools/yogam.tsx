@@ -22,25 +22,32 @@ import {
 } from "@/components/WhyThisResultSheet";
 import { getYogam } from "@/api/tools";
 import { getPrimaryChartId } from "@/lib/userPrefs";
-import type { YogamEntry } from "@/api/tools";
+import type { ChartYogaInsight } from "@vinaadi/shared/types";
+import { displayName } from "@vinaadi/shared/yogaDisplay";
 
-function strengthColor(s: YogamEntry["strength"], C: ColorTokens): string {
-  if (s === "strong") return C.green;
-  if (s === "moderate") return C.amber;
+function strengthColor(s: ChartYogaInsight["strength"], C: ColorTokens): string {
+  if (s === "STRONG") return C.green;
+  if (s === "PARTIAL") return C.amber;
   return C.textTertiary;
 }
 
-function strengthLabel(s: YogamEntry["strength"], isTamil: boolean): string {
-  if (s === "strong") return isTamil ? "வலிமையான" : "Strong";
-  if (s === "moderate") return isTamil ? "நடுத்தர" : "Moderate";
+function strengthLabel(s: ChartYogaInsight["strength"], isTamil: boolean): string {
+  if (s === "STRONG") return isTamil ? "வலிமையான" : "Strong";
+  if (s === "PARTIAL") return isTamil ? "நடுத்தர" : "Moderate";
   return isTamil ? "பலவீனமான" : "Weak";
 }
 
-function yogaHowCheckedItems(yoga: YogamEntry): WhyItem[] {
+function yogaHowCheckedItems(yoga: ChartYogaInsight): WhyItem[] {
   return [
-    { label: "Yoga name", value: yoga.name_en },
+    { label: "Yoga name", value: displayName(yoga.name, "en") },
     { label: "Strength", value: strengthLabel(yoga.strength, false) },
-    { label: "Basis", value: yoga.description_en },
+    { label: "Basis", value: yoga.descriptionEn },
+    {
+      label: "Dasha activation",
+      value: yoga.dashaActivated
+        ? "A dasha lord tied to this yoga is currently running, so it is active now."
+        : "No current dasha lord activates this yoga, so it is formed but dormant.",
+    },
     { label: "Method", value: "Thirukanitham — verified from Lagna, planetary dignities, and house lords" },
   ];
 }
@@ -52,7 +59,7 @@ export default function YogamScreen() {
   const { tier } = useSession();
   const isTamil = lang === "ta";
   const [chartId, setChartId] = useState<string | null>(null);
-  const [selectedYoga, setSelectedYoga] = useState<YogamEntry | null>(null);
+  const [selectedYoga, setSelectedYoga] = useState<ChartYogaInsight | null>(null);
   const whyRef = useRef<WhySheetHandle>(null);
 
   useEffect(() => {
@@ -66,11 +73,13 @@ export default function YogamScreen() {
     staleTime: 1000 * 60 * 60 * 24,
   });
 
-  const yogas: YogamEntry[] = data?.data ?? [];
-  const top3 = yogas.filter((y) => y.strength === "strong").slice(0, 3);
+  // The chart payload reports every yoga it checked, including the ones that did
+  // not form — only the formed ones belong on this screen.
+  const yogas: ChartYogaInsight[] = (data?.data ?? []).filter((y) => y.isPresent);
+  const top3 = yogas.filter((y) => y.strength === "STRONG").slice(0, 3);
   const rest = yogas.filter((y) => !top3.includes(y));
 
-  function openHow(yoga: YogamEntry) {
+  function openHow(yoga: ChartYogaInsight) {
     setSelectedYoga(yoga);
     setTimeout(() => whyRef.current?.open(), 50);
   }
@@ -121,7 +130,7 @@ export default function YogamScreen() {
                     <Text style={styles.heroRankText}>{i + 1}</Text>
                   </View>
                   <Text style={[styles.heroName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]} numberOfLines={2}>
-                    {isTamil ? y.name_ta : y.name_en}
+                    {displayName(y.name, isTamil ? "ta" : "en")}
                   </Text>
                   <View style={[styles.strengthBadge, { backgroundColor: strengthColor(y.strength, C) + "22" }]}>
                     <Text style={[styles.strengthBadgeText, { color: strengthColor(y.strength, C) }]}>
@@ -143,7 +152,7 @@ export default function YogamScreen() {
               <View key={i} style={[styles.card, { borderLeftColor: strengthColor(y.strength, C) }]}>
                 <View style={styles.cardHeader}>
                   <Text style={[styles.yogaName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                    {isTamil ? y.name_ta : y.name_en}
+                    {displayName(y.name, isTamil ? "ta" : "en")}
                   </Text>
                   <View style={styles.cardBadges}>
                     <View style={[styles.strengthBadge, { backgroundColor: strengthColor(y.strength, C) + "22" }]}>
@@ -160,7 +169,7 @@ export default function YogamScreen() {
                   </View>
                 </View>
                 <Text style={[styles.description, isTamil ? TamilType.body : EnType.body]}>
-                  {isTamil ? y.description_ta : y.description_en}
+                  {isTamil ? y.descriptionTa : y.descriptionEn}
                 </Text>
               </View>
             ))}
@@ -176,7 +185,7 @@ export default function YogamScreen() {
               <View key={i} style={[styles.card, { borderLeftColor: strengthColor(y.strength, C) }]}>
                 <View style={styles.cardHeader}>
                   <Text style={[styles.yogaName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                    {isTamil ? y.name_ta : y.name_en}
+                    {displayName(y.name, isTamil ? "ta" : "en")}
                   </Text>
                   <View style={styles.cardBadges}>
                     <View style={[styles.strengthBadge, { backgroundColor: strengthColor(y.strength, C) + "22" }]}>
@@ -193,7 +202,7 @@ export default function YogamScreen() {
                   </View>
                 </View>
                 <Text style={[styles.description, isTamil ? TamilType.body : EnType.body]}>
-                  {isTamil ? y.description_ta : y.description_en}
+                  {isTamil ? y.descriptionTa : y.descriptionEn}
                 </Text>
               </View>
             ))}
@@ -203,7 +212,7 @@ export default function YogamScreen() {
 
       <WhyThisResultSheet
         ref={whyRef}
-        title={selectedYoga ? `How: ${selectedYoga.name_en}` : "How was this checked?"}
+        title={selectedYoga ? `How: ${displayName(selectedYoga.name, "en")}` : "How was this checked?"}
         items={selectedYoga ? yogaHowCheckedItems(selectedYoga) : []}
       />
     </SafeAreaView>

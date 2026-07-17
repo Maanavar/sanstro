@@ -5,8 +5,11 @@ import { initApiClient, type ApiQueryParams } from "@vinaadi/shared/api/client";
 
 const API_V1_PREFIX = "/api/v1";
 
-function buildApiUrl(path: string): string {
-  const bypass = path.startsWith("/api/") || path.startsWith("/public/");
+export function buildApiUrl(path: string): string {
+  // Only fully-qualified /api/... paths bypass the version prefix. `/public/*` is
+  // mounted at /api/v1/public/* on the backend, so it must be prefixed like any
+  // other path (see app/main.py — there is no unversioned mount).
+  const bypass = path.startsWith("/api/");
   return ENV.API_BASE_URL + (bypass ? path : `${API_V1_PREFIX}${path}`);
 }
 

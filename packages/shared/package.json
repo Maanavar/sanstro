@@ -10,6 +10,7 @@
     "./format": "./src/format/index.ts",
     "./i18n": "./src/i18n/strings.ts",
     "./constants": "./src/constants/index.ts",
+    "./yogaDisplay": "./src/yogaDisplay.ts",
     "./utils/score": "./src/utils/score.ts",
     "./utils/format": "./src/utils/format.ts",
     "./api": "./src/api/index.ts",

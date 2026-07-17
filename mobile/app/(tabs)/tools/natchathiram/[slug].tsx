@@ -100,9 +100,9 @@ export default function NatchathiramDetailScreen() {
               <View style={styles.posterTop}>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.posterNameTa, { fontFamily: "NotoSansTamil_700Bold" }]}>
-                    {n.name_ta}
+                    {n.nameTa}
                   </Text>
-                  <Text style={styles.posterNameEn}>{n.name_en}</Text>
+                  <Text style={styles.posterNameEn}>{n.nameEn}</Text>
                   <Text style={styles.posterNum}>{nakshatraNum}/27</Text>
                 </View>
                 <ThirukanithamBadge size="sm" />
@@ -110,25 +110,28 @@ export default function NatchathiramDetailScreen() {
 
               <View style={styles.posterMeta}>
                 <PosterMetaItem Icon={Star} label={isTamil ? "ஆட்சி கிரகம்" : "Ruling planet"} value={isTamil ? attrs.planetTa : attrs.planet} C={C} />
-                <PosterMetaItem Icon={Diamond} label={isTamil ? "குண வகை" : "Guna"} value={isTamil ? attrs.gunaTa : attrs.guna} C={C} />
-                <PosterMetaItem Icon={Leaf} label={isTamil ? "தத்துவம்" : "Element"} value={isTamil ? attrs.elementTa : attrs.element} C={C} />
+                {/* Ganam/Yoni come from the backend, which derives them from the
+                    same classical tables the Porutham engine uses — don't
+                    re-derive them on the client. */}
+                <PosterMetaItem Icon={Diamond} label={isTamil ? "கணம்" : "Ganam"} value={isTamil ? n.ganam.ta : n.ganam.en} C={C} />
+                <PosterMetaItem Icon={Leaf} label={isTamil ? "யோனி" : "Yoni"} value={isTamil ? n.yoni.ta : n.yoni.en} C={C} />
               </View>
 
-              {(n.deity_en || n.symbol_en) && (
+              {(n.deityEn || n.symbolEn) && (
                 <View style={styles.posterSecondary}>
-                  {n.deity_en ? (
+                  {n.deityEn ? (
                     <View style={styles.posterSecondaryItem}>
                       <Text style={styles.posterSecondaryLabel}>{isTamil ? "தெய்வம்" : "Deity"}</Text>
                       <Text style={[styles.posterSecondaryValue, { fontFamily: isTamil ? "NotoSansTamil_600SemiBold" : "Inter_600SemiBold" }]}>
-                        {isTamil ? n.deity_ta : n.deity_en}
+                        {isTamil ? n.deityTa : n.deityEn}
                       </Text>
                     </View>
                   ) : null}
-                  {n.symbol_en ? (
+                  {n.symbolEn ? (
                     <View style={styles.posterSecondaryItem}>
                       <Text style={styles.posterSecondaryLabel}>{isTamil ? "சின்னம்" : "Symbol"}</Text>
                       <Text style={[styles.posterSecondaryValue, { fontFamily: isTamil ? "NotoSansTamil_600SemiBold" : "Inter_600SemiBold" }]}>
-                        {isTamil ? n.symbol_ta : n.symbol_en}
+                        {isTamil ? n.symbolTa : n.symbolEn}
                       </Text>
                     </View>
                   ) : null}
@@ -138,7 +141,7 @@ export default function NatchathiramDetailScreen() {
 
             {/* General description */}
             <Text style={[styles.generalText, isTamil ? TamilType.body : EnType.body]}>
-              {isTamil ? n.general_ta : n.general_en}
+              {isTamil ? n.profile.ta : n.profile.en}
             </Text>
 
             {/* Compatible contexts */}
@@ -169,17 +172,15 @@ export default function NatchathiramDetailScreen() {
               <ContextRow
                 Icon={Heart}
                 label={isTamil ? "திருமணம்" : "Marriage"}
-                value={isTamil
-                  ? attrs.guna === "Divine"
-                    ? "தேவ குண நட்சத்திரங்களுடன் சிறந்த பொருத்தம்"
-                    : attrs.guna === "Human"
-                    ? "மனித குண நட்சத்திரங்களுடன் நல்ல பொருத்தம்"
-                    : "பொருத்தம் கணிக்க ஜாதக ஆய்வு அவசியம்"
-                  : attrs.guna === "Divine"
-                  ? "Strong match with other Deva guna stars"
-                  : attrs.guna === "Human"
-                  ? "Good match with Human guna stars"
-                  : "Chart analysis required for compatibility"}
+                value={
+                  n.compatibleGroupsRich.length > 0
+                    ? isTamil
+                      ? `${n.compatibleGroupsRich.map((g) => g.nakshatra_name_ta).join(", ")} — பொருத்தம் உறுதிசெய்ய முழு ஜாதகப் பொருத்தம் பார்க்கவும்.`
+                      : `${n.compatibleGroupsRich.map((g) => g.nakshatra_name_en).join(", ")} — confirm with a full Porutham check.`
+                    : isTamil
+                    ? "பொருத்தம் கணிக்க ஜாதக ஆய்வு அவசியம்"
+                    : "Chart analysis required for compatibility"
+                }
                 C={C}
               />
               <ContextRow
@@ -192,19 +193,34 @@ export default function NatchathiramDetailScreen() {
               />
             </View>
 
-            {/* Pada details */}
-            {(n.pada_descriptions?.length ?? 0) > 0 && (
-              <View style={styles.padaBlock}>
+            {/* Strengths */}
+            {n.strengths.length > 0 && (
+              <View style={styles.traitBlock}>
                 <Text style={[styles.sectionLabel, isTamil ? TamilType.subheading : EnType.subheading]}>
-                  {isTamil ? "பாத விவரங்கள்" : "Pada Details"}
+                  {isTamil ? "பலங்கள்" : "Strengths"}
                 </Text>
-                {n.pada_descriptions.map((p) => (
-                  <View key={p.pada} style={styles.padaRow}>
-                    <View style={styles.padaNumBadge}>
-                      <Text style={styles.padaNumText}>{p.pada}</Text>
-                    </View>
-                    <Text style={[styles.padaDesc, isTamil ? TamilType.body : EnType.body]}>
-                      {isTamil ? p.desc_ta : p.desc_en}
+                {n.strengths.map((s, i) => (
+                  <View key={i} style={styles.traitRow}>
+                    <View style={[styles.traitDot, { backgroundColor: C.green }]} />
+                    <Text style={[styles.traitText, isTamil ? TamilType.body : EnType.body]}>
+                      {isTamil ? s.ta : s.en}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Cautions */}
+            {n.cautions.length > 0 && (
+              <View style={styles.traitBlock}>
+                <Text style={[styles.sectionLabel, isTamil ? TamilType.subheading : EnType.subheading]}>
+                  {isTamil ? "கவனிக்க வேண்டியவை" : "Cautions"}
+                </Text>
+                {n.cautions.map((c, i) => (
+                  <View key={i} style={styles.traitRow}>
+                    <View style={[styles.traitDot, { backgroundColor: C.saffron }]} />
+                    <Text style={[styles.traitText, isTamil ? TamilType.body : EnType.body]}>
+                      {isTamil ? c.ta : c.en}
                     </Text>
                   </View>
                 ))}
@@ -320,17 +336,13 @@ function makeStyles(C: ColorTokens) {
     contextLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textTertiary },
     contextValue: { fontFamily: "Inter_400Regular", fontSize: 13, color: C.textPrimary, lineHeight: 20 },
 
-    padaBlock: { gap: S.sm },
-    padaRow: {
+    traitBlock: { gap: S.sm },
+    traitRow: {
       flexDirection: "row", alignItems: "flex-start", gap: S.sm,
       backgroundColor: C.surface, borderRadius: RADIUS.card, padding: S.md,
     },
-    padaNumBadge: {
-      width: 28, height: 28, borderRadius: 14,
-      backgroundColor: C.saffron + "22", alignItems: "center", justifyContent: "center",
-    },
-    padaNumText: { fontFamily: "Inter_700Bold", fontSize: 12, color: C.saffron },
-    padaDesc: { flex: 1, color: C.textPrimary, lineHeight: 22 },
+    traitDot: { width: 8, height: 8, borderRadius: 4, marginTop: 7 },
+    traitText: { flex: 1, color: C.textPrimary, lineHeight: 22 },
 
     prevNextRow: { flexDirection: "row", paddingVertical: S.sm },
     prevNextBtn: {

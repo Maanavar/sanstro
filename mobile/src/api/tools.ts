@@ -1,17 +1,23 @@
 export type {
-  NatchathiramData,
-  DoshamFlag,
-  YogamEntry,
-  PariharamEntry,
-  PrashanData,
+  NakshatraCard,
+  NakshatraBiText,
+  NakshatraCompatGroup,
+  RemedyItem,
+  RemedyPlanData,
+  RemedyDisclaimer,
+  PrasnaPayload,
+  PrasnaResponse,
+  PrasnaOutlook,
+  PrasnaQuestionArea,
   MuhurtaPayload,
 } from "@vinaadi/shared/api/tools";
 export {
+  PRASNA_QUESTION_AREAS,
   getNatchathiram,
   getDosham,
   getYogam,
   getPariharam,
-  getPrashan,
+  askPrasna,
   getMuhurta,
 } from "@vinaadi/shared/api/tools";
 

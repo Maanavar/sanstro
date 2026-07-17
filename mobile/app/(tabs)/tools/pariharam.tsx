@@ -17,41 +17,77 @@ import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { MethodologyStrip } from "@/components/MethodologyStrip";
 import { getPariharam } from "@/api/tools";
+import type { RemedyItem } from "@/api/tools";
 import { getPrimaryChartId } from "@/lib/userPrefs";
-import type { PariharamEntry } from "@/api/tools";
+import { GRAHA_LABELS, type GrahaName } from "@vinaadi/shared/constants";
 
-type RemedyCategory = "temples" | "mantras" | "colours" | "stones";
+/**
+ * The backend's remedy plan (GET /charts/{id}/remedy-plan) is organised by
+ * *planet* in priority order — current mahadasha lord first, then the weakest
+ * benefic, then any planet carrying an active dosham — not by dosha. Each row
+ * carries the classical remedy set for that planet.
+ */
+type RemedyCategory = "temple" | "mantra" | "gemstone" | "daanam" | "fasting";
 
-const CATEGORY_META: Record<RemedyCategory, { Icon: LucideIcon; labelEn: string; labelTa: string; whenEn: string; whenTa: string }> = {
-  temples: {
+const CATEGORY_META: Record<
+  RemedyCategory,
+  { Icon: LucideIcon; labelEn: string; labelTa: string; whenEn: string; whenTa: string }
+> = {
+  temple: {
     Icon: MapPin,
-    labelEn: "Temples & Deities",
+    labelEn: "Temple & Deity",
     labelTa: "கோயில் & தெய்வம்",
-    whenEn: "Visit on the ruling planet's weekday",
-    whenTa: "கிரகத்தின் வாரத்தில் வருகை தர வேண்டும்",
+    whenEn: "Visit on this planet's weekday",
+    whenTa: "இந்த கிரகத்தின் வாரத்தில் வருகை தரவும்",
   },
-  mantras: {
+  mantra: {
     Icon: Sparkles,
-    labelEn: "Mantras",
-    labelTa: "மந்திரங்கள்",
+    labelEn: "Mantra",
+    labelTa: "மந்திரம்",
     whenEn: "Recite daily at sunrise or sunset",
     whenTa: "தினமும் சூரிய உதயம் அல்லது அஸ்தமனத்தில் சொல்லவும்",
   },
-  colours: {
-    Icon: Palette,
-    labelEn: "Auspicious Colours",
-    labelTa: "சுப நிறங்கள்",
-    whenEn: "Wear on the ruling planet's day",
-    whenTa: "கிரகத்தின் வாரத்தில் அணியவும்",
-  },
-  stones: {
+  gemstone: {
     Icon: Gem,
-    labelEn: "Gemstones",
-    labelTa: "கல்லுகள்",
-    whenEn: "Wear set in silver or gold, on the correct finger",
-    whenTa: "தங்கம் அல்லது வெள்ளியில் பதிக்கப்பட்டு சரியான விரலில் அணியவும்",
+    labelEn: "Gemstone",
+    labelTa: "கல்",
+    whenEn: "Only when prescribed — set in the stated metal, on the stated finger",
+    whenTa: "பரிந்துரைக்கப்பட்டால் மட்டும் — குறிப்பிட்ட உலோகத்தில், குறிப்பிட்ட விரலில்",
+  },
+  daanam: {
+    Icon: Palette,
+    labelEn: "Daanam (giving)",
+    labelTa: "தானம்",
+    whenEn: "Offer on this planet's weekday",
+    whenTa: "இந்த கிரகத்தின் வாரத்தில் வழங்கவும்",
+  },
+  fasting: {
+    Icon: Sparkles,
+    labelEn: "Fasting",
+    labelTa: "விரதம்",
+    whenEn: "Optional — never at the cost of your health",
+    whenTa: "விருப்பத்திற்குரியது — உடல்நலனை பாதிக்கும் வகையில் வேண்டாம்",
   },
 };
+
+/** Reads the row's value for a category, honouring the gemstone prescription. */
+function categoryValue(item: RemedyItem, cat: RemedyCategory, isTamil: boolean): string | null {
+  switch (cat) {
+    case "temple":
+      return isTamil ? item.temple_ta : item.temple_en;
+    case "mantra":
+      return isTamil ? item.mantra_full_ta : item.mantra_seed;
+    case "gemstone":
+      // A gemstone is deliberately withheld for some functional natures — the
+      // backend nulls it rather than recommending one. Don't invent a fallback.
+      if (!item.is_gemstone_prescribed) return null;
+      return isTamil ? item.gemstone_ta : item.gemstone_en;
+    case "daanam":
+      return isTamil ? item.daanam_items_ta : item.daanam_items_en;
+    case "fasting":
+      return isTamil ? item.fasting_rule_ta : item.fasting_rule_en;
+  }
+}
 
 export default function PariharamScreen() {
   const C = useColors();
@@ -73,7 +109,8 @@ export default function PariharamScreen() {
     staleTime: 1000 * 60 * 60 * 24,
   });
 
-  const items: PariharamEntry[] = data?.data ?? [];
+  const items: RemedyItem[] = data?.data?.items ?? [];
+  const disclaimer = data?.data?.disclaimer;
 
   function toggleCompleted(key: string) {
     setCompleted((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -105,24 +142,27 @@ export default function PariharamScreen() {
         {isLoading && <><SkeletonCard height={160} /><SkeletonCard height={160} /></>}
         {isError && <ErrorCard onRetry={refetch} />}
 
-        {items.map((item, i) => {
-          const doshaKey = item.dosha_en;
+        {items.map((item) => {
+          const planetKey = item.planet;
+          const planetLabel = GRAHA_LABELS[planetKey as GrahaName];
           return (
-            <View key={i} style={styles.doshaSection}>
+            <View key={planetKey} style={styles.doshaSection}>
               <View style={styles.doshaHeader}>
                 <Text style={[styles.doshaTitle, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
-                  {isTamil ? item.dosha_ta : item.dosha_en}
+                  {planetLabel ? (isTamil ? planetLabel.ta : planetLabel.en) : planetKey}
                 </Text>
                 <Text style={[styles.doshaSubtitle, isTamil ? TamilType.caption : EnType.caption]}>
-                  {isTamil ? "பரிகார வழிகள்" : "Remedy paths"}
+                  {isTamil
+                    ? `முன்னுரிமை ${item.priority} · ${isTamil ? item.reason_ta : item.reason_en}`
+                    : `Priority ${item.priority} · ${item.reason_en}`}
                 </Text>
               </View>
 
-              {(["temples", "mantras", "colours", "stones"] as RemedyCategory[]).map((cat) => {
-                const value = isTamil ? item[`${cat}_ta` as keyof PariharamEntry] : item[`${cat}_en` as keyof PariharamEntry];
+              {(["temple", "mantra", "gemstone", "daanam", "fasting"] as RemedyCategory[]).map((cat) => {
+                const value = categoryValue(item, cat, isTamil);
                 if (!value) return null;
                 const meta = CATEGORY_META[cat];
-                const cardKey = `${doshaKey}:${cat}`;
+                const cardKey = `${planetKey}:${cat}`;
                 const isDone = completed[cardKey] ?? false;
 
                 return (
@@ -136,8 +176,13 @@ export default function PariharamScreen() {
                           {isTamil ? meta.labelTa : meta.labelEn}
                         </Text>
                         <Text style={[styles.remedyValue, isTamil ? TamilType.body : EnType.body, isDone && styles.remedyValueDone]}>
-                          {value as string}
+                          {value}
                         </Text>
+                        {cat === "gemstone" && (item.metal || item.finger) ? (
+                          <Text style={styles.remedyCategoryLabel}>
+                            {[item.metal, item.finger].filter(Boolean).join(" · ")}
+                          </Text>
+                        ) : null}
                       </View>
                       <TouchableOpacity
                         onPress={() => toggleCompleted(cardKey)}
@@ -163,6 +208,19 @@ export default function PariharamScreen() {
             </View>
           );
         })}
+
+        {/* The backend attaches these to every remedy response on purpose — a
+            remedy must never read as a health instruction or a guarantee. */}
+        {disclaimer && (
+          <View style={styles.disclaimerCard}>
+            <Text style={[styles.disclaimerText, isTamil ? TamilType.caption : EnType.caption]}>
+              {isTamil ? disclaimer.fasting_caution_ta : disclaimer.fasting_caution_en}
+            </Text>
+            <Text style={[styles.disclaimerText, isTamil ? TamilType.caption : EnType.caption]}>
+              {isTamil ? disclaimer.guarantee_note_ta : disclaimer.guarantee_note_en}
+            </Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -200,6 +258,12 @@ function makeStyles(C: ColorTokens) {
   doshaHeader: { gap: 2 },
   doshaTitle: { fontSize: 17, lineHeight: 24, color: C.saffron },
   doshaSubtitle: { color: C.textTertiary },
+
+  disclaimerCard: {
+    backgroundColor: C.surface, borderRadius: RADIUS.card, padding: S.md,
+    borderWidth: 1, borderColor: C.divider, gap: S.sm, marginTop: S.sm,
+  },
+  disclaimerText: { color: C.textTertiary, lineHeight: 18 },
 
   remedyCard: {
     backgroundColor: C.surface, borderRadius: RADIUS.card, padding: S.base, gap: S.sm,

@@ -93,10 +93,12 @@ export default function MuhurtaScreen() {
   const targetDate = addMonths(today, horizonMonths);
   const selectedArea = LIFE_AREAS.find((item) => item.key === decisionArea) ?? LIFE_AREAS[0];
 
+  // Muhurta slots are chart-personalised (dasha + hora support), so they need a
+  // real chart id — the old literal "public" was never a valid chart.
   const muhurta = useQuery({
-    queryKey: ["muhurta", activity, dateFrom, dateTo],
-    queryFn: () => getMuhurta({ chartId: "public", activity, dateFrom, dateTo }),
-    enabled: submittedMode === "quick",
+    queryKey: ["muhurta", chartId, activity, dateFrom, dateTo],
+    queryFn: () => getMuhurta({ chartId: chartId!, activity, dateFrom, dateTo }),
+    enabled: submittedMode === "quick" && !!chartId,
     staleTime: 1000 * 60 * 60 * 12,
   });
 
@@ -127,10 +129,12 @@ export default function MuhurtaScreen() {
 
   async function handleSearch() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    if (mode === "decision" && (!chartId || isGuest)) {
+    if (!chartId || isGuest) {
       const ok = await confirm({
         title: "Chart required",
-        body: "Life Decision needs your birth chart so Vinaadi can compare dasha, transit, and timing support.",
+        body: mode === "decision"
+          ? "Life Decision needs your birth chart so Vinaadi can compare dasha, transit, and timing support."
+          : "Muhurta slots are scored against your birth chart's dasha and hora windows, so they need your chart.",
         confirmLabel: "Create account",
         cancelLabel: "Cancel",
       });
