@@ -227,6 +227,34 @@ export function LoginWelcomeNova({
         }
       `}</style>
 
+      {/* Handoff pulse — the backdrop above stays opaque (by design, see the
+          comment on `animate={{ opacity: 1 }}` above) until `router.push`
+          actually swaps in the destination route. That swap is not instant:
+          on a cold Next.js dev compile of a large route it can take several
+          seconds with zero signal, which reads as a frozen/blank screen. This
+          dot only starts fading in once the main content has finished fading
+          out, and — unlike the content above — never fades back out on its
+          own; it just keeps breathing for however long the handoff actually
+          takes, so there is always something moving on screen. */}
+      <motion.div
+        aria-hidden
+        initial={{ opacity: 0 }}
+        animate={{ opacity: leaving ? 1 : 0 }}
+        transition={{ duration: d(0.4), delay: leaving ? delay(0.45) : 0, ease: EASE_NOVA }}
+        style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}
+      >
+        <div
+          className="lwn-breathe"
+          style={{
+            width: 10,
+            height: 10,
+            borderRadius: "50%",
+            background: accent,
+            boxShadow: `0 0 18px ${accent}`,
+          }}
+        />
+      </motion.div>
+
       {/* Everything that lifts + dissolves on exit. */}
       <motion.div
         animate={{ opacity: leaving ? 0 : 1, scale: leaving ? 1.05 : 1 }}
