@@ -704,12 +704,52 @@ used whenever a single "best window" must be chosen for a day (see
 
 **Per-weekday rotation tables (`GOWRI_DAY_TABLE` / `GOWRI_NIGHT_TABLE`):**
 Each weekday maps to an ordered 8-tuple of category names assigned to slots
-1-8, keyed on Python `date.weekday()` (Mon=0 ... Sun=6). Both tables are a
-fixed cyclic rotation of the same 8-category sequence — only the starting
-offset changes per weekday, per the classical Gowri Panchangam rotation rule.
-The exact frozen tables (the master reference — do not silently change, see
-section 21) are versioned in `app/calculations/panchangam.py`
-(`GOWRI_DAY_TABLE`, `GOWRI_NIGHT_TABLE`, `PANCHANGAM_CACHE_DATA_VERSION`).
+1-8, keyed on Python `date.weekday()` (Mon=0 ... Sun=6).
+
+These tables are **not** a rotation of a single 8-category sequence. Only
+**seven** categories rotate (Uthi, Amirdha, Rogam, Laabam, Dhanam, Sugam,
+Soram) — one per weekday lord, advancing one step each weekday. **Visham does
+not rotate with them:** it is *inserted* at a weekday-specific slot, displacing
+the rest. For the daytime that slot is exactly `RAHU_SLOT` — **Visham is Rahu.**
+`GOWRI_DAY_TABLE` is therefore *derived* from `RAHU_SLOT` in code, not
+transcribed, so the identity cannot drift.
+
+> This spec previously asserted the single-8-cycle rotation rule, and the code
+> implemented it. That model cannot track Rahu Kalam's non-uniform weekday
+> table; the two coincide only on Sun/Wed, so 5 of 7 weekdays were wrong and a
+> good kala was printed across Rahu Kalam on Tue/Thu/Fri/Sat. Corrected in
+> `PANCHANGAM_CACHE_DATA_VERSION = 36` against drikpanchang (Drik Ganita =
+> Thirukanitham) for all seven weekdays, 17-24 Jul 2026. Note that two earlier
+> hand-transcribed "fixes" (v25, v27) both preserved the bug, because each row
+> in isolation still looked like a valid rotation — "every row is a rotation of
+> the master cycle" is the wrong invariant to check.
+
+`GOWRI_NIGHT_TABLE` carried the **same defect** (Visham misplaced on
+Mon/Tue/Thu/Fri/Sat nights) until `PANCHANGAM_CACHE_DATA_VERSION = 37`. At night
+Visham does *not* sit on the Rahu slot, so the night rows cannot be derived from
+`RAHU_SLOT` the way the day rows are; they are built instead from
+`NIGHT_VISHAM_SLOT` (Sun=4 Mon=5 Tue=3 Wed=8 Thu=2 Fri=7 Sat=6), supplied by the
+project astrologer 2026-07-17 and corroborated against drikpanchang and Prokerala.
+Night *start* kalas were already correct on all seven rows (= day start + 4 mod 7)
+and are unchanged.
+
+> Those slot values are not arbitrary: the Rahu Kalam weekday mnemonic assigns
+> day slots 2-8 in the order Mon, Sat, Fri, Wed, Thu, Tue, Sun, and stepping
+> **+3 along that same order** lands exactly on each weekday's night Visham slot.
+> That identity is asserted in tests as a cross-check, but `NIGHT_VISHAM_SLOT`
+> remains the source of truth — a rule inferred from seven fitted points is
+> weaker evidence than the reference it was fitted to, and inferring this table
+> by analogy with the day rule is precisely what produced the original bug.
+
+The tables are versioned in `app/calculations/panchangam.py`
+(`GOWRI_ROTATING_KALAS`, `_gowri_day_row`, `NIGHT_VISHAM_SLOT`,
+`_gowri_night_row`, `PANCHANGAM_CACHE_DATA_VERSION`); see section 21 before
+changing them.
+
+Note: the weekday slot tables (`RAHU_SLOT`, `YAMA_SLOT`, `KULIGAI_SLOT`, and the
+Gowri rotation) are **rule tables, not ephemeris output**. They are identical
+under Thirukanitham and Vakya, which differ only in sunrise/sunset and therefore
+in where the slot *boundaries* fall — never in which category occupies slot N.
 
 **Deriving Gowri Nalla Neram and Nalla Neram:**
 

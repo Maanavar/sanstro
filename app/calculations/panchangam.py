@@ -21,6 +21,7 @@ from app.calculations.astro import (
 )
 from app.constants.astrology import NAKSHATRA_NAMES
 from app.calculations.ephemeris import (
+    RiseTransitUndefinedError,
     calculate_lagna_degree,
     calculate_rise_transit_jd,
     calculate_sidereal_planets,
@@ -100,8 +101,10 @@ WEEKDAY_LORDS = {
     6: "SUN",
 }
 
-# Thirukanitham / Pambu Panchangam slot tables (8-slot daytime grid, Mon=0..Sun=6)
-# Canonical sequence used by QA golden cases.
+# Weekday slot tables (8-slot daytime grid, Mon=0..Sun=6).
+# Canonical sequence used by QA golden cases. These are weekday rule tables, not
+# ephemeris output — they are identical under Thirukanitham and Vakya, which
+# differ only in sunrise/sunset and therefore in where the slot boundaries fall.
 # Sun Mon Tue Wed Thu Fri Sat
 RAHU_SLOT = {6: 8, 0: 2, 1: 7, 2: 5, 3: 6, 4: 4, 5: 3}
 YAMA_SLOT = {6: 5, 0: 4, 1: 3, 2: 2, 3: 1, 4: 7, 5: 6}
@@ -111,7 +114,9 @@ KULIGAI_SLOT = {6: 7, 0: 6, 1: 5, 2: 4, 3: 3, 4: 2, 5: 1}
 # Traditional Gowri Panchangam kala names, per the project's frozen spec
 # (docs/Jothidam_AI_Formula_Engine_Specification_v1_Thirukanitham_2026.md §4.8a),
 # cross-checked against drikpanchang.com's Tamil Gowri Panchangam for Chennai.
-# 8-kala cycle: AMIRTHAM, VISHAM, ROGAM, LABHAM, DHANAM, SUGAM, SORAM, UTHI.
+# The eight kalas are AMIRTHAM, VISHAM, ROGAM, LABHAM, DHANAM, SUGAM, SORAM, UTHI,
+# but they are NOT a single rotating 8-cycle — see GOWRI_DAY_TABLE below for the
+# actual rotation rule (seven kalas rotate; VISHAM is placed at the Rahu slot).
 # Good kalas (5 of 8): AMIRTHAM (best), UTHI, LABHAM, DHANAM, SUGAM.
 # Bad kalas (3 of 8): ROGAM, SORAM, VISHAM.
 GOWRI_GOOD_NAMES = frozenset({"AMIRTHAM", "UTHI", "LABHAM", "DHANAM", "SUGAM"})
@@ -156,24 +161,80 @@ GOWRI_GOOD_PURPOSE_TA = {
 # Day-slot starting kala per weekday (0=Mon … 6=Sun), 8 kalas sunrise→sunset.
 # Starting kalas: Sun=Uthi, Mon=Amirtham, Tue=Rogam, Wed=Labham,
 #                 Thu=Dhanam, Fri=Sugam, Sat=Soram (Tamil Nadu tradition).
-GOWRI_DAY_TABLE = {
-    6: ("UTHI", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM"),
-    0: ("AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI"),
-    1: ("ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM"),
-    2: ("LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM"),
-    3: ("DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM", "LABHAM"),
-    4: ("SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM"),
-    5: ("SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM"),
-}
-GOWRI_NIGHT_TABLE = {
-    6: ("DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM", "LABHAM"),
-    0: ("SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM"),
-    1: ("SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM"),
-    2: ("UTHI", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM"),
-    3: ("AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI"),
-    4: ("ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM"),
-    5: ("LABHAM", "DHANAM", "SUGAM", "SORAM", "VISHAM", "UTHI", "AMIRTHAM", "ROGAM"),
-}
+#
+# Only SEVEN kalas rotate — one per weekday lord, advancing one step each
+# weekday. VISHAM does NOT rotate with them: it is inserted at a weekday-
+# specific slot, displacing the rest. For the daytime that slot is exactly
+# RAHU_SLOT — Visham is Rahu.
+#
+# Modelling Gowri as a rotation of a single EIGHT-kala cycle (as this file did
+# until v36) cannot express that, because it drags VISHAM around in lockstep
+# with the rotation while Rahu Kalam's slot moves on its own non-uniform table.
+# The two only coincide on Sun/Wed, so 5 of 7 weekdays were wrong — placing a
+# good kala on Rahu Kalam (Thursday printed AMIRTHAM, "best overall", across it).
+GOWRI_ROTATING_KALAS = ("UTHI", "AMIRTHAM", "ROGAM", "LABHAM", "DHANAM", "SUGAM", "SORAM")
+
+
+def _gowri_day_row(weekday_index: int) -> tuple[str, ...]:
+    """The eight daytime Gowri kalas for a weekday (Mon=0 … Sun=6).
+
+    Sunday's rotation starts at UTHI and each following weekday starts one kala
+    later, which under Python's Mon=0 keying is (weekday_index + 1) % 7. VISHAM
+    then takes the Rahu Kalam slot.
+
+    Derived from RAHU_SLOT rather than transcribed so the Visham/Rahu identity
+    cannot silently drift apart again. Two earlier hand-transcribed corrections
+    (v25, v27) both preserved the bug precisely because every row still looked
+    like a valid rotation when checked in isolation.
+    """
+    start = (weekday_index + 1) % 7
+    row = [GOWRI_ROTATING_KALAS[(start + i) % 7] for i in range(7)]
+    row.insert(RAHU_SLOT[weekday_index] - 1, "VISHAM")
+    return tuple(row)
+
+
+GOWRI_DAY_TABLE = {weekday: _gowri_day_row(weekday) for weekday in range(7)}
+
+# Night VISHAM slot per weekday (0=Mon … 6=Sun), 8 kalas sunset→next sunrise.
+#
+# Source: astrologer-supplied Gowri night table (2026-07-17), independently
+# corroborated by drikpanchang (Drik Ganita = Thirukanitham) and Prokerala.
+# Unlike the daytime, night VISHAM does NOT sit on a Rahu Kalam slot, so it
+# cannot be derived from RAHU_SLOT the way _gowri_day_row does — these values
+# are the reference data itself, not a computation.
+#
+# They are not arbitrary, though: the Rahu Kalam weekday mnemonic assigns day
+# slots 2..8 in the order Mon, Sat, Fri, Wed, Thu, Tue, Sun, and stepping +3
+# along that same order lands exactly on each weekday's night VISHAM slot
+# (i.e. NIGHT_VISHAM_SLOT[w] == ((RAHU_SLOT[w] - 2 + 3) % 7) + 2 on all seven
+# rows). That identity is asserted in tests as a cross-check, but the table
+# below stays the source of truth: a rule inferred from seven fitted points is
+# weaker evidence than the reference it was fitted to, and an earlier attempt to
+# infer this table by analogy with the day rule is exactly what produced the bug
+# these values fix.
+NIGHT_VISHAM_SLOT = {6: 4, 0: 5, 1: 3, 2: 8, 3: 2, 4: 7, 5: 6}
+
+
+def _gowri_night_row(weekday_index: int) -> tuple[str, ...]:
+    """The eight night Gowri kalas for a weekday (Mon=0 … Sun=6).
+
+    Same shape as _gowri_day_row: seven rotating kalas with VISHAM inserted at a
+    weekday-specific slot, displacing the rest. The night rotation starts four
+    kalas after the day rotation, and VISHAM takes NIGHT_VISHAM_SLOT rather than
+    the Rahu slot.
+
+    Until 2026-07-17 this was a hand-written rotation of a single eight-kala
+    cycle, which dragged VISHAM around in lockstep with the rotation — the same
+    modelling error v36 fixed for the day table, and wrong on the same 5 of 7
+    weekdays (Mon/Tue/Thu/Fri/Sat).
+    """
+    start = ((weekday_index + 1) % 7 + 4) % 7
+    row = [GOWRI_ROTATING_KALAS[(start + i) % 7] for i in range(7)]
+    row.insert(NIGHT_VISHAM_SLOT[weekday_index] - 1, "VISHAM")
+    return tuple(row)
+
+
+GOWRI_NIGHT_TABLE = {weekday: _gowri_night_row(weekday) for weekday in range(7)}
 
 # Subha/ashubha nitya yoga names per Thirukanitha tradition.
 SUBHA_YOGAS = {"SIDDHA", "SHUBHA", "VARIYANA", "HARSHANA", "BRAHMA", "INDRA"}
@@ -374,12 +435,43 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # following sunrise) so Sivarathiri is dated from the nishita tithi, not the
 # sunrise tithi (M-2, docs/ASTROLOGY_FULL_CODE_AUDIT_2026-07-16.md) — same
 # error class as v30's Pradhosam fix.
-PANCHANGAM_CACHE_DATA_VERSION = 34
+# v35: daily Nalla Neram + Gowri Nalla Neram summaries are now derived from the
+# Gowri good kalas on the real sunrise grid and selected clear of Rahu Kalam /
+# Yamagandam / Kuligai. Previously Gowri Nalla Neram blindly took the first good
+# kala (which IS Yamagandam every Thursday and Rahu Kalam every Saturday, since
+# the kalas share the same 8-part grid), and Nalla Neram used a fixed clock table
+# that drifted into the computed bad kalams on many days. Persisted nalla_neram /
+# gowri_nalla_neram windows change, so cached snapshots must recompute.
+# v36: GOWRI_DAY_TABLE was built as a rotation of a single 8-kala cycle, which
+# dragged VISHAM around with the rotation. VISHAM does not rotate — it sits on
+# the Rahu Kalam slot, whose weekday table is not a uniform rotation. The two
+# models agree only on Sun/Wed, so 5 of 7 weekdays were wrong: 15 of 56 day slots
+# misnamed, 10 of them good<->bad inverted, and on Tue/Thu/Fri/Sat a GOOD kala was
+# printed across Rahu Kalam (Thursday showed AMIRTHAM, "best overall"). The day
+# table is now DERIVED from RAHU_SLOT. Verified slot-for-slot against
+# drikpanchang (Drik Ganita = Thirukanitham) for all 7 weekdays, 17-24 Jul 2026.
+# Displayed Gowri kala names and Saturday's morning Nalla Neram change, so cached
+# snapshots must recompute. NIGHT table left unchanged at the time — fixed in v37.
+# v37: GOWRI_NIGHT_TABLE had the same modelling error v36 fixed for the day table
+# (single rotating 8-kala cycle, dragging VISHAM around with the rotation) and was
+# wrong on the same 5 of 7 weekdays: Mon/Tue/Thu/Fri/Sat. v36 left it alone because
+# night VISHAM does not sit on the night Rahu slot and no rule could be derived for
+# it; the table is now built from NIGHT_VISHAM_SLOT, astrologer-supplied reference
+# data corroborated by drikpanchang and Prokerala. Measured impact: 15 of 56 night
+# slots renamed, 10 of them good<->bad inverted; the night Gowri Nalla Neram window
+# moves on TUESDAY only (21:25->20:00 start, as UTHI moves from night slot 3 to 2),
+# and the daytime Nalla Neram is untouched. Persisted gowri_panchangam and Tuesday's
+# gowri_nalla_neram change, so cached snapshots must recompute.
+PANCHANGAM_CACHE_DATA_VERSION = 37
 DOMINANT_SPECIAL_TITHIS = {15, 30}
 
-# Compact daily-calendar summary windows used by Tamil calendars for everyday
-# planning. The full Gowri Panchangam engine below remains sunrise/sunset based;
-# these two-slot summaries intentionally use the familiar clock-table convention.
+# Fixed weekday clock-table Nalla Neram windows. NOTE (2026-07-17): the daily
+# panchangam no longer uses this table — its Nalla Neram is now derived from the
+# Gowri good kalas on the real sunrise->sunset grid and kept clear of Rahu Kalam
+# / Yamagandam / Kuligai (see _compute_nalla_neram). This table is retained only
+# for the location-agnostic muhurtham-naal listing (muhurtham_naal_service),
+# which has no coordinates to compute a sunrise-based Gowri grid and shows no
+# inauspicious kalams beside these windows, so there is nothing to collide with.
 NALLA_NERAM_SUMMARY_TABLE = {
     # Mon
     0: ((6 * 60 + 30, 7 * 60 + 30, "AM"), (16 * 60 + 30, 17 * 60 + 30, "PM")),
@@ -834,55 +926,31 @@ def _make_hora_entries(sunrise: datetime, sunset: datetime, next_sunrise: dateti
     return entries
 
 
-def _summary_slot(
-    date_local: date,
-    tzinfo,
-    slot_number: int,
-    start_minutes: int,
-    end_minutes: int,
-    period: str,
-) -> PanchangamSlot:
-    day_start = datetime.combine(date_local, datetime.min.time(), tzinfo=tzinfo)
-    start = day_start + timedelta(minutes=start_minutes)
-    end = day_start + timedelta(minutes=end_minutes)
-    if end <= start:
-        end += timedelta(days=1)
-    return PanchangamSlot(
-        start=start,
-        end=end,
-        slot=slot_number,
-        period=period,
-        is_good=True,
-    )
+def _truncate_to_minute(moment: datetime) -> datetime:
+    return moment.replace(second=0, microsecond=0)
 
 
-def _summary_slots(
-    date_local: date,
-    tzinfo,
-    table: dict[int, tuple[tuple[int, int, str], ...]],
-    weekday_index: int,
-) -> list[PanchangamSlot]:
-    return [
-        _summary_slot(date_local, tzinfo, slot_number, start, end, period)
-        for slot_number, (start, end, period) in enumerate(table[weekday_index], start=1)
-    ]
+def _windows_overlap(
+    a_start: datetime, a_end: datetime, b_start: datetime, b_end: datetime
+) -> bool:
+    """Overlap test at whole-minute (display) granularity.
 
-
-def _compute_nalla_neram(
-    sunrise: datetime,
-    sunset: datetime,
-    next_sunrise: datetime,
-    weekday_index: int,
-) -> list[PanchangamSlot]:
-    """Return 2-slot Nalla Neram summary using fixed Tamil almanac clock times.
-
-    Classic Nalla Neram uses AM and PM clock tables for everyday planning,
-    independent of sunrise/sunset shifts. See NALLA_NERAM_SUMMARY_TABLE.
+    Times are shown to the user rounded to the minute, so two windows only
+    "collide" if they still overlap once rounded. Comparing on the raw datetimes
+    would flag a shared kala boundary (e.g. a night Gowri kala that starts
+    exactly at sunset, where the day's last inauspicious kalam ends) or a
+    sub-minute floating-point sliver as a spurious overlap.
     """
-    # Create date and tzinfo for _summary_slots
-    date_local = sunrise.date()
-    tzinfo = sunrise.tzinfo
-    return _summary_slots(date_local, tzinfo, NALLA_NERAM_SUMMARY_TABLE, weekday_index)
+    a_s, a_e = _truncate_to_minute(a_start), _truncate_to_minute(a_end)
+    b_s, b_e = _truncate_to_minute(b_start), _truncate_to_minute(b_end)
+    return a_s < b_e and b_s < a_e
+
+
+def _clear_of_bad_kalams(
+    start: datetime, end: datetime, bad_slots: Sequence[PanchangamSlot]
+) -> bool:
+    """True when [start, end) does not overlap Rahu Kalam / Yamagandam / Kuligai."""
+    return not any(_windows_overlap(start, end, b.start, b.end) for b in bad_slots)
 
 
 def _compute_gowri_panchangam(
@@ -906,23 +974,38 @@ def _compute_gowri_panchangam(
 
 
 def _compute_gowri_nalla_neram(
-    sunrise: datetime,
-    sunset: datetime,
-    next_sunrise: datetime,
-    weekday_index: int,
+    gowri_panchangam: Sequence[PanchangamSlot],
+    bad_slots: Sequence[PanchangamSlot],
 ) -> list[PanchangamSlot]:
-    """Compact day/night Gowri Nalla Neram summary derived from computed Gowri slots.
+    """Compact day/night Gowri Nalla Neram summary derived from the Gowri slots.
 
-    Returns the first good Gowri slot in DAY and NIGHT periods as summary windows.
+    Returns the FIRST auspicious Gowri kala in the DAY and in the NIGHT that is
+    clear of Rahu Kalam / Yamagandam / Kuligai. Gowri kalas and the inauspicious
+    kalams are cut from the same 8-part sunrise->sunset grid, so an auspicious
+    kala can fall on the exact same slot as a bad kalam — e.g. Thursday's first
+    good kala (DHANAM) IS Yamagandam. A reliable panchangam never announces such
+    a slot as "nalla neram"; it moves on to the next good kala. Skipping the
+    colliding kala reproduces that.
+
+    Rahu Kalam is a special case: since v36 the day table places VISHAM on the
+    Rahu slot by construction, so a good DAY kala can never overlap Rahu Kalam
+    and that half of the check is a no-op kept for defence. It still bites on the
+    NIGHT side, whose table remains uncorrected. (Before v36 the day table put a
+    good kala on Rahu Kalam on 4 of 7 weekdays, and this filter was silently
+    papering over that bug.)
     """
-    gowri_slots = _compute_gowri_panchangam(sunrise, sunset, next_sunrise, weekday_index)
+    day_good = [
+        s for s in gowri_panchangam
+        if s.period == "DAY" and s.is_good and _clear_of_bad_kalams(s.start, s.end, bad_slots)
+    ]
+    night_good = [
+        s for s in gowri_panchangam
+        if s.period == "NIGHT" and s.is_good and _clear_of_bad_kalams(s.start, s.end, bad_slots)
+    ]
 
-    day_good_slots = [s for s in gowri_slots if s.period == "DAY" and s.is_good]
-    night_good_slots = [s for s in gowri_slots if s.period == "NIGHT" and s.is_good]
-
-    summary_slots = []
-    if day_good_slots:
-        first_day = day_good_slots[0]
+    summary_slots: list[PanchangamSlot] = []
+    if day_good:
+        first_day = day_good[0]
         summary_slots.append(PanchangamSlot(
             start=first_day.start,
             end=first_day.end,
@@ -932,8 +1015,8 @@ def _compute_gowri_nalla_neram(
             is_good=True,
         ))
 
-    if night_good_slots:
-        first_night = night_good_slots[0]
+    if night_good:
+        first_night = night_good[0]
         summary_slots.append(PanchangamSlot(
             start=first_night.start,
             end=first_night.end,
@@ -944,6 +1027,56 @@ def _compute_gowri_nalla_neram(
         ))
 
     return summary_slots
+
+
+def _compute_nalla_neram(
+    gowri_panchangam: Sequence[PanchangamSlot],
+    bad_slots: Sequence[PanchangamSlot],
+    solar_noon: datetime,
+) -> list[PanchangamSlot]:
+    """Everyday morning + evening Nalla Neram windows.
+
+    Reliable Tamil panchangams print the daily "நல்ல நேரம்" as a காலை (morning)
+    and a மாலை (evening) window — the earliest and the latest auspicious Gowri
+    kala of the daytime — always chosen clear of Rahu Kalam / Yamagandam /
+    Kuligai. We reproduce that: take the FIRST and the LAST good Gowri kala of the
+    day that are clear of the inauspicious kalams, and label each AM/PM by whether
+    it falls before or after solar noon.
+
+    This replaces the earlier fixed clock-time table, which was divorced from the
+    day's actual sunrise and therefore drifted into the astronomically-computed
+    Rahu Kalam / Yamagandam on many days (e.g. Sunday's PM window sat entirely
+    inside Kuligai). The location-agnostic muhurtham-naal listing still uses the
+    fixed weekday table (it has no coordinates and shows no kalams beside it).
+    """
+    day_good_clear = sorted(
+        (
+            s for s in gowri_panchangam
+            if s.period == "DAY" and s.is_good and _clear_of_bad_kalams(s.start, s.end, bad_slots)
+        ),
+        key=lambda s: s.start,
+    )
+    if not day_good_clear:
+        return []
+
+    # Morning = earliest clear good kala; evening = latest clear good kala. When
+    # only one exists (e.g. a very short winter day heavily hemmed by kalams),
+    # show that single window rather than duplicating it.
+    picks = [day_good_clear[0]]
+    if day_good_clear[-1] is not day_good_clear[0]:
+        picks.append(day_good_clear[-1])
+
+    return [
+        PanchangamSlot(
+            start=pick.start,
+            end=pick.end,
+            slot=slot_number,
+            name=None,
+            period="AM" if pick.start < solar_noon else "PM",
+            is_good=True,
+        )
+        for slot_number, pick in enumerate(picks, start=1)
+    ]
 
 
 # Classical Rikta tithi group (4th/9th/14th of each paksha, per the
@@ -1590,8 +1723,13 @@ def calculate_daily_panchangam(
     hora_entries = _make_hora_entries(sunrise, sunset, next_sunrise, weekday_lord)
     weekday_index = date_local.weekday()
     gowri_panchangam = _compute_gowri_panchangam(sunrise, sunset, next_sunrise, weekday_index)
-    gowri_nalla_neram = _compute_gowri_nalla_neram(sunrise, sunset, next_sunrise, weekday_index)
-    nalla_neram = _compute_nalla_neram(sunrise, sunset, next_sunrise, weekday_index)
+    # Rahu Kalam / Yamagandam / Kuligai are the inauspicious kalams the daily
+    # nalla-neram windows must avoid; pass them so both summaries are computed
+    # clear of them (they share the Gowri 8-part grid, so a good kala can land
+    # on the exact same slot as a bad kalam).
+    bad_kalam_slots = (rahu, yama, kuligai)
+    gowri_nalla_neram = _compute_gowri_nalla_neram(gowri_panchangam, bad_kalam_slots)
+    nalla_neram = _compute_nalla_neram(gowri_panchangam, bad_kalam_slots, solar_noon)
 
     is_subha, subha_reason = _compute_subha_muhurtham_broad(
         tithi_number, NAKSHATRA_NAMES[nakshatra_number - 1], weekday_index,
@@ -1756,11 +1894,19 @@ def calculate_daily_panchangam_range(
     bulk SELECT covering the whole range and a single purge call. Cache misses
     fall back to the regular per-day computation, which also stores its result.
     """
+    # A polar-latitude range can contain some days with no sunrise/sunset. Those
+    # days are simply omitted from the result (the monthly grid skips them) rather
+    # than failing the whole range — the caller iterates whatever days came back.
     if session is None:
-        return {
-            current: calculate_daily_panchangam(current, latitude, longitude, timezone_name, session=None)
-            for current in _date_range(start_date, end_date)
-        }
+        snapshots: dict[date, PanchangamSnapshot] = {}
+        for current in _date_range(start_date, end_date):
+            try:
+                snapshots[current] = calculate_daily_panchangam(
+                    current, latitude, longitude, timezone_name, session=None,
+                )
+            except RiseTransitUndefinedError:
+                logger.info("Skipping %s: no sunrise/sunset at this location (polar day/night)", current)
+        return snapshots
 
     try:
         purge_expired_panchangam_cache(session)
@@ -1771,15 +1917,19 @@ def calculate_daily_panchangam_range(
         logger.warning(f"Panchangam cache read/purge failed for range; computing all: {exc}")
         cached = {}
 
-    snapshots: dict[date, PanchangamSnapshot] = {}
+    snapshots = {}
     for current in _date_range(start_date, end_date):
         existing = cached.get(current)
         if existing is not None:
             snapshots[current] = existing
             continue
-        computed = calculate_daily_panchangam(
-            current, latitude, longitude, timezone_name, session=session, use_cache=False,
-        )
+        try:
+            computed = calculate_daily_panchangam(
+                current, latitude, longitude, timezone_name, session=session, use_cache=False,
+            )
+        except RiseTransitUndefinedError:
+            logger.info("Skipping %s: no sunrise/sunset at this location (polar day/night)", current)
+            continue
         try:
             _store_cached_snapshot(session, computed, DEFAULT_AYANAMSA_TYPE)
         except Exception as exc:

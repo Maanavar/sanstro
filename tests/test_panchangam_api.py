@@ -206,3 +206,26 @@ def test_daily_panchangam_endpoint_ignores_stale_cache_schema(client):
     with SessionLocal() as session:
         row = session.query(PanchangamCache).one()
         assert row.data["schema_version"] == PANCHANGAM_CACHE_DATA_VERSION
+
+
+def test_daily_panchangam_polar_day_returns_422_not_500(client):
+    # Tromso during polar day has no sunrise/sunset — the endpoint must degrade to
+    # a clean 422 (undefined input), never a 500.
+    response = client.get(
+        "/api/v1/panchangam/daily",
+        params={"date": "2026-06-21", "lat": 69.6492, "lng": 18.9553, "timezone": "Europe/Oslo"},
+    )
+    assert response.status_code == 422
+    assert "polar" in response.json()["detail"].lower()
+
+
+def test_monthly_panchangam_polar_month_omits_undefined_days_not_500(client):
+    # A fully-polar month returns 200 with the no-sunrise days simply omitted,
+    # rather than failing the whole request.
+    response = client.get(
+        "/api/v1/panchangam/monthly",
+        params={"year": 2026, "month": 6, "lat": 69.6492, "lng": 18.9553, "timezone": "Europe/Oslo"},
+    )
+    assert response.status_code == 200
+    # June at Tromso is entirely polar day → all days omitted.
+    assert response.json()["data"]["entries"] == []

@@ -373,11 +373,16 @@ def build_monthly_panchangam(query: PanchangamMonthlyQuery, session: Session | N
     # day's snapshot. Only day 1 needs an extra ephemeris call (the last day
     # of the previous month, outside this range) — every other day reuses
     # the previous loop iteration's already-computed snapshot for free.
-    previous_snapshot = _previous_day_snapshot(snapshots_by_date[first_day], session)
+    # snapshots_by_date can be missing polar-day/night days (no sunrise/sunset),
+    # so guard the day-1 lookup and skip any absent day below.
+    first_snapshot = snapshots_by_date.get(first_day)
+    previous_snapshot = _previous_day_snapshot(first_snapshot, session) if first_snapshot else None
 
     for day_number in range(1, days_in_month + 1):
         date_local = date(query.year, query.month, day_number)
-        snapshot = snapshots_by_date[date_local]
+        snapshot = snapshots_by_date.get(date_local)
+        if snapshot is None:
+            continue
         # Sunrise-governing (உதய) tithi / nakshatra / yoga: the value present at
         # sunrise names the whole civil day. This is the classical Tamil rule the
         # daily endpoint and the dashboard home already use — the monthly grid now

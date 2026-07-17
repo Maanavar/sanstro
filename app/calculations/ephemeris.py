@@ -243,6 +243,34 @@ def calculate_asc_mc(jd_ut: float, latitude: float, longitude: float) -> tuple[f
         return normalize_longitude(float(ascmc[0])), normalize_longitude(float(ascmc[1]))
 
 
+class RiseTransitUndefinedError(ValueError):
+    """The Sun does not rise or set for this location and date.
+
+    At polar latitudes during polar day / polar night the Sun is circumpolar, so
+    there is no sunrise or sunset — Swiss Ephemeris returns a sentinel (0.0) or a
+    far-away next event rather than an event on this date. Every panchangam field
+    (Rahu Kalam, Yamagandam, Kuligai, Gowri, Nalla Neram, horai, udaya tithi …)
+    is anchored on sunrise, so the whole day is *undefined* here, not merely
+    approximate. Callers should surface this as a clean 4xx, not a 500.
+    """
+
+
+def _require_valid_rise_jd(jd_result: float, jd_start: float, *, rise: bool) -> float:
+    """Reject a circumpolar / sentinel rise-set result.
+
+    A genuine sunrise/sunset for ``jd_start`` lands within about a day and a half
+    of it. A circumpolar day makes Swiss Ephemeris return either 0.0 or an event
+    weeks/months away — both far outside this window, and both also what would
+    overflow the later Julian-Day -> datetime conversion.
+    """
+    if not (jd_start - 2.5 <= jd_result <= jd_start + 2.5):
+        raise RiseTransitUndefinedError(
+            f"No sun{'rise' if rise else 'set'} at this location on this date "
+            "(polar day/night) — panchangam is undefined here."
+        )
+    return jd_result
+
+
 def calculate_rise_transit_jd(jd_start: float, latitude: float, longitude: float, *, rise: bool) -> float:
     """Hindu sunrise/sunset (Doctrine §1, WI-07): geometric rise/set of the
     Sun's disc CENTER with NO atmospheric refraction, matching every printed
@@ -285,9 +313,9 @@ def calculate_rise_transit_jd(jd_start: float, latitude: float, longitude: float
                 )
             if isinstance(result, tuple):
                 if len(result) >= 2 and isinstance(result[1], (tuple, list)) and result[1]:
-                    return float(result[1][0])
+                    return _require_valid_rise_jd(float(result[1][0]), jd_start, rise=rise)
                 if len(result) >= 1 and isinstance(result[0], (tuple, list)) and result[0]:
-                    return float(result[0][0])
+                    return _require_valid_rise_jd(float(result[0][0]), jd_start, rise=rise)
             raise RuntimeError("Swiss Ephemeris rise_trans did not return a usable Julian Day.")
 
         geopos = (c_double * 3)(longitude, latitude, 0.0)
@@ -305,7 +333,7 @@ def calculate_rise_transit_jd(jd_start: float, latitude: float, longitude: float
             tret,
             serr,
         )
-        return float(tret[0])
+        return _require_valid_rise_jd(float(tret[0]), jd_start, rise=rise)
 
 
 @lru_cache(maxsize=256)

@@ -135,7 +135,20 @@ def _register_exception_handlers(app: FastAPI) -> None:
     from fastapi import Request
     from fastapi.responses import JSONResponse
 
+    from app.calculations.ephemeris import RiseTransitUndefinedError
+
     exc_logger = logging.getLogger("jothidam.error")
+
+    @app.exception_handler(RiseTransitUndefinedError)
+    async def _rise_transit_undefined_handler(request: Request, exc: RiseTransitUndefinedError):
+        # Polar day/night: the Sun is circumpolar, so sunrise-anchored panchangam
+        # fields are undefined for this location/date. A user-fixable input
+        # condition, not a server fault — return 422, not 500.
+        request_id = getattr(request.state, "request_id", None)
+        return JSONResponse(
+            status_code=422,
+            content={"detail": str(exc), "request_id": request_id},
+        )
 
     @app.exception_handler(Exception)
     async def _unhandled_exception_handler(request: Request, exc: Exception):
