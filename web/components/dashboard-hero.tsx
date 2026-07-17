@@ -50,22 +50,28 @@ const DAILY_PRINCIPLES: Array<{ en: string; ta: string }> = [
   },
 ];
 
-// IA model (DASH-13): this strip mirrors the left rail exactly — six
-// first-class destinations (Today · Calendar · Family & Charts · Plan · Tools
-// · Explore). Depth surfaces (Life Areas, Journal, Transits) live under
-// Explore / Plan and highlight NOTHING while active — marking Explore as
-// current-page while the user is actually on Life Areas/Journal misled about
-// where they were (user feedback 2026-07-14); the depth page's own heading +
-// the "Back to Explore" banner carry the orientation instead. Same rule in
-// dashboard-left-rail.tsx — the two navs must never disagree.
+// IA model: seven first-class destinations in the top strip (Today ·
+// Calendar · Family & Charts · Transit & Dashas · Goals · Life Area ·
+// More). "Goals" is nav id `"plan"` relabeled — Transits & Dasha split out
+// of it into its own `"transits"` destination. Tools/Explore/QA live behind
+// the "More" dropdown (`MORE_TAB_DEFS` below) rather than as direct pills.
+// Journal has no top-level entry — it's reached from within Today/Life
+// Areas/Transits' own "go to journal" links.
 const TAB_DEFS: Array<{ id: Tab; labelEn: string; labelTaKey?: LabelKey }> = [
   { id: "personal", labelEn: "Today", labelTaKey: "tab_today" },
   { id: "calendar", labelEn: "Calendar", labelTaKey: "tab_calendar" },
   { id: "family", labelEn: "Family & Charts", labelTaKey: "tab_family" },
-  { id: "plan", labelEn: "Plan", labelTaKey: "tab_plan" },
+  { id: "transits", labelEn: "Transit & Dashas", labelTaKey: "tab_transits" },
+  { id: "plan", labelEn: "Goals", labelTaKey: "tab_plan" },
+  { id: "life-areas", labelEn: "Life Area", labelTaKey: "tab_life_area_nav" },
+  { id: "settings", labelEn: "Settings", labelTaKey: "tab_settings" },
+];
+
+// Destinations tucked behind the "More" dropdown (see `showMoreMenu` below)
+// instead of their own pill — QA stays dev-only.
+const MORE_TAB_DEFS: Array<{ id: Tab; labelEn: string; labelTaKey?: LabelKey }> = [
   { id: "tools", labelEn: "Tools", labelTaKey: "tab_tools" },
   { id: "explore", labelEn: "Explore", labelTaKey: "tab_explore" },
-  { id: "settings", labelEn: "Settings", labelTaKey: "tab_settings" },
   { id: "qa", labelEn: "QA" },
 ];
 
@@ -156,21 +162,20 @@ export function DashboardHero(props: DashboardHeroProps) {
 
   const [showAlerts, setShowAlerts] = useState(false);
   const [showInbox, setShowInbox] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const activeTabRef = useRef<HTMLButtonElement>(null);
 
   // Settings is reachable from the avatar menu, so it is omitted from the tab
-  // strip to keep the mobile nav compact. QA only shows outside production.
-  // "Transits & Dasha" lives inside the Plan tab's own toggle
-  // (see dashboard-plan-tab-nova.tsx) rather than as a separate destination.
-  const tabs = useMemo(
-    () =>
-      TAB_DEFS.filter(
-        (tab) =>
-          tab.id !== "settings" &&
-          (SHOW_QA_TAB || tab.id !== "qa"),
-      ),
+  // strip to keep the mobile nav compact.
+  const tabs = useMemo(() => TAB_DEFS.filter((tab) => tab.id !== "settings"), []);
+
+  // Tools/Explore/QA live behind the "More" dropdown. QA only shows outside
+  // production.
+  const moreTabs = useMemo(
+    () => MORE_TAB_DEFS.filter((tab) => SHOW_QA_TAB || tab.id !== "qa"),
     [],
   );
+  const isMoreActive = moreTabs.some((tab) => tab.id === activeTab);
 
   // Keep the active tab scrolled into view on the mobile scrollable strip so the
   // user can always see where they are, even when tabs overflow the viewport.
@@ -260,21 +265,67 @@ export function DashboardHero(props: DashboardHeroProps) {
             data-scroll-start={topnavEdges.atStart}
             data-scroll-end={topnavEdges.atEnd}
           >
-            <div className="cd-topnav__scroll" ref={topnavScrollRef}>{tabButtons}</div>
-            <button
-              type="button"
-              className="cd-topnav__more"
-              aria-hidden="true"
-              tabIndex={-1}
-              onClick={() => {
-                const el = topnavScrollRef.current;
-                el?.scrollBy({ left: Math.round(el.clientWidth * 0.7), behavior: "smooth" });
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            </button>
+            <div className="cd-topnav__scrollwrap">
+              <div className="cd-topnav__scroll" ref={topnavScrollRef}>{tabButtons}</div>
+              <button
+                type="button"
+                className="cd-topnav__more"
+                aria-hidden="true"
+                tabIndex={-1}
+                onClick={() => {
+                  const el = topnavScrollRef.current;
+                  el?.scrollBy({ left: Math.round(el.clientWidth * 0.7), behavior: "smooth" });
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M9 6l6 6-6 6" />
+                </svg>
+              </button>
+            </div>
+            {/* "More" (Tools/Explore/QA) — rendered as its own flex sibling,
+                outside the scroll wrapper above: the scroll strip's
+                overflow-x:auto forces overflow-y to auto too, which would
+                clip an absolutely-positioned dropdown placed inside it. */}
+            <div className="cd-popover-anchor cd-topnav__more-anchor">
+              <button
+                type="button"
+                className={`cd-tab${isMoreActive ? " cd-tab--active" : ""}`}
+                aria-haspopup="menu"
+                aria-expanded={showMoreMenu}
+                onClick={() => setShowMoreMenu((v) => !v)}
+              >
+                {t("tab_more", lang)} ▾
+                {isMoreActive && (
+                  <motion.span
+                    layoutId="cd-tab-indicator"
+                    className="cd-tab__indicator"
+                    transition={{ type: "spring", stiffness: 400, damping: 15, mass: 0.8 }}
+                  />
+                )}
+              </button>
+              {showMoreMenu && (
+                <>
+                  <div className="cd-overlay cd-overlay--menu" onClick={() => setShowMoreMenu(false)} />
+                  <div className="cd-dropdown" role="menu">
+                    {moreTabs.map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        role="menuitem"
+                        className="cd-dropdown__btn"
+                        aria-current={activeTab === tab.id ? "page" : undefined}
+                        onClick={() => {
+                          onTabChange(tab.id);
+                          setShowMoreMenu(false);
+                        }}
+                      >
+                        <span>{lang === "ta" && tab.labelTaKey ? t(tab.labelTaKey, lang) : tab.labelEn}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </nav>
 
           <div className="cd-topbar__right">

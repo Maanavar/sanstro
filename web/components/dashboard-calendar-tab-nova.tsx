@@ -4,8 +4,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
-import { formatClockLabel, formatHijriDate } from "@/lib/format";
-import { bestGowriSlot, gowriCategoryLabel, gowriPeriodLabel, gowriPurposeLabel } from "@/lib/gowri";
+import { addDays, formatClockLabel, formatHijriDate } from "@/lib/format";
+import {
+  bestGowriSlot,
+  gowriCategoryLabel,
+  gowriCategoryRank,
+  gowriCautionLabel,
+  gowriPeriodLabel,
+  gowriPurposeLabel,
+  gowriQualityLabel,
+  gowriSlotDayOffsets,
+} from "@/lib/gowri";
+import type { GowriSlotDayOffset } from "@/lib/gowri";
 import { t, tAmirdhadhiYogam, tJeevan, tKarana, tMoonPhase, tNakshatra, tNethiram, tParigaram, tPlanetLord, tSoolamDirection, tTithi, tWeekday, tYoga } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { rasiGlyph } from "@/lib/astro-symbols";
@@ -136,46 +146,203 @@ function NovaAvoidRow({ label, slot }: { label: string; slot: { start: string; e
   );
 }
 
-function NovaGowriDetailGrid({
-  slots,
+type GowriSlot = NonNullable<PanchangamDailyResponseData["kalam"]["gowriPanchangam"]>[number];
+type GowriAvoidSlot = { label: string; start: string; end: string };
+
+// Day/month only ("18 Jul") — this stamp sits inside a dense time cell and only
+// ever marks tomorrow, so the year would be noise.
+function shortDayMonth(isoDate: string, lang: Lang): string {
+  const parsed = new Date(`${isoDate}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { day: "numeric", month: "short" });
+}
+
+function gowriEdgeLabel(hm: string, dayOffset: number, dateLocal: string, lang: Lang): string {
+  const clock = formatClockLabel(hm);
+  if (dayOffset <= 0) return clock;
+  const stamp = shortDayMonth(addDays(dateLocal, dayOffset), lang);
+  return stamp ? `${clock}, ${stamp}` : clock;
+}
+
+/**
+ * One kala row: name + verdict on the left, its window on the right, with the
+ * reason underneath. Mirrors the row-per-kala shape printed almanacs use.
+ */
+function NovaGowriKalaRow({
+  slot,
+  offset,
   avoidSlots,
+  dateLocal,
   lang,
 }: {
-  slots: NonNullable<PanchangamDailyResponseData["kalam"]["gowriPanchangam"]>;
-  avoidSlots: Array<{ label: string; start: string; end: string }>;
+  slot: GowriSlot;
+  offset: GowriSlotDayOffset;
+  avoidSlots: GowriAvoidSlot[];
+  dateLocal: string;
+  lang: Lang;
+}) {
+  const overlapping = avoidSlots.filter((avoid) => timeWindowsOverlap(slot, avoid));
+  const isInauspiciousKala = slot.isGood === false;
+  const isBad = isInauspiciousKala || overlapping.length > 0;
+  const isBest = !isBad && gowriCategoryRank(slot.name) === 1;
+  const category = gowriCategoryLabel(slot.name, lang);
+  const quality = isBad && !isInauspiciousKala ? (lang === "ta" ? "தவிர்க்கவும்" : "Avoid") : gowriQualityLabel(slot.name, lang);
+  const purpose = gowriPurposeLabel(slot.name, lang);
+
+  const tone = isBad
+    ? { bg: "var(--color-low-bg)", border: "var(--color-low-border)", color: "var(--color-low)" }
+    : { bg: "var(--color-high-bg)", border: "var(--color-high-border)", color: "var(--color-high)" };
+
+  // Explain every red row: an inauspicious kala carries its own caution, an
+  // otherwise-good kala that lands in Rahu/Yama/Kuligai carries the clash.
+  const reasons: string[] = [];
+  if (isInauspiciousKala) {
+    reasons.push(gowriCautionLabel(slot.name, lang) || (lang === "ta" ? "தீய கலம்" : "Inauspicious kala"));
+  }
+  if (overlapping.length > 0) {
+    const names = overlapping.map((o) => o.label).join(", ");
+    reasons.push(lang === "ta" ? `${names} உடன் மோதுகிறது — தவிர்க்கவும்` : `Coincides with ${names} — avoid`);
+  }
+
+  return (
+    <div
+      style={{
+        borderRadius: "8px",
+        border: `1px solid ${isBest ? "var(--color-high)" : tone.border}`,
+        background: tone.bg,
+        padding: "7px 10px",
+        minWidth: 0,
+      }}
+    >
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: "8px", alignItems: "baseline" }}>
+        <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--color-text-strong)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {category || `${lang === "ta" ? "கலம்" : "Kala"} ${slot.slot}`}
+          {quality && <span style={{ fontWeight: 600, color: tone.color }}> · {quality}</span>}
+        </span>
+        <span style={{ fontSize: "11.5px", fontWeight: 600, color: "var(--color-text)", whiteSpace: "nowrap" }}>
+          {gowriEdgeLabel(slot.start, offset.startOffset, dateLocal, lang)} – {gowriEdgeLabel(slot.end, offset.endOffset, dateLocal, lang)}
+        </span>
+      </div>
+      {purpose && !isBad && (
+        <div style={{ fontSize: "10.5px", color: "var(--color-muted)", marginTop: "2px", lineHeight: 1.35 }}>{purpose}</div>
+      )}
+      {reasons.length > 0 && (
+        <div style={{ fontSize: "10px", color: tone.color, marginTop: "2px", fontWeight: 700, lineHeight: 1.35 }}>
+          {reasons.join(" · ")}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** One of the two halves of the Gowri grid: 8 kalas anchored at sunrise or sunset. */
+function NovaGowriKalaColumn({
+  slots,
+  anchorHm,
+  anchorLabel,
+  title,
+  icon,
+  avoidSlots,
+  dateLocal,
+  lang,
+}: {
+  slots: GowriSlot[];
+  anchorHm: string;
+  anchorLabel: string;
+  title: string;
+  icon: string;
+  avoidSlots: GowriAvoidSlot[];
+  dateLocal: string;
   lang: Lang;
 }) {
   if (slots.length === 0) return null;
+  const offsets = gowriSlotDayOffsets(slots, anchorHm);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "5px", minWidth: 0 }}>
+      <div
+        style={{
+          display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "8px",
+          padding: "0 2px 4px", borderBottom: "1px solid var(--color-border)",
+        }}
+      >
+        <span style={{ fontSize: "11.5px", fontWeight: 700, color: "var(--color-text-strong)" }}>
+          <span aria-hidden="true" style={{ marginRight: "5px" }}>{icon}</span>
+          {title}
+        </span>
+        <span style={{ fontSize: "10.5px", color: "var(--color-muted)", whiteSpace: "nowrap" }}>
+          {anchorLabel} {formatClockLabel(anchorHm)}
+        </span>
+      </div>
+      {slots.map((slot, idx) => (
+        <NovaGowriKalaRow
+          key={`${slot.period ?? "slot"}-${slot.name ?? slot.slot}-${idx}`}
+          slot={slot}
+          offset={offsets[idx] ?? { startOffset: 0, endOffset: 0 }}
+          avoidSlots={avoidSlots}
+          dateLocal={dateLocal}
+          lang={lang}
+        />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * The 16 Gowri kalas, split the way the panchangam day is actually built:
+ * sunrise→sunset in one column, sunset→next sunrise in the other, each anchored
+ * by the boundary it starts from. A single flat grid of 16 cards hid that
+ * structure — the day/night break landed wherever the columns happened to wrap,
+ * and night times past midnight read as this morning.
+ */
+function NovaGowriDetailGrid({
+  slots,
+  avoidSlots,
+  sunrise,
+  sunset,
+  dateLocal,
+  lang,
+}: {
+  slots: NonNullable<PanchangamDailyResponseData["kalam"]["gowriPanchangam"]>;
+  avoidSlots: GowriAvoidSlot[];
+  sunrise: string;
+  sunset: string;
+  dateLocal: string;
+  lang: Lang;
+}) {
+  if (slots.length === 0) return null;
+  const daySlots = slots.filter((slot) => slot.period === "DAY");
+  const nightSlots = slots.filter((slot) => slot.period === "NIGHT");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
       <div style={{ fontSize: "10.5px", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
         {lang === "ta" ? "கௌரி நல்ல நேரம் விவரம்" : "Gowri Nalla Neram Details"}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "8px" }}>
-        {slots.map((slot, idx) => {
-          const overlapping = avoidSlots.filter((avoid) => timeWindowsOverlap(slot, avoid));
-          const isBad = slot.isGood === false || overlapping.length > 0;
-          const period = gowriPeriodLabel(slot.period, lang);
-          const category = gowriCategoryLabel(slot.name, lang);
-          const purpose = gowriPurposeLabel(slot.name, lang);
-          const tone = isBad
-            ? { bg: "var(--color-low-bg)", border: "var(--color-low-border)", color: "var(--color-low)" }
-            : { bg: "var(--color-high-bg)", border: "var(--color-high-border)", color: "var(--color-high)" };
-          return (
-            <div key={`${slot.period ?? "slot"}-${slot.name ?? slot.slot}-${idx}`} style={{ borderRadius: "9px", border: `1px solid ${tone.border}`, background: tone.bg, padding: "9px 11px", minWidth: 0 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", fontSize: "12px", fontWeight: 700, color: "var(--color-text-strong)" }}>
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{[period, category].filter(Boolean).join(" · ") || `Slot ${slot.slot}`}</span>
-                <span style={{ whiteSpace: "nowrap" }}>{formatClockLabel(slot.start)} – {formatClockLabel(slot.end)}</span>
-              </div>
-              {purpose && <div style={{ fontSize: "10.5px", color: "var(--color-muted)", marginTop: "3px", lineHeight: 1.4 }}>{purpose}</div>}
-              {overlapping.length > 0 && (
-                <div style={{ fontSize: "10px", color: tone.color, marginTop: "3px", fontWeight: 700 }}>
-                  {lang === "ta" ? "தவிர்க்கும் நேரம்" : "Overlaps"}: {overlapping.map((o) => o.label).join(", ")}
-                </div>
-              )}
-            </div>
-          );
-        })}
+      <div style={{ fontSize: "10.5px", color: "var(--color-muted)", lineHeight: 1.4 }}>
+        {lang === "ta"
+          ? "சிவப்பு = தீய கலம் (ரோகம்/சோரம்/விஷம்) அல்லது ராகு காலம்/யமகண்டம்/குளிகையுடன் மோதும் நேரம் — காரணம் ஒவ்வொரு வரிசையிலும். பஞ்சாங்க நாள் சூர்யோதயத்தில் தொடங்குகிறது; நள்ளிரவுக்குப் பிந்தைய நேரங்களுடன் அடுத்த நாள் தேதி குறிக்கப்பட்டுள்ளது."
+          : "Red = an inauspicious kala (Rogam/Soram/Visham) or one that coincides with Rahu Kalam/Yamagandam/Kuligai — the reason is shown on each row. The panchangam day starts at sunrise; times past midnight are stamped with the next day's date."}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px" }}>
+        <NovaGowriKalaColumn
+          slots={daySlots}
+          anchorHm={sunrise}
+          anchorLabel={lang === "ta" ? "சூர்யோதயம்" : "Sunrise"}
+          title={lang === "ta" ? "பகல் முகூர்த்தம்" : "Day Muhurtham"}
+          icon="☀"
+          avoidSlots={avoidSlots}
+          dateLocal={dateLocal}
+          lang={lang}
+        />
+        <NovaGowriKalaColumn
+          slots={nightSlots}
+          anchorHm={sunset}
+          anchorLabel={lang === "ta" ? "சூர்யாஸ்தமனம்" : "Sunset"}
+          title={lang === "ta" ? "இரவு முகூர்த்தம்" : "Night Muhurtham"}
+          icon="☾"
+          avoidSlots={avoidSlots}
+          dateLocal={dateLocal}
+          lang={lang}
+        />
       </div>
     </div>
   );
@@ -689,7 +856,14 @@ export function DashboardCalendarTabNova({
               </div>
 
               {/* ── Gowri Nalla Neram Details ── */}
-              <NovaGowriDetailGrid slots={panchangam.kalam.gowriPanchangam ?? []} avoidSlots={avoidSlotsForOverlap} lang={lang} />
+              <NovaGowriDetailGrid
+                slots={panchangam.kalam.gowriPanchangam ?? []}
+                avoidSlots={avoidSlotsForOverlap}
+                sunrise={panchangam.sunrise}
+                sunset={panchangam.sunset}
+                dateLocal={panchangam.dateLocal}
+                lang={lang}
+              />
 
               {/* ── Today's Significance ── */}
               <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>

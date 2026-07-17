@@ -3,12 +3,14 @@
 import type { CSSProperties } from "react";
 
 import type { Lang } from "@/lib/i18n";
+import type { VarshaphalaData } from "@/lib/types";
 
 import { ChartGenerateInlinePanel } from "./chart-generate-inline-panel";
 import { DashboardAnnualWrapped } from "./dashboard-annual-wrapped";
 import { RetrospectivePanel } from "./dashboard-retrospective-panel";
 import { NovaPoruthamPanel, type PoruthamFamilyMember } from "./dashboard-tools-porutham-nova";
 import { NovaActivityTimingCard } from "./dashboard-today-deepdive-extras-nova";
+import { VarshaphalaPanel } from "./dashboard-varshaphala-panel";
 import { RasippalanTool } from "@/app/tools/indraiya-rasipalan/RasippalanTool";
 
 /**
@@ -126,6 +128,10 @@ export type DashboardToolsTabNovaProps = {
   showRetrospective: boolean;
   showRasipalan: boolean;
   showActivityTiming: boolean;
+  showVarshaphala: boolean;
+  varshaphalaData: VarshaphalaData | null;
+  varshaphalaLoading: boolean;
+  onLoadVarshaphala: (year: number) => void;
   personalChartId: string;
   selectedDate: string;
   onDateChange: (date: string) => void;
@@ -148,6 +154,10 @@ export function DashboardToolsTabNova({
   showRetrospective,
   showRasipalan,
   showActivityTiming,
+  showVarshaphala,
+  varshaphalaData,
+  varshaphalaLoading,
+  onLoadVarshaphala,
   personalChartId,
   selectedDate,
   onDateChange,
@@ -207,6 +217,13 @@ export function DashboardToolsTabNova({
       descTa: "பயணம், ஒப்பந்தம், வீடு மாறுதல் அல்லது எந்த செயலுக்கும் இந்த மாதம் சிறந்த தேதிகளைக் கண்டறியுங்கள் — உங்கள் ஜாதகத்திற்கேற்ப.",
       metaEn: "uses · your saved chart", metaTa: "பயன்படுத்துவது · உங்கள் ஜாதகம்", disabled: needsProfile, kind: "inline",
     },
+    {
+      id: "varshaphala", icon: "☀", color: "var(--color-accent-strong)",
+      nameEn: "Varshaphala — Annual Chart", nameTa: "வர்ஷபலம் — ஆண்டு ஜாதகம்",
+      descEn: "Your solar-return year chart — muntha, year lord, and a month-by-month outlook for any year.",
+      descTa: "உங்கள் சூரிய வருடாந்திர ஜாதகம் — முந்தை, ஆண்டு அதிபதி, மற்றும் மாதம் வாரியான பலன்.",
+      metaEn: "uses · your saved chart", metaTa: "பயன்படுத்துவது · உங்கள் ஜாதகம்", disabled: needsProfile, kind: "inline",
+    },
   ];
 
   const cardStyle = (tool: ToolCardSpec): CSSProperties => ({
@@ -263,6 +280,9 @@ export function DashboardToolsTabNova({
         )}
         {showActivityTiming && personalChartId && (
           <NovaActivityTimingCard lang={lang} chartId={personalChartId} selectedDate={selectedDate} onDateChange={onDateChange} />
+        )}
+        {showVarshaphala && personalChartId && (
+          <VarshaphalaPanel lang={lang} chartId={personalChartId} data={varshaphalaData} loading={varshaphalaLoading} onLoad={onLoadVarshaphala} />
         )}
       </div>
     );

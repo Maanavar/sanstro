@@ -3,15 +3,8 @@ import { describe, expect, it } from "vitest";
 import { sanitizeRestoredTab } from "./dashboard-tabs";
 
 describe("sanitizeRestoredTab (DASH-11)", () => {
-  it("maps the retired 'transits' tab to Plan with its Transits view", () => {
-    expect(sanitizeRestoredTab("transits", { qaEnabled: false })).toEqual({
-      tab: "plan",
-      planView: "transits",
-    });
-  });
-
-  it("restores tabs the rail/hero actually offer", () => {
-    for (const tab of ["personal", "tools", "plan", "life-areas", "family", "calendar", "journal", "explore"]) {
+  it("restores tabs the hero nav actually offers", () => {
+    for (const tab of ["personal", "tools", "plan", "transits", "life-areas", "family", "calendar", "journal", "explore"]) {
       expect(sanitizeRestoredTab(tab, { qaEnabled: false })).toEqual({ tab });
     }
   });

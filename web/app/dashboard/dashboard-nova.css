@@ -728,7 +728,27 @@
   min-width: 0;
   flex: 1 1 auto;
   margin: 0 var(--space-2);
+}
+
+/* Wraps the scrollable tab strip + its overflow chevron together, separate
+   from the "More" dropdown anchor below — the chevron's position:absolute
+   needs to resolve against this wrapper (not the whole .cd-topnav), or it
+   would float on top of the always-visible "More" pill at the nav's right
+   edge instead of hugging the scrollable region it belongs to. */
+[data-ui="nova"] .cd-topnav__scrollwrap {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
   position: relative; /* anchor for the UXD-02 scroll fade + chevron */
+}
+
+/* "More" dropdown anchor — a fixed-width sibling of the scroll wrapper, not
+   inside it, so it never scrolls out of view and its dropdown never gets
+   clipped by the scroll wrapper's overflow. */
+[data-ui="nova"] .cd-topnav__more-anchor {
+  flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
 }
 
 [data-ui="nova"] .cd-topnav__scroll {

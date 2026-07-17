@@ -212,20 +212,27 @@ async function assertNoLeakedText(tabName: string) {
   }
 }
 
-const TOP_TABS: Array<{ label: string; subTabs?: RegExp[] }> = [
+const TOP_TABS: Array<{ label: string; subTabs?: RegExp[]; viaMore?: boolean }> = [
   { label: "Today" },
   { label: "Calendar" },
-  { label: "Family" },
-  { label: "Explore" },
+  { label: "Family & Charts" },
+  { label: "Transit & Dashas" },
+  { label: "Goals", subTabs: [/Life Events/i, /What-If/i, /Best Dates & Muhurta/i, /Decisions/i] },
   { label: "Life Area", subTabs: [/Overview/, /Predictions/, /Yogas/, /Remedies/, /Full report/i] },
-  { label: "Plan", subTabs: [/Goals & Windows/i, /Transits & Dasha/i] },
   { label: "Journal" },
-  { label: "Tools" },
-  { label: "QA" },
+  { label: "Tools", viaMore: true },
+  { label: "Explore", viaMore: true },
+  { label: "QA", viaMore: true },
 ];
 
 for (const tabDef of TOP_TABS) {
   test(`Nova tab renders cleanly: ${tabDef.label}`, async () => {
+    if (tabDef.viaMore) {
+      // Tools/Explore/QA live behind the "More" dropdown now — open it first
+      // so the item's own button exists for goToTab() to click.
+      await dismissBlockingDialogs(3);
+      await page.getByRole("button", { name: "More", exact: false }).first().click();
+    }
     await goToTab(tabDef.label);
     await shot(`tab-${tabDef.label.replace(/\s+/g, "-").toLowerCase()}`);
     await assertNoLeakedText(tabDef.label);

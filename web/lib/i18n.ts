@@ -10,11 +10,13 @@ const STRINGS = {
   tab_explore:    { ta: "ஆராய்வு",       en: "Explore" },
   tab_tools:      { ta: "கருவிகள்",     en: "Tools" },
   tab_personal:   { ta: "தனிப்பட்ட",   en: "Personal" },
-  tab_plan:       { ta: "திட்டமிடு",   en: "Plan" },
+  tab_plan:       { ta: "இலக்குகள்",   en: "Goals" },
   tab_family:     { ta: "குடும்பம் & ஜாதகம்",    en: "Family & Charts" },
   tab_calendar:   { ta: "நகர்வு & நிகழ்வு", en: "Transits & Events" },
   tab_setup:      { ta: "அமைவு",        en: "Setup" },
   tab_settings:   { ta: "அமைவுகள்",     en: "Settings" },
+  tab_life_area_nav: { ta: "வாழ்க்கை பகுதி", en: "Life Area" },
+  tab_more:       { ta: "மேலும்",       en: "More" },
   nav_label:      { ta: "பக்க வழிகாட்டி", en: "App navigation" },
 
   // ── Header / status
@@ -146,7 +148,7 @@ const STRINGS = {
   btn_go_personal:    { ta: "தனிப்பட்டது →",     en: "Personal →" },
 
   // ── Transits tab
-  tab_transits:       { ta: "தசை & கிரகநகர்வு",    en: "Transits & Dasa" },
+  tab_transits:       { ta: "தசை & கிரகநகர்வு",    en: "Transit & Dashas" },
   transits_tab_desc:  { ta: "விம்சோத்தரி தசை காலவரிசை, கிரகநகர்வு நிலைகள், குறிப்பேடு ஒப்பீடுகள்", en: "Vimshottari Dasa timeline, transit positions, journal comparisons" },
 
   // ── TODAY tab (Phase 2)

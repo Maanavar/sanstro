@@ -9,17 +9,8 @@ import { t, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
   BiText,
-  ChartCalculateResponseData,
-  DailyGuidanceData,
-  DashaStoryData,
-  DashaTimelineItem,
-  DashaTimelineResponseData,
   EventWindowItem,
   GoalData,
-  JournalCorrelationData,
-  SaniCycleData,
-  TransitSnapshotData,
-  VarshaphalaData,
   WhatIfData,
 } from "@/lib/types";
 
@@ -33,30 +24,24 @@ import type { EventType } from "./dashboard-event-windows";
 import { humaniseReason } from "./dashboard-event-windows";
 import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 import { NovaLifeEventLogCard } from "./dashboard-plan-life-event-log-nova";
-import { NovaTransitsView } from "./dashboard-plan-transits-nova";
 import { NovaPlanWhatIfPanel } from "./dashboard-plan-whatif-nova";
 import { NovaPlanMuhurtaPanel } from "./dashboard-plan-muhurta-nova";
 import { NovaPlanDecisionsPanel } from "./dashboard-plan-decisions-nova";
 import { NovaSelect } from "./nova-select";
 
 /**
- * Nova Plan tab — Phase 10 of the dashboard revamp, mapped from the
- * mockup's `plan` screen (docs/DASHBOARD_UI_REVAMP_PLAN.md §6.9). A
- * full tab-level screen (own 5-way sub-nav) like Life Areas' Nova tab —
- * not a "detail drill-down", so no shared shell with
- * dashboard-explore-detail-nova.tsx applies beyond its genuinely generic
- * `novaDetailCardStyle` card container.
+ * Nova Goals tab (nav id `"plan"`, labelled "Goals" in the top strip) —
+ * Phase 10 of the dashboard revamp, mapped from the mockup's `plan` screen
+ * (docs/DASHBOARD_UI_REVAMP_PLAN.md §6.9). A full tab-level screen (own
+ * 5-way sub-nav) like Life Areas' Nova tab — not a "detail drill-down", so
+ * no shared shell with dashboard-explore-detail-nova.tsx applies beyond its
+ * genuinely generic `novaDetailCardStyle` card container.
  *
- * The header's "🎯 Goals & Windows / 🪐 Transits & Dasha" toggle (`view`
- * prop, lifted into dashboard-workspace.tsx) switches this same tab's body
- * between the Goals content below and `NovaTransitsView`
- * (dashboard-plan-transits-nova.tsx, §6.10) — it does not navigate to a
- * separate tab. The mockup's own `transits` screen has no "Transits" pill
- * in its own top nav, only a "Plan · Transits & Dasha" breadcrumb back, so
- * treating it as a second view inside Plan (rather than the standalone tab
- * this initiative originally built) is what the mockup itself shows.
- * (Classic's separate `dashboard-transits-tab.tsx` was deleted 2026-07-13,
- * DASH-17 — this view is the only transits surface now.)
+ * Transits & Dasha (dashboard-plan-transits-nova.tsx's `NovaTransitsView`,
+ * §6.10) used to be a second view toggled inside this same tab; it is now
+ * its own top-level nav destination (nav id `"transits"`) — the "See the
+ * dasa timeline →" link below navigates there via `onGoToTransits` rather
+ * than switching an in-tab view.
  *
  * The mockup's static export only expands the "Goals" pill (same
  * one-sub-tab-captured pattern as Phase 9's Life Areas Overview) — Life
@@ -222,32 +207,9 @@ type DashboardPlanTabNovaProps = {
   onGoToLifeAreas: () => void;
   onGoToCalendar: () => void;
   onGoToJournal: () => void;
-
-  // "Transits & Dasha" view (docs/DASHBOARD_UI_REVAMP_PLAN.md §6.10) — a
-  // second top-level view inside this same tab, not a separate nav
-  // destination (the mockup's own `transits` screen has no "Transits" pill
-  // in its own top nav, only a "Plan · Transits & Dasha" breadcrumb back).
-  // Lifted into dashboard-workspace.tsx so Life Areas' "See the transits
-  // behind them →" link can switch straight into it from outside this tab.
-  view: "goals" | "transits";
-  onViewChange: (view: "goals" | "transits") => void;
-  selectedDate: string;
-  personalChart: ChartCalculateResponseData | null;
-  personalDailyGuidance: DailyGuidanceData | null;
-  personalTransit: TransitSnapshotData | null;
-  personalSani: SaniCycleData | null;
-  personalDasha: DashaTimelineResponseData | null;
-  personalDashaMaha: DashaTimelineResponseData | null;
-  personalDashaAntar: DashaTimelineItem[];
-  dashaStory: DashaStoryData | null;
-  journalCorrelations: JournalCorrelationData | null;
-  varshaphalaData: VarshaphalaData | null;
-  varshaphalaLoading: boolean;
-  onLoadVarshaphala: (year: number) => void;
-  birthDisplayName: string;
-  transitMemberCharts: Array<{ memberId: string; displayName: string }>;
-  selectedTransitMemberId: string | null;
-  onSelectTransitMember: (memberId: string | null) => void;
+  // Transits & Dasha is now its own top-level nav destination (nav id
+  // "transits") — this navigates away rather than switching an in-tab view.
+  onGoToTransits: () => void;
 };
 
 export function DashboardPlanTabNova({
@@ -273,25 +235,7 @@ export function DashboardPlanTabNova({
   onGoToLifeAreas,
   onGoToCalendar,
   onGoToJournal,
-  view,
-  onViewChange,
-  selectedDate,
-  personalChart,
-  personalDailyGuidance,
-  personalTransit,
-  personalSani,
-  personalDasha,
-  personalDashaMaha,
-  personalDashaAntar,
-  dashaStory,
-  journalCorrelations,
-  varshaphalaData,
-  varshaphalaLoading,
-  onLoadVarshaphala,
-  birthDisplayName,
-  transitMemberCharts,
-  selectedTransitMemberId,
-  onSelectTransitMember,
+  onGoToTransits,
 }: DashboardPlanTabNovaProps) {
   const [subTab, setSubTab] = useState<PlanSubTab>("goals");
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -354,48 +298,15 @@ export function DashboardPlanTabNova({
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: "4px", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "11px", padding: "5px" }}>
-          <button
-            type="button"
-            onClick={() => onViewChange("goals")}
-            style={{ display: "flex", alignItems: "center", gap: "7px", background: view === "goals" ? "var(--color-accent)" : "none", color: view === "goals" ? "var(--color-on-accent)" : "var(--color-muted)", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12.5px", fontWeight: view === "goals" ? 700 : 600, cursor: "pointer", fontFamily: "inherit" }}
-          >
-            🎯 {lang === "ta" ? "இலக்கு & ஜன்னல்" : "Goals & Windows"}
-          </button>
-          <button
-            type="button"
-            onClick={() => onViewChange("transits")}
-            style={{ display: "flex", alignItems: "center", gap: "7px", background: view === "transits" ? "var(--color-accent)" : "none", color: view === "transits" ? "var(--color-on-accent)" : "var(--color-muted)", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "12.5px", fontWeight: view === "transits" ? 700 : 600, cursor: "pointer", fontFamily: "inherit" }}
-          >
-            🪐 {t("tab_transits", lang)}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onGoToTransits}
+          style={{ display: "flex", alignItems: "center", gap: "7px", background: "var(--color-surface)", color: "var(--color-muted)", border: "1px solid var(--color-border)", borderRadius: "11px", padding: "10px 16px", fontSize: "12.5px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+        >
+          🪐 {t("tab_transits", lang)} →
+        </button>
       </div>
 
-      {view === "transits" ? (
-        <NovaTransitsView
-          lang={lang}
-          selectedDate={selectedDate}
-          personalChart={personalChart}
-          personalDailyGuidance={personalDailyGuidance}
-          personalTransit={personalTransit}
-          personalSani={personalSani}
-          personalDasha={personalDasha}
-          personalDashaMaha={personalDashaMaha}
-          personalDashaAntar={personalDashaAntar}
-          dashaStory={dashaStory}
-          journalCorrelations={journalCorrelations}
-          varshaphalaData={varshaphalaData}
-          varshaphalaLoading={varshaphalaLoading}
-          onLoadVarshaphala={onLoadVarshaphala}
-          birthDisplayName={birthDisplayName}
-          memberCharts={transitMemberCharts}
-          selectedMemberId={selectedTransitMemberId}
-          onSelectMember={onSelectTransitMember}
-          onGoToJournal={onGoToJournal}
-        />
-      ) : (
-        <>
       {/* ===== Sub-nav pills ===== */}
       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
         {PLAN_SUB_TABS.map(({ key, en, ta }) => (
@@ -554,7 +465,7 @@ export function DashboardPlanTabNova({
                   <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
                     {group.goalLabels.join(" · ")} — {lang === "ta" ? "ஆதரவான காலங்கள்" : "supportive windows"}
                   </span>
-                  <button type="button" onClick={() => onViewChange("transits")} style={{ background: "none", border: "none", padding: 0, fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                  <button type="button" onClick={onGoToTransits} style={{ background: "none", border: "none", padding: 0, fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                     {lang === "ta" ? "தசை காலவரிசையைப் பார் →" : "See the dasa timeline →"}
                   </button>
                 </div>
@@ -659,8 +570,6 @@ export function DashboardPlanTabNova({
       )}
       {subTab === "decisions" && <NovaPlanDecisionsPanel lang={lang} chartId={chartId} mode={mode} />}
       {subTab === "muhurta" && <NovaPlanMuhurtaPanel lang={lang} chartId={chartId} />}
-        </>
-      )}
     </div>
   );
 }

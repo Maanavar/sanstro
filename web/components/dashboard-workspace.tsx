@@ -137,6 +137,11 @@ const DashboardPlanTabNova = dynamic(
   { loading: LazyPanelFallback },
 );
 
+const NovaTransitsView = dynamic(
+  () => import("./dashboard-plan-transits-nova").then((mod) => mod.NovaTransitsView),
+  { loading: LazyPanelFallback },
+);
+
 const DashboardExploreTabNova = dynamic(
   () => import("./dashboard-explore-tab-nova").then((mod) => mod.DashboardExploreTabNova),
   { loading: LazyPanelFallback },
@@ -302,6 +307,7 @@ export function DashboardWorkspace() {
   const [showChartGenerate, setShowChartGenerate] = useState(false);
   const [showRasipalan, setShowRasipalan] = useState(false);
   const [showActivityTiming, setShowActivityTiming] = useState(false);
+  const [showVarshaphala, setShowVarshaphala] = useState(false);
   const [showPrasna, setShowPrasna] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -393,12 +399,6 @@ export function DashboardWorkspace() {
   const [personalViewId, setPersonalViewId] = useState<string | null>(null);
   const [lifeAreasViewId, setLifeAreasViewId] = useState<string | null>(null);
   const [transitViewId, setTransitViewId] = useState<string | null>(null);
-
-  // Nova Plan tab's own "Goals & Windows" / "Transits & Dasha" toggle (see
-  // dashboard-plan-tab-nova.tsx) — lifted here (not local component state)
-  // so Life Areas Nova's "See the transits behind them →" link can switch
-  // straight into the Transits view from outside the Plan tab.
-  const [planView, setPlanView] = useState<"goals" | "transits">("goals");
 
   const [onboardingDone, setOnboardingDone] = useState(false);
 
@@ -536,14 +536,11 @@ export function DashboardWorkspace() {
           if (parsed.birthForm) setBirthForm((c) => ({ ...c, ...parsed.birthForm }));
           if (parsed.vaultForm) setVaultForm((c) => ({ ...c, ...parsed.vaultForm }));
           if (parsed.memberForm) setMemberForm((c) => ({ ...c, ...parsed.memberForm }));
-          // Allowlist restore (DASH-11): only tabs the rail/hero actually
-          // offer come back; the retired "transits" tab maps to Plan →
-          // Transits so stale localStorage can't strand anyone on a ghost
-          // tab. Settings/onboarding stay excluded — the onboarding gate
-          // decides those from profile existence.
+          // Allowlist restore (DASH-11): only tabs the hero nav actually
+          // offers come back. Settings/onboarding stay excluded — the
+          // onboarding gate decides those from profile existence.
           const restored = sanitizeRestoredTab(parsed.activeTab, { qaEnabled: ENABLE_QA_TAB });
           if (restored) {
-            if (restored.planView) setPlanView(restored.planView);
             setActiveTab(restored.tab);
           }
           if (parsed.lang === "ta" || parsed.lang === "en") setLang(parsed.lang);
@@ -1459,7 +1456,7 @@ export function DashboardWorkspace() {
             onGoToJournal={() => setActiveTab("journal")}
             onGoToCalendar={() => setActiveTab("calendar")}
             onGoToLifeAreas={() => setActiveTab("life-areas")}
-            onGoToTransits={() => { setPlanView("transits"); setActiveTab("plan"); }}
+            onGoToTransits={() => setActiveTab("transits")}
             onGoToCharts={() => setActiveTab("family")}
             onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
             onOpenNotificationSettings={() => navigateSettings("notifications")}
@@ -1467,7 +1464,7 @@ export function DashboardWorkspace() {
         )}
 
         {activeTab === "tools" && (() => {
-          const activeTool = showPorutham ? "porutham" : showChartGenerate ? "chartgen" : showWrapped ? "wrapped" : showRetrospective ? "retro" : showRasipalan ? "rasipalan" : showActivityTiming ? "activityTiming" : null;
+          const activeTool = showPorutham ? "porutham" : showChartGenerate ? "chartgen" : showWrapped ? "wrapped" : showRetrospective ? "retro" : showRasipalan ? "rasipalan" : showActivityTiming ? "activityTiming" : showVarshaphala ? "varshaphala" : null;
           // Note: Find Birth Time (rectification) removed — results were unreliable
           const needsProfile = !personal.birthProfileId;
           const openTool = (toolId: string) => {
@@ -1477,6 +1474,7 @@ export function DashboardWorkspace() {
             setShowRetrospective(toolId === "retro");
             setShowRasipalan(toolId === "rasipalan");
             setShowActivityTiming(toolId === "activityTiming");
+            setShowVarshaphala(toolId === "varshaphala");
           };
           const closeTool = () => {
             setShowPorutham(false);
@@ -1485,6 +1483,7 @@ export function DashboardWorkspace() {
             setShowRetrospective(false);
             setShowRasipalan(false);
             setShowActivityTiming(false);
+            setShowVarshaphala(false);
           };
 
           return (
@@ -1500,6 +1499,10 @@ export function DashboardWorkspace() {
               showRetrospective={showRetrospective}
               showRasipalan={showRasipalan}
               showActivityTiming={showActivityTiming}
+              showVarshaphala={showVarshaphala}
+              varshaphalaData={varshaphalaData}
+              varshaphalaLoading={varshaphalaLoading}
+              onLoadVarshaphala={(year) => void loadVarshaphala(year)}
               personalChartId={personal.chartId}
               selectedDate={selectedDate}
               onDateChange={setSelectedDate}
@@ -1621,7 +1624,7 @@ export function DashboardWorkspace() {
             onLoadRemedies={() => void loadRemedies(resolveLifeAreasChartId())}
             goals={plan.goals}
             onGoToPlan={() => goToTab("plan")}
-            onGoToTransits={() => { setPlanView("transits"); goToTab("plan"); }}
+            onGoToTransits={() => goToTab("transits")}
           />
         )}
 
@@ -1649,8 +1652,13 @@ export function DashboardWorkspace() {
             onGoToLifeAreas={() => goToTab("life-areas")}
             onGoToCalendar={() => goToTab("calendar")}
             onGoToJournal={() => goToTab("journal")}
-            view={planView}
-            onViewChange={setPlanView}
+            onGoToTransits={() => goToTab("transits")}
+          />
+        )}
+
+        {activeTab === "transits" && (
+          <NovaTransitsView
+            lang={lang}
             selectedDate={selectedDate}
             personalChart={transitChart}
             personalDailyGuidance={transitDailyGuidance}
@@ -1661,13 +1669,11 @@ export function DashboardWorkspace() {
             personalDashaAntar={transitDashaAntar}
             dashaStory={transitViewId ? null : personal.dashaStory}
             journalCorrelations={personal.journalCorrelations}
-            varshaphalaData={varshaphalaData}
-            varshaphalaLoading={varshaphalaLoading}
-            onLoadVarshaphala={(year) => void loadVarshaphala(year, transitChart?.chartId ?? personal.chartId)}
             birthDisplayName={birthForm.displayName}
-            transitMemberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
-            selectedTransitMemberId={transitViewId}
-            onSelectTransitMember={setTransitViewId}
+            memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
+            selectedMemberId={transitViewId}
+            onSelectMember={setTransitViewId}
+            onGoToJournal={() => goToTab("journal")}
           />
         )}
 
@@ -1686,7 +1692,7 @@ export function DashboardWorkspace() {
             mode={session.userMode}
             chartSummary={personal.chartSummary}
             journalCorrelations={personal.journalCorrelations}
-            onGoToTransits={() => { setPlanView("transits"); goToTab("plan"); }}
+            onGoToTransits={() => goToTab("transits")}
           />
         )}
 

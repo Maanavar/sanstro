@@ -9,15 +9,15 @@ import { CollapsibleSection } from "./collapsible-section";
 import { Button } from "./dashboard-ui";
 
 const W = {
-  ink: "var(--panel-earth-dark)",
-  inkMid: "var(--panel-earth)",
+  ink: "var(--deepdive-ink, var(--panel-earth-dark))",
+  inkMid: "var(--deepdive-ink-mid, var(--panel-earth))",
   muted: "var(--color-faint)",
-  border: "var(--panel-tan)",
-  borderLt: "var(--panel-tan-light)",
-  surface: "var(--panel-cream)",
-  surfaceMd: "var(--panel-hover)",
+  border: "var(--deepdive-border, var(--panel-tan))",
+  borderLt: "var(--deepdive-border-light, var(--panel-tan-light))",
+  surface: "var(--deepdive-surface, var(--panel-cream))",
+  surfaceMd: "var(--deepdive-surface-strong, var(--panel-hover))",
   sage: "var(--chart-d9-active)",
-  terracotta: "var(--panel-brand)",
+  terracotta: "var(--deepdive-accent, var(--panel-brand))",
   rust: "var(--planet-saturn)",
 } as const;
 
@@ -62,7 +62,7 @@ export function VarshaphalaPanel({ lang, chartId, data, loading, onLoad }: Props
   if (!chartId) return null;
 
   return (
-    <CollapsibleSection title={t("varshaphala_title", lang)} defaultOpen={false}>
+    <CollapsibleSection title={t("varshaphala_title", lang)} defaultOpen={true}>
       <div style={{ marginTop: "var(--space-3)" }}>
 
         {/* Year picker + load button */}

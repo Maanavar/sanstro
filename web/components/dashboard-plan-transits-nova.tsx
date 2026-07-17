@@ -14,24 +14,19 @@ import type {
   JournalCorrelationData,
   SaniCycleData,
   TransitSnapshotData,
-  VarshaphalaData,
 } from "@/lib/types";
 
 import { ageAtDate, dashaScore } from "./dashboard-dasha";
 import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 import { NovaProgressBar, NovaReveal } from "./dashboard-ui-nova";
-import { VarshaphalaPanel } from "./dashboard-varshaphala-panel";
 
 /**
- * Nova "Transits & Dasha" view (docs/DASHBOARD_UI_REVAMP_PLAN.md §6.10).
- * The mockup's `transits` screen turned out, once read in full, not to be a
- * separate nav destination at all: its own top nav bar has no "Transits"
- * pill, and its header reads "Plan · Transits & Dasha" with a
- * `data-nav="plan"` link back — the mockup treats this as a second
- * top-level view *inside* the Plan tab, toggled by the same segmented
- * control Phase 10 already built (previously wired to navigate away to a
- * standalone tab; now switches this view in place instead). Rendered by
- * dashboard-plan-tab-nova.tsx when its `view` prop is "transits".
+ * Nova "Transit & Dashas" tab (docs/DASHBOARD_UI_REVAMP_PLAN.md §6.10,
+ * nav id `"transits"`) — a standalone top-level nav destination rendered
+ * directly by dashboard-workspace.tsx. (This used to be a second view
+ * toggled inside the Plan/Goals tab rather than its own destination; split
+ * back out into a real tab, with its own page header below, so it could be
+ * promoted to the top nav strip.)
  *
  * Reuses the exact same data/derivations as the old Classic
  * dashboard-transits-tab.tsx (deleted 2026-07-13, DASH-17 — this view is its
@@ -114,9 +109,6 @@ type NovaTransitsViewProps = {
   personalDashaAntar: DashaTimelineItem[];
   dashaStory: DashaStoryData | null;
   journalCorrelations: JournalCorrelationData | null;
-  varshaphalaData: VarshaphalaData | null;
-  varshaphalaLoading: boolean;
-  onLoadVarshaphala: (year: number) => void;
   birthDisplayName: string;
   memberCharts: Array<{ memberId: string; displayName: string }>;
   selectedMemberId: string | null;
@@ -136,9 +128,6 @@ export function NovaTransitsView({
   personalDashaAntar,
   dashaStory,
   journalCorrelations,
-  varshaphalaData,
-  varshaphalaLoading,
-  onLoadVarshaphala,
   birthDisplayName,
   memberCharts,
   selectedMemberId,
@@ -146,7 +135,6 @@ export function NovaTransitsView({
   onGoToJournal,
 }: NovaTransitsViewProps) {
   const [dashaStoryExpanded, setDashaStoryExpanded] = useState(false);
-  const [varshaphalaExpanded, setVarshaphalaExpanded] = useState(false);
 
   const hasTransitSnapshot = Boolean(personalTransit && personalTransit.transits.length > 0);
   const flaggedCount = personalTransit
@@ -184,9 +172,17 @@ export function NovaTransitsView({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "18px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
-      <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)", lineHeight: 1.55, maxWidth: "60ch" }}>
-        {t("transits_tab_desc", lang)}
-      </p>
+      <div>
+        <p style={{ margin: 0, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+          {t("tab_transits", lang)}
+        </p>
+        <h1 style={{ margin: "6px 0 8px", fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem,3vw,2.4rem)", fontWeight: 600, lineHeight: 1.15, color: "var(--color-text-strong)" }}>
+          {t("tab_transits", lang)}
+        </h1>
+        <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)", lineHeight: 1.55, maxWidth: "60ch" }}>
+          {t("transits_tab_desc", lang)}
+        </p>
+      </div>
 
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
         <StatPill label={lang === "ta" ? "நகர்வுகள்" : "Transits"} value={hasTransitSnapshot ? `${personalTransit?.transits.length}` : "0"} />
@@ -509,30 +505,6 @@ export function NovaTransitsView({
         </div>
       )}
 
-      {/* ===== Varshaphala (annual chart) — collapsed teaser, matching the
-          mockup's own capture (only shows collapsed, never expanded) ===== */}
-      <div style={{ display: "flex", alignItems: "center", gap: "14px", background: "rgba(243, 236, 221, 0.03)", border: "1px dashed var(--color-border-strong)", borderRadius: "12px", padding: "16px 22px", flexWrap: "wrap" }}>
-        <div style={{ flex: "1 1 240px" }}>
-          <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "20px", fontWeight: 600, color: "var(--color-accent-strong)" }}>
-            {lang === "ta" ? "வர்ஷபலம் — ஆண்டு ஜாதகம்" : "Varshaphala — annual chart"}
-          </p>
-          <p style={{ margin: "2px 0 0", fontSize: "12px", color: "var(--color-muted)" }}>
-            {lang === "ta" ? "உங்கள் சூரிய வருடாந்திர ஜாதகம், முந்தை மற்றும் ஆண்டு அதிபதி" : "Your solar-return year chart, muntha and year lord"}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setVarshaphalaExpanded((v) => !v)}
-          style={{ fontSize: "12.5px", color: "var(--color-muted)", border: "1px solid var(--color-border)", borderRadius: "9px", padding: "9px 16px", background: "none", cursor: "pointer", fontFamily: "inherit" }}
-        >
-          {varshaphalaExpanded ? (lang === "ta" ? "மூடு ▴" : "Collapse ▴") : (lang === "ta" ? "விரிவாக்கு ▾" : "Expand ▾")}
-        </button>
-      </div>
-      {varshaphalaExpanded && (
-        <div style={{ padding: "18px 20px", borderRadius: "var(--radius-md, 11px)", border: "1px solid var(--color-border)", background: "var(--color-surface)" }}>
-          <VarshaphalaPanel lang={lang} chartId={personalChart?.chartId ?? null} data={varshaphalaData} loading={varshaphalaLoading} onLoad={onLoadVarshaphala} />
-        </div>
-      )}
     </div>
   );
 }
