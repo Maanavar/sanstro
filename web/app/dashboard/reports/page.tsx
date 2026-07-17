@@ -38,9 +38,10 @@ export default function ReportsPage() {
   useEffect(() => {
     const stored = localStorage.getItem(LANG_STORAGE_KEY);
     if (stored === "ta" || stored === "en") setLang(stored as Lang);
-    void apiFetchJson<{ data?: { lang?: string } }>("/api/v1/settings/ui")
+    // GET /settings/ui answers flat ({ lang, dashboard_mode }) — no { data } envelope.
+    void apiFetchJson<{ lang?: string }>("/api/v1/settings/ui")
       .then((j) => {
-        const dbLang = j.data?.lang;
+        const dbLang = j?.lang;
         if (dbLang === "ta" || dbLang === "en") setLang(dbLang as Lang);
       })
       .catch(() => {});

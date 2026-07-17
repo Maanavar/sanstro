@@ -70,7 +70,9 @@ export function PrasnaWidget({ lang, open, onClose, timezone, latitude, longitud
     setError(null);
     setResult(null);
     try {
-      const res = await apiFetchJson<{ success: boolean; data: PrasnaResponse }>("/api/v1/prasna", {
+      // POST /prasna responds with the payload flat — there is no
+      // { success, data } envelope, so don't unwrap one.
+      const res = await apiFetchJson<PrasnaResponse>("/api/v1/prasna", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -80,8 +82,8 @@ export function PrasnaWidget({ lang, open, onClose, timezone, latitude, longitud
           longitude,
         }),
       });
-      if (res.success && res.data) {
-        setResult(res.data);
+      if (res?.outlook) {
+        setResult(res);
       } else {
         setError(lang === "ta" ? "பதில் கிடைக்கவில்லை." : "No result returned.");
       }

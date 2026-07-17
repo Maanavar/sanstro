@@ -552,9 +552,11 @@ export function DashboardWorkspace() {
     } catch {
       // ignore parse errors
     }
-    // Load DB lang preference — overrides localStorage (works across devices)
-    void apiFetchJson<{ data: { lang: string } }>("/api/v1/settings/ui").then((r) => {
-      const dbLang = r.data?.lang;
+    // Load DB lang preference — overrides localStorage (works across devices).
+    // GET /settings/ui answers flat ({ lang, dashboard_mode }) — there is no
+    // { data } envelope to unwrap.
+    void apiFetchJson<{ lang?: string }>("/api/v1/settings/ui").then((r) => {
+      const dbLang = r?.lang;
       if (dbLang === "ta" || dbLang === "en") setLang(dbLang as Lang);
     }).catch(() => { /* non-critical — localStorage fallback is fine */ });
   // eslint-disable-next-line react-hooks/exhaustive-deps
