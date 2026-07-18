@@ -80,6 +80,10 @@ export type RasiCellDetail = {
     abbr: string;
     degreeInRasi: number | null;
     isRetrograde: boolean;
+    /** D1-only (physical proximity to the Sun) — left undefined on D9 occupants. */
+    isCombust?: boolean;
+    isCazimi?: boolean;
+    isVargottama?: boolean;
   }>;
 };
 
@@ -92,6 +96,9 @@ export function buildD1CellDetail(chart: ChartCalculateResponseData, rasi: numbe
       abbr: GRAHA_ABBR[p.graha] ?? p.graha.slice(0, 2),
       degreeInRasi: p.degreeInRasi,
       isRetrograde: p.isRetrograde,
+      isCombust: p.isCombust,
+      isCazimi: p.isCazimi ?? false,
+      isVargottama: p.isVargottama,
     }));
 
   if (chart.lagna.rasi === rasi) {
@@ -101,6 +108,9 @@ export function buildD1CellDetail(chart: ChartCalculateResponseData, rasi: numbe
       abbr: "La",
       degreeInRasi: chart.lagna.degreeInRasi,
       isRetrograde: false,
+      isCombust: false,
+      isCazimi: false,
+      isVargottama: false,
     });
   }
 
@@ -123,6 +133,7 @@ export function buildD9CellDetail(chart: ChartCalculateResponseData, rasi: numbe
       abbr: GRAHA_ABBR[p.graha] ?? p.graha.slice(0, 2),
       degreeInRasi: null,
       isRetrograde: p.isRetrograde,
+      isVargottama: p.isVargottama,
     }));
 
   if (d9LagnaRasi === rasi) {
@@ -132,6 +143,7 @@ export function buildD9CellDetail(chart: ChartCalculateResponseData, rasi: numbe
       abbr: "La",
       degreeInRasi: null,
       isRetrograde: false,
+      isVargottama: false,
     });
   }
 

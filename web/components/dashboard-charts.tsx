@@ -12,6 +12,7 @@ import {
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ChartCalculateResponseData } from "@/lib/types";
+import type { RasiCellDetail } from "@/lib/chart-utils";
 
 const RASI_GRID: { rasi: number; col: number; row: number }[] = [
   { rasi: 12, col: 0, row: 0 }, { rasi: 1, col: 1, row: 0 }, { rasi: 2, col: 2, row: 0 }, { rasi: 3, col: 3, row: 0 },
@@ -23,11 +24,39 @@ const RASI_GRID: { rasi: number; col: number; row: number }[] = [
 export const RASI_NAMES = D1_RASI_NAMES;
 export { GRAHA_ABBR };
 
-function occupantColor(abbr: string): string {
-  if (abbr === "La") return "var(--planet-lagna)";
-  if (abbr === "Sa") return "var(--planet-saturn)";
-  if (abbr === "Ra" || abbr === "Ke") return "var(--planet-nodes)";
-  return "var(--planet-other)";
+// Nova only redirects 4 of the 9 --planet-* custom properties (lagna/saturn/
+// nodes/other — see dashboard-nova.css); --planet-sun/-moon/-mars/-mercury/
+// -jupiter/-venus/-rahu/-ketu fall through to Classic's globals.css values
+// under the Nova theme and read wrong (same trap dashboard-plan-transits-nova
+// and dashboard-life-areas-remedies-nova already hit and documented). So this
+// reuses those files' Nova-safe workaround — 5 shared semantic tones, not a
+// unique hue per graha. Some grahas share a tone with Lagna/Rahu/Ketu when
+// they land in the same box; the Tamil abbreviation still disambiguates.
+function occupantColor(graha: string): string {
+  switch (graha) {
+    case "Lagna": return "var(--planet-lagna)";
+    case "SUN":
+    case "JUPITER": return "var(--planet-lagna)"; // accent-strong (gold)
+    case "MOON":
+    case "VENUS": return "var(--planet-nodes)"; // accent-secondary (purple)
+    case "MERCURY": return "var(--color-high, var(--planet-other))"; // green
+    case "SATURN": return "var(--planet-saturn)"; // low (rust)
+    case "RAHU":
+    case "KETU": return "var(--planet-nodes)";
+    default: return "var(--planet-other)"; // Mars + fallback
+  }
+}
+
+function occupantFlagLabels(
+  occ: RasiCellDetail["occupants"][number],
+  lang: Lang,
+): string[] {
+  const flags: string[] = [];
+  if (occ.isRetrograde) flags.push(t("flag_vakra", lang));
+  if (occ.isCombust) flags.push(t("flag_astam", lang));
+  if (occ.isCazimi) flags.push(t("flag_cazimi", lang));
+  if (occ.isVargottama) flags.push(t("flag_vargottamam", lang));
+  return flags;
 }
 
 function ExplainPanel({
@@ -36,12 +65,14 @@ function ExplainPanel({
   emptyText,
   houseLabel,
   detail,
+  lang,
 }: {
   title: string;
   subtitle: string;
   emptyText: string;
   houseLabel: string;
   detail: ReturnType<typeof buildD1CellDetail> | ReturnType<typeof buildD9CellDetail>;
+  lang: Lang;
 }) {
   return (
     <div style={{
@@ -66,19 +97,27 @@ function ExplainPanel({
         {detail.occupants.length === 0 ? (
           <span style={{ fontSize: "0.75rem", color: "var(--color-faint)" }}>{emptyText}</span>
         ) : (
-          detail.occupants.map((occ) => (
-            <span key={occ.key} style={{
-              fontSize: "0.75rem",
-              border: "1px solid var(--chartgrid-border, var(--panel-tan))",
-              borderRadius: "var(--radius-full)",
-              padding: "3px 8px",
-              background: "var(--chartgrid-surface, var(--panel-cream))",
-              color: "var(--chartgrid-ink, var(--panel-earth))",
-            }}>
-              {occ.graha}{occ.isRetrograde ? " (R)" : ""}
-              {occ.degreeInRasi !== null ? ` ${occ.degreeInRasi.toFixed(2)}°` : ""}
-            </span>
-          ))
+          detail.occupants.map((occ) => {
+            const nonRetroFlags = [
+              occ.isCombust ? t("flag_astam", lang) : null,
+              occ.isCazimi ? t("flag_cazimi", lang) : null,
+              occ.isVargottama ? t("flag_vargottamam", lang) : null,
+            ].filter(Boolean) as string[];
+            return (
+              <span key={occ.key} style={{
+                fontSize: "0.75rem",
+                border: "1px solid var(--chartgrid-border, var(--panel-tan))",
+                borderRadius: "var(--radius-full)",
+                padding: "3px 8px",
+                background: "var(--chartgrid-surface, var(--panel-cream))",
+                color: "var(--chartgrid-ink, var(--panel-earth))",
+              }}>
+                {occ.graha}{occ.isRetrograde ? " (R)" : ""}
+                {nonRetroFlags.length ? ` — ${nonRetroFlags.join(", ")}` : ""}
+                {occ.degreeInRasi !== null ? ` ${occ.degreeInRasi.toFixed(2)}°` : ""}
+              </span>
+            );
+          })
         )}
       </div>
     </div>
@@ -149,20 +188,30 @@ export function RasiChart({
                 {RASI_NAMES[rasi]}
               </span>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "2px", alignItems: "flex-end" }}>
-                {detail.occupants.map((occ) => (
-                  <span key={occ.key} style={{
-                    fontSize: "0.625rem",
-                    fontWeight: 700,
-                    lineHeight: 1,
-                    color: occupantColor(occ.abbr),
-                    borderRadius: "3px",
-                    padding: "1px 3px",
-                    background: "var(--chartgrid-surface, var(--panel-cream))",
-                    border: "1px solid var(--chartgrid-border-light, var(--panel-tan-light))",
-                  }}>
-                    {occ.abbr}{occ.isRetrograde ? <sup style={{ fontSize: "0.625rem", color: "var(--chart-d1-active)" }}>R</sup> : null}
-                  </span>
-                ))}
+                {detail.occupants.map((occ) => {
+                  const flagLabels = occupantFlagLabels(occ, lang);
+                  return (
+                    <span
+                      key={occ.key}
+                      title={flagLabels.length ? `${occ.graha} — ${flagLabels.join(", ")}` : occ.graha}
+                      style={{
+                        fontSize: "0.625rem",
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        color: occupantColor(occ.key),
+                        borderRadius: "3px",
+                        padding: "1px 3px",
+                        background: "var(--chartgrid-surface, var(--panel-cream))",
+                        border: "1px solid var(--chartgrid-border-light, var(--panel-tan-light))",
+                      }}>
+                      {occ.abbr}
+                      {occ.isRetrograde ? <sup style={{ fontSize: "0.625rem", color: "var(--chart-d1-active)" }}>R</sup> : null}
+                      {occ.isCombust ? <sup style={{ fontSize: "0.625rem", color: "var(--color-low, var(--planet-saturn))" }}>C</sup> : null}
+                      {occ.isCazimi ? <sup style={{ fontSize: "0.625rem", color: "var(--color-high, var(--chart-d9-active))" }}>✦</sup> : null}
+                      {occ.isVargottama ? <sup style={{ fontSize: "0.625rem", color: "var(--color-high, var(--chart-d9-active))" }}>V</sup> : null}
+                    </span>
+                  );
+                })}
               </div>
             </button>
           );
@@ -191,6 +240,7 @@ export function RasiChart({
           emptyText={t("chart_no_graha_in_rasi", lang)}
           houseLabel={t("chart_house_label", lang)}
           detail={selectedDetail}
+          lang={lang}
         />
       ) : null}
     </div>
@@ -261,20 +311,28 @@ export function NavamsaChart({
                 {RASI_NAMES[rasi]}
               </span>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "2px", alignItems: "flex-end" }}>
-                {detail.occupants.map((occ) => (
-                  <span key={occ.key} style={{
-                    fontSize: "0.625rem",
-                    fontWeight: 700,
-                    lineHeight: 1,
-                    color: occupantColor(occ.abbr),
-                    borderRadius: "3px",
-                    padding: "1px 3px",
-                    background: "var(--chartgrid-surface, var(--panel-cream))",
-                    border: "1px solid var(--chartgrid-border-light, var(--panel-tan-light))",
-                  }}>
-                    {occ.abbr}
-                  </span>
-                ))}
+                {detail.occupants.map((occ) => {
+                  const flagLabels = occupantFlagLabels(occ, lang);
+                  return (
+                    <span
+                      key={occ.key}
+                      title={flagLabels.length ? `${occ.graha} — ${flagLabels.join(", ")}` : occ.graha}
+                      style={{
+                        fontSize: "0.625rem",
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        color: occupantColor(occ.key),
+                        borderRadius: "3px",
+                        padding: "1px 3px",
+                        background: "var(--chartgrid-surface, var(--panel-cream))",
+                        border: "1px solid var(--chartgrid-border-light, var(--panel-tan-light))",
+                      }}>
+                      {occ.abbr}
+                      {occ.isRetrograde ? <sup style={{ fontSize: "0.625rem", color: "var(--chart-d9-active)" }}>R</sup> : null}
+                      {occ.isVargottama ? <sup style={{ fontSize: "0.625rem", color: "var(--color-high, var(--chart-d9-active))" }}>V</sup> : null}
+                    </span>
+                  );
+                })}
               </div>
             </button>
           );
@@ -303,6 +361,7 @@ export function NavamsaChart({
           emptyText={t("chart_no_graha_in_rasi", lang)}
           houseLabel={t("chart_house_label", lang)}
           detail={selectedDetail}
+          lang={lang}
         />
       ) : null}
     </div>
