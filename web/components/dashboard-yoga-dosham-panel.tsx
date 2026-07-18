@@ -80,12 +80,160 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   fifth_afflicted:       { ta: "5-ம் வீடு/அதிபதி ராகு-கேது அல்லது பாதக கிரகங்களால் பாதிக்கப்பட்டுள்ளது", en: "The 5th house or its lord is afflicted by the nodes or malefics (progeny/creativity house)" },
   strong_fifth_lord:     { ta: "5-ம் அதிபதி வலுவாக உள்ளார் — தாக்கம் குறைகிறது", en: "The 5th lord is strong — impact is reduced" },
   jupiter_kendra:        { ta: "குரு கேந்திரத்தில் — சந்தான காரகன் பாதுகாக்கிறார்", en: "Jupiter is in a kendra — the progeny significator protects" },
+  // Neecha Bhanga / debilitation-cancellation detail
+  debilitated_planet_strong_d9:      { ta: "நீசக் கிரகம் நவாம்சத்தில் வலுவாக உள்ளது — நீசம் கணிசமாக ரத்தாகிறது", en: "The debilitated planet is strong in the Navamsa (D9) — the debilitation is substantially cancelled" },
+  debilitated_planet_retrograde_note: { ta: "நீசக் கிரகம் வக்ர கதியில் உள்ளது — பாரம்பரியமாக நீசத்தை மென்மையாக்கும் காரணி", en: "The debilitated planet is retrograde — traditionally read as softening the debilitation" },
+  // Dhana / Daridra (wealth axis)
+  eleventh_lord_weak_malefic_conj: { ta: "11-ம் அதிபதி பலவீனமாக, பாபக்கிரகத்துடன் சேர்ந்துள்ளார் — வருமான வழியில் அழுத்தம்", en: "The 11th lord is weak and joined by a malefic — pressure on the income channel" },
+  // Kalathra / marriage protection
+  jupiter_aspects_seventh_lord: { ta: "குரு 7-ம் அதிபதியை பார்க்கிறார் — திருமண சுட்டிக்கு பாதுகாப்பு", en: "Jupiter aspects the 7th lord — a protective influence on marriage significations" },
+  // Chandala / guru-chandala
+  jupiter_rahu_conjunction: { ta: "குருவும் ராகுவும் ஒரே வீட்டில் — குரு சண்டாள அமைப்பு", en: "Jupiter and Rahu are in the same house — the Guru-Chandala combination" },
+  // Sevvai / Chandra-Mangala detail
+  moon_mars_same_rasi:      { ta: "சந்திரனும் செவ்வாயும் ஒரே ராசியில் உள்ளனர்", en: "Moon and Mars are in the same sign" },
+  moon_mars_mutual_seventh: { ta: "சந்திரனும் செவ்வாயும் ஒருவரையொருவர் 7-ல் பார்க்கின்றனர்", en: "Moon and Mars are in mutual 7th-house aspect" },
+  // Budha-Aditya detail
+  mercury_sun_same_rasi:   { ta: "புதனும் சூரியனும் ஒரே ராசியில் உள்ளனர்", en: "Mercury and the Sun are in the same sign" },
+  mercury_combust_partial: { ta: "புதன் சூரியனுக்கு அருகில் அஸ்தங்கம் அடைந்துள்ளது — யோகப் பலன் ஓரளவு குறைகிறது", en: "Mercury is combust (asthangamam) close to the Sun — the yoga's result is partly reduced" },
+  // Gaja Kesari / Moon-strength detail
+  jupiter_aspects_moon:    { ta: "குரு சந்திரனை பார்க்கிறார்", en: "Jupiter aspects the Moon" },
+  moon_kendra_from_lagna:  { ta: "சந்திரன் லக்னத்திலிருந்து கேந்திரத்தில் உள்ளார்", en: "The Moon is in a kendra from the Lagna" },
+  moon_full_opposite_sun:  { ta: "சந்திரன் சூரியனுக்கு எதிராக முழு நிலவாக உள்ளார் — சந்திர பலம் அதிகம்", en: "The Moon is full, opposite the Sun — lunar strength is high" },
+  // Sunapha / Anapha / Durudhura / Kemadruma (Moon-flanking family)
+  planets_in_2nd_from_moon:          { ta: "சந்திரனிலிருந்து 2-ல் கிரகங்கள் உள்ளன", en: "There are planets in the 2nd from the Moon" },
+  planets_in_12th_from_moon:         { ta: "சந்திரனிலிருந்து 12-ல் கிரகங்கள் உள்ளன", en: "There are planets in the 12th from the Moon" },
+  planets_in_2nd_and_12th_from_moon: { ta: "சந்திரனுக்கு இருபுறமும் (2 மற்றும் 12) கிரகங்கள் உள்ளன", en: "There are planets on both sides of the Moon (2nd and 12th)" },
+  no_planets_2nd_12th_from_moon:     { ta: "சந்திரனுக்கு இருபுறமும் கிரகங்கள் இல்லை — கேமத்ரும நிலை", en: "No planets flank the Moon on either side — the Kemadruma condition" },
+  planet_kendra_from_moon:           { ta: "சந்திரனிலிருந்து கேந்திரத்தில் ஒரு கிரகம் உள்ளது — கேமத்ரும நிலையை மென்மையாக்கும்", en: "A planet sits in a kendra from the Moon — this softens the Kemadruma condition" },
 };
+
+// Planet display names for the parametrized markers below. Local to this file
+// on purpose — the panel already owns its own label vocabulary and there is no
+// shared web-side planet-name helper to reuse.
+const MARKER_PLANET: Record<string, { ta: string; en: string }> = {
+  SUN: { ta: "சூரியன்", en: "Sun" },
+  MOON: { ta: "சந்திரன்", en: "Moon" },
+  MARS: { ta: "செவ்வாய்", en: "Mars" },
+  MERCURY: { ta: "புதன்", en: "Mercury" },
+  JUPITER: { ta: "குரு", en: "Jupiter" },
+  VENUS: { ta: "சுக்கிரன்", en: "Venus" },
+  SATURN: { ta: "சனி", en: "Saturn" },
+  RAHU: { ta: "ராகு", en: "Rahu" },
+  KETU: { ta: "கேது", en: "Ketu" },
+};
+
+function planetLabel(code: string, lang: Lang): string {
+  const entry = MARKER_PLANET[code.toUpperCase()];
+  if (!entry) return code;
+  return lang === "ta" ? entry.ta : entry.en;
+}
+
+/**
+ * Markers the engine builds with an f-string, so they carry a planet code or a
+ * house number and can never be enumerated as fixed keys (e.g.
+ * `JUPITER_in_10th`, `rahu_house_7`, `benefic_in_house_6_from_moon`). Without
+ * these rules they fell through to the raw-token fallback and rendered to the
+ * user as "JUPITER in 10th" or "rahu house 7".
+ */
+const MARKER_PATTERNS: { re: RegExp; label: (m: RegExpMatchArray, lang: Lang) => { ta: string; en: string } }[] = [
+  {
+    re: /^([A-Z]+)_in_10th$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1], lang)} 10-ம் வீட்டில் (தொழில் இடம்) உள்ளார்`,
+      en: `${planetLabel(m[1], lang)} is in the 10th house (the house of work and standing)`,
+    }),
+  },
+  {
+    re: /^([A-Z]+)_upachaya_from_moon$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1], lang)} சந்திரனிலிருந்து உபச்சய வீட்டில் (3/6/10/11) உள்ளார்`,
+      en: `${planetLabel(m[1], lang)} is in an upachaya house (3/6/10/11) from the Moon`,
+    }),
+  },
+  {
+    re: /^benefic_in_house_(\d+)_from_moon$/,
+    label: (m, lang) => ({
+      ta: `சந்திரனிலிருந்து ${m[1]}-ம் வீட்டில் சுபக்கிரகம் உள்ளது`,
+      en: `A benefic sits in the ${m[1]}th house from the Moon`,
+    }),
+  },
+  {
+    re: /^seventh_lord_in_house_(\d+)$/,
+    label: (m, lang) => ({
+      ta: `7-ம் அதிபதி ${m[1]}-ம் வீட்டில் உள்ளார்`,
+      en: `The 7th lord is in house ${m[1]}`,
+    }),
+  },
+  {
+    re: /^eleventh_lord_in_(\d+)$/,
+    label: (m, lang) => ({
+      ta: `11-ம் அதிபதி ${m[1]}-ம் வீட்டில் உள்ளார்`,
+      en: `The 11th lord is in house ${m[1]}`,
+    }),
+  },
+  {
+    re: /^rahu_house_(\d+)$/,
+    label: (m, lang) => ({
+      ta: `ராகு ${m[1]}-ம் வீட்டில் உள்ளது`,
+      en: `Rahu is in house ${m[1]}`,
+    }),
+  },
+  {
+    re: /^moon_from_jupiter_(\d+)$/,
+    label: (m, lang) => ({
+      ta: `குருவிலிருந்து சந்திரன் ${m[1]}-ம் இடத்தில் உள்ளார்`,
+      en: `The Moon is ${m[1]} houses from Jupiter`,
+    }),
+  },
+  {
+    re: /^([a-z]+)_lord_([A-Z]+)_strong$/,
+    label: (m, lang) => ({
+      ta: `${m[1] === "ninth" ? "9" : m[1]}-ம் அதிபதி ${planetLabel(m[2], lang)} வலுவாக உள்ளார்`,
+      en: `The ${m[1]} lord (${planetLabel(m[2], lang)}) is strong`,
+    }),
+  },
+  {
+    // Raja Yoga: the trikona lord and the kendra lord are linked.
+    re: /^([A-Z]+)_([A-Z]+)_link$/,
+    label: (m, lang) => ({
+      ta: `திரிகோண அதிபதி ${planetLabel(m[1], lang)} கேந்திர அதிபதி ${planetLabel(m[2], lang)} உடன் தொடர்பில் உள்ளார்`,
+      en: `The trikona lord (${planetLabel(m[1], lang)}) is linked with the kendra lord (${planetLabel(m[2], lang)})`,
+    }),
+  },
+  {
+    // Parivartana: two planets sit in each other's sign of rulership.
+    re: /^([a-z]+)_([a-z]+)_parivartana_link$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1], lang)} மற்றும் ${planetLabel(m[2], lang)} ஒருவர் ராசியில் மற்றொருவர் — பரிவர்த்தனை`,
+      en: `${planetLabel(m[1], lang)} and ${planetLabel(m[2], lang)} each occupy the other's sign — a parivartana (mutual exchange)`,
+    }),
+  },
+  {
+    // Emitted as a lowercase, underscore-joined list of planets, so this can
+    // carry more than one: `combust_key_planet_mercury_venus`.
+    re: /^combust_key_planet_([a-z_]+)$/,
+    label: (m, lang) => {
+      const names = m[1].split("_").filter(Boolean).map((p) => planetLabel(p, lang));
+      const joined = lang === "ta" ? names.join(", ") : names.join(" and ");
+      return {
+        ta: `${joined} அஸ்தங்கம் அடைந்துள்ளது — சூரியனுக்கு மிக அருகில் இருப்பதால் பலன் குறைகிறது`,
+        en: `${joined} ${names.length > 1 ? "are" : "is"} combust (asthangamam) — too close to the Sun to give results freely`,
+      };
+    },
+  },
+];
 
 export function markerLabel(marker: string, lang: Lang): string {
   const entry = MARKER_LABELS[marker];
-  if (!entry) return marker.replaceAll("_", " ");
-  return lang === "ta" ? entry.ta : entry.en;
+  if (entry) return lang === "ta" ? entry.ta : entry.en;
+  for (const rule of MARKER_PATTERNS) {
+    const m = marker.match(rule.re);
+    if (m) {
+      const built = rule.label(m, lang);
+      return lang === "ta" ? built.ta : built.en;
+    }
+  }
+  return marker.replaceAll("_", " ");
 }
 
 // ── What is this yoga/dosham — plain explanation ─────────────────────────────
@@ -197,13 +345,25 @@ const YOGA_WHAT_EXTRA: Record<string, { ta: string; en: string }> = {
   },
 };
 
-export function getWhat(name: string, isYoga: boolean, lang: Lang, fallback?: { ta?: string; en?: string }): string {
+export function getWhat(
+  name: string,
+  isYoga: boolean,
+  lang: Lang,
+  fallback?: { ta?: string; en?: string },
+  effect?: { ta?: string; en?: string },
+): string {
   const key = name.toUpperCase();
   const entry = isYoga
     ? (YOGA_WHAT[key] ?? YOGA_WHAT[key.replace("GAJA_KESARI", "GAJA_KESARI_YOGA")] ?? YOGA_WHAT_EXTRA[key])
     : DOSHAM_WHAT[key];
   if (entry) return lang === "ta" ? entry.ta : entry.en;
-  // Fall back to the engine-authored description so nothing renders generic filler.
+  // Then the engine's plain-language *effect* — what the yoga is held to do.
+  // This covers every detectable yoga, so it is what most cards land on.
+  const eff = lang === "ta" ? effect?.ta : effect?.en;
+  if (eff && eff.trim()) return eff;
+  // Only then the engine description, which states the *mechanism*. For yogas
+  // like Sunapha that description is barely more than the name ("Sunapha
+  // Yoga."), which is exactly why effect is preferred above it.
   const fb = lang === "ta" ? fallback?.ta : fallback?.en;
   if (fb && fb.trim()) return fb;
   return lang === "ta" ? "பாரம்பரிய ஜோதிட சுட்டி." : "A traditional astrology indicator.";
@@ -673,7 +833,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
               {lang === "ta" ? "இது என்ன" : "What This Is"}
             </p>
             <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--yogadosham-ink, var(--panel-earth))", lineHeight: 1.55 }}>
-              {getWhat(yoga.name, true, lang, { ta: yoga.descriptionTa, en: yoga.descriptionEn })}
+              {getWhat(yoga.name, true, lang, { ta: yoga.descriptionTa, en: yoga.descriptionEn }, { ta: yoga.effectTa, en: yoga.effectEn })}
             </p>
           </div>
 
