@@ -949,9 +949,51 @@ export function ChartExplanationPanel({
                               {ordinalHouse(planet.houseFromLagna, lang)} - {rasiName(planet.rasi, lang)} - {tNakshatra(planet.nakshatraName, lang)}{" "}
                               {lang === "ta" ? "பாதம்" : "Pada"} {planet.pada}
                             </p>
-                            <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
-                              {tx(planet.explanation, lang)} D9: {rasiName(planet.d9Rasi, lang)}.
-                            </p>
+                            {/* Prefer the labelled facet lines. The single
+                                paragraph concatenated placement + dignity +
+                                role + dasha + transit + conditions and tacked
+                                "D9: <rasi>." on the end, which is accurate and
+                                close to unscannable. Falls back to that
+                                paragraph for responses that predate facets. */}
+                            {planet.facets && planet.facets.length > 0 ? (
+                              <dl style={{ margin: 0, display: "grid", gap: "var(--space-1)" }}>
+                                {planet.facets.map((facet) => (
+                                  <div key={facet.key} style={{ display: "grid", gap: "1px" }}>
+                                    <dt
+                                      style={{
+                                        fontSize: "0.6875rem",
+                                        fontWeight: 700,
+                                        letterSpacing: "0.03em",
+                                        textTransform: "uppercase",
+                                        color:
+                                          facet.tone === "BOOST"
+                                            ? "var(--color-high)"
+                                            : facet.tone === "CAUTION"
+                                              ? "var(--color-mid)"
+                                              : "var(--color-faint)",
+                                      }}
+                                    >
+                                      {tx(facet.label, lang)}
+                                    </dt>
+                                    <dd style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                                      {tx(facet.value, lang)}
+                                    </dd>
+                                  </div>
+                                ))}
+                                <div style={{ display: "grid", gap: "1px" }}>
+                                  <dt style={{ fontSize: "0.6875rem", fontWeight: 700, letterSpacing: "0.03em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+                                    {lang === "ta" ? "நவாம்சம் (D9)" : "Navamsa (D9)"}
+                                  </dt>
+                                  <dd style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                                    {rasiName(planet.d9Rasi, lang)}
+                                  </dd>
+                                </div>
+                              </dl>
+                            ) : (
+                              <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                                {tx(planet.explanation, lang)} D9: {rasiName(planet.d9Rasi, lang)}.
+                              </p>
+                            )}
                             <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
                               <Chip color={color}>{strengthLabel(planet.strengthScore, lang)}</Chip>
                               <Chip>{houseGroupLabel(planet.houseGroup, lang)}</Chip>

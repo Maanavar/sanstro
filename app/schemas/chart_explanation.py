@@ -15,6 +15,27 @@ class ChartExplanationText(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class ChartExplanationFacet(BaseModel):
+    """One scannable line of a planet's reading.
+
+    The single ``explanation`` paragraph concatenates placement, dignity,
+    functional role, dasha state, transit contacts and condition notes into one
+    block of prose. That is accurate and close to unreadable. Facets carry the
+    same content pre-split, so a client can render labelled lines instead of a
+    wall of text. ``explanation`` is retained unchanged for existing consumers.
+
+    ``tone`` lets a client style the line without re-deriving meaning:
+    BOOST = strengthening, CAUTION = asks for care, NEUTRAL = descriptive.
+    """
+
+    key: str
+    label: ChartExplanationText
+    value: ChartExplanationText
+    tone: str = "NEUTRAL"
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class ChartExplanationCoreIdentity(BaseModel):
     lagna_rasi: str = Field(alias="lagnaRasi")
     moon_rasi: str = Field(alias="moonRasi")
@@ -36,6 +57,9 @@ class ChartExplanationPlanet(BaseModel):
     nakshatra: int
     nakshatra_name: str = Field(alias="nakshatraName")
     pada: int
+    # Graha ruling this nakshatra. Served from the engine's one canonical table
+    # so clients stop maintaining their own copies of the 27-star lord list.
+    nakshatra_lord: str = Field(default="", alias="nakshatraLord")
     dignity: str
     dignity_score: int = Field(alias="dignityScore")
     strength_score: int = Field(alias="strengthScore")
@@ -47,6 +71,9 @@ class ChartExplanationPlanet(BaseModel):
     house_group: str = Field(alias="houseGroup")
     functional_nature: str = Field(alias="functionalNature")
     explanation: ChartExplanationText
+    # Same reading as `explanation`, split into labelled lines. Defaulted to []
+    # so older clients are unaffected.
+    facets: list[ChartExplanationFacet] = Field(default_factory=list)
 
     model_config = ConfigDict(populate_by_name=True)
 

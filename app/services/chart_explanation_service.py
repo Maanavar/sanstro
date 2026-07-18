@@ -17,11 +17,21 @@ from app.calculations.chart_strength import (
     MOOLATRIKONA_ZONE,
     OWN_SIGN_RASI,
     _dignity_score,
+    d9_dignity_tier,
 )
 from app.calculations.dasha import DashaPeriod, calculate_vimshottari_timeline
 from app.calculations.display_names import planet_en, planet_ta, sani_cycle_en, sani_cycle_ta
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.functional_nature import get_functional_nature
+from app.calculations.nakshatra_lord_dynamics import nakshatra_lord, nakshatra_lord_note
+from app.calculations.planet_conditions import (
+    CAZIMI_MEANING,
+    D9_DEBILITATED_MEANING,
+    D9_DIGNIFIED_MEANING,
+    VARGOTTAMA_MEANING,
+    combust_meaning,
+    retrograde_meaning,
+)
 from app.models import Chart
 from app.schemas.chart_explanation import (
     ChartExplanationActivationSignal,
@@ -31,6 +41,7 @@ from app.schemas.chart_explanation import (
     ChartExplanationCurrentActivationSection,
     ChartExplanationDashaLordActivation,
     ChartExplanationData,
+    ChartExplanationFacet,
     ChartExplanationHouseGroup,
     ChartExplanationMaitriPair,
     ChartExplanationPeyarchiEvent,
@@ -250,6 +261,35 @@ def _planet_transit_contact_text(contacts: list[tuple[str, int, str]]) -> ChartE
     return _bi(ta, en)
 
 
+def _split_transit_contact(
+    contacts: list[tuple[str, int, str]],
+) -> tuple[ChartExplanationText | None, ChartExplanationText | None]:
+    """(what the transit is doing, the traditional support) as two separate texts.
+
+    ``_planet_transit_contact_text`` deliberately concatenates the remedy onto
+    the effect for the single-paragraph form. Facets render them as two labelled
+    lines, so this returns the same content unjoined rather than re-deriving it.
+    """
+    if not contacts:
+        return None, None
+    source, aspect_house, signal_type = next(
+        (c for c in contacts if c[2] == "TRANSIT_CONJUNCTION"), contacts[0]
+    )
+    effect = _TRANSIT_EFFECT[source]
+    if signal_type == "TRANSIT_CONJUNCTION":
+        verb_ta, verb_en = "இணைந்து நிற்கிறது", "is conjunct with this planet"
+    else:
+        verb_ta, verb_en = (
+            f"{aspect_house}-ஆம் பார்வையில் பார்க்கிறது",
+            f"aspects this planet by its {aspect_house}th-house drishti",
+        )
+    contact = _bi(
+        f"கோசார {planet_ta(source)} இதை {verb_ta}; இது {effect.ta}.",
+        f"Transiting {planet_en(source)} {verb_en}; this {effect.en}.",
+    )
+    return contact, _TRANSIT_REMEDY[source]
+
+
 def _planet_explanation(
     planet: PlanetPosition,
     dignity: str,
@@ -262,24 +302,8 @@ def _planet_explanation(
 ) -> ChartExplanationText:
     dignity_text = _dignity_text(dignity)
     theme = _HOUSE_THEMES[planet.house_from_lagna]
-    fn_context_ta = {
-        "YOGAKARAKA": "இது யோககாரகன்; சரியான காலத்தில் நன்மையைத் தெளிவாகத் திறக்கும் கிரகம்",
-        "LAGNA_LORD": "இது லக்ன அதிபதி; வாழ்க்கை திசையையும் உட்புற உந்துதலையும் வடிவமைக்கிறது",
-        "TRIKONA": "இது திரிகோண அதிபதி; புண்ணியம், திறமை, வளர்ச்சி வழிகளைத் தொடுகிறது",
-        "KENDRA": "இது கேந்திர அதிபதி; வெளிப்படையான செயல் மற்றும் பொறுப்பை இயக்குகிறது",
-        "DUSTHANA": "இது துஷ்டான அதிபதி; இந்த வீட்டின் விஷயங்களில் ஒழுங்கும் கவனமும் தேவை",
-        "MARAKA": "இது மாரக அதிபதி; கட்டுப்பாட்டுடனும் அளவுடனும் அணுகுவது நல்லது",
-        "NEUTRAL": "இது நடுநிலை கிரகம்; லக்னத்திற்கு நல்லது-கெட்டது இரண்டையும் சூழ்நிலைக்கு ஏற்ப தரும்",
-    }.get(functional_nature, "இந்த கிரகத்தின் பலன் அதன் வீடு, பலம், பார்வை ஆகியவற்றோடு சேர்ந்து இயங்குகிறது")
-    fn_context_en = {
-        "YOGAKARAKA": "a Yogakaraka for this chart, able to open favourable results in the right period",
-        "LAGNA_LORD": "the Lagna lord, shaping life direction and inner drive",
-        "TRIKONA": "a Trikona lord, linked with grace, talent, and growth",
-        "KENDRA": "a Kendra lord, governing visible action and responsibility",
-        "DUSTHANA": "a Dusthana lord, asking for care and discipline in its matters",
-        "MARAKA": "a Maraka lord, best handled with restraint and proportion",
-        "NEUTRAL": "a neutral planet that gives mixed results for this Lagna depending on context",
-    }.get(functional_nature, "a planet whose role is read together with its house, strength, and aspects")
+    fn_context_ta = _functional_context_ta(functional_nature)
+    fn_context_en = _functional_context_en(functional_nature)
     period_ta, period_en = _current_period_text(current_role, dasha_chain_ta, dasha_chain_en)
     contact_ta = f" {transit_contact_text.ta}" if transit_contact_text else ""
     contact_en = f" {transit_contact_text.en}" if transit_contact_text else ""
@@ -306,6 +330,197 @@ def _planet_explanation(
         f"{dignity_text.en} In functional terms it is {fn_context_en}. {period_en}{contact_en}{cazimi_en}"
     )
     return _bi(ta, en)
+
+
+# Functional-nature copy, shared by the single-paragraph explanation and the
+# per-facet "role" line so the two can never drift apart.
+_FUNCTIONAL_CONTEXT_TA: dict[str, str] = {
+    "YOGAKARAKA": "இது யோககாரகன்; சரியான காலத்தில் நன்மையைத் தெளிவாகத் திறக்கும் கிரகம்",
+    "LAGNA_LORD": "இது லக்ன அதிபதி; வாழ்க்கை திசையையும் உட்புற உந்துதலையும் வடிவமைக்கிறது",
+    "TRIKONA": "இது திரிகோண அதிபதி; புண்ணியம், திறமை, வளர்ச்சி வழிகளைத் தொடுகிறது",
+    "KENDRA": "இது கேந்திர அதிபதி; வெளிப்படையான செயல் மற்றும் பொறுப்பை இயக்குகிறது",
+    "DUSTHANA": "இது துஷ்டான அதிபதி; இந்த வீட்டின் விஷயங்களில் ஒழுங்கும் கவனமும் தேவை",
+    "MARAKA": "இது மாரக அதிபதி; கட்டுப்பாட்டுடனும் அளவுடனும் அணுகுவது நல்லது",
+    "NEUTRAL": "இது நடுநிலை கிரகம்; லக்னத்திற்கு நல்லது-கெட்டது இரண்டையும் சூழ்நிலைக்கு ஏற்ப தரும்",
+}
+_FUNCTIONAL_CONTEXT_EN: dict[str, str] = {
+    "YOGAKARAKA": "a Yogakaraka for this chart, able to open favourable results in the right period",
+    "LAGNA_LORD": "the Lagna lord, shaping life direction and inner drive",
+    "TRIKONA": "a Trikona lord, linked with grace, talent, and growth",
+    "KENDRA": "a Kendra lord, governing visible action and responsibility",
+    "DUSTHANA": "a Dusthana lord, asking for care and discipline in its matters",
+    "MARAKA": "a Maraka lord, best handled with restraint and proportion",
+    "NEUTRAL": "a neutral planet that gives mixed results for this Lagna depending on context",
+}
+
+
+def _functional_context_ta(functional_nature: str) -> str:
+    return _FUNCTIONAL_CONTEXT_TA.get(
+        functional_nature,
+        "இந்த கிரகத்தின் பலன் அதன் வீடு, பலம், பார்வை ஆகியவற்றோடு சேர்ந்து இயங்குகிறது",
+    )
+
+
+def _functional_context_en(functional_nature: str) -> str:
+    return _FUNCTIONAL_CONTEXT_EN.get(
+        functional_nature,
+        "a planet whose role is read together with its house, strength, and aspects",
+    )
+
+
+_FACET_LABELS: dict[str, ChartExplanationText] = {
+    "placement": _bi("இப்போதைய நிலை", "Where it sits"),
+    "role": _bi("ஜாதகத்தில் பங்கு", "Its role in your chart"),
+    "strength": _bi("பலம்", "How strong it is"),
+    "condition": _bi("சிறப்பு நிலை", "What to work with"),
+    "activation": _bi("இப்போது இயங்குகிறதா", "Active right now?"),
+    "nakshatra": _bi("நட்சத்திர அதிபதி", "Its star lord"),
+    "transit": _bi("நடப்பு கோசாரம்", "Current transit"),
+    "remedy": _bi("பரிகாரம்", "Traditional support"),
+}
+
+
+def _condition_facet_value(planet: PlanetPosition) -> tuple[ChartExplanationText | None, str]:
+    """Practical meaning of this planet's special conditions, plus a tone.
+
+    Conditions are reported in priority order and only one is surfaced: cazimi
+    outranks combustion (it inverts it), and an explicit D9 debilitation
+    outranks the milder vargottama/D9-dignity notes because it is the one a
+    reader most needs and the one the chart is least likely to make obvious.
+    """
+    graha = planet.graha
+    if getattr(planet, "is_cazimi", False):
+        return _bi(*CAZIMI_MEANING), "BOOST"
+
+    d9_rasi = getattr(planet, "d9_rasi", None)
+    tier = d9_dignity_tier(graha, d9_rasi) if d9_rasi is not None else 0
+    if tier < 0 and not planet.is_vargottama:
+        return _bi(*D9_DEBILITATED_MEANING), "CAUTION"
+
+    if planet.is_combust:
+        ta, en = combust_meaning(graha)
+        if ta:
+            return _bi(ta, en), "CAUTION"
+
+    if planet.is_retrograde:
+        ta, en = retrograde_meaning(graha)
+        if ta:
+            return _bi(ta, en), "NEUTRAL"
+
+    if planet.is_vargottama:
+        return _bi(*VARGOTTAMA_MEANING), "BOOST"
+
+    if tier > 0:
+        return _bi(*D9_DIGNIFIED_MEANING), "BOOST"
+
+    return None, "NEUTRAL"
+
+
+def _planet_facets(
+    planet: PlanetPosition,
+    dignity: str,
+    functional_nature: str,
+    *,
+    current_role: str | None,
+    dasha_chain_ta: str,
+    dasha_chain_en: str,
+    fn_context_ta: str,
+    fn_context_en: str,
+    transit_contact_text: ChartExplanationText | None,
+    transit_remedy: ChartExplanationText | None,
+    lord_house_by_graha: dict[str, int] | None = None,
+) -> list[ChartExplanationFacet]:
+    """The same reading as ``_planet_explanation``, split into labelled lines.
+
+    Nothing new is computed here — this is purely a restructuring of content
+    that was already being concatenated into one paragraph.
+    """
+    theme = _HOUSE_THEMES[planet.house_from_lagna]
+    dignity_text = _dignity_text(dignity)
+    period_ta, period_en = _current_period_text(current_role, dasha_chain_ta, dasha_chain_en)
+
+    facets: list[ChartExplanationFacet] = [
+        ChartExplanationFacet(
+            key="placement",
+            label=_FACET_LABELS["placement"],
+            value=_bi(
+                f"{planet.house_from_lagna}ஆம் வீடு, {planet.rasi_name} ராசி — {theme.ta}.",
+                f"House {planet.house_from_lagna} in {planet.rasi_name} — {theme.en}.",
+            ),
+        ),
+        ChartExplanationFacet(
+            key="role",
+            label=_FACET_LABELS["role"],
+            value=_bi(f"{fn_context_ta}.", f"It is {fn_context_en}."),
+            tone="CAUTION" if functional_nature in {"DUSTHANA", "MARAKA"} else "NEUTRAL",
+        ),
+        ChartExplanationFacet(
+            key="strength",
+            label=_FACET_LABELS["strength"],
+            value=dignity_text,
+            tone={"EXALTED": "BOOST", "MOOLATRIKONA": "BOOST", "OWN_SIGN": "BOOST", "DEBILITATED": "CAUTION"}.get(
+                dignity, "NEUTRAL"
+            ),
+        ),
+    ]
+
+    condition_value, condition_tone = _condition_facet_value(planet)
+    if condition_value is not None:
+        facets.append(
+            ChartExplanationFacet(
+                key="condition",
+                label=_FACET_LABELS["condition"],
+                value=condition_value,
+                tone=condition_tone,
+            )
+        )
+
+    facets.append(
+        ChartExplanationFacet(
+            key="activation",
+            label=_FACET_LABELS["activation"],
+            value=_bi(period_ta, period_en),
+            tone="BOOST" if current_role is not None else "NEUTRAL",
+        )
+    )
+
+    # The star lord often decides what the planet actually delivers, and until
+    # now the nakshatra was shown as a bare name and pada with no reading.
+    star_lord = nakshatra_lord(planet.nakshatra)
+    lord_house = (lord_house_by_graha or {}).get(star_lord)
+    facets.append(
+        ChartExplanationFacet(
+            key="nakshatra",
+            label=_FACET_LABELS["nakshatra"],
+            value=_bi(
+                *nakshatra_lord_note(
+                    planet.graha,
+                    planet.nakshatra,
+                    planet.nakshatra_name,
+                    lord_house,
+                )
+            ),
+            tone="CAUTION" if lord_house in {6, 8, 12} else "NEUTRAL",
+        )
+    )
+
+    if transit_contact_text is not None:
+        facets.append(
+            ChartExplanationFacet(
+                key="transit",
+                label=_FACET_LABELS["transit"],
+                value=transit_contact_text,
+            )
+        )
+    if transit_remedy is not None:
+        facets.append(
+            ChartExplanationFacet(
+                key="remedy",
+                label=_FACET_LABELS["remedy"],
+                value=transit_remedy,
+            )
+        )
+    return facets
 
 
 def _build_planet_sections(
@@ -340,12 +555,16 @@ def _build_planet_sections(
         f"{timeline.current_mahadasha.lord} Mahadasha / {timeline.current_antardasha.lord} Bhukti / "
         f"{timeline.current_pratyantardasha.lord} Antaram"
     )
+    # House of every plotted body, so a planet's star-lord note can say where
+    # that lord actually sits instead of only naming it.
+    lord_house_by_graha = {p.graha: p.house_from_lagna for p in planets}
     items: list[ChartExplanationPlanet] = []
     for planet in planets:
         dignity = _dignity_label(planet)
         dignity_score = _dignity_score(planet.graha, planet.rasi, planet.absolute_longitude)
         fn = functional.get(planet.graha, "NEUTRAL")
         contacts = _planet_transit_contacts(planet, transit_bodies)
+        transit_contact, transit_remedy = _split_transit_contact(contacts)
         items.append(
             ChartExplanationPlanet(
                 graha=planet.graha,
@@ -355,6 +574,7 @@ def _build_planet_sections(
                 nakshatra=planet.nakshatra,
                 nakshatra_name=planet.nakshatra_name,
                 pada=planet.pada,
+                nakshatra_lord=nakshatra_lord(planet.nakshatra),
                 dignity=dignity,
                 dignity_score=dignity_score,
                 strength_score=planet.strength_score,
@@ -373,6 +593,19 @@ def _build_planet_sections(
                     dasha_chain_ta=dasha_chain_ta,
                     dasha_chain_en=dasha_chain_en,
                     transit_contact_text=_planet_transit_contact_text(contacts),
+                ),
+                facets=_planet_facets(
+                    planet,
+                    dignity,
+                    fn,
+                    current_role=current_role_by_graha.get(planet.graha),
+                    dasha_chain_ta=dasha_chain_ta,
+                    dasha_chain_en=dasha_chain_en,
+                    fn_context_ta=_functional_context_ta(fn),
+                    fn_context_en=_functional_context_en(fn),
+                    transit_contact_text=transit_contact,
+                    transit_remedy=transit_remedy,
+                    lord_house_by_graha=lord_house_by_graha,
                 ),
             )
         )
