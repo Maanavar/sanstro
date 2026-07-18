@@ -14,6 +14,7 @@ from app.schemas.family_vaults import (
     FamilyAggregateResponse,
     FamilyCalendarResponse,
     FamilyCompositeTimelineResponse,
+    FamilyHarmonyRemediesResponse,
     FamilyMemberCreate,
     FamilyMemberCreateResponse,
     FamilyMemberListResponse,
@@ -33,6 +34,7 @@ from app.services.family_vault_service import (
     get_family_calendar,
     get_family_composite_timeline,
     get_family_daily_aggregate,
+    get_family_harmony_remedies,
     get_family_member,
     get_family_summary,
     get_family_vault_detail,
@@ -238,6 +240,21 @@ def family_composite_timeline_endpoint(
 ) -> FamilyCompositeTimelineResponse:
     _assert_vault_owner(session, family_vault_id, current_user)
     return get_family_composite_timeline(session, family_vault_id, from_date, to_date)
+
+
+@router.get(
+    "/family-vaults/{family_vault_id}/harmony-remedies",
+    response_model=FamilyHarmonyRemediesResponse,
+    tags=["family-vaults"],
+    summary="Consolidated family-harmony remedies read across every member's chart",
+)
+def family_harmony_remedies_endpoint(
+    family_vault_id: UUID,
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> FamilyHarmonyRemediesResponse:
+    _assert_vault_owner(session, family_vault_id, current_user)
+    return get_family_harmony_remedies(session, family_vault_id)
 
 
 @router.delete(

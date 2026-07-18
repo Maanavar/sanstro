@@ -11,7 +11,13 @@ from sqlalchemy.orm import Session
 
 from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.ephemeris import calculate_sidereal_planets
+from app.calculations.family_harmony_remedies import (
+    MemberChartInput,
+    MemberPlanet,
+    synthesize_family_harmony_remedies,
+)
 from app.calculations.panchangam import calculate_daily_panchangam
+from app.calculations.remedies import remedy_disclaimer
 from app.core.subscription import is_premium
 from app.core.tier_limits import get_limits
 from app.models import BirthProfile, Chart, FamilyDailyScore, FamilyMember, FamilyVault, User
@@ -30,6 +36,9 @@ from app.schemas.family_vaults import (
     FamilyCalendarResponse,
     FamilyCompositeTimelineData,
     FamilyCompositeTimelineResponse,
+    FamilyHarmonyRemediesData,
+    FamilyHarmonyRemediesResponse,
+    FamilyHarmonyRemedyItem,
     FamilyMemberCreate,
     FamilyMemberCreateResponse,
     FamilyMemberCreateResult,
@@ -1260,6 +1269,134 @@ def get_family_composite_timeline(
             from_date=from_date,
             to_date=to_date,
             items=items,
+        ),
+        meta=ResponseMeta(
+            calculation_version=calculation_version,
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )
+
+
+def _chart_to_member_input(
+    display_name: str,
+    relationship: str,
+    is_minor: bool,
+    chart_data: object,
+) -> MemberChartInput:
+    planets = tuple(
+        MemberPlanet(
+            graha=p.graha,
+            house_from_lagna=p.house_from_lagna,
+            rasi=p.rasi,
+            is_combust=p.is_combust,
+            is_retrograde=p.is_retrograde,
+            strength_score=int(p.strength_score or 0),
+        )
+        for p in chart_data.planets  # type: ignore[attr-defined]
+    )
+    return MemberChartInput(
+        display_name=display_name,
+        relationship=relationship,
+        is_minor=is_minor,
+        lagna_rasi=chart_data.lagna.rasi,  # type: ignore[attr-defined]
+        planets=planets,
+    )
+
+
+def get_family_harmony_remedies(
+    session: Session,
+    family_vault_id: UUID,
+    *,
+    calculation_version: str = DEFAULT_CALCULATION_VERSION,
+) -> FamilyHarmonyRemediesResponse:
+    """Consolidated family-harmony parigaram read across every chart in the vault.
+
+    Loads each member's persisted chart (plus the owner's own personal profile,
+    which is not a FamilyMember row) and runs the cross-chart synthesizer over
+    the real combust / retrograde / house / strength values. Unlike the
+    single-chart remedy plan, the output is one shared list keyed to patterns
+    that span the household. Chart-derived, so it takes no date.
+    """
+    family_vault = _load_family_vault(session, family_vault_id)
+    inputs: list[MemberChartInput] = []
+
+    # Owner's own personal profile (family_member_id IS NULL) is the "self" chart
+    # and, like the daily aggregate, is not a FamilyMember row — fetch it first.
+    owner_profile = session.execute(
+        select(BirthProfile)
+        .where(
+            BirthProfile.owner_user_id == family_vault.owner_user_id,
+            BirthProfile.family_member_id.is_(None),
+            BirthProfile.deleted_at.is_(None),
+        )
+        .order_by(BirthProfile.created_at.asc())
+    ).scalars().first()
+    if owner_profile is not None:
+        try:
+            owner_chart = _latest_chart(session, owner_profile)
+            owner_snapshot = load_persisted_chart_response(session, owner_chart.chart_id)
+            inputs.append(_chart_to_member_input(owner_profile.display_name, "self", False, owner_snapshot.data))
+        except HTTPException:
+            pass
+
+    members = session.execute(
+        select(FamilyMember)
+        .where(
+            FamilyMember.family_vault_id == family_vault.family_vault_id,
+            FamilyMember.deleted_at.is_(None),
+        )
+        .order_by(FamilyMember.created_at.asc())
+    ).scalars().all()
+    for member in members:
+        try:
+            birth_profile = _latest_birth_profile(session, member)
+            chart = _latest_chart(session, birth_profile)
+            snapshot = load_persisted_chart_response(session, chart.chart_id)
+        except HTTPException:
+            continue
+        inputs.append(
+            _chart_to_member_input(
+                member.display_name,
+                member.relationship_to_owner,
+                member.is_minor,
+                snapshot.data,
+            )
+        )
+
+    if not inputs:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Family vault has no members with a calculated chart yet.",
+        )
+
+    items = synthesize_family_harmony_remedies(inputs)
+    return FamilyHarmonyRemediesResponse(
+        data=FamilyHarmonyRemediesData(
+            familyVaultId=family_vault.family_vault_id,
+            membersConsidered=[member_input.display_name for member_input in inputs],
+            items=[
+                FamilyHarmonyRemedyItem(
+                    signal=item.signal,
+                    priority=item.priority,
+                    planet=item.planet,
+                    titleTa=item.title_ta,
+                    titleEn=item.title_en,
+                    findingTa=item.finding_ta,
+                    findingEn=item.finding_en,
+                    remedyTa=item.remedy_ta,
+                    remedyEn=item.remedy_en,
+                    members=item.members,
+                    day=item.day,
+                    templeTa=item.temple_ta,
+                    templeEn=item.temple_en,
+                    mantraTa=item.mantra_ta,
+                    daanamTa=item.daanam_ta,
+                    daanamEn=item.daanam_en,
+                    tags=item.tags,
+                )
+                for item in items
+            ],
+            disclaimer=remedy_disclaimer(),
         ),
         meta=ResponseMeta(
             calculation_version=calculation_version,

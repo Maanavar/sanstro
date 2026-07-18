@@ -374,3 +374,47 @@ class FamilyCompositeTimelineResponse(BaseModel):
     meta: ResponseMeta
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+# ---------------------------------------------------------------------------
+# Family harmony remedies — consolidated parigaram read across every chart in
+# the vault at once (combustion / retrogression / node-house / weak-planet).
+# ---------------------------------------------------------------------------
+
+class FamilyHarmonyRemedyItem(BaseModel):
+    signal: str  # COMBUST_SHARED | NODE_FRICTION | RETROGRADE_LOAD | CHILD_WEAK_PLANET
+    priority: int
+    planet: str | None = None
+    title_ta: str = Field(alias="titleTa")
+    title_en: str = Field(alias="titleEn")
+    finding_ta: str = Field(alias="findingTa")
+    finding_en: str = Field(alias="findingEn")
+    remedy_ta: str = Field(alias="remedyTa")
+    remedy_en: str = Field(alias="remedyEn")
+    members: list[str]
+    day: str | None = None
+    temple_ta: str | None = Field(default=None, alias="templeTa")
+    temple_en: str | None = Field(default=None, alias="templeEn")
+    mantra_ta: str | None = Field(default=None, alias="mantraTa")
+    daanam_ta: str | None = Field(default=None, alias="daanamTa")
+    daanam_en: str | None = Field(default=None, alias="daanamEn")
+    tags: list[str] = Field(default_factory=list)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class FamilyHarmonyRemediesData(BaseModel):
+    family_vault_id: UUID = Field(alias="familyVaultId")
+    members_considered: list[str] = Field(alias="membersConsidered")
+    items: list[FamilyHarmonyRemedyItem]
+    disclaimer: dict[str, str]
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class FamilyHarmonyRemediesResponse(BaseModel):
+    success: bool = True
+    data: FamilyHarmonyRemediesData
+    meta: ResponseMeta
+
+    model_config = ConfigDict(populate_by_name=True)

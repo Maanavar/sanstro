@@ -29,6 +29,7 @@ import { NovaScoreDial } from "./dashboard-ui-nova";
 import { SynastryMatrix } from "./synastry-matrix";
 import { SynastryPanel } from "./dashboard-synastry-panel";
 import { DashboardChartsPanelNova } from "./dashboard-charts-panel-nova";
+import { DashboardFamilyHarmonyRemedies } from "./dashboard-family-harmony-remedies";
 
 /**
  * Nova "Family" tab — Phase 4 of the dashboard revamp (see
@@ -444,18 +445,23 @@ export function DashboardFamilyTabNova({
   const [relationFilter, setRelationFilter] = useState<RelationFilter>("all");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [synastrySubTab, setSynastrySubTab] = useState(false);
+  const [remediesNonce, setRemediesNonce] = useState(0);
 
   // Both header actions used to look dead: their targets render far below the
   // fold, so a click produced no visible change. Scroll the opened section
   // (or the freshly selected member's detail) into view instead.
   const synastryRef = useRef<HTMLDivElement | null>(null);
   const memberDetailRef = useRef<HTMLDivElement | null>(null);
+  const harmonyRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (synastrySubTab) synastryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [synastrySubTab]);
   useEffect(() => {
     if (selectedMemberId) memberDetailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [selectedMemberId]);
+  useEffect(() => {
+    if (remediesNonce > 0) harmonyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [remediesNonce]);
 
   useEffect(() => {
     if (!selectedVaultId) {
@@ -646,6 +652,12 @@ export function DashboardFamilyTabNova({
                 color: "var(--color-accent-strong)",
               }}>
               ◇ {lang === "ta" ? "பொருத்தம்" : "Compatibility"}
+            </button>
+          )}
+          {members.length > 1 && (
+            <button type="button" onClick={() => setRemediesNonce((n) => n + 1)}
+              style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-accent-strong)", background: "transparent", border: "1px solid var(--color-border-strong)", borderRadius: "9px", padding: "8px 14px", cursor: "pointer", fontFamily: "inherit" }}>
+              🪔 {lang === "ta" ? "பரிகாரம் →" : "Remedies →"}
             </button>
           )}
           {onGoToJournal && (
@@ -879,6 +891,22 @@ export function DashboardFamilyTabNova({
         <div style={{ fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 600, color: "var(--color-accent-strong)" }}>
           {lang === "ta" ? "குடும்ப உறவுகள்" : "Family connections"}
         </div>
+
+        {/* Family-harmony remedies — reads combustion/retrogression/node/weak-planet
+            across every member's chart into one shared parigaram list. Only shown
+            once there's more than the owner in the vault (a one-person "family" has
+            no cross-chart pattern to consolidate). The header's "Remedies" button
+            scrolls here (harmonyRef) and bumps remediesNonce to auto-load it. */}
+        {selectedVaultId && members.length > 1 && (
+          <div ref={harmonyRef} style={{ scrollMarginTop: "80px" }}>
+            <DashboardFamilyHarmonyRemedies
+              lang={lang}
+              vaultId={selectedVaultId}
+              memberCount={members.length}
+              openSignal={remediesNonce}
+            />
+          </div>
+        )}
 
         {synastrySubTab && (
           <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "24px", display: "flex", flexDirection: "column", gap: "20px" }}>
