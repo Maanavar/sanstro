@@ -9,6 +9,7 @@ import { computeD9LagnaRasi, GRAHA_ABBR, GRAHA_ABBR_EN } from "@/lib/chart-utils
 import { useLang } from "@/components/lang-toggle";
 import { JadhagamShareButton } from "@/components/public-share-card";
 import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
+import { nakshatraLordShort } from "@vinaadi/shared/nakshatraLord";
 
 // ── South Indian grid layout ──────────────────────────────────────────────────
 const RASI_GRID = [
@@ -44,13 +45,11 @@ const PLANET_LABELS_TA: Record<string, string> = {
   SATURN: "சனி", RAHU: "ராகு", KETU: "கேது", MANDHI: "மாந்தி",
 };
 
-// ── Nakshatra lord table (1-27) ──────────────────────────────────────────────
-const NAKSHATRA_LORDS_TA: Record<number, string> = {
-  1: "கேது", 2: "சுக்", 3: "சூரி", 4: "சந்", 5: "செவ்", 6: "ராகு", 7: "குரு",
-  8: "சனி", 9: "புத", 10: "கேது", 11: "சுக்", 12: "சூரி", 13: "சந்", 14: "செவ்",
-  15: "ராகு", 16: "குரு", 17: "சனி", 18: "புத", 19: "கேது", 20: "சுக்", 21: "சூரி",
-  22: "சந்", 23: "செவ்", 24: "ராகு", 25: "குரு", 26: "சனி", 27: "புத",
-};
+// Nakshatra lords come from the shared Vimshottari derivation — this file used
+// to carry its own transcribed 27-row copy, as did chart-generate-inline-panel.
+const NAKSHATRA_LORDS_TA: Record<number, string> = Object.fromEntries(
+  Array.from({ length: 27 }, (_, i) => [i + 1, nakshatraLordShort(i + 1, "ta")]),
+);
 
 // ── Nakshatra starting syllables (4 padas each) ──────────────────────────────
 const NAKSHATRA_SYLLABLES: Record<number, [string, string, string, string]> = {
