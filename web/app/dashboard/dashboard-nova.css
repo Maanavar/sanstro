@@ -606,12 +606,16 @@
    blocks above. Lower specificity than those blocks, so the overrides win.
    Yama blends 46% toward --color-surface: opaque and one clear step lighter
    than Rahu's solid fill on either base, with --color-text-strong ink that
-   contrasts in both. ── */
+   contrasts in both. Kuligai continues the same severity ramp one step
+   lighter again (26%), so the three caution kalams read as one family:
+   Rahu darkest, Yama mid, Kuligai lightest. ── */
 [data-ui="nova"] .cd-shell {
   --ribbon-track-border: color-mix(in srgb, var(--color-text-strong) 14%, transparent);
   --ribbon-rahu-bg:  var(--color-alert-critical);
   --ribbon-yama-bg:  color-mix(in srgb, var(--color-alert-critical) 46%, var(--color-surface));
   --ribbon-yama-fg:  var(--color-text-strong);
+  --ribbon-kuligai-bg: color-mix(in srgb, var(--color-alert-critical) 26%, var(--color-surface));
+  --ribbon-kuligai-fg: var(--color-text-strong);
   --ribbon-best-bg:  var(--color-accent);
   --ribbon-best-fg:  var(--color-on-accent);
   --ribbon-good-bg:  var(--color-high);

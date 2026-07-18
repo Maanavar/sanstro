@@ -44,7 +44,7 @@ import {
   rasiName,
   timeWindowsOverlap,
 } from "./dashboard-calendar-shared";
-import type { CalendarView } from "./dashboard-calendar-shared";
+import type { CalendarView, DayTimelineBand } from "./dashboard-calendar-shared";
 import { MonthlyCalendarViewNova } from "./dashboard-calendar-monthly-nova";
 
 /**
@@ -760,10 +760,20 @@ export function DashboardCalendarTabNova({
               </div>
 
               <DayTimeline
-                bestStart={bestNallaSlot?.start}
-                bestEnd={bestNallaSlot?.end}
-                avoidStart={panchangam.kalam.rahuKalam.start}
-                avoidEnd={panchangam.kalam.rahuKalam.end}
+                sunrise={panchangam.sunrise}
+                sunset={panchangam.sunset}
+                bands={[
+                  ...(panchangam.kalam.nallaNeram ?? []).map((slot, i): DayTimelineBand => ({
+                    key: `nalla-${i}`,
+                    start: slot.start,
+                    end: slot.end,
+                    kind: bestNallaSlot && slot.start === bestNallaSlot.start && slot.end === bestNallaSlot.end ? "best" : "good",
+                    label: t("label_nalla_neram", lang),
+                  })),
+                  { key: "rahu", start: panchangam.kalam.rahuKalam.start, end: panchangam.kalam.rahuKalam.end, kind: "avoid-strong", label: t("label_rahu_kalam", lang) },
+                  { key: "yama", start: panchangam.kalam.yamagandam.start, end: panchangam.kalam.yamagandam.end, kind: "avoid", label: t("label_yamagandam", lang) },
+                  { key: "kuligai", start: panchangam.kalam.kuligai.start, end: panchangam.kalam.kuligai.end, kind: "avoid-soft", label: t("label_kuligai", lang) },
+                ]}
               />
 
               {/* ── Auspicious ── */}

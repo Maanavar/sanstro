@@ -12,7 +12,7 @@ import type { PanchangamDailyResponseData, WeekAheadData } from "@/lib/types";
 /**
  * Nova "Your day" timeline spine — the single card that owns every panchangam
  * time: sunrise/sunset, Horai (current + next), the week-ahead dots, the
- * segmented Rahu Kalam / Yamagandam / Nalla Neram bar, and the
+ * segmented Rahu Kalam / Yamagandam / Kuligai / Nalla Neram bar, and the
  * Nakshatram/Tithi/Vaaram footer. Nothing panchangam-related renders outside
  * this card on the Today tab — everything else (calendar month view, full
  * gowri table) lives one click away via "Full panchangam →".
@@ -38,6 +38,8 @@ const RAHU_BG = "var(--ribbon-rahu-bg)";
 const RAHU_FG = "var(--ribbon-rahu-fg)";
 const YAMA_BG = "var(--ribbon-yama-bg)";
 const YAMA_FG = "var(--ribbon-yama-fg)";
+const KULIGAI_BG = "var(--ribbon-kuligai-bg)";
+const KULIGAI_FG = "var(--ribbon-kuligai-fg)";
 const BEST_BG = "var(--ribbon-best-bg)";
 const BEST_FG = "var(--ribbon-best-fg)";
 const GOOD_BG = "var(--ribbon-good-bg)";
@@ -151,6 +153,21 @@ export function DashboardTodayRibbonNova({
       badge: lang === "ta" ? "ராகு காலம்" : "RAHU KALAM",
       legendName: lang === "ta" ? "ராகு காலம்" : "Rahu Kalam",
       legendTime: `${formatClockLabel(panchangam.kalam.rahuKalam.start)} – ${formatClockLabel(panchangam.kalam.rahuKalam.end)}`,
+    });
+  }
+
+  const kuligaiStart = timeToMinutes(panchangam.kalam.kuligai.start);
+  const kuligaiEnd = timeToMinutes(panchangam.kalam.kuligai.end);
+  if (kuligaiStart !== null && kuligaiEnd !== null) {
+    segments.push({
+      key: "kuligai",
+      startMin: kuligaiStart,
+      endMin: kuligaiEnd,
+      bg: KULIGAI_BG,
+      fg: KULIGAI_FG,
+      badge: lang === "ta" ? "குளிகை" : "KULIGAI",
+      legendName: lang === "ta" ? "குளிகை" : "Kuligai",
+      legendTime: `${formatClockLabel(panchangam.kalam.kuligai.start)} – ${formatClockLabel(panchangam.kalam.kuligai.end)}`,
     });
   }
 
@@ -337,7 +354,7 @@ export function DashboardTodayRibbonNova({
           <span key={`legend-${s.key}`} style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--color-text)" }}>
             <span style={{ width: "8px", height: "8px", borderRadius: "2px", background: s.bg, flex: "none" }} />
             <span style={{ color: "var(--color-text-strong)", fontWeight: 600 }}>{s.legendName}</span>
-            <b style={{ color: s.key === "rahu" || s.key === "yama" ? "var(--color-low)" : "var(--color-high)", fontWeight: 700 }}>{s.legendTime}</b>
+            <b style={{ color: s.key === "rahu" || s.key === "yama" || s.key === "kuligai" ? "var(--color-low)" : "var(--color-high)", fontWeight: 700 }}>{s.legendTime}</b>
           </span>
         ))}
         <span style={{ marginLeft: "auto", fontSize: "11.5px", color: "var(--color-muted)" }}>

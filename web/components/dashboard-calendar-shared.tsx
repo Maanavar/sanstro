@@ -169,53 +169,188 @@ export function tamilMonthOnly(value: string): string {
   return splitAt > 0 ? trimmed.slice(0, splitAt) : trimmed;
 }
 
-export function DayTimeline({
-  bestStart,
-  bestEnd,
-  avoidStart,
-  avoidEnd,
-}: {
-  bestStart?: string;
-  bestEnd?: string;
-  avoidStart?: string;
-  avoidEnd?: string;
-}) {
-  function toX(timeStr: string | undefined): number | null {
-    if (!timeStr) return null;
-    const [h, m] = timeStr.split(":").map(Number);
-    const hrs = (h + (m ?? 0) / 60) - 6;
-    if (hrs < 0 || hrs > 12) return null;
-    return 40 + (hrs / 12) * 520;
-  }
+export type DayTimelineBand = {
+  key: string;
+  start: string;
+  end: string;
+  /** best/good are the auspicious greens; the three avoid kinds step down in
+   *  intensity so Rahu > Yama > Kuligai reads at a glance, mirroring the
+   *  severity ramp of the "Your day" ribbon on the Today tab. */
+  kind: "best" | "good" | "avoid-strong" | "avoid" | "avoid-soft";
+  label: string;
+};
 
-  const bx1 = toX(bestStart);
-  const bx2 = toX(bestEnd);
-  const ax1 = toX(avoidStart);
-  const ax2 = toX(avoidEnd);
+const DAY_TIMELINE_BAND_STYLE: Record<DayTimelineBand["kind"], { fill: string; opacity: number }> = {
+  best: { fill: W.sage, opacity: 0.9 },
+  good: { fill: W.sage, opacity: 0.5 },
+  "avoid-strong": { fill: W.rust, opacity: 0.9 },
+  avoid: { fill: W.terracotta, opacity: 0.88 },
+  "avoid-soft": { fill: W.terracotta, opacity: 0.45 },
+};
+
+// The timeline is a "daylight dome": the arc spans the day's real sunrise →
+// sunset and the area under it is filled, so it reads as the lit part of the
+// day. The axis range is dynamic — it starts a touch before sunrise and ends a
+// touch after whichever is later, sunset or the last band — so evening Nalla
+// Neram slots stay on-canvas without leaving a long dead rail hanging off the
+// right edge (the earlier fixed 6am–9pm axis did exactly that). The short
+// stretches of bare rail before the dome and after it are dawn and dusk.
+const AXIS_X0 = 40;
+const AXIS_W = 520;
+const HORIZON_Y = 158;
+// Quadratic control-point Y. A quadratic peaks at (HORIZON_Y + CONTROL_Y) / 2,
+// so this puts the visual apex near y≈99 — a gentle dome, not a tall bell.
+const CONTROL_Y = 40;
+// Fallbacks only used if a day is missing sunrise/sunset in the payload.
+const DEFAULT_SUNRISE_H = 6;
+const DEFAULT_SUNSET_H = 18;
+
+function toHours(timeStr: string): number | null {
+  const timePart = timeStr.includes("T") ? timeStr.split("T")[1] ?? "" : timeStr;
+  const [h, m] = timePart.split(":").map(Number);
+  if (!Number.isFinite(h)) return null;
+  return h! + (Number.isFinite(m) ? m! : 0) / 60;
+}
+
+function formatHourLabel(h: number): string {
+  const hr = ((Math.round(h) % 24) + 24) % 24;
+  if (hr === 0) return "12 am";
+  if (hr < 12) return `${hr} am`;
+  if (hr === 12) return "12 pm";
+  return `${hr - 12} pm`;
+}
+
+export function DayTimeline({
+  bands,
+  sunrise,
+  sunset,
+}: {
+  bands: DayTimelineBand[];
+  sunrise?: string;
+  sunset?: string;
+}) {
+  const sunriseH = (sunrise ? toHours(sunrise) : null) ?? DEFAULT_SUNRISE_H;
+  const rawSunsetH = sunset ? toHours(sunset) : null;
+  const sunsetH = rawSunsetH !== null && rawSunsetH > sunriseH ? rawSunsetH : DEFAULT_SUNSET_H;
+
+  const bandSpans = bands.flatMap((band) => {
+    const startH = toHours(band.start);
+    const endH = toHours(band.end);
+    return startH !== null && endH !== null && endH > startH ? [{ band, startH, endH }] : [];
+  });
+
+  // Dynamic axis: a small dawn/dusk margin on each side, widened only as far as
+  // the actual content (earliest band or sunrise on the left, latest band or
+  // sunset on the right) so the dome always dominates the frame.
+  const earliest = Math.min(sunriseH, ...bandSpans.map((b) => b.startH));
+  const latest = Math.max(sunsetH, ...bandSpans.map((b) => b.endH));
+  const axisStartH = earliest - 0.5;
+  const axisEndH = latest + 0.75;
+  const span = axisEndH - axisStartH;
+
+  const hourToX = (h: number): number => {
+    const clamped = Math.max(axisStartH, Math.min(axisEndH, h));
+    return AXIS_X0 + ((clamped - axisStartH) / span) * AXIS_W;
+  };
+  // Y on the sunrise→sunset quadratic, parameterised by clock hour.
+  const arcY = (h: number): number => {
+    const p = Math.max(0, Math.min(1, (h - sunriseH) / (sunsetH - sunriseH)));
+    return HORIZON_Y + 2 * p * (1 - p) * (CONTROL_Y - HORIZON_Y);
+  };
+
+  const sunriseX = hourToX(sunriseH);
+  const sunsetX = hourToX(sunsetH);
+  const midX = (sunriseX + sunsetX) / 2;
+  const domePath = `M${sunriseX},${HORIZON_Y} Q${midX},${CONTROL_Y} ${sunsetX},${HORIZON_Y}`;
+
+  const drawn = bandSpans.map(({ band, startH, endH }) => {
+    const x1 = hourToX(startH);
+    const x2 = hourToX(endH);
+    return { band, x: x1, width: Math.max(x2 - x1, 8) };
+  });
+
+  const legend: { label: string; fill: string; opacity: number }[] = [];
+  for (const { band } of drawn) {
+    if (!legend.some((entry) => entry.label === band.label)) {
+      const style = DAY_TIMELINE_BAND_STYLE[band.kind];
+      legend.push({ label: band.label, fill: style.fill, opacity: style.opacity });
+    }
+  }
 
   const now = new Date();
   const nowH = now.getHours() + now.getMinutes() / 60;
-  const t = Math.max(0, Math.min(1, (nowH - 6) / 12));
-  const sunX = 40 + t * 520;
-  const sunY = 160 - 2 * t * (1 - t) * 118;
+  const isDaytimeNow = nowH >= sunriseH && nowH <= sunsetH;
+
+  // Ticks at rounded hour steps across the dynamic range.
+  const step = span > 9 ? 3 : 2;
+  const ticks: number[] = [];
+  for (let h = Math.ceil(axisStartH / step) * step; h <= axisEndH; h += step) ticks.push(h);
 
   return (
     <div style={{ marginTop: "var(--space-3)" }}>
-      <svg viewBox="0 0 600 210" style={{ width: "100%", height: "auto", display: "block" }}>
-        <path d="M40,160 Q300,40 560,160" fill="none" stroke={W.border} strokeWidth="2" />
-        <rect x="40" y="157" width="520" height="4" rx="2" fill={W.borderLt} />
-        {bx1 !== null && bx2 !== null && <rect x={Math.min(bx1, bx2)} y="154" width={Math.max(Math.abs(bx2 - bx1), 8)} height="9" rx="5" fill={W.sage} opacity={0.9} />}
-        {ax1 !== null && ax2 !== null && <rect x={Math.min(ax1, ax2)} y="154" width={Math.max(Math.abs(ax2 - ax1), 8)} height="9" rx="5" fill={W.terracotta} opacity={0.88} />}
-        {[40, 170, 300, 430, 560].map((x) => <line key={x} x1={x} y1="161" x2={x} y2="169" stroke={W.mutedLt} strokeWidth="2" />)}
-        <circle cx={sunX} cy={sunY} r="8" fill={W.terracotta} />
+      <svg viewBox="0 0 600 188" style={{ width: "100%", height: "auto", display: "block" }}>
+        <defs>
+          <linearGradient id="day-timeline-dome" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={W.terracotta} stopOpacity="0.24" />
+            <stop offset="100%" stopColor={W.terracotta} stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+
+        {/* Lit daytime dome: filled area under the arc, then the arc stroke. */}
+        <path d={`${domePath} Z`} fill="url(#day-timeline-dome)" stroke="none" />
+        <path d={domePath} fill="none" stroke={W.border} strokeWidth="2" />
+
+        {/* Horizon rail spans the whole axis; the tails outside the dome are
+            dawn (left) and dusk (right). */}
+        <rect x={AXIS_X0} y={HORIZON_Y - 1} width={AXIS_W} height="4" rx="2" fill={W.borderLt} />
+
+        {/* Sunrise / sunset anchors where the dome meets the horizon. */}
+        <circle cx={sunriseX} cy={HORIZON_Y + 1} r="3.5" fill={W.terracotta} opacity="0.65" />
+        <circle cx={sunsetX} cy={HORIZON_Y + 1} r="3.5" fill={W.terracotta} opacity="0.65" />
+
+        {drawn.map(({ band, x, width }) => {
+          const style = DAY_TIMELINE_BAND_STYLE[band.kind];
+          return (
+            <rect key={band.key} x={x} y={HORIZON_Y - 4} width={width} height="9" rx="5" fill={style.fill} opacity={style.opacity}>
+              <title>{`${band.label} ${formatClockLabel(band.start)} – ${formatClockLabel(band.end)}`}</title>
+            </rect>
+          );
+        })}
+
+        {ticks.map((h) => {
+          const x = hourToX(h);
+          return (
+            <g key={h}>
+              <line x1={x} y1={HORIZON_Y + 3} x2={x} y2={HORIZON_Y + 11} stroke={W.mutedLt} strokeWidth="2" />
+              <text x={x} y={HORIZON_Y + 26} textAnchor="middle" fontSize="12" fill={W.mutedLt} fontFamily="var(--font-mono)">{formatHourLabel(h)}</text>
+            </g>
+          );
+        })}
+
+        {/* "Now" marker — always present so the moment is never lost. During
+            daylight the sun rides the arc at its real height; after dusk (or
+            before dawn) a crescent moon sits on the horizon rail instead. The
+            crescent is carved by a second circle filled with the card surface,
+            which is the background here since night falls outside the dome. */}
+        {isDaytimeNow ? (
+          <circle cx={hourToX(nowH)} cy={arcY(nowH)} r="8" fill={W.terracotta} />
+        ) : (
+          <g>
+            <circle cx={hourToX(nowH)} cy={HORIZON_Y - 9} r="6" fill={W.muted} />
+            <circle cx={hourToX(nowH) + 3} cy={HORIZON_Y - 10.5} r="5.5" fill={W.card} />
+          </g>
+        )}
       </svg>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", marginTop: "var(--space-1)", padding: "0 var(--space-2)" }}>
-        {["6 am", "9 am", "12 pm", "3 pm", "6 pm"].map((label) => (
-          <span key={label} style={{ textAlign: "center", fontSize: "0.75rem", color: W.mutedLt, fontFamily: "var(--font-mono)" }}>
-            {label}
-          </span>
-        ))}
-      </div>
+      {legend.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", marginTop: "var(--space-1)", padding: "0 var(--space-2)" }}>
+          {legend.map((entry) => (
+            <span key={entry.label} style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "0.72rem", color: W.muted }}>
+              <span style={{ width: "8px", height: "8px", borderRadius: "2px", background: entry.fill, opacity: entry.opacity, flex: "none" }} />
+              {entry.label}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
