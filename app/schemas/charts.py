@@ -83,6 +83,11 @@ class ChartYogaInsight(BaseModel):
     is_currently_active: bool = Field(default=False, alias="isCurrentlyActive")
     description_ta: str = Field(alias="descriptionTa")
     description_en: str = Field(alias="descriptionEn")
+    # The "so what": what this yoga is traditionally held to do, in one
+    # sentence. description_* is the mechanism; these are the effect. Defaulted
+    # to "" so an unmapped code renders as a hidden line, never a raw enum.
+    effect_ta: str = Field(default="", alias="effectTa")
+    effect_en: str = Field(default="", alias="effectEn")
 
     model_config = ConfigDict(populate_by_name=True)
 

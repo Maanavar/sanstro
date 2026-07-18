@@ -507,7 +507,7 @@ export function DashboardExploreTabNova({
                   {displayName(activeYoga.name, lang)}
                 </div>
                 <p style={{ fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-muted)", margin: 0 }}>
-                  {astroText(getWhat(activeYoga.name, true, lang, { ta: activeYoga.descriptionTa, en: activeYoga.descriptionEn }))}
+                  {astroText(getWhat(activeYoga.name, true, lang, { ta: activeYoga.descriptionTa, en: activeYoga.descriptionEn }, { ta: activeYoga.effectTa, en: activeYoga.effectEn }))}
                 </p>
                 <span style={{ fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, marginTop: "auto" }}>
                   {lang === "ta" ? "முழு சுயவிவரப் பக்கத்தைக் காண் →" : "Read the full profile →"}

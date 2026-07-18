@@ -31,6 +31,7 @@ from app.calculations.ephemeris import calculate_lagna_degree, calculate_siderea
 from app.calculations.panchangam import NAKSHATRA_NAMES, calculate_daily_panchangam
 from app.calculations.transits import RASI_NAMES, is_cazimi, is_combust
 from app.calculations.yoga_activation import yoga_activation_score
+from app.calculations.yoga_effects import yoga_effect
 from app.calculations.yogas import detect_yogas_and_doshams
 from app.models import Chart
 from app.schemas.birth_profiles import BirthProfileResponse
@@ -315,6 +316,11 @@ def _build_yoga_dosham_insights(
             isCurrentlyActive=item.dasha_activated,
             descriptionTa=item.description_ta,
             descriptionEn=item.description_en,
+            # description_* states the mechanism (how the yoga forms); effect_*
+            # states what it is traditionally held to do. Resolved here rather
+            # than in each detector so the catalogue has one home.
+            effectTa=yoga_effect(item.name)[0],
+            effectEn=yoga_effect(item.name)[1],
         )
         for item in yogas
     ]

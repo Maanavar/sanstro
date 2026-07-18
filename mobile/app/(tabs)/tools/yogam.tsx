@@ -37,10 +37,26 @@ function strengthLabel(s: ChartYogaInsight["strength"], isTamil: boolean): strin
   return isTamil ? "பலவீனமான" : "Weak";
 }
 
+/**
+ * What to show on a yoga card. Prefers the engine's plain-language effect (what
+ * the yoga is held to do) over description (how it forms) — the card is where a
+ * reader decides whether the yoga matters to them, and several descriptions are
+ * barely more than the name restated ("Sunapha Yoga."). Falls back to the
+ * description if a code has no effect entry.
+ */
+function yogaMeaning(yoga: ChartYogaInsight, isTamil: boolean): string {
+  const effect = isTamil ? yoga.effectTa : yoga.effectEn;
+  if (effect?.trim()) return effect;
+  return isTamil ? yoga.descriptionTa : yoga.descriptionEn;
+}
+
 function yogaHowCheckedItems(yoga: ChartYogaInsight): WhyItem[] {
   return [
     { label: "Yoga name", value: displayName(yoga.name, "en") },
     { label: "Strength", value: strengthLabel(yoga.strength, false) },
+    // "What it means" before "Basis": a reader who does not know the term needs
+    // the effect first. Basis (the mechanism) stays, one line below.
+    ...(yoga.effectEn?.trim() ? [{ label: "What it means", value: yoga.effectEn }] : []),
     { label: "Basis", value: yoga.descriptionEn },
     {
       label: "Dasha activation",
@@ -169,7 +185,7 @@ export default function YogamScreen() {
                   </View>
                 </View>
                 <Text style={[styles.description, isTamil ? TamilType.body : EnType.body]}>
-                  {isTamil ? y.descriptionTa : y.descriptionEn}
+                  {yogaMeaning(y, isTamil)}
                 </Text>
               </View>
             ))}
@@ -202,7 +218,7 @@ export default function YogamScreen() {
                   </View>
                 </View>
                 <Text style={[styles.description, isTamil ? TamilType.body : EnType.body]}>
-                  {isTamil ? y.descriptionTa : y.descriptionEn}
+                  {yogaMeaning(y, isTamil)}
                 </Text>
               </View>
             ))}

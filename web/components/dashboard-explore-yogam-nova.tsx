@@ -241,7 +241,13 @@ export function DashboardExploreYogamNova({
 
   const remedy = yoga.isPresent ? resolveYogaKey(YOGA_REMEDIES, yoga.name) : undefined;
 
-  const whatText = getWhat(yoga.name, true, lang, { ta: yoga.descriptionTa, en: yoga.descriptionEn });
+  const whatText = getWhat(
+    yoga.name,
+    true,
+    lang,
+    { ta: yoga.descriptionTa, en: yoga.descriptionEn },
+    { ta: yoga.effectTa, en: yoga.effectEn },
+  );
   const whyText = buildWhyText(yoga.conditionsMet, yoga.cancellationFactors, yoga.isPresent, false, yoga.dashaActivated, lang);
   const powerText = yoga.isPresent ? getYogaPowerContext(yoga.name, yoga.strength, yoga.dashaActivated, lang) : null;
 

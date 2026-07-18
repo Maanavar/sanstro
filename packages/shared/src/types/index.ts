@@ -251,8 +251,17 @@ export interface ChartYogaInsight {
   dashaActivated: boolean;
   activationScore: number;
   isCurrentlyActive: boolean;
+  /** How the yoga forms (the mechanism). */
   descriptionTa: string;
   descriptionEn: string;
+  /**
+   * What the yoga is traditionally held to do, in one sentence — the "so what"
+   * for a reader who does not already know the term. Render as its own line
+   * below the mechanism, never concatenated onto it. Empty string when the
+   * code has no catalogue entry, so callers should skip falsy values.
+   */
+  effectTa?: string;
+  effectEn?: string;
 }
 
 export interface ChartDoshamInsight {
@@ -445,6 +454,31 @@ export interface DailyGuidanceData {
   tithiCard: BiText | null;
   isChandrashtama?: boolean;
   chandrashtamaEnds?: string | null;
+  /** Today's green/red light across all activity types. Optional — older
+   *  cached rows predate it, so callers must handle undefined. */
+  activityBoard?: DailyActivityBoard | null;
+}
+
+/** One activity and today's verdict on it. */
+export interface DailyActivityVerdict {
+  activity: string;
+  label: BiText;
+  alignment: "SUPPORTS" | "NEUTRAL" | "CAUTION";
+  reason: BiText;
+}
+
+/**
+ * "What is today good for?" — the same activity-timing doctrine the goal
+ * screens already use, swept across every activity and partitioned.
+ *
+ * On a Chandrashtama day `favourable` is deliberately empty (those activities
+ * move to `neutral`) so the board cannot contradict the Chandrashtama alert.
+ */
+export interface DailyActivityBoard {
+  favourable: DailyActivityVerdict[];
+  caution: DailyActivityVerdict[];
+  neutral: DailyActivityVerdict[];
+  isChandrashtama: boolean;
 }
 
 export type AmbientAlertItem = {
@@ -615,6 +649,9 @@ export interface ChartExplanationPlanet {
   nakshatra: number;
   nakshatraName: string;
   pada: number;
+  /** Graha ruling this nakshatra, served from the engine's canonical table.
+   *  Prefer this over a client-side 27-star lord list. */
+  nakshatraLord?: string;
   dignity: string;
   dignityScore: number;
   strengthScore: number;
@@ -625,7 +662,25 @@ export interface ChartExplanationPlanet {
   d9Rasi: number;
   houseGroup: "KENDRA" | "TRIKONA" | "DUSTHANA" | "OTHER";
   functionalNature: string;
+  /** The full reading as one paragraph. Retained for existing consumers;
+   *  prefer `facets` for anything newly built. */
   explanation: BiText;
+  /** The same reading split into labelled, scannable lines. Empty on responses
+   *  from before this field existed. */
+  facets?: ChartExplanationFacet[];
+}
+
+/**
+ * One labelled line of a planet's reading.
+ *
+ * `tone` lets a client style the line without re-deriving meaning:
+ * BOOST = strengthening, CAUTION = asks for care, NEUTRAL = descriptive.
+ */
+export interface ChartExplanationFacet {
+  key: "placement" | "role" | "strength" | "condition" | "activation" | "nakshatra" | "transit" | "remedy";
+  label: BiText;
+  value: BiText;
+  tone: "NEUTRAL" | "BOOST" | "CAUTION";
 }
 
 export interface ChartExplanationMaitriPair {

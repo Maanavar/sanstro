@@ -203,7 +203,7 @@ function NovaYogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
               {lang === "ta" ? "இது என்ன" : "What This Is"}
             </p>
             <p style={{ margin: 0, fontSize: "13px", color: "var(--color-text)", lineHeight: 1.55 }}>
-              {getWhat(yoga.name, true, lang, { ta: yoga.descriptionTa, en: yoga.descriptionEn })}
+              {getWhat(yoga.name, true, lang, { ta: yoga.descriptionTa, en: yoga.descriptionEn }, { ta: yoga.effectTa, en: yoga.effectEn })}
             </p>
           </div>
 
