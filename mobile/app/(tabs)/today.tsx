@@ -640,6 +640,7 @@ export default function TodayTab() {
                 slot={primaryGowri}
                 isTamil={isTamil}
                 styles={styles}
+                fmt={fmt}
                 onPress={() => {
                   Haptics.selectionAsync();
                   openDetailSheet({
@@ -1022,7 +1023,7 @@ function LifeAreaPulse({
   );
 }
 
-function GowriCard({ slot, isTamil, onPress, styles }: { slot: GowriSlot; isTamil: boolean; onPress: () => void; styles: ReturnType<typeof makeStyles> }) {
+function GowriCard({ slot, isTamil, onPress, styles, fmt }: { slot: GowriSlot; isTamil: boolean; onPress: () => void; styles: ReturnType<typeof makeStyles>; fmt: (iso: string) => string }) {
   return (
     <TouchableOpacity style={styles.gowriCard} activeOpacity={0.86} onPress={onPress}>
       <View style={styles.gowriChip}>

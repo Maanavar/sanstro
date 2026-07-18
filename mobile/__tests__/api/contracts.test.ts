@@ -39,22 +39,27 @@ beforeEach(() => {
 // ─── PANCHANGAM ───────────────────────────────────────────────────────────────
 
 describe("panchangam API", () => {
+  // Mirrors PanchangamDailyResponseData (packages/shared/src/types) — the
+  // nested camelCase shape the backend actually returns; the old flat
+  // snake_case mock here asserted a contract no route has served.
   const PANCHANGAM_RESPONSE = {
     data: {
-      date: "2026-06-28",
-      vara: "Saturday",
-      vara_ta: "சனி",
-      tithi: "Ekadasi",
-      tithi_ta: "ஏகாதசி",
-      nakshatra: "Kettai",
-      nakshatra_ta: "கேட்டை",
-      yoga: "Vishkambha",
-      karana: "Kaulava",
+      dateLocal: "2026-06-28",
+      location: { lat: 13.08, lng: 80.27, timezone: "Asia/Kolkata" },
       sunrise: "06:04",
       sunset: "18:42",
-      rahu_kalam: { start: "09:00", end: "10:30" },
-      nalla_neram: [],
-      gowri_nalla_neram: [],
+      solarNoon: "12:23",
+      vara: { weekday: "Saturday", lord: "SATURN" },
+      tithi: { number: 11, name: "Ekadasi", paksha: "SHUKLA", endsAt: "21:14", nextNumber: 12, nextName: "Dwadasi", nextPaksha: "SHUKLA" },
+      nakshatra: { name: "Kettai", pada: 2, endsAt: "23:02", nextName: "Moolam" },
+      yoga: { number: 1, name: "Vishkambha", endsAt: "19:30", nextName: "Preeti" },
+      karana: { name: "Kaulava", endsAt: "10:05", nextName: "Taitila" },
+      kalam: {
+        rahuKalam: { start: "09:00", end: "10:30", slot: 5 },
+        yamagandam: { start: "13:30", end: "15:00", slot: 8 },
+        kuligai: { start: "06:04", end: "07:34", slot: 1 },
+        nallaNeram: [],
+      },
     },
   };
 
@@ -62,13 +67,13 @@ describe("panchangam API", () => {
     mockGet.mockResolvedValue(PANCHANGAM_RESPONSE);
     const result = await getPanchangamDay("2026-06-28", { lat: 13.08, lng: 80.27, tz: "Asia/Kolkata" });
     expect(result.data).toBeDefined();
-    expect(result.data.date).toBe("2026-06-28");
+    expect(result.data.dateLocal).toBe("2026-06-28");
     expect(result.data.vara).toBeDefined();
     expect(result.data.tithi).toBeDefined();
     expect(result.data.nakshatra).toBeDefined();
     expect(result.data.sunrise).toBeDefined();
     expect(result.data.sunset).toBeDefined();
-    expect(result.data.rahu_kalam).toBeDefined();
+    expect(result.data.kalam.rahuKalam).toBeDefined();
     expect(mockGet).toHaveBeenCalledWith("/panchangam/daily", expect.objectContaining({ date: "2026-06-28", lat: 13.08, lng: 80.27, timezone: "Asia/Kolkata" }));
   });
 
@@ -96,13 +101,21 @@ describe("jadhagam API", () => {
     },
   };
 
+  // Mirrors ChartSummaryData (packages/shared/src/types) — flat lagnaRasi/
+  // moonRasi strings, not the old nested lagna object.
   const CHART_SUMMARY_RESPONSE = {
     success: true,
     data: {
       chartId: "chart-uuid-001",
-      lagna: { rasi: 1, rasiName: "Mesha" },
-      moonRasi: 4,
-      nakshatraName: "Ashwini",
+      displayName: "Arjun",
+      currentAge: 30,
+      lagnaRasi: "Mesha",
+      moonRasi: "Kadagam",
+      janmaNakshatra: "Ashwini",
+      janmaPada: 1,
+      currentMahadasha: "Moon",
+      currentAntardasha: "Moon",
+      primaryLanguageText: { ta: "மேஷ லக்னம்", en: "Mesha lagna" },
     },
   };
 
@@ -120,7 +133,7 @@ describe("jadhagam API", () => {
     mockGet.mockResolvedValue(CHART_SUMMARY_RESPONSE);
     const result = await getChartSummary("chart-uuid-001");
     expect(result.success).toBe(true);
-    expect(result.data.lagna).toBeDefined();
+    expect(result.data.lagnaRasi).toBeDefined();
     expect(mockGet).toHaveBeenCalledWith("/charts/chart-uuid-001/summary");
   });
 });

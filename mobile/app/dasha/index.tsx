@@ -339,11 +339,11 @@ export default function DashaScreen() {
                         {isTamil ? item.interpretation.naturalDomainTa : item.interpretation.naturalDomainEn}
                       </Text>
                     )}
-                    {item.maturationStatus?.summary && (
+                    {item.maturationStatus?.summary ? (
                       <Text style={[styles.subPrediction, isTamil ? TamilType.caption : EnType.caption]}>
                         {String(item.maturationStatus.summary)}
                       </Text>
-                    )}
+                    ) : null}
                   </View>
                 )}
               </TouchableOpacity>

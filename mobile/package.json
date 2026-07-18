@@ -17,6 +17,7 @@
   "dependencies": {
     "@babel/runtime": "^7.29.7",
     "@expo/metro-runtime": "~6.1.2",
+    "@expo/vector-icons": "^15.1.1",
     "@gorhom/bottom-sheet": "^5.2.14",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/viewpager": "^5.0.11",
@@ -62,6 +63,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@expo/config-plugins": "~54.0.4",
+    "@testing-library/react": "^16.0.0",
     "@testing-library/react-native": "^12.9.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.0.0",
