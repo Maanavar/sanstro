@@ -763,6 +763,17 @@ export interface ChartExplanationCurrentActivationSection {
 export interface ChartExplanationSummarySection {
   strongestPlanet: string | null;
   weakestPlanet: string | null;
+  /** Positional-strength scores behind the two picks above (0-100). */
+  strongestPlanetScore?: number | null;
+  weakestPlanetScore?: number | null;
+  /**
+   * Present when the highest-scoring planet is combust, debilitated or in an
+   * enemy sign — positional strength is a different axis from the capacity to
+   * deliver benefic results, and the top pick must not imply both.
+   */
+  strongestPlanetCaveat?: BiText | null;
+  /** One-line anchor for what the 0-100 scale measures. */
+  scoreScaleNote?: BiText | null;
   positives: BiText[];
   cautions: BiText[];
 }
@@ -784,6 +795,32 @@ export interface ChartExplanationPeyarchiSection {
   explanation: BiText;
 }
 
+/**
+ * One house read as a life area.
+ *
+ * `aspects` above is planet-to-planet only, so an empty house under a full
+ * drishti (an unoccupied 7th receiving Saturn's aspect, say) surfaced nowhere.
+ * These entries always cover all twelve houses, occupied or not.
+ */
+export interface ChartExplanationBhava {
+  house: number;
+  rasi: number;
+  rasiName: string;
+  lord: string;
+  lordHouse: number;
+  lordStrength?: number | null;
+  occupants: string[];
+  aspectingPlanets: string[];
+  bhavaBala?: number | null;
+  theme: BiText;
+  explanation: BiText;
+}
+
+export interface ChartExplanationBhavaSection {
+  bhavas: ChartExplanationBhava[];
+  explanation: BiText;
+}
+
 export interface ChartExplanationData {
   chartId: string;
   coreIdentity: ChartExplanationCoreIdentity;
@@ -791,6 +828,8 @@ export interface ChartExplanationData {
   conjunctions: ChartExplanationConjunctionGroup[];
   aspects: ChartExplanationAspect[];
   houseGroups: ChartExplanationHouseGroup[];
+  /** Per-house life-area reading. Optional — older servers omit it. */
+  bhavas?: ChartExplanationBhavaSection | null;
   functionalNature: Record<string, string>;
   yogaDosham: ChartExplanationYogaDoshamSection;
   currentActivation: ChartExplanationCurrentActivationSection;

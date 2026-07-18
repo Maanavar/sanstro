@@ -120,6 +120,38 @@ class ChartExplanationHouseGroup(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class ChartExplanationBhava(BaseModel):
+    """One house read as a life area.
+
+    The drishti list elsewhere in this payload is planet-to-planet only, so an
+    EMPTY house — including the Lagna, the 7th and the 10th — could receive
+    Saturn's or Jupiter's full aspect and nothing in the reading would ever say
+    so. That is the reading a jyotishi actually gives ("what about my marriage,
+    my career"), and it was missing entirely (2026-07-18 review).
+    """
+
+    house: int
+    rasi: int
+    rasi_name: str = Field(alias="rasiName")
+    lord: str
+    lord_house: int = Field(alias="lordHouse")
+    lord_strength: int | None = Field(default=None, alias="lordStrength")
+    occupants: list[str]
+    aspecting_planets: list[str] = Field(alias="aspectingPlanets")
+    bhava_bala: int | None = Field(default=None, alias="bhavaBala")
+    theme: ChartExplanationText
+    explanation: ChartExplanationText
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ChartExplanationBhavaSection(BaseModel):
+    bhavas: list[ChartExplanationBhava]
+    explanation: ChartExplanationText
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class ChartExplanationYogaDoshamSection(BaseModel):
     yogas: list[ChartYogaInsight]
     doshams: list[ChartDoshamInsight]
@@ -174,6 +206,22 @@ class ChartExplanationCurrentActivationSection(BaseModel):
 class ChartExplanationSummarySection(BaseModel):
     strongest_planet: str | None = Field(alias="strongestPlanet")
     weakest_planet: str | None = Field(alias="weakestPlanet")
+    # The scores behind the two picks above. Previously the summary shipped
+    # bare planet names, so a reader had no way to see what "strongest" was
+    # measuring — or to notice when this pick and the per-planet cards
+    # disagreed. Optional for backward compatibility with older clients.
+    strongest_planet_score: int | None = Field(default=None, alias="strongestPlanetScore")
+    weakest_planet_score: int | None = Field(default=None, alias="weakestPlanetScore")
+    # Set when the highest-scoring planet is nonetheless compromised (combust,
+    # debilitated, or a functional malefic). Positional strength and the
+    # capacity to deliver benefic results are different axes; calling a combust
+    # planet "strongest" with no qualifier conflates them.
+    strongest_planet_caveat: ChartExplanationText | None = Field(
+        default=None, alias="strongestPlanetCaveat"
+    )
+    # One line telling the reader what the 0-100 scale actually is, so the
+    # number is interpretable at the point of use.
+    score_scale_note: ChartExplanationText | None = Field(default=None, alias="scoreScaleNote")
     positives: list[ChartExplanationText]
     cautions: list[ChartExplanationText]
 
@@ -208,6 +256,8 @@ class ChartExplanationData(BaseModel):
     conjunctions: list[ChartExplanationConjunctionGroup]
     aspects: list[ChartExplanationAspect]
     house_groups: list[ChartExplanationHouseGroup] = Field(alias="houseGroups")
+    # Per-house life-area reading. Optional so existing clients are unaffected.
+    bhavas: ChartExplanationBhavaSection | None = None
     functional_nature: dict[str, str] = Field(alias="functionalNature")
     yoga_dosham: ChartExplanationYogaDoshamSection = Field(alias="yogaDosham")
     current_activation: ChartExplanationCurrentActivationSection = Field(alias="currentActivation")

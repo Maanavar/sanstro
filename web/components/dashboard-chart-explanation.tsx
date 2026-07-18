@@ -80,6 +80,52 @@ function displayPlanet(graha: string, lang: Lang): string {
   return tPlanetLord(key, lang) || graha;
 }
 
+/**
+ * Renders the engine's `aspectType` as a phrase instead of an internal constant.
+ *
+ * The backend (`_aspect_type` in chart_explanation_service.py) emits stable
+ * machine keys — "STANDARD_7TH", "MARS_SPECIAL_4TH", "RAHU_SPECIAL_5TH" — and
+ * the chip printed them verbatim, so users read raw enum names in the drishti
+ * list. The keys stay as-is in the payload (they are a contract); only the
+ * rendering changes.
+ *
+ * The source planet is already named in the chip ("Mars looks at Jupiter"), so
+ * the label deliberately omits it and says "special 4th aspect", not
+ * "Mars 4th special aspect" — otherwise the graha appears twice in one line.
+ */
+/** English ordinal for a house number (1st, 2nd, 3rd, 4th … 11th, 12th). */
+export function ordinalSuffix(n: number): string {
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1:
+      return `${n}st`;
+    case 2:
+      return `${n}nd`;
+    case 3:
+      return `${n}rd`;
+    default:
+      return `${n}th`;
+  }
+}
+
+function aspectTypeLabel(aspectType: string, lang: Lang): string {
+  if (aspectType === "STANDARD_7TH") {
+    return lang === "ta" ? "7-ஆம் பார்வை" : "7th aspect";
+  }
+  const special = /^[A-Z]+_SPECIAL_(\d+)TH$/.exec(aspectType);
+  if (special) {
+    const n = Number(special[1]);
+    // The engine key always ends in a literal "TH" (it is a machine constant,
+    // not prose), so the ordinal has to be rebuilt here. Hardcoding "th" gave
+    // "special 3th aspect" — and Saturn's 3rd aspect is one of the most common
+    // special drishtis in any chart.
+    return lang === "ta" ? `சிறப்பு ${n}-ஆம் பார்வை` : `special ${ordinalSuffix(n)} aspect`;
+  }
+  // Unknown shape: degrade to a readable phrase rather than shouting an enum.
+  return aspectType.toLowerCase().replaceAll("_", " ");
+}
+
 function normalizePlanet(graha: string): string {
   if (graha.toUpperCase() === "GURU") return "JUPITER";
   if (graha.toUpperCase() === "SANI") return "SATURN";
@@ -234,19 +280,62 @@ function aspectHousesFromHouse(house: number, offsets: number[]): number[] {
 
 // Issue #3: the transit Guru/Sani block used to print bare house numbers with no
 // interpretation, which read as if it contradicted the natal chart. It is actually
-// where Guru/Sani are transiting *right now* from the natal Lagna. Spell that out
-// and say what the aspect does to the touched life areas.
-function transitAspectSummary(graha: string, currentHouse: number, houses: number[], lang: Lang): string {
+// where Guru/Sani are transiting *right now*. Spell that out and say what the
+// aspect does to the touched life areas.
+//
+// Gochara frame (2026-07-18 astrologer review): Tamil Thirukkanitham peyarchi
+// practice — Guru Peyarchi, Sani Peyarchi — is reckoned from the Janma Rasi
+// (Moon sign), not the Lagna. This copy led with the Lagna house, which reads as
+// non-traditional to the audience this product is for. It now leads with the
+// house from Chandra and keeps the Lagna house as a secondary clause.
+//
+// The two frames answer different questions and both are kept deliberately:
+// the Moon house is the peyarchi verdict ("is this transit good for me?"),
+// while the aspect houses below are reckoned from Lagna because they are used
+// to find which *natal* planets the transit aspects — a whole-sign question
+// about the birth chart, not about the peyarchi reading.
+function transitAspectSummary(
+  graha: string,
+  currentHouse: number,
+  houseFromMoon: number | null,
+  houses: number[],
+  lang: Lang,
+): string {
   const themes = houses.map((h) => tx(HOUSE_MEANING[h], lang)).join("; ");
   const houseList = houses.map((h) => ordinalHouse(h, lang)).join(", ");
+
+  // Lead with Janma Rasi when we have it; fall back to the Lagna-only sentence
+  // rather than inventing a Moon house we were not given.
+  //
+  // The Tamil deliberately does NOT reuse `ordinalHouse` here. That helper
+  // renders "N-ஆம் வீடு", but for a transiting graha native review preferred
+  // இடம் ("place") over வீடு ("house"), with the leading clause in the locative
+  // (இடத்தில்) and the trailing one in the nominative (இடம்) — T-38/T-39,
+  // 2026-07-18. `ordinalHouse` is left alone because the natal-chart surfaces
+  // that use it were reviewed as correct.
+  // Both frames are joined with the correlative -உம் … -உம் ("both in X and in
+  // Y"), which keeps a single locative verb (சஞ்சரிக்கிறார்) governing both.
+  // The reviewed fragment used an em-dash aside ending in the nominative
+  // ("… — லக்னத்திலிருந்து 10-ஆம் இடம்"), which left the verb attached to the
+  // aside and read wrong once interpolated. The correlative keeps the Moon
+  // frame first, as Tamil peyarchi practice requires, without the dash.
+  const seatTa =
+    houseFromMoon != null
+      ? `உங்கள் ஜென்ம ராசியிலிருந்து (சந்திரன்) ${houseFromMoon}-ஆம் இடத்திலும், லக்னத்திலிருந்து ${currentHouse}-ஆம் இடத்திலும்`
+      : `உங்கள் லக்னத்திலிருந்து ${currentHouse}-ஆம் இடத்தில்`;
+  const seatEn =
+    houseFromMoon != null
+      ? `${ordinalHouse(houseFromMoon, "en")} from your Janma Rasi (Moon) — and ${ordinalHouse(currentHouse, "en")} from your Lagna`
+      : `${ordinalHouse(currentHouse, "en")} from your Lagna`;
+
   if (graha === "JUPITER") {
     return lang === "ta"
-      ? `குரு இப்போது உங்கள் லக்னத்திலிருந்து ${ordinalHouse(currentHouse, lang)} வழியாக சஞ்சரிக்கிறார் — இது இன்றைய வானநிலை, உங்கள் பிறப்பு நிலை அல்ல. அவரது பார்வை ${houseList} வீடுகளை ஆதரவாகத் தொடுகிறது (${themes}). இந்தத் துறைகளில் வளர்ச்சி, வாய்ப்பு, நம்பிக்கை பெருகும் காலம்.`
-      : `Guru (Jupiter) is transiting ${ordinalHouse(currentHouse, lang)} from your Lagna right now — this is today's sky, not your birth position. Its aspect falls supportively on ${houseList} (${themes}). Growth, opportunity, and confidence tend to build in those areas while this lasts.`;
+      ? `குரு இப்போது ${seatTa} சஞ்சரிக்கிறார் — இது இன்றைய வானநிலை, உங்கள் பிறப்பு நிலை அல்ல. அவரது பார்வை ${houseList} வீடுகளை ஆதரவாகத் தொடுகிறது (${themes}). இந்தத் துறைகளில் வளர்ச்சி, வாய்ப்பு, நம்பிக்கை பெருகும் காலம்.`
+      : `Guru (Jupiter) is transiting ${seatEn} right now — this is today's sky, not your birth position. Its aspect falls supportively on ${houseList} (${themes}). Growth, opportunity, and confidence tend to build in those areas while this lasts.`;
   }
   return lang === "ta"
-    ? `சனி இப்போது உங்கள் லக்னத்திலிருந்து ${ordinalHouse(currentHouse, lang)} வழியாக சஞ்சரிக்கிறார் — இது இன்றைய வானநிலை, உங்கள் பிறப்பு நிலை அல்ல. அவரது பார்வை ${houseList} வீடுகளைத் தொடுகிறது (${themes}). இந்தத் துறைகளில் பொறுப்பு, பொறுமை, மெதுவான வேகம் தேவை; ஒழுங்கு உதவும்.`
-    : `Sani (Saturn) is transiting ${ordinalHouse(currentHouse, lang)} from your Lagna right now — today's sky, not your birth position. Its aspect falls on ${houseList} (${themes}). Those areas ask for responsibility, patience, and a slower pace; steady, disciplined effort pays off.`;
+    ? `சனி இப்போது ${seatTa} சஞ்சரிக்கிறார் — இது இன்றைய வானநிலை, உங்கள் பிறப்பு நிலை அல்ல. அவரது பார்வை ${houseList} வீடுகளைத் தொடுகிறது (${themes}). இந்தத் துறைகளில் பொறுப்பு, பொறுமை, மெதுவான வேகம் தேவை; ஒழுங்கு உதவும்.`
+    : `Sani (Saturn) is transiting ${seatEn} right now — today's sky, not your birth position. Its aspect falls on ${houseList} (${themes}). Those areas ask for responsibility, patience, and a slower pace; steady, disciplined effort pays off.`;
 }
 
 // Bilingual life-signification of each natal planet — used to explain what it
@@ -480,6 +569,62 @@ function saniCycleLabel(value: string, lang: Lang): string {
 
 function findTransit(transit: TransitSnapshotData | null, graha: string) {
   return transit?.transits.find((item) => normalizePlanet(item.graha) === graha) ?? null;
+}
+
+/**
+ * Lagna's own rasi number, recovered from any natal planet.
+ *
+ * The chart payload carries `lagnaRasi` as a display *name*, but Ashtakavarga
+ * lookups are keyed by rasi number. Every planet carries both its absolute
+ * `rasi` and its whole-sign `houseFromLagna`, and those two determine the Lagna
+ * rasi exactly: houseFromLagna = ((rasi - lagnaRasi) mod 12) + 1.
+ */
+export function lagnaRasiNumber(planets: ChartPlanet[]): number | null {
+  const anchor = planets.find((p) => typeof p.rasi === "number" && typeof p.houseFromLagna === "number");
+  if (!anchor) return null;
+  return (((anchor.rasi - anchor.houseFromLagna) % 12) + 12) % 12 + 1;
+}
+
+/**
+ * Ashtakavarga bindus for a graha transiting a given house from Lagna.
+ *
+ * The engine (app/calculations/ashtakavarga.py) has computed Bhinnashtakavarga
+ * all along and the chart payload has carried it — it drives predictions,
+ * propensities and daily guidance — but no screen ever showed it. For Tamil
+ * peyarchi practice this is the missing half of the judgement: Guru or Sani
+ * moving into a rasi where it holds few bindus behaves very differently from
+ * the same move into a well-endowed rasi. Flagged in the 2026-07-18 review as
+ * essential for peyarchi, and correct about the UI (though not, as the review
+ * assumed, absent from the engine).
+ *
+ * Rahu/Ketu fall back to Saturn's table, matching `get_av_bindu` server-side.
+ */
+export function transitBindus(
+  chart: { planets: ChartPlanet[]; ashtakavarga?: Record<string, Record<number, number>> },
+  graha: string,
+  houseFromLagna: number,
+): number | null {
+  const av = chart.ashtakavarga;
+  if (!av) return null;
+  const lagna = lagnaRasiNumber(chart.planets);
+  if (lagna == null) return null;
+  const transitRasi = ((lagna - 1 + houseFromLagna - 1) % 12) + 1;
+  const key = av[graha] ? graha : graha === "RAHU" || graha === "KETU" ? "SATURN" : null;
+  if (!key) return null;
+  const bindu = av[key]?.[transitRasi];
+  return typeof bindu === "number" ? bindu : null;
+}
+
+/**
+ * Reading of a bindu count on the classical 0-8 Bhinnashtakavarga scale.
+ * 4 is the neutral midpoint; 5+ is a supported transit, 3 or fewer is thin.
+ */
+function binduReading(bindus: number, lang: Lang): string {
+  if (bindus >= 6) return lang === "ta" ? "மிகுந்த ஆதரவு" : "strongly supported";
+  if (bindus >= 5) return lang === "ta" ? "ஆதரவு" : "supported";
+  if (bindus === 4) return lang === "ta" ? "நடுநிலை" : "neutral";
+  if (bindus >= 2) return lang === "ta" ? "பலவீனம்" : "thin";
+  return lang === "ta" ? "மிகவும் பலவீனம்" : "very thin";
 }
 
 function strongestPlanet(planets: ChartPlanet[]): ChartPlanet | null {
@@ -1144,7 +1289,7 @@ export function ChartExplanationPanel({
                           {backendAspects.slice(0, 18).map((aspect) => (
                             <Chip key={`${aspect.sourcePlanet}-${aspect.targetPlanet}-${aspect.aspectHouse}`}>
                               {displayPlanet(aspect.sourcePlanet, lang)} {lang === "ta" ? "பார்க்கிறது" : "looks at"}{" "}
-                              {displayPlanet(aspect.targetPlanet, lang)} ({ordinalHouse(aspect.targetHouse, lang)}, {aspect.aspectType})
+                              {displayPlanet(aspect.targetPlanet, lang)} ({ordinalHouse(aspect.targetHouse, lang)}, {aspectTypeLabel(aspect.aspectType, lang)})
                             </Chip>
                           ))}
                           {backendAspects.length > 18 && (
@@ -1167,6 +1312,23 @@ export function ChartExplanationPanel({
                         ))}
                       </div>
                     )}
+
+                    {/*
+                      Nodal drishti is a school choice, not settled doctrine
+                      (see ASPECT_HOUSES in app/calculations/aspects.py). Shown
+                      only when a nodal aspect is actually in the list, so the
+                      caveat appears where it applies instead of as blanket
+                      boilerplate. Raised in the 2026-07-18 astrologer review.
+                    */}
+                    {backendAspects?.some(
+                      (a) => a.aspectType.startsWith("RAHU_") || a.aspectType.startsWith("KETU_"),
+                    ) && (
+                      <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)", lineHeight: 1.5 }}>
+                        {lang === "ta"
+                          ? "குறிப்பு: ராகு/கேதுவுக்கு 5, 7, 9 பார்வை தரும் மரபை இங்கு பின்பற்றுகிறோம். இது ஒரு மரபு சார்ந்த கருத்து; வேறு மரபுகள் வேறாகக் கொள்ளலாம் — சில ஆசிரியர்கள் நிழல் கிரகங்களுக்கு 7-ஆம் பார்வை மட்டுமே தருகிறார்கள், சிலர் தனிப் பார்வையே இல்லை என்கிறார்கள்."
+                          : "Note: we follow the tradition that gives Rahu/Ketu 5th, 7th and 9th aspects. This is one school's doctrine — some authorities give the shadow grahas the 7th aspect only, and others hold that they aspect solely through their dispositor."}
+                      </p>
+                    )}
                   </div>
 
                   <div style={{ display: "grid", gap: "var(--space-2)" }}>
@@ -1188,11 +1350,37 @@ export function ChartExplanationPanel({
                         const offsets = graha === "JUPITER" ? [4, 6, 8] : [2, 6, 9];
                         const houses = aspectHousesFromHouse(item!.houseFromLagna, offsets);
                         const touched = chart.planets.filter((planet) => houses.includes(planet.houseFromLagna));
+                        const bindus = transitBindus(chart, graha, item!.houseFromLagna);
                         return (
                           <div key={graha} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", background: "var(--color-surface)" }}>
                             <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.8125rem", color: "var(--color-text)", lineHeight: 1.55 }}>
-                              {transitAspectSummary(graha, item!.houseFromLagna, houses, lang)}
+                              {transitAspectSummary(graha, item!.houseFromLagna, item!.houseFromMoon ?? null, houses, lang)}
                             </p>
+                            {/*
+                              Two Tamil corrections here, 2026-07-18:
+
+                              1. The sentence is built nominative + verb
+                                 ("{graha} … பெற்றுள்ளார்") specifically to AVOID the
+                                 dative case. It previously appended a hardcoded
+                                 "வுக்கு" to the graha name, which is only correct for
+                                 u-final names — "குருவுக்கு" is right but "சனிவுக்கு" is
+                                 not (it must be "சனிக்கு"). Since Tamil dative
+                                 attachment varies by the final phoneme, the fix is to
+                                 phrase around it rather than build a suffix table.
+                                 Do not reintroduce an inflected graha name here.
+
+                              2. "விந்து" (a transliteration of Sanskrit bindu) was
+                                 replaced with "பரல்", the native Tamil almanac term for
+                                 Ashtakavarga dots. In modern Tamil, விந்து reads
+                                 primarily as "semen" — not usable in product copy.
+                            */}
+                            {bindus !== null && (
+                              <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                                {lang === "ta"
+                                  ? `அஷ்டகவர்க்கம்: ${displayPlanet(graha, lang)} இந்த ராசியில் ${bindus}/8 பரல்கள் பெற்றுள்ளார் — ${binduReading(bindus, lang)}. பரல்கள் அதிகம் இருந்தால் இந்தப் பெயர்ச்சியின் பலன் எளிதாக வெளிப்படும்; குறைவாக இருந்தால் அதே பெயர்ச்சி மெதுவாகவே பலன் தரும்.`
+                                  : `Ashtakavarga: ${displayPlanet(graha, lang)} holds ${bindus}/8 bindus in this rasi — ${binduReading(bindus, lang)}. More bindus let a peyarchi deliver its results more easily; fewer bindus mean the same transit works slowly.`}
+                              </p>
+                            )}
                             <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.75rem", color: "var(--color-faint)", lineHeight: 1.4 }}>
                               {touched.length > 0
                                 ? (lang === "ta" ? "இந்தப் பார்வையில் வரும் உங்கள் கிரகங்கள்:" : "Your natal planets under this aspect:")
@@ -1337,27 +1525,67 @@ export function ChartExplanationPanel({
               {section.id === "summary" && (
                 <div style={{ display: "grid", gap: "var(--space-3)" }}>
                   <div style={{ display: "grid", gap: "var(--space-2)" }}>
+                    {/*
+                      Both rows name the axis explicitly ("by position") and
+                      carry their score. The labels used to read "Strongest
+                      planet" / "Planet needing support" over a bare graha name,
+                      which invited two misreadings at once: that the score
+                      measured auspiciousness, and — because no number was shown
+                      — that these picks could not be checked against the
+                      per-planet cards. Both were flagged in review (2026-07-18).
+                    */}
                     <DetailRow
-                      label={lang === "ta" ? "மிக வலுவான கிரகம்" : "Strongest planet"}
+                      label={lang === "ta" ? "கிரக பலத்தில் முதலிடம்" : "Strongest by position"}
                       value={
                         backendSummary?.strongestPlanet
-                          ? displayPlanet(backendSummary.strongestPlanet, lang)
+                          ? `${displayPlanet(backendSummary.strongestPlanet, lang)}${
+                              backendSummary.strongestPlanetScore != null
+                                ? ` - ${backendSummary.strongestPlanetScore}/100`
+                                : ""
+                            }`
                           : derived.strong
                           ? `${displayPlanet(derived.strong.graha, lang)} - ${Math.round(derived.strong.strengthScore ?? 0)}/100 - ${dignityFor(derived.strong, lang)}`
                           : (lang === "ta" ? "பலம் மதிப்பெண் இல்லை" : "No strength scores available")
                       }
                     />
                     <DetailRow
-                      label={lang === "ta" ? "ஆதரவு தேவைப்படும் கிரகம்" : "Planet needing support"}
+                      label={lang === "ta" ? "கிரக பலத்தில் கடைசி இடம்" : "Lowest by position"}
                       value={
                         backendSummary?.weakestPlanet
-                          ? displayPlanet(backendSummary.weakestPlanet, lang)
+                          ? `${displayPlanet(backendSummary.weakestPlanet, lang)}${
+                              backendSummary.weakestPlanetScore != null
+                                ? ` - ${backendSummary.weakestPlanetScore}/100`
+                                : ""
+                            }`
                           : derived.weak
                           ? `${displayPlanet(derived.weak.graha, lang)} - ${Math.round(derived.weak.strengthScore ?? 0)}/100 - ${dignityFor(derived.weak, lang)}`
                           : (lang === "ta" ? "பலம் மதிப்பெண் இல்லை" : "No strength scores available")
                       }
                     />
                   </div>
+
+                  {backendSummary?.strongestPlanetCaveat && (
+                    <p
+                      style={{
+                        margin: 0,
+                        padding: "var(--space-2) var(--space-2_5)",
+                        borderRadius: "var(--radius-2, 8px)",
+                        background: "var(--color-accent-muted)",
+                        border: "1px solid var(--color-border-strong)",
+                        fontSize: "0.8125rem",
+                        lineHeight: 1.6,
+                        color: "var(--color-text)",
+                      }}
+                    >
+                      {tx(backendSummary.strongestPlanetCaveat, lang)}
+                    </p>
+                  )}
+
+                  {backendSummary?.scoreScaleNote && (
+                    <p style={{ margin: 0, fontSize: "0.75rem", lineHeight: 1.6, color: "var(--color-muted)" }}>
+                      {tx(backendSummary.scoreScaleNote, lang)}
+                    </p>
+                  )}
                   <ul style={{ margin: 0, padding: "0 0 0 var(--space-4)", display: "grid", gap: "var(--space-1_5)" }}>
                     {backendSummary ? (
                       [...backendSummary.positives, ...backendSummary.cautions].map((item, index) => (

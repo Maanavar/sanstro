@@ -7,7 +7,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.calculations.aspects import aspect_houses
+from app.calculations.aspects import aspect_houses, aspects_house
 from app.calculations.astro import RASI_NAMES, house_from_reference, utc_datetime_to_julian_day
 from app.calculations.chart_strength import (
     _NATURAL_ENEMIES,
@@ -17,6 +17,7 @@ from app.calculations.chart_strength import (
     MOOLATRIKONA_ZONE,
     OWN_SIGN_RASI,
     _dignity_score,
+    compute_all_bhava_bala,
     d9_dignity_tier,
 )
 from app.calculations.dasha import DashaPeriod, calculate_vimshottari_timeline
@@ -37,6 +38,8 @@ from app.schemas.chart_explanation import (
     ChartExplanationActivationSignal,
     ChartExplanationAspect,
     ChartExplanationConjunctionGroup,
+    ChartExplanationBhava,
+    ChartExplanationBhavaSection,
     ChartExplanationCoreIdentity,
     ChartExplanationCurrentActivationSection,
     ChartExplanationDashaLordActivation,
@@ -163,25 +166,40 @@ def _current_period_text(
     dasha_chain_en: str,
 ) -> tuple[str, str]:
     """Concrete 'what is running now' sentence for a planet — never tells the reader
-    to go find their own dasha/transit; it states the live period and this planet's
-    role in it (see issue #2)."""
+    to go find their own dasha/transit; it states this planet's role in the live
+    period (see issue #2).
+
+    The dasha CHAIN itself is deliberately not repeated here. It is stated once
+    at chart level in `_build_current_activation_section`'s `period_summary`,
+    and printing it again on every planet card meant the identical string
+    ("Moon Mahadasha / Moon Bhukti / Jupiter Antaram") appeared eight times on
+    one screen — read as machine-generated filler in review (2026-07-18). What
+    stays here is the part that genuinely differs per planet: whether *this*
+    graha is one of the running lords.
+
+    ``dasha_chain_ta``/``dasha_chain_en`` are retained in the signature because
+    callers still pass them and a future per-planet variant may want them; they
+    are intentionally unused in the emitted prose.
+    """
+    del dasha_chain_ta, dasha_chain_en  # stated once at chart level, not per planet
+
     if current_role is not None:
         ta = (
             f"இந்த கிரகம் இப்போது நடப்பு {_PERIOD_ROLE_TA[current_role]} அதிபதி — "
-            f"அதனால் அதன் வீடு மற்றும் துறை விளைவுகள் இப்போது நேரடியாக இயங்குகின்றன ({dasha_chain_ta})."
+            f"அதனால் அதன் வீடு மற்றும் துறை விளைவுகள் இப்போது நேரடியாக இயங்குகின்றன."
         )
         en = (
             f"This planet is currently your running {_PERIOD_ROLE_EN[current_role]} lord, "
-            f"so its house and life-area results are directly active right now ({dasha_chain_en})."
+            f"so its house and life-area results are directly active right now."
         )
         return ta, en
     ta = (
-        f"நடப்பு தசை: {dasha_chain_ta}. இந்த கிரகம் இப்போது நேரடி தசை/புக்தி/அந்தர அதிபதி அல்ல; "
-        f"அது தசை அல்லது புக்தியாக வரும்போதும், கோசாரத்தில் குரு/சனி இதைத் தொடும்போதும் அதன் முழு பலன் வெளிப்படும்."
+        "இந்த கிரகம் இப்போது நேரடி தசை/புக்தி/அந்தர அதிபதி அல்ல; "
+        "அது தசை அல்லது புக்தியாக வரும்போதும், கோசாரத்தில் குரு/சனி இதைத் தொடும்போதும் அதன் முழு பலன் வெளிப்படும்."
     )
     en = (
-        f"Current period: {dasha_chain_en}. This planet is not one of the active period lords right now; "
-        f"its full results surface when it becomes a dasha or bhukti lord, or when transiting Guru/Sani contact it."
+        "This planet is not one of the active period lords right now; "
+        "its full results surface when it becomes a dasha or bhukti lord, or when transiting Guru/Sani contact it."
     )
     return ta, en
 
@@ -302,8 +320,8 @@ def _planet_explanation(
 ) -> ChartExplanationText:
     dignity_text = _dignity_text(dignity)
     theme = _HOUSE_THEMES[planet.house_from_lagna]
-    fn_context_ta = _functional_context_ta(functional_nature)
-    fn_context_en = _functional_context_en(functional_nature)
+    fn_context_ta = _functional_context_ta(functional_nature, planet.graha)
+    fn_context_en = _functional_context_en(functional_nature, planet.graha)
     period_ta, period_en = _current_period_text(current_role, dasha_chain_ta, dasha_chain_en)
     contact_ta = f" {transit_contact_text.ta}" if transit_contact_text else ""
     contact_en = f" {transit_contact_text.en}" if transit_contact_text else ""
@@ -354,15 +372,46 @@ _FUNCTIONAL_CONTEXT_EN: dict[str, str] = {
 }
 
 
-def _functional_context_ta(functional_nature: str) -> str:
-    return _FUNCTIONAL_CONTEXT_TA.get(
+# Rahu and Ketu own no rasi, so they can never be a "lord" of anything. Their
+# functional nature is derived from their dispositor and the house they occupy
+# (see functional_nature._node_functional_nature) — a real and defensible
+# reading, but describing the result as "a Dusthana lord" asserts a lordship
+# Parashari does not grant them. These phrasings say *occupies* and *acts
+# through*, which is what the engine actually computed. Flagged in the
+# 2026-07-18 astrologer review.
+_NODE_FUNCTIONAL_CONTEXT_TA: dict[str, str] = {
+    "YOGAKARAKA": "இது எந்த ராசிக்கும் அதிபதி இல்லாத சாயா கிரகம்; ஆனால் யோககாரக பலம் உள்ள இடத்தில் அமர்ந்து அந்த பலனை வலுப்படுத்துகிறது",
+    "LAGNA_LORD": "இது எந்த ராசிக்கும் அதிபதி இல்லாத சாயா கிரகம்; லக்ன அதிபதியின் வழியாக செயல்பட்டு வாழ்க்கை திசையைத் தொடுகிறது",
+    "TRIKONA": "இது எந்த ராசிக்கும் அதிபதி இல்லாத சாயா கிரகம்; திரிகோண ஸ்தானத்தில் அமர்ந்து புண்ணிய, வளர்ச்சி துறைகளைத் தொடுகிறது",
+    "KENDRA": "இது எந்த ராசிக்கும் அதிபதி இல்லாத சாயா கிரகம்; கேந்திர ஸ்தானத்தில் அமர்ந்து வெளிப்படையான செயல்பாட்டைத் தொடுகிறது",
+    "DUSTHANA": "இது எந்த ராசிக்கும் அதிபதி இல்லாத சாயா கிரகம்; துஷ்டான ஸ்தானத்தில் அமர்ந்திருப்பதால் அந்த துறையில் ஒழுங்கும் கவனமும் தேவை",
+    "MARAKA": "இது எந்த ராசிக்கும் அதிபதி இல்லாத சாயா கிரகம்; மாரக ஸ்தானத்தில் அமர்ந்திருப்பதால் கட்டுப்பாட்டுடன் அணுகுவது நல்லது",
+    "NEUTRAL": "இது எந்த ராசிக்கும் அதிபதி இல்லாத சாயா கிரகம்; அது அமர்ந்த வீடு மற்றும் அந்த வீட்டு அதிபதியின் வழியே பலன் தருகிறது",
+}
+_NODE_FUNCTIONAL_CONTEXT_EN: dict[str, str] = {
+    "YOGAKARAKA": "a shadow graha that owns no sign; it sits with Yogakaraka strength and amplifies that result rather than ruling it",
+    "LAGNA_LORD": "a shadow graha that owns no sign; it acts through the Lagna lord and colours life direction",
+    "TRIKONA": "a shadow graha that owns no sign; it occupies a Trikona house, touching grace, talent, and growth",
+    "KENDRA": "a shadow graha that owns no sign; it occupies a Kendra house, touching visible action and responsibility",
+    "DUSTHANA": "a shadow graha that owns no sign; it occupies a Dusthana house, so those matters ask for care and discipline",
+    "MARAKA": "a shadow graha that owns no sign; it occupies a Maraka house, best handled with restraint and proportion",
+    "NEUTRAL": "a shadow graha that owns no sign; it delivers through the house it occupies and that house's lord",
+}
+
+_NODES: frozenset[str] = frozenset({"RAHU", "KETU"})
+
+
+def _functional_context_ta(functional_nature: str, planet: str | None = None) -> str:
+    table = _NODE_FUNCTIONAL_CONTEXT_TA if planet in _NODES else _FUNCTIONAL_CONTEXT_TA
+    return table.get(
         functional_nature,
         "இந்த கிரகத்தின் பலன் அதன் வீடு, பலம், பார்வை ஆகியவற்றோடு சேர்ந்து இயங்குகிறது",
     )
 
 
-def _functional_context_en(functional_nature: str) -> str:
-    return _FUNCTIONAL_CONTEXT_EN.get(
+def _functional_context_en(functional_nature: str, planet: str | None = None) -> str:
+    table = _NODE_FUNCTIONAL_CONTEXT_EN if planet in _NODES else _FUNCTIONAL_CONTEXT_EN
+    return table.get(
         functional_nature,
         "a planet whose role is read together with its house, strength, and aspects",
     )
@@ -373,11 +422,77 @@ _FACET_LABELS: dict[str, ChartExplanationText] = {
     "role": _bi("ஜாதகத்தில் பங்கு", "Its role in your chart"),
     "strength": _bi("பலம்", "How strong it is"),
     "condition": _bi("சிறப்பு நிலை", "What to work with"),
+    "navamsa": _bi("நவாம்ச நிலை", "In the Navamsa (D9)"),
     "activation": _bi("இப்போது இயங்குகிறதா", "Active right now?"),
     "nakshatra": _bi("நட்சத்திர அதிபதி", "Its star lord"),
     "transit": _bi("நடப்பு கோசாரம்", "Current transit"),
     "remedy": _bi("பரிகாரம்", "Traditional support"),
 }
+
+
+def _navamsa_facet_value(planet: PlanetPosition) -> tuple[ChartExplanationText | None, str]:
+    """The planet's Navamsa (D9) standing, as its own always-on line.
+
+    D9 dignity used to surface only through `_condition_facet_value`, which is a
+    priority chain: cazimi, then D9 debilitation, then combustion, then
+    retrogression, then vargottama, then D9 dignity — one winner only. That meant
+    a combust planet never showed its Navamsa standing at all, even though the
+    classical question "does this graha actually deliver?" is answered largely in
+    the D9, and a combust planet is exactly the case where a reader needs it.
+    Raised in the 2026-07-18 astrologer review.
+
+    Kept separate from the condition facet rather than folded into it, so the two
+    can both appear: "burnt by the Sun" and "but vargottama in Navamsa" are
+    complementary facts, not competing ones.
+    """
+    d9_rasi = getattr(planet, "d9_rasi", None)
+    if d9_rasi is None:
+        return None, "NEUTRAL"
+
+    d9_name = RASI_NAMES.get(d9_rasi, str(d9_rasi))
+    tier = d9_dignity_tier(planet.graha, d9_rasi)
+
+    if planet.is_vargottama:
+        return (
+            _bi(
+                f"நவாம்சத்திலும் அதே {d9_name} ராசி — வர்கோத்தமம். ராசியில் தெரியும் பலன் "
+                "நவாம்சத்திலும் உறுதிப்படுகிறது; இது நிலைத்தன்மையைக் குறிக்கும்.",
+                f"Same sign ({d9_name}) in the Navamsa — vargottama. What the Rasi chart "
+                "promises is confirmed in the D9, which points to stability and follow-through.",
+            ),
+            "BOOST",
+        )
+    if tier > 0:
+        return (
+            _bi(
+                f"நவாம்சத்தில் {d9_name} — வலுவான நிலை. ராசியில் உள்ள வாக்குறுதி "
+                "நவாம்சத்தில் ஆதரவு பெறுகிறது; பலன் முழுமையாக வெளிப்பட வாய்ப்பு உண்டு.",
+                f"In the Navamsa it occupies {d9_name}, a dignified position. The Rasi promise "
+                "is supported in the D9, so its results have a better chance of arriving in full.",
+            ),
+            "BOOST",
+        )
+    if tier < 0:
+        return (
+            _bi(
+                f"நவாம்சத்தில் {d9_name} — நீச நிலை. ராசியில் வலுவாகத் தெரிந்தாலும் "
+                "நவாம்சம் அதை ஆதரிக்கவில்லை; பலன் தாமதமாகவோ குறைவாகவோ வரலாம். "
+                "வெளித்தோற்றத்தில் பலமாகத் தெரிந்தாலும், பலன் தரும்போது முழுமையாக "
+                "நிற்காத நிலை இது.",
+                f"In the Navamsa it falls in {d9_name}, a debilitated position. Even where the "
+                "Rasi chart looks strong, the D9 does not back it — results can arrive late or "
+                "partially. This is the classical 'strong in name, weak in effect' case.",
+            ),
+            "CAUTION",
+        )
+    return (
+        _bi(
+            f"நவாம்சத்தில் {d9_name} — நடுநிலை. ராசி நிலையை நவாம்சம் கூட்டவும் இல்லை, குறைக்கவும் இல்லை.",
+            f"In the Navamsa it occupies {d9_name}, a neutral placement — the D9 neither "
+            "strengthens nor undercuts what the Rasi chart shows.",
+        ),
+        "NEUTRAL",
+    )
 
 
 def _condition_facet_value(planet: PlanetPosition) -> tuple[ChartExplanationText | None, str]:
@@ -472,6 +587,17 @@ def _planet_facets(
                 label=_FACET_LABELS["condition"],
                 value=condition_value,
                 tone=condition_tone,
+            )
+        )
+
+    navamsa_value, navamsa_tone = _navamsa_facet_value(planet)
+    if navamsa_value is not None:
+        facets.append(
+            ChartExplanationFacet(
+                key="navamsa",
+                label=_FACET_LABELS["navamsa"],
+                value=navamsa_value,
+                tone=navamsa_tone,
             )
         )
 
@@ -601,8 +727,8 @@ def _build_planet_sections(
                     current_role=current_role_by_graha.get(planet.graha),
                     dasha_chain_ta=dasha_chain_ta,
                     dasha_chain_en=dasha_chain_en,
-                    fn_context_ta=_functional_context_ta(fn),
-                    fn_context_en=_functional_context_en(fn),
+                    fn_context_ta=_functional_context_ta(fn, planet.graha),
+                    fn_context_en=_functional_context_en(fn, planet.graha),
                     transit_contact_text=transit_contact,
                     transit_remedy=transit_remedy,
                     lord_house_by_graha=lord_house_by_graha,
@@ -716,6 +842,143 @@ def _build_aspects(planets: list[PlanetPosition]) -> list[ChartExplanationAspect
                 )
             )
     return aspects
+
+
+def _graha_list_ta(names: list[str]) -> str:
+    """Tamil list of grahas.
+
+    A bare comma-join ("செவ்வாய், சூரியன்") reads as a machine dump. Tamil closes
+    a list of persons — and grahas take the honorific here — with ஆகியோர்.
+    Chosen over the correlative "செவ்வாயும் சூரியனும்" because that requires
+    euphonic changes per name, which a join cannot do safely.
+    """
+    if not names:
+        return ""
+    if len(names) == 1:
+        return names[0]
+    return f"{', '.join(names)} ஆகியோர்"
+
+
+def _graha_list_en(names: list[str]) -> str:
+    """English list of grahas: "Mars", "Mars and Sun", "Mars, Saturn and Sun"."""
+    if not names:
+        return ""
+    if len(names) == 1:
+        return names[0]
+    return f"{', '.join(names[:-1])} and {names[-1]}"
+
+
+_SIGN_LORD_BY_RASI: dict[int, str] = {
+    1: "MARS", 2: "VENUS", 3: "MERCURY", 4: "MOON", 5: "SUN", 6: "MERCURY",
+    7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
+}
+
+
+def _build_bhava_section(
+    planets: list[PlanetPosition],
+    lagna_rasi: int,
+) -> ChartExplanationBhavaSection:
+    """Read all twelve bhavas as life areas.
+
+    Deliberately covers EMPTY houses too. The existing drishti list is
+    planet-to-planet, so an unoccupied 7th under Saturn's full aspect — a
+    first-order fact for any marriage question — appeared nowhere in the
+    reading. Here every house reports its lord, where that lord sits, who
+    occupies it, and crucially who *aspects* it.
+    """
+    by_graha = {p.graha: p for p in planets}
+    planets_rasi = {p.graha: p.rasi for p in planets}
+    planet_scores = {
+        p.graha: p.strength_score for p in planets if p.strength_score is not None
+    }
+    bhava_bala = compute_all_bhava_bala(lagna_rasi, planets_rasi, planet_scores)
+
+    bhavas: list[ChartExplanationBhava] = []
+    for house in range(1, 13):
+        house_rasi = ((lagna_rasi + house - 2) % 12) + 1
+        lord = _SIGN_LORD_BY_RASI[house_rasi]
+        lord_planet = by_graha.get(lord)
+        lord_house = lord_planet.house_from_lagna if lord_planet else house
+        theme = _HOUSE_THEMES[house]
+
+        occupants = sorted(p.graha for p in planets if p.rasi == house_rasi)
+        aspecting = sorted(
+            p.graha
+            for p in planets
+            if p.rasi != house_rasi and aspects_house(p.graha, p.rasi, house_rasi)
+        )
+
+        occ_ta = _graha_list_ta([planet_ta(g) for g in occupants])
+        occ_en = _graha_list_en([planet_en(g) for g in occupants])
+        asp_ta = _graha_list_ta([planet_ta(g) for g in aspecting])
+        asp_en = _graha_list_en([planet_en(g) for g in aspecting])
+
+        if occupants:
+            # Tamil treats grahas with the honorific, as the transit copy already
+            # does (சஞ்சரிக்கிறார்), and inflects for count: -ஆர் for one graha,
+            # -அனர் for several. The neuter singular "அமர்ந்துள்ளது" was wrong on
+            # both axes and read badly for multi-planet houses. English needs the
+            # same agreement — "occupies" vs "occupy".
+            body_ta = (
+                f"{occ_ta} இந்த வீட்டில் அமர்ந்துள்ளார்."
+                if len(occupants) == 1
+                else f"{occ_ta} இந்த வீட்டில் அமர்ந்துள்ளனர்."
+            )
+            body_en = f"{occ_en} occupies it." if len(occupants) == 1 else f"{occ_en} occupy it."
+        else:
+            body_ta = "இந்த வீட்டில் எந்த கிரகமும் இல்லை — அதிபதியின் நிலையும் விழும் பார்வைகளும் இதை தீர்மானிக்கின்றன."
+            body_en = (
+                "No planet sits here, so this house is judged by its lord's condition "
+                "and by the aspects falling on it."
+            )
+
+        if aspecting:
+            aspect_ta = (
+                f" {asp_ta} இதைப் பார்க்கிறார்."
+                if len(aspecting) == 1
+                else f" {asp_ta} இதைப் பார்க்கின்றனர்."
+            )
+            aspect_en = f" {asp_en} aspect{'s' if len(aspecting) == 1 else ''} it."
+        else:
+            aspect_ta = " எந்த கிரகப் பார்வையும் இதன் மேல் விழவில்லை."
+            aspect_en = " No planetary aspect falls on it."
+
+        bhavas.append(
+            ChartExplanationBhava(
+                house=house,
+                rasi=house_rasi,
+                rasi_name=RASI_NAMES[house_rasi],
+                lord=lord,
+                lord_house=lord_house,
+                lord_strength=planet_scores.get(lord),
+                occupants=occupants,
+                aspecting_planets=aspecting,
+                bhava_bala=bhava_bala.get(house),
+                theme=theme,
+                explanation=_bi(
+                    (
+                        f"{house}-ஆம் வீடு ({RASI_NAMES[house_rasi]}) — {theme.ta}. "
+                        f"இதன் அதிபதி {planet_ta(lord)}, {lord_house}-ஆம் வீட்டில் உள்ளார். "
+                        f"{body_ta}{aspect_ta}"
+                    ),
+                    (
+                        f"House {house} ({RASI_NAMES[house_rasi]}) — {theme.en}. "
+                        f"Its lord is {planet_en(lord)}, placed in house {lord_house}. "
+                        f"{body_en}{aspect_en}"
+                    ),
+                ),
+            )
+        )
+
+    return ChartExplanationBhavaSection(
+        bhavas=bhavas,
+        explanation=_bi(
+            "ஒவ்வொரு வீடும் ஒரு வாழ்க்கைத் துறை. அந்த வீட்டில் கிரகம் இல்லாவிட்டாலும், "
+            "அதன் அதிபதி எங்கே இருக்கிறார், யார் அதைப் பார்க்கிறார்கள் என்பதைக் கொண்டு பலன் சொல்லப்படுகிறது.",
+            "Each house is one life area. Even with no planet in it, a house is read through "
+            "where its lord sits and which planets aspect it.",
+        ),
+    )
 
 
 def _house_group_synthesis(name: str, group_planets: list[PlanetPosition]) -> ChartExplanationText:
@@ -1017,6 +1280,35 @@ def _build_current_activation_section(
     )
 
 
+# What the 0-100 planet score actually is, in one line the reader sees next to
+# the number. Without an anchor a score is uninterpretable — a reviewer asked
+# directly "what does 65/100 mean: Shadbala rupas normalised? benefic capacity?"
+# and nothing in the product answered it (2026-07-18).
+#
+# The honest answer: it is a six-component Shadbala-style POSITIONAL composite
+# (sthana, dik, kala, chesta, naisargika, drik — see chart_strength.py), not
+# classical rupas and not a measure of how benefic the results will be.
+_SCORE_SCALE_NOTE: ChartExplanationText = _bi(
+    (
+        "மதிப்பெண் விளக்கம்: 0-100 என்பது ஷட்பல முறையை ஒட்டிய *கிரக பலம்* — "
+        "ஸ்தான (இடம்), திக் (திசை), கால (நேரம்), சேஷ்டா (இயக்கம்), "
+        "நைசர்கிக (இயற்கை), திருக் (பார்வை) ஆகிய ஆறு கூறுகளின் கூட்டு. "
+        "இது கிரகம் எவ்வளவு உறுதியாக நிற்கிறது என்பதை சொல்கிறது; அது தரும் பலன் "
+        "நல்லதா கெட்டதா என்பதை அல்ல. அதற்கு ராசி நிலை, அஸ்தங்கம், "
+        "செயல்பாட்டு தன்மை ஆகியவற்றையும் சேர்த்துப் பார்க்க வேண்டும். "
+        "தோராயமாக: 70+ வலிமை, 45-69 மிதமானது, 45க்கு கீழ் ஆதரவு தேவை."
+    ),
+    (
+        "About this score: 0-100 measures *positional strength* on a "
+        "Shadbala-style composite of six components (sthana, dik, kala, chesta, "
+        "naisargika, drik). It says how firmly a planet stands, not whether its "
+        "results will be good — dignity, combustion, and functional nature "
+        "decide that, and are read alongside it. As a guide: 70+ strong, "
+        "45-69 moderate, below 45 needs support."
+    ),
+)
+
+
 def _summary_section(
     planets: list[PlanetPosition],
     birth_conditions: list[ChartBirthCondition] | None = None,
@@ -1038,18 +1330,53 @@ def _summary_section(
             f"{dusthana_count} planets are in Dusthana houses; rest, routines, and measured choices help.",
         )
     ]
+    # "Strongest" here means strongest BY POSITION (the Shadbala-style composite
+    # in chart_strength.py). That is not the same axis as the capacity to
+    # deliver benefic results: a combust planet, a debilitated one, or a
+    # functional malefic can top this scale and still need heavy qualification.
+    # Saying "X appears strongest" with no such qualifier is what led an
+    # astrologer to flag a combust, retrograde 6th-lord Mercury being presented
+    # as the chart's strongest graha (2026-07-18).
+    strongest_caveat: ChartExplanationText | None = None
     if strongest is not None:
+        strongest_dignity = _dignity_label(strongest)
+        caveat_reasons_ta: list[str] = []
+        caveat_reasons_en: list[str] = []
+        if strongest.is_combust:
+            caveat_reasons_ta.append("அஸ்தங்கம் (சூரியனுக்கு மிக அருகில் இருந்து பலம் இழந்த நிலை)")
+            caveat_reasons_en.append("combust (astangata), burnt by closeness to the Sun")
+        if strongest_dignity == "DEBILITATED":
+            caveat_reasons_ta.append("நீச ராசி")
+            caveat_reasons_en.append("debilitated by sign")
+        elif strongest_dignity == "ENEMY_SIGN":
+            caveat_reasons_ta.append("பகை ராசி")
+            caveat_reasons_en.append("placed in an enemy sign")
+
         positives.append(
             _bi(
-                f"{planet_ta(strongest.graha)} அதிக பலம் பெற்ற கிரகமாக தெரிகிறது; அதன் வீட்டு துறை ஆதரவாக இயங்கும்.",
-                f"{planet_en(strongest.graha)} appears strongest; its house themes can act as a support channel.",
+                f"{planet_ta(strongest.graha)} கிரக பலத்தில் அதிக மதிப்பெண் பெற்ற கிரகம்; அதன் வீட்டு துறைகள் ஆதரவாக இயங்கும்.",
+                f"{planet_en(strongest.graha)} scores highest on positional strength; its house themes can act as a support channel.",
             )
         )
+        if caveat_reasons_ta:
+            strongest_caveat = _bi(
+                (
+                    f"ஆனால் {planet_ta(strongest.graha)} {', '.join(caveat_reasons_ta)} நிலையில் உள்ளது. "
+                    "கிரக பலம் என்பது வேறு; பலனைத் தரும் திறன் என்பது வேறு. "
+                    "இந்த கிரகத்தின் நல்ல பலன்கள் தாமதமாகவோ, முழுமையின்றியோ வெளிப்படலாம்."
+                ),
+                (
+                    f"Note, however, that {planet_en(strongest.graha)} is {', '.join(caveat_reasons_en)}. "
+                    "Positional strength and the capacity to deliver benefic results are different axes — "
+                    "this planet holds the position but may deliver its good results late or incompletely."
+                ),
+            )
+            cautions.append(strongest_caveat)
     if weakest is not None:
         cautions.append(
             _bi(
-                f"{planet_ta(weakest.graha)} அதிக ஆதரவு தேவைப்படும் கிரகமாக தெரிகிறது; அந்த துறையில் மெதுவான திட்டம் நல்லது.",
-                f"{planet_en(weakest.graha)} appears to need the most support; a slower plan helps that area.",
+                f"{planet_ta(weakest.graha)} கிரக பலத்தில் மிகக் குறைந்த மதிப்பெண் பெற்றுள்ளது; அந்த துறையில் மெதுவான திட்டம் நல்லது.",
+                f"{planet_en(weakest.graha)} scores lowest on positional strength; a slower plan helps that area.",
             )
         )
     # Border-Alert birth conditions (Sankranti/Grahana boundary births, Cazimi,
@@ -1071,6 +1398,10 @@ def _summary_section(
     return ChartExplanationSummarySection(
         strongest_planet=strongest.graha if strongest else None,
         weakest_planet=weakest.graha if weakest else None,
+        strongest_planet_score=strongest.strength_score if strongest else None,
+        weakest_planet_score=weakest.strength_score if weakest else None,
+        strongest_planet_caveat=strongest_caveat,
+        score_scale_note=_SCORE_SCALE_NOTE,
         positives=positives,
         cautions=cautions,
     )
@@ -1205,6 +1536,7 @@ def build_chart_explanation(
             conjunctions=_build_conjunctions(planets, data.lagna.rasi),
             aspects=_build_aspects(planets),
             house_groups=_build_house_groups(planets),
+            bhavas=_build_bhava_section(planets, data.lagna.rasi),
             functional_nature=functional_nature,
             yoga_dosham=ChartExplanationYogaDoshamSection(
                 yogas=data.yogas,

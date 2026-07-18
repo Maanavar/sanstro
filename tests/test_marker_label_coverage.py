@@ -132,6 +132,63 @@ def _pattern_regexes(panel: str) -> list[re.Pattern[str]]:
     return patterns
 
 
+_EXPLANATION_SERVICE = _ROOT / "app" / "services" / "chart_explanation_service.py"
+_EXPLANATION_PANEL = _ROOT / "web" / "components" / "dashboard-chart-explanation.tsx"
+
+
+def _emitted_aspect_types() -> set[str]:
+    """Aspect-type keys `_aspect_type` can emit, as concrete strings.
+
+    The function is four lines: a literal "STANDARD_7TH" and an f-string
+    `f"{planet}_SPECIAL_{aspect_house}TH"`. Rather than guess, read both shapes
+    out of the source so a renamed constant is caught here.
+    """
+    source = _EXPLANATION_SERVICE.read_text(encoding="utf-8")
+    body = source.split("def _aspect_type(", 1)[1].split("\ndef ", 1)[0]
+    emitted = set(re.findall(r'return "([A-Z0-9_]+)"', body))
+    if re.search(r'return f"\{planet\}_SPECIAL_\{aspect_house\}TH"', body):
+        # Every graha that owns a special aspect, at every house it can throw.
+        for planet in ("MARS", "JUPITER", "SATURN", "RAHU", "KETU"):
+            for house in (3, 4, 5, 8, 9, 10):
+                emitted.add(f"{planet}_SPECIAL_{house}TH")
+    assert emitted, "_aspect_type extraction found nothing — did the function move?"
+    return emitted
+
+
+@pytest.mark.no_db
+def test_every_aspect_type_renders_as_a_phrase() -> None:
+    """Sibling of the marker guard, for the UPPER_CASE token family.
+
+    `_static_labels` above deliberately skips `literal.isupper()`, which left
+    aspect-type constants unguarded — and they duly leaked, printing
+    "MARS_SPECIAL_4TH" straight into the drishti chips until an astrologer
+    review caught it (2026-07-18). `aspectTypeLabel` in the explanation panel is
+    now the renderer; this asserts it actually covers what the engine emits
+    instead of falling through to its own last-resort branch.
+    """
+    panel = _EXPLANATION_PANEL.read_text(encoding="utf-8")
+    assert "function aspectTypeLabel" in panel, (
+        "aspectTypeLabel is gone from the explanation panel — aspect types are "
+        "being rendered by something this guard can no longer see"
+    )
+    body = panel.split("function aspectTypeLabel", 1)[1].split("\n}", 1)[0]
+    special_rule = re.search(r"/\^\[A-Z\]\+_SPECIAL_\(\\d\+\)TH\$/", body)
+    handles_standard = '"STANDARD_7TH"' in body
+
+    unhandled = []
+    for aspect_type in sorted(_emitted_aspect_types()):
+        if aspect_type == "STANDARD_7TH" and handles_standard:
+            continue
+        if special_rule and re.fullmatch(r"[A-Z]+_SPECIAL_\d+TH", aspect_type):
+            continue
+        unhandled.append(aspect_type)
+
+    assert not unhandled, (
+        "These aspect types reach the UI with no branch in aspectTypeLabel, so "
+        f"they render via its raw fallback: {unhandled}"
+    )
+
+
 @pytest.mark.no_db
 def test_scan_self_check() -> None:
     """A regex that matched nothing would make the coverage assertion below
