@@ -28,8 +28,10 @@ from sqlalchemy.orm import Session
 
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga, compute_sarvashtakavarga
 from app.calculations.astro import house_from_reference, resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.bhava_afflictions import affliction_dosham_strength, assess_bhava_afflictions
 from app.calculations.chart_strength import SIGN_LORD, compute_bhava_bala
 from app.calculations.dasha import calculate_vimshottari_timeline
+from app.calculations.dasha_activation import assess_dasha_activation
 from app.calculations.display_names import planet_en as dn_planet_en
 from app.calculations.double_transit import score_double_transit
 from app.calculations.ephemeris import calculate_sidereal_planets
@@ -1072,8 +1074,35 @@ def _score_area(
 
     # W12: maturation multiplier from mahadasha lord
     m_mult = maturation_multiplier(maha_lord, native_age)
-    maha_conn = house_from_reference(lagna_rasi, natal_planet_rasis.get(maha_lord, lagna_rasi)) in relevant_houses
-    antar_conn = house_from_reference(lagna_rasi, natal_planet_rasis.get(antar_lord, lagna_rasi)) in relevant_houses
+    # Connection-match (dasha_activation.py): occupying a relevant house was
+    # the old rule; lordship, aspect on the bhava, dispositorship, and node
+    # agency now also connect a dasha lord to the area.
+    activation = assess_dasha_activation(
+        lagna_rasi=lagna_rasi,
+        bhava_house=primary_house,
+        dasha_lords=[maha_lord, antar_lord],
+        natal_planet_rasis=natal_planet_rasis,
+        karakas=karakas,
+        related_houses=relevant_houses,
+    )
+    maha_conn = any(c.startswith("maha:") for c in activation.connections) or (
+        house_from_reference(lagna_rasi, natal_planet_rasis.get(maha_lord, lagna_rasi)) in relevant_houses
+    )
+    antar_conn = any(c.startswith("antar:") for c in activation.connections) or (
+        house_from_reference(lagna_rasi, natal_planet_rasis.get(antar_lord, lagna_rasi)) in relevant_houses
+    )
+
+    # Named malefic afflictions on the area bhava feed the promise gate as an
+    # area-specific dosham (previously hardcoded to NONE): papa kartari plus
+    # multiple malefic drishti can qualify the birth promise itself, and
+    # shubha kartari acts as the cancellation channel.
+    affliction = assess_bhava_afflictions(
+        lagna_rasi=lagna_rasi,
+        bhava_house=primary_house,
+        planet_rasis=natal_planet_rasis,
+        karaka=primary_karaka,
+    )
+    area_dosham_strength = affliction_dosham_strength(affliction.severity)
 
     use_gate = bool(get_flag("reasoning_gate"))
     inp = PredictionScoreInput(
@@ -1081,9 +1110,9 @@ def _score_area(
         karaka_strength=natal_planet_scores.get(primary_karaka, 50),
         yoga_present=False,
         yoga_strength="NONE",
-        dosham_present=False,
-        dosham_cancelled=False,
-        dosham_strength="NONE",
+        dosham_present=area_dosham_strength != "NONE",
+        dosham_cancelled=affliction.shubha_kartari,
+        dosham_strength=area_dosham_strength,
         key_planet_strengths=[natal_planet_scores.get(p, 50) for p in set([house_lord] + karakas)],
         maha_lord_functional_nature=get_functional_nature(lagna_rasi, maha_lord).value,
         antar_lord_functional_nature=get_functional_nature(lagna_rasi, antar_lord).value,
@@ -1263,10 +1292,50 @@ def _karaka_chain_score(
             blocking_factors.append(f"{karaka}_karaka_weak")
     karaka_score_avg = karaka_score_avg // max(1, len(karaka_planets))
 
-    dasha_lords = {current_mahadasha_lord, current_antardasha_lord}
-    dasha_activation = bool(dasha_lords & ({house_lord} | set(karaka_planets)))
+    # Connection-match dasha activation (dasha_activation.py): a dasha lord
+    # also activates the area by occupying/aspecting the bhava, lording a
+    # secondary house, being the bhava lord's dispositor, or via node agency —
+    # not only by being the lord/karaka itself.
+    activation = assess_dasha_activation(
+        lagna_rasi=lagna_rasi,
+        bhava_house=primary_house,
+        dasha_lords=[current_mahadasha_lord, current_antardasha_lord],
+        natal_planet_rasis=planet_rasis,
+        karakas=karaka_planets,
+        related_houses=chain.get("secondary_houses", ()),
+    )
+    dasha_activation = activation.activated
     if dasha_activation:
         supporting_factors.append("dasha_activates_area")
+        # Surface the connection *kinds* as stable snake_case keys the
+        # frontends can localize (raw "maha:VENUS:lords_bhava" tokens would
+        # render verbatim on the Life Area cards). Node agency collapses to
+        # one key regardless of which planet the node fronts for.
+        seen_kinds: list[str] = []
+        for conn in activation.connections:
+            kind = conn.split(":", 2)[2]
+            if kind.startswith("node_agent_of_"):
+                kind = "node_agent"
+            key = f"dasha_{kind}"
+            if key not in seen_kinds:
+                seen_kinds.append(key)
+        supporting_factors.extend(seen_kinds[:2])
+
+    # Named malefic afflictions on the bhava/lord/karaka (bhava_afflictions.py).
+    affliction = assess_bhava_afflictions(
+        lagna_rasi=lagna_rasi,
+        bhava_house=primary_house,
+        planet_rasis=planet_rasis,
+        karaka=karaka_planets[0] if karaka_planets else None,
+    )
+    for malefic in affliction.malefics_occupying:
+        blocking_factors.append(f"{malefic}_occupies_house")
+    for malefic in affliction.malefics_aspecting:
+        blocking_factors.append(f"{malefic}_aspects_house")
+    if affliction.papa_kartari:
+        blocking_factors.append("papa_kartari_hems_house")
+    if affliction.shubha_kartari:
+        supporting_factors.append("shubha_kartari_protects_house")
 
     transit_support = 50
     for karaka in karaka_planets:
@@ -1289,11 +1358,20 @@ def _karaka_chain_score(
         elif sarva <= 22:
             blocking_factors.append("house_av_weak")
 
+    # STRONG activation keeps the historical +15; a MODERATE (secondary)
+    # connection earns a partial +8 instead of the old all-or-nothing.
+    dasha_bonus = {"STRONG": 15, "MODERATE": 8}.get(activation.strength, 0)
+    # Named afflictions subtract only past the background threshold
+    # (severity ≥ 3) so ordinary malefic scatter doesn't move scores;
+    # shubha kartari adds a small protective credit.
+    affliction_penalty = min(12, (affliction.severity - 2) * 3) if affliction.is_afflicted else 0
     score = (
         bhava_bala_score * 0.35
         + karaka_score_avg * 0.30
         + transit_support * 0.20
-        + (15 if dasha_activation else 0)
+        + dasha_bonus
+        - affliction_penalty
+        + (3 if affliction.shubha_kartari else 0)
     )
     score = max(10, min(95, round(score)))
 

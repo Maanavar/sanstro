@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from datetime import date
 
 from app.calculations.astro import house_from_reference
+from app.calculations.bhava_afflictions import assess_bhava_afflictions
+from app.calculations.dasha_activation import assess_dasha_activation
 from app.calculations.transits import classify_kandaka_cycle
 from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction, house_lord_for_lagna
 from app.services.narrative_engine import PLANET_NAME
@@ -122,22 +124,67 @@ def assess_career_prediction(payload: CareerAssessmentInput) -> LifeAreaPredicti
         score += 6
         supports.append(BiText("வருமான வீடுகள் ஆதரிக்கின்றன.", "Income houses are supportive."))
 
-    karaka_alignment = {"SUN", "SATURN", "MERCURY", "MARS"} & payload.active_dasha_lords
-    if karaka_alignment:
-        score += 8
-        supports.append(
-            BiText(
-                "தொழில் கரக கிரக தசை இணைப்பு உள்ளது.",
-                "Career karaka dasha alignment is active.",
-            )
-        )
+    # ── Named malefic afflictions on the 10th bhava (bhava_afflictions.py) ──
+    affliction = assess_bhava_afflictions(
+        lagna_rasi=payload.lagna_rasi,
+        bhava_house=10,
+        planet_rasis=payload.planets_rasi,
+        karaka="SUN",
+    )
+    if affliction.is_afflicted:
+        involved = sorted({*affliction.malefics_occupying, *affliction.malefics_aspecting})
+        score -= min(8, 2 + 2 * len(involved))
+        challenges.append(BiText(
+            "10ம் வீட்டின் மீது பாப கிரக தாக்கம் உள்ளது — தொழில் முன்னேற்றத்தில் தடை/தாமதம் சாத்தியம்.",
+            f"Malefic influence on the 10th house ({', '.join(involved) or 'papa kartari'}) — obstacles or delay in career growth are possible.",
+        ))
+        factors.append(AstroFactor(
+            key="tenth_house_malefic_influence",
+            status="CAUTION",
+            detail=BiText(
+                ta="10ம் வீடு / அதிபதி மீது பாப கிரக பார்வை-சேர்க்கை கணக்கில் எடுக்கப்பட்டது.",
+                en="Malefic aspect/occupancy on the 10th house and its lord has been factored in.",
+            ),
+        ))
+    elif affliction.shubha_kartari:
+        score += 3
+        supports.append(BiText(
+            "10ம் வீடு சுப கர்த்தரி பாதுகாப்பில் உள்ளது.",
+            "The 10th house is protected by shubha kartari.",
+        ))
 
+    # Connection-match dasha activation (dasha_activation.py): lordship of
+    # 10/2/6/11, occupancy or aspect on the 10th, dispositorship of the 10th
+    # lord, karaka identity, and node agency all connect a dasha lord to
+    # career — not just being the 10th/lagna lord by identity.
+    activation = assess_dasha_activation(
+        lagna_rasi=payload.lagna_rasi,
+        bhava_house=10,
+        dasha_lords=sorted(payload.active_dasha_lords),
+        natal_planet_rasis=payload.planets_rasi,
+        karakas=("SUN", "SATURN", "MERCURY", "MARS"),
+        related_houses=(2, 6, 11),
+    )
+    _kinds = {conn.split(":", 2)[2] for conn in activation.connections}
+    _primary = bool(
+        _kinds & {"lords_bhava", "lords_related_house", "is_karaka", "occupies_bhava"}
+        or any(kind.startswith("node_agent_of_") for kind in _kinds)
+    )
     dasha_support = "WEAK"
-    if tenth_lord in payload.active_dasha_lords or lagna_lord in payload.active_dasha_lords:
+    if lagna_lord in payload.active_dasha_lords or _primary:
         dasha_support = "STRONG"
         score += 10
-    elif karaka_alignment:
+        supports.append(BiText(
+            "தசை அதிபதி தொழில் வீடுகளுடன் நேரடி தொடர்பில் உள்ளார்.",
+            "The dasha lord connects directly to the career houses.",
+        ))
+    elif activation.activated:
         dasha_support = "PARTIAL"
+        score += 5
+        supports.append(BiText(
+            "தசை அதிபதி 10ம் வீட்டுடன் மறைமுக தொடர்பில் உள்ளார் (பார்வை/ஆதிக்கம்).",
+            "The dasha lord connects to the 10th house indirectly (aspect or dispositorship).",
+        ))
 
     saturn_house_from_lagna = house_from_reference(payload.lagna_rasi, payload.transit_saturn_rasi)
     kandaka = classify_kandaka_cycle(saturn_house_from_lagna)

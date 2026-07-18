@@ -5,7 +5,9 @@ from dataclasses import dataclass
 from datetime import date
 
 from app.calculations.astro import house_from_reference
+from app.calculations.bhava_afflictions import assess_bhava_afflictions
 from app.calculations.chart_strength import DEBILITATION_RASI, EXALTATION_RASI, OWN_SIGN_RASI
+from app.calculations.dasha_activation import assess_dasha_activation
 from app.calculations.display_names import planet_en, planet_ta
 from app.calculations.transits import get_jupiter_aspects
 from app.core.age_gate import MARRIAGE_UPPER_AGE, SEVVAI_DOSHAM_SOFTENING_AGE, is_married_settled, is_seeking_marriage
@@ -124,8 +126,20 @@ def _marriage_promise_gate(payload: MarriageAssessmentInput) -> GateResult:
             karaka_available=False,
         )
     seventh_lord_house = house_from_reference(payload.lagna_rasi, seventh_lord_rasi)
-    lord_afflicted = seventh_lord_rasi == DEBILITATION_RASI.get(seventh_lord) or (
-        seventh_lord == "VENUS" and payload.venus_combust
+    # Beyond debilitation/combustion, two or more natural malefics on the
+    # 7th lord (conjunction or classical drishti) count as fatal affliction
+    # for the gate. BLOCKED still additionally requires Venus afflicted in
+    # both D1 and D9, so this stays conservative (D3).
+    affliction = assess_bhava_afflictions(
+        lagna_rasi=payload.lagna_rasi,
+        bhava_house=7,
+        planet_rasis=payload.planets_rasi,
+        karaka="VENUS",
+    )
+    lord_afflicted = (
+        seventh_lord_rasi == DEBILITATION_RASI.get(seventh_lord)
+        or (seventh_lord == "VENUS" and payload.venus_combust)
+        or len(affliction.lord_afflicted_by) >= 2
     )
     d9 = payload.d9_rasi_by_planet or {}
     return assess_promise(
@@ -513,6 +527,60 @@ def assess_marriage_prediction(
             )
         )
 
+    # ── Named malefic afflictions on the 7th bhava / lord / Venus ─────────
+    # (bhava_afflictions.py — previously this path saw no natal drishti at all.)
+    affliction = assess_bhava_afflictions(
+        lagna_rasi=payload.lagna_rasi,
+        bhava_house=7,
+        planet_rasis=payload.planets_rasi,
+        karaka="VENUS",
+    )
+    if affliction.malefics_occupying or affliction.malefics_aspecting:
+        involved = sorted({*affliction.malefics_occupying, *affliction.malefics_aspecting})
+        score -= min(9, 3 * len(involved))
+        factors.append(AstroFactor(
+            key="seventh_house_malefic_influence",
+            status="CAUTION",
+            detail=BiText(
+                ta=f"7ம் வீட்டில் பாப கிரக தாக்கம்: {', '.join(planet_ta(p) for p in involved)} — திருமண விஷயங்களில் தாமதம்/உரசல் சாத்தியம்.",
+                en=f"Malefic influence on the 7th house: {', '.join(planet_en(p) for p in involved)} — can indicate delay or friction in marriage matters.",
+            ),
+        ))
+        challenges.append(BiText(
+            "7ம் வீட்டின் மீது பாப கிரக பார்வை/சேர்க்கை உள்ளது.",
+            "Malefic aspect/occupancy influences the 7th house.",
+        ))
+    if affliction.papa_kartari:
+        score -= 4
+        factors.append(AstroFactor(
+            key="papa_kartari_seventh",
+            status="CAUTION",
+            detail=BiText(
+                ta="7ம் வீடு பாப கர்த்தரி அமைப்பில் உள்ளது — இருபுறமும் பாப கிரகங்கள்.",
+                en="The 7th house is hemmed in papa kartari — malefics on both sides.",
+            ),
+        ))
+        challenges.append(BiText("பாப கர்த்தரி காரணமாக கூடுதல் பொறுமை தேவை.", "Papa kartari calls for extra patience."))
+    elif affliction.shubha_kartari:
+        score += 3
+        supports.append(BiText(
+            "7ம் வீடு சுப கர்த்தரி பாதுகாப்பில் உள்ளது.",
+            "The 7th house is protected by shubha kartari (benefics on both sides).",
+        ))
+    if affliction.karaka_afflicted_by or affliction.lord_afflicted_by:
+        # When Venus itself lords the 7th (Aries/Scorpio lagna) the module
+        # skips the karaka pass and reports Venus's afflictors under
+        # lord_afflicted_by — the display target is still Venus.
+        venus_is_target = bool(affliction.karaka_afflicted_by) or seventh_lord == "VENUS"
+        afflicted_target_ta = "சுக்கிரன்" if venus_is_target else planet_ta(seventh_lord)
+        afflicted_target_en = "Venus" if venus_is_target else planet_en(seventh_lord)
+        afflictors = affliction.karaka_afflicted_by or affliction.lord_afflicted_by
+        score -= min(6, 2 * len(afflictors))
+        challenges.append(BiText(
+            f"{afflicted_target_ta} மீது பாப கிரக பார்வை உள்ளது.",
+            f"{afflicted_target_en} is under malefic aspect ({', '.join(planet_en(p) for p in afflictors)}).",
+        ))
+
     venus_support = 0
     if venus_rasi in OWN_SIGN_RASI["VENUS"] or venus_rasi == EXALTATION_RASI["VENUS"]:
         venus_support += 10
@@ -559,6 +627,39 @@ def assess_marriage_prediction(
                     detail=BiText("D9 சுக்கிரன் உறவு தரத்தை உறுதிப்படுத்துகிறது.", "D9 Venus reinforces relationship quality."),
                 )
             )
+        # 7th lord's own navamsa dignity — the classical D9 confirmation
+        # of the 7th bhava itself, not just of the karaka.
+        d9_seventh_lord = payload.d9_rasi_by_planet.get(seventh_lord)
+        if d9_seventh_lord is not None and seventh_lord != "VENUS":
+            _d9_lord_dignity = _dignity_label(seventh_lord, d9_seventh_lord)
+            if _d9_lord_dignity in {"EXALTED", "OWN"}:
+                score += 4
+                supports.append(BiText(
+                    "7ம் அதிபதி நவாம்சத்தில் வலுவாக உள்ளார்.",
+                    "The 7th lord is strong in navamsa (D9).",
+                ))
+                factors.append(AstroFactor(
+                    key="d9_seventh_lord",
+                    status="SUPPORT",
+                    detail=BiText(
+                        ta=f"நவாம்சத்தில் 7ம் அதிபதி ({planet_ta(seventh_lord)}) சிறந்த நிலையில் — திருமண வாக்கு உறுதிப்படுகிறது.",
+                        en=f"The 7th lord ({planet_en(seventh_lord)}) holds strong dignity in D9 — the marriage promise is reinforced.",
+                    ),
+                ))
+            elif _d9_lord_dignity == "DEBILITATED":
+                score -= 4
+                challenges.append(BiText(
+                    "7ம் அதிபதி நவாம்சத்தில் நீச நிலையில் உள்ளார்.",
+                    "The 7th lord is debilitated in navamsa (D9).",
+                ))
+                factors.append(AstroFactor(
+                    key="d9_seventh_lord",
+                    status="CAUTION",
+                    detail=BiText(
+                        ta=f"நவாம்சத்தில் 7ம் அதிபதி ({planet_ta(seventh_lord)}) நீசம் — D1 பலம் இருந்தாலும் எச்சரிக்கை தேவை.",
+                        en=f"The 7th lord ({planet_en(seventh_lord)}) is debilitated in D9 — read D1 strength with caution.",
+                    ),
+                ))
 
     if payload.d9_rasi_by_planet is not None:
         d9_venus = payload.d9_rasi_by_planet.get("VENUS")
@@ -588,13 +689,35 @@ def assess_marriage_prediction(
                 )
             )
 
+    # Connection-match dasha activation (dasha_activation.py): identity with
+    # the 7th lord / Venus, but also occupying/aspecting the 7th, lording
+    # 2/11, dispositorship of the 7th lord, and Rahu/Ketu node agency.
+    # active_dasha_lords is an unordered set, so grade by best connection
+    # kind rather than by maha/antar position.
+    activation = assess_dasha_activation(
+        lagna_rasi=payload.lagna_rasi,
+        bhava_house=7,
+        dasha_lords=sorted(payload.active_dasha_lords),
+        natal_planet_rasis=payload.planets_rasi,
+        karakas=("VENUS",),
+        related_houses=(2, 11),
+    )
+    _PRIMARY_KINDS = {"lords_bhava", "lords_related_house", "is_karaka", "occupies_bhava"}
+    _kinds = {conn.split(":", 2)[2] for conn in activation.connections}
     dasha_support = "WEAK"
-    if seventh_lord in payload.active_dasha_lords or "VENUS" in payload.active_dasha_lords:
+    if _kinds & _PRIMARY_KINDS or any(kind.startswith("node_agent_of_") for kind in _kinds):
         dasha_support = "STRONG"
         score += 10
         supports.append(BiText("தசை ஆதரவு இணைந்துள்ளது.", "Dasha support is aligned."))
+    elif activation.activated:
+        dasha_support = "PARTIAL"
+        score += 5
+        supports.append(BiText(
+            "தசை அதிபதி 7ம் வீட்டுடன் மறைமுக தொடர்பில் உள்ளார் (பார்வை/ஆதிக்கம்).",
+            "The dasha lord connects to the 7th house indirectly (aspect or dispositorship).",
+        ))
     else:
-        challenges.append(BiText("7ம் அதிபதி அல்லது சுக்கிரன் தசை இல்லை — தசை ஆதரவு குறைவு.", "Current dasha does not include the 7th lord or Venus — dasha support is weak."))
+        challenges.append(BiText("நடப்பு தசைக்கு 7ம் வீட்டுடன் தொடர்பு இல்லை — தசை ஆதரவு குறைவு.", "The current dasha has no connection to the 7th house — dasha support is weak."))
 
     jupiter_aspects = get_jupiter_aspects(payload.transit_jupiter_rasi)
     transit_support = "WEAK"

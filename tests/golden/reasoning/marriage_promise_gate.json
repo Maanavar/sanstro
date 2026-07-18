@@ -25,12 +25,12 @@
     },
     {
       "name": "delayed_marriage",
-      "annotation": "Aries lagna; 7th lord Venus own-sign in Libra (7th, kendra), Venus own-sign in D9 → PASS gate. Dasha excludes Venus/7th-lord → timing not yet active: promised, not now.",
+      "annotation": "Aries lagna; 7th lord Venus own-sign in Libra (7th, kendra), Venus own-sign in D9 → PASS gate. Mercury dasha has NO connection to the 7th complex under connection-match rules (not 7/2/11 lord, not karaka, from Virgo neither occupies nor aspects Libra, and Venus in own sign leaves no dispositor link) → timing not yet active: promised, not now. (2026-07-17: dasha lord changed from Saturn — as 11th lord aspecting Libra from Capricorn, Saturn now legitimately supports marriage timing.)",
       "input": {
         "lagna_rasi": 1,
         "planets_rasi": {"SUN": 5, "MOON": 4, "MARS": 8, "MERCURY": 6, "JUPITER": 12, "VENUS": 7, "SATURN": 10, "RAHU": 2, "KETU": 8},
         "d9_rasi_by_planet": {"VENUS": 2},
-        "active_dasha_lords": ["SATURN"],
+        "active_dasha_lords": ["MERCURY"],
         "transit_jupiter_rasi": 8,
         "transit_venus_rasi": 3,
         "age": 29,

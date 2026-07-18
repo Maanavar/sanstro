@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 
 from app.calculations.astro import house_from_reference, utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
+from app.calculations.dasha_activation import assess_dasha_activation
 from app.calculations.display_names import sani_cycle_en, sani_cycle_ta
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.panchangam import calculate_daily_panchangam
@@ -377,10 +378,19 @@ def _assess_dasha_support(
     scenario: str,
     timeline,
     target_jd: float,
+    *,
+    natal_lagna_rasi: int | None = None,
+    natal_planet_rasis: dict[str, int] | None = None,
 ) -> _DashaAssessment:
     """
     Assess dasha lord alignment for the scenario at the target date.
     Uses both mahadasha and antardasha lords.
+
+    The affinity table is chart-blind (it cannot know that Saturn is *this*
+    lagna's 7th lord), so when natal data is supplied the score also blends
+    a connection-match adjustment (dasha_activation.py): lordship of the
+    scenario houses, occupancy/aspect on the primary bhava, dispositorship,
+    or node agency.
     """
     # Find which dasha period contains the target JD
     maha = timeline.current_mahadasha
@@ -400,6 +410,21 @@ def _assess_dasha_support(
 
     # Blend: 60% maha, 40% antar
     score = round(maha_score * 0.60 + antar_score * 0.40)
+
+    if natal_lagna_rasi is not None and natal_planet_rasis:
+        scenario_houses = _SCENARIO_NATAL_HOUSES.get(scenario, [1])
+        activation = assess_dasha_activation(
+            lagna_rasi=natal_lagna_rasi,
+            bhava_house=scenario_houses[0],
+            dasha_lords=[maha_lord, antar_lord],
+            natal_planet_rasis=natal_planet_rasis,
+            karakas=_SCENARIO_KARAKA.get(scenario, ()),
+            related_houses=scenario_houses[1:],
+        )
+        if activation.strength == "STRONG":
+            score = min(100, score + 8)
+        elif activation.strength == "MODERATE":
+            score = min(100, score + 4)
 
     ta_maha = _PLANET_TA[maha_lord]
     en_maha = _PLANET_EN[maha_lord]
@@ -943,7 +968,13 @@ def evaluate_whatif(
 
     # ── Triple confirmation ──
     natal = _assess_natal_promise(scenario, chart_snapshot.data.planets, natal_lagna_rasi)
-    dasha = _assess_dasha_support(scenario, timeline, target_jd)
+    dasha = _assess_dasha_support(
+        scenario,
+        timeline,
+        target_jd,
+        natal_lagna_rasi=natal_lagna_rasi,
+        natal_planet_rasis={p.graha: p.rasi for p in chart_snapshot.data.planets},
+    )
     gochar = _assess_gochar_support(
         scenario,
         natal_moon.rasi,

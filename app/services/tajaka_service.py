@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import house_from_reference, julian_day_to_utc_datetime, resolve_rasi
+from app.calculations.display_names import planet_en, planet_ta
 from app.calculations.tajaka import calculate_tajaka_chart
 from app.models import BirthProfile, Chart
 from app.models.chart_planet import ChartPlanet
@@ -90,32 +91,48 @@ def get_varshaphala(
     # WI-18 (Doctrine §9): itthasala_raw/isarafa_raw are the "Simplified"
     # same-rasi +-5deg Tajaka approximation (no applying/separating speed
     # order, deeptamsa orbs, or perfection logic) — display-only. They must
-    # NOT feed area_outlook scoring below; only year_lord_house/muntha_house
-    # (unrelated to Tajika) contribute to the score.
+    # NOT feed area_outlook scoring below.
+    #
+    # Each area's karaka (see _AREA_KARAKA) is placed from the SR lagna the
+    # same way year_lord/muntha are above — a kendra/trikona placement lifts
+    # that area, a dusthana placement weighs it down. This is what makes the
+    # 10 areas diverge instead of all repeating the single chart-wide
+    # year_lord_house/muntha_house verdict (a prior bug: _AREA_KARAKA was
+    # defined but never actually read in the scoring loop below).
     area_outlook: list[VarshaphalaAreaOutlook] = []
-    for area in _AREA_KARAKA:
+    for area, karaka in _AREA_KARAKA.items():
+        karaka_rasi = planets_snapshot.bodies[karaka].rasi
+        karaka_house = house_from_reference(tajaka["sr_lagna_rasi"], karaka_rasi)
+
         score = 55
         if year_lord_house in {1, 4, 5, 7, 9, 10, 11}:
-            score += 8
-        elif year_lord_house in {6, 8, 12}:
-            score -= 7
-        if muntha_house in {1, 3, 5, 9, 10, 11}:
             score += 6
+        elif year_lord_house in {6, 8, 12}:
+            score -= 5
+        if muntha_house in {1, 3, 5, 9, 10, 11}:
+            score += 5
         elif muntha_house in {6, 8, 12}:
-            score -= 8
+            score -= 6
+        if karaka_house in {1, 4, 5, 7, 9, 10, 11}:
+            score += 10
+        elif karaka_house in {6, 8, 12}:
+            score -= 9
         score = max(20, min(90, score))
 
+        karaka_ta = planet_ta(karaka)
+        karaka_en = planet_en(karaka)
+
         if score >= 70:
-            ta = "இந்த ஆண்டில் இந்த துறையில் முன்னேற்ற வாய்ப்பு அதிகம்."
-            en = "This year is strongly supportive for progress in this area."
+            ta = f"{karaka_ta} இந்த ஆண்டு {karaka_house}-ஆம் வீட்டில் இருப்பதால் இந்தத் துறையில் முன்னேற்ற வாய்ப்பு அதிகம்."
+            en = f"With {karaka_en} placed in house {karaka_house} this year, this area is strongly supportive for progress."
             months = [2, 4, 6, 9, 11]
         elif score >= 50:
-            ta = "இந்த ஆண்டில் கலப்பு பலன். திட்டமிட்டு சென்றால் முன்னேற்றம் சாத்தியம்."
-            en = "This year gives mixed results; progress is possible with planning."
+            ta = f"{karaka_ta} {karaka_house}-ஆம் வீட்டில் இருப்பதால் கலப்பு பலன் — திட்டமிட்டு சென்றால் முன்னேற்றம் சாத்தியம்."
+            en = f"{karaka_en} in house {karaka_house} gives mixed results this year; progress is possible with planning."
             months = [3, 5, 8, 10]
         else:
-            ta = "இந்த ஆண்டில் கவனமாக செயல்பட வேண்டிய துறை."
-            en = "This area needs caution and disciplined action this year."
+            ta = f"{karaka_ta} {karaka_house}-ஆம் வீட்டில் இருப்பதால் இந்த ஆண்டு கவனமாக செயல்பட வேண்டிய துறை."
+            en = f"With {karaka_en} in house {karaka_house}, this area needs caution and disciplined action this year."
             months = [1, 7, 12]
 
         area_outlook.append(

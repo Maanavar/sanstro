@@ -5,6 +5,7 @@ from datetime import date
 
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga, get_av_bindu
 from app.calculations.astro import house_from_reference
+from app.calculations.dasha_activation import assess_dasha_activation
 from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction, house_lord_for_lagna
 
 
@@ -141,11 +142,35 @@ def assess_wealth_prediction(payload: WealthAssessmentInput) -> LifeAreaPredicti
         )
     )
 
+    # Connection-match dasha activation (dasha_activation.py): 2/11/5
+    # lordship, occupancy or aspect on the 2nd, dispositorship of the 2nd
+    # lord, Jupiter/Venus karaka identity, and node agency all connect a
+    # dasha lord to wealth — not just being the 2nd/11th lord by identity.
+    activation = assess_dasha_activation(
+        lagna_rasi=payload.lagna_rasi,
+        bhava_house=2,
+        dasha_lords=sorted(payload.active_dasha_lords),
+        natal_planet_rasis=payload.planets_rasi,
+        karakas=("JUPITER", "VENUS"),
+        related_houses=(11, 5),
+    )
+    _kinds = {conn.split(":", 2)[2] for conn in activation.connections}
+    _primary = bool(
+        _kinds & {"lords_bhava", "lords_related_house", "is_karaka", "occupies_bhava"}
+        or any(kind.startswith("node_agent_of_") for kind in _kinds)
+    )
     dasha_support = "WEAK"
-    if second_lord in payload.active_dasha_lords or eleventh_lord in payload.active_dasha_lords:
+    if _primary:
         score += 10
         dasha_support = "STRONG"
-        supports.append(BiText("2ம்/11ம் அதிபதி தசை செயலில் உள்ளது.", "2nd/11th lord dasha is active."))
+        supports.append(BiText("தன வீடுகளுடன் தொடர்புடைய தசை செயலில் உள்ளது.", "A dasha connected to the wealth houses is active."))
+    elif activation.activated:
+        score += 5
+        dasha_support = "PARTIAL"
+        supports.append(BiText(
+            "தசை அதிபதி தன வீடுகளுடன் மறைமுக தொடர்பில் உள்ளார் (பார்வை/ஆதிக்கம்).",
+            "The dasha lord connects to the wealth houses indirectly (aspect or dispositorship).",
+        ))
 
     second_house_rasi = ((payload.lagna_rasi + 2 - 2) % 12) + 1
     transit_support = "WEAK"

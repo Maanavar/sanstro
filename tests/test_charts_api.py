@@ -306,6 +306,29 @@ def test_varshaphala_endpoint_returns_annual_outlook(client, birth_profile_paylo
     assert isinstance(data["areaOutlook"], list) and len(data["areaOutlook"]) >= 5
 
 
+def test_varshaphala_area_outlook_scores_vary_by_area(client, birth_profile_payload_factory):
+    # Regression guard: area_outlook previously computed every area from the
+    # same chart-wide year_lord_house/muntha_house pair and ignored
+    # _AREA_KARAKA entirely, so all 10 areas rendered an identical score and
+    # narrative. Each area's own karaka placement must now drive a
+    # per-area difference.
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
+    chart_id = created["data"]["chartId"]
+    response = client.get(f"/api/v1/charts/{chart_id}/varshaphala", params={"year": 2026})
+    assert response.status_code == 200
+    area_outlook = response.json()["data"]["areaOutlook"]
+
+    scores = {row["area"]: row["score"] for row in area_outlook}
+    assert len(set(scores.values())) > 1, f"expected varied scores across areas, got {scores}"
+
+    narratives_en = {row["area"] for row in area_outlook}
+    assert len({row["narrativeEn"] for row in area_outlook}) > 1
+    assert narratives_en == {
+        "CAREER", "RELATIONSHIPS", "HEALTH", "WEALTH", "EDUCATION",
+        "CHILDREN", "PROPERTY", "FOREIGN", "LITIGATION", "SPIRITUALITY",
+    }
+
+
 def test_varshaphala_area_outlook_scores_ignore_itthasala_isarafa_wi18(
     client, birth_profile_payload_factory, monkeypatch,
 ):

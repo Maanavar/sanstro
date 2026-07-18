@@ -20,6 +20,17 @@ const FACTOR_LABELS: Record<string, { ta: string; en: string }> = {
   house_av_weak: { en: "Ashtakavarga bindus weak (<=22)", ta: "அஷ்டகவர்க்க பிந்துக்கள் பலவீனமானவை (<=22)" },
   too_young: { en: "Not yet the typical age for this area", ta: "இந்த பகுதிக்கான பொதுவான வயது இன்னும் வரவில்லை" },
   age_limit: { en: "Past the typical active age", ta: "இந்த பகுதியின் செயலூக்கமான வயது கடந்துவிட்டது" },
+  // Connection-match dasha keys (life_areas_service → dasha_activation.py).
+  dasha_lords_bhava: { en: "Dasha lord owns this house", ta: "தசை அதிபதியே இந்த வீட்டின் அதிபதி" },
+  dasha_lords_related_house: { en: "Dasha lord owns a supporting house", ta: "தசை அதிபதி துணை வீட்டின் அதிபதி" },
+  dasha_is_karaka: { en: "Dasha lord is the area karaka", ta: "தசை அதிபதியே இந்த பகுதியின் காரகன்" },
+  dasha_occupies_bhava: { en: "Dasha lord sits in this house", ta: "தசை அதிபதி இந்த வீட்டில் அமர்ந்துள்ளார்" },
+  dasha_aspects_bhava: { en: "Dasha lord aspects this house", ta: "தசை அதிபதியின் பார்வை இந்த வீட்டின் மீது உள்ளது" },
+  dasha_dispositor_of_bhava_lord: { en: "House lord sits in the dasha lord's sign", ta: "வீட்டு அதிபதி தசை அதிபதியின் ராசியில் உள்ளார்" },
+  dasha_node_agent: { en: "Rahu/Ketu dasha delivers a connected planet's results", ta: "ராகு/கேது தசை தொடர்புடைய கிரகத்தின் பலனை தருகிறது" },
+  // Named affliction keys (life_areas_service → bhava_afflictions.py).
+  papa_kartari_hems_house: { en: "Papa kartari — malefics hem this house", ta: "பாப கர்த்தரி — இரு பக்கமும் பாப கிரகங்கள்" },
+  shubha_kartari_protects_house: { en: "Shubha kartari — benefics protect this house", ta: "சுப கர்த்தரி — இரு பக்கமும் சுப கிரகங்கள்" },
 };
 
 function humaniseFactorKey(key: string, lang: Lang): string {
@@ -41,6 +52,10 @@ function humaniseFactorKey(key: string, lang: Lang): string {
         ? (lang === "ta" ? "கிரகநகர்வு ஆதரவு" : "transit supportive")
         : suffix === "transit_difficult"
         ? (lang === "ta" ? "கிரகநகர்வு சவால்" : "transit difficult")
+        : suffix === "occupies_house"
+        ? (lang === "ta" ? "இந்த வீட்டில் அமர்வு" : "occupies this house")
+        : suffix === "aspects_house"
+        ? (lang === "ta" ? "இந்த வீட்டின் மீது பார்வை" : "aspects this house")
         : suffix.replaceAll("_", " ");
     return `${planet}: ${suffixLabel}`;
   }

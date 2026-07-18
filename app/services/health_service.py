@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from app.calculations.astro import house_from_reference
+from app.calculations.dasha_activation import assess_dasha_activation
 from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction, house_lord_for_lagna
 
 
@@ -142,11 +143,28 @@ def assess_health_prediction(payload: HealthAssessmentInput) -> LifeAreaPredicti
         )
     )
 
+    # Connection-match (dasha_activation.py), caution direction for health:
+    # a dasha lord lording/occupying the 6th-8th complex (or acting as a
+    # node agent of one) marks a care period — identity alone missed
+    # dashas of planets standing in the dusthanas. Aspect-only contact is
+    # deliberately NOT treated as a caution trigger (too broad).
+    dusthana_activation = assess_dasha_activation(
+        lagna_rasi=payload.lagna_rasi,
+        bhava_house=6,
+        dasha_lords=sorted(payload.active_dasha_lords),
+        natal_planet_rasis=payload.planets_rasi,
+        related_houses=(8,),
+    )
+    _dusthana_kinds = {conn.split(":", 2)[2] for conn in dusthana_activation.connections}
+    _dusthana_hit = bool(
+        _dusthana_kinds & {"lords_bhava", "lords_related_house", "occupies_bhava"}
+        or any(kind.startswith("node_agent_of_") for kind in _dusthana_kinds)
+    )
     dasha_support = "STRONG"
-    if sixth_lord in payload.active_dasha_lords or eighth_lord in payload.active_dasha_lords:
+    if _dusthana_hit:
         score -= 8
         dasha_support = "WEAK"
-        challenges.append(BiText("6/8ம் அதிபதி தசை காலம் கவனம் தேவை.", "6th/8th lord dasha calls for extra care."))
+        challenges.append(BiText("6/8ம் வீடு தொடர்புடைய தசை காலம் கவனம் தேவை.", "A dasha connected to the 6th/8th houses calls for extra care."))
     elif lagna_lord in payload.active_dasha_lords:
         score += 6
         supports.append(BiText("லக்ன அதிபதி தசை மீட்பு ஆதரவு தரும்.", "Lagna-lord dasha supports recovery."))
