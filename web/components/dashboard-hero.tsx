@@ -566,7 +566,9 @@ export function DashboardHero(props: DashboardHeroProps) {
 
       {/* Daily principle strip — rotates by day of week */}
       {(() => {
-        const principle = DAILY_PRINCIPLES[new Date(selectedDate).getDay()] ?? DAILY_PRINCIPLES[0];
+        // Noon anchor: bare "YYYY-MM-DD" parses as UTC midnight, so .getDay()
+        // returns the previous weekday for viewers west of UTC.
+        const principle = DAILY_PRINCIPLES[new Date(`${selectedDate}T12:00:00`).getDay()] ?? DAILY_PRINCIPLES[0];
         return (
           <div className="cd-principle-strip" style={{
             padding: "8px 20px",
