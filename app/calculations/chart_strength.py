@@ -588,8 +588,20 @@ def compute_natal_planet_score(
     if is_gandanta(natal_longitude):
         shadbala -= 10.0
 
-    if is_retrograde and planet not in {"SUN", "MOON", "RAHU", "KETU"}:
-        shadbala += 8.0
+    # NOTE: retrogression is deliberately NOT rewarded again here.
+    #
+    # This block used to add a flat +8 for a retrograde planet, on top of
+    # `_chesta_bala_score` already returning its maximum (1.0 vs 0.6 for a
+    # direct planet — worth roughly +6 through the 0.15 chesta weight). Chesta
+    # Bala *is* the classical "vakra graha is strong" rule; the flat bonus
+    # double-counted it, making retrogression worth ~+14 against a maximum
+    # combustion penalty of -22.
+    #
+    # The visible consequence: a combust AND retrograde planet netted only
+    # about -8 and could still surface as the chart's strongest — which is how
+    # a combust, retrograde, 6th-lord Mercury came to be presented as the
+    # strongest graha in the chart. An astrologer review flagged the output as
+    # not defensible (2026-07-18); this is the mechanism behind it.
 
     if planetary_wars and planet in planetary_wars:
         shadbala -= 15.0

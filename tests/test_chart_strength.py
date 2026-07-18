@@ -166,3 +166,41 @@ def test_compute_strength_breakdown_includes_avastha_labels():
     assert breakdown["baladi"] == _baladi_avastha(20.0, 1)
     assert breakdown["jagradadi"] == _jagradadi_avastha(20.0, 1)
     assert breakdown["deeptadi"] == "SWASTHA"
+
+
+def test_retrogression_is_counted_once_via_chesta_bala_only():
+    """Retrogression must be worth exactly its Chesta Bala margin — no more.
+
+    Chesta Bala already encodes the classical "vakra graha is strong" rule
+    (`_chesta_bala_score` returns its 1.0 maximum for a retrograde planet
+    against a 0.6 direct baseline). A flat +8 bonus used to be added on top of
+    that, so retrogression was worth roughly +14 on a scale whose worst
+    combustion penalty is -22 — enough for a deeply combust planet to still
+    read as a chart's strongest. An astrologer review caught the symptom
+    (2026-07-18); this locks the arithmetic.
+
+    Asserted as a bound rather than an exact number so the test survives a
+    deliberate re-weighting of the chesta component, while still failing if a
+    second, independent retrograde bonus is ever reintroduced.
+    """
+    chesta_weight = 0.15
+    chesta_margin = (
+        _chesta_bala_score("MERCURY", is_retrograde=True, speed_ratio=None)
+        - _chesta_bala_score("MERCURY", is_retrograde=False, speed_ratio=None)
+    ) * chesta_weight * 100.0
+
+    def score(is_retrograde: bool) -> int:
+        return compute_natal_planet_score(
+            planet="MERCURY",
+            natal_rasi=4,
+            natal_longitude=95.0,
+            natal_lagna_rasi=1,
+            sun_longitude=15.0,      # far from Mercury: no combustion in play
+            is_retrograde=is_retrograde,
+        )
+
+    observed = score(True) - score(False)
+    assert observed == pytest.approx(chesta_margin, abs=1.0), (
+        f"retrograde is worth {observed} points but Chesta Bala alone accounts "
+        f"for {chesta_margin:.1f} — a second retrograde bonus has been added back"
+    )
