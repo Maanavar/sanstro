@@ -13,7 +13,7 @@ import {
   getWhat,
   buildWhyText,
   strengthBand,
-  doshamSeverityScore,
+  doshamSeverityBand,
   getDoshamPowerContext,
   getYogaPowerContext,
   resolveYogaKey,
@@ -348,7 +348,7 @@ function NovaDoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: La
   const isActiveAndPresent = dosham.isPresent && !dosham.isCancelled;
   const isCancelledAndPresent = dosham.isPresent && dosham.isCancelled;
   const color = isActiveAndPresent ? "var(--color-low)" : isCancelledAndPresent ? "var(--color-high)" : "var(--color-faint)";
-  const severityScore = doshamSeverityScore(dosham);
+  const severityBand = doshamSeverityBand(dosham, lang);
 
   const statusLabel = !dosham.isPresent
     ? (lang === "ta" ? "இல்லை" : "Absent")
@@ -405,12 +405,12 @@ function NovaDoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: La
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
           <span style={{ fontSize: "10px", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px" }}>{statusLabel}</span>
-          {severityScore !== null && (
+          {severityBand !== null && (
             <span
               title={lang === "ta" ? "தீவிரம் — ஜாதக பலம் + தசை செயல்பாடு ஆகியவற்றின் அடிப்படையில்" : "Severity — based on natal strength + current Dasha activation"}
               style={{ fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "999px", background: `${color}14`, color, border: `1px solid ${color}40`, flexShrink: 0 }}
             >
-              {severityScore}/100
+              {severityBand}
             </span>
           )}
           <NovaChevron open={open} />

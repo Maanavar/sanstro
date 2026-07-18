@@ -606,6 +606,40 @@ def test_sunapha_excludes_nodes_and_mandhi_wi15():
     assert kemadruma.is_present is True
 
 
+def test_gaja_kesari_and_kemadruma_are_never_both_operating():
+    """Classical invariant, swept over every Moon/Jupiter pair.
+
+    Jupiter in a kendra from the Moon is simultaneously what FORMS Gaja Kesari
+    and what DESTROYS Kemadruma (a graha in a kendra from the Moon is a full
+    bhanga — BPHS, Phaladeepika). So no chart can ever have both operating.
+
+    The engine previously graded that bhanga to PARTIAL while leaving
+    ``is_present`` True, and the UI rendered ``isPresent ? "Present" : "Absent"``
+    — so charts reported both yogas as active at once. An astrologer reviewing
+    the output caught it immediately (2026-07-18).
+
+    "Operating" is asserted the way the reader sees it, not the way the struct
+    stores it: a yoga that formed but was annulled reads as cancelled, which is
+    `is_present and not (cancellation_factors and strength == "WEAK")` — the
+    same predicate as `yogaReadingStatus` in packages/shared/src/yogaDisplay.ts.
+    """
+    def operating(result) -> bool:
+        cancelled = bool(result.cancellation_factors) and result.strength == "WEAK"
+        return result.is_present and not cancelled
+
+    for moon_rasi in range(1, 13):
+        for jupiter_rasi in range(1, 13):
+            # Keep the 2nd/12th from the Moon clear of other grahas so Kemadruma's
+            # own precondition holds and the bhanga is the only thing deciding it.
+            planets = {"MOON": moon_rasi, "JUPITER": jupiter_rasi}
+            gaja = detect_gaja_kesari(planets, moon_rasi)
+            kema = detect_kemadruma_yoga(planets, moon_rasi, lagna_rasi=1)
+            assert not (operating(gaja) and operating(kema)), (
+                f"Moon in rasi {moon_rasi}, Jupiter in rasi {jupiter_rasi}: "
+                f"Gaja Kesari and Kemadruma both read as operating."
+            )
+
+
 def test_sunapha_excludes_mandhi_upagraha_wi15():
     # Mandhi (an upagraha, not a graha) in the 12th from Moon must not form
     # Anapha either.

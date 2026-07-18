@@ -18,6 +18,8 @@ import {
   resolveYogaKey,
   strengthBand,
   YOGA_REMEDIES,
+  yogaReadingStatus,
+  yogaReadingStatusLabel,
 } from "./dashboard-yoga-dosham-panel";
 import { NovaAskEntryChip, NovaAttributeBand, NovaDetailBreadcrumb, NovaDetailHero, NovaKicker, novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 
@@ -120,11 +122,15 @@ function wrapIndex(i: number, length: number): number {
 }
 
 export function yogaStatusLabel(y: ChartYogaInsight, lang: Lang): string {
-  return y.isPresent ? (lang === "ta" ? "உள்ளது" : "Present") : (lang === "ta" ? "இல்லை" : "Absent");
+  return yogaReadingStatusLabel(yogaReadingStatus(y), lang);
 }
 
 export function yogaStatusColor(y: ChartYogaInsight): string {
-  if (!y.isPresent) return "var(--color-faint)";
+  const status = yogaReadingStatus(y);
+  if (status === "ABSENT") return "var(--color-faint)";
+  // Cancelled reads closer to absent than to present — the yoga formed, but
+  // bhanga annulled it, so it must not carry a live yoga's colour weight.
+  if (status === "CANCELLED") return "var(--color-muted)";
   if (y.strength === "STRONG") return "var(--color-high)";
   if (y.strength === "PARTIAL") return "var(--color-accent-strong)";
   return "var(--color-muted)";
@@ -239,7 +245,13 @@ export function DashboardExploreYogamNova({
   const prevYoga = yogas[wrapIndex(viewedIndex - 1, yogas.length)];
   const nextYoga = yogas[wrapIndex(viewedIndex + 1, yogas.length)];
 
-  const remedy = yoga.isPresent ? resolveYogaKey(YOGA_REMEDIES, yoga.name) : undefined;
+  // A cancelled yoga is not an operating yoga: its remedies, its "what it can
+  // do for you now" context and its "Present in your chart" badge must all go
+  // quiet, or the page contradicts the cancellation it just printed.
+  const readingStatus = yogaReadingStatus(yoga);
+  const operating = readingStatus === "PRESENT";
+
+  const remedy = operating ? resolveYogaKey(YOGA_REMEDIES, yoga.name) : undefined;
 
   const whatText = getWhat(
     yoga.name,
@@ -249,7 +261,7 @@ export function DashboardExploreYogamNova({
     { ta: yoga.effectTa, en: yoga.effectEn },
   );
   const whyText = buildWhyText(yoga.conditionsMet, yoga.cancellationFactors, yoga.isPresent, false, yoga.dashaActivated, lang);
-  const powerText = yoga.isPresent ? getYogaPowerContext(yoga.name, yoga.strength, yoga.dashaActivated, lang) : null;
+  const powerText = operating ? getYogaPowerContext(yoga.name, yoga.strength, yoga.dashaActivated, lang) : null;
 
   const ownStatusLabel = yogaStatusLabel(yoga, lang);
   const ownStatusColor = yogaStatusColor(yoga);
@@ -282,9 +294,11 @@ export function DashboardExploreYogamNova({
         kicker={lang === "ta" ? "யோக நூலகம்" : "Yogam library"}
         badge={
           <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "11.5px", fontWeight: 700, color: ownStatusColor, background: `${ownStatusColor}18`, border: `1px solid ${ownStatusColor}55`, borderRadius: "999px", padding: "5px 12px" }}>
-            {yoga.isPresent
+            {readingStatus === "PRESENT"
               ? `${lang === "ta" ? "உங்கள் ஜாதகத்தில் உள்ளது" : "Present in your chart"} · ${strengthBand(yoga.strength, true, lang)}`
-              : (lang === "ta" ? "உங்கள் ஜாதகத்தில் இல்லை" : "Not present in your chart")}
+              : readingStatus === "CANCELLED"
+                ? (lang === "ta" ? "அமைந்தது; நிவர்த்தியால் பலனற்றது" : "Formed, but cancelled by bhanga")
+                : (lang === "ta" ? "உங்கள் ஜாதகத்தில் இல்லை" : "Not present in your chart")}
           </span>
         }
         titleMain={displayName(yoga.name, "en")}

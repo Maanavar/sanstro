@@ -65,6 +65,49 @@ export function resolveYogaKey<T>(dict: Record<string, T>, name: string): T | un
   return dict[key] ?? dict[key.replace("GAJA_KESARI", "GAJA_KESARI_YOGA")];
 }
 
+/**
+ * Tri-state reading status for a yoga.
+ *
+ * `isPresent` alone is NOT a display status. It answers "did the defining
+ * geometry form?", which is a different question from "does this yoga operate
+ * in the reading?". A yoga whose geometry formed but which classical bhanga
+ * rules then annul must read as CANCELLED, not PRESENT.
+ *
+ * Rendering `isPresent ? "Present" : "Absent"` (the previous behaviour) threw
+ * the engine's own cancellation away and produced readings no jyotishi would
+ * sign: Gaja Kesari and Kemadruma both "Present" on one chart, when Jupiter in
+ * a kendra from the Moon is simultaneously what forms the first and what
+ * destroys the second.
+ *
+ * Kept in `packages/shared` so web and mobile resolve status identically.
+ */
+export type YogaReadingStatus = "PRESENT" | "CANCELLED" | "ABSENT";
+
+export function yogaReadingStatus(y: {
+  isPresent: boolean;
+  strength: string;
+  cancellationFactors?: string[] | null;
+}): YogaReadingStatus {
+  if (!y.isPresent) return "ABSENT";
+  const cancelled = (y.cancellationFactors?.length ?? 0) > 0;
+  // WEAK *with* bhanga factors means the annulment carried; WEAK on its own
+  // just means a formed-but-feeble yoga, which still reads as present.
+  if (cancelled && y.strength === "WEAK") return "CANCELLED";
+  return "PRESENT";
+}
+
+export function yogaReadingStatusLabel(
+  status: YogaReadingStatus,
+  lang: YogaDisplayLang,
+): string {
+  if (status === "ABSENT") return lang === "ta" ? "இல்லை" : "Absent";
+  if (status === "CANCELLED") return lang === "ta" ? "நிவர்த்தி" : "Cancelled";
+  // "உண்டு" over "உள்ளது" for the standalone chip — native-Tamil review,
+  // 2026-07-18 (T-01). The longer sentence form elsewhere keeps "உள்ளது",
+  // where it reads naturally as part of a clause.
+  return lang === "ta" ? "உண்டு" : "Present";
+}
+
 export function displayName(name: string, lang: YogaDisplayLang): string {
   const entry = resolveYogaKey(YOGA_DISPLAY, name);
   if (!entry) return name;

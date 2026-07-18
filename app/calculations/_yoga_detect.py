@@ -544,14 +544,23 @@ def detect_kemadruma_yoga(planets: dict[str, int], moon_rasi: int, lagna_rasi: i
     ]
     cancellation_factors = [name for name, ok in cancellation_checks if present and ok]
 
+    # `planet_kendra_from_moon` is a FULL bhanga on its own, not a graded one.
+    # Classical authority is explicit and unconditional here (BPHS, Phaladeepika):
+    # a graha in a kendra from the Moon destroys Kemadruma outright. Grading it
+    # to PARTIAL produced a self-contradicting reading — Jupiter in a kendra from
+    # the Moon forms Gaja Kesari, so the chart reported Gaja Kesari and Kemadruma
+    # as simultaneously active, which cannot happen. The remaining three factors
+    # stay graded (1 -> PARTIAL, 2+ -> WEAK); they are mitigating, not annulling.
+    full_bhanga = "planet_kendra_from_moon" in cancellation_factors
+
     if not present:
         strength = "WEAK"
-    elif not cancellation_factors:
-        strength = "STRONG"
+    elif full_bhanga or len(cancellation_factors) >= 2:
+        strength = "WEAK"
     elif len(cancellation_factors) == 1:
         strength = "PARTIAL"
     else:
-        strength = "WEAK"
+        strength = "STRONG"
 
     return YogaResult(
         name="KEMADRUMA_YOGA",

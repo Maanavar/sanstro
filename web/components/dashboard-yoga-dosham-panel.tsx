@@ -4,13 +4,19 @@ import React, { useState } from "react";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ChartYogaInsight, ChartDoshamInsight } from "@/lib/types";
-import { YOGA_DISPLAY, resolveYogaKey, displayName } from "@vinaadi/shared/yogaDisplay";
+import {
+  YOGA_DISPLAY,
+  resolveYogaKey,
+  displayName,
+  yogaReadingStatus,
+  yogaReadingStatusLabel,
+} from "@vinaadi/shared/yogaDisplay";
 
 // ── Display name maps ────────────────────────────────────────────────────────
 // These now live in @vinaadi/shared so mobile renders the same names. Re-exported
 // here because a dozen web call sites already import them from this module.
 
-export { YOGA_DISPLAY, resolveYogaKey, displayName };
+export { YOGA_DISPLAY, resolveYogaKey, displayName, yogaReadingStatus, yogaReadingStatusLabel };
 
 // ── Human-readable marker labels ─────────────────────────────────────────────
 // Used only for bullet lists — write them as complete short sentences
@@ -951,12 +957,38 @@ export function doshamSeverityScore(dosham: ChartDoshamInsight): number | null {
   return Math.max(0, Math.min(100, base));
 }
 
+/**
+ * Qualitative severity band — what this data can actually support.
+ *
+ * `doshamSeverityScore` above is a step function over a THREE-level enum
+ * (`strength`) plus two booleans, so it can only ever emit about eight distinct
+ * values. Rendering one of them as "12/100" implied a continuous, computed
+ * precision that does not exist, and every mitigated-weak dosham in a chart
+ * landed on exactly 12 — which read to a reviewing astrologer as an
+ * uncomputed placeholder (2026-07-18). It was not a placeholder; it was real
+ * arithmetic presented at a resolution its inputs never had.
+ *
+ * The band below carries the same information without the false precision. The
+ * numeric function is kept (it still drives the meter width, where relative
+ * length is meaningful and an exact readout is not).
+ */
+export function doshamSeverityBand(
+  dosham: ChartDoshamInsight,
+  lang: Lang,
+): string | null {
+  const score = doshamSeverityScore(dosham);
+  if (score === null) return null;
+  if (score >= 70) return lang === "ta" ? "தீவிரம்: அதிகம்" : "High intensity";
+  if (score >= 40) return lang === "ta" ? "தீவிரம்: மிதமானது" : "Moderate intensity";
+  return lang === "ta" ? "தீவிரம்: குறைவு" : "Low intensity";
+}
+
 function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }) {
   const [open, setOpen] = useState(false);
   const isActiveAndPresent = dosham.isPresent && !dosham.isCancelled;
   const isCancelledAndPresent = dosham.isPresent && dosham.isCancelled;
   const color = isActiveAndPresent ? "var(--planet-saturn)" : isCancelledAndPresent ? "var(--chart-d9-active)" : "var(--color-faint)";
-  const severityScore = doshamSeverityScore(dosham);
+  const severityBand = doshamSeverityBand(dosham, lang);
 
   const statusLabel =
     !dosham.isPresent
@@ -1012,12 +1044,12 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
           <span style={{ fontSize: "0.625rem", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2_5)" }}>
             {statusLabel}
           </span>
-          {severityScore !== null && (
+          {severityBand !== null && (
             <span
               title={lang === "ta" ? "தீவிரம் — ஜாதக பலம் + தசை செயல்பாடு ஆகியவற்றின் அடிப்படையில்" : "Severity — based on natal strength + current Dasha activation"}
               style={{ fontSize: "0.625rem", fontWeight: 700, padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", background: `${color}14`, color, border: `1px solid ${color}40`, flexShrink: 0 }}
             >
-              {severityScore}/100
+              {severityBand}
             </span>
           )}
           <span style={{ color: "var(--color-faint)" }} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" width="12" height="12" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms ease" }}><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
