@@ -35,7 +35,6 @@ import { StreakChip } from "./streak-chip";
 import { useEveningPreview } from "@/hooks/useEveningPreview";
 
 import { DashboardTodayRibbonNova } from "./dashboard-today-ribbon-nova";
-import { DashboardTodayDecideNova } from "./dashboard-today-decide-nova";
 import { DashboardTodayActivityBoardNova } from "./dashboard-today-activity-board-nova";
 import { DashboardTodayOneLinersNova, DashboardTodayGlanceRowNova } from "./dashboard-today-glance-nova";
 import { MorningGuidanceCard } from "./morning-guidance-card";
@@ -134,7 +133,6 @@ function formatDuration(ms: number, lang: Lang): string {
 
 export function DashboardTodayTabNova({
   lang,
-  activeLifeMode,
   birthDisplayName,
   selectedDate,
   todayDate,
@@ -580,26 +578,21 @@ export function DashboardTodayTabNova({
         </div>
       )}
 
-      {/* ===== 2. "Is today okay for…?" promoted decision strip. ===== */}
-      <DashboardTodayDecideNova
+      {/* ===== 2. "Is today okay for…?" — one activity-timing card. This was
+          two sections (a four-pill decision strip above an eleven-row board)
+          that asked the same question of the same engine and repeated four of
+          the same activities under different labels; they are now one. ===== */}
+      <DashboardTodayActivityBoardNova
+        board={personalDailyGuidance?.activityBoard}
         lang={lang}
         chartId={activeChartId || null}
         selectedDate={selectedDate}
-        activeLifeMode={activeLifeMode}
         bestWindow={bestWindow}
         now={now}
         isToday={isToday}
         timeZone={panchangamTimezone}
         onOpenAskVinaadi={onOpenAskVinaadi}
-      />
-
-      {/* ===== 2b. The same question the Decide strip answers for one chosen
-          activity, answered for all of them at once — "what should I do
-          today?" is how people actually arrive, rather than already knowing
-          which activity to ask about. ===== */}
-      <DashboardTodayActivityBoardNova
-        board={personalDailyGuidance?.activityBoard}
-        lang={lang}
+        onGoToCalendar={onGoToCalendar}
       />
 
       {/* ===== 3. Timeline spine: sunrise-to-sunrise, panchangam + horai +
