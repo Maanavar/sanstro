@@ -515,6 +515,28 @@ def test_d9_dignity_bonus_applies_when_d1_is_average():
     assert with_d9_dignity > baseline
 
 
+def test_d9_debilitation_penalises_a_rasi_exalted_planet():
+    """Exalted in Rasi, neecha in Navamsa must score below the same placement
+    with a neutral D9. This is the case the D9 chart exists to catch, and it
+    previously scored identically because only the bonus half was applied."""
+    from app.calculations.chart_strength import compute_natal_planet_score
+    # Jupiter exalted in Cancer (rasi 4), debilitated in Capricorn (rasi 10).
+    neutral_d9 = compute_natal_planet_score("JUPITER", 4, 4 * 30 + 5.0, 1, 0.0, False, d9_rasi=2)
+    neecha_d9 = compute_natal_planet_score("JUPITER", 4, 4 * 30 + 5.0, 1, 0.0, False, d9_rasi=10)
+    assert neecha_d9 < neutral_d9
+
+
+def test_d9_debilitation_is_exempt_when_vargottama():
+    """Vargottama holds the sign across D1/D9, which is stabilising even in a
+    debilitation sign — it must not be charged the neecha penalty as well."""
+    from app.calculations.chart_strength import compute_natal_planet_score
+    plain = compute_natal_planet_score("JUPITER", 10, 10 * 30 + 5.0, 1, 0.0, False, d9_rasi=10)
+    vargottama = compute_natal_planet_score(
+        "JUPITER", 10, 10 * 30 + 5.0, 1, 0.0, False, is_vargottama=True, d9_rasi=10
+    )
+    assert vargottama > plain
+
+
 def test_benefic_aspects_improve_natal_strength():
     from app.calculations.chart_strength import compute_natal_planet_score
     malefic_pressure = compute_natal_planet_score("JUPITER", 2, 2 * 30 + 5.0, 1, 0.0, False, False, 0, 2)

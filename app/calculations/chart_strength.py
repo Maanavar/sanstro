@@ -17,6 +17,16 @@ from app.calculations.transits import combustion_severity, is_cazimi, is_gandant
 CAZIMI_BONUS = 10.0
 MAX_COMBUSTION_PENALTY = 22.0
 
+# Navamsa (D9) dignity modifiers on the same 0-100 composite scale. The bonus
+# is long-standing; the penalty was added 2026-07-18 to close a one-sided
+# reading (see ``_d9_dignity_tier``). Magnitudes are kept symmetric as the
+# conservative default — a jyotishi may well want the penalty weighted heavier
+# than the bonus, since "exalted in Rasi, neecha in Navamsa" is classically
+# read as a severe loss of promise rather than a mild one. Flagged for
+# astrologer confirmation before the weighting is treated as settled.
+D9_DIGNITY_BONUS = 5.0
+D9_DEBILITATION_PENALTY = 5.0
+
 # Exaltation rasi (1-based)
 EXALTATION_RASI: dict[str, int] = {
     "SUN": 1, "MOON": 2, "MARS": 10, "MERCURY": 6,
@@ -102,11 +112,33 @@ NAISARGIKA_BALA: dict[str, float] = {
 }
 
 
-def _has_d9_dignity(planet: str, d9_rasi: int) -> bool:
-    return (
+def _d9_dignity_tier(planet: str, d9_rasi: int) -> int:
+    """Navamsa dignity as a signed tier: +1 dignified, -1 debilitated, 0 neutral.
+
+    Navamsa modulates the Rasi promise in *both* directions, but only the
+    strengthening half was ever applied here. That left the classical case the
+    D9 chart exists to catch — a planet exalted in Rasi but neecha in Navamsa,
+    "exalted in name, powerless in effect" — scoring as though D9 were neutral.
+    The -1 tier closes that gap.
+    """
+    if (
         d9_rasi in OWN_SIGN_RASI.get(planet, frozenset())
         or d9_rasi == EXALTATION_RASI.get(planet)
-    )
+    ):
+        return 1
+    if d9_rasi == DEBILITATION_RASI.get(planet):
+        return -1
+    return 0
+
+
+def _has_d9_dignity(planet: str, d9_rasi: int) -> bool:
+    return _d9_dignity_tier(planet, d9_rasi) > 0
+
+
+def d9_dignity_tier(planet: str, d9_rasi: int) -> int:
+    """Public wrapper — the prose layer needs the same signed tier the scorer
+    uses, so the sentence a reader sees and the number they see cannot disagree."""
+    return _d9_dignity_tier(planet, d9_rasi)
 
 
 def _dignity_score(planet: str, natal_rasi: int, natal_longitude: float) -> int:
@@ -267,8 +299,15 @@ def _kala_bala_score(
     else:
         paksha = 0.7
 
-    d9_bonus = 0.2 if (is_vargottama or (d9_rasi is not None and _has_d9_dignity(planet, d9_rasi))) else 0.0
-    return min(1.0, (natha * 0.50 + paksha * 0.30) + d9_bonus * 0.20)
+    # Signed: a D9-debilitated planet loses the same margin a D9-dignified one
+    # gains. Vargottama holds the tier at +1 even in a debilitation sign — the
+    # sign repeating across D1/D9 is classically stabilising, so it is not also
+    # charged the neecha penalty.
+    tier = 0 if d9_rasi is None else _d9_dignity_tier(planet, d9_rasi)
+    if is_vargottama:
+        tier = max(tier, 1)
+    d9_bonus = 0.2 * tier
+    return max(0.0, min(1.0, (natha * 0.50 + paksha * 0.30) + d9_bonus * 0.20))
 
 
 def _chesta_bala_score(planet: str, is_retrograde: bool, speed_ratio: float | None) -> float:
@@ -512,8 +551,19 @@ def compute_natal_planet_score(
     if is_vargottama:
         shadbala += 4.0
 
-    if d9_rasi is not None and dignity == 50 and _has_d9_dignity(planet, d9_rasi):
-        shadbala += 5.0
+    if d9_rasi is not None:
+        d9_tier = _d9_dignity_tier(planet, d9_rasi)
+        # The bonus stays gated on a neutral natal dignity: D9 strength is a
+        # tie-breaker for an otherwise-average planet, not a top-up for one
+        # already exalted in Rasi.
+        if d9_tier > 0 and dignity == 50:
+            shadbala += D9_DIGNITY_BONUS
+        # The penalty is deliberately NOT gated on dignity. Gating it would
+        # re-open the exact hole this closes: the case that most needs the
+        # correction is a Rasi-exalted (dignity == 100) planet sitting neecha
+        # in Navamsa. Vargottama is exempt, as in the Kala Bala branch above.
+        elif d9_tier < 0 and not is_vargottama:
+            shadbala -= D9_DEBILITATION_PENALTY
 
     if planet not in {"SUN", "RAHU", "KETU"}:
         if is_cazimi(planet, natal_longitude, sun_longitude):

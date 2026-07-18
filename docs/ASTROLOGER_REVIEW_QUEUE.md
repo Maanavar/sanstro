@@ -27,6 +27,32 @@ decision inline and move it to "Resolved".
 - Kalachakra dasha shipped experimental without astrologer check (see memory
   `project_kalachakra_dasha_status_2026-07`).
 
+### 2026-07-18 · D9 debilitation penalty weighting
+
+- **Where:** `app/calculations/chart_strength.py::_d9_dignity_tier`,
+  `D9_DEBILITATION_PENALTY`, and its two call sites (Kala Bala `d9_bonus`,
+  the Shadbala D9 branch in `compute_natal_planet_score`).
+- **Was:** Navamsa dignity was read one-sidedly — own-sign/exaltation in D9
+  granted a bonus, but debilitation in D9 carried no penalty at all. A planet
+  exalted in Rasi and neecha in Navamsa therefore scored identically to one
+  with a neutral D9, which is the single case the D9 chart is most relied on
+  to catch.
+- **Fixed:** the tier is now signed (+1/0/-1). The bonus stays gated on a
+  neutral natal dignity (D9 as tie-breaker); the penalty is deliberately
+  ungated, because the case needing correction is a Rasi-exalted planet.
+  Vargottama is exempt from the penalty — the sign repeating across D1/D9 is
+  read as stabilising even in a debilitation sign.
+- **Needs a jyotishi's call on:** the **magnitude**. Bonus and penalty are
+  currently symmetric at 5.0 on the 0-100 composite scale, which nets about
+  -6 points for a Rasi-exalted/D9-neecha planet. That is the conservative
+  default, not a sourced weighting — classical usage treats "exalted in name,
+  powerless in Navamsa" as a severe loss of promise, so the penalty may
+  warrant being heavier than the bonus. Also open: whether the vargottama
+  exemption should be full (current) or partial.
+- **Pinned by:** `tests/test_calculations.py::test_d9_debilitation_penalises_a_rasi_exalted_planet`
+  and `::test_d9_debilitation_is_exempt_when_vargottama` — both assert
+  *direction* only, so a magnitude change will not break them.
+
 ### Corrected 2026-07-16 (stale entries removed)
 
 - ~~Propensity suites: 40 signature definitions need native-Tamil/jyotishi
