@@ -170,7 +170,8 @@ export interface PrasnaPayload {
   timezoneName: string;
   latitude: number;
   longitude: number;
-  /** Local ISO datetime; defaults to "now" on the server when omitted. */
+  /** Local ISO datetime; when omitted the server uses the current instant
+   *  (interpreted in `timezoneName`, not the server's own clock). */
   questionDateTimeLocal?: string;
 }
 
