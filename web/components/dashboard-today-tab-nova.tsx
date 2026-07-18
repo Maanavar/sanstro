@@ -36,6 +36,7 @@ import { useEveningPreview } from "@/hooks/useEveningPreview";
 
 import { DashboardTodayRibbonNova } from "./dashboard-today-ribbon-nova";
 import { DashboardTodayDecideNova } from "./dashboard-today-decide-nova";
+import { DashboardTodayActivityBoardNova } from "./dashboard-today-activity-board-nova";
 import { DashboardTodayOneLinersNova, DashboardTodayGlanceRowNova } from "./dashboard-today-glance-nova";
 import { MorningGuidanceCard } from "./morning-guidance-card";
 
@@ -590,6 +591,15 @@ export function DashboardTodayTabNova({
         isToday={isToday}
         timeZone={panchangamTimezone}
         onOpenAskVinaadi={onOpenAskVinaadi}
+      />
+
+      {/* ===== 2b. The same question the Decide strip answers for one chosen
+          activity, answered for all of them at once — "what should I do
+          today?" is how people actually arrive, rather than already knowing
+          which activity to ask about. ===== */}
+      <DashboardTodayActivityBoardNova
+        board={personalDailyGuidance?.activityBoard}
+        lang={lang}
       />
 
       {/* ===== 3. Timeline spine: sunrise-to-sunrise, panchangam + horai +

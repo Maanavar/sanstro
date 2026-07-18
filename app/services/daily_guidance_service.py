@@ -8,7 +8,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.calculations.activity_timing_rules import assess_activity_timing
+from app.calculations.activity_timing_rules import assess_activity_timing, daily_activity_board
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga
 from app.calculations.astro import (
     house_from_reference,
@@ -29,6 +29,8 @@ from app.schemas.daily_guidance import (
     ActivityTimingData,
     ActivityTimingDayResult,
     ActivityTimingResponse,
+    DailyActivityBoardData,
+    DailyActivityVerdict,
     DailyGuidanceData,
     DailyGuidanceEmotionalWeather,
     DailyGuidanceJournalInsight,
@@ -637,6 +639,36 @@ def build_daily_guidance_response(
             return None
         return DailyGuidanceText(ta=card.ta, en=card.en)
 
+    def _build_activity_board(
+        *,
+        tithi_number: int,
+        paksha: str,
+        weekday_lord: str,
+        is_chandrashtama: bool,
+    ) -> DailyActivityBoardData:
+        """Adapt the calculation-layer board onto the response schema."""
+        board = daily_activity_board(
+            tithi_number, paksha, weekday_lord, is_chandrashtama=is_chandrashtama
+        )
+
+        def _rows(verdicts) -> list[DailyActivityVerdict]:
+            return [
+                DailyActivityVerdict(
+                    activity=v.activity,
+                    label=DailyGuidanceText(ta=v.label_ta, en=v.label_en),
+                    alignment=v.alignment,
+                    reason=DailyGuidanceText(ta=v.reason_ta, en=v.reason_en),
+                )
+                for v in verdicts
+            ]
+
+        return DailyActivityBoardData(
+            favourable=_rows(board.favourable),
+            caution=_rows(board.caution),
+            neutral=_rows(board.neutral),
+            isChandrashtama=board.is_chandrashtama,
+        )
+
     pratyantar_days_remaining = max(0, (timeline.current_pratyantardasha.end_date - on_date).days)
     pratyantar_story = _pratyantar_narrative(
         pratyantar_lord=pratyantar_lord,
@@ -767,6 +799,12 @@ def build_daily_guidance_response(
             tithiCard=_build_tithi_card(panchangam.tithi_number),
             isChandrashtama=chandrashtama,
             saturnCycleAlert=saturn_cycle.type if saturn_cycle.is_active and saturn_cycle.type in {"JANMA_SANI", "ASHTAMA_SANI"} else None,
+            activityBoard=_build_activity_board(
+                tithi_number=panchangam.tithi_number,
+                paksha=panchangam.tithi_paksha,
+                weekday_lord=panchangam.weekday_lord,
+                is_chandrashtama=chandrashtama,
+            ),
         ),
         meta=ResponseMeta(
             calculation_version=chart_snapshot.meta.calculation_version,

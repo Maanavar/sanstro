@@ -62,6 +62,69 @@ class TimingSignal:
     short_en: str = ""
 
 
+# Every activity the rules cover, in the order a daily board reads best:
+# livelihood first, then commitments, then wellbeing and inner life. "other" is
+# excluded — it is a fallback for an unclassified user goal, not a real activity
+# anyone would be told today is good for.
+ACTIVITY_TYPES: tuple[ActivityType, ...] = (
+    "job_change", "business_start", "money", "property",
+    "marriage", "family_harmony", "child_birth", "education",
+    "travel_abroad", "health", "spiritual",
+)
+
+ACTIVITY_LABEL_TA: dict[str, str] = {
+    "job_change": "வேலை மாற்றம்",
+    "business_start": "தொழில் தொடக்கம்",
+    "money": "பண முடிவுகள்",
+    "property": "சொத்து",
+    "marriage": "திருமணம்",
+    "family_harmony": "குடும்ப நலம்",
+    "child_birth": "குழந்தை பாக்கியம்",
+    "education": "கல்வி",
+    "travel_abroad": "வெளிநாடு பயணம்",
+    "health": "உடல்நலம்",
+    "spiritual": "ஆன்மீகம்",
+    "other": "உங்கள் இலக்கு",
+}
+
+ACTIVITY_LABEL_EN: dict[str, str] = {
+    "job_change": "Job moves",
+    "business_start": "Starting a business",
+    "money": "Money decisions",
+    "property": "Property",
+    "marriage": "Marriage",
+    "family_harmony": "Family matters",
+    "child_birth": "Children",
+    "education": "Study and learning",
+    "travel_abroad": "Travel abroad",
+    "health": "Health",
+    "spiritual": "Spiritual practice",
+    "other": "Your goal",
+}
+
+
+@dataclass(frozen=True)
+class ActivityVerdict:
+    """One row of the daily board: an activity and today's verdict on it."""
+
+    activity: str
+    label_ta: str
+    label_en: str
+    alignment: Alignment
+    reason_ta: str
+    reason_en: str
+
+
+@dataclass(frozen=True)
+class DailyActivityBoard:
+    """Today's green / red light across all activities."""
+
+    favourable: list[ActivityVerdict]
+    caution: list[ActivityVerdict]
+    neutral: list[ActivityVerdict]
+    is_chandrashtama: bool = False
+
+
 @dataclass(frozen=True)
 class ActivityTimingResult:
     paksha_signal: TimingSignal
@@ -351,6 +414,56 @@ def _primary_signal(
         if sig.alignment == combined:
             return sig
     return tithi_sig
+
+
+def daily_activity_board(
+    tithi_number: int,
+    paksha: str,
+    weekday_lord: str,
+    *,
+    is_chandrashtama: bool = False,
+) -> DailyActivityBoard:
+    """Today's "what is this day good for" board across every activity type.
+
+    The per-activity rules below were only ever consulted one activity at a
+    time, for a goal the user had already chosen. But the question people open
+    the app with is the other way round — "what should I do today?" — and that
+    needs the whole set swept and sorted. No new doctrine: this reads the same
+    rules and partitions the answers.
+
+    Chandrashtama (Moon transiting the 8th from natal Moon) is a whole-day
+    condition rather than an activity rule, so it is applied on top: on such a
+    day nothing is presented as green, because recommending someone sign a
+    contract on their Chandrashtama day would contradict the alert the rest of
+    the app raises.
+    """
+    favourable: list[ActivityVerdict] = []
+    caution: list[ActivityVerdict] = []
+    neutral: list[ActivityVerdict] = []
+
+    for activity in ACTIVITY_TYPES:
+        result = assess_activity_timing(activity, tithi_number, paksha, weekday_lord)
+        verdict = ActivityVerdict(
+            activity=activity,
+            label_ta=ACTIVITY_LABEL_TA[activity],
+            label_en=ACTIVITY_LABEL_EN[activity],
+            alignment=result.combined_alignment,
+            reason_ta=result.short_ta or result.combined_ta,
+            reason_en=result.short_en or result.combined_en,
+        )
+        if result.combined_alignment == "SUPPORTS":
+            (neutral if is_chandrashtama else favourable).append(verdict)
+        elif result.combined_alignment == "CAUTION":
+            caution.append(verdict)
+        else:
+            neutral.append(verdict)
+
+    return DailyActivityBoard(
+        favourable=favourable,
+        caution=caution,
+        neutral=neutral,
+        is_chandrashtama=is_chandrashtama,
+    )
 
 
 def assess_activity_timing(

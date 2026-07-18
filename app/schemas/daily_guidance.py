@@ -77,6 +77,35 @@ class DailyGuidanceReasons(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class DailyActivityVerdict(BaseModel):
+    """One activity and today's verdict on it, for the green/red-light board."""
+
+    activity: str
+    label: DailyGuidanceText
+    alignment: str  # SUPPORTS | NEUTRAL | CAUTION
+    reason: DailyGuidanceText
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class DailyActivityBoardData(BaseModel):
+    """"What is today good for?" — the question users actually open the app with.
+
+    The per-activity timing rules already existed but were only consulted for a
+    goal the user had pre-selected. This is the same doctrine swept across every
+    activity and partitioned, so the answer can be read at a glance.
+    """
+
+    favourable: list[DailyActivityVerdict] = Field(default_factory=list)
+    caution: list[DailyActivityVerdict] = Field(default_factory=list)
+    neutral: list[DailyActivityVerdict] = Field(default_factory=list)
+    # True when the day is Chandrashtama, in which case `favourable` is
+    # deliberately empty — see calculations.activity_timing_rules.
+    is_chandrashtama: bool = Field(default=False, alias="isChandrashtama")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class DailyGuidanceData(BaseModel):
     chart_id: UUID = Field(alias="chartId")
     date_local: date = Field(alias="dateLocal")
@@ -113,6 +142,7 @@ class DailyGuidanceData(BaseModel):
     tithi_card: DailyGuidanceText | None = Field(default=None, alias="tithiCard")
     is_chandrashtama: bool = Field(default=False, alias="isChandrashtama")
     saturn_cycle_alert: str | None = Field(default=None, alias="saturnCycleAlert")
+    activity_board: DailyActivityBoardData | None = Field(default=None, alias="activityBoard")
 
     model_config = ConfigDict(populate_by_name=True)
 
