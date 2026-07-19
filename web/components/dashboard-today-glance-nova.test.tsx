@@ -9,7 +9,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { ChartSummaryData } from "@/lib/types";
 
-import { DashboardTodayGlanceRowNova } from "./dashboard-today-glance-nova";
+import { DashboardTodayLifeAreasDasaRowNova } from "./dashboard-today-glance-nova";
 
 function baseChartSummary(overrides: Partial<ChartSummaryData>): ChartSummaryData {
   return {
@@ -29,9 +29,8 @@ function baseChartSummary(overrides: Partial<ChartSummaryData>): ChartSummaryDat
 
 function renderGlance(personalChartSummary: ChartSummaryData | null) {
   return render(
-    <DashboardTodayGlanceRowNova
+    <DashboardTodayLifeAreasDasaRowNova
       lang="en"
-      familyAggregate={null}
       personalChartSummary={personalChartSummary}
       dasha={null}
       dashaAntar={[]}
@@ -40,7 +39,7 @@ function renderGlance(personalChartSummary: ChartSummaryData | null) {
   );
 }
 
-describe("DashboardTodayGlanceRowNova — dasha sentiment doctrine", () => {
+describe("DashboardTodayLifeAreasDasaRowNova — dasha sentiment doctrine", () => {
   it("shows supportive for a Thula-lagna native in Saturn antardasha (Saturn is Yogakaraka for Thulam)", () => {
     renderGlance(
       baseChartSummary({

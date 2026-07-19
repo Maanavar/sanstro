@@ -59,7 +59,7 @@ function NakshatraFullGuide({ slug, lang }: { slug: string; lang: Lang }) {
           <CollapsibleSection key={section.key} title={lang === "ta" ? section.taLabel : section.enLabel} defaultOpen={i === 0}>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {sectionParas(section.key).map((p, j) => (
-                <p key={j} style={{ margin: 0, fontFamily: "var(--font-prose, var(--font-body))", fontSize: "13px", lineHeight: 1.7, color: "var(--color-text)" }}>
+                <p key={j} style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "13px", lineHeight: 1.7, color: "var(--color-text)" }}>
                   {p}
                 </p>
               ))}
@@ -312,7 +312,7 @@ export function DashboardExploreNakshatramNova({
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <div style={cardStyle}>
             <NovaKicker>{lang === "ta" ? `${card.nameTa} இன் இயல்பு` : `The nature of ${astroText(card.nameEn)}`}</NovaKicker>
-            <p style={{ margin: 0, fontFamily: "var(--font-prose, var(--font-body))", fontSize: "13.5px", lineHeight: 1.7, color: "var(--color-text)" }}>
+            <p style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "13.5px", lineHeight: 1.7, color: "var(--color-text)" }}>
               {lang === "ta" ? card.profile.ta : astroText(card.profile.en)}
             </p>
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>

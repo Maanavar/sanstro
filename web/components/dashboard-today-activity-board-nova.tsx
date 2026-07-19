@@ -26,9 +26,12 @@
  *   heading, never once per row. On a plain Saturday four activities share
  *   "Saturday unfavourable" — repeating it four times was the exact noise
  *   that made the two old sections look redundant even to themselves.
- * - Green and amber are shown; the neutral majority is collapsed behind a
- *   toggle. Listing six "routine progress is fine" rows would bury the two
- *   lines that carry information.
+ * - All three tones ride one horizontal carousel — favourable, then amber
+ *   cautions, then the neutral "business as usual" rows — rather than hiding
+ *   the neutral majority behind a toggle. When the row is wider than the
+ *   viewport, ‹ › paging arrows appear in the header; on touch it just swipes.
+ *   Neutral is a legible cool-slate tile, not a greyed-out one, so it reads as
+ *   "steady" rather than "disabled".
  * - On a Chandrashtama day the engine returns no favourable rows at all. The
  *   card says so explicitly rather than rendering an empty green column, so it
  *   reads as a deliberate call and not as missing data.
@@ -37,9 +40,10 @@
  *   reason to slow down, not a prohibition.
  */
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getActivityTimingBatch } from "@vinaadi/shared/api/activityTiming";
+import { NovaStarRow } from "./dashboard-ui-nova";
 import { formatClockLabel } from "@/lib/format";
 import type { Lang } from "@/lib/i18n";
 import { minutesOfDayInZone } from "@/lib/tz";
@@ -121,55 +125,86 @@ function dominantReason(verdicts: DailyActivityVerdict[], lang: Lang): string | 
   return winner;
 }
 
-function GroupHeading({ color, label, note }: { color: string; label: string; note?: string | null }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "baseline",
-        gap: "8px",
-        flexWrap: "wrap",
-        marginBottom: "4px",
-      }}
-    >
-      <span
-        style={{
-          fontSize: "11.5px",
-          fontWeight: 700,
-          letterSpacing: "0.04em",
-          textTransform: "uppercase",
-          color,
-        }}
-      >
-        {label}
-      </span>
-      {note && (
-        <span style={{ fontSize: "12px", color: "var(--color-muted)", minWidth: 0 }}>
-          {"· "}
-          {note}
-        </span>
-      )}
-    </div>
-  );
+/** Glance glyph per activity — matched on the activity id + English label so
+ *  backend id renames degrade to the generic star, never to a wrong icon. */
+const ACTIVITY_ICONS: Array<[RegExp, string]> = [
+  [/propert|land|house|sign/i, "⌂"],
+  [/business|venture|launch/i, "✦"],
+  [/marri|wedding|engag/i, "♥"],
+  [/child|baby/i, "❀"],
+  [/travel|journey|abroad/i, "➤"],
+  [/money|invest|finan|gold/i, "◈"],
+  [/job|career|work/i, "▣"],
+  [/health|surg|medic/i, "✚"],
+  [/vehicle|car/i, "⛟"],
+  [/educat|study|exam|learn/i, "✎"],
+];
+
+function activityIcon(activity: string, labelEn: string): string {
+  const haystack = `${activity} ${labelEn}`;
+  return ACTIVITY_ICONS.find(([pattern]) => pattern.test(haystack))?.[1] ?? "✧";
 }
 
-function VerdictRow({
+type ActivityTone = "good" | "caution" | "neutral";
+
+/** Per-tone visuals for `ActivityCardNova`. Stars re-encode the three-way
+ *  alignment honestly (SUPPORTS → 4, NEUTRAL → 3, CAUTION → 2) — the middle
+ *  value for NEUTRAL, not a fourth invented precision level. Neutral gets its
+ *  own cool-slate token (--color-neutral, added for this), giving the board a
+ *  genuine third semantic hue — green / amber / slate — instead of dropping to
+ *  the faded --color-muted, which read as disabled rather than "steady". */
+const TONE_STYLE: Record<ActivityTone, { color: string; bg: string; border: string; stars: number; statusEn: string; statusTa: string }> = {
+  good: {
+    color: "var(--color-high)",
+    bg: "var(--color-high-bg)",
+    border: "var(--color-high-border)",
+    stars: 4,
+    statusEn: "Favourable",
+    statusTa: "ஆதரவு உள்ளது",
+  },
+  caution: {
+    color: "var(--color-mid)",
+    bg: "var(--color-mid-bg)",
+    border: "var(--color-mid-border)",
+    stars: 2,
+    statusEn: "Worth a second look",
+    statusTa: "நிதானம் தேவை",
+  },
+  neutral: {
+    color: "var(--color-neutral)",
+    bg: "var(--color-neutral-bg)",
+    border: "var(--color-neutral-border)",
+    stars: 3,
+    statusEn: "Neutral",
+    statusTa: "நடுநிலை",
+  },
+};
+
+/**
+ * One activity as a glance card (redesign 2026-07-18, extended to a neutral
+ * tone 2026-07-19). The reason renders on the card only when it differs from
+ * the group's shared one (stated once, on the section header) — same rule
+ * for all three tones, so a Wednesday that's neutral for five activities
+ * says "Wednesday is neutral" once, not five times.
+ */
+function ActivityCardNova({
   verdict,
   lang,
   tone,
-  /** Suppressed when the group heading already states it. */
   showReason,
   betterDate,
   onGoToCalendar,
 }: {
   verdict: DailyActivityVerdict;
   lang: Lang;
-  tone: "good" | "caution";
+  tone: ActivityTone;
   showReason: boolean;
   betterDate?: string | null;
   onGoToCalendar?: () => void;
 }) {
-  const color = tone === "good" ? "var(--color-high)" : "var(--color-mid)";
+  const { color, bg, border, stars, statusEn, statusTa } = TONE_STYLE[tone];
+  const label = tx(verdict.label, lang);
+  const reason = tx(verdict.reason, lang);
   const betterLabel = betterDate
     ? lang === "ta"
       ? `சிறந்தது ${shortDate(betterDate, lang)}`
@@ -177,28 +212,30 @@ function VerdictRow({
     : null;
   return (
     <li
+      title={`${label} — ${reason}`}
       style={{
+        flex: "0 0 158px",
+        scrollSnapAlign: "start",
+        background: `linear-gradient(160deg, ${bg}, transparent 75%)`,
+        border: `1px solid ${border}`,
+        borderRadius: "14px",
+        padding: "14px 14px 12px",
         display: "flex",
-        alignItems: "baseline",
-        gap: "8px",
-        padding: "5px 0",
-        lineHeight: 1.45,
+        flexDirection: "column",
+        gap: "7px",
       }}
     >
-      <span aria-hidden="true" style={{ color, fontWeight: 700, flex: "none" }}>
-        {tone === "good" ? "✓" : "!"}
-      </span>
-      <span style={{ minWidth: 0, flex: 1 }}>
-        <span style={{ fontSize: "13px", color: "var(--color-text)", fontWeight: 600 }}>
-          {tx(verdict.label, lang)}
-        </span>
-        {showReason && (
-          <span style={{ fontSize: "12px", color: "var(--color-muted)" }}>
-            {" — "}
-            {tx(verdict.reason, lang)}
-          </span>
-        )}
-      </span>
+      <div aria-hidden="true" style={{ width: "34px", height: "34px", borderRadius: "50%", background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", color }}>
+        {activityIcon(verdict.activity, verdict.label.en)}
+      </div>
+      <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--color-text-strong)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        {label}
+      </div>
+      <NovaStarRow value={stars} size={12.5} color={color} />
+      <div style={{ fontSize: "11px", fontWeight: 600, color, lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+        {lang === "ta" ? statusTa : statusEn}
+        {showReason ? ` · ${reason}` : ""}
+      </div>
       {/* A caution is only actionable if it can name when instead. The calendar
           opens on the month, not the day — the label promises no more. */}
       {betterLabel &&
@@ -207,9 +244,9 @@ function VerdictRow({
             type="button"
             onClick={onGoToCalendar}
             style={{
-              flex: "none",
+              alignSelf: "flex-start",
               font: "inherit",
-              fontSize: "12px",
+              fontSize: "11.5px",
               fontWeight: 600,
               color: "var(--color-accent-secondary)",
               background: "none",
@@ -222,7 +259,7 @@ function VerdictRow({
             {betterLabel} →
           </button>
         ) : (
-          <span style={{ flex: "none", fontSize: "12px", color: "var(--color-faint)", whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: "11.5px", color: "var(--color-faint)", whiteSpace: "nowrap" }}>
             {betterLabel}
           </span>
         ))}
@@ -254,8 +291,44 @@ export function DashboardTodayActivityBoardNova({
   onOpenAskVinaadi: () => void;
   onGoToCalendar?: () => void;
 }) {
-  const [showNeutral, setShowNeutral] = useState(false);
   const [timing, setTiming] = useState<Record<string, ActivityTimingData | null>>({});
+
+  // Horizontal carousel: every activity — favourable, caution and neutral —
+  // rides one scrolling row now, so ‹ › paging arrows replace the old
+  // "N more" toggle. They surface only when the row actually overflows, and
+  // each disables at its end of the track.
+  const scrollerRef = useRef<HTMLUListElement | null>(null);
+  const [scroll, setScroll] = useState({ overflow: false, atStart: true, atEnd: false });
+
+  const syncScroll = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const overflow = el.scrollWidth - el.clientWidth > 1;
+    setScroll({
+      overflow,
+      atStart: el.scrollLeft <= 1,
+      atEnd: el.scrollLeft >= el.scrollWidth - el.clientWidth - 1,
+    });
+  }, []);
+
+  const cardCount =
+    (board?.favourable.length ?? 0) + (board?.caution.length ?? 0) + (board?.neutral.length ?? 0);
+
+  useEffect(() => {
+    syncScroll();
+    const el = scrollerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(syncScroll);
+    ro.observe(el);
+    return () => ro.disconnect();
+    // Re-measure when the card count changes (data load / date switch).
+  }, [syncScroll, cardCount]);
+
+  const pageScroll = (dir: 1 | -1) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: "smooth" });
+  };
 
   // Only the cautioned activities are looked up: they are the only rows where
   // "when instead?" is the next question, and the batch caps at 12 ids.
@@ -293,9 +366,15 @@ export function DashboardTodayActivityBoardNova({
   const { favourable, caution, neutral, isChandrashtama } = board;
   if (favourable.length === 0 && caution.length === 0 && neutral.length === 0) return null;
 
-  const favourableReason = dominantReason(favourable, lang);
-  const cautionReason = dominantReason(caution, lang);
+  // "State a shared cause once" still hoists the reason most favourable/caution
+  // cards share onto the section header, not onto each card.
+  const sharedReason = dominantReason([...favourable, ...caution], lang);
   const windowNote = windowQualifier(bestWindow, now, isToday, lang, timeZone);
+  const headerNote = [sharedReason, windowNote].filter(Boolean).join(" · ") || null;
+  // Neutral dedups its own dominant reason among the neutral cards only (kept
+  // out of the header, which stays about the favourable/caution signal), so a
+  // day that's neutral-for-five doesn't repeat that clause five times.
+  const neutralSharedReason = dominantReason(neutral, lang);
 
   /** Next date this month, after the selected one, where the same activity
    *  actually SUPPORTS — turns "not today" into "then when". */
@@ -317,9 +396,8 @@ export function DashboardTodayActivityBoardNova({
       <div
         style={{
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "12px",
+          alignItems: "baseline",
+          gap: "10px",
           flexWrap: "wrap",
           marginBottom: "12px",
         }}
@@ -327,60 +405,60 @@ export function DashboardTodayActivityBoardNova({
         <h3
           style={{
             margin: 0,
-            fontSize: "11px",
-            fontWeight: 700,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "var(--color-text-accent)",
+            fontSize: "15px",
+            fontWeight: 600,
+            color: "var(--color-text-strong)",
           }}
         >
           {lang === "ta" ? "இன்று நல்ல நாளா…?" : "Is today okay for…?"}
         </h3>
-        {/* The rules cover eleven activities; this is the way out for the
-            twelfth. Ask Vinaadi's permanent home is the topbar — this is a
-            contextual entry point, not a second one competing for the page. */}
-        <button
-          type="button"
-          onClick={onOpenAskVinaadi}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "6px",
-            fontSize: "12.5px",
-            color: "var(--color-accent-secondary)",
-            background: "none",
-            border: "1px dashed var(--color-accent-secondary-muted)",
-            borderRadius: "999px",
-            padding: "6px 13px",
-            cursor: "pointer",
-            fontFamily: "inherit",
-            whiteSpace: "nowrap",
-          }}
-        >
-          + {lang === "ta" ? "உங்கள் கேள்வி" : "Ask your own"}
-        </button>
+        {headerNote && (
+          <span style={{ fontSize: "12px", color: "var(--color-muted)", minWidth: 0 }}>
+            {"· "}
+            {headerNote}
+          </span>
+        )}
+        <div style={{ flex: 1 }} />
+        {scroll.overflow && (
+          <div style={{ display: "flex", gap: "6px", alignSelf: "center" }}>
+            {([-1, 1] as const).map((dir) => {
+              const disabled = dir === -1 ? scroll.atStart : scroll.atEnd;
+              return (
+                <button
+                  key={dir}
+                  type="button"
+                  onClick={() => pageScroll(dir)}
+                  disabled={disabled}
+                  aria-label={
+                    dir === -1
+                      ? lang === "ta" ? "முந்தையவை" : "Scroll back"
+                      : lang === "ta" ? "அடுத்தவை" : "Scroll forward"
+                  }
+                  style={{
+                    width: "30px",
+                    height: "30px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: "50%",
+                    border: "1px solid var(--color-border-strong)",
+                    background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)",
+                    color: "var(--color-text)",
+                    fontSize: "15px",
+                    lineHeight: 1,
+                    cursor: disabled ? "default" : "pointer",
+                    opacity: disabled ? 0.35 : 1,
+                    transition: "opacity 120ms ease",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {dir === -1 ? "‹" : "›"}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
-
-      {favourable.length > 0 && (
-        <>
-          <GroupHeading
-            color="var(--color-high)"
-            label={lang === "ta" ? "ஆதரவு உள்ளது" : "Favourable"}
-            note={[favourableReason, windowNote].filter(Boolean).join(" · ") || null}
-          />
-          <ul style={{ listStyle: "none", margin: "0 0 12px", padding: 0 }}>
-            {favourable.map((v) => (
-              <VerdictRow
-                key={v.activity}
-                verdict={v}
-                lang={lang}
-                tone="good"
-                showReason={tx(v.reason, lang) !== favourableReason}
-              />
-            ))}
-          </ul>
-        </>
-      )}
 
       {/* An empty green column on a Chandrashtama day is a decision, not an
           absence — say so, or it reads as a loading failure. */}
@@ -399,73 +477,84 @@ export function DashboardTodayActivityBoardNova({
         </p>
       )}
 
-      {caution.length > 0 && (
-        <>
-          <GroupHeading
-            color="var(--color-mid)"
-            label={lang === "ta" ? "நிதானம் தேவை" : "Worth a second look"}
-            note={cautionReason}
+      {/* One horizontal carousel — favourable, then cautions, then the neutral
+          "business as usual" rows shown inline (no longer toggled away), then
+          the dashed way out for the activity the rules don't cover. The ‹ ›
+          arrows in the header page it; on touch it swipes. */}
+      <ul
+        ref={scrollerRef}
+        onScroll={syncScroll}
+        className="nova-activity-scroller"
+        style={{
+          listStyle: "none",
+          margin: 0,
+          padding: "2px 1px 4px",
+          display: "flex",
+          gap: "12px",
+          overflowX: "auto",
+          scrollSnapType: "x proximity",
+        }}
+      >
+        {favourable.map((v) => (
+          <ActivityCardNova
+            key={v.activity}
+            verdict={v}
+            lang={lang}
+            tone="good"
+            showReason={tx(v.reason, lang) !== sharedReason}
           />
-          <ul style={{ listStyle: "none", margin: "0 0 8px", padding: 0 }}>
-            {caution.map((v) => (
-              <VerdictRow
-                key={v.activity}
-                verdict={v}
-                lang={lang}
-                tone="caution"
-                showReason={tx(v.reason, lang) !== cautionReason}
-                betterDate={betterDateFor(v.activity)}
-                onGoToCalendar={onGoToCalendar}
-              />
-            ))}
-          </ul>
-        </>
-      )}
-
-      {neutral.length > 0 && (
-        <>
+        ))}
+        {caution.map((v) => (
+          <ActivityCardNova
+            key={v.activity}
+            verdict={v}
+            lang={lang}
+            tone="caution"
+            showReason={tx(v.reason, lang) !== sharedReason}
+            betterDate={betterDateFor(v.activity)}
+            onGoToCalendar={onGoToCalendar}
+          />
+        ))}
+        {neutral.map((v) => (
+          <ActivityCardNova
+            key={v.activity}
+            verdict={v}
+            lang={lang}
+            tone="neutral"
+            showReason={tx(v.reason, lang) !== neutralSharedReason}
+          />
+        ))}
+        {/* The rules cover eleven activities; this is the way out for the
+            twelfth. Ask Vinaadi's permanent home is the topbar — this is a
+            contextual entry point, not a second one competing for the page. */}
+        <li style={{ flex: "0 0 158px", scrollSnapAlign: "start", display: "flex" }}>
           <button
             type="button"
-            onClick={() => setShowNeutral((prev) => !prev)}
-            aria-expanded={showNeutral}
+            onClick={onOpenAskVinaadi}
             style={{
-              background: "none",
-              border: "none",
-              padding: "4px 0 0",
+              flex: 1,
+              minHeight: "110px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              fontSize: "11px",
+              lineHeight: 1.35,
+              color: "var(--color-accent-secondary)",
+              background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)",
+              border: "1px dashed var(--color-accent-secondary-muted, var(--color-accent-secondary))",
+              borderRadius: "14px",
+              padding: "12px",
               cursor: "pointer",
-              font: "inherit",
-              fontSize: "12px",
-              color: "var(--color-muted)",
-              textDecoration: "underline",
+              fontFamily: "inherit",
             }}
           >
-            {showNeutral
-              ? lang === "ta"
-                ? "மற்றவற்றை மறை"
-                : "Hide the rest"
-              : lang === "ta"
-                ? `மற்ற ${neutral.length} செயல்கள் — வழக்கம் போல்`
-                : `${neutral.length} others — business as usual`}
+            <span aria-hidden="true" style={{ width: "26px", height: "26px", borderRadius: "8px", background: "color-mix(in srgb, var(--color-accent-secondary) 14%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px" }}>+</span>
+            {lang === "ta" ? "உங்கள் கேள்வி" : "Ask your own"}
           </button>
-          {showNeutral && (
-            <ul style={{ listStyle: "none", margin: "6px 0 0", padding: 0 }}>
-              {neutral.map((v) => (
-                <li
-                  key={v.activity}
-                  style={{
-                    padding: "3px 0",
-                    fontSize: "12.5px",
-                    color: "var(--color-muted)",
-                    lineHeight: 1.45,
-                  }}
-                >
-                  {tx(v.label, lang)}
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
-      )}
+        </li>
+      </ul>
     </section>
   );
 }

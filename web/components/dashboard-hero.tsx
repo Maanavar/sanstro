@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Bell, Settings, LogOut, Check, X } from "lucide-react";
 import Image from "next/image";
+import { formatClockLabel } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
@@ -18,37 +19,6 @@ import type { StatusMessage } from "./dashboard-ui-nova";
 type LabelKey = Parameters<typeof t>[0];
 
 const SHOW_QA_TAB = process.env.NODE_ENV !== "production";
-
-const DAILY_PRINCIPLES: Array<{ en: string; ta: string }> = [
-  {
-    en: "A dasha is a window, not a verdict. What you bring to it shapes what you take from it.",
-    ta: "தசை ஒரு ஜன்னல், தீர்ப்பல்ல. நீங்கள் அதில் கொண்டுவருவதே நீங்கள் பெறுவதை வடிவமைக்கிறது.",
-  },
-  {
-    en: "Planetary periods amplify what you focus on. Direct your attention with intention.",
-    ta: "கிரகக் காலங்கள் நீங்கள் கவனிப்பதை பெருக்கும். உங்கள் கவனத்தை நோக்கத்துடன் திருப்புங்கள்.",
-  },
-  {
-    en: "A caution signal is not a prediction of failure — it is a reminder to act wisely.",
-    ta: "எச்சரிக்கை சிக்னல் தோல்வியின் முன்னறிவிப்பல்ல — புத்திசாலித்தனமாக செயல்பட நினைவூட்டல் மட்டுமே.",
-  },
-  {
-    en: "The universe tends to move you toward what you consistently hold in mind.",
-    ta: "நீங்கள் தொடர்ந்து மனதில் கொண்டிருப்பதை நோக்கி பிரபஞ்சம் உங்களை நகர்த்துகிறது.",
-  },
-  {
-    en: "A favourable period still requires your effort. Vinaadi shows you when the ground is ready.",
-    ta: "சாதகமான காலமும் உங்கள் முயற்சி தேவைப்படும். நிலம் தயாராக இருக்கும் நேரத்தை விநாடி காட்டுகிறது.",
-  },
-  {
-    en: "Astrology reads the weather. You still decide whether to dance in the rain or carry an umbrella.",
-    ta: "ஜோதிடம் வானிலையை வாசிக்கிறது. மழையில் நடனமாடுவதா அல்லது குடை எடுப்பதா என்பதை நீங்கள் தீர்மானிக்கிறீர்கள்.",
-  },
-  {
-    en: "The birth chart is the instrument you were given. How you play it remains entirely your choice.",
-    ta: "ஜாதகம் உங்களுக்கு கொடுக்கப்பட்ட கருவி. நீங்கள் அதை எப்படி வாசிக்கிறீர்கள் என்பது முற்றிலும் உங்கள் தேர்வே.",
-  },
-];
 
 // IA model: seven first-class destinations in the top strip (Today ·
 // Calendar · Family & Charts · Transit & Dashas · Goals · Life Area ·
@@ -89,6 +59,12 @@ interface DashboardHeroProps {
   selectedVault: FamilyVaultListItem | null;
   selectedVaultId: string;
   selectedDate: string;
+  /** Sunrise ("HH:MM") the day's panchangam was computed from — shown as the
+   *  context strip's "Panchangam computed …" note when no status is active. */
+  panchangamSunrise?: string | null;
+  /** Place label the panchangam was computed for (current place, falling back
+   *  to birth place upstream). */
+  panchangamPlace?: string | null;
   userEmail: string | null;
   showUserMenu: boolean;
   alertCount: number;
@@ -142,6 +118,8 @@ export function DashboardHero(props: DashboardHeroProps) {
     birthTimeLocal,
     selectedVault,
     selectedDate,
+    panchangamSunrise,
+    panchangamPlace,
     userEmail,
     showUserMenu,
     alertCount,
@@ -164,6 +142,24 @@ export function DashboardHero(props: DashboardHeroProps) {
   const [showInbox, setShowInbox] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const activeTabRef = useRef<HTMLButtonElement>(null);
+
+  // ⌘K / Ctrl+K opens Ask Vinaadi from anywhere on the dashboard. The kbd
+  // chip's label is resolved after mount (SSR can't know the platform).
+  const [kbdLabel, setKbdLabel] = useState<string | null>(null);
+  useEffect(() => {
+    setKbdLabel(/mac/i.test(navigator.platform) ? "⌘K" : "Ctrl K");
+  }, []);
+  useEffect(() => {
+    if (!onAskVinaadi) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        onAskVinaadi();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onAskVinaadi]);
 
   // Settings is reachable from the avatar menu, so it is omitted from the tab
   // strip to keep the mobile nav compact.
@@ -330,9 +326,12 @@ export function DashboardHero(props: DashboardHeroProps) {
 
           <div className="cd-topbar__right">
             {onAskVinaadi && (
-              <button type="button" className="cd-ask-nav-btn" onClick={onAskVinaadi}>
-                <span aria-hidden="true">✦</span>
-                {t("ask_panel_title", lang)}
+              <button type="button" className="cd-ask-search" onClick={onAskVinaadi} aria-label={t("ask_panel_title", lang)}>
+                <span aria-hidden="true" className="cd-ask-search__star">✦</span>
+                <span className="cd-ask-search__hint">
+                  {lang === "ta" ? "விநாடியிடம் எதையும் கேளுங்கள்…" : "Ask Vinaadi anything…"}
+                </span>
+                {kbdLabel && <kbd className="cd-ask-search__kbd" aria-hidden="true">{kbdLabel}</kbd>}
               </button>
             )}
 
@@ -548,6 +547,18 @@ export function DashboardHero(props: DashboardHeroProps) {
                   {status.text}
                 </span>
               )}
+              {/* Provenance note — which sunrise/place the day's panchangam was
+                  computed from. Yields the slot whenever a transient status is
+                  announcing something. New ta copy pending native review. */}
+              {!status && panchangamSunrise && (
+                <span className="cd-subbar__status" title={panchangamPlace ?? undefined}>
+                  <span className="cd-subbar__status-check" aria-hidden="true">✓</span>
+                  {lang === "ta"
+                    ? `பஞ்சாங்கம் ${formatClockLabel(panchangamSunrise)} கணக்கிடப்பட்டது`
+                    : `Panchangam computed ${formatClockLabel(panchangamSunrise)}`}
+                  {panchangamPlace ? ` · ${panchangamPlace}` : ""}
+                </span>
+              )}
               {selectedVault && (
                 <button
                   type="button"
@@ -563,32 +574,6 @@ export function DashboardHero(props: DashboardHeroProps) {
           </div>
         </div>
       </header>
-
-      {/* Daily principle strip — rotates by day of week */}
-      {(() => {
-        // Noon anchor: bare "YYYY-MM-DD" parses as UTC midnight, so .getDay()
-        // returns the previous weekday for viewers west of UTC.
-        const principle = DAILY_PRINCIPLES[new Date(`${selectedDate}T12:00:00`).getDay()] ?? DAILY_PRINCIPLES[0];
-        return (
-          <div className="cd-principle-strip" style={{
-            padding: "8px 20px",
-            background: "var(--color-accent-muted)",
-            borderBottom: "1px solid var(--color-border)",
-            textAlign: "center",
-          }}>
-            <p style={{
-              margin: 0,
-              fontSize: "0.72rem",
-              fontStyle: "italic",
-              color: "var(--color-text)",
-              letterSpacing: "0.01em",
-              lineHeight: 1.55,
-            }}>
-              {lang === "ta" ? principle.ta : principle.en}
-            </p>
-          </div>
-        );
-      })()}
 
     </>
   );

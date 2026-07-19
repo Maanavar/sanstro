@@ -60,7 +60,7 @@ export function DashboardExploreLearnNova({ lang, initialSlug, onBack, onOpenAsk
         {article.sections.map((section, i) => (
           <div key={i} style={cardStyle}>
             <NovaKicker>{text(section.heading)}</NovaKicker>
-            <p style={{ margin: 0, fontFamily: "var(--font-prose, var(--font-body))", fontSize: "13.5px", lineHeight: 1.7, color: "var(--color-text)" }}>
+            <p style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "13.5px", lineHeight: 1.7, color: "var(--color-text)" }}>
               {text(section.body)}
             </p>
           </div>

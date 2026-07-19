@@ -3,7 +3,7 @@
 import { motion, useReducedMotion } from "framer-motion";
 
 import { formatClockLabel, getScoreBand, scoreColorScale } from "@/lib/format";
-import { tNakshatra, tPlanetLord, tTithi, tWeekday } from "@/lib/i18n";
+import { tNakshatra, tTithi } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { DUR, EASE_NOVA } from "@/lib/motion";
 import { formatClockInZone, minutesOfDayInZone } from "@/lib/tz";
@@ -75,7 +75,7 @@ type Segment = {
  *  panchangam.hora entries can wrap past midnight (night horas), so both the
  *  entry's own span and `now` are normalized onto a rolling clock before
  *  comparing. */
-function findHorai(hora: PanchangamDailyResponseData["hora"], nowMin: number) {
+export function findHorai(hora: PanchangamDailyResponseData["hora"], nowMin: number) {
   if (!hora || hora.length === 0) return { current: null, next: null };
   const spans = hora.map((h) => {
     const s = timeToMinutes(h.start);
@@ -220,8 +220,6 @@ export function DashboardTodayRibbonNova({
     ticks.push(m);
   }
 
-  const { current: currentHora, next: nextHora } = findHorai(panchangam.hora, nowMin);
-
   return (
     <motion.div
       key={selectedDate}
@@ -232,22 +230,15 @@ export function DashboardTodayRibbonNova({
     >
       <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "14px", flexWrap: "wrap", rowGap: "10px" }}>
         <div>
-          <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+          <div style={{ fontSize: "15px", fontWeight: 600, color: "var(--color-text-strong)" }}>
             {lang === "ta" ? "இன்றைய நாள்" : "Your day"}
-          </span>
-          <span style={{ fontSize: "11.5px", color: "var(--color-faint)", marginLeft: "10px" }}>
+          </div>
+          <div style={{ fontSize: "11.5px", color: "var(--color-faint)", marginTop: "2px" }}>
             {lang === "ta" ? "சூரிய உதயம்" : "sunrise"} {formatClockLabel(panchangam.sunrise)} · {lang === "ta" ? "அஸ்தமனம்" : "sunset"} {formatClockLabel(panchangam.sunset)}
-          </span>
+            {" · "}{lang === "ta" ? "நட்சத்திரம்" : "Nakshatram"} <b style={{ color: "var(--color-text)" }}>{tNakshatra(panchangam.nakshatra.name, lang)}</b>
+            {" · "}{lang === "ta" ? "திதி" : "Tithi"} <b style={{ color: "var(--color-text)" }}>{tTithi(panchangam.tithi.name, lang)}</b>
+          </div>
         </div>
-
-        {currentHora && (
-          <span style={{ fontSize: "12px", color: "var(--color-text)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border)", borderRadius: "999px", padding: "4px 12px" }}>
-            {lang === "ta" ? "ஓரை" : "Horai now"} · <b style={{ color: "var(--color-accent-strong)" }}>{tPlanetLord(currentHora.lord, lang)}</b>
-            {nextHora && (
-              <span style={{ color: "var(--color-faint)" }}> · {lang === "ta" ? "அடுத்தது" : "next"} {tPlanetLord(nextHora.lord, lang)} {formatClockLabel(nextHora.start)}</span>
-            )}
-          </span>
-        )}
 
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "12px" }}>
           {weekAhead && weekAhead.days.length > 0 && (
@@ -281,7 +272,7 @@ export function DashboardTodayRibbonNova({
             <button
               type="button"
               onClick={onGoToCalendar}
-              style={{ fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, whiteSpace: "nowrap" }}
+              style={{ fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", cursor: "pointer", fontFamily: "inherit", padding: "6px 14px", whiteSpace: "nowrap" }}
             >
               {lang === "ta" ? "முழு பஞ்சாங்கம் →" : "Full panchangam →"}
             </button>
@@ -349,19 +340,18 @@ export function DashboardTodayRibbonNova({
         ))}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", marginTop: "12px", paddingTop: "12px", borderTop: "1px solid color-mix(in srgb, var(--color-text-strong) 8%, transparent)" }}>
+      {/* Legend as a framed cell grid (redesign 2026-07-18) — one cell per
+          segment, times colored by whether the window helps or warns. */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", background: "color-mix(in srgb, var(--color-text-strong) 2.5%, transparent)", border: "1px solid var(--color-border)", borderRadius: "12px", marginTop: "16px", overflow: "hidden" }}>
         {segments.map((s) => (
-          <span key={`legend-${s.key}`} style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "var(--color-text)" }}>
+          <div key={`legend-${s.key}`} style={{ display: "flex", gap: "10px", alignItems: "center", padding: "12px 15px", borderRight: "1px solid color-mix(in srgb, var(--color-text-strong) 5%, transparent)" }}>
             <span style={{ width: "8px", height: "8px", borderRadius: "2px", background: s.bg, flex: "none" }} />
-            <span style={{ color: "var(--color-text-strong)", fontWeight: 600 }}>{s.legendName}</span>
-            <b style={{ color: s.key === "rahu" || s.key === "yama" || s.key === "kuligai" ? "var(--color-low)" : "var(--color-high)", fontWeight: 700 }}>{s.legendTime}</b>
-          </span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.legendName}</div>
+              <div style={{ fontSize: "11px", fontWeight: 600, color: s.key === "rahu" || s.key === "yama" || s.key === "kuligai" ? "var(--color-low)" : "var(--color-high)", marginTop: "1px", whiteSpace: "nowrap" }}>{s.legendTime}</div>
+            </div>
+          </div>
         ))}
-        <span style={{ marginLeft: "auto", fontSize: "11.5px", color: "var(--color-muted)" }}>
-          {lang === "ta" ? "நட்சத்திரம்" : "Nakshatram"} <b style={{ color: "var(--color-text-strong)" }}>{tNakshatra(panchangam.nakshatra.name, lang)}</b>
-          {" · "}{lang === "ta" ? "திதி" : "Tithi"} <b style={{ color: "var(--color-text-strong)" }}>{tTithi(panchangam.tithi.name, lang)}</b>
-          {" · "}{lang === "ta" ? "வாரம்" : "Vaaram"} <b style={{ color: "var(--color-text-strong)" }}>{tWeekday(panchangam.vara.weekday, lang)}</b>
-        </span>
       </div>
     </motion.div>
   );

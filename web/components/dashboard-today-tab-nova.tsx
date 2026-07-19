@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { addDays, formatClockLabel, formatDateLabel, getScoreVerdictFromGuidance } from "@/lib/format";
-import { t, tLang } from "@/lib/i18n";
+import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { hourInZone, minutesOfDayInZone, timeOnDateToMs } from "@/lib/tz";
 import { findSecondaryAbhijitWindow, pickFeaturedWindow } from "@/lib/today-windows";
@@ -25,19 +25,23 @@ import type {
   WeekAheadData,
 } from "@/lib/types";
 
-import { NovaClampedText, NovaScoreDial, StatusLive, type StatusMessage } from "./dashboard-ui-nova";
+import { NovaClampedText, NovaScoreDial, NovaStarRow, StatusLive, type StatusMessage } from "./dashboard-ui-nova";
 import { bandPhrase, bandTone } from "@/lib/reasoning";
-import { CelestialGlyphNova, MiniMoonGlyph } from "./celestial-glyph-nova";
+import { MiniMoonGlyph } from "./celestial-glyph-nova";
 import { HeroSkyBackdrop } from "./celestial-ambient-nova";
 import { lunarSpecialTithiMeta, moonPhaseFromTithi } from "@/lib/lunar";
 import { useStreak } from "@/hooks/useStreak";
 import { StreakChip } from "./streak-chip";
 import { useEveningPreview } from "@/hooks/useEveningPreview";
 
-import { DashboardTodayRibbonNova } from "./dashboard-today-ribbon-nova";
+import { downloadJadhagamPdf } from "./dashboard-personal-shared";
+import { DashboardTodayRibbonNova, findHorai } from "./dashboard-today-ribbon-nova";
 import { DashboardTodayActivityBoardNova } from "./dashboard-today-activity-board-nova";
-import { DashboardTodayOneLinersNova, DashboardTodayGlanceRowNova } from "./dashboard-today-glance-nova";
-import { MorningGuidanceCard } from "./morning-guidance-card";
+import {
+  DashboardTodayComingUpNova,
+  DashboardTodayFamilyRemedyRowNova,
+  DashboardTodayLifeAreasDasaRowNova,
+} from "./dashboard-today-glance-nova";
 
 /**
  * Nova "Today" tab — decision layer only (design 8a). Every field below
@@ -111,15 +115,22 @@ function greetingWord(lang: Lang, hour: number): string {
   return "Good evening";
 }
 
-/** "HH:MM" (or ISO with time part) → minutes since midnight; null if unparseable. */
-function clockToMinutes(value: string | undefined | null): number | null {
-  if (!value) return null;
-  const timePart = value.includes("T") ? value.split("T")[1] : value;
-  const [hhStr, mmStr] = (timePart ?? "").split(":");
-  const hh = Number.parseInt(hhStr ?? "", 10);
-  const mm = Number.parseInt(mmStr ?? "0", 10);
-  if (!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
-  return hh * 60 + mm;
+/** Human label for a guidance-window `type` ("RAHU_KALAM" → "Rahu Kalam").
+ *  Known kalams get real Tamil names; anything else is prettified English. */
+function windowTypeLabel(type: string, lang: Lang): string {
+  const known: Array<[string, { en: string; ta: string }]> = [
+    ["RAHU", { en: "Rahu Kalam", ta: "ராகு காலம்" }],
+    ["YAMA", { en: "Yamagandam", ta: "யமகண்டம்" }],
+    ["KULIGAI", { en: "Kuligai", ta: "குளிகை" }],
+    ["GULIKA", { en: "Kuligai", ta: "குளிகை" }],
+  ];
+  const hit = known.find(([key]) => type.toUpperCase().includes(key))?.[1];
+  if (hit) return lang === "ta" ? hit.ta : hit.en;
+  return type
+    .toLowerCase()
+    .split(/[_\s]+/)
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(" ");
 }
 
 function formatDuration(ms: number, lang: Lang): string {
@@ -200,15 +211,17 @@ export function DashboardTodayTabNova({
   const secondaryAbhijitWindow = findSecondaryAbhijitWindow(personalDailyGuidance?.bestWindows, bestWindow);
 
   // Real lunar phase for today, drawn straight from the tithi we already have —
-  // drives the hero moon's shape and size (thin crescent → full disc).
+  // drives the hero sky backdrop's moon shape (thin crescent → full disc).
   const moonPhase = panchangam ? moonPhaseFromTithi(panchangam.tithi.number, panchangam.tithi.paksha) : null;
-  // Sun by day, moon from dusk on — the actual panchangam sunset when we have
-  // it, else 17:00 in the panchangam zone (DASH-01).
-  const sunsetMin = clockToMinutes(panchangam?.sunset);
-  const heroCelestial: "sun" | "moon" =
-    sunsetMin !== null ? (zoneMinutes >= sunsetMin ? "moon" : "sun") : zoneHour >= 17 ? "moon" : "sun";
-  // Pournami / Amavasai earn a one-time gold shimmer on the hero glyph.
-  const isSpecialTithi = Boolean(panchangam?.specialTithiDay);
+
+  // Hero tile rail (redesign 2026-07-18): avoid window = the day's first
+  // caution window, falling back to Rahu Kalam from the panchangam; Horai
+  // resolves against "now" so it only renders when viewing today.
+  const avoidWindow = personalDailyGuidance?.cautionWindows?.[0]
+    ?? (panchangam ? { type: "RAHU_KALAM", start: panchangam.kalam.rahuKalam.start, end: panchangam.kalam.rahuKalam.end } : null);
+  const { current: heroHora, next: heroNextHora } = isToday && panchangam
+    ? findHorai(panchangam.hora, zoneMinutes)
+    : { current: null, next: null };
 
   // After 8pm (panchangam-local), the hero can swap to a preview of tomorrow +
   // a journal prompt for today — reuses the already-fetched 3-day
@@ -331,17 +344,16 @@ export function DashboardTodayTabNova({
             </div>
             {showEveningPreview && tomorrowGuidance ? (
               <>
-                <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                  <CelestialGlyphNova
-                    variant="moon"
-                    moon={moonPhase}
-                    size={58}
-                    special={isSpecialTithi}
-                    ariaLabel={lang === "ta" ? "இன்றைய நிலா" : "Tonight's moon"}
-                  />
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.7rem, 3.2vw, 2.25rem)", fontWeight: 600, lineHeight: 1.08, color: "var(--color-text-strong)" }}>
-                    {greetingWord(lang, zoneHour)}, {displayName}.
-                  </div>
+                <div style={{ fontSize: "clamp(17px, 1.8vw, 22px)", color: "var(--color-accent-secondary)", lineHeight: 1.2 }}>
+                  {greetingWord(lang, zoneHour)},
+                </div>
+                <div style={{
+                  fontFamily: "var(--font-display)", fontWeight: 600, lineHeight: 1.08,
+                  fontSize: "clamp(1.9rem, 3.4vw, 2.7rem)", maxWidth: "480px",
+                  background: "linear-gradient(120deg, var(--color-text-strong), var(--color-accent-secondary))",
+                  WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent",
+                }}>
+                  {displayName}
                 </div>
                 <div style={{ fontSize: "13px", color: "var(--color-accent-secondary)", fontWeight: 600 }}>
                   {lang === "ta" ? "நாளையைப் பற்றி ஒரு முன்னோட்டம் — " : "A look ahead to tomorrow — "}
@@ -354,57 +366,72 @@ export function DashboardTodayTabNova({
                 >
                   {tLang(tomorrowGuidance.briefing ?? tomorrowGuidance.text, lang)}
                 </NovaClampedText>
-                {(() => {
-                  const tw = pickFeaturedWindow(tomorrowGuidance.bestWindows, now, false, tomorrowIso, panchangamTimezone);
-                  return tw ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: "9px", fontSize: "13px", color: "var(--color-high)", fontWeight: 600 }}>
-                      <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--color-high)", flex: "none" }} />
-                      {lang === "ta" ? "நாளை சிறந்த நேரம்" : "Tomorrow's best window"} · {formatClockLabel(tw.start)} – {formatClockLabel(tw.end)}
-                    </div>
-                  ) : null;
-                })()}
+                <div style={{ flex: 1 }} />
 
                 {/* Journal prompt — the evening half of design's "preview +
-                    journal prompt" ask, replacing the best-window action tile. */}
+                    journal prompt" ask, replacing the best-window action tile.
+                    Tomorrow's first good window folds into its sub-line. */}
                 <div style={{
                   display: "flex", alignItems: "center", gap: "13px", marginTop: "2px", flexWrap: "wrap", rowGap: "10px",
                   background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)",
-                  borderRadius: "12px", padding: "12px 15px",
+                  borderRadius: "12px", padding: "13px 16px",
                 }}>
+                  <span className="nova-pulse-dot" style={{ width: "9px", height: "9px", borderRadius: "50%", background: "var(--color-accent)", flex: "none" }} />
                   <div style={{ flex: 1, minWidth: "180px" }}>
                     <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--color-accent-strong)" }}>
                       {lang === "ta" ? "இன்று எப்படி இருந்தது?" : "How did today go?"}
+                      {panchangam && (
+                        <span style={{ fontWeight: 400, color: "var(--color-faint)" }}>
+                          {" · "}
+                          {lang === "ta" ? `சூரிய உதயம் ${formatClockLabel(panchangam.sunrise)} இல் நாள் முடிகிறது` : `day closes at sunrise ${formatClockLabel(panchangam.sunrise)}`}
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize: "12px", color: "var(--color-muted)", marginTop: "2px" }}>
-                      {lang === "ta" ? "நாள் முடிவதற்குள் ஒரு சிறு குறிப்பு பதிவு செய்யுங்கள்." : "Log a quick note before the day closes."}
+                      {(() => {
+                        const tw = pickFeaturedWindow(tomorrowGuidance.bestWindows, now, false, tomorrowIso, panchangamTimezone);
+                        return tw
+                          ? (lang === "ta"
+                            ? <>நாளை முதல் நல்ல நேரம் · <b style={{ color: "var(--color-high)" }}>{formatClockLabel(tw.start)} – {formatClockLabel(tw.end)}</b></>
+                            : <>Tomorrow&rsquo;s first good window · <b style={{ color: "var(--color-high)" }}>{formatClockLabel(tw.start)} – {formatClockLabel(tw.end)}</b></>)
+                          : (lang === "ta" ? "நாள் முடிவதற்குள் ஒரு சிறு குறிப்பு பதிவு செய்யுங்கள்." : "Log a quick note before the day closes.");
+                      })()}
                     </div>
                   </div>
-                  {onGoToJournal && (
+                  <div style={{ display: "flex", gap: "8px", flex: "none" }}>
+                    {onGoToJournal && (
+                      <button
+                        type="button"
+                        onClick={onGoToJournal}
+                        style={{ fontSize: "12px", fontWeight: 700, background: "var(--color-accent)", color: "var(--color-on-accent)", border: "none", borderRadius: "8px", padding: "8px 14px", cursor: "pointer", fontFamily: "inherit", flex: "none" }}
+                      >
+                        {lang === "ta" ? "குறிப்பு எழுத →" : "Write a quick note →"}
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={onGoToJournal}
-                      style={{ fontSize: "12px", fontWeight: 700, background: "var(--color-accent)", color: "var(--color-on-accent)", border: "none", borderRadius: "8px", padding: "8px 14px", cursor: "pointer", fontFamily: "inherit", flex: "none" }}
+                      onClick={() => void handleSaveReminder()}
+                      disabled={savingReminder}
+                      style={{ fontSize: "12px", fontWeight: 600, border: "1px solid var(--color-border-strong)", color: "var(--color-accent-strong)", background: "none", borderRadius: "8px", padding: "8px 14px", cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit" }}
                     >
-                      {lang === "ta" ? "குறிப்பு எழுத →" : "Write a quick note →"}
+                      {savingReminder ? (lang === "ta" ? "…" : "Saving…") : (lang === "ta" ? "நினைவூட்டு" : "Remind me")}
                     </button>
-                  )}
+                  </div>
                 </div>
+                <StatusLive status={reminderStatus} />
               </>
             ) : (
               <>
-                <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                  <CelestialGlyphNova
-                    variant={heroCelestial}
-                    moon={moonPhase}
-                    size={58}
-                    special={isSpecialTithi}
-                    ariaLabel={heroCelestial === "moon"
-                      ? (lang === "ta" ? "இன்றைய நிலா" : "Tonight's moon")
-                      : (lang === "ta" ? "இன்றைய சூரியன்" : "Today's sun")}
-                  />
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.7rem, 3.2vw, 2.25rem)", fontWeight: 600, lineHeight: 1.08, color: "var(--color-text-strong)" }}>
-                    {greetingWord(lang, zoneHour)}, {displayName}.
-                  </div>
+                <div style={{ fontSize: "clamp(17px, 1.8vw, 22px)", color: "var(--color-accent-secondary)", lineHeight: 1.2 }}>
+                  {greetingWord(lang, zoneHour)},
+                </div>
+                <div style={{
+                  fontFamily: "var(--font-display)", fontWeight: 600, lineHeight: 1.08,
+                  fontSize: "clamp(1.9rem, 3.4vw, 2.7rem)", maxWidth: "480px",
+                  background: "linear-gradient(120deg, var(--color-text-strong), var(--color-accent-secondary))",
+                  WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent",
+                }}>
+                  {displayName}
                 </div>
                 {personalDailyGuidance && (
                   <NovaClampedText
@@ -455,15 +482,17 @@ export function DashboardTodayTabNova({
                   </div>
                 )}
 
+                <div style={{ flex: 1 }} />
+
                 {/* Next-action tile — the single best-window callout, embedded in
                     the hero per design 8a §3 (not a separate card below it). */}
                 {bestWindow && (
                   <div style={{
                     display: "flex", alignItems: "center", gap: "13px", marginTop: "2px", flexWrap: "wrap", rowGap: "10px",
                     background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)",
-                    borderRadius: "12px", padding: "12px 15px",
+                    borderRadius: "12px", padding: "13px 16px",
                   }}>
-                    <span style={{ width: "9px", height: "9px", borderRadius: "50%", background: "var(--color-high)", boxShadow: "0 0 0 4px var(--color-high-bg)", flex: "none" }} />
+                    <span className="nova-pulse-dot" style={{ width: "9px", height: "9px", borderRadius: "50%", background: "var(--color-high)", boxShadow: "0 0 0 4px var(--color-high-bg)", flex: "none" }} />
                     <div style={{ flex: 1, minWidth: "180px" }}>
                       <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--color-high)", fontVariantNumeric: "tabular-nums" }}>
                         {lang === "ta" ? "சிறந்த நேரம்" : "Best window"} · {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)}
@@ -516,27 +545,32 @@ export function DashboardTodayTabNova({
             )}
           </div>
 
-          {/* The ONLY score on the page — tomorrow's, while previewing tomorrow. */}
-          {showEveningPreview && tomorrowGuidance ? (() => {
-            const verdict = getScoreVerdictFromGuidance(tomorrowGuidance.label, tomorrowGuidance.score, lang);
+          {/* The ONLY score on the page — tomorrow's, while previewing tomorrow.
+              Framed card per the 2026-07-18 redesign, stars derived from the
+              same score the dial shows. */}
+          {(() => {
+            const isTomorrow = showEveningPreview && tomorrowGuidance != null;
+            const dialSource = isTomorrow ? tomorrowGuidance : personalDailyGuidance;
+            if (!dialSource) return null;
+            const dialScore = dialSource.score ?? 0;
+            const verdict = getScoreVerdictFromGuidance(dialSource.label, dialScore, lang);
             return (
-              <div style={{ flex: "none", width: "200px", borderLeft: "1px solid var(--color-border)", paddingLeft: "26px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "9px" }}>
-                <div style={{ fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent-secondary)", fontWeight: 700 }}>
-                  {lang === "ta" ? "நாளை" : "Tomorrow"}
+              <div style={{
+                flex: "none", width: "196px", alignSelf: "center",
+                background: "color-mix(in srgb, var(--color-surface) 62%, transparent)",
+                border: "1px solid var(--color-border-strong)", borderRadius: "16px",
+                padding: "18px 14px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "9px",
+              }}>
+                <div style={{ fontSize: "10px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+                  {isTomorrow
+                    ? (lang === "ta" ? "நாளைய மதிப்பெண்" : "Tomorrow's score")
+                    : (lang === "ta" ? "இன்றைய மதிப்பெண்" : "Today's score")}
                 </div>
-                {/* UXD-19 — lead with the calm verdict phrase; the number supports it. */}
-                <div style={{ fontFamily: "var(--font-display)", fontSize: "16px", fontWeight: 700, color: verdict.color, textAlign: "center", lineHeight: 1.15 }}>{verdict.verdict}</div>
-                <NovaScoreDial score={tomorrowGuidance.score} color={verdict.color} label={lang === "ta" ? "100க்கு" : "/ 100"} />
-              </div>
-            );
-          })() : personalDailyGuidance && (() => {
-            const verdict = getScoreVerdictFromGuidance(personalDailyGuidance.label, score ?? 0, lang);
-            return (
-              <div style={{ flex: "none", width: "200px", borderLeft: "1px solid var(--color-border)", paddingLeft: "26px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "9px" }}>
-                {/* UXD-19 — the verdict phrase leads; the dial number supports it. */}
-                <div style={{ fontFamily: "var(--font-display)", fontSize: "16px", fontWeight: 700, color: verdict.color, textAlign: "center", lineHeight: 1.15 }}>{verdict.verdict}</div>
-                <NovaScoreDial score={score ?? 0} color={verdict.color} label={lang === "ta" ? "100க்கு" : "/ 100"} />
-                {personalDailyGuidance.band && (() => {
+                <NovaScoreDial score={dialScore} color={verdict.color} label={lang === "ta" ? "100க்கு" : "/ 100"} />
+                <NovaStarRow value={dialScore / 20} size={14} />
+                {/* UXD-19 — the calm verdict phrase leads; the number supports it. */}
+                <div style={{ fontFamily: "var(--font-display)", fontSize: "15px", fontWeight: 700, color: verdict.color, textAlign: "center", lineHeight: 1.15 }}>{verdict.verdict}</div>
+                {!isTomorrow && personalDailyGuidance?.band && (() => {
                   const bt = bandTone(personalDailyGuidance.band);
                   return (
                     <span style={{ fontSize: "10.5px", fontWeight: 700, padding: "2px 9px", borderRadius: "999px", background: bt.bg, color: bt.text, border: `1px solid ${bt.border}` }}>
@@ -550,6 +584,65 @@ export function DashboardTodayTabNova({
               </div>
             );
           })()}
+
+          {/* Best / Avoid / Horai rail — the three timing facts pulled out of
+              prose so the hero answers "when?" at a glance (redesign
+              2026-07-18). Horai only renders when viewing today, since it is
+              a "now" lookup. */}
+          {(bestWindow || avoidWindow || heroHora) && (
+            <div style={{ flex: "none", width: "224px", alignSelf: "center", display: "flex", flexDirection: "column", gap: "12px" }}>
+              {bestWindow && (
+                <div style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", border: "1px solid var(--color-border)", borderRadius: "14px", padding: "13px 15px", display: "flex", gap: "12px", alignItems: "center" }}>
+                  <div aria-hidden="true" style={{ width: "32px", height: "32px", borderRadius: "50%", background: "var(--color-high-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-high)", fontSize: "13px", flex: "none" }}>↗</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: "9.5px", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-high)", textTransform: "uppercase" }}>
+                      {lang === "ta" ? "சிறந்த நேரம்" : "Best window"}
+                    </div>
+                    <div style={{ fontSize: "14.5px", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "3px", fontVariantNumeric: "tabular-nums" }}>
+                      {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)}
+                    </div>
+                    <div style={{ fontSize: "11px", color: "var(--color-faint)", marginTop: "2px" }}>
+                      {lang === "ta" ? "முக்கியமான வேலைகளுக்கு நல்லது" : "Good for important tasks"}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {avoidWindow && (
+                <div style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", border: "1px solid var(--color-border)", borderRadius: "14px", padding: "13px 15px", display: "flex", gap: "12px", alignItems: "center" }}>
+                  <div aria-hidden="true" style={{ width: "32px", height: "32px", borderRadius: "50%", background: "var(--color-low-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-low)", fontSize: "13px", flex: "none" }}>✕</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: "9.5px", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-low)", textTransform: "uppercase" }}>
+                      {lang === "ta" ? "தவிர்க்க வேண்டிய நேரம்" : "Avoid window"}
+                    </div>
+                    <div style={{ fontSize: "14.5px", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "3px", fontVariantNumeric: "tabular-nums" }}>
+                      {formatClockLabel(avoidWindow.start)} – {formatClockLabel(avoidWindow.end)}
+                    </div>
+                    <div style={{ fontSize: "11px", color: "var(--color-faint)", marginTop: "2px" }}>
+                      {windowTypeLabel(avoidWindow.type, lang)}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {heroHora && (
+                <div style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", border: "1px solid var(--color-border)", borderRadius: "14px", padding: "13px 15px", display: "flex", gap: "12px", alignItems: "center" }}>
+                  <div aria-hidden="true" style={{ width: "32px", height: "32px", borderRadius: "50%", background: "color-mix(in srgb, var(--color-accent-secondary) 16%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-accent-secondary)", fontSize: "13px", flex: "none" }}>◆</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: "9.5px", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-accent-secondary)", textTransform: "uppercase" }}>
+                      {lang === "ta" ? "இப்போதைய ஓரை" : "Horai now"}
+                    </div>
+                    <div style={{ fontSize: "14.5px", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "3px" }}>
+                      {tPlanetLord(heroHora.lord, lang)}
+                    </div>
+                    {heroNextHora && (
+                      <div style={{ fontSize: "11px", color: "var(--color-faint)", marginTop: "2px" }}>
+                        {lang === "ta" ? "அடுத்தது" : "Next"}: {tPlanetLord(heroNextHora.lord, lang)} · {formatClockLabel(heroNextHora.start)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -607,35 +700,39 @@ export function DashboardTodayTabNova({
         onGoToCalendar={onGoToCalendar}
       />
 
-      {/* ===== 4. Glance row: family (avatars + dots) · life areas (stat
-          tiles) · dasa chapter. ===== */}
-      <DashboardTodayGlanceRowNova
+      {/* ===== 4. Life Areas + Dasa Chapter row (redesign 2026-07-18). ===== */}
+      <DashboardTodayLifeAreasDasaRowNova
         lang={lang}
-        familyAggregate={familyAggregate}
         personalChartSummary={personalChartSummary}
         dasha={dasha}
         dashaAntar={dashaAntar}
         selectedDate={selectedDate}
         lifeAreas={lifeAreas}
-        onGoToFamily={onGoToFamily}
         onGoToTransits={onGoToTransits}
         onGoToLifeAreas={onGoToLifeAreas}
       />
 
-      {/* ===== 5. Collapsed one-liners: coming up + remedy — never taller
-          than one line each. ===== */}
-      {personalDailyGuidance && (
-        <DashboardTodayOneLinersNova
-          lang={lang}
-          peyarchiUpcoming={peyarchiUpcoming}
-          personalSani={personalSani}
-          remedy={personalDailyGuidance.remedy}
-          savingReminder={savingReminder}
-          reminderMessage={reminderStatus?.text ?? null}
-          onSaveReminder={() => void handleSaveReminder()}
-          onGoToCalendar={onGoToCalendar}
-        />
-      )}
+      {/* ===== 5. Family Today + Remedy For You row (redesign 2026-07-18) —
+          the remedy grows from a one-liner into a card with its own save
+          action; family members get star tiles. ===== */}
+      <DashboardTodayFamilyRemedyRowNova
+        lang={lang}
+        familyAggregate={familyAggregate}
+        remedy={personalDailyGuidance?.remedy ?? null}
+        savingReminder={savingReminder}
+        reminderMessage={reminderStatus?.text ?? null}
+        onSaveReminder={() => void handleSaveReminder()}
+        onGoToFamily={onGoToFamily}
+        onGoToLifeAreas={onGoToLifeAreas}
+      />
+
+      {/* Coming up — still a one-liner, full width. */}
+      <DashboardTodayComingUpNova
+        lang={lang}
+        peyarchiUpcoming={peyarchiUpcoming}
+        personalSani={personalSani}
+        onGoToCalendar={onGoToCalendar}
+      />
 
       {/* ===== 6. Deep-dive bridge — the single doorway to the chart engine.
           The full engine (planet table, chart explanation, vargas, shadbala,
@@ -661,20 +758,45 @@ export function DashboardTodayTabNova({
                 {lang === "ta" ? "ஜாதகம் & விளக்கம் திற →" : "Open Chart & Explanations →"}
               </button>
             )}
+            {activeChartId && (
+              <button
+                type="button"
+                onClick={() => void downloadJadhagamPdf(activeChartId, selectedDate, lang)}
+                style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, color: "var(--color-accent-strong)", background: "none", border: "1px solid var(--color-border-strong)", borderRadius: "8px", padding: "9px 13px", cursor: "pointer", fontFamily: "inherit", ...(onGoToCharts ? {} : { marginLeft: "auto" }) }}
+              >
+                ⤓ PDF
+              </button>
+            )}
           </div>
-          {personalDailyGuidance.reasons && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }}>
-              {[
-                { label: lang === "ta" ? "தசை அடுக்கு" : "Dasa layer", text: personalDailyGuidance.reasons.dashaSupport },
-                { label: lang === "ta" ? "பஞ்சாங்கம்" : "Panchangam", text: personalDailyGuidance.reasons.panchangam },
-                { label: lang === "ta" ? "கோசாரம்" : "Transit", text: personalDailyGuidance.reasons.gochar },
-              ].filter((tile) => tile.text).map((tile) => (
-                <div key={tile.label} style={{ background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "12px 14px", fontSize: "12px", lineHeight: 1.5, color: "var(--color-muted)" }}>
-                  <b style={{ color: "var(--color-accent-strong)" }}>{tile.label}</b> — {tLang(tile.text, lang)}
-                </div>
-              ))}
-            </div>
-          )}
+          {personalDailyGuidance.reasons && (() => {
+            // Each breakdown value is that layer's weighted contribution to the
+            // day score (weights 0.19 / 0.14 / 0.24 — see daily_guidance_service
+            // `_dasha_c` et al.), so dividing by the weight recovers the layer's
+            // own 0–100 score for the "NN/100" chip.
+            const bd = personalDailyGuidance.scoreBreakdown;
+            const layerScore = (contribution: number | undefined, weight: number): number | null =>
+              contribution == null ? null : Math.max(0, Math.min(100, Math.round(contribution / weight)));
+            const tiles = [
+              { label: lang === "ta" ? "தசை அடுக்கு" : "Dasa layer", text: personalDailyGuidance.reasons.dashaSupport, layer: layerScore(bd?.dashaSupport, 0.19) },
+              { label: lang === "ta" ? "பஞ்சாங்கம்" : "Panchangam", text: personalDailyGuidance.reasons.panchangam, layer: layerScore(bd?.panchangam, 0.14) },
+              { label: lang === "ta" ? "கோசாரம்" : "Transit", text: personalDailyGuidance.reasons.gochar, layer: layerScore(bd?.gocharSupport, 0.24) },
+            ].filter((tile) => tile.text);
+            return (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }}>
+                {tiles.map((tile) => (
+                  <div key={tile.label} style={{ background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "13px 15px", fontSize: "12px", lineHeight: 1.55, color: "var(--color-muted)" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "6px" }}>
+                      <b style={{ color: "var(--color-accent-strong)", fontSize: "12.5px" }}>{tile.label}</b>
+                      {tile.layer !== null && (
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-faint)", fontVariantNumeric: "tabular-nums" }}>{tile.layer}/100</span>
+                      )}
+                    </div>
+                    {tLang(tile.text, lang)}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
           <div style={{ fontSize: "11.5px", color: "var(--color-faint)" }}>
             {lang === "ta" ? (
               <>கிரக நிலைகள் · ஜாதகம் · வர்க்க அட்டவணைகள் · தசை அட்டவணைகள் · நட்சத்திர விவரம் இப்போது <b style={{ color: "var(--color-muted)" }}>குடும்பம் &amp; ஜாதகம்</b> தாவலில் உள்ளன.</>
@@ -685,11 +807,8 @@ export function DashboardTodayTabNova({
         </div>
       )}
 
-      {/* ===== 7. Morning Guidance pointer — status + deep-link to Settings →
-          Notifications, where the actual opt-in (enable, delivery time,
-          channel) lives. Account-level, so it belongs on the homepage rather
-          than inside a specific person's chart deep-dive. ===== */}
-      <MorningGuidanceCard lang={lang} onOpenSettings={onOpenNotificationSettings} />
+      {/* Morning Guidance moved to the workspace footer (redesign 2026-07-18)
+          — see DashboardFooterMorningGuidance in dashboard-workspace.tsx. */}
     </div>
   );
 }

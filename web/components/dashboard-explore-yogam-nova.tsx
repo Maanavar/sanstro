@@ -75,7 +75,7 @@ function YogamFullGuide({ engineName, lang }: { engineName: string; lang: Lang }
           <CollapsibleSection key={i} title={text(section.heading)} defaultOpen={i === 0}>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {section.body.map((p, j) => (
-                <p key={j} style={{ margin: 0, fontFamily: "var(--font-prose, var(--font-body))", fontSize: "13px", lineHeight: 1.7, color: "var(--color-text)" }}>
+                <p key={j} style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "13px", lineHeight: 1.7, color: "var(--color-text)" }}>
                   {text(p)}
                 </p>
               ))}
@@ -331,7 +331,7 @@ export function DashboardExploreYogamNova({
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <div style={cardStyle}>
             <NovaKicker>{lang === "ta" ? "இது உண்மையில் என்ன பொருள்" : "What it actually means"}</NovaKicker>
-            <p style={{ margin: 0, fontFamily: "var(--font-prose, var(--font-body))", fontSize: "13.5px", lineHeight: 1.7, color: "var(--color-text)" }}>
+            <p style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "13.5px", lineHeight: 1.7, color: "var(--color-text)" }}>
               {astroText(whatText)}
             </p>
           </div>

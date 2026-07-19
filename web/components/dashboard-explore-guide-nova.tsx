@@ -176,7 +176,7 @@ export function DashboardExploreGuideNova({ lang, kind, initialSlug, onBack, onO
             <div key={i} style={cardStyle}>
               <NovaKicker>{text(section.heading)}</NovaKicker>
               {section.body.map((p, j) => (
-                <p key={j} style={{ margin: 0, fontFamily: "var(--font-prose, var(--font-body))", fontSize: "13.5px", lineHeight: 1.7, color: "var(--color-text)" }}>
+                <p key={j} style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "13.5px", lineHeight: 1.7, color: "var(--color-text)" }}>
                   {text(p)}
                 </p>
               ))}

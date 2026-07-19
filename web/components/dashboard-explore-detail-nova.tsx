@@ -131,7 +131,7 @@ export function NovaDetailHero({
             <span style={{ fontFamily: "'Noto Sans Tamil', sans-serif", fontSize: "18px", color: "var(--color-muted)" }}>{titleSecondary}</span>
           )}
         </div>
-        <p style={{ margin: 0, fontFamily: "var(--font-prose, var(--font-body))", fontSize: "14.5px", lineHeight: 1.65, color: "var(--color-text)", maxWidth: "640px" }}>
+        <p style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "14.5px", lineHeight: 1.65, color: "var(--color-text)", maxWidth: "640px" }}>
           {prose}
         </p>
       </div>

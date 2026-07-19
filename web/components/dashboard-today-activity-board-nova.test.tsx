@@ -76,6 +76,40 @@ describe("DashboardTodayActivityBoardNova — no repeated reasons", () => {
     expect(within(row as HTMLElement).getByText(/Ashtami — rikta tithi/)).toBeTruthy();
   });
 
+  it("renders neutral activities inline as cards with their reason (no toggle)", () => {
+    renderBoard({
+      favourable: [],
+      caution: [],
+      neutral: [verdict("business_start", "Starting a business", "NEUTRAL", "Paksha is neutral for this activity")],
+      isChandrashtama: false,
+    });
+
+    // Shown directly now — no "N more" toggle stands between the user and it.
+    expect(screen.queryByText(/business as usual/)).toBeNull();
+
+    const row = screen.getByText("Starting a business").closest("li");
+    expect(row).toBeTruthy();
+    expect(within(row as HTMLElement).getByText(/Neutral/)).toBeTruthy();
+    expect(within(row as HTMLElement).getByText(/Paksha is neutral for this activity/)).toBeTruthy();
+  });
+
+  it("hoists a reason shared by several neutral activities onto no single card", () => {
+    renderBoard({
+      favourable: [],
+      caution: [],
+      neutral: [
+        verdict("business_start", "Starting a business", "NEUTRAL", "Wednesday is neutral for this activity"),
+        verdict("money", "Money decisions", "NEUTRAL", "Wednesday is neutral for this activity"),
+        verdict("property", "Property", "NEUTRAL", "Ashtami tithi — neutral"),
+      ],
+      isChandrashtama: false,
+    });
+
+    expect(screen.queryAllByText(/Wednesday is neutral for this activity/)).toHaveLength(0);
+    const propertyRow = screen.getByText("Property").closest("li");
+    expect(within(propertyRow as HTMLElement).getByText(/Ashtami tithi — neutral/)).toBeTruthy();
+  });
+
   it("explains an empty favourable column on a Chandrashtama day", () => {
     renderBoard({
       favourable: [],

@@ -37,6 +37,7 @@ import type { StatusMessage } from "./dashboard-ui-nova";
 import { CelestialAmbientNova } from "./celestial-ambient-nova";
 import { moonPhaseFromTithi } from "@/lib/lunar";
 import { DashboardHero } from "./dashboard-hero";
+import { DashboardFooterMorningGuidance } from "./dashboard-footer-morning-nova";
 import { LifeModePicker } from "./life-mode-picker";
 import { DashboardAskVinaadiWidget } from "./dashboard-ask-vinaadi-widget";
 
@@ -1246,6 +1247,8 @@ export function DashboardWorkspace() {
         selectedVault={selectedVault}
         selectedVaultId={family.selectedVaultId}
         selectedDate={selectedDate}
+        panchangamSunrise={personal.panchangam?.sunrise ?? null}
+        panchangamPlace={personal.chart?.birthProfile.currentPlace ?? personal.chart?.birthProfile.birthPlace ?? null}
         userEmail={session.userEmail}
         showUserMenu={session.showUserMenu}
         alertCount={personal.ambientAlerts.length}
@@ -1771,40 +1774,69 @@ export function DashboardWorkspace() {
       </div>
       </div>{/* cd-main-content__body */}
 
-      {/* Dashboard footer */}
+      {/* Dashboard footer (redesigned 2026-07-18 — see the "Footer redesign"
+          block in dashboard-nova.css for the layout rationale). Three
+          columns: brand identity, site navigation, one labelled quick
+          setting — instead of the old single row that let the
+          morning-guidance toggle wrap onto its own orphaned line at mid
+          viewport widths. */}
       <footer className="cd-footer">
         <div className="cd-footer__inner">
 
-          {/* Top row: brand + nav links */}
-          <div className="cd-footer__top">
-            <div>
+          <div className="nova-footer__grid">
+            <div className="nova-footer__brand">
               <p className="cd-footer__wordmark">
-                Vinaadi
+                Vinaadi <span aria-hidden="true" style={{ fontSize: "0.8em", opacity: 0.6 }}>✦</span>
               </p>
-              <p className="cd-footer__tagline">
-                {lang === "ta" ? "ஜோதிட வழிகாட்டி · தினமும் காலை" : "Jothidam guidance · every morning"}
+              <p className="nova-footer__tagline">
+                {lang === "ta" ? "ஜோதிட வழிகாட்டல் — தினமும் சூரிய உதயத்திற்கு முன்." : "Jothidam guidance, every morning before sunrise."}
               </p>
             </div>
+
             {/* Real navigation, not link-styled spans (DASH-13) — every
                 element styled as a link must actually go somewhere. */}
-            <div className="cd-footer__links">
+            <nav className="nova-footer__nav" aria-label={lang === "ta" ? "அடிக்குறிப்பு வழிசெலுத்தல்" : "Footer navigation"}>
               {([
-                { tab: "personal" as Tab, ta: "தனிப்பட்ட", en: "Personal" },
-                { tab: "life-areas" as Tab, ta: "வாழ்க்கை", en: "Life Areas" },
-                { tab: "calendar" as Tab, ta: "நாட்காட்டி", en: "Calendar" },
-                { tab: "journal" as Tab, ta: "குறிப்பேடு", en: "Journal" },
-                { tab: "settings" as Tab, ta: "அமைப்புகள்", en: "Settings" },
-              ]).map((link) => (
-                <button
-                  key={link.tab}
-                  type="button"
-                  className="cd-footer__link"
-                  onClick={() => goToTab(link.tab)}
-                  style={{ background: "none", border: "none", padding: 0, font: "inherit", cursor: "pointer" }}
-                >
-                  {lang === "ta" ? link.ta : link.en}
-                </button>
+                {
+                  head: { en: "Explore", ta: "ஆராயுங்கள்" },
+                  links: [
+                    { tab: "personal" as Tab, ta: "இன்று", en: "Today" },
+                    { tab: "calendar" as Tab, ta: "நாட்காட்டி", en: "Calendar" },
+                    { tab: "life-areas" as Tab, ta: "வாழ்க்கைத் துறைகள்", en: "Life Areas" },
+                  ],
+                },
+                {
+                  head: { en: "Personal", ta: "தனிப்பட்ட" },
+                  links: [
+                    { tab: "family" as Tab, ta: "குடும்பம் & ஜாதகம்", en: "Family & Charts" },
+                    { tab: "journal" as Tab, ta: "குறிப்பேடு", en: "Journal" },
+                    { tab: "settings" as Tab, ta: "அமைப்புகள்", en: "Settings" },
+                  ],
+                },
+              ]).map((col) => (
+                <div key={col.head.en} className="nova-footer__nav-col">
+                  <span className="nova-footer__eyebrow">
+                    {lang === "ta" ? col.head.ta : col.head.en}
+                  </span>
+                  {col.links.map((link) => (
+                    <button
+                      key={link.tab}
+                      type="button"
+                      className="nova-footer__nav-link"
+                      onClick={() => goToTab(link.tab)}
+                    >
+                      {lang === "ta" ? link.ta : link.en}
+                    </button>
+                  ))}
+                </div>
               ))}
+            </nav>
+
+            <div className="nova-footer__quick">
+              <span className="nova-footer__eyebrow">
+                {lang === "ta" ? "விரைவு அமைப்பு" : "Quick setting"}
+              </span>
+              <DashboardFooterMorningGuidance lang={lang} onOpenSettings={() => navigateSettings("notifications")} />
             </div>
           </div>
 

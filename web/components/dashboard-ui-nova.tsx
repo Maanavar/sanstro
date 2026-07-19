@@ -341,6 +341,40 @@ type NovaTableProps<Row extends Record<string, React.ReactNode>> = {
   rowKey: (row: Row, index: number) => string;
 };
 
+type NovaStarRowProps = {
+  /** 0–5, half-steps honoured (e.g. a 0–100 score passed as score/20). */
+  value: number;
+  size?: number;
+  /** Filled-star color — defaults to the gold accent. */
+  color?: string;
+};
+
+/**
+ * Five-star glance rating (homepage redesign 2026-07-18). Purely a re-encoding
+ * of an existing score onto a 5-step scale — callers must derive `value` from
+ * real data (score/20, alignment buckets), never invent precision. Presented
+ * to assistive tech as one label, not five glyphs.
+ */
+export function NovaStarRow({ value, size = 13, color = "var(--color-accent-strong)" }: NovaStarRowProps) {
+  const clamped = Math.max(0, Math.min(5, value));
+  const stars = Array.from({ length: 5 }, (_, i) => {
+    if (clamped >= i + 1) return { opacity: 1, color };
+    if (clamped >= i + 0.5) return { opacity: 0.45, color };
+    return { opacity: 0.18, color: "var(--color-text-strong)" };
+  });
+  return (
+    <span
+      role="img"
+      aria-label={`${clamped.toFixed(1)} / 5`}
+      style={{ display: "inline-flex", gap: "2px", fontSize: `${size}px`, lineHeight: 1 }}
+    >
+      {stars.map((s, i) => (
+        <span key={i} aria-hidden="true" style={{ color: s.color, opacity: s.opacity }}>★</span>
+      ))}
+    </span>
+  );
+}
+
 export function NovaTable<Row extends Record<string, React.ReactNode>>({ columns, rows, rowKey }: NovaTableProps<Row>) {
   return (
     <div style={{ overflowX: "auto" }}>

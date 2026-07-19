@@ -614,7 +614,7 @@ export function DashboardExploreTabNova({
                 <span style={{ fontSize: "10.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-secondary)", fontWeight: 700 }}>
                   {lang === "ta" ? a.kickerTa : a.kickerEn}
                 </span>
-                <span style={{ fontFamily: "var(--font-prose, var(--font-body))", fontSize: "15px", fontWeight: 600, lineHeight: 1.4 }}>
+                <span style={{ fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "15px", fontWeight: 600, lineHeight: 1.4 }}>
                   {lang === "ta" ? a.titleTa : a.titleEn}
                 </span>
                 <span style={{ fontSize: "11.5px", color: "var(--color-accent-strong)", fontWeight: 600, marginTop: "auto" }}>

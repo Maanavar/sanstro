@@ -137,6 +137,12 @@
   --color-low:         #e08a72;
   --color-low-bg:      rgba(179, 87, 61, 0.14);
   --color-low-border:  rgba(179, 87, 61, 0.34);
+  /* Cool slate — the "steady / business as usual" third tone for the activity
+     board, so NEUTRAL reads as a deliberate legible state, not a greyed-out
+     one. Distinct in hue from high (green) and mid (amber). */
+  --color-neutral:        #8fb0c9;
+  --color-neutral-bg:     rgba(143, 176, 201, 0.13);
+  --color-neutral-border: rgba(143, 176, 201, 0.32);
   --color-alert-critical: #b3573d;
   /* alert-critical plays two roles: a fill/swatch (Rahu ribbon, calendar
      legend dot) AND small alert TEXT (calendar "avoid" label, Chandrashtama
@@ -478,6 +484,11 @@
   --color-low:         #C0392B;
   --color-low-bg:      rgba(192, 57, 43, 0.12);
   --color-low-border:  rgba(192, 57, 43, 0.34);
+  /* Cool slate for the activity board's "steady" NEUTRAL tone — darkened for
+     legible text on the cream light-theme surface. See the dark block above. */
+  --color-neutral:        #3C6E8F;
+  --color-neutral-bg:     rgba(60, 110, 143, 0.12);
+  --color-neutral-border: rgba(60, 110, 143, 0.34);
   --color-alert-critical: #C0392B;
   --color-alert-caution:  #B3402C;
   --color-positive:       #2D7A4F;
@@ -815,28 +826,55 @@
   bottom: 0;
 }
 
-/* "✦ Ask Vinaadi" — outlined gold pill in the right cluster. */
-[data-ui="nova"] .cd-ask-nav-btn {
+/* "✦ Ask Vinaadi anything… ⌘K" — search-styled pill in the right cluster
+   (homepage redesign 2026-07-18). Still a button that opens the Ask panel;
+   the search framing is an affordance, not an input. Flexes down before the
+   nav does so a narrow topbar never overflows. */
+[data-ui="nova"] .cd-ask-search {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 9px;
   min-height: 36px;
+  flex: 0 1 250px;
+  min-width: 130px;
   padding: 6px 14px;
   border-radius: var(--radius-pill, 999px);
   border: 1px solid var(--color-border-strong);
-  background: transparent;
-  color: var(--color-accent-strong);
-  font-size: 0.82rem;
-  font-weight: 600;
+  background: color-mix(in srgb, var(--color-text-strong) 5%, transparent);
   font-family: inherit;
-  white-space: nowrap;
   cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease;
+  text-align: left;
+  transition: border-color 150ms ease;
 }
 
-[data-ui="nova"] .cd-ask-nav-btn:hover {
-  background: var(--color-accent-muted);
+[data-ui="nova"] .cd-ask-search:hover {
   border-color: var(--color-accent);
+}
+
+[data-ui="nova"] .cd-ask-search__star {
+  color: var(--color-accent-strong);
+  font-size: 0.75rem;
+  flex: none;
+}
+
+[data-ui="nova"] .cd-ask-search__hint {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  color: var(--color-faint);
+}
+
+[data-ui="nova"] .cd-ask-search__kbd {
+  flex: none;
+  font-family: inherit;
+  font-size: 0.62rem;
+  color: var(--color-faint);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 1px 5px;
 }
 
 /* Date pill: the native input stays mounted as an invisible overlay that
@@ -1283,6 +1321,17 @@
 .nova-grid-detail { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
 .nova-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 
+/* Activity-board carousel ("Is today okay for…?"): the ‹ › header arrows and
+   touch-swipe are the scroll affordance, so the native scrollbar is hidden to
+   keep the tile row clean. Row still keeps normal keyboard/wheel scrolling. */
+.nova-activity-scroller {
+  scrollbar-width: none;         /* Firefox */
+  -ms-overflow-style: none;      /* legacy Edge */
+}
+.nova-activity-scroller::-webkit-scrollbar {
+  display: none;                 /* WebKit */
+}
+
 /* Today tab's Family/Life-areas/Dasa-chapter glance row (design 8a §4):
    same 3-up idea as .nova-grid-3 but with an asymmetric ratio (Family gets
    more room, Dasa chapter less). A media query can't be expressed via the
@@ -1299,6 +1348,34 @@
 @media (max-width: 860px) {
   .nova-grid-today-glance {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Life Areas · Dasa Chapter row (homepage redesign 2026-07-18): Life Areas
+   gets the wider track for its five stat tiles. */
+.nova-grid-la-dasa {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+}
+@media (max-width: 860px) {
+  .nova-grid-la-dasa {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Soft pulse for the hero banner's status dot (homepage redesign
+   2026-07-18) — opacity only, and stilled entirely under reduced motion. */
+@keyframes nova-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.nova-pulse-dot {
+  animation: nova-pulse 2.4s ease infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nova-pulse-dot {
+    animation: none;
   }
 }
 
@@ -1548,6 +1625,95 @@
   .vs-settings-rail-heading,
   .vs-settings-rail-divider,
   .vs-settings-identity { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Footer redesign (dashboard-home UX audit 2026-07-18). Replaces the old
+   flex-wrap `.cd-footer__top` (brand + link columns + the morning-guidance
+   toggle all fighting for space on one wrapping row, so mid-width viewports
+   dropped the toggle onto its own orphaned line) with a proper 3-column
+   grid: brand · site nav · one labelled "quick setting" cell. Still nests
+   inside `.cd-footer`/`.cd-footer__inner` for the sticky-footer flex
+   mechanics and the Tamil font-family hooks (dashboard.css) those classes
+   already carry — only the internal layout is new, and it is 100%
+   token-driven (no literal hex), so it never needs a per-theme patch like
+   the block above did. ═══════════════════════════════════════════════ */
+.nova-footer__grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.85fr) minmax(0, 1.5fr) minmax(200px, 0.85fr);
+  gap: 36px;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .nova-footer__grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    row-gap: 28px;
+  }
+  .nova-footer__quick { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .nova-footer__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .nova-footer__quick { grid-column: auto; }
+}
+
+.nova-footer__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+.nova-footer__tagline {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--color-muted);
+  max-width: 30ch;
+}
+
+.nova-footer__nav {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 24px;
+  min-width: 0;
+}
+.nova-footer__nav-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.nova-footer__eyebrow {
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--color-text-accent, var(--color-accent-strong));
+}
+.nova-footer__nav-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--color-faint);
+  text-align: left;
+  cursor: pointer;
+  width: fit-content;
+  transition: color 0.15s ease;
+}
+.nova-footer__nav-link:hover,
+.nova-footer__nav-link:focus-visible {
+  color: var(--color-accent-strong);
+}
+
+.nova-footer__quick {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
 }
 
 /* ── Reduced-motion guard ──────────────────────────────────
