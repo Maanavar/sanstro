@@ -398,7 +398,7 @@ export function DashboardExploreTabNova({
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: "220px", display: "flex", alignItems: "center", gap: "11px", background: "rgba(243, 236, 221, 0.05)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "12px 18px" }}>
+          <div style={{ flex: 1, minWidth: "220px", display: "flex", alignItems: "center", gap: "11px", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "12px 18px" }}>
             <span style={{ color: "var(--color-text-accent)", fontSize: "14px" }}>{"⌕"}</span>
             <input
               value={query}
@@ -413,7 +413,7 @@ export function DashboardExploreTabNova({
                 key={s}
                 type="button"
                 onClick={() => setQuery(s)}
-                style={{ fontSize: "12px", color: "var(--color-text)", background: "rgba(243, 236, 221, 0.05)", border: "1px solid var(--color-border)", borderRadius: "999px", padding: "8px 14px", cursor: "pointer", fontFamily: "inherit" }}
+                style={{ fontSize: "12px", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border)", borderRadius: "999px", padding: "8px 14px", cursor: "pointer", fontFamily: "inherit" }}
               >
                 {s}
               </button>
@@ -609,7 +609,7 @@ export function DashboardExploreTabNova({
                 key={a.key}
                 type="button"
                 onClick={() => setLearnSlug(a.slug)}
-                style={{ textDecoration: "none", color: "var(--color-text)", background: "rgba(243, 236, 221, 0.03)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "8px", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%" }}
+                style={{ textDecoration: "none", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "8px", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%" }}
               >
                 <span style={{ fontSize: "10.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-secondary)", fontWeight: 700 }}>
                   {lang === "ta" ? a.kickerTa : a.kickerEn}
@@ -638,7 +638,7 @@ export function DashboardExploreTabNova({
         onClick={onOpenAskVinaadi}
         style={{
           display: "flex", alignItems: "center", gap: "14px", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
-          background: "rgba(243, 236, 221, 0.03)", border: "1px solid var(--color-accent-secondary)", borderRadius: "var(--radius-md)", padding: "16px 22px",
+          background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-accent-secondary)", borderRadius: "var(--radius-md)", padding: "16px 22px",
         }}
       >
         <span style={{ width: "32px", height: "32px", borderRadius: "50%", background: "var(--color-accent-secondary-muted)", border: "1px solid var(--color-accent-secondary)", display: "grid", placeItems: "center", fontSize: "15px", color: "var(--color-accent-secondary)", flexShrink: 0 }}>

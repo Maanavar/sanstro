@@ -415,11 +415,11 @@ export function DashboardExploreDoshamNova({
               <NovaKicker color="var(--color-accent-strong)">{lang === "ta" ? "உங்கள் ஜாதகத்தில்" : "In your chart"}</NovaKicker>
               <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(powerText)}</p>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-                <span style={{ fontSize: "11.5px", color: "var(--color-text)", background: "rgba(243,236,221,0.05)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "5px 12px" }}>
+                <span style={{ fontSize: "11.5px", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "5px 12px" }}>
                   {lang === "ta" ? "தீவிரம்" : "Severity"} · {strengthBand(dosham.strength, true, lang)}
                 </span>
                 {dosham.dashaActivated && (
-                  <span style={{ fontSize: "11.5px", color: "var(--color-text)", background: "rgba(243,236,221,0.05)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "5px 12px" }}>
+                  <span style={{ fontSize: "11.5px", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "5px 12px" }}>
                     {lang === "ta" ? "தசையால் செயல்படுத்தப்பட்டது" : "Activated by current Dasha"}
                   </span>
                 )}
@@ -485,7 +485,7 @@ export function DashboardExploreDoshamNova({
           </div>
 
           {POROUTHAM_RELEVANT.has(key) && (
-            <div style={{ ...cardStyle, background: "rgba(243, 236, 221, 0.03)", border: "1px dashed var(--color-border-strong)" }}>
+            <div style={{ ...cardStyle, background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px dashed var(--color-border-strong)" }}>
               <NovaKicker>{lang === "ta" ? "தொடர்புடையவை" : "Related"}</NovaKicker>
               <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-text)", lineHeight: 1.5 }}>
                 {lang === "ta"

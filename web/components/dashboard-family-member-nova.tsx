@@ -449,7 +449,7 @@ export function DashboardFamilyMemberNova({
                     const isDasaLord = dasha != null && planet.graha === dasha.current.mahadasha.lord;
                     const isStrongest = strongest != null && planet.graha === strongest.graha;
                     return (
-                      <tr key={planet.graha} style={{ borderBottom: "1px solid rgba(243, 236, 221, 0.07)" }}>
+                      <tr key={planet.graha} style={{ borderBottom: "1px solid color-mix(in srgb, var(--color-text-strong) 7%, transparent)" }}>
                         <td style={{ padding: "10px 12px", fontWeight: 700, color: DASHA_COLORS[planet.graha] ?? "var(--color-accent-secondary)" }}>{tPlanetLord(planet.graha, lang)}</td>
                         <td style={{ padding: "10px 12px", color: "var(--color-text)" }}>{planet.rasiName}</td>
                         <td style={{ padding: "10px 12px", color: "var(--color-text)" }}>{planet.houseFromLagna}</td>

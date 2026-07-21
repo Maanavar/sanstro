@@ -326,7 +326,7 @@ export function DashboardTodayRibbonNova({
             <div style={{
               position: "absolute", top: "-4px", left: `${nowPct}%`, transform: "translateX(-50%)",
               fontSize: "9.5px", fontWeight: 700, color: "var(--ribbon-now-fg)", background: "var(--ribbon-now-bg)",
-              borderRadius: "4px", padding: "1px 6px", whiteSpace: "nowrap", boxShadow: "0 1px 3px rgba(0, 0, 0, 0.22)",
+              borderRadius: "4px", padding: "1px 6px", whiteSpace: "nowrap", boxShadow: "0 1px 3px rgba(var(--nova-shadow-ink, 0, 0, 0), 0.22)",
             }}>
               {lang === "ta" ? "இப்போது" : "NOW"} {nowLabel}
             </div>

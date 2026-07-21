@@ -248,7 +248,7 @@ export function NovaTransitsView({
                   style={{
                     padding: "15px 17px",
                     borderRadius: "var(--radius-md, 11px)",
-                    background: "rgba(243, 236, 221, 0.03)",
+                    background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)",
                     border: `1px solid ${hasFlag ? "var(--color-low-border)" : "var(--color-border)"}`,
                     display: "flex",
                     flexDirection: "column",

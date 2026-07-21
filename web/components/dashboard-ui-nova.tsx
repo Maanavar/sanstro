@@ -124,7 +124,7 @@ export function NovaClampedText({ children, lines = 3, maxWidth, style }: NovaCl
             borderRadius: "var(--radius-md)",
             border: "1px solid var(--color-border-strong)",
             background: "var(--color-surface)",
-            boxShadow: "0 10px 28px rgba(0,0,0,0.22)",
+            boxShadow: "0 10px 28px rgba(var(--nova-shadow-ink, 0, 0, 0), 0.22)",
             whiteSpace: "pre-wrap",
             ...style,
           }}
@@ -311,7 +311,7 @@ export function NovaProgressBar({ value, max = 100, tone = "accent" }: NovaProgr
       style={{
         height: 5,
         borderRadius: 3,
-        background: "rgba(243, 236, 221, 0.12)",
+        background: "color-mix(in srgb, var(--color-text-strong) 12%, transparent)",
         overflow: "hidden",
       }}
     >
@@ -403,7 +403,7 @@ export function NovaTable<Row extends Record<string, React.ReactNode>>({ columns
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={rowKey(row, i)} style={{ borderBottom: "1px solid rgba(243, 236, 221, 0.07)" }}>
+            <tr key={rowKey(row, i)} style={{ borderBottom: "1px solid color-mix(in srgb, var(--color-text-strong) 7%, transparent)" }}>
               {columns.map((col) => (
                 <td
                   key={col.key}

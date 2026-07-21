@@ -365,11 +365,11 @@ export function DashboardExploreYogamNova({
               <NovaKicker color="var(--color-accent-strong)">{lang === "ta" ? "உங்கள் ஜாதகத்தில்" : "In your chart"}</NovaKicker>
               <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(powerText)}</p>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-                <span style={{ fontSize: "11.5px", color: "var(--color-text)", background: "rgba(243,236,221,0.05)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "5px 12px" }}>
+                <span style={{ fontSize: "11.5px", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "5px 12px" }}>
                   {lang === "ta" ? "பலம்" : "Strength"} · {strengthBand(yoga.strength, true, lang)}
                 </span>
                 {yoga.dashaActivated && (
-                  <span style={{ fontSize: "11.5px", color: "var(--color-text)", background: "rgba(243,236,221,0.05)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "5px 12px" }}>
+                  <span style={{ fontSize: "11.5px", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "5px 12px" }}>
                     {lang === "ta" ? "தசையால் செயல்படுத்தப்பட்டது" : "Activated by current Dasha"}
                   </span>
                 )}

@@ -334,7 +334,7 @@ export function DashboardLifeAreasTabNova({
               </div>
             ))}
 
-            <div style={{ ...cardStyle, flexDirection: "row", alignItems: "center", flexWrap: "wrap", background: "rgba(243,236,221,0.03)", border: "1px dashed var(--color-border-strong)" }}>
+            <div style={{ ...cardStyle, flexDirection: "row", alignItems: "center", flexWrap: "wrap", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px dashed var(--color-border-strong)" }}>
               <div style={{ flex: "1 1 260px" }}>
                 <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "18px", fontWeight: 600, color: "var(--color-accent-strong)" }}>
                   {lang === "ta" ? "இந்த மதிப்பெண்கள் எதை அளவிடுகின்றன" : "What these scores measure"}

@@ -470,7 +470,7 @@ export function DashboardPlanTabNova({
                   </button>
                 </div>
 
-                <p style={{ margin: 0, fontSize: "12px", lineHeight: 1.55, color: "var(--color-muted)", background: "rgba(243,236,221,0.04)", borderRadius: "8px", padding: "9px 12px" }}>
+                <p style={{ margin: 0, fontSize: "12px", lineHeight: 1.55, color: "var(--color-muted)", background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)", borderRadius: "8px", padding: "9px 12px" }}>
                   {lang === "ta"
                     ? "தசை நேரமும் கிரகநகர்வு ஆதரவும் சேரும்போது ஒரு காலம் தோன்றும். இதை திட்டமிடல் சிக்னலாக எடுத்துக்கொள்ளுங்கள், உறுதியான நிகழ்வாக அல்ல."
                     : "A window appears when dasa timing and transit support overlap. Treat it as a planning signal, not a guaranteed event."}

@@ -301,7 +301,7 @@ export function MonthlyCalendarViewNova({
                   // isSelected fully overrode cellBg/cellBorder and isToday's badge was hidden
                   // whenever the day was also selected, so on the default view (today ==
                   // selectedDate on load) none of today/pournami/amavasai ever showed at all.
-                  const cellBg = tone?.bg ?? (isSelected ? "var(--color-accent-muted)" : hasFestival ? "var(--color-surface-soft)" : "rgba(243,236,221,0.03)");
+                  const cellBg = tone?.bg ?? (isSelected ? "var(--color-accent-muted)" : hasFestival ? "var(--color-surface-soft)" : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)");
                   const cellBorder = tone?.border ?? (isSelected ? "var(--color-border-strong)" : "var(--color-border)");
                   const selectionRing = isSelected ? "0 0 0 2px var(--color-accent-strong)" : isToday ? "0 0 0 1.5px var(--color-accent)" : "none";
                   const dateColor = isSelected ? "var(--color-accent-strong)" : isToday ? "var(--color-accent)" : "var(--color-text-strong)";
@@ -415,7 +415,7 @@ export function MonthlyCalendarViewNova({
                   const isChartMatch = isMuhurtham && chartMatchedDates.includes(item.dateLocal);
                   const dayLabel = new Date(`${item.dateLocal}T00:00:00`).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { day: "2-digit", month: "short" });
                   return (
-                    <div key={`${item.dateLocal}-${item.name}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", padding: "9px 2px", borderBottom: "1px solid rgba(243,236,221,0.06)" }}>
+                    <div key={`${item.dateLocal}-${item.name}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", padding: "9px 2px", borderBottom: "1px solid color-mix(in srgb, var(--color-text-strong) 6%, transparent)" }}>
                       <span style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12.5px", fontWeight: 600, color: "var(--color-text-strong)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         <span aria-hidden="true" style={{ width: "6px", height: "6px", borderRadius: "50%", background: isChartMatch ? "var(--color-high)" : itemColor, flexShrink: 0 }} />
                         {item.name}
