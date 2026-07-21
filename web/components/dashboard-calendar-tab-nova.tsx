@@ -575,13 +575,13 @@ export function DashboardCalendarTabNova({
   const hijriHeaderDate = formatHijriDate(selectedDate);
   const currentNowMinutes = selectedDate === todayDate ? new Date().getHours() * 60 + new Date().getMinutes() : -1;
 
-  const tithiActive = panchangam ? activeLimb(panchangam.tithi.name, panchangam.tithi.endsAt, panchangam.tithi.nextName, currentNowMinutes) : null;
-  const nakActive = panchangam ? activeLimb(panchangam.nakshatra.name, panchangam.nakshatra.endsAt, panchangam.nakshatra.nextName, currentNowMinutes) : null;
+  const tithiActive = panchangam ? activeLimb(panchangam.tithi.name, panchangam.tithi.endsAt, panchangam.tithi.nextName, currentNowMinutes, panchangam.sunrise) : null;
+  const nakActive = panchangam ? activeLimb(panchangam.nakshatra.name, panchangam.nakshatra.endsAt, panchangam.nakshatra.nextName, currentNowMinutes, panchangam.sunrise) : null;
   // Issue #9: yoga & karana were static (sunrise value only, hint "Yoga N" / "—")
   // so they never advanced after their boundary. Give them the same live promotion
   // + "until HH:MM · then next" treatment as tithi/nakshatra.
-  const yogaActive = panchangam ? activeLimb(panchangam.yoga.name, panchangam.yoga.endsAt, panchangam.yoga.nextName, currentNowMinutes) : null;
-  const karanaActive = panchangam ? activeLimb(panchangam.karana.name, panchangam.karana.endsAt, panchangam.karana.nextName, currentNowMinutes) : null;
+  const yogaActive = panchangam ? activeLimb(panchangam.yoga.name, panchangam.yoga.endsAt, panchangam.yoga.nextName, currentNowMinutes, panchangam.sunrise) : null;
+  const karanaActive = panchangam ? activeLimb(panchangam.karana.name, panchangam.karana.endsAt, panchangam.karana.nextName, currentNowMinutes, panchangam.sunrise) : null;
 
   const tithiPaksha = panchangam
     ? `${panchangam.tithi.paksha === "SHUKLA" ? t("paksha_shukla", lang) : t("paksha_krishna", lang)} ${panchangam.tithi.number}`

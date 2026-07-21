@@ -100,23 +100,35 @@ export function parseHmToMinutes(hm: string): number {
 // A panchangam limb (tithi/nakshatra/…) carries the segment active at sunrise
 // plus the one that follows. When the user is viewing *today* and the clock has
 // passed the segment's end, the headline should become the next segment so the
-// card reflects what is actually running now. We only promote for a clear
-// daytime rollover — an endsAt before ~04:00 is an after-midnight boundary that
-// two-segment data can't disambiguate, so we leave those untouched.
+// card reflects what is actually running now.
+//
+// `endsAt` arrives as a bare "HH:MM" with the date stripped (see
+// panchangam_service.py), but the backend always computes the boundary as the
+// first crossing *after* that day's sunrise. So an endsAt earlier on the clock
+// than sunrise necessarily rolled past midnight and belongs to tomorrow —
+// promoting on it would show tomorrow's limb all of today.
+//
+// This previously used a hard-coded `end >= 240` (04:00) cutoff to spot those
+// after-midnight boundaries. On 2026-07-20 Saptami ended at 04:03, three
+// minutes past the constant, so the calendar showed Ashtami — tomorrow's
+// tithi — for the whole day. Comparing against the real sunrise removes the
+// magic number.
 export function activeLimb(
   name: string,
   endsAt: string,
   nextName: string,
   nowMinutes: number,
+  sunriseHm: string,
 ): { activeName: string; until: string | null; upcomingName: string | null; rolledOver: boolean } {
-  if (nowMinutes < 0) {
-    return { activeName: name, until: endsAt, upcomingName: nextName, rolledOver: false };
-  }
+  const notPromoted = { activeName: name, until: endsAt, upcomingName: nextName, rolledOver: false };
+  if (nowMinutes < 0) return notPromoted;
+
   const end = parseHmToMinutes(endsAt);
-  if (end >= 240 && nowMinutes > end) {
+  const sunrise = parseHmToMinutes(sunriseHm);
+  if (end > sunrise && nowMinutes > end) {
     return { activeName: nextName, until: null, upcomingName: null, rolledOver: true };
   }
-  return { activeName: name, until: endsAt, upcomingName: nextName, rolledOver: false };
+  return notPromoted;
 }
 
 export function moonRasiFromNakshatra(name: string, pada = 1): number {
