@@ -74,7 +74,7 @@ function LazyModalFallback() {
           background: "var(--color-surface, var(--panel-cream))",
           border: "1px solid var(--color-border, var(--panel-tan-light))",
           borderRadius: "16px", padding: "24px",
-          boxShadow: "0 24px 64px rgba(26,22,18,0.28)",
+          boxShadow: "0 24px 64px rgba(var(--nova-shadow-ink, 26, 22, 18), 0.28)",
         }}
       >
         <SkeletonDashboardCard lines={5} showIcon />
@@ -1774,20 +1774,33 @@ export function DashboardWorkspace() {
       </div>
       </div>{/* cd-main-content__body */}
 
-      {/* Dashboard footer (redesigned 2026-07-18 — see the "Footer redesign"
-          block in dashboard-nova.css for the layout rationale). Three
-          columns: brand identity, site navigation, one labelled quick
-          setting — instead of the old single row that let the
-          morning-guidance toggle wrap onto its own orphaned line at mid
-          viewport widths. */}
+      {/* Dashboard footer. Layout rationale lives in the "Footer redesign"
+          block in dashboard-nova.css; the 2026-07-20 Apple pass reordered
+          the regions to Apple's global-footer sequence — legal disclaimer
+          FIRST (a footnote qualifying everything above it, so it reads
+          before the navigation rather than as an afterthought beside the
+          copyright), then the link grid, then the copyright baseline, with
+          a hairline between each.
+
+          Deliberately NOT accordions: Apple collapses footer columns behind
+          chevrons because their global footer carries ~60 links. This one
+          carries 6. Collapsing them would hide content that costs nothing
+          to show and put two taps between the user and a tab — the pattern
+          without the problem it solves. Columns stay open at every width. */}
       <footer className="cd-footer">
         <div className="cd-footer__inner">
 
+          <p className="nova-footer__legal">
+            {lang === "ta"
+              ? "ஜோதிடம் ஒரு பாரம்பரிய நம்பிக்கை அமைப்பு — அறிவியல் உண்மை அல்ல. மருத்துவ, சட்ட, நிதி முடிவுகளுக்கு தகுதிவாய்ந்த நிபுணரை அணுகுங்கள்."
+              : "Astrology is a traditional belief system, not a scientific fact. For medical, legal, or financial decisions, consult a qualified professional."}
+          </p>
+
+          <div className="cd-footer__divider" />
+
           <div className="nova-footer__grid">
             <div className="nova-footer__brand">
-              <p className="cd-footer__wordmark">
-                Vinaadi <span aria-hidden="true" style={{ fontSize: "0.8em", opacity: 0.6 }}>✦</span>
-              </p>
+              <p className="cd-footer__wordmark">Vinaadi</p>
               <p className="nova-footer__tagline">
                 {lang === "ta" ? "ஜோதிட வழிகாட்டல் — தினமும் சூரிய உதயத்திற்கு முன்." : "Jothidam guidance, every morning before sunrise."}
               </p>
@@ -1815,41 +1828,36 @@ export function DashboardWorkspace() {
                 },
               ]).map((col) => (
                 <div key={col.head.en} className="nova-footer__nav-col">
-                  <span className="nova-footer__eyebrow">
+                  <h2 className="nova-footer__nav-head">
                     {lang === "ta" ? col.head.ta : col.head.en}
-                  </span>
-                  {col.links.map((link) => (
-                    <button
-                      key={link.tab}
-                      type="button"
-                      className="nova-footer__nav-link"
-                      onClick={() => goToTab(link.tab)}
-                    >
-                      {lang === "ta" ? link.ta : link.en}
-                    </button>
-                  ))}
+                  </h2>
+                  <div className="nova-footer__nav-links">
+                    {col.links.map((link) => (
+                      <button
+                        key={link.tab}
+                        type="button"
+                        className="nova-footer__nav-link"
+                        onClick={() => goToTab(link.tab)}
+                      >
+                        {lang === "ta" ? link.ta : link.en}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ))}
             </nav>
 
             <div className="nova-footer__quick">
-              <span className="nova-footer__eyebrow">
+              <h2 className="nova-footer__nav-head">
                 {lang === "ta" ? "விரைவு அமைப்பு" : "Quick setting"}
-              </span>
+              </h2>
               <DashboardFooterMorningGuidance lang={lang} onOpenSettings={() => navigateSettings("notifications")} />
             </div>
           </div>
 
-          {/* Divider */}
           <div className="cd-footer__divider" />
 
-          {/* Bottom row: disclaimer + copyright */}
           <div className="cd-footer__bottom">
-            <p className="cd-footer__disclaimer">
-              {lang === "ta"
-                ? "ஜோதிடம் ஒரு பாரம்பரிய நம்பிக்கை அமைப்பு — அறிவியல் உண்மை அல்ல. மருத்துவ, சட்ட, நிதி முடிவுகளுக்கு தகுதிவாய்ந்த நிபுணரை அணுகுங்கள்."
-                : "Astrology is a traditional belief system, not a scientific fact. For medical, legal, or financial decisions, consult a qualified professional."}
-            </p>
             <p className="cd-footer__copy">
               © {new Date().getFullYear()} Vinaadi
             </p>

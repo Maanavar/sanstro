@@ -70,36 +70,55 @@
 [data-ui="nova"]:not([data-theme="light"]) .cd-shell {
   color-scheme: dark;
 
-  /* ── Backgrounds ── */
-  --color-bg:           #221a2c; /* bg-base */
-  --color-surface:      #2c2338; /* bg-card */
-  --color-surface-soft: #2e2440; /* bg-surface */
-  --color-surface-2:    #2e2440;
-  --color-surface-3:    #241b30; /* bg-deep */
-  --color-bg-glass:         color-mix(in srgb, #221a2c 95%, transparent);
-  --color-bg-glass-97:      color-mix(in srgb, #221a2c 97%, transparent);
-  --color-hover-bg:         rgba(212, 175, 95, 0.08);
+  /* ── Ambient page glow (designer 2026-07-19): a purple top-left + blue
+     bottom-right + a whisper of hero gold over the navy base. `fixed` anchors
+     the glows to the viewport so they hold their corners as the page scrolls
+     instead of sliding down a tall shell. Overrides the shared
+     `.cd-shell { background: var(--color-bg) }` rule via higher specificity. ── */
+  background:
+    radial-gradient(circle at 15% 10%,
+      rgba(118, 82, 255, 0.16) 0%, rgba(118, 82, 255, 0.08) 18%, transparent 45%),
+    radial-gradient(circle at 90% 95%,
+      rgba(70, 120, 255, 0.12) 0%, rgba(70, 120, 255, 0.05) 20%, transparent 45%),
+    radial-gradient(circle at 55% 15%,
+      rgba(214, 168, 95, 0.05) 0%, transparent 40%),
+    #04050E;
+  background-attachment: fixed;
 
-  /* ── Borders ── */
-  --color-border:        rgba(212, 175, 95, 0.22); /* border-mid */
-  --color-border-strong: rgba(212, 175, 95, 0.4);  /* border-strong */
+  /* ── Backgrounds — Apple-ref navy ramp (designer palette 2026-07-19).
+     Darkest base → progressively lighter elevated surfaces. ── */
+  --color-bg:           #04050E; /* bg-base — site background */
+  --color-surface:      #151827; /* bg-card — standard card */
+  --color-surface-soft: #1A1E31; /* bg-surface — elevated card */
+  --color-surface-2:    #1A1E31;
+  --color-surface-3:    #0A0E20; /* bg-deep — deep panels/charts */
+  --color-bg-glass:         color-mix(in srgb, #04050E 95%, transparent);
+  --color-bg-glass-97:      color-mix(in srgb, #04050E 97%, transparent);
+  --color-hover-bg:         rgba(255, 255, 255, 0.05);
 
-  /* ── Text (cream, opacity-stepped) ── */
-  --color-text-strong: #f3ecdd;
-  --color-text:         rgba(243, 236, 221, 0.85);
-  --color-muted:        rgba(243, 236, 221, 0.62);
+  /* ── Borders — soft cool blue-grey (designer intentionally avoids hard
+     outlines; gold is reserved for accent, not chrome). ── */
+  --color-border:        #2A3147; /* primary border */
+  --color-border-strong: #343B56; /* soft border (raised) */
+
+  /* ── Text (cool off-white, opacity-stepped). Cooled from the old cream to
+     sit on the navy base; the darker base only raises every contrast ratio,
+     so the AA notes below still hold. ── */
+  --color-text-strong: #ECEEF7;
+  --color-text:         rgba(236, 238, 247, 0.85);
+  --color-muted:        rgba(236, 238, 247, 0.66);
   /* faint carries the highest-traffic small-text roles in the UI (metric
      labels, captions, table headers, snapshot kickers — 200+ sites). At 0.45
      it was AA-large-only (3.7–3.9:1) on both base and raised surfaces, and
      those roles are small text (needs 4.5:1). 0.55 clears AA everywhere
      (5.19:1 on bg, 4.89:1 on surface) with no perceptible loss of hierarchy. */
-  --color-faint:        rgba(243, 236, 221, 0.55);
+  --color-faint:        rgba(236, 238, 247, 0.60);
 
-  /* ── Accent — gold ── */
-  --color-accent:           #d4af5f;
-  --color-accent-strong:    #e7c87e;
-  --color-accent-muted:     rgba(212, 175, 95, 0.12);
-  --color-on-accent:        #221a2c;
+  /* ── Accent — gold (designer palette 2026-07-19) ── */
+  --color-accent:           #D6A85F; /* primary gold */
+  --color-accent-strong:    #E2BA76; /* hover gold */
+  --color-accent-muted:     rgba(214, 168, 95, 0.12);
+  --color-on-accent:        #04050E;
   /* Text-safe accent: the color we brand with (--color-accent gold) is a
      fill/border color, not always a type color. On dark it passes as text
      (8:1), but light-mode gold-on-cream is 2.48:1 (fail) — so kicker/label
@@ -110,8 +129,11 @@
 
   /* ── Semantic ── */
   --color-accent-alt:            #8fbf9a; /* green — success/favourable */
-  --color-accent-secondary:       #c9a9dd; /* purple */
-  --color-accent-secondary-muted: rgba(167, 139, 201, 0.22);
+  /* purple (designer palette 2026-07-19): text/accent uses the light "soft
+     glow" tone for legibility on dark; fills/glows use the deeper #7A63E6/
+     #6552D8 (see --color-accent-secondary-muted and --nova-hero-gradient). */
+  --color-accent-secondary:       #A58BFF; /* purple — soft glow */
+  --color-accent-secondary-muted: rgba(122, 99, 230, 0.22);
   /* Score bands must read good / okay / caution — NOT the brand gold (issue #13).
      --color-score-mid was #d4af5f, identical to --color-accent, so every mid-band
      score on the Nova home rendered as plain gold. Retuned to a distinct
@@ -372,11 +394,27 @@
      this gives the hero one restrained source of light without breaking the
      dark editorial base. Gold held at 10% so it reads as glow, not tint. */
   --nova-hero-gradient:
-    radial-gradient(130% 150% at 12% 0%, rgba(212, 175, 95, 0.10), transparent 46%),
-    linear-gradient(150deg, #33283f 0%, #271d34 62%);
+    radial-gradient(120% 140% at 14% 0%, rgba(101, 82, 216, 0.24), transparent 50%),
+    radial-gradient(90% 120% at 88% 4%, rgba(165, 139, 255, 0.08), transparent 44%),
+    linear-gradient(150deg, #151827 0%, #0A0E20 62%);
   /* Card lift — a whisper of shadow so cards sit above the base plane instead
      of floating on it borderless-flat. Kept to 1px depth on dark. */
   --nova-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.30);
+  /* Hover-lift twin of the above (.nova-interactive:hover). */
+  --nova-hover-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  /* Shadow pigment as a bare rgb triple, for the shadows that compose their own
+     alpha inline (the .button--primary pair). Neutral black on navy. */
+  --nova-shadow-ink: 0, 0, 0;
+
+  /* ── Celestial sky furniture (celestial-ambient-nova.tsx). These live in CSS
+     rather than being branched in JS because their consumers — the rasi-chakra
+     wheel and the orbit glyph's specks — render without a mounted guard, so a
+     JS read of data-theme would paint dark on the server and light on the
+     client and trip hydration. `speck` is the twinkling dot; `chakra-ink` is
+     the hairline wheel. Both carry their alpha, since every stroke that uses
+     them does so at one fixed opacity. ── */
+  --nova-speck:      #f3ecdd;
+  --nova-chakra-ink: rgba(212, 175, 95, 0.9);
 
   /* "Your day" timeline — dark-mode-specific inks (the rest of the ribbon
      token set is mode-invariant and lives in the shared block below the
@@ -403,6 +441,26 @@
    hue families as Nova-dark throughout, so score meaning stays legible. ── */
 [data-ui="nova"][data-theme="light"] .cd-shell {
   color-scheme: light;
+
+  /* ── Ambient page glow — the light twin of the dark block's three-corner
+     wash. Without this rule Light fell through to the plain
+     `.cd-shell { background: var(--color-bg) }` in dashboard.css and rendered
+     as one flat sheet of cream, while Dark got a lit, dimensional page: the
+     ambience read as a dark-only feature rather than a Nova one. Same three
+     sources and same corners, re-pigmented for a cream ground — pigments
+     *darker* than the base (a light wash on light is invisible) and held to
+     roughly half the dark alphas, since tinting cream shows far more readily
+     than lifting navy. `fixed` anchors them to the viewport exactly as in
+     dark. ── */
+  background:
+    radial-gradient(circle at 15% 10%,
+      rgba(124, 90, 166, 0.10) 0%, rgba(124, 90, 166, 0.05) 18%, transparent 45%),
+    radial-gradient(circle at 90% 95%,
+      rgba(60, 110, 143, 0.09) 0%, rgba(60, 110, 143, 0.04) 20%, transparent 45%),
+    radial-gradient(circle at 55% 15%,
+      rgba(201, 151, 28, 0.07) 0%, transparent 40%),
+    var(--surface-0);
+  background-attachment: fixed;
 
   /* ── Backgrounds — reuse Classic's light surface scale directly ── */
   --color-bg:           var(--surface-0);  /* #FAF7F2 */
@@ -596,6 +654,19 @@
     radial-gradient(130% 150% at 12% 0%, rgba(201, 151, 28, 0.08), transparent 46%),
     linear-gradient(150deg, var(--surface-1), var(--surface-2));
   --nova-card-shadow: 0 1px 3px rgba(28, 16, 8, 0.08);
+  /* Warm brown-black at a third of dark's alpha: on cream a shadow only needs
+     to suggest lift, and a neutral black would grey the warm palette. */
+  --nova-hover-shadow: 0 6px 18px rgba(28, 16, 8, 0.10);
+  /* Warm brown rather than neutral black — see --nova-shadow-ink in the dark
+     block. A pure-black drop on a warm cream palette reads as dirt, not depth. */
+  --nova-shadow-ink: 28, 16, 8;
+
+  /* Celestial sky furniture — see the dark block. Both flip from "lighter than
+     the ground" to "darker than the ground": a cream speck and a highlight-gold
+     hairline are invisible on cream, so the twinkle and the 240s wheel spin
+     were animating nothing here. Deep bronze is Nova-light's own accent hex. */
+  --nova-speck:      #8A6410;
+  --nova-chakra-ink: rgba(138, 100, 16, 0.9);
 
   /* "Your day" timeline — light-mode-specific inks (mode-invariant tokens
      live in the shared block below). The empty rail is an opaque warm
@@ -977,9 +1048,15 @@
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--color-fair, #e39a3e);
-  background: color-mix(in srgb, var(--color-fair, #e39a3e) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-fair, #e39a3e) 30%, transparent);
+  /* --color-fair is never defined anywhere (the four-band palette's name is
+     --color-score-fair), so all three of these silently resolved to the literal
+     fallback in BOTH themes — the pill looked token-driven but was pinned to
+     dark's amber, which is 2.4:1 as text on the cream light canvas, an AA fail
+     on a pill whose whole job is to be read. --color-mid is the same #e39a3e in
+     dark (no visual change there) and the light-tuned #B86A00 in light. */
+  color: var(--color-mid);
+  background: color-mix(in srgb, var(--color-mid) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-mid) 30%, transparent);
   border-radius: 999px;
   padding: 1px 8px;
   white-space: nowrap;
@@ -1185,6 +1262,17 @@
 
 [data-ui="nova"] .cd-shell .surface__title    { color: var(--color-faint); }
 [data-ui="nova"] .cd-shell .surface__headline { color: var(--color-text-strong); }
+/* Profile cards (Birth Star / Rasi / Lagnam) carry a zodiac badge image ahead
+   of the name on some cards but not others, which used to leave the ruling-
+   planet chip inline on the badge-less Birth Star card yet wrapped mid-label on
+   the badged Rasi/Lagnam cards. Stack the chip beneath the name row on all
+   three so they read identically regardless of whether a badge is present. */
+[data-ui="nova"] .cd-shell .surface__headline--profile {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+[data-ui="nova"] .cd-shell .surface__headline--profile .chip { flex-shrink: 0; white-space: nowrap; }
 [data-ui="nova"] .cd-shell .surface__subhead  { color: var(--color-faint); }
 [data-ui="nova"] .cd-shell .surface__text,
 [data-ui="nova"] .cd-shell .surface__body p   { color: var(--color-text); }
@@ -1196,14 +1284,14 @@
   background: linear-gradient(180deg, var(--color-accent-strong), var(--color-accent));
   border-color: var(--color-accent);
   color: var(--color-on-accent);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.24), 0 2px 7px color-mix(in srgb, var(--color-accent) 20%, transparent);
+  box-shadow: 0 1px 2px rgba(var(--nova-shadow-ink), 0.24), 0 2px 7px color-mix(in srgb, var(--color-accent) 20%, transparent);
   transition: box-shadow 150ms ease, filter 150ms ease;
 }
 [data-ui="nova"] .cd-shell .button--primary:hover {
   background: linear-gradient(180deg, var(--color-accent-strong), var(--color-accent-strong));
   border-color: var(--color-accent-strong);
   filter: brightness(1.02);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.28), 0 5px 14px color-mix(in srgb, var(--color-accent) 30%, transparent);
+  box-shadow: 0 2px 4px rgba(var(--nova-shadow-ink), 0.28), 0 5px 14px color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
 [data-ui="nova"] .cd-shell .button--ghost,
 [data-ui="nova"] .cd-shell .button--secondary {
@@ -1303,6 +1391,7 @@
 .nova-grid-3,
 .nova-grid-anticipation,
 .nova-grid-detail,
+.nova-deepdive-grid,
 .nova-grid-4 {
   display: grid;
   gap: 16px;
@@ -1319,6 +1408,11 @@
 .nova-grid-3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); }
 .nova-grid-anticipation { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
 .nova-grid-detail { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
+/* Today tab's "Why this prediction?" tiles-vs-illustration row — its own
+   ratio (not .nova-grid-detail, which 6 other components share) so the
+   tiles' column can run wider than the 1.5fr:1fr split gives them
+   (1.5/2.5 = 60% → 2.3/3.3 ≈ 70%) without moving anyone else's layout. */
+.nova-deepdive-grid { grid-template-columns: minmax(0, 2.3fr) minmax(0, 1fr); }
 .nova-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 
 /* Activity-board carousel ("Is today okay for…?"): the ‹ › header arrows and
@@ -1383,7 +1477,8 @@
   .nova-grid-2,
   .nova-grid-3,
   .nova-grid-anticipation,
-  .nova-grid-detail {
+  .nova-grid-detail,
+  .nova-deepdive-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -1490,8 +1585,13 @@
 @media (prefers-reduced-motion: no-preference) and (hover: hover) {
   [data-ui="nova"] .cd-shell .nova-interactive:hover {
     transform: translateY(-2px);
+    /* --nova-hover-shadow is per-theme (see both palette blocks). It used to be
+       a literal rgba(0,0,0,0.28) — tuned for navy, where a heavy black bloom
+       reads as depth. On cream that same shadow is a grey smudge under every
+       hovered tile, which is why --nova-card-shadow was already themed while
+       its hover twin was not. */
     box-shadow:
-      0 6px 20px rgba(0, 0, 0, 0.28),
+      var(--nova-hover-shadow),
       0 0 0 1px var(--color-border-strong);
   }
 }
@@ -1537,6 +1637,24 @@
 }
 [data-ui="nova"] .nova-celestial__star {
   animation: nova-celestial-twinkle 3.6s ease-in-out infinite;
+}
+/* Hairline drift for the decorative rasi-chakra wheel (RasiChakraBackdrop)
+   and the deep-dive orbit glyph (DeepDiveOrbitGlyph) — slow enough over a
+   240s loop that it reads as "time turning" ambience, not a moving graphic
+   competing with real content. */
+[data-ui="nova"] .nova-wheel-spin {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nova-celestial-spin 240s linear infinite;
+}
+/* Hero/deep-dive celestial backdrops (chakra wheel, big moon) are purely
+   atmospheric corner bleed — on narrow viewports the hero/card is too
+   cramped for them not to compete with the greeting text and score dial, so
+   they're dropped rather than shrunk. */
+@media (max-width: 640px) {
+  [data-ui="nova"] .nova-hero-glyph {
+    display: none;
+  }
 }
 /* Note: the page sky's light-theme behaviour (drop stars + night indigo, keep a
    soft daytime-gold crown) is handled in JS inside CelestialAmbientNova via
@@ -1628,21 +1746,59 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   Footer redesign (dashboard-home UX audit 2026-07-18). Replaces the old
-   flex-wrap `.cd-footer__top` (brand + link columns + the morning-guidance
-   toggle all fighting for space on one wrapping row, so mid-width viewports
-   dropped the toggle onto its own orphaned line) with a proper 3-column
-   grid: brand · site nav · one labelled "quick setting" cell. Still nests
-   inside `.cd-footer`/`.cd-footer__inner` for the sticky-footer flex
-   mechanics and the Tamil font-family hooks (dashboard.css) those classes
-   already carry — only the internal layout is new, and it is 100%
-   token-driven (no literal hex), so it never needs a per-theme patch like
-   the block above did. ═══════════════════════════════════════════════ */
+   Footer — Apple pass 2026-07-20, over the 2026-07-18 redesign (which had
+   already replaced a flex-wrap row that orphaned the morning-guidance
+   toggle onto its own line at mid widths; the 3-column grid below is that
+   fix, kept). Nests inside `.cd-footer`/`.cd-footer__inner` for the
+   sticky-footer flex mechanics and the Tamil font-family hooks
+   (dashboard.css) those classes carry. 100% token-driven — no literal hex
+   — so it needs no per-theme patch like the `.cd-footer` block above.
+
+   What "Apple standards" changed here, and why each one:
+
+   1. ONE TYPE SIZE. Apple's footer runs on a single 12px step: column
+      heads and links are the same size, separated by weight and color
+      alone, never by size. The old eyebrow (0.66rem, uppercase,
+      0.12em tracking, 700, gold) was a third size AND a third color AND a
+      case change AND a tracking change — four signals to express one level
+      of hierarchy. Heads are now 0.75rem/600/text-strong, sentence case.
+
+   2. LINKS DO NOT CHANGE COLOR ON HOVER. The old rule shifted links to
+      gold. Apple moves the underline, never the hue: color carries meaning
+      (accent = brand/active), so spending it on "the pointer is here"
+      makes the accent mean nothing. Hover/focus adds an underline at a
+      fixed offset instead, which also survives a monochrome or
+      high-contrast rendering where a hue shift vanishes.
+
+   3. HAIRLINES, NOT BOXES. Regions divide by 1px rules on the same ground,
+      never by nested panels — hence the morning-guidance control losing
+      its border+fill card (see .nova-fmg below).
+   ═══════════════════════════════════════════════════════════ */
+
+/* Legal footnote — sits ABOVE the link grid, Apple's ordering: it
+   qualifies the product above it, so it reads before the navigation
+   rather than as an afterthought wedged beside the copyright. */
+.nova-footer__legal {
+  margin: 0 0 20px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+  max-width: 76ch;
+}
+
+/* The shared divider carries `margin-bottom` only (dashboard.css). This
+   footer now has a hairline on BOTH sides of the grid, so it needs
+   symmetric breathing room at each one. */
+.cd-shell .cd-footer__divider {
+  margin: 0 0 24px;
+}
+
 .nova-footer__grid {
   display: grid;
   grid-template-columns: minmax(180px, 0.85fr) minmax(0, 1.5fr) minmax(200px, 0.85fr);
   gap: 36px;
   align-items: start;
+  margin-bottom: 28px;
 }
 @media (max-width: 860px) {
   .nova-footer__grid {
@@ -1661,13 +1817,18 @@
 .nova-footer__brand {
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 8px;
   min-width: 0;
+}
+/* dashboard.css gives the wordmark `margin: 0 0 4px`, which compounds with
+   the flex `gap` above into an uneven 12px. Spacing is the column's job. */
+.nova-footer__brand .cd-footer__wordmark {
+  margin: 0;
 }
 .nova-footer__tagline {
   margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.6;
+  font-size: 0.75rem;
+  line-height: 1.5;
   color: var(--color-muted);
   max-width: 30ch;
 }
@@ -1679,17 +1840,27 @@
   min-width: 0;
 }
 .nova-footer__nav-col {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
   min-width: 0;
 }
-.nova-footer__eyebrow {
-  font-size: 0.66rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-weight: 700;
-  color: var(--color-text-accent, var(--color-accent-strong));
+
+/* Column head. Same 0.75rem as the links beneath it — weight and color do
+   the separating. `<h2>` for the outline; the heading default size/margin
+   must be zeroed explicitly. */
+.nova-footer__nav-head {
+  margin: 0 0 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text-strong);
+}
+
+.nova-footer__nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
 }
 .nova-footer__nav-link {
   background: none;
@@ -1697,23 +1868,105 @@
   padding: 0;
   margin: 0;
   font: inherit;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
   color: var(--color-faint);
   text-align: left;
   cursor: pointer;
   width: fit-content;
-  transition: color 0.15s ease;
+  text-decoration: none;
 }
-.nova-footer__nav-link:hover,
+.nova-footer__nav-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
 .nova-footer__nav-link:focus-visible {
-  color: var(--color-accent-strong);
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 3px;
+  border-radius: 2px;
 }
 
 .nova-footer__quick {
+  min-width: 0;
+}
+
+/* ── Footer morning-guidance control (dashboard-footer-morning-nova.tsx) ──
+   Deliberately unboxed: a bordered, tinted panel inside a footer reads as a
+   second surface floating on the first, and Apple footers hold no such
+   container — controls sit directly on the footer ground and are separated
+   by space alone. */
+.nova-fmg {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+.nova-fmg__text {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 2px;
   min-width: 0;
+}
+.nova-fmg__label {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-faint);
+}
+.nova-fmg__status {
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--color-muted);
+}
+
+/* Switch. Apple's proportions scaled to a footer-weight control: track
+   width ≈ 1.73 × height, knob = height − 2×inset, fully rounded. The knob
+   shadow is what makes it read as a physical control rather than a flat
+   pill, and is the one part that must stay a literal rgba — it is a
+   shadow, not a themed surface. */
+.nova-fmg__switch {
+  flex: none;
+  position: relative;
+  width: 38px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--color-text-strong) 18%, transparent);
+  transition: background 0.2s ease;
+}
+.nova-fmg__switch[data-on="true"] {
+  background: var(--color-accent-strong);
+}
+.nova-fmg__switch:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+.nova-fmg__switch:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 3px;
+}
+.nova-fmg__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.16);
+  transition: transform 0.2s ease;
+}
+.nova-fmg__switch[data-on="true"] .nova-fmg__knob {
+  transform: translateX(16px);
+}
+
+/* Copyright baseline — the quietest line on the page. */
+.cd-shell .cd-footer__copy {
+  font-size: 0.75rem;
+  line-height: 1.4;
 }
 
 /* ── Reduced-motion guard ──────────────────────────────────

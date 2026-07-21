@@ -12,12 +12,22 @@ const CHANNEL_LABELS: Record<"email" | "push" | "both", { en: string; ta: string
 };
 
 /**
- * Morning-guidance card in the workspace footer (homepage redesign
+ * Morning-guidance control in the workspace footer (homepage redesign
  * 2026-07-18) — replaces the Today tab's MorningGuidanceCard pointer. The
  * switch flips `morningAlertEnabled` only; delivery time and channel still
  * have exactly one editing surface, Settings → Notifications. Turning the
  * alert ON while the notification channel is "none" never silently picks a
  * channel (DASH-06) — it opens Settings so the user chooses.
+ *
+ * Presentation (Apple pass 2026-07-20): the boxed card treatment is gone —
+ * a bordered, tinted panel inside a footer reads as a second surface, and
+ * Apple footers carry no such competing container. It is now a plain
+ * label/status/switch row that sits directly on the footer ground, styled
+ * via `.nova-fmg*` in dashboard-nova.css. Styles moved out of inline
+ * `style={{}}` at the same time: the old literal hex fallbacks
+ * (`#a8842c`, `#C9A227`, `#fff`) could not respond to the Nova
+ * light/dark token flip, so the switch kept a dark-theme gold on the cream
+ * theme whenever a token failed to resolve.
  */
 export function DashboardFooterMorningGuidance({ lang, onOpenSettings }: { lang: Lang; onOpenSettings?: () => void }) {
   const [prefs, setPrefs] = useState<NotificationPreferenceData | null>(null);
@@ -69,41 +79,25 @@ export function DashboardFooterMorningGuidance({ lang, onOpenSettings }: { lang:
     }
   }
 
+  const label = lang === "ta" ? "காலை வழிகாட்டல்" : "Morning guidance";
+
   return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: "14px",
-      background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)",
-      border: "1px solid var(--color-border, rgba(0,0,0,0.12))",
-      borderRadius: "12px", padding: "14px 16px",
-    }}>
-      <span aria-hidden="true" style={{ color: "var(--color-accent-strong, #a8842c)", fontSize: "16px", flex: "none" }}>☀</span>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--color-text-strong, inherit)" }}>
-          {lang === "ta" ? "காலை வழிகாட்டல்" : "Morning guidance"}
-        </div>
-        <div style={{ fontSize: "11px", color: "var(--color-faint, inherit)", marginTop: "1px", whiteSpace: "nowrap" }}>
-          {statusLine}
-        </div>
-      </div>
+    <div className="nova-fmg">
+      <span className="nova-fmg__text">
+        <span className="nova-fmg__label">{label}</span>
+        <span className="nova-fmg__status">{statusLine}</span>
+      </span>
       <button
         type="button"
         role="switch"
         aria-checked={enabled}
-        aria-label={lang === "ta" ? "காலை வழிகாட்டல்" : "Morning guidance"}
+        aria-label={label}
+        className="nova-fmg__switch"
+        data-on={enabled ? "true" : "false"}
         onClick={() => void handleToggle()}
         disabled={busy}
-        style={{
-          width: "34px", height: "19px", borderRadius: "999px",
-          background: enabled ? "var(--color-accent, #C9A227)" : "color-mix(in srgb, var(--color-text-strong) 15%, transparent)",
-          border: "none", position: "relative", cursor: busy ? "wait" : "pointer",
-          transition: "background 0.2s ease", flex: "none", marginLeft: "6px", padding: 0,
-        }}
       >
-        <span style={{
-          position: "absolute", top: "2.5px", left: enabled ? "17px" : "3px",
-          width: "14px", height: "14px", borderRadius: "50%",
-          background: "var(--color-surface, #fff)", transition: "left 0.2s ease",
-        }} />
+        <span className="nova-fmg__knob" aria-hidden="true" />
       </button>
     </div>
   );
