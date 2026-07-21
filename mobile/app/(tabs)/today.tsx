@@ -48,6 +48,7 @@ import { formatTimeLang, formatDateLang } from "@/lib/formatLocale";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import type { GuestPrefs } from "@/features/guest/guestStore";
 import type { DailyGuidanceData } from "@vinaadi/shared";
+import { tKarana, tNakshatra, tTithi, tYoga } from "@vinaadi/shared";
 import { SCORE_THRESHOLDS } from "@vinaadi/shared/utils/score";
 type ExtendedGuidance = DailyGuidanceData & {
   is_chandrashtama?: boolean;
@@ -869,12 +870,12 @@ export default function TodayTab() {
             {panchangamExpanded && (
               <View style={styles.panchangamGrid}>
                 {[
-                  { label: t(strings.panchangam.tithi), value: p.tithi.name },
-                  { label: t(strings.panchangam.nakshatra), value: p.nakshatra.name },
-                  { label: t(strings.panchangam.yoga), value: p.yoga.name },
+                  { label: t(strings.panchangam.tithi), value: tTithi(p.tithi.name, lang) },
+                  { label: t(strings.panchangam.nakshatra), value: tNakshatra(p.nakshatra.name, lang) },
+                  { label: t(strings.panchangam.yoga), value: tYoga(p.yoga.name, lang) },
                   { label: t(strings.panchangam.sunrise), value: fmt(p.sunrise) },
                   { label: t(strings.panchangam.sunset), value: fmt(p.sunset) },
-                  { label: t(strings.panchangam.karana), value: p.karana.name },
+                  { label: t(strings.panchangam.karana), value: tKarana(p.karana.name, lang) },
                 ].map((item) => (
                   <View key={item.label} style={styles.datumCard}>
                     <Text style={styles.datumLabel}>{item.label}</Text>

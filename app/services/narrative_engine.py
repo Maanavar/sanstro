@@ -365,8 +365,8 @@ def panchangam_reason(
         notes_en.append(f"Yoga: {yoga_name_en} — ordinary day")
 
     if karana_name == "VISHTI":
-        notes_ta.append("கரணம் விஷ்டி — பாரம்பரியப்படி கவனம் தேவைப்படும் கரணம்; ஏற்கனவே தொடங்கியவற்றை முடிப்பது நல்லது")
-        notes_en.append("Karana Vishti — a traditionally cautious karana; prefer completing existing tasks")
+        notes_ta.append("கரணம் பத்திரை — பாரம்பரியப்படி கவனம் தேவைப்படும் கரணம்; ஏற்கனவே தொடங்கியவற்றை முடிப்பது நல்லது")
+        notes_en.append("Karana Paththirai — a traditionally cautious karana; prefer completing existing tasks")
 
     nak_name = NAKSHATRA_NAME.get(nakshatra_number, _bi(str(nakshatra_number), str(nakshatra_number)))
     notes_ta.append(f"நட்சத்திரம்: {nak_name.ta}")
@@ -502,8 +502,8 @@ def panchangam_spoken(
         )
     if karana_name == "VISHTI":
         return _bi(
-            "இன்று விஷ்டி கரணம் என்பதால் புதிய தொடக்கங்களை விட, நடப்பதை முடிப்பது நல்லது.",
-            "With Vishti karana today, finishing what's underway beats starting something new.",
+            "இன்று பத்திரை கரணம் என்பதால் புதிய தொடக்கங்களை விட, நடப்பதை முடிப்பது நல்லது.",
+            "With Paththirai karana today, finishing what's underway beats starting something new.",
         )
     nak = NAKSHATRA_NAME.get(nakshatra_number)
     if panchangam_score >= 65 and nak is not None:

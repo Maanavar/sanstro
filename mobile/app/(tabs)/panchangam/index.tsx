@@ -11,6 +11,7 @@ import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
+import { tKarana, tNakshatra, tTithi, tYoga } from "@vinaadi/shared";
 import { TimeCard } from "@/components/TimeCard";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
@@ -177,10 +178,10 @@ export default function PanchangamDayScreen() {
                 {isTamil ? "பஞ்சாங்க அம்சங்கள்" : "Panchangam Elements"}
               </Text>
               {[
-                { label: t(strings.panchangam.tithi),     value: `${p.tithi.name} (${p.tithi.paksha === "SHUKLA" ? "வளர்பிறை" : "தேய்பிறை"})` },
-                { label: t(strings.panchangam.nakshatra), value: `${p.nakshatra.name}, ${isTamil ? "பாதம்" : "Pada"} ${p.nakshatra.pada}` },
-                { label: t(strings.panchangam.yoga),     value: p.yoga.name },
-                { label: t(strings.panchangam.karana),   value: p.karana.name },
+                { label: t(strings.panchangam.tithi),     value: `${tTithi(p.tithi.name, lang)} (${p.tithi.paksha === "SHUKLA" ? "வளர்பிறை" : "தேய்பிறை"})` },
+                { label: t(strings.panchangam.nakshatra), value: `${tNakshatra(p.nakshatra.name, lang)}, ${isTamil ? "பாதம்" : "Pada"} ${p.nakshatra.pada}` },
+                { label: t(strings.panchangam.yoga),     value: tYoga(p.yoga.name, lang) },
+                { label: t(strings.panchangam.karana),   value: tKarana(p.karana.name, lang) },
                 { label: t(strings.panchangam.vara),     value: p.vara.weekday },
               ].map((row) => (
                 <View key={row.label} style={styles.fiveRow}>

@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { C } from "@/theme/colors";
 import { S } from "@/theme/spacing";
+import { tKarana, tNakshatra, tTithi, tYoga } from "@vinaadi/shared";
 import type { PanchangamDailyResponseData } from "@vinaadi/shared";
 
 interface Props {
@@ -16,22 +17,23 @@ interface Datum {
 }
 
 export function PanchangamGrid({ data, isTamil, formatTime }: Props) {
+  const lang = isTamil ? "ta" : "en";
   const rows: Datum[] = [
     {
       label: isTamil ? "திதி" : "Tithi",
-      value: data.tithi.name,
+      value: tTithi(data.tithi.name, lang),
     },
     {
       label: isTamil ? "நக்ஷத்திரம்" : "Nakshatra",
-      value: data.nakshatra.name,
+      value: tNakshatra(data.nakshatra.name, lang),
     },
     {
       label: isTamil ? "யோகம்" : "Yoga",
-      value: data.yoga.name,
+      value: tYoga(data.yoga.name, lang),
     },
     {
       label: isTamil ? "கரணம்" : "Karana",
-      value: data.karana.name,
+      value: tKarana(data.karana.name, lang),
     },
     {
       label: isTamil ? "சூரிய உதயம்" : "Sunrise",

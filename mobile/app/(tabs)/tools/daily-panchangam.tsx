@@ -17,6 +17,7 @@ import { getPanchangamDay } from "@/api/panchangam";
 import { loadGuestPrefs } from "@/features/guest/guestStore";
 import type { GuestPrefs } from "@/features/guest/guestStore";
 import type { PanchangamDailyResponseData } from "@vinaadi/shared";
+import { tKarana, tNakshatra, tTithi, tYoga } from "@vinaadi/shared";
 
 const TZ = "Asia/Kolkata";
 
@@ -236,13 +237,13 @@ export default function DailyPanchangamToolScreen() {
             <View style={styles.pGrid}>
               <PanchangamCard
                 label="Tithi" labelTa="திதி"
-                value={p.tithi.name}
+                value={tTithi(p.tithi.name, lang)}
                 sub={`${isTamil ? "முடிவு" : "Ends"} ${isoToHHMM(p.tithi.endsAt)}`}
                 isTamil={isTamil} styles={styles} C={C}
               />
               <PanchangamCard
                 label="Nakshatra" labelTa="நட்சத்திரம்"
-                value={p.nakshatra.name}
+                value={tNakshatra(p.nakshatra.name, lang)}
                 sub={`${isTamil ? "பாதம்" : "Pada"} ${p.nakshatra.pada}`}
                 isTamil={isTamil} styles={styles} C={C}
               />
@@ -250,13 +251,13 @@ export default function DailyPanchangamToolScreen() {
             <View style={styles.pGrid}>
               <PanchangamCard
                 label="Yoga" labelTa="யோகம்"
-                value={p.yoga.name}
+                value={tYoga(p.yoga.name, lang)}
                 sub={`${isTamil ? "முடிவு" : "Ends"} ${isoToHHMM(p.yoga.endsAt)}`}
                 isTamil={isTamil} styles={styles} C={C}
               />
               <PanchangamCard
                 label="Karana" labelTa="கரணம்"
-                value={p.karana.name}
+                value={tKarana(p.karana.name, lang)}
                 sub={`${isTamil ? "முடிவு" : "Ends"} ${isoToHHMM(p.karana.endsAt)}`}
                 isTamil={isTamil} styles={styles} C={C}
               />
