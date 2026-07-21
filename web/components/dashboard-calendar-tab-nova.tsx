@@ -19,6 +19,9 @@ import type { GowriSlotDayOffset } from "@/lib/gowri";
 import { t, tAmirdhadhiYogam, tJeevan, tKarana, tMoonPhase, tNakshatra, tNethiram, tParigaram, tPlanetLord, tSoolamDirection, tTithi, tWeekday, tYoga } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { rasiGlyph } from "@/lib/astro-symbols";
+import { lunarSpecialTithiMeta, moonPhaseFromTithi } from "@/lib/lunar";
+import { nokkuMeta } from "@/lib/nokku";
+import { MiniMoonGlyph } from "./celestial-glyph-nova";
 import { useMonthlyPanchangam } from "@/hooks/useMonthlyPanchangam";
 import { PlaceCombobox } from "./place-combobox";
 import { DrawerPanel } from "./drawer-panel";
@@ -591,6 +594,15 @@ export function DashboardCalendarTabNova({
     ? `${tWeekday(panchangam.vara.weekday, lang)} · ${tithiPaksha ?? ""} · ${tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang)}`
     : t("panja_empty", lang);
 
+  // Fortnight + moon shape, matching the Today hero's chip (same lunar helpers,
+  // same Amavasai/Pournami override) so the two surfaces cannot disagree.
+  const isWaxing = panchangam?.tithi.paksha === "SHUKLA";
+  const moonPhase = panchangam ? moonPhaseFromTithi(panchangam.tithi.number, panchangam.tithi.paksha) : null;
+  const specialTithiMeta = lunarSpecialTithiMeta(panchangam?.specialTithiDay?.name, lang);
+  // Nokku follows the *active* nakshatra, not the sunrise one — when the star
+  // rolls over mid-day the day's facing rolls with it.
+  const nokku = nokkuMeta(nakActive?.activeName ?? panchangam?.nakshatra.name, lang);
+
   const bestNallaSlot = bestGowriSlot(panchangam?.kalam.nallaNeram);
 
   const fallbackMoonRasi = panchangam ? moonRasiFromNakshatra(panchangam.nakshatra.name, panchangam.nakshatra.pada) : 0;
@@ -713,6 +725,28 @@ export function DashboardCalendarTabNova({
                 </div>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: "26px", fontWeight: 600, lineHeight: 1.25, color: "var(--color-text-strong)" }}>
                   {tTithi(tithiActive?.activeName ?? panchangam.tithi.name, lang)}. {tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang)}. {tYoga(yogaActive?.activeName ?? panchangam.yoga.name, lang)}.
+                </div>
+                {/* Fortnight (with the live moon shape) and the day's nokku — the two
+                    things a reader checks before the clock times below. */}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "10px", flexWrap: "wrap" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12.5px", color: "var(--color-accent-secondary)", fontWeight: 600 }}>
+                    {moonPhase ? <MiniMoonGlyph phase={moonPhase} size={15} /> : (isWaxing ? "◐" : "◑")}
+                    {specialTithiMeta
+                      ? specialTithiMeta.label
+                      : isWaxing ? (lang === "ta" ? "வளர்பிறை" : "Valarpirai") : (lang === "ta" ? "தேய்பிறை" : "Theipirai")}
+                  </span>
+                  {nokku && (
+                    <>
+                      <span aria-hidden="true" style={{ color: "var(--color-border-strong)" }}>·</span>
+                      <span
+                        title={nokku.meaning}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, color: "var(--color-text-accent)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "3px 11px" }}
+                      >
+                        <span aria-hidden="true">{nokku.nokku === "URDHVAMUKHA" ? "↑" : nokku.nokku === "ADHOMUKHA" ? "↓" : "→"}</span>
+                        {nokku.label}
+                      </span>
+                    </>
+                  )}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "8px", fontSize: "12.5px", color: "var(--color-muted)", flexWrap: "wrap" }}>
                   <span>
