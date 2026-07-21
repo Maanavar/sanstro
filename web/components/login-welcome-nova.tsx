@@ -208,8 +208,14 @@ export function LoginWelcomeNova({
         display: "grid",
         placeItems: "center",
         cursor: "pointer",
+        // A real nebula sits beneath a semi-opaque indigo scrim: the gradient
+        // still carries the composition (lighter toward the top-centre where the
+        // wheel blooms, darkening to the edges) but its alpha lets the starfield
+        // show through as genuine cosmic depth (~25% up top, muted to near-nothing
+        // at the base so the greeting + "tap to continue" keep full contrast).
+        // The hand-drawn wheel and twinkling stars still read crisply on top.
         background:
-          "radial-gradient(130% 100% at 50% 16%, #241f42 0%, #17132c 58%, #0d0a1c 100%)",
+          "radial-gradient(130% 100% at 50% 16%, rgba(36,31,66,0.74) 0%, rgba(23,19,44,0.85) 58%, rgba(13,10,28,0.95) 100%), url(/assets/opt/nebula-indigo.jpg) center/cover no-repeat, #0d0a1c",
         color: "#f4f1ff",
         overflow: "hidden",
       }}
