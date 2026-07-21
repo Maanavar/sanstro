@@ -137,6 +137,7 @@ export type {
   ChartMarriageStrength,
   NavamsaCompatibility,
   DashaHarmony,
+  PersonAstroIdentity,
   EmotionalCompatibility,
   CompatibilityScoreBreakdown,
   NadiDoshaResult,

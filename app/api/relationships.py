@@ -219,6 +219,7 @@ def compare_charts_pdf(
     current_user: User = Depends(get_current_user),
 ) -> Response:
     from app.services.chart_service import load_persisted_chart_response
+    from app.services.dasha_service import get_chart_dasha_from_snapshot
     from app.services.pdf_export_service import generate_porutham_pdf
 
     result = compare_charts_direct(
@@ -231,18 +232,26 @@ def compare_charts_pdf(
 
     name_a = "Person_A"
     name_b = "Person_B"
+    chart_a = chart_b = dasha_a = dasha_b = None
     try:
         snap_a = load_persisted_chart_response(session, payload.chart_id_a)
         name_a = snap_a.data.birth_profile.display_name
-    except Exception:  # noqa: S110 — best-effort name lookup; falls back to "Person_A"
+        chart_a = snap_a.data
+        dasha_a = get_chart_dasha_from_snapshot(snap_a, date.today(), level="antar").data
+    except Exception:  # noqa: S110 — best-effort name/identity lookup; falls back to "Person_A"
         pass
     try:
         snap_b = load_persisted_chart_response(session, payload.chart_id_b)
         name_b = snap_b.data.birth_profile.display_name
-    except Exception:  # noqa: S110 — best-effort name lookup; falls back to "Person_B"
+        chart_b = snap_b.data
+        dasha_b = get_chart_dasha_from_snapshot(snap_b, date.today(), level="antar").data
+    except Exception:  # noqa: S110 — best-effort name/identity lookup; falls back to "Person_B"
         pass
 
-    pdf_bytes = generate_porutham_pdf(result.data, name_a, name_b, lang=lang)
+    pdf_bytes = generate_porutham_pdf(
+        result.data, name_a, name_b, lang=lang,
+        chart_a=chart_a, chart_b=chart_b, dasha_a=dasha_a, dasha_b=dasha_b,
+    )
     safe_a = _safe_name(name_a, "A")
     safe_b = _safe_name(name_b, "B")
     return Response(

@@ -4,6 +4,8 @@
 export type GlossaryKey =
   | "dasha"
   | "bhukti"
+  | "rasi"
+  | "nakshatra"
   | "gochar"
   | "shadbala"
   | "sthanaBala"
@@ -33,6 +35,14 @@ export const GLOSSARY: Record<GlossaryKey, { ta: string; en: string }> = {
   gochar: {
     en: "Transit — where the planets are moving right now, compared against your birth chart.",
     ta: "கிரகநகர்வு — கிரகங்கள் இப்போது எங்கு நகர்கின்றன என்பதை உங்கள் பிறப்பு ஜாதகத்துடன் ஒப்பிட்டுப் பார்ப்பது.",
+  },
+  rasi: {
+    en: "Your Moon sign — the zodiac sign the Moon was in at the moment you were born. Used for general predictions, and as one of the checks in marriage matching.",
+    ta: "உங்கள் சந்திர ராசி — நீங்கள் பிறந்த நேரத்தில் சந்திரன் இருந்த ராசி. பொதுவான பலன்கள் மற்றும் திருமண பொருத்தத்தின் ஒரு பகுதிக்கும் பயன்படுகிறது.",
+  },
+  nakshatra: {
+    en: "Your birth star — one of 27 star divisions the Moon was in at your exact birth time. More precise than the Rasi, and the main factor classical marriage matching (Porutham) is based on.",
+    ta: "உங்கள் பிறப்பு நட்சத்திரம் — நீங்கள் பிறந்த சரியான நேரத்தில் சந்திரன் இருந்த 27 நட்சத்திரப் பிரிவுகளில் ஒன்று. ராசியை விட நுட்பமானது, பாரம்பரிய திருமண பொருத்தத்தின் (பொருத்தம்) முதன்மை அடிப்படை இதுவே.",
   },
   shadbala: {
     en: "A classical six-part strength score for each planet in your chart.",

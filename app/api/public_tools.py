@@ -109,6 +109,8 @@ class PublicCompareData(BaseModel):
     chart_a: ChartCalculateResponseData = Field(alias="chartA")
     chart_b: ChartCalculateResponseData = Field(alias="chartB")
     porutham: DirectPoruthamData
+    dasha_a: DashaTimelineResponseData = Field(alias="dashaA")
+    dasha_b: DashaTimelineResponseData = Field(alias="dashaB")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -204,11 +206,15 @@ def public_compare(payload: PublicPoruthamRequest, request: Request) -> PublicCo
         chart_b,
         compatibility_context=payload.compatibility_context,
     )
+    dasha_a = get_chart_dasha_from_snapshot(chart_a, date.today(), level="antar")
+    dasha_b = get_chart_dasha_from_snapshot(chart_b, date.today(), level="antar")
     return PublicCompareResponse(
         data=PublicCompareData(
             chartA=chart_a.data,
             chartB=chart_b.data,
             porutham=porutham.data,
+            dashaA=dasha_a.data,
+            dashaB=dasha_b.data,
         )
     )
 
@@ -238,11 +244,17 @@ def public_compare_pdf(payload: PublicPoruthamRequest, request: Request, lang: s
         chart_b,
         compatibility_context=payload.compatibility_context,
     )
+    dasha_a = get_chart_dasha_from_snapshot(chart_a, date.today(), level="antar")
+    dasha_b = get_chart_dasha_from_snapshot(chart_b, date.today(), level="antar")
     pdf_bytes = generate_porutham_pdf(
         porutham.data,
         chart_a.data.birth_profile.display_name or "Person_A",
         chart_b.data.birth_profile.display_name or "Person_B",
         lang=lang if lang in {"en", "ta"} else "en",
+        chart_a=chart_a.data,
+        chart_b=chart_b.data,
+        dasha_a=dasha_a.data,
+        dasha_b=dasha_b.data,
     )
     return Response(
         content=pdf_bytes,

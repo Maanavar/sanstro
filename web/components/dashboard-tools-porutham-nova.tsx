@@ -4,10 +4,10 @@ import { useState } from "react";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
-import { t } from "@/lib/i18n";
+import { t, tPlanetLord, tNakshatra } from "@/lib/i18n";
 import { verdictPhrase } from "@/lib/verdict-lexicon";
 import type { Lang } from "@/lib/i18n";
-import type { ChartCalculateResponseData, ChartDoshamInsight, DirectPoruthamData, KutaResult } from "@/lib/types";
+import type { ChartCalculateResponseData, ChartDoshamInsight, DashaTimelineResponseData, DirectPoruthamData, KutaResult } from "@/lib/types";
 
 import { RasiChart } from "./dashboard-charts";
 import { CompatibilityIntelligencePanel } from "./compatibility-intelligence-panel";
@@ -15,6 +15,9 @@ import { Field } from "./dashboard-ui";
 import { PlaceCombobox } from "./place-combobox";
 import { NovaSelect } from "./nova-select";
 import { PoruthamShareLinkButton } from "./porutham-share-link-button";
+import { ZodiacBadge } from "./zodiac-badge";
+import { NakshatraBadge } from "./nakshatra-badge";
+import { GlossaryTerm } from "./glossary-term";
 
 /**
  * Nova rebuild of PoruthamPanel (see docs/DASHBOARD_UI_REVAMP_PLAN.md §6.12,
@@ -64,7 +67,16 @@ const novaFieldStyle: React.CSSProperties = {
   fontFamily: "inherit",
 };
 
-type PublicCompareResponse = { success: boolean; data: { chartA: ChartCalculateResponseData; chartB: ChartCalculateResponseData; porutham: DirectPoruthamData } };
+type PublicCompareResponse = {
+  success: boolean;
+  data: {
+    chartA: ChartCalculateResponseData;
+    chartB: ChartCalculateResponseData;
+    porutham: DirectPoruthamData;
+    dashaA: DashaTimelineResponseData;
+    dashaB: DashaTimelineResponseData;
+  };
+};
 
 const COMPAT_CONTEXTS = ["GENERAL", "MARRIAGE", "FRIENDSHIP", "BUSINESS", "FAMILY"] as const;
 type CompatContext = (typeof COMPAT_CONTEXTS)[number];
@@ -162,6 +174,8 @@ export function NovaPoruthamPanel({
   const [showCiReport, setShowCiReport] = useState(false);
   const [chartA, setChartA] = useState<ChartCalculateResponseData | null>(null);
   const [chartB, setChartB] = useState<ChartCalculateResponseData | null>(null);
+  const [dashaA, setDashaA] = useState<DashaTimelineResponseData | null>(null);
+  const [dashaB, setDashaB] = useState<DashaTimelineResponseData | null>(null);
   const [porutham, setPorutham] = useState<DirectPoruthamData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -175,7 +189,7 @@ export function NovaPoruthamPanel({
     }
     setError("");
     setLoading(true);
-    setPorutham(null); setChartA(null); setChartB(null);
+    setPorutham(null); setChartA(null); setChartB(null); setDashaA(null); setDashaB(null);
     try {
       const result = await apiFetchJson<PublicCompareResponse>("/api/v1/public/compare", {
         method: "POST",
@@ -188,6 +202,8 @@ export function NovaPoruthamPanel({
       });
       setChartA(result.data.chartA);
       setChartB(result.data.chartB);
+      setDashaA(result.data.dashaA);
+      setDashaB(result.data.dashaB);
       setPorutham(result.data.porutham);
     } catch (err) {
       setError(readErrorMessage(err));
@@ -436,6 +452,53 @@ export function NovaPoruthamPanel({
             </div>
           </div>
 
+          {/* Rasi/Nakshatra/Lagnam + current Dasha-Bhukti identity strip —
+              the plain-language facts a non-astrologer needs (2026-07 UX
+              gap: neither this screen nor the reports stated either
+              person's Rasi/Nakshatra/running Dasha in text; the only clue
+              was reading the D1 chart diagram below). Shown ahead of the
+              10-porutham table so it reads before the score detail. */}
+          <div className="nova-grid-2">
+            {([[chartA, dashaA], [chartB, dashaB]] as const).map(([chart, dasha], i) => {
+              const moon = chart.planets.find((p) => p.graha === "MOON");
+              if (!moon) return null;
+              return (
+                <div key={i} style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "12px", padding: "14px 18px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <p style={{ margin: 0, fontSize: "0.8rem", fontWeight: 700, color: "var(--color-text-strong)" }}>{chart.birthProfile.displayName}</p>
+                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "14px" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "7px" }}>
+                      <ZodiacBadge rasi={moon.rasi} size={32} />
+                      <span style={{ fontSize: "0.8rem", color: "var(--color-text)" }}>
+                        {moon.rasiName}{" "}
+                        <GlossaryTerm term="rasi" lang={lang}>{t("label_janma_rasi", lang)}</GlossaryTerm>
+                      </span>
+                    </span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "7px" }}>
+                      <NakshatraBadge nakshatra={moon.nakshatra} size={32} />
+                      <span style={{ fontSize: "0.8rem", color: "var(--color-text)" }}>
+                        {tNakshatra(moon.nakshatraName, lang)} {t("label_padam", lang)} {moon.pada}{" "}
+                        <GlossaryTerm term="nakshatra" lang={lang}>{t("label_nakshatra", lang)}</GlossaryTerm>
+                      </span>
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "0.78rem", color: "var(--color-muted)" }}>
+                    {chart.lagna.rasiName} {t("label_lagnam", lang)}
+                  </div>
+                  {dasha && (
+                    <div style={{ fontSize: "0.78rem", color: "var(--color-muted)" }}>
+                      {tPlanetLord(dasha.current.mahadasha.lord, lang)}{" "}
+                      <GlossaryTerm term="dasha" lang={lang}>{t("dasha_word", lang)}</GlossaryTerm>
+                      {" · "}
+                      {tPlanetLord(dasha.current.antardasha.lord, lang)}{" "}
+                      <GlossaryTerm term="bhukti" lang={lang}>{t("bhukti_word", lang)}</GlossaryTerm>
+                      {" "}({lang === "ta" ? "வரை" : "until"} {String(dasha.current.mahadasha.endDate)})
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
           <div className="nova-grid-detail">
             {/* LEFT: 10 porutham table */}
             <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "14px", padding: "20px 22px", display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -550,7 +613,7 @@ export function NovaPoruthamPanel({
                 <PoruthamShareLinkButton lang={lang} formA={formA} formB={formB} compatibilityContext={compatCtx} />
               </div>
 
-              <p style={{ margin: 0, fontSize: "11px", color: "var(--color-faint)", lineHeight: 1.55, background: "rgba(243,236,221,0.03)", border: "1px dashed var(--color-border-strong)", borderRadius: "12px", padding: "11px 14px" }}>
+              <p style={{ margin: 0, fontSize: "11px", color: "var(--color-faint)", lineHeight: 1.55, background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px dashed var(--color-border-strong)", borderRadius: "12px", padding: "11px 14px" }}>
                 {lang === "ta"
                   ? "இந்த முடிவுகள் இரு தற்காலிக ஜாதகங்களிலிருந்து கணக்கிடப்பட்டவை — உங்கள் கணக்கில் சேமிக்கப்படவில்லை. இறுதி முடிவுக்கு உங்கள் குடும்ப ஜோதிடரிடம் PDF-ஐ பகிரவும்."
                   : "These results are computed from the two preview charts and are not saved to your account. Share the PDF with your family astrologer for the final word."}

@@ -2,9 +2,13 @@
 
 import { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
+import { t, tNakshatra } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { CompatibilityIntelligenceData } from "@/lib/types";
 import { scoreColorPct } from "@/lib/format";
+import { ZodiacBadge } from "./zodiac-badge";
+import { NakshatraBadge } from "./nakshatra-badge";
+import { GlossaryTerm } from "./glossary-term";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -302,6 +306,39 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
         </div>
       </SectionCard>
 
+      {/* ── Birth details (Rasi/Nakshatra/Lagnam) — the plain-language
+          identity facts a non-astrologer needs before the score tables
+          (2026-07 UX gap: this report jumped straight into score
+          breakdowns without ever stating either person's Rasi/Nakshatra). ── */}
+      <SectionCard title={en ? "Birth Details" : "பிறப்பு விவரங்கள்"}>
+        <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+          {([[d.personAName, d.personAIdentity], [d.personBName, d.personBIdentity]] as const).map(([name, identity], i) => (
+            <div key={i} style={{ flex: 1, minWidth: "220px", display: "flex", flexDirection: "column", gap: "8px" }}>
+              <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: W.inkMid }}>{name}</p>
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "14px" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "7px" }}>
+                  <ZodiacBadge rasi={identity.rasi} size={32} />
+                  <span style={{ fontSize: "0.8rem", color: W.inkMid }}>
+                    {identity.rasiName}{" "}
+                    <GlossaryTerm term="rasi" lang={lang}>{en ? "Rasi" : "ராசி"}</GlossaryTerm>
+                  </span>
+                </span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "7px" }}>
+                  <NakshatraBadge nakshatra={identity.nakshatra} size={32} />
+                  <span style={{ fontSize: "0.8rem", color: W.inkMid }}>
+                    {tNakshatra(identity.nakshatraName, lang)} {en ? "Pada" : "பாதம்"} {identity.pada}{" "}
+                    <GlossaryTerm term="nakshatra" lang={lang}>{en ? "Nakshatra" : "நட்சத்திரம்"}</GlossaryTerm>
+                  </span>
+                </span>
+              </div>
+              <div style={{ fontSize: "0.78rem", color: W.muted }}>
+                {identity.lagnaRasiName} {en ? "Lagnam" : "லக்னம்"}
+              </div>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+
       {/* ── Score breakdown ── */}
       <SectionCard title={en ? "Score Breakdown" : "மதிப்பெண் விவரம்"}>
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -446,7 +483,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
       </SectionCard>
 
       {/* ── Dasha Harmony ── */}
-      <SectionCard title={en ? "Level 6 — Dasa Alignment (Next Period)" : "நிலை 6 — தசை இணக்கம்"}>
+      <SectionCard title={en ? "Level 6 — Dasa Alignment (Current Period)" : "நிலை 6 — தசை இணக்கம்"}>
         <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap", marginBottom: "10px" }}>
           <Badge text={d.dashaHarmony.harmonyLabel} {...harmonyBadge(d.dashaHarmony.harmonyLabel)} />
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>

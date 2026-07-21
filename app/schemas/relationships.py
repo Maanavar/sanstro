@@ -273,6 +273,23 @@ class NavamsaCompatibility(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class PersonAstroIdentity(BaseModel):
+    """Rasi/Nakshatra/Lagnam identity facts for one person in a compatibility
+    report — the plain-language facts a non-astrologer needs alongside the
+    score breakdowns (2026-07 porutham UX gap: neither surface stated either
+    person's Rasi/Nakshatra/current Dasha in text)."""
+
+    rasi: int
+    rasi_name: str = Field(alias="rasiName")
+    nakshatra: int
+    nakshatra_name: str = Field(alias="nakshatraName")
+    pada: int
+    lagna_rasi: int = Field(alias="lagnaRasi")
+    lagna_rasi_name: str = Field(alias="lagnaRasiName")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class DashaHarmony(BaseModel):
     person_a_maha_lord: str = Field(alias="personAMahaLord")
     person_a_antar_lord: str = Field(alias="personAantarLord")
@@ -314,6 +331,8 @@ class CompatibilityScoreBreakdown(BaseModel):
 class CompatibilityIntelligenceData(BaseModel):
     person_a_name: str = Field(alias="personAName")
     person_b_name: str = Field(alias="personBName")
+    person_a_identity: PersonAstroIdentity = Field(alias="personAIdentity")
+    person_b_identity: PersonAstroIdentity = Field(alias="personBIdentity")
 
     # Layer 1: Porutham
     porutham_score: int = Field(alias="poruthamScore")

@@ -156,6 +156,28 @@ def test_public_porutham_by_star_grid_matches_single_lookup() -> None:
     assert row["nadiCaution"] == single["nadiDosha"]["hasNadiDosha"]
 
 
+def test_public_compare_returns_dasha_for_both_people() -> None:
+    """The dashboard porutham tool shows each person's currently-running
+    Mahadasha/Antardasha alongside the score — /public/compare must return it
+    for both charts (2026-07 UX gap: neither surface stated it before)."""
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.post(
+            "/api/v1/public/compare",
+            json={
+                "personA": _birth_payload("Person A", "1990-01-01", "12:00"),
+                "personB": _birth_payload("Person B", "1992-02-02", "13:00"),
+                "compatibilityContext": "MARRIAGE",
+            },
+        )
+
+    assert response.status_code == 200, response.text
+    body = response.json()["data"]
+    assert body["dashaA"]["current"]["mahadasha"]["lord"]
+    assert body["dashaA"]["current"]["antardasha"]["lord"]
+    assert body["dashaB"]["current"]["mahadasha"]["lord"]
+    assert body["dashaB"]["current"]["antardasha"]["lord"]
+
+
 @pytest.mark.parametrize("lang", ["en", "ta"])
 def test_public_compare_pdf_returns_pdf(lang: str) -> None:
     with TestClient(app, raise_server_exceptions=False) as client:

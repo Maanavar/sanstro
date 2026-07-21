@@ -61,8 +61,8 @@ _TAMIL_BOLD_FONT_NAME = "NotoSansTamilPdfBold"
 _FONT_REGISTERED = False
 
 _LABELS = {
-    "en": {"unknown": "Unknown", "yes": "Yes", "no": "No", "title_jadhagam": "Vinaadi AI - Jadhagam Report", "birth_date": "Birth Date", "time": "Time", "place": "Place", "lagna": "Lagna", "nakshatra": "Nakshatra", "pada": "Pada", "generated": "Generated", "planet_positions": "Planet Positions", "graha": "Graha", "rasi": "Rasi", "house": "House", "retro": "Retro", "combust": "Combust", "current_dasha": "Current Dasha", "mahadasha": "Mahadasha", "antardasha": "Antardasha", "pratyantar": "Pratyantar", "ends": "ends", "todays_guidance": "Today's Guidance", "location": "Location for daily timings", "date": "Date", "tithi": "Tithi", "daily_score": "Daily Score", "nalla_neram": "Nalla Neram", "rahu_kalam": "Rahu Kalam", "good": "GOOD", "caution": "CAUTION", "balanced": "BALANCED", "porutham_title": "Porutham - Compatibility Report", "context": "Context", "warning_rajju": "Warning: Rajju dosha present.", "warning_vedha": "Warning: Vedha dosha present.", "factor_breakdown": "Factor Breakdown", "factor": "Factor", "score": "Score", "result": "Result", "nadi_dosha": "Nadi Dosha", "ci_title": "Vinaadi AI - Compatibility Intelligence Report", "overall_rating": "Overall Rating", "score_breakdown": "Score Breakdown", "highlights": "Highlights", "strengths": "Strengths", "areas_to_watch": "Areas to Watch", "porutham_level": "Level 1 - Traditional Porutham", "chart_strength_level": "Levels 2 and 3 - 7th House and Venus Strength", "navamsa_level": "Level 4 - Navamsa (D9)", "sevvai_level": "Level 5 - Sevvai Dosham", "dasha_level": "Level 6 - Dasha Alignment", "emotional_level": "Level 7 - Emotional Compatibility", "synastry_level": "Level 8 - Synastry", "cancellations": "Cancellations", "harmony": "Harmony", "communication_note": "Communication note", "synastry_score": "Synastry score"},
-    "ta": {"unknown": "தெரியவில்லை", "yes": "ஆம்", "no": "இல்லை", "title_jadhagam": "வினாடி AI - ஜாதக அறிக்கை", "birth_date": "பிறந்த தேதி", "time": "நேரம்", "place": "இடம்", "lagna": "லக்னம்", "nakshatra": "நட்சத்திரம்", "pada": "பாதம்", "generated": "உருவாக்கப்பட்டது", "planet_positions": "கிரக நிலைகள்", "graha": "கிரகம்", "rasi": "ராசி", "house": "பாவம்", "retro": "வக்ரம்", "combust": "அஸ்தம்", "current_dasha": "தற்போதைய தசை", "mahadasha": "மகாதசை", "antardasha": "அந்தர்தசை", "pratyantar": "பிரத்யந்தர்தசை", "ends": "முடிவு", "todays_guidance": "இன்றைய வழிகாட்டல்", "location": "தினசரி நேரங்களுக்கான இடம்", "date": "தேதி", "tithi": "திதி", "daily_score": "தினசரி மதிப்பெண்", "nalla_neram": "நல்ல நேரம்", "rahu_kalam": "ராகு காலம்", "good": "நன்று", "caution": "கவனம்", "balanced": "சமநிலை", "porutham_title": "பொருத்தம் - இணக்க அறிக்கை", "context": "சூழல்", "warning_rajju": "எச்சரிக்கை: ரஜ்ஜு தோஷம் உள்ளது.", "warning_vedha": "எச்சரிக்கை: வேத தோஷம் உள்ளது.", "factor_breakdown": "கூறு விவரம்", "factor": "கூறு", "score": "மதிப்பெண்", "result": "முடிவு", "nadi_dosha": "நாடி தோஷம்", "ci_title": "வினாடி AI - விரிவான பொருத்த அறிக்கை", "overall_rating": "மொத்த மதிப்பீடு", "score_breakdown": "மதிப்பெண் விவரம்", "highlights": "முக்கிய அம்சங்கள்", "strengths": "பலங்கள்", "areas_to_watch": "கவனிக்க வேண்டியவை", "porutham_level": "நிலை 1 - பாரம்பரிய பொருத்தம்", "chart_strength_level": "நிலைகள் 2 மற்றும் 3 - 7ஆம் பாவம் மற்றும் சுக்கிர பலம்", "navamsa_level": "நிலை 4 - நவாம்சம் (D9)", "sevvai_level": "நிலை 5 - செவ்வாய் தோஷம்", "dasha_level": "நிலை 6 - தசை ஒத்திசைவு", "emotional_level": "நிலை 7 - உணர்ச்சி இணக்கம்", "synastry_level": "நிலை 8 - சினாஸ்ட்ரி", "cancellations": "நிவாரண காரணங்கள்", "harmony": "ஒத்திசைவு", "communication_note": "தொடர்பு குறிப்பு", "synastry_score": "சினாஸ்ட்ரி மதிப்பெண்"},
+    "en": {"unknown": "Unknown", "yes": "Yes", "no": "No", "title_jadhagam": "Vinaadi AI - Jadhagam Report", "birth_date": "Birth Date", "time": "Time", "place": "Place", "lagna": "Lagna", "nakshatra": "Nakshatra", "pada": "Pada", "generated": "Generated", "planet_positions": "Planet Positions", "graha": "Graha", "rasi": "Rasi", "house": "House", "retro": "Retro", "combust": "Combust", "current_dasha": "Current Dasha", "mahadasha": "Mahadasha", "antardasha": "Antardasha", "pratyantar": "Pratyantar", "ends": "ends", "todays_guidance": "Today's Guidance", "location": "Location for daily timings", "date": "Date", "tithi": "Tithi", "daily_score": "Daily Score", "nalla_neram": "Nalla Neram", "rahu_kalam": "Rahu Kalam", "good": "GOOD", "caution": "CAUTION", "balanced": "BALANCED", "porutham_title": "Porutham - Compatibility Report", "context": "Context", "warning_rajju": "Warning: Rajju dosha present.", "warning_vedha": "Warning: Vedha dosha present.", "factor_breakdown": "Factor Breakdown", "factor": "Factor", "score": "Score", "result": "Result", "nadi_dosha": "Nadi Dosha", "ci_title": "Vinaadi AI - Compatibility Intelligence Report", "overall_rating": "Overall Rating", "score_breakdown": "Score Breakdown", "highlights": "Highlights", "strengths": "Strengths", "areas_to_watch": "Areas to Watch", "porutham_level": "Level 1 - Traditional Porutham", "chart_strength_level": "Levels 2 and 3 - 7th House and Venus Strength", "navamsa_level": "Level 4 - Navamsa (D9)", "sevvai_level": "Level 5 - Sevvai Dosham", "dasha_level": "Level 6 - Dasha Alignment", "emotional_level": "Level 7 - Emotional Compatibility", "synastry_level": "Level 8 - Synastry", "cancellations": "Cancellations", "harmony": "Harmony", "communication_note": "Communication note", "synastry_score": "Synastry score", "couple_identity": "Birth Details"},
+    "ta": {"unknown": "தெரியவில்லை", "yes": "ஆம்", "no": "இல்லை", "title_jadhagam": "வினாடி AI - ஜாதக அறிக்கை", "birth_date": "பிறந்த தேதி", "time": "நேரம்", "place": "இடம்", "lagna": "லக்னம்", "nakshatra": "நட்சத்திரம்", "pada": "பாதம்", "generated": "உருவாக்கப்பட்டது", "planet_positions": "கிரக நிலைகள்", "graha": "கிரகம்", "rasi": "ராசி", "house": "பாவம்", "retro": "வக்ரம்", "combust": "அஸ்தம்", "current_dasha": "தற்போதைய தசை", "mahadasha": "மகாதசை", "antardasha": "அந்தர்தசை", "pratyantar": "பிரத்யந்தர்தசை", "ends": "முடிவு", "todays_guidance": "இன்றைய வழிகாட்டல்", "location": "தினசரி நேரங்களுக்கான இடம்", "date": "தேதி", "tithi": "திதி", "daily_score": "தினசரி மதிப்பெண்", "nalla_neram": "நல்ல நேரம்", "rahu_kalam": "ராகு காலம்", "good": "நன்று", "caution": "கவனம்", "balanced": "சமநிலை", "porutham_title": "பொருத்தம் - இணக்க அறிக்கை", "context": "சூழல்", "warning_rajju": "எச்சரிக்கை: ரஜ்ஜு தோஷம் உள்ளது.", "warning_vedha": "எச்சரிக்கை: வேத தோஷம் உள்ளது.", "factor_breakdown": "கூறு விவரம்", "factor": "கூறு", "score": "மதிப்பெண்", "result": "முடிவு", "nadi_dosha": "நாடி தோஷம்", "ci_title": "வினாடி AI - விரிவான பொருத்த அறிக்கை", "overall_rating": "மொத்த மதிப்பீடு", "score_breakdown": "மதிப்பெண் விவரம்", "highlights": "முக்கிய அம்சங்கள்", "strengths": "பலங்கள்", "areas_to_watch": "கவனிக்க வேண்டியவை", "porutham_level": "நிலை 1 - பாரம்பரிய பொருத்தம்", "chart_strength_level": "நிலைகள் 2 மற்றும் 3 - 7ஆம் பாவம் மற்றும் சுக்கிர பலம்", "navamsa_level": "நிலை 4 - நவாம்சம் (D9)", "sevvai_level": "நிலை 5 - செவ்வாய் தோஷம்", "dasha_level": "நிலை 6 - தசை ஒத்திசைவு", "emotional_level": "நிலை 7 - உணர்ச்சி இணக்கம்", "synastry_level": "நிலை 8 - சினாஸ்ட்ரி", "cancellations": "நிவாரண காரணங்கள்", "harmony": "ஒத்திசைவு", "communication_note": "தொடர்பு குறிப்பு", "synastry_score": "சினாஸ்ட்ரி மதிப்பெண்", "couple_identity": "பிறப்பு விவரங்கள்"},
 }
 
 
@@ -272,6 +272,44 @@ def _section_dasha(dasha_response, heading_style, body_style, lang: str = "en") 
     return [Paragraph(_label("current_dasha", lang), heading_style)] + [Paragraph(line, body_style) for line in lines]
 
 
+def _section_couple_identity(
+    name_a: str,
+    chart_a,
+    dasha_a,
+    name_b: str,
+    chart_b,
+    dasha_b,
+    heading_style,
+    body_style,
+    lang: str = "en",
+) -> list:
+    """Rasi/Nakshatra/Lagna + current Dasha-Bhukti for both people — the plain
+    -language identity facts a non-astrologer needs before the score tables.
+    Degrades to no section at all when chart data isn't available (older
+    callers that don't pass it through)."""
+    if chart_a is None or chart_b is None:
+        return []
+
+    def _person_lines(name: str, chart, dasha) -> list[str]:
+        moon = next(p for p in chart.planets if p.graha == "MOON")
+        lines = [
+            f"<b>{name}</b> &mdash; {_label('rasi', lang)}: {moon.rasi_name} &nbsp;&nbsp; "
+            f"{_label('nakshatra', lang)}: {moon.nakshatra_name} {_label('pada', lang)} {moon.pada} &nbsp;&nbsp; "
+            f"{_label('lagna', lang)}: {chart.lagna.rasi_name}"
+        ]
+        if dasha is not None:
+            maha = dasha.current.mahadasha
+            antar = dasha.current.antardasha
+            lines.append(
+                f"{_label('mahadasha', lang)}: {maha.lord} ({_label('ends', lang)} {maha.end_date}) &nbsp;&nbsp; "
+                f"{_label('antardasha', lang)}: {antar.lord} ({_label('ends', lang)} {antar.end_date})"
+            )
+        return lines
+
+    lines = _person_lines(name_a, chart_a, dasha_a) + _person_lines(name_b, chart_b, dasha_b)
+    return [Paragraph(_label("couple_identity", lang), heading_style)] + [Paragraph(line, body_style) for line in lines]
+
+
 def _section_daily(panchang, score: int, label: str, location_label: str, heading_style, body_style, lang: str = "en") -> list:
     slot = best_gowri_slot(panchang.nalla_neram)
     if slot:
@@ -378,10 +416,20 @@ def generate_porutham_pdf(
     name_a: str,
     name_b: str,
     lang: str = "en",
+    *,
+    chart_a=None,
+    chart_b=None,
+    dasha_a=None,
+    dasha_b=None,
 ) -> bytes:
     """
     Build a single-page compatibility PDF from a direct Porutham response.
     Returns raw PDF bytes.
+
+    ``chart_a``/``chart_b`` (``ChartCalculateResponseData``) and ``dasha_a``/
+    ``dasha_b`` (``DashaTimelineResponseData``) are optional — when supplied,
+    a Rasi/Nakshatra/Lagna/current-Dasha identity block is added for both
+    people. Older callers that don't pass them keep the previous PDF shape.
     """
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -440,6 +488,10 @@ def generate_porutham_pdf(
     )
     if porutham.context_note is not None and _bitext(porutham.context_note, lang):
         story.extend([Spacer(1, 0.12 * cm), Paragraph(_bitext(porutham.context_note, lang), small_style)])
+
+    identity_section = _section_couple_identity(name_a, chart_a, dasha_a, name_b, chart_b, dasha_b, heading_style, body_style, lang)
+    if identity_section:
+        story.extend([Spacer(1, 0.3 * cm), *identity_section])
 
     story.extend([Spacer(1, 0.4 * cm), Paragraph(_label("factor_breakdown", lang), heading_style)])
     table_rows = [[_label("factor", lang), _label("score", lang), "Max", _label("result", lang)]]
@@ -552,6 +604,23 @@ def generate_compatibility_intelligence_pdf(
         Spacer(1, 0.12 * cm),
         Paragraph(_bitext(report.summary, lang), body_style),
     ]
+
+    story.extend([
+        Spacer(1, 0.25 * cm),
+        Paragraph(_label("couple_identity", lang), heading_style),
+        Paragraph(
+            f"<b>{name_a}</b> &mdash; {_label('rasi', lang)}: {report.person_a_identity.rasi_name} &nbsp;&nbsp; "
+            f"{_label('nakshatra', lang)}: {report.person_a_identity.nakshatra_name} {_label('pada', lang)} {report.person_a_identity.pada} &nbsp;&nbsp; "
+            f"{_label('lagna', lang)}: {report.person_a_identity.lagna_rasi_name}",
+            body_style,
+        ),
+        Paragraph(
+            f"<b>{name_b}</b> &mdash; {_label('rasi', lang)}: {report.person_b_identity.rasi_name} &nbsp;&nbsp; "
+            f"{_label('nakshatra', lang)}: {report.person_b_identity.nakshatra_name} {_label('pada', lang)} {report.person_b_identity.pada} &nbsp;&nbsp; "
+            f"{_label('lagna', lang)}: {report.person_b_identity.lagna_rasi_name}",
+            body_style,
+        ),
+    ])
 
     story.extend([Spacer(1, 0.3 * cm), Paragraph(_label("score_breakdown", lang), heading_style)])
     score_rows = [["Layer", "Score", "Max"]]

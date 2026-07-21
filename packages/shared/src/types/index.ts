@@ -1358,6 +1358,15 @@ export interface DashaHarmony {
   harmonyLabel: string; noteEn: string; noteTa: string; score: number;
 }
 
+// Rasi/Nakshatra/Lagnam identity facts for one person in a compatibility
+// report — the plain-language facts a non-astrologer needs alongside the
+// score breakdowns (2026-07 porutham UX gap).
+export interface PersonAstroIdentity {
+  rasi: number; rasiName: string;
+  nakshatra: number; nakshatraName: string; pada: number;
+  lagnaRasi: number; lagnaRasiName: string;
+}
+
 export interface EmotionalCompatibility {
   moonMoonHarmony: string; venusMarsHarmony: string; communicationNote: string;
   noteEn: string; noteTa: string; score: number;
@@ -1380,6 +1389,7 @@ export interface NadiDoshaResult {
 
 export interface CompatibilityIntelligenceData {
   personAName: string; personBName: string;
+  personAIdentity: PersonAstroIdentity; personBIdentity: PersonAstroIdentity;
   poruthamScore: number; poruthamMax: number; poruthamPercentage: number; poruthamLabel: string;
   poruthamKutas: KutaResult[]; rajjuDosha: boolean; vedhaDosha: boolean;
   nadiDosha: NadiDoshaResult; chartAStrength: ChartMarriageStrength; chartBStrength: ChartMarriageStrength;
