@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -8,7 +9,7 @@ import { toast } from "sonner";
 import { apiFetchJson, toQuery } from "@/lib/api";
 import { getFriendlyErrorMessage } from "@/lib/error-messages";
 import { isBirthDateWithinBounds } from "@/lib/birth-date";
-import { sanitizeRestoredTab, type Tab } from "@/lib/dashboard-tabs";
+import { TAB_QUERY_PARAM, sanitizeRestoredTab, sanitizeUrlTab, type Tab } from "@/lib/dashboard-tabs";
 import { todayIso } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -267,6 +268,10 @@ export function DashboardWorkspace() {
   const setStatus = useCallback((text: string, tone: "success" | "error" = "success") => {
     setStatusMessage(text ? { text, tone } : null);
   }, []);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const urlTabParam = searchParams.get(TAB_QUERY_PARAM);
   const [activeTab, setActiveTab] = useState<Tab>("personal");
   // In-design confirmation dialog for destructive actions (DASH-05) —
   // replaces the browser confirm() popups.
@@ -288,17 +293,32 @@ export function DashboardWorkspace() {
   const [showRectification, setShowRectification] = useState(false);
   const [askVinaadiOpen, setAskVinaadiOpen] = useState(false);
 
+  // ── Tab ⇄ URL ────────────────────────────────────────────
+  // The tab is addressable (`/dashboard?tab=calendar`) so it can be deep-linked,
+  // bookmarked, and walked with browser back/forward.
+  //
+  // push vs. replace: a tab the *user* chose is a navigation and earns a history
+  // entry (back should undo it). A tab the *app* chose — the setup gate, the QA
+  // fallback, a post-save redirect — is a correction, and pushing those would
+  // trap the user in a loop where back re-triggers the same redirect. So the
+  // three intent-carrying helpers below flag "push"; every other setActiveTab
+  // call site falls through to "replace" by default, which is what they want.
+  const navIntentRef = useRef<"push" | "replace">("replace");
+  const tabUrlReadyRef = useRef(false);
   const goToTab = useCallback((tab: Tab) => {
+    navIntentRef.current = "push";
     setExploreReturnTab(null);
     setActiveTab(tab);
   }, []);
 
   const goToExploreDestination = useCallback((tab: Tab) => {
+    navIntentRef.current = "push";
     setExploreReturnTab(tab);
     setActiveTab(tab);
   }, []);
 
   const returnToExplore = useCallback(() => {
+    navIntentRef.current = "push";
     setExploreReturnTab(null);
     setActiveTab("explore");
   }, []);
@@ -524,6 +544,12 @@ export function DashboardWorkspace() {
     if (!session.hydrated) return;
     const authedUserId = session.sessionUserId;
     setOwnerUserId(authedUserId);
+    // A `?tab=` in the URL is an explicit instruction and outranks the restored
+    // session. Resolved outside the isSameUser branch on purpose: a link shared
+    // with someone else must still land on the tab it names, even though that
+    // person's localStorage belongs to a different user and gets cleared below.
+    const fromUrl = sanitizeUrlTab(urlTabParam, { qaEnabled: ENABLE_QA_TAB });
+    if (fromUrl) setActiveTab(fromUrl.tab);
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY);
       if (stored) {
@@ -540,12 +566,14 @@ export function DashboardWorkspace() {
           // Allowlist restore (DASH-11): only tabs the hero nav actually
           // offers come back. Settings/onboarding stay excluded — the
           // onboarding gate decides those from profile existence.
-          const restored = sanitizeRestoredTab(parsed.activeTab, { qaEnabled: ENABLE_QA_TAB });
-          if (restored) {
-            setActiveTab(restored.tab);
+          // Skipped entirely when the URL already named a tab.
+          if (!fromUrl) {
+            const restored = sanitizeRestoredTab(parsed.activeTab, { qaEnabled: ENABLE_QA_TAB });
+            if (restored) {
+              setActiveTab(restored.tab);
+            }
           }
           if (parsed.lang === "ta" || parsed.lang === "en") setLang(parsed.lang);
-          setStatus("Session restored.");
         } else {
           window.localStorage.removeItem(STORAGE_KEY);
         }
@@ -553,6 +581,10 @@ export function DashboardWorkspace() {
     } catch {
       // ignore parse errors
     }
+    // Only now may the outbound sync write to the URL — before this point
+    // `activeTab` is still the "personal" default and would overwrite the very
+    // `?tab=` we just read.
+    tabUrlReadyRef.current = true;
     // Load DB lang preference — overrides localStorage (works across devices).
     // GET /settings/ui answers flat ({ lang, dashboard_mode }) — there is no
     // { data } envelope to unwrap.
@@ -562,6 +594,41 @@ export function DashboardWorkspace() {
     }).catch(() => { /* non-critical — localStorage fallback is fine */ });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.hydrated]);
+
+  // ── Tab → URL (outbound) ──────────────────────────────────
+  // Mirrors the active tab into `?tab=`. Bails when the URL already says the
+  // right thing, which is what keeps this from ping-ponging with the inbound
+  // effect below: a user tab click writes the URL here, the inbound effect sees
+  // the value it already has, and stops.
+  useEffect(() => {
+    if (!tabUrlReadyRef.current) return;
+    if (urlTabParam === activeTab) return;
+    const next = new URLSearchParams(Array.from(searchParams.entries()));
+    next.set(TAB_QUERY_PARAM, activeTab);
+    const href = `${pathname}?${next.toString()}`;
+    const intent = navIntentRef.current;
+    navIntentRef.current = "replace";
+    // scroll: false — a tab switch already resets its own scroll position; the
+    // router's default jump-to-top fights the panel transition.
+    if (intent === "push") router.push(href, { scroll: false });
+    else router.replace(href, { scroll: false });
+  // searchParams/pathname/router are stable per navigation; keying off the
+  // resolved param avoids a re-run on every unrelated query change.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, urlTabParam]);
+
+  // ── URL → tab (inbound) ───────────────────────────────────
+  // Back/forward and edited URLs. Guarded the same way as the outbound effect.
+  useEffect(() => {
+    if (!tabUrlReadyRef.current) return;
+    const fromUrl = sanitizeUrlTab(urlTabParam, { qaEnabled: ENABLE_QA_TAB });
+    if (!fromUrl || fromUrl.tab === activeTab) return;
+    // A history move is not a new navigation — never push in response to one.
+    navIntentRef.current = "replace";
+    setExploreReturnTab(null);
+    setActiveTab(fromUrl.tab);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlTabParam]);
 
   // ── Persist lang to DB when changed ───────────────────────
   const langSyncRef = useRef(false);
