@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import type { MoonPhase } from "@/lib/lunar";
 
 /**
@@ -159,9 +160,26 @@ function SunBody({ gid }: { gid: string }) {
   );
 }
 
-function MoonBody({ gid, fraction, waxing }: { gid: string; fraction: number; waxing: boolean }) {
+export function MoonBody({
+  gid,
+  fraction,
+  waxing,
+  tone = "dark",
+}: {
+  gid: string;
+  fraction: number;
+  waxing: boolean;
+  /** Ground this art will sit on. "dark" = the indigo sky tile / navy canvas it
+   *  was drawn for. "light" = the cream-greige Nova-light hero, where the cream
+   *  twinkle specks (#f3ecdd) are invisible — they switch to the deep bronze
+   *  gold that Nova-light already uses for accent text, so the twinkle loop
+   *  still reads as motion rather than silently disappearing. */
+  tone?: "dark" | "light";
+}) {
   // Disc grows with fullness: a small dark Amavasai, a large silver Pournami.
   const r = 20 + 8 * fraction; // 20 (new) … 28 (full)
+  const speckFill = tone === "light" ? "#8A6410" : "#f3ecdd";
+  const speckOpacity = tone === "light" ? 0.5 : 0.75;
   const lit = litMoonPath(50, 50, r, fraction, waxing);
   // Earthshine: near new moon the lit sliver is almost nothing, so the disc can
   // read as an empty hole. Lift the rim + a faint outer ring so an Amavasai moon
@@ -190,9 +208,9 @@ function MoonBody({ gid, fraction, waxing }: { gid: string; fraction: number; wa
           cx={s.x}
           cy={s.y}
           r={s.r}
-          fill="#f3ecdd"
+          fill={speckFill}
           className="nova-celestial__star"
-          opacity={0.75}
+          opacity={speckOpacity}
           style={{ animationDelay: `${s.delay}s` }}
         />
       ))}
@@ -254,6 +272,64 @@ export function MiniMoonGlyph({
       )}
       <circle cx="20" cy="20" r={r} fill="none" stroke="#8f88b5" strokeWidth="0.8" strokeOpacity={0.5 + 0.4 * earthshine} />
       <path d={lit} fill={`url(#${gid}-d)`} />
+    </svg>
+  );
+}
+
+/**
+ * Large, tile-free real-phase moon for use as a hero/card *backdrop* —
+ * `CelestialGlyphNova`'s glow/stars/halo/disc art with the surrounding sky-tile
+ * background and box-shadow stripped out, so the caller can float it directly
+ * over their own gradient (see `HeroSkyBackdrop` in celestial-ambient-nova.tsx)
+ * instead of sitting inside a rounded square. Same phase math as the small
+ * chip glyphs — this is the real tithi's moon, just scaled up as atmosphere.
+ */
+export function HeroMoonGlyph({
+  moon,
+  size = 160,
+  opacity = 1,
+  tone = "dark",
+  className,
+  style,
+}: {
+  moon: MoonPhase | null;
+  size?: number;
+  opacity?: number;
+  /** See MoonBody. The halo is the piece that actually breaks on light: its
+   *  pale periwinkle (#cfd0ff) is lighter than the cream-greige hero it floats
+   *  on, so the `nova-celestial__glow` breathe loop animates something the eye
+   *  cannot see. Light swaps it for the deep violet Nova-light already uses as
+   *  --color-accent-secondary, which reads on cream at the same alpha. */
+  tone?: "dark" | "light";
+  className?: string;
+  style?: CSSProperties;
+}) {
+  // Fixed, not useId() — see CelestialGlyphNova above for why.
+  const gid = "celestial-hero-moon";
+  const fraction = moon?.fraction ?? 0;
+  const waxing = moon?.waxing ?? true;
+  const glow = tone === "light" ? "#7c5aa6" : "#cfd0ff";
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      aria-hidden="true"
+      className={className}
+      style={{ display: "block", opacity, ...style }}
+    >
+      <defs>
+        <radialGradient id={`${gid}-disc`} cx="38%" cy="34%" r="75%">
+          <stop offset="0%" stopColor="#fdfbff" />
+          <stop offset="70%" stopColor="#e7e2f4" />
+          <stop offset="100%" stopColor="#c7c1e0" />
+        </radialGradient>
+        <radialGradient id={`${gid}-glow`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor={glow} stopOpacity="0.7" />
+          <stop offset="100%" stopColor={glow} stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <MoonBody gid={gid} fraction={fraction} waxing={waxing} tone={tone} />
     </svg>
   );
 }

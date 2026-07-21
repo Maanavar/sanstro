@@ -28,7 +28,7 @@ import type {
 import { NovaClampedText, NovaScoreDial, NovaStarRow, StatusLive, type StatusMessage } from "./dashboard-ui-nova";
 import { bandPhrase, bandTone } from "@/lib/reasoning";
 import { MiniMoonGlyph } from "./celestial-glyph-nova";
-import { HeroSkyBackdrop } from "./celestial-ambient-nova";
+import { HeroSkyBackdrop, DeepDiveOrbitGlyph } from "./celestial-ambient-nova";
 import { lunarSpecialTithiMeta, moonPhaseFromTithi } from "@/lib/lunar";
 import { useStreak } from "@/hooks/useStreak";
 import { StreakChip } from "./streak-chip";
@@ -781,19 +781,28 @@ export function DashboardTodayTabNova({
               { label: lang === "ta" ? "பஞ்சாங்கம்" : "Panchangam", text: personalDailyGuidance.reasons.panchangam, layer: layerScore(bd?.panchangam, 0.14) },
               { label: lang === "ta" ? "கோசாரம்" : "Transit", text: personalDailyGuidance.reasons.gochar, layer: layerScore(bd?.gocharSupport, 0.24) },
             ].filter((tile) => tile.text);
+            // Tiles sit in their own (narrower-than-full) column beside the
+            // orbit illustration — .nova-deepdive-grid (2fr/1fr, collapses to
+            // one column ≤860px) rather than stretching the tiles the full
+            // card width the way a plain auto-fit grid would.
             return (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }}>
-                {tiles.map((tile) => (
-                  <div key={tile.label} style={{ background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "13px 15px", fontSize: "12px", lineHeight: 1.55, color: "var(--color-muted)" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "6px" }}>
-                      <b style={{ color: "var(--color-accent-strong)", fontSize: "12.5px" }}>{tile.label}</b>
-                      {tile.layer !== null && (
-                        <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-faint)", fontVariantNumeric: "tabular-nums" }}>{tile.layer}/100</span>
-                      )}
+              <div className="nova-deepdive-grid">
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "10px" }}>
+                  {tiles.map((tile) => (
+                    <div key={tile.label} style={{ background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "13px 15px", fontSize: "12px", lineHeight: 1.55, color: "var(--color-muted)" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "6px" }}>
+                        <b style={{ color: "var(--color-accent-strong)", fontSize: "12.5px" }}>{tile.label}</b>
+                        {tile.layer !== null && (
+                          <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-faint)", fontVariantNumeric: "tabular-nums" }}>{tile.layer}/100</span>
+                        )}
+                      </div>
+                      {tLang(tile.text, lang)}
                     </div>
-                    {tLang(tile.text, lang)}
-                  </div>
-                ))}
+                  ))}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <DeepDiveOrbitGlyph size={168} />
+                </div>
               </div>
             );
           })()}
