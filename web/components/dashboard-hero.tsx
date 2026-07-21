@@ -245,7 +245,12 @@ export function DashboardHero(props: DashboardHeroProps) {
     <>
       <header className="cd-topbar">
         <div className="cd-topbar__inner">
-          <div className="cd-brand">
+          <button
+            type="button"
+            className="cd-brand"
+            onClick={() => onTabChange("personal")}
+            aria-label={lang === "ta" ? "முகப்புக்குச் செல்" : "Go to dashboard home"}
+          >
             <Image
               src="/brand/vinaadi-symbol-icon.png"
               alt=""
@@ -256,7 +261,7 @@ export function DashboardHero(props: DashboardHeroProps) {
               priority
             />
             <span className="cd-brand__name">Vinaadi</span>
-          </div>
+          </button>
 
           <nav
             className="cd-topnav"
