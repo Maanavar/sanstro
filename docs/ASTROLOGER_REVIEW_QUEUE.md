@@ -10,6 +10,29 @@ decision inline and move it to "Resolved".
 
 ## Open
 
+### 2026-07-21 · Nokku (மேல்/கீழ்/சம நோக்கு) nakshatra classification — NEW, live on the Calendar tab
+
+- **Where:** `web/lib/nokku.ts` (`URDHVAMUKHA_NUMBERS` / `ADHOMUKHA_NUMBERS` /
+  `TIRYANGMUKHA_NUMBERS`), rendered in the Calendar tab's "Day at a glance" card.
+- **What shipped:** the day's nakshatra facing, shown as மேல் நோக்கு நாள் /
+  கீழ் நோக்கு நாள் / சம நோக்கு நாள் (romanised, not translated, in English).
+  Derived client-side from the nakshatra already on the wire — no engine change.
+  Follows the *active* nakshatra, so the facing rolls over mid-day with the star.
+- **Needs a jyotishi's call on:** the **27-row table itself**. It is the standard
+  classical partition (ūrdhvamukha / adhomukha / tiryaṅmukha, 9 each) and has NOT
+  been checked against the reference almanac this project follows. Published Tamil
+  almanacs are known to differ on a small number of placements. A printed
+  panchangam page listing the three groups would settle it outright.
+  - The table is currently self-consistent: a unit test asserts the three groups
+    partition exactly 1–27 with no gaps or duplicates, and that every *Uthira-*
+    star faces up while every *Poora-* star faces down. Those guards will hold
+    through any correction — only the group membership needs the reviewer.
+- **Also worth a call:** the one-line "good for" meanings (currently building/study
+  for mel, foundations/wells for keel, travel/trade for samam). These render only
+  as a hover tooltip today, so they are low-exposure, but they are doctrine.
+- **Not yet on mobile.** Web-only for now; `mobile/app/(tabs)/panchangam` has no
+  equivalent. Worth porting once the table is signed off rather than before.
+
 ### Carried over from earlier sessions (pointers, not restated here)
 
 - Reasoning layer PR-4 + PR-5 specialist sign-off
