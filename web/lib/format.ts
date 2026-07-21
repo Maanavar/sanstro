@@ -5,7 +5,7 @@ export {
   formatClockLabel,
   formatDateTimeLabel,
 } from "@vinaadi/shared/utils/format";
-import { scoreTonePct } from "@vinaadi/shared/utils/score";
+import { SCORE_THRESHOLDS, scoreTonePct } from "@vinaadi/shared/utils/score";
 import { verdictPhrase } from "./verdict-lexicon";
 
 export interface ScoreBand {
@@ -79,23 +79,29 @@ export const SCORE_MID = "var(--color-score-mid, #B85A2C)";
 export const SCORE_LOW = "var(--color-score-low, #A8482F)";
 
 // ── Four-band score palette ─────────────────────────────────────────────────
-// Product-set thresholds (2026-07): ≥70 dark green · 60–70 light green ·
-// 50–60 gold · <50 red. These are the canonical colors for every 0–100 daily
+// Product-set thresholds (2026-07): ≥70 dark green · 65–70 light green ·
+// 50–65 gold · <50 red. These are the canonical colors for every 0–100 daily
 // score surface — dots, tiles, rings, dials, avatars. Kept as CSS custom
 // properties (with hard fallbacks for the Classic warm theme) so the Nova dark
 // theme can retune them in one place.
+//
+// The good/fair boundary is 65, not 60, so it lines up with the engine's own
+// `_score_label` (GOOD ≥65) and the shared `SCORE_THRESHOLDS.HIGH`. When it sat
+// at 60, a 60–64 score drew green from every score-driven surface (Family Today
+// rings) and gold from every label-driven one (the Today hero dial) — the same
+// number, two colours, on one screen.
 export const SCORE_STRONG = "var(--color-score-strong, #3F7A4E)"; // ≥70 dark green
-export const SCORE_GOOD = "var(--color-score-good, #6B9E5E)"; //   60–70 light green
-export const SCORE_FAIR = "var(--color-score-fair, #C8892E)"; //   50–60 orange/gold
+export const SCORE_GOOD = "var(--color-score-good, #6B9E5E)"; //   65–70 light green
+export const SCORE_FAIR = "var(--color-score-fair, #C8892E)"; //   50–65 orange/gold
 export const SCORE_WEAK = "var(--color-score-weak, #C04530)"; //   <50 red
 
 /** The one canonical 0–100 → color map. Four discrete bands, product-set:
- *  ≥70 dark green (strong), 60–70 light green (good), 50–60 gold (fair),
+ *  ≥70 dark green (strong), 65–70 light green (good), 50–65 gold (fair),
  *  <50 red (weak). Use for every score dot/tile/ring/dial. */
 export function scoreBandColor(score: number): string {
   const s = Math.max(0, Math.min(100, score));
   if (s >= 70) return SCORE_STRONG;
-  if (s >= 60) return SCORE_GOOD;
+  if (s >= SCORE_THRESHOLDS.HIGH) return SCORE_GOOD;
   if (s >= 50) return SCORE_FAIR;
   return SCORE_WEAK;
 }
@@ -127,11 +133,11 @@ export function scoreColorPct(pct: number): string {
 }
 
 /** Band label + 3-way tone for a 0–100 score. Thresholds mirror the four-band
- *  colour palette (≥70 strong · 60–70 supportive · 50–60 steady · <50 caution)
+ *  colour palette (≥70 strong · 65–70 supportive · 50–65 steady · <50 caution)
  *  so a score's label, colour and "needs care" flag never disagree. */
 export function getScoreBand(score: number): ScoreBand {
   if (score >= 70) return { label: "strong day", tone: "high" };
-  if (score >= 60) return { label: "supportive", tone: "high" };
+  if (score >= SCORE_THRESHOLDS.HIGH) return { label: "supportive", tone: "high" };
   if (score >= 50) return { label: "steady", tone: "mid" };
   if (score >= 40) return { label: "soft caution", tone: "low" };
   return { label: "take care", tone: "low" };
@@ -148,11 +154,11 @@ export interface ScoreVerdict {
 /** A one-word, plain-language reading of the 0–100 daily score. Deliberately
  *  three-way (good / okay / take-care) to answer the single question folk users
  *  have, instead of an English-caps band label. Boundaries and colour follow the
- *  four-band palette (green ≥60 · gold 50–60 · red <50) so the dial's word and
+ *  four-band palette (green ≥65 · gold 50–65 · red <50) so the dial's word and
  *  its colour always agree. */
 export function getScoreVerdict(score: number, lang: "ta" | "en"): ScoreVerdict {
   const color = scoreBandColor(score);
-  if (score >= 60) return { verdict: lang === "ta" ? "நல்ல நாள்" : "Good day", tone: "high", color };
+  if (score >= SCORE_THRESHOLDS.HIGH) return { verdict: lang === "ta" ? "நல்ல நாள்" : "Good day", tone: "high", color };
   if (score >= 50) return { verdict: lang === "ta" ? "பரவாயில்லை" : "An okay day", tone: "mid", color };
   return { verdict: lang === "ta" ? "ஜாக்கிரதை" : "Take care", tone: "low", color };
 }
