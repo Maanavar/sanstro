@@ -24,19 +24,25 @@ type LabelKey = Parameters<typeof t>[0];
 const SHOW_QA_TAB = process.env.NODE_ENV !== "production";
 
 // IA model: seven first-class destinations in the top strip (Today ·
-// Calendar · Family & Charts · Transit & Dashas · Goals · Life Area ·
+// Calendar · Family & Charts · Transits & Dashas · Goals · Life Areas ·
 // More). "Goals" is nav id `"plan"` relabeled — Transits & Dasha split out
 // of it into its own `"transits"` destination. Tools/Explore/QA live behind
 // the "More" dropdown (`MORE_TAB_DEFS` below) rather than as direct pills.
 // Journal has no top-level entry — it's reached from within Today/Life
 // Areas/Transits' own "go to journal" links.
+//
+// labelEn is pluralized to agree with each tab showing several of the thing
+// (several transits/dashas, several life areas) — singular read as unfinished
+// copy. The Tamil keys (tab_transits, tab_life_area_nav) are untouched: Tamil
+// pluralization isn't a mechanical "add கள்" the way English's is, and this
+// wants a native-speaker call, not a guess — see docs/ASTROLOGER_REVIEW_QUEUE.md.
 const TAB_DEFS: Array<{ id: Tab; labelEn: string; labelTaKey?: LabelKey }> = [
   { id: "personal", labelEn: "Today", labelTaKey: "tab_today" },
   { id: "calendar", labelEn: "Calendar", labelTaKey: "tab_calendar" },
   { id: "family", labelEn: "Family & Charts", labelTaKey: "tab_family" },
-  { id: "transits", labelEn: "Transit & Dashas", labelTaKey: "tab_transits" },
+  { id: "transits", labelEn: "Transits & Dashas", labelTaKey: "tab_transits" },
   { id: "plan", labelEn: "Goals", labelTaKey: "tab_plan" },
-  { id: "life-areas", labelEn: "Life Area", labelTaKey: "tab_life_area_nav" },
+  { id: "life-areas", labelEn: "Life Areas", labelTaKey: "tab_life_area_nav" },
   { id: "settings", labelEn: "Settings", labelTaKey: "tab_settings" },
 ];
 

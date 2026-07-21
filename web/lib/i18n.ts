@@ -24,7 +24,7 @@ const STRINGS = {
   tab_calendar:   { ta: "நகர்வு & நிகழ்வு", en: "Transits & Events" },
   tab_setup:      { ta: "அமைவு",        en: "Setup" },
   tab_settings:   { ta: "அமைவுகள்",     en: "Settings" },
-  tab_life_area_nav: { ta: "வாழ்க்கை பகுதி", en: "Life Area" },
+  tab_life_area_nav: { ta: "வாழ்க்கை பகுதி", en: "Life Areas" },
   tab_more:       { ta: "மேலும்",       en: "More" },
   nav_label:      { ta: "பக்க வழிகாட்டி", en: "App navigation" },
 
@@ -157,7 +157,7 @@ const STRINGS = {
   btn_go_personal:    { ta: "தனிப்பட்டது →",     en: "Personal →" },
 
   // ── Transits tab
-  tab_transits:       { ta: "தசை & கிரகநகர்வு",    en: "Transit & Dashas" },
+  tab_transits:       { ta: "தசை & கிரகநகர்வு",    en: "Transits & Dashas" },
   transits_tab_desc:  { ta: "விம்சோத்தரி தசை காலவரிசை, கிரகநகர்வு நிலைகள், குறிப்பேடு ஒப்பீடுகள்", en: "Vimshottari Dasa timeline, transit positions, journal comparisons" },
 
   // ── TODAY tab (Phase 2)

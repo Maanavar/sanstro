@@ -98,7 +98,7 @@ test("item 5 — chart explanation tab strip (Today deep dive)", async () => {
 
 test("item 2 — non-owner member pill fills gold when selected", async () => {
   await dismissDialogs();
-  await page.getByRole("button", { name: "Life Area", exact: true }).first().click();
+  await page.getByRole("button", { name: "Life Areas", exact: true }).first().click();
   await page.waitForTimeout(2000);
   const spousePill = page.getByRole("button", { name: "E2E Nova Spouse", exact: true }).first();
   await spousePill.waitFor({ state: "visible", timeout: 8000 });
