@@ -24,6 +24,7 @@ import { GRAHA_ABBR, RASI_NAMES } from "./dashboard-charts";
 import { DASHA_COLORS } from "./dashboard-dasha";
 import { downloadJadhagamPdf } from "./dashboard-personal-shared";
 import { Chip, Surface } from "./dashboard-ui";
+import { NakshatraBadge } from "./nakshatra-badge";
 import { CollapsibleSection } from "./collapsible-section";
 import { AdvancedAstrologyGate } from "./advanced-astrology-gate";
 import { ChartExplanationPanel } from "./dashboard-chart-explanation";
@@ -206,8 +207,11 @@ export function DashboardChartsPanelNova({
         {nakshatraCard && (
           <Surface title={t("nakshatra_card_label", lang)}>
             <div className="surface__body">
-              <div className="surface__headline">
-                <span>{lang === "ta" ? nakshatraCard.nameTa : astroText(nakshatraCard.nameEn)}</span>
+              <div className="surface__headline surface__headline--profile">
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+                  <NakshatraBadge nakshatra={nakshatraCard.number} size={56} />
+                  <span>{lang === "ta" ? nakshatraCard.nameTa : astroText(nakshatraCard.nameEn)}</span>
+                </span>
                 <Chip tone="accent">{t("nakshatra_ruling_planet", lang)}: {tPlanetLord(nakshatraCard.rulingPlanet, lang)}</Chip>
               </div>
               <p className="surface__text">{lang === "ta" ? nakshatraCard.profile.ta : astroText(nakshatraCard.profile.en)}</p>
@@ -232,10 +236,18 @@ export function DashboardChartsPanelNova({
         <Surface title={t("surface_border_alert", lang)}>
           <div style={{ display: "grid", gap: "var(--space-3)" }}>
             {personalChart.birthConditions.map((condition) => {
+              // --color-success / --color-warning / --color-surface-raised are
+              // not defined anywhere in the app, so these three always resolved
+              // to their dark-tuned literal fallbacks regardless of theme. The
+              // raised background was the visible casualty: white at 3% is a
+              // lift on navy and nothing at all on the cream light canvas, so
+              // every condition row lost its surface there. Swapped to the
+              // real high/mid semantics and the text-strong tint idiom, both
+              // of which flip per theme.
               const accent = condition.severity === "BOOST"
-                ? "var(--color-success, #3fb950)"
+                ? "var(--color-high)"
                 : condition.severity === "ALERT"
-                  ? "var(--color-warning, #d29922)"
+                  ? "var(--color-mid)"
                   : "var(--color-accent-secondary)";
               return (
                 <div
@@ -246,7 +258,7 @@ export function DashboardChartsPanelNova({
                     gap: "6px",
                     padding: "var(--space-3)",
                     borderRadius: "var(--radius-md, 10px)",
-                    background: "var(--color-surface-raised, rgba(255,255,255,0.03))",
+                    background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)",
                     borderInlineStart: `3px solid ${accent}`,
                   }}
                 >

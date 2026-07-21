@@ -1,7 +1,10 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import type { NatchathiramEntry } from "@/lib/natchathiram-data";
 import { romanNakshathiramName, romanNakshathiramLabel } from "@/lib/tamil-astro";
+import { ZodiacBadge } from "@/components/zodiac-badge";
+import { NakshatraBadge } from "@/components/nakshatra-badge";
 
 const RASI_GLYPHS: Record<string, { glyph: string; tone: string }> = {
   Aries: { glyph: "♈", tone: "fire" },
@@ -18,13 +21,6 @@ const RASI_GLYPHS: Record<string, { glyph: string; tone: string }> = {
   Pisces: { glyph: "♓", tone: "water" },
 };
 
-const NAKSHATRA_POINTS: Array<[number, number]> = [
-  [36, 80], [66, 54], [96, 74], [128, 42], [160, 70], [194, 48], [224, 84],
-  [250, 54], [282, 80], [58, 142], [88, 172], [120, 142], [152, 180], [184, 142],
-  [216, 174], [250, 142], [38, 218], [72, 202], [106, 226], [138, 204], [172, 226],
-  [206, 204], [240, 226], [274, 204], [112, 106], [160, 116], [210, 106],
-];
-
 function cx(...parts: Array<string | false | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
@@ -34,33 +30,52 @@ function rasiFor(name?: string) {
   return RASI_GLYPHS[name] ?? RASI_GLYPHS.Aries;
 }
 
+// Western rasi name -> canonical number 1..12. RASI_GLYPHS is already declared
+// in zodiac order (Aries=1 … Pisces=12), so its key order gives the number.
+// The public natchathiram surfaces pass western names (data.rasi_en), unlike
+// the dashboard which uses the Mesham-style romanisation resolved elsewhere.
+const RASI_NUMBER_BY_EN: Record<string, number> = Object.keys(RASI_GLYPHS).reduce(
+  (acc, name, idx) => { acc[name.toLowerCase()] = idx + 1; return acc; },
+  {} as Record<string, number>,
+);
+
+// sm/md/lg pixel sizes for the real artwork badges, chosen to sit within the
+// existing .as-rasi / .as-nak container boxes (incl. their mobile overrides).
+const RASI_PX = { sm: 34, md: 48, lg: 70 } as const;
+const NAK_PX = { sm: 40, md: 52, lg: 124 } as const;
+// The wrapper keeps its .as-rasi/.as-nak sizing + layout classes (so the
+// responsive selectors still match) but drops the placeholder pill fill/shadow;
+// the artwork brings its own dark gem surface.
+const BADGE_WRAP_RESET: CSSProperties = { background: "none", boxShadow: "none", borderRadius: 0 };
+
 export function RasiGlyph({ rasi, label, size = "md" }: { rasi?: string; label?: string; size?: "sm" | "md" | "lg" }) {
-  const item = rasiFor(rasi);
+  const num = rasi ? RASI_NUMBER_BY_EN[rasi.trim().toLowerCase()] ?? null : null;
+
+  // Fallback to the classical Unicode glyph if the name doesn't resolve.
+  if (num == null) {
+    const item = rasiFor(rasi);
+    return (
+      <span className={cx("as-rasi", `as-rasi--${item.tone}`, `as-rasi--${size}`)} aria-label={label ?? rasi ?? "Rasi"}>
+        {item.glyph}
+      </span>
+    );
+  }
 
   return (
-    <span className={cx("as-rasi", `as-rasi--${item.tone}`, `as-rasi--${size}`)} aria-label={label ?? rasi ?? "Rasi"}>
-      {item.glyph}
+    <span className={cx("as-rasi", `as-rasi--${size}`)} style={BADGE_WRAP_RESET} aria-label={label ?? rasi ?? "Rasi"}>
+      <ZodiacBadge rasi={num} size={RASI_PX[size]} glyph={RASI_GLYPHS[rasi ?? ""]?.glyph} />
     </span>
   );
 }
 
 export function NakshatraSigil({ number, name, size = "md" }: { number: number; name?: string; size?: "sm" | "md" | "lg" }) {
-  const index = Math.max(0, Math.min(number - 1, NAKSHATRA_POINTS.length - 1));
-  const [x, y] = NAKSHATRA_POINTS[index];
-  const prev = NAKSHATRA_POINTS[Math.max(0, index - 1)];
-  const next = NAKSHATRA_POINTS[Math.min(NAKSHATRA_POINTS.length - 1, index + 1)];
-
   return (
-    <span className={cx("as-nak", `as-nak--${size}`)} aria-label={name ? `${romanNakshathiramName(name)} nakshathiram` : `Nakshathiram ${number}`}>
-      <svg viewBox="0 0 320 260" aria-hidden="true">
-        <path className="as-nak__orbit" d="M36 80C92 28 144 28 194 48C238 66 272 82 282 80" />
-        <path className="as-nak__orbit as-nak__orbit--low" d="M38 218C96 180 150 184 206 204C238 216 260 218 274 204" />
-        {prev && <path className="as-nak__link" d={`M${prev[0]} ${prev[1]}L${x} ${y}L${next[0]} ${next[1]}`} />}
-        {NAKSHATRA_POINTS.map(([sx, sy], i) => (
-          <circle key={`${sx}-${sy}`} className={i === index ? "as-nak__star as-nak__star--active" : "as-nak__star"} cx={sx} cy={sy} r={i === index ? 8 : 3.5} />
-        ))}
-        <text className="as-nak__num" x={x} y={y + 28} textAnchor="middle">{number}</text>
-      </svg>
+    <span
+      className={cx("as-nak", `as-nak--${size}`)}
+      style={BADGE_WRAP_RESET}
+      aria-label={name ? `${romanNakshathiramName(name)} nakshathiram` : `Nakshathiram ${number}`}
+    >
+      <NakshatraBadge nakshatra={number} size={NAK_PX[size]} />
     </span>
   );
 }

@@ -9,6 +9,7 @@ import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { D1_RASI_NAMES, RASI_LORDS } from "@/lib/chart-utils";
 import { RASI_TRAITS } from "@/lib/rasi-traits";
+import { ZodiacBadge } from "@/components/zodiac-badge";
 import type {
   ActivityTimingData,
   ChartCalculateResponseData,
@@ -178,8 +179,11 @@ export function NovaRasiTraitCard({
   return (
     <Surface title={t(titleKey, lang)}>
       <div className="surface__body">
-        <div className="surface__headline">
-          <span>{rasiName}</span>
+        <div className="surface__headline surface__headline--profile">
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+            <ZodiacBadge rasi={rasi} size={56} />
+            <span>{rasiName}</span>
+          </span>
           {lord && <Chip tone="accent">{t("nakshatra_ruling_planet", lang)}: {tPlanetLord(lord, lang)}</Chip>}
         </div>
         <p className="surface__text">{lang === "ta" ? entry.profile.ta : astroText(entry.profile.en)}</p>
@@ -230,7 +234,7 @@ export function NovaGuidanceCard({
                 </div>
               )}
               {personalDailyGuidance.contextInsight && (
-                <div style={{ marginBottom: "10px", padding: "10px 12px", borderRadius: "8px", background: "var(--color-accent-secondary-muted)", border: "1px solid rgba(167, 139, 201, 0.32)" }}>
+                <div style={{ marginBottom: "10px", padding: "10px 12px", borderRadius: "8px", background: "var(--color-accent-secondary-muted)", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 40%, transparent)" }}>
                   <p style={{ margin: "0 0 3px", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-accent-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>📋 {t("context_insight_label", lang)}</p>
                   <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-text)", lineHeight: 1.5 }}>{tLang(personalDailyGuidance.contextInsight, lang)}</p>
                 </div>

@@ -6,8 +6,11 @@ import { motion } from "framer-motion";
 import { Bell, Settings, LogOut, Check, X } from "lucide-react";
 import Image from "next/image";
 import { formatClockLabel } from "@/lib/format";
-import { t } from "@/lib/i18n";
+import { t, nakshatraNumberFromName } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { rasiNumberFromName } from "@/lib/zodiac-images";
+import { ZodiacBadge } from "@/components/zodiac-badge";
+import { NakshatraBadge } from "@/components/nakshatra-badge";
 import type {
   ChartSummaryData,
   FamilyVaultListItem,
@@ -510,11 +513,28 @@ export function DashboardHero(props: DashboardHeroProps) {
                   {birthDisplayName}
                 </span>
               )}
-              {chartSummary && (
-                <span className="cd-subbar__chart">
-                  {`${chartSummary.moonRasi} - ${chartSummary.janmaNakshatra} - ${chartSummary.lagnaRasi} ${lang === "ta" ? "லக்னம்" : "Lagnam"}`}
-                </span>
-              )}
+              {chartSummary && (() => {
+                // Resolve each identity segment to its artwork. moonRasi/lagnaRasi
+                // are rasi name strings; janmaNakshatra is a nakshatra name string.
+                // A null (unresolved name) simply renders the label without a badge.
+                // Badges flow inline so the strip keeps its native one-line ellipsis.
+                const moonN = rasiNumberFromName(chartSummary.moonRasi);
+                const nakN = nakshatraNumberFromName(chartSummary.janmaNakshatra);
+                const lagnaN = rasiNumberFromName(chartSummary.lagnaRasi);
+                const badge = { verticalAlign: "middle" as const, margin: "0 4px" };
+                return (
+                  <span className="cd-subbar__chart">
+                    {moonN != null && <ZodiacBadge rasi={moonN} size={16} style={{ ...badge, marginLeft: 0 }} />}
+                    {chartSummary.moonRasi}
+                    {" - "}
+                    {nakN != null && <NakshatraBadge nakshatra={nakN} size={16} style={badge} />}
+                    {chartSummary.janmaNakshatra}
+                    {" - "}
+                    {lagnaN != null && <ZodiacBadge rasi={lagnaN} size={16} style={badge} />}
+                    {chartSummary.lagnaRasi} {lang === "ta" ? "லக்னம்" : "Lagnam"}
+                  </span>
+                );
+              })()}
               {/* UXD-15 — birth-time uncertainty is collected but was never shown;
                   lagna & houses depend on it, so flag low-confidence/missing time. */}
               {chartSummary && (birthTimeLocal == null || (birthTimeConfidenceMinutes != null && birthTimeConfidenceMinutes >= 60)) && (

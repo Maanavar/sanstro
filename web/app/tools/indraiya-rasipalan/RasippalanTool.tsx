@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Moon } from "lucide-react";
 import { readErrorMessage } from "@/lib/api";
 import { useLang } from "@/components/lang-toggle";
-import { tNakshatra, type Lang } from "@/lib/i18n";
+import { tNakshatra, nakshatraNumberFromName, type Lang } from "@/lib/i18n";
 import { getRasiPalanGrid, type RasiPalanGridData, type RasiPalanGridItem } from "@vinaadi/shared/api/rasiPalan";
+import { ZodiacBadge } from "@/components/zodiac-badge";
+import { NakshatraBadge } from "@/components/nakshatra-badge";
 
 // ── Static data ───────────────────────────────────────────────────────────────
 // Fixed classical zodiac names/symbols only — no prediction content lives here.
@@ -48,49 +49,6 @@ function rasiName(number: number, lang: Lang): string {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function RasiSelectorGrid({
-  selectedRasi,
-  onSelect,
-  lang,
-}: {
-  selectedRasi: number | null;
-  onSelect: (n: number) => void;
-  lang: Lang;
-}) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 132px), 1fr))", gap: "8px" }}>
-      {RASI_LIST.map((r) => {
-        const isSelected = r.number === selectedRasi;
-        return (
-          <button
-            key={r.number}
-            type="button"
-            onClick={() => onSelect(r.number)}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "2px",
-              padding: "10px 6px",
-              borderRadius: "10px",
-              border: isSelected ? "2px solid var(--cl-accent)" : "1.5px solid var(--cl-border)",
-              background: isSelected ? "var(--cl-brand-tint)" : "var(--cl-bg-2)",
-              cursor: "pointer",
-              fontFamily: "inherit",
-              transition: "border-color 0.15s, background 0.15s",
-            }}
-          >
-            <span style={{ fontSize: "1.1rem" }}>{r.symbol}</span>
-            <span style={{ fontSize: "0.72rem", fontWeight: 700, color: isSelected ? "var(--chart-d1-active)" : "var(--cl-ink)" }}>
-              {lang === "ta" ? r.ta : r.en}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 function RasiCard({
   item,
   lang,
@@ -118,7 +76,7 @@ function RasiCard({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
-        <span style={{ fontSize: "1rem" }}>{rasi.symbol}</span>
+        <ZodiacBadge rasi={rasi.number} size={48} glyph={rasi.symbol} />
         <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--cl-ink)" }}>
           {lang === "ta" ? rasi.ta : rasi.en}
         </span>
@@ -176,6 +134,7 @@ export function RasippalanTool({ hideCta = false }: { hideCta?: boolean } = {}) 
 
   const moonRasiLabel = data ? rasiName(data.moonRasi, lang) : null;
   const nakshatraLabel = data ? tNakshatra(data.nakshatra, lang) : null;
+  const moonNakshatra = data ? nakshatraNumberFromName(data.nakshatra) : null;
   const selectedItem = data && selectedRasi ? data.results.find((r) => r.rasi === selectedRasi) ?? null : null;
 
   return (
@@ -231,16 +190,24 @@ export function RasippalanTool({ hideCta = false }: { hideCta?: boolean } = {}) 
           borderRadius: "14px", padding: "16px 20px",
           display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px",
         }}>
-          <Moon size={22} color="var(--cl-ink)" strokeWidth={1.5} aria-hidden="true" />
+          <ZodiacBadge
+            rasi={data.moonRasi}
+            size={44}
+            glyph={RASI_LIST.find((r) => r.number === data.moonRasi)?.symbol}
+          />
           <div>
             <p style={{ margin: 0, fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
               {en ? "Moon's position today" : "இன்று சந்திரன் நிலை"}
             </p>
-            <p style={{ margin: "2px 0 0", fontSize: "1rem", fontWeight: 700, color: "var(--cl-ink)" }}>
+            <p style={{ margin: "2px 0 0", fontSize: "1rem", fontWeight: 700, color: "var(--cl-ink)", display: "inline-flex", alignItems: "center", flexWrap: "wrap" }}>
               {moonRasiLabel}
               {nakshatraLabel && (
-                <span style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--cl-muted)", marginLeft: "8px" }}>
-                  · {nakshatraLabel}
+                <span style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--cl-muted)", marginLeft: "8px", display: "inline-flex", alignItems: "center" }}>
+                  ·{" "}
+                  {moonNakshatra != null && (
+                    <NakshatraBadge nakshatra={moonNakshatra} size={20} style={{ margin: "0 5px" }} />
+                  )}
+                  {nakshatraLabel}
                 </span>
               )}
             </p>
@@ -248,20 +215,6 @@ export function RasippalanTool({ hideCta = false }: { hideCta?: boolean } = {}) 
           <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--cl-muted)", marginLeft: "auto" }}>
             {en ? "Select your rasi below" : "கீழே உங்கள் ராசியை தேர்வு செய்யுங்கள்"}
           </p>
-        </div>
-      )}
-
-      {/* Rasi selector */}
-      {data && (
-        <div style={{
-          background: "var(--cl-surface)", border: "1px solid var(--cl-border)",
-          borderRadius: "16px", padding: "20px 24px",
-          display: "flex", flexDirection: "column", gap: "14px",
-        }}>
-          <p style={{ margin: 0, fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
-            {en ? "Select your birth sign" : "உங்கள் பிறப்பு ராசியைத் தேர்வு செய்யுங்கள்"}
-          </p>
-          <RasiSelectorGrid selectedRasi={selectedRasi} onSelect={setSelectedRasi} lang={lang} />
         </div>
       )}
 
@@ -275,7 +228,7 @@ export function RasippalanTool({ hideCta = false }: { hideCta?: boolean } = {}) 
             borderRadius: "16px", padding: "22px 26px",
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-              <span style={{ fontSize: "1.5rem" }}>{rasi.symbol}</span>
+              <ZodiacBadge rasi={rasi.number} size={64} glyph={rasi.symbol} />
               <div>
                 <p style={{ margin: 0, fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: colors.text }}>
                   {lang === "ta" ? rasi.ta : rasi.en} · {en ? `Moon in House ${selectedItem.moonHouse}` : `சந்திரன் ${selectedItem.moonHouse}ஆம் இடம்`}
