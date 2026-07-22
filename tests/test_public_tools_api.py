@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
+from app.core.rate_limit import reset_rate_limit_backend
 from app.main import app
 
 pytestmark = pytest.mark.no_db
@@ -284,3 +285,86 @@ def test_public_rasi_palan_grid_matches_single_lookup() -> None:
     assert row["luckyNumbers"] == single["luckyNumbers"]
     assert row["tone"] == single["tone"]
     assert grid["moonRasi"] == single["moonRasi"]
+
+
+# ── Endpoint-level rate limiting (2026-07-22 audit follow-up) ────────────────
+#
+# The 7 endpoints below previously had no @public_endpoint_rate_limit decorator
+# and relied only on the global 120/min/IP middleware. Confirm each still works
+# with the added `request: Request` parameter, and that the limiter actually
+# fires once its per-endpoint budget (app/core/public_endpoint_limiter.py) is
+# exceeded — not just that the decorator is present.
+
+
+def test_public_friendship_compatibility_still_works() -> None:
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.post(
+            "/api/v1/public/friendship-compatibility",
+            json={
+                "personA": _birth_payload("Person A", "1990-01-01", "12:00"),
+                "personB": _birth_payload("Person B", "1992-02-02", "13:00"),
+            },
+        )
+
+    assert response.status_code == 200, response.text
+
+
+def test_public_muhurtham_naals_still_works() -> None:
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.get("/api/v1/public/muhurtham-naals?year=2027")
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["year"] == 2027
+    assert isinstance(body["naals"], list)
+
+
+def test_public_panchangam_events_still_works() -> None:
+    with TestClient(app, raise_server_exceptions=False) as client:
+        list_response = client.get("/api/v1/public/panchangam-events?year=2026")
+        assert list_response.status_code == 200, list_response.text
+        events = list_response.json()["events"]
+        assert events
+
+        detail_response = client.get(f"/api/v1/public/panchangam-events/{events[0]['key']}?year=2026")
+
+    assert detail_response.status_code == 200, detail_response.text
+
+
+def test_public_calendar_categories_still_works() -> None:
+    with TestClient(app, raise_server_exceptions=False) as client:
+        list_response = client.get("/api/v1/public/calendar-categories?year=2026")
+        assert list_response.status_code == 200, list_response.text
+        categories = list_response.json()["categories"]
+        assert categories
+
+        detail_response = client.get(f"/api/v1/public/calendar-categories/{categories[0]['slug']}?year=2026")
+
+    assert detail_response.status_code == 200, detail_response.text
+
+
+def test_public_panchangam_share_card_still_works() -> None:
+    with TestClient(app, raise_server_exceptions=False) as client:
+        response = client.get(
+            "/api/v1/public/panchangam-share-card?date=2026-06-02&lat=13.0827&lng=80.2707&timezone=Asia%2FKolkata"
+        )
+
+    assert response.status_code == 200, response.text
+
+
+def test_public_muhurtham_naals_rate_limit_enforced() -> None:
+    """public_muhurtham_naals had no endpoint-level budget before this fix — only the
+    global 120/min middleware. Confirm its new 30/min budget (public_endpoint_limiter.py)
+    actually trips a 429 rather than silently allowing unlimited scraping.
+
+    Resets the shared in-memory limiter first: earlier tests in this module hit the same
+    endpoint/IP bucket, and this file's raw TestClient(app) pattern (unlike the `client`
+    fixture in conftest.py) doesn't reset it between tests.
+    """
+    reset_rate_limit_backend()
+    with TestClient(app, raise_server_exceptions=False) as client:
+        responses = [client.get("/api/v1/public/muhurtham-naals?year=2027") for _ in range(31)]
+
+    assert responses[-1].status_code == 429, responses[-1].text
+    assert "Retry-After" in responses[-1].headers
+    assert all(r.status_code == 200 for r in responses[:30])

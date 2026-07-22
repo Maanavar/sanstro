@@ -564,11 +564,13 @@ class FriendshipRequest(BaseModel):
 
 
 @router.post("/friendship-compatibility")
-def public_friendship_compatibility(payload: FriendshipRequest) -> dict:
+@public_endpoint_rate_limit("public_friendship")
+def public_friendship_compatibility(payload: FriendshipRequest, request: Request) -> dict:
     """Positively-framed friendship compatibility between two people. No auth.
 
     Reuses the porutham engine but drops marriage-specific kutas and reframes the
-    result as friendship. Rate limiting is handled at the infrastructure layer.
+    result as friendship. Endpoint-level per-IP budget, same cost tier as porutham
+    (two ephemeris chart computations per call).
     """
     from app.services.friendship_compatibility_service import get_friendship_report
 
@@ -603,7 +605,9 @@ def public_friendship_compatibility(payload: FriendshipRequest) -> dict:
 
 
 @router.get("/muhurtham-naals", response_model=MuhurthamNaalListResponse)
+@public_endpoint_rate_limit("public_muhurtham_naals")
 def public_muhurtham_naals(
+    request: Request,
     year: int = 2027,
     month: int | None = None,
     pirai: str | None = None,
@@ -632,7 +636,8 @@ def public_muhurtham_naals(
 
 
 @router.get("/panchangam-events")
-def public_panchangam_events(year: int = 2026) -> dict:
+@public_endpoint_rate_limit("public_panchangam_events")
+def public_panchangam_events(request: Request, year: int = 2026) -> dict:
     """List all Tamil-calendar special events for a year with their next date.
 
     No auth. Powers the /tamil-calendar SEO hub. Each event includes its
@@ -644,7 +649,8 @@ def public_panchangam_events(year: int = 2026) -> dict:
 
 
 @router.get("/panchangam-events/{event}")
-def public_panchangam_event(event: str, year: int = 2026) -> dict:
+@public_endpoint_rate_limit("public_panchangam_events")
+def public_panchangam_event(request: Request, event: str, year: int = 2026) -> dict:
     """Full date list + SEO content for one special event (e.g. pournami-2026).
 
     No auth. Powers the /tamil-calendar/[event] SEO pages. Accepts either an
@@ -656,7 +662,8 @@ def public_panchangam_event(event: str, year: int = 2026) -> dict:
 
 
 @router.get("/calendar-categories")
-def public_calendar_categories(year: int = 2026) -> dict:
+@public_endpoint_rate_limit("public_calendar_categories")
+def public_calendar_categories(request: Request, year: int = 2026) -> dict:
     """List festival/holiday category pages for the public Tamil calendar."""
     from app.services.calendar_category_service import list_calendar_categories
 
@@ -664,7 +671,8 @@ def public_calendar_categories(year: int = 2026) -> dict:
 
 
 @router.get("/calendar-categories/{category}")
-def public_calendar_category(category: str, year: int = 2026) -> dict:
+@public_endpoint_rate_limit("public_calendar_categories")
+def public_calendar_category(request: Request, category: str, year: int = 2026) -> dict:
     """Full date list for one festival/holiday category page."""
     from app.services.calendar_category_service import get_calendar_category
 
@@ -690,7 +698,9 @@ def public_panchangam(
 
 
 @router.get("/panchangam-share-card")
+@public_endpoint_rate_limit("public_panchangam_share_card")
 def public_panchangam_share_card(
+    request: Request,
     date: date,
     lat: float = 13.0827,
     lng: float = 80.2707,

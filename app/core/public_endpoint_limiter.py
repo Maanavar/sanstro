@@ -34,6 +34,11 @@ class PublicEndpointLimiter:
         "public_muhurta": {"max_requests": 5, "window_seconds": 60},  # 5/min per IP (heavy computation)
         "public_compare_pdf": {"max_requests": 3, "window_seconds": 60},  # 3/min per IP (PDF generation)
         "porutham_share_view": {"max_requests": 30, "window_seconds": 60},  # 30/min per IP
+        "public_friendship": {"max_requests": 10, "window_seconds": 60},  # 10/min per IP (2 ephemeris charts, same cost as porutham)
+        "public_muhurtham_naals": {"max_requests": 30, "window_seconds": 60},  # 30/min per IP (GET, curated content table)
+        "public_panchangam_events": {"max_requests": 30, "window_seconds": 60},  # 30/min per IP (GET, SEO content pages)
+        "public_calendar_categories": {"max_requests": 30, "window_seconds": 60},  # 30/min per IP (GET, SEO content pages)
+        "public_panchangam_share_card": {"max_requests": 30, "window_seconds": 60},  # 30/min per IP (GET, panchangam-backed)
     }
 
     def __init__(self) -> None:

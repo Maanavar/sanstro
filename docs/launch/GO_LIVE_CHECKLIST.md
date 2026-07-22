@@ -164,12 +164,49 @@ Repo-specific checks:
 - [ ] If running multiple workers or instances, a decision has been made on Redis or accepting approximate limits
 
 Security audit findings — must clear before go-live:
-- [ ] **JWT/Admin key defaults**: `app/core/config.py` lines 7–8 define public default secrets
-  (`CHANGE_ME_IN_PRODUCTION_USE_STRONG_SECRET`, `CHANGE_ME_ADMIN_KEY`). The production
-  guard only fires when `APP_ENV=production` / `JOTHIDAM_ENVIRONMENT=production` is
-  explicitly set. A deployment that omits this flag silently uses the known-public
-  defaults. Confirm both env vars are set AND both secrets are strong random values
-  before any public traffic reaches the deployment.
+- [x] **JWT/Admin key defaults** — RESOLVED (commit `8277a5a`). `app/core/config.py` no
+  longer ships a hardcoded fallback secret: `jwt_secret` / `admin_api_key` default to
+  `None`, and `_require_strong_secrets_in_production` hard-fails startup in
+  `production`/`staging` if either is unset (it also requires `JOTHIDAM_ENCRYPTION_KEY`,
+  `JOTHIDAM_COOKIE_SECURE=true`, `JOTHIDAM_DEBUG=false`). Outside those environments it
+  generates a fresh ephemeral secret per boot instead of falling back to a fixed value.
+  - [ ] **Residual risk to close out**: an earlier commit (`de48707`, 2026-06-16) shipped
+    fixed literal fallback secrets — not placeholders, actual fixed strings
+    (`faLe6vxFC4K4...`, `J2xfyx5Z2Hf...`) — before the current design landed in `8277a5a`.
+    Those exact strings are permanently recoverable from git history. If there is any
+    chance a production deployment ran a commit between `de48707` and `8277a5a` without
+    `JOTHIDAM_ENVIRONMENT` explicitly set to `production`, rotate `JOTHIDAM_JWT_SECRET`
+    and `JOTHIDAM_ADMIN_API_KEY` now as a precaution — cost is low and git history can't
+    be un-written without a rewrite.
+- [ ] **Public API content-scraping / abuse** *(added 2026-07-22, product+security audit)*:
+  `/public/*` endpoints (guest chart, porutham, panchangam, rasi-palan, muhurtham-naal
+  tools) are intentionally unauthenticated for the marketing site's guest tools and SEO
+  pages — that's a deliberate product choice, not a bug. But abuse-resistance is thin
+  enough that a competitor can realistically mirror the content and re-skin the compute
+  engine on day one:
+  - Seven endpoints carry **no endpoint-level rate limit** — only the global
+    120 req/min/IP middleware applies: `/public/friendship-compatibility`,
+    `/public/muhurtham-naals`, `/public/panchangam-events`,
+    `/public/panchangam-events/{event}`, `/public/calendar-categories`,
+    `/public/calendar-categories/{category}`, `/public/panchangam-share-card`. Add the
+    existing `@public_endpoint_rate_limit(...)` decorator
+    (`app/core/public_endpoint_limiter.py`) to each — same pattern already used on
+    `/public/chart` and `/public/panchangam`.
+  - `/public/rasi-palan/grid` returns the entire bilingual rasi-palan content library
+    (all 12 signs, full predictions + remedies) in one unauthenticated call — add a
+    per-IP daily cap in addition to its existing per-minute one.
+  - No WAF/CDN/bot-detection layer is confirmed in front of production. Tracked
+    separately in `docs/MASTER_FIX_LIST.md` (SEC-2 / FUP-2), status still open as of
+    last update. The per-IP app-level limits above are the *only* current friction and
+    are trivially defeated by IP rotation — do not treat this line as done until FUP-2
+    names an actual CDN/WAF vendor and rule set, or the risk is explicitly accepted by
+    the go/no-go owner.
+  - CORS (`JOTHIDAM_CORS_ALLOW_ORIGINS`) does not mitigate any of this: it only
+    restricts browser-based reads of cross-origin responses, not direct script/curl
+    calls, which is how real scraping happens.
+  Done when: all seven endpoints above have an endpoint-level limit, FUP-2 is answered
+  with a named CDN/WAF vendor and rule set (or the gap is explicitly accepted as a launch
+  risk by the go/no-go owner), and `rasi-palan/grid` has a per-IP daily cap.
 - [ ] **DPDP Act 2023 consent**: No logged affirmative consent record exists at registration.
   Section 6 requires a specific, informed, unambiguous consent action before collecting
   birth data. Add a consent checkbox + store `consent_given_at` timestamp on the User
