@@ -99,10 +99,15 @@ const EditProfileModal = dynamic(
   { loading: LazyModalFallback },
 );
 
-const DashboardFamilyTabNova = dynamic(
-  () => import("./dashboard-family-tab-nova").then((mod) => mod.DashboardFamilyTabNova),
+// "Family & Charts Hybrid v2" — the Family tab's single-scroll, section-railed
+// graphical page (promoted to default 2026-07-22, replacing the earlier
+// DashboardFamilyTabNova).
+const DashboardFamilyChartsHybrid = dynamic(
+  () => import("./dashboard-family-charts-hybrid").then((mod) => mod.DashboardFamilyChartsHybrid),
   { loading: LazyPanelFallback },
 );
+type DashboardFamilyChartsHybridProps =
+  import("./dashboard-family-charts-hybrid").DashboardFamilyChartsHybridProps;
 
 const FeedbackModal = dynamic(
   () => import("./dashboard-feedback-modal").then((mod) => mod.FeedbackModal),
@@ -136,11 +141,6 @@ const DashboardJournalTabNova = dynamic(
 
 const DashboardPlanTabNova = dynamic(
   () => import("./dashboard-plan-tab-nova").then((mod) => mod.DashboardPlanTabNova),
-  { loading: LazyPanelFallback },
-);
-
-const NovaTransitsView = dynamic(
-  () => import("./dashboard-plan-transits-nova").then((mod) => mod.NovaTransitsView),
   { loading: LazyPanelFallback },
 );
 
@@ -329,6 +329,7 @@ export function DashboardWorkspace() {
   const [showRasipalan, setShowRasipalan] = useState(false);
   const [showActivityTiming, setShowActivityTiming] = useState(false);
   const [showVarshaphala, setShowVarshaphala] = useState(false);
+  const [showSynastry, setShowSynastry] = useState(false);
   const [showPrasna, setShowPrasna] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -419,7 +420,6 @@ export function DashboardWorkspace() {
   // View-selector IDs for member cross-tab views
   const [personalViewId, setPersonalViewId] = useState<string | null>(null);
   const [lifeAreasViewId, setLifeAreasViewId] = useState<string | null>(null);
-  const [transitViewId, setTransitViewId] = useState<string | null>(null);
 
   const [onboardingDone, setOnboardingDone] = useState(false);
 
@@ -850,7 +850,6 @@ export function DashboardWorkspace() {
 
   const personalMemberChart = resolveMemberChart(personalViewId);
   const lifeAreasMemberChart = resolveMemberChart(lifeAreasViewId);
-  const transitMemberChart = resolveMemberChart(transitViewId);
 
   const personalChart = personalMemberChart?.chart ?? personal.chart;
   const personalChartExplanation = personalMemberChart ? personalMemberChart.explanation : personal.chartExplanation;
@@ -880,15 +879,6 @@ export function DashboardWorkspace() {
         ),
       }
     : family.familyAggregate;
-
-  // Transit-tab specific resolved data (follows transitViewId selector)
-  const transitChart = transitMemberChart?.chart ?? personal.chart;
-  const transitDailyGuidance = transitMemberChart?.dailyGuidance ?? personal.dailyGuidance;
-  const transitTransit = transitMemberChart?.transit ?? personal.transit;
-  const transitSani = transitMemberChart?.sani ?? personal.sani;
-  const transitDasha = transitMemberChart?.dasha ?? personal.dasha;
-  const transitDashaMaha = transitMemberChart?.dashaMaha ?? personal.dashaMaha;
-  const transitDashaAntar = transitMemberChart?.dashaAntar ?? personal.dashaAntar;
 
   // Life Areas tab specific resolved data (follows lifeAreasViewId selector) —
   // feeds the Overview sub-tab's guidance/gochar cards, moved here from
@@ -1528,7 +1518,7 @@ export function DashboardWorkspace() {
             onGoToJournal={() => setActiveTab("journal")}
             onGoToCalendar={() => setActiveTab("calendar")}
             onGoToLifeAreas={() => setActiveTab("life-areas")}
-            onGoToTransits={() => setActiveTab("transits")}
+            onGoToTransits={() => setActiveTab("family")}
             onGoToCharts={() => setActiveTab("family")}
             onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
             onOpenNotificationSettings={() => navigateSettings("notifications")}
@@ -1536,7 +1526,7 @@ export function DashboardWorkspace() {
         )}
 
         {activeTab === "tools" && (() => {
-          const activeTool = showPorutham ? "porutham" : showChartGenerate ? "chartgen" : showWrapped ? "wrapped" : showRetrospective ? "retro" : showRasipalan ? "rasipalan" : showActivityTiming ? "activityTiming" : showVarshaphala ? "varshaphala" : null;
+          const activeTool = showPorutham ? "porutham" : showChartGenerate ? "chartgen" : showWrapped ? "wrapped" : showRetrospective ? "retro" : showRasipalan ? "rasipalan" : showActivityTiming ? "activityTiming" : showVarshaphala ? "varshaphala" : showSynastry ? "synastry" : null;
           // Note: Find Birth Time (rectification) removed — results were unreliable
           const needsProfile = !personal.birthProfileId;
           const openTool = (toolId: string) => {
@@ -1547,6 +1537,7 @@ export function DashboardWorkspace() {
             setShowRasipalan(toolId === "rasipalan");
             setShowActivityTiming(toolId === "activityTiming");
             setShowVarshaphala(toolId === "varshaphala");
+            setShowSynastry(toolId === "synastry");
           };
           const closeTool = () => {
             setShowPorutham(false);
@@ -1556,7 +1547,14 @@ export function DashboardWorkspace() {
             setShowRasipalan(false);
             setShowActivityTiming(false);
             setShowVarshaphala(false);
+            setShowSynastry(false);
           };
+          // Compatibility tool (moved from the Family page 2026-07-21): join the
+          // vault's member charts with their relationship labels for the picker.
+          const synastryMemberOptions = family.memberCharts.map((mc) => {
+            const fm = family.familyMembers.find((f) => f.familyMemberId === mc.memberId);
+            return { memberId: mc.memberId, displayName: mc.displayName, relationshipToOwner: fm?.relationshipToOwner ?? "other" };
+          });
 
           return (
             <DashboardToolsTabNova
@@ -1572,6 +1570,7 @@ export function DashboardWorkspace() {
               showRasipalan={showRasipalan}
               showActivityTiming={showActivityTiming}
               showVarshaphala={showVarshaphala}
+              showSynastry={showSynastry}
               varshaphalaData={varshaphalaData}
               varshaphalaLoading={varshaphalaLoading}
               onLoadVarshaphala={(year) => void loadVarshaphala(year)}
@@ -1579,6 +1578,11 @@ export function DashboardWorkspace() {
               selectedDate={selectedDate}
               onDateChange={setSelectedDate}
               familyVaultId={family.selectedVaultId ?? undefined}
+              ownerChart={personal.chart}
+              synastryMemberCharts={family.memberCharts}
+              synastryMemberOptions={synastryMemberOptions}
+              relationshipAlerts={family.relationshipAlerts}
+              relationshipAlertsLoading={family.relationshipAlertsLoading}
               familyMembersForPorutham={[
                 ...(personal.chart ? [{
                   memberId: `owner:${personal.chart.birthProfile.birthProfileId}`,
@@ -1610,43 +1614,46 @@ export function DashboardWorkspace() {
           );
         })()}
 
-        {activeTab === "family" && (
-          <DashboardFamilyTabNova
-            lang={lang}
-            selectedDate={selectedDate}
-            selectedVaultId={family.selectedVaultId}
-            ownerChartId={personal.chartId}
-            ownerChart={personal.chart}
-            ownerMemberChart={ownerMemberChart}
-            vaults={family.vaults}
-            familyDetail={family.familyDetail}
-            familyAggregate={family.familyAggregate}
-            familyComposite={family.familyComposite}
-            familyMembers={family.familyMembers}
-            memberCharts={family.memberCharts}
-            relationshipAlerts={family.relationshipAlerts}
-            alertsLoading={family.relationshipAlertsLoading}
-            panchangam={personal.panchangam}
-            mode={session.userMode}
-            onGoToJournal={() => goToTab("journal")}
-            onOpenPrasna={() => setShowPrasna(true)}
-            showPrasna={showPrasna}
-            onClosePrasna={() => setShowPrasna(false)}
-            busy={{
+        {activeTab === "family" && (() => {
+          const familyTabProps: DashboardFamilyChartsHybridProps = {
+            lang,
+            selectedDate,
+            selectedVaultId: family.selectedVaultId,
+            ownerChartId: personal.chartId,
+            ownerChart: personal.chart,
+            ownerMemberChart,
+            vaults: family.vaults,
+            familyDetail: family.familyDetail,
+            familyAggregate: family.familyAggregate,
+            familyComposite: family.familyComposite,
+            familyMembers: family.familyMembers,
+            memberCharts: family.memberCharts,
+            relationshipAlerts: family.relationshipAlerts,
+            alertsLoading: family.relationshipAlertsLoading,
+            panchangam: personal.panchangam,
+            mode: session.userMode,
+            onGoToJournal: () => goToTab("journal"),
+            onOpenPrasna: () => setShowPrasna(true),
+            showPrasna,
+            onClosePrasna: () => setShowPrasna(false),
+            busy: {
               family: family.busyFamily,
               vaults: family.busyVaults,
               deletingVaultId,
               deletingMemberId,
               memberCharts: family.busyMemberCharts,
-            }}
-            onRefreshFamily={() => void family.refreshFamilyBundle()}
-            onOpenSetup={openSetupInSettings}
-            onSelectVault={handleSelectVault}
-            onDeleteVault={(vaultId, name) => void handleDeleteVault(vaultId, name)}
-            onDeleteMember={(memberId, name) => void handleDeleteMember(memberId, name)}
-            onEditMember={handleEditFamilyMember}
-          />
-        )}
+            },
+            onRefreshFamily: () => void family.refreshFamilyBundle(),
+            onOpenSetup: openSetupInSettings,
+            onSelectVault: handleSelectVault,
+            onDeleteVault: (vaultId: string, name: string) => void handleDeleteVault(vaultId, name),
+            onDeleteMember: (memberId: string, name: string) => void handleDeleteMember(memberId, name),
+            onEditMember: handleEditFamilyMember,
+            onGoToLifeAreas: () => goToTab("life-areas"),
+            onGoToTools: () => goToTab("tools"),
+          };
+          return <DashboardFamilyChartsHybrid {...familyTabProps} />;
+        })()}
 
         {activeTab === "calendar" && (
           <DashboardCalendarTabNova
@@ -1696,7 +1703,7 @@ export function DashboardWorkspace() {
             onLoadRemedies={() => void loadRemedies(resolveLifeAreasChartId())}
             goals={plan.goals}
             onGoToPlan={() => goToTab("plan")}
-            onGoToTransits={() => goToTab("transits")}
+            onGoToTransits={() => goToTab("family")}
           />
         )}
 
@@ -1724,28 +1731,7 @@ export function DashboardWorkspace() {
             onGoToLifeAreas={() => goToTab("life-areas")}
             onGoToCalendar={() => goToTab("calendar")}
             onGoToJournal={() => goToTab("journal")}
-            onGoToTransits={() => goToTab("transits")}
-          />
-        )}
-
-        {activeTab === "transits" && (
-          <NovaTransitsView
-            lang={lang}
-            selectedDate={selectedDate}
-            personalChart={transitChart}
-            personalDailyGuidance={transitDailyGuidance}
-            personalTransit={transitTransit}
-            personalSani={transitSani}
-            personalDasha={transitDasha}
-            personalDashaMaha={transitDashaMaha}
-            personalDashaAntar={transitDashaAntar}
-            dashaStory={transitViewId ? null : personal.dashaStory}
-            journalCorrelations={personal.journalCorrelations}
-            birthDisplayName={birthForm.displayName}
-            memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
-            selectedMemberId={transitViewId}
-            onSelectMember={setTransitViewId}
-            onGoToJournal={() => goToTab("journal")}
+            onGoToTransits={() => goToTab("family")}
           />
         )}
 
@@ -1764,7 +1750,7 @@ export function DashboardWorkspace() {
             mode={session.userMode}
             chartSummary={personal.chartSummary}
             journalCorrelations={personal.journalCorrelations}
-            onGoToTransits={() => goToTab("transits")}
+            onGoToTransits={() => goToTab("family")}
           />
         )}
 
