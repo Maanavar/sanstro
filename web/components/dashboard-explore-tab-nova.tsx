@@ -76,7 +76,6 @@ type LibraryItem = {
   iconBg: string;
   titleEn: string;
   titleTa: string;
-  scriptTa: string;
   descEn: string;
   descTa: string;
   nav?: Tab;
@@ -97,7 +96,6 @@ const LIBRARY_ITEMS: LibraryItem[] = [
     iconBg: "var(--color-accent-muted)",
     titleEn: "Natchathiram",
     titleTa: "நட்சத்திரம்",
-    scriptTa: "நட்சத்திரம்",
     descEn: "All 27 birth stars — nature, padas, lords and what each asks of its people.",
     descTa: "அனைத்து 27 நட்சத்திரங்களும் — இயல்பு, பாதங்கள், அதிபதிகள்.",
     openDetail: "nakshatram",
@@ -109,7 +107,6 @@ const LIBRARY_ITEMS: LibraryItem[] = [
     iconBg: "var(--color-low-bg)",
     titleEn: "Dosham",
     titleTa: "தோஷம்",
-    scriptTa: "தோஷம்",
     descEn: "Sevvai, Kala Sarpa, Naga and more — how each forms, when it cancels, without fear.",
     descTa: "செவ்வாய், கால சர்ப்பம், நாக தோஷம் — எப்படி உருவாகும், எப்போது நீங்கும்.",
     openDetail: "dosham",
@@ -121,7 +118,6 @@ const LIBRARY_ITEMS: LibraryItem[] = [
     iconBg: "var(--color-high-bg)",
     titleEn: "Yogam",
     titleTa: "யோகம்",
-    scriptTa: "யோகம்",
     descEn: "The fortunate combinations — Raja, Gaja Kesari, Dhana — and who carries them.",
     descTa: "சுப யோகங்கள் — ராஜ யோகம், கஜ கேசரி, தன யோகம் — யாருக்கு உண்டு.",
     openDetail: "yogam",
@@ -133,7 +129,6 @@ const LIBRARY_ITEMS: LibraryItem[] = [
     iconBg: "var(--color-accent-muted)",
     titleEn: "Pariharam",
     titleTa: "பரிகாரம்",
-    scriptTa: "பரிகாரம்",
     descEn: "Remedies by planet and dosham — what to do, where, and on which day.",
     descTa: "கிரகம் மற்றும் தோஷத்திற்கான பரிகாரங்கள் — என்ன, எங்கே, எந்த நாளில்.",
     openDetail: "pariharam",
@@ -145,7 +140,6 @@ const LIBRARY_ITEMS: LibraryItem[] = [
     iconBg: "var(--color-accent-secondary-muted)",
     titleEn: "Temples",
     titleTa: "கோயில்கள்",
-    scriptTa: "கோயில்கள்",
     descEn: "Parihara sthalams by planet and star — Navagraha circuit, visiting guidance.",
     descTa: "கிரகம் மற்றும் நட்சத்திரத்திற்கான பரிகார ஸ்தலங்கள் — நவக்கிரக வழிபாடு.",
     openDetail: "temple",
@@ -157,7 +151,6 @@ const LIBRARY_ITEMS: LibraryItem[] = [
     iconBg: "var(--color-accent-secondary-muted)",
     titleEn: "Panchangam",
     titleTa: "பஞ்சாங்கம்",
-    scriptTa: "பஞ்சாங்கம்",
     descEn: "Tithi, nakshatram, yogam, karanam — the five limbs and the Tamil calendar, explained.",
     descTa: "திதி, நட்சத்திரம், யோகம், கரணம் — பஞ்ச அங்கங்களும் தமிழ் நாட்காட்டியும்.",
     nav: "calendar",
@@ -448,9 +441,6 @@ export function DashboardExploreTabNova({
                   <span style={{ fontFamily: "var(--font-display)", fontSize: "24px", fontWeight: 600, color: "var(--color-accent-strong)" }}>
                     {lang === "ta" ? nakshatraCard.nameTa : astroText(nakshatraCard.nameEn)}
                   </span>
-                  {lang !== "ta" && (
-                    <span style={{ fontFamily: "'Noto Sans Tamil', sans-serif", fontSize: "13px", color: "var(--color-muted)" }}>{nakshatraCard.nameTa}</span>
-                  )}
                   <span style={{ fontSize: "11.5px", color: "var(--color-faint)" }}>
                     {lang === "ta" ? "பாதம்" : "pada"} {personalChartSummary.janmaPada}
                   </span>
@@ -544,8 +534,7 @@ export function DashboardExploreTabNova({
                   </span>
                   <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
                     <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                      <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--color-text-strong)" }}>{item.titleEn}</span>
-                      <span style={{ fontFamily: "'Noto Sans Tamil', sans-serif", fontSize: "12px", color: "var(--color-muted)" }}>{item.scriptTa}</span>
+                      <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? item.titleTa : item.titleEn}</span>
                     </div>
                     <div style={{ fontSize: "12px", lineHeight: 1.5, color: "var(--color-muted)" }}>
                       {lang === "ta" ? item.descTa : item.descEn}

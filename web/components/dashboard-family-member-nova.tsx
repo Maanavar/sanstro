@@ -330,7 +330,7 @@ export function DashboardFamilyMemberNova({
       <div className="nova-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px" }}>
         {chart && (
           <NovaCard>
-            <NovaKicker>{lang === "ta" ? <>ஜாதகம் · <span style={{ fontFamily: "'Noto Sans Tamil', sans-serif" }}>ஜாதகம்</span></> : "Charts"}</NovaKicker>
+            <NovaKicker>{lang === "ta" ? "ஜாதகங்கள்" : "Charts"}</NovaKicker>
             <div style={{ display: "flex", gap: "14px", flexWrap: "wrap", justifyContent: "center" }}>
               <RasiChart chart={chart} label={t("label_d1", lang)} lang={lang} showExplain={false} />
               <NavamsaChart chart={chart} label={t("label_d9", lang)} lang={lang} showExplain={false} />

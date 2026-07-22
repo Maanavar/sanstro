@@ -301,8 +301,7 @@ export function DashboardExploreYogamNova({
                 : (lang === "ta" ? "உங்கள் ஜாதகத்தில் இல்லை" : "Not present in your chart")}
           </span>
         }
-        titleMain={displayName(yoga.name, "en")}
-        titleSecondary={displayName(yoga.name, "ta")}
+        titleMain={displayName(yoga.name, lang)}
         prose={astroText(whatText)}
       />
 

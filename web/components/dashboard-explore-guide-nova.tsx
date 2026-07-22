@@ -86,10 +86,7 @@ export function DashboardExploreGuideListNova({
                 style={{ ...cardStyle, cursor: "pointer", textAlign: "left", fontFamily: "inherit", width: "100%" }}
               >
                 <span style={{ fontFamily: "var(--font-display)", fontSize: "16px", fontWeight: 600, color: "var(--color-text-strong)" }}>
-                  {content.title.en}
-                </span>
-                <span style={{ fontFamily: "'Noto Sans Tamil', sans-serif", fontSize: "12.5px", color: "var(--color-muted)" }}>
-                  {content.title.ta}
+                  {text(content.title)}
                 </span>
               </button>
             );
@@ -157,8 +154,7 @@ export function DashboardExploreGuideNova({ lang, kind, initialSlug, onBack, onO
       {/* ===== Hero ===== */}
       <NovaDetailHero
         kicker={text({ en: kindLabel.kickerEn, ta: kindLabel.kickerTa })}
-        titleMain={content.title.en}
-        titleSecondary={content.title.ta}
+        titleMain={text(content.title)}
         prose={text(content.lead)}
       />
 

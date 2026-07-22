@@ -103,14 +103,12 @@ export function NovaDetailHero({
   kicker,
   badge,
   titleMain,
-  titleSecondary,
   prose,
   rightSlot,
 }: {
   kicker: React.ReactNode;
   badge?: React.ReactNode;
   titleMain: React.ReactNode;
-  titleSecondary?: React.ReactNode;
   prose: React.ReactNode;
   rightSlot?: React.ReactNode;
 }) {
@@ -127,9 +125,6 @@ export function NovaDetailHero({
           <span style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem,3vw,2.4rem)", fontWeight: 600, lineHeight: 1, color: "var(--color-text-strong)" }}>
             {titleMain}
           </span>
-          {titleSecondary && (
-            <span style={{ fontFamily: "'Noto Sans Tamil', sans-serif", fontSize: "18px", color: "var(--color-muted)" }}>{titleSecondary}</span>
-          )}
         </div>
         <p style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "14.5px", lineHeight: 1.65, color: "var(--color-text)", maxWidth: "640px" }}>
           {prose}

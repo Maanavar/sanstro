@@ -183,9 +183,6 @@ export function DashboardExploreNakshatramListNova({
               <div style={{ fontFamily: "var(--font-display)", fontSize: "17px", fontWeight: 600, color: "var(--color-text-strong)" }}>
                 {lang === "ta" ? n.name_ta : n.name_en}
               </div>
-              {lang !== "ta" && (
-                <span style={{ fontFamily: "'Noto Sans Tamil', sans-serif", fontSize: "12px", color: "var(--color-muted)" }}>{n.name_ta}</span>
-              )}
             </button>
           );
         })}
@@ -278,8 +275,7 @@ export function DashboardExploreNakshatramNova({
             {"✦"} {lang === "ta" ? `உங்கள் ஜென்ம நட்சத்திரம் · பாதம் ${ownPada ?? ""}` : `Your birth star · pada ${ownPada ?? ""}`}
           </span>
         )}
-        titleMain={astroText(card.nameEn)}
-        titleSecondary={card.nameTa}
+        titleMain={lang === "ta" ? card.nameTa : astroText(card.nameEn)}
         prose={lang === "ta" ? card.profile.ta : astroText(card.profile.en)}
         rightSlot={
           <div style={{ flex: "none", width: "150px", borderLeft: "1px solid var(--color-border)", paddingLeft: "22px", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>

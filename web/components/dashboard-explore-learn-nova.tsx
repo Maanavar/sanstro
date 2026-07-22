@@ -51,8 +51,7 @@ export function DashboardExploreLearnNova({ lang, initialSlug, onBack, onOpenAsk
 
       <NovaDetailHero
         kicker={text(article.eyebrow)}
-        titleMain={article.title.en}
-        titleSecondary={article.title.ta}
+        titleMain={text(article.title)}
         prose={text(article.lead)}
       />
 

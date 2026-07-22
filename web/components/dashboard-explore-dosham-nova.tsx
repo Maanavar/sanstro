@@ -350,8 +350,7 @@ export function DashboardExploreDoshamNova({
               : (lang === "ta" ? "உங்கள் ஜாதகத்தில் இல்லை" : "Not present in your chart")}
           </span>
         }
-        titleMain={displayName(dosham.name, "en")}
-        titleSecondary={displayName(dosham.name, "ta")}
+        titleMain={displayName(dosham.name, lang)}
         prose={astroText(whatText)}
       />
 
