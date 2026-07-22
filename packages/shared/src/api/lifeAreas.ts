@@ -6,6 +6,13 @@ export interface LifeAreaData {
   label: BiText;
   score: number;
   trend: string;
+  /** Forward-projected scores at +6 / +12 months (see full type in types/index.ts). */
+  score6mo?: number;
+  score12mo?: number;
+  /** Engine's life-stage gate (single source of truth). False when the area is
+   *  skipped for the native's current phase. Optional for older cached payloads
+   *  (treat absent as relevant). */
+  ageRelevant?: boolean;
   confidence: string;
   dashaActivation: boolean;
   transitSupport: number;

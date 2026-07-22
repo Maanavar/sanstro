@@ -32,7 +32,6 @@ import { NovaYogaDoshamPanel } from "./dashboard-life-areas-yogas-doshams-nova";
 import { NovaJadhagamReportPanel } from "./dashboard-life-areas-report-nova";
 import { NovaRemediesPanel } from "./dashboard-life-areas-remedies-nova";
 import { EventWindowsPanel } from "./dashboard-event-windows";
-import { isAreaRelevantForAge } from "./dashboard-life-areas-shared";
 import { GOAL_OPTIONS } from "./dashboard-plan-shared";
 import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 import { NovaGocharCard, NovaGuidanceCard } from "./dashboard-today-deepdive-extras-nova";
@@ -324,12 +323,9 @@ export function DashboardLifeAreasTabNova({
                   <span style={{ fontSize: "12px", color: "var(--color-faint)" }}>{tier.blurb}</span>
                 </div>
                 <div className="nova-grid-4">
-                  {tier.areas.map((area) => {
-                    const ageRelevant = currentAge === null || isAreaRelevantForAge(area.area, currentAge, maritalStatus);
-                    return (
-                      <LifeAreaCard key={area.area} area={area} lang={lang} ageRelevant={ageRelevant} onOpenDetail={() => setSelectedArea(area)} />
-                    );
-                  })}
+                  {tier.areas.map((area) => (
+                    <LifeAreaCard key={area.area} area={area} lang={lang} ageRelevant={area.ageRelevant !== false} onOpenDetail={() => setSelectedArea(area)} />
+                  ))}
                 </div>
               </div>
             ))}
@@ -356,7 +352,7 @@ export function DashboardLifeAreasTabNova({
 
             {selectedArea && (
               <DrawerPanel title={lang === "ta" ? selectedArea.label.ta : selectedArea.label.en} onClose={() => setSelectedArea(null)}>
-                <LifeAreaCard area={selectedArea} lang={lang} ageRelevant={currentAge === null || isAreaRelevantForAge(selectedArea.area, currentAge, maritalStatus)} />
+                <LifeAreaCard area={selectedArea} lang={lang} ageRelevant={selectedArea.ageRelevant !== false} />
               </DrawerPanel>
             )}
           </>

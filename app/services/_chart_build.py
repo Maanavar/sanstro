@@ -397,6 +397,13 @@ def _birth_profile_response(
         current_location_updated_at=_value(profile, "current_location_updated_at"),
         birth_time_source=_value(profile, "birth_time_source", "unknown"),
         birth_time_confidence_minutes=int(_value(profile, "birth_time_confidence_minutes", 0) or 0),
+        # Life-stage inputs — must survive into the persisted snapshot: the
+        # life-areas engine reads them for the age/phase gate (married ⇒ keep
+        # Relationships/harmony lifelong; student-under-18 ⇒ drop Career;
+        # retired ⇒ Career becomes "Life Purpose"). Dropping them here silently
+        # disabled all of that.
+        marital_status=_value(profile, "marital_status"),
+        employment_type=_value(profile, "employment_type"),
         calendar_input_type=_value(profile, "calendar_input_type", "gregorian"),
         calculate_now=bool(_value(profile, "calculate_now", True)),
         language_preference=_value(profile, "language_preference", "ta-en"),

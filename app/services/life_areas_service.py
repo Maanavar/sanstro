@@ -19,7 +19,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta, tzinfo
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -584,6 +584,109 @@ def _find_next_improvement_date(
         if projected >= target_score:
             return check_date
     return on_date + timedelta(days=90)
+
+
+# ── Forward-projected forecast horizons (6- and 12-month) ─────────────────────
+# The life-area table shows where each area is *heading*, not only where it sits
+# today. Instead of a cosmetic ± slope, we re-run the same engine at the future
+# date — real transits, the mahadasha/antardasha in force then, and the Sani /
+# Kandaka cycles — and blend it exactly as the current score is blended
+# (0.65 gate + 0.35 karaka chain, matching the loop below). The two future
+# transit snapshots are computed once per request and reused across all areas,
+# so the added cost is two ephemeris calls, not two-per-area. Astrologer review.
+_FORECAST_HORIZON_6MO_DAYS = 182
+_FORECAST_HORIZON_12MO_DAYS = 365
+
+
+@dataclass
+class _ForecastContext:
+    transit_bodies: dict
+    transit_planet_rasis: dict[str, int]
+    maha_lord: str
+    antar_lord: str
+    sani_type: str | None
+    sani_active: bool
+    kandaka_active: bool
+    chandrashtama: bool
+
+
+def _forecast_context(
+    *,
+    check_date: date,
+    tz: tzinfo,
+    birth_jd: float,
+    moon_longitude: float,
+    natal_moon_rasi: int,
+    natal_lagna_rasi: int,
+) -> _ForecastContext:
+    check_jd = utc_datetime_to_julian_day(
+        datetime.combine(check_date, time(12, 0), tzinfo=tz).astimezone(UTC)
+    )
+    transit = calculate_sidereal_planets(check_jd)
+    timeline = calculate_vimshottari_timeline(birth_jd, moon_longitude, check_jd)
+    moon = transit.bodies["MOON"]
+    saturn = transit.bodies["SATURN"]
+    chandrashtama_rasi = ((natal_moon_rasi - 1 + 7) % 12) + 1
+    saturn_house_from_moon = house_from_reference(natal_moon_rasi, saturn.rasi)
+    saturn_house_from_lagna = house_from_reference(natal_lagna_rasi, saturn.rasi)
+    sani_cycle = classify_sani_cycle(saturn_house_from_moon)
+    kandaka_cycle = classify_kandaka_cycle(saturn_house_from_lagna)
+    return _ForecastContext(
+        transit_bodies=transit.bodies,
+        transit_planet_rasis={g: b.rasi for g, b in transit.bodies.items()},
+        maha_lord=timeline.current_mahadasha.lord,
+        antar_lord=timeline.current_antardasha.lord,
+        sani_type=sani_cycle.type if sani_cycle.is_active else None,
+        sani_active=sani_cycle.is_active,
+        kandaka_active=kandaka_cycle.is_active,
+        chandrashtama=(moon.rasi == chandrashtama_rasi),
+    )
+
+
+def _projected_area_score(
+    area: str,
+    ctx: _ForecastContext,
+    *,
+    natal_moon_rasi: int,
+    natal_lagna_rasi: int,
+    natal_planet_scores: dict[str, int],
+    natal_planet_rasis: dict[str, int],
+    vargas: dict[str, dict[str, int]] | None,
+    bav: dict[str, dict[int, int]] | None,
+    sav: dict[int, int] | None,
+    native_age: int,
+) -> int:
+    gate, _, _ = _score_area(
+        area,
+        natal_moon_rasi,
+        ctx.transit_bodies,
+        ctx.maha_lord,
+        ctx.antar_lord,
+        ctx.sani_type,
+        ctx.sani_active,
+        ctx.kandaka_active,
+        ctx.chandrashtama,
+        lagna_rasi=natal_lagna_rasi,
+        natal_planet_scores=natal_planet_scores,
+        natal_planet_rasis=natal_planet_rasis,
+        vargas=vargas,
+        bav=bav,
+        sav=sav,
+        native_age=native_age,
+    )
+    chain = _karaka_chain_score(
+        area_key=_AREA_TO_CHAIN_KEY.get(area, area),
+        lagna_rasi=natal_lagna_rasi,
+        moon_rasi=natal_moon_rasi,
+        planet_scores=natal_planet_scores,
+        planet_rasis=natal_planet_rasis,
+        current_mahadasha_lord=ctx.maha_lord,
+        current_antardasha_lord=ctx.antar_lord,
+        transit_planet_rasis=ctx.transit_planet_rasis,
+        native_age=native_age,
+        sarvashtakavarga=sav,
+    )
+    return max(0, min(100, round(gate * 0.65 + chain["score"] * 0.35)))
 
 
 # ── Narrative templates per area × score band ─────────────────────────────────
@@ -1476,6 +1579,23 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
     bav_table = compute_bhinnashtakavarga(natal_rasi_map)
     sarvashtakavarga = compute_sarvashtakavarga(bav_table)
 
+    # Forward horizons: build the +6mo / +12mo engine context once (two extra
+    # ephemeris snapshots for the whole request), then re-score each area against
+    # them inside the loop below.
+    _date_6mo = on_date + timedelta(days=_FORECAST_HORIZON_6MO_DAYS)
+    _date_12mo = on_date + timedelta(days=_FORECAST_HORIZON_12MO_DAYS)
+    _fc_kwargs = dict(
+        tz=tz,
+        birth_jd=birth_jd,
+        moon_longitude=natal_moon.absolute_longitude,
+        natal_moon_rasi=natal_moon.rasi,
+        natal_lagna_rasi=natal_lagna_rasi,
+    )
+    forecast_ctx_6mo = _forecast_context(check_date=_date_6mo, **_fc_kwargs)
+    forecast_ctx_12mo = _forecast_context(check_date=_date_12mo, **_fc_kwargs)
+    age_6mo = _compute_age(_date_6mo, birth_profile.birth_date_local)
+    age_12mo = _compute_age(_date_12mo, birth_profile.birth_date_local)
+
     # Label overrides based on life stage
     _retired = (getattr(birth_profile, "employment_type", None) or "").lower() == "retired"
     area_label_override: dict[str, LifeAreaText] = {}
@@ -1687,6 +1807,13 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
         if area == "CAREER" and student_under_18:
             relevant_areas = set(relevant_areas)
             relevant_areas.discard("CAREER")
+        # Spouse harmony is lifelong: a married native keeps the Relationships
+        # area (rendered as "Married life harmony" below) at every phase — the
+        # ELDER phase set drops Relationships for the unmarried (no marriage
+        # prospects), which would otherwise hide a married elder couple's
+        # harmony reading. No-op for YOUNG_ADULT/MID where it is already in-set.
+        if area == "RELATIONSHIPS" and married:
+            relevant_areas = set(relevant_areas) | {"RELATIONSHIPS"}
         phase_skipped = area not in relevant_areas
         if phase_skipped:
             skip_text = _phase_skip_text(phase)
@@ -1828,11 +1955,45 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             )
             causal_chain_text = _t(chain.ta, chain.en)
 
+        # Forward horizons. A maraka-suppressed score is a claim we chose NOT to
+        # make, and a phase-skipped area makes no claim at all — projecting a
+        # number forward for either would fabricate one, so we mirror `score`.
+        _suppressed = maraka_guard is not None and maraka_guard.get("suppress_score_display")
+        if _suppressed or phase_skipped:
+            score_6mo = score
+            score_12mo = score
+        else:
+            score_6mo = _projected_area_score(
+                area, forecast_ctx_6mo,
+                natal_moon_rasi=natal_moon.rasi,
+                natal_lagna_rasi=natal_lagna_rasi,
+                natal_planet_scores=natal_planet_scores,
+                natal_planet_rasis=natal_planet_rasis,
+                vargas=getattr(chart_snapshot.data, "vargas", {}),
+                bav=bav_table,
+                sav=sarvashtakavarga,
+                native_age=age_6mo,
+            )
+            score_12mo = _projected_area_score(
+                area, forecast_ctx_12mo,
+                natal_moon_rasi=natal_moon.rasi,
+                natal_lagna_rasi=natal_lagna_rasi,
+                natal_planet_scores=natal_planet_scores,
+                natal_planet_rasis=natal_planet_rasis,
+                vargas=getattr(chart_snapshot.data, "vargas", {}),
+                bav=bav_table,
+                sav=sarvashtakavarga,
+                native_age=age_12mo,
+            )
+
         areas.append(LifeAreaData(
             area=area,
             label=label,
             score=score,
             trend=_trend(score, dasha_score),
+            score6mo=score_6mo,
+            score12mo=score_12mo,
+            ageRelevant=not phase_skipped,
             confidence=_area_confidence,
             confidenceReason=_area_conf_reason,
             causalChain=causal_chain_text,

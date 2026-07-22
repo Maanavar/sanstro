@@ -24,6 +24,19 @@ class LifeAreaData(BaseModel):
     label: LifeAreaText
     score: int
     trend: str
+    # Forward-projected scores: the SAME engine re-run at +6 and +12 months
+    # (real transits + the dasha/antardasha in force then), blended exactly as
+    # the current score is. Not a cosmetic slope. Flagged for astrologer review.
+    score_6mo: int = Field(default=0, alias="score6mo")
+    score_12mo: int = Field(default=0, alias="score12mo")
+    # Life-stage relevance, decided by the engine's age/phase gate (single
+    # source of truth — surfaces must NOT re-derive this from age on the client).
+    # False when the area is skipped for the native's current life phase
+    # (e.g. Career for a child, Relationships for an unmarried elder). The area
+    # is still returned — with a "becomes relevant later / was active earlier"
+    # reading — so a surface can choose to dim it or hide it, but never invents
+    # its own gate. Defaults True for backward-compatibility with cached payloads.
+    age_relevant: bool = Field(default=True, alias="ageRelevant")
     confidence: str = "MEDIUM"
     confidence_reason: LifeAreaText = Field(
         default_factory=lambda: LifeAreaText(ta="இரண்டு சமிக்ஞைகள் சீரமைக்கப்பட்டுள்ளன", en="Two signals aligned"),

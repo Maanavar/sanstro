@@ -44,6 +44,18 @@ export interface LifeAreaData {
   label: BiText;
   score: number;
   trend: "UP" | "DOWN" | "STABLE";
+  /** Engine re-run at +6 / +12 months (real transits + dasha in force then),
+   *  blended as the current score is. Optional for backward-compatibility with
+   *  older cached responses; falls back to the current score when absent. */
+  score6mo?: number;
+  score12mo?: number;
+  /** Life-stage relevance decided by the engine's age/phase gate — the single
+   *  source of truth. False when the area is skipped for the native's current
+   *  phase (e.g. Career for a child, Relationships for an unmarried elder). The
+   *  area is still returned with a "becomes relevant later" reading; a surface
+   *  may dim or hide it but must NOT re-derive the gate from age on the client.
+   *  Optional for backward-compatibility with cached responses (absent ⇒ shown). */
+  ageRelevant?: boolean;
   confidence: ConfidenceTier;
   confidenceReason: BiText;
   primaryHouseStrength: "STRONG" | "NEUTRAL" | "WEAK";
