@@ -301,10 +301,20 @@ export function MonthlyCalendarViewNova({
                   // isSelected fully overrode cellBg/cellBorder and isToday's badge was hidden
                   // whenever the day was also selected, so on the default view (today ==
                   // selectedDate on load) none of today/pournami/amavasai ever showed at all.
-                  const cellBg = tone?.bg ?? (isSelected ? "var(--color-accent-muted)" : hasFestival ? "var(--color-surface-soft)" : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)");
+                  //
+                  // Selected/today deliberately do NOT use gold (--color-accent /
+                  // -strong): gold is this grid's lunar/auspicious language
+                  // (pournami's fill+border, pradosham's dot) and reusing it for the
+                  // selection ring made "today" and "pournami" read as the same
+                  // highlighted cell at a glance — worst on load, when today ==
+                  // selectedDate wears pournami's exact gold. --color-text-strong is
+                  // achromatic chrome, so it can't collide with any lunar/festival hue
+                  // (gold, purple/amavasai, blue/sashti, coral/chathurthi, green/muhurtham),
+                  // present or future.
+                  const cellBg = tone?.bg ?? (isSelected ? "color-mix(in srgb, var(--color-text-strong) 10%, transparent)" : hasFestival ? "var(--color-surface-soft)" : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)");
                   const cellBorder = tone?.border ?? (isSelected ? "var(--color-border-strong)" : "var(--color-border)");
-                  const selectionRing = isSelected ? "0 0 0 2px var(--color-accent-strong)" : isToday ? "0 0 0 1.5px var(--color-accent)" : "none";
-                  const dateColor = isSelected ? "var(--color-accent-strong)" : isToday ? "var(--color-accent)" : "var(--color-text-strong)";
+                  const selectionRing = isSelected ? "0 0 0 2px var(--color-text-strong)" : isToday ? "0 0 0 1.5px color-mix(in srgb, var(--color-text-strong) 55%, transparent)" : "none";
+                  const dateColor = "var(--color-text-strong)";
 
                   return (
                     <button
@@ -355,7 +365,7 @@ export function MonthlyCalendarViewNova({
                           </span>
                         )}
                         {isToday && (
-                          <span style={{ alignSelf: "flex-start", borderRadius: "999px", background: "var(--color-accent-muted)", color: "var(--color-accent-strong)", padding: "2px 8px", fontSize: "9.5px", fontWeight: 700 }}>
+                          <span style={{ alignSelf: "flex-start", borderRadius: "999px", background: "color-mix(in srgb, var(--color-text-strong) 14%, transparent)", color: "var(--color-text-strong)", padding: "2px 8px", fontSize: "9.5px", fontWeight: 700 }}>
                             {lang === "ta" ? "இன்று" : "Today"}
                           </span>
                         )}
