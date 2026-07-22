@@ -4,17 +4,15 @@
  * tab-nova — add or remove tab ids HERE and every consumer type-fails
  * together.
  *
- * `"transits"` is the standalone Transit & Dashas tab (dashboard-plan-
- * transits-nova.tsx's `NovaTransitsView`, reinstated as its own top-level
- * destination). `"plan"` is the Goals tab (dashboard-plan-tab-nova.tsx) —
- * same id as before, relabeled "Goals" in the nav since Transits split out
- * of it.
+ * `"plan"` is the Goals tab (dashboard-plan-tab-nova.tsx). The former
+ * standalone `"transits"` (Transit & Dashas) destination was removed
+ * 2026-07-21 — its content now lives inside Family & Charts, which covers
+ * the same transit overview, dasha timeline, and Sani cycle.
  */
 export type Tab =
   | "onboarding"
   | "personal"
   | "tools"
-  | "transits"
   | "plan"
   | "life-areas"
   | "family"
@@ -31,7 +29,6 @@ const RESTORABLE_TABS: readonly Tab[] = [
   "personal",
   "tools",
   "plan",
-  "transits",
   "life-areas",
   "family",
   "calendar",

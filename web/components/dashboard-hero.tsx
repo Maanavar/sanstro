@@ -6,11 +6,8 @@ import { motion } from "framer-motion";
 import { Bell, Settings, LogOut, Check, X } from "lucide-react";
 import Image from "next/image";
 import { formatClockLabel } from "@/lib/format";
-import { t, nakshatraNumberFromName } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import { rasiNumberFromName } from "@/lib/zodiac-images";
-import { ZodiacBadge } from "@/components/zodiac-badge";
-import { NakshatraBadge } from "@/components/nakshatra-badge";
 import type {
   ChartSummaryData,
   FamilyVaultListItem,
@@ -23,24 +20,23 @@ type LabelKey = Parameters<typeof t>[0];
 
 const SHOW_QA_TAB = process.env.NODE_ENV !== "production";
 
-// IA model: seven first-class destinations in the top strip (Today ·
-// Calendar · Family & Charts · Transits & Dashas · Goals · Life Areas ·
-// More). "Goals" is nav id `"plan"` relabeled — Transits & Dasha split out
-// of it into its own `"transits"` destination. Tools/Explore/QA live behind
-// the "More" dropdown (`MORE_TAB_DEFS` below) rather than as direct pills.
-// Journal has no top-level entry — it's reached from within Today/Life
-// Areas/Transits' own "go to journal" links.
+// IA model: six first-class destinations in the top strip (Today · Calendar ·
+// Family & Charts · Goals · Life Areas · More). "Goals" is nav id `"plan"`
+// relabeled. The former standalone "Transits & Dashas" destination was removed
+// 2026-07-21 — Family & Charts now covers the same transit overview, dasha
+// timeline, and Sani cycle. Tools/Explore/QA live behind the "More" dropdown
+// (`MORE_TAB_DEFS` below) rather than as direct pills. Journal has no top-level
+// entry — it's reached from within Today/Life Areas' own "go to journal" links.
 //
 // labelEn is pluralized to agree with each tab showing several of the thing
-// (several transits/dashas, several life areas) — singular read as unfinished
-// copy. The Tamil keys (tab_transits, tab_life_area_nav) are untouched: Tamil
-// pluralization isn't a mechanical "add கள்" the way English's is, and this
-// wants a native-speaker call, not a guess — see docs/ASTROLOGER_REVIEW_QUEUE.md.
+// (several life areas) — singular read as unfinished copy. The Tamil key
+// (tab_life_area_nav) is untouched: Tamil pluralization isn't a mechanical
+// "add கள்" the way English's is, and this wants a native-speaker call, not a
+// guess — see docs/ASTROLOGER_REVIEW_QUEUE.md.
 const TAB_DEFS: Array<{ id: Tab; labelEn: string; labelTaKey?: LabelKey }> = [
   { id: "personal", labelEn: "Today", labelTaKey: "tab_today" },
   { id: "calendar", labelEn: "Calendar", labelTaKey: "tab_calendar" },
   { id: "family", labelEn: "Family & Charts", labelTaKey: "tab_family" },
-  { id: "transits", labelEn: "Transits & Dashas", labelTaKey: "tab_transits" },
   { id: "plan", labelEn: "Goals", labelTaKey: "tab_plan" },
   { id: "life-areas", labelEn: "Life Areas", labelTaKey: "tab_life_area_nav" },
   { id: "settings", labelEn: "Settings", labelTaKey: "tab_settings" },
@@ -349,29 +345,6 @@ export function DashboardHero(props: DashboardHeroProps) {
               </button>
             )}
 
-            <label htmlFor="dashboard-date" className="cd-visually-hidden">
-              {lang === "ta" ? "தேதி தேர்வு" : "Select date"}
-            </label>
-            <div className="cd-date-field">
-              <input
-                id="dashboard-date"
-                className="cd-date-input"
-                type="date"
-                value={selectedDate}
-                onChange={(e) => onDateChange(e.target.value)}
-                onClick={(e) => {
-                  // The input is an invisible overlay, so a click anywhere on
-                  // the pill should open the picker directly.
-                  try { e.currentTarget.showPicker?.(); } catch { /* non-gesture call — ignore */ }
-                }}
-                aria-label={lang === "ta" ? "தேதி தேர்வு" : "Select date"}
-              />
-              <span className="cd-date-display" aria-hidden="true">
-                {novaDateLabel}
-                <span className="cd-date-display__caret">▾</span>
-              </span>
-            </div>
-
             <div className="cd-popover-anchor">
               <button
                 type="button"
@@ -524,28 +497,15 @@ export function DashboardHero(props: DashboardHeroProps) {
                   {birthDisplayName}
                 </span>
               )}
-              {chartSummary && (() => {
-                // Resolve each identity segment to its artwork. moonRasi/lagnaRasi
-                // are rasi name strings; janmaNakshatra is a nakshatra name string.
-                // A null (unresolved name) simply renders the label without a badge.
-                // Badges flow inline so the strip keeps its native one-line ellipsis.
-                const moonN = rasiNumberFromName(chartSummary.moonRasi);
-                const nakN = nakshatraNumberFromName(chartSummary.janmaNakshatra);
-                const lagnaN = rasiNumberFromName(chartSummary.lagnaRasi);
-                const badge = { verticalAlign: "middle" as const, margin: "0 4px" };
-                return (
-                  <span className="cd-subbar__chart">
-                    {moonN != null && <ZodiacBadge rasi={moonN} size={16} style={{ ...badge, marginLeft: 0 }} />}
-                    {chartSummary.moonRasi}
-                    {" - "}
-                    {nakN != null && <NakshatraBadge nakshatra={nakN} size={16} style={badge} />}
-                    {chartSummary.janmaNakshatra}
-                    {" - "}
-                    {lagnaN != null && <ZodiacBadge rasi={lagnaN} size={16} style={badge} />}
-                    {chartSummary.lagnaRasi} {lang === "ta" ? "லக்னம்" : "Lagnam"}
-                  </span>
-                );
-              })()}
+              {chartSummary && (
+                <span className="cd-subbar__chart">
+                  {chartSummary.moonRasi}
+                  {" - "}
+                  {chartSummary.janmaNakshatra}
+                  {" - "}
+                  {chartSummary.lagnaRasi} {lang === "ta" ? "லக்னம்" : "Lagnam"}
+                </span>
+              )}
               {/* UXD-15 — birth-time uncertainty is collected but was never shown;
                   lagna & houses depend on it, so flag low-confidence/missing time. */}
               {chartSummary && (birthTimeLocal == null || (birthTimeConfidenceMinutes != null && birthTimeConfidenceMinutes >= 60)) && (
@@ -601,6 +561,29 @@ export function DashboardHero(props: DashboardHeroProps) {
                   <span className="cd-subbar__vault-caret" aria-hidden="true">▾</span>
                 </button>
               )}
+
+              <label htmlFor="dashboard-date" className="cd-visually-hidden">
+                {lang === "ta" ? "தேதி தேர்வு" : "Select date"}
+              </label>
+              <div className="cd-date-field">
+                <input
+                  id="dashboard-date"
+                  className="cd-date-input"
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => onDateChange(e.target.value)}
+                  onClick={(e) => {
+                    // The input is an invisible overlay, so a click anywhere on
+                    // the pill should open the picker directly.
+                    try { e.currentTarget.showPicker?.(); } catch { /* non-gesture call — ignore */ }
+                  }}
+                  aria-label={lang === "ta" ? "தேதி தேர்வு" : "Select date"}
+                />
+                <span className="cd-date-display" aria-hidden="true">
+                  {novaDateLabel}
+                  <span className="cd-date-display__caret">▾</span>
+                </span>
+              </div>
             </div>
           </div>
         </div>

@@ -4,9 +4,13 @@ import { sanitizeRestoredTab, sanitizeUrlTab } from "./dashboard-tabs";
 
 describe("sanitizeRestoredTab (DASH-11)", () => {
   it("restores tabs the hero nav actually offers", () => {
-    for (const tab of ["personal", "tools", "plan", "transits", "life-areas", "family", "calendar", "journal", "explore"]) {
+    for (const tab of ["personal", "tools", "plan", "life-areas", "family", "calendar", "journal", "explore"]) {
       expect(sanitizeRestoredTab(tab, { qaEnabled: false })).toEqual({ tab });
     }
+  });
+
+  it("no longer restores the removed transits tab (folded into Family & Charts)", () => {
+    expect(sanitizeRestoredTab("transits", { qaEnabled: false })).toBeNull();
   });
 
   it("gates qa on the dev flag", () => {
@@ -28,9 +32,13 @@ describe("sanitizeRestoredTab (DASH-11)", () => {
 
 describe("sanitizeUrlTab", () => {
   it("addresses every tab the hero nav offers", () => {
-    for (const tab of ["personal", "tools", "plan", "transits", "life-areas", "family", "calendar", "journal", "explore"]) {
+    for (const tab of ["personal", "tools", "plan", "life-areas", "family", "calendar", "journal", "explore"]) {
       expect(sanitizeUrlTab(tab, { qaEnabled: false })).toEqual({ tab });
     }
+  });
+
+  it("degrades a stale ?tab=transits deep link to the fallback", () => {
+    expect(sanitizeUrlTab("transits", { qaEnabled: false })).toBeNull();
   });
 
   it("addresses settings, which localStorage restore deliberately refuses", () => {

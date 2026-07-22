@@ -303,7 +303,7 @@ export function DashboardPlanTabNova({
           onClick={onGoToTransits}
           style={{ display: "flex", alignItems: "center", gap: "7px", background: "var(--color-surface)", color: "var(--color-muted)", border: "1px solid var(--color-border)", borderRadius: "11px", padding: "10px 16px", fontSize: "12.5px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
         >
-          🪐 {t("tab_transits", lang)} →
+          🪐 {t("tab_family", lang)} →
         </button>
       </div>
 
