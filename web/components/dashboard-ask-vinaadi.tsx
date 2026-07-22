@@ -23,6 +23,9 @@ interface DashboardAskVinaadiProps {
   goalTrack?: GoalTrack;
   activeLifeMode?: LifeMode;
   onUpgrade?: () => void;
+  /** Drop the standalone top margin when placed inline in a spaced column
+      (e.g. the Hybrid Family forecast rail), so it aligns with its siblings. */
+  embedded?: boolean;
 }
 
 const SUGGESTED_QUESTIONS: Record<NonNullable<GoalTrack> | "DEFAULT", { ta: string; en: string }[]> = {
@@ -99,7 +102,7 @@ function AnswerCard({ entry, lang }: { entry: { question: string; data: AskVinaa
   );
 }
 
-export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode = "BALANCED", onUpgrade }: DashboardAskVinaadiProps) {
+export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode = "BALANCED", onUpgrade, embedded = false }: DashboardAskVinaadiProps) {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -173,7 +176,7 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
   if (!chartId) return null;
 
   return (
-    <div style={{ borderRadius: "16px", background: "var(--color-surface, var(--chart-cell-default))", border: "1px solid var(--color-border, var(--panel-tan-light))", padding: "20px", marginTop: "24px" }}>
+    <div style={{ borderRadius: "16px", background: "var(--color-surface, var(--chart-cell-default))", border: "1px solid var(--color-border, var(--panel-tan-light))", padding: "20px", marginTop: embedded ? 0 : "24px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
         <Sparkles size={20} color="var(--accent)" strokeWidth={1.5} aria-hidden="true" />
         <div>

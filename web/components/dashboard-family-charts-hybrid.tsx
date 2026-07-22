@@ -58,7 +58,6 @@ import { downloadJadhagamPdf } from "./dashboard-personal-shared";
 import {
   HyKicker,
   HySection,
-  HySectionRail,
   HyPlanetOrbs,
   HyBhavaTable,
   HyBhuktiTimeline,
@@ -71,7 +70,6 @@ import {
   HyTransitOverview,
   HyDetailedForecast,
   HyDailyAffirmation,
-  type RailItem,
 } from "./dashboard-hybrid-parts";
 import { DashboardAskVinaadi } from "./dashboard-ask-vinaadi";
 import { RASI_TRAITS } from "@/lib/rasi-traits";
@@ -531,31 +529,6 @@ export type DashboardFamilyChartsHybridProps = {
   onGoToTools?: () => void;
 };
 
-const RAIL_ITEMS_EN: RailItem[] = [
-  { id: "hy-today", label: "Family Today" },
-  { id: "hy-members", label: "Members" },
-  { id: "hy-overview", label: "Overview" },
-  { id: "hy-charts", label: "Charts & Houses" },
-  { id: "hy-planets", label: "Planets" },
-  { id: "hy-dashas", label: "Dashas" },
-  { id: "hy-insights", label: "Yogas & remedies" },
-  { id: "hy-forecast", label: "Forecast" },
-  { id: "hy-explain", label: "Explanation" },
-  { id: "hy-connections", label: "Connections" },
-];
-const RAIL_ITEMS_TA: RailItem[] = [
-  { id: "hy-today", label: "குடும்பம்" },
-  { id: "hy-members", label: "உறுப்பினர்கள்" },
-  { id: "hy-overview", label: "மேலோட்டம்" },
-  { id: "hy-charts", label: "ஜாதகம் & வீடுகள்" },
-  { id: "hy-planets", label: "கிரகங்கள்" },
-  { id: "hy-dashas", label: "தசைகள்" },
-  { id: "hy-insights", label: "யோகம் & பரிகாரம்" },
-  { id: "hy-forecast", label: "முன்னறிவிப்பு" },
-  { id: "hy-explain", label: "விளக்கம்" },
-  { id: "hy-connections", label: "உறவுகள்" },
-];
-
 export function DashboardFamilyChartsHybrid({
   lang,
   selectedDate,
@@ -585,23 +558,17 @@ export function DashboardFamilyChartsHybrid({
   const [relationFilter, setRelationFilter] = useState<RelationFilter>("all");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [remediesNonce, setRemediesNonce] = useState(0);
-  const [activeRail, setActiveRail] = useState<string>("hy-today");
   const [charaDasha, setCharaDasha] = useState<CharaDashaData | null>(null);
   const [solarReturn, setSolarReturn] = useState<SolarReturnData | null>(null);
   const [lifeAreas, setLifeAreas] = useState<LifeAreasResponseData | null>(null);
 
   const astroText = (v: string) => (lang === "en" ? tamilizeAstroEnglish(v) : v);
-  const railItems = lang === "ta" ? RAIL_ITEMS_TA : RAIL_ITEMS_EN;
 
   const harmonyRef = useRef<HTMLDivElement | null>(null);
-  const scrollLock = useRef(false);
 
   function jumpTo(id: string) {
-    setActiveRail(id);
-    scrollLock.current = true;
     const el = document.getElementById(id);
     if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 72, behavior: "smooth" });
-    window.setTimeout(() => { scrollLock.current = false; }, 600);
   }
 
   useEffect(() => {
@@ -723,22 +690,6 @@ export function DashboardFamilyChartsHybrid({
     return () => controller.abort();
   }, [readingChartId, selectedDate]);
 
-  // Section-rail scroll spy.
-  useEffect(() => {
-    const ids = railItems.map((r) => r.id);
-    const obs = new IntersectionObserver(
-      (entries) => {
-        if (scrollLock.current) return;
-        const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible[0]?.target.id) setActiveRail(visible[0].target.id);
-      },
-      { rootMargin: "-72px 0px -60% 0px", threshold: 0 },
-    );
-    ids.forEach((id) => { const el = document.getElementById(id); if (el) obs.observe(el); });
-    return () => obs.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [railItems.length, members.length, selectedMemberId]);
-
   function selectMember(id: string) {
     setSelectedMemberId(id);
     jumpTo("hy-overview");
@@ -775,12 +726,9 @@ export function DashboardFamilyChartsHybrid({
   const nakshatraCard = reading?.nakshatraCard ?? null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
-      <HySectionRail items={railItems} activeId={activeRail} onJump={jumpTo} trailing={dateLine} />
+    <div style={{ display: "flex", flexDirection: "column", gap: "44px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "44px", paddingTop: "22px" }}>
-
-        {/* ═══ 1 · FAMILY TODAY ═══ */}
+      {/* ═══ 1 · FAMILY TODAY ═══ */}
         <section id="hy-today" style={{ display: "flex", flexDirection: "column", gap: "18px", scrollMarginTop: "72px" }}>
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
             <div>
@@ -979,7 +927,11 @@ export function DashboardFamilyChartsHybrid({
                 )}
                 <HyTodayFacts
                   lang={lang}
-                  moonRasiNumber={readingChart?.planets.find((p) => p.graha === "MOON")?.rasi}
+                  memberName={readingName}
+                  memberNakshatraName={readingSummary?.janmaNakshatra}
+                  weekdayLord={panchangam?.vara.lord}
+                  weekdayKey={panchangam?.vara.weekday}
+                  dayNakshatraName={panchangam?.nakshatra.name}
                   goodWindow={dailyGuidance?.bestWindows[0] ?? panchangam?.kalam.nallaNeram?.[0] ?? null}
                   goodWindowLabel={dailyGuidance?.bestWindows[0]
                     ? (lang === "ta" ? "சிறந்த தனிப்பட்ட நேரம் " : "Best personal window ")
@@ -991,64 +943,6 @@ export function DashboardFamilyChartsHybrid({
                 </button>
               </div>
             </div>
-
-            {/* Highlight cards — two CHART-level cards (this chart's actual
-                speciality, in prose, from the engine's summary) + two TODAY
-                cards, each tagged so the reader knows chart-permanent vs. today.
-                Birth-star trait chips are not repeated here — they live in the
-                profile card above. All real data. */}
-            {(() => {
-              const chartTag = lang === "ta" ? "ஜாதகம்" : "chart";
-              const todayTag = lang === "ta" ? "இன்று" : "today";
-              const summary = reading?.explanation?.summary;
-              // Birth-time conditions (Dagda, Cazimi, Sankranti…) are folded into
-              // the engine's positives/cautions as "Birth-time condition — …" lines,
-              // but this view already renders them as their own cards further down
-              // (§4 Charts & houses). Drop them here so they aren't said twice.
-              const notBirthCondition = (it: { en: string; ta: string }) =>
-                !it.en.startsWith("Birth-time condition —") && !it.ta.startsWith("பிறப்பு நேர நிலை —");
-              const positives = (summary?.positives ?? []).filter(notBirthCondition);
-              const cautions = (summary?.cautions ?? []).filter(notBirthCondition);
-              const oppText = dailyGuidance?.reasons.dashaSupport
-                ? (lang === "ta" ? dailyGuidance.reasons.dashaSupport.ta : dailyGuidance.reasons.dashaSupport.en) : "";
-              const guidanceText = dailyGuidance?.actionSuggestion
-                ? (lang === "ta" ? dailyGuidance.actionSuggestion.ta : dailyGuidance.actionSuggestion.en) : "";
-              if (positives.length === 0 && cautions.length === 0 && !oppText && !guidanceText) return null;
-              const proseList = (items: { en: string; ta: string }[], dot: string) => (
-                <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
-                  {items.slice(0, 5).map((it, i) => (
-                    <div key={i} style={{ display: "flex", gap: "8px", fontFamily: "var(--font-body)", fontSize: "12.5px", lineHeight: 1.5, color: "var(--color-muted)" }}>
-                      <span style={{ color: dot, flexShrink: 0, marginTop: "1px" }}>•</span>
-                      <span>{lang === "ta" ? it.ta : astroText(it.en)}</span>
-                    </div>
-                  ))}
-                </div>
-              );
-              return (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "12px" }}>
-                  {positives.length > 0 && (
-                    <HyHighlightCard icon="✓" title={lang === "ta" ? "இந்த ஜாதகத்தின் பலம்" : "Chart strengths"} timeframe={chartTag} accent="var(--color-high)" tintBg="var(--color-high-bg)" tintBorder="var(--color-high-border)">
-                      {proseList(positives, "var(--color-high)")}
-                    </HyHighlightCard>
-                  )}
-                  {cautions.length > 0 && (
-                    <HyHighlightCard icon="!" title={lang === "ta" ? "கவனத்தில் கொள்ள" : "Watch-outs"} timeframe={chartTag} accent="var(--color-low)" tintBg="var(--color-low-bg)" tintBorder="var(--color-low-border)">
-                      {proseList(cautions, "var(--color-low)")}
-                    </HyHighlightCard>
-                  )}
-                  {oppText && (
-                    <HyHighlightCard icon="◈" title={lang === "ta" ? "வாய்ப்புகள்" : "Opportunities"} timeframe={todayTag} accent="var(--color-accent-secondary)">
-                      <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-muted)" }}>{oppText}</p>
-                    </HyHighlightCard>
-                  )}
-                  {guidanceText && (
-                    <HyHighlightCard icon="✻" title={lang === "ta" ? "வழிகாட்டுதல்" : "Guidance"} timeframe={todayTag} accent="var(--color-mid)">
-                      <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-muted)" }}>{guidanceText}</p>
-                    </HyHighlightCard>
-                  )}
-                </div>
-              );
-            })()}
           </section>
         )}
 
@@ -1060,11 +954,21 @@ export function DashboardFamilyChartsHybrid({
             sub={lang === "ta" ? "D1, D9 & பாவ மேலோட்டம்" : "D1, D9 & bhava overview · Lahiri · whole-sign houses"}
           >
             <div className="hy-grid-charts">
-              <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "16px", padding: "18px 20px", display: "flex", justifyContent: "center" }}>
+              {/* Column layout + justify-center: the bhava table (12 rows) is the
+                  tallest cell and stretches these two square-chart cards to match;
+                  centring the chart vertically and adding a caption fills the
+                  formerly-empty band below each chart usefully. */}
+              <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "16px", padding: "18px 20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px" }}>
                 <RasiChart chart={readingChart} lang={lang} label={lang === "ta" ? "D1 — ராசி" : "D1 — Rasi"} showExplain={false} />
+                <p style={{ margin: 0, fontSize: "11px", lineHeight: 1.5, color: "var(--color-faint)", textAlign: "center", maxWidth: "34ch" }}>
+                  {lang === "ta" ? "ராசி (D1) — பிறப்பின் போது கிரகங்கள் அமர்ந்த ராசிகளும் வீடுகளும். வாழ்க்கையின் முதன்மைப் படம்." : "Rasi (D1) — the signs and houses the planets occupied at birth. Your primary life chart."}
+                </p>
               </div>
-              <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "16px", padding: "18px 20px", display: "flex", justifyContent: "center" }}>
+              <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "16px", padding: "18px 20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px" }}>
                 <NavamsaChart chart={readingChart} lang={lang} label={lang === "ta" ? "D9 — நவாம்சம்" : "D9 — Navamsa"} showExplain={false} />
+                <p style={{ margin: 0, fontSize: "11px", lineHeight: 1.5, color: "var(--color-faint)", textAlign: "center", maxWidth: "34ch" }}>
+                  {lang === "ta" ? "நவாம்சம் (D9) — திருமணம், தர்மம், கிரகங்களின் உள் வலிமை. D1-ஐ உறுதி செய்யும் நுட்பப் படம்." : "Navamsa (D9) — marriage, dharma and the inner strength of each planet. It confirms and refines the D1."}
+                </p>
               </div>
               <HyBhavaTable lang={lang} chart={readingChart} explanationPlanets={reading?.explanation?.planets} />
             </div>
@@ -1124,6 +1028,66 @@ export function DashboardFamilyChartsHybrid({
                 })}
               </div>
             )}
+
+            {/* Chart-level highlight cards — moved here (2026-07-22) so they sit
+                directly BELOW the birth-time condition cards (Dagda etc., above)
+                and ABOVE Planet positions, grouping every chart-level reading in
+                one place instead of splitting them into the overview. Two
+                CHART-level cards (this chart's speciality, from the engine
+                summary) + two TODAY cards (opportunities / guidance), each tagged
+                chart-permanent vs. today. */}
+            {(() => {
+              const chartTag = lang === "ta" ? "ஜாதகம்" : "chart";
+              const todayTag = lang === "ta" ? "இன்று" : "today";
+              const summary = reading?.explanation?.summary;
+              // Birth-time conditions (Dagda, Cazimi, Sankranti…) are folded into
+              // the engine's positives/cautions as "Birth-time condition — …" lines,
+              // but they already render as their own cards just above. Drop them
+              // from these prose lists so they aren't said twice.
+              const notBirthCondition = (it: { en: string; ta: string }) =>
+                !it.en.startsWith("Birth-time condition —") && !it.ta.startsWith("பிறப்பு நேர நிலை —");
+              const positives = (summary?.positives ?? []).filter(notBirthCondition);
+              const cautions = (summary?.cautions ?? []).filter(notBirthCondition);
+              const oppText = dailyGuidance?.reasons.dashaSupport
+                ? (lang === "ta" ? dailyGuidance.reasons.dashaSupport.ta : dailyGuidance.reasons.dashaSupport.en) : "";
+              const guidanceText = dailyGuidance?.actionSuggestion
+                ? (lang === "ta" ? dailyGuidance.actionSuggestion.ta : dailyGuidance.actionSuggestion.en) : "";
+              if (positives.length === 0 && cautions.length === 0 && !oppText && !guidanceText) return null;
+              const proseList = (items: { en: string; ta: string }[], dot: string) => (
+                <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+                  {items.slice(0, 5).map((it, i) => (
+                    <div key={i} style={{ display: "flex", gap: "8px", fontFamily: "var(--font-body)", fontSize: "12.5px", lineHeight: 1.5, color: "var(--color-muted)" }}>
+                      <span style={{ color: dot, flexShrink: 0, marginTop: "1px" }}>•</span>
+                      <span>{lang === "ta" ? it.ta : astroText(it.en)}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+              return (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "12px" }}>
+                  {positives.length > 0 && (
+                    <HyHighlightCard icon="✓" title={lang === "ta" ? "இந்த ஜாதகத்தின் பலம்" : "Chart strengths"} timeframe={chartTag} accent="var(--color-high)" tintBg="var(--color-high-bg)" tintBorder="var(--color-high-border)">
+                      {proseList(positives, "var(--color-high)")}
+                    </HyHighlightCard>
+                  )}
+                  {cautions.length > 0 && (
+                    <HyHighlightCard icon="!" title={lang === "ta" ? "கவனத்தில் கொள்ள" : "Watch-outs"} timeframe={chartTag} accent="var(--color-low)" tintBg="var(--color-low-bg)" tintBorder="var(--color-low-border)">
+                      {proseList(cautions, "var(--color-low)")}
+                    </HyHighlightCard>
+                  )}
+                  {oppText && (
+                    <HyHighlightCard icon="◈" title={lang === "ta" ? "வாய்ப்புகள்" : "Opportunities"} timeframe={todayTag} accent="var(--color-accent-secondary)">
+                      <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-muted)" }}>{oppText}</p>
+                    </HyHighlightCard>
+                  )}
+                  {guidanceText && (
+                    <HyHighlightCard icon="✻" title={lang === "ta" ? "வழிகாட்டுதல்" : "Guidance"} timeframe={todayTag} accent="var(--color-mid)">
+                      <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-muted)" }}>{guidanceText}</p>
+                    </HyHighlightCard>
+                  )}
+                </div>
+              );
+            })()}
           </HySection>
         )}
 
@@ -1208,6 +1172,7 @@ export function DashboardFamilyChartsHybrid({
                 dashaAntar={reading?.dashaAntar ?? []}
                 dashaMaha={reading?.dashaMaha ?? null}
                 planets={reading?.explanation?.planets}
+                lagnaRasi={readingChart?.lagna.rasi}
                 today={selectedDate}
                 onViewAll={onGoToLifeAreas}
               />
@@ -1215,7 +1180,7 @@ export function DashboardFamilyChartsHybrid({
             {/* Right (1fr): transit overview, then the (real) Ask Vinaadi
                 assistant scoped to the reading chart, then a daily affirmation. */}
             <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: 0 }}>
-              <HyTransitOverview lang={lang} transit={reading?.transit ?? null} />
+              <HyTransitOverview lang={lang} transit={reading?.transit ?? null} memberName={readingName} />
               {reading?.sani && <HySaniCard lang={lang} sani={reading.sani} />}
               {readingChartId && <DashboardAskVinaadi lang={lang} chartId={readingChartId} embedded />}
               <HyDailyAffirmation lang={lang} selectedDate={selectedDate} dayScore={dailyGuidance?.score} seed={readingChartId ?? readingName} />
@@ -1227,7 +1192,6 @@ export function DashboardFamilyChartsHybrid({
         {readingChart && (
           <HySection
             id="hy-explain"
-            className="hy-cosmic-explain"
             title={lang === "ta" ? "ஜாதக விளக்கம்" : "Chart explanation"}
             sub={lang === "ta" ? "ஒரு ஜோதிடர் எப்படிப் படிக்கிறார் — தலைப்பு வாரியாக" : "how a jyotishi reads this chart, topic by topic"}
           >
@@ -1344,7 +1308,6 @@ export function DashboardFamilyChartsHybrid({
             {lang === "ta" ? "பரிகாரம் மனதை அமைதிப்படுத்தி, சரியான நேரத்துடன் உங்கள் முயற்சியை இணைக்கிறது — ஒரு குறிப்பிட்ட விளைவை உறுதி செய்ய முடியாது." : "Pariharam steadies the mind and aligns your effort with the right time — it cannot guarantee a specific outcome. None of this is a substitute for medical, legal, or financial advice."}
           </div>
         </section>
-      </div>
     </div>
   );
 }

@@ -74,15 +74,18 @@
      bottom-right + a whisper of hero gold over the navy base. `fixed` anchors
      the glows to the viewport so they hold their corners as the page scrolls
      instead of sliding down a tall shell. Overrides the shared
-     `.cd-shell { background: var(--color-bg) }` rule via higher specificity. ── */
-  background:
+     `.cd-shell { background: var(--color-bg) }` rule via higher specificity.
+     Stored as a var (not just inlined here) so .cd-topbar can paint the same
+     viewport-pinned glow under its own translucent tint instead of a flat
+     color that hides it — see the .cd-topbar rule further down. ── */
+  --nova-ambient-glow:
     radial-gradient(circle at 15% 10%,
       rgba(118, 82, 255, 0.16) 0%, rgba(118, 82, 255, 0.08) 18%, transparent 45%),
     radial-gradient(circle at 90% 95%,
       rgba(70, 120, 255, 0.12) 0%, rgba(70, 120, 255, 0.05) 20%, transparent 45%),
     radial-gradient(circle at 55% 15%,
-      rgba(214, 168, 95, 0.05) 0%, transparent 40%),
-    #04050E;
+      rgba(214, 168, 95, 0.05) 0%, transparent 40%);
+  background: var(--nova-ambient-glow), #04050E;
   background-attachment: fixed;
 
   /* ── Backgrounds — Apple-ref navy ramp (designer palette 2026-07-19).
@@ -451,15 +454,17 @@
      *darker* than the base (a light wash on light is invisible) and held to
      roughly half the dark alphas, since tinting cream shows far more readily
      than lifting navy. `fixed` anchors them to the viewport exactly as in
-     dark. ── */
-  background:
+     dark. Stored as a var for the same reason as the dark block: .cd-topbar
+     reuses it so the header shows the same glow instead of hiding it under
+     a flat tint. ── */
+  --nova-ambient-glow:
     radial-gradient(circle at 15% 10%,
       rgba(124, 90, 166, 0.10) 0%, rgba(124, 90, 166, 0.05) 18%, transparent 45%),
     radial-gradient(circle at 90% 95%,
       rgba(60, 110, 143, 0.09) 0%, rgba(60, 110, 143, 0.04) 20%, transparent 45%),
     radial-gradient(circle at 55% 15%,
-      rgba(201, 151, 28, 0.07) 0%, transparent 40%),
-    var(--surface-0);
+      rgba(201, 151, 28, 0.07) 0%, transparent 40%);
+  background: var(--nova-ambient-glow), var(--surface-0);
   background-attachment: fixed;
 
   /* ── Backgrounds — reuse Classic's light surface scale directly ── */
@@ -952,9 +957,12 @@
    fills the pill (keeps the OS picker + a11y), while cd-date-display
    renders the "05 · Jul · 2026 ▾" face underneath it. The input is
    positioned, the span is static, so the input paints on top and takes
-   the clicks (showPicker() opens the calendar — see dashboard-hero.tsx). */
+   the clicks (showPicker() opens the calendar — see dashboard-hero.tsx).
+   Lives in the cd-subbar__right row (second header row), sized to match
+   its row-mates (cd-subbar__vault) rather than the topbar's taller row. */
 [data-ui="nova"] .cd-date-field {
   position: relative;
+  flex-shrink: 0;
 }
 
 [data-ui="nova"] .cd-date-input {
@@ -992,13 +1000,13 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 36px;
-  padding: 6px 14px;
+  min-height: 30px;
+  padding: 4px 12px;
   border-radius: var(--radius-pill, 999px);
   border: 1px solid var(--color-border);
   background: var(--color-surface-soft);
   color: var(--color-text-strong);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -1349,22 +1357,51 @@
   border-color: var(--color-border);
 }
 
+/* Sticky header (.cd-topbar, dashboard.css) — same root cause as the footer
+   fix below, but the header can't just go transparent: it's sticky, so page
+   content scrolls underneath it and needs to stay unreadable through the
+   blur, which means it needs its own opaque-ish layer. The bug was pairing
+   that opaque layer with the WRONG paint: a flat 95%-opacity mix of
+   --color-bg alone, which is only the gradient's trailing solid stop, not
+   the gradient itself — so the header rendered as a flat near-black bar
+   sitting on top of a visibly purple/gold body instead of showing any glow
+   at all. Fix: paint --nova-ambient-glow (the same three viewport-pinned
+   radial gradients .cd-shell uses) under a translucent version of the same
+   base tint, also `background-attachment: fixed` — so the header shows the
+   literal same glow pattern as whatever's beneath it at that scroll
+   position, just frosted by blur(14px), instead of a different flat color. */
+[data-ui="nova"] .cd-shell .cd-topbar {
+  background: var(--nova-ambient-glow), color-mix(in srgb, var(--color-bg) 80%, transparent);
+  background-attachment: fixed;
+}
+
 /* Dashboard shell footer (dashboard-workspace.tsx) — same gap-fix class
    as above: globals.css's .cd-footer* rules hardcode literal Classic
    cream/tan hex, not var()s, so they aren't reached by the --color-*
    redefinitions. Border/background were themselves hardcoded (not
-   theme-aware) until Phase 1 — a black 22%-opacity overlay reads as a
-   recessed dark panel on Nova-dark's plum base but would look like a
-   dirty smudge on Nova-light's cream base, so these two are now split
-   per-theme like the rest of the color block above. */
+   theme-aware) until Phase 1.
+   2026-07-22, take 2: Phase 1 gave the footer an opaque flat fill (first a
+   hardcoded black/brown, then --color-surface-3) — but .cd-shell's ambient
+   background is a *moving* multi-stop radial gradient (three glow corners
+   over the base hex), not a flat color, and .cd-main-content in between
+   carries no background of its own. So the "body" region only looks
+   consistent because it has NO opaque layer sitting on it — every card
+   floats directly on .cd-shell's gradient. Any flat swatch dropped in for
+   the footer, however well hue-matched, was always going to read as a
+   distinct block next to a *gradient*, not a solid. Fix: let the footer
+   stay transparent so .cd-shell's fixed gradient paints straight through
+   it, same as it does everywhere else on the page — zero seam, since it's
+   literally the same pixels. The hairline top border (already theme-aware)
+   stays as the only separator, matching how footers usually read against
+   a page rather than as a boxed-off panel. */
 [data-ui="nova"]:not([data-theme="light"]) .cd-shell .cd-footer {
   border-top-color: rgba(212, 175, 95, 0.13);
-  background: rgba(0, 0, 0, 0.22);
+  background: transparent;
 }
 [data-ui="nova"]:not([data-theme="light"]) .cd-shell .cd-footer__divider { background: rgba(212, 175, 95, 0.13); }
 [data-ui="nova"][data-theme="light"] .cd-shell .cd-footer {
   border-top-color: color-mix(in srgb, var(--color-accent) 25%, transparent);
-  background: rgba(28, 16, 8, 0.035);
+  background: transparent;
 }
 [data-ui="nova"][data-theme="light"] .cd-shell .cd-footer__divider { background: color-mix(in srgb, var(--color-accent) 25%, transparent); }
 [data-ui="nova"] .cd-shell .cd-footer__wordmark {
@@ -1968,6 +2005,76 @@
   font-size: 0.75rem;
   line-height: 1.4;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   FAMILY & CHARTS — "Hybrid v2" graphical redesign.
+   Imported from the Claude Design mockup (Family & Charts Hybrid v2).
+   Colour comes entirely from the existing token set — these are only
+   the layout grids + the graphical-motion keyframes the mockup adds.
+   Every animation is stilled by the global reduced-motion guard at
+   the very end of this file (scoped to [data-ui="nova"]).
+   ═══════════════════════════════════════════════════════════ */
+
+/* Hero / member-overview split: wide left column, aside on the right. */
+.hy-grid-hero { display: grid; grid-template-columns: 1.9fr 1fr; gap: 16px; align-items: stretch; }
+/* Charts & houses: D1 · D9 · bhava overview. */
+.hy-grid-charts { display: grid; grid-template-columns: 1fr 1fr 1.25fr; gap: 16px; align-items: stretch; }
+/* Predictions/forecast split (life-area table · transit overview). */
+.hy-grid-forecast { display: grid; grid-template-columns: 1.9fr 1fr; gap: 16px; align-items: start; }
+/* Yogas · strengths & watch-outs · remedies — three equal-weight cards. */
+.hy-grid-triad { display: grid; grid-template-columns: 1fr 1fr 1.1fr; gap: 16px; align-items: stretch; }
+/* Planet "orbs" — nine celestial bodies across the top of the positions table. */
+.hy-orbs { display: grid; grid-template-columns: repeat(9, 1fr); gap: 11px; }
+
+@media (max-width: 1180px) {
+  .hy-orbs { grid-template-columns: repeat(5, 1fr); }
+}
+@media (max-width: 1180px) {
+  .hy-grid-triad { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 960px) {
+  .hy-grid-hero,
+  .hy-grid-charts,
+  .hy-grid-forecast,
+  .hy-grid-triad { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .hy-orbs { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Gentle vertical bob for the planet orbs (transform only — cheap, GPU). */
+@keyframes hy-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+/* Slow radial-glow breathe behind hero panels (opacity only). */
+@keyframes hy-glow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+/* Soft ring pulse around the family harmony dial (box-shadow only). */
+@keyframes hy-ring-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(226, 181, 99, 0.18); }
+  50% { box-shadow: 0 0 34px 6px rgba(226, 181, 99, 0.10); }
+}
+.hy-float { animation: hy-float 6s ease-in-out infinite; }
+.hy-glow  { animation: hy-glow 5s ease-in-out infinite; }
+.hy-ring-pulse { animation: hy-ring-pulse 4s ease-in-out infinite; }
+
+/* Expandable planet row chevron. */
+.hy-chev { transition: transform 0.15s ease; display: inline-block; }
+
+/* ── Chart-explanation section (Hybrid Family view, §9) ──────────────────
+   2026-07-22: this section used to be a bespoke "cosmic panel" — a
+   nebula-image background plus a full parallel set of --color-* overrides
+   (class `hy-cosmic-explain`, removed), reused from the login welcome
+   screen. It made the densest, most read-heavy section on the page (chart
+   data, sticky tabs, tables) the one visual outlier among its 8 sibling
+   sections, all of which are plain --color-surface cards directly on the
+   page background. Retired: the section now renders like every other one,
+   via its own children's normal --color-surface / --color-surface-soft
+   cards (the ChartExplanationPanel box, VargasPanel, ShadbalaPanel, the
+   dasha panels below it — none of which need help from a wrapper). */
 
 /* ── Reduced-motion guard ──────────────────────────────────
    First-class a11y path: honour the OS preference by collapsing every

@@ -60,6 +60,10 @@ type ChartExplanationPanelProps = {
    *  docs/NOVA_ONLY_MIGRATION_PLAN.md Phase 3, Yoga/Dosham parity fix). Classic
    *  callers omit it and get the default. */
   renderYogaDoshamPanel?: (props: { lang: Lang; yogas: ChartYogaInsight[]; doshams: ChartDoshamInsight[] }) => ReactNode;
+  /** Start expanded instead of behind the collapse toggle. Off by default so
+      existing callers (personal tab, etc.) keep the click-to-open behaviour;
+      the Hybrid Family view opts in. */
+  defaultOpen?: boolean;
 };
 
 function tx(copy: BiCopy, lang: Lang): string {
@@ -707,8 +711,9 @@ export function ChartExplanationPanel({
   dasha,
   dashaAntar,
   renderYogaDoshamPanel,
+  defaultOpen = false,
 }: ChartExplanationPanelProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   // Sticky-tab redesign: only one section's content shows at a time (picked from
   // the tab strip) instead of a 10-deep vertical accordion stack where sections
   // were easy to miss and hard to jump between.

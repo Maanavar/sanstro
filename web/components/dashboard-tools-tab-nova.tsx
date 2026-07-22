@@ -3,7 +3,8 @@
 import type { CSSProperties } from "react";
 
 import type { Lang } from "@/lib/i18n";
-import type { VarshaphalaData } from "@/lib/types";
+import type { ChartCalculateResponseData, RelationshipAlertItem, VarshaphalaData } from "@/lib/types";
+import type { MemberChart } from "@/hooks/useFamilyData";
 
 import { ChartGenerateInlinePanel } from "./chart-generate-inline-panel";
 import { DashboardAnnualWrapped } from "./dashboard-annual-wrapped";
@@ -12,6 +13,8 @@ import { NovaPoruthamPanel, type PoruthamFamilyMember } from "./dashboard-tools-
 import { NovaActivityTimingCard } from "./dashboard-today-deepdive-extras-nova";
 import { VarshaphalaPanel } from "./dashboard-varshaphala-panel";
 import { RasippalanTool } from "@/app/tools/indraiya-rasipalan/RasippalanTool";
+import { SynastryMatrix } from "./synastry-matrix";
+import { SynastryPanel } from "./dashboard-synastry-panel";
 
 /**
  * Nova rebuild of the Tools tab (see docs/DASHBOARD_UI_REVAMP_PLAN.md §6.12).
@@ -129,6 +132,7 @@ export type DashboardToolsTabNovaProps = {
   showRasipalan: boolean;
   showActivityTiming: boolean;
   showVarshaphala: boolean;
+  showSynastry: boolean;
   varshaphalaData: VarshaphalaData | null;
   varshaphalaLoading: boolean;
   onLoadVarshaphala: (year: number) => void;
@@ -137,6 +141,14 @@ export type DashboardToolsTabNovaProps = {
   onDateChange: (date: string) => void;
   familyVaultId?: string;
   familyMembersForPorutham: PoruthamFamilyMember[];
+  /** Compatibility (synastry) tool — cross-chart reads for the family. Owner
+   *  chart + the vault's member charts feed the same SynastryMatrix/SynastryPanel
+   *  the Family page used to host (moved here 2026-07-21). */
+  ownerChart: ChartCalculateResponseData | null;
+  synastryMemberCharts: MemberChart[];
+  synastryMemberOptions: { memberId: string; displayName: string; relationshipToOwner?: string }[];
+  relationshipAlerts: RelationshipAlertItem[];
+  relationshipAlertsLoading: boolean;
   onGoToPlan: () => void;
   onGoToCalendar: () => void;
   onOpenAskVinaadi: () => void;
@@ -155,6 +167,7 @@ export function DashboardToolsTabNova({
   showRasipalan,
   showActivityTiming,
   showVarshaphala,
+  showSynastry,
   varshaphalaData,
   varshaphalaLoading,
   onLoadVarshaphala,
@@ -163,10 +176,16 @@ export function DashboardToolsTabNova({
   onDateChange,
   familyVaultId,
   familyMembersForPorutham,
+  ownerChart,
+  synastryMemberCharts,
+  synastryMemberOptions,
+  relationshipAlerts,
+  relationshipAlertsLoading,
   onGoToPlan,
   onGoToCalendar,
   onOpenAskVinaadi,
 }: DashboardToolsTabNovaProps) {
+  const ownerChartId = ownerChart?.chartId ?? personalChartId;
   const TOOLS: ToolCardSpec[] = [
     {
       id: "chartgen", icon: "📜", color: "var(--color-accent-strong)",
@@ -223,6 +242,13 @@ export function DashboardToolsTabNova({
       descEn: "Your solar-return year chart — muntha, year lord, and a month-by-month outlook for any year.",
       descTa: "உங்கள் சூரிய வருடாந்திர ஜாதகம் — முந்தை, ஆண்டு அதிபதி, மற்றும் மாதம் வாரியான பலன்.",
       metaEn: "uses · your saved chart", metaTa: "பயன்படுத்துவது · உங்கள் ஜாதகம்", disabled: needsProfile, kind: "inline",
+    },
+    {
+      id: "synastry", icon: "◇", color: "var(--color-accent-secondary)",
+      nameEn: "Compatibility", nameTa: "பொருத்தம் / இணக்கம்",
+      descEn: "Cross-chart synastry for any two people in your family — a harmony score, supportive and tension points, and a relationship read.",
+      descTa: "உங்கள் குடும்பத்தில் இருவரின் ஜாதகப் பொருத்தம் — இணக்க மதிப்பெண், ஆதரவு/பதற்றப் புள்ளிகள், உறவு விளக்கம்.",
+      metaEn: "uses · your family charts", metaTa: "பயன்படுத்துவது · குடும்ப ஜாதகங்கள்", disabled: needsProfile, kind: "inline",
     },
   ];
 
@@ -283,6 +309,28 @@ export function DashboardToolsTabNova({
         )}
         {showVarshaphala && personalChartId && (
           <VarshaphalaPanel lang={lang} chartId={personalChartId} data={varshaphalaData} loading={varshaphalaLoading} onLoad={onLoadVarshaphala} />
+        )}
+        {showSynastry && (
+          <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "14px", padding: "22px 24px", display: "flex", flexDirection: "column", gap: "20px" }}>
+            {ownerChartId && synastryMemberCharts.length > 0 && (
+              <SynastryMatrix
+                lang={lang}
+                ownerChartId={ownerChartId}
+                familyVaultId={familyVaultId ?? ""}
+                members={synastryMemberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName, chartId: mc.chart.chartId }))}
+              />
+            )}
+            <SynastryPanel
+              lang={lang}
+              chartId={ownerChartId}
+              familyVaultId={familyVaultId ?? ""}
+              memberOptions={synastryMemberOptions}
+              ownerChart={ownerChart}
+              memberCharts={synastryMemberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName, chart: mc.chart }))}
+              relationshipAlerts={relationshipAlerts}
+              alertsLoading={relationshipAlertsLoading}
+            />
+          </div>
         )}
       </div>
     );
