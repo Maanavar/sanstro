@@ -649,6 +649,8 @@ def remedy_suggestion(
     chandrashtama: bool,
     score: int,
     afflicted_planets: list[str] | None = None,
+    weekday_lord: str | None = None,
+    antar_lord: str | None = None,
 ) -> BiText:
     if afflicted_planets:
         primary = afflicted_planets[0]
@@ -664,9 +666,17 @@ def remedy_suggestion(
             return primary_remedy
 
     if score >= 70:
-        planet_remedy = _PLANET_REMEDY.get(maha_lord)
-        if planet_remedy:
-            return planet_remedy
+        # Prefer the remedy tied to *today* over the mahadasha lord — the maha
+        # lord is constant for years, so leading with it made this card read
+        # as static on any calm stretch. weekday_lord rotates every day and
+        # each _PLANET_REMEDY entry is already written for its own weekday
+        # (e.g. Sun's text says "on Sundays"), so it stays thematically
+        # correct. antar_lord (bhukti, changes over weeks/months) is the next
+        # most personalized signal before falling back to maha_lord.
+        for candidate in (weekday_lord, antar_lord, maha_lord):
+            planet_remedy = _PLANET_REMEDY.get(candidate) if candidate else None
+            if planet_remedy:
+                return planet_remedy
         return _bi("இன்று நல்ல நாள். வழக்கமான வழிபாட்டை தொடரவும்.",
                    "Today is a good day. Continue your regular worship practice.")
 
@@ -1032,6 +1042,7 @@ def build_score_reasons(
         ),
         remedy=remedy_suggestion(
             maha_lord, sani_cycle_type, sani_cycle_active, chandrashtama, score, afflicted_planets=afflicted_planets,
+            weekday_lord=weekday_lord, antar_lord=antar_lord,
         ),
     )
 
