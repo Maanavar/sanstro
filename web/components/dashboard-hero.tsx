@@ -22,9 +22,10 @@ const SHOW_QA_TAB = process.env.NODE_ENV !== "production";
 
 // IA model: six first-class destinations in the top strip (Today · Calendar ·
 // Family & Charts · Goals · Life Areas · More). "Goals" is nav id `"plan"`
-// relabeled. The former standalone "Transits & Dashas" destination was removed
-// 2026-07-21 — Family & Charts now covers the same transit overview, dasha
-// timeline, and Sani cycle. Tools/Explore/QA live behind the "More" dropdown
+// relabeled. Family & Charts is the chart home — it covers the transit
+// overview, dasha timeline, and Sani cycle that a standalone transits view
+// once held (that separate destination was removed 2026-07-21). Tools/Explore/
+// QA live behind the "More" dropdown
 // (`MORE_TAB_DEFS` below) rather than as direct pills. Journal has no top-level
 // entry — it's reached from within Today/Life Areas' own "go to journal" links.
 //

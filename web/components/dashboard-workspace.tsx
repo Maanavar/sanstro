@@ -421,6 +421,23 @@ export function DashboardWorkspace() {
   const [personalViewId, setPersonalViewId] = useState<string | null>(null);
   const [lifeAreasViewId, setLifeAreasViewId] = useState<string | null>(null);
 
+  // Cross-tab sub-tab focus for Life Areas — lets a link-out (Family's
+  // "View all remedies →" / "Forecast →") land on the correct populated
+  // sub-tab, not just the tab's default Overview (IA audit 2026-07-22).
+  const [lifeAreasFocusSubTab, setLifeAreasFocusSubTab] = useState<string | null>(null);
+  const focusLifeAreas = useCallback((sub: string) => {
+    setLifeAreasFocusSubTab(sub);
+    goToTab("life-areas");
+  }, [goToTab]);
+
+  // Cross-tab view focus for Calendar — lets Goals' "Best Dates & Muhurta in
+  // Calendar →" open the muhurta view directly (IA audit 2026-07-22, Phase 3).
+  const [calendarFocusView, setCalendarFocusView] = useState<string | null>(null);
+  const focusCalendar = useCallback((view: string) => {
+    setCalendarFocusView(view);
+    goToTab("calendar");
+  }, [goToTab]);
+
   const [onboardingDone, setOnboardingDone] = useState(false);
 
   // Notification inbox
@@ -1518,7 +1535,7 @@ export function DashboardWorkspace() {
             onGoToJournal={() => setActiveTab("journal")}
             onGoToCalendar={() => setActiveTab("calendar")}
             onGoToLifeAreas={() => setActiveTab("life-areas")}
-            onGoToTransits={() => setActiveTab("family")}
+            onGoToChart={() => setActiveTab("family")}
             onGoToCharts={() => setActiveTab("family")}
             onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
             onOpenNotificationSettings={() => navigateSettings("notifications")}
@@ -1650,6 +1667,8 @@ export function DashboardWorkspace() {
             onDeleteMember: (memberId: string, name: string) => void handleDeleteMember(memberId, name),
             onEditMember: handleEditFamilyMember,
             onGoToLifeAreas: () => goToTab("life-areas"),
+            onGoToRemedies: () => focusLifeAreas("remedies"),
+            onGoToForecast: () => focusLifeAreas("predictions"),
             onGoToTools: () => goToTab("tools"),
           };
           return <DashboardFamilyChartsHybrid {...familyTabProps} />;
@@ -1664,6 +1683,9 @@ export function DashboardWorkspace() {
             lang={lang}
             locationLabel={personal.panchangamLocationLabel}
             onSelectDate={setSelectedDate}
+            chartId={personal.chartId}
+            focusView={calendarFocusView}
+            onFocusConsumed={() => setCalendarFocusView(null)}
           />
         )}
 
@@ -1703,7 +1725,9 @@ export function DashboardWorkspace() {
             onLoadRemedies={() => void loadRemedies(resolveLifeAreasChartId())}
             goals={plan.goals}
             onGoToPlan={() => goToTab("plan")}
-            onGoToTransits={() => goToTab("family")}
+            onGoToChart={() => goToTab("family")}
+            focusSubTab={lifeAreasFocusSubTab}
+            onFocusConsumed={() => setLifeAreasFocusSubTab(null)}
           />
         )}
 
@@ -1730,8 +1754,9 @@ export function DashboardWorkspace() {
             mode={session.userMode}
             onGoToLifeAreas={() => goToTab("life-areas")}
             onGoToCalendar={() => goToTab("calendar")}
+            onGoToMuhurta={() => focusCalendar("muhurta")}
             onGoToJournal={() => goToTab("journal")}
-            onGoToTransits={() => goToTab("family")}
+            onGoToChart={() => goToTab("family")}
           />
         )}
 
@@ -1746,11 +1771,11 @@ export function DashboardWorkspace() {
             contextData={journal.contextData}
             onEntrySaved={() => journal.loadJournalEntries(personal.chartId)}
             onEntryArchived={() => journal.loadJournalEntries(personal.chartId)}
-            onContextUpdated={(data) => journal.setContextData(data)}
             mode={session.userMode}
             chartSummary={personal.chartSummary}
             journalCorrelations={personal.journalCorrelations}
-            onGoToTransits={() => goToTab("family")}
+            onGoToChart={() => goToTab("family")}
+            onManageContext={() => navigateSettings("context")}
           />
         )}
 
@@ -1787,6 +1812,8 @@ export function DashboardWorkspace() {
             selectedVaultId={family.selectedVaultId}
             birthProfileId={personal.birthProfileId}
             chartId={personal.chartId}
+            contextData={journal.contextData}
+            onContextUpdated={(data) => journal.setContextData(data)}
             busyPersonal={personal.busyPersonal}
             busyFamily={family.busyFamily}
             journalRetentionDays={journalRetentionDays}

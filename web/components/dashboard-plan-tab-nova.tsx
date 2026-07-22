@@ -25,7 +25,6 @@ import { humaniseReason } from "./dashboard-event-windows";
 import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 import { NovaLifeEventLogCard } from "./dashboard-plan-life-event-log-nova";
 import { NovaPlanWhatIfPanel } from "./dashboard-plan-whatif-nova";
-import { NovaPlanMuhurtaPanel } from "./dashboard-plan-muhurta-nova";
 import { NovaPlanDecisionsPanel } from "./dashboard-plan-decisions-nova";
 import { NovaSelect } from "./nova-select";
 
@@ -38,14 +37,14 @@ import { NovaSelect } from "./nova-select";
  * genuinely generic `novaDetailCardStyle` card container.
  *
  * Transits & Dasha (dashboard-plan-transits-nova.tsx's `NovaTransitsView`,
- * §6.10) used to be a second view toggled inside this same tab; it is now
- * its own top-level nav destination (nav id `"transits"`) — the "See the
- * dasa timeline →" link below navigates there via `onGoToTransits` rather
- * than switching an in-tab view.
+ * §6.10) used to be a second view toggled inside this same tab. There is no
+ * standalone `transits` tab anymore — it was folded into Family & Charts
+ * (2026-07-21), so the "See the dasa timeline →" link below navigates there
+ * via `onGoToChart`.
  *
  * The mockup's static export only expands the "Goals" pill (same
  * one-sub-tab-captured pattern as Phase 9's Life Areas Overview) — Life
- * Events / What-If / Best Dates & Muhurta / Decisions were deliberately
+ * Events / What-If / Decisions were deliberately
  * deferred (Classic-styled) when this phase first shipped, reusing the
  * same Classic JSX Classic's own tab already rendered for those sub-tabs,
  * extracted at the time into standalone exported components
@@ -95,13 +94,15 @@ import { NovaSelect } from "./nova-select";
  * Phase 4's "Plan together".
  */
 
-type PlanSubTab = "goals" | "events" | "whatif" | "muhurta" | "decisions";
+// "Best Dates & Muhurta" moved to the Calendar tab (IA audit 2026-07-22,
+// Phase 3) — timing/almanac work lives with the panchangam now, so it is no
+// longer a Goals sub-tab.
+type PlanSubTab = "goals" | "events" | "whatif" | "decisions";
 
 const PLAN_SUB_TABS: { key: PlanSubTab; en: string; ta: string }[] = [
   { key: "goals", en: "Goals", ta: "இலக்குகள்" },
   { key: "events", en: "Life Events", ta: "வாழ்க்கை நிகழ்வுகள்" },
   { key: "whatif", en: "What-If", ta: "என்ன ஆகும்?" },
-  { key: "muhurta", en: "Best Dates & Muhurta", ta: "சிறந்த நாள் & முஹூர்த்தம்" },
   { key: "decisions", en: "Decisions", ta: "முடிவுகள்" },
 ];
 
@@ -206,10 +207,16 @@ type DashboardPlanTabNovaProps = {
 
   onGoToLifeAreas: () => void;
   onGoToCalendar: () => void;
+  /** Opens the Calendar's "Best Dates & Muhurta" view directly — muhurta moved
+   *  there from Goals (IA audit 2026-07-22, Phase 3). Falls back to the generic
+   *  Calendar nav when absent. */
+  onGoToMuhurta?: () => void;
   onGoToJournal: () => void;
-  // Transits & Dasha is now its own top-level nav destination (nav id
-  // "transits") — this navigates away rather than switching an in-tab view.
-  onGoToTransits: () => void;
+  // Opens Family & Charts (the chart + dasa-timeline home). Renamed from the
+  // misleading `onGoToTransits` — there is no `transits` tab; the standalone
+  // one was removed 2026-07-21 and folded into Family & Charts (IA audit
+  // 2026-07-22, Phase 5).
+  onGoToChart: () => void;
 };
 
 export function DashboardPlanTabNova({
@@ -234,8 +241,9 @@ export function DashboardPlanTabNova({
   mode = "BALANCED",
   onGoToLifeAreas,
   onGoToCalendar,
+  onGoToMuhurta,
   onGoToJournal,
-  onGoToTransits,
+  onGoToChart,
 }: DashboardPlanTabNovaProps) {
   const [subTab, setSubTab] = useState<PlanSubTab>("goals");
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -300,7 +308,7 @@ export function DashboardPlanTabNova({
 
         <button
           type="button"
-          onClick={onGoToTransits}
+          onClick={onGoToChart}
           style={{ display: "flex", alignItems: "center", gap: "7px", background: "var(--color-surface)", color: "var(--color-muted)", border: "1px solid var(--color-border)", borderRadius: "11px", padding: "10px 16px", fontSize: "12.5px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
         >
           🪐 {t("tab_family", lang)} →
@@ -465,7 +473,7 @@ export function DashboardPlanTabNova({
                   <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
                     {group.goalLabels.join(" · ")} — {lang === "ta" ? "ஆதரவான காலங்கள்" : "supportive windows"}
                   </span>
-                  <button type="button" onClick={onGoToTransits} style={{ background: "none", border: "none", padding: 0, fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                  <button type="button" onClick={onGoToChart} style={{ background: "none", border: "none", padding: 0, fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                     {lang === "ta" ? "தசை காலவரிசையைப் பார் →" : "See the dasa timeline →"}
                   </button>
                 </div>
@@ -536,9 +544,16 @@ export function DashboardPlanTabNova({
                 </span>
                 <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)", lineHeight: 1.5 }}>
                   {lang === "ta"
-                    ? "இந்த இலக்கிற்கு, 'என்ன ஆகும்?' மற்றும் 'சிறந்த நாள் & முஹூர்த்தம்' தாவல்களில் உகந்த தேதிகளைக் கண்டறியவும்."
-                    : "For this goal, use the What-If and Best Dates & Muhurta tabs to find favourable dates tailored to your chart."}
+                    ? "இந்த இலக்கிற்கு, இங்குள்ள 'என்ன ஆகும்?' தாவலிலும், நாட்காட்டியின் 'சிறந்த நாள் & முஹூர்த்தம்' பகுதியிலும் உகந்த தேதிகளைக் கண்டறியவும்."
+                    : "For this goal, use the What-If tab here, and the Calendar's Best Dates & Muhurta view, to find favourable dates tailored to your chart."}
                 </p>
+                <button
+                  type="button"
+                  onClick={onGoToMuhurta ?? onGoToCalendar}
+                  style={{ marginTop: "2px", alignSelf: "flex-start", background: "none", border: "none", padding: 0, fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  {lang === "ta" ? "நாட்காட்டியில் சிறந்த நாள் & முஹூர்த்தம் →" : "Best Dates & Muhurta in Calendar →"}
+                </button>
               </div>
             );
           })}
@@ -569,7 +584,6 @@ export function DashboardPlanTabNova({
         />
       )}
       {subTab === "decisions" && <NovaPlanDecisionsPanel lang={lang} chartId={chartId} mode={mode} />}
-      {subTab === "muhurta" && <NovaPlanMuhurtaPanel lang={lang} chartId={chartId} />}
     </div>
   );
 }

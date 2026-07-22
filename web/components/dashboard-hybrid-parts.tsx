@@ -95,9 +95,9 @@ export function HySection({
 }
 
 /* ── Link-out card — for content that lives on another tab (Predictions/
-      Forecast → Life Areas, Transits → Transits tab, AI/Notes → Prasna/
-      Journal). A compact preview plus an "open there" CTA — never a second
-      copy of the other tab's logic. ─────────────────────────────────── */
+      Forecast/Remedies → Life Areas, AI/Notes → Prasna/Journal). A compact
+      preview plus an "open there" CTA — never a second copy of the other
+      tab's logic. ─────────────────────────────────── */
 export function HyLinkOutCard({
   icon,
   kicker,
@@ -1065,14 +1065,23 @@ function areaPriorityOrder(age: number | null | undefined): string[] {
   return (AREA_PRIORITY_BY_STAGE.find((s) => age <= s.maxAge) ?? AREA_PRIORITY_BY_STAGE[3]!).order;
 }
 const FORECAST_DEFAULT_COUNT = 7;
+// Compact/preview cap for the Family & Charts page — the full row set + deep
+// per-area analysis lives in Life Areas.
+const FORECAST_PREVIEW_COUNT = 5;
 
 function ForecastCell({ score, lang }: { score: number; lang: Lang }) {
   const color = scoreColor(score);
   return <span style={{ fontSize: "12px", fontWeight: 600, color }}>{tl(lang, verdictFor(score))}</span>;
 }
 
-export function HyLifeAreaForecast({ lang, areas, age, onOpenLifeAreas }: {
+export function HyLifeAreaForecast({ lang, areas, age, onOpenLifeAreas, compact = false }: {
   lang: Lang; areas: LifeAreaData[] | null; age: number | null | undefined; onOpenLifeAreas?: () => void;
+  /** Preview mode (used on the Family & Charts page): caps the row set and
+   *  removes the in-place expand, so the *full* horizon is only ever rendered
+   *  in its canonical home (Life Areas → Predictions) which links out via
+   *  `onOpenLifeAreas`. Keeps a single home for the full artifact (IA audit
+   *  2026-07-22, Phase 1/2). */
+  compact?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const cols = "1.1fr 0.9fr 0.9fr 0.9fr 1.6fr";
@@ -1095,7 +1104,10 @@ export function HyLifeAreaForecast({ lang, areas, age, onOpenLifeAreas }: {
     .sort((x, y) => rankOf(x.a) - rankOf(y.a) || x.i - y.i)
     .map((x) => x.a);
 
-  const shown = expanded ? ordered : ordered.slice(0, FORECAST_DEFAULT_COUNT);
+  // Preview mode never expands in place — it caps hard and defers the rest to
+  // the canonical full home via `onOpenLifeAreas`.
+  const previewCount = compact ? FORECAST_PREVIEW_COUNT : FORECAST_DEFAULT_COUNT;
+  const shown = !compact && expanded ? ordered : ordered.slice(0, previewCount);
   const hiddenCount = ordered.length - shown.length;
   // Real forward scores; fall back to the current score (flat, honest) only if
   // an older response predates the projected fields.
@@ -1132,14 +1144,18 @@ export function HyLifeAreaForecast({ lang, areas, age, onOpenLifeAreas }: {
       {/* Two distinct intents, deliberately not conflated:
           — primary, inline: show the remaining rows in place (keeps context);
           — secondary: leave for the deep per-area analysis on the Life Areas tab. */}
-      {(hiddenCount > 0 || expanded || onOpenLifeAreas) && (
+      {((!compact && (hiddenCount > 0 || expanded)) || onOpenLifeAreas) && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "11px 20px" }}>
-          {hiddenCount > 0 || expanded ? (
+          {!compact && (hiddenCount > 0 || expanded) ? (
             <button type="button" onClick={() => setExpanded((v) => !v)} style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-accent-strong)", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
               {expanded
                 ? (lang === "ta" ? "குறைவாகக் காட்டு ↑" : "Show fewer ↑")
                 : (lang === "ta" ? `மேலும் ${hiddenCount} துறை ↓` : `Show ${hiddenCount} more area${hiddenCount === 1 ? "" : "s"} ↓`)}
             </button>
+          ) : compact && hiddenCount > 0 ? (
+            <span style={{ fontSize: "11.5px", color: "var(--color-faint)" }}>
+              {lang === "ta" ? `+${hiddenCount} மேலும் துறை` : `+${hiddenCount} more area${hiddenCount === 1 ? "" : "s"}`}
+            </span>
           ) : <span />}
           {onOpenLifeAreas && (
             <button type="button" onClick={onOpenLifeAreas} style={{ fontSize: "11.5px", fontWeight: 600, color: "var(--color-muted)", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, whiteSpace: "nowrap" }}>

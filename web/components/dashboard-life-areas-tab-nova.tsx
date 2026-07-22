@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -26,9 +26,10 @@ import type {
 
 import { LifeAreaCard } from "./life-area-card";
 import { DrawerPanel } from "./drawer-panel";
+import { displayName as yogaDisplayName } from "./dashboard-yoga-dosham-panel";
 import { NovaPredictionsPanel } from "./dashboard-life-areas-predictions-nova";
 import { DashboardPropensitiesPanelNova } from "./dashboard-propensities-panel-nova";
-import { NovaYogaDoshamPanel } from "./dashboard-life-areas-yogas-doshams-nova";
+import { HyLifeAreaForecast } from "./dashboard-hybrid-parts";
 import { NovaJadhagamReportPanel } from "./dashboard-life-areas-report-nova";
 import { NovaRemediesPanel } from "./dashboard-life-areas-remedies-nova";
 import { EventWindowsPanel } from "./dashboard-event-windows";
@@ -92,6 +93,110 @@ function tierOf(area: LifeAreaData): Tier {
   return "steady";
 }
 
+/**
+ * Activation-only yoga/dosham glance for the Life Areas tab. Per the IA audit
+ * (2026-07-22, D1), the *full* yoga & dosham catalog — the deep "what/why/how"
+ * accordion — has a single canonical home in the member-selectable chart view
+ * (Family & Charts). Life Areas keeps only the outcome-flavoured "what's firing
+ * now" summary and links out for the rest, so the catalog never renders in two
+ * tabs. Reuses `yogaDisplayName` so names follow the canonical map, never raw
+ * enums.
+ */
+function YogaActivationSummary({
+  lang,
+  yogas,
+  doshams,
+  onGoToChart,
+}: {
+  lang: Lang;
+  yogas: ChartYogaInsight[];
+  doshams: ChartDoshamInsight[];
+  onGoToChart: () => void;
+}) {
+  const presentYogas = yogas.filter((y) => y.isPresent);
+  const presentDoshams = doshams.filter((d) => d.isPresent);
+  const hasAny = presentYogas.length > 0 || presentDoshams.length > 0;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px", fontFamily: "var(--font-body)" }}>
+      <div style={cardStyle}>
+        <p style={{ margin: "0 0 4px", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+          {lang === "ta" ? "இப்போது செயலில் உள்ளவை" : "Active right now"}
+        </p>
+        <p style={{ margin: "0 0 12px", fontSize: "12.5px", color: "var(--color-muted)", lineHeight: 1.5 }}>
+          {lang === "ta"
+            ? "இந்தக் காலகட்டத்தில் தசை/கிரகநகர்வால் தூண்டப்படும் யோகங்கள் & தோஷங்கள். முழு விளக்கம் உங்கள் ஜாதகப் பார்வையில்."
+            : "Yogas & doshams your current dasha and transits are triggering. The full explanation lives in your chart view."}
+        </p>
+
+        {!hasAny ? (
+          <p style={{ margin: 0, fontSize: "13px", color: "var(--color-faint)" }}>
+            {lang === "ta" ? "இப்போது குறிப்பிட்டு செயலில் ஒன்றும் இல்லை." : "Nothing notably active for this chart right now."}
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            {presentYogas.length > 0 && (
+              <div>
+                <p style={{ margin: "0 0 6px", fontSize: "11px", fontWeight: 700, color: "var(--color-high)" }}>{t("yogas_title", lang)}</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
+                  {presentYogas.map((y, i) => {
+                    const active = y.isCurrentlyActive;
+                    const color = active ? "var(--color-high)" : "var(--color-muted)";
+                    return (
+                      <span
+                        key={`${y.name}-${i}`}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, color: "var(--color-text-strong)", background: active ? "var(--color-high-bg)" : "var(--color-surface-soft)", border: `1px solid ${active ? "var(--color-high-border)" : "var(--color-border)"}`, borderRadius: "999px", padding: "4px 11px" }}
+                      >
+                        {yogaDisplayName(y.name, lang)}
+                        {typeof y.activationScore === "number" && (
+                          <span style={{ fontSize: "10px", fontWeight: 700, color }}>{y.activationScore}/100</span>
+                        )}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {presentDoshams.length > 0 && (
+              <div>
+                <p style={{ margin: "0 0 6px", fontSize: "11px", fontWeight: 700, color: "var(--color-low)" }}>{t("doshams_title", lang)}</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
+                  {presentDoshams.map((d) => {
+                    const mitigated = d.isCancelled;
+                    const color = mitigated ? "var(--color-high)" : "var(--color-low)";
+                    const bg = mitigated ? "var(--color-high-bg)" : "var(--color-low-bg)";
+                    const border = mitigated ? "var(--color-high-border)" : "var(--color-low-border)";
+                    return (
+                      <span
+                        key={d.name}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, color: "var(--color-text-strong)", background: bg, border: `1px solid ${border}`, borderRadius: "999px", padding: "4px 11px" }}
+                      >
+                        {yogaDisplayName(d.name, lang)}
+                        <span style={{ fontSize: "10px", fontWeight: 700, color }}>
+                          {mitigated ? (lang === "ta" ? "நிவர்த்தி" : "Mitigated") : (lang === "ta" ? "கவனம்" : "Active")}
+                        </span>
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={onGoToChart}
+          style={{ marginTop: "16px", alignSelf: "flex-start", fontSize: "12.5px", fontWeight: 600, color: "var(--color-accent-strong)", border: "1px solid var(--color-border-strong)", borderRadius: "9px", padding: "9px 16px", background: "none", cursor: "pointer", fontFamily: "inherit" }}
+        >
+          {lang === "ta" ? "ஜாதகத்தில் முழு யோக & தோஷ பகுப்பாய்வு →" : "Full yoga & dosham analysis in your chart →"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 type DashboardLifeAreasTabNovaProps = {
   lang: Lang;
   personalDailyGuidance: DailyGuidanceData | null;
@@ -120,7 +225,17 @@ type DashboardLifeAreasTabNovaProps = {
   onLoadRemedies?: () => void;
   goals: GoalData[];
   onGoToPlan: () => void;
-  onGoToTransits: () => void;
+  /** Opens Family & Charts (the chart deep-dive home). Renamed from the
+   *  misleading `onGoToTransits` — there is no `transits` tab (IA audit
+   *  2026-07-22, Phase 5). */
+  onGoToChart: () => void;
+  /** A cross-tab request to open a specific sub-tab (e.g. Family's "View all
+   *  remedies →" wants `remedies`, "Forecast →" wants `predictions`). When set,
+   *  the tab focuses that sub-tab on arrival, then calls `onFocusConsumed` so a
+   *  later plain nav lands on the default Overview instead of re-focusing (IA
+   *  audit 2026-07-22, Phase 1/2 — links must land on the populated sub-tab). */
+  focusSubTab?: string | null;
+  onFocusConsumed?: () => void;
 };
 
 export function DashboardLifeAreasTabNova({
@@ -151,13 +266,43 @@ export function DashboardLifeAreasTabNova({
   onLoadRemedies,
   goals,
   onGoToPlan,
-  onGoToTransits,
+  onGoToChart,
+  focusSubTab = null,
+  onFocusConsumed,
 }: DashboardLifeAreasTabNovaProps) {
-  const [subTab, setSubTab] = useState<SubTab>("scores");
+  const SUB_TAB_KEYS: SubTab[] = ["scores", "predictions", "chances", "yogas", "remedies", "report"];
+  const initialSubTab: SubTab = focusSubTab && (SUB_TAB_KEYS as string[]).includes(focusSubTab)
+    ? (focusSubTab as SubTab)
+    : "scores";
+  const [subTab, setSubTab] = useState<SubTab>(initialSubTab);
+  // Honour a cross-tab focus request that arrives while already mounted, then
+  // clear it so a later plain nav returns to Overview.
+  useEffect(() => {
+    if (focusSubTab && (SUB_TAB_KEYS as string[]).includes(focusSubTab)) {
+      setSubTab(focusSubTab as SubTab);
+      onFocusConsumed?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusSubTab]);
   const [selectedArea, setSelectedArea] = useState<LifeAreaData | null>(null);
   const astroText = (value: string) => (lang === "en" ? tamilizeAstroEnglish(value) : value);
   const currentAge = chartSummary?.currentAge ?? null;
   const isMarried = maritalStatus === "married" || maritalStatus === "widowed" || maritalStatus === "divorced";
+
+  // Remedies is the single canonical home for the full plan (IA audit
+  // 2026-07-22, Phase 2). `NovaRemediesPanel` used to only fetch on a "Load"
+  // click, so anyone arriving via a link-out (Family's "View all remedies →",
+  // or a direct ?tab=life-areas deep link) landed on an empty panel. Auto-load
+  // once the sub-tab is opened; the ref is keyed to the chart so switching the
+  // selected member refetches for the right chart instead of showing stale data.
+  const remediesLoadedForRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (subTab !== "remedies" || !onLoadRemedies) return;
+    const key = chartId ?? null;
+    if (remediesLoadedForRef.current === key) return;
+    remediesLoadedForRef.current = key;
+    onLoadRemedies();
+  }, [subTab, chartId, onLoadRemedies]);
 
   const SUB_TABS: { key: SubTab; label: string }[] = [
     { key: "scores", label: lang === "ta" ? "கண்ணோட்டம்" : "Overview" },
@@ -259,7 +404,7 @@ export function DashboardLifeAreasTabNova({
               Charts" (2026-07-09) so the "how am I doing" landing page leads
               with today's snapshot before the longer-arc life-domain scores
               below. Resolved per the Overview tab's own member switcher
-              (selectedMemberId), same pattern as the Family/Transits tabs. ===== */}
+              (selectedMemberId), same pattern as the Family & Charts tab. ===== */}
           <NovaGocharCard
             lang={lang}
             personalDailyGuidance={personalDailyGuidance}
@@ -343,10 +488,10 @@ export function DashboardLifeAreasTabNova({
               </div>
               <button
                 type="button"
-                onClick={onGoToTransits}
+                onClick={onGoToChart}
                 style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--color-accent-strong)", border: "1px solid var(--color-border-strong)", borderRadius: "9px", padding: "9px 16px", background: "none", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
               >
-                {lang === "ta" ? "பின்னணி கிரகநகர்வுகளைப் பார் →" : "See the transits behind them →"}
+                {lang === "ta" ? "இதன் பின்னணி ஜாதகத்தைப் பார் →" : "See the chart behind them →"}
               </button>
             </div>
 
@@ -364,6 +509,18 @@ export function DashboardLifeAreasTabNova({
       {subTab === "predictions" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <NovaPredictionsPanel lang={lang} predictions={predictions} loading={predictionsLoading} maritalStatus={maritalStatus} />
+
+          {/* 6/12-month life-area forecast — the single full home for this
+              table (IA audit 2026-07-22, Phase 2). Family & Charts shows only a
+              compact preview and links here. Same data the tab already holds
+              (`lifeAreas.areas`) — no new fetch. */}
+          <div style={cardStyle}>
+            <p style={{ margin: "0 0 8px", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+              {lang === "ta" ? "வரும் 6 / 12 மாத முன்னோட்டம்" : "Next 6 / 12-month forecast"}
+            </p>
+            <HyLifeAreaForecast lang={lang} areas={lifeAreas?.areas ?? null} age={currentAge} />
+          </div>
+
           {lifeAreas?.chartId && (
             <div style={cardStyle}>
               <p style={{ margin: "0 0 8px", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
@@ -380,8 +537,12 @@ export function DashboardLifeAreasTabNova({
         <DashboardPropensitiesPanelNova lang={lang} chartId={(lifeAreas?.chartId ?? chartId) as string} />
       )}
 
-      {/* ===== Sub-tab: Yogas & Doshams ===== */}
-      {subTab === "yogas" && <NovaYogaDoshamPanel lang={lang} yogas={yogas} doshams={doshams} />}
+      {/* ===== Sub-tab: Yogas & Doshams (activation-only + link-out) =====
+          Per the IA audit (D1), the full catalog is owned by the chart view;
+          here we show only what's firing now and link out for the rest. */}
+      {subTab === "yogas" && (
+        <YogaActivationSummary lang={lang} yogas={yogas} doshams={doshams} onGoToChart={onGoToChart} />
+      )}
 
       {/* ===== Sub-tab: Remedies ===== */}
       {subTab === "remedies" && (

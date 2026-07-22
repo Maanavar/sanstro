@@ -130,7 +130,7 @@ export function DashboardTodayLifeAreasDasaRowNova({
   dashaAntar,
   selectedDate,
   lifeAreas,
-  onGoToTransits,
+  onGoToChart,
   onGoToLifeAreas,
 }: {
   lang: Lang;
@@ -139,7 +139,7 @@ export function DashboardTodayLifeAreasDasaRowNova({
   dashaAntar: DashaTimelineItem[];
   selectedDate: string;
   lifeAreas?: LifeAreasResponseData | null;
-  onGoToTransits?: () => void;
+  onGoToChart?: () => void;
   onGoToLifeAreas?: () => void;
 }) {
   const currentAntarIdx = dashaAntar.findIndex((item) => item.startDate <= selectedDate && selectedDate <= item.endDate);
@@ -215,7 +215,7 @@ export function DashboardTodayLifeAreasDasaRowNova({
           title="Dasa Chapter"
           titleTa="தசா"
           linkLabel={lang === "ta" ? "திற →" : "Open →"}
-          onLink={onGoToTransits}
+          onLink={onGoToChart}
         />
         {personalChartSummary ? (
           <>

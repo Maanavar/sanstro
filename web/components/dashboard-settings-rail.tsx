@@ -39,6 +39,7 @@ export const SETTINGS_C = {
 export type SettingsSectionId =
   | "setup"
   | "account"
+  | "context"
   | "experience"
   | "appearance"
   | "notifications"
@@ -51,6 +52,10 @@ type RailItem = { id: SettingsSectionId; labelEn: string; labelTa: string };
 const ITEMS: RailItem[] = [
   { id: "setup",         labelEn: "Setup & Family",  labelTa: "அமைப்பு & குடும்பம்" },
   { id: "account",       labelEn: "Account",         labelTa: "கணக்கு" },
+  // Life context (job change / marriage / relocation) is profile input the
+  // engine reads — it lives with the profile now, not inside the diary (IA
+  // audit 2026-07-22, Phase 4).
+  { id: "context",       labelEn: "Life context",    labelTa: "வாழ்க்கை சூழல்" },
   { id: "experience",    labelEn: "Experience",      labelTa: "அனுபவம்" },
   { id: "appearance",    labelEn: "Appearance",      labelTa: "தோற்றம்" },
   { id: "notifications", labelEn: "Notifications",   labelTa: "அறிவிப்புகள்" },

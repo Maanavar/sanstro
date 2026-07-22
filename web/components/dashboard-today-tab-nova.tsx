@@ -95,7 +95,10 @@ export type DashboardTodayTabNovaProps = {
   onGoToJournal?: () => void;
   onGoToCalendar?: () => void;
   onGoToLifeAreas?: () => void;
-  onGoToTransits?: () => void;
+  /** Opens the "Family & Charts" tab (the chart/dasa deep-dive home). Renamed
+   *  from the misleading `onGoToTransits` — there is no `transits` tab (IA
+   *  audit 2026-07-22, Phase 5). */
+  onGoToChart?: () => void;
   /** Opens the "Family & Charts" tab, where the full chart engine now lives. */
   onGoToCharts?: () => void;
   onOpenAskVinaadi: () => void;
@@ -166,7 +169,7 @@ export function DashboardTodayTabNova({
   onGoToJournal,
   onGoToCalendar,
   onGoToLifeAreas,
-  onGoToTransits,
+  onGoToChart,
   onGoToCharts,
   onOpenAskVinaadi,
   onOpenNotificationSettings,
@@ -708,7 +711,7 @@ export function DashboardTodayTabNova({
         dashaAntar={dashaAntar}
         selectedDate={selectedDate}
         lifeAreas={lifeAreas}
-        onGoToTransits={onGoToTransits}
+        onGoToChart={onGoToChart}
         onGoToLifeAreas={onGoToLifeAreas}
       />
 

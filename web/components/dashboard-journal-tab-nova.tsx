@@ -12,7 +12,6 @@ import type {
   ApiEnvelope,
   ChartSummaryData,
   ContextData,
-  ContextEvent,
   JournalCorrelationData,
   JournalEntryData,
   JournalPromptItem,
@@ -25,7 +24,6 @@ import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 import { NovaSelect } from "./nova-select";
 import {
   AREA_KEY,
-  CONTEXT_EVENT_TYPES,
   CTX_TYPE_KEY,
   LIFE_AREAS,
 } from "./dashboard-journal-shared";
@@ -181,11 +179,17 @@ type DashboardJournalTabNovaProps = {
   contextData: ContextData | null;
   onEntrySaved: () => void;
   onEntryArchived: () => void;
-  onContextUpdated: (data: ContextData) => void;
   mode?: "BEGINNER" | "BALANCED" | "TRADITIONAL";
   chartSummary: ChartSummaryData | null;
   journalCorrelations: JournalCorrelationData | null;
-  onGoToTransits: () => void;
+  /** Opens Family & Charts (the chart + transit/dasa home). Renamed from the
+   *  misleading `onGoToTransits` — there is no `transits` tab (IA audit
+   *  2026-07-22, Phase 5). */
+  onGoToChart: () => void;
+  /** Opens the Settings → Life context section, the new editable home for
+   *  context events (IA audit 2026-07-22, Phase 4). The diary keeps a
+   *  read-only view of what context the engine is using. */
+  onManageContext: () => void;
 };
 
 export function DashboardJournalTabNova({
@@ -198,11 +202,11 @@ export function DashboardJournalTabNova({
   contextData,
   onEntrySaved,
   onEntryArchived,
-  onContextUpdated,
   mode = "BALANCED",
   chartSummary,
   journalCorrelations,
-  onGoToTransits,
+  onGoToChart,
+  onManageContext,
 }: DashboardJournalTabNovaProps) {
   const { days: streakDays } = useStreak();
 
@@ -226,12 +230,6 @@ export function DashboardJournalTabNova({
   const [editNoteText, setEditNoteText] = useState("");
   const [editBusy, setEditBusy] = useState(false);
   const [exportBusy, setExportBusy] = useState(false);
-
-  const [ctxEventType, setCtxEventType] = useState<ContextEventType>("job_change");
-  const [ctxEventDate, setCtxEventDate] = useState(selectedDate);
-  const [ctxEventNote, setCtxEventNote] = useState("");
-  const [ctxBusy, setCtxBusy] = useState(false);
-  const [ctxSuccess, setCtxSuccess] = useState(false);
 
   useEffect(() => {
     setEntryDate(selectedDate);
@@ -328,45 +326,6 @@ export function DashboardJournalTabNova({
       URL.revokeObjectURL(url);
     } finally {
       setExportBusy(false);
-    }
-  }
-
-  async function handleAddContextEvent() {
-    if (!chartId) return;
-    setCtxBusy(true);
-    setCtxSuccess(false);
-    try {
-      const existingEvents: ContextEvent[] = contextData?.activeEvents ?? [];
-      const newEvent: ContextEvent = { type: ctxEventType, date: ctxEventDate, note: ctxEventNote.trim() || null };
-      const merged = [...existingEvents, newEvent];
-      const r = await apiFetchJson<{ success: boolean; data: ContextData }>("/api/v1/context", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chartId, activeEvents: merged }),
-      });
-      onContextUpdated(r.data);
-      setCtxEventNote("");
-      setCtxSuccess(true);
-      setTimeout(() => setCtxSuccess(false), 3000);
-    } catch {
-      // ignore
-    } finally {
-      setCtxBusy(false);
-    }
-  }
-
-  async function handleRemoveContextEvent(index: number) {
-    if (!chartId) return;
-    const updated = (contextData?.activeEvents ?? []).filter((_, i) => i !== index);
-    try {
-      const r = await apiFetchJson<{ success: boolean; data: ContextData }>("/api/v1/context", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chartId, activeEvents: updated }),
-      });
-      onContextUpdated(r.data);
-    } catch {
-      // ignore
     }
   }
 
@@ -537,8 +496,8 @@ export function DashboardJournalTabNova({
                     <NovaProgressBar value={journalCorrelations.entryCount} max={journalCorrelations.minimumEntriesRequired} tone="accent" />
                     <p style={{ margin: 0, fontSize: "12px", color: "var(--color-muted)", lineHeight: 1.55 }}>
                       {lang === "ta" ? "திறந்தவுடன், உங்கள் நல்ல மற்றும் கடினமான நாட்கள் " : "Once unlocked, Vinaadi shows how your good and hard days line up with "}
-                      <button type="button" onClick={onGoToTransits} style={{ background: "none", border: "none", padding: 0, color: "var(--color-accent-secondary)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit" }}>
-                        {lang === "ta" ? "கிரகநகர்வு மற்றும் தசை காலங்களுடன்" : "transits and dasa periods"}
+                      <button type="button" onClick={onGoToChart} style={{ background: "none", border: "none", padding: 0, color: "var(--color-accent-secondary)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit" }}>
+                        {lang === "ta" ? "உங்கள் ஜாதகத்தின் கிரகநகர்வு & தசை காலங்களுடன்" : "your chart's transits and dasa periods"}
                       </button>
                       {lang === "ta" ? " எப்படி பொருந்துகின்றன என்பதைக் காட்டும் — உங்கள் சொந்த வாழ்க்கையிலிருந்து சான்று." : " — evidence from your own life."}
                     </p>
@@ -558,61 +517,37 @@ export function DashboardJournalTabNova({
               </div>
             )}
 
+            {/* Read-only "active life context" — the editable home is now
+                Settings → Life context (IA audit 2026-07-22, Phase 4). The
+                diary still shows what context the engine is using, without
+                being the place you edit it. */}
             <div style={novaDetailCardStyle}>
-              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "10px", flexWrap: "wrap" }}>
                 <span style={kickerStyle}>{t("context_section_label", lang)}</span>
-                <span style={{ fontSize: "11.5px", color: "var(--color-faint)" }}>{lang === "ta" ? "தினசரி சூழலை மேம்படுத்தும்" : "enrich daily context"}</span>
-              </div>
-              <p style={{ margin: 0, fontSize: "12px", color: "var(--color-muted)", lineHeight: 1.5 }}>{t("context_section_desc", lang)}</p>
-
-              {(contextData?.activeEvents ?? []).length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
-                  {(contextData?.activeEvents ?? []).map((ev, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 10px", borderRadius: "9px", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", flexWrap: "wrap" }}>
-                      <Chip tone="accent">{CTX_TYPE_KEY[ev.type as ContextEventType] ? t(CTX_TYPE_KEY[ev.type as ContextEventType], lang) : ev.type}</Chip>
-                      <span style={{ fontSize: "12px", color: "var(--color-muted)" }}>{formatDateLabel(ev.date)}</span>
-                      {ev.note && <span style={{ fontSize: "12px", color: "var(--color-muted)", fontStyle: "italic", flex: 1 }}>{ev.note}</span>}
-                      <button
-                        type="button"
-                        onClick={() => void handleRemoveContextEvent(i)}
-                        style={{ padding: "3px 10px", borderRadius: "7px", border: "1px solid var(--color-low-border)", background: "transparent", color: "var(--color-low)", fontSize: "11px", cursor: "pointer", fontFamily: "inherit" }}
-                      >
-                        {t("btn_remove_event", lang)}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
-                <NovaSelect
-                  value={ctxEventType}
-                  onChange={(v) => setCtxEventType(v as ContextEventType)}
-                  options={CONTEXT_EVENT_TYPES.map((type) => ({ value: type, label: t(CTX_TYPE_KEY[type], lang) }))}
-                />
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "9px" }}>
-                  <input style={fieldStyle} type="date" value={ctxEventDate} min={todayIso()} onChange={(e) => setCtxEventDate(e.target.value)} />
-                  <input
-                    style={fieldStyle}
-                    type="text"
-                    value={ctxEventNote}
-                    onChange={(e) => setCtxEventNote(e.target.value)}
-                    maxLength={200}
-                    placeholder={lang === "ta" ? "விரும்பினால் குறிப்பு…" : "Optional note..."}
-                  />
-                </div>
                 <button
                   type="button"
-                  disabled={ctxBusy}
-                  onClick={() => void handleAddContextEvent()}
-                  style={{ alignSelf: "flex-start", padding: "8px 18px", borderRadius: "9px", border: "1px solid var(--color-accent-strong)", cursor: ctxBusy ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.8125rem", background: "transparent", color: "var(--color-accent-strong)", fontFamily: "inherit" }}
+                  onClick={onManageContext}
+                  style={{ background: "none", border: "none", padding: 0, fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
                 >
-                  {ctxBusy ? t("btn_adding_event", lang) : t("btn_add_event", lang)}
+                  {lang === "ta" ? "அமைப்புகளில் நிர்வகி →" : "Manage in Settings →"}
                 </button>
               </div>
+              <p style={{ margin: 0, fontSize: "12px", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                {lang === "ta"
+                  ? "விநாடி இந்த நிகழ்வுகளை உங்கள் தினசரி வழிகாட்டலுக்குப் பயன்படுத்துகிறது. திருத்த அமைப்புகள் → வாழ்க்கை சூழல்."
+                  : "Vinaadi factors these into your daily guidance. Edit them in Settings → Life context."}
+              </p>
 
-              {ctxSuccess && <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-high)" }}>{t("context_event_saved", lang)}</p>}
-              {(contextData?.activeEvents ?? []).length === 0 && !ctxSuccess && (
+              {(contextData?.activeEvents ?? []).length > 0 ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
+                  {(contextData?.activeEvents ?? []).map((ev, i) => (
+                    <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: "7px", padding: "6px 11px", borderRadius: "999px", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)" }}>
+                      <Chip tone="accent">{CTX_TYPE_KEY[ev.type as ContextEventType] ? t(CTX_TYPE_KEY[ev.type as ContextEventType], lang) : ev.type}</Chip>
+                      <span style={{ fontSize: "12px", color: "var(--color-muted)" }}>{formatDateLabel(ev.date)}</span>
+                    </span>
+                  ))}
+                </div>
+              ) : (
                 <p style={{ margin: 0, fontSize: "11.5px", color: "var(--color-faint)" }}>{t("context_no_events", lang)}</p>
               )}
             </div>

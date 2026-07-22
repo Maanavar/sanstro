@@ -5,10 +5,12 @@ import { useEffect, useRef, useState } from "react";
 import { useTheme, type Theme } from "@/hooks/useTheme";
 import { apiFetchJson } from "@/lib/api";
 import { clearFcmTokenLocal, fetchFcmToken, hasFirebaseMessagingConfig } from "@/lib/firebase-messaging";
-import { formatDateTimeLabel } from "@/lib/format";
+import { formatDateLabel, formatDateTimeLabel, todayIso } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import type { JournalRetentionApplyData, NotificationPreferenceData } from "@/lib/types";
+import type { ContextData, ContextEvent, JournalRetentionApplyData, NotificationPreferenceData } from "@/lib/types";
+import { CONTEXT_EVENT_TYPES, CTX_TYPE_KEY, type ContextEventType } from "./dashboard-journal-shared";
+import { NovaSelect } from "./nova-select";
 import { SettingsRail, SETTINGS_C as C, type SettingsSectionId } from "./dashboard-settings-rail";
 
 type UserMode = "BEGINNER" | "BALANCED" | "TRADITIONAL";
@@ -39,6 +41,11 @@ type DashboardSettingsSessionTabProps = {
   selectedVaultId: string;
   birthProfileId: string;
   chartId: string;
+  /** Life-context events (job change / marriage / relocation) — moved here from
+   *  the Journal tab (IA audit 2026-07-22, Phase 4). Same `POST /api/v1/context`
+   *  data the engine reads; Journal/Reflections still consume `contextData`. */
+  contextData: ContextData | null;
+  onContextUpdated: (data: ContextData) => void;
   busyPersonal: boolean;
   busyFamily: boolean;
   journalRetentionDays: number;
@@ -227,6 +234,8 @@ export function DashboardSettingsSessionTab({
   selectedVaultId,
   birthProfileId,
   chartId,
+  contextData,
+  onContextUpdated,
   busyPersonal,
   busyFamily,
   journalRetentionDays,
@@ -273,6 +282,54 @@ export function DashboardSettingsSessionTab({
 
   const [retentionPreview, setRetentionPreview] = useState<JournalRetentionApplyData | null>(null);
   const [retentionApplied, setRetentionApplied] = useState<JournalRetentionApplyData | null>(null);
+
+  // Life-context editor (moved from Journal, Phase 4). Same add/remove flow
+  // against POST /api/v1/context.
+  const [ctxEventType, setCtxEventType] = useState<ContextEventType>("job_change");
+  const [ctxEventDate, setCtxEventDate] = useState(selectedDate);
+  const [ctxEventNote, setCtxEventNote] = useState("");
+  const [ctxBusy, setCtxBusy] = useState(false);
+  const [ctxSuccess, setCtxSuccess] = useState(false);
+  useEffect(() => { setCtxEventDate(selectedDate); }, [selectedDate]);
+
+  async function handleAddContextEvent() {
+    if (!chartId) return;
+    setCtxBusy(true);
+    setCtxSuccess(false);
+    try {
+      const existingEvents: ContextEvent[] = contextData?.activeEvents ?? [];
+      const newEvent: ContextEvent = { type: ctxEventType, date: ctxEventDate, note: ctxEventNote.trim() || null };
+      const merged = [...existingEvents, newEvent];
+      const r = await apiFetchJson<{ success: boolean; data: ContextData }>("/api/v1/context", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chartId, activeEvents: merged }),
+      });
+      onContextUpdated(r.data);
+      setCtxEventNote("");
+      setCtxSuccess(true);
+      setTimeout(() => setCtxSuccess(false), 3000);
+    } catch {
+      // ignore
+    } finally {
+      setCtxBusy(false);
+    }
+  }
+
+  async function handleRemoveContextEvent(index: number) {
+    if (!chartId) return;
+    const updated = (contextData?.activeEvents ?? []).filter((_, i) => i !== index);
+    try {
+      const r = await apiFetchJson<{ success: boolean; data: ContextData }>("/api/v1/context", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chartId, activeEvents: updated }),
+      });
+      onContextUpdated(r.data);
+    } catch {
+      // ignore
+    }
+  }
 
   // In-app feedback modal — replaces the old mailto: link, which silently did
   // nothing on any device without a configured mail client. Posts to the
@@ -830,6 +887,76 @@ export function DashboardSettingsSessionTab({
     </div>
   );
 
+  const activeContextEvents = contextData?.activeEvents ?? [];
+  const renderContext = () => (
+    <div style={panelWrap}>
+      <PanelHeader
+        title={lang === "ta" ? "வாழ்க்கை சூழல்" : "Life context"}
+        desc={lang === "ta"
+          ? "வேலை மாற்றம், திருமணம், இடமாற்றம் போன்ற உண்மை நிகழ்வுகள் — இவை உங்கள் தினசரி வழிகாட்டலை மேலும் துல்லியமாக்கும். (இது நாட்குறிப்பு அல்ல; அது தனியாக உள்ளது.)"
+          : "Real-life events — a job change, marriage, relocation — that sharpen your daily guidance. (This isn't your diary; that lives on its own.)"}
+      />
+
+      <Card>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
+          <RowHeader
+            title={t("context_section_label", lang)}
+            desc={t("context_section_desc", lang)}
+          />
+          {ctxSuccess && <span style={{ fontSize: "12.5px", color: C.sage }}>{t("context_event_saved", lang)}</span>}
+        </div>
+
+        {activeContextEvents.length > 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {activeContextEvents.map((ev, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 13px", borderRadius: "10px", background: C.surfaceSoft, border: `1px solid ${C.border}`, flexWrap: "wrap" }}>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: C.accentText, background: C.accentMuted, border: `1px solid ${C.border}`, borderRadius: "999px", padding: "3px 11px" }}>
+                  {CTX_TYPE_KEY[ev.type as ContextEventType] ? t(CTX_TYPE_KEY[ev.type as ContextEventType], lang) : ev.type}
+                </span>
+                <span style={{ fontSize: "12.5px", color: C.muted }}>{formatDateLabel(ev.date)}</span>
+                {ev.note && <span style={{ fontSize: "12.5px", color: C.muted, fontStyle: "italic", flex: 1 }}>{ev.note}</span>}
+                <button
+                  type="button"
+                  onClick={() => void handleRemoveContextEvent(i)}
+                  style={{ marginLeft: "auto", padding: "4px 12px", borderRadius: "8px", border: `1px solid ${C.dangerBorder}`, background: "transparent", color: C.danger, fontSize: "11.5px", cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  {t("btn_remove_event", lang)}
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ fontSize: "12.5px", color: C.faint }}>{t("context_no_events", lang)}</div>
+        )}
+
+        <div style={{ height: "1px", background: C.border }} />
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div style={KICKER}>{lang === "ta" ? "புதிய நிகழ்வைச் சேர்" : "Add an event"}</div>
+          <NovaSelect
+            value={ctxEventType}
+            onChange={(v) => setCtxEventType(v as ContextEventType)}
+            options={CONTEXT_EVENT_TYPES.map((type) => ({ value: type, label: t(CTX_TYPE_KEY[type], lang) }))}
+          />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+            <input style={fieldStyle} type="date" value={ctxEventDate} min={todayIso()} onChange={(e) => setCtxEventDate(e.target.value)} />
+            <input
+              style={fieldStyle}
+              type="text"
+              value={ctxEventNote}
+              onChange={(e) => setCtxEventNote(e.target.value)}
+              maxLength={200}
+              placeholder={lang === "ta" ? "விரும்பினால் குறிப்பு…" : "Optional note..."}
+            />
+          </div>
+          <PrimaryBtn onClick={() => void handleAddContextEvent()} disabled={ctxBusy || !chartId}>
+            {ctxBusy ? t("btn_adding_event", lang) : t("btn_add_event", lang)}
+          </PrimaryBtn>
+        </div>
+      </Card>
+    </div>
+  );
+
   const renderPrivacy = () => (
     <div style={panelWrap}>
       <PanelHeader
@@ -897,6 +1024,7 @@ export function DashboardSettingsSessionTab({
 
   const panel =
     section === "account" ? renderAccount()
+    : section === "context" ? renderContext()
     : section === "experience" ? renderExperience()
     : section === "appearance" ? renderAppearance()
     : section === "notifications" ? renderNotifications()

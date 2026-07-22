@@ -524,6 +524,11 @@ export type DashboardFamilyChartsHybridProps = {
   onDeleteMember: (memberId: string, name: string) => void;
   onEditMember: (member: FamilyAggregateMember) => void;
   onGoToLifeAreas?: () => void;
+  /** Deep link-outs to specific Life Areas sub-tabs — the single homes for the
+   *  full Remedies plan and 6/12-month Forecast (IA audit 2026-07-22, Phase
+   *  1/2). Fall back to `onGoToLifeAreas` (Overview) when not provided. */
+  onGoToRemedies?: () => void;
+  onGoToForecast?: () => void;
   /** Compatibility (synastry) moved to the Tools tab (2026-07-21) — the header
    *  chip and the Connections pointer route there instead of an in-page toggle. */
   onGoToTools?: () => void;
@@ -545,6 +550,8 @@ export function DashboardFamilyChartsHybrid({
   mode,
   onGoToJournal,
   onGoToLifeAreas,
+  onGoToRemedies,
+  onGoToForecast,
   onGoToTools,
   busy,
   onRefreshFamily,
@@ -1136,7 +1143,11 @@ export function DashboardFamilyChartsHybrid({
               <div className="hy-grid-triad">
                 <HyYogaDoshaCard lang={lang} yogaDosham={reading.explanation.yogaDosham} onViewAll={() => jumpTo("hy-explain")} />
                 <HyStrengthsWatchoutsCard lang={lang} planets={reading.explanation.planets} />
-                <HyRemediesCard lang={lang} planets={reading.explanation.planets} onViewAll={() => jumpTo("hy-explain")} />
+                {/* Remedies preview only — the full prescriptive plan (temple,
+                    mantra, japa, gemstone, daanam) is owned by Life Areas →
+                    Remedies. "View all" deep-links to that sub-tab, the single
+                    home for the artifact (IA audit 2026-07-22, Phase 1/2). */}
+                <HyRemediesCard lang={lang} planets={reading.explanation.planets} onViewAll={onGoToRemedies ?? onGoToLifeAreas} />
               </div>
             ) : (
               /* Explanation still loading — keep the flat yoga glance rather than nothing. */
@@ -1165,7 +1176,11 @@ export function DashboardFamilyChartsHybrid({
             {/* Left (1.9fr): the life-area outlook table + the detailed
                 dasha-period forecast underneath it. */}
             <div style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: 0 }}>
-              <HyLifeAreaForecast lang={lang} areas={lifeAreas?.areas ?? null} age={readingSummary?.currentAge} onOpenLifeAreas={onGoToLifeAreas} />
+              {/* Compact preview — the full expandable horizon + deep per-area
+                  analysis is owned by Life Areas → Predictions (its single
+                  home). "Open full analysis →" deep-links to that sub-tab, the
+                  only path to the full table (IA audit 2026-07-22, Phase 1/2). */}
+              <HyLifeAreaForecast compact lang={lang} areas={lifeAreas?.areas ?? null} age={readingSummary?.currentAge} onOpenLifeAreas={onGoToForecast ?? onGoToLifeAreas} />
               <HyDetailedForecast
                 lang={lang}
                 dasha={reading?.dasha ?? null}
@@ -1174,7 +1189,7 @@ export function DashboardFamilyChartsHybrid({
                 planets={reading?.explanation?.planets}
                 lagnaRasi={readingChart?.lagna.rasi}
                 today={selectedDate}
-                onViewAll={onGoToLifeAreas}
+                onViewAll={onGoToForecast ?? onGoToLifeAreas}
               />
             </div>
             {/* Right (1fr): transit overview, then the (real) Ask Vinaadi

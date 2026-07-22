@@ -49,6 +49,12 @@ import {
 } from "./dashboard-calendar-shared";
 import type { CalendarView, DayTimelineBand } from "./dashboard-calendar-shared";
 import { MonthlyCalendarViewNova } from "./dashboard-calendar-monthly-nova";
+import { NovaPlanMuhurtaPanel } from "./dashboard-plan-muhurta-nova";
+
+// "Best Dates & Muhurta" moved here from Goals (IA audit 2026-07-22, Phase 3):
+// timing/almanac work belongs with the panchangam, not goal-setting. The panel
+// is self-contained (`NovaPlanMuhurtaPanel`, props `{ lang, chartId }`).
+type CalendarViewExt = CalendarView | "muhurta";
 
 /**
  * Nova "Calendar" tab, daily Panchangam view — Phase 2 of the dashboard
@@ -77,6 +83,14 @@ export type DashboardCalendarTabNovaProps = {
   lang: Lang;
   locationLabel?: string | null;
   onSelectDate?: (date: string) => void;
+  /** Personal chart the "Best Dates & Muhurta" view computes against. Null when
+   *  no birth profile exists yet — the view then shows an add-profile note. */
+  chartId?: string | null;
+  /** Cross-tab request to open a specific view (e.g. Goals' "Best Dates &
+   *  Muhurta in Calendar →" wants `muhurta`). Focused on arrival, then cleared
+   *  via `onFocusConsumed` (IA audit 2026-07-22, Phase 3). */
+  focusView?: string | null;
+  onFocusConsumed?: () => void;
 };
 
 function novaFestivalTagLabel(tag: string, lang: Lang): string {
@@ -494,8 +508,21 @@ export function DashboardCalendarTabNova({
   lang,
   locationLabel,
   onSelectDate,
+  chartId = null,
+  focusView = null,
+  onFocusConsumed,
 }: DashboardCalendarTabNovaProps) {
-  const [view, setView] = useState<CalendarView>("panchangam");
+  const CALENDAR_VIEWS: CalendarViewExt[] = ["panchangam", "monthly", "muhurta"];
+  const [view, setView] = useState<CalendarViewExt>(
+    focusView && (CALENDAR_VIEWS as string[]).includes(focusView) ? (focusView as CalendarViewExt) : "panchangam",
+  );
+  useEffect(() => {
+    if (focusView && (CALENDAR_VIEWS as string[]).includes(focusView)) {
+      setView(focusView as CalendarViewExt);
+      onFocusConsumed?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusView]);
 
   const [detailDate, setDetailDate] = useState<string | null>(null);
   const [detailData, setDetailData] = useState<PanchangamDailyResponseData | null>(null);
@@ -692,7 +719,7 @@ export function DashboardCalendarTabNova({
         </div>
 
         <div style={{ display: "inline-flex", gap: "4px", background: "var(--color-surface-soft)", border: "1px solid var(--color-border-strong)", borderRadius: "11px", padding: "5px" }}>
-          {([["panchangam", t("cal_panchangam", lang)], ["monthly", t("cal_monthly", lang)]] as [CalendarView, string][]).map(([key, label]) => (
+          {([["panchangam", t("cal_panchangam", lang)], ["monthly", t("cal_monthly", lang)], ["muhurta", lang === "ta" ? "சிறந்த நாள் & முஹூர்த்தம்" : "Best Dates & Muhurta"]] as [CalendarViewExt, string][]).map(([key, label]) => (
             <button
               key={key}
               type="button"
@@ -987,6 +1014,18 @@ export function DashboardCalendarTabNova({
               )}
             </div>
           </div>
+        )
+      )}
+
+      {view === "muhurta" && (
+        chartId ? (
+          <NovaPlanMuhurtaPanel lang={lang} chartId={chartId} />
+        ) : (
+          <p className="empty-state">
+            {lang === "ta"
+              ? "தனிப்பயன் முஹூர்த்தம் காண உங்கள் பிறப்பு விவரத்தைச் சேர்க்கவும்."
+              : "Add your birth profile to see personalised best dates & muhurtham."}
+          </p>
         )
       )}
 
