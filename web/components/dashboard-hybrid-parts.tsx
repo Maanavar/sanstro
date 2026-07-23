@@ -149,6 +149,12 @@ function strengthVerdict(score: number, lang: Lang): string {
   if (score >= 35) return lang === "ta" ? "மிதமானது" : "Moderate";
   return lang === "ta" ? "மென்மையானது" : "Gentle";
 }
+// B-11 density pass: the always-visible planet row shows the 6 columns that
+// read at a glance — glyph · graha · rasi · degree · nakshatra · house · flags.
+// Pada and Navamsa (D9) were the two narrowest/most-advanced of the old
+// 10-column grid; they now live one tap down in the expanded row detail
+// (rendered unconditionally there, so nothing is lost).
+const PLANET_ROW_COLS = "44px 1.1fr 1fr .7fr 1.2fr .7fr 1.4fr 32px";
 export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
   lang: Lang; planets: OrbPlanet[]; explanationPlanets?: ChartExplanationPlanet[]; animate: boolean;
 }) {
@@ -195,10 +201,10 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
 
       {/* Expandable table */}
       <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "44px 1.1fr 1fr .7fr 1.2fr .5fr .7fr 1fr 1.4fr 32px", gap: "0 10px", alignItems: "center", padding: "11px 18px", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderBottom: "1px solid var(--color-border)", fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: PLANET_ROW_COLS, gap: "0 10px", alignItems: "center", padding: "11px 18px", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderBottom: "1px solid var(--color-border)", fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)" }}>
           <span /><span>{t("col_graha", lang)}</span><span>{t("col_rasi", lang)}</span><span>{t("col_degree", lang)}</span>
-          <span>{t("col_nakshatra", lang)}</span><span>{t("col_pada", lang)}</span><span>{t("col_house", lang)}</span>
-          <span>{t("col_d9_rasi", lang)}</span><span>{t("col_special", lang)}</span><span />
+          <span>{t("col_nakshatra", lang)}</span><span>{t("col_house", lang)}</span>
+          <span>{t("col_special", lang)}</span><span />
         </div>
         {planets.map((pl) => {
           const isOpen = open === pl.graha;
@@ -212,16 +218,14 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
               <button
                 type="button"
                 onClick={() => setOpen(isOpen ? null : pl.graha)}
-                style={{ width: "100%", textAlign: "left", fontFamily: "inherit", display: "grid", gridTemplateColumns: "44px 1.1fr 1fr .7fr 1.2fr .5fr .7fr 1fr 1.4fr 32px", gap: "0 10px", alignItems: "center", padding: "12px 18px", cursor: "pointer", background: isOpen ? "var(--color-accent-muted)" : "transparent", border: "none" }}
+                style={{ width: "100%", textAlign: "left", fontFamily: "inherit", display: "grid", gridTemplateColumns: PLANET_ROW_COLS, gap: "0 10px", alignItems: "center", padding: "12px 18px", cursor: "pointer", background: isOpen ? "var(--color-accent-muted)" : "transparent", border: "none" }}
               >
                 <span style={{ width: "28px", height: "28px", borderRadius: "8px", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "12px", color: "var(--color-accent-strong)" }}>{GRAHA_GLYPH[pl.graha] ?? ""}</span>
                 <span style={{ fontSize: "13px", fontWeight: 700, color: "var(--color-text-strong)" }}>{tPlanetLord(pl.graha, lang)}</span>
                 <span style={{ fontSize: "12.5px", color: "var(--color-text)" }}>{pl.rasiName}</span>
                 <span style={{ fontSize: "12.5px", color: "var(--color-muted)" }}>{pl.degreeInRasi.toFixed(2)}°</span>
                 <span style={{ fontSize: "12.5px", color: "var(--color-text)" }}>{astro(pl.nakshatraName)}</span>
-                <span style={{ fontSize: "12.5px", color: "var(--color-muted)", textAlign: "center" }}>{pl.pada}</span>
                 <span style={{ fontSize: "12.5px", color: "var(--color-muted)", textAlign: "center" }}>{pl.houseFromLagna}</span>
-                <span style={{ fontSize: "12.5px", color: "var(--color-text)" }}>{RASI_NAMES[pl.d9Rasi] ?? pl.d9Rasi}</span>
                 <span style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
                   {flags.map((f) => (
                     <span key={f.key} style={{ fontSize: "var(--text-xs)", fontWeight: 600, whiteSpace: "nowrap", borderRadius: "999px", padding: "3px 9px", color: f.tone === "success" ? "var(--color-high)" : "var(--color-low)", border: `1px solid ${f.tone === "success" ? "var(--color-high-border)" : "var(--color-low-border)"}`, background: f.tone === "success" ? "var(--color-high-bg)" : "var(--color-low-bg)" }}>{f.label}</span>
@@ -246,6 +250,13 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
                         <span style={{ fontSize: "12.5px", fontWeight: 700, color: scoreColor(score) }}>{score}/100 · {strengthVerdict(score, lang)}</span>
                       </div>
                     )}
+                    {/* Pada + Navamsa (D9) — moved out of the always-visible row
+                        (B-11), surfaced here unconditionally so the data is one
+                        tap away, never lost. */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 28px" }}>
+                      <HyFact label={t("col_pada", lang)} value={String(pl.pada)} />
+                      <HyFact label={t("col_d9_rasi", lang)} value={RASI_NAMES[pl.d9Rasi] ?? String(pl.d9Rasi)} />
+                    </div>
                     {bodyFacets.length > 0 ? (
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px 24px" }}>
                         {bodyFacets.map((f, i) => (
@@ -255,11 +266,11 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
                     ) : expl?.explanation ? (
                       <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", lineHeight: 1.6, color: "var(--color-text)" }}>{lang === "ta" ? expl.explanation.ta : astro(expl.explanation.en)}</p>
                     ) : (
-                      /* Explanation still loading — show the raw facts rather than nothing. */
+                      /* Explanation still loading — show the raw facts rather
+                         than nothing (pada + D9 already render in the strip above). */
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px 24px" }}>
                         <HyFact label={t("col_house", lang)} value={`${pl.houseFromLagna} · ${pl.rasiName}`} />
-                        <HyFact label={t("col_nakshatra", lang)} value={`${astro(pl.nakshatraName)} · ${t("col_pada", lang)} ${pl.pada}`} />
-                        <HyFact label={t("col_d9_rasi", lang)} value={RASI_NAMES[pl.d9Rasi] ?? String(pl.d9Rasi)} />
+                        <HyFact label={t("col_nakshatra", lang)} value={astro(pl.nakshatraName)} />
                       </div>
                     )}
                     {remedy && (
