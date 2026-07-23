@@ -9,6 +9,7 @@ import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { feedbackSchema, type FeedbackFormValues } from "@/lib/schemas";
 import { ValidatedField, ValidatedTextarea } from "@/components/form/ValidatedField";
+import { Button, Pill } from "@/components/ui";
 import { ModalShell } from "./modal-shell";
 import "./dashboard-feedback-modal.css";
 
@@ -68,12 +69,12 @@ export function FeedbackModal({ lang, onClose }: { lang: Lang; onClose: () => vo
       label={t("feedback_title", lang)}
       onClose={onClose}
       overlayClassName="fbm-overlay"
-      panelClassName="card fbm-panel"
+      panelClassName="fbm-panel"
     >
         <div className="fbm-header">
           <h3 className="fbm-title">{t("feedback_title", lang)}</h3>
-          <button type="button" className="button button--ghost" onClick={onClose} aria-label="Close">
-            <svg viewBox="0 0 24 24" fill="none" width="16" height="16" aria-hidden="true">
+          <button type="button" className="fbm-close" onClick={onClose} aria-label={t("feedback_cancel", lang)}>
+            <svg viewBox="0 0 24 24" fill="none" width="18" height="18" aria-hidden="true">
               <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </button>
@@ -92,11 +93,9 @@ export function FeedbackModal({ lang, onClose }: { lang: Lang; onClose: () => vo
               <span className="fbm-label">{t("feedback_category", lang)}</span>
               <div className="fbm-cat-row">
                 {(["bug", "calculation", "suggestion", "review", "other"] as const).map((c) => (
-                  <button
+                  <Pill
                     key={c}
-                    type="button"
-                    className="button button--ghost fbm-cat-btn"
-                    data-active={category === c}
+                    active={category === c}
                     onClick={() => setValue("category", c)}
                   >
                     {t(
@@ -107,14 +106,14 @@ export function FeedbackModal({ lang, onClose }: { lang: Lang; onClose: () => vo
                         : "feedback_other",
                       lang
                     )}
-                  </button>
+                  </Pill>
                 ))}
               </div>
             </div>
 
             <div className="fbm-field">
               <span className="fbm-label">{t("feedback_rating", lang)}</span>
-              <div className="fbm-star-row" data-has-rating={rating !== null}>
+              <div className="fbm-star-row">
                 {[1, 2, 3, 4, 5].map((n) => (
                   <button
                     key={n}
@@ -140,7 +139,7 @@ export function FeedbackModal({ lang, onClose }: { lang: Lang; onClose: () => vo
                 className="fbm-textarea"
                 rows={4}
                 maxLength={2000}
-                placeholder="..."
+                placeholder={lang === "ta" ? "என்ன நடந்தது அல்லது எதை மேம்படுத்தலாம் என்று சொல்லுங்கள்…" : "Tell us what happened, or what we could improve…"}
                 error={!!errors.message}
                 {...register("message")}
               />
@@ -168,12 +167,12 @@ export function FeedbackModal({ lang, onClose }: { lang: Lang; onClose: () => vo
             </label>
 
             <div className="fbm-actions">
-              <button type="button" className="button button--ghost" onClick={onClose} disabled={isSubmitting}>
+              <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>
                 {t("feedback_cancel", lang)}
-              </button>
-              <button type="submit" className="button button--primary" disabled={isSubmitting}>
+              </Button>
+              <Button type="submit" variant="primary" disabled={isSubmitting}>
                 {isSubmitting ? t("feedback_sending", lang) : t("feedback_send", lang)}
-              </button>
+              </Button>
             </div>
           </form>
         )}

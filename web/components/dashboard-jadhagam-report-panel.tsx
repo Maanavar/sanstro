@@ -71,18 +71,72 @@ const NATURE_LABELS_TA: Record<string, string> = {
   KENDRA: "கேந்திர", MARAKA: "மாரகன்", DUSTHANA: "துஷ்டான", NEUTRAL: "நடுநிலை",
 };
 
-function NatureBadge({ planet, nature, lang }: { planet: string; nature: string; lang: Lang }) {
+// Humanization (docs/family-charts-humanization-audit.md — Phase 5): the
+// functional-nature enum is Level-5 jargon on its own. Each gloss is the role's
+// universal, textbook meaning (true for the role, not fabricated per person), so
+// a newcomer reads what the classification *means* instead of a bare label. The
+// two "hard" roles (Maraka / Dusthana) are framed as growth, never as a scare.
+const NATURE_GLOSS: Record<string, { ta: string; en: string }> = {
+  LAGNA_LORD: { ta: "உங்கள் ஆளுமை, உடல்நலம் மற்றும் வழியை வழிநடத்தும் கிரகம்.", en: "steers your overall self, health and direction." },
+  YOGAKARAKA: { ta: "உங்களுக்கு வெற்றியும் வளர்ச்சியும் தரும் சாதக காரகன்.", en: "a success-bringing planet that lifts your chart." },
+  TRIKONA:    { ta: "அதிர்ஷ்டம், தர்மம் மற்றும் நல்வாய்ப்புகளுக்கு ஆதரவு.", en: "supports fortune, purpose and good opportunities." },
+  KENDRA:     { ta: "வாழ்க்கைக்கு நிலைத்தன்மை தரும் ஆதார கிரகம்.", en: "an anchor planet that lends stability to life." },
+  MARAKA:     { ta: "வாழ்க்கையின் முக்கியத் திருப்பங்களைக் குறிக்கிறது — விழிப்புடன் அணுகுங்கள்.", en: "marks life's turning points — meet them with awareness." },
+  DUSTHANA:   { ta: "சவால்கள் மற்றும் அவற்றின் வழியாக வரும் வளர்ச்சியைச் சுமக்கிறது.", en: "carries life's challenges — and the growth that comes through them." },
+  NEUTRAL:    { ta: "சமநிலையான, பின்னணியில் இயங்கும் தாக்கம்.", en: "a balanced, background influence." },
+};
+
+// One planet's functional role rendered meaning-first: name + role chip, then a
+// plain-language gloss of what that role does. Replaces the bare enum pill.
+function NatureRow({ planet, nature, lang }: { planet: string; nature: string; lang: Lang }) {
   const color = NATURE_COLORS[nature] ?? "var(--color-faint)";
   const planetLabel = lang === "ta" ? (PLANET_NAMES_TA[planet] ?? planet) : planet;
   const natureLabel = lang === "ta" ? (NATURE_LABELS_TA[nature] ?? nature) : nature.replace(/_/g, " ");
+  const gloss = NATURE_GLOSS[nature];
   return (
     <div style={{
-      display: "flex", alignItems: "center", gap: "var(--space-1)",
-      padding: "var(--space-1) var(--space-2_5)", borderRadius: "var(--radius-pill)",
-      background: "var(--panel-cream)", border: "1px solid var(--color-border)",
+      display: "flex", flexDirection: "column", gap: "var(--space-0_75)",
+      borderBottom: "1px solid var(--color-bg)", paddingBottom: "var(--space-2)",
     }}>
-      <span style={{ fontSize: "0.75rem", color: "var(--color-text)", fontWeight: 600 }}>{planetLabel}</span>
-      <span style={{ fontSize: "0.625rem", fontWeight: 700, color, textTransform: "uppercase", letterSpacing: "0.04em" }}>{natureLabel}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+        <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-text-strong)" }}>{planetLabel}</span>
+        <span style={{
+          fontSize: "0.625rem", fontWeight: 700, color, textTransform: "uppercase", letterSpacing: "0.04em",
+          border: `1px solid ${color}44`, borderRadius: "var(--radius-pill)",
+          padding: "var(--space-0_5) var(--space-2)", background: "var(--panel-cream)",
+        }}>{natureLabel}</span>
+      </div>
+      {gloss && (
+        <span style={{ fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.45 }}>
+          {lang === "ta" ? gloss.ta : gloss.en}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// Collapsed "Technical details" disclosure — the file-local twin of
+// HyTechnicalDetails on Family & Charts. Keeps Level-5 mechanics one tap down so
+// the meaning-first summary above it always leads.
+function TechnicalDisclosure({ label, children }: { label: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          display: "flex", alignItems: "center", gap: "var(--space-1_5)",
+          background: "transparent", border: "none", cursor: "pointer",
+          fontFamily: "var(--font-body)", padding: 0,
+          fontSize: "0.6875rem", letterSpacing: "0.1em", fontWeight: 700,
+          color: "var(--color-faint)", textTransform: "uppercase",
+        }}
+      >
+        <span style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .15s", fontSize: "0.625rem" }}>▸</span>
+        {label}
+      </button>
+      {open && <div style={{ marginTop: "var(--space-2_5)" }}>{children}</div>}
     </div>
   );
 }
@@ -362,23 +416,36 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaD
         </p>
       </Section>
 
-      {/* ── Planet strength ── */}
+      {/* ── Planet strength ──────────────────────────────────────────────────
+          Humanization (docs/family-charts-humanization-audit.md — Phase 5):
+          lead with plain-language meaning + a reassurance frame for the weak
+          planets (a bare score is what creates anxiety), then tuck the raw
+          per-planet bars one tap down. Both lines are built from the engine's
+          own strong/weak buckets — not Barnum — and nothing is recomputed. */}
       <Section title={t("jadhagam_planet_strength", lang)} accent="rgba(251,191,36,0.35)">
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-          {allPlanets.map((item) => (
-            <StrengthBar key={item.planet} planet={item.planet} score={item.score} lang={lang} />
-          ))}
-        </div>
-        {strongNames.length > 0 && (
-          <p style={{ margin: "var(--space-1) 0 0", fontSize: "0.75rem", color: "var(--color-score-high)", lineHeight: 1.4 }}>
-            {lang === "ta" ? `வலுவான: ${strongNames.join(", ")}` : `Strong: ${strongNames.join(", ")}`}
-          </p>
-        )}
+        <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-text)", lineHeight: 1.55 }}>
+          {strongNames.length > 0
+            ? (lang === "ta"
+                ? `உங்கள் ஜாதகத்தின் உறுதியான ஆதரவுகள்: ${strongNames.join(", ")}. வேகம் தேவைப்படும்போது இவற்றை நம்பலாம்.`
+                : `Your steadiest supports are ${strongNames.join(", ")}. Lean on them when you need momentum.`)
+            : (lang === "ta"
+                ? "உங்கள் ஜாதகம் சமநிலையாக இயங்குகிறது — எந்த ஒரு கிரகமும் தனித்து மேலோங்கவில்லை."
+                : "Your chart runs fairly even — no single planet dominates the rest.")}
+        </p>
         {weakNames.length > 0 && (
-          <p style={{ margin: "0", fontSize: "0.75rem", color: "var(--color-score-low)", lineHeight: 1.4 }}>
-            {lang === "ta" ? `ஆதரவு தேவை: ${weakNames.join(", ")}` : `Needs support: ${weakNames.join(", ")}`}
+          <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+            {lang === "ta"
+              ? `${weakNames.join(", ")} கூடுதல் கவனம் கேட்கின்றன — இது குறையல்ல; அந்தத் துறைகள் பொறுமையையும் தொடர் முயற்சியையும் வெகுமதி செய்கின்றன.`
+              : `${weakNames.join(", ")} ${weakNames.length > 1 ? "ask" : "asks"} for more care — that isn't a flaw; those areas simply reward patience and steady effort.`}
           </p>
         )}
+        <TechnicalDisclosure label={lang === "ta" ? "தொழில்நுட்ப விவரங்கள்" : "Technical details"}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+            {allPlanets.map((item) => (
+              <StrengthBar key={item.planet} planet={item.planet} score={item.score} lang={lang} />
+            ))}
+          </div>
+        </TechnicalDisclosure>
       </Section>
 
       {/* ── Functional nature ── */}
@@ -388,9 +455,9 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaD
             ? "ஒவ்வொரு கிரகத்தின் லக்னத்திற்கு உரிய செயல்பாட்டு பொறுப்பு:"
             : "Each planet's functional role relative to the lagna:"}
         </p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1_5)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           {Object.entries(functionalNatureTable).map(([planet, nature]) => (
-            <NatureBadge key={planet} planet={planet} nature={nature} lang={lang} />
+            <NatureRow key={planet} planet={planet} nature={nature} lang={lang} />
           ))}
         </div>
       </Section>

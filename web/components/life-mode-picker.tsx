@@ -64,22 +64,16 @@ export function LifeModePicker({ lang, currentMode, blockedModes, onClose, onSel
     <ModalShell
       label={lang === "ta" ? "இப்போது எதில் கவனம்?" : "What are you focused on right now?"}
       onClose={onClose}
-      overlayStyle={{
-        zIndex: 9998,
-        alignItems: "flex-end",
-        padding: 0,
-        background: "var(--ink-overlay)",
-        backdropFilter: "blur(4px)",
-      }}
+      overlayStyle={{ zIndex: 9998 }}
       panelStyle={{
-        width: "100%", maxWidth: "640px", maxHeight: "88vh", overflowY: "auto",
-        background: "var(--color-surface, var(--panel-cream-light))", borderTopLeftRadius: "24px", borderTopRightRadius: "24px",
-        padding: "clamp(20px, 4vw, 32px)", boxShadow: "0 -12px 48px rgba(0,0,0,0.3)",
+        width: "100%", maxWidth: "600px", maxHeight: "88vh", overflowY: "auto",
+        background: "var(--color-surface-soft)",
+        border: "1px solid var(--color-border)",
+        borderRadius: "20px",
+        padding: "clamp(20px, 4vw, 32px)", boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
         fontFamily: "var(--font-body)",
       }}
     >
-        <div style={{ width: "40px", height: "4px", borderRadius: "2px", background: "var(--color-border-strong, var(--panel-tan))", margin: "0 auto 18px" }} />
-
         <p style={{ margin: "0 0 6px", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent, var(--panel-brand))" }}>
           {lang === "ta" ? "உங்கள் கவனம்" : "Your focus"}
         </p>
