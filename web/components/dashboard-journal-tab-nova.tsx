@@ -20,9 +20,8 @@ import type {
 
 import { Chip } from "./dashboard-ui";
 import { NovaProgressBar } from "./dashboard-ui-nova";
-import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 import { NovaSelect } from "./nova-select";
-import { Segmented } from "./ui";
+import { Card, Segmented } from "./ui";
 import {
   AREA_KEY,
   CTX_TYPE_KEY,
@@ -34,9 +33,8 @@ import type { ContextEventType, LifeArea } from "./dashboard-journal-shared";
  * Nova Journal tab — Phase 11 of the dashboard revamp, the last of the 4
  * newly-discovered mockup screens (docs/DASHBOARD_UI_REVAMP_PLAN.md §6.11).
  * A full tab-level screen (own 3-way sub-nav: Write/Entries/Reflections)
- * like Life Areas/Plan's Nova tabs, not a detail drill-down — no shared
- * shell with dashboard-explore-detail-nova.tsx applies beyond its generic
- * `novaDetailCardStyle` card container.
+ * like Life Areas/Plan's Nova tabs, not a detail drill-down. Card surfaces
+ * use the shared <Card> primitive (kit adoption, audit B-7).
  *
  * Unlike Phase 9/10 (which could defer 4 sub-tabs as reused-Classic-styled
  * verbatim), all three sub-tabs here needed a fresh rebuild: Classic's own
@@ -117,7 +115,7 @@ function NovaShadowPromptsCard({ lang, mode, chartId }: { lang: Lang; mode: "BEG
   }
 
   return (
-    <div style={novaDetailCardStyle}>
+    <Card>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
         <div>
           <p style={{ ...kickerStyle, margin: 0 }}>{t("shadow_prompts_title", lang)}</p>
@@ -166,7 +164,7 @@ function NovaShadowPromptsCard({ lang, mode, chartId }: { lang: Lang; mode: "BEG
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -332,11 +330,11 @@ export function DashboardJournalTabNova({
 
   if (!hasBirthProfile) {
     return (
-      <div style={{ ...novaDetailCardStyle, border: "1px dashed var(--color-border-strong)" }}>
+      <Card style={{ border: "1px dashed var(--color-border-strong)" }}>
         <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)" }}>
           {lang === "ta" ? "முதலில் ஒரு பிறந்த நாள் சுயவிவரம் உருவாக்கவும்." : "Create a birth profile first."}
         </p>
-      </div>
+      </Card>
     );
   }
 
@@ -400,7 +398,7 @@ export function DashboardJournalTabNova({
       {journalSubTab === "write" && (
         <div className="nova-grid-detail">
           {/* New entry */}
-          <div style={novaDetailCardStyle}>
+          <Card>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
               <span style={kickerStyle}>
                 {lang === "ta" ? "புதிய குறிப்பு" : "New entry"} · {formatEntryHeading(entryDate, lang)}
@@ -485,12 +483,12 @@ export function DashboardJournalTabNova({
               {saveSuccess && <span style={{ fontSize: "0.75rem", color: "var(--color-high)" }}>{t("journal_saved", lang)}</span>}
               {saveError && <span style={{ fontSize: "0.75rem", color: "var(--color-low)" }}>{saveError}</span>}
             </div>
-          </div>
+          </Card>
 
           {/* Right rail */}
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {journalCorrelations && (
-              <div style={novaDetailCardStyle}>
+              <Card>
                 <span style={kickerStyle}>{t("journal_patterns_label", lang)}</span>
                 {!journalCorrelations.hasSufficientData ? (
                   <>
@@ -518,14 +516,14 @@ export function DashboardJournalTabNova({
                     ))}
                   </div>
                 )}
-              </div>
+              </Card>
             )}
 
             {/* Read-only "active life context" — the editable home is now
                 Settings → Life context (IA audit 2026-07-22, Phase 4). The
                 diary still shows what context the engine is using, without
                 being the place you edit it. */}
-            <div style={novaDetailCardStyle}>
+            <Card>
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "10px", flexWrap: "wrap" }}>
                 <span style={kickerStyle}>{t("context_section_label", lang)}</span>
                 <button
@@ -554,23 +552,23 @@ export function DashboardJournalTabNova({
               ) : (
                 <p style={{ margin: 0, fontSize: "11.5px", color: "var(--color-faint)" }}>{t("context_no_events", lang)}</p>
               )}
-            </div>
+            </Card>
 
-            <div style={{ ...novaDetailCardStyle, background: "linear-gradient(135deg, var(--color-accent-secondary-muted), var(--color-surface) 60%)", border: "1px solid var(--color-accent-secondary)" }}>
+            <Card style={{ background: "linear-gradient(135deg, var(--color-accent-secondary-muted), var(--color-surface) 60%)", border: "1px solid var(--color-accent-secondary)" }}>
               <span style={{ ...kickerStyle, color: "var(--color-accent-secondary)" }}>{lang === "ta" ? "ஏன் இங்கே பதிவு செய்ய வேண்டும்?" : "Why journal here?"}</span>
               <p style={{ margin: 0, fontSize: "12.5px", lineHeight: 1.6, color: "var(--color-text)" }}>
                 {lang === "ta"
                   ? "ஜோதிடம் முன்னறிவிப்பைத் தருகிறது; உங்கள் நாட்குறிப்பு உண்மையில் நடந்த வானிலையைப் பதிவு செய்கிறது. இரண்டும் சேர்ந்து எதை நம்பலாம் என்பதைக் காட்டும்."
                   : "Astrology gives the forecast; your journal records the weather that actually arrived. Together they tell you what to trust."}
               </p>
-            </div>
+            </Card>
           </div>
         </div>
       )}
 
       {/* ===== Sub-tab: Entries ===== */}
       {journalSubTab === "entries" && (
-        <div style={novaDetailCardStyle}>
+        <Card>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
             <span style={kickerStyle}>
               {t("journal_list_label", lang)}{journalTotal > 0 ? ` | ${journalTotal} ${t("journal_total_count", lang)}` : ""}
@@ -659,13 +657,13 @@ export function DashboardJournalTabNova({
               ))}
             </div>
           )}
-        </div>
+        </Card>
       )}
 
       {/* ===== Sub-tab: Reflections ===== */}
       {journalSubTab === "reflections" &&
         (mode === "BEGINNER" ? (
-          <div style={{ ...novaDetailCardStyle, alignItems: "center", textAlign: "center" }}>
+          <Card style={{ alignItems: "center", textAlign: "center" }}>
             <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
               {lang === "ta" ? "ஆழமான சிந்தனைகள்" : "Deep Reflections"}
             </p>
@@ -674,7 +672,7 @@ export function DashboardJournalTabNova({
                 ? "இந்த பகுதி Balanced அல்லது Traditional பயன்பாட்டில் கிடைக்கும். Settings → Preferences-ல் மாற்றவும்."
                 : "Available in Balanced or Traditional mode. Change in Settings -> Preferences."}
             </p>
-          </div>
+          </Card>
         ) : (
           <NovaShadowPromptsCard lang={lang} mode={mode} chartId={chartId} />
         ))}
