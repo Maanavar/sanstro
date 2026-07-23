@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Sparkles, AlertTriangle, Clover, Flame, Landmark, Moon, type LucideIcon } from "lucide-react";
 
 import type { Lang } from "@/lib/i18n";
 import { tPlanetLord } from "@/lib/i18n";
@@ -71,7 +72,8 @@ function NovaKicker({ children, color = "var(--color-accent)" }: { children: Rea
 
 type LibraryItem = {
   key: string;
-  icon: string;
+  /** B-8 — lucide across the library launcher grid, not per-OS emoji. */
+  icon: LucideIcon;
   iconColor: string;
   iconBg: string;
   titleEn: string;
@@ -91,7 +93,7 @@ type LibraryItem = {
 const LIBRARY_ITEMS: LibraryItem[] = [
   {
     key: "natchathiram",
-    icon: "✦",
+    icon: Sparkles,
     iconColor: "var(--color-accent-strong)",
     iconBg: "var(--color-accent-muted)",
     titleEn: "Natchathiram",
@@ -102,7 +104,7 @@ const LIBRARY_ITEMS: LibraryItem[] = [
   },
   {
     key: "dosham",
-    icon: "⚠",
+    icon: AlertTriangle,
     iconColor: "var(--color-low)",
     iconBg: "var(--color-low-bg)",
     titleEn: "Dosham",
@@ -113,7 +115,7 @@ const LIBRARY_ITEMS: LibraryItem[] = [
   },
   {
     key: "yogam",
-    icon: "☘",
+    icon: Clover,
     iconColor: "var(--color-high)",
     iconBg: "var(--color-high-bg)",
     titleEn: "Yogam",
@@ -124,7 +126,7 @@ const LIBRARY_ITEMS: LibraryItem[] = [
   },
   {
     key: "pariharam",
-    icon: "🪔",
+    icon: Flame,
     iconColor: "var(--color-accent-strong)",
     iconBg: "var(--color-accent-muted)",
     titleEn: "Pariharam",
@@ -135,7 +137,7 @@ const LIBRARY_ITEMS: LibraryItem[] = [
   },
   {
     key: "temples",
-    icon: "🛕",
+    icon: Landmark,
     iconColor: "var(--color-accent-secondary)",
     iconBg: "var(--color-accent-secondary-muted)",
     titleEn: "Temples",
@@ -146,7 +148,7 @@ const LIBRARY_ITEMS: LibraryItem[] = [
   },
   {
     key: "panchangam",
-    icon: "◐",
+    icon: Moon,
     iconColor: "var(--color-accent-secondary)",
     iconBg: "var(--color-accent-secondary-muted)",
     titleEn: "Panchangam",
@@ -530,8 +532,8 @@ export function DashboardExploreTabNova({
               const isLoadingChartDetail = !!item.openDetail && !item.nav && !canOpenDetail;
               const inner = (
                 <>
-                  <span style={{ flex: "none", width: "40px", height: "40px", borderRadius: "50%", background: item.iconBg, border: `1px solid ${item.iconColor}`, display: "grid", placeItems: "center", fontSize: "17px", color: item.iconColor }}>
-                    {item.icon}
+                  <span style={{ flex: "none", width: "40px", height: "40px", borderRadius: "50%", background: item.iconBg, border: `1px solid ${item.iconColor}`, display: "grid", placeItems: "center", color: item.iconColor }}>
+                    <item.icon size={19} strokeWidth={2} aria-hidden focusable={false} />
                   </span>
                   <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
                     <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
@@ -631,7 +633,7 @@ export function DashboardExploreTabNova({
           background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-accent-secondary)", borderRadius: "var(--radius-md)", padding: "16px 22px",
         }}
       >
-        <span style={{ width: "32px", height: "32px", borderRadius: "50%", background: "var(--color-accent-secondary-muted)", border: "1px solid var(--color-accent-secondary)", display: "grid", placeItems: "center", fontSize: "15px", color: "var(--color-accent-secondary)", flexShrink: 0 }}>
+        <span aria-hidden="true" style={{ width: "32px", height: "32px", borderRadius: "50%", background: "var(--color-accent-secondary-muted)", border: "1px solid var(--color-accent-secondary)", display: "grid", placeItems: "center", fontSize: "15px", color: "var(--color-accent-secondary)", flexShrink: 0 }}>
           {"✦"}
         </span>
         <div style={{ flex: 1 }}>

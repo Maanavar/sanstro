@@ -1,6 +1,10 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import {
+  ScrollText, CalendarDays, History, Sunrise, Moon, Sparkles, Timer, CalendarClock,
+  HeartHandshake, type LucideIcon,
+} from "lucide-react";
 
 import type { Lang } from "@/lib/i18n";
 import type { ChartCalculateResponseData, RelationshipAlertItem, VarshaphalaData } from "@/lib/types";
@@ -107,7 +111,8 @@ function NovaToolIsland({ children }: { children: React.ReactNode }) {
 
 type ToolCardSpec = {
   id: string;
-  icon: string;
+  /** B-8 — one icon language (lucide) across the launcher grid, not per-OS emoji. */
+  icon: LucideIcon;
   color: string;
   nameEn: string;
   nameTa: string;
@@ -188,63 +193,63 @@ export function DashboardToolsTabNova({
   const ownerChartId = ownerChart?.chartId ?? personalChartId;
   const TOOLS: ToolCardSpec[] = [
     {
-      id: "chartgen", icon: "📜", color: "var(--color-accent-strong)",
+      id: "chartgen", icon: ScrollText, color: "var(--color-accent-strong)",
       nameEn: "Jadhagam Generator", nameTa: "ஜாதகம் உருவாக்கி",
       descEn: "Full horoscope from birth details — D1 & D9 charts, dasa table, yogams — as a shareable PDF.",
       descTa: "பிறந்த விவரங்களிலிருந்து முழு ஜாதகம் — D1 & D9 அட்டவணைகள், தசை அட்டவணை, யோகங்கள் — PDF ஆக.",
       metaEn: "needs · birth details", metaTa: "தேவை · பிறப்பு விவரங்கள்", kind: "inline",
     },
     {
-      id: "wrapped", icon: "🗓", color: "var(--color-accent-secondary)",
+      id: "wrapped", icon: CalendarDays, color: "var(--color-accent-secondary)",
       nameEn: "Annual Wrapped", nameTa: "ஆண்டு சுருக்கம்",
       descEn: "Review the dasa transitions and Jothidam themes that shaped a year.",
       descTa: "ஒரு ஆண்டை வடிவமைத்த தசை மாற்றங்கள் மற்றும் ஜோதிட கருப்பொருள்கள்.",
       metaEn: "uses · your saved chart", metaTa: "பயன்படுத்துவது · உங்கள் ஜாதகம்", disabled: needsProfile, kind: "inline",
     },
     {
-      id: "retro", icon: "🔍", color: "var(--color-high)",
+      id: "retro", icon: History, color: "var(--color-high)",
       nameEn: "Retrospective", nameTa: "பின்னோக்கு பார்வை",
       descEn: "Enter a past event and compare it with dasha and transit signatures.",
       descTa: "கடந்த நிகழ்வை தசை மற்றும் கிரகநகர்வு வடிவங்களுடன் ஒப்பிடு.",
       metaEn: "uses · your saved chart", metaTa: "பயன்படுத்துவது · உங்கள் ஜாதகம்", disabled: needsProfile, kind: "inline",
     },
     {
-      id: "muhurta", icon: "☀", color: "var(--color-high)",
+      id: "muhurta", icon: Sunrise, color: "var(--color-high)",
       nameEn: "Muhurta Finder", nameTa: "முகூர்த்தம்",
       descEn: "Best date and hour for a wedding, gruhapravesam or new venture — scored against your chart.",
       descTa: "திருமணம், கிரகப்பிரவேசம் அல்லது புதிய முயற்சிக்கான சிறந்த தேதி/நேரம் — உங்கள் ஜாதகத்திற்கேற்ப.",
       metaEn: "in · Plan tab", metaTa: "இதில் · Plan தாவல்", kind: "cross-nav",
     },
     {
-      id: "panchangam", icon: "◐", color: "var(--color-accent-secondary)",
+      id: "panchangam", icon: Moon, color: "var(--color-accent-secondary)",
       nameEn: "Panchangam Planner", nameTa: "பஞ்சாங்கம்",
       descEn: "Day-by-day almanac for any date and place — nalla neram, rahu kalam, tithi and star windows.",
       descTa: "எந்த தேதி மற்றும் இடத்திற்கும் அன்றாட பஞ்சாங்கம் — நல்ல நேரம், ராகு காலம், திதி, நட்சத்திரம்.",
       metaEn: "in · Calendar tab", metaTa: "இதில் · Calendar தாவல்", kind: "cross-nav",
     },
     {
-      id: "rasipalan", icon: "✦", color: "var(--color-accent-strong)",
+      id: "rasipalan", icon: Sparkles, color: "var(--color-accent-strong)",
       nameEn: "Indraiya Rasipalan", nameTa: "இன்றைய ராசிபலன்",
       descEn: "Today's palan for all 12 rasis — read one for a friend, or share the day's outlook.",
       descTa: "12 ராசிகளுக்குமான இன்றைய பலன் — நண்பருக்காக படியுங்கள் அல்லது பகிருங்கள்.",
       metaEn: "today's transits", metaTa: "இன்றைய கிரகநிலை", kind: "inline",
     },
     {
-      id: "activityTiming", icon: "⏱", color: "var(--color-high)",
+      id: "activityTiming", icon: Timer, color: "var(--color-high)",
       nameEn: "Activity Timing", nameTa: "செயல் நேரம்",
       descEn: "Find the strongest dates this month for travel, signing, moving in, or any activity — scored against your chart.",
       descTa: "பயணம், ஒப்பந்தம், வீடு மாறுதல் அல்லது எந்த செயலுக்கும் இந்த மாதம் சிறந்த தேதிகளைக் கண்டறியுங்கள் — உங்கள் ஜாதகத்திற்கேற்ப.",
       metaEn: "uses · your saved chart", metaTa: "பயன்படுத்துவது · உங்கள் ஜாதகம்", disabled: needsProfile, kind: "inline",
     },
     {
-      id: "varshaphala", icon: "☀", color: "var(--color-accent-strong)",
+      id: "varshaphala", icon: CalendarClock, color: "var(--color-accent-strong)",
       nameEn: "Varshaphala — Annual Chart", nameTa: "வர்ஷபலம் — ஆண்டு ஜாதகம்",
       descEn: "Your solar-return year chart — muntha, year lord, and a month-by-month outlook for any year.",
       descTa: "உங்கள் சூரிய வருடாந்திர ஜாதகம் — முந்தை, ஆண்டு அதிபதி, மற்றும் மாதம் வாரியான பலன்.",
       metaEn: "uses · your saved chart", metaTa: "பயன்படுத்துவது · உங்கள் ஜாதகம்", disabled: needsProfile, kind: "inline",
     },
     {
-      id: "synastry", icon: "◇", color: "var(--color-accent-secondary)",
+      id: "synastry", icon: HeartHandshake, color: "var(--color-accent-secondary)",
       nameEn: "Compatibility", nameTa: "பொருத்தம் / இணக்கம்",
       descEn: "Cross-chart synastry for any two people in your family — a harmony score, supportive and tension points, and a relationship read.",
       descTa: "உங்கள் குடும்பத்தில் இருவரின் ஜாதகப் பொருத்தம் — இணக்க மதிப்பெண், ஆதரவு/பதற்றப் புள்ளிகள், உறவு விளக்கம்.",
@@ -263,7 +268,9 @@ export function DashboardToolsTabNova({
     return (
       <>
         <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
-          <span style={{ flex: "none", width: "38px", height: "38px", borderRadius: "50%", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "16px", color: tool.color }}>{tool.icon}</span>
+          <span style={{ flex: "none", width: "38px", height: "38px", borderRadius: "50%", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", color: tool.color }}>
+            <tool.icon size={18} strokeWidth={2} aria-hidden focusable={false} />
+          </span>
           <div style={{ fontSize: "14.5px", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? tool.nameTa : tool.nameEn}</div>
         </div>
         <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-text)" }}>{lang === "ta" ? tool.descTa : tool.descEn}</div>
