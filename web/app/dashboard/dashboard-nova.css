@@ -54,6 +54,40 @@
      to prose/guidance copy as each screen is built, not blanket here. ── */
   --font-display: var(--font-nova-display), Georgia, serif;
   --font-body: system-ui, -apple-system, sans-serif;
+
+  /* ── Type scale (audit B-6) ──────────────────────────────────────────────
+     A real 7-step ladder that retires the 23 freehand px literals and the
+     sub-11px floor found across the tab files. `xs` (11px) is the legibility
+     floor — nothing rendering real content, Tamil or Latin, goes below it
+     (audit B-2). Half-pixel steps (8.5/9.5/…/15.5) are gone. Consumed by the
+     component kit (web/components/ui/) and, going forward, every tab that
+     converts to it. Structural/mode-invariant, so identical in dark + light. */
+  --text-xs: 11px;   /* data labels · captions · table headers (floor) */
+  --text-sm: 12px;   /* secondary UI · chips · pills */
+  --text-base: 14px; /* body / UI default */
+  --text-md: 16px;   /* emphasised body · lead-in */
+  --text-lg: 20px;   /* card title (h3) */
+  --text-xl: 26px;   /* section title (h2) */
+  --text-2xl: 34px;  /* page title (h1) */
+
+  /* Line-heights paired to the scale (unitless → scale with font-size). */
+  --leading-tight: 1.2;
+  --leading-snug: 1.4;
+  --leading-normal: 1.55;
+
+  /* ── Touch-target floor (audit B-3): 44px (Apple HIG) / 48dp (Material).
+     The kit's <Button>/<Pill>/<Segmented> enforce this on coarse pointers via
+     the `@media (pointer: coarse)` rules in the COMPONENT KIT section below,
+     which an inline style can't express — the reason those must be primitives. */
+  --touch-target: 44px;
+
+  /* ── Named motion aliases (audit B-10) over the existing --dur-* scale, so
+     the kit reads intent, not raw ms. Interactions settle fast (toggle/nav),
+     content reveals slower. All still collapse to instant under the
+     reduced-motion guard at the end of this file. ── */
+  --motion-toggle: var(--dur-fast); /* 120ms — press / toggle feedback */
+  --motion-nav: var(--dur-base);    /* 220ms — nav / colour settle */
+  --motion-reveal: var(--dur-slow); /* 420ms — content reveal */
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -2075,6 +2109,203 @@
    via its own children's normal --color-surface / --color-surface-soft
    cards (the ChartExplanationPanel box, VargasPanel, ShadbalaPanel, the
    dasha panels below it — none of which need help from a wrapper). */
+
+/* ═══════════════════════════════════════════════════════════
+   COMPONENT KIT (audit B-7 — "the keystone").
+   The shared primitives in web/components/ui/ apply these classes.
+   They exist as CSS (not inline styles) for the one thing inline
+   styles cannot do: `@media (pointer: coarse)` for the 44px touch
+   floor (audit B-3), and one definition every screen is consistent
+   *to* (audit A-1's 7 nav patterns collapse to <Segmented>). All read
+   the token layer above, so dark/light + reduced-motion come for free.
+   Scoped under .cd-shell so tokens resolve and Classic never sees them.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Card / Panel — mirrors the long-standing novaDetailCardStyle so the
+   two are interchangeable during the incremental rollout. ── */
+[data-ui="nova"] .cd-shell .ui-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+[data-ui="nova"] .cd-shell .ui-card--soft { background: var(--color-surface-soft); }
+[data-ui="nova"] .cd-shell .ui-card--accent {
+  background: var(--color-accent-muted);
+  border-color: var(--color-border-strong);
+}
+[data-ui="nova"] .cd-shell .ui-card--dashed {
+  background: color-mix(in srgb, var(--color-text-strong) 3%, transparent);
+  border-style: dashed;
+  border-color: var(--color-border-strong);
+}
+[data-ui="nova"] .cd-shell .ui-card--pad-sm { padding: 14px 16px; }
+
+/* ── Segmented — the one replacement for the 7 hand-rolled sub-navs. ── */
+[data-ui="nova"] .cd-shell .ui-segmented {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 11px;
+  padding: 4px;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+[data-ui="nova"] .cd-shell .ui-segmented::-webkit-scrollbar { display: none; }
+[data-ui="nova"] .cd-shell .ui-segmented__btn {
+  appearance: none;
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  border-radius: 8px;
+  padding: 9px 13px;
+  min-height: 34px;
+  cursor: pointer;
+  transition:
+    background var(--motion-nav) var(--ease-nova),
+    color var(--motion-nav) var(--ease-nova);
+}
+[data-ui="nova"] .cd-shell .ui-segmented__btn:hover:not([aria-selected="true"]) {
+  color: var(--color-text-strong);
+}
+[data-ui="nova"] .cd-shell .ui-segmented__btn[aria-selected="true"] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: 700;
+}
+[data-ui="nova"] .cd-shell .ui-segmented__btn:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+
+/* ── Button / Pill — the 44px-safe replacement for inline buttons. ── */
+[data-ui="nova"] .cd-shell .ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 9px;
+  padding: 10px 16px;
+  min-height: 38px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    background var(--motion-nav) var(--ease-nova),
+    border-color var(--motion-nav) var(--ease-nova),
+    color var(--motion-nav) var(--ease-nova),
+    transform var(--motion-toggle) var(--ease-nova);
+}
+[data-ui="nova"] .cd-shell .ui-btn:active { transform: translateY(1px); }
+[data-ui="nova"] .cd-shell .ui-btn:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+[data-ui="nova"] .cd-shell .ui-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+[data-ui="nova"] .cd-shell .ui-btn--primary {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+}
+[data-ui="nova"] .cd-shell .ui-btn--primary:hover:not(:disabled) {
+  background: var(--color-accent-strong);
+  border-color: var(--color-accent-strong);
+}
+[data-ui="nova"] .cd-shell .ui-btn--secondary {
+  background: transparent;
+  color: var(--color-text-accent);
+  border-color: var(--color-border-strong);
+}
+[data-ui="nova"] .cd-shell .ui-btn--secondary:hover:not(:disabled) { border-color: var(--color-accent); }
+[data-ui="nova"] .cd-shell .ui-btn--ghost {
+  background: transparent;
+  color: var(--color-text-accent);
+  border-color: transparent;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+[data-ui="nova"] .cd-shell .ui-btn--ghost:hover:not(:disabled) { color: var(--color-accent-strong); }
+[data-ui="nova"] .cd-shell .ui-btn--sm {
+  font-size: var(--text-xs);
+  padding: 6px 12px;
+  min-height: 32px;
+  border-radius: 8px;
+}
+/* Pill — a toggle chip (member switcher, filters). Selected = gold fill. */
+[data-ui="nova"] .cd-shell .ui-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 999px;
+  padding: 7px 14px;
+  min-height: 32px;
+  background: transparent;
+  color: var(--color-muted);
+  border: 1px solid var(--color-border-strong);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background var(--motion-nav) var(--ease-nova),
+    border-color var(--motion-nav) var(--ease-nova),
+    color var(--motion-nav) var(--ease-nova);
+}
+[data-ui="nova"] .cd-shell .ui-pill:hover:not([aria-pressed="true"]) { color: var(--color-text-strong); }
+[data-ui="nova"] .cd-shell .ui-pill[aria-pressed="true"] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+  font-weight: 700;
+}
+[data-ui="nova"] .cd-shell .ui-pill:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+
+/* ── Score chip — the bucketed zoom of the one score model (audit A-3).
+   Colours come from the canonical scoreBandColor() in JS, applied inline;
+   this only carries layout. ── */
+[data-ui="nova"] .cd-shell .ui-score-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 999px;
+  padding: 4px 10px;
+  min-height: 22px;
+}
+
+/* The 44px touch floor — the reason these are primitives, not inline styles
+   (audit B-3). Coarse pointers (touch) get a full 44px target while the
+   desktop variants stay visually compact. */
+@media (pointer: coarse) {
+  [data-ui="nova"] .cd-shell .ui-segmented__btn,
+  [data-ui="nova"] .cd-shell .ui-btn,
+  [data-ui="nova"] .cd-shell .ui-pill { min-height: var(--touch-target); }
+}
 
 /* ── Reduced-motion guard ──────────────────────────────────
    First-class a11y path: honour the OS preference by collapsing every

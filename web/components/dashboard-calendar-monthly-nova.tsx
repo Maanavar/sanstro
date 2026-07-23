@@ -447,7 +447,11 @@ export function MonthlyCalendarViewNova({
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 300px", gap: "18px", alignItems: "start" }} className="nova-cal-monthly-layout">
           {/* ── Grid ── */}
           <div style={{ minWidth: 0, overflowX: "auto" }}>
-            <div style={{ minWidth: "620px" }}>
+            {/* audit B-5: `min(620px, 100%)` fills the column at desktop widths
+                but never exceeds it, so a 375px phone renders the whole month
+                in-viewport instead of scrolling sideways through it. The
+                overflowX:auto above stays as a graceful fallback only. */}
+            <div style={{ minWidth: "min(620px, 100%)" }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "8px", marginBottom: "8px" }}>
                 {weekdayLabels.map((wd, i) => (
                   <div key={wd} style={{ fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", textAlign: "center", color: i === 0 ? "var(--color-low)" : "var(--color-faint)" }}>
