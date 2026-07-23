@@ -208,7 +208,7 @@ function NovaEventRow({
         </span>
       </span>
       {chartMatch && (
-        <span style={{ fontSize: "9.5px", fontWeight: 800, color: "var(--color-high)", background: "var(--color-high-bg)", borderRadius: "999px", padding: "2px 6px", whiteSpace: "nowrap", flexShrink: 0, marginTop: "2px" }}>
+        <span style={{ fontSize: "var(--text-xs)", fontWeight: 800, color: "var(--color-high)", background: "var(--color-high-bg)", borderRadius: "999px", padding: "2px 6px", whiteSpace: "nowrap", flexShrink: 0, marginTop: "2px" }}>
           {lang === "ta" ? "உங்கள் ஜாதகம்" : "Your chart ✦"}
         </span>
       )}
@@ -539,27 +539,27 @@ export function MonthlyCalendarViewNova({
                           </span>
                         )}
                       </div>
-                      {tamilDay && <span style={{ fontSize: "10px", color: hasFestival ? "var(--color-text)" : "var(--color-faint)" }}>{tamilDay}</span>}
-                      {entry && <span style={{ fontSize: "10px", color: hasFestival ? "var(--color-text)" : "var(--color-faint)" }}>{tTithi(entry.tithiName, lang)}</span>}
+                      {tamilDay && <span style={{ fontSize: "var(--text-xs)", color: hasFestival ? "var(--color-text)" : "var(--color-faint)" }}>{tamilDay}</span>}
+                      {entry && <span style={{ fontSize: "var(--text-xs)", color: hasFestival ? "var(--color-text)" : "var(--color-faint)" }}>{tTithi(entry.tithiName, lang)}</span>}
                       <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: "2px" }}>
                         {visibleFestivals.slice(0, 2).map((f: PanchangamFestival) => (
-                          <span key={f.name} style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr)", alignItems: "center", gap: "5px", fontSize: "9.5px", fontWeight: 500, color: "var(--color-accent-strong)", minWidth: 0 }}>
+                          <span key={f.name} style={{ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr)", alignItems: "center", gap: "5px", fontSize: "var(--text-xs)", fontWeight: 500, color: "var(--color-accent-strong)", minWidth: 0 }}>
                             <NovaFestivalIcon name={f.name} />
                             <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{f.name}</span>
                           </span>
                         ))}
                         {showMuhurtham && (
-                          <span style={{ fontSize: "9.5px", fontWeight: 700, color: "var(--color-high)", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                          <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-high)", display: "inline-flex", alignItems: "center", gap: "3px" }}>
                             <span aria-hidden="true">✦</span>{lang === "ta" ? "முகூர்த்தம்" : "Muhurtham"}
                           </span>
                         )}
                         {showKarinaal && (
-                          <span style={{ fontSize: "9.5px", fontWeight: 700, color: "var(--color-alert-critical-text, var(--color-alert-critical))", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                          <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-alert-critical-text, var(--color-alert-critical))", display: "inline-flex", alignItems: "center", gap: "3px" }}>
                             <span aria-hidden="true">⚠</span>{lang === "ta" ? "கரிநாள்" : "Karinaal"}
                           </span>
                         )}
                         {isToday && (
-                          <span style={{ alignSelf: "flex-start", borderRadius: "999px", background: "color-mix(in srgb, var(--color-text-strong) 14%, transparent)", color: "var(--color-text-strong)", padding: "2px 8px", fontSize: "9.5px", fontWeight: 700 }}>
+                          <span style={{ alignSelf: "flex-start", borderRadius: "999px", background: "color-mix(in srgb, var(--color-text-strong) 14%, transparent)", color: "var(--color-text-strong)", padding: "2px 8px", fontSize: "var(--text-xs)", fontWeight: 700 }}>
                             {lang === "ta" ? "இன்று" : "Today"}
                           </span>
                         )}
@@ -648,7 +648,7 @@ export function MonthlyCalendarViewNova({
 
               {sidebarTab === "vratha" && vrathaGroups.length > 0 && (
                 <div style={{ marginTop: "14px" }}>
-                  <p style={{ margin: "0 0 8px", fontSize: "10.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)", fontWeight: 700 }}>
+                  <p style={{ margin: "0 0 8px", fontSize: "var(--text-xs)", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)", fontWeight: 700 }}>
                     {lang === "ta" ? "விரத வரிசை" : "Vratha sequence"}
                   </p>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
@@ -665,7 +665,7 @@ export function MonthlyCalendarViewNova({
 
               {sidebarTab === "muhurthams" && chartMatchedDates.length > 0 && (
                 <div style={{ marginTop: "14px" }}>
-                  <p style={{ margin: "0 0 8px", fontSize: "10.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-high)", fontWeight: 700 }}>
+                  <p style={{ margin: "0 0 8px", fontSize: "var(--text-xs)", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-high)", fontWeight: 700 }}>
                     {lang === "ta" ? "உங்கள் ஜாதகத்துக்கு ஏற்ற நாட்கள்" : "Best for your chart"}
                   </p>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>

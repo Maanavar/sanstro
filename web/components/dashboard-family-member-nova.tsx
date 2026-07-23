@@ -49,7 +49,7 @@ function NovaCard({ children }: { children: React.ReactNode }) {
 function TimingCard({ label, value, color, borderColor, bgColor }: { label: string; value: string; color: string; borderColor: string; bgColor: string }) {
   return (
     <div style={{ background: bgColor, border: `1px solid ${borderColor}`, borderRadius: "11px", padding: "13px 16px" }}>
-      <div style={{ fontSize: "10px", letterSpacing: "0.1em", color, textTransform: "uppercase", fontWeight: 700 }}>{label}</div>
+      <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", color, textTransform: "uppercase", fontWeight: 700 }}>{label}</div>
       <div style={{ fontSize: "15px", fontWeight: 700, marginTop: "3px", color: "var(--color-text-strong)" }}>{value}</div>
     </div>
   );
@@ -293,7 +293,7 @@ export function DashboardFamilyMemberNova({
         <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: "14px" }}>
           {insight && (
             <div style={{ textAlign: "right", maxWidth: "220px" }}>
-              <div style={{ fontSize: "10.5px", letterSpacing: "0.1em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>{lang === "ta" ? "இன்று" : "Today"}</div>
+              <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>{lang === "ta" ? "இன்று" : "Today"}</div>
               <div style={{ fontSize: "12px", color: "var(--color-muted)" }}>{insight}</div>
             </div>
           )}
@@ -388,7 +388,7 @@ export function DashboardFamilyMemberNova({
                 { label: t("antaram_word", lang), lord: dasha.current.pratyantardasha.lord },
               ].map((row, i) => (
                 <div key={row.label} style={i > 0 ? { borderLeft: "1px solid var(--color-border)", paddingLeft: "18px" } : undefined}>
-                  <div style={{ fontSize: "10px", letterSpacing: "0.1em", color: "var(--color-faint)", textTransform: "uppercase" }}>{row.label}</div>
+                  <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", color: "var(--color-faint)", textTransform: "uppercase" }}>{row.label}</div>
                   <div style={{ fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 600, marginTop: "2px", color: i === 2 ? "var(--color-accent-strong)" : "var(--color-text-strong)" }}>
                     {tPlanetLord(row.lord, lang)}
                   </div>
@@ -456,11 +456,11 @@ export function DashboardFamilyMemberNova({
                         {showAllPlanets && <td style={{ padding: "10px 12px", color: "var(--color-text)" }}>{planet.degreeInRasi.toFixed(2)}°</td>}
                         <td style={{ padding: "10px 12px" }}>
                           {isDasaLord ? (
-                            <span style={{ fontSize: "10px", fontWeight: 700, color: "var(--color-text-accent)" }}>{lang === "ta" ? "தசாதிபதி" : "DASA LORD"}</span>
+                            <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-text-accent)" }}>{lang === "ta" ? "தசாதிபதி" : "DASA LORD"}</span>
                           ) : planet.isRetrograde ? (
-                            <span style={{ fontSize: "10px", fontWeight: 700, color: "var(--color-low)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "5px", padding: "2px 7px" }}>{lang === "ta" ? "வக்ரம்" : "Retro"}</span>
+                            <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-low)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "5px", padding: "2px 7px" }}>{lang === "ta" ? "வக்ரம்" : "Retro"}</span>
                           ) : isStrongest ? (
-                            <span style={{ fontSize: "10px", fontWeight: 700, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "5px", padding: "2px 7px" }}>{lang === "ta" ? "வலுவானது" : "Strongest"}</span>
+                            <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "5px", padding: "2px 7px" }}>{lang === "ta" ? "வலுவானது" : "Strongest"}</span>
                           ) : (
                             <span style={{ color: "var(--color-faint)" }}>—</span>
                           )}
@@ -494,7 +494,7 @@ export function DashboardFamilyMemberNova({
                 const badgeColor = tone === "high" ? "var(--color-high)" : tone === "mid" ? "var(--color-mid)" : "var(--color-low)";
                 return (
                   <div key={`${item.type}-${item.name}-${i}`} style={{ display: "flex", alignItems: "center", gap: "11px", background: bg, border: `1px solid ${border}`, borderRadius: "9px", padding: "10px 13px" }}>
-                    <span style={{ fontSize: "10px", fontWeight: 700, color: "var(--color-on-accent)", background: badgeColor, borderRadius: "5px", padding: "3px 8px", flexShrink: 0 }}>{item.type}</span>
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: badgeColor, borderRadius: "5px", padding: "3px 8px", flexShrink: 0 }}>{item.type}</span>
                     <span style={{ fontSize: "12.5px", fontWeight: 600, flex: 1 }}>{item.name}</span>
                     <span style={{ fontSize: "11px", color: "var(--color-muted)", textAlign: "right" }}>{item.desc}</span>
                   </div>

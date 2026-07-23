@@ -60,7 +60,7 @@ const RASI_LORD_GRAHA = [
 /* ── Kicker label — shared visual convention across Nova/Hybrid screens ── */
 export function HyKicker({ children, color = "var(--color-accent)" }: { children: React.ReactNode; color?: string }) {
   return (
-    <p style={{ margin: 0, fontSize: "10.5px", letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 700, color }}>
+    <p style={{ margin: 0, fontSize: "var(--text-xs)", letterSpacing: "0.16em", textTransform: "uppercase", fontWeight: 700, color }}>
       {children}
     </p>
   );
@@ -85,8 +85,10 @@ export function HySection({
   return (
     <section id={id} ref={scrollRef} style={{ display: "flex", flexDirection: "column", gap: "16px", scrollMarginTop: "72px" }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: "12px", flexWrap: "wrap" }}>
-        <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem,2.4vw,1.75rem)", fontWeight: 600, color: "var(--color-text-strong)" }}>{title}</div>
-        {sub && <div style={{ fontSize: "12px", color: "var(--color-faint)" }}>{sub}</div>}
+        {/* audit B-1: every HySection-wrapped section gets a real <h2>, giving
+            the Family & Charts long-scroll a proper document outline. */}
+        <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem,2.4vw,1.75rem)", fontWeight: 600, color: "var(--color-text-strong)" }}>{title}</h2>
+        {sub && <div style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{sub}</div>}
         {meta && <><span style={{ flex: 1 }} />{meta}</>}
       </div>
       {children}
@@ -183,8 +185,8 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
               />
               <span style={{ textAlign: "center" }}>
                 <span style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "var(--color-text-strong)" }}>{tPlanetLord(pl.graha, lang)}</span>
-                <span style={{ display: "block", fontSize: "10.5px", color: "var(--color-faint)", marginTop: "2px" }}>{pl.rasiName}</span>
-                <span style={{ display: "block", fontSize: "10px", color: "var(--color-muted)", marginTop: "2px" }}>{pl.degreeInRasi.toFixed(1)}°</span>
+                <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px" }}>{pl.rasiName}</span>
+                <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--color-muted)", marginTop: "2px" }}>{pl.degreeInRasi.toFixed(1)}°</span>
               </span>
             </button>
           );
@@ -193,7 +195,7 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
 
       {/* Expandable table */}
       <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "44px 1.1fr 1fr .7fr 1.2fr .5fr .7fr 1fr 1.4fr 32px", gap: "0 10px", alignItems: "center", padding: "11px 18px", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderBottom: "1px solid var(--color-border)", fontSize: "9.5px", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "44px 1.1fr 1fr .7fr 1.2fr .5fr .7fr 1fr 1.4fr 32px", gap: "0 10px", alignItems: "center", padding: "11px 18px", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderBottom: "1px solid var(--color-border)", fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)" }}>
           <span /><span>{t("col_graha", lang)}</span><span>{t("col_rasi", lang)}</span><span>{t("col_degree", lang)}</span>
           <span>{t("col_nakshatra", lang)}</span><span>{t("col_pada", lang)}</span><span>{t("col_house", lang)}</span>
           <span>{t("col_d9_rasi", lang)}</span><span>{t("col_special", lang)}</span><span />
@@ -222,7 +224,7 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
                 <span style={{ fontSize: "12.5px", color: "var(--color-text)" }}>{RASI_NAMES[pl.d9Rasi] ?? pl.d9Rasi}</span>
                 <span style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
                   {flags.map((f) => (
-                    <span key={f.key} style={{ fontSize: "10px", fontWeight: 600, whiteSpace: "nowrap", borderRadius: "999px", padding: "3px 9px", color: f.tone === "success" ? "var(--color-high)" : "var(--color-low)", border: `1px solid ${f.tone === "success" ? "var(--color-high-border)" : "var(--color-low-border)"}`, background: f.tone === "success" ? "var(--color-high-bg)" : "var(--color-low-bg)" }}>{f.label}</span>
+                    <span key={f.key} style={{ fontSize: "var(--text-xs)", fontWeight: 600, whiteSpace: "nowrap", borderRadius: "999px", padding: "3px 9px", color: f.tone === "success" ? "var(--color-high)" : "var(--color-low)", border: `1px solid ${f.tone === "success" ? "var(--color-high-border)" : "var(--color-low-border)"}`, background: f.tone === "success" ? "var(--color-high-bg)" : "var(--color-low-bg)" }}>{f.label}</span>
                   ))}
                 </span>
                 <span className="hy-chev" style={{ fontSize: "11px", color: "var(--color-faint)", textAlign: "center", transform: isOpen ? "rotate(180deg)" : "none" }}>▾</span>
@@ -237,7 +239,7 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
                   <div style={{ padding: "4px 18px 20px 74px", display: "flex", flexDirection: "column", gap: "14px" }}>
                     {score != null && (
                       <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                        <span style={{ fontSize: "9.5px", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-mid)", textTransform: "uppercase" }}>{lang === "ta" ? "வலிமை" : "Strength"}</span>
+                        <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-mid)", textTransform: "uppercase" }}>{lang === "ta" ? "வலிமை" : "Strength"}</span>
                         <div style={{ width: "160px", height: "5px", borderRadius: "3px", background: "var(--color-border)", overflow: "hidden" }}>
                           <div style={{ height: "100%", width: `${Math.max(0, Math.min(100, score))}%`, background: scoreColor(score), borderRadius: "3px" }} />
                         </div>
@@ -280,7 +282,7 @@ function HyFact({ label, value, tone = "NEUTRAL" }: { label: string; value: stri
   const labelColor = tone === "BOOST" ? "var(--color-high)" : tone === "CAUTION" ? "var(--color-low)" : "var(--color-mid)";
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-      <span style={{ fontSize: "9.5px", letterSpacing: "0.12em", fontWeight: 700, color: labelColor, textTransform: "uppercase" }}>{label}</span>
+      <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: labelColor, textTransform: "uppercase" }}>{label}</span>
       <span style={{ fontFamily: "var(--font-body)", fontSize: "13px", lineHeight: 1.5, color: "var(--color-text)" }}>{value}</span>
     </div>
   );
@@ -322,7 +324,7 @@ export function HyBhavaTable({ lang, chart, explanationPlanets }: {
   return (
     <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "18px 20px", display: "flex", flexDirection: "column" }}>
       <HyKicker color="var(--color-mid)">{lang === "ta" ? "பாவ (வீடு) மேலோட்டம்" : "Bhava (house) overview"}</HyKicker>
-      <div style={{ display: "grid", gridTemplateColumns: cols, gap: "0 10px", padding: "10px 8px 8px", marginTop: "8px", fontSize: "9px", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>
+      <div style={{ display: "grid", gridTemplateColumns: cols, gap: "0 10px", padding: "10px 8px 8px", marginTop: "8px", fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>
         <span>{lang === "ta" ? "வீடு" : "House"}</span>
         <span>{lang === "ta" ? "ராசி (அதிபதி)" : "Sign (Lord)"}</span>
         <span>{lang === "ta" ? "கிரகங்கள்" : "Planets"}</span>
@@ -368,7 +370,7 @@ export function HyProfileCard({ kicker, glyph, name, rulingPlanetLabel, blurb, t
             const c = tr.tone === "warn" ? "var(--color-low)" : tr.tone === "good" ? "var(--color-high)" : "var(--color-muted)";
             const bg = tr.tone === "warn" ? "var(--color-low-bg)" : tr.tone === "good" ? "var(--color-high-bg)" : "color-mix(in srgb, var(--color-text-strong) 4%, transparent)";
             const bd = tr.tone === "warn" ? "var(--color-low-border)" : tr.tone === "good" ? "var(--color-high-border)" : "var(--color-border)";
-            return <span key={tr.label} style={{ fontSize: "10.5px", fontWeight: 600, color: c, background: bg, border: `1px solid ${bd}`, borderRadius: "999px", padding: "4px 11px" }}>{tr.label}</span>;
+            return <span key={tr.label} style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: c, background: bg, border: `1px solid ${bd}`, borderRadius: "999px", padding: "4px 11px" }}>{tr.label}</span>;
           })}
         </div>
       )}
@@ -402,12 +404,12 @@ function HyPeriodBand({ items, lang, word, fmtDate, isActiveItem, minWidth }: {
           <div key={`${p.lord}-${p.startDate}`} style={{ display: "flex", alignItems: "stretch", flex: 1, minWidth }}>
             <div style={{ flex: 1, position: "relative", borderRadius: "12px", padding: "12px 14px", background: active ? "var(--color-accent-muted)" : "var(--color-surface-soft)", border: `1px solid ${active ? "var(--color-border-strong)" : "var(--color-border)"}` }}>
               {active && (
-                <span style={{ position: "absolute", top: "-8px", left: "13px", fontSize: "8.5px", letterSpacing: "0.08em", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", borderRadius: "999px", padding: "2px 8px", whiteSpace: "nowrap" }}>
+                <span style={{ position: "absolute", top: "-8px", left: "13px", fontSize: "var(--text-xs)", letterSpacing: "0.08em", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", borderRadius: "999px", padding: "2px 8px", whiteSpace: "nowrap" }}>
                   ● {lang === "ta" ? "இயங்குகிறது" : "ACTIVE"}
                 </span>
               )}
               <div style={{ fontSize: "12.5px", fontWeight: 700, color: active ? "var(--color-accent-strong)" : "var(--color-text)" }}>{tPlanetLord(p.lord, lang)} {word}</div>
-              <div style={{ fontSize: "10.5px", color: "var(--color-faint)", marginTop: "3px" }}>{fmtDate(p.startDate)} → {fmtDate(p.endDate)}</div>
+              <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "3px" }}>{fmtDate(p.startDate)} → {fmtDate(p.endDate)}</div>
             </div>
             {i < items.length - 1 && <span style={{ alignSelf: "center", color: "var(--color-border-strong)", fontSize: "13px", padding: "0 8px", flexShrink: 0 }}>→</span>}
           </div>
@@ -643,9 +645,9 @@ export function HyTodayFacts({ lang, memberName, memberNakshatraName, weekdayLor
           <div style={{ display: "flex", alignItems: "center", gap: "10px", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-border)", borderRadius: "11px", padding: "10px 12px" }}>
             <span style={{ width: "30px", height: "30px", borderRadius: "9px", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "14px", fontWeight: 700, color: "var(--color-accent-strong)", flexShrink: 0, fontFamily: "var(--font-display)" }}>{headline.number}</span>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: "9px", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>{headlineIsPersonal ? ownerLabel : (lang === "ta" ? "இன்றைய அதிர்ஷ்ட எண்" : "Lucky number today")}</div>
+              <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>{headlineIsPersonal ? ownerLabel : (lang === "ta" ? "இன்றைய அதிர்ஷ்ட எண்" : "Lucky number today")}</div>
               <div style={{ fontSize: "12.5px", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "2px" }}>{headline.number} · {tPlanetLord(headline.graha, lang)}</div>
-              <div style={{ fontSize: "9.5px", color: "var(--color-faint)", marginTop: "1px" }}>
+              <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "1px" }}>
                 {headlineIsPersonal
                   ? (lang === "ta" ? `பிறப்பு நட்சத்திரம் · ${tNakshatra(memberNakshatraName ?? "", lang)}` : `birth star · ${tNakshatra(memberNakshatraName ?? "", lang)}`)
                   : (weekdayKey ? tWeekday(weekdayKey, lang) : "")}
@@ -655,7 +657,7 @@ export function HyTodayFacts({ lang, memberName, memberNakshatraName, weekdayLor
           <div style={{ display: "flex", alignItems: "center", gap: "10px", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-border)", borderRadius: "11px", padding: "10px 12px" }}>
             <span style={{ width: "30px", height: "30px", borderRadius: "9px", background: headline.colour.swatch, border: "1px solid var(--color-border-strong)", flexShrink: 0 }} />
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: "9px", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>{headlineIsPersonal ? ownerColourLabel : (lang === "ta" ? "இன்றைய அதிர்ஷ்ட நிறம்" : "Lucky colour today")}</div>
+              <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>{headlineIsPersonal ? ownerColourLabel : (lang === "ta" ? "இன்றைய அதிர்ஷ்ட நிறம்" : "Lucky colour today")}</div>
               <div style={{ fontSize: "12.5px", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "2px" }}>{lang === "ta" ? headline.colour.ta : headline.colour.en}</div>
             </div>
           </div>
@@ -667,7 +669,7 @@ export function HyTodayFacts({ lang, memberName, memberNakshatraName, weekdayLor
         <div style={{ display: "flex", alignItems: "center", gap: "11px", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px dashed var(--color-border)", borderRadius: "11px", padding: "9px 13px" }}>
           <span style={{ flexShrink: 0, width: "22px", height: "22px", borderRadius: "7px", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "11px", color: "var(--color-accent-strong)" }}>⋆</span>
           <span style={{ flex: 1, fontSize: "11px", color: "var(--color-muted)", lineHeight: 1.5 }}>
-            <b style={{ color: "var(--color-faint)", fontWeight: 700, textTransform: "uppercase", fontSize: "8.5px", letterSpacing: "0.1em", marginRight: "6px" }}>{lang === "ta" ? "இன்று · அனைவருக்கும்" : "Today · shared"}</b>
+            <b style={{ color: "var(--color-faint)", fontWeight: 700, textTransform: "uppercase", fontSize: "var(--text-xs)", letterSpacing: "0.1em", marginRight: "6px" }}>{lang === "ta" ? "இன்று · அனைவருக்கும்" : "Today · shared"}</b>
             {dayLucky && weekdayKey && (
               <>{tWeekday(weekdayKey, lang)} {lang === "ta" ? `எண் ${dayLucky.number}` : `no. ${dayLucky.number}`}</>
             )}
@@ -763,7 +765,7 @@ export function HyYogaDoshaCard({ lang, yogaDosham, onViewAll }: {
           return (
             <div key={`${it.name}-${i}`} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 0", borderBottom: i < items.length - 1 ? "1px solid var(--color-border)" : "none" }}>
               <span style={{ flex: 1, fontSize: "12.5px", color: it.tone === "muted" ? "var(--color-faint)" : "var(--color-text)" }}>{it.name}</span>
-              <span style={{ fontSize: "10px", fontWeight: 700, borderRadius: "999px", padding: "3px 10px", color: c.fg, background: c.bg, border: `1px solid ${c.bd}`, whiteSpace: "nowrap" }}>{tl(lang, it.status)}</span>
+              <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, borderRadius: "999px", padding: "3px 10px", color: c.fg, background: c.bg, border: `1px solid ${c.bd}`, whiteSpace: "nowrap" }}>{tl(lang, it.status)}</span>
             </div>
           );
         })}
@@ -890,7 +892,7 @@ function PlacementChips({ chips }: { chips: PlacementChip[] }) {
         const bg = c.tone === "good" ? "var(--color-high-bg)" : "var(--color-low-bg)";
         const bd = c.tone === "good" ? "var(--color-high-border)" : "var(--color-low-border)";
         return (
-          <span key={`${c.label}-${i}`} style={{ fontSize: "10.5px", fontWeight: 600, color: fg, background: bg, border: `1px solid ${bd}`, borderRadius: "999px", padding: "3px 10px", whiteSpace: "nowrap" }}>{c.label}</span>
+          <span key={`${c.label}-${i}`} style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: fg, background: bg, border: `1px solid ${bd}`, borderRadius: "999px", padding: "3px 10px", whiteSpace: "nowrap" }}>{c.label}</span>
         );
       })}
     </div>
@@ -912,23 +914,23 @@ export function HyStrengthsWatchoutsCard({ lang, planets }: {
       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
         <div style={{ flex: "1 1 120px", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", borderRadius: "11px", padding: "10px 12px" }}>
           <div style={{ fontSize: "20px", fontWeight: 700, fontFamily: "var(--font-display)", color: "var(--color-high)", lineHeight: 1 }}>{kendraTrikona}</div>
-          <div style={{ fontSize: "10px", color: "var(--color-muted)", marginTop: "3px" }}>{lang === "ta" ? "கேந்திர/திரிகோணத்தில் கிரகங்கள்" : "planets in Kendra / Trikona"}</div>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", marginTop: "3px" }}>{lang === "ta" ? "கேந்திர/திரிகோணத்தில் கிரகங்கள்" : "planets in Kendra / Trikona"}</div>
         </div>
         <div style={{ flex: "1 1 120px", background: dusthana > 0 ? "var(--color-low-bg)" : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: `1px solid ${dusthana > 0 ? "var(--color-low-border)" : "var(--color-border)"}`, borderRadius: "11px", padding: "10px 12px" }}>
           <div style={{ fontSize: "20px", fontWeight: 700, fontFamily: "var(--font-display)", color: dusthana > 0 ? "var(--color-low)" : "var(--color-faint)", lineHeight: 1 }}>{dusthana}</div>
-          <div style={{ fontSize: "10px", color: "var(--color-muted)", marginTop: "3px" }}>{lang === "ta" ? "துஸ்தானத்தில் (6·8·12) கிரகங்கள்" : "planets in Dusthana (6·8·12)"}</div>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", marginTop: "3px" }}>{lang === "ta" ? "துஸ்தானத்தில் (6·8·12) கிரகங்கள்" : "planets in Dusthana (6·8·12)"}</div>
         </div>
       </div>
 
       {strengths.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
-          <span style={{ fontSize: "9px", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-high)", textTransform: "uppercase" }}>{lang === "ta" ? "பலங்கள்" : "Strengths"}</span>
+          <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-high)", textTransform: "uppercase" }}>{lang === "ta" ? "பலங்கள்" : "Strengths"}</span>
           <TraitBars rows={strengths} mode="strength" lang={lang} />
         </div>
       )}
       {watchOuts.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
-          <span style={{ fontSize: "9px", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-low)", textTransform: "uppercase" }}>{lang === "ta" ? "கவனிக்க வேண்டியவை" : "Watch-outs"}</span>
+          <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-low)", textTransform: "uppercase" }}>{lang === "ta" ? "கவனிக்க வேண்டியவை" : "Watch-outs"}</span>
           <TraitBars rows={watchOuts} mode="watch" lang={lang} />
         </div>
       )}
@@ -937,7 +939,7 @@ export function HyStrengthsWatchoutsCard({ lang, planets }: {
           cazimi (boosts) vs. debilitation, combustion, retrogression (cautions). */}
       {(boosts.length > 0 || cautions.length > 0) && (
         <div style={{ display: "flex", flexDirection: "column", gap: "9px", borderTop: "1px solid var(--color-border)", paddingTop: "14px" }}>
-          <span style={{ fontSize: "9px", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-mid)", textTransform: "uppercase" }}>{lang === "ta" ? "நிலை & தனிச்சிறப்பு" : "Dignity & placement"}</span>
+          <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-mid)", textTransform: "uppercase" }}>{lang === "ta" ? "நிலை & தனிச்சிறப்பு" : "Dignity & placement"}</span>
           {boosts.length > 0 && <PlacementChips chips={boosts} />}
           {cautions.length > 0 && <PlacementChips chips={cautions} />}
         </div>
@@ -1002,7 +1004,7 @@ export function HyRemediesCard({ lang, planets, onViewAll }: {
             <span style={{ flexShrink: 0, width: "30px", height: "30px", borderRadius: "9px", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "14px", color: "var(--color-accent-strong)" }}>{GRAHA_GLYPH_R[r.graha] ?? "⋔"}</span>
             <span style={{ flex: 1, fontSize: "12.5px", color: "var(--color-text)", lineHeight: 1.45 }}>{tl(lang, r.text)}</span>
             {r.weekdayKey && (
-              <span style={{ flexShrink: 0, fontSize: "10px", fontWeight: 700, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "3px 9px", whiteSpace: "nowrap" }}>
+              <span style={{ flexShrink: 0, fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "3px 9px", whiteSpace: "nowrap" }}>
                 {tWeekday(r.weekdayKey, lang)}
               </span>
             )}
@@ -1012,7 +1014,7 @@ export function HyRemediesCard({ lang, planets, onViewAll }: {
         <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
           <span style={{ flexShrink: 0, width: "30px", height: "30px", borderRadius: "9px", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "14px", color: "var(--color-accent-strong)" }}>✧</span>
           <span style={{ flex: 1, fontSize: "12.5px", color: "var(--color-text)", lineHeight: 1.45 }}>{lang === "ta" ? "வீட்டில் குல தெய்வத்திற்கு கற்பூரம்" : "Kula deivam camphor at home"}</span>
-          <span style={{ flexShrink: 0, fontSize: "10px", fontWeight: 700, color: "var(--color-muted)", border: "1px solid var(--color-border)", borderRadius: "999px", padding: "3px 9px", whiteSpace: "nowrap" }}>{lang === "ta" ? "தினமும்" : "Daily"}</span>
+          <span style={{ flexShrink: 0, fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-muted)", border: "1px solid var(--color-border)", borderRadius: "999px", padding: "3px 9px", whiteSpace: "nowrap" }}>{lang === "ta" ? "தினமும்" : "Daily"}</span>
         </div>
       </div>
       {onViewAll && (
@@ -1116,7 +1118,7 @@ export function HyLifeAreaForecast({ lang, areas, age, onOpenLifeAreas, compact 
 
   return (
     <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", overflow: "hidden" }}>
-      <div style={{ display: "grid", gridTemplateColumns: cols, gap: "0 12px", padding: "12px 20px", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderBottom: "1px solid var(--color-border)", fontSize: "9px", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>
+      <div style={{ display: "grid", gridTemplateColumns: cols, gap: "0 12px", padding: "12px 20px", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderBottom: "1px solid var(--color-border)", fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>
         <span>{lang === "ta" ? "வாழ்க்கைத் துறை" : "Life area"}</span>
         <span>{lang === "ta" ? "தற்போது" : "Current"}</span>
         <span>{lang === "ta" ? "6 மாதம்" : "Next 6 mo"}</span>
@@ -1220,10 +1222,10 @@ export function HyTransitOverview({ lang, transit, memberName, onOpenTransits }:
     <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "20px 22px", display: "flex", flexDirection: "column", gap: "12px" }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "10px" }}>
         <HyKicker color="var(--color-accent-strong)">{lang === "ta" ? "கோச்சர மேலோட்டம்" : "Transit overview"}</HyKicker>
-        <span style={{ fontSize: "10px", color: "var(--color-faint)" }}>{lang === "ta" ? "முக்கிய கிரக நகர்வுகள்" : "major planetary transits"}</span>
+        <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{lang === "ta" ? "முக்கிய கிரக நகர்வுகள்" : "major planetary transits"}</span>
       </div>
       {rows.length > 0 && moonRasi && (
-        <p style={{ margin: 0, fontSize: "10.5px", lineHeight: 1.5, color: "var(--color-faint)" }}>
+        <p style={{ margin: 0, fontSize: "var(--text-xs)", lineHeight: 1.5, color: "var(--color-faint)" }}>
           {lang === "ta"
             ? `கிரகங்கள் அமர்ந்துள்ள ராசிகள் அனைவருக்கும் பொதுவானவை. கீழே காணும் வீடும் அதன் தாக்கமும் ${who} சந்திரன் (${moonRasi}) இருந்து கணக்கிடப்படுகிறது — எனவே ஒவ்வொருவருக்கும் வேறுபடும்.`
             : `The signs the planets sit in are shared by everyone. The house and effect shown below are read from ${memberName ? `${memberName}'s` : "this member's"} Moon in ${moonRasi} — so they differ from member to member.`}
@@ -1244,13 +1246,13 @@ export function HyTransitOverview({ lang, transit, memberName, onOpenTransits }:
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: "12.5px", fontWeight: 700, color: "var(--color-text-strong)" }}>
                     {tPlanetLord(tr.graha.toUpperCase(), lang)} {lang === "ta" ? "" : "in "}{tr.currentRasi}
-                    {tr.isRetrograde && <span style={{ marginLeft: "6px", fontSize: "9px", fontWeight: 700, color: "var(--color-low)" }}>℞</span>}
+                    {tr.isRetrograde && <span style={{ marginLeft: "6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-low)" }}>℞</span>}
                   </div>
-                  <div style={{ fontSize: "10.5px", color: "var(--color-faint)" }}>
+                  <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
                     {lang === "ta" ? `வீடு ${tr.houseFromMoon}` : `house ${tr.houseFromMoon}`}{theme ? ` · ${tl(lang, theme)}` : ""}
                   </div>
                 </div>
-                <span style={{ flexShrink: 0, fontSize: "10px", fontWeight: 700, borderRadius: "999px", padding: "3px 10px", color: badge.fg, background: badge.bg, border: `1px solid ${badge.bd}`, whiteSpace: "nowrap" }}>{tl(lang, badge.label)}</span>
+                <span style={{ flexShrink: 0, fontSize: "var(--text-xs)", fontWeight: 700, borderRadius: "999px", padding: "3px 10px", color: badge.fg, background: badge.bg, border: `1px solid ${badge.bd}`, whiteSpace: "nowrap" }}>{tl(lang, badge.label)}</span>
               </div>
             );
           })}
@@ -1533,7 +1535,7 @@ export function HyDetailedForecast({ lang, dasha, dashaAntar, dashaMaha, planets
               <div key={`${grain}-${b.label}-${i}`} style={{ display: "flex", gap: "14px", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-border)", borderRadius: "12px", padding: "13px 16px" }}>
                 <div style={{ flexShrink: 0, width: "64px", textAlign: "center", paddingTop: "2px" }}>
                   <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--color-text-strong)" }}>{b.label}</div>
-                  <div style={{ display: "inline-block", marginTop: "5px", fontSize: "9.5px", fontWeight: 700, color: band.fg, background: band.bg, border: `1px solid ${band.bd}`, borderRadius: "999px", padding: "2px 8px" }}>{tl(lang, status)}</div>
+                  <div style={{ display: "inline-block", marginTop: "5px", fontSize: "var(--text-xs)", fontWeight: 700, color: band.fg, background: band.bg, border: `1px solid ${band.bd}`, borderRadius: "999px", padding: "2px 8px" }}>{tl(lang, status)}</div>
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontFamily: "var(--font-body)", fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-text)" }}>

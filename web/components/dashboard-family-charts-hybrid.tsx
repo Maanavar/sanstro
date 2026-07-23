@@ -197,7 +197,7 @@ function HyRhythmCard({
             </g>
           )}
         </svg>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--color-faint)", marginTop: "1px", padding: "0 6.25%" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "1px", padding: "0 6.25%" }}>
           <span>6a</span><span>9a</span><span>12p</span><span>3p</span><span>6p</span>
         </div>
       </div>
@@ -254,7 +254,7 @@ function HyRhythmCard({
               <b style={{ color: "var(--color-mid)", fontWeight: 700 }}>{formatClockLabel(yamagandam.start)} – {formatClockLabel(yamagandam.end)}</b>
             </div>
           )}
-          <p style={{ margin: 0, fontSize: "10.5px", color: "var(--color-faint)", lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
             {lang === "ta" ? "இந்த நேரங்களில் புதிய முக்கியப் பணிகளைத் தொடங்குவதைத் தவிர்க்கவும்." : "Avoid starting important new work during these windows."}
           </p>
         </div>
@@ -333,7 +333,7 @@ function HyBondsCard({ lang, participants }: { lang: Lang; participants: BondPar
                 <div style={{ height: "5px", borderRadius: "3px", background: "var(--color-border)" }}>
                   <div style={{ width: `${Math.max(0, Math.min(100, pair.score))}%`, height: "100%", borderRadius: "3px", background: color }} />
                 </div>
-                <div style={{ fontSize: "10.5px", color: "var(--color-faint)" }}>{bondToneLine(pair.score, lang)}</div>
+                <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{bondToneLine(pair.score, lang)}</div>
               </div>
             );
           })}
@@ -358,7 +358,7 @@ function HySaniCard({ lang, sani }: { lang: Lang; sani: SaniCycleData }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
         {cycles.map(({ label, cycle }) => (
           <div key={label} style={{ background: cycle.isActive ? "var(--color-low-bg)" : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: `1px solid ${cycle.isActive ? "var(--color-low-border)" : "var(--color-border)"}`, borderRadius: "11px", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "5px" }}>
-            <span style={{ fontSize: "9.5px", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700, color: cycle.isActive ? "var(--color-low)" : "var(--color-faint)" }}>{label}</span>
+            <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700, color: cycle.isActive ? "var(--color-low)" : "var(--color-faint)" }}>{label}</span>
             <span style={{ fontFamily: "var(--font-display)", fontSize: "16px", fontWeight: 600, color: cycle.isActive ? "var(--color-low)" : "var(--color-high)" }}>{cycle.type ?? (lang === "ta" ? "இயல்பு" : "Normal")}</span>
             <span style={{ fontSize: "11px", color: "var(--color-muted)", lineHeight: 1.45 }}>{cycle.supportiveLabel ?? (lang === "ta" ? "செயலில் சனி அழுத்தம் இல்லை." : "No active Saturn-pressure cycle.")}</span>
           </div>
@@ -434,7 +434,7 @@ function HyMemberSelectorCard({
           </span>
         )}
         {needsCare && (
-          <span style={{ fontSize: "10px", fontWeight: 700, color: "var(--color-low)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "5px", padding: "3px 8px" }}>
+          <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-low)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "5px", padding: "3px 8px" }}>
             {lang === "ta" ? "கவனம் தேவை" : "needs care"}
           </span>
         )}
@@ -480,7 +480,7 @@ function HyHighlightCard({ icon, title, timeframe, accent, tintBg, tintBorder, c
       <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
         <span style={{ width: "26px", height: "26px", borderRadius: "8px", background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)", display: "grid", placeItems: "center", color: accent, fontSize: "13px", flexShrink: 0 }}>{icon}</span>
         <span style={{ fontSize: "13px", fontWeight: 700, color: accent }}>{title}</span>
-        <span style={{ marginLeft: "auto", fontSize: "8.5px", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700, color: "var(--color-faint)", border: "1px solid var(--color-border)", borderRadius: "999px", padding: "3px 8px", whiteSpace: "nowrap" }}>{timeframe}</span>
+        <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700, color: "var(--color-faint)", border: "1px solid var(--color-border)", borderRadius: "999px", padding: "3px 8px", whiteSpace: "nowrap" }}>{timeframe}</span>
       </div>
       {children}
     </div>
@@ -740,9 +740,11 @@ export function DashboardFamilyChartsHybrid({
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
             <div>
               <HyKicker color="var(--color-mid)">{lang === "ta" ? "குடும்பம் இன்று" : "Family today"}</HyKicker>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem,3vw,2.4rem)", fontWeight: 600, marginTop: "5px", color: "var(--color-text-strong)" }}>
+              {/* audit B-1: the lead section's title is the page's one <h1>
+                  (Family & Charts previously had no headings at all). */}
+              <h1 style={{ margin: "5px 0 0", fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem,3vw,2.4rem)", fontWeight: 600, color: "var(--color-text-strong)" }}>
                 {lang === "ta" ? "பகிரப்பட்ட, ஆதரவான நாள்." : <>A shared, <span style={{ color: "var(--color-accent-strong)" }}>{familyLabelRaw ? familyLabelRaw.toLowerCase().replace(/_/g, " ") : "supportive"}</span> day.</>}
-              </div>
+              </h1>
               <div style={{ fontSize: "12.5px", color: "var(--color-muted)", marginTop: "4px" }}>
                 {dateLine} · {lang === "ta" ? "அனைவரின் ஜாதகமும் ஒன்றாக" : `everyone's charts read together · ${members.length} members`}
               </div>
@@ -868,9 +870,9 @@ export function DashboardFamilyChartsHybrid({
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
               <div>
                 <HyKicker color="var(--color-mid)">{lang === "ta" ? `படிக்கிறது · ${readingName}` : `Reading · ${readingName}`}</HyKicker>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.7rem,2.8vw,2.2rem)", fontWeight: 600, lineHeight: 1.1, marginTop: "6px", color: "var(--color-text-strong)" }}>
+                <h2 style={{ margin: "6px 0 0", fontFamily: "var(--font-display)", fontSize: "clamp(1.7rem,2.8vw,2.2rem)", fontWeight: 600, lineHeight: 1.1, color: "var(--color-text-strong)" }}>
                   {lang === "ta" ? <>வணக்கம், <span style={{ color: "var(--color-accent-strong)" }}>{readingName}</span> 👋</> : <>Vanakkam, <span style={{ color: "var(--color-accent-strong)" }}>{readingName}</span> 👋</>}
-                </div>
+                </h2>
                 <div style={{ fontSize: "12.5px", color: "var(--color-muted)", marginTop: "6px" }}>
                   {activeIsSelf ? (lang === "ta" ? "உங்கள் ஜாதகம் & இன்றைய வழிகாட்டுதல்" : "Your chart & guidance for the day") : (activeRelationLabel ?? "")}
                 </div>
@@ -913,7 +915,7 @@ export function DashboardFamilyChartsHybrid({
                       [lang === "ta" ? "வயது" : "Age", String(readingSummary.currentAge)],
                     ].map(([label, value]) => (
                       <div key={label} style={{ background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-border)", borderRadius: "11px", padding: "11px 14px" }}>
-                        <div style={{ fontSize: "9px", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>{label}</div>
+                        <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>{label}</div>
                         <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "4px" }}>{value}</div>
                       </div>
                     ))}
@@ -1156,7 +1158,7 @@ export function DashboardFamilyChartsHybrid({
                 {(readingSummary?.yogas ?? []).slice(0, 8).map((y) => (
                   <div key={y.name} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "9px 0", borderBottom: "1px solid var(--color-border)" }}>
                     <span style={{ flex: 1, fontSize: "12.5px", color: "var(--color-text)" }}>{y.name}</span>
-                    <span style={{ fontSize: "10px", fontWeight: 700, borderRadius: "999px", padding: "3px 10px", color: y.isPresent ? "var(--color-high)" : "var(--color-faint)", background: y.isPresent ? "var(--color-high-bg)" : "transparent", border: `1px solid ${y.isPresent ? "var(--color-high-border)" : "var(--color-border)"}` }}>
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, borderRadius: "999px", padding: "3px 10px", color: y.isPresent ? "var(--color-high)" : "var(--color-faint)", background: y.isPresent ? "var(--color-high-bg)" : "transparent", border: `1px solid ${y.isPresent ? "var(--color-high-border)" : "var(--color-border)"}` }}>
                       {y.isPresent ? (y.isCurrentlyActive ? (lang === "ta" ? "செயலில்" : "Active") : (lang === "ta" ? "உள்ளது" : "Present")) : (lang === "ta" ? "இல்லை" : "Absent")}
                     </span>
                   </div>
@@ -1169,7 +1171,7 @@ export function DashboardFamilyChartsHybrid({
         {/* ═══ 8 · PREDICTIONS & FORECAST (year-ahead life areas + transits) ═══ */}
         <section id="hy-forecast" style={{ display: "flex", flexDirection: "column", gap: "16px", scrollMarginTop: "72px" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: "12px", flexWrap: "wrap" }}>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem,2.4vw,1.75rem)", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? "முன்னறிவிப்பு & முன்னோட்டம்" : "Predictions & forecast"}</div>
+            <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem,2.4vw,1.75rem)", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? "முன்னறிவிப்பு & முன்னோட்டம்" : "Predictions & forecast"}</h2>
             <div style={{ fontSize: "12px", color: "var(--color-faint)" }}>{lang === "ta" ? `${readingName} — வரும் வருடத்தின் முக்கிய வாழ்க்கைத் துறைகள்` : `${readingName} — key life areas for the year ahead`}</div>
           </div>
           <div className="hy-grid-forecast">
@@ -1284,7 +1286,7 @@ export function DashboardFamilyChartsHybrid({
 
         {/* ═══ 10 · FAMILY CONNECTIONS ═══ */}
         <section id="hy-connections" style={{ display: "flex", flexDirection: "column", gap: "18px", scrollMarginTop: "72px", paddingBottom: "8px" }}>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem,2.4vw,1.75rem)", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? "குடும்ப உறவுகள்" : "Family connections"}</div>
+          <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem,2.4vw,1.75rem)", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? "குடும்ப உறவுகள்" : "Family connections"}</h2>
 
           {selectedVaultId && members.length > 1 && (
             <div ref={harmonyRef} style={{ scrollMarginTop: "72px" }}>

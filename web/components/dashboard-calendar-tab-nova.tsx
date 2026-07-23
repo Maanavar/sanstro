@@ -25,6 +25,7 @@ import { MiniMoonGlyph } from "./celestial-glyph-nova";
 import { useMonthlyPanchangam } from "@/hooks/useMonthlyPanchangam";
 import { PlaceCombobox } from "./place-combobox";
 import { DrawerPanel } from "./drawer-panel";
+import { Segmented } from "./ui";
 import type {
   PanchangamDailyResponseData,
   PanchangamFestival,
@@ -122,7 +123,7 @@ function NovaFestivalRow({ festival, lang }: { festival: PanchangamFestival; lan
         {festivalTags(festival).map((tag) => {
           const tone = novaFestivalTagTone(tag);
           return (
-            <span key={tag} style={{ fontSize: "10.5px", fontWeight: 700, color: tone.color, background: tone.bg, border: `1px solid ${tone.border}`, borderRadius: "5px", padding: "2px 8px", whiteSpace: "nowrap" }}>
+            <span key={tag} style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: tone.color, background: tone.bg, border: `1px solid ${tone.border}`, borderRadius: "5px", padding: "2px 8px", whiteSpace: "nowrap" }}>
               {novaFestivalTagLabel(tag, lang)}
             </span>
           );
@@ -242,10 +243,10 @@ function NovaGowriKalaRow({
         </span>
       </div>
       {purpose && !isBad && (
-        <div style={{ fontSize: "10.5px", color: "var(--color-muted)", marginTop: "2px", lineHeight: 1.35 }}>{purpose}</div>
+        <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", marginTop: "2px", lineHeight: 1.35 }}>{purpose}</div>
       )}
       {reasons.length > 0 && (
-        <div style={{ fontSize: "10px", color: tone.color, marginTop: "2px", fontWeight: 700, lineHeight: 1.35 }}>
+        <div style={{ fontSize: "var(--text-xs)", color: tone.color, marginTop: "2px", fontWeight: 700, lineHeight: 1.35 }}>
           {reasons.join(" · ")}
         </div>
       )}
@@ -287,7 +288,7 @@ function NovaGowriKalaColumn({
           <span aria-hidden="true" style={{ marginRight: "5px" }}>{icon}</span>
           {title}
         </span>
-        <span style={{ fontSize: "10.5px", color: "var(--color-muted)", whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", whiteSpace: "nowrap" }}>
           {anchorLabel} {formatClockLabel(anchorHm)}
         </span>
       </div>
@@ -332,10 +333,10 @@ function NovaGowriDetailGrid({
   const nightSlots = slots.filter((slot) => slot.period === "NIGHT");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      <div style={{ fontSize: "10.5px", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
+      <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
         {lang === "ta" ? "கௌரி நல்ல நேரம் விவரம்" : "Gowri Nalla Neram Details"}
       </div>
-      <div style={{ fontSize: "10.5px", color: "var(--color-muted)", lineHeight: 1.4 }}>
+      <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.4 }}>
         {lang === "ta"
           ? "சிவப்பு = தீய கலம் (ரோகம்/சோரம்/விஷம்) அல்லது ராகு காலம்/யமகண்டம்/குளிகையுடன் மோதும் நேரம் — காரணம் ஒவ்வொரு வரிசையிலும். பஞ்சாங்க நாள் சூர்யோதயத்தில் தொடங்குகிறது; நள்ளிரவுக்குப் பிந்தைய நேரங்களுடன் அடுத்த நாள் தேதி குறிக்கப்பட்டுள்ளது."
           : "Red = an inauspicious kala (Rogam/Soram/Visham) or one that coincides with Rahu Kalam/Yamagandam/Kuligai — the reason is shown on each row. The panchangam day starts at sunrise; times past midnight are stamped with the next day's date."}
@@ -470,7 +471,7 @@ function DayDetailDrawerNova({
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <p style={{ margin: 0, fontSize: "10.5px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-low)", fontWeight: 700 }}>
+            <p style={{ margin: 0, fontSize: "var(--text-xs)", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-low)", fontWeight: 700 }}>
               {lang === "ta" ? "தவிர்க்க வேண்டிய நேரம்" : "Avoid"}
             </p>
             <NovaAvoidRow label={t("label_rahu_kalam", lang)} slot={data.kalam.rahuKalam} />
@@ -480,7 +481,7 @@ function DayDetailDrawerNova({
 
           {data.festivals.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <p style={{ margin: 0, fontSize: "10.5px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+              <p style={{ margin: 0, fontSize: "var(--text-xs)", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
                 {t("label_festivals", lang)}
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -752,9 +753,11 @@ export function DashboardCalendarTabNova({
             {lang === "ta" ? "கிரகநகர்வு & நிகழ்வுகள்" : "Transits & Events"}
           </div>
           <div style={{ display: "flex", alignItems: "baseline", gap: "12px", marginTop: "6px", flexWrap: "wrap" }}>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.7rem, 3.2vw, 2.1rem)", fontWeight: 600, color: "var(--color-text-strong)", lineHeight: 1.1 }}>
+            {/* audit B-1: the date is the Calendar page's <h1> (was a styled div;
+                the tab shipped no headings / no document outline). */}
+            <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "clamp(1.7rem, 3.2vw, 2.1rem)", fontWeight: 600, color: "var(--color-text-strong)", lineHeight: 1.1 }}>
               {headerDate}
-            </div>
+            </h1>
             {tamilHeaderDate && (
               <div style={{ fontSize: "15px", color: "var(--color-accent-strong)", fontWeight: 600 }}>{tamilHeaderDate}</div>
             )}
@@ -765,25 +768,18 @@ export function DashboardCalendarTabNova({
           <div style={{ fontSize: "12.5px", color: "var(--color-muted)", marginTop: "2px" }}>{panchangamMeta}</div>
         </div>
 
-        <div style={{ display: "inline-flex", gap: "4px", background: "var(--color-surface-soft)", border: "1px solid var(--color-border-strong)", borderRadius: "11px", padding: "5px" }}>
-          {([["panchangam", t("cal_panchangam", lang)], ["monthly", t("cal_monthly", lang)], ["muhurta", lang === "ta" ? "சிறந்த நாள் & முஹூர்த்தம்" : "Best Dates & Muhurta"]] as [CalendarViewExt, string][]).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setView(key)}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: "7px",
-                border: "none", cursor: "pointer", borderRadius: "8px",
-                padding: "8px 16px", fontSize: "12.5px", fontWeight: view === key ? 700 : 600,
-                background: view === key ? "var(--color-accent)" : "transparent",
-                color: view === key ? "var(--color-on-accent)" : "var(--color-text)",
-                fontFamily: "inherit",
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {/* View switch — the segmented-toggle pattern, now the shared <Segmented>
+            (audit A-1/B-7): one nav look across every tab, arrow-key + 44px touch. */}
+        <Segmented<CalendarViewExt>
+          ariaLabel={lang === "ta" ? "நாட்காட்டி பார்வைகள்" : "Calendar views"}
+          value={view}
+          onChange={setView}
+          options={[
+            { key: "panchangam", label: t("cal_panchangam", lang) },
+            { key: "monthly", label: t("cal_monthly", lang) },
+            { key: "muhurta", label: lang === "ta" ? "சிறந்த நாள் & முஹூர்த்தம்" : "Best Dates & Muhurta" },
+          ]}
+        />
       </div>
 
       {view === "panchangam" && (
@@ -794,9 +790,9 @@ export function DashboardCalendarTabNova({
             {/* ===== LEFT: Day at a glance ===== */}
             <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-xl)", padding: "24px 26px", display: "flex", flexDirection: "column", gap: "18px" }}>
               <div>
-                <div style={{ fontSize: "11px", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700, marginBottom: "8px" }}>
+                <h2 style={{ margin: "0 0 8px", fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
                   {lang === "ta" ? "இன்று — ஒரு பார்வையில்" : "Day at a glance"}
-                </div>
+                </h2>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: "26px", fontWeight: 600, lineHeight: 1.25, color: "var(--color-text-strong)" }}>
                   {tTithi(tithiActive?.activeName ?? panchangam.tithi.name, lang)}. {tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang)}. {tYoga(yogaActive?.activeName ?? panchangam.yoga.name, lang)}.
                 </div>
@@ -886,7 +882,7 @@ export function DashboardCalendarTabNova({
 
               {/* ── Auspicious ── */}
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <div style={{ fontSize: "10.5px", letterSpacing: "0.12em", color: "var(--color-high)", textTransform: "uppercase", fontWeight: 700 }}>
+                <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-high)", textTransform: "uppercase", fontWeight: 700 }}>
                   {lang === "ta" ? "நல்ல நேரங்கள்" : "Auspicious"}
                 </div>
                 <NovaAuspiciousCard title={t("label_nalla_neram", lang)} slots={panchangam.kalam.nallaNeram ?? []} lang={lang} />
@@ -895,7 +891,7 @@ export function DashboardCalendarTabNova({
 
               {/* ── Avoid ── */}
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ fontSize: "10.5px", letterSpacing: "0.12em", color: "var(--color-low)", textTransform: "uppercase", fontWeight: 700 }}>
+                <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-low)", textTransform: "uppercase", fontWeight: 700 }}>
                   {lang === "ta" ? "தவிர்க்க வேண்டிய நேரம்" : "Avoid"}
                 </div>
                 <NovaAvoidRow label={t("label_rahu_kalam", lang)} slot={panchangam.kalam.rahuKalam} />
@@ -905,7 +901,7 @@ export function DashboardCalendarTabNova({
 
               {/* ── Today's Nakshatra ── */}
               <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ fontSize: "10.5px", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
+                <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
                   {lang === "ta" ? "இன்றைய நட்சத்திரம்" : "Today's Nakshatra"}
                 </div>
                 <div style={{ background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "10px", padding: "11px 15px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -921,7 +917,7 @@ export function DashboardCalendarTabNova({
               {/* ── Chandrashtamam ── */}
               {chandraName && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <div style={{ fontSize: "10.5px", letterSpacing: "0.12em", color: "var(--color-low)", textTransform: "uppercase", fontWeight: 700 }}>
+                  <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-low)", textTransform: "uppercase", fontWeight: 700 }}>
                     {t("label_chandrashtamam", lang)}
                   </div>
                   <div style={{ background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "10px", padding: "14px 16px", display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -946,7 +942,7 @@ export function DashboardCalendarTabNova({
 
               {/* ── Today's Events ── */}
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ fontSize: "10.5px", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
+                <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
                   {lang === "ta" ? "இன்றைய நிகழ்வுகள்" : "Today's Events"}
                 </div>
                 {observanceFestivals.length === 0 && dailyFestivalEvents.length === 0 ? (
@@ -955,7 +951,7 @@ export function DashboardCalendarTabNova({
                   <>
                     {observanceFestivals.length > 0 && (
                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <div style={{ fontSize: "10.5px", letterSpacing: "0.1em", color: "var(--color-faint)", textTransform: "uppercase" }}>
+                        <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", color: "var(--color-faint)", textTransform: "uppercase" }}>
                           {lang === "ta" ? "உலக தினங்கள்" : "World Observance"}
                         </div>
                         {observanceFestivals.map((festival) => <NovaFestivalRow key={festival.name} festival={festival} lang={lang} />)}
@@ -963,7 +959,7 @@ export function DashboardCalendarTabNova({
                     )}
                     {dailyFestivalEvents.length > 0 && (
                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <div style={{ fontSize: "10.5px", letterSpacing: "0.1em", color: "var(--color-faint)", textTransform: "uppercase" }}>
+                        <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", color: "var(--color-faint)", textTransform: "uppercase" }}>
                           {lang === "ta" ? "திருவிழாக்கள்" : "Festivals"}
                         </div>
                         {dailyFestivalEvents.map((festival) => <NovaFestivalRow key={festival.name} festival={festival} lang={lang} />)}
@@ -985,7 +981,7 @@ export function DashboardCalendarTabNova({
 
               {/* ── Today's Significance ── */}
               <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ fontSize: "10.5px", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
+                <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
                   {lang === "ta" ? "இன்றைய சிறப்பு" : "Today's Significance"}
                 </div>
                 <div style={{ background: "var(--color-accent-muted)", border: "1px solid var(--color-border)", borderRadius: "10px", padding: "12px 15px", fontSize: "12.5px", color: "var(--color-text)" }}>
@@ -1042,7 +1038,7 @@ export function DashboardCalendarTabNova({
                     return (
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "9px", padding: "10px 13px", borderRadius: "10px", marginBottom: "10px", background: "var(--color-accent-muted)", border: "1px solid var(--color-accent)" }}>
                         <span style={{ display: "flex", alignItems: "center", gap: "9px", fontSize: "13px", fontWeight: 700, color: "var(--color-text-strong)" }}>
-                          <span style={{ fontSize: "9.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-strong)", fontWeight: 800 }}>{lang === "ta" ? "இப்போது" : "Now"}</span>
+                          <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-strong)", fontWeight: 800 }}>{lang === "ta" ? "இப்போது" : "Now"}</span>
                           <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: DASHA_COLORS[nowHora.lord.toUpperCase()] ?? "var(--color-faint)", flexShrink: 0 }} />
                           {tPlanetLord(nowHora.lord, lang)} {t("hora_word", lang)}
                         </span>

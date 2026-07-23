@@ -50,7 +50,7 @@ function RemedyCard({ lang, item }: { lang: Lang; item: FamilyHarmonyRemedyItem 
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--color-text-strong)" }}>{title}</div>
-          <div style={{ fontSize: "10px", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600, color: meta.color }}>
+          <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600, color: meta.color }}>
             {lang === "ta" ? meta.ta : meta.en}
           </div>
         </div>
@@ -59,7 +59,7 @@ function RemedyCard({ lang, item }: { lang: Lang; item: FamilyHarmonyRemedyItem 
       {/* Read-from member chips — the grounding: which charts this came from. */}
       {item.members.length > 0 && (
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
-          <span style={{ fontSize: "10.5px", color: "var(--color-faint)" }}>{lang === "ta" ? "ஜாதகம்:" : "read from:"}</span>
+          <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{lang === "ta" ? "ஜாதகம்:" : "read from:"}</span>
           {item.members.map((name) => (
             <span key={name} style={{ fontSize: "11px", fontWeight: 600, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "2px 9px" }}>
               {name}

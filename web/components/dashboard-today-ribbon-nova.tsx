@@ -262,7 +262,7 @@ export function DashboardTodayRibbonNova({
                       width: "9px", height: "9px", borderRadius: "50%", background: color,
                       boxShadow: isToday ? "0 0 0 3px var(--color-accent-muted)" : "none",
                     }} />
-                    <span style={{ fontSize: "9.5px", color: isToday ? "var(--color-accent-strong)" : "var(--color-faint)", fontWeight: isToday ? 700 : 400 }}>{wd}</span>
+                    <span style={{ fontSize: "var(--text-xs)", color: isToday ? "var(--color-accent-strong)" : "var(--color-faint)", fontWeight: isToday ? 700 : 400 }}>{wd}</span>
                   </button>
                 );
               })}
@@ -312,7 +312,7 @@ export function DashboardTodayRibbonNova({
                 }}
               >
                 {widthPct >= 6 && (
-                  <span style={{ fontSize: "9.5px", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: s.fg, whiteSpace: "nowrap", padding: "0 6px" }}>
+                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: s.fg, whiteSpace: "nowrap", padding: "0 6px" }}>
                     {s.badge}
                   </span>
                 )}
@@ -325,7 +325,7 @@ export function DashboardTodayRibbonNova({
             <div style={{ position: "absolute", top: 0, bottom: 0, left: `${nowPct}%`, width: "2px", background: "var(--ribbon-now-bg)", borderRadius: "2px", boxShadow: "0 0 0 1px var(--ribbon-track-bg)" }} />
             <div style={{
               position: "absolute", top: "-4px", left: `${nowPct}%`, transform: "translateX(-50%)",
-              fontSize: "9.5px", fontWeight: 700, color: "var(--ribbon-now-fg)", background: "var(--ribbon-now-bg)",
+              fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ribbon-now-fg)", background: "var(--ribbon-now-bg)",
               borderRadius: "4px", padding: "1px 6px", whiteSpace: "nowrap", boxShadow: "0 1px 3px rgba(var(--nova-shadow-ink, 0, 0, 0), 0.22)",
             }}>
               {lang === "ta" ? "இப்போது" : "NOW"} {nowLabel}
@@ -334,7 +334,7 @@ export function DashboardTodayRibbonNova({
         )}
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--color-faint)", padding: "0 2px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs)", color: "var(--color-faint)", padding: "0 2px" }}>
         {ticks.map((m) => (
           <span key={m}>{formatClockLabel(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`)}</span>
         ))}

@@ -350,14 +350,16 @@ export function DashboardTodayTabNova({
                 <div style={{ fontSize: "clamp(17px, 1.8vw, 22px)", color: "var(--color-accent-secondary)", lineHeight: 1.2 }}>
                   {greetingWord(lang, zoneHour)},
                 </div>
-                <div style={{
-                  fontFamily: "var(--font-display)", fontWeight: 600, lineHeight: 1.08,
+                {/* audit B-1: the greeting+name is the page's one <h1> — Today
+                    previously shipped zero headings (no document outline). */}
+                <h1 style={{
+                  margin: 0, fontFamily: "var(--font-display)", fontWeight: 600, lineHeight: 1.08,
                   fontSize: "clamp(1.9rem, 3.4vw, 2.7rem)", maxWidth: "480px",
                   background: "linear-gradient(120deg, var(--color-text-strong), var(--color-accent-secondary))",
                   WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent",
                 }}>
                   {displayName}
-                </div>
+                </h1>
                 <div style={{ fontSize: "13px", color: "var(--color-accent-secondary)", fontWeight: 600 }}>
                   {lang === "ta" ? "நாளையைப் பற்றி ஒரு முன்னோட்டம் — " : "A look ahead to tomorrow — "}
                   {tomorrowWeekday}, {formatDateLabel(tomorrowIso)}
@@ -428,14 +430,16 @@ export function DashboardTodayTabNova({
                 <div style={{ fontSize: "clamp(17px, 1.8vw, 22px)", color: "var(--color-accent-secondary)", lineHeight: 1.2 }}>
                   {greetingWord(lang, zoneHour)},
                 </div>
-                <div style={{
-                  fontFamily: "var(--font-display)", fontWeight: 600, lineHeight: 1.08,
+                {/* audit B-1: the greeting+name is the page's one <h1> — Today
+                    previously shipped zero headings (no document outline). */}
+                <h1 style={{
+                  margin: 0, fontFamily: "var(--font-display)", fontWeight: 600, lineHeight: 1.08,
                   fontSize: "clamp(1.9rem, 3.4vw, 2.7rem)", maxWidth: "480px",
                   background: "linear-gradient(120deg, var(--color-text-strong), var(--color-accent-secondary))",
                   WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent",
                 }}>
                   {displayName}
-                </div>
+                </h1>
                 {personalDailyGuidance && (
                   <NovaClampedText
                     lines={3}
@@ -564,7 +568,7 @@ export function DashboardTodayTabNova({
                 border: "1px solid var(--color-border-strong)", borderRadius: "16px",
                 padding: "18px 14px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "9px",
               }}>
-                <div style={{ fontSize: "10px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+                <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
                   {isTomorrow
                     ? (lang === "ta" ? "நாளைய மதிப்பெண்" : "Tomorrow's score")
                     : (lang === "ta" ? "இன்றைய மதிப்பெண்" : "Today's score")}
@@ -576,7 +580,7 @@ export function DashboardTodayTabNova({
                 {!isTomorrow && personalDailyGuidance?.band && (() => {
                   const bt = bandTone(personalDailyGuidance.band);
                   return (
-                    <span style={{ fontSize: "10.5px", fontWeight: 700, padding: "2px 9px", borderRadius: "999px", background: bt.bg, color: bt.text, border: `1px solid ${bt.border}` }}>
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, padding: "2px 9px", borderRadius: "999px", background: bt.bg, color: bt.text, border: `1px solid ${bt.border}` }}>
                       {bandPhrase(personalDailyGuidance.band, lang)}
                     </span>
                   );
@@ -598,7 +602,7 @@ export function DashboardTodayTabNova({
                 <div style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", border: "1px solid var(--color-border)", borderRadius: "14px", padding: "13px 15px", display: "flex", gap: "12px", alignItems: "center" }}>
                   <div aria-hidden="true" style={{ width: "32px", height: "32px", borderRadius: "50%", background: "var(--color-high-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-high)", fontSize: "13px", flex: "none" }}>↗</div>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: "9.5px", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-high)", textTransform: "uppercase" }}>
+                    <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-high)", textTransform: "uppercase" }}>
                       {lang === "ta" ? "சிறந்த நேரம்" : "Best window"}
                     </div>
                     <div style={{ fontSize: "14.5px", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "3px", fontVariantNumeric: "tabular-nums" }}>
@@ -614,7 +618,7 @@ export function DashboardTodayTabNova({
                 <div style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", border: "1px solid var(--color-border)", borderRadius: "14px", padding: "13px 15px", display: "flex", gap: "12px", alignItems: "center" }}>
                   <div aria-hidden="true" style={{ width: "32px", height: "32px", borderRadius: "50%", background: "var(--color-low-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-low)", fontSize: "13px", flex: "none" }}>✕</div>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: "9.5px", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-low)", textTransform: "uppercase" }}>
+                    <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-low)", textTransform: "uppercase" }}>
                       {lang === "ta" ? "தவிர்க்க வேண்டிய நேரம்" : "Avoid window"}
                     </div>
                     <div style={{ fontSize: "14.5px", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "3px", fontVariantNumeric: "tabular-nums" }}>
@@ -630,7 +634,7 @@ export function DashboardTodayTabNova({
                 <div style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", border: "1px solid var(--color-border)", borderRadius: "14px", padding: "13px 15px", display: "flex", gap: "12px", alignItems: "center" }}>
                   <div aria-hidden="true" style={{ width: "32px", height: "32px", borderRadius: "50%", background: "color-mix(in srgb, var(--color-accent-secondary) 16%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-accent-secondary)", fontSize: "13px", flex: "none" }}>◆</div>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: "9.5px", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-accent-secondary)", textTransform: "uppercase" }}>
+                    <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-accent-secondary)", textTransform: "uppercase" }}>
                       {lang === "ta" ? "இப்போதைய ஓரை" : "Horai now"}
                     </div>
                     <div style={{ fontSize: "14.5px", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "3px" }}>
@@ -746,9 +750,9 @@ export function DashboardTodayTabNova({
       {personalDailyGuidance && (
         <div id="nova-deep-dive" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "20px 24px", display: "flex", flexDirection: "column", gap: "14px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-            <span style={{ fontFamily: "var(--font-display)", fontSize: "21px", fontWeight: 600, color: "var(--color-accent-strong)" }}>
+            <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-accent-strong)" }}>
               {lang === "ta" ? "இந்த கணிப்பு ஏன்?" : "Why this prediction?"}
-            </span>
+            </h2>
             <span style={{ fontSize: "11.5px", color: "var(--color-faint)" }}>
               {lang === "ta" ? "இன்றைய ஜோதிடத்தின் அடிப்படை" : "the astrology behind today"}
             </span>

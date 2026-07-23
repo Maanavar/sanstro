@@ -99,9 +99,11 @@ function GlanceHeader({
 }) {
   return (
     <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "14px" }}>
-      <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--color-text-strong)" }}>
+      {/* audit B-1: shared section header is a real <h2>, so every Today
+          section (Life Areas, Dasa, Family, Coming up) lands in the outline. */}
+      <h2 style={{ margin: 0, fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>
         {lang === "ta" ? titleTa : title}
-      </span>
+      </h2>
       {onLink && linkLabel && (
         <button
           type="button"
@@ -198,7 +200,7 @@ export function DashboardTodayLifeAreasDasaRowNova({
                     <span style={{ fontFamily: "var(--font-display)", fontSize: "26px", fontWeight: 700, color: "var(--color-text-strong)", lineHeight: 1 }}>{score}</span>
                     <span aria-hidden="true" style={{ fontSize: "13px", color: trend.color }}>{trend.arrow}</span>
                   </div>
-                  <div style={{ fontSize: "10.5px", fontWeight: 700, color, marginTop: "6px", lineHeight: 1.15 }}>{verdictWord}</div>
+                  <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, marginTop: "6px", lineHeight: 1.15 }}>{verdictWord}</div>
                 </div>
               );
             })}
