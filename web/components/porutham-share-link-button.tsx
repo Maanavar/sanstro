@@ -189,7 +189,7 @@ export function PoruthamShareLinkButton({ lang, formA, formB, compatibilityConte
                     style={{ padding: "8px 10px", borderRadius: "8px", border: "1px solid var(--color-border)", background: "var(--color-surface)", color: "var(--color-text-strong, inherit)", fontSize: "0.875rem", fontFamily: "inherit" }}
                   />
                 </label>
-                {error && <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-danger, #B4432B)" }}>{error}</p>}
+                {error && <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-low)" }}>{error}</p>}
                 <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
                   <button type="button" onClick={close} style={{ padding: "8px 16px", borderRadius: "9px", border: "1px solid var(--color-border)", background: "none", color: "var(--color-faint)", cursor: "pointer", fontWeight: 600, fontSize: "0.8rem", fontFamily: "inherit" }}>
                     {lang === "ta" ? "ரத்து" : "Cancel"}
@@ -226,13 +226,13 @@ export function PoruthamShareLinkButton({ lang, formA, formB, compatibilityConte
                     {lang === "ta" ? "பகிர்…" : "Share…"}
                   </button>
                 )}
-                {error && <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-danger, #B4432B)" }}>{error}</p>}
+                {error && <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-low)" }}>{error}</p>}
                 <div style={{ display: "flex", gap: "10px", justifyContent: "space-between", alignItems: "center" }}>
                   <button
                     type="button"
                     onClick={() => void handleRevoke()}
                     disabled={stage === "revoking"}
-                    style={{ padding: "8px 14px", borderRadius: "9px", border: "1px solid var(--color-danger, #B4432B)", background: "none", color: "var(--color-danger, #B4432B)", cursor: stage === "revoking" ? "wait" : "pointer", fontWeight: 600, fontSize: "0.75rem", fontFamily: "inherit" }}
+                    style={{ padding: "8px 14px", borderRadius: "9px", border: "1px solid var(--color-low)", background: "none", color: "var(--color-low)", cursor: stage === "revoking" ? "wait" : "pointer", fontWeight: 600, fontSize: "0.75rem", fontFamily: "inherit" }}
                   >
                     {stage === "revoking"
                       ? (lang === "ta" ? "நீக்குகிறது…" : "Revoking…")
