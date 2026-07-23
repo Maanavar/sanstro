@@ -54,14 +54,25 @@
      to prose/guidance copy as each screen is built, not blanket here. ── */
   --font-display: var(--font-nova-display), Georgia, serif;
   --font-body: system-ui, -apple-system, sans-serif;
+}
 
-  /* ── Type scale (audit B-6) ──────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════
+   DESIGN-SYSTEM SCALE TOKENS (audit B-6/B-3/B-10).
+   Scoped to :root[data-ui="nova"] — set on <html> app-wide (see the file
+   header) — NOT .cd-shell, so `var(--text-xs)` resolves in EVERY Nova
+   surface: the dashboard shell, standalone routes (share/porutham), and
+   shared primitives (nova-select), not just inside the dashboard. Custom-
+   property references resolve lazily at use-time, so --motion-* below still
+   finds the --dur-* scale defined further down this file.
+   ═══════════════════════════════════════════════════════════ */
+:root[data-ui="nova"] {
+  /* ── Type scale ──────────────────────────────────────────────────────────
      A real 7-step ladder that retires the 23 freehand px literals and the
      sub-11px floor found across the tab files. `xs` (11px) is the legibility
      floor — nothing rendering real content, Tamil or Latin, goes below it
      (audit B-2). Half-pixel steps (8.5/9.5/…/15.5) are gone. Consumed by the
      component kit (web/components/ui/) and, going forward, every tab that
-     converts to it. Structural/mode-invariant, so identical in dark + light. */
+     converts to it. Mode-invariant, so identical in dark + light. */
   --text-xs: 11px;   /* data labels · captions · table headers (floor) */
   --text-sm: 12px;   /* secondary UI · chips · pills */
   --text-base: 14px; /* body / UI default */
@@ -81,10 +92,10 @@
      which an inline style can't express — the reason those must be primitives. */
   --touch-target: 44px;
 
-  /* ── Named motion aliases (audit B-10) over the existing --dur-* scale, so
-     the kit reads intent, not raw ms. Interactions settle fast (toggle/nav),
-     content reveals slower. All still collapse to instant under the
-     reduced-motion guard at the end of this file. ── */
+  /* ── Named motion aliases (audit B-10) over the --dur-* scale, so the kit
+     reads intent, not raw ms. Interactions settle fast (toggle/nav), content
+     reveals slower. All still collapse to instant under the reduced-motion
+     guard at the end of this file. ── */
   --motion-toggle: var(--dur-fast); /* 120ms — press / toggle feedback */
   --motion-nav: var(--dur-base);    /* 220ms — nav / colour settle */
   --motion-reveal: var(--dur-slow); /* 420ms — content reveal */

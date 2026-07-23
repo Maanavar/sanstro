@@ -190,11 +190,11 @@ export function DashboardExploreYogamListNova({
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
                 {y.isPresent && (
-                  <span style={{ fontSize: "10px", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px" }}>
+                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px" }}>
                     {strengthBand(y.strength, true, lang)}
                   </span>
                 )}
-                <span style={{ fontSize: "10px", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px" }}>
+                <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px" }}>
                   {yogaStatusLabel(y, lang)}
                 </span>
               </span>
@@ -347,7 +347,7 @@ export function DashboardExploreYogamNova({
             )}
             {yoga.cancellationFactors.length > 0 && (
               <div style={{ marginTop: "4px" }}>
-                <p style={{ margin: "0 0 6px", fontSize: "10.5px", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                   {lang === "ta" ? "நிவர்த்தி காரணங்கள்" : "Cancellation factors"}
                 </p>
                 <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -401,7 +401,7 @@ export function DashboardExploreYogamNova({
             <NovaKicker color="var(--color-accent-secondary)">{lang === "ta" ? "உங்கள் குடும்பத்தில்" : "Check your family"}</NovaKicker>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12.5px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "10.5px", fontWeight: 700, flexShrink: 0 }}>
+                <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
                   {lang === "ta" ? "நீ" : "Y"}
                 </span>
                 <span>{lang === "ta" ? "நீங்கள்" : "You"}</span>
@@ -415,7 +415,7 @@ export function DashboardExploreYogamNova({
               return (
                 <div key={mc.memberId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12.5px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                    <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "10.5px", fontWeight: 700, flexShrink: 0 }}>
+                    <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
                       {mc.displayName.charAt(0).toUpperCase()}
                     </span>
                     <span>{mc.displayName}</span>

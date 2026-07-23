@@ -138,7 +138,7 @@ export function NovaPlanWhatIfPanel({
             <div style={{ display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" }}>
               <div style={{ textAlign: "center" }}>
                 <p style={{ margin: "0 0 2px", fontSize: "2.2rem", fontWeight: 900, color: vc, lineHeight: 1 }}>{r.overallScore}</p>
-                <p style={{ margin: 0, fontSize: "10px", color: "var(--color-faint)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>/100</p>
+                <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>/100</p>
               </div>
               <div style={{ padding: "6px 14px", borderRadius: "8px", background: `${vc}18`, border: `1px solid ${vc}55` }}>
                 <p style={{ margin: 0, fontSize: "14px", fontWeight: 800, color: vc }}>{t(verdictKey(r.verdict) as Parameters<typeof t>[0], lang)}</p>
@@ -175,7 +175,7 @@ export function NovaPlanWhatIfPanel({
                 <div key={label} style={{ padding: "10px 12px", borderRadius: "8px", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
                     <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-faint)" }}>{label}</span>
-                    <span style={{ fontSize: "10px", fontWeight: 700, color: novaStrengthColor(strength) }}>
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: novaStrengthColor(strength) }}>
                       {t(strengthKey(strength) as Parameters<typeof t>[0], lang)}
                     </span>
                   </div>
@@ -185,17 +185,17 @@ export function NovaPlanWhatIfPanel({
             </div>
 
             <div style={{ padding: "10px 12px", borderRadius: "8px", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)" }}>
-              <p style={{ margin: "0 0 2px", fontSize: "10.5px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-high)" }}>{t("whatif_best_period", lang)}</p>
+              <p style={{ margin: "0 0 2px", fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-high)" }}>{t("whatif_best_period", lang)}</p>
               <p style={{ margin: 0, fontSize: "12px", color: "var(--color-text)", lineHeight: 1.5 }}>{lang === "ta" ? r.bestPeriodInWindow.ta : r.bestPeriodInWindow.en}</p>
             </div>
 
             <div style={{ padding: "10px 12px", borderRadius: "8px", background: "var(--color-mid-bg)", border: "1px solid var(--color-mid-border)" }}>
-              <p style={{ margin: "0 0 2px", fontSize: "10.5px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-mid)" }}>{t("whatif_caution", lang)}</p>
+              <p style={{ margin: "0 0 2px", fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-mid)" }}>{t("whatif_caution", lang)}</p>
               <p style={{ margin: 0, fontSize: "12px", color: "var(--color-text)", lineHeight: 1.5 }}>{lang === "ta" ? r.cautionNote.ta : r.cautionNote.en}</p>
             </div>
 
             <div style={{ padding: "10px 12px", borderRadius: "8px", background: "var(--color-mid-bg)", border: "1px solid var(--color-mid-border)" }}>
-              <p style={{ margin: "0 0 2px", fontSize: "10.5px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-mid)" }}>{t("whatif_remedy", lang)}</p>
+              <p style={{ margin: "0 0 2px", fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-mid)" }}>{t("whatif_remedy", lang)}</p>
               <p style={{ margin: 0, fontSize: "12px", color: "var(--color-text)", lineHeight: 1.5 }}>{lang === "ta" ? r.remedy.ta : r.remedy.en}</p>
             </div>
 

@@ -509,7 +509,7 @@ export function DashboardPlanTabNova({
                     <div key={`${w.startDate}-${i}`} style={{ display: "flex", gap: "16px", alignItems: "flex-start", background: isActive ? "var(--color-accent-muted)" : "var(--color-surface)", border: `1px solid ${isActive ? "var(--color-border-strong)" : "var(--color-border)"}`, borderRadius: "11px", padding: "15px 18px" }}>
                       <div style={{ flex: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", minWidth: "74px" }}>
                         <span style={{ fontFamily: "var(--font-display)", fontSize: "26px", fontWeight: 600, color: scoreColor, lineHeight: 1 }}>{w.score}</span>
-                        <span style={{ fontSize: "10px", letterSpacing: "0.08em", color: "var(--color-faint)", textTransform: "uppercase" }}>/100 {lang === "ta" ? "ஆதரவு" : "support"}</span>
+                        <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.08em", color: "var(--color-faint)", textTransform: "uppercase" }}>/100 {lang === "ta" ? "ஆதரவு" : "support"}</span>
                       </div>
                       <div style={{ flex: 1 }}>
                         <p style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "var(--color-text-strong)" }}>{startLabel} — {endLabel}</p>

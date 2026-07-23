@@ -140,7 +140,7 @@ export function NovaAttributeBand({ facts }: { facts: { label: string; value: Re
     <div style={{ display: "grid", gridTemplateColumns: `repeat(${facts.length}, 1fr)`, gap: "10px", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "12px", padding: "13px 20px" }}>
       {facts.map((fact, i) => (
         <div key={i}>
-          <div style={{ fontSize: "10.5px", letterSpacing: "0.08em", color: "var(--color-accent-strong)", textTransform: "uppercase" }}>{fact.label}</div>
+          <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.08em", color: "var(--color-accent-strong)", textTransform: "uppercase" }}>{fact.label}</div>
           <div style={{ fontSize: "13.5px", fontWeight: 600, marginTop: "2px" }}>{fact.value}</div>
         </div>
       ))}

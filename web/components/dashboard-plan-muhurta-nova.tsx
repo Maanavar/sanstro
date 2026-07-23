@@ -153,7 +153,7 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
                   }}
                 >
                   <div style={{ textAlign: "center", flexShrink: 0 }}>
-                    <span style={{ display: "block", fontSize: "9px", fontWeight: 700, color: "var(--color-faint)" }}>{i + 1}.</span>
+                    <span style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)" }}>{i + 1}.</span>
                     <span style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: scoreColor, lineHeight: 1 }}>{item.score}</span>
                     <span style={{ display: "block", fontSize: "8px", fontWeight: 600, color: "var(--color-faint)" }}>/100</span>
                   </div>
@@ -161,7 +161,7 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                       <span style={{ fontSize: "14px", fontWeight: 700, color: scoreColor }}>{shortDate}</span>
                       <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-muted)" }}>{weekday}</span>
-                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "999px", background: alignBg, color: alignColor, border: `1px solid ${alignColor}44` }}>
+                      <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, padding: "2px 8px", borderRadius: "999px", background: alignBg, color: alignColor, border: `1px solid ${alignColor}44` }}>
                         {item.alignment}
                       </span>
                     </div>

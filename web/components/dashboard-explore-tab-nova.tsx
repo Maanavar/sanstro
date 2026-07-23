@@ -430,7 +430,7 @@ export function DashboardExploreTabNova({
                 style={{ ...cardStyle, background: "linear-gradient(120deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: "10.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent-strong)", fontWeight: 700 }}>
+                  <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent-strong)", fontWeight: 700 }}>
                     {lang === "ta" ? "உங்கள் ஜென்ம நட்சத்திரம்" : "Your birth star"}
                   </span>
                   <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", borderRadius: "5px", padding: "2px 8px" }}>
@@ -461,7 +461,7 @@ export function DashboardExploreTabNova({
                 style={{ ...cardStyle, border: "1px solid var(--color-low-border)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: "10.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-low)", fontWeight: 700 }}>
+                  <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-low)", fontWeight: 700 }}>
                     {lang === "ta" ? "உங்கள் ஜாதகத்தில் இயங்குவது" : "Active in your chart"}
                   </span>
                   <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-low)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "5px", padding: "2px 8px" }}>
@@ -486,7 +486,7 @@ export function DashboardExploreTabNova({
                 style={{ ...cardStyle, background: "linear-gradient(120deg, var(--color-high-bg), transparent)", border: "1px solid var(--color-high-border)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: "10.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-high)", fontWeight: 700 }}>
+                  <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-high)", fontWeight: 700 }}>
                     {lang === "ta" ? "உங்கள் ஜாதகத்தில் உள்ளது" : "Present in your chart"}
                   </span>
                   <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-high)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", borderRadius: "5px", padding: "2px 8px" }}>
@@ -600,7 +600,7 @@ export function DashboardExploreTabNova({
                 onClick={() => setLearnSlug(a.slug)}
                 style={{ textDecoration: "none", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "8px", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%" }}
               >
-                <span style={{ fontSize: "10.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-secondary)", fontWeight: 700 }}>
+                <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-secondary)", fontWeight: 700 }}>
                   {lang === "ta" ? a.kickerTa : a.kickerEn}
                 </span>
                 <span style={{ fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "15px", fontWeight: 600, lineHeight: 1.4 }}>

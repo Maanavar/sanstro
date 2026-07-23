@@ -144,18 +144,18 @@ function NovaPredictionDetail({ pred, lang }: { pred: LifeAreaPredictionData; la
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "10px" }}>
         <div style={{ borderRadius: "10px", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", padding: "10px 14px" }}>
-          <p style={{ margin: "0 0 3px", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_dasha_support", lang)}</p>
+          <p style={{ margin: "0 0 3px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_dasha_support", lang)}</p>
           <p style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: supportTone(pred.dashaSupport) }}>{supportLabel(pred.dashaSupport, lang)}</p>
         </div>
 
         <div style={{ borderRadius: "10px", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", padding: "10px 14px" }}>
-          <p style={{ margin: "0 0 3px", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_transit_support", lang)}</p>
+          <p style={{ margin: "0 0 3px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_transit_support", lang)}</p>
           <p style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: supportTone(pred.transitSupport) }}>{supportLabel(pred.transitSupport, lang)}</p>
         </div>
 
         {pred.timingWindowStart && pred.timingWindowEnd && (
           <div style={{ borderRadius: "10px", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", padding: "10px 14px" }}>
-            <p style={{ margin: "0 0 3px", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_timing_window", lang)}</p>
+            <p style={{ margin: "0 0 3px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_timing_window", lang)}</p>
             <p style={{ margin: 0, fontSize: "13px", fontWeight: 600, color: "var(--color-text-strong)" }}>{pred.timingWindowStart} to {pred.timingWindowEnd}</p>
           </div>
         )}
@@ -172,7 +172,7 @@ function NovaPredictionDetail({ pred, lang }: { pred: LifeAreaPredictionData; la
 
 function NovaLaterPhaseBadge({ lang }: { lang: Lang }) {
   return (
-    <span style={{ fontSize: "10px", fontWeight: 700, padding: "3px 10px", borderRadius: "999px", background: "var(--color-low-bg)", color: "var(--color-low)", border: "1px solid var(--color-low-border)" }}>
+    <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, padding: "3px 10px", borderRadius: "999px", background: "var(--color-low-bg)", color: "var(--color-low)", border: "1px solid var(--color-low-border)" }}>
       {lang === "ta" ? "பின்வரும் கட்டம்" : "Later phase"}
     </span>
   );

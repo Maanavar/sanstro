@@ -173,9 +173,9 @@ export function DashboardExploreNakshatramListNova({
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "10.5px", color: "var(--color-faint)" }}>{n.number}</span>
+                <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{n.number}</span>
                 {isOwn && (
-                  <span style={{ fontSize: "10px", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", borderRadius: "5px", padding: "2px 8px" }}>
+                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", borderRadius: "5px", padding: "2px 8px" }}>
                     {lang === "ta" ? "நீங்கள்" : "YOU"}
                   </span>
                 )}
@@ -282,7 +282,7 @@ export function DashboardExploreNakshatramNova({
             <div style={{ width: "84px", height: "84px", borderRadius: "50%", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "32px", color: "var(--color-accent-strong)" }}>
               {"☙"}
             </div>
-            <div style={{ fontSize: "10.5px", color: "var(--color-faint)", textAlign: "center", lineHeight: 1.5 }}>
+            <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", textAlign: "center", lineHeight: 1.5 }}>
               {lang === "ta" ? "சின்னம்" : "Symbol"}<br />
               <b style={{ color: "var(--color-text-strong)" }}>{lang === "ta" ? card.symbolTa : astroText(card.symbolEn)}</b>
             </div>
@@ -331,7 +331,7 @@ export function DashboardExploreNakshatramNova({
             </div>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12.5px" }}>
               <thead>
-                <tr style={{ textAlign: "left", color: "var(--color-accent-strong)", fontSize: "10.5px", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                <tr style={{ textAlign: "left", color: "var(--color-accent-strong)", fontSize: "var(--text-xs)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
                   <th style={{ padding: "0 12px 6px 0", borderBottom: "1px solid var(--color-border)" }}>{lang === "ta" ? "பாதம்" : "Pada"}</th>
                   <th style={{ padding: "0 12px 6px 0", borderBottom: "1px solid var(--color-border)" }}>{lang === "ta" ? "நவாம்சம்" : "Navamsa"}</th>
                 </tr>
@@ -345,7 +345,7 @@ export function DashboardExploreNakshatramNova({
                       <td style={{ padding: "8px 12px 8px 0", borderBottom: "1px solid var(--color-border)", fontWeight: isYou ? 700 : 500 }}>
                         {pada}
                         {isYou && (
-                          <span style={{ marginLeft: "6px", fontSize: "10px", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", borderRadius: "4px", padding: "1px 6px" }}>
+                          <span style={{ marginLeft: "6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", borderRadius: "4px", padding: "1px 6px" }}>
                             {lang === "ta" ? "நீங்கள்" : "YOU"}
                           </span>
                         )}
@@ -386,7 +386,7 @@ export function DashboardExploreNakshatramNova({
           <div style={cardStyle}>
             <NovaKicker color="var(--color-accent-secondary)">{lang === "ta" ? "உங்கள் குடும்பத்தில்" : "In your family"}</NovaKicker>
             <div style={{ display: "flex", alignItems: "center", gap: "9px", fontSize: "12.5px" }}>
-              <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "10.5px", fontWeight: 700, flexShrink: 0 }}>
+              <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
                 {lang === "ta" ? "நீ" : "Y"}
               </span>
               <span>
@@ -396,7 +396,7 @@ export function DashboardExploreNakshatramNova({
             </div>
             {membersOnStar.map((mc) => (
               <div key={mc.memberId} style={{ display: "flex", alignItems: "center", gap: "9px", fontSize: "12.5px" }}>
-                <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "10.5px", fontWeight: 700, flexShrink: 0 }}>
+                <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
                   {mc.displayName.charAt(0).toUpperCase()}
                 </span>
                 <span>{mc.displayName}</span>

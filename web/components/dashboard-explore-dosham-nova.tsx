@@ -247,11 +247,11 @@ export function DashboardExploreDoshamListNova({
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
                 {d.isPresent && (
-                  <span style={{ fontSize: "10px", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px" }}>
+                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px" }}>
                     {strengthBand(d.strength, true, lang)}
                   </span>
                 )}
-                <span style={{ fontSize: "10px", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px" }}>
+                <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px" }}>
                   {doshamStatusLabel(d, lang)}
                 </span>
               </span>
@@ -451,7 +451,7 @@ export function DashboardExploreDoshamNova({
             <NovaKicker color="var(--color-accent-secondary)">{lang === "ta" ? "உங்கள் குடும்பத்தில்" : "Check your family"}</NovaKicker>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12.5px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "10.5px", fontWeight: 700, flexShrink: 0 }}>
+                <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
                   {lang === "ta" ? "நீ" : "Y"}
                 </span>
                 <span>{lang === "ta" ? "நீங்கள்" : "You"}</span>
@@ -465,7 +465,7 @@ export function DashboardExploreDoshamNova({
               return (
                 <div key={mc.memberId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12.5px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                    <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "10.5px", fontWeight: 700, flexShrink: 0 }}>
+                    <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
                       {mc.displayName.charAt(0).toUpperCase()}
                     </span>
                     <span>{mc.displayName}</span>

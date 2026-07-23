@@ -65,7 +65,7 @@ function NovaMuhurtaCard({ slot, lang, sourceTz, compareCity }: { slot: MuhurtaS
       <div style={{ display: "flex", gap: "12px", alignItems: "center", cursor: "pointer", flexWrap: "wrap" }} onClick={() => setExpanded((v) => !v)}>
         <div style={{ textAlign: "center", flexShrink: 0 }}>
           <div style={{ fontSize: "1.25rem", fontWeight: 700, color: scoreColor }}>{Math.min(100, Math.round(slot.score))}</div>
-          <div style={{ fontSize: "10px", color: "var(--color-faint)" }}>{t("muhurta_score", lang)}</div>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{t("muhurta_score", lang)}</div>
         </div>
         <div style={{ flex: 1, minWidth: "160px" }}>
           <div style={{ fontWeight: 600, fontSize: "14px", color: "var(--color-text)" }}>{formatMuhurtaDate(slot.date, lang)}</div>

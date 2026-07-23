@@ -378,7 +378,7 @@ export function DashboardJournalTabNova({
               >
                 {label}
                 {key === "entries" && (
-                  <span style={{ fontSize: "10.5px", opacity: 0.75 }}>{journalTotal}</span>
+                  <span style={{ fontSize: "var(--text-xs)", opacity: 0.75 }}>{journalTotal}</span>
                 )}
               </button>
             ))}
@@ -507,7 +507,7 @@ export function DashboardJournalTabNova({
                     {journalCorrelations.correlations.map((corr, i) => (
                       <div key={i} style={{ padding: "10px 12px", borderRadius: "9px", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)" }}>
                         <p style={{ margin: "0 0 3px", fontSize: "12.5px", color: "var(--color-text)", lineHeight: 1.45 }}>{lang === "ta" ? corr.descriptionTa : corr.descriptionEn}</p>
-                        <p style={{ margin: 0, fontSize: "10px", color: "var(--color-faint)" }}>
+                        <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
                           {t("journal_mood_avg", lang)}: {corr.avgMood.toFixed(1)} | {corr.sampleCount} {t("journal_sample_count", lang)}
                         </p>
                       </div>

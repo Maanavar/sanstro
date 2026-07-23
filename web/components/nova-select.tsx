@@ -185,7 +185,7 @@ export function NovaSelect({
             return (
               <div key={opt.value || `opt-${index}`}>
                 {showGroupHeader && (
-                  <div style={{ padding: "6px 11px 3px", fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+                  <div style={{ padding: "6px 11px 3px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-faint)" }}>
                     {opt.group}
                   </div>
                 )}

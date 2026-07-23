@@ -406,7 +406,7 @@ export function NovaPoruthamPanel({
                 <div style={{ position: "relative", width: "116px", height: "116px", borderRadius: "50%", background: `conic-gradient(${scoreTone} ${pct * 360}deg, var(--color-border) 0)`, display: "grid", placeItems: "center" }}>
                   <div style={{ width: "92px", height: "92px", borderRadius: "50%", background: "var(--color-surface-3)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `1px solid ${scoreTone}` }}>
                     <div style={{ fontFamily: "var(--font-display)", fontSize: "32px", fontWeight: 700, lineHeight: 1, color: scoreTone }}>{porutham.totalScore}</div>
-                    <div style={{ fontSize: "9px", color: "var(--color-faint)", letterSpacing: "0.08em", marginTop: "1px" }}>/ {porutham.maxScore} {lang === "ta" ? "பொருத்தம்" : "PORUTHAMS"}</div>
+                    <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", letterSpacing: "0.08em", marginTop: "1px" }}>/ {porutham.maxScore} {lang === "ta" ? "பொருத்தம்" : "PORUTHAMS"}</div>
                   </div>
                 </div>
                 <span style={{ fontSize: "11px", fontWeight: 700, color: scoreTone, background: `${scoreTone}22`, border: `1px solid ${scoreTone}55`, borderRadius: "999px", padding: "4px 12px" }}>
@@ -424,7 +424,7 @@ export function NovaPoruthamPanel({
                     {lang === "ta" ? "பொருத்தம் முடிவு" : "Porutham Result"}
                   </span>
                   {(porutham.rajjuDosha || porutham.vedhaDosha) && (
-                    <span style={{ fontSize: "10px", fontWeight: 700, color: "var(--color-low)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "999px", padding: "2px 10px" }}>
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-low)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "999px", padding: "2px 10px" }}>
                       ⚠ {porutham.rajjuDosha ? (lang === "ta" ? "ராஜ்ஜு தோஷம்" : "Rajju Dosha") : (lang === "ta" ? "வேத தோஷம்" : "Vedha Dosha")}
                     </span>
                   )}
@@ -521,7 +521,7 @@ export function NovaPoruthamPanel({
                       <div style={{ minWidth: "150px" }}>
                         <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--color-text-strong)" }}>{lang === "ta" ? k.nameTa : k.name}</span>
                         {governs?.critical && (
-                          <span style={{ marginLeft: "6px", fontSize: "9px", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-high)", borderRadius: "4px", padding: "1px 6px" }}>
+                          <span style={{ marginLeft: "6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-high)", borderRadius: "4px", padding: "1px 6px" }}>
                             {lang === "ta" ? "முக்கியம்" : "CRITICAL"}
                           </span>
                         )}

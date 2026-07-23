@@ -266,7 +266,7 @@ export function NovaPlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: Pro
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0, marginLeft: "8px" }}>
                       <div style={{ fontSize: "1.5rem", fontWeight: 900, color: accentColor, lineHeight: 1 }}>{data.score}</div>
-                      <div style={{ fontSize: "10px", color: "var(--color-faint)", marginTop: "2px" }}>/100</div>
+                      <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px" }}>/100</div>
                     </div>
                   </div>
 
@@ -278,7 +278,7 @@ export function NovaPlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: Pro
 
                   {data.alignmentNotes.length > 0 && (
                     <div style={{ marginBottom: "8px" }}>
-                      <p style={{ margin: "0 0 2px", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.05em", color: isRecommended ? "var(--color-high)" : "var(--color-faint)" }}>
+                      <p style={{ margin: "0 0 2px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.05em", color: isRecommended ? "var(--color-high)" : "var(--color-faint)" }}>
                         {isRecommended ? "Why this is stronger" : "Limiting factors"}
                       </p>
                       <ul style={{ margin: 0, padding: "0 0 0 14px" }}>
@@ -293,7 +293,7 @@ export function NovaPlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: Pro
 
                   {data.riskFactors.length > 0 && (
                     <div style={{ padding: "6px 8px", borderRadius: "6px", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", marginBottom: "6px" }}>
-                      <p style={{ margin: 0, fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.05em", color: "var(--color-low)" }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.05em", color: "var(--color-low)" }}>
                         {lang === "ta" ? "கவனிக்க வேண்டியவை" : "Watch out for"}
                       </p>
                       {data.riskFactors.map((rf, i) => (

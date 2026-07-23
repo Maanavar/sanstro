@@ -112,11 +112,11 @@ function NovaNaalRow({ row, lang, showMatchCol }: { row: MergedRow; lang: Lang; 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px", minWidth: "80px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <span style={{ fontSize: "1.15rem", fontWeight: 700, color: SCORE_COLOR(match.matchScore), fontVariantNumeric: "tabular-nums" }}>{match.matchScore}</span>
-              <span style={{ fontSize: "10.5px", color: "var(--color-faint)" }}>/100</span>
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>/100</span>
               <span style={{ fontSize: "12px", color: "var(--color-faint)" }}>{open ? "▲" : "▼"}</span>
             </div>
             {q && (
-              <span style={{ fontSize: "10.5px", fontWeight: 700, color: q.dot, padding: "1px 6px", background: q.bg, borderRadius: "999px", border: `1px solid ${q.dot}30`, whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: q.dot, padding: "1px 6px", background: q.bg, borderRadius: "999px", border: `1px solid ${q.dot}30`, whiteSpace: "nowrap" }}>
                 {lang === "ta" ? q.label.ta : q.label.en}
               </span>
             )}

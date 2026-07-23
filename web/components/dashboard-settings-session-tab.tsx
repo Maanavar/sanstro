@@ -209,7 +209,7 @@ function GhostBtn({ onClick, disabled, children, danger }: { onClick: () => void
 }
 
 const KICKER: React.CSSProperties = {
-  fontSize: "10.5px", letterSpacing: ".12em", textTransform: "uppercase", color: C.faint, fontWeight: 700,
+  fontSize: "var(--text-xs)", letterSpacing: ".12em", textTransform: "uppercase", color: C.faint, fontWeight: 700,
 };
 
 const fieldStyle: React.CSSProperties = {
@@ -620,7 +620,7 @@ export function DashboardSettingsSessionTab({
                   title={f.value}
                   style={{ background: C.surfaceSoft, padding: "14px 22px", cursor: "pointer", display: "flex", flexDirection: "column", gap: "5px", border: "none", fontFamily: "inherit", textAlign: "left" }}
                 >
-                  <span style={{ fontSize: "10px", letterSpacing: ".12em", textTransform: "uppercase", color: C.faint, fontWeight: 700 }}>{f.label}</span>
+                  <span style={{ fontSize: "var(--text-xs)", letterSpacing: ".12em", textTransform: "uppercase", color: C.faint, fontWeight: 700 }}>{f.label}</span>
                   <span style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: "12px", color: C.textMid, display: "flex", alignItems: "center", gap: "8px" }}>
                     {f.value.length > 24 ? `${f.value.slice(0, 24)}…` : f.value}
                     <span style={{ color: C.accentText, fontSize: "11px" }}>⧉</span>
