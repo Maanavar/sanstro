@@ -1205,12 +1205,17 @@ export function DashboardFamilyChartsHybrid({
           </div>
         </section>
 
-        {/* ═══ 9 · CHART EXPLANATION (deep reference) ═══ */}
+        {/* ═══ 9 · FULL TECHNICAL READING (Level-3 deep reference) ═══
+             Phase 4 (docs/family-charts-humanization-audit.md): this is the
+             bottom of the Meaning→Why→Mechanics ladder — the complete jyotishi's
+             reading. Relabelled and collapsed by default (dropped `defaultOpen`)
+             so a newcomer is never met by a wall of Level-6 prose; anyone who
+             wants it is one tap away. */}
         {readingChart && (
           <HySection
             id="hy-explain"
-            title={lang === "ta" ? "ஜாதக விளக்கம்" : "Chart explanation"}
-            sub={lang === "ta" ? "ஒரு ஜோதிடர் எப்படிப் படிக்கிறார் — தலைப்பு வாரியாக" : "how a jyotishi reads this chart, topic by topic"}
+            title={lang === "ta" ? "முழு ஜோதிட விளக்கம்" : "Full technical reading"}
+            sub={lang === "ta" ? "ஒரு ஜோதிடர் படிக்கும் முழு விவரம் — தலைப்பு வாரியாக" : "the complete jyotishi's reading — every topic, in detail"}
           >
             <ChartExplanationPanel
               lang={lang}
@@ -1223,7 +1228,6 @@ export function DashboardFamilyChartsHybrid({
               dasha={reading?.dasha ?? null}
               dashaAntar={reading?.dashaAntar ?? []}
               renderYogaDoshamPanel={({ lang: l, yogas, doshams }) => <NovaYogaDoshamPanel lang={l} yogas={yogas} doshams={doshams} />}
-              defaultOpen
             />
 
             <VargasPanel

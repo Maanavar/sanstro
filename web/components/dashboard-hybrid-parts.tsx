@@ -21,6 +21,7 @@ import type {
 
 import { RASI_NAMES } from "./dashboard-charts";
 import { displayName as yogaDoshamDisplayName } from "./dashboard-yoga-dosham-panel";
+import { HOUSE_MEANING, OWN_SIGN_RASI } from "./dashboard-chart-explanation-data";
 
 /**
  * Net-new graphical leaf components for the Family & Charts "Hybrid v2"
@@ -149,6 +150,200 @@ function strengthVerdict(score: number, lang: Lang): string {
   if (score >= 35) return lang === "ta" ? "மிதமானது" : "Moderate";
   return lang === "ta" ? "மென்மையானது" : "Gentle";
 }
+
+// Phase-0 humanization (docs/family-charts-humanization-audit.md): a plain-
+// language reassurance line per strength band, so a bare "25/100" never leaves
+// the reader wondering "should I worry?". Reads the engine's strengthScore — it
+// invents nothing and recomputes no strength.
+function strengthReassurance(score: number, lang: Lang): string {
+  if (score >= 70)
+    return lang === "ta"
+      ? "உங்கள் ஜாதகத்தில் வலிமையான சக்திகளில் ஒன்று — இயல்பாகவே ஆதரவாக இருக்கும்."
+      : "One of the stronger forces in your chart — it tends to support you naturally.";
+  if (score >= 50)
+    return lang === "ta"
+      ? "நிலையான, சாதகமான இடத்தில் — பெரும்பாலும் நம்பகமானது."
+      : "Sits in a steady, workable place — dependable more often than not.";
+  if (score >= 35)
+    return lang === "ta"
+      ? "மிதமான தாக்கம் — சிறிது முயற்சியுடன் சிறப்பாக செயல்படும்."
+      : "A moderate influence — it works best with a little conscious effort.";
+  return lang === "ta"
+    ? "மென்மையானது, ஆதரவு தேவை. இது கெட்டதல்ல — அதன் விஷயங்கள் கூடுதல் கவனமும் பொறுமையும் கேட்கின்றன."
+    : "Gentle, and it needs support. That isn't bad — its matters simply ask for more care and patience.";
+}
+
+// Each graha's universal karaka domain — textbook significations, true for the
+// planet itself (not the person), so this is the honest Level-1 "what is this
+// planet about?" the humanization audit calls for. Made specific by the chart's
+// own house/strength in the same card.
+const GRAHA_DOMAIN: Record<string, { ta: string; en: string }> = {
+  SUN: { ta: "தன்மை & உயிர்சக்தி", en: "Self & vitality" },
+  MOON: { ta: "மனம் & உணர்ச்சி", en: "Mind & emotion" },
+  MARS: { ta: "ஆற்றல் & உந்துதல்", en: "Energy & drive" },
+  MERCURY: { ta: "அறிவு & பேச்சு", en: "Intellect & speech" },
+  JUPITER: { ta: "ஞானம் & வளர்ச்சி", en: "Wisdom & growth" },
+  VENUS: { ta: "அன்பு & இன்பம்", en: "Love & comfort" },
+  SATURN: { ta: "ஒழுக்கம் & உழைப்பு", en: "Discipline & work" },
+  RAHU: { ta: "லட்சியம் & ஆசை", en: "Ambition & desire" },
+  KETU: { ta: "விடுதலை & உள்ளுணர்வு", en: "Detachment & insight" },
+};
+
+/* ── Phase-0 "At a Glance" verdict card — the meaning-first header of a tapped
+      planet. Answers, at one glance and with zero astrology knowledge: what the
+      planet is about (karaka domain), whether it's strong/weak and whether that
+      is a worry (banded verdict + reassurance), which life areas it touches
+      (its house theme), and whether it's active now (running dasha). All from
+      data the engine already returns — no new fetch, nothing recomputed. */
+function HyPlanetVerdict({ lang, pl, expl }: {
+  lang: Lang; pl: OrbPlanet; expl: ChartExplanationPlanet | undefined;
+}) {
+  const score = expl?.strengthScore;
+  const accent = score != null ? scoreColor(score) : "var(--color-mid)";
+  const domain = GRAHA_DOMAIN[pl.graha];
+  const focus = HOUSE_MEANING[pl.houseFromLagna];
+  const activeNow = (expl?.facets ?? []).some((f) => f.key === "activation" && f.tone === "BOOST");
+  const grad = ORB_GRADIENTS[pl.graha] ?? ORB_GRADIENTS.SATURN!;
+
+  return (
+    <div style={{ background: "var(--color-surface-soft)", border: `1px solid ${score != null && score < 35 ? "var(--color-low-border)" : "var(--color-border-strong)"}`, borderRadius: "12px", padding: "14px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "11px", flexWrap: "wrap" }}>
+        <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: grad.orb, boxShadow: `0 0 10px ${grad.glow}`, flexShrink: 0 }} />
+        <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--color-text-strong)" }}>{tPlanetLord(pl.graha, lang)}</span>
+        {domain && <span style={{ fontSize: "12px", color: "var(--color-muted)" }}>· {lang === "ta" ? domain.ta : domain.en}</span>}
+        {activeNow && (
+          <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-high)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", borderRadius: "999px", padding: "3px 9px", whiteSpace: "nowrap" }}>
+            ★ {lang === "ta" ? "இப்போது இயங்குகிறது" : "Active now"}
+          </span>
+        )}
+      </div>
+      {score != null && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ fontSize: "13px", fontWeight: 700, color: accent }}>{strengthVerdict(score, lang)}</span>
+            <span style={{ fontSize: "11.5px", color: "var(--color-faint)" }}>{score}/100</span>
+          </div>
+          <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12.5px", lineHeight: 1.5, color: "var(--color-text)" }}>{strengthReassurance(score, lang)}</p>
+        </div>
+      )}
+      {focus && (
+        <div style={{ fontSize: "12px", color: "var(--color-muted)", lineHeight: 1.5 }}>
+          <span style={{ fontWeight: 700, color: "var(--color-mid)" }}>{lang === "ta" ? "தொடும் துறைகள்: " : "Touches: "}</span>
+          {lang === "ta" ? focus.ta : focus.en}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Phase-2 life-domain lens (docs/family-charts-humanization-audit.md) —
+      "How this shows up in your life": the friend's ❤️/💼/💰/🧠 framing, but
+      each bucket is chosen from THIS chart (the graha's karaka ∪ the houses it
+      owns/occupies) and its tone comes from the engine's real strengthScore, so
+      it reads differently for, say, a debilitated planet in the 6th. No Barnum,
+      nothing recomputed. ─────────────────────────────────────────────────── */
+type LifeBucket = "relationships" | "career" | "money" | "mind";
+
+const BUCKET_META: Record<LifeBucket, { icon: string; label: { ta: string; en: string }; covers: { ta: string; en: string } }> = {
+  relationships: {
+    icon: "❤️",
+    label: { ta: "உறவுகள்", en: "Relationships" },
+    covers: { ta: "உங்கள் நெருங்கிய உறவுகள், கூட்டாண்மை மற்றும் இல்வாழ்க்கை", en: "your close bonds, partnership and home life" },
+  },
+  career: {
+    icon: "💼",
+    label: { ta: "தொழில்", en: "Career" },
+    covers: { ta: "உங்கள் வேலை, திசை மற்றும் பொது அந்தஸ்து", en: "your work, direction and public standing" },
+  },
+  money: {
+    icon: "💰",
+    label: { ta: "பணம்", en: "Money" },
+    covers: { ta: "உங்கள் வருமானம், சேமிப்பு மற்றும் பாதுகாப்பு உணர்வு", en: "your income, savings and sense of security" },
+  },
+  mind: {
+    icon: "🧠",
+    label: { ta: "மனம் & அமைதி", en: "Mind & peace" },
+    covers: { ta: "உங்கள் மன அமைதி, கவனம் மற்றும் உணர்ச்சி சமநிலை", en: "your inner calm, focus and emotional balance" },
+  },
+};
+
+// Each graha's natural karaka buckets (textbook significations) — always
+// relevant to that planet regardless of placement.
+const GRAHA_KARAKA_BUCKETS: Record<string, LifeBucket[]> = {
+  SUN: ["career", "mind"],
+  MOON: ["mind", "relationships"],
+  MARS: ["career", "relationships"],
+  MERCURY: ["money", "career"],
+  JUPITER: ["money", "mind"],
+  VENUS: ["relationships", "money"],
+  SATURN: ["career", "mind"],
+  RAHU: ["career", "money"],
+  KETU: ["mind"],
+};
+
+// Which life bucket a house (from lagna) most speaks to.
+const HOUSE_BUCKET: Record<number, LifeBucket> = {
+  1: "mind", 2: "money", 3: "career", 4: "mind", 5: "relationships", 6: "career",
+  7: "relationships", 8: "mind", 9: "money", 10: "career", 11: "money", 12: "mind",
+};
+
+// Strength-band outcome clause — the SAME planet-wide verdict applied to each of
+// its buckets, so the tone is honest to the real strengthScore.
+function bucketOutcome(score: number, lang: Lang): string {
+  if (score >= 70) return lang === "ta" ? "ஆதரவாகவும் நிலையாகவும் இருக்கும்." : "tend to feel supported and steady.";
+  if (score >= 50) return lang === "ta" ? "பொதுவாக நம்பகமாக இருக்கும்." : "are generally dependable.";
+  if (score >= 35) return lang === "ta" ? "சிறிது முயற்சியுடன் மேம்படும்." : "improve with a little conscious effort.";
+  return lang === "ta" ? "கூடுதல் கவனமும் பொறுமையும் கேட்கும்." : "ask for extra care and patience.";
+}
+
+/** Buckets relevant to this planet in THIS chart: karaka ∪ occupied ∪ owned. */
+function planetLifeBuckets(graha: string, occupiedHouse: number, lagnaRasi: number): LifeBucket[] {
+  const order: LifeBucket[] = ["relationships", "career", "money", "mind"];
+  const set = new Set<LifeBucket>(GRAHA_KARAKA_BUCKETS[graha] ?? []);
+  const occ = HOUSE_BUCKET[occupiedHouse];
+  if (occ) set.add(occ);
+  for (const sign of OWN_SIGN_RASI[graha] ?? []) {
+    const house = ((sign - lagnaRasi + 1200) % 12) + 1;
+    const b = HOUSE_BUCKET[house];
+    if (b) set.add(b);
+  }
+  return order.filter((b) => set.has(b)).slice(0, 3);
+}
+
+function HyPlanetLifeAreas({ lang, expl }: { lang: Lang; expl: ChartExplanationPlanet | undefined }) {
+  if (!expl || expl.strengthScore == null) return null;
+  const lagnaRasi = ((expl.rasi - (expl.houseFromLagna - 1) - 1 + 1200) % 12) + 1;
+  const buckets = planetLifeBuckets(expl.graha, expl.houseFromLagna, lagnaRasi);
+  if (buckets.length === 0) return null;
+  const outcome = bucketOutcome(expl.strengthScore, lang);
+  const planet = tPlanetLord(expl.graha, lang);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-mid)", textTransform: "uppercase" }}>
+        {lang === "ta" ? "உங்கள் வாழ்க்கையில்" : "In your life"}
+      </span>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "8px" }}>
+        {buckets.map((b) => {
+          const meta = BUCKET_META[b];
+          const covers = lang === "ta" ? meta.covers.ta : meta.covers.en;
+          const line = lang === "ta"
+            ? `${planet} மூலம், ${covers} ${outcome}`
+            : `Through ${planet}, ${covers} ${outcome}`;
+          return (
+            <div key={b} style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "10px", padding: "11px 13px", display: "flex", flexDirection: "column", gap: "5px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                <span style={{ fontSize: "13px" }} aria-hidden>{meta.icon}</span>
+                <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--color-text-strong)" }}>{lang === "ta" ? meta.label.ta : meta.label.en}</span>
+              </div>
+              <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "12px", lineHeight: 1.5, color: "var(--color-muted)" }}>{line}</p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 // B-11 density pass: the always-visible planet row shows the 6 columns that
 // read at a glance — glyph · graha · rasi · degree · nakshatra · house · flags.
 // Pada and Navamsa (D9) were the two narrowest/most-advanced of the old
@@ -237,48 +432,23 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
                 const expl = explByGraha.get(pl.graha);
                 const facets = expl?.facets ?? [];
                 const remedy = facets.find((f) => f.key === "remedy");
-                const bodyFacets = facets.filter((f) => f.key !== "strength" && f.key !== "remedy");
-                const score = expl?.strengthScore;
                 return (
                   <div style={{ padding: "4px 18px 20px 74px", display: "flex", flexDirection: "column", gap: "14px" }}>
-                    {score != null && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                        <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-mid)", textTransform: "uppercase" }}>{lang === "ta" ? "வலிமை" : "Strength"}</span>
-                        <div style={{ width: "160px", height: "5px", borderRadius: "3px", background: "var(--color-border)", overflow: "hidden" }}>
-                          <div style={{ height: "100%", width: `${Math.max(0, Math.min(100, score))}%`, background: scoreColor(score), borderRadius: "3px" }} />
-                        </div>
-                        <span style={{ fontSize: "12.5px", fontWeight: 700, color: scoreColor(score) }}>{score}/100 · {strengthVerdict(score, lang)}</span>
-                      </div>
-                    )}
-                    {/* Pada + Navamsa (D9) — moved out of the always-visible row
-                        (B-11), surfaced here unconditionally so the data is one
-                        tap away, never lost. */}
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 28px" }}>
-                      <HyFact label={t("col_pada", lang)} value={String(pl.pada)} />
-                      <HyFact label={t("col_d9_rasi", lang)} value={RASI_NAMES[pl.d9Rasi] ?? String(pl.d9Rasi)} />
-                    </div>
-                    {bodyFacets.length > 0 ? (
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px 24px" }}>
-                        {bodyFacets.map((f, i) => (
-                          <HyFact key={`${f.key}-${i}`} label={lang === "ta" ? f.label.ta : f.label.en} value={lang === "ta" ? f.value.ta : astro(f.value.en)} tone={f.tone} />
-                        ))}
-                      </div>
-                    ) : expl?.explanation ? (
-                      <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", lineHeight: 1.6, color: "var(--color-text)" }}>{lang === "ta" ? expl.explanation.ta : astro(expl.explanation.en)}</p>
-                    ) : (
-                      /* Explanation still loading — show the raw facts rather
-                         than nothing (pada + D9 already render in the strip above). */
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px 24px" }}>
-                        <HyFact label={t("col_house", lang)} value={`${pl.houseFromLagna} · ${pl.rasiName}`} />
-                        <HyFact label={t("col_nakshatra", lang)} value={astro(pl.nakshatraName)} />
-                      </div>
-                    )}
+                    {/* Meaning → Why → Mechanics (docs/family-charts-humanization-
+                        audit.md). Lead: verdict (Phase 0) + life-domain lens
+                        (Phase 2) + the actionable remedy. The Level-5/6 mechanics
+                        (strength bar, pada, D9, facet lines) are tucked one more
+                        tap down in the "Technical details" toggle (Phase 3), so
+                        nothing is lost but nothing ambushes a newcomer. */}
+                    <HyPlanetVerdict lang={lang} pl={pl} expl={expl} />
+                    <HyPlanetLifeAreas lang={lang} expl={expl} />
                     {remedy && (
                       <div style={{ display: "flex", alignItems: "center", gap: "12px", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", borderRadius: "10px", padding: "11px 15px" }}>
                         <span style={{ color: "var(--color-high)", fontSize: "13px", flexShrink: 0 }}>⋔</span>
                         <span style={{ fontFamily: "var(--font-body)", fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-muted)" }}>{lang === "ta" ? remedy.value.ta : remedy.value.en}</span>
                       </div>
                     )}
+                    <HyTechnicalDetails lang={lang} pl={pl} expl={expl} />
                   </div>
                 );
               })()}
@@ -295,6 +465,68 @@ function HyFact({ label, value, tone = "NEUTRAL" }: { label: string; value: stri
     <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
       <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: labelColor, textTransform: "uppercase" }}>{label}</span>
       <span style={{ fontFamily: "var(--font-body)", fontSize: "13px", lineHeight: 1.5, color: "var(--color-text)" }}>{value}</span>
+    </div>
+  );
+}
+
+/* ── Phase-3 "Technical details" toggle (docs/family-charts-humanization-
+      audit.md) — the Level-5/6 mechanics, collapsed by default so the meaning-
+      first content leads. Nothing is removed: strength bar, pada, D9, and the
+      engine's labelled facet lines all live here, one tap down. Enthusiasts
+      lose nothing; newcomers aren't ambushed. */
+function HyTechnicalDetails({ lang, pl, expl }: {
+  lang: Lang; pl: OrbPlanet; expl: ChartExplanationPlanet | undefined;
+}) {
+  const [open, setOpen] = useState(false);
+  const astro = (v: string) => (lang === "en" ? tamilizeAstroEnglish(v) : v);
+  const facets = expl?.facets ?? [];
+  const bodyFacets = facets.filter((f) => f.key !== "strength" && f.key !== "remedy");
+  const score = expl?.strengthScore;
+
+  return (
+    <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "12px" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        style={{ display: "flex", alignItems: "center", gap: "7px", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}
+      >
+        <span style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .15s", fontSize: "10px" }}>▸</span>
+        {lang === "ta" ? "தொழில்நுட்ப விவரங்கள்" : "Technical details"}
+      </button>
+      {open && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginTop: "14px" }}>
+          {score != null && (
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-mid)", textTransform: "uppercase" }}>{lang === "ta" ? "வலிமை" : "Strength"}</span>
+              <div style={{ width: "160px", height: "5px", borderRadius: "3px", background: "var(--color-border)", overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${Math.max(0, Math.min(100, score))}%`, background: scoreColor(score), borderRadius: "3px" }} />
+              </div>
+              <span style={{ fontSize: "12.5px", fontWeight: 700, color: scoreColor(score) }}>{score}/100 · {strengthVerdict(score, lang)}</span>
+            </div>
+          )}
+          {/* Pada + Navamsa (D9) — surfaced unconditionally so the data is never
+              lost (B-11). */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 28px" }}>
+            <HyFact label={t("col_pada", lang)} value={String(pl.pada)} />
+            <HyFact label={t("col_d9_rasi", lang)} value={RASI_NAMES[pl.d9Rasi] ?? String(pl.d9Rasi)} />
+          </div>
+          {bodyFacets.length > 0 ? (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px 24px" }}>
+              {bodyFacets.map((f, i) => (
+                <HyFact key={`${f.key}-${i}`} label={lang === "ta" ? f.label.ta : f.label.en} value={lang === "ta" ? f.value.ta : astro(f.value.en)} tone={f.tone} />
+              ))}
+            </div>
+          ) : expl?.explanation ? (
+            <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "13px", lineHeight: 1.6, color: "var(--color-text)" }}>{lang === "ta" ? expl.explanation.ta : astro(expl.explanation.en)}</p>
+          ) : (
+            /* Explanation still loading — show the raw facts rather than nothing. */
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px 24px" }}>
+              <HyFact label={t("col_house", lang)} value={`${pl.houseFromLagna} · ${pl.rasiName}`} />
+              <HyFact label={t("col_nakshatra", lang)} value={astro(pl.nakshatraName)} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
