@@ -4,6 +4,8 @@ Implements a practical six-component Shadbala blend for production use.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from app.calculations.aspects import aspects_house
 from app.calculations.astro import house_from_reference
 from app.calculations.transits import combustion_severity, is_cazimi, is_gandanta
@@ -607,3 +609,153 @@ def compute_natal_planet_score(
         shadbala -= 15.0
 
     return max(10, min(95, round(shadbala)))
+
+
+# ── Holistic Strength Synthesis ───────────────────────────────────────────────
+# docs/THIRUKANITHAM_STRENGTH_SYNTHESIS_2026-07-23.md
+#
+# A flag-gated SECOND PASS over the base natal scores above. The six-bala blend
+# in compute_natal_planet_score is a per-planet property; a Tamil reading also
+# synthesises four *relational* measures it omits:
+#   G1 functional lordship (lagnadhipathi / yogakaraka / dusthana-lord …)
+#   G2 yuti — the company a planet keeps, graded by the companion's nature+strength
+#   G3 neecha bhanga — cancellation of debilitation
+#   G4 aspect relief weighted by the aspecting planet's OWN strength
+# It reads the base scores of every graha and returns bounded per-term deltas.
+# The net delta is clamped to +/- SYNTHESIS_DELTA_CAP so it REFINES, never
+# dominates, the real Shadbala — a planet weak on the six balas cannot be
+# inflated to "strong" by relationships alone. Pure: no I/O, nothing mutated.
+# Weights are DOCTRINE (spec §4.2) — kept behind holistic_strength_synthesis
+# (default OFF) pending the astrologer's sign-off.
+
+# G1 — functional nature -> additive points. Mirrors the DIRECTION of
+# functional_nature.FUNCTIONAL_DASHA_MODIFIER (Yogakaraka 1.40 … Dusthana 0.60),
+# converted from a multiplier to conservative points so it composes on 0-100.
+FUNCTIONAL_STRENGTH_DELTA: dict[str, float] = {
+    "YOGAKARAKA": 7.0,
+    "LAGNA_LORD": 5.0,
+    "TRIKONA": 4.0,
+    "KENDRA": -1.0,
+    "UPACHAYA": -2.0,
+    "MARAKA": -3.0,
+    "DUSTHANA": -6.0,
+    "NEUTRAL": 0.0,
+}
+
+_YUTI_WEIGHT = 6.0
+_YUTI_CAP = 10.0
+_DRISHTI_QUALITY_WEIGHT = 5.0
+_DRISHTI_CAP = 10.0
+_NEECHA_BHANGA_BONUS = 14.0
+SYNTHESIS_DELTA_CAP = 22.0
+
+_KENDRA_HOUSES = frozenset({1, 4, 7, 10})
+
+
+def _neecha_bhanga_planets(
+    planet_rasi: Mapping[str, int],
+    lagna_rasi: int,
+    d9_rasi_map: Mapping[str, int] | None,
+) -> frozenset[str]:
+    """Planets sitting in their debilitation sign whose neecha is cancelled.
+
+    The same four classical cancellation conditions as
+    ``_yoga_detect.detect_neecha_bhanga``, evaluated over this module's own
+    EXALTATION/DEBILITATION/SIGN_LORD tables (their doctrine home). A follow-up
+    may unify the two detectors — see the spec.
+    """
+    moon_rasi = planet_rasi.get("MOON")
+    exalter_of_sign = {rasi: planet for planet, rasi in EXALTATION_RASI.items()}
+    cancelled: set[str] = set()
+
+    def _in_kendra(from_rasi: int | None, target_rasi: int | None) -> bool:
+        if from_rasi is None or target_rasi is None:
+            return False
+        return house_from_reference(from_rasi, target_rasi) in _KENDRA_HOUSES
+
+    for planet, deb_rasi in DEBILITATION_RASI.items():
+        if planet_rasi.get(planet) != deb_rasi:
+            continue
+        # (a) lord of the debilitation sign in a kendra from lagna or Moon
+        deb_lord = SIGN_LORD.get(deb_rasi)
+        deb_lord_rasi = planet_rasi.get(deb_lord) if deb_lord else None
+        if _in_kendra(lagna_rasi, deb_lord_rasi) or _in_kendra(moon_rasi, deb_lord_rasi):
+            cancelled.add(planet)
+            continue
+        # (b) the planet that exalts in this sign, in a kendra from lagna or Moon
+        exalter = exalter_of_sign.get(deb_rasi)
+        exalter_rasi = planet_rasi.get(exalter) if exalter else None
+        if _in_kendra(lagna_rasi, exalter_rasi) or _in_kendra(moon_rasi, exalter_rasi):
+            cancelled.add(planet)
+            continue
+        # (c) the debilitated planet itself dignified in the Navamsa (D9)
+        if d9_rasi_map is not None and _has_d9_dignity(planet, d9_rasi_map.get(planet, 0)):
+            cancelled.add(planet)
+    return frozenset(cancelled)
+
+
+def apply_holistic_synthesis(
+    base_scores: Mapping[str, int],
+    *,
+    planet_rasi: Mapping[str, int],
+    lagna_rasi: int,
+    functional_nature: Mapping[str, str],
+    benefic_planets: frozenset[str],
+    d9_rasi_map: Mapping[str, int] | None = None,
+) -> dict[str, dict[str, float]]:
+    """Second-pass relational refinement of base natal strength (spec §4).
+
+    Returns ``{graha: {"base", "functional", "yuti", "drishti", "bhanga",
+    "delta", "score"}}`` — the adjusted 10-95 ``score`` plus every term, for
+    transparency in the UI/breakdown and per-term unit tests.
+
+    ``benefic_planets`` is the caller's contextual (paksha-/combustion-aware)
+    benefic set; any other scored graha is treated as malefic for the yuti and
+    drishti sign. Only grahas present in BOTH ``base_scores`` and ``planet_rasi``
+    are scored (Mandhi and unscored bodies are ignored).
+    """
+    neecha = _neecha_bhanga_planets(planet_rasi, lagna_rasi, d9_rasi_map)
+    grahas = [g for g in base_scores if g in planet_rasi]
+    out: dict[str, dict[str, float]] = {}
+
+    for planet in grahas:
+        base = base_scores[planet]
+        rasi = planet_rasi[planet]
+
+        functional = FUNCTIONAL_STRENGTH_DELTA.get(functional_nature.get(planet, "NEUTRAL"), 0.0)
+
+        # G2 yuti — same-sign company, graded by the companion's nature+strength.
+        yuti = 0.0
+        for other in grahas:
+            if other == planet or planet_rasi[other] != rasi:
+                continue
+            sign = 1.0 if other in benefic_planets else -1.0
+            yuti += sign * (base_scores[other] - 50) / 50.0 * _YUTI_WEIGHT
+        yuti = max(-_YUTI_CAP, min(_YUTI_CAP, yuti))
+
+        # G4 weighted drishti — aspect QUALITY graded by the aspecting planet's
+        # strength. The base score already counted aspect PRESENCE (flat ± via
+        # _drik_bala_score); this is the strength-weighted quality layer on top.
+        # aspects_house returns False for same-sign, so conjunction never
+        # double-counts here — it is handled once, by the yuti term above.
+        drishti = 0.0
+        for source in grahas:
+            if source == planet or not aspects_house(source, planet_rasi[source], rasi):
+                continue
+            sign = 1.0 if source in benefic_planets else -1.0
+            drishti += sign * (base_scores[source] - 50) / 50.0 * _DRISHTI_QUALITY_WEIGHT
+        drishti = max(-_DRISHTI_CAP, min(_DRISHTI_CAP, drishti))
+
+        bhanga = _NEECHA_BHANGA_BONUS if planet in neecha else 0.0
+
+        delta = max(-SYNTHESIS_DELTA_CAP, min(SYNTHESIS_DELTA_CAP, functional + yuti + drishti + bhanga))
+        out[planet] = {
+            "base": float(base),
+            "functional": round(functional, 2),
+            "yuti": round(yuti, 2),
+            "drishti": round(drishti, 2),
+            "bhanga": bhanga,
+            "delta": round(delta, 2),
+            "score": float(max(10, min(95, round(base + delta)))),
+        }
+    return out

@@ -6,12 +6,6 @@ from datetime import UTC, datetime, time
 from typing import Any
 from uuid import UUID, uuid4
 
-from app.calculations.birth_conditions import (
-    birth_condition_strength_penalties,
-    detect_birth_conditions,
-    sun_rasi_day_bounds,
-    tithi_number_from_longitudes,
-)
 from app.calculations.astro import (
     degree_in_rasi,
     local_datetime_to_utc,
@@ -20,14 +14,22 @@ from app.calculations.astro import (
     pada_from_degree,
     utc_datetime_to_julian_day,
 )
-from app.calculations.equal_bhava import compute_equal_bhava
+from app.calculations.birth_conditions import (
+    birth_condition_strength_penalties,
+    detect_birth_conditions,
+    sun_rasi_day_bounds,
+    tithi_number_from_longitudes,
+)
 from app.calculations.chart_strength import (
+    apply_holistic_synthesis,
     compute_natal_planet_score,
     compute_strength_breakdown,
     detect_planetary_wars,
 )
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_lagna_degree, calculate_sidereal_planets
+from app.calculations.equal_bhava import compute_equal_bhava
+from app.calculations.functional_nature import get_functional_nature
 from app.calculations.panchangam import NAKSHATRA_NAMES, calculate_daily_panchangam
 from app.calculations.transits import RASI_NAMES, is_cazimi, is_combust
 from app.calculations.yoga_activation import yoga_activation_score
@@ -60,6 +62,7 @@ from app.services._chart_planets import (
     _speed_ratio,
     _varga_reliability,
 )
+from app.services.feature_flags import get_flag
 
 DEFAULT_CALCULATION_VERSION = "jothidam-formula-engine-v1.2-2026"
 RASI_NUMBERS = {name: number for number, name in RASI_NAMES.items()}
@@ -120,6 +123,7 @@ def _birth_datetime_utc(profile: Any) -> datetime:
 
 def _birth_panchangam_signature(profile: Any) -> dict[str, object]:
     from zoneinfo import ZoneInfo
+
     from app.calculations.tamil_calendar import format_tamil_date
 
     snapshot = calculate_daily_panchangam(
@@ -652,6 +656,44 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             malefic_aspect_count=malefic_aspects,
             speed_ratio=speed_ratio,
         )
+
+    # Holistic Strength Synthesis (docs/THIRUKANITHAM_STRENGTH_SYNTHESIS_2026-07-23.md):
+    # a flag-gated SECOND PASS refining each base strength_score with the four
+    # relational measures the per-planet Shadbala blend omits — functional
+    # lordship, yuti (company kept), neecha bhanga, and strength-weighted
+    # drishti. It runs AFTER the loop above because the relational terms read
+    # every other planet's base score. Flag OFF (default) ⇒ scores are
+    # byte-identical to the loop; every downstream consumer inherits the refined
+    # number with no further change (the strength_score is the single source).
+    if get_flag("holistic_strength_synthesis"):
+        natal = [p for p in planet_positions if p.graha in _NATAL_GRAHAS]
+        base_scores = {p.graha: int(p.strength_score) for p in natal}
+        d9_map = {p.graha: p.d9_rasi for p in natal}
+        functional = {
+            p.graha: get_functional_nature(lagna_rasi, p.graha, node_rasi_map=planet_rasi_map).value
+            for p in natal
+        }
+        # Contextual benefics — the same paksha-/combustion-aware classification
+        # the drik counter uses (_chart_planets._aspect_counts), so the yuti and
+        # drishti sign agrees with the base score's own drik sign.
+        benefics = {"JUPITER", "VENUS"}
+        if paksha_is_shukla:
+            benefics.add("MOON")
+        if "MERCURY" not in combust_planets:
+            benefics.add("MERCURY")
+        synthesis = apply_holistic_synthesis(
+            base_scores,
+            planet_rasi=planet_rasi_map,
+            lagna_rasi=lagna_rasi,
+            functional_nature=functional,
+            benefic_planets=frozenset(benefics),
+            d9_rasi_map=d9_map,
+        )
+        for p in natal:
+            terms = synthesis.get(p.graha)
+            if terms is not None:
+                p.strength_score = int(terms["score"])
+
     equal_bhava_map = {
         p.graha: (int(p_row.bhava_house) if getattr(p_row, "bhava_house", None) is not None else 0)
         for p, p_row in zip(planet_positions, planets, strict=False)

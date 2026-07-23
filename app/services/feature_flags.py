@@ -112,6 +112,18 @@ def _defaults() -> dict[str, Any]:
         # cancellation. Admin-editable via the existing PATCH /admin/flags
         # mechanism; string value, not boolean.
         "nadi_parihara_mode": "strict",
+        # Holistic Planet Strength Synthesis (docs/THIRUKANITHAM_STRENGTH_SYNTHESIS_2026-07-23.md).
+        # Second-pass refinement of the natal strength_score that layers the four
+        # relational measures a Tamil reading synthesises but the base Shadbala
+        # blend omits: G1 functional lordship (lagnadhipathi/yogakaraka/dusthana),
+        # G2 yuti (company kept, graded by the co-tenant's nature+strength),
+        # G3 neecha bhanga (debilitation cancellation), G4 aspect relief weighted
+        # by the aspecting planet's own strength. Bounded ±22 so it refines,
+        # never dominates, the base score; flag-OFF is byte-identical to today.
+        # OFF by default pending astrologer weight sign-off (spec §7). Changes
+        # every downstream prediction, so bump DAILY_SCORE_ENGINE_VERSION when
+        # flipping ON.
+        "holistic_strength_synthesis": False,
     }
 
 
