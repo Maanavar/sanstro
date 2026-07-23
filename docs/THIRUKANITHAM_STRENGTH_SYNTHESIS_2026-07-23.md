@@ -147,11 +147,21 @@ exactly. On that evidence the astrologer signed off:
 2. **Yuti scope.** ✅ Same-sign co-tenancy only for now; `kartari` (hemming)
    deferred to the G5–G8 tranche.
 3. **Node functional nature.** ✅ **RESOLVED — nodes carry NO functional-lordship
-   delta.** Rahu/Ketu own no rasi (ராகு லக்னாதிபதி அல்ல), so the dispositor-based
-   `_node_functional_nature` must not award them a lord's bonus; their influence
-   is carried by the yuti/drishti/bhanga terms instead. (On the test chart this
-   dropped Rahu from a spurious +5 "lagna lord" to +0.8 drishti-only.)
-   Implemented via `_SYNTHESIS_NODES` in `chart_strength.py`.
+   delta.** Grounded in classical doctrine, not just caution: Parashara holds
+   Rahu/Ketu own no rasi, so they are **not "functional" at all — only natural
+   malefics** (ராகு லக்னாதிபதி அல்ல). A node gives results of (i) the house it
+   occupies, (ii) its dispositor, and (iii) the planet it associates with — all
+   three of which the engine already models WITHOUT a lordship delta: (i) is in
+   the base house-band, (ii) the dispositor gets its own delta (awarding it to
+   the node too would double-count), and (iii) is the yuti/drishti terms. Even
+   the classical "node in a kendra aspected by / joined to a kona-lord becomes
+   yogakaraka" rule is **conditional on association/aspect, never ownership** — so
+   it correctly emerges from the strength-weighted drishti/yuti terms, not from a
+   lordship bonus. Treating the nodes as malefics in the yuti/drishti *sign* is
+   likewise doctrinally correct. On the test chart this dropped Rahu from a
+   spurious +5 "lagna lord" to +0.8 drishti-only. Implemented via
+   `_SYNTHESIS_NODES` in `chart_strength.py`. (Refs: BPHS; functional-nature
+   literature — vedicplanet.com, planetarypositions.com.)
 4. **Convergence (G5–G8).** Deferred — a later convergence job, not blocking.
 
 ---
