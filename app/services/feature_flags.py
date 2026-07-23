@@ -122,8 +122,10 @@ def _defaults() -> dict[str, Any]:
         # never dominates, the base score; flag-OFF is byte-identical to today.
         # OFF by default pending astrologer weight sign-off (spec §7). Changes
         # every downstream prediction, so bump DAILY_SCORE_ENGINE_VERSION when
-        # flipping ON.
-        "holistic_strength_synthesis": False,
+        # flipping ON. Flipped ON 2026-07-23 after the §6.3 live-diff validated
+        # the numbers (bounded, conservative) and the astrologer signed off the
+        # weights + node handling (nodes carry no lordship delta — spec §7).
+        "holistic_strength_synthesis": True,
     }
 
 

@@ -693,6 +693,15 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             terms = synthesis.get(p.graha)
             if terms is not None:
                 p.strength_score = int(terms["score"])
+                # Transparency (spec §5): surface the per-term deltas so the UI
+                # and tests can show WHY the number moved ("Lagna lord +5, Guru
+                # +1"). strength_breakdown is dict[str, str], so each non-zero
+                # term is stored as a signed string; a weak base cannot be hidden
+                # because base + Σterms is the score above.
+                for key in ("functional", "yuti", "drishti", "bhanga", "delta"):
+                    value = terms[key]
+                    if value:
+                        p.strength_breakdown[f"synthesis_{key}"] = f"{value:+g}"
 
     equal_bhava_map = {
         p.graha: (int(p_row.bhava_house) if getattr(p_row, "bhava_house", None) is not None else 0)

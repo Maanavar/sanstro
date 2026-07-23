@@ -651,6 +651,12 @@ SYNTHESIS_DELTA_CAP = 22.0
 
 _KENDRA_HOUSES = frozenset({1, 4, 7, 10})
 
+# Rahu/Ketu own no rasi, so they carry NO functional-lordship delta — a node is
+# an agent of its dispositor and the houses it touches, never the lord itself
+# (ராகு லக்னாதிபதி அல்ல). Its functional influence is captured by the yuti and
+# drishti terms instead. Astrologer decision 2026-07-23 (spec §7 Q3).
+_SYNTHESIS_NODES = frozenset({"RAHU", "KETU"})
+
 
 def _neecha_bhanga_planets(
     planet_rasi: Mapping[str, int],
@@ -722,7 +728,11 @@ def apply_holistic_synthesis(
         base = base_scores[planet]
         rasi = planet_rasi[planet]
 
-        functional = FUNCTIONAL_STRENGTH_DELTA.get(functional_nature.get(planet, "NEUTRAL"), 0.0)
+        functional = (
+            0.0
+            if planet in _SYNTHESIS_NODES
+            else FUNCTIONAL_STRENGTH_DELTA.get(functional_nature.get(planet, "NEUTRAL"), 0.0)
+        )
 
         # G2 yuti — same-sign company, graded by the companion's nature+strength.
         yuti = 0.0

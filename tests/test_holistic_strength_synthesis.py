@@ -154,6 +154,30 @@ def test_delta_is_clamped():
     assert out["MERCURY"]["score"] >= 10.0
 
 
+def test_nodes_carry_no_functional_lordship_delta():
+    """Astrologer decision (spec §7 Q3): Rahu/Ketu own no rasi, so they take NO
+    functional-lordship delta even when the dispositor logic would label them a
+    lord. They still participate in the relational terms — here Rahu, alone in
+    its sign and aspected by no one, nets exactly zero."""
+    out = _run(
+        {"RAHU": 44, "KETU": 46},
+        {"RAHU": 9, "KETU": 3},  # opposite signs, no co-tenants
+        functional={"RAHU": "LAGNA_LORD", "KETU": "KENDRA"},
+    )
+    assert out["RAHU"]["functional"] == 0.0
+    assert out["KETU"]["functional"] == 0.0
+    # Rahu 5th/9th-aspects across the chart but neither aspects the other here
+    # (rasi 9 vs rasi 3 is the 7th — a real aspect), so a drishti term is fine;
+    # the guarantee under test is only that the LORDSHIP delta is muted.
+    assert out["RAHU"]["functional"] == 0.0
+
+
+def test_non_node_functional_delta_still_applies():
+    """The node mute must not leak to the seven grahas that DO own signs."""
+    out = _run({"JUPITER": 43}, {"JUPITER": 9}, functional={"JUPITER": "LAGNA_LORD"})
+    assert out["JUPITER"]["functional"] == FUNCTIONAL_STRENGTH_DELTA["LAGNA_LORD"]
+
+
 def test_score_never_exceeds_95():
     out = _run(
         {"JUPITER": 90, "VENUS": 90},

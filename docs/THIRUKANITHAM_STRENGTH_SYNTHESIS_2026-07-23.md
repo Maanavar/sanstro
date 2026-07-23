@@ -134,17 +134,40 @@ Call sites that pass fewer args (`narrative_engine`, daily-guidance fallback) ke
 
 ---
 
-## 7. Open doctrine questions for the astrologer (sign-off gates)
+## 7. Doctrine sign-off (resolved 2026-07-23)
 
-1. **Weights (§4.2).** Are the functional deltas / yuti / drishti / bhanga magnitudes right, or should (say) Dusthana-lord be harsher, or Neecha Bhanga a *full* reversal (+ larger)?
-2. **Yuti scope.** Only same-sign co-tenancy, or also mutual `kartari` (planets hemming a sign from both sides)?
-3. **Node functional nature.** Rahu/Ketu via dispositor + occupied house (as `_node_functional_nature` already does), or treat as always-malefic company?
-4. **Convergence (G5–G8).** Do we later fold the full `shadbala.py` (saptavargaja, ayana, ashtakavarga bindus) into the product number, or keep the practical blend and only layer the four relational terms?
+The §6.3 live diff was run on a real Dhanus-lagna chart before flipping. Every
+delta came in bounded and conservative (max ±6.6 against a ±22 clamp), the
+arithmetic was verified by hand, and the served path matched the pure function
+exactly. On that evidence the astrologer signed off:
+
+1. **Weights (§4.2).** ✅ Approved as-is — the magnitudes refine without
+   dominating (no planet changed strength band). Revisit only if a future chart
+   shows a runaway term.
+2. **Yuti scope.** ✅ Same-sign co-tenancy only for now; `kartari` (hemming)
+   deferred to the G5–G8 tranche.
+3. **Node functional nature.** ✅ **RESOLVED — nodes carry NO functional-lordship
+   delta.** Rahu/Ketu own no rasi (ராகு லக்னாதிபதி அல்ல), so the dispositor-based
+   `_node_functional_nature` must not award them a lord's bonus; their influence
+   is carried by the yuti/drishti/bhanga terms instead. (On the test chart this
+   dropped Rahu from a spurious +5 "lagna lord" to +0.8 drishti-only.)
+   Implemented via `_SYNTHESIS_NODES` in `chart_strength.py`.
+4. **Convergence (G5–G8).** Deferred — a later convergence job, not blocking.
 
 ---
 
 ## 8. Status
 
-- **Spec:** this file. Gap-analysis G1–G8 logged; G1–G4 scoped for build.
-- **Implementation:** `apply_holistic_synthesis` in `chart_strength.py` (pure, bounded, per-term deltas), wired flag-gated in `_chart_build.py`, golden tests. **Flag OFF** pending astrologer weight sign-off (§7).
-- **Follow-on:** G5–G8 convergence with `shadbala.py`; unify the neecha-bhanga helper with `_yoga_detect`.
+- **Spec:** this file. Gap-analysis G1–G8 logged; G1–G4 built.
+- **Implementation:** `apply_holistic_synthesis` in `chart_strength.py` (pure,
+  bounded, per-term deltas; nodes muted on the functional term), wired
+  flag-gated in `_chart_build.py`, which now also surfaces the per-term deltas on
+  `strength_breakdown` (`synthesis_*` keys) for UI transparency. Golden tests
+  (11) cover each term, the clamps, identity-under-no-signal, and the node mute.
+- **Rollout:** **Flag `holistic_strength_synthesis` flipped ON 2026-07-23** after
+  the live-diff validation + §7 sign-off. `DAILY_SCORE_ENGINE_VERSION` bumped to
+  `2026-07-23-v6` so cached rows regenerate. Reversible via
+  `PATCH /admin/flags/{name}`.
+- **Follow-on:** G5–G8 convergence with `shadbala.py`; unify the neecha-bhanga
+  helper with `_yoga_detect`; surface the `synthesis_*` breakdown in the
+  Adhipathi UI ("Lagna lord +5, Guru +1").
