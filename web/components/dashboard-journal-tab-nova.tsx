@@ -22,6 +22,7 @@ import { Chip } from "./dashboard-ui";
 import { NovaProgressBar } from "./dashboard-ui-nova";
 import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 import { NovaSelect } from "./nova-select";
+import { Segmented } from "./ui";
 import {
   AREA_KEY,
   CTX_TYPE_KEY,
@@ -368,21 +369,24 @@ export function DashboardJournalTabNova({
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "10px" }}>
-          <div style={{ display: "flex", gap: "4px", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "11px", padding: "4px" }}>
-            {SUB_TABS.map(({ key, label }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setJournalSubTab(key)}
-                style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: journalSubTab === key ? 700 : 600, color: journalSubTab === key ? "var(--color-on-accent)" : "var(--color-muted)", background: journalSubTab === key ? "var(--color-accent)" : "transparent", border: "none", borderRadius: "8px", padding: "8px 15px", cursor: "pointer", fontFamily: "inherit" }}
-              >
-                {label}
-                {key === "entries" && (
-                  <span style={{ fontSize: "var(--text-xs)", opacity: 0.75 }}>{journalTotal}</span>
-                )}
-              </button>
-            ))}
-          </div>
+          {/* ===== Sub-nav — shared <Segmented> (audit A-1/B-7). The entries
+              tab keeps its count badge via a ReactNode label. ===== */}
+          <Segmented<JournalSubTab>
+            ariaLabel={lang === "ta" ? "நாட்குறிப்பு பார்வைகள்" : "Journal views"}
+            value={journalSubTab}
+            onChange={setJournalSubTab}
+            options={SUB_TABS.map(({ key, label }) => ({
+              key,
+              label:
+                key === "entries" ? (
+                  <>
+                    {label} <span style={{ fontSize: "var(--text-xs)", opacity: 0.75 }}>{journalTotal}</span>
+                  </>
+                ) : (
+                  label
+                ),
+            }))}
+          />
           {streakDays > 1 && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "11.5px", fontWeight: 700, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "5px 12px", whiteSpace: "nowrap" }}>
               ✦ {lang === "ta" ? `${streakDays} நாள் தொடர்ச்சி` : `${streakDays}-day check-in streak`}

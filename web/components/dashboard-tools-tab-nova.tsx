@@ -342,9 +342,10 @@ export function DashboardToolsTabNova({
         <div style={{ fontSize: "11px", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
           {lang === "ta" ? "கருவிகள்" : "Tools"} · <span style={{ fontFamily: "var(--font-tamil), sans-serif", letterSpacing: 0, textTransform: "none" }}>கருவிகள்</span>
         </div>
-        <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.6rem, 3vw, 2.1rem)", fontWeight: 600, marginTop: "6px", color: "var(--color-text-strong)" }}>
+        {/* audit B-1: page title is the Tools tab's <h1>. */}
+        <h1 style={{ margin: "6px 0 0", fontFamily: "var(--font-display)", fontSize: "clamp(1.6rem, 3vw, 2.1rem)", fontWeight: 600, color: "var(--color-text-strong)" }}>
           {lang === "ta" ? "உங்கள் ஜாதகங்களை அறிந்த கருவிகள்" : "Calculators that know your charts"}
-        </div>
+        </h1>
         <div style={{ fontSize: "13px", color: "var(--color-muted)", marginTop: "3px" }}>
           {lang === "ta" ? "ஒவ்வொரு கருவியும் உங்கள் சேமிக்கப்பட்ட ஜாதகங்களைப் படிக்கும் — மீண்டும் தட்டச்சு தேவையில்லை." : "Every tool reads from your saved family charts — no re-typing birth details."}
         </div>

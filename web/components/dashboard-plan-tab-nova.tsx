@@ -24,6 +24,7 @@ import type { EventType } from "./dashboard-event-windows";
 import { humaniseReason } from "./dashboard-event-windows";
 import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 import { NovaLifeEventLogCard } from "./dashboard-plan-life-event-log-nova";
+import { Segmented } from "./ui";
 import { NovaPlanWhatIfPanel } from "./dashboard-plan-whatif-nova";
 import { NovaPlanDecisionsPanel } from "./dashboard-plan-decisions-nova";
 import { NovaSelect } from "./nova-select";
@@ -315,19 +316,14 @@ export function DashboardPlanTabNova({
         </button>
       </div>
 
-      {/* ===== Sub-nav pills ===== */}
-      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-        {PLAN_SUB_TABS.map(({ key, en, ta }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setSubTab(key)}
-            style={{ fontSize: "12px", fontWeight: subTab === key ? 700 : 600, color: subTab === key ? "var(--color-on-accent)" : "var(--color-muted)", background: subTab === key ? "var(--color-accent)" : "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "999px", padding: "7px 15px", cursor: "pointer", fontFamily: "inherit" }}
-          >
-            {lang === "ta" ? ta : en}
-          </button>
-        ))}
-      </div>
+      {/* ===== Sub-nav — the shared <Segmented> (audit A-1/B-7): one nav look,
+          arrow-key nav, 44px touch. Was the "rounded pills" pattern. ===== */}
+      <Segmented<PlanSubTab>
+        ariaLabel={lang === "ta" ? "திட்டப் பார்வைகள்" : "Plan views"}
+        value={subTab}
+        onChange={setSubTab}
+        options={PLAN_SUB_TABS.map(({ key, en, ta }) => ({ key, label: lang === "ta" ? ta : en }))}
+      />
 
       {/* ===== Sub-tab: Goals ===== */}
       {subTab === "goals" && (

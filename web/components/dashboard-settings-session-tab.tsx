@@ -73,9 +73,11 @@ type DashboardSettingsSessionTabProps = {
 function PanelHeader({ title, desc, danger }: { title: string; desc: string; danger?: boolean }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      <div style={{ fontFamily: "var(--font-display, Georgia, serif)", fontSize: "clamp(1.8rem, 3.4vw, 2.15rem)", fontWeight: 600, lineHeight: 1.05, color: danger ? C.danger : C.text }}>
+      {/* audit B-1: the active settings panel's title is this view's <h1>
+          (the left rail shows one panel at a time). */}
+      <h1 style={{ margin: 0, fontFamily: "var(--font-display, Georgia, serif)", fontSize: "clamp(1.8rem, 3.4vw, 2.15rem)", fontWeight: 600, lineHeight: 1.05, color: danger ? C.danger : C.text }}>
         {title}
-      </div>
+      </h1>
       <div style={{ fontFamily: "var(--font-body, Georgia, serif)", fontSize: "15px", color: C.muted, maxWidth: "520px", lineHeight: 1.55 }}>
         {desc}
       </div>

@@ -381,9 +381,10 @@ export function DashboardExploreTabNova({
           <NovaKicker>
             {lang === "ta" ? <>ஆராயுங்கள் · <span style={{ fontFamily: "'Noto Sans Tamil', sans-serif" }}>அறிவுக் களஞ்சியம்</span></> : "Explore"}
           </NovaKicker>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.7rem,3vw,2.2rem)", fontWeight: 600, marginTop: "6px", color: "var(--color-text-strong)" }}>
+          {/* audit B-1: page title is the Explore tab's <h1>. */}
+          <h1 style={{ margin: "6px 0 0", fontFamily: "var(--font-display)", fontSize: "clamp(1.7rem,3vw,2.2rem)", fontWeight: 600, color: "var(--color-text-strong)" }}>
             {lang === "ta" ? "உங்கள் பலனுக்குப் பின்னால் உள்ள காரணம்" : "The why behind your readings"}
-          </div>
+          </h1>
           <div style={{ fontSize: "12.5px", color: "var(--color-muted)", marginTop: "3px" }}>
             {lang === "ta"
               ? "நட்சத்திரங்கள், தோஷங்கள், யோகங்கள், பரிகாரங்கள், கோயில்கள் — எளிய தமிழில், உங்கள் ஜாதகத்துடன் இணைக்கப்பட்டவை."
