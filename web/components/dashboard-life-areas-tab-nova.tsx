@@ -34,8 +34,8 @@ import { NovaJadhagamReportPanel } from "./dashboard-life-areas-report-nova";
 import { NovaRemediesPanel } from "./dashboard-life-areas-remedies-nova";
 import { EventWindowsPanel } from "./dashboard-event-windows";
 import { GOAL_OPTIONS } from "./dashboard-plan-shared";
-import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 import { NovaGocharCard, NovaGuidanceCard } from "./dashboard-today-deepdive-extras-nova";
+import { Segmented, Card, Button, Pill, BilingualText } from "./ui";
 
 /**
  * Nova Life Areas tab — Phase 9 of the dashboard revamp, mapped from the
@@ -43,8 +43,14 @@ import { NovaGocharCard, NovaGuidanceCard } from "./dashboard-today-deepdive-ext
  * full tab-level screen (own sub-nav, member switcher) like Today/Family/
  * Explore's Nova tabs — not a "detail drill-down" like explore-moolam/
  * explore-sevvai, so no shared shell with dashboard-explore-detail-nova.tsx
- * applies here (only its genuinely generic `novaDetailCardStyle` card
- * container is reused, nothing structural).
+ * applies here.
+ *
+ * REFERENCE TAB for the 2026-07-23 master-audit component kit (web/components/
+ * ui/): this tab is the first converted to <Segmented>/<Card>/<Button>/<Pill>/
+ * <BilingualText> — the sub-nav is one <Segmented> (was the 7th hand-rolled
+ * nav pattern), tier names are real <h2> headings (B-1), every inline surface
+ * is a <Card>, and every font-size reads a --text-* scale step (B-2/B-6). New
+ * work on other tabs should follow this file's shape, not the old inline style.
  *
  * The mockup's static export turned out to be a live capture of Classic's
  * own "Overview" sub-tab (`dashboard-life-areas-tab.tsx`) — same hero copy,
@@ -84,7 +90,6 @@ type SubTab = "scores" | "predictions" | "chances" | "yogas" | "report" | "remed
 type Tier = "attention" | "steady" | "supportive";
 
 const GOAL_LABEL_BY_TYPE = new Map(GOAL_OPTIONS);
-const cardStyle = novaDetailCardStyle;
 
 function tierOf(area: LifeAreaData): Tier {
   const tone = getScoreBand(area.score).tone;
@@ -119,25 +124,25 @@ function YogaActivationSummary({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px", fontFamily: "var(--font-body)" }}>
-      <div style={cardStyle}>
-        <p style={{ margin: "0 0 4px", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+      <Card>
+        <h3 style={{ margin: "0 0 4px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
           {lang === "ta" ? "இப்போது செயலில் உள்ளவை" : "Active right now"}
-        </p>
-        <p style={{ margin: "0 0 12px", fontSize: "12.5px", color: "var(--color-muted)", lineHeight: 1.5 }}>
+        </h3>
+        <p style={{ margin: "0 0 12px", fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>
           {lang === "ta"
             ? "இந்தக் காலகட்டத்தில் தசை/கிரகநகர்வால் தூண்டப்படும் யோகங்கள் & தோஷங்கள். முழு விளக்கம் உங்கள் ஜாதகப் பார்வையில்."
             : "Yogas & doshams your current dasha and transits are triggering. The full explanation lives in your chart view."}
         </p>
 
         {!hasAny ? (
-          <p style={{ margin: 0, fontSize: "13px", color: "var(--color-faint)" }}>
+          <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>
             {lang === "ta" ? "இப்போது குறிப்பிட்டு செயலில் ஒன்றும் இல்லை." : "Nothing notably active for this chart right now."}
           </p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
             {presentYogas.length > 0 && (
               <div>
-                <p style={{ margin: "0 0 6px", fontSize: "11px", fontWeight: 700, color: "var(--color-high)" }}>{t("yogas_title", lang)}</p>
+                <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-high)" }}>{t("yogas_title", lang)}</p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
                   {presentYogas.map((y, i) => {
                     const active = y.isCurrentlyActive;
@@ -145,11 +150,11 @@ function YogaActivationSummary({
                     return (
                       <span
                         key={`${y.name}-${i}`}
-                        style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, color: "var(--color-text-strong)", background: active ? "var(--color-high-bg)" : "var(--color-surface-soft)", border: `1px solid ${active ? "var(--color-high-border)" : "var(--color-border)"}`, borderRadius: "999px", padding: "4px 11px" }}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text-strong)", background: active ? "var(--color-high-bg)" : "var(--color-surface-soft)", border: `1px solid ${active ? "var(--color-high-border)" : "var(--color-border)"}`, borderRadius: "999px", padding: "4px 11px" }}
                       >
                         {yogaDisplayName(y.name, lang)}
                         {typeof y.activationScore === "number" && (
-                          <span style={{ fontSize: "10px", fontWeight: 700, color }}>{y.activationScore}/100</span>
+                          <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color }}>{y.activationScore}/100</span>
                         )}
                       </span>
                     );
@@ -160,7 +165,7 @@ function YogaActivationSummary({
 
             {presentDoshams.length > 0 && (
               <div>
-                <p style={{ margin: "0 0 6px", fontSize: "11px", fontWeight: 700, color: "var(--color-low)" }}>{t("doshams_title", lang)}</p>
+                <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-low)" }}>{t("doshams_title", lang)}</p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
                   {presentDoshams.map((d) => {
                     const mitigated = d.isCancelled;
@@ -170,10 +175,10 @@ function YogaActivationSummary({
                     return (
                       <span
                         key={d.name}
-                        style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, color: "var(--color-text-strong)", background: bg, border: `1px solid ${border}`, borderRadius: "999px", padding: "4px 11px" }}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text-strong)", background: bg, border: `1px solid ${border}`, borderRadius: "999px", padding: "4px 11px" }}
                       >
                         {yogaDisplayName(d.name, lang)}
-                        <span style={{ fontSize: "10px", fontWeight: 700, color }}>
+                        <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color }}>
                           {mitigated ? (lang === "ta" ? "நிவர்த்தி" : "Mitigated") : (lang === "ta" ? "கவனம்" : "Active")}
                         </span>
                       </span>
@@ -185,14 +190,10 @@ function YogaActivationSummary({
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={onGoToChart}
-          style={{ marginTop: "16px", alignSelf: "flex-start", fontSize: "12.5px", fontWeight: 600, color: "var(--color-accent-strong)", border: "1px solid var(--color-border-strong)", borderRadius: "9px", padding: "9px 16px", background: "none", cursor: "pointer", fontFamily: "inherit" }}
-        >
+        <Button variant="secondary" onClick={onGoToChart} style={{ marginTop: "16px", alignSelf: "flex-start" }}>
           {lang === "ta" ? "ஜாதகத்தில் முழு யோக & தோஷ பகுப்பாய்வு →" : "Full yoga & dosham analysis in your chart →"}
-        </button>
-      </div>
+        </Button>
+      </Card>
     </div>
   );
 }
@@ -348,14 +349,14 @@ export function DashboardLifeAreasTabNova({
       {/* ===== Header ===== */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
         <div>
-          <p style={{ margin: 0, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+          <p style={{ margin: 0, fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
             {t("tab_life_areas", lang)}{currentAge !== null ? ` · ${lang === "ta" ? "வயது" : "Age"} ${currentAge}` : ""}
           </p>
           <h1 style={{ margin: "6px 0 8px", fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem,3vw,2.4rem)", fontWeight: 600, lineHeight: 1.15, color: "var(--color-text-strong)" }}>
             {lang === "ta" ? "நீங்கள் எங்கே நிற்கிறீர்கள்," : "Where you stand,"}{" "}
             <em style={{ fontStyle: "italic", color: "var(--color-accent-strong)" }}>{lang === "ta" ? "துறை வாரியாக." : "area by area."}</em>
           </h1>
-          <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)", lineHeight: 1.55, maxWidth: "520px" }}>
+          <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55, maxWidth: "520px" }}>
             {lang === "ta"
               ? "ஒவ்வொரு மதிப்பெண்ணும் இன்றைய நிலையை அடிப்படையாகக் கொண்டது — உங்கள் ஜாதக வலிமை, தசை மற்றும் கிரகநகர்வு மூன்றையும் சேர்த்து கணக்கிடப்படுகிறது."
               : "Each score is a snapshot for today — natal chart strength, the active dasha period, and current transits, combined."}
@@ -363,37 +364,25 @@ export function DashboardLifeAreasTabNova({
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "10px" }}>
+          {/* Member switcher — kit <Pill> (audit B-7): one toggle chip, touch-safe. */}
           <div style={{ display: "flex", gap: "7px", flexWrap: "wrap", justifyContent: "flex-end" }}>
-            <button
-              type="button"
-              onClick={() => onSelectMember(null)}
-              style={{ fontSize: "12px", fontWeight: 700, color: selectedMemberId === null ? "var(--color-on-accent)" : "var(--color-muted)", background: selectedMemberId === null ? "var(--color-accent)" : "transparent", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "6px 14px", cursor: "pointer", fontFamily: "inherit" }}
-            >
+            <Pill active={selectedMemberId === null} onClick={() => onSelectMember(null)}>
               {birthDisplayName || (lang === "ta" ? "நீங்கள்" : "You")}
-            </button>
+            </Pill>
             {memberCharts.map((mc) => (
-              <button
-                key={mc.memberId}
-                type="button"
-                onClick={() => onSelectMember(mc.memberId)}
-                style={{ fontSize: "12px", fontWeight: selectedMemberId === mc.memberId ? 700 : 600, color: selectedMemberId === mc.memberId ? "var(--color-on-accent)" : "var(--color-muted)", background: selectedMemberId === mc.memberId ? "var(--color-accent)" : "transparent", border: `1px solid ${selectedMemberId === mc.memberId ? "var(--color-border-strong)" : "var(--color-border)"}`, borderRadius: "999px", padding: "6px 14px", cursor: "pointer", fontFamily: "inherit" }}
-              >
+              <Pill key={mc.memberId} active={selectedMemberId === mc.memberId} onClick={() => onSelectMember(mc.memberId)}>
                 {mc.displayName}
-              </button>
+              </Pill>
             ))}
           </div>
-          <div style={{ display: "flex", gap: "4px", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "11px", padding: "4px" }}>
-            {SUB_TABS.map(({ key, label }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setSubTab(key)}
-                style={{ fontSize: "12px", fontWeight: subTab === key ? 700 : 600, color: subTab === key ? "var(--color-on-accent)" : "var(--color-muted)", background: subTab === key ? "var(--color-accent)" : "transparent", border: "none", borderRadius: "8px", padding: "6px 13px", cursor: "pointer", fontFamily: "inherit" }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          {/* Sub-nav — the 7th hand-rolled pattern replaced by the one <Segmented>
+              (audit A-1/B-7): tablist semantics + arrow-key nav + 44px touch. */}
+          <Segmented<SubTab>
+            ariaLabel={lang === "ta" ? "வாழ்க்கைத் துறை பார்வைகள்" : "Life-area views"}
+            value={subTab}
+            onChange={setSubTab}
+            options={SUB_TABS.map(({ key, label }) => ({ key, label }))}
+          />
         </div>
       </div>
 
@@ -420,80 +409,74 @@ export function DashboardLifeAreasTabNova({
           />
 
           {!lifeAreas ? (
-            <p style={{ margin: 0, color: "var(--color-faint)", fontSize: "13px" }}>{t("life_areas_empty", lang)}</p>
+            <p style={{ margin: 0, color: "var(--color-faint)", fontSize: "var(--text-base)" }}>{t("life_areas_empty", lang)}</p>
           ) : (
             <>
             {lifeAreas.chartSignature && (
-              <div style={{ ...cardStyle, flexDirection: "row", alignItems: "baseline", flexWrap: "wrap", background: "var(--color-accent-muted)" }}>
-                <span style={{ fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-strong)", whiteSpace: "nowrap" }}>
+              <Card variant="accent" style={{ flexDirection: "row", alignItems: "baseline", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-strong)", whiteSpace: "nowrap" }}>
                   {lang === "ta" ? "ஜாதக முத்திரை" : "Chart signature"}
                 </span>
-                <p style={{ margin: 0, flex: "1 1 24ch", fontSize: "13px", color: "var(--color-text)", lineHeight: 1.55 }}>
+                <p style={{ margin: 0, flex: "1 1 24ch", fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                   {lang === "ta" ? lifeAreas.chartSignature.framing.ta : lifeAreas.chartSignature.framing.en}
                 </p>
-              </div>
+              </Card>
             )}
 
             {activeGoals.length > 0 && (
-              <div style={{ ...cardStyle, flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
-                <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700, flex: "none" }}>
+              <Card style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700, flex: "none" }}>
                   {lang === "ta" ? "உங்கள் இலக்கு" : "Your focus"}
                 </span>
                 {activeGoals.map((g) => (
-                  <span key={g.goalId} style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "4px 12px" }}>
+                  <span key={g.goalId} style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "4px 12px" }}>
                     {t(GOAL_LABEL_BY_TYPE.get(g.goalType) ?? "goal_other", lang)}
                   </span>
                 ))}
                 {focusedAreas.length > 0 && (
-                  <span style={{ fontSize: "12.5px", color: "var(--color-muted)" }}>
+                  <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
                     {lang === "ta"
                       ? `${focusedAreas.map((a) => tLang(a.label, lang)).join(", ")} உங்கள் இலக்குகளுக்கு ஏற்ப முன்னிலைப்படுத்தப்பட்டுள்ளன.`
                       : `${focusedAreas.map((a) => tLang(a.label, lang)).join(" and ")} ${focusedAreas.length === 1 ? "is" : "are"} highlighted to match your goals.`}
                   </span>
                 )}
-                <button
-                  type="button"
-                  onClick={onGoToPlan}
-                  style={{ marginLeft: "auto", fontSize: "12px", fontWeight: 600, color: "var(--color-accent-strong)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}
-                >
+                <Button variant="ghost" onClick={onGoToPlan} style={{ marginLeft: "auto" }}>
                   {lang === "ta" ? "திட்டத்தில் இலக்குகளை மாற்று →" : "Edit goals in Plan →"}
-                </button>
-              </div>
+                </Button>
+              </Card>
             )}
 
             {tiers.map((tier) => (
-              <div key={tier.key} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <section key={tier.key} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
-                  <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: tier.color, fontWeight: 700 }}>{tier.label}</span>
-                  <span style={{ fontSize: "12px", color: "var(--color-faint)" }}>{tier.blurb}</span>
+                  {/* audit B-1: tier name is a real section heading, not a styled
+                      div — screen readers get a document outline on this page. */}
+                  <h2 style={{ margin: 0, fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: tier.color, fontWeight: 700 }}>{tier.label}</h2>
+                  <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{tier.blurb}</span>
                 </div>
                 <div className="nova-grid-4">
                   {tier.areas.map((area) => (
                     <LifeAreaCard key={area.area} area={area} lang={lang} ageRelevant={area.ageRelevant !== false} onOpenDetail={() => setSelectedArea(area)} />
                   ))}
                 </div>
-              </div>
+              </section>
             ))}
 
-            <div style={{ ...cardStyle, flexDirection: "row", alignItems: "center", flexWrap: "wrap", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px dashed var(--color-border-strong)" }}>
+            <Card variant="dashed" style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
               <div style={{ flex: "1 1 260px" }}>
-                <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "18px", fontWeight: 600, color: "var(--color-accent-strong)" }}>
-                  {lang === "ta" ? "இந்த மதிப்பெண்கள் எதை அளவிடுகின்றன" : "What these scores measure"}
-                </p>
-                <p style={{ margin: "2px 0 0", fontSize: "12px", color: "var(--color-muted)" }}>
+                <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-accent-strong)" }}>
+                  <BilingualText lang={lang} en="What these scores measure" ta="இந்த மதிப்பெண்கள் எதை அளவிடுகின்றன" />
+                </h3>
+                <p style={{ margin: "2px 0 0", fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
                   {lang === "ta"
                     ? "ஜாதக காரக வலிமை + தற்போதைய தசை இணக்கம் + இன்றைய கிரகநகர்வு ஆதரவு. இவை மெதுவாக மாறும் — ஒவ்வொரு மணி நேரமும் அல்ல, வாரம் ஒருமுறை பாருங்கள்."
                     : "Natal karaka strength + active dasha alignment + today's transit support. They shift slowly — check weekly, not hourly."}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={onGoToChart}
-                style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--color-accent-strong)", border: "1px solid var(--color-border-strong)", borderRadius: "9px", padding: "9px 16px", background: "none", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
-              >
+              <Button variant="secondary" onClick={onGoToChart} style={{ whiteSpace: "nowrap" }}>
                 {lang === "ta" ? "இதன் பின்னணி ஜாதகத்தைப் பார் →" : "See the chart behind them →"}
-              </button>
-            </div>
+              </Button>
+            </Card>
 
             {selectedArea && (
               <DrawerPanel title={lang === "ta" ? selectedArea.label.ta : selectedArea.label.en} onClose={() => setSelectedArea(null)}>
@@ -514,20 +497,20 @@ export function DashboardLifeAreasTabNova({
               table (IA audit 2026-07-22, Phase 2). Family & Charts shows only a
               compact preview and links here. Same data the tab already holds
               (`lifeAreas.areas`) — no new fetch. */}
-          <div style={cardStyle}>
-            <p style={{ margin: "0 0 8px", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+          <Card>
+            <h3 style={{ margin: "0 0 8px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
               {lang === "ta" ? "வரும் 6 / 12 மாத முன்னோட்டம்" : "Next 6 / 12-month forecast"}
-            </p>
+            </h3>
             <HyLifeAreaForecast lang={lang} areas={lifeAreas?.areas ?? null} age={currentAge} />
-          </div>
+          </Card>
 
           {lifeAreas?.chartId && (
-            <div style={cardStyle}>
-              <p style={{ margin: "0 0 8px", fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+            <Card>
+              <h3 style={{ margin: "0 0 8px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
                 {lang === "ta" ? "நிகழ்வு நேரங்கள்" : "Event Windows"}
-              </p>
+              </h3>
               <EventWindowsPanel lang={lang} chartId={lifeAreas.chartId} isMarried={isMarried} />
-            </div>
+            </Card>
           )}
         </div>
       )}
