@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
@@ -28,6 +28,7 @@ import { DrawerPanel } from "./drawer-panel";
 import type {
   PanchangamDailyResponseData,
   PanchangamFestival,
+  PanchangamMonthlyData,
   PanchangamTimingsData,
 } from "@/lib/types";
 
@@ -600,6 +601,52 @@ export function DashboardCalendarTabNova({
     setMonthlyMonth(next.getMonth() + 1);
   };
 
+  // Quick Jump: "This Month" returns the grid to the current month; "Today"
+  // additionally opens today's day-detail drawer for a quick peek. The grid
+  // already rings today/selected, so navigation is all "This Month" needs.
+  const handleQuickJump = useCallback((target: "today" | "thisMonth") => {
+    const todayObj = new Date(`${todayDate}T00:00:00`);
+    setMonthlyYear(todayObj.getFullYear());
+    setMonthlyMonth(todayObj.getMonth() + 1);
+    if (target === "today") setDetailDate(todayDate);
+  }, [todayDate]);
+
+  // Quick Jump: "Next Muhurtham" scans forward from today's month, fetching one
+  // month at a time (the monthly grid only ever holds a single month), until it
+  // finds the first Tamil muhurtham day after today, then navigates there and
+  // opens its drawer. Capped at 12 months so a data gap can't loop forever.
+  const jumpToNextMuhurtham = useCallback(async (): Promise<boolean> => {
+    if (!monthlyLocation) return false;
+    const todayObj = new Date(`${todayDate}T00:00:00`);
+    let year = todayObj.getFullYear();
+    let month = todayObj.getMonth() + 1;
+    for (let i = 0; i < 12; i += 1) {
+      const params = new URLSearchParams({
+        year: String(year),
+        month: String(month),
+        lat: String(monthlyLocation.lat),
+        lng: String(monthlyLocation.lng),
+        timezone: monthlyLocation.timezone,
+      });
+      try {
+        const res = await apiFetchJson<{ data: PanchangamMonthlyData }>(`/api/v1/panchangam/monthly?${params.toString()}`);
+        const hit = (res.data.entries ?? []).find((entry) => entry.isTamilMuhurthamDay && entry.dateLocal > todayDate);
+        if (hit) {
+          setMonthlyYear(year);
+          setMonthlyMonth(month);
+          setDetailDate(hit.dateLocal);
+          return true;
+        }
+      } catch {
+        // A single failed month shouldn't abort the scan — keep looking ahead.
+      }
+      const next = new Date(year, month, 1); // month is 1-based → first of the *next* month
+      year = next.getFullYear();
+      month = next.getMonth() + 1;
+    }
+    return false;
+  }, [monthlyLocation, todayDate]);
+
   const headerDate = formatHeaderDate(selectedDate, lang);
   const tamilHeaderDate = getTamilMonthDate(selectedDate, lang);
   const hijriHeaderDate = formatHijriDate(selectedDate);
@@ -1043,6 +1090,8 @@ export function DashboardCalendarTabNova({
           onPrevMonth={() => goToAdjacentMonth(-1)}
           onNextMonth={() => goToAdjacentMonth(1)}
           onSelectDate={(date) => setDetailDate(date)}
+          onQuickJump={handleQuickJump}
+          onJumpToNextMuhurtham={jumpToNextMuhurtham}
         />
       )}
 
