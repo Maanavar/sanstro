@@ -507,6 +507,37 @@ export function DashboardWorkspace() {
     predictionsEnabled: activeTab === "life-areas",
   });
 
+  // Tools tab open/close — lifted to component level (was local to the
+  // `activeTab === "tools"` render block) so Today's Quick Links can open a
+  // specific tool from outside the Tools tab, the same way focusLifeAreas/
+  // focusCalendar/focusFamily reach into their tabs (homepage redesign
+  // 2026-07-24).
+  const needsProfile = !personal.birthProfileId;
+  const openTool = useCallback((toolId: string) => {
+    setShowPorutham(toolId === "porutham");
+    setShowChartGenerate(toolId === "chartgen");
+    setShowWrapped(toolId === "wrapped");
+    setShowRetrospective(toolId === "retro");
+    setShowRasipalan(toolId === "rasipalan");
+    setShowActivityTiming(toolId === "activityTiming");
+    setShowVarshaphala(toolId === "varshaphala");
+    setShowSynastry(toolId === "synastry");
+  }, []);
+  const closeTool = useCallback(() => {
+    setShowPorutham(false);
+    setShowChartGenerate(false);
+    setShowWrapped(false);
+    setShowRetrospective(false);
+    setShowRasipalan(false);
+    setShowActivityTiming(false);
+    setShowVarshaphala(false);
+    setShowSynastry(false);
+  }, []);
+  const focusTool = useCallback((toolId: string) => {
+    openTool(toolId);
+    goToTab("tools");
+  }, [openTool, goToTab]);
+
   const family = useFamilyData({
     ownerUserId,
     selectedDate,
@@ -1555,33 +1586,24 @@ export function DashboardWorkspace() {
             onGoToCharts={() => setActiveTab("family")}
             onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
             onOpenNotificationSettings={() => navigateSettings("notifications")}
+            needsProfile={needsProfile}
+            onOpenChartGen={() => focusTool("chartgen")}
+            onOpenMuhurta={() => focusCalendar("muhurta")}
+            onOpenCompatibility={() => focusTool("synastry")}
+            onOpenActivityTiming={() => focusTool("activityTiming")}
+            onOpenRasipalan={() => focusTool("rasipalan")}
+            onOpenVarshaphala={() => focusTool("varshaphala")}
+            onGoToExplore={() => goToTab("explore")}
+            onGoToAllTools={() => goToTab("tools")}
           />
         )}
 
         {activeTab === "tools" && (() => {
           const activeTool = showPorutham ? "porutham" : showChartGenerate ? "chartgen" : showWrapped ? "wrapped" : showRetrospective ? "retro" : showRasipalan ? "rasipalan" : showActivityTiming ? "activityTiming" : showVarshaphala ? "varshaphala" : showSynastry ? "synastry" : null;
           // Note: Find Birth Time (rectification) removed — results were unreliable
-          const needsProfile = !personal.birthProfileId;
-          const openTool = (toolId: string) => {
-            setShowPorutham(toolId === "porutham");
-            setShowChartGenerate(toolId === "chartgen");
-            setShowWrapped(toolId === "wrapped");
-            setShowRetrospective(toolId === "retro");
-            setShowRasipalan(toolId === "rasipalan");
-            setShowActivityTiming(toolId === "activityTiming");
-            setShowVarshaphala(toolId === "varshaphala");
-            setShowSynastry(toolId === "synastry");
-          };
-          const closeTool = () => {
-            setShowPorutham(false);
-            setShowChartGenerate(false);
-            setShowWrapped(false);
-            setShowRetrospective(false);
-            setShowRasipalan(false);
-            setShowActivityTiming(false);
-            setShowVarshaphala(false);
-            setShowSynastry(false);
-          };
+          // needsProfile/openTool/closeTool now live at component level (see
+          // above, near the other cross-tab focus helpers) so Today's Quick
+          // Links can reuse them via focusTool.
           // Compatibility tool (moved from the Family page 2026-07-21): join the
           // vault's member charts with their relationship labels for the picker.
           const synastryMemberOptions = family.memberCharts.map((mc) => {

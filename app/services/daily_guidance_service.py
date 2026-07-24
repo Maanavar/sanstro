@@ -25,6 +25,11 @@ from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.functional_nature import get_dasha_modifier, get_transit_modifier
 from app.calculations.panchangam import PanchangamSnapshot, calculate_daily_panchangam, calculate_daily_panchangam_range
+from app.calculations.remedies import (
+    PLANET_REMEDY_CATALOG,
+    active_dosham_planet,
+    select_remedy_focus,
+)
 from app.calculations.transits import check_vedha, classify_ezharai_sani_murthi_ingress, classify_kandaka_cycle, classify_sani_cycle, find_saturn_ingress_jd, is_combust
 from app.models import BirthProfile, Chart, JournalEntry
 from app.reasoning.verdict import Band, band_to_legacy_confidence
@@ -49,6 +54,8 @@ from app.schemas.daily_guidance import (
     JournalCorrelationData,
     JournalCorrelationItem,
     JournalCorrelationResponse,
+    RemedyFocus,
+    RemedyFocusAction,
     WeekAheadData,
     WeekAheadDayItem,
     WeekAheadResponse,
@@ -201,6 +208,147 @@ def _featured_best_window(windows):
     if horas:
         return horas[0]
     return windows[0]
+
+
+# ── Today-card remedy focus ───────────────────────────────────────────────────
+# Planet display names mirror the web `PLANET_LORDS` map (web/lib/i18n.ts) so the
+# backend lead sentence agrees with the frontend "PARIKARAM · <lord> DASA" eyebrow.
+_REMEDY_PLANET_NAME: dict[str, tuple[str, str]] = {
+    "SUN": ("சூரியன்", "Sun"),
+    "MOON": ("சந்திரன்", "Moon"),
+    "MARS": ("செவ்வாய்", "Mars"),
+    "MERCURY": ("புதன்", "Mercury"),
+    "JUPITER": ("குரு", "Jupiter"),
+    "VENUS": ("சுக்கிரன்", "Venus"),
+    "SATURN": ("சனி", "Saturn"),
+    "RAHU": ("ராகு", "Rahu"),
+    "KETU": ("கேது", "Ketu"),
+}
+
+
+def _split_remedy_sentences(text: str) -> list[str]:
+    """Split a multi-sentence catalog string into clean, period-terminated acts."""
+    out: list[str] = []
+    for part in text.split(". "):
+        cleaned = part.strip().rstrip(".").strip()
+        if cleaned:
+            out.append(cleaned + ".")
+    return out
+
+
+def _compose_temple_action(remedy) -> RemedyFocusAction:
+    daanam_en = remedy.daanam_items_en.strip()
+    daanam_en_lc = daanam_en[0].lower() + daanam_en[1:] if daanam_en else daanam_en
+    return RemedyFocusAction(
+        text=DailyGuidanceText(
+            ta=f"{remedy.temple_ta} — {remedy.daanam_items_ta} படையுங்கள்.",
+            en=f"At {remedy.temple_en}, offer {daanam_en_lc}.",
+        ),
+        kind="TEMPLE",
+        cadence="RITUAL_ON_DAY",
+    )
+
+
+def _compose_seva_actions(remedy) -> list[RemedyFocusAction]:
+    """Up to two seva acts, taken from the catalog's own seva sentences.
+
+    The catalog seva strings are already several distinct charitable acts; we
+    surface the first two as separate rows. If either language yields fewer than
+    two sentences we fall back to the whole seva string as one act, so pairing
+    never misaligns EN/TA.
+    """
+    ta_parts = _split_remedy_sentences(remedy.seva_ta)
+    en_parts = _split_remedy_sentences(remedy.seva_en)
+    if len(ta_parts) < 2 or len(en_parts) < 2:
+        return [
+            RemedyFocusAction(
+                text=DailyGuidanceText(ta=remedy.seva_ta, en=remedy.seva_en),
+                kind="SEVA",
+                cadence="ANY_DAY",
+            )
+        ]
+    return [
+        RemedyFocusAction(
+            text=DailyGuidanceText(ta=ta_parts[i], en=en_parts[i]),
+            kind="SEVA",
+            cadence="ANY_DAY",
+        )
+        for i in range(2)
+    ]
+
+
+def _remedy_lead(focus) -> DailyGuidanceText:
+    ta_name, en_name = _REMEDY_PLANET_NAME.get(focus.primary, (focus.primary, focus.primary))
+    if focus.role == "DASHA_LORD":
+        if focus.is_weak:
+            return DailyGuidanceText(
+                ta=f"{ta_name} உங்கள் நடப்பு தசையை ஆள்கிறது, ஆனால் ஜாதகத்தில் வலிமை குறைவாக அமைந்துள்ளது. இம்மூன்றில் ஏதேனும் ஒன்று அதை நிலைப்படுத்தும்.",
+                en=f"{en_name} rules your running dasa and sits among your chart's weaker grahas. Any one of these three steadies it.",
+            )
+        return DailyGuidanceText(
+            ta=f"{ta_name} உங்கள் நடப்பு தசையை ஆள்கிறது. இதை வழிபடுவது இக்காலத்தின் ஆதரவைத் தொடரச் செய்யும்.",
+            en=f"{en_name} rules your running dasa. Honouring it keeps this period's support flowing.",
+        )
+    if focus.role == "DOSHA":
+        return DailyGuidanceText(
+            ta=f"{ta_name} உங்கள் ஜாதகத்தில் தோஷத்தைக் கொண்டுள்ளது. இச்செயல்கள் அதைத் தணிக்கும்.",
+            en=f"{en_name} carries a dosha in your chart. These acts ease it.",
+        )
+    return DailyGuidanceText(
+        ta=f"{ta_name} உங்கள் லக்னத்திற்கு இயற்கையான சுபகிரகம், ஆனால் வலிமை குறைவாக உள்ளது. இதை வலுப்படுத்துவது அது ஆளும் துறைகளை உயர்த்தும்.",
+        en=f"{en_name} is a natural benefic for your lagna but sits weak. Strengthening it lifts the areas it governs.",
+    )
+
+
+def _remedy_why(focus) -> DailyGuidanceText:
+    ta_name, en_name = _REMEDY_PLANET_NAME.get(focus.primary, (focus.primary, focus.primary))
+    if focus.role == "DASHA_LORD":
+        ta = f"உங்கள் நடப்பு விம்சோத்தரி மகாதசை {ta_name} ஆல் ஆளப்படுகிறது, எனவே அதன் அருள் இந்த முழு காலத்தையும் வடிவமைக்கிறது."
+        en = f"Your current Vimshottari mahadasa is ruled by {en_name}, so its grace shapes this whole period."
+    elif focus.role == "DOSHA":
+        ta = f"{ta_name} உங்கள் ஜாதகத்தில் ஒரு தோஷத்தைக் கொண்டுள்ளது, எனவே அதைத் தணிப்பதற்கு முன்னுரிமை அளிக்கப்படுகிறது."
+        en = f"{en_name} carries a dosha in your chart, so easing it is prioritised."
+    else:
+        ta = f"{ta_name} உங்கள் லக்னத்திற்கு நல்லது செய்யும் கிரகம், ஆனால் இப்போது பலம் குறைவாக உள்ளது."
+        en = f"{en_name} is a benefic for your lagna but currently lacks strength."
+    if focus.is_weak and focus.role == "DASHA_LORD":
+        ta += " இது உங்கள் மூன்று பலவீனமான கிரகங்களில் ஒன்றாகவும் அமைந்துள்ளது, எனவே அதை இப்போது நிலைப்படுத்துவது மேலும் முக்கியம்."
+        en += " It also sits among your three weakest grahas by natal strength, so steadying it matters more now."
+    if focus.is_dosha and focus.role != "DOSHA":
+        ta += " மேலும் இது உங்கள் ஜாதகத்தில் ஒரு தோஷத்தையும் கொண்டுள்ளது."
+        en += " It additionally carries a dosha in your chart."
+    return DailyGuidanceText(ta=ta, en=en)
+
+
+def _build_remedy_focus(chart_snapshot, maha_lord: str) -> RemedyFocus | None:
+    """Structured chart-driven remedy for the Today card.
+
+    Reuses the shared `select_remedy_focus` selection (so it agrees with the full
+    remedy-plan endpoint) and composes the three concrete acts from the real
+    `PLANET_REMEDY_CATALOG`. Returns None only if the anchor planet somehow has
+    no catalog entry, in which case the client keeps the flat `remedy` string.
+    """
+    lagna_rasi = chart_snapshot.data.lagna.rasi
+    dosham_planet = active_dosham_planet(chart_snapshot.data.doshams, lagna_rasi)
+    focus = select_remedy_focus(
+        lagna_rasi=lagna_rasi,
+        planet_strengths=[(p.graha, int(getattr(p, "strength_score", 0) or 50)) for p in chart_snapshot.data.planets],
+        current_maha_lord=maha_lord,
+        active_dosham_planet=dosham_planet,
+    )
+    remedy = PLANET_REMEDY_CATALOG.get(focus.primary)
+    if remedy is None:
+        return None
+    return RemedyFocus(
+        planet=focus.primary,
+        role=focus.role,
+        is_weak=focus.is_weak,
+        weekday=focus.weekday,
+        lead=_remedy_lead(focus),
+        why=_remedy_why(focus),
+        actions=[_compose_temple_action(remedy), *_compose_seva_actions(remedy)],
+        japa=remedy.japa_count,
+    )
 
 
 def build_daily_guidance_response(
@@ -782,11 +930,15 @@ def build_daily_guidance_response(
         ))
         briefing = DailyGuidanceText(ta=synthesized.ta, en=synthesized.en)
 
+    remedy_focus = _build_remedy_focus(chart_snapshot, maha_lord)
+
     run_safety_pass(
         reasons.summary, reasons.remedy, reasons.caution, reasons.personal_caution,
         nakshatra_perspective, briefing, emotional_weather.tone_text,
         emotional_weather.physical_tendency_text, emotional_weather.best_use_of_day_text,
-        emotional_weather.avoid_before, source="daily_guidance",
+        emotional_weather.avoid_before,
+        *((remedy_focus.lead, remedy_focus.why, *(a.text for a in remedy_focus.actions)) if remedy_focus else ()),
+        source="daily_guidance",
     )
 
     return DailyGuidanceResponse(
@@ -852,6 +1004,7 @@ def build_daily_guidance_response(
             ),
             briefing=briefing,
             remedy=DailyGuidanceText(ta=reasons.remedy.ta, en=reasons.remedy.en),
+            remedyFocus=remedy_focus,
             currentHoraLord=hora_lord,
             pratyantarNarrative=(
                 DailyGuidanceText(ta=pratyantar_story["ta"], en=pratyantar_story["en"])

@@ -7,11 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import utc_datetime_to_julian_day
-from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.dasha import calculate_vimshottari_timeline
-from app.calculations.functional_nature import FunctionalNature, get_functional_nature
-from app.calculations.remedies import get_remedy, remedy_disclaimer
-from app.calculations.yogas import get_badhaka_lord
+from app.calculations.functional_nature import get_functional_nature
+from app.calculations.remedies import active_dosham_planet, get_remedy, remedy_disclaimer, select_remedy_focus
 from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
@@ -84,53 +82,20 @@ def remedy_plan(
     if moon is None:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Moon not present in chart.")
 
-    strengths = sorted(
-        (
-            (
-                p.graha,
-                int(getattr(p, "strength_score", 0) or 50),
-            )
-            for p in snapshot.data.planets
-            if p.graha in {"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"}
-        ),
-        key=lambda item: item[1],
-    )
-    weakest = [planet for planet, _ in strengths[:3]]
-
     now_jd = utc_datetime_to_julian_day(datetime.now(tz=UTC))
     timeline = calculate_vimshottari_timeline(snapshot.data.julian_day, moon.absolute_longitude, now_jd)
     current_maha_lord = timeline.current_mahadasha.lord
 
-    active_dosham_planet = None
-    for dosham in snapshot.data.doshams:
-        if not dosham.is_present:
-            continue
-        if dosham.name in {"SEVVAI_DOSHAM", "KALATHRA_DOSHAM"}:
-            active_dosham_planet = "MARS"
-        elif dosham.name in {"RAHU_KETU_DOSHAM", "KALASARPA", "PUTRA_SARPA_DOSHAM"}:
-            active_dosham_planet = "RAHU"
-        elif dosham.name == "PITRU_DOSHAM":
-            active_dosham_planet = "SUN"
-        elif dosham.name == "BADHAKA_DOSHAM":
-            active_dosham_planet = get_badhaka_lord(lagna_rasi, SIGN_LORD)
-        if active_dosham_planet:
-            break
+    dosham_planet = active_dosham_planet(snapshot.data.doshams, lagna_rasi)
 
-    benefic_candidates = [
-        planet
-        for planet in weakest
-        if get_functional_nature(lagna_rasi, planet) in {
-            FunctionalNature.YOGAKARAKA,
-            FunctionalNature.TRIKONA,
-            FunctionalNature.LAGNA_LORD,
-            FunctionalNature.KENDRA,
-        }
-    ]
-    weakest_benefic = benefic_candidates[0] if benefic_candidates else (weakest[0] if weakest else current_maha_lord)
-    ordered_planets: list[str] = []
-    for candidate in (current_maha_lord, weakest_benefic, active_dosham_planet):
-        if candidate and candidate not in ordered_planets:
-            ordered_planets.append(candidate)
+    focus = select_remedy_focus(
+        lagna_rasi=lagna_rasi,
+        planet_strengths=[(p.graha, int(getattr(p, "strength_score", 0) or 50)) for p in snapshot.data.planets],
+        current_maha_lord=current_maha_lord,
+        active_dosham_planet=dosham_planet,
+    )
+    weakest = list(focus.weakest)
+    ordered_planets = list(focus.ordered)
 
     rows = []
     for i, planet in enumerate(ordered_planets, start=1):
@@ -147,7 +112,7 @@ def remedy_plan(
             "chartId": str(chart_id),
             "currentMahaLord": current_maha_lord,
             "weakestPlanets": weakest,
-            "activeDoshamPlanet": active_dosham_planet,
+            "activeDoshamPlanet": dosham_planet,
             "items": rows,
             "disclaimer": remedy_disclaimer(),
         },

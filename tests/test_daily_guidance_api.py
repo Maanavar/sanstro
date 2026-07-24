@@ -1,3 +1,5 @@
+from datetime import date
+
 from app.db.session import SessionLocal
 from app.models import DailyScore
 
@@ -80,6 +82,40 @@ def test_daily_guidance_endpoint_returns_daily_card(client, birth_profile_payloa
     assert body["data"]["emotionalWeather"]["bestUseOfDayText"]["en"]
     assert "contextInsight" in body["data"]
     assert "journalInsight" in body["data"]
+
+
+def test_daily_guidance_remedy_focus_is_chart_driven_and_structured(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
+
+    # Query for today so the daily-guidance maha lord aligns with the remedy-plan
+    # endpoint (which selects as-of now) — both route through select_remedy_focus,
+    # so the anchor planet must agree across the two surfaces.
+    dg = client.get(
+        f"/api/v1/charts/{chart_id}/daily-guidance",
+        params={"date": date.today().isoformat(), "language": "ta-en"},
+    )
+    focus = assert_response(dg, status=200, required_keys=("data",))["data"]["remedyFocus"]
+    assert focus is not None
+
+    plan = client.get(f"/api/v1/charts/{chart_id}/remedy-plan")
+    assert plan.status_code == 200
+    assert focus["planet"] == plan.json()["data"]["currentMahaLord"]
+
+    assert focus["role"] in {"DASHA_LORD", "WEAK_BENEFIC", "DOSHA"}
+    assert focus["weekday"] in {"SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"}
+    assert isinstance(focus["isWeak"], bool)
+    assert focus["lead"]["en"].strip() and focus["lead"]["ta"].strip()
+    assert focus["why"]["en"].strip() and focus["why"]["ta"].strip()
+
+    actions = focus["actions"]
+    assert 1 <= len(actions) <= 3
+    # The first act is always the weekday temple ritual; seva acts follow.
+    assert actions[0]["kind"] == "TEMPLE"
+    assert actions[0]["cadence"] == "RITUAL_ON_DAY"
+    for action in actions:
+        assert action["kind"] in {"TEMPLE", "SEVA"}
+        assert action["cadence"] in {"RITUAL_ON_DAY", "ANY_DAY"}
+        assert action["text"]["en"].strip() and action["text"]["ta"].strip()
 
 
 def test_daily_guidance_briefing_flag_gates_synthesis(client, birth_profile_payload_factory):

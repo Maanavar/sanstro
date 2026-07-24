@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from typing import Protocol
 
-from app.calculations.functional_nature import FunctionalNature
+from app.calculations.chart_strength import SIGN_LORD
+from app.calculations.functional_nature import FunctionalNature, get_functional_nature
+from app.calculations.yogas import get_badhaka_lord
 
 # Safety notes that MUST accompany every prescribed remedy.
 #
@@ -88,6 +91,139 @@ PLANET_REMEDY_CATALOG: dict[str, PlanetRemedy] = {
     "RAHU": PlanetRemedy("RAHU", "ராகு காலம் (தினமும்)", "திருநாகேஸ்வரம் ராகு ஸ்தலம்", "Thirunageswaram Rahu Sthalam", "ஓம் ப்ராம்", "ஓம் ப்ராம் ப்ரீம் ப்ரௌம் ஸஹ ராஹவே நம:", 18000, "தேங்காய், கருப்பு உளுந்து", "Coconut, black gram", "கோமேதகம்", "Hessonite", "Silver", "Middle finger", "ராகு கால விரதம்", "Fast on the daily Rahu Kalam window", "ஒரே குறிக்கோளில் கவனம்.", "Focus on one direction.", "தனிமையில் வாழ்பவருக்கு அல்லது சமூகத்தால் ஒதுக்கப்பட்டவருக்கு உதவுங்கள். அனாதை இல்லத்திற்கு நன்கொடை செய்யுங்கள். முதல் தலைமுறை கல்லூரி மாணவருக்கு வழிகாட்டுதல் அல்லது தொழில் ஆலோசனை வழங்குங்கள்.", "Help the socially marginalised or isolated. Donate to an orphanage. Provide career guidance or mentoring to a first-generation college student."),
     "KETU": PlanetRemedy("KETU", "சனி", "கீழ்ப்பெரும்பள்ளம் கேது ஸ்தலம்", "Keezhaperumpallam Ketu Sthalam", "ஓம் ஸ்ராம்", "ஓம் ஸ்ராம் ஸ்ரீம் ஸ்ரௌம் ஸஹ கேதவே நம:", 17000, "கலவை தானியம்", "Mixed grains", "வைடூரியம்", "Cat's Eye", "Silver", "Ring finger", "சனி விரதம் (விநாயகர் வழிபாடு)", "Fast on Saturday (Vinayagar worship)", "தியானம் வளர்க்கவும்.", "Deepen meditation practice.", "நோய்வாய்ப்பட்ட ஏழைக்கு அல்லது மரணப்படுக்கையில் இருப்பவருக்கு உதவுங்கள். பசுக்கள் அல்லது தெரு விலங்குகளுக்கு உணவளியுங்கள். தியானம் அல்லது யோகா கற்க இயலாதவருக்கு நன்கொடை செய்யுங்கள்.", "Help a destitute or terminally ill person. Feed cows or street animals. Sponsor meditation or yoga education for someone who cannot afford it."),
 }
+
+
+NAVAGRAHA_KEYS: frozenset[str] = frozenset(
+    {"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"}
+)
+
+# Authoritative planet → English weekday for reminder scheduling. The catalog's
+# Tamil `day` field is display free-text (e.g. RAHU's is "ராகு காலம் (தினமும்)",
+# a daily Rahu-kalam window, not a single weekday), so it cannot be parsed back
+# to a weekday. Rahu/Ketu have no classical weekday of their own — both fall to
+# Saturday (Saturn's day), the traditional day for the shadowy grahas' worship.
+PLANET_REMEDY_WEEKDAY: dict[str, str] = {
+    "SUN": "SUNDAY",
+    "MOON": "MONDAY",
+    "MARS": "TUESDAY",
+    "MERCURY": "WEDNESDAY",
+    "JUPITER": "THURSDAY",
+    "VENUS": "FRIDAY",
+    "SATURN": "SATURDAY",
+    "RAHU": "SATURDAY",
+    "KETU": "SATURDAY",
+}
+
+# Functional roles that mark a planet as a benefic worth strengthening — the same
+# set `remedy_plan` uses when picking the weakest *beneficial* planet to support.
+_BENEFIC_FUNCTIONAL_ROLES: frozenset[FunctionalNature] = frozenset(
+    {
+        FunctionalNature.YOGAKARAKA,
+        FunctionalNature.TRIKONA,
+        FunctionalNature.LAGNA_LORD,
+        FunctionalNature.KENDRA,
+    }
+)
+
+
+class _DoshamLike(Protocol):
+    is_present: bool
+    name: str
+
+
+def active_dosham_planet(doshams: list[_DoshamLike], lagna_rasi: int) -> str | None:
+    """First present dosham → the graha whose remedy eases it.
+
+    Duck-typed on the dosham insight objects (needs only `.is_present`/`.name`)
+    so the calc layer stays free of a schema import. Shared by `remedy_plan`
+    and the daily-guidance remedy focus so the two never disagree on which
+    planet a dosham points to.
+    """
+    for dosham in doshams:
+        if not dosham.is_present:
+            continue
+        if dosham.name in {"SEVVAI_DOSHAM", "KALATHRA_DOSHAM"}:
+            return "MARS"
+        if dosham.name in {"RAHU_KETU_DOSHAM", "KALASARPA", "PUTRA_SARPA_DOSHAM"}:
+            return "RAHU"
+        if dosham.name == "PITRU_DOSHAM":
+            return "SUN"
+        if dosham.name == "BADHAKA_DOSHAM":
+            return get_badhaka_lord(lagna_rasi, SIGN_LORD)
+    return None
+
+
+@dataclass(frozen=True)
+class RemedyFocusSelection:
+    """Which planet a remedy card should lead with, and why.
+
+    `primary` is the day's single anchor planet — the running Mahadasha lord,
+    the constant ruler of the current life period (a sensible, stable daily
+    focus). `role`/`is_weak` let a card explain the choice honestly instead of
+    asserting a weakness that may not hold: `is_weak` is true only when the
+    primary genuinely sits among the chart's three weakest grahas (the same
+    natal `strength_score` signal `remedy_plan` already trusts — NOT a transit
+    or paksha window). `ordered` is the full priority list (maha lord → weakest
+    benefic → active-dosha planet, deduped) that `remedy_plan` renders in full.
+    """
+
+    primary: str
+    role: str  # DASHA_LORD | WEAK_BENEFIC | DOSHA
+    is_weak: bool
+    is_dosha: bool
+    weekday: str
+    weakest: tuple[str, ...]
+    ordered: tuple[str, ...]
+
+
+def select_remedy_focus(
+    lagna_rasi: int,
+    planet_strengths: list[tuple[str, int | None]],
+    current_maha_lord: str,
+    active_dosham_planet: str | None,
+) -> RemedyFocusSelection:
+    """Pure planet-selection shared by the Today card and the full remedy plan.
+
+    Extracted verbatim from `app/api/remedies.py::remedy_plan` so both surfaces
+    can never drift. Inputs are already-resolved chart facts (lagna, per-planet
+    natal strength, running maha lord, the planet a present dosham maps to) —
+    the caller owns the dosham→planet mapping and timeline lookup.
+    """
+    strengths = sorted(
+        ((graha, int(score if score is not None else 50)) for graha, score in planet_strengths if graha in NAVAGRAHA_KEYS),
+        key=lambda item: item[1],
+    )
+    weakest = tuple(graha for graha, _ in strengths[:3])
+
+    benefic_candidates = [
+        planet for planet in weakest if get_functional_nature(lagna_rasi, planet) in _BENEFIC_FUNCTIONAL_ROLES
+    ]
+    weakest_benefic = benefic_candidates[0] if benefic_candidates else (weakest[0] if weakest else current_maha_lord)
+
+    ordered: list[str] = []
+    for candidate in (current_maha_lord, weakest_benefic, active_dosham_planet):
+        if candidate and candidate not in ordered:
+            ordered.append(candidate)
+
+    # The Today anchor is the running dasa lord (ordered[0]); fall back to the
+    # weakest benefic only if there somehow is no maha lord.
+    primary = ordered[0] if ordered else current_maha_lord
+    if primary == current_maha_lord:
+        role = "DASHA_LORD"
+    elif primary == active_dosham_planet:
+        role = "DOSHA"
+    else:
+        role = "WEAK_BENEFIC"
+
+    return RemedyFocusSelection(
+        primary=primary,
+        role=role,
+        is_weak=primary in weakest,
+        is_dosha=primary == active_dosham_planet,
+        weekday=PLANET_REMEDY_WEEKDAY.get(primary, "SATURDAY"),
+        weakest=weakest,
+        ordered=tuple(ordered),
+    )
 
 
 def _gemstone_policy(functional_nature: FunctionalNature) -> tuple[bool, str, str, str | None, str | None]:

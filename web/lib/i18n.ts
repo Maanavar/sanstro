@@ -976,6 +976,19 @@ const STRINGS = {
   remedies_safety_note:    { ta: "பரிகாரம் மனதை நிலைப்படுத்தி, சரியான காலத்தோடு உங்கள் முயற்சியை இணைக்கிறது — ஒரு குறிப்பிட்ட பலனையோ துல்லியமான தேதியையோ உறுதி செய்ய முடியாது. நாங்கள் சாதகமான கால வரம்புகளை மட்டுமே சுட்டிக்காட்டுகிறோம், உறுதிகளை அல்ல. இவை மருத்துவ, சட்ட அல்லது நிதி ஆலோசனைக்கு மாற்றல்ல.", en: "Pariharam steadies the mind and aligns your effort with the right time — it cannot guarantee a specific outcome or an exact date. We point to favourable ranges, not certainties, and this is not a substitute for medical, legal, or financial advice." },
   remedies_fasting_caution:{ ta: "விரதம் விருப்பத்திற்குரியது — மனதை நிலைப்படுத்தவே, உடலை வருத்த அல்ல. நீரிழிவு, குறைந்த ரத்த அழுத்தம், கர்ப்பம், பாலூட்டுதல், வயது முதிர்வு, உடல்நலக் குறைவு அல்லது தொடர் மருந்து உட்கொள்பவர்கள் கடுமையான உணவு விரதம் வேண்டாம் — லேசான சாத்வீக உணவு உண்ணலாம், அல்லது மந்திரம், வழிபாடு, தானம் செய்யலாம். முன்பு மருத்துவரை அணுகவும்.", en: "Fasting is optional and meant to steady the mind, never to harm the body. If you have diabetes, low blood pressure, are pregnant or breastfeeding, are elderly or unwell, or take regular medication, do not keep a strict food-fast — keep a light sattvic meal instead, or replace the fast with the mantra, worship, or charity. Consult your doctor first." },
 
+  // ── Remedy For You (Today card) — chart-driven anchor-planet remedy
+  remedy_focus_title:      { ta: "உங்களுக்கான பரிகாரம்",          en: "Remedy for you" },
+  remedy_focus_dasa:       { ta: "தசை",                           en: "Dasa" },
+  remedy_focus_why:        { ta: "ஏன் இது?",                       en: "Why this?" },
+  remedy_focus_best_on:    { ta: "சிறந்த நாள்",                    en: "Best on" },
+  remedy_focus_next:       { ta: "அடுத்து",                        en: "next" },
+  remedy_focus_reminder:   { ta: "நினைவூட்டல் இயக்கு",             en: "Turn on reminders" },
+  remedy_focus_reminder_saving: { ta: "இயக்குகிறது…",              en: "Saving…" },
+  remedy_focus_more:       { ta: "மேலும் பரிகாரங்கள்",             en: "More remedies" },
+  remedy_focus_none:       { ta: "இன்று குறிப்பிட்ட பரிகாரம் இல்லை.", en: "No specific remedy today." },
+  remedy_cadence_ritual:   { ta: "இந்நாளில் · கோவிலில்",           en: "On this day · at the temple" },
+  remedy_cadence_anyday:   { ta: "எந்நாளிலும் · சேவை",             en: "Any day · service" },
+
   // ── Prasna (Horary)
   prasna_title:            { ta: "ப்ரஸ்ன ஜோதிடம்",              en: "Prasna (Horary)" },
   prasna_desc:             { ta: "பிறந்த நேரம் தெரியாவிட்டால் அல்லது உடனடி கேள்விக்கு இப்போது கட்டம் போடுங்கள்.", en: "Cast a horary chart for an immediate question or when birth time is unknown." },

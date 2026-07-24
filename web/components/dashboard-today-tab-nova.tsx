@@ -41,6 +41,7 @@ import {
   DashboardTodayComingUpNova,
   DashboardTodayFamilyRemedyRowNova,
   DashboardTodayLifeAreasDasaRowNova,
+  DashboardTodayQuickLinksNova,
 } from "./dashboard-today-glance-nova";
 
 /**
@@ -103,6 +104,18 @@ export type DashboardTodayTabNovaProps = {
   onGoToCharts?: () => void;
   onOpenAskVinaadi: () => void;
   onOpenNotificationSettings?: () => void;
+  /** Quick Links row (homepage redesign 2026-07-24) — true when no birth
+   *  profile is saved yet, gray out the chart-dependent tiles (Compatibility,
+   *  Activity Timing, Varshaphala), matching the Tools tab's own gating. */
+  needsProfile?: boolean;
+  onOpenChartGen?: () => void;
+  onOpenMuhurta?: () => void;
+  onOpenCompatibility?: () => void;
+  onOpenActivityTiming?: () => void;
+  onOpenRasipalan?: () => void;
+  onOpenVarshaphala?: () => void;
+  onGoToExplore?: () => void;
+  onGoToAllTools?: () => void;
 };
 
 /** Greeting keyed to the hour in the panchangam timezone (DASH-01) so it
@@ -173,6 +186,15 @@ export function DashboardTodayTabNova({
   onGoToCharts,
   onOpenAskVinaadi,
   onOpenNotificationSettings,
+  needsProfile = false,
+  onOpenChartGen,
+  onOpenMuhurta,
+  onOpenCompatibility,
+  onOpenActivityTiming,
+  onOpenRasipalan,
+  onOpenVarshaphala,
+  onGoToExplore,
+  onGoToAllTools,
 }: DashboardTodayTabNovaProps) {
   const { days: streakDays, best: streakBest, forgiven: streakForgiven } = useStreak();
   const { enabled: eveningPreviewOn, setEnabled: setEveningPreviewOn } = useEveningPreview();
@@ -653,6 +675,24 @@ export function DashboardTodayTabNova({
         </div>
       </div>
 
+      {/* ===== Quick Links — one-tap shortcuts to the highest-value functions
+          that otherwise sit behind the "More" nav dropdown (Tools/Explore) or
+          have no top-level nav entry at all (Journal). Placed right after the
+          hero per the homepage redesign (2026-07-24). ===== */}
+      <DashboardTodayQuickLinksNova
+        lang={lang}
+        needsProfile={needsProfile}
+        onOpenChartGen={onOpenChartGen}
+        onOpenMuhurta={onOpenMuhurta}
+        onOpenCompatibility={onOpenCompatibility}
+        onOpenActivityTiming={onOpenActivityTiming}
+        onOpenRasipalan={onOpenRasipalan}
+        onOpenVarshaphala={onOpenVarshaphala}
+        onGoToJournal={onGoToJournal}
+        onGoToExplore={onGoToExplore}
+        onGoToAllTools={onGoToAllTools}
+      />
+
       {/* Fail-soft notice (DASH-02): the day bundle loaded but some sections
           couldn't be computed — offer a one-tap retry instead of blanking. */}
       {onRetryBundle && bundleSectionErrors && Object.keys(bundleSectionErrors).length > 0 && (
@@ -726,6 +766,7 @@ export function DashboardTodayTabNova({
         lang={lang}
         familyAggregate={familyAggregate}
         remedy={personalDailyGuidance?.remedy ?? null}
+        remedyFocus={personalDailyGuidance?.remedyFocus ?? null}
         savingReminder={savingReminder}
         reminderMessage={reminderStatus?.text ?? null}
         onSaveReminder={() => void handleSaveReminder()}

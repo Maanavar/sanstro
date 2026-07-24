@@ -31,6 +31,8 @@ export type {
   DailyGuidanceEmotionalWeather,
   DailyGuidanceJournalInsight,
   DailyGuidanceData,
+  RemedyFocus,
+  RemedyFocusAction,
   DailyActivityBoard,
   DailyActivityVerdict,
   AmbientAlertItem,

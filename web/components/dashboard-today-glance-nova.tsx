@@ -1,7 +1,13 @@
 "use client";
 
-import { formatClockLabel, getScoreBand, getScoreVerdict, getScoreVerdictFromGuidance, scoreColorAlpha, scoreColorScale } from "@/lib/format";
-import { t, tLang, tPlanetLord } from "@/lib/i18n";
+import { useState } from "react";
+import {
+  ScrollText, Sunrise, Sparkles, Timer, CalendarClock, HeartHandshake, NotebookPen, Compass,
+  type LucideIcon,
+} from "lucide-react";
+
+import { formatClockLabel, formatDateLabel, getScoreBand, getScoreVerdict, getScoreVerdictFromGuidance, nextWeekdayDate, scoreColorAlpha, scoreColorScale } from "@/lib/format";
+import { t, tLang, tPlanetLord, tWeekday } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
   BiText,
@@ -11,6 +17,7 @@ import type {
   FamilyAggregateData,
   LifeAreasResponseData,
   PeyarchiEvent,
+  RemedyFocus,
   SaniCycleData,
 } from "@/lib/types";
 
@@ -114,6 +121,148 @@ function GlanceHeader({
         </button>
       )}
       {!onLink && <span style={{ marginLeft: "auto" }} />}
+    </div>
+  );
+}
+
+type QuickLinkSpec = {
+  id: string;
+  icon: LucideIcon;
+  color: string;
+  nameEn: string;
+  nameTa: string;
+  descEn: string;
+  descTa: string;
+  onClick?: () => void;
+  /** Chart-dependent tools gray out with no saved profile — mirrors the exact
+   *  same `needsProfile` gating the Tools tab already applies to these three
+   *  (dashboard-tools-tab-nova.tsx), not a new rule. */
+  gateOnProfile?: boolean;
+};
+
+/** Quick Links — one-tap shortcuts to the product's highest-value functions
+ *  that otherwise sit behind the "More" nav dropdown (Tools/Explore) or have
+ *  no top-level nav entry at all (Journal). A curated 8, not a mirror of the
+ *  full Tools/Explore grids — see docs/dashboard-master-audit-2026-07-23.md
+ *  (A-1: "'More' is where features go to die") and the IA audit's
+ *  progressive-disclosure direction (Today stays a snapshot, not a wall).
+ *  Reuses GlanceHeader (this file) and the `.ui-card`/`.ui-card--pad-sm`
+ *  component-kit classes (web/components/ui/card.tsx) rather than inventing
+ *  new tile chrome. */
+export function DashboardTodayQuickLinksNova({
+  lang,
+  needsProfile,
+  onOpenChartGen,
+  onOpenMuhurta,
+  onOpenCompatibility,
+  onOpenActivityTiming,
+  onOpenRasipalan,
+  onOpenVarshaphala,
+  onGoToJournal,
+  onGoToExplore,
+  onGoToAllTools,
+}: {
+  lang: Lang;
+  needsProfile: boolean;
+  onOpenChartGen?: () => void;
+  onOpenMuhurta?: () => void;
+  onOpenCompatibility?: () => void;
+  onOpenActivityTiming?: () => void;
+  onOpenRasipalan?: () => void;
+  onOpenVarshaphala?: () => void;
+  onGoToJournal?: () => void;
+  onGoToExplore?: () => void;
+  onGoToAllTools?: () => void;
+}) {
+  const LINKS: QuickLinkSpec[] = [
+    {
+      id: "rasipalan", icon: Sparkles, color: "var(--color-accent-strong)",
+      nameEn: "Today's Rasipalan", nameTa: "இன்றைய ராசிபலன்",
+      descEn: "Palan for all 12 rasis", descTa: "12 ராசிகளுக்குமான பலன்",
+      onClick: onOpenRasipalan,
+    },
+    {
+      id: "muhurta", icon: Sunrise, color: "var(--color-high)",
+      nameEn: "Muhurta Finder", nameTa: "முகூர்த்தம்",
+      descEn: "Best date for an event", descTa: "நிகழ்விற்கான சிறந்த தேதி",
+      onClick: onOpenMuhurta,
+    },
+    {
+      id: "compatibility", icon: HeartHandshake, color: "var(--color-accent-secondary)",
+      nameEn: "Compatibility", nameTa: "பொருத்தம்",
+      descEn: "Porutham for two charts", descTa: "இரு ஜாதகங்களுக்கும் பொருத்தம்",
+      onClick: onOpenCompatibility, gateOnProfile: true,
+    },
+    {
+      id: "chartgen", icon: ScrollText, color: "var(--color-accent-strong)",
+      nameEn: "Generate Jadhagam", nameTa: "ஜாதகம் உருவாக்கு",
+      descEn: "Full horoscope as PDF", descTa: "முழு ஜாதகம் PDF ஆக",
+      onClick: onOpenChartGen,
+    },
+    {
+      id: "activityTiming", icon: Timer, color: "var(--color-high)",
+      nameEn: "Best Days This Month", nameTa: "இந்த மாத சிறந்த நாட்கள்",
+      descEn: "For travel, signing, moving", descTa: "பயணம், ஒப்பந்தம், இடமாற்றம்",
+      onClick: onOpenActivityTiming, gateOnProfile: true,
+    },
+    {
+      id: "varshaphala", icon: CalendarClock, color: "var(--color-accent-strong)",
+      nameEn: "Annual Chart", nameTa: "வர்ஷபலம்",
+      descEn: "Your year ahead", descTa: "உங்கள் இந்த ஆண்டு பலன்",
+      onClick: onOpenVarshaphala, gateOnProfile: true,
+    },
+    {
+      id: "journal", icon: NotebookPen, color: "var(--color-accent-secondary)",
+      nameEn: "Journal", nameTa: "குறிப்பேடு",
+      descEn: "Log your day", descTa: "நாளைப் பதிவு செய்",
+      onClick: onGoToJournal,
+    },
+    {
+      id: "explore", icon: Compass, color: "var(--color-high)",
+      nameEn: "Explore & Learn", nameTa: "ஆராயுங்கள் & கற்றுக்கொள்",
+      descEn: "Nakshatram, dosham, yogam", descTa: "நட்சத்திரம், தோஷம், யோகம்",
+      onClick: onGoToExplore,
+    },
+  ];
+
+  return (
+    <div className="ui-card ui-card--pad-sm" style={{ display: "flex", flexDirection: "column" }}>
+      <GlanceHeader
+        lang={lang}
+        title="Quick Links"
+        titleTa="விரைவு இணைப்புகள்"
+        linkLabel={lang === "ta" ? "அனைத்து கருவிகளும் →" : "All tools →"}
+        onLink={onGoToAllTools}
+      />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "10px" }}>
+        {LINKS.map((link) => {
+          const disabled = Boolean(link.gateOnProfile && needsProfile);
+          return (
+            <button
+              key={link.id}
+              type="button"
+              className="ui-card ui-card--pad-sm"
+              onClick={link.onClick}
+              disabled={disabled || !link.onClick}
+              style={{
+                display: "flex", flexDirection: "column", gap: "8px", textAlign: "left",
+                cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.55 : 1,
+                fontFamily: "inherit", width: "100%",
+              }}
+            >
+              <span aria-hidden="true" style={{ flex: "none", width: "36px", height: "36px", borderRadius: "50%", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", color: link.color }}>
+                <link.icon size={17} strokeWidth={2} />
+              </span>
+              <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--color-text-strong)", lineHeight: 1.25 }}>
+                {lang === "ta" ? link.nameTa : link.nameEn}
+              </span>
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.3 }}>
+                {lang === "ta" ? link.descTa : link.descEn}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -318,11 +467,135 @@ export function DashboardTodayLifeAreasDasaRowNova({
   );
 }
 
+// Anchor-planet glyph + accent. Kept as tiny local maps rather than importing
+// the private `GRAHA_GLYPH`/`NOVA_PLANET_COLOR` from dashboard-hybrid-parts /
+// dashboard-life-areas-remedies-nova — those files pull heavy siblings, and a
+// 9-entry symbol map is cheaper to inline than to risk the framer-motion
+// lazy-chunk load issue (see memory: UI Barrel Framer ChunkLoadError). Colours
+// mirror the existing Nova per-planet precedent so the two surfaces agree.
+const GRAHA_GLYPH: Record<string, string> = {
+  SUN: "☉", MOON: "☾", MARS: "♂", MERCURY: "☿", JUPITER: "♃",
+  VENUS: "♀", SATURN: "♄", RAHU: "☊", KETU: "☋",
+};
+const GRAHA_COLOR: Record<string, string> = {
+  SUN: "var(--color-accent-strong)", JUPITER: "var(--color-accent-strong)",
+  MOON: "var(--color-accent-secondary)", VENUS: "var(--color-accent-secondary)",
+  MARS: "var(--color-low)", MERCURY: "var(--color-high)",
+  SATURN: "var(--planet-other)", RAHU: "var(--color-text)", KETU: "var(--color-text)",
+};
+
+/** "Remedy For You" — the chart-driven card. Leads with the running dasa lord
+ *  (its glyph + accent), a plain-language reason, the anchor planet's three real
+ *  catalog acts (temple offering + two seva strands, each tagged by its genuine
+ *  cadence — never a per-chart "strongest" ranking), and the planet's weekday +
+ *  next date. Falls back to the flat `remedyFallback` string when the backend
+ *  sent no structured focus (older cached daily-guidance rows). */
+function RemedyFocusCard({
+  lang, focus, remedyFallback, savingReminder, reminderMessage, onSaveReminder, onGoToLifeAreas,
+}: {
+  lang: Lang;
+  focus: RemedyFocus | null;
+  remedyFallback: BiText | null;
+  savingReminder: boolean;
+  reminderMessage: string | null;
+  onSaveReminder: () => void;
+  onGoToLifeAreas?: () => void;
+}) {
+  const [showWhy, setShowWhy] = useState(false);
+  const accent = (focus && GRAHA_COLOR[focus.planet]) || "var(--color-accent-secondary)";
+  const glyph = (focus && GRAHA_GLYPH[focus.planet]) || "❋";
+  const nextDate = focus ? formatDateLabel(nextWeekdayDate(focus.weekday)).replace(/ \d{4}$/, "") : "";
+
+  return (
+    <div style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--color-accent-secondary) 12%, transparent), color-mix(in srgb, var(--color-text-strong) 2%, transparent))", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 30%, transparent)", borderRadius: "var(--radius-lg)", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "14px" }}>
+      {/* Header: planet glyph + eyebrow/title, with a "Why this?" affordance. */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+        <div aria-hidden="true" style={{ width: "38px", height: "38px", borderRadius: "50%", background: `color-mix(in srgb, ${accent} 16%, transparent)`, border: `1px solid color-mix(in srgb, ${accent} 40%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", color: accent, fontSize: "19px", flex: "none", lineHeight: 1 }}>{glyph}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {focus && (
+            <div style={{ fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.11em", textTransform: "uppercase", color: accent, marginBottom: "1px" }}>
+              {tPlanetLord(focus.planet, lang)} {t("remedy_focus_dasa", lang)}
+            </div>
+          )}
+          <div style={{ fontSize: "15px", fontWeight: 600, color: "var(--color-text-strong)" }}>{t("remedy_focus_title", lang)}</div>
+        </div>
+        {focus && (
+          <button
+            type="button"
+            onClick={() => setShowWhy((v) => !v)}
+            aria-expanded={showWhy}
+            style={{ flex: "none", fontSize: "11.5px", fontWeight: 600, background: "transparent", color: "var(--color-accent-secondary)", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 35%, transparent)", borderRadius: "8px", padding: "5px 10px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+          >
+            {t("remedy_focus_why", lang)} {showWhy ? "↑" : "→"}
+          </button>
+        )}
+      </div>
+
+      {/* Lead sentence — the chart reason, active language only. */}
+      <p style={{ margin: 0, fontFamily: "var(--font-nova-prose), Georgia, serif", fontSize: "14.5px", lineHeight: 1.65, color: "var(--color-text)" }}>
+        {focus ? tLang(focus.lead, lang) : (remedyFallback ? tLang(remedyFallback, lang) : t("remedy_focus_none", lang))}
+      </p>
+
+      {focus && showWhy && (
+        <p style={{ margin: 0, padding: "10px 12px", borderRadius: "10px", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-muted)" }}>
+          {tLang(focus.why, lang)}
+        </p>
+      )}
+
+      {/* Three concrete acts, each with its genuine cadence tag. */}
+      {focus && focus.actions.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {focus.actions.map((action, i) => (
+            <div key={i} style={{ display: "flex", gap: "11px", padding: "11px 0", borderTop: i === 0 ? "none" : "1px solid var(--color-border)" }}>
+              <span aria-hidden="true" style={{ flex: "none", width: "7px", height: "7px", borderRadius: "50%", background: accent, marginTop: "6px" }} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: "13.5px", fontWeight: 500, color: "var(--color-text)", lineHeight: 1.4 }}>{tLang(action.text, lang)}</div>
+                <div style={{ fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--color-faint)", marginTop: "3px" }}>
+                  {action.cadence === "RITUAL_ON_DAY" ? t("remedy_cadence_ritual", lang) : t("remedy_cadence_anyday", lang)}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Weekday + next date — chart-driven display only (no per-day scheduling). */}
+      {focus && (
+        <div style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--color-muted)" }}>
+          {t("remedy_focus_best_on", lang)} {tWeekday(focus.weekday, lang)} · {t("remedy_focus_next", lang)} {nextDate}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <button
+          type="button"
+          onClick={onSaveReminder}
+          disabled={savingReminder}
+          title={reminderMessage ?? undefined}
+          style={{ fontSize: "12px", fontWeight: 700, background: "var(--color-accent)", color: "var(--color-on-accent)", border: "none", borderRadius: "8px", padding: "9px 16px", cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+        >
+          {savingReminder ? t("remedy_focus_reminder_saving", lang) : t("remedy_focus_reminder", lang)}
+        </button>
+        {onGoToLifeAreas && (
+          <button
+            type="button"
+            onClick={onGoToLifeAreas}
+            style={{ fontSize: "12px", fontWeight: 600, background: "transparent", color: "var(--color-accent-secondary)", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 35%, transparent)", borderRadius: "8px", padding: "9px 16px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+          >
+            {t("remedy_focus_more", lang)}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /** Family Today (member star tiles + shared-window strip) + Remedy For You. */
 export function DashboardTodayFamilyRemedyRowNova({
   lang,
   familyAggregate,
   remedy,
+  remedyFocus,
   savingReminder,
   reminderMessage,
   onSaveReminder,
@@ -332,6 +605,7 @@ export function DashboardTodayFamilyRemedyRowNova({
   lang: Lang;
   familyAggregate: FamilyAggregateData | null;
   remedy: BiText | null;
+  remedyFocus?: RemedyFocus | null;
   savingReminder: boolean;
   reminderMessage: string | null;
   onSaveReminder: () => void;
@@ -467,44 +741,16 @@ export function DashboardTodayFamilyRemedyRowNova({
         )}
       </div>
 
-      {/* Remedy for you — promoted from a one-liner to its own card. */}
-      <div style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--color-accent-secondary) 12%, transparent), color-mix(in srgb, var(--color-text-strong) 2%, transparent))", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 30%, transparent)", borderRadius: "var(--radius-lg)", padding: "18px 20px", display: "flex", flexDirection: "column" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <div aria-hidden="true" style={{ width: "34px", height: "34px", borderRadius: "50%", background: "color-mix(in srgb, var(--color-accent-secondary) 16%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-accent-secondary)", fontSize: "15px", flex: "none" }}>❋</div>
-          <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--color-text-strong)" }}>
-            {lang === "ta" ? "உங்களுக்கான பரிகாரம்" : "Remedy For You"}
-          </span>
-        </div>
-        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "20px", marginTop: "14px", flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: "200px", fontFamily: "var(--font-nova-prose), Georgia, serif", fontSize: "14.5px", lineHeight: 1.7, color: "var(--color-text)" }}>
-            {remedy ? tLang(remedy, lang) : (lang === "ta" ? "இன்று குறிப்பிட்ட பரிகாரம் இல்லை." : "No specific remedy today.")}
-          </div>
-          {remedy && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: "none" }}>
-              <button
-                type="button"
-                onClick={onSaveReminder}
-                disabled={savingReminder}
-                title={reminderMessage ?? undefined}
-                style={{ fontSize: "12px", fontWeight: 700, background: "var(--color-accent)", color: "var(--color-on-accent)", border: "none", borderRadius: "8px", padding: "9px 16px", cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
-              >
-                {savingReminder
-                  ? (lang === "ta" ? "…" : "Saving…")
-                  : (lang === "ta" ? "நினைவூட்டல்" : "Save reminder")}
-              </button>
-              {onGoToLifeAreas && (
-                <button
-                  type="button"
-                  onClick={onGoToLifeAreas}
-                  style={{ fontSize: "12px", fontWeight: 600, background: "transparent", color: "var(--color-accent-secondary)", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 35%, transparent)", borderRadius: "8px", padding: "9px 16px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
-                >
-                  {lang === "ta" ? "மேலும் பரிகாரங்கள்" : "More remedies"}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Remedy for you — chart-driven anchor-planet remedy (2026-07-24). */}
+      <RemedyFocusCard
+        lang={lang}
+        focus={remedyFocus ?? null}
+        remedyFallback={remedy}
+        savingReminder={savingReminder}
+        reminderMessage={reminderMessage}
+        onSaveReminder={onSaveReminder}
+        onGoToLifeAreas={onGoToLifeAreas}
+      />
     </div>
   );
 }

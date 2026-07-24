@@ -5,8 +5,24 @@ export {
   formatClockLabel,
   formatDateTimeLabel,
 } from "@vinaadi/shared/utils/format";
+import { addDays, todayIso } from "@vinaadi/shared/utils/format";
 import { SCORE_THRESHOLDS, scoreTonePct } from "@vinaadi/shared/utils/score";
 import { verdictPhrase } from "./verdict-lexicon";
+
+const WEEKDAY_INDEX: Record<string, number> = {
+  SUNDAY: 0, MONDAY: 1, TUESDAY: 2, WEDNESDAY: 3, THURSDAY: 4, FRIDAY: 5, SATURDAY: 6,
+};
+
+/** The soonest ISO date (YYYY-MM-DD) whose weekday matches `weekday` (an English
+ *  enum key), counting today. On the matching day itself this returns today, so a
+ *  "best on {weekday}" chip points at today rather than a week out. Returns
+ *  `fromIso` unchanged for an unknown weekday. UTC throughout, matching addDays. */
+export function nextWeekdayDate(weekday: string, fromIso: string = todayIso()): string {
+  const target = WEEKDAY_INDEX[weekday.toUpperCase()];
+  if (target === undefined) return fromIso;
+  const cur = new Date(`${fromIso}T00:00:00Z`).getUTCDay();
+  return addDays(fromIso, (target - cur + 7) % 7);
+}
 
 export interface ScoreBand {
   label: string;

@@ -7,6 +7,7 @@ import {
   formatDateTimeLabel,
   getScoreBand,
   getScoreVerdictFromGuidance,
+  nextWeekdayDate,
   todayIso,
   type ScoreVerdict,
 } from "./format";
@@ -27,6 +28,15 @@ describe("format helpers", () => {
     expect(formatClockLabel("13:40:00")).toBe("1:40 pm");
     expect(formatDateLabel("2026-05-21")).toBe("21 May 2026");
     expect(todayIso(new Date("2026-05-21T12:00:00Z"))).toBe("2026-05-21");
+  });
+
+  it("finds the next matching weekday", () => {
+    // 2026-05-21 is a Thursday.
+    expect(nextWeekdayDate("FRIDAY", "2026-05-21")).toBe("2026-05-22"); // tomorrow
+    expect(nextWeekdayDate("MONDAY", "2026-05-21")).toBe("2026-05-25"); // 4 days on
+    expect(nextWeekdayDate("THURSDAY", "2026-05-21")).toBe("2026-05-21"); // today counts
+    expect(nextWeekdayDate("WEDNESDAY", "2026-05-21")).toBe("2026-05-27"); // 6 days on
+    expect(nextWeekdayDate("bogus", "2026-05-21")).toBe("2026-05-21"); // unknown → unchanged
   });
 
   it("formats date-time labels with am/pm", () => {

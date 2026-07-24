@@ -429,6 +429,31 @@ export interface DailyGuidanceJournalInsight {
   signals: Array<{ lifeArea: string; count: number }>;
 }
 
+/** One concrete remedy act for the Today card's anchor planet. `cadence` is a
+ *  genuine attribute of the act (a weekday ritual vs. anytime service), never a
+ *  per-chart ranking. */
+export interface RemedyFocusAction {
+  text: BiText;
+  kind: "TEMPLE" | "SEVA";
+  cadence: "RITUAL_ON_DAY" | "ANY_DAY";
+}
+
+/** The Today card's chart-driven remedy: one anchor planet (the running dasa
+ *  lord), why it was chosen, and up to three concrete acts from the catalog.
+ *  `weekday` is an English enum the client localises and uses to find the next
+ *  date; `isWeak` is true only when the planet genuinely sits among the chart's
+ *  weakest grahas by natal strength. */
+export interface RemedyFocus {
+  planet: string;
+  role: "DASHA_LORD" | "WEAK_BENEFIC" | "DOSHA";
+  isWeak: boolean;
+  weekday: "SUNDAY" | "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY";
+  lead: BiText;
+  why: BiText;
+  actions: RemedyFocusAction[];
+  japa?: number | null;
+}
+
 export interface DailyGuidanceData {
   chartId: string;
   dateLocal: string;
@@ -461,6 +486,10 @@ export interface DailyGuidanceData {
    *  `daily_briefing_synth` flag is on; additive so older cached rows stay valid. */
   briefing?: BiText | null;
   remedy: BiText;
+  /** Structured, chart-driven remedy for the Today card (anchor planet + three
+   *  concrete acts). Additive/optional — cached rows built before it return null
+   *  and the client falls back to the flat `remedy` string above. */
+  remedyFocus?: RemedyFocus | null;
   currentHoraLord?: string | null;
   pratyantarNarrative?: BiText | null;
   tithiCard: BiText | null;

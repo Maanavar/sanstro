@@ -106,6 +106,44 @@ class DailyActivityBoardData(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class RemedyFocusAction(BaseModel):
+    """One concrete remedy act for the day's anchor planet.
+
+    `cadence` is a genuine, always-true attribute of the act's nature — the
+    temple offering is a ritual tied to the planet's weekday (`RITUAL_ON_DAY`),
+    the seva acts are charitable service done whenever (`ANY_DAY`). It is NOT a
+    per-chart ranking (there is no seva-potency scoring), so nothing here claims
+    one act is stronger than another. The frontend renders it as a small tag.
+    """
+
+    text: DailyGuidanceText
+    kind: str  # TEMPLE | SEVA
+    cadence: str  # RITUAL_ON_DAY | ANY_DAY
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class RemedyFocus(BaseModel):
+    """The Today card's chart-driven remedy: one anchor planet + why + how.
+
+    Populated from the running Mahadasha lord and the shared `select_remedy_focus`
+    selection, with concrete acts composed from `PLANET_REMEDY_CATALOG`. Additive
+    and optional on `DailyGuidanceData` — older cached rows return null and the
+    client falls back to the flat `remedy` string.
+    """
+
+    planet: str
+    role: str  # DASHA_LORD | WEAK_BENEFIC | DOSHA
+    is_weak: bool = Field(alias="isWeak")
+    weekday: str  # English enum (e.g. MONDAY); client localises + finds next date
+    lead: DailyGuidanceText
+    why: DailyGuidanceText
+    actions: list[RemedyFocusAction] = Field(default_factory=list)
+    japa: int | None = Field(default=None)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class DailyGuidanceData(BaseModel):
     chart_id: UUID = Field(alias="chartId")
     date_local: date = Field(alias="dateLocal")
@@ -137,6 +175,10 @@ class DailyGuidanceData(BaseModel):
     # consumers and cached rows built before it are unaffected.
     briefing: DailyGuidanceText | None = Field(default=None)
     remedy: DailyGuidanceText
+    # Structured, chart-driven remedy for the Today card (anchor planet + three
+    # concrete acts). Additive/optional — cached rows built before it return
+    # null and the client falls back to the flat `remedy` string above.
+    remedy_focus: RemedyFocus | None = Field(default=None, alias="remedyFocus")
     current_hora_lord: str | None = Field(default=None, alias="currentHoraLord")
     pratyantar_narrative: DailyGuidanceText | None = Field(default=None, alias="pratyantarNarrative")
     tithi_card: DailyGuidanceText | None = Field(default=None, alias="tithiCard")

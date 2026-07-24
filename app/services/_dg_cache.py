@@ -18,7 +18,10 @@ from app.schemas.dasha import ResponseMeta
 # v7 (2026-07-23): audit conflict fixes — unified neecha-bhanga detector (C2),
 # node functional nature in life-area scoring (C4), dual-path strength synthesis
 # parity (C1). See docs/THIRUKANITHAM_ENGINE_AUDIT_2026-07-23.md.
-DAILY_SCORE_ENGINE_VERSION = "2026-07-23-v7"
+# v8 (2026-07-24): additive `remedyFocus` (structured Today-card remedy). Bumped
+# so warm rows recompute and surface the new field immediately rather than
+# serving null until the cache naturally ages out.
+DAILY_SCORE_ENGINE_VERSION = "2026-07-24-v8"
 
 
 def _cache_version(calculation_version: str) -> str:
