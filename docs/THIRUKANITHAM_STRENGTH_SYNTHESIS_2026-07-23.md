@@ -178,6 +178,9 @@ exactly. On that evidence the astrologer signed off:
   the live-diff validation + §7 sign-off. `DAILY_SCORE_ENGINE_VERSION` bumped to
   `2026-07-23-v6` so cached rows regenerate. Reversible via
   `PATCH /admin/flags/{name}`.
-- **Follow-on:** G5–G8 convergence with `shadbala.py`; unify the neecha-bhanga
-  helper with `_yoga_detect`; surface the `synthesis_*` breakdown in the
-  Adhipathi UI ("Lagna lord +5, Guru +1").
+- **Follow-on:** G5–G8 convergence with `shadbala.py`; ~~unify the neecha-bhanga
+  helper with `_yoga_detect`~~ **DONE 2026-07-23** — both now share
+  `chart_strength.neecha_bhanga_cancelled` (audit C2,
+  docs/THIRUKANITHAM_ENGINE_AUDIT_2026-07-23.md); the synthesis now also runs on
+  the fresh-calc build path (audit C1); surface the `synthesis_*` breakdown in
+  the Adhipathi UI ("Lagna lord +5, Guru +1").
