@@ -532,6 +532,14 @@ export type DashboardFamilyChartsHybridProps = {
   /** Compatibility (synastry) moved to the Tools tab (2026-07-21) — the header
    *  chip and the Connections pointer route there instead of an in-page toggle. */
   onGoToTools?: () => void;
+  /** Deep-link target: a section id on this single-scroll page ("hy-dashas",
+   *  "hy-members", …) to scroll to on arrival. Several sections mount only once
+   *  the owner's reading has loaded, so the scroll retries briefly until the
+   *  element exists, then reports back via onFocusConsumed (so a later Back
+   *  doesn't re-fire it). Absent/never-mounting target = lands at top, the
+   *  prior behaviour — no regression. */
+  focusSection?: string | null;
+  onFocusConsumed?: () => void;
 };
 
 export function DashboardFamilyChartsHybrid({
@@ -559,6 +567,8 @@ export function DashboardFamilyChartsHybrid({
   onSelectVault,
   onDeleteMember,
   onEditMember,
+  focusSection,
+  onFocusConsumed,
 }: DashboardFamilyChartsHybridProps) {
   const [detailView, setDetailView] = useState(false);
   const [familyToday, setFamilyToday] = useState<FamilyVaultTodayData | null>(null);
@@ -581,6 +591,30 @@ export function DashboardFamilyChartsHybrid({
   useEffect(() => {
     if (remediesNonce > 0) harmonyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [remediesNonce]);
+
+  // Deep-link scroll: a section (e.g. the Dasa chapter's "Open →" → #hy-dashas,
+  // Family Today's "Family →" → #hy-members) may not be in the DOM yet on
+  // arrival because it waits on the owner's reading. Retry for up to ~4s, then
+  // give up quietly. onFocusConsumed clears the request so browser Back to this
+  // tab doesn't yank the scroll again.
+  useEffect(() => {
+    if (!focusSection) return;
+    let tries = 0;
+    let timer = 0;
+    const attempt = () => {
+      if (document.getElementById(focusSection)) {
+        jumpTo(focusSection);
+        onFocusConsumed?.();
+        return;
+      }
+      if (tries++ < 40) timer = window.setTimeout(attempt, 100);
+      else onFocusConsumed?.();
+    };
+    attempt();
+    return () => window.clearTimeout(timer);
+    // jumpTo/onFocusConsumed are stable enough; only the target should re-run this.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusSection]);
 
   // Family "today" per-member scores.
   useEffect(() => {

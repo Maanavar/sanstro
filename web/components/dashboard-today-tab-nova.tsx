@@ -776,17 +776,19 @@ export function DashboardTodayTabNova({
             )}
           </div>
           {personalDailyGuidance.reasons && (() => {
-            // Each breakdown value is that layer's weighted contribution to the
-            // day score (weights 0.19 / 0.14 / 0.24 — see daily_guidance_service
-            // `_dasha_c` et al.), so dividing by the weight recovers the layer's
-            // own 0–100 score for the "NN/100" chip.
-            const bd = personalDailyGuidance.scoreBreakdown;
-            const layerScore = (contribution: number | undefined, weight: number): number | null =>
-              contribution == null ? null : Math.max(0, Math.min(100, Math.round(contribution / weight)));
+            // No per-tile "NN/100" chip here. The breakdown values are *weighted
+            // contributions* (weights 0.19 / 0.14 / 0.24), and reconstructing a
+            // layer's own 0–100 score by dividing back out is lossy — the
+            // contribution is a rounded int, so dasha 41 came back as 42 and
+            // transit 35 as 33, contradicting the exact score the reason prose
+            // already states in its first sentence ("…support is reduced
+            // (41/100)"). The prose number is authoritative; showing a second,
+            // reconstructed one beside it just read as the app disagreeing with
+            // itself. One number, in the sentence, wins.
             const tiles = [
-              { label: lang === "ta" ? "தசை அடுக்கு" : "Dasa layer", text: personalDailyGuidance.reasons.dashaSupport, layer: layerScore(bd?.dashaSupport, 0.19) },
-              { label: lang === "ta" ? "பஞ்சாங்கம்" : "Panchangam", text: personalDailyGuidance.reasons.panchangam, layer: layerScore(bd?.panchangam, 0.14) },
-              { label: lang === "ta" ? "கோசாரம்" : "Transit", text: personalDailyGuidance.reasons.gochar, layer: layerScore(bd?.gocharSupport, 0.24) },
+              { label: lang === "ta" ? "தசை அடுக்கு" : "Dasa layer", text: personalDailyGuidance.reasons.dashaSupport },
+              { label: lang === "ta" ? "பஞ்சாங்கம்" : "Panchangam", text: personalDailyGuidance.reasons.panchangam },
+              { label: lang === "ta" ? "கோசாரம்" : "Transit", text: personalDailyGuidance.reasons.gochar },
             ].filter((tile) => tile.text);
             // Tiles sit in their own (narrower-than-full) column beside the
             // orbit illustration — .nova-deepdive-grid (2fr/1fr, collapses to
@@ -797,11 +799,8 @@ export function DashboardTodayTabNova({
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "10px" }}>
                   {tiles.map((tile) => (
                     <div key={tile.label} style={{ background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "13px 15px", fontSize: "12px", lineHeight: 1.55, color: "var(--color-muted)" }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "6px" }}>
+                      <div style={{ marginBottom: "6px" }}>
                         <b style={{ color: "var(--color-accent-strong)", fontSize: "12.5px" }}>{tile.label}</b>
-                        {tile.layer !== null && (
-                          <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-faint)", fontVariantNumeric: "tabular-nums" }}>{tile.layer}/100</span>
-                        )}
                       </div>
                       {tLang(tile.text, lang)}
                     </div>

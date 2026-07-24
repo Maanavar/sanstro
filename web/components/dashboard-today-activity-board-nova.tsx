@@ -145,6 +145,30 @@ function activityIcon(activity: string, labelEn: string): string {
   return ACTIVITY_ICONS.find(([pattern]) => pattern.test(haystack))?.[1] ?? "✧";
 }
 
+/** Plain-language "what does this card mean" per activity, shown in the card's
+ *  hover tooltip — because a bare label ("Money decisions", "Trying for a
+ *  child") doesn't say what it covers or that it's a *muhurtam* (an auspicious
+ *  day to undertake the thing), not a running verdict. Keyed on the stable
+ *  backend activity id, so a label rewording never silently drops the help. */
+const ACTIVITY_EXPLANATION: Record<string, { en: string; ta: string }> = {
+  job_change: { en: "An auspicious day to start a new job or change roles.", ta: "புதிய வேலை தொடங்க / வேலை மாற்ற உகந்த நாள்." },
+  business_start: { en: "An auspicious day to launch a business or new venture.", ta: "புதிய தொழில் தொடங்க உகந்த நாள்." },
+  money: { en: "For big money moves — buying gold, investments, large purchases or loans.", ta: "தங்கம், முதலீடு, பெரிய கொள்முதல், கடன் போன்ற பெரிய பண முடிவுகளுக்கு." },
+  property: { en: "For buying or registering property, or signing important agreements.", ta: "சொத்து வாங்க / பதிவு செய்ய / முக்கிய ஒப்பந்தங்களுக்கு உகந்த நாள்." },
+  marriage: { en: "An auspicious day to begin or fix marriage matters.", ta: "திருமண காரியங்களைத் தொடங்க உகந்த நாள்." },
+  family_harmony: { en: "For family gatherings, reconciliation or important family decisions.", ta: "குடும்ப கூட்டம், ஒற்றுமை, முக்கிய குடும்ப முடிவுகளுக்கு." },
+  child_birth: { en: "A traditional muhurtam for conceiving a child (Garbhadhana).", ta: "குழந்தை பேறுக்கான பாரம்பரிய முகூர்த்தம் (கர்பாதானம்)." },
+  education: { en: "For starting studies, admissions or a new course (Vidyarambham).", ta: "படிப்பு, சேர்க்கை, புதிய பாடம் தொடங்க (வித்யாரம்பம்) உகந்த நாள்." },
+  travel_abroad: { en: "For setting out on a long journey or overseas travel.", ta: "நீண்ட பயணம் / வெளிநாட்டுப் பயணம் தொடங்க உகந்த நாள்." },
+  health: { en: "For scheduling surgery, treatment or a medical procedure.", ta: "அறுவை சிகிச்சை / மருத்துவ சிகிச்சை திட்டமிட உகந்த நாள்." },
+  spiritual: { en: "For beginning pujas, vratams, mantra or spiritual practice.", ta: "பூஜை, விரதம், மந்திரம், ஆன்மீக பயிற்சி தொடங்க." },
+};
+
+function activityExplanation(activity: string, lang: Lang): string | null {
+  const e = ACTIVITY_EXPLANATION[activity];
+  return e ? (lang === "ta" ? e.ta : e.en) : null;
+}
+
 type ActivityTone = "good" | "caution" | "neutral";
 
 /** Per-tone visuals for `ActivityCardNova`. Stars re-encode the three-way
@@ -205,6 +229,11 @@ function ActivityCardNova({
   const { color, bg, border, stars, statusEn, statusTa } = TONE_STYLE[tone];
   const label = tx(verdict.label, lang);
   const reason = tx(verdict.reason, lang);
+  const explanation = activityExplanation(verdict.activity, lang);
+  // Tooltip: what the card means (the muhurtam it covers) first, then today's
+  // reason. The explanation answers the "what is a money decision / trying for
+  // a child?" question a bare label leaves open.
+  const tooltip = explanation ? `${label} — ${explanation}\n${reason}` : `${label} — ${reason}`;
   const betterLabel = betterDate
     ? lang === "ta"
       ? `சிறந்தது ${shortDate(betterDate, lang)}`
@@ -212,7 +241,7 @@ function ActivityCardNova({
     : null;
   return (
     <li
-      title={`${label} — ${reason}`}
+      title={tooltip}
       style={{
         flex: "0 0 158px",
         scrollSnapAlign: "start",
@@ -459,6 +488,17 @@ export function DashboardTodayActivityBoardNova({
           </div>
         )}
       </div>
+
+      {/* Purpose line — this board answers a *different* question from the Life
+          Areas tiles, and without saying so the two read as contradictory
+          ("Medical procedures · Neutral" here vs "Health 44 · take care" there).
+          This one is muhurtam: the auspicious day to *begin* something. Life
+          Areas is the standing outlook of a domain. Both true, different axes. */}
+      <p style={{ margin: "-4px 0 12px", fontSize: "12px", lineHeight: 1.5, color: "var(--color-faint)" }}>
+        {lang === "ta"
+          ? "ஒரு செயலை எப்போது தொடங்குவது நல்லது என்பதற்கான நேர வழிகாட்டி — வாழ்க்கைத் துறை மதிப்பெண் அல்ல."
+          : "The auspicious day to begin something — a timing guide, not your life-area outlook."}
+      </p>
 
       {/* An empty green column on a Chandrashtama day is a decision, not an
           absence — say so, or it reads as a loading failure. */}

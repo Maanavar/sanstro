@@ -438,6 +438,16 @@ export function DashboardWorkspace() {
     goToTab("calendar");
   }, [goToTab]);
 
+  // Cross-tab section focus for Family & Charts — the Today tab's Dasa Chapter
+  // "Open →" and Family Today "Family →" used to both dump the user at the top
+  // of the family page; these land them on the actual section (#hy-dashas /
+  // #hy-members) instead.
+  const [familyFocusSection, setFamilyFocusSection] = useState<string | null>(null);
+  const focusFamily = useCallback((section: string) => {
+    setFamilyFocusSection(section);
+    goToTab("family");
+  }, [goToTab]);
+
   const [onboardingDone, setOnboardingDone] = useState(false);
 
   // Notification inbox
@@ -613,10 +623,16 @@ export function DashboardWorkspace() {
   }, [session.hydrated]);
 
   // ── Tab → URL (outbound) ──────────────────────────────────
-  // Mirrors the active tab into `?tab=`. Bails when the URL already says the
-  // right thing, which is what keeps this from ping-ponging with the inbound
-  // effect below: a user tab click writes the URL here, the inbound effect sees
-  // the value it already has, and stops.
+  // Mirrors the active tab into `?tab=`. Keyed on `activeTab` ALONE — never on
+  // `urlTabParam`. That distinction is what stops the back/forward ping-pong:
+  // a browser Back changes only the URL (activeTab still lags one render), and
+  // if this effect also woke on that change it would write the *old* activeTab
+  // straight back into the URL, undoing the Back and fighting the inbound
+  // effect below — the two would then flip each other forever. By waking only
+  // when activeTab itself changes, a Back is handled solely by the inbound
+  // effect (URL → tab); this effect then re-runs once activeTab has caught up,
+  // sees the URL already correct, and bails. `urlTabParam` is still read fresh
+  // from render scope for that bail check.
   useEffect(() => {
     if (!tabUrlReadyRef.current) return;
     if (urlTabParam === activeTab) return;
@@ -629,10 +645,10 @@ export function DashboardWorkspace() {
     // router's default jump-to-top fights the panel transition.
     if (intent === "push") router.push(href, { scroll: false });
     else router.replace(href, { scroll: false });
-  // searchParams/pathname/router are stable per navigation; keying off the
-  // resolved param avoids a re-run on every unrelated query change.
+  // searchParams/pathname/router are stable per navigation; urlTabParam is read
+  // for the bail but deliberately NOT a dependency (see comment above).
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, urlTabParam]);
+  }, [activeTab]);
 
   // ── URL → tab (inbound) ───────────────────────────────────
   // Back/forward and edited URLs. Guarded the same way as the outbound effect.
@@ -1531,11 +1547,11 @@ export function DashboardWorkspace() {
             panchangamTimezone={personal.panchangamTimezone}
             bundleSectionErrors={personal.bundleSectionErrors}
             onRetryBundle={() => void personal.refreshPersonalBundle(undefined, undefined, true, { forceDay: true })}
-            onGoToFamily={() => setActiveTab("family")}
+            onGoToFamily={() => focusFamily("hy-members")}
             onGoToJournal={() => setActiveTab("journal")}
             onGoToCalendar={() => setActiveTab("calendar")}
             onGoToLifeAreas={() => setActiveTab("life-areas")}
-            onGoToChart={() => setActiveTab("family")}
+            onGoToChart={() => focusFamily("hy-dashas")}
             onGoToCharts={() => setActiveTab("family")}
             onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
             onOpenNotificationSettings={() => navigateSettings("notifications")}
@@ -1670,6 +1686,8 @@ export function DashboardWorkspace() {
             onGoToRemedies: () => focusLifeAreas("remedies"),
             onGoToForecast: () => focusLifeAreas("predictions"),
             onGoToTools: () => goToTab("tools"),
+            focusSection: familyFocusSection,
+            onFocusConsumed: () => setFamilyFocusSection(null),
           };
           return <DashboardFamilyChartsHybrid {...familyTabProps} />;
         })()}

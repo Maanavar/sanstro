@@ -124,6 +124,33 @@ const TREND_META: Record<"UP" | "DOWN" | "STABLE", { arrow: string; color: strin
   STABLE: { arrow: "→", color: "var(--color-mid)" },
 };
 
+/** Plain-language "what this life-area score means", for the tile tooltip.
+ *  Deliberately framed as a standing *outlook* ("how it fares now"), NOT a
+ *  muhurtam — that is what keeps a "Health 44" tile from reading as a
+ *  contradiction of the activity board's "Medical procedures · Neutral": the
+ *  two answer different questions (your outlook vs. a good day to begin).
+ *  Keyed on the stable uppercase area id (see _AREA_LABELS, life_areas_service). */
+const LIFE_AREA_EXPLANATION: Record<string, { en: string; ta: string }> = {
+  CAREER: { en: "Your work and profession — how career matters are faring for you now.", ta: "உங்கள் வேலை மற்றும் தொழில் இப்போது எப்படி உள்ளது." },
+  MONEY: { en: "Income, savings and money matters over this period.", ta: "வருமானம், சேமிப்பு, பண விஷயங்கள் இந்தக் காலத்தில்." },
+  WEALTH: { en: "Assets, savings and longer-term prosperity over this period.", ta: "சொத்து, சேமிப்பு, நீண்டகால செழிப்பு இந்தக் காலத்தில்." },
+  HEALTH: { en: "Your wellbeing and vitality — how your health is trending now.", ta: "உங்கள் உடல்நலம் மற்றும் ஆரோக்கியம் இப்போது எப்படி உள்ளது." },
+  RELATIONSHIPS: { en: "Your close relationships, marriage and partnerships right now.", ta: "உங்கள் நெருங்கிய உறவுகள், திருமணம், கூட்டாண்மை இப்போது." },
+  EDUCATION: { en: "Learning, studies and skill-building — how they're supported now.", ta: "கற்றல், படிப்பு, திறன் வளர்ச்சி இப்போது எப்படி ஆதரிக்கப்படுகிறது." },
+  SPIRITUAL: { en: "Your inner life and spiritual growth over this period.", ta: "உங்கள் உள் வாழ்க்கை மற்றும் ஆன்மீக வளர்ச்சி இந்தக் காலத்தில்." },
+  SPIRITUALITY: { en: "Your inner life and spiritual growth over this period.", ta: "உங்கள் உள் வாழ்க்கை மற்றும் ஆன்மீக வளர்ச்சி இந்தக் காலத்தில்." },
+  FAMILY_HARMONY: { en: "Peace and harmony within your family right now.", ta: "உங்கள் குடும்பத்தில் அமைதி மற்றும் ஒற்றுமை இப்போது." },
+  CHILDREN: { en: "Matters concerning children and progeny right now.", ta: "பிள்ளைகள் தொடர்பான விஷயங்கள் இப்போது." },
+  PROPERTY: { en: "Home, land and property matters over this period.", ta: "வீடு, நிலம், சொத்து விஷயங்கள் இந்தக் காலத்தில்." },
+  FOREIGN: { en: "Travel, relocation and foreign connections right now.", ta: "பயணம், இடமாற்றம், வெளிநாட்டு தொடர்புகள் இப்போது." },
+  LITIGATION: { en: "Legal matters, disputes and court affairs right now.", ta: "சட்ட விஷயங்கள், தகராறுகள், வழக்குகள் இப்போது." },
+};
+
+function lifeAreaExplanation(area: string, lang: Lang): string | null {
+  const e = LIFE_AREA_EXPLANATION[(area || "").toUpperCase()];
+  return e ? (lang === "ta" ? e.ta : e.en) : null;
+}
+
 /** Life Areas (five stat tiles with trend arrows) + Dasa Chapter. */
 export function DashboardTodayLifeAreasDasaRowNova({
   lang,
@@ -177,6 +204,13 @@ export function DashboardTodayLifeAreasDasaRowNova({
           linkLabel={lang === "ta" ? "அனைத்தும் →" : "All areas →"}
           onLink={onGoToLifeAreas}
         />
+        {/* Visible horizon cue: these are a *period* outlook (your dasha + slow
+            transits), not a daily number — stated on the card, not just in a
+            hover tooltip, so users don't read them on the same "today" clock as
+            the dial and the "Is today okay for…?" board. */}
+        <div style={{ fontSize: "11.5px", color: "var(--color-faint)", marginTop: "-8px", marginBottom: "13px" }}>
+          {lang === "ta" ? "இந்தக் காலகட்டத்தின் நிலை — தினசரி அல்ல" : "Your outlook this period — not a daily score"}
+        </div>
         {lifeAreas?.areas && lifeAreas.areas.length > 0 ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(104px, 1fr))", gap: "10px" }}>
             {lifeAreas.areas.slice(0, 5).map((area) => {
@@ -187,10 +221,11 @@ export function DashboardTodayLifeAreasDasaRowNova({
               // is readable without relying on hue (colour-blind safe).
               const verdictWord = getScoreVerdict(score, lang).verdict;
               const trend = TREND_META[area.trend] ?? TREND_META.STABLE;
+              const explanation = lifeAreaExplanation(area.area, lang);
               return (
                 <div
                   key={area.area}
-                  title={`${band.label} · ${score}/100`}
+                  title={explanation ? `${explanation}\n${band.label} · ${score}/100` : `${band.label} · ${score}/100`}
                   style={{ background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: `1px solid ${scoreColorAlpha(color, 30)}`, borderRadius: "12px", padding: "12px 12px" }}
                 >
                   <div style={{ fontSize: "11.5px", color: "var(--color-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -322,56 +357,90 @@ export function DashboardTodayFamilyRemedyRowNova({
         />
         {familyAggregate && familyAggregate.members.length > 0 ? (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(96px, 1fr))", gap: "10px" }}>
-              {familyAggregate.members.slice(0, 3).map((m) => {
-                const verdict = getScoreVerdictFromGuidance(m.label, m.individualScore, lang);
-                return (
-                  <div
-                    key={m.familyMemberId}
-                    role="group"
-                    aria-label={`${m.displayName} — ${verdict.verdict}, ${m.individualScore} / 100`}
-                    title={`${verdict.verdict} · ${m.individualScore}/100`}
-                    style={{
-                      display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "8px",
-                      background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-border)",
-                      borderRadius: "12px", padding: "14px 10px", minWidth: 0,
-                    }}
-                  >
-                    <ScoreRing score={m.individualScore} size={44} />
-                    <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
-                      {m.displayName}
+            {/* Lead with the *family's* composite score, not the owner's tile.
+                The owner used to sit first in the member row and read as "you =
+                the family"; the household's own aggregate is what this section
+                is about, so it leads, and the owner drops to being one member
+                tile among the rest. */}
+            {(() => {
+              const fverdict = getScoreVerdictFromGuidance(familyAggregate.familyLabel, familyAggregate.familyScore, lang);
+              return (
+                <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "2px 2px 14px", marginBottom: "12px", borderBottom: "1px solid var(--color-border)" }}>
+                  <ScoreRing score={familyAggregate.familyScore} size={54} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: "12px", color: "var(--color-muted)", fontWeight: 600 }}>
+                      {lang === "ta" ? "இன்று குடும்பம் ஒட்டுமொத்தம்" : "Family overall today"}
                     </div>
-                    <div style={{ fontSize: "11px", fontWeight: 600, color: verdict.color, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
-                      {verdict.verdict}
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginTop: "2px" }}>
+                      <span style={{ fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 700, color: "var(--color-text-strong)", lineHeight: 1 }}>{familyAggregate.familyScore}</span>
+                      <span style={{ fontSize: "14px", fontWeight: 700, color: fverdict.color }}>{fverdict.verdict}</span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-            {/* This glance card only ever shows the first 3 members (full
-                roster lives one click away in Family), but silently dropping
-                the rest with no count read as the list being complete. */}
-            {familyAggregate.members.length > 3 && (
-              <button
-                type="button"
-                onClick={onGoToFamily}
-                style={{
-                  display: "block", width: "100%", textAlign: "left", fontFamily: "inherit",
-                  background: "none", border: "none", padding: 0, marginTop: "9px", cursor: onGoToFamily ? "pointer" : "default",
-                  fontSize: "11.5px", fontWeight: 600, color: "var(--color-accent-secondary)",
-                }}
-              >
-                {lang === "ta"
-                  ? `+ மேலும் ${familyAggregate.members.length - 3} பேர் →`
-                  : `+${familyAggregate.members.length - 3} more →`}
-              </button>
-            )}
+                </div>
+              );
+            })()}
             {(() => {
-              const needsCare = familyAggregate.members.find((m) => getScoreBand(m.individualScore).tone === "low");
+              // The synthetic owner row (familyMemberId === birthProfileId) is
+              // dropped from the per-member tiles: the root user's own score
+              // now lives in the composite lead above, not repeated as a tile
+              // here. Remaining tiles are the *other* household members.
+              const otherMembers = familyAggregate.members.filter((m) => m.familyMemberId !== m.birthProfileId);
+              const needsCare = otherMembers.find((m) => getScoreBand(m.individualScore).tone === "low");
               const shared = familyAggregate.bestFamilyWindows[0];
-              if (!needsCare && !shared) return null;
               const memberCount = familyAggregate.members.length;
               return (
+                <>
+                  {otherMembers.length > 0 && (
+                    <>
+                      <div style={{ fontSize: "11px", color: "var(--color-faint)", fontWeight: 600, marginBottom: "9px" }}>
+                        {lang === "ta" ? "மற்ற உறுப்பினர்கள்" : "Other members"}
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(96px, 1fr))", gap: "10px" }}>
+                        {otherMembers.slice(0, 3).map((m) => {
+                          const verdict = getScoreVerdictFromGuidance(m.label, m.individualScore, lang);
+                          return (
+                            <div
+                              key={m.familyMemberId}
+                              role="group"
+                              aria-label={`${m.displayName} — ${verdict.verdict}, ${m.individualScore} / 100`}
+                              title={`${verdict.verdict} · ${m.individualScore}/100`}
+                              style={{
+                                display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "8px",
+                                background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-border)",
+                                borderRadius: "12px", padding: "14px 10px", minWidth: 0,
+                              }}
+                            >
+                              <ScoreRing score={m.individualScore} size={44} />
+                              <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
+                                {m.displayName}
+                              </div>
+                              <div style={{ fontSize: "11px", fontWeight: 600, color: verdict.color, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
+                                {verdict.verdict}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {/* Only the first 3 other members show here; the rest are
+                          one click away in Family. */}
+                      {otherMembers.length > 3 && (
+                        <button
+                          type="button"
+                          onClick={onGoToFamily}
+                          style={{
+                            display: "block", width: "100%", textAlign: "left", fontFamily: "inherit",
+                            background: "none", border: "none", padding: 0, marginTop: "9px", cursor: onGoToFamily ? "pointer" : "default",
+                            fontSize: "11.5px", fontWeight: 600, color: "var(--color-accent-secondary)",
+                          }}
+                        >
+                          {lang === "ta"
+                            ? `+ மேலும் ${otherMembers.length - 3} பேர் →`
+                            : `+${otherMembers.length - 3} more →`}
+                        </button>
+                      )}
+                    </>
+                  )}
+                  {(needsCare || shared) && (
                 <div
                   title={shared
                     ? (lang === "ta"
@@ -388,6 +457,8 @@ export function DashboardTodayFamilyRemedyRowNova({
                   {needsCare && <><b style={{ color: "var(--color-low)" }}>{needsCare.displayName}</b> {lang === "ta" ? "— மென்மையான நாள்" : "— gentle day"}{shared ? "; " : "."}</>}
                   {shared && <>{lang === "ta" ? `${memberCount} பேருக்கும் நல்ல நேரம்` : `good time for all ${memberCount}`} <b style={{ color: "var(--color-high)" }}>{formatClockLabel(shared.start)} – {formatClockLabel(shared.end)}</b></>}
                 </div>
+                  )}
+                </>
               );
             })()}
           </>
