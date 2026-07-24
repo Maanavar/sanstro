@@ -1217,8 +1217,11 @@ def _score_area(
         dosham_cancelled=affliction.shubha_kartari,
         dosham_strength=area_dosham_strength,
         key_planet_strengths=[natal_planet_scores.get(p, 50) for p in set([house_lord] + karakas)],
-        maha_lord_functional_nature=get_functional_nature(lagna_rasi, maha_lord).value,
-        antar_lord_functional_nature=get_functional_nature(lagna_rasi, antar_lord).value,
+        # node_rasi_map so a Rahu/Ketu dasha lord resolves via dispositor+house
+        # (its real functional nature), not the NEUTRAL table fallback — matching
+        # every other consumer (audit C4).
+        maha_lord_functional_nature=get_functional_nature(lagna_rasi, maha_lord, node_rasi_map=natal_planet_rasis).value,
+        antar_lord_functional_nature=get_functional_nature(lagna_rasi, antar_lord, node_rasi_map=natal_planet_rasis).value,
         maha_lord_house_connection=maha_conn,
         antar_lord_house_connection=antar_conn,
         maha_lord_strength=natal_planet_scores.get(maha_lord, 50),
@@ -1299,9 +1302,12 @@ def _maraka_safety_check(
     antar_lord: str,
     lagna_rasi: int,
     native_age: int,
+    node_rasi_map: dict[str, int] | None = None,
 ) -> dict[str, object] | None:
-    maha_fn = get_functional_nature(lagna_rasi, maha_lord)
-    antar_fn = get_functional_nature(lagna_rasi, antar_lord)
+    # node_rasi_map so a Rahu/Ketu dasha lord can inherit a MARAKA nature from
+    # its dispositor instead of defaulting to NEUTRAL (audit C4).
+    maha_fn = get_functional_nature(lagna_rasi, maha_lord, node_rasi_map=node_rasi_map)
+    antar_fn = get_functional_nature(lagna_rasi, antar_lord, node_rasi_map=node_rasi_map)
     if (
         area == "HEALTH"
         and maha_fn == FunctionalNature.MARAKA
@@ -1882,6 +1888,7 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             antar_lord=antar_lord,
             lagna_rasi=natal_lagna_rasi,
             native_age=current_age,
+            node_rasi_map=_node_rasi_map,
         )
         if maraka_guard is not None:
             bundle = _NarrativeBundle(

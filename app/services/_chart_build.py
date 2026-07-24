@@ -241,6 +241,73 @@ def _apply_birth_condition_penalties(
             planet.strength_score = max(10, int(round(planet.strength_score - penalty)))
 
 
+def _apply_holistic_strength_synthesis(
+    planet_positions: list[PlanetPosition],
+    *,
+    lagna_rasi: int,
+    planet_rasi_map: Mapping[str, int],
+    combust_planets: frozenset[str] | set[str],
+    paksha_is_shukla: bool,
+    d9_lagna_rasi: int | None,
+) -> None:
+    """Flag-gated SECOND PASS refining each base ``strength_score`` with the four
+    relational measures the six-bala blend omits — functional lordship, yuti
+    (company kept), neecha bhanga, and strength-weighted drishti. Spec:
+    docs/THIRUKANITHAM_STRENGTH_SYNTHESIS_2026-07-23.md.
+
+    Shared by BOTH build paths (``_chart_response_from_profile`` and
+    ``_chart_response_from_record``) so the fresh-calc / public-tools /
+    compatibility path and the persisted-record read can never disagree on
+    ``strength_score`` — the C1 fix in
+    docs/THIRUKANITHAM_ENGINE_AUDIT_2026-07-23.md. Must run AFTER the base
+    per-planet loop (the relational terms read every other planet's base score)
+    and BEFORE yoga detection (both paths feed the synthesised strength into
+    yoga activation). No-op when the flag is OFF ⇒ scores stay byte-identical to
+    the base loop. Mutates ``strength_score`` and the ``synthesis_*``
+    transparency keys in place; nothing else is touched.
+    """
+    if not get_flag("holistic_strength_synthesis"):
+        return
+    natal = [p for p in planet_positions if p.graha in _NATAL_GRAHAS]
+    base_scores = {p.graha: int(p.strength_score) for p in natal if p.strength_score is not None}
+    if not base_scores:
+        return
+    d9_map = {p.graha: p.d9_rasi for p in natal if isinstance(p.d9_rasi, int)}
+    functional = {
+        p.graha: get_functional_nature(lagna_rasi, p.graha, node_rasi_map=planet_rasi_map).value
+        for p in natal
+    }
+    # Contextual benefics — the same paksha-/combustion-aware classification the
+    # drik counter uses (_chart_planets._aspect_counts), so the yuti and drishti
+    # sign agrees with the base score's own drik sign.
+    benefics = {"JUPITER", "VENUS"}
+    if paksha_is_shukla:
+        benefics.add("MOON")
+    if "MERCURY" not in combust_planets:
+        benefics.add("MERCURY")
+    synthesis = apply_holistic_synthesis(
+        base_scores,
+        planet_rasi=planet_rasi_map,
+        lagna_rasi=lagna_rasi,
+        functional_nature=functional,
+        benefic_planets=frozenset(benefics),
+        d9_rasi_map=d9_map,
+        d9_lagna_rasi=d9_lagna_rasi,
+    )
+    for p in natal:
+        terms = synthesis.get(p.graha)
+        if terms is None:
+            continue
+        p.strength_score = int(terms["score"])
+        # Transparency (spec §5): surface the per-term deltas so the UI and
+        # tests can show WHY the number moved ("Lagna lord +5, Guru +1").
+        if p.strength_breakdown is not None:
+            for key in ("functional", "yuti", "drishti", "bhanga", "delta"):
+                value = terms[key]
+                if value:
+                    p.strength_breakdown[f"synthesis_{key}"] = f"{value:+g}"
+
+
 def _active_dasha_lords(birth_jd: float, moon_longitude: float) -> set[str]:
     timeline = calculate_vimshottari_timeline(
         birth_jd,
@@ -446,10 +513,15 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
     is_daytime = _is_daytime_birth(birth_time_local)
     paksha_is_shukla = _paksha_is_shukla(moon_degree, sun_degree)
     snapshot_rasi_map = {body.graha: body.rasi for body in snapshot.bodies.values() if body.graha in _NATAL_GRAHAS}
+    # Cazimi (heart of the Sun) is empowered, not burnt — exclude it from the
+    # combust set exactly as the record path does, so the two build paths agree
+    # on the paksha-/combustion-aware benefic classification (audit C1).
     snapshot_combust = {
         body.graha
         for body in snapshot.bodies.values()
-        if body.graha in _NATAL_GRAHAS and is_combust(body.graha, body.absolute_longitude, sun_degree, body.is_retrograde)
+        if body.graha in _NATAL_GRAHAS
+        and is_combust(body.graha, body.absolute_longitude, sun_degree, body.is_retrograde)
+        and not is_cazimi(body.graha, body.absolute_longitude, sun_degree)
     }
     planetary_wars = detect_planetary_wars({
         body.graha: body.absolute_longitude for body in snapshot.bodies.values()
@@ -484,6 +556,18 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
     )
     if mandhi_lng is not None:
         planet_positions.append(_mandhi_planet_position(mandhi_lng, lagna_rasi))
+
+    # Holistic Strength Synthesis — shared with the record path (audit C1), run
+    # here (before yoga detection) so the fresh-calc / public-tools / first-view
+    # numbers match what the persisted-record read later produces.
+    _apply_holistic_strength_synthesis(
+        planet_positions,
+        lagna_rasi=lagna_rasi,
+        planet_rasi_map=snapshot_rasi_map,
+        combust_planets=snapshot_combust,
+        paksha_is_shukla=paksha_is_shukla,
+        d9_lagna_rasi=navamsa_rasi_from_degree(lagna_degree),
+    )
 
     equal_bhava_map = compute_equal_bhava(
         lagna_degree,
@@ -657,51 +741,19 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             speed_ratio=speed_ratio,
         )
 
-    # Holistic Strength Synthesis (docs/THIRUKANITHAM_STRENGTH_SYNTHESIS_2026-07-23.md):
-    # a flag-gated SECOND PASS refining each base strength_score with the four
-    # relational measures the per-planet Shadbala blend omits — functional
-    # lordship, yuti (company kept), neecha bhanga, and strength-weighted
-    # drishti. It runs AFTER the loop above because the relational terms read
-    # every other planet's base score. Flag OFF (default) ⇒ scores are
-    # byte-identical to the loop; every downstream consumer inherits the refined
-    # number with no further change (the strength_score is the single source).
-    if get_flag("holistic_strength_synthesis"):
-        natal = [p for p in planet_positions if p.graha in _NATAL_GRAHAS]
-        base_scores = {p.graha: int(p.strength_score) for p in natal}
-        d9_map = {p.graha: p.d9_rasi for p in natal}
-        functional = {
-            p.graha: get_functional_nature(lagna_rasi, p.graha, node_rasi_map=planet_rasi_map).value
-            for p in natal
-        }
-        # Contextual benefics — the same paksha-/combustion-aware classification
-        # the drik counter uses (_chart_planets._aspect_counts), so the yuti and
-        # drishti sign agrees with the base score's own drik sign.
-        benefics = {"JUPITER", "VENUS"}
-        if paksha_is_shukla:
-            benefics.add("MOON")
-        if "MERCURY" not in combust_planets:
-            benefics.add("MERCURY")
-        synthesis = apply_holistic_synthesis(
-            base_scores,
-            planet_rasi=planet_rasi_map,
-            lagna_rasi=lagna_rasi,
-            functional_nature=functional,
-            benefic_planets=frozenset(benefics),
-            d9_rasi_map=d9_map,
-        )
-        for p in natal:
-            terms = synthesis.get(p.graha)
-            if terms is not None:
-                p.strength_score = int(terms["score"])
-                # Transparency (spec §5): surface the per-term deltas so the UI
-                # and tests can show WHY the number moved ("Lagna lord +5, Guru
-                # +1"). strength_breakdown is dict[str, str], so each non-zero
-                # term is stored as a signed string; a weak base cannot be hidden
-                # because base + Σterms is the score above.
-                for key in ("functional", "yuti", "drishti", "bhanga", "delta"):
-                    value = terms[key]
-                    if value:
-                        p.strength_breakdown[f"synthesis_{key}"] = f"{value:+g}"
+    # Holistic Strength Synthesis — shared across both build paths (audit C1).
+    # Runs AFTER the base loop (relational terms read every other planet's base
+    # score) and BEFORE yoga detection (yoga activation reads the synthesised
+    # strength). See _apply_holistic_strength_synthesis.
+    d9_lagna_rasi_val = navamsa_rasi_from_degree(float(chart.lagna_longitude))
+    _apply_holistic_strength_synthesis(
+        planet_positions,
+        lagna_rasi=lagna_rasi,
+        planet_rasi_map=planet_rasi_map,
+        combust_planets=combust_planets,
+        paksha_is_shukla=paksha_is_shukla,
+        d9_lagna_rasi=d9_lagna_rasi_val,
+    )
 
     equal_bhava_map = {
         p.graha: (int(p_row.bhava_house) if getattr(p_row, "bhava_house", None) is not None else 0)
@@ -714,7 +766,6 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
         )
 
     moon_rasi = next(planet.rasi for planet in planet_positions if planet.graha == "MOON")
-    d9_lagna_rasi_val = navamsa_rasi_from_degree(float(chart.lagna_longitude))
     yogas, doshams, nakshatra_cautions = _build_yoga_dosham_insights(
         planet_positions,
         lagna_rasi=lagna_rasi,

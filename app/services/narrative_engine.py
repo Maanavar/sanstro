@@ -776,15 +776,11 @@ def daily_summary(
             ta += f" {warn.ta}."
             en += f" {warn.en}."
 
-    if best_window_label and band in ("STRONG_SUPPORT", "GOOD"):
-        best_window_display = (
-            _format_time_range(*best_window_label.split("-", 1))
-            if "-" in best_window_label
-            else _format_clock_label(best_window_label)
-        )
-        ta += f" சிறந்த நேரம்: {best_window_display}."
-        en += f" Best window: {best_window_display}."
-
+    # No "Best window: HH:MM" suffix here either — same reason as action_suggestion.
+    # The live best-window chip is the single, self-updating source of that time;
+    # a static copy in this paragraph drifted out of sync with it as the day
+    # advanced and read as a competing window. best_window_label is retained in
+    # the signature for callers/back-compat but no longer printed.
     return _bi(ta, en)
 
 
@@ -801,11 +797,16 @@ def action_suggestion(
     planet_ta = PLANET_NAME.get(maha_lord, _bi(maha_lord, maha_lord)).ta
 
     if best_window_start and band in ("STRONG_SUPPORT", "GOOD", "BALANCED"):
-        best_window_display = _format_time_range(best_window_start, best_window_end)
+        # Deliberately no clock time here. The window's exact time is shown once,
+        # live (with a countdown), by the UI's own best-window chip — which on
+        # "today" advances to the next upcoming slot as the day passes. A static
+        # time baked into this sentence cannot track that, so it drifted out of
+        # sync (chip said 3:35pm, this said 8:16am) and read as a third,
+        # contradicting window. "Your best window" points at the chip instead.
         return _bi(
-            f"சிறந்த நேரம் {best_window_display}-ல் முக்கிய பணிகளை தொடங்குங்கள். "
+            f"இன்று உங்கள் சிறந்த நேரத்தில் முக்கிய பணிகளை தொடங்குங்கள். "
             f"{planet_ta} தசையில் தொடர்ச்சியான முயற்சி நல்ல பலன் தரும்.",
-            f"Begin your most important task during the best window {best_window_display}. "
+            f"Begin your most important task during your best window today. "
             f"Consistent effort under {planet_en} dasa yields good results.",
         )
 

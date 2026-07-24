@@ -1186,6 +1186,9 @@ def _build_current_activation_section(
     transit_bodies: dict[str, object],
 ) -> ChartExplanationCurrentActivationSection:
     natal_by_planet = {planet.graha: planet for planet in planets}
+    # node_rasi_map so a Rahu/Ketu dasha lord resolves via dispositor+house, not
+    # the NEUTRAL table fallback — consistent with every other consumer (audit C4).
+    _node_rasi_map = {g: natal_by_planet[g].rasi for g in ("RAHU", "KETU") if g in natal_by_planet}
     periods: list[tuple[str, DashaPeriod]] = [
         ("MAHADASHA", timeline.current_mahadasha),
         ("BHUKTI", timeline.current_antardasha),
@@ -1203,7 +1206,7 @@ def _build_current_activation_section(
             continue
 
         dignity = _dignity_label(natal_planet)
-        functional_nature = get_functional_nature(lagna_rasi, period.lord).value
+        functional_nature = get_functional_nature(lagna_rasi, period.lord, node_rasi_map=_node_rasi_map).value
         transit_house_from_moon = house_from_reference(moon.rasi, transit_body.rasi)
         transit_house_from_lagna = house_from_reference(lagna_rasi, transit_body.rasi)
         tone = _activation_tone(

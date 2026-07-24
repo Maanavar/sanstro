@@ -8,7 +8,11 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.calculations.activity_timing_rules import assess_activity_timing, daily_activity_board
+from app.calculations.activity_timing_rules import (
+    ActivityAudience,
+    assess_activity_timing,
+    daily_activity_board,
+)
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga
 from app.calculations.astro import (
     house_from_reference,
@@ -163,6 +167,40 @@ _SPECIAL_TITHI: dict[int, str] = {
 }
 
 _MIN_JOURNAL_ENTRIES = 30
+
+
+def _tz_continent(tz_name: str | None) -> str:
+    """The continent segment of an IANA timezone ("Asia/Kolkata" -> "Asia").
+
+    A best-effort proxy for "which part of the world" — enough to tell that a
+    native born in Asia now living under an America/* or Europe/* zone is
+    resident abroad, without a full country dataset. Same-continent moves
+    (Asia/Kolkata -> Asia/Dubai) read as not-abroad; that under-counts rather
+    than mislabels, which is the safe direction for a copy reframe."""
+    return (tz_name or "").split("/", 1)[0].strip()
+
+
+def _featured_best_window(windows):
+    """The window the Today hero actually headlines — personal-hora first, then
+    any hora, then the first listed.
+
+    Mirrors web `pickFeaturedWindow`'s *type* preference so the spoken action
+    ("begin your task during the best window HH:MM") names the same kind of
+    window the hero's chip shows. The backend lists Abhijit first, but the hero
+    demotes Abhijit to a small secondary line (DASH-10.1) and headlines the
+    native's personal window instead — so naming best_windows[0] (Abhijit) in
+    the prose both duplicated that secondary line and contradicted the chip
+    (prose said "best window 12:03", chip said 3:35). Naming the featured
+    window here keeps the three in agreement."""
+    if not windows:
+        return None
+    personal = [w for w in windows if "PERSONAL_HORA" in w.type]
+    if personal:
+        return personal[0]
+    horas = [w for w in windows if "HORA" in w.type]
+    if horas:
+        return horas[0]
+    return windows[0]
 
 
 def build_daily_guidance_response(
@@ -557,9 +595,13 @@ def build_daily_guidance_response(
         },
     )
 
-    best_start = best_windows[0].start if best_windows else None
-    best_end = best_windows[0].end if best_windows else None
-    best_label = f"{best_windows[0].start}-{best_windows[0].end}" if best_windows else None
+    # The window the spoken action + summary name must match the one the hero
+    # headlines (personal hora), not best_windows[0] (Abhijit) — see
+    # _featured_best_window.
+    _featured_win = _featured_best_window(best_windows)
+    best_start = _featured_win.start if _featured_win else None
+    best_end = _featured_win.end if _featured_win else None
+    best_label = f"{_featured_win.start}-{_featured_win.end}" if _featured_win else None
     rahu_start = caution_windows[0].start if caution_windows else "00:00"
     rahu_end = caution_windows[0].end if caution_windows else "00:00"
 
@@ -646,9 +688,29 @@ def build_daily_guidance_response(
         weekday_lord: str,
         is_chandrashtama: bool,
     ) -> DailyActivityBoardData:
-        """Adapt the calculation-layer board onto the response schema."""
+        """Adapt the calculation-layer board onto the response schema.
+
+        The board is personalised to this native's life stage (age, marital
+        status, employment, and whether they now live overseas) so it only asks
+        the questions that apply to them — a married native is not shown a
+        marriage muhurtam, a retiree not a job-change one. See ActivityAudience.
+        """
+        birth_tz = getattr(birth_profile, "birth_timezone", None)
+        current_tz = getattr(birth_profile, "current_timezone", None)
+        is_abroad = bool(
+            birth_tz and current_tz and _tz_continent(birth_tz) != _tz_continent(current_tz)
+        )
+        audience = ActivityAudience(
+            age=profile_age,
+            marital_status=getattr(birth_profile, "marital_status", None),
+            employment_type=getattr(birth_profile, "employment_type", None),
+            gender=getattr(birth_profile, "gender_for_traditional_rules", None),
+            is_abroad=is_abroad,
+        )
         board = daily_activity_board(
-            tithi_number, paksha, weekday_lord, is_chandrashtama=is_chandrashtama
+            tithi_number, paksha, weekday_lord,
+            is_chandrashtama=is_chandrashtama,
+            audience=audience,
         )
 
         def _rows(verdicts) -> list[DailyActivityVerdict]:

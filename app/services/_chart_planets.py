@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime, time, timedelta
 
+from app.calculations.aspects import aspects_house
 from app.calculations.astro import (
     degree_in_rasi,
     house_from_reference,
@@ -69,15 +70,6 @@ _NAKSHATRA_GANA = {
     25: "Manushya", 26: "Manushya", 27: "Deva",
 }
 
-_ASPECT_OFFSETS: dict[str, frozenset[int]] = {
-    "MARS": frozenset({4, 7, 8}),
-    "JUPITER": frozenset({5, 7, 9}),
-    "SATURN": frozenset({3, 7, 10}),
-    "RAHU": frozenset({5, 7, 9}),
-    "KETU": frozenset({5, 7, 9}),
-}
-
-
 def _nakshatra_gana(nakshatra_number: int) -> str:
     return _NAKSHATRA_GANA.get(nakshatra_number, "Deva")
 
@@ -119,15 +111,6 @@ def _speed_ratio(graha: str, speed_deg_per_day: float) -> float | None:
     return abs(speed_deg_per_day) / mean
 
 
-def _house_distance(from_rasi: int, to_rasi: int) -> int:
-    return ((to_rasi - from_rasi) % 12) + 1
-
-
-def _does_aspect(source_graha: str, source_rasi: int, target_rasi: int) -> bool:
-    offsets = _ASPECT_OFFSETS.get(source_graha, frozenset({7}))
-    return _house_distance(source_rasi, target_rasi) in offsets
-
-
 def _aspect_counts(
     target_graha: str,
     planet_rasi_map: dict[str, int],
@@ -157,7 +140,10 @@ def _aspect_counts(
             continue
         if source_graha not in _NATAL_GRAHAS:
             continue
-        if not _does_aspect(source_graha, source_rasi, target_rasi):
+        # Shared classical special-aspect table (aspects.py) — the single source
+        # of drishti geometry, so the natal drik count can never drift from the
+        # rest of the engine (audit C3).
+        if not aspects_house(source_graha, source_rasi, target_rasi):
             continue
         if source_graha in benefics:
             benefic_count += 1
