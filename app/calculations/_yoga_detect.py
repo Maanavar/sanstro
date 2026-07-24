@@ -13,6 +13,7 @@ from app.calculations.chart_strength import (
     MOOLATRIKONA_ZONE,
     OWN_SIGN_RASI,
     SIGN_LORD,
+    neecha_bhanga_cancelled,
 )
 from app.calculations._yoga_helpers import (
     KENDRA_HOUSES,
@@ -23,8 +24,8 @@ from app.calculations._yoga_helpers import (
     YogaResult,
     _house_lord,
     _is_active,
-    _is_kendra_from,
     _planet_rasi,
+    _planets_as_rasi_map,
     gate_yoga_strength,
 )
 
@@ -199,49 +200,34 @@ def detect_neecha_bhanga(
     d9_lagna_rasi: int | None = None,
 ) -> list[YogaResult]:
     active = set(active_lords or ())
-    moon_rasi = _planet_rasi(planets, "MOON")
-    exaltation_owner_by_planet = {planet: SIGN_LORD[rasi] for planet, rasi in EXALTATION_RASI.items()}
-    exalter_of_sign = {rasi: planet for planet, rasi in EXALTATION_RASI.items()}
+    planets_rasi = _planets_as_rasi_map(planets)
     results: list[YogaResult] = []
 
     for planet, debilitation_rasi in DEBILITATION_RASI.items():
-        planet_rasi = _planet_rasi(planets, planet)
-        if planet_rasi != debilitation_rasi:
+        if planets_rasi.get(planet) != debilitation_rasi:
             continue
 
-        conditions: list[str] = ["planet_debilitated"]
-
-        debilitation_sign_lord = SIGN_LORD[debilitation_rasi]
-        deb_lord_rasi = _planet_rasi(planets, debilitation_sign_lord)
-        if _is_kendra_from(lagna_rasi, deb_lord_rasi) or _is_kendra_from(moon_rasi, deb_lord_rasi):
-            conditions.append("debilitation_sign_lord_in_kendra")
-
-        exalter_planet = exalter_of_sign.get(debilitation_rasi)
-        if exalter_planet is not None:
-            exalter_rasi = _planet_rasi(planets, exalter_planet)
-            if _is_kendra_from(lagna_rasi, exalter_rasi) or _is_kendra_from(moon_rasi, exalter_rasi):
-                conditions.append("exalter_of_debilitation_sign_in_kendra")
-
-        exaltation_sign_lord = exaltation_owner_by_planet.get(planet)
-        if exaltation_sign_lord is not None:
-            exaltation_sign_lord_rasi = _planet_rasi(planets, exaltation_sign_lord)
-            if aspects_house(exaltation_sign_lord, exaltation_sign_lord_rasi, planet_rasi):
-                conditions.append("exaltation_sign_lord_aspects_debilitated")
-
-        if d9_rasi_map and d9_lagna_rasi and planet in d9_rasi_map:
-            d9_house = house_from_reference(d9_lagna_rasi, d9_rasi_map[planet])
-            if d9_house in (KENDRA_HOUSES | TRIKONA_HOUSES):
-                conditions.append("debilitated_planet_strong_d9")
-
+        # Canonical cancellation test (chart_strength.neecha_bhanga_cancelled) —
+        # the SAME predicate the strength synthesis uses, so the yoga card and
+        # the +14 bhanga strength term can never disagree (audit C2).
+        cancelled, cancel_conditions = neecha_bhanga_cancelled(
+            planet,
+            planet_rasi=planets_rasi,
+            lagna_rasi=lagna_rasi,
+            d9_rasi_map=d9_rasi_map,
+            d9_lagna_rasi=d9_lagna_rasi,
+        )
+        conditions = ["planet_debilitated", *cancel_conditions]
+        # Retrograde is a supporting note only — it never on its own flips a
+        # debilitated planet to "present" (matches the canonical predicate).
         if planet in retrograde_planets:
             conditions.append("debilitated_planet_retrograde_note")
 
-        present = len(conditions) > 1
         results.append(
             YogaResult(
                 name="NEECHA_BHANGA_RAJA_YOGA",
-                is_present=present,
-                strength="PARTIAL" if present else "WEAK",
+                is_present=cancelled,
+                strength="PARTIAL" if cancelled else "WEAK",
                 conditions_met=conditions,
                 cancellation_factors=[],
                 dasha_activated=_is_active(active, planet),
