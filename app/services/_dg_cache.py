@@ -15,7 +15,10 @@ from app.schemas.dasha import ResponseMeta
 # Bump when the daily-score engine logic changes (scoring weights, dasha/porutham
 # corrections, transit rules, …) so previously cached rows self-invalidate instead
 # of being served stale. Combined with the chart calculation_version on load.
-DAILY_SCORE_ENGINE_VERSION = "2026-07-23-v6"
+# v7 (2026-07-23): audit conflict fixes — unified neecha-bhanga detector (C2),
+# node functional nature in life-area scoring (C4), dual-path strength synthesis
+# parity (C1). See docs/THIRUKANITHAM_ENGINE_AUDIT_2026-07-23.md.
+DAILY_SCORE_ENGINE_VERSION = "2026-07-23-v7"
 
 
 def _cache_version(calculation_version: str) -> str:

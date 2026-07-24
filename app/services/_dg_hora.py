@@ -1,7 +1,7 @@
 """Hora (planetary hour) timing helpers and daily guidance text builders."""
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 
 from app.calculations.astro import resolve_timezone
 from app.schemas.daily_guidance import (
@@ -74,6 +74,27 @@ def _personal_hora_lords(
     return priority, supportive
 
 
+def _intervals_overlap(a_start: datetime, a_end: datetime, b_start: datetime, b_end: datetime) -> bool:
+    """True when [a_start, a_end) and [b_start, b_end) intersect. All four are
+    datetimes from the same panchangam snapshot (same day, same zone), so a
+    direct comparison is sound."""
+    return a_start < b_end and b_start < a_end
+
+
+def _inauspicious_intervals(panchangam) -> list[tuple[datetime, datetime]]:
+    """Rahu Kalam, Yamagandam and Kuligai as (start, end) pairs — the day's
+    classically inauspicious kalams. A window recommended as *best* must not
+    fall inside any of them."""
+    out: list[tuple[datetime, datetime]] = []
+    for attr in ("rahu_kalam", "yamagandam", "kuligai"):
+        slot = getattr(panchangam, attr, None)
+        start = getattr(slot, "start", None)
+        end = getattr(slot, "end", None)
+        if start is not None and end is not None:
+            out.append((start, end))
+    return out
+
+
 def _best_hours(
     panchangam,
     current_maha_lord: str,
@@ -81,6 +102,22 @@ def _best_hours(
     current_antar_lord: str = "",
 ) -> list[DailyGuidanceWindow]:
     windows: list[DailyGuidanceWindow] = []
+
+    # A hora "best window" that sits inside Rahu Kalam, Yamagandam or Kuligai is
+    # a self-contradiction — the same day view marks those as periods to avoid.
+    # So every *hora* candidate below is dropped if it overlaps one of them.
+    # (This was the bug where the featured window 3:35–4:37pm landed squarely
+    # inside Yamagandam 3:35–5:09pm.)
+    #
+    # Abhijit is deliberately NOT filtered this way: Abhijit Muhurtham is the
+    # classical exception — traditionally held auspicious even when it clips
+    # Rahu Kalam — and the app already treats it as a universally auspicious slot
+    # that never fully vanishes. Its only gate is its own weekday restriction.
+    bad = _inauspicious_intervals(panchangam)
+
+    def _clear(start: datetime, end: datetime) -> bool:
+        return not any(_intervals_overlap(start, end, bs, be) for bs, be in bad)
+
     if not panchangam.abhijit_restricted:
         windows.append(
             DailyGuidanceWindow(
@@ -102,10 +139,11 @@ def _best_hours(
         if norm_maha not in _MALEFIC_HORA_LORDS:
             supportive_lords.add(norm_maha)
 
-    # Emit all daytime horas that qualify, marking personal-planet horas distinctly
+    # Emit all daytime horas that qualify, marking personal-planet horas
+    # distinctly — but never one overlapping an inauspicious kalam.
     for entry in panchangam.hora[:12]:
         norm_lord = _normalize_graha_name(_money_hora_name(entry.lord))
-        if norm_lord in supportive_lords:
+        if norm_lord in supportive_lords and _clear(entry.start, entry.end):
             tag = "PERSONAL_HORA" if norm_lord in priority_lords else "HORA"
             windows.append(
                 DailyGuidanceWindow(
@@ -119,13 +157,27 @@ def _best_hours(
 
 
 def _caution_windows(panchangam) -> list[DailyGuidanceWindow]:
-    return [
+    # Rahu Kalam stays first — callers read caution_windows[0] as the Rahu Kalam
+    # for the Rahu-specific caution copy. Yamagandam and Kuligai are the day's
+    # other two inauspicious kalams and belong in the same avoid-set.
+    windows = [
         DailyGuidanceWindow(
             type="RAHU_KALAM",
             start=panchangam.rahu_kalam.start.strftime("%H:%M"),
             end=panchangam.rahu_kalam.end.strftime("%H:%M"),
         )
     ]
+    for window_type, attr in (("YAMAGANDAM", "yamagandam"), ("KULIGAI", "kuligai")):
+        slot = getattr(panchangam, attr, None)
+        if slot is not None and getattr(slot, "start", None) is not None and getattr(slot, "end", None) is not None:
+            windows.append(
+                DailyGuidanceWindow(
+                    type=window_type,
+                    start=slot.start.strftime("%H:%M"),
+                    end=slot.end.strftime("%H:%M"),
+                )
+            )
+    return windows
 
 
 def _build_text(

@@ -38,8 +38,16 @@ Weekday guidance (Thirukanitham tradition):
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal
+
+from app.core.age_gate import (
+    EDUCATION_LOWER_AGE,
+    MINOR_AGE,
+    is_married_settled,
+    is_past_prime_marriage_age,
+    is_seeking_marriage,
+)
 
 ActivityType = Literal[
     "job_change", "business_start", "marriage", "education",
@@ -72,17 +80,24 @@ ACTIVITY_TYPES: tuple[ActivityType, ...] = (
     "travel_abroad", "health", "spiritual",
 )
 
+# Labels read as things one *begins or undertakes* today, because that is the
+# question this board answers — the auspicious muhurtam to START an activity,
+# not a verdict on the activity itself. "Study and learning" (which read as a
+# judgement on the act of studying) is now "Starting studies"; "Health" (which
+# collided with the Life-Areas health *outlook* score) is "Medical procedures",
+# its true muhurtam meaning — surgery/treatment timing. New/changed Tamil
+# strings are pending native review, per this repo's convention.
 ACTIVITY_LABEL_TA: dict[str, str] = {
     "job_change": "வேலை மாற்றம்",
     "business_start": "தொழில் தொடக்கம்",
     "money": "பண முடிவுகள்",
-    "property": "சொத்து",
+    "property": "சொத்து / ஒப்பந்தம்",
     "marriage": "திருமணம்",
     "family_harmony": "குடும்ப நலம்",
     "child_birth": "குழந்தை பாக்கியம்",
-    "education": "கல்வி",
-    "travel_abroad": "வெளிநாடு பயணம்",
-    "health": "உடல்நலம்",
+    "education": "படிப்புத் தொடக்கம்",
+    "travel_abroad": "வெளிநாட்டுப் பயணம்",
+    "health": "மருத்துவச் சிகிச்சை",
     "spiritual": "ஆன்மீகம்",
     "other": "உங்கள் இலக்கு",
 }
@@ -91,13 +106,13 @@ ACTIVITY_LABEL_EN: dict[str, str] = {
     "job_change": "Job moves",
     "business_start": "Starting a business",
     "money": "Money decisions",
-    "property": "Property",
+    "property": "Property & signing",
     "marriage": "Marriage",
     "family_harmony": "Family matters",
-    "child_birth": "Children",
-    "education": "Study and learning",
-    "travel_abroad": "Travel abroad",
-    "health": "Health",
+    "child_birth": "Trying for a child",
+    "education": "Starting studies",
+    "travel_abroad": "Setting out abroad",
+    "health": "Medical procedures",
     "spiritual": "Spiritual practice",
     "other": "Your goal",
 }
@@ -416,12 +431,118 @@ def _primary_signal(
     return tithi_sig
 
 
+@dataclass(frozen=True)
+class ActivityAudience:
+    """Who today's board is for.
+
+    All fields are optional; an audience left at its defaults means "show
+    everything, unchanged" — which is what callers with no profile context
+    (and the board's own rule-partition tests) rely on. When a field is set,
+    the board only lists activities that make sense for that person and reframes
+    a few whose meaning shifts (a divorced native's "Marriage" is a *remarriage*;
+    a native already living overseas is not "setting out abroad" but relocating).
+
+    This is life-stage relevance, not a second astrological opinion: it decides
+    *which questions to ask*, never changes the verdict of a question asked.
+    Thirukanitham has always read a chart against the native's āyul (life stage)
+    — a marriage muhurtam is meaningless to one already married, a child-birth
+    muhurtam to one past that stage, a job-change muhurtam to a retiree.
+    """
+
+    age: int | None = None
+    marital_status: str | None = None
+    employment_type: str | None = None
+    # gender_for_traditional_rules ("male"/"female") — only narrows the
+    # child-bearing age window; absent → the wider default is used.
+    gender: str | None = None
+    # Native currently resident outside their birth region (best-effort from
+    # timezone continents) — reframes "abroad travel" as relocation/long journey.
+    is_abroad: bool = False
+
+
+# Activities a native is never shown before legal adulthood — the adult
+# commitments. What remains for a minor: studies, family, health, spiritual,
+# and (family) travel.
+_MINOR_HIDDEN: frozenset[str] = frozenset({
+    "marriage", "child_birth", "job_change", "business_start", "money", "property",
+})
+# Employment states for which a fresh job move / new business is not the
+# native's live question.
+_RETIRED_HIDDEN: frozenset[str] = frozenset({"job_change", "business_start"})
+
+
+def _is_relevant(activity: str, aud: ActivityAudience) -> bool:
+    age = aud.age
+    emp = (aud.employment_type or "").strip().lower()
+
+    # 0–5: only wellbeing and family are meaningful.
+    if age is not None and age < EDUCATION_LOWER_AGE:
+        return activity in {"health", "family_harmony"}
+    # 6–17: no adult commitments.
+    if age is not None and age < MINOR_AGE and activity in _MINOR_HIDDEN:
+        return False
+
+    if activity == "marriage":
+        if is_married_settled(aud.marital_status):
+            return False
+        if age is not None and is_past_prime_marriage_age(age):
+            return False
+        return True
+
+    if activity == "child_birth":
+        # A begetting muhurtam presupposes a marriage and a child-bearing stage.
+        if not (is_married_settled(aud.marital_status) or is_seeking_marriage(aud.marital_status)):
+            return False
+        cap = 45 if (aud.gender or "").strip().lower().startswith("f") else 55
+        if age is not None and age >= cap:
+            return False
+        return True
+
+    if activity in _RETIRED_HIDDEN and emp == "retired":
+        return False
+
+    return True
+
+
+def _audience_label(activity: str, aud: ActivityAudience) -> tuple[str, str] | None:
+    """(ta, en) override when the native's context renames an activity, else None."""
+    if activity == "marriage" and is_seeking_marriage(aud.marital_status):
+        return ("மறுமணம் / புதிய உறவு", "Remarriage / new bond")
+    if activity == "travel_abroad" and aud.is_abroad:
+        return ("நீண்ட பயணம் / இடமாற்றம்", "Long journey / relocation")
+    return None
+
+
+def personalize_board(board: DailyActivityBoard, audience: ActivityAudience) -> DailyActivityBoard:
+    """Drop activities that do not apply to this native and reframe the few whose
+    meaning their life stage changes. Verdicts are untouched — only the roster."""
+
+    def _filtered(verdicts: list[ActivityVerdict]) -> list[ActivityVerdict]:
+        out: list[ActivityVerdict] = []
+        for v in verdicts:
+            if not _is_relevant(v.activity, audience):
+                continue
+            override = _audience_label(v.activity, audience)
+            if override is not None:
+                v = replace(v, label_ta=override[0], label_en=override[1])
+            out.append(v)
+        return out
+
+    return DailyActivityBoard(
+        favourable=_filtered(board.favourable),
+        caution=_filtered(board.caution),
+        neutral=_filtered(board.neutral),
+        is_chandrashtama=board.is_chandrashtama,
+    )
+
+
 def daily_activity_board(
     tithi_number: int,
     paksha: str,
     weekday_lord: str,
     *,
     is_chandrashtama: bool = False,
+    audience: ActivityAudience | None = None,
 ) -> DailyActivityBoard:
     """Today's "what is this day good for" board across every activity type.
 
@@ -458,12 +579,15 @@ def daily_activity_board(
         else:
             neutral.append(verdict)
 
-    return DailyActivityBoard(
+    board = DailyActivityBoard(
         favourable=favourable,
         caution=caution,
         neutral=neutral,
         is_chandrashtama=is_chandrashtama,
     )
+    if audience is not None:
+        board = personalize_board(board, audience)
+    return board
 
 
 def assess_activity_timing(
