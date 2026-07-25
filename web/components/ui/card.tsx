@@ -11,18 +11,23 @@ import type { ReactNode } from "react";
  * card reads the token layer and inherits dark/light + reduced-motion for free.
  */
 
-type CardVariant = "default" | "soft" | "accent" | "dashed";
+type CardVariant = "default" | "soft" | "accent" | "dashed" | "high" | "low" | "mid";
 
 type CardProps = {
   children: ReactNode;
   /** Surface tone. `soft` = elevated, `accent` = gold-tinted, `dashed` = the
-   *  "bridge / learn more" affordance. */
+   *  "bridge / learn more" affordance, `high`/`mid`/`low` = semantic
+   *  positive/caution/negative callouts (mirrors the shared score tokens). */
   variant?: CardVariant;
   /** Tighter padding for dense/nested cards. */
   compact?: boolean;
   as?: "div" | "section" | "article" | "aside";
   className?: string;
   style?: React.CSSProperties;
+  /** For click-to-select rows (e.g. a date option in a list) — same clickable-
+   *  div pattern the hand-rolled card it replaces already used, not a new
+   *  a11y regression. Prefer a real `<button>` outside `<Card>` when possible. */
+  onClick?: () => void;
 };
 
 const VARIANT_CLASS: Record<CardVariant, string> = {
@@ -30,6 +35,9 @@ const VARIANT_CLASS: Record<CardVariant, string> = {
   soft: "ui-card--soft",
   accent: "ui-card--accent",
   dashed: "ui-card--dashed",
+  high: "ui-card--high",
+  low: "ui-card--low",
+  mid: "ui-card--mid",
 };
 
 export function Card({
@@ -39,13 +47,14 @@ export function Card({
   as = "div",
   className,
   style,
+  onClick,
 }: CardProps) {
   const Tag = as;
   const classes = ["ui-card", VARIANT_CLASS[variant], compact ? "ui-card--pad-sm" : "", className]
     .filter(Boolean)
     .join(" ");
   return (
-    <Tag className={classes} style={style}>
+    <Tag className={classes} style={style} onClick={onClick}>
       {children}
     </Tag>
   );
